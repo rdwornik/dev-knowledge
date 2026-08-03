@@ -358,12 +358,31 @@ def _run_in(args: list[str], cwd: Path, env: dict[str, str] | None = None) -> su
 
 
 # ---------------------------------------------------------------------------
-# Organ 1 — session_end_backpressure (Group C: JOURNAL Stop-block).
+# Organ 1 — the ADR-85 JOURNAL-anchor gate (Group C: hub-hardcoded standalone).
+#
+# WHAT THIS PROBE MEASURES MOVED (ADR-85 amendment 2026-08-03, §A5/FR5). It used to probe
+# the `Stop` hook for `{"decision":"block"}`. That block was deleted BY DESIGN when the
+# teeth moved to pre-push: a Stop hook's unit is a model-turn boundary the host force-ends
+# after N consecutive blocks, so it cannot host a hard gate. The probe was not repointed in
+# the same arc, so it answered ABSENT for every repo in the fleet — correct about the Stop
+# hook, wrong about ADR-85 coverage, and a probe with a constant answer measures nothing.
+#
+# It now measures the organ that actually carries the obligation: `block_unanchored_push`
+# at pre-push. The `organ_id` string stays `session_end_backpressure` — the deploy
+# manifests, the carrier mesh, the methodology roster and the fleet digest all key on it,
+# so renaming it is a separate, wider change than repointing what it reads.
 # ---------------------------------------------------------------------------
 
+# Stop-hook tokens: retained ONLY to keep `propose_closures` excluded and to describe the
+# now-advisory Stop hook in evidence. They no longer decide the verdict.
 _BACKPRESSURE_TOKENS = ("session_end_backpressure", "backpressure", "journal-anchor",
                        "journal_anchor")
 _PROPOSE_CLOSURES = "propose_closures"
+
+# The ADR-85 hard leg. Matched on the SCRIPT name rather than the hook id: the id is a
+# label a consumer may rename, while the script is the organ.
+_ANCHOR_ORGAN_SCRIPT = "block_unanchored_push"
+_ANCHOR_STAGE = "pre-push"
 
 
 def _seb_applicability(root: Path) -> tuple[str, str]:
@@ -385,12 +404,33 @@ def _seb_candidate_command(root: Path) -> str | None:
     return None
 
 
+def _anchor_hook(root: Path) -> dict | None:
+    """The `.pre-commit-config.yaml` hook that runs the ADR-85 anchor organ at pre-push.
+
+    Both conditions are required. A hook that runs the script at the WRONG stage (e.g.
+    left at pre-commit) never sees a push and enforces nothing, so stage is part of the
+    organ's identity, not decoration.
+    """
+    for h in _precommit_hooks(root):
+        entry = h.get("entry")
+        if not isinstance(entry, str) or _ANCHOR_ORGAN_SCRIPT not in entry:
+            continue
+        stages = h.get("stages")
+        if isinstance(stages, list) and _ANCHOR_STAGE in stages:
+            return h
+    return None
+
+
 def _seb_locate(root: Path) -> tuple[bool, str]:
-    cmd = _seb_candidate_command(root)
-    if cmd:
-        return (True, f"candidate: hooks.Stop runs a backpressure script ({cmd!r})")
-    return (False, "no blocking hooks.Stop backpressure script "
-                   "(enabledPlugins:tier1-lifecycle -> propose_closures is non-blocking, excluded)")
+    hook = _anchor_hook(root)
+    if hook:
+        return (True, f"candidate: pre-push hook {hook.get('id', '?')!r} runs "
+                      f"{_ANCHOR_ORGAN_SCRIPT} ({hook.get('entry')!r})")
+    stop = _seb_candidate_command(root)
+    stop_note = (" (a Stop backpressure hook IS wired, but the ADR-85 amendment 2026-08-03 "
+                 "§A5 made Stop advisory in full — it carries no teeth)" if stop else "")
+    return (False, f"no pre-push hook runs {_ANCHOR_ORGAN_SCRIPT} — the ADR-85 hard leg is "
+                   f"not installed{stop_note}")
 
 
 _CLAUDE_PROJECT_DIR_RE = re.compile(r"\$\{?CLAUDE_PROJECT_DIR\}?")
@@ -411,36 +451,71 @@ def _resolve_script(cmd: str, clone: Path) -> Path | None:
     return p
 
 
+def _push_refs(local_sha: str, remote_sha: str) -> str:
+    """git's native pre-push stdin: `<local_ref> <local_sha> <remote_ref> <remote_sha>`.
+
+    The organ is driven through the wiring git itself uses, not a bespoke calling
+    convention — a probe that invents its own input can pass against a hook the real
+    push path would never reach.
+    """
+    return f"refs/heads/main {local_sha} refs/heads/main {remote_sha}\n"
+
+
 def _seb_fire(consumer: Path) -> tuple[bool, str]:
-    """FIRE test: create a shipped-but-unanchored clean-tree state, run the Stop hook, and
-    require it to emit {"decision":"block"} with a JOURNAL reason. additionalContext/empty =
-    NOT firing (this is exactly what separates a real backpressure gate from propose_closures)."""
+    """FIRE test for the ADR-85 hard leg: does the pre-push organ actually DISCRIMINATE?
+
+    Two legs, deliberately — exit-non-zero alone is not enforcement. A hook hard-wired to
+    fail refuses every push and enforces nothing meaningful, and a hook hard-wired to pass
+    is inert; only a gate that refuses the unanchored range AND allows the anchored one is
+    measuring the obligation. This mirrors the inert-vs-blocking pair the Stop-hook probe
+    used to establish, at the organ's new home.
+
+      leg 1  unanchored spine entry in the push range -> MUST refuse (exit 1)
+      leg 2  a JOURNAL entry naming a SHA the range introduced -> MUST allow (exit 0)
+    """
     with _cloned_consumer(consumer) as (clone, env, _fc):
-        cmd = _seb_candidate_command(clone)
-        if not cmd:
-            return (False, "no Stop backpressure command in the committed clone")
-        script = _resolve_script(cmd, clone)
+        hook = _anchor_hook(clone)
+        if not hook:
+            return (False, "no pre-push anchor hook in the committed clone")
+        script = _resolve_script(str(hook.get("entry", "")), clone)
         if script is None or not script.exists():
-            return (False, f"Stop script did not resolve/exist: {cmd!r}")
+            return (False, f"anchor organ did not resolve/exist: {hook.get('entry')!r}")
+
+        base = _run_in(["git", "rev-parse", "HEAD"], clone, env).stdout.strip()
         (clone / "_enfcov_probe.txt").write_text("unanchored work\n", encoding="utf-8", newline="\n")
         _run_in(["git", "add", "_enfcov_probe.txt"], clone, env)
         c = _run_in(["git", "commit", "-m", "enfcov: shipped work, no JOURNAL SHA anchor"], clone, env)
         if c.returncode != 0:
             return (False, f"could not create the unanchored probe commit: {(c.stdout + c.stderr).strip()}")
-        r = subprocess.run([sys.executable, str(script)], cwd=str(clone), input="{}",
-                           capture_output=True, text=True, encoding="utf-8", errors="replace",
-                           env={**os.environ, **env})
-        out = (r.stdout or "").strip()
-        try:
-            decision = json.loads(out) if out else {}
-        except json.JSONDecodeError:
-            decision = {}
-        if isinstance(decision, dict) and decision.get("decision") == "block":
-            reason = str(decision.get("reason", ""))
-            journal = "JOURNAL" in reason or "anchor" in reason.lower()
-            return (True, "Stop hook emitted decision:block on unanchored work"
-                          + (" (JOURNAL reason)" if journal else ""))
-        return (False, f"Stop hook did NOT block (out={out[:80]!r}) — inert/additionalContext, not enforcing")
+        unanchored = _run_in(["git", "rev-parse", "HEAD"], clone, env).stdout.strip()
+
+        def _run(tip: str):
+            return subprocess.run([sys.executable, str(script)], cwd=str(clone),
+                                  input=_push_refs(tip, base), capture_output=True, text=True,
+                                  encoding="utf-8", errors="replace", env={**os.environ, **env})
+
+        refuse = _run(unanchored)
+        if refuse.returncode == 0:
+            return (False, "pre-push organ ALLOWED an unanchored push to main "
+                           f"(exit 0, err={(refuse.stderr or '').strip()[:80]!r}) — inert, not enforcing")
+
+        # leg 2 — the same organ must let an anchored range through.
+        journal = clone / "JOURNAL.md"
+        journal.write_text(
+            journal.read_text(encoding="utf-8")
+            + f"\n## enfcov probe\n\nAnchors `{unanchored[:7]}` — the commit this range introduces.\n",
+            encoding="utf-8", newline="\n")
+        _run_in(["git", "add", "JOURNAL.md"], clone, env)
+        a = _run_in(["git", "commit", "-m", "enfcov: JOURNAL anchor for the probe commit"], clone, env)
+        if a.returncode != 0:
+            return (False, f"could not create the anchor commit: {(a.stdout + a.stderr).strip()}")
+        anchored_tip = _run_in(["git", "rev-parse", "HEAD"], clone, env).stdout.strip()
+        allow = _run(anchored_tip)
+        if allow.returncode != 0:
+            return (False, f"pre-push organ REFUSED an anchored push too (exit {allow.returncode}) — "
+                           "it does not discriminate; a constant refusal enforces nothing")
+        return (True, f"pre-push organ refused the unanchored range (exit {refuse.returncode}) "
+                      "and allowed the anchored one — ADR-85 hard leg enforcing")
 
 
 # ---------------------------------------------------------------------------

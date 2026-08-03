@@ -1,10 +1,12 @@
 """Tests for the Informant Organ (scripts/enforcement_coverage.py) — Stage-2 enforcement-transfer.
 
 The load-bearing proof (closure contract): the reporter measures whether enforcement FIRES, not
-whether files are present. The two tests that establish it are
-``test_present_but_inert_stop_hook_reports_absent`` (a Stop hook that is a locate CANDIDATE but
-behaviourally inert -> verdict ``absent``, NOT ``enforcing-local``) paired with
-``test_blocking_stop_hook_reports_enforcing_local`` (the real backpressure script -> ``enforcing-local``).
+whether files are present. Since the ADR-85 amendment 2026-08-03 moved the teeth from the Stop
+hook to pre-push, that proof runs against ``block_unanchored_push``:
+``test_present_but_inert_anchor_hook_reports_absent`` (a pre-push hook that is a locate CANDIDATE
+but behaviourally inert -> verdict ``absent``, NOT ``enforcing-local``) paired with
+``test_anchor_gate_probe_distinguishes_installed_from_absent`` (the real organ -> ``enforcing-local``,
+and — the part a pair of independent tests cannot pin — the two verdicts DIFFER).
 
 Hermetic (Layer-1): every fixture is a throwaway git repo built in ``tmp_path``; fire_test clones it
 (own .git, plain-delete teardown) exactly as floor_conformance does. No network, no real consumers.
@@ -15,11 +17,13 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
 
 import pytest
+import yaml
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_REPO_ROOT / "scripts"))
@@ -78,47 +82,163 @@ def _cell(cells, organ_id):
 # ---------------------------------------------------------------------------
 
 
-def test_present_but_inert_stop_hook_reports_absent(tmp_path):
-    """A Stop hook that is a locate CANDIDATE (a session_end_backpressure look-alike) but exits 0
-    with additionalContext must be reported ``absent`` — the fire_test, not presence, decides."""
-    root = _init_consumer(tmp_path / "inert", {
-        "JOURNAL.md": "# Journal\n\n- work happened\n",
-        ".claude/session_end_backpressure.py": _INERT_STOP,  # look-alike name -> candidate
-        ".claude/settings.json": _stop_settings(
-            'python "$CLAUDE_PROJECT_DIR/.claude/session_end_backpressure.py"'),
-    })
-    # locate MUST flag it a candidate (so we are genuinely exercising the fire path, not locate).
-    assert ec._seb_candidate_command(root) is not None
+def test_present_but_inert_anchor_hook_reports_absent(tmp_path):
+    """A pre-push hook that is a locate CANDIDATE but behaviourally inert (exits 0 on an
+    unanchored push) must be reported ``absent`` — the fire_test, not presence, decides.
+
+    This is the load-bearing firing-not-presence proof, ported to the organ's new home. It
+    was `test_present_but_inert_stop_hook_reports_absent` against a Stop look-alike; the
+    Stop hook stopped being where the ADR-85 teeth live (amendment 2026-08-03 §A5), so the
+    same proof now runs against an inert `block_unanchored_push`.
+    """
+    root = _anchor_organ_consumer(tmp_path / "inert")
+    (root / "scripts" / "block_unanchored_push.py").write_text(
+        "import sys\nsys.exit(0)\n", encoding="utf-8", newline="\n")
+    _git(["add", "-A"], root)
+    _git(["commit", "-q", "-m", "replace the organ with an inert allow"], root)
+
+    # locate MUST flag it a candidate (so we genuinely exercise the fire path, not locate).
+    assert ec._anchor_hook(root) is not None
     cell = _cell(ec.evaluate_full(root), "session_end_backpressure")
     assert cell.verdict == ec.ABSENT
     assert cell.fired is False
 
 
 def test_stop_hook_no_longer_enforces_after_the_adr85_amendment(tmp_path):
-    """ADR-85 amendment 2026-08-03 §A5/FR5 — the Stop hook is ADVISORY IN FULL and therefore
-    does not fire this organ's enforcement probe any more.
+    """ADR-85 amendment 2026-08-03 §A5/FR5 — the Stop hook is ADVISORY IN FULL, so a repo
+    wiring ONLY the Stop hook has NO ADR-85 coverage and must read ``absent``.
 
     Was `test_blocking_stop_hook_reports_enforcing_local`, which asserted ENFORCING_LOCAL on
     the strength of `{"decision":"block"}`. That block is gone by design: a Stop hook's unit
     is a model-turn boundary the host force-ends after N consecutive blocks, so it cannot
     carry teeth. The ADR-85 teeth now live at pre-push in `block_unanchored_push.py`.
 
-    STALE MEASUREMENT, DELIBERATELY PINNED RATHER THAN HIDDEN: `_seb_fire` still probes the
-    Stop hook for a block, so the mesh now reports this organ ABSENT on every consumer. That
-    verdict is *correct about the Stop hook* and *wrong about ADR-85 coverage* — the probe
-    needs re-pointing at the pre-push organ. This test asserts today's real behaviour so the
-    gap is visible in the suite instead of silently reading as a coverage regression; the
-    re-point is filed as follow-on work, not silently patched in here.
+    The pin this test carried — "the Stop hook does not enforce ADR-85" — is unchanged and
+    still asserted here. What changed is WHY the cell reads absent: it is no longer a
+    candidate that failed to fire (a stale probe pointed at the wrong organ), but a repo
+    correctly measured as not having the hard leg installed at all. The evidence must say
+    so, naming the Stop hook rather than silently ignoring it — a consumer reading this
+    cell needs to know a Stop hook is wired and does not count.
     """
-    root = _init_consumer(tmp_path / "enforcing", {
+    root = _init_consumer(tmp_path / "stop-only", {
         "JOURNAL.md": "# Journal\n\n- prior session\n",
         "scripts/session_end_backpressure.py": _REAL_SEB,
         ".claude/settings.json": _stop_settings(
             'python "$CLAUDE_PROJECT_DIR/scripts/session_end_backpressure.py"'),
     })
     cell = _cell(ec.evaluate_full(root), "session_end_backpressure")
+    assert cell.verdict == ec.ABSENT, cell.evidence
+    assert cell.fired is not True, cell.evidence
+    assert "block_unanchored_push" in cell.evidence
+    assert "advisory in full" in cell.evidence
+
+
+# ---------------------------------------------------------------------------
+# The ADR-85 organ moved to pre-push — the probe must follow it, and must DISTINGUISH.
+# ---------------------------------------------------------------------------
+
+
+_ANCHOR_HOOK_ID = "block-unanchored-push"
+
+
+def _hub_script_closure(entry_stem: str) -> dict[str, str]:
+    """Real hub text for ``scripts/<entry_stem>.py`` + every sibling ``scripts/*.py`` it
+    transitively imports.
+
+    DERIVED, never a hand-maintained list: the organ already imports two siblings, which
+    themselves import a third, and a fixture that enumerates today's set would silently go
+    short the moment that graph changes — the fire_test would then fail for an import
+    reason and read as "the organ does not enforce", which is the exact mismeasurement
+    this test exists to prevent.
+    """
+    scripts = _REPO_ROOT / "scripts"
+    seen: dict[str, str] = {}
+    pending = [entry_stem]
+    while pending:
+        stem = pending.pop()
+        if stem in seen:
+            continue
+        path = scripts / f"{stem}.py"
+        if not path.exists():
+            continue
+        text = path.read_text(encoding="utf-8")
+        seen[stem] = text
+        for m in re.finditer(r"^\s*(?:import|from)\s+([A-Za-z_][A-Za-z0-9_]*)", text, re.M):
+            if (scripts / f"{m.group(1)}.py").exists():
+                pending.append(m.group(1))
+    return {f"scripts/{stem}.py": text for stem, text in seen.items()}
+
+
+def _hub_anchor_hook_config() -> str:
+    """A minimal `.pre-commit-config.yaml` carrying the hub's OWN `block-unanchored-push`
+    hook declaration, lifted verbatim from the live config.
+
+    Structural on purpose (fire/locate must key on the shipped declaration): if the hub
+    renames the id, moves the stage, or changes the entry, this fixture changes with it and
+    `locate` has to keep resolving the real thing rather than a hand-written look-alike.
+    """
+    live = yaml.safe_load((_REPO_ROOT / ".pre-commit-config.yaml").read_text(encoding="utf-8"))
+    for repo in live.get("repos", []):
+        for hook in repo.get("hooks", []):
+            if hook.get("id") == _ANCHOR_HOOK_ID:
+                return yaml.safe_dump(
+                    {"default_install_hook_types": live.get(
+                        "default_install_hook_types", ["pre-commit", "pre-push"]),
+                     "repos": [{"repo": "local", "hooks": [hook]}]},
+                    sort_keys=False, allow_unicode=True)
+    raise AssertionError(
+        f"no {_ANCHOR_HOOK_ID!r} hook in the live .pre-commit-config.yaml — the ADR-85 hard "
+        "leg is the organ this probe measures; if it was renamed, repoint the probe with it")
+
+
+def _anchor_organ_consumer(root: Path) -> Path:
+    """A consumer with the ADR-85 hard leg genuinely installed (real scripts + real hook)."""
+    files = {
+        "JOURNAL.md": "# Journal\n\n- prior session, nothing anchored here\n",
+        ".pre-commit-config.yaml": _hub_anchor_hook_config(),
+    }
+    files.update(_hub_script_closure("block_unanchored_push"))
+    return _init_consumer(root, files)
+
+
+def test_anchor_gate_probe_distinguishes_installed_from_absent(tmp_path):
+    """THE distinguishing proof for the repointed organ probe (ADR-85 amendment 2026-08-03).
+
+    Demonstrates the vacuity this replaces: before the repoint, `_seb_fire` probed the Stop
+    hook for `{"decision":"block"}`. That block was deleted BY DESIGN when the teeth moved to
+    pre-push, so the probe answered ABSENT for every repo in the fleet — including one with
+    the ADR-85 hard leg fully installed. A probe with a constant answer measures nothing.
+
+    Shape chosen: a SINGLE test asserting BOTH halves rather than two independent tests. A
+    pair can both pass while the probe is constant-ABSENT (the absent half carries it) or
+    constant-PRESENT; only asserting the two verdicts DIFFER pins the discrimination itself.
+    """
+    installed = _anchor_organ_consumer(tmp_path / "installed")
+    bare = _init_consumer(tmp_path / "bare", {"JOURNAL.md": "# Journal\n\n- work happened\n"})
+
+    present = _cell(ec.evaluate_full(installed), "session_end_backpressure")
+    absent = _cell(ec.evaluate_full(bare), "session_end_backpressure")
+
+    assert present.verdict == ec.ENFORCING_LOCAL, present.evidence
+    assert present.fired is True, present.evidence
+    assert absent.verdict == ec.ABSENT, absent.evidence
+    # The discrimination itself — not merely two verdicts that happen to be right today.
+    assert present.verdict != absent.verdict
+
+
+def test_anchor_gate_fire_requires_both_legs_not_a_constant_refusal(tmp_path):
+    """The fire_test must prove the organ DISCRIMINATES anchored from unanchored, not merely
+    that it exits non-zero. A hook hard-wired to `sys.exit(1)` refuses every push and enforces
+    nothing meaningful; it must NOT read as enforcing-local."""
+    root = _anchor_organ_consumer(tmp_path / "always-refuses")
+    (root / "scripts" / "block_unanchored_push.py").write_text(
+        "import sys\nsys.exit(1)\n", encoding="utf-8", newline="\n")
+    _git(["add", "-A"], root)
+    _git(["commit", "-q", "-m", "replace the organ with a constant refusal"], root)
+
+    cell = _cell(ec.evaluate_full(root), "session_end_backpressure")
+    assert cell.verdict == ec.ABSENT, cell.evidence
     assert cell.fired is False, cell.evidence
-    assert "did NOT block" in cell.evidence or cell.verdict == ec.ABSENT
 
 
 # ---------------------------------------------------------------------------
@@ -383,12 +503,7 @@ def test_audit_leg_never_fails_and_never_claims_enforcing_local(tmp_path):
 def test_static_path_reports_present_unverified_for_a_candidate(tmp_path):
     """A candidate organ on the STATIC path is present-unverified (not enforcing-local — the leg
     cannot license enforcing-local without a fire_test)."""
-    root = _init_consumer(tmp_path / "cand", {
-        "JOURNAL.md": "# Journal\n",
-        "scripts/session_end_backpressure.py": _REAL_SEB,
-        ".claude/settings.json": _stop_settings(
-            'python "$CLAUDE_PROJECT_DIR/scripts/session_end_backpressure.py"'),
-    })
+    root = _anchor_organ_consumer(tmp_path / "cand")
     cell = _cell(ec.evaluate_static(root), "session_end_backpressure")
     assert cell.verdict == ec.PRESENT_UNVERIFIED
     assert cell.fired is None
