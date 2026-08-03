@@ -2,6 +2,9 @@
 from __future__ import annotations
 
 import os
+from collections import Counter
+
+import pytest
 import subprocess
 import sys
 from pathlib import Path
@@ -9,7 +12,9 @@ from pathlib import Path
 SCRIPTS_DIR = Path(__file__).parent.parent / "scripts"
 sys.path.insert(0, str(SCRIPTS_DIR))
 
-from toc.generator import _slugify, _display, parse_headers, generate_toc  # noqa: E402
+from toc.generator import (  # noqa: E402
+    _EOL_RE, _HEADER_RE, _code_line_indices, _display, _slugify, generate_toc, parse_headers,
+)
 from toc.check import check_toc  # noqa: E402
 
 
@@ -206,3 +211,158 @@ def test_cli_help():
     assert r.returncode == 0
     assert "generate" in r.stdout
     assert "check" in r.stdout
+
+
+# ---------------------------------------------------------------------------
+# Fence handling — the `startswith("```")` toggle diverges from CommonMark BOTH ways.
+# This generator feeds a DEPLOYED freshness hook, so a wrong header set means a wrong
+# TOC that then fails the gate (or passes with content silently missing).
+# ---------------------------------------------------------------------------
+
+def test_parse_headers_does_not_swallow_the_document_after_an_odd_fence_count():
+    """FALSE NEGATIVE — the defect that actually bites the corpus.
+
+    A closing fence may not carry an info string, so ```` ```markdown ```` after an open
+    fence is CONTENT, not a close. The naive toggle counts it anyway, ends up stuck
+    "inside a fence", and silently drops every heading in the rest of the document.
+    Measured on the live corpus this is the dominant cause: 9 of 1577 files diverge, e.g.
+    docs/handoffs/archive/2026-05-09-ai-council-audit-sync/stage1-question.md, where the
+    toggle finds 5 headings against CommonMark's 13.
+    """
+    md = (
+        "## Before\n\n"
+        "```\n"
+        "code\n"
+        "```markdown\n"      # NOT a close (info string) -> still inside the fence
+        "still code\n"
+        "```\n"              # the real close
+        "\n## After\n"
+    )
+    assert parse_headers(md) == [(2, "Before"), (2, "After")]
+
+
+def test_parse_headers_skips_tilde_fenced_content():
+    """FALSE POSITIVE — the mirror image. `~~~` is a legal CommonMark fence and the
+    toggle only knows backticks, so sample markdown inside a tilde fence is harvested as
+    real headings and lands in the generated TOC."""
+    md = "## Real\n\n~~~\n## NotAHeader\n~~~\n\n## Also Real\n"
+    assert parse_headers(md) == [(2, "Real"), (2, "Also Real")]
+
+
+def test_parse_headers_respects_a_longer_fence_wrapping_a_shorter_one():
+    """A 4-backtick fence legally contains 3-backtick lines; the toggle closes early."""
+    md = "## Real\n\n````\n```\n## NotAHeader\n```\n````\n\n## Also Real\n"
+    assert parse_headers(md) == [(2, "Real"), (2, "Also Real")]
+
+
+# ---------------------------------------------------------------------------
+# Corpus safety property: the fence fix RECOVERS headers, it never drops them.
+# ---------------------------------------------------------------------------
+
+_SKIP_PARTS = {".venv", ".git", "node_modules", "__pycache__", ".pytest_cache"}
+
+
+def _legacy_parse_headers(content: str) -> list[tuple[int, str]]:
+    """The pre-fix `startswith("```")` toggle, kept ONLY as a reference implementation for
+    the corpus comparison below. It is the thing being replaced, not a second copy in use."""
+    headers: list[tuple[int, str]] = []
+    in_fence = False
+    for line in content.splitlines():
+        if line.lstrip().startswith("```"):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        m = _HEADER_RE.match(line)
+        if m:
+            headers.append((len(m.group(1)), m.group(2)))
+    return headers
+
+
+def _legacy_parse_headers_with_lines(content: str) -> list[tuple[int, tuple[int, str]]]:
+    """The legacy toggle, but recording each header's source line index."""
+    out: list[tuple[int, tuple[int, str]]] = []
+    in_fence = False
+    for i, line in enumerate(_EOL_RE.split(content)):
+        if line.lstrip().startswith("```"):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        m = _HEADER_RE.match(line)
+        if m:
+            out.append((i, (len(m.group(1)), m.group(2))))
+    return out
+
+
+@pytest.mark.live_repo
+def test_corpus_fence_fix_never_drops_a_header_from_OUTSIDE_a_code_block() -> None:
+    """The safety property, stated correctly — and the first two versions of it were not.
+
+    v1 used `h not in fixed`: MEMBERSHIP, so a lost duplicate passed (terra HIGH r1). Duplicate
+    occurrences drive `#foo-1` anchor numbering, so losing one renumbers every later anchor.
+
+    v2 used a multiset difference but asserted "never drops ANY legacy header" — which is
+    WRONG IN PRINCIPLE (terra HIGH r2). The tilde-fence fix DELIBERATELY drops legacy false
+    positives: a `##` line inside a `~~~` fence was wrongly returned before and is correctly
+    excluded now. That invariant passes today only because no live file happens to contain one,
+    and it would have REDded the moment anyone added a legal `##` inside a `~~~` fence — a
+    correct edit blocked by a test asserting the wrong thing.
+
+    The honest invariant distinguishes the two kinds of drop by WHERE the header was: a legacy
+    header on a line CommonMark places inside a code block may legitimately disappear; one from
+    outside any code block must survive. That is exactly the deployed-hook risk — a header lost
+    from real prose silently shrinks a generated TOC and the freshness gate accepts the smaller
+    one as fresh.
+
+    Measured after the fix, over 1578 files: 3 changed, all strictly gaining (+6, +8, +8), zero
+    losses of either kind. Recovery is pinned deterministically by the fence-shape unit tests
+    above, not by a live count, so ordinary edits cannot turn this into a spurious RED.
+    """
+    root = Path(__file__).resolve().parent.parent
+    files = [p for p in sorted(root.rglob("*.md")) if not _SKIP_PARTS.intersection(p.parts)]
+    assert len(files) > 100, f"corpus implausibly small ({len(files)}) — glob is wrong"
+
+    compared = 0
+    for p in files:
+        content = p.read_text(encoding="utf-8", errors="replace")
+        code = _code_line_indices(content)
+        outside = [h for i, h in _legacy_parse_headers_with_lines(content) if i not in code]
+        compared += len(outside)
+        lost = Counter(outside) - Counter(parse_headers(content))
+        assert not lost, (
+            f"{p}: the fence fix dropped header occurrence(s) from OUTSIDE any code block: "
+            f"{list(lost)[:3]}")
+    assert compared > 1000, f"only {compared} headers compared — proof too thin"
+
+
+def test_corpus_invariant_permits_the_intended_tilde_false_positive_drop():
+    """Guards the invariant above against reverting to the over-strict v2 form: a legacy header
+    from inside a `~~~` fence MUST be droppable, and the classifier must place it inside code."""
+    md = "## Real\n\n~~~\n## FalsePositive\n~~~\n\n## Also Real\n"
+    code = _code_line_indices(md)
+    legacy = _legacy_parse_headers_with_lines(md)
+    dropped = [h for i, h in legacy if h not in parse_headers(md)]
+    assert dropped == [(2, "FalsePositive")], dropped
+    inside = [h for i, h in legacy if i in code]
+    assert inside == [(2, "FalsePositive")], "the classifier did not place it inside code"
+
+
+def test_headers_inside_an_html_block_are_still_returned():
+    """The compatibility contract the token-gate revision broke (terra HIGH, 2026-08-03).
+
+    A `##` line inside an HTML block or an unterminated HTML comment is NOT a CommonMark
+    heading, so gating on `heading_open` tokens DROPPED these — shrinking the TOC and shifting
+    anchor numbering. The parser locates CODE RANGES instead, so raw-line behaviour outside
+    fences is preserved and this arc can only recover headers, never lose them.
+    """
+    md = "## Real\n\n<div>\n## InsideHtmlBlock\n</div>\n\n<!-- unterminated\n## InsideComment\n"
+    assert parse_headers(md) == [
+        (2, "Real"), (2, "InsideHtmlBlock"), (2, "InsideComment")]
+
+
+def test_duplicate_headers_keep_every_occurrence():
+    """Occurrence count is load-bearing: `generate_toc` numbers repeat anchors (#foo-1), so
+    losing one duplicate renumbers every later anchor in the document."""
+    md = "## Foo\n\n```\n## Fenced\n```\n\n## Foo\n\n## Foo\n"
+    assert parse_headers(md) == [(2, "Foo"), (2, "Foo"), (2, "Foo")]

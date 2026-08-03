@@ -301,22 +301,28 @@ def run_conformance(tree: Path, env: dict[str, str] | None = None) -> list[str]:
 
 
 def _rmtree_guarded(path: Path, temp_parent: Path) -> None:
-    """rmtree ``path`` with a read-only-bit onerror retry; refuse outside ``temp_parent``.
+    """rmtree ``path`` with a read-only-bit retry; refuse outside ``temp_parent``.
 
     Git packfiles are read-only on Windows, so plain rmtree raises PermissionError —
-    the onerror handler clears the bit and retries. The guard refuses to delete
+    the handler clears the bit and retries. The guard refuses to delete
     anything not under the harness's own temp root ("no leftovers" without blast radius).
+
+    Uses ``onexc``, not ``onerror``: on this repo's ``py>=3.12`` floor ``shutil.rmtree``
+    documents ``onerror`` as "deprecated and only remains for backwards compatibility".
+    Note it emits no runtime DeprecationWarning on 3.12, so nothing would have surfaced this
+    — it is a documentation deprecation, and the two parameters differ in what they hand the
+    callback: ``onerror`` an exc_info 3-tuple, ``onexc`` the exception instance itself.
     """
     path = Path(path).resolve()
     temp_parent = Path(temp_parent).resolve()
     if temp_parent not in path.parents and path != temp_parent:
         raise ConformanceError(f"refusing to delete outside the temp root: {path}")
 
-    def _onerror(func, p, _exc):  # noqa: ANN001
+    def _onexc(func, p, _exc):  # noqa: ANN001 — _exc is the exception instance (onexc contract)
         os.chmod(p, stat.S_IWRITE)
         func(p)
 
-    shutil.rmtree(path, onerror=_onerror)
+    shutil.rmtree(path, onexc=_onexc)
 
 
 def _real_floor_hook(config: dict) -> dict | None:

@@ -19,6 +19,55 @@
 
 ---
 
+### 2026-08-03 (k) — CC (Opus 5, local): mechanical adoptions — and an invariant that took three tries
+
+**Did:** ARC 3 — rows 3 and 6 of the adoption audit, gated on ARC 2 landing clean. SHA anchors:
+`62592646` (row 3), `546d583b` (row 6), `229c8813` + `ffa1fc4b` (three terra HIGHs closed).
+
+**Result — two adoptions, and my own measurement corrected twice.**
+
+*Row 3 — divergence proven first, then my number corrected.* `toc.parse_headers` decided "am I
+in a fence?" with a `startswith("```")` toggle. A closing fence may not carry an info string, so
+```` ```markdown ```` after an opener is CONTENT — the toggle counted it, got stuck in-fence, and
+**swallowed the document tail**. Mirror defect: `~~~` fences were invisible, so sample markdown
+inside them was harvested as real headings. The brief said 8 of 1493; I first measured 9 of 1577
+against a *pure CommonMark* header set — **the wrong number to quote**, because 6 of those 9
+differ only over indented/contained headings this TOC excludes and this fix does not admit. The
+honest figure is **3 of 1578**, all strictly gaining (+6, +8, +8), worst case 5 headings found
+where 13 exist. My first oracle measured something broader than the fix: the arc's own theme,
+applied to my own measurement.
+
+*Row 6 — the obvious test would have been vacuous, and that IS the finding.* `shutil.rmtree`'s
+`onerror` is deprecated on this repo's `py>=3.12` floor — but measured on CPython 3.12.10 it
+carries the deprecation **in its docstring and emits no runtime warning**. "Assert no
+DeprecationWarning" passes identically before and after. What differs is the call contract
+(exc_info 3-tuple vs exception instance), so that is what the two distinguishing tests assert;
+the third is labelled NON-REGRESSION in its own docstring because it passes either way.
+
+**Terra found three HIGHs, all mine, and the third is the one worth keeping.** (1) The token gate
+I first wrote DROPPED headers inside HTML blocks — my "only fence correctness moves" claim was
+false for what I actually built; rebuilt to locate CODE RANGES so the claim is true by
+construction. (2) The corpus test compared MEMBERSHIP not occurrence counts, so a lost duplicate
+passed — and duplicates drive `#foo-1` anchor numbering. That weakness is what made my evidence
+for (1) look clean. (3) The invariant "never drops ANY legacy header" was **wrong in principle**:
+the tilde fix deliberately drops false positives, so a legal `##` added inside a `~~~` fence
+would have REDded a correct change. Final form distinguishes drops by WHERE: inside a code block
+may vanish, outside must survive. **The invariant took three versions and every correction came
+from review, not from me.**
+
+**Six for six.** The codex wrapper printed `Critical 0 / High 0 / Medium 0 / Low 0` on all four
+review runs this window, over **1 CRITICAL and 5 HIGH**. Every finding was read from the body.
+`[#480]` carries a one-line pointer to the artifacts rather than the evidence itself.
+
+**Changes:** `scripts/toc/generator.py`, `deploy/floor_conformance.py`; `tests/test_toc.py`,
+`tests/test_floor_conformance.py` (+9 tests); `ecosystem/doc-counts.md`; 2 codex artifacts +
+`docs/audits/README.md`.
+
+**Abandoned:** rows 7–10 untouched by instruction — `graphlib` matched the hand-rolled DFS across
+24,000 random graphs; `ruamel` and `tenacity` would each add a distribution.
+
+**Next:** STOP as briefed — no `[#465]`, no `[#472]`, no `[#383]` wave execution.
+
 ### 2026-08-03 (j) — CC (Opus 5, local): the glob-engine ruling, filed not executed
 
 **Did:** Filed `[#482]` (`748e1db1`) per the operator ruling taken at the ARC 2 merge gate.
