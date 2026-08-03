@@ -271,7 +271,12 @@ _DEMOTE_RE = re.compile(r"^### (\d{4}-\d{2}-\d{2})", re.MULTILINE)
 # ignored this (`> ### Night-batch work ...` in a 2026-07-30 audit). Stripping the container
 # prefix keeps the oracle faithful WITHOUT making it permissive enough to hide a desync: a
 # slid index lands on ordinary prose, which still fails the ATX test after stripping.
-_CONTAINER_PREFIX_RE = re.compile(r"^(?:\s{0,3}(?:>|[-*+]|\d{1,9}[.)])\s*)*")
+# CommonMark spacing is REQUIRED, not optional (terra HIGH round 2, 2026-08-03). An earlier
+# version used `(?:>|[-*+]|\d{1,9}[.)])\s*` — trailing `\s*` allows ZERO whitespace, so the
+# non-list prose `-# ordinary text` stripped to `# ordinary text` and was accepted as a
+# heading. A desync landing on such a line would then pass the very check meant to catch it.
+# A list marker must be followed by whitespace to open an item; `>` may hug its content.
+_CONTAINER_PREFIX_RE = re.compile(r"^(?:\s{0,3}(?:>\s?|(?:[-*+]|\d{1,9}[.)])\s+))*")
 
 
 def _looks_like(rx: re.Pattern, line: str) -> bool:
@@ -437,3 +442,32 @@ def test_corpus_rewriter_still_fires_on_real_documents() -> None:
         assert got.startswith("### 2026-05-16 — probe\n"), f"{p}: rewriter did not fire"
         fired += 1
     assert fired > 100, f"only {fired} documents exercised — proof too thin"
+
+
+@pytest.mark.parametrize("prose", [
+    "-# ordinary text",        # NOT a list item: a list marker needs following whitespace
+    "*#hashtag prose",
+    "1.#not a list either",
+    "plain prose with a # in it",
+    "text -- dashes -- not an underline",
+])
+def test_heading_oracle_rejects_prose_that_merely_resembles_a_container(prose: str) -> None:
+    """The independent oracle must be tight enough to CATCH a desync, not just tolerant
+    enough to accept real headings (terra HIGH round 2, 2026-08-03).
+
+    If a slid index can land on prose and still satisfy `_looks_like`, the desync detector
+    proves nothing. `-# ordinary text` was the concrete escape: the container strip allowed a
+    list marker with no following whitespace, so it became `# ordinary text` and passed.
+    """
+    assert not _looks_like(_ATX_RE, prose), f"oracle accepted non-heading prose: {prose!r}"
+
+
+def test_heading_oracle_still_accepts_real_contained_headings() -> None:
+    """Positive control for the tightened strip — the corpus cases that forced it must still
+    pass, or the fix would be "reject everything", which detects a desync by refusing to work."""
+    for line in ("> ### Night-batch work — the morning-loop wave",
+                 ">### hugging blockquote",
+                 "- ## 2026-05-16",
+                 "1. # numbered item heading",
+                 "   ### indented three spaces"):
+        assert _looks_like(_ATX_RE, line), f"oracle rejected a real heading: {line!r}"
