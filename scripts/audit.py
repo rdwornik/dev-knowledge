@@ -468,8 +468,16 @@ def _previously_reported_checks(repo_name: str, upto: date) -> set[str]:
         return set()
     text = prior[-1].read_text(encoding="utf-8", errors="replace")
     last_reading = text.rsplit("\n## ", 1)[-1]
-    return {m.group(1) for m in (_HISTORY_ROW_RE.match(ln)
-                                 for ln in last_reading.splitlines()) if m}
+    names = {m.group(1) for m in (_HISTORY_ROW_RE.match(ln)
+                                  for ln in last_reading.splitlines()) if m}
+    # An UNAVAILABLE repo's reading is a single `availability` row, and an aborted append can
+    # leave a partial table. Neither is a complete reading, and treating one as complete would
+    # announce every check the repo normally runs as "retired" in the next daily -- a false
+    # entry written into the durable history (terra HIGH r2, 2026-08-04). None means "cannot
+    # compare", which the caller renders as an explicit unavailable notice rather than silence.
+    if not names or names == {"availability"}:
+        return None
+    return names
 
 
 def append_history(state: RepoState, run_date: date) -> None:
@@ -485,11 +493,17 @@ def append_history(state: RepoState, run_date: date) -> None:
     # Best-effort by design: this is a NOTICE, and a notice must never be able to fail the write
     # of the daily it annotates. It is never silent, though -- a comparison that cannot run says so.
     try:
-        current = {f.check_name for f in state.findings}
-        gone = sorted(_previously_reported_checks(state.name, run_date) - current)
-        if gone:
-            lines.append(f"> **Checks retired since the previous reading:** {', '.join(gone)}. "
-                         "No longer in ALL_CHECKS; their absence below is deliberate.\n\n")
+        previous = _previously_reported_checks(state.name, run_date)
+        if previous is None:
+            lines.append("> **Retirement comparison unavailable** — the previous reading was "
+                         "absent, unavailable, or partial, so a missing row below cannot be "
+                         "read as a retirement.\n\n")
+        else:
+            gone = sorted(previous - {f.check_name for f in state.findings})
+            if gone:
+                lines.append(f"> **Checks retired since the previous reading:** "
+                             f"{', '.join(gone)}. No longer in ALL_CHECKS; their absence below "
+                             "is deliberate.\n\n")
     except Exception as exc:  # noqa: BLE001 -- notice only; never blocks the daily
         lines.append(f"> **Retirement comparison unavailable** ({exc!r}) — a missing row below "
                      "cannot be read as a retirement.\n\n")
@@ -3655,11 +3669,9 @@ def detect_unconditionally_inert_checks(
     is inert only on the repos it was not run against.
     """
     out: list[Finding] = []
-    by_check: dict[str, list[Finding]] = {}
+    by_check: dict[str, dict[str, list[Finding]]] = {}
     for check in (ALL_CHECKS if checks is None else checks):
         name = getattr(check, "__name__", str(check)).removeprefix("check_")
-        results: list[Finding] = []
-        broken = False
         for repo_name, repo_path in repo_paths.items():
             try:
                 returned = list(check(Path(repo_path)))
@@ -3667,33 +3679,49 @@ def detect_unconditionally_inert_checks(
                 out.append(Finding("writer_integrity", "warn",
                                    f"{name}: could not be evaluated for {repo_name}: {exc!r}"
                                    .replace("|", "/")))
-                broken = True
-                break
-            if not returned:
-                out.append(Finding("writer_integrity", "warn",
-                                   f"{name}: returned no findings for {repo_name}; a check that "
-                                   "reports nothing cannot be read as clean"))
-                broken = True
-                break
-            results.extend(returned)
-        if not broken and results:
-            by_check[name] = results
+                continue
+            # Register the check even when it returned NOTHING: the coverage rule below turns
+            # the missing repo into a WARN. Skipping it entirely would make a check that
+            # reports nothing disappear from the detector's view — silence about a gap, which
+            # is the failure mode this leg exists to remove.
+            slot = by_check.setdefault(name, {})
+            if returned:
+                slot[repo_name] = returned
     return out + classify_inert_checks(by_check, sorted(repo_paths))
 
 
-def classify_inert_checks(by_check: dict[str, list[Finding]],
+def classify_inert_checks(by_check: "dict[str, dict[str, list[Finding]]]",
                           repo_names: "Sequence[str]") -> list[Finding]:
     """THE RULE, defined once, over findings that have ALREADY been computed.
 
-    Extracted so the production path costs nothing (terra HIGH, 2026-08-04). `cmd_run` has just
-    executed every check against every repo; re-running them inside the detector would double a
-    whole fleet audit. Both callers share this function, so the daily and the test seam cannot
-    drift about what "inert" means -- the same single-definition discipline `journal_anchor`
+    Extracted so the production path costs nothing (terra HIGH r1, 2026-08-04). `cmd_run` has
+    just executed every check against every repo; re-running them inside the detector would
+    double a whole fleet audit. Both callers share this function, so the daily and the test seam
+    cannot drift about what "inert" means -- the single-definition discipline `journal_anchor`
     uses for the ADR-85 predicate.
+
+    COVERAGE IS PART OF THE RULE (terra HIGH r2, 2026-08-04). `by_check` is keyed check -> repo,
+    not check -> flat findings, because "inert" is a claim about the WHOLE fleet: concluding it
+    from a subset would let one unavailable or half-audited repo retire a check that is alive
+    elsewhere. A check missing a result from a repo that WAS evaluated is reported as incomplete
+    coverage and explicitly NOT judged -- silence about a gap is the failure mode this whole leg
+    exists to remove.
+
+    `repo_names` must be the repos actually evaluated; callers exclude unavailable ones.
     """
     out: list[Finding] = []
-    where = ", ".join(repo_names)
-    for name, results in by_check.items():
+    expected = set(repo_names)
+    where = ", ".join(sorted(expected))
+    for name in sorted(by_check):
+        per_repo = by_check[name]
+        missing = expected - set(per_repo)
+        if missing:
+            out.append(Finding("writer_integrity", "warn",
+                               f"{name}: no result from {', '.join(sorted(missing))}; coverage is "
+                               "incomplete so inertness was NOT judged -- a check that reports "
+                               "nothing cannot be read as clean ([#465] leg 4)"))
+            continue
+        results = [f for fs in per_repo.values() for f in fs]
         if any(f.status != "n/a" for f in results):
             continue  # it can say something other than n/a somewhere -- not inert
         reasons = [_na_reason(f) for f in results]
@@ -4123,35 +4151,46 @@ def cmd_run(repo_path: Optional[str]) -> None:
     if not names:
         click.echo("No repos registered in ecosystem/. Use --repo-path to register one.", err=True)
         sys.exit(0)
-    states = []
-    for name in names:
-        existing = load_state(name)
-        rp = resolve_repo_path(name, existing.path if existing else None)
-        states.append(audit_repo(name, rp, run_date))
-
-    # [#465] leg 4 / FR-2: the inert-check detector runs HERE, on the fleet's just-computed
-    # findings, before anything is persisted. Without this the detector would exist and never
-    # execute -- a mechanism that reports nothing because nothing calls it, which is the exact
-    # class this leg was opened to remove (terra HIGH, 2026-08-04).
+    # [#465] leg 4 / FR-2: the inert-check detector must actually RUN in production -- a
+    # detector nothing calls is a mechanism that reports nothing, which is the exact class this
+    # leg was opened to remove (terra HIGH r1, 2026-08-04).
     #
-    # Fleet-scoped by construction: inertness is only meaningful across ALL repos, since a check
-    # that is n/a here and firing there is alive. The WARNs attach to the HUB's state only --
-    # this is hub-owned machinery, and writing them onto a consumer would manufacture exactly
-    # the fleet gap FR-7 forbids.
-    by_check: dict[str, list[Finding]] = {}
-    for s in states:
-        for f in s.findings:
-            by_check.setdefault(f.check_name, []).append(f)
-    inert = classify_inert_checks(by_check, sorted(s.name for s in states))
-    if inert:
-        for s in states:
-            if s.name == HUB_REPO_NAME:
-                s.findings.extend(inert)
-                break
-
-    for state in states:
-        save_state(state)
-        append_history(state, run_date)
+    # It is fleet-scoped by construction (a check that is n/a here and firing there is alive),
+    # so the hub's verdict cannot be written until every repo has been audited. ONLY the hub's
+    # persistence is deferred: consumers still save-and-append as they complete, exactly as
+    # before, so a later repo raising cannot lose earlier repos' durable progress (terra HIGH
+    # r2 -- deferring everything silently changed that failure semantics). The hub is persisted
+    # in a `finally`, so it survives that failure too, with whatever coverage was achieved.
+    states = []
+    hub_state = None
+    try:
+        for name in names:
+            existing = load_state(name)
+            rp = resolve_repo_path(name, existing.path if existing else None)
+            state = audit_repo(name, rp, run_date)
+            states.append(state)
+            if state.name == HUB_REPO_NAME:
+                hub_state = state          # held back for the fleet-scoped detector
+            else:
+                save_state(state)
+                append_history(state, run_date)
+    finally:
+        if hub_state is not None:
+            # An unavailable repo contributes no check results; judging inertness against it
+            # would let one missing tree retire a check that is alive everywhere else.
+            evaluated = [s for s in states
+                         if not any(f.check_name == "availability" and f.status == "unavailable"
+                                    for f in s.findings)]
+            by_check: dict[str, dict[str, list[Finding]]] = {}
+            for s in evaluated:
+                for f in s.findings:
+                    by_check.setdefault(f.check_name, {}).setdefault(s.name, []).append(f)
+            # WARNs attach to the HUB only: this is hub-owned machinery, and writing one onto a
+            # consumer would manufacture exactly the fleet gap FR-7 forbids.
+            hub_state.findings.extend(
+                classify_inert_checks(by_check, [s.name for s in evaluated]))
+            save_state(hub_state)
+            append_history(hub_state, run_date)
 
     report = generate_report(states, run_date, Path(_REPO_ROOT))
     out = write_report(report, run_date)

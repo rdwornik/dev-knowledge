@@ -155,7 +155,8 @@ def test_detector_warns_when_a_check_raises(tmp_path):
 def test_detector_warns_when_a_check_returns_nothing(tmp_path):
     out = aud.detect_unconditionally_inert_checks({"hub": tmp_path}, [lambda _r: []])
     assert [f.status for f in out] == ["warn"]
-    assert "no findings" in out[0].evidence
+    assert "cannot be read as clean" in out[0].evidence
+    assert "NOT judged" in out[0].evidence, "inertness must not be concluded without coverage"
 
 
 # ---------------------------------------------------------------------------
@@ -283,7 +284,7 @@ def test_classify_inert_checks_matches_the_running_detector(tmp_path):
         return [aud._na("dead", "SUBJECT-ABSENT", "gone")]
 
     via_running = aud.detect_unconditionally_inert_checks({"hub": tmp_path}, [check_dead])
-    via_findings = aud.classify_inert_checks({"dead": check_dead(tmp_path)}, ["hub"])
+    via_findings = aud.classify_inert_checks({"dead": {"hub": check_dead(tmp_path)}}, ["hub"])
     assert [f.evidence for f in via_running] == [f.evidence for f in via_findings]
 
 
@@ -370,3 +371,66 @@ def test_cmd_run_actually_attaches_the_warn_to_the_hub_state(monkeypatch, tmp_pa
     assert "zombie_check" in hub_warns[0].evidence
     assert [f for f in saved[consumer].findings if f.check_name == "writer_integrity"] == [], \
         "a writer_integrity WARN was written onto a CONSUMER — that is the FR-7 fleet gap"
+
+
+def test_inertness_is_not_concluded_from_a_partial_fleet(tmp_path):
+    """terra HIGH r2 — coverage is part of the rule. A check n/a on the one repo that WAS
+    evaluated must not be called inert while another repo went unaudited: that would let a
+    single unavailable tree retire a check that is alive elsewhere."""
+    findings = [aud._na("maybe_dead", "SUBJECT-ABSENT", "absent here")]
+    out = aud.classify_inert_checks({"maybe_dead": {"hub": findings}}, ["hub", "consumer"])
+    assert [f.status for f in out] == ["warn"]
+    assert "coverage is incomplete" in out[0].evidence
+    assert "INERT" not in out[0].evidence, "inertness was concluded from a partial fleet"
+
+
+def test_an_unavailable_previous_reading_blocks_the_retirement_comparison(tmp_path, monkeypatch):
+    """terra HIGH r2 — an unavailable repo's reading is a single `availability` row. Treating it
+    as complete would announce EVERY check the repo normally runs as retired in the next daily,
+    writing a false entry into the durable history."""
+    from datetime import date
+
+    monkeypatch.setattr(aud, "ECOSYSTEM_DIR", tmp_path)
+    hist = tmp_path / "demo" / "history"
+    hist.mkdir(parents=True)
+    (hist / "2026-08-03.md").write_text(
+        "## 2026-08-03\n\n| Check | Status | Evidence |\n|---|---|---|\n"
+        "| availability | unavailable | Path not found: /gone |\n\n",
+        encoding="utf-8", newline="\n")
+
+    state = aud.RepoState(name="demo", path=str(tmp_path / "demo"), last_audit="2026-08-04",
+                          findings=[aud.Finding("kept", "pass", "fine")])
+    aud.append_history(state, date(2026, 8, 4))
+    written = (hist / "2026-08-04.md").read_text(encoding="utf-8")
+    assert "Retirement comparison unavailable" in written
+    assert "retired since the previous reading" not in written
+
+
+def test_cmd_run_persists_consumers_even_when_a_later_repo_raises(monkeypatch, tmp_path):
+    """terra HIGH r2 — deferring ALL persistence until after the loop silently changed failure
+    semantics: a later repo raising discarded earlier repos' durable progress. Consumers save as
+    they complete; the hub is persisted in a `finally` so it survives too."""
+    saved: dict[str, aud.RepoState] = {}
+    hub = aud.HUB_REPO_NAME
+
+    def fake_audit_repo(name, _p, _d):
+        if name == "explodes":
+            raise RuntimeError("boom")
+        return aud.RepoState(name=name, path=str(tmp_path / name), last_audit="2026-08-04",
+                             findings=[aud.Finding("a_check", "pass", "fine")])
+
+    monkeypatch.setattr(aud, "discover_repos", lambda: [hub, "good-consumer", "explodes"])
+    monkeypatch.setattr(aud, "load_state", lambda _n: None)
+    monkeypatch.setattr(aud, "resolve_repo_path", lambda n, _p: tmp_path / n)
+    monkeypatch.setattr(aud, "audit_repo", fake_audit_repo)
+    monkeypatch.setattr(aud, "save_state", lambda s: saved.__setitem__(s.name, s))
+    monkeypatch.setattr(aud, "append_history", lambda *_a, **_k: None)
+    monkeypatch.setattr(aud, "generate_report", lambda *_a, **_k: "report")
+    monkeypatch.setattr(aud, "write_report", lambda *_a, **_k: tmp_path / "r.md")
+    monkeypatch.setattr(aud, "_commit_routine_outputs", lambda *_a, **_k: None)
+
+    callback = getattr(aud.cmd_run, "callback", aud.cmd_run)
+    with pytest.raises(RuntimeError):
+        callback(None)
+    assert "good-consumer" in saved, "an earlier consumer's durable progress was lost"
+    assert hub in saved, "the hub was not persisted despite the finally"
