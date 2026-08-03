@@ -408,3 +408,27 @@ def test_coverage_fails_on_a_seeded_unheadered_governed_file(tmp_path, monkeypat
     assert bh.cmd_write(repo) == 0
     assert bh.cmd_coverage(repo) == 0, "coverage must pass once headers are generated"
     assert bh.cmd_check(repo) == 0
+
+
+# ---------------------------------------------------------------------------
+# Governed-glob matching must mean the SAME THING on every host.
+# ---------------------------------------------------------------------------
+
+def test_governed_glob_match_is_case_sensitive_on_every_host():
+    """`fnmatch` delegates to the HOST's case rules — case-insensitive on Windows,
+    case-sensitive on Linux — so the same repo yielded a different governed set per box and
+    the coverage gate measured a different thing depending on where it ran. A gate whose
+    denominator is OS-dependent cannot be compared across the fleet or across CI.
+
+    DERIVED, not enumerated: both the positive control and the case-variant are constructed
+    FROM `_GOVERNED_GLOBS` itself, so adding or changing a glob re-derives the assertion
+    instead of leaving a stale hand-written literal behind.
+    """
+    assert bh._GOVERNED_GLOBS, "no governed globs — this test would be vacuous"
+    for glob in bh._GOVERNED_GLOBS:
+        literal = glob.replace("**/", "").replace("*", "x")
+        assert bh._matches_governed_glob(literal), (
+            f"positive control failed: {literal!r} should match {glob!r}")
+        assert not bh._matches_governed_glob(literal.upper()), (
+            f"{glob!r} matched the uppercased path {literal.upper()!r} — glob matching is "
+            "following host case rules, so the governed set differs per OS")
