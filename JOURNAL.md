@@ -19,6 +19,64 @@
 
 ---
 
+### 2026-08-03 (d) — CC (Opus 5, local): the night batch's defect rows filed — [#477]–[#480] + the [#457] annotation
+
+**Did:** Filed every night-batch finding that is a REAL defect rather than a container
+artifact. SHA anchor — `d2ba06ca`, on top of `cb3c8bff` (the 2026-08-03 (c) ARC 2 merge).
+Honest filing over cosmetic deferral: four rows, each citing its own evidence, plus one
+annotation. Ids **re-derived live from full history**, never inherited from a draft — max real
+id 476 (`[#777]` is the documented synthetic trip-test false positive, excluded per
+`c2f10440`), so 477–480.
+
+**[#477]** P2/S — `audit.py:2300` keys `deployed-versions.yaml` by repo-root BASENAME, so a
+clone named `dev-knowledge` cannot find the `.dev-knowledge` row. Identical shape to `[#465]`
+legs 2+3 fixed at `56f82aaf`; that fix bound `_is_hub()` to the live tree, but this check still
+compares names — same defect class, unfixed surface. **[#478]** P2/S — `changelog_sentinel`
+discards PEP 440 suffixes, so a prerelease as the reviewed value makes the sentinel go
+permanently quiet for that tool, and the failure mode is **absence of output**, which nothing
+announces. Fix adds no dependency. **[#479]** P2/S — `session_end_backpressure`'s broad
+`except: return 0` lets an internal error masquerade as a pass in an **enforcement** organ;
+**verified NOT currently masking anything**, and the row says so in its own text so it is never
+mistaken for a live incident. **[#480]** P3/M — a code-impact merge with no review artifact is
+mechanically invisible; deliberately filed **ruling-first**, since whether an artifact is
+required is policy a check cannot decide.
+
+**The [#457] annotation cost more than an append, and that is recorded.** The night batch found
+leg (i) fails in a pristine container for a **different reason than the row states**: with hooks
+UNARMED it fails on the `hooks_armed` WARN and PASSES once armed, so the test is blind to
+*whatever* WARN is live, not only the ai-council `conftest.py` one. But the row sat at **1151
+chars against the `doc_rot` 1200 ceiling**, so the annotation did not fit. Rather than
+disposition self-induced bloat, the row was **condensed** — final **1182** chars, via exactly
+four meaning-preserving compressions (the `[#430]` reference relocated into the annotation; the
+fix clause reduced to its own parenthetical; a trailing clause that restated its predecessor
+dropped; "RED-first when built" → "RED-first"). Nothing else changed. **The row is now 18 chars
+from the ceiling and cannot absorb another annotation** — a live datapoint for the `[#433]`
+root-cause finding that the 1200-char ceiling blocks records.
+
+**Result:** BACKLOG **184 -> 188** (+4). All five rows measured against **both** `doc_rot` rules
+*before* writing — gross bloat (>1200) and accretion (≥3 dates AND >700) — and two drafts were
+trimmed to clear them: `[#457]`, and `[#480]` by dropping a redundant date rather than prose.
+Gates: ship-gate GREEN (15 WARN dispositioned, `[stale]` = 0); `validate_backlog` OK (188
+tasks); `validate_git_backlog` OK; `gen_task_tree --check` ok.
+
+**En route (fixed, and captured):** the four new `tasks/` files first failed
+`gen_task_tree --check` with *"does not start with a '---' frontmatter fence"* while `head`
+showed a perfect `---`. Cause: `pathlib.Path.write_text()` on Windows emits **CRLF** by default,
+and the parser requires a literal `\n`; `xxd` exposed `2d2d 2d0d 0a`. Reverted the corrupted
+writes rather than editing over them (so the retry could not read back its own CRLF), rewrote
+with `newline="\n"`, verified zero CR across all five files. Added to the gotchas skill as a new
+entry — the existing `subprocess.run(text=True)` entry is a sibling but a different trigger:
+no subprocess, no git, no encoding axis.
+
+**Changes:** `BACKLOG.md` (regenerated), `tasks/manifest.json`, `tasks/477-*.md`,
+`tasks/478-*.md`, `tasks/479-*.md`, `tasks/480-*.md` (new), `tasks/457-*.md` (annotated),
+`JOURNAL.md`.
+
+**Abandoned:** nothing.
+
+**Next:** session wrap — the four-arc report with the window ledger. **No W1/W4 work in this
+session**, per the brief.
+
 ### 2026-08-03 (c) — CC (Opus 5, local): two dead rows closed — [#455] + [#433], the ADR-disposal blind spot
 
 **Did:** Closed the two rows the night batch (L-B §1.3) found DEAD — work discharged by

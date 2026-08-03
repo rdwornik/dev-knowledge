@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "7cf62bfd4fb1688832625efc953f74b6f2b4d8b568d43a7b5f083e0fe9239383",
+  "generated_sha256": "d67c3d8645c30bd4a802ea7553e3b7d3c06a68916c60931a3b3e469e7ebb34b7",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -198,6 +198,14 @@
       "file": "451-ca-layer-edge-check-ai-council-precedent.md"
     },
     {
+      "task": 479,
+      "file": "479-session-end-backpressure-swallows-internal-errors.md"
+    },
+    {
+      "task": 480,
+      "file": "480-code-impact-merge-without-review-artifact.md"
+    },
+    {
       "prose": ""
     },
     {
@@ -286,6 +294,14 @@
     {
       "task": 457,
       "file": "457-inherited-live-repo-test-failures.md"
+    },
+    {
+      "task": 477,
+      "file": "477-deployed-version-check-keys-registry-by-basename.md"
+    },
+    {
+      "task": 478,
+      "file": "478-changelog-sentinel-drops-pep-440-suffixes.md"
     },
     {
       "prose": ""
