@@ -1,0 +1,381 @@
+"""T1-T8 — the ADR-85 amendment 2026-08-03 (integration-boundary enforcement).
+
+These tests encode the DEFECT CLASS, not the fix. T1-T4 each pin a silent discharge that
+existed BEFORE this arc; they are the ones that stop the defect returning. Demonstrated
+live against the pre-fix code on 2026-08-03 (isolated clones, own bare origins):
+
+    T1  push -u on a feature branch : base origin/main -> origin/feat/x, set ['2f2da63'] -> [],
+                                      hard_block True -> False   (commit still unanchored)
+    T2  one uncommitted file        : hard_block True -> False on identical history
+    T3  9 consecutive stop attempts : 9/9 identical blocks, stop_hook_active=true ignored
+                                      -> the host force-ends the turn (silent auto-bypass)
+    T4  planted internal error      : session_end_backpressure -> EXIT 0, stderr empty
+                                      block_ff_push -> EXIT 0, "degraded ... allowing push"
+
+Every scenario runs in its own throwaway repo with its own bare origin under tmp_path. The
+live .dev-knowledge repo is never the test subject.
+
+STRUCTURAL OVER ENUMERATED: where a test asserts which ref is in scope it reads
+`block_unanchored_push.PROTECTED_REF` (which is itself `block_ff_push.PROTECTED_REF`), never
+a "refs/heads/main" literal — so renaming the protected ref cannot leave a test asserting
+the old one and still passing.
+"""
+from __future__ import annotations
+
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+import pytest
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
+
+import audit as aud  # noqa: E402
+import block_ff_push as bfp  # noqa: E402
+import block_unanchored_push as bup  # noqa: E402
+import journal_anchor as ja  # noqa: E402
+import session_end_backpressure as seb  # noqa: E402
+
+requires_git = pytest.mark.skipif(shutil.which("git") is None, reason="git not available")
+
+_BUP = Path(__file__).resolve().parent.parent / "scripts" / "block_unanchored_push.py"
+_BFP = Path(__file__).resolve().parent.parent / "scripts" / "block_ff_push.py"
+_SEB = Path(__file__).resolve().parent.parent / "scripts" / "session_end_backpressure.py"
+
+# Derived, never literal — the scope under test comes from the hook's own config.
+PROTECTED = bup.PROTECTED_REF
+PROTECTED_BRANCH = PROTECTED.rsplit("/", 1)[-1]
+
+
+# --- helpers ----------------------------------------------------------------
+
+def _run(repo, *args, check=True):
+    return subprocess.run(["git", "-C", str(repo), *args], check=check,
+                          capture_output=True, text=True, encoding="utf-8")
+
+
+def _rev(repo, ref="HEAD"):
+    return _run(repo, "rev-parse", ref).stdout.strip()
+
+
+def _commit(repo, msg, fname="f.txt", content=None):
+    (repo / fname).write_text(content if content is not None else msg, encoding="utf-8")
+    _run(repo, "add", "-A")
+    _run(repo, "commit", "-q", "-m", msg)
+
+
+def _journal(repo, text):
+    (repo / "JOURNAL.md").write_text(text, encoding="utf-8")
+
+
+def _repo_with_remote(tmp_path):
+    """A repo on the protected branch, already pushed to a fresh bare origin."""
+    repo = tmp_path / "r"
+    repo.mkdir()
+    _run(repo, "init", "-q")
+    _run(repo, "config", "user.email", "t@t.t")
+    _run(repo, "config", "user.name", "t")
+    _journal(repo, "# Journal\n\n")
+    _commit(repo, "seed", fname="seed.txt")
+    _run(repo, "branch", "-M", PROTECTED_BRANCH)
+    bare = tmp_path / "remote.git"
+    bare.mkdir()
+    _run(bare, "init", "--bare", "-q")
+    _run(repo, "remote", "add", "origin", str(bare))
+    _run(repo, "push", "-q", "origin", PROTECTED_BRANCH)
+    return repo, _rev(repo, PROTECTED_BRANCH)
+
+
+def _push_line(local_sha, remote_sha, ref=PROTECTED):
+    return f"{ref} {local_sha} {ref} {remote_sha}\n"
+
+
+def _invoke(script, repo, stdin_text, env_extra=None):
+    env = {k: v for k, v in os.environ.items() if not k.startswith("PRE_COMMIT_")}
+    if env_extra:
+        env.update(env_extra)
+    return subprocess.run([sys.executable, str(script)], input=stdin_text,
+                          capture_output=True, text=True, env=env, cwd=str(repo))
+
+
+def _merge_branch(repo, branch, msg, journal_text=None):
+    """Create `branch` off the protected branch, commit work (+ optional journal), merge --no-ff.
+
+    `journal_text` may be a callable taking the work SHA — the shape a real anchor has, since
+    the entry names a commit the merge BRINGS IN and cannot name the merge itself.
+    """
+    _run(repo, "checkout", "-q", "-b", branch)
+    _commit(repo, f"work on {branch}", fname=f"{branch.replace('/', '_')}.txt")
+    work = _rev(repo)
+    if journal_text is not None:
+        text = journal_text(work) if callable(journal_text) else journal_text
+        _journal(repo, text)
+        _run(repo, "add", "-A")
+        _run(repo, "commit", "-q", "-m", f"journal for {branch}")
+    _run(repo, "checkout", "-q", PROTECTED_BRANCH)
+    _run(repo, "merge", "-q", "--no-ff", branch, "-m", msg)
+    return work, _rev(repo, PROTECTED_BRANCH)
+
+
+# --- T1: a feature-branch push creates no obligation ------------------------
+
+@requires_git
+def test_t1_feature_branch_push_is_outside_the_hard_leg(tmp_path):
+    """T1 — pre-fix: `push -u` on a feature branch EMPTIED the obligation set (silent
+    discharge). Post-fix: a feature-branch push is not an integration event, so the hard
+    leg is not its business at all — it is scoped to the protected ref."""
+    repo, _ = _repo_with_remote(tmp_path)
+    _run(repo, "checkout", "-q", "-b", "feat/x")
+    _commit(repo, "unanchored work", fname="w.txt")
+    local = _rev(repo)
+    # A push line for a NON-protected ref: the organ must not gate it.
+    line = f"refs/heads/feat/x {local} refs/heads/feat/x {'0' * 40}\n"
+    r = _invoke(_BUP, repo, line)
+    assert r.returncode == 0, r.stderr
+    assert "REFUSED" not in r.stderr
+    # And the obligation is not discharged BY that push: the same commits, once merged to
+    # the protected ref unanchored, are still refused (proved in T5).
+
+
+# --- T2: dirty tree does not affect the hard leg ----------------------------
+
+@requires_git
+def test_t2_dirty_tree_does_not_affect_the_hard_leg(tmp_path):
+    """T2 — pre-fix: one uncommitted file flipped the hard leg from BLOCK to silent
+    (session_end_backpressure:297). Post-fix: the hard leg is at pre-push, which judges
+    committed objects; tree state is not an input at all."""
+    repo, remote = _repo_with_remote(tmp_path)
+    _merge_branch(repo, "feat/unanchored", "Merge branch 'feat/unanchored'")
+    local = _rev(repo, PROTECTED_BRANCH)
+
+    clean = _invoke(_BUP, repo, _push_line(local, remote))
+    (repo / "dirty.txt").write_text("uncommitted", encoding="utf-8")
+    dirty = _invoke(_BUP, repo, _push_line(local, remote))
+
+    assert clean.returncode == dirty.returncode == 1, (clean.stderr, dirty.stderr)
+    assert "REFUSED" in clean.stderr and "REFUSED" in dirty.stderr
+
+
+# --- T3: no retry surface at pre-push ---------------------------------------
+
+@requires_git
+def test_t3_pre_push_has_no_retry_surface(tmp_path):
+    """T3 — pre-fix: the same unchanged blocked state produced 9/9 identical Stop blocks,
+    which the host's block cap then force-ended (the exhaustion signature). Post-fix: the
+    refusal is a process exit, repeated invocations are byte-identical and each one simply
+    fails the push — there is no cap to reach and nothing accumulates."""
+    repo, remote = _repo_with_remote(tmp_path)
+    _merge_branch(repo, "feat/unanchored", "Merge branch 'feat/unanchored'")
+    local = _rev(repo, PROTECTED_BRANCH)
+
+    results = [_invoke(_BUP, repo, _push_line(local, remote)) for _ in range(9)]
+    assert {r.returncode for r in results} == {1}
+    assert len({r.stderr for r in results}) == 1, "refusal must be deterministic"
+
+    # And the Stop hook can no longer emit a block at all (FR5: advisory in full).
+    assert seb._HARD_CHECKS == ()
+    stop = _invoke(_SEB, repo, '{"stop_hook_active": false}')
+    assert '"decision"' not in stop.stdout, stop.stdout
+    assert '"block"' not in stop.stdout, stop.stdout
+
+
+# --- T4: internal error refuses, loudly -------------------------------------
+
+@requires_git
+def test_t4_internal_error_refuses_and_is_named(tmp_path, monkeypatch):
+    """T4 — pre-fix: a planted internal error returned 0 with empty stderr in
+    session_end_backpressure, and 0 with "degraded ... allowing push" in block_ff_push.
+    Post-fix: the hard organs fail CLOSED with exit 2 and name the error."""
+    repo, remote = _repo_with_remote(tmp_path)
+    local = _rev(repo, PROTECTED_BRANCH)
+
+    # block_unanchored_push: planted failure in the shared predicate.
+    monkeypatch.setattr(ja, "spine_entries",
+                        lambda *a, **k: (_ for _ in ()).throw(RuntimeError("planted")))
+    monkeypatch.setattr(bup._bfp, "_read_stdin", lambda: _push_line(local, remote))
+    monkeypatch.setattr(bup._bfp, "_repo_root", lambda: repo)
+    assert bup.main() == 2
+
+    # block_ff_push: planted failure -> exit 2, not a silent allow.
+    monkeypatch.setattr(bfp, "_repo_root",
+                        lambda: (_ for _ in ()).throw(RuntimeError("planted")))
+    assert bfp.main() == 2
+
+
+@requires_git
+def test_t4b_advisory_failure_is_loud_not_silent(tmp_path, monkeypatch, capsys):
+    """T4b — the advisory leg MAY fail soft (it has no teeth to brick) but may never fail
+    SILENTLY. Pre-fix it returned 0 with no output whatsoever."""
+    monkeypatch.setattr(seb, "_read_hook_input",
+                        lambda: (_ for _ in ()).throw(RuntimeError("planted")))
+    assert seb.main() == 0
+    assert "DEGRADED" in capsys.readouterr().err
+
+
+# --- T5: unanchored push to the protected ref is BLOCKED --------------------
+
+@requires_git
+def test_t5_unanchored_push_to_main_is_blocked_and_names_the_sha(tmp_path):
+    """T5 — a spine entry integrated onto the protected ref with no JOURNAL anchor is
+    refused, and the offending entry is named."""
+    repo, remote = _repo_with_remote(tmp_path)
+    _work, merge = _merge_branch(repo, "feat/unanchored", "Merge branch 'feat/unanchored'")
+
+    r = _invoke(_BUP, repo, _push_line(merge, remote))
+    assert r.returncode == 1, r.stderr
+    assert "REFUSED" in r.stderr
+    assert merge[:7] in r.stderr, f"offending SHA not named: {r.stderr}"
+
+
+@requires_git
+def test_t5b_anchored_push_to_main_passes(tmp_path):
+    """T5b — the same push passes once a JOURNAL entry names a SHA the range INTRODUCED.
+    Pins the ratified §A7 predicate: naming a commit the merge brings in is what anchors it
+    (a merge cannot name its own hash)."""
+    repo, remote = _repo_with_remote(tmp_path)
+    _work, merge = _merge_branch(
+        repo, "feat/anchored", "Merge branch 'feat/anchored'",
+        journal_text=lambda w: f"# Journal\n\n### entry — work {w[:7]}\n")
+    r = _invoke(_BUP, repo, _push_line(merge, remote))
+    assert r.returncode == 0, r.stderr
+
+
+@requires_git
+def test_t5c_naming_only_the_merges_own_sha_does_not_anchor_it(tmp_path):
+    """T5c — the naive predicate ("the entry's own SHA is named") is NOT what anchors an
+    entry, and cannot be: the merge does not exist when its JOURNAL text is authored. This
+    pins the definitional detail the amendment ratified in §A7."""
+    repo, _ = _repo_with_remote(tmp_path)
+    work, merge = _merge_branch(repo, "feat/x", "Merge branch 'feat/x'")
+
+    # THE RATIFIED DETAIL: a journal naming ONLY a commit the merge BROUGHT IN anchors the
+    # merge — even though the merge's own SHA appears nowhere. This is the realistic shape
+    # (the entry is authored before the merge exists), and it is exactly what the naive
+    # "the entry's own SHA is named" predicate would report as UNANCHORED.
+    realistic = f"# Journal\n\n### entry — work {work[:7]}\n"
+    assert merge[:7] not in realistic, "guard: the merge SHA must be absent for this to mean anything"
+    assert ja.is_anchored(repo, merge, realistic)
+
+    # The asymmetry that makes it a real predicate rather than a rubber stamp: a journal
+    # naming a SHA from OUTSIDE what this entry introduced does not anchor it.
+    outside = _rev(repo, f"{merge}^1")
+    assert outside not in ja.introduced(repo, merge)
+    assert not ja.is_anchored(repo, merge, f"# Journal\n\nnames {outside[:7]}\n")
+
+
+# --- T6: --no-verify succeeds at transport, backstop FAILs ------------------
+
+@requires_git
+def test_t6_no_verify_bypasses_transport_but_the_backstop_fails(tmp_path, monkeypatch):
+    """T6 — the sole escape is explicit and is NOT silent: the push lands, and the audit
+    backstop reports the gap as a FAIL (not a WARN — a WARN would be dispositionable, and a
+    dispositionable backstop cannot be what makes the escape visible)."""
+    repo, _ = _repo_with_remote(tmp_path)
+    floor = _rev(repo, PROTECTED_BRANCH)          # the seed is the floor
+    _work, merge = _merge_branch(repo, "feat/unanchored", "Merge branch 'feat/unanchored'")
+
+    # Transport-level bypass succeeds.
+    out = _run(repo, "push", "--no-verify", "-q", "origin", PROTECTED_BRANCH, check=False)
+    assert out.returncode == 0, out.stderr
+
+    # The backstop still sees it.
+    gaps = ja.unanchored_on_spine(repo, PROTECTED_BRANCH, floor, ja.journal_text(repo))
+    assert merge in gaps
+
+    monkeypatch.setattr(aud, "_is_hub", lambda p: True)
+    monkeypatch.setattr(ja, "floor_sha", lambda p: floor)
+    findings = aud.check_journal_spine_anchor(repo)
+    assert [f.status for f in findings] == ["fail"], findings
+    assert merge[:7] in findings[0].evidence
+
+
+# --- T7: parked work is advisory-only ---------------------------------------
+
+@requires_git
+def test_t7_parked_feature_branch_is_advisory_only(tmp_path):
+    """T7 — commits parked on a feature branch awaiting operator GO create NO integration
+    obligation (§A1/§A4): no hard block anywhere, and no agent-asserted marker is needed to
+    say so — it falls out of the topology."""
+    repo, _ = _repo_with_remote(tmp_path)
+    _run(repo, "checkout", "-q", "-b", "feat/parked")
+    _commit(repo, "parked work", fname="p.txt")
+
+    # No hard organ fires: nothing is being integrated onto the protected ref.
+    line = f"refs/heads/feat/parked {_rev(repo)} refs/heads/feat/parked {'0' * 40}\n"
+    assert _invoke(_BUP, repo, line).returncode == 0
+
+    # The Stop hook may surface an advisory, but can never block.
+    stop = _invoke(_SEB, repo, '{"stop_hook_active": false}')
+    assert stop.returncode == 0
+    assert '"decision"' not in stop.stdout
+
+
+# --- T8: the backstop is itself verified ------------------------------------
+
+@requires_git
+def test_t8_planted_spine_gap_is_found_and_named(tmp_path, monkeypatch):
+    """T8 — lesson 7 applied to this arc's own mechanism: the backstop is verified by
+    planting the gap it claims to catch, not by observing that it runs and says PASS."""
+    repo, _ = _repo_with_remote(tmp_path)
+    floor = _rev(repo, PROTECTED_BRANCH)
+
+    # A properly anchored merge — the journal rides INSIDE the branch and names the work
+    # commit, which is the only shape that can anchor a merge.
+    _good_work, good_merge = _merge_branch(
+        repo, "feat/good", "Merge branch 'feat/good'",
+        journal_text=lambda w: f"# Journal\n\n### entry — work {w[:7]}\n")
+
+    # BASELINE FIRST: with only the good merge above the floor, the spine is clean. Without
+    # this the "gap detected" assertion below could pass on a backstop that flags everything.
+    assert ja.unanchored_on_spine(repo, PROTECTED_BRANCH, floor, ja.journal_text(repo)) == []
+
+    # Now plant the gap: a merge nothing names.
+    _gap_work, gap_merge = _merge_branch(repo, "feat/gap", "Merge branch 'feat/gap'")
+    gaps = ja.unanchored_on_spine(repo, PROTECTED_BRANCH, floor, ja.journal_text(repo))
+    assert gaps == [gap_merge], f"expected exactly the planted gap, got {gaps}"
+    assert good_merge not in gaps, "the anchored entry must not be flagged"
+
+    monkeypatch.setattr(aud, "_is_hub", lambda p: True)
+    monkeypatch.setattr(ja, "floor_sha", lambda p: floor)
+    findings = aud.check_journal_spine_anchor(repo)
+    assert findings[0].status == "fail"
+    assert gap_merge[:7] in findings[0].evidence
+
+
+@requires_git
+def test_t8b_backstop_fails_when_the_floor_is_unverifiable(tmp_path, monkeypatch):
+    """T8b — an unknown exemption boundary is not a clean one. A floor that is not an
+    ancestor of the scanned ref must FAIL, never render as an empty (clean-looking) scan."""
+    repo, _ = _repo_with_remote(tmp_path)
+    monkeypatch.setattr(aud, "_is_hub", lambda p: True)
+    monkeypatch.setattr(ja, "floor_sha", lambda p: "0" * 40)
+    findings = aud.check_journal_spine_anchor(repo)
+    assert findings[0].status == "fail"
+    assert "could not complete" in findings[0].evidence
+
+
+# --- FR7: no agent-asserted state is an input to a hard check ---------------
+
+def test_fr7_no_agent_asserted_state_in_the_hard_path():
+    """FR7 — the retired §4 token is not consulted anywhere in the live path, and the
+    hard organ's inputs are git history and JOURNAL.md content only.
+
+    Asserted on the AST, not on source text: a comment that MENTIONS the retirement (which
+    is exactly what the live code carries) must not read as a call site. Text matching here
+    would be a test that fails for the wrong reason — the defect class this arc is about.
+    """
+    import ast
+    import inspect
+    import textwrap
+
+    def _called_names(fn):
+        tree = ast.parse(textwrap.dedent(inspect.getsource(fn)))
+        return {n.func.id for n in ast.walk(tree)
+                if isinstance(n, ast.Call) and isinstance(n.func, ast.Name)}
+
+    assert "_override_active" not in _called_names(seb.main)
+    assert "_override_active" not in _called_names(bup.main)
+    # And the hard organ never reads the token file at all.
+    assert "session-override-token" not in inspect.getsource(bup)

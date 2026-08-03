@@ -48,8 +48,53 @@ when this session shipped work it has not yet journaled. Per-commit detection us
 - **Supersedes** the older advisory journal-*presence* check — the SHA anchor strictly
   subsumes it (presence without a SHA no longer passes).
 
-Implementation: `scripts/session_end_backpressure.py::check_journal_sha_anchor()` (the teeth);
+Implementation: `scripts/session_end_backpressure.py::check_journal_sha_anchor()`;
 the boundary-walk + `--first-parent` merge guard + verified-`origin/main` base live there.
+
+> **SUPERSEDED for the TEETH by the ADR-85 amendment 2026-08-03.** Everything above still
+> describes the *obligation's spirit* — a session's work is named by a SHA in
+> `JOURNAL.md` — but the **organ, the domain and the escape all moved.** The Stop hook no
+> longer blocks: `check_journal_sha_anchor()` is now an **advisory** leg. The teeth are the
+> two organs declared immediately below. Read this section as history plus intent; read the
+> next one as the live contract.
+
+### JOURNAL spine anchor — gated, **hard**, at pre-push and in the audit
+<!-- rule: seal-journal-spine-anchor -->
+Every **first-parent spine entry** integrated onto `main` **is anchored** by a `JOURNAL.md`
+entry. A spine entry is **anchored** when the journal names **≥1 SHA the entry INTRODUCED** —
+not the entry's own SHA, because a merge commit cannot name its own hash (the entry it
+carries is authored before the merge exists).
+
+- **What creates the obligation:** integration onto `main`, **not** an authored commit.
+  Commits parked on a feature branch awaiting operator GO create none — no integration has
+  occurred. Authorship is an inference in a shared checkout or a parallel lane; an
+  integration event is a recorded fact, which is what an un-gameable gate requires.
+- **When it fires:** at **pre-push**, on a push targeting `main`, over the range git hands
+  the hook (`remote_sha..local_sha`) — exact and bounded by construction, with no invented
+  base. Discharge is **range-level**: one anchor in the range discharges the range.
+- **Effect:** the push is **REFUSED**, naming every offending spine entry. A pre-push hook
+  **cannot be exhausted** — it passes, or the push fails — which is why the teeth live here
+  and not at a turn boundary the host force-ends after N blocks.
+- **The sole escape is `git push --no-verify`** — explicit, human-typed, transport-level,
+  pretending to be nothing else. The ADR-85 §4 **local token path is retired**: local state
+  cannot make an integration event compliant.
+- **The escape is not silent:** the audit backstop keeps FAILing until an anchor lands.
+- **Dirty tree is irrelevant** to this gate — a push carries committed objects, not the
+  working tree. Clean-tree gating survives only on the advisory legs, where "don't nag
+  mid-work" is the correct behaviour.
+
+Implementation (both organs share ONE predicate, `scripts/journal_anchor.py`, so they cannot
+disagree about what "anchored" means):
+- **Teeth:** `scripts/block_unanchored_push.py` — pre-push, scoped to `refs/heads/main`.
+- **Backstop:** `scripts/audit.py::check_journal_spine_anchor()` — an `ALL_CHECKS` leg over
+  `git log --first-parent main`. A gap is a **FAIL, not a WARN**: a WARN would be
+  dispositionable, and a dispositionable backstop cannot be what makes `--no-verify` visible.
+  Scans **at or above** the ADR's dated disposition floor, which it **reads from the ADR**
+  rather than hardcoding — a floor in a Python literal can be widened in a commit that reads
+  like a refactor; widening it in the ADR is a visible governance act.
+
+Both organs **fail CLOSED** on internal error (exit 2 / FAIL): an unknown anchoring state is
+not a clean one.
 
 ### BACKLOG — gated, **advisory** (interim, v1)
 Any session that lands commits **should** update `BACKLOG.md` with a structural-marker

@@ -187,7 +187,11 @@ def violations_in_range(repo: Path, rng: str, baseline: str = BASELINE_DATE) -> 
 
 def main(argv=None) -> int:
     """Refuse (1) a push that adds a non-merge commit to main; allow (0) otherwise.
-    Fail-soft to 0 on any error — a hook bug must never block a legitimate push."""
+
+    Exit codes: 0 = clean scan, allow · 1 = violation detected, refuse · 2 = internal
+    error, refuse. Fail **CLOSED** on error per the ADR-85 amendment 2026-08-03 §A6 —
+    the escape hatch is the explicit `git push --no-verify`, so an error need never
+    brick work and must never be a silent allow."""
     reconstructed = False
     try:
         repo = _repo_root()
@@ -202,9 +206,19 @@ def main(argv=None) -> int:
         if rng is None:
             return 0  # not a push to main (or a main deletion) — nothing to gate
         violations = violations_in_range(repo, rng)
-    except Exception as exc:  # noqa: BLE001 — fail-soft is the contract
-        print(f"block_ff_push: degraded ({exc}) — allowing push", file=sys.stderr)
-        return 0
+    except Exception as exc:  # noqa: BLE001 — ADR-85 amendment 2026-08-03 §A6: fail CLOSED
+        # An organ with an explicit escape hatch (`git push --no-verify`) must fail closed:
+        # a crash cannot brick work, so a silent auto-allow buys nothing and costs the
+        # invariant. This organ is the PREVENT half of core-invariant #5, and until this
+        # fix it printed "degraded — allowing push" and returned 0, silently auto-allowing
+        # the exact push it exists to refuse — which is what made ADR-85 §A9's foreclosure
+        # conditional. Model: check_seal_identity.py:73-77 ("an error is never a silent
+        # pass"). Exit 2 = internal error, distinct from 1 = detected violation.
+        print(f"block_ff_push: INTERNAL ERROR ({exc!r}) — refusing the push; an error is "
+              "never a silent allow. Fix the hook, or bypass explicitly with "
+              "`git push --no-verify` (the audit WARN still flags it post-hoc).",
+              file=sys.stderr)
+        return 2
     if not violations:
         return 0
     print(f"block_ff_push: REFUSED — {len(violations)} non-merge commit(s) would land "
