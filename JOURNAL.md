@@ -47,9 +47,27 @@ in the disposition register, so the floor cannot be quietly extended — with th
 they landed under a contract in which push, a dirty tree and hook exhaustion were live and
 undocumented discharge paths.
 
+**Two additions before merge, on operator instruction** — *an amendment known to be incomplete
+does not get merged; that pattern is what produced this incident.* **(A)** The floor now states
+its size numerically: of 1292 spine entries, 11 are at/above the floor and **1281 fall below it —
+865 already anchored, 416 genuinely unanchored** (32.5%), newest gap `5d1c71f03`. The floor is
+explicitly not a claim that history beneath it was clean. **(B)** New §A9 names the
+**structurally unanchorable entry** — a non-merge spine entry introduces only itself, so no
+JOURNAL can name a SHA that does not yet exist. Verified rather than assumed: a direct-to-main
+push in an isolated clone was **REFUSED by `block_ff_push` (exit 1)**, so the case is foreclosed
+forward by core-invariant #5 + that organ + `validate_no_ff` from `BASELINE_DATE = 2026-06-15`.
+Not absolute, and recorded as such: `--no-verify` bypasses it, and `block_ff_push.py:205-207`
+fails soft today. If one occurs anyway, pre-push discharge is range-level so a follow-up commit
+naming the first anchors the range; the per-entry backstop reports a gap until a later entry
+anchors it **retroactively**. 311 such entries exist historically (133 unanchored) — **all below
+the floor**, newest `533109f20` (2026-06-26).
+
 **Changes:** `docs/decisions/ADR-85-session-lifecycle-enforcement.md` (appended), `JOURNAL.md`.
 
 **Abandoned:** nothing. NC1–NC5 verified before the first edit; NC6 is the gate this arc opens.
+This entry was **extended in place** rather than joined by a second entry, so that the
+"one JOURNAL entry per shipped merge" ruling stays literally true for this unit — it is this
+session's own not-yet-shipped entry, not a historical one.
 
 **Next:** STOP at the ratification gate. ARC 2 (FR1–FR8, TDD T1–T8, terra pre-merge) begins only
 on the operator's ratification of this amendment.

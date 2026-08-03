@@ -260,6 +260,26 @@ branch 'chore/doc-counts-2182'"*), is the newest gap.
 > landed. Retro-anchoring 1,281 historical spine entries would mean writing JOURNAL entries for
 > sessions nobody attended, which manufactures record rather than keeping it.
 
+**What the floor covers, counted — so this is never later readable as "history was clean."**
+Full census at `4f3f8531`, `git log --first-parent main`, using the §A7 predicate:
+
+```
+total first-parent spine entries on main        1292
+at/above the floor (the clean contiguous run)     11
+BELOW the floor, dispositioned by this amendment 1281
+    of those, already anchored                    865
+    of those, GENUINELY UNANCHORED                416      <- 32.5% of the disposed span
+    entries introducing only themselves           311      (of which unanchored: 133)
+newest unanchored spine entry                    5d1c71f03  (2026-08-02,
+                                                 "Merge branch 'chore/doc-counts-2182'")
+```
+
+**416 spine entries below the floor carry no JOURNAL anchor at all.** The floor is not a
+statement that the history beneath it is compliant — it is an explicit decision to stop counting
+at a dated line, with the size of what is being stopped-counting recorded in the same breath. A
+future reader asking "how much was disposed of?" gets 1,281 entries, 416 of them true gaps, from
+this paragraph rather than from a re-derivation that may no longer be possible.
+
 **A floor is a recorded fact, not a bypass.** It is dated, it names its SHA, it states its reason,
 and it is written into the ADR rather than into a disposition register where it could be quietly
 extended. Nothing after `24882f8cc` is covered by it, and the floor does not move without a
@@ -276,6 +296,48 @@ retroactively invalid — including the 2026-08-03 afternoon arc, whose debt (`8
 combined merge diff would otherwise hide a branch's JOURNAL entry). The advisory BACKLOG-marker
 leg (R1) is unchanged and stays advisory. The existing `warn-no-ff-*`, `warn-doc-rot-*`,
 `warn-undeclared-*` dispositions reference other organs and are unaffected.
+
+### A9. The structurally unanchorable entry — a spine entry that introduces only itself
+
+A **non-merge** commit on the first-parent spine introduces exactly one commit: itself. Such an
+entry **cannot be anchored at push time** — no JOURNAL entry can name a SHA that does not yet
+exist when that entry is authored. This case is named here because a backstop that FAILs on it
+without an account of it would be a gate nobody can satisfy.
+
+**Is it reachable? Foreclosed going forward — verified, not assumed.** In an isolated clone with
+its own bare origin and the pre-push hook armed, a direct non-merge commit on `main` was pushed:
+
+```
+block_ff_push: REFUSED - 1 non-merge commit(s) would land on main's first-parent spine
+  FF/DIRECT  0ee919c92 (2026-08-03) direct-to-main probe (non-merge spine entry)
+  bypass: `git push --no-verify` (the audit WARN still flags it post-hoc)
+error: failed to push some refs        PUSH EXIT=1
+```
+
+The foreclosing mechanisms are core-invariant #5 (branch → `--no-ff` merge, never direct-to-main),
+`scripts/block_ff_push.py` as its pre-push *prevent* organ, and `validate_no_ff` as the post-hoc
+detect organ, enforcing from `BASELINE_DATE = 2026-06-15` **forward**.
+
+**The foreclosure is real but not absolute**, and the amendment says so rather than relying on it:
+`--no-verify` bypasses it by design, and `block_ff_push.py:205-207` currently **fails soft** —
+returning 0 and "allowing push" on any internal error — which is exactly the defect §A6 orders
+fixed. Until that fix lands, the prevent organ can be silently absent.
+
+**What the hard leg does if such an entry occurs anyway:**
+- **At pre-push**, discharge is **range-level** (§A2/FR2: a JOURNAL entry naming ≥1 SHA *in the
+  range*). A direct commit `D` followed by a second commit `E` whose JOURNAL text names `D` makes
+  the range anchored, and the push passes. There is no deadlock in the normal repair shape.
+- **A lone direct commit as the entire push range is unanchorable** and the push is refused. This
+  is correct rather than unfortunate: `block_ff_push` refuses that same push first, for the same
+  underlying reason.
+- **At the backstop** (§A8, per-entry), a self-only entry stays a reported gap until a **later**
+  JOURNAL entry names it **retroactively**. Retroactive anchoring is the only discharge available
+  to such an entry, and it is legitimate — the record is what matters, not when it was written.
+
+**Historical extent, counted.** 311 non-merge spine entries exist on `main` today, of which 133
+are unanchored. **All 311 are below the floor** — the newest is `533109f20` (2026-06-26), and the
+floor is `24882f8cc` (2026-08-02) — so none of them is live work for the backstop, and none is
+used to justify the floor's placement.
 
 ## Links
 - Council verdict: `council-out-20260616_131123-pick-council-brief-session-lifecycle-enforcement.md`
