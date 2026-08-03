@@ -24,6 +24,8 @@ import re
 import sys
 from pathlib import Path
 
+import yaml
+
 _SCRIPTS_DIR = Path(__file__).resolve().parent
 _REPO_ROOT = _SCRIPTS_DIR.parent
 _INTAKE_DIR = _REPO_ROOT / "docs" / "intake"
@@ -41,28 +43,52 @@ _STATUS_ORDER = ("SEED", "DRAFT", "READY", "ACCEPTED", "CONSUMED", "SUPERSEDED",
 _OTHER = "OTHER"
 
 _TITLE_RE = re.compile(r"^#\s+(.+?)\s*$", re.MULTILINE)
-_FM_KV_RE = re.compile(r"^([a-z0-9-]+):\s*(.*?)\s*$", re.IGNORECASE)
 
 
 def _parse_frontmatter(text: str) -> dict[str, str]:
     """The leading `---`...`---` YAML frontmatter as a flat {key: value} dict, or {} if absent.
-    Minimal stdlib parse (no yaml dep -- mirrors gen_audit_index's zero-dep posture)."""
+
+    Parsed with `yaml.safe_load` -- the same call `audit.check_vision_md` already makes on
+    frontmatter, so this is the repo's existing precedent rather than a new dependency
+    (`pyyaml>=6.0` is already declared; nothing is added to uv.lock).
+
+    WHY THE HAND-ROLLED REGEX WENT: its key class was `[a-z0-9-]+`, which has no underscore,
+    so every underscore-bearing key matched NOTHING and was dropped silently from a dict this
+    docstring calls YAML frontmatter. `last_reviewed` and `reconciled_with` are both live
+    conventions in this repo's own canonical docs. The visible consequence was one level up:
+    `gen_intake_tree._off_projection_keys` -- the AC-4 residue enumeration -- reported no
+    residue for such a key, green because it was looking at zero keys of that shape.
+
+    Contracts preserved from the regex version:
+      * no leading `---`                -> {}
+      * unterminated (no closing `---`) -> {}, so the doc surfaces loudly in OTHER with a
+        MISSING-ID label rather than being silently mis-parsed from body lines that happen
+        to match `status:` (codex-review 2026-07-11)
+      * keys lowercased, and values coerced to stripped strings so callers' `.strip()` /
+        `.upper()` keep working where YAML would otherwise hand back a typed scalar (an
+        unquoted ISO date parses to a `date`, which has no `.strip()`)
+
+    Malformed YAML returns {} -- the same loud path as invalid frontmatter. A generator a
+    pre-commit hook runs must not crash on one bad doc; the doc surfaces in OTHER instead.
+    """
     if not text.startswith("---"):
         return {}
-    lines = text.splitlines()
-    fm: dict[str, str] = {}
+    block: list[str] = []
     closed = False
-    for line in lines[1:]:
+    for line in text.splitlines()[1:]:
         if line.strip() == "---":
             closed = True
             break
-        m = _FM_KV_RE.match(line)
-        if m:
-            fm[m.group(1).lower()] = m.group(2)
-    # Unterminated frontmatter (no closing `---`) is INVALID -> return empty so the doc
-    # surfaces loudly in OTHER with a MISSING-ID label, rather than being silently
-    # mis-parsed from body lines that happen to match `status:` (codex-review 2026-07-11).
-    return fm if closed else {}
+        block.append(line)
+    if not closed:
+        return {}
+    try:
+        data = yaml.safe_load("\n".join(block))
+    except yaml.YAMLError:
+        return {}
+    if not isinstance(data, dict):
+        return {}
+    return {str(k).lower(): ("" if v is None else str(v)).strip() for k, v in data.items()}
 
 
 def _title_of(text: str) -> str:

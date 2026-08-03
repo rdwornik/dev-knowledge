@@ -316,3 +316,28 @@ def test_check_is_registered_as_a_ship_gate_leg():
     import audit as aud
 
     assert aud.check_intake_tree_coherence in aud.ALL_CHECKS
+
+
+def test_off_projection_residue_enumeration_sees_underscore_keys(tmp_path):
+    """The AC-4 residue enumeration is where the parser's underscore blind spot BIT.
+
+    `_off_projection_keys` reports "frontmatter keys present but NOT projected into the
+    monolith". It shares `_parse_frontmatter` with gen_intake_index, whose key class carried
+    no underscore — so an underscore-bearing key was invisible to the enumeration and the
+    residue manifest reported it as no residue at all. Green because it looked at zero such
+    keys, which is not the same as there being none.
+
+    Live-corpus honesty: docs/intake/ uses `review-date` (hyphen) today, so nothing is being
+    masked right now. That makes the green ACCIDENTAL, not earned — the first intake doc to
+    adopt `last_reviewed` (the convention the canonical living docs already use) would have
+    dropped out of the residue enumeration silently.
+    """
+    d = tmp_path / "intake"
+    d.mkdir()
+    (d / "x.md").write_text(
+        "---\nintake-id: 1\nstatus: SEED\nlast_reviewed: 2026-08-03\n---\n\n# t\n\nbody\n",
+        encoding="utf-8")
+
+    extra = gt._off_projection_keys(d)
+    assert "x.md" in extra, "a doc carrying an off-projection key reported no residue at all"
+    assert "last_reviewed" in extra["x.md"], extra["x.md"]
