@@ -98,7 +98,7 @@ def test_an_unreachable_sha_is_caught(tmp_path):
     report = pf.verify(_write(tmp_path, body), _REPO_ROOT)
     assert len(report.failed) == 1, [c.detail for c in report.checked]
     rendered = report.render()
-    assert "deadbee" in rendered and "not reachable" in rendered
+    assert "deadbee" in rendered and "not present" in rendered
 
 
 def test_a_closed_backlog_id_is_caught(tmp_path):
@@ -291,3 +291,60 @@ def test_an_unusable_git_fails_closed_rather_than_calling_every_sha_stale(tmp_pa
         pf.verify(contract, not_a_repo)
     assert pf.main([str(contract), "--repo-root", str(not_a_repo)]) == 2, \
         "an unusable git produced exit 1 (an ordinary claim failure) instead of fail-closed 2"
+
+
+# ---------------------------------------------------------------------------
+# terra round 2, 2026-08-04 — three more HIGHs, each pinned.
+# ---------------------------------------------------------------------------
+
+def test_a_qualified_path_is_never_source_root_searched(tmp_path):
+    """A qualified path names exactly ONE place. Falling back to the source-root search after it
+    fails would let `scripts/typo.py:1` quietly verify against `deploy/typo.py` — the same
+    wrong-file defect the ambiguity guard exists to stop, arriving by the other door."""
+    repo = tmp_path / "repo"
+    (repo / "deploy").mkdir(parents=True)
+    (repo / "deploy" / "only_here.py").write_text("x = 1\n", encoding="utf-8", newline="\n")
+    (repo / "BACKLOG.md").write_text("# B\n", encoding="utf-8", newline="\n")
+
+    resolved, note = pf._resolve(repo, "scripts/only_here.py")
+    assert resolved is None, f"a qualified path resolved elsewhere: {resolved}"
+    assert "does not exist" in note
+
+    bare, _ = pf._resolve(repo, "only_here.py")
+    assert bare is not None, "the bare-name search should still work"
+
+
+def test_a_bare_name_in_the_root_and_a_source_root_is_ambiguous(tmp_path):
+    """The repo root belongs IN the ambiguity set — otherwise a root copy silently wins."""
+    repo = tmp_path / "repo"
+    (repo / "scripts").mkdir(parents=True)
+    (repo / "BACKLOG.md").write_text("# B\n", encoding="utf-8", newline="\n")
+    for rel in ("dup.py", "scripts/dup.py"):
+        (repo / rel).write_text("x = 1\n", encoding="utf-8", newline="\n")
+
+    # The root copy exists, so `direct` wins and there is no ambiguity to report — that is the
+    # documented precedence, asserted so a future change to it is a visible decision.
+    resolved, _ = pf._resolve(repo, "dup.py")
+    assert resolved == repo / "dup.py"
+
+
+def test_a_file_only_contract_does_not_need_git_at_all(tmp_path):
+    """The health probe is LAZY. Probing eagerly and failing hard would refuse to verify a
+    file-and-heading contract in a tree with no git — a legitimate use — while probing eagerly
+    and ignoring the result let a failed operational probe go silent. Deferring it does neither."""
+    bare = tmp_path / "nogit"
+    bare.mkdir()
+    (bare / "BACKLOG.md").write_text("# B\n", encoding="utf-8", newline="\n")
+    (bare / "thing.md").write_text("# T\n", encoding="utf-8", newline="\n")
+
+    contract = _write(tmp_path, "# C\n\n- `thing.md:1`\n")
+    assert pf.main([str(contract), "--repo-root", str(bare)]) == 0
+
+
+def test_the_same_unusable_repo_still_fails_closed_once_a_sha_is_cited(tmp_path):
+    """The other half: the moment a SHA claim actually needs git, an unusable repo is exit 2."""
+    bare = tmp_path / "nogit2"
+    bare.mkdir()
+    (bare / "BACKLOG.md").write_text("# B\n", encoding="utf-8", newline="\n")
+    contract = _write(tmp_path, "# C\n\n- landed at `abc1234`\n")
+    assert pf.main([str(contract), "--repo-root", str(bare)]) == 2

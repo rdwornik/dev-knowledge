@@ -17,7 +17,7 @@ found. This runs first and reports every citation a contract makes about this re
 WHAT IT CHECKS (mechanically decidable claims only):
     file-line    `path/to/file.py:123`   the file exists AND has >= 123 lines
     heading      `FILE.md` heading "..."  the heading text occurs in that file
-    sha          `abc1234`                reachable in this repo's history
+    sha          `abc1234`                present in this repo's object store
     backlog-id   `[#123]`                 currently OPEN in BACKLOG.md
 
 WHAT IT CANNOT CHECK, stated so nobody reads more into a PASS than it carries: whether a
@@ -127,8 +127,20 @@ def _resolve(repo_root: Path, rel: str) -> tuple[Path | None, str]:
     direct = repo_root / rel
     if direct.is_file():
         return direct, ""
-    hits = [repo_root / root / rel for root in _SOURCE_ROOTS if root
-            and (repo_root / root / rel).is_file()]
+
+    # The source-root search applies ONLY to a syntactically BARE filename (terra HIGH r2,
+    # 2026-08-04). A qualified or absolute path names exactly one place; searching elsewhere
+    # after it fails to resolve would let `scripts/typo.py:1` quietly verify against
+    # `deploy/typo.py`, which is the same wrong-file defect the ambiguity guard exists to stop.
+    if "/" in rel or "\\" in rel or (len(rel) > 1 and rel[1] == ":"):
+        return None, f"{rel} does not exist"
+
+    # The repo root is IN the ambiguity set: a bare name present at the root AND in a source
+    # root is ambiguous too, and the early `direct` return above only covers the case where the
+    # root copy exists at all.
+    hits = [repo_root / root / rel if root else repo_root / rel
+            for root in _SOURCE_ROOTS if (repo_root / root / rel if root
+                                          else repo_root / rel).is_file()]
     if len(hits) == 1:
         return hits[0], ""
     if len(hits) > 1:
@@ -165,8 +177,18 @@ def verify(contract: Path, repo_root: Path = _REPO_ROOT) -> Report:
 
     report = Report()
     seen: set[tuple[str, str]] = set()
-    # Repo health established ONCE, before any SHA verdict is allowed to depend on it.
-    git_healthy = _git(repo_root, "rev-parse", "--git-dir").returncode == 0
+    # Repo health is probed LAZILY, once, and only if a SHA claim actually needs it (terra
+    # HIGH r2, 2026-08-04). Probing eagerly and ignoring the result outside the SHA loop let a
+    # file-only contract return a clean report against an unusable repo -- a failed operational
+    # probe going silent, which is the posture this tool claims not to have. Probing eagerly and
+    # failing hard would be worse in the other direction: it would refuse to verify a
+    # file-and-heading contract in a tree that has no git at all, which is a legitimate use.
+    _health: list[bool] = []
+
+    def git_healthy() -> bool:
+        if not _health:
+            _health.append(_git(repo_root, "rev-parse", "--git-dir").returncode == 0)
+        return _health[0]
 
     def add(kind: str, raw: str, ok: bool, detail: str = "") -> None:
         if (kind, raw) in seen:
@@ -206,8 +228,13 @@ def verify(contract: Path, repo_root: Path = _REPO_ROOT) -> Report:
         r = _git(repo_root, "cat-file", "-e", f"{sha}^{{commit}}")
         if r.returncode == 0:
             add("sha", sha, True)
-        elif git_healthy:
-            add("sha", sha, False, "not reachable in history")
+        elif git_healthy():
+            # HONEST WORDING (terra HIGH r2, 2026-08-04): `cat-file -e` proves the object is
+            # PRESENT IN THIS REPO'S OBJECT STORE, not that it is reachable from any ref, so a
+            # dangling commit passes. Saying "not reachable in history" over-claimed what the
+            # probe establishes. Ref-set reachability is a real improvement and is recorded as
+            # a known limit on [#483] rather than half-built here.
+            add("sha", sha, False, "not present in this repo's object store")
         else:
             # "could not check" is NOT "checked and stale" (terra HIGH, 2026-08-04). git exits 1
             # for BOTH a missing object and a broken invocation, so without the health probe a
