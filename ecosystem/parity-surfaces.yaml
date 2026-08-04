@@ -745,6 +745,14 @@ surfaces:
       value: methodology-generic
       reason: "/handoff-verify -- the v6 one-round-trip checker, the answer-producing counterpart to /handoff's answer-free generation (HANDOFF_PROCESS v6 SS5, R1/[#446]; hub LOCAL today). Methodology-owned: the evidence-block contract is spec-defined, not repo-specific. Hub-local is a distribution phase, not repo ownership -- it deploys with the handoff pair when the consumers adopt v6."
       provenance: *own-prov
+  - id: command-preflight
+    kind: command
+    tier: {hub: LOCAL}
+    probe: {type: command_present, file: preflight.md}
+    ownership:
+      value: methodology-generic
+      reason: "/preflight -- pre-flight verification of the repo locators a contract cites (lesson 8, [#483]); hub LOCAL today. Methodology-owned: the failure class it answers (a prompt's file:line / SHA / [#id] citations going stale) is universal to the contract-driven lane, not specific to this repo. ADOPTION-FIRST -- it is wired into no gate; whether it becomes one is [#483]'s ruling."
+      provenance: *own-prov
   - id: command-save
     kind: command
     tier: {hub: LOCAL}
@@ -822,7 +830,7 @@ surfaces:
       type: commands_roster
       expected_all: [override.md]
       expected_repo:
-        .dev-knowledge: [handoff.md, handoff-verify.md, save.md, changelog-review.md]
+        .dev-knowledge: [handoff.md, handoff-verify.md, save.md, changelog-review.md, preflight.md]
     ownership:
       value: methodology-generic
       reason: "The command-roster closure (MUST both) -- methodology-owned governance construct asserting every command file has a covering row; methodology machinery."
