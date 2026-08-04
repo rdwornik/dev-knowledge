@@ -70,6 +70,15 @@ sanctioned_divergences:
       (HANDOFF_PROCESS v6 SS5; R1 / [#446]) and travels with that pair -- if the
       docs/handoffs INVERSE ever lifts, both commands move together, not this one alone.
     review_date: 2026-10-13
+  - component: command-preflight
+    reason: >-
+      /preflight is hub-local pre-flight verification of the repo locators a contract or
+      prompt cites ([#483], lesson 8). Hub-local because the failure it answers is the
+      contract-driven lane's own -- nine architect premise errors in the 2026-08-03/04
+      window, all caught downstream by accident -- and that lane is authored here.
+      ADOPTION-FIRST: it is wired into no gate, and whether it becomes one is [#483]'s
+      ruling, so distributing it now would ship an unruled mechanism.
+    review_date: 2026-10-13
   - component: command-save
     reason: >-
       /save is a hub-local authoring convenience (fleet-parity register c1, lean

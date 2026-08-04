@@ -11,4 +11,5 @@
 - `/handoff-verify` — Run the whole live probe gate for a handoff bundle in ONE pass and emit exactly ONE evidence block — the v6 one-round-trip boot (HANDOFF_PROCESS §5)
 - `/handoff` — Generate or complete a handoff per HANDOFF_PROCESS.md v6 — CC-owned residual + thin browser boot
 - `/override` — Bypass the ADR-85 session-end hard gate for this HEAD — explicit, logged, no auto-bypass
+- `/preflight` — Verify every repo locator a contract or prompt cites — file:line, headings, SHAs, [#id] liveness — BEFORE acting on it. Read-only, adoption-first, wired into no gate.
 - `/save` — Stage all changes and commit with a descriptive Conventional Commits message
