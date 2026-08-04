@@ -815,3 +815,81 @@ def test_static_drift_summary_rejects_non_waivable_entry(tmp_path):
     assert summary["declared"] == 1
     assert summary["valid"] == 0
     assert summary["rejected_non_waivable"] == 1
+
+
+# ---------------------------------------------------------------------------
+# [#481] — the organ id must name the organ the probe actually measures.
+#
+# `0c8647c2` repointed the ADR-85 probe at `block_unanchored_push` (pre-push) but kept the
+# id `session_end_backpressure`, so the published identity named a Stop-hook script while
+# the probe read a different organ at a different stage.
+#
+# The token is OVERLOADED: `scripts/session_end_backpressure.py` is still a live script,
+# still deployed by `deploy/carrier_mesh.py`, still wired as an advisory Stop hook. A text
+# scan cannot tell the retired ORGAN-ID from the live SCRIPT-NAME, so the census below
+# discriminates by ROLE — the live registry for the code half, syntactic organ-id
+# positions for the test half.
+# ---------------------------------------------------------------------------
+
+_RETIRED_ORGAN_ID = "session_end_backpressure"
+
+# Organ-id SYNTACTIC positions — the mechanical role rule for the test half. Each pattern
+# matches the token only where it stands in for a `Cell.organ_id` / `Tier3Cell.organ_id`
+# value, never where it names the still-live script.
+_ORGAN_ID_POSITIONS = (
+    ("_cell(cells, <organ_id>)", re.compile(r'_cell\([^,]*,\s*"' + _RETIRED_ORGAN_ID + r'"\)')),
+    ("cells[<organ_id>]", re.compile(r'cells\[\s*"' + _RETIRED_ORGAN_ID + r'"\s*\]')),
+    ("ec.Cell(<organ_id>, ...)", re.compile(r'ec\.Cell\(\s*"' + _RETIRED_ORGAN_ID + r'"')),
+    ("(<component_id>, <organ_id>, ...)",
+     re.compile(r'"session-end-backpressure",\s*"' + _RETIRED_ORGAN_ID + r'"')),
+)
+
+
+def _anchor_probe():
+    """The Group-C ADR-85 probe, resolved from the LIVE registry by GROUP.
+
+    Deliberately not resolved by id literal: selecting the probe by the very string under
+    test would make the invariant below circular and it would pass for any id at all.
+    """
+    group_c = [p for p in ec.TIER1_ORGANS if p.group == "C"]
+    assert len(group_c) == 1, f"expected exactly one Group-C organ, got {[p.organ_id for p in group_c]}"
+    return group_c[0]
+
+
+def test_anchor_organ_id_names_the_organ_it_measures():
+    """[#481] The Tier-1 organ id must name the organ the probe actually reads.
+
+    Load-bearing AFTER the rename too: a future repoint that changes `_ANCHOR_ORGAN_SCRIPT`
+    without renaming the id re-fails this test, which is the regression the row exists to stop.
+    """
+    probe = _anchor_probe()
+    assert ec._ANCHOR_ORGAN_SCRIPT in probe.organ_id, (
+        f"organ id {probe.organ_id!r} does not name the organ it measures "
+        f"({ec._ANCHOR_ORGAN_SCRIPT!r} at {ec._ANCHOR_STAGE}) — the [#481] defect"
+    )
+
+
+def test_organ_id_census_carries_no_retired_id():
+    """[#481] AC1/AC4 census — the ORGAN-ID role, read structurally rather than by grep.
+
+    Code half: introspects the LIVE registry (`TIER1_ORGANS`, `_ORGAN_TO_COMPONENT`). Every
+    organ-identity surface — the Tier-1 digest rows, the `<!-- organs: -->` marker, the
+    Tier-3 component bridge — is generated from these two structures, so introspecting them
+    IS the complete code-side census.
+
+    Test half: scans this module for the syntactic organ-id positions above.
+
+    *Honest limit:* prose mentions in comments/docstrings are not mechanically classifiable
+    and are out of this census's scope by construction — it measures organ-id POSITIONS, not
+    every appearance of the string.
+    """
+    registry_ids = {p.organ_id for p in ec.TIER1_ORGANS}
+    assert _RETIRED_ORGAN_ID not in registry_ids, (
+        f"retired organ id still in TIER1_ORGANS: {sorted(registry_ids)}")
+    assert _RETIRED_ORGAN_ID not in ec._ORGAN_TO_COMPONENT, (
+        f"retired organ id still keys _ORGAN_TO_COMPONENT: {sorted(ec._ORGAN_TO_COMPONENT)}")
+
+    source = Path(__file__).read_text(encoding="utf-8")
+    hits = {label: len(rx.findall(source)) for label, rx in _ORGAN_ID_POSITIONS}
+    offenders = {label: n for label, n in hits.items() if n}
+    assert not offenders, f"retired organ id still in organ-id positions in this module: {offenders}"
