@@ -21,8 +21,15 @@
 
 ### 2026-08-04 (f) — CC (Opus 5, local): the two carried wrap items, filed not acted on
 
-**Did:** Filed `[#484]` and `[#485]`, both operator-directed at the close-out. SHA anchor:
-the commit this entry names below.
+**Did:** Filed `[#484]` and `[#485]`, both operator-directed at the close-out. SHA anchors:
+`aad1a235` (the two rows) and `4306a46a` (the merge).
+
+**Anchor correction, recorded rather than quietly amended.** This entry originally read *"the
+commit this entry names below"* and named no SHA — the shell variable carrying it reached the
+commit MESSAGE but never the JOURNAL body. The ADR-85 pre-push organ refused the push, exactly
+as designed: the range carried spine entries with no JOURNAL anchor. That is the gate built
+yesterday catching a real omission on its author the day after, which is worth one line in the
+record. Fixed forward on a branch, never by amending a landed commit or by `--no-verify`.
 
 **Result.** `[#484]` records the **ADR-106 system-Python divergence as a NAMED DEFERRAL** with a
 stated scope (~1 window) rather than leaving it as unowned drift — and explicitly not as a
