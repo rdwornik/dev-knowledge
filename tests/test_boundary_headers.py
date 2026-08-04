@@ -453,3 +453,33 @@ def test_governed_glob_match_is_case_sensitive_on_every_host(monkeypatch):
         assert not bh._matches_governed_glob(literal.upper()), (
             f"{glob!r} matched the uppercased path {literal.upper()!r} — glob matching is "
             "following host case rules, so the governed set differs per OS")
+
+
+# ---------------------------------------------------------------------------
+# [#482] — the glob engine must mean what the pattern reads.
+#
+# `fnmatch` has no `**`, and its `*` CROSSES `/`. So `.claude/*.md` is already recursive
+# while `.claude/**/*.md` is a strict subset of it that adds nothing — a glob that reads
+# narrower than it behaves. Operator ruling 2026-08-03: REPAIR (true-glob), not REMOVE.
+# ---------------------------------------------------------------------------
+
+
+def test_star_does_not_cross_a_path_separator(monkeypatch):
+    """[#482] `*` must not cross `/` — `.claude/*.md` names DIRECT children only.
+
+    Per-glob attribution is demonstrated by narrowing `_GOVERNED_GLOBS` to the single glob
+    under test, so the defect is shown through the module's OWN predicate without adding a
+    seam first — the RED commit touches no source at all.
+
+    The fixture is a REAL tracked path, asserted live before it is used: a hand-invented
+    path would let this test keep passing against a corpus that no longer contains it.
+    """
+    nested = ".claude/commands/save.md"
+    assert nested in bh._tracked_files(_ROOT), (
+        f"{nested!r} is no longer tracked — this fixture must be live corpus, not a fiction; "
+        "re-point it at a real nested .claude/**/*.md file")
+
+    monkeypatch.setattr(bh, "_GOVERNED_GLOBS", (".claude/*.md",))
+    assert not bh._matches_governed_glob(nested), (
+        "`.claude/*.md` matched the NESTED path {!r} — `*` crossed `/`, so the glob behaves "
+        "recursively while reading as direct-children-only ([#482])".format(nested))
