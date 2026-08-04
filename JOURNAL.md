@@ -19,6 +19,61 @@
 
 ---
 
+### 2026-08-04 (k) — CC (Opus 5, local): FR-3/FR-3b — the gate learns the difference between naming a row and claiming one
+
+**Did:** Ruled and built `[#483]`. R1/R2/R3 recorded verbatim at
+`docs/audits/2026-08-04-technical-483-enforcement-ruling.md`; the discrimination leg built TDD;
+wired ADVISORY per R3. SHA anchors: **`f15065cf`** (the RED fixture bundle) and **`7e8f1d98`**
+(the role rule).
+
+**Result — the ruling's own evidence had already moved, which is the point of re-deriving it.**
+
+R1 cites 11 flags. Re-running the bundle today gives **19**, because `[#481]` and `[#482]` closed
+earlier the same day. Subtracting their 8 occurrences reproduces 11 **exactly** — confirming R1
+at its own moment and establishing that 11 is point-in-time, not a constant. Both numbers and the
+per-file arithmetic are tabled, so a later citation has to name which moment it means.
+
+**The role rule is two mechanical layers, and the ordering inside Layer 2 is load-bearing.**
+Deriving it live went **24 → 2 → 1**: a naive scan conflates `kill-candidates: none — <reason
+citing a closed id>` with a real kill-candidate; taking the field value drops that; stripping
+backticks *first* catches the row whose own prose quotes `` `kill-candidates: #370` ``. The
+survivor is a **true positive** — row `[#310]` names closed `#292`.
+
+**Three defects found in my own work, only one of them by the reviewer's own findings.**
+terra returned **0 CRITICAL / 1 was mine to find first / 2 HIGH** — precisely: 0/2/0/0, both HIGH
+reproduced before fixing (a second `kill-candidates:` field hiding a stale id behind a benign one;
+a `| closed-loop notes |` header opening suppression on an unrelated table). But the **worst** one
+the review did not find: writing the regression test for HIGH 2 surfaced that my own earlier rule
+— *any* backticked `[#id]` is a citation — silently suppressed every properly formatted stale
+assertion, because in this repo `` `[#479]` `` is ordinary formatting, not quotation. All three
+were in the silent-suppression direction. An over-broad citation rule fails toward saying nothing,
+which is the posture this tool claims not to have.
+
+**Two gates fired on me at close, and both were right.** The row edit for the ruling pointer
+pushed `[#483]` from 1156 → 1344 chars and induced a **new** `doc_rot` WARN; rather than
+disposition self-induced bloat I trimmed the pointer *and* replaced the now-falsified "Options,
+NONE chosen" clause the ruling had just settled — final row **1155 chars, one below the pre-arc
+baseline**. Then the disposition entry tripped the **silent-rule ratchet** (+4, `ecosystem/*.yaml`
+is in detector scope); drained by rewording to zero rather than by raising the baseline, since a
+ratchet drained by moving its own bar measures nothing.
+
+**The no-fix rider and the GREEN bar were never actually in tension.** The leg's finding is
+deliberately unfixed and routed to FR-8a. WARN-tier plus the disposition register is the designed
+channel for *found, deliberately deferred, tracked* — the gate is green because the finding is
+**recorded**, not hidden. The entry is keyed to the one row-and-id pair, carries a review date,
+and is marked **retire-on-close** so it cannot outlive its reason.
+
+**Changes:** `scripts/preflight_contract.py` (role rule), `scripts/audit.py` (advisory leg,
+ALL_CHECKS 38→39), `tests/` (fixture bundle + leg tests + HIGH regressions; five count pins
+re-grepped — the remembered four-site list was wrong, `test_writer_integrity.py` is a fifth),
+`docs/audits/` (ruling record + terra artifact), `ecosystem/` (doc-code-edge exempt,
+disposition, doc-counts).
+
+**Abandoned:** nothing. Full suite 2324 passed, exactly the two known `[#457]` baseline failures
+and no third. Ship-gate GREEN, 16 dispositioned.
+
+**Next:** FR-4 — file the cp1252 defect (the one ruled exception to no-new-filings).
+
 ### 2026-08-04 (j) — CC (Opus 5, local): FR-2 — the glob engine means what the pattern reads
 
 **Did:** Closed `[#482]` — executed the ruled REPAIR (true-glob, not REMOVE) on
