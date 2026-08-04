@@ -19,6 +19,32 @@
 
 ---
 
+### 2026-08-04 (f) — CC (Opus 5, local): the two carried wrap items, filed not acted on
+
+**Did:** Filed `[#484]` and `[#485]`, both operator-directed at the close-out. SHA anchor:
+the commit this entry names below.
+
+**Result.** `[#484]` records the **ADR-106 system-Python divergence as a NAMED DEFERRAL** with a
+stated scope (~1 window) rather than leaving it as unowned drift — and explicitly not as a
+re-opening of ADR-106, which stands. This window met that divergence twice as encoding defects
+rather than as a version mismatch: `audit.py checks` at U+2192 (already `[#470]`) and
+`desired_state_report.py` at U+21C4, found while executing the caches wave. It wants its own
+window because it is a fleet-wide environment change, not a hub edit.
+
+`[#485]` proposes the **mechanism that replaces a gotcha instead of re-stating it.**
+`write_text` on Windows emits CRLF unless `newline="\n"` is passed, and it recurred this session
+**against an entry that already existed in the gotchas skill, with a `verify:` line, unread**.
+That is the failure mode of a prose guard — only as good as the reader's memory — so the row
+proposes one shared LF-by-construction write helper and the retirement of the entry. Sharpest
+instance, recorded: a CRLF `tasks/` file stops matching the engine's provenance line, so
+`gen_task_tree --emit-source` refuses the whole tree as foreign, and `.gitattributes`
+normalization cannot save it because the parser reads the WORKING TREE.
+
+**Abandoned:** nothing. Both rows trimmed under the doc_rot threshold before commit (1124 and
+1200 against 1200) with zero dated blocks — self-induced bloat trimmed, never dispositioned.
+
+**Next:** the window's wrap report. No further build work.
+
 ### 2026-08-04 (e) — CC (Opus 5, local): pre-flight becomes a mechanism — and the tool caught me four times
 
 **Did:** ARC 4 — `scripts/preflight_contract.py` + `/preflight`, adoption-first, wired into no
