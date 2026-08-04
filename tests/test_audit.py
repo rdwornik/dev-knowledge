@@ -2060,7 +2060,7 @@ def test_import_edges_live_repo_passes_and_is_registered() -> None:
     f = aud.check_import_edges(Path(aud._REPO_ROOT))[0]
     assert f.status == "pass", f.evidence
     assert aud.check_import_edges in aud.ALL_CHECKS
-    assert len(aud.ALL_CHECKS) == 38  # 30 -> 31: check_residual_completeness added (ARC-5 residual gate, 2026-07-19); 29 -> 30: check_fleet_parity added ([#337], 2026-07-18); 31 -> 32: check_routine_consumers added ([#419]/ADR-105 activation gate, 2026-07-26); 32 -> 34: check_silent_rule_ratchet ([#436] D4 ratchet) + check_task_tree_coherence ([#433] C1 gate-arm) added, 2026-07-27; 34 -> 35: check_boot_byte_budget added ([#446] A10 item 2 / R4 boot byte budget, 2026-07-31); 35 -> 36: check_intake_tree_coherence added ([#383] wave 1 — ADR-109 §4 generality proof, 2026-07-31); 36 -> 37: check_fleet_audit_replication added ([#460] — ADR-80 durable-record replication alarm, 2026-08-01); 37 -> 38: check_membership_agreement added ([#462] — ADR-104 declaration vs every repo-keyed machine surface, 2026-08-01); 38 -> 39: check_journal_spine_anchor added (ADR-85 amendment 2026-08-03 §A8/FR4 — pre-push backstop, 2026-08-03); 39 -> 38: check_handoff_tag_canonicity RETIRED ([#465] leg 4 — its subject (§3.1 four-tag section) has not existed since the v5 flip; the inert-check detector found it, 2026-08-04)
+    assert len(aud.ALL_CHECKS) == 39  # 30 -> 31: check_residual_completeness added (ARC-5 residual gate, 2026-07-19); 29 -> 30: check_fleet_parity added ([#337], 2026-07-18); 31 -> 32: check_routine_consumers added ([#419]/ADR-105 activation gate, 2026-07-26); 32 -> 34: check_silent_rule_ratchet ([#436] D4 ratchet) + check_task_tree_coherence ([#433] C1 gate-arm) added, 2026-07-27; 34 -> 35: check_boot_byte_budget added ([#446] A10 item 2 / R4 boot byte budget, 2026-07-31); 35 -> 36: check_intake_tree_coherence added ([#383] wave 1 — ADR-109 §4 generality proof, 2026-07-31); 36 -> 37: check_fleet_audit_replication added ([#460] — ADR-80 durable-record replication alarm, 2026-08-01); 37 -> 38: check_membership_agreement added ([#462] — ADR-104 declaration vs every repo-keyed machine surface, 2026-08-01); 38 -> 39: check_journal_spine_anchor added (ADR-85 amendment 2026-08-03 §A8/FR4 — pre-push backstop, 2026-08-03); 39 -> 38: check_handoff_tag_canonicity RETIRED ([#465] leg 4 — its subject (§3.1 four-tag section) has not existed since the v5 flip; the inert-check detector found it, 2026-08-04); 38 -> 39: check_preflight_backlog_ids added ([#483] R3 -- ADVISORY leg, WARN-tier; hard-gating deferred pending 0 false positives over two windows, 2026-08-04)
 
 
 def test_import_edges_wired_into_audit_repo(tmp_path: Path) -> None:
@@ -2076,7 +2076,7 @@ def test_import_edges_wired_into_audit_repo(tmp_path: Path) -> None:
 
 def test_fleet_parity_registered_in_all_checks():
     assert "check_fleet_parity" in [c.__name__ for c in aud.ALL_CHECKS]
-    assert len(aud.ALL_CHECKS) == 38  # 30 -> 31: check_residual_completeness added (ARC-5 residual gate, 2026-07-19); 31 -> 32: check_routine_consumers added ([#419]/ADR-105 activation gate, 2026-07-26); 32 -> 34: check_silent_rule_ratchet ([#436] D4 ratchet) + check_task_tree_coherence ([#433] C1 gate-arm) added, 2026-07-27; 34 -> 35: check_boot_byte_budget added ([#446] A10 item 2 / R4 boot byte budget, 2026-07-31); 35 -> 36: check_intake_tree_coherence added ([#383] wave 1 — ADR-109 §4 generality proof, 2026-07-31); 36 -> 37: check_fleet_audit_replication added ([#460] — ADR-80 durable-record replication alarm, 2026-08-01); 37 -> 38: check_membership_agreement added ([#462] — ADR-104 declaration vs every repo-keyed machine surface, 2026-08-01); 38 -> 39: check_journal_spine_anchor added (ADR-85 amendment 2026-08-03 §A8/FR4 — pre-push backstop, 2026-08-03); 39 -> 38: check_handoff_tag_canonicity RETIRED ([#465] leg 4 — its subject (§3.1 four-tag section) has not existed since the v5 flip; the inert-check detector found it, 2026-08-04)
+    assert len(aud.ALL_CHECKS) == 39  # 30 -> 31: check_residual_completeness added (ARC-5 residual gate, 2026-07-19); 31 -> 32: check_routine_consumers added ([#419]/ADR-105 activation gate, 2026-07-26); 32 -> 34: check_silent_rule_ratchet ([#436] D4 ratchet) + check_task_tree_coherence ([#433] C1 gate-arm) added, 2026-07-27; 34 -> 35: check_boot_byte_budget added ([#446] A10 item 2 / R4 boot byte budget, 2026-07-31); 35 -> 36: check_intake_tree_coherence added ([#383] wave 1 — ADR-109 §4 generality proof, 2026-07-31); 36 -> 37: check_fleet_audit_replication added ([#460] — ADR-80 durable-record replication alarm, 2026-08-01); 37 -> 38: check_membership_agreement added ([#462] — ADR-104 declaration vs every repo-keyed machine surface, 2026-08-01); 38 -> 39: check_journal_spine_anchor added (ADR-85 amendment 2026-08-03 §A8/FR4 — pre-push backstop, 2026-08-03); 39 -> 38: check_handoff_tag_canonicity RETIRED ([#465] leg 4 — its subject (§3.1 four-tag section) has not existed since the v5 flip; the inert-check detector found it, 2026-08-04); 38 -> 39: check_preflight_backlog_ids added ([#483] R3 -- ADVISORY leg, WARN-tier; hard-gating deferred pending 0 false positives over two windows, 2026-08-04)
 
 
 def test_fleet_parity_findings_maps_blocking_verdicts():
@@ -2409,3 +2409,73 @@ def test_boot_byte_budget_is_single_sourced_from_the_assembler() -> None:
     assert aud._assemble_paste.HANDOFF_BOOT_BYTE_BUDGET == ap.HANDOFF_BOOT_BYTE_BUDGET == 18_000
     src = Path(aud._REPO_ROOT, "scripts", "audit.py").read_text(encoding="utf-8")
     assert "18_000" not in src and "18000" not in src
+
+
+# ---------------------------------------------------------------------------
+# [#483] R3 — the ADVISORY preflight backlog-id leg.
+# ---------------------------------------------------------------------------
+
+def _hub_backlog(tmp_path, monkeypatch, rows: list[str]):
+    """A throwaway tree posing as the hub, carrying `rows` as its BACKLOG."""
+    monkeypatch.setattr(aud, "_REPO_ROOT", str(tmp_path))
+    (tmp_path / "BACKLOG.md").write_text("# Backlog\n\n" + "\n".join(rows) + "\n",
+                                         encoding="utf-8", newline="\n")
+    return tmp_path
+
+
+def test_preflight_backlog_ids_is_registered_and_advisory_on_the_live_repo():
+    """[#483] R3 — registered (so it is a ship-gate leg by construction) and WARN-TIER.
+
+    The status assertion is the RULING made mechanical: R3 defers hard-gating pending zero
+    false positives over two consecutive windows. A `fail` here would mean the leg had been
+    promoted without that evidence, which is precisely what the ruling forbids.
+    """
+    assert aud.check_preflight_backlog_ids in aud.ALL_CHECKS
+    for f in aud.check_preflight_backlog_ids(Path(aud._REPO_ROOT)):
+        assert f.status in ("pass", "warn"), f"advisory leg must never FAIL: {f}"
+
+
+def test_preflight_backlog_ids_flags_a_stale_kill_candidate_value(tmp_path, monkeypatch):
+    """A `kill-candidates:` VALUE naming a closed row is a real open-claim — you cannot kill a
+    dead row — so it WARNs, and the evidence names both the row and the id it cites."""
+    root = _hub_backlog(tmp_path, monkeypatch, [
+        "- [#310] [P3][S] live row · kill-candidates: #292 — if the operator rules it, close",
+    ])
+    out = aud.check_preflight_backlog_ids(root)
+    assert [f.status for f in out] == ["warn"]
+    assert "[#310] -> #292" in out[0].evidence
+
+
+def test_preflight_backlog_ids_does_not_flag_citation_shapes(tmp_path, monkeypatch):
+    """The three citation shapes measured on the live BACKLOG must all stay silent.
+
+    Without these the leg would be satisfied by flagging everything — the 24-flag naive scan
+    this rule replaces. Ordering matters: the backtick row is the repo's own
+    convention-quoting false positive, and it only stays silent because ticks are masked
+    BEFORE the field is located.
+    """
+    root = _hub_backlog(tmp_path, monkeypatch, [
+        "- [#310] [P3][S] live row",
+        "- [#310] [P3][S] a · kill-candidates: none — sibling #292 closed doc-only this arc",
+        "- [#310] [P3][S] b · the `kill-candidates: #292` resting on it, are spent · "
+        "kill-candidates: none — premise falsified",
+        "- [#310] [P3][S] c · refs #292, #472 · kill-candidates: none — nothing subsumes it",
+    ])
+    out = aud.check_preflight_backlog_ids(root)
+    assert [f.status for f in out] == ["pass"], out[0].evidence
+
+
+def test_preflight_backlog_ids_is_na_off_hub(tmp_path, monkeypatch):
+    """Hub-only by construction: a consumer has no BACKLOG kill-candidates surface."""
+    monkeypatch.setattr(aud, "_REPO_ROOT", str(tmp_path / "hub"))
+    out = aud.check_preflight_backlog_ids(tmp_path / "consumer")
+    assert [f.status for f in out] == ["n/a"]
+
+
+def test_preflight_backlog_ids_reuses_the_preflight_role_predicates():
+    """[#483] AC4 — the leg IMPORTS the role predicates rather than restating them, so the tool
+    and the leg cannot drift into disagreeing about what an assertion is."""
+    src = Path(aud._REPO_ROOT, "scripts", "audit.py").read_text(encoding="utf-8")
+    body = src[src.index("def check_preflight_backlog_ids"):src.index("\nALL_CHECKS = [")]
+    for helper in ("_BACKLOG_ROW", "_mask_ticks", "_KILL_FIELD", "_REASON_SEP"):
+        assert f"_pf.{helper}" in body, f"{helper} is not reused from preflight_contract"

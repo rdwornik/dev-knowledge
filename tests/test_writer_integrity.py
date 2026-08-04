@@ -170,9 +170,17 @@ def test_R2_R3_discharged_handoff_tag_canonicity_is_retired():
     assert not any(c.__name__ == "check_handoff_tag_canonicity" for c in aud.ALL_CHECKS)
 
 
-def test_all_checks_count_is_the_post_retirement_38():
-    """AC-2: a silent count change is a contract breach. 39 -> 38 on the retirement."""
-    assert len(aud.ALL_CHECKS) == 38
+def test_all_checks_count_is_pinned():
+    """AC-2: a silent count change is a contract breach.
+
+    History: 39 -> 38 when check_handoff_tag_canonicity was retired ([#465] leg 4); 38 -> 39
+    when check_preflight_backlog_ids was added ([#483] R3 — the ADVISORY leg, WARN-tier, with
+    hard-gating deferred pending zero false positives over two windows, 2026-08-04).
+
+    Renamed from `..._post_retirement_38`: the count moved by an ADDITION, so a name asserting
+    a post-retirement 38 would have described neither the number nor the reason.
+    """
+    assert len(aud.ALL_CHECKS) == 39
 
 
 def test_no_surviving_docstring_describes_the_removed_skip_as_pass_behaviour():

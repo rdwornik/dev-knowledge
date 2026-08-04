@@ -119,6 +119,12 @@ exempt:
   - handoff_version_stamp
   - doc_code_edge              # self-referential (the doc->code edge check itself)
   - safe_removal              # code->code removal gate (#195) -- not a doc->code rule
+  # [#483] R3 advisory leg. PERMANENT exemption, not a temporary one: it reads BACKLOG row
+  # syntax (a `kill-candidates:` field value) against BACKLOG row liveness -- both sides are the
+  # same generated artifact, so there is no doc->code rule for an edge to bind. The doctrine it
+  # enforces lives in the ruling record, which is an immutable audit artifact rather than a
+  # living doc a `# rule:` marker could point at.
+  - preflight_backlog_ids
   # ARC-5 residual-completeness gate. TEMPORARY exemption, distinct from the permanent rows
   # above, and BOUND TO [#365] -- an undeclared temporary exemption is exactly the silent
   # category ARC-5 exists to eliminate, so it carries a ticket rather than a hope.
