@@ -483,3 +483,56 @@ def test_star_does_not_cross_a_path_separator(monkeypatch):
     assert not bh._matches_governed_glob(nested), (
         "`.claude/*.md` matched the NESTED path {!r} — `*` crossed `/`, so the glob behaves "
         "recursively while reading as direct-children-only ([#482])".format(nested))
+
+
+def test_governed_union_is_identical_before_and_after_the_engine_switch():
+    """[#482] AC2 — the governed UNION is unchanged by the repair; only ATTRIBUTION moves.
+
+    Per-glob meanings change BY DESIGN under true-glob (`.claude/*.md` stops being recursive;
+    `.claude/**/*.md` starts being). What must NOT change is which files are governed. So the
+    invariant is the UNION, and "behaviour unchanged" would have been unfalsifiable.
+
+    BOTH SIDES COMPUTED LIVE over the real tracked corpus — the old engine is re-run here
+    rather than quoted, so this can never degrade into asserting a remembered constant, and
+    ordinary corpus growth cannot break it (it is an equality between two engines, whatever
+    the corpus happens to be).
+    """
+    from fnmatch import fnmatchcase
+
+    tracked = bh._tracked_files(_ROOT)
+    assert tracked, "empty tracked corpus — this test would be vacuous"
+    assert bh._GOVERNED_GLOBS, "no governed globs — this test would be vacuous"
+
+    before = {p for p in tracked if any(fnmatchcase(p, g) for g in bh._GOVERNED_GLOBS)}
+    after = {p for p in tracked if any(bh._glob_matches(p, g) for g in bh._GOVERNED_GLOBS)}
+
+    assert before, "the pre-repair engine governed nothing — fixture is not exercising the rule"
+    assert after == before, (
+        "the repair changed WHICH files are governed, not merely how they are attributed: "
+        f"only-before={sorted(before - after)} only-after={sorted(after - before)}")
+
+
+def test_glob_matches_agrees_with_stdlib_glob_per_glob():
+    """[#482] AC5 — the hand-composed matcher carries its own proof against the stdlib.
+
+    `glob.glob(recursive=True)` is the stdlib true-glob ORACLE. It was rejected as the engine
+    (it reads the working tree, not the git index, so a tracked-but-deleted file would leave
+    the governed set silently), but it is exactly the right thing to be measured against.
+
+    PER-GLOB, not merely on the union: the union is equal under the OLD engine too, so a
+    union-only check would pass against the very semantics this repair replaces. Agreement is
+    asserted glob-by-glob, which is where the meanings actually moved.
+    """
+    import glob as _glob
+    import os
+
+    tracked = set(bh._tracked_files(_ROOT))
+    assert tracked, "empty tracked corpus — this test would be vacuous"
+
+    for pattern in bh._GOVERNED_GLOBS:
+        ours = {p for p in tracked if bh._glob_matches(p, pattern)}
+        hits = _glob.glob(pattern, root_dir=_ROOT, recursive=True, include_hidden=True)
+        stdlib = {h.replace(os.sep, "/") for h in hits} & tracked
+        assert ours == stdlib, (
+            f"{pattern!r}: hand-composed matcher disagrees with stdlib glob — "
+            f"only-ours={sorted(ours - stdlib)} only-stdlib={sorted(stdlib - ours)}")
