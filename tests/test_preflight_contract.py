@@ -223,3 +223,71 @@ def test_a_bare_name_past_EOF_names_the_resolved_path(tmp_path):
     report = pf.verify(_write(tmp_path, body), _REPO_ROOT)
     assert len(report.failed) == 1
     assert "scripts/normalize_headers.py" in report.render(), report.render()
+
+
+# ---------------------------------------------------------------------------
+# terra round 1, 2026-08-04 — three HIGHs, each pinned.
+# ---------------------------------------------------------------------------
+
+def test_a_windows_absolute_locator_is_extracted_not_silently_skipped(tmp_path):
+    """A contract carrying ONLY a Windows absolute locator used to report a clean 0/0 — and a
+    verifier that extracts nothing passes everything, which is this window's defining failure
+    mode. It must be EXTRACTED; whether it then resolves is a separate question."""
+    bs = chr(92)  # built, not written literally: every escaping layer between here and the
+    # file mangled a backslash at least once this session, and a fixture that silently loses
+    # its backslashes tests nothing.
+    win = f"C:{bs}nowhere{bs}scripts{bs}audit.py:12"
+    body = "# C" + chr(10) * 2 + "- `" + win + "`" + chr(10)
+    assert body.count(bs) == 3, f"the fixture lost its backslashes: {body!r}"
+    report = pf.verify(_write(tmp_path, body), _REPO_ROOT)
+    assert report.checked, "the Windows absolute locator was not extracted at all"
+    assert len(report.failed) == 1, [c.raw for c in report.checked]
+
+
+def test_an_ambiguous_bare_name_does_not_silently_verify_the_wrong_file(tmp_path):
+    """First-match-wins across the source roots could verify a locator against a file the
+    contract never named, so a stale citation would pass. An ambiguous bare name is a defect in
+    the CITATION: it is reported unresolved and told to qualify itself."""
+    repo = tmp_path / "repo"
+    for root in ("scripts", "deploy"):
+        (repo / root).mkdir(parents=True)
+        (repo / root / "twin.py").write_text("x = 1\n", encoding="utf-8", newline="\n")
+    (repo / "BACKLOG.md").write_text("# B\n", encoding="utf-8", newline="\n")
+
+    resolved, note = pf._resolve(repo, "twin.py")
+    assert resolved is None, resolved
+    assert "ambiguous" in note and "scripts/twin.py" in note and "deploy/twin.py" in note
+
+    report = pf.verify(_write(tmp_path, "# C\n\n- `twin.py:1`\n"), repo)
+    assert len(report.failed) == 1
+    assert "ambiguous" in report.render()
+
+
+def test_an_unambiguous_bare_name_still_resolves(tmp_path):
+    """The positive control — the ambiguity guard must not become "reject every bare name"."""
+    resolved, note = pf._resolve(_REPO_ROOT, "normalize_headers.py")
+    assert resolved is not None and note == ""
+    assert resolved.name == "normalize_headers.py"
+
+
+def test_a_qualified_path_wins_over_the_bare_name_search(tmp_path):
+    """A path given relative to the repo root is unambiguous by construction and must never be
+    subjected to the source-root search."""
+    resolved, _ = pf._resolve(_REPO_ROOT, "scripts/audit.py")
+    assert resolved == _REPO_ROOT / "scripts" / "audit.py"
+
+
+def test_an_unusable_git_fails_closed_rather_than_calling_every_sha_stale(tmp_path):
+    """git exits 1 for BOTH a missing object and a broken invocation. Without a health probe, a
+    dead git renders every SHA as an ordinary 'not reachable' failure at exit 1 — "I could not
+    check" wearing the costume of "I checked and it is wrong". That is the [#465] leg-4 defect,
+    and it must not live in the tool built to answer that class."""
+    not_a_repo = tmp_path / "bare"
+    not_a_repo.mkdir()
+    (not_a_repo / "BACKLOG.md").write_text("# B\n", encoding="utf-8", newline="\n")
+    contract = _write(tmp_path, "# C\n\n- landed at `abc1234`\n")
+
+    with pytest.raises(pf.PreflightError):
+        pf.verify(contract, not_a_repo)
+    assert pf.main([str(contract), "--repo-root", str(not_a_repo)]) == 2, \
+        "an unusable git produced exit 1 (an ordinary claim failure) instead of fail-closed 2"
