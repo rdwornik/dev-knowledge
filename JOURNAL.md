@@ -19,6 +19,55 @@
 
 ---
 
+### 2026-08-04 (d) — CC (Opus 5, local): the caches wave runs — and the number that matters is 3 of 9
+
+**Did:** ARC 3 — drove the 8 gitignore-effect rows to `[#383]`'s ratified Done-when. SHA anchor:
+`4e70a0aa`. The ninth row `ai-env-ignored` was ruled out of the wave and not touched.
+
+**Result — both clauses met, and the coverage is the finding.**
+
+Run (a) `desired_state_report.py`: **no `diverge` cell on any of the 8**; the report's only three
+are on `corpus-version`, out of scope. Run (b) `fleet_parity --run-date 2026-08-04`: **0
+warn-undeclared, 0 must-absent, 0 tombstone-violated** on the 8 — no `ignore-*` row appears
+anywhere in the 28 findings, grepped rather than inferred. The run's single warn-undeclared is
+`ai-council root-sweep` / `conftest.py`, a different row and the standing `[#430]` disposition.
+
+**But `fleet_parity` reports "3 repo(s) walked", not 9**, and that is the honest headline. §5.3
+of the wave record tables every repo it did not probe: `corp-ops` and `corp-sca-time-automation`
+are `skipped-pre-deploy` (registered, no methodology deployed — a lifecycle state the walk
+renders rather than hides), and `demo-prep`, `life-architect`, `terminal-setup`, `win-tooling`
+are **absent from the parity manifest's `fleet` list entirely**. Two distinct gaps, not one. The
+clause is met on the evidence available, and the evidence covers **3 of the 9 repos ADR-104
+declares** — up from the 1-of-9 witnessed 2026-08-03. Named, never counted clean.
+
+The two layers agree about who is covered: the same three repos read `conform` on all 8 rows in
+(a) while the two pre-deploy repos read `·`.
+
+**No divergence on the 8**, so no consumer-side fix is owed and the out-of-scope boundary was
+never reached.
+
+**Found while executing, recorded rather than dropped:** `scripts/desired_state_report.py` dies
+on a cp1252 console — `UnicodeEncodeError` on `⇄`, a character inside its own HONEST LIMITS
+text. Same class as `[#470]` but a different script and glyph, so that row's ASCII swap does not
+cover it. Both runs were made under `PYTHONUTF8=1`. Not fixed here; this wave does not own it.
+
+**Append-only, proven: 84 insertions, 0 deletions.** The record is an audit, so the ex-ante "Not
+yet executed" placeholder is PRESERVED verbatim and the evidence appended under a marker with a
+supersession note. My first draft replaced the placeholder — 5 deletions — and I reverted it to
+hold the same property the ADR-104 amendment held to this morning.
+
+**`[#383]` does NOT close** — it governs six surfaces and this discharges one. Clause (c) requires
+the OPERATOR to have read both runs, which is theirs to do, not mine to assert. Discrepancy
+flagged rather than reinterpreted: the ratified Done-when is written entirely about the caches
+rows, so read literally it becomes satisfiable the moment §5 is read, while the row covers six.
+
+**Abandoned:** nothing. Row kept net-neutral (1180 → 1195 against the 1200 threshold): the first
+draft hit 1936 with a third dated block — which trips doc_rot's `>=3 dates & >700` leg on its own
+— so the status was cut to a bare pointer and the non-ratified narrative compressed to pay for
+it. No terra review: the arc changes no code.
+
+**Next:** ARC 4 — `preflight_contract.py`.
+
 ### 2026-08-04 (c) — CC (Opus 5, local): token-log cadence entry, landed off the arc
 
 **Did:** Prepended the 2026-08-04 delta snapshot to `logs/TOKEN-LOG.md` (`6057bbba`), fired by
