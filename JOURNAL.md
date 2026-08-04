@@ -23,8 +23,8 @@
 
 **Did:** ARC 2 — cut `docs/handoffs/2026-08-04-dev-knowledge-architect` (HANDOFF_PROCESS v6.0.1,
 architect mode, SUPPLEMENT **FILLED**). SHA anchors: `a9ded3b2` (the (g) anchor commit, which
-the previous merge introduced and nothing named — discharging the backstop) and the bundle
-commit named by the follow-up below.
+the previous merge introduced and nothing named — discharging the backstop) and **`558bd902`**,
+the sealed bundle itself.
 
 **Result — both organs, and the second one had something to say.**
 
