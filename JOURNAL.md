@@ -19,6 +19,53 @@
 
 ---
 
+### 2026-08-04 (h) — CC (Opus 5, local): the window is sealed — the bundle is the tool's first customer
+
+**Did:** ARC 2 — cut `docs/handoffs/2026-08-04-dev-knowledge-architect` (HANDOFF_PROCESS v6.0.1,
+architect mode, SUPPLEMENT **FILLED**). SHA anchors: `a9ded3b2` (the (g) anchor commit, which
+the previous merge introduced and nothing named — discharging the backstop) and **`558bd902`**,
+the sealed bundle itself.
+
+**Result — both organs, and the second one had something to say.**
+
+`verify_handoff_probes`: **14 probes, 14 pass, 0 fail, 0 warn, exit 0.** `verify_seal_identity`:
+**PASS**. Then `preflight_contract` over the bundle's own five files — **the tool's first
+production artifact is the bundle of the window that built it**, which is the right first
+customer and also the honest one, because it is the artifact I could not grade myself.
+
+It returned FAILs, and **every one was checked individually: all correct usage, zero staleness.**
+Each is a `backlog-id … not open`. `[#479]` `[#472]` `[#465]` are ids **this window closed**,
+cited in a table whose header is literally *closed*; `[#436]` is cited as provenance —
+*"`BACKLOG.md` is GENERATED since `[#436]`"* — closed long ago at `6195d932`.
+
+**That is a real finding about the tool, not the bundle.** Its `backlog-id` check reads every
+`[#id]` as an assertion that the row is OPEN and cannot distinguish that from a **historical
+citation**. A handoff bundle is mostly historical narration, so a naive gate would red it —
+which means `[#483]` option (b), "a gate on `docs/audits/` artifacts", must be ruled with this in
+view or **the gate's first act is to red the seal of the window that built it.** Recorded in
+RESIDUAL §4 where the next architect reads it, not in the row.
+
+**Recorded as directed:** the ADR-85 **range-vs-entry asymmetry took its first live save**. A
+merge introduced `b18bf29f` that no JOURNAL named; the pre-push organ passed the range
+(range-level discharge) and the **per-entry backstop caught it afterwards** — precisely what the
+amendment says the layering is for. It then caught its own author twice more the same day. The
+asymmetry is the feature; `[#447]` already owns the recursion, so no new row.
+
+**Two mechanisms refused me correctly while sealing.** The generator refused to re-render a
+git-tracked bundle (*"a committed bundle is an immutable artifact"*) — the files were staged, not
+committed, so unstaging was the honest route rather than `--allow-suffix`, which would have minted
+a sibling slug and broken seal identity. And `audit-health` refused the bundle commit outright
+until this entry existed, because the spine still carried an unanchored merge. Both refusals were
+right; neither was worked around.
+
+**Changes:** `docs/handoffs/2026-08-04-dev-knowledge-architect/` (5 files — SUPPLEMENT filled
+verbatim from the architect; RESIDUAL's three hand-authored regions and HANDOFF_BOOT's four
+Destination fields authored; **zero generator placeholders remain in any file**).
+
+**Abandoned:** nothing.
+
+**Next:** STOP. The window closes when the operator holds the bundle.
+
 ### 2026-08-04 (g) — CC (Opus 5, local): three headers stop lying, and two chat-only rules get homes
 
 **Did:** ARC 1 of the window seal — ADR-82 ratified with its version catch-up, ADR-88/89 flipped
