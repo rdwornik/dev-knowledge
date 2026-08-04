@@ -100,7 +100,10 @@ _CITATION_FILES = ("JOURNAL.md", "LESSONS.md")
 # "the `kill-candidates: #370` resting on it, are spent", and a scan that matches the field
 # before stripping reads that quote as a live field. Measured on the live BACKLOG, the ordering
 # is worth 24 -> 2 -> 1 flags.
-_TICK_SPAN = re.compile(r"`[^`]*`")
+# Run-aware: markdown allows ``double-tick`` spans, so a fixed single-tick pair would mask the
+# wrong extent. An UNBALANCED tick matches nothing and therefore masks nothing — the safe
+# direction, since unmasked text stays assertion-role rather than being suppressed.
+_TICK_SPAN = re.compile(r"(`+)[\s\S]*?\1")
 # A BACKLOG task row. In one, only the `kill-candidates:` VALUE is an open-claim -- `refs` and
 # the reason prose after the em-dash cite related work, including closed rows, by design.
 #
@@ -110,13 +113,40 @@ _TICK_SPAN = re.compile(r"`[^`]*`")
 # rather than by inspection; an over-broad citation rule is the dangerous direction, because it
 # fails toward saying nothing.
 _BACKLOG_ROW = re.compile(r"^- \[#\d+\]\s+\[P\d\]\[[SMLX]+\]")
-_KILL_FIELD = re.compile(r"kill-candidates:\s*([^·\n]*)")
+#
+# DELIMITER-ANCHORED, and EVERY field is scanned, not just the first (terra HIGH 2026-08-04).
+# `search()` on an unanchored pattern stopped at the first `kill-candidates:` in the row, so a
+# row reading "· kill-candidates: none — spent · kill-candidates: [#479]" hid a genuinely stale
+# assertion behind an earlier benign field. That is the silent-suppression direction — the one
+# this tool must never fail in — so the field must begin a row-field (start of line or `·`).
+_KILL_FIELD = re.compile(r"(?:^|·)\s*kill-candidates:\s*([^·\n]*)")
 _REASON_SEP = re.compile(r"\s+(?:—|--|-\s)")
 # `since [#436]` -- a provenance clause names where something came from, never that it is open.
 _PROVENANCE = re.compile(r"\bsince\s*$")
 # A markdown table row under a header whose first cell is a closed/shipped/superseded state.
 _TABLE_ROW = re.compile(r"^\s*\|")
-_CLOSED_HEADER = re.compile(r"^\s*\|\s*(closed|shipped|superseded|retired|done)\b", re.I)
+# The first cell must be EXACTLY a closed-state word — the cell has to end there (terra HIGH
+# 2026-08-04). A `\b` boundary let `| closed-loop notes |` open closed-table mode and suppress
+# every following row of an unrelated table.
+_CLOSED_HEADER = re.compile(r"^\s*\|\s*(closed|shipped|superseded|retired|done)\s*\|", re.I)
+# A real markdown table has a separator row under its header. Requiring it stops a stray
+# pipe-prefixed prose line from opening suppression on everything that follows.
+_TABLE_SEPARATOR = re.compile(r"^\s*\|[\s:|-]*-[\s:|-]*\|?\s*$")
+
+
+def kill_candidate_value_spans(line: str) -> list[tuple[int, int]]:
+    """(start, end) of EVERY delimited `kill-candidates:` VALUE in `line`, original coordinates.
+
+    Ticks are masked to equal length first, so a field QUOTED in prose is not mistaken for a
+    real one while offsets stay comparable to the unmasked line.
+    """
+    masked = _mask_ticks(line)
+    spans: list[tuple[int, int]] = []
+    for m in _KILL_FIELD.finditer(masked):
+        start = m.start(1)
+        sep = _REASON_SEP.search(m.group(1))
+        spans.append((start, start + (sep.start() if sep else len(m.group(1)))))
+    return spans
 
 
 def surface_role(contract: Path, repo_root: Path) -> str:
@@ -149,25 +179,25 @@ def line_role(line: str, id_start: int, *, in_closed_table: bool = False) -> str
     `id_start` is the occurrence's offset, so a line carrying both an assertion and a citation
     is judged per occurrence rather than wholesale.
     """
-    # Inside a backtick span -> prose QUOTING a convention, not using it. Checked first: this
-    # repo's BACKLOG has a row reading "the `kill-candidates: #370` resting on it, are spent".
-    if any(m.start() <= id_start < m.end() for m in _TICK_SPAN.finditer(line)):
-        return CITATION
+    # NO blanket "inside backticks -> citation" rule, deliberately. An earlier cut had one, and
+    # it was a SILENT-SUPPRESSION HOLE: this repo backticks `[#id]` as ordinary formatting
+    # (`| `[#479]` | ... |` is the normal closed-table shape), so every properly formatted stale
+    # assertion would have been waved through. Caught by this arc's own closed-table test, not by
+    # inspection. Backticks still matter, but ONLY where they quote a FIELD NAME — and that is
+    # handled by masking inside `kill_candidate_value_spans`, which is the narrow, testable place
+    # for it.
     if _PROVENANCE.search(line[:id_start]):          # "... GENERATED since [#436]"
         return CITATION
     if in_closed_table and _TABLE_ROW.match(line):   # a row under a `| closed |` header
         return CITATION
     if _BACKLOG_ROW.match(line):
-        # Only the kill-candidates VALUE claims openness. `refs` and the reason prose after the
-        # em-dash cite related work -- including closed rows -- by design.
-        masked = _mask_ticks(line)                   # so a QUOTED field is never taken as the field
-        field = _KILL_FIELD.search(masked)
-        if not field:
-            return CITATION
-        start = field.start(1)
-        sep = _REASON_SEP.search(field.group(1))
-        end = start + (sep.start() if sep else len(field.group(1)))
-        return ASSERTION if start <= id_start < end else CITATION
+        # Only a kill-candidates VALUE claims openness. `refs` and the reason prose after the
+        # em-dash cite related work -- including closed rows -- by design. EVERY field is
+        # considered: a row may carry more than one, and stopping at the first hid a real
+        # stale assertion behind an earlier benign one.
+        return (ASSERTION
+                if any(s <= id_start < e for s, e in kill_candidate_value_spans(line))
+                else CITATION)
     return ASSERTION
 
 
@@ -346,10 +376,16 @@ def verify(contract: Path, repo_root: Path = _REPO_ROOT) -> Report:
     # in a contract it claims one is live. The other kinds are deliberately left untouched.
     if surface_role(contract, repo_root) == ASSERTION:
         open_ids = _open_backlog_ids(repo_root)
+        # Closed-table suppression requires a VALIDATED table: a header whose first cell is
+        # exactly a closed-state word, immediately followed by a markdown separator row (terra
+        # HIGH 2026-08-04). Entering on the header alone let a stray pipe-prefixed line — or a
+        # table merely headed `| closed-loop notes |` — suppress everything that followed.
+        lines = text.splitlines()
         in_closed_table = False
-        for line in text.splitlines():
+        for idx, line in enumerate(lines):
             if _CLOSED_HEADER.match(line):
-                in_closed_table = True                    # `| closed | what |`
+                nxt = lines[idx + 1] if idx + 1 < len(lines) else ""
+                in_closed_table = bool(_TABLE_SEPARATOR.match(nxt))
             elif not _TABLE_ROW.match(line):
                 in_closed_table = False                   # any non-table line ends the table
             for m in _BACKLOG_RE.finditer(line):

@@ -475,3 +475,59 @@ def test_a_genuinely_stale_assertion_role_id_still_fails(tmp_path):
     emitted = _at(root, "docs/contract.md",
                   f"Close [#{_CLOSED}] this arc, then re-run the gate.\n")
     assert _backlog_id_failures(pf.verify(emitted, root)) == [f"[#{_CLOSED}]"]
+
+
+def test_a_second_kill_candidates_field_cannot_hide_a_stale_assertion(tmp_path):
+    """[#483] terra HIGH 2026-08-04 — scan EVERY delimited field, not just the first.
+
+    `search()` stopped at the first `kill-candidates:` in a row, so a benign leading field hid a
+    genuinely stale one behind it. That is the silent-suppression direction: the classifier would
+    have reported clean while the assertion it exists to catch sat two fields to the right.
+    """
+    root = _mini_repo(tmp_path)
+    row = (f"- [#{_OPEN}] [P3][S] a thing · kill-candidates: none — spent · "
+           f"kill-candidates: [#{_CLOSED}] — the real one")
+    contract = _at(root, "BACKLOG.md", f"# Backlog\n\n- [#{_OPEN}] [P3][S] live\n{row}\n")
+    assert _backlog_id_failures(pf.verify(contract, root)) == [f"[#{_CLOSED}]"]
+
+
+def test_a_kill_candidates_field_must_be_delimited_to_count(tmp_path):
+    """The field is a ROW FIELD, so it must start a field (line start or `·`). Prose that merely
+    contains the words is narration and must not open an assertion span."""
+    root = _mini_repo(tmp_path)
+    row = (f"- [#{_OPEN}] [P3][S] we discussed kill-candidates: [#{_CLOSED}] at length · "
+           "kill-candidates: none — nothing subsumes it")
+    contract = _at(root, "BACKLOG.md", f"# Backlog\n\n- [#{_OPEN}] [P3][S] live\n{row}\n")
+    assert _backlog_id_failures(pf.verify(contract, root)) == []
+
+
+def test_closed_table_suppression_needs_a_real_table(tmp_path):
+    """[#483] terra HIGH 2026-08-04 — a validated header AND separator, not a lookalike line.
+
+    Two bypasses, both suppressing everything that followed until a non-table line: a first cell
+    that merely STARTS with a closed-state word (`| closed-loop notes |`), and a header with no
+    markdown separator row under it.
+    """
+    root = _mini_repo(tmp_path)
+
+    lookalike = _at(root, "docs/a.md",
+                    "| closed-loop notes | what |\n|---|---|\n"
+                    f"| `[#{_CLOSED}]` | close this row next arc |\n")
+    assert _backlog_id_failures(pf.verify(lookalike, root)) == [f"[#{_CLOSED}]"]
+
+    no_separator = _at(root, "docs/b.md",
+                       f"| closed | what |\n| `[#{_CLOSED}]` | close this row next arc |\n")
+    assert _backlog_id_failures(pf.verify(no_separator, root)) == [f"[#{_CLOSED}]"]
+
+    real_table = _at(root, "docs/c.md",
+                     f"| closed | what |\n|---|---|\n| `[#{_CLOSED}]` | shipped |\n")
+    assert _backlog_id_failures(pf.verify(real_table, root)) == []
+
+
+def test_closed_table_mode_does_not_leak_past_the_table(tmp_path):
+    """Suppression ends at the first non-table line — a later assertion is still judged."""
+    root = _mini_repo(tmp_path)
+    contract = _at(root, "docs/d.md",
+                   f"| closed | what |\n|---|---|\n| `[#{_CLOSED}]` | shipped |\n\n"
+                   f"Now close [#{_CLOSED}] for real.\n")
+    assert _backlog_id_failures(pf.verify(contract, root)) == [f"[#{_CLOSED}]"]

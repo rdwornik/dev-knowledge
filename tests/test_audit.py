@@ -2476,6 +2476,12 @@ def test_preflight_backlog_ids_reuses_the_preflight_role_predicates():
     """[#483] AC4 — the leg IMPORTS the role predicates rather than restating them, so the tool
     and the leg cannot drift into disagreeing about what an assertion is."""
     src = Path(aud._REPO_ROOT, "scripts", "audit.py").read_text(encoding="utf-8")
-    body = src[src.index("def check_preflight_backlog_ids"):src.index("\nALL_CHECKS = [")]
-    for helper in ("_BACKLOG_ROW", "_mask_ticks", "_KILL_FIELD", "_REASON_SEP"):
-        assert f"_pf.{helper}" in body, f"{helper} is not reused from preflight_contract"
+    whole = src[src.index("def check_preflight_backlog_ids"):src.index("\nALL_CHECKS = [")]
+    # CODE only — the docstring legitimately discusses the field by name, and scanning it would
+    # make this test fire on prose rather than on a restated grammar.
+    code = whole.split('"""', 2)[2]
+    for helper in ("_BACKLOG_ROW", "kill_candidate_value_spans"):
+        assert f"_pf.{helper}" in code, f"{helper} is not reused from preflight_contract"
+    # The leg must not re-derive the field/value grammar itself — that is how the two would drift.
+    for restated in ("kill-candidates:", "_REASON_SEP", "_mask_ticks"):
+        assert restated not in code, f"the leg restates {restated!r} instead of reusing the helper"

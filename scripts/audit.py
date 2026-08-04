@@ -3639,16 +3639,17 @@ def check_preflight_backlog_ids(repo_path: Path) -> list[Finding]:
         for line in text.splitlines():
             if not _pf._BACKLOG_ROW.match(line):
                 continue
-            masked = _pf._mask_ticks(line)          # a QUOTED field is prose, not the field
-            field = _pf._KILL_FIELD.search(masked)
-            if not field:
+            # EVERY delimited kill-candidates value, via the shared span helper — a row may
+            # carry more than one field, and stopping at the first hid a real stale assertion
+            # behind an earlier benign one (terra HIGH 2026-08-04).
+            spans = _pf.kill_candidate_value_spans(line)
+            if not spans:
                 continue
-            sep = _pf._REASON_SEP.search(field.group(1))
-            value = field.group(1)[:sep.start()] if sep else field.group(1)
             row = re.match(r"- \[#(\d+)\]", line).group(1)
-            for cited in re.findall(r"#(\d+)", value):
-                if cited not in open_ids:
-                    stale.append(f"[#{row}] -> #{cited}")
+            for start, end in spans:
+                for cited in re.findall(r"#(\d+)", line[start:end]):
+                    if cited not in open_ids:
+                        stale.append(f"[#{row}] -> #{cited}")
         if stale:
             named = ", ".join(stale[:5])
             more = f" (+{len(stale) - 5} more)" if len(stale) > 5 else ""
