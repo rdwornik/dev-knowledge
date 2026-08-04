@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "3bc92e1ce4f565bd1fb117934d0dfb1e1c1c9afbccc23411021776c7dc05c4cc",
+  "generated_sha256": "349749ca237b8af20e29cb477d1df58928c5fc75fa508a54688126b8a0083139",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -176,6 +176,14 @@
     {
       "task": 483,
       "file": "483-preflight-contract-enforcement-question.md"
+    },
+    {
+      "task": 485,
+      "file": "485-lf-enforcing-write-helper-replaces-a-gotcha.md"
+    },
+    {
+      "task": 484,
+      "file": "484-adr106-system-python-divergence-deferral.md"
     },
     {
       "task": 389,
