@@ -15,6 +15,7 @@ The session_end + reconciled fire_tests need no pre-commit; the canonical_freshn
 """
 from __future__ import annotations
 
+import ast
 import importlib.util
 import json
 import re
@@ -78,7 +79,7 @@ def _cell(cells, organ_id):
 
 
 # ---------------------------------------------------------------------------
-# THE load-bearing proof: firing, not presence (session_end_backpressure).
+# THE load-bearing proof: firing, not presence (block_unanchored_push).
 # ---------------------------------------------------------------------------
 
 
@@ -99,7 +100,7 @@ def test_present_but_inert_anchor_hook_reports_absent(tmp_path):
 
     # locate MUST flag it a candidate (so we genuinely exercise the fire path, not locate).
     assert ec._anchor_hook(root) is not None
-    cell = _cell(ec.evaluate_full(root), "session_end_backpressure")
+    cell = _cell(ec.evaluate_full(root), "block_unanchored_push")
     assert cell.verdict == ec.ABSENT
     assert cell.fired is False
 
@@ -126,7 +127,7 @@ def test_stop_hook_no_longer_enforces_after_the_adr85_amendment(tmp_path):
         ".claude/settings.json": _stop_settings(
             'python "$CLAUDE_PROJECT_DIR/scripts/session_end_backpressure.py"'),
     })
-    cell = _cell(ec.evaluate_full(root), "session_end_backpressure")
+    cell = _cell(ec.evaluate_full(root), "block_unanchored_push")
     assert cell.verdict == ec.ABSENT, cell.evidence
     assert cell.fired is not True, cell.evidence
     assert "block_unanchored_push" in cell.evidence
@@ -204,7 +205,8 @@ def _anchor_organ_consumer(root: Path) -> Path:
 def test_anchor_gate_probe_distinguishes_installed_from_absent(tmp_path):
     """THE distinguishing proof for the repointed organ probe (ADR-85 amendment 2026-08-03).
 
-    Demonstrates the vacuity this replaces: before the repoint, `_seb_fire` probed the Stop
+    Demonstrates the vacuity this replaces: before the repoint, `_seb_fire` (this helper's
+    pre-[#481] name — the historical claim keeps the historical name) probed the Stop
     hook for `{"decision":"block"}`. That block was deleted BY DESIGN when the teeth moved to
     pre-push, so the probe answered ABSENT for every repo in the fleet — including one with
     the ADR-85 hard leg fully installed. A probe with a constant answer measures nothing.
@@ -216,8 +218,8 @@ def test_anchor_gate_probe_distinguishes_installed_from_absent(tmp_path):
     installed = _anchor_organ_consumer(tmp_path / "installed")
     bare = _init_consumer(tmp_path / "bare", {"JOURNAL.md": "# Journal\n\n- work happened\n"})
 
-    present = _cell(ec.evaluate_full(installed), "session_end_backpressure")
-    absent = _cell(ec.evaluate_full(bare), "session_end_backpressure")
+    present = _cell(ec.evaluate_full(installed), "block_unanchored_push")
+    absent = _cell(ec.evaluate_full(bare), "block_unanchored_push")
 
     assert present.verdict == ec.ENFORCING_LOCAL, present.evidence
     assert present.fired is True, present.evidence
@@ -236,7 +238,7 @@ def test_anchor_gate_fire_requires_both_legs_not_a_constant_refusal(tmp_path):
     _git(["add", "-A"], root)
     _git(["commit", "-q", "-m", "replace the organ with a constant refusal"], root)
 
-    cell = _cell(ec.evaluate_full(root), "session_end_backpressure")
+    cell = _cell(ec.evaluate_full(root), "block_unanchored_push")
     assert cell.verdict == ec.ABSENT, cell.evidence
     assert cell.fired is False, cell.evidence
 
@@ -248,7 +250,7 @@ def test_anchor_gate_fire_requires_both_legs_not_a_constant_refusal(tmp_path):
 
 def test_locate_excludes_propose_closures_plugin(tmp_path):
     """enabledPlugins:tier1-lifecycle + a Stop hook running propose_closures is NON-blocking by
-    design and must NOT be a session_end_backpressure candidate."""
+    design and must NOT be a block_unanchored_push candidate."""
     root = _init_consumer(tmp_path / "plugin", {
         "JOURNAL.md": "# Journal\n",
         ".claude/settings.json": json.dumps({
@@ -257,8 +259,8 @@ def test_locate_excludes_propose_closures_plugin(tmp_path):
                       "command": "python plugin/propose_closures.py"}]}]},
         }),
     })
-    assert ec._seb_candidate_command(root) is None
-    assert _cell(ec.evaluate_static(root), "session_end_backpressure").verdict == ec.ABSENT
+    assert ec._stop_backpressure_command(root) is None
+    assert _cell(ec.evaluate_static(root), "block_unanchored_push").verdict == ec.ABSENT
 
 
 def test_absent_consumer_all_tier1_absent_and_toc_not_false_positive(tmp_path):
@@ -285,7 +287,7 @@ def test_absent_consumer_all_tier1_absent_and_toc_not_false_positive(tmp_path):
     })
     assert ec._freshness_candidate(root)[0] is False  # toc-freshness excluded
     cells = {c.organ_id: c.verdict for c in ec.evaluate_static(root)}
-    assert cells["session_end_backpressure"] == ec.ABSENT
+    assert cells["block_unanchored_push"] == ec.ABSENT
     assert cells["canonical_freshness"] == ec.ABSENT
     assert cells["reconciled_versions"] == ec.NA_NO_EDGES
     assert cells["doc_claims"] == ec.HUB_SCOPED
@@ -504,7 +506,7 @@ def test_static_path_reports_present_unverified_for_a_candidate(tmp_path):
     """A candidate organ on the STATIC path is present-unverified (not enforcing-local — the leg
     cannot license enforcing-local without a fire_test)."""
     root = _anchor_organ_consumer(tmp_path / "cand")
-    cell = _cell(ec.evaluate_static(root), "session_end_backpressure")
+    cell = _cell(ec.evaluate_static(root), "block_unanchored_push")
     assert cell.verdict == ec.PRESENT_UNVERIFIED
     assert cell.fired is None
 
@@ -613,18 +615,24 @@ def _valid_entry(component, when="2999-01-01"):
 
 
 def test_tier3_divergence_no_allowlist_is_drift():
-    """A real seb divergence (mapped ABSENT cell) with NO allowlist -> DRIFT (contract 3)."""
-    cells = [ec.Cell("session_end_backpressure", ec.ABSENT, "Stop hook did NOT block")]
+    """A real divergence (mapped ABSENT cell) with NO allowlist -> DRIFT (contract 3).
+
+    The measured ORGAN is `block_unanchored_push` (pre-push); the COMPONENT it is attributed
+    to is `session-end-backpressure`. Those are deliberately distinct — see the [#481] honest
+    limit at `_ORGAN_TO_COMPONENT`: that component's carrier deploys the advisory Stop script,
+    never the pre-push organ, so this attribution is known-misfiled and filed separately.
+    """
+    cells = [ec.Cell("block_unanchored_push", ec.ABSENT, "no pre-push anchor hook")]
     divergences = ec._divergences_from_tier1(cells)
-    assert divergences  # seb maps to a manifest component
+    assert divergences  # the organ maps to a manifest component
     t3 = ec.classify_tier3(divergences, [], run_date="2026-07-04", waivable_policy=_REAL_POLICY)
     assert [c.classification for c in t3] == [ec.DRIFT]
     assert t3[0].component_id == "session-end-backpressure"
 
 
 def test_tier3_non_waivable_allowlisted_still_drift_rejected():
-    """seb allowlisted BUT non-waivable -> REJECTED -> DRIFT (contract 2 + the reject half of 4)."""
-    cells = [ec.Cell("session_end_backpressure", ec.ABSENT, "Stop hook did NOT block")]
+    """Component allowlisted BUT non-waivable -> REJECTED -> DRIFT (contract 2 + reject half of 4)."""
+    cells = [ec.Cell("block_unanchored_push", ec.ABSENT, "no pre-push anchor hook")]
     divergences = ec._divergences_from_tier1(cells)
     t3 = ec.classify_tier3(divergences, [_valid_entry("session-end-backpressure")],
                            run_date="2026-07-04", waivable_policy=_REAL_POLICY)
@@ -690,7 +698,7 @@ def test_tier3_codemap_divergence_sanctionable_via_live_policy():
 def test_tier3_classification_vocabulary():
     """Every Tier3Cell classification is in the honest {DRIFT, SANCTIONED} axis."""
     div = [("hub-toc-hooks", "hub-toc-hooks", "x"),
-           ("session-end-backpressure", "session_end_backpressure", "y")]
+           ("session-end-backpressure", "block_unanchored_push", "y")]
     t3 = ec.classify_tier3(div, [_valid_entry("hub-toc-hooks")],
                            run_date="2026-07-04", waivable_policy=_REAL_POLICY)
     assert {c.classification for c in t3} <= {ec.DRIFT, ec.SANCTIONED}
@@ -726,7 +734,7 @@ def test_tier3_build_report_fire_attaches_drift(tmp_path):
 def test_render_digest_has_tier3_section():
     rep = ec.ConsumerReport("demo", "/x", (), (), (
         ec.Tier3Cell("hub-toc-hooks", "hub-toc-hooks", ec.SANCTIONED, "sanctioned -- ok"),
-        ec.Tier3Cell("session-end-backpressure", "session_end_backpressure", ec.DRIFT,
+        ec.Tier3Cell("session-end-backpressure", "block_unanchored_push", ec.DRIFT,
                      "unsanctioned drift (allowlist: no allowlist entry)"),
     ))
     out = ec.render_digest([rep], run_date="2026-07-04")
@@ -751,7 +759,7 @@ def test_tier3_sanctioned_is_a_distinct_class_from_tier1():
     (contract 3 -- sanctioned divergence is its own class). Checks the BOLD verdict form
     so the intro's descriptive 'sanctioned' word is not a false positive."""
     rep = ec.ConsumerReport("demo", "/x",
-        (ec.Cell("session_end_backpressure", ec.ABSENT, "did not block"),),
+        (ec.Cell("block_unanchored_push", ec.ABSENT, "did not block"),),
         (),
         (ec.Tier3Cell("hub-toc-hooks", "hub-toc-hooks", ec.SANCTIONED, "sanctioned -- ok"),))
     out = ec.render_digest([rep], run_date="2026-07-04")
@@ -815,3 +823,105 @@ def test_static_drift_summary_rejects_non_waivable_entry(tmp_path):
     assert summary["declared"] == 1
     assert summary["valid"] == 0
     assert summary["rejected_non_waivable"] == 1
+
+
+# ---------------------------------------------------------------------------
+# [#481] — the organ id must name the organ the probe actually measures.
+#
+# `0c8647c2` repointed the ADR-85 probe at `block_unanchored_push` (pre-push) but kept the
+# id `session_end_backpressure`, so the published identity named a Stop-hook script while
+# the probe read a different organ at a different stage.
+#
+# The token is OVERLOADED: `scripts/session_end_backpressure.py` is still a live script,
+# still deployed by `deploy/carrier_mesh.py`, still wired as an advisory Stop hook. A text
+# scan cannot tell the retired ORGAN-ID from the live SCRIPT-NAME, so the census below
+# discriminates by ROLE — the live registry for the code half, AST string-literal analysis
+# for the test half.
+# ---------------------------------------------------------------------------
+
+_RETIRED_ORGAN_ID = "session_end_backpressure"
+_RETIRED_ID_CONST = "_RETIRED_ORGAN_ID"  # the one sanctioned literal site, below
+
+
+def _unsanctioned_retired_id_lines(source: str) -> list[int]:
+    """Line numbers of every retired-id string literal in `source` bar the one sanctioned site.
+
+    AST rather than regex (terra MEDIUM 2026-08-04): a positional-regex census matches only
+    the quoting and call shapes it was written against, so `ec.Cell(_ALIAS, ...)`, single
+    quotes, `cells.get(...)` or an unanticipated constructor slip through while the check
+    still reports clean. Every string literal, whatever its construct, is one AST node — so
+    this covers the test-side organ-id role completely rather than pattern-by-pattern.
+
+    Comments are not AST nodes at all, so `#` prose is excluded by construction rather than
+    by an exclusion list; docstrings are the one prose form that IS a node, so they are
+    dropped explicitly — matching this census's stated prose limit.
+
+    The single permitted literal is the `_RETIRED_ORGAN_ID` definition, identified by its
+    ASSIGNMENT — never by line number, which would drift as the file grows and silently stop
+    protecting anything. ONE parse, so node identities are comparable.
+    """
+    tree = ast.parse(source)
+    skip: set[int] = set()
+    for node in ast.walk(tree):
+        body = getattr(node, "body", None)
+        if isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)) \
+                and body and isinstance(body[0], ast.Expr) \
+                and isinstance(body[0].value, ast.Constant) and isinstance(body[0].value.value, str):
+            skip.add(id(body[0].value))            # docstring prose
+        if isinstance(node, ast.Assign) and isinstance(node.value, ast.Constant) \
+                and any(isinstance(t, ast.Name) and t.id == _RETIRED_ID_CONST for t in node.targets):
+            skip.add(id(node.value))               # the sanctioned definition
+    return sorted(n.lineno for n in ast.walk(tree)
+                  if isinstance(n, ast.Constant) and n.value == _RETIRED_ORGAN_ID
+                  and id(n) not in skip)
+
+
+def _anchor_probe():
+    """The Group-C ADR-85 probe, resolved from the LIVE registry by GROUP.
+
+    Deliberately not resolved by id literal: selecting the probe by the very string under
+    test would make the invariant below circular and it would pass for any id at all.
+    """
+    group_c = [p for p in ec.TIER1_ORGANS if p.group == "C"]
+    assert len(group_c) == 1, f"expected exactly one Group-C organ, got {[p.organ_id for p in group_c]}"
+    return group_c[0]
+
+
+def test_anchor_organ_id_names_the_organ_it_measures():
+    """[#481] The Tier-1 organ id must name the organ the probe actually reads.
+
+    Load-bearing AFTER the rename too: a future repoint that changes `_ANCHOR_ORGAN_SCRIPT`
+    without renaming the id re-fails this test, which is the regression the row exists to stop.
+    """
+    probe = _anchor_probe()
+    assert ec._ANCHOR_ORGAN_SCRIPT in probe.organ_id, (
+        f"organ id {probe.organ_id!r} does not name the organ it measures "
+        f"({ec._ANCHOR_ORGAN_SCRIPT!r} at {ec._ANCHOR_STAGE}) — the [#481] defect"
+    )
+
+
+def test_organ_id_census_carries_no_retired_id():
+    """[#481] AC1/AC4 census — the ORGAN-ID role, read structurally rather than by grep.
+
+    Code half: introspects the LIVE registry (`TIER1_ORGANS`, `_ORGAN_TO_COMPONENT`). Every
+    organ-identity surface — the Tier-1 digest rows, the `<!-- organs: -->` marker, the
+    Tier-3 component bridge — is generated from these two structures, so introspecting them
+    IS the complete code-side census.
+
+    Test half: AST scan of this module — every string literal equal to the retired id, in any
+    construct or quoting style, bar the one sanctioned definition site.
+
+    *Honest limit:* prose mentions (comments, docstrings) are not mechanically classifiable as
+    organ-id-role and are out of scope by construction. This census covers string LITERALS,
+    so a dynamically composed id (concatenation, f-string, external data) is also invisible.
+    """
+    registry_ids = {p.organ_id for p in ec.TIER1_ORGANS}
+    assert _RETIRED_ORGAN_ID not in registry_ids, (
+        f"retired organ id still in TIER1_ORGANS: {sorted(registry_ids)}")
+    assert _RETIRED_ORGAN_ID not in ec._ORGAN_TO_COMPONENT, (
+        f"retired organ id still keys _ORGAN_TO_COMPONENT: {sorted(ec._ORGAN_TO_COMPONENT)}")
+
+    offenders = _unsanctioned_retired_id_lines(Path(__file__).read_text(encoding="utf-8"))
+    assert not offenders, (
+        f"retired organ id still a string literal in this module at line(s) {offenders} — "
+        f"only the {_RETIRED_ID_CONST} definition may carry it")

@@ -19,6 +19,60 @@
 
 ---
 
+### 2026-08-04 (i) — CC (Opus 5, local): FR-1 — the id follows the organ; three of four "consumers" weren't
+
+**Did:** Closed `[#481]` — the ADR-85 Informant probe published `session_end_backpressure` as its
+identity while measuring `block_unanchored_push` at pre-push (`0c8647c2` repointed and deferred
+the rename). SHA anchors: **`0c38bae9`** (the RED tests) and **`e564733e`** (the rename itself).
+
+**Result — the structural derivation paid for itself immediately.**
+
+The acceptance contract forbade a hand-grep scope (R-A), and that was the right call: the token
+is **overloaded**. `scripts/session_end_backpressure.py` is still a live script, still deployed
+by `carrier_mesh`, still a wired advisory Stop hook — so a text scan cannot tell the retired
+ORGAN-ID from the live SCRIPT-NAME. Three instruments, each declaring its blind spot: the
+`reverse_dep_oracle` over `OrganProbe`/`Cell` (7 and 11 referencers, all in one module,
+provenance-stamped), a role-discriminated census, and the row's own enumeration adjudicated
+against both.
+
+**Three of the four consumers the row enumerated did not need to change.** `carrier_mesh`'s
+`SEB_REL`/`_STOP_SENTINEL`/`_HUB_SEB`, the methodology roster, and the manifest roster rows all
+name the SCRIPT — renaming them would have made the manifest lie about what the carrier writes,
+the same name-vs-thing defect inverted. The real keyed set was one module plus its tests.
+
+**The oracle's blind spot was measured, not assumed:** zero test-side referencers, because the
+suite imports via `sys.path.insert`, which Pyright cannot resolve. That is precisely why the
+census exists rather than decorating the plan.
+
+**terra: 0 CRITICAL / 0 HIGH / 1 MEDIUM / 2 LOW — tally written INTO the artifact body** (NC4,
+not deferred to `[#480]`). All three fixed pre-merge, none dispositioned away. The MEDIUM was
+right that four positional regexes only match the shapes they were written against, so the
+census became an **AST scan** over string-literal nodes — and its teeth were proven by
+**mutation**, not inspection: a single-quoted literal in a list, a form none of the regexes
+covered, fails it. One LOW was a stale historical claim **this arc itself introduced** — renaming
+`_seb_fire` inside a sentence describing the pre-repoint implementation falsified it. The defect
+class closing the defect class.
+
+**Recorded, deliberately not fixed:** `_ORGAN_TO_COMPONENT` maps this organ to a component whose
+carrier deploys the advisory Stop script and never deploys `block_unanchored_push`, so its Tier-3
+DRIFT rows are misfiled. That predates the arc — the shared name hid it and the rename only made
+it legible. Behavior held identical; a rename arc must not smuggle a behavior change. Files in
+FR-8's batch with those DRIFT rows as evidence, counted against §F honestly.
+
+**Changes:** `scripts/enforcement_coverage.py` (organ id, `_ORGAN_TO_COMPONENT` rekey + honest
+limit, `_seb_*` → `_anchor_*`), `tests/test_enforcement_coverage.py` (two invariants + repointed
+organ-id positions), `docs/audits/2026-08-04-codex-481-organ-id-rename.md` (+ index regen),
+`BACKLOG.md`/`tasks/` (row closed retire-not-delete), `ecosystem/doc-counts.md` (2306→2308).
+
+**Abandoned:** nothing. Two full-suite failures were verified **pre-existing on pristine main**
+(`2b7274d0`), not caused by this arc: `test_routine_consumers_live_backlog_governs_exactly_one_row`
+(the live BACKLOG declares 2 routine rows, the test still pins 1 — the drift its own docstring
+warns about) and `test_check_fleet_parity_green_on_live_repo` (ai-council's root `conftest.py`,
+landed 2026-07-26, dispositioned `#430` — the test does not consult dispositions). Neither is
+mine to close inside this row; ship-gate GREEN with 15 dispositioned WARNs.
+
+**Next:** FR-2 — `[#482]` glob-engine REPAIR + the governed-set pin.
+
 ### 2026-08-04 (h) — CC (Opus 5, local): the window is sealed — the bundle is the tool's first customer
 
 **Did:** ARC 2 — cut `docs/handoffs/2026-08-04-dev-knowledge-architect` (HANDOFF_PROCESS v6.0.1,
