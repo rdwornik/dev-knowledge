@@ -348,3 +348,130 @@ def test_the_same_unusable_repo_still_fails_closed_once_a_sha_is_cited(tmp_path)
     (bare / "BACKLOG.md").write_text("# B\n", encoding="utf-8", newline="\n")
     contract = _write(tmp_path, "# C\n\n- landed at `abc1234`\n")
     assert pf.main([str(contract), "--repo-root", str(bare)]) == 2
+
+
+# ---------------------------------------------------------------------------
+# [#483] FR-3b — assertion-vs-citation discrimination on the backlog-id leg.
+#
+# R1 (binding precondition): the leg reads EVERY `[#id]` as a claim that the row is OPEN.
+# Its first production run over the 2026-08-04 handoff bundle flagged 11 ids, every one a
+# correct historical citation — ids in a table literally headed `| closed |`, and a provenance
+# clause. A gate wired on that behaviour REDs every handoff bundle by construction.
+#
+# R2 (role rule), implemented in two mechanical layers:
+#   Layer 1  surface path class — docs/audits/, docs/handoffs/, JOURNAL, LESSONS are
+#            citation-role wholesale.
+#   Layer 2  in-line context on assertion-role surfaces — backtick-quoted spans are prose;
+#            in a BACKLOG row only the `kill-candidates:` field VALUE is an open-claim;
+#            closed-table rows and `since [#id]` provenance clauses are citations.
+#
+# Every fixture below is a REAL shape captured from the live bundle or the live BACKLOG,
+# not an invented one.
+# ---------------------------------------------------------------------------
+
+_CLOSED = "479"   # closed on main; asserted below so the fixture cannot rot into a fiction
+_OPEN = "310"     # open on main
+
+
+def _mini_repo(tmp_path: Path) -> Path:
+    """A throwaway repo whose BACKLOG.md carries exactly one OPEN row (`_OPEN`)."""
+    root = tmp_path / "repo"
+    root.mkdir(parents=True, exist_ok=True)
+    root.joinpath("BACKLOG.md").write_text(
+        f"# Backlog\n\n- [#{_OPEN}] [P3][S] a live row\n", encoding="utf-8", newline="\n")
+    return root
+
+
+def _at(root: Path, rel: str, body: str) -> Path:
+    p = root / rel
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(body, encoding="utf-8", newline="\n")
+    return p
+
+
+def _backlog_id_failures(report) -> list[str]:
+    return [c.raw for c in report.failed if c.kind == "backlog-id"]
+
+
+def test_fixture_ids_still_have_the_liveness_this_suite_assumes():
+    """Guard the fixtures: if `_CLOSED` reopens or `_OPEN` closes, every test below goes
+    vacuous or falsely red. Asserted against the LIVE BACKLOG, not assumed."""
+    live = pf._open_backlog_ids(_REPO_ROOT)
+    assert _OPEN in live, f"fixture id #{_OPEN} is no longer open — re-point it"
+    assert _CLOSED not in live, f"fixture id #{_CLOSED} is open again — re-point it"
+
+
+def test_handoff_bundle_citations_are_not_flagged(tmp_path):
+    """[#483] R2 Layer 1 — a docs/handoffs/ artifact is citation-role wholesale.
+
+    Both shapes are verbatim from the 2026-08-04 bundle: the `| closed |` table row and the
+    provenance clause. These are the false positives R1 measured.
+    """
+    root = _mini_repo(tmp_path)
+    contract = _at(root, "docs/handoffs/2026-08-04-x/RESIDUAL.md",
+                   "| closed | what |\n|---|---|\n"
+                   f"| `[#{_CLOSED}]` | SUPERSEDED — its Done-when died with ADR-85's FR5 |\n\n"
+                   f"`BACKLOG.md` is GENERATED since [#{_CLOSED}] — a probe that can pass on "
+                   "stale generated content is bluffable\n")
+    assert _backlog_id_failures(pf.verify(contract, root)) == []
+
+
+def test_audit_artifact_citations_are_not_flagged(tmp_path):
+    """[#483] R2 Layer 1 — sub-question (b) ruled: docs/audits/ is citation-role, never gated."""
+    root = _mini_repo(tmp_path)
+    contract = _at(root, "docs/audits/2026-08-04-technical-x.md",
+                   f"The window closed [#{_CLOSED}] against its Done-when.\n")
+    assert _backlog_id_failures(pf.verify(contract, root)) == []
+
+
+def test_closed_table_and_provenance_are_citations_on_an_assertion_surface(tmp_path):
+    """[#483] R2 Layer 2 — the shapes stay citations even on a forward-committing surface.
+
+    Layer 1 alone would clear the bundle; a plan document quoting a closed-table or a
+    `since [#id]` provenance clause must not be flagged either, or the rule is only a
+    path waiver wearing a role rule's name.
+    """
+    root = _mini_repo(tmp_path)
+    contract = _at(root, "docs/plan.md",
+                   "| closed | what |\n|---|---|\n"
+                   f"| `[#{_CLOSED}]` | shipped this window |\n\n"
+                   f"`BACKLOG.md` is GENERATED since [#{_CLOSED}].\n")
+    assert _backlog_id_failures(pf.verify(contract, root)) == []
+
+
+def test_backlog_reason_prose_and_backtick_quoting_are_citations(tmp_path):
+    """[#483] R2 Layer 2 — in a BACKLOG row only the `kill-candidates:` VALUE is an open-claim.
+
+    Both lines are real shapes from the live BACKLOG: a `kill-candidates: none` field whose
+    REASON prose cites a closed row, and the row whose own prose backtick-quotes the field name.
+    The second is this repo's known convention-quoting false positive — a scan that matches the
+    field before stripping backticks reads the quote as a real field. Measured live on
+    BACKLOG.md: naive whole-fragment 24 flags, field-value-only 2, strip-backticks-first 1.
+    """
+    root = _mini_repo(tmp_path)
+    rows = [
+        f"- [#{_OPEN}] [P3][S] a live row",
+        f"- [#{_OPEN}] [P3][S] thing · kill-candidates: none — [#{_CLOSED}] shipped its other "
+        "legs and does not own this one",
+        f"- [#{_OPEN}] [P3][S] other · the `kill-candidates: [#{_CLOSED}]` resting on it, are "
+        "spent · kill-candidates: none — premise falsified",
+    ]
+    contract = _at(root, "BACKLOG.md", "# Backlog\n\n" + "\n".join(rows) + "\n")
+    assert _backlog_id_failures(pf.verify(contract, root)) == []
+
+
+def test_a_genuinely_stale_assertion_role_id_still_fails(tmp_path):
+    """[#483] the control — discrimination must not become blanket suppression.
+
+    An emitted contract line telling the executor to close an id is a forward-committing
+    open-claim: it asserts the row is live. It must still FAIL. Without this, every test above
+    would be satisfied by a verifier that simply stopped checking backlog ids.
+
+    (The `kill-candidates:` VALUE case is the ALL_CHECKS leg's territory, not this tool's: the
+    tool's claim vocabulary is the bracketed `[#id]` form, while BACKLOG field values are written
+    bare (`kill-candidates: #292`). That extractor and its own RED fixtures live with the leg.)
+    """
+    root = _mini_repo(tmp_path)
+    emitted = _at(root, "docs/contract.md",
+                  f"Close [#{_CLOSED}] this arc, then re-run the gate.\n")
+    assert _backlog_id_failures(pf.verify(emitted, root)) == [f"[#{_CLOSED}]"]
