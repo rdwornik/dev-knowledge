@@ -1,7 +1,7 @@
 ---
 id: "[#481]"
 title: "`enforcement_coverage` organ id names a retired organ"
-status: open
+status: closed
 priority: P3
 size: S
 theme: "[E2] Enforced governance"
