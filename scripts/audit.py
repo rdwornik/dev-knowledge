@@ -38,6 +38,7 @@ import subprocess
 import sys
 import tempfile
 from collections import Counter
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from pathlib import Path
@@ -337,6 +338,43 @@ class Finding:
     status: str          # "pass" | "fail" | "warn" | "unavailable" | "n/a"
     evidence: str
 
+
+# --- [#465] leg 4, FR-1: why an n/a is an n/a -------------------------------
+# A dead check and a correctly-skipped one both rendered as the bare token "n/a", so they were
+# indistinguishable in every daily -- which is how `handoff_tag_canonicity` emitted a verdict
+# for two spec generations after its subject stopped existing, unnoticed.
+#
+# The reason rides a parsable PREFIX inside the existing `evidence` string. That is deliberate
+# and it is what keeps tripwire T1 from firing: `Finding` keeps exactly three fields and the
+# five-value status enum, so the LOCKED coherence-spine contract and the daily's column grammar
+# are untouched, and `test_finding_format_is_locked` still passes.
+#
+#   SUBJECT-ABSENT  the governed thing does not exist ANYWHERE -- the check can never fire
+#   NOT-APPLICABLE  this repo legitimately lacks the surface; another repo has it
+_NA_SUBJECT_ABSENT = "SUBJECT-ABSENT"
+_NA_NOT_APPLICABLE = "NOT-APPLICABLE"
+_NA_REASONS = (_NA_SUBJECT_ABSENT, _NA_NOT_APPLICABLE)
+_NA_REASON_RE = re.compile(rf"^\[n/a-reason:({'|'.join(_NA_REASONS)})\] (.+)$", re.DOTALL)
+
+
+def _na(check_name: str, reason: str, evidence: str) -> Finding:
+    """An n/a Finding carrying a machine-readable reason. Raises on an unknown reason --
+    a mis-typed reason must not silently become an unclassifiable n/a."""
+    if reason not in _NA_REASONS:
+        raise ValueError(f"unknown n/a reason: {reason!r}")
+    return Finding(check_name, "n/a", f"[n/a-reason:{reason}] {evidence}".replace("|", "/"))
+
+
+def _na_reason(finding: Finding) -> str | None:
+    """The encoded reason, or None for a non-n/a finding OR an unclassified one.
+
+    None is meaningful, not an error value: the detector treats an unclassified n/a as a loud
+    WARN rather than assuming either reason (FR-3 -- never pass silently)."""
+    if finding.status != "n/a":
+        return None
+    m = _NA_REASON_RE.match(finding.evidence)
+    return m.group(1) if m else None
+
 @dataclass
 class RepoState:
     """A repo's last audit result — the schema of ecosystem/<name>/state.yaml.
@@ -402,11 +440,74 @@ def save_state(state: RepoState) -> None:
         yaml.dump(state.to_dict(), fh, default_flow_style=False, allow_unicode=True)
 
 
+_HISTORY_ROW_RE = re.compile(r"^\|\s*([a-z0-9_]+)\s*\|")
+
+
+def _previously_reported_checks(repo_name: str, upto: date) -> set[str]:
+    """Check names in the single most recent history READING at or before `upto`.
+
+    Two details are load-bearing (terra HIGH, 2026-08-04):
+
+    * SAME-DAY entries count. An earlier version compared strictly against an EARLIER DATE, so
+      a second `run` on the same day compared against yesterday and re-emitted a retirement
+      notice the first run had already recorded — writing a false "retired since the previous
+      reading" into the durable history on every rerun.
+    * Only the LAST table in that file is parsed. A history file accumulates appended readings,
+      so unioning all of them would resurrect names retired several readings ago and suppress
+      the notice for a check that vanished today.
+
+    Derived from the history files themselves — there is deliberately no retired-check registry
+    to maintain (FR-4). Empty when there is no prior reading, so a repo's first ever run
+    correctly reports nothing retired rather than everything.
+    """
+    hist = ECOSYSTEM_DIR / repo_name / "history"
+    if not hist.is_dir():
+        return set()
+    prior = sorted(p for p in hist.glob("*.md") if p.stem <= upto.isoformat())
+    if not prior:
+        return set()
+    text = prior[-1].read_text(encoding="utf-8", errors="replace")
+    last_reading = text.rsplit("\n## ", 1)[-1]
+    names = {m.group(1) for m in (_HISTORY_ROW_RE.match(ln)
+                                  for ln in last_reading.splitlines()) if m}
+    # An UNAVAILABLE repo's reading is a single `availability` row, and an aborted append can
+    # leave a partial table. Neither is a complete reading, and treating one as complete would
+    # announce every check the repo normally runs as "retired" in the next daily -- a false
+    # entry written into the durable history (terra HIGH r2, 2026-08-04). None means "cannot
+    # compare", which the caller renders as an explicit unavailable notice rather than silence.
+    if not names or names == {"availability"}:
+        return None
+    return names
+
+
 def append_history(state: RepoState, run_date: date) -> None:
     p = _history_path(state.name, run_date)
     p.parent.mkdir(parents=True, exist_ok=True)
     ts = datetime.now().isoformat(timespec="seconds")
     lines = [f"## {run_date.isoformat()} — {ts}\n\n"]
+
+    # [#465] leg 4 / FR-5: a retired check must be visible TO A READER OF THE DAILIES, not only
+    # in a commit message. Without this, a check simply stops appearing and the row's absence is
+    # indistinguishable from a run that never reached it -- the same invisibility that let
+    # `handoff_tag_canonicity` emit a verdict for two spec generations after its subject died.
+    # Best-effort by design: this is a NOTICE, and a notice must never be able to fail the write
+    # of the daily it annotates. It is never silent, though -- a comparison that cannot run says so.
+    try:
+        previous = _previously_reported_checks(state.name, run_date)
+        if previous is None:
+            lines.append("> **Retirement comparison unavailable** — the previous reading was "
+                         "absent, unavailable, or partial, so a missing row below cannot be "
+                         "read as a retirement.\n\n")
+        else:
+            gone = sorted(previous - {f.check_name for f in state.findings})
+            if gone:
+                lines.append(f"> **Checks retired since the previous reading:** "
+                             f"{', '.join(gone)}. No longer in ALL_CHECKS; their absence below "
+                             "is deliberate.\n\n")
+    except Exception as exc:  # noqa: BLE001 -- notice only; never blocks the daily
+        lines.append(f"> **Retirement comparison unavailable** ({exc!r}) — a missing row below "
+                     "cannot be read as a retirement.\n\n")
+
     lines.append("| Check | Status | Evidence |\n|---|---|---|\n")
     for f in state.findings:
         lines.append(f"| {f.check_name} | {f.status} | {f.evidence} |\n")
@@ -660,7 +761,7 @@ def check_handoff_bundle_structure(repo_path: Path) -> list[Finding]:
     """
     handoffs = repo_path / "docs" / "handoffs"
     if not handoffs.exists():
-        return [Finding("handoff_bundle_structure", "n/a",
+        return [_na("handoff_bundle_structure", "NOT-APPLICABLE",
                         "no docs/handoffs/ — nothing to validate")]
 
     violations: list[str] = []
@@ -712,46 +813,6 @@ def check_handoff_bundle_structure(repo_path: Path) -> list[Finding]:
     return [Finding("handoff_bundle_structure", "pass",
                     f"{validated} stamped v4 bundle(s) valid (structure + sections + budgets)")]
 
-
-def check_handoff_tag_canonicity(repo_path: Path) -> list[Finding]:
-    """§3.1 tag-canonicity lint (HANDOFF_PROCESS v4.3 item F) — historical v4 surface.
-
-    Post-#149 flip the canonical file is v5, which carries no §3.1 four-tag section, so
-    this check degrades to a clean pass ("§3.1 not found — nothing to lint"). It remains
-    only to guard the historical v4 tag-canonicity invariant if a §3.1 ever reappears.
-
-    Scans protocols/HANDOFF_PROCESS.md §3.1 ONLY (not the end-of-file amendments).
-    §3.1 must EITHER enumerate all four canonical tags (witnessed/recall/inferred/
-    unknown — the post-v5 consolidated state) OR carry a cross-reference to
-    Amendment A (the four-tag canonical). A three-tag §3.1 with no cross-reference is
-    the drift this check exists to catch (closes C3 durably). Read-only.
-    """
-    spec = repo_path / "protocols" / "HANDOFF_PROCESS.md"
-    if not spec.exists():
-        return [Finding("handoff_tag_canonicity", "n/a",
-                        "no protocols/HANDOFF_PROCESS.md — nothing to validate")]
-
-    lines = spec.read_text(encoding="utf-8").splitlines()
-    start = next((i for i, ln in enumerate(lines) if re.match(r"^###\s+3\.1\b", ln)), None)
-    if start is None:
-        return [Finding("handoff_tag_canonicity", "n/a",
-                        "§3.1 section not found (consolidated?) — nothing to lint")]
-    # §3.1 body runs to the next standalone '---' rule (section terminator).
-    end = next((j for j in range(start + 1, len(lines)) if re.match(r"^---\s*$", lines[j])),
-               len(lines))
-    section = "\n".join(lines[start:end])
-
-    four_tags = all(re.search(rf"\b{tag}\b", section, re.IGNORECASE)
-                    for tag in ("witnessed", "recall", "inferred", "unknown"))
-    crossref = re.search(r"(superseded by Amendment|see Amendment A|Amendment A)",
-                         section, re.IGNORECASE) is not None
-
-    if four_tags or crossref:
-        how = "four canonical tags enumerated" if four_tags else "cross-reference to Amendment A present"
-        return [Finding("handoff_tag_canonicity", "pass", f"§3.1 canonical: {how}")]
-    return [Finding("handoff_tag_canonicity", "fail",
-                    "§3.1 has three-tag content without a cross-reference to Amendment A "
-                    "(four-tag canonical) — add a supersession pointer")]
 
 
 # Single-sourced in canonical_freshness_gate.py; audit-level aliases keep the monkeypatch seam
@@ -1027,7 +1088,7 @@ def check_handoff_version_stamp(repo_path: Path) -> list[Finding]:
     """
     spec = repo_path / "protocols" / "HANDOFF_PROCESS.md"
     if not spec.exists():
-        return [Finding("handoff_version_stamp", "n/a",
+        return [_na("handoff_version_stamp", "NOT-APPLICABLE",
                         "no protocols/HANDOFF_PROCESS.md — nothing to validate")]
 
     spec_text = spec.read_text(encoding="utf-8")
@@ -1220,7 +1281,7 @@ def check_floor_integrity(repo_path: Path) -> list[Finding]:
     """
     floor = repo_path / ".claude" / "CLAUDE-FLOOR.md"
     if not floor.exists():
-        return [Finding("floor_integrity", "n/a",
+        return [_na("floor_integrity", "NOT-APPLICABLE",
                         "no .claude/CLAUDE-FLOOR.md — repo has not adopted the methodology floor (skip)")]
 
     text = floor.read_text(encoding="utf-8", errors="replace")
@@ -1279,18 +1340,18 @@ def check_hooks_armed(repo_path: Path) -> list[Finding]:
     doc->code behavioral rule -> `exempt` in ecosystem/doc-code-edge.yaml.
     """
     if not _is_hub(repo_path):
-        return [Finding("hooks_armed", "n/a",
+        return [_na("hooks_armed", "NOT-APPLICABLE",
                         "hub-only — git-hook arming check skipped (not the hub repo)")]
     try:
         if not (Path(repo_path) / ".pre-commit-config.yaml").exists():
-            return [Finding("hooks_armed", "n/a",
+            return [_na("hooks_armed", "NOT-APPLICABLE",
                             "no .pre-commit-config.yaml — no managed git hooks to arm")]
         gp = subprocess.run(
             ["git", "rev-parse", "--git-path", "hooks"],
             cwd=repo_path, capture_output=True, text=True, timeout=10,
         )
         if gp.returncode != 0:
-            return [Finding("hooks_armed", "n/a",
+            return [_na("hooks_armed", "NOT-APPLICABLE",
                             "not a standard git checkout (no resolvable hooks dir)")]
         hooks_dir = (Path(repo_path) / gp.stdout.strip()).resolve()
         issues: list[str] = []
@@ -1331,7 +1392,7 @@ def check_git_backlog_drift(repo_path: Path) -> list[Finding]:
     Detection + formatting live in scripts/validate_git_backlog.py (reused).
     """
     if not _is_hub(repo_path):
-        return [Finding("git_backlog_drift", "n/a",
+        return [_na("git_backlog_drift", "NOT-APPLICABLE",
                         "hub-only — git<->backlog drift check skipped (not the hub repo)")]
     try:
         drift = _vgb.reconcile(Path(repo_path), Path(repo_path) / "BACKLOG.md")
@@ -1370,7 +1431,7 @@ def check_doc_claims(repo_path: Path) -> list[Finding]:
     Fail-soft on any error. Read-only. Logic lives in scripts/validate_doc_claims.py.
     """
     if not _is_hub(repo_path):
-        return [Finding("doc_claims", "n/a",
+        return [_na("doc_claims", "NOT-APPLICABLE",
                         "hub-only — prose-vs-state check skipped (not the hub repo)")]
     try:
         results = _vdc.reconcile(Path(repo_path), len(ALL_CHECKS),
@@ -1413,7 +1474,7 @@ def check_doc_rot(repo_path: Path) -> list[Finding]:
     any error. Read-only. Logic lives in scripts/validate_doc_rot.py.
     """
     if not _is_hub(repo_path):
-        return [Finding("doc_rot", "n/a",
+        return [_na("doc_rot", "NOT-APPLICABLE",
                         "hub-only — doc-rot / grooming checker skipped (not the hub repo)")]
     try:
         results = _vdr.scan(Path(repo_path))
@@ -1456,7 +1517,7 @@ def check_undeclared_edges(repo_path: Path) -> list[Finding]:
     reporter (scripts/scan_undeclared_edges.py) still surfaces the Tier-3 signals for human promotion.
     """
     if not _is_hub(repo_path):
-        return [Finding("undeclared_edges", "n/a",
+        return [_na("undeclared_edges", "NOT-APPLICABLE",
                         "hub-only — undeclared-edge scan skipped (not the hub repo)")]
     try:
         cands = _sue.scan(Path(repo_path))
@@ -1498,7 +1559,7 @@ def check_doc_structure(repo_path: Path) -> list[Finding]:
     Fail-soft on any error. Read-only. Logic lives in scripts/validate_doc_structure.py.
     """
     if not _is_hub(repo_path):
-        return [Finding("doc_structure", "n/a",
+        return [_na("doc_structure", "NOT-APPLICABLE",
                         "hub-only — prose structural linter skipped (not the hub repo)")]
     try:
         results = _vds.scan(Path(repo_path))
@@ -1535,7 +1596,7 @@ def check_no_ff_merges(repo_path: Path) -> list[Finding]:
     lives in scripts/validate_no_ff.py.
     """
     if not _is_hub(repo_path):
-        return [Finding("no_ff_merges", "n/a",
+        return [_na("no_ff_merges", "NOT-APPLICABLE",
                         "hub-only — --no-ff guard skipped (not the hub repo)")]
     try:
         violations = _vnf.find_violations(Path(repo_path))
@@ -1747,7 +1808,7 @@ def check_handoff_probes(repo_path: Path) -> list[Finding]:
     """
     handoffs = Path(repo_path) / "docs" / "handoffs"
     if not handoffs.exists():
-        return [Finding("handoff_probes", "n/a",
+        return [_na("handoff_probes", "NOT-APPLICABLE",
                         "no docs/handoffs/ — no probe bundle to validate")]
     candidates = sorted(
         (d for d in handoffs.iterdir()
@@ -1862,7 +1923,7 @@ def check_reconciled_versions(repo_path: Path) -> list[Finding]:
     if n:
         return [Finding("reconciled_versions", "pass",
                         f"{n} reconciled_with edge(s) match live spec version(s)")]
-    return [Finding("reconciled_versions", "n/a", "no reconciled_with edges declared")]
+    return [_na("reconciled_versions", "NOT-APPLICABLE", "no reconciled_with edges declared")]
 
 
 def _load_declaration_docs(repo_path: Path) -> tuple[str, ...]:
@@ -1984,7 +2045,7 @@ def check_doc_code_edge(repo_path: Path) -> list[Finding]:
     live in scripts/validate_doc_code_edge.py.
     """
     if not _is_hub(repo_path):
-        return [Finding("doc_code_edge", "n/a",
+        return [_na("doc_code_edge", "NOT-APPLICABLE",
                         "hub-only — doc->code edge check skipped (not the hub repo)")]
     code_root = Path(repo_path) / "scripts"
     try:
@@ -2014,7 +2075,7 @@ def check_doc_code_edge(repo_path: Path) -> list[Finding]:
         for f in orphans]
     if not ids:
         # No doc-declared edges — but a code orphan is still a real structural defect to surface.
-        return warns or [Finding("doc_code_edge", "n/a",
+        return warns or [_na("doc_code_edge", "NOT-APPLICABLE",
                          "no doc rule-IDs in the declaration-doc registry — advisory inactive "
                          "(ecosystem/doc-code-edge.yaml)")]
     resolved = 0
@@ -2186,7 +2247,7 @@ def check_doc_code_coverage_drift(repo_path: Path) -> list[Finding]:
     curated (no single auto-enumerable registry across all mechanisms; doc-code-edge.yaml header).
     """
     if not _is_hub(repo_path):
-        return [Finding("doc_code_coverage_drift", "n/a",
+        return [_na("doc_code_coverage_drift", "NOT-APPLICABLE",
                         "hub-only -- coverage drift-guard skipped (not the hub repo)")]
     try:
         scope = set(_load_coverage_scope(repo_path))
@@ -2250,7 +2311,7 @@ def check_fleet_parity(repo_path: Path) -> list[Finding]:
     per-commit audit-health gate; ship-gate-only scoping is a filed follow-up, not this arc.
     """
     if not _is_hub(repo_path):
-        return [Finding("fleet_parity", "n/a",
+        return [_na("fleet_parity", "NOT-APPLICABLE",
                         "hub-only -- fleet-parity walk skipped (not the hub repo)")]
     try:
         try:
@@ -2306,7 +2367,7 @@ def check_deployed_methodology_version(repo_path: Path) -> list[Finding]:
     entry = repos[repo_key]
     version = entry.get("deployed_methodology_version") if isinstance(entry, dict) else entry
     if version is None:
-        return [Finding(name, "n/a",
+        return [_na(name, "NOT-APPLICABLE",
                         f"{repo_key}: unset -- no methodology release deployed yet "
                         "(deploy-runbook will populate; ADR-91)")]
     return [Finding(name, "pass",
@@ -2333,7 +2394,7 @@ def check_enforcement_coverage(repo_path: Path) -> list[Finding]:
     """
     name = "enforcement_coverage"
     if _is_hub(repo_path):
-        return [Finding(name, "n/a",
+        return [_na(name, "NOT-APPLICABLE",
                         "hub - source of the 5 enforcement organs; per-consumer coverage is "
                         "measured by scripts/enforcement_coverage.py (read-only reporter)")]
     try:
@@ -2346,7 +2407,7 @@ def check_enforcement_coverage(repo_path: Path) -> list[Finding]:
         return [Finding(name, "warn",
                         f"reporter degraded (read-only, non-blocking): {exc!r}".replace("|", "/"))]
     summary = "; ".join(f"{c.organ_id}={c.verdict}" for c in cells)
-    return [Finding(name, "n/a",
+    return [_na(name, "NOT-APPLICABLE",
                     (f"{Path(repo_path).name}: {summary} "
                      "(static; enforcing-local proven only by scripts/enforcement_coverage.py)")
                     .replace("|", "/"))]
@@ -2418,7 +2479,7 @@ def check_import_edges(repo_path: Path) -> list[Finding]:
     repo_root = Path(repo_path)
     root = repo_root / "CLAUDE.md"
     if not root.exists():
-        return [Finding(name, "n/a", "no root CLAUDE.md (presence gated by check_claude_md)")]
+        return [_na(name, "NOT-APPLICABLE", "no root CLAUDE.md (presence gated by check_claude_md)")]
     visited: set[Path] = set()
     queue: list[tuple[Path, int]] = [(root, 0)]
     broken: list[str] = []
@@ -2553,7 +2614,7 @@ def check_routine_consumers(repo_path: Path) -> list[Finding]:
     name = "routine_consumers"
     backlog = Path(repo_path) / "BACKLOG.md"
     if not backlog.exists():
-        return [Finding(name, "n/a", "no BACKLOG.md in this repo")]
+        return [_na(name, "NOT-APPLICABLE", "no BACKLOG.md in this repo")]
     try:
         text = backlog.read_text(encoding="utf-8", errors="replace")
     except OSError as exc:
@@ -2878,7 +2939,7 @@ def check_silent_rule_ratchet(repo_path: Path) -> list[Finding]:
     Hub-only (the detector's scope roots are hub surfaces); read-only.
     """
     if not _is_hub(repo_path):
-        return [Finding("silent_rule_ratchet", "n/a",
+        return [_na("silent_rule_ratchet", "NOT-APPLICABLE",
                         "hub-only — the detector's scope roots are hub governance surfaces")]
     try:
         live = _srd.measure(Path(repo_path))
@@ -2917,7 +2978,7 @@ def _task_tree_findings(problems: list[str], present: bool = True) -> list[Findi
     """
     name = "task_tree_coherence"
     if not present:
-        return [Finding(name, "n/a", "no tasks/ source tree in this repo")]
+        return [_na(name, "NOT-APPLICABLE", "no tasks/ source tree in this repo")]
     if problems:
         shown = "; ".join(problems[:6])
         more = f" (+{len(problems) - 6} more)" if len(problems) > 6 else ""
@@ -2957,7 +3018,7 @@ def check_task_tree_coherence(repo_path: Path) -> list[Finding]:
     regenerates anything, because a gate that silently fixes what it measures cannot fail.
     """
     if not _is_hub(repo_path):
-        return [Finding("task_tree_coherence", "n/a",
+        return [_na("task_tree_coherence", "NOT-APPLICABLE",
                         "hub-only — tasks/ is a hub-owned tree")]
     root = Path(repo_path)
     source, out_dir = root / "BACKLOG.md", root / "tasks"
@@ -3032,7 +3093,7 @@ def check_intake_tree_coherence(repo_path: Path) -> list[Finding]:
     silently fixes what it measures cannot fail.
     """
     if not _is_hub(repo_path):
-        return [Finding("intake_tree_coherence", "n/a",
+        return [_na("intake_tree_coherence", "NOT-APPLICABLE",
                         "hub-only — the docs/intake/ residue carrier is hub-owned")]
     intake_dir = Path(repo_path) / "docs" / "intake"
     # The coherence read is a WORKING-TREE read, so it is only trustworthy while the index
@@ -3083,7 +3144,7 @@ def check_boot_byte_budget(repo_path: Path) -> list[Finding]:
     """
     boot = Path(repo_path) / "protocols" / "HANDOFF_BOOT.md"
     if not boot.exists():
-        return [Finding("boot_byte_budget", "n/a",
+        return [_na("boot_byte_budget", "NOT-APPLICABLE",
                         "no protocols/HANDOFF_BOOT.md — repo has not adopted the browser boot")]
     try:
         size = len(boot.read_bytes())
@@ -3145,7 +3206,7 @@ def check_fleet_audit_replication(repo_path: Path) -> list[Finding]:
     replicate, and a repo that has never run the routine is not in breach of ADR-80.
     """
     if not _is_hub(repo_path):
-        return [Finding("fleet_audit_replication", "n/a",
+        return [_na("fleet_audit_replication", "NOT-APPLICABLE",
                         "hub-only -- automation/fleet-audit is hub-owned machinery")]
 
     scrub = _git_location_env()
@@ -3161,7 +3222,7 @@ def check_fleet_audit_replication(repo_path: Path) -> list[Finding]:
 
     local = _run(["rev-parse", "--verify", "--quiet", f"refs/heads/{_AUTOMATION_BRANCH}"])
     if not local:
-        return [Finding("fleet_audit_replication", "n/a",
+        return [_na("fleet_audit_replication", "NOT-APPLICABLE",
                         f"no local {_AUTOMATION_BRANCH} branch -- nothing to replicate")]
     remote_ref = f"refs/remotes/origin/{_AUTOMATION_BRANCH}"
     if not _run(["rev-parse", "--verify", "--quiet", remote_ref]):
@@ -3434,7 +3495,7 @@ def check_membership_agreement(repo_path: Path, _surface_paths=None) -> list[Fin
     a named ADR-109 §2 ruling and belongs to [#472].
     """
     if not _is_hub(repo_path):
-        return [Finding("membership_agreement", "n/a",
+        return [_na("membership_agreement", "NOT-APPLICABLE",
                         "hub-only -- the ecosystem/ membership surfaces are hub-owned")]
 
     # [#472] declaration-agreement leg. Attached HERE -- after the hub guard, before the surfaces
@@ -3507,7 +3568,7 @@ def check_journal_spine_anchor(repo_path: Path) -> list[Finding]:
     enforcement-organs-are-not-homogeneous class). Read-only (Layer-2).
     """
     if not _is_hub(repo_path):
-        return [Finding("journal_spine_anchor", "n/a",
+        return [_na("journal_spine_anchor", "NOT-APPLICABLE",
                         "hub-only -- ADR-85's disposition floor and JOURNAL shape are hub-owned")]
     try:
         import journal_anchor as _ja
@@ -3539,7 +3600,6 @@ ALL_CHECKS = [
     check_workspace_settings,
     # check_mermaid_theme_directive retired 2026-07-05 (ADR-51 amendment — LLM-first)
     check_handoff_bundle_structure,
-    check_handoff_tag_canonicity,
     check_canonical_freshness,
     check_no_sibling_orphans,
     check_canonical_structure,
@@ -3573,6 +3633,110 @@ ALL_CHECKS = [
     check_journal_spine_anchor,   # ADR-85 amendment 2026-08-03 §A8/FR4 — backstop for the
                                   # pre-push hard leg; makes `--no-verify` non-silent
 ]
+
+
+def detect_unconditionally_inert_checks(
+    repo_paths: dict[str, Path],
+    checks: "Sequence[Callable[[Path], list[Finding]]] | None" = None,
+) -> list[Finding]:
+    """[#465] leg 4 / FR-2 — WARN for any check that can only ever return SUBJECT-ABSENT.
+
+    THE CLASS, NOT THE INSTANCE. `handoff_tag_canonicity` emitted a verdict every day for two
+    spec generations after its subject stopped existing, and nothing noticed: 285 n/a vs 5
+    pass across every `ecosystem/*/history/*.md` on `origin/automation/fleet-audit`, and those
+    five passes were the leg-1 skip-as-pass defect. Deleting that one check would have repaired
+    the instance and left the next one to die exactly as invisibly. This asks the question
+    instead.
+
+    SELF-ENUMERATING over `ALL_CHECKS`, never a hand-maintained roster (the leg-2/3 precedent,
+    and FR-4: a "known-inert" list would reproduce the registry sprawl ADR-109 dissolves).
+    `checks` is a test seam only; `None` late-binds the live registry so a member added
+    tomorrow is covered with no edit here.
+
+    INERT means, across every supplied repo: every result is `n/a`, AND at least one of them is
+    SUBJECT-ABSENT. A check that is merely NOT-APPLICABLE everywhere is NOT inert — that is the
+    FR-7 consumer-safety line, and getting it wrong is exactly the D1 defect the wave-1 producer
+    lane shipped (it would have manufactured a fleet gap on corp-monorepo and ai-council).
+
+    POSTURE (FR-3): WARN, never FAIL — it informs, it does not become a new way for the gate to
+    go red on doc drift. An unclassified n/a, a check returning nothing, or a check that raises
+    is itself a loud WARN: a detector that cannot see must not report clean.
+
+    Read-only (FR-4 / ADR-28, ADR-36): it invokes read-only checks and writes nothing.
+
+    Honest limits — it does NOT catch: a check that wrongly returns `pass`, a check whose
+    assertions are vacuous, subject-absence recorded outside the `_na` prefix, or a check that
+    is inert only on the repos it was not run against.
+    """
+    out: list[Finding] = []
+    by_check: dict[str, dict[str, list[Finding]]] = {}
+    for check in (ALL_CHECKS if checks is None else checks):
+        name = getattr(check, "__name__", str(check)).removeprefix("check_")
+        for repo_name, repo_path in repo_paths.items():
+            try:
+                returned = list(check(Path(repo_path)))
+            except Exception as exc:  # noqa: BLE001 -- FR-3: surface, never swallow
+                out.append(Finding("writer_integrity", "warn",
+                                   f"{name}: could not be evaluated for {repo_name}: {exc!r}"
+                                   .replace("|", "/")))
+                continue
+            # Register the check even when it returned NOTHING: the coverage rule below turns
+            # the missing repo into a WARN. Skipping it entirely would make a check that
+            # reports nothing disappear from the detector's view — silence about a gap, which
+            # is the failure mode this leg exists to remove.
+            slot = by_check.setdefault(name, {})
+            if returned:
+                slot[repo_name] = returned
+    return out + classify_inert_checks(by_check, sorted(repo_paths))
+
+
+def classify_inert_checks(by_check: "dict[str, dict[str, list[Finding]]]",
+                          repo_names: "Sequence[str]") -> list[Finding]:
+    """THE RULE, defined once, over findings that have ALREADY been computed.
+
+    Extracted so the production path costs nothing (terra HIGH r1, 2026-08-04). `cmd_run` has
+    just executed every check against every repo; re-running them inside the detector would
+    double a whole fleet audit. Both callers share this function, so the daily and the test seam
+    cannot drift about what "inert" means -- the single-definition discipline `journal_anchor`
+    uses for the ADR-85 predicate.
+
+    COVERAGE IS PART OF THE RULE (terra HIGH r2, 2026-08-04). `by_check` is keyed check -> repo,
+    not check -> flat findings, because "inert" is a claim about the WHOLE fleet: concluding it
+    from a subset would let one unavailable or half-audited repo retire a check that is alive
+    elsewhere. A check missing a result from a repo that WAS evaluated is reported as incomplete
+    coverage and explicitly NOT judged -- silence about a gap is the failure mode this whole leg
+    exists to remove.
+
+    `repo_names` must be the repos actually evaluated; callers exclude unavailable ones.
+    """
+    out: list[Finding] = []
+    expected = set(repo_names)
+    where = ", ".join(sorted(expected))
+    for name in sorted(by_check):
+        per_repo = by_check[name]
+        missing = expected - set(per_repo)
+        if missing:
+            out.append(Finding("writer_integrity", "warn",
+                               f"{name}: no result from {', '.join(sorted(missing))}; coverage is "
+                               "incomplete so inertness was NOT judged -- a check that reports "
+                               "nothing cannot be read as clean ([#465] leg 4)"))
+            continue
+        results = [f for fs in per_repo.values() for f in fs]
+        if any(f.status != "n/a" for f in results):
+            continue  # it can say something other than n/a somewhere -- not inert
+        reasons = [_na_reason(f) for f in results]
+        if any(r is None for r in reasons):
+            out.append(Finding("writer_integrity", "warn",
+                               f"{name}: emitted an n/a with no machine-readable reason -- it "
+                               "cannot be told apart from a dead check ([#465] leg 4, FR-1)"))
+            continue
+        if _NA_SUBJECT_ABSENT not in reasons:
+            continue  # NOT-APPLICABLE everywhere is a correct skip, not an inert check
+        out.append(Finding("writer_integrity", "warn",
+                           f"{name}: UNCONDITIONALLY INERT -- every result across [{where}] is "
+                           f"n/a and its subject is absent, so the check can never fire. Fix its "
+                           f"subject or retire it ([#465] leg 4)"))
+    return out
 
 
 def audit_repo(repo_name: str, repo_path: Path, run_date: date) -> RepoState:
@@ -3987,14 +4151,46 @@ def cmd_run(repo_path: Optional[str]) -> None:
     if not names:
         click.echo("No repos registered in ecosystem/. Use --repo-path to register one.", err=True)
         sys.exit(0)
+    # [#465] leg 4 / FR-2: the inert-check detector must actually RUN in production -- a
+    # detector nothing calls is a mechanism that reports nothing, which is the exact class this
+    # leg was opened to remove (terra HIGH r1, 2026-08-04).
+    #
+    # It is fleet-scoped by construction (a check that is n/a here and firing there is alive),
+    # so the hub's verdict cannot be written until every repo has been audited. ONLY the hub's
+    # persistence is deferred: consumers still save-and-append as they complete, exactly as
+    # before, so a later repo raising cannot lose earlier repos' durable progress (terra HIGH
+    # r2 -- deferring everything silently changed that failure semantics). The hub is persisted
+    # in a `finally`, so it survives that failure too, with whatever coverage was achieved.
     states = []
-    for name in names:
-        existing = load_state(name)
-        rp = resolve_repo_path(name, existing.path if existing else None)
-        state = audit_repo(name, rp, run_date)
-        save_state(state)
-        append_history(state, run_date)
-        states.append(state)
+    hub_state = None
+    try:
+        for name in names:
+            existing = load_state(name)
+            rp = resolve_repo_path(name, existing.path if existing else None)
+            state = audit_repo(name, rp, run_date)
+            states.append(state)
+            if state.name == HUB_REPO_NAME:
+                hub_state = state          # held back for the fleet-scoped detector
+            else:
+                save_state(state)
+                append_history(state, run_date)
+    finally:
+        if hub_state is not None:
+            # An unavailable repo contributes no check results; judging inertness against it
+            # would let one missing tree retire a check that is alive everywhere else.
+            evaluated = [s for s in states
+                         if not any(f.check_name == "availability" and f.status == "unavailable"
+                                    for f in s.findings)]
+            by_check: dict[str, dict[str, list[Finding]]] = {}
+            for s in evaluated:
+                for f in s.findings:
+                    by_check.setdefault(f.check_name, {}).setdefault(s.name, []).append(f)
+            # WARNs attach to the HUB only: this is hub-owned machinery, and writing one onto a
+            # consumer would manufacture exactly the fleet gap FR-7 forbids.
+            hub_state.findings.extend(
+                classify_inert_checks(by_check, [s.name for s in evaluated]))
+            save_state(hub_state)
+            append_history(hub_state, run_date)
 
     report = generate_report(states, run_date, Path(_REPO_ROOT))
     out = write_report(report, run_date)

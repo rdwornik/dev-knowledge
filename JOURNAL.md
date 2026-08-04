@@ -19,6 +19,60 @@
 
 ---
 
+### 2026-08-04 (b) — CC (Opus 5, local): [#465] leg 4 — the detector I built and forgot to call
+
+**Did:** ARC 2 — the frozen leg-4 contract, via the R5 interim producer lane (Codex terra
+specified under a bounded read-only prompt, stdout only, wrote no file; CC implemented TDD-first;
+terra reviewed twice). SHA anchors: `f020e0b9` (the build), `7ead2cd3` + `4edbd7fe` (six terra
+HIGHs closed). Closes `[#465]`, all four legs.
+
+**Result — the class, then the instance.**
+
+`handoff_tag_canonicity` emitted a verdict every day for two spec generations after its subject
+stopped existing, and nothing noticed: **285 n/a vs 5 pass** across every
+`ecosystem/*/history/*.md`, and those five passes were leg 1's skip-as-pass defect carrying the
+*same* evidence string. Deleting it would have repaired the instance and left the class, so the
+class went first: `_na()`/`_na_reason()` give every `n/a` a machine-readable reason
+(SUBJECT-ABSENT vs NOT-APPLICABLE) **inside `evidence`** — tripwire **T1 adjudicated and does not
+fire**, because `Finding` keeps three fields and the five-value enum and the daily's columns are
+untouched. `detect_unconditionally_inert_checks` self-enumerates `ALL_CHECKS`; `append_history`
+names a check that vanished since the previous reading. The detector's first verdict RETIRED
+tag-canonicity — **ALL_CHECKS 39 → 38**.
+
+**AC-1 ex-ante RED witness**, recorded on unmodified HEAD `0cf327e5` before a line of fix existed:
+R1 *no inert-check detector exists*; R2 *the fail branch is unreachable from the live spec*;
+R3 *'clean pass' is contained in the docstring*. 3 failed in 0.52s.
+
+**Terra found six HIGHs across two rounds, and the first one is the session's own lesson: I built
+the detector and wired it into nothing.** It was reachable only from its own tests, so a future
+inert check would have gone on writing ordinary dailies with no WARN — the exact class this leg
+exists to remove, reproduced one level up by me. Round 2 then found that **all three of my round-1
+fixes had introduced regressions**: inertness could be concluded from a partial fleet, an
+unavailable previous reading could announce a false mass retirement into the durable record, and
+deferring persistence silently changed failure semantics so a later repo raising would discard
+earlier repos' progress. Each is now a named regression test.
+
+**AC-7, and only half of it was mine.** The row's Done-when has two clauses. "tag-canonicity is
+fixed or retired" I discharged; **"last-run-wins is accepted on record" was NOT on record** —
+`JOURNAL.md:951` recorded it as an open operator ruling — so the row could not close on my
+authority. Raised at the merge gate; the operator **accepted it there**, and both clauses are now
+met.
+
+**Ruling errors reported, never edited into the frozen contract** (the ex-ante-witness rule):
+AC-2's `38 → 37` arithmetic is really **39 → 38**; the contract cites five consumer dailies for
+2026-08-02 while this tree tops out at 2026-07-31 (Codex flagged this independently); and FR-2
+read literally contradicts F4/R1, resolved as plainly intended.
+
+**Changes:** `scripts/audit.py` (32 `n/a` sites converted, check retired, detector + shared rule
++ history notice), `tests/test_writer_integrity.py` (new, 26 tests), `tests/test_audit.py`
+(5 retired tests removed), `tests/test_doc_code_edge.py`, `ecosystem/doc-code-edge.yaml`,
+`ecosystem/doc-counts.md`, `tasks/465-*.md` (terminal `status: closed`), `tasks/manifest.json`,
+`BACKLOG.md` (188 → 187), 2 codex artifacts.
+
+**Abandoned:** nothing.
+
+**Next:** ARC 3 — the `[#383]` caches wave.
+
 ### 2026-08-04 (a) — CC (Opus 5, local): [#472] — the fleet declaration stops being reachable only by prose
 
 **Did:** ARC 1 of the window close-out — executed the ratified L-D dossier. SHA anchors:

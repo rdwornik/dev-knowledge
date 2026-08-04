@@ -114,7 +114,6 @@ exempt:
   - workspace_settings
   - mermaid_theme_directive
   - handoff_bundle_structure
-  - handoff_tag_canonicity
   - no_sibling_orphans
   - canonical_structure
   - handoff_version_stamp

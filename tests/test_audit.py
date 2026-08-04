@@ -826,99 +826,13 @@ def test_handoff_bundle_missing_drift_section_fails(tmp_path: Path) -> None:
     assert "Drift cross-check" in f.evidence
 
 # ---------------------------------------------------------------------------
-# Check #9: handoff_tag_canonicity (HANDOFF_PROCESS v4.3 item F)
+# Check #9 handoff_tag_canonicity — RETIRED 2026-08-04 ([#465] leg 4).
+# Its subject (a §3.1 four-tag section) stopped existing at the v5 flip and never returned;
+# the check emitted a verdict for two spec generations anyway (285 n/a vs 5 pass across every
+# ecosystem/*/history/*.md on origin/automation/fleet-audit, and the 5 passes were the leg-1
+# skip-as-pass defect). The inert-check DETECTOR found it, and the detector — not this
+# deletion — is what discharges the leg: see tests/test_writer_integrity.py.
 # ---------------------------------------------------------------------------
-
-_SPEC_3TAG_NO_XREF = """\
-# HANDOFF_PROCESS v4
-
-### 3.1 The Phase 1 interview (sage→apprentice frame)
-<!-- scope: meta -->
-
-Tag each claim:
-- witnessed (you saw it)
-- inferred (you reason from evidence)
-- unknown (you don't know)
-
----
-
-## 4. Next section
-"""
-
-_SPEC_3TAG_WITH_XREF = """\
-# HANDOFF_PROCESS v4
-
-### 3.1 The Phase 1 interview (sage→apprentice frame)
-<!-- scope: meta -->
-
-> Note: superseded by Amendment A — four-tag canonical.
-
-Tag each claim:
-- witnessed
-- inferred
-- unknown
-
----
-
-## 4. Next section
-"""
-
-_SPEC_4TAG = """\
-# HANDOFF_PROCESS v4
-
-### 3.1 The Phase 1 interview (sage→apprentice frame)
-
-- witnessed
-- recall
-- inferred
-- unknown
-
----
-"""
-
-
-def _write_spec(tmp_path: Path, text: str) -> None:
-    (tmp_path / "protocols").mkdir(parents=True, exist_ok=True)
-    (tmp_path / "protocols" / "HANDOFF_PROCESS.md").write_text(text, encoding="utf-8")
-
-
-def test_tag_canonicity_fail_three_tags_no_xref(tmp_path: Path) -> None:
-    """§3.1 with three tags and no cross-reference is the drift the check catches."""
-    _write_spec(tmp_path, _SPEC_3TAG_NO_XREF)
-    f = aud.check_handoff_tag_canonicity(tmp_path)[0]
-    assert f.status == "fail"
-    assert "cross-reference" in f.evidence.lower()
-
-
-def test_tag_canonicity_pass_with_xref(tmp_path: Path) -> None:
-    _write_spec(tmp_path, _SPEC_3TAG_WITH_XREF)
-    f = aud.check_handoff_tag_canonicity(tmp_path)[0]
-    assert f.status == "pass"
-    assert "Amendment" in f.evidence
-
-
-def test_tag_canonicity_pass_four_tags(tmp_path: Path) -> None:
-    _write_spec(tmp_path, _SPEC_4TAG)
-    f = aud.check_handoff_tag_canonicity(tmp_path)[0]
-    assert f.status == "pass"
-
-
-def test_tag_canonicity_no_spec(tmp_path: Path) -> None:
-    """No HANDOFF_PROCESS.md → n/a (vacuous, nothing to validate — G6)."""
-    f = aud.check_handoff_tag_canonicity(tmp_path)[0]
-    assert f.status == "n/a"
-
-
-def test_tag_canonicity_no_section_is_na(tmp_path: Path) -> None:
-    """Spec present but no 3.1 section (the v5-consolidated hub state) -> n/a, not pass.
-
-    This is the return that fires on the hub itself (HANDOFF_PROCESS.md exists, but the v4
-    section-3.1 four-tag block was consolidated away in v5), so it is the locus G6 targets.
-    """
-    _write_spec(tmp_path, "# HANDOFF_PROCESS v5\n\nNo section 3.1 here.\n")
-    f = aud.check_handoff_tag_canonicity(tmp_path)[0]
-    assert f.status == "n/a"
-    assert "not found" in f.evidence
 
 # ---------------------------------------------------------------------------
 # _parse_last_reviewed (frontmatter helper for check #10)
@@ -2146,7 +2060,7 @@ def test_import_edges_live_repo_passes_and_is_registered() -> None:
     f = aud.check_import_edges(Path(aud._REPO_ROOT))[0]
     assert f.status == "pass", f.evidence
     assert aud.check_import_edges in aud.ALL_CHECKS
-    assert len(aud.ALL_CHECKS) == 39  # 30 -> 31: check_residual_completeness added (ARC-5 residual gate, 2026-07-19); 29 -> 30: check_fleet_parity added ([#337], 2026-07-18); 31 -> 32: check_routine_consumers added ([#419]/ADR-105 activation gate, 2026-07-26); 32 -> 34: check_silent_rule_ratchet ([#436] D4 ratchet) + check_task_tree_coherence ([#433] C1 gate-arm) added, 2026-07-27; 34 -> 35: check_boot_byte_budget added ([#446] A10 item 2 / R4 boot byte budget, 2026-07-31); 35 -> 36: check_intake_tree_coherence added ([#383] wave 1 — ADR-109 §4 generality proof, 2026-07-31); 36 -> 37: check_fleet_audit_replication added ([#460] — ADR-80 durable-record replication alarm, 2026-08-01); 37 -> 38: check_membership_agreement added ([#462] — ADR-104 declaration vs every repo-keyed machine surface, 2026-08-01); 38 -> 39: check_journal_spine_anchor added (ADR-85 amendment 2026-08-03 §A8/FR4 — pre-push backstop, 2026-08-03)
+    assert len(aud.ALL_CHECKS) == 38  # 30 -> 31: check_residual_completeness added (ARC-5 residual gate, 2026-07-19); 29 -> 30: check_fleet_parity added ([#337], 2026-07-18); 31 -> 32: check_routine_consumers added ([#419]/ADR-105 activation gate, 2026-07-26); 32 -> 34: check_silent_rule_ratchet ([#436] D4 ratchet) + check_task_tree_coherence ([#433] C1 gate-arm) added, 2026-07-27; 34 -> 35: check_boot_byte_budget added ([#446] A10 item 2 / R4 boot byte budget, 2026-07-31); 35 -> 36: check_intake_tree_coherence added ([#383] wave 1 — ADR-109 §4 generality proof, 2026-07-31); 36 -> 37: check_fleet_audit_replication added ([#460] — ADR-80 durable-record replication alarm, 2026-08-01); 37 -> 38: check_membership_agreement added ([#462] — ADR-104 declaration vs every repo-keyed machine surface, 2026-08-01); 38 -> 39: check_journal_spine_anchor added (ADR-85 amendment 2026-08-03 §A8/FR4 — pre-push backstop, 2026-08-03); 39 -> 38: check_handoff_tag_canonicity RETIRED ([#465] leg 4 — its subject (§3.1 four-tag section) has not existed since the v5 flip; the inert-check detector found it, 2026-08-04)
 
 
 def test_import_edges_wired_into_audit_repo(tmp_path: Path) -> None:
@@ -2162,7 +2076,7 @@ def test_import_edges_wired_into_audit_repo(tmp_path: Path) -> None:
 
 def test_fleet_parity_registered_in_all_checks():
     assert "check_fleet_parity" in [c.__name__ for c in aud.ALL_CHECKS]
-    assert len(aud.ALL_CHECKS) == 39  # 30 -> 31: check_residual_completeness added (ARC-5 residual gate, 2026-07-19); 31 -> 32: check_routine_consumers added ([#419]/ADR-105 activation gate, 2026-07-26); 32 -> 34: check_silent_rule_ratchet ([#436] D4 ratchet) + check_task_tree_coherence ([#433] C1 gate-arm) added, 2026-07-27; 34 -> 35: check_boot_byte_budget added ([#446] A10 item 2 / R4 boot byte budget, 2026-07-31); 35 -> 36: check_intake_tree_coherence added ([#383] wave 1 — ADR-109 §4 generality proof, 2026-07-31); 36 -> 37: check_fleet_audit_replication added ([#460] — ADR-80 durable-record replication alarm, 2026-08-01); 37 -> 38: check_membership_agreement added ([#462] — ADR-104 declaration vs every repo-keyed machine surface, 2026-08-01); 38 -> 39: check_journal_spine_anchor added (ADR-85 amendment 2026-08-03 §A8/FR4 — pre-push backstop, 2026-08-03)
+    assert len(aud.ALL_CHECKS) == 38  # 30 -> 31: check_residual_completeness added (ARC-5 residual gate, 2026-07-19); 31 -> 32: check_routine_consumers added ([#419]/ADR-105 activation gate, 2026-07-26); 32 -> 34: check_silent_rule_ratchet ([#436] D4 ratchet) + check_task_tree_coherence ([#433] C1 gate-arm) added, 2026-07-27; 34 -> 35: check_boot_byte_budget added ([#446] A10 item 2 / R4 boot byte budget, 2026-07-31); 35 -> 36: check_intake_tree_coherence added ([#383] wave 1 — ADR-109 §4 generality proof, 2026-07-31); 36 -> 37: check_fleet_audit_replication added ([#460] — ADR-80 durable-record replication alarm, 2026-08-01); 37 -> 38: check_membership_agreement added ([#462] — ADR-104 declaration vs every repo-keyed machine surface, 2026-08-01); 38 -> 39: check_journal_spine_anchor added (ADR-85 amendment 2026-08-03 §A8/FR4 — pre-push backstop, 2026-08-03); 39 -> 38: check_handoff_tag_canonicity RETIRED ([#465] leg 4 — its subject (§3.1 four-tag section) has not existed since the v5 flip; the inert-check detector found it, 2026-08-04)
 
 
 def test_fleet_parity_findings_maps_blocking_verdicts():
