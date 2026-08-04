@@ -19,6 +19,29 @@
 
 ---
 
+### 2026-08-04 (c) — CC (Opus 5, local): token-log cadence entry, landed off the arc
+
+**Did:** Prepended the 2026-08-04 delta snapshot to `logs/TOKEN-LOG.md` (`6057bbba`), fired by
+`/session-summary`'s 7-day staleness check — the prior entry was 2026-07-25, **10 days old**.
+
+**Result.** 10 active days, **$1676.83**, 8.36M in+out tokens (in 520K / out 7836K; cache
+excluded, as every prior entry does, so the series stays comparable). Opus 5 72.1%, Fable 5
+19.4%, Haiku 4.5 7.3%. Peak day 2026-07-27 at $356.29. Newest-first prepend, no prior entry
+touched — `logs/TOKEN-LOG.md` is strict append-only (CLAUDE.md §5 rule 1, no archival exception).
+
+**Landed on its own branch from `main`, deliberately.** The `/session-summary` contract says to
+stage and *not* commit so the operator reviews the figures first, which left the tree dirty at
+wrap and tripped the session-end hygiene hook. Folding it into the `[#465]` arc would have
+cleared that faster and made the arc's diff dishonest — an ops artifact with no relation to the
+change it would have ridden in on. Operator reviewed the figures and ruled it onto its own
+branch.
+
+**Changes:** `logs/TOKEN-LOG.md` (+9).
+
+**Abandoned:** nothing.
+
+**Next:** ARC 3 — the `[#383]` caches wave.
+
 ### 2026-08-04 (b) — CC (Opus 5, local): [#465] leg 4 — the detector I built and forgot to call
 
 **Did:** ARC 2 — the frozen leg-4 contract, via the R5 interim producer lane (Codex terra
