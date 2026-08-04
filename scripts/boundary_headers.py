@@ -258,15 +258,28 @@ def _glob_matches(rel: str, pattern: str) -> bool:
     closes — a matcher whose semantics differ from what the pattern string reads.
     """
     parts, pats = rel.split("/"), pattern.split("/")
+    # Failed (path-index, pattern-index) states, memoized (terra HIGH 2026-08-04). Without
+    # this, consecutive `**` segments re-explore identical states on a NON-match and the cost
+    # is exponential — measured before the fix at ~6x per added `**`: 6 -> 0.03s, 8 -> 0.20s,
+    # 10 -> 1.25s, 12 -> 6.20s. The current three globs cannot trigger it, but this runs over
+    # every tracked file, so a future glob with repeated `**` would make the gate impractical.
+    # Memoizing failures bounds the search at O(len(parts) * len(pats)) states.
+    failed: set[tuple[int, int]] = set()
 
     def walk(i: int, j: int) -> bool:
+        if (i, j) in failed:
+            return False
         if j == len(pats):
-            return i == len(parts)
-        if pats[j] == "**":                       # zero or more WHOLE segments
-            return any(walk(k, j + 1) for k in range(i, len(parts) + 1))
-        return (i < len(parts)
-                and fnmatchcase(parts[i], pats[j])   # `*` cannot cross `/`: one segment only
-                and walk(i + 1, j + 1))
+            ok = i == len(parts)
+        elif pats[j] == "**":                     # zero or more WHOLE segments
+            ok = any(walk(k, j + 1) for k in range(i, len(parts) + 1))
+        else:
+            ok = (i < len(parts)
+                  and fnmatchcase(parts[i], pats[j])  # `*` cannot cross `/`: one segment only
+                  and walk(i + 1, j + 1))
+        if not ok:
+            failed.add((i, j))
+        return ok
 
     return walk(0, 0)
 

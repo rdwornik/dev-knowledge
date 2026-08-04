@@ -590,3 +590,35 @@ def test_each_governed_glob_still_means_what_it_is_pinned_to_mean():
             assert bh._glob_matches(path, pattern) is must_match, (
                 f"{pattern!r} is pinned as {meaning!r}, but matching {path!r} returned "
                 f"{not must_match} — the engine no longer carries the pinned meaning")
+
+
+def test_repeated_double_star_does_not_blow_up_on_a_non_match():
+    """[#482] terra HIGH 2026-08-04 — consecutive `**` must not be exponential.
+
+    `walk` always advances `j`, so recursion terminates; the defect was COST, not
+    termination. Without memoizing failed `(path-index, pattern-index)` states, repeated `**`
+    re-explores identical states on a non-match. Measured before the fix: 6 `**` -> 0.03s,
+    8 -> 0.20s, 10 -> 1.25s, 12 -> 6.20s, roughly 6x per added segment. The three governed
+    globs cannot trigger it, but this predicate runs over every tracked file, so a future
+    glob with repeated `**` would have made the gate impractical rather than merely slow.
+
+    Asserts the CHEAP property (a wall-clock ceiling generous enough not to flake on a loaded
+    box) plus correctness of the answer itself — a fast wrong answer is not a fix.
+    """
+    import time
+
+    path = "/".join(f"d{i}" for i in range(12)) + "/x.md"
+    pattern = "/".join(["**"] * 12) + "/nomatch.md"
+
+    start = time.perf_counter()
+    assert bh._glob_matches(path, pattern) is False
+    elapsed = time.perf_counter() - start
+    assert elapsed < 1.0, (
+        f"12 consecutive '**' on a non-match took {elapsed:.2f}s — the failed-state memo is "
+        "gone and the matcher is exponential again")
+
+    # The memo must not change ANSWERS, only cost — positive and zero-segment cases still hold.
+    assert bh._glob_matches("a/b/c/x.md", "**/x.md") is True
+    assert bh._glob_matches("x.md", "**/x.md") is True
+    assert bh._glob_matches("a/b/x.md", "a/**/**/x.md") is True
+    assert bh._glob_matches("a/x.md", "a/**/**/x.md") is True
