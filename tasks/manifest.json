@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "60b8c947fb565515ccabd45c600a5fb904f2095758c35f3a3a37afb2820ec29e",
+  "generated_sha256": "c3c206c364b6615d6d0fb63eb8894ec788874a045f4e14e11837642c66bd3bb1",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -172,10 +172,6 @@
     {
       "task": 353,
       "file": "353-session-boot-contract-hardening.md"
-    },
-    {
-      "task": 483,
-      "file": "483-preflight-contract-enforcement-question.md"
     },
     {
       "task": 485,

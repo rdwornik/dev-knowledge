@@ -324,6 +324,29 @@ dispositions:
       the shelf-life so this does not rot into a paper suppression (ADR-75); it should clear by itself
       once [#430] rules, at which point this entry decorates stale.
 
+  # (2026-08-04) The [#483] advisory leg's FIRST production finding, and a TRUE POSITIVE — not a
+  # false alarm being papered over. Row [#310]'s `kill-candidates:` value names #292, which is
+  # closed, so the kill condition it describes is spent. Deliberately NOT fixed in the [#483] arc
+  # (plan-governs: new scope enters via backlog, not a mid-arc swerve) and routed to FR-8a
+  # grooming. The apparent conflict between the ruling's no-fix rider and the AC6 GREEN bar
+  # resolves STRUCTURALLY: WARN-tier + the disposition register is the designed channel for
+  # "found, deliberately deferred, tracked" — the two were not in tension once the finding is
+  # dispositioned rather than ignored.
+  # RETIRE-ON-CLOSE: the FR-8a grooming row cites this disposition id. When [#310]'s stale
+  # kill-candidate is groomed, this entry leaves WITH it — it does not outlive its reason.
+  - id: warn-preflight-backlog-ids-310-292
+    organ: preflight_backlog_ids
+    match: "[#310] -> #292"
+    ref: "#310"
+    review_date: 2026-09-04
+    reason: >-
+      Row [#310] carries `kill-candidates: #292`, and #292 is closed — a spent kill condition, which
+      is exactly the class this leg was built to surface. Keyed to the SPECIFIC row-and-id pair per
+      precision-over-recall, so any OTHER stale kill-candidates assertion re-surfaces and REDs the
+      gate; this disposition suppresses one known finding, not the leg. review_date is the
+      shelf-life so it cannot rot into paper suppression (ADR-75); it should clear by itself when
+      FR-8a grooms [#310], at which point the entry decorates stale and is removed with it.
+
   # (cleared 2026-07-02, #222) warn-doc-claims-pytest-collected-architecture — #222 relocated
   # the three volatile counts to the committed-generated ecosystem/doc-counts.md, so the
   # pytest_collected claim no longer anchors in ARCHITECTURE.md (doc_claims now reconciles it

@@ -3591,6 +3591,78 @@ def check_journal_spine_anchor(repo_path: Path) -> list[Finding]:
                     f"{floor[:9]} is JOURNAL-anchored")]
 
 
+def check_preflight_backlog_ids(repo_path: Path) -> list[Finding]:
+    """[#483] R3 — ADVISORY leg: a BACKLOG `kill-candidates:` VALUE naming a non-open row.
+
+    WARN-TIER BY RULING, never FAIL. R3 defers hard-gating pending measured evidence — zero
+    false positives over two consecutive windows, reported at each seal — because the leg's
+    predecessor flagged 11/11 correct historical citations on its first production run. A gate
+    wired on that behaviour REDs every handoff bundle by construction. Promotion is a separate
+    decision that arrives with data; this leg exists to produce that data.
+
+    SCOPE is the assertion-role surface R2 defines in-repo, and it is deliberately narrow. A
+    `kill-candidates:` value claims the named row is OPEN — you cannot kill a dead row. Every
+    other `[#id]` in a BACKLOG row (`refs`, the reason prose after the em-dash) cites related
+    work INCLUDING closed rows by design, and `docs/audits/`, `docs/handoffs/`, JOURNAL and
+    LESSONS are citation-role wholesale. Measured on the live corpus, widening this to intake /
+    protocols / ADRs would fire ~255 day-one flags, all narration.
+
+    The role predicates are IMPORTED from `preflight_contract`, never restated, so the tool and
+    this leg cannot drift into disagreeing about what an assertion is.
+
+    DEPENDENCY THIS LEG RESTS ON, named so removing it cannot silently blind the leg: it reads
+    the GENERATED `BACKLOG.md`, which is sound ONLY because currency is asserted mechanically
+    elsewhere — `gen_task_tree.py --check` (and the handoff bundle's P0a probe). If that
+    currency check is ever dropped, this leg starts measuring a stale view of the backlog and
+    will keep reporting clean while doing it.
+
+    HONEST LIMIT (R3's named gap): this verifies id-LIVENESS of assertions, not correctness of
+    PLACEMENT. A citation on the wrong line still passes. Hard enforcement must not claim
+    otherwise.
+    """
+    name = "preflight_backlog_ids"
+    if not _is_hub(repo_path):
+        return [_na(name, _NA_NOT_APPLICABLE,
+                    "hub-only — BACKLOG.md kill-candidates assertions are a hub surface")]
+    try:
+        try:
+            from scripts import preflight_contract as _pf
+        except ImportError:
+            import preflight_contract as _pf
+
+        backlog = Path(repo_path) / "BACKLOG.md"
+        if not backlog.exists():
+            return [Finding(name, "warn", "no BACKLOG.md — nothing to scan")]
+        text = backlog.read_text(encoding="utf-8", errors="replace")
+        open_ids = set(re.findall(r"(?m)^- \[#(\d+)\]", text))
+        stale: list[str] = []
+        for line in text.splitlines():
+            if not _pf._BACKLOG_ROW.match(line):
+                continue
+            # EVERY delimited kill-candidates value, via the shared span helper — a row may
+            # carry more than one field, and stopping at the first hid a real stale assertion
+            # behind an earlier benign one (terra HIGH 2026-08-04).
+            spans = _pf.kill_candidate_value_spans(line)
+            if not spans:
+                continue
+            row = re.match(r"- \[#(\d+)\]", line).group(1)
+            for start, end in spans:
+                for cited in re.findall(r"#(\d+)", line[start:end]):
+                    if cited not in open_ids:
+                        stale.append(f"[#{row}] -> #{cited}")
+        if stale:
+            named = ", ".join(stale[:5])
+            more = f" (+{len(stale) - 5} more)" if len(stale) > 5 else ""
+            return [Finding(name, "warn",
+                            f"{len(stale)} kill-candidates assertion(s) name a non-open row: "
+                            f"{named}{more} — advisory per the [#483] ruling R3"
+                            .replace("|", "/"))]
+        return [Finding(name, "pass",
+                        "every kill-candidates assertion names an open row")]
+    except Exception as exc:  # noqa: BLE001 — advisory leg: never wedge a gate on its own input
+        return [Finding(name, "warn", f"could not scan: {exc!r}".replace("|", "/"))]
+
+
 ALL_CHECKS = [
     check_vision_md,
     check_adr38_baseline,
@@ -3632,6 +3704,8 @@ ALL_CHECKS = [
     check_membership_agreement,   # [#462] — ADR-104's declaration vs every repo-keyed surface
     check_journal_spine_anchor,   # ADR-85 amendment 2026-08-03 §A8/FR4 — backstop for the
                                   # pre-push hard leg; makes `--no-verify` non-silent
+    check_preflight_backlog_ids,   # [#483] R3 — ADVISORY (WARN-tier by ruling); hard-gating is
+                                   # deferred pending 0 false positives over two windows
 ]
 
 

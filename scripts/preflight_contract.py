@@ -75,6 +75,132 @@ _BACKLOG_RE = re.compile(r"\[#(\d+)\]")
 _HEADING_RE = re.compile(r"`([A-Za-z0-9_./\\-]+\.md)`\s+heading\s+[\"“]([^\"”]+)[\"”]")
 
 
+# --- [#483] R2 role rule: ASSERTION vs CITATION -----------------------------------------
+#
+# An `[#id]` is an ASSERTION (it claims the row is OPEN) only on forward-committing surfaces:
+# emitted prompts/contracts, plan documents, OPEN-claiming BACKLOG references. It is a CITATION
+# (no open-claim) in historical narration. Before this rule the leg read EVERY `[#id]` as an
+# assertion: its first production run over the 2026-08-04 handoff bundle flagged 11 ids, all of
+# them correct historical citations, so a gate wired on that behaviour would RED every handoff
+# bundle by construction ([#483] ruling R1/R2, verbatim at
+# docs/audits/2026-08-04-technical-483-enforcement-ruling.md).
+#
+# Two mechanical layers. Neither is an id allow-list and neither is a path waiver: role is
+# derived from where the text sits and what shape it sits in.
+ASSERTION, CITATION = "assertion", "citation"
+
+# Layer 1 — surface path CLASS. Measured over the tracked corpus: these carry 4810 of 7178
+# `[#id]` occurrences (67%). docs/audits/ + docs/handoffs/ is [#483] sub-question (b), ruled.
+_CITATION_PREFIXES = ("docs/audits/", "docs/handoffs/")
+_CITATION_FILES = ("JOURNAL.md", "LESSONS.md")
+
+# Layer 2 — in-line context on an assertion-role surface.
+# Backtick-quoted spans are PROSE quoting a convention, not the convention being used. Stripping
+# them must happen FIRST: this repo's own BACKLOG carries a row whose prose reads
+# "the `kill-candidates: #370` resting on it, are spent", and a scan that matches the field
+# before stripping reads that quote as a live field. Measured on the live BACKLOG, the ordering
+# is worth 24 -> 2 -> 1 flags.
+# Run-aware: markdown allows ``double-tick`` spans, so a fixed single-tick pair would mask the
+# wrong extent. An UNBALANCED tick matches nothing and therefore masks nothing — the safe
+# direction, since unmasked text stays assertion-role rather than being suppressed.
+_TICK_SPAN = re.compile(r"(`+)[\s\S]*?\1")
+# A BACKLOG task row. In one, only the `kill-candidates:` VALUE is an open-claim -- `refs` and
+# the reason prose after the em-dash cite related work, including closed rows, by design.
+#
+# The `[P#][size]` tags are REQUIRED, not decoration. Matching a bare `- [#123]` bullet as a row
+# made every such bullet a row-with-no-kill-candidates-field, i.e. a CITATION -- which silently
+# suppressed a real assertion in an ordinary markdown list. Caught by an existing extraction test
+# rather than by inspection; an over-broad citation rule is the dangerous direction, because it
+# fails toward saying nothing.
+_BACKLOG_ROW = re.compile(r"^- \[#\d+\]\s+\[P\d\]\[[SMLX]+\]")
+#
+# DELIMITER-ANCHORED, and EVERY field is scanned, not just the first (terra HIGH 2026-08-04).
+# `search()` on an unanchored pattern stopped at the first `kill-candidates:` in the row, so a
+# row reading "· kill-candidates: none — spent · kill-candidates: [#479]" hid a genuinely stale
+# assertion behind an earlier benign field. That is the silent-suppression direction — the one
+# this tool must never fail in — so the field must begin a row-field (start of line or `·`).
+_KILL_FIELD = re.compile(r"(?:^|·)\s*kill-candidates:\s*([^·\n]*)")
+_REASON_SEP = re.compile(r"\s+(?:—|--|-\s)")
+# `since [#436]` -- a provenance clause names where something came from, never that it is open.
+_PROVENANCE = re.compile(r"\bsince\s*$")
+# A markdown table row under a header whose first cell is a closed/shipped/superseded state.
+_TABLE_ROW = re.compile(r"^\s*\|")
+# The first cell must be EXACTLY a closed-state word — the cell has to end there (terra HIGH
+# 2026-08-04). A `\b` boundary let `| closed-loop notes |` open closed-table mode and suppress
+# every following row of an unrelated table.
+_CLOSED_HEADER = re.compile(r"^\s*\|\s*(closed|shipped|superseded|retired|done)\s*\|", re.I)
+# A real markdown table has a separator row under its header. Requiring it stops a stray
+# pipe-prefixed prose line from opening suppression on everything that follows.
+_TABLE_SEPARATOR = re.compile(r"^\s*\|[\s:|-]*-[\s:|-]*\|?\s*$")
+
+
+def kill_candidate_value_spans(line: str) -> list[tuple[int, int]]:
+    """(start, end) of EVERY delimited `kill-candidates:` VALUE in `line`, original coordinates.
+
+    Ticks are masked to equal length first, so a field QUOTED in prose is not mistaken for a
+    real one while offsets stay comparable to the unmasked line.
+    """
+    masked = _mask_ticks(line)
+    spans: list[tuple[int, int]] = []
+    for m in _KILL_FIELD.finditer(masked):
+        start = m.start(1)
+        sep = _REASON_SEP.search(m.group(1))
+        spans.append((start, start + (sep.start() if sep else len(m.group(1)))))
+    return spans
+
+
+def surface_role(contract: Path, repo_root: Path) -> str:
+    """Layer 1 — the role every `[#id]` in this file carries by virtue of WHERE it lives.
+
+    Defaults to ASSERTION, deliberately. A contract emitted outside the repo (the common case
+    for a session prompt) is forward-committing, and an unknown in-repo surface is one nobody
+    has classified -- both must keep being checked. Silence is the failure mode this tool
+    exists to remove, so the default may never be CITATION.
+    """
+    try:
+        rel = Path(contract).resolve().relative_to(Path(repo_root).resolve()).as_posix()
+    except ValueError:
+        return ASSERTION                      # outside the repo: an emitted contract
+    if rel.startswith(_CITATION_PREFIXES):
+        return CITATION
+    if rel in _CITATION_FILES or rel.startswith("LESSONS-legacy"):
+        return CITATION
+    return ASSERTION
+
+
+def _mask_ticks(line: str) -> str:
+    """Blank out backtick spans, PRESERVING length so offsets stay comparable to the original."""
+    return _TICK_SPAN.sub(lambda m: " " * (m.end() - m.start()), line)
+
+
+def line_role(line: str, id_start: int, *, in_closed_table: bool = False) -> str:
+    """Layer 2 — the role of ONE `[#id]` occurrence, from the shape around it.
+
+    `id_start` is the occurrence's offset, so a line carrying both an assertion and a citation
+    is judged per occurrence rather than wholesale.
+    """
+    # NO blanket "inside backticks -> citation" rule, deliberately. An earlier cut had one, and
+    # it was a SILENT-SUPPRESSION HOLE: this repo backticks `[#id]` as ordinary formatting
+    # (`| `[#479]` | ... |` is the normal closed-table shape), so every properly formatted stale
+    # assertion would have been waved through. Caught by this arc's own closed-table test, not by
+    # inspection. Backticks still matter, but ONLY where they quote a FIELD NAME — and that is
+    # handled by masking inside `kill_candidate_value_spans`, which is the narrow, testable place
+    # for it.
+    if _PROVENANCE.search(line[:id_start]):          # "... GENERATED since [#436]"
+        return CITATION
+    if in_closed_table and _TABLE_ROW.match(line):   # a row under a `| closed |` header
+        return CITATION
+    if _BACKLOG_ROW.match(line):
+        # Only a kill-candidates VALUE claims openness. `refs` and the reason prose after the
+        # em-dash cite related work -- including closed rows -- by design. EVERY field is
+        # considered: a row may carry more than one, and stopping at the first hid a real
+        # stale assertion behind an earlier benign one.
+        return (ASSERTION
+                if any(s <= id_start < e for s, e in kill_candidate_value_spans(line))
+                else CITATION)
+    return ASSERTION
+
+
 @dataclass(frozen=True)
 class Claim:
     kind: str
@@ -245,11 +371,29 @@ def verify(contract: Path, repo_root: Path = _REPO_ROOT) -> Report:
                 f"git is not usable at {repo_root} -- cannot judge SHA {sha}; refusing to "
                 "report it as stale")
 
-    open_ids = _open_backlog_ids(repo_root)
-    for m in _BACKLOG_RE.finditer(text):
-        tid = m.group(1)
-        ok = tid in open_ids
-        add("backlog-id", f"[#{tid}]", ok, "" if ok else "not open in BACKLOG.md")
+    # backlog-id: the ONLY claim kind carrying the [#483] role rule. A file:line or a SHA means
+    # the same thing wherever it is written; an `[#id]` does not -- in narration it names a row,
+    # in a contract it claims one is live. The other kinds are deliberately left untouched.
+    if surface_role(contract, repo_root) == ASSERTION:
+        open_ids = _open_backlog_ids(repo_root)
+        # Closed-table suppression requires a VALIDATED table: a header whose first cell is
+        # exactly a closed-state word, immediately followed by a markdown separator row (terra
+        # HIGH 2026-08-04). Entering on the header alone let a stray pipe-prefixed line — or a
+        # table merely headed `| closed-loop notes |` — suppress everything that followed.
+        lines = text.splitlines()
+        in_closed_table = False
+        for idx, line in enumerate(lines):
+            if _CLOSED_HEADER.match(line):
+                nxt = lines[idx + 1] if idx + 1 < len(lines) else ""
+                in_closed_table = bool(_TABLE_SEPARATOR.match(nxt))
+            elif not _TABLE_ROW.match(line):
+                in_closed_table = False                   # any non-table line ends the table
+            for m in _BACKLOG_RE.finditer(line):
+                if line_role(line, m.start(), in_closed_table=in_closed_table) == CITATION:
+                    continue
+                tid = m.group(1)
+                ok = tid in open_ids
+                add("backlog-id", f"[#{tid}]", ok, "" if ok else "not open in BACKLOG.md")
 
     return report
 
