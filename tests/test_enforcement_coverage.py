@@ -15,6 +15,7 @@ The session_end + reconciled fire_tests need no pre-commit; the canonical_freshn
 """
 from __future__ import annotations
 
+import ast
 import importlib.util
 import json
 import re
@@ -204,7 +205,8 @@ def _anchor_organ_consumer(root: Path) -> Path:
 def test_anchor_gate_probe_distinguishes_installed_from_absent(tmp_path):
     """THE distinguishing proof for the repointed organ probe (ADR-85 amendment 2026-08-03).
 
-    Demonstrates the vacuity this replaces: before the repoint, `_anchor_fire` probed the Stop
+    Demonstrates the vacuity this replaces: before the repoint, `_seb_fire` (this helper's
+    pre-[#481] name — the historical claim keeps the historical name) probed the Stop
     hook for `{"decision":"block"}`. That block was deleted BY DESIGN when the teeth moved to
     pre-push, so the probe answered ABSENT for every repo in the fleet — including one with
     the ADR-85 hard leg fully installed. A probe with a constant answer measures nothing.
@@ -613,18 +615,24 @@ def _valid_entry(component, when="2999-01-01"):
 
 
 def test_tier3_divergence_no_allowlist_is_drift():
-    """A real seb divergence (mapped ABSENT cell) with NO allowlist -> DRIFT (contract 3)."""
-    cells = [ec.Cell("block_unanchored_push", ec.ABSENT, "Stop hook did NOT block")]
+    """A real divergence (mapped ABSENT cell) with NO allowlist -> DRIFT (contract 3).
+
+    The measured ORGAN is `block_unanchored_push` (pre-push); the COMPONENT it is attributed
+    to is `session-end-backpressure`. Those are deliberately distinct — see the [#481] honest
+    limit at `_ORGAN_TO_COMPONENT`: that component's carrier deploys the advisory Stop script,
+    never the pre-push organ, so this attribution is known-misfiled and filed separately.
+    """
+    cells = [ec.Cell("block_unanchored_push", ec.ABSENT, "no pre-push anchor hook")]
     divergences = ec._divergences_from_tier1(cells)
-    assert divergences  # seb maps to a manifest component
+    assert divergences  # the organ maps to a manifest component
     t3 = ec.classify_tier3(divergences, [], run_date="2026-07-04", waivable_policy=_REAL_POLICY)
     assert [c.classification for c in t3] == [ec.DRIFT]
     assert t3[0].component_id == "session-end-backpressure"
 
 
 def test_tier3_non_waivable_allowlisted_still_drift_rejected():
-    """seb allowlisted BUT non-waivable -> REJECTED -> DRIFT (contract 2 + the reject half of 4)."""
-    cells = [ec.Cell("block_unanchored_push", ec.ABSENT, "Stop hook did NOT block")]
+    """Component allowlisted BUT non-waivable -> REJECTED -> DRIFT (contract 2 + reject half of 4)."""
+    cells = [ec.Cell("block_unanchored_push", ec.ABSENT, "no pre-push anchor hook")]
     divergences = ec._divergences_from_tier1(cells)
     t3 = ec.classify_tier3(divergences, [_valid_entry("session-end-backpressure")],
                            run_date="2026-07-04", waivable_policy=_REAL_POLICY)
@@ -827,22 +835,45 @@ def test_static_drift_summary_rejects_non_waivable_entry(tmp_path):
 # The token is OVERLOADED: `scripts/session_end_backpressure.py` is still a live script,
 # still deployed by `deploy/carrier_mesh.py`, still wired as an advisory Stop hook. A text
 # scan cannot tell the retired ORGAN-ID from the live SCRIPT-NAME, so the census below
-# discriminates by ROLE — the live registry for the code half, syntactic organ-id
-# positions for the test half.
+# discriminates by ROLE — the live registry for the code half, AST string-literal analysis
+# for the test half.
 # ---------------------------------------------------------------------------
 
 _RETIRED_ORGAN_ID = "session_end_backpressure"
+_RETIRED_ID_CONST = "_RETIRED_ORGAN_ID"  # the one sanctioned literal site, below
 
-# Organ-id SYNTACTIC positions — the mechanical role rule for the test half. Each pattern
-# matches the token only where it stands in for a `Cell.organ_id` / `Tier3Cell.organ_id`
-# value, never where it names the still-live script.
-_ORGAN_ID_POSITIONS = (
-    ("_cell(cells, <organ_id>)", re.compile(r'_cell\([^,]*,\s*"' + _RETIRED_ORGAN_ID + r'"\)')),
-    ("cells[<organ_id>]", re.compile(r'cells\[\s*"' + _RETIRED_ORGAN_ID + r'"\s*\]')),
-    ("ec.Cell(<organ_id>, ...)", re.compile(r'ec\.Cell\(\s*"' + _RETIRED_ORGAN_ID + r'"')),
-    ("(<component_id>, <organ_id>, ...)",
-     re.compile(r'"session-end-backpressure",\s*"' + _RETIRED_ORGAN_ID + r'"')),
-)
+
+def _unsanctioned_retired_id_lines(source: str) -> list[int]:
+    """Line numbers of every retired-id string literal in `source` bar the one sanctioned site.
+
+    AST rather than regex (terra MEDIUM 2026-08-04): a positional-regex census matches only
+    the quoting and call shapes it was written against, so `ec.Cell(_ALIAS, ...)`, single
+    quotes, `cells.get(...)` or an unanticipated constructor slip through while the check
+    still reports clean. Every string literal, whatever its construct, is one AST node — so
+    this covers the test-side organ-id role completely rather than pattern-by-pattern.
+
+    Comments are not AST nodes at all, so `#` prose is excluded by construction rather than
+    by an exclusion list; docstrings are the one prose form that IS a node, so they are
+    dropped explicitly — matching this census's stated prose limit.
+
+    The single permitted literal is the `_RETIRED_ORGAN_ID` definition, identified by its
+    ASSIGNMENT — never by line number, which would drift as the file grows and silently stop
+    protecting anything. ONE parse, so node identities are comparable.
+    """
+    tree = ast.parse(source)
+    skip: set[int] = set()
+    for node in ast.walk(tree):
+        body = getattr(node, "body", None)
+        if isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)) \
+                and body and isinstance(body[0], ast.Expr) \
+                and isinstance(body[0].value, ast.Constant) and isinstance(body[0].value.value, str):
+            skip.add(id(body[0].value))            # docstring prose
+        if isinstance(node, ast.Assign) and isinstance(node.value, ast.Constant) \
+                and any(isinstance(t, ast.Name) and t.id == _RETIRED_ID_CONST for t in node.targets):
+            skip.add(id(node.value))               # the sanctioned definition
+    return sorted(n.lineno for n in ast.walk(tree)
+                  if isinstance(n, ast.Constant) and n.value == _RETIRED_ORGAN_ID
+                  and id(n) not in skip)
 
 
 def _anchor_probe():
@@ -877,11 +908,12 @@ def test_organ_id_census_carries_no_retired_id():
     Tier-3 component bridge — is generated from these two structures, so introspecting them
     IS the complete code-side census.
 
-    Test half: scans this module for the syntactic organ-id positions above.
+    Test half: AST scan of this module — every string literal equal to the retired id, in any
+    construct or quoting style, bar the one sanctioned definition site.
 
-    *Honest limit:* prose mentions in comments/docstrings are not mechanically classifiable
-    and are out of this census's scope by construction — it measures organ-id POSITIONS, not
-    every appearance of the string.
+    *Honest limit:* prose mentions (comments, docstrings) are not mechanically classifiable as
+    organ-id-role and are out of scope by construction. This census covers string LITERALS,
+    so a dynamically composed id (concatenation, f-string, external data) is also invisible.
     """
     registry_ids = {p.organ_id for p in ec.TIER1_ORGANS}
     assert _RETIRED_ORGAN_ID not in registry_ids, (
@@ -889,7 +921,7 @@ def test_organ_id_census_carries_no_retired_id():
     assert _RETIRED_ORGAN_ID not in ec._ORGAN_TO_COMPONENT, (
         f"retired organ id still keys _ORGAN_TO_COMPONENT: {sorted(ec._ORGAN_TO_COMPONENT)}")
 
-    source = Path(__file__).read_text(encoding="utf-8")
-    hits = {label: len(rx.findall(source)) for label, rx in _ORGAN_ID_POSITIONS}
-    offenders = {label: n for label, n in hits.items() if n}
-    assert not offenders, f"retired organ id still in organ-id positions in this module: {offenders}"
+    offenders = _unsanctioned_retired_id_lines(Path(__file__).read_text(encoding="utf-8"))
+    assert not offenders, (
+        f"retired organ id still a string literal in this module at line(s) {offenders} — "
+        f"only the {_RETIRED_ID_CONST} definition may carry it")
