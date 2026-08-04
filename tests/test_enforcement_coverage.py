@@ -78,7 +78,7 @@ def _cell(cells, organ_id):
 
 
 # ---------------------------------------------------------------------------
-# THE load-bearing proof: firing, not presence (session_end_backpressure).
+# THE load-bearing proof: firing, not presence (block_unanchored_push).
 # ---------------------------------------------------------------------------
 
 
@@ -99,7 +99,7 @@ def test_present_but_inert_anchor_hook_reports_absent(tmp_path):
 
     # locate MUST flag it a candidate (so we genuinely exercise the fire path, not locate).
     assert ec._anchor_hook(root) is not None
-    cell = _cell(ec.evaluate_full(root), "session_end_backpressure")
+    cell = _cell(ec.evaluate_full(root), "block_unanchored_push")
     assert cell.verdict == ec.ABSENT
     assert cell.fired is False
 
@@ -126,7 +126,7 @@ def test_stop_hook_no_longer_enforces_after_the_adr85_amendment(tmp_path):
         ".claude/settings.json": _stop_settings(
             'python "$CLAUDE_PROJECT_DIR/scripts/session_end_backpressure.py"'),
     })
-    cell = _cell(ec.evaluate_full(root), "session_end_backpressure")
+    cell = _cell(ec.evaluate_full(root), "block_unanchored_push")
     assert cell.verdict == ec.ABSENT, cell.evidence
     assert cell.fired is not True, cell.evidence
     assert "block_unanchored_push" in cell.evidence
@@ -204,7 +204,7 @@ def _anchor_organ_consumer(root: Path) -> Path:
 def test_anchor_gate_probe_distinguishes_installed_from_absent(tmp_path):
     """THE distinguishing proof for the repointed organ probe (ADR-85 amendment 2026-08-03).
 
-    Demonstrates the vacuity this replaces: before the repoint, `_seb_fire` probed the Stop
+    Demonstrates the vacuity this replaces: before the repoint, `_anchor_fire` probed the Stop
     hook for `{"decision":"block"}`. That block was deleted BY DESIGN when the teeth moved to
     pre-push, so the probe answered ABSENT for every repo in the fleet — including one with
     the ADR-85 hard leg fully installed. A probe with a constant answer measures nothing.
@@ -216,8 +216,8 @@ def test_anchor_gate_probe_distinguishes_installed_from_absent(tmp_path):
     installed = _anchor_organ_consumer(tmp_path / "installed")
     bare = _init_consumer(tmp_path / "bare", {"JOURNAL.md": "# Journal\n\n- work happened\n"})
 
-    present = _cell(ec.evaluate_full(installed), "session_end_backpressure")
-    absent = _cell(ec.evaluate_full(bare), "session_end_backpressure")
+    present = _cell(ec.evaluate_full(installed), "block_unanchored_push")
+    absent = _cell(ec.evaluate_full(bare), "block_unanchored_push")
 
     assert present.verdict == ec.ENFORCING_LOCAL, present.evidence
     assert present.fired is True, present.evidence
@@ -236,7 +236,7 @@ def test_anchor_gate_fire_requires_both_legs_not_a_constant_refusal(tmp_path):
     _git(["add", "-A"], root)
     _git(["commit", "-q", "-m", "replace the organ with a constant refusal"], root)
 
-    cell = _cell(ec.evaluate_full(root), "session_end_backpressure")
+    cell = _cell(ec.evaluate_full(root), "block_unanchored_push")
     assert cell.verdict == ec.ABSENT, cell.evidence
     assert cell.fired is False, cell.evidence
 
@@ -248,7 +248,7 @@ def test_anchor_gate_fire_requires_both_legs_not_a_constant_refusal(tmp_path):
 
 def test_locate_excludes_propose_closures_plugin(tmp_path):
     """enabledPlugins:tier1-lifecycle + a Stop hook running propose_closures is NON-blocking by
-    design and must NOT be a session_end_backpressure candidate."""
+    design and must NOT be a block_unanchored_push candidate."""
     root = _init_consumer(tmp_path / "plugin", {
         "JOURNAL.md": "# Journal\n",
         ".claude/settings.json": json.dumps({
@@ -257,8 +257,8 @@ def test_locate_excludes_propose_closures_plugin(tmp_path):
                       "command": "python plugin/propose_closures.py"}]}]},
         }),
     })
-    assert ec._seb_candidate_command(root) is None
-    assert _cell(ec.evaluate_static(root), "session_end_backpressure").verdict == ec.ABSENT
+    assert ec._stop_backpressure_command(root) is None
+    assert _cell(ec.evaluate_static(root), "block_unanchored_push").verdict == ec.ABSENT
 
 
 def test_absent_consumer_all_tier1_absent_and_toc_not_false_positive(tmp_path):
@@ -285,7 +285,7 @@ def test_absent_consumer_all_tier1_absent_and_toc_not_false_positive(tmp_path):
     })
     assert ec._freshness_candidate(root)[0] is False  # toc-freshness excluded
     cells = {c.organ_id: c.verdict for c in ec.evaluate_static(root)}
-    assert cells["session_end_backpressure"] == ec.ABSENT
+    assert cells["block_unanchored_push"] == ec.ABSENT
     assert cells["canonical_freshness"] == ec.ABSENT
     assert cells["reconciled_versions"] == ec.NA_NO_EDGES
     assert cells["doc_claims"] == ec.HUB_SCOPED
@@ -504,7 +504,7 @@ def test_static_path_reports_present_unverified_for_a_candidate(tmp_path):
     """A candidate organ on the STATIC path is present-unverified (not enforcing-local — the leg
     cannot license enforcing-local without a fire_test)."""
     root = _anchor_organ_consumer(tmp_path / "cand")
-    cell = _cell(ec.evaluate_static(root), "session_end_backpressure")
+    cell = _cell(ec.evaluate_static(root), "block_unanchored_push")
     assert cell.verdict == ec.PRESENT_UNVERIFIED
     assert cell.fired is None
 
@@ -614,7 +614,7 @@ def _valid_entry(component, when="2999-01-01"):
 
 def test_tier3_divergence_no_allowlist_is_drift():
     """A real seb divergence (mapped ABSENT cell) with NO allowlist -> DRIFT (contract 3)."""
-    cells = [ec.Cell("session_end_backpressure", ec.ABSENT, "Stop hook did NOT block")]
+    cells = [ec.Cell("block_unanchored_push", ec.ABSENT, "Stop hook did NOT block")]
     divergences = ec._divergences_from_tier1(cells)
     assert divergences  # seb maps to a manifest component
     t3 = ec.classify_tier3(divergences, [], run_date="2026-07-04", waivable_policy=_REAL_POLICY)
@@ -624,7 +624,7 @@ def test_tier3_divergence_no_allowlist_is_drift():
 
 def test_tier3_non_waivable_allowlisted_still_drift_rejected():
     """seb allowlisted BUT non-waivable -> REJECTED -> DRIFT (contract 2 + the reject half of 4)."""
-    cells = [ec.Cell("session_end_backpressure", ec.ABSENT, "Stop hook did NOT block")]
+    cells = [ec.Cell("block_unanchored_push", ec.ABSENT, "Stop hook did NOT block")]
     divergences = ec._divergences_from_tier1(cells)
     t3 = ec.classify_tier3(divergences, [_valid_entry("session-end-backpressure")],
                            run_date="2026-07-04", waivable_policy=_REAL_POLICY)
@@ -690,7 +690,7 @@ def test_tier3_codemap_divergence_sanctionable_via_live_policy():
 def test_tier3_classification_vocabulary():
     """Every Tier3Cell classification is in the honest {DRIFT, SANCTIONED} axis."""
     div = [("hub-toc-hooks", "hub-toc-hooks", "x"),
-           ("session-end-backpressure", "session_end_backpressure", "y")]
+           ("session-end-backpressure", "block_unanchored_push", "y")]
     t3 = ec.classify_tier3(div, [_valid_entry("hub-toc-hooks")],
                            run_date="2026-07-04", waivable_policy=_REAL_POLICY)
     assert {c.classification for c in t3} <= {ec.DRIFT, ec.SANCTIONED}
@@ -726,7 +726,7 @@ def test_tier3_build_report_fire_attaches_drift(tmp_path):
 def test_render_digest_has_tier3_section():
     rep = ec.ConsumerReport("demo", "/x", (), (), (
         ec.Tier3Cell("hub-toc-hooks", "hub-toc-hooks", ec.SANCTIONED, "sanctioned -- ok"),
-        ec.Tier3Cell("session-end-backpressure", "session_end_backpressure", ec.DRIFT,
+        ec.Tier3Cell("session-end-backpressure", "block_unanchored_push", ec.DRIFT,
                      "unsanctioned drift (allowlist: no allowlist entry)"),
     ))
     out = ec.render_digest([rep], run_date="2026-07-04")
@@ -751,7 +751,7 @@ def test_tier3_sanctioned_is_a_distinct_class_from_tier1():
     (contract 3 -- sanctioned divergence is its own class). Checks the BOLD verdict form
     so the intro's descriptive 'sanctioned' word is not a false positive."""
     rep = ec.ConsumerReport("demo", "/x",
-        (ec.Cell("session_end_backpressure", ec.ABSENT, "did not block"),),
+        (ec.Cell("block_unanchored_push", ec.ABSENT, "did not block"),),
         (),
         (ec.Tier3Cell("hub-toc-hooks", "hub-toc-hooks", ec.SANCTIONED, "sanctioned -- ok"),))
     out = ec.render_digest([rep], run_date="2026-07-04")

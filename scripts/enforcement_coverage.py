@@ -25,7 +25,7 @@ The five hub enforcement organs are NOT homogeneous (this is the load-bearing re
       is invoked off-hub and observed to return the hub-only PASS despite an injected violation
       (see ``_demonstrate_hub_scoped``). If the guard ever stops short-circuiting, the demonstration
       flips and the cell is surfaced, never forced green.
-  * Group C — hub-hardcoded standalone (``session_end_backpressure.py``), carried by no manifest
+  * Group C — hub-hardcoded standalone (``block_unanchored_push.py``), carried by no manifest
       carrier. Reported ``absent`` on consumers (the genuine, currently-unclosable-without-porting
       gap), with a non-portability note.
 
@@ -368,9 +368,16 @@ def _run_in(args: list[str], cwd: Path, env: dict[str, str] | None = None) -> su
 # hook, wrong about ADR-85 coverage, and a probe with a constant answer measures nothing.
 #
 # It now measures the organ that actually carries the obligation: `block_unanchored_push`
-# at pre-push. The `organ_id` string stays `session_end_backpressure` — the deploy
-# manifests, the carrier mesh, the methodology roster and the fleet digest all key on it,
-# so renaming it is a separate, wider change than repointing what it reads.
+# at pre-push.
+#
+# THE ID FOLLOWED ([#481], this arc). The repoint deferred the rename, leaving the published
+# identity naming a Stop-hook script while the probe read a pre-push one. The consumer set was
+# then derived STRUCTURALLY rather than by grep — the token is overloaded, since
+# `scripts/session_end_backpressure.py` is still a live script, still deployed by
+# `deploy/carrier_mesh.py`, still wired as an advisory Stop hook. The result: three of the four
+# consumers the row enumerated (carrier_mesh's SEB_REL/_STOP_SENTINEL/_HUB_SEB, the methodology
+# roster, the manifest roster rows) name that SCRIPT and correctly did not move. The organ id
+# lives only here and in `_ORGAN_TO_COMPONENT`; nothing outside this module reads either.
 # ---------------------------------------------------------------------------
 
 # Stop-hook tokens: retained ONLY to keep `propose_closures` excluded and to describe the
@@ -385,13 +392,13 @@ _ANCHOR_ORGAN_SCRIPT = "block_unanchored_push"
 _ANCHOR_STAGE = "pre-push"
 
 
-def _seb_applicability(root: Path) -> tuple[str, str]:
+def _anchor_applicability(root: Path) -> tuple[str, str]:
     if not _has_journal(root):
         return (NA_NO_JOURNAL, "no root JOURNAL.md — the organ's semantics do not exist here")
     return ("applicable", "has root JOURNAL.md (Group C: hub-hardcoded standalone, no carrier deploys it)")
 
 
-def _seb_candidate_command(root: Path) -> str | None:
+def _stop_backpressure_command(root: Path) -> str | None:
     """The Stop command that references a session-end/JOURNAL-anchor script, EXCLUDING the
     non-blocking plugin propose_closures. (propose_closures is registered via enabledPlugins,
     not hooks.Stop, so it never appears here — the exclusion is belt-and-braces.)"""
@@ -421,12 +428,12 @@ def _anchor_hook(root: Path) -> dict | None:
     return None
 
 
-def _seb_locate(root: Path) -> tuple[bool, str]:
+def _anchor_locate(root: Path) -> tuple[bool, str]:
     hook = _anchor_hook(root)
     if hook:
         return (True, f"candidate: pre-push hook {hook.get('id', '?')!r} runs "
                       f"{_ANCHOR_ORGAN_SCRIPT} ({hook.get('entry')!r})")
-    stop = _seb_candidate_command(root)
+    stop = _stop_backpressure_command(root)
     stop_note = (" (a Stop backpressure hook IS wired, but the ADR-85 amendment 2026-08-03 "
                  "§A5 made Stop advisory in full — it carries no teeth)" if stop else "")
     return (False, f"no pre-push hook runs {_ANCHOR_ORGAN_SCRIPT} — the ADR-85 hard leg is "
@@ -461,7 +468,7 @@ def _push_refs(local_sha: str, remote_sha: str) -> str:
     return f"refs/heads/main {local_sha} refs/heads/main {remote_sha}\n"
 
 
-def _seb_fire(consumer: Path) -> tuple[bool, str]:
+def _anchor_fire(consumer: Path) -> tuple[bool, str]:
     """FIRE test for the ADR-85 hard leg: does the pre-push organ actually DISCRIMINATE?
 
     Two legs, deliberately — exit-non-zero alone is not enforcement. A hook hard-wired to
@@ -782,7 +789,7 @@ class OrganProbe:
 
 
 TIER1_ORGANS: tuple[OrganProbe, ...] = (
-    OrganProbe("session_end_backpressure", "C", _seb_applicability, _seb_locate, _seb_fire),
+    OrganProbe("block_unanchored_push", "C", _anchor_applicability, _anchor_locate, _anchor_fire),
     OrganProbe("canonical_freshness", "A", _freshness_applicability, _freshness_locate, _freshness_fire),
     OrganProbe("reconciled_versions", "A", _reconciled_applicability, _reconciled_locate, _reconciled_fire),
     OrganProbe("doc_claims", "B", _group_b_probe("doc_claims"), None, None),
@@ -876,8 +883,17 @@ SANCTIONED = "sanctioned"
 # manifest component today, and both are NON-waivable -> a real n=1 fire divergence can
 # only be DRIFT/REJECTED. A real production SANCTIONED row needs a waivable AND measurable
 # component (a P5/P6 milestone); the anti-correlation is EXPECTED of a well-designed floor.
+#
+# HONEST LIMIT surfaced by the [#481] rename — recorded, deliberately NOT fixed here.
+# The `session-end-backpressure` component's carrier (`deploy/carrier_mesh.py`) deploys the
+# ADVISORY Stop script; it never deploys `block_unanchored_push`. So an ABSENT verdict about
+# the pre-push organ is attributed to a component that does not carry it, and the Tier-3 DRIFT
+# rows that attribution already produces are misfiled. That predates this arc: the shared name
+# hid it, and renaming only made it legible. Behavior is held IDENTICAL here because a rename
+# arc must not smuggle a behavior change (the row's own "outside any repoint arc" bar); the
+# mismatch is filed separately with those DRIFT rows as its evidence.
 _ORGAN_TO_COMPONENT = {
-    "session_end_backpressure": "session-end-backpressure",
+    "block_unanchored_push": "session-end-backpressure",
     "canonical_freshness": "canonical-freshness",
 }
 
