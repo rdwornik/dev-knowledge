@@ -22,8 +22,16 @@
 ### 2026-08-04 (g) — CC (Opus 5, local): three headers stop lying, and two chat-only rules get homes
 
 **Did:** ARC 1 of the window seal — ADR-82 ratified with its version catch-up, ADR-88/89 flipped
-to ADR-94 Pattern B in one pass, and the two in-chat rules landed at their homes. Also anchors
-`b18bf29f`, which the previous merge introduced and no JOURNAL named (see the last paragraph).
+to ADR-94 Pattern B in one pass, and the two in-chat rules landed at their homes. SHA anchors:
+`43eced57` (the arc) and `b18bf29f`, which the previous merge introduced and no JOURNAL named
+(see the last paragraph).
+
+> **Anchoring note, recorded because it is now a REPEATING trap, not a one-off.** This entry was
+> written into the SAME commit as the work it describes, so at push time the range contained no
+> SHA the entry could name — a JOURNAL entry cannot name the commit it is part of. The pre-push
+> organ refused, correctly, for the second time in two days. The shape that works is the one the
+> other arcs used: commit the work, THEN commit the JOURNAL entry naming it. Combining them
+> guarantees an unanchored range. `43eced57` is named above by a follow-up commit.
 
 **Result — the same defect class as the whole window, in its governance form.** A `Proposed`
 header on an ADR the repo has treated as Accepted for six weeks is a **label that no longer
