@@ -136,3 +136,28 @@ question, the leg rides every audit run.
 PUBLIC helper, `kill_candidate_value_spans()`, plus `_BACKLOG_ROW`. A test asserts both the reuse
 and the absence of any restated grammar in the leg's code, so the coupling is enforced rather
 than hoped for.
+
+---
+
+## Close-out: the no-fix rider and the GREEN bar were never in tension
+
+At close the ship-gate went RED — not on a defect in this arc, but because the new leg did its
+job: `[~~] preflight_backlog_ids: [#310] -> #292`, a new undispositioned WARN. That set the
+ruling's no-fix rider (the finding routes to FR-8a, it is not swept up mid-arc) against AC6's
+"ship-gate GREEN at close".
+
+**The conflict resolved structurally, not by choosing a side.** WARN-tier plus the disposition
+register is precisely the designed channel for *found, deliberately deferred, tracked*. The two
+requirements were only ever in tension if the finding were **ignored**; dispositioning it
+satisfies both — the gate is green because the finding is recorded, not because it is hidden.
+
+Disposition `warn-preflight-backlog-ids-310-292` is keyed to the specific row-and-id pair, so it
+suppresses **one known finding, never the leg**: any other stale `kill-candidates:` assertion
+still REDs the gate. It carries a `review_date` shelf-life (ADR-75) so it cannot rot into paper
+suppression, and it is marked **retire-on-close** — the FR-8a grooming row cites this disposition
+id, so when `[#310]`'s stale kill-candidate is groomed the entry leaves with it and cannot
+outlive its reason.
+
+Final: **ship-gate GREEN, 16 WARN dispositioned.** The leg reports `[~~]`, never `[FAIL]` —
+R3's advisory posture holds mechanically, and a test fails if anyone promotes it without R3's
+evidence bar.
