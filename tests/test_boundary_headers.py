@@ -453,3 +453,172 @@ def test_governed_glob_match_is_case_sensitive_on_every_host(monkeypatch):
         assert not bh._matches_governed_glob(literal.upper()), (
             f"{glob!r} matched the uppercased path {literal.upper()!r} — glob matching is "
             "following host case rules, so the governed set differs per OS")
+
+
+# ---------------------------------------------------------------------------
+# [#482] — the glob engine must mean what the pattern reads.
+#
+# `fnmatch` has no `**`, and its `*` CROSSES `/`. So `.claude/*.md` is already recursive
+# while `.claude/**/*.md` is a strict subset of it that adds nothing — a glob that reads
+# narrower than it behaves. Operator ruling 2026-08-03: REPAIR (true-glob), not REMOVE.
+# ---------------------------------------------------------------------------
+
+
+def test_star_does_not_cross_a_path_separator(monkeypatch):
+    """[#482] `*` must not cross `/` — `.claude/*.md` names DIRECT children only.
+
+    Per-glob attribution is demonstrated by narrowing `_GOVERNED_GLOBS` to the single glob
+    under test, so the defect is shown through the module's OWN predicate without adding a
+    seam first — the RED commit touches no source at all.
+
+    The fixture is a REAL tracked path, asserted live before it is used: a hand-invented
+    path would let this test keep passing against a corpus that no longer contains it.
+    """
+    nested = ".claude/commands/save.md"
+    assert nested in bh._tracked_files(_ROOT), (
+        f"{nested!r} is no longer tracked — this fixture must be live corpus, not a fiction; "
+        "re-point it at a real nested .claude/**/*.md file")
+
+    monkeypatch.setattr(bh, "_GOVERNED_GLOBS", (".claude/*.md",))
+    assert not bh._matches_governed_glob(nested), (
+        "`.claude/*.md` matched the NESTED path {!r} — `*` crossed `/`, so the glob behaves "
+        "recursively while reading as direct-children-only ([#482])".format(nested))
+
+
+def test_governed_union_is_identical_before_and_after_the_engine_switch():
+    """[#482] AC2 — the governed UNION is unchanged by the repair; only ATTRIBUTION moves.
+
+    Per-glob meanings change BY DESIGN under true-glob (`.claude/*.md` stops being recursive;
+    `.claude/**/*.md` starts being). What must NOT change is which files are governed. So the
+    invariant is the UNION, and "behaviour unchanged" would have been unfalsifiable.
+
+    BOTH SIDES COMPUTED LIVE over the real tracked corpus — the old engine is re-run here
+    rather than quoted, so this can never degrade into asserting a remembered constant, and
+    ordinary corpus growth cannot break it (it is an equality between two engines, whatever
+    the corpus happens to be).
+    """
+    from fnmatch import fnmatchcase
+
+    tracked = bh._tracked_files(_ROOT)
+    assert tracked, "empty tracked corpus — this test would be vacuous"
+    assert bh._GOVERNED_GLOBS, "no governed globs — this test would be vacuous"
+
+    before = {p for p in tracked if any(fnmatchcase(p, g) for g in bh._GOVERNED_GLOBS)}
+    after = {p for p in tracked if any(bh._glob_matches(p, g) for g in bh._GOVERNED_GLOBS)}
+
+    assert before, "the pre-repair engine governed nothing — fixture is not exercising the rule"
+    assert after == before, (
+        "the repair changed WHICH files are governed, not merely how they are attributed: "
+        f"only-before={sorted(before - after)} only-after={sorted(after - before)}")
+
+
+def test_glob_matches_agrees_with_stdlib_glob_per_glob():
+    """[#482] AC5 — the hand-composed matcher carries its own proof against the stdlib.
+
+    `glob.glob(recursive=True)` is the stdlib true-glob ORACLE. It was rejected as the engine
+    (it reads the working tree, not the git index, so a tracked-but-deleted file would leave
+    the governed set silently), but it is exactly the right thing to be measured against.
+
+    PER-GLOB, not merely on the union: the union is equal under the OLD engine too, so a
+    union-only check would pass against the very semantics this repair replaces. Agreement is
+    asserted glob-by-glob, which is where the meanings actually moved.
+    """
+    import glob as _glob
+    import os
+
+    tracked = set(bh._tracked_files(_ROOT))
+    assert tracked, "empty tracked corpus — this test would be vacuous"
+
+    for pattern in bh._GOVERNED_GLOBS:
+        ours = {p for p in tracked if bh._glob_matches(p, pattern)}
+        hits = _glob.glob(pattern, root_dir=_ROOT, recursive=True, include_hidden=True)
+        stdlib = {h.replace(os.sep, "/") for h in hits} & tracked
+        assert ours == stdlib, (
+            f"{pattern!r}: hand-composed matcher disagrees with stdlib glob — "
+            f"only-ours={sorted(ours - stdlib)} only-stdlib={sorted(stdlib - ours)}")
+
+
+# --- [#482] AC3 — the governed-set pin ------------------------------------------------
+#
+# The pin is a MECHANISM, not a comment: a later `_GOVERNED_GLOBS` change whose meaning
+# differs under the new engine must FIRE rather than drift. Two limbs, and NEITHER fires on
+# ordinary corpus growth — a pin that REDs every time someone adds a `.claude/` file trains
+# mechanical number-bumping, which is ritual rather than protection (operator, 2026-08-04).
+# The live cardinalities live in the review artifact as measured evidence, not as assertions.
+
+_GLOB_MEANING_PIN = (
+    ("CLAUDE.md", "exact-root-file"),
+    (".claude/*.md", "direct-children-only"),
+    (".claude/**/*.md", "recursive-any-depth"),
+)
+
+# Synthetic probes per meaning: (path, must_match). Deliberately NOT drawn from the live
+# corpus, so these assert SEMANTICS and stay true no matter what the repo grows.
+_MEANING_PROBES = {
+    "exact-root-file": (("CLAUDE.md", True), ("sub/CLAUDE.md", False)),
+    "direct-children-only": ((".claude/a.md", True), (".claude/d/a.md", False)),
+    "recursive-any-depth": ((".claude/a.md", True), (".claude/d/e/a.md", True),
+                            ("other/a.md", False)),
+}
+
+
+def test_governed_globs_tuple_is_pinned():
+    """[#482] AC3 — adding, removing or rewording a governed glob FAILS without a re-pin.
+
+    Tuple IDENTITY: content and order. Order matters because the pin is read alongside
+    `_GLOB_MEANING_PIN` below, which pairs each glob with the semantics it is claimed to
+    carry; a silent reorder would decouple the two.
+    """
+    assert bh._GOVERNED_GLOBS == tuple(p for p, _ in _GLOB_MEANING_PIN), (
+        f"_GOVERNED_GLOBS changed to {bh._GOVERNED_GLOBS!r} without updating the pin. This is "
+        "the [#482] guard: a glob whose meaning differs under true-glob must be re-pinned "
+        "CONSCIOUSLY — declare the new glob's meaning in _GLOB_MEANING_PIN and add its probes.")
+
+
+def test_each_governed_glob_still_means_what_it_is_pinned_to_mean():
+    """[#482] AC3 — the pinned MEANINGS are asserted against the engine, not just described.
+
+    Pinning the tuple alone would catch an edit to the pattern list but not a change to the
+    engine underneath it, which is exactly how `.claude/*.md` came to read narrower than it
+    behaved. These probes are synthetic, so repo growth never fires them.
+    """
+    assert _GLOB_MEANING_PIN, "empty pin — this test would be vacuous"
+    for pattern, meaning in _GLOB_MEANING_PIN:
+        probes = _MEANING_PROBES[meaning]
+        assert probes, f"no probes for meaning {meaning!r} — the pin would be decorative"
+        for path, must_match in probes:
+            assert bh._glob_matches(path, pattern) is must_match, (
+                f"{pattern!r} is pinned as {meaning!r}, but matching {path!r} returned "
+                f"{not must_match} — the engine no longer carries the pinned meaning")
+
+
+def test_repeated_double_star_does_not_blow_up_on_a_non_match():
+    """[#482] terra HIGH 2026-08-04 — consecutive `**` must not be exponential.
+
+    `walk` always advances `j`, so recursion terminates; the defect was COST, not
+    termination. Without memoizing failed `(path-index, pattern-index)` states, repeated `**`
+    re-explores identical states on a non-match. Measured before the fix: 6 `**` -> 0.03s,
+    8 -> 0.20s, 10 -> 1.25s, 12 -> 6.20s, roughly 6x per added segment. The three governed
+    globs cannot trigger it, but this predicate runs over every tracked file, so a future
+    glob with repeated `**` would have made the gate impractical rather than merely slow.
+
+    Asserts the CHEAP property (a wall-clock ceiling generous enough not to flake on a loaded
+    box) plus correctness of the answer itself — a fast wrong answer is not a fix.
+    """
+    import time
+
+    path = "/".join(f"d{i}" for i in range(12)) + "/x.md"
+    pattern = "/".join(["**"] * 12) + "/nomatch.md"
+
+    start = time.perf_counter()
+    assert bh._glob_matches(path, pattern) is False
+    elapsed = time.perf_counter() - start
+    assert elapsed < 1.0, (
+        f"12 consecutive '**' on a non-match took {elapsed:.2f}s — the failed-state memo is "
+        "gone and the matcher is exponential again")
+
+    # The memo must not change ANSWERS, only cost — positive and zero-segment cases still hold.
+    assert bh._glob_matches("a/b/c/x.md", "**/x.md") is True
+    assert bh._glob_matches("x.md", "**/x.md") is True
+    assert bh._glob_matches("a/b/x.md", "a/**/**/x.md") is True
+    assert bh._glob_matches("a/x.md", "a/**/**/x.md") is True

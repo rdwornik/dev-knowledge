@@ -19,6 +19,61 @@
 
 ---
 
+### 2026-08-04 (j) — CC (Opus 5, local): FR-2 — the glob engine means what the pattern reads
+
+**Did:** Closed `[#482]` — executed the ruled REPAIR (true-glob, not REMOVE) on
+`scripts/boundary_headers.py` and built the unbuilt half, the governed-set pin. SHA anchors:
+**`a2d31508`** (the RED misattribution test) and **`a8f7a3ee`** (the engine switch).
+
+**Result — the fork-stop fired, and it was right to.**
+
+AC2 required a live derivation and a STOP if the union differed from the reference 13. It did:
+**live union 14, corpus 1854** (reference: 13 / 1830). Every per-glob figure was exactly **+1**,
+and the cause was witnessed rather than inferred — `.claude/commands/preflight.md`, added at
+`4f11a792` **this same window**, after the 2026-08-03 measurement. The invariant AC2 actually
+protects — union equality across engines — held live at 14 == 14, so the operator ruled proceed
+and record. The mechanism worked exactly as designed: it stopped on a number it could not
+account for, and released once the number was accounted for.
+
+**Per-glob attribution moved 1/13/12 → 1/1/13. The union did not move. No file entered or left
+the governed set** — intent, not coverage.
+
+**Library-first met a hard floor.** `glob.translate()` and `PurePath.full_match()` are 3.13+;
+this repo is `>=3.12` and 3.12's `PurePath.match()` is right-anchored with a non-recursive `**`.
+So the engine is those semantics backported in eight lines, and — per the operator's condition —
+its equivalence to `glob.glob(recursive=True)` ships as a **committed per-glob test on the live
+corpus**, not a one-off: the hand-composed matcher carries its own proof. `glob.glob` was
+rejected as the ENGINE (it reads the working tree, not the index, so a tracked file deleted from
+the worktree would silently leave the governed set) and kept as the ORACLE. `pathspec` was
+rejected though already installed: `gitwildmatch` is not pure glob, so it would have
+reintroduced the very defect class this repair closes. Both rejections are recorded in the
+docstring so neither is relitigated.
+
+**terra: 0 CRITICAL / 1 HIGH / 0 MEDIUM / 0 LOW — tally in the artifact body.** The HIGH was
+real and I reproduced it before fixing rather than taking it on the reviewer's word: consecutive
+`**` recomputed identical states on a non-match, ~6× per added segment — 6 → 0.026s, 8 → 0.201s,
+10 → 1.249s, **12 → 6.204s**. Memoizing failed states bounds it at O(parts × pats):
+**12 → 0.00069s**, still flat at 40. The three governed globs cannot trigger it, but the
+predicate runs over every tracked file, so a future glob with repeated `**` would have made the
+gate impractical.
+
+**The pin, amended mid-flight and better for it.** The operator's first note said pin 14 as the
+new reference; I flagged that a cardinality pin REDs on every new `.claude/` file. The amendment
+dropped it: *a pin that fires on ordinary growth trains mechanical number-bumping — ritual, not
+protection.* The pin is now tuple-identity plus declared meanings, proven by **mutation**: tuple
+add FIRES, reword FIRES, engine regression FIRES, **new `.claude/**/*.md` file stays QUIET**. The
+14 / 1854 figures live in the review artifact as evidence, not as an assertion.
+
+**Changes:** `scripts/boundary_headers.py` (`_glob_matches` + memo), `tests/test_boundary_headers.py`
+(six tests: RED, union equality, stdlib parity, tuple pin, meaning pin, blowup regression),
+`docs/audits/2026-08-04-codex-482-glob-engine-true-glob.md` (+ index), `BACKLOG.md`/`tasks/`
+(closed retire-not-delete), `ecosystem/doc-counts.md` (2308→2314).
+
+**Abandoned:** nothing. Full suite: 2309 passed, exactly the two known `[#457]` baseline failures
+and **no third** — the AC4 stop-condition did not trigger. Ship-gate GREEN, 15 dispositioned WARNs.
+
+**Next:** FR-3 — `[#483]` enforcement ruling, discrimination-first.
+
 ### 2026-08-04 (i) — CC (Opus 5, local): FR-1 — the id follows the organ; three of four "consumers" weren't
 
 **Did:** Closed `[#481]` — the ADR-85 Informant probe published `session_end_backpressure` as its

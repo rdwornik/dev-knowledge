@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "7e851039ec74366c3f78c14c635d10a2941a85e507981d36e618ae3985ee0224",
+  "generated_sha256": "60b8c947fb565515ccabd45c600a5fb904f2095758c35f3a3a37afb2820ec29e",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -1438,10 +1438,6 @@
     {
       "task": 369,
       "file": "369-wire-boundary-headers-py-check-into-pre-commit.md"
-    },
-    {
-      "task": 482,
-      "file": "482-boundary-glob-engine-repair-true-glob.md"
     },
     {
       "task": 371,

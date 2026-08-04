@@ -227,20 +227,70 @@ def _tracked_files(repo_root: Path) -> list[str]:
     return [ln for ln in proc.stdout.splitlines() if ln]
 
 
+def _glob_matches(rel: str, pattern: str) -> bool:
+    """True-glob match of one POSIX-separated path against one pattern ([#482]).
+
+    TRUE-GLOB, not `fnmatch` ([#482], operator ruling 2026-08-03 — REPAIR, not REMOVE).
+    `fnmatch` has no `**` and its `*` CROSSES `/`, so `.claude/*.md` was already recursive
+    while `.claude/**/*.md` was a strict subset of it adding nothing: each glob read
+    narrower than it behaved. Here `*` never crosses a separator and `**` means zero or
+    more whole segments — so a pattern means what it reads.
+
+    `fnmatchcase`, never `fnmatch`, for the per-SEGMENT step. `fnmatch` normalizes case via
+    `os.path.normcase`, a no-op on POSIX and lowercasing on Windows — so the same repository
+    yielded a DIFFERENT governed set depending on which box ran the gate. Paths here come
+    from `git ls-files`, which is case-sensitive on every platform, so host case rules were
+    never the right authority.
+
+    WHY HAND-COMPOSED rather than a stdlib call: `glob.translate()` and
+    `PurePath.full_match()` are both 3.13+, and this repo's floor is `>=3.12`;
+    3.12's `PurePath.match()` is right-anchored (`*.md` matches `a/b/c.md`) with a
+    non-recursive `**`. This is those 3.13 semantics backported, and it is a one-line swap
+    for `full_match` once the floor moves. `glob.glob(recursive=True)` was rejected as the
+    engine: it walks the WORKING TREE rather than the git index, so a tracked file deleted
+    from the worktree would silently leave the governed set — the gate going blind exactly
+    when a governed file vanishes. It is still used as the ORACLE this matcher is proved
+    against (`test_glob_matches_agrees_with_stdlib_glob_per_glob`), which is how a
+    hand-composed matcher earns its keep: it carries its own live proof.
+
+    `pathspec` was rejected too, though already installed: its dialect is `gitwildmatch`,
+    not pure glob, so adopting it would reintroduce the very defect class this repair
+    closes — a matcher whose semantics differ from what the pattern string reads.
+    """
+    parts, pats = rel.split("/"), pattern.split("/")
+    # Failed (path-index, pattern-index) states, memoized (terra HIGH 2026-08-04). Without
+    # this, consecutive `**` segments re-explore identical states on a NON-match and the cost
+    # is exponential — measured before the fix at ~6x per added `**`: 6 -> 0.03s, 8 -> 0.20s,
+    # 10 -> 1.25s, 12 -> 6.20s. The current three globs cannot trigger it, but this runs over
+    # every tracked file, so a future glob with repeated `**` would make the gate impractical.
+    # Memoizing failures bounds the search at O(len(parts) * len(pats)) states.
+    failed: set[tuple[int, int]] = set()
+
+    def walk(i: int, j: int) -> bool:
+        if (i, j) in failed:
+            return False
+        if j == len(pats):
+            ok = i == len(parts)
+        elif pats[j] == "**":                     # zero or more WHOLE segments
+            ok = any(walk(k, j + 1) for k in range(i, len(parts) + 1))
+        else:
+            ok = (i < len(parts)
+                  and fnmatchcase(parts[i], pats[j])  # `*` cannot cross `/`: one segment only
+                  and walk(i + 1, j + 1))
+        if not ok:
+            failed.add((i, j))
+        return ok
+
+    return walk(0, 0)
+
+
 def _matches_governed_glob(rel: str) -> bool:
     """True iff a POSIX-separated tracked path falls under `_GOVERNED_GLOBS`.
-
-    `fnmatchcase`, never `fnmatch`. `fnmatch` normalizes case via `os.path.normcase`, which
-    is a no-op on POSIX and lowercases on Windows — so the same repository yielded a
-    DIFFERENT governed set depending on which box ran the gate, and a coverage number
-    computed on one OS was not comparable to the same number computed on another. Paths here
-    come from `git ls-files`, which is case-sensitive on every platform, so host case rules
-    were never the right authority. `fnmatchcase` is stdlib: no dependency is added.
 
     Extracted so the match rule is one named, directly testable predicate instead of an
     expression buried in the discovery loop.
     """
-    return any(fnmatchcase(rel, g) for g in _GOVERNED_GLOBS)
+    return any(_glob_matches(rel, g) for g in _GOVERNED_GLOBS)
 
 
 def discover_governed(repo_root: Path = _REPO_ROOT) -> tuple[list[Path], list[str]]:
