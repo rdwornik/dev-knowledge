@@ -1,7 +1,7 @@
 ---
 id: "[#482]"
 title: "Repair the boundary-headers glob engine — `*` silently crosses `/`, so a glob reads narrower than it behaves"
-status: open
+status: closed
 priority: P3
 size: S
 theme: "[E8] ARC-5 execution"
