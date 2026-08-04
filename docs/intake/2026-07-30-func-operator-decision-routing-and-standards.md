@@ -79,6 +79,53 @@ cluster (scoring/Fibonacci scale, drain, D-queue, caps-as-equilibrium incl. file
 is the mechanism; its entry gate stays the §3.2-vs-[#364]-4(a) reconciliation. tasks/ in
 root: confirmed good.
 
+### F.1 — RULED 2026-08-04: §F is a FLOW property, not a count target
+
+> Ruled by the architect this window and recorded here, beside the §F it governs, because it
+> had been chat-only. The §F text above is preserved verbatim; this is the ruling on how it is
+> measured, appended.
+
+**The rule, as ruled:**
+
+> §F is gated per window as a flow property — **closed ≥ filed** — with the window boundary
+> defined by **consecutive handoff seal SHAs**; **no gross-count target exists**; **deferred
+> rows are excluded** from the flow metric and owe a **one-time batch review**.
+
+**What each clause is doing.** The L-F ruling-prep laid out four candidates
+(`docs/audits/2026-08-03-technical-night-lf-rulings-prep.md`); this is **candidate 3, the
+per-window flow invariant**, and the ruling supplies the one thing that candidate was blocked
+on. Candidate 3's stated cost was that it *"requires a machine-readable window BOUNDARY, and
+`window_metrics.py` explicitly refuses to supply one"* — that refusal is correct and stands
+(`[#461]`: a computed-looking number there would launder an estimate into a measurement). The
+ruling does not overturn it; it supplies the boundary from a **committed fact that already
+exists** — the handoff seal SHA — so the boundary is read, never estimated.
+
+The **deferred-row exclusion** answers candidate 2's named loophole in the other direction:
+there, `· DEFER` on a row would have been a legal way to satisfy an open-count gate, so a batch
+deferral of 29 rows would have read as a 29-row shrink. Excluding deferred rows from the flow
+metric removes the incentive; the **one-time batch review** is the companion constraint that
+stops the exclusion from becoming a parking lot.
+
+**No gross-count target** is explicit and load-bearing: candidate 4 (a dated number checked by a
+human) is rejected, and so is any invented level. Flow is the only thing measured.
+
+**FIRST APPLICATION — 2026-08-04, and it reported RED.**
+
+| | |
+|---|---|
+| boundary (prior seal) | `80dd54d6` — `docs/handoffs/2026-08-01-dev-knowledge-architect-2` |
+| boundary (this window's seal) | the seal cut at this window's close |
+| closed | **3** — `[#479]` superseded · `[#472]` · `[#465]` |
+| filed | **5** — `[#481]` `[#482]` `[#483]` `[#484]` `[#485]` |
+| verdict | **RED** — `closed >= filed` is false at 3 ≥ 5 |
+
+**The verdict stands.** It was reported as RED at the window's wrap rather than reconciled,
+softened, or re-scoped, and the rule is recorded here *with its own first failure attached*. A
+rule whose first application is quietly excused is not a rule; the honest first data point is
+part of what is being ratified. Three of the five filings (`[#481]` `[#482]` `[#483]`) are
+residue of work that shipped in the window; two (`[#484]` `[#485]`) are operator-directed
+carries. Paying the debt is the next window's opening obligation, not a footnote here.
+
 ## G. Handoff v6 scope note (for the [#446] window, informational)
 
 Operator expects v6 to carry: PLAN.md in-process, standardized prompt methodology (no more

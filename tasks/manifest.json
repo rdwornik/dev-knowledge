@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "349749ca237b8af20e29cb477d1df58928c5fc75fa508a54688126b8a0083139",
+  "generated_sha256": "6b79dcd944362300646b823703a1273c9b59863d36e307bc69049805e8c1df89",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {

@@ -2,7 +2,7 @@
 
 <!-- scope: meta -->
 
-**Status:** Proposed
+**Status:** Accepted (ratified 2026-06-21 by operator edit; header flipped 2026-08-04 per ADR-94 Pattern B — see the 2026-08-04 amendment. The 2026-06-21 in-file marker below is the original ratification; this line stopped contradicting it.)
 **Date:** 2026-06-20
 **Decision tier:** Architecture (foundational doctrine — the **computed-edge** sibling to ADR-88's declared-edge paradigm). Ratification basis = the AI-Council deliberation recorded below, not architect-fiat; acceptance pending operator ratification.
 **Deliberation basis:** the three 2026-06-19 dependency-arc AI-Council-CLI transcripts — `code-dependency-mechanism` · `doc-code-link-mechanism` · `change-propagation-deletion` (`92c09cc`, on `main`) — mapping onto this ADR's three edges. Consumes the 2026-06-20 Pyright reverse-dep oracle benchmark (`5ebf348`).
@@ -314,3 +314,48 @@ a Council debate. The core is empirically proven: the Track-A Pyright reverse-de
 declared-edge organ is the remaining build-proof, tracked **#194** — and **OQ3** (advisory→gate
 promotion, data-gated). ADR-89 already carries the forward link to ADR-88; ADR-88 lands its
 back-reference in this same edit pass.
+
+## Amendment — 2026-08-04 (header flip to Pattern B, in one pass with ADR-88; plus a stale live-scope count corrected)
+
+> **In-file amendment marker (CLAUDE.md §5 item 3 / ADR-94).** The decision body above is
+> preserved **verbatim**. This does not re-ratify: this ADR was ratified on **2026-06-21** by
+> operator edit (the marker at `## Amendment — 2026-06-21`), and `ARCHITECTURE.md` records
+> ADR-88 and ADR-89 as *"both Accepted 2026-06-21 (`911b561`)"*. Only the frozen header still
+> said `Proposed`.
+
+**Flipped per ADR-94 Pattern B, in the SAME edit pass as ADR-88** — the pair ADR-94 names as
+the two stragglers left on Pattern A. They were ratified together and are flipped together;
+splitting would re-create the asymmetry. See ADR-88's 2026-08-04 amendment for the shared
+rationale, and this ADR's own `:314` note that ADR-88 lands its back-reference in that pass.
+
+### Correction: the live-scope count, re-measured
+
+A stale count was carried alongside this ADR's subject and is corrected here as data.
+
+**Where it actually lives — a locator correction.** The claim is in **`ARCHITECTURE.md:381`**,
+not in this ADR. It reads *"live on 13 rules per the ADR-89 OQ1 naming convention"* and
+enumerates them: the `#194` cohort-1 five + the `#201` governance trio + the `#202` Tier-3
+quartet (`coherence-doc-claims` / `-rot` / `-structure` + `handoff-probes-bind`) +
+`handoff-boot-budget`, the `[#446]` R4 split-site pair — 5 + 3 + 4 + 1 = 13.
+
+**Measured live 2026-08-04**, from the organ rather than from any document:
+`audit.check_doc_code_edge` reports **15 doc→code edge(s) resolved; none
+broken/ambiguous/orphaned**. So the enumerated 13 is two behind the organ.
+
+The correction is recorded **here, as data**, and `ARCHITECTURE.md` is deliberately NOT edited
+for it: a volatile count living in a freshness-stamped canonical doc is the `#222` class, whose
+ruled answer was to move volatile counts to `ecosystem/doc-counts.md` rather than to keep
+re-stamping a living doc for arithmetic. Editing `ARCHITECTURE.md` here would require a
+`last_reviewed` bump, and that stamp means *re-read end-to-end and confirmed accurate* — a claim
+this amendment is not entitled to make on the whole file.
+
+**OQ3 (advisory → gate promotion) remains data-gated** and is untouched by any of the above.
+**OQ2 is RESOLVED** per the 2026-06-21 marker: the Track-A oracle shipped
+(`scripts/reverse_dep_oracle.py`, `#193`).
+
+### What this does NOT change
+
+- **Not the computed-edge doctrine** — *declare what you cannot compute, compute what you can*.
+- **Not the open `[#220]` MODIFY-axis spike**, which is unaffected either way.
+- **Not a Council ratification** of the flip itself; the 2026-06-21 acceptance was an operator
+  edit, and the deliberation basis recorded in the header stands as written.
