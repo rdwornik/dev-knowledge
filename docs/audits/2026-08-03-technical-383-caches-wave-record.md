@@ -120,6 +120,90 @@ any repo `fleet_parity` could not walk is named here rather than counted as clea
 - `python scripts/fleet_parity.py --run-date <run-date>` — 0 warn-undeclared, 0 must-absent,
   0 tombstone-violated across those 8 rows, for every repo walked
 
+<!-- WAVE-EXECUTION:START -->
+
+> **Superseded by the block below (in-file amendment marker, CLAUDE.md §5 item 3).** The
+> paragraph above is the ex-ante placeholder, preserved verbatim rather than rewritten: this
+> record is an audit and audits are immutable, so the execution evidence is APPENDED and the
+> "Not yet executed" text stands as what was committed to before the wave ran.
+
+**EXECUTED 2026-08-04.** Both runs verbatim below. **OPERATOR: read the coverage statement in
+§5.3 — the clause is met, and it is met over 3 of the fleet's 9 declared repos.**
+
+### 5.1 Run (a) — `PYTHONUTF8=1 python scripts/desired_state_report.py` (exit 0)
+
+VERDICT: **no `diverge` cell on any of the 8 rows.** The report's only three `diverge` cells are
+on `corpus-version`, which is not one of the 8 and is out of this wave's scope.
+
+```
+summary — conform: 185 · diverge: 3 · declared: 3 · n/a: 219
+
+| surface | .dev-knowledge | ai-council | corp-monorepo | corp-ops | corp-sca-time-automation |
+|---|---|---|---|---|---|
+| ignore-venv | conform | conform | conform | · | · |
+| ignore-pycache | conform | conform | conform | · | · |
+| ignore-pytest-cache | conform | conform | conform | · | · |
+| ignore-ruff-cache | conform | conform | conform | · | · |
+| ignore-mypy-cache | conform | conform | conform | · | · |
+| ignore-hypothesis | conform | conform | conform | · | · |
+| ignore-egg-info | conform | conform | conform | · | · |
+| ignore-node-modules | conform | · | · | · | · |
+```
+
+### 5.2 Run (b) — `PYTHONUTF8=1 python scripts/fleet_parity.py --run-date 2026-08-04` (exit 0)
+
+VERDICT: **0 warn-undeclared, 0 must-absent, 0 tombstone-violated on the 8 rows.** No `ignore-*`
+row appears anywhere in the 28 findings — grepped, not inferred. The run's single
+`warn-undeclared` is `ai-council root-sweep` / `conftest.py`, a DIFFERENT row and the standing
+[#430] dispositioned WARN.
+
+```
+wrote logs\FLEET-PARITY.md
+[fleet-parity] 3 repo(s) walked: 183 at-parity, 20 pass-declared, 1 gate-ahead-declared, 1 warn-undeclared, 0 must-absent, 0 tombstone-violated, 0 advisory-rewarn, 1 stale, 0 refused -- see logs/FLEET-PARITY.md
+[fleet-parity] ownership (ADR-103): 57 methodology-generic, 9 project, 15 conditional -- management surface #329
+```
+
+### 5.3 Coverage — the repos NOT walked, named rather than counted clean
+
+`fleet_parity` reports **"3 repo(s) walked"**, not 9. Naming every repo the run did not probe,
+per this record's own standing requirement:
+
+| repo | in `parity-surfaces.yaml` fleet? | walked? | why not |
+|---|---|---|---|
+| `.dev-knowledge` | yes | **yes** | — |
+| `ai-council` | yes | **yes** | — |
+| `corp-monorepo` | yes | **yes** | — |
+| `corp-ops` | yes | **no** | `skipped-pre-deploy` — registered, no methodology deployed yet |
+| `corp-sca-time-automation` | yes | **no** | `skipped-pre-deploy` — registered, no methodology deployed yet |
+| `demo-prep` | **no** | no | absent from the parity manifest's `fleet` list entirely |
+| `life-architect` | **no** | no | absent from the parity manifest's `fleet` list entirely |
+| `terminal-setup` | **no** | no | absent from the parity manifest's `fleet` list entirely |
+| `win-tooling` | **no** | no | absent from the parity manifest's `fleet` list entirely |
+
+So the ratified clause is **met on the evidence available**, and the evidence covers **3 of the
+9 repos ADR-104 declares**. The 2026-08-03 witness was 1-of-9; this run is 3-of-9. The remaining
+six are two distinct gaps, not one: two are registered-but-undeployed (a lifecycle state the
+walk renders explicitly rather than hiding), and four are not in the parity manifest's `fleet`
+list at all — the same declared-vs-machine-surface asymmetry `check_membership_agreement`
+reports as data.
+
+In run (a) the same three repos read `conform` on all 8 rows while `corp-ops` and
+`corp-sca-time-automation` read `·` (no declaration for these rows), which is consistent with
+(b): the declaration layer and the probe layer agree about who is covered.
+
+### 5.4 Divergence found: none on the 8 — and one live defect found while running them
+
+No divergence on any of the 8 rows, in either layer, so no consumer-side fix is owed and the
+out-of-scope boundary (consumer repairs belong to the consumer repos) was never reached.
+
+Found while executing, recorded rather than dropped: **`scripts/desired_state_report.py` dies on
+a cp1252 console** — `UnicodeEncodeError: 'charmap' codec can't encode character '⇄'`
+(the `⇄` in its own HONEST LIMITS text). Same class as [#470] (`audit.py checks`, U+2192) but a
+different script and a different glyph, so [#470]'s ASCII-swap fix does not cover it. Both runs
+above therefore ran under `PYTHONUTF8=1`. Not fixed here — this wave does not own that script.
+
+<!-- WAVE-EXECUTION:END -->
+
 ---
 
 **Filed by:** CC, ARC 0, 2026-08-03 · **Governs:** [#383] · **Cites:** `1afd9579`, `67863180`
