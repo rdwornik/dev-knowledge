@@ -19,6 +19,57 @@
 
 ---
 
+### 2026-08-04 (e) — CC (Opus 5, local): pre-flight becomes a mechanism — and the tool caught me four times
+
+**Did:** ARC 4 — `scripts/preflight_contract.py` + `/preflight`, adoption-first, wired into no
+gate. SHA anchors: `4f11a792` (build), `abf7c12a` + `02d1351f` (six terra HIGHs closed). `[#483]`
+filed for the enforcement question.
+
+**Result.** It verifies the locators a contract cites — `file:line`, heading text, SHA presence,
+`[#id]` liveness — the four classes that account for the window's **nine architect premise
+errors**, all of which were caught downstream by accident. Extraction is deliberately
+conservative: every pattern needs a marker a human put there on purpose, because a verifier that
+extracts nothing PASSES everything while one that extracts too much gets ignored. Both directions
+are tested.
+
+**Its honest limit is the one that matters, and it is stated in four places** (module, command
+doc, tests, row): a citation on the WRONG line still passes — `:3381` and `:3429` are both real
+lines — so **the very error that motivated this tool would not have been caught by it.** It
+catches the coarser class. A PASS means "every locator resolves", never "the contract is correct".
+
+**Run live against the L-D dossier before commit, which is how the first two defects surfaced:**
+six FALSE FAILs (this repo cites scripts by bare name) and my own `| tail` masking the exit
+code — the standing pipeline gotcha, hit while demonstrating a tool built to catch stale claims.
+
+**Terra found six HIGHs across two rounds, and every one was mine.** Round 1: Windows absolute
+locators silently skipped (a contract carrying only one reported a clean 0/0 — the vacuity class,
+inside the tool built to answer it); the bare-name fallback could verify the WRONG file; and
+`git cat-file` exiting 1 for both a missing object and a broken invocation, so a dead git rendered
+every SHA as an ordinary failure — **"I could not check" wearing the costume of "I checked and it
+is wrong", which is exactly the `[#465]` leg-4 defect I had spent an arc removing that morning.**
+Round 2 found that all three round-1 repairs carried their own defect: the fallback then fired on
+qualified paths, the health probe was consulted only inside the SHA loop so a file-only contract
+went clean against an unusable repo, and `"not reachable in history"` over-claimed what
+`cat-file -e` proves. That last one I fixed by **correcting the claim to what the probe actually
+establishes** rather than half-building ref-set reachability — a message that says more than the
+check knows is the same defect class as everything else this window closed.
+
+**Fourth consecutive round in this session where my fix carried the next defect.** Recorded as a
+pattern, not as six separate findings.
+
+The new command tripped the coupled parity surfaces exactly as the standing pattern predicts;
+each closed by precedent — a `command-preflight` parity row, a `.methodology.yaml` divergence
+declaration, and the `claude-commands-roster` expectation.
+
+**Changes:** `scripts/preflight_contract.py`, `tests/test_preflight_contract.py` (26 tests),
+`.claude/commands/preflight.md`, `.claude/generated/commands-repo.md`, `.methodology.yaml`,
+`ecosystem/parity-surfaces.yaml`, `ecosystem/doc-counts.md`, `tasks/483-*.md` (new), `BACKLOG.md`.
+
+**Abandoned:** ref-set SHA reachability — named as a limit on `[#483]` instead of rushed.
+
+**Next:** the wrap items — BACKLOG arithmetic + flow check, the ADR-82/88/89 ratification inputs,
+the ADR-106 deferral row, and the CRLF write-helper row candidate.
+
 ### 2026-08-04 (d) — CC (Opus 5, local): the caches wave runs — and the number that matters is 3 of 9
 
 **Did:** ARC 3 — drove the 8 gitignore-effect rows to `[#383]`'s ratified Done-when. SHA anchor:
