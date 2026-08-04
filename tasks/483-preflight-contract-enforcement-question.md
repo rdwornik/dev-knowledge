@@ -1,7 +1,7 @@
 ---
 id: "[#483]"
 title: "`preflight_contract` is adopted but ungated — rule whether locator verification becomes a gate"
-status: open
+status: closed
 priority: P3
 size: S
 theme: "[E2] Enforced governance"
