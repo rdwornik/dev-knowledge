@@ -19,6 +19,68 @@
 
 ---
 
+### 2026-08-04 (g) — CC (Opus 5, local): three headers stop lying, and two chat-only rules get homes
+
+**Did:** ARC 1 of the window seal — ADR-82 ratified with its version catch-up, ADR-88/89 flipped
+to ADR-94 Pattern B in one pass, and the two in-chat rules landed at their homes. Also anchors
+`b18bf29f`, which the previous merge introduced and no JOURNAL named (see the last paragraph).
+
+**Result — the same defect class as the whole window, in its governance form.** A `Proposed`
+header on an ADR the repo has treated as Accepted for six weeks is a **label that no longer
+describes the thing it names** — the governance instance of `handoff_tag_canonicity` emitting a
+verdict for a dead subject, and of an organ id naming a retired Stop hook while probing a
+pre-push one.
+
+**ADR-82 — RATIFIED, with the catch-up in the same act.** The header said `Proposed` while
+`CLAUDE.md` §7 cites the ADR as the authority for live v6 handoffs. Ratifying alone would have
+frozen an Accepted record **seven versions** behind the spec it governs, so the appended
+amendment transcribes the v5.3 → v6.0.1 ledger — each row verified against `CONTRIBUTING.md:209`
+before being written, not copied from the prompt. The Council gate is recorded as **waived
+(#149), no transcript exists** — stated as fact, not apology; the ADR's own in-place marker has
+said so since 2026-06-11 and the header simply stopped contradicting it.
+
+**ADR-88 + ADR-89 — flipped in ONE pass**, as ADR-94 names them: the two stragglers left on
+Pattern A. Both were already ratified in-file on 2026-06-21 by operator edit, so nothing was
+re-ratified. They were ratified together and are flipped together; splitting would have
+re-created the asymmetry that pass removed. `[#242]`'s subject shrank by two named instances —
+annotated on the row, date-free, because a third dated block would have tripped doc_rot on a row
+already at 1138 of 1200.
+
+**Two ruling errors, reported with locators.** The prompt cited *"ADR-89's `:381`"* for the
+stale "live on 13 rules" claim; **ADR-89 is 316 lines** and the claim is at
+**`ARCHITECTURE.md:381`** — the L-B input had it right. And the prompt said the live organ
+reports **14**; measured from the organ rather than any document,
+`audit.check_doc_code_edge` reports **15**. The correction is recorded in ADR-89's amendment as
+data and `ARCHITECTURE.md` was deliberately NOT edited: a volatile count in a freshness-stamped
+canonical doc is the `#222` class, and a `last_reviewed` bump asserts a full re-read this
+amendment is not entitled to claim.
+
+**§F got its durable home** beside the §F it governs (intake #22), with its **first application
+attached and RED**: closed 3, filed 5, boundary `80dd54d6` → this window's seal. A rule whose
+first application is quietly excused is not a rule.
+
+**Library-first landed in PLAYBOOK §11**, the tooling-doctrine home that already asks *"is there
+a simpler alternative I'm already using?"*. While there I found §16 still asserting the code lane
+*"inherits the codex config default (`gpt-5.6-sol`)"* — the drift `[#469]` closed on 2026-08-01,
+and the same stale claim I corrected in `~/.claude/commands/codex-review.md` on 08-03. Corrected
+against the live wrapper. Leaving a known-false claim beside a new doctrine line would have been
+incoherent.
+
+**The ADR-85 backstop caught me again, and it was right.** `c16fa0a9` — yesterday's anchor-fix
+merge — introduced `b18bf29f`, which no JOURNAL entry named. The pre-push gate passed it because
+its discharge is RANGE-level; the audit backstop is PER-ENTRY and stricter, which is exactly the
+documented asymmetry that makes a `--no-verify` bypass visible after the fact. This entry names
+`b18bf29f` and discharges it. Second time in two days the ADR-85 organs have caught their author.
+
+**Changes:** `docs/decisions/ADR-82/-88/-89` (amendments appended; bodies byte-identical, the
+single deletion per file is the Status metadata line ADR-94 Pattern B licenses),
+`docs/intake/2026-07-30-func-...md` (+47/−0), `protocols/PLAYBOOK.md`, `tasks/242-*.md`,
+`BACKLOG.md`.
+
+**Abandoned:** nothing. No terra — the arc changes no code.
+
+**Next:** ARC 2 — cut the handoff.
+
 ### 2026-08-04 (f) — CC (Opus 5, local): the two carried wrap items, filed not acted on
 
 **Did:** Filed `[#484]` and `[#485]`, both operator-directed at the close-out. SHA anchors:

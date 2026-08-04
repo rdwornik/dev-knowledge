@@ -1,6 +1,6 @@
 # ADR-82: HANDOFF_PROCESS v5 — CC-owned, primary-source-forced handoff (model C)
 
-- **Status:** Proposed
+- **Status:** Accepted (ratified 2026-08-04 — architect adjudication; canonical since 2026-06-11 by operator waiver of the Council gate, #149. Status line edited in place per ADR-94 Pattern B / CLAUDE.md §5 item 3; the decision body below is unchanged)
 - **Date:** 2026-06-11
 - **Related:** ADR-62 (v4 handoff ratification — superseded by v5 *at promotion to canonical*, not now); ADR-79 (browser carrier bundle-only — v5's thin boot supersedes the heavy-bundle delivery it mandated, at promotion); ADR-28 (three-layer model — v5 inverts who *initiates*, not the layer invariants); ADR-41 (cross-repo decision routing — the Council route this ADR is pending on); #148 (the v5 redesign item), #124 (BUNDLE.md consolidation — superseded by the thin boot), #25 (deferred .tmpl refinements), #145 (codification-completeness — the pointer-integrity dependency)
 - **Decommission:** none active while **Proposed**. On promotion to canonical (the Council-gated flip, tracked by the named successor backlog item), the following are decommissioned: (1) `templates/handoff/*.tmpl` → archived to `templates/archive/handoff-v4/`; (2) the 8-file teaching-bundle generation path in `/handoff`; (3) `audit.py` checks #8 `handoff_bundle_structure` / #9 `handoff_tag_canonicity` scoped/retargeted to historical v4 bundles. Nothing is removed by this ADR in its Proposed state.
@@ -71,3 +71,58 @@ Adopt **model C: CC owns and initiates the handoff; the browser is a thin reacti
 **Intent preserved (amendment, not reopen).** The model-C decision and the v5.1 advisory contract are unchanged — the supplement stays **advisory, why-only, never teeth-bearing**, and **CC never fabricates answers** (an unanswered supplement is committed empty, never synthesized — that would re-create the v4 disease). This is a mechanism + operator-flow refinement of the v5.1 supplement, not a new model. **Scope: architect-mode-additive only**; execution mode and §§1–12 are untouched.
 
 **Coupled atomic move.** A 5.1→5.2 *minor* bump keeps major = 5, so the major-keyed coherence surfaces (`CLAUDE.md`, `.claude/commands/handoff.md`) need no change; only the full-version stamp moves (`CONTRIBUTING.md` `stamp v5.1`→`v5.2`). `audit.py health` green (`handoff_version_stamp` + `amendment_coherence`) proves the atomic move. #159 stays open (the real dogfood — a supplement filled with actual answers — is still owed); #164 must now emit the always-file form.
+
+## Amendment — 2026-08-04 (ratification + the v5.3 → v6.0.1 version catch-up)
+
+> **In-file amendment marker (CLAUDE.md §5 item 3 / ADR-94).** The decision body above is
+> preserved **verbatim**. This amendment does two things and nothing else: it records the
+> ratification whose status-line flip is above, and it closes the gap between this ADR's
+> amendment chain and the spec it governs. **No model-C decision is reopened.**
+
+**Ratified 2026-08-04**, on the architect's adjudication of the lane L-B ratification input
+(`docs/audits/2026-08-03-technical-night-lb-groom.md` §3.2). The ADR was already operative in
+every practical sense — `CLAUDE.md` §7 cites it as the authority for v6 handoffs — so the
+frozen `Proposed` header was a pure record defect of exactly the header-vs-effective-status
+class `[#242]` exists to mechanize.
+
+### The Council gate was WAIVED, not passed — stated as fact, not apology
+
+`#149` waived the AI-Council ratification gate, so **no Council transcript exists** and none is
+missing. This ADR is canonical **by operator waiver**, and now Accepted by architect
+adjudication. The in-place status marker above (`:11-15`) has said so since 2026-06-11; the
+header simply stopped contradicting it.
+
+### Version catch-up — the ledger this ADR did not carry
+
+This ADR's amendment chain stopped at **v5.2** (2026-06-17). The governed spec is live at
+**`protocols/HANDOFF_PROCESS.md` — `Version: 6.0.1`**, so the record stood **seven versions**
+behind. Each entry below is transcribed from the ledger `CONTRIBUTING.md:209` already carries
+and was verified against it before being written here — this ADR is catching up to that ledger,
+not asserting anything new:
+
+| version | date | what it changed |
+|---|---|---|
+| v5.3 | 2026-06-25 | §5 probe-manifest consolidation |
+| v5.4 | 2026-07-05 | §5 structural anti-bluff + §13 generator note |
+| v5.5 | 2026-07-05 | §14 epic-lane handoffs — EPIC + EPIC RETURN (ADR-97) |
+| v5.6 | 2026-07-06 | §14a execution-MODE item |
+| v5.7 | 2026-07-07 | §16 functional/intake mode + §14 developer alias (ADR-98) |
+| v6.0 | 2026-07-31 | one-round-trip boot — `/handoff-verify` runs the whole live gate and emits ONE evidence block; P0 standing-topic legs; `Destination` boot-header row + its P3 comparison; `HANDOFF_BOOT` byte budget; A11 generation/verification guards (intake #19 §B(b), rulings R1–R7, built under `[#446]`) |
+| v6.0.1 | 2026-07-31 | `Destination` branch-field clarification — the field is the BOOT DESTINATION compared once by P3 at boot, so `main` is legal for a primary-tree architect seat and lane branches are declared at delegation (§13(c″), architect ruling, revertable) |
+
+**Why record it here rather than leave it to `CONTRIBUTING.md`.** Ratifying without the catch-up
+would have frozen an Accepted decision record seven versions behind the spec it governs — an
+ADR that reads as current while describing a retired shape. The ledger stays canonical in
+`CONTRIBUTING.md`; this is the decision record agreeing with it.
+
+### What this does NOT change
+
+- **Not the model-C decision.** CC owns and initiates the handoff; a thin browser boot replaces
+  the 8-file bundle; probes force re-derivation from live primary sources. Untouched.
+- **Not the v5.1 advisory-supplement contract** — still advisory, why-only, never teeth-bearing,
+  and CC still never fabricates an answer.
+- **Not the Decommission list**, whose "while Proposed" qualifiers are historical context the
+  in-place marker already flagged as such. Note as data, not as a new ruling: item (3) named
+  `audit.py` check #9 `handoff_tag_canonicity` for scoping/retargeting — that check was
+  **RETIRED** on 2026-08-04 under `[#465]` leg 4 by an inert-check detector, which discharges
+  that clause by a different route than this ADR anticipated.

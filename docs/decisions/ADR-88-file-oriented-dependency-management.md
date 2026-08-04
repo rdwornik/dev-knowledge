@@ -2,7 +2,7 @@
 
 <!-- scope: meta -->
 
-**Status:** Proposed
+**Status:** Accepted (ratified 2026-06-21 by operator edit; header flipped 2026-08-04 per ADR-94 Pattern B — see the 2026-08-04 amendment. The 2026-06-21 in-file marker below is the original ratification; this line stopped contradicting it.)
 **Date:** 2026-06-19
 **Decision tier:** Architecture (Layer-1 architect authored + operator; Path A — direct authoring, no Council transcript). Capstone paradigm ADR; acceptance pending operator/Council ratification.
 **Related:** ADR-28 (Layer-2 authority), ADR-85 (Stop-gate — same doctrine on the session→living-docs edge), ADR-86 (conformance dashboard), ADR-87 (architect↔CC contract — the human-process application), #131 (deployment test), #156 (durable hard edges), #172 (coherence-spine v1, closed), #179–#182 (the `coherence` serialize-group) + #183 (reparent), #170 (traceability edge — sibling)
@@ -175,3 +175,43 @@ roadmap (#179–#182). The forward / data-gated open questions are **deliberatel
 ratification (operator ruling): **OQ1** (FC taxonomy completeness — #131 pilot), **OQ3** (global/local
 contract — #131), **OQ4** (#181 nudge-response data-gate). This edit also lands the deferred **ADR-89
 back-reference** (Relationships above) — ADR-89 is the computed-edge sibling under the same principle.
+
+## Amendment — 2026-08-04 (header flip to Pattern B; the Proposed header was the last thing still saying Proposed)
+
+> **In-file amendment marker (CLAUDE.md §5 item 3 / ADR-94).** The decision body above is
+> preserved **verbatim**. Nothing here re-ratifies anything: this ADR was ratified on
+> **2026-06-21** by operator edit (the marker at `## Amendment — 2026-06-21`), and
+> `ARCHITECTURE.md` has recorded both ADR-88 and ADR-89 as *"both Accepted 2026-06-21
+> (`911b561`)"* ever since. Only the frozen header still said `Proposed`.
+
+**What changed and why now.** ADR-94 (Accepted 2026-07-03) standardised the go-forward
+ratification flip on **Pattern B** — the `**Status:**` line edited in place — and named ADR-88
+and ADR-89 as **the two stragglers left on Pattern A** (frozen header + in-file marker). Their
+headers were therefore the last surface in the repo still asserting a status the repo had
+disagreed with for six weeks. `[#242]` exists to mechanize exactly that
+header-vs-effective-status divergence; this flip removes two of its instances rather than
+leaving them as the check's own test fixtures.
+
+That is the same defect class this repo spent 2026-08-03/04 closing under a different name: a
+**label that no longer describes the thing it names**. `handoff_tag_canonicity` kept emitting a
+verdict for a subject that had stopped existing; `enforcement_coverage`'s organ id named a
+retired Stop hook while probing a pre-push one. A `Proposed` header on a six-week-Accepted ADR
+is the governance instance of it.
+
+**Done in ONE edit pass with ADR-89, deliberately.** The two were ratified together in one pass
+(this ADR's 2026-06-21 amendment lands its ADR-89 back-reference; ADR-89's `:314` records
+*"ADR-88 lands its back-reference in this same edit pass"*). Splitting the flip would have
+re-created the asymmetry the pass removed.
+
+### What this does NOT change
+
+- **Not the paradigm.** Repo files — markdown first — remain the unit of dependency; edges stay
+  *declared* (`reconciled_with` / `serialize-group` / `depends-on`); coherence stays held by
+  machinery, not memory.
+- **Not the four carried open questions.** They are still carried, and **OQ4 is still
+  un-openable on its own terms**: it is data-gated on a firing signal from
+  `logs/coherence-nudge.log`, and that log has never existed. Recorded as a standing fact so a
+  future reader does not mistake the gate for merely un-checked.
+- **Not a Council ratification.** This ADR was authored Path A (direct authoring, no Council
+  transcript); the 2026-06-21 acceptance was an operator edit. Nothing here converts that into a
+  Council pass.

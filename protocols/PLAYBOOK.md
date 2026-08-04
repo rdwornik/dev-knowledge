@@ -3439,6 +3439,20 @@ Cross-refs: ADR-41, ADR-37 (Section 8), ADR-38 amendment A5 (universal baseline 
 - **Council debate:** Would change architecture or replace an existing tool
 - **Hard no:** Pre-v1, no community, solves a problem I don't have
 
+**Library-first adoption order (ruled 2026-08-04).** **stdlib > an existing dependency > a new
+distribution — and an adoption claim carries a measured divergence, not a preference.** The
+sharp half is the second clause: "the library is better" is not an adoption argument until you
+have run both and can say by how much they differ. Precedent, the L-E adoption audit: `graphlib`
+was **rejected** because it matched the hand-rolled DFS across **24,000 random graphs** — a
+measured non-divergence, so adopting it would have bought nothing; `ruamel` and `tenacity` were
+**rejected as new distributions** where an existing dependency or stdlib already reached. The
+adoptions that landed did so on measured divergence: `markdown_it` replaced a fence toggle that
+was wrong four distinct ways over a 1578-file corpus, and `fnmatchcase` replaced `fnmatch` whose
+verdict changed with the host OS. Note the order's own consequence — an *existing* dependency
+outranks a new one even when the new one is nicer, and a transitively-present library is
+declared explicitly before a gate leans on it (the `packaging>=24.0` / `markdown-it-py>=4.0`
+precedent) so no gate rides an edge nobody declared.
+
 ---
 
 ## 12. Multi-Project Rules
@@ -3627,7 +3641,7 @@ Codex/ultrareview reviews. Claude Code builds. Never reverse the roles.
 <!-- scope: dev -->
 
 - **Exact model strings only.** The Codex 5.6 lanes are `gpt-5.6-terra` / `gpt-5.6-sol` / `gpt-5.6-luna` — always the full string, **never a bare `gpt-5.6`** (an invalid identifier: a bare-string call fails as bad input — a 400 on ChatGPT auth — which is NOT evidence the capability is absent — LESSONS 2026-07-12 invalid-input-vs-absent-capability). Nicknames map exactly: **terra / sol / luna = `gpt-5.6-terra` / `-sol` / `-luna`**. Verified against the live codex-cli `/model` selector (registry snapshot in [#333]).
-- **terra is the doctrinal default review lane** — but mind the live drift: the doc-lane pins `gpt-5.6-terra` explicitly, while the **code lane currently inherits the codex config default (`gpt-5.6-sol` as of 2026-07-16)** because the wrapper passes no `-m` flag on that path. This config-vs-doctrine drift is tracked for reconciliation (see [#333] follow-up). Choose sol or luna deliberately only when a lane's stated strength fits the task better, and say why.
+- **terra is the doctrinal default review lane, and BOTH lanes now pin it explicitly.** *(Corrected 2026-08-04 — this bullet described a drift that `[#469]` closed on 2026-08-01. It read: "the code lane currently inherits the codex config default (`gpt-5.6-sol` as of 2026-07-16) because the wrapper passes no `-m` flag on that path." Verified against the live wrapper `~/.claude/bin/codex-review.ps1`, which sets `$reviewModel = 'gpt-5.6-terra'` and passes it on both paths; the same stale claim was corrected in `~/.claude/commands/codex-review.md` on 2026-08-03.)* The pin exists because an unpinned run the operator asked for as terra silently EXECUTED as sol, with nothing in the artifact recording which model had run — and an unpinned reviewer also makes cross-provider comparison unreproducible. Choose sol or luna deliberately only when a lane's stated strength fits the task better, and say why.
 - **Doc-lane review is first-class in `/codex-review`** ([#333]): a prose diff (no code files, ≥1 `.md`/`.rst`/`.txt`) routes to the wrapper's **doc-lane** — a prose/structural profile (disposition-faithfulness, cross-doc consistency, structural integrity, template usability) pinned to `gpt-5.6-terra`. The code-only path-guard still filters markdown out of the *code* profile; mixed diffs review as code. (Ad-hoc `codex exec` remains available for one-off reads outside a diff.)
 - **Every plan names its Codex lane.** A plan / architect prompt states which lane (terra/sol/luna) + surface (code or doc, both via `/codex-review`) its review leg uses — an addressable planned decision, not an ad-hoc runtime pick (pairs with review-before-STOP, Ch12).
 - **Read the body, not the severity summary.** A reviewer's severity header is a routing hint, not a finding — and it is the part most likely to be wrong, being generated last and compressing most. Read the finding body, reproduce the claim against live state, and disposition on what you reproduced: a HIGH that does not reproduce closes as not-reproduced, and a LOW whose body names a real defect is fixed regardless of band. Acting on the summary line alone propagates the reviewer's triage error into the repo. Family: `[#431]` / `[#445]`; cross-reference the wrapper change-record audit from the terra-pin arc, where band and body disagreed.
