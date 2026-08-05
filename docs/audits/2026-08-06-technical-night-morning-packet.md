@@ -114,21 +114,33 @@ B5 block_ff_push:39    READY, code-impact -> terra review owed. Fold in ARCHITEC
                        (U-1, same class, currently unfiled by [#497]). Do NOT "fix"
                        :153/:169 -- those fail-soft descriptions are correct.
 
-B2 mutation eval       BLOCKED on the missing library verdict (items 1-2 not delivered).
-                       Everything else in the brief is complete, incl. the verified
-                       vacuous-test calibration case.
+B2 mutation eval       READY, ONE OPERATOR CHOICE. mutmut 3.7.0 (released 2026-07-31) is
+                       scopeable via a [tool.mutmut] paths array in pyproject.toml AND
+                       incremental ("restart where you left off") -- both decisive questions
+                       favourable. BUT it needs `fork`: "if you want to run on windows, you
+                       must run inside WSL." This repo is Windows-developed, so pick a host:
+                       WSL or CI. CI pairs naturally with B1 and is the recommendation.
+                       One empirical unknown left: mutmut-under-`uv run --locked` (settle by
+                       running the pilot, not by more reading).
 
-B3 vale eval           BLOCKED on the same gap. Its decisive question is untested: can vale
-                       express a CORPUS-WIDE ceiling (441 across 57 files) or only per-file?
+B3 vale eval           ANSWERED -- DO NOT BUILD AS SCOPED. vale CANNOT enforce a corpus-wide
+                       ceiling. Proven in its own Go source, twice: `occurrence` counts per
+                       BLOCK with no persisted state, and the `script`/Tengo escape hatch is
+                       closed by design -- "A clone per block: the program is shared, its
+                       globals are not, and Vale lints files concurrently." A corpus total is
+                       incompatible with vale's concurrency model, not a missing feature.
+                       So the 441-across-57-files ratchet stays bespoke. Vale could still do
+                       ordinary per-file prose style -- a smaller row, worth re-scoping and
+                       re-filing rather than building under this one.
 
 [#487] re-scope        NOT for the first batch (L). Three premise corrections change the
                        spec -- see below.
 
-first V-1 batch        Lane A: B1 (.github/workflows/ + ARCHITECTURE rows)   BLOCKED
+first V-1 batch        Lane A: B1 (.github/workflows/ + ARCHITECTURE rows)   BLOCKED (path)
                        Lane B: B4 (CONTRIBUTING, DoD, override.md)           READY
                        Lane C: B5 (block_ff_push.py, tests, ARCHITECTURE:327) READY
-                       Lane D: B2 (pyproject.toml, test_fleet_analytics)      BLOCKED
-                       Lane E: B3 (.pre-commit-config.yaml, .vale.ini)        BLOCKED
+                       Lane D: B2 (pyproject.toml, test_fleet_analytics)      READY*(host)
+                       Lane E: B3 (.pre-commit-config.yaml, .vale.ini)        DO NOT BUILD
                        COLLISION: A and C both touch ARCHITECTURE.md -> run C first,
                        A after; never concurrently on that file.
                        B1 is the sole owner of .github/workflows/ (4 candidates converge
@@ -144,6 +156,13 @@ first V-1 batch        Lane A: B1 (.github/workflows/ + ARCHITECTURE rows)   BLO
         building v1 raw but STORING the sig field from day one, so adding the comparison
         later is not a schema migration. drift is not adoptable: 1-file-per-edge, whole-doc
         anchor -- the two dimensions [#408] needs.
+B2      mutmut: ADOPT-candidate, and the shape change is the HOST, not the tool -- fork
+        requirement means WSL or CI, never the Windows host directly. Scoping and
+        incrementality both confirmed, which is what made a 2228-test suite tractable.
+B3      vale: LEAVE for the ratchet -- a hard negative from vale's source, so this verdict
+        does not just delay the row, it CANCELS it as scoped. Biggest risk avoided: a
+        per-file vale rule that LOOKS like the ratchet would silently lower enforcement --
+        exactly the A5 "fails-toward-silence" class the register already names.
 P6      commit-convention engines: LEAVE. commitlint's rule API cannot see the diff (both
         rules need it); gitlint can, but last release 2023-03-10, last commit 2023-09-02,
         with an unshipped "0.20.0 Unreleased" in its own changelog. Keep the two bespoke
@@ -263,23 +282,26 @@ R-C  SURVIVES, CONDITIONALLY -- two things belong on the record first.
 
 ## 5. Coverage statement
 
-**Delivered in full:** Part 1 (every register locator resolved; v1.6 checked against five docs
-with negatives verified; all three rulings steelmanned and rebutted; live `audit.py health` and a
-completed, fully-classified suite run). Part 2 (six briefs, footprints verified live, B1's YAML
-written). Part 4 (design, granularity table for all 11 addressable sections, three-layer spec,
-pointer-validation leg, subsume-or-peg analysis). Part 3 for items 3–7.
+**Delivered in full — all four parts.** Part 1 (every register locator resolved; v1.6 checked
+against five docs with negatives verified; all three rulings steelmanned and rebutted; live
+`audit.py health` and a completed, fully-classified suite run). Part 2 (six briefs, footprints
+verified live, B1's YAML written). Part 3 (all seven research items). Part 4 (design, granularity
+table for all 11 addressable sections, three-layer spec, pointer-validation leg, subsume-or-peg
+analysis).
 
-**Not delivered, named rather than smoothed:**
+**Bounded or incomplete, named rather than smoothed:**
 
 ```
-1  RESEARCH ITEMS 1 AND 2 ARE MISSING -- mutation testing (B2) and vale (B3). The lane did
-   not return within the window. This is the batch's one real hole. Consequence: B2 and B3
-   are the two BLOCKED-on-verdict lanes on the board. Both briefs are otherwise complete and
-   carry "LIBRARY VERDICT: NOT DELIVERED" with the specific unanswered questions listed, so
-   nothing inherits a false green. The decisive unknowns: can mutmut/cosmic-ray scope a run
-   to named modules with cached re-runs (a 2228-test suite makes an unscoped run
-   impractical); and can vale express a CORPUS-WIDE numeric ceiling rather than per-file
-   counts.
+1  ITEMS 1-2 WERE RESCUED, NOT DELIVERED AS ASSIGNED. The research lane for mutation testing
+   and vale over-ran the batch window. Rather than ship them as gaps I closed both directly
+   against primary sources -- vale's own Go implementation (its site 403s, so source is the
+   better evidence anyway) and the PyPI JSON API. Both answers are implementation- or
+   metadata-backed, and both name what was NOT checked instead of filling it in:
+   mutmut-under-`uv run --locked` (empirical, settle by running the pilot) and vale's current
+   version/license (not needed once the capability answer came back negative).
+   Narrower coverage than the other five items: I did not compare mutation-operator quality
+   between mutmut and cosmic-ray -- mutmut won on the two axes that decide this pilot
+   (scoping, incrementality) plus release recency, which was sufficient to unblock B2.
 
 2  [#487]'s VOLUMETRICS ARE UNVERIFIABLE HERE. logs/PROPOSALS-*.md does not exist in this
    container (ls logs/ -> TOKEN-LOG.md only; gitignored; the repo itself says the

@@ -248,13 +248,25 @@ precondition, not an optimization); a flood of low-value surviving mutants (miti
 verdict is about the four organs, not a global score); `uv`-under-mutation interaction unknown
 (see the library gap).
 
-**LIBRARY VERDICT: NOT DELIVERED.** The research lane for mutmut vs cosmic-ray did not return.
-Four questions decide adoption and none is answered: current maintenance state of both tools;
-`uv`-with-locked-env compatibility; Windows behaviour (mutmut historically had problems);
-and — decisive — whether runs can be **scoped to selected modules with cached incremental
-re-runs**. Do not start B2 until these are answered; the brief is otherwise complete.
+**LIBRARY VERDICT: ADOPT-candidate — `mutmut` 3.7.0, but the run has to move off Windows.**
+Both decisive questions came back favourable and one came back as a constraint:
+- **Scopeable — yes.** A `[tool.mutmut]` section in `pyproject.toml` takes paths as an array
+  (the shape this repo needs; it has no `setup.cfg`), plus `only_mutate`/`do_not_mutate`.
+- **Incremental — yes.** "Remembers work that has been done, so you can work incrementally";
+  a run can be stopped and resumed. So the four-module pilot is repeatable, not one big shot.
+- **Alive — yes.** 3.7.0 released 2026-07-31, nine days before this batch. (cosmic-ray 8.4.6,
+  2026-04-02, MIT, is the alternative; mutmut wins on the two axes that decide this pilot.)
+- **Windows — blocked.** Verbatim: "Mutmut must be run on a system with `fork` support. This
+  means that if you want to run on windows, you must run inside WSL." This repo is
+  Windows-developed, so **the pilot cannot run natively on the operator's host.** Operator
+  choice: WSL, or CI — which pairs naturally with B1 and is the option the research favours.
 
-**Size:** M. **Lane:** owns `pyproject.toml` in its batch.
+**One open item, and it is empirical rather than research.** mutmut spawns a subprocess per
+mutant to run the suite; how that interacts with `uv run --locked` (how every gate here invokes
+pytest) is **NOT VERIFIED**. Settle it by running the scoped pilot, not by more reading.
+
+**Size:** M. **Lane:** owns `pyproject.toml` in its batch. **Status: unblocked**, conditional on
+the operator picking WSL or CI as the host.
 
 ## B3 — prose-lint (vale) evaluation
 
@@ -285,11 +297,27 @@ it cannot count. The live number is confirmed
 counts per-file, silently lowering enforcement — the "fails-toward-silence" class the register
 already names at A5. Mitigation: the done-when is the corpus-wide question, not "vale runs."
 
-**LIBRARY VERDICT: NOT DELIVERED** — same lane. One relevant fact did surface from the item-3
-research and is recorded: **no Vale plugin does code-reference staleness**, so the `doc_claims`
-overlap vale could plausibly cover is the *prose* half only, never the claims-vs-code half.
+**LIBRARY VERDICT: LEAVE — vale cannot express the ratchet, and this is proven in its source.**
+The decisive question now has a hard negative answer, so **B3 as scoped should not be built.**
+- `occurrence`, the closest rule type, counts **per block**: `Run` takes one `nlp.Block`,
+  `occurrences := len(locs)` over `blk.Text`, compared immediately against `Max`/`Min`. No state
+  survives the call, so `Max` can never be a corpus total.
+- The `script` (Tengo) escape hatch is closed **by design**: the block text is injected per
+  invocation (`compiled.Set("scope", blk.Text)`) and the source says why — "A clone per block:
+  the program is shared, its globals are not, and **Vale lints files concurrently**." A
+  corpus-wide count is incompatible with vale's concurrency model, not a missing feature.
+- Also negative: **no Vale plugin does code-reference staleness**, so the `doc_claims` overlap
+  vale could cover is the *prose* half only — never the claims-vs-code half, which is the half
+  that matters.
 
-**Size:** M. **Lane:** owns `.pre-commit-config.yaml` + `.vale.ini` in its batch.
+So the silent-rule ratchet (441 across 57 files, lowerable-or-held but not raisable) **stays
+bespoke**. What vale could still do is ordinary per-file prose style — a genuinely smaller
+proposition than B3 was asked to test, and one that should be re-scoped and re-filed rather than
+built under this row. The biggest risk this verdict avoids is the A5 "fails-toward-silence"
+class: a per-file vale rule that *looks* like the ratchet would silently lower enforcement.
+
+**Size:** M as filed, S if re-scoped to prose-only. **Lane:** owns `.pre-commit-config.yaml` +
+`.vale.ini`. **Status: answered — recommend NOT building as scoped.**
 
 ## B4 — doc-currency S-row
 
@@ -473,8 +501,12 @@ B     B4    CONTRIBUTING.md, protocols/DEFINITION_OF_DONE.md,       READY
             .claude/commands/override.md
 C     B5    scripts/block_ff_push.py, tests/test_block_ff_push.py,  READY (code-impact:
             ARCHITECTURE.md:327 (U-1)                               terra review owed)
-D     B2    pyproject.toml, tests/test_fleet_analytics.py           BLOCKED: library verdict
-E     B3    .pre-commit-config.yaml, .vale.ini, styles/             BLOCKED: library verdict
+D     B2    pyproject.toml, tests/test_fleet_analytics.py           READY*: mutmut adopted;
+                                                                   * needs a WSL-or-CI host
+                                                                   decision (fork requirement)
+E     B3    .pre-commit-config.yaml, .vale.ini, styles/             DO NOT BUILD AS SCOPED:
+                                                                   vale cannot express a
+                                                                   corpus-wide ceiling
 ```
 
 **One collision inside this batch, and it is resolvable.** Lanes A and C both touch

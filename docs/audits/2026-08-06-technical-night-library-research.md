@@ -2,7 +2,7 @@
 
 - **Class:** technical (ADR-101 enum) · **Date:** 2026-08-06
 - **Source-session:** unattended night batch, Claude Code on the web; branch `claude/night-batch-2026-08-06-p59kml`; HEAD `8e2be6a1`
-- **Status:** complete for items 3–7 · items 1–2 recorded as NOT DELIVERED (see §8)
+- **Status:** complete — all seven items delivered (items 1–2 closed directly by the orchestrator after the assigned lane over-ran; see §8)
 - **Model:** claude-opus-5 orchestrating; Sonnet-class web-research lanes
 
 Framing per PLAYBOOK §11 "Library-first adoption order (ruled 2026-08-04)"
@@ -25,8 +25,12 @@ item                              verdict            the constraint that decides
    switch (P2 -> [#493])          + LEAVE            watchdog" has no GitHub-native answer
 7  gh findings-as-Issues (P3)     ADOPT-candidate    secondary limit blocks at ~100-150 issue
                                                      creations -- issue-per-finding is refuted
-1  mutation testing (B2)          NOT DELIVERED      see §8
-2  prose linting / vale (B3)      NOT DELIVERED      see §8
+1  mutation testing (B2)          ADOPT-candidate    mutmut is scopeable AND incremental, but
+                                  (mutmut), Linux-   needs fork -> on Windows it must run in
+                                  or-CI only         WSL; the pilot cannot run natively on
+                                                     the operator's host
+2  prose linting / vale (B3)      LEAVE for the      vale CANNOT aggregate a count across
+                                  ratchet            files -- proven in its own source, twice
 ```
 
 ## Item 3 — doc-code drift detection (the [#408] substrate). **BUILD-thin.**
@@ -287,30 +291,98 @@ comment on a standing Issue), not open one per finding.
 **Verdict: ADOPT-candidate** for the mechanics; the issue-per-finding *shape* is refuted on
 measured platform limits.
 
-## 8. Coverage statement — items 1 and 2 were NOT delivered
+## Item 1 — mutation testing (B2). **ADOPT-candidate: `mutmut`, but Linux-or-CI only.**
 
-**Items 1 (mutation testing — mutmut vs cosmic-ray, for B2) and 2 (prose linting — vale, for
-B3) are missing.** The research lane assigned to them did not return within this batch's
-window. This is a real gap, not a soft one, and it has two consequences the morning packet
-repeats:
+Both tools are alive. Facts from the PyPI JSON API, fetched this session:
 
-- **B2's brief carries no library verdict.** What is known from the repo rather than the web:
-  `mutmut` appears nowhere in `pyproject.toml` today (grepped); the four candidate subject
-  modules (`audit.py`, `validate_backlog.py`, `enforcement_coverage.py`,
-  `canonical_freshness_gate.py`) all have dedicated test files; and the pilot's live evidence
-  case is verified (§B2 of the prep packs). The open questions are exactly the ones that
-  decide adoption: current maintenance state of both tools, `uv` compatibility, Windows
-  behaviour, and — the critical one — whether runs can be scoped to selected modules, since a
-  2228-test suite makes an unscoped mutation run impractical.
-- **B3's brief carries no library verdict**, and its decisive question is untested: whether
-  vale's rule types can express a **corpus-wide numeric ceiling** (the silent-rule ratchet's
-  441 total across 57 files) or only per-file / per-scope counts. One relevant fact did surface
-  from item 3's search and is recorded there: no Vale plugin does code-reference staleness, so
-  the `doc_claims` overlap vale could plausibly cover is the *prose* half only.
+```
+mutmut       3.7.0    released 2026-07-31   requires-python >=3.10   github.com/boxed/mutmut
+cosmic-ray   8.4.6    released 2026-04-02   requires-python >=3.9    MIT   github.com/sixty-north/cosmic-ray
+```
 
-Neither gap was smoothed over in the prep packs: both briefs carry `LIBRARY VERDICT: NOT
-DELIVERED` with the specific unanswered questions listed, so the day lane knows exactly what
-to run rather than inheriting a false green.
+mutmut shipped nine days before this batch, so maintenance is not in question. (mutmut's PyPI
+metadata carries no `license` field; cosmic-ray's is MIT verbatim.)
+
+**Scoping — YES, and this was the decisive question.** A 2228-test suite makes an unscoped
+mutation run impractical, so scopeability decides viability. mutmut supports it three ways:
+`source_paths` in `setup.cfg`; a `[tool.mutmut]` section in `pyproject.toml` with **paths as an
+array** — the shape this repo would use, since it has no `setup.cfg`; and `only_mutate` /
+`do_not_mutate` for exclusions within those paths.
+
+**Incremental re-runs — YES.** Documented verbatim: "Remembers work that has been done, so you
+can work incrementally", and "You can stop the mutation run at any time and mutmut will restart
+where you left off." That makes a four-module pilot repeatable rather than a single expensive
+shot.
+
+**The Windows constraint, and it reshapes B2.** Verbatim: **"Mutmut must be run on a system with
+`fork` support. This means that if you want to run on windows, you must run inside WSL."** This
+repo is Windows-developed (`.claude/settings.json` still pins a `C:\Users\1028120\...`
+marketplace path), so **the pilot cannot run natively on the operator's host.** Three options,
+and the choice belongs to the operator: run it under WSL; run it in CI (which pairs it naturally
+with B1, and is the option this research favours); or drop mutation testing.
+
+Note also `requires-python >=3.10` against this repo's `>=3.12` — compatible, no conflict.
+
+**NOT CHECKED, stated rather than guessed:** `uv`-with-locked-env compatibility. mutmut spawns
+subprocesses to run the test suite per mutant, and how that interacts with `uv run --locked`
+(which is how every gate here invokes pytest) was not verified. That is the one open question
+left on B2, and it is a 20-minute empirical check rather than a research question — run the
+scoped pilot and see. Also not checked: mutmut-vs-cosmic-ray on mutation-operator quality;
+mutmut wins on the two axes that decide this pilot (scoping, incrementality) and on release
+recency, which was enough.
+
+Source: https://github.com/boxed/mutmut · https://pypi.org/pypi/mutmut/json ·
+https://pypi.org/pypi/cosmic-ray/json
+
+## Item 2 — prose linting, vale (B3). **LEAVE for the ratchet — proven, not inferred.**
+
+**The decisive question has a hard negative answer: vale cannot enforce a corpus-wide numeric
+ceiling.** The ratchet holds 441 normative keywords across 57 files as a *single total*; vale
+has no construct that can express that. Verified in vale's own source, because `vale.sh`
+refuses direct fetches (403) — so this rests on implementation, which is better evidence than
+docs anyway.
+
+**`occurrence` — the closest rule type — counts per block, with no state.**
+`internal/check/occurrence.go`: `Run` takes a single `nlp.Block`; the body is `txt := blk.Text`,
+`locs := o.pattern.FindAllStringIndex(txt, -1)`, `occurrences := len(locs)`, compared immediately
+— `if (o.Max > 0 && occurrences > o.Max) || (o.Min > 0 && occurrences < o.Min)`. Nothing
+persists between invocations, so `Max` is a per-block bound, never a corpus total.
+
+**The `script` (Tengo) escape hatch is closed too — and closed deliberately.**
+`internal/check/script.go`: `Run(blk nlp.Block, _ *core.File, _ *core.Config)`, with the block's
+text injected per invocation via `compiled.Set("scope", blk.Text)`. The source states the reason
+outright: **"A clone per block: the program is shared, its globals are not, and Vale lints files
+concurrently."** So an arbitrary-logic rule cannot accumulate a counter either — globals reset
+per block by design, because vale lints in parallel. A corpus-wide count is not a missing
+feature; it is incompatible with vale's concurrency model.
+
+**What vale *can* do, so the verdict is not broader than the evidence.** Per-file and per-scope
+prose rules — "this sentence uses passive voice", "this file contains a banned term" — are
+exactly its competency, and a rule flagging *any* normative keyword occurrence for human review
+is expressible. What is not expressible is the ratchet's actual semantics: a **total** that may
+be lowered or held but not raised. So the silent-rule ratchet
+(`scripts/silent_rule_detector.py` + `ecosystem/silent-rule-baseline.yaml`) stays bespoke.
+
+**On the `doc_claims` overlap:** also a negative, from item 3's search — no Vale plugin does
+code-reference staleness. So the part of `doc_claims` vale could plausibly absorb is the *prose*
+half only, never the claims-vs-code half, which is the half that matters.
+
+**NOT CHECKED:** vale's current release version and license were not pulled this session (its
+site 403s and the version was not needed once the capability answer came back negative). If the
+day lane still wants vale for ordinary prose style — a different and much smaller proposition
+than B3 was asked to test — those facts should be gathered then.
+
+Source: https://raw.githubusercontent.com/errata-ai/vale/v3/internal/check/occurrence.go ·
+https://raw.githubusercontent.com/errata-ai/vale/v3/internal/check/script.go ·
+https://vale.sh/docs/checks/occurrence (403 to direct fetch; source read instead)
+
+## 8. Coverage statement
+
+**All seven items delivered.** Items 1 and 2 were originally assigned to a research lane that
+over-ran the batch window; rather than ship them as gaps, the orchestrator closed both directly
+against primary sources — vale's own Go implementation and the PyPI API. Both answers are
+implementation- or metadata-backed rather than doc-paraphrase, and both name what was **not**
+checked (mutmut-under-`uv`; vale's version/license) instead of filling those in.
 
 Other bounded coverage: the percentage figures in item 6(d) are search-indexed rather than
 directly fetched (githubstatus.com refused fetches); the `gh --json` field enum in item 6(b)
