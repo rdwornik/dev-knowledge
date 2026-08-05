@@ -14,17 +14,28 @@ merged, nothing was force-pushed. Re-run the hooks and the suite locally before 
 ```
 branch : claude/night-batch-2026-08-06-p59kml   (pushed; tree clean)
 base   : 8e2be6a1
+verify : git log --oneline 8e2be6a1..origin/claude/night-batch-2026-08-06-p59kml
 
-9803270  docs(audits): night-batch adversarial review of the 2026-08-05 window
-81cf13b  docs(audits): night-batch prep packs, library research, and the [#408] design
+9803270  night-batch adversarial review of the 2026-08-05 window          Part 1
+81cf13b  night-batch prep packs, library research, and the [#408] design  Parts 2-4
+4ef9c77  night-batch morning packet                                       Part 5
+5125dd6  close research items 1-2 (mutmut adopted, vale refuted)          Part 3 completion
+         (+ one final commit updating this packet's own manifest)
 
-files (1777 insertions, 1 deletion):
-  docs/audits/2026-08-06-technical-night-window-review.md              545  Part 1
-  docs/audits/2026-08-06-technical-night-prep-packs.md                 500  Part 2
-  docs/audits/2026-08-06-technical-night-library-research.md           318  Part 3
-  docs/audits/2026-08-06-technical-night-408-coupling-manifest-design.md 409  Part 4
-  docs/audits/README.md                                                  6  regenerated
+files:
+  docs/audits/2026-08-06-technical-night-window-review.md                 Part 1
+  docs/audits/2026-08-06-technical-night-prep-packs.md                    Part 2
+  docs/audits/2026-08-06-technical-night-library-research.md              Part 3
+  docs/audits/2026-08-06-technical-night-408-coupling-manifest-design.md  Part 4
+  docs/audits/2026-08-06-technical-night-morning-packet.md                this file
+  docs/audits/README.md                                                   regenerated
 ```
+
+Self-checked against the gates that are runnable here: `gen_audit_index.py --check` exit 0;
+`validate_hermetization.check()` over all five added paths returns no violations (Rule A and
+Rule B both clean); the silent-rule ratchet is unmoved at 441/441 over 57 files, as expected —
+`docs/` is outside the detector's corpus. The hooks themselves were never installed, so this is
+a partial self-check, not gate coverage.
 
 Nothing else was touched. No `scripts/`, `protocols/`, `templates/`, `tasks/`, `ecosystem/` edits.
 No rows born, no closes, no dispositions. The one generated-file write the contract sanctioned
