@@ -125,6 +125,18 @@ exempt:
   # enforces lives in the ruling record, which is an immutable audit artifact rather than a
   # living doc a `# rule:` marker could point at.
   - preflight_backlog_ids
+  # [#480] P3 advisory review-artifact coverage leg. **TEMPORARY -- expires with [#499]**
+  # (the hard-flip arc): you cannot hard-gate an unwritten rule; the rule lands in PLAYBOOK
+  # there, this entry then converts to coverage_scope and the `# rule:` marker is
+  # reinstated. Operator ruling 2026-08-05 (option A), riders R1/R2.
+  #
+  # DISTINCT from the PERMANENT preflight_backlog_ids row above: that leg has no behavioral
+  # doc->code rule to write (both its sides are the same generated artifact). This one DOES
+  # embody a rule -- 'a code-impact merge carries a linked review artifact' -- which the hard
+  # flip writes. Hence temporary, hence bound to a row rather than to memory (ADR-81 (d);
+  # the ARC-5 precedent below is the same shape: enforcement ahead of its written rule runs
+  # only under a named, expiring exemption).
+  - review_artifact_coverage
   # ARC-5 residual-completeness gate. TEMPORARY exemption, distinct from the permanent rows
   # above, and BOUND TO [#365] -- an undeclared temporary exemption is exactly the silent
   # category ARC-5 exists to eliminate, so it carries a ticket rather than a hope.

@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "8f0cb381e0b4acf324faeb3abbe028d7c2c9986fa45761db474c2a911cfec515",
+  "generated_sha256": "77757fd7171ecd58488c525f303e6164bb276184d0b2a55f522c0bc6e6dfaa1a",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -206,8 +206,8 @@
       "file": "451-ca-layer-edge-check-ai-council-precedent.md"
     },
     {
-      "task": 480,
-      "file": "480-code-impact-merge-without-review-artifact.md"
+      "task": 499,
+      "file": "499-promote-the-review-artifact-coverage-leg-from-ad.md"
     },
     {
       "prose": ""
@@ -376,6 +376,10 @@
     {
       "task": 454,
       "file": "454-closure-ids-negation-defect-negated-mention-reads.md"
+    },
+    {
+      "task": 500,
+      "file": "500-the-stop-hook-s-backlog-advisory-reads-a-correct.md"
     },
     {
       "prose": ""

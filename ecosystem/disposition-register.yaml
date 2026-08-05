@@ -347,6 +347,32 @@ dispositions:
       shelf-life so it cannot rot into paper suppression (ADR-75); it should clear by itself when
       FR-8a grooms [#310], at which point the entry decorates stale and is removed with it.
 
+  # (2026-08-05) The ONE place in the FR-8 flip batch where the doc_rot rule and an operator
+  # ruling genuinely conflict. Every other row this arc touched was brought under threshold by
+  # trimming my own framing prose ([#499] [#500] [#218] [#497] — all four now clear), because
+  # self-induced bloat gets drained rather than dispositioned. [#492] cannot be: its third date IS the
+  # ruled peg. Note the shape of the trip — the row got SHORTER (1061 -> 1035 chars) and still
+  # crossed, because the peg added a third date and pushed it onto the ">=3 dates AND >700"
+  # branch. Both escapes were refused on the merits: rephrasing the date games the detector, and
+  # gutting the body under 700 discards exactly the context the next seat needs for the Grok
+  # acceptance run.
+  # RETIRE-ON-FLIP: the entry leaves the register when [#492] flips open at the Grok acceptance
+  # arc — at which point the peg has done its job and the row is rewritten anyway. It does not
+  # outlive its reason.
+  - id: warn-doc-rot-backlog-accretion-492-grok-peg
+    organ: doc_rot
+    match: "backlog-accretion BACKLOG#492"
+    ref: "#492"
+    review_date: 2026-09-05
+    reason: >-
+      The ruled peg (>=2026-08-07, Grok 4.6) legitimately carries dates — the third date is
+      operator-ruled content, not accretion; rephrasing the date would game the detector, gutting
+      the body would discard next-seat context. Keyed to the SPECIFIC row per
+      precision-over-recall, so any OTHER backlog-accretion finding re-surfaces and REDs the gate;
+      this suppresses one known finding, not the organ. review_date is the shelf-life so it cannot
+      rot into paper suppression (ADR-75). Retires when [#492] flips open at the Grok acceptance
+      arc (>= 2026-08-07), where the peg is spent and the row is rewritten.
+
   # (cleared 2026-07-02, #222) warn-doc-claims-pytest-collected-architecture — #222 relocated
   # the three volatile counts to the committed-generated ecosystem/doc-counts.md, so the
   # pytest_collected claim no longer anchors in ARCHITECTURE.md (doc_claims now reconciles it
