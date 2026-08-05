@@ -57,7 +57,9 @@ describes it, on its own author, for the second time in three days.
 work and its anchor. A journal-only branch is structurally unanchorable. No `--no-verify` and no
 `SKIP=` was used; the repair is the gate's own named fix.
 
-**Changes:** `ecosystem/index.yaml` (+517/−208, regenerated wholesale from the six `state.yaml`).
+**Changes:** `ecosystem/index.yaml` (+517/−208, regenerated wholesale from the six `state.yaml`),
+at **`42058636`** — named here so this arc's own merge is anchored on the work commit, which is the
+`[#483]` shape this entry argues for rather than the journal-only branch that failed.
 
 **Abandoned:** nothing from the night batch fixed — the §5.1 hook defect, `[#310]`, and all twelve
 draft rows stay untouched.
