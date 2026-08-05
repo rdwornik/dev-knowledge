@@ -61,6 +61,37 @@ row filed, advanced, or closed.
 
 **Abandoned:** nothing. The merge/push stays operator-gated and was not self-issued.
 
+**SUPPLEMENT FILLED after the fact — the cold disposition above is superseded** (`dc3e8a38`,
+`49581765`). The sealing architect of the 2026-08-04/05 window supplied all seven answers; the diff
+was **purely additive below the divider** (92 insertions, 0 deletions), so the verbatim bar is met by
+measurement rather than by assertion — no line above the ANSWERS marker moved and no whitespace-only
+rendering edit was needed. `assemble_paste.py` folded the ANSWERS region and reflowed the four
+framing sites from cold → FILLED, so the incoming §13(d) beat now **narrows** to *"anything changed
+since the supplement was written?"*. The post-fold sweep for the known reflow gap — hand-authored
+cold prose the reflow does not reach — found no stale assertion; the one surviving "empty supplement"
+mention is conditional doctrine describing both branches.
+
+**Two things the fill surfaced that this session deliberately did not act on.** (1) The assembler
+reported **promotion debt: four ruling-bearing lines** in the folded answers, and Q7's register names
+six terms with intended durable homes (PLAYBOOK, LESSONS, `[#499]` rider R2, `[#488]`'s row body).
+Recording is **capture-only at the boundary** by §13 step 1 — the successor records, this seat does
+not, so the debt was surfaced and left. (2) The Purpose I authored under cold conditions leads with
+intake #24 triage, while Q1's strategic intent leads with **consuming** machine-built evidence and
+with fleet-green throughput. Not a contradiction — Q4 independently lists the intake's plan-limit
+question as an open item — but a difference of lead act, and one CC structurally could not have known
+before the answers arrived. Flagged for the operator rather than silently rewritten: a filled
+supplement is advisory and never teeth, and the header is not CC's to re-aim on its own.
+
+**One claim checked rather than carried.** Q1 cites "the 132-row ranked sheet" as existing
+machine-built evidence; verified live —
+`docs/audits/2026-08-04-technical-closure-proposal-ranked-sheet.md` is present. So `[#487]`'s
+retrieval leg has a real deliverable and what remains is the architect's adjudication, exactly as Q1
+frames it.
+
+**Changes (extension):** `docs/handoffs/2026-08-05-dev-knowledge-architect/SUPPLEMENT.md` (filled,
+verbatim) + `PASTE_THIS.md` re-assembled + the reflowed framing sites in `HANDOFF_BOOT.md` /
+`RESIDUAL.md`.
+
 **Next:** the operator's OK to merge `--no-ff` and push — after which the next architect seat boots
 from `PASTE_THIS.md` and runs `/handoff-verify` for its single evidence block.
 
