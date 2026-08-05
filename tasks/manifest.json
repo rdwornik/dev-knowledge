@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "422c45b4ffe157624e4bb09523c1e78b504c906e37c1a1be8409edc476018679",
+  "generated_sha256": "8f0cb381e0b4acf324faeb3abbe028d7c2c9986fa45761db474c2a911cfec515",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -465,10 +465,6 @@
     {
       "task": 496,
       "file": "496-organ-to-component-attributes-the-pre-push-organ.md"
-    },
-    {
-      "task": 498,
-      "file": "498-carried-block-ff-push-is-non-executable-the-ff-g.md"
     },
     {
       "prose": "---"

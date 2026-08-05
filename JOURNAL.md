@@ -19,6 +19,53 @@
 
 ---
 
+### 2026-08-05 (d) — CC (Opus 5, local): one bit, one structural guard — `[#498]` fixed TDD-first
+
+**Did:** Fixed `[#498]` on `fix/498-hook-exec-bit`, RED first. SHA anchors: **`e164b220`**
+(test-only RED), **`90089f36`** (the fix), **`42b0c6ea`** (terra artifact + closure).
+
+**Result — the defect was one bit; the deliverable is the guard that makes it unrepeatable.**
+The RED named exactly one offender — `block-ff-push -> scripts/block_ff_push.py tracked 100644,
+need 100755` — confirming the other five carried `language: script` targets were already correct.
+`git update-index --chmod=+x` flipped it; the blob hash stayed **`32bd3a89`**, so the fix moved
+mode and not one byte of content.
+
+**Why the test reads git and not the filesystem.** Windows carries no exec bit, so
+`os.access(X_OK)` is meaningless on every machine in this fleet while the tracked mode is exactly
+what a POSIX consumer's clone materialises. That asymmetry is the whole reason `[#498]` stayed
+latent from `94652fdf` (2026-06-20) to now: the organ that would catch it,
+`test_carrier_hooks_source.py`, only fires on POSIX, so **no test on this fleet could ever have
+gone red for it**. The new assertion is observable through git on any platform.
+
+**Structural, not enumerated — and guarded against vacuity.** The test iterates whatever
+`.pre-commit-hooks.yaml` declares rather than listing the six known hooks, so the NEXT carried
+script is covered with no edit; the enumerated form would have to be *remembered*, which is
+precisely what failed at `94652fdf`. It also carries a non-vacuity assertion, because a carrier
+that stopped declaring `language: script` entries would otherwise make the loop body dead and the
+test a silent pass — vacuous-test being a defect class drawn from this fleet's own history.
+
+**Terra: 0/0/0/0, and one claim checked rather than believed.** Terra asserted that a git error
+fails the test rather than passing it. Verified live instead of accepted: `_tracked_mode` returns
+`None` for an untracked path, and `None != "100755"`, so the offender list grows and the assertion
+fires. Fail-closed **by probe**, not by code-read.
+
+**The artifact is the first written in the `[#480]` canonical shape** — a `**Tally:** 0/0/0/0
+(C/H/M/L)` line beside the Branch / HEAD / Model-used fields the header already carried. Measured
+before ruling the grammar: across all 108 codex artifacts Branch appears 99×, HEAD 97×, Mode 99×,
+and a tally line **zero** times. So the grammar codifies what exists and adds exactly one line.
+Forward-only from today; the legacy artifacts stay immutable.
+
+**Changes:** `tests/test_carrier_hooks_source.py` (+55), `scripts/block_ff_push.py` (mode only),
+`docs/audits/2026-08-05-codex-498-hook-exec-bit.md` (new), `[#498]` closed (node out, file kept
+`status: closed`), `docs/audits/README.md` + `BACKLOG.md` regenerated.
+
+**Abandoned:** nothing. The `[#497]` fold (stale carried "Fail-soft: exits 0" description) stays
+filed and unfixed by design — plan-governs.
+
+**Next:** `[#480]`'s advisory review-artifact coverage leg — C2 RED, then the WARN-tier build.
+
+---
+
 ### 2026-08-05 (c) — CC (Opus 5, local): the twelve night drafts are adjudicated — flip, retire, re-scope, file
 
 **Did:** Executed the architect's P1–P3 rulings from the morning review against the **live rows**
