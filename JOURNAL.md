@@ -19,6 +19,71 @@
 
 ---
 
+### 2026-08-05 (i) — CC (Opus 5, local): intake #25 consolidated — v2 delta + two amendments in one arc
+
+**Did:** Brought the landed intake #25 DRAFT (the v1 body, `6f81e4c2`) to its complete intended
+state in a single arc: inserted the v2-only **W-9** and **W-10** blocks, applied AMENDMENT-b's
+CHANGELOG strike in place at W-9(c), appended AMENDMENT-b Part 2 (the V-wave) verbatim, and
+appended AMENDMENT-c (two operator rulings from this session). SHA anchor: **`1b1e60ca`**.
+
+**Result — the patch was diff-driven, and the premise held exactly.** The contract asserted the
+landed body differed from the v2 source by precisely the W-9/W-10 blocks and instructed a STOP if
+anything else showed. A `diff -u` of the landed body (frontmatter stripped) against the v2 source
+returned exactly one hunk: those two blocks, inserted before W-8 in the source's ordering. Nothing
+else diverged — so the delta was applied as a patch, not an overwrite, and the landed frontmatter
+(`intake-id: 25`, `status: DRAFT`, the post-seal `origin:` line) was preserved untouched. Both
+inserted blocks were then re-verified byte-verbatim against the source after insertion, as was the
+V-wave body (19 lines, zero diff).
+
+**The one sanctioned deviation from verbatim is the strike, and it is marked as such.** AMENDMENT-b
+Part 1 struck the CHANGELOG clause from W-9(c) entirely — the fleet deliberately removed CHANGELOG
+because git history plus reviewed commits ARE the change log, and the kernel-release need is served
+by notes generated at tag time, never by a maintained file. W-9(c) now reads: JOURNAL keeps its name
+and role; no CHANGELOG file exists anywhere in the fleet; kernel release notes are tag-generated
+(`gh release create --generate-notes`). The verdict label moved PARTIAL → **REJECTED** with an
+inline `(struck by AMENDMENT 2026-08-05-b Part 1)` provenance marker, so a later reader sees the
+strike rather than a silently-different sentence. This is the clause's **second** removal; the
+amendment's own do-not-relitigate line says do not propose it again.
+
+**AMENDMENT-c records two operator rulings that narrow the V-wave text above them.** (c1) the 2–3
+worktree self-cap is RETIRED — it calibrated to operator attention, which is exactly what V-1's
+integrator restructures, so guidance becomes up to ~10 parallel lanes within reason, bounded by
+file-disjointness and integration capacity rather than by default caution. (c2) plan-mode-by-
+exception — the browser plan-of-record plus the frozen contract IS the plan, lane MODE is set by the
+architect in the contract, and plan-mode is reserved for M/L arcs needing genuine repo-derivation
+(the FR-1 D3 class); default lane mode is execution under the V-2 decision budget. Both rulings
+carry their recorded evidence in both directions: D3 overturned 3-of-4 enumerated consumers
+(plan-mode earning its keep) against an S-size one-bit fix costing ~4 interactions (ceremony without
+value). This arc ran under (c2) itself — no plan-mode, the contract was the plan.
+
+**No rows born, no ADRs, no triage** — the intake stays `status: DRAFT` awaiting the receiving
+architect. `gen_intake_index.py --check` and `gen_intake_tree.py --check` both returned rc=0 with no
+regeneration needed: the status-grouped index keys on frontmatter `status:`, which did not move, and
+the intake tree is unchanged at 259 nodes. `audit.py health` went **OK** once staged (the
+intake_tree_coherence `[!!]` on an unstaged mid-arc edit is the by-design refusal to read a
+half-applied tree, not a defect).
+
+**Suite: 2357 passed, 2 failed — both pre-existing on main, neither caused here.**
+`test_check_fleet_parity_green_on_live_repo` is the #430-dispositioned carry the contract named as
+out of scope (ai-council root-sweep WARN on an undeclared top-level `conftest.py`). The second,
+`test_routine_consumers_live_backlog_governs_exactly_one_row`, was NOT named in the contract: it
+pins the evidence string to "1 declared routine row" while the live audit now reports 2. It is
+provably not this arc's — the branch differs from `main` by exactly one file, a markdown document
+under `docs/intake/`, and `check_routine_consumers` reads BACKLOG/`tasks/` routine rows that were
+never touched. Flagged for the operator rather than fixed: repairing a test pin is a separate arc
+under a separate row, and this contract scoped the diff to the intake document.
+
+**Changes:** `docs/intake/2026-08-05-func-simplification-distribution-wave.md` (+36), `JOURNAL.md`.
+
+**Abandoned:** nothing.
+
+**Next:** the superseding paste-block goes to the new architect; intake #25 is now COMPLETE on main
+and enters the receiving architect's backlog under plan-governs, with [#487] as the §F close engine.
+The register (V-2) and ceremony tiering (V-3/c2) are the near-zero-cost items flagged for the
+architect's CURRENT window rather than a later phase.
+
+---
+
 ### 2026-08-05 (h) — CC (Opus 5, local): intake #25 landed post-seal — the wave the sealed plan predates
 
 **Did:** Landed the operator-provided intake draft as
