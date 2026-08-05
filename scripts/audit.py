@@ -40,7 +40,7 @@ import tempfile
 from collections import Counter
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -3672,7 +3672,18 @@ def check_preflight_backlog_ids(repo_path: Path) -> list[Finding]:
 # 97x, and a tally line ZERO times -- so this codifies what already exists and adds one line.
 _REVIEW_RULING_DATE = "2026-08-05"
 _REVIEW_CODE_SUFFIXES = (".py", ".ps1")
-_REVIEW_CODE_PREFIXES = ("scripts/", "deploy/", "tests/", "plugins/")
+# NO bare directory-prefix rule (terra HIGH, 2026-08-05, measured): OR-ing `scripts/`,
+# `deploy/`, `tests/`, `plugins/` against the suffix rule made 43 tracked non-code files
+# code-impact -- `plugins/tier1-lifecycle/commands/ship.md`, `INSTALL.md`,
+# `deploy/release-v1.3.x-contract.md`. A docs-only merge touching one would have WARNed, and
+# false WARNs corrupt the very zero-false-positive evidence bar [#499] is gated on.
+#
+# The reviewer's proposed fix -- require suffix AND prefix -- is WRONG HERE and was not taken:
+# 3 tracked code files live outside those directories (`ecosystem/schema/desired_state.py`,
+# `ecosystem/schema/__init__.py`, `.claude/skills/verify/verify.py`), so it would trade false
+# positives for false NEGATIVES on real code. Suffix-anywhere + exact paths has neither.
+# Consequence accepted and named: a non-.py/.ps1 behavioral file (a deploy manifest, a carried
+# plugin asset) is NOT code-impact today. Widening is a ruling, never a sweep.
 # EXACT-PATH members (operator amendment 2026-08-05), deliberately not a `.yaml` sweep: the
 # tight rule would miss the two files where THIS window's enforcement defects actually live
 # ([#498] and the [#497] fold are both stale/inert carried pre-commit declarations), while a
@@ -3680,6 +3691,18 @@ _REVIEW_CODE_PREFIXES = ("scripts/", "deploy/", "tests/", "plugins/")
 # Further path additions arrive BY RULING, never by widening this tuple in passing.
 _REVIEW_CODE_EXACT = (".pre-commit-hooks.yaml", ".pre-commit-config.yaml")
 _REVIEW_TALLY_RE = re.compile(r"(?m)^\*\*Tally:\*\*[ \t]*(\d+)/(\d+)/(\d+)/(\d+)\b")
+# The canonical TITLE is what makes a doc a review artifact -- a Branch/HEAD field alone does
+# NOT (terra HIGH, 2026-08-05, measured): 13 tracked non-review audit docs carry a `**Branch:**`
+# field, so field-presence alone would let a memo satisfy coverage and make the pass evidence
+# overstate that a review happened. Measured discrimination: 0 of those 13 carry this title,
+# and the review wrapper emits it on every run.
+_REVIEW_TITLE_RE = re.compile(r"(?m)^# Codex Review\b")
+# UTC epoch, not a timezone-bearing calendar date (terra HIGH, 2026-08-05). `%cs` renders in
+# each commit's OWN timezone, so a merge near midnight could fall either side of the ruling
+# date depending on where it was authored. `%ct` is a UTC instant; the cutoff is UTC midnight
+# of the ruling date. Deterministic rather than ambient -- an evidence bar cannot rest on a
+# boundary that moves with the committer's clock.
+_REVIEW_CUTOFF_EPOCH = int(datetime(2026, 8, 5, tzinfo=timezone.utc).timestamp())
 _REVIEW_BRANCH_RE = re.compile(r"(?m)^\*\*Branch:\*\*[ \t]*`?([^`\s]+?)`?[ \t]*$")
 _REVIEW_HEAD_RE = re.compile(r"(?m)^\*\*HEAD:\*\*[ \t]*`?([0-9a-f]{7,40})`?")
 _REVIEW_MERGE_SUBJECT_RE = re.compile(r"^Merge branch '([^']+)'")
@@ -3687,10 +3710,7 @@ _REVIEW_MERGE_SUBJECT_RE = re.compile(r"^Merge branch '([^']+)'")
 
 def _review_is_code_impact(paths: list[str]) -> bool:
     """True when >=1 changed path is a code surface under the ruled predicate."""
-    return any(p in _REVIEW_CODE_EXACT
-               or p.endswith(_REVIEW_CODE_SUFFIXES)
-               or p.startswith(_REVIEW_CODE_PREFIXES)
-               for p in paths)
+    return any(p in _REVIEW_CODE_EXACT or p.endswith(_REVIEW_CODE_SUFFIXES) for p in paths)
 
 
 def check_review_artifact_coverage(repo_path: Path) -> list[Finding]:
@@ -3712,11 +3732,28 @@ def check_review_artifact_coverage(repo_path: Path) -> list[Finding]:
     that reached backwards would demand retro-editing precisely what the ruling forbids
     touching. The date filter is the mechanism that makes "never retro-edited" true.
 
-    LINKAGE IS TWO-LEGGED, each leg covering the other's failure mode: by BRANCH (breaks when
-    a branch name is reused or the review ran pre-rebase) or by an in-range HEAD (breaks when
-    a squash/amend rewrote the SHA the artifact recorded). Either satisfies. An artifact
-    naming neither is not evidence for this merge -- otherwise one stale file in docs/audits/
-    would silence the whole leg.
+    LINKAGE IS TWO-LEGGED, either satisfying: by BRANCH (the artifact names the branch in the
+    merge subject) or by an in-range HEAD (the artifact names a commit the merge introduced).
+    The HEAD leg covers a review whose branch was renamed; the BRANCH leg covers a review that
+    ran BEFORE a rebase, whose recorded SHA the rebase then rewrote out of the range. An
+    artifact naming neither is not evidence for this merge -- otherwise one stale file in
+    docs/audits/ would silence the whole leg.
+
+    NAMED LIMITS OF THE LINKAGE, all three surfaced by review rather than discovered later:
+      * The BRANCH leg reads a `Merge branch '<x>'` subject, which is the only shape
+        core-invariant #5 permits on this spine (`block_ff_push` refuses the rest). A SQUASH
+        merge carries no such subject AND its pre-squash SHA is not in `introduced()`, so it
+        would WARN despite a real review. That is a false positive this leg does not prevent;
+        it is bounded to a merge shape the repo's own gate already refuses.
+      * BRANCH linkage is name-based, so REUSING a branch name for a later, unreviewed merge
+        lets the earlier artifact cover it. Accepted deliberately: the alternative (full-SHA
+        only) breaks the pre-rebase case the leg exists to tolerate.
+      * HEAD linkage prefix-matches an abbreviation (>=7 hex). A collision would have to land
+        inside the merge's OWN introduced set to mislink, which bounds it sharply, but it is
+        not impossible.
+    Each of these makes the leg MISS or over-credit; none makes it fail closed on real work.
+    They are the reason the hard flip ([#499]) is gated on measured false positives rather
+    than on this docstring's confidence.
 
     Reuses `journal_anchor`'s spine walk and `introduced()` rather than restating them, so
     this leg and the ADR-85 organs cannot drift about what a spine entry is or what a merge
@@ -3750,7 +3787,7 @@ def check_review_artifact_coverage(repo_path: Path) -> list[Finding]:
                 txt = p.read_text(encoding="utf-8", errors="replace")
                 branch_m = _REVIEW_BRANCH_RE.search(txt)
                 head_m = _REVIEW_HEAD_RE.search(txt)
-                if not (branch_m or head_m):
+                if not _REVIEW_TITLE_RE.search(txt) or not (branch_m or head_m):
                     continue          # not a review artifact -- an index, a memo, a report
                 artifacts.append({
                     "branch": branch_m.group(1) if branch_m else None,
@@ -3767,17 +3804,17 @@ def check_review_artifact_coverage(repo_path: Path) -> list[Finding]:
         # `audit-health`, a PRE-COMMIT gate: it would have added ~4 minutes to every commit in
         # the repo. Measured, not estimated. `spine_entries` still supplies the authoritative
         # entry list (shared --first-parent definition); this map only annotates it with dates.
-        spine_dates: dict[str, str] = {}
-        for ln in _ja._git(root, "log", "--first-parent", "--format=%H %cs", "main").splitlines():
+        spine_dates: dict[str, int] = {}
+        for ln in _ja._git(root, "log", "--first-parent", "--format=%H %ct", "main").splitlines():
             sha_part, _, date_part = ln.strip().partition(" ")
-            if sha_part:
-                spine_dates[sha_part] = date_part.strip()
+            if sha_part and date_part.strip().isdigit():
+                spine_dates[sha_part] = int(date_part.strip())
         for sha in _ja.spine_entries(root, "main"):
             # Absent from the map is NOT treated as in-scope: a date we could not read is an
             # unknown, and an unknown must not silently become a WARN against a merge that may
             # predate the ruling. The pairing is one walk, so a miss means git disagreed with
             # itself -- surfaced by the outer handler if it matters, never guessed at here.
-            if spine_dates.get(sha, "") < _REVIEW_RULING_DATE:
+            if spine_dates.get(sha, 0) < _REVIEW_CUTOFF_EPOCH:
                 continue
             parents = _ja._git(root, "rev-list", "--parents", "-n", "1", sha).split()
             if len(parents) < 2:

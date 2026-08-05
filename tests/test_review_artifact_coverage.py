@@ -292,6 +292,61 @@ def test_leg_never_emits_fail_on_any_fixture(tmp_path, monkeypatch):
         assert f.status in ("pass", "warn"), f"advisory leg must never FAIL: {f}"
 
 
+# --- terra HIGH regressions (2026-08-05), each measured before it was fixed -----
+
+@pytest.mark.parametrize("path, code_impact", [
+    # The false-POSITIVE class: 43 tracked non-code files live under scripts/ deploy/ tests/
+    # plugins/, so a bare directory-prefix rule made a docs-only merge code-impact — and false
+    # WARNs corrupt the zero-false-positive evidence bar [#499] is gated on.
+    ("plugins/tier1-lifecycle/commands/ship.md", False),
+    ("plugins/tier1-lifecycle/INSTALL.md", False),
+    ("deploy/release-v1.3.x-contract.md", False),
+    ("scripts/README.md", False),
+    # The false-NEGATIVE class the reviewer's proposed "suffix AND prefix" fix would have
+    # created: 3 tracked code files live OUTSIDE those directories. Pinned so the rejected
+    # fix cannot be reintroduced as an improvement.
+    ("ecosystem/schema/desired_state.py", True),
+    (".claude/skills/verify/verify.py", True),
+    # Baseline: real code, and the two exact-path enforcement declarations.
+    ("scripts/audit.py", True),
+    (".pre-commit-hooks.yaml", True),
+    (".pre-commit-config.yaml", True),
+    # Still out: data-only yaml and prose.
+    ("ecosystem/parity-surfaces.yaml", False),
+    ("docs/decisions/ADR-1.md", False),
+])
+def test_code_impact_predicate_discriminates(path, code_impact):
+    assert aud._review_is_code_impact([path]) is code_impact
+
+
+@requires_git
+def test_non_review_doc_with_a_branch_field_is_not_an_artifact(tmp_path, monkeypatch):
+    """A `**Branch:**` field alone does not make a doc a review artifact — 13 tracked non-review
+    audit docs carry one. Without the canonical-title requirement a memo could satisfy coverage,
+    and the pass evidence would overstate that a review happened."""
+    repo = _repo(tmp_path, monkeypatch)
+    work, _ = _merge(repo, "fix/memo", "scripts/memo.py", _AFTER)
+    d = repo / "docs" / "audits"
+    d.mkdir(parents=True, exist_ok=True)
+    (d / f"{_RULING_DATE}-technical-some-memo.md").write_text(
+        "# Technical Memo — not a review\n\n"
+        f"**Branch:** `fix/memo`\n**HEAD:** `{work[:8]}`\n**Tally:** 0/0/0/0 (C/H/M/L)\n",
+        encoding="utf-8", newline="\n")
+    assert _warns(_leg()(repo)), "a non-review memo must not satisfy review coverage"
+
+
+def test_ruling_cutoff_is_a_utc_instant_not_a_local_calendar_date():
+    """`%cs` renders in each commit's OWN timezone, so a merge near midnight could fall either
+    side of the ruling date depending on where it was authored. The cutoff is a UTC instant and
+    the walk reads `%ct`, so the boundary cannot move with the committer's clock."""
+    src = inspect.getsource(_leg())
+    assert '"--format=%H %ct"' in src, "the spine walk must read a UTC epoch, not %cs"
+    assert "_REVIEW_CUTOFF_EPOCH" in src
+    assert aud._REVIEW_CUTOFF_EPOCH == 1785888000, (
+        "cutoff drifted from 2026-08-05T00:00:00Z"
+    )
+
+
 def test_spine_date_lookup_stays_batched():
     """The date walk must cost ONE git call, not one per spine entry.
 
@@ -307,11 +362,13 @@ def test_spine_date_lookup_stays_batched():
     top-level `journal_anchor` — two module objects, and the counter silently reads zero.
     """
     src = inspect.getsource(_leg())
-    assert '"--format=%H %cs"' in src, "the batched whole-spine date walk is gone"
-    assert '"--format=%cs", sha' not in src and "'--format=%cs', sha" not in src, (
-        "per-entry date lookup reintroduced — 1317 subprocess spawns on this repo's spine, "
-        "inside a pre-commit gate"
-    )
+    assert '"--format=%H %ct"' in src, "the batched whole-spine date walk is gone"
+    for per_entry in ('"--format=%cs", sha', "'--format=%cs', sha",
+                      '"--format=%ct", sha', "'--format=%ct', sha"):
+        assert per_entry not in src, (
+            "per-entry date lookup reintroduced — 1317 subprocess spawns on this repo's "
+            "spine, inside a pre-commit gate"
+        )
 
 
 def test_leg_is_advisory_on_the_live_repo():
