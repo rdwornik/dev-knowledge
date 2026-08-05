@@ -19,6 +19,59 @@
 
 ---
 
+### 2026-08-05 (f) — CC (Opus 5, local): pre-seal currency sweep — three unowned stale claims found, intake #24 landed verbatim
+
+**Did:** Bounded pre-seal arc on `chore/pre-seal-currency`: a diff-driven doc-currency sweep over
+this window's claim classes, and the Part-B intake landing. SHA anchor: **`c8c86b2a`**.
+
+**Result — nothing needed regenerating, and that is the finding.** All six generated surfaces were
+already fresh (`gen_audit_index` · `gen_claude_rosters` · `gen_methodology_roster` ·
+`gen_doc_counts` · `gen_intake_index`, each `--check` rc=0), so the sweep produced **zero
+regen-shaped fixes**. `ALL_CHECKS = 40` reconciles at its single home `ecosystem/doc-counts.md`;
+`ARCHITECTURE.md` hard-codes no count at all (the #222 decoupling holding) and its member list is
+explicitly partial, so the new leg's absence there is not a stale claim.
+
+**What the sweep did find: three unowned stale claims, all in `ARCHITECTURE.md`, all verified
+against live code rather than against memory.** (U-1) `block_ff_push` described as *"fail-soft to
+exit 0 on any git error"* — refuted by `block_ff_push.py:240 return 2`. (U-2) the Stop-hook row
+claiming a *hard-block JOURNAL leg* and *fail-open on internal error* — refuted by the script's own
+header, which states it "no longer has a HARD leg and can no longer block a turn". (U-3)
+`block_unanchored_push` appears **zero** times in the whole file, so the ADR-85 HARD leg is missing
+from both the Ch2 organ map and the gate list that does enumerate its sibling.
+
+**The ownership boundary is the point, not the count.** U-1 is the SAME retired posture `[#497]`
+owns — but a THIRD site, and `[#497]`'s Done-when names only `carrier_mesh.py:75` and
+`.pre-commit-hooks.yaml`. Calling it row-owned would have quietly widened a row's scope by
+assertion; calling it unowned keeps the debt visible. `[#408]` owns the MECHANISM that prevents the
+class (its body already cites "ARCHITECTURE drift found TWICE this arc") — not these contents.
+Filed nothing: the window is closed to filings beyond the ruled set. U-4 (the canonical tally
+header undocumented in PLAYBOOK) **collapsed into `[#499]`** by ruling — rider R2's "PLAYBOOK rule
+written" already owns that home, and a separate row would split one debt across two owners.
+
+**Intake #24 landed verbatim, with Part A excluded mechanically rather than carefully.** PART B
+(5559 bytes, source lines 41..EOF) is byte-identical from an off-repo package whose path was
+resolved and confirmed outside the exclusion zone **before** any read. The extraction refuses if
+the Part A marker appears in the slice, and the landed file was then re-probed for all five Part A
+signatures — all absent. No rows born; the intake's own note estimates ~5-6 on triage and pairs
+them against FR-8a close capacity, which is the receiving architect's call.
+
+**One generator I did not know about.** `gen_intake_index --write` was NOT sufficient — a second
+generator, `gen_intake_tree.py`, maintains the ADR-109 §4 residue manifest, and it only surfaced
+because `audit-health` FAILed `intake_tree_coherence` and printed its own fix. Its `--write`
+direction was checked before running: unlike `gen_task_tree`, where `--write` is an
+IMPORT/RECOVERY path, here it correctly derives the manifest FROM README.
+
+**Changes:** `docs/intake/2026-08-05-tech-currency-wave-1.md` (new, DRAFT),
+`docs/intake/README.md` + `docs/intake/manifest.json` (both regenerated). No doc content edited —
+the three stale claims were REPORTED, not fixed.
+
+**Abandoned:** U-1/U-2/U-3 deliberately unfixed and unfiled; `[#497]`'s claim untouched by
+instruction.
+
+**Next:** the architect seals the window on these figures.
+
+---
+
 ### 2026-08-05 (e) — CC (Opus 5, local): the review claim becomes checkable — `[#480]`'s advisory leg, and two defects the arc caught on itself
 
 **Did:** Built the `[#480]` P3 ruling's first layer on `feat/480-review-artifact-organ`. SHA
