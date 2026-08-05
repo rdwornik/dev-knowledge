@@ -3,7 +3,7 @@
 - **Class:** technical (ADR-101 enum) · **Date:** 2026-08-06
 - **Source-session:** unattended night batch, Claude Code on the web (cloud sandbox); branch `claude/night-batch-2026-08-06-p59kml`; HEAD `8e2be6a1`
 - **Status:** complete (review artifact — findings reported, nothing fixed)
-- **Model:** claude-opus-5 orchestrating; Sonnet-class bounded read-only probe lanes
+- **Model:** Opus-class orchestrator; Sonnet-class bounded read-only probe lanes
 
 ## Environment honesty (read before trusting any number below)
 

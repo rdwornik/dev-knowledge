@@ -3,7 +3,7 @@
 - **Class:** technical (ADR-101 enum) · **Date:** 2026-08-06
 - **Source-session:** unattended night batch, Claude Code on the web; branch `claude/night-batch-2026-08-06-p59kml`; HEAD `8e2be6a1`
 - **Status:** PROPOSAL-ONLY — DRAFT design, zero build, nothing ratified
-- **Model:** claude-opus-5
+- **Model:** Opus-class orchestrator
 
 > **Voice and status.** This is a proposal, not doctrine. Nothing here is decided; every
 > section states an option and the evidence behind it. It carries no normative keywords by

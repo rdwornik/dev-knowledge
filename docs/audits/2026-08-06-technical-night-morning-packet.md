@@ -3,7 +3,7 @@
 - **Class:** technical (ADR-101 enum) · **Date:** 2026-08-06
 - **Source-session:** unattended night batch, Claude Code on the web (cloud sandbox); base HEAD `8e2be6a1`
 - **Status:** complete — all four parts delivered; two library items NOT delivered and named
-- **Model:** claude-opus-5 orchestrating; Sonnet-class read-only probe and web lanes
+- **Model:** Opus-class orchestrator; Sonnet-class read-only probe and web lanes
 
 **Gate posture, stated plainly:** these commits are **gate-unverified by construction**. A fresh
 cloud clone is ungated — `pre-commit` was never installed. `main` was never touched, nothing was

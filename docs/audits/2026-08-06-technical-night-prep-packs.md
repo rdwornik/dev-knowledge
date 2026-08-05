@@ -3,12 +3,13 @@
 - **Class:** technical (ADR-101 enum) · **Date:** 2026-08-06
 - **Source-session:** unattended night batch, Claude Code on the web; branch `claude/night-batch-2026-08-06-p59kml`; HEAD `8e2be6a1`
 - **Status:** PROPOSAL-ONLY — build-ready briefs, zero build, zero rows born
-- **Model:** claude-opus-5 orchestrating; Sonnet-class read-only footprint lanes
+- **Model:** Opus-class orchestrator; Sonnet-class read-only footprint lanes
 
 Every footprint below was verified against the live tree this session. Where a claim from the
 recon packet did **not** reproduce, the correction is stated in place rather than smoothed.
-Library verdicts come from `docs/audits/2026-08-06-technical-night-library-research.md`; two of
-them were not delivered and say so.
+Library verdicts come from `docs/audits/2026-08-06-technical-night-library-research.md`, which
+covers all seven research items; where a verdict rests on something that was **not** checked, the
+brief names it rather than implying coverage.
 
 **No rows were born.** These are briefs for the day lane to file and build.
 

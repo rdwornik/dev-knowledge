@@ -3,7 +3,7 @@
 - **Class:** technical (ADR-101 enum) · **Date:** 2026-08-06
 - **Source-session:** unattended night batch, Claude Code on the web; branch `claude/night-batch-2026-08-06-p59kml`; HEAD `8e2be6a1`
 - **Status:** complete — all seven items delivered (items 1–2 closed directly by the orchestrator after the assigned lane over-ran; see §8)
-- **Model:** claude-opus-5 orchestrating; Sonnet-class web-research lanes
+- **Model:** Opus-class orchestrator; Sonnet-class web-research lanes
 
 Framing per PLAYBOOK §11 "Library-first adoption order (ruled 2026-08-04)"
 (`protocols/PLAYBOOK.md:3442-3454`): stdlib > an existing dependency > a new distribution, and
