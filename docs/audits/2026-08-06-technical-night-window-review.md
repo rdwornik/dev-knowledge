@@ -447,31 +447,80 @@ files — the ceiling held. `doc_code_edge` — 15 edges resolved, none broken.
 self-claims are actually checked. `review_artifact_coverage` — 0 code-impact merges since
 2026-08-05 lack an artifact.
 
-### Full suite
+### Full suite — 32 failed, 2323 passed, 7 skipped (799s / 13m19s), exit 1
 
-`uv run --locked pytest -q` was launched against the synced, pin-conformant environment and
-**had not completed when this review was sealed** — it exceeded the documented profile
-(`pyproject.toml:66`: "~9m42s wall, 2026-07-05 profile") by a wide margin on this container,
-which is slower and runs the `slow`-marked subprocess/real-git spawns serially. Recorded as
-**INCOMPLETE — not as a pass and not as a failure**; the morning packet carries the same
-statement. Measured suite size for the record: **2228** `def test_` across 93 test files
-(the contract's "2362" does not match what is on disk).
+Every failure is accounted for. **Exactly one is a genuine repo RED; the other 31 have named
+environment causes.** Measured suite size for the record: **2228** `def test_` across 93 test
+files (the contract's "2362" does not match what is on disk).
 
-The by-design RED the contract names — the `[#457]` leg-(ii) test — was **not located** by
-name: `[#457]`'s task file is `tasks/457-inherited-live-repo-test-failures.md` (`status: open`)
-and no test file references 457 in a marker or docstring. It was neither observed nor
-refuted here. Never fixed, per contract.
+**21 failures — a declared-but-optional dependency group I had not installed.** All in
+`tests/test_fleet_analytics.py`. `uv sync --locked` installs the `dev` group; the L5a
+analytics lane is a separate group (`pyproject.toml:48-50`, `analytics = ["pandas>=2.0"]`,
+invoked as `uv sync --locked --group analytics`). Re-running that file after
+`uv sync --locked --group analytics` reduced its failures from 22 to 1. This was my own
+setup omission, not a repo defect.
+
+**1 failure — the by-design RED the contract names. Located, named, not fixed.**
+`tests/test_audit.py::test_routine_consumers_live_backlog_governs_exactly_one_row`, at
+`tests/test_audit.py:2296`:
+
+```
+AssertionError: assert '1 declared routine row' in '2 declared routine row(s) name a
+consumer and a consumption_path (live hooks/schedules out of scope — [#426])'
+```
+
+The test asserts the live BACKLOG governs **exactly one** ADR-105-marked routine row; live
+state carries **two**. This matches the `[#457]` leg-(ii) census the 2026-08-05 window
+discharged (the two declared rows being `[#348]` and `[#426]`), and it is the same "exactly
+ONE row" boundary that census found stale. `tasks/457-*.md` is `status: open`. Expected;
+untouched.
+
+**10 failures — environment shape, with a cause worth carrying into B1.** Seven of them
+(`test_reverse_dep_oracle.py` ×5, `test_legibility_graph_conformance.py::test_cell_code_code_fires`,
+`test_safe_remove.py::test_real_oracle_blocks_real_cross_module_removal`) come from an
+environment shape the suite does not model. `ARCHITECTURE.md:477-479` names exactly two:
+"This env (Pyright vendored) → **8/8 cells proven**" and "An unprovisioned env → **7/8
+proven, 1 skipped**". This container is a **third shape: `pyright-langserver` present on
+PATH (`/root/.local/bin/pyright-langserver`), with no vendored `node_modules/pyright`.**
+`find_langserver` (`scripts/reverse_dep_oracle.py:297-310`) resolves in the order override →
+vendored → PATH, so it returns the PATH entry; but the test asserting the absent case hard-codes
+the opposite ambient state — `tests/test_reverse_dep_oracle.py:130`:
+`assert oracle.find_langserver(tmp_path) is None  # no node_modules, nothing on PATH`.
+A test that asserts on ambient PATH contents passes only where PATH happens to be bare.
+The related `safe_remove` failure is the same root with a different symptom: the PATH
+langserver ran but returned `completeness='partial'`, so the oracle degraded rather than
+blocking.
+
+**This matters beyond this container: a CI runner is exactly that third shape** — tools on
+PATH, no repo-local `node_modules`. So these seven are what B1 would see, and B1 must
+either vendor Pyright, or declare them expected, or the tests need an env-shape guard
+instead of a PATH assumption. Recorded as a test-portability defect, unfixed.
+
+The last three: `test_boundary_report.py::test_live_hub_baseline_and_consumers_legal`
+("expected >=1 registered consumer, assert []") and
+`test_fleet_analytics.py::test_hub_is_included_as_a_mining_target` both need registered
+sibling repos, which this container has none of (matching `audit.py health`'s "repos
+registered (none)"); and `test_merge_serialization.py::test_index_lock_blocks_concurrent_merge`
+expects the string `index.lock` in git's stderr but git 2.43.0 here emits
+`error: Unable to write index.` — a git-message dependency, not a logic failure.
+
+**Zero unexplained failures.** The honest summary for the morning: on a fully-provisioned
+host the expected result is 1 RED (the `[#457]` leg-(ii) test), and nothing this batch saw
+contradicts that.
 
 ## 6. Coverage statement
 
 Complete: §1 (every locator resolved), §2 (all five docs checked, negatives verified), §3
-(all three rulings steelmanned and rebutted), §4 (four defects, each verified live), §5's
-`audit.py health` leg.
+(all three rulings steelmanned and rebutted), §4 (four defects, each verified live), §5 in
+full — both the `audit.py health` leg and the suite, which completed and is fully classified.
 
 Bounded or incomplete, named rather than smoothed:
 
-1. **The full suite did not finish.** No pass/fail claim is made. This is the single
-   largest gap in this review's evidence.
+1. **The suite ran on a container, not a provisioned host.** 32 failures, all accounted for,
+   1 genuine. The residual uncertainty is whether the 10 environment-shape failures would
+   all clear on the operator's host — the Pyright cluster in particular is a *test*
+   portability defect, so it will recur anywhere PATH carries `pyright-langserver` without a
+   vendored copy.
 2. **The `[#487]` volumetrics are unverifiable here** — `logs/PROPOSALS-*.md` is absent from
    the container by design. The 149/62/`3c5e476ba` figures are neither confirmed nor
    disproved. Direction and magnitude *are* corroborated from git-tracked sources: `#277`
