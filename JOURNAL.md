@@ -19,6 +19,72 @@
 
 ---
 
+### 2026-08-05 (e) — CC (Opus 5, local): the review claim becomes checkable — `[#480]`'s advisory leg, and two defects the arc caught on itself
+
+**Did:** Built the `[#480]` P3 ruling's first layer on `feat/480-review-artifact-organ`. SHA
+anchors: **`e8550e44`** (RED), **`643c06ab`** (fixture hub-binding), **`6aacdc23`** (the leg),
+**`c31306a1`** (file `[#499]`/`[#500]`, close `[#480]`), **`82de2463`** (terra HIGH ×5 fixed).
+
+**Result — an unfalsifiable claim is now a checkable one, and only that.** The 2026-08-02 W2
+report recorded "terra review: zero findings on both arcs" while no artifact existed anywhere;
+nothing in the repo could tell that from a real review. `audit.check_review_artifact_coverage`
+(ALL_CHECKS 39 → 40) surfaces a code-impact merge carrying no linked artifact. WARN-tier by
+ruling, and structurally so — the function contains no hard-verdict literal, asserted through
+`inspect.getsource` rather than by observing fixtures, because "no fixture produced one" is
+precisely what a latent path looks like.
+
+**The header grammar codifies what existed rather than inventing one — measured first.** Across
+all 108 codex artifacts `Branch` appears 99×, `HEAD` 97×, `Mode` 99×, and a tally line **zero**
+times. So shape (b) adds exactly one line, `**Tally:** <C>/<H>/<M>/<L>`, forward-only from the
+ruling date; the 9/16 legacy artifacts matching no recognised shape stay immutable, which the
+leg's date filter makes mechanically true rather than merely promised.
+
+**Two defects this arc caught on its own work, both measured rather than reasoned.**
+
+*A 236-second pre-commit tax.* The first implementation ran `git log -1 --format=%cs <sha>` per
+first-parent spine entry — **1317 entries, 236s** — inside `audit-health`, a PRE-COMMIT gate. It
+would have added ~4 minutes to **every commit in this repo**. Batched to one whole-spine walk:
+**2.9s**, identical verdict. Pinned on the SOURCE, not by wall-clock (a timing assert is flaky
+and gets muted first) and not by call-counting — a monkeypatched `journal_anchor._git` silently
+reads **zero** here thanks to the dual-import idiom, which I verified rather than assumed.
+
+*Terra returned five HIGH, and the wrapper's counter said 0/0/0/0.* The heuristic tally
+disagreed with the artifact it was counting — the exact failure the canonical header exists to
+remove, so the `**Tally:**` line is authored from the findings, never from the wrapper's regex.
+The most damaging finding was real and measured: a bare directory-prefix rule made **43** tracked
+non-code files code-impact (`plugins/**/commands/ship.md`, `INSTALL.md`), and false WARNs corrupt
+the very zero-false-positive bar `[#499]` is gated on. **The reviewer's proposed fix was refused
+on evidence:** "suffix AND prefix" would have missed **3** tracked code files living outside
+those directories (`ecosystem/schema/*.py`, `.claude/skills/verify/verify.py`), trading false
+positives for false negatives. Suffix-anywhere + exact paths has neither, pinned by 11 cases in
+both directions. Artifact-recognition tightened too: **13** non-review docs carry a `**Branch:**`
+field, so the canonical title is now required (0/13 match). The cutoff moved from `%cs` to a UTC
+instant. One finding was **partly refused and named instead**: branch-linkage laundering is the
+operator-approved two-leg design, so it became an explicit docstring limit rather than a silent
+one.
+
+**The coverage disposition is an exemption that cannot outlive its reason.** Registering the leg
+tripped `doc_code_coverage_drift` — a curated-baseline touch, escalated rather than decided.
+Operator ruled option A: a **TEMPORARY** `doc-code-edge.yaml` exemption naming its own expiry,
+with `[#499]` carrying the discharge in its done-when (rider R2). Distinct from
+`preflight_backlog_ids`' PERMANENT row: that leg has no behavioral rule to write; this one
+embodies one the hard flip writes. The orphaned `# rule:` marker was removed — a marker with no
+declaration is a `code_orphan` WARN that would have redded the ship-gate. The exemption prose
+then tripped `silent_rule_ratchet` (a "must" in an in-scope `ecosystem/*.yaml`); drained by
+rewording to 441 ≤ 441, never by raising the baseline.
+
+**Changes:** `scripts/audit.py` (the leg + ALL_CHECKS 39→40),
+`tests/test_review_artifact_coverage.py` (32 tests), `ecosystem/doc-code-edge.yaml` (the expiring
+exemption), six count pins re-derived (SIX, not the five carried in memory —
+`test_doc_code_edge.py` holds two), `[#499]`/`[#500]` filed, `[#480]` closed.
+
+**Abandoned:** the hard pre-push leg, deferred by ruling behind 0 false positives over two
+consecutive windows — tracked as `[#499]`, not left as a disclaimer.
+
+**Next:** ship-gate, then the arc's §F ledger reconciliation.
+
+---
+
 ### 2026-08-05 (d) — CC (Opus 5, local): one bit, one structural guard — `[#498]` fixed TDD-first
 
 **Did:** Fixed `[#498]` on `fix/498-hook-exec-bit`, RED first. SHA anchors: **`e164b220`**
