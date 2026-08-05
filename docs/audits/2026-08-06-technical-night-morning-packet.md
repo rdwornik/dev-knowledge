@@ -113,6 +113,17 @@ CONTRIBUTING.md` → `219 0`. **This is a hard requirement for B1** (`fetch-dept
 the finding most likely to have burned the day lane. I initially read those 5 FAILs as a live
 commit-blocking emergency; that was wrong and is retracted in the artifact.
 
+**2b — The `uv` pin defect reaches session hooks, witnessed at this batch's own session end.**
+The `Stop` hook (`uv run --locked python scripts/session_end_backpressure.py`) failed with the
+same `required-version` mismatch and produced **no verdict at all** — a hook that cannot start
+reports nothing. So an environment without the pinned `uv` silently loses the session-end organ
+as well as the commit gates. I re-ran it with the pinned `uv`: the first attempt was **vacuous**
+(no stdin → `stop_hook_active` absent → the silent structural-floor path, which I nearly
+mis-reported as a pass), and only feeding it `{"stop_hook_active": false}` actually exercised the
+advisory checks. That run is a genuine **ALL-CLEAR** — no session-end hygiene findings, tree
+clean, all commits pushed. Recorded because the organ has two distinct silences, and only one of
+them means "fine".
+
 **3 — A new, unfiled code defect: `CLOSES_RE` matches a non-word and misses the real one.**
 `scripts/propose_closures.py:51` — `fixes?` parses as `fixe` + optional `s`. Executed against
 the live object: `fixe [#5]` **matches**, `fix [#5]` **misses**. Almost certainly meant

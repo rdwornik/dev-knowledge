@@ -55,6 +55,15 @@ between a wall that means something and a third `ARMED (tells-you-nothing)` orga
    `.pre-commit-config.yaml` is wrapped in `uv run --locked`. A runner with any other `uv`
    fails every step on a version-mismatch error before a single real check runs — witnessed
    here with 0.8.17.
+   **The blast radius is wider than the commit gates, witnessed live at this batch's own
+   session end.** The `Stop` hook (`.claude/settings.json` →
+   `uv run --locked python scripts/session_end_backpressure.py`) failed with the identical
+   version-mismatch error and produced **no verdict at all**. So an environment without the
+   pinned `uv` silently loses the session-end organ too, not just the commit-time gates —
+   and it loses it in the quietest possible way, since a hook that cannot start reports
+   nothing. Any environment declaration for this repo (CI, a cloud sandbox, a new host)
+   should treat the exact `uv` version as a precondition for *every* organ, not as a
+   pre-commit detail.
 4. **`uv sync --locked --group analytics`.** The `dev` group alone leaves `pandas` uninstalled
    and **21 `test_fleet_analytics.py` tests fail** on the missing module. Measured: 22 failures
    in that file with `dev` only, 1 after adding the group.
