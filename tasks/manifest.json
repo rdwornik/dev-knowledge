@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "c3c206c364b6615d6d0fb63eb8894ec788874a045f4e14e11837642c66bd3bb1",
+  "generated_sha256": "c70a040b487fc4c927281340019d4eea085a4903642c2f24ec00a301ead986ee",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -321,6 +321,10 @@
       "file": "218-safe-removal-gate-m2-m3-boundary.md"
     },
     {
+      "task": 489,
+      "file": "489-safe-remove-m2-m3-as-the-l3-real-deletion-lifecy.md"
+    },
+    {
       "prose": ""
     },
     {
@@ -457,6 +461,14 @@
     {
       "task": 325,
       "file": "325-carry-save-to-consumers-via-a-manifest-command-a.md"
+    },
+    {
+      "task": 497,
+      "file": "497-carrier-mesh-py-75-still-claims-the-informant-lo.md"
+    },
+    {
+      "task": 496,
+      "file": "496-organ-to-component-attributes-the-pre-push-organ.md"
     },
     {
       "prose": "---"
@@ -897,6 +909,14 @@
       "file": "453-cloud-night-run-runbook-container-gaps.md"
     },
     {
+      "task": 487,
+      "file": "487-closure-proposal-consumption-arc-139-parked-prop.md"
+    },
+    {
+      "task": 486,
+      "file": "486-desired-state-report-py-dies-on-a-cp1252-console.md"
+    },
+    {
       "prose": ""
     },
     {
@@ -927,6 +947,22 @@
     {
       "task": 440,
       "file": "440-make-the-tasks-id-ledger-tamper-evident-a-delete.md"
+    },
+    {
+      "task": 494,
+      "file": "494-ladder-ratification-l0-l5-promote-vs-leave-is-un.md"
+    },
+    {
+      "task": 492,
+      "file": "492-grok-review-lane-acceptance-gated-2026-08-07-mea.md"
+    },
+    {
+      "task": 491,
+      "file": "491-gemini-scanning-lane-ruling-r-g-plus-an-acceptan.md"
+    },
+    {
+      "task": 488,
+      "file": "488-priority-axis-the-backlog-has-no-ranking-functio.md"
     },
     {
       "prose": ""
@@ -984,6 +1020,10 @@
     {
       "task": 428,
       "file": "428-nightly-triage-reports-a-dead-producer-to-every.md"
+    },
+    {
+      "task": 493,
+      "file": "493-b-2-investigation-the-scheduled-fleet-baseline-t.md"
     },
     {
       "prose": ""
@@ -1511,6 +1551,10 @@
       "file": "383-execution-waves-per-surface.md"
     },
     {
+      "task": 490,
+      "file": "490-parity-manifest-9-9-fleet-green-currently-measur.md"
+    },
+    {
       "prose": ""
     },
     {
@@ -1547,6 +1591,10 @@
     {
       "task": 385,
       "file": "385-l4-tech-currency-lane.md"
+    },
+    {
+      "task": 495,
+      "file": "495-tech-currency-cadence-give-385-a-recurring-lane.md"
     },
     {
       "prose": ""
