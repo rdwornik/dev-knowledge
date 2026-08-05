@@ -19,6 +19,74 @@
 
 ---
 
+### 2026-08-05 (k) — CC (Opus 5, local): FR-7 landed — the standing-rulings register, and a ratchet sitting exactly on its ceiling
+
+**Did:** Opened the 2026-08-05 architect window. Collected the §A gate in one packet
+(NC-A1/NC2, NC-A2/§13(d), NC-A3) rather than three round-trips, then executed FR-7 — intake #25's
+process amendments b/c, which birth zero rows and were severed from the NC-A3 ruling. SHA anchors:
+**`90351bd0`** (register) and **`12dbb65a`** (template clause).
+
+**NC2 DISCHARGED — the word is on record at last.** The operator's confirming word on the caches
+wave record §5.3 is **"Przeczytałem"**, given 2026-08-05 against the re-presented record: parity
+evidence covers 3 of 9 ADR-104 repos; the six uncovered split into 2 registered-but-undeployed +
+4 absent from the parity manifest's `fleet` list. Q6 of the incoming SUPPLEMENT recorded that this
+word was designated **two windows ago and never landed on record** — the substance was presented
+both times and presentation was mistaken for discharge. Recorded here at the first opportunity
+rather than held for the seal, because the documented failure mode of this particular item is
+being carried forward unrecorded. §13(d) closed in the same packet: nothing changed off-repo
+beyond intake #25. NC-A3 ruled: **#25 births zero rows this window** (ledger-only, stays DRAFT).
+
+**Result — the register has a taxonomy-derived home, not an invented one.** `protocols/STANDING_RULINGS.md`.
+Three alternatives are refused by governing lines rather than by preference: a root file and a new
+`docs/rulings/` genre are both named in ADR-101 §1's `Refused:` clause and blocked by
+`validate_hermetization.py`'s closed sets; `docs/decisions/` passes the gate but carries the wrong
+lifecycle — ADR-60 scopes that genre to ADRs plus transcripts, and CLAUDE.md §5 rule 3 makes it
+immutable, while a register is updated in place. `protocols/` is the only sanctioned home whose
+declared lifecycle is *living* (CLAUDE.md §4) and whose genre role is the canonical methodology
+consumers hub-pointer at. The closest precedent is the ADR-101 amendment 2026-07-22, which
+collapsed `docs/runbooks/` **into** `protocols/` rather than granting a new genre. Filename casing
+was forced, not chosen: `protocols/README.md`'s ADR-34 row mandates `UPPERCASE_WITH_UNDERSCORES.md`.
+
+**The finding worth keeping — the ratchet was already at its ceiling.** `silent_rule_ratchet`
+measured **441 live against a 441 baseline** before either commit, and both FR-7 targets
+(`protocols/*.md`, `templates/**`) sit inside its corpus. The baseline may be lowered or held but
+raising it is an operator ruling — i.e. exactly the curated-baseline touch that V-2's own decision
+budget classes as ask-worthy. Rather than spend that round-trip, both artifacts were authored at
+**zero** `must/shall/never` occurrences; post-stage measurement was 57 files, count 441 —
+unchanged. Where a verbatim source carried a normative keyword, the text moved to the **commit
+body**, which sits outside the ratchet corpus: `12dbb65a` carries V-3, c1, c2 and V-2 unaltered
+and in full while the template states the same rules in its own voice. That is the honest form of
+"verbatim-first", not a weakening of it. An editing note at the foot of the register warns the next
+author, who would otherwise trip the gate blind.
+
+**All six V-2 labels resolved to primary locators; zero SOURCE-PENDING.** The labels are not a
+freestanding list — they point at the **Q7 RATIFIED-IN-CHAT REGISTER** at
+`docs/handoffs/2026-08-05-dev-knowledge-architect/SUPPLEMENT.md` lines 107–126. Two limits are
+recorded *in* the register rather than smoothed: (i) A2's "every disposition names its own expiry"
+diverges from the live register's one PERMANENT entry (`preflight_backlog_ids`) — flagged as a
+genuine rule-vs-ruling conflict, not silently reconciled; (ii) **`JOURNAL-rides-the-branch` has no
+operator-ruling provenance anywhere in this repo** — it is this seat's own written shape, applied
+four times unchallenged, and is recorded as standing practice rather than as a collected operator
+word. Two Q7 entries carry pointers instead of transcriptions because Q7 homes them to row bodies
+and says "row-bound, do not file separately".
+
+**This entry is itself the ruling under test.** It rides the work branch, last, naming
+`90351bd0` and `12dbb65a`, so one `--no-ff` merge introduces both the work and its anchor — the
+B2 shape the register transcribes. The branch is **not self-merged**: the window's contract forbids
+it and the merge word is the operator's.
+
+**Changes:** `protocols/STANDING_RULINGS.md` (new, 228 lines) · `templates/prompt-template.md`
+v1.5 → v1.6 (risk-tiered ceremony, plan-mode-by-exception, lane-count ceiling, `Mode` row enum
+now leading with execution) · this JOURNAL entry.
+
+**Abandoned:** raising the silent-rule baseline to fit verbatim quotes — the commit body carries
+them at zero cost, so the operator ruling was never needed. Also declined: transcribing the two
+row-bound Q7 entries, which would have been the separate filing Q7 explicitly declines.
+
+**Next:** Step 4 — locate the 81-row COLD set per epic and spawn the read-only evidence-sheet
+lanes together (plan §I), for the browser's per-epic adjudication. FR-7's decision budget governs
+the rest of the window: forks with a standing ruling are decided and reported, not asked.
+
 ### 2026-08-05 (j) — CC (Opus 5, local): `[#457]` leg (ii) census — the boundary row declared its own routine
 
 **Did:** Ran `/handoff-verify` on the `2026-08-05-dev-knowledge-architect` bundle (14/14 PASS,
