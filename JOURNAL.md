@@ -19,6 +19,58 @@
 
 ---
 
+### 2026-08-05 (c) — CC (Opus 5, local): the twelve night drafts are adjudicated — flip, retire, re-scope, file
+
+**Did:** Executed the architect's P1–P3 rulings from the morning review against the **live rows**
+rather than the restated list, per the brief's own failure-mode warning. SHA anchor: **`4ca1ca23`**
+— named here so this arc's merge is anchored on its work commit, the shape the (b) entry below
+argues for after `8b6afb2e` proved a journal-only branch structurally unanchorable.
+
+**Result — the mapping survived contact with the rows; no contradiction surfaced.** Eight rows
+flipped open (`[#486]` `[#487]` `[#488]` `[#490]` `[#491]` `[#493]` `[#496]` `[#497]`), three kept
+deferred, `[#489]` retired, `[#218]` re-scoped, `[#498]` filed. Two rows actively *confirmed* the
+mapping in their own text: `[#489]`'s body names the re-scope-and-retire disposition verbatim, and
+each of the three KEEPs carries its real peg in prose.
+
+**The placeholder-peg trap, ruled out explicitly.** All twelve drafts carried
+`DEFER — peg: NIGHT-BATCH DRAFT, awaiting architect flip at morning review`. For the three rows
+that stay deferred that text goes **false the moment the review happens** — the next session would
+read them as un-adjudicated drafts and re-review them. Operator ruled the placeholder replaced with
+the real gating condition already stated in each body: `[#492]` → `>= 2026-08-07, the Grok 4.6
+release`; `[#494]` → `the §6-spine close`; `[#495]` → `rules with the #385 arc`. The *gating
+conditions* were never touched — only the expired placeholder naming them.
+
+**`[#489]` retired through the sanctioned path, and the generator enforces the order.** Manifest
+node out, file kept with `status: retired` plus a note naming `[#218]` as successor (ADR-107 §6.3).
+`--prune` was never invoked — `gen_task_tree.py` refuses it outright. Note the coupling:
+`--emit-source` calls `identity_problems()` and **refuses to write anything** if the id ledger is
+incoherent, so the terminal status must land in the *same* edit as the node removal; it cannot be a
+follow-up commit.
+
+**The 5-vs-2 test result, stated rather than dispositioned.** The first full run showed **five**
+failures against a brief whose rule is *"a third failure = STOP"*. Three were
+`task_tree_coherence: index and working tree disagree` plus its two downstream `health: DEGRADED`
+assertions — the by-design mid-arc unstaged state, not defects. Staging cleared all three, leaving
+**exactly the two `[#457]` baselines**. Nothing was dispositioned to reach that.
+
+**One carry grew instead of spawning a sibling.** The stale *"Fail-soft: exits 0 on any git error"*
+description on the **carried** `block-ff-push` declaration in `.pre-commit-hooks.yaml` — retired by
+the ADR-85 amendment 2026-08-03 §A6, which made the organ fail **CLOSED (exit 2)** — was folded into
+`[#497]` by operator ruling rather than filed as a second one-line row, so one row owns stale claims
+on carrier/hook declarations. Found while verifying `[#498]`'s locators; **not fixed** — plan-governs.
+
+**Changes:** `BACKLOG.md` + 14 `tasks/*.md` + `tasks/manifest.json` (16 files, +54/−40) at
+**`4ca1ca23`**; new `tasks/498-carried-block-ff-push-is-non-executable-the-ff-g.md`.
+`gen_task_tree --check` ok · ruff clean · 15/15 pre-commit gates passed, no `--no-verify`.
+
+**Abandoned:** nothing fixed this step — `[#498]`'s exec bit, `[#310]`, and all folded/deferred
+content stay untouched by design. `[#492]`/`[#494]`/`[#495]` pegs remain unexpired.
+
+**Next:** `[#498]` TDD fix (structural test over every `language: script` entry), then the `[#480]`
+advisory review-artifact organ per the P3 layered ruling.
+
+---
+
 ### 2026-08-05 (b) — CC (Opus 5, local): FR-1's honest limit discharged — and the anchor gate catches the shape of my own repair
 
 **Did:** Ran the Informant / fleet-audit generators on the machine of record to discharge FR-1's
