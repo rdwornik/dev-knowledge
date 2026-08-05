@@ -1,0 +1,12 @@
+---
+id: "[#499]"
+title: "Promote the review-artifact coverage leg from advisory to a hard pre-push gate — deferred behind a measured evidence bar"
+status: deferred
+priority: P3
+size: M
+theme: "[E2] Enforced governance"
+story: "[S3] Turn advisory guards into enforced gates"
+generates: BACKLOG.md
+---
+
+- [#499] [P3][M] **Promote the review-artifact coverage leg from advisory to a hard pre-push gate — deferred behind a measured evidence bar** — the [#480] P3 ruling (2026-08-05) is LAYERED: the advisory WARN-tier audit leg (`audit.check_review_artifact_coverage`) shipped at that ruling; the HARD leg is this row, and it does not open on a date. **Evidence bar, ruled: 0 false positives over two consecutive windows, reported at each seal.** The bar exists because the sibling [#483] R3 leg's predecessor flagged 11/11 correct historical citations on its first production run — a gate wired on unmeasured behaviour REDs every push by construction, which is how an enforcement organ gets switched off permanently. The advisory leg exists to PRODUCE that data, so this row's precondition is satisfied by reporting, not by argument. When it opens, the hard leg is a pre-push refusal on a code-impact push to main whose range carries an unlinked code-impact merge — the `block_unanchored_push` shape, sharing its range resolver rather than restating it. · Done when: two consecutive windows are sealed with the leg's false-positive count reported and equal to 0 AND the hard leg lands with its own tests **AND the coverage debt this leg carries is discharged — the PLAYBOOK rule written, a `coverage_scope` entry replacing the TEMPORARY `ecosystem/doc-code-edge.yaml` exemption, and the `# rule: review-artifact-coverage` marker reinstated in `scripts/audit.py`** (operator ruling 2026-08-05 rider R2 — the advisory leg shipped ahead of its written rule under a named, expiring exemption; this row owns that expiry so the exemption cannot outlive its reason), or the ruling is revisited on the measured evidence · refs scripts/audit.py `check_review_artifact_coverage`, tests/test_review_artifact_coverage.py, scripts/block_unanchored_push.py, ecosystem/doc-code-edge.yaml (the TEMPORARY exemption this row expires), #480, #483 (the R3 two-window precedent), ADR-85 · kill-candidates: none — [#480] closed on the ruling plus the advisory leg; no open row owns the hard flip · DEFER — peg: 0 false positives reported at two consecutive seals
