@@ -25,6 +25,7 @@
 onboarding CLEARED), then triaged an operator addendum proposing a root cause for `[#457]`'s
 `routine_consumers` half and asking whether `[#457]` absorbs it or a new row owns it. Discharged
 leg (ii)'s standing instruction — "census the six-field rows vs ADR-105 BEFORE repinning".
+SHA anchor: **`7a70f54c`**.
 
 **Result — the symptom reproduces, the proposed cause does not.** `test_routine_consumers_live_backlog_governs_exactly_one_row`
 is genuinely RED: pin `"1 declared routine row"` vs live evidence `2 declared routine row(s)`.
