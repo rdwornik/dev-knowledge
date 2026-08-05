@@ -1,4 +1,4 @@
-generated: '2026-07-11T12:30:02'
+generated: '2026-08-05T10:36:01'
 repos:
 - findings:
   - check_name: vision_md
@@ -9,7 +9,7 @@ repos:
     evidence: All ADR-38 universal governance baseline files present
     status: pass
   - check_name: claude_md
-    evidence: CLAUDE.md present (26832 chars)
+    evidence: CLAUDE.md present (28505 chars)
     status: pass
   - check_name: dot_prefix_discipline
     evidence: All root config files dot-prefixed or on ADR-59 exception list
@@ -26,9 +26,6 @@ repos:
   - check_name: handoff_bundle_structure
     evidence: 12 stamped v4 bundle(s) valid (structure + sections + budgets)
     status: pass
-  - check_name: handoff_tag_canonicity
-    evidence: §3.1 section not found (consolidated?) — nothing to lint
-    status: n/a
   - check_name: canonical_freshness
     evidence: 8 canonical living files fresh (last_reviewed not before last edit;
       within 30d)
@@ -42,14 +39,14 @@ repos:
     status: pass
   - check_name: handoff_version_stamp
     evidence: All stamp occurrences in ['ARCHITECTURE.md', 'CONTRIBUTING.md'] match
-      canonical HANDOFF_PROCESS v5.7
+      canonical HANDOFF_PROCESS v6.0.1
     status: pass
   - check_name: amendment_coherence
     evidence: 2 coupled-surface version mention(s) coherent across 1 set(s)
     status: pass
   - check_name: floor_integrity
-    evidence: no .claude/CLAUDE-FLOOR.md — repo has not adopted the methodology floor
-      (skip)
+    evidence: '[n/a-reason:NOT-APPLICABLE] no .claude/CLAUDE-FLOOR.md — repo has not
+      adopted the methodology floor (skip)'
     status: n/a
   - check_name: hooks_armed
     evidence: pre-commit / commit-msg / pre-push installed and pre-commit-managed
@@ -75,35 +72,36 @@ repos:
       + doc<->code traceability)'
     status: warn
   - check_name: handoff_probes
-    evidence: 10 probe(s) bind to live state (2026-07-11-dev-knowledge-architect)
+    evidence: 14 probe(s) bind to live state (2026-08-04-dev-knowledge-architect)
     status: pass
   - check_name: reconciled_versions
-    evidence: 5 reconciled_with edge(s) match live spec version(s)
+    evidence: 'templates/CONTRIBUTING-md-template.md: malformed (reconciled_with not
+      ''<spec-id>@<version>'')'
+    status: warn
+  - check_name: doc_rot
+    evidence: no history-accretion bloat past thresholds (backlog / section-history
+      / file-budget / grooming-cadence)
     status: pass
-  - check_name: doc_rot
-    evidence: 'history-accretion bloat: backlog-accretion BACKLOG#262 (6 dated block(s),
-      2554 chars (>= 3 dates & > 700, or > 1200))'
-    status: warn
-  - check_name: doc_rot
-    evidence: 'history-accretion bloat: backlog-accretion BACKLOG#278 (3 dated block(s),
-      1508 chars (>= 3 dates & > 700, or > 1200))'
-    status: warn
   - check_name: doc_structure
     evidence: no structural rot (numbering / headers / ToC / dangling-allow / heading-scheme)
     status: pass
   - check_name: doc_code_edge
-    evidence: 13 doc->code edge(s) resolved; none broken/ambiguous/orphaned
+    evidence: 15 doc->code edge(s) resolved; none broken/ambiguous/orphaned
     status: pass
   - check_name: safe_removal
     evidence: no scripts/*.py module removal in the diff
     status: pass
+  - check_name: residual_completeness
+    evidence: no unfilled FILL-IN region in changed handoff bundle files
+    status: pass
   - check_name: deployed_methodology_version
-    evidence: '.dev-knowledge: unset -- no methodology release deployed yet (deploy-runbook
-      will populate; ADR-91)'
+    evidence: '[n/a-reason:NOT-APPLICABLE] .dev-knowledge: unset -- no methodology
+      release deployed yet (deploy-runbook will populate; ADR-91)'
     status: n/a
   - check_name: enforcement_coverage
-    evidence: hub - source of the 5 enforcement organs; per-consumer coverage is measured
-      by scripts/enforcement_coverage.py (read-only reporter)
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub - source of the 5 enforcement organs;
+      per-consumer coverage is measured by scripts/enforcement_coverage.py (read-only
+      reporter)'
     status: n/a
   - check_name: undeclared_edges
     evidence: 'undeclared prose edge (ADR-88 FC2): BACKLOG.md -> handoff-process (tier
@@ -112,6 +110,10 @@ repos:
   - check_name: undeclared_edges
     evidence: 'undeclared prose edge (ADR-88 FC2): VISION.md -> handoff-process (tier
       1) — declare `reconciled_with` or disposition'
+    status: warn
+  - check_name: undeclared_edges
+    evidence: 'undeclared prose edge (ADR-88 FC2): docs/intake/2026-07-30-tech-browser-architect-orientation.md
+      -> handoff-process (tier 1) — declare `reconciled_with` or disposition'
     status: warn
   - check_name: undeclared_edges
     evidence: 'undeclared prose edge (ADR-88 FC2): protocols/AI_COUNCIL_PROCESS.md
@@ -129,14 +131,71 @@ repos:
     evidence: 'undeclared prose edge (ADR-88 FC2): protocols/SESSION_SETUP.md -> handoff-process
       (tier 1) — declare `reconciled_with` or disposition'
     status: warn
+  - check_name: undeclared_edges
+    evidence: 'undeclared prose edge (ADR-88 FC2): docs/intake/2026-07-27-func-operator-design-input-night-shift-handoff-reform.md
+      -> handoff-process (tier 2) — declare `reconciled_with` or disposition'
+    status: warn
+  - check_name: undeclared_edges
+    evidence: 'undeclared prose edge (ADR-88 FC2): docs/intake/2026-07-27-tech-handoff-process-v6-proposal.md
+      -> handoff-process (tier 2) — declare `reconciled_with` or disposition'
+    status: warn
+  - check_name: undeclared_edges
+    evidence: 'undeclared prose edge (ADR-88 FC2): docs/intake/README.md -> handoff-process
+      (tier 2) — declare `reconciled_with` or disposition'
+    status: warn
   - check_name: doc_code_coverage_drift
-    evidence: all 29 ALL_CHECKS members covered (coverage_scope-annotated or exempt);
+    evidence: all 39 ALL_CHECKS members covered (coverage_scope-annotated or exempt);
       none escape coverage_scope
     status: pass
   - check_name: import_edges
     evidence: 3 @import edge(s) resolve across 4 file(s)
     status: pass
-  last_audit: '2026-07-11'
+  - check_name: fleet_parity
+    evidence: 'ai-council root-sweep WARN-undeclared: top-level entry ''conftest.py''
+      is not in the template for role ''consumer'''
+    status: warn
+  - check_name: routine_consumers
+    evidence: 2 declared routine row(s) name a consumer and a consumption_path (live
+      hooks/schedules out of scope — [#426])
+    status: pass
+  - check_name: silent_rule_ratchet
+    evidence: live 441 <= baseline 441 under detector silent-rule-v4 (56 file(s) in
+      scope)
+    status: pass
+  - check_name: task_tree_coherence
+    evidence: BACKLOG.md coherent with the tasks/ source of truth (structure + frontmatter
+      honesty + full reassembly)
+    status: pass
+  - check_name: intake_tree_coherence
+    evidence: intake residue carrier coherent (257 node(s), 14586 README.md byte(s))
+    status: pass
+  - check_name: boot_byte_budget
+    evidence: protocols/HANDOFF_BOOT.md is 16842 bytes, within its 18000-byte budget
+    status: pass
+  - check_name: fleet_audit_replication
+    evidence: automation/fleet-audit is replicated to origin (0 commits ahead)
+    status: pass
+  - check_name: membership_agreement
+    evidence: '9 declared (ADR-104); 5 resolved members (deployed-versions); coverage
+      registry-md 9/9, index-yaml 6/9, deployed-versions 5/9, parity-surfaces 5/9,
+      onboarding-rulings 4/9, state-dirs 6/9; declared-but-not-deployed: demo-prep
+      [registry-md, onboarding-rulings]; life-architect [registry-md, onboarding-rulings];
+      terminal-setup [registry-md]; win-tooling [registry-md, index-yaml, state-dirs]'
+    status: pass
+  - check_name: membership_agreement
+    evidence: 'declaration source: ADR-104 anchor ''adr104-fleet-members'', 9 ids,
+      agrees with audit.ADR104_FLEET_DECLARATION'
+    status: pass
+  - check_name: journal_spine_anchor
+    evidence: '1 first-parent spine entry(ies) above the disposition floor 24882f8cc
+      carry no JOURNAL anchor: 8b6afb2e (2026-08-05) Merge branch ''docs/journal-2026-08-05-night-batch''
+      -- ADR-85 anchor for the night-batch range'
+    status: fail
+  - check_name: preflight_backlog_ids
+    evidence: '1 kill-candidates assertion(s) name a non-open row: [#310] -> #292
+      — advisory per the [#483] ruling R3'
+    status: warn
+  last_audit: '2026-08-05'
   name: .dev-knowledge
   path: C:\Users\1028120\Documents\Dev\.dev-knowledge
 - findings:
@@ -148,7 +207,7 @@ repos:
     evidence: All ADR-38 universal governance baseline files present
     status: pass
   - check_name: claude_md
-    evidence: CLAUDE.md present (10972 chars)
+    evidence: CLAUDE.md present (33406 chars)
     status: pass
   - check_name: dot_prefix_discipline
     evidence: All root config files dot-prefixed or on ADR-59 exception list
@@ -163,10 +222,7 @@ repos:
       correct
     status: pass
   - check_name: handoff_bundle_structure
-    evidence: no docs/handoffs/ — nothing to validate
-    status: n/a
-  - check_name: handoff_tag_canonicity
-    evidence: no protocols/HANDOFF_PROCESS.md — nothing to validate
+    evidence: '[n/a-reason:NOT-APPLICABLE] no docs/handoffs/ — nothing to validate'
     status: n/a
   - check_name: canonical_freshness
     evidence: 8 canonical living files fresh (last_reviewed not before last edit;
@@ -180,8 +236,9 @@ repos:
     evidence: All present canonical files carry their required [U] spine headings
     status: pass
   - check_name: handoff_version_stamp
-    evidence: no protocols/HANDOFF_PROCESS.md — nothing to validate
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] no protocols/HANDOFF_PROCESS.md — nothing
+      to validate'
+    status: n/a
   - check_name: amendment_coherence
     evidence: 0 coupled-surface version mention(s) coherent across 1 set(s)
     status: pass
@@ -190,53 +247,106 @@ repos:
       (sha256 4d268f329a7e…)
     status: pass
   - check_name: hooks_armed
-    evidence: hub-only — git-hook arming check skipped (not the hub repo)
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — git-hook arming check skipped
+      (not the hub repo)'
+    status: n/a
   - check_name: git_backlog_drift
-    evidence: hub-only — git<->backlog drift check skipped (not the hub repo)
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — git<->backlog drift check skipped
+      (not the hub repo)'
+    status: n/a
   - check_name: doc_claims
-    evidence: hub-only — prose-vs-state check skipped (not the hub repo)
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — prose-vs-state check skipped
+      (not the hub repo)'
+    status: n/a
   - check_name: no_ff_merges
-    evidence: hub-only — --no-ff guard skipped (not the hub repo)
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — --no-ff guard skipped (not the
+      hub repo)'
+    status: n/a
   - check_name: handoff_probes
-    evidence: no docs/handoffs/ — no probe bundle to validate
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] no docs/handoffs/ — no probe bundle to
+      validate'
+    status: n/a
   - check_name: reconciled_versions
-    evidence: no reconciled_with edges declared
-    status: pass
+    evidence: 'CONTRIBUTING.md: unknown-spec (protocols/HANDOFF_PROCESS.md absent
+      or version unparseable)'
+    status: warn
   - check_name: doc_rot
-    evidence: hub-only — doc-rot / grooming checker skipped (not the hub repo)
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — doc-rot / grooming checker skipped
+      (not the hub repo)'
+    status: n/a
   - check_name: doc_structure
-    evidence: hub-only — prose structural linter skipped (not the hub repo)
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — prose structural linter skipped
+      (not the hub repo)'
+    status: n/a
   - check_name: doc_code_edge
-    evidence: hub-only — doc->code edge check skipped (not the hub repo)
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — doc->code edge check skipped
+      (not the hub repo)'
+    status: n/a
   - check_name: safe_removal
     evidence: no scripts/*.py module removal in the diff
     status: pass
+  - check_name: residual_completeness
+    evidence: no unfilled FILL-IN region in changed handoff bundle files
+    status: pass
   - check_name: deployed_methodology_version
-    evidence: 'ai-council: deployed methodology corpus v1.2.0'
+    evidence: 'ai-council: deployed methodology corpus v1.3.1'
     status: pass
   - check_name: enforcement_coverage
-    evidence: 'ai-council: session_end_backpressure=present-unverified; canonical_freshness=present-unverified;
-      reconciled_versions=n/a-no-edges; doc_claims=hub-scoped; git_backlog_drift=hub-scoped
-      (static; enforcing-local proven only by scripts/enforcement_coverage.py)'
+    evidence: '[n/a-reason:NOT-APPLICABLE] ai-council: block_unanchored_push=absent;
+      canonical_freshness=present-unverified; reconciled_versions=absent; doc_claims=hub-scoped;
+      git_backlog_drift=hub-scoped (static; enforcing-local proven only by scripts/enforcement_coverage.py)'
     status: n/a
   - check_name: undeclared_edges
-    evidence: hub-only — undeclared-edge scan skipped (not the hub repo)
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — undeclared-edge scan skipped
+      (not the hub repo)'
+    status: n/a
   - check_name: doc_code_coverage_drift
-    evidence: hub-only -- coverage drift-guard skipped (not the hub repo)
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only -- coverage drift-guard skipped
+      (not the hub repo)'
+    status: n/a
   - check_name: import_edges
     evidence: 1 @import edge(s) resolve across 2 file(s)
     status: pass
-  last_audit: '2026-07-11'
+  - check_name: fleet_parity
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only -- fleet-parity walk skipped (not
+      the hub repo)'
+    status: n/a
+  - check_name: routine_consumers
+    evidence: 0 declared routine row(s) name a consumer and a consumption_path (live
+      hooks/schedules out of scope — [#426])
+    status: pass
+  - check_name: silent_rule_ratchet
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — the detector''s scope roots
+      are hub governance surfaces'
+    status: n/a
+  - check_name: task_tree_coherence
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — tasks/ is a hub-owned tree'
+    status: n/a
+  - check_name: intake_tree_coherence
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — the docs/intake/ residue carrier
+      is hub-owned'
+    status: n/a
+  - check_name: boot_byte_budget
+    evidence: '[n/a-reason:NOT-APPLICABLE] no protocols/HANDOFF_BOOT.md — repo has
+      not adopted the browser boot'
+    status: n/a
+  - check_name: fleet_audit_replication
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only -- automation/fleet-audit is hub-owned
+      machinery'
+    status: n/a
+  - check_name: membership_agreement
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only -- the ecosystem/ membership surfaces
+      are hub-owned'
+    status: n/a
+  - check_name: journal_spine_anchor
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only -- ADR-85''s disposition floor
+      and JOURNAL shape are hub-owned'
+    status: n/a
+  - check_name: preflight_backlog_ids
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — BACKLOG.md kill-candidates assertions
+      are a hub surface'
+    status: n/a
+  last_audit: '2026-08-05'
   name: ai-council
   path: C:\Users\1028120\Documents\Dev\ai-council
 - findings:
@@ -248,7 +358,7 @@ repos:
     evidence: All ADR-38 universal governance baseline files present
     status: pass
   - check_name: claude_md
-    evidence: CLAUDE.md present (11459 chars)
+    evidence: CLAUDE.md present (22708 chars)
     status: pass
   - check_name: dot_prefix_discipline
     evidence: All root config files dot-prefixed or on ADR-59 exception list
@@ -263,15 +373,10 @@ repos:
       correct
     status: pass
   - check_name: handoff_bundle_structure
-    evidence: no docs/handoffs/ — nothing to validate
-    status: n/a
-  - check_name: handoff_tag_canonicity
-    evidence: no protocols/HANDOFF_PROCESS.md — nothing to validate
+    evidence: '[n/a-reason:NOT-APPLICABLE] no docs/handoffs/ — nothing to validate'
     status: n/a
   - check_name: canonical_freshness
-    evidence: 'VISION.md: last_reviewed 2026-06-02 is 39d old (> 30d cadence); ARCHITECTURE.md:
-      last_reviewed 2026-06-04 is 37d old (> 30d cadence); CONTRIBUTING.md: last_reviewed
-      2026-06-02 is 39d old (> 30d cadence)'
+    evidence: 'VISION.md: last_reviewed 2026-06-02 is 64d old (> 30d cadence)'
     status: warn
   - check_name: no_sibling_orphans
     evidence: No orphaned 'corp-monorepo-*' siblings (each is a registered worktree
@@ -281,8 +386,9 @@ repos:
     evidence: All present canonical files carry their required [U] spine headings
     status: pass
   - check_name: handoff_version_stamp
-    evidence: no protocols/HANDOFF_PROCESS.md — nothing to validate
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] no protocols/HANDOFF_PROCESS.md — nothing
+      to validate'
+    status: n/a
   - check_name: amendment_coherence
     evidence: 0 coupled-surface version mention(s) coherent across 1 set(s)
     status: pass
@@ -291,53 +397,105 @@ repos:
       (sha256 4d268f329a7e…)
     status: pass
   - check_name: hooks_armed
-    evidence: hub-only — git-hook arming check skipped (not the hub repo)
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — git-hook arming check skipped
+      (not the hub repo)'
+    status: n/a
   - check_name: git_backlog_drift
-    evidence: hub-only — git<->backlog drift check skipped (not the hub repo)
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — git<->backlog drift check skipped
+      (not the hub repo)'
+    status: n/a
   - check_name: doc_claims
-    evidence: hub-only — prose-vs-state check skipped (not the hub repo)
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — prose-vs-state check skipped
+      (not the hub repo)'
+    status: n/a
   - check_name: no_ff_merges
-    evidence: hub-only — --no-ff guard skipped (not the hub repo)
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — --no-ff guard skipped (not the
+      hub repo)'
+    status: n/a
   - check_name: handoff_probes
-    evidence: no docs/handoffs/ — no probe bundle to validate
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] no docs/handoffs/ — no probe bundle to
+      validate'
+    status: n/a
   - check_name: reconciled_versions
-    evidence: no reconciled_with edges declared
-    status: pass
+    evidence: 'CONTRIBUTING.md: malformed (reconciled_with not ''<spec-id>@<version>'')'
+    status: warn
   - check_name: doc_rot
-    evidence: hub-only — doc-rot / grooming checker skipped (not the hub repo)
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — doc-rot / grooming checker skipped
+      (not the hub repo)'
+    status: n/a
   - check_name: doc_structure
-    evidence: hub-only — prose structural linter skipped (not the hub repo)
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — prose structural linter skipped
+      (not the hub repo)'
+    status: n/a
   - check_name: doc_code_edge
-    evidence: hub-only — doc->code edge check skipped (not the hub repo)
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — doc->code edge check skipped
+      (not the hub repo)'
+    status: n/a
   - check_name: safe_removal
     evidence: no scripts/*.py module removal in the diff
+    status: pass
+  - check_name: residual_completeness
+    evidence: no unfilled FILL-IN region in changed handoff bundle files
     status: pass
   - check_name: deployed_methodology_version
     evidence: 'corp-monorepo: deployed methodology corpus v1.2.0'
     status: pass
   - check_name: enforcement_coverage
-    evidence: 'corp-monorepo: session_end_backpressure=present-unverified; canonical_freshness=present-unverified;
-      reconciled_versions=n/a-no-edges; doc_claims=hub-scoped; git_backlog_drift=hub-scoped
-      (static; enforcing-local proven only by scripts/enforcement_coverage.py)'
+    evidence: '[n/a-reason:NOT-APPLICABLE] corp-monorepo: block_unanchored_push=absent;
+      canonical_freshness=present-unverified; reconciled_versions=absent; doc_claims=hub-scoped;
+      git_backlog_drift=hub-scoped (static; enforcing-local proven only by scripts/enforcement_coverage.py)'
     status: n/a
   - check_name: undeclared_edges
-    evidence: hub-only — undeclared-edge scan skipped (not the hub repo)
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — undeclared-edge scan skipped
+      (not the hub repo)'
+    status: n/a
   - check_name: doc_code_coverage_drift
-    evidence: hub-only -- coverage drift-guard skipped (not the hub repo)
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only -- coverage drift-guard skipped
+      (not the hub repo)'
+    status: n/a
   - check_name: import_edges
     evidence: 1 @import edge(s) resolve across 2 file(s)
     status: pass
-  last_audit: '2026-07-11'
+  - check_name: fleet_parity
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only -- fleet-parity walk skipped (not
+      the hub repo)'
+    status: n/a
+  - check_name: routine_consumers
+    evidence: 0 declared routine row(s) name a consumer and a consumption_path (live
+      hooks/schedules out of scope — [#426])
+    status: pass
+  - check_name: silent_rule_ratchet
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — the detector''s scope roots
+      are hub governance surfaces'
+    status: n/a
+  - check_name: task_tree_coherence
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — tasks/ is a hub-owned tree'
+    status: n/a
+  - check_name: intake_tree_coherence
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — the docs/intake/ residue carrier
+      is hub-owned'
+    status: n/a
+  - check_name: boot_byte_budget
+    evidence: '[n/a-reason:NOT-APPLICABLE] no protocols/HANDOFF_BOOT.md — repo has
+      not adopted the browser boot'
+    status: n/a
+  - check_name: fleet_audit_replication
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only -- automation/fleet-audit is hub-owned
+      machinery'
+    status: n/a
+  - check_name: membership_agreement
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only -- the ecosystem/ membership surfaces
+      are hub-owned'
+    status: n/a
+  - check_name: journal_spine_anchor
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only -- ADR-85''s disposition floor
+      and JOURNAL shape are hub-owned'
+    status: n/a
+  - check_name: preflight_backlog_ids
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — BACKLOG.md kill-candidates assertions
+      are a hub surface'
+    status: n/a
+  last_audit: '2026-08-05'
   name: corp-monorepo
   path: C:\Users\1028120\Documents\Dev\corp-monorepo
 - findings:
@@ -364,16 +522,13 @@ repos:
       correct
     status: pass
   - check_name: handoff_bundle_structure
-    evidence: no docs/handoffs/ — nothing to validate
-    status: n/a
-  - check_name: handoff_tag_canonicity
-    evidence: no protocols/HANDOFF_PROCESS.md — nothing to validate
+    evidence: '[n/a-reason:NOT-APPLICABLE] no docs/handoffs/ — nothing to validate'
     status: n/a
   - check_name: canonical_freshness
-    evidence: 'VISION.md: last_reviewed 2026-06-02 is 39d old (> 30d cadence); ARCHITECTURE.md:
-      last_reviewed 2026-06-02 is 39d old (> 30d cadence); CLAUDE.md: last_reviewed
-      2026-06-02 is 39d old (> 30d cadence); CONTRIBUTING.md: last_reviewed 2026-06-02
-      is 39d old (> 30d cadence)'
+    evidence: 'VISION.md: last_reviewed 2026-06-02 is 64d old (> 30d cadence); ARCHITECTURE.md:
+      last_reviewed 2026-06-02 is 64d old (> 30d cadence); CLAUDE.md: last_reviewed
+      2026-06-02 is 64d old (> 30d cadence); CONTRIBUTING.md: last_reviewed 2026-06-02
+      is 64d old (> 30d cadence)'
     status: warn
   - check_name: no_sibling_orphans
     evidence: No orphaned 'corp-ops-*' siblings (each is a registered worktree or
@@ -383,64 +538,117 @@ repos:
     evidence: All present canonical files carry their required [U] spine headings
     status: pass
   - check_name: handoff_version_stamp
-    evidence: no protocols/HANDOFF_PROCESS.md — nothing to validate
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] no protocols/HANDOFF_PROCESS.md — nothing
+      to validate'
+    status: n/a
   - check_name: amendment_coherence
     evidence: 0 coupled-surface version mention(s) coherent across 1 set(s)
     status: pass
   - check_name: floor_integrity
-    evidence: no .claude/CLAUDE-FLOOR.md — repo has not adopted the methodology floor
-      (skip)
+    evidence: '[n/a-reason:NOT-APPLICABLE] no .claude/CLAUDE-FLOOR.md — repo has not
+      adopted the methodology floor (skip)'
     status: n/a
   - check_name: hooks_armed
-    evidence: hub-only — git-hook arming check skipped (not the hub repo)
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — git-hook arming check skipped
+      (not the hub repo)'
+    status: n/a
   - check_name: git_backlog_drift
-    evidence: hub-only — git<->backlog drift check skipped (not the hub repo)
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — git<->backlog drift check skipped
+      (not the hub repo)'
+    status: n/a
   - check_name: doc_claims
-    evidence: hub-only — prose-vs-state check skipped (not the hub repo)
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — prose-vs-state check skipped
+      (not the hub repo)'
+    status: n/a
   - check_name: no_ff_merges
-    evidence: hub-only — --no-ff guard skipped (not the hub repo)
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — --no-ff guard skipped (not the
+      hub repo)'
+    status: n/a
   - check_name: handoff_probes
-    evidence: no docs/handoffs/ — no probe bundle to validate
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] no docs/handoffs/ — no probe bundle to
+      validate'
+    status: n/a
   - check_name: reconciled_versions
-    evidence: no reconciled_with edges declared
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] no reconciled_with edges declared'
+    status: n/a
   - check_name: doc_rot
-    evidence: hub-only — doc-rot / grooming checker skipped (not the hub repo)
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — doc-rot / grooming checker skipped
+      (not the hub repo)'
+    status: n/a
   - check_name: doc_structure
-    evidence: hub-only — prose structural linter skipped (not the hub repo)
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — prose structural linter skipped
+      (not the hub repo)'
+    status: n/a
   - check_name: doc_code_edge
-    evidence: hub-only — doc->code edge check skipped (not the hub repo)
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — doc->code edge check skipped
+      (not the hub repo)'
+    status: n/a
   - check_name: safe_removal
     evidence: no scripts/*.py module removal in the diff
     status: pass
+  - check_name: residual_completeness
+    evidence: no unfilled FILL-IN region in changed handoff bundle files
+    status: pass
   - check_name: deployed_methodology_version
-    evidence: 'corp-ops: unset -- no methodology release deployed yet (deploy-runbook
-      will populate; ADR-91)'
+    evidence: '[n/a-reason:NOT-APPLICABLE] corp-ops: unset -- no methodology release
+      deployed yet (deploy-runbook will populate; ADR-91)'
     status: n/a
   - check_name: enforcement_coverage
-    evidence: 'corp-ops: session_end_backpressure=absent; canonical_freshness=absent;
-      reconciled_versions=n/a-no-edges; doc_claims=hub-scoped; git_backlog_drift=hub-scoped
-      (static; enforcing-local proven only by scripts/enforcement_coverage.py)'
+    evidence: '[n/a-reason:NOT-APPLICABLE] corp-ops: block_unanchored_push=absent;
+      canonical_freshness=absent; reconciled_versions=n/a-no-edges; doc_claims=hub-scoped;
+      git_backlog_drift=hub-scoped (static; enforcing-local proven only by scripts/enforcement_coverage.py)'
     status: n/a
   - check_name: undeclared_edges
-    evidence: hub-only — undeclared-edge scan skipped (not the hub repo)
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — undeclared-edge scan skipped
+      (not the hub repo)'
+    status: n/a
   - check_name: doc_code_coverage_drift
-    evidence: hub-only -- coverage drift-guard skipped (not the hub repo)
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only -- coverage drift-guard skipped
+      (not the hub repo)'
+    status: n/a
   - check_name: import_edges
     evidence: 0 @import edge(s) resolve across 1 file(s)
     status: pass
-  last_audit: '2026-07-11'
+  - check_name: fleet_parity
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only -- fleet-parity walk skipped (not
+      the hub repo)'
+    status: n/a
+  - check_name: routine_consumers
+    evidence: 0 declared routine row(s) name a consumer and a consumption_path (live
+      hooks/schedules out of scope — [#426])
+    status: pass
+  - check_name: silent_rule_ratchet
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — the detector''s scope roots
+      are hub governance surfaces'
+    status: n/a
+  - check_name: task_tree_coherence
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — tasks/ is a hub-owned tree'
+    status: n/a
+  - check_name: intake_tree_coherence
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — the docs/intake/ residue carrier
+      is hub-owned'
+    status: n/a
+  - check_name: boot_byte_budget
+    evidence: '[n/a-reason:NOT-APPLICABLE] no protocols/HANDOFF_BOOT.md — repo has
+      not adopted the browser boot'
+    status: n/a
+  - check_name: fleet_audit_replication
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only -- automation/fleet-audit is hub-owned
+      machinery'
+    status: n/a
+  - check_name: membership_agreement
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only -- the ecosystem/ membership surfaces
+      are hub-owned'
+    status: n/a
+  - check_name: journal_spine_anchor
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only -- ADR-85''s disposition floor
+      and JOURNAL shape are hub-owned'
+    status: n/a
+  - check_name: preflight_backlog_ids
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — BACKLOG.md kill-candidates assertions
+      are a hub surface'
+    status: n/a
+  last_audit: '2026-08-05'
   name: corp-ops
   path: C:\Users\1028120\Documents\Dev\corp-ops
 - findings:
@@ -467,17 +675,14 @@ repos:
       sort settings correct
     status: pass
   - check_name: handoff_bundle_structure
-    evidence: no docs/handoffs/ — nothing to validate
-    status: n/a
-  - check_name: handoff_tag_canonicity
-    evidence: no protocols/HANDOFF_PROCESS.md — nothing to validate
+    evidence: '[n/a-reason:NOT-APPLICABLE] no docs/handoffs/ — nothing to validate'
     status: n/a
   - check_name: canonical_freshness
     evidence: '1 stale (edited since review): CLAUDE.md: last_reviewed 2026-06-02
       predates last edit 2026-06-08 - edited but not re-reviewed | also 3 warn: VISION.md:
-      last_reviewed 2026-06-02 is 39d old (> 30d cadence); ARCHITECTURE.md: last_reviewed
-      2026-06-02 is 39d old (> 30d cadence); CONTRIBUTING.md: last_reviewed 2026-06-02
-      is 39d old (> 30d cadence)'
+      last_reviewed 2026-06-02 is 64d old (> 30d cadence); ARCHITECTURE.md: last_reviewed
+      2026-06-02 is 64d old (> 30d cadence); CONTRIBUTING.md: last_reviewed 2026-06-02
+      is 64d old (> 30d cadence)'
     status: fail
   - check_name: no_sibling_orphans
     evidence: No orphaned 'corp-sca-time-automation-*' siblings (each is a registered
@@ -487,8 +692,9 @@ repos:
     evidence: All present canonical files carry their required [U] spine headings
     status: pass
   - check_name: handoff_version_stamp
-    evidence: no protocols/HANDOFF_PROCESS.md — nothing to validate
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] no protocols/HANDOFF_PROCESS.md — nothing
+      to validate'
+    status: n/a
   - check_name: amendment_coherence
     evidence: 0 coupled-surface version mention(s) coherent across 1 set(s)
     status: pass
@@ -497,54 +703,106 @@ repos:
       (sha256 4d268f329a7e…)
     status: pass
   - check_name: hooks_armed
-    evidence: hub-only — git-hook arming check skipped (not the hub repo)
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — git-hook arming check skipped
+      (not the hub repo)'
+    status: n/a
   - check_name: git_backlog_drift
-    evidence: hub-only — git<->backlog drift check skipped (not the hub repo)
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — git<->backlog drift check skipped
+      (not the hub repo)'
+    status: n/a
   - check_name: doc_claims
-    evidence: hub-only — prose-vs-state check skipped (not the hub repo)
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — prose-vs-state check skipped
+      (not the hub repo)'
+    status: n/a
   - check_name: no_ff_merges
-    evidence: hub-only — --no-ff guard skipped (not the hub repo)
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — --no-ff guard skipped (not the
+      hub repo)'
+    status: n/a
   - check_name: handoff_probes
-    evidence: no docs/handoffs/ — no probe bundle to validate
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] no docs/handoffs/ — no probe bundle to
+      validate'
+    status: n/a
   - check_name: reconciled_versions
-    evidence: no reconciled_with edges declared
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] no reconciled_with edges declared'
+    status: n/a
   - check_name: doc_rot
-    evidence: hub-only — doc-rot / grooming checker skipped (not the hub repo)
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — doc-rot / grooming checker skipped
+      (not the hub repo)'
+    status: n/a
   - check_name: doc_structure
-    evidence: hub-only — prose structural linter skipped (not the hub repo)
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — prose structural linter skipped
+      (not the hub repo)'
+    status: n/a
   - check_name: doc_code_edge
-    evidence: hub-only — doc->code edge check skipped (not the hub repo)
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — doc->code edge check skipped
+      (not the hub repo)'
+    status: n/a
   - check_name: safe_removal
     evidence: no scripts/*.py module removal in the diff
     status: pass
+  - check_name: residual_completeness
+    evidence: no unfilled FILL-IN region in changed handoff bundle files
+    status: pass
   - check_name: deployed_methodology_version
-    evidence: 'corp-sca-time-automation: unset -- no methodology release deployed
-      yet (deploy-runbook will populate; ADR-91)'
+    evidence: '[n/a-reason:NOT-APPLICABLE] corp-sca-time-automation: unset -- no methodology
+      release deployed yet (deploy-runbook will populate; ADR-91)'
     status: n/a
   - check_name: enforcement_coverage
-    evidence: 'corp-sca-time-automation: session_end_backpressure=absent; canonical_freshness=absent;
-      reconciled_versions=n/a-no-edges; doc_claims=hub-scoped; git_backlog_drift=hub-scoped
-      (static; enforcing-local proven only by scripts/enforcement_coverage.py)'
+    evidence: '[n/a-reason:NOT-APPLICABLE] corp-sca-time-automation: block_unanchored_push=absent;
+      canonical_freshness=absent; reconciled_versions=n/a-no-edges; doc_claims=hub-scoped;
+      git_backlog_drift=hub-scoped (static; enforcing-local proven only by scripts/enforcement_coverage.py)'
     status: n/a
   - check_name: undeclared_edges
-    evidence: hub-only — undeclared-edge scan skipped (not the hub repo)
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — undeclared-edge scan skipped
+      (not the hub repo)'
+    status: n/a
   - check_name: doc_code_coverage_drift
-    evidence: hub-only -- coverage drift-guard skipped (not the hub repo)
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only -- coverage drift-guard skipped
+      (not the hub repo)'
+    status: n/a
   - check_name: import_edges
     evidence: 1 @import edge(s) resolve across 2 file(s)
     status: pass
-  last_audit: '2026-07-11'
+  - check_name: fleet_parity
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only -- fleet-parity walk skipped (not
+      the hub repo)'
+    status: n/a
+  - check_name: routine_consumers
+    evidence: 0 declared routine row(s) name a consumer and a consumption_path (live
+      hooks/schedules out of scope — [#426])
+    status: pass
+  - check_name: silent_rule_ratchet
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — the detector''s scope roots
+      are hub governance surfaces'
+    status: n/a
+  - check_name: task_tree_coherence
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — tasks/ is a hub-owned tree'
+    status: n/a
+  - check_name: intake_tree_coherence
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — the docs/intake/ residue carrier
+      is hub-owned'
+    status: n/a
+  - check_name: boot_byte_budget
+    evidence: '[n/a-reason:NOT-APPLICABLE] no protocols/HANDOFF_BOOT.md — repo has
+      not adopted the browser boot'
+    status: n/a
+  - check_name: fleet_audit_replication
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only -- automation/fleet-audit is hub-owned
+      machinery'
+    status: n/a
+  - check_name: membership_agreement
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only -- the ecosystem/ membership surfaces
+      are hub-owned'
+    status: n/a
+  - check_name: journal_spine_anchor
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only -- ADR-85''s disposition floor
+      and JOURNAL shape are hub-owned'
+    status: n/a
+  - check_name: preflight_backlog_ids
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — BACKLOG.md kill-candidates assertions
+      are a hub surface'
+    status: n/a
+  last_audit: '2026-08-05'
   name: corp-sca-time-automation
   path: C:\Users\1028120\Documents\Dev\corp-sca-time-automation
 - findings:
@@ -573,15 +831,13 @@ repos:
       ''upper'')'
     status: warn
   - check_name: handoff_bundle_structure
-    evidence: no docs/handoffs/ — nothing to validate
-    status: n/a
-  - check_name: handoff_tag_canonicity
-    evidence: no protocols/HANDOFF_PROCESS.md — nothing to validate
+    evidence: '[n/a-reason:NOT-APPLICABLE] no docs/handoffs/ — nothing to validate'
     status: n/a
   - check_name: canonical_freshness
-    evidence: 8 canonical living files fresh (last_reviewed not before last edit;
-      within 30d)
-    status: pass
+    evidence: '2 stale (edited since review): VISION.md: last_reviewed 2026-07-11
+      predates last edit 2026-07-12 - edited but not re-reviewed; ARCHITECTURE.md:
+      last_reviewed 2026-07-11 predates last edit 2026-07-12 - edited but not re-reviewed'
+    status: fail
   - check_name: no_sibling_orphans
     evidence: No orphaned 'win-tooling-*' siblings (each is a registered worktree
       or a real repo/folder, not a worktree remnant; or none exist)
@@ -590,62 +846,115 @@ repos:
     evidence: All present canonical files carry their required [U] spine headings
     status: pass
   - check_name: handoff_version_stamp
-    evidence: no protocols/HANDOFF_PROCESS.md — nothing to validate
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] no protocols/HANDOFF_PROCESS.md — nothing
+      to validate'
+    status: n/a
   - check_name: amendment_coherence
     evidence: 0 coupled-surface version mention(s) coherent across 1 set(s)
     status: pass
   - check_name: floor_integrity
-    evidence: no .claude/CLAUDE-FLOOR.md — repo has not adopted the methodology floor
-      (skip)
+    evidence: '[n/a-reason:NOT-APPLICABLE] no .claude/CLAUDE-FLOOR.md — repo has not
+      adopted the methodology floor (skip)'
     status: n/a
   - check_name: hooks_armed
-    evidence: hub-only — git-hook arming check skipped (not the hub repo)
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — git-hook arming check skipped
+      (not the hub repo)'
+    status: n/a
   - check_name: git_backlog_drift
-    evidence: hub-only — git<->backlog drift check skipped (not the hub repo)
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — git<->backlog drift check skipped
+      (not the hub repo)'
+    status: n/a
   - check_name: doc_claims
-    evidence: hub-only — prose-vs-state check skipped (not the hub repo)
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — prose-vs-state check skipped
+      (not the hub repo)'
+    status: n/a
   - check_name: no_ff_merges
-    evidence: hub-only — --no-ff guard skipped (not the hub repo)
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — --no-ff guard skipped (not the
+      hub repo)'
+    status: n/a
   - check_name: handoff_probes
-    evidence: no docs/handoffs/ — no probe bundle to validate
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] no docs/handoffs/ — no probe bundle to
+      validate'
+    status: n/a
   - check_name: reconciled_versions
-    evidence: no reconciled_with edges declared
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] no reconciled_with edges declared'
+    status: n/a
   - check_name: doc_rot
-    evidence: hub-only — doc-rot / grooming checker skipped (not the hub repo)
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — doc-rot / grooming checker skipped
+      (not the hub repo)'
+    status: n/a
   - check_name: doc_structure
-    evidence: hub-only — prose structural linter skipped (not the hub repo)
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — prose structural linter skipped
+      (not the hub repo)'
+    status: n/a
   - check_name: doc_code_edge
-    evidence: hub-only — doc->code edge check skipped (not the hub repo)
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — doc->code edge check skipped
+      (not the hub repo)'
+    status: n/a
   - check_name: safe_removal
     evidence: no scripts/*.py module removal in the diff
+    status: pass
+  - check_name: residual_completeness
+    evidence: no unfilled FILL-IN region in changed handoff bundle files
     status: pass
   - check_name: deployed_methodology_version
     evidence: win-tooling not listed in deployed-versions.yaml (ADR-91)
     status: warn
   - check_name: enforcement_coverage
-    evidence: 'win-tooling: session_end_backpressure=absent; canonical_freshness=absent;
-      reconciled_versions=n/a-no-edges; doc_claims=hub-scoped; git_backlog_drift=hub-scoped
-      (static; enforcing-local proven only by scripts/enforcement_coverage.py)'
+    evidence: '[n/a-reason:NOT-APPLICABLE] win-tooling: block_unanchored_push=absent;
+      canonical_freshness=absent; reconciled_versions=n/a-no-edges; doc_claims=hub-scoped;
+      git_backlog_drift=hub-scoped (static; enforcing-local proven only by scripts/enforcement_coverage.py)'
     status: n/a
   - check_name: undeclared_edges
-    evidence: hub-only — undeclared-edge scan skipped (not the hub repo)
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — undeclared-edge scan skipped
+      (not the hub repo)'
+    status: n/a
   - check_name: doc_code_coverage_drift
-    evidence: hub-only -- coverage drift-guard skipped (not the hub repo)
-    status: pass
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only -- coverage drift-guard skipped
+      (not the hub repo)'
+    status: n/a
   - check_name: import_edges
     evidence: 0 @import edge(s) resolve across 1 file(s)
     status: pass
-  last_audit: '2026-07-11'
+  - check_name: fleet_parity
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only -- fleet-parity walk skipped (not
+      the hub repo)'
+    status: n/a
+  - check_name: routine_consumers
+    evidence: 0 declared routine row(s) name a consumer and a consumption_path (live
+      hooks/schedules out of scope — [#426])
+    status: pass
+  - check_name: silent_rule_ratchet
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — the detector''s scope roots
+      are hub governance surfaces'
+    status: n/a
+  - check_name: task_tree_coherence
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — tasks/ is a hub-owned tree'
+    status: n/a
+  - check_name: intake_tree_coherence
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — the docs/intake/ residue carrier
+      is hub-owned'
+    status: n/a
+  - check_name: boot_byte_budget
+    evidence: '[n/a-reason:NOT-APPLICABLE] no protocols/HANDOFF_BOOT.md — repo has
+      not adopted the browser boot'
+    status: n/a
+  - check_name: fleet_audit_replication
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only -- automation/fleet-audit is hub-owned
+      machinery'
+    status: n/a
+  - check_name: membership_agreement
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only -- the ecosystem/ membership surfaces
+      are hub-owned'
+    status: n/a
+  - check_name: journal_spine_anchor
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only -- ADR-85''s disposition floor
+      and JOURNAL shape are hub-owned'
+    status: n/a
+  - check_name: preflight_backlog_ids
+    evidence: '[n/a-reason:NOT-APPLICABLE] hub-only — BACKLOG.md kill-candidates assertions
+      are a hub surface'
+    status: n/a
+  last_audit: '2026-08-05'
   name: win-tooling
   path: C:\Users\1028120\Documents\Dev\win-tooling
