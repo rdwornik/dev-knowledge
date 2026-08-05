@@ -19,6 +19,46 @@
 
 ---
 
+### 2026-08-05 (h) — CC (Opus 5, local): intake #25 landed post-seal — the wave the sealed plan predates
+
+**Did:** Landed the operator-provided intake draft as
+`docs/intake/2026-08-05-func-simplification-distribution-wave.md` (**intake #25**, `status: DRAFT`),
+verbatim from `Downloads/INTAKE-2026-08-05-simplification-distribution-wave.md`. SHA anchor:
+**`6f81e4c2`**.
+
+**Result — verbatim means byte-verbatim, and that is checkable.** The source body was copied
+unmodified (8409 bytes in, 8586 bytes out — the 177-byte delta is exactly the prepended frontmatter
+block, and the file is LF-only / BOM-free on both sides). No editorial note was interleaved into the
+body, unlike #24's landing, because the brief scoped the addition to the frontmatter's `origin:` line:
+"sealing 2026-08-04/05 architect, operator-directed retrospective + web research 2026-08-05; landed
+post-seal by operator instruction". `intake-id: 25` is next-free across all history; the
+status-conditional companion fields (`consumed-by`, `decided-by`, `disposition`) are absent, which is
+what the §3 schema requires at DRAFT.
+
+**No rows are born by this filing.** The intake proposes eight candidates (W-1 copier template, W-2
+kernel/lab tiering + installable kernel package, W-3 pre-commit native hook distribution, W-4 reusable
+CI workflow, W-5 pytest-testmon, W-6 schema-as-code, W-7 sphinx-needs as pattern-not-migration, W-8 the
+local-copy-vs-hub-reference matrix) and estimates ~6–8 births — but triage, ADR-vs-rows routing, and
+sequencing belong to the sitting architect, not to the landing. The doc is DRAFT and therefore
+non-citable until ingested; the repo wins on conflict.
+
+**Timing is the point of the entry.** #25 landed AFTER the 2026-08-05 architect bundle was cut
+(`1cc7c441`), so the new seat's plan predates it by design. The consumption path is the operator's
+paste-block into that seat: #25 enters as a first-class input beside #24 under plan-governs, with
+`[#487]` as the §F close engine — it does not amend the frozen plan by arriving.
+
+**Changes:** `docs/intake/2026-08-05-func-simplification-distribution-wave.md` (new);
+`docs/intake/README.md` + `docs/intake/manifest.json` (regenerated — `gen_intake_index.py --check`
+and `gen_intake_tree.py --check` both rc=0, 21 item nodes).
+
+**Abandoned:** Nothing. No ADR, no BACKLOG row, no triage verdict, no edit to the landed body, no
+touch to the handoff bundle or the new seat's plan — all four explicitly out of scope by brief.
+
+**Next:** Operator hands the paste-block to the new architect chat; that seat triages #25 next to #24
+and rules whether `[#383]`'s remaining surfaces re-scope onto W-1.
+
+---
+
 ### 2026-08-05 (g) — CC (Opus 5, local): the architect bundle for the next window — a cold handoff that says so
 
 **Did:** Generated and hand-filled the v6 architect bundle
