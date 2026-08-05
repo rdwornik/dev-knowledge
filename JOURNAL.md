@@ -19,6 +19,55 @@
 
 ---
 
+### 2026-08-05 (b) — CC (Opus 5, local): FR-1's honest limit discharged — and the anchor gate catches the shape of my own repair
+
+**Did:** Ran the Informant / fleet-audit generators on the machine of record to discharge FR-1's
+stated limit (*"until the next Informant / fleet-audit run"* — not cloud-runnable, per the night
+report §4). Also repairs the unanchored spine entry **`8b6afb2e`** that my own 2026-08-05 (a) merge
+created; it introduced only **`d19ece26`**, which no entry named.
+
+**Result — the retired organ id is gone from every generated surface, and nothing shrank.**
+The pre-flight guard ran per registered repo: **6/6 `state.yaml` PRESENT**, `discover_repos()` → 6,
+`dropped=[]`, `added=[]`, verified by a read-only probe before any write. Then `audit.py run`
+(6 repos re-audited; durable outputs isolated to `automation/fleet-audit` `c89b3201`, main's tree
+restored clean per ADR-84), `audit.py registry update`, and
+`enforcement_coverage.py --run-date 2026-08-05 --write`.
+
+| Surface | Before | After |
+|---|---|---|
+| `ecosystem/index.yaml` repos | 6 | **6** (identical names — no shrink) |
+| `index.yaml` `session_end_backpressure` | 5 | **0** |
+| `logs/ENFORCEMENT-COVERAGE.md` retired id | — | **0** |
+| `index.yaml` generated | 2026-07-11T12:30:02 | 2026-08-05T10:36:01 |
+
+Census re-run: `tests/test_enforcement_coverage.py -k "census or organ_id"` → **2 passed**.
+Only `ecosystem/index.yaml` is committable — the digest and all six `state.yaml` are gitignored,
+real on disk and never staged, exactly as the night report §4(a) predicted.
+
+**My own error, and the organ that caught it.** I anchored the night-batch push with a
+**journal-only branch**, so its merge `8b6afb2e` introduced nothing but the journal commit
+`d19ece26` — and an entry cannot name a commit that does not exist when it is written. The
+**pre-push gate passed** (its discharge is range-level and the range carried `a83cd0d4`) while the
+**per-entry audit backstop FAILed** — `health: DEGRADED`, taking two `test_audit.py` health tests
+red with it. That is the ADR-85 asymmetry working exactly as the `[#480]` ruling-input pack §3.1
+describes it, on its own author, for the second time in three days.
+
+**The shape that avoids it** is the one the `[#483]` arc already used: put the JOURNAL entry on the
+**work branch**, last, naming the work commits — so a single `--no-ff` merge introduces both the
+work and its anchor. A journal-only branch is structurally unanchorable. No `--no-verify` and no
+`SKIP=` was used; the repair is the gate's own named fix.
+
+**Changes:** `ecosystem/index.yaml` (+517/−208, regenerated wholesale from the six `state.yaml`),
+at **`42058636`** — named here so this arc's own merge is anchored on the work commit, which is the
+`[#483]` shape this entry argues for rather than the journal-only branch that failed.
+
+**Abandoned:** nothing from the night batch fixed — the §5.1 hook defect, `[#310]`, and all twelve
+draft rows stay untouched.
+
+**Next:** the three decision packets — hook-defect row, `[#489]` vs `[#218]`, FR-5 — to the architect.
+
+---
+
 ### 2026-08-05 (a) — CC (Opus 5, local): the night batch is verified on the machine of record, not in the container that produced it
 
 **Did:** Re-verified the cloud night batch `claude/night-batch-review-prep-k1f2yr` locally and
