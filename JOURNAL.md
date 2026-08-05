@@ -19,6 +19,58 @@
 
 ---
 
+### 2026-08-05 (j) — CC (Opus 5, local): `[#457]` leg (ii) census — the boundary row declared its own routine
+
+**Did:** Ran `/handoff-verify` on the `2026-08-05-dev-knowledge-architect` bundle (14/14 PASS,
+onboarding CLEARED), then triaged an operator addendum proposing a root cause for `[#457]`'s
+`routine_consumers` half and asking whether `[#457]` absorbs it or a new row owns it. Discharged
+leg (ii)'s standing instruction — "census the six-field rows vs ADR-105 BEFORE repinning".
+SHA anchor: **`7a70f54c`**.
+
+**Result — the symptom reproduces, the proposed cause does not.** `test_routine_consumers_live_backlog_governs_exactly_one_row`
+is genuinely RED: pin `"1 declared routine row"` vs live evidence `2 declared routine row(s)`.
+But the addendum's causal claim — growth around `[#499]`/`[#500]` — is **REFUTED**: `tasks/499-*.md`
+and `tasks/500-*.md` carry **zero** `· routine:` markers. The two marked rows are **`[#348]` and
+`[#426]`**, and `[#426]` gained its marker at **`27ec8bc5` (2026-07-30)**, before `[#457]` was even
+filed (`19d7e25f`, witnessed 2026-07-31). So the drift is not pin-lag behind unrelated growth.
+
+**The actual root cause is sharper, and it is self-referential.** `[#426]` is the retrofit row that
+OWNS the coverage boundary — its own text says ADR-105's gate "governs exactly ONE backlog row
+([#348])" — and it then declared a routine of its own, falsifying its own sentence. The
+"exactly ONE" claim is therefore stale at **three** sites: the test pin, `check_routine_consumers`'
+docstring, and `[#426]`'s row text. This is **NOT** the ALL_CHECKS-repin class the addendum proposed:
+there a mechanical repin IS the whole fix, whereas here a bare 1→2 repin would leave two prose sites
+still asserting "exactly ONE" — a green test over a false boundary. Repin-only is refused.
+
+**RULING — `[#457]` absorbs it; no new row.** Leg (ii) already names this defect verbatim (same test,
+same 1-vs-2), its done-when already requires a *census-verified* pin, and its refs already carry
+`#348` + `#426`. A new row would duplicate it exactly — the shape `[#489]` was retired for one day
+earlier this window. The fix stays delegated: it touches `tests/` + `scripts/`, outside the architect
+lane's write-scope.
+
+**Second finding, structural — the row is frozen at the doc_rot ceiling.** `[#457]` measured **1197
+chars against a 1200 limit**. Recording the census in the row tripped a NEW `doc_rot`
+backlog-accretion WARN (1949 chars) and RED-ed the ship-gate. Drained by **rewording, never by
+dispositioning** (the (e) close-out precedent): the row keeps a 3-char pointer and the census lands
+here. Worth naming as a general tension — a row within a few chars of the ceiling **cannot record its
+own diagnosis**, so the gate silently pushes findings out of the ticket and into prose. Sibling to the
+`silent_rule_ratchet`-vs-commented-config tension already flagged in the handoff residual §4 item 5.
+
+**Verified:** `gen_task_tree --check ok`; `validate_backlog` OK (9 themes, 26 stories, 199 tasks);
+ship-gate back to **GREEN**, no new WARN. The `[#457]` test stays RED **by design** — RED-first, and
+the fix is not this lane's.
+
+**Changes:** `tasks/457-inherited-live-repo-test-failures.md` (leg (ii) pointer), `BACKLOG.md` +
+`tasks/manifest.json` (regenerated), `JOURNAL.md`.
+
+**Abandoned:** recording the full census inside the `[#457]` row (doc_rot ceiling); the
+`[#499]`/`[#500]` causal hypothesis (refuted on evidence).
+
+**Next:** the delegated fix — repin 1→2 **and** correct the docstring + `[#426]`'s row text in the
+same commit, per leg (ii)'s done-when.
+
+---
+
 ### 2026-08-05 (i) — CC (Opus 5, local): intake #25 consolidated — v2 delta + two amendments in one arc
 
 **Did:** Brought the landed intake #25 DRAFT (the v1 body, `6f81e4c2`) to its complete intended
