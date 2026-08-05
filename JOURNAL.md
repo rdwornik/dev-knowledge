@@ -19,6 +19,50 @@
 
 ---
 
+### 2026-08-05 (a) — CC (Opus 5, local): the night batch is verified on the machine of record, not in the container that produced it
+
+**Did:** Re-verified the cloud night batch `claude/night-batch-review-prep-k1f2yr` locally and
+merged it. SHA anchors: **`a83cd0d4`** (morning report), **`22e5e1ff`** (closure-proposal ranked
+sheet), **`f6d271b1`** (`[#480]` ruling-input pack), **`b9190b3a`** (12 parked draft rows).
+
+**Result — all three artifacts the batch could not trust in its container resolved in its favour
+here.** The night ship-gate RED was container-only: **GREEN at 16 dispositioned, 0 hard-fail**,
+exactly as its §2.1 predicted. The shallow-clone corruption of `canonical_freshness` and
+`journal_spine_anchor` is absent (`is-shallow=false`, 4427 commits; both organs OK). `pytest -n auto`
+returned **2 failed / 2324 passed / 3 skipped** — precisely the two `[#457]` baseline failures and no
+third — with the `analytics` group provisioned (pandas 3.0.5), so §2.2's 18-test under-provision
+does not apply. ruff clean; `gen_task_tree --check` ok; `preflight_contract` **0 flags** across all
+three new audit artifacts (20/20 locator claims).
+
+**The one finding local verification could not reproduce — and the reason it confirms rather than
+refutes it.** `test_carrier_hooks_source.py` passes here (6 passed) because Windows does not enforce
+the exec bit, which is exactly §5.1's own latency claim. So the mechanism was verified directly
+instead: `scripts/block_ff_push.py` is tracked **100644** while the other carried `language: script`
+targets (`codemap_hook.py`, `toc_hook.py`, `check_backlog_commit_msg.py`) are **100755**;
+`block_unanchored_push.py` is also 100644 but occurs **0 times** in `.pre-commit-hooks.yaml`, so it
+is hub-only with no consumer blast radius; and the hub's own path is `language: system` at
+`.pre-commit-config.yaml:164`, which needs no bit. All four sub-claims hold. **Not fixed** — it
+leaves as a decision packet.
+
+**Deviation — the plan said this merge needed no JOURNAL entry, and the gate proved otherwise.**
+The brief asserted ADR-85 discharges range-level via the morning report. `block_unanchored_push`
+**refused the push**: its predicate reads `JOURNAL.md`, and a `docs/audits/` artifact is not a
+JOURNAL anchor. This entry is the discharge the gate itself names. `--no-verify` was available,
+forbidden by the brief, and not used.
+
+**Changes:** merge `8c0ed183`; +3 `docs/audits/` artifacts, +12 parked `tasks/` rows
+`[#486]`–`[#497]` (all `status: deferred`, none open), `BACKLOG.md`, `docs/audits/README.md`,
+`tasks/manifest.json`.
+
+**Abandoned:** nothing found was fixed — the §5.1 hook defect, `[#310]`, and every draft-row flip
+stay untouched by standing constraint.
+
+**Next:** Informant / fleet-audit refresh to discharge FR-1's honest limit (runnable only on this
+machine, with the fleet mounted); then the three decision packets — hook-defect row, `[#489]` vs
+`[#218]`, and FR-5 — to the architect.
+
+---
+
 ### 2026-08-04 (k) — CC (Opus 5, local): FR-3/FR-3b — the gate learns the difference between naming a row and claiming one
 
 **Did:** Ruled and built `[#483]`. R1/R2/R3 recorded verbatim at
