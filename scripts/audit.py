@@ -3663,6 +3663,174 @@ def check_preflight_backlog_ids(repo_path: Path) -> list[Finding]:
         return [Finding(name, "warn", f"could not scan: {exc!r}".replace("|", "/"))]
 
 
+# NO `# rule:` MARKER, deliberately, until [#499]: the rule this leg embodies is not yet
+# written in a living doc, so a marker here would point at nothing and register as a
+# code_orphan. The leg carries a TEMPORARY exemption in ecosystem/doc-code-edge.yaml that
+# expires with [#499], where the PLAYBOOK rule lands and the marker is reinstated.
+# [#480] P3 ruling (2026-08-05). Shape (b): ONE canonical machine-parseable header. Measured
+# before the grammar was ruled -- across all 108 codex artifacts `Branch` appears 99x, `HEAD`
+# 97x, and a tally line ZERO times -- so this codifies what already exists and adds one line.
+_REVIEW_RULING_DATE = "2026-08-05"
+_REVIEW_CODE_SUFFIXES = (".py", ".ps1")
+_REVIEW_CODE_PREFIXES = ("scripts/", "deploy/", "tests/", "plugins/")
+# EXACT-PATH members (operator amendment 2026-08-05), deliberately not a `.yaml` sweep: the
+# tight rule would miss the two files where THIS window's enforcement defects actually live
+# ([#498] and the [#497] fold are both stale/inert carried pre-commit declarations), while a
+# sweep would drag in `ecosystem/*.yaml` data files and manufacture WARNs on data-only merges.
+# Further path additions arrive BY RULING, never by widening this tuple in passing.
+_REVIEW_CODE_EXACT = (".pre-commit-hooks.yaml", ".pre-commit-config.yaml")
+_REVIEW_TALLY_RE = re.compile(r"(?m)^\*\*Tally:\*\*[ \t]*(\d+)/(\d+)/(\d+)/(\d+)\b")
+_REVIEW_BRANCH_RE = re.compile(r"(?m)^\*\*Branch:\*\*[ \t]*`?([^`\s]+?)`?[ \t]*$")
+_REVIEW_HEAD_RE = re.compile(r"(?m)^\*\*HEAD:\*\*[ \t]*`?([0-9a-f]{7,40})`?")
+_REVIEW_MERGE_SUBJECT_RE = re.compile(r"^Merge branch '([^']+)'")
+
+
+def _review_is_code_impact(paths: list[str]) -> bool:
+    """True when >=1 changed path is a code surface under the ruled predicate."""
+    return any(p in _REVIEW_CODE_EXACT
+               or p.endswith(_REVIEW_CODE_SUFFIXES)
+               or p.startswith(_REVIEW_CODE_PREFIXES)
+               for p in paths)
+
+
+def check_review_artifact_coverage(repo_path: Path) -> list[Finding]:
+    """[#480] P3 -- ADVISORY leg: a code-impact merge carrying no linked review artifact.
+
+    THE GAP: the 2026-08-02 W2 report recorded "terra review: zero findings on both arcs"
+    while NO artifact existed anywhere. The claim was never refuted -- it was UNFALSIFIABLE,
+    and nothing in the repo could tell a real review from a remembered one.
+
+    WARN-TIER BY RULING, never a hard verdict. The P3 ruling is LAYERED: this advisory leg
+    now, the hard pre-push leg DEFERRED behind an evidence bar of zero false positives over
+    two consecutive windows, reported at each seal. This leg exists to produce that data.
+    The property is asserted structurally by the test suite (no status literal for the hard
+    verdict appears in this function), because an observational check only proves such a
+    path was not REACHED -- which is exactly what a latent one looks like.
+
+    FORWARD-ONLY from the ruling date. Of the 16 window artifacts only 3 carried a machine
+    readable tally and 9 matched no recognised shape; those are immutable records, so a leg
+    that reached backwards would demand retro-editing precisely what the ruling forbids
+    touching. The date filter is the mechanism that makes "never retro-edited" true.
+
+    LINKAGE IS TWO-LEGGED, each leg covering the other's failure mode: by BRANCH (breaks when
+    a branch name is reused or the review ran pre-rebase) or by an in-range HEAD (breaks when
+    a squash/amend rewrote the SHA the artifact recorded). Either satisfies. An artifact
+    naming neither is not evidence for this merge -- otherwise one stale file in docs/audits/
+    would silence the whole leg.
+
+    Reuses `journal_anchor`'s spine walk and `introduced()` rather than restating them, so
+    this leg and the ADR-85 organs cannot drift about what a spine entry is or what a merge
+    brought in -- the same anti-drift discipline block_ff_push and the backstop already share.
+
+    HUB-ONLY by repo identity: the codex-review convention is a hub practice (108 artifacts
+    here, none in a consumer), so scanning consumers would manufacture a fleet gap -- the
+    enforcement-organs-are-not-homogeneous class. Read-only (Layer-2).
+
+    HONEST LIMIT: this verifies an artifact EXISTS, is LINKED, and carries a PARSEABLE tally.
+    It cannot verify the review happened, was competent, or that the tally is truthful -- a
+    fabricated header passes. It converts an unfalsifiable claim into a checkable one; it does
+    not make it a true one. The predicate also does not see a code change arriving through a
+    path outside the tuples above; widening is a ruling, not a sweep.
+    """
+    name = "review_artifact_coverage"
+    if not _is_hub(repo_path):
+        return [_na(name, _NA_NOT_APPLICABLE,
+                    "hub-only -- the codex-review artifact convention is a hub practice")]
+    try:
+        try:
+            from scripts import journal_anchor as _ja
+        except ImportError:
+            import journal_anchor as _ja
+
+        root = Path(repo_path)
+        artifacts = []
+        audits = root / "docs" / "audits"
+        if audits.is_dir():
+            for p in sorted(audits.glob("*.md")):
+                txt = p.read_text(encoding="utf-8", errors="replace")
+                branch_m = _REVIEW_BRANCH_RE.search(txt)
+                head_m = _REVIEW_HEAD_RE.search(txt)
+                if not (branch_m or head_m):
+                    continue          # not a review artifact -- an index, a memo, a report
+                artifacts.append({
+                    "branch": branch_m.group(1) if branch_m else None,
+                    "head": head_m.group(1) if head_m else None,
+                    "tally": bool(_REVIEW_TALLY_RE.search(txt)),
+                    "file": p.name,
+                })
+
+        unlinked: list[str] = []
+        untallied: list[str] = []
+        scanned = 0
+        # BATCHED date lookup -- one git call for the whole spine, not one PER ENTRY. The
+        # per-entry form cost 236s on this repo's 1317-entry spine, and this leg runs inside
+        # `audit-health`, a PRE-COMMIT gate: it would have added ~4 minutes to every commit in
+        # the repo. Measured, not estimated. `spine_entries` still supplies the authoritative
+        # entry list (shared --first-parent definition); this map only annotates it with dates.
+        spine_dates: dict[str, str] = {}
+        for ln in _ja._git(root, "log", "--first-parent", "--format=%H %cs", "main").splitlines():
+            sha_part, _, date_part = ln.strip().partition(" ")
+            if sha_part:
+                spine_dates[sha_part] = date_part.strip()
+        for sha in _ja.spine_entries(root, "main"):
+            # Absent from the map is NOT treated as in-scope: a date we could not read is an
+            # unknown, and an unknown must not silently become a WARN against a merge that may
+            # predate the ruling. The pairing is one walk, so a miss means git disagreed with
+            # itself -- surfaced by the outer handler if it matters, never guessed at here.
+            if spine_dates.get(sha, "") < _REVIEW_RULING_DATE:
+                continue
+            parents = _ja._git(root, "rev-list", "--parents", "-n", "1", sha).split()
+            if len(parents) < 2:
+                continue              # root commit: no first parent to diff against
+            changed = [ln.strip() for ln
+                       in _ja._git(root, "diff", "--name-only", parents[1], sha).splitlines()
+                       if ln.strip()]
+            if not _review_is_code_impact(changed):
+                continue
+            scanned += 1
+            subject = _ja._git(root, "log", "-1", "--format=%s", sha).strip()
+            subject_m = _REVIEW_MERGE_SUBJECT_RE.match(subject)
+            branch = subject_m.group(1) if subject_m else None
+            brought = set(_ja.introduced(root, sha))
+            linked = None
+            for art in artifacts:
+                if branch and art["branch"] == branch:
+                    linked = art
+                    break
+                if art["head"] and any(c.startswith(art["head"]) for c in brought):
+                    linked = art
+                    break
+            if linked is None:
+                unlinked.append(f"{sha[:8]} {branch or subject[:40]}")
+            elif not linked["tally"]:
+                untallied.append(f"{sha[:8]} -> {linked['file']}")
+
+        deferred = ("advisory per the [#480] P3 ruling; the hard pre-push leg is deferred "
+                    "pending 0 false positives over two consecutive windows")
+        out: list[Finding] = []
+        if unlinked:
+            named = ", ".join(unlinked[:5])
+            more = f" (+{len(unlinked) - 5} more)" if len(unlinked) > 5 else ""
+            out.append(Finding(name, "warn",
+                               f"{len(unlinked)} code-impact merge(s) since "
+                               f"{_REVIEW_RULING_DATE} carry no linked review artifact: "
+                               f"{named}{more} -- {deferred}".replace("|", "/")))
+        if untallied:
+            named = ", ".join(untallied[:5])
+            more = f" (+{len(untallied) - 5} more)" if len(untallied) > 5 else ""
+            out.append(Finding(name, "warn",
+                               f"{len(untallied)} linked artifact(s) carry no parseable "
+                               f"**Tally:** line: {named}{more} -- persistence is not "
+                               f"machine-auditability; {deferred}".replace("|", "/")))
+        if not out:
+            out.append(Finding(name, "pass",
+                               f"{scanned} code-impact merge(s) since {_REVIEW_RULING_DATE} "
+                               f"each carry a linked review artifact with a parseable tally"))
+        return out
+    except Exception as exc:  # noqa: BLE001 -- advisory leg: never wedge a gate on its own input
+        return [Finding(name, "warn", f"could not scan: {exc!r}".replace("|", "/"))]
+
+
 ALL_CHECKS = [
     check_vision_md,
     check_adr38_baseline,
@@ -3706,6 +3874,9 @@ ALL_CHECKS = [
                                   # pre-push hard leg; makes `--no-verify` non-silent
     check_preflight_backlog_ids,   # [#483] R3 — ADVISORY (WARN-tier by ruling); hard-gating is
                                    # deferred pending 0 false positives over two windows
+    check_review_artifact_coverage,   # [#480] P3 — ADVISORY (WARN-tier by ruling);
+                                     # the hard pre-push leg is deferred behind a
+                                     # two-window zero-false-positive evidence bar
 ]
 
 

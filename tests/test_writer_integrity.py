@@ -180,7 +180,7 @@ def test_all_checks_count_is_pinned():
     Renamed from `..._post_retirement_38`: the count moved by an ADDITION, so a name asserting
     a post-retirement 38 would have described neither the number nor the reason.
     """
-    assert len(aud.ALL_CHECKS) == 39
+    assert len(aud.ALL_CHECKS) == 40
 
 
 def test_no_surviving_docstring_describes_the_removed_skip_as_pass_behaviour():

@@ -292,6 +292,28 @@ def test_leg_never_emits_fail_on_any_fixture(tmp_path, monkeypatch):
         assert f.status in ("pass", "warn"), f"advisory leg must never FAIL: {f}"
 
 
+def test_spine_date_lookup_stays_batched():
+    """The date walk must cost ONE git call, not one per spine entry.
+
+    Regression guard for a measured defect caught pre-merge: the per-entry form ran
+    `git log -1 --format=%cs <sha>` for each of this repo's 1317 first-parent entries and took
+    **236 seconds**. This leg runs inside `audit-health`, a PRE-COMMIT gate, so that shape
+    would have added ~4 minutes to every commit in the repo. Batched: 2.9s.
+
+    Asserted STRUCTURALLY on the source rather than by wall-clock, because a timing assertion
+    is flaky under load and would be the first thing muted on a slow CI box. Counting calls
+    through a monkeypatched `journal_anchor._git` does NOT work here and must not be used: the
+    dual-import idiom means audit.py may hold `scripts.journal_anchor` while a test patches
+    top-level `journal_anchor` — two module objects, and the counter silently reads zero.
+    """
+    src = inspect.getsource(_leg())
+    assert '"--format=%H %cs"' in src, "the batched whole-spine date walk is gone"
+    assert '"--format=%cs", sha' not in src and "'--format=%cs', sha" not in src, (
+        "per-entry date lookup reintroduced — 1317 subprocess spawns on this repo's spine, "
+        "inside a pre-commit gate"
+    )
+
+
 def test_leg_is_advisory_on_the_live_repo():
     """Same shape as test_preflight_backlog_ids_is_registered_and_advisory_on_the_live_repo."""
     for f in _leg()(Path(aud._REPO_ROOT)):
