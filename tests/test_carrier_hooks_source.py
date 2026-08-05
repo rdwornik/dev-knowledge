@@ -82,6 +82,61 @@ def test_filing_backpressure_not_carried():
     assert "backlog-filing-backpressure" not in _entries()
 
 
+def _tracked_mode(rel_path: str) -> str | None:
+    """The mode git RECORDS for a path ('100644' / '100755'), or None if untracked.
+
+    Reads the INDEX, not the filesystem, deliberately: Windows carries no exec bit, so
+    `os.access(X_OK)` is meaningless on the fleet's own machines while the tracked mode is
+    exactly what a POSIX consumer's clone materialises. That asymmetry is why [#498] stayed
+    latent — the defect is only observable through git.
+    """
+    out = subprocess.run(["git", "-C", str(_HUB), "ls-files", "-s", "--", rel_path],
+                         capture_output=True, text=True, encoding="utf-8")
+    if out.returncode != 0 or not out.stdout.strip():
+        return None
+    return out.stdout.split(maxsplit=1)[0]
+
+
+def test_carried_script_entries_are_executable():
+    """[#498] Every `language: script` entry in the CARRIED hook source must point at a
+    file git tracks as 100755.
+
+    pre-commit's `language: script` execs the entry directly, so a 100644 target makes the
+    hook exit 1 on EVERY invocation in a consumer clone — the gate arrives declared,
+    distributed, and inert. Witnessed: `scripts/block_ff_push.py` landed 100644 at 94652fdf
+    and no test on this (Windows) fleet could go red for it.
+
+    STRUCTURAL, not enumerated: this iterates whatever `.pre-commit-hooks.yaml` declares, so
+    the NEXT carried script is covered without editing this test — the enumerated form would
+    have to be remembered, which is precisely what failed.
+
+    Scope note — `scripts/block_unanchored_push.py` is ALSO tracked 100644, and is deliberately
+    not asserted here: it occurs ZERO times in `.pre-commit-hooks.yaml` (HUB-ONLY, wired through
+    `.pre-commit-config.yaml` with `language: system`, which needs no exec bit). It is out of
+    scope BY CONSTRUCTION — the carried surface is the whole blast radius — not by waiver. Were
+    it ever carried, the iteration above would pick it up with no edit here.
+    """
+    checked, offenders = [], []
+    for hook in yaml.safe_load(_HOOKS_SRC.read_text(encoding="utf-8")):
+        if hook.get("language") != "script":
+            continue
+        target = hook["entry"].split()[0]
+        checked.append(target)
+        mode = _tracked_mode(target)
+        if mode != "100755":
+            offenders.append(f"{hook['id']} -> {target} tracked {mode or 'UNTRACKED'}, need 100755")
+    # Non-vacuity guard: a carrier that stopped declaring `language: script` entries (renamed
+    # key, restructured file) would make the loop body dead and this test a silent pass.
+    assert checked, (
+        "no `language: script` entries found in .pre-commit-hooks.yaml — the test would pass "
+        "vacuously; the carrier's shape changed and this assertion needs re-aiming"
+    )
+    assert not offenders, (
+        "carried `language: script` hook(s) are not executable, so the gate is declared, "
+        "distributed and inert on a POSIX consumer:\n  " + "\n  ".join(offenders)
+    )
+
+
 # --- E2E firing: real consumer install from the hub-source repo --------------
 
 def _git(repo, *args, **kw):
