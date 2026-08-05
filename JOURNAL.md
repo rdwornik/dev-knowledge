@@ -19,6 +19,84 @@
 
 ---
 
+### 2026-08-05 (g) — CC (Opus 5, local): the architect bundle for the next window — a cold handoff that says so
+
+**Did:** Generated and hand-filled the v6 architect bundle
+`docs/handoffs/2026-08-05-dev-knowledge-architect/` on `docs/handoff-2026-08-05-architect`. SHA
+anchor: **`3df1dd63`**.
+
+**Result — the gate agrees the bundle is complete, and the load-bearing content is the part no check
+can see.** `scripts/gen_handoff.py --mode architect` emitted the five-file bundle answer-free;
+the seven FILL-IN regions the generator refuses to author (Purpose, the three `Destination` prose
+fields, drift-flags, shipped-map, frontier) were hand-written and the ship-gate came back GREEN with
+`residual_completeness` clean and every probe binding to live state. The Purpose names `[E2]` and
+`[E9]` deliberately — P0c matches the Purpose against the P0a/P0b authority enumeration, and epic ids
+are what that enumeration contains, so naming task ids (as the 2026-08-04 bundle's Purpose did) gives
+the leg nothing to match.
+
+**The residual's §1 headline is an absence, not a list.** Every WARN class the gate raises is standing
+and already dispositioned, so there is no new drift to surface — which makes the honest headline the
+class that carries **no** flag at all: the (f) sweep's stale `ARCHITECTURE.md` claims were reported
+unfixed and unfiled by ruling, so they exist only in JOURNAL prose and no probe re-surfaces them. §1
+states that as a scope statement rather than letting a clean gate read as cleanliness. Two register
+entries were distinguished by kind rather than lumped: `[#492]`'s `doc_rot` disposition is new and
+time-boxed, while the `doc-code-edge.yaml` entry for the coverage leg is an **exemption** whose
+discharge `[#499]` owns — a disposition and an expiring exemption are not the same instrument.
+
+**`SUPPLEMENT.md` is committed EMPTY, which is the defined disposition and not a missing
+deliverable.** This session began at `/clear`, so there is no outgoing chat holding the strategic
+*why* to interview — the assembler folded nothing and printed its own note, and the incoming §13(d)
+operator-context beat therefore fires FULL rather than narrowed. CC never fabricates supplement
+answers; the empty committed file is the durable record that this window carried no transmissible
+live *why*.
+
+**The bundle is branch-only, and that is a known live hazard, not a formality.** Until it reaches
+`main` a fresh session sweeping `docs/handoffs/` binds the PREVIOUS window's manifest and reports
+all-PASS against stale probes. Flagged to the operator rather than self-merged: merging is
+authorized per act (§13), so the merge and push were offered, not taken.
+
+**Changes:** five new files under `docs/handoffs/2026-08-05-dev-knowledge-architect/`
+(`HANDOFF_BOOT` · `RESIDUAL` · `PROBES` · `SUPPLEMENT` · `PASTE_THIS`). No existing file edited; no
+row filed, advanced, or closed.
+
+**Abandoned:** nothing. The merge/push stays operator-gated and was not self-issued.
+
+**SUPPLEMENT FILLED after the fact — the cold disposition above is superseded** (`dc3e8a38`,
+`49581765`). The sealing architect of the 2026-08-04/05 window supplied all seven answers; the diff
+was **purely additive below the divider** (92 insertions, 0 deletions), so the verbatim bar is met by
+measurement rather than by assertion — no line above the ANSWERS marker moved and no whitespace-only
+rendering edit was needed. `assemble_paste.py` folded the ANSWERS region and reflowed the four
+framing sites from cold → FILLED, so the incoming §13(d) beat now **narrows** to *"anything changed
+since the supplement was written?"*. The post-fold sweep for the known reflow gap — hand-authored
+cold prose the reflow does not reach — found no stale assertion; the one surviving "empty supplement"
+mention is conditional doctrine describing both branches.
+
+**Two things the fill surfaced that this session deliberately did not act on.** (1) The assembler
+reported **promotion debt: four ruling-bearing lines** in the folded answers, and Q7's register names
+six terms with intended durable homes (PLAYBOOK, LESSONS, `[#499]` rider R2, `[#488]`'s row body).
+Recording is **capture-only at the boundary** by §13 step 1 — the successor records, this seat does
+not, so the debt was surfaced and left. (2) The Purpose I authored under cold conditions leads with
+intake #24 triage, while Q1's strategic intent leads with **consuming** machine-built evidence and
+with fleet-green throughput. Not a contradiction — Q4 independently lists the intake's plan-limit
+question as an open item — but a difference of lead act, and one CC structurally could not have known
+before the answers arrived. Flagged for the operator rather than silently rewritten: a filled
+supplement is advisory and never teeth, and the header is not CC's to re-aim on its own.
+
+**One claim checked rather than carried.** Q1 cites "the 132-row ranked sheet" as existing
+machine-built evidence; verified live —
+`docs/audits/2026-08-04-technical-closure-proposal-ranked-sheet.md` is present. So `[#487]`'s
+retrieval leg has a real deliverable and what remains is the architect's adjudication, exactly as Q1
+frames it.
+
+**Changes (extension):** `docs/handoffs/2026-08-05-dev-knowledge-architect/SUPPLEMENT.md` (filled,
+verbatim) + `PASTE_THIS.md` re-assembled + the reflowed framing sites in `HANDOFF_BOOT.md` /
+`RESIDUAL.md`.
+
+**Next:** the operator's OK to merge `--no-ff` and push — after which the next architect seat boots
+from `PASTE_THIS.md` and runs `/handoff-verify` for its single evidence block.
+
+---
+
 ### 2026-08-05 (f) — CC (Opus 5, local): pre-seal currency sweep — three unowned stale claims found, intake #24 landed verbatim
 
 **Did:** Bounded pre-seal arc on `chore/pre-seal-currency`: a diff-driven doc-currency sweep over
