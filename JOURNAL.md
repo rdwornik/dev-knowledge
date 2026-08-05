@@ -81,7 +81,31 @@ exemption), six count pins re-derived (SIX, not the five carried in memory —
 **Abandoned:** the hard pre-push leg, deferred by ruling behind 0 false positives over two
 consecutive windows — tracked as `[#499]`, not left as a disclaimer.
 
-**Next:** ship-gate, then the arc's §F ledger reconciliation.
+**Ship-gate close-out (`b8a3c483`, `23518240`).** The gate came up RED on **6** undispositioned
+WARNs, all self-induced. One was `doc_claims` (the new tests moved collected 2348 → 2362);
+regenerated, which is regen-hygiene — the gate printed its own fix and no baseline moved. The
+other five were `doc_rot` backlog-accretion, verified against the pre-arc baseline `5511f0c4`:
+**0 rows tripping then, 5 after this arc.** Self-induced bloat is drained, not dispositioned, so
+four rows were trimmed — and the trim that worked was **not** sentence-pruning (that got `[#218]`
+only to 1820 of a 1200 budget). It was dropping the **dated-amendment narration** and folding the
+substance into scope prose: that narration *is* the accretion the check names. All 11 protected
+elements — rider R2's clause, `[#218]`'s four posture clauses, `[#497]`'s fold substance, every
+`Done when`/`refs`/`kill-candidates` — asserted present in the generated file afterwards.
+
+`[#492]` was the one genuine rule-vs-ruling conflict and took a row-specific disposition
+(`warn-doc-rot-backlog-accretion-492-grok-peg`, review 2026-09-05, retire-on-flip). Its shape is
+worth remembering: the row got **shorter** (1061 → 1035) and still tripped, because the ruled peg
+added a **third date** and pushed it onto the `>=3 dates AND >700` branch. Rephrasing the date
+games the detector; gutting the body discards what the next seat needs for the Grok run.
+
+**A pattern, twice in one arc:** explanatory prose in an `ecosystem/*.yaml` tripped
+`silent_rule_ratchet` — once from the exemption comment, once from the disposition comment (a
+`must`, then a `never`, both inside the detector's scope). Drained by rewording both times,
+**441 ≤ 441; the baseline was never raised.** The detector and richly-commented config files are
+in structural tension. Flagged, not filed — the window is closed to filings beyond the ruled set.
+
+**Next:** the arc's §F ledger is net **+0** — `[#499]`/`[#500]` in, `[#480]`/`[#489]` out, with
+`[#498]` filed and closed inside the same arc.
 
 ---
 
