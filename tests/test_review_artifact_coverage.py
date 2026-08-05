@@ -83,9 +83,18 @@ def _commit(repo, msg, fname, when, content=None):
     _run(repo, "commit", "-q", "-m", msg, env=_dated_env(when))
 
 
-def _repo(tmp_path):
+def _repo(tmp_path, monkeypatch):
+    """A throwaway git tree POSING AS THE HUB.
+
+    The leg is hub-only (like `preflight_backlog_ids`): the codex-review convention is a hub
+    practice — 108 artifacts here, none in a consumer — so a consumer repo must stay silent
+    rather than collect a WARN for every code merge it makes. Binding `_REPO_ROOT` is what
+    lets a tmp tree exercise the active path; without it every fixture below would take the
+    n/a branch and the WARN assertions would pass vacuously.
+    """
     repo = tmp_path / "r"
     repo.mkdir()
+    monkeypatch.setattr(aud, "_REPO_ROOT", str(repo))
     _run(repo, "init", "-q")
     _run(repo, "config", "user.email", "t@t.t")
     _run(repo, "config", "user.name", "t")
@@ -139,8 +148,8 @@ def test_leg_is_registered_in_all_checks():
 # --- (i) code-impact merge WITH a canonical artifact -> PASS ----------------
 
 @requires_git
-def test_code_impact_merge_with_canonical_artifact_passes(tmp_path):
-    repo = _repo(tmp_path)
+def test_code_impact_merge_with_canonical_artifact_passes(tmp_path, monkeypatch):
+    repo = _repo(tmp_path, monkeypatch)
     work, _ = _merge(repo, "fix/thing", "scripts/thing.py", _AFTER)
     _artifact(repo, "thing", branch="fix/thing", head=work[:8])
     assert not _warns(_leg()(repo))
@@ -149,8 +158,8 @@ def test_code_impact_merge_with_canonical_artifact_passes(tmp_path):
 # --- (ii) code-impact merge with NO linked artifact -> WARN -----------------
 
 @requires_git
-def test_code_impact_merge_without_artifact_warns(tmp_path):
-    repo = _repo(tmp_path)
+def test_code_impact_merge_without_artifact_warns(tmp_path, monkeypatch):
+    repo = _repo(tmp_path, monkeypatch)
     _merge(repo, "fix/unreviewed", "scripts/unreviewed.py", _AFTER)
     warns = _warns(_leg()(repo))
     assert warns, "an unreviewed code-impact merge must surface"
@@ -161,11 +170,11 @@ def test_code_impact_merge_without_artifact_warns(tmp_path):
 
 @requires_git
 @pytest.mark.parametrize("bad_tally", [None, "lots", "0/0/0", "high"])
-def test_artifact_with_unparseable_tally_warns(tmp_path, bad_tally):
+def test_artifact_with_unparseable_tally_warns(tmp_path, monkeypatch, bad_tally):
     """Persistence != machine-auditability — the [#480] pack's own finding. An artifact
     that exists but carries no parseable tally is exactly the 9-of-16 legacy shape, and
     the whole point of shape (b) is that a checker can read it."""
-    repo = _repo(tmp_path)
+    repo = _repo(tmp_path, monkeypatch)
     work, _ = _merge(repo, "fix/tallyless", "scripts/tallyless.py", _AFTER)
     _artifact(repo, "tallyless", branch="fix/tallyless", head=work[:8], tally=bad_tally)
     assert _warns(_leg()(repo)), f"tally {bad_tally!r} must not parse as a tally"
@@ -174,13 +183,13 @@ def test_artifact_with_unparseable_tally_warns(tmp_path, bad_tally):
 # --- (iv) OPERATOR AMENDMENT: .pre-commit-hooks.yaml is code-impact ---------
 
 @requires_git
-def test_precommit_hooks_yaml_only_merge_warns_when_unlinked(tmp_path):
+def test_precommit_hooks_yaml_only_merge_warns_when_unlinked(tmp_path, monkeypatch):
     """Operator amendment to the predicate, 2026-08-05. The tight suffix/prefix rule would
     miss this, and the blind spot is MEASURED not hypothetical: [#498] and the [#497] fold
     are both defects living in carried pre-commit DECLARATIONS. Exact-path membership (not
     a `.yaml` sweep) keeps `ecosystem/*.yaml` data files out, so the false-WARN surface
     stays at zero."""
-    repo = _repo(tmp_path)
+    repo = _repo(tmp_path, monkeypatch)
     _merge(repo, "fix/carrier", ".pre-commit-hooks.yaml", _AFTER)
     warns = _warns(_leg()(repo))
     assert warns, ".pre-commit-hooks.yaml is an exact-path code-impact member"
@@ -188,8 +197,8 @@ def test_precommit_hooks_yaml_only_merge_warns_when_unlinked(tmp_path):
 
 
 @requires_git
-def test_precommit_config_yaml_is_also_in_scope(tmp_path):
-    repo = _repo(tmp_path)
+def test_precommit_config_yaml_is_also_in_scope(tmp_path, monkeypatch):
+    repo = _repo(tmp_path, monkeypatch)
     _merge(repo, "fix/config", ".pre-commit-config.yaml", _AFTER)
     assert _warns(_leg()(repo))
 
@@ -197,28 +206,28 @@ def test_precommit_config_yaml_is_also_in_scope(tmp_path):
 # --- scope: the predicate must DISCRIMINATE, or it is worthless ------------
 
 @requires_git
-def test_docs_only_merge_is_out_of_scope(tmp_path):
+def test_docs_only_merge_is_out_of_scope(tmp_path, monkeypatch):
     """1547 .md vs 214 .py in the live tree — if a docs-only merge WARNed, the leg would
     fire on the majority of merges and be turned off within a week."""
-    repo = _repo(tmp_path)
+    repo = _repo(tmp_path, monkeypatch)
     _merge(repo, "docs/prose", "docs/decisions/ADR-999-thing.md", _AFTER)
     assert not _warns(_leg()(repo))
 
 
 @requires_git
-def test_ecosystem_yaml_is_not_swept_in(tmp_path):
+def test_ecosystem_yaml_is_not_swept_in(tmp_path, monkeypatch):
     """The amendment is EXACT-PATH. A data-only `ecosystem/*.yaml` merge must stay silent —
     this is the false-WARN surface the `.yaml`-sweep alternative was rejected for."""
-    repo = _repo(tmp_path)
+    repo = _repo(tmp_path, monkeypatch)
     _merge(repo, "chore/data", "ecosystem/parity-surfaces.yaml", _AFTER)
     assert not _warns(_leg()(repo))
 
 
 @requires_git
-def test_merge_before_the_ruling_date_is_out_of_scope(tmp_path):
+def test_merge_before_the_ruling_date_is_out_of_scope(tmp_path, monkeypatch):
     """FORWARD-ONLY. The 9/16 legacy artifacts are immutable records; a leg that reached
     backwards would demand retro-editing exactly what the ruling forbids touching."""
-    repo = _repo(tmp_path)
+    repo = _repo(tmp_path, monkeypatch)
     _merge(repo, "fix/legacy", "scripts/legacy.py", _BEFORE)
     assert not _warns(_leg()(repo))
 
@@ -226,31 +235,31 @@ def test_merge_before_the_ruling_date_is_out_of_scope(tmp_path):
 # --- linkage: two legs, each with its own failure mode ---------------------
 
 @requires_git
-def test_linkage_by_head_alone_is_sufficient(tmp_path):
+def test_linkage_by_head_alone_is_sufficient(tmp_path, monkeypatch):
     """Leg (b). Branch-only linkage breaks when a review ran pre-rebase or the branch name
     was reused; naming an in-range commit still proves the review saw this work."""
-    repo = _repo(tmp_path)
+    repo = _repo(tmp_path, monkeypatch)
     work, _ = _merge(repo, "fix/rebased", "scripts/rebased.py", _AFTER)
     _artifact(repo, "rebased", branch="some/other-name", head=work[:8])
     assert not _warns(_leg()(repo))
 
 
 @requires_git
-def test_linkage_by_branch_alone_is_sufficient(tmp_path):
+def test_linkage_by_branch_alone_is_sufficient(tmp_path, monkeypatch):
     """Leg (a). HEAD-only linkage breaks when the artifact records a SHA that the merge
     rewrote (squash/amend), so the branch name carries the link instead."""
-    repo = _repo(tmp_path)
+    repo = _repo(tmp_path, monkeypatch)
     _merge(repo, "fix/named", "scripts/named.py", _AFTER)
     _artifact(repo, "named", branch="fix/named", head="deadbeef")
     assert not _warns(_leg()(repo))
 
 
 @requires_git
-def test_unrelated_artifact_does_not_launder_an_unreviewed_merge(tmp_path):
+def test_unrelated_artifact_does_not_launder_an_unreviewed_merge(tmp_path, monkeypatch):
     """The linkage must actually LINK. An artifact naming neither the branch nor an
     in-range commit is not evidence for THIS merge — otherwise one stale artifact in
     docs/audits/ would silence the whole leg."""
-    repo = _repo(tmp_path)
+    repo = _repo(tmp_path, monkeypatch)
     _merge(repo, "fix/unreviewed", "scripts/unreviewed.py", _AFTER)
     _artifact(repo, "elsewhere", branch="feat/somewhere-else", head="cafebabe")
     assert _warns(_leg()(repo))
@@ -273,9 +282,9 @@ def test_leg_is_structurally_incapable_of_failing():
 
 
 @requires_git
-def test_leg_never_emits_fail_on_any_fixture(tmp_path):
+def test_leg_never_emits_fail_on_any_fixture(tmp_path, monkeypatch):
     """The observational companion to the source-level proof above."""
-    repo = _repo(tmp_path)
+    repo = _repo(tmp_path, monkeypatch)
     _merge(repo, "fix/a", "scripts/a.py", _AFTER)
     _merge(repo, "docs/b", "docs/b.md", _AFTER)
     _merge(repo, "fix/c", ".pre-commit-hooks.yaml", _AFTER)
