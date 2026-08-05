@@ -31,6 +31,41 @@ files:
   docs/audits/README.md                                                   regenerated
 ```
 
+### READ THIS BEFORE MERGING — my branch is not a 6-commit delta against `origin/main`
+
+`origin/main` **does not contain the 2026-08-05 window's work**, or anything from 2026-08-01
+onward. This is ancestry-free evidence, so it is not a shallow-clone artifact:
+
+```
+git ls-tree origin/main protocols/ | grep STANDING_RULINGS   -> ABSENT on origin/main
+git ls-tree HEAD        protocols/ | grep STANDING_RULINGS   -> present on this branch
+git show origin/main:JOURNAL.md | grep -m1 '^### '           -> 2026-07-31 (h)
+grep -m1 '^### ' JOURNAL.md                                  -> 2026-08-05 (k)
+origin/main tip : 65a549b  2026-07-30  "Merge branch 'docs/2026-07-31-ratification-batch' ..."
+my base         : 8e2be6a1 2026-08-05  the FR-7 merge (tip of the pre-existing remote
+                                        claude/night-batch-2026-08-06-p59kml, NOT of main)
+```
+
+So my base `8e2be6a1` is the tip of the **night-batch branch as it already existed on the
+remote**, not of `main`. That was the right thing to build on — it is the window's output — but
+it means **merging this branch into `origin/main` would carry ~209 commits of 2026-08-01→08-05
+work along with my six audit files.** Do not treat it as a small doc-only merge.
+
+Two consequences for the day lane:
+1. **Check whether the FR-7 merge was ever pushed.** The recon packet's step-0 line asserts
+   "merge SHA `8e2be6a1` (origin/main == local main, in sync)" and "entry (k) present in
+   `origin/main:JOURNAL.md`". Neither holds against the origin this clone fetched. The benign
+   reading is that 2026-08-01→08-05 was merged to the operator's **local** main and never
+   pushed. Worth confirming on the host before anything else, because several days of work
+   apparently exist in one place only.
+2. **If you want just my artifacts**, cherry-pick the six commits onto whatever main really is,
+   rather than merging the branch.
+
+Deliberately not asserted: the `264 behind / 209 ahead` figure and the "not an ancestor" results
+come from `merge-base`/`rev-list` over a **shallow** clone, and truncated ancestry is exactly what
+produced this batch's `journal_spine_anchor` false FAIL. Treat the counts as indicative only. The
+tree and blob reads above need no ancestry and are solid.
+
 Self-checked against the gates that are runnable here: `gen_audit_index.py --check` exit 0;
 `validate_hermetization.check()` over all five added paths returns no violations (Rule A and
 Rule B both clean); the silent-rule ratchet is unmoved at 441/441 over 57 files, as expected —
@@ -43,6 +78,12 @@ No rows born, no closes, no dispositions. The one generated-file write the contr
 was added.
 
 ## 2. Top findings, worst first
+
+**0 — Five days of work appear to exist in one place only.** `origin/main` carries nothing from
+2026-08-01 onward: `protocols/STANDING_RULINGS.md` is absent from its tree, and its JOURNAL tops
+out at 2026-07-31 (h). Full evidence and the merge consequences are in §1 above — it is first
+here because it is the only finding that is about *risk of loss* rather than about correctness,
+and because it changes how this branch should be merged.
 
 **1 — The FR-7 window violated a landed PLAYBOOK rule, and that is why v1.6 now contradicts
 three live doctrine passages.** `PLAYBOOK.md:2665-2675` requires that any change to prompt
