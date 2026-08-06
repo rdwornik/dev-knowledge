@@ -18,6 +18,9 @@ Adding one here without that ruling would be exactly the silent entry the rule f
   native worktree    `worktree-<name>`                    `claude --worktree` / EnterWorktree
   epic lane          `epic/<slug>`                        root-provisioned (ADR-97)
   cloud lane         `claude/<slug>`                      Anthropic cloud sessions
+  automation lane    `automation/<slug>`                  organ-produced (architect ruling
+                                                          2026-08-06; register entry
+                                                          `protocols/STANDING_RULINGS.md` B5)
 
 BATCH LANES are a REFINEMENT of `worktree-<name>`, not a new prefix — which is the whole reason
 they need no ruling to exist. A batch lane's worktree is named `lane-<letter>-<id>-<slug>`, so
@@ -42,7 +45,9 @@ HONEST LIMITS
     is the `/lane-integrate` checklist's.
   * `unknown` means "outside the enum as written", never "wrong". A branch this reports is a
     question for the operator — possibly a name to fix, possibly an enum member the prose has
-    not recorded yet. `automation/fleet-audit` is a live instance of the second kind.
+    not recorded yet. `automation/fleet-audit` WAS the live instance of the second kind and is
+    the reason the fourth lane prefix now exists: the ruling followed the observation, which is
+    the order the "recorded ruling, never silently" rule prescribes.
   * Remote-tracking names are classified after stripping ONE leading remote segment, so
     `origin/main` classifies as `main`. Which names count as remotes is a parameter, not an
     assumption: `classify(name, remotes=…)`, defaulting to `("origin",)`, and the CLI derives
@@ -65,7 +70,9 @@ DEFAULT_BRANCH = "main"
 SERIAL_ARC_PREFIXES = ("feat/", "fix/", "docs/", "chore/")
 
 #: Machine-produced lane prefixes. A new member enters ONLY via a recorded ruling.
-LANE_PREFIXES = ("worktree-", "epic/", "claude/")
+#: `automation/` joined 2026-08-06 by architect ruling (register: STANDING_RULINGS B5) --
+#: the organ-produced replication lane `audit.py::check_fleet_audit_replication` reads.
+LANE_PREFIXES = ("worktree-", "epic/", "claude/", "automation/")
 
 _SLUG = r"[a-z0-9]+(?:-[a-z0-9]+)*"
 
@@ -85,11 +92,12 @@ KIND_BATCH_LANE = "batch-lane"
 KIND_WORKTREE = "worktree"
 KIND_EPIC_LANE = "epic-lane"
 KIND_CLOUD_LANE = "cloud-lane"
+KIND_AUTOMATION_LANE = "automation-lane"
 KIND_UNKNOWN = "unknown"
 
 CONFORMING_KINDS = frozenset({
     KIND_DEFAULT, KIND_SERIAL_ARC, KIND_BATCH_LANE,
-    KIND_WORKTREE, KIND_EPIC_LANE, KIND_CLOUD_LANE,
+    KIND_WORKTREE, KIND_EPIC_LANE, KIND_CLOUD_LANE, KIND_AUTOMATION_LANE,
 })
 
 
@@ -184,7 +192,9 @@ def classify(name: str, remotes: tuple[str, ...] = DEFAULT_REMOTES) -> Classific
                               f"'worktree-' branch with a non-kebab-case name ({suffix!r})")
 
     for prefix, kind, label in (("epic/", KIND_EPIC_LANE, "root-provisioned epic lane (ADR-97)"),
-                                ("claude/", KIND_CLOUD_LANE, "Anthropic cloud-session lane")):
+                                ("claude/", KIND_CLOUD_LANE, "Anthropic cloud-session lane"),
+                                ("automation/", KIND_AUTOMATION_LANE,
+                                 "organ-produced automation lane (ruling 2026-08-06)")):
         if bare.startswith(prefix):
             suffix = bare[len(prefix):]
             if _SUFFIX_RE.match(suffix):
