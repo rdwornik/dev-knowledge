@@ -19,6 +19,50 @@
 
 ---
 
+### 2026-08-06 (d) — CC (Opus 5, local): supplement folded, and the [#408] pointer that rider R-iii caught
+
+**Did:** Discharged rider R-iii on the filled supplement and folded its ANSWERS into the successor
+bundle. Anchors: **`a45559f8`** ([#408] row-pointer), **`4fcff79e`** (filled supplement),
+**`8f0f370f`** (fold + reflow).
+
+**Result — the rider's two legs went opposite ways, and both are worth recording.** The
+`[CC: …]`-marker leg was a genuine **no-op**: the ANSWERS region carried none, so there was nothing
+to resolve against the live repo, and that is reported rather than glossed into a claim of work
+done. The **[#408] row-pointer leg FAILED**, exactly as the rider anticipated it might: the design
+artifact `docs/audits/2026-08-06-technical-night-408-coupling-manifest-design.md` — 409 lines,
+landed with the night batch at `c55c7e51` — was **not referenced by the row at all**, whose refs
+named only `#403`, `scripts/audit.py`, `ARCHITECTURE.md` and `JOURNAL.md`. So 409 lines of design
+were reachable only by remembering they existed, which is precisely the failure mode [#408] exists
+to close. Filed. The pointer carries the **constraint** as well as the location: the draft
+pre-chews the per-section granularity values but deliberately does not settle them — that is an
+operator decision and the first gate on any build, so a future builder cannot read the draft as a
+spec and infer values it declines to give.
+
+**A fourth V-1 doctrine lesson arrived with the supplement**, same class as the uv-pin one and
+just as quiet: **bare `pytest` in a worktree lane inherits `VIRTUAL_ENV` from the primary tree and
+tests the wrong environment** — `uv run --locked` is mandatory per lane. It joins the three already
+owed into `STANDING_RULINGS.md` next window, making four.
+
+**The fold sweep came back clean, and the sweep itself is the point.** A fold can leave
+hand-authored *"SUPPLEMENT.md is generated EMPTY / the beat fires FULL"* prose standing directly
+above the folded answers that contradict it. Every site was checked — `HANDOFF_BOOT` (both the
+marker blockquote and the numbered step-6 line), `RESIDUAL`, and all three `PASTE_THIS` mirrors —
+and all now read **FILLED / NARROWS**. The only surviving fill-state mentions are P8's probe
+question, which asks for the live state by design. So the incoming §13(d) beat **narrows**.
+
+**One inherited premise moved, flagged for the successor.** The bundle's Purpose was authored
+before the supplement existed and frames the next session around sequencing the four births; Q6
+states the introspection budget is **spent** and batch 1 is a **machinery drill**. Both are live in
+the bundle; the supplement is the later word and the successor should read it as such.
+
+**Changes:** `tasks/408-*` + `BACKLOG.md`, `docs/handoffs/2026-08-06-dev-knowledge-architect/`
+(SUPPLEMENT + the reflowed bundle), `JOURNAL.md`.
+
+**Abandoned:** Nothing.
+
+**Next:** Paste `PASTE_THIS.md` (51,137 bytes, ANSWERS folded) into a fresh chat. Four V-1 lessons
++ the STANDING_RULINGS B2 label are owed next window.
+
 ### 2026-08-06 (c) — CC (Opus 5, local): successor bundle cut, window closed
 
 **Did:** Cut the architect successor bundle `docs/handoffs/2026-08-06-dev-knowledge-architect`
