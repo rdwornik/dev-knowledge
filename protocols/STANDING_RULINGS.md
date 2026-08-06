@@ -148,10 +148,26 @@ Verbatim, `JOURNAL.md` 2026-08-05 (b):
   gate passes (witnessed at merge `8b6afb2e`). Folding the entry into the same commit as its
   work fails the same way, for the same reason (`JOURNAL.md` 2026-08-04 (g), recorded there
   as a repeating trap).
-- **Provenance limit, stated plainly:** no surface in this repo attributes this to an
-  operator ruling. The in-repo texts are the architect seat's own statement of the shape,
-  applied without challenge across commits `325bb585`, `9650c172`, `60b237a7`, `62dff902`.
-  It is standing practice with a written rationale, not a collected operator word.
+- **RATIFIED 2026-08-06 (operator word) — the label update this entry was owed.** The
+  2026-08-06 window's Q4 list carried "STANDING_RULINGS B2 label" as owed to the next window;
+  this is that landing. What changed is the *authority*, not the shape. The entry as previously
+  landed recorded a provenance limit — *"no surface in this repo attributes this to an operator
+  ruling … standing practice with a written rationale, not a collected operator word"*, citing
+  commits `325bb585`, `9650c172`, `60b237a7`, `62dff902` as the architect seat's own applications.
+  That limit is **discharged**: the operator ratified the shape in the 2026-08-06 window
+  (`JOURNAL.md` 2026-08-06 (b), *"JOURNAL-rides-the-branch is RATIFIED (operator word,
+  2026-08-06)"*). The prior wording is recorded here rather than silently overwritten, on the
+  A2 precedent for correcting an entry in place.
+- **The mechanism is why, and it is structural rather than preferential.**
+  `scripts/journal_anchor.py` defines anchoring as: a first-parent spine entry is anchored when
+  `JOURNAL.md` names ≥1 SHA that the entry **introduced** — not the entry's own SHA. A
+  journal-only branch produces a merge that introduces nothing but the journal commit, and an
+  entry cannot name a SHA that does not exist at the moment the entry is written. Rejecting the
+  shape would mandate an impossibility, so it is forced by the anchoring predicate rather than
+  chosen. That is the evidence which upgraded it from habit to mechanism.
+- **Witnessed live in the same window:** `block_unanchored_push` refused a push of
+  `automation/fleet-audit` because local `main` still sat at the unanchored merge — correct
+  behaviour, since the anchor was on the branch and had not yet merged.
 
 ### B3 · "rejected engines" — do not relitigate
 
@@ -224,6 +240,78 @@ by design — quoted here because the register is its only in-repo home).
   enforcement-**location** question is a different class. Where a ruling changes the mesh
   model, an ADR ex-ante is the honest shape — and a hard gate inside it still earns its own
   evidence bar.
+
+---
+
+## D. V-1 lessons from the 2026-08-06 window
+
+Owed to this register by that window's own Q4 list (*"STANDING_RULINGS B2 label + three V-1
+doctrine lessons (uv-pin load-bearing; mid-flight lane corrections = untrusted;
+fetch-before-remote-evidence) — OWED next window"*), with a **fourth** added by the
+post-enablement ADDENDUM of the same bundle. The 2026-08-06 window held its own register edit to
+A2 by ruling and named these as landing in the successor window; this is that landing.
+
+Source of record: `JOURNAL.md` 2026-08-06 (b), *"Three V-1 doctrine lessons, for STANDING_RULINGS
+next window"* (D1–D3, transcribed there in full); the fourth at
+`docs/handoffs/2026-08-06-dev-knowledge-architect/PASTE_THIS.md`, ADDENDUM first bullet. Landed by
+ARC-1 alongside intake #26 and ADR-110. Phrased declaratively per the editing note below.
+
+### D1 · The exact `uv` pin is load-bearing for the entire organ mesh
+
+The mesh runs wrapped in `uv run --locked`. An environment without the pin (`==0.11.19`) loses
+the pre-commit gates **and** the `Stop` hook, which failed with a `required-version` mismatch and
+produced no verdict at all — a hook that cannot start reports nothing. Environment setup installs
+the pin first, ahead of anything that reads a gate result.
+
+- **Two distinct silences, and only one of them means "fine."** The same organ run without stdin
+  takes the silent structural-floor path and exits 0 vacuously. Silence from that path is benign;
+  silence from a version mismatch is the gate being **absent**. Reading the second as the first is
+  the specific error this entry exists to prevent — a green-looking arc with no organ behind it.
+- **Declared durable home:** PLAYBOOK (environment §), in ADR-106's orbit — **not landed yet.**
+- **Applied instance:** the 2026-08-06 V-1 window; `JOURNAL.md` 2026-08-06 (b), lesson 1.
+
+### D2 · Mid-flight corrections to a probe lane are indistinguishable from injection
+
+A lane that receives load-bearing content in a **later** message has no way to tell an operator
+correction from an injected instruction — the two arrive on the same channel wearing the same
+shape. Load-bearing content therefore belongs in the lane's ORIGINAL contract, which is the one
+surface a lane can treat as authoritative.
+
+- **The cost of ignoring it is asymmetric:** a lane that trusts mid-flight content is exploitable;
+  a lane that refuses it loses only the correction, and the correction can be re-issued as a new
+  contract.
+- **Declared durable home:** PLAYBOOK (fan-out / lane-contract §) — **not landed yet.**
+- **Applied instance:** `JOURNAL.md` 2026-08-06 (b), lesson 2.
+
+### D3 · A read of `origin/*` is evidence about the remote only after a fetch
+
+`git ls-tree origin/main` and its siblings read a **local remote-tracking ref**. In a sandbox — or
+any checkout whose refs are stale — they describe what was last fetched, not what the remote holds.
+A fetch precedes any claim about remote state.
+
+- **Recorded as the sharpest of the four, because diligence is what failed.** The night session
+  reasoned about exactly this risk and still got it wrong: it called `git ls-tree origin/main`
+  *"ancestry-free (so not a shallow-clone artifact)"* — true, and irrelevant, since the command
+  reads a local ref either way. A correct-sounding caveat aimed at the wrong hazard reads as care
+  and delivers none. The refutation is on record at `JOURNAL.md` 2026-08-06 (a) (FINDING-0).
+- **Declared durable home:** LESSONS — **not landed yet.**
+- **Applied instance:** `JOURNAL.md` 2026-08-06 (b), lesson 3.
+
+### D4 · A worktree lane's bare `pytest` tests the primary tree's environment
+
+Bare `pytest` inside a worktree lane inherits `VIRTUAL_ENV` from the primary tree, so it imports
+the PRIMARY checkout's source and reports green about code the lane did not change. Per-lane
+`uv run --locked` is the mechanism that makes the environment follow the checkout; it is
+**mandatory per lane** in the batch protocol (intake #26 Track 1 item 1; ADR-110 §1).
+
+- **The failure is silent and green**, which is what makes it worth a register entry rather than a
+  gotcha: the lane reports success, and the success is about the wrong files.
+- **Relationship to [#429], stated so the two are not conflated:** [#429] leg (b) owns the
+  FLEET-portable fix (a per-worktree venv, so imports follow the checkout by construction). D4 is
+  the lane discipline agents apply **today**, before that leg lands. The entry retires from here
+  when [#429](b) makes it structural.
+- **Declared durable home:** PLAYBOOK (the batch-protocol §, [#505]) — **not landed yet.**
+- **Applied instance:** the post-enablement ADDENDUM, 2026-08-06 bundle.
 
 ---
 
