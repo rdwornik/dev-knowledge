@@ -151,3 +151,77 @@ jobs:
             pyright.out
           retention-days: 90
           if-no-files-found: warn
+
+  # [#502] mutation-testing pilot. A SEPARATE job, deliberately: it is slower and far more
+  # experimental than the wall, and it must never delay or perturb the record above.
+  # CI-ONLY BY NECESSITY -- mutmut requires fork(), which Windows does not provide, so this
+  # cannot run on the operator's host at all (the research verdict's one hard constraint).
+  # Report-only, exactly like the wall: it records a mutation report and judges nothing.
+  mutation-pilot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30       # DECLARED WALL-CLOCK BUDGET, not a guess at the true cost.
+                              # The pilot's own brief makes a declared budget a precondition;
+                              # an unscoped/unbudgeted mutation run is the known failure mode.
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0      # same reason as the record job: mutmut's default
+                              # use_git_change_detection reads history
+
+      - name: Install the pinned uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.11.19"
+          python-version-file: ".python-version"
+
+      - name: Sync the locked environment
+        run: uv sync --locked --group analytics   # fleet_analytics imports pandas
+
+      - name: mutmut run (recorded, never blocking)
+        id: mutmut
+        continue-on-error: true
+        run: |
+          set +e
+          # `--with` keeps mutmut EPHEMERAL: no dependency-group entry, no uv.lock churn, and
+          # no Windows-unrunnable tool installed into the operator's own environment by a
+          # plain `uv sync`. `--locked` still asserts the project lockfile is current, so the
+          # contract's "under uv run --locked" holds. This composition was exercised live
+          # before being written here, not assumed.
+          uv run --locked --with mutmut==3.7.0 mutmut run 2>&1 | tee mutmut.out
+          echo "exit=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+
+      - name: mutmut results (recorded, never blocking)
+        if: always()
+        continue-on-error: true
+        run: |
+          set +e
+          uv run --locked --with mutmut==3.7.0 mutmut results 2>&1 | tee mutmut-results.out
+
+      - name: Write the pilot record
+        if: always()
+        run: |
+          {
+            echo "## [#502] mutation pilot — \`${{ github.sha }}\`"
+            echo
+            echo "scope: \`scripts/fleet_analytics.py\` · tests: \`tests/test_fleet_analytics.py\` · mutmut exit: \`${{ steps.mutmut.outputs.exit }}\`"
+            echo
+            echo '```'
+            tail -40 mutmut-results.out 2>/dev/null || echo "no results output"
+            echo '```'
+            echo
+            echo "> **No ADOPT/REJECT verdict is recorded here, and none can be from this job's"
+            echo "> existence alone.** The verdict needs a real run's survivor list read against"
+            echo "> the calibration case (\`test_canonical_path_survives_a_cycle\` asserts"
+            echo "> \`in {\"a\",\"b\"}\` where the correctness assertion is \`== \"b\"\`, so a mutant"
+            echo "> flipping WHICH node is returned should survive). Open leg of [#502]."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mutation-pilot-${{ github.sha }}
+          path: |
+            mutmut.out
+            mutmut-results.out
+          retention-days: 90
+          if-no-files-found: warn
