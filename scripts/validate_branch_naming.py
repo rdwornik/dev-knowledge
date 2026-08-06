@@ -43,8 +43,10 @@ HONEST LIMITS
   * `unknown` means "outside the enum as written", never "wrong". A branch this reports is a
     question for the operator — possibly a name to fix, possibly an enum member the prose has
     not recorded yet. `automation/fleet-audit` is a live instance of the second kind.
-  * Remote-tracking names are classified after stripping one `origin/`-style remote segment, so
-    `origin/main` classifies as `main`. Any other multi-segment name is left as it is.
+  * Remote-tracking names are classified after stripping ONE leading remote segment, so
+    `origin/main` classifies as `main`. Which names count as remotes is a parameter, not an
+    assumption: `classify(name, remotes=…)`, defaulting to `("origin",)`, and the CLI derives
+    the set from `git remote`. Any other multi-segment name is left as it is.
 """
 from __future__ import annotations
 
@@ -109,22 +111,49 @@ class BranchNamingError(Exception):
 
 # --- classification ---------------------------------------------------------------------
 
-def strip_remote(name: str) -> str:
-    """`origin/main` -> `main`. Only a leading `origin`-shaped segment is stripped, and only
-    when what follows still names something — so `feat/foo` keeps both segments."""
-    if name.startswith("origin/"):
-        return name[len("origin/"):]
+#: Remote names `strip_remote` recognises by default. Git remote names are arbitrary, so this
+#: is a DEFAULT and not an assumption: a caller with a differently-named remote passes its own
+#: set (`remotes=`), and `main`'s CLI derives it from `git remote` (terra HIGH, 2026-08-06 — the
+#: earlier hard-coded `origin/` classified a conforming `upstream/main` as outside the enum).
+DEFAULT_REMOTES = ("origin",)
+
+
+def strip_remote(name: str, remotes: tuple[str, ...] = DEFAULT_REMOTES) -> str:
+    """`origin/main` -> `main`. Strips ONE leading remote segment, and only for a name in
+    `remotes` — an arbitrary first segment is left alone, since `feat/foo` is a branch name and
+    not a remote-tracking ref."""
+    for remote in remotes:
+        prefix = f"{remote}/"
+        if name.startswith(prefix) and len(name) > len(prefix):
+            return name[len(prefix):]
     return name
 
 
-def classify(name: str) -> Classification:
+def configured_remotes(repo_path: str = ".") -> tuple[str, ...]:
+    """Remote names git actually knows about, or `DEFAULT_REMOTES` when it cannot be asked.
+
+    Falling back rather than raising is deliberate: an unreadable remote list is a reason to
+    classify with the common default, not a reason to refuse to classify at all.
+    """
+    try:
+        proc = subprocess.run(["git", "-C", repo_path, "remote"],
+                              capture_output=True, text=True, encoding="utf-8", timeout=15)
+    except (OSError, subprocess.SubprocessError):
+        return DEFAULT_REMOTES
+    if proc.returncode != 0:
+        return DEFAULT_REMOTES
+    found = tuple(ln.strip() for ln in proc.stdout.splitlines() if ln.strip())
+    return found or DEFAULT_REMOTES
+
+
+def classify(name: str, remotes: tuple[str, ...] = DEFAULT_REMOTES) -> Classification:
     """Resolve one branch name against the enum. Never raises; an unrecognised name is a
     `Classification` with `kind == 'unknown'`, because "outside the enum" is a reportable
     verdict and not an error."""
     raw = (name or "").strip()
     if not raw:
         return Classification(name, KIND_UNKNOWN, "empty branch name")
-    bare = strip_remote(raw)
+    bare = strip_remote(raw, remotes)
 
     if bare == DEFAULT_BRANCH:
         return Classification(raw, KIND_DEFAULT, "the default branch")
@@ -225,7 +254,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"ERROR {exc}", file=sys.stderr)
         return 2
 
-    results = [classify(n) for n in names]
+    results = [classify(n, configured_remotes(args.repo_path)) for n in names]
     for res in results:
         print(f"{'OK ' if res.conforms else 'BAD'}  {res.name:<44} {res.kind:<14} {res.note}")
     outside = [r for r in results if not r.conforms]

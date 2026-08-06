@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import inspect
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -151,13 +152,80 @@ def test_no_git_degrades_to_na(monkeypatch, tmp_path):
 
 @requires_git
 def test_linked_worktrees_reader_excludes_the_primary():
-    """`_git_linked_worktrees` returns LINKED worktrees only. Run from the primary checkout
-    with no worktrees provisioned it returns []; the primary itself is never a candidate,
-    which is the difference between this check and a plain `git worktree list` transcription."""
+    """`_git_linked_worktrees` returns LINKED worktrees only — the primary is never a candidate,
+    which is the difference between this check and a plain `git worktree list` transcription.
+
+    ON ITS OWN THIS TEST IS WEAK, and that is why the integration test below exists (terra HIGH,
+    2026-08-06): a reader that always returned `[]` would satisfy this assertion and silently
+    disable stale detection. Kept because it pins the primary-exclusion property specifically."""
     entries = aud._git_linked_worktrees(Path(aud._REPO_ROOT))
     assert entries is not None
     paths = {Path(e["path"]).resolve() for e in entries}
     assert Path(aud._REPO_ROOT).resolve() not in paths
+
+
+def _init_repo(root: Path) -> None:
+    subprocess.run(["git", "init", "-b", "main", str(root)], check=True, capture_output=True)
+    for k, v in (("user.email", "t@t"), ("user.name", "t")):
+        subprocess.run(["git", "-C", str(root), "config", k, v], check=True, capture_output=True)
+    (root / "f.txt").write_text("x", encoding="utf-8")
+    subprocess.run(["git", "-C", str(root), "add", "f.txt"], check=True, capture_output=True)
+    subprocess.run(["git", "-C", str(root), "commit", "-m", "init", "--no-verify"],
+                   check=True, capture_output=True)
+
+
+@requires_git
+def test_reader_actually_returns_a_real_linked_worktree(tmp_path):
+    """THE TEST THAT CONSTRAINS THE READER: provision a real linked worktree against real git
+    and assert every field the check consumes comes back populated. A reader returning `[]`,
+    dropping the branch, or failing to read the commit date fails here — which the monkeypatched
+    state tests above structurally cannot catch, since they replace the reader entirely.
+
+    Cleans up after itself (no-leftovers): the worktree is removed and pruned, and `tmp_path`
+    holds both the repo and the worktree, so nothing escapes the temp tree either way."""
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _init_repo(repo)
+    wt = tmp_path / "lane-a-505-batch-protocol"
+    subprocess.run(["git", "-C", str(repo), "worktree", "add", str(wt),
+                    "-b", "worktree-lane-a-505-batch-protocol"], check=True, capture_output=True)
+    try:
+        entries = aud._git_linked_worktrees(repo)
+        assert entries is not None
+        assert len(entries) == 1, entries          # the primary is excluded, the linked one is not
+        entry = entries[0]
+        assert Path(entry["path"]).resolve() == wt.resolve()
+        assert entry["branch"] == "worktree-lane-a-505-batch-protocol"
+        assert entry["on_disk"] is True
+        assert isinstance(entry["last_commit_epoch"], int)
+        # ... and the check reads it as a live lane rather than a leftover
+        assert aud.check_stale_worktrees(repo)[0].status == "pass"
+    finally:
+        subprocess.run(["git", "-C", str(repo), "worktree", "remove", "--force", str(wt)],
+                       capture_output=True)
+        subprocess.run(["git", "-C", str(repo), "worktree", "prune"], capture_output=True)
+
+
+@requires_git
+def test_reader_sees_a_worktree_whose_directory_was_deleted(tmp_path):
+    """The half-finished teardown, end to end against real git: the registration survives, the
+    directory does not, and the check reports it at any age."""
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _init_repo(repo)
+    wt = tmp_path / "lane-b-505-gone"
+    subprocess.run(["git", "-C", str(repo), "worktree", "add", str(wt), "-b", "worktree-lane-b-505-gone"],
+                   check=True, capture_output=True)
+    shutil.rmtree(wt)                              # deregistration deliberately NOT run
+    try:
+        entries = aud._git_linked_worktrees(repo)
+        assert entries is not None and len(entries) == 1
+        assert entries[0]["on_disk"] is False
+        out = aud.check_stale_worktrees(repo)
+        assert out[0].status == "warn"
+        assert "prune" in out[0].evidence.lower()
+    finally:
+        subprocess.run(["git", "-C", str(repo), "worktree", "prune"], capture_output=True)
 
 
 @requires_git

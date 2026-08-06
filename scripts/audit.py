@@ -1048,26 +1048,45 @@ def _git_linked_worktrees(repo_path: Path) -> Optional[list[dict]]:
     paths. Prunable/locked annotations are deliberately NOT parsed: they arrived in later git
     versions, so on-disk presence is tested directly and the reader stays version-independent.
 
+    NUL-DELIMITED FIRST, newline-delimited as a fallback (terra HIGH, 2026-08-06). Newline
+    parsing splits a worktree path that CONTAINS a newline into malformed records, and the
+    truncated path then fails its on-disk test — so a pathological-but-legal path would be
+    reported stale, which is a false WARN manufactured by the parser. `-z` removes that class.
+    It arrived in a later git, hence the fallback: a `-z` that fails re-runs without it rather
+    than returning None, because degrading to the old parse beats disabling the check entirely
+    on an older git.
+
     Read-only. Returns None when git is absent or the path is not a git repo, so a non-git
     consumer degrades gracefully (the check is then n/a) — the `_git_registered_worktrees`
     contract.
     """
-    try:
-        result = subprocess.run(
-            ["git", "-C", str(repo_path), "worktree", "list", "--porcelain"],
-            capture_output=True, text=True, encoding="utf-8", timeout=15,
-        )
-    except (OSError, subprocess.SubprocessError):
+    def _run(extra: list[str]) -> Optional[subprocess.CompletedProcess]:
+        try:
+            return subprocess.run(
+                ["git", "-C", str(repo_path), "worktree", "list", "--porcelain", *extra],
+                capture_output=True, text=True, encoding="utf-8", timeout=15,
+            )
+        except (OSError, subprocess.SubprocessError):
+            return None
+
+    result = _run(["-z"])
+    if result is None:
         return None
-    if result.returncode != 0:
-        return None
+    if result.returncode == 0:
+        # `-z` terminates every attribute with NUL; a record ends at an empty attribute.
+        fields = [f for f in result.stdout.split("\0")]
+    else:
+        result = _run([])       # older git: no `-z`. Degrade, do not disable.
+        if result is None or result.returncode != 0:
+            return None
+        fields = result.stdout.splitlines()
     records: list[dict] = []
     current: dict = {}
-    for line in result.stdout.splitlines():
+    for line in fields:
         if line.startswith("worktree "):
             if current:
                 records.append(current)
-            current = {"path": line[len("worktree "):].strip(), "branch": None, "head": None}
+            current = {"path": line[len("worktree "):], "branch": None, "head": None}
         elif not current:
             continue
         elif line.startswith("branch "):

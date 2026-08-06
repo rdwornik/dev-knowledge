@@ -49,6 +49,21 @@ def test_remote_tracking_names_strip_one_remote_segment():
     assert vbn.classify("origin/claude/conformance-2026-08-05").kind == vbn.KIND_CLOUD_LANE
 
 
+def test_a_non_origin_remote_is_a_parameter_not_an_assumption():
+    """terra HIGH 2026-08-06: git remote names are arbitrary, so a hard-coded `origin/` made a
+    conforming `upstream/main` report as outside the enum. `upstream` is not stripped by DEFAULT
+    — that would let any first segment through — but a caller who knows its remotes says so."""
+    assert vbn.classify("upstream/main").kind == vbn.KIND_UNKNOWN
+    assert vbn.classify("upstream/main", remotes=("origin", "upstream")).kind == vbn.KIND_DEFAULT
+
+
+def test_only_one_remote_segment_is_stripped():
+    """`origin/feat/x` -> `feat/x`, not `x`. And a bare remote name with nothing after it is
+    left alone rather than collapsing to an empty string."""
+    assert vbn.strip_remote("origin/feat/x") == "feat/x"
+    assert vbn.strip_remote("origin/") == "origin/"
+
+
 # --- nothing unruled gets in ---------------------------------------------------------------
 
 @pytest.mark.parametrize("name", [
@@ -150,6 +165,14 @@ def test_cli_reports_that_it_could_not_look(tmp_path, capsys):
     """Exit 2 is reserved for 'I could not look', kept distinct from exit 1 'I looked and it is
     outside the enum' — the `/preflight` and check_seal_identity posture."""
     assert vbn.main(["--repo-path", str(tmp_path / "nope")]) == 2
+
+
+@requires_git
+def test_configured_remotes_reads_git_and_falls_back(tmp_path):
+    """Reads what git knows; falls back to the default rather than refusing to classify, since
+    an unreadable remote list is a reason to use the common default, not to give no verdict."""
+    assert "origin" in vbn.configured_remotes(str(Path(__file__).resolve().parents[1]))
+    assert vbn.configured_remotes(str(tmp_path / "not-a-repo")) == vbn.DEFAULT_REMOTES
 
 
 @requires_git
