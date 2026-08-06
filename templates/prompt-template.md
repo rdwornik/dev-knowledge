@@ -1,6 +1,6 @@
 # Prompt Template for Claude Code
 <!-- scope: meta -->
-<!-- version: 1.7 — 2026-08-06 -->
+<!-- version: 1.8 — 2026-08-06 -->
 
 > **Copy this template, fill placeholders, save as `.md` artifact, deliver to Claude Code via paste-into-prompt.** Browser chat produces this; Claude Code executes it.
 >
@@ -8,7 +8,8 @@
 > of a batch, delivered as a pasted contract into a Claude Code session. **ADR-97 epic lanes are
 > a different object** — each runs its own chat, boots from a §14a handoff and closes with a §14b
 > return — and they are governed by `protocols/PLAYBOOK.md`: the "2–3 concurrent epic lanes" cap
-> (`PLAYBOOK.md:1643`) and the mode vocabulary under "How to choose Mode" (`PLAYBOOK.md:2504`).
+> (`PLAYBOOK.md` "The cap: 2–3 concurrent epic lanes") and the mode vocabulary under
+> `PLAYBOOK.md` §"How to choose Mode".
 > **Precedence: PLAYBOOK wins on epic-lane criteria.** This card is the point-of-use authority
 > for work-lane prompts only; where a prompt boots an epic lane, PLAYBOOK's defaults govern and
 > this card's execution-default does not reach it. Declared 2026-08-06 to repair the undeclared
@@ -21,8 +22,9 @@
 > - **Scale L** (3+ files, architectural change): full ceremony, full template. **Plan-mode is
 >   usually preferred at Scale L** — restored here from v1.5, which the v1.6 diff deleted rather
 >   than replaced. For an **L-sized epic story**, PLAYBOOK's stronger rule governs instead:
->   *L-sized epic stories default plan-first* (`PLAYBOOK.md:659` and `:1647-1650`, which carry
->   the §14a item-7 linkage — routed through PLAYBOOK deliberately, since it wins here).
+>   *L-sized epic stories default plan-first* (`PLAYBOOK.md` §"Per-Scale guidance" at Scale L,
+>   and "Execution MODE is part of the contract", which carry the §14a item-7 linkage — routed
+>   through PLAYBOOK deliberately, since it wins here).
 >
 > **Plan-mode by exception — the contract IS the plan.** The browser plan-of-record plus the
 > frozen contract constitute the plan, and lane MODE is set by the architect *in* the contract
@@ -34,7 +36,7 @@
 > repo-derivation: the class where CC's derivation can overturn the architect's premises.
 >
 > That execution-default is scoped to work lanes and does not restate PLAYBOOK's general rule.
-> `PLAYBOOK.md:2504` ("How to choose Mode") keeps `plan-then-auto` as the default for most
+> `PLAYBOOK.md` §"How to choose Mode" keeps `plan-then-auto` as the default for most
 > multi-step prompts, over the three defined values `auto-accept / plan-then-auto / plan`; the
 > `execution` value in the `Mode` row below is a work-lane label for that pasted-contract case,
 > not a fourth member of PLAYBOOK's vocabulary. Where the two populations meet, PLAYBOOK governs.
@@ -48,7 +50,7 @@
 > emitting architect's judgment (intake #25 `AMENDMENT 2026-08-05-c` c1).
 >
 > **This is a different axis from PLAYBOOK's cap, and the two are deliberately not reconciled to
-> one number.** `PLAYBOOK.md:1643` caps **concurrent ADR-97 epic lanes at 2–3**, bounded by the
+> one number.** `PLAYBOOK.md` "The cap: 2–3 concurrent epic lanes" caps them **at 2–3**, bounded by the
 > root's review and serial-merge bandwidth. The ~10 above counts footprint-disjoint work lanes
 > inside a single batch. Different objects, different bottlenecks, both live: ~10 work lanes can
 > sit inside far fewer epic lanes. Equalizing the figures would erase a real distinction.
@@ -160,6 +162,7 @@ Final: `/ship "<summary> [#id if closing]"` — refuses if: on `main`, dirty tre
 ---
 
 **Section history:**
+- v1.8 (2026-08-06) — **line anchors converted to anchor text** ([#505] coupled repair). The [#505] arc adds a section to PLAYBOOK Ch8, which shifts every line below it; this card carried four `PLAYBOOK.md:NNN` citations that the insertion would have silently rotted, and one (`:2504`) that had already drifted eleven lines onto a table row. Each now cites the heading or bolded lead it means, per the standing lesson that a line anchor rots inside its own branch while an anchor text does not. The v1.7 entry below keeps its original line numbers: it describes a past state and is a record, not a live pointer. No doctrine changed — the only edits are the form of five citations and this entry.
 - v1.0 (2026-04-24) — initial template per Gap #2. Standard 8-section structure (Model/Mode/Effort → Title → Read first → Git → UNDERSTAND → Steps → Final → What NOT to do).
 - v1.1 (2026-06-06) — Final merge boilerplate replaced with `/ship` delegation (closes #103).
 - v1.2 (2026-06-06) — Per-step verification line replaced with `verify` skill invocation (closes #104).
