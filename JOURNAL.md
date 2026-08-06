@@ -28,6 +28,8 @@ mutmut pilot), **`5af0b33c`** (lane C, `worktree-lane-c-504-failclosed-claims` �
 fail-closed claim narrowed to what the code covers), **`a4f4f1e9`** (lane B,
 `worktree-lane-b-503-doc-currency` — 8 doc-currency sites the ADR-85 amendment and [#255] retired
 underneath). Full packet: `docs/audits/2026-08-06-technical-batch-1-integration-packet.md`.
+Integration arc: **`ed9de2b5`** (carried edits + reconciliations + packet), merged at
+**`9cf4e33e`**; anchor repair **`48a0cb67`** (F1b below).
 
 **Result — the protocol survived its first real run, and the interesting failures were the ones no
 lane could see.** Two statements were true when their lane wrote them and false once a sibling
@@ -55,6 +57,19 @@ merges — surgical, every other gate left armed, **not** `--no-verify` — with
 here and `audit.py health` verified clean before push. Anchoring is retrospective; the commit-time
 backstop is per-commit; the pre-push gate discharges range-level and was satisfied normally. Whether
 the integrator's intermediate merges are an exempt class wants a ruling.
+
+**Result — F1b, the same finding one level up, and it caught me: a single-commit integration
+branch is structurally unanchorable.** The integration merge `9cf4e33e` landed with no anchor.
+`introduced()` for a `--no-ff` merge is the merge plus the commits its branch brought in — here
+`[9cf4e33e, ed9de2b5]` — and the batch entry named only the three *lane merge* SHAs, which earlier
+spine entries introduced. The branch carried exactly one commit, and that commit *contained* this
+JOURNAL entry, which cannot name its own hash. It surfaced where it should have: the merged-result
+suite returned **4 failures instead of the 2 dispositioned REDs**, the two extra both downstream of
+one `journal_spine_anchor` FAIL. The rule it yields — **the integrator's branch needs ≥2 commits**,
+substantive work then JOURNAL, so the JOURNAL commit can name a sibling. Every normal arc already
+has that shape; only the integrator, whose work is naturally one commit, can fall into it unnoticed.
+Repaired by this ordinary two-commit arc rather than by resetting unpushed history: the record of
+the miss is worth more than a tidy graph.
 
 **Result — the contract named two audit files that a hard gate refuses.** Both carried edits were
 cited under filenames with no ADR-101 Rule B enum-class token; both lanes renamed minimally to

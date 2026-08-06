@@ -104,6 +104,28 @@ the commit-time backstop is per-commit. The pre-push gate (`block_unanchored_pus
 discharge is **range-level**, is satisfied normally — it is only the commit-time backstop that
 cannot be. Worth a ruling on whether the integrator's intermediate merges are an exempt class.
 
+**F1b — a single-commit integration branch is structurally unanchorable, and the first attempt
+hit it.** The same finding as F1, one level up, and it survived the intermediate gates because it
+only becomes visible *after* the integration merge exists. The predicate
+(`scripts/journal_anchor.py`) anchors a spine entry when JOURNAL names ≥1 SHA that entry
+**introduced** — for a `--no-ff` merge, the merge plus every commit its branch brought in. The
+integration branch carried exactly **one** commit (`ed9de2b5`), and that commit *contained* the
+JOURNAL entry, which cannot name its own hash. So `introduced(9cf4e33e) = [9cf4e33e, ed9de2b5]`
+and the JOURNAL named neither: the batch entry named the three **lane merge** SHAs, which earlier
+spine entries introduced, not this one.
+
+Symptom: the merged-result suite returned **4 failures instead of the 2 dispositioned REDs** —
+`test_health_ok_with_registered_repo` and `test_health_stays_ok_with_na_status`, both downstream of
+one `journal_spine_anchor` FAIL naming `9cf4e33e`.
+
+**The rule this yields:** an arc's JOURNAL commit must be able to name a *sibling* commit on its
+own branch, so **the integrator's branch needs ≥2 commits** — substantive work first, JOURNAL
+second. This is the same shape every normal arc already has (the ARC-3 branch above it carries six
+commits with the JOURNAL last); it is only the integrator, whose work is naturally one commit, that
+can fall into a one-commit branch without noticing. Repaired here by a normal two-commit arc rather
+than by resetting unpushed history — the record of the miss is worth more than a tidy graph, and a
+`reset --hard` on `main` is exactly the class of move that should not be self-authorized.
+
 **F2 — the integrator's own edits cannot ride `main`.** Merging on `main` leaves the session on
 `main`, so the carried-edit / JOURNAL / packet commits would be direct-to-`main` and violate
 core-invariant #5. They ride `docs/batch-1-integration` and merge `--no-ff`. ADR-110 notes the
