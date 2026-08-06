@@ -19,6 +19,89 @@
 
 ---
 
+### 2026-08-06 (e) — CC (Opus 5, local): ARC-1 — the parallel-execution pipeline pass, intake → ADR → doctrine → births
+
+**Did:** Ran one full methodology pass for the parallel-execution system on branch
+`docs/arc1-intake26-adr-doctrine`. Anchors: **`363f56e9`** (intake #26 filed), **`cecb17d7`**
+(ADR-110 cut), **`91ce13af`** (STANDING_RULINGS section D + the B2 label), **`92db7d9d`**
+(births [#505] [#506] + the [#429] cross-ref). A transcription arc by design — every ruling in
+it was taken in the 2026-08-06 consolidation window; nothing here decides anything new.
+
+**Result — three id allocations, each verified against live state rather than assumed.**
+intake-id **26** (ids 1–25 present incl. `archive/`; `git log --all -S"intake-id: 26"` empty;
+`git ls-remote --heads origin` carries no branch with a higher id — the [#427]
+unmerged-branch-invisibility class checked, not waved past). ADR **110** (`ls ADR-1*.md` was the
+read; a plain `ls | tail` hides the 100-series behind ADR-94–99 because `ADR-1` sorts before
+`ADR-9`). Backlog **505/506** — the max bracketed id in `git log --all` is `[#777]`, which
+`c2f10440` already records as a **synthetic trip-test false positive**, so the real max is 504.
+
+**The doc_rot ceiling shaped the row bodies, and that is the finding worth carrying.** Any
+BACKLOG task line over **1200 chars** raises a fresh undispositioned WARN and REDs the
+ship-gate. Both births were composed, measured, and cut across three passes before being
+written (1721→1533→1145 for [#505]; 1355→1226→1200→1170 for [#506]). [#506]'s first passing
+draft landed at **exactly 1200** — lawful, since the predicate is `> 1200`, but one character
+from failing; it was cut a further 30 rather than shipped on the boundary. The same ceiling
+constrained the **[#429] cross-ref**: that row sits at 1177 and the contract forbade trimming
+it, leaving 23 characters, so the reciprocal reference landed as `, #505 (cross-ref)` (+18 →
+1195) with not one word of its scope, done-when or kill-candidates touched. Measuring first is
+what kept this arc from a self-induced RED it would then have been tempted to disposition.
+
+**The silent-rule ratchet did the same job on the register.** `protocols/STANDING_RULINGS.md`
+is inside the corpus at **441 = 441**, and the baseline cannot be raised without an operator
+ruling — so section D's four entries are phrased as descriptions of mechanism rather than as
+imperatives. Verified rather than hoped: the file was `git add`ed (the detector reads **staged
+blobs**) and re-measured → `Measurement(detector_id='silent-rule-v4', count=441, files=57)`;
+`grep -inoE "\b(must|shall|never)\b"` over the file returns zero.
+
+**Section D is four entries, not the three the Q4 list named** — the post-enablement ADDENDUM
+of the same bundle added the worktree `VIRTUAL_ENV` lesson, so both sources were read and the
+count is four. **B2's label applied**: "JOURNAL-rides-the-branch" carried a provenance limit
+("standing practice … not a collected operator word"); the operator ratified it 2026-08-06, so
+the limit is discharged, with the prior wording and its four cited commits recorded rather than
+silently overwritten, on the A2 precedent. This entry is itself written under that shape — on
+the work branch, last, naming commits the merge introduces.
+
+**Two judgment calls made under the decision budget, reported not escalated.** (i) The bundle
+ADDENDUM's shorthand *"[#429] slim scope"* reads as if [#429] would absorb Track 1 items 4–5;
+intake #26 — the later artifact, and the ACCEPTED one — names that exact point and rules the
+opposite. Not treated as a class-(b) rule-vs-ruling conflict: the two texts are not peers, and
+the later one addresses the earlier one's subject explicitly. Recorded inside ADR-110 §6 so a
+reader meets the reconciliation rather than the tension. (ii) **AM-1/AM-2 have no in-repo
+locator** — grep across the sealed bundle, JOURNAL and BACKLOG returns zero; SESSION PLAN v2
+lives in the operator's Downloads. ADR-110 therefore cites intake #26 as the in-repo carrier
+and says the ratification is off-repo, rather than manufacturing a citation that would fail
+`/preflight`.
+
+**[#506]'s serialize-group is deliberately ABSENT**, per the contract's do-not-guess clause: no
+group covers backlog CONTENT, and the nearest sibling [#348] carries `settings-json` only
+because ITS build is routine configuration. [#505] → `playbook` was determined, not judged —
+footprint item 1 is `protocols/PLAYBOOK.md` and every existing member of that group is a
+PLAYBOOK.md-editing row.
+
+**One regen-hygiene firing, resolved by its own named fix** (STANDING_RULINGS A1): the first
+intake commit FAILed `intake_tree_coherence` ("intake doc on disk with no item node"); the gate
+printed `gen_intake_tree.py --write` and that cleared it. No disposition, no baseline touch.
+
+**Verification.** Full suite via `uv run --locked` and `audit.py ship-gate` run at the arc's
+close — results in the merge commit. `validate_backlog` OK (9 themes, 26 stories, **202
+tasks**, the pre-existing [S24] zero-task warning); `gen_task_tree --check` ok; `validate_doc_rot`
+shows only the pre-existing dispositioned #492 locus; every generated surface regenerated from
+source (`gen_intake_index`, `gen_intake_tree`, `gen_claude_rosters`, `gen_task_tree
+--emit-source`) and none hand-edited; all new files verified LF.
+
+**Changes:** `docs/intake/` (new #26 + README + manifest), `docs/decisions/`
+(ADR-110 + README), `.claude/generated/recent-adrs.md`, `protocols/STANDING_RULINGS.md`,
+`tasks/` + `BACKLOG.md` (200→202), `JOURNAL.md`.
+
+**Abandoned:** nothing. No row re-scoped, no file deleted, no top-level directory created.
+
+**Next:** [#505] is the batch-protocol build (the batch-1 drill is its test — TDD at doctrine
+level). Track 2's Vibe Kanban eval is a gate wanted BEFORE the wide batch and births nothing
+until it PASSes. [#506] awaits an architect adjudication window; its evidence-sheet half is
+read-only and lane-parallelizable today.
+
+---
+
 ### 2026-08-06 (d) — CC (Opus 5, local): supplement folded, and the [#408] pointer that rider R-iii caught
 
 **Did:** Discharged rider R-iii on the filled supplement and folded its ANSWERS into the successor
