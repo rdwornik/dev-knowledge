@@ -19,6 +19,52 @@
 
 ---
 
+### 2026-08-06 (a) — CC (Opus 5, local): the night batch integrated, and FINDING-0 refuted against the real remote
+
+**Did:** Opened the consolidation window by discharging the prompt's absolute gate — the
+FINDING-0 risk-of-loss triage — before any merge, fetch, or fix. Then integrated the cloud
+night branch `claude/night-batch-2026-08-06-p59kml`: eight commits, six files, all under
+`docs/audits/` (five 2026-08-06 technical-night artifacts plus the regenerated index).
+Anchors: **`9803270d`** (the window review, first night commit) and **`c55c7e51`** (the merge).
+
+**Result — FINDING-0 is refuted, and the way it failed is the lesson.** The night session
+reported `origin/main` topping at 2026-07-31 (`65a549bf`) with `protocols/STANDING_RULINGS.md`
+absent, and inferred that ~209 commits of 2026-08-01..08-05 work had never been pushed. On this
+host, against the single remote (`origin`, one URL for fetch and push): `origin/main` is
+`8e2be6a1`, `STANDING_RULINGS.md` is present in its tree, and `git status -sb` shows no
+ahead/behind. The reflog dates the push — `origin/main -> 8e2be6a1` at 2026-08-05 20:52:15 +0200
+(18:52:15 UTC) — **2h54m before** the night session recorded the finding at `2e14b40f`
+(21:46:34 UTC). Nothing was ever at risk.
+
+The root cause is worth keeping because the night commit specifically reasoned about it and still
+got it wrong. It ran `git ls-tree origin/main protocols/` and called that *"ancestry-free evidence
+(so not a shallow-clone artifact)"*. True, and irrelevant: `git ls-tree origin/main` reads a
+**local remote-tracking ref**, not the remote. The ref was stale because the sandbox never
+re-fetched, so the disclaimer defended against the wrong failure mode. The claim is also
+self-refuting on its own evidence — the clone's HEAD was based on `8e2be6a1`, a commit it could
+only have obtained *from* origin, and a clone cannot contain a commit its origin lacks. Its
+supporting inference ("`8e2be6a1` is the tip of the pre-existing remote night-batch branch, not of
+main") misreads a `--no-ff` merge commit that is unmistakably main-spine; the branch's merge-base
+with main *is* `8e2be6a1`, because the branch was cut from it.
+
+**The verification the cloud could not do, done here.** Night commits are gate-unverified by
+construction, so the merge is their verification moment: `pre-commit run --all-files`,
+`gen_audit_index.py --check` (exit 0), and targeted pytest over the touched validators (45 passed).
+The only FAIL was `journal_spine_anchor` naming this merge — which this entry discharges, and which
+is why the entry exists now rather than at the seal: `audit.py health` exits 1 on that finding, so
+the `audit-health` hook blocks every subsequent commit until an anchor lands.
+
+**Changes:** `docs/audits/` +5 artifacts and its regenerated `README.md` index (merge `c55c7e51`);
+`JOURNAL.md` this entry.
+
+**Abandoned:** Nothing. The Step-1 push is deliberately deferred one step — not skipped — and folds
+into this branch's `--no-ff` merge, on the operator's approval, so the merge carries its anchor
+rather than landing unanchored. The night artifacts were already replicated at
+`origin/claude/night-batch-2026-08-06-p59kml` throughout, so the deferral risked nothing.
+
+**Next:** The consolidation repairs (A2 register fix, the Finding-1 doctrine scope split, the
+`[#487]` re-scope), the ruled grooming closes, four row births, and the seal.
+
 ### 2026-08-05 (k) — CC (Opus 5, local): FR-7 landed — the standing-rulings register, and a ratchet sitting exactly on its ceiling
 
 **Did:** Opened the 2026-08-05 architect window. Collected the §A gate in one packet
