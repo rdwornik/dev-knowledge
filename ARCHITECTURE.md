@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-08-02
+last_reviewed: 2026-08-06
 reconciled_with: handoff-process@6.0.1
 status: active
 owner: Rob
@@ -14,7 +14,18 @@ owner: Rob
 > class this repo exists to kill). Fix the map when reality moves; fix the *source*
 > when the doctrine moves.
 >
-> Last updated: `2026-08-02` — [#475]: the Ch2 pre-commit gate list + Validators gain
+> Last updated: `2026-08-06` — **batch-1 integration (ADR-110), integrator-owned edits from
+> three parallel lanes.** Ch2 gains the **server** Layer value and the **report-only** failure
+> posture (a posture that *cannot* be hardened — the repo is private on the Free tier, where
+> required checks do not exist), plus the `report-only-wall.yml` organ row, `ARMED (never
+> fired)`; Ch6's mesh gains the **Post-merge (server)** layer. Ch3's `block_ff_push.py` entry
+> flips from the retired `fail-soft to exit 0` claim to **fails CLOSED (exit 2)** ([#504],
+> ADR-85 amendment §A6). Ch6 records that `.github/` **returned** for a different organ on a
+> fixed trigger — [#255]'s judgement is corrected in its trigger, not reversed, and Stage 2 of
+> the nightly loop stays DEAD. **Two cross-lane reconciliations the batch itself forced:** Ch6's
+> "CONTRIBUTING still describes the Action in the present tense" warning is retired ([#503]
+> fixed it in this same batch), and CONTRIBUTING's converse `.github/ no longer exists` claim
+> is corrected against [#501]. Prior: `2026-08-02` — [#475]: the Ch2 pre-commit gate list + Validators gain
 > `check-seal-identity` (commit-time handoff-bundle seal-identity, reusing
 > `gen_handoff.verify_seal_identity`); [#474]: the Ch5 source-zone `--write` sentence flips
 > from warn-then-rewrite to refuse-unless-`--force`. Prior: `2026-08-01` — [#459]: Ch2 gains the **desired-state organ class**
@@ -190,10 +201,12 @@ organ, what fires it, the layer it lives in, and how it fails.
 
 Every enforcement/awareness organ, with its trigger, the layer it lives in, and its
 **failure posture** (fail-closed = blocks the action; propose-only = writes a
-proposal, never mutates; fail-soft = logs/exits 0, never blocks). "Layer" notes
+proposal, never mutates; fail-soft = logs/exits 0, never blocks; report-only = runs the
+checks and records the outcome, judges nothing, and has no gate to arm even in
+principle). "Layer" notes
 whether the organ travels: **L0** = global `~/.claude` (fleet-wide), **hub** =
 this repo's `.claude/`, **plugin** = `tier1-lifecycle` (repo-class), **pre-commit** =
-local git gate.
+local git gate, **server** = GitHub Actions, off-host, after the push has already landed.
 
 **Status** (added 2026-07-26 per intake #17 §5) answers a question "failure posture"
 does not: *does this organ actually reach reality today?* — **ARMED** = present and
@@ -248,6 +261,7 @@ An organ can be ARMED and still tell you nothing. Read the qualifier before trus
 | `deploy/tool.py` + 5 carriers (`globalconfig`/`plugin`/`precommit`/`floor`/`mesh`) | operator (hub, per-consumer) | hub → consumer | verify-gated (record iff every carrier verifies); write-yes / commit-no | ARMED | ADR-91/92/93; PLAYBOOK §20 |
 | `floor-hash-verify` (pre-commit) + SessionStart floor guard (`.claude/check_floor_hash.py`) | consumer commit / session start | consumer (armed by `carrier_floor`) | **fail-closed** (loud on floor drift) | ARMED | ADR-93 (#226) |
 | pre-commit gates (`.pre-commit-config.yaml`) | local commit | pre-commit · Tier-1 | **fail-closed** | ARMED | §Validators below (count in `ecosystem/doc-counts.md`) |
+| `report-only-wall.yml` (GitHub Actions) | `push` to `main` (+ `workflow_dispatch`) | **server** | **report-only** — the three measured legs (`pytest`, `audit.py health`, `block_unanchored_push.py`) are `continue-on-error` and never block; the job still reds on a *setup* failure (uv pin assertion / `uv sync`), deliberately, because a green job with no environment would be a lie | **ARMED (never fired — verification owed: one deliberate red-making push must show the run green with the red recorded)** | [#501]; ADR-101 amendment 2026-08-06; `docs/audits/2026-08-06-technical-night-prep-packs.md` §B1 |
 
 The **Tier-1 closure loop** is three of these organs in a cycle:
 `commit closes [#id]` → `Stop: propose_closures.py` writes `logs/PROPOSALS-*.md`
@@ -324,9 +338,10 @@ references, **not an exhaustive inventory** of every script in `scripts/`:
   `--no-ff` merge passes. Delegates the scan to `validate_no_ff.find_violations` (ONE shared
   FF-signature, so detector and gate cannot disagree). Wired as the `block-ff-push`
   pre-commit-managed `pre-push` hook (activate once: `pre-commit install --hook-type
-  pre-push`); HUB-ONLY; fail-soft to exit 0 on any git error. Client-side teeth (bypassable
-  via `git push --no-verify`) — the `no_ff_merges` audit WARN stays the post-hoc backstop;
-  bypass-proof server-side teeth deferred under #153 (#153; ADR-84; core-invariants #5).
+  pre-push`); HUB-ONLY; **fails CLOSED (exit 2) on internal error** (ADR-85 amendment
+  2026-08-03 §A6). Client-side teeth (bypassable via `git push --no-verify`) — the
+  `no_ff_merges` audit WARN stays the post-hoc backstop; bypass-proof server-side teeth
+  deferred under #153 (#153; ADR-84; core-invariants #5).
 - `scripts/validate_doc_claims.py` — prose-vs-state: a living doc's count/list CLAIMS
   vs ground truth (ARCHITECTURE check-count vs `len(ALL_CHECKS)`; pre-commit gate count
   + CLAUDE §9 roster vs `.pre-commit-config.yaml`; test-count vs `pytest --collect-only`,
@@ -721,6 +736,7 @@ other are both correct:
 |---|---|---|---|
 | In-session | `verify` skill (pytest + ruff + git) | does this step pass its gates | per numbered step |
 | Pre-merge | `/codex-review`; `/ship` gate | code-diff correctness; branch→`--no-ff`→clean | operator-invoked |
+| Post-merge (server) | `report-only-wall.yml` (GitHub Actions) | **what actually landed on `main`** — the client-side gate set re-run off-host, on a full-depth clone | report-only; records, never blocks |
 | Nightly (cloud) | conformance Routine | **claims-vs-docs** coherence (own repo) | read-only + skeptic |
 | Nightly (local) | `fleet_health.py` / `audit.py run` | structural + **freshness-stamp** health (repo + siblings) | deterministic, fail-soft |
 | Funnel | `surface_triage.ps1` + morning triage | operator ratifies findings before they bind | human gate (#123) |
@@ -785,11 +801,26 @@ severed edge did — not as a description of anything that runs:
 | findings (`survived>0`) | divert the digest (it is the record, on the branch) + open a `nightly-triage` Issue |
 | anomalous (diff ≠ one ADDED digest file) | guard FAIL — nothing recorded, open an `Anomalous nightly PR` Issue |
 
-(ADR-72/76/80/84; ADR-105 §Context; [#428]. **Do not follow CONTRIBUTING "Nightly outcome
-management" as live guidance** — at `CONTRIBUTING.md:132-136` it still describes the Action
-in the present tense, naming the deleted `.github/workflows/nightly-conformance-triage.yml`
-as the organ that "handles the morning". That is the same severance seen from the other
-side; reconciling it is out of this window's scope and is reported, not fixed here.)
+(ADR-72/76/80/84; ADR-105 §Context; [#428]. CONTRIBUTING's "Nightly outcome management"
+section described the retired Action in the present tense — naming
+`.github/workflows/nightly-conformance-triage.yml` as the organ that "handles the morning" —
+until **[#503] reconciled it on 2026-08-06**; it now records the retirement explicitly, so
+both sides of that severance finally agree. The standing "do not follow it as live guidance"
+warning is retired with the defect it named.)
+
+**`.github/` returned 2026-08-06 ([#501]) — for a different organ, on a fixed trigger.** The
+retirement above stands as written: the `nightly-conformance-triage` Action *was* vacuous, and
+`82227f08` was right to delete it. What returns is not that organ. The report-only wall
+(Ch2) triggers on `push`, which is the exact defect that made the predecessor never fire under
+a local-merge workflow — so this is a correction of the trigger, not a reversal of the [#255]
+judgement. Two things follow, and they are easy to conflate:
+
+- **Stage 2 of the nightly outcome loop is still DEAD.** The recorder does not divert digests,
+  does not open `nightly-triage` Issues, and does not close them. [#428] is untouched, and
+  `surface_triage.ps1` keeps its `ARMED (stale input)` status for exactly the same reason.
+- **A green badge on this workflow still means nothing about the checks.** It means the record
+  was written. The verdict is in the job summary table, never in the badge — the wall states
+  this in its own summary text so a reader cannot take the badge for a pass.
 
 **Requirements intake (upstream of decomposition; ADR-98).** Operator intent →
 `gen_handoff.py --mode functional` boots the intake-capture chat → confirm-gated intake doc in
