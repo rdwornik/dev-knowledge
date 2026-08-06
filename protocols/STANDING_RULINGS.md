@@ -315,6 +315,38 @@ the PRIMARY checkout's source and reports green about code the lane did not chan
 
 ---
 
+## E. Operating rules from the 2026-08-06 consolidation intake
+
+Source of record: `docs/intake/2026-08-06-tech-adoption-consolidation-intake.md` (intake **#27**)
+§C priority class **P-B**, with §F pricing the choice; operator directive 2026-08-06, ARC-2
+S-batch. That intake's rows-vs-rule fork was ruled **RULE**: the P-B pool lands as the entry
+below and births zero rows — the outcome §F itself named, *"a register one-liner … would birth
+ZERO"*.
+
+### E1 · "gap-weeks consume P-B evals"
+
+> a gap-week consumes at least one P-B eval; the bar is measured divergence, and an eval whose
+> verdict is NO counts as a full success
+
+- **The pool, located:** intake #27 §C enumerates it as §A items 12, 18, 20, 22, 23, and 33–36 —
+  cheap, independent, one sitting each. It is a live list rather than a closed set; an item leaves
+  it by being evaluated, and §A is the surface carrying the resulting status.
+- **Why a NO carries full credit:** §A item 10 records the `vale` eval as REFUTED *with a citation*
+  and treats it as a completed eval. An eval discharges its purpose by producing evidence,
+  whichever way the evidence points, so a reject verdict and an adopt verdict settle the item
+  equally. This is the clause that keeps the measured-divergence bar from decaying into a bias
+  toward adoption.
+- **Measured divergence as the bar:** an eval lands numbers or a named failure list, not an
+  argument. A verdict with nothing measured behind it leaves the item open.
+- **Declared durable home:** PLAYBOOK (the eval / adoption §) — **not landed yet.**
+- **Applied instance:** §A item 33 (`pytest-xdist`), evaluated under the contract that landed this
+  entry — ADOPTED on a 5.2× measured speedup (serial 1785.61s vs `-n auto` 358.77s / 330.15s) with
+  pass/fail/skip counts identical across all three runs. Landed as `addopts = "-n auto"`,
+  commit `d11dda35`. That eval also corrected two stale premises it was handed, which is the
+  behaviour this entry's measurement bar exists to produce.
+
+---
+
 ## Editing note (read before adding an entry)
 
 This file sits inside the silent-rule ratchet corpus (`protocols/*.md`; detector
