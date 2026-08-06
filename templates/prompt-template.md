@@ -1,30 +1,57 @@
 # Prompt Template for Claude Code
 <!-- scope: meta -->
-<!-- version: 1.6 — 2026-08-05 -->
+<!-- version: 1.7 — 2026-08-06 -->
 
 > **Copy this template, fill placeholders, save as `.md` artifact, deliver to Claude Code via paste-into-prompt.** Browser chat produces this; Claude Code executes it.
+>
+> **Scope — this card governs WORK-LANE prompts.** A work lane is one footprint-disjoint slice
+> of a batch, delivered as a pasted contract into a Claude Code session. **ADR-97 epic lanes are
+> a different object** — each runs its own chat, boots from a §14a handoff and closes with a §14b
+> return — and they are governed by `protocols/PLAYBOOK.md`: the "2–3 concurrent epic lanes" cap
+> (`PLAYBOOK.md:1643`) and the mode vocabulary under "How to choose Mode" (`PLAYBOOK.md:2504`).
+> **Precedence: PLAYBOOK wins on epic-lane criteria.** This card is the point-of-use authority
+> for work-lane prompts only; where a prompt boots an epic lane, PLAYBOOK's defaults govern and
+> this card's execution-default does not reach it. Declared 2026-08-06 to repair the undeclared
+> scope collision the FR-7 v1.6 diff left behind — PLAYBOOK remains the maintenance source and
+> the live authority for rationale.
 >
 > **Risk-tiered ceremony — ceremony scales with arc size, it is not uniform by default:**
 > - **Scale S** (single file change, <50 lines work): headless / auto-accept, no plan-mode — contract → execute → terra → queue. Minimal version — Title + Steps + What NOT to do. Skip UNDERSTAND if obvious.
 > - **Scale M** (multi-file or non-trivial logic): one plan round. Full template, but UNDERSTAND can be brief.
-> - **Scale L** (3+ files, architectural change): full ceremony, full template.
+> - **Scale L** (3+ files, architectural change): full ceremony, full template. **Plan-mode is
+>   usually preferred at Scale L** — restored here from v1.5, which the v1.6 diff deleted rather
+>   than replaced. For an **L-sized epic story**, PLAYBOOK's stronger rule governs instead:
+>   *L-sized epic stories default plan-first* (`PLAYBOOK.md:659` and `:1647-1650`, which carry
+>   the §14a item-7 linkage — routed through PLAYBOOK deliberately, since it wins here).
 >
 > **Plan-mode by exception — the contract IS the plan.** The browser plan-of-record plus the
 > frozen contract constitute the plan, and lane MODE is set by the architect *in* the contract
-> (the `Mode` row below). The **default lane mode is execution**, under the decision budget:
+> (the `Mode` row below). The **default WORK-lane mode is execution**, under the decision budget:
 > ask only about (a) curated-baseline touches, (b) genuine rule-vs-ruling conflicts, (c) fork
 > classes with no standing ruling — everything else is decided per contract defaults and
 > **reported** in the end packet rather than asked. CC re-plans what the contract already rules
 > only where the contract asks for it. Plan-mode is reserved for M/L arcs needing genuine
 > repo-derivation: the class where CC's derivation can overturn the architect's premises.
 >
+> That execution-default is scoped to work lanes and does not restate PLAYBOOK's general rule.
+> `PLAYBOOK.md:2504` ("How to choose Mode") keeps `plan-then-auto` as the default for most
+> multi-step prompts, over the three defined values `auto-accept / plan-then-auto / plan`; the
+> `execution` value in the `Mode` row below is a work-lane label for that pasted-contract case,
+> not a fourth member of PLAYBOOK's vocabulary. Where the two populations meet, PLAYBOOK governs.
+>
 > Calibration evidence, recorded both ways: a repo-derivation pass overturned 3 of 4 enumerated
 > consumers (plan-mode earning its keep), while an S-size one-bit fix cost ~4 operator
 > interactions (ceremony without value).
 >
-> **Lane count:** up to ~10 parallel lanes within reason, bounded by file-disjointness and
-> integration capacity rather than by default caution; the number for a given batch stays the
-> emitting architect's judgment.
+> **Lane count:** up to ~10 parallel **work** lanes within reason, bounded by file-disjointness
+> and integration capacity rather than by default caution; the number for a given batch stays the
+> emitting architect's judgment (intake #25 `AMENDMENT 2026-08-05-c` c1).
+>
+> **This is a different axis from PLAYBOOK's cap, and the two are deliberately not reconciled to
+> one number.** `PLAYBOOK.md:1643` caps **concurrent ADR-97 epic lanes at 2–3**, bounded by the
+> root's review and serial-merge bandwidth. The ~10 above counts footprint-disjoint work lanes
+> inside a single batch. Different objects, different bottlenecks, both live: ~10 work lanes can
+> sit inside far fewer epic lanes. Equalizing the figures would erase a real distinction.
 >
 > **Standing rulings an agent applies without asking:** `protocols/STANDING_RULINGS.md`.
 > Source for this section: intake #25 `AMENDMENT 2026-08-05-b` (V-2 decision budget, V-3
@@ -138,5 +165,6 @@ Final: `/ship "<summary> [#id if closing]"` — refuses if: on `main`, dirty tre
 - v1.2 (2026-06-06) — Per-step verification line replaced with `verify` skill invocation (closes #104).
 - v1.3 (2026-06-09) — Final gains a standing **obsolescence pass** line (propose deletion of superseded content instead of writing around it; operator ratifies) — point-of-use of the PLAYBOOK §2 pruning-symmetry rule (closes #136).
 - v1.4 (2026-06-10) — UNDERSTAND gains an optional **READINESS valve** for ambiguous input (named verdict + go/no-go, create nothing until operator approves) — #111 (c). Folds as a valve, not a new organ.
+- v1.7 (2026-08-06) — **scope-split repair.** v1.6 changed mode criteria without the matching `PLAYBOOK.md` edit its own maintenance rule (`PLAYBOOK.md:2665-2675`) requires, which PLAYBOOK names "a process bug"; the result was four undeclared collisions with landed doctrine. This version declares the boundary rather than equalizing the texts: **this card governs work-lane prompts; ADR-97 epic lanes are governed by PLAYBOOK, which wins on epic-lane criteria.** Cross-pointers added both ways (PLAYBOOK gains the reciprocal note at `:1643` and `:2504`). Restores v1.5's "plan-mode usually preferred" at Scale L, which the v1.6 diff deleted rather than replaced, and defers to PLAYBOOK's stronger *L-sized epic stories default plan-first*. Scopes the execution-default to work lanes and records `execution` as a work-lane label rather than a fourth value in PLAYBOOK's three-value vocabulary. The ~10 work-lane ceiling (AMENDMENT-c c1) and PLAYBOOK's 2–3 concurrent *epic* lane cap are kept as **different axes** and deliberately not reconciled to one number. Operator-confirmed 2026-08-06.
 - v1.6 (2026-08-05) — the per-Scale block becomes a **risk-tiered ceremony** clause (S: headless/auto-accept, no plan-mode; M: one plan round; L: full ceremony) and gains **plan-mode-by-exception** — the contract IS the plan, default lane mode is execution under the decision budget, plan-mode reserved for M/L arcs needing genuine repo-derivation. Adds the lane-count ceiling and the pointer to `protocols/STANDING_RULINGS.md`; the `Mode` row enum now leads with execution. Lands intake #25 AMENDMENT-b V-3 + AMENDMENT-c c1/c2 (FR-7b); AMENDMENT-b V-2's register is the sibling commit.
 - v1.5 (2026-06-18) — adds the **Governance pointer** field (the thin per-task ADR/LESSONS/sibling-spec pointer the architect always fills; CC won't self-infer governance context) — point-of-use of the ADR-87 equilibrium contract; dual-maintenance with PLAYBOOK §2 "Architect output vs CC consumption-spec".

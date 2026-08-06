@@ -1644,6 +1644,17 @@ chronologically, both kept (the trivial-conflict rule above).
 deliberate bottleneck — more lanes queue at the gate, they don't add throughput. Authority does
 not descend; every lane boots from a generated §14a handoff and closes with a §14b return.
 
+**Scope, declared 2026-08-06 — this cap counts EPIC lanes, not work lanes.** An ADR-97 epic lane
+runs its own chat with a §14a boot and a §14b return. A *work lane* is a different object: one
+footprint-disjoint slice of a batch, pasted into a session as a frozen contract.
+`templates/prompt-template.md` (v1.7) carries a separate **~10** ceiling for work lanes (intake
+#25 `AMENDMENT 2026-08-05-c` c1), bounded by file-disjointness and integration capacity rather
+than by integrator bandwidth. Different objects, different bottlenecks, both live — ~10 work
+lanes can sit inside far fewer epic lanes, and the two figures are deliberately **not** reconciled
+to one number. **This PLAYBOOK text wins on epic-lane criteria**; the card is the point-of-use
+authority for work-lane prompts only. Declared here and in the card together, repairing the
+undeclared scope collision the FR-7 v1.6 diff left behind.
+
 **Execution MODE is part of the contract (v5.6).** Every §14a handoff — and every subsequent
 architect prompt into a lane — declares the execution mode (plan / plan-then-auto /
 auto-accept) with its basis; **L-sized epic stories default plan-first** (HANDOFF_PROCESS §14a
@@ -2507,6 +2518,8 @@ Source: research note `docs/archive/2026-06-03-dynamic-workflows-research-note.m
 - **auto-accept** — read-only tasks, mechanical changes with clear spec, file moves/renames, formatting. You know exactly what should happen, Claude just executes
 - **plan-then-auto** — design decisions embedded in a prompt. Start in plan mode for the UNDERSTAND + PLAN phases, review the plan, then switch to auto-accept for execution. This is the default for most multi-step prompts
 - **plan** (manual approval each step) — risky operations touching production data, OneDrive paths, database migrations, anything with blast radius. Also for learning/exploration where you want to see each step
+
+**Scope, declared 2026-08-06.** These three values are the governed vocabulary, and `plan-then-auto` is the default stated above for most multi-step prompts. `templates/prompt-template.md` (v1.7) carries a separate **execution** default for *work-lane* prompts — the pasted-frozen-contract case where the contract itself is the plan (intake #25 `AMENDMENT 2026-08-05-c` c2). `execution` there is a work-lane label for that case, **not** a fourth value in this vocabulary; the term is already taken twice in this corpus (the handoff boot-mode at `:3148` / `gen_handoff.py --mode execution`, and the field name "Execution MODE" at `HANDOFF_PROCESS.md:704`). Where the populations meet, **this section governs**; the card is the point-of-use authority for work-lane prompts only.
 
 ### How to choose Effort
 <!-- scope: hybrid -->
