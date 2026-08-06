@@ -1,7 +1,7 @@
 ---
 id: "[#432]"
 title: "Adopt `uv` as the environment/dependency toolchain — `.dev-knowledge` ONLY this window"
-status: open
+status: closed
 priority: P1
 size: M
 theme: "[E7] Tooling & evaluation"

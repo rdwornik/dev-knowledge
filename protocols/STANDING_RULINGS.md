@@ -64,11 +64,23 @@ commit `dc3e8a38`.
 - **Applied instances:** `ecosystem/disposition-register.yaml` — the RETIRE-ON-CLOSE comment
   at the `warn-preflight-backlog-ids-310-292` entry, and the RETIRE-ON-FLIP comment at the
   `[#492]` entry.
-- **Honest divergence, recorded rather than smoothed:** the ruling as stated reads *every*
-  disposition or exemption. The live register carries one **PERMANENT** entry
-  (`preflight_backlog_ids`), recorded as deliberate at that bundle's `RESIDUAL.md` frontier
-  item 6. Rule-as-ratified and rule-as-practiced differ on that point; an agent hitting the
-  difference treats it as class (b) — a genuine rule-vs-ruling conflict — and asks.
+- **Scope of the rule (ruled 2026-08-06):** the expiry requirement applies **forward** — to
+  dispositions and exemptions created from that date onward. A **PERMANENT** entry stays
+  lawful where it carries a ruling citation, written in the form `PERMANENT per [#483] R3`.
+  An agent meeting a PERMANENT entry therefore applies this clause and reports it. The
+  divergence previously recorded here as class (b) is resolved, and is no longer an ask.
+- **The one PERMANENT entry, located:** `preflight_backlog_ids`, at
+  `ecosystem/doc-code-edge.yaml:122-127` — the block opening `# [#483] R3 advisory leg.
+  PERMANENT exemption, not a temporary one:`. It carries its ruling citation inline, so it is
+  lawful under the clause above. Recorded as deliberate at
+  `docs/handoffs/2026-08-05-dev-knowledge-architect/RESIDUAL.md:39-42` — *"Distinct in kind
+  from `preflight_backlog_ids`' PERMANENT row."*
+- **Two citation defects in this entry as landed, corrected 2026-08-06:** (i) the PERMANENT
+  entry lives in `ecosystem/doc-code-edge.yaml`, not in the
+  `ecosystem/disposition-register.yaml` named by the Applied-instances line directly above —
+  that file carries the two expiry-shaped comments and no PERMANENT row, so the adjacency
+  misattributed the entry; (ii) the prior locator "frontier item 6" belongs to **B4** below,
+  where it correctly records `[#499]`'s unenforced cadence — it does not cover this entry.
 
 ### A3 · "canonical tally header"
 
