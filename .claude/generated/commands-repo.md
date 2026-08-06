@@ -10,6 +10,8 @@
 - `/changelog-review` — Operator-invoked review of tool changelogs since last review (claude-code + codex) — fetch, classify per the audit-trio rubric, write a digest, bump the state file. PUSH trigger only; never implements adoptions.
 - `/handoff-verify` — Run the whole live probe gate for a handoff bundle in ONE pass and emit exactly ONE evidence block — the v6 one-round-trip boot (HANDOFF_PROCESS §5)
 - `/handoff` — Generate or complete a handoff per HANDOFF_PROCESS.md v6 — CC-owned residual + thin browser boot
+- `/lane-boot` — Boot ONE batch lane — provision its worktree per the naming enum, seed it, load the frozen contract, and state the V-2 decision budget before any work starts.
+- `/lane-integrate` — Walk a batch's merge queue serially from the primary checkout, then run the four-item refuse-to-finish checklist mechanically — the batch does not close while an item is open.
 - `/override` — Bypass the ADR-85 session-end hard gate for this HEAD — explicit, logged, no auto-bypass
 - `/preflight` — Verify every repo locator a contract or prompt cites — file:line, headings, SHAs, [#id] liveness — BEFORE acting on it. Read-only, adoption-first, wired into no gate.
 - `/save` — Stage all changes and commit with a descriptive Conventional Commits message

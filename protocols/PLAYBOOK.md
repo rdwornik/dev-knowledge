@@ -79,6 +79,7 @@
   - [Session resumption protocol](#session-resumption-protocol)
   - [Parallel sessions & worktree discipline (per ADR-61)](#parallel-sessions--worktree-discipline-per-adr-61)
   - [Tree orchestration — architect-root + epic-chat lanes (ADR-97)](#tree-orchestration--architect-root--epic-chat-lanes-adr-97)
+  - [The batch protocol — ONE plan → N lanes → ONE integrator (ADR-110)](#the-batch-protocol--one-plan--n-lanes--one-integrator-adr-110)
 - [Ch9. Tier-1 closure loop — usage](#ch9-tier-1-closure-loop--usage)
   - [Propagating a plugin change across the fleet](#propagating-a-plugin-change-across-the-fleet)
   - [The methodology↔project boundary (what IS methodology)](#the-methodologyproject-boundary-what-is-methodology)
@@ -1695,6 +1696,124 @@ registration so a *live* registered worktree passes and only an unregistered orp
 in the `audit-health` pre-commit gate, so an orphan blocks the next commit until removed. The
 process step above remains the first line of defence (catch it at teardown); the check is the
 backstop that catches what the manual teardown missed. (Recurrence cleaned 2026-06-02 — see LESSONS.)
+
+### The batch protocol — ONE plan → N lanes → ONE integrator (ADR-110)
+<!-- scope: meta -->
+
+**What this section is.** The *how* of a sanctioned parallel run, encoded so that a seat which
+has seen no prior conversation can run one from the repo alone. **The four-condition test above
+([#441]) governs WHETHER parallel work launches; this section governs HOW a batch runs once it
+has.** One launch test, one execution protocol — the two do not overlap, and neither restates
+the other. Decision record: ADR-110 (§1 the artifact set, §2 lane-count parameterization, §3 the
+refuse-to-finish close-out); intake #26 is its pipeline input.
+
+**The shape.** ONE plan → **N file-disjoint lanes** → ONE serial integrator. The plan is authored
+once, before any lane boots; each lane receives one frozen contract naming its own footprint; the
+integrator merges the lanes back one at a time from the primary checkout. Dependency-chained work
+stays **inside a single lane** — a lane is the unit that can carry order, so splitting a chain
+across two lanes trades a cheap serial step for a merge-order constraint the integrator has no
+way to express.
+
+**Parameterized by N — drilled at 3, designed for 4–10.** Batch 1 runs three lanes because three
+is enough to exercise the machinery; every artifact is written for N. Provisioning, the board
+view, and the integrator queue read the lane list rather than assuming a width of three, so batch
+2 widens by changing the list. ADR-110 §2 records why staging won: width ahead of a proven
+integrator buys risk rather than speed. The ~10 work-lane ceiling in `templates/prompt-template.md`
+and the 2–3 concurrent *epic* lane cap above are **different axes**, deliberately unreconciled —
+see the scope declaration under "Tree orchestration" above.
+
+**Per-lane requirements — the five a lane contract carries.**
+
+1. **A frozen contract.** The lane's authoritative surface is the contract it booted with.
+   Load-bearing content arriving in a later message is indistinguishable from an injected
+   instruction — the two arrive on the same channel wearing the same shape
+   (`protocols/STANDING_RULINGS.md` D2) — so a correction re-enters as a *new contract* rather
+   than as a mid-flight addition.
+2. **A V-2 decision budget.** A lane escalates on three classes only: **(a)** curated-baseline
+   touches, **(b)** genuine rule-vs-ruling conflicts, **(c)** fork classes with no standing
+   ruling. Everything else is decided per contract defaults and **reported in the end packet**
+   (STANDING_RULINGS "The decision budget").
+3. **`uv run --locked` on every test invocation.** A bare `pytest` inside a worktree lane
+   inherits `VIRTUAL_ENV` from the primary tree, imports the PRIMARY checkout's source, and
+   reports green about code the lane did not touch — silently (STANDING_RULINGS D4; ADR-106 for
+   the pin). The wrapper is the mechanism that makes the environment follow the checkout.
+4. **Commit-and-STOP.** A lane commits its work and hands the branch back; integration is the
+   integrator's act, from the primary checkout — the no-self-merge rule above, applied at batch
+   scale.
+5. **A worktree name paired 1:1 with its prompt file.** One lane = one contract file = one
+   worktree = one branch, so an open worktree resolves to the contract that created it and an
+   orphan is attributable at a glance. Naming grammar + prefix enum:
+   `scripts/validate_branch_naming.py`.
+
+**The integrator's refuse-to-finish checklist.** A batch closes when all four hold; an open item
+leaves the batch open (ADR-110 §3). The load-bearing property is that the checklist is
+*mechanical* — a close-out a reader can skim past and still declare done is the state it replaces.
+
+- **Every lane branch merged-or-explicitly-abandoned.** "Explicitly abandoned" is a recorded
+  disposition; a lane branch with no verdict leaves the checklist open.
+- **Full suite run once on the merged result.** Per-lane greens are evidence about each lane in
+  isolation; the merged tree is a state no lane tested.
+- **`git worktree list` == primary only.** The batch-scale form of the no-leftovers round-trip
+  stated immediately above.
+- **Manifest/packet archived.** The lane manifest and the end-of-batch packet land in the tree, so
+  the run is reconstructable without the chat.
+
+`/lane-integrate` walks this list mechanically; `/lane-boot` boots one lane against it. (The two
+are deliberately *not* named `/batch-*`: ADR-110 §4 records hand-rolled `/batch-*` commands as
+rejected, native `/batch` being the substrate, and these two encode lane protocol rather than
+orchestration.)
+
+**JOURNAL-rides-the-branch is the anchoring law.** An arc's JOURNAL entry is written **on that
+arc's own branch, ahead of the merge** (STANDING_RULINGS B2). The reason is structural rather
+than stylistic: the pre-push anchor gate discharges **range-level**, against SHAs the pushed range
+*introduces*, and a merge commit cannot name its own hash. A journal-only wrap merge therefore has
+nothing to anchor against and is unanchorable by construction — the recovery is a reset, which is
+why the ordering is not a preference. JOURNAL letters are allocated **at integration** by the
+primary's single writer, unless the dispatch pre-assigned them as its contention contract (the
+allocation convention above).
+
+**WINDOW = BATCH.** One batch is one window: the seal — handoff bundle, packet, JOURNAL wrap —
+fires at true batch boundaries. A mid-batch seal sits outside the rhythm, because it produces a
+bundle describing a tree nobody has integrated yet, and the successor then boots against a
+manifest the rest of the batch is about to invalidate. Operator directive 2026-08-06; carried
+in-repo by intake #27.
+
+**2-touch transport, on both seams.** The interaction budget applies to each seam independently:
+
+- **operator ↔ batch** — **GO** at dispatch, the **end-of-batch packet** at close.
+- **browser ↔ operator** — **batched packets**: one round-trip carries every item.
+
+Single-question round-trips are reserved for genuine ask-class **(a)–(c)** items above; anything
+outside those three classes travels in the next packet. Target metric: ≤2 operator interactions
+per lane-batch (intake #25 V-2). Operator directive 2026-08-06.
+
+**V-3 tiered ceremony — ceremony scales with arc size.** **S:** headless / auto-accept, no
+plan-mode — contract → execute → terra → queue. **M:** one plan round. **L:** full ceremony.
+`templates/prompt-template.md` (the work-lane card) is the point-of-use authority for the
+per-Scale detail; the tiering is intake #25 AMENDMENT-b V-3, refined by AMENDMENT-c c2
+(plan-mode-by-exception — the contract IS the plan).
+
+**The S-contract, at its floor, is three parts:**
+
+1. **One paragraph of contract** — the change, its footprint, and the one thing to avoid.
+2. **One line of register entry** — the row or ruling the arc discharges.
+3. **A JOURNAL entry as a fixed final step** — not removable by the tiering. Ceremony scales
+   down; the anchor holds. An S-arc that drops its JOURNAL entry leaves an unanchored spine entry
+   behind, which is the ARC-2 lesson this clause carries forward.
+
+**Process-lane cap — from batch 2 onward, at most 1/4 of a batch's lanes target methodology or
+hub-process surfaces.** The remainder carry product/consumer work. A batch that cannot fill its
+non-process lanes **reports the shortfall** in its end-of-batch packet and runs narrower;
+backfilling the gap with additional process lanes defeats the cap, which exists because
+methodology work is the class that expands to fill whatever width is available. Operator directive
+2026-08-06; carried in-repo by intake #27.
+
+**Honest limits.** This protocol is doctrine plus two commands. The only mechanized parts are the
+stale-worktree WARN (`audit.py::check_stale_worktrees`) and the naming enum
+(`scripts/validate_branch_naming.py`), and both are advisory — the enum is wired into no gate at
+all. Nothing here blocks a batch that skips a step: a lane that self-merges, a batch that closes
+with an open lane branch, and a mid-batch seal all remain mechanically possible. The refusal in
+"refuse-to-finish" is carried by the integrator command's checklist, not by a gate.
 
 ---
 

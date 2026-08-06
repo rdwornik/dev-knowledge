@@ -830,7 +830,11 @@ surfaces:
       type: commands_roster
       expected_all: [override.md]
       expected_repo:
-        .dev-knowledge: [handoff.md, handoff-verify.md, save.md, changelog-review.md, preflight.md]
+        # lane-boot / lane-integrate: hub-local batch-protocol commands ([#505], ADR-110 §1
+        # item 2). Hub-only for now -- they are listed here rather than in `expected_all`
+        # because no consumer has been given the batch protocol yet; rolling them out is a
+        # separate decision, and an expected_all row would manufacture a fleet-wide gap.
+        .dev-knowledge: [handoff.md, handoff-verify.md, save.md, changelog-review.md, preflight.md, lane-boot.md, lane-integrate.md]
     ownership:
       value: methodology-generic
       reason: "The command-roster closure (MUST both) -- methodology-owned governance construct asserting every command file has a covering row; methodology machinery."

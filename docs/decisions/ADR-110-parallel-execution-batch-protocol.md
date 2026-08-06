@@ -166,3 +166,37 @@ their coupled updates has a price) applies to it directly.
 
 **Unchanged.** The execution substrate: native primitives, no bespoke engine. The gate mesh:
 this decision adds no gate and removes none.
+
+---
+
+## Amendment — 2026-08-06: the operator directives of the same day now have an in-repo carrier
+
+**Not a new decision.** This addendum records where five operator directives issued on
+2026-08-06 came to rest, so a later reader looking for them opens a file rather than a chat.
+The body above is unchanged.
+
+At the time §7 was written ("this ADR arms no gate … until the row lands, the protocol is as
+memory-resident as it was before"), five directives from the same window had no in-repo home.
+They now have two between them — intake #27
+(`docs/intake/2026-08-06-tech-adoption-consolidation-intake.md`) as the ledger, and the
+PLAYBOOK Ch8 section [#505] landed as the doctrinal home:
+
+| Directive | Where it now lives |
+|---|---|
+| **Rhythm** — WINDOW = BATCH; the seal fires at true batch boundaries, not mid-batch | PLAYBOOK Ch8, "The batch protocol" |
+| **Transport** — 2 touches on *both* seams: operator↔batch (GO · end-of-batch packet) and browser↔operator (batched packets; single-question round-trips reserved for ask-class (a)–(c)) | PLAYBOOK Ch8, "The batch protocol"; the (a)–(c) classes are `protocols/STANDING_RULINGS.md` "The decision budget" |
+| **Ceremony** — V-3 tiering, with the S-contract floor carrying JOURNAL as a fixed final step | PLAYBOOK Ch8, "The batch protocol"; per-Scale detail stays in `templates/prompt-template.md` |
+| **Process-lane cap** — from batch 2 onward, ≤1/4 of a batch's lanes target methodology/hub-process surfaces; a shortfall is reported rather than backfilled | PLAYBOOK Ch8, "The batch protocol" |
+| **`pytest -n auto` authorization** — adopted on a measured 5.2× divergence (serial 1785.61s vs 358.77s / 330.15s, identical pass/fail/skip), landed as `addopts = "-n auto"` at `d11dda35` | `pyproject.toml`; the eval record is `protocols/STANDING_RULINGS.md` E1 |
+
+**What §7's honest limits still say, and still correctly.** The first — *this ADR arms no
+gate* — is unchanged by [#505]: the two organs that landed are advisory by ruling
+(`audit.py::check_stale_worktrees` is WARN-tier, `scripts/validate_branch_naming.py` is wired
+into no gate at all), and the refuse-to-finish refusal is carried by the `/lane-integrate`
+checklist rather than by machinery. The third — *§2's 4–10 range is a design target, not a
+measured ceiling* — is likewise unchanged: no batch above 3 has run, and the artifacts are
+parameterized for N rather than validated at N.
+
+The second limit is the one this addendum narrows. The AM-1/AM-2 provenance is still off-repo,
+but the five directives above are no longer memory-resident: each has a file a later reader can
+open.

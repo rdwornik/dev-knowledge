@@ -93,6 +93,11 @@ not parallelized (BACKLOG removal via the closure loop; JOURNAL = trivial double
 operator is the serial gate). Full rule — START recipe, `.worktreeinclude`, `/ship`-from-
 primary, no-leftovers teardown — in PLAYBOOK "Parallel sessions & worktree discipline."
 
+**Batch shape (N lanes).** When the work is a batch rather than a pair — ONE plan → N
+file-disjoint lanes → ONE serial integrator — the protocol is PLAYBOOK "The batch protocol —
+ONE plan → N lanes → ONE integrator", with `/lane-boot` and `/lane-integrate` as its two
+commands. A successor bundle points at that section; it does not restate it (ADR-110 §1 item 3).
+
 ## Session lifecycle
 
 {{PULL: ESSENTIALS#Starting a Session}}

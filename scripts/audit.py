@@ -1006,6 +1006,186 @@ def check_no_sibling_orphans(repo_path: Path) -> list[Finding]:
                     f"real repo/folder, not a worktree remnant; or none exist)")]
 
 
+# [#505] batch hygiene. The horizon is the MECHANIZED WEEKLY PRUNE the intake keeps ("hygiene
+# organ — WARN on stale worktrees (mechanized weekly prune stays)", intake #26 Track 1 item 4),
+# so 7 is that cadence rather than a taste call. Changing it changes what "stale" means; it is
+# named here once so the check and its tests cannot drift to two numbers.
+_STALE_WORKTREE_HORIZON_DAYS = 7
+
+
+def _git_commit_epoch(repo_path: Path, rev: Optional[str]) -> Optional[int]:
+    """Committer epoch of `rev`, or None when it cannot be read.
+
+    None is a real answer, not an error code: the caller reports an unreadable date as
+    INDETERMINATE rather than defaulting it either way. Defaulting to "now" would hide a stale
+    worktree; defaulting to 0 would manufacture one out of a git hiccup.
+
+    Read-only (`git show -s`). Same graceful-degradation contract as its neighbours.
+    """
+    if not rev:
+        return None
+    proc = _git(repo_path, "show", "-s", "--format=%ct", rev)
+    if proc is None or proc.returncode != 0:
+        return None
+    try:
+        return int(proc.stdout.strip().splitlines()[0])
+    except (ValueError, IndexError):
+        return None
+
+
+def _git_linked_worktrees(repo_path: Path) -> Optional[list[dict]]:
+    """Every LINKED worktree of `repo_path` — the main one is excluded — carrying the two facts
+    staleness needs: whether the directory still exists, and when its checked-out tip was
+    committed.
+
+    Distinct from `_git_registered_worktrees` above, which answers a different question (is
+    THIS path registered?) and returns a flat path set with no per-worktree detail. Kept as a
+    separate reader rather than widening that one, because `check_no_sibling_orphans` depends on
+    its exact set semantics.
+
+    `git worktree list --porcelain` reports the MAIN worktree first, always — that ordering is
+    the porcelain contract, and it is how the primary is dropped without resolving and comparing
+    paths. Prunable/locked annotations are deliberately NOT parsed: they arrived in later git
+    versions, so on-disk presence is tested directly and the reader stays version-independent.
+
+    NUL-DELIMITED FIRST, newline-delimited as a fallback (terra HIGH, 2026-08-06). Newline
+    parsing splits a worktree path that CONTAINS a newline into malformed records, and the
+    truncated path then fails its on-disk test — so a pathological-but-legal path would be
+    reported stale, which is a false WARN manufactured by the parser. `-z` removes that class.
+    It arrived in a later git, hence the fallback: a `-z` that fails re-runs without it rather
+    than returning None, because degrading to the old parse beats disabling the check entirely
+    on an older git.
+
+    Read-only. Returns None when git is absent or the path is not a git repo, so a non-git
+    consumer degrades gracefully (the check is then n/a) — the `_git_registered_worktrees`
+    contract.
+    """
+    def _run(extra: list[str]) -> Optional[subprocess.CompletedProcess]:
+        try:
+            return subprocess.run(
+                ["git", "-C", str(repo_path), "worktree", "list", "--porcelain", *extra],
+                capture_output=True, text=True, encoding="utf-8", timeout=15,
+            )
+        except (OSError, subprocess.SubprocessError):
+            return None
+
+    result = _run(["-z"])
+    if result is None:
+        return None
+    if result.returncode == 0:
+        # `-z` terminates every attribute with NUL; a record ends at an empty attribute.
+        fields = [f for f in result.stdout.split("\0")]
+    else:
+        result = _run([])       # older git: no `-z`. Degrade, do not disable.
+        if result is None or result.returncode != 0:
+            return None
+        fields = result.stdout.splitlines()
+    records: list[dict] = []
+    current: dict = {}
+    for line in fields:
+        if line.startswith("worktree "):
+            if current:
+                records.append(current)
+            current = {"path": line[len("worktree "):], "branch": None, "head": None}
+        elif not current:
+            continue
+        elif line.startswith("branch "):
+            current["branch"] = line[len("branch "):].strip().removeprefix("refs/heads/")
+        elif line.startswith("HEAD "):
+            current["head"] = line[len("HEAD "):].strip()
+    if current:
+        records.append(current)
+    out: list[dict] = []
+    for rec in records[1:]:      # [0] is the main worktree
+        try:
+            on_disk = Path(rec["path"]).is_dir()
+        except OSError:
+            on_disk = False
+        out.append({
+            "path": rec["path"],
+            "branch": rec["branch"],
+            "on_disk": on_disk,
+            "last_commit_epoch": _git_commit_epoch(repo_path, rec["head"]),
+        })
+    return out
+
+
+def check_stale_worktrees(repo_path: Path, now: Optional[float] = None) -> list[Finding]:
+    """[#505] batch hygiene — WARN on a linked worktree no live batch owns (ADR-110 §1 item 4).
+
+    THE GAP THIS COVERS, and why `check_no_sibling_orphans` above does not: that check looks for
+    `<repo>-*` sibling dirs git has already DEREGISTERED. The state here is the opposite one — a
+    worktree git still registers, sitting in `.claude/worktrees/`, left behind because a batch
+    ended without its integrator walking the refuse-to-finish close-out. Unclosed parallel work
+    is the operator's stated #1 pain (intake #26); this is the after-the-fact backstop for it.
+
+    STALE means either of two things, and both are measured rather than inferred:
+      - the last commit on the worktree's tip predates the weekly prune horizon
+        (`_STALE_WORKTREE_HORIZON_DAYS`), strictly — reaching the horizon is still live; or
+      - git registers the worktree but its directory is gone from disk, AT ANY AGE. That is a
+        half-finished teardown (`git worktree remove` silently no-ops on a locked directory),
+        and holding it for a week would hide the exact failure the teardown round-trip exists
+        to catch.
+
+    A worktree whose commit date cannot be read is reported as INDETERMINATE — surfaced, never
+    silently counted as fresh, and never counted as stale either. A detector that cannot see
+    does not report clean, and equally does not invent a finding it did not measure.
+
+    POSTURE — WARN only, by ruling. ADR-110 §3 arms no gate, and the [#505] contract scopes this
+    organ to WARN-tier. It informs; it does not become a new way for the commit gate to go red
+    on a live batch. `tests/test_stale_worktrees.py` pins that at the source level.
+
+    MID-BATCH IS A PASS, deliberately: during a running batch every lane worktree is registered
+    and recently committed. An organ that fired then would alarm through the whole run it exists
+    to close, and would be muted by the second batch.
+
+    PORTABLE: a consumer inherits it unchanged — nothing here is hub-keyed. Read-only
+    (`git worktree list`, `git show -s`); degrades to n/a without git.
+
+    Honest limits. It cannot tell a genuinely abandoned lane from a long-running one that is
+    simply slow — age is the only signal available without a batch manifest to read. It says
+    nothing about UNMERGED lane branches whose worktree was already removed, which is the other
+    half of unclosed parallel work and is the integrator checklist's item 1, not this organ's.
+    And it fires after the fact: the close-out refusal lives in `/lane-integrate`, not here.
+    """
+    entries = _git_linked_worktrees(repo_path)
+    if entries is None:
+        return [_na("stale_worktrees", _NA_NOT_APPLICABLE,
+                    "git unavailable or not a repo - stale-worktree check skipped")]
+    if not entries:
+        return [Finding("stale_worktrees", "pass",
+                        "no linked worktrees registered (primary only) - nothing to close out")]
+    if now is None:
+        now = datetime.now(timezone.utc).timestamp()
+    horizon_secs = _STALE_WORKTREE_HORIZON_DAYS * 86400
+    problems: list[str] = []
+    live = 0
+    for entry in entries:
+        label = entry.get("branch") or Path(str(entry.get("path"))).name
+        if not entry.get("on_disk"):
+            problems.append(f"{label} [registered but gone from disk - run `git worktree prune`]")
+            continue
+        epoch = entry.get("last_commit_epoch")
+        if epoch is None:
+            problems.append(f"{label} [age unknown - last-commit date unreadable]")
+            continue
+        age_days = (now - epoch) / 86400
+        if (now - epoch) > horizon_secs:
+            problems.append(f"{label} [last commit {age_days:.0f}d ago]")
+        else:
+            live += 1
+    if problems:
+        return [Finding("stale_worktrees", "warn",
+                        f"{len(problems)} of {len(entries)} linked worktree(s) look unclosed "
+                        f"(horizon {_STALE_WORKTREE_HORIZON_DAYS}d): {'; '.join(problems)} - "
+                        f"close them out per the /lane-integrate checklist, or say why they "
+                        f"stay".replace("|", "/"))]
+    return [Finding("stale_worktrees", "pass",
+                    f"{live} linked worktree(s) registered, each committed within the "
+                    f"{_STALE_WORKTREE_HORIZON_DAYS}d horizon and present on disk - live batch "
+                    f"lanes, not leftovers")]
+
+
 # ADR-38 A6 (2026-06-02): the universal [U] heading spine each canonical file must
 # carry. Presence-only (not strict order) — child-repo-safe; the [R]/[C] sections
 # (repo-specific / conditional) vary per repo and are deliberately NOT asserted.
@@ -3879,6 +4059,7 @@ ALL_CHECKS = [
     check_handoff_bundle_structure,
     check_canonical_freshness,
     check_no_sibling_orphans,
+    check_stale_worktrees,   # [#505] batch hygiene — WARN-tier by ruling (ADR-110 §1 item 4)
     check_canonical_structure,
     check_handoff_version_stamp,
     check_amendment_coherence,

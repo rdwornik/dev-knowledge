@@ -115,6 +115,12 @@ exempt:
   - mermaid_theme_directive
   - handoff_bundle_structure
   - no_sibling_orphans
+  # [#505] batch hygiene. PERMANENT, on the no_sibling_orphans precedent directly above: both
+  # are worktree-leftover presence assertions against `git worktree list`, not declared
+  # doc->code behavioural rules. The batch protocol IS written (PLAYBOOK Ch8), but what this
+  # organ asserts is the presence/absence of a directory, and the doctrine it backstops is
+  # carried by the /lane-integrate checklist rather than by a rule-ID an edge could bind.
+  - stale_worktrees
   - canonical_structure
   - handoff_version_stamp
   - doc_code_edge              # self-referential (the doc->code edge check itself)
