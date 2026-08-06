@@ -19,6 +19,57 @@
 
 ---
 
+### 2026-08-06 (f) — CC (Opus 5, local): ARC-2 S-batch — intake #27 filed verbatim, `-n auto` adopted on measurement, the gap-week eval rule registered
+
+**Did:** Ran the ARC-2 S-batch (V-3 ceremony) on branch `chore/arc2-sbatch-intake-xdist`.
+Anchors: **`bca18dba`** (the tech-adoption consolidation ledger filed as intake #27),
+**`d11dda35`** (the pytest-xdist eval and its adoption), **`6fcc077d`** (STANDING_RULINGS
+section E1). Three contracts, three commits, **zero births** — the P-B rows-vs-rule fork
+arrived pre-ruled RULE, so nothing was filed to BACKLOG.
+
+**Result — the eval was load-bearing and it refuted two premises of its own brief.**
+Measured before arguing: serial baseline **1785.61s (29m45s)**, then `-n auto` twice at
+**358.77s** and **330.15s** — ~5.2×, with pass/fail/skip counts **identical across all three
+runs** (2 failed / 2357 passed / 3 skipped) and no divergence between the parallel runs, so no
+flake surfaced. Both failures were the known [#457] legs with byte-identical assertion text.
+VERDICT **ADOPT**, landed as `addopts = "-n auto"`. Two corrections fell out: pytest-xdist was
+**already** a declared dev dep (`>=3.8`, #256), so `uv add --dev` was a no-op and `uv.lock` is
+untouched — the live question was only whether `-n auto` becomes the *standard* path, not
+whether the tool works; and the brief's "~410s expected" plus `pyproject.toml`'s own "~9m42s
+wall, 2026-07-05 profile" both understated the real serial cost by ~4.4× and ~3×. That stale
+claim was corrected in place rather than left for a future reader to trust. The serial path is
+preserved, not deleted — it still catches what parallelism masks, now reached via `-n 0`; both
+paths smoke-tested (16/16 workers vs 48 items serial).
+
+**Result — the filing was a ledger landing, not an edit pass.** intake-id **27** derived from
+live state (max assigned is 26 including `archive/`; `27` appears nowhere in history). Body
+**byte-identical** to the operator input, asserted programmatically rather than by eye. Only
+the frontmatter moved: hoisted above the H1 per README §3, the off-schema `parents:` key
+preserved as prose inside `note:`, and both `origin:`/`note:` **quoted** — each contains
+` #24`, which unquoted YAML truncates as a comment. Carried deliberately: the document cites
+"the four §D eval rows" but has no §D — those candidates live as §A rows 33–36. Verbatim means
+verbatim; reported, not repaired.
+
+**Changes:** `docs/intake/2026-08-06-tech-adoption-consolidation-intake.md` (new),
+`docs/intake/README.md` + `manifest.json` (both generators — an intake add needs both),
+`pyproject.toml` (`addopts`, timing note), `protocols/STANDING_RULINGS.md` (section E1),
+this entry.
+
+**Abandoned:** the first merge of this arc (`32bc30ad`, unpushed) was reset on operator ruling
+after it landed **before** the JOURNAL entry and so left the spine unanchored — ADR-85 hard-FAIL,
+ship-gate RED. Empirically confirmed en route: a journal-only wrap merge is unanchorable at
+write time (`introduced()` = merge + journal commit, neither nameable by an entry written before
+they exist), and past wraps `533109f20` / `3a894eeb5` are anchored only because *later* entries
+named them. So the B2 "JOURNAL-rides-the-branch" shape is the only in-session route to a genuine
+GREEN — hence this entry rides the work branch, ARC-1's exact shape. Guard held before the reset:
+`origin/main` re-verified **after a fetch** (D3) as `461fa233`, so only unpushed local main moved.
+
+**Next:** §A items 12, 18, 20, 22, 23, 34–36 remain the P-B pool that E1 now draws from; item 33
+is discharged. Push leg of this arc exercises `block_unanchored_push` against a range whose
+anchor is this entry.
+
+---
+
 ### 2026-08-06 (e) — CC (Opus 5, local): ARC-1 — the parallel-execution pipeline pass, intake → ADR → doctrine → births
 
 **Did:** Ran one full methodology pass for the parallel-execution system on branch
