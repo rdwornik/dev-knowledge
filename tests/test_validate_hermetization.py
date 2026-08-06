@@ -69,6 +69,16 @@ def test_rule_a_allows_tasks_dir():
     assert vh.rule_a_violation("tasks/README.md") is None
 
 
+def test_rule_a_allows_github_workflows_dir():
+    # .github/: ADR-101 amendment 2026-08-06 ([#501]) -- the server-side REPORT-ONLY
+    # recorder joined the sanctioned Tier-1 directories. The directory is NOT virgin
+    # ground: it existed and was deleted at `82227f08` under [#255] because a
+    # PR-triggered organ never fired under a local-merge workflow. It returns on a
+    # `push` trigger, and only for the report-only wall.
+    assert ".github" in vh.SANCTIONED_TIER1_DIRS
+    assert vh.rule_a_violation(".github/workflows/report-only-wall.yml") is None
+
+
 def test_rule_a_allows_sanctioned_top_level_file():
     # uv.lock + .python-version: ADR-101 amendment 2026-07-27 ([#432]/ADR-106) --
     # the uv toolchain's lockfile + interpreter pin joined the build/package class.

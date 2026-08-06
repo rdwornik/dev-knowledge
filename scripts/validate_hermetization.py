@@ -55,6 +55,11 @@ SANCTIONED_TIER1_DIRS: frozenset[str] = frozenset({
     # BACKLOG.md stays the source of truth until the flip arc.
     "tasks",
     "templates", "tests",
+    # [#501] server-side recorder (ADR-101 amendment 2026-08-06): the GitHub Actions
+    # REPORT-ONLY wall -- the one server-side observation organ, re-creating the
+    # directory that `82227f08` deleted under [#255]. Report-only forever (private
+    # repo, Free tier -- required checks are unavailable), so no gate lives here.
+    ".github",
 })
 
 # Tier-1 -- sanctioned top-level FILES (the closed class members, ADR-101 section 1).
