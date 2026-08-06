@@ -49,6 +49,38 @@ analytics = [
     "pandas>=2.0",
 ]
 
+[tool.mutmut]
+# [#502] mutation-testing PILOT — CI-ONLY, scoped to the fleet_analytics slice.
+#
+# WHY CI-ONLY: mutmut requires fork(). Verbatim from its docs: "Mutmut must be run on a
+# system with `fork` support. This means that if you want to run on windows, you must run
+# inside WSL." This repo is Windows-developed, so the pilot CANNOT run on the operator's
+# host — it is hosted by the [#501] report-only wall's `mutation-pilot` job. Do not try to
+# run it locally on Windows; it will not work, and that is a tool constraint, not a defect.
+#
+# WHY SCOPED: the suite is 2400+ tests. An unscoped run over `scripts/` is not a slow pilot,
+# it is an impractical one — module scoping is a precondition, not an optimization. The
+# verdict this pilot owes is about ONE evidence class ([#392]), not a global mutation score.
+#
+# The calibration case, verified live: tests/test_fleet_analytics.py's
+# `test_canonical_path_survives_a_cycle` asserts `canonical_path("a", {"a":"b","b":"a"})`
+# is in {"a","b"}. Against the real implementation (scripts/fleet_analytics.py — a `.get()`
+# chase, not dict iteration) the call returns "b" DETERMINISTICALLY, so the assertion passes
+# for either member of the cycle and cannot catch a regression that flips which one comes
+# back. Crash-safety landed; correctness did not. A mutant that changes WHICH node is
+# returned should survive today — that surviving mutant is the pilot's calibration signal.
+#
+# Key names verified against mutmut 3.7.0's own `configuration.py` this session, NOT assumed:
+# 3.x renamed `paths_to_mutate` -> `source_paths` and `tests_dir` ->
+# `pytest_add_cli_args_test_selection` (both still accepted, both emit DeprecationWarnings).
+source_paths = ["scripts"]
+only_mutate = ["*fleet_analytics.py"]           # fnmatch, not glob; must end .py or *
+pytest_add_cli_args_test_selection = ["tests/test_fleet_analytics.py"]
+# CRITICAL INTERACTION: [tool.pytest.ini_options] addopts is `-n auto` (parallel by default
+# since 2026-08-06). mutmut already forks one subprocess PER MUTANT, so letting each of those
+# spawn a full xdist worker pool is a fork bomb in slow motion. Force serial inside mutmut.
+pytest_add_cli_args = ["-p", "no:xdist"]
+
 [tool.pytest.ini_options]
 # === UNIVERSAL (fleet methodology — ARC 4 leg 1, 2026-07-18; RULING-S split) ===
 minversion = "9.0"   # declared fleet pytest floor (ARC 4 D2; live: hub/corp 9.0.2, ai-council 9.0.3)

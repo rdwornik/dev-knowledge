@@ -531,17 +531,30 @@ surfaces:
       provenance: *own-prov
   - id: github-ci
     kind: path
-    tier: {corp-monorepo: LOCAL}
+    tier: {hub: MUST, corp-monorepo: LOCAL}
     waiver_component: github-ci-local
     probe: {type: dir_tracked, path: .github}
     # intake #12 Tier-2 lists .github as "today corp-only -- OPEN ruling: fleet-generic
-    # or local?". Represented LOCAL (not SHOULD) deliberately: corp's A0-sealed
+    # or local?". corp stays LOCAL (not SHOULD) deliberately: corp's A0-sealed
     # .methodology.yaml already DECLARES github-ci-local, and a SHOULD-present reading
     # would decorate that sealed declaration stale. Declared-LOCAL is the
     # least-commitment form until the operator rules the scope question.
+    #
+    # hub: MUST added 2026-08-06 ([#501], ADR-101 amendment same date) -- the hub now
+    # carries .github/ for the server-side REPORT-ONLY recorder. Represented by EXTENDING
+    # this row rather than adding a second `dir_tracked .github` row: two rows probing one
+    # path double-match the sweep and turn corp's SETTLED github-ci-local declaration into
+    # a WARN-undeclared (measured, not predicted). ADR-102 section 1 preference -- extend the
+    # authoritative surface, never spawn a parallel register.
+    #
+    # This does NOT close the intake-#12 scope ruling. The two surfaces are same-path,
+    # different-purpose: corp's is product CI; the hub's is one report-only observation
+    # organ. Two repos carrying `.github/` for unrelated reasons is not evidence of a
+    # fleet-generic surface, and #25-W-4 (reusable fleet workflow) is where that question
+    # actually gets answered.
     ownership:
       value: conditional
-      reason: ".github CI dir -- repo infrastructure present-if-the-repo-runs-CI (corp LOCAL today); toolchain/infra, not product content nor a methodology mandate. [borderline: an OPEN fleet-generic-vs-local SCOPE ruling exists (intake-12); that is a tier question, not the ownership category -- sol/terra to confirm conditional vs project.]"
+      reason: ".github CI dir -- repo infrastructure present-if-the-repo-runs-CI (corp LOCAL today; hub MUST since [#501], where it carries the report-only server-side recorder); toolchain/infra, not product content nor a methodology mandate. [borderline: an OPEN fleet-generic-vs-local SCOPE ruling exists (intake-12); that is a tier question, not the ownership category -- sol/terra to confirm conditional vs project.]"
       provenance: *own-prov
   - id: backlog-story-map-schema
     kind: doc-marker

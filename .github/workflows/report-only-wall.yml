@@ -1,0 +1,227 @@
+# .github/workflows/report-only-wall.yml
+# REPORT-ONLY observation organ ([#501]). Records; never blocks. No required check is armed by
+# this file -- and none can be: the repo is private on the Free tier, so required checks are
+# unavailable. This is REPORT-ONLY FOREVER, not a gate awaiting promotion; arming one would be a
+# separate, ADR-owing decision on a different plan (see the R-A red-team).
+#
+# WHY THIS EXISTS: every hard gate in this repo is client-side, so `git push --no-verify` erases
+# any RED without a trace. A push-triggered run that re-executes those same checks server-side
+# leaves a record no local bypass reaches.
+#
+# Trigger is `push`, not `pull_request`: the repo merges locally with --no-ff and pushes, so a
+# PR-triggered organ would never fire -- the [#255] vacuity that retired the last .github/ organ.
+#
+# The six hard requirements below are each earned empirically, not stylistic. See
+# docs/audits/2026-08-06-technical-night-prep-packs.md section B1 for the evidence behind each.
+name: report-only wall
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read          # least privilege; no issues:write -- this organ records, it does not emit
+
+concurrency:
+  group: report-only-wall-${{ github.ref }}
+  cancel-in-progress: false   # every landed SHA gets its own record; never cancel a record
+
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45       # -n auto is ~5m30s-6m on the operator host; 13m19s observed serial in a container
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0      # REQUIREMENT 2, LOAD-BEARING: a shallow clone makes the graft root
+                              # look like it created whole files, so canonical_freshness returns 5
+                              # false FAILs, no_ff_merges false-WARNs on a truncated-parent merge,
+                              # and journal_spine_anchor raises a FAIL-class AnchorError. Without
+                              # this line the wall reports garbage, in FAIL class.
+
+      - name: Install the pinned uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.11.19"  # REQUIREMENT 3: MUST equal pyproject.toml [tool.uv] required-version
+                              # EXACTLY. Every hook entry and the Stop hook run via `uv run
+                              # --locked`; a mismatched uv fails each one on a version error before
+                              # any real check runs -- and a hook that cannot start reports nothing.
+          python-version-file: ".python-version"
+
+      - name: Assert the toolchain pin is satisfied
+        run: |
+          uv --version
+          grep -q 'required-version = "==0.11.19"' pyproject.toml \
+            || { echo "::error::pyproject uv pin moved -- update this workflow in the same commit"; exit 1; }
+
+      - name: Sync the locked environment
+        run: uv sync --locked --group analytics   # REQUIREMENT 4: without the analytics group
+                                                  # pandas is absent and 21 test_fleet_analytics
+                                                  # tests fail on the missing module.
+
+      - name: Record the Pyright shape
+        id: pyright
+        continue-on-error: true
+        run: |
+          set +e
+          # REQUIREMENT 6, resolved as RECORD (not vendor). ARCHITECTURE.md models two shapes --
+          # vendored (8/8 cells proven) and unprovisioned (7/8, 1 skip). A runner with
+          # pyright-langserver on PATH but no node_modules/pyright is a third shape, and it
+          # produces 7 failures, one of which asserts on ambient PATH state
+          # (tests/test_reverse_dep_oracle.py:130 -- "no node_modules, nothing on PATH").
+          # This organ records; it does not normalize. Vendoring Pyright would change what the
+          # runner measures and would foreclose the empirical answer to which shape this runner is.
+          VENDORED=absent; [ -f node_modules/pyright/langserver.index.js ] && VENDORED=present
+          ON_PATH=absent;  command -v pyright-langserver >/dev/null 2>&1 && ON_PATH=present
+          case "$VENDORED/$ON_PATH" in
+            present/*)       SHAPE="vendored (modelled: 8/8 cells proven)" ;;
+            absent/absent)   SHAPE="unprovisioned (modelled: 7/8 proven, 1 skip)" ;;
+            absent/present)  SHAPE="PATH-only (UNMODELLED third shape: expect ~7 failures, incl. the ambient-PATH assertion)" ;;
+          esac
+          echo "shape=$SHAPE" >> "$GITHUB_OUTPUT"
+          echo "pyright shape: $SHAPE" | tee pyright.out
+
+      - name: pytest (recorded, never blocking)
+        id: pytest
+        continue-on-error: true
+        run: |
+          set +e
+          # REQUIREMENT 5: a non-zero exit here is EXPECTED, not breakage. Record it; judge nothing.
+          uv run --locked pytest -q --tb=line 2>&1 | tee pytest.out
+          echo "exit=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+
+      - name: audit.py health (recorded, never blocking)
+        id: audit
+        continue-on-error: true
+        run: |
+          set +e
+          uv run --locked python scripts/audit.py health 2>&1 | tee audit.out
+          echo "exit=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+
+      - name: JOURNAL-anchor backstop (recorded, never blocking)
+        id: anchor
+        continue-on-error: true
+        run: |
+          set +e
+          # The pre-push organ takes the push protocol on stdin:
+          #   <local_ref> <local_sha> <remote_ref> <remote_sha>
+          # github.event.before is the pre-push tip of main, which is exactly remote_sha.
+          # On workflow_dispatch there is no `before`, so the range is unresolvable -- recorded
+          # as skipped rather than reported as a false verdict.
+          if [ -z "${{ github.event.before }}" ] || [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]; then
+            echo "skipped -- no push range (workflow_dispatch or branch creation)" | tee anchor.out
+            echo "exit=n/a" >> "$GITHUB_OUTPUT"
+          else
+            echo "refs/heads/main ${{ github.sha }} refs/heads/main ${{ github.event.before }}" \
+              | uv run --locked python scripts/block_unanchored_push.py 2>&1 | tee anchor.out
+            echo "exit=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Write the tamper-evident record
+        if: always()
+        run: |
+          {
+            echo "## report-only wall — \`${{ github.sha }}\`"
+            echo
+            echo "| leg | exit | verdict |"
+            echo "|---|---|---|"
+            echo "| pytest | ${{ steps.pytest.outputs.exit }} | \`$(tail -1 pytest.out 2>/dev/null || echo 'no output')\` |"
+            echo "| audit.py health | ${{ steps.audit.outputs.exit }} | \`$(grep -E '^health:' audit.out 2>/dev/null || echo n/a)\` |"
+            echo "| journal anchor | ${{ steps.anchor.outputs.exit }} | \`$(tail -1 anchor.out 2>/dev/null || echo 'no output')\` |"
+            echo
+            echo "uv: \`$(uv --version)\` · pyright: \`${{ steps.pyright.outputs.shape }}\`"
+            echo
+            echo "> **Report-only, permanently.** Non-zero legs are recorded, not enforced, and no"
+            echo "> required check exists to arm — this repo is private on the Free tier."
+            echo "> A non-zero pytest is EXPECTED while the [#457] leg-(ii) test is by-design RED;"
+            echo "> a non-zero \`audit.py health\` is expected whenever any WARN exists, which is"
+            echo "> today's normal state. A green job means *the record was written*, not"
+            echo "> *the checks passed* — read the table, never the badge."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: wall-record-${{ github.sha }}
+          path: |
+            pytest.out
+            audit.out
+            anchor.out
+            pyright.out
+          retention-days: 90
+          if-no-files-found: warn
+
+  # [#502] mutation-testing pilot. A SEPARATE job, deliberately: it is slower and far more
+  # experimental than the wall, and it must never delay or perturb the record above.
+  # CI-ONLY BY NECESSITY -- mutmut requires fork(), which Windows does not provide, so this
+  # cannot run on the operator's host at all (the research verdict's one hard constraint).
+  # Report-only, exactly like the wall: it records a mutation report and judges nothing.
+  mutation-pilot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30       # DECLARED WALL-CLOCK BUDGET, not a guess at the true cost.
+                              # The pilot's own brief makes a declared budget a precondition;
+                              # an unscoped/unbudgeted mutation run is the known failure mode.
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0      # same reason as the record job: mutmut's default
+                              # use_git_change_detection reads history
+
+      - name: Install the pinned uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.11.19"
+          python-version-file: ".python-version"
+
+      - name: Sync the locked environment
+        run: uv sync --locked --group analytics   # fleet_analytics imports pandas
+
+      - name: mutmut run (recorded, never blocking)
+        id: mutmut
+        continue-on-error: true
+        run: |
+          set +e
+          # `--with` keeps mutmut EPHEMERAL: no dependency-group entry, no uv.lock churn, and
+          # no Windows-unrunnable tool installed into the operator's own environment by a
+          # plain `uv sync`. `--locked` still asserts the project lockfile is current, so the
+          # contract's "under uv run --locked" holds. This composition was exercised live
+          # before being written here, not assumed.
+          uv run --locked --with mutmut==3.7.0 mutmut run 2>&1 | tee mutmut.out
+          echo "exit=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+
+      - name: mutmut results (recorded, never blocking)
+        if: always()
+        continue-on-error: true
+        run: |
+          set +e
+          uv run --locked --with mutmut==3.7.0 mutmut results 2>&1 | tee mutmut-results.out
+
+      - name: Write the pilot record
+        if: always()
+        run: |
+          {
+            echo "## [#502] mutation pilot — \`${{ github.sha }}\`"
+            echo
+            echo "scope: \`scripts/fleet_analytics.py\` · tests: \`tests/test_fleet_analytics.py\` · mutmut exit: \`${{ steps.mutmut.outputs.exit }}\`"
+            echo
+            echo '```'
+            tail -40 mutmut-results.out 2>/dev/null || echo "no results output"
+            echo '```'
+            echo
+            echo "> **No ADOPT/REJECT verdict is recorded here, and none can be from this job's"
+            echo "> existence alone.** The verdict needs a real run's survivor list read against"
+            echo "> the calibration case (\`test_canonical_path_survives_a_cycle\` asserts"
+            echo "> \`in {\"a\",\"b\"}\` where the correctness assertion is \`== \"b\"\`, so a mutant"
+            echo "> flipping WHICH node is returned should survive). Open leg of [#502]."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mutation-pilot-${{ github.sha }}
+          path: |
+            mutmut.out
+            mutmut-results.out
+          retention-days: 90
+          if-no-files-found: warn
