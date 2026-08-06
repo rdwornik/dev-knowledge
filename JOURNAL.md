@@ -19,6 +19,77 @@
 
 ---
 
+### 2026-08-06 (g) — CC (Opus 5, local): ARC-3 — the batch protocol lands as repo law ([#505] build)
+
+**Did:** Built [#505] on branch `feat/505-batch-protocol` — the parallel-execution
+way-of-working encoded as versioned artifacts, so a batch survives a fresh seat. Anchors:
+**`9f9b6e11`** (the PLAYBOOK Ch8 batch-protocol section), **`b6c986a1`** (`/lane-boot` +
+`/lane-integrate`), **`7771547b`** (`check_stale_worktrees`, ALL_CHECKS 40 → 41),
+**`bcec6da3`** (`scripts/validate_branch_naming.py`), **`47db4a99`** (the three pointer edits),
+**`7722718e`** (three terra HIGHs fixed pre-merge). Six commits, one per contract step; zero
+births.
+
+**Result — placement was derived, not assumed.** The section sits at the END of Ch8 "Session
+boundaries", after the headless no-leftovers invariant and immediately before Ch9. Ch8 already
+owns parallel-session mechanics on both sides of it: "Parallel sessions & worktree discipline"
+carries [#441]'s four-condition WHETHER test, and "Tree orchestration" carries the ADR-97
+epic-lane cap plus the 2026-08-06 declaration that epic lanes and work lanes are different
+objects — this section is the work-lane home that declaration points at. Chapter-tail rather
+than mid-chapter for a second, mechanical reason: inserting before "Tree orchestration" would
+have shifted `PLAYBOOK.md:1643`, a **live and correct** anchor `templates/prompt-template.md`
+cites. The integrator's refuse-to-finish checklist also reads as the batch-scale form of the
+no-leftovers round-trip it now follows.
+
+**Result — the ratchet held at 441 = 441 across every commit**, measured on STAGED blobs each
+time. The whole section is phrased as mechanism description: zero new `must`/`shall`/`never`
+occurrences in a ~120-line doctrine addition, which is the constraint that shaped its voice
+rather than an afterthought checked at the end.
+
+**Result — three organs, all advisory, and said so out loud.** `check_stale_worktrees` is
+WARN-tier with the posture pinned at the SOURCE (`inspect.getsource`, the
+`review_artifact_coverage` precedent) rather than only on today's inputs;
+`validate_branch_naming.py` is wired into no gate at all, the `/preflight` adoption-first shape.
+The PLAYBOOK section closes with an honest-limits paragraph naming what stays mechanically
+possible — a lane that self-merges, a batch that closes with an open branch, a mid-batch seal.
+
+**Result — the naming enum was TRANSCRIBED, and its first live run found a real gap.** Every
+member is already ruled elsewhere; the module authors none, because the governing rule says a
+new machine-produced lane prefix enters only via a recorded ruling. Batch lanes are a
+*refinement* of `worktree-<name>` (`lane-<letter>-<id>-<slug>`), which is exactly why they need
+no ruling. The integrator deliberately has **no prefix** — it works from the primary on `main`
+— and minting `integrate/` would have been inventing an enum member; that is pinned as a test.
+First run: **`automation/fleet-audit` is live and outside the prose enum.** Reported, not
+silently added.
+
+**Result — terra found three HIGHs and all three were real.** The sharpest was that the live
+reader test passed on a `_git_linked_worktrees` that always returned `[]` — green that means
+nothing, in the check whose whole job is noticing leftovers. Two integration tests against real
+git replaced it. The other two: newline-containing worktree paths (fixed with `-z` **plus a
+fallback**, since fixing a false WARN by returning `None` on older git would have disabled the
+check), and a hard-coded `origin/` that classified `upstream/main` as non-conforming.
+
+**Changes:** `protocols/PLAYBOOK.md` (one new Ch8 section + TOC), `.claude/commands/lane-boot.md`
++ `lane-integrate.md` (new), `scripts/audit.py` (`check_stale_worktrees`,
+`_git_linked_worktrees`, `_git_commit_epoch`), `scripts/validate_branch_naming.py` (new),
+`tests/test_stale_worktrees.py` + `tests/test_validate_branch_naming.py` (new),
+`ecosystem/doc-code-edge.yaml` (exempt row), the SIX ALL_CHECKS count pins,
+`templates/handoff/02_METHODOLOGY.md.tmpl` (pointer), `templates/prompt-template.md` (v1.8
+anchor repair), `docs/decisions/ADR-110-*.md` (appended amendment),
+`docs/audits/2026-08-06-codex-batch-protocol.md` (new), this entry.
+
+**Abandoned:** nothing. Two findings were deliberately **reported rather than fixed** as outside
+this contract: the same handoff template still carries the SUPERSEDED three-check parallel test
+that [#441] replaced, and the review script's severity heuristic printed `0 0 0 0` against a
+body with three HIGHs — that script lives in `~/.claude/bin/`, and a global-infra edit is
+exception-with-ruling (core-invariant #6).
+
+**Next:** batch 1 is this protocol's test — TDD at doctrine level, per intake #26's acceptance
+criterion. Two operator questions carried in the packet: the `automation/` prefix, and whether
+`validate_branch_naming` should gate. Pre-existing and untouched: the two live-state suite REDs
+(`fleet_parity` on `ai-council/conftest.py`, `routine_consumers` at 2 declared rows).
+
+---
+
 ### 2026-08-06 (f) — CC (Opus 5, local): ARC-2 S-batch — intake #27 filed verbatim, `-n auto` adopted on measurement, the gap-week eval rule registered
 
 **Did:** Ran the ARC-2 S-batch (V-3 ceremony) on branch `chore/arc2-sbatch-intake-xdist`.
