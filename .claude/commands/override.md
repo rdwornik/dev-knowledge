@@ -1,14 +1,23 @@
 ---
 name: override
-description: Bypass the ADR-85 session-end hard gate for this HEAD — explicit, logged, no auto-bypass
+description: RETIRED (ADR-85 amendment 2026-08-03 §A2) — discharges no gate; arms a local telemetry token only
 ---
 
-The session-end Stop-hook (`scripts/session_end_backpressure.py`, ADR-85) **hard-blocks**
-turn-end when commits are ahead of base but the `JOURNAL.md` entry names no commit-SHA from
-this session. That block is *fail-closed but overridable* — and `/override [reason]` is the
-**only** exit. There is deliberately no auto-bypass-after-cap (that would train "persistence
-beats policy"). Use this only when the block is genuinely wrong (e.g. a deterministic
-false-positive), not to skip writing the journal.
+> **RETIRED — this command overrides nothing.** The ADR-85 amendment 2026-08-03 §A2 retired the
+> §4 local-token path: local state cannot make an integration event compliant, so
+> `_override_active()` is kept **inert** and `scripts/session_end_backpressure.py` no longer
+> consults the token. §A5 made that Stop-hook **advisory in full** — it cannot block turn-end, so
+> there is no block left to exit.
+>
+> **The live hard leg is elsewhere:** `scripts/block_unanchored_push.py` refuses a push to `main`
+> whose range carries unanchored first-parent spine entries. **Its sole escape is
+> `git push --no-verify`** — transport-level, explicit, human-typed — made non-silent by the
+> `journal_spine_anchor` audit backstop, which keeps **FAIL**ing until an anchor lands. Canon:
+> `protocols/DEFINITION_OF_DONE.md` "JOURNAL spine anchor"; ADR-85 §A2/§A5.
+>
+> Running this command still appends to `logs/OVERRIDES.md` and writes the token, but **no gate
+> reads either**. It survives only as the local override-rate telemetry record below. Do not
+> reach for it expecting a bypass, and do not cite it as one.
 
 `$ARGUMENTS` is the reason.
 
@@ -41,15 +50,17 @@ false-positive), not to skip writing the journal.
    $parts = $existing -split "(?<=telemetry\)\.`r?`n)", 2
    Set-Content logs/OVERRIDES.md ($parts[0] + "`n" + $entry + $parts[1]) -Encoding utf8 -NoNewline
    @{ head = $head; reason = $reason; ts = $ts } | ConvertTo-Json -Compress | Set-Content logs/.session-override-token -Encoding utf8 -NoNewline
-   Write-Output "OVERRIDE ARMED — HEAD $($head.Substring(0,7)) on $branch. The next turn-end passes once for this HEAD; it re-arms automatically when a new commit lands."
+   Write-Output "OVERRIDE LOGGED (telemetry only) — HEAD $($head.Substring(0,7)) on $branch. This discharges NO gate: the Stop hook is advisory in full and no longer reads the token (ADR-85 §A2/§A5). The pre-push hard leg's only escape is 'git push --no-verify'."
    ```
 
-3. **Report** what was logged and that the gate will allow turn-end for the current HEAD.
+3. **Report** what was logged — and say plainly that **no gate was discharged**. Never report
+   this as a bypass; if the operator wanted the pre-push leg bypassed, the answer is
+   `git push --no-verify`, typed by them.
 
 ## Notes
-- **HEAD-bound, one-shot.** The token allows the gate only while HEAD is unchanged. The
-  moment a new commit lands, HEAD moves and the token is stale → the gate re-arms. The
-  Stop-hook only *reads* the token (it stays a read-only validator — Critical Rule #4).
+- **The token is inert.** It is still HEAD-bound and one-shot by construction, but nothing
+  consults it: `session_end_backpressure.py::_override_active()` is kept only for the record
+  (ADR-85 §A2). Writing it changes no gate's verdict.
 - **Never committed.** `logs/.session-override-token` and `logs/OVERRIDES.md` are gitignored
   (ADR-85). Arming an override does not dirty the tracked tree and creates no leftover.
 - **Telemetry.** `logs/OVERRIDES.md` is the local override-rate record — if overrides exceed

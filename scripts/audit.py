@@ -263,7 +263,11 @@ _CANONICAL_ALL = _CANONICAL_MANDATORY + [
 # largest ungated canonical doc but is DEFERRED (no last_reviewed frontmatter yet + a genuine
 # end-to-end re-read is its own arc; see BACKLOG). SESSION_SETUP + AI_COUNCIL_PROCESS were genuinely
 # re-read and stamped in that arc, so they join now.
-_HUB_ONLY_FRESHNESS_FILES = ["protocols/SESSION_SETUP.md", "protocols/AI_COUNCIL_PROCESS.md"]
+# DEFINITION_OF_DONE.md joined 2026-08-06 ([#503]): it is hub-only (absent from every deploy
+# manifest), carries a `last_reviewed` stamp, and was the gap's own proof — the ADR-85 amendment
+# 2026-08-03 rewrote its teeth while its stamp stayed at 2026-06-19 and no edit-keyed signal fired.
+_HUB_ONLY_FRESHNESS_FILES = ["protocols/SESSION_SETUP.md", "protocols/AI_COUNCIL_PROCESS.md",
+                             "protocols/DEFINITION_OF_DONE.md"]
 _FRESHNESS_FILES = _cfg.DEFAULT_FRESHNESS_FILES + _HUB_ONLY_FRESHNESS_FILES
 _FRESHNESS_CADENCE_DAYS = _cfg.FRESHNESS_CADENCE_DAYS
 
