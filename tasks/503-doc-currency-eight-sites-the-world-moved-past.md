@@ -1,7 +1,7 @@
 ---
 id: "[#503]"
 title: "Doc-currency sweep — eight sites the world moved past"
-status: open
+status: closed
 priority: P3
 size: S
 theme: "[E5] Canonical-file integrity"

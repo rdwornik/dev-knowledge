@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "48ff03057d5d0baf191f589f16b0c690b91abcd475fc91b77029349b09e35984",
+  "generated_sha256": "7261c1c0a761f3dcf91d50b7659c948b7f4668924d6f80955c63f895bf2daa27",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -637,10 +637,6 @@
       "prose": ""
     },
     {
-      "task": 504,
-      "file": "504-block-ff-push-docstring-contradicts-fail-closed.md"
-    },
-    {
       "prose": "### [S14] Keep the day-to-day docs right-sized and current"
     },
     {
@@ -664,10 +660,6 @@
     },
     {
       "prose": ""
-    },
-    {
-      "task": 503,
-      "file": "503-doc-currency-eight-sites-the-world-moved-past.md"
     },
     {
       "task": 506,
