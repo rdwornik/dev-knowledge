@@ -60,13 +60,22 @@ markers = [
     "live_repo: test asserts against the live repo tree (docs/config), not a tmp_path fixture",
     "slow: opt-in slow test (subprocess / pre-commit / real-git spawns) — the #317 marker tier; the E2E consumer-lifecycle gauntlet gates additionally on RUN_E2E=1",
 ]
-# Full SERIAL suite — the nightly/on-demand path (#256 S3). The tiered /ship
-# pre-flight never runs this; it exists to catch what parallelism can mask
-# (xdist worker crashes, test-ordering coupling, load-sensitive timing):
-#   uv run pytest -q                 (full serial; ~9m42s wall, 2026-07-05 profile)
-# Run it on demand when xdist behavior is itself suspect, or as a nightly
-# sweep (no cron wired yet — deliberate; a documented invocation is the
-# current contract). Parallel full equivalent: uv run pytest -n auto --dist worksteal -q
+# PARALLEL BY DEFAULT — adopted on measurement, 2026-08-06 (intake #27 §A item 33,
+# ARC-2 S-batch). Same tree, same day, 2362 tests collected:
+#   serial          1785.61s  (29m45s)
+#   -n auto  run 1   358.77s  (5m59s)   run 2   330.15s  (5m30s)   => ~5.2x
+# Counts were IDENTICAL across all three runs — 2 failed / 2357 passed / 3 skipped, both
+# failures the known [#457] legs, and no divergence between the two parallel runs. That
+# is the evidence for making -n auto the standard path rather than an opt-in flag.
+# The previous note here claimed "~9m42s wall, 2026-07-05 profile" for the serial suite;
+# the measured cost is ~3x that, so the claim is corrected rather than left to be trusted.
+addopts = "-n auto"
+# Full SERIAL suite — still the on-demand sweep (#256 S3), now reached by OVERRIDING the
+# default above. It exists to catch what parallelism can mask (xdist worker crashes,
+# test-ordering coupling, load-sensitive timing):
+#   uv run pytest -n 0 -q            (full serial; 1785.61s / 29m45s measured 2026-08-06)
+# Run it when xdist behavior is itself suspect, or as a nightly sweep (no cron wired yet
+# — deliberate; a documented invocation is the current contract).
 
 [tool.ruff]
 # === UNIVERSAL (fleet methodology — ARC 4 leg 1, 2026-07-18) ==================
