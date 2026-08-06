@@ -1,7 +1,7 @@
 ---
 id: "[#394]"
 title: "Analytics coverage gap — corp-monorepo no-edit-record blind spot"
-status: open
+status: closed
 priority: P3
 size: S
 theme: "[E9] Fleet Desired-State System (North Star)"

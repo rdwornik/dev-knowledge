@@ -1,7 +1,7 @@
 ---
 id: "[#363]"
 title: "`codex-review` routed a CODE-shaped diff through the `gpt-5.6-sol` lane, not terra"
-status: open
+status: closed
 priority: P2
 size: S
 theme: "[E8] ARC-5 execution"
