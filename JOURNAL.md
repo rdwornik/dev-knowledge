@@ -19,6 +19,34 @@
 
 ---
 
+### 2026-08-06 (c) — CC (Opus 5, local): successor bundle cut, window closed
+
+**Did:** Cut the architect successor bundle `docs/handoffs/2026-08-06-dev-knowledge-architect`
+at **`c4ce1d0a`**, closing the consolidation window sealed in entry (b). Deleted the two merged
+remote lane branches (`claude/night-batch-2026-08-06-p59kml`, `claude/night-batch-review-prep-k1f2yr`)
+after proving both are ancestry-contained in `main`; the three `claude/conformance-*` branches are
+explicitly protected and stay.
+
+**Result — the bundle carries the residual by reference, not by value.** §1 names which drift-flags
+are standing-and-dispositioned versus new-this-window without stating any verdict, count, `[stale]`
+or sha: naming a value there would re-invert the anti-bluff contract P4/P7 exist to enforce. The one
+new flag this window, `fleet_audit_replication`, is recorded as **resolved rather than dispositioned**,
+with its cause (a `[#296]` repro whose ADR-80 replication push failed) — self-induced findings get
+fixed; a disposition is reserved for a genuine rule-vs-ruling conflict. §4 carries eight frontier
+items, of which two are the ones most likely to be lost otherwise: the **Free-tier consequence** that
+forecloses `[#501]`'s ADR-at-arming until the tier changes, and `[#499]`'s evidence chain now standing
+at **seal 1 of 2** — a chain a silent seal does not merely fail to advance but breaks.
+
+**`SUPPLEMENT.md` is committed EMPTY** — the defined cold-handoff disposition, so the incoming §13(d)
+operator-context beat fires FULL rather than narrowed.
+
+**Changes:** `docs/handoffs/2026-08-06-dev-knowledge-architect/` (5 files), `JOURNAL.md`.
+
+**Abandoned:** Nothing. The bundle is unbooted by design — it is the next session's entry point.
+
+**Next:** Paste `PASTE_THIS.md` into a fresh chat; optionally fill `SUPPLEMENT.md` first and re-run
+`scripts/assemble_paste.py` to fold its ANSWERS.
+
 ### 2026-08-06 (b) — CC (Opus 5, local): consolidation sealed — three repairs, nine grooming dispositions, four births, and a refutation that changed a row's diagnosis
 
 **Did:** Executed the consolidation contract end to end after the FINDING-0 gate cleared (entry (a)).
