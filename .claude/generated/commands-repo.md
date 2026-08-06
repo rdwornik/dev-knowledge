@@ -12,6 +12,6 @@
 - `/handoff` — Generate or complete a handoff per HANDOFF_PROCESS.md v6 — CC-owned residual + thin browser boot
 - `/lane-boot` — Boot ONE batch lane — provision its worktree per the naming enum, seed it, load the frozen contract, and state the V-2 decision budget before any work starts.
 - `/lane-integrate` — Walk a batch's merge queue serially from the primary checkout, then run the four-item refuse-to-finish checklist mechanically — the batch does not close while an item is open.
-- `/override` — Bypass the ADR-85 session-end hard gate for this HEAD — explicit, logged, no auto-bypass
+- `/override` — RETIRED (ADR-85 amendment 2026-08-03 §A2) — discharges no gate; arms a local telemetry token only
 - `/preflight` — Verify every repo locator a contract or prompt cites — file:line, headings, SHAs, [#id] liveness — BEFORE acting on it. Read-only, adoption-first, wired into no gate.
 - `/save` — Stage all changes and commit with a descriptive Conventional Commits message

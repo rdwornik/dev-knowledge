@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-06-19
+last_reviewed: 2026-08-06
 status: active
 owner: Rob
 ---
@@ -8,10 +8,12 @@ owner: Rob
 <!-- scope: meta -->
 
 > **Single source of truth** for what "done" means at session close (ADR-85). The rules
-> here are enforced *mechanically and deterministically* by the session-end Stop-hook
-> (`scripts/session_end_backpressure.py`) — no LLM in the gate. This doc is the canon;
-> the hook is the teeth; the `/override` command is the only escape. Injected into the
-> orchestrator at session-start via `protocols/HANDOFF_BOOT.md`.
+> here are enforced *mechanically and deterministically* — no LLM in the gate. This doc is
+> the canon. Since the **ADR-85 amendment 2026-08-03** the **teeth** are the pre-push hook
+> `scripts/block_unanchored_push.py` plus the `journal_spine_anchor` audit backstop (§A5); the
+> session-end Stop-hook (`scripts/session_end_backpressure.py`) is **advisory in full**; and the
+> sole escape is `git push --no-verify` — `/override` is **retired** (§A2; see "Override" below).
+> Injected into the orchestrator at session-start via `protocols/HANDOFF_BOOT.md`.
 
 The point is **not** box-ticking. It is that the repo's value is its discipline — every
 change traceable, no fabricated state — and the human should no longer be the manual
@@ -112,6 +114,13 @@ change (a `[#NN]` issue-ID, a `status:` keyword, or a `[ ]`/`[x]` checkbox).
   traceability-spine ADR lands** and gives it an airtight issue-ID↔commit anchor.
 
 ## Honest limits — what this gate does NOT prove
+> **Scope, post-2026-08-03.** The two bullets below describe the **Stop leg**, which is now
+> **advisory in full** — they are why the teeth moved, not limits of the live hard leg. Neither
+> applies to the pre-push organ or the audit backstop: a pre-push hook **cannot be exhausted**
+> (it passes or the push fails), and the dirty-tree short-circuit **guards no hard check** — a
+> push carries committed objects, not the working tree (§A6/D7). The third bullet
+> (record ≠ correctness) still binds everything here.
+
 The Stop-gate is a **record** seal, not a **correctness** or **enforcement-in-effect** proof.
 State the bounds plainly (a fresh session otherwise reads "un-gameable" as absolute; Fable
 architecture review RF-3, `docs/audits/2026-07-04-fable-architecture-review.md`):
@@ -138,15 +147,23 @@ obligation. Update them when the work materially affects them; otherwise leave t
 staleness is a later detection signal in the conformance dashboard (ADR-85 R2), **not** a
 session gate and **not** human memory.
 
-## Override
-A blocked turn exits **only** via `/override [reason]` (`.claude/commands/override.md`):
-- The reason is **required** — no reason, no override.
-- It is **logged** (`logs/OVERRIDES.md`, gitignored ephemeral local audit).
-- It is **HEAD-bound**: it allows the gate while HEAD is unchanged and **re-arms
-  automatically when a new commit lands**. The Stop-hook only *reads* the token (it stays
-  a read-only validator per the scripts-are-read-only invariant).
-- **No auto-bypass-after-cap.** There is no retry-counter that eventually yields — that
-  would train "persistence beats policy."
+## Override — **RETIRED** (ADR-85 amendment 2026-08-03, §A2)
+The `/override` local-token path **discharges nothing**. Local state cannot make an integration
+event compliant, so `_override_active()` is kept **inert** and is no longer consulted; and the
+Stop hook is **advisory in full** (§A5), so there is no blocked turn left to exit. The
+`/override` command (`.claude/commands/override.md`) still writes
+`logs/.session-override-token`, but no gate reads it.
+
+**The sole escape from the live hard leg is `git push --no-verify`** — transport-level, explicit,
+human-typed (see "JOURNAL spine anchor" above). It is deliberately **not silent**: the
+`journal_spine_anchor` audit backstop keeps **FAIL**ing until an anchor lands.
+
+Retained as history, because the reasoning still binds the design: the reason was **required**,
+the arming was **logged** (`logs/OVERRIDES.md`), the token was **HEAD-bound**, and there was
+**no auto-bypass-after-cap** — a retry-counter that eventually yields would train "persistence
+beats policy." Honouring that last constraint is precisely what the Stop hook could not do once
+the host began force-ending turns after N consecutive blocks, which is why the teeth moved to
+pre-push (§A5).
 
 ## Scope-freeze
 **No docs are added to this gate for 4 weeks** from ADR-85 (i.e. until ~2026-07-14) —
