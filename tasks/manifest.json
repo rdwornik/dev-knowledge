@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "d4cf26c1eb1237e1fa5f511985a43752264292a433741826c197e4b20355dd34",
+  "generated_sha256": "5c037cf49e68c6a65e465df5a3da4a4fdbf22958972101c99098eb04a206add2",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -211,6 +211,10 @@
     },
     {
       "prose": ""
+    },
+    {
+      "task": 501,
+      "file": "501-server-side-report-only-recorder-github-actions.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
@@ -629,6 +633,10 @@
       "prose": ""
     },
     {
+      "task": 504,
+      "file": "504-block-ff-push-docstring-contradicts-fail-closed.md"
+    },
+    {
       "prose": "### [S14] Keep the day-to-day docs right-sized and current"
     },
     {
@@ -652,6 +660,10 @@
     },
     {
       "prose": ""
+    },
+    {
+      "task": 503,
+      "file": "503-doc-currency-eight-sites-the-world-moved-past.md"
     },
     {
       "prose": "---"
@@ -962,6 +974,10 @@
     },
     {
       "prose": ""
+    },
+    {
+      "task": 502,
+      "file": "502-mutmut-mutation-testing-evaluation-ci-hosted.md"
     },
     {
       "prose": "### [S20] Revive the nightly layer, load-gauge first (rent-rule discipline)"
