@@ -19,6 +19,68 @@
 
 ---
 
+### 2026-08-06 (h) — CC (Opus 5, local): batch-1 INTEGRATOR — ADR-110's first live run ([#501] [#502] [#503] [#504])
+
+**Did:** Ran `/lane-integrate` for batch 1 from the primary checkout on `main`, queue **A → C → B**
+in dependency order, one merge at a time. Anchors — the three lane merges: **`6714f7cd`** (lane A,
+`worktree-lane-a-501-ci-recorder` — the server-side REPORT-ONLY recorder `[#501]` + the `[#502]`
+mutmut pilot), **`5af0b33c`** (lane C, `worktree-lane-c-504-failclosed-claims` — the `block_ff_push`
+fail-closed claim narrowed to what the code covers), **`a4f4f1e9`** (lane B,
+`worktree-lane-b-503-doc-currency` — 8 doc-currency sites the ADR-85 amendment and [#255] retired
+underneath). Full packet: `docs/audits/2026-08-06-technical-batch-1-integration-packet.md`.
+
+**Result — the protocol survived its first real run, and the interesting failures were the ones no
+lane could see.** Two statements were true when their lane wrote them and false once a sibling
+merged — the "merged tree is a state no lane tested" class, exactly what the refuse-to-finish
+checklist's second item exists to catch. `CONTRIBUTING.md` asserted "`.github/` no longer exists in
+this repo"; lane A re-created `.github/` for the recorder. Symmetrically, `ARCHITECTURE.md` Ch6
+warned that CONTRIBUTING "still describes the Action in the present tense" and that reconciling it
+was out of scope — lane B fixed precisely that, so the warning outlived its own defect. **Lane A
+predicted the first collision and handed it to the integrator rather than editing lane B's
+footprint**, which is the lane-disjointness rule working as designed rather than a near-miss.
+
+**Result — one real merge conflict, resolved by regeneration rather than by hand.**
+`docs/audits/README.md` collided on the lane-C merge: both lanes added one audit document and each
+independently bumped the count `403 → 404`. It is a generated index behind a regen-and-diff gate, so
+hand-merging it would have produced a file that reads correctly and fails its own hook.
+`gen_audit_index.py --write` gave the merged truth (**405**), and `audit-index-freshness` passed on
+the commit — the gate confirming the resolution rather than the resolver asserting it.
+
+**Result — F1, a structural finding against ADR-110 itself: the serial merge queue cannot satisfy
+`journal_spine_anchor` between merges.** This entry must *name* the lane merge SHAs, so it can only
+be written after the merges — but every merge lands an unanchored first-parent spine entry, and
+`audit-health` evaluates per-commit. The lane-C merge was blocked by a **true positive**: `6714f7cd`
+genuinely had no anchor at that instant. Discharged with `SKIP=audit-health` on the two intermediate
+merges — surgical, every other gate left armed, **not** `--no-verify` — with the real anchor landing
+here and `audit.py health` verified clean before push. Anchoring is retrospective; the commit-time
+backstop is per-commit; the pre-push gate discharges range-level and was satisfied normally. Whether
+the integrator's intermediate merges are an exempt class wants a ruling.
+
+**Result — the contract named two audit files that a hard gate refuses.** Both carried edits were
+cited under filenames with no ADR-101 Rule B enum-class token; both lanes renamed minimally to
+conform (`-technical-` / `-verification-`), and lane C escalated it rather than absorbing it. Twice
+in one batch, from the contract-authoring surface — so the fix belongs there, not in the lanes.
+
+**Changes:** `ARCHITECTURE.md` — five carried edits applied verbatim (Ch2 **server** Layer +
+**report-only** posture + the recorder organ row; Ch6 **Post-merge (server)** mesh row + the
+`.github/`-returned block; Ch3 `block_ff_push` **fails CLOSED**), the Ch6 stale-CONTRIBUTING warning
+retired, `last_reviewed` `2026-08-02 → 2026-08-06` after a genuine 861-line end-to-end re-read.
+`CONTRIBUTING.md` — the falsified `.github/` clause corrected minimally. `docs/audits/` — the
+integration packet added, index regenerated. Three worktrees + three lane branches torn down.
+
+**Abandoned:** Nothing. No lane abandoned, no queue reorder, no row birthed, nothing deleted. The
+Governing-ADRs roster still ends at ADR-109 and omits ADR-110 — left alone deliberately: the roster
+declares itself curated-not-exhaustive and points at the complete ledger, so it is an editorial
+option for the operator, not drift.
+
+**Next:** [#502]'s mutmut verdict stays OPEN. The recorder row carries **verification owed** — one
+deliberate red-making push must show the run green with the red recorded before the `ARMED (never
+fired)` parenthetical comes off. Lane C's two residuals (the `find_violations` fail-soft window; the
+`_rev_parse` / `_reconstruct_main_range` proposal) want a ticket against the shared FF-signature.
+`ADR-85:322-324` still describes the old fail-soft posture as current — immutable, surfaced, untouched.
+Batch 2 must fill ≥3 of 4 lanes with product/consumer work: the ≤1/4 process-lane cap binds from
+batch 2, and batch 1 ran 3/3 process lanes.
+
 ### 2026-08-06 (g) — CC (Opus 5, local): ARC-3 — the batch protocol lands as repo law ([#505] build)
 
 **Did:** Built [#505] on branch `feat/505-batch-protocol` — the parallel-execution

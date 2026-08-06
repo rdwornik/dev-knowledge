@@ -145,9 +145,11 @@ removed **together with everything built on it**: the clean-night / findings-nig
 routing, the divert onto `automation/conformance-digest` (remote branch deleted), and the
 one-added-file diff guard with its fail-closed counts-marker parser. `surface_triage.ps1` lost its
 Surfacing 2 in the same commit; **the successor fleet-health surface is the local
-`scripts/fleet_health.py` SessionStart digest.** `.github/` no longer exists in this repo, so
-**there is no automated PR triage of any kind** — nothing auto-diverts, auto-closes, or auto-files
-a nightly digest.
+`scripts/fleet_health.py` SessionStart digest.** **There is no automated PR triage of any
+kind** — nothing auto-diverts, auto-closes, or auto-files a nightly digest. (`.github/` was
+deleted with that Action and **returned 2026-08-06** carrying an unrelated organ: the [#501]
+report-only wall, which triggers on `push`, re-runs the gate set off-host and records the
+outcome. It performs no triage and reads no digest — see ARCHITECTURE Ch2/Ch6.)
 
 **Why the `.js` workflow exists, and when it runs as a spec.** The nightly run is
 defined by `.claude/workflows/conformance-hub.js` — but the native `Workflow` launcher
