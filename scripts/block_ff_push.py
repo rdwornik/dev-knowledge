@@ -36,7 +36,22 @@ HONEST LIMIT (per state-honest-enforcement-limits): a client-side hook is bypass
   audit WARN (validate_no_ff) still catches anything a bypass slips through.
 
 Scope: HUB-ONLY (the hub installs this hook; child-repo reach is the undecided #153
-  scope boundary). Fail-soft: any git error → return 0 (never wedge a legitimate push).
+  scope boundary). Fail **CLOSED** (ADR-85 amendment 2026-08-03 §A6): an internal error
+  RAISES and `main()` turns it into exit 2, refusing the push. This organ returned 0 on any
+  git error until that amendment, which made a FAILED scan indistinguishable from a CLEAN one
+  and silently auto-allowed the exact push it exists to refuse; refusing cannot wedge
+  legitimate work, because the explicit `git push --no-verify` is the escape hatch.
+
+  What "fail closed" does and does not cover (per state-honest-enforcement-limits):
+    * COVERED — a stdin read failure (`_read_stdin` raises) and an unreadable push range
+      (`violations_in_range` probes `git rev-list` first and raises). Both were silent allows.
+    * NOT COVERED — the delegated scan keeps validate_no_ff's OWN fail-soft contract, so a git
+      failure inside `find_violations` itself, after the range already probed readable, still
+      degrades to `[]` and exit 0. The probe closes the wide window, not that narrow one;
+      closing it means changing the shared FF-signature, which is a separate decision.
+    * BY DESIGN — the leaf helpers `_rev_parse` / `_reconstruct_main_range` stay fail-soft
+      (they degrade to `''` / `None`, values the callers still reason about correctly). The
+      MODULE posture is what closed; do not "fix" those two to match it.
 """
 
 from __future__ import annotations
