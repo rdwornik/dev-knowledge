@@ -1758,7 +1758,10 @@ leaves the batch open (ADR-110 §3). The load-bearing property is that the check
 - **Manifest/packet archived.** The lane manifest and the end-of-batch packet land in the tree, so
   the run is reconstructable without the chat.
 
-`/batch-integrate` walks this list mechanically; `/batch-lane` boots one lane against it.
+`/lane-integrate` walks this list mechanically; `/lane-boot` boots one lane against it. (The two
+are deliberately *not* named `/batch-*`: ADR-110 §4 records hand-rolled `/batch-*` commands as
+rejected, native `/batch` being the substrate, and these two encode lane protocol rather than
+orchestration.)
 
 **JOURNAL-rides-the-branch is the anchoring law.** An arc's JOURNAL entry is written **on that
 arc's own branch, ahead of the merge** (STANDING_RULINGS B2). The reason is structural rather
