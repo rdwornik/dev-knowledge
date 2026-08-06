@@ -10,6 +10,22 @@
 - **Authority used:** read/derive everything; execute only the pre-ruled fixes in §7 and the two
   fully-evidenced row closes in §3. No merge, no push to `main`, no edit to an immutable artifact.
 
+> **Amendment — 2026-08-06, same session (in-file marker per CLAUDE.md §5 rule 3).** This file was
+> first committed at `8e0cd0d5` while the branch's full suite run was still in flight. The suite
+> landed afterwards, so §1's honest-limits paragraph and §10's packet were amended to carry the
+> real numbers (**12 failed / 2403 passed / 4 skipped, a strict subset of the batch tip's 14**)
+> plus the closing verification sweep, and nothing else changed. Recorded through the sanctioned
+> in-file channel rather than edited silently — the same discipline this audit asks for at IA-1,
+> applied to itself. The alternative, squashing the correction into `8e0cd0d5` on an unpushed
+> branch, would have been tidier and would have left no trace that the file ever said otherwise.
+>
+> **Closing sweep, run after the last content commit:** `ruff` clean · all six generators
+> `--check` clean (`audit_index`, `claude_rosters`, `methodology_roster`, `intake_index`,
+> `doc_counts`, `task_tree`) · PLAYBOOK TOC clean · `silent_rule_ratchet` 441 ≤ baseline 441 ·
+> `journal_spine_anchor` OK · `canonical_freshness` 9 fresh · `task_tree_coherence` OK ·
+> `doc_claims` OK. Self-audit 31/55 with the same FAIL set as the batch tip — the single
+> `[!!] repos registered (none)`, which is this container having no sibling repos.
+
 ---
 
 ## 1. Method, and what this audit could NOT verify
@@ -41,9 +57,21 @@ stating because each one silently produced a WRONG answer first:**
 - The suite cannot be reproduced faithfully here. This container is the **PATH-only pyright shape**
   that lane A's own `Record the Pyright shape` step models as the "UNMODELLED third shape"
   (`pyright-langserver` on PATH, no `node_modules/pyright`), the repo dir is `dev-knowledge` not
-  `.dev-knowledge`, sibling repos are absent, and git is a different minor version. 14 of 2419
-  tests fail here for those four reasons. Every one was individually attributed to the environment;
-  none to the batch diff. The operator's-host verdict is not re-derivable from this seat.
+  `.dev-knowledge`, sibling repos are absent, and git is a different minor version. Every failure
+  here was individually attributed to one of those four; none to the batch diff. The
+  operator's-host verdict is not re-derivable from this seat.
+
+  What IS derivable, and is the useful number: **the audit branch's failure set is a strict subset
+  of the batch tip's.** At `319f885d`: 14 failed / 2400 passed / 4 skipped. On this branch after
+  eight commits: **12 failed / 2403 passed / 4 skipped (2419 collected)** — the same failures minus
+  `test_check_fleet_parity_green_on_live_repo` and `test_health_ok_with_registered_repo`, both of
+  which were artifacts of the stale `main` ref described above rather than real REDs. **Zero new
+  failures from anything landed here.** The 12 residual: 6 pyright-shape
+  (`test_reverse_dep_oracle` ×5, `test_safe_remove` ×1), 1 `test_legibility_graph_conformance`
+  (same oracle), 2 sibling-absence (`test_boundary_report`, `test_routine_consumers…`), 1 repo-dir
+  name (`test_fleet_analytics::test_hub_is_included_as_a_mining_target` asserts `.dev-knowledge`),
+  1 git-version error string (`test_merge_serialization`), 1 container health
+  (`test_health_stays_ok_with_na_status`).
 - The **"exactly 2 operator touches"** clause of [#505] is unverifiable from the tree — nothing
   records interaction counts. Treated as unevidenced rather than as failed.
 - The `wall-record-*` artifact from the CI run in §6 (artifact ID `8974801537`, 90-day retention)
@@ -514,10 +542,16 @@ BATCH 2: GO, 3 conditions
   must be product/consumer work — stricter than the ">=3 of 4" phrasing in the brief.
   Batch 1 ran 3/3 process. This is the binding risk, not the machinery.
 
+SUITE ON THE AUDIT BRANCH
+  batch tip 319f885d : 14 failed / 2400 passed / 4 skipped
+  audit branch HEAD  : 12 failed / 2403 passed / 4 skipped (2419 collected)
+  Strict SUBSET — zero new failures from the 8 commits. All 12 attributed individually to
+  this container (6 pyright PATH-only shape, 2 sibling-absence, 1 repo-dir name, 1 git
+  version, 1 oracle, 1 container health). ruff clean. All 5 generators --check clean.
+
 NOT DONE / HONEST LIMITS
-  - The suite is not reproducible in this container (PATH-only pyright shape, no siblings,
-    repo dir named dev-knowledge not .dev-knowledge). 14/2419 fail here, all attributed to
-    the environment, none to the batch. Your host's verdict is not derivable from here.
+  - The suite is not reproducible in this container, so your host's verdict is not
+    derivable from here — only the no-regression delta above is.
   - audit-health cannot pass in this container (`repos registered (none)`), so every commit
     carries SKIP=audit-health with the reason in its message. Run manually before each.
   - The CI run's per-test failure list is in artifact 8974801537; I did not download it.
