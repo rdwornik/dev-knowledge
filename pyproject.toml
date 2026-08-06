@@ -79,7 +79,16 @@ pytest_add_cli_args_test_selection = ["tests/test_fleet_analytics.py"]
 # CRITICAL INTERACTION: [tool.pytest.ini_options] addopts is `-n auto` (parallel by default
 # since 2026-08-06). mutmut already forks one subprocess PER MUTANT, so letting each of those
 # spawn a full xdist worker pool is a fork bomb in slow motion. Force serial inside mutmut.
-pytest_add_cli_args = ["-p", "no:xdist"]
+#
+# `-n 0` and NOT `-p no:xdist` (corrected 2026-08-06 by the batch-1 night audit, measured
+# twice). Unloading the plugin ALSO unloads the `-n` option that `addopts` already supplies,
+# so every mutant's pytest exits 4 on `unrecognized arguments: -n` before collecting a single
+# test. Local repro: `pytest -p no:xdist --collect-only tests/test_fleet_analytics.py` ->
+# usage error. CI repro: run 31127625224 job `mutation-pilot` — `mutmut exit: 1` with all 84
+# mutants reported `not checked`, i.e. a pilot that measures nothing while looking green.
+# `-n 0` keeps xdist loaded and runs in-process; addopts is PREPENDED, so the later `-n 0`
+# wins over `-n auto` and the serial intent holds.
+pytest_add_cli_args = ["-n", "0"]
 
 [tool.pytest.ini_options]
 # === UNIVERSAL (fleet methodology — ARC 4 leg 1, 2026-07-18; RULING-S split) ===
