@@ -2,14 +2,14 @@
 intake-id: 27
 status: DRAFT
 origin: "2026-08-06 operator-directed retrospective + tech-adoption audit, browser seat of the sealed 2026-08-05/06 window; consolidates and SUPERSEDES-as-ledger the adoption-status view of intake #24 (tech-currency wave 1) and intake #25 (simplification & distribution wave); landed verbatim by operator instruction"
-note: "Parents: intake #24 · intake #25 · ADR (parallel-execution way-of-working, successor Phase 2). Landed VERBATIM by operator instruction (ARC-2 S-batch contract 1) — body unedited. The source frontmatter carried an off-schema `parents:` key (README §3 schema); its value is preserved here as prose rather than dropped."
+note: "Parents: intake #24 · intake #25 · ADR (parallel-execution way-of-working, successor Phase 2). Landed VERBATIM by operator instruction (ARC-2 S-batch contract 1) — body unedited. The source frontmatter carried an off-schema `parents:` key (README §3 schema); its value is preserved here as prose rather than dropped. ERRATUM 2026-08-06 (architect-ruled, batch-1 night audit): the verbatim body carried two references to a section §D that this document does not contain — its sections are §A/§B/§C/§F. Both pointed at the four NEW EVAL candidates, which live in §A as items 33–36 (`pytest-xdist`, `jsonc-parser`, `check-jsonschema`, `mise`) and which §F already names by that number range. Repaired in place to `§A items 33–36` (WHY line) and `§A item 35` (row 18, check-jsonschema reshaping W-6) — a locator repair only; no status, priority class, evidence or item text changed, and no §D/§E section was created. This is the ONLY departure from verbatim."
 ---
 
 # INTAKE DRAFT — tech-adoption consolidation ledger (36 items, successor-facing)
 
 ## WHY — what this intake is and is not
 
-The fleet decides fast and executes through one serial channel; ~21 of the 36 tracked adoption items are IN-FLIGHT behind that channel. This intake is the **single durable ledger** of all 36 so the vision cannot be lost between windows — every item has a status, an owner-or-gap, and a recommended priority class. It is **not** a new proposal wave: it births at most the four §D eval rows; everything else already has a home and this document only makes the queue visible and sequenceable. Rulings referenced here are settled — this intake carries them, it does not reopen them.
+The fleet decides fast and executes through one serial channel; ~21 of the 36 tracked adoption items are IN-FLIGHT behind that channel. This intake is the **single durable ledger** of all 36 so the vision cannot be lost between windows — every item has a status, an owner-or-gap, and a recommended priority class. It is **not** a new proposal wave: it births at most the four NEW EVAL rows (§A items 33–36); everything else already has a home and this document only makes the queue visible and sequenceable. Rulings referenced here are settled — this intake carries them, it does not reopen them.
 
 ## §A — Ledger (status vocabulary: ADOPTED-live / EVAL-RUN(result) / SCHEDULED(where) / UNPLACED / REFUTED / DEFERRED(trigger) / DORMANT)
 
@@ -32,7 +32,7 @@ The fleet decides fast and executes through one serial channel; ~21 of the 36 tr
 | 15 | pre-commit native distribution (W-3) | DEFERRED(batch 2; reconcile [#497] @ carrier_mesh.py:75 FIRST) | mega-packet collision | P-A |
 | 16 | reusable kernel.yml (W-4) | DEFERRED(batch 2; .github/workflows/ single-owner = [#501]) | Lane C ledger | P-A |
 | 17 | pytest-testmon (W-5) | SCHEDULED(batch-2 ledger per rider R-ii; targets 410s/run) | supplement rider R-ii | P-A |
-| 18 | schema-as-code (W-6) | DEFERRED(floats behind W-5) — reshaped by §D item 35 | rider R-ii | P-B |
+| 18 | schema-as-code (W-6) | DEFERRED(floats behind W-5) — reshaped by §A item 35 | rider R-ii | P-B |
 | 19 | sphinx-needs study (W-7) | UNPLACED | intake #25 heading only | P-D |
 | 20 | local-vs-reference matrix (W-8) | UNPLACED(intake prose) — candidate for a one-line register ruling | intake #25 W-8 | P-B |
 | 21 | AGENTS.md + thin shim (W-9a) | DEFERRED(batch 2) + HAZARD: collides with existing codex/AGENTS.md | mega-packet hazard | P-A |
