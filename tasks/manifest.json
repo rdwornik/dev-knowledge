@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "48762b94e12dae0cda1148ee01d51cece99e4799b83d6924a75960260b398e9a",
+  "generated_sha256": "48ff03057d5d0baf191f589f16b0c690b91abcd475fc91b77029349b09e35984",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -537,6 +537,10 @@
       "file": "443-planning-artifacts-outside-the-three-enforced-cl.md"
     },
     {
+      "task": 505,
+      "file": "505-batch-protocol-encoding-parallel-execution-wow.md"
+    },
+    {
       "prose": ""
     },
     {
@@ -664,6 +668,10 @@
     {
       "task": 503,
       "file": "503-doc-currency-eight-sites-the-world-moved-past.md"
+    },
+    {
+      "task": 506,
+      "file": "506-whole-set-p10-grooming-arc-full-open-set.md"
     },
     {
       "prose": "---"
