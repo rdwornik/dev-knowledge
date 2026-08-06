@@ -19,6 +19,92 @@
 
 ---
 
+### 2026-08-06 (b) — CC (Opus 5, local): consolidation sealed — three repairs, nine grooming dispositions, four births, and a refutation that changed a row's diagnosis
+
+**Did:** Executed the consolidation contract end to end after the FINDING-0 gate cleared (entry (a)).
+Repairs: **`042ef33b`** (A2 register fix), **`adf85c4a`** (Finding-1 scope split), **`4cdf2a4b`**
+([#487] re-scope). Grooming: **`6cc49a49`** (closes), **`6510427a`** (narrows), **`576fded9`**
+(annotations), **`e4545b27`** (the [#296] correction below). Births: **`e7c0b70e`**.
+
+**Result — the two dispositions that did NOT go as the contract predicted, stated first.**
+[#296]'s close was conditional on non-repro; it reproduced, so it stayed open. Then the ship-gate
+went RED on one new WARN — `fleet_audit_replication`, caused by my own repro run — and inspecting
+that commit **refuted my own annotation**: `audit.py repo <name> --repo-path` *does* write its
+report (71 lines) and its history daily; it commits both to the `automation/fleet-audit` ADR-80
+replication branch and leaves the working tree clean. So the defect is a **misleading locator, not
+a lost write**, and the row's original "suppressed write / swallowed exception" guess is refuted
+too. [#394] closed as ruled, but the caveat is on record: what I verified is the *ordering* the
+ruling cites (`5631660c` 12h before filing `938b01c1`), and `5631660c` is itself the L5a analytics
+feature commit — "remedy" is the operator's reading of it, not a separate fix I located. [S24]
+needed no action: its completed-story disposition already landed 2026-08-01, and a zero-task story
+is warn-only, so no work was invented for it. [#170] untouched; everything else stays cold.
+
+**[#499] false-positive count this window, on LOCAL gates: ZERO.** `review_artifact_coverage`
+reported OK (2 code-impact merges, each carrying a linked review artifact with a parseable tally).
+The [#483] R3 sibling `preflight_backlog_ids` raised its single known finding (`[#310] -> #292`),
+which is a **dispositioned true positive** (`warn-preflight-backlog-ids-310-292`, review_date
+2026-09-04), not a false one. **The cloud's five `canonical_freshness` FAILs were NOT false
+positives of this leg** — they were shallow-clone environment artifacts: graft roots read as
+commits that create whole files, so a file looks newly-added and its `last_reviewed` looks stale.
+The night session recorded that retraction itself. Saying so explicitly keeps the flip evidence
+clean: they belong to a different check, in a different environment, and they do not touch
+[#499]'s bar.
+
+**NC2 stays discharged** — the operator's confirming word **"Przeczytałem"**, given 2026-08-05
+against the re-presented caches wave record §5.3, already on record in entry (k). Named again here
+because the documented failure mode of this item is being carried forward unrecorded.
+
+**B3 is refuted, and births zero rows.** `vale` cannot enforce a corpus-wide ceiling — proven
+twice in its own Go source: `occurrence` counts per **block** with no persisted state, and the
+`script`/Tengo escape hatch is closed by design ("a clone per block: the program is shared, its
+globals are not, and Vale lints files concurrently"). A corpus total is incompatible with vale's
+concurrency model, not a missing feature. The 441-across-57-files ratchet **stays bespoke**. Vale
+could still do ordinary per-file prose style — a smaller, separately-scoped row, not this one.
+
+**JOURNAL-rides-the-branch is RATIFIED (operator word, 2026-08-06), and the mechanism is why.**
+This window supplied the evidence that upgrades it from habit to mechanism. `scripts/journal_anchor.py`
+defines anchoring as: *a first-parent spine entry is anchored when JOURNAL.md names ≥1 SHA that the
+entry **introduced** — not the entry's own SHA.* A journal-only branch therefore produces a merge
+that introduces nothing but the journal commit, and no entry can name a SHA that does not exist
+when the entry is written. **The shape is structurally forced, not preferred** — rejecting it would
+mandate an impossibility. Register entry B2's label update lands next window; today's register edit
+stayed A2-only, as ruled. The organ proved itself live mid-session: `block_unanchored_push` refused
+a push of `automation/fleet-audit` because local `main` still sat at the unanchored merge — correct
+behaviour, since the anchor was on the branch and had not yet merged.
+
+**Three V-1 doctrine lessons, for STANDING_RULINGS next window** (not written into the register
+today — the ruling held that edit to A2):
+1. **The exact `uv` version is load-bearing for the entire organ mesh.** The mesh is wrapped in
+   `uv run --locked`; an environment without the pin (`==0.11.19`) loses the pre-commit gates *and*
+   the `Stop` hook, which failed with a `required-version` mismatch and produced **no verdict at
+   all** — a hook that cannot start reports nothing. Environment setup installs the pin first.
+   The same organ has two distinct silences and only one means "fine": run without stdin and it
+   takes the silent structural-floor path, exiting 0 vacuously.
+2. **Mid-flight corrections to a probe lane are indistinguishable from injection.** Load-bearing
+   content belongs in the lane's original contract, not in a later message.
+3. **In a sandbox, no read of `origin/*` is evidence about the remote without a fetch first.** The
+   sharpest of the three, because the night session reasoned about exactly this risk and still got
+   it wrong: it called `git ls-tree origin/main` "ancestry-free (so not a shallow-clone artifact)"
+   — true, and irrelevant, since that command reads a **local remote-tracking ref**. The disclaimer
+   defended against the wrong failure mode.
+
+**Verification.** Full suite **2357 passed, 2 failed, 3 skipped** (6:25, `-n auto`). Both failures
+are [#457] — leg (ii) `test_routine_consumers_live_backlog_governs_exactly_one_row` (live count 2
+vs a pin of 1) **and** leg (i) `test_check_fleet_parity_green_on_live_repo`, which fails on the
+ai-council `conftest.py` root-sweep WARN. The contract anticipated one tolerated RED; there are
+**two, both belonging to that one row**, and neither is this session's: the `fleet_parity` WARN was
+present in the first audit run before any edit, and is dispositioned (`ref #430`). `ruff check`
+clean. `silent_rule_ratchet` held at **441 ≤ 441** on every touched corpus file, all window.
+
+**Changes:** `protocols/STANDING_RULINGS.md` (A2), `protocols/PLAYBOOK.md` + `templates/prompt-template.md`
+(v1.7 scope split), `tasks/` + `BACKLOG.md` (199→196→200 rows), `JOURNAL.md`.
+
+**Abandoned:** B3's row. The `.github/workflows/` directory (path sanctioned in [#501]'s body only;
+nothing created this window, so no coupled gate trips yet).
+
+**Next:** Push `automation/fleet-audit` once main carries its anchor. STANDING_RULINGS B2 label +
+the three lessons above. [#457] remains RED-first and delegated.
+
 ### 2026-08-06 (a) — CC (Opus 5, local): the night batch integrated, and FINDING-0 refuted against the real remote
 
 **Did:** Opened the consolidation window by discharging the prompt's absolute gate — the
