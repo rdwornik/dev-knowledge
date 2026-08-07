@@ -19,6 +19,86 @@
 
 ---
 
+### 2026-08-07 (m) — CC (Opus 5, cloud night window, unattended): NIGHT-CLOUD v2 — matrix amendment, successor prep, cut staging, library research
+
+**Did:** Ran the frozen NIGHT-CLOUD-v2 contract end to end on Claude Code for the web, in a cloud
+container, on the branch below. Four phases, four commits, no merge and no push to `main` —
+morning integration is the architect's.
+
+**(1) Phase 1 — the routing matrix keys on CONTEXT LOAD, not task shape.** Operator ruling on
+measured evidence (a shape-S arc on sonnet ran ~3h against this repo's gate mesh). `PLAYBOOK` Ch8's
+Model row now makes **opus the default for any arc touching `.dev-knowledge`** and narrows sonnet
+to work that is small **and** self-contained; `templates/prompt-template.md` v1.10 → **v1.11**
+carries the point-of-use copy. The evidence is inline, the in-repo corroboration is stated as the
+lower bound it is (`b669bd8f` → `e351b685` is 1h40m of commit-timestamp wall clock, and git dates a
+commit, not a session), and the amendment is scoped to the hub. Ratchet-safe, measured: the
+silent-rule detector reads **432 before and 432 after** against a 441 baseline.
+
+**(2) Phase 2 — the successor prep pack.** `docs/audits/2026-08-08-technical-successor-prep.md`:
+intake #27's 36 rows re-colored against live state; the wave-2 `serialize-group: audit-py`
+pre-check re-derived and its verdict quoted (**the pair is still serialized — `[#430]` and
+`[#393]` may not co-run**, because the constraint keys on the declared label, not on how much of a
+row has shipped); a 9-row batch-3 candidate pool against a 5-lane need; the P-B pool re-counted
+9 → 8; and eight carried decisions with each fork quoted and each unlanded status stated.
+
+**(3) Phase 3 — cut STAGING, which is not the cut.**
+`docs/audits/2026-08-08-technical-handoff-cut-staging.md`: draft text for all **seven** authored
+FILL-IN regions (the contract's "BOOT 8 · RESIDUAL 6 · PROBES 1" counts *markers* — 15 markers, 7
+regions), each fact carrying its locator so the morning re-verifies rather than re-authors;
+per-probe evidence sheets for all 14, every command actually run; and a 10-step morning runbook.
+`gen_handoff.py` was never invoked and nothing under `docs/handoffs/` was touched.
+
+**(4) Phase R — library-first research, network on.**
+`docs/audits/2026-08-08-technical-library-research.md`: eight items, each with candidates,
+maintenance signal and the measured-divergence question. Three were settled by measuring this repo
+rather than by reading — `git interpret-trailers --parse` returns **zero** `Closes:` trailers on
+the exact false-positive merge `25ff8ec37` while a pure trailer matcher would today find **0 of 8**
+live closures; the 14-probe gate costs **22.58s** of which one probe is **19.47s**, capping any
+parallel runner at **1.2×**; and the `GIT_DIR` scrub already exists at **four** in-repo sites
+deriving its 15 names from `git rev-parse --local-env-vars`, so `[#512]` needs no library at all.
+
+**Result — three container findings worth carrying, none of them cosmetic.**
+- **`origin/main` was STALE.** Local `main` and `origin/main` both sat at `319f885` while the real
+  remote `main` was `81d572d`, so `git rev-list --left-right --count origin/main...main` returned a
+  confident `0 0` about two stale refs. Found at Phase 3, **after two phases had committed**.
+  `STANDING_RULINGS` **D3** already says a read of `origin/*` is evidence only after a fetch; the
+  rule was written and I did not apply it. Fixed with `git fetch origin main`; local `main`
+  deliberately left alone.
+- **The ADR-106 uv pin is unobtainable here** (`==0.11.19` vs the container's `0.8.17`;
+  `uv self update` reports the version does not exist), so **every** `uv run --locked` hook entry
+  is dead and the hooks are unarmed. Each gate was therefore run directly against the system
+  interpreter and its verdict recorded in the commit message rather than skipped silently. This is
+  a second live instance of the class §A item 36 (`mise`) names.
+- **The suite verdict, and the experiment I should have run first.** The branch run gave
+  **44 failed / 2501 passed / 10 skipped**; I classified the surplus over the recorded 3-RED local
+  baseline as container provisioning and shipped three phases on that argument before testing it.
+  The decisive run — full suite at `81d572d7`, no diff, in a detached worktree — gave
+  **45 failed / 2500 passed / 10 skipped**. The counts differ by exactly one, and the failing-FILE
+  sets differ by exactly one file: `tests/test_stale_worktrees.py`, present only in the baseline,
+  whose `test_linked_worktrees_reader_excludes_the_primary` inverts by construction inside any
+  worktree (batch-2 lane-2's recorded behaviour). **On that evidence this branch introduces no
+  failure**, and the surplus over the recorded 3-RED local baseline is container provisioning —
+  absent pyright/node, unarmed pre-commit, absent sibling repos, and the `analytics` dependency
+  group never installed (which is the whole of `test_fleet_analytics`). Recorded here rather than
+  in the memo because it landed after that file was sealed, and because a self-review that quietly
+  rewrites itself once the answer comes back favourable is worth less than one that shows the
+  order things happened in.
+
+**Changes:** `protocols/PLAYBOOK.md` (Ch8 matrix + amendment), `templates/prompt-template.md`
+(v1.11), three new `docs/audits/2026-08-08-*.md`, `docs/audits/README.md` (regenerated, never
+hand-edited), this entry.
+
+**Abandoned:** nothing. **Refused by contract:** no merge, no push to `main`, no bundle cut, no
+supplement answer authored, no row born or closed, no `gen_handoff.py` or batch-machinery edit, no
+`~/.claude` touch, no §B item relitigated.
+
+**Next:** the morning integration is the architect's — start at the staging doc's §3 step 0 (decide
+whether Phase 1 merges before the cut; two draft fill-in clauses cite it and are marked
+delete-if-unmerged).
+
+**Anchor:** `0583ea47` (Phase 1 matrix amendment) · `8c2f702f` (Phase 2 prep pack) · `0416d70f`
+(Phase 3 cut staging) · `865ad4cc` (Phase R research memo).
+
 ### 2026-08-07 (l) — CC (Sonnet 5, bg primary): JOURNAL-anchor follow-up for the PRE-2 gate-hygiene arc
 
 **Did:** Entry (k) was authored and committed before the SHAs it describes existed
