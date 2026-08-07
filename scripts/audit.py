@@ -1124,17 +1124,24 @@ def _git_stash_entries(repo_path: Path) -> Optional[list[str]]:
     `git worktree prune`, and the lane-branch delete. Worktree state therefore cannot be used
     to infer it in either direction: a repo with no worktrees at all can be holding one.
 
-    Returns None when git is absent or the path is not a git repo — the
-    `_git_linked_worktrees` contract, and load-bearing here rather than cosmetic: an empty
-    list means "looked, found nothing stashed", so a not-a-repo path that returned `[]`
-    would report a clean stash for a directory nothing ever examined.
+    Returns None when the stash could not be read AT ALL — git absent, not a git repo, a
+    timeout, or a non-zero exit. The None/`[]` split is load-bearing rather than cosmetic:
+    an empty list means "looked, found nothing stashed", so a path that returned `[]`
+    without looking would report a clean stash for a directory nothing ever examined. What
+    None does NOT tell the caller is WHICH failure occurred — see `_stash_findings`, which
+    resolves that against whether the worktree reader succeeded.
+
+    `errors="replace"` is not decoration (terra HIGH, 2026-08-07): a stash subject carries
+    an arbitrary commit message, so a repo emitting non-UTF-8 bytes would raise
+    `UnicodeDecodeError` out of `subprocess.run` — which is a `ValueError`, NOT caught by the
+    handler below — and turn a WARN-tier advisory leg into a crashing audit check.
 
     Read-only (`git stash list`), and bounded by the same 15s timeout as its sibling.
     """
     try:
         result = subprocess.run(
             ["git", "-C", str(repo_path), "stash", "list"],
-            capture_output=True, text=True, encoding="utf-8", timeout=15,
+            capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=15,
         )
     except (OSError, subprocess.SubprocessError):
         return None
@@ -1148,17 +1155,30 @@ def _git_stash_entries(repo_path: Path) -> Optional[list[str]]:
 _STASH_SAMPLE = 3
 
 
-def _stash_findings(repo_path: Path) -> list[Finding]:
+def _stash_findings(repo_path: Path, git_known_good: bool = False) -> list[Finding]:
     """The F4 leg of `check_stale_worktrees` — a stash is the leftover no close-out item sees.
 
-    WARN-tier, like the organ it joins (ADR-110 §3 arms no gate). `_git_stash_entries`
-    returning None yields NO finding: the caller has already emitted the n/a that covers a
-    repo git cannot read, and a second one would say the same thing twice. An empty stash
-    yields an explicit pass instead of silence, because a leg that speaks only when unhappy
-    is indistinguishable from a leg that never ran.
+    WARN-tier, like the organ it joins (ADR-110 §3 arms no gate). An empty stash yields an
+    explicit pass rather than silence, because a leg that speaks only when unhappy is
+    indistinguishable from a leg that never ran.
+
+    `git_known_good` RESOLVES WHAT None MEANS, and it closes a real hole (terra HIGH,
+    2026-08-07). `_git_stash_entries` returns None both for "not a git repo" and for "git is
+    here but the read failed" (timeout, non-zero exit). When the caller has ALREADY read the
+    worktree list successfully, the first reading is impossible — so a None is a genuine
+    read failure, and staying silent about it would let the organ report a clean worktree
+    verdict while this leg never ran. That is the detector-that-cannot-see-must-not-report-
+    clean rule the sibling worktree leg already follows, applied here rather than merely
+    asserted in prose. When git is NOT known good the caller has already emitted its own
+    n/a, and a second one would say the same thing twice.
     """
     entries = _git_stash_entries(repo_path)
     if entries is None:
+        if git_known_good:
+            return [Finding("stale_worktrees", "warn",
+                            "git stash list could not be read while git itself is working - "
+                            "the stash leg did not run, so this result says nothing about "
+                            "stashed work outliving its lane")]
         return []
     if not entries:
         return [Finding("stale_worktrees", "pass",
@@ -1225,7 +1245,9 @@ def check_stale_worktrees(repo_path: Path, now: Optional[float] = None) -> list[
     if entries is None:
         return [_na("stale_worktrees", _NA_NOT_APPLICABLE,
                     "git unavailable or not a repo - stale-worktree check skipped")]
-    stash = _stash_findings(repo_path)
+    # git_known_good=True: `_git_linked_worktrees` just succeeded, so this IS a git repo and
+    # a None from the stash reader can only be a genuine read failure, never "not a repo".
+    stash = _stash_findings(repo_path, git_known_good=True)
     if not entries:
         return [Finding("stale_worktrees", "pass",
                         "no linked worktrees registered (primary only) - nothing to close out"),

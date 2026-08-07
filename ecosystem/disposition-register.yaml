@@ -373,6 +373,31 @@ dispositions:
       rot into paper suppression (ADR-75). Retires when [#492] flips open at the Grok acceptance
       arc (>= 2026-08-07), where the peg is spent and the row is rewritten.
 
+  - id: warn-review-artifact-lane-c-504-no-tally
+    organ: review_artifact_coverage
+    match: "5af0b33c -> 2026-08-06-codex-lane-c-504-failclosed.md"
+    ref: "[#504]; LC-1 (docs/audits/2026-08-06-technical-batch1-verification.md §5)"
+    review_date: 2026-11-07
+    reason: >-
+      THE REVIEW GENUINELY HAPPENED; only its machine-readable tally is missing. Lane C's terra
+      artifact `docs/audits/2026-08-06-codex-lane-c-504-failclosed.md` records 2 Critical / 0 High
+      / 0 Medium / 0 Low in prose, with C1 accepted and fixed in-lane at c49a03c2 and C2 rejected
+      with reasons. What it lacks is a `**Tally:**` line the leg can parse — a machine-auditability
+      gap, which is a DIFFERENT class from the two missing-artifact WARNs cleared in this same arc
+      by real retroactive reviews. This entry dispositions only that class, for that one file.
+      NOT FIXABLE BY EDITING. `docs/audits/` is immutable (CLAUDE.md §5 rule 3), so adding the line
+      would be the retro-edit the [#480] ruling's forward-only design exists to avoid — the leg's
+      own docstring says a leg reaching backwards "would demand retro-editing precisely what the
+      ruling forbids touching". Superseding it with a new artifact does not clear it either: the
+      linkage loop breaks on the FIRST artifact matching the branch, and the 2026-08-06 name sorts
+      ahead of any 2026-08-07 one.
+      THE CLASS IS CLOSED GOING FORWARD, which is what makes this a disposition rather than a
+      shrug: the review wrapper now emits a `**Tally:**` field on every artifact (LC-1 mechanical
+      half, landed this arc), deliberately as an unparseable `TBD/TBD/TBD/TBD` so an unfilled
+      tally keeps WARNing instead of shipping a heuristic number nobody verified. Keyed to the
+      SPECIFIC sha->file pair per precision-over-recall, so any other untallied artifact
+      re-surfaces and REDs the gate. review_date is its shelf-life (ADR-75).
+
   # (cleared 2026-07-02, #222) warn-doc-claims-pytest-collected-architecture — #222 relocated
   # the three volatile counts to the committed-generated ecosystem/doc-counts.md, so the
   # pytest_collected claim no longer anchors in ARCHITECTURE.md (doc_claims now reconciles it
