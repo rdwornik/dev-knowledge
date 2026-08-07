@@ -21,6 +21,11 @@ structural invariants:
     --filled re-render copies each FILL-IN region byte-for-byte from the on-disk
     file, so re-generation never clobbers what CC wrote.
 
+Two BOUNDARY invariants gate generation itself (never the bundle's content):
+WINDOW = BATCH — a cut refuses while a committed manifest declares an open batch — and
+no-leftovers — a cut refuses over a linked worktree or a live stash, naming each. Both
+fire before anything is written; see `assert_batch_boundary` / `assert_boundary_hygiene`.
+
 The cold<->FILLED framing flip is deterministic: the fill-state is read via
 assemble_paste._extract_answers (ONE shared definition), so the four framing sites
 and the assembler's fold decision can never disagree.
@@ -348,6 +353,127 @@ def verify_seal_identity(bundle_dir: Path) -> None:
             )
 
 
+# --- boundary invariants: WINDOW = BATCH + no leftovers (ARC-HANDOFF-ENGINE) ----
+
+class OpenBatchError(RuntimeError):
+    """Generation refused: a committed batch manifest declares an OPEN batch.
+
+    WINDOW = BATCH (PLAYBOOK Ch8; ADR-110 records it as the batch protocol's Rhythm row).
+    One batch is one window and the seal fires at true batch boundaries, because a
+    mid-batch cut produces a bundle describing a tree nobody has integrated yet — the
+    successor then boots against a manifest the rest of the batch is about to invalidate.
+    That was doctrine with no organ behind it at the one site where the cost is permanent:
+    `docs/handoffs/` is immutable, so a bundle sealed mid-batch is wrong forever.
+
+    The refusal reuses `batch_manifest.open_batches` rather than re-deriving openness. A
+    second notion of "a batch is open" would drift from the one `audit.py` reads, and the
+    two would disagree exactly when it mattered.
+    """
+
+
+class BoundaryHygieneError(RuntimeError):
+    """Generation refused: the tree is not at a clean session boundary.
+
+    CLAUDE.md §5 rule 9 (no leftovers) and the batch protocol's refuse-to-finish items
+    3 and 5, applied at the cut. A bundle taken over an un-torn-down lane worktree or a
+    live stash seals a claim about a boundary the tree has not reached, and the stash leg
+    is the one the others structurally cannot cover: `refs/stash` lives in the COMMON git
+    directory, so a lane's stash survives every worktree- and branch-shaped teardown
+    (batch-1 F4).
+
+    HONEST LIMIT, stated rather than papered over: `git stash list` reports no worktree of
+    origin, so this cannot tell a forgotten lane stash from the operator's deliberate one.
+    It refuses either way and names the entry, because guessing is how real work gets
+    dropped — and clearing a deliberate stash is a decision, not a default.
+    """
+
+
+def _open_batches(repo_root: Path) -> list:
+    """Committed manifests declaring an open batch right now — via the ONE shared reader.
+
+    Degrades to `[]` when the reader is unavailable, matching `open_batches`' own
+    fail-toward-no-exemption posture: an unknown batch state renders as "no batch", the
+    same direction the gate side already takes.
+    """
+    sys.path.insert(0, str(_SCRIPTS))
+    try:
+        from batch_manifest import open_batches  # noqa: PLC0415
+    except Exception:                            # noqa: BLE001 -- unavailable => no batch
+        return []
+    return list(open_batches(Path(repo_root)))
+
+
+def assert_batch_boundary(repo_root: Path) -> None:
+    """Raise `OpenBatchError` when a committed manifest declares a batch still open."""
+    live = _open_batches(repo_root)
+    if not live:
+        return
+    named = "; ".join(
+        f"batch {b.batch} (declared by {b.path}, closes when {b.closed_by} lands)"
+        for b in live
+    )
+    raise OpenBatchError(
+        f"refusing to cut a bundle while a batch is open: {named}. WINDOW = BATCH — the "
+        f"seal fires at a true batch boundary, because a bundle cut now describes a tree "
+        f"the rest of the batch has not been integrated into, and a committed bundle is "
+        f"immutable. Land the closing packet, then cut."
+    )
+
+
+def _linked_worktrees(repo_root: Path) -> list[str]:
+    """Paths of LINKED worktrees ([] when the primary is the only one).
+
+    `git worktree list --porcelain` always emits the primary first; counting it as a
+    leftover would refuse every cut ever taken, so it is the baseline rather than a
+    finding. A git failure raises — see `assert_boundary_hygiene`.
+    """
+    ok, out = _git_status(repo_root, "worktree", "list", "--porcelain")
+    if not ok:
+        raise BoundaryHygieneError(
+            "refusing to generate: `git worktree list` failed, so whether this tree carries "
+            "leftover worktrees could not be determined. An unknown boundary is not a clean "
+            "one. Fix the git environment and re-run."
+        )
+    paths = [ln.split(" ", 1)[1].strip()
+             for ln in out.splitlines() if ln.startswith("worktree ")]
+    return paths[1:]
+
+
+def _stash_entries(repo_root: Path) -> list[str]:
+    """`git stash list` entries ([] when empty). A git failure raises, same reason."""
+    ok, out = _git_status(repo_root, "stash", "list")
+    if not ok:
+        raise BoundaryHygieneError(
+            "refusing to generate: `git stash list` failed, so whether this tree carries a "
+            "live stash could not be determined. An unknown boundary is not a clean one. "
+            "Fix the git environment and re-run."
+        )
+    return [ln for ln in out.splitlines() if ln.strip()]
+
+
+def assert_boundary_hygiene(repo_root: Path) -> None:
+    """Raise `BoundaryHygieneError` naming EVERY leftover, or return cleanly.
+
+    Degrade contract, matching `_tracked_under`: not a git repo -> nothing can be
+    provisioned or stashed -> proceed. git present but erroring -> refuse (the RM-8
+    ruling: an undetermined status is not an empty one). Every leftover is reported in
+    one refusal, because naming only the first invites a fix-and-retry loop that reveals
+    the next one.
+    """
+    if not (Path(repo_root) / ".git").exists():
+        return
+    leftovers = [f"linked worktree {p}" for p in _linked_worktrees(repo_root)]
+    leftovers += [f"stash entry {s}" for s in _stash_entries(repo_root)]
+    if leftovers:
+        raise BoundaryHygieneError(
+            "refusing to generate: the tree is not at a clean session boundary — "
+            + "; ".join(leftovers)
+            + ". A bundle cut here seals a claim about a boundary the tree has not reached "
+              "(CLAUDE.md §5 rule 9; the batch protocol's refuse-to-finish items 3 and 5). "
+              "Tear down or dispose of each, then cut."
+        )
+
+
 def collect_hints(repo_root: Path) -> dict[str, str]:
     """Best-effort generation-time drift-reference VALUES — for the JOURNAL draft ONLY.
 
@@ -629,6 +755,12 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
     # path this guard has cleared — the in-flight, not-yet-committed bundle — so the
     # documented `--filled` re-render and the FILL-IN splice keep working.
     bundle_dir = _resolve_bundle_dir(repo_root, bundle_root, slug, allow_suffix)
+    # The two boundary invariants, AFTER target resolution and BEFORE anything is created:
+    # a refused cut leaves no half-written directory behind (which would itself be the
+    # untracked in-flight target RM-8 sanctions). RM-8 resolves first because its complaint
+    # is the more specific one — it names the colliding directory.
+    assert_batch_boundary(repo_root)
+    assert_boundary_hygiene(repo_root)
     bundle_dir.mkdir(parents=True, exist_ok=True)
     # [#473] B — THE FIX, and it is this one line. `_resolve_bundle_dir` may DIVERT the write
     # to a `-<n>` sibling under `--allow-suffix`, but every render token below was built from
@@ -730,8 +862,10 @@ def main(mode: str, epic_slug: str | None, slug: str | None, repo: str | None, d
         res = generate(_REPO_ROOT, mode=mode, slug=slug, repo=repo, date=date,
                        force_filled=force_filled, assemble=assemble, epic_slug=epic_slug,
                        allow_suffix=allow_suffix)
-    except BundleCollisionError as exc:
-        # RM-8: a REFUSAL, not a crash — one diagnostic line, non-zero exit, nothing written.
+    except (BundleCollisionError, OpenBatchError, BoundaryHygieneError) as exc:
+        # A REFUSAL, not a crash — one diagnostic line, non-zero exit, nothing written.
+        # RM-8 (target collision) and the two boundary invariants share this exit: each
+        # names what it found, and none of them is recoverable by re-running unchanged.
         raise SystemExit(f"[error] {exc}") from exc
     click.echo(f"Generated bundle: {res.bundle_dir}  (fill-state: {'FILLED' if res.filled else 'cold'})")
     if emit_journal:
