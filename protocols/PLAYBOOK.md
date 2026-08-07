@@ -1737,9 +1737,16 @@ see the scope declaration under "Tree orchestration" above.
    inherits `VIRTUAL_ENV` from the primary tree, imports the PRIMARY checkout's source, and
    reports green about code the lane did not touch — silently (STANDING_RULINGS D4; ADR-106 for
    the pin). The wrapper is the mechanism that makes the environment follow the checkout.
-4. **Commit-and-STOP.** A lane commits its work and hands the branch back; integration is the
-   integrator's act, from the primary checkout — the no-self-merge rule above, applied at batch
-   scale.
+4. **Commit-and-STOP, with `git stash list` empty at STOP.** A lane commits its work and hands
+   the branch back; integration is the integrator's act, from the primary checkout — the
+   no-self-merge rule above, applied at batch scale. A mid-work stash is popped or dropped by
+   the lane that made it, before it stops. The reason is structural rather than tidiness
+   (batch-1 F4): `refs/stash` lives in the **common** git directory, not in the worktree's
+   private ref space, so a stash pushed inside a lane belongs to the whole repository. It
+   survives `git worktree remove`, `git worktree prune`, the branch delete, and every one of
+   the refuse-to-finish items below, all of which are worktree- or branch-shaped. Work left
+   there is absent from the tree, absent from the handed-back branch, and findable only by
+   someone who thinks to look — and the lane is the only seat that still knows what it was.
 5. **A worktree name paired 1:1 with its prompt file.** One lane = one contract file = one
    worktree = one branch, so an open worktree resolves to the contract that created it and an
    orphan is attributable at a glance. Naming grammar + prefix enum:
@@ -1758,9 +1765,11 @@ writing the plan, so the gate confirms a name the contract already got right. Th
 there is cheaper than any lane discovering it.** `/preflight` is the built organ for this; a
 batch plan is exactly the class of document it exists to verify.
 
-**The integrator's refuse-to-finish checklist.** A batch closes when all four hold; an open item
-leaves the batch open (ADR-110 §3). The load-bearing property is that the checklist is
+**The integrator's refuse-to-finish checklist.** A batch closes when all **five** hold; an open
+item leaves the batch open (ADR-110 §3). The load-bearing property is that the checklist is
 *mechanical* — a close-out a reader can skim past and still declare done is the state it replaces.
+(Item 5 joined 2026-08-07 on batch-1 F4; ADR-110 §3 enumerates four, so the fifth rides as a
+recorded addition here until the ADR is amended.)
 
 - **Every lane branch merged-or-explicitly-abandoned.** "Explicitly abandoned" is a recorded
   disposition; a lane branch with no verdict leaves the checklist open.
@@ -1776,6 +1785,13 @@ leaves the batch open (ADR-110 §3). The load-bearing property is that the check
   while half its evidence had already evaporated. A committed manifest is also what makes the F3
   path check above possible at authoring time, and what lets a successor answer "was this lane's
   footprint respected?" against a frozen contract rather than against memory.
+- **`git stash list` is empty (batch-1 F4).** The item the other four structurally cannot cover.
+  They read branches and worktrees; `refs/stash` is neither — it lives in the common git dir — so
+  a lane's abandoned stash passes all four and the batch closes looking clean while the work sits
+  where nothing points at it. One command, one line of output. An entry that stays gets a
+  recorded disposition like any other leftover, because `git stash list` reports no worktree of
+  origin: an integrator cannot tell a lane's forgotten stash from the operator's deliberate one
+  by reading it, and guessing is how real work gets dropped.
 
 `/lane-integrate` walks this list mechanically; `/lane-boot` boots one lane against it. (The two
 are deliberately *not* named `/batch-*`: ADR-110 §4 records hand-rolled `/batch-*` commands as

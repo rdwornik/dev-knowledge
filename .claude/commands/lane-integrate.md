@@ -1,6 +1,6 @@
 ---
 name: lane-integrate
-description: Walk a batch's merge queue serially from the primary checkout, then run the four-item refuse-to-finish checklist mechanically — the batch does not close while an item is open.
+description: Walk a batch's merge queue serially from the primary checkout, then run the five-item refuse-to-finish checklist mechanically — the batch does not close while an item is open.
 ---
 
 # /lane-integrate — serial integrator for one batch
@@ -49,7 +49,7 @@ git branch -d worktree-lane-<letter>-<id>-<slug>
 
 ## 3. The refuse-to-finish checklist
 
-Run all four. The batch stays open while any one of them is open — this checklist is the
+Run all five. The batch stays open while any one of them is open — this checklist is the
 mechanical form of the close-out, so an item is checked because its command was run, not because
 it seemed fine.
 
@@ -59,12 +59,23 @@ it seemed fine.
 | 2 | Full suite run once on the merged result | `uv run --locked pytest -q` on the final merged `main`, verdict quoted |
 | 3 | `git worktree list` == primary only | run it; one line of output |
 | 4 | Manifest/packet archived | the lane manifest and end-of-batch packet are committed in the tree |
+| 5 | `git stash list` is empty | run it; empty output. An entry that stays gets a recorded disposition — never a silent pass, and never a blind `drop` |
+
+**Why item 5 is not covered by items 1–3 (batch-1 F4).** Those read branches and worktrees.
+`refs/stash` is neither: it lives in the **common** git dir, so a stash pushed inside a lane
+outlives `worktree remove`, `prune`, and the branch delete, and sails through the first four
+items. A batch can close green with a lane's work sitting where nothing points at it. `git stash
+list` also records no worktree of origin, which is why a surviving entry is dispositioned rather
+than dropped: the integrator cannot tell a lane's forgotten stash from the operator's deliberate
+one by reading it. Backstop: `audit.py::check_stale_worktrees` carries a stash WARN leg — after
+the fact, like the rest of that organ.
 
 Then push, and confirm the tree is clean:
 
 ```bash
 git push
 git status --short
+git stash list
 uv run --locked python scripts/audit.py health
 ```
 
