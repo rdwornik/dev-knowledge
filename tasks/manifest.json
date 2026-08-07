@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "e220b2957fb4fe45b601d4fd38b710d0555cd808db860bd7dd249fe41aeb3c40",
+  "generated_sha256": "5bfd5f87e99dbb6c737506f35e356727f7e9f273fe2ae09011137aec76abc57e",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -695,10 +695,6 @@
       "file": "82-define-per-repository-agentic-review-profiles.md"
     },
     {
-      "task": 320,
-      "file": "320-fleet-backup-posture.md"
-    },
-    {
       "task": 215,
       "file": "215-onboard-verify-methodology-in-a-new-repo.md"
     },
@@ -765,10 +761,6 @@
     {
       "task": 407,
       "file": "407-universal-fleet-python-style-functional-vs-oop-s.md"
-    },
-    {
-      "task": 429,
-      "file": "429-worktree-provisioning-is-not-portable-across-the.md"
     },
     {
       "task": 430,
@@ -1561,10 +1553,6 @@
     {
       "task": 383,
       "file": "383-execution-waves-per-surface.md"
-    },
-    {
-      "task": 490,
-      "file": "490-parity-manifest-9-9-fleet-green-currently-measur.md"
     },
     {
       "prose": ""

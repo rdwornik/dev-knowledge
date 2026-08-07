@@ -19,6 +19,56 @@
 
 ---
 
+### 2026-08-07 (h) — CC (Opus 5, primary): batch 2 integrated and closed at width 3; R-1 fired in production
+
+**Did:** Ran the batch-2 integration as a dispatched integrator seat. Discovered the merge queue
+from the ref store rather than the manifest's branch column — which was the right call, because
+**three of four branches were named differently from the plan**. Merged four branches serially
+`--no-ff`, doctrine first: AM4-FOLD `ea4ddf23`, lane-2 `e685a306` ([#429], anchors `fa69e35e`),
+lane-1 `47bd4f52` ([#490]+[#430], anchors `2a828cf2`), lane-3 `ad9332c3` ([#320]). Resolved two
+conflicts mechanically — `docs/audits/README.md` by `gen_audit_index.py --write` (never by hand,
+per the manifest), and a JOURNAL collision where lane-3 and AM4-FOLD had both claimed
+`2026-08-07 (f)` (AM4-FOLD relabelled `(g)` on a 43-second timestamp margin, both entries kept
+verbatim). Then the closure loop: **`a96040c3`** closed [#490] [#429] [#320] on live re-verified
+evidence, **`63b7b6a9`** corrected my own unverified claim in it. Packet:
+`docs/audits/2026-08-07-technical-batch-2-packet.md`.
+
+**Result — R-1 worked, and the batch's most useful findings are about its own machinery.**
+The ADR-110 declared-integration-arc exemption fired in production for the first time, covering
+exactly 2 merges (lane-1 and lane-2, the two lanes that correctly declined to write JOURNAL) and
+**reporting itself** — naming the batch, the manifest, and its own expiry path. `SKIP=audit-health`
+was used **zero** times, against batch 1's two. Three findings the mechanism did not anticipate:
+(i) the manifest states the lane grammar with a **digit** while `validate_branch_naming.py`
+compiles a **letter**, so the manifest's own branch names classify `unknown` — lane-2 found this
+and renamed itself, lane-3 too, and lane-1's auto-generated name meant its merge was **not
+R-1-exempt** until I conformed it (mechanical rename, tip unchanged); (ii) `pre-commit` does not
+run on a **conflict-free** merge at all, so R-1's protection only matters on merges that conflict;
+(iii) the ≤1/4 process-lane cap is **width-dependent**, so truncating a compliant width-6 plan to
+width 3 broke the quota retroactively — reported, not backfilled. Suite on the merged result:
+**1 failed / 2539 passed / 3 skipped** — the one RED is `routine_consumers`, exactly the predicted
+residue; the parity RED cleared on lane-1's merits and the 17 pandas REDs were proven
+environmental. `audit.py health` OK.
+
+**The thing I got wrong, and fixed.** `a96040c3` repeated lane-1's claim that the operator ruled
+the [#430](a) conftest question, as verified fact. It is **unlocatable**: the phrase enters the
+repo at lane-1's own commit, lane-1's transcript holds exactly two operator messages and neither
+mentions it, and STANDING_RULINGS has no such entry. [#430] stays open regardless, but the
+current ship-gate green rests partly on that ruling. Not reverted — flagged as the packet's top
+operator item.
+
+**Changes:** `BACKLOG.md` + `tasks/` (3 rows retired, 2 records corrected), `docs/audits/`
+(packet + index), `JOURNAL.md`. Merges brought in `scripts/worktree_seed.py`,
+`scripts/worktree_import_proof.py`, `ecosystem/parity-surfaces.yaml` 5/9→9/9, and the AM-4
+dispatch-visibility doctrine.
+
+**Abandoned:** none — 4 of 4 branches merged, 0 abandoned.
+
+**Next:** operator confirms or denies the [#430](a) ruling; `win-tooling` has **no `origin`
+remote** and 14 local-only branches (found by lane-3, outside its done-when, deliberately not
+filed); wave 2 ([#283] [#416] [#393]) carried with reasons.
+
+---
+
 ### 2026-08-07 (g) — CC (dispatched, AM-4): dispatch-visibility encoded as repo law
 
 **Did:** Ran the AM-4 fold contract. Empirical leg first: `claude --help` on the installed CLI

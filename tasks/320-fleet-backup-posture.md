@@ -1,7 +1,7 @@
 ---
 id: "[#320]"
 title: "Fleet backup posture"
-status: open
+status: closed
 priority: P2
 size: S
 theme: "[E6] Cross-repo universalization"
