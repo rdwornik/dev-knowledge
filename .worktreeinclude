@@ -1,1 +1,9 @@
+# Generated from scripts/worktree_seed.py in the .dev-knowledge hub ([#429] leg (a)).
+# Edit the manifest there, not this file. Regenerate: python scripts/worktree_seed.py --write
+#
+# Untracked paths a native `claude --worktree` lane copies from the primary checkout.
+# A per-checkout ENVIRONMENT is the other half of provisioning and is NOT expressible
+# here -- see `--plan`, and verify the outcome with scripts/worktree_import_proof.py.
+.env
+.claude/settings.local.json
 ecosystem/*/state.yaml
