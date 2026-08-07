@@ -289,6 +289,72 @@ def test_t5c_naming_only_the_merges_own_sha_does_not_anchor_it(tmp_path):
 # --- T6: --no-verify succeeds at transport, backstop FAILs ------------------
 
 @requires_git
+def test_t5d_the_r1_exemption_does_not_reach_the_pre_push_refusal(tmp_path):
+    """R-1 CONTAINMENT, asserted on BEHAVIOUR — the other half of the AST test.
+
+    `tests/test_batch_manifest.py::test_the_pre_push_organ_does_not_consult_the_manifest_at_all`
+    pins this property structurally: neither `block_unanchored_push` nor the shared
+    `journal_anchor` imports `batch_manifest`, so the ADR-110 declared-integration-arc
+    exemption has no way to reach here. That is a proof about ACCESS. It is silent about
+    whether the refusal still FIRES in the one state where the exemption would have mattered.
+
+    This test builds that state and checks the outcome: a COMMITTED manifest declaring an
+    OPEN batch (condition 2) plus an unanchored `--no-ff` merge of a `worktree-lane-*` branch
+    (condition 1) — the exact pair `audit-health` forgives at commit time — and the pre-push
+    organ refuses anyway.
+
+    Why it is worth a test rather than an inference from the AST one. Batch-2's packet §2
+    states the property in prose ("the range-level pre-push refusal stays unconditional and
+    nothing ships unanchored regardless of the commit-time verdict") and rests the whole
+    exemption's safety argument on it, while nothing exercised it end to end. The two halves
+    fail differently: an import added to the organ breaks the AST test, whereas a refusal
+    weakened some other way — an early `return 0`, a widened skip, a range that stops
+    including lane merges — breaks only this one.
+
+    The fixture asserts the exemption genuinely APPLIES to this merge before checking the
+    refusal. Without that limb the test would pass just as happily against a merge the
+    exemption never covered, which would prove nothing at all.
+    """
+    import batch_manifest as bm  # local: only this test needs it, and the organs must not
+
+    repo, _seeded = _repo_with_remote(tmp_path)
+
+    # Condition 2 — a COMMITTED manifest declaring an open batch. Committed, not merely
+    # written: an uncommitted manifest grants nothing (the 2026-08-07 HEAD-read rule).
+    audits = repo / "docs" / "audits"
+    audits.mkdir(parents=True)
+    (audits / "2026-08-07-technical-batch-9-manifest.md").write_text(
+        "---\nbatch: 9\nstatus: open\n"
+        "closed_by: docs/audits/2026-08-09-technical-batch-9-packet.md\n---\n\n# Batch 9\n",
+        encoding="utf-8")
+    _run(repo, "add", "-A")
+    _run(repo, "commit", "-q", "-m", "batch 9 manifest")
+
+    # PUSH the manifest before creating the merge, so the pushed range contains the lane
+    # merge and NOTHING ELSE. Without this the manifest commit is itself an unanchored spine
+    # entry in the range and refuses the push on its own — the assertion below would then
+    # hold even against an organ that skipped every lane merge, which is the whole property
+    # under test. Caught by planting that exact mutation and watching this test stay green.
+    _run(repo, "push", "-q", "origin", PROTECTED_BRANCH)
+    remote = _rev(repo, PROTECTED_BRANCH)
+
+    # Condition 1 — an unanchored --no-ff merge of a lane branch. No JOURNAL entry is
+    # written, which is the mid-queue state the exemption exists for.
+    lane = "worktree-lane-a-999-containment"
+    _work, local = _merge_branch(repo, lane, f"Merge branch '{lane}'")
+
+    # The fixture models the exempt class, or the assertion below is vacuous.
+    assert bm.open_batches(repo), "fixture failed to declare an open batch"
+    assert bm.exempt(repo, [local]) == {local}, (
+        "fixture merge is outside the exempt class — the refusal below would then prove "
+        "nothing about containment")
+
+    r = _invoke(_BUP, repo, _push_line(local, remote))
+    assert r.returncode == 1, f"pre-push allowed an unanchored lane merge mid-batch: {r.stderr}"
+    assert "REFUSED" in r.stderr, r.stderr
+
+
+@requires_git
 def test_t6_no_verify_bypasses_transport_but_the_backstop_fails(tmp_path, monkeypatch):
     """T6 — the sole escape is explicit and is NOT silent: the push lands, and the audit
     backstop reports the gap as a FAIL (not a WARN — a WARN would be dispositionable, and a

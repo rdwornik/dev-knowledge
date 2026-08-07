@@ -81,6 +81,9 @@
   - [Tree orchestration — architect-root + epic-chat lanes (ADR-97)](#tree-orchestration--architect-root--epic-chat-lanes-adr-97)
   - [The batch protocol — ONE plan → N lanes → ONE integrator (ADR-110)](#the-batch-protocol--one-plan--n-lanes--one-integrator-adr-110)
   - [Dispatch visibility — Agent View shows DISPATCHED sessions only (STANDING_RULINGS B7)](#dispatch-visibility--agent-view-shows-dispatched-sessions-only-standing_rulings-b7)
+  - [Dispatch prompts and the contract of record — two locations, one of them in the tree](#dispatch-prompts-and-the-contract-of-record--two-locations-one-of-them-in-the-tree)
+  - [Model + effort are stated at dispatch — the routing matrix](#model--effort-are-stated-at-dispatch--the-routing-matrix)
+  - [Handoff prep for the next architect — an index, not a restatement](#handoff-prep-for-the-next-architect--an-index-not-a-restatement)
 - [Ch9. Tier-1 closure loop — usage](#ch9-tier-1-closure-loop--usage)
   - [Propagating a plugin change across the fleet](#propagating-a-plugin-change-across-the-fleet)
   - [The methodology↔project boundary (what IS methodology)](#the-methodologyproject-boundary-what-is-methodology)
@@ -1919,6 +1922,137 @@ worktree session from inside itself, for instance), the fallback is dispatching 
 a worktree the lane-boot protocol already provisioned — the two steps run in sequence rather than
 composed on one command line, with the same visibility result.
 
+### Dispatch prompts and the contract of record — two locations, one of them in the tree
+<!-- scope: meta -->
+
+**The prompts dir.** A dispatch prompt is an operator-side file: the operator opens it, references
+it in the launching line, and pastes. It lives in the **prompts dir** — `~/Downloads` by default,
+overridden by the `CLAUDE_PROMPTS_DIR` environment variable — and a dispatch line cites it as
+`<PROMPTS_DIR>\<file>` rather than as a hard-coded absolute path. The variable form keeps a
+dispatch line portable across machines and keeps one operator's directory layout out of an
+artifact other people read. `win-tooling`'s `scripts/dispatch/Invoke-Dispatch.ps1` joins its
+`-Prompt` arguments and hands the string to `claude --bg` verbatim, so a `<PROMPTS_DIR>` token
+reaches the session unexpanded and the operator expands it by hand until [#509] teaches the
+wrapper to resolve it.
+
+**The contract of record is a different object, and it lives in the tree.** [#505] clause 1 asks
+for a fresh seat that runs a full batch from repo artifacts alone, and batch 2 falsified it for
+one precise reason: its four lane contracts were files in the operator's Downloads. The *plan* was
+in the tree — the manifest committed at dispatch, which was the batch-2 advance — while the
+*contracts* were not, so the integrator reconstructed the merge queue from the ref store and from
+**session transcripts**, which are repo artifacts in no sense at all.
+
+**The repair path, for batch 3: at dispatch, the batch manifest links or embeds each frozen lane
+contract as a committed repo artifact.** Dispatch convenience stays in the prompts dir; the
+authoritative copy lands with the manifest — embedded in it, or committed beside it under a name
+derived from the ADR-101 class enum — and the manifest's lane rows point at it. That leaves the
+prompts dir as a *delivery channel* rather than a storage location, which is what a
+`<PROMPTS_DIR>` reference already implies.
+
+Two consequences, both drawn from batch-2 evidence rather than from design taste:
+
+- A lane's frozen contract becomes citable by a successor seat, which is the property
+  "reconstructable from repo artifacts" actually names. Reconstruction from transcripts is
+  available only to a seat that can read those transcripts, and it expires with them.
+- A committed contract's own path is checkable at authoring time against the ADR-101 enum —
+  exactly what the F3 paragraph above already asks of the paths a contract *names*, now applied to
+  the contract itself. `validate-hermetization` sees it, rather than a lane discovering the
+  refusal after boot.
+
+**Honest limit, stated so this is not read as done.** This is a documented path, not a mechanism:
+nothing checks that a manifest's lane rows resolve to committed contracts, and [#505] clause 1
+stays falsified until a batch actually runs that way. The batch-3 manifest is the first artifact
+that can satisfy it.
+
+### Model + effort are stated at dispatch — the routing matrix
+<!-- scope: hybrid -->
+
+**Ruled 2026-08-07 (architect, batch-2 consolidation arc).** The browser-architect states model
+**and** effort on every dispatch it emits; the operator overrides either at the point of dispatch.
+The rule is scoped to that one act — the line the operator pastes carries the routing, so a lane's
+tier is a decision on the record rather than an inherited default nobody picked.
+
+**The matrix, as ruled.** Model:
+
+| Tier | Routes |
+|---|---|
+| **opus** | M/L arcs · gate and organ code · architecture · adversarial verification · any arc whose failure poisons downstream work |
+| **sonnet** | S-class bounded edits · documentation arcs · git-ops |
+| **haiku** | retrieval only |
+
+Effort — `high` for multi-file reasoning, design and review; `medium` as the S-class default;
+`low` for mechanical single-file work. **`max` stays out of dispatch routing.** Its recorded uses
+in this repo are session-level rather than flag-level (`JOURNAL.md` 2026-07-04, the Fable
+architecture review; the 2026-06 HANDOFF_PROCESS audit), and the architect's stated reason also
+cites a history of the flag being disregarded — a history no in-repo artifact carries, so it is
+recorded here as the ruling's rationale rather than as a verified platform fact. The full ladder
+and what each rung buys stay at "How to choose Effort" in §2; this matrix routes dispatches, not
+the ladder.
+
+**Dispatch constants.** Three items ride every dispatch without being re-decided:
+`--permission-mode bypassPermissions`, `--bg`, and the board label (shape and rationale directly
+above). Checked against the installed CLI (2.1.224): `claude --help` carries `--bg`,
+`--permission-mode <mode>`, `--effort <level>` and `--model <model>` as independent flags, so the
+matrix above is expressible on the command line exactly as written.
+
+**Ceremony cut, ruled in the same act — the dispatch line is authoritative for model and effort.**
+An **S-class contract therefore drops the `Model | Mode | Effort` table**: the line that launched
+the session already carries two of its three rows, and a table restating them is a second source
+free to disagree with the first. **M- and L-class contracts keep the table**, where the `Mode` row
+carries something the dispatch line does not. `templates/prompt-template.md` (v1.10) is the
+point-of-use form.
+
+**Declared collision with "Model is CC's pick", and the boundary that scopes it.** The ADR-87
+equilibrium — "The two lifelines" § Lifeline 1, restated at §2 "How to choose Model" — puts model
+selection on CC's side of the table and keeps the architect out of it. The ruling above points the
+other way for one population: the dispatch of a `--bg` lane. The boundary declared here is
+population-shaped rather than a reversal — the architect states the tier a *session boots at*; CC
+keeps its routing of sub-steps **inside** that session, which is the act ADR-87's row was written
+about. ADR-87 is left untouched, and the residual is recorded rather than closed by an edit no
+ruling covers: the equilibrium table and its §2 restatement still read as architect-excluded on
+the dispatch act itself. Operator item, filed in
+`docs/audits/2026-08-07-technical-batch-2-lessons.md`.
+
+### Handoff prep for the next architect — an index, not a restatement
+<!-- scope: meta -->
+
+A seat inheriting the architect role needs four things it does not arrive holding and cannot
+infer from the tree. Each is written once, elsewhere. **This subsection is the index and carries
+no doctrine of its own** — every line below is a pointer, deliberately, because a second copy of
+a rule is a second thing to keep true.
+
+**1 · How a dispatch prompt is made.** `templates/prompt-template.md` is the work-lane card and
+the point-of-use authority: Scale tiering, the `Mode` row, the board label, the dispatch
+constants. Where the prompt file lives, how a dispatch line cites it, and where a lane's
+*contract of record* lives instead — "Dispatch prompts and the contract of record" above.
+
+**2 · How model and effort are estimated.** "Model + effort are stated at dispatch — the routing
+matrix" above: the matrix itself, the live-CLI flag check behind it, and the declared boundary
+against ADR-87's "Model is CC's pick". Rung-by-rung detail stays at §2 "How to choose Effort";
+the ceremony consequence (an S-class contract drops the `Model | Mode | Effort` table) is stated
+with the matrix.
+
+**3 · How a batch is run.** "The batch protocol — ONE plan → N lanes → ONE integrator (ADR-110)"
+above: the five per-lane requirements, the integrator's refuse-to-finish checklist,
+JOURNAL-rides-the-branch as the anchoring law, the ≥2-commit integrator-branch shape, and the
+process-lane cap. `/lane-boot` boots one lane against it; `/lane-integrate` walks the close-out.
+
+**4 · How completion is managed.** Four items, each at its own home:
+
+- **Agent View lists dispatched sessions only** — `protocols/STANDING_RULINGS.md` B7, encoded at
+  "Dispatch visibility" above. Operator attention goes to **Needs-input** rows rather than to
+  re-reading every row.
+- **Packets are batched** — one round-trip carries every item, and single-question trips are
+  reserved for ask-class (a)–(c): "2-touch transport, on both seams" above, plus
+  `STANDING_RULINGS.md` "The decision budget".
+- **The integrator runs once per batch**, serially, from the primary checkout — the batch
+  protocol above.
+- **WINDOW = BATCH** — the seal (bundle, packet, JOURNAL wrap) fires at true batch boundaries,
+  and the batch protocol above records why a mid-batch seal misleads its successor.
+
+**Rulings an incoming seat applies without asking:** `protocols/STANDING_RULINGS.md` — section F
+carries the batch-execution set landed 2026-08-07.
+
 ---
 
 ## Ch9. Tier-1 closure loop — usage
@@ -2709,6 +2843,12 @@ Per **ADR-87** (the architect↔CC equilibrium contract). STEP 1 verified CC sel
 - **Opus** for: audit / review / synthesis tasks; architecture decisions and clause-level reasoning; judgment-heavy work (severity calibration, ambiguity resolution); long-context comparison across multiple inputs; subtle pattern recognition (security review, gotcha identification); multi-package changes; complex debugging; novel logic design.
 
 Rule of thumb: "do X the way we always do it" → Sonnet; "figure out the right approach, then do it" → Opus. No budget ceiling (LLM-spend rule); when uncertain, lean Opus — Sonnet's failure modes (missed nuance, factual misses) cost more than Opus's overhead.
+
+**Scope note (2026-08-07), reciprocal.** This heuristic covers CC routing its own sub-steps
+*inside* a running session. **Dispatching** a `--bg` batch lane is a separate act under a separate
+ruling — the architect states model and effort on the dispatch line, and the operator overrides:
+Ch8 "Model + effort are stated at dispatch — the routing matrix", which declares the boundary
+between the two populations and records the residual this section carries.
 
 ### When to escalate to a Dynamic Workflow
 <!-- scope: llm -->

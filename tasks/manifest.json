@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "5bfd5f87e99dbb6c737506f35e356727f7e9f273fe2ae09011137aec76abc57e",
+  "generated_sha256": "9b4f452d2761932620cefd9c73384e5c7cca3db2e62dcec566b49838536d29de",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -59,6 +59,10 @@
     {
       "task": 162,
       "file": "162-vocab-decision.md"
+    },
+    {
+      "task": 511,
+      "file": "511-handoff-cut-cost-is-session-authoring.md"
     },
     {
       "prose": ""
@@ -215,6 +219,10 @@
     {
       "task": 507,
       "file": "507-report-only-wall-fourth-leg-precommit-run-all-files.md"
+    },
+    {
+      "task": 510,
+      "file": "510-scope-r1-exemption-to-enumerated-lanes.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
@@ -919,6 +927,10 @@
     {
       "task": 486,
       "file": "486-desired-state-report-py-dies-on-a-cp1252-console.md"
+    },
+    {
+      "task": 509,
+      "file": "509-invoke-dispatch-resolves-claude-prompts-dir.md"
     },
     {
       "prose": ""

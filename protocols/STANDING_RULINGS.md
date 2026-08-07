@@ -409,6 +409,138 @@ ZERO"*.
 
 ---
 
+## F. Batch-execution rulings from the batch-2 consolidation arc (2026-08-07)
+
+Architect rulings of the 2026-08-07 consolidation arc, phrased as mechanisms per the A2
+discipline: each names the defect it prevents, the batch-2 evidence behind it, and its own
+expiry. Source of record: `docs/audits/2026-08-07-technical-batch-2-packet.md`, the batch-2
+manifest it closes, and the frozen consolidation contract this arc was dispatched under.
+
+*Section letter, not a finding label.* The batch packets number their own findings F1/F2
+independently of this register; the two sequences are unrelated and do not cite each other.
+
+### F1 · verify-before-destroy
+
+A destructive git authorization re-verifies the target's state at **execution** time — reflog and
+parents, read at the moment of the act — and halts on a mismatch with what the authorization
+described.
+
+- **The gap it closes.** An authorization is granted against a tree observed when it was written;
+  the act happens later, against a tree that has had time to move. Re-reading converts "the
+  operator approved deleting X" into "the operator approved deleting X, and X is still the thing
+  they saw."
+- **Halt rather than proceed-with-a-note.** A mismatch is the one signal that authorization and
+  target have come apart, so it ends the act instead of annotating it.
+- **Expiry:** retires from here once a gate performs the re-read, at which point the mechanism
+  carries itself and this line is redundant.
+
+### F2 · names, paths and identifiers derive from validators and enums
+
+In contracts **and** in manifests, a name is read out of the organ that governs it — a
+`scripts/validate_branch_naming.py` dry run, the ADR-101 class enum, a
+`scripts/validate_hermetization.py` pass over the intended path — rather than composed freehand
+and discovered later by whoever boots against it.
+
+- **Batch-2 evidence, re-measured in this arc rather than quoted from the packet.** The batch-2
+  manifest wrote the lane grammar with a **digit** (`worktree-lane-2-…`); the validator compiles
+  it with a single lowercase **letter**. Live output:
+
+  ```
+  BAD  worktree-lane-1-490-parity-manifest    unknown     'worktree-lane-…' that does not match lane-<letter>-<id>-<slug>
+  OK   worktree-lane-a-490-parity-manifest    batch-lane  batch lane — worktree 'lane-<letter>-<id>-<slug>'
+  OK   worktree-joyful-scribbling-hummingbird worktree    native CC worktree branch
+  ```
+
+- **The chain to the consequence, stated precisely — the compressed version of it is wrong.** The
+  digit form is not itself what dropped an exemption: `batch_manifest.LANE_BRANCH_RE`
+  (`^worktree-lane-[a-z0-9]+…`) admits digits, so `worktree-lane-1-…` is R-1 exempt *while*
+  classifying `unknown`. The cost lands one step upstream. The manifest offered every lane a name
+  the naming organ rejects; lanes 2 and 3 independently renamed to the letter form; lane-1
+  reasonably kept its `claude --worktree` auto-name, a lawful `worktree-<name>` branch that sits
+  **outside** the `worktree-lane-*` shape the exemption keys on. So a freehand manifest grammar
+  was paid for not by the freehand name but by the lane that declined to adopt it, surfacing as a
+  lost R-1 exemption at merge time — one step from the `SKIP=audit-health` the manifest existed to
+  retire.
+- **Batch-1's precedent is the same class:** two `docs/audits/` filenames composed without an
+  ADR-101 class token, both renamed by lanes spending decision budget (PLAYBOOK Ch8, the F3
+  paragraph, which states the authoring-time fix for paths a contract *names*; this entry extends
+  the same reading to the names a manifest *assigns*).
+- **Expiry:** retires when the manifest template's name-bearing columns are generated from the
+  validators and `/lane-boot` declines a branch that does not classify `batch-lane`. Both are
+  dispatch acts, so neither is done here.
+
+### F3 · second-seat institution
+
+An author's packet carries **claims**; an independent seat's verification is what converts a claim
+into a finding. An author's own test is written by the party whose premises are in question.
+
+- **Batch-2 evidence, and it indicts the integrator as much as the lanes.** Integration commit
+  `a96040c3` repeated lane-1's "the operator ruled 2026-08-07 that a root `conftest.py` is
+  permitted fleet-wide" as verified fact, taken from lane-1's packet unchecked — self-corrected at
+  `63b7b6a9` once checked. Four further instances in that batch share the shape: a lane's own test
+  exercising the lane's own premise.
+- **What a second seat costs and buys.** It costs one pass over an artifact that already exists.
+  It buys the distance between "the packet says the suite is green" and "the suite is green" —
+  which batch-2 §5 produced by re-running rather than by quoting, and which is how the 17 pandas
+  REDs were *shown* environmental instead of asserted so.
+- **Expiry:** open-ended. This describes a seat rather than a check, and retires only into a role
+  the batch protocol names.
+
+### F4 · declared absence over false-resolves
+
+Where a set is partly unonboarded, a done-when discharges by **declaring the absence with its
+count** rather than by a phrasing that reads as full resolution.
+
+- **Batch-2 evidence:** [#490] closed at `parity-surfaces 9/9` through the done-when's second
+  limb, because 4 of the 9 are genuinely unonboarded — "all 9 resolve" would have been false, and
+  closing on it would have retired a false claim into the archive. The same arc corrected that
+  row's own stale `state-dirs 0/9` (live: 6/9) into the retained task file instead of closing over
+  it.
+- **The failure it prevents** is a closed row whose evidence line is true of a smaller set than
+  the row names — undetectable afterwards, because closure is what stops anyone looking.
+- **Expiry:** retires when the done-when grammar carries a declared-absence limb by construction.
+
+### F5 · ruling-locator rule
+
+Every architect or operator ruling that steers a lane — **picker answers included** — gets a
+register line **in the same batch it steers**. A ruling whose only carrier is the executing lane's
+own commit is a defect in the record, whatever the ruling's merits.
+
+- **The failure it names.** A lane escalates, receives an answer, applies it, and writes the
+  consequence into code. The answer itself lands nowhere greppable, so the next reader meets an
+  effect with no cause — and the strongest honest word available to them is "unlocatable", which
+  is weaker than either "ruled" or "unruled". Batch-2's packet §4 is that state written up in
+  full.
+- **Two instances in this batch alone.** [#430](a), below. And the **AM-1/AM-2 ratification**,
+  whose provenance ADR-110 records as off-repo (SESSION PLAN v2, the operator's Downloads) with
+  intake #26 as its in-repo carrier — the ADR cites the intake rather than claiming a locator that
+  does not exist, which is the honest form of the same gap.
+- **Why same-batch.** A locator written later is written by someone reconstructing, and
+  reconstruction is exactly what the missing line makes unreliable.
+- **Expiry:** open-ended; retires into whatever surface makes a ruling's locator a field rather
+  than a habit.
+
+**First instance, executed here — the [#430](a) root-`conftest.py` ruling.**
+
+> A root `conftest.py` is permitted fleet-wide and mandated nowhere; ownership is
+> **conditional**. This discharges the 2026-07-26 UNRULED marker on [#430](a). Ruled
+> 2026-08-07 by the architect and the operator, via lane-1's plan-mode fork (carrier: the
+> browser transcript); confirmed to the integrator 2026-08-07.
+
+- **What this line makes resolvable.** `ecosystem/parity-surfaces.yaml` carries the
+  `root-conftest` row with `declared_by: ruling-2026-08-07-root-conftest` — a token lane-1 minted
+  for a ruling it cited no locator for, which is what batch-2's packet §4 escalated. This entry is
+  that locator, so the token resolves to a ruling on the record.
+- **The standing RED that cleared on it stays cleared.**
+  `test_check_fleet_parity_green_on_live_repo` went green because of that row, and the packet
+  flagged that the green rested in part on an unlocatable ruling. It rests on a located one now.
+  Lane-1's commit `3cf3a5b0` stands, unreverted, per the same packet's reasoning that reverting on
+  suspicion is worse than flagging.
+- **The carrier is honest about its own limit:** a browser plan-mode transcript is not greppable
+  from the repo. That is the precise reason F5 exists, and the reason this line does.
+
+---
+
 ## Editing note (read before adding an entry)
 
 This file sits inside the silent-rule ratchet corpus (`protocols/*.md`; detector

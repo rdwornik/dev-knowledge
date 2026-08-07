@@ -19,6 +19,81 @@
 
 ---
 
+### 2026-08-07 (i) — CC (Opus 5, primary): batch-2 lessons become mechanisms — the next seat inherits a system, not a chat
+
+**Did:** Ran the post-batch-2 consolidation arc on `docs/consolidate-batch2-lessons` off `main`
+(`8bef876e`), seven commits, one per contract step. **`e03df5c4`** — PLAYBOOK Ch8 gains the
+**model/effort routing matrix** (architect states both on every dispatch, operator overrides;
+opus = M/L + gate-organ code + architecture + adversarial verification, sonnet = S-class bounded
+edits + docs + git-ops, haiku = retrieval; `max` held out of dispatch routing) and the ruled
+**ceremony cut** — the dispatch line is authoritative, so an S-class contract drops the
+Model/Mode/Effort table; `templates/prompt-template.md` → **v1.10**. **`c4d6db25`** — Ch8's
+`CLAUDE_PROMPTS_DIR` convention plus the `[#505]`-clause-1 repair path (at dispatch the manifest
+links or embeds each frozen lane contract as a committed artifact); filed **`[#509]`** for the
+win-tooling wrapper. **`6ae62c64`** — `STANDING_RULINGS` **section F**: F1 verify-before-destroy,
+F2 names-derive-from-validators, F3 second-seat, F4 declared-absence, F5 ruling-locator — **and
+F5's first instance executed in the same commit**, recording the `[#430]`(a) root-`conftest.py`
+ruling. **`69ddcb80`** — a behavioural pin for the push leg plus **`[#510]`**. **`e0a07c30`** —
+the handoff cut profiled, **`[#511]`** filed. **`ede671bb`** — Ch8 handoff-prep index (pointers
+only) + a `HANDOFF_BOOT` template pointer. **`35868b3c`** — the lessons register,
+`docs/audits/2026-08-07-technical-batch-2-lessons.md`.
+
+**Result — three findings that changed what landed, rather than confirming it.** (1) **The
+compressed causal claim I was handed about the lane-grammar defect is wrong, and re-measuring
+caught it.** `batch_manifest.LANE_BRANCH_RE` is `^worktree-lane-[a-z0-9]+…`, which **admits
+digits** — so the manifest's `worktree-lane-1-…` form is R-1 **exempt** while classifying
+`unknown`, and it is not what cost lane-1 its exemption. The cost lands one step upstream: the
+manifest offered a name the naming organ rejects, lanes 2 and 3 renamed to the letter form, and
+lane-1 reasonably kept its auto-generated `worktree-<name>` branch — lawful, and **outside** the
+shape the exemption keys on. F2 records the corrected chain. (2) **The gen_handoff 30-minute
+complaint is not about gen_handoff.** Measured best-of-3 into a throwaway `bundle_root`:
+`collect_state` 525 ms · `collect_hints` 831 ms · `generate` 1,708 ms · cold CLI 3,321 ms ·
+`verify_handoff_probes` 1.2 s — **~4.5 s of machinery, 0.25% of the complaint**. The time is 15
+FILL-IN regions, a 38,067-byte PASTE_THIS, and 14 probes re-derived one at a time; each way to cut
+it trades rhythm for a property the spec deliberately bought, so `[#511]` files the fork rather
+than picking. (3) **The push-leg pin's first RED witness failed usefully.** The planted mutation
+(a widened skip, deliberately import-free so the AST test cannot see it) left the new test GREEN —
+because my own fixture put the manifest commit inside the pushed range, where it refused the push
+on its own. Fixed by pushing the manifest before creating the merge; re-run went RED with exit 0
+and empty stderr, the silent allow. Mutation reverted and verified.
+
+**Suite on the final tree: 1 failed, 2539 passed, 4 skipped (8m56s).** The single RED is
+`test_routine_consumers_live_backlog_governs_exactly_one_row` — the exact pre-existing residue
+batch 2's packet §5 named, owned elsewhere, untouched here. Skips moved 3 → 4 against the packet's
+baseline and the delta is explained, not waved past: `test_batch_manifest.py:402` skips on "no
+batch open in the live repo", so it ran during batch 2 and skips now that batch 2 is closed. The
+other three are opt-in gauntlets. `silent_rule_ratchet` held **441 ≤ 441 at every commit**, each
+payload pre-checked at zero normative keywords before it was applied.
+
+**Changes:** `protocols/PLAYBOOK.md` (Ch8 ×3 new subsections + a reciprocal §2 pointer, TOC
+regenerated) · `protocols/STANDING_RULINGS.md` (section F, F1–F5) · `templates/prompt-template.md`
+(v1.10) · `templates/handoff/v5/HANDOFF_BOOT.md.tmpl` (dispatch-prep pointer) ·
+`tests/test_adr85_integration_enforcement.py` (`test_t5d_…`) · `docs/audits/2026-08-07-technical-batch-2-lessons.md`
+(new) + regenerated `docs/audits/README.md` · `tasks/509-*`, `tasks/510-*`, `tasks/511-*` +
+`tasks/manifest.json` + regenerated `BACKLOG.md`.
+
+**Abandoned:** The **F2 self-grant fix** — assessed for an S-mechanical landing and rejected as M,
+filed as `[#510]` with the reasoning: the manifest carries no machine-readable lane roster,
+`docs/audits/` is immutable so the change is prospective-only and forces a back-compat *ruling*
+(no roster ⇒ exempt all, or exempt none), and it ripples into Ch8 + the manifest template +
+ADR-110's amendment text. `batch_manifest.py`'s own honest-limit #2 says tightening it "is a
+separate decision, not a silent one" — landing it here would have been exactly that. Also **not**
+done, deliberately: no wave-2 dispatch, no win-tooling edits, no ADR content changes, nothing
+closed on `[#505]`/`[#502]`, and the `[#430]` row left untouched since the register line **is**
+the discharge. One leftover was created and removed: the profiler's CLI leg writes to the real
+`docs/handoffs/` (it takes no `bundle_root`) — caught by `git status`, removed, round-trip
+verified back to 0 porcelain entries.
+
+**Next:** Five operator decisions in the lessons register §4, ordered with **win-tooling first**
+— it has no `origin` remote at all and 14 branches of real work sit local-only on one disk, the
+only item on the list whose failure mode is losing work. Then the **ADR-87 residual** this arc's
+own ruling opened (ratify the declared population boundary, or amend ADR-87), the immutable-bundle
+seal defect, the two zero-file worktree skeletons, and wave 2 — whose `audit-py` serialize-group
+pair needs re-checking now that `[#430]` is partly landed. The three machinery findings sit in §3
+as **proposals with wording**, `[#505]` clause 2 included, so ratification is a yes/no.
+
+---
+
 ### 2026-08-07 (h) — CC (Opus 5, primary): batch 2 integrated and closed at width 3; R-1 fired in production
 
 **Did:** Ran the batch-2 integration as a dispatched integrator seat. Discovered the merge queue

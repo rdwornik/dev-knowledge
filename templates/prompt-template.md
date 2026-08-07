@@ -1,6 +1,6 @@
 # Prompt Template for Claude Code
 <!-- scope: meta -->
-<!-- version: 1.9 — 2026-08-07 -->
+<!-- version: 1.10 — 2026-08-07 -->
 
 > **Copy this template, fill placeholders, save as `.md` artifact, deliver to Claude Code via paste-into-prompt.** Browser chat produces this; Claude Code executes it.
 >
@@ -61,15 +61,30 @@
 
 ---
 
-| Model  | `<Sonnet | Opus>`             |
+| Model  | `<sonnet | opus>` — see the routing matrix below |
 | Mode   | `<execution (default) | plan-then-auto (M/L repo-derivation only) | auto-accept>` |
 | Effort | `<low | medium | high>`       |
+
+**This table is M/L-only (ruled 2026-08-07).** The **dispatch line is authoritative for model and
+effort**, so an **S-class contract omits the whole table** — the line that launched the session
+already carries two of its three rows, and a second copy is free to disagree with the first. M and
+L keep it, where `Mode` carries something the dispatch line does not. Canonical:
+`protocols/PLAYBOOK.md` Ch8 "Model + effort are stated at dispatch — the routing matrix".
+
+**Routing, as ruled — the architect states model + effort on every dispatch; the operator
+overrides.** `opus`: M/L arcs, gate and organ code, architecture, adversarial verification, any arc
+whose failure poisons downstream work. `sonnet`: S-class bounded edits, documentation arcs,
+git-ops. `haiku`: retrieval only. Effort: `high` for multi-file reasoning / design / review,
+`medium` as the S default, `low` for mechanical single-file work; `max` sits outside dispatch
+routing. Rationale, the CLI check, and the declared boundary against ADR-87's "Model is CC's pick"
+all live at the Ch8 heading above — this row is the point-of-use copy, not a second authority.
 
 **Dispatch (fill when this prompt ships via `claude --bg` — every batch lane, without
 exception):** `[<repo> · #<id>-or-slug · <verb-object>]` opens the title line below it, so the row
 reads at a glance in Agent View at ten concurrent agents rather than needing its tail re-derived
 (`protocols/PLAYBOOK.md` Ch8 "Dispatch visibility", `protocols/STANDING_RULINGS.md` B7 — VISIBLE
-= DISPATCHED). Foreground, interactive sessions skip this row.
+= DISPATCHED). Foreground, interactive sessions skip this row. **Dispatch constants** ride every
+such line: `--permission-mode bypassPermissions`, `--bg`, and the board label.
 
 # `<board label, if dispatched — see Dispatch row above> <Imperative title — what this prompt accomplishes>`
 
@@ -168,6 +183,19 @@ Final: `/ship "<summary> [#id if closing]"` — refuses if: on `main`, dirty tre
 ---
 
 **Section history:**
+- v1.10 (2026-08-07) — **the routing matrix lands, and the Model/Mode/Effort table becomes
+  M/L-only.** Architect ruling of the batch-2 consolidation arc: the browser-architect states model
+  **and** effort on every dispatch, the operator overrides, and the **dispatch line is
+  authoritative** for both — so an S-class contract drops the table rather than carrying a second
+  copy of two rows the launching line already fixed. The matrix itself (opus / sonnet / haiku by
+  arc class; high / medium / low by work shape; `max` held out of dispatch routing) rides here as a
+  point-of-use copy, with rationale, the live-CLI flag check, and the **declared boundary against
+  ADR-87's "Model is CC's pick"** at the canonical home — `protocols/PLAYBOOK.md` Ch8 "Model +
+  effort are stated at dispatch — the routing matrix", which this version adds. The `Model` row's
+  enum is lower-cased to match what a `--model` flag actually takes, and the Dispatch paragraph
+  gains the three dispatch constants (`--permission-mode bypassPermissions`, `--bg`, board label).
+  Reciprocal pointer added at PLAYBOOK §2 "How to choose Model", per the v1.7 precedent for
+  declaring a boundary rather than equalizing two texts.
 - v1.9 (2026-08-07) — adds the **Dispatch row + board-label title convention**, for prompts that
   ship via `claude --bg`: the `[<repo> · #<id>-or-slug · <verb-object>]` bracket opens the title
   line, carried through into what Agent View shows for that row. Encodes AM-4 (operator-ratified
