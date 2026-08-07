@@ -8,13 +8,19 @@
 #
 # Version line below is nudge-parseable (validate_reconciliation._VERSION_LINE_RE,
 # IGNORECASE): bump it when surface semantics change.
-version: 1.3.0
+version: 1.4.0
 #
 # GRAMMAR
-#   fleet:      every ecosystem/deployed-versions.yaml registry key MUST appear here
-#               (cross-checked both directions by the checker; mismatch = refusal
-#               finding). role: hub | consumer | pre-deploy. pre-deploy repos are
-#               rendered "skipped (pre-deploy)" -- never silently absent.
+#   fleet:      the ADR-104 DECLARATION, not the deployment registry -- all nine
+#               declared members appear here ([#490]). Every
+#               ecosystem/deployed-versions.yaml registry key MUST appear (cross-checked
+#               both directions by the checker; mismatch = refusal finding), with ONE
+#               narrow exception: a `pre-deploy` member absent from deployed-versions may
+#               stand if it carries a non-empty `reason:` -- declared absence. A
+#               reason-less one still refuses, and the escape is role-scoped, so a WALKED
+#               repo (hub/consumer) missing from the registry refuses regardless.
+#               role: hub | consumer | pre-deploy. pre-deploy repos are rendered
+#               "skipped (pre-deploy)" carrying that reason -- never silently absent.
 #   surfaces[]: id                 -- canonical id (FR-2): stable, independent of local
 #                                     filename / hook id / byte shape. Where a live
 #                                     .methodology.yaml declaration exists 1:1, the id
@@ -101,6 +107,26 @@ fleet:
   corp-monorepo: {role: consumer}
   corp-ops: {role: pre-deploy}
   corp-sca-time-automation: {role: pre-deploy}
+  # [#490] -- the four ADR-104-declared members that carry no deploy record. They are
+  # listed here so the fleet map equals the DECLARATION (9/9), not the deployment
+  # registry (5/9): until this arc they were absent from the manifest entirely, so
+  # `membership_agreement` reported parity-surfaces 5/9 and every "fleet parity GREEN"
+  # verdict was a claim about five repos wearing the word "fleet".
+  #
+  # `reason:` is load-bearing, not commentary: resolve_fleet REFUSES a pre-deploy member
+  # that is absent from deployed-versions.yaml and states no reason, and the reason is
+  # rendered into the repo's skipped-pre-deploy finding. Absence is declared, never
+  # silent. Each reason below is the repo's own registry.md status line -- observed, not
+  # inferred. A repo onboards by gaining a deployed-versions.yaml entry, at which point
+  # its role flips to `consumer` and the reason: is dropped.
+  demo-prep: {role: pre-deploy,
+    reason: "registered, methodology-unonboarded (ecosystem/registry.md); no deploy record -- nothing to hold at parity yet"}
+  life-architect: {role: pre-deploy,
+    reason: "registered, methodology-unonboarded (ecosystem/registry.md); full gate set ruled but not yet deployed (satellite-onboarding-rulings.yaml)"}
+  terminal-setup: {role: pre-deploy,
+    reason: "registered 2026-08-01 ([#462]), unonboarded; no VISION.md, no CLAUDE.md, no deploy record (ecosystem/registry.md)"}
+  win-tooling: {role: pre-deploy,
+    reason: "registered, unonboarded (ecosystem/registry.md); not listed in deployed-versions.yaml (ADR-91)"}
 
 surfaces:
   # ---- Tier-1: the 7 canonical docs (every fleet repo) --------------------------------

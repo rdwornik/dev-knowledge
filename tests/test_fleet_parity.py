@@ -1379,3 +1379,121 @@ def test_compound_specifier_is_still_refused_not_evaluated():
     assert fp._declared_ok("foo<3.8", ">=3.8") is False
     assert fp._declared_ok("foo>=3.8", ">=3.8") is True
     assert fp._declared_ok("foo", ">=3.8") is True        # unpinned: presence only
+
+
+# ---------------------------------------------------------------------------
+# [#490] -- declared-absence: the parity manifest covers all 9 ADR-104 members, and a
+# member the walk does NOT visit carries a machine-read reason instead of being a
+# silent gap.
+#
+# Before this arc `resolve_fleet` cross-checked the fleet map against
+# deployed-versions.yaml ONLY (5 keys), so the 4 declared-but-undeployed members were
+# invisible to fleet_parity entirely -- "fleet parity GREEN" was a verdict about 5/9
+# wearing the word "fleet". The registry cross-check stays exactly as strict for every
+# DEPLOYED role; the sole relaxation is a `pre-deploy` entry that states WHY it is
+# absent, and a reason-less one still refuses.
+# ---------------------------------------------------------------------------
+
+
+def _predeploy_fixture(tmp_path, pre_deploy_spec: dict):
+    """hub-r (deployed) + `pending` (in the fleet map, absent from the registry)."""
+    manifest_path = _write_yaml(tmp_path / "m.yaml", _manifest(
+        {"hub-r": {"role": "hub"}, "pending": pre_deploy_spec}, [_gate_row()]))
+    manifest, _ = fp.load_manifest(manifest_path)
+    registry = _write_yaml(tmp_path / "reg.yaml", {"repos": {"hub-r": {}}})
+    hub = _init_repo(tmp_path / "hub", dict(_BASE_FILES))
+    return fp.resolve_fleet(manifest, hub, registry, tmp_path, {})
+
+
+def test_predeploy_member_with_reason_is_declared_absence_not_a_refusal(tmp_path):
+    """[#490] the done-when's second limb: a declared member the walk cannot visit is
+    ACCOUNTED FOR by a reason the check reads, rather than dropped."""
+    targets, findings = _predeploy_fixture(
+        tmp_path, {"role": "pre-deploy", "reason": "registered, methodology-unonboarded"})
+    assert [f for f in findings if f.verdict == fp.REFUSED] == []
+    pending = next(t for t in targets if t.repo_id == "pending")
+    assert "registered, methodology-unonboarded" in pending.note
+
+
+def test_predeploy_member_without_reason_still_refuses(tmp_path):
+    """The relaxation must not become a silent-gap loophole: absent + role pre-deploy +
+    NO reason is exactly the silent gap [#490] exists to close, so it still refuses."""
+    _, findings = _predeploy_fixture(tmp_path, {"role": "pre-deploy"})
+    refusals = [f for f in findings if f.verdict == fp.REFUSED]
+    assert len(refusals) == 1
+    assert "pending" in refusals[0].evidence and "reason" in refusals[0].evidence
+
+
+def test_predeploy_member_with_blank_reason_still_refuses(tmp_path):
+    """A whitespace-only reason is not a reason -- a gate satisfiable by typing a space
+    is not a gate (the standing 'cannot be satisfied by deleting what it checks' rule)."""
+    _, findings = _predeploy_fixture(tmp_path, {"role": "pre-deploy", "reason": "   "})
+    assert len([f for f in findings if f.verdict == fp.REFUSED]) == 1
+
+
+def test_deployed_role_absent_from_registry_refuses_even_with_a_reason(tmp_path):
+    """The escape is scoped to pre-deploy BY ROLE. A consumer/hub the registry does not
+    carry is still a silent-gap refusal -- a `reason:` must never buy a WALKED repo out
+    of the cross-check."""
+    _, findings = _predeploy_fixture(
+        tmp_path, {"role": "consumer", "reason": "not a valid escape here"})
+    refusals = [f for f in findings if f.verdict == fp.REFUSED]
+    assert len(refusals) == 1 and "pending" in refusals[0].evidence
+
+
+def test_registry_repo_missing_from_fleet_map_still_refuses(tmp_path):
+    """The OTHER direction is untouched by [#490]: a deployed repo the manifest omits is
+    the original silent-gap refusal and stays one."""
+    manifest_path = _write_yaml(tmp_path / "m.yaml", _manifest(
+        {"hub-r": {"role": "hub"}}, [_gate_row()]))
+    manifest, _ = fp.load_manifest(manifest_path)
+    registry = _write_yaml(tmp_path / "reg.yaml",
+                           {"repos": {"hub-r": {}, "deployed-but-unlisted": {}}})
+    hub = _init_repo(tmp_path / "hub", dict(_BASE_FILES))
+    _, findings = fp.resolve_fleet(manifest, hub, registry, tmp_path, {})
+    refusals = [f for f in findings if f.verdict == fp.REFUSED]
+    assert len(refusals) == 1 and "deployed-but-unlisted" in refusals[0].evidence
+
+
+def test_predeploy_reason_reaches_the_rendered_finding(tmp_path):
+    """'a declared reason THE CHECK READS' -- so it must survive into the emitted
+    finding, not just the internal target. Otherwise the reason is a YAML comment
+    wearing a key name, and the row's done-when is not met."""
+    targets, _ = _predeploy_fixture(
+        tmp_path, {"role": "pre-deploy", "reason": "no deploy record; ADR-104 declared"})
+    pending = next(t for t in targets if t.repo_id == "pending")
+    out, _ = fp.verdicts({"fleet": {}, "surfaces": []}, {"dependencies": []},
+                         [pending], {}, {}, {}, "2026-08-07")
+    row = next(f for f in out if f.repo_id == "pending")
+    assert row.verdict == fp.SKIPPED_PRE_DEPLOY
+    assert "no deploy record; ADR-104 declared" in row.evidence
+
+
+def test_live_parity_manifest_covers_every_adr104_declared_member():
+    """[#490] done-when, on the LIVE manifest: all 9 ADR-104-declared members resolve on
+    the parity surface. This is the metric the row is named for (parity-surfaces was
+    5/9); `membership_agreement` reads `fleet:` keys, so covering them here moves that
+    census to 9/9. Reads the ADR anchor through audit's own reader -- the SOURCE, never
+    a second copy of the id list that could drift away from it."""
+    import audit as aud
+    declared = set(aud.read_adr104_declaration(Path(aud._REPO_ROOT) / aud.ADR104_PATH))
+    manifest, _ = fp.load_manifest(
+        Path(fp._REPO_ROOT) / "ecosystem" / "parity-surfaces.yaml")
+    assert set(manifest["fleet"]) == declared
+
+
+def test_live_undeployed_members_each_carry_a_declared_reason():
+    """Every live fleet member absent from deployed-versions.yaml states why. Guards the
+    SHAPE [#490] shipped, not just the count: 9/9 coverage whose four new rows said
+    nothing would be a wider silent gap, not a closed one."""
+    manifest, _ = fp.load_manifest(
+        Path(fp._REPO_ROOT) / "ecosystem" / "parity-surfaces.yaml")
+    registry = yaml.safe_load(
+        (Path(fp._REPO_ROOT) / "ecosystem" / "deployed-versions.yaml").read_text(
+            encoding="utf-8"))
+    undeployed = set(manifest["fleet"]) - set(registry["repos"])
+    assert undeployed, "fixture assumption: some declared member is undeployed"
+    for repo_id in sorted(undeployed):
+        spec = manifest["fleet"][repo_id]
+        assert spec["role"] == "pre-deploy", repo_id
+        assert spec.get("reason", "").strip(), repo_id

@@ -436,15 +436,40 @@ def resolve_fleet(manifest: dict, hub_root: Path, registry_path: Path,
                 "fleet-registry", f"registry repo '{name}' missing from the manifest "
                                   f"fleet map (silent-gap refusal)"))
         for name in sorted(set(fleet) - set(repos)):
+            # [#490] DECLARED ABSENCE. ADR-104 declares nine members; deployed-versions
+            # carries only the DEPLOYED ones, so before this arc the four declared-but-
+            # undeployed repos could not appear in the fleet map at all without tripping
+            # this refusal -- and the manifest's silence about them was invisible, which
+            # is how "fleet parity GREEN" came to mean 5/9 while reading as a claim about
+            # the fleet.
+            #
+            # The escape is deliberately narrow, so it closes the gap instead of widening
+            # it: role MUST be `pre-deploy` (a repo that is WALKED still has to be in the
+            # deployment registry -- a `reason:` never buys one out) AND it must carry a
+            # non-empty `reason:`. A reason-less pre-deploy entry is exactly the silent
+            # gap this row exists to close, so it still refuses; the reason is then read
+            # downstream into the rendered finding, never left as decoration.
+            spec = fleet[name] or {}
+            reason = str(spec.get("reason") or "").strip()
+            if spec.get("role") == "pre-deploy" and reason:
+                continue
+            detail = ("carries no reason: -- a pre-deploy member absent from the registry "
+                      "must state why (declared absence, not a silent gap)"
+                      if spec.get("role") == "pre-deploy"
+                      else "and its role is walked, so the pre-deploy reason: escape "
+                           "does not apply")
             findings.append(_refusal(
                 "fleet-registry", f"fleet-map repo '{name}' absent from "
-                                  f"deployed-versions.yaml (silent-gap refusal)"))
+                                  f"deployed-versions.yaml ({detail})"))
 
     targets: list[RepoTarget] = []
     for repo_id in sorted(fleet):
         role = fleet[repo_id]["role"]
         if role == "pre-deploy":
-            targets.append(RepoTarget(repo_id, role, None, "pre-deploy: not walked"))
+            declared = str((fleet[repo_id] or {}).get("reason") or "").strip()
+            targets.append(RepoTarget(repo_id, role, None,
+                                      f"pre-deploy: not walked -- {declared}" if declared
+                                      else "pre-deploy: not walked"))
             continue
         if role == "hub":
             targets.append(RepoTarget(repo_id, role, hub_root,
@@ -972,8 +997,13 @@ def verdicts(manifest: dict, baseline: dict, targets: list[RepoTarget],
 
     for target in targets:
         if target.role == "pre-deploy":
+            # [#490]: the manifest's declared reason is carried THROUGH to the finding.
+            # A reason the report does not show is a comment, not a machine surface --
+            # the row's done-when asks for "a declared reason the check READS".
+            declared = target.note.split("--", 1)[1].strip() if "--" in target.note else ""
             out.append(ParityFinding(target.repo_id, "fleet-membership",
                                      SKIPPED_PRE_DEPLOY, SEV_INFO,
+                                     _ascii(declared) if declared else
                                      "registered, no methodology deployed yet -- "
                                      "rendered, not silently absent", "-"))
             continue
