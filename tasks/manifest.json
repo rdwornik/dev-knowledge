@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "357feb6294ba748e030ef9298fee78c3bcefd7c139f5f39c129671d8b3837150",
+  "generated_sha256": "9b4f452d2761932620cefd9c73384e5c7cca3db2e62dcec566b49838536d29de",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -59,6 +59,10 @@
     {
       "task": 162,
       "file": "162-vocab-decision.md"
+    },
+    {
+      "task": 511,
+      "file": "511-handoff-cut-cost-is-session-authoring.md"
     },
     {
       "prose": ""
