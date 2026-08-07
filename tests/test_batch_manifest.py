@@ -102,13 +102,21 @@ def _write_manifest(repo, *, batch=2, closed_by="docs/audits/2026-08-09-technica
     (d / name).write_text(
         f"---\nbatch: {batch}\nstatus: open\nclosed_by: {closed_by}\n---\n\n# Batch {batch}\n",
         encoding="utf-8")
+    # TRACKED, not merely present: since 2026-08-07 an UNCOMMITTED manifest grants nothing,
+    # so every fixture manifest is committed or it would model a state the rule rejects.
+    _run(repo, "add", "-A")
+    _run(repo, "commit", "-q", "-m", f"batch {batch} manifest")
     return d / name
 
 
 def _close_it(repo, closed_by="docs/audits/2026-08-09-technical-batch-2-packet.md"):
+    """Land the closing packet. COMMITTED, because an uncommitted packet has not closed
+    anything — the same HEAD-based rule that governs the manifest itself."""
     p = repo / closed_by
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text("# packet\n", encoding="utf-8")
+    _run(repo, "add", "-A")
+    _run(repo, "commit", "-q", "-m", "end-of-batch packet")
     return p
 
 
@@ -118,9 +126,11 @@ def _close_it(repo, closed_by="docs/audits/2026-08-09-technical-batch-2-packet.m
 def test_exempt_inside_an_open_batch(tmp_path, monkeypatch):
     """CASE 1 — the state batch 1 had to `SKIP=audit-health` through. A lane merge is
     unanchored mid-queue, a manifest declares the batch open, and the gate passes."""
-    repo, floor = _seed(tmp_path)
-    merge = _merge(repo, "worktree-lane-a-490-parity")
+    repo, _seed_rev = _seed(tmp_path)
     _write_manifest(repo)
+    floor = _rev(repo)          # floor AFTER the manifest commit: that commit is ordinary
+                                # non-merge work and is not what this test is about
+    merge = _merge(repo, "worktree-lane-a-490-parity")
 
     # The RAW predicate still sees it — the exemption is a gate-level judgement, not a
     # rewriting of what "anchored" means. Without this the test below could pass on a
@@ -156,9 +166,10 @@ def test_the_exemption_expires_when_the_closing_packet_lands(tmp_path, monkeypat
     Expiry is keyed to the packet rather than to a `status:` edit because `docs/audits/` is
     IMMUTABLE (CLAUDE.md §5 rule 3) — an exemption whose expiry required editing an
     immutable artifact would either never expire or corrupt the record."""
-    repo, floor = _seed(tmp_path)
-    merge = _merge(repo, "worktree-lane-a-490-parity")
+    repo, _seed_rev = _seed(tmp_path)
     _write_manifest(repo)
+    floor = _rev(repo)          # see CASE 1
+    merge = _merge(repo, "worktree-lane-a-490-parity")
     monkeypatch.setattr(aud, "_is_hub", lambda p: True)
     monkeypatch.setattr(ja, "floor_sha", lambda p: floor)
     assert aud.check_journal_spine_anchor(repo)[0].status == "pass"
@@ -175,8 +186,9 @@ def test_the_exemption_expires_when_the_closing_packet_lands(tmp_path, monkeypat
 def test_a_non_lane_merge_is_never_exempt_even_mid_batch(tmp_path, monkeypatch):
     """An open batch does not amnesty ordinary work. Only `worktree-lane-*` merges qualify,
     so the integrator's own `docs/…` arcs and every unrelated feature merge stay gated."""
-    repo, floor = _seed(tmp_path)
+    repo, _seed_rev = _seed(tmp_path)
     _write_manifest(repo)
+    floor = _rev(repo)
     merge = _merge(repo, "feat/unrelated")
 
     monkeypatch.setattr(aud, "_is_hub", lambda p: True)
@@ -191,8 +203,9 @@ def test_a_lane_merge_and_a_plain_merge_together_report_only_the_plain_one(tmp_p
     """Mixed mid-batch spine: the lane merge is exempt, the ordinary one is not, and the
     evidence names exactly the second. A partial exemption that swallowed both would be the
     dangerous failure mode, so it is pinned rather than assumed."""
-    repo, floor = _seed(tmp_path)
+    repo, _seed_rev = _seed(tmp_path)
     _write_manifest(repo)
+    floor = _rev(repo)
     lane = _merge(repo, "worktree-lane-b-429-worktree")
     plain = _merge(repo, "feat/other")
 
@@ -202,6 +215,14 @@ def test_a_lane_merge_and_a_plain_merge_together_report_only_the_plain_one(tmp_p
     assert findings[0].status == "fail"
     assert plain[:7] in findings[0].evidence
     assert lane[:7] not in findings[0].evidence
+    # ... AND the FAIL still DISCLOSES that an exemption was applied (terra HIGH, 2026-08-07).
+    # This assertion is the fix for a hole this very test used to pin: it asserted only that
+    # the lane SHA was absent, which a FAIL that never mentioned the exemption satisfied
+    # perfectly. A reader counting unanchored merges in the mixed case would have been given
+    # a number with a silent subtraction in it — contradicting the ADR-110 amendment's own
+    # "reported, never applied silently" clause exactly where it matters most.
+    assert "exempt" in findings[0].evidence.lower()
+    assert "NOT counted above" in findings[0].evidence
 
 
 @requires_git
@@ -285,13 +306,100 @@ def test_the_pre_push_organ_does_not_consult_the_manifest_at_all():
             "refusal or the range-level leg stops being unconditional")
 
 
-def test_the_exemption_leg_cannot_turn_a_fail_into_silence_when_it_errors():
-    """FR6 discipline inherited from ADR-85: an unreadable manifest is an unknown exemption
-    state, and an unknown exemption state must not read as 'exempt'. Pinned at the source —
-    `open_batches` swallows its own read errors into `[]` (no exemption), never into a
-    claim that a batch is open."""
+def test_the_exemption_leg_cannot_turn_a_fail_into_silence_when_it_errors(tmp_path):
+    """FR6 discipline inherited from ADR-85: an unknown exemption state must never read as
+    'exempt'. Asserted BEHAVIOURALLY on a directory git cannot read as a repo, not on the
+    source text — the earlier source-level version broke when error handling moved into the
+    shared `_git` helper, which is the classic way a source-shape assertion outlives the
+    shape it described while still claiming to check the property."""
+    assert bm.open_batches(tmp_path) == []          # not a git repo at all
+    assert bm.exempt(tmp_path, ["deadbeef"]) == set()
+
     import inspect
-    src = inspect.getsource(bm.open_batches)
-    assert "except" in src, "the reader must handle unreadable manifests explicitly"
-    # the failure direction is the point: errors reduce to "no open batch"
-    assert "continue" in src or "return []" in src
+    # ... and the single git chokepoint really does swallow into None (never raise upward),
+    # which is what makes every caller above reduce to "no exemption".
+    assert "except" in inspect.getsource(bm._git)
+    assert "return None" in inspect.getsource(bm._git)
+
+
+# --- the exemption's integrity, after the PRE-2 self-reviews -----------------
+
+@requires_git
+def test_an_UNCOMMITTED_manifest_grants_nothing(tmp_path):
+    """terra HIGH x2, 2026-08-07, and both attempts are worth keeping in one test.
+
+    The ADR says a COMMITTED manifest. v1 checked only that a FILE EXISTED, so an untracked
+    file dropped into `docs/audits/` quieted the gate with nothing in any diff a reviewer
+    reads. v2 used `git ls-files` for tracked-ness -- which a merely STAGED addition
+    satisfies -- and still read CONTENT off disk, so an unstaged edit to a committed manifest
+    could flip the verdict. Only a HEAD-based read means what the rule says, and all four
+    states are asserted here."""
+    repo, _floor = _seed(tmp_path)
+    d = repo / "docs" / "audits"
+    d.mkdir(parents=True, exist_ok=True)
+    m = d / "2026-08-07-technical-batch-2-manifest.md"
+    body = "---\nbatch: 2\nstatus: open\nclosed_by: docs/audits/x-packet.md\n---\n"
+    m.write_text(body, encoding="utf-8")
+    assert bm.open_batches(repo) == [], "UNTRACKED must open nothing"
+
+    _run(repo, "add", "-A")
+    assert bm.open_batches(repo) == [], "merely STAGED must open nothing"
+
+    _run(repo, "commit", "-q", "-m", "now committed")
+    assert len(bm.open_batches(repo)) == 1, "the SAME file, COMMITTED, opens it"
+
+    m.write_text(body.replace("status: open", "status: closed"), encoding="utf-8")
+    assert len(bm.open_batches(repo)) == 1, "an unstaged EDIT must not change the verdict"
+
+
+@requires_git
+def test_an_UNCOMMITTED_closing_packet_does_not_expire_the_exemption(tmp_path):
+    """The mirror of the above on the expiry side: a packet sitting on disk has not closed
+    the batch. Otherwise the exemption could be ended -- or kept alive by deleting an
+    uncommitted file -- outside the record entirely."""
+    repo, _floor = _seed(tmp_path)
+    _write_manifest(repo)
+    assert len(bm.open_batches(repo)) == 1
+    p = repo / "docs" / "audits" / "2026-08-09-technical-batch-2-packet.md"
+    p.write_text("# packet\n", encoding="utf-8")
+    assert len(bm.open_batches(repo)) == 1, "an UNCOMMITTED packet closes nothing"
+    _run(repo, "add", "-A")
+    _run(repo, "commit", "-q", "-m", "packet")
+    assert bm.open_batches(repo) == [], "... committed, it closes the batch"
+
+
+@pytest.mark.parametrize("closer", [
+    "/etc/passwd",                              # absolute
+    "C:/tmp/packet.md",                         # drive-lettered
+    "docs/audits/../../escape.md",              # escaping
+    "notes/packet.md",                          # outside docs/audits/
+    "docs/audits/packet.txt",                   # not a markdown artifact
+    "",                                         # absent
+])
+def test_a_closer_that_can_never_resolve_opens_nothing(closer):
+    """terra HIGH, 2026-08-07. The exemption's whole safety is that the closer EVENTUALLY
+    EXISTS. A `closed_by` that can never resolve to a real in-repo path is a PERMANENT
+    exemption wearing well-formed clothes, so the shape is validated rather than trusted."""
+    assert bm._valid_closer(closer) is False, closer
+
+
+def test_an_inline_comment_does_not_smuggle_a_non_expiring_closer():
+    """`closed_by: docs/audits/x.md  # later` would otherwise carry the comment into the
+    path, which then never resolves -- the same permanent exemption by a different route."""
+    fm = bm._frontmatter(
+        "---\nbatch: 2\nstatus: open\n"
+        "closed_by: docs/audits/2026-08-07-technical-batch-2-packet.md  # at close\n---\n")
+    assert fm["closed_by"] == "docs/audits/2026-08-07-technical-batch-2-packet.md"
+    assert bm._valid_closer(fm["closed_by"]) is True
+
+
+def test_the_live_repos_own_manifest_is_well_formed():
+    """The mechanism is armed for batch 2 RIGHT NOW, so the LIVE manifest is checked rather
+    than assumed -- a malformed one would silently grant no exemption at all, and the batch
+    would rediscover F1 the hard way mid-queue."""
+    live = bm.open_batches(Path(aud._REPO_ROOT))
+    if not live:
+        pytest.skip("no batch open in the live repo")
+    for b in live:
+        assert bm._valid_closer(b.closed_by), b
+        assert b.batch.isdigit(), b
