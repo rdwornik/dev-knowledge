@@ -745,7 +745,7 @@ other are both correct:
 |---|---|---|---|
 | In-session | `verify` skill (pytest + ruff + git) | does this step pass its gates | per numbered step |
 | Pre-merge | `/codex-review`; `/ship` gate | code-diff correctness; branch→`--no-ff`→clean | operator-invoked |
-| Post-merge (server) | `report-only-wall.yml` (GitHub Actions) | **what actually landed on `main`** — the client-side gate set re-run off-host, on a full-depth clone | report-only; records, never blocks |
+| Post-merge (server) | `report-only-wall.yml` (GitHub Actions) | **what actually landed on `main`** — **three legs of the seventeen** client-side gates, re-run off-host on a full-depth clone (`pytest` — not a hook at all —, `audit.py health`, and the anchor backstop). **NOT** the whole gate set: `ruff` and 13 others are not re-run server-side, so a `--no-verify` push carrying a ruff violation still leaves no server record (LA-3, corrected 2026-08-07 — this row previously said "the client-side gate set", which over-claimed). Widening it to a fourth `pre-commit run --all-files` leg is an open ticket, not an oversight: it changes what the record MEANS | report-only; records, never blocks |
 | Nightly (cloud) | conformance Routine | **claims-vs-docs** coherence (own repo) | read-only + skeptic |
 | Nightly (local) | `fleet_health.py` / `audit.py run` | structural + **freshness-stamp** health (repo + siblings) | deterministic, fail-soft |
 | Funnel | `surface_triage.ps1` + morning triage | operator ratifies findings before they bind | human gate (#123) |
