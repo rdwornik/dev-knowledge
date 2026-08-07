@@ -19,6 +19,60 @@
 
 ---
 
+### 2026-08-07 (e) — CC (Opus 5, primary): the integrator reviewed its own arc, and the reviews found six defects in it
+
+**Did:** Closed the loop PRE-2 left open. `review_artifact_coverage` flagged the integrator's
+own merges for exactly the gap it flagged lanes A and B, so the integrator was reviewed like a
+lane — three codex passes, six real defects, all fixed or dispositioned. Anchors:
+**`e62c412a`** (five HIGHs from the arc review), **`d961bc12`** (the sixth, plus the HEAD-based
+rewrite it forced).
+
+**Result — GREEN-on-branch is not GREEN-on-main, demonstrated on my own work.** PRE-2's
+ship-gate was green on its branch and RED the moment it merged: the merges themselves are the
+code-impact events, and an artifact cannot link to a merge SHA that does not exist yet. Ch8
+already names this distinction; this arc is a worked example of it. The terminating shape is the
+one the leg was designed for — **review the branch BEFORE merging and key the artifact by
+BRANCH** — which is now what the batch-2 lane contracts require.
+
+**Result — six defects, in a mechanism I had just armed for batch 2.** Three were in the R-1
+exemption itself: an **uncommitted manifest granted it** (glob-and-exists, while the ADR says
+committed); a **`closed_by` that can never resolve** — absolute, escaping, or comment-suffixed —
+would have been a **permanent** exemption wearing well-formed clothes; and the **mixed FAIL case
+hid the exemptions it applied**, contradicting the amendment's own *"reported, never applied
+silently"* clause in the one case where a reader is counting. Two were workflow guards (`before`
+checked for existence but not ancestry; the anchor leg handed an unresolvable SHA after a
+force-push). The sixth arrived in the **second** review and landed **on the fix for the first**:
+`git ls-files` is satisfied by a merely STAGED addition, and content was still read from the
+working tree — so everything now resolves through `HEAD` (`ls-tree`, `HEAD:<path>`,
+`cat-file -e HEAD:<closer>`), which is the only implementation that means what "committed" says.
+
+**Result — three tests were wrong in ways worth naming, not just fixed.** One PINNED a hole:
+`test_a_lane_merge_and_a_plain_merge...` asserted only that the lane SHA was absent, which a FAIL
+that never mentioned the exemption satisfies perfectly — my own test locked in the silence. Two
+became VACUOUS under the HEAD-based rule: they wrote manifests without committing, so the
+`status:`/`closed_by:` clauses they name were never consulted at all. And one source-shape
+assertion outlived the shape it described while still claiming to check the property.
+
+**The pattern, stated once because it recurred four times today.** Prose stating a principle is
+not evidence the branch implements it. The stash leg's docstring said *"a detector that cannot
+see does not report clean"* and the code stayed silent; the exemption's ADR said *"reported,
+never applied silently"* and the FAIL branch returned early; the hardening that fixed
+committed-ness was itself not committed-ness. **A test written by the same author in the same
+sitting inherits the same blind spot** — every one of these was caught by a second reader, none
+by me re-reading my own work.
+
+**Changes:** `scripts/batch_manifest.py` (HEAD-based reads, `_valid_closer`, comment stripping) ·
+`scripts/audit.py` (mixed-case disclosure) · `.github/workflows/report-only-wall.yml` (two
+before-SHA guards) · `tests/test_batch_manifest.py` (+10, 21 total) · three codex artifacts with
+dispositions.
+
+**Abandoned:** nothing. One MEDIUM accepted-and-not-fixed with reasons: the mutmut-sandbox skip
+keys on the directory name `mutants`, which is real and narrow, and belongs with [#502]'s open
+verdict — on REJECT the skip and its detection disappear together.
+
+**Next:** the batch-2 manifest is armed and verified live (`open_batches()` reads it as open,
+expiring at its declared packet). Wave 1 can dispatch.
+
 ### 2026-08-07 (d) — CC (Opus 5, primary): the [#502] chain had a THIRD blocker, and the PRE-2 CI work is verified
 
 **Did:** Ran the post-push verification PRE-2 owed, and fixed what it found. Anchor: **`8bb06e00`**.
