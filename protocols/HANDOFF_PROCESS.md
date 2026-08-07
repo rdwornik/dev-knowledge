@@ -885,78 +885,26 @@ intake↔epic edge stays **advisory until n=2** intake docs are consumed end-to-
   `RESIDUAL.md` + `PROBES.md` + `PASTE_THIS.md`, assembled by `scripts/assemble_paste.py`,
   single-paste onboarding; #164 rescoped to the generator); §14 token-log cadence relocated in
   from PLAYBOOK §8 (#152). Version ended 5.0 (all additive post-flip).
-- v5.1 (2026-06-16, §13 architect strategic supplement — interview extraction) — **Version → 5.1**
-  (first minor bump; additive, architect-mode only). New §13 sub-section "Architect strategic
-  supplement — interview extraction": the architect's strategic *why* (intent · tensions weighed ·
-  options rejected · open questions · decomposition rationale · off-repo context) becomes a
-  **first-class advisory supplement produced by a structured 6-question interview** — CC emits a
-  paste-ready interview block (sourced from `templates/handoff/v5/SUPPLEMENT.md.tmpl`), the operator
-  relays it to the **outgoing** browser, and the browser's answers become `SUPPLEMENT.md` verbatim
-  (no re-typing), which `scripts/assemble_paste.py` folds into `PASTE_THIS` (expected in architect
-  mode; `[warn]` if absent). Closes v5's one structural gap (the *why* originates browser-side but the
-  residual is CC-emitted, so v5.0 leaned on operator-relay / human memory). Hard scope constraint: the
-  interview asks **only** non-re-derivable *why* — never repo state / methodology / task-state (those
-  stay source-authoritative + forced-read, §3/§5); the supplement is advisory, never teeth, and a
-  per-session transient (not a v4-disease maintained surface). §13(d) operator-context beat refined to
-  the lighter "anything changed since the supplement?" check (Q6 captures off-repo context at handoff
-  time); beat kept, not duplicated. Coupled atomic move: `CONTRIBUTING.md` stamp v5.0→v5.1 (the only
-  gate-forced surface; major stays 5, so `CLAUDE.md` / `.claude/commands/handoff.md` unchanged).
-  ADR-82 amended in-file (2026-06-16). §§1–12, §14 unchanged. Refs #159 (operator-context beat),
-  #164 (cross-repo generator — schema kept portable for it).
-- v5.2 (2026-06-17, §13 architect strategic supplement — always-generated fillable file) — **Version
-  → 5.2** (second minor bump; additive, architect-mode only). The §13 supplement is reworked from a
-  v5.1 **ephemeral terminal interview block** (durable only *after* the outgoing browser answered — a
-  cold/`/clear`ed handoff produced no file, no tracking, no lead-by-hand) into an **always-generated,
-  self-documenting, fillable file**: CC writes `docs/handoffs/<slug>/SUPPLEMENT.md` unconditionally
-  (QUESTIONS for the outgoing chat + an empty ANSWERS section), commits it on the handoff branch for
-  durable tracking, and `scripts/assemble_paste.py` folds the **ANSWERS region only, only when
-  non-empty** into the next `PASTE_THIS` (was: whole-file fold + warn-if-absent). Defines the
-  **cold-handoff disposition** (empty ANSWERS = committed N/A, not folded; the incoming §13(d) beat
-  fires full) — resolving the first-dogfood finding (2026-06-16 `RESIDUAL.md` §2). Contract unchanged:
-  advisory, why-only, never teeth, never fabricated (unanswered = committed empty). Coupled atomic
-  move: `CONTRIBUTING.md` stamp v5.1→v5.2 (the only gate-forced surface; major stays 5, so `CLAUDE.md`
-  / `.claude/commands/handoff.md` unchanged). ADR-82 amended in-file (2026-06-17). §§1–12, §14
-  unchanged. Refs #159 (the real dogfood — mechanism defined here, not yet exercised), #164 (generator
-  must emit the always-file form).
-- v5.2 (2026-06-24, §13 narration condense) — condensed the v5.0→v5.1→v5.2 evolution-narration in the
-  architect-supplement subsection to its current state (info-preserving: the evolution stays in this
-  Section history + git). Live mode spec / lifecycle / schema / `SUPPLEMENT.md.tmpl` pointers all
-  **unchanged**. **Version unchanged (5.2; condense-only — no rule change.)** Companion to the STEP-0
-  finding that the C1/C4/C6 v4-corpus *removal* premise is refuted (the named targets are live/gated,
-  not dead) — this arc removed nothing, only the redundant evolution prose. Refs #164.
-- v5.3 (2026-06-25, §5 probe-manifest consolidation) — **Version → 5.3** (third minor bump; a
-  probe-contract / bundle-shape change like the v5.1/v5.2 supplement bumps — not a condense). §5's
-  **drift-flag set** + **freshness witness** probes fold into one **Ship-gate read-back** row: both
-  bind to checks `ship-gate` already runs (`git_backlog_drift`, `canonical_freshness` — `ALL_CHECKS`
-  members whose evidence prints inline), so running the gate re-derives them with **zero verification
-  coverage lost**. Anti-bluff preserved — the read-back's teeth rest on the dispositioned-WARN count +
-  any `[stale]` line (both drift, neither is the §1 headline), not the bluffable GREEN/RED verdict.
-  Kept verbatim, the four probes `ship-gate` structurally cannot recover: Live check count (its token
-  lives in `audit.py checks`, not the verdict), Exact-line quote (anti-bluff), Live HEAD/tree (volatile
-  sha), Pointer round-trip (orientation). Net 6 → 5 probes. No `audit.py` change — `parse_probes` reads
-  the bundle PROBES.md table generically; the consolidated §5 keeps the 4-column schema. **Coupled
-  atomic move (this commit):** `CONTRIBUTING.md` stamp v5.2→v5.3, the 2 `reconciled_with` edges
-  (`ARCHITECTURE.md`, `docs/handoffs/README.md`) @5.2→@5.3, and the 3 freshness-gated docs re-read +
-  restamped (the re-read filed #204 — a stale CONTRIBUTING nightly-outcome section). Major stays 5
-  (`CLAUDE.md` / `.claude/commands/handoff.md` unchanged). Executes the deferred "Arc 2 = 5.3 bump +
-  full reconciliation" (afb7421). Refs #161, #204.
-- v5.4 (2026-07-05, §5 structural anti-bluff + §13 generator note) — **Version → 5.4** (fourth
-  minor bump; additive only — no rule removed or weakened). §5 gains "Structural enforcement —
-  anti-bluff by construction": the item-2 "never the answer" contract is now machine-held
-  (row-scoped `expected[ :]` FAIL rung in `verify_handoff_probes.py`; `gen_handoff.py` renders
-  bundles answer-free by construction, diverting generation-time values to a stdout
-  JOURNAL-draft; the promotion dogfood re-runs structurally per-bundle via the gate). §13 gains
-  the generator note (#164 RF-2 slice: scaffold fill-preservation, answer-free probe template,
-  unconditional SUPPLEMENT, paste size-warn, mechanized cold→FILLED flip) with the honest
-  adoption caveat (live bundles MAY still be hand-authored until #164's adoption slice closes).
-  Documents the RF-1 option-b mechanism landed `9d5ebe5` (2026-07-04) — the spec catches up to
-  shipped structure, deferred at that merge to fold into this reconciliation arc. **Coupled
-  atomic move (this arc):** `CONTRIBUTING.md` stamp v5.3→v5.4, the 5 `reconciled_with` edges
-  (`ARCHITECTURE.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `docs/handoffs/README.md`,
-  `protocols/HANDOFF_BOOT.md`) @5.3→@5.4 (each site-enumerated + verdicted per
-  `check-against-spec`), freshness-gated dependents genuinely re-read + restamped, and the 3
-  PLAYBOOK advisory version strings refreshed. Major stays 5. Refs #164, RF-1 (2026-07-04
-  handoff-adoption review), 2026-07-05 overnight run Block D.
+- v5.1 -> v5.4 (2026-06-16 -> 2026-07-05, **five entries condensed 2026-08-07 per ADR-49/65** —
+  info-preserving; full prior entries: `git log --follow -p -- protocols/HANDOFF_PROCESS.md`, and
+  verbatim at `77b75dd7:protocols/HANDOFF_PROCESS.md`) — the architect-supplement + anti-bluff
+  arc, four minor bumps, major stayed 5 throughout. **v5.1** (2026-06-16) made the architect's
+  strategic *why* a first-class **advisory** supplement produced by a structured interview,
+  closing v5's one structural gap (the *why* originates browser-side, the residual is CC-emitted).
+  **v5.2** (2026-06-17) reworked it from an ephemeral terminal block into the **always-generated
+  fillable file** committed on the handoff branch, folded ANSWERS-only and only when non-empty,
+  and defined the **cold-handoff disposition** — empty ANSWERS is a committed N/A, not a missing
+  deliverable, and the incoming §13(d) beat fires full; a 2026-06-24 pass then condensed that
+  subsection's own evolution-narration with **no rule change**. **v5.3** (2026-06-25) folded the
+  drift-flag-set and freshness-witness probes into one **Ship-gate read-back** row — 6 -> 5 probes
+  with zero verification coverage lost, since both bind to checks `ship-gate` already runs.
+  **v5.4** (2026-07-05) made §5's "never the answer" contract **machine-held** rather than
+  hand-discipline: the row-scoped `expected[ :]` FAIL rung in `verify_handoff_probes.py`, and
+  `gen_handoff.py` rendering answer-free **by construction** with generation-time values diverted
+  to a stdout JOURNAL draft — so the promotion dogfood re-runs structurally on every bundle. Each
+  carried its own coupled atomic move (the `CONTRIBUTING.md` stamp plus the `reconciled_with`
+  edges, site-enumerated and verdicted per `check-against-spec`, with freshness-gated dependents
+  genuinely re-read). Refs #159, #161, #164, #204, RF-1.
 - v5.5 (2026-07-05, §14 epic-lane handoffs + token-log renumber §14→§15) — **Version → 5.5**
   (fifth minor bump; additive — no §1–§13 rule changed). New **§14 "Epic-lane handoffs"**
   records the two tree-orchestration handoff types (**ADR-97**; operating model PLAYBOOK §8):
