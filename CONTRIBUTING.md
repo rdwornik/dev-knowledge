@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-08-06
+last_reviewed: 2026-08-07
 reconciled_with: handoff-process@6.0.1
 status: active
 owner: Rob
@@ -24,7 +24,7 @@ chore/short-description
 
 Default branch: `main` (ADR-30).
 
-Branch prefixes are `feat/ fix/ docs/ chore/` — **author-chosen branches, these four only** — **plus three machine-produced lane prefixes: `worktree-<name>` (native parallel-session worktrees, `claude --worktree` / EnterWorktree), `epic/<slug>` (root-provisioned epic lanes), and `claude/<slug>` (Anthropic cloud-session lanes). Lane branches are never self-merged and never author-invented; a new machine-produced lane prefix enters this enum only via a recorded ruling (never silently) — the enum stays the checkable surface.** Commit **types** follow Conventional Commits and additionally include `refactor` and `test` — commit types are **not** branch prefixes. Never commit directly to `main`: branch → `--no-ff` merge.
+Branch prefixes are `feat/ fix/ docs/ chore/` — **author-chosen branches, these four only** — **plus four machine-produced lane prefixes: `worktree-<name>` (native parallel-session worktrees, `claude --worktree` / EnterWorktree), `epic/<slug>` (root-provisioned epic lanes), `claude/<slug>` (Anthropic cloud-session lanes), and `automation/<slug>` (organ-produced replication lanes — admitted 2026-08-06 by architect ruling, register `protocols/STANDING_RULINGS.md` B5). Lane branches are never self-merged and never author-invented; a new machine-produced lane prefix enters this enum only via a recorded ruling (never silently) — the enum stays the checkable surface.** Commit **types** follow Conventional Commits and additionally include `refactor` and `test` — commit types are **not** branch prefixes. Never commit directly to `main`: branch → `--no-ff` merge.
 
 ## Commit style
 
