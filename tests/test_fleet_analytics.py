@@ -612,9 +612,29 @@ def test_hub_is_included_as_a_mining_target():
     assert fleet[0][1] == fa._REPO_ROOT
     names = [n for n, _ in fleet]
     assert len(names) == len(set(names)), "a repo was enumerated twice"
-    # The hub is named canonically even from a linked worktree -- repo_root.name would
-    # report the worktree dir and invent a fleet repo that does not exist.
-    assert names[0] == ".dev-knowledge"
+
+    # IDENTITY BY MARKER, NOT BY DIRECTORY NAME (2026-08-07, [#502]). This assertion used to
+    # be `names[0] == ".dev-knowledge"`, a literal that is only true on the operator's host:
+    # the GitHub Actions runner checks this repo out as `dev-knowledge`, DOTLESS. That is not
+    # merely cosmetic -- mutmut refuses to mutate until its baseline test run is green, so the
+    # hardcoded literal made the [#502] mutation pilot report all 84 mutants `not checked`
+    # while its job stayed green. A test pinned to where it happens to be run is a portability
+    # defect, and this one had a measurable cost.
+    root = fleet[0][1]
+    assert (root / "protocols" / "PLAYBOOK.md").is_file(), "hub marker missing"
+    assert (root / "docs" / "decisions").is_dir(), "hub marker missing"
+
+    # NAME derived from the git COMMON dir's parent, never `repo_root.name` -- the property
+    # that stops a linked worktree inventing a fleet repo that does not exist. Re-derived here
+    # through git directly rather than by calling `_hub_name`, so this is a check of the rule
+    # and not an echo of the implementation.
+    common = subprocess.run(["git", "-C", str(root), "rev-parse", "--git-common-dir"],
+                            capture_output=True, text=True, encoding="utf-8")
+    if common.returncode == 0 and common.stdout.strip():
+        primary = (root / common.stdout.strip()).resolve().parent
+        assert names[0] == primary.name, (
+            f"hub named {names[0]!r} but the primary checkout is {primary.name!r} -- "
+            "the name must follow the common dir, not the current working tree")
 
 
 @pytest.mark.live_repo

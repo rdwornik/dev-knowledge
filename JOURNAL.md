@@ -19,6 +19,80 @@
 
 ---
 
+### 2026-08-07 (c) — CC (Opus 5, primary): PRE-2 — batch-2 preconditions cleared; R-1 built, ship-gate GREEN honestly, manifest committed at dispatch
+
+**Did:** One serial arc clearing everything batch 2 cannot dispatch without. Declared process
+work, outside the batch, reported as such. Anchors: **`a17d791f`** (R-1 built), **`16269f79`**
+(ship-gate GREEN by real reviews), **`e024a8c8`** ([#502] blocker chain), **`d388d0f2`** (ruled
+cleanups), **`80d4eb61`** (two births), **`876cc463`** (the batch-2 manifest).
+
+**Result — R-1 built, exactly as drafted.** `check_journal_spine_anchor` gains the
+declared-integration-arc exemption: a `worktree-lane-*` `--no-ff` merge is skipped **only while
+a committed manifest declares an open batch**. `SKIP=audit-health` — which disabled the whole
+registry twice per batch, five times at width 6 — is retired for intermediate merges. Two design
+decisions the draft did not specify, both recorded rather than silently taken. **Expiry is keyed
+to the closing packet, not to a `status:` edit**, because `docs/audits/` is immutable and an
+exemption whose expiry required editing an immutable artifact would either never expire or
+corrupt the record; a manifest with no `closed_by:` opens nothing. **The exemption is reported,
+never silent** — the pass evidence names the count, the batch, the manifest, and the packet
+that ends it. Containment asserted on the **AST**: `block_unanchored_push.py` and
+`journal_anchor.py` do not import `batch_manifest`, so the push-time refusal is provably
+unconditional. Test-first, RED witnessed (collection ERRORed on the absent module); 11 tests.
+
+**Result — ship-gate RED → GREEN with zero force-greening**, and the reviews found real defects
+**in my own code**. Three retroactive terra passes against the merged diffs: lane A `6714f7cd`
+(0/1/0/0), lane B `a4f4f1e9` (0/0/0/0), the morning F4 arc `2f2edd2b` (0/2/0/0). **A brief
+premise did not survive git** — PRE-2 called `a4f4f1e9` "the docs-only integration-arc merge";
+it changes `scripts/audit.py` and `tests/`, so dispositioning it as docs-only would have been
+the false disposition the brief's own guardrail forbids. It was reviewed instead. **Both HIGHs
+on the morning F4 code were real and are fixed**: a stash-reader failure was silently reported
+as a clean result (the code contradicted a rule I had written into its own docstring — "a
+detector that cannot see does not report clean" — and did not implement), and
+`UnicodeDecodeError` could crash a WARN-tier leg because it is a `ValueError` the handler never
+caught. A test asserting the old behaviour was **replaced, not deleted around**.
+
+**Result — [#502]'s real blocker was a test pinned to where it runs.**
+`test_hub_is_included_as_a_mining_target` asserted `names[0] == ".dev-knowledge"`; the Actions
+runner checks out as `dev-knowledge`, **dotless**. mutmut needs a green baseline, so that one
+literal is why all 84 mutants read `not checked` while the job reported success. Now identity is
+by **repo marker** and the name is re-derived through `git rev-parse --git-common-dir` directly
+rather than by calling `_hub_name` — a check of the rule, not an echo of it. LA-2's invalid
+`python-version-file:` input dropped from both jobs (uv reads `.python-version` itself, which is
+where the pin was always enforced). LA-4 gated — **not** with a workflow-level `paths:` filter,
+which would gate the recorder too and turn the wall into something that is not a record; a small
+`changes` job feeds the pilot's `if`, and it **fails toward not-running**. New
+`tests/test_report_only_wall.py` pins the workflow as data, including the recorder-ungated /
+pilot-gated asymmetry — nothing pinned it before, which is why both defects shipped.
+
+**Result — fleet enum drift is 0 sites.** The global `~/.claude/rules/core-invariants.md` §5,
+knowingly left standing this morning for want of a ruling, is closed under the PRE-2
+authorization. CLAUDE.md gains a v2.53 entry recording it; **v2.52 is left unedited** because it
+is accurate as the record of what v2.52 did — the same append-not-amend discipline B6 landed for
+anchors hours earlier. ARCHITECTURE Ch6 no longer claims the wall re-runs "the client-side gate
+set": it re-runs **three of seventeen**, and now says so.
+
+**Result — the manifest exists, and it is the first one.** `docs/audits/2026-08-07-technical-
+batch-2-manifest.md`: 6 lanes, 2 waves, exclusive footprints declared **because none of the six
+rows carries a `footprint:` field** (LB-1 repeating at scale), pre-assigned audit filenames with
+Rule B checked at authoring time, and quota 5 feature / 1 process against a cap of 1. Two
+collisions were found **in the plan** rather than at merge — [#490]+[#430] share
+`fleet_parity.py` so they are one lane; [#430] and [#393] share a serialize-group so they are in
+different waves. Verified live that `open_batches()` reads it and arms R-1.
+
+**Changes:** `scripts/batch_manifest.py` + `tests/test_batch_manifest.py` (new) ·
+`scripts/audit.py` (exemption wiring, stash-leg fixes) · `docs/decisions/ADR-110-*.md`
+(2026-08-07 amendment) · `.github/workflows/report-only-wall.yml` (LA-2, LA-4) ·
+`tests/test_report_only_wall.py` (new) · 3 codex artifacts + a cited disposition ·
+`~/.claude/bin/codex-review.ps1` + `~/.claude/rules/core-invariants.md` (both ruled) ·
+`tasks/507`, `tasks/508` (births) · the batch-2 manifest · PLAYBOOK Ch8, CLAUDE.md v2.53,
+ARCHITECTURE Ch6.
+
+**Abandoned:** nothing. **[#505] stays OPEN** — batch 2 running from this manifest is its
+clause-1 test, and closing it now would ratify the gap as satisfied.
+
+**Next:** dispatch wave 1. The falsifier for this arc's own CI work is the next push: the wall
+must fire and the `mutation-pilot` must NOT (nothing here touches its subject).
+
 ### 2026-08-07 (b) — CC (Opus 5, primary): the recorder FIRED on a real push — [#501] closed on run evidence; [#502] stays OPEN and here is why
 
 **Did:** Ran the post-push verification the morning brief owed. The push at

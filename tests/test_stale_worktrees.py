@@ -71,9 +71,10 @@ def _wt(name: str, *, age_days: float = 0.0, on_disk: bool = True) -> dict:
 def test_clean_tree_passes(monkeypatch, tmp_path):
     """CLEAN — no linked worktrees at all. The overwhelmingly common state; it stays quiet."""
     monkeypatch.setattr(aud, "_git_linked_worktrees", lambda _p: [])
+    monkeypatch.setattr(aud, "_git_stash_entries", lambda _p: [])   # git is a repo here
     out = aud.check_stale_worktrees(tmp_path, now=_NOW)
-    assert len(out) == 1
-    assert out[0].status == "pass"
+    assert len(out) == 2                       # the worktree verdict, then the stash verdict
+    assert [f.status for f in out] == ["pass", "pass"]
     assert out[0].check_name == "stale_worktrees"
 
 
@@ -85,6 +86,7 @@ def test_mid_batch_worktrees_pass(monkeypatch, tmp_path):
         _wt("lane-b-506-grooming", age_days=1.5),
         _wt("lane-c-490-currency", age_days=6.9),
     ])
+    monkeypatch.setattr(aud, "_git_stash_entries", lambda _p: [])   # git is a repo here
     out = aud.check_stale_worktrees(tmp_path, now=_NOW)
     assert out[0].status == "pass"
     assert "3" in out[0].evidence
@@ -96,6 +98,7 @@ def test_worktree_past_the_horizon_warns(monkeypatch, tmp_path):
         _wt("lane-a-505-batch-protocol", age_days=0),
         _wt("lane-z-401-forgotten", age_days=30),
     ])
+    monkeypatch.setattr(aud, "_git_stash_entries", lambda _p: [])   # git is a repo here
     out = aud.check_stale_worktrees(tmp_path, now=_NOW)
     assert out[0].status == "warn"
     assert "lane-z-401-forgotten" in out[0].evidence
@@ -110,6 +113,7 @@ def test_registered_but_missing_from_disk_warns_regardless_of_age(monkeypatch, t
     monkeypatch.setattr(aud, "_git_linked_worktrees", lambda _p: [
         _wt("lane-a-505-batch-protocol", age_days=0, on_disk=False),
     ])
+    monkeypatch.setattr(aud, "_git_stash_entries", lambda _p: [])   # git is a repo here
     out = aud.check_stale_worktrees(tmp_path, now=_NOW)
     assert out[0].status == "warn"
     assert "lane-a-505-batch-protocol" in out[0].evidence
@@ -122,6 +126,7 @@ def test_horizon_boundary_is_not_stale(monkeypatch, tmp_path):
     monkeypatch.setattr(aud, "_git_linked_worktrees", lambda _p: [
         _wt("lane-a-505-batch-protocol", age_days=aud._STALE_WORKTREE_HORIZON_DAYS),
     ])
+    monkeypatch.setattr(aud, "_git_stash_entries", lambda _p: [])   # git is a repo here
     assert aud.check_stale_worktrees(tmp_path, now=_NOW)[0].status == "pass"
 
 
@@ -145,6 +150,7 @@ def test_unknown_age_does_not_manufacture_staleness(monkeypatch, tmp_path):
     entry = _wt("lane-a-505-batch-protocol")
     entry["last_commit_epoch"] = None
     monkeypatch.setattr(aud, "_git_linked_worktrees", lambda _p: [entry])
+    monkeypatch.setattr(aud, "_git_stash_entries", lambda _p: [])   # git is a repo here
     out = aud.check_stale_worktrees(tmp_path, now=_NOW)
     assert out[0].status == "warn"
     assert "age unknown" in out[0].evidence
@@ -291,14 +297,48 @@ def test_several_stash_entries_are_counted_and_the_list_is_bounded(monkeypatch, 
     assert len(out[1].evidence) < 400
 
 
-def test_stash_leg_stays_silent_when_the_stash_cannot_be_read(monkeypatch, tmp_path):
-    """Unreadable is not clean and is not dirty either. The worktree leg already carries the
-    n/a signal for a repo git cannot see, so the stash leg declines to invent a second one."""
+def test_an_unreadable_stash_warns_when_git_itself_is_working(monkeypatch, tmp_path):
+    """UNREADABLE IS NOT CLEAN (terra HIGH, 2026-08-07 — this test replaces one that asserted
+    the opposite, and the replacement is the point).
+
+    The first version of this leg stayed SILENT whenever `_git_stash_entries` returned None,
+    justified as "the worktree leg already carries the n/a for a repo git cannot see". That
+    justification only holds when the worktree reader ALSO failed. When it succeeded — git is
+    demonstrably working — a None is a genuine read failure (timeout, non-zero exit), and
+    silence let the organ report a clean worktree verdict while this leg never ran at all.
+    Exactly the detector-that-cannot-see-must-not-report-clean rule the sibling leg follows,
+    which the original docstring asserted in prose and the code did not implement."""
     monkeypatch.setattr(aud, "_git_linked_worktrees", lambda _p: [])
     monkeypatch.setattr(aud, "_git_stash_entries", lambda _p: None)
     out = aud.check_stale_worktrees(tmp_path, now=_NOW)
-    assert len(out) == 1
-    assert out[0].check_name == "stale_worktrees"
+    assert len(out) == 2
+    assert out[0].status == "pass"                     # worktrees genuinely clean
+    assert out[1].status == "warn"                     # ... and the stash leg says it is blind
+    assert "could not be read" in out[1].evidence
+    assert "says nothing" in out[1].evidence
+
+
+def test_an_unreadable_stash_stays_silent_when_git_is_absent(monkeypatch, tmp_path):
+    """The other half of the same distinction: when the worktree reader returns None the
+    organ has already emitted its n/a, so the stash leg does not say the same thing twice.
+    `_stash_findings` is called directly here because `check_stale_worktrees` returns before
+    reaching it — which is itself the behaviour being pinned."""
+    monkeypatch.setattr(aud, "_git_stash_entries", lambda _p: None)
+    assert aud._stash_findings(tmp_path, git_known_good=False) == []
+    assert aud.check_stale_worktrees(tmp_path, now=_NOW)[0].status == "n/a"
+
+
+def test_the_stash_reader_survives_undecodable_bytes(tmp_path):
+    """A stash subject is an arbitrary commit message, so it can carry non-UTF-8 bytes. The
+    reader decodes with `errors="replace"` — without it `subprocess.run` raises
+    `UnicodeDecodeError`, which is a ValueError and is NOT caught by the OSError handler, so
+    a WARN-tier advisory leg would crash the whole audit check (terra HIGH, 2026-08-07).
+
+    Asserted at the source rather than by manufacturing a non-UTF-8 stash, which git makes
+    awkward to do portably: the decode posture is the property, and it is one line."""
+    import inspect
+    src = inspect.getsource(aud._git_stash_entries)
+    assert 'errors="replace"' in src, "a stash subject can be undecodable; decode tolerantly"
 
 
 def test_a_stash_does_not_mask_or_be_masked_by_a_stale_worktree(monkeypatch, tmp_path):

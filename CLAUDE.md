@@ -7,7 +7,7 @@ owner: Rob
 
 # CLAUDE.md — Dev Knowledge
 <!-- scope: meta -->
-<!-- version: 2.52 — 2026-08-07 -->
+<!-- version: 2.53 — 2026-08-07 -->
 
 > **Session contract for Claude Code in this repo.** Read on every session start (auto). Single canonical agent-instruction file (≤200 lines). Per ADR-53.
 >
@@ -221,6 +221,14 @@ Machine-enumerated (last 5 by number, from `docs/decisions/ADR-*.md` headers; re
 
 > _Entries v1.0–v2.48 condensed to git history per ADR-49/65 (info-preserving — full prior history: `git log --follow -p -- CLAUDE.md`)._
 
+- v2.53 (2026-08-07, PRE-2 arc) — **the fourth enum site is closed.** v2.52 below left
+  `~/.claude/rules/core-invariants.md` §5 standing at "three" because core-invariant #6 bars a
+  unilateral global-infra edit; the architect ruled that specific edit in the PRE-2 brief, so it
+  landed and fleet-wide enum drift is now **0 sites**. No content change in this file — v2.52's
+  text is accurate as the record of what v2.52 did, and is left alone rather than rewritten,
+  which is the same append-not-amend discipline STANDING_RULINGS B6 landed for JOURNAL anchors
+  in this same window. L10 version 2.52→2.53; `last_reviewed` unchanged at 2026-08-07 (the
+  genuine end-to-end re-read behind it happened this morning and no §-content moved since).
 - v2.52 (2026-08-07) — §4's branch-prefix enum says **four** machine-produced lane prefixes, admitting `automation/<slug>` alongside the three. This is drift repair, not a decision: the ruling was made 2026-08-06 and executed the same night at `3879d28b`, which landed the fourth member into `scripts/validate_branch_naming.py` (`LANE_PREFIXES`, `KIND_AUTOMATION_LANE`, an ORDER-pinning test) and recorded it at `protocols/STANDING_RULINGS.md` B5 — the register entry the enum's own governing clause demands. What that commit did *not* do is update the prose that states the enum, so the canonical instruction file spent one night asserting "three" while the validator accepted four. Caught by this morning's integration spot-check of that very commit, which is the [#503] failure class ("the thing it describes moved underneath it") arriving in the file that boots every session. Repaired at all three in-repo sites in one commit, source-of-truth first: the hub carrier `templates/claude-regions/conventions-commit-branch.md`, this file's `conventions-commit-branch` region (byte-coupled to the carrier by `test_hub_region_bodies_still_byte_match_the_templates`), and `CONTRIBUTING.md` "Branch naming". A FOURTH site is knowingly left standing — `~/.claude/rules/core-invariants.md` §5 still says three — because core-invariant #6 makes global-infra edits exception-with-ruling and no ruling covers this one; it is filed to the operator rather than fixed. Phrased with no new normative keyword, so `silent_rule_ratchet` holds at 441 ≤ 441. L10 version 2.51→2.52. Genuine full-file end-to-end re-read from disk this session (all 12 sections confirmed accurate; §9's roster was exercised live by this morning's own commits — `audit-health`, `backlog-id-on-close`, `backlog-filing-backpressure` and `validate-hermetization` each fired against them — and §4's enum count is the one defect the re-read surfaced); `last_reviewed` re-stamped 2026-08-07.
 - v2.51 (2026-08-03) — ADR-85 amendment 2026-08-03 built. §9 gains `block-unanchored-push` (the ADR-85 HARD leg, pre-push, scoped to main) and records `block-ff-push`'s posture change to **fail-CLOSED** (it silently auto-allowed on any internal error until this arc). The `Stop` backpressure row now says **advisory in full** — it has no hard leg and cannot block a turn. DRIFT FOUND AND FIXED BY THIS RE-READ: §7 still described ADR-85 §4 `/override` as "the gate's only escape", which the amendment §A2 retired — corrected in place, since the sole escape is now `git push --no-verify` backed by the `journal_spine_anchor` FAIL backstop. L10 version 2.50→2.51. Genuine full-file end-to-end re-read from disk this session (all 12 sections confirmed accurate; §9's roster exercised live against the shipped hooks and the §7 staleness above is the one defect it surfaced); `last_reviewed` re-stamped 2026-08-03.
 - v2.50 (2026-08-02) — §9 pre-commit roster gains `check-seal-identity` ([#475]): commit-time seal-identity gate over staged `docs/handoffs/**` bundles, reusing `gen_handoff.verify_seal_identity` (the [#473] seal-time refusal's commit-time twin). Roster addition only — no doctrine moved; ARCHITECTURE Ch2 gate list updated in lockstep. L10 version 2.49→2.50.

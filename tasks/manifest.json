@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "adb246ddddb5776f7724c1999b2f8501eac43af919a898c4eeaca54b26fc6250",
+  "generated_sha256": "e220b2957fb4fe45b601d4fd38b710d0555cd808db860bd7dd249fe41aeb3c40",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -213,6 +213,10 @@
       "prose": ""
     },
     {
+      "task": 507,
+      "file": "507-report-only-wall-fourth-leg-precommit-run-all-files.md"
+    },
+    {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
     },
     {
@@ -256,6 +260,10 @@
     },
     {
       "prose": ""
+    },
+    {
+      "task": 508,
+      "file": "508-lane-prefix-enum-cardinality-coupling.md"
     },
     {
       "prose": "### [S5] Catch spec/dependent drift mechanically, not by memory"
