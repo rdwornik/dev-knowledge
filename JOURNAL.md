@@ -19,6 +19,86 @@
 
 ---
 
+### 2026-08-07 (a) — CC (Opus 5, primary): MORNING CONSOLIDATION — the night audit integrated on the operator host, F4 closed, R-2/R-3 ruled
+
+**Did:** One serial arc consolidating the 2026-08-06 night. Re-verified
+`claude/night-audit-batch-1-verify-27hai3` **locally** before integrating it — the container's own
+dossier §1 says its verdict is not derivable from that seat, so the host had to re-derive it —
+then landed the deliberately-withheld F4 hardening and two of the three drafted adjudications.
+Anchors: **`9c2407ee`** (the night-branch merge), **`c358d95c`** (MC-1, the enum-prose repair),
+**`eb3079e7`** (F4, three teeth), **`54ebf950`** (R-3 + R-2).
+
+**Result — the night branch holds, and the container attribution was right.** Suite at the branch
+head on this host: **2 failed / 2414 passed / 3 skipped** (460.58s, 2419 collected). The same two
+tests fail identically at bare `main` `319f885d`, re-run individually — `test_routine_consumers_
+live_backlog_governs_exactly_one_row` and `test_check_fleet_parity_green_on_live_repo` ([#430]).
+**Zero third RED**, so the night's 12 container REDs were indeed the container. All four mutating
+commits spot-verified against their claims and all four hold: the mutmut `["-n","0"]` fix, the
+`automation/` enum + B5 register entry, intake #27's §D repair (the document's sections really are
+A/B/C/F, checked by heading scan), and the 02_METHODOLOGY four-condition test.
+
+**Result — ship-gate is RED, and it was RED before this arc.** Two undispositioned
+`review_artifact_coverage` WARNs, byte-identical at the branch head and at bare `main`: `a4f4f1e9`
++ `6714f7cd` are code-impact merges with no linked review artifact, and `5af0b33c`'s artifact
+carries no parseable `**Tally:**` line. All three are about batch-1 merges **already on main**,
+and the dossier §4 classifies them as true positives. **Not dispositioned here** — a disposition
+is the operator's call, and force-GREENing another window's WARNs is how a baseline rots.
+
+**Result — MC-1, a defect this integration created and this integration fixed.** `3879d28b`
+admitted a FOURTH lane prefix into `LANE_PREFIXES` and into the STANDING_RULINGS B5 register while
+three prose sites still said "three machine-produced lane prefixes". That is the [#503] failure
+class — a description the world moved past — landing in the file every session boots from, one
+night after the batch that closed [#503] for exactly this. Repaired at all three in-repo sites
+(the hub carrier, CLAUDE.md's byte-coupled region, CONTRIBUTING) with both `last_reviewed` stamps
+honestly re-earned by end-to-end re-reads. A **fourth** site is knowingly left standing:
+`~/.claude/rules/core-invariants.md` §5, which core-invariant #6 puts outside CC's reach without a
+ruling. Filed to the operator rather than edited.
+
+**Result — F4 closed, three teeth.** `refs/stash` lives in the **common** git dir, so a lane's
+mid-work stash survives `worktree remove`, `prune`, the branch delete, and all four
+refuse-to-finish items — every one of which is worktree- or branch-shaped. A batch can close green
+with a lane's work sitting where nothing points at it. Teeth: the lane contract now says
+`git stash list` is empty at STOP (first, because the lane is the only seat that still knows what
+the stash was for); the close-out checklist goes four items to **five**, in Ch8 and in
+`/lane-integrate`; and `check_stale_worktrees` gains a stash WARN leg. Test-first with the RED
+witnessed — 8 tests written and run against the unmodified organ (8 failed), then implemented, 21
+passing. The constraining test provisions a real worktree, stashes inside it, tears the worktree
+down completely, and asserts the stash **survives** while every worktree measure reports clean.
+
+**Result — R-3 and R-2 landed; R-1 is NOT mine.** R-3 (STANDING_RULINGS **B6** + one Ch8
+sentence): an anchor discharges by **APPEND ONLY** — a new entry naming the SHA. `journal_anchor`
+matches a short SHA anywhere in the file, so editing a committed entry discharges the anchor
+*retroactively* with no trace it ever did not, which dissolves precisely the tamper-evidence the
+ADR-85 amendment moved the teeth to protect. `0518e3a6` stands **grandfathered** — pushed history
+is not rewritten to tidy a record. R-2 landed as an appended `## Amendment — 2026-08-07` on ADR-85
+after passing the architect's condition (purely descriptive currency, zero behavioral proposals).
+Its locators were re-derived rather than copied: **three of the draft's five citations had drifted
+in under 24 hours**, inside a draft whose whole subject is a stale reference — so the amendment
+quotes anchor text beside every line number and records that as its own lesson. **R-1 (the ADR-110
+integration-arc exemption) is quoted verbatim in the morning packet, unlanded.**
+
+**Result — full local gates, no SKIP of any kind.** Every commit passed `audit-health`,
+`validate-hermetization`, `backlog-id-on-close` and `backlog-filing-backpressure` on the host. The
+night's `SKIP=audit-health` was a container concession that does not exist here, and none was
+used. Suite on the merged branch: **2 failed / 2422 passed / 3 skipped** — the same two, plus the
+eight new tests green. `silent_rule_ratchet` 441 ≤ 441 at every commit, measured on staged blobs.
+
+**Changes:** `protocols/PLAYBOOK.md` (Ch8 — lane STOP contract, checklist item 5, the R-3 anchoring
+sentence) · `protocols/STANDING_RULINGS.md` (B6) · `docs/decisions/ADR-85-*.md` (2026-08-07
+amendment) · `scripts/audit.py` (`_git_stash_entries`, `_stash_findings`, organ wiring) ·
+`tests/test_stale_worktrees.py` (+8) · `.claude/commands/lane-integrate.md` (five-item checklist) ·
+`CLAUDE.md` (v2.52, §4 enum, re-stamp) · `CONTRIBUTING.md` + `templates/claude-regions/` (enum) ·
+generated: TOC, `commands-repo.md`, `doc-counts.md`.
+
+**Abandoned:** nothing. **[#505] stays OPEN** by the brief's own instruction — clause 1 is
+falsified until a batch runs from a committed manifest, and batch 2 is its test.
+
+**Next:** the push-triggered recorder run is the falsifier for the night's diagnosis ([#501]'s
+owed verification + the fixed [#502] mutation numbers); the morning packet carries R-1, the LA-2/
+LA-3/LA-4/LC-1 ticket proposals, the `core-invariants.md` §5 global-infra ask, and the batch-2
+quota problem — at width 6 the ≤1/4 process cap allows at most one process lane, and this repo's
+open set is methodology-heavy by construction.
+
 ### 2026-08-06 (i) — CC (Opus 5, cloud, unattended): batch-1 INDEPENDENT VERIFICATION — a second seat checks the integrator ([#503] [#504] closed; [#501] [#502] [#505] held open)
 
 **Did:** Ran the night-audit brief against the batch-1 range `df815c7..319f885d` from a separate
