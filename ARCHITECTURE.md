@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-08-06
+last_reviewed: 2026-08-07
 reconciled_with: handoff-process@6.0.1
 status: active
 owner: Rob
@@ -14,7 +14,16 @@ owner: Rob
 > class this repo exists to kill). Fix the map when reality moves; fix the *source*
 > when the doctrine moves.
 >
-> Last updated: `2026-08-06` — **batch-1 integration (ADR-110), integrator-owned edits from
+> Last updated: `2026-08-07` — **[#501] closed; two Ch2 status cells corrected.** The
+> `report-only-wall.yml` row loses `ARMED (never fired)`: run `31161874468` (event `push`) fired
+> it on this morning's own push and discharged BOTH owed conditions at once — the anchor leg ran
+> a real push range for the first time, and two legs recorded exit 1 while the job stayed green,
+> which is exactly the "green with the red recorded" proof the cell demanded. **Drift caught by
+> this re-read, unrelated to that:** the `session_end_backpressure.py` row still claimed
+> `hard-block on detected non-compliance`, a posture the ADR-85 amendment 2026-08-03 §A5 retired
+> — the hook is **advisory in full** and the script's own docstring (`:14`) says it "no longer has
+> a HARD leg". CLAUDE.md §9 had been correct since 2026-08-03; this map had not. Prior:
+> `2026-08-06` — **batch-1 integration (ADR-110), integrator-owned edits from
 > three parallel lanes.** Ch2 gains the **server** Layer value and the **report-only** failure
 > posture (a posture that *cannot* be hardened — the repo is private on the Free tier, where
 > required checks do not exist), plus the `report-only-wall.yml` organ row, `ARMED (never
@@ -236,7 +245,7 @@ An organ can be ARMED and still tell you nothing. Read the qualifier before trus
 | `changelog_sentinel.py` (SessionStart) | session start | hub | fail-soft | ARMED | #113 |
 | `surface-closures.ps1` (SessionStart) | session start | L0 | fail-soft | ARMED | ADR-70 (5c) |
 | `propose_closures.py` (Stop) | session end | plugin · Tier-1 | **propose-only** (never mutates BACKLOG) | ARMED | ADR-70 |
-| `session_end_backpressure.py` (Stop) | session end | hub | hard-block on detected non-compliance (JOURNAL leg), fail-open on internal error (no deadlock); BACKLOG advisory | ARMED | #126; ADR-85 |
+| `session_end_backpressure.py` (Stop) | session end | hub | **advisory in full** since the ADR-85 amendment 2026-08-03 §A5 — it has **no hard leg and cannot block a turn**; the JOURNAL teeth moved to `block_unanchored_push.py` (pre-push) because a Stop hook is exhaustible by the host's consecutive-block cap, and an organ that can be exhausted cannot carry teeth. Its outer error is now loud rather than a silent `return 0` | **ARMED (advisory)** | #126; ADR-85 amendment 2026-08-03 §A5; `scripts/session_end_backpressure.py:14` |
 | `verify` (skill) | invoked per numbered step | hub | advisory (pytest+ruff+git) | ARMED | #104 (home #9 open) |
 | `gotchas` (skill) | auto-consulted before edits | L0 | advisory | ARMED | global |
 | `artifact-reader` (agent) | reading a >20k-token artifact | hub | read-only (Read/Grep/Glob) | ARMED | #97 |
@@ -261,7 +270,7 @@ An organ can be ARMED and still tell you nothing. Read the qualifier before trus
 | `deploy/tool.py` + 5 carriers (`globalconfig`/`plugin`/`precommit`/`floor`/`mesh`) | operator (hub, per-consumer) | hub → consumer | verify-gated (record iff every carrier verifies); write-yes / commit-no | ARMED | ADR-91/92/93; PLAYBOOK §20 |
 | `floor-hash-verify` (pre-commit) + SessionStart floor guard (`.claude/check_floor_hash.py`) | consumer commit / session start | consumer (armed by `carrier_floor`) | **fail-closed** (loud on floor drift) | ARMED | ADR-93 (#226) |
 | pre-commit gates (`.pre-commit-config.yaml`) | local commit | pre-commit · Tier-1 | **fail-closed** | ARMED | §Validators below (count in `ecosystem/doc-counts.md`) |
-| `report-only-wall.yml` (GitHub Actions) | `push` to `main` (+ `workflow_dispatch`) | **server** | **report-only** — the three measured legs (`pytest`, `audit.py health`, `block_unanchored_push.py`) are `continue-on-error` and never block; the job still reds on a *setup* failure (uv pin assertion / `uv sync`), deliberately, because a green job with no environment would be a lie | **ARMED (never fired — verification owed: one deliberate red-making push must show the run green with the red recorded)** | [#501]; ADR-101 amendment 2026-08-06; `docs/audits/2026-08-06-technical-night-prep-packs.md` §B1 |
+| `report-only-wall.yml` (GitHub Actions) | `push` to `main` (+ `workflow_dispatch`) | **server** | **report-only** — the three measured legs (`pytest`, `audit.py health`, `block_unanchored_push.py`) are `continue-on-error` and never block; the job still reds on a *setup* failure (uv pin assertion / `uv sync`), deliberately, because a green job with no environment would be a lie | **ARMED (FIRED — verification discharged 2026-08-07 by run `31161874468`, event `push`, head `2f2edd2b`: `pytest` exit 1 and `audit.py health` exit 1 recorded in the summary table while the job concluded `success`, and the anchor leg ran a REAL push range `319f885d..2f2edd2b` for the first time, exit 0)** | [#501] closed 2026-08-07; ADR-101 amendment 2026-08-06; `docs/audits/2026-08-06-technical-night-prep-packs.md` §B1 |
 
 The **Tier-1 closure loop** is three of these organs in a cycle:
 `commit closes [#id]` → `Stop: propose_closures.py` writes `logs/PROPOSALS-*.md`

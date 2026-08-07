@@ -19,6 +19,59 @@
 
 ---
 
+### 2026-08-07 (b) — CC (Opus 5, primary): the recorder FIRED on a real push — [#501] closed on run evidence; [#502] stays OPEN and here is why
+
+**Did:** Ran the post-push verification the morning brief owed. The push at
+**`2f2edd2b`** was the first to `main` since the recorder landed, so it is the falsifier the
+night audit named for its own diagnosis. Anchor: **`93b2fa35`** (the [#501] close + the two
+ARCHITECTURE Ch2 status-cell corrections).
+
+**Result — the night's diagnosis is CONFIRMED, by its own named check.** `total_count` went
+**1 → 2**, and the new run is `31161874468`, **event `push`**, `head_sha 2f2edd2b`. The night
+predicted exactly this ("the next push to main finds the workflow already registered") and named
+the command that would refute it. It did not refute it. The workflow-landed-in-the-same-push edge
+was the whole cause; nothing needed fixing in the YAML or in repo settings.
+
+**Result — [#501] CLOSED, all four done-when clauses now evidenced.** *runs on push* was the one
+clause the night marked NOT MET; it is met. Both residual conditions the dossier held open
+discharged in the same run: the **anchor leg executed a real push range** for the first time
+(`refs/heads/main 2f2edd2b … 319f885d` fed to `block_unanchored_push.py`, exit 0 — every prior
+execution was `workflow_dispatch`, which has no range and recorded `skipped`), and **green-with-
+the-red-recorded is proven** — `pytest` exit **1** and `audit.py health` exit **1** sit in the
+summary table while the job concluded **success**. That is the organ's whole thesis, demonstrated
+rather than asserted. Closed per ADR-107 §6.3: status flipped to `closed`, manifest node dropped,
+task file retained as the allocation record, `--emit-source` regen. 200 → 199 tasks.
+
+**Result — [#502] stays OPEN, and the reason is a SECOND defect, not a contradiction.** The
+night's LA-1 diagnosis was right and its fix works: under `["-n", "0"]` pytest now **collects and
+runs** inside mutmut (`1 failed, 62 passed in 26.58s`), where before it exited 4 on
+`unrecognized arguments: -n` before collecting anything. That symptom is gone. But the pilot
+still measures **zero** mutants, because a different blocker was hiding behind the first:
+mutmut requires a GREEN baseline before mutating, and
+`test_fleet_analytics::test_hub_is_included_as_a_mining_target` asserts the repo directory is
+`.dev-knowledge` while the Actions runner checks out into `dev-knowledge`. mutmut reports
+`failed to collect stats. runner returned 1` and leaves all 84 mutants `not checked`.
+**No ADOPT/REJECT verdict is recordable** — [#502]'s done-when asks for measured divergence and
+there is none. Not fixed here, per the brief's own instruction. Worth noting the irony: that test
+is one of the 12 REDs the night dossier attributed to the container, so the evidence for this
+second blocker was already in the night's own honest-limits list, one inference away.
+
+**Result — two ARCHITECTURE Ch2 cells corrected, one of them unrelated drift.** The
+`report-only-wall.yml` Status cell loses `ARMED (never fired — verification owed)`, which my own
+push falsified. The **end-to-end re-read that the `last_reviewed` re-stamp requires then surfaced
+a second stale cell**: `session_end_backpressure.py` still claimed `hard-block on detected
+non-compliance`, retired by the ADR-85 amendment 2026-08-03 §A5. Verified against the code before
+touching it — the script's own docstring `:14` reads "no longer has a HARD leg and can no longer
+block a turn". CLAUDE.md §9 has been correct since 2026-08-03; this map had not caught up. That is
+the third instance today of the same class (MC-1, R-2's drifted citations, this) — a map claim
+outliving the thing it maps.
+
+**Changes:** `tasks/501-*.md` (status closed) · `tasks/manifest.json` (node dropped) ·
+`BACKLOG.md` (regen, 199) · `ARCHITECTURE.md` (two Ch2 cells, header entry, re-stamp).
+
+**Abandoned:** nothing. **Next:** [#502] needs the runner-dir assertion resolved before any
+mutation number exists — reported to the architect, not fixed.
+
 ### 2026-08-07 (a) — CC (Opus 5, primary): MORNING CONSOLIDATION — the night audit integrated on the operator host, F4 closed, R-2/R-3 ruled
 
 **Did:** One serial arc consolidating the 2026-08-06 night. Re-verified

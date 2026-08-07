@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "7261c1c0a761f3dcf91d50b7659c948b7f4668924d6f80955c63f895bf2daa27",
+  "generated_sha256": "adb246ddddb5776f7724c1999b2f8501eac43af919a898c4eeaca54b26fc6250",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -211,10 +211,6 @@
     },
     {
       "prose": ""
-    },
-    {
-      "task": 501,
-      "file": "501-server-side-report-only-recorder-github-actions.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
