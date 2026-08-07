@@ -57,7 +57,9 @@ WHAT "READ-ONLY" DOES AND DOES NOT COVER, measured rather than asserted (terra, 
 The proof spawns the target checkout's interpreter and its pytest. That is irreducible: the row
 asks whether *its pytest* imports the right source, and no static read answers that. What it
 does NOT do is run the target's own code, and each route was closed or checked:
-  * the selected packages are RESOLVED, never imported (`find_spec`);
+  * the selected packages are RESOLVED, never imported (`find_spec`), and only ever by their
+    TOP-LEVEL name — `find_spec("pkg.sub")` would import `pkg` to read its `__path__`, so a
+    dotted name is reduced at discovery and refused again inside the generated test;
   * installed pytest plugins do not autoload (`PYTEST_DISABLE_PLUGIN_AUTOLOAD`), which is the
     one route by which a repo could get its own code executed by entry point;
   * the target's `conftest.py` is NOT loaded — **verified, not reasoned**: a sentinel appended
@@ -121,6 +123,9 @@ def test_imports_resolve_inside_this_checkout(pytestconfig):
     names = [n for n in os.environ["WT_PROOF_PACKAGES"].split(",") if n]
     resolved = {}
     for name in names:
+        if "." in name:  # a dotted name would make find_spec import the parent - never resolve one
+            resolved[name] = {"error": f"ValueError: refusing a dotted name {name!r}"}
+            continue
         try:
             spec = importlib.util.find_spec(name)
         except Exception as exc:  # noqa: BLE001 - an unresolvable package is a reportable result
@@ -222,6 +227,18 @@ def _package_dir_exists(root: Path, name: str) -> bool:
     return False
 
 
+def top_level(name: str) -> str:
+    """`pkg.subpkg` -> `pkg`. Every name this module handles is reduced to its top-level segment.
+
+    This is a Layer-2 requirement, not tidiness (terra P1, fourth pass). `find_spec("pkg.subpkg")`
+    has to IMPORT `pkg` to read its `__path__` before it can look inside — so a dotted name would
+    execute child-repo code by the back door, through the very call chosen to avoid executing it.
+    Nothing is lost by resolving only the top level: the top-level package's origin is what
+    determines which checkout the whole subtree comes from, which is the entire question.
+    """
+    return name.split(".")[0]
+
+
 def declared_packages(root: Path) -> tuple[str, ...]:
     """Importable package names this repo declares, filtered to those that exist on disk.
 
@@ -243,14 +260,14 @@ def declared_packages(root: Path) -> tuple[str, ...]:
     for pattern in includes:
         if not isinstance(pattern, str):
             continue
-        name = pattern.rstrip("*").rstrip(".")
+        name = top_level(pattern.rstrip("*").rstrip("."))
         if name and _package_dir_exists(root, name) and name not in found:
             found.append(name)
 
     if not found:
         dist = data.get("project", {}).get("name")
         if isinstance(dist, str):
-            name = dist.replace("-", "_")
+            name = top_level(dist.replace("-", "_"))
             if _package_dir_exists(root, name):
                 found.append(name)
 
@@ -491,7 +508,9 @@ def main(argv: list[str] | None = None) -> int:
     try:
         root = resolve_root(Path(args.repo))
         if args.packages:
-            packages = tuple(n.strip() for n in args.packages.split(",") if n.strip())
+            packages = tuple(dict.fromkeys(
+                top_level(n.strip()) for n in args.packages.split(",") if n.strip()
+            ))
         else:
             packages = declared_packages(root)
 

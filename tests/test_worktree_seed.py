@@ -202,6 +202,30 @@ def test_the_emitted_copy_block_globs_a_path_and_never_recurses_by_basename(tmp_
     _git(primary, "worktree", "remove", "--force", str(linked))
 
 
+def test_powershell_literals_double_embedded_apostrophes():
+    r"""A path is not a safe string (terra P1, fourth pass). `C:\Users\O'Brien` closes the
+    literal early: at best the emitted block is a syntax error, at worst the tail is parsed as
+    PowerShell. Single-quoted strings do not interpolate, so doubling is the complete escape."""
+    assert ws._ps_single_quote(r"C:\Users\O'Brien\repo") == r"'C:\Users\O''Brien\repo'"
+    assert ws._ps_single_quote("plain") == "'plain'"
+
+
+@requires_git
+def test_the_emitted_copy_block_survives_an_apostrophe_in_the_path(tmp_path):
+    """End to end, through `_copy_block` rather than only through the helper: every path the
+    block interpolates has to go through the escape, not just the ones a reader remembered."""
+    primary = _init_repo(tmp_path / "O'Brien demo")
+    (primary / ".env").write_text("K=v", encoding="utf-8")
+    linked = tmp_path / "lane"
+    _git(primary, "worktree", "add", "-q", str(linked), "-b", "worktree-demo")
+
+    block = "\n".join(ws._copy_block(ws.build_plan(linked)))
+    assert "O''Brien" in block
+    assert "O'Brien demo'" not in block   # an unescaped literal would leave a dangling quote
+
+    _git(primary, "worktree", "remove", "--force", str(linked))
+
+
 @requires_git
 def test_a_plan_always_ends_by_naming_the_proof(tmp_path):
     """The plan is a claim about provisioning; the proof is the only thing that measures it.

@@ -241,6 +241,18 @@ def _matches_in(base: Path, pattern: str) -> bool:
         return False
 
 
+def _ps_single_quote(value: str) -> str:
+    """`value` as a PowerShell single-quoted literal, apostrophes doubled.
+
+    A path is not a safe string (terra P1, fourth pass). `C:\\Users\\O'Brien\\repo` closes the
+    literal early: at best the emitted block is a syntax error, at worst the remainder of the
+    path is parsed as PowerShell. Single-quoted strings do not interpolate, so doubling `'` is
+    the complete escape — and it is applied at the ONE place paths become script text, rather
+    than trusted to every caller.
+    """
+    return "'" + value.replace("'", "''") + "'"
+
+
 def _copy_block(plan: Plan) -> list[str]:
     """The PowerShell that seeds `plan.root` from `plan.primary`.
 
@@ -251,10 +263,10 @@ def _copy_block(plan: Plan) -> list[str]:
     `settings.local.json` it happened to find first. A path glob matches the declared location
     and nothing else.
     """
-    patterns = ", ".join(f"'{p.replace('/', chr(92))}'" for p in plan.present)
+    patterns = ", ".join(_ps_single_quote(p.replace("/", chr(92))) for p in plan.present)
     return [
-        f"$primary = '{plan.primary}'",
-        f"$lane    = '{plan.root}'",
+        f"$primary = {_ps_single_quote(str(plan.primary))}",
+        f"$lane    = {_ps_single_quote(str(plan.root))}",
         f"foreach ($p in @({patterns})) {{",
         "    Get-ChildItem -Path (Join-Path $primary $p) -File -Force | ForEach-Object {",
         "        $t = Join-Path $lane $_.FullName.Substring($primary.Length + 1)",
