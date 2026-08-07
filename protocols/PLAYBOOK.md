@@ -81,6 +81,7 @@
   - [Tree orchestration — architect-root + epic-chat lanes (ADR-97)](#tree-orchestration--architect-root--epic-chat-lanes-adr-97)
   - [The batch protocol — ONE plan → N lanes → ONE integrator (ADR-110)](#the-batch-protocol--one-plan--n-lanes--one-integrator-adr-110)
   - [Dispatch visibility — Agent View shows DISPATCHED sessions only (STANDING_RULINGS B7)](#dispatch-visibility--agent-view-shows-dispatched-sessions-only-standing_rulings-b7)
+  - [Model + effort are stated at dispatch — the routing matrix](#model--effort-are-stated-at-dispatch--the-routing-matrix)
 - [Ch9. Tier-1 closure loop — usage](#ch9-tier-1-closure-loop--usage)
   - [Propagating a plugin change across the fleet](#propagating-a-plugin-change-across-the-fleet)
   - [The methodology↔project boundary (what IS methodology)](#the-methodologyproject-boundary-what-is-methodology)
@@ -1919,6 +1920,55 @@ worktree session from inside itself, for instance), the fallback is dispatching 
 a worktree the lane-boot protocol already provisioned — the two steps run in sequence rather than
 composed on one command line, with the same visibility result.
 
+### Model + effort are stated at dispatch — the routing matrix
+<!-- scope: hybrid -->
+
+**Ruled 2026-08-07 (architect, batch-2 consolidation arc).** The browser-architect states model
+**and** effort on every dispatch it emits; the operator overrides either at the point of dispatch.
+The rule is scoped to that one act — the line the operator pastes carries the routing, so a lane's
+tier is a decision on the record rather than an inherited default nobody picked.
+
+**The matrix, as ruled.** Model:
+
+| Tier | Routes |
+|---|---|
+| **opus** | M/L arcs · gate and organ code · architecture · adversarial verification · any arc whose failure poisons downstream work |
+| **sonnet** | S-class bounded edits · documentation arcs · git-ops |
+| **haiku** | retrieval only |
+
+Effort — `high` for multi-file reasoning, design and review; `medium` as the S-class default;
+`low` for mechanical single-file work. **`max` stays out of dispatch routing.** Its recorded uses
+in this repo are session-level rather than flag-level (`JOURNAL.md` 2026-07-04, the Fable
+architecture review; the 2026-06 HANDOFF_PROCESS audit), and the architect's stated reason also
+cites a history of the flag being disregarded — a history no in-repo artifact carries, so it is
+recorded here as the ruling's rationale rather than as a verified platform fact. The full ladder
+and what each rung buys stay at "How to choose Effort" in §2; this matrix routes dispatches, not
+the ladder.
+
+**Dispatch constants.** Three items ride every dispatch without being re-decided:
+`--permission-mode bypassPermissions`, `--bg`, and the board label (shape and rationale directly
+above). Checked against the installed CLI (2.1.224): `claude --help` carries `--bg`,
+`--permission-mode <mode>`, `--effort <level>` and `--model <model>` as independent flags, so the
+matrix above is expressible on the command line exactly as written.
+
+**Ceremony cut, ruled in the same act — the dispatch line is authoritative for model and effort.**
+An **S-class contract therefore drops the `Model | Mode | Effort` table**: the line that launched
+the session already carries two of its three rows, and a table restating them is a second source
+free to disagree with the first. **M- and L-class contracts keep the table**, where the `Mode` row
+carries something the dispatch line does not. `templates/prompt-template.md` (v1.10) is the
+point-of-use form.
+
+**Declared collision with "Model is CC's pick", and the boundary that scopes it.** The ADR-87
+equilibrium — "The two lifelines" § Lifeline 1, restated at §2 "How to choose Model" — puts model
+selection on CC's side of the table and keeps the architect out of it. The ruling above points the
+other way for one population: the dispatch of a `--bg` lane. The boundary declared here is
+population-shaped rather than a reversal — the architect states the tier a *session boots at*; CC
+keeps its routing of sub-steps **inside** that session, which is the act ADR-87's row was written
+about. ADR-87 is left untouched, and the residual is recorded rather than closed by an edit no
+ruling covers: the equilibrium table and its §2 restatement still read as architect-excluded on
+the dispatch act itself. Operator item, filed in
+`docs/audits/2026-08-07-technical-batch-2-lessons.md`.
+
 ---
 
 ## Ch9. Tier-1 closure loop — usage
@@ -2709,6 +2759,12 @@ Per **ADR-87** (the architect↔CC equilibrium contract). STEP 1 verified CC sel
 - **Opus** for: audit / review / synthesis tasks; architecture decisions and clause-level reasoning; judgment-heavy work (severity calibration, ambiguity resolution); long-context comparison across multiple inputs; subtle pattern recognition (security review, gotcha identification); multi-package changes; complex debugging; novel logic design.
 
 Rule of thumb: "do X the way we always do it" → Sonnet; "figure out the right approach, then do it" → Opus. No budget ceiling (LLM-spend rule); when uncertain, lean Opus — Sonnet's failure modes (missed nuance, factual misses) cost more than Opus's overhead.
+
+**Scope note (2026-08-07), reciprocal.** This heuristic covers CC routing its own sub-steps
+*inside* a running session. **Dispatching** a `--bg` batch lane is a separate act under a separate
+ruling — the architect states model and effort on the dispatch line, and the operator overrides:
+Ch8 "Model + effort are stated at dispatch — the routing matrix", which declares the boundary
+between the two populations and records the residual this section carries.
 
 ### When to escalate to a Dynamic Workflow
 <!-- scope: llm -->
