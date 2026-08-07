@@ -52,7 +52,11 @@ jobs:
           # answer FALSE. The dispatch path is already covered by the job `if`, and guessing
           # TRUE here would reinstate the every-push behaviour this gate exists to remove.
           if [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ] \
-             || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+             || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null              || ! git merge-base --is-ancestor "$BEFORE" "${{ github.sha }}" 2>/dev/null; then
+            # ANCESTRY, not mere existence (terra HIGH 2026-08-07): after a force-push the old
+            # tip can still be reachable via another ref, and `git diff` between unrelated
+            # histories reports every file as changed -- which would mark the pilot subject
+            # touched on a push that never went near it.
             echo "pilot_subject=false" >> "$GITHUB_OUTPUT"
             echo "no resolvable push range -- pilot skipped"
             exit 0
@@ -155,7 +159,12 @@ jobs:
           # github.event.before is the pre-push tip of main, which is exactly remote_sha.
           # On workflow_dispatch there is no `before`, so the range is unresolvable -- recorded
           # as skipped rather than reported as a false verdict.
-          if [ -z "${{ github.event.before }}" ] || [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]; then
+          if [ -z "${{ github.event.before }}" ]              || [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]              || ! git cat-file -e "${{ github.event.before }}^{commit}" 2>/dev/null; then
+            # The third guard is terra HIGH 2026-08-07: after a force-push whose previous tip
+            # is not in this checkout, the hook was handed an unresolvable sha and the record
+            # captured a hook INTERNAL ERROR instead of the documented `n/a` range skip. An
+            # unresolvable range is a skip, not a failure -- the `changes` job above already
+            # took this shape and the anchor leg had not.
             echo "skipped -- no push range (workflow_dispatch or branch creation)" | tee anchor.out
             echo "exit=n/a" >> "$GITHUB_OUTPUT"
           else

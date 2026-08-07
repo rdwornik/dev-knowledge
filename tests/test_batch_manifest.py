@@ -102,6 +102,10 @@ def _write_manifest(repo, *, batch=2, closed_by="docs/audits/2026-08-09-technica
     (d / name).write_text(
         f"---\nbatch: {batch}\nstatus: open\nclosed_by: {closed_by}\n---\n\n# Batch {batch}\n",
         encoding="utf-8")
+    # TRACKED, not merely present: since 2026-08-07 an UNCOMMITTED manifest grants nothing,
+    # so every fixture manifest is committed or it would model a state the rule rejects.
+    _run(repo, "add", "-A")
+    _run(repo, "commit", "-q", "-m", f"batch {batch} manifest")
     return d / name
 
 
@@ -118,9 +122,11 @@ def _close_it(repo, closed_by="docs/audits/2026-08-09-technical-batch-2-packet.m
 def test_exempt_inside_an_open_batch(tmp_path, monkeypatch):
     """CASE 1 — the state batch 1 had to `SKIP=audit-health` through. A lane merge is
     unanchored mid-queue, a manifest declares the batch open, and the gate passes."""
-    repo, floor = _seed(tmp_path)
-    merge = _merge(repo, "worktree-lane-a-490-parity")
+    repo, _seed_rev = _seed(tmp_path)
     _write_manifest(repo)
+    floor = _rev(repo)          # floor AFTER the manifest commit: that commit is ordinary
+                                # non-merge work and is not what this test is about
+    merge = _merge(repo, "worktree-lane-a-490-parity")
 
     # The RAW predicate still sees it — the exemption is a gate-level judgement, not a
     # rewriting of what "anchored" means. Without this the test below could pass on a
@@ -156,9 +162,10 @@ def test_the_exemption_expires_when_the_closing_packet_lands(tmp_path, monkeypat
     Expiry is keyed to the packet rather than to a `status:` edit because `docs/audits/` is
     IMMUTABLE (CLAUDE.md §5 rule 3) — an exemption whose expiry required editing an
     immutable artifact would either never expire or corrupt the record."""
-    repo, floor = _seed(tmp_path)
-    merge = _merge(repo, "worktree-lane-a-490-parity")
+    repo, _seed_rev = _seed(tmp_path)
     _write_manifest(repo)
+    floor = _rev(repo)          # see CASE 1
+    merge = _merge(repo, "worktree-lane-a-490-parity")
     monkeypatch.setattr(aud, "_is_hub", lambda p: True)
     monkeypatch.setattr(ja, "floor_sha", lambda p: floor)
     assert aud.check_journal_spine_anchor(repo)[0].status == "pass"
@@ -175,8 +182,9 @@ def test_the_exemption_expires_when_the_closing_packet_lands(tmp_path, monkeypat
 def test_a_non_lane_merge_is_never_exempt_even_mid_batch(tmp_path, monkeypatch):
     """An open batch does not amnesty ordinary work. Only `worktree-lane-*` merges qualify,
     so the integrator's own `docs/…` arcs and every unrelated feature merge stay gated."""
-    repo, floor = _seed(tmp_path)
+    repo, _seed_rev = _seed(tmp_path)
     _write_manifest(repo)
+    floor = _rev(repo)
     merge = _merge(repo, "feat/unrelated")
 
     monkeypatch.setattr(aud, "_is_hub", lambda p: True)
@@ -191,8 +199,9 @@ def test_a_lane_merge_and_a_plain_merge_together_report_only_the_plain_one(tmp_p
     """Mixed mid-batch spine: the lane merge is exempt, the ordinary one is not, and the
     evidence names exactly the second. A partial exemption that swallowed both would be the
     dangerous failure mode, so it is pinned rather than assumed."""
-    repo, floor = _seed(tmp_path)
+    repo, _seed_rev = _seed(tmp_path)
     _write_manifest(repo)
+    floor = _rev(repo)
     lane = _merge(repo, "worktree-lane-b-429-worktree")
     plain = _merge(repo, "feat/other")
 
@@ -202,6 +211,14 @@ def test_a_lane_merge_and_a_plain_merge_together_report_only_the_plain_one(tmp_p
     assert findings[0].status == "fail"
     assert plain[:7] in findings[0].evidence
     assert lane[:7] not in findings[0].evidence
+    # ... AND the FAIL still DISCLOSES that an exemption was applied (terra HIGH, 2026-08-07).
+    # This assertion is the fix for a hole this very test used to pin: it asserted only that
+    # the lane SHA was absent, which a FAIL that never mentioned the exemption satisfied
+    # perfectly. A reader counting unanchored merges in the mixed case would have been given
+    # a number with a silent subtraction in it — contradicting the ADR-110 amendment's own
+    # "reported, never applied silently" clause exactly where it matters most.
+    assert "exempt" in findings[0].evidence.lower()
+    assert "NOT counted above" in findings[0].evidence
 
 
 @requires_git

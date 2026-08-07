@@ -56,7 +56,8 @@ Layer-2 contract (ADR-28/36): READ-ONLY. Filesystem reads and git plumbing reads
 from __future__ import annotations
 
 import re
-from pathlib import Path
+import subprocess
+from pathlib import Path, PurePosixPath
 from typing import NamedTuple, Optional
 
 #: Where a batch manifest lives and what it is called. The `-manifest` suffix keeps it
@@ -87,6 +88,11 @@ def _frontmatter(text: str) -> dict[str, str]:
     Deliberately NOT a YAML parse: the three fields consumed here are scalars, and taking a
     yaml dependency into a gate path to read three strings buys nothing. Unparseable input
     yields `{}`, which opens no batch.
+
+    INLINE COMMENTS ARE STRIPPED (terra HIGH, 2026-08-07). `closed_by: docs/x.md  # later`
+    would otherwise carry the comment into the path, which then never resolves on disk — and a
+    `closed_by` that can never resolve is a NON-EXPIRING exemption. Only an unquoted ` #` is
+    treated as a comment, so a legitimate `#` inside a quoted value survives.
     """
     m = _FRONTMATTER_RE.match(text)
     if not m:
@@ -96,15 +102,55 @@ def _frontmatter(text: str) -> dict[str, str]:
         if ":" not in line or line.lstrip().startswith("#"):
             continue
         k, _, v = line.partition(":")
-        out[k.strip().lower()] = v.strip().strip('"').strip("'")
+        v = v.strip()
+        if not (v.startswith(('"', "'"))):
+            v = re.split(r"\s+#", v, maxsplit=1)[0].strip()
+        out[k.strip().lower()] = v.strip('"').strip("'")
     return out
+
+
+def _valid_closer(closed_by: str) -> bool:
+    """Is `closed_by` a shape that CAN resolve, and therefore CAN expire the exemption?
+
+    The whole safety of the exemption rests on the closer eventually existing. A value that
+    can never resolve to a real in-repo path — absolute, drive-lettered, escaping via `..`,
+    or outside `docs/audits/` — would grant a permanent exemption while looking well-formed
+    (terra HIGH, 2026-08-07). Rejected here, which means the manifest opens NOTHING rather
+    than opening something that never closes.
+    """
+    if not closed_by or closed_by != closed_by.strip():
+        return False
+    p = PurePosixPath(closed_by.replace("\\", "/"))
+    if p.is_absolute() or ".." in p.parts or ":" in closed_by:
+        return False
+    return p.parts[:2] == ("docs", "audits") and p.suffix == ".md"
+
+
+def _is_tracked(repo_path: Path, rel: str) -> bool:
+    """Is `rel` TRACKED by git in `repo_path`? Unknown reads as NOT tracked.
+
+    The ADR says a **committed** manifest, and until 2026-08-07 this module only checked that
+    a FILE EXISTED (terra HIGH). An untracked file dropped into `docs/audits/` would have
+    granted the exemption — an unreviewable, uncommitted, invisible way to quiet the gate.
+    Tracked-ness is the closest cheap proxy for committed and is what the rule means in
+    practice: the file is in the index, so it is in the diff a reviewer reads.
+    """
+    try:
+        r = subprocess.run(["git", "-C", str(repo_path), "ls-files", "--error-unmatch", "--", rel],
+                           capture_output=True, text=True, encoding="utf-8",
+                           errors="replace", timeout=15)
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return r.returncode == 0
 
 
 def open_batches(repo_path: Path) -> list[OpenBatch]:
     """Every committed manifest that declares a batch open RIGHT NOW, oldest path first.
 
-    Open means all three: `status: open`, a non-empty `closed_by:`, and that `closed_by`
-    path ABSENT from the tree. The absence probe is what makes expiry automatic.
+    Open means all four: the manifest is TRACKED by git, `status: open`, a `closed_by:` whose
+    shape can actually resolve, and that `closed_by` path ABSENT from the tree. The absence
+    probe is what makes expiry automatic; the other three are what stop the exemption being
+    granted by a file nobody committed, or expiring never.
 
     FAILS TOWARD NO-EXEMPTION. An unreadable manifest, missing frontmatter, or a bad field
     is skipped rather than raised or treated as open — an unknown exemption state must never
@@ -119,14 +165,20 @@ def open_batches(repo_path: Path) -> list[OpenBatch]:
     found: list[OpenBatch] = []
     for path in candidates:
         try:
+            rel = path.relative_to(Path(repo_path)).as_posix()
+        except ValueError:
+            continue
+        if not _is_tracked(repo_path, rel):
+            continue          # an UNCOMMITTED manifest grants nothing (terra HIGH)
+        try:
             fm = _frontmatter(path.read_text(encoding="utf-8", errors="replace"))
         except OSError:
             continue
         if fm.get("status", "").lower() != "open":
             continue
         closed_by = fm.get("closed_by", "")
-        if not closed_by:
-            continue          # no declared expiry => opens nothing (see module docstring)
+        if not _valid_closer(closed_by):
+            continue          # no resolvable expiry => opens nothing (see module docstring)
         try:
             if (Path(repo_path) / closed_by).exists():
                 continue      # the closing packet landed: the batch is over

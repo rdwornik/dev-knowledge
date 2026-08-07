@@ -3875,9 +3875,20 @@ def check_journal_spine_anchor(repo_path: Path) -> list[Finding]:
     if gaps:
         named = "; ".join(_ja.describe(repo_path, s) for s in gaps[:5])
         more = f" (+{len(gaps) - 5} more)" if len(gaps) > 5 else ""
+        # THE MIXED CASE MUST STILL DISCLOSE THE EXEMPTION (terra HIGH, 2026-08-07). This
+        # branch used to return before mentioning `exempted` at all, so a FAIL naming one
+        # unanchored merge silently hid the lane merges the exemption had just skipped --
+        # directly contradicting the ADR-110 amendment's own "reported, never applied
+        # silently" clause, in the one case where a reader is most likely to be counting.
+        also = ""
+        if exempted:
+            also = (f"; SEPARATELY {len(exempted)} lane merge(s) are exempt under the "
+                    f"ADR-110 declared-integration-arc rule while batch "
+                    f"{', '.join(sorted(b.batch for b in live))} is open ({live[0].path}) "
+                    f"and are NOT counted above")
         return [Finding("journal_spine_anchor", "fail",
                         f"{len(gaps)} first-parent spine entry(ies) above the disposition "
-                        f"floor {floor[:9]} carry no JOURNAL anchor: {named}{more}"
+                        f"floor {floor[:9]} carry no JOURNAL anchor: {named}{more}{also}"
                         .replace("|", "/"))]
     if exempted:
         named = ", ".join(sorted(b.batch for b in live))
