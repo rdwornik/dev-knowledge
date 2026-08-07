@@ -29,9 +29,10 @@ to have no manifest — is the proving subject, and it is reached by pointing `-
 
 POSTURE — READ-ONLY, AND WIRED INTO NO GATE. Layer 2 (ADR-28/36): it drives no state in a child
 repo. It writes exactly one file, into the system temp directory, and removes it; the target
-tree is never written to (`-p no:cacheprovider` keeps pytest from leaving `.pytest_cache`
-behind, so the no-leftovers round-trip holds even on the repo being proved). Whether it should
-gate is a separate ruling — the `/preflight` adoption-first precedent.
+tree is never written to — `-p no:cacheprovider` suppresses `.pytest_cache` and
+`PYTHONDONTWRITEBYTECODE` suppresses `__pycache__`, so the no-leftovers round-trip holds even
+on the repo being proved. Both were found by the test that asserts it rather than assumed.
+Whether it should gate is a separate ruling — the `/preflight` adoption-first precedent.
 
 EXIT CODES — a skip never greens.
   0  PASS            every declared package resolved inside the checkout
@@ -58,6 +59,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -108,6 +110,16 @@ def test_imports_resolve_inside_this_checkout(pytestconfig):
         json.dumps(payload, indent=2), encoding="utf-8"
     )
 '''
+
+
+#: Interpreters tried, in order, when the checkout has no `.venv` of its own. `py` leads on
+#: purpose: the Windows launcher lives in `C:\Windows` and starts the SYSTEM interpreter, so it
+#: is the one name no venv activation can shadow. That matters because the system interpreter is
+#: where a shared editable install actually lives — the ai-council repo-root conftest names it
+#: as the cause in as many words ("a bare `python` / `py` resolves `ai_council` to the primary
+#: checkout from any cwd"). Resolving to whatever venv the CALLER happened to have active would
+#: make the verdict a property of this seat rather than of the target repo.
+_FALLBACK_INTERPRETERS = ("py", "python3", "python")
 
 
 class ProofError(Exception):
@@ -217,17 +229,52 @@ def _venv_python(root: Path) -> Path | None:
     return None
 
 
+def _caller_free_path() -> str:
+    """PATH with the CALLER's own virtualenv removed.
+
+    Load-bearing, and learned by getting it wrong: this tool is normally invoked from the hub
+    under `uv run`, so `sys.executable` and `PATH[0]` are the HUB's venv. Handing that to an
+    unprovisioned satellite checkout produces a FAIL whose stated cause is
+    `ModuleNotFoundError` — technically a failure, but not the one the row is about, and a
+    reader would take it as "the package is missing" rather than "the package came from the
+    wrong checkout". Stripping the caller's prefix makes the child resolve the interpreter a
+    real seat in that repo would resolve: the system one, where the shared editable install
+    actually lives. That is the interpreter whose silent wrong-tree import is the whole finding.
+    """
+    prefix = Path(sys.prefix).resolve()
+    kept = []
+    for entry in os.environ.get("PATH", "").split(os.pathsep):
+        if not entry:
+            continue
+        try:
+            resolved = Path(entry).resolve()
+        except (OSError, ValueError):
+            kept.append(entry)
+            continue
+        if resolved == prefix or prefix in resolved.parents:
+            continue
+        kept.append(entry)
+    return os.pathsep.join(kept)
+
+
 def resolve_interpreter(root: Path) -> tuple[list[str], bool]:
     """Return (argv prefix that runs python for this checkout, is-it-the-checkout's-own).
 
     A materialised `<root>/.venv` wins outright — it needs no tool on PATH and it is the exact
-    thing leg (b) installs. Falling back to the ambient interpreter is deliberate rather than a
-    refusal: an unprovisioned checkout is precisely the state the proof should be able to
-    examine and FAIL, and refusing to run there would make the failure unwitnessable.
+    thing leg (b) installs. Falling back is deliberate rather than a refusal: an unprovisioned
+    checkout is precisely the state the proof should be able to examine and FAIL, and refusing
+    to run there would make the failure unwitnessable. The fallback resolves against a
+    caller-free PATH so the answer is about the target repo, not about this seat.
     """
     own = _venv_python(root)
     if own is not None:
         return [str(own)], True
+
+    path = _caller_free_path()
+    for candidate in _FALLBACK_INTERPRETERS:
+        found = shutil.which(candidate, path=path)
+        if found:
+            return [found], False
     return [sys.executable], False
 
 
@@ -256,7 +303,13 @@ def _child_env(root: Path, packages: tuple[str, ...], out: Path) -> dict[str, st
     env = dict(os.environ)
     for leaked in ("VIRTUAL_ENV", "PYTHONHOME", "PYTHONPATH", "PYTHONSTARTUP"):
         env.pop(leaked, None)
+    env["PATH"] = _caller_free_path()
     env["PYTHONNOUSERSITE"] = "1"
+    # Importing the target's packages compiles them, and the bytecode lands in the TARGET tree
+    # as `__pycache__/`. Every fleet repo gitignores it, so it would never have shown up as
+    # dirt — which is exactly why it is worth suppressing rather than tolerating: a read-only
+    # organ whose only writes are invisible ones is still an organ that writes.
+    env["PYTHONDONTWRITEBYTECODE"] = "1"
     env["WT_PROOF_ROOT"] = str(root)
     env["WT_PROOF_PACKAGES"] = ",".join(packages)
     env["WT_PROOF_OUT"] = str(out)
