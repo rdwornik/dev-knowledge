@@ -19,6 +19,46 @@
 
 ---
 
+### 2026-08-07 (o) — CC (Opus 5, cloud night window): the session-end gate was disarmed by the uv pin, and its check passes when run directly
+
+**Did:** The `Stop` backpressure hook fired at the session boundary and **did not run**:
+
+```
+[uv run --locked python .../scripts/session_end_backpressure.py]: error: Required uv version
+`==0.11.19` does not match the running version `0.8.17`.
+```
+
+Ran the check directly against the system interpreter instead, exactly as every other gate in this
+window was run.
+
+**Result — the check is clean; only its wrapper was dead.** `python scripts/session_end_backpressure.py`
+exits **0** with no backpressure: entries (m) and (n) anchor this branch's work commits, so the
+discipline the hook exists to enforce is satisfied. Per the ADR-85 amendment 2026-08-03 §A5 the
+Stop hook is **advisory in full** and cannot block a turn, so nothing was bypassed — but it also
+means an unrunnable Stop hook is **indistinguishable from a passing one** to anyone reading the
+session, which is the whole reason this entry exists rather than a shrug. The `journal_spine_anchor`
+backstop separately cannot complete here (disposition floor `24882f8cc` is absent from a 246-commit
+shallow clone) — inherited, already recorded in entry (m) and in all three of this window's audit
+docs.
+
+**Result — this is the THIRD organ the ADR-106 uv pin silenced tonight, and the most load-bearing.**
+The first two were pre-commit hooks I could route around by invoking their scripts directly. This
+one fired **unbidden, at the boundary, and failed open** — no operator asked for it and no operator
+would have seen it fail. STANDING_RULINGS **D1** says the exact uv pin is load-bearing for the
+entire organ mesh; tonight it was load-bearing in the other direction. Recorded because it is
+direct evidence for intake #27 §A item 36 (`mise`), whose divergence question —
+*"would a `mise.toml` pinning uv 0.11.19 have produced a runnable gate mesh in a fresh cloud
+container tonight?"* — is written in `docs/audits/2026-08-08-technical-library-research.md` §8c.
+That memo counted two silent organs. **The count is three.**
+
+**Changes:** `JOURNAL.md` only.
+
+**Abandoned:** nothing. **Next:** n/a — no fix attempted here. Pinning-strategy is the operator's
+call under §A item 36, and a container-local uv workaround would be the "night fix ephemeral by
+design" that row already names as the failure mode.
+
+**Anchor:** `865ad4cc` (Phase R, the memo this entry adds a data point to) · `808c3e98` (entry (n)).
+
 ### 2026-08-07 (n) — CC (Opus 5, cloud night window): the suite comparison, upgraded from file-level to test-level
 
 **Did:** Entry (m) claimed "this branch introduces no failure" on **file-level** evidence — the
