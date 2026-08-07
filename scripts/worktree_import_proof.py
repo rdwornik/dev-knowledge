@@ -53,6 +53,22 @@ A distinct code for NOT-APPLICABLE is deliberate. Folding it into 0 would let a 
 cannot actually examine report the same verdict as one it examined and cleared — which is the
 failure mode the whole module exists to refuse.
 
+WHAT "READ-ONLY" DOES AND DOES NOT COVER, measured rather than asserted (terra, third pass).
+The proof spawns the target checkout's interpreter and its pytest. That is irreducible: the row
+asks whether *its pytest* imports the right source, and no static read answers that. What it
+does NOT do is run the target's own code, and each route was closed or checked:
+  * the selected packages are RESOLVED, never imported (`find_spec`);
+  * installed pytest plugins do not autoload (`PYTEST_DISABLE_PLUGIN_AUTOLOAD`), which is the
+    one route by which a repo could get its own code executed by entry point;
+  * the target's `conftest.py` is NOT loaded — **verified, not reasoned**: a sentinel appended
+    to ai-council's root conftest never fired across four runs. The collected test file lives
+    in the system temp directory, and conftest discovery walks the *collected args'* ancestors,
+    which never reach the repo. (Independent corroboration: ai-council's root conftest RAISES on
+    a wrong-tree import, and the wrong-tree run reported a clean FAIL rather than aborting.)
+  * the repo's pytest ini is read as DATA (`-c`), which is configuration, not execution.
+So the residual is exactly "the target's interpreter and pytest run", which the done-when
+requires, and nothing wider. Stated here rather than left to a reader to discover.
+
 HONEST LIMITS
   * A conforming IMPORT is not a conforming ENVIRONMENT. This proves where the source came
     from, not that the dependency set matches the lock. `uv run --locked` covers that axis.
@@ -336,6 +352,13 @@ def _child_env(root: Path, packages: tuple[str, ...], out: Path) -> dict[str, st
     # primary. `PYTHONSAFEPATH` makes `-m` behave like the console script, so the proof and the
     # command it vouches for resolve imports the same way — which is the whole of its value.
     env["PYTHONSAFEPATH"] = "1"
+    # Third-party pytest plugins installed in the TARGET's environment autoload by entry point,
+    # and a repo may install one of its own. Those are the one route by which collecting a
+    # temp-dir test file could still execute child-authored code, so the autoload is off: the
+    # generated proof needs no plugin. What this does NOT claim to prevent is running the
+    # target's interpreter and pytest at all — the row's done-when requires exactly that, and it
+    # is disclosed in the module docstring rather than papered over.
+    env["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] = "1"
     # Importing the target's packages compiles them, and the bytecode lands in the TARGET tree
     # as `__pycache__/`. Every fleet repo gitignores it, so it would never have shown up as
     # dirt — which is exactly why it is worth suppressing rather than tolerating: a read-only

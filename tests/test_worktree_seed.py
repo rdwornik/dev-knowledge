@@ -227,6 +227,25 @@ def test_check_also_refuses_outside_the_hub(tmp_path):
     assert ws.main(["--repo", str(consumer), "--check"]) == ws.EXIT_ERROR
 
 
+@requires_git
+def test_write_refuses_a_lookalike_repo_that_merely_shares_the_hub_name(tmp_path):
+    """THE identity guard (terra P1, third pass). A refusal keyed to a directory NAME is one a
+    stranger satisfies by renaming a folder — a clone at another path, a restored backup, an
+    unrelated repo. `--write` may only rewrite the checkout this script runs from."""
+    impostor = _init_repo(tmp_path / ws.HUB_REPO_NAME)
+    (impostor / ".worktreeinclude").write_text("do not touch\n", encoding="utf-8")
+
+    assert ws.main(["--repo", str(impostor), "--write"]) == ws.EXIT_ERROR
+    assert (impostor / ".worktreeinclude").read_text(encoding="utf-8") == "do not touch\n"
+
+
+def test_the_write_guard_resolves_this_scripts_own_checkout():
+    """`_own_checkout` is the whole basis of the guard above, so it is asserted directly rather
+    than only through the refusal it produces."""
+    assert (ws._own_checkout() / "scripts" / "worktree_seed.py").is_file()
+    assert ws._own_checkout() == _HUB
+
+
 def test_render_needs_no_checkout_at_all(capsys):
     """A satellite is served by NAME, not by having the tool run inside it — which is what
     lets the hub answer for a repo it is not sitting in."""
@@ -253,6 +272,7 @@ def test_check_reports_drift_when_the_file_diverges(tmp_path, monkeypatch):
     fake_hub.mkdir()
     (fake_hub / ".worktreeinclude").write_text("hand-edited\n", encoding="utf-8")
     monkeypatch.setattr(ws, "resolve_checkout", lambda repo: (fake_hub, fake_hub))
+    monkeypatch.setattr(ws, "_own_checkout", lambda: fake_hub)
 
     assert ws.main(["--repo", str(fake_hub), "--check"]) == ws.EXIT_DRIFT
 

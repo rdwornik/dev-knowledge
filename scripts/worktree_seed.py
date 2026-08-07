@@ -306,8 +306,31 @@ def render_plan(plan: Plan) -> str:
 
 # --- CLI --------------------------------------------------------------------------------
 
+def _own_checkout() -> Path:
+    """The checkout THIS script is part of — `scripts/worktree_seed.py` -> its repo root."""
+    return Path(__file__).resolve().parent.parent
+
+
 def _hub_root(repo: Path) -> Path:
+    """The checkout `--write` is allowed to modify, or a refusal.
+
+    IDENTITY, NOT NAME (terra P1, third pass). The first version compared
+    `primary.name != HUB_REPO_NAME`, which authorises any checkout that merely happens to sit in
+    a directory called `.dev-knowledge` — a clone at another path, a restored backup, a
+    same-named repo belonging to something else entirely. A refusal keyed to a string a stranger
+    can satisfy by renaming a folder is not a refusal. The binding question is narrower and has
+    an exact answer: `--write` may only rewrite the `.worktreeinclude` of the checkout **this
+    file is running out of**. The name check is kept behind it as a second, independent
+    condition rather than replaced by it.
+    """
     root, primary = resolve_checkout(repo)
+    own = _own_checkout()
+    if root != own:
+        raise SeedError(
+            f"refusing to write outside this checkout: {root} is not {own}. "
+            "--write only ever rewrites the .worktreeinclude of the checkout this script runs "
+            "from; Layer 2 drives no state in a child repo -- use --render or --plan there."
+        )
     if primary.name != HUB_REPO_NAME:
         raise SeedError(
             f"refusing to write outside the hub: {primary} is not {HUB_REPO_NAME}. "

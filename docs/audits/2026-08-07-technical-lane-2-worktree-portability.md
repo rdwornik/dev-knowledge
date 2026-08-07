@@ -8,9 +8,9 @@
 
 > **Amendment — 2026-08-07, same session (in-file marker per CLAUDE.md §5 rule 3).** This file
 > was first committed at `05d31b20`, before the contract-mandated terra review had run. Terra
-> returned a **P1** on each of two passes, both real, and §3's evidence was produced by the pre-fix organ — so the
+> returned a P1 on each of three passes -- four findings, three real and one refuted, and §3's evidence was produced by the pre-fix organ — so the
 > §3 transcripts and §4's defect list are amended to the final post-fix run, and §4 gains
-> **D-3** and **D-4**. Nothing else changed. Recorded through the sanctioned in-file channel rather than by rewriting
+> **D-3** through **D-6**. Nothing else changed. Recorded through the sanctioned in-file channel rather than by rewriting
 > the commit, following the `2026-08-06-technical-batch1-verification` precedent: squashing it on
 > an unpushed branch would have been tidier and would have left no trace that the artifact ever
 > said otherwise — which is precisely the property an audit trail exists to deny itself.
@@ -56,7 +56,7 @@ express.
 |---|---|---|
 | `scripts/worktree_seed.py` | (a) | read-only outside the hub; `--write` refuses any target but the hub's own `.worktreeinclude` |
 | `scripts/worktree_import_proof.py` | (b) + done-when | read-only everywhere; writes only into the system temp dir |
-| `tests/test_worktree_seed.py` (22) + `tests/test_worktree_import_proof.py` (32) | both | — |
+| `tests/test_worktree_seed.py` (24) + `tests/test_worktree_import_proof.py` (34) | both | — |
 | `.claude/commands/lane-boot.md` §3 / §6 | both | the adopt-native wiring |
 | `.worktreeinclude` | (a) | now generated from the manifest, not hand-authored |
 
@@ -148,13 +148,15 @@ FAIL `1` · NOT-APPLICABLE `3` (the hub itself, which ships no importable packag
 and the `.claude/worktrees/` directory this lane created was removed. Verified after: `worktree
 list` == primary only, `branch` == `main` only, `status --short` empty, directory absent.
 
-## 4. Four defects the work found in its own organs
+## 4. Six defects the work found in its own organs
 
 None was found by reading the code. D-1 came from running it, D-2 from a test that asserted a
-docstring claim instead of trusting it, and D-3/D-4 from the two contract-mandated review passes.
-D-1/D-2 are fixed in `ae1abddd`, D-3 in `d7f2f7ff`, D-4 in the commit carrying this amendment.
+docstring claim instead of trusting it, and D-3 through D-6 from the three contract-mandated
+review passes. D-1/D-2 are fixed in `ae1abddd`, D-3 in `d7f2f7ff`, D-4 in `9964110b`, and
+D-5/D-6 in the commit carrying this amendment. A seventh finding was **refuted**, not fixed —
+see D-6 and the review artifact's F-4.
 
-**That distribution is the finding underneath the findings.** Two of four came from an outside
+**That distribution is the finding underneath the findings.** Four of six came from an outside
 reader and neither was reachable from inside: every test and every live run went through the
 same entry point (D-3) and the same posture assumption (D-4), so the suite could confirm them
 rather than catch them.
@@ -198,6 +200,24 @@ executes. Re-verified live on ai-council in both directions — **byte-identical
 D-3 run, which is what makes this a posture fix rather than a behaviour change. An AST test pins
 it, because the regression is someone "simplifying" it back to `import_module` and that reads as
 harmless.
+
+**D-5 — the `--write` guard authorised by directory NAME (terra P1, third pass).** `--write`
+refused any checkout whose primary directory was not named `.dev-knowledge` — which authorises a
+clone at another path, a restored backup, or an unrelated repo that merely shares the name. A
+refusal a stranger satisfies by renaming a folder is not a refusal. Closed with an identity check
+against the checkout this script itself runs out of, keeping the name check behind it as a second
+independent condition.
+
+**D-6 — the read-only boundary, one half fixed and one half REFUTED (terra P1, third pass).**
+The finding said collection loads the target's `conftest.py`, configuration and plugins. Measured:
+the **conftest claim is false** — a sentinel appended to ai-council's root conftest never fired
+across four live runs, because the collected test file lives in the system temp dir and conftest
+discovery walks the *collected args'* ancestors. (The record already corroborated it: ai-council's
+conftest RAISES on a wrong-tree import, and the wrong-tree run reported a clean FAIL rather than
+aborting.) The **plugin half is true** and is closed with `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1`. The
+residual — the target's interpreter and pytest do run — is irreducible, since the row asks about
+*its pytest*; it is now stated in the module docstring rather than left to be discovered. Full
+adjudication: `docs/audits/2026-08-07-codex-lane-2-worktree-portability.md` F-4.
 
 **What D-3 says about review placement.** This is the [#438] thesis with a fresh data point:
 the defect passed 51 tests and a live end-to-end run on the real satellite, because every one of

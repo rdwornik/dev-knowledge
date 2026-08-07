@@ -279,6 +279,40 @@ def test_the_child_does_not_write_bytecode_into_the_target(tmp_path):
     assert env["PYTHONDONTWRITEBYTECODE"] == "1"
 
 
+def test_installed_pytest_plugins_do_not_autoload_in_the_target(tmp_path):
+    """A Layer-2 hub tool spawns the target's pytest — irreducibly, since the row asks about
+    *its pytest*. Entry-point plugin autoload is the one route by which that could execute
+    child-AUTHORED code, so it is off; the generated proof needs no plugin (terra, third pass)."""
+    env = wip._child_env(tmp_path, ("pkg",), tmp_path / "out.json")
+    assert env["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] == "1"
+
+
+@requires_git
+def test_the_targets_conftest_is_not_loaded(tmp_path, monkeypatch):
+    """Terra's third-pass P1 asserted that collection loads the target repo's `conftest.py`. It
+    does not, and this is the standing regression guard for that — the collected test file lives
+    in the system temp dir, and conftest discovery walks the COLLECTED ARGS' ancestors, which
+    never reach the repo.
+
+    Proved the same way it was proved live against ai-council: a root conftest that leaves a
+    sentinel if it ever runs. It never fired there across four runs, and it must not fire here.
+    Worth a test rather than a docstring, because the property depends on where the generated
+    file is written — a future "tidy-up" that moves it into the target tree would silently
+    reverse it."""
+    repo = _repo_with_package(tmp_path / "demo", "demo-pkg", "demo_pkg")
+    sentinel = tmp_path / "conftest-ran"
+    (repo / "conftest.py").write_text(
+        "import pathlib\n"
+        f"pathlib.Path(r'{sentinel}').write_text('yes', encoding='utf-8')\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(wip, "resolve_interpreter", lambda root: ([sys.executable], True))
+
+    proof = wip.run_proof(repo, ("demo_pkg",))
+    assert proof.passed, proof.pytest_output
+    assert not sentinel.exists(), "the target repo's conftest.py executed"
+
+
 def test_the_child_environment_carries_the_proof_parameters(tmp_path):
     env = wip._child_env(tmp_path, ("a", "b"), tmp_path / "out.json")
     assert env["WT_PROOF_ROOT"] == str(tmp_path)
