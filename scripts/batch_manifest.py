@@ -26,7 +26,7 @@ HOW OPENNESS EXPIRES, and why it is NOT a mutable `status:` flag. Manifests live
 `docs/audits/`, which is IMMUTABLE (CLAUDE.md §5 rule 3) — an exemption whose expiry
 required editing an immutable artifact would either never expire or corrupt the record. So
 the manifest names, at dispatch, the artifact that will CLOSE it (`closed_by:`), and the
-batch is open only while that path is ABSENT from the tree. The end-of-batch packet landing
+batch is open only while that path is ABSENT from the COMMITTED tree. The end-of-batch packet landing
 is what ends the exemption, automatically, with no edit anywhere. Extending an exemption
 therefore takes a visible act — deleting the packet, or committing a new manifest — never
 silence. A manifest carrying no `closed_by:` opens nothing at all, because an exemption with
@@ -50,6 +50,14 @@ HONEST LIMITS, three, none of them hidden:
   * This adds a second exemption surface to a gate whose value is having none. Recorded in
     the ADR-110 amendment as an accepted cost, weighed against a standing instruction to turn
     the whole registry off twice per batch.
+
+EVERY INPUT IS READ FROM `HEAD`, NEVER FROM THE WORKING TREE (terra HIGH ×2, 2026-08-07).
+The manifest list, the manifest CONTENT, and the closing packet's existence all resolve
+through git plumbing against the committed tree. The first attempt at this used a working-tree
+glob (any file, committed or not, granted the exemption); the second used `git ls-files` for
+tracked-ness but still read content off disk — and `ls-files` is satisfied by a merely STAGED
+addition, so a staged manifest or an unstaged edit to a committed one still declared a batch
+open. The rule says COMMITTED, and only a HEAD-based read means it.
 
 Layer-2 contract (ADR-28/36): READ-ONLY. Filesystem reads and git plumbing reads only.
 """
@@ -126,22 +134,42 @@ def _valid_closer(closed_by: str) -> bool:
     return p.parts[:2] == ("docs", "audits") and p.suffix == ".md"
 
 
-def _is_tracked(repo_path: Path, rel: str) -> bool:
-    """Is `rel` TRACKED by git in `repo_path`? Unknown reads as NOT tracked.
-
-    The ADR says a **committed** manifest, and until 2026-08-07 this module only checked that
-    a FILE EXISTED (terra HIGH). An untracked file dropped into `docs/audits/` would have
-    granted the exemption — an unreviewable, uncommitted, invisible way to quiet the gate.
-    Tracked-ness is the closest cheap proxy for committed and is what the rule means in
-    practice: the file is in the index, so it is in the diff a reviewer reads.
-    """
+def _git(repo_path: Path, *args: str) -> Optional[str]:
+    """Read-only git, or None on any failure. None always reduces to "no exemption"."""
     try:
-        r = subprocess.run(["git", "-C", str(repo_path), "ls-files", "--error-unmatch", "--", rel],
-                           capture_output=True, text=True, encoding="utf-8",
-                           errors="replace", timeout=15)
+        r = subprocess.run(["git", "-C", str(repo_path), *args], capture_output=True,
+                           text=True, encoding="utf-8", errors="replace", timeout=15)
     except (OSError, subprocess.SubprocessError):
-        return False
-    return r.returncode == 0
+        return None
+    return r.stdout if r.returncode == 0 else None
+
+
+def _committed_manifests(repo_path: Path) -> list[str]:
+    """Manifest paths present in the COMMITTED tree at HEAD, matching the manifest grammar."""
+    out = _git(repo_path, "ls-tree", "-r", "--name-only", "HEAD", "--", "docs/audits/")
+    if out is None:
+        return []
+    pat = MANIFEST_GLOB.split("/")[-1]
+    return sorted(p.strip() for p in out.splitlines()
+                  if p.strip() and PurePosixPath(p.strip()).match(pat))
+
+
+def _committed_text(repo_path: Path, rel: str) -> Optional[str]:
+    """The blob at `HEAD:<rel>`, or None. Reading the COMMITTED blob is the whole point.
+
+    EVERYTHING HERE IS HEAD-BASED, and the second terra HIGH of 2026-08-07 is why. The first
+    fix used `git ls-files` (tracked-ness) and still read CONTENT from the working tree —
+    which `ls-files` also satisfies for a merely STAGED addition. So a staged-but-uncommitted
+    manifest, or an unstaged edit to a committed one, could still declare a batch open. The
+    rule says COMMITTED; the only implementation that means it reads the committed blob.
+    """
+    return _git(repo_path, "show", f"HEAD:{rel}")
+
+
+def _closer_committed(repo_path: Path, closed_by: str) -> bool:
+    """Does the closing packet exist in the COMMITTED tree? Same reason as above: a packet
+    merely present on disk (or staged) has not closed the batch."""
+    return _git(repo_path, "cat-file", "-e", f"HEAD:{closed_by}") is not None
 
 
 def open_batches(repo_path: Path) -> list[OpenBatch]:
@@ -158,34 +186,20 @@ def open_batches(repo_path: Path) -> list[OpenBatch]:
     cost of the safe direction is a spurious gate FAIL during a batch, which is loud and
     fixable; the cost of the unsafe one is a silent hole.
     """
-    try:
-        candidates = sorted(Path(repo_path).glob(MANIFEST_GLOB))
-    except OSError:
-        return []
     found: list[OpenBatch] = []
-    for path in candidates:
-        try:
-            rel = path.relative_to(Path(repo_path)).as_posix()
-        except ValueError:
+    for rel in _committed_manifests(repo_path):
+        text = _committed_text(repo_path, rel)
+        if text is None:
             continue
-        if not _is_tracked(repo_path, rel):
-            continue          # an UNCOMMITTED manifest grants nothing (terra HIGH)
-        try:
-            fm = _frontmatter(path.read_text(encoding="utf-8", errors="replace"))
-        except OSError:
-            continue
+        fm = _frontmatter(text)
         if fm.get("status", "").lower() != "open":
             continue
         closed_by = fm.get("closed_by", "")
         if not _valid_closer(closed_by):
             continue          # no resolvable expiry => opens nothing (see module docstring)
-        try:
-            if (Path(repo_path) / closed_by).exists():
-                continue      # the closing packet landed: the batch is over
-        except OSError:
-            continue
-        found.append(OpenBatch(batch=fm.get("batch", "?"),
-                               path=path.as_posix(), closed_by=closed_by))
+        if _closer_committed(repo_path, closed_by):
+            continue          # the closing packet is committed: the batch is over
+        found.append(OpenBatch(batch=fm.get("batch", "?"), path=rel, closed_by=closed_by))
     return found
 
 
