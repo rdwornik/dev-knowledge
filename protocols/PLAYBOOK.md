@@ -83,6 +83,7 @@
   - [Dispatch visibility — Agent View shows DISPATCHED sessions only (STANDING_RULINGS B7)](#dispatch-visibility--agent-view-shows-dispatched-sessions-only-standing_rulings-b7)
   - [Dispatch prompts and the contract of record — two locations, one of them in the tree](#dispatch-prompts-and-the-contract-of-record--two-locations-one-of-them-in-the-tree)
   - [Model + effort are stated at dispatch — the routing matrix](#model--effort-are-stated-at-dispatch--the-routing-matrix)
+  - [Handoff prep for the next architect — an index, not a restatement](#handoff-prep-for-the-next-architect--an-index-not-a-restatement)
 - [Ch9. Tier-1 closure loop — usage](#ch9-tier-1-closure-loop--usage)
   - [Propagating a plugin change across the fleet](#propagating-a-plugin-change-across-the-fleet)
   - [The methodology↔project boundary (what IS methodology)](#the-methodologyproject-boundary-what-is-methodology)
@@ -2011,6 +2012,46 @@ about. ADR-87 is left untouched, and the residual is recorded rather than closed
 ruling covers: the equilibrium table and its §2 restatement still read as architect-excluded on
 the dispatch act itself. Operator item, filed in
 `docs/audits/2026-08-07-technical-batch-2-lessons.md`.
+
+### Handoff prep for the next architect — an index, not a restatement
+<!-- scope: meta -->
+
+A seat inheriting the architect role needs four things it does not arrive holding and cannot
+infer from the tree. Each is written once, elsewhere. **This subsection is the index and carries
+no doctrine of its own** — every line below is a pointer, deliberately, because a second copy of
+a rule is a second thing to keep true.
+
+**1 · How a dispatch prompt is made.** `templates/prompt-template.md` is the work-lane card and
+the point-of-use authority: Scale tiering, the `Mode` row, the board label, the dispatch
+constants. Where the prompt file lives, how a dispatch line cites it, and where a lane's
+*contract of record* lives instead — "Dispatch prompts and the contract of record" above.
+
+**2 · How model and effort are estimated.** "Model + effort are stated at dispatch — the routing
+matrix" above: the matrix itself, the live-CLI flag check behind it, and the declared boundary
+against ADR-87's "Model is CC's pick". Rung-by-rung detail stays at §2 "How to choose Effort";
+the ceremony consequence (an S-class contract drops the `Model | Mode | Effort` table) is stated
+with the matrix.
+
+**3 · How a batch is run.** "The batch protocol — ONE plan → N lanes → ONE integrator (ADR-110)"
+above: the five per-lane requirements, the integrator's refuse-to-finish checklist,
+JOURNAL-rides-the-branch as the anchoring law, the ≥2-commit integrator-branch shape, and the
+process-lane cap. `/lane-boot` boots one lane against it; `/lane-integrate` walks the close-out.
+
+**4 · How completion is managed.** Four items, each at its own home:
+
+- **Agent View lists dispatched sessions only** — `protocols/STANDING_RULINGS.md` B7, encoded at
+  "Dispatch visibility" above. Operator attention goes to **Needs-input** rows rather than to
+  re-reading every row.
+- **Packets are batched** — one round-trip carries every item, and single-question trips are
+  reserved for ask-class (a)–(c): "2-touch transport, on both seams" above, plus
+  `STANDING_RULINGS.md` "The decision budget".
+- **The integrator runs once per batch**, serially, from the primary checkout — the batch
+  protocol above.
+- **WINDOW = BATCH** — the seal (bundle, packet, JOURNAL wrap) fires at true batch boundaries,
+  and the batch protocol above records why a mid-batch seal misleads its successor.
+
+**Rulings an incoming seat applies without asking:** `protocols/STANDING_RULINGS.md` — section F
+carries the batch-execution set landed 2026-08-07.
 
 ---
 
