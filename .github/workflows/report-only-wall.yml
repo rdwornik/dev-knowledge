@@ -28,6 +28,45 @@ concurrency:
   cancel-in-progress: false   # every landed SHA gets its own record; never cancel a record
 
 jobs:
+  # LA-4 support job: decides whether the [#502] mutation pilot has anything to do on THIS
+  # push. Deliberately its own job rather than a workflow-level `paths:` filter, because a
+  # workflow-level filter would also gate the `record` job below -- and the wall must fire on
+  # every push to main or it stops being a record of what landed. Seconds of runtime, no
+  # dependencies, and it is skipped entirely on workflow_dispatch (where the pilot's `if`
+  # short-circuits on the event name).
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      pilot_subject: ${{ steps.filter.outputs.pilot_subject }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0      # the diff below needs `github.event.before` to be resolvable
+      - name: Did this push touch the pilot's own subject?
+        id: filter
+        run: |
+          set +e
+          BEFORE="${{ github.event.before }}"
+          # No resolvable range (dispatch, branch creation, force-push over the parent):
+          # answer FALSE. The dispatch path is already covered by the job `if`, and guessing
+          # TRUE here would reinstate the every-push behaviour this gate exists to remove.
+          if [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ] \
+             || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            echo "pilot_subject=false" >> "$GITHUB_OUTPUT"
+            echo "no resolvable push range -- pilot skipped"
+            exit 0
+          fi
+          CHANGED=$(git diff --name-only "$BEFORE" "${{ github.sha }}" -- \
+                      scripts/fleet_analytics.py tests/test_fleet_analytics.py pyproject.toml)
+          if [ -n "$CHANGED" ]; then
+            echo "pilot_subject=true" >> "$GITHUB_OUTPUT"
+            echo "pilot subject changed:"; echo "$CHANGED"
+          else
+            echo "pilot_subject=false" >> "$GITHUB_OUTPUT"
+            echo "pilot subject untouched -- skipped"
+          fi
+
   record:
     runs-on: ubuntu-latest
     timeout-minutes: 45       # -n auto is ~5m30s-6m on the operator host; 13m19s observed serial in a container
@@ -47,7 +86,14 @@ jobs:
                               # EXACTLY. Every hook entry and the Stop hook run via `uv run
                               # --locked`; a mismatched uv fails each one on a version error before
                               # any real check runs -- and a hook that cannot start reports nothing.
-          python-version-file: ".python-version"
+          # LA-2 (2026-08-07): `python-version-file:` was passed here and is NOT a valid
+          # setup-uv@v5 input -- every run emitted `##[warning]Unexpected input(s)` and the
+          # value was silently ignored, so the line CLAIMED a runner-Python pin it never
+          # delivered. Dropped rather than swapped to `python-version:`: uv reads
+          # `.python-version` itself during `uv sync`, so the pin is real and is owned by the
+          # file, and having the action install a second Python would add a surface that can
+          # disagree with the locked environment. The pin is not lost -- it moves to where it
+          # was always actually enforced.
 
       - name: Assert the toolchain pin is satisfied
         run: |
@@ -157,7 +203,21 @@ jobs:
   # CI-ONLY BY NECESSITY -- mutmut requires fork(), which Windows does not provide, so this
   # cannot run on the operator's host at all (the research verdict's one hard constraint).
   # Report-only, exactly like the wall: it records a mutation report and judges nothing.
+  # LA-4 (2026-08-07): GATED. It previously ran on EVERY push to main with no filter, so a
+  # pilot carrying no verdict had quietly become standing infrastructure -- ~70s of Actions
+  # time per push, and every one of those runs reported all 84 mutants `not checked`. The
+  # condition below is deliberately narrow: a manual `workflow_dispatch`, OR a push that
+  # actually touched the pilot's own subject. `paths:` cannot be used, because it is a
+  # WORKFLOW-level filter and would gate the record job too -- the record job must fire on
+  # every push or the wall stops being a wall. So the equivalent is expressed per-job via
+  # `dorny/paths-filter`-free plumbing: a cheap `changed` step below plus this `if`.
+  # UNGATE WHEN [#502] LANDS ITS VERDICT: a pilot that has produced ADOPT/REJECT either
+  # becomes real infrastructure (widen deliberately) or is deleted.
   mutation-pilot:
+    needs: changes
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      needs.changes.outputs.pilot_subject == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30       # DECLARED WALL-CLOCK BUDGET, not a guess at the true cost.
                               # The pilot's own brief makes a declared budget a precondition;
@@ -172,7 +232,14 @@ jobs:
         uses: astral-sh/setup-uv@v5
         with:
           version: "0.11.19"
-          python-version-file: ".python-version"
+          # LA-2 (2026-08-07): `python-version-file:` was passed here and is NOT a valid
+          # setup-uv@v5 input -- every run emitted `##[warning]Unexpected input(s)` and the
+          # value was silently ignored, so the line CLAIMED a runner-Python pin it never
+          # delivered. Dropped rather than swapped to `python-version:`: uv reads
+          # `.python-version` itself during `uv sync`, so the pin is real and is owned by the
+          # file, and having the action install a second Python would add a surface that can
+          # disagree with the locked environment. The pin is not lost -- it moves to where it
+          # was always actually enforced.
 
       - name: Sync the locked environment
         run: uv sync --locked --group analytics   # fleet_analytics imports pandas
