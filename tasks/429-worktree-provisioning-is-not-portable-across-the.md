@@ -1,7 +1,7 @@
 ---
 id: "[#429]"
 title: "Worktree provisioning is not portable across the fleet"
-status: open
+status: closed
 priority: P2
 size: M
 theme: "[E6] Cross-repo universalization"
