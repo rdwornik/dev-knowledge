@@ -19,6 +19,44 @@
 
 ---
 
+### 2026-08-07 (d) — CC (Opus 5, primary): the [#502] chain had a THIRD blocker, and the PRE-2 CI work is verified
+
+**Did:** Ran the post-push verification PRE-2 owed, and fixed what it found. Anchor: **`8bb06e00`**.
+
+**Result — the wall and the LA-4 gate both behave.** Push `945598f9` produced run
+**`31169364373`**: `record` success, `changes` success, `mutation-pilot` success. **LA-2 is
+confirmed fixed by absence** — zero `Unexpected input(s)` warnings across every job, where both
+jobs emitted one on every prior run. The recorder has now fired on **three consecutive pushes**
+(`2f2edd2b`, `4ad76bc5`, `945598f9`), so the night's self-correcting diagnosis is settled.
+
+**Correction to my own prediction, recorded because it was wrong in the JOURNAL an hour ago.**
+Entry (c) said "the `mutation-pilot` must NOT [fire]" on this push. It fired, and **correctly**:
+the PRE-2 arc changed `tests/test_fleet_analytics.py`, which is in the LA-4 filter's path list,
+so `pilot_subject=true` was the right answer. The gate did its job; my prediction did not check
+its own diff.
+
+**Result — a THIRD blocker in the [#502] chain, and it was mine.** The pilot still reported all
+84 mutants `not checked`. Cause: mutmut copies only the mutated source tree into `mutants/` and
+runs the suite from there, so `_REPO_ROOT` is `<repo>/mutants` — `scripts/` and `tests/` exist,
+`protocols/` and `docs/` do not, and the identity-by-marker assertion I landed an hour earlier
+failed there. The brief asked for checkout-NAME-agnostic and I delivered exactly that; the test
+also had to be **sandbox**-agnostic, so I traded one environment assumption for another. The
+chain in full: (1) `-p no:xdist` unloading the plugin that supplies `-n`, (2) the
+`.dev-knowledge` literal vs a dotless checkout, (3) repo markers inside a partial tree. Same
+symptom three times, three different causes — each one only visible after the previous was gone.
+
+Fixed by an **explicit skip keyed on mutmut's own directory convention**, not by softening the
+assertion to "check the marker if it happens to exist" — that form lets a genuinely wrong
+checkout pass, which is the vacuous-pass class this repo builds gates against. The structural
+legs and the name-follows-the-git-common-dir leg still run inside the sandbox, so the test is
+guarded rather than hollowed.
+
+**Changes:** `tests/test_fleet_analytics.py` (+14).
+
+**Abandoned:** nothing. **Next:** this commit touches the pilot's own subject, so the next push
+runs it again — it either produces the first real killed/survived/timeout numbers or names a
+fourth cause. [#502] stays OPEN either way until numbers exist.
+
 ### 2026-08-07 (c) — CC (Opus 5, primary): PRE-2 — batch-2 preconditions cleared; R-1 built, ship-gate GREEN honestly, manifest committed at dispatch
 
 **Did:** One serial arc clearing everything batch 2 cannot dispatch without. Declared process
