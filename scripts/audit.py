@@ -1114,6 +1114,65 @@ def _git_linked_worktrees(repo_path: Path) -> Optional[list[dict]]:
     return out
 
 
+def _git_stash_entries(repo_path: Path) -> Optional[list[str]]:
+    """Every entry in the repository's stash, one string per entry, newest first.
+
+    WHY THIS IS A SEPARATE READER FROM THE WORKTREE ONE, and why the leg it feeds exists at
+    all (batch-1 F4): `refs/stash` lives in the COMMON git directory. It is not among git's
+    per-worktree refs, so a stash pushed from inside a linked worktree is a fact about the
+    whole repository — readable from the primary, and untouched by `git worktree remove`,
+    `git worktree prune`, and the lane-branch delete. Worktree state therefore cannot be used
+    to infer it in either direction: a repo with no worktrees at all can be holding one.
+
+    Returns None when git is absent or the path is not a git repo — the
+    `_git_linked_worktrees` contract, and load-bearing here rather than cosmetic: an empty
+    list means "looked, found nothing stashed", so a not-a-repo path that returned `[]`
+    would report a clean stash for a directory nothing ever examined.
+
+    Read-only (`git stash list`), and bounded by the same 15s timeout as its sibling.
+    """
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(repo_path), "stash", "list"],
+            capture_output=True, text=True, encoding="utf-8", timeout=15,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if result.returncode != 0:
+        return None
+    return [ln for ln in result.stdout.splitlines() if ln.strip()]
+
+
+#: How many stash entries the WARN evidence names before it summarises the rest. The COUNT is
+#: the load-bearing number; the sample only helps a reader recognise their own work.
+_STASH_SAMPLE = 3
+
+
+def _stash_findings(repo_path: Path) -> list[Finding]:
+    """The F4 leg of `check_stale_worktrees` — a stash is the leftover no close-out item sees.
+
+    WARN-tier, like the organ it joins (ADR-110 §3 arms no gate). `_git_stash_entries`
+    returning None yields NO finding: the caller has already emitted the n/a that covers a
+    repo git cannot read, and a second one would say the same thing twice. An empty stash
+    yields an explicit pass instead of silence, because a leg that speaks only when unhappy
+    is indistinguishable from a leg that never ran.
+    """
+    entries = _git_stash_entries(repo_path)
+    if entries is None:
+        return []
+    if not entries:
+        return [Finding("stale_worktrees", "pass",
+                        "git stash list is empty - no stashed work outliving its lane")]
+    sample = "; ".join(e.strip() for e in entries[:_STASH_SAMPLE])
+    if len(entries) > _STASH_SAMPLE:
+        sample += f"; +{len(entries) - _STASH_SAMPLE} more"
+    return [Finding("stale_worktrees", "warn",
+                    f"{len(entries)} git stash entry(ies) present: {sample} - the stash lives "
+                    f"in the COMMON git dir, so it survives worktree teardown and every "
+                    f"refuse-to-finish item; pop or drop it, or say why it stays"
+                    .replace("|", "/"))]
+
+
 def check_stale_worktrees(repo_path: Path, now: Optional[float] = None) -> list[Finding]:
     """[#505] batch hygiene — WARN on a linked worktree no live batch owns (ADR-110 §1 item 4).
 
@@ -1146,19 +1205,31 @@ def check_stale_worktrees(repo_path: Path, now: Optional[float] = None) -> list[
     PORTABLE: a consumer inherits it unchanged — nothing here is hub-keyed. Read-only
     (`git worktree list`, `git show -s`); degrades to n/a without git.
 
+    THE STASH LEG (batch-1 F4, 2026-08-07) is a SECOND finding from the same organ, emitted by
+    `_stash_findings` above. It covers the leftover every worktree-shaped measure structurally
+    misses: `refs/stash` is common-dir, not per-worktree, so a lane's mid-work stash outlives
+    `worktree remove` / `prune` / the branch delete and all four refuse-to-finish items. Its own
+    finding rather than a folded verdict, because the empty-worktree state is exactly where it
+    matters most — a batch that closed clean by every other measure can still be hiding one.
+
     Honest limits. It cannot tell a genuinely abandoned lane from a long-running one that is
     simply slow — age is the only signal available without a batch manifest to read. It says
     nothing about UNMERGED lane branches whose worktree was already removed, which is the other
     half of unclosed parallel work and is the integrator checklist's item 1, not this organ's.
-    And it fires after the fact: the close-out refusal lives in `/lane-integrate`, not here.
+    The stash leg reports entries, not ownership: `git stash list` records no worktree of
+    origin, so a stash the operator made deliberately on the primary reads identically to a
+    lane's abandoned one — which is why the evidence asks for a disposition rather than an
+    action. And it fires after the fact: the close-out refusal lives in `/lane-integrate`.
     """
     entries = _git_linked_worktrees(repo_path)
     if entries is None:
         return [_na("stale_worktrees", _NA_NOT_APPLICABLE,
                     "git unavailable or not a repo - stale-worktree check skipped")]
+    stash = _stash_findings(repo_path)
     if not entries:
         return [Finding("stale_worktrees", "pass",
-                        "no linked worktrees registered (primary only) - nothing to close out")]
+                        "no linked worktrees registered (primary only) - nothing to close out"),
+                *stash]
     if now is None:
         now = datetime.now(timezone.utc).timestamp()
     horizon_secs = _STALE_WORKTREE_HORIZON_DAYS * 86400
@@ -1183,11 +1254,11 @@ def check_stale_worktrees(repo_path: Path, now: Optional[float] = None) -> list[
                         f"{len(problems)} of {len(entries)} linked worktree(s) look unclosed "
                         f"(horizon {_STALE_WORKTREE_HORIZON_DAYS}d): {'; '.join(problems)} - "
                         f"close them out per the /lane-integrate checklist, or say why they "
-                        f"stay".replace("|", "/"))]
+                        f"stay".replace("|", "/")), *stash]
     return [Finding("stale_worktrees", "pass",
                     f"{live} linked worktree(s) registered, each committed within the "
                     f"{_STALE_WORKTREE_HORIZON_DAYS}d horizon and present on disk - live batch "
-                    f"lanes, not leftovers")]
+                    f"lanes, not leftovers"), *stash]
 
 
 # ADR-38 A6 (2026-06-02): the universal [U] heading spine each canonical file must

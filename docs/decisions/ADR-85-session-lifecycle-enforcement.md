@@ -339,6 +339,44 @@ are unanchored. **All 311 are below the floor** — the newest is `533109f20` (2
 floor is `24882f8cc` (2026-08-02) — so none of them is live work for the backstop, and none is
 used to justify the floor's placement.
 
+## Amendment — 2026-08-07: §A6's fix has landed; the `:321-324` diagnosis is now history
+
+**Scope: documentation currency only.** No decision content changes, no behaviour changes, and
+§A6 is unaffected. Nothing above is edited — this ADR is immutable, so the correction is recorded
+by appending here, which is the ADR-94 shape (the in-place exception covers the *status line*
+only). Authorized by the architect 2026-08-07, conditioned on the text being descriptive and
+carrying no new proposal; it is, and it does not.
+
+**What reads as stale.** The "Consequences"-side foreclosure passage at **`:321-324`** — anchor
+text *"`block_ff_push.py:205-207` currently **fails soft**"* — says the prevent organ returns 0
+and "allows push" on any internal error, and that "until that fix lands, the prevent organ can be
+silently absent". Both halves describe a state that ended the same day the passage was written:
+§A6's fix **landed in the 2026-08-03 arc itself**, and the organ has failed CLOSED since.
+
+**Why it is not simply wrong.** It is this amendment's own pre-fix diagnosis, so it is accurate
+*as history*. The defect is that it is written in the present tense with no marker, so a reader
+arriving cold takes it for current state. That is the [#503] failure class — a description the
+world moved past — arriving inside a governance document rather than a living one, where the
+`canonical_freshness` cadence that would have caught it does not reach.
+
+**The live posture, with anchors verified 2026-08-07 rather than copied forward:**
+
+- `scripts/block_ff_push.py:39-40` — *"Fail **CLOSED** (ADR-85 amendment 2026-08-03 §A6): an
+  internal error RAISES and `main()` turns it into exit 2, refusing the push."*
+- `scripts/block_ff_push.py:144` and `:210` — the two sites where a genuine read failure raises
+  and the outer handler turns it into exit 2, rather than degrading.
+- `ARCHITECTURE.md:341` — *"**fails CLOSED (exit 2) on internal error**"*.
+- `CONTRIBUTING.md` validators table, `block-ff-push` row — same claim, with the retired
+  *"degraded — allowing push"* string named as the thing it replaced.
+
+Line numbers are given because they were re-derived today; the **anchor text** is the durable
+locator and is quoted for that reason. (Recorded as its own small lesson: the draft this
+amendment was built from cited `:322-324`, `:129` and `:194-195` — three of five citations had
+already drifted in under 24 hours. Citing by anchor text is why this one can be re-checked.)
+
+**What is NOT claimed here.** That the passage was wrong when written — it was not — and that any
+enforcement posture changes as a result of this amendment. Neither is true.
+
 ## Links
 - Council verdict: `council-out-20260616_131123-pick-council-brief-session-lifecycle-enforcement.md`
 - Coupled decisions: traceability-spine (R1), handoff-supplement (the DoD-via-handoff is process-context-in-handoff), conformance-dashboard (R2).

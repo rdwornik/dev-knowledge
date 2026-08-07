@@ -1737,17 +1737,39 @@ see the scope declaration under "Tree orchestration" above.
    inherits `VIRTUAL_ENV` from the primary tree, imports the PRIMARY checkout's source, and
    reports green about code the lane did not touch — silently (STANDING_RULINGS D4; ADR-106 for
    the pin). The wrapper is the mechanism that makes the environment follow the checkout.
-4. **Commit-and-STOP.** A lane commits its work and hands the branch back; integration is the
-   integrator's act, from the primary checkout — the no-self-merge rule above, applied at batch
-   scale.
+4. **Commit-and-STOP, with `git stash list` empty at STOP.** A lane commits its work and hands
+   the branch back; integration is the integrator's act, from the primary checkout — the
+   no-self-merge rule above, applied at batch scale. A mid-work stash is popped or dropped by
+   the lane that made it, before it stops. The reason is structural rather than tidiness
+   (batch-1 F4): `refs/stash` lives in the **common** git directory, not in the worktree's
+   private ref space, so a stash pushed inside a lane belongs to the whole repository. It
+   survives `git worktree remove`, `git worktree prune`, the branch delete, and every one of
+   the refuse-to-finish items below, all of which are worktree- or branch-shaped. Work left
+   there is absent from the tree, absent from the handed-back branch, and findable only by
+   someone who thinks to look — and the lane is the only seat that still knows what it was.
 5. **A worktree name paired 1:1 with its prompt file.** One lane = one contract file = one
    worktree = one branch, so an open worktree resolves to the contract that created it and an
    orphan is attributable at a glance. Naming grammar + prefix enum:
    `scripts/validate_branch_naming.py`.
 
-**The integrator's refuse-to-finish checklist.** A batch closes when all four hold; an open item
-leaves the batch open (ADR-110 §3). The load-bearing property is that the checklist is
+**Artifact paths in a contract are DERIVED from the ADR-101 enum, not composed freehand
+(batch-1 F3).** A contract that tells a lane to write `docs/audits/<date>-<slug>.md` has named a
+path the `validate-hermetization` Rule B gate REFUSES: the grammar wants an enum class token
+(`-technical-` / `-codex-` / `-verification-` / …) that a freehand slug omits. Batch 1 produced
+two such filenames in one batch, from the same authoring surface, and both lanes spent decision
+budget renaming to conform — one escalating it, which is the correct lane behaviour and also the
+proof that the cost lands in the wrong place. The authoring fix is to read the class enum out of
+ADR-101 §R3/R4 (or run `python scripts/validate_hermetization.py` over the intended name) while
+writing the plan, so the gate confirms a name the contract already got right. The general shape:
+**a contract that cites a path a gate governs is checkable at authoring time, and checking it
+there is cheaper than any lane discovering it.** `/preflight` is the built organ for this; a
+batch plan is exactly the class of document it exists to verify.
+
+**The integrator's refuse-to-finish checklist.** A batch closes when all **five** hold; an open
+item leaves the batch open (ADR-110 §3). The load-bearing property is that the checklist is
 *mechanical* — a close-out a reader can skim past and still declare done is the state it replaces.
+(Item 5 joined 2026-08-07 on batch-1 F4; ADR-110 §3 enumerates four, so the fifth rides as a
+recorded addition here until the ADR is amended.)
 
 - **Every lane branch merged-or-explicitly-abandoned.** "Explicitly abandoned" is a recorded
   disposition; a lane branch with no verdict leaves the checklist open.
@@ -1755,8 +1777,21 @@ leaves the batch open (ADR-110 §3). The load-bearing property is that the check
   isolation; the merged tree is a state no lane tested.
 - **`git worktree list` == primary only.** The batch-scale form of the no-leftovers round-trip
   stated immediately above.
-- **Manifest/packet archived.** The lane manifest and the end-of-batch packet land in the tree, so
-  the run is reconstructable without the chat.
+- **Manifest/packet archived — TWO halves, one at each end (batch-1 packet §8).** The **batch
+  manifest is committed at DISPATCH**, before any lane boots: the lane contracts *are* the plan,
+  and a plan that lives only in chat prompts leaves the batch reconstructable from its outcome
+  but not from its intent. The **end-of-batch packet** lands at close. Batch 1 archived the
+  second half only — contracts were delivered as prompts — so this item passed on a technicality
+  while half its evidence had already evaporated. A committed manifest is also what makes the F3
+  path check above possible at authoring time, and what lets a successor answer "was this lane's
+  footprint respected?" against a frozen contract rather than against memory.
+- **`git stash list` is empty (batch-1 F4).** The item the other four structurally cannot cover.
+  They read branches and worktrees; `refs/stash` is neither — it lives in the common git dir — so
+  a lane's abandoned stash passes all four and the batch closes looking clean while the work sits
+  where nothing points at it. One command, one line of output. An entry that stays gets a
+  recorded disposition like any other leftover, because `git stash list` reports no worktree of
+  origin: an integrator cannot tell a lane's forgotten stash from the operator's deliberate one
+  by reading it, and guessing is how real work gets dropped.
 
 `/lane-integrate` walks this list mechanically; `/lane-boot` boots one lane against it. (The two
 are deliberately *not* named `/batch-*`: ADR-110 §4 records hand-rolled `/batch-*` commands as
@@ -1768,9 +1803,37 @@ arc's own branch, ahead of the merge** (STANDING_RULINGS B2). The reason is stru
 than stylistic: the pre-push anchor gate discharges **range-level**, against SHAs the pushed range
 *introduces*, and a merge commit cannot name its own hash. A journal-only wrap merge therefore has
 nothing to anchor against and is unanchorable by construction — the recovery is a reset, which is
-why the ordering is not a preference. JOURNAL letters are allocated **at integration** by the
+why the ordering is not a preference. **An anchor discharges by APPEND ONLY** (architect ruling
+2026-08-07; register `protocols/STANDING_RULINGS.md` B6): a new entry naming the SHA, rather than
+an in-place amendment of an entry already committed — the predicate matches a SHA anywhere in the
+file, so editing a landed entry discharges the anchor *retroactively* and leaves no trace it once
+did not. JOURNAL letters are allocated **at integration** by the
 primary's single writer, unless the dispatch pre-assigned them as its contention contract (the
 allocation convention above).
+
+**The integrator's branch carries ≥2 commits — substantive work first, JOURNAL last (batch-1
+F1b).** `introduced()` for a `--no-ff` merge is the merge plus every commit its branch brought
+in, so a branch carrying exactly ONE commit offers the JOURNAL only its own hash to name — which
+it cannot, being written before that hash exists. A one-commit integration branch is therefore
+unanchorable by the same law one level up, and it is invisible until *after* the integration
+merge lands. Every ordinary arc already has the ≥2 shape by accident of how it grows; the
+integrator is the one seat whose work is naturally a single commit (carried edits + packet +
+JOURNAL, all in one), so it is the one seat that falls in. The split is cheap and mechanical:
+**commit 1** carried edits / reconciliations / packet, **commit 2** the JOURNAL entry naming
+commit 1. Batch 1 hit this live — the integration merge landed unanchored and surfaced as two
+extra suite REDs downstream of one `journal_spine_anchor` FAIL, repaired by a normal two-commit
+arc rather than by rewriting unpushed history.
+
+**The integrator's branch is `docs/…`-class, and having no lane prefix is why (batch-1 F2).**
+Merging on `main` leaves the session on `main`, so the integrator's own carried-edit / JOURNAL /
+packet commits would land direct-to-`main` and breach core-invariant #5. ADR-110 gives the
+integrator no prefix of its own deliberately (minting `integrate/` would invent an enum member
+the ruling clause reserves), and the consequence is not "no branch" but "an ordinary author-chosen
+branch": the convention is **`docs/<batch>-integration`** for the carried-edit arc and
+**`docs/<batch>-<repair>`** for any follow-up, merged `--no-ff` from the primary like any other
+serial arc. Batch 1 ran `docs/batch-1-integration` and `docs/batch-1-anchor-repair`. The naming
+enum classifies these as plain serial-arc branches, which is the intended reading — the
+integrator is an author here, not a lane.
 
 **WINDOW = BATCH.** One batch is one window: the seal — handoff bundle, packet, JOURNAL wrap —
 fires at true batch boundaries. A mid-batch seal sits outside the rhythm, because it produces a

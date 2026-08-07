@@ -23,6 +23,19 @@ THE THREE STATES the check distinguishes, which are this file's spine:
 
 The horizon is the mechanized WEEKLY prune the intake keeps ("hygiene organ — WARN on stale
 worktrees (mechanized weekly prune stays)"), so 7 days is that cadence and not a taste call.
+
+THE STASH LEG (F4, batch-1 night audit, landed 2026-08-07). A fourth kind of leftover that
+none of the three states above can see: `refs/stash` lives in the COMMON git directory, not
+in any worktree's private ref space. A lane that stashes mid-work and hands its branch back
+leaves that stash behind, and it survives `git worktree remove`, `git worktree prune`, the
+branch delete, and every one of the four refuse-to-finish items — all of which are worktree-
+or branch-shaped. The work is then invisible in the tree, invisible on the branch, and
+recoverable only by someone who thinks to run `git stash list`. Hence a leg that measures
+the stash directly rather than inferring it from worktree state.
+
+The leg emits its OWN Finding rather than folding into the worktree verdict, because the two
+answer different questions and the empty-worktree case is exactly where the stash matters
+most — a batch that closed cleanly by every worktree measure can still be hiding a stash.
 """
 from __future__ import annotations
 
@@ -233,3 +246,127 @@ def test_live_repo_is_not_stale():
     """The hub's own steady state passes — a check that WARNs on a clean tree is noise."""
     out = aud.check_stale_worktrees(Path(aud._REPO_ROOT))
     assert out[0].status in ("pass", "n/a"), out[0].evidence
+
+
+# --- the stash leg (F4) -----------------------------------------------------------------
+
+def test_a_stash_entry_warns_even_with_no_worktrees(monkeypatch, tmp_path):
+    """THE F4 CASE, stated exactly: teardown is complete by every worktree measure — zero
+    linked worktrees, nothing to prune, no lane branch left — and a stash is still sitting in
+    the common git dir holding work nobody can see. The worktree leg passes, correctly; the
+    stash leg is the one that speaks."""
+    monkeypatch.setattr(aud, "_git_linked_worktrees", lambda _p: [])
+    monkeypatch.setattr(aud, "_git_stash_entries",
+                        lambda _p: ["stash@{0}: WIP on worktree-lane-b-506-grooming: 1a2b3c4 wip"])
+    out = aud.check_stale_worktrees(tmp_path, now=_NOW)
+    assert len(out) == 2
+    assert out[0].status == "pass"                      # worktree leg: genuinely clean
+    stash = out[1]
+    assert stash.status == "warn"
+    assert stash.check_name == "stale_worktrees"
+    assert "worktree-lane-b-506-grooming" in stash.evidence
+    assert "stash" in stash.evidence.lower()
+
+
+def test_an_empty_stash_is_reported_rather_than_left_silent(monkeypatch, tmp_path):
+    """A leg that says nothing when clean cannot be told apart from a leg that did not run.
+    An empty stash reads back as an explicit pass, so the close-out evidence is positive."""
+    monkeypatch.setattr(aud, "_git_linked_worktrees", lambda _p: [])
+    monkeypatch.setattr(aud, "_git_stash_entries", lambda _p: [])
+    out = aud.check_stale_worktrees(tmp_path, now=_NOW)
+    assert len(out) == 2
+    assert out[1].status == "pass"
+    assert "stash" in out[1].evidence.lower()
+
+
+def test_several_stash_entries_are_counted_and_the_list_is_bounded(monkeypatch, tmp_path):
+    """The count is the load-bearing number; the sample is a courtesy. A pathological stash
+    depth stays readable instead of flooding one evidence line."""
+    monkeypatch.setattr(aud, "_git_linked_worktrees", lambda _p: [])
+    monkeypatch.setattr(aud, "_git_stash_entries",
+                        lambda _p: [f"stash@{{{i}}}: WIP on lane-{i}" for i in range(9)])
+    out = aud.check_stale_worktrees(tmp_path, now=_NOW)
+    assert out[1].status == "warn"
+    assert "9" in out[1].evidence
+    assert len(out[1].evidence) < 400
+
+
+def test_stash_leg_stays_silent_when_the_stash_cannot_be_read(monkeypatch, tmp_path):
+    """Unreadable is not clean and is not dirty either. The worktree leg already carries the
+    n/a signal for a repo git cannot see, so the stash leg declines to invent a second one."""
+    monkeypatch.setattr(aud, "_git_linked_worktrees", lambda _p: [])
+    monkeypatch.setattr(aud, "_git_stash_entries", lambda _p: None)
+    out = aud.check_stale_worktrees(tmp_path, now=_NOW)
+    assert len(out) == 1
+    assert out[0].check_name == "stale_worktrees"
+
+
+def test_a_stash_does_not_mask_or_be_masked_by_a_stale_worktree(monkeypatch, tmp_path):
+    """Both leftovers at once: each is reported on its own Finding, so neither hides the
+    other and an integrator reading the output sees two distinct things to close."""
+    monkeypatch.setattr(aud, "_git_linked_worktrees",
+                        lambda _p: [_wt("lane-z-401-forgotten", age_days=30)])
+    monkeypatch.setattr(aud, "_git_stash_entries", lambda _p: ["stash@{0}: WIP on lane-z"])
+    out = aud.check_stale_worktrees(tmp_path, now=_NOW)
+    assert [f.status for f in out] == ["warn", "warn"]
+    assert "lane-z-401-forgotten" in out[0].evidence
+    assert "stash" in out[1].evidence.lower()
+
+
+def test_stash_leg_is_also_structurally_incapable_of_failing():
+    """Same WARN-tier posture as the organ it joins, pinned at the source for the same
+    reason: an inputs-only assertion holds only until a FAIL branch is added later."""
+    src = inspect.getsource(aud._stash_findings)
+    assert '"fail"' not in src and "'fail'" not in src
+
+
+@requires_git
+def test_stash_reader_sees_a_real_stash_in_the_common_git_dir(tmp_path):
+    """THE TEST THAT CONSTRAINS THE READER, against real git — the same role the linked-
+    worktree integration test plays above. A reader that always returned `[]` would satisfy
+    every monkeypatched assertion here and silently disable the leg.
+
+    It also pins the property the whole finding rests on: the stash made INSIDE a linked
+    worktree is visible from the PRIMARY, because `refs/stash` is common rather than
+    per-worktree. That is precisely why worktree teardown cannot take it with it."""
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _init_repo(repo)
+    assert aud._git_stash_entries(repo) == []          # baseline: nothing stashed yet
+
+    wt = tmp_path / "lane-a-505-batch-protocol"
+    subprocess.run(["git", "-C", str(repo), "worktree", "add", str(wt),
+                    "-b", "worktree-lane-a-505-batch-protocol"], check=True, capture_output=True)
+    try:
+        (wt / "f.txt").write_text("lane work nobody committed", encoding="utf-8")
+        subprocess.run(["git", "-C", str(wt), "stash", "push", "-m", "lane wip"],
+                       check=True, capture_output=True)
+        # read from the PRIMARY, not from the worktree that made it
+        entries = aud._git_stash_entries(repo)
+        assert entries is not None and len(entries) == 1, entries
+        assert "lane wip" in entries[0]
+
+        # ... and teardown does not take it away: this is F4 in one assertion
+        subprocess.run(["git", "-C", str(repo), "worktree", "remove", "--force", str(wt)],
+                       check=True, capture_output=True)
+        subprocess.run(["git", "-C", str(repo), "worktree", "prune"], capture_output=True)
+        subprocess.run(["git", "-C", str(repo), "branch", "-D",
+                        "worktree-lane-a-505-batch-protocol"], capture_output=True)
+        assert aud._git_linked_worktrees(repo) == []    # every worktree measure now clean
+        survivors = aud._git_stash_entries(repo)
+        assert survivors is not None and len(survivors) == 1, survivors
+
+        out = aud.check_stale_worktrees(repo)
+        assert out[0].status == "pass"                  # worktree leg sees nothing wrong
+        assert out[1].status == "warn"                  # the stash leg is the only witness
+    finally:
+        subprocess.run(["git", "-C", str(repo), "stash", "clear"], capture_output=True)
+        subprocess.run(["git", "-C", str(repo), "worktree", "prune"], capture_output=True)
+
+
+@requires_git
+def test_stash_reader_returns_none_outside_a_repo(tmp_path):
+    """Graceful degradation, the `_git_linked_worktrees` contract: not-a-repo reads as
+    unknown rather than as an empty stash, which is what keeps the leg from reporting a
+    clean stash for a directory it never looked into."""
+    assert aud._git_stash_entries(tmp_path) is None
