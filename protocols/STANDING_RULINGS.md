@@ -261,6 +261,22 @@ entry sits outside the sanctioned shapes, and the ruling is forward-looking.
   places the entry on the work branch ahead of the merge, which is the shape that keeps the
   append-only discharge available in the first place.
 
+### B7 · VISIBLE = DISPATCHED
+
+*Architect ruling, 2026-08-06, verified live.* Claude Code Agent View (`claude agents`) surfaces
+`--bg` (dispatched, non-interactive) sessions only — a foreground session in another terminal is
+absent from that view by design, not by defect.
+
+- **The convention it sets.** A handed-off, non-interactive task starts as `claude --bg`, or
+  transitions there via `/bg`. Foreground stays the shape for interactive work. Batch lanes
+  dispatch as `--bg` without exception, so a batch's whole lane set is visible in one view.
+- **Why this earns a register line rather than staying tribal knowledge.** An operator scanning
+  Agent View for "what's running" sees a partial picture unless the population that populates it
+  is a known, named set — dispatched work, and only dispatched work. Encoded doctrine:
+  `protocols/PLAYBOOK.md` Ch8 "Dispatch visibility"; the board-label shape it prescribes for a
+  dispatch prompt is carried by `.claude/commands/lane-boot.md` and
+  `templates/prompt-template.md`.
+
 ---
 
 ## C. Decisions inherited from the 2026-08-05 session plan (§H, R-7)

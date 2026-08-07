@@ -80,6 +80,7 @@
   - [Parallel sessions & worktree discipline (per ADR-61)](#parallel-sessions--worktree-discipline-per-adr-61)
   - [Tree orchestration — architect-root + epic-chat lanes (ADR-97)](#tree-orchestration--architect-root--epic-chat-lanes-adr-97)
   - [The batch protocol — ONE plan → N lanes → ONE integrator (ADR-110)](#the-batch-protocol--one-plan--n-lanes--one-integrator-adr-110)
+  - [Dispatch visibility — Agent View shows DISPATCHED sessions only (STANDING_RULINGS B7)](#dispatch-visibility--agent-view-shows-dispatched-sessions-only-standing_rulings-b7)
 - [Ch9. Tier-1 closure loop — usage](#ch9-tier-1-closure-loop--usage)
   - [Propagating a plugin change across the fleet](#propagating-a-plugin-change-across-the-fleet)
   - [The methodology↔project boundary (what IS methodology)](#the-methodologyproject-boundary-what-is-methodology)
@@ -1883,6 +1884,40 @@ stale-worktree WARN (`audit.py::check_stale_worktrees`) and the naming enum
 all. Nothing here blocks a batch that skips a step: a lane that self-merges, a batch that closes
 with an open lane branch, and a mid-batch seal all remain mechanically possible. The refusal in
 "refuse-to-finish" is carried by the integrator command's checklist, not by a gate.
+
+### Dispatch visibility — Agent View shows DISPATCHED sessions only (STANDING_RULINGS B7)
+<!-- scope: meta -->
+
+Claude Code Agent View (`claude agents`) lists `--bg` (dispatched) sessions. A foreground session
+running in another terminal, even a long one, is outside that view — a property of how the view
+is built, confirmed live 2026-08-06, not a bug to route around.
+
+**The convention this sets.** A handed-off, non-interactive task starts life as `claude --bg`, or
+crosses over via `/bg` at the point a foreground session becomes hand-off work. Foreground stays
+reserved for interactive sessions the operator is watching in real time. A batch lane (the
+protocol above) dispatches `--bg` in every case — one exception would put that lane outside the
+one place an operator scans for "what's running."
+
+**The dispatch shape.** A lane or hand-off dispatch reads:
+
+```
+claude --worktree --bg "<board label> <contract>"
+```
+
+**The board label opens every dispatch prompt**, so a row in Agent View scans at a glance even at
+ten concurrent agents — the operator's attention goes to Needs-input rows, not to re-deriving what
+each row is from its tail text. Shape: `[repo · #id-or-slug · verb-object]` — e.g.
+`[dev-knowledge · #505 · fold-dispatch-visibility]`. `.claude/commands/lane-boot.md` and
+`templates/prompt-template.md` carry this by construction rather than by reminder — a dispatch
+prompt built from either starts with the label already in place.
+
+**Flag composition, checked against the installed CLI (2.1.224).** `claude --help` lists `--bg`
+(`--bg, --background`) and `-w, --worktree` as independent flags with no documented mutual
+exclusion — the only noted dependency runs the other way (`--tmux` needs `--worktree`). Where a
+live nested dispatch cannot be exercised (a worktree-isolated session declining to spawn another
+worktree session from inside itself, for instance), the fallback is dispatching `--bg` from inside
+a worktree the lane-boot protocol already provisioned — the two steps run in sequence rather than
+composed on one command line, with the same visibility result.
 
 ---
 
