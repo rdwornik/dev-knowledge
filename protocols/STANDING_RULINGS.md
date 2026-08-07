@@ -234,6 +234,33 @@ enum stays the checkable surface either way.
 - **Unchanged by this:** the four author-chosen serial-arc prefixes; the integrator's deliberate
   absence of a prefix of its own; the validator's read-only, wired-into-no-gate posture.
 
+### B6 · An anchor discharges by APPEND ONLY
+
+*Architect ruling, 2026-08-07, on the batch-1 night audit's IA-1 / R-3.* A JOURNAL anchor
+discharges through a **new entry naming the SHA**. In-place amendment of an already-committed
+entry sits outside the sanctioned shapes, and the ruling is forward-looking.
+
+- **The question it settles.** Batch-1's F1b repair (`0518e3a6`) discharged an anchor by
+  inserting two blocks into the existing `2026-08-06 (h)` entry, which had already landed at
+  `ed9de2b5` and merged at `9cf4e33e`. It worked, and that is the problem worth a ruling.
+- **Why the mechanism cannot tell the difference.** `scripts/journal_anchor.py` matches a short
+  SHA **anywhere in the file**, at the working tree or tip — not per entry, and not against the
+  entry's own commit. So an in-place edit is a **retroactive** discharge: a range that was
+  unanchored when it merged reads as anchored afterwards, and the file carries no trace that it
+  once said otherwise. That is the tamper-evidence the ADR-85 amendment moved the teeth to
+  protect, dissolved by an edit the predicate has no way to see.
+- **The append-only alternative was equally effective**, which is what makes the ruling cheap:
+  because the match is file-wide, a new `2026-08-06 (i)` entry naming `ed9de2b5` discharges the
+  identical anchor. Nothing is given up by taking the conformant shape.
+- **`0518e3a6` stands GRANDFATHERED.** It is pushed history, and rewriting pushed history to
+  tidy a record is a larger harm than the record's irregularity. The repair keeps its effect;
+  what changes is the shape available going forward.
+- **Consistent with the file lifecycle already written** (CLAUDE.md §4, §5 rule 2 — `JOURNAL.md`
+  is append-only newest-first). This entry closes the gap between that rule and a practice the
+  rule's own enforcement organ could not detect. Related: [B2](#b2--journal-rides-the-branch)
+  places the entry on the work branch ahead of the merge, which is the shape that keeps the
+  append-only discharge available in the first place.
+
 ---
 
 ## C. Decisions inherited from the 2026-08-05 session plan (§H, R-7)

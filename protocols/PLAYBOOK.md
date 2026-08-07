@@ -1803,7 +1803,11 @@ arc's own branch, ahead of the merge** (STANDING_RULINGS B2). The reason is stru
 than stylistic: the pre-push anchor gate discharges **range-level**, against SHAs the pushed range
 *introduces*, and a merge commit cannot name its own hash. A journal-only wrap merge therefore has
 nothing to anchor against and is unanchorable by construction — the recovery is a reset, which is
-why the ordering is not a preference. JOURNAL letters are allocated **at integration** by the
+why the ordering is not a preference. **An anchor discharges by APPEND ONLY** (architect ruling
+2026-08-07; register `protocols/STANDING_RULINGS.md` B6): a new entry naming the SHA, rather than
+an in-place amendment of an entry already committed — the predicate matches a SHA anywhere in the
+file, so editing a landed entry discharges the anchor *retroactively* and leaves no trace it once
+did not. JOURNAL letters are allocated **at integration** by the
 primary's single writer, unless the dispatch pre-assigned them as its contention contract (the
 allocation convention above).
 
