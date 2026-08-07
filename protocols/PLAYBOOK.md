@@ -81,6 +81,7 @@
   - [Tree orchestration — architect-root + epic-chat lanes (ADR-97)](#tree-orchestration--architect-root--epic-chat-lanes-adr-97)
   - [The batch protocol — ONE plan → N lanes → ONE integrator (ADR-110)](#the-batch-protocol--one-plan--n-lanes--one-integrator-adr-110)
   - [Dispatch visibility — Agent View shows DISPATCHED sessions only (STANDING_RULINGS B7)](#dispatch-visibility--agent-view-shows-dispatched-sessions-only-standing_rulings-b7)
+  - [Dispatch prompts and the contract of record — two locations, one of them in the tree](#dispatch-prompts-and-the-contract-of-record--two-locations-one-of-them-in-the-tree)
   - [Model + effort are stated at dispatch — the routing matrix](#model--effort-are-stated-at-dispatch--the-routing-matrix)
 - [Ch9. Tier-1 closure loop — usage](#ch9-tier-1-closure-loop--usage)
   - [Propagating a plugin change across the fleet](#propagating-a-plugin-change-across-the-fleet)
@@ -1919,6 +1920,48 @@ live nested dispatch cannot be exercised (a worktree-isolated session declining 
 worktree session from inside itself, for instance), the fallback is dispatching `--bg` from inside
 a worktree the lane-boot protocol already provisioned — the two steps run in sequence rather than
 composed on one command line, with the same visibility result.
+
+### Dispatch prompts and the contract of record — two locations, one of them in the tree
+<!-- scope: meta -->
+
+**The prompts dir.** A dispatch prompt is an operator-side file: the operator opens it, references
+it in the launching line, and pastes. It lives in the **prompts dir** — `~/Downloads` by default,
+overridden by the `CLAUDE_PROMPTS_DIR` environment variable — and a dispatch line cites it as
+`<PROMPTS_DIR>\<file>` rather than as a hard-coded absolute path. The variable form keeps a
+dispatch line portable across machines and keeps one operator's directory layout out of an
+artifact other people read. `win-tooling`'s `scripts/dispatch/Invoke-Dispatch.ps1` joins its
+`-Prompt` arguments and hands the string to `claude --bg` verbatim, so a `<PROMPTS_DIR>` token
+reaches the session unexpanded and the operator expands it by hand until [#509] teaches the
+wrapper to resolve it.
+
+**The contract of record is a different object, and it lives in the tree.** [#505] clause 1 asks
+for a fresh seat that runs a full batch from repo artifacts alone, and batch 2 falsified it for
+one precise reason: its four lane contracts were files in the operator's Downloads. The *plan* was
+in the tree — the manifest committed at dispatch, which was the batch-2 advance — while the
+*contracts* were not, so the integrator reconstructed the merge queue from the ref store and from
+**session transcripts**, which are repo artifacts in no sense at all.
+
+**The repair path, for batch 3: at dispatch, the batch manifest links or embeds each frozen lane
+contract as a committed repo artifact.** Dispatch convenience stays in the prompts dir; the
+authoritative copy lands with the manifest — embedded in it, or committed beside it under a name
+derived from the ADR-101 class enum — and the manifest's lane rows point at it. That leaves the
+prompts dir as a *delivery channel* rather than a storage location, which is what a
+`<PROMPTS_DIR>` reference already implies.
+
+Two consequences, both drawn from batch-2 evidence rather than from design taste:
+
+- A lane's frozen contract becomes citable by a successor seat, which is the property
+  "reconstructable from repo artifacts" actually names. Reconstruction from transcripts is
+  available only to a seat that can read those transcripts, and it expires with them.
+- A committed contract's own path is checkable at authoring time against the ADR-101 enum —
+  exactly what the F3 paragraph above already asks of the paths a contract *names*, now applied to
+  the contract itself. `validate-hermetization` sees it, rather than a lane discovering the
+  refusal after boot.
+
+**Honest limit, stated so this is not read as done.** This is a documented path, not a mechanism:
+nothing checks that a manifest's lane rows resolve to committed contracts, and [#505] clause 1
+stays falsified until a batch actually runs that way. The batch-3 manifest is the first artifact
+that can satisfy it.
 
 ### Model + effort are stated at dispatch — the routing matrix
 <!-- scope: hybrid -->

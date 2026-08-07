@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "5bfd5f87e99dbb6c737506f35e356727f7e9f273fe2ae09011137aec76abc57e",
+  "generated_sha256": "877ceef96012979a7f2633a9efcbdd75af2656db832adecc43e9156a0b202b38",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -919,6 +919,10 @@
     {
       "task": 486,
       "file": "486-desired-state-report-py-dies-on-a-cp1252-console.md"
+    },
+    {
+      "task": 509,
+      "file": "509-invoke-dispatch-resolves-claude-prompts-dir.md"
     },
     {
       "prose": ""
