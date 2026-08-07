@@ -3818,6 +3818,18 @@ def check_journal_spine_anchor(repo_path: Path) -> list[Finding]:
     refactor; widening it in the ADR is a visible governance act. An unreadable/unparseable
     floor is a FAIL, not a pass -- an unknown exemption boundary is not a clean one.
 
+    THE DECLARED-INTEGRATION-ARC EXEMPTION (ADR-110 amendment 2026-08-07, R-1). A lane merge
+    is skipped here while a committed batch manifest declares an open batch — because a
+    batch's JOURNAL entry names the lane MERGE SHAs and so cannot exist until after them,
+    making the per-commit evaluation structurally unsatisfiable mid-queue. Both conditions
+    are required (a `worktree-lane-*` `--no-ff` merge AND an open manifest), the exemption
+    self-expires when the manifest's declared `closed_by:` packet lands, and it is REPORTED
+    IN THE PASS EVIDENCE rather than applied silently — a skipped entry a reader cannot see
+    is the thing this gate exists to prevent. `scripts/batch_manifest.py` holds the rule and
+    its honest limits; the range-level pre-push organ does NOT import it, which is what keeps
+    "nothing ships unanchored" true. It replaces `SKIP=audit-health`, which disabled the
+    whole registry twice per batch at width 3 and would five times at width 6.
+
     HUB-ONLY by repo identity: ADR-85's floor lives in this repo's ADR and consumers carry
     neither it nor this JOURNAL shape, so scanning them would manufacture a fleet gap (the
     enforcement-organs-are-not-homogeneous class). Read-only (Layer-2).
@@ -3826,10 +3838,14 @@ def check_journal_spine_anchor(repo_path: Path) -> list[Finding]:
         return [_na("journal_spine_anchor", "NOT-APPLICABLE",
                         "hub-only -- ADR-85's disposition floor and JOURNAL shape are hub-owned")]
     try:
+        import batch_manifest as _bm
         import journal_anchor as _ja
         floor = _ja.floor_sha(repo_path)
         journal = _ja.journal_text(repo_path)
         gaps = _ja.unanchored_on_spine(repo_path, "main", floor, journal)
+        live = _bm.open_batches(repo_path)
+        exempted = _bm.exempt(repo_path, gaps, batches=live)
+        gaps = [s for s in gaps if s not in exempted]
     except Exception as exc:  # noqa: BLE001 -- FR6: an error is never a silent pass
         return [Finding("journal_spine_anchor", "fail",
                         f"backstop could not complete ({exc!r}) -- an unknown anchoring "
@@ -3841,6 +3857,14 @@ def check_journal_spine_anchor(repo_path: Path) -> list[Finding]:
                         f"{len(gaps)} first-parent spine entry(ies) above the disposition "
                         f"floor {floor[:9]} carry no JOURNAL anchor: {named}{more}"
                         .replace("|", "/"))]
+    if exempted:
+        named = ", ".join(sorted(b.batch for b in live))
+        return [Finding("journal_spine_anchor", "pass",
+                        f"every first-parent spine entry above the ADR-85 disposition floor "
+                        f"{floor[:9]} is JOURNAL-anchored, EXCEPT {len(exempted)} lane "
+                        f"merge(s) exempt under the ADR-110 declared-integration-arc rule "
+                        f"while batch {named} is open ({live[0].path}) -- the exemption "
+                        f"expires when {live[0].closed_by} lands".replace("|", "/"))]
     return [Finding("journal_spine_anchor", "pass",
                     f"every first-parent spine entry above the ADR-85 disposition floor "
                     f"{floor[:9]} is JOURNAL-anchored")]

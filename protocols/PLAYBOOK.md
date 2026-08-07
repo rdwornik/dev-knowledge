@@ -1780,7 +1780,13 @@ recorded addition here until the ADR is amended.)
 - **Manifest/packet archived — TWO halves, one at each end (batch-1 packet §8).** The **batch
   manifest is committed at DISPATCH**, before any lane boots: the lane contracts *are* the plan,
   and a plan that lives only in chat prompts leaves the batch reconstructable from its outcome
-  but not from its intent. The **end-of-batch packet** lands at close. Batch 1 archived the
+  but not from its intent. **Since the ADR-110 amendment 2026-08-07 the manifest is also
+  load-bearing at the GATE**: it declares the open batch that grants the
+  declared-integration-arc exemption, retiring `SKIP=audit-health` on intermediate merges. Two
+  frontmatter fields carry that — `status: open` and `closed_by: <the packet path>` — and the
+  exemption ends by itself when that packet lands, because `docs/audits/` is immutable and a
+  mutable `status:` flag would be no expiry at all.
+  The **end-of-batch packet** lands at close. Batch 1 archived the
   second half only — contracts were delivered as prompts — so this item passed on a technicality
   while half its evidence had already evaporated. A committed manifest is also what makes the F3
   path check above possible at authoring time, and what lets a successor answer "was this lane's
