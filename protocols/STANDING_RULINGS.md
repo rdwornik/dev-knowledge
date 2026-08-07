@@ -541,6 +541,35 @@ own commit is a defect in the record, whatever the ruling's merits.
 
 ---
 
+### F6 · bg-isolation guard fork, ruled (PRE-2 gate-hygiene arc)
+
+> The bg-isolation guard (background sessions blocked from Edit/Write in the shared
+> primary checkout, `.claude/settings.json` `worktree.bgIsolation`) stays as-is,
+> everywhere. A frozen contract that pins an arc to the primary tree names the guard
+> and its sanctioned route -- exact-match patch scripts applied from the job tmp dir
+> via the shell, not the Edit tool. M/L primary-tree arcs favor foreground dispatch over
+> background. No per-repo `bgIsolation` weakening is admitted by this ruling.
+
+- **The defect this prevents:** a background session hitting the guard mid-arc either
+  stalls (no sanctioned path forward) or gets "fixed" ad hoc by disabling the guard for
+  the one repo that is inconvenient this session -- silently narrowing a safety property
+  installed on purpose (see the sibling worktree-isolation entries this same register
+  cites in section A/B) to whichever repo asked last.
+- **PRE-2 evidence:** the `chore/pre-cut-gate-hygiene` gate-hygiene arc's own frozen
+  contract named this fork explicitly (clause 4) and dispatched the arc to the primary
+  tree in the background regardless. The guard fired live on the first `Edit` call
+  against a `tasks/*.md` file (confirmed, not asserted) and every subsequent BACKLOG /
+  disposition-register / this-file edit in the arc went through an exact-match Bash
+  patch script staged under the job tmp dir instead.
+- **Not a duplicate of the worktree-isolation entries** this register already carries
+  for OTHER concurrency hazards (stale linked worktrees, live-session HEAD swaps): those
+  govern a session's own worktree lifecycle; this entry governs what a session pinned TO
+  the primary tree by contract does when the isolation guard still fires on it.
+- **Expiry:** retires once the sanctioned route lands in a more durable home than this
+  register (a PLAYBOOK section, or the guard's own refusal message) -- not yet landed.
+
+---
+
 ## Editing note (read before adding an entry)
 
 This file sits inside the silent-rule ratchet corpus (`protocols/*.md`; detector

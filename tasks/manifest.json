@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "9b4f452d2761932620cefd9c73384e5c7cca3db2e62dcec566b49838536d29de",
+  "generated_sha256": "8df2bb01dad87ccb2849130af250eea9e3b819214a2d914d4eaf418db9795b19",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -223,6 +223,10 @@
     {
       "task": 510,
       "file": "510-scope-r1-exemption-to-enumerated-lanes.md"
+    },
+    {
+      "task": 512,
+      "file": "512-open-batch-refusal-doesnt-scrub-git-dir.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
