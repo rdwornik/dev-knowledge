@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "877ceef96012979a7f2633a9efcbdd75af2656db832adecc43e9156a0b202b38",
+  "generated_sha256": "357feb6294ba748e030ef9298fee78c3bcefd7c139f5f39c129671d8b3837150",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -215,6 +215,10 @@
     {
       "task": 507,
       "file": "507-report-only-wall-fourth-leg-precommit-run-all-files.md"
+    },
+    {
+      "task": 510,
+      "file": "510-scope-r1-exemption-to-enumerated-lanes.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
