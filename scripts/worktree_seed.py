@@ -170,7 +170,16 @@ def _has_importable_package(root: Path, data: dict) -> bool:
         if not top:
             continue
         for base in (root, root / "src"):
-            if (base / top / "__init__.py").is_file() or (base / f"{top}.py").is_file():
+            candidate = base / top
+            if (candidate / "__init__.py").is_file() or (base / f"{top}.py").is_file():
+                return True
+            # PEP 420 namespace package - no __init__.py, still importable (terra P1, 5th pass).
+            # Without this a namespace-packaged repo derives ENV_NONE and its worktree keeps the
+            # shared interpreter, which is the exact condition leg (b) exists to remove. Depth is
+            # bounded for the same reason as the twin predicate in worktree_import_proof.py.
+            if candidate.is_dir() and (
+                any(candidate.glob("*.py")) or any(candidate.glob("*/__init__.py"))
+            ):
                 return True
     return False
 

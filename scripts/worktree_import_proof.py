@@ -218,11 +218,24 @@ def _package_dir_exists(root: Path, name: str) -> bool:
     """True when `name` is on disk here as a real package — under the root or a `src/` layout.
     Discovery is filtered through this so a declared-but-absent name is not reported as a
     package the proof "checked": an import that could never have resolved locally proves
-    nothing about which checkout won."""
+    nothing about which checkout won.
+
+    PEP 420 IS A PACKAGE TOO (terra P1, fifth pass). A namespace package has no `__init__.py`,
+    so an `__init__.py`-only predicate reports the repo as having nothing importable and the CLI
+    answers NOT-APPLICABLE — a disclosed skip rather than a false pass, but still a supported
+    packaging style going unchecked. A directory is accepted when it ships modules at its top
+    level or one level down. The depth bound is deliberate: an unbounded `rglob` over a
+    `node_modules`-shaped tree turns a fast predicate into a slow one, and a namespace package
+    whose only `.py` files are three levels deep is not a shape worth paying for.
+    """
     top = name.split(".")[0]
     for base in (root, root / "src"):
         candidate = base / top
         if (candidate / "__init__.py").is_file() or (base / f"{top}.py").is_file():
+            return True
+        if candidate.is_dir() and (
+            any(candidate.glob("*.py")) or any(candidate.glob("*/__init__.py"))
+        ):
             return True
     return False
 

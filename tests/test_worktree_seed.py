@@ -132,6 +132,45 @@ def test_the_dev_extra_is_dropped_when_the_repo_does_not_declare_one(tmp_path):
     assert not any("[dev]" in c for c in commands)
 
 
+def test_a_pep420_namespace_package_still_gets_an_editable_bootstrap(tmp_path):
+    """Without this the repo derives ENV_NONE and its worktree keeps the shared interpreter --
+    the exact condition leg (b) exists to remove (terra P1, fifth pass)."""
+    (tmp_path / "pyproject.toml").write_text(
+        '[build-system]\nrequires = ["setuptools"]\n\n'
+        '[project]\nname = "demo-pkg"\nversion = "0"\n',
+        encoding="utf-8",
+    )
+    pkg = tmp_path / "src" / "demo_pkg"
+    pkg.mkdir(parents=True)
+    (pkg / "mod.py").write_text("", encoding="utf-8")   # no __init__.py
+    assert ws.env_bootstrap(tmp_path)[0] == ws.ENV_VENV_EDITABLE
+
+
+def test_the_two_package_predicates_agree(tmp_path):
+    """`worktree_seed` and `worktree_import_proof` each carry their own on-disk package
+    predicate -- deliberately, so neither imports the other and each stands alone. The cost is
+    that they can drift, and a drift means the plan and the proof disagree about whether a repo
+    has anything to check. Pinned across the shapes that distinguish them."""
+    import worktree_import_proof as wip
+
+    cases = {
+        "regular": lambda d: (d / "demo_pkg").mkdir() or
+                             (d / "demo_pkg" / "__init__.py").write_text("", encoding="utf-8"),
+        "namespace": lambda d: (d / "demo_pkg").mkdir() or
+                               (d / "demo_pkg" / "mod.py").write_text("", encoding="utf-8"),
+        "module": lambda d: (d / "demo_pkg.py").write_text("", encoding="utf-8"),
+        "data-only": lambda d: (d / "demo_pkg").mkdir() or
+                               (d / "demo_pkg" / "x.csv").write_text("", encoding="utf-8"),
+        "absent": lambda d: None,
+    }
+    data = {"project": {"name": "demo-pkg"}}
+    for label, build in cases.items():
+        root = tmp_path / label
+        root.mkdir()
+        build(root)
+        assert ws._has_importable_package(root, data) == wip._package_dir_exists(root, "demo_pkg"),             f"predicates disagree on the {label!r} shape"
+
+
 def test_a_build_system_without_a_package_on_disk_needs_no_bootstrap(tmp_path):
     """The hub's own shape: it declares `[build-system]` and ships no importable package, so
     telling it to install itself editable would be a command with no subject."""

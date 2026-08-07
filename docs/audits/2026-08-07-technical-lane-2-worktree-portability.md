@@ -8,9 +8,9 @@
 
 > **Amendment — 2026-08-07, same session (in-file marker per CLAUDE.md §5 rule 3).** This file
 > was first committed at `05d31b20`, before the contract-mandated terra review had run. Terra
-> returned a P1 on each of four passes -- six findings, five real and one refuted, and §3's evidence was produced by the pre-fix organ — so the
+> returned a P1 on each of five passes -- eight findings, seven real and one refuted, and §3's evidence was produced by the pre-fix organ — so the
 > §3 transcripts and §4's defect list are amended to the final post-fix run, and §4 gains
-> **D-3** through **D-8**. Nothing else changed. Recorded through the sanctioned in-file channel rather than by rewriting
+> **D-3** through **D-10**. Nothing else changed. Recorded through the sanctioned in-file channel rather than by rewriting
 > the commit, following the `2026-08-06-technical-batch1-verification` precedent: squashing it on
 > an unpushed branch would have been tidier and would have left no trace that the artifact ever
 > said otherwise — which is precisely the property an audit trail exists to deny itself.
@@ -56,7 +56,7 @@ express.
 |---|---|---|
 | `scripts/worktree_seed.py` | (a) | read-only outside the hub; `--write` refuses any target but the hub's own `.worktreeinclude` |
 | `scripts/worktree_import_proof.py` | (b) + done-when | read-only everywhere; writes only into the system temp dir |
-| `tests/test_worktree_seed.py` (26) + `tests/test_worktree_import_proof.py` (34) | both | — |
+| `tests/test_worktree_seed.py` (28) + `tests/test_worktree_import_proof.py` (37) | both | — |
 | `.claude/commands/lane-boot.md` §3 / §6 | both | the adopt-native wiring |
 | `.worktreeinclude` | (a) | now generated from the manifest, not hand-authored |
 
@@ -148,15 +148,16 @@ FAIL `1` · NOT-APPLICABLE `3` (the hub itself, which ships no importable packag
 and the `.claude/worktrees/` directory this lane created was removed. Verified after: `worktree
 list` == primary only, `branch` == `main` only, `status --short` empty, directory absent.
 
-## 4. Eight defects the work found in its own organs
+## 4. Ten defects the work found in its own organs
 
 None was found by reading the code. D-1 came from running it, D-2 from a test that asserted a
-docstring claim instead of trusting it, and D-3 through D-8 from the four contract-mandated
+docstring claim instead of trusting it, and D-3 through D-10 from the five contract-mandated
 review passes. D-1/D-2 are fixed in `ae1abddd`, D-3 in `d7f2f7ff`, D-4 in `9964110b`,
-D-5/D-6 in `b3e9775f`, and D-7/D-8 in the commit carrying this amendment. A seventh finding was **refuted**, not fixed —
+D-5/D-6 in `b3e9775f`, D-7/D-8 in `6edd69f9`, and D-9/D-10 in the commit carrying this
+amendment. A seventh finding was **refuted**, not fixed —
 see D-6 and the review artifact's F-4.
 
-**That distribution is the finding underneath the findings.** Six of eight came from an outside
+**That distribution is the finding underneath the findings.** Eight of ten came from an outside
 reader and neither was reachable from inside: every test and every live run went through the
 same entry point (D-3) and the same posture assumption (D-4), so the suite could confirm them
 rather than catch them.
@@ -222,6 +223,19 @@ adjudication: `docs/audits/2026-08-07-codex-lane-2-worktree-portability.md` F-4.
 **D-7 — a dotted package name would import its parent (terra P1, fourth pass).** `find_spec("pkg.sub")` must IMPORT `pkg` to read its `__path__`, so a dotted name arriving from a setuptools `include` or from `--packages` would execute child-repo code through the very call chosen to avoid executing it — re-opening D-4 by the back door. Closed by reducing every name to its top-level segment at both discovery paths, plus an independent refusal inside the generated test. Nothing is lost: the top-level package's origin is what determines which checkout the subtree came from.
 
 **D-8 — the emitted PowerShell broke on an apostrophe in a path (terra P1, fourth pass).** Paths were interpolated into single-quoted literals unescaped, so a checkout under a profile like `O'Brien` produced a block that will not run — at best a syntax error, at worst a tail parsed as PowerShell. Closed with an escape applied at the one place paths become script text, tested both directly and end to end over a real worktree whose path contains an apostrophe.
+
+**D-9 / D-10 — PEP 420 namespace packages were invisible to BOTH organs (terra P1 ×2, fifth
+pass).** The on-disk package predicate required `__init__.py`. In the proof that meant a
+namespace-packaged repo answered NOT-APPLICABLE — a disclosed skip, the mildest failure mode
+available. In the seed plan it was worse: the repo derived `ENV_NONE`, so `--plan` told the
+lane no per-checkout environment was needed and its worktree kept the shared interpreter — the
+exact condition leg (b) exists to remove, reached by way of the advice meant to prevent it.
+Both closed by accepting a directory that ships modules at its top level or one level down;
+`test_a_directory_that_ships_no_python_is_not_a_package` pins the far edge so a data directory
+sharing the dist name is not counted. **One defect found twice is the cost of the deliberate
+duplication** — the two modules carry their own predicates so neither imports the other — so
+`test_the_two_package_predicates_agree` now makes the next divergence a test failure rather
+than a plan and a proof quietly disagreeing.
 
 **What D-3 says about review placement.** This is the [#438] thesis with a fresh data point:
 the defect passed 51 tests and a live end-to-end run on the real satellite, because every one of

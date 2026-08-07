@@ -148,6 +148,38 @@ def test_discovery_reads_the_setuptools_include_globs(tmp_path):
 
 
 @requires_git
+def test_discovery_finds_a_pep420_namespace_package(tmp_path):
+    """A PEP 420 package has no `__init__.py`. An `__init__.py`-only predicate reported the repo
+    as having nothing importable and the CLI answered NOT-APPLICABLE -- a disclosed skip rather
+    than a false pass, but a supported packaging style going unchecked (terra P1, fifth pass)."""
+    repo = _repo_with_package(tmp_path / "demo", "demo-pkg", "demo_pkg")
+    (repo / "demo_pkg" / "__init__.py").unlink()
+    (repo / "demo_pkg" / "mod.py").write_text("VALUE = 1\n", encoding="utf-8")
+    assert wip.declared_packages(repo) == ("demo_pkg",)
+
+
+@requires_git
+def test_a_namespace_package_one_level_down_still_counts(tmp_path):
+    repo = _repo_with_package(tmp_path / "demo", "demo-pkg", "demo_pkg")
+    (repo / "demo_pkg" / "__init__.py").unlink()
+    sub = repo / "demo_pkg" / "sub"
+    sub.mkdir()
+    (sub / "__init__.py").write_text("", encoding="utf-8")
+    assert wip.declared_packages(repo) == ("demo_pkg",)
+
+
+@requires_git
+def test_a_directory_that_ships_no_python_is_not_a_package(tmp_path):
+    """The widening has to stop somewhere: a data directory that happens to share the dist name
+    is not an importable package, and counting it would put a name in the report that no import
+    could ever resolve."""
+    repo = _repo_with_package(tmp_path / "demo", "demo-pkg", "demo_pkg")
+    (repo / "demo_pkg" / "__init__.py").unlink()
+    (repo / "demo_pkg" / "data.csv").write_text("a,b\n", encoding="utf-8")
+    assert wip.declared_packages(repo) == ()
+
+
+@requires_git
 def test_a_declared_package_absent_from_disk_is_not_reported_as_checked(tmp_path):
     """A name that could never have resolved locally proves nothing about which checkout won,
     so counting it would inflate the report with packages nobody examined."""

@@ -2,25 +2,25 @@
 
 **Date:** 2026-08-07
 **Branch:** `worktree-lane-2-429-worktree-portability`
-**HEAD:** `d7f2f7ff` (passes 1-2) · `9964110b` (pass 3) · `b3e9775f` (pass 4) → fix commit follows
+**HEAD:** `d7f2f7ff` (passes 1-2) · `9964110b` (pass 3) · `b3e9775f` (pass 4) · `6edd69f9` (pass 5) → fix commit follows
 **Diff range:** `main..worktree-lane-2-429-worktree-portability`
 **Codex version:** codex-cli 0.145.0
 **Mode:** diff-review (native `codex exec review --base main`)
 **Model used:** `gpt-5.6-terra` (pinned; [#469])
 **Review profile:** code
-**Tally:** 0/5/0/0 (C/H/M/L)
-**Passes:** 4 · **Findings:** 6 · **Accepted:** 5 · **Refuted:** 1 · **Outstanding:** 0
+**Tally:** 0/7/0/0 (C/H/M/L)
+**Passes:** 5 · **Findings:** 8 · **Accepted:** 7 · **Refuted:** 1 · **Outstanding:** 0
 
 ---
 
-## Why four passes, and what each one added
+## Why five passes, and what each one added
 
 Each pass ran on the diff the previous pass's fix produced, and each returned something the
-previous one had graded clean: pass 1 → F-1, pass 2 → F-2, pass 3 → F-3 and F-4, pass 4 →
-F-5 and F-6. That is the argument for the batch's condition 3 being about a review *artifact*
-rather than a review *pass* — a single pass would have shipped five of these six.
+previous one had graded clean: pass 1 → F-1, pass 2 → F-2, pass 3 → F-3/F-4, pass 4 →
+F-5/F-6, pass 5 → F-7/F-8. That is the argument for the batch's condition 3 being about a review
+*artifact* rather than a review *pass* — a single pass would have shipped seven of these eight.
 
-**One of the six is REFUTED, and it is recorded as prominently as the accepted five (F-4).**
+**One of the eight is REFUTED, and it is recorded as prominently as the accepted seven (F-4).**
 A review artifact that only lists what the reviewer got right is not a record, it is agreement.
 
 The lane's own suite could not have caught F-1 or F-2. Every test and every live run went
@@ -29,11 +29,14 @@ defects rather than caught them. A fresh data point for [#438] (review placement
 quality, is the variable) — and F-4 is the counterweight: an outside reader is also the source
 of the one claim that did not survive being measured.
 
-**Stopping rule, and why it did not fire at pass 4.** The rule stated after pass 3 was: pass 4
-confirms, and anything it raises that is a *design tension* rather than a *defect* is recorded as
-an accepted limit rather than chased (the [#436] 10-pass precedent). Pass 4 raised two bounded
-defects with exact fixes and no design question attached, so they were fixed. The rule stands
-unchanged for pass 5, which is the confirming run.
+**Stopping rule, and the convergence it is reading.** The rule from pass 3: a *design tension*
+gets recorded as an accepted limit; a *defect with an exact fix* gets fixed. Passes 4 and 5 each
+raised two of the latter and none of the former, so both were fixed rather than deferred — but
+the findings are visibly narrowing (entry point → execution posture → apostrophes in paths →
+PEP 420 discovery), which is the convergence signal rather than a reason to keep going
+indefinitely. The [#436] arc took 10 passes; this one stops when a pass returns nothing that
+changes behaviour, and anything still open at STOP is handed to the integrator as a named
+deferred item rather than left implied.
 
 ---
 
@@ -154,6 +157,42 @@ an apostrophe in their profile name cannot run is broken for that user regardles
 paths become script text rather than trusted to each caller. Two tests: the helper directly,
 and `_copy_block` end to end over a real worktree whose path contains an apostrophe — because
 the regression is a NEW interpolation site added later without the escape.
+
+## F-7 [P1, pass 5] — PEP 420 namespace packages were invisible to discovery
+
+`scripts/worktree_import_proof.py` — the on-disk package predicate required `__init__.py`, so
+a repo distributing a PEP 420 namespace package returned no declared packages and the CLI
+answered NOT-APPLICABLE (exit 3).
+
+**Verdict: ACCEPTED, with its severity stated honestly.** The failure mode is the mildest one
+available — a *disclosed skip*, not a false pass, and exit 3 says in as many words that
+nothing was proved. It is still a supported packaging style going unchecked by a tool whose
+entire purpose is to work across a fleet it does not control, so it is fixed rather than
+recorded as a limit.
+
+**Resolution:** a directory counts when it ships modules at its top level or one level down.
+The depth bound is deliberate — an unbounded `rglob` over a `node_modules`-shaped tree turns a
+fast predicate into a slow one. The widening also has to stop somewhere, so
+`test_a_directory_that_ships_no_python_is_not_a_package` pins the other edge: a data directory
+sharing the distribution name is not a package, and counting it would put a name in the report
+that no import could ever resolve.
+
+## F-8 [P1, pass 5] — the same blind spot in the provisioning plan
+
+`scripts/worktree_seed.py` — the twin predicate behind `env_bootstrap`, with a worse
+consequence: a namespace-packaged repo derived `ENV_NONE`, so `--plan` told the lane no
+per-checkout environment was needed and its worktree kept the shared interpreter. That is the
+exact condition leg (b) exists to remove, reached by way of the advice meant to prevent it.
+
+**Verdict: ACCEPTED**, same fix applied to the twin.
+
+**And the duplication is now pinned.** The two modules carry their own copies of this
+predicate deliberately — neither imports the other, so each stands alone — and F-7/F-8 are
+what that costs: one defect, found twice, in two places that must agree. Rather than couple
+them, `test_the_two_package_predicates_agree` asserts they return the same verdict across the
+five shapes that distinguish them (regular, namespace, single module, data-only, absent), so
+the next divergence is a test failure instead of a plan and a proof quietly disagreeing about
+whether a repo has anything to check.
 
 ## Not raised by codex, found by the lane's own gates
 
