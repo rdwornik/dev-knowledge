@@ -19,7 +19,7 @@
 
 ---
 
-### 2026-08-07 (f) — CC (dispatched, AM-4): dispatch-visibility encoded as repo law
+### 2026-08-07 (g) — CC (dispatched, AM-4): dispatch-visibility encoded as repo law
 
 **Did:** Ran the AM-4 fold contract. Empirical leg first: `claude --help` on the installed CLI
 (2.1.224) confirms `-w, --worktree` and `--bg, --background` are independent flags with no
@@ -46,6 +46,33 @@ TOC regen), `.claude/commands/lane-boot.md`, `templates/prompt-template.md` (v1.
 
 **Next:** none named by the contract; packet reports the flag-composition finding for the
 operator to confirm live if a nested-dispatch trial becomes possible outside a sandboxed worktree.
+---
+
+### 2026-08-07 (f) — CC (Sonnet 5, lane-c-320-backup): fleet backup posture sweep
+
+**Did:** Ran the frozen [#320] lane contract — enumerated local branches, tracking status, and
+stashes across all 9 `ecosystem/registry.md` fleet repos, then pushed every unpushed ref that
+was safe to push (additive, never force). Anchor: **`1f41d7d5`** (the record commit, this branch).
+
+**Result:** 5 repos had unpushed work, all pushed clean: `corp-ops` (main, 4 commits),
+`corp-sca-time-automation` (main, 4), `demo-prep` (main, 60, ADR-001 gate passed),
+`life-architect` (main, 4), and `corp-monorepo`'s `docs/327-interface-genre-markers` (new branch,
+1 docs commit, left unmerged for a corp session per its own message). `.dev-knowledge` and
+`corp-monorepo`'s `vk/c35d-test` got accept-local (zero unique commits beyond already-pushed
+tips). `ai-council` and `terminal-setup` were already in sync. Zero stashes anywhere.
+**`win-tooling` REFUSED at the repo level — it has no `origin` remote configured at all**; 14
+branches of real typewhisper work are local-only. Flagged to the operator rather than silently
+dispositioned or fixed (adding a remote is a remote-settings change, out of this lane's
+git-ops-only scope).
+
+**Changes:** `docs/audits/2026-08-07-technical-fleet-backup-posture.md` (new record) +
+`docs/audits/README.md` (index regen). No file content touched in any of the other 8 repos —
+git-ops only, per contract.
+
+**Abandoned:** none.
+
+**Next:** `/lane-integrate` from primary to merge this lane. Separately, the architect should
+decide whether/where `win-tooling` gets a remote.
 
 ---
 
