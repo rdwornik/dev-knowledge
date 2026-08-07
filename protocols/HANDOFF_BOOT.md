@@ -1,5 +1,5 @@
 ---
-reconciled_with: handoff-process@6.0.1
+reconciled_with: handoff-process@6.1.0
 ---
 
 # HANDOFF_BOOT — thin browser boot (HANDOFF_PROCESS v6)
@@ -148,26 +148,21 @@ The verification split, bidirectional adjudication, and plan-review contract bel
 
 ## Parallel work — worktree orchestration (architect mode)
 
-When two genuinely independent streams can run at once, parallelize via worktrees; otherwise
-serial is cheaper. **Decision-rule (apply BEFORE splitting — all three must be YES):** the
-streams touch **disjoint substantive files**; they are **two distinct goals** (not "finish the
-rest of X" — that is one goal, done serially); **each stream is more than a single-file edit.**
-Keep it to ~2–3 streams; a safe default pair is **one code item ∥ one doc item** (disjoint by
-construction). Below that bar, do the items serially.
+**The launch test is not resident here — ask CC to pull it.** Whether a second committing
+session opens is settled by ONE test at **PLAYBOOK Ch8 §0** ([#441]'s four conditions); a batch
+rather than a pair runs under Ch8 **"The batch protocol"** (ADR-110), via `/lane-boot` and
+`/lane-integrate`. A three-check copy of that test stood here for weeks after the corpus retired
+it — which is why this is a pointer now.
 
-The command you hand the operator is **`claude --worktree <name>`** (new terminal) or
-**`EnterWorktree`** (mid-session) — **never** a raw sibling `git worktree add` (that skips the
-`.worktreeinclude` seed and spawns the `.dev-knowledge-*` orphans). Lifecycle is *provision →
-work on its own branch → integrate → teardown* (`worktree remove` + `prune` + `branch -d`,
-then verify no leftovers).
+Resident, because it governs your behaviour rather than restating a rule: parallel sessions
+**commit-and-STOP and do not self-merge** (a linked worktree can't check out `main`, already held
+by the primary — the #200 finding), so integration funnels through the primary checkout, `--no-ff`,
+**one branch at a time**, with the operator as the serial gate. The command you hand over is
+**`claude --worktree <name>`** or **`EnterWorktree`** — not a raw sibling `git worktree add`, which
+skips the `.worktreeinclude` seed. Teardown (`remove` + `prune` + `branch -d` + verify no leftovers)
+is half the act.
 
-**Integrate serially from the primary** — parallel sessions **commit-and-STOP; they never
-self-merge.** A worktree→`main` merge is **git-structurally prevented** (a linked worktree
-can't check out `main`, already held by the primary — the #200 finding), so integration always
-funnels through the single primary checkout, where you `/ship` / `git merge --no-ff` **one
-branch at a time**. The operator is the serial gate.
-
-Canon: **PLAYBOOK §8** ("Parallel sessions & worktree discipline" — ask CC to pull it).
+Canon: **PLAYBOOK Ch8** — ask CC to pull it.
 
 ## Verification split (who checks what)
 
@@ -219,22 +214,22 @@ CC self-loads the detail for code-impact work (ADR-87); these are thin pointers 
   separate "cc-prompt" skill). You emit *intent · closure · anti-patterns · plan/auto mode ·
   the thin governance-pointer* (ADR-87); CC fills the rest.
 - **Session-end gates.** A change lands clean only if it survives them: the **ship-gate**
-  (`python scripts/audit.py ship-gate`) plus the freshness / `doc_claims` / BACKLOG legs, and
-  the deterministic **ADR-85 Stop-gate** (next section). Don't design around them — design *with*.
+  (`python scripts/audit.py ship-gate`) plus the freshness / `doc_claims` / BACKLOG legs, and the
+  ADR-85 **pre-push** anchor refusal (next section). Don't design around them — design *with*.
 - **Automation map.** Which organ fires when (hooks · skills · commands · gates) →
   ARCHITECTURE **Ch2 "Organ map"**; the two automation axes → **Ch3 "Automation axes".**
 
 ## Closing a session — definition of done
 
-Plan with closure in mind from the start. The session-end Stop-gate (ADR-85) is
-deterministic and **mechanically enforced** — the canon is `protocols/DEFINITION_OF_DONE.md`
-(ask CC to pull it). The two load-bearing rules:
+Plan with closure in mind from the start. The canon is `protocols/DEFINITION_OF_DONE.md`
+(ask CC to pull it); what you carry between sessions is where the enforcement lives, not its text:
 
-- **JOURNAL — hard.** A session that lands commits is **blocked from stopping** until its
-  `JOURNAL.md` entry names ≥1 commit-SHA from this session. Not a nudge — a block.
-- **BACKLOG — advisory (v1).** Landing commits without a structural-marker change in
-  `BACKLOG.md` raises a nudge, not a block (it hardens later — ADR-85 R1).
+- **Where the teeth sit.** The session-end **Stop** hook is **advisory in full** since the
+  ADR-85 amendment of 2026-08-03; the blocking leg moved to **pre-push**, scoped to `main`, and
+  `/override` discharges no gate (§A2). Behaviour is unchanged by the move: an arc's
+  `JOURNAL.md` entry rides its own branch, ahead of the merge, naming a SHA that merge introduces.
+- **The rest is not resident on purpose** — ask CC to pull `protocols/DEFINITION_OF_DONE.md`
+  rather than acting on a remembered shape.
 
 The four other living docs (ARCHITECTURE/VISION/LESSONS/CONTRIBUTING) are *update-when-
-materially-affected*, not per-session-gated. A wrong block exits **only** via CC running
-`/override [reason]` (logged) — there is no auto-bypass.
+materially-affected*, not per-session-gated.

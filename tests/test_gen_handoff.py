@@ -727,3 +727,157 @@ def test_generation_itself_runs_the_seal_gate(tmp_path):
     finally:
         gh.verify_seal_identity = real
     assert res.bundle_dir in calls, "generate() must seal-gate the bundle it just wrote"
+
+
+# --- the two boot/cut invariants (ARC-HANDOFF-ENGINE step 2) ----------------------
+# WINDOW = BATCH (PLAYBOOK Ch8; ADR-110 §Rhythm) and the no-leftovers round-trip
+# (CLAUDE.md §5 rule 9) were doctrine with no organ behind them at the generation site.
+# A bundle cut mid-batch describes a tree nobody has integrated yet, so the successor boots
+# against a manifest the rest of the batch is about to invalidate — the failure is silent,
+# and the artifact is immutable once committed. Both refusals fire BEFORE anything is written.
+
+
+class _FakeBatch:
+    """The two OpenBatch fields the refusal names. Structural stand-in so these tests do not
+    need a committed manifest — batch_manifest's own suite owns the resolution semantics."""
+
+    def __init__(self, batch="9", path="docs/audits/2026-01-01-technical-batch-9-manifest.md",
+                 closed_by="docs/audits/2026-01-01-technical-batch-9-packet.md"):
+        self.batch, self.path, self.closed_by = batch, path, closed_by
+
+
+def test_generation_refuses_while_a_batch_manifest_declares_an_open_batch(tmp_path, monkeypatch):
+    """WINDOW = BATCH, enforced. A cut taken while a batch is open seals a bundle whose state
+    the batch is still moving; handoffs happen at boundaries only."""
+    repo = _stub_repo(tmp_path)
+    monkeypatch.setattr(gh, "_open_batches", lambda _root: [_FakeBatch()])
+    with pytest.raises(gh.OpenBatchError) as exc:
+        gh.generate(repo, mode="architect", slug="0000-00-00-midbatch", repo=".dev-knowledge",
+                    date="2026-07-04", bundle_root=repo / "docs" / "handoffs", assemble=False)
+    msg = str(exc.value)
+    # Naming the manifest AND its closer is the actionable half: "a batch is open" without
+    # the two paths is a message the operator cannot act on.
+    assert "batch 9" in msg
+    assert "2026-01-01-technical-batch-9-manifest.md" in msg
+    assert "2026-01-01-technical-batch-9-packet.md" in msg
+
+
+def test_open_batch_refusal_writes_nothing(tmp_path, monkeypatch):
+    """The refusal precedes creation. A half-written bundle directory left behind by a refused
+    cut is itself a leftover, and would then be the untracked in-flight target RM-8 sanctions."""
+    repo = _stub_repo(tmp_path)
+    monkeypatch.setattr(gh, "_open_batches", lambda _root: [_FakeBatch()])
+    with pytest.raises(gh.OpenBatchError):
+        gh.generate(repo, mode="architect", slug="0000-00-00-midbatch", repo=".dev-knowledge",
+                    date="2026-07-04", bundle_root=repo / "docs" / "handoffs", assemble=False)
+    assert not (repo / "docs" / "handoffs" / "0000-00-00-midbatch").exists()
+
+
+def test_generation_proceeds_when_no_batch_is_open(tmp_path):
+    """Negative control — the overwhelmingly common state costs one read and refuses nothing."""
+    repo = _stub_repo(tmp_path)
+    assert gh._open_batches(repo) == []
+    res = gh.generate(repo, mode="architect", slug="0000-00-00-clear", repo=".dev-knowledge",
+                      date="2026-07-04", bundle_root=repo / "docs" / "handoffs", assemble=False)
+    assert (res.bundle_dir / "HANDOFF_BOOT.md").exists()
+
+
+def test_open_batch_reader_is_the_shared_batch_manifest_organ():
+    """One definition of "a batch is open". A second, generator-local notion would drift from
+    the one the audit gate reads, and the two would disagree exactly when it mattered."""
+    src = (_REPO / "scripts" / "gen_handoff.py").read_text(encoding="utf-8")
+    assert "batch_manifest" in src and "open_batches" in src
+
+
+@pytest.mark.skipif(shutil.which("git") is None, reason="git not in PATH")
+def test_generation_refuses_a_linked_worktree_and_names_it(tmp_path, monkeypatch):
+    """Boundary hygiene, leg 1. `git worktree list` == primary only is the batch protocol's own
+    refuse-to-finish item; a bundle cut over an un-torn-down lane inherits that lane's state.
+
+    A REAL repo, with only the reader stubbed: a bare `.git` directory is not a repo, and
+    `_tracked_under` refuses status-unknown before this leg is ever reached."""
+    repo = _stub_repo(tmp_path)
+    _git_init_commit(repo)
+    monkeypatch.setattr(gh, "_linked_worktrees",
+                        lambda _root: [r"C:\repo\.claude\worktrees\lane-a"])
+    monkeypatch.setattr(gh, "_stash_entries", lambda _root: [])
+    with pytest.raises(gh.BoundaryHygieneError) as exc:
+        gh.generate(repo, mode="architect", slug="0000-00-00-wt", repo=".dev-knowledge",
+                    date="2026-07-04", bundle_root=repo / "docs" / "handoffs", assemble=False)
+    assert "lane-a" in str(exc.value)
+
+
+@pytest.mark.skipif(shutil.which("git") is None, reason="git not in PATH")
+def test_generation_refuses_a_nonempty_stash_and_names_it(tmp_path, monkeypatch):
+    """Boundary hygiene, leg 2, and the one the other checks structurally cannot cover:
+    `refs/stash` lives in the COMMON git dir, so a lane's stash survives every worktree- and
+    branch-shaped teardown (batch-1 F4)."""
+    repo = _stub_repo(tmp_path)
+    _git_init_commit(repo)
+    monkeypatch.setattr(gh, "_linked_worktrees", lambda _root: [])
+    monkeypatch.setattr(gh, "_stash_entries",
+                        lambda _root: ["stash@{0}: WIP on main: 1234567 lane-b half-edit"])
+    with pytest.raises(gh.BoundaryHygieneError) as exc:
+        gh.generate(repo, mode="architect", slug="0000-00-00-stash", repo=".dev-knowledge",
+                    date="2026-07-04", bundle_root=repo / "docs" / "handoffs", assemble=False)
+    assert "stash@{0}" in str(exc.value)
+
+
+@pytest.mark.skipif(shutil.which("git") is None, reason="git not in PATH")
+def test_boundary_hygiene_names_every_leftover_not_just_the_first(tmp_path, monkeypatch):
+    """Reporting one leftover invites a fix-and-retry loop that reveals the next one; the
+    operator gets the whole list in one refusal."""
+    repo = _stub_repo(tmp_path)
+    _git_init_commit(repo)
+    monkeypatch.setattr(gh, "_linked_worktrees", lambda _root: ["/w/lane-a", "/w/lane-b"])
+    monkeypatch.setattr(gh, "_stash_entries", lambda _root: ["stash@{0}: WIP"])
+    with pytest.raises(gh.BoundaryHygieneError) as exc:
+        gh.generate(repo, mode="architect", slug="0000-00-00-many", repo=".dev-knowledge",
+                    date="2026-07-04", bundle_root=repo / "docs" / "handoffs", assemble=False)
+    msg = str(exc.value)
+    assert "lane-a" in msg and "lane-b" in msg and "stash@{0}" in msg
+
+
+def test_boundary_hygiene_is_skipped_outside_a_git_repo(tmp_path):
+    """Degrade contract, matching `_tracked_under`: not a git repo -> nothing can be provisioned
+    or stashed -> generation proceeds. `_stub_repo` is never `git init`ed."""
+    repo = _stub_repo(tmp_path)
+    assert not (repo / ".git").exists()
+    res = gh.generate(repo, mode="architect", slug="0000-00-00-nogit-h", repo=".dev-knowledge",
+                      date="2026-07-04", bundle_root=repo / "docs" / "handoffs", assemble=False)
+    assert (res.bundle_dir / "HANDOFF_BOOT.md").exists()
+
+
+def test_boundary_hygiene_refuses_when_git_cannot_answer(tmp_path, monkeypatch):
+    """The other half of that degrade, and the direction RM-8 already ruled: a git that is
+    PRESENT but errors leaves hygiene UNKNOWN, and an unknown boundary is not a clean one."""
+    repo = _stub_repo(tmp_path)
+    (repo / ".git").mkdir(parents=True, exist_ok=True)
+    monkeypatch.setattr(gh, "_git_status", lambda *a, **k: (False, ""))
+    with pytest.raises(gh.BoundaryHygieneError) as exc:
+        gh.assert_boundary_hygiene(repo)
+    assert "could not be determined" in str(exc.value)
+
+
+@pytest.mark.skipif(shutil.which("git") is None, reason="git not in PATH")
+def test_boundary_hygiene_reads_the_real_probes_in_a_real_repo(tmp_path):
+    """Wiring, not stubs: against a real single-worktree, stash-free repo both readers answer
+    empty and generation proceeds — so the GREEN above is not an artefact of monkeypatching."""
+    repo = _stub_repo(tmp_path)
+    _git_init_commit(repo)
+    assert gh._linked_worktrees(repo) == []
+    assert gh._stash_entries(repo) == []
+    res = gh.generate(repo, mode="architect", slug="0000-00-00-realgit", repo=".dev-knowledge",
+                      date="2026-07-04", bundle_root=repo / "docs" / "handoffs", assemble=False)
+    assert (res.bundle_dir / "HANDOFF_BOOT.md").exists()
+
+
+@pytest.mark.skipif(shutil.which("git") is None, reason="git not in PATH")
+def test_linked_worktrees_excludes_the_primary(tmp_path):
+    """`git worktree list` always lists the primary first; counting it as a leftover would
+    refuse every cut ever taken. The primary is the baseline, not a finding."""
+    repo = _stub_repo(tmp_path)
+    _git_init_commit(repo)
+    ok, out = gh._git_status(repo, "worktree", "list", "--porcelain")
+    assert ok and out.count("worktree ") == 1      # the primary, and only the primary
+    assert gh._linked_worktrees(repo) == []

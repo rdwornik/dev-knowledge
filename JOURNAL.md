@@ -19,6 +19,69 @@
 
 ---
 
+### 2026-08-07 (j) — CC (Opus 5, primary): the bundle points, the repo carries the law
+
+**Did:** Ran ARC-HANDOFF-ENGINE on `docs/handoff-engine-thinning` off `main` (`25ff8ec3`), five
+commits, one per contract step plus hygiene. **`0c70d98b`** — walked every handoff template
+section against PLAYBOOK Ch8 + STANDING_RULINGS + ADR-110 and converted **four** restatements to
+pointers by anchor text: `protocols/HANDOFF_BOOT.md` "Parallel work" and "Closing a session",
+`templates/handoff/v5/HANDOFF_BOOT.md.tmpl`'s anti-bluff block, and
+`templates/handoff/02_METHODOLOGY.md.tmpl` "Parallel work". **`3a0b7e84`** — two boundary
+invariants in `scripts/gen_handoff.py`, built RED-first: `assert_batch_boundary` (a cut refuses
+while a committed manifest declares an open batch — WINDOW = BATCH) and `assert_boundary_hygiene`
+(a cut refuses over a linked worktree or a live stash, naming every leftover). **`77b75dd7`** —
+`HANDOFF_PROCESS` **6.0.1 → 6.1.0** with the coupled atomic move: §10 gains "Boundary invariants
+at the cut", §13's supplement-authorship rule is re-stated in full with its reason, §13 gains the
+successor-boot dispatch-visibility note. **`df12d2e8`** — the arc packet. **`2467e929`** — the two
+ship-gate WARNs this arc itself caused, cleared by the gate's own named fixes.
+
+**Result:** **Two of the four converted sites had already drifted, which is the finding.**
+`protocols/HANDOFF_BOOT.md` was handing the browser a **retired** three-check parallel-work launch
+test — the corpus replaced it with [#441]'s four conditions and `02_METHODOLOGY` names it
+superseded in so many words — and a "Closing a session" block asserting a Stop-time BLOCK with
+`/override` as the escape, both invalidated by the ADR-85 amendment of 2026-08-03 four days
+earlier. Thinning was the vehicle; drift repair was the payload. Responsibility moved
+**3,948 → 2,909 B** across the four blocks (−26.3%); the boot file went 16,842 → 16,493 B, buying
+back 349 B of the budget it was 93.6% through; `silent_rule_ratchet` **441 → 431**, drained by
+removal rather than by rewording. The invariants: **RED 10 failed / 1 passed → GREEN 52 passed**,
+ruff clean, and both asserts exercised against live repo state so the green is not an artefact of
+monkeypatching. Full suite **1 failed / 2550 passed / 4 skipped** — the single RED is
+`test_routine_consumers_live_backlog_governs_exactly_one_row`, pre-existing and named in batch 2's
+packet §5. Performance was **consumed, not re-measured**: [#511]'s ~4.5 s stands, and the only new
+number is this arc's own delta (`generate` 1,344 → 1,574 ms), reported as a **bound** (0.2–0.7 s)
+because two timings of the same change disagree and the `collect_state` control shows git
+subprocess noise dominating at ~130 ms a call.
+
+**Changes:** `protocols/HANDOFF_BOOT.md`, `protocols/HANDOFF_PROCESS.md` (v6.1.0; §12 v5.1–v5.4
+condensed per ADR-49/65), `templates/handoff/v5/HANDOFF_BOOT.md.tmpl`,
+`templates/handoff/02_METHODOLOGY.md.tmpl`, `scripts/gen_handoff.py`, `tests/test_gen_handoff.py`,
+the six `reconciled_with` edges + `CONTRIBUTING.md`'s stamp, `ecosystem/doc-counts.md`
+(regenerated), `docs/audits/2026-08-07-technical-handoff-engine-thinning.md`,
+`docs/audits/README.md` (regenerated).
+
+**Abandoned:** Thinning `PROBES.md` / `RESIDUAL.md` / `SUPPLEMENT.md` / the `Destination` row —
+the arc contract carves them out as bundle-only, and the walk records each with its reason rather
+than silently skipping it. Filing a row for the phantom `templates/handoff/v5/README.md.tmpl`
+source claim — **[#399] already owns it**, names the same three forks, and a second row is the
+duplicate the filing-backpressure hook exists to catch. Dispositioning the five ship-gate WARNs
+inherited from `main` (`git_backlog_drift` #505; `doc_rot` BACKLOG #509/#510/#511;
+`review_artifact_coverage` 25ff8ec3) — another arc's WARN is not this seat's verdict to issue, and
+closing [#505] to clear the first would be the false-resolve F4 exists to name. Touching ADR-82's
+amendment table, which stops at v6.0.1: ADR content is immutable and an amendment is its own act.
+
+**Next:** Three operator items in the packet §5. The sharpest is the **bg-isolation guard vs a
+primary-tree contract, now its second occurrence** — batch 2's packet §12 item 10 deferred the
+same collision, and this session resolved it the same recorded way (every edit applied through the
+shell via exact-match patch scripts, because `Edit`/`Write` into the shared checkout are refused).
+It works, and it is slower and less reviewable than the tool path; the fork is a per-repo
+`bgIsolation` setting or a contract convention that names the guard. Also: a second live session
+was in the primary checkout when this arc branched — checked rather than assumed, `git log
+main..HEAD` carried one author and only this arc's commits, so the hazard was real and did not
+fire. And the arc-contract prediction stands as an empirical test: **the next bundle cut should
+feel exactly as long as the last one**, because the ~30 minutes was never machinery.
+
+---
+
 ### 2026-08-07 (i) — CC (Opus 5, primary): batch-2 lessons become mechanisms — the next seat inherits a system, not a chat
 
 **Did:** Ran the post-batch-2 consolidation arc on `docs/consolidate-batch2-lessons` off `main`

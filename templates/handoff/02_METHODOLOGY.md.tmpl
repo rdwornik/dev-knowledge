@@ -83,23 +83,18 @@ rule in PLAYBOOK methodology.
 
 ## Parallel work
 
-Same-repo parallel *committing* sessions need a worktree (different repos: none — separate
-`.git/` already isolates them). One strong prompt on the **primary** is the DEFAULT; a parallel
-committing session is the exception, and it launches only when **ALL FOUR** of [#441]'s
-conditions are YES — **(1)** two substantial independent BUILD arcs (not one goal split, not a
-build plus a doc ride-along, not tiny disjoint edits); **(2)** zero shared gate-forced surfaces
-(JOURNAL, BACKLOG/`tasks/` rows + regen, generated indexes), or a written contract pre-resolves
-them — two lanes on the same substantive file is always a NO; **(3)** wall-clock genuinely
-matters; **(4)** the operator takes the serial gate. **One NO = fat prompt** — no partial
-credit. This **replaces** the superseded three-check test ("disjoint substantive files? two
-distinct goals? more than a single-file edit?"), which mapped onto conditions 1–2 and had no
-equivalent of 3–4; the corpus carries one launch test, at PLAYBOOK Ch8 §0. The canonical safe
-pair is one code item ∥ one doc item. To start: keep stream A in the
-**primary**, `claude --worktree <B>` for stream B, integrate **from the primary** (`/ship` A,
-then `git merge --no-ff worktree-<B>` + push + teardown). Shared canonical files are handled,
-not parallelized (BACKLOG removal via the closure loop; JOURNAL = trivial double-prepend;
-operator is the serial gate). Full rule — START recipe, `.worktreeinclude`, `/ship`-from-
-primary, no-leftovers teardown — in PLAYBOOK "Parallel sessions & worktree discipline."
+{{PULL: PLAYBOOK#Parallel sessions & worktree discipline}}
+<!-- Extract, do not restate. The launch test is [#441]'s FOUR conditions and its one home is
+     PLAYBOOK Ch8 §0 — this template's own header says "Pulled FROM source ... do NOT
+     hand-maintain", and the hand-written copy that stood here (2026-08-06 → 2026-08-07) is
+     what that clause exists to prevent: a second, drift-free-by-nobody copy of a test the
+     corpus deliberately keeps single-sited. Extract, at handoff time: same-repo parallel
+     COMMITTING sessions need a worktree (different repos need none — separate `.git/`
+     isolates them); one strong prompt on the primary is the DEFAULT; the canonical safe pair
+     is one code item ∥ one doc item; the START recipe (`claude --worktree <B>`),
+     `.worktreeinclude`, `/ship`-from-primary, and the no-leftovers teardown. Shared canonical
+     files are handled, not parallelized (BACKLOG removal via the closure loop; JOURNAL =
+     trivial double-prepend; the operator is the serial gate). -->
 
 **Batch shape (N lanes).** When the work is a batch rather than a pair — ONE plan → N
 file-disjoint lanes → ONE serial integrator — the protocol is PLAYBOOK "The batch protocol —
