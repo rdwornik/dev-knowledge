@@ -303,26 +303,23 @@ dispositions:
   # would make the accretion predicate mean what its name says. Deliberately NOT filed as a ticket
   # here (no row is opened by a groom arc); it is a candidate fix for whoever next touches the checker.
 
-  # (2026-07-26) EXTERNAL IN-FLIGHT condition, not a hub defect and not fixable inside this repo.
-  # fleet_parity evaluates LIVE sibling-repo state, so a concurrent merge in ai-council turned this
-  # repo's ship-gate red mid-close with no action available here. Dispositioned hub-side rather than
-  # by editing ai-council's manifest or the consumer-role template — both are real candidate fixes and
-  # neither is chosen by inference (operator ruling 2026-07-26). Tracked by [#430].
-  - id: warn-fleet-parity-ai-council-root-conftest
-    organ: fleet_parity
-    match: "ai-council root-sweep WARN-undeclared: top-level entry 'conftest.py'"
-    ref: "#430"
-    review_date: 2026-08-26
-    reason: >-
-      A sibling repo merged a TRACKED root `conftest.py` (ai-council, 2026-07-26 14:53) and the hub's
-      consumer-role root template does not admit it, so the root-sweep reports it WARN-undeclared.
-      Whether the correct fix is a per-repo manifest declaration in ai-council or an amendment to the
-      hub's consumer-role template is UNRULED — filed as [#430], which carries both halves. Surfaced —
-      NOT introduced — by this repo's close-out ship-gate: no edit inside `.dev-knowledge` can clear it,
-      because the condition lives in another repo's working tree. Keyed on the specific entry name per
-      precision-over-recall, so a DIFFERENT undeclared root entry re-surfaces and blocks. review_date is
-      the shelf-life so this does not rot into a paper suppression (ADR-75); it should clear by itself
-      once [#430] rules, at which point this entry decorates stale.
+  # (2026-07-26 → RULED AND REMOVED 2026-08-07) `warn-fleet-parity-ai-council-root-conftest`.
+  # The entry suppressed "ai-council root-sweep WARN-undeclared: top-level entry 'conftest.py'"
+  # and existed ONLY because the fix was unruled: its own reason line said the choice between a
+  # per-repo ai-council declaration and a hub template amendment was "UNRULED — filed as [#430]".
+  #
+  # Discharged by operator ruling 2026-08-07: root `conftest.py` is PERMITTED FLEET-WIDE, MANDATED
+  # NOWHERE. Ruling the CLASS once was chosen over a per-repo exception ledger — the checkout-identity
+  # guard becomes a fleet-wide pattern as per-worktree venvs land ([#429] leg b). Executed as the
+  # `root-conftest` row in `ecosystem/parity-surfaces.yaml` (tier LOCAL on both roles, declared_by
+  # `ruling-2026-08-07-root-conftest`), which admits the entry into the template so the root-sweep
+  # no longer reaches it.
+  #
+  # REMOVED rather than re-worded, per the entry's OWN exit condition ("it should clear by itself
+  # once [#430] rules, at which point this entry decorates stale") and the ADR-75 decoration rule:
+  # the WARN it matched can no longer be emitted, so retaining it would leave a suppression with no
+  # subject and print a permanent `[stale] disposition … review/remove` line on every ship-gate.
+  # [#430] remains OPEN on half (b) — the ship-gate determinism defect, outside this entry's scope.
 
   # (2026-08-04) The [#483] advisory leg's FIRST production finding, and a TRUE POSITIVE — not a
   # false alarm being papered over. Row [#310]'s `kill-candidates:` value names #292, which is
