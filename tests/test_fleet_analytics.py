@@ -621,6 +621,20 @@ def test_hub_is_included_as_a_mining_target():
     # while its job stayed green. A test pinned to where it happens to be run is a portability
     # defect, and this one had a measurable cost.
     root = fleet[0][1]
+
+    # MUTMUT SANDBOX — the third blocker in this chain, and the reason identity-by-marker is
+    # guarded rather than asserted unconditionally. mutmut copies only the MUTATED SOURCE TREE
+    # into `mutants/` and runs the suite from there, so `_REPO_ROOT` resolves to
+    # `<repo>/mutants`: `scripts/` and `tests/` exist, `protocols/` and `docs/` do not. The
+    # markers below are meaningless in that tree, and asserting them there kept mutmut's
+    # baseline red -- which is the same symptom, from a third cause, as the two fixed before
+    # it (`-p no:xdist` unloading `-n`, then the `.dev-knowledge` literal vs a dotless
+    # checkout). SKIPPED EXPLICITLY, never softened to a tolerant `if marker exists`: a
+    # genuinely incomplete checkout must still fail here, and only mutmut's own sandbox is
+    # exempt. Keyed on mutmut's directory convention, so it cannot swallow anything else.
+    if root.name == "mutants":
+        pytest.skip("mutmut sandbox: only the mutated source tree is copied, no repo markers")
+
     assert (root / "protocols" / "PLAYBOOK.md").is_file(), "hub marker missing"
     assert (root / "docs" / "decisions").is_dir(), "hub marker missing"
 
