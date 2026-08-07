@@ -25,6 +25,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
 import yaml
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -1435,6 +1436,17 @@ def test_predeploy_member_with_blank_reason_still_refuses(tmp_path):
     assert len([f for f in findings if f.verdict == fp.REFUSED]) == 1
 
 
+@pytest.mark.parametrize("bad", [["a", "b"], {"k": "v"}, 42, True, 3.5])
+def test_non_string_reason_does_not_satisfy_declared_absence(tmp_path, bad):
+    """terra HIGH (2026-08-07): the predicate was `str(spec.get('reason') or '').strip()`,
+    which coerces ANY non-empty YAML value to a truthy string -- a list, a mapping, a
+    number or a bare `true` bought a pre-deploy member out of the registry cross-check
+    while saying nothing a reader could act on. A reason is PROSE or it is not a reason,
+    so the type is now part of the contract."""
+    _, findings = _predeploy_fixture(tmp_path, {"role": "pre-deploy", "reason": bad})
+    assert len([f for f in findings if f.verdict == fp.REFUSED]) == 1
+
+
 def test_deployed_role_absent_from_registry_refuses_even_with_a_reason(tmp_path):
     """The escape is scoped to pre-deploy BY ROLE. A consumer/hub the registry does not
     carry is still a silent-gap refusal -- a `reason:` must never buy a WALKED repo out
@@ -1574,6 +1586,39 @@ def test_unknown_declared_by_marker_is_a_loader_refusal(tmp_path):
     _, refusals = fp.load_manifest(manifest_path)
     assert any(f.verdict == fp.REFUSED and "declared_by" in f.evidence
                for f in refusals)
+
+
+@pytest.mark.parametrize("bad", [["intake-12"], {"marker": "intake-12"}, 12])
+def test_non_string_declared_by_refuses_instead_of_crashing_the_loader(tmp_path, bad):
+    """terra HIGH (2026-08-07): `x not in frozenset` raises TypeError on an UNHASHABLE
+    value, so a `declared_by:` written as a YAML list or mapping took down load_manifest
+    entirely -- an exit-2 class -- instead of yielding the row-level refusal the check
+    was written to produce. A malformed ROW must refuse and let the rest of the manifest
+    keep validating (the standing loader contract), never abort the walk."""
+    row = {**_CONFTEST_ROW, "declared_by": bad}
+    keeper = {"id": "keeper", "kind": "path", "tier": {"hub": "MUST"},
+              "probe": {"type": "path_tracked", "path": "VISION.md"}}
+    manifest_path = _write_yaml(tmp_path / "m.yaml", _manifest(
+        {"hub-r": {"role": "hub"}}, [row, keeper]))
+    manifest, refusals = fp.load_manifest(manifest_path)      # must not raise
+    assert any(f.verdict == fp.REFUSED and "declared_by" in f.evidence
+               for f in refusals)
+    # the bad row is skipped; validation CONTINUES and the good row survives
+    assert [r["id"] for r in manifest["surfaces"]] == ["keeper"]
+
+
+def test_predeploy_reason_survives_a_double_dash_inside_it(tmp_path):
+    """terra note (2026-08-07): the reason used to be recovered by SPLITTING
+    RepoTarget.note on the first '--', so the delimiter's presence in the note was
+    load-bearing and a reason containing '--' rode on luck. The reason is now carried as
+    its own RepoTarget field, so no parse-back exists to get wrong."""
+    targets, _ = _predeploy_fixture(
+        tmp_path, {"role": "pre-deploy", "reason": "unonboarded -- see ADR-104 -- no deploy"})
+    pending = next(t for t in targets if t.repo_id == "pending")
+    out, _ = fp.verdicts({"fleet": {}, "surfaces": []}, {"dependencies": []},
+                         [pending], {}, {}, {}, "2026-08-07")
+    row = next(f for f in out if f.repo_id == "pending")
+    assert "unonboarded -- see ADR-104 -- no deploy" in row.evidence
 
 
 def test_live_manifest_admits_root_conftest_for_consumers():

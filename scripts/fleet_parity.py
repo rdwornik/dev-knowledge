@@ -177,6 +177,11 @@ class RepoTarget:
     role: str
     root: Path | None
     note: str = ""
+    # [#490] the manifest's declared-absence reason for a `pre-deploy` member, carried as
+    # a FIELD rather than recovered by splitting `note` on '--' (terra 2026-08-07): the
+    # split made the delimiter load-bearing, so a note without one silently dropped the
+    # reason and a reason containing '--' was truncated by luck of formatting.
+    declared_reason: str = ""
 
 
 @dataclass(frozen=True)
@@ -299,12 +304,20 @@ def load_manifest(path: Path) -> tuple[dict, list[ParityFinding]]:
         if bad_tok is not None:
             refusals.append(_refusal(label, f"unknown tier token '{bad_tok}'"))
             continue
-        if "declared_by" in row and row["declared_by"] not in TEMPLATE_DECLARATION_MARKERS:
+        if "declared_by" in row and not (
+                isinstance(row["declared_by"], str)
+                and row["declared_by"] in TEMPLATE_DECLARATION_MARKERS):
             # Refuse rather than ignore: an unrecognised marker used to fall through to
             # "this repo must declare it", so a typo produced a WARN asserting an
             # undeclared divergence that did not exist.
+            #
+            # The isinstance guard comes FIRST and is not cosmetic (terra HIGH
+            # 2026-08-07): `x not in frozenset` raises TypeError on an UNHASHABLE value,
+            # so a declared_by written as a YAML list or mapping aborted load_manifest
+            # outright -- an exit-2 class -- instead of refusing the one bad ROW and
+            # letting the rest of the manifest keep validating.
             refusals.append(_refusal(
-                label, f"unknown declared_by marker '{row['declared_by']}' "
+                label, f"unknown declared_by marker {row['declared_by']!r} "
                        f"(known: {', '.join(sorted(TEMPLATE_DECLARATION_MARKERS))})"))
             continue
         if row.get("waivable") is True and ({"MUST", "INVERSE"} & set(tier.values())):
@@ -438,6 +451,19 @@ def _dev_dir(hub_root: Path) -> Path:
     return Path(hub_root).parent
 
 
+def _declared_reason(spec: dict) -> str:
+    """A fleet entry's declared-absence reason, or "" when it has none that counts.
+
+    The type is part of the contract (terra HIGH 2026-08-07). The first cut was
+    `str(spec.get("reason") or "").strip()`, which coerces ANY non-empty YAML value --
+    a list, a mapping, a number, a bare `true` -- into a truthy string, so structured
+    junk bought a pre-deploy member out of the registry cross-check while telling a
+    reader nothing. A reason is prose or it is not a reason.
+    """
+    reason = (spec or {}).get("reason")
+    return reason.strip() if isinstance(reason, str) else ""
+
+
 def resolve_fleet(manifest: dict, hub_root: Path, registry_path: Path,
                   ecosystem_dir: Path, overrides: dict[str, Path],
                   ) -> tuple[list[RepoTarget], list[ParityFinding]]:
@@ -473,7 +499,7 @@ def resolve_fleet(manifest: dict, hub_root: Path, registry_path: Path,
             # gap this row exists to close, so it still refuses; the reason is then read
             # downstream into the rendered finding, never left as decoration.
             spec = fleet[name] or {}
-            reason = str(spec.get("reason") or "").strip()
+            reason = _declared_reason(spec)
             if spec.get("role") == "pre-deploy" and reason:
                 continue
             detail = ("carries no reason: -- a pre-deploy member absent from the registry "
@@ -489,10 +515,11 @@ def resolve_fleet(manifest: dict, hub_root: Path, registry_path: Path,
     for repo_id in sorted(fleet):
         role = fleet[repo_id]["role"]
         if role == "pre-deploy":
-            declared = str((fleet[repo_id] or {}).get("reason") or "").strip()
+            declared = _declared_reason(fleet[repo_id])
             targets.append(RepoTarget(repo_id, role, None,
                                       f"pre-deploy: not walked -- {declared}" if declared
-                                      else "pre-deploy: not walked"))
+                                      else "pre-deploy: not walked",
+                                      declared_reason=declared))
             continue
         if role == "hub":
             targets.append(RepoTarget(repo_id, role, hub_root,
@@ -1023,7 +1050,7 @@ def verdicts(manifest: dict, baseline: dict, targets: list[RepoTarget],
             # [#490]: the manifest's declared reason is carried THROUGH to the finding.
             # A reason the report does not show is a comment, not a machine surface --
             # the row's done-when asks for "a declared reason the check READS".
-            declared = target.note.split("--", 1)[1].strip() if "--" in target.note else ""
+            declared = target.declared_reason
             out.append(ParityFinding(target.repo_id, "fleet-membership",
                                      SKIPPED_PRE_DEPLOY, SEV_INFO,
                                      _ascii(declared) if declared else
