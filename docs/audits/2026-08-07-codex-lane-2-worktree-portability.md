@@ -1,24 +1,25 @@
 # Codex Review — lane-2-worktree-portability
 
 **Date:** 2026-08-07
-**Branch:** `worktree-lane-2-429-worktree-portability`
-**HEAD:** `d7f2f7ff` (passes 1-2) · `9964110b` (pass 3) · `b3e9775f` (pass 4) · `6edd69f9` (pass 5) → fix commit follows
-**Diff range:** `main..worktree-lane-2-429-worktree-portability`
+**Branch:** `worktree-lane-b-429-worktree-portability` (renamed at STOP; the review passes ran under the former name)
+**HEAD:** `d7f2f7ff` (passes 1-2) · `9964110b` (pass 3) · `b3e9775f` (pass 4) · `6edd69f9` (pass 5) · `a27d30b6` (pass 6, CLEAN)
+**Diff range:** `main..<the lane branch>`
 **Codex version:** codex-cli 0.145.0
 **Mode:** diff-review (native `codex exec review --base main`)
 **Model used:** `gpt-5.6-terra` (pinned; [#469])
 **Review profile:** code
-**Tally:** 0/7/0/0 (C/H/M/L)
-**Passes:** 5 · **Findings:** 8 · **Accepted:** 7 · **Refuted:** 1 · **Outstanding:** 0
+**Tally:** 0/7/0/0 (C/H/M/L)  ·  **final pass: CLEAN**
+**Passes:** 6 · **Findings:** 8 · **Accepted:** 7 · **Refuted:** 1 · **Outstanding:** 0
 
 ---
 
-## Why five passes, and what each one added
+## Why six passes, and what each one added
 
 Each pass ran on the diff the previous pass's fix produced, and each returned something the
 previous one had graded clean: pass 1 → F-1, pass 2 → F-2, pass 3 → F-3/F-4, pass 4 →
-F-5/F-6, pass 5 → F-7/F-8. That is the argument for the batch's condition 3 being about a review
-*artifact* rather than a review *pass* — a single pass would have shipped seven of these eight.
+F-5/F-6, pass 5 → F-7/F-8, **pass 6 → nothing**. That is the argument for the batch's condition
+3 being about a review *artifact* rather than a review *pass* — a single pass would have shipped
+seven of these eight.
 
 **One of the eight is REFUTED, and it is recorded as prominently as the accepted seven (F-4).**
 A review artifact that only lists what the reviewer got right is not a record, it is agreement.
@@ -29,14 +30,15 @@ defects rather than caught them. A fresh data point for [#438] (review placement
 quality, is the variable) — and F-4 is the counterweight: an outside reader is also the source
 of the one claim that did not survive being measured.
 
-**Stopping rule, and the convergence it is reading.** The rule from pass 3: a *design tension*
-gets recorded as an accepted limit; a *defect with an exact fix* gets fixed. Passes 4 and 5 each
-raised two of the latter and none of the former, so both were fixed rather than deferred — but
-the findings are visibly narrowing (entry point → execution posture → apostrophes in paths →
-PEP 420 discovery), which is the convergence signal rather than a reason to keep going
-indefinitely. The [#436] arc took 10 passes; this one stops when a pass returns nothing that
-changes behaviour, and anything still open at STOP is handed to the integrator as a named
-deferred item rather than left implied.
+**Stopping rule, and how it terminated.** The rule from pass 3: a *design tension* gets
+recorded as an accepted limit; a *defect with an exact fix* gets fixed; the loop stops when a
+pass returns nothing that changes behaviour. Passes 4 and 5 each raised two of the latter and
+none of the former, and the findings narrowed visibly as they went — entry point → execution
+posture → apostrophes in paths → PEP 420 discovery. **Pass 6 returned no findings**, on the diff
+produced by pass 5's fix, which is the termination condition rather than a decision to stop
+looking. Verbatim: *"No critical or high-severity defects were identified in the changes
+relative to the supplied merge base."* Nothing is outstanding, so nothing is handed to the
+integrator as a deferred review item. (For scale: the [#436] refusal-gate arc took 10 passes.)
 
 ---
 

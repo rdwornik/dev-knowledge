@@ -2,13 +2,14 @@
 
 - **Class:** technical (ADR-101 enum) · **Date:** 2026-08-07 · **Slug:** lane-2-worktree-portability
 - **Row:** [#429] · **Batch:** 2, wave 1 · **Manifest:** `docs/audits/2026-08-07-technical-batch-2-manifest.md`
-- **Branch:** `worktree-lane-2-429-worktree-portability` · **Seat:** background CC (Opus 5)
+- **Branch:** `worktree-lane-b-429-worktree-portability` (renamed at STOP — see LB-1) · **Seat:** background CC (Opus 5)
 - **Contract:** `LANE-2-429-portability.md`, frozen at boot
 - **Proving satellite:** `ai-council` — the row's own named satellite, verified to carry no `.worktreeinclude`
 
 > **Amendment — 2026-08-07, same session (in-file marker per CLAUDE.md §5 rule 3).** This file
 > was first committed at `05d31b20`, before the contract-mandated terra review had run. Terra
-> returned a P1 on each of five passes -- eight findings, seven real and one refuted, and §3's evidence was produced by the pre-fix organ — so the
+> returned a P1 on each of five passes -- eight findings, seven real and one refuted; a sixth
+> pass returned nothing, and §3's evidence was produced by the pre-fix organ — so the
 > §3 transcripts and §4's defect list are amended to the final post-fix run, and §4 gains
 > **D-3** through **D-10**. Nothing else changed. Recorded through the sanctioned in-file channel rather than by rewriting
 > the commit, following the `2026-08-06-technical-batch1-verification` precedent: squashing it on
@@ -154,7 +155,9 @@ None was found by reading the code. D-1 came from running it, D-2 from a test th
 docstring claim instead of trusting it, and D-3 through D-10 from the five contract-mandated
 review passes. D-1/D-2 are fixed in `ae1abddd`, D-3 in `d7f2f7ff`, D-4 in `9964110b`,
 D-5/D-6 in `b3e9775f`, D-7/D-8 in `6edd69f9`, and D-9/D-10 in the commit carrying this
-amendment. A seventh finding was **refuted**, not fixed —
+amendment. A **sixth** review pass on the resulting diff returned no findings, which is what
+ended the loop — the review record is `docs/audits/2026-08-07-codex-lane-2-worktree-portability.md`,
+tally 0/7/0/0, nothing outstanding. A seventh finding was **refuted**, not fixed —
 see D-6 and the review artifact's F-4.
 
 **That distribution is the finding underneath the findings.** Eight of ten came from an outside
@@ -245,29 +248,40 @@ per lane — is what caught it, and it caught something the suite structurally c
 
 ## 5. Findings for the batch, outside this lane's footprint
 
-**LB-1 — the batch's six lane branch names are outside the enum the manifest cites.**
-`scripts/validate_branch_naming.py` compiles `lane-[a-z]-\d+-<slug>`; the manifest states the
-grammar as `worktree-lane-<n>-<id>-<slug>` and asserts "`validate_branch_naming.py` classifies
-them". It does — as `unknown`:
+**LB-1 — the manifest's lane branch names are outside the enum it cites, and the lanes have
+resolved that differently from each other.** `scripts/validate_branch_naming.py` compiles
+`lane-[a-z]-\d+-<slug>` (a LETTER); the manifest states the grammar as
+`worktree-lane-<n>-<id>-<slug>` (a DIGIT) and asserts "`validate_branch_naming.py` classifies
+them". It does — as `unknown`, which is an explicit classification and not merely an absence:
 
 ```
-$ python scripts/validate_branch_naming.py --lane lane-2-429-portability
-BAD  'lane-2-429-portability' does not match lane-<letter>-<id>-<slug> (e.g. lane-a-505-batch-protocol)
+BAD  worktree-lane-2-429-worktree-portability     unknown        'worktree-lane-…' that does not match lane-<letter>-<id>-<slug>
 ```
 
-`worktree-lane-…` that does not match the grammar is explicitly classified `unknown`, not
-merely unclassified. **Not fixed here, deliberately:** PLAYBOOK Ch8 delegates the grammar to
-that validator, so the validator is canonical and the manifest's claim is the drifted surface —
-but widening the grammar is a rule change, and renaming six lanes' branches mid-batch is
-outside every lane's footprint. The R-1 exemption is unaffected: it keys on the
-`worktree-lane-*` **prefix**, which all six carry. Routed to the operator/integrator.
+**Resolved in favour of the validator, following a sibling lane.** PLAYBOOK Ch8 does not state
+the grammar itself — it delegates to that validator by name ("Naming grammar + prefix enum:
+`scripts/validate_branch_naming.py`"), which makes the validator canonical and the manifest's
+claim the drifted surface. Lane-3 had already reached the same conclusion independently and
+renamed itself `worktree-lane-c-320-backup`, so conforming is also the in-batch precedent rather
+than a unilateral call. This lane renamed `worktree-lane-2-…` → **`worktree-lane-b-…`** at STOP;
+the enum now reports `all 8 branch name(s) conform`.
+
+**Two things the integrator needs from this.** (1) The merge queue cannot be read off the
+manifest's branch column — at least two of the three wave-1 branches are not named there.
+(2) The manifest's grammar sentence is the surface to correct, not the branches; it is an
+immutable `docs/audits/` artifact, so the correction belongs in the batch packet as a recorded
+finding rather than as an edit. The R-1 exemption is unaffected either way: it keys on the
+`worktree-lane-*` **prefix**, which every candidate name carries.
 
 **LB-2 — the contract and the manifest disagreed on this lane's branch name.** The contract's
 `Worktree + branch:` line said `worktree-lane-2-429-portability`; the manifest (committed at
-dispatch) and the contract's own H1 both say `…-429-worktree-portability`. Resolved to the
-manifest, on the reasoning that the manifest is the committed arbitration surface the integrator
-reads and the contract's own title agrees with it. Recorded rather than silently absorbed
-because a lane renaming its own branch is exactly the act that should leave a trace.
+dispatch) and the contract's own H1 both say `…-429-worktree-portability`. The slug was resolved
+to the manifest — it is the committed arbitration surface and the contract's own title agrees
+with it — and the lane index was later resolved to the enum per LB-1, giving
+`worktree-lane-b-429-worktree-portability`. Recorded rather than silently absorbed, because a
+lane renaming its own branch is exactly the act that should leave a trace. **Three surfaces
+named this branch three ways**, which is the underlying finding: a lane booted from a contract,
+a manifest, and a validator has no single place to read its own name from.
 
 **LB-3 — PLAYBOOK Ch8 §2a "Manual-seed commands" is now the second-best path.** `/lane-boot` §3
 points at the tool; the PLAYBOOK prose loop is hub-shaped and still correct for the hub. Not
