@@ -1,7 +1,7 @@
 # HANDOFF_PROCESS v6
 <!-- scope: meta -->
 
-Version: 6.0.1
+Version: 6.1.0
 Status: stable
 Effective: 2026-06-11 (canonical); v6 cut 2026-07-31
 Decision: ADR-82 (operator-ratified 2026-06-11; Council gate waived by operator authority per #149).
@@ -302,6 +302,33 @@ to avoid: degrade loudly.
   are precision fixes: they add a binding and remove a false anchor class, and neither widens
   what the resolver accepts.
 
+- **Boundary invariants at the cut (v6.1.0).** Generation refuses in two states, and both
+  refusals fire **before anything is written**.
+  **WINDOW = BATCH** — a cut is refused while a committed batch manifest declares an **open**
+  batch, and the refusal names the manifest *and* the packet whose landing closes it ("a batch
+  is open" without the two paths is a diagnostic nobody can act on). One batch is one window and
+  the seal fires at a true batch boundary: a mid-batch cut produces a bundle describing a tree
+  the rest of the batch has not been integrated into, so the successor boots against a manifest
+  the batch is about to invalidate — and `docs/handoffs/` is immutable, so that bundle stays
+  wrong. Openness resolves through `batch_manifest.open_batches`, the **same** organ the
+  `journal_spine_anchor` exemption reads, so the gate side and the generation side cannot hold
+  different views of one batch.
+  **NO LEFTOVERS** — a cut is refused over a linked worktree or a live `git stash` entry, naming
+  **every** leftover in one refusal rather than the first, since reporting one invites a
+  fix-and-retry loop that reveals the next (`CLAUDE.md` §5 rule 9; the batch protocol's
+  refuse-to-finish items 3 and 5). The stash leg is the half the others structurally cannot
+  cover: `refs/stash` lives in the **common** git directory, so a lane's stash outlives every
+  worktree- and branch-shaped teardown.
+  *Degrade contract, inherited from R5 rather than re-decided:* absent git repo → nothing can be
+  provisioned or stashed → proceed; git present but erroring → **refuse**, on the same ruling
+  that an undetermined status is not an empty one. *Honest limit:* `git stash list` reports no
+  worktree of origin, so the stash leg cannot separate a forgotten lane stash from a deliberate
+  one — it refuses either way and names the entry, because clearing a deliberate stash is a
+  decision rather than a default. Doctrine home for WINDOW = BATCH remains PLAYBOOK Ch8
+  (operator directive 2026-08-06, carried in-repo by intake #27); this clause records where it
+  became mechanical. Organs: `scripts/gen_handoff.py::assert_batch_boundary` /
+  `::assert_boundary_hygiene`, built RED-first under `tests/test_gen_handoff.py`.
+
 Each A11 leg lands with a test or is re-deferred by ruling; no leg completes by silent omission.
 
 ---
@@ -513,8 +540,17 @@ options rejected — originates in the **browser** (Layer 1), but the residual i
 the next session **only if answered**. **Architect-mode-additive only; the v5 model (§§1–12) and
 execution mode are unchanged.**
 
-**Authorship (transcribed 2026-07-31, [#446] window).** SUPPLEMENT answers are
-**architect-authored**; the executor supplies verified facts only.
+**Authorship — the outgoing architect writes the ANSWERS, in its own voice (operator ruling,
+transcribed 2026-07-31, [#446] window; re-stated here in full after a live defect).** The
+supplement's ANSWERS are **architect-authored**. CC supplies *verified facts* on request — a sha,
+a count, a path it re-derived — and stops at the boundary of the fact: it does not compose an
+answer, tidy one into shape, or fill a question the architect left open. The reason is what the
+file is for. Q1–Q7 ask for deliberation that exists **only** in the outgoing chat, so an answer
+CC writes is an answer to a question nobody asked, carrying the outgoing architect's authority
+into the next session — the one failure this artifact has no way to detect downstream, because a
+fabricated answer reads exactly like a real one. An unanswered supplement is committed **empty**
+(the cold-handoff disposition below), which is the honest record and costs the next session only
+the fuller §13(d) beat.
 
 **The lifecycle (CC generates the file; the operator fills it async; CC commits it; the assembler
 folds it if answered):**
@@ -627,6 +663,26 @@ seat) · write-scope · execution MODE with basis — the §14a items 3/4/7 shap
 epic lanes. A lane inherits none of these from a prior prompt. (The boot-header `Destination` row +
 its P3 comparison leg ride the §B(b) build; the multi-agent mandate-content checklist is
 PLAYBOOK §2's.)
+
+**Successor-boot note — what the board shows, and how a successor reads it (register
+`protocols/STANDING_RULINGS.md` B7; encoded doctrine `protocols/PLAYBOOK.md` Ch8 "Dispatch
+visibility").** A seat inheriting the architect role meets three facts about dispatch that it
+cannot derive from the tree, and that the bundle it boots on does not carry:
+
+1. **VISIBLE = DISPATCHED.** Claude Code Agent View (`claude agents`) lists `--bg` (dispatched)
+   sessions. A foreground session in another terminal sits outside that view **by construction**,
+   verified live 2026-08-06 — so "what is running" reads as a partial picture unless the
+   population that fills the view is a known, named set.
+2. **The board label opens every dispatch prompt**, shape `[repo · #id-or-slug · verb-object]`,
+   so a row is identifiable at a glance even at ten concurrent agents.
+   `.claude/commands/lane-boot.md` and `templates/prompt-template.md` carry it by construction
+   rather than by reminder — a prompt built from either starts with the label in place.
+3. **Operator attention goes to Needs-input rows.** The remaining rows are progressing, and
+   re-deriving what each one is from its tail text is precisely the cost item 2 exists to remove.
+
+This note is here, rather than only at the two homes above, because a successor boots from a
+bundle and none of the three is reconstructable from the bundle it boots on. The doctrine stays
+single-sited: these are the facts, and PLAYBOOK Ch8 carries the operating detail.
 
 **Bundle shape (no per-bundle README — one canonical runbook).** A v5 bundle carries **four**
 files — `HANDOFF_BOOT.md` + `RESIDUAL.md` + `PROBES.md` + `PASTE_THIS.md` — and **no README**.
@@ -1017,3 +1073,31 @@ intake↔epic edge stays **advisory until n=2** intake docs are consumed end-to-
   mentions in `CONTRIBUTING.md` and `docs/handoffs/README.md` are descriptive), so every verdict
   is *not-relevant* and no dependent prose changed. Freshness stamps already read 2026-07-31, so
   no re-stamp was owed or faked. Does **not** close [#367] (the general held-version mechanism).
+- v6.0.1 → **v6.1.0** (2026-08-07, §10 boundary invariants at the cut + §13 authorship and
+  successor-boot absorptions — ARC-HANDOFF-ENGINE) — **Version → 6.1.0** (first minor bump on
+  v6; **additive** — no §1–§9 or §11–§16 rule changed, removed, or weakened; the probe manifest,
+  the four teeth conditions and the answer-free contract are untouched).
+  **§10 gains "Boundary invariants at the cut" (new mechanism, which is why this is minor and
+  not a patch).** Generation refuses while a committed manifest declares an open batch
+  (**WINDOW = BATCH**), and refuses over a linked worktree or a live stash (**NO LEFTOVERS**),
+  both before writing anything, both naming what they found. Openness resolves through the
+  shared `batch_manifest.open_batches` reader so the gate side and the generation side cannot
+  diverge; the degrade contract is R5's, inherited rather than re-decided. Built RED-first
+  (10 failed → 52 passed) and exercised against live repo state.
+  **§13 supplement authorship re-stated in full.** The 2026-07-31 one-liner ("architect-authored;
+  the executor supplies verified facts only") is expanded with the boundary it draws and the
+  reason it exists — CC stops at the fact and does not compose, tidy, or fill an answer, because
+  a fabricated supplement answer reads exactly like a real one and nothing downstream can tell.
+  Operator-ruled after a live defect; the empty-supplement disposition is unchanged.
+  **§13 gains the successor-boot note** carrying the three dispatch-visibility facts a successor
+  cannot derive from the bundle it boots on (VISIBLE = DISPATCHED; the board-label shape; operator
+  attention to Needs-input rows). Register `STANDING_RULINGS.md` B7; operating detail stays at
+  PLAYBOOK Ch8 "Dispatch visibility" — the note carries the facts, not a second copy of the rule.
+  **Coupled atomic move (this commit):** `CONTRIBUTING.md` stamp v6.0.1→v6.1.0 and the **six**
+  `reconciled_with` edges @6.0.1→@6.1.0 (`ARCHITECTURE.md`, `CLAUDE.md`, `CONTRIBUTING.md`,
+  `docs/handoffs/README.md`, `protocols/HANDOFF_BOOT.md`, `protocols/README.md`), each
+  site-verdicted per `check-against-spec` — every verdict *not-relevant* except
+  `protocols/HANDOFF_BOOT.md`, whose two drifted restatements were repaired in this arc's step 1.
+  `docs/handoffs/README.md` was genuinely re-read end-to-end and re-stamped; the other gated
+  dependents already read 2026-08-07, so nothing was faked. Major stays 6. Refs [#505], [#511],
+  ADR-110, `STANDING_RULINGS.md` B7.
