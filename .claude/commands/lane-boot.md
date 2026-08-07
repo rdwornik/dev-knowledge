@@ -39,9 +39,25 @@ sibling recipe is superseded (PLAYBOOK Ch8, "Parallel sessions & worktree discip
 
 ## 3. Seed (n=3 — a fresh worktree does not reliably auto-seed)
 
-Without `ecosystem/*/state.yaml` the `audit-health` pre-commit gate reports
-`repos registered (none)` → `health: DEGRADED` and blocks every commit. Copy them from the
-primary — the PowerShell loop is spelled out in PLAYBOOK Ch8 §2a "Manual-seed commands".
+Ask the hub what this checkout needs, rather than recalling it. The manifest is stated once,
+in `scripts/worktree_seed.py`, and the plan is computed for whichever checkout you point it at:
+
+```
+uv run --locked python scripts/worktree_seed.py --plan .
+```
+
+It prints two things, because provisioning has two halves and only the first used to be
+written down ([#429]):
+
+1. **Untracked files to copy from the primary** — for the hub that is `ecosystem/*/state.yaml`,
+   whose absence makes the `audit-health` pre-commit gate report `repos registered (none)` →
+   `health: DEGRADED` and block every commit. The command block is emitted ready to paste.
+2. **The per-checkout environment** — derived from the repo's own packaging files, so the
+   answer is right for a satellite too. In the hub it is `uv sync --locked`.
+
+**The same command is how a satellite is provisioned** — `--plan <path-to-its-worktree>` — and
+it works on a repo carrying no `.worktreeinclude` at all, which is the portability property the
+row was opened for. Nothing is executed for you: the plan prints, the lane runs it.
 
 Then confirm where you are, before touching a file:
 
@@ -70,6 +86,16 @@ Print the lane's own budget so it is on the record:
   `VIRTUAL_ENV` from the primary tree and reports green about the primary's source
   (STANDING_RULINGS D4). This is the single most expensive thing to get wrong in a lane, because
   it fails green.
+- **Prove that once, rather than trusting it** — the discipline above is a habit, and a habit
+  is not a check:
+
+  ```
+  uv run --locked python scripts/worktree_import_proof.py --repo .
+  ```
+
+  PASS means this checkout's pytest imports this checkout's source. `NOT-APPLICABLE` (exit 3)
+  means the repo ships no importable package, so nothing was proved — the hub itself answers
+  that way, and it is deliberately not a PASS.
 - Commit per step, on the lane branch.
 - Write the lane's JOURNAL entry **on this branch, ahead of any merge** — see PLAYBOOK
   "JOURNAL-rides-the-branch".
