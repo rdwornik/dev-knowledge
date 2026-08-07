@@ -6,6 +6,25 @@
 - **Contract:** `LANE-2-429-portability.md`, frozen at boot
 - **Proving satellite:** `ai-council` — the row's own named satellite, verified to carry no `.worktreeinclude`
 
+> **Amendment — 2026-08-07, same session (in-file marker per CLAUDE.md §5 rule 3).** This file
+> was first committed at `05d31b20`, before the contract-mandated terra review had run. Terra
+> returned one **P1**, it was real, and §3's evidence was produced by the pre-fix organ — so the
+> §3 transcripts and §4's defect list are amended to the post-fix run, and §4 gains **D-3**.
+> Nothing else changed. Recorded through the sanctioned in-file channel rather than by rewriting
+> the commit, following the `2026-08-06-technical-batch1-verification` precedent: squashing it on
+> an unpushed branch would have been tidier and would have left no trace that the artifact ever
+> said otherwise — which is precisely the property an audit trail exists to deny itself.
+>
+> **The P1, stated plainly, because it is the most interesting thing this lane found.** The proof
+> ran its child as `python -m pytest`, which prepends the CWD to `sys.path`. The command a lane
+> actually runs — `uv run --locked pytest`, i.e. the console script — does not. A **flat-layout**
+> package therefore resolved out of the worktree purely because the proof's own entry point put
+> it there. **The original §3 transcript contained the proof of its own defect and neither I nor
+> the run noticed: `config` reported PASS in the very checkout whose `ai_council` was
+> demonstrably coming from the primary.** A proof whose verdict depends on how the proof was
+> launched is not a proof. Closed by running the child under `PYTHONSAFEPATH`, which makes `-m`
+> resolve imports the way the console script does.
+
 ---
 
 ## 1. What the row asked for, and what changed about the question
@@ -66,14 +85,17 @@ venv       : NOT inside the checkout - no <root>/.venv; the ambient interpreter 
 pytest root: C:\Users\1028120\Documents\Dev\ai-council\.claude\worktrees\429-proof-final (matches the checkout)
 
   FAIL ai_council -> C:\Users\1028120\Documents\Dev\ai-council\src\ai_council\__init__.py
-  PASS config -> C:\Users\1028120\Documents\Dev\ai-council\.claude\worktrees\429-proof-final\config\__init__.py
+  FAIL config -> C:\Users\1028120\Documents\Dev\ai-council\config\__init__.py
 
 FAIL - this checkout's pytest does NOT import this checkout's source.
 ```
 
-Read the two path lines together: pytest's rootdir is **the worktree**, and `ai_council`
-resolved to **the primary checkout's `src/`**. That is the silent failure in one frame — the
-suite would have reported green about code the lane never touched.
+Read the path lines together: pytest's rootdir is **the worktree**, and both packages resolved
+to **the primary checkout**. That is the silent failure in one frame — the suite would have
+reported green about code the lane never touched.
+
+(Pre-D-3, this same run reported `config` as PASS. That line was the defect showing itself
+inside its own evidence; see the amendment marker at the top.)
 
 **Step 2 — the hub answers for a satellite it is not sitting in.**
 
@@ -96,15 +118,20 @@ repo       : ai-council
 **Step 3 — remedy applied verbatim from the plan, then re-measured.**
 
 ```
-interpreter: …\429-proof-final\.venv\Scripts\python.exe
+interpreter: …\429-p1-recheck\.venv\Scripts\python.exe
 venv       : inside the checkout (.venv)
-pytest root: …\429-proof-final (matches the checkout)
+pytest root: …\429-p1-recheck (matches the checkout)
 
-  PASS ai_council -> …\429-proof-final\src\ai_council\__init__.py
-  PASS config -> …\429-proof-final\config\__init__.py
+  PASS ai_council -> …\429-p1-recheck\src\ai_council\__init__.py
+  PASS config -> …\429-p1-recheck\config\__init__.py
 
 PASS - this checkout's pytest imports this checkout's source.
 ```
+
+The D-3 fix strengthened the FAIL without weakening the PASS: **both** packages now resolve out
+of the worktree, through the per-checkout install rather than through a path the proof injected.
+That two-sided check — FAIL flips to PASS, and nothing that should FAIL still passes — is what
+distinguishes a tightened check from a broken one.
 
 **Step 4 — the satellite's real suite, in the worktree:** `939 tests collected` with
 ai-council's repo-root checkout-guard conftest loading cleanly (it aborts collection on a
@@ -119,9 +146,11 @@ FAIL `1` · NOT-APPLICABLE `3` (the hub itself, which ships no importable packag
 and the `.claude/worktrees/` directory this lane created was removed. Verified after: `worktree
 list` == primary only, `branch` == `main` only, `status --short` empty, directory absent.
 
-## 4. Two defects the work found in its own organs
+## 4. Three defects the work found in its own organs
 
-Both were found by running and testing, not by reading, and both are fixed in `ae1abddd`.
+None was found by reading the code. D-1 came from running it, D-2 from a test that asserted a
+docstring claim instead of trusting it, D-3 from the contract-mandated review. D-1/D-2 are fixed
+in `ae1abddd`; D-3 in the commit carrying this amendment.
 
 **D-1 — the verdict was partly about the caller.** `resolve_interpreter` fell back to
 `sys.executable`. Invoked from the hub under `uv run`, that handed an unprovisioned ai-council
@@ -138,6 +167,23 @@ leaving `__pycache__/` in the tree being measured. Every fleet repo gitignores i
 never have surfaced as dirt — which is precisely why it was worth suppressing rather than
 tolerating. Found by the test that asserts the claim (`git status --porcelain` on the target)
 instead of trusting the docstring.
+
+**D-3 — the proof's own entry point manufactured a PASS (terra P1).** `python -m pytest`
+prepends the CWD to `sys.path`; `uv run --locked pytest` — the console script, and the command
+`/lane-boot` tells lanes to use — does not. So a flat-layout package resolved out of the
+worktree because the proof put it there, not because the repo's environment did, and the proof
+reported PASS about a package the real command would have taken from the primary's shared
+install. The evidence was already sitting in §3 unread. Closed with `PYTHONSAFEPATH=1` on the
+child, which makes `-m` resolve the way the console script does; re-verified on ai-council in
+both directions (§3). **The generalisable form:** a check that reproduces a failure must
+reproduce the *invocation*, not only the tool — matching `pytest` was not enough while the entry
+point differed.
+
+**What D-3 says about review placement.** This is the [#438] thesis with a fresh data point:
+the defect passed 51 tests and a live end-to-end run on the real satellite, because every one of
+those ran through the same wrong entry point. Only an outside reader comparing the proof's
+invocation against the documented one could see it. Condition 3 of the batch — a review artifact
+per lane — is what caught it, and it caught something the suite structurally could not.
 
 ## 5. Findings for the batch, outside this lane's footprint
 

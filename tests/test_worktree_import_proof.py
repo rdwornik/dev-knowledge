@@ -48,6 +48,16 @@ def _git(repo: Path, *args: str) -> subprocess.CompletedProcess:
 
 
 def _repo_with_package(path: Path, dist: str, package: str, *, src_layout: bool = False) -> Path:
+    """A synthetic repo whose package is importable through a mechanism the REPO declares.
+
+    The `pythonpath` ini entry is doing real work here. The proof runs its child under
+    `PYTHONSAFEPATH`, so the cwd is NOT on `sys.path` — which is the point of that setting, and
+    which means a synthetic repo with no install and no declared path would be unimportable and
+    every end-to-end PASS below would be unwritable. Declaring `pythonpath` gives these repos a
+    legitimate, repo-owned import route, and in doing so exercises a property the module claims
+    but would otherwise never demonstrate: that the proof honours the target repo's own pytest
+    ini rather than a configuration of its own.
+    """
     path.mkdir(parents=True, exist_ok=True)
     _git(path, "init", "-q")
     _git(path, "config", "user.email", "t@example.invalid")
@@ -55,7 +65,8 @@ def _repo_with_package(path: Path, dist: str, package: str, *, src_layout: bool 
     (path / "pyproject.toml").write_text(
         f'[build-system]\nrequires = ["setuptools"]\n\n'
         f'[project]\nname = "{dist}"\nversion = "0"\n\n'
-        f'[tool.pytest.ini_options]\nminversion = "9.0"\n',
+        f'[tool.pytest.ini_options]\nminversion = "9.0"\n'
+        f'pythonpath = ["{"src" if src_layout else "."}"]\n',
         encoding="utf-8",
     )
     base = (path / "src") if src_layout else path
@@ -226,6 +237,26 @@ def test_the_child_environment_drops_the_inherited_venv_pointers(tmp_path, monke
 def test_the_child_environment_blocks_user_site_packages(tmp_path):
     env = wip._child_env(tmp_path, ("pkg",), tmp_path / "out.json")
     assert env["PYTHONNOUSERSITE"] == "1"
+
+
+def test_the_child_runs_under_safe_path(tmp_path):
+    """THE false-PASS guard (terra P1). `python -m pytest` prepends the CWD to `sys.path`; the
+    command a lane actually runs — `uv run --locked pytest`, the console script — does not.
+    Without `PYTHONSAFEPATH` a FLAT-LAYOUT package resolves out of the worktree purely because
+    the proof's own entry point put it there, and the proof reports PASS about a package the
+    real command would have taken from the primary's shared install.
+
+    Witnessed, not theorised: with this unset, ai-council's flat-layout `config` reported PASS
+    inside the very worktree whose src-layout `ai_council` was demonstrably coming from the
+    primary. With it set, the same run reports FAIL for both — and still PASSes for both once
+    the per-checkout venv exists."""
+    env = wip._child_env(tmp_path, ("pkg",), tmp_path / "out.json")
+    assert env["PYTHONSAFEPATH"] == "1"
+
+
+def test_the_child_does_not_write_bytecode_into_the_target(tmp_path):
+    env = wip._child_env(tmp_path, ("pkg",), tmp_path / "out.json")
+    assert env["PYTHONDONTWRITEBYTECODE"] == "1"
 
 
 def test_the_child_environment_carries_the_proof_parameters(tmp_path):

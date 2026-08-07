@@ -22,6 +22,10 @@ by this script would prove a claim about a DIFFERENT process than the one whose 
 being trusted. So the proof spawns the repo's real pytest, under the repo's own ini, and asks
 the assertion from inside a collected test — the same process shape that produces the green.
 
+The same reasoning is why the child runs under `PYTHONSAFEPATH` (see `_child_env`): matching the
+repo's pytest is not enough if the proof's own *entry point* injects a path the real command
+would not. A proof whose verdict depends on how the proof was launched is not a proof.
+
 PORTABILITY IS THE POINT (leg (a)). Nothing here is hub-shaped: the package list is read from
 the target repo's own `pyproject.toml`, the interpreter is discovered per-checkout, and the
 repo may carry no `.worktreeinclude` at all. `ai-council` — the row's named satellite, verified
@@ -305,6 +309,16 @@ def _child_env(root: Path, packages: tuple[str, ...], out: Path) -> dict[str, st
         env.pop(leaked, None)
     env["PATH"] = _caller_free_path()
     env["PYTHONNOUSERSITE"] = "1"
+    # THE FALSE-PASS THIS CLOSES (terra P1, 2026-08-07). `python -m pytest` prepends the CWD to
+    # `sys.path`; the command a lane actually runs — `uv run --locked pytest`, i.e. the console
+    # script — does not. Without this, a FLAT-LAYOUT package resolves out of the worktree purely
+    # because the proof's own entry point put it there, and the proof reports PASS about a
+    # package the real command would have taken from the shared install in the primary checkout.
+    # It was not hypothetical: in the recorded ai-council FAIL, `config` (flat layout) reported
+    # PASS in the very checkout whose `ai_council` (src layout) was demonstrably coming from the
+    # primary. `PYTHONSAFEPATH` makes `-m` behave like the console script, so the proof and the
+    # command it vouches for resolve imports the same way — which is the whole of its value.
+    env["PYTHONSAFEPATH"] = "1"
     # Importing the target's packages compiles them, and the bytecode lands in the TARGET tree
     # as `__pycache__/`. Every fleet repo gitignores it, so it would never have shown up as
     # dirt — which is exactly why it is worth suppressing rather than tolerating: a read-only
@@ -325,7 +339,7 @@ def run_proof(root: Path, packages: tuple[str, ...]) -> Proof:
     with tempfile.TemporaryDirectory(prefix="wt-import-proof-") as tmp:
         tmpdir = Path(tmp)
         test_file = tmpdir / "test_wt_import_proof.py"
-        test_file.write_text(_PROOF_TEST, encoding="utf-8")
+        test_file.write_text(_PROOF_TEST, encoding="utf-8", newline="\n")
         out_file = tmpdir / "result.json"
 
         argv = [
