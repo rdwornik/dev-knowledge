@@ -115,8 +115,8 @@ fleet:
   #
   # `reason:` is load-bearing, not commentary: resolve_fleet REFUSES a pre-deploy member
   # that is absent from deployed-versions.yaml and states no reason, and the reason is
-  # rendered into the repo's skipped-pre-deploy finding. Absence is declared, never
-  # silent. Each reason below is the repo's own registry.md status line -- observed, not
+  # rendered into the repo's skipped-pre-deploy finding, so absence is declared rather
+  # than silent. Each reason below is the repo's own registry.md status line -- observed, not
   # inferred. A repo onboards by gaining a deployed-versions.yaml entry, at which point
   # its role flips to `consumer` and the reason: is dropped.
   demo-prep: {role: pre-deploy,
@@ -288,6 +288,30 @@ surfaces:
     ownership:
       value: methodology-generic
       reason: "*.code-workspace -- root config mandated present fleet-wide (MUST both); methodology-owned presence mandate for the editor workspace."
+      provenance: *own-prov
+  # [#430](a) -- root conftest.py: PERMITTED FLEET-WIDE, MANDATED NOWHERE (operator
+  # ruling 2026-08-07, discharging the 2026-07-26 UNRULED marker the disposition
+  # register carried). LOCAL on both roles is that sentence in the tier model: present
+  # -> AT-PARITY, absent -> AT-PARITY. Before this row the consumer template had no
+  # entry for it at all, so ai-council's guard fell to the root-SWEEP and reported
+  # WARN-undeclared -- a template rejecting standard pytest practice.
+  #
+  # The CLASS is ruled once rather than kept as a per-repo exception ledger: a root
+  # conftest as checkout-identity guard becomes a fleet-wide pattern as per-worktree
+  # venvs land ([#429] leg b, whose stated failure mode is a worktree pytest importing
+  # the PRIMARY checkout's source and going GREEN about the wrong tree).
+  #
+  # declared_by makes template membership the declaration of record -- without it a
+  # consumer that HAS one would still owe a .methodology.yaml entry, which is exactly
+  # the per-repo ledger the ruling rejects.
+  - id: root-conftest
+    kind: path
+    tier: {hub: LOCAL, consumer: LOCAL}
+    declared_by: ruling-2026-08-07-root-conftest
+    probe: {type: path_tracked, path: conftest.py}
+    ownership:
+      value: conditional
+      reason: "conftest.py at the repo root -- standard pytest practice, and in ai-council a checkout-identity guard that fails collection when the package resolves outside the checkout under test. Permitted fleet-wide, mandated nowhere: LOCAL both roles, so carrying one is AT-PARITY and not carrying one is AT-PARITY. Ruled 2026-08-07 ([#430](a))."
       provenance: *own-prov
 
   # ---- Tier-1: shape-only dirs (contents role-dependent) ------------------------------

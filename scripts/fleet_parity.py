@@ -132,6 +132,21 @@ SEV_WARN = "warn"
 SEV_ERROR = "error"  # REPORT label (intake #12 MUST/INVERSE class); never blocks in v1
 
 TIERS = frozenset({"MUST", "SHOULD", "LOCAL", "IGNORE", "INVERSE", "TOMBSTONE"})
+
+# `declared_by` markers: a row whose TEMPLATE MEMBERSHIP is itself the declaration of
+# record, so a repo carrying the surface needs no .methodology.yaml entry of its own.
+# An ENUM, validated at load: the value was previously compared to the bare string
+# "intake-12", so a typo degraded silently into "this repo must declare it" and emitted
+# a WARN whose stated cause (undeclared divergence) was false.
+#
+#   intake-12                        -- the SETTLED intake #12 Tier-3 rows.
+#   ruling-2026-08-07-root-conftest  -- root conftest.py, "permitted fleet-wide,
+#       mandated nowhere" ([#430](a); discharges the 2026-07-26 UNRULED marker). Ruling
+#       the CLASS once beats a per-repo exception ledger -- the checkout-identity guard
+#       becomes a fleet-wide pattern as per-worktree venvs land ([#429] leg b).
+TEMPLATE_DECLARATION_MARKERS = frozenset({
+    "intake-12", "ruling-2026-08-07-root-conftest",
+})
 ROLES = frozenset({"hub", "consumer", "pre-deploy"})
 
 # FR-14 register-faithful action hints (FIX-NOW / DECLARE-LOCAL / TICKET / AT-PARITY lineage).
@@ -283,6 +298,14 @@ def load_manifest(path: Path) -> tuple[dict, list[ParityFinding]]:
             continue
         if bad_tok is not None:
             refusals.append(_refusal(label, f"unknown tier token '{bad_tok}'"))
+            continue
+        if "declared_by" in row and row["declared_by"] not in TEMPLATE_DECLARATION_MARKERS:
+            # Refuse rather than ignore: an unrecognised marker used to fall through to
+            # "this repo must declare it", so a typo produced a WARN asserting an
+            # undeclared divergence that did not exist.
+            refusals.append(_refusal(
+                label, f"unknown declared_by marker '{row['declared_by']}' "
+                       f"(known: {', '.join(sorted(TEMPLATE_DECLARATION_MARKERS))})"))
             continue
         if row.get("waivable") is True and ({"MUST", "INVERSE"} & set(tier.values())):
             # ADR-102: a necessary condition (MUST/INVERSE) can never be marked waivable
@@ -1222,11 +1245,12 @@ def _eval_row(row: dict, target: RepoTarget, facts: dict, allowlist: list,
                 target.repo_id, sid, AT_PARITY, SEV_INFO,
                 _ascii(f"LOCAL surface not carried (fine): {detail}"), "-", component))
             return
-        if row.get("declared_by") == "intake-12":
+        marker = row.get("declared_by")
+        if marker in TEMPLATE_DECLARATION_MARKERS:
             ev.findings.append(ParityFinding(
                 target.repo_id, sid, AT_PARITY, SEV_INFO,
-                _ascii(f"LOCAL surface present; declared by the SETTLED template "
-                       f"(intake #12 Tier-3): {detail}"), "-", component))
+                _ascii(f"LOCAL surface present; template membership is the declaration "
+                       f"of record ({marker}): {detail}"), "-", component))
             return
         _pass_or_declare(row, target, tier_token,
                          f"LOCAL surface present: {detail}", allowlist, policy,

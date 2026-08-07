@@ -706,7 +706,11 @@ def test_inverse_rule_and_hub_as_member(tmp_path):
     assert by_key[("hub-r", "docs-handoffs-dir")].verdict == fp.AT_PARITY
     # consumer: src is settled-template LOCAL (no declaration needed), handoffs forbidden
     assert by_key[("cons", "src-dir")].verdict == fp.AT_PARITY
-    assert "intake #12" in by_key[("cons", "src-dir")].evidence
+    # [#430](a): the LOCAL-declared evidence now names the declared_by MARKER rather than
+    # hardcoding intake #12's prose, because a second marker exists
+    # (ruling-2026-08-07-root-conftest). The assertion's intent is unchanged -- the
+    # evidence must still say WHICH declaration of record covers this surface.
+    assert "intake-12" in by_key[("cons", "src-dir")].evidence
     assert by_key[("cons", "docs-handoffs-dir")].verdict == fp.MUST_ABSENT
 
 
@@ -1497,3 +1501,88 @@ def test_live_undeployed_members_each_carry_a_declared_reason():
         spec = manifest["fleet"][repo_id]
         assert spec["role"] == "pre-deploy", repo_id
         assert spec.get("reason", "").strip(), repo_id
+
+
+# ---------------------------------------------------------------------------
+# [#430](a) -- root `conftest.py` is admitted fleet-wide: "permitted fleet-wide,
+# mandated nowhere" (operator ruling 2026-08-07, discharging the 2026-07-26 UNRULED
+# marker). The CLASS is ruled once rather than kept as a per-repo exception ledger:
+# a root conftest as checkout-identity guard gains relevance across the fleet as
+# per-worktree venvs land ([#429] leg b), and it is standard pytest practice besides.
+#
+# Mechanically this is tier LOCAL on both roles: present -> AT-PARITY, absent ->
+# AT-PARITY. The row carries a `declared_by` marker so template membership IS the
+# declaration of record -- otherwise a consumer that HAS one would still need a
+# repo-side .methodology.yaml entry, which is the per-repo ledger the ruling rejects.
+# ---------------------------------------------------------------------------
+
+_CONFTEST_ROW = {"id": "root-conftest", "kind": "path",
+                 "tier": {"hub": "LOCAL", "consumer": "LOCAL"},
+                 "declared_by": "ruling-2026-08-07-root-conftest",
+                 "probe": {"type": "path_tracked", "path": "conftest.py"}}
+
+
+def _conftest_findings(tmp_path, row=None):
+    fleet = {"hub-r": {"role": "hub"}, "with": {"role": "consumer"},
+             "without": {"role": "consumer"}}
+    hub = _init_repo(tmp_path / "hub", dict(_BASE_FILES))
+    with_ct = _init_repo(tmp_path / "with",
+                         dict(_BASE_FILES, **{"conftest.py": "# checkout guard\n"}))
+    without = _init_repo(tmp_path / "without", dict(_BASE_FILES))
+    manifest = _loaded(tmp_path, fleet, [row or _CONFTEST_ROW])
+    findings, *_ = _run(manifest, _EMPTY_BASELINE,
+                        {"hub-r": hub, "with": with_ct, "without": without}, "hub-r")
+    return findings
+
+
+def test_root_conftest_present_in_a_consumer_is_at_parity(tmp_path):
+    """The [#430](a) defect itself: ai-council carries a root conftest.py and the
+    consumer template reported it WARN-undeclared. 'Permitted' means the present case
+    is AT-PARITY with no repo-side declaration required."""
+    rows = {f.repo_id: f for f in _conftest_findings(tmp_path)
+            if f.surface_id == "root-conftest"}
+    assert rows["with"].verdict == fp.AT_PARITY
+    assert rows["with"].severity == fp.SEV_INFO
+
+
+def test_root_conftest_absent_in_a_consumer_is_also_at_parity(tmp_path):
+    """'Mandated nowhere' -- the other half of the ruling. A consumer WITHOUT a root
+    conftest.py must not acquire a new obligation; admitting the class must not
+    manufacture a fleet-wide MUST."""
+    rows = {f.repo_id: f for f in _conftest_findings(tmp_path)
+            if f.surface_id == "root-conftest"}
+    assert rows["without"].verdict == fp.AT_PARITY
+    assert "not carried (fine)" in rows["without"].evidence
+
+
+def test_root_conftest_no_longer_reaches_the_root_sweep(tmp_path):
+    """The WARN came from the root-SWEEP (the 'not in the template' branch), so the
+    fix must make conftest.py a COVERED top-level segment. If the row existed but the
+    sweep still fired, the WARN would merely be duplicated, not cleared."""
+    sweep = [f for f in _conftest_findings(tmp_path)
+             if f.surface_id == "root-sweep" and "conftest.py" in f.evidence]
+    assert sweep == []
+
+
+def test_unknown_declared_by_marker_is_a_loader_refusal(tmp_path):
+    """A typo'd marker must REFUSE, not silently fall through to 'needs a repo-side
+    declaration' -- that would turn a misspelling into a WARN whose stated cause
+    (undeclared divergence) is false. Guards the marker set this ruling introduces."""
+    bad = {**_CONFTEST_ROW, "declared_by": "intake-12-typo"}
+    manifest_path = _write_yaml(tmp_path / "m.yaml", _manifest(
+        {"hub-r": {"role": "hub"}}, [bad]))
+    _, refusals = fp.load_manifest(manifest_path)
+    assert any(f.verdict == fp.REFUSED and "declared_by" in f.evidence
+               for f in refusals)
+
+
+def test_live_manifest_admits_root_conftest_for_consumers():
+    """The ruling landed in the LIVE manifest, not just the fixtures -- this is what
+    clears tests/test_audit.py::test_check_fleet_parity_green_on_live_repo, the
+    standing RED [#430] owns."""
+    manifest, _ = fp.load_manifest(
+        Path(fp._REPO_ROOT) / "ecosystem" / "parity-surfaces.yaml")
+    row = next(r for r in manifest["surfaces"] if r["id"] == "root-conftest")
+    assert row["tier"]["consumer"] == "LOCAL"
+    assert row["probe"] == {"type": "path_tracked", "path": "conftest.py"}
+    assert row["declared_by"] in fp.TEMPLATE_DECLARATION_MARKERS
