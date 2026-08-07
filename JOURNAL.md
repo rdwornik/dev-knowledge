@@ -19,6 +19,25 @@
 
 ---
 
+### 2026-08-07 (l) — CC (Sonnet 5, bg primary): JOURNAL-anchor follow-up for the PRE-2 gate-hygiene arc
+
+**Did:** Entry (k) was authored and committed before the SHAs it describes existed
+(the JOURNAL-writes-before-merge ordering this repo's convention requires), so its
+text cites no commit hash and `journal_spine_anchor`'s Stop-hook backpressure
+correctly flagged the arc as unanchored after the merge landed. This entry supplies
+the anchor.
+
+**Result:** N/A — record-keeping only, no code or doc change beyond this entry.
+
+**Changes:** `JOURNAL.md` only.
+
+**Abandoned:** n/a.
+
+**Next:** n/a.
+
+**Anchor:** `e351b685` (gate-hygiene fixes) · `8132f369` (entry (k)) · `8c438220`
+(the `--no-ff` merge of `chore/pre-cut-gate-hygiene` into `main`).
+
 ### 2026-08-07 (k) — CC (Sonnet 5, bg primary, PRE-2 gate hygiene): five inherited WARNs, honestly resolved — three fixed, two dispositioned, one filed
 
 **Did:** Ran the PRE-2 gate-hygiene contract (`chore/pre-cut-gate-hygiene` off `b669bd8f`)
