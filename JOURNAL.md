@@ -19,6 +19,56 @@
 
 ---
 
+### 2026-08-07 (k) — CC (Sonnet 5, bg primary, PRE-2 gate hygiene): five inherited WARNs, honestly resolved — three fixed, two dispositioned, one filed
+
+**Did:** Ran the PRE-2 gate-hygiene contract (`chore/pre-cut-gate-hygiene` off `b669bd8f`)
+against the five WARNs inherited from arcs (j)/(i): (1) trimmed `tasks/509/510/511.md` under
+the 1200-char `doc_rot` cap by draining self-authored narrative to git history — scope,
+done-when, refs, kill-candidates all survive; [#511]'s dropped measurement detail now cites
+`docs/audits/2026-08-07-technical-handoff-engine-thinning.md` instead. (2) Re-derived the
+`git_backlog_drift` WARN on [#505]: merge `25ff8ec37`'s subject "0 closed [#505] [#430]" trips
+`CLOSES_RE` on the bare "closed [#505]" adjacency despite explicitly declaring zero closures
+(confirmed against the body: "nothing closed on [#505]/[#502]") — dispositioned as a
+false-positive-by-construction, not fixed by touching the row ([#505] stays OPEN). (3) Ran
+retroactive terra (`/codex-review -DiffRange`) on both undispositioned code-impact merges:
+`25ff8ec3` (0/0/0/0, `docs/audits/2026-08-07-codex-pre-cut-retro-batch2-consolidation.md`) and
+`b669bd8f` (0/1/0/0 — one real HIGH, `docs/audits/2026-08-07-codex-pre-cut-retro-handoff-engine-thinning.md`).
+Both artifacts' HEAD/Branch fields were corrected so `review_artifact_coverage`'s linkage leg
+actually resolves them (codex-review.ps1 stamps the CURRENT session HEAD regardless of
+`-DiffRange`, which silently mislinked both). (4) Registered the bg-isolation guard fork at
+`protocols/STANDING_RULINGS.md` F6, A2-shaped (defect / evidence / expiry) and ratchet-safe.
+(5) Dry-ran the two boundary invariants against live state: `batch_manifest.open_batches()` →
+`[]`; `stale_worktrees` → primary-only, stash empty. No session-skeleton sibling dirs found.
+
+**Result:** The one real finding — `gen_handoff.py:403`'s open-batch refusal delegates to
+`batch_manifest._git()` (`batch_manifest.py:140`), which runs `subprocess.run(["git", "-C",
+...])` with no `env=` scrub, so an inherited `GIT_DIR` can silently blind the refusal to a
+genuinely open batch — could not be fixed in-arc (the frozen contract forbids editing
+`gen_handoff.py` and touching batch machinery), so it is filed as **[#512]**, not fixed, with
+the terra artifact's Tally line and a disposition note recording that. `ship-gate: GREEN` (18
+WARN dispositioned, all with a `review_date` or `PERMANENT` citation); `silent_rule_ratchet`
+**441 → 432** (net drain, not growth — F6 added no normative keyword). Full suite **1 failed /
+2550 passed / 4 skipped**, the sole RED being the pre-existing
+`test_routine_consumers_live_backlog_governs_exactly_one_row` pin (confirmed via `git stash`
+against clean `b669bd8f` — unrelated to this arc). Executed the whole arc through the
+bg-isolation guard as PRE-2's own frozen-contract clause 4 anticipated: every edit after the
+guard's first live refusal (`tasks/509...md`) went through an exact-match Bash patch script
+staged under the job tmp dir, never the Edit tool.
+
+**Changes:** `BACKLOG.md` (regenerated), `tasks/509/510/511-*.md` (trimmed), `tasks/512-*.md`
+(new), `tasks/manifest.json`, `ecosystem/disposition-register.yaml` (+1 entry),
+`protocols/STANDING_RULINGS.md` (+F6), `docs/audits/2026-08-07-codex-pre-cut-retro-batch2-consolidation.md`
+(new), `docs/audits/2026-08-07-codex-pre-cut-retro-handoff-engine-thinning.md` (new),
+`docs/audits/README.md` (regenerated).
+
+**Abandoned:** Fixing [#512] in-arc — explicitly out of scope (contract clause: do not edit
+`gen_handoff.py` or touch batch machinery); filed instead.
+
+**Next:** [#512] (GIT_DIR scrub gap) sits open at P2/S, referencing [#396] (the DRY
+consolidation it is a coverage gap on top of, not a duplicate of). [#492]'s doc_rot WARN is
+untouched — out of this contract's named scope (509/510/511 only) and already dispositioned
+with its own ruled peg. `CUT: CLEAR`.
+
 ### 2026-08-07 (j) — CC (Opus 5, primary): the bundle points, the repo carries the law
 
 **Did:** Ran ARC-HANDOFF-ENGINE on `docs/handoff-engine-thinning` off `main` (`25ff8ec3`), five

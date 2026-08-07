@@ -407,3 +407,31 @@ dispositions:
   # it as latest, so handoff_probes now binds 10 probes to live state ([OK]) and both
   # dispositions matched no live WARN. Removed to avoid stale-disposition decoration (ADR-75).
   # The underlying cross-repo resolve-only gap stays tracked by [#234].
+
+  # (2026-08-07, PRE-2 gate-hygiene arc) git_backlog_drift false-positive BY CONSTRUCTION on
+  # [#505]. The merge commit 25ff8ec37's subject reads "3 rows filed, 0 closed [#505] [#430]"
+  # -- i.e. it explicitly declares NOTHING closed. But CLOSES_RE
+  # (`\b(?:closes?|closed|fixes?|fixed)\s+\[#(\d+)\]`) has no way to see the leading "0" --
+  # it pattern-matches the bare adjacency "closed [#505]" and fires regardless of the
+  # negating qualifier three words earlier. (`[#430]` in the same subject does NOT
+  # double-fire: it isn't itself preceded by a closes-word, only by `[#505] `.) Re-derived
+  # against the commit body, which is unambiguous: "NOT DONE, deliberately: ... nothing
+  # closed on [#505]/[#502]". [#505] correctly stays OPEN -- this is not a case of "done item
+  # never left the file" (ADR-65), it is the checker's own precision lever (quoted-context
+  # stripping) not covering a plain-English negation adjacent to the trigger word. Reconciled
+  # to reality by disposition, not by editing the [#505] row (which is already accurate) --
+  # same shape as the reconciled_versions/[#335] template false-positive above. Keyed on the
+  # specific id+sha evidence pair per precision-over-recall, so a REAL future closes-and-still-
+  # open drift on a different id (or a different commit) re-surfaces and blocks.
+  - id: warn-git-backlog-drift-505-zero-closed
+    organ: git_backlog_drift
+    match: "#505 (closes in 25ff8ec37)"
+    ref: 25ff8ec3
+    review_date: 2026-09-07
+    reason: >-
+      False-positive BY CONSTRUCTION: merge 25ff8ec37's subject "0 closed [#505] [#430]"
+      trips CLOSES_RE on the bare "closed [#505]" adjacency even though the sentence
+      explicitly says zero closures, and the body confirms "nothing closed on [#505]/[#502]".
+      [#505] stays open -- clause 2 remains a pending operator ratification, no clause of it
+      was closed by this commit. review_date is the shelf-life (ADR-75); clears if [#505]
+      genuinely closes or the detector gains negation-awareness.
