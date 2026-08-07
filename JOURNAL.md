@@ -19,6 +19,36 @@
 
 ---
 
+### 2026-08-07 (f) — CC (dispatched, AM-4): dispatch-visibility encoded as repo law
+
+**Did:** Ran the AM-4 fold contract. Empirical leg first: `claude --help` on the installed CLI
+(2.1.224) confirms `-w, --worktree` and `--bg, --background` are independent flags with no
+documented mutual exclusion (only `--tmux` names a dependency on `--worktree`) — a live nested
+dispatch could not be exercised from inside this worktree-isolated session, so the finding rests
+on the flag contract, not a runtime trial. Encoded the operator-ratified AM-4 finding
+(2026-08-06, verified live: Agent View lists `--bg` sessions only) as `STANDING_RULINGS.md` B7
+"VISIBLE = DISPATCHED" and `PLAYBOOK.md` Ch8 "Dispatch visibility" (the board-label shape
+`[repo · #id-or-slug · verb-object]`), then wired the point-of-use surfaces —
+`.claude/commands/lane-boot.md`'s provisioning step and `templates/prompt-template.md`'s Dispatch
+row/title line — so a dispatch built from either carries the label + `--bg` by construction.
+Anchors: **`0094b09a`** (doctrine), **`7030f851`** (point-of-use).
+
+**Result:** Four artifacts landed as specified; no ratchet-keyword growth (checked
+`must|shall|never` against the diff in the three ratchet-scoped files — zero hits). Suite: 900
+passed, 2 pre-existing REDs — `pandas`-missing in this venv (`test_hotspot_frame_excludes_deleted_files`)
+and `fleet_parity` mis-resolving in a lane worktree — both match the standing "lane worktree adds
+two suite REDs" pattern and are environmental to this worktree, not caused by this arc.
+
+**Changes:** `protocols/STANDING_RULINGS.md` (+B7), `protocols/PLAYBOOK.md` (Ch8 subsection +
+TOC regen), `.claude/commands/lane-boot.md`, `templates/prompt-template.md` (v1.8→v1.9).
+
+**Abandoned:** none.
+
+**Next:** none named by the contract; packet reports the flag-composition finding for the
+operator to confirm live if a nested-dispatch trial becomes possible outside a sandboxed worktree.
+
+---
+
 ### 2026-08-07 (e) — CC (Opus 5, primary): the integrator reviewed its own arc, and the reviews found six defects in it
 
 **Did:** Closed the loop PRE-2 left open. `review_artifact_coverage` flagged the integrator's
