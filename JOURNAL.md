@@ -19,6 +19,35 @@
 
 ---
 
+### 2026-08-07 (n) — CC (Opus 5, cloud night window): the suite comparison, upgraded from file-level to test-level
+
+**Did:** Entry (m) claimed "this branch introduces no failure" on **file-level** evidence — the
+counts differed by one and the failing-FILE sets differed by exactly `tests/test_stale_worktrees.py`.
+That is sound but not airtight: a branch could in principle lose one baseline failure and introduce
+a different one inside a shared file and still match at both counts. This entry supplies the
+test-level comparison, appended rather than folded into (m) — the same append-not-amend discipline
+STANDING_RULINGS B6 landed for anchors.
+
+**Result — the sets are identical modulo the one worktree-inverting test.** Both failure sets were
+re-collected as sorted `file::test` node ids and diffed:
+
+- branch (`865ad4cc`, primary checkout): **44** failing node ids
+- baseline (`81d572d7`, detached worktree, no diff): **45**
+- present ONLY in the baseline: `tests/test_stale_worktrees.py::test_linked_worktrees_reader_excludes_the_primary`
+- present ONLY in the branch: **nothing**
+
+So the branch's failure set is a **strict subset** of the baseline's, missing exactly the test that
+inverts by construction inside any worktree. **Zero failures are attributable to this window's
+diff**, which is now Witnessed rather than Inferred.
+
+**Changes:** `JOURNAL.md` only.
+
+**Abandoned:** n/a. **Next:** n/a — the baseline worktree was torn down and verified after this
+measurement (`git worktree list` primary-only, `git branch -a` carries no `worktree-*` ref, the
+scratch directory removed), per CLAUDE.md §5 rule 9.
+
+**Anchor:** `865ad4cc` (the Phase R commit this comparison verifies) · `2af02282` (entry (m)).
+
 ### 2026-08-07 (m) — CC (Opus 5, cloud night window, unattended): NIGHT-CLOUD v2 — matrix amendment, successor prep, cut staging, library research
 
 **Did:** Ran the frozen NIGHT-CLOUD-v2 contract end to end on Claude Code for the web, in a cloud
