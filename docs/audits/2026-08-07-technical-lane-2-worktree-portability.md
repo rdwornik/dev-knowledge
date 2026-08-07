@@ -8,14 +8,14 @@
 
 > **Amendment — 2026-08-07, same session (in-file marker per CLAUDE.md §5 rule 3).** This file
 > was first committed at `05d31b20`, before the contract-mandated terra review had run. Terra
-> returned one **P1**, it was real, and §3's evidence was produced by the pre-fix organ — so the
-> §3 transcripts and §4's defect list are amended to the post-fix run, and §4 gains **D-3**.
-> Nothing else changed. Recorded through the sanctioned in-file channel rather than by rewriting
+> returned a **P1** on each of two passes, both real, and §3's evidence was produced by the pre-fix organ — so the
+> §3 transcripts and §4's defect list are amended to the final post-fix run, and §4 gains
+> **D-3** and **D-4**. Nothing else changed. Recorded through the sanctioned in-file channel rather than by rewriting
 > the commit, following the `2026-08-06-technical-batch1-verification` precedent: squashing it on
 > an unpushed branch would have been tidier and would have left no trace that the artifact ever
 > said otherwise — which is precisely the property an audit trail exists to deny itself.
 >
-> **The P1, stated plainly, because it is the most interesting thing this lane found.** The proof
+> **The first P1, stated plainly, because it is the most interesting thing this lane found.** The proof
 > ran its child as `python -m pytest`, which prepends the CWD to `sys.path`. The command a lane
 > actually runs — `uv run --locked pytest`, i.e. the console script — does not. A **flat-layout**
 > package therefore resolved out of the worktree purely because the proof's own entry point put
@@ -23,7 +23,8 @@
 > the run noticed: `config` reported PASS in the very checkout whose `ai_council` was
 > demonstrably coming from the primary.** A proof whose verdict depends on how the proof was
 > launched is not a proof. Closed by running the child under `PYTHONSAFEPATH`, which makes `-m`
-> resolve imports the way the console script does.
+> resolve imports the way the console script does. **The second P1** — a Layer-2 validator
+> executing sibling package code — is D-4 in §4.
 
 ---
 
@@ -55,7 +56,7 @@ express.
 |---|---|---|
 | `scripts/worktree_seed.py` | (a) | read-only outside the hub; `--write` refuses any target but the hub's own `.worktreeinclude` |
 | `scripts/worktree_import_proof.py` | (b) + done-when | read-only everywhere; writes only into the system temp dir |
-| `tests/test_worktree_seed.py` (22) + `tests/test_worktree_import_proof.py` (29) | both | — |
+| `tests/test_worktree_seed.py` (22) + `tests/test_worktree_import_proof.py` (32) | both | — |
 | `.claude/commands/lane-boot.md` §3 / §6 | both | the adopt-native wiring |
 | `.worktreeinclude` | (a) | now generated from the manifest, not hand-authored |
 
@@ -79,10 +80,10 @@ at any point, and the whole provisioning answer came from the hub.
 reproduced by a runnable check rather than asserted:
 
 ```
-checkout   : C:\Users\1028120\Documents\Dev\ai-council\.claude\worktrees\429-proof-final
+checkout   : C:\Users\1028120\Documents\Dev\ai-council\.claude\worktrees\429-p2-recheck
 interpreter: C:\Users\1028120\AppData\Local\Programs\Python\Launcher\py.EXE
 venv       : NOT inside the checkout - no <root>/.venv; the ambient interpreter was used
-pytest root: C:\Users\1028120\Documents\Dev\ai-council\.claude\worktrees\429-proof-final (matches the checkout)
+pytest root: C:\Users\1028120\Documents\Dev\ai-council\.claude\worktrees\429-p2-recheck (matches the checkout)
 
   FAIL ai_council -> C:\Users\1028120\Documents\Dev\ai-council\src\ai_council\__init__.py
   FAIL config -> C:\Users\1028120\Documents\Dev\ai-council\config\__init__.py
@@ -94,7 +95,8 @@ Read the path lines together: pytest's rootdir is **the worktree**, and both pac
 to **the primary checkout**. That is the silent failure in one frame — the suite would have
 reported green about code the lane never touched.
 
-(Pre-D-3, this same run reported `config` as PASS. That line was the defect showing itself
+(Pre-D-3, this same run reported `config` as PASS; D-4 changed the resolution mechanism and left
+both verdicts byte-identical. That line was the defect showing itself
 inside its own evidence; see the amendment marker at the top.)
 
 **Step 2 — the hub answers for a satellite it is not sitting in.**
@@ -146,11 +148,16 @@ FAIL `1` · NOT-APPLICABLE `3` (the hub itself, which ships no importable packag
 and the `.claude/worktrees/` directory this lane created was removed. Verified after: `worktree
 list` == primary only, `branch` == `main` only, `status --short` empty, directory absent.
 
-## 4. Three defects the work found in its own organs
+## 4. Four defects the work found in its own organs
 
 None was found by reading the code. D-1 came from running it, D-2 from a test that asserted a
-docstring claim instead of trusting it, D-3 from the contract-mandated review. D-1/D-2 are fixed
-in `ae1abddd`; D-3 in the commit carrying this amendment.
+docstring claim instead of trusting it, and D-3/D-4 from the two contract-mandated review passes.
+D-1/D-2 are fixed in `ae1abddd`, D-3 in `d7f2f7ff`, D-4 in the commit carrying this amendment.
+
+**That distribution is the finding underneath the findings.** Two of four came from an outside
+reader and neither was reachable from inside: every test and every live run went through the
+same entry point (D-3) and the same posture assumption (D-4), so the suite could confirm them
+rather than catch them.
 
 **D-1 — the verdict was partly about the caller.** `resolve_interpreter` fell back to
 `sys.executable`. Invoked from the hub under `uv run`, that handed an unprovisioned ai-council
@@ -178,6 +185,19 @@ child, which makes `-m` resolve the way the console script does; re-verified on 
 both directions (§3). **The generalisable form:** a check that reproduces a failure must
 reproduce the *invocation*, not only the tool — matching `pytest` was not enough while the entry
 point differed.
+
+**D-4 — a Layer-2 validator was running child-repo code (terra P1, second pass).** The generated
+test called `importlib.import_module`, which executes the target package's module body —
+arbitrary sibling code with whatever import-time side effects it carries. That is a step beyond
+anything else in `scripts/`, where hub tools shell out to `git` against a sibling and never to
+the sibling's own code, and it sat directly against CLAUDE.md §5 rule 4 / ADR-28/36 while the
+module's own docstring claimed read-only posture. Closed by resolving with
+`importlib.util.find_spec` instead: it walks the same finders over the same `sys.path` an import
+would and returns the origin it *would* have loaded, so the answer is identical and nothing
+executes. Re-verified live on ai-council in both directions — **byte-identical verdicts** to the
+D-3 run, which is what makes this a posture fix rather than a behaviour change. An AST test pins
+it, because the regression is someone "simplifying" it back to `import_module` and that reads as
+harmless.
 
 **What D-3 says about review placement.** This is the [#438] thesis with a fresh data point:
 the defect passed 51 tests and a live end-to-end run on the real satellite, because every one of

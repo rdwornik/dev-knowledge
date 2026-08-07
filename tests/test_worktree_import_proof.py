@@ -23,6 +23,7 @@ That evidence is `docs/audits/2026-08-07-technical-lane-2-worktree-portability.m
 """
 from __future__ import annotations
 
+import ast
 import os
 import shutil
 import subprocess
@@ -171,8 +172,27 @@ def test_a_file_outside_the_root_is_not_inside(tmp_path):
 
 
 def test_an_import_error_is_never_inside(tmp_path):
-    """An unimportable package is a failure, not an absence of evidence."""
+    """An unresolvable package is a failure, not an absence of evidence."""
     assert not wip._inside(tmp_path, {"error": "ModuleNotFoundError: no"})
+
+
+def test_the_generated_proof_resolves_and_never_imports():
+    """THE Layer-2 guard (terra P1, second pass). A hub validator that IMPORTS a sibling's
+    package runs arbitrary child-repo code, with whatever import-time side effects it carries —
+    a step beyond anything else in `scripts/`, which shells out to `git` and never to a child's
+    own code. `find_spec` walks the same finders over the same `sys.path` an import would and
+    returns the origin it WOULD have loaded, so the answer is identical and nothing executes.
+
+    Asserted on the AST of the generated module rather than on behaviour: the failure mode is
+    someone "simplifying" it back to `import_module`, and that reads as harmless."""
+    tree = ast.parse(wip._PROOF_TEST)
+    called = {
+        node.func.attr for node in ast.walk(tree)
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+    }
+    assert "find_spec" in called
+    assert "import_module" not in called
+    assert "__import__" not in wip._PROOF_TEST
 
 
 def test_a_namespace_package_needs_every_search_path_inside(tmp_path):
