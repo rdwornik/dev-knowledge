@@ -19,6 +19,71 @@
 
 ---
 
+### 2026-08-06 (i) — CC (Opus 5, cloud, unattended): batch-1 INDEPENDENT VERIFICATION — a second seat checks the integrator ([#503] [#504] closed; [#501] [#502] [#505] held open)
+
+**Did:** Ran the night-audit brief against the batch-1 range `df815c7..319f885d` from a separate
+seat, treating `docs/audits/2026-08-06-technical-batch-1-integration-packet.md` as claims rather
+than as record. Everything re-derived from tree, git and the live gates on a fresh clone with the
+pinned toolchain and hooks armed. Anchors — **`8e0cd0d5`** (the verification dossier,
+`docs/audits/2026-08-06-technical-batch1-verification.md`), **`1447d063`** (the two row closes),
+**`297af6e1`** (Ch8 hardening), **`27c37ae3`** (the one S-mechanical fix).
+
+**Result — the batch holds up, and the gate mesh was honest throughout.** Eleven gate firings in
+the range, classified independently: **eleven TRUE, zero false**. The packet's zero-false-positive
+claim is CONFIRMED. `journal_spine_anchor` reports every first-parent spine entry above the
+disposition floor anchored; teardown is clean locally AND on origin (no `worktree-*` branch
+survives either side). On the [#480] advisory-before-hard bar this is one clean window of the two.
+
+**Result — three things the self-graded packet did not carry.** (1) There are **three**
+`review_artifact_coverage` WARNs, not two: `5af0b33c`'s linked terra artifact carries no parseable
+`**Tally:**` line, a different class from the two missing-artifact WARNs and recorded nowhere.
+(2) The [#502] mutation pilot **measured nothing** — `pytest_add_cli_args = ["-p", "no:xdist"]`
+unloads the plugin that supplies the `-n` in `addopts`, so every mutant's pytest exits 4 before
+collecting. Measured twice (local usage error; CI run `31127625224` reporting all 84 mutants
+`not checked`) and fixed S-mechanically to `["-n", "0"]`. (3) The F1b repair works but was made by
+**editing a committed JOURNAL entry in place**, which append-only does not sanction and the anchor
+predicate cannot detect — it matches a short SHA anywhere in the file, so an in-place edit is a
+retroactive anchor discharge. A new entry would have discharged it identically. Raised for ruling,
+not fixed.
+
+**Result — the recorder diagnosis is closed, and the recorder works.** Zero push-triggered runs is
+TRUE. Ruled out delay (60 min, and a dispatched run started in 2s), trigger syntax, branch filter,
+workflow state, and — by experiment, since the settings endpoint is proxy-blocked — repo-level
+Actions state and billing: a `workflow_dispatch` on `main` was accepted and **run `31127625224`
+completed with both jobs green**, the first ever execution of the wall. Residual cause: the
+workflow landed in the same push that would have triggered it, which is **self-correcting** on the
+next push to `main`. It does NOT discharge [#501] — dispatch has no push range, so the anchor leg
+is still unexercised and no RED was injected; `ARMED (never fired)` stays. One unscheduled run on
+`main` (~3.5 min of Actions time) was initiated by this audit and is disclosed in the dossier.
+
+**Result — [#505] is not closable, against the brief's expectation.** Clause 1 ("a fresh seat runs
+a full batch from repo artifacts alone") is falsified by the batch's own packet §8: contracts were
+delivered as prompts, not committed artifacts. Clause 2 (two operator touches) has no recorded
+measurement. Clauses 3–4 hold. Closing it would ratify the manifest gap as satisfied in the same
+window Ch8 was hardened to require the opposite.
+
+**Changes:** `pyproject.toml` — the mutmut serial flag corrected. `scripts/validate_branch_naming.py`
++ tests + `protocols/STANDING_RULINGS.md` B5 — `automation/` admitted as the fourth machine-produced
+lane prefix (architect ruling 2026-08-06), silent-rule count unmoved at 441.
+`docs/intake/2026-08-06-tech-adoption-consolidation-intake.md` — two dangling §D references
+repointed at §A items 33–36, erratum in the file's own `note:`.
+`templates/handoff/02_METHODOLOGY.md.tmpl` — the superseded three-check parallel test replaced by
+[#441]'s four-condition test. `protocols/PLAYBOOK.md` Ch8 — four hardenings from the drill's own
+findings (F3 contract paths, F1b ≥2 integrator commits, F2 the `docs/…`-class integrator branch,
+the manifest committed at dispatch). `BACKLOG.md` / `tasks/` — [#503] and [#504] closed per
+ADR-107 §6.3, 202 → 200. `docs/audits/` — the verification dossier, index regenerated 406 → 407.
+
+**Abandoned:** No merge, no push to `main`, no edit to any immutable artifact. Six findings and
+three rulings are drafted for adjudication rather than landed, including the ADR-110 amendment that
+would replace `SKIP=audit-health` for the integrator's intermediate merges and the ADR-85 amendment
+for its stale `:322-324` fail-soft prose.
+
+**Next:** Batch 2 is **GO at width 6, on three conditions** — commit the manifest at dispatch,
+adjudicate the F1 amendment (the current workaround fires five times at width 6), and give each
+lane a review artifact up front. The binding risk is the quota, not the machinery: at width 6 the
+≤1/4 process-lane cap allows **at most one** process lane, so ≥5 of 6 carry product/consumer work.
+Batch 1 ran 3/3 process. Morning packet: dossier §10.
+
 ### 2026-08-06 (h) — CC (Opus 5, local): batch-1 INTEGRATOR — ADR-110's first live run ([#501] [#502] [#503] [#504])
 
 **Did:** Ran `/lane-integrate` for batch 1 from the primary checkout on `main`, queue **A → C → B**

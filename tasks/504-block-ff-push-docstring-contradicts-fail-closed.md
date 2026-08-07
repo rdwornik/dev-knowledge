@@ -1,7 +1,7 @@
 ---
 id: "[#504]"
 title: "`block_ff_push` docstring still claims fail-soft after the fail-closed flip"
-status: open
+status: closed
 priority: P2
 size: S
 theme: "[E5] Canonical-file integrity"

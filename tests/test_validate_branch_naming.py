@@ -35,6 +35,7 @@ requires_git = pytest.mark.skipif(shutil.which("git") is None, reason="git not a
     ("worktree-changelog-sync", vbn.KIND_WORKTREE),
     ("epic/handoff-v6", vbn.KIND_EPIC_LANE),
     ("claude/conformance-2026-08-05", vbn.KIND_CLOUD_LANE),
+    ("automation/fleet-audit", vbn.KIND_AUTOMATION_LANE),
     ("worktree-lane-a-505-batch-protocol", vbn.KIND_BATCH_LANE),
     ("worktree-lane-j-490-currency-wave", vbn.KIND_BATCH_LANE),
 ])
@@ -67,7 +68,6 @@ def test_only_one_remote_segment_is_stripped():
 # --- nothing unruled gets in ---------------------------------------------------------------
 
 @pytest.mark.parametrize("name", [
-    "automation/fleet-audit",     # LIVE in this repo and genuinely outside the prose enum
     "integrate/batch-1",          # the prefix deliberately NOT minted for the integrator
     "lane/a-505-batch-protocol",  # a plausible-looking alternative that was never ruled
     "feature/505-thing",          # `feature/` is not one of the four
@@ -84,7 +84,22 @@ def test_the_enum_constants_hold_exactly_the_ruled_members():
     """A structural pin, not a restatement: if someone adds a prefix to the module, this test
     fails and the ruling requirement surfaces at review time rather than at the next audit."""
     assert vbn.SERIAL_ARC_PREFIXES == ("feat/", "fix/", "docs/", "chore/")
-    assert vbn.LANE_PREFIXES == ("worktree-", "epic/", "claude/")
+    assert vbn.LANE_PREFIXES == ("worktree-", "epic/", "claude/", "automation/")
+
+
+def test_automation_lane_entered_by_ruling_not_by_observation():
+    """`automation/` is the fourth machine-produced prefix, admitted 2026-08-06 by architect
+    ruling (register: STANDING_RULINGS B5) after `automation/fleet-audit` had been sitting live
+    on the remote as an `unknown`. The pin is on the ORDER: the branch existed first and the
+    prose caught up, which is the rule working — a prefix that classifies without a register
+    entry behind it is the silent entry the enum forecloses. `check_fleet_audit_replication`
+    is the organ that produces the branch, so the enum and the organ now agree."""
+    res = vbn.classify("automation/fleet-audit")
+    assert res.kind == vbn.KIND_AUTOMATION_LANE
+    assert res.conforms
+    # the slug grammar binds here exactly as it does for the other three lane prefixes
+    assert vbn.classify("automation/Fleet_Audit").kind == vbn.KIND_UNKNOWN
+    assert vbn.classify("origin/automation/fleet-audit").kind == vbn.KIND_AUTOMATION_LANE
 
 
 def test_integrator_has_no_prefix_of_its_own():
@@ -157,7 +172,10 @@ def test_cli_lane_bad(capsys):
 
 def test_cli_names_exit_codes(capsys):
     assert vbn.main(["main", "feat/x"]) == 0
-    assert vbn.main(["main", "automation/fleet-audit"]) == 1
+    # `automation/fleet-audit` was this test's non-conforming example until the 2026-08-06
+    # ruling admitted the prefix; `feature/` is used instead — still one of the four `feat/`
+    # near-misses the enum deliberately excludes, so the exit-1 path stays exercised.
+    assert vbn.main(["main", "feature/505-thing"]) == 1
     assert "outside the enum" in capsys.readouterr().out
 
 

@@ -215,6 +215,25 @@ this file holds at zero, per the editing note at the end. Full text at the locat
   false-positive count (that bundle's `RESIDUAL.md` frontier item 6). Reporting it at seal is
   a manual discharge.
 
+### B5 · `automation/` is the fourth machine-produced lane prefix
+
+*Architect ruling, 2026-08-06.* The lane-prefix enum admits `automation/<slug>` alongside
+`worktree-<name>`, `epic/<slug>` and `claude/<slug>`. **This entry IS the recorded ruling** the
+enum's own governing clause requires ("a new machine-produced lane prefix enters this enum only
+via a recorded ruling" — CLAUDE.md §4, CONTRIBUTING "Branch prefixes", core-invariant #5); the
+enum stays the checkable surface either way.
+
+- **What it names:** the organ-produced replication lane. `automation/fleet-audit` is live on
+  the remote and is read by `audit.py::check_fleet_audit_replication`; the branch existed before
+  the prose did, which is why `scripts/validate_branch_naming.py` cited it as its own worked
+  example of an unruled name. Observation first, ruling second — the order the clause intends.
+- **Landed surfaces:** `scripts/validate_branch_naming.py` (`LANE_PREFIXES`,
+  `KIND_AUTOMATION_LANE`, the docstring enum table) and
+  `tests/test_validate_branch_naming.py::test_automation_lane_entered_by_ruling_not_by_observation`,
+  which pins the ORDER rather than the membership.
+- **Unchanged by this:** the four author-chosen serial-arc prefixes; the integrator's deliberate
+  absence of a prefix of its own; the validator's read-only, wired-into-no-gate posture.
+
 ---
 
 ## C. Decisions inherited from the 2026-08-05 session plan (§H, R-7)
