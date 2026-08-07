@@ -70,7 +70,7 @@ that adopts uv later changes its own answer with **no hub edit**. Declaring it p
 have recreated the hand-copied-per-satellite problem one layer up.
 
 **Neither organ is wired into a gate.** Adoption-first, per the `/preflight` precedent. Whether
-either should gate is a separate ruling; §7 records it as deferred rather than taken.
+either should gate is a separate ruling; §8 records it as deferred rather than taken.
 
 ## 3. The done-when, discharged live on ai-council
 
@@ -294,14 +294,36 @@ desired_state.py` marks widening it as "gated on [#429] delivering the organ", r
 contract scopes this lane to legs (a) and (b) only, so that leg is untouched and the `Literal`
 is unchanged.
 
-## 6. Row status
+## 6. Suite verdict at STOP
+
+`uv run --locked pytest -n auto` on the lane branch: **3 failed, 2510 passed, 8 skipped**
+(8m58s). All three are the lane baseline and **none is attributable to this arc**:
+
+| RED | Owner |
+|---|---|
+| `test_check_fleet_parity_green_on_live_repo` | lane-1 ([#430]) — named in this lane's contract as lane-1's to clear |
+| `test_routine_consumers_live_backlog_governs_exactly_one_row` | standing, named in the contract and in the manifest's dispatch baseline |
+| `test_linked_worktrees_reader_excludes_the_primary` | inverts by construction inside any worktree — the reader excludes the primary, and in a lane the primary is not where the test runs |
+
+**A fourth RED existed and was mine.** The first full-suite run flagged
+`test_every_text_write_in_scripts_pins_newline` — `worktree_import_proof.py` inherited platform
+newline translation. Fixed at `d7f2f7ff`. Recorded because the honest form of "the baseline is
+3" is "it is 3 *now*, and it was 4 until this lane fixed its own".
+
+**The 17 `fleet_analytics` pandas REDs in the first run were environmental**, not a regression: a
+fresh lane venv lacks the analytics dependency group. Cleared with
+`uv sync --locked --group analytics`, which is itself a small instance of what this lane is
+about — a per-checkout environment that starts incomplete and reports its incompleteness as
+test failures.
+
+## 7. Row status
 
 **[#429] is not closed by this lane.** Its done-when is discharged and evidenced above, but a
 row close is the operator's or the integrator's act, and `BACKLOG.md` is a shared generated
 surface the manifest reserves for regeneration at integration. Reported as **ready to close on
 the evidence in §3**.
 
-## 7. Deferred decisions
+## 8. Deferred decisions
 
 1. **The manifest lives in code, not in `ecosystem/*.yaml`.** It follows
    `validate_branch_naming.py`, which holds the branch-prefix enum as a module constant for the
