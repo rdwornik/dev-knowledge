@@ -27,13 +27,17 @@ uv run --locked python scripts/validate_branch_naming.py --lane lane-<letter>-<i
 
 ## 2. Provision
 
-A batch lane is a native CC worktree. From a **fresh terminal at the repo root**:
+A batch lane is a native CC worktree, dispatched `--bg` so it shows up in Agent View
+(STANDING_RULINGS B7 — VISIBLE = DISPATCHED). From a **fresh terminal at the repo root**:
 
 ```
-claude --worktree lane-<letter>-<id>-<slug>
+claude --worktree lane-<letter>-<id>-<slug> --bg "[<repo> · #<id>-or-slug · <verb-object>] <contract-path>"
 ```
 
-That lands the session in `.claude/worktrees/lane-<letter>-<id>-<slug>/` on branch
+The board-label bracket opens the prompt so the row scans in Agent View without re-deriving what
+it is (PLAYBOOK Ch8 "Dispatch visibility") — this command wraps the label + `--bg` by
+construction, so a lane booted through it carries both without the operator holding either in
+memory. That lands the session in `.claude/worktrees/lane-<letter>-<id>-<slug>/` on branch
 `worktree-lane-<letter>-<id>-<slug>`. Do not use a raw sibling `git worktree add ../…` — the
 sibling recipe is superseded (PLAYBOOK Ch8, "Parallel sessions & worktree discipline").
 

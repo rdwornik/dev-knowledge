@@ -1,6 +1,6 @@
 # Prompt Template for Claude Code
 <!-- scope: meta -->
-<!-- version: 1.8 — 2026-08-06 -->
+<!-- version: 1.9 — 2026-08-07 -->
 
 > **Copy this template, fill placeholders, save as `.md` artifact, deliver to Claude Code via paste-into-prompt.** Browser chat produces this; Claude Code executes it.
 >
@@ -65,7 +65,13 @@
 | Mode   | `<execution (default) | plan-then-auto (M/L repo-derivation only) | auto-accept>` |
 | Effort | `<low | medium | high>`       |
 
-# `<Imperative title — what this prompt accomplishes>`
+**Dispatch (fill when this prompt ships via `claude --bg` — every batch lane, without
+exception):** `[<repo> · #<id>-or-slug · <verb-object>]` opens the title line below it, so the row
+reads at a glance in Agent View at ten concurrent agents rather than needing its tail re-derived
+(`protocols/PLAYBOOK.md` Ch8 "Dispatch visibility", `protocols/STANDING_RULINGS.md` B7 — VISIBLE
+= DISPATCHED). Foreground, interactive sessions skip this row.
+
+# `<board label, if dispatched — see Dispatch row above> <Imperative title — what this prompt accomplishes>`
 
 **Repo:** `<absolute path to repo, e.g. C:\Users\1028120\Documents\Dev\corp-monorepo>`
 **Purpose:** `<one sentence — what gets achieved by running this prompt>`
@@ -162,6 +168,12 @@ Final: `/ship "<summary> [#id if closing]"` — refuses if: on `main`, dirty tre
 ---
 
 **Section history:**
+- v1.9 (2026-08-07) — adds the **Dispatch row + board-label title convention**, for prompts that
+  ship via `claude --bg`: the `[<repo> · #<id>-or-slug · <verb-object>]` bracket opens the title
+  line, carried through into what Agent View shows for that row. Encodes AM-4 (operator-ratified
+  2026-08-06, verified live) — `protocols/STANDING_RULINGS.md` B7 "VISIBLE = DISPATCHED",
+  `protocols/PLAYBOOK.md` Ch8 "Dispatch visibility". Foreground/interactive prompts leave the row
+  blank; nothing else in the template changes.
 - v1.8 (2026-08-06) — **line anchors converted to anchor text** ([#505] coupled repair). The [#505] arc adds a section to PLAYBOOK Ch8, which shifts every line below it; this card carried four `PLAYBOOK.md:NNN` citations that the insertion would have silently rotted, and one (`:2504`) that had already drifted eleven lines onto a table row. Each now cites the heading or bolded lead it means, per the standing lesson that a line anchor rots inside its own branch while an anchor text does not. The v1.7 entry below keeps its original line numbers: it describes a past state and is a record, not a live pointer. No doctrine changed — the only edits are the form of five citations and this entry.
 - v1.0 (2026-04-24) — initial template per Gap #2. Standard 8-section structure (Model/Mode/Effort → Title → Read first → Git → UNDERSTAND → Steps → Final → What NOT to do).
 - v1.1 (2026-06-06) — Final merge boilerplate replaced with `/ship` delegation (closes #103).
