@@ -1972,13 +1972,32 @@ that can satisfy it.
 The rule is scoped to that one act — the line the operator pastes carries the routing, so a lane's
 tier is a decision on the record rather than an inherited default nobody picked.
 
-**The matrix, as ruled.** Model:
+**The matrix, as ruled** (Model row amended 2026-08-07 — see the amendment directly below):
 
 | Tier | Routes |
 |---|---|
-| **opus** | M/L arcs · gate and organ code · architecture · adversarial verification · any arc whose failure poisons downstream work |
-| **sonnet** | S-class bounded edits · documentation arcs · git-ops |
+| **opus** | **the default for any arc touching `.dev-knowledge`** · M/L arcs anywhere · gate and organ code · architecture · adversarial verification · any arc whose failure poisons downstream work |
+| **sonnet** | small **and** self-contained sub-tasks only — read-only quick reviews · sub-agent chores · single-file mechanics carrying no system context |
 | **haiku** | retrieval only |
+
+**AMENDMENT 2026-08-07 (operator-ruled, on measured evidence) — the tier keys on CONTEXT LOAD,
+not task shape.** As first written, the `sonnet` row read as a *shape* table: S-class bounded
+edits and documentation arcs route to sonnet wherever they land. Measurement retired that
+reading. **A shape-S arc on sonnet ran ~3h against this repo's gate mesh** (operator
+measurement, 2026-08-07) — small by diff, large by the context it had to hold at every step:
+`CLAUDE.md`'s twelve sections re-read at each boot, the pre-commit / commit-msg / pre-push stack
+of its §9, and `audit.py`'s 41-member `ALL_CHECKS` registry, any leg of which can bounce a commit
+and send the session back through the same derivation. A tier picked from diff size prices none
+of that in. The routing variable is therefore the **context load the arc carries**, and in
+`.dev-knowledge` that load is high by construction — so **opus is the default here**, and sonnet
+keeps only the work that is small *and* self-contained. Elsewhere in the fleet the shape reading
+still holds; this amendment is scoped to the hub, where the gate mesh lives.
+
+*In-repo corroboration, stated as the bound it is.* The PRE-2 gate-hygiene arc — five inherited
+WARNs, no feature work, shape-S by diff — shows 1h40m between its base commit `b669bd8f` and its
+first landed commit `e351b685`, and 1h50m base-to-merge (`81d572d7`). Git dates a commit, not a
+session, so this is a **lower bound** on derivation time rather than a reproduction of the ~3h
+figure; it is consistent with it, and it is the only part of the measurement the tree can carry.
 
 Effort — `high` for multi-file reasoning, design and review; `medium` as the S-class default;
 `low` for mechanical single-file work. **`max` stays out of dispatch routing.** Its recorded uses
