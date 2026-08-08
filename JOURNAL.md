@@ -19,6 +19,43 @@
 
 ---
 
+### 2026-08-08 (l) — CC (Opus 5, bg primary tree): the review artifact was correct to a reader and invisible to the machine
+
+**Did:** Entry (k)'s review artifact cleared no gate. `b50ccecd` supersedes it with a conforming
+one at `docs/audits/2026-08-09-codex-batch-3-integrator-arc.md`; `review_artifact_coverage` now
+reports no unlinked code-impact merge and the ship-gate is back to GREEN.
+
+**Result — the artifact matched neither of the two regexes that make a document a review.**
+`_REVIEW_TITLE_RE` is `^# Codex Review\b` (capital R) and mine said `# Codex review`;
+`_REVIEW_BRANCH_RE` requires `**Branch:**` **alone on its line** and mine sat inside a bullet with
+trailing content. So the review ran, reached a verdict, carried a parseable tally — and satisfied
+nothing. The gate was right and the artifact was wrong.
+
+**This is the SECOND instance of one class today, which makes it a pattern rather than a slip:
+an artifact correct to a human reader and invisible to the machine.** The manifest's `batch:` field
+granted a *working* exemption while failing its well-formedness test; this artifact recorded a
+*real* review while satisfying no coverage leg. Both read as done. Neither was. The common cause is
+authoring a machine-read surface from prose intent instead of from its parser — and in both cases
+the repo's own check, not review, is what caught it.
+
+**Superseded by a NEW FILE, not an in-place edit — and that difference is the point.** Here the
+immutability rule's *first* sanctioned option actually works: nothing requires artifact uniqueness,
+and the earlier file, failing the title regex, is inert rather than competing. So no deviation was
+needed. Contrast the manifest, where superseding was impossible (two manifests would both have been
+open and both still failing) and the frontmatter had to be corrected in place as a **reported**
+deviation. **Take the compliant option when one exists; deviate only when none does, and say so.**
+
+**Changes:** `docs/audits/2026-08-09-codex-batch-3-integrator-arc.md` (new, conforming);
+`docs/audits/README.md` regenerated; this entry. No code touched, so no new code-impact WARN — the
+loop terminates rather than recursing.
+
+**Abandoned:** nothing. The superseded 08-08 artifact stays in the tree as the record of the
+attempt, inert.
+
+**Next:** unchanged from (j). Worth filing for batch 4: `review_artifact_coverage` can tell an
+author that an artifact is *missing*, but nothing tells them a *present* artifact failed to parse —
+the same silent-shape gap in both of today's instances.
+
 ### 2026-08-08 (k) — CC (Opus 5, bg primary tree): the integrator reviewed its own arc, because condition 3 binds it too
 
 **Did:** The batch-3 close merge `bedcf3fe` turned the ship-gate RED with one new WARN —
