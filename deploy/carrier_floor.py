@@ -16,8 +16,12 @@ commit-no — the operator ratifies the commit):
 6. ``.claude/settings.json`` — a ``SessionStart`` hook block with two command legs:
    (a) ``python .claude/check_floor_hash.py`` — the session-start VERIFY leg (fires every
    session, travels with the clone, un-suppressible by ``git commit --no-verify``);
-   (b) ``python -m pre_commit install`` — idempotently bootstraps the commit-time git
-   hook, which git never lets travel with a clone. The first CC session auto-arms it.
+   (b) ``python -m pre_commit install -t ...`` — idempotently bootstraps the commit-time git
+   hooks, which git never lets travel with a clone. The first CC session auto-arms it.
+   Both legs are ASSERTED by detect/verify, and the arm leg is asserted at full stage
+   cardinality: it must name EVERY managed stage in ``ARM_HOOK_TYPES`` (#290 — an arm leg
+   that names fewer arms the rest wired-but-dormant, the #275 defect). ``apply`` SELF-HEALS
+   a stale under-armed leg in place, so no verdict reports drift ``apply`` cannot repair.
 
 The **commit-time** leg itself — the ``floor-hash-verify`` entry in the consumer's
 ``.pre-commit-config.yaml`` — is owned by the **precommit carrier** (single-writer-per-
@@ -39,7 +43,8 @@ Three contract states (the ``.sha256`` is content-integrity, not a version ancho
 no PRESENT_WRONG_VERSION): ``ABSENT`` (floor missing), ``PRESENT_CORRECT`` (floor +
 sidecar hash to the corpus floor AND every arming artifact is in place),
 ``PRESENT_DRIFTED`` (floor edited, corpus moved, sidecar missing/stale, or any arming
-artifact missing/wrong).
+artifact missing/wrong — including a SessionStart arm leg that arms fewer than every
+managed hook stage).
 
 D9 (ADR-92 Decision 9): ``_classify_floor`` (detect's judgment) and ``_verify_floor``
 (verify's judgment) are distinct functions with no shared correctness-judgment helper.
@@ -66,6 +71,7 @@ _SCRIPTS = _HUB_ROOT / "scripts"
 if str(_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS))
 
+import arm_hooks  # noqa: E402
 import generate_floor as gf  # noqa: E402
 
 log = logging.getLogger(__name__)
@@ -103,12 +109,29 @@ _GITIGNORE_NEGATIONS = (
 # session-start (the commit-time pre-commit leg cannot catch a pure deletion — it is the
 # backstop; ADR-93). The bootstrap leg idempotently arms the commit-time git hook.
 _SESSIONSTART_VERIFY_CMD = f"python {HOOK_SCRIPT_REL} --require-present"
-# Arm ALL THREE managed hook stages (#275b): a bare `pre_commit install` arms the
-# pre-commit stage ONLY, so commit-msg / pre-push stage hooks land wired-but-dormant on a
-# fresh consumer. The `-t` flags mirror the hub's own 3-stage self-arm (scripts/arm_hooks.py).
-_SESSIONSTART_ARM_CMD = "python -m pre_commit install -t pre-commit -t commit-msg -t pre-push"
-# Stable sentinel used to detect an already-armed settings.json (idempotency).
+
+# The managed git-hook stages the arm leg must install (#275b). A bare `pre_commit install`
+# arms the pre-commit stage ONLY, so commit-msg / pre-push stage hooks land
+# wired-but-dormant on a fresh consumer.
+#
+# SINGLE-SOURCED from the hub's own self-arm (`scripts/arm_hooks.py::HOOK_TYPES`): stage
+# cardinality has exactly ONE source of truth in the tree, and the deployed consumer arm can
+# no longer drift from the hub arm it mirrors. This module must never re-declare the stage
+# list — derive the command, the detect predicate and the verify predicate from here (#290).
+ARM_HOOK_TYPES: tuple[str, ...] = arm_hooks.HOOK_TYPES
+_ARM_STAGES = frozenset(ARM_HOOK_TYPES)
+_SESSIONSTART_ARM_CMD = "python -m pre_commit install " + " ".join(
+    f"-t {stage}" for stage in ARM_HOOK_TYPES
+)
+# Stable sentinel used to detect the verify leg in an armed settings.json (idempotency).
 _SESSIONSTART_SENTINEL = "check_floor_hash.py"
+# Both spellings of the arm leg a consumer may carry (`python -m pre_commit install` and the
+# `pre-commit install` console script) — matches deploy/floor_conformance.py's own read.
+_ARM_SENTINELS = ("pre_commit install", "pre-commit install")
+# pre-commit's own default stage when `install` names none. NOT a cardinality declaration —
+# a recorded fact about the external tool, so a bare arm leg's diagnostic names the stages
+# that are ACTUALLY dormant rather than claiming all of them are.
+_PRECOMMIT_DEFAULT_STAGE = "pre-commit"
 
 _SHA_RE = re.compile(r"[0-9a-f]{64}")
 
@@ -168,16 +191,71 @@ def _load_settings(path: Path) -> dict[str, Any]:
     return data if isinstance(data, dict) else {}
 
 
+def _sessionstart_groups(data: dict[str, Any]) -> list[dict[str, Any]]:
+    """The SessionStart matcher groups in a parsed settings.json (live references, so the
+    apply path can repair a leg in place rather than appending a duplicate block)."""
+    return [
+        g
+        for g in (data.get("hooks", {}) or {}).get("SessionStart", []) or []
+        if isinstance(g, dict)
+    ]
+
+
+def _sessionstart_hooks(data: dict[str, Any]) -> list[dict[str, Any]]:
+    """Every SessionStart hook dict, flattened across matcher groups (live references)."""
+    hooks: list[dict[str, Any]] = []
+    for group in _sessionstart_groups(data):
+        hooks.extend(h for h in group.get("hooks", []) or [] if isinstance(h, dict))
+    return hooks
+
+
+def _hook_command(hook: dict[str, Any]) -> str:
+    """One hook dict's command string ('' when absent or not a string)."""
+    cmd = hook.get("command")
+    return cmd if isinstance(cmd, str) else ""
+
+
 def _settings_sessionstart_commands(data: dict[str, Any]) -> list[str]:
     """Every SessionStart hook command string in a parsed settings.json (order-free)."""
-    cmds: list[str] = []
-    for group in (data.get("hooks", {}) or {}).get("SessionStart", []) or []:
-        if not isinstance(group, dict):
-            continue
-        for hook in group.get("hooks", []) or []:
-            if isinstance(hook, dict) and isinstance(hook.get("command"), str):
-                cmds.append(hook["command"])
-    return cmds
+    return [c for c in (_hook_command(h) for h in _sessionstart_hooks(data)) if c]
+
+
+def _is_arm_command(cmd: str) -> bool:
+    """True when a SessionStart command string IS the pre-commit bootstrap (arm) leg."""
+    return any(sentinel in cmd for sentinel in _ARM_SENTINELS)
+
+
+def _armed_stages(cmd: str) -> frozenset[str]:
+    """The managed hook stages ONE arm command actually installs.
+
+    Accepts every spelling `pre-commit install` itself accepts for the stage flag —
+    ``-t <stage>``, ``-t<stage>``, ``--hook-type <stage>``, ``--hook-type=<stage>`` — so a
+    consumer that armed correctly with the long form is never misread as stale (a false
+    DRIFTED would have `apply` rewrite a config that was already right). An arm command that
+    names NO stage falls back to pre-commit's own default (the pre-commit stage alone), which
+    is precisely the #275 under-arm. Tokens naming no managed stage are ignored.
+    """
+    named: set[str] = set()
+    toks = cmd.split()
+    for i, tok in enumerate(toks):
+        if tok.startswith("--hook-type="):
+            named.add(tok.split("=", 1)[1])
+        elif tok in ("-t", "--hook-type"):
+            if i + 1 < len(toks):
+                named.add(toks[i + 1])
+        elif tok.startswith("-t") and len(tok) > 2:
+            named.add(tok[2:])
+    return frozenset(named or {_PRECOMMIT_DEFAULT_STAGE}) & _ARM_STAGES
+
+
+def _stages_armed_by(cmds: list[str]) -> frozenset[str]:
+    """Union of the stages armed across every arm leg present (a consumer may legitimately
+    split arming across two commands; the requirement is coverage, not command count)."""
+    covered: frozenset[str] = frozenset()
+    for cmd in cmds:
+        if _is_arm_command(cmd):
+            covered |= _armed_stages(cmd)
+    return covered
 
 
 # ---------------------------------------------------------------------------
@@ -215,9 +293,11 @@ def _classify_floor(
     gitignore_ok = _GITIGNORE_CONTENTS_FORM in gi_lines and all(
         neg in gi_lines for neg in _GITIGNORE_NEGATIONS
     )
-    settings_ok = any(
-        _SESSIONSTART_SENTINEL in cmd
-        for cmd in _settings_sessionstart_commands(_load_settings(settings_path))
+    ss_cmds = _settings_sessionstart_commands(_load_settings(settings_path))
+    # BOTH legs, and the arm leg at full stage cardinality (#290): a verify-leg-only check
+    # passes a consumer whose commit-msg / pre-push stages never arm.
+    settings_ok = any(_SESSIONSTART_SENTINEL in cmd for cmd in ss_cmds) and _ARM_STAGES.issubset(
+        _stages_armed_by(ss_cmds)
     )
 
     if floor_ok and include_ok and hook_ok and gitignore_ok and settings_ok:
@@ -275,6 +355,20 @@ def _verify_floor(
     ss_cmds = _settings_sessionstart_commands(_load_settings(settings_path))
     if not any(_SESSIONSTART_SENTINEL in c for c in ss_cmds):
         failures.append(f"settings.json missing SessionStart guard hook: {settings_path}")
+    # The arm leg, asserted at full stage cardinality (#290) and NAMING the dormant stages —
+    # verify's own expression of the requirement, not detect's subset test.
+    arm_cmds = [c for c in ss_cmds if _is_arm_command(c)]
+    if not arm_cmds:
+        failures.append(f"settings.json missing SessionStart arm hook: {settings_path}")
+    else:
+        armed = _stages_armed_by(arm_cmds)
+        dormant = [stage for stage in ARM_HOOK_TYPES if stage not in armed]
+        if dormant:
+            failures.append(
+                f"SessionStart arm leg arms {len(armed)}/{len(ARM_HOOK_TYPES)} managed hook "
+                f"stage(s) — {', '.join(dormant)} would land wired-but-dormant: "
+                f"{settings_path}"
+            )
     return failures
 
 
