@@ -151,6 +151,8 @@ _STAGE_OPTS = frozenset({"-t", "--hook-type"})
 # `error: argument --color: invalid use_color value: 'chartreuse'`). `-c/--config` takes an
 # arbitrary path and so has nothing statically checkable.
 _INSTALL_CHOICE_OPTS = {"--color": frozenset({"auto", "always", "never"})}
+_INSTALL_ALL_OPTS = _INSTALL_TERMINAL_OPTS | _INSTALL_VALUE_OPTS | _INSTALL_FLAG_OPTS
+_INSTALL_LONG_OPTS = frozenset(o for o in _INSTALL_ALL_OPTS if o.startswith("--"))
 _SESSIONSTART_ARM_CMD = "python -m pre_commit install " + " ".join(
     f"-t {stage}" for stage in ARM_HOOK_TYPES
 )
@@ -392,6 +394,22 @@ def _precommit_args(toks: list[str]) -> list[str] | None:
     return None
 
 
+def _resolve_long_opt(tok: str) -> str | None:
+    """A long option token resolved to its canonical name, honouring argparse's unambiguous
+    PREFIX abbreviation (`--col` -> `--color`, `--hook` -> `--hook-type`).
+
+    argparse leaves `allow_abbrev` on, and pre-commit does not disable it — verified live:
+    `pre-commit install --col never -t …` installs all three hooks. Rejecting an abbreviation
+    would read a genuinely armed consumer as stale and have `apply` REWRITE its command, which
+    is the damaging direction (terra pass-8). None for an unknown OR ambiguous prefix (`--h`
+    matches both `--help` and `--hook-type`) — argparse errors on both.
+    """
+    if tok in _INSTALL_LONG_OPTS:
+        return tok
+    matches = [o for o in _INSTALL_LONG_OPTS if o.startswith(tok)]
+    return matches[0] if len(matches) == 1 else None
+
+
 def _stage_flags(args: list[str]) -> set[str] | None:
     """Stage names named by one install invocation, or None if that invocation would FAIL.
 
@@ -415,29 +433,43 @@ def _stage_flags(args: list[str]) -> set[str] | None:
         tok = args[i]
         if tok == _END_OF_OPTIONS:
             break
-        if tok in _INSTALL_TERMINAL_OPTS:
-            return None  # prints help and exits — `install` never dispatches
-        opt, value = tok, None
+        opt: str | None
+        value: str | None = None
         consumed = 1
-        if tok.startswith("--") and "=" in tok:  # `--opt=value`
-            opt, value = tok.split("=", 1)
-        elif tok in _INSTALL_VALUE_OPTS:  # `-t value` / `--hook-type value`
-            if i + 1 >= len(args):
-                return None  # flag with no value -> argparse error -> nothing installed
-            value, consumed = args[i + 1], 2
-        elif tok.startswith("-") and not tok.startswith("--") and len(tok) > 2:
-            # A bundled short option: `-tX`, `-t=X`, `-cPATH`. EXACTLY one optional `=` —
-            # stripping every leading `=` read `-t==commit-msg` as the stage, but argparse
-            # splits on the first `=` only and rejects the remaining `=commit-msg` (terra
-            # pass-5, confirmed against argparse).
-            opt, rest = tok[:2], tok[2:]
-            value = rest[1:] if rest.startswith("=") else rest
-        elif tok not in _INSTALL_FLAG_OPTS:
-            # An unrecognised option, or a positional (`install` accepts none): argparse
-            # exits 2 before installing anything (terra pass-6).
-            return None
-        if value is not None and opt not in _INSTALL_VALUE_OPTS:
-            return None  # a value given to an option that takes none
+        if tok.startswith("--"):
+            raw_opt, sep, raw_value = tok.partition("=")
+            opt = _resolve_long_opt(raw_opt)
+            if opt is None:
+                return None  # unknown or ambiguous long option -> argparse error
+            if sep:
+                if opt not in _INSTALL_VALUE_OPTS:
+                    return None  # `--flag=value` — a value given to an option taking none
+                value = raw_value
+            elif opt in _INSTALL_VALUE_OPTS:
+                if i + 1 >= len(args):
+                    return None  # option with no value -> argparse error
+                value, consumed = args[i + 1], 2
+        elif tok.startswith("-") and tok != "-":
+            if tok in _INSTALL_ALL_OPTS - _INSTALL_VALUE_OPTS:  # `-h`, `-f`
+                opt = tok
+            elif tok in _INSTALL_VALUE_OPTS:  # `-t value`, `-c value`
+                opt = tok
+                if i + 1 >= len(args):
+                    return None  # option with no value -> argparse error
+                value, consumed = args[i + 1], 2
+            elif len(tok) > 2 and tok[:2] in _INSTALL_VALUE_OPTS:
+                # A bundled short option: `-tX`, `-t=X`, `-cPATH`. EXACTLY one optional `=` —
+                # stripping every leading `=` read `-t==commit-msg` as the stage, but argparse
+                # splits on the first `=` only and rejects the remaining `=commit-msg` (terra
+                # pass-5, confirmed against argparse).
+                opt, rest = tok[:2], tok[2:]
+                value = rest[1:] if rest.startswith("=") else rest
+            else:
+                return None  # unrecognised short option -> argparse exits 2
+        else:
+            return None  # a positional — `install` accepts none -> argparse exits 2
+        if opt in _INSTALL_TERMINAL_OPTS:
+            return None  # prints help and exits — `install` never dispatches
         if opt in _INSTALL_CHOICE_OPTS:
             if (value or "").strip("'\"") not in _INSTALL_CHOICE_OPTS[opt]:
                 return None  # invalid choice -> the whole install fails

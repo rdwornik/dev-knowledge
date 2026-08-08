@@ -593,6 +593,25 @@ def test_long_form_stage_flags_count_as_fully_armed(tmp_path, long_form):
     # error, so the install arms nothing (terra pass-7)
     ("pre-commit install -t pre-commit -t commit-msg -t pre-push --color chartreuse", set()),
     ("pre-commit install -t pre-commit -t commit-msg -t pre-push --color=chartreuse", set()),
+    # --- terra pass 8: argparse accepts UNAMBIGUOUS long-option abbreviations ---
+    # verified live: `install --col never -t …` really does install all three hooks, so
+    # rejecting the abbreviation would rewrite a correct consumer (the damaging direction)
+    ("pre-commit install --col never -t pre-commit -t commit-msg -t pre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    ("pre-commit install --hook pre-commit --hook commit-msg --hook pre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    ("pre-commit install --hook-t=pre-commit --hook-t=commit-msg --hook-t=pre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push --allow",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push --over --install-h",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    # an AMBIGUOUS prefix is an argparse error — `--h` matches both --help and --hook-type
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push --h", set()),
+    # an abbreviation of a TERMINAL option still terminates
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push --hel", set()),
+    # an abbreviated choices option is still choices-validated
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push --col chartreuse", set()),
     ("pre-commit install -c .pre-commit-config.yaml -t pre-commit -t commit-msg -t pre-push",
      {"pre-commit", "commit-msg", "pre-push"}),
     ("pre-commit install -c.pre-commit-config.yaml -t pre-commit -t commit-msg -t pre-push",
