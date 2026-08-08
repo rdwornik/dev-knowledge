@@ -388,11 +388,23 @@ values, a `VAR=value` prefix, `uv run` / `uvx` / `poetry run` / `py -3.12 -m` ru
 line continuation and an uppercase Windows `PRE-COMMIT.EXE` path are each proven a
 byte-identical no-op for `apply`.
 
-**Stated limit** (honest, and deliberate): a command that hides its invocation from static
-reading — `sh -c '…'`, a shell function, a wrapper script — is NOT recognised, so it reads as
-no arm leg. `apply` then ADDS a canonical arm leg beside it and never rewrites the opaque
-command, so the wrapper's behaviour survives even though it cannot be understood. Erring
-toward "not armed" is the safe direction: it yields a repairable verdict, never a false green.
+**Stated limits** (honest, and deliberate — a static reader of a shell string has two):
+
+1. A command that hides its invocation from static reading — `sh -c '…'`, a shell function, a
+   wrapper script — is NOT recognised, so it reads as no arm leg. `apply` then ADDS a canonical
+   arm leg beside it and never rewrites the opaque command, so the wrapper's behaviour survives
+   even though it cannot be understood. Erring toward "not armed" is the safe direction: a
+   repairable verdict, never a false green.
+2. **Shell control-flow reachability is not modelled**, and cannot be: whether
+   `some-command && pre-commit install -t …` actually reaches the install depends on
+   `some-command`'s exit status at runtime. So a guarded arm leg reads as armed. Rejected
+   alternative — refusing to credit any install behind a `&&` — would misread the common and
+   correct `command -v pre-commit && pre-commit install -t …` idiom as stale and have `apply`
+   REWRITE it, trading a contrived false green for a real false repair. The functional
+   backstop for this class is unchanged and stays the right organ:
+   `tests/test_floor_conformance.py::test_arm_step_installs_all_three_hook_stages` RUNS the
+   carrier-written command and asserts all three `.git/hooks/*` appear from absent — execution
+   proof, where the carrier can only offer a static read.
 
 **Known-stale sibling claims, NOT touched by this lane** (held by other lanes / other owners;
 reported, not fixed): the `floor-sessionstart-guard` roster line in `deploy/manifest-v1.1.0`

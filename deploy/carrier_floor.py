@@ -134,6 +134,18 @@ except Exception:  # pragma: no cover - env without pre-commit; mirror of the ab
         "pre-commit", "pre-merge-commit", "pre-push", "pre-rebase", "prepare-commit-msg",
     )
 _VALID_HOOK_TYPES = frozenset(_PRECOMMIT_HOOK_TYPES)
+
+# `pre-commit install`'s own option surface, captured from `pre-commit install --help`. Needed
+# because an argument pre-commit does NOT accept makes argparse exit 2 BEFORE installing
+# anything, and `-h/--help` prints help and exits without installing either — so both read as
+# fully armed while arming nothing (terra pass-6). `install` takes no positionals.
+# Drift-guarded by test_install_option_surface_matches_pre_commit_help: if pre-commit adds an
+# option, that test FAILS rather than a consumer using it being silently rewritten.
+_INSTALL_TERMINAL_OPTS = frozenset({"-h", "--help"})
+_INSTALL_VALUE_OPTS = frozenset({"--color", "-c", "--config", "-t", "--hook-type"})
+_INSTALL_FLAG_OPTS = frozenset({"-f", "--overwrite", "--install-hooks",
+                                "--allow-missing-config"})
+_STAGE_OPTS = frozenset({"-t", "--hook-type"})
 _SESSIONSTART_ARM_CMD = "python -m pre_commit install " + " ".join(
     f"-t {stage}" for stage in ARM_HOOK_TYPES
 )
@@ -393,29 +405,42 @@ def _stage_flags(args: list[str]) -> set[str] | None:
     simply contributes no managed stage.
     """
     named: set[str] = set()
-    for i, tok in enumerate(args):
+    i = 0
+    while i < len(args):
+        tok = args[i]
         if tok == _END_OF_OPTIONS:
             break
-        if tok.startswith("--hook-type="):
-            value = tok.split("=", 1)[1]
-        elif tok in ("-t", "--hook-type"):
+        if tok in _INSTALL_TERMINAL_OPTS:
+            return None  # prints help and exits — `install` never dispatches
+        opt, value = tok, None
+        consumed = 1
+        if tok.startswith("--") and "=" in tok:  # `--opt=value`
+            opt, value = tok.split("=", 1)
+        elif tok in _INSTALL_VALUE_OPTS:  # `-t value` / `--hook-type value`
             if i + 1 >= len(args):
                 return None  # flag with no value -> argparse error -> nothing installed
-            value = args[i + 1]
-        elif tok.startswith("-t") and len(tok) > 2:
-            # `-tX` and `-t=X` are both valid argparse; EXACTLY one optional `=`. Stripping
-            # every leading `=` read `-t==commit-msg` as the stage, but argparse splits on the
-            # first `=` only and rejects the remaining `=commit-msg`, so that install fails
-            # and arms nothing — a false PRESENT_CORRECT (terra pass-5, confirmed against
-            # argparse). The malformed value now falls through the enum check below to None.
-            value = tok[3:] if tok[2] == "=" else tok[2:]
-        else:
-            continue
-        # Defensive strip: the whitespace-split fallback cannot remove quotes the lexer would.
-        value = value.strip("'\"")
-        if value not in _VALID_HOOK_TYPES:
-            return None  # invalid choice -> the whole install fails
-        named.add(value)
+            value, consumed = args[i + 1], 2
+        elif tok.startswith("-") and not tok.startswith("--") and len(tok) > 2:
+            # A bundled short option: `-tX`, `-t=X`, `-cPATH`. EXACTLY one optional `=` —
+            # stripping every leading `=` read `-t==commit-msg` as the stage, but argparse
+            # splits on the first `=` only and rejects the remaining `=commit-msg` (terra
+            # pass-5, confirmed against argparse).
+            opt, rest = tok[:2], tok[2:]
+            value = rest[1:] if rest.startswith("=") else rest
+        elif tok not in _INSTALL_FLAG_OPTS:
+            # An unrecognised option, or a positional (`install` accepts none): argparse
+            # exits 2 before installing anything (terra pass-6).
+            return None
+        if value is not None and opt not in _INSTALL_VALUE_OPTS:
+            return None  # a value given to an option that takes none
+        if opt in _STAGE_OPTS:
+            # Defensive strip: the whitespace-split fallback cannot remove quotes the lexer
+            # would have already resolved.
+            stage = (value or "").strip("'\"")
+            if stage not in _VALID_HOOK_TYPES:
+                return None  # invalid choice -> the whole install fails
+            named.add(stage)
+        i += consumed
     return named
 
 

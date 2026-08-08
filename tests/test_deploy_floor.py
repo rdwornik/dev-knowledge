@@ -24,6 +24,8 @@ from __future__ import annotations
 
 import json
 import os
+import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -565,6 +567,32 @@ def test_long_form_stage_flags_count_as_fully_armed(tmp_path, long_form):
     ("pre-commit install -t pre-commit -t commit-msg -t pre-push -t post-commit",
      {"pre-commit", "commit-msg", "pre-push"}),
     ("pre-commit install -t post-checkout", set()),  # valid, but manages none of ours
+    # --- terra pass 6: an argument `install` does not accept means it never installs ---
+    # `--help` prints usage and exits BEFORE install dispatches
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push --help", set()),
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push -h", set()),
+    # an unrecognised option, or a positional (`install` accepts none), is argparse exit 2
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push --nope", set()),
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push extra-positional", set()),
+    ("pre-commit install --install-hooks=yes -t pre-commit", set()),  # value to a flag opt
+    # ...but every option `install` DOES accept must still be honoured, or a correct consumer
+    # reads as stale and apply rewrites it (the damaging direction)
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push -f",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push --overwrite --install-hooks",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push --allow-missing-config",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push --color never",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push --color=never",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    ("pre-commit install -c .pre-commit-config.yaml -t pre-commit -t commit-msg -t pre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    ("pre-commit install -c.pre-commit-config.yaml -t pre-commit -t commit-msg -t pre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    ("pre-commit install --config=cfg.yaml -t pre-commit -t commit-msg -t pre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
 ])
 
 
@@ -585,6 +613,32 @@ def test_valid_hook_types_come_from_pre_commit_itself():
     assert cf._VALID_HOOK_TYPES == frozenset(upstream)
     # every stage this carrier requires must be one pre-commit can actually install
     assert set(cf.ARM_HOOK_TYPES) <= cf._VALID_HOOK_TYPES
+
+
+def test_install_option_surface_matches_pre_commit_help():
+    """DRIFT GUARD for the recorded `pre-commit install` option surface.
+
+    The parser treats an option `install` does not accept as "installs nothing" — correct
+    today, but it means a NEW pre-commit option would make a consumer using it read as stale,
+    and apply would rewrite that consumer's command. This test turns that risk into a loud
+    test failure instead: every option in the live `install --help` must be one we know."""
+    out = subprocess.run(
+        [sys.executable, "-m", "pre_commit", "install", "--help"],
+        capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60,
+    )
+    assert out.returncode == 0, out.stderr
+    # every `-x` / `--xyz` token the help text advertises
+    advertised = {m.group(0) for m in re.finditer(r"(?<![\w-])--?[A-Za-z][\w-]*", out.stdout)}
+    known = cf._INSTALL_TERMINAL_OPTS | cf._INSTALL_VALUE_OPTS | cf._INSTALL_FLAG_OPTS
+    # the regex also catches the tails of hyphenated VALUES and prose (`pre-commit`,
+    # `commit-msg`, `post-checkout`, ...); those are not options
+    value_tails = {f"-{part}" for stage in cf._VALID_HOOK_TYPES for part in stage.split("-")}
+    unknown = advertised - known - value_tails - {"--pre-commit", "-pre-commit"}
+    assert not unknown, (
+        f"`pre-commit install` advertises option(s) this carrier does not know: "
+        f"{sorted(unknown)} — add them to _INSTALL_*_OPTS, else a consumer using one reads "
+        f"as un-armed and apply rewrites its command"
+    )
 
 
 @pytest.mark.parametrize("cmd", [
