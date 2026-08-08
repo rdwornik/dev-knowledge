@@ -632,6 +632,12 @@ def test_long_form_stage_flags_count_as_fully_armed(tmp_path, long_form):
     ("pre-commit install -t pre-commit -t commit-msg -t pre-push >", set()),
     ("pre-commit install -t pre-commit -t commit-msg -t pre-push 2>", set()),
     ("pre-commit install -t pre-commit -t commit-msg -t pre-push >>", set()),
+    # ...nor may the target slot hold another operator — `> >`, `> |`, `> ;` are all syntax
+    # errors, closed as one family by requiring the target to be a plain shell word
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push > >", set()),
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push > >> out.log", set()),
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push > ; echo hi", set()),
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push > | cat", set()),
     # --- terra pass 10 ---
     # a shell builtin that transparently EXECS what follows really does install (my own
     # earlier row wrongly grouped `exec` with incomplete runner prefixes like `run`)

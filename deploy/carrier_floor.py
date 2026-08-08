@@ -374,10 +374,12 @@ def _strip_redirections(toks: list[str]) -> list[str] | None:
     made argparse reject them as positionals, so a genuinely-arming consumer read as stale and
     `apply` would rewrite its command (terra pass-9 FALSE-UNARMED).
 
-    A redirection operator with NO target (`… -t pre-push >`) is a shell syntax error: the
-    shell never runs the command, so nothing is installed. Dropping the operator left a
-    well-formed argument list behind and the command read as fully armed — a false
-    PRESENT_CORRECT (terra pass-11). Such a segment now poisons the whole command.
+    A redirection whose target is missing (`… -t pre-push >`) or is itself an operator
+    (`… >  >`, `… > ;`) is a shell SYNTAX error: the shell never runs the command, so nothing
+    is installed. Consuming the operator and leaving a well-formed argument list behind made
+    such a command read as fully armed — a false PRESENT_CORRECT (terra pass-11 for the
+    missing target, pass-12 for the operator-in-target-position family, closed together here
+    by requiring the target to be a plain shell WORD). Such a segment poisons the whole command.
     """
     out: list[str] = []
     i = 0
@@ -388,8 +390,9 @@ def _strip_redirections(toks: list[str]) -> list[str] | None:
             i += 1
             continue
         if tok in _REDIRECT_OPS:
-            if i + 1 >= len(toks):
-                return None  # dangling operator -> shell syntax error -> nothing runs
+            target = toks[i + 1] if i + 1 < len(toks) else None
+            if target is None or target in _REDIRECT_OPS or target in _SHELL_SEPARATORS:
+                return None  # missing or non-word target -> syntax error -> nothing runs
             i += 2  # the operator and its target
             continue
         out.append(tok)
