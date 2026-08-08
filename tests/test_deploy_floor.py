@@ -647,6 +647,19 @@ def test_long_form_stage_flags_count_as_fully_armed(tmp_path, long_form):
      {"pre-commit", "commit-msg", "pre-push"}),
     ("env PRE_COMMIT_HOME=/tmp pre-commit install -t pre-commit -t commit-msg -t pre-push",
      {"pre-commit", "commit-msg", "pre-push"}),
+    # `env` has options of its own, so skipping the bare word is not enough (terra pass-13)
+    ("env -u PRE_COMMIT_HOME pre-commit install -t pre-commit -t commit-msg -t pre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    ("env -uPRE_COMMIT_HOME pre-commit install -t pre-commit -t commit-msg -t pre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    ("env --unset=PRE_COMMIT_HOME pre-commit install -t pre-commit -t commit-msg -t pre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    ("env -i PRE_COMMIT_HOME=/tmp pre-commit install -t pre-commit -t commit-msg -t pre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    ("env -- pre-commit install -t pre-commit -t commit-msg -t pre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    # ...and `env` wrapping something that is NOT pre-commit still arms nothing
+    ("env -u HOME echo pre-commit install -t pre-commit -t commit-msg -t pre-push", set()),
     # POSIX DELETES a backslash-newline, inserting nothing: `pre-\<NL>commit` is one word.
     # Substituting a space split it and argparse rejected `pre-` (FALSE-UNARMED).
     ("pre-commit install -t pre-\\\ncommit -t commit-msg -t pre-push",

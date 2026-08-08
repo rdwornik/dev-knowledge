@@ -207,6 +207,12 @@ _LINE_CONTINUATION_RE = re.compile(r"\\\r?\n")
 # really does install). Bounded on purpose: each of these EXECS what follows, unlike `echo`,
 # which is why a permissive word bag was removed in pass 3 (terra pass-10).
 _TRANSPARENT_PREFIXES = frozenset({"exec", "command", "env", "nohup"})
+# `env` is the one transparent prefix with options of its own, so skipping the bare word is not
+# enough: `env -u PRE_COMMIT_HOME pre-commit install …` really does arm, and stopping at `-u`
+# read it as un-armed (terra pass-13 FALSE-UNARMED). These are env's own options; the others
+# above take none that can precede the wrapped command, so this closes the wrapper surface.
+_ENV_FLAG_OPTS = frozenset({"-i", "--ignore-environment", "-0", "--null", "-v", "--debug"})
+_ENV_VALUE_OPTS = frozenset({"-u", "--unset", "-C", "--chdir", "-S", "--split-string"})
 # pre-commit's own default stage when `install` names none. NOT a cardinality declaration —
 # a recorded fact about the external tool, so a bare arm leg's diagnostic names the stages
 # that are ACTUALLY dormant rather than claiming all of them are.
@@ -429,6 +435,31 @@ def _install_invocations(cmd: str) -> list[list[str]]:
     return invocations
 
 
+def _skip_env_options(toks: list[str], i: int) -> int:
+    """Index of the first token after `env`'s OWN options, so the wrapped command is found.
+
+    `env -u PRE_COMMIT_HOME pre-commit install …` arms for real; stopping at `-u` read it as
+    un-armed and would have appended a redundant leg to an already-correct consumer (terra
+    pass-13). Handles env's flags, its value options in every spelling (`-u X`, `-uX`,
+    `--unset=X`), further `VAR=value` assignments, and the `--` terminator.
+    """
+    while i < len(toks):
+        tok = toks[i]
+        if tok == "--":
+            return i + 1
+        if _ENV_ASSIGN_RE.match(tok) or tok in _ENV_FLAG_OPTS:
+            i += 1
+        elif tok in _ENV_VALUE_OPTS:
+            i += 2
+        elif tok.startswith("--") and tok.split("=", 1)[0] in _ENV_VALUE_OPTS | _ENV_FLAG_OPTS:
+            i += 1  # `--unset=NAME`
+        elif tok.startswith("-") and len(tok) > 2 and tok[:2] in _ENV_VALUE_OPTS:
+            i += 1  # `-uNAME`
+        else:
+            return i
+    return i
+
+
 def _precommit_args(toks: list[str]) -> list[str] | None:
     """One segment's tokens after the pre-commit invocation, or None if it invokes something
     else. The runner prefix is matched as a SEQUENCE — a permissive word-set accepted
@@ -437,10 +468,13 @@ def _precommit_args(toks: list[str]) -> list[str] | None:
     i = 0
     # Leading `VAR=value` assignments and transparent exec prefixes (`exec`, `env`, ...) —
     # neither changes WHICH command runs, so skip past them to the real command word.
-    while i < len(toks) and (
-        _ENV_ASSIGN_RE.match(toks[i]) or _basename(toks[i]) in _TRANSPARENT_PREFIXES
-    ):
-        i += 1
+    while i < len(toks):
+        if _ENV_ASSIGN_RE.match(toks[i]):
+            i += 1
+        elif _basename(toks[i]) in _TRANSPARENT_PREFIXES:
+            i = _skip_env_options(toks, i + 1) if _basename(toks[i]) == "env" else i + 1
+        else:
+            break
     if i >= len(toks):
         return None
     if _is_precommit_exe(toks[i]):            # `pre-commit install ...`
