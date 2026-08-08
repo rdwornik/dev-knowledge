@@ -476,9 +476,10 @@ def test_long_form_stage_flags_count_as_fully_armed(tmp_path, long_form):
      {"pre-push"}),
     # a mere MENTION of the arm command is not an arm command
     ('echo "pre_commit install -t pre-commit -t commit-msg -t pre-push"', set()),
-    # a flag with no value names no stage (and must not raise)
-    ("python -m pre_commit install -t", {"pre-commit"}),
-    ("python -m pre_commit install --hook-type", {"pre-commit"}),
+    # a flag with NO VALUE is an argparse error, so the install arms nothing — it does NOT
+    # fall back to the default stage (my own wrong assumption, caught by terra pass 4)
+    ("python -m pre_commit install -t", set()),
+    ("python -m pre_commit install --hook-type", set()),
     # a command performing no install contributes NOTHING — the default-stage fallback is a
     # property of an invocation, not of an unrelated SessionStart hook
     ("python scripts/surface_triage.py", set()),
@@ -549,7 +550,20 @@ def test_long_form_stage_flags_count_as_fully_armed(tmp_path, long_form):
     ("", set()),
     ("   ", set()),
     ("\n\n", set()),
+    # --- terra pass 4: an invocation that FAILS argument parsing arms nothing ---
+    # `-t` is choices-constrained, so one invalid value aborts the whole install BEFORE
+    # anything is written. Discarding it and crediting the three valid ones is FALSE-ARMED.
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push -t bogus", set()),
+    ("pre-commit install -t=bogus", set()),
+    ("pre-commit install --hook-type=not-a-hook -t pre-commit", set()),
+    # ...but a VALID stage this carrier does not manage is not an error: the install succeeds
+    # and all three managed stages really are armed
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push -t post-commit",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    ("pre-commit install -t post-checkout", set()),  # valid, but manages none of ours
 ])
+
+
 def test_armed_stages_binds_flags_to_the_install_invocation(cmd, expected):
     """The stage parser must credit a flag only to the `pre-commit install` that consumes it.
 
@@ -557,6 +571,16 @@ def test_armed_stages_binds_flags_to_the_install_invocation(cmd, expected):
     `run -t ...; install` as fully armed — a false PRESENT_CORRECT, i.e. the very
     dormant-stage defect #290 exists to catch, reintroduced by the teeth themselves."""
     assert cf._armed_stages(cmd) == frozenset(expected)
+
+
+def test_valid_hook_types_come_from_pre_commit_itself():
+    """The valid-stage enum is pre-commit's own (library-first), and the fallback literal is
+    only a mirror — so `post-commit` cannot drift into looking invalid."""
+    from pre_commit.clientlib import HOOK_TYPES as upstream
+
+    assert cf._VALID_HOOK_TYPES == frozenset(upstream)
+    # every stage this carrier requires must be one pre-commit can actually install
+    assert set(cf.ARM_HOOK_TYPES) <= cf._VALID_HOOK_TYPES
 
 
 @pytest.mark.parametrize("cmd", [

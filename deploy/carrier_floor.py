@@ -121,6 +121,19 @@ _SESSIONSTART_VERIFY_CMD = f"python {HOOK_SCRIPT_REL} --require-present"
 # list — derive the command, the detect predicate and the verify predicate from here (#290).
 ARM_HOOK_TYPES: tuple[str, ...] = arm_hooks.HOOK_TYPES
 _ARM_STAGES = frozenset(ARM_HOOK_TYPES)
+
+# pre-commit's OWN enum of installable hook types — needed to tell a VALID stage this carrier
+# does not manage (`post-commit`: fine, arms nothing of ours) from an INVALID one (`bogus`:
+# `-t` is choices-constrained, so the whole `install` exits non-zero and arms NOTHING). Not a
+# second cardinality source: ARM_HOOK_TYPES above stays the sole statement of what we require.
+try:  # library-first — the authority whenever pre-commit is importable
+    from pre_commit.clientlib import HOOK_TYPES as _PRECOMMIT_HOOK_TYPES
+except Exception:  # pragma: no cover - env without pre-commit; mirror of the above (4.x)
+    _PRECOMMIT_HOOK_TYPES = (
+        "commit-msg", "post-checkout", "post-commit", "post-merge", "post-rewrite",
+        "pre-commit", "pre-merge-commit", "pre-push", "pre-rebase", "prepare-commit-msg",
+    )
+_VALID_HOOK_TYPES = frozenset(_PRECOMMIT_HOOK_TYPES)
 _SESSIONSTART_ARM_CMD = "python -m pre_commit install " + " ".join(
     f"-t {stage}" for stage in ARM_HOOK_TYPES
 )
@@ -362,29 +375,43 @@ def _precommit_args(toks: list[str]) -> list[str] | None:
     return None
 
 
-def _stage_flags(args: list[str]) -> set[str]:
-    """Stage names named by one install invocation's arguments.
+def _stage_flags(args: list[str]) -> set[str] | None:
+    """Stage names named by one install invocation, or None if that invocation would FAIL.
 
     Accepts every spelling `pre-commit install` accepts — ``-t X``, ``-tX``, ``-t=X``,
     ``--hook-type X``, ``--hook-type=X`` — so a consumer that armed correctly is never misread
-    as stale. ``-t=X`` was missing and verified against argparse itself, which splits an
-    ``=``-bearing short option and takes the remainder as the value (terra pass-3 HIGH). A
-    flag with no value names no stage, and scanning stops at ``--`` (past end-of-options a
-    ``-t`` is a positional, not a flag).
+    as stale. ``-t=X`` was verified against argparse itself, which splits an ``=``-bearing
+    short option and takes the remainder as the value (terra pass-3). Scanning stops at ``--``
+    (past end-of-options a ``-t`` is a positional, not a flag).
+
+    Returns **None** — the invocation installs NOTHING — when a stage flag carries no value or
+    a value outside pre-commit's own hook-type enum. `-t` is choices-constrained, so
+    ``install -t pre-commit -t commit-msg -t pre-push -t bogus`` exits non-zero BEFORE
+    installing anything; discarding `bogus` and reporting all three armed is a false
+    PRESENT_CORRECT, the defect these teeth exist to catch (terra pass-4 CRITICAL, confirmed
+    against the real CLI). A valid but unmanaged type (``post-commit``) is not an error — it
+    simply contributes no managed stage.
     """
     named: set[str] = set()
     for i, tok in enumerate(args):
         if tok == _END_OF_OPTIONS:
             break
         if tok.startswith("--hook-type="):
-            named.add(tok.split("=", 1)[1])
+            value = tok.split("=", 1)[1]
         elif tok in ("-t", "--hook-type"):
-            if i + 1 < len(args):
-                named.add(args[i + 1])
+            if i + 1 >= len(args):
+                return None  # flag with no value -> argparse error -> nothing installed
+            value = args[i + 1]
         elif tok.startswith("-t") and len(tok) > 2:
-            named.add(tok[2:].lstrip("="))  # `-tX` and `-t=X` are both valid argparse
-    # Defensive: the whitespace-split fallback above cannot strip quotes the lexer would have.
-    return {n.strip("'\"") for n in named}
+            value = tok[2:].lstrip("=")  # `-tX` and `-t=X` are both valid argparse
+        else:
+            continue
+        # Defensive strip: the whitespace-split fallback cannot remove quotes the lexer would.
+        value = value.strip("'\"")
+        if value not in _VALID_HOOK_TYPES:
+            return None  # invalid choice -> the whole install fails
+        named.add(value)
+    return named
 
 
 def _is_arm_command(cmd: str) -> bool:
@@ -399,11 +426,15 @@ def _armed_stages(cmd: str) -> frozenset[str]:
     stage alone) — precisely the #275 under-arm. A command performing NO install returns the
     EMPTY set: the default-stage fallback is a property of an invocation, never of a command
     that has none, or an unrelated SessionStart hook would contribute a phantom stage to the
-    coverage union. Names matching no managed stage are ignored.
+    coverage union. An invocation that would FAIL argument parsing contributes nothing, since
+    it installs nothing. Valid-but-unmanaged stages are ignored.
     """
     stages: set[str] = set()
     for args in _install_invocations(cmd):
-        stages |= _stage_flags(args) or {_PRECOMMIT_DEFAULT_STAGE}
+        named = _stage_flags(args)
+        if named is None:
+            continue  # this invocation errors out -> it arms nothing
+        stages |= named or {_PRECOMMIT_DEFAULT_STAGE}
     return frozenset(stages) & _ARM_STAGES
 
 
