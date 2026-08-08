@@ -8,6 +8,8 @@ Covers the (three-state) reconcile model on the floor carrier
 - drifted (floor edited / sidecar missing / sidecar stale): PRESENT_DRIFTED -> apply
   -> verify;
 - idempotency: apply then apply again writes nothing (byte-identical);
+- arm-leg STAGE CARDINALITY (#290): verify FAILs a 1-stage-armed consumer (naming the
+  dormant stages) and one re-deploy self-heals it in place, touching only the arm;
 - verify reports failures rather than silently passing;
 - detect/verify INDEPENDENCE (D9): each survives the other's judgment helper being
   sabotaged;
@@ -309,11 +311,254 @@ def test_apply_merges_sessionstart_preserving_existing_settings(tmp_path):
     assert data["hooks"]["SessionStart"]                          # guard added
 
 
+# ---------------------------------------------------------------------------
+# ARM-LEG STAGE CARDINALITY (#290) — the teeth + the self-heal. A consumer armed by a
+# pre-#275b deploy carries a bare 1-stage `pre_commit install`; verify must FAIL it, and one
+# re-deploy must heal it without disturbing anything else.
+# ---------------------------------------------------------------------------
+
+_ONE_STAGE_ARM = "python -m pre_commit install"  # the pre-#275b arm leg, verbatim
+
+
+def _rewrite_arm_leg(repo: Path, command: str) -> None:
+    """Put `command` in place of the armed settings.json's arm leg (nothing else moves)."""
+    data = json.loads(_settings(repo).read_text(encoding="utf-8"))
+    for group in data["hooks"]["SessionStart"]:
+        for hook in group["hooks"]:
+            if "pre_commit install" in hook["command"]:
+                hook["command"] = command
+    _settings(repo).write_text(
+        json.dumps(data, indent=2) + "\n", encoding="utf-8", newline="\n"
+    )
+
+
+def _arm_commands(repo: Path) -> list[str]:
+    data = json.loads(_settings(repo).read_text(encoding="utf-8"))
+    return [
+        h["command"]
+        for g in data["hooks"]["SessionStart"]
+        for h in g["hooks"]
+        if "pre_commit install" in h["command"]
+    ]
+
+
+def test_stage_cardinality_is_single_sourced_from_the_hub_self_arm():
+    """No second source of truth for stage cardinality (#290): the carrier's expectation IS
+    the hub's own self-arm list, and the command it writes is derived from it."""
+    import arm_hooks
+
+    assert cf.ARM_HOOK_TYPES is arm_hooks.HOOK_TYPES
+    for stage in arm_hooks.HOOK_TYPES:
+        assert f"-t {stage}" in cf._SESSIONSTART_ARM_CMD
+
+
+def test_verify_fails_a_one_stage_armed_consumer(tmp_path):
+    """FROZEN: `carrier_floor.verify` FAILs a 1-stage-armed consumer, naming the stages that
+    would land wired-but-dormant. Before #290 this passed — verify checked only the verify
+    leg — so a pre-#275b consumer verified green with commit-msg / pre-push dormant."""
+    car = _carrier(tmp_path)
+    car.apply(_FLOOR_TARGET)
+    assert car.verify(_FLOOR_TARGET).ok is True  # baseline: fully armed
+    _rewrite_arm_leg(tmp_path, _ONE_STAGE_ARM)
+
+    result = car.verify(_FLOOR_TARGET)
+    assert result.ok is False
+    dormant = next(f for f in result.failures if "arm leg arms" in f)
+    # names the ACTUALLY dormant stages — a bare `install` does arm pre-commit by default
+    assert "commit-msg" in dormant and "pre-push" in dormant
+    assert "1/3" in dormant
+
+
+def test_detect_classifies_a_one_stage_armed_consumer_drifted(tmp_path):
+    car = _carrier(tmp_path)
+    car.apply(_FLOOR_TARGET)
+    _rewrite_arm_leg(tmp_path, _ONE_STAGE_ARM)
+    assert car.detect(_FLOOR_TARGET) is contract.CarrierState.PRESENT_DRIFTED
+
+
+def test_redeploy_self_heals_a_one_stage_arm_to_full_cardinality(tmp_path):
+    """FROZEN: a re-deploy against that same fixture leaves it 3-stage-armed and verify-green
+    (#290 (b)) — the half that makes the (a) DRIFTED verdict repairable."""
+    car = _carrier(tmp_path)
+    car.apply(_FLOOR_TARGET)
+    _rewrite_arm_leg(tmp_path, _ONE_STAGE_ARM)
+
+    healed = car.apply(_FLOOR_TARGET)
+    assert healed.changed is True
+    assert any("self-healed" in c for c in healed.changes)
+
+    arm = _arm_commands(tmp_path)
+    assert len(arm) == 1  # repaired IN PLACE — not a second arm leg appended
+    for stage in cf.ARM_HOOK_TYPES:
+        assert f"-t {stage}" in arm[0]
+    assert car.verify(_FLOOR_TARGET).ok is True
+    assert car.detect(_FLOOR_TARGET) is contract.CarrierState.PRESENT_CORRECT
+
+
+def test_redeploy_on_an_already_armed_consumer_changes_nothing(tmp_path):
+    """FROZEN: an already-3-stage fixture is UNCHANGED by re-deploy (idempotence) — the
+    self-heal must not rewrite a consumer that was already correct."""
+    car = _carrier(tmp_path)
+    car.apply(_FLOOR_TARGET)
+    before = _settings(tmp_path).read_bytes()
+
+    second = car.apply(_FLOOR_TARGET)
+    assert second.changed is False
+    assert _settings(tmp_path).read_bytes() == before  # byte-identical
+
+
+def test_self_heal_touches_only_the_arm_leg(tmp_path):
+    """The repair is scoped: unrelated settings.json keys, the verify leg, sibling
+    SessionStart hooks and the arm hook's own non-command keys all survive verbatim."""
+    car = _carrier(tmp_path)
+    car.apply(_FLOOR_TARGET)
+    data = json.loads(_settings(tmp_path).read_text(encoding="utf-8"))
+    data["enabledPlugins"] = {"tier1-lifecycle@dev-knowledge-methodology": True}
+    data["permissions"] = {"allow": ["Bash(git status)"]}
+    group = data["hooks"]["SessionStart"][0]
+    group["hooks"].append({"type": "command", "command": "python custom_surfacing.py",
+                           "timeout": 5})
+    for hook in group["hooks"]:
+        if "pre_commit install" in hook["command"]:
+            hook["command"] = _ONE_STAGE_ARM
+            hook["timeout"] = 45  # a consumer-tuned timeout the repair must preserve
+    _settings(tmp_path).write_text(
+        json.dumps(data, indent=2) + "\n", encoding="utf-8", newline="\n"
+    )
+
+    car.apply(_FLOOR_TARGET)
+    healed = json.loads(_settings(tmp_path).read_text(encoding="utf-8"))
+
+    assert healed["enabledPlugins"] == data["enabledPlugins"]
+    assert healed["permissions"] == data["permissions"]
+    cmds = [h["command"] for g in healed["hooks"]["SessionStart"] for h in g["hooks"]]
+    assert "python custom_surfacing.py" in cmds          # sibling hook untouched
+    assert any("check_floor_hash.py --require-present" in c for c in cmds)  # verify leg kept
+    assert len(healed["hooks"]["SessionStart"]) == 1      # no duplicate guard block
+    arm = next(
+        h for g in healed["hooks"]["SessionStart"] for h in g["hooks"]
+        if "pre_commit install" in h["command"]
+    )
+    assert arm["timeout"] == 45  # only `command` was rewritten
+    assert car.verify(_FLOOR_TARGET).ok is True
+
+
+@pytest.mark.parametrize("long_form", [
+    "python -m pre_commit install --hook-type pre-commit --hook-type commit-msg "
+    "--hook-type pre-push",
+    "python -m pre_commit install --hook-type=pre-commit --hook-type=commit-msg "
+    "--hook-type=pre-push",
+])
+def test_long_form_stage_flags_count_as_fully_armed(tmp_path, long_form):
+    """A consumer armed with `pre-commit install`'s long-form flag is NOT stale — a false
+    DRIFTED here would have the self-heal rewrite a config that was already correct."""
+    car = _carrier(tmp_path)
+    car.apply(_FLOOR_TARGET)
+    _rewrite_arm_leg(tmp_path, long_form)
+
+    assert car.verify(_FLOOR_TARGET).ok is True
+    assert car.detect(_FLOOR_TARGET) is contract.CarrierState.PRESENT_CORRECT
+    assert car.apply(_FLOOR_TARGET).changed is False       # no gratuitous rewrite
+    assert _arm_commands(tmp_path) == [long_form]          # left verbatim
+
+
+def test_arm_leg_split_across_two_commands_is_fully_armed(tmp_path):
+    """Coverage is a union: arming split across two commands satisfies the requirement, so
+    the self-heal does not 'repair' a complete-but-split arm into a redundant third."""
+    car = _carrier(tmp_path)
+    car.apply(_FLOOR_TARGET)
+    data = json.loads(_settings(tmp_path).read_text(encoding="utf-8"))
+    group = data["hooks"]["SessionStart"][0]
+    for hook in group["hooks"]:
+        if "pre_commit install" in hook["command"]:
+            hook["command"] = "python -m pre_commit install -t pre-commit"
+    group["hooks"].append({"type": "command", "timeout": 30,
+                           "command": "python -m pre_commit install -t commit-msg -t pre-push"})
+    _settings(tmp_path).write_text(
+        json.dumps(data, indent=2) + "\n", encoding="utf-8", newline="\n"
+    )
+
+    assert car.verify(_FLOOR_TARGET).ok is True
+    assert car.apply(_FLOOR_TARGET).changed is False
+    assert len(_arm_commands(tmp_path)) == 2  # neither leg rewritten
+
+
+def test_missing_arm_leg_entirely_is_drifted_then_repaired_without_duplicating(tmp_path):
+    """The teeth now FAIL a settings.json carrying the verify leg but NO arm leg, so apply
+    must repair that too — a verdict apply could not fix is the shape #290 exists to avoid.
+    The missing leg joins the existing group rather than appending a second guard block."""
+    car = _carrier(tmp_path)
+    car.apply(_FLOOR_TARGET)
+    data = json.loads(_settings(tmp_path).read_text(encoding="utf-8"))
+    group = data["hooks"]["SessionStart"][0]
+    group["hooks"] = [h for h in group["hooks"] if "pre_commit install" not in h["command"]]
+    _settings(tmp_path).write_text(
+        json.dumps(data, indent=2) + "\n", encoding="utf-8", newline="\n"
+    )
+
+    assert car.detect(_FLOOR_TARGET) is contract.CarrierState.PRESENT_DRIFTED
+    failures = car.verify(_FLOOR_TARGET).failures
+    assert any("missing SessionStart arm hook" in f for f in failures)
+
+    car.apply(_FLOOR_TARGET)
+    healed = json.loads(_settings(tmp_path).read_text(encoding="utf-8"))
+    assert len(healed["hooks"]["SessionStart"]) == 1  # joined the existing group
+    assert car.verify(_FLOOR_TARGET).ok is True
+    assert car.apply(_FLOOR_TARGET).changed is False  # and settles
+
+
+def test_missing_verify_leg_is_repaired_without_duplicating_the_arm(tmp_path):
+    """The mirror gap: arm leg present, verify leg gone. Previously the sentinel miss made
+    apply append a whole second guard block (a redundant arm leg); now only the verify leg
+    is added back."""
+    car = _carrier(tmp_path)
+    car.apply(_FLOOR_TARGET)
+    data = json.loads(_settings(tmp_path).read_text(encoding="utf-8"))
+    group = data["hooks"]["SessionStart"][0]
+    group["hooks"] = [h for h in group["hooks"] if "check_floor_hash.py" not in h["command"]]
+    _settings(tmp_path).write_text(
+        json.dumps(data, indent=2) + "\n", encoding="utf-8", newline="\n"
+    )
+
+    assert car.detect(_FLOOR_TARGET) is contract.CarrierState.PRESENT_DRIFTED
+    car.apply(_FLOOR_TARGET)
+    assert len(_arm_commands(tmp_path)) == 1  # arm leg NOT duplicated
+    assert car.verify(_FLOOR_TARGET).ok is True
+
+
+def test_verify_teeth_do_not_route_through_detect_classifier(tmp_path, monkeypatch):
+    """D9 holds across the new arm-leg judgment: verify's FAIL on a 1-stage arm is its own,
+    not a call into detect's classifier."""
+    car = _carrier(tmp_path)
+    car.apply(_FLOOR_TARGET)
+    _rewrite_arm_leg(tmp_path, _ONE_STAGE_ARM)
+
+    def _boom(*_a, **_k):
+        raise AssertionError("verify must not call detect's _classify_floor (D9)")
+
+    monkeypatch.setattr(cf, "_classify_floor", _boom)
+    assert car.verify(_FLOOR_TARGET).ok is False
+
+
+def test_detect_teeth_do_not_route_through_verify_judge(tmp_path, monkeypatch):
+    """D9's mirror on the same new judgment."""
+    car = _carrier(tmp_path)
+    car.apply(_FLOOR_TARGET)
+    _rewrite_arm_leg(tmp_path, _ONE_STAGE_ARM)
+
+    def _boom(*_a, **_k):
+        raise AssertionError("detect must not call verify's _verify_floor (D9)")
+
+    monkeypatch.setattr(cf, "_verify_floor", _boom)
+    assert car.detect(_FLOOR_TARGET) is contract.CarrierState.PRESENT_DRIFTED
+
+
 @pytest.mark.parametrize("break_it", [
     lambda repo: _claude_md(repo).write_text("# no include\n", encoding="utf-8", newline="\n"),
     lambda repo: _hook_script(repo).write_text("print('tampered')\n", encoding="utf-8", newline="\n"),
     lambda repo: _gitignore(repo).write_text(".claude/\n", encoding="utf-8", newline="\n"),
     lambda repo: _settings(repo).write_text("{}", encoding="utf-8", newline="\n"),
+    lambda repo: _rewrite_arm_leg(repo, _ONE_STAGE_ARM),  # #290: a stale 1-stage arm leg
 ])
 def test_missing_arming_artifact_detects_drifted_then_reconciles(tmp_path, break_it):
     car = _carrier(tmp_path)
