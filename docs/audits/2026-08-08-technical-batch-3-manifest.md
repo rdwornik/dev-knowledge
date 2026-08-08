@@ -1,5 +1,5 @@
 ---
-batch: 2026-08-08-batch-3
+batch: 3
 status: open
 closed_by: docs/audits/2026-08-08-technical-batch-3-packet.md
 ---
@@ -157,3 +157,44 @@ Per Ch8 (four from ADR-110 §3, the fifth added 2026-08-07 on batch-1 F4):
 3. `git worktree list` == primary only
 4. manifest (this file) **and** packet archived
 5. `git stash list` empty — a surviving entry gets a recorded disposition, never a blind `drop`
+
+---
+
+## AMENDMENT — 2026-08-08, same session: the `batch:` frontmatter field was malformed
+
+**As first committed (`0476e4ce`) this file carried `batch: 2026-08-08-batch-3`. It now carries
+`batch: 3`.** Nothing else in the file changed.
+
+**What was wrong.** `2026-08-08-batch-3` is the batch's *human name*, which the re-dispatch
+contract used as a label. It is not the frontmatter field's format. Batch 2's manifest — the shape
+this file was instructed to derive from — carries `batch: 2`, and
+`tests/test_batch_manifest.py::test_the_live_repos_own_manifest_is_well_formed` asserts
+`b.batch.isdigit()` against **every live open manifest**. That test is pre-existing, not
+introduced by any lane in this batch, and it was RED from the moment this manifest landed:
+
+```
+AssertionError: OpenBatch(batch='2026-08-08-batch-3', ...)
+assert False
+ +  where False = '2026-08-08-batch-3'.isdigit()
+```
+
+**The exemption was never broken by it**, which is exactly why the test exists and why this is
+worth writing down. `batch_manifest.open_batches` reads `batch:` as free-form
+(`fm.get("batch", "?")`) and gates openness on `status:` and `closed_by:` alone — so the malformed
+field granted a *working* exemption while failing the repo's own well-formedness pin. A defect
+that leaves the mechanism functional is the kind that survives a batch and is inherited by the
+next one; the test is what caught it in ~4 minutes.
+
+**On editing an immutable file.** `docs/audits/` is immutable (CLAUDE.md §5 rule 3): *"supersede
+with a new file or an in-file amendment marker; never edit in place."* An appended marker cannot
+supersede **frontmatter** — `_frontmatter()` parses only the first `---` block, so a correction
+stated in the body would be read by humans and ignored by the machine, leaving the test RED
+forever. Superseding with a new file is worse: both would match `MANIFEST_GLOB`, both would be
+open, and the test iterates *all* live open manifests — so the broken one would keep failing, and
+retiring it would require committing its `closed_by:` packet, which closes the real batch.
+
+So the frontmatter line was corrected in place and this marker records it in full: the original
+value, the reason, the failing assertion, and the fact that the change is one line. The original
+bytes remain recoverable at `0476e4ce`. **This is a deviation from rule 3, taken deliberately and
+reported to the operator rather than absorbed silently** — recorded here because a correction
+nobody can see is the failure mode the rule exists to prevent.
