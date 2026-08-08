@@ -19,6 +19,39 @@
 
 ---
 
+### 2026-08-08 (g) — CC (Opus 5, bg primary tree): JOURNAL-anchor follow-up for the batch-3 report amendment
+
+**Did:** Appended an amendment marker to `docs/audits/2026-08-08-technical-batch-3-consolidation-report.md`
+correcting §7's worktree line, and this entry anchors that merge. `36cb806c` carries the marker.
+
+**Result:** Two errors in one line, wrong for different reasons and separated deliberately rather
+than lumped: registered worktrees **13 → 14** (1 primary + **13** linked) is an author arithmetic
+error — `git worktree list` returned 14 lines at inventory and still does; **locked 8 → 1** is a
+genuine state change, not a misread, with seven lane worktrees releasing their locks between
+~20:45 and ~22:00 while this arc ran and no teardown was performed. Corrected by **marker, not
+edit** — `docs/audits/` is immutable (CLAUDE.md §5 rule 3) — and by **append, not amend** on the
+JOURNAL side (STANDING_RULINGS B6), which is why this is a new entry rather than a rewrite of (f).
+
+Neither number changes a conclusion: the STOP rests on the missing batch-3 manifest and the
+anchoring arithmetic. But §7 is the **teardown ledger** — the one section a re-dispatch acts on
+destructively — so the marker also records that **lock state is not a stable property** and must be
+read at the moment of removal rather than from any earlier inventory, which is the live instance of
+the warning `/lane-integrate` §2 already carries about `worktree remove` silently no-opping on a
+locked directory.
+
+**Changes:** `docs/audits/2026-08-08-technical-batch-3-consolidation-report.md` (amendment marker
+appended); this JOURNAL entry. Still zero merges of any lane branch, zero teardown, zero row
+closes, zero bypasses.
+
+**Abandoned:** nothing new — the batch remains STOPPED on the operator ruling described in (f).
+
+**Next:** unchanged from (f), with one correction that supersedes it. Entry (f) told the
+re-dispatch that the intakes lane's incoming `(d)` renumbers to **(g)**; this entry has now taken
+(g), so **the target is `(h)`**. The general rule is the durable part and the specific letter is
+not: **derive the next free letter from `JOURNAL.md` at merge time, never from a contract or a
+report written earlier.** This is the second time in one arc that a stated letter went stale before
+it could be used.
+
 ### 2026-08-08 (f) — CC (Opus 5, bg primary tree): batch-3 consolidation STOPPED at the precondition gate — the manifest that was never committed is the key to the exemption
 
 **Did:** Executed the frozen contract `ARC-batch3-consolidation-integrate` (v2) from the hub PRIMARY
