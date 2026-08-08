@@ -19,6 +19,51 @@
 
 ---
 
+### 2026-08-09 (a) — CC (Opus 5, bg primary tree): the night batch's manifest exists BEFORE the lanes do
+
+**Did:** `ee4fd140` commits `docs/audits/2026-08-09-technical-batch-night-manifest.md` at
+**dispatch**, opening the night batch (width 5, read-mostly, cloud-run, no overnight merges to
+`main`, zero births) so the morning integration inherits a live ADR-110
+declared-integration-arc exemption instead of discovering it has none.
+
+**Result — this is batch 3's bill paid forward, not paperwork.** Batch 3 dispatched with no
+manifest and cost a 2h12m integrator run that reached the precondition gate and correctly
+STOPPED before merge #1. `batch_manifest.open_batches` now returns exactly one entry —
+`batch='0'`, closer `docs/audits/2026-08-09-technical-batch-night-packet.md`, absent from the
+tree — so the exemption is armed and self-expiring. ship-gate **GREEN**, 18 WARN dispositioned,
+unchanged from the pre-arc baseline; `health: OK`.
+
+**The contract's own filename would have produced a manifest the machine cannot see.** It named
+`...-technical-night-batch-manifest.md`; `MANIFEST_GLOB` is `docs/audits/*-batch-*-manifest.md`,
+which that spelling does **not** match — after the only `-batch-` there is no further
+`-manifest.md` left to consume. Verified both spellings before writing, not after. Committed as
+`...-technical-batch-night-manifest.md`: two tokens swapped, still Rule-B clean. **This is the
+third instance in two days of one class — a surface authored from prose intent rather than from
+its parser** (08-08 (h): a `batch:` field that granted a working exemption while failing its
+well-formedness pin; 08-08 (l): a review artifact that recorded a real review and satisfied no
+coverage leg). The difference tonight is that it was caught *before* the artifact existed, by
+running the parser against the proposed name — which is the cheap end of this class and the
+only end that costs nothing.
+
+**`batch: 0` is a derived sentinel, and the derivation is in the file.** The well-formedness
+test pins `batch.isdigit()` against every live open manifest, and this batch has no number: its
+own closure contract names "the batch-4 planning GO" as the future decision it feeds, so it is
+not batch 4, and numbering it 4 would contradict its own next paragraph. `0` cannot collide with
+any batch past or future, and the field is reporting-only — openness gates on `status:` and
+`closed_by:` alone.
+
+**Changes:** `docs/audits/2026-08-09-technical-batch-night-manifest.md` (new);
+`docs/audits/README.md` regenerated; this entry. No code touched.
+
+**Abandoned:** nothing.
+
+**Next:** the morning integrator merges the five lane branches, adjudicates each report's
+`## Needs a ruling` section, and lands
+`docs/audits/2026-08-09-technical-batch-night-packet.md` — which is the single act that closes
+the batch and expires the exemption. Standing consequence until then:
+`gen_handoff.assert_batch_boundary` refuses to cut a bundle while a batch is open, so `/handoff`
+will refuse — correct behaviour, remedied by landing the packet, never by bypassing it.
+
 ### 2026-08-08 (l) — CC (Opus 5, bg primary tree): the review artifact was correct to a reader and invisible to the machine
 
 **Did:** Entry (k)'s review artifact cleared no gate. `b50ccecd` supersedes it with a conforming
