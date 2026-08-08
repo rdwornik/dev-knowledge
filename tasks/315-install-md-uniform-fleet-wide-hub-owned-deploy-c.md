@@ -1,7 +1,7 @@
 ---
 id: "[#315]"
 title: "`INSTALL.md` uniform fleet-wide, hub-owned, deploy-carried"
-status: open
+status: closed
 priority: P3
 size: S
 theme: "[E6] Cross-repo universalization"

@@ -19,6 +19,80 @@
 
 ---
 
+### 2026-08-08 (j) — CC (Opus 5, bg primary tree): batch 3 integrated — ten lanes, eight closes, teardown to zero, and the gate never bypassed
+
+**Did:** STEP 2 and STEP 3 of the accepted re-dispatch. The manifest committed in (h) made the
+ADR-110 exemption live, and the merge queue the previous attempt correctly refused to force then
+drained cleanly. This entry anchors every merge in the arc.
+
+**Result — ten lane merges, no skips, no abandonments.** Lane tips named so each merge is anchored:
+`174b6ff6` intakes · `9ac62422` lane E [#396] [#512] · `b6d81501` lane 290 [#290] · `6423df11`
+lane 280/315 [#280] [#315] · `98f5afd9` groom-sheet · `719b6b61` lane C [#393] · `2c198067`
+archival audit · `23198aae` pythonpath measurement [#502] · `b014baf6` seeded-defect substrate ·
+`139d6689` closure wave. Plus `453089c2` (the manifest's `batch:` correction) and `f98d1262` (the
+eight row closes).
+
+- **Zero `SKIP=`, zero `--no-verify`, zero force-push across BOTH attempts.** The gate did the work
+  it was built for, and reported the exemption in its own evidence line rather than applying it
+  silently: *"EXCEPT 8 lane merge(s) exempt … the exemption expires when
+  docs/audits/2026-08-08-technical-batch-3-packet.md lands"*.
+- **Every generated-file conflict resolved by REGENERATION**, never by hand — nine index collisions
+  plus the doc-counts one. **Both doc-counts sides were wrong:** lane E carried 2555→2570 and lane
+  280/315 carried 2555→2582, each counted independently from the same base; the merged truth is
+  **2721** (2555 + 15 + 27 + lane 290's 124). Picking either side would have committed a number
+  nobody counted.
+- **The intakes JOURNAL letter was derived at merge time and landed as `(i)`** — not (d), not (f),
+  not (g). It moved three times across this arc, which is why the rule and not the letter is the
+  durable part.
+- **Eight rows closed with content-verified evidence** (`f98d1262`), retire-never-delete per
+  ADR-107 §6.3: [#396] [#512] [#280] [#315] [#290] [#283] [#416] [#282]. The satellite rows were
+  checked by hashing, not by eye — `.gitattributes` is sha256-identical to the ai-council referent
+  in all three consumer repos. **[#505] / [#502] / [#506] stay OPEN** with reasons recorded.
+- **Teardown complete: 14 worktrees → 1, 13 lane branches → 0**, F1 verify-before-destroy on every
+  removal (`git branch -d`, never `-D`, so an unmerged branch could not be deleted by mistake). One
+  **stale** lock cleared only after proving pid 36568 dead; a live pid would have been a documented
+  SKIP. Three empty leftover dirs removed with `rmdir` after proving 0 entries and 0 tracked files.
+  `.claude/worktrees/` is now empty; stash empty throughout.
+- **Velocity: opened 0 · closed 8 · net −8 · open total 161** (rendered 194 = 161 open + 33
+  deferred). The 169-vs-202 disagreement this batch inherited is now a stated filter, not a mystery.
+- **F3 required no renames.** The nine non-conformant branch names never blocked a merge, because
+  `batch_manifest.LANE_BRANCH_RE` is looser than `validate_branch_naming`'s. That makes **F4 —
+  two definitions of "a lane branch" in one repo — load-bearing rather than theoretical**:
+  tightening the former to match the latter would have made nine of these ten merges non-exempt.
+
+- **Suite on the merged result: `1 failed, 2716 passed, 3 skipped, 1 xfailed` (8m59s)** —
+  2716+3+1+1 = **2721**, matching doc-counts exactly. Two failures appeared and both were
+  classified: the routine-consumers row-count test is **PRE-EXISTING** (identical on bare `main`
+  this morning), and `test_finding_headline_resolves_with_provenance` was **MERGE-CAUSED** — lane
+  E's 17 added lines moved `class Finding:` from 327 to 344 in `audit.py`, stale-ing two live
+  pins. Repinned (`679ccbc0`), pin count re-grepped rather than recalled. **Ship-gate GREEN, 18
+  WARN, all dispositioned — the same 18 as before the batch; twelve merges introduced no new
+  undispositioned WARN.**
+- **Suite runtime fell 31m43s → 8m59s on the same repo**, and the cause is the teardown: the
+  morning baseline ran with 13 linked worktrees registered, this one with none. A ÷3.5 swing from
+  worktree hygiene alone, which materially softens the per-merge-suite cost worry (divergence D3).
+
+**One defect introduced and caught in-session, recorded rather than quietly fixed.** The manifest's
+`batch:` field first carried the batch's human name instead of a digit string, which the
+**pre-existing** `test_the_live_repos_own_manifest_is_well_formed` asserts. The exemption worked
+anyway — `open_batches` reads the field as free-form — so it was a defect that left the mechanism
+**functional**, the kind that survives a batch and is inherited. Corrected to `batch: 3`. Editing
+frontmatter in an immutable `docs/audits/` file is a **deliberate, reported deviation from
+CLAUDE.md §5 rule 3**: an appended marker cannot supersede frontmatter (only the first `---` block
+parses), and superseding with a second manifest would have left BOTH open and still failing, since
+the test iterates all live open manifests.
+
+**Changes:** `docs/audits/2026-08-08-technical-batch-3-manifest.md` (+ its correction marker);
+`docs/audits/2026-08-08-technical-batch-3-packet.md` (new — the artifact that closes the batch);
+Amendment 2 on the consolidation report; `BACKLOG.md` + `tasks/` (8 closes); `ecosystem/doc-counts.md`
+2555→2721; `docs/audits/README.md` regenerated nine times; plus every lane's own payload.
+
+**Abandoned:** nothing. No lane skipped, no row closed without content-verified evidence.
+
+**Next:** the change batch 2 already named and batch 3 deferred again — **lane contracts as
+committed artifacts referenced by the manifest**, the single change that moves [#505] leg 1.
+Then leg 2's disambiguation, the F3/F4 regex reconciliation, and batch-4 planning.
+
 ### 2026-08-08 (i) — CC (Opus 5, lane `lane-intakes-28-29`): intakes #28 and #29 filed VERBATIM as DRAFT — filing, not deciding
 
 **Did:** Executed the frozen contract `ARC-file-intakes-28-29` in the sandbox worktree

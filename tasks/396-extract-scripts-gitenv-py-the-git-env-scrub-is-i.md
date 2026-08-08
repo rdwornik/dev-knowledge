@@ -1,7 +1,7 @@
 ---
 id: "[#396]"
 title: "Extract `scripts/gitenv.py` — the GIT_* env-scrub is in 3 places"
-status: open
+status: closed
 priority: P3
 size: S
 theme: "[E7] Tooling & evaluation"

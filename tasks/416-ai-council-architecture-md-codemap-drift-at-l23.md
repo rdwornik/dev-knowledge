@@ -1,7 +1,7 @@
 ---
 id: "[#416]"
 title: "ai-council `ARCHITECTURE.md` codemap drift at L23/L109"
-status: open
+status: closed
 priority: P3
 size: S
 theme: "[E6] Cross-repo universalization"

@@ -490,3 +490,182 @@ destructive step.
    no-ops on a locked directory and says to re-check rather than assume; this is a live instance
    of why. Read lock state at the moment of removal, never from an earlier inventory — including
    the one in §7 of this report.
+
+---
+
+## AMENDMENT 2 — 2026-08-08: the batch WAS integrated. §0's STOP is superseded.
+
+`docs/audits/` is immutable, so the integration outcome is recorded by marker rather than by
+rewriting the sections above. **Everything above this line remains an accurate record of the first
+attempt.** What changed is the world, not the report: the operator ruled **option (A)** of §8 —
+commit a manifest, present-tense — and the batch then integrated cleanly.
+
+**Superseded by this amendment:** §0 (the STOP), §1a's ten `PENDING` dispositions, §6's "NONE
+EXECUTED", §7's empty teardown ledger, and the four `PARTIAL` verdicts in §9. **Not superseded:**
+the second-seat verdicts, the divergence table (§4), the conflict map (§1b-bis), the velocity
+reconciliation (§2), the `[#505]` assessment (§6), and every finding in §5 — all accepted as final
+by the re-dispatch and carried unchanged.
+
+### A2.1 — The unblock
+
+`docs/audits/2026-08-08-technical-batch-3-manifest.md` (`0476e4ce`, merged `121499da`) declares
+batch `3` open with `closed_by:` naming a packet that did not yet exist. The gate immediately began
+reporting the exemption in its own evidence line rather than applying it silently:
+
+```
+[OK] journal_spine_anchor: ... EXCEPT 8 lane merge(s) exempt under the ADR-110
+declared-integration-arc rule while batch 2026-08-08-batch-3 is open ... the exemption
+expires when docs/audits/2026-08-08-technical-batch-3-packet.md lands
+```
+
+**Zero `SKIP=`, zero `--no-verify`, zero force-pushes across both attempts.**
+
+One defect was introduced and caught in the same session: the manifest's `batch:` field first
+carried the batch's human name (`2026-08-08-batch-3`) rather than a digit string, which the
+**pre-existing** `test_the_live_repos_own_manifest_is_well_formed` asserts. The exemption worked
+anyway — `open_batches` reads `batch:` as free-form — so this was a defect that left the mechanism
+functional, the kind that survives a batch. Corrected to `batch: 3` (`453089c2`, merged `89b8d401`)
+with its own in-file amendment marker.
+
+### A2.2 — Merge ledger: ten lanes, ten SHAs, zero skipped
+
+| # | Lane branch | Merge SHA | Conflicts, and how resolved |
+|---|---|---|---|
+| 1 | `worktree-lane-intakes-28-29` | `d608b6f3` | `JOURNAL.md` — both sides kept, incoming `(d)` renumbered to **`(i)`** |
+| 2 | `worktree-lane-e-gitenv-scrub` | `764f06c8` | `docs/audits/README.md` — regenerated |
+| 3 | `worktree-lane-290-floor-teeth` | `2928cf1c` | `docs/audits/README.md` — regenerated |
+| 4 | `worktree-lane-280-315-carriers` | `946d904a` | index **+** `ecosystem/doc-counts.md` — both regenerated |
+| 5 | `worktree-lane-506-groom-sheet` | `15cc3ec9` | index — regenerated |
+| 6 | `worktree-lane-c-393-rot` | `08aea7a7` | index — regenerated |
+| 7 | `worktree-lane-archival-audit` | `2732f166` | index — regenerated |
+| 8 | `worktree-lane-502-pythonpath-measure` | `e3821ae1` | index — regenerated |
+| 9 | `worktree-lane-seeded-defect-substrate` | `1a4b11bb` | index — regenerated |
+| 10 | `worktree-lane-wave-closures` | `87b993af` | index — regenerated |
+
+**No generated file was hand-resolved.** Every conflict was unblocked with `checkout --ours` and
+then overwritten by its generator, so the committed state is generator output in every case.
+
+**The doc-counts prediction held.** Lane E carried 2555→2570 and lane 280/315 carried 2555→2582,
+both counted independently from the same base. The merged truth is **neither**: regenerated to
+**2721** = 2555 + 15 + 27 + lane 290's 124 new tests. A merge that picked either side would have
+committed a number nobody counted.
+
+**`deploy/tool.py` auto-merged with BOTH carrier registrations**, per the ruling — verified in
+`make_carriers`, which now returns `FloorCarrier` (lane 290) and `DocsCarrier` (lane 280/315)
+alongside the four pre-existing carriers. Checked, not assumed.
+
+**Lane 290's `f3134310` stayed**, per the ruling — its terra artifact is present on the merged tree.
+
+### A2.3 — F3 required NO renames
+
+The nine non-conformant branch names never blocked a merge. `batch_manifest.LANE_BRANCH_RE` is the
+looser `^worktree-lane-[a-z0-9]+(?:-[a-z0-9]+)*$` and all ten matched it, so the exemption applied
+without touching a name. **F3 and F4 are carried, not repaired** — and F4 is now load-bearing
+rather than theoretical: the two regexes disagreeing is precisely what let this batch integrate.
+A future tightening of `batch_manifest`'s pattern to match `validate_branch_naming`'s would have
+made nine of these ten merges non-exempt.
+
+### A2.4 — Row closes: eight closed, three deliberately left open
+
+Retire-never-delete (ADR-107 §6.3): node out of `tasks/manifest.json`, task file **kept** with
+`status: closed` as the id's allocation record. `BACKLOG.md` regenerated with `--emit-source`;
+`gen_task_tree --check` ok. Commit `f98d1262`.
+
+Evidence was verified **by content**, not by the existence of a `closes` tag:
+
+- **[#396] [#512]** — `764f06c8`. `scripts/gitenv.py` is a genuine stdlib-only leaf (its only
+  imports are `__future__`, `os`, `subprocess`); `audit.py`, `batch_manifest`, `fleet_parity` and
+  `fleet_analytics` all resolve to it; `fleet_parity` aliases it directly, `fleet_analytics`
+  delegates, and `audit.py` loads it **by path** with the lazy-import constraint and its outcome
+  stated in-file.
+- **[#280] [#315]** — `946d904a`. `deploy/carrier_docs.py` + `manifest-v1.4.0.yaml`; `DocsCarrier`
+  registered in `make_carriers`.
+- **[#290]** — `2928cf1c`. `deploy/carrier_floor.py` teeth + `tests/test_deploy_floor.py`.
+- **[#283]** — `corp-monorepo` `37b8aa1`, 98-line disposition artifact.
+- **[#416]** — `ai-council` `4d2a63c`, ARCHITECTURE.md codemap 151+/47−.
+- **[#282]** — `corp-ops` `3bde930`, `corp-sca` `1a80a9e`, `demo-prep` `d849c81`. `.gitattributes`
+  **sha256-identical** to the `ai-council` referent in all three — hashed and compared, not eyeballed.
+
+**Left open, with reasons:** **[#505]** (legs 1 and 2 unmet; batch 3 regressed leg 1 — this
+manifest is a partial repair, not a discharge), **[#502]** (measurement only; adoption ruled to
+batch 4), **[#506]** (evidence half only).
+
+### A2.5 — Final velocity
+
+- **Opened 0 · closed 8 · net −8.**
+- **Open total: 161** (`status: open`) — down from 169.
+- **Rendered total: 194** = 161 open + 33 deferred, which `validate_backlog` confirms
+  (`9 themes, 26 stories, 194 tasks`). The §2 filter still holds: quote `status: open` for 161,
+  or the rendered surface for 194.
+- Closed-file count 44 → **52**, consistent with 8 retirements.
+
+### A2.6 — Teardown ledger, completed
+
+F1 verify-before-destroy on every removal: each branch was confirmed an **ancestor of `main`**
+before deletion, and `git branch -d` (never `-D`) was the safety net — it refuses an unmerged
+branch, so the check could not be bypassed by mistake.
+
+- **14 registered worktrees → 1** (primary only). **13 lane branches → 0.**
+- All 13 removed cleanly; **zero** `worktree remove` no-ops, re-checked on disk after each.
+- **One stale lock cleared, not forced.** `lane-290-floor-teeth` was locked by
+  `claude session … (pid 36568)`; the pid was verified **dead** before unlocking. A live pid would
+  have been a SKIP — another session's worktree is not this integrator's to kill.
+- **Three empty leftover directories removed** — `.claude/worktrees/lane-a-283-dedup`,
+  `lane-b-416-codemap`, `lane-d-282-eol`, residue of the satellite consumer lanes. Each was proven
+  to hold **0 entries and 0 tracked files** first, and removed with `rmdir` (which refuses a
+  non-empty directory) rather than `rm -rf`. `.claude/worktrees/` is now empty — §5 rule 9's
+  "no leftovers" round-trip satisfied.
+- `git stash list` **empty** throughout.
+- **Protected and untouched, confirmed present:** `demo-prep`'s `fix/audit-needs-input`,
+  `corp-monorepo`'s `vk/c35d-test`, `corp-sca`'s `feature/tenrox-loader`. No hub teardown reaches
+  another repo.
+- `automation/fleet-audit` deliberately retained — its dailies never reach `main`.
+
+The audit organ confirms it independently: `stale_worktrees: no linked worktrees registered
+(primary only) — nothing to close out` and `git stash list is empty`.
+
+### A2.7 — Final gate state, and the suite classified
+
+**Ship-gate: GREEN** — *"verification organs green against this arc (18 WARN dispositioned)"*.
+Same 18 as the pre-integration baseline; **no new undispositioned WARN was introduced by any of
+the twelve merges.**
+
+Organs that moved:
+
+- `journal_spine_anchor` — now reports **batch `3`** open (the corrected field) and names the
+  packet that will expire the exemption. It has since expired: this packet is committed.
+- `stale_worktrees` — 13 linked worktrees → **primary only**.
+- `doc_claims` — 3 → **4** self-claims matching repo state.
+- `intake_tree_coherence` — 261 → **263** nodes (intakes #28/#29).
+- `doc-counts` — `tests: 2555` → **2721 collected**.
+- `git_backlog_drift` — still WARNs `#505 closed-but-present`, unchanged and still dispositioned.
+  That is correct and deliberate: **[#505] stays open**, so the row remains in `BACKLOG.md`.
+
+**Full suite on the merged result: 2715 passed, 3 skipped, 1 xfailed, 2 failed in 8m23s.**
+2715 + 3 + 2 + 1 = **2721**, matching `ecosystem/doc-counts.md` exactly. Both failures classified,
+neither left unexplained:
+
+1. `test_routine_consumers_live_backlog_governs_exactly_one_row` — **PRE-EXISTING.** Identical on
+   bare `main` before any merge (§10 of this report). Live `BACKLOG.md` has 2 routine rows; the
+   test pins 1. Its own docstring makes the repair a coordinated one: *"If this number moves, the
+   ADR, the docstring and [#426] must move with it."* Out of scope here, and untouched.
+2. `test_finding_headline_resolves_with_provenance` — **MERGE-CAUSED, and fixed.** Lane E's merge
+   added 17 lines above `class Finding:` in `scripts/audit.py` (the by-path `gitenv` load), moving
+   it from line **327 to 344**. Two live pins in `tests/test_reverse_dep_oracle.py` asserted 327.
+   Repinned to 344 (`679ccbc0`); that module now passes 21/21. The pin count was **re-grepped, not
+   recalled** — exactly two live sites, and no other `327` remains in the file.
+
+**Confirmation run after the repin: `1 failed, 2716 passed, 3 skipped, 1 xfailed in 8m59s`** —
+2716 + 3 + 1 + 1 = 2721 again, with only the pre-existing failure standing. The suite was re-run
+in full rather than trusting the single-module pass, because the repin edited a test file and the
+"full suite once on the merged result" item is about the tree as it will be pushed.
+
+**Neither failure was teardown-clearable**, and the second known-pre-existing failure the first
+attempt predicted — the linked-worktrees reader inversion — **never appeared**, before or after
+teardown, confirming §10's finding that it inverts only when the suite runs from *inside* a lane
+worktree.
+
+**Suite runtime dropped from 31m43s to 8m23s** across the same repo, and the difference is the
+teardown: the baseline ran with 13 linked worktrees registered, this one with none. That is a
+÷3.8 change from worktree hygiene alone — worth knowing before budgeting a per-merge suite
+cadence, and it materially softens divergence **D3**.

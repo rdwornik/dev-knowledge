@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "21f4a219acfa7278a238aacf0db618bd2b0464ef97b56e8679040be4ab688de7",
+  "generated_sha256": "fe4e5c103a1e489ed951a7b11616e3d1408369383937447539f4b013ae82a26c",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -223,10 +223,6 @@
     {
       "task": 510,
       "file": "510-scope-r1-exemption-to-enumerated-lanes.md"
-    },
-    {
-      "task": 512,
-      "file": "512-open-batch-refusal-doesnt-scrub-git-dir.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
@@ -719,22 +715,6 @@
       "file": "281-re-peg-the-ai-council-adr-66-story-map-convergen.md"
     },
     {
-      "task": 282,
-      "file": "282-fleet-gitattributes-eol-normalization-parity.md"
-    },
-    {
-      "task": 283,
-      "file": "283-corp-monorepo-hybrid-classifier-json-1-08mb-dupl.md"
-    },
-    {
-      "task": 290,
-      "file": "290-floor-carrier-verify-teeth-self-heal.md"
-    },
-    {
-      "task": 416,
-      "file": "416-ai-council-architecture-md-codemap-drift-at-l23.md"
-    },
-    {
       "task": 327,
       "file": "327-protocols-as-interface-genre-ruling.md"
     },
@@ -811,14 +791,6 @@
     {
       "task": 43,
       "file": "43-decide.md"
-    },
-    {
-      "task": 280,
-      "file": "280-propagate-the-intake-area-to-greenfield-consumer.md"
-    },
-    {
-      "task": 315,
-      "file": "315-install-md-uniform-fleet-wide-hub-owned-deploy-c.md"
     },
     {
       "prose": ""
@@ -903,10 +875,6 @@
     {
       "task": 403,
       "file": "403-extend-doc-claims-to-architecture-s-machine-deri.md"
-    },
-    {
-      "task": 396,
-      "file": "396-extract-scripts-gitenv-py-the-git-env-scrub-is-i.md"
     },
     {
       "task": 397,

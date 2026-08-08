@@ -1,7 +1,7 @@
 ---
 id: "[#282]"
 title: "Fleet `.gitattributes` EOL-normalization parity"
-status: open
+status: closed
 priority: P3
 size: S
 theme: "[E6] Cross-repo universalization"

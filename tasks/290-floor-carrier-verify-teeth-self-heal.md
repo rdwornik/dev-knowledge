@@ -1,7 +1,7 @@
 ---
 id: "[#290]"
 title: "Floor-carrier verify-teeth + self-heal"
-status: open
+status: closed
 priority: P3
 size: S
 theme: "[E6] Cross-repo universalization"
