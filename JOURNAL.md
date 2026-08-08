@@ -19,6 +19,76 @@
 
 ---
 
+### 2026-08-08 (d) — CC (Opus 5, primary tree): the dispatch surface becomes repo law — three landings, one held RED
+
+**Did:** Executed `ARC-dispatch-surface-codify` on `chore/dispatch-surface-codify` off `main`,
+primary tree per the contract's directive. The class being retired is "the browser had to remember
+it": the operator's dispatch surface became a win-tooling helper when [#509] v2 merged
+(`d743937`), and until now no hub text said a dispatch line should not be composed by hand at all.
+
+**Result — four commits, ship-gate RED on one organ, deliberately:**
+
+- `4d7b5cbf` — PLAYBOOK Ch8 gains "The dispatch surface is `dispatch <file>`": contract mode as the
+  DEFAULT (the helper runs the contract's own `## Dispatch` block verbatim, substituting only the
+  literal `$env:CLAUDE_PROMPTS_DIR` token), table-fallback, the CLOSED effort enum with
+  refusal-not-guess, the execution gate, and raw-line composition documented ONCE as the
+  **non-default** fallback. Coupled repair in the same commit: the section directly above still
+  said the operator expands the token "by hand until [#509] teaches the wrapper to resolve it" —
+  [#509] landed, so Ch8 would have carried two contradicting claims about one helper in adjacent
+  sections.
+- `2bd91563` — `templates/prompt-template.md` v1.12 -> v1.13: a dispatched contract OPENS with a
+  mandatory `## Dispatch` block carrying ONE literal example line. One line by design — it is
+  copied and edited, never composed. Verified helper-parseable against
+  `Invoke-Dispatch.ps1::Get-DispatchBlockLine`, so a contract built from the card takes contract
+  mode rather than falling through to derivation.
+- `489f67e6` — the handoff engine emits a RESIDENT "Operator-facing forms" section in every bundle
+  (`templates/handoff/v5/HANDOFF_BOOT.md.tmpl`): dispatch · worktree entry · `/lane-integrate` ·
+  the teardown FOUR-step. Resident by design — forms are typed, not read, and a pointer to a
+  command is a command composed from memory. Each form still points at its doctrine home.
+- `78cb6fab` — HANDOFF_PROCESS 6.1.0 -> **6.2.0**, §4 BOOT DRILL: an incoming seat emits one sample
+  dispatch line for the operator to read before its first real dispatch. Kept OUT of the probe
+  manifest on §5's own terms (the operator's check is a judgment made by looking, which fails the
+  bounded-deterministic condition) and labelled prose discipline with no organ behind it.
+
+**The contract contradicted itself, and the operator ruled rather than me guessing.** Step 3
+directs a version bump "per its own rules"; a bump forces a `reconciled_with` re-stamp in the SIX
+dependents, one of which is `ARCHITECTURE.md` — which the contract's own "What NOT to do" forbids.
+Everything not depending on the answer was landed first, then the fork went up. Ruled 2026-08-08:
+touch `ARCHITECTURE.md` scoped to EXACTLY ONE FIELD (the diff is that one line), and re-stamp NO
+`last_reviewed` anywhere — a divergence from the v6.1.0 precedent, which did re-stamp one.
+
+**The RED is the point, not a defect.** Four gated dependents (`ARCHITECTURE.md`, `CLAUDE.md`,
+`CONTRIBUTING.md`, `docs/handoffs/README.md`) read `last_reviewed: 2026-08-07` and were edited
+2026-08-08, so `canonical_freshness` A2 fails on each and ship-gate is **RED on that one organ** —
+every other leg green, `silent_rule_ratchet` 437 <= 441, `validate_reconciliation` 7 edges /
+0 mismatches, `handoff_version_stamp` + `amendment_coherence` coherent at 6.2.0. The baseline was
+measured clean BEFORE the commit (all four stamp == commit-date), so this arc is the whole cause
+and nothing pre-existing is laundered into it. A re-stamp would assert an end-to-end re-read that
+did not happen in this window; a faked stamp is worse than a visible RED. Clearing it is a separate
+act, reserved to the operator — so **this branch is NOT merged**, and that is the ruling being
+followed rather than an arc left unfinished.
+
+**Watch (1) — a concurrent actor swapped HEAD in the shared primary tree mid-arc.** Between the
+step-2 and step-3a commits, the reflog records `checkout: moving from chore/dispatch-surface-codify
+to main` from outside this session, so `489f67e6` first landed **direct on `main`** —
+core-invariant #5. Caught immediately from the commit's own `[main ...]` output, recovered before
+any push: cherry-picked onto the branch, `main` moved back to `3ed60c4c` (== `origin/main`, so
+nothing published was rewritten). Cause not attributable — the two suspect test files check out
+only temp repos, and the one other session in this repo had been idle ~40 minutes. n=3 for this
+class. Mitigation used for the rest of the arc: assert the branch in the same command as the
+commit.
+
+**Changes:** `protocols/PLAYBOOK.md` (Ch8 + TOC), `templates/prompt-template.md` (v1.13),
+`templates/handoff/v5/HANDOFF_BOOT.md.tmpl`, `protocols/HANDOFF_PROCESS.md` (6.2.0),
+`CONTRIBUTING.md` (stamp + chain), and the six `reconciled_with` edges.
+
+**Abandoned:** nothing — all three contract steps landed. The `last_reviewed` re-stamps were
+declined by ruling, not dropped.
+
+**Next:** operator decides whether to clear the four `canonical_freshness` REDs (a genuine
+end-to-end re-read of each, which is its own act) and then merge `chore/dispatch-surface-codify`
+`--no-ff`. The branch is pushed and merge-ready otherwise.
+
 ### 2026-08-08 (c) — CC (Opus 5, primary tree): PHASE-0 — six chat-ratified decisions land as repo text, zero new decisions taken
 
 **Did:** Converted every ratified-in-chat decision from the 2026-08-08 GO into repo text on
