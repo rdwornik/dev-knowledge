@@ -556,6 +556,10 @@ def test_long_form_stage_flags_count_as_fully_armed(tmp_path, long_form):
     ("pre-commit install -t pre-commit -t commit-msg -t pre-push -t bogus", set()),
     ("pre-commit install -t=bogus", set()),
     ("pre-commit install --hook-type=not-a-hook -t pre-commit", set()),
+    # argparse splits a short option on the FIRST `=` only, so `-t==X` passes it `=X` and the
+    # invocation is rejected — exactly one optional `=` is valid, not any number of them
+    ("pre-commit install -t=pre-commit -t==commit-msg -t=pre-push", set()),
+    ("pre-commit install -t===pre-commit", set()),
     # ...but a VALID stage this carrier does not manage is not an error: the install succeeds
     # and all three managed stages really are armed
     ("pre-commit install -t pre-commit -t commit-msg -t pre-push -t post-commit",

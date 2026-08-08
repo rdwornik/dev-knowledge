@@ -367,12 +367,32 @@ mechanically enforced, not a convention. The emitted command is byte-identical t
 constant (`fc8e4ef`), so **no deployed byte changes and no version anchor moves**: this stays
 undeployed carrier engine code under the same `[NB]` precedent as #275b itself.
 
-**Verify-at-build** (join the §Verify-at-build list): `tests/test_deploy_floor.py` 23 → 37,
+**Verify-at-build** (join the §Verify-at-build list): `tests/test_deploy_floor.py` 23 → 96,
 including the three frozen assertions — a 1-stage-armed fixture FAILs `verify`; one re-deploy
 leaves it 3-stage-armed and verify-green, repaired in place; an already-3-stage fixture is
 byte-identical after re-deploy. **Trip-tested against the pre-#290 carrier: 9 of the new tests
 fail there** (`verify` returns ok on a 1-stage arm, `apply` reports `changed=False`, and the
 old verify-leg-less path appends a duplicate arm leg), so the teeth are witnessed, not assumed.
+
+Most of that test growth is **adversarial parser coverage**, not the frozen assertions. Five
+`/codex-review` (terra) passes over this diff each found a real way to read an arm command
+wrongly, and the count is the residue of closing them: a whole-token scan credited
+`install-hooks -t …`; a preceding-token rule credited `echo pre-commit install -t …`; a
+word-bag runner prefix credited `python pre-commit install` (no `-m`); an invocation that
+argparse REJECTS (`-t bogus`, a valueless `-t`, `-t==stage`) was credited with its valid
+flags. Every one of those is a false `PRESENT_CORRECT` — the dormant-stage defect #290 exists
+to close, reachable through the teeth themselves — and each is now a pinned table row. The
+opposite direction is pinned too, because it is the damaging one: a genuinely-armed consumer
+misread as stale would have `apply` REWRITE its command, so `--hook-type=X`, `-t=X`, quoted
+values, a `VAR=value` prefix, `uv run` / `uvx` / `poetry run` / `py -3.12 -m` runners, a POSIX
+line continuation and an uppercase Windows `PRE-COMMIT.EXE` path are each proven a
+byte-identical no-op for `apply`.
+
+**Stated limit** (honest, and deliberate): a command that hides its invocation from static
+reading — `sh -c '…'`, a shell function, a wrapper script — is NOT recognised, so it reads as
+no arm leg. `apply` then ADDS a canonical arm leg beside it and never rewrites the opaque
+command, so the wrapper's behaviour survives even though it cannot be understood. Erring
+toward "not armed" is the safe direction: it yields a repairable verdict, never a false green.
 
 **Known-stale sibling claims, NOT touched by this lane** (held by other lanes / other owners;
 reported, not fixed): the `floor-sessionstart-guard` roster line in `deploy/manifest-v1.1.0`

@@ -403,7 +403,12 @@ def _stage_flags(args: list[str]) -> set[str] | None:
                 return None  # flag with no value -> argparse error -> nothing installed
             value = args[i + 1]
         elif tok.startswith("-t") and len(tok) > 2:
-            value = tok[2:].lstrip("=")  # `-tX` and `-t=X` are both valid argparse
+            # `-tX` and `-t=X` are both valid argparse; EXACTLY one optional `=`. Stripping
+            # every leading `=` read `-t==commit-msg` as the stage, but argparse splits on the
+            # first `=` only and rejects the remaining `=commit-msg`, so that install fails
+            # and arms nothing — a false PRESENT_CORRECT (terra pass-5, confirmed against
+            # argparse). The malformed value now falls through the enum check below to None.
+            value = tok[3:] if tok[2] == "=" else tok[2:]
         else:
             continue
         # Defensive strip: the whitespace-split fallback cannot remove quotes the lexer would.
