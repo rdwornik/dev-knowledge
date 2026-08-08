@@ -68,6 +68,14 @@ import subprocess
 from pathlib import Path, PurePosixPath
 from typing import NamedTuple, Optional
 
+# The [#355] git-env scrub, single-sourced in the LEAF module `scripts/gitenv.py` ([#396]).
+# A leaf — stdlib-only, zero repo imports — so this adds no import edge that could reach the
+# pre-push organ; the containment property this module's own tests assert is unaffected.
+try:  # dual script/package mode
+    from scripts import gitenv as _gitenv   # package-mode: `python -m scripts.<mod>`
+except ImportError:  # pragma: no cover -- whichever branch this interpreter needs
+    import gitenv as _gitenv                # script-mode: `python scripts/<mod>.py`
+
 #: Where a batch manifest lives and what it is called. The `-manifest` suffix keeps it
 #: distinguishable from the end-of-batch packet that closes it, and the ADR-101 class token
 #: (`-technical-`) is what lets it exist under `docs/audits/` at all.
@@ -135,10 +143,23 @@ def _valid_closer(closed_by: str) -> bool:
 
 
 def _git(repo_path: Path, *args: str) -> Optional[str]:
-    """Read-only git, or None on any failure. None always reduces to "no exemption"."""
+    """Read-only git in a SCRUBBED env, or None on any failure. None always reduces to
+    "no exemption".
+
+    The `env=` is [#512], and it is not cosmetic. `GIT_DIR` overrides BOTH `cwd=` and the
+    `-C` above, so a caller that inherited one — a hook, a nested invocation — read a
+    FOREIGN repo through this helper and got `None`/empty back for every probe. Every such
+    answer reduces to "no batch is open", which is the SAFE direction for the exemption but
+    the UNSAFE one for `gen_handoff`'s open-batch refusal: the refusal that protects a
+    handoff cut mid-batch silently saw nothing to refuse. Same [#355] class, fourth call
+    site — it was the only git caller in this fleet's batch machinery with no scrub at all.
+
+    Read-only and None-on-failure are unchanged; only the environment the probe runs in is.
+    """
     try:
         r = subprocess.run(["git", "-C", str(repo_path), *args], capture_output=True,
-                           text=True, encoding="utf-8", errors="replace", timeout=15)
+                           text=True, encoding="utf-8", errors="replace", timeout=15,
+                           env=_gitenv.scrubbed_git_env())
     except (OSError, subprocess.SubprocessError):
         return None
     return r.stdout if r.returncode == 0 else None
