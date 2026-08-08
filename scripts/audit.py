@@ -29,6 +29,7 @@ Usage:
 
 from __future__ import annotations
 
+import importlib.util
 import inspect
 import json
 import logging
@@ -53,24 +54,15 @@ import yaml
 # names at the original site below (search `_GIT_LOCATION_ENV_EXTRA`), where the note on
 # WHERE the scrub fires — which this arc does not change — still lives.
 #
-# ORDER IS LOAD-BEARING: the PACKAGE spelling is tried first (terra HIGH x2, 2026-08-08,
-# both reproduced). Neither branch is safe on its own, and each covers the other's hole:
-#   * package-mode (`python -m scripts.audit`) puts the REPO ROOT on sys.path, not
-#     `scripts/`. A bare `import gitenv` then searches PYTHONPATH and site-packages, where
-#     any foreign module of that name wins. Witnessed: a shadow on PYTHONPATH resolved and
-#     the scrub silently became the EMPTY set -- the [#355] defect re-opened by the very
-#     module that exists to close it, with nothing raised.
-#   * script-mode (`python scripts/audit.py`) puts `scripts/` at sys.path[0], so the bare
-#     fallback resolves THIS file before any PYTHONPATH or site-packages entry can be
-#     reached. Nothing can precede sys.path[0].
-# The cost is that the two spellings are two module objects (two caches) when both roots are
-# importable. That is behaviourally identical -- at most one extra `git rev-parse` -- and the
-# invariant that matters is asserted on the defining FILE in tests/test_gitenv.py, never on
-# object identity, which would only encode the import layout.
-try:  # dual script/package mode
-    from scripts import gitenv as _gitenv   # package-mode: `python -m scripts.audit`
-except ImportError:  # pragma: no cover -- whichever branch this interpreter needs
-    import gitenv as _gitenv                # script-mode: `scripts/` IS sys.path[0]
+# Loaded BY PATH, never by name. Both name-based spellings have a shadow hole that ends with
+# the scrub silently becoming the EMPTY set, and ordering them only moves it -- full argument
+# and the two reproductions are in gitenv.py's docstring (terra HIGH x3, 2026-08-08). A path
+# load cannot be intercepted by any sys.path entry, and it is affordable only because gitenv
+# is a leaf: executing it runs nothing else.
+_gitenv_spec = importlib.util.spec_from_file_location(
+    "dev_knowledge_gitenv", Path(__file__).resolve().with_name("gitenv.py"))
+_gitenv = importlib.util.module_from_spec(_gitenv_spec)
+_gitenv_spec.loader.exec_module(_gitenv)
 
 # Resolve repo root (scripts/ sibling) — after imports
 _SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))

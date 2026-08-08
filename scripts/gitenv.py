@@ -31,6 +31,30 @@ WHERE IT FIRES is each caller's decision, NOT this module's. `audit.py`'s fleet-
 commit path sets `GIT_INDEX_FILE` ON PURPOSE through its own explicit `env=` dict; routing
 that through this scrub would silently break it. This module says what the scrub set IS; it
 never decides which call sites take it.
+
+HOW CONSUMERS LOAD IT: **by PATH, never by name** (terra HIGH x3, 2026-08-08 — every
+name-based spelling was tried and every one had a shadow hole, each reproduced live):
+
+  * `import gitenv` loses to a foreign top-level `gitenv.py` on `PYTHONPATH`/site-packages
+    whenever `scripts/` is NOT sys.path[0] — which is exactly package-mode
+    (`python -m scripts.audit`), where the repo ROOT is on the path instead.
+  * `from scripts import gitenv` loses to a foreign package-shaped `scripts/gitenv.py` on
+    `PYTHONPATH` in script-mode (`python scripts/audit.py`), where sys.path[0] is
+    `scripts/` itself and therefore cannot resolve a top-level `scripts` package at all.
+  * Ordering the two only moves the hole; there is no order in which both are covered.
+
+Both holes end identically and SILENTLY: the decoy satisfies the import, the scrub becomes
+the EMPTY set, and [#355] is re-opened by the module that exists to close it. Nothing
+raises. So consumers resolve this file with `importlib.util.spec_from_file_location` against
+`Path(__file__).with_name("gitenv.py")`, which no `sys.path` entry can intercept. That is
+affordable ONLY because this module is a leaf: executing it runs nothing else. Each consumer
+gets its own module object and therefore its own cache — behaviourally identical (at most
+one extra `git rev-parse`), and `tests/test_gitenv.py` asserts the invariant that matters,
+which is the defining FILE, never object identity.
+
+The one exception is `fleet_analytics.py`, which puts `scripts/` at `sys.path[0]` itself
+before importing and so cannot be shadowed by either decoy shape. Its immunity is asserted
+alongside the others rather than assumed.
 """
 
 from __future__ import annotations

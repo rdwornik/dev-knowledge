@@ -63,6 +63,7 @@ Layer-2 contract (ADR-28/36): READ-ONLY. Filesystem reads and git plumbing reads
 """
 from __future__ import annotations
 
+import importlib.util
 import re
 import subprocess
 from pathlib import Path, PurePosixPath
@@ -71,13 +72,14 @@ from typing import NamedTuple, Optional
 # The [#355] git-env scrub, single-sourced in the LEAF module `scripts/gitenv.py` ([#396]).
 # A leaf — stdlib-only, zero repo imports — so this adds no import edge that could reach the
 # pre-push organ; the containment property this module's own tests assert is unaffected.
-# PACKAGE spelling FIRST -- order is load-bearing; see the note at audit.py's copy. Bare-first
-# lets a foreign `gitenv` on PYTHONPATH/site-packages win in package-mode and silently supply
-# an EMPTY scrub, which would re-open [#512] through the module that closes it.
-try:  # dual script/package mode
-    from scripts import gitenv as _gitenv   # package-mode: `python -m scripts.<mod>`
-except ImportError:  # pragma: no cover -- whichever branch this interpreter needs
-    import gitenv as _gitenv                # script-mode: `scripts/` IS sys.path[0]
+#
+# Loaded BY PATH, never by name -- every name-based spelling has a shadow hole that silently
+# empties the scrub, which would re-open [#512] through the module that closes it. Full
+# argument and the two reproductions are in gitenv.py's docstring.
+_gitenv_spec = importlib.util.spec_from_file_location(
+    "dev_knowledge_gitenv", Path(__file__).resolve().with_name("gitenv.py"))
+_gitenv = importlib.util.module_from_spec(_gitenv_spec)
+_gitenv_spec.loader.exec_module(_gitenv)
 
 #: Where a batch manifest lives and what it is called. The `-manifest` suffix keeps it
 #: distinguishable from the end-of-batch packet that closes it, and the ADR-101 class token

@@ -73,6 +73,7 @@ from __future__ import annotations
 
 import fnmatch
 import hashlib
+import importlib.util
 import json
 import os
 import re
@@ -89,14 +90,12 @@ from packaging.version import InvalidVersion, Version
 
 # The [#355] git-env scrub, single-sourced in the LEAF module `scripts/gitenv.py` ([#396]).
 # Bound to its historical names at the original site below (search `_GIT_LOCATION_ENV_EXTRA`).
-# PACKAGE spelling FIRST -- order is load-bearing; see the note at audit.py's copy. Bare-first
-# lets a foreign `gitenv` on PYTHONPATH/site-packages win in package-mode and silently supply
-# an EMPTY scrub; package-first cannot, and the bare fallback only ever runs where `scripts/`
-# is sys.path[0] and nothing can precede it.
-try:  # dual script/package mode
-    from scripts import gitenv as _gitenv   # package-mode: `python -m scripts.<mod>`
-except ImportError:  # pragma: no cover -- whichever branch this interpreter needs
-    import gitenv as _gitenv                # script-mode: `scripts/` IS sys.path[0]
+# Loaded BY PATH, never by name -- every name-based spelling has a shadow hole that silently
+# empties the scrub, and ordering them only moves it. Full argument in gitenv.py's docstring.
+_gitenv_spec = importlib.util.spec_from_file_location(
+    "dev_knowledge_gitenv", Path(__file__).resolve().with_name("gitenv.py"))
+_gitenv = importlib.util.module_from_spec(_gitenv_spec)
+_gitenv_spec.loader.exec_module(_gitenv)
 
 _SCRIPTS_DIR = Path(__file__).resolve().parent
 _REPO_ROOT = _SCRIPTS_DIR.parent

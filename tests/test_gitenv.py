@@ -133,52 +133,73 @@ def test_every_consumer_resolves_the_same_gitenv_file():
         assert Path(mod.__file__).resolve() == _GITENV.resolve(), mod
 
 
-def test_the_dual_mode_import_prefers_the_package_spelling():
-    """terra HIGH, 2026-08-08. Import ORDER is load-bearing, and the source-order pin is the
-    cheap half of the guard — the behavioural half is the next test.
+def test_no_consumer_loads_the_scrub_by_NAME():
+    """terra HIGH x3, 2026-08-08 — the cheap half of the guard; the behavioural half is the
+    next test.
 
-    Bare-first is the tempting order (it makes the two spellings converge on one module
-    object) and it is WRONG: package-mode puts the repo ROOT on sys.path, not `scripts/`, so
-    a bare `import gitenv` searches PYTHONPATH and site-packages and a foreign module of
-    that name wins. Package-first cannot lose that race, and its bare fallback only ever
-    runs where `scripts/` IS sys.path[0], which nothing can precede.
+    Every name-based spelling has a shadow hole and ordering them only MOVES it (all three
+    orderings were tried, and two were reproduced live). So the three consumers that cannot
+    control `sys.path[0]` resolve the file with `spec_from_file_location`, which no path
+    entry can intercept. `fleet_analytics` is the sanctioned exception: it puts `scripts/`
+    at `sys.path[0]` itself before importing, so nothing can precede it.
     """
     for mod in ("audit.py", "fleet_parity.py", "batch_manifest.py"):
         src = (_SCRIPTS / mod).read_text(encoding="utf-8")
-        pkg = src.index("from scripts import gitenv as _gitenv")
-        bare = src.index("import gitenv as _gitenv", src.index("except ImportError"))
-        assert pkg < bare, f"{mod} tries the bare spelling first — see terra 2026-08-08"
+        assert "spec_from_file_location" in src, f"{mod} no longer loads gitenv by path"
+        for spelling in ("import gitenv as _gitenv", "from scripts import gitenv"):
+            assert spelling not in src, f"{mod} re-grew a name-based gitenv import: {spelling}"
 
 
-def test_a_foreign_gitenv_on_the_path_cannot_supply_the_scrub(tmp_path):
-    """THE BEHAVIOURAL HALF, and the reason this finding was not merely accepted on
-    assertion. Reproduced live before the fix: with a decoy `gitenv.py` on PYTHONPATH,
-    package-mode `from scripts import audit` resolved the DECOY and
-    `audit._git_location_env()` returned the EMPTY set — the [#355] defect silently
-    re-opened by the module that exists to close it, with nothing raised.
+@pytest.mark.parametrize("shape", ["top-level", "package"])
+def test_a_foreign_gitenv_on_the_path_cannot_supply_the_scrub(tmp_path, shape):
+    """THE BEHAVIOURAL HALF, and the reason these findings were reproduced rather than
+    accepted on assertion. BOTH decoy shapes were witnessed collapsing the scrub to the
+    EMPTY set before the fix — silently, with nothing raised:
 
-    Run in a subprocess because the hazard is about interpreter startup path resolution,
-    which cannot be simulated inside an already-imported test process.
+      * `top-level` (a bare `gitenv.py` on PYTHONPATH) beat `import gitenv` in package-mode,
+        where the repo ROOT is on sys.path and `scripts/` is not.
+      * `package` (a `scripts/gitenv.py` on PYTHONPATH) beat `from scripts import gitenv` in
+        script-mode, where sys.path[0] IS `scripts/` and cannot resolve a top-level
+        `scripts` package at all.
+
+    Each shape is driven in the invocation mode where it actually wins, in a SUBPROCESS —
+    the hazard is interpreter startup path resolution and cannot be simulated inside an
+    already-imported process. A test that ran both shapes in one mode would grade the fix
+    green while half the hole stayed open, which is how the first two passes at this got out.
     """
     decoy = tmp_path / "decoy"
-    decoy.mkdir()
-    (decoy / "gitenv.py").write_text(
-        "GIT_LOCATION_ENV_EXTRA = ()\nGIT_LOCATION_ENV_FALLBACK = ()\n"
-        "def git_location_env(): return frozenset()\n"
-        "def scrubbed_git_env(): return {}\n", encoding="utf-8")
+    body = ("GIT_LOCATION_ENV_EXTRA = ()\nGIT_LOCATION_ENV_FALLBACK = ()\n"
+            "def git_location_env(): return frozenset()\n"
+            "def scrubbed_git_env(): return {}\n")
+    if shape == "top-level":
+        decoy.mkdir(parents=True)
+        (decoy / "gitenv.py").write_text(body, encoding="utf-8")
+        # package-mode: repo root on sys.path, `scripts/` is not.
+        preamble = "import sys\n"
+        importer = "from scripts import audit, fleet_parity, batch_manifest\n"
+    else:
+        (decoy / "scripts").mkdir(parents=True)
+        (decoy / "scripts" / "gitenv.py").write_text(body, encoding="utf-8")
+        # script-mode: sys.path[0] IS `scripts/`, and the cwd entry is absent -- replacing
+        # sys.path[0] rather than inserting is what makes this a faithful emulation.
+        preamble = f"import sys\nsys.path[0] = {str(_SCRIPTS)!r}\n"
+        importer = "import audit, fleet_parity, batch_manifest\n"
 
-    env = dict(os.environ, PYTHONPATH=str(decoy))
-    probe = ("from scripts import audit, fleet_parity, batch_manifest\n"
-             "print(audit._gitenv.__file__)\nprint(fleet_parity._gitenv.__file__)\n"
-             "print(batch_manifest._gitenv.__file__)\nprint(len(audit._git_location_env()))")
-    r = subprocess.run([sys.executable, "-c", probe], cwd=str(_SCRIPTS.parent), env=env,
+    probe = (preamble + importer + "import fleet_analytics\n"
+             "for m in (audit, fleet_parity, batch_manifest):\n"
+             "    print(m._gitenv.__file__)\n"
+             "print(fleet_analytics.gitenv.__file__)\n"
+             "print(len(audit._git_location_env()))\n")
+    r = subprocess.run([sys.executable, "-c", probe], cwd=str(_SCRIPTS.parent),
+                       env=dict(os.environ, PYTHONPATH=str(decoy)),
                        capture_output=True, text=True, encoding="utf-8", errors="replace")
     assert r.returncode == 0, r.stderr
 
     *resolved, scrub_size = r.stdout.strip().splitlines()
+    assert len(resolved) == 4
     for line in resolved:
         assert Path(line).resolve() == _GITENV.resolve(), \
-            f"a foreign gitenv on PYTHONPATH supplied the scrub: {line}"
+            f"a {shape} decoy on PYTHONPATH supplied the scrub: {line}"
     assert int(scrub_size) >= 15, "the scrub collapsed -- the decoy won"
 
 
