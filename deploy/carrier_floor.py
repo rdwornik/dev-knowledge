@@ -146,6 +146,11 @@ _INSTALL_VALUE_OPTS = frozenset({"--color", "-c", "--config", "-t", "--hook-type
 _INSTALL_FLAG_OPTS = frozenset({"-f", "--overwrite", "--install-hooks",
                                 "--allow-missing-config"})
 _STAGE_OPTS = frozenset({"-t", "--hook-type"})
+# The other `choices=`-constrained install option: an out-of-enum value is an argparse error,
+# so the install arms nothing — the same class as an invalid `-t` (terra pass-7, confirmed:
+# `error: argument --color: invalid use_color value: 'chartreuse'`). `-c/--config` takes an
+# arbitrary path and so has nothing statically checkable.
+_INSTALL_CHOICE_OPTS = {"--color": frozenset({"auto", "always", "never"})}
 _SESSIONSTART_ARM_CMD = "python -m pre_commit install " + " ".join(
     f"-t {stage}" for stage in ARM_HOOK_TYPES
 )
@@ -433,6 +438,9 @@ def _stage_flags(args: list[str]) -> set[str] | None:
             return None
         if value is not None and opt not in _INSTALL_VALUE_OPTS:
             return None  # a value given to an option that takes none
+        if opt in _INSTALL_CHOICE_OPTS:
+            if (value or "").strip("'\"") not in _INSTALL_CHOICE_OPTS[opt]:
+                return None  # invalid choice -> the whole install fails
         if opt in _STAGE_OPTS:
             # Defensive strip: the whitespace-split fallback cannot remove quotes the lexer
             # would have already resolved.

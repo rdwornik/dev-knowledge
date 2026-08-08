@@ -587,6 +587,12 @@ def test_long_form_stage_flags_count_as_fully_armed(tmp_path, long_form):
      {"pre-commit", "commit-msg", "pre-push"}),
     ("pre-commit install -t pre-commit -t commit-msg -t pre-push --color=never",
      {"pre-commit", "commit-msg", "pre-push"}),
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push --color auto",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    # `--color` is the other choices-constrained option: an out-of-enum value is an argparse
+    # error, so the install arms nothing (terra pass-7)
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push --color chartreuse", set()),
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push --color=chartreuse", set()),
     ("pre-commit install -c .pre-commit-config.yaml -t pre-commit -t commit-msg -t pre-push",
      {"pre-commit", "commit-msg", "pre-push"}),
     ("pre-commit install -c.pre-commit-config.yaml -t pre-commit -t commit-msg -t pre-push",
