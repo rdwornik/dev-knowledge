@@ -458,9 +458,43 @@ def test_an_inherited_GIT_DIR_does_not_suppress_a_real_open_batch(tmp_path, monk
     assert len(live) == 1, f"an inherited GIT_DIR suppressed a real open batch: {live}"
     assert live[0].batch == "2"
 
-    # (4) and the exemption built on that read still fires -- so the whole path is scrubbed,
-    #     not just the one probe the test happened to reach first.
-    merge = _merge(repo, "worktree-lane-e-396-gitenv")
+
+@requires_git
+@pytest.mark.xfail(strict=True, reason="known-open SIXTH unscrubbed site: journal_anchor._git")
+def test_exempt_still_fires_under_an_inherited_GIT_DIR(tmp_path, monkeypatch):
+    """A KNOWN-OPEN GAP, recorded as a live strict-xfail rather than left as a false green.
+
+    `[#512]` scrubbed `batch_manifest._git`, which is every probe `open_batches` makes. It is
+    NOT every probe `exempt` makes: `merged_branch_name` delegates the merge-parent and
+    merge-subject reads to `journal_anchor._git`, which carries no scrub. So under an
+    inherited `GIT_DIR` the manifest is read from the intended repo while the merge is looked
+    up in the FOREIGN one, and a valid lane merge loses its exemption.
+
+    This assertion originally lived as step (4) of the test above and PASSED — because the
+    fixture built its merge after exporting `GIT_DIR`, so `_merge`'s own unscrubbed helper
+    created the merge in the foreign repo too, and both halves agreed about the wrong tree.
+    Building the merge FIRST, in `repo`, is what makes the assertion mean what it says, and
+    what makes it fail (terra HIGH x2, pass 4, 2026-08-08).
+
+    `scripts/journal_anchor.py` is outside this lane's frozen scope — deliberately, since it
+    is the shared predicate the pre-push organ `block_unanchored_push` also imports, so
+    scrubbing it is a wider blast radius than a lane may take unilaterally. `strict=True` is
+    what keeps this honest: the day that site is scrubbed, this test XPASSes, strict turns it
+    RED, and the marker cannot be forgotten.
+    """
+    repo, _floor = _seed(tmp_path)
+    _write_manifest(repo)
+    merge = _merge(repo, "worktree-lane-e-396-gitenv")   # in `repo`, with a CLEAN env
+
+    other = _foreign_repo(tmp_path)
+    monkeypatch.setenv("GIT_DIR", str(other / ".git"))
+
+    # The foreign repo genuinely does not know this commit, so a lookup that lands there
+    # cannot answer correctly by luck.
+    probe = subprocess.run(["git", "-C", str(other), "cat-file", "-e", f"{merge}^{{commit}}"],
+                           capture_output=True, text=True, encoding="utf-8")
+    assert probe.returncode != 0, "the foreign repo knows the merge -- fixture is not isolating"
+
     assert bm.exempt(repo, [merge]) == {merge}
 
 
