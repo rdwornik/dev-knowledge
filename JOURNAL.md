@@ -19,6 +19,57 @@
 
 ---
 
+### 2026-08-08 (a) — CC (Opus 5, primary tree): the night branch integrated, and the ledger re-pegged to events that actually happened
+
+**Did:** Fetched first, then verified `claude/night-cloud-contract-exec-g4bk91` (head `93bb905c`,
+7 commits, 4 of them the phase artifacts) against the real uv pin locally — every gate the night
+container SKIPped structurally. Merged `--no-ff` to main, pushed, deleted the lane. Then applied
+the night's comments to intake #27 on `docs/morning-ledger-truth`.
+
+**Result — the local re-run cleared what the container could not.** `audit.py ship-gate` is
+**GREEN** (18 WARNs dispositioned), and the staging doc's predicted hard fail did not
+materialise: `canonical_freshness` passes here, so its four "edited-but-not-re-reviewed" docs were
+a **stale-`main` artifact of the container**, not inherited debt. `hooks_armed` and
+`journal_spine_anchor` likewise pass on this machine, exactly as the night packs predicted they
+would. All six generators `--check` clean; `validate_doc_claims` OK with `pytest_collected`
+2555/2555. Suite `uv run --locked pytest -n auto`: **1 failed, 2550 passed, 4 skipped in 532.28s
+(8m52s)** — the single RED is `test_routine_consumers_live_backlog_governs_exactly_one_row`
+(asserts "1 declared routine row", live evidence says 2), which is the known inherited residue and
+the only one expected.
+
+**Result — Phase 1 is on `main`, which settles the cut's one non-mechanical question.** The Ch8
+routing-matrix amendment and `templates/prompt-template.md` v1.11 are now in the tree, so the
+handoff-cut staging doc's §3 step 0 resolves **merged**: R4 and R6 paste as drafted, and the
+delete-if-unmerged clauses stay.
+
+**Result — six ledger rows stopped pointing at a finished event.** Rows 13/14/15/16/21/24 of
+intake #27 all read `DEFERRED(batch 2 …)`; batch 2 ran and closed with **zero** W-items in it.
+Re-pegged to `DEFERRED(W-wave batch — after intake #25 acceptance + births)` with every row's own
+collision/hazard qualifier preserved verbatim. The research memo's §9 landed in the shapes the
+memo proposed — two additions as §A rows 37 and 40 (keeping the memo's numbers), two amendments
+folded into item 35 and the Sequencing note. Items 34 and 36 gained the maintenance flag and the
+recurrence evidence respectively.
+
+**Result — one proposal was deliberately not promoted.** Memo §9 item 39 proposed itself as "a
+one-line register ruling". `protocols/STANDING_RULINGS.md` carries rulings **ratified in chat**;
+this one has not been, so it landed in the intake's own not-binding Sequencing note with its
+evidence intact rather than being self-issued into the register with a provenance it does not
+have. Ratifying it is one line and is the operator's.
+
+**Changes:** `docs/intake/2026-08-06-tech-adoption-consolidation-intake.md` (+ its two regenerated
+carriers `README.md` and `manifest.json` — the second is not hook-gated and is the one that gets
+forgotten), `JOURNAL.md`. Merged in from the night branch: `protocols/PLAYBOOK.md`,
+`templates/prompt-template.md`, three `docs/audits/2026-08-08-*` artifacts, `docs/audits/README.md`.
+
+**Abandoned:** nothing. **Next:** cut the 2026-08-08 architect bundle on final main per
+`docs/audits/2026-08-08-technical-handoff-cut-staging.md` §3, phase-stamped for [#511]'s empirical
+number, then pause for the architect-authored SUPPLEMENT answers.
+
+**Anchor:** `08c3e0b6` (the ledger-truth commit this entry rides) · `1af6dfea` (the night-branch
+merge).
+
+---
+
 ### 2026-08-07 (o) — CC (Opus 5, cloud night window): the session-end gate was disarmed by the uv pin, and its check passes when run directly
 
 **Did:** The `Stop` backpressure hook fired at the session boundary and **did not run**:
