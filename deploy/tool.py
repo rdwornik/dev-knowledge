@@ -57,6 +57,7 @@ _DEPLOY_DIR = Path(__file__).resolve().parent
 if str(_DEPLOY_DIR) not in sys.path:
     sys.path.insert(0, str(_DEPLOY_DIR))
 
+from carrier_docs import DocsCarrier  # noqa: E402
 from carrier_floor import FloorCarrier  # noqa: E402
 from carrier_globalconfig import GlobalConfigCarrier  # noqa: E402
 from carrier_mesh import MeshCarrier  # noqa: E402
@@ -320,6 +321,7 @@ def make_carriers(
         PrecommitCarrier.carrier_id: PrecommitCarrier(repo_root),
         FloorCarrier.carrier_id: FloorCarrier(repo_root),
         MeshCarrier.carrier_id: MeshCarrier(repo_root),
+        DocsCarrier.carrier_id: DocsCarrier(repo_root),
     }
 
 
@@ -340,6 +342,7 @@ _APPLY_HINT = {
     "precommit": "merge required pins into .pre-commit-config.yaml",
     "floor": "generate .claude/CLAUDE-FLOOR.md + .sha256 sidecar",
     "enforcement-mesh": "deploy seb + freshness-gate scripts + /override + Stop hook + logs/",
+    "docs": "copy the manifest-declared hub docs (intake area, INSTALL.md) into the consumer",
 }
 
 _STATE_VERB = {
