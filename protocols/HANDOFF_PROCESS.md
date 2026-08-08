@@ -1,7 +1,7 @@
 # HANDOFF_PROCESS v6
 <!-- scope: meta -->
 
-Version: 6.1.0
+Version: 6.2.0
 Status: stable
 Effective: 2026-06-11 (canonical); v6 cut 2026-07-31
 Decision: ADR-82 (operator-ratified 2026-06-11; Council gate waived by operator authority per #149).
@@ -104,6 +104,32 @@ browser** — never assume a CC-held file transmits to a file-less actor.
 
 The boot ends with an on-load acknowledgment line so a partial/missing paste is visible
 (the ADR-79 visible-paste idea).
+
+**BOOT DRILL — one sample dispatch line, read by the operator before the first real dispatch
+(v6.2.0).** Before an incoming seat dispatches anything, it emits **one sample dispatch line** for
+the operator to read: not a description of what it intends to dispatch, but the literal line, in
+the form the operator would run.
+
+*What the drill buys.* A seat inherits its dispatch conventions from files it has only just read,
+and a line that is subtly wrong — a dropped constant, a stale prompts-dir form, a board label whose
+bracket does not scan in Agent View — launches a session anyway. That failure stays invisible until
+the lane is already running at the wrong tier, in the wrong tree, or off the board the operator
+scans. One line, read once, converts the class into a correction made *before* the fact. It is the
+same shape as the on-load acknowledgment directly above: a cheap emission whose absence or
+wrongness is visible, placed where being wrong still costs nothing.
+
+*What it is not.* The sample is for reading, not for launching — the drill dispatches nothing, and
+the operator's check is a look rather than a gate. Where the seat's arcs carry their own
+`## Dispatch` blocks, the sample is the line one of those blocks would produce. Form and mechanics
+live at `protocols/PLAYBOOK.md` Ch8 "The dispatch surface is `dispatch <file>`" and the routing
+matrix beside it; the typed form also rides resident in every bundle (the "Operator-facing forms"
+section of `templates/handoff/v5/HANDOFF_BOOT.md.tmpl`).
+
+*Honest limit, stated so this is not read as enforced.* This is prose discipline, not a mechanism:
+no probe binds it and no gate reads it, so a seat that skips the drill produces a bundle
+indistinguishable from one that ran it. It sits here rather than in the probe manifest because its
+answer is a judgment the operator makes by looking, which fails the §5 bounded-deterministic
+condition a probe has to meet — an unbounded judgment is an arc, not a probe.
 
 ---
 
@@ -1049,3 +1075,28 @@ intake↔epic edge stays **advisory until n=2** intake docs are consumed end-to-
   `docs/handoffs/README.md` was genuinely re-read end-to-end and re-stamped; the other gated
   dependents already read 2026-08-07, so nothing was faked. Major stays 6. Refs [#505], [#511],
   ADR-110, `STANDING_RULINGS.md` B7.
+- v6.1.0 → **v6.2.0** (2026-08-08, §4 BOOT DRILL — ARC-dispatch-surface-codify) —
+  **Version → 6.2.0** (**additive**; no §1–§3 or §5–§16 rule changed, removed, or weakened — the
+  probe manifest, the four teeth conditions and the answer-free contract are untouched).
+  **§4 gains "BOOT DRILL".** Before an incoming seat dispatches anything, it emits one sample
+  dispatch line — the literal line, not a description of one — for the operator to read. The class
+  it catches is a subtly-wrong line that launches a session anyway (dropped constant, stale
+  prompts-dir form, a board label that does not scan in Agent View), which stays invisible until
+  the lane is already running at the wrong tier or off the board. Deliberately shaped like the
+  on-load acknowledgment beside it: a cheap emission whose wrongness is visible while being wrong
+  still costs nothing. Minor rather than patch on the §10-boundary-invariants precedent — it adds
+  a beat to the boot, it does not clarify an existing one.
+  **Recorded as prose discipline, not a mechanism:** no probe binds the drill and no gate reads it.
+  It is kept OUT of the probe manifest on §5's own terms — the operator's check is a judgment made
+  by looking, which fails the bounded-deterministic condition, and an unbounded judgment is an arc
+  rather than a probe. No `<!-- rule: -->` marker is claimed, since there is no organ to bind to.
+  **Coupled atomic move (this commit):** `CONTRIBUTING.md` stamp v6.1.0→v6.2.0 and the **six**
+  `reconciled_with` edges @6.1.0→@6.2.0 (`ARCHITECTURE.md`, `CLAUDE.md`, `CONTRIBUTING.md`,
+  `docs/handoffs/README.md`, `protocols/HANDOFF_BOOT.md`, `protocols/README.md`).
+  **DECLARED DIVERGENCE from the v6.1.0 precedent, operator-ruled 2026-08-08:** no gated dependent
+  is `last_reviewed`-re-stamped in this move. Four of them (`ARCHITECTURE.md`, `CLAUDE.md`,
+  `CONTRIBUTING.md`, `docs/handoffs/README.md`) read 2026-08-07 and are edited here on 2026-08-08,
+  so `canonical_freshness` A2 goes **RED** on each. That RED is carried deliberately: a re-stamp
+  asserts an end-to-end re-read that did not happen in this window, and a faked stamp is worse than
+  a visible one. Clearing it is a separate act, reserved to the operator. Major stays 6.
+  Refs [#509], win-tooling `d743937`.
