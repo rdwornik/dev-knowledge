@@ -344,7 +344,60 @@ carriers:
         - .vscode/settings.json
         - .vscode/extensions.json
 
+  - id: docs
+    order: 7
+    implemented: true
+    description: >
+      The DOC-CARRIER — verbatim hub-doc replicas in the consumer tree. Reconciles a
+      MANIFEST-DECLARED set of source -> dest doc paths (detect = bytes-match, apply =
+      copy, verify = re-read), exactly as `deploy/release-v1.3.x-contract.md` §"Decision
+      per item" (#280) specified it. It exists because the five pre-v1.4.0 carriers ship
+      no arbitrary doc tree — global-config copies ONE fixed file to a USER dir, and
+      floor / mesh / precommit / plugin each own a fixed, semantically-special payload —
+      so "carry these hub docs to the consumer" had no vector and #280 sat undeployable
+      (that contract: "declaring an `intake` component against an unbuilt carrier lints
+      green but is undeployable"). Alone among the carriers it hardcodes NO payload: the
+      pairs below are the whole spec, so shipping one more hub doc is a manifest edit,
+      not a code change. A carried doc is a hash-guarded REPLICA, never a rival source
+      (the ADR-93 floor model) — it has no rev, so detection uses three states only
+      (ABSENT / PRESENT_CORRECT / PRESENT_DRIFTED). Both path legs are repo-relative and
+      refused if absolute or containing `..` — a generic copy vector is the one place a
+      malformed manifest could otherwise write outside the consumer tree.
+    adr: [ADR-98, ADR-92]
+    target:
+      doc_paths:
+        # [#280] the intake area. ADR-98 ruling 1: "Greenfield consumers inherit
+        # `docs/intake/` at methodology deploy." The README is the format / frontmatter /
+        # lifecycle spec; the template is the fill-in skeleton it points at.
+        - source: docs/intake/README.md
+          path: docs/intake/README.md
+        - source: templates/intake-template.md
+          path: templates/intake-template.md
+
 components:
+  - id: intake-area
+    # kind: `config` follows the precedent of every OTHER file-copy component
+    # (vscode-boundary-decoration / codex-agents-config / methodology-floor). NOT
+    # `doc-shape` — that kind names the `doc_shapes:` spine/freshness payload at the
+    # foot of this file, and reusing it for a carried doc would collide with it.
+    kind: config
+    carrier: docs
+    status: active
+    waivable: true   # a requirements-capture SCENE, not a gate — waiving it costs the intake affordance, no enforcement
+    verify: hash
+    engages:                    # OBSERVED (git-state) — carried files, not a firing hook
+      trigger: deploy-time
+      observable: git-state
+      expect: "docs/intake/README.md + templates/intake-template.md present (hash-matched)"
+    artifacts:
+      - path: docs/intake/README.md
+        source: docs/intake/README.md
+      - path: templates/intake-template.md
+        source: templates/intake-template.md
+    roster:
+      section: header
+      line: "`docs/intake/` + `templates/intake-template.md` — the ADR-98 requirements spine (carried replica of the hub source)"
+
   - id: vscode-boundary-decoration
     kind: config
     carrier: editor-config
