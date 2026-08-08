@@ -330,3 +330,53 @@ gated by `roster-freshness`) reconcile the cut.
 - **Live application (ARC 4 leg 1):** hub `pyproject.toml` equalized on
   `feat/arc4-leg1-ruff-equalization`; consumers (corp-monorepo, ai-council) via per-consumer
   RULING-W worktrees, each commit-and-STOP + report.
+
+## Addendum 2026-08-08 — the #275b residual is CLOSED (BACKLOG [#290])
+
+> **Supersedes the two open items in §Consequences "#275b residual (deferred, minimal-fix
+> rationale)".** That paragraph stays as written — it is the accurate record of what the
+> Wave-1 prep lane deferred and why; this addendum records that both halves have since
+> landed, so the paragraph's "Two follow-ups remain" no longer describes live state. Built in
+> the batch-4 lane `worktree-lane-290-floor-teeth`, commit-and-STOP (integration serialized
+> through the primary).
+
+Both halves shipped together, as the deferral rationale required — a DRIFTED verdict `apply`
+cannot repair was the whole reason they were held as a pair:
+
+- **(a) teeth.** `deploy/carrier_floor.py` `detect` + `verify` now assert BOTH SessionStart
+  legs, and the arm leg at **full stage cardinality**. Previously only the verify-leg sentinel
+  (`check_floor_hash.py`) was checked, so a consumer armed by a pre-#275b deploy — a bare
+  `python -m pre_commit install`, arming the pre-commit stage only — classified
+  `PRESENT_CORRECT` and verified green with its commit-msg / pre-push stage hooks
+  wired-but-dormant. `verify` now names the dormant stages ("arms 1/3 managed hook stage(s) —
+  commit-msg, pre-push would land wired-but-dormant"); `detect` returns `PRESENT_DRIFTED`.
+  D9 preserved: subset test in `detect`, dormant-list re-derivation in `verify`; the shared
+  additions are SPEC parsers only.
+- **(b) self-heal.** `_ensure_settings` no longer no-ops on the mere presence of the verify
+  leg. An under-armed arm leg is repaired **in place** — only that hook's `command` string is
+  rewritten; its other keys (including a consumer-tuned `timeout`), the verify leg, sibling
+  SessionStart hooks, matcher groups, ordering and every unrelated `settings.json` key are
+  left verbatim. The two mirror gaps (arm leg absent / verify leg absent) now each add back
+  just the missing leg instead of appending a duplicate guard block. Coverage is judged as a
+  union across arm legs, so a complete-but-split arm is correctly a no-op.
+
+**Stage cardinality is now single-sourced.** `carrier_floor.ARM_HOOK_TYPES` **is**
+`scripts/arm_hooks.py::HOOK_TYPES`, and `_SESSIONSTART_ARM_CMD` is derived from it rather than
+re-declaring the `-t` flags — so §3.1's "mirrors the hub's own `scripts/arm_hooks.py`" is
+mechanically enforced, not a convention. The emitted command is byte-identical to the #275b
+constant (`fc8e4ef`), so **no deployed byte changes and no version anchor moves**: this stays
+undeployed carrier engine code under the same `[NB]` precedent as #275b itself.
+
+**Verify-at-build** (join the §Verify-at-build list): `tests/test_deploy_floor.py` 23 → 37,
+including the three frozen assertions — a 1-stage-armed fixture FAILs `verify`; one re-deploy
+leaves it 3-stage-armed and verify-green, repaired in place; an already-3-stage fixture is
+byte-identical after re-deploy. **Trip-tested against the pre-#290 carrier: 9 of the new tests
+fail there** (`verify` returns ok on a 1-stage arm, `apply` reports `changed=False`, and the
+old verify-leg-less path appends a duplicate arm leg), so the teeth are witnessed, not assumed.
+
+**Known-stale sibling claims, NOT touched by this lane** (held by other lanes / other owners;
+reported, not fixed): the `floor-sessionstart-guard` roster line in `deploy/manifest-v1.1.0`
+through `-v1.4.0.yaml` and `.claude/methodology-roster.md` still renders the arm leg as
+`python -m pre_commit install` with no stage flags, and `deploy/floor_conformance.py`'s
+`assert_sessionstart_wired` still asserts only that *an* arm leg exists, not its cardinality —
+a weaker check than the carrier's own, though not a contradicted one.
