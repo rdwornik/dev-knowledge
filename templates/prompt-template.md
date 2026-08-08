@@ -1,6 +1,6 @@
 # Prompt Template for Claude Code
 <!-- scope: meta -->
-<!-- version: 1.11 — 2026-08-07 -->
+<!-- version: 1.12 — 2026-08-08 -->
 
 > **Copy this template, fill placeholders, save as `.md` artifact, deliver to Claude Code via paste-into-prompt.** Browser chat produces this; Claude Code executes it.
 >
@@ -182,6 +182,8 @@ git status
 
 **Obsolescence pass:** propose deletion of content this change supersedes, instead of writing around it — surface candidates with evidence for the operator to ratify (auto-delete stays forbidden; git history preserves). Per the PLAYBOOK §2 pruning-symmetry rule.
 
+**SELF-TEST:** before STOP, re-run your own acceptance contract as a checklist, stating PASS/FAIL per item in the packet. (AM-4, ratified 2026-08-08.)
+
 Final: `/ship "<summary> [#id if closing]"` — refuses if: on `main`, dirty tree, or validators red.
 
 ## What NOT to do
@@ -195,6 +197,12 @@ Final: `/ship "<summary> [#id if closing]"` — refuses if: on `main`, dirty tre
 ---
 
 **Section history:**
+- v1.12 (2026-08-08) — **AM-4: the Final section gains a SELF-TEST line.** A lane that STOPs
+  having done the work still leaves the integrator to derive, from a diff, whether the acceptance
+  contract was met — so the one seat that knows the answer reports it. Before STOP, the lane
+  re-runs its own acceptance contract as a checklist and states PASS/FAIL per item in the packet.
+  Ratified at the 2026-08-08 batch-3 GO; landed as a template line rather than doctrine because
+  this card is the point-of-use authority for work-lane prompts.
 - v1.11 (2026-08-07) — **the matrix's `sonnet` row is re-cut: the tier keys on CONTEXT LOAD, not
   task shape.** Operator ruling on measured evidence — a shape-S arc on sonnet ran ~3h against
   this repo's gate mesh, so a tier picked from diff size prices in none of what the arc actually

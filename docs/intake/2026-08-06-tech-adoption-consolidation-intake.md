@@ -94,3 +94,22 @@ single place to call. Evidence: `docs/audits/2026-08-08-technical-library-resear
 `protocols/STANDING_RULINGS.md` carries rulings *ratified in chat*, and this one has not been —
 so it is recorded here, in a note this file already labels *not binding*, rather than self-issued
 into the register. Ratifying it is one line and is the operator's.
+
+## Ratification amendment — 2026-08-08 (batch-3 GO)
+
+Appended rather than folded: every section above stays exactly as written. These lines record what
+the 2026-08-08 GO ratified against directives this file carries, so each ratification survives the
+seat that took it.
+
+- **Process-lane cap — denominator ratified (operator, 2026-08-08).** The 2026-08-06 process-lane
+  cap (≤1/4 of a batch's lanes targeting methodology / hub-process surfaces) is evaluated against
+  **dispatched width**; the end-of-batch packet reports the **close-width delta**. Doctrinal home:
+  `protocols/PLAYBOOK.md` Ch8, "The batch protocol". ADR-110's routing-table row for the cap
+  (§ "Amendment — 2026-08-06", the directive table) carries a matching amendment note rather than
+  an in-place edit.
+- **Sequencing statement `[#396]` before `[#512]` — RATIFIED (operator, 2026-08-08).** The
+  "Added 2026-08-08 (memo §9 item 39)" paragraph in the Sequencing note above records this
+  ordering under `Status: proposal, not a ruling`. That status line is superseded: the ordering
+  was ratified at the batch-3 GO and now carries a register entry at
+  `protocols/STANDING_RULINGS.md` **G1**. The paragraph itself is left as written (appended-to,
+  not folded); the reasoning and evidence citation it carries are unchanged.

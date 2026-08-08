@@ -1716,7 +1716,9 @@ once, before any lane boots; each lane receives one frozen contract naming its o
 integrator merges the lanes back one at a time from the primary checkout. Dependency-chained work
 stays **inside a single lane** — a lane is the unit that can carry order, so splitting a chain
 across two lanes trades a cheap serial step for a merge-order constraint the integrator has no
-way to express.
+way to express. Serialize-groups bind on witnessed file footprints within a batch: label
+co-membership alone does not serialize lanes whose witnessed footprints are disjoint
+(`protocols/STANDING_RULINGS.md` G2, ratified 2026-08-08).
 
 **Parameterized by N — drilled at 3, designed for 4–10.** Batch 1 runs three lanes because three
 is enough to exercise the machinery; every artifact is written for N. Provisioning, the board
@@ -1860,6 +1862,14 @@ Single-question round-trips are reserved for genuine ask-class **(a)–(c)** ite
 outside those three classes travels in the next packet. Target metric: ≤2 operator interactions
 per lane-batch (intake #25 V-2). Operator directive 2026-08-06.
 
+**The two numbers, counted separately (ratified 2026-08-08 — [#505] clause 2).** The 2-touch
+budget is measured per seam, per batch, and the two seams are counted separately. operator ↔
+integration: the GO at dispatch and the end-of-batch packet at close — target exactly 2. operator
+↔ lane: contract acceptance plus any ask-class (a)–(c) escalation — target ≤1 escalation per
+batch, reported in the packet rather than budgeted away. A batch reports both numbers; neither
+substitutes for the other. Under sequential contract authoring, per-lane contract acceptances
+count within the dispatch GO seam, not as additional touches.
+
 **V-3 tiered ceremony — ceremony scales with arc size.** **S:** headless / auto-accept, no
 plan-mode — contract → execute → terra → queue. **M:** one plan round. **L:** full ceremony.
 `templates/prompt-template.md` (the work-lane card) is the point-of-use authority for the
@@ -1878,8 +1888,10 @@ per-Scale detail; the tiering is intake #25 AMENDMENT-b V-3, refined by AMENDMEN
 hub-process surfaces.** The remainder carry product/consumer work. A batch that cannot fill its
 non-process lanes **reports the shortfall** in its end-of-batch packet and runs narrower;
 backfilling the gap with additional process lanes defeats the cap, which exists because
-methodology work is the class that expands to fill whatever width is available. Operator directive
-2026-08-06; carried in-repo by intake #27.
+methodology work is the class that expands to fill whatever width is available. The cap is
+evaluated against **dispatched width**; the end-of-batch packet reports the **close-width
+delta**. Operator directive 2026-08-06; carried in-repo by intake #27. Denominator ratified
+2026-08-08.
 
 **Honest limits.** This protocol is doctrine plus two commands. The only mechanized parts are the
 stale-worktree WARN (`audit.py::check_stale_worktrees`) and the naming enum

@@ -289,3 +289,20 @@ to reach a manifest read.
 - **Unverified at width 6.** The mechanism is tested at the unit level and against real git,
   but no batch above 3 has run. Batch 2 is its first live exercise, and is also the first test
   of [#505] clause 1 (a fresh seat running a batch from committed artifacts alone).
+
+## Amendment — 2026-08-08: the process-lane cap is evaluated against dispatched width
+
+The 2026-08-06 amendment's directive table above restates the process-lane cap as "≤1/4 of a
+batch's lanes target methodology/hub-process surfaces" without naming the width that fraction is
+taken over — which is the one thing a batch needs to know to apply it. Operator-ratified
+2026-08-08: **the cap is evaluated against dispatched width; the end-of-batch packet reports the
+close-width delta.**
+
+**This is an amendment note, not an edit.** The table row above stands as written; where the two
+are read together, this section governs. The doctrinal home for the cap remains
+`protocols/PLAYBOOK.md` Ch8, "The batch protocol", which carries the ratified sentence verbatim;
+the ledger record is intake #27's "Ratification amendment — 2026-08-08".
+
+**Scope — denominator only.** The 1/4 fraction, the from-batch-2-onward start date, the
+report-the-shortfall-and-run-narrower behaviour, and the no-backfill rule are all unchanged by
+this amendment.

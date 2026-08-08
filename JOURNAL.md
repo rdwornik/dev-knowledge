@@ -19,6 +19,65 @@
 
 ---
 
+### 2026-08-08 (c) — CC (Opus 5, primary tree): PHASE-0 — six chat-ratified decisions land as repo text, zero new decisions taken
+
+**Did:** Converted every ratified-in-chat decision from the 2026-08-08 GO into repo text on
+`chore/batch3-phase0-landings`, one commit per contract step. The batch-2 lesson driving this arc
+is that an unlanded ratification re-opens as a fork; nothing here decides anything new.
+
+**Result — five commits, ship-gate GREEN:**
+
+- `7d7253c1` — process-lane cap denominator: evaluated against **dispatched width**, packet reports
+  the **close-width delta**. PLAYBOOK Ch8 carries it; ADR-110 and intake #27 got APPENDED amendment
+  sections (never in-place — the 2026-08-06 directive table stands as written).
+- `af1fd03b` — [#505] clause 2, the two-number touch budget (operator/integration exactly 2;
+  operator/lane <=1 escalation, reported not budgeted away).
+- `f633e063` — ADR-87 population boundary: the architect states the session's boot tier, CC routes
+  sub-steps inside it. Appended section; the equilibrium table untouched.
+- `5f51dc0a` — STANDING_RULINGS gains section **G**: G1 [#396]-before-[#512] RATIFIED, G2
+  serialize-groups bind on witnessed footprints, G3 win-tooling private-remote (recorded, not
+  executed). G2's PLAYBOOK sentence folded into the same commit.
+- `7f531cce` — AM-4 SELF-TEST line on `templates/prompt-template.md` (v1.11 -> v1.12).
+
+**Two contract wordings could not land as literally written, and the repo won both times.** Clause
+2's verbatim sentence is 417 chars against 55 chars of headroom on the 1145-char [#505] row
+(`_BACKLOG_GROSS_CHARS` = 1200), and `gen_task_tree` REFUSES a multi-line task body outright ("a
+task is ONE physical line") — the three multi-line bodies on disk are all retired rows whose nodes
+are out of the manifest, so they are not precedent. PLAYBOOK's own container rule resolved it: the
+record takes the load in Ch8, the row keeps a pointer, landing at 1171. Separately, Ch8 has **no**
+serialize-group discussion for G2's sentence to sit adjacent to; it went to "The shape", the
+file-disjoint-lanes paragraph, as the nearest correct anchor.
+
+**Two measurements corrected stale in-repo claims.** The silent-rule ratchet reads **433 against a
+441 baseline** (8 below), not the "441 = 441" its own editing note asserts — so G2's "never" was
+affordable and needed no rewording. And `templates/prompt-template.md` is **not** in
+`validate_reconciliation._SPEC_REGISTRY` (only `handoff-process` is), so no coherence-nudge guards
+its version; the v1.12 bump follows the file's own history convention instead.
+
+**Changes:** `protocols/PLAYBOOK.md` (Ch8 x3), `protocols/STANDING_RULINGS.md` (section G),
+`docs/decisions/ADR-87` + `ADR-110` (appended amendments), `docs/intake/2026-08-06-...-intake.md`
+(appended ratification amendment), `tasks/505-*.md` + `BACKLOG.md` + `tasks/manifest.json`,
+`templates/prompt-template.md`.
+
+**Abandoned:** the multi-line-task-body route for clause 2 (engine-refused, reverted before
+commit). Step 7's A7(d) defective-seal retirement row deliberately NOT created — it births at
+batch-3's first closes.
+
+**One real error, fully reverted.** The step-1 commit was first issued from a shell whose cwd was
+the job tmp dir under `~/.claude`, so `git add -A && git commit` resolved to the **`~/.claude`
+repo** and swept 8 pre-existing uncommitted files there into a commit (`6eb4446`). Undone with a
+mixed `git reset HEAD~1`, which moves the branch pointer and unstages without touching file
+content; `~/.claude` is back at `e464416` with its 5 modified + 3 untracked files exactly as found.
+No `.dev-knowledge` content was affected. The lesson is that a bare `git` call inherits cwd, so
+every subsequent commit in this arc used an explicit `git -C <repo>`.
+
+**Next:** batch-3 sizing runs against landed doctrine now rather than seat memory. Carried
+forward, unfixed: intake #27's Sequencing-note paragraph still reads `Status: proposal, not a
+ruling` in its own text (superseded by an appended bullet + G1 rather than edited), and Ch8's
+2-touch bullets name the seams `operator <-> batch` / `browser <-> operator` while clause 2 names
+`operator <-> integration` / `operator <-> lane` — a naming divergence left standing because
+reworking adjacent doctrine was out of contract scope.
+
 ### 2026-08-08 (b) — CC (Opus 5, primary tree): the cut, phase-stamped — and the supplement closed four of the eight forks it was carrying
 
 **Did:** Cut the `2026-08-08-dev-knowledge-architect` bundle on final main `9ade771c` per
