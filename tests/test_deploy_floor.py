@@ -688,14 +688,16 @@ def test_armed_stages_binds_flags_to_the_install_invocation(cmd, expected):
     assert cf._armed_stages(cmd) == frozenset(expected)
 
 
-def test_valid_hook_types_come_from_pre_commit_itself():
-    """The valid-stage enum is pre-commit's own (library-first), and the fallback literal is
-    only a mirror — so `post-commit` cannot drift into looking invalid."""
+def test_stage_choices_come_from_pre_commit_itself():
+    """The mirrored parser's `-t` choices ARE pre-commit's own enum (library-first), so a valid
+    stage can never drift into looking invalid — which would read a correctly-armed consumer as
+    stale and rewrite it. The literal fallback is only for an env without pre-commit."""
     from pre_commit.clientlib import HOOK_TYPES as upstream
 
-    assert cf._VALID_HOOK_TYPES == frozenset(upstream)
-    # every stage this carrier requires must be one pre-commit can actually install
-    assert set(cf.ARM_HOOK_TYPES) <= cf._VALID_HOOK_TYPES
+    assert frozenset(cf._PRECOMMIT_HOOK_TYPES) == frozenset(upstream)
+    assert frozenset(cf._INSTALL_PARSER._option_string_actions["-t"].choices) == frozenset(upstream)
+    # every stage this carrier REQUIRES must be one pre-commit can actually install
+    assert set(cf.ARM_HOOK_TYPES) <= set(upstream)
 
 
 def test_install_option_surface_matches_pre_commit_help():
@@ -715,7 +717,7 @@ def test_install_option_surface_matches_pre_commit_help():
     known = set(cf._INSTALL_PARSER._option_string_actions)
     # the regex also catches the tails of hyphenated VALUES and prose (`pre-commit`,
     # `commit-msg`, `post-checkout`, ...); those are not options
-    value_tails = {f"-{part}" for stage in cf._VALID_HOOK_TYPES for part in stage.split("-")}
+    value_tails = {f"-{part}" for stage in cf._PRECOMMIT_HOOK_TYPES for part in stage.split("-")}
     unknown = advertised - known - value_tails - {"--pre-commit", "-pre-commit"}
     assert not unknown, (
         f"`pre-commit install` advertises option(s) this carrier does not know: "

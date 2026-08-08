@@ -136,7 +136,6 @@ except Exception:  # pragma: no cover - env without pre-commit; mirror of the ab
         "commit-msg", "post-checkout", "post-commit", "post-merge", "post-rewrite",
         "pre-commit", "pre-merge-commit", "pre-push", "pre-rebase", "prepare-commit-msg",
     )
-_VALID_HOOK_TYPES = frozenset(_PRECOMMIT_HOOK_TYPES)
 
 def _install_arg_parser() -> argparse.ArgumentParser:
     """A parser mirroring `pre-commit install`'s own option surface (from its `--help`).
