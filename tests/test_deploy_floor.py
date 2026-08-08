@@ -520,6 +520,35 @@ def test_long_form_stage_flags_count_as_fully_armed(tmp_path, long_form):
     ("sh -c 'pre-commit install -t pre-commit -t commit-msg -t pre-push'", set()),
     # unbalanced quotes must not raise — the whitespace-split fallback still reads the flags
     ("pre-commit install -t 'pre-commit -t commit-msg", {"pre-commit", "commit-msg"}),
+    # --- terra pass 3: the runner prefix is a SEQUENCE, not a bag of allowed words ---
+    # an INCOMPLETE runner prefix never reaches the pre-commit CLI, so it arms nothing
+    ("python pre-commit install -t pre-commit -t commit-msg -t pre-push", set()),
+    ("uv pre-commit install -t pre-commit -t commit-msg -t pre-push", set()),
+    ("poetry pre-commit install -t pre-commit -t commit-msg -t pre-push", set()),
+    ("run pre-commit install -t pre-commit -t commit-msg -t pre-push", set()),
+    ("exec pre-commit install -t pre-commit -t commit-msg -t pre-push", set()),
+    # ...while each COMPLETE prefix does
+    ("uvx pre-commit install -t pre-commit -t commit-msg -t pre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    ("poetry run pre-commit install -t pre-commit -t commit-msg -t pre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    ("py -3.12 -m pre_commit install -t pre-commit -t commit-msg -t pre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    # `-t=X` — argparse splits an `=`-bearing short option and takes the remainder as the
+    # value, so this IS a valid full arm; reading it as under-armed would rewrite a correct
+    # consumer (the damaging direction)
+    ("pre-commit install -t=pre-commit -t=commit-msg -t=pre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    # a POSIX line continuation is ONE command, not two under-armed segments
+    ("pre-commit install -t pre-commit \\\n  -t commit-msg -t pre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    # Windows executable names are case-insensitive
+    (r"C:\venv\Scripts\PRE-COMMIT.EXE install -t pre-commit -t commit-msg -t pre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    # degenerate inputs must not raise
+    ("", set()),
+    ("   ", set()),
+    ("\n\n", set()),
 ])
 def test_armed_stages_binds_flags_to_the_install_invocation(cmd, expected):
     """The stage parser must credit a flag only to the `pre-commit install` that consumes it.
@@ -545,6 +574,9 @@ def test_non_arming_commands_are_not_arm_legs(cmd):
     "PRE_COMMIT_HOME=/tmp pre-commit install -t 'pre-commit' -t 'commit-msg' -t 'pre-push'",
     "uv run pre-commit install -t pre-commit -t commit-msg -t pre-push",
     "pre-commit install --hook-type=pre-commit --hook-type=commit-msg --hook-type=pre-push",
+    "pre-commit install -t=pre-commit -t=commit-msg -t=pre-push",
+    r"C:\venv\Scripts\PRE-COMMIT.EXE install -t pre-commit -t commit-msg -t pre-push",
+    "pre-commit install -t pre-commit \\\n  -t commit-msg -t pre-push",
 ])
 def test_apply_never_rewrites_an_already_armed_variant(tmp_path, armed_cmd):
     """The damaging direction: a FALSE under-armed read would have apply rewrite a correct

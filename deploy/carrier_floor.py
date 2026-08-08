@@ -138,12 +138,17 @@ _ARM_SUBCOMMAND = "install"
 _SHELL_SEPARATORS = frozenset({";", "&&", "||", "|", "&", "\n"})
 # Leading `VAR=value` environment assignments, skipped when locating the command word.
 _ENV_ASSIGN_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
-# The BOUNDED runner prefix tolerated between the start of a segment and the pre-commit word:
-# `python -m pre_commit ...`, `uv run pre-commit ...`, `py -3 -m pre_commit ...`. Anything else
-# in command position means pre-commit is NOT the command being invoked — which is what stops
-# `echo pre-commit install -t ...` from reading as armed (terra pass-2 CRITICAL).
-_RUNNER_WORDS = frozenset({"python", "python3", "py", "-3", "-m", "uv", "uvx", "poetry",
-                           "pipx", "run", "exec"})
+# The BOUNDED runner prefixes tolerated before the pre-commit word. Matched as SEQUENCES, not
+# as a bag of allowed words (terra pass-3 CRITICAL: a word-set let `python pre-commit install`
+# and `uv pre-commit install` through — neither invokes the pre-commit CLI, so both were a
+# false PRESENT_CORRECT; a bare `run pre-commit install`, found while refuting, likewise).
+_MODULE_RUNNERS = frozenset({"python", "python3", "py"})   # require `-m` before pre_commit
+_SUBCOMMAND_RUNNERS = {"uv": "run", "poetry": "run", "pipx": "run"}  # require their subcommand
+_BARE_RUNNERS = frozenset({"uvx"})                          # `uvx pre-commit ...`
+_PY_VERSION_RE = re.compile(r"^-\d+(\.\d+)?$")              # `py -3` / `py -3.12`
+# A trailing lone backslash continues the command on the next physical line (POSIX). Joined
+# before segmentation so a continued arm command is not read as two under-armed segments.
+_LINE_CONTINUATION_RE = re.compile(r"\\\r?\n[ \t]*")
 # argparse's end-of-options marker: past it, `-t` is a positional, not a stage flag.
 _END_OF_OPTIONS = "--"
 # pre-commit's own default stage when `install` names none. NOT a cardinality declaration —
@@ -239,10 +244,16 @@ def _settings_sessionstart_commands(data: dict[str, Any]) -> list[str]:
 
 
 def _is_precommit_exe(tok: str) -> bool:
-    """True when a token invokes pre-commit itself (`pre_commit`, `pre-commit`, an absolute
-    path to either, or the Windows `.exe` shim) — not merely mentions it."""
-    base = tok.replace("\\", "/").rsplit("/", 1)[-1]
-    if base.lower().endswith(".exe"):
+    """True when a token names pre-commit itself (`pre_commit`, `pre-commit`, a path to
+    either, or the Windows `.exe` shim) — not merely mentions it.
+
+    Case-INSENSITIVE: Windows executable names are, so `...\\PRE-COMMIT.EXE` is the same
+    program as `pre-commit` and must not read as un-armed (terra pass-3 HIGH). The cost is
+    that a POSIX file deliberately named `PRE-COMMIT` would also match — accepted, since
+    such a file being something OTHER than pre-commit is not a real configuration.
+    """
+    base = tok.replace("\\", "/").rsplit("/", 1)[-1].casefold()
+    if base.endswith(".exe"):
         base = base[:-4]
     return base in _PRECOMMIT_TOKENS
 
@@ -262,7 +273,7 @@ def _command_segments(cmd: str) -> list[list[str]]:
     """
     segments: list[list[str]] = []
     current: list[str] = []
-    for line in cmd.splitlines():
+    for line in _LINE_CONTINUATION_RE.sub(" ", cmd).splitlines():
         try:
             lexer = shlex.shlex(line, posix=True, punctuation_chars=True)
             lexer.whitespace_split = True
@@ -308,26 +319,58 @@ def _install_invocations(cmd: str) -> list[list[str]]:
     """
     invocations: list[list[str]] = []
     for toks in _command_segments(cmd):
-        i = 0
-        while i < len(toks) and _ENV_ASSIGN_RE.match(toks[i]):
-            i += 1
-        while i < len(toks) and toks[i] in _RUNNER_WORDS and not _is_precommit_exe(toks[i]):
-            i += 1
-        if i >= len(toks) or not _is_precommit_exe(toks[i]):
-            continue
-        rest = toks[i + 1 :]
-        if rest[:1] == [_ARM_SUBCOMMAND]:
+        rest = _precommit_args(toks)
+        if rest is not None and rest[:1] == [_ARM_SUBCOMMAND]:
             invocations.append(rest[1:])
     return invocations
+
+
+def _precommit_args(toks: list[str]) -> list[str] | None:
+    """One segment's tokens after the pre-commit invocation, or None if it invokes something
+    else. The runner prefix is matched as a SEQUENCE — a permissive word-set accepted
+    `python pre-commit install` and `run pre-commit install`, neither of which reaches the
+    pre-commit CLI, so both read as armed (terra pass-3 CRITICAL + one found refuting it)."""
+    i = 0
+    while i < len(toks) and _ENV_ASSIGN_RE.match(toks[i]):
+        i += 1
+    if i >= len(toks):
+        return None
+    if _is_precommit_exe(toks[i]):            # `pre-commit install ...`
+        return toks[i + 1 :]
+    head = toks[i].replace("\\", "/").rsplit("/", 1)[-1].casefold()
+    if head.endswith(".exe"):
+        head = head[:-4]
+    if head in _MODULE_RUNNERS:               # `python [-3.12] -m pre_commit install ...`
+        j = i + 1
+        while j < len(toks) and _PY_VERSION_RE.match(toks[j]):
+            j += 1
+        if toks[j : j + 1] == ["-m"] and j + 1 < len(toks) and _is_precommit_exe(toks[j + 1]):
+            return toks[j + 2 :]
+        return None
+    if head in _SUBCOMMAND_RUNNERS:           # `uv run pre-commit install ...`
+        if (
+            toks[i + 1 : i + 2] == [_SUBCOMMAND_RUNNERS[head]]
+            and i + 2 < len(toks)
+            and _is_precommit_exe(toks[i + 2])
+        ):
+            return toks[i + 3 :]
+        return None
+    if head in _BARE_RUNNERS:                 # `uvx pre-commit install ...`
+        if i + 1 < len(toks) and _is_precommit_exe(toks[i + 1]):
+            return toks[i + 2 :]
+        return None
+    return None
 
 
 def _stage_flags(args: list[str]) -> set[str]:
     """Stage names named by one install invocation's arguments.
 
-    Accepts every spelling `pre-commit install` accepts — ``-t X``, ``-tX``,
-    ``--hook-type X``, ``--hook-type=X`` — so a consumer that armed correctly with the long
-    form is never misread as stale. A flag with no value names no stage, and scanning stops at
-    ``--`` (past end-of-options a ``-t`` is a positional, not a flag).
+    Accepts every spelling `pre-commit install` accepts — ``-t X``, ``-tX``, ``-t=X``,
+    ``--hook-type X``, ``--hook-type=X`` — so a consumer that armed correctly is never misread
+    as stale. ``-t=X`` was missing and verified against argparse itself, which splits an
+    ``=``-bearing short option and takes the remainder as the value (terra pass-3 HIGH). A
+    flag with no value names no stage, and scanning stops at ``--`` (past end-of-options a
+    ``-t`` is a positional, not a flag).
     """
     named: set[str] = set()
     for i, tok in enumerate(args):
@@ -339,7 +382,7 @@ def _stage_flags(args: list[str]) -> set[str]:
             if i + 1 < len(args):
                 named.add(args[i + 1])
         elif tok.startswith("-t") and len(tok) > 2:
-            named.add(tok[2:])
+            named.add(tok[2:].lstrip("="))  # `-tX` and `-t=X` are both valid argparse
     # Defensive: the whitespace-split fallback above cannot strip quotes the lexer would have.
     return {n.strip("'\"") for n in named}
 
