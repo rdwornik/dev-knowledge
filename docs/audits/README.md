@@ -12,7 +12,7 @@
 
 ## 2026-08
 
-- [2026-08-09](2026-08-09-technical-hub-hot-spots-code-review.md) — Structural code review — the hub's hot spots (NIGHT LANE N4)
+- [2026-08-09](2026-08-09-technical-n4-code-review.md) — Structural code review — the hub's hot spots (NIGHT LANE N4)
 - [2026-08-09](2026-08-09-technical-batch-night-manifest.md) — Night batch, 2026-08-09 — manifest, committed at DISPATCH
 - [2026-08-09](2026-08-09-codex-batch-3-integrator-arc.md) — Codex Review — batch-3-integrator-arc
 - [2026-08-08](2026-08-08-technical-successor-prep.md) — Successor prep pack — the 36-item ledger re-colored, the wave-2 pre-check, the batch-3 pool, the carried decisions
