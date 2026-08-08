@@ -19,6 +19,52 @@
 
 ---
 
+### 2026-08-08 (i) — CC (Opus 5, lane `lane-intakes-28-29`): intakes #28 and #29 filed VERBATIM as DRAFT — filing, not deciding
+
+**Did:** Executed the frozen contract `ARC-file-intakes-28-29` in the sandbox worktree
+`lane-intakes-28-29` (primary occupied by the codify arc). Two operator-commissioned intakes that
+had been living only in chat landed as repo text — the F5 intention-without-locator repair. `b29b955a`
+carries all four paths.
+
+**Result — one commit, ship-gate GREEN (18 WARN, all dispositioned):**
+
+- `docs/intake/2026-08-08-func-skills-tier-adoption-and-hub-finish-line.md` — **intake #28**: the
+  two-tier adoption bar (Tier L libraries vs Tier S skills/plugins), the hub DONE-manifest v1.0
+  finish line, the operator's 14 candidates classified, four future organ candidates.
+- `docs/intake/2026-08-08-func-multi-model-execution-and-distillation.md` — **intake #29**:
+  sub-agent routing WITHIN an execution (S1 contract-level, S2 versioned `.claude/agents/`), and the
+  distillation engine gated MEASURE-FIRST behind S3a instrumentation.
+
+Both `status: DRAFT`, both **ZERO births** by their own text; triage rides the batch-4 planning GO
+as ONE ratification batch (the intake-#27 §C pattern). Nothing here was triaged, verdicted, or
+relitigated — the REJECT and constraint lines inside both bodies are batch-4 GO material, not this
+arc's.
+
+**Ids 28/29 were verified free, not assumed.** Max `intake-id` on disk is 27 (live index + `archive/`),
+and `git log --all -S"intake-id: 28"` / `29` return nothing — so the contract's proposed ids held and
+no next-free remap was needed.
+
+**Verbatim was enforced mechanically, not by care.** The two bodies are byte slices extracted from
+the contract file by script, never retyped; the only authored bytes in either file are the YAML
+frontmatter, conformed to the `docs/intake/README.md` §3 schema (`intake-id` / `status` / `origin` /
+`note`). Each body keeps its own `intake-id: NN (PROPOSED ...)` metadata bullet as source text rather
+than being edited to match the frontmatter — editing it would have been a body edit.
+
+**The contract's two commits folded into one, deliberately.** Filing the two files without the
+regenerated carriers cannot pass its own gates: `intake-index-freshness` blocks a stale README
+Contents block and `intake_tree_coherence` (under `audit-health`) blocks a stale `manifest.json`.
+Both generators ran — `gen_intake_index.py --write` and `gen_intake_tree.py --write` — and the intake
+area's two-carrier shape is why a one-generator commit would have failed under a check name that does
+not name intake filing.
+
+**Changes:** `docs/intake/` — two new DRAFT docs, `README.md` Contents block (23 -> 25), `manifest.json`
+(25 item nodes).
+
+**Next:** commit-and-STOP per the contract — the architect merges this lane after the codify arc
+lands. No push, no BACKLOG touch, no ratification.
+
+---
+
 ### 2026-08-08 (h) — CC (Opus 5, bg primary tree): the batch-3 manifest lands at INTEGRATION — STEP 1 of the accepted re-dispatch
 
 **Did:** Operator ruled option (A) of the consolidation report §8: commit a batch-3 manifest now,
