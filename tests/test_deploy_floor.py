@@ -516,9 +516,12 @@ def test_long_form_stage_flags_count_as_fully_armed(tmp_path, long_form):
      {"pre-commit", "commit-msg", "pre-push"}),
     ("py -3 -m pre_commit install -t pre-commit -t commit-msg -t pre-push",
      {"pre-commit", "commit-msg", "pre-push"}),
-    # past `--` a `-t` is a positional, not a stage flag
-    ("python -m pre_commit install -- -t pre-commit -t commit-msg -t pre-push",
-     {"pre-commit"}),
+    # past `--` a `-t` is a POSITIONAL, and `install` accepts none — so argparse exits 2 and
+    # nothing is installed (my earlier row assumed a default-stage fallback; ground truth from
+    # argparse says the whole invocation is rejected)
+    ("python -m pre_commit install -- -t pre-commit -t commit-msg -t pre-push", set()),
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push -- ignored", set()),
+    ("pre-commit install -t pre-commit --", set()),  # a bare trailing `--` is rejected too
     # an opaque wrapper is not statically readable -> reads as no invocation (stated limit)
     ("sh -c 'pre-commit install -t pre-commit -t commit-msg -t pre-push'", set()),
     # unbalanced quotes must not raise — the whitespace-split fallback still reads the flags
@@ -612,6 +615,19 @@ def test_long_form_stage_flags_count_as_fully_armed(tmp_path, long_form):
     ("pre-commit install -t pre-commit -t commit-msg -t pre-push --hel", set()),
     # an abbreviated choices option is still choices-validated
     ("pre-commit install -t pre-commit -t commit-msg -t pre-push --col chartreuse", set()),
+    # --- terra pass 9 ---
+    # composed short options: argparse reads `-ft X` as `-f` plus `-t X`, so this really arms
+    ("pre-commit install -ft pre-commit -t commit-msg -t pre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    # a shell REDIRECTION is the shell's business, not an argument to `install`
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push >install.log",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push >> install.log",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push 2>&1 >out.log",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push < /dev/null",
+     {"pre-commit", "commit-msg", "pre-push"}),
     ("pre-commit install -c .pre-commit-config.yaml -t pre-commit -t commit-msg -t pre-push",
      {"pre-commit", "commit-msg", "pre-push"}),
     ("pre-commit install -c.pre-commit-config.yaml -t pre-commit -t commit-msg -t pre-push",
@@ -654,7 +670,7 @@ def test_install_option_surface_matches_pre_commit_help():
     assert out.returncode == 0, out.stderr
     # every `-x` / `--xyz` token the help text advertises
     advertised = {m.group(0) for m in re.finditer(r"(?<![\w-])--?[A-Za-z][\w-]*", out.stdout)}
-    known = cf._INSTALL_TERMINAL_OPTS | cf._INSTALL_VALUE_OPTS | cf._INSTALL_FLAG_OPTS
+    known = set(cf._INSTALL_PARSER._option_string_actions)
     # the regex also catches the tails of hyphenated VALUES and prose (`pre-commit`,
     # `commit-msg`, `post-checkout`, ...); those are not options
     value_tails = {f"-{part}" for stage in cf._VALID_HOOK_TYPES for part in stage.split("-")}

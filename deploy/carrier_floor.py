@@ -55,6 +55,9 @@ shared SPEC reads/parsers (D9-permitted, like target-parsing) — the JUDGMENT
 
 from __future__ import annotations
 
+import argparse
+import contextlib
+import io
 import json
 import logging
 import re
@@ -135,24 +138,38 @@ except Exception:  # pragma: no cover - env without pre-commit; mirror of the ab
     )
 _VALID_HOOK_TYPES = frozenset(_PRECOMMIT_HOOK_TYPES)
 
-# `pre-commit install`'s own option surface, captured from `pre-commit install --help`. Needed
-# because an argument pre-commit does NOT accept makes argparse exit 2 BEFORE installing
-# anything, and `-h/--help` prints help and exits without installing either — so both read as
-# fully armed while arming nothing (terra pass-6). `install` takes no positionals.
-# Drift-guarded by test_install_option_surface_matches_pre_commit_help: if pre-commit adds an
-# option, that test FAILS rather than a consumer using it being silently rewritten.
-_INSTALL_TERMINAL_OPTS = frozenset({"-h", "--help"})
-_INSTALL_VALUE_OPTS = frozenset({"--color", "-c", "--config", "-t", "--hook-type"})
-_INSTALL_FLAG_OPTS = frozenset({"-f", "--overwrite", "--install-hooks",
-                                "--allow-missing-config"})
-_STAGE_OPTS = frozenset({"-t", "--hook-type"})
-# The other `choices=`-constrained install option: an out-of-enum value is an argparse error,
-# so the install arms nothing — the same class as an invalid `-t` (terra pass-7, confirmed:
-# `error: argument --color: invalid use_color value: 'chartreuse'`). `-c/--config` takes an
-# arbitrary path and so has nothing statically checkable.
-_INSTALL_CHOICE_OPTS = {"--color": frozenset({"auto", "always", "never"})}
-_INSTALL_ALL_OPTS = _INSTALL_TERMINAL_OPTS | _INSTALL_VALUE_OPTS | _INSTALL_FLAG_OPTS
-_INSTALL_LONG_OPTS = frozenset(o for o in _INSTALL_ALL_OPTS if o.startswith("--"))
+def _install_arg_parser() -> argparse.ArgumentParser:
+    """A parser mirroring `pre-commit install`'s own option surface (from its `--help`).
+
+    Whether an arm command actually installs anything is an ARGPARSE question, so it is
+    answered BY argparse rather than re-derived. Nine review passes over this lane each found
+    one more way a hand-rolled flag walk disagreed with the real thing — bundled `-ft`, `-tX`,
+    `-t=X`, `-t==X`, unambiguous long abbreviations (`--col`), `choices=` rejection on `-t` and
+    `--color`, `-h` terminating before dispatch, a missing option value, an unknown option, and
+    positionals after `--`. Delegating makes that whole class structurally impossible instead
+    of enumerated: argparse decides here exactly what it decides at runtime.
+
+    Drift-guarded by test_install_option_surface_matches_pre_commit_help — if pre-commit adds
+    an option, that test FAILS loudly rather than a consumer using it reading as un-armed and
+    having its command rewritten.
+    """
+    parser = argparse.ArgumentParser(prog="pre-commit install", add_help=True)
+    parser.add_argument("--color", choices=("auto", "always", "never"))
+    parser.add_argument("-c", "--config")
+    parser.add_argument("-f", "--overwrite", action="store_true")
+    parser.add_argument("--install-hooks", action="store_true")
+    parser.add_argument("-t", "--hook-type", action="append", choices=_PRECOMMIT_HOOK_TYPES)
+    parser.add_argument("--allow-missing-config", action="store_true")
+    return parser
+
+
+_INSTALL_PARSER = _install_arg_parser()
+
+# Shell redirection operators. These belong to the SHELL, not to `install`'s argument list —
+# leaving `>` / `install.log` among the args made a genuinely-arming command read as stale
+# (terra pass-9 FALSE-UNARMED). `2>&1` lexes as `2`, `>&`, `1`, hence the fd rule below.
+_REDIRECT_OPS = frozenset({">", ">>", "<", "<<", "<<<", ">&", "<&", "&>", "&>>"})
+_FD_RE = re.compile(r"^\d+$")
 _SESSIONSTART_ARM_CMD = "python -m pre_commit install " + " ".join(
     f"-t {stage}" for stage in ARM_HOOK_TYPES
 )
@@ -181,8 +198,6 @@ _PY_VERSION_RE = re.compile(r"^-\d+(\.\d+)?$")              # `py -3` / `py -3.1
 # A trailing lone backslash continues the command on the next physical line (POSIX). Joined
 # before segmentation so a continued arm command is not read as two under-armed segments.
 _LINE_CONTINUATION_RE = re.compile(r"\\\r?\n[ \t]*")
-# argparse's end-of-options marker: past it, `-t` is a positional, not a stage flag.
-_END_OF_OPTIONS = "--"
 # pre-commit's own default stage when `install` names none. NOT a cardinality declaration —
 # a recorded fact about the external tool, so a bare arm leg's diagnostic names the stages
 # that are ACTUALLY dormant rather than claiming all of them are.
@@ -316,16 +331,42 @@ def _command_segments(cmd: str) -> list[list[str]]:
             lexer.escape = ""
             toks = list(lexer)
         except ValueError:
-            toks = line.split()
+            # Unbalanced quotes: fall back to whitespace splitting, stripping the quotes the
+            # lexer would have resolved so a stage name is still readable.
+            toks = [t.strip("'\"") for t in line.split()]
         for tok in toks:
             if tok in _SHELL_SEPARATORS:
                 segments.append(current)
                 current = []
             else:
                 current.append(tok)
-        segments.append(current)  # end of line == end of segment
+        segments.append(_strip_redirections(current))  # end of line == end of segment
         current = []
     return [s for s in segments if s]
+
+
+def _strip_redirections(toks: list[str]) -> list[str]:
+    """Drop shell redirection operators and their targets from a segment's tokens.
+
+    `pre-commit install -t … >install.log` really does install; the redirection is the shell's
+    business, not an argument to `install`. Leaving `>` and `install.log` in the argument list
+    made argparse reject them as positionals, so a genuinely-arming consumer read as stale and
+    `apply` would rewrite its command (terra pass-9 FALSE-UNARMED).
+    """
+    out: list[str] = []
+    i = 0
+    while i < len(toks):
+        tok = toks[i]
+        # `2>&1` lexes as `2`, `>&`, `1` — a bare fd number before an operator belongs to it
+        if _FD_RE.match(tok) and i + 1 < len(toks) and toks[i + 1] in _REDIRECT_OPS:
+            i += 1
+            continue
+        if tok in _REDIRECT_OPS:
+            i += 2  # the operator and its target
+            continue
+        out.append(tok)
+        i += 1
+    return out
 
 
 def _install_invocations(cmd: str) -> list[list[str]]:
@@ -394,94 +435,27 @@ def _precommit_args(toks: list[str]) -> list[str] | None:
     return None
 
 
-def _resolve_long_opt(tok: str) -> str | None:
-    """A long option token resolved to its canonical name, honouring argparse's unambiguous
-    PREFIX abbreviation (`--col` -> `--color`, `--hook` -> `--hook-type`).
-
-    argparse leaves `allow_abbrev` on, and pre-commit does not disable it — verified live:
-    `pre-commit install --col never -t …` installs all three hooks. Rejecting an abbreviation
-    would read a genuinely armed consumer as stale and have `apply` REWRITE its command, which
-    is the damaging direction (terra pass-8). None for an unknown OR ambiguous prefix (`--h`
-    matches both `--help` and `--hook-type`) — argparse errors on both.
-    """
-    if tok in _INSTALL_LONG_OPTS:
-        return tok
-    matches = [o for o in _INSTALL_LONG_OPTS if o.startswith(tok)]
-    return matches[0] if len(matches) == 1 else None
-
-
 def _stage_flags(args: list[str]) -> set[str] | None:
-    """Stage names named by one install invocation, or None if that invocation would FAIL.
+    """Stage names one install invocation names, or None if that invocation would FAIL.
 
-    Accepts every spelling `pre-commit install` accepts — ``-t X``, ``-tX``, ``-t=X``,
-    ``--hook-type X``, ``--hook-type=X`` — so a consumer that armed correctly is never misread
-    as stale. ``-t=X`` was verified against argparse itself, which splits an ``=``-bearing
-    short option and takes the remainder as the value (terra pass-3). Scanning stops at ``--``
-    (past end-of-options a ``-t`` is a positional, not a flag).
+    Asks **argparse**, because argparse is what decides this at runtime. None means the
+    invocation installs NOTHING — a rejected argument (unknown option, missing value, a value
+    outside pre-commit's `choices=` for `-t` or `--color`, a positional, an ambiguous
+    abbreviation) exits non-zero BEFORE anything is installed, and `-h/--help` prints usage and
+    exits without dispatching. Crediting such a command's valid stage flags is a false
+    PRESENT_CORRECT — the dormant-stage defect these teeth exist to catch.
 
-    Returns **None** — the invocation installs NOTHING — when a stage flag carries no value or
-    a value outside pre-commit's own hook-type enum. `-t` is choices-constrained, so
-    ``install -t pre-commit -t commit-msg -t pre-push -t bogus`` exits non-zero BEFORE
-    installing anything; discarding `bogus` and reporting all three armed is a false
-    PRESENT_CORRECT, the defect these teeth exist to catch (terra pass-4 CRITICAL, confirmed
-    against the real CLI). A valid but unmanaged type (``post-commit``) is not an error — it
-    simply contributes no managed stage.
+    An empty set means the invocation SUCCEEDS but names no stage, which is the #275 under-arm
+    (pre-commit's own default is the pre-commit stage alone). A valid but unmanaged type
+    (``post-commit``) is no error and simply contributes no managed stage.
     """
-    named: set[str] = set()
-    i = 0
-    while i < len(args):
-        tok = args[i]
-        if tok == _END_OF_OPTIONS:
-            break
-        opt: str | None
-        value: str | None = None
-        consumed = 1
-        if tok.startswith("--"):
-            raw_opt, sep, raw_value = tok.partition("=")
-            opt = _resolve_long_opt(raw_opt)
-            if opt is None:
-                return None  # unknown or ambiguous long option -> argparse error
-            if sep:
-                if opt not in _INSTALL_VALUE_OPTS:
-                    return None  # `--flag=value` — a value given to an option taking none
-                value = raw_value
-            elif opt in _INSTALL_VALUE_OPTS:
-                if i + 1 >= len(args):
-                    return None  # option with no value -> argparse error
-                value, consumed = args[i + 1], 2
-        elif tok.startswith("-") and tok != "-":
-            if tok in _INSTALL_ALL_OPTS - _INSTALL_VALUE_OPTS:  # `-h`, `-f`
-                opt = tok
-            elif tok in _INSTALL_VALUE_OPTS:  # `-t value`, `-c value`
-                opt = tok
-                if i + 1 >= len(args):
-                    return None  # option with no value -> argparse error
-                value, consumed = args[i + 1], 2
-            elif len(tok) > 2 and tok[:2] in _INSTALL_VALUE_OPTS:
-                # A bundled short option: `-tX`, `-t=X`, `-cPATH`. EXACTLY one optional `=` —
-                # stripping every leading `=` read `-t==commit-msg` as the stage, but argparse
-                # splits on the first `=` only and rejects the remaining `=commit-msg` (terra
-                # pass-5, confirmed against argparse).
-                opt, rest = tok[:2], tok[2:]
-                value = rest[1:] if rest.startswith("=") else rest
-            else:
-                return None  # unrecognised short option -> argparse exits 2
-        else:
-            return None  # a positional — `install` accepts none -> argparse exits 2
-        if opt in _INSTALL_TERMINAL_OPTS:
-            return None  # prints help and exits — `install` never dispatches
-        if opt in _INSTALL_CHOICE_OPTS:
-            if (value or "").strip("'\"") not in _INSTALL_CHOICE_OPTS[opt]:
-                return None  # invalid choice -> the whole install fails
-        if opt in _STAGE_OPTS:
-            # Defensive strip: the whitespace-split fallback cannot remove quotes the lexer
-            # would have already resolved.
-            stage = (value or "").strip("'\"")
-            if stage not in _VALID_HOOK_TYPES:
-                return None  # invalid choice -> the whole install fails
-            named.add(stage)
-        i += consumed
-    return named
+    try:
+        # argparse writes usage/errors to the real streams and exits; swallow both.
+        with contextlib.redirect_stderr(io.StringIO()), contextlib.redirect_stdout(io.StringIO()):
+            parsed = _INSTALL_PARSER.parse_args(args)
+    except (SystemExit, argparse.ArgumentError):
+        return None
+    return set(parsed.hook_type or ())
 
 
 def _is_arm_command(cmd: str) -> bool:
