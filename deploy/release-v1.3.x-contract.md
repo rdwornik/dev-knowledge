@@ -367,26 +367,38 @@ mechanically enforced, not a convention. The emitted command is byte-identical t
 constant (`fc8e4ef`), so **no deployed byte changes and no version anchor moves**: this stays
 undeployed carrier engine code under the same `[NB]` precedent as #275b itself.
 
-**Verify-at-build** (join the §Verify-at-build list): `tests/test_deploy_floor.py` 23 → 96,
+**Verify-at-build** (join the §Verify-at-build list): `tests/test_deploy_floor.py` 23 → 147,
 including the three frozen assertions — a 1-stage-armed fixture FAILs `verify`; one re-deploy
 leaves it 3-stage-armed and verify-green, repaired in place; an already-3-stage fixture is
 byte-identical after re-deploy. **Trip-tested against the pre-#290 carrier: 9 of the new tests
 fail there** (`verify` returns ok on a 1-stage arm, `apply` reports `changed=False`, and the
 old verify-leg-less path appends a duplicate arm leg), so the teeth are witnessed, not assumed.
 
-Most of that test growth is **adversarial parser coverage**, not the frozen assertions. Five
-`/codex-review` (terra) passes over this diff each found a real way to read an arm command
-wrongly, and the count is the residue of closing them: a whole-token scan credited
-`install-hooks -t …`; a preceding-token rule credited `echo pre-commit install -t …`; a
-word-bag runner prefix credited `python pre-commit install` (no `-m`); an invocation that
-argparse REJECTS (`-t bogus`, a valueless `-t`, `-t==stage`) was credited with its valid
-flags. Every one of those is a false `PRESENT_CORRECT` — the dormant-stage defect #290 exists
-to close, reachable through the teeth themselves — and each is now a pinned table row. The
-opposite direction is pinned too, because it is the damaging one: a genuinely-armed consumer
-misread as stale would have `apply` REWRITE its command, so `--hook-type=X`, `-t=X`, quoted
-values, a `VAR=value` prefix, `uv run` / `uvx` / `poetry run` / `py -3.12 -m` runners, a POSIX
-line continuation and an uppercase Windows `PRE-COMMIT.EXE` path are each proven a
-byte-identical no-op for `apply`.
+Most of that test growth is **adversarial parser coverage**, not the frozen assertions.
+**Fifteen** `/codex-review` (terra) passes ran over this diff; the first fourteen each found a
+real way to read an arm command wrongly and the fifteenth returned CLEAN, so the count is the
+residue of closing them — 21 findings accepted and fixed, 3 refuted with reasons (loop tally:
+`docs/audits/2026-08-08-codex-lane-290-floor-teeth.md`). Nearly all were the same shape: a
+command that pre-commit or the shell would **reject, or never reach**, read as fully armed —
+`install-hooks -t …`, `echo pre-commit install -t …`, `python pre-commit install` without
+`-m`, an argparse-rejecting invocation (`-t bogus`, a valueless `-t`, `-t==stage`, `--help`,
+`--color chartreuse`, a positional after `--`), a dangling `>` and `env -0`. Each is a false
+`PRESENT_CORRECT`, the dormant-stage defect #290 exists to close, reachable through the teeth
+themselves; each is a pinned table row.
+
+The **root cause** of that whole class was structural and is now removed: the carrier was
+hand-parsing what argparse decides. `_stage_flags` builds a parser mirroring `pre-commit
+install`'s option surface and asks it — so the class is impossible rather than enumerated, and
+the surface is drift-guarded against the live `install --help`. Shell concerns (segmentation,
+quoting, POSIX continuations, redirections, transparent `exec`/`env` prefixes) are handled
+separately, in the tokenizer, where they belong.
+
+The opposite direction is pinned too, because it is the damaging one — a genuinely-armed
+consumer misread as stale would have `apply` REWRITE its command: `--hook-type=X`, `-t=X`,
+`-ft` bundling, unambiguous abbreviations (`--col`, `--hook-t=`), quoted values, `VAR=value`
+and `env -u` prefixes, `uv run` / `uvx` / `poetry run` / `py -3.12 -m` runners, POSIX line
+continuations, shell redirections, and an uppercase Windows `PRE-COMMIT.EXE` path are each
+proven a byte-identical no-op for `apply`.
 
 **Stated limits** (honest, and deliberate — a static reader of a shell string has two):
 
