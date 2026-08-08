@@ -19,6 +19,67 @@
 
 ---
 
+### 2026-08-08 (f) — CC (Opus 5, bg primary tree): batch-3 consolidation STOPPED at the precondition gate — the manifest that was never committed is the key to the exemption
+
+**Did:** Executed the frozen contract `ARC-batch3-consolidation-integrate` (v2) from the hub PRIMARY
+checkout on `main`, sole live session verified before branching. Read `.claude/commands/lane-integrate.md`
+first per the contract's AUTHORITY section, then ran its preconditions. **Merged nothing.** 8b0c8c8d
+carries the whole finding.
+
+**Result — the batch does not start, and the reason is mechanical, not stylistic:**
+
+- **PRECONDITION 2 fired.** Batch 3 was dispatched with **no committed batch manifest**. `/lane-integrate`
+  §3 item 4 requires one; more decisively, `scripts/batch_manifest.py` — the ADR-110
+  declared-integration-arc exemption — requires a committed manifest declaring an OPEN batch, and batch 2's
+  is CLOSED (its `closed_by:` packet is committed). No exemption is live.
+- **The wedge, measured rather than argued.** `audit-health` is `always_run: true` at pre-commit, so it
+  fires on conflicted merge commits. Nine of ten lanes are UNANCHORED post-merge (only
+  `lane-intakes-28-29` names its own SHA, `b29b955a`); nine of ten rewrite the generated
+  `docs/audits/README.md`, so eight merges conflict. Merge #2 turns `journal_spine_anchor` RED and every
+  later conflicting merge is blocked. `batch_manifest.py`'s own docstring states the same conclusion:
+  the only exits are the exemption, `SKIP=audit-health`, or `--no-verify` — and the contract forbids the
+  last two by name and forbids fabricating the first. **Zero bypasses were used anywhere in this arc.**
+- **Stopping at ZERO merges was the only order that delivers anything.** A RED spine blocks every later
+  commit in this checkout, including the one that lands the report. A partial run would have left `main`
+  half-integrated with no way to write down why.
+- **PRECONDITION 1 of the contract is factually FALSE, and no repair was fabricated for it.** It asserts
+  `journal_spine_anchor` is hard-RED on `ae339ace`. It is GREEN — verified via `audit.py health`, via
+  `ship-gate`, and directly through `journal_anchor.unanchored_on_spine`, which returns `[]`. `ae339ace`
+  is anchored because entry (e) names `8f09c12d`, which that merge introduced. The premise predates
+  `8f09c12d` / `a343f6ad`.
+- **All ten lanes second-seat verified anyway**, so the re-dispatch inherits verdicts instead of repeating
+  work: 3 code lanes PASS with parseable terra tallies (lane E's review demonstrably ran — 5 passes,
+  cumulative 0/5/0/0), 6 report lanes PASS structurally at exactly 2 files each, intakes PASS with both
+  required generators run.
+- **Four new findings.** F1 the missing manifest; F2 batch-3 lane contracts live in `~/Downloads`, not the
+  repo (the change batch 2's packet already named as "one change away" was not taken); F3 **nine of ten**
+  hub lane branches fail `validate_branch_naming.py`'s ratified `lane-<letter>-<id>-<slug>` enum while
+  every satellite lane the same day conformed — the validator is correct, nothing runs it at provisioning;
+  F4 two different lane-branch regexes ship in one repo (`validate_branch_naming` strict vs
+  `batch_manifest` loose), the drift edge `journal_anchor.py`'s docstring warns against.
+- **Velocity's 169-vs-202 disagreement reconciled:** both are right and differ by exactly the 33
+  `status: deferred` rows. 169 = `tasks/*.md` with `status: open`; 202 = rows rendered into `BACKLOG.md`
+  (open + deferred), which is what `validate_backlog` reports. 169 + 33 = 202.
+- **`[#505]` assessed line by line — DO NOT CLOSE.** Legs 3 and 4 are met as written; legs 1 and 2 are
+  not. Batch 2 had already falsified leg 1 and flagged leg 2 as needing disambiguation, and batch 3
+  **regressed** leg 1 by removing the manifest too. **No row was closed** — six of the eight named depend
+  on merges that did not happen; readiness is recorded per row instead.
+- Ship-gate **GREEN** (18 WARN, all dispositioned), `health: OK`, `git stash list` empty, before and after.
+
+**Changes:** `docs/audits/2026-08-08-technical-batch-3-consolidation-report.md` (new, 10 sections
+including the STOP, a 7-row `/lane-integrate` divergence table, a computed conflict map, and a
+PASS/PARTIAL self-test against the contract's frozen acceptance list); `docs/audits/README.md`
+regenerated. No lane branch, worktree, `BACKLOG.md`, `tasks/` or protocol file was touched.
+
+**Abandoned:** the merge queue, teardown, and all eight row closes — blocked on one operator ruling, not
+abandoned on judgement. The merge-order preference, the `(d)`-collision renumber, the generated-file
+conflict rulings and the `f3134310`-STAYS ruling are all carried forward unexercised.
+
+**Next:** operator picks (A) commit a batch-3 manifest now, present-tense, `closed_by:` naming its packet,
+then re-dispatch the integrator — this is not the back-dating the contract forbids; or (B) authorise a
+named logged bypass. Note for the re-dispatch: this entry takes letter **(f)**, so the intakes lane's
+incoming `(d)` renumbers to **(g)**, not (f).
+
 ### 2026-08-08 (e) — CC (Opus 5, primary tree): the held RED is cleared by doing the review, and the arc merges
 
 **Did:** Operator ruling on entry (d)'s held RED: clear it by **performing the review the stamp
