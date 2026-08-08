@@ -462,6 +462,73 @@ def test_long_form_stage_flags_count_as_fully_armed(tmp_path, long_form):
     assert _arm_commands(tmp_path) == [long_form]          # left verbatim
 
 
+@pytest.mark.parametrize("cmd,expected", [
+    # stage flags belonging to a DIFFERENT pre-commit subcommand must not be credited to
+    # `install` — `install-hooks` is a distinct subcommand that arms no git hook stage
+    ("python -m pre_commit install-hooks -t pre-commit -t commit-msg -t pre-push", set()),
+    # ...nor may flags from a neighbouring shell segment
+    ("python -m pre_commit run -t pre-commit -t commit-msg -t pre-push; "
+     "python -m pre_commit install", {"pre-commit"}),
+    ("python -m pre_commit run -t commit-msg && python -m pre_commit install -t pre-push",
+     {"pre-push"}),
+    # a mere MENTION of the arm command is not an arm command
+    ('echo "pre_commit install -t pre-commit -t commit-msg -t pre-push"', set()),
+    # a flag with no value names no stage (and must not raise)
+    ("python -m pre_commit install -t", {"pre-commit"}),
+    ("python -m pre_commit install --hook-type", {"pre-commit"}),
+    # a command performing no install contributes NOTHING — the default-stage fallback is a
+    # property of an invocation, not of an unrelated SessionStart hook
+    ("python scripts/surface_triage.py", set()),
+    ("python .claude/check_floor_hash.py --require-present", set()),
+    # real invocations, in each spelling pre-commit accepts
+    ("python -m pre_commit install -t pre-commit -t commit-msg -t pre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    ("pre-commit install --hook-type=pre-commit --hook-type=commit-msg "
+     "--hook-type=pre-push", {"pre-commit", "commit-msg", "pre-push"}),
+    ("/usr/local/bin/pre-commit install -tpre-commit -tcommit-msg -tpre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    (r"C:\venv\Scripts\pre-commit.exe install -t pre-commit -t commit-msg -t pre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    # a bare install arms pre-commit only — the #275 defect, stated honestly
+    ("python -m pre_commit install", {"pre-commit"}),
+])
+def test_armed_stages_binds_flags_to_the_install_invocation(cmd, expected):
+    """The stage parser must credit a flag only to the `pre-commit install` that consumes it.
+
+    A whole-token scan (the pre-terra-review draft) read `install-hooks -t ...` and
+    `run -t ...; install` as fully armed — a false PRESENT_CORRECT, i.e. the very
+    dormant-stage defect #290 exists to catch, reintroduced by the teeth themselves."""
+    assert cf._armed_stages(cmd) == frozenset(expected)
+
+
+@pytest.mark.parametrize("cmd", [
+    "python -m pre_commit install-hooks -t pre-commit",
+    'echo "pre_commit install"',
+    "python scripts/surface_triage.py",
+])
+def test_non_arming_commands_are_not_arm_legs(cmd):
+    assert cf._is_arm_command(cmd) is False
+
+
+def test_a_fooled_parser_would_false_green_a_dormant_consumer(tmp_path):
+    """End-to-end teeth on the terra HIGH: a consumer whose arm leg is `install-hooks` with
+    all three stage flags arms NO git hook stage, so it must be DRIFTED and repaired — not
+    read as correct because the flags happen to be present in the string."""
+    car = _carrier(tmp_path)
+    car.apply(_FLOOR_TARGET)
+    _rewrite_arm_leg(
+        tmp_path, "python -m pre_commit install-hooks -t pre-commit -t commit-msg -t pre-push"
+    )
+
+    assert car.detect(_FLOOR_TARGET) is contract.CarrierState.PRESENT_DRIFTED
+    failures = car.verify(_FLOOR_TARGET).failures
+    assert any("missing SessionStart arm hook" in f for f in failures)
+
+    car.apply(_FLOOR_TARGET)
+    assert car.verify(_FLOOR_TARGET).ok is True
+    assert car.apply(_FLOOR_TARGET).changed is False
+
+
 def test_arm_leg_split_across_two_commands_is_fully_armed(tmp_path):
     """Coverage is a union: arming split across two commands satisfies the requirement, so
     the self-heal does not 'repair' a complete-but-split arm into a redundant third."""

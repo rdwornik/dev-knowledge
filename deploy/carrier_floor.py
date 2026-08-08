@@ -125,9 +125,15 @@ _SESSIONSTART_ARM_CMD = "python -m pre_commit install " + " ".join(
 )
 # Stable sentinel used to detect the verify leg in an armed settings.json (idempotency).
 _SESSIONSTART_SENTINEL = "check_floor_hash.py"
-# Both spellings of the arm leg a consumer may carry (`python -m pre_commit install` and the
-# `pre-commit install` console script) — matches deploy/floor_conformance.py's own read.
-_ARM_SENTINELS = ("pre_commit install", "pre-commit install")
+# Both spellings of the arm leg a consumer may carry — `python -m pre_commit install` and the
+# `pre-commit install` console script (deploy/floor_conformance.py reads the same pair). These
+# are TOKENS, matched against the token preceding `install`, never substrings of the whole
+# command: a substring test credits `install-hooks` and `echo "pre_commit install"` as arming.
+_PRECOMMIT_TOKENS = ("pre_commit", "pre-commit")
+_ARM_SUBCOMMAND = "install"
+# Shell separators that end an invocation's argument list, so a stage flag in a neighbouring
+# segment is never credited to `install` (terra HIGH, 2026-08-08).
+_SHELL_SEPARATOR_RE = re.compile(r"&&|\|\||[;|&]")
 # pre-commit's own default stage when `install` names none. NOT a cardinality declaration —
 # a recorded fact about the external tool, so a bare arm leg's diagnostic names the stages
 # that are ACTUALLY dormant rather than claiming all of them are.
@@ -220,42 +226,82 @@ def _settings_sessionstart_commands(data: dict[str, Any]) -> list[str]:
     return [c for c in (_hook_command(h) for h in _sessionstart_hooks(data)) if c]
 
 
-def _is_arm_command(cmd: str) -> bool:
-    """True when a SessionStart command string IS the pre-commit bootstrap (arm) leg."""
-    return any(sentinel in cmd for sentinel in _ARM_SENTINELS)
+def _is_precommit_exe(tok: str) -> bool:
+    """True when a token invokes pre-commit itself (`pre_commit`, `pre-commit`, an absolute
+    path to either, or the Windows `.exe` shim) — not merely mentions it."""
+    base = tok.replace("\\", "/").rsplit("/", 1)[-1]
+    if base.lower().endswith(".exe"):
+        base = base[:-4]
+    return base in _PRECOMMIT_TOKENS
 
 
-def _armed_stages(cmd: str) -> frozenset[str]:
-    """The managed hook stages ONE arm command actually installs.
+def _install_invocations(cmd: str) -> list[list[str]]:
+    """The ARGUMENT list of each real `pre-commit install` invocation inside a command string.
 
-    Accepts every spelling `pre-commit install` itself accepts for the stage flag —
-    ``-t <stage>``, ``-t<stage>``, ``--hook-type <stage>``, ``--hook-type=<stage>`` — so a
-    consumer that armed correctly with the long form is never misread as stale (a false
-    DRIFTED would have `apply` rewrite a config that was already right). An arm command that
-    names NO stage falls back to pre-commit's own default (the pre-commit stage alone), which
-    is precisely the #275 under-arm. Tokens naming no managed stage are ignored.
+    Scoped parsing, not a substring/whole-token scan (terra HIGH, 2026-08-08 — the reviewed
+    first draft scanned every token in the command, so
+    ``pre_commit install-hooks -t pre-commit -t commit-msg -t pre-push`` and
+    ``pre_commit run -t ... ; pre_commit install`` both read as fully armed. A false
+    PRESENT_CORRECT is exactly the dormant-stage defect these teeth exist to catch, so the
+    parser must bind stage flags to the `install` subcommand that consumes them):
+
+    - the command is first split on shell separators, so flags in a neighbouring segment
+      cannot be credited to `install`;
+    - within a segment, `install` counts only when the PRECEDING token actually invokes
+      pre-commit — which rejects `install-hooks` (a distinct token, hence a distinct
+      subcommand) and ``echo "pre_commit install ..."``;
+    - the invocation's arguments are the rest of its segment.
+
+    Returns [] when the command performs no `pre-commit install` at all.
+    """
+    invocations: list[list[str]] = []
+    for segment in _SHELL_SEPARATOR_RE.split(cmd):
+        toks = segment.split()
+        for i in range(1, len(toks)):
+            if toks[i] == _ARM_SUBCOMMAND and _is_precommit_exe(toks[i - 1]):
+                invocations.append(toks[i + 1 :])
+                break  # one install invocation per segment
+    return invocations
+
+
+def _stage_flags(args: list[str]) -> set[str]:
+    """Stage names named by one install invocation's arguments.
+
+    Accepts every spelling `pre-commit install` accepts — ``-t X``, ``-tX``,
+    ``--hook-type X``, ``--hook-type=X`` — so a consumer that armed correctly with the long
+    form is never misread as stale (a false DRIFTED would have `apply` rewrite a config that
+    was already right). A flag with no value is simply not a stage name.
     """
     named: set[str] = set()
-    toks = cmd.split()
-    for i, tok in enumerate(toks):
+    for i, tok in enumerate(args):
         if tok.startswith("--hook-type="):
             named.add(tok.split("=", 1)[1])
         elif tok in ("-t", "--hook-type"):
-            if i + 1 < len(toks):
-                named.add(toks[i + 1])
+            if i + 1 < len(args):
+                named.add(args[i + 1])
         elif tok.startswith("-t") and len(tok) > 2:
             named.add(tok[2:])
-    return frozenset(named or {_PRECOMMIT_DEFAULT_STAGE}) & _ARM_STAGES
+    return named
 
 
-def _stages_armed_by(cmds: list[str]) -> frozenset[str]:
-    """Union of the stages armed across every arm leg present (a consumer may legitimately
-    split arming across two commands; the requirement is coverage, not command count)."""
-    covered: frozenset[str] = frozenset()
-    for cmd in cmds:
-        if _is_arm_command(cmd):
-            covered |= _armed_stages(cmd)
-    return covered
+def _is_arm_command(cmd: str) -> bool:
+    """True when a SessionStart command string performs a real `pre-commit install`."""
+    return bool(_install_invocations(cmd))
+
+
+def _armed_stages(cmd: str) -> frozenset[str]:
+    """The managed hook stages ONE SessionStart command actually installs.
+
+    An invocation naming no stage falls back to pre-commit's own default (the pre-commit
+    stage alone) — precisely the #275 under-arm. A command performing NO install returns the
+    EMPTY set: the default-stage fallback is a property of an invocation, never of a command
+    that has none, or an unrelated SessionStart hook would contribute a phantom stage to the
+    coverage union. Names matching no managed stage are ignored.
+    """
+    stages: set[str] = set()
+    for args in _install_invocations(cmd):
+        stages |= _stage_flags(args) or {_PRECOMMIT_DEFAULT_STAGE}
+    return frozenset(stages) & _ARM_STAGES
 
 
 # ---------------------------------------------------------------------------
@@ -295,9 +341,14 @@ def _classify_floor(
     )
     ss_cmds = _settings_sessionstart_commands(_load_settings(settings_path))
     # BOTH legs, and the arm leg at full stage cardinality (#290): a verify-leg-only check
-    # passes a consumer whose commit-msg / pre-push stages never arm.
+    # passes a consumer whose commit-msg / pre-push stages never arm. detect accumulates and
+    # compares with its OWN expressions (a subset test over its own union) — only the
+    # per-command PARSE is shared with verify, the same latitude _read_sidecar_hash takes.
+    detect_armed: set[str] = set()
+    for cmd in ss_cmds:
+        detect_armed |= _armed_stages(cmd)
     settings_ok = any(_SESSIONSTART_SENTINEL in cmd for cmd in ss_cmds) and _ARM_STAGES.issubset(
-        _stages_armed_by(ss_cmds)
+        detect_armed
     )
 
     if floor_ok and include_ok and hook_ok and gitignore_ok and settings_ok:
@@ -361,7 +412,9 @@ def _verify_floor(
     if not arm_cmds:
         failures.append(f"settings.json missing SessionStart arm hook: {settings_path}")
     else:
-        armed = _stages_armed_by(arm_cmds)
+        armed: set[str] = set()
+        for cmd in arm_cmds:
+            armed.update(_armed_stages(cmd))
         dormant = [stage for stage in ARM_HOOK_TYPES if stage not in armed]
         if dormant:
             failures.append(
@@ -496,7 +549,9 @@ def _ensure_settings(path: Path) -> str | None:
     hooks = _sessionstart_hooks(data)
     verify_legs = [h for h in hooks if _SESSIONSTART_SENTINEL in _hook_command(h)]
     arm_legs = [h for h in hooks if _is_arm_command(_hook_command(h))]
-    covered = _stages_armed_by([_hook_command(h) for h in arm_legs])
+    covered: set[str] = set()
+    for hook in arm_legs:
+        covered.update(_armed_stages(_hook_command(hook)))
     dormant = sorted(_ARM_STAGES - covered)
 
     if verify_legs and arm_legs and not dormant:
