@@ -1716,7 +1716,9 @@ once, before any lane boots; each lane receives one frozen contract naming its o
 integrator merges the lanes back one at a time from the primary checkout. Dependency-chained work
 stays **inside a single lane** — a lane is the unit that can carry order, so splitting a chain
 across two lanes trades a cheap serial step for a merge-order constraint the integrator has no
-way to express.
+way to express. Serialize-groups bind on witnessed file footprints within a batch: label
+co-membership alone does not serialize lanes whose witnessed footprints are disjoint
+(`protocols/STANDING_RULINGS.md` G2, ratified 2026-08-08).
 
 **Parameterized by N — drilled at 3, designed for 4–10.** Batch 1 runs three lanes because three
 is enough to exercise the machinery; every artifact is written for N. Provisioning, the board

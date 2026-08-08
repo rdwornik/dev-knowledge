@@ -570,6 +570,54 @@ own commit is a defect in the record, whatever the ruling's merits.
 
 ---
 
+## G. Batch-3 GO ratifications (2026-08-08)
+
+Three rulings taken at the 2026-08-08 GO. Each was already decided in chat; these lines are the
+landing, so the ruling outlives the seat that took it.
+
+### G1 · `[#396]` lands before `[#512]`
+
+The ordering is **ratified** (operator, 2026-08-08). It was recorded in intake #27's *Sequencing
+note* — a section that file labels "not binding" — under an explicit `Status: proposal, not a
+ruling`, precisely because the register carries only what was ratified in chat. It now is.
+
+- **Locator:** `docs/intake/2026-08-06-tech-adoption-consolidation-intake.md`, "Sequencing note
+  (not binding)", the "Added 2026-08-08 (memo §9 item 39)" paragraph, which carries the reasoning
+  and its evidence citation. That paragraph's `Status:` line is now superseded by this entry.
+- **Expiry:** retires when `[#396]` lands, at which point the ordering is history rather than a
+  rule.
+
+### G2 · serialize-group co-membership does not serialize witnessed-disjoint lanes
+
+Within a batch, two rows sharing a `serialize-group` MAY run parallel iff their file footprints are
+**witnessed disjoint** at dispatch (witnessed = read live by the dispatching arc, never derived
+from row prose). Ratified 2026-08-08.
+
+- **The defect it prevents:** `serialize-group` is a grooming label, so reading it as a hard
+  parallelism bar costs a batch real width for rows that touch nothing in common — while reading
+  it as advisory costs a collision. Keying on the witnessed footprint resolves both directions
+  with one act the dispatching arc performs anyway.
+- **Witnessed is the load-bearing word,** and it carries the meaning Ch12 already fixes: read live
+  from the tree by the dispatching arc. A footprint inferred from a row's own `footprint:` prose is
+  the row describing itself, which is the claim under test rather than evidence about it.
+- **Doctrinal home:** `protocols/PLAYBOOK.md` Ch8, "The shape".
+- **Expiry:** retires once dispatch computes footprints mechanically and the manifest carries them,
+  at which point the witnessing is the tool's rather than the arc's.
+
+### G3 · win-tooling ships to a private remote
+
+The operator ruled **private-remote** for `win-tooling`. Execution is owed to the win-tooling
+S-list — a consumer repo, RULING-W shape, dispatched separately — and no part of it is performed
+by the hub.
+
+- **Why it is recorded here:** the ruling was taken in the hub seat about another repo, so without
+  a hub-side line it survives only in the seat that heard it. This entry is the record, not the
+  execution.
+- **Expiry:** retires when the win-tooling S-list lands the remote and its own repo carries the
+  decision.
+
+---
+
 ## Editing note (read before adding an entry)
 
 This file sits inside the silent-rule ratchet corpus (`protocols/*.md`; detector

@@ -107,3 +107,9 @@ seat that took it.
   `protocols/PLAYBOOK.md` Ch8, "The batch protocol". ADR-110's routing-table row for the cap
   (§ "Amendment — 2026-08-06", the directive table) carries a matching amendment note rather than
   an in-place edit.
+- **Sequencing statement `[#396]` before `[#512]` — RATIFIED (operator, 2026-08-08).** The
+  "Added 2026-08-08 (memo §9 item 39)" paragraph in the Sequencing note above records this
+  ordering under `Status: proposal, not a ruling`. That status line is superseded: the ordering
+  was ratified at the batch-3 GO and now carries a register entry at
+  `protocols/STANDING_RULINGS.md` **G1**. The paragraph itself is left as written (appended-to,
+  not folded); the reasoning and evidence citation it carries are unchanged.
