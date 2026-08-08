@@ -1,6 +1,6 @@
 # Prompt Template for Claude Code
 <!-- scope: meta -->
-<!-- version: 1.10 — 2026-08-07 -->
+<!-- version: 1.11 — 2026-08-07 -->
 
 > **Copy this template, fill placeholders, save as `.md` artifact, deliver to Claude Code via paste-into-prompt.** Browser chat produces this; Claude Code executes it.
 >
@@ -61,7 +61,7 @@
 
 ---
 
-| Model  | `<sonnet | opus>` — see the routing matrix below |
+| Model  | `<opus | sonnet>` — see the routing matrix below; `opus` is the `.dev-knowledge` default |
 | Mode   | `<execution (default) | plan-then-auto (M/L repo-derivation only) | auto-accept>` |
 | Effort | `<low | medium | high>`       |
 
@@ -72,12 +72,24 @@ L keep it, where `Mode` carries something the dispatch line does not. Canonical:
 `protocols/PLAYBOOK.md` Ch8 "Model + effort are stated at dispatch — the routing matrix".
 
 **Routing, as ruled — the architect states model + effort on every dispatch; the operator
-overrides.** `opus`: M/L arcs, gate and organ code, architecture, adversarial verification, any arc
-whose failure poisons downstream work. `sonnet`: S-class bounded edits, documentation arcs,
-git-ops. `haiku`: retrieval only. Effort: `high` for multi-file reasoning / design / review,
-`medium` as the S default, `low` for mechanical single-file work; `max` sits outside dispatch
-routing. Rationale, the CLI check, and the declared boundary against ADR-87's "Model is CC's pick"
-all live at the Ch8 heading above — this row is the point-of-use copy, not a second authority.
+overrides.** `opus`: **the default for any arc touching `.dev-knowledge`**, plus M/L arcs
+anywhere, gate and organ code, architecture, adversarial verification, any arc whose failure
+poisons downstream work. `sonnet`: sub-tasks that are small **and** self-contained — read-only
+quick reviews, sub-agent chores, single-file mechanics carrying no system context. `haiku`:
+retrieval only. Effort: `high` for multi-file reasoning / design / review, `medium` as the S
+default, `low` for mechanical single-file work; `max` sits outside dispatch routing. Rationale,
+the CLI check, and the declared boundary against ADR-87's "Model is CC's pick" all live at the
+Ch8 heading above — this row is the point-of-use copy, not a second authority.
+
+**Why the hub defaults to `opus` (amendment 2026-08-07, operator-ruled on measured evidence).**
+The tier keys on **context load, not task shape**: a shape-S arc on sonnet ran ~3h against this
+repo's gate mesh (operator measurement), because the diff was small while the context held at
+every step was not — `CLAUDE.md` end-to-end at each boot, the pre-commit / commit-msg / pre-push
+stack, and `audit.py`'s 41-member `ALL_CHECKS` registry, any leg of which bounces a commit back
+through the same derivation. So a `.dev-knowledge` lane routes `opus` by default even when the
+diff looks S-sized, and a sonnet dispatch there is the exception a contract states on purpose.
+Evidence, the in-repo corroboration and its stated limits: `protocols/PLAYBOOK.md` Ch8 "Model +
+effort are stated at dispatch — the routing matrix", AMENDMENT 2026-08-07.
 
 **Dispatch (fill when this prompt ships via `claude --bg` — every batch lane, without
 exception):** `[<repo> · #<id>-or-slug · <verb-object>]` opens the title line below it, so the row
@@ -183,6 +195,16 @@ Final: `/ship "<summary> [#id if closing]"` — refuses if: on `main`, dirty tre
 ---
 
 **Section history:**
+- v1.11 (2026-08-07) — **the matrix's `sonnet` row is re-cut: the tier keys on CONTEXT LOAD, not
+  task shape.** Operator ruling on measured evidence — a shape-S arc on sonnet ran ~3h against
+  this repo's gate mesh, so a tier picked from diff size prices in none of what the arc actually
+  carried (`CLAUDE.md` at every boot, the three-stage hook stack, `audit.py`'s 41-member
+  `ALL_CHECKS`). `opus` becomes **the default for any arc touching `.dev-knowledge`**; `sonnet`
+  keeps only work that is small **and** self-contained (read-only quick reviews, sub-agent chores,
+  single-file mechanics with no system context). Scoped to the hub — the shape reading still holds
+  elsewhere in the fleet, where the gate mesh does not live. Canonical text plus the in-repo
+  corroboration and its stated limits: `protocols/PLAYBOOK.md` Ch8 "Model + effort are stated at
+  dispatch — the routing matrix", AMENDMENT 2026-08-07. Point-of-use copy only; no new authority.
 - v1.10 (2026-08-07) — **the routing matrix lands, and the Model/Mode/Effort table becomes
   M/L-only.** Architect ruling of the batch-2 consolidation arc: the browser-architect states model
   **and** effort on every dispatch, the operator overrides, and the **dispatch line is

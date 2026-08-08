@@ -19,6 +19,155 @@
 
 ---
 
+### 2026-08-07 (o) — CC (Opus 5, cloud night window): the session-end gate was disarmed by the uv pin, and its check passes when run directly
+
+**Did:** The `Stop` backpressure hook fired at the session boundary and **did not run**:
+
+```
+[uv run --locked python .../scripts/session_end_backpressure.py]: error: Required uv version
+`==0.11.19` does not match the running version `0.8.17`.
+```
+
+Ran the check directly against the system interpreter instead, exactly as every other gate in this
+window was run.
+
+**Result — the check is clean; only its wrapper was dead.** `python scripts/session_end_backpressure.py`
+exits **0** with no backpressure: entries (m) and (n) anchor this branch's work commits, so the
+discipline the hook exists to enforce is satisfied. Per the ADR-85 amendment 2026-08-03 §A5 the
+Stop hook is **advisory in full** and cannot block a turn, so nothing was bypassed — but it also
+means an unrunnable Stop hook is **indistinguishable from a passing one** to anyone reading the
+session, which is the whole reason this entry exists rather than a shrug. The `journal_spine_anchor`
+backstop separately cannot complete here (disposition floor `24882f8cc` is absent from a 246-commit
+shallow clone) — inherited, already recorded in entry (m) and in all three of this window's audit
+docs.
+
+**Result — this is the THIRD organ the ADR-106 uv pin silenced tonight, and the most load-bearing.**
+The first two were pre-commit hooks I could route around by invoking their scripts directly. This
+one fired **unbidden, at the boundary, and failed open** — no operator asked for it and no operator
+would have seen it fail. STANDING_RULINGS **D1** says the exact uv pin is load-bearing for the
+entire organ mesh; tonight it was load-bearing in the other direction. Recorded because it is
+direct evidence for intake #27 §A item 36 (`mise`), whose divergence question —
+*"would a `mise.toml` pinning uv 0.11.19 have produced a runnable gate mesh in a fresh cloud
+container tonight?"* — is written in `docs/audits/2026-08-08-technical-library-research.md` §8c.
+That memo counted two silent organs. **The count is three.**
+
+**Changes:** `JOURNAL.md` only.
+
+**Abandoned:** nothing. **Next:** n/a — no fix attempted here. Pinning-strategy is the operator's
+call under §A item 36, and a container-local uv workaround would be the "night fix ephemeral by
+design" that row already names as the failure mode.
+
+**Anchor:** `865ad4cc` (Phase R, the memo this entry adds a data point to) · `808c3e98` (entry (n)).
+
+### 2026-08-07 (n) — CC (Opus 5, cloud night window): the suite comparison, upgraded from file-level to test-level
+
+**Did:** Entry (m) claimed "this branch introduces no failure" on **file-level** evidence — the
+counts differed by one and the failing-FILE sets differed by exactly `tests/test_stale_worktrees.py`.
+That is sound but not airtight: a branch could in principle lose one baseline failure and introduce
+a different one inside a shared file and still match at both counts. This entry supplies the
+test-level comparison, appended rather than folded into (m) — the same append-not-amend discipline
+STANDING_RULINGS B6 landed for anchors.
+
+**Result — the sets are identical modulo the one worktree-inverting test.** Both failure sets were
+re-collected as sorted `file::test` node ids and diffed:
+
+- branch (`865ad4cc`, primary checkout): **44** failing node ids
+- baseline (`81d572d7`, detached worktree, no diff): **45**
+- present ONLY in the baseline: `tests/test_stale_worktrees.py::test_linked_worktrees_reader_excludes_the_primary`
+- present ONLY in the branch: **nothing**
+
+So the branch's failure set is a **strict subset** of the baseline's, missing exactly the test that
+inverts by construction inside any worktree. **Zero failures are attributable to this window's
+diff**, which is now Witnessed rather than Inferred.
+
+**Changes:** `JOURNAL.md` only.
+
+**Abandoned:** n/a. **Next:** n/a — the baseline worktree was torn down and verified after this
+measurement (`git worktree list` primary-only, `git branch -a` carries no `worktree-*` ref, the
+scratch directory removed), per CLAUDE.md §5 rule 9.
+
+**Anchor:** `865ad4cc` (the Phase R commit this comparison verifies) · `2af02282` (entry (m)).
+
+### 2026-08-07 (m) — CC (Opus 5, cloud night window, unattended): NIGHT-CLOUD v2 — matrix amendment, successor prep, cut staging, library research
+
+**Did:** Ran the frozen NIGHT-CLOUD-v2 contract end to end on Claude Code for the web, in a cloud
+container, on the branch below. Four phases, four commits, no merge and no push to `main` —
+morning integration is the architect's.
+
+**(1) Phase 1 — the routing matrix keys on CONTEXT LOAD, not task shape.** Operator ruling on
+measured evidence (a shape-S arc on sonnet ran ~3h against this repo's gate mesh). `PLAYBOOK` Ch8's
+Model row now makes **opus the default for any arc touching `.dev-knowledge`** and narrows sonnet
+to work that is small **and** self-contained; `templates/prompt-template.md` v1.10 → **v1.11**
+carries the point-of-use copy. The evidence is inline, the in-repo corroboration is stated as the
+lower bound it is (`b669bd8f` → `e351b685` is 1h40m of commit-timestamp wall clock, and git dates a
+commit, not a session), and the amendment is scoped to the hub. Ratchet-safe, measured: the
+silent-rule detector reads **432 before and 432 after** against a 441 baseline.
+
+**(2) Phase 2 — the successor prep pack.** `docs/audits/2026-08-08-technical-successor-prep.md`:
+intake #27's 36 rows re-colored against live state; the wave-2 `serialize-group: audit-py`
+pre-check re-derived and its verdict quoted (**the pair is still serialized — `[#430]` and
+`[#393]` may not co-run**, because the constraint keys on the declared label, not on how much of a
+row has shipped); a 9-row batch-3 candidate pool against a 5-lane need; the P-B pool re-counted
+9 → 8; and eight carried decisions with each fork quoted and each unlanded status stated.
+
+**(3) Phase 3 — cut STAGING, which is not the cut.**
+`docs/audits/2026-08-08-technical-handoff-cut-staging.md`: draft text for all **seven** authored
+FILL-IN regions (the contract's "BOOT 8 · RESIDUAL 6 · PROBES 1" counts *markers* — 15 markers, 7
+regions), each fact carrying its locator so the morning re-verifies rather than re-authors;
+per-probe evidence sheets for all 14, every command actually run; and a 10-step morning runbook.
+`gen_handoff.py` was never invoked and nothing under `docs/handoffs/` was touched.
+
+**(4) Phase R — library-first research, network on.**
+`docs/audits/2026-08-08-technical-library-research.md`: eight items, each with candidates,
+maintenance signal and the measured-divergence question. Three were settled by measuring this repo
+rather than by reading — `git interpret-trailers --parse` returns **zero** `Closes:` trailers on
+the exact false-positive merge `25ff8ec37` while a pure trailer matcher would today find **0 of 8**
+live closures; the 14-probe gate costs **22.58s** of which one probe is **19.47s**, capping any
+parallel runner at **1.2×**; and the `GIT_DIR` scrub already exists at **four** in-repo sites
+deriving its 15 names from `git rev-parse --local-env-vars`, so `[#512]` needs no library at all.
+
+**Result — three container findings worth carrying, none of them cosmetic.**
+- **`origin/main` was STALE.** Local `main` and `origin/main` both sat at `319f885` while the real
+  remote `main` was `81d572d`, so `git rev-list --left-right --count origin/main...main` returned a
+  confident `0 0` about two stale refs. Found at Phase 3, **after two phases had committed**.
+  `STANDING_RULINGS` **D3** already says a read of `origin/*` is evidence only after a fetch; the
+  rule was written and I did not apply it. Fixed with `git fetch origin main`; local `main`
+  deliberately left alone.
+- **The ADR-106 uv pin is unobtainable here** (`==0.11.19` vs the container's `0.8.17`;
+  `uv self update` reports the version does not exist), so **every** `uv run --locked` hook entry
+  is dead and the hooks are unarmed. Each gate was therefore run directly against the system
+  interpreter and its verdict recorded in the commit message rather than skipped silently. This is
+  a second live instance of the class §A item 36 (`mise`) names.
+- **The suite verdict, and the experiment I should have run first.** The branch run gave
+  **44 failed / 2501 passed / 10 skipped**; I classified the surplus over the recorded 3-RED local
+  baseline as container provisioning and shipped three phases on that argument before testing it.
+  The decisive run — full suite at `81d572d7`, no diff, in a detached worktree — gave
+  **45 failed / 2500 passed / 10 skipped**. The counts differ by exactly one, and the failing-FILE
+  sets differ by exactly one file: `tests/test_stale_worktrees.py`, present only in the baseline,
+  whose `test_linked_worktrees_reader_excludes_the_primary` inverts by construction inside any
+  worktree (batch-2 lane-2's recorded behaviour). **On that evidence this branch introduces no
+  failure**, and the surplus over the recorded 3-RED local baseline is container provisioning —
+  absent pyright/node, unarmed pre-commit, absent sibling repos, and the `analytics` dependency
+  group never installed (which is the whole of `test_fleet_analytics`). Recorded here rather than
+  in the memo because it landed after that file was sealed, and because a self-review that quietly
+  rewrites itself once the answer comes back favourable is worth less than one that shows the
+  order things happened in.
+
+**Changes:** `protocols/PLAYBOOK.md` (Ch8 matrix + amendment), `templates/prompt-template.md`
+(v1.11), three new `docs/audits/2026-08-08-*.md`, `docs/audits/README.md` (regenerated, never
+hand-edited), this entry.
+
+**Abandoned:** nothing. **Refused by contract:** no merge, no push to `main`, no bundle cut, no
+supplement answer authored, no row born or closed, no `gen_handoff.py` or batch-machinery edit, no
+`~/.claude` touch, no §B item relitigated.
+
+**Next:** the morning integration is the architect's — start at the staging doc's §3 step 0 (decide
+whether Phase 1 merges before the cut; two draft fill-in clauses cite it and are marked
+delete-if-unmerged).
+
+**Anchor:** `0583ea47` (Phase 1 matrix amendment) · `8c2f702f` (Phase 2 prep pack) · `0416d70f`
+(Phase 3 cut staging) · `865ad4cc` (Phase R research memo).
+
 ### 2026-08-07 (l) — CC (Sonnet 5, bg primary): JOURNAL-anchor follow-up for the PRE-2 gate-hygiene arc
 
 **Did:** Entry (k) was authored and committed before the SHAs it describes existed
