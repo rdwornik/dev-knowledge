@@ -19,6 +19,49 @@
 
 ---
 
+### 2026-08-08 (e) — CC (Opus 5, primary tree): the held RED is cleared by doing the review, and the arc merges
+
+**Did:** Operator ruling on entry (d)'s held RED: clear it by **performing the review the stamp
+asserts**, never by re-stamping around it. Read `ARCHITECTURE.md`, `CLAUDE.md`, `CONTRIBUTING.md`
+and `docs/handoffs/README.md` end-to-end from disk, checking each against the claims this arc
+could have falsified — the `reconciled_with` pointers, the dispatch-surface and BOOT DRILL text,
+any statement about the handoff bundle's contents, anything touched by 6.1.0 → 6.2.0.
+
+**Result — `8f09c12d`, ship-gate GREEN (0 hard-fail, 18 WARN dispositioned, none new):**
+
+- **One real defect, found and corrected.** `docs/handoffs/README.md`'s "Who each file is for"
+  table enumerates the role of the bundle's own `HANDOFF_BOOT.md` — the file it sends the operator
+  to first — and this arc had added a resident "Operator-facing forms" section to it. The row now
+  names the card and its four forms.
+- **Three files clean.** `CLAUDE.md` (all twelve sections; §9's `audit-health` row was exercised
+  adversely by this very arc), `CONTRIBUTING.md` (stamp chain + validator table verified live),
+  `ARCHITECTURE.md` (no organ added, no `rule:` marker claimed, no hook added, 6.2.0 is still v6 —
+  so Ch2's "13 rules", the pre-commit list and every "Handoff v6" reference all hold).
+  `ARCHITECTURE.md`'s `Last updated` was deliberately left at 2026-08-07: it means *when content
+  last changed*, and no content changed — it and `last_reviewed` answer different questions.
+
+**Scope guard held, and it cost something to hold.** This was a freshness review, not a
+stale-claims sweep. Three unrelated stalenesses surfaced during the reads and were **reported,
+not fixed** — including an internal contradiction inside `ARCHITECTURE.md` (Ch3's Channels bullet
+describes the `nightly-conformance-triage` Action in the present tense while Ch6 records it
+retired since 2026-07-08). That is the [#503] defect class living in the map that documents it.
+
+**Watch (2) — the gate caught bloat I had just written.** The §12 entry added to record this
+re-read pushed `CLAUDE.md` past its own self-declared 200-line budget, raising a NEW `doc_rot`
+WARN and re-REDding the gate one commit after clearing it. Verified self-induced before acting
+(`validate_doc_rot` is clean at `HEAD~1`, fires on mine), then **undone by shortening the entry
+from 15 lines to 1** — never dispositioned. Self-induced bloat is removed, not registered.
+
+**Changes:** `docs/handoffs/README.md` (forms-card row + stamp), `CLAUDE.md` (§12 v2.54 + version
++ footer + stamp), `CONTRIBUTING.md` (reflow of this arc's own insertion + stamp),
+`ARCHITECTURE.md` (stamp only).
+
+**Abandoned:** nothing.
+
+**Next:** none for this arc — it merges here. Entry (d)'s closing line ("this branch is NOT
+merged", "operator decides whether to clear the REDs") is **superseded by this entry**; (d) is
+left byte-identical as the record of what was true when it was written.
+
 ### 2026-08-08 (d) — CC (Opus 5, primary tree): the dispatch surface becomes repo law — three landings, one held RED
 
 **Did:** Executed `ARC-dispatch-surface-codify` on `chore/dispatch-surface-codify` off `main`,
