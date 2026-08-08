@@ -19,6 +19,45 @@
 
 ---
 
+### 2026-08-08 (h) — CC (Opus 5, bg primary tree): the batch-3 manifest lands at INTEGRATION — STEP 1 of the accepted re-dispatch
+
+**Did:** Operator ruled option (A) of the consolidation report §8: commit a batch-3 manifest now,
+present-tense, rather than authorise a bypass. `0476e4ce` carries it at
+`docs/audits/2026-08-08-technical-batch-3-manifest.md`, shape derived from batch 2's, no field
+invented and no timestamp back-dated. The provenance note is in the body verbatim — this manifest
+is late, that is the architect's dispatch defect, and batch 2's commit-at-DISPATCH condition stands
+as the correct practice.
+
+**Result — the exemption is live and confirmed, not assumed.** `batch_manifest.open_batches`
+returns `OpenBatch(batch='2026-08-08-batch-3', closed_by='docs/audits/2026-08-08-technical-batch-3-packet.md')`.
+
+Two decisions worth recording because both could have silently produced a dead manifest:
+
+- **`closed_by:` names a packet that does not exist yet, NOT the already-committed consolidation
+  report.** `open_batches` requires the `closed_by` path to be **absent** from the committed tree,
+  so naming the report would have closed the batch on arrival and granted no exemption at all —
+  a manifest that looks correct and does nothing. The packet is a distinct artifact authored at
+  close, which `/lane-integrate` §4 and its checklist item 4 require independently anyway.
+- **No branch was renamed.** Nine of the ten branch names miss the ratified
+  `lane-<letter>-<id>-<slug>` grammar (finding F3), but `batch_manifest.LANE_BRANCH_RE` is the
+  looser `^worktree-lane-[a-z0-9]+(?:-[a-z0-9]+)*$` and all ten match it, so the exemption applies
+  without touching a name. F3 and F4 stay carried, not repaired.
+
+**Why this is a second JOURNAL entry rather than the one-entry-at-the-end the contract asks for.**
+The exemption covers **lane merges only** (`is_lane_merge`). This manifest arrives on a
+`chore/` branch, so its merge is NOT exempt and would sit unanchored on the spine, RED-blocking
+every conflicting lane merge that follows — the exact wedge the manifest exists to remove. The
+anchor has to precede the queue it unblocks. The integration's own single entry follows at close.
+
+**Changes:** `docs/audits/2026-08-08-technical-batch-3-manifest.md` (new); `docs/audits/README.md`
+regenerated. No lane branch touched; no bypass of any kind.
+
+**Abandoned:** nothing.
+
+**Next:** STEP 2 — `/lane-integrate` over the ten-branch queue, order intakes → E → 290 → 280/315
+→ the six report branches, with the intakes JOURNAL letter derived from `JOURNAL.md` at merge time
+(this entry has taken (h), so it has moved again — derive, never quote).
+
 ### 2026-08-08 (g) — CC (Opus 5, bg primary tree): JOURNAL-anchor follow-up for the batch-3 report amendment
 
 **Did:** Appended an amendment marker to `docs/audits/2026-08-08-technical-batch-3-consolidation-report.md`
