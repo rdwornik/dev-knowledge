@@ -373,6 +373,15 @@ carriers:
           path: docs/intake/README.md
         - source: templates/intake-template.md
           path: templates/intake-template.md
+        # [#315] the tier1-plugin install guide, at the CONSUMER root. Operator ruling
+        # (fleet-boundary-matrix Surface 8, amended 2026-07-11): "INSTALL.md uniform
+        # fleet-wide, hub-owned, deploy-carried" — the content was always
+        # methodology-generic, only its PLACEMENT was accidental (just ai-council, the
+        # repo that co-authored the plugin, carried a root copy). The hub keeps the
+        # canonical source at the plugin and grows no root INSTALL.md of its own: it is
+        # the SOURCE, and like the floor it does not deploy to itself.
+        - source: plugins/tier1-lifecycle/INSTALL.md
+          path: INSTALL.md
 
 components:
   - id: intake-area
@@ -397,6 +406,23 @@ components:
     roster:
       section: header
       line: "`docs/intake/` + `templates/intake-template.md` — the ADR-98 requirements spine (carried replica of the hub source)"
+
+  - id: install-guide
+    kind: config   # same file-copy kind as intake-area / vscode / codex-agents-config (see note there)
+    carrier: docs
+    status: active
+    waivable: true   # onboarding DOCUMENTATION; its absence costs discoverability of the tier1 plugin install, not a gate
+    verify: hash
+    engages:                    # OBSERVED (git-state) — a carried file, not a firing hook
+      trigger: deploy-time
+      observable: git-state
+      expect: "INSTALL.md present at the consumer root (hash-matched to plugins/tier1-lifecycle/INSTALL.md)"
+    artifacts:
+      - path: INSTALL.md
+        source: plugins/tier1-lifecycle/INSTALL.md
+    roster:
+      section: header
+      line: "`INSTALL.md` — tier1-lifecycle plugin install guide, hub-owned + deploy-carried (Surface 8 ruling)"
 
   - id: vscode-boundary-decoration
     kind: config

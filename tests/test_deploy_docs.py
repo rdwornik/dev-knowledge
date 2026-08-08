@@ -14,10 +14,14 @@ Covers the (three-state) reconcile model against the ADR-92 carrier contract:
 - registration: the carrier is bound in ``deploy/tool.py``'s factory, so a manifest
   ``docs`` entry does not fall through to "carrier id not registered".
 
-The ACCEPTANCE test at the foot reads the SHIPPED manifest live (not a fixture), so it
-tracks the real declaration rather than a copy of it: a deployed synthetic consumer
-carries ``docs/intake/README.md`` + ``templates/intake-template.md`` (BACKLOG #280
-Done-when, == ``deploy/release-v1.3.x-contract.md`` §Verify-at-build #280).
+The two ACCEPTANCE tests at the foot read the SHIPPED manifest live (not a fixture), so
+they track the real declaration rather than a copy of it:
+
+- ``test_acceptance_280_...`` — a deployed synthetic consumer carries
+  ``docs/intake/README.md`` + ``templates/intake-template.md`` (BACKLOG #280 Done-when,
+  == ``deploy/release-v1.3.x-contract.md`` §Verify-at-build #280).
+- ``test_acceptance_315_...`` — the same consumer carries ``INSTALL.md`` at its root,
+  sourced from the hub-canonical ``plugins/tier1-lifecycle/INSTALL.md`` (BACKLOG #315).
 
 No network; hub sources are read live so the tests track the real shipped doc bytes.
 """
@@ -253,3 +257,34 @@ def test_acceptance_280_deployed_consumer_carries_the_intake_area(tmp_path):
         "templates/intake-template.md"
     )
     assert car.verify(target).ok is True
+
+
+def test_acceptance_315_deployed_consumer_carries_install_md(tmp_path):
+    """#315 Done-when: INSTALL.md has a hub-canonical source AND ships as a doc-artifact.
+
+    Verbatim from the BACKLOG row's STRUCTURAL SPEC: "**path** `INSTALL.md` (repo root),
+    **source** `plugins/tier1-lifecycle/INSTALL.md`". The operator ruling behind it is
+    the fleet-boundary-matrix Surface 8 amendment (2026-07-11): "INSTALL.md uniform
+    fleet-wide, hub-owned, deploy-carried".
+    """
+    target = _shipped_docs_target()
+    declared = {d["path"]: d["source"] for d in target["doc_paths"]}
+    assert declared.get("INSTALL.md") == "plugins/tier1-lifecycle/INSTALL.md"
+
+    car = cd.DocsCarrier(tmp_path)
+    car.apply(target)
+    assert (tmp_path / "INSTALL.md").read_text(encoding="utf-8") == _expected(
+        "plugins/tier1-lifecycle/INSTALL.md"
+    )
+    assert car.verify(target).ok is True
+
+
+def test_hub_itself_grows_no_root_install_md(tmp_path):
+    """The hub is the SOURCE, not a deploy target — like the floor, it never self-deploys.
+
+    Pins the placement half of the Surface 8 ruling: the canonical copy stays at
+    plugins/tier1-lifecycle/INSTALL.md and the consumer root copy is the carried replica.
+    A stray hub-root INSTALL.md would make the hub a rival source (ADR-93).
+    """
+    assert (_REPO_ROOT / "plugins" / "tier1-lifecycle" / "INSTALL.md").exists()
+    assert not (_REPO_ROOT / "INSTALL.md").exists()

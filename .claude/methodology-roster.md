@@ -13,6 +13,7 @@
 
 ## Header context
 - `docs/intake/` + `templates/intake-template.md` — the ADR-98 requirements spine (carried replica of the hub source)
+- `INSTALL.md` — tier1-lifecycle plugin install guide, hub-owned + deploy-carried (Surface 8 ruling)
 - `.vscode/` shared editor config — owner=hub / owner=repo boundary decoration (grey / navy, dark theme)
 - Plugin `tier1-lifecycle@dev-knowledge-methodology` enabled (`.claude/settings.json`)
 - `@.claude/CLAUDE-FLOOR.md` — methodology floor (hash-guarded replica, ADR-78/93)
