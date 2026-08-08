@@ -8,6 +8,8 @@ Covers the (three-state) reconcile model on the floor carrier
 - drifted (floor edited / sidecar missing / sidecar stale): PRESENT_DRIFTED -> apply
   -> verify;
 - idempotency: apply then apply again writes nothing (byte-identical);
+- arm-leg STAGE CARDINALITY (#290): verify FAILs a 1-stage-armed consumer (naming the
+  dormant stages) and one re-deploy self-heals it in place, touching only the arm;
 - verify reports failures rather than silently passing;
 - detect/verify INDEPENDENCE (D9): each survives the other's judgment helper being
   sabotaged;
@@ -22,6 +24,8 @@ from __future__ import annotations
 
 import json
 import os
+import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -309,11 +313,590 @@ def test_apply_merges_sessionstart_preserving_existing_settings(tmp_path):
     assert data["hooks"]["SessionStart"]                          # guard added
 
 
+# ---------------------------------------------------------------------------
+# ARM-LEG STAGE CARDINALITY (#290) — the teeth + the self-heal. A consumer armed by a
+# pre-#275b deploy carries a bare 1-stage `pre_commit install`; verify must FAIL it, and one
+# re-deploy must heal it without disturbing anything else.
+# ---------------------------------------------------------------------------
+
+_ONE_STAGE_ARM = "python -m pre_commit install"  # the pre-#275b arm leg, verbatim
+
+
+def _rewrite_arm_leg(repo: Path, command: str) -> None:
+    """Put `command` in place of the armed settings.json's arm leg (nothing else moves)."""
+    data = json.loads(_settings(repo).read_text(encoding="utf-8"))
+    for group in data["hooks"]["SessionStart"]:
+        for hook in group["hooks"]:
+            if "pre_commit install" in hook["command"]:
+                hook["command"] = command
+    _settings(repo).write_text(
+        json.dumps(data, indent=2) + "\n", encoding="utf-8", newline="\n"
+    )
+
+
+def _arm_commands(repo: Path) -> list[str]:
+    """Every SessionStart command mentioning `install` — deliberately a BROADER filter than
+    the carrier's own `_is_arm_command`, so a test can see a leg the carrier does not
+    recognise (and catch a leg the carrier wrongly rewrote or duplicated)."""
+    data = json.loads(_settings(repo).read_text(encoding="utf-8"))
+    return [
+        h["command"]
+        for g in data["hooks"]["SessionStart"]
+        for h in g["hooks"]
+        if "install" in h["command"]
+    ]
+
+
+def test_stage_cardinality_is_single_sourced_from_the_hub_self_arm():
+    """No second source of truth for stage cardinality (#290): the carrier's expectation IS
+    the hub's own self-arm list, and the command it writes is derived from it."""
+    import arm_hooks
+
+    assert cf.ARM_HOOK_TYPES is arm_hooks.HOOK_TYPES
+    for stage in arm_hooks.HOOK_TYPES:
+        assert f"-t {stage}" in cf._SESSIONSTART_ARM_CMD
+
+
+def test_verify_fails_a_one_stage_armed_consumer(tmp_path):
+    """FROZEN: `carrier_floor.verify` FAILs a 1-stage-armed consumer, naming the stages that
+    would land wired-but-dormant. Before #290 this passed — verify checked only the verify
+    leg — so a pre-#275b consumer verified green with commit-msg / pre-push dormant."""
+    car = _carrier(tmp_path)
+    car.apply(_FLOOR_TARGET)
+    assert car.verify(_FLOOR_TARGET).ok is True  # baseline: fully armed
+    _rewrite_arm_leg(tmp_path, _ONE_STAGE_ARM)
+
+    result = car.verify(_FLOOR_TARGET)
+    assert result.ok is False
+    dormant = next(f for f in result.failures if "arm leg arms" in f)
+    # names the ACTUALLY dormant stages — a bare `install` does arm pre-commit by default
+    assert "commit-msg" in dormant and "pre-push" in dormant
+    assert "1/3" in dormant
+
+
+def test_detect_classifies_a_one_stage_armed_consumer_drifted(tmp_path):
+    car = _carrier(tmp_path)
+    car.apply(_FLOOR_TARGET)
+    _rewrite_arm_leg(tmp_path, _ONE_STAGE_ARM)
+    assert car.detect(_FLOOR_TARGET) is contract.CarrierState.PRESENT_DRIFTED
+
+
+def test_redeploy_self_heals_a_one_stage_arm_to_full_cardinality(tmp_path):
+    """FROZEN: a re-deploy against that same fixture leaves it 3-stage-armed and verify-green
+    (#290 (b)) — the half that makes the (a) DRIFTED verdict repairable."""
+    car = _carrier(tmp_path)
+    car.apply(_FLOOR_TARGET)
+    _rewrite_arm_leg(tmp_path, _ONE_STAGE_ARM)
+
+    healed = car.apply(_FLOOR_TARGET)
+    assert healed.changed is True
+    assert any("self-healed" in c for c in healed.changes)
+
+    arm = _arm_commands(tmp_path)
+    assert len(arm) == 1  # repaired IN PLACE — not a second arm leg appended
+    for stage in cf.ARM_HOOK_TYPES:
+        assert f"-t {stage}" in arm[0]
+    assert car.verify(_FLOOR_TARGET).ok is True
+    assert car.detect(_FLOOR_TARGET) is contract.CarrierState.PRESENT_CORRECT
+
+
+def test_redeploy_on_an_already_armed_consumer_changes_nothing(tmp_path):
+    """FROZEN: an already-3-stage fixture is UNCHANGED by re-deploy (idempotence) — the
+    self-heal must not rewrite a consumer that was already correct."""
+    car = _carrier(tmp_path)
+    car.apply(_FLOOR_TARGET)
+    before = _settings(tmp_path).read_bytes()
+
+    second = car.apply(_FLOOR_TARGET)
+    assert second.changed is False
+    assert _settings(tmp_path).read_bytes() == before  # byte-identical
+
+
+def test_self_heal_touches_only_the_arm_leg(tmp_path):
+    """The repair is scoped: unrelated settings.json keys, the verify leg, sibling
+    SessionStart hooks and the arm hook's own non-command keys all survive verbatim."""
+    car = _carrier(tmp_path)
+    car.apply(_FLOOR_TARGET)
+    data = json.loads(_settings(tmp_path).read_text(encoding="utf-8"))
+    data["enabledPlugins"] = {"tier1-lifecycle@dev-knowledge-methodology": True}
+    data["permissions"] = {"allow": ["Bash(git status)"]}
+    group = data["hooks"]["SessionStart"][0]
+    group["hooks"].append({"type": "command", "command": "python custom_surfacing.py",
+                           "timeout": 5})
+    for hook in group["hooks"]:
+        if "pre_commit install" in hook["command"]:
+            hook["command"] = _ONE_STAGE_ARM
+            hook["timeout"] = 45  # a consumer-tuned timeout the repair must preserve
+    _settings(tmp_path).write_text(
+        json.dumps(data, indent=2) + "\n", encoding="utf-8", newline="\n"
+    )
+
+    car.apply(_FLOOR_TARGET)
+    healed = json.loads(_settings(tmp_path).read_text(encoding="utf-8"))
+
+    assert healed["enabledPlugins"] == data["enabledPlugins"]
+    assert healed["permissions"] == data["permissions"]
+    cmds = [h["command"] for g in healed["hooks"]["SessionStart"] for h in g["hooks"]]
+    assert "python custom_surfacing.py" in cmds          # sibling hook untouched
+    assert any("check_floor_hash.py --require-present" in c for c in cmds)  # verify leg kept
+    assert len(healed["hooks"]["SessionStart"]) == 1      # no duplicate guard block
+    arm = next(
+        h for g in healed["hooks"]["SessionStart"] for h in g["hooks"]
+        if "pre_commit install" in h["command"]
+    )
+    assert arm["timeout"] == 45  # only `command` was rewritten
+    assert car.verify(_FLOOR_TARGET).ok is True
+
+
+@pytest.mark.parametrize("long_form", [
+    "python -m pre_commit install --hook-type pre-commit --hook-type commit-msg "
+    "--hook-type pre-push",
+    "python -m pre_commit install --hook-type=pre-commit --hook-type=commit-msg "
+    "--hook-type=pre-push",
+])
+def test_long_form_stage_flags_count_as_fully_armed(tmp_path, long_form):
+    """A consumer armed with `pre-commit install`'s long-form flag is NOT stale — a false
+    DRIFTED here would have the self-heal rewrite a config that was already correct."""
+    car = _carrier(tmp_path)
+    car.apply(_FLOOR_TARGET)
+    _rewrite_arm_leg(tmp_path, long_form)
+
+    assert car.verify(_FLOOR_TARGET).ok is True
+    assert car.detect(_FLOOR_TARGET) is contract.CarrierState.PRESENT_CORRECT
+    assert car.apply(_FLOOR_TARGET).changed is False       # no gratuitous rewrite
+    assert _arm_commands(tmp_path) == [long_form]          # left verbatim
+
+
+@pytest.mark.parametrize("cmd,expected", [
+    # stage flags belonging to a DIFFERENT pre-commit subcommand must not be credited to
+    # `install` — `install-hooks` is a distinct subcommand that arms no git hook stage
+    ("python -m pre_commit install-hooks -t pre-commit -t commit-msg -t pre-push", set()),
+    # ...nor may flags from a neighbouring shell segment
+    ("python -m pre_commit run -t pre-commit -t commit-msg -t pre-push; "
+     "python -m pre_commit install", {"pre-commit"}),
+    ("python -m pre_commit run -t commit-msg && python -m pre_commit install -t pre-push",
+     {"pre-push"}),
+    # a mere MENTION of the arm command is not an arm command
+    ('echo "pre_commit install -t pre-commit -t commit-msg -t pre-push"', set()),
+    # a flag with NO VALUE is an argparse error, so the install arms nothing — it does NOT
+    # fall back to the default stage (my own wrong assumption, caught by terra pass 4)
+    ("python -m pre_commit install -t", set()),
+    ("python -m pre_commit install --hook-type", set()),
+    # a command performing no install contributes NOTHING — the default-stage fallback is a
+    # property of an invocation, not of an unrelated SessionStart hook
+    ("python scripts/surface_triage.py", set()),
+    ("python .claude/check_floor_hash.py --require-present", set()),
+    # real invocations, in each spelling pre-commit accepts
+    ("python -m pre_commit install -t pre-commit -t commit-msg -t pre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    ("pre-commit install --hook-type=pre-commit --hook-type=commit-msg "
+     "--hook-type=pre-push", {"pre-commit", "commit-msg", "pre-push"}),
+    ("/usr/local/bin/pre-commit install -tpre-commit -tcommit-msg -tpre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    (r"C:\venv\Scripts\pre-commit.exe install -t pre-commit -t commit-msg -t pre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    # a bare install arms pre-commit only — the #275 defect, stated honestly
+    ("python -m pre_commit install", {"pre-commit"}),
+    # --- terra pass 2: pre-commit must be the command INVOKED, not a token that appears ---
+    # unquoted mention in argument position (the quoted `echo` case above missed this)
+    ("echo pre-commit install -t pre-commit -t commit-msg -t pre-push", set()),
+    ("git commit -m 'run pre-commit install -t pre-push'", set()),
+    # a NEWLINE is a command boundary — a flag on a later line is not this install's
+    ("python -m pre_commit install\necho -t commit-msg -t pre-push", {"pre-commit"}),
+    ("echo arming\npython -m pre_commit install -t pre-commit -t commit-msg -t pre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    # quoting is RESOLVED — a quoted stage name is the stage it names. Reading these as
+    # under-armed is the damaging direction: apply would rewrite a CORRECT consumer.
+    ("PRE_COMMIT_HOME=/tmp pre-commit install -t 'pre-commit' -t 'commit-msg' "
+     "-t 'pre-push'", {"pre-commit", "commit-msg", "pre-push"}),
+    ('pre-commit install -t "pre-commit" -t "commit-msg" -t "pre-push"',
+     {"pre-commit", "commit-msg", "pre-push"}),
+    # a bounded runner prefix is tolerated — this repo's own hooks invoke via `uv run`
+    ("uv run pre-commit install -t pre-commit -t commit-msg -t pre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    ("py -3 -m pre_commit install -t pre-commit -t commit-msg -t pre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    # past `--` a `-t` is a POSITIONAL, and `install` accepts none — so argparse exits 2 and
+    # nothing is installed (my earlier row assumed a default-stage fallback; ground truth from
+    # argparse says the whole invocation is rejected)
+    ("python -m pre_commit install -- -t pre-commit -t commit-msg -t pre-push", set()),
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push -- ignored", set()),
+    ("pre-commit install -t pre-commit --", set()),  # a bare trailing `--` is rejected too
+    # an opaque wrapper is not statically readable -> reads as no invocation (stated limit)
+    ("sh -c 'pre-commit install -t pre-commit -t commit-msg -t pre-push'", set()),
+    # unbalanced quotes must not raise — the whitespace-split fallback still reads the flags
+    ("pre-commit install -t 'pre-commit -t commit-msg", {"pre-commit", "commit-msg"}),
+    # --- terra pass 3: the runner prefix is a SEQUENCE, not a bag of allowed words ---
+    # an INCOMPLETE runner prefix never reaches the pre-commit CLI, so it arms nothing
+    ("python pre-commit install -t pre-commit -t commit-msg -t pre-push", set()),
+    ("uv pre-commit install -t pre-commit -t commit-msg -t pre-push", set()),
+    ("poetry pre-commit install -t pre-commit -t commit-msg -t pre-push", set()),
+    ("run pre-commit install -t pre-commit -t commit-msg -t pre-push", set()),
+    # ...while each COMPLETE prefix does
+    ("uvx pre-commit install -t pre-commit -t commit-msg -t pre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    ("poetry run pre-commit install -t pre-commit -t commit-msg -t pre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    ("py -3.12 -m pre_commit install -t pre-commit -t commit-msg -t pre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    # `-t=X` — argparse splits an `=`-bearing short option and takes the remainder as the
+    # value, so this IS a valid full arm; reading it as under-armed would rewrite a correct
+    # consumer (the damaging direction)
+    ("pre-commit install -t=pre-commit -t=commit-msg -t=pre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    # a POSIX line continuation is ONE command, not two under-armed segments
+    ("pre-commit install -t pre-commit \\\n  -t commit-msg -t pre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    # Windows executable names are case-insensitive
+    (r"C:\venv\Scripts\PRE-COMMIT.EXE install -t pre-commit -t commit-msg -t pre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    # degenerate inputs must not raise
+    ("", set()),
+    ("   ", set()),
+    ("\n\n", set()),
+    # --- terra pass 4: an invocation that FAILS argument parsing arms nothing ---
+    # `-t` is choices-constrained, so one invalid value aborts the whole install BEFORE
+    # anything is written. Discarding it and crediting the three valid ones is FALSE-ARMED.
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push -t bogus", set()),
+    ("pre-commit install -t=bogus", set()),
+    ("pre-commit install --hook-type=not-a-hook -t pre-commit", set()),
+    # argparse splits a short option on the FIRST `=` only, so `-t==X` passes it `=X` and the
+    # invocation is rejected — exactly one optional `=` is valid, not any number of them
+    ("pre-commit install -t=pre-commit -t==commit-msg -t=pre-push", set()),
+    ("pre-commit install -t===pre-commit", set()),
+    # ...but a VALID stage this carrier does not manage is not an error: the install succeeds
+    # and all three managed stages really are armed
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push -t post-commit",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    ("pre-commit install -t post-checkout", set()),  # valid, but manages none of ours
+    # --- terra pass 6: an argument `install` does not accept means it never installs ---
+    # `--help` prints usage and exits BEFORE install dispatches
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push --help", set()),
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push -h", set()),
+    # an unrecognised option, or a positional (`install` accepts none), is argparse exit 2
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push --nope", set()),
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push extra-positional", set()),
+    ("pre-commit install --install-hooks=yes -t pre-commit", set()),  # value to a flag opt
+    # ...but every option `install` DOES accept must still be honoured, or a correct consumer
+    # reads as stale and apply rewrites it (the damaging direction)
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push -f",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push --overwrite --install-hooks",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push --allow-missing-config",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push --color never",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push --color=never",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push --color auto",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    # `--color` is the other choices-constrained option: an out-of-enum value is an argparse
+    # error, so the install arms nothing (terra pass-7)
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push --color chartreuse", set()),
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push --color=chartreuse", set()),
+    # --- terra pass 8: argparse accepts UNAMBIGUOUS long-option abbreviations ---
+    # verified live: `install --col never -t …` really does install all three hooks, so
+    # rejecting the abbreviation would rewrite a correct consumer (the damaging direction)
+    ("pre-commit install --col never -t pre-commit -t commit-msg -t pre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    ("pre-commit install --hook pre-commit --hook commit-msg --hook pre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    ("pre-commit install --hook-t=pre-commit --hook-t=commit-msg --hook-t=pre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push --allow",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push --over --install-h",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    # an AMBIGUOUS prefix is an argparse error — `--h` matches both --help and --hook-type
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push --h", set()),
+    # an abbreviation of a TERMINAL option still terminates
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push --hel", set()),
+    # an abbreviated choices option is still choices-validated
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push --col chartreuse", set()),
+    # --- terra pass 9 ---
+    # composed short options: argparse reads `-ft X` as `-f` plus `-t X`, so this really arms
+    ("pre-commit install -ft pre-commit -t commit-msg -t pre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    # a shell REDIRECTION is the shell's business, not an argument to `install`
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push >install.log",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push >> install.log",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push 2>&1 >out.log",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push < /dev/null",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    # a redirection with NO target is a shell syntax error — the shell never runs the command,
+    # so dropping the dangling operator and reading the rest as armed is a false green
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push >", set()),
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push 2>", set()),
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push >>", set()),
+    # ...nor may the target slot hold another operator — `> >`, `> |`, `> ;` are all syntax
+    # errors, closed as one family by requiring the target to be a plain shell word
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push > >", set()),
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push > >> out.log", set()),
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push > ; echo hi", set()),
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push > | cat", set()),
+    # --- terra pass 10 ---
+    # a shell builtin that transparently EXECS what follows really does install (my own
+    # earlier row wrongly grouped `exec` with incomplete runner prefixes like `run`)
+    ("exec pre-commit install -t pre-commit -t commit-msg -t pre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    ("command pre-commit install -t pre-commit -t commit-msg -t pre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    ("env PRE_COMMIT_HOME=/tmp pre-commit install -t pre-commit -t commit-msg -t pre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    # `env` has options of its own, so skipping the bare word is not enough (terra pass-13)
+    ("env -u PRE_COMMIT_HOME pre-commit install -t pre-commit -t commit-msg -t pre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    ("env -uPRE_COMMIT_HOME pre-commit install -t pre-commit -t commit-msg -t pre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    ("env --unset=PRE_COMMIT_HOME pre-commit install -t pre-commit -t commit-msg -t pre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    ("env -i PRE_COMMIT_HOME=/tmp pre-commit install -t pre-commit -t commit-msg -t pre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    ("env -- pre-commit install -t pre-commit -t commit-msg -t pre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    # ...and `env` wrapping something that is NOT pre-commit still arms nothing
+    ("env -u HOME echo pre-commit install -t pre-commit -t commit-msg -t pre-push", set()),
+    # GNU env REFUSES -0/--null when a command is supplied, so pre-commit never runs
+    ("env -0 pre-commit install -t pre-commit -t commit-msg -t pre-push", set()),
+    ("env --null pre-commit install -t pre-commit -t commit-msg -t pre-push", set()),
+    # POSIX DELETES a backslash-newline, inserting nothing: `pre-\<NL>commit` is one word.
+    # Substituting a space split it and argparse rejected `pre-` (FALSE-UNARMED).
+    ("pre-commit install -t pre-\\\ncommit -t commit-msg -t pre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    # ...while the space BEFORE the backslash is a real separator and must survive
+    ("pre-commit install -t pre-commit \\\n-t commit-msg \\\n-t pre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    ("pre-commit install -c .pre-commit-config.yaml -t pre-commit -t commit-msg -t pre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    ("pre-commit install -c.pre-commit-config.yaml -t pre-commit -t commit-msg -t pre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    ("pre-commit install --config=cfg.yaml -t pre-commit -t commit-msg -t pre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
+])
+
+
+def test_armed_stages_binds_flags_to_the_install_invocation(cmd, expected):
+    """The stage parser must credit a flag only to the `pre-commit install` that consumes it.
+
+    A whole-token scan (the pre-terra-review draft) read `install-hooks -t ...` and
+    `run -t ...; install` as fully armed — a false PRESENT_CORRECT, i.e. the very
+    dormant-stage defect #290 exists to catch, reintroduced by the teeth themselves."""
+    assert cf._armed_stages(cmd) == frozenset(expected)
+
+
+def test_stage_choices_come_from_pre_commit_itself():
+    """The mirrored parser's `-t` choices ARE pre-commit's own enum (library-first), so a valid
+    stage can never drift into looking invalid — which would read a correctly-armed consumer as
+    stale and rewrite it. The literal fallback is only for an env without pre-commit."""
+    from pre_commit.clientlib import HOOK_TYPES as upstream
+
+    assert frozenset(cf._PRECOMMIT_HOOK_TYPES) == frozenset(upstream)
+    assert frozenset(cf._INSTALL_PARSER._option_string_actions["-t"].choices) == frozenset(upstream)
+    # every stage this carrier REQUIRES must be one pre-commit can actually install
+    assert set(cf.ARM_HOOK_TYPES) <= set(upstream)
+
+
+def test_install_option_surface_matches_pre_commit_help():
+    """DRIFT GUARD for the recorded `pre-commit install` option surface.
+
+    The parser treats an option `install` does not accept as "installs nothing" — correct
+    today, but it means a NEW pre-commit option would make a consumer using it read as stale,
+    and apply would rewrite that consumer's command. This test turns that risk into a loud
+    test failure instead: every option in the live `install --help` must be one we know."""
+    out = subprocess.run(
+        [sys.executable, "-m", "pre_commit", "install", "--help"],
+        capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60,
+    )
+    assert out.returncode == 0, out.stderr
+    # every `-x` / `--xyz` token the help text advertises
+    advertised = {m.group(0) for m in re.finditer(r"(?<![\w-])--?[A-Za-z][\w-]*", out.stdout)}
+    known = set(cf._INSTALL_PARSER._option_string_actions)
+    # the regex also catches the tails of hyphenated VALUES and prose (`pre-commit`,
+    # `commit-msg`, `post-checkout`, ...); those are not options
+    value_tails = {f"-{part}" for stage in cf._PRECOMMIT_HOOK_TYPES for part in stage.split("-")}
+    unknown = advertised - known - value_tails - {"--pre-commit", "-pre-commit"}
+    assert not unknown, (
+        f"`pre-commit install` advertises option(s) this carrier does not know: "
+        f"{sorted(unknown)} — add them to _INSTALL_*_OPTS, else a consumer using one reads "
+        f"as un-armed and apply rewrites its command"
+    )
+
+
+@pytest.mark.parametrize("cmd", [
+    "python -m pre_commit install-hooks -t pre-commit",
+    'echo "pre_commit install"',
+    "echo pre-commit install",
+    "sh -c 'pre-commit install'",
+    "python scripts/surface_triage.py",
+])
+def test_non_arming_commands_are_not_arm_legs(cmd):
+    assert cf._is_arm_command(cmd) is False
+
+
+@pytest.mark.parametrize("armed_cmd", [
+    "PRE_COMMIT_HOME=/tmp pre-commit install -t 'pre-commit' -t 'commit-msg' -t 'pre-push'",
+    "uv run pre-commit install -t pre-commit -t commit-msg -t pre-push",
+    "pre-commit install --hook-type=pre-commit --hook-type=commit-msg --hook-type=pre-push",
+    "pre-commit install -t=pre-commit -t=commit-msg -t=pre-push",
+    r"C:\venv\Scripts\PRE-COMMIT.EXE install -t pre-commit -t commit-msg -t pre-push",
+    "pre-commit install -t pre-commit \\\n  -t commit-msg -t pre-push",
+])
+def test_apply_never_rewrites_an_already_armed_variant(tmp_path, armed_cmd):
+    """The damaging direction: a FALSE under-armed read would have apply rewrite a correct
+    consumer's command, discarding its env prefix / runner / quoting. These must be no-ops."""
+    car = _carrier(tmp_path)
+    car.apply(_FLOOR_TARGET)
+    _rewrite_arm_leg(tmp_path, armed_cmd)
+
+    assert car.verify(_FLOOR_TARGET).ok is True
+    assert car.detect(_FLOOR_TARGET) is contract.CarrierState.PRESENT_CORRECT
+    assert car.apply(_FLOOR_TARGET).changed is False
+    assert _arm_commands(tmp_path) == [armed_cmd]  # byte-identical, untouched
+
+
+def test_an_opaque_wrapper_gains_a_leg_and_is_never_rewritten(tmp_path):
+    """A `sh -c '...'` arm leg cannot be read statically, so it reads as absent. apply must
+    ADD a canonical leg beside it and leave the wrapper verbatim — repairing without
+    destroying behaviour it cannot understand (the stated parser limit)."""
+    car = _carrier(tmp_path)
+    car.apply(_FLOOR_TARGET)
+    opaque = "sh -c 'pre-commit install -t pre-commit -t commit-msg -t pre-push'"
+    _rewrite_arm_leg(tmp_path, opaque)
+
+    assert car.detect(_FLOOR_TARGET) is contract.CarrierState.PRESENT_DRIFTED
+    car.apply(_FLOOR_TARGET)
+    cmds = [
+        h["command"]
+        for g in json.loads(_settings(tmp_path).read_text(encoding="utf-8"))
+                      ["hooks"]["SessionStart"]
+        for h in g["hooks"]
+    ]
+    assert opaque in cmds                                  # wrapper preserved verbatim
+    assert cf._SESSIONSTART_ARM_CMD in cmds                # canonical leg added beside it
+    assert car.verify(_FLOOR_TARGET).ok is True
+    assert car.apply(_FLOOR_TARGET).changed is False        # and settles (no oscillation)
+
+
+def test_a_fooled_parser_would_false_green_a_dormant_consumer(tmp_path):
+    """End-to-end teeth on the terra HIGH: a consumer whose arm leg is `install-hooks` with
+    all three stage flags arms NO git hook stage, so it must be DRIFTED and repaired — not
+    read as correct because the flags happen to be present in the string."""
+    car = _carrier(tmp_path)
+    car.apply(_FLOOR_TARGET)
+    _rewrite_arm_leg(
+        tmp_path, "python -m pre_commit install-hooks -t pre-commit -t commit-msg -t pre-push"
+    )
+
+    assert car.detect(_FLOOR_TARGET) is contract.CarrierState.PRESENT_DRIFTED
+    failures = car.verify(_FLOOR_TARGET).failures
+    assert any("missing SessionStart arm hook" in f for f in failures)
+
+    car.apply(_FLOOR_TARGET)
+    assert car.verify(_FLOOR_TARGET).ok is True
+    assert car.apply(_FLOOR_TARGET).changed is False
+
+
+def test_arm_leg_split_across_two_commands_is_fully_armed(tmp_path):
+    """Coverage is a union: arming split across two commands satisfies the requirement, so
+    the self-heal does not 'repair' a complete-but-split arm into a redundant third."""
+    car = _carrier(tmp_path)
+    car.apply(_FLOOR_TARGET)
+    data = json.loads(_settings(tmp_path).read_text(encoding="utf-8"))
+    group = data["hooks"]["SessionStart"][0]
+    for hook in group["hooks"]:
+        if "pre_commit install" in hook["command"]:
+            hook["command"] = "python -m pre_commit install -t pre-commit"
+    group["hooks"].append({"type": "command", "timeout": 30,
+                           "command": "python -m pre_commit install -t commit-msg -t pre-push"})
+    _settings(tmp_path).write_text(
+        json.dumps(data, indent=2) + "\n", encoding="utf-8", newline="\n"
+    )
+
+    assert car.verify(_FLOOR_TARGET).ok is True
+    assert car.apply(_FLOOR_TARGET).changed is False
+    assert len(_arm_commands(tmp_path)) == 2  # neither leg rewritten
+
+
+def test_missing_arm_leg_entirely_is_drifted_then_repaired_without_duplicating(tmp_path):
+    """The teeth now FAIL a settings.json carrying the verify leg but NO arm leg, so apply
+    must repair that too — a verdict apply could not fix is the shape #290 exists to avoid.
+    The missing leg joins the existing group rather than appending a second guard block."""
+    car = _carrier(tmp_path)
+    car.apply(_FLOOR_TARGET)
+    data = json.loads(_settings(tmp_path).read_text(encoding="utf-8"))
+    group = data["hooks"]["SessionStart"][0]
+    group["hooks"] = [h for h in group["hooks"] if "pre_commit install" not in h["command"]]
+    _settings(tmp_path).write_text(
+        json.dumps(data, indent=2) + "\n", encoding="utf-8", newline="\n"
+    )
+
+    assert car.detect(_FLOOR_TARGET) is contract.CarrierState.PRESENT_DRIFTED
+    failures = car.verify(_FLOOR_TARGET).failures
+    assert any("missing SessionStart arm hook" in f for f in failures)
+
+    car.apply(_FLOOR_TARGET)
+    healed = json.loads(_settings(tmp_path).read_text(encoding="utf-8"))
+    assert len(healed["hooks"]["SessionStart"]) == 1  # joined the existing group
+    assert car.verify(_FLOOR_TARGET).ok is True
+    assert car.apply(_FLOOR_TARGET).changed is False  # and settles
+
+
+def test_missing_verify_leg_is_repaired_without_duplicating_the_arm(tmp_path):
+    """The mirror gap: arm leg present, verify leg gone. Previously the sentinel miss made
+    apply append a whole second guard block (a redundant arm leg); now only the verify leg
+    is added back."""
+    car = _carrier(tmp_path)
+    car.apply(_FLOOR_TARGET)
+    data = json.loads(_settings(tmp_path).read_text(encoding="utf-8"))
+    group = data["hooks"]["SessionStart"][0]
+    group["hooks"] = [h for h in group["hooks"] if "check_floor_hash.py" not in h["command"]]
+    _settings(tmp_path).write_text(
+        json.dumps(data, indent=2) + "\n", encoding="utf-8", newline="\n"
+    )
+
+    assert car.detect(_FLOOR_TARGET) is contract.CarrierState.PRESENT_DRIFTED
+    car.apply(_FLOOR_TARGET)
+    assert len(_arm_commands(tmp_path)) == 1  # arm leg NOT duplicated
+    assert car.verify(_FLOOR_TARGET).ok is True
+
+
+def test_verify_teeth_do_not_route_through_detect_classifier(tmp_path, monkeypatch):
+    """D9 holds across the new arm-leg judgment: verify's FAIL on a 1-stage arm is its own,
+    not a call into detect's classifier."""
+    car = _carrier(tmp_path)
+    car.apply(_FLOOR_TARGET)
+    _rewrite_arm_leg(tmp_path, _ONE_STAGE_ARM)
+
+    def _boom(*_a, **_k):
+        raise AssertionError("verify must not call detect's _classify_floor (D9)")
+
+    monkeypatch.setattr(cf, "_classify_floor", _boom)
+    assert car.verify(_FLOOR_TARGET).ok is False
+
+
+def test_detect_teeth_do_not_route_through_verify_judge(tmp_path, monkeypatch):
+    """D9's mirror on the same new judgment."""
+    car = _carrier(tmp_path)
+    car.apply(_FLOOR_TARGET)
+    _rewrite_arm_leg(tmp_path, _ONE_STAGE_ARM)
+
+    def _boom(*_a, **_k):
+        raise AssertionError("detect must not call verify's _verify_floor (D9)")
+
+    monkeypatch.setattr(cf, "_verify_floor", _boom)
+    assert car.detect(_FLOOR_TARGET) is contract.CarrierState.PRESENT_DRIFTED
+
+
 @pytest.mark.parametrize("break_it", [
     lambda repo: _claude_md(repo).write_text("# no include\n", encoding="utf-8", newline="\n"),
     lambda repo: _hook_script(repo).write_text("print('tampered')\n", encoding="utf-8", newline="\n"),
     lambda repo: _gitignore(repo).write_text(".claude/\n", encoding="utf-8", newline="\n"),
     lambda repo: _settings(repo).write_text("{}", encoding="utf-8", newline="\n"),
+    lambda repo: _rewrite_arm_leg(repo, _ONE_STAGE_ARM),  # #290: a stale 1-stage arm leg
 ])
 def test_missing_arming_artifact_detects_drifted_then_reconciles(tmp_path, break_it):
     car = _carrier(tmp_path)

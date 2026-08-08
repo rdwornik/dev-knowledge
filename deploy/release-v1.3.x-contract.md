@@ -330,3 +330,97 @@ gated by `roster-freshness`) reconcile the cut.
 - **Live application (ARC 4 leg 1):** hub `pyproject.toml` equalized on
   `feat/arc4-leg1-ruff-equalization`; consumers (corp-monorepo, ai-council) via per-consumer
   RULING-W worktrees, each commit-and-STOP + report.
+
+## Addendum 2026-08-08 — the #275b residual is CLOSED (BACKLOG [#290])
+
+> **Supersedes the two open items in §Consequences "#275b residual (deferred, minimal-fix
+> rationale)".** That paragraph stays as written — it is the accurate record of what the
+> Wave-1 prep lane deferred and why; this addendum records that both halves have since
+> landed, so the paragraph's "Two follow-ups remain" no longer describes live state. Built in
+> the batch-4 lane `worktree-lane-290-floor-teeth`, commit-and-STOP (integration serialized
+> through the primary).
+
+Both halves shipped together, as the deferral rationale required — a DRIFTED verdict `apply`
+cannot repair was the whole reason they were held as a pair:
+
+- **(a) teeth.** `deploy/carrier_floor.py` `detect` + `verify` now assert BOTH SessionStart
+  legs, and the arm leg at **full stage cardinality**. Previously only the verify-leg sentinel
+  (`check_floor_hash.py`) was checked, so a consumer armed by a pre-#275b deploy — a bare
+  `python -m pre_commit install`, arming the pre-commit stage only — classified
+  `PRESENT_CORRECT` and verified green with its commit-msg / pre-push stage hooks
+  wired-but-dormant. `verify` now names the dormant stages ("arms 1/3 managed hook stage(s) —
+  commit-msg, pre-push would land wired-but-dormant"); `detect` returns `PRESENT_DRIFTED`.
+  D9 preserved: subset test in `detect`, dormant-list re-derivation in `verify`; the shared
+  additions are SPEC parsers only.
+- **(b) self-heal.** `_ensure_settings` no longer no-ops on the mere presence of the verify
+  leg. An under-armed arm leg is repaired **in place** — only that hook's `command` string is
+  rewritten; its other keys (including a consumer-tuned `timeout`), the verify leg, sibling
+  SessionStart hooks, matcher groups, ordering and every unrelated `settings.json` key are
+  left verbatim. The two mirror gaps (arm leg absent / verify leg absent) now each add back
+  just the missing leg instead of appending a duplicate guard block. Coverage is judged as a
+  union across arm legs, so a complete-but-split arm is correctly a no-op.
+
+**Stage cardinality is now single-sourced.** `carrier_floor.ARM_HOOK_TYPES` **is**
+`scripts/arm_hooks.py::HOOK_TYPES`, and `_SESSIONSTART_ARM_CMD` is derived from it rather than
+re-declaring the `-t` flags — so §3.1's "mirrors the hub's own `scripts/arm_hooks.py`" is
+mechanically enforced, not a convention. The emitted command is byte-identical to the #275b
+constant (`fc8e4ef`), so **no deployed byte changes and no version anchor moves**: this stays
+undeployed carrier engine code under the same `[NB]` precedent as #275b itself.
+
+**Verify-at-build** (join the §Verify-at-build list): `tests/test_deploy_floor.py` 23 → 147,
+including the three frozen assertions — a 1-stage-armed fixture FAILs `verify`; one re-deploy
+leaves it 3-stage-armed and verify-green, repaired in place; an already-3-stage fixture is
+byte-identical after re-deploy. **Trip-tested against the pre-#290 carrier: 9 of the new tests
+fail there** (`verify` returns ok on a 1-stage arm, `apply` reports `changed=False`, and the
+old verify-leg-less path appends a duplicate arm leg), so the teeth are witnessed, not assumed.
+
+Most of that test growth is **adversarial parser coverage**, not the frozen assertions.
+**Fifteen** `/codex-review` (terra) passes ran over this diff; the first fourteen each found a
+real way to read an arm command wrongly and the fifteenth returned CLEAN, so the count is the
+residue of closing them — 21 findings accepted and fixed, 3 refuted with reasons (loop tally:
+`docs/audits/2026-08-08-codex-lane-290-floor-teeth.md`). Nearly all were the same shape: a
+command that pre-commit or the shell would **reject, or never reach**, read as fully armed —
+`install-hooks -t …`, `echo pre-commit install -t …`, `python pre-commit install` without
+`-m`, an argparse-rejecting invocation (`-t bogus`, a valueless `-t`, `-t==stage`, `--help`,
+`--color chartreuse`, a positional after `--`), a dangling `>` and `env -0`. Each is a false
+`PRESENT_CORRECT`, the dormant-stage defect #290 exists to close, reachable through the teeth
+themselves; each is a pinned table row.
+
+The **root cause** of that whole class was structural and is now removed: the carrier was
+hand-parsing what argparse decides. `_stage_flags` builds a parser mirroring `pre-commit
+install`'s option surface and asks it — so the class is impossible rather than enumerated, and
+the surface is drift-guarded against the live `install --help`. Shell concerns (segmentation,
+quoting, POSIX continuations, redirections, transparent `exec`/`env` prefixes) are handled
+separately, in the tokenizer, where they belong.
+
+The opposite direction is pinned too, because it is the damaging one — a genuinely-armed
+consumer misread as stale would have `apply` REWRITE its command: `--hook-type=X`, `-t=X`,
+`-ft` bundling, unambiguous abbreviations (`--col`, `--hook-t=`), quoted values, `VAR=value`
+and `env -u` prefixes, `uv run` / `uvx` / `poetry run` / `py -3.12 -m` runners, POSIX line
+continuations, shell redirections, and an uppercase Windows `PRE-COMMIT.EXE` path are each
+proven a byte-identical no-op for `apply`.
+
+**Stated limits** (honest, and deliberate — a static reader of a shell string has two):
+
+1. A command that hides its invocation from static reading — `sh -c '…'`, a shell function, a
+   wrapper script — is NOT recognised, so it reads as no arm leg. `apply` then ADDS a canonical
+   arm leg beside it and never rewrites the opaque command, so the wrapper's behaviour survives
+   even though it cannot be understood. Erring toward "not armed" is the safe direction: a
+   repairable verdict, never a false green.
+2. **Shell control-flow reachability is not modelled**, and cannot be: whether
+   `some-command && pre-commit install -t …` actually reaches the install depends on
+   `some-command`'s exit status at runtime. So a guarded arm leg reads as armed. Rejected
+   alternative — refusing to credit any install behind a `&&` — would misread the common and
+   correct `command -v pre-commit && pre-commit install -t …` idiom as stale and have `apply`
+   REWRITE it, trading a contrived false green for a real false repair. The functional
+   backstop for this class is unchanged and stays the right organ:
+   `tests/test_floor_conformance.py::test_arm_step_installs_all_three_hook_stages` RUNS the
+   carrier-written command and asserts all three `.git/hooks/*` appear from absent — execution
+   proof, where the carrier can only offer a static read.
+
+**Known-stale sibling claims, NOT touched by this lane** (held by other lanes / other owners;
+reported, not fixed): the `floor-sessionstart-guard` roster line in `deploy/manifest-v1.1.0`
+through `-v1.4.0.yaml` and `.claude/methodology-roster.md` still renders the arm leg as
+`python -m pre_commit install` with no stage flags, and `deploy/floor_conformance.py`'s
+`assert_sessionstart_wired` still asserts only that *an* arm leg exists, not its cardinality —
+a weaker check than the carrier's own, though not a contradicted one.
