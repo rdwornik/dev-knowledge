@@ -403,3 +403,136 @@ def test_the_live_repos_own_manifest_is_well_formed():
     for b in live:
         assert bm._valid_closer(b.closed_by), b
         assert b.batch.isdigit(), b
+
+
+# --- [#512] the inherited-GIT_DIR class -------------------------------------
+
+def _foreign_repo(tmp_path):
+    """A SECOND real repo, so `GIT_DIR` pointing at it is a redirect to somewhere that
+    genuinely answers git — not a broken path git would error on. An error would make the
+    test below pass for the wrong reason (no exemption because git FAILED, rather than
+    because the read was redirected)."""
+    other = tmp_path / "foreign"
+    other.mkdir()
+    _run(other, "init", "-q", "-b", "main")
+    _run(other, "config", "user.email", "t@t.t")
+    _run(other, "config", "user.name", "t")
+    _commit(other, "foreign seed", fname="foreign.txt")
+    return other
+
+
+@requires_git
+def test_an_inherited_GIT_DIR_does_not_suppress_a_real_open_batch(tmp_path, monkeypatch):
+    """[#512] REGRESSION. `GIT_DIR` overrides BOTH `cwd=` and `-C`, so before the scrub a
+    caller that inherited one — a pre-commit hook, a nested invocation — read the FOREIGN
+    repo through `_git` and got nothing back for every probe. Every empty answer reduces to
+    "no batch is open": safe for the exemption, UNSAFE for the handoff refusal (next test),
+    which silently saw nothing to refuse.
+
+    Assertions (1) and (2) exist so this cannot pass vacuously. They prove the redirect is
+    REAL in this environment — an unscrubbed `git -C <repo>` genuinely answers about the
+    foreign repo — before asserting that the scrubbed reader is immune to it.
+    """
+    repo, _floor = _seed(tmp_path)
+    _write_manifest(repo)
+    assert len(bm.open_batches(repo)) == 1, "precondition: the batch is open with a clean env"
+
+    other = _foreign_repo(tmp_path)
+    monkeypatch.setenv("GIT_DIR", str(other / ".git"))
+
+    # (1) the redirect is real: `-C repo` is OVERRIDDEN by the inherited GIT_DIR.
+    unscrubbed = subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"],
+                                capture_output=True, text=True, encoding="utf-8")
+    assert unscrubbed.stdout.strip() == _rev(other), \
+        "GIT_DIR did not actually redirect -- the assertions below would be vacuous"
+
+    # (2) ...and it is exactly the shape that blanks an unscrubbed manifest read.
+    blanked = subprocess.run(
+        ["git", "-C", str(repo), "ls-tree", "-r", "--name-only", "HEAD", "--", "docs/audits/"],
+        capture_output=True, text=True, encoding="utf-8")
+    assert "manifest" not in blanked.stdout, \
+        "the foreign repo answers with a manifest -- the fixture is not isolating anything"
+
+    # (3) THE REGRESSION: the scrubbed reader still sees the batch that IS open.
+    live = bm.open_batches(repo)
+    assert len(live) == 1, f"an inherited GIT_DIR suppressed a real open batch: {live}"
+    assert live[0].batch == "2"
+
+
+@requires_git
+@pytest.mark.xfail(strict=True, reason="known-open SIXTH unscrubbed site: journal_anchor._git")
+def test_exempt_still_fires_under_an_inherited_GIT_DIR(tmp_path, monkeypatch):
+    """A KNOWN-OPEN GAP, recorded as a live strict-xfail rather than left as a false green.
+
+    `[#512]` scrubbed `batch_manifest._git`, which is every probe `open_batches` makes. It is
+    NOT every probe `exempt` makes: `merged_branch_name` delegates the merge-parent and
+    merge-subject reads to `journal_anchor._git`, which carries no scrub. So under an
+    inherited `GIT_DIR` the manifest is read from the intended repo while the merge is looked
+    up in the FOREIGN one, and a valid lane merge loses its exemption.
+
+    This assertion originally lived as step (4) of the test above and PASSED — because the
+    fixture built its merge after exporting `GIT_DIR`, so `_merge`'s own unscrubbed helper
+    created the merge in the foreign repo too, and both halves agreed about the wrong tree.
+    Building the merge FIRST, in `repo`, is what makes the assertion mean what it says, and
+    what makes it fail (terra HIGH x2, pass 4, 2026-08-08).
+
+    `scripts/journal_anchor.py` is outside this lane's frozen scope — deliberately, since it
+    is the shared predicate the pre-push organ `block_unanchored_push` also imports, so
+    scrubbing it is a wider blast radius than a lane may take unilaterally. `strict=True` is
+    what keeps this honest: the day that site is scrubbed, this test XPASSes, strict turns it
+    RED, and the marker cannot be forgotten.
+    """
+    repo, _floor = _seed(tmp_path)
+    _write_manifest(repo)
+    merge = _merge(repo, "worktree-lane-e-396-gitenv")   # in `repo`, with a CLEAN env
+
+    other = _foreign_repo(tmp_path)
+    monkeypatch.setenv("GIT_DIR", str(other / ".git"))
+
+    # The foreign repo genuinely does not know this commit, so a lookup that lands there
+    # cannot answer correctly by luck.
+    probe = subprocess.run(["git", "-C", str(other), "cat-file", "-e", f"{merge}^{{commit}}"],
+                           capture_output=True, text=True, encoding="utf-8")
+    assert probe.returncode != 0, "the foreign repo knows the merge -- fixture is not isolating"
+
+    assert bm.exempt(repo, [merge]) == {merge}
+
+
+@requires_git
+def test_the_handoff_open_batch_refusal_survives_an_inherited_GIT_DIR(tmp_path, monkeypatch):
+    """[#512]'s actual cost, asserted at the surface that pays it. `gen_handoff` refuses to
+    cut a bundle while a batch is open (WINDOW = BATCH) and delegates that judgement to
+    `batch_manifest.open_batches` rather than re-deriving it. So the unscrubbed read did not
+    merely mis-answer a gate — it disarmed the refusal that keeps an IMMUTABLE handoff
+    bundle from being sealed mid-batch, which is wrong forever once committed.
+
+    Driven through `assert_batch_boundary`, the real entry point, so the assertion survives
+    the reader being swapped underneath it."""
+    sys.path.insert(0, str(_SCRIPTS))
+    import gen_handoff as gh  # noqa: PLC0415 -- local: only this test needs the generator
+
+    repo, _floor = _seed(tmp_path)
+    _write_manifest(repo)
+    with pytest.raises(gh.OpenBatchError):
+        gh.assert_batch_boundary(repo)          # precondition, clean env
+
+    other = _foreign_repo(tmp_path)
+    monkeypatch.setenv("GIT_DIR", str(other / ".git"))
+
+    with pytest.raises(gh.OpenBatchError) as exc:
+        gh.assert_batch_boundary(repo)
+    assert "batch 2" in str(exc.value)
+
+    # The control: once the batch legitimately closes the refusal lifts -- with the foreign
+    # GIT_DIR still exported. That is what proves the refusal above is the MANIFEST talking,
+    # not a scrubbed reader that has simply started saying "open" to everything.
+    #
+    # The close itself is performed with a CLEAN env, and that is not incidental: the `_run`
+    # helper is a plain unscrubbed subprocess, so committing the packet under the inherited
+    # GIT_DIR would land it in the FOREIGN repo and the control would fail for a fixture
+    # reason. Witnessed while writing this test -- which is the same defect [#512] fixes,
+    # arriving from the harness side.
+    monkeypatch.delenv("GIT_DIR")
+    _close_it(repo)
+    monkeypatch.setenv("GIT_DIR", str(other / ".git"))
+    gh.assert_batch_boundary(repo)

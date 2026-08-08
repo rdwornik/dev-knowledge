@@ -29,6 +29,7 @@ Usage:
 
 from __future__ import annotations
 
+import importlib.util
 import inspect
 import json
 import logging
@@ -46,6 +47,22 @@ from typing import Optional
 
 import click
 import yaml
+
+# The [#355] git-env scrub, single-sourced in the LEAF module `scripts/gitenv.py` ([#396]).
+# Leaf = stdlib-only, ZERO repo imports, so this top-level import carries none of the
+# import-path risk the LAZY fleet_parity import exists to avoid. Bound to its historical
+# names at the original site below (search `_GIT_LOCATION_ENV_EXTRA`), where the note on
+# WHERE the scrub fires — which this arc does not change — still lives.
+#
+# Loaded BY PATH, never by name. Both name-based spellings have a shadow hole that ends with
+# the scrub silently becoming the EMPTY set, and ordering them only moves it -- full argument
+# and the two reproductions are in gitenv.py's docstring (terra HIGH x3, 2026-08-08). A path
+# load cannot be intercepted by any sys.path entry, and it is affordable only because gitenv
+# is a leaf: executing it runs nothing else.
+_gitenv_spec = importlib.util.spec_from_file_location(
+    "dev_knowledge_gitenv", Path(__file__).resolve().with_name("gitenv.py"))
+_gitenv = importlib.util.module_from_spec(_gitenv_spec)
+_gitenv_spec.loader.exec_module(_gitenv)
 
 # Resolve repo root (scripts/ sibling) — after imports
 _SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -1916,46 +1933,23 @@ def _bundle_target_repo(bundle_dir: Path) -> str | None:
 
 
 # Repo-location env vars git inherits from a hook/pre-commit parent; GIT_DIR overrides both
-# `cwd=` and `-C`. Mirrors _GIT_LOCATION_ENV in scripts/fleet_parity.py ([#355]) and is
-# deliberately DUPLICATED rather than imported: audit.py imports fleet_parity LAZILY (inside
-# check_fleet_parity, for dual script/package mode), and bundle selection must not acquire a
-# dependency on that import path. Scrubbed by NAME, never a `startswith("GIT_")` strip -- a
-# blanket strip would also drop GIT_CONFIG_GLOBAL / GIT_AUTHOR_* / GIT_SSH_COMMAND.
+# `cwd=` and `-C` ([#355]). The definition was DUPLICATED here rather than imported, because
+# audit.py imports fleet_parity LAZILY (inside check_fleet_parity, for dual script/package
+# mode) and bundle selection must not acquire a dependency on that import path. [#396]
+# resolves that without weakening it: the canonical pair now lives in `scripts/gitenv.py`, a
+# LEAF module -- stdlib-only, zero repo imports -- so importing it here adds no import-path
+# risk of the kind the lazy-import constraint exists to avoid. Semantics unchanged: derived
+# from `git rev-parse --local-env-vars`, scrubbed by NAME, never a `startswith("GIT_")` strip
+# (that would also drop GIT_CONFIG_GLOBAL / GIT_AUTHOR_* / GIT_SSH_COMMAND).
 #
-# Applied ONLY inside _select_active_bundle's runner. Deliberately NOT applied to the
-# fleet-automation commit path further down, which sets GIT_INDEX_FILE ON PURPOSE via its own
-# explicit env= dict -- routing that through this scrub would silently break it.
-# DERIVED from `git rev-parse --local-env-vars` (git's own canonical repo-local list, and its
-# documented advice for hooks touching a foreign repo), unioned with repo-SCOPING vars git
-# does not class as local-env. Deriving removes the rot mode: the first hand-written version
-# of this list omitted 8 of git's 15, caught in review. _FALLBACK applies only if git is absent.
-_GIT_LOCATION_ENV_EXTRA = ("GIT_CEILING_DIRECTORIES", "GIT_NAMESPACE")
-_GIT_LOCATION_ENV_FALLBACK = (
-    "GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR",
-    "GIT_OBJECT_DIRECTORY", "GIT_ALTERNATE_OBJECT_DIRECTORIES", "GIT_PREFIX",
-    "GIT_CONFIG", "GIT_CONFIG_COUNT", "GIT_CONFIG_PARAMETERS", "GIT_GRAFT_FILE",
-    "GIT_IMPLICIT_WORK_TREE", "GIT_NO_REPLACE_OBJECTS", "GIT_REPLACE_REF_BASE",
-    "GIT_SHALLOW_FILE",
-)
-_GIT_LOCATION_ENV_CACHE: Optional[frozenset] = None
-
-
-def _git_location_env() -> frozenset:
-    """git's own repo-local env vars (+ _EXTRA). Queried once, cached; pinned fallback if
-    git is unavailable. The query itself is repo-agnostic, so it needs no scrubbing."""
-    global _GIT_LOCATION_ENV_CACHE
-    if _GIT_LOCATION_ENV_CACHE is None:
-        names: set[str] = set(_GIT_LOCATION_ENV_FALLBACK)
-        try:
-            p = subprocess.run(["git", "rev-parse", "--local-env-vars"],
-                               capture_output=True, text=True, encoding="utf-8",
-                               errors="replace")
-            if p.returncode == 0:
-                names |= {ln.strip() for ln in p.stdout.split() if ln.strip()}
-        except OSError:
-            pass
-        _GIT_LOCATION_ENV_CACHE = frozenset(names | set(_GIT_LOCATION_ENV_EXTRA))
-    return _GIT_LOCATION_ENV_CACHE
+# WHERE it fires is unchanged and still decided HERE, not in gitenv: applied inside
+# _select_active_bundle's runner, check_fleet_audit_replication and _push_routine_branch, and
+# deliberately NOT applied to the fleet-automation commit path further down, which sets
+# GIT_INDEX_FILE ON PURPOSE via its own explicit env= dict -- routing that through this scrub
+# would silently break it.
+_GIT_LOCATION_ENV_EXTRA = _gitenv.GIT_LOCATION_ENV_EXTRA
+_GIT_LOCATION_ENV_FALLBACK = _gitenv.GIT_LOCATION_ENV_FALLBACK
+_git_location_env = _gitenv.git_location_env
 
 
 def _select_active_bundle(

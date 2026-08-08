@@ -73,6 +73,7 @@ from __future__ import annotations
 
 import fnmatch
 import hashlib
+import importlib.util
 import json
 import os
 import re
@@ -86,6 +87,15 @@ from pathlib import Path
 import click
 import yaml
 from packaging.version import InvalidVersion, Version
+
+# The [#355] git-env scrub, single-sourced in the LEAF module `scripts/gitenv.py` ([#396]).
+# Bound to its historical names at the original site below (search `_GIT_LOCATION_ENV_EXTRA`).
+# Loaded BY PATH, never by name -- every name-based spelling has a shadow hole that silently
+# empties the scrub, and ordering them only moves it. Full argument in gitenv.py's docstring.
+_gitenv_spec = importlib.util.spec_from_file_location(
+    "dev_knowledge_gitenv", Path(__file__).resolve().with_name("gitenv.py"))
+_gitenv = importlib.util.module_from_spec(_gitenv_spec)
+_gitenv_spec.loader.exec_module(_gitenv)
 
 _SCRIPTS_DIR = Path(__file__).resolve().parent
 _REPO_ROOT = _SCRIPTS_DIR.parent
@@ -554,51 +564,17 @@ def resolve_fleet(manifest: dict, hub_root: Path, registry_path: Path,
 # index. [#355]: corp-monorepo was reported as lacking INSTALL.md (it has one) and carrying
 # 587 docs/handoffs/ files (it has none) -- the hub's own facts wearing corp's repo_id.
 #
-# Scrubbed by NAME, never by a `startswith("GIT_")` prefix strip: a blanket strip would also
-# drop GIT_CONFIG_GLOBAL / GIT_CONFIG_SYSTEM / GIT_AUTHOR_* / GIT_SSH_COMMAND, which test
-# harnesses and CI legitimately set. Over-scrubbing fails QUIETLY (identity/config loss);
-# under-scrubbing merely preserves today's behaviour for a var we forgot.
-#
-# The set is DERIVED from `git rev-parse --local-env-vars`, git's own canonical list of
-# repository-local vars (git's documented advice for hooks touching a foreign repo is to
-# clear exactly these). Deriving rather than hand-listing removes the rot mode: a
-# hand-maintained tuple silently misses vars a newer git adds -- the first hand-written
-# version here omitted 8 of git's 15 (GIT_CONFIG, GIT_CONFIG_PARAMETERS, GIT_GRAFT_FILE,
-# GIT_SHALLOW_FILE, ...), caught in review. _EXTRA covers repo-SCOPING vars git does not
-# class as local-env; _FALLBACK is used only when git is unavailable.
-_GIT_LOCATION_ENV_EXTRA = ("GIT_CEILING_DIRECTORIES", "GIT_NAMESPACE")
-_GIT_LOCATION_ENV_FALLBACK = (
-    "GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR",
-    "GIT_OBJECT_DIRECTORY", "GIT_ALTERNATE_OBJECT_DIRECTORIES", "GIT_PREFIX",
-    "GIT_CONFIG", "GIT_CONFIG_COUNT", "GIT_CONFIG_PARAMETERS", "GIT_GRAFT_FILE",
-    "GIT_IMPLICIT_WORK_TREE", "GIT_NO_REPLACE_OBJECTS", "GIT_REPLACE_REF_BASE",
-    "GIT_SHALLOW_FILE",
-)
-_GIT_LOCATION_ENV_CACHE: frozenset | None = None
-
-
-def _git_location_env() -> frozenset:
-    """git's own repo-local env vars (+ _EXTRA). Queried once, cached; falls back to the
-    pinned list if git is unavailable. Never scrubbed itself -- the query is repo-agnostic."""
-    global _GIT_LOCATION_ENV_CACHE
-    if _GIT_LOCATION_ENV_CACHE is None:
-        names: set[str] = set(_GIT_LOCATION_ENV_FALLBACK)
-        try:
-            p = subprocess.run(["git", "rev-parse", "--local-env-vars"],
-                               capture_output=True, text=True, encoding="utf-8",
-                               errors="replace")
-            if p.returncode == 0:
-                names |= {ln.strip() for ln in p.stdout.split() if ln.strip()}
-        except OSError:
-            pass  # git missing -- the pinned fallback stands
-        _GIT_LOCATION_ENV_CACHE = frozenset(names | set(_GIT_LOCATION_ENV_EXTRA))
-    return _GIT_LOCATION_ENV_CACHE
-
-
-def _scrubbed_git_env() -> dict:
-    """os.environ minus the repo-location vars, so ``cwd=`` alone decides which repo git reads."""
-    scrub = _git_location_env()
-    return {k: v for k, v in os.environ.items() if k not in scrub}
+# The definition moved to the leaf module `scripts/gitenv.py` ([#396]) -- it was hand-copied
+# in three files, which is how one copy gets a fix and the others rot. The names below stay
+# module-level so every call site (and the coverage test) keeps its existing spelling; only
+# the DEFINITION moved. Semantics unchanged: derived from `git rev-parse --local-env-vars`,
+# scrubbed BY NAME (never a `startswith("GIT_")` strip -- that would also drop
+# GIT_CONFIG_GLOBAL / GIT_AUTHOR_* / GIT_SSH_COMMAND, failing quietly). Rationale in full:
+# `scripts/gitenv.py`.
+_GIT_LOCATION_ENV_EXTRA = _gitenv.GIT_LOCATION_ENV_EXTRA
+_GIT_LOCATION_ENV_FALLBACK = _gitenv.GIT_LOCATION_ENV_FALLBACK
+_git_location_env = _gitenv.git_location_env
+_scrubbed_git_env = _gitenv.scrubbed_git_env
 
 
 def _git(args: list[str], cwd: Path) -> tuple[int, str]:

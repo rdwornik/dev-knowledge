@@ -63,10 +63,23 @@ Layer-2 contract (ADR-28/36): READ-ONLY. Filesystem reads and git plumbing reads
 """
 from __future__ import annotations
 
+import importlib.util
 import re
 import subprocess
 from pathlib import Path, PurePosixPath
 from typing import NamedTuple, Optional
+
+# The [#355] git-env scrub, single-sourced in the LEAF module `scripts/gitenv.py` ([#396]).
+# A leaf — stdlib-only, zero repo imports — so this adds no import edge that could reach the
+# pre-push organ; the containment property this module's own tests assert is unaffected.
+#
+# Loaded BY PATH, never by name -- every name-based spelling has a shadow hole that silently
+# empties the scrub, which would re-open [#512] through the module that closes it. Full
+# argument and the two reproductions are in gitenv.py's docstring.
+_gitenv_spec = importlib.util.spec_from_file_location(
+    "dev_knowledge_gitenv", Path(__file__).resolve().with_name("gitenv.py"))
+_gitenv = importlib.util.module_from_spec(_gitenv_spec)
+_gitenv_spec.loader.exec_module(_gitenv)
 
 #: Where a batch manifest lives and what it is called. The `-manifest` suffix keeps it
 #: distinguishable from the end-of-batch packet that closes it, and the ADR-101 class token
@@ -135,10 +148,23 @@ def _valid_closer(closed_by: str) -> bool:
 
 
 def _git(repo_path: Path, *args: str) -> Optional[str]:
-    """Read-only git, or None on any failure. None always reduces to "no exemption"."""
+    """Read-only git in a SCRUBBED env, or None on any failure. None always reduces to
+    "no exemption".
+
+    The `env=` is [#512], and it is not cosmetic. `GIT_DIR` overrides BOTH `cwd=` and the
+    `-C` above, so a caller that inherited one — a hook, a nested invocation — read a
+    FOREIGN repo through this helper and got `None`/empty back for every probe. Every such
+    answer reduces to "no batch is open", which is the SAFE direction for the exemption but
+    the UNSAFE one for `gen_handoff`'s open-batch refusal: the refusal that protects a
+    handoff cut mid-batch silently saw nothing to refuse. Same [#355] class, fourth call
+    site — it was the only git caller in this fleet's batch machinery with no scrub at all.
+
+    Read-only and None-on-failure are unchanged; only the environment the probe runs in is.
+    """
     try:
         r = subprocess.run(["git", "-C", str(repo_path), *args], capture_output=True,
-                           text=True, encoding="utf-8", errors="replace", timeout=15)
+                           text=True, encoding="utf-8", errors="replace", timeout=15,
+                           env=_gitenv.scrubbed_git_env())
     except (OSError, subprocess.SubprocessError):
         return None
     return r.stdout if r.returncode == 0 else None

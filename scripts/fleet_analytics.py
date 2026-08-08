@@ -105,10 +105,11 @@ _REPO_ROOT = _SCRIPTS_DIR.parent
 _LOGS_DIR = _REPO_ROOT / "logs"
 _ANALYTICS_FILE = _LOGS_DIR / "FLEET-ANALYTICS.md"
 
-# Reuse the LOCKED audit contract, the single deterministic fleet enumerator, and the
-# DERIVED git-env scrub. See _scrubbed_git_env() for why we import rather than re-derive.
+# Reuse the LOCKED audit contract and the single deterministic fleet enumerator; the DERIVED
+# git-env scrub comes from the leaf module `gitenv` ([#396]) -- see _scrubbed_git_env().
 sys.path.insert(0, str(_SCRIPTS_DIR))
 import audit  # noqa: E402
+import gitenv  # noqa: E402
 
 Finding = audit.Finding
 
@@ -986,9 +987,6 @@ def surface_line(analytics_file: Path = _ANALYTICS_FILE) -> str:
 # Impure: git subprocesses, filesystem traversal, digest write
 # ============================================================================
 
-_SCRUB_CACHE: Optional[frozenset] = None
-
-
 def _scrubbed_git_env() -> dict:
     """os.environ minus git's repo-LOCAL vars, so `cwd=`/`-C` actually selects the repo.
 
@@ -999,14 +997,11 @@ def _scrubbed_git_env() -> dict:
     Scrubbed BY NAME, never `startswith("GIT_")` — a blanket strip would also drop
     GIT_CONFIG_GLOBAL / GIT_AUTHOR_* / GIT_SSH_COMMAND, which fails quietly.
 
-    Reuses audit._git_location_env() rather than deriving a THIRD copy (audit.py:1542 and
-    fleet_parity.py:504 already carry one each). Extracting a shared scripts/gitenv.py is
-    filed as a follow-up.
+    The definition now lives in the leaf module `scripts/gitenv.py` ([#396], the follow-up
+    this docstring used to file): one source for all four git callers, so the next GIT_*
+    override class is fixed once. `gitenv` also owns the cache this function used to keep.
     """
-    global _SCRUB_CACHE
-    if _SCRUB_CACHE is None:
-        _SCRUB_CACHE = audit._git_location_env()
-    return {k: v for k, v in os.environ.items() if k not in _SCRUB_CACHE}
+    return gitenv.scrubbed_git_env()
 
 
 def _git(args: list[str], cwd: Path, *, timeout: int = 180) -> tuple[int, bytes]:
