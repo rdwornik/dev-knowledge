@@ -460,3 +460,33 @@ Three of the four predicted failures do not exist.
 alone**, before conflict resolution, generator regeneration or the close-out. Whoever re-dispatches
 should either budget for it explicitly or obtain a ruling to batch the suite across merges — it is
 not a detail that absorbs quietly into an evening.
+
+---
+
+## AMENDMENT — 2026-08-08, same session, correcting §7's worktree line
+
+`docs/audits/` is immutable (CLAUDE.md §5 rule 3), so this corrects the line by marker rather
+than by edit. **§7's bullet reading "13 worktrees registered (1 primary + 12 linked). 8 are
+`locked`." is wrong on both numbers, and the two are wrong for different reasons.**
+
+| | §7 as written | Correct | Why it was wrong |
+|---|---|---|---|
+| Registered worktrees | 13 (1 primary + 12 linked) | **14 (1 primary + 13 linked)** | **Author arithmetic error.** `git worktree list` returned 14 lines at inventory time and still does; the report miscounted its own input. |
+| Locked | 8 | **1** (`lane-290-floor-teeth` only) | **Genuine state change, not a misread.** 8 were `locked` at inventory (~20:45); 1 is locked now (~22:00). Lane sessions released their locks while this arc ran. |
+
+**Neither correction changes any conclusion.** The STOP rests on the missing manifest and the
+anchoring arithmetic, not on worktree counts. But §7 is the teardown ledger — the section a
+re-dispatch acts on directly — so a wrong count there is the kind that propagates into a
+destructive step.
+
+**Two consequences the re-dispatch should carry:**
+
+1. **Teardown scope is 13 linked worktrees and 13 `worktree-lane-*` branches, of which 10 carry
+   unmerged work.** The other three (`lane-batch4-prep`, `lane-integrate-consumers`,
+   `lane-wintooling-remote`) sit at `3ed60c4c`, already an ancestor of `main` — verified-on-main
+   and therefore safe to tear down first.
+2. **Lock state is not a stable property.** It changed by 7 worktrees inside 75 minutes with no
+   teardown performed. `/lane-integrate` §2 already warns that `git worktree remove` silently
+   no-ops on a locked directory and says to re-check rather than assume; this is a live instance
+   of why. Read lock state at the moment of removal, never from an earlier inventory — including
+   the one in §7 of this report.
