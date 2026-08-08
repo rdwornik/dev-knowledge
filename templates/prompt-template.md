@@ -1,6 +1,6 @@
 # Prompt Template for Claude Code
 <!-- scope: meta -->
-<!-- version: 1.12 — 2026-08-08 -->
+<!-- version: 1.13 — 2026-08-08 -->
 
 > **Copy this template, fill placeholders, save as `.md` artifact, deliver to Claude Code via paste-into-prompt.** Browser chat produces this; Claude Code executes it.
 >
@@ -98,7 +98,38 @@ reads at a glance in Agent View at ten concurrent agents rather than needing its
 = DISPATCHED). Foreground, interactive sessions skip this row. **Dispatch constants** ride every
 such line: `--permission-mode bypassPermissions`, `--bg`, and the board label.
 
-# `<board label, if dispatched — see Dispatch row above> <Imperative title — what this prompt accomplishes>`
+That label is carried by the **`## Dispatch` block directly under the title** — the block is where
+this card's dispatch requirement is actually discharged, and the paragraph above only fixes the
+shape of one field inside it.
+
+# `<board label, if dispatched — see the `## Dispatch` block below> <Imperative title — what this prompt accomplishes>`
+
+## Dispatch
+<!-- scope: meta -->
+
+```
+claude --bg --model opus --effort high --permission-mode bypassPermissions "[<repo> · #<id>-or-slug · <verb-object>] Read and execute the frozen contract at $env:CLAUDE_PROMPTS_DIR\<THIS-CONTRACT-FILENAME>.md"
+```
+
+**A dispatched contract opens with this block, and the block carries the literal line.** The
+operator runs `dispatch <this-file>.md`; the helper reads the `## Dispatch` heading and the fenced
+block under it and executes that line **verbatim**, substituting only the literal token
+`$env:CLAUDE_PROMPTS_DIR` with the resolved prompts directory. So the line above is not a
+description of a dispatch — it **is** the dispatch, and the contract is its single source.
+
+**The line is copied and edited, never composed from memory.** One literal example rides above for
+exactly that reason: swap the model, effort, board label and filename, and leave the shape alone.
+Add `--worktree <name>` when the lane wants its own tree; the three dispatch constants
+(`--bg`, `--permission-mode bypassPermissions`, the board label) ride every such line. Effort is a
+CLOSED enum — `{low | medium | high | xhigh}` — and a value outside it is refused at the surface
+with the enum named, rather than guessed. Mechanics, the table-fallback path for a contract with no
+block, the execution gate and the non-default raw-composition form: `protocols/PLAYBOOK.md` Ch8
+"The dispatch surface is `dispatch <file>`".
+
+*A prompt that is never dispatched — foreground and interactive — carries no block, having no line
+to carry.* Where the contract also runs somewhere other than a fresh worktree (the primary tree,
+say), state that in prose under the block, as this card's own arcs do: the flags cover the session,
+not the destination.
 
 **Repo:** `<absolute path to repo, e.g. C:\Users\1028120\Documents\Dev\corp-monorepo>`
 **Purpose:** `<one sentence — what gets achieved by running this prompt>`
@@ -197,6 +228,18 @@ Final: `/ship "<summary> [#id if closing]"` — refuses if: on `main`, dirty tre
 ---
 
 **Section history:**
+- v1.13 (2026-08-08) — **a dispatched contract now OPENS with a mandatory `## Dispatch` block, and
+  the block carries the literal dispatch line.** The operator's dispatch surface became
+  `dispatch <file>` when [#509] v2 merged in `win-tooling` (`d743937`): the helper reads this
+  block and executes its line verbatim, substituting only the literal `$env:CLAUDE_PROMPTS_DIR`
+  token. That makes the contract the single source of its own dispatch — the line the operator
+  runs and the line the contract records are one object rather than two free to disagree. The card
+  shows **one literal example line** by design, so the line is copied and edited rather than
+  composed from memory, which is the class the surface retires. The board-label paragraph above the
+  title keeps its job (it fixes one field's shape) and now points at the block that discharges the
+  requirement. Mechanics, the table-fallback path, the execution gate and the non-default
+  raw-composition form stay at the canonical home — `protocols/PLAYBOOK.md` Ch8 "The dispatch
+  surface is `dispatch <file>`" — this card is the point-of-use form, not a second authority.
 - v1.12 (2026-08-08) — **AM-4: the Final section gains a SELF-TEST line.** A lane that STOPs
   having done the work still leaves the integrator to derive, from a diff, whether the acceptance
   contract was met — so the one seat that knows the answer reports it. Before STOP, the lane
