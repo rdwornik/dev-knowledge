@@ -1860,6 +1860,14 @@ Single-question round-trips are reserved for genuine ask-class **(a)–(c)** ite
 outside those three classes travels in the next packet. Target metric: ≤2 operator interactions
 per lane-batch (intake #25 V-2). Operator directive 2026-08-06.
 
+**The two numbers, counted separately (ratified 2026-08-08 — [#505] clause 2).** The 2-touch
+budget is measured per seam, per batch, and the two seams are counted separately. operator ↔
+integration: the GO at dispatch and the end-of-batch packet at close — target exactly 2. operator
+↔ lane: contract acceptance plus any ask-class (a)–(c) escalation — target ≤1 escalation per
+batch, reported in the packet rather than budgeted away. A batch reports both numbers; neither
+substitutes for the other. Under sequential contract authoring, per-lane contract acceptances
+count within the dispatch GO seam, not as additional touches.
+
 **V-3 tiered ceremony — ceremony scales with arc size.** **S:** headless / auto-accept, no
 plan-mode — contract → execute → terra → queue. **M:** one plan round. **L:** full ceremony.
 `templates/prompt-template.md` (the work-lane card) is the point-of-use authority for the
