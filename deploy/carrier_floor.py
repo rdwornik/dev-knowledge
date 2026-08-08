@@ -451,26 +451,86 @@ def _ensure_gitignore(path: Path) -> str | None:
     return f"{'updated' if existed else 'wrote'} {path} (floor negation block)"
 
 
+def _host_group(
+    data: dict[str, Any], known: list[dict[str, Any]]
+) -> dict[str, Any] | None:
+    """The SessionStart group already carrying one of ``known`` (identity match), so a missing
+    leg joins the existing guard block instead of appending a second one. None if there is no
+    guard block yet (the greenfield case)."""
+    for group in _sessionstart_groups(data):
+        entries = group.get("hooks")
+        if isinstance(entries, list) and any(e is k for e in entries for k in known):
+            return group
+    return None
+
+
+def _verify_leg() -> dict[str, Any]:
+    return {"type": "command", "command": _SESSIONSTART_VERIFY_CMD, "timeout": 10}
+
+
+def _arm_leg() -> dict[str, Any]:
+    return {"type": "command", "command": _SESSIONSTART_ARM_CMD, "timeout": 30}
+
+
 def _ensure_settings(path: Path) -> str | None:
+    """Ensure the SessionStart block carries the verify leg AND a FULLY-armed arm leg.
+
+    The narrowest repair that closes each gap — #290 (b), the self-heal that makes every
+    verdict the (a) teeth can now return REPAIRABLE (a DRIFTED `apply` cannot fix was the
+    stated reason this pair was deferred together):
+
+    - both legs present and every managed stage covered -> ``None`` (idempotent no-op);
+    - an arm leg present but under-armed (a pre-#275b 1-stage arm) -> **only that command
+      string** is rewritten to the full-cardinality form. The hook's other keys, the verify
+      leg, sibling hooks, matcher groups, ordering, and every unrelated ``settings.json`` key
+      are left exactly as found — a re-deploy must not rewrite config this carrier does not
+      own;
+    - exactly one leg present -> the missing leg is appended to the group already carrying
+      one, not as a duplicate guard block;
+    - no guard block at all (greenfield) -> append the canonical two-leg block.
+
+    Stage coverage is judged as a UNION across arm legs (a consumer may legitimately split
+    arming across two commands), so a split-but-complete arm is correctly a no-op.
+    """
     data = _load_settings(path)
-    if any(
-        _SESSIONSTART_SENTINEL in c for c in _settings_sessionstart_commands(data)
-    ):
+    hooks = _sessionstart_hooks(data)
+    verify_legs = [h for h in hooks if _SESSIONSTART_SENTINEL in _hook_command(h)]
+    arm_legs = [h for h in hooks if _is_arm_command(_hook_command(h))]
+    covered = _stages_armed_by([_hook_command(h) for h in arm_legs])
+    dormant = sorted(_ARM_STAGES - covered)
+
+    if verify_legs and arm_legs and not dormant:
         return None
+
     existed = path.exists()
-    hooks = data.setdefault("hooks", {})
-    sessionstart = hooks.setdefault("SessionStart", [])
-    sessionstart.append(
-        {
-            "matcher": "",
-            "hooks": [
-                {"type": "command", "command": _SESSIONSTART_VERIFY_CMD, "timeout": 10},
-                {"type": "command", "command": _SESSIONSTART_ARM_CMD, "timeout": 30},
-            ],
-        }
-    )
+    notes: list[str] = []
+
+    if arm_legs and dormant:
+        # Self-heal IN PLACE: rewrite the command STRING of the first under-armed leg and
+        # nothing else. Coverage is a union, so healing one leg restores every dormant stage.
+        stale = next(
+            h for h in arm_legs if not _ARM_STAGES.issubset(_armed_stages(_hook_command(h)))
+        )
+        stale["command"] = _SESSIONSTART_ARM_CMD
+        notes.append(f"self-healed stale arm leg (dormant: {', '.join(dormant)})")
+
+    missing = [("verify", _verify_leg())] if not verify_legs else []
+    if not arm_legs:
+        missing.append(("arm", _arm_leg()))
+    if missing:
+        host = _host_group(data, verify_legs + arm_legs)
+        if host is None:
+            # No guard block at all -> the canonical block (greenfield: both legs).
+            data.setdefault("hooks", {}).setdefault("SessionStart", []).append(
+                {"matcher": "", "hooks": [leg for _, leg in missing]}
+            )
+            notes.append("SessionStart guard hook")
+        else:
+            host["hooks"].extend(leg for _, leg in missing)
+            notes.append(f"added the missing {' + '.join(n for n, _ in missing)} leg(s)")
+
     _write_lf(path, json.dumps(data, indent=2) + "\n")
-    return f"{'updated' if existed else 'wrote'} {path} (SessionStart guard hook)"
+    return f"{'updated' if existed else 'wrote'} {path} ({'; '.join(notes)})"
 
 
 # ---------------------------------------------------------------------------
