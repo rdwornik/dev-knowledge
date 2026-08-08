@@ -89,10 +89,12 @@ from packaging.version import InvalidVersion, Version
 
 # The [#355] git-env scrub, single-sourced in the LEAF module `scripts/gitenv.py` ([#396]).
 # Bound to its historical names at the original site below (search `_GIT_LOCATION_ENV_EXTRA`).
-try:  # dual script/package mode, same shape as audit.py's fleet_parity import
-    from scripts import gitenv as _gitenv   # package-mode: `python -m scripts.<mod>`
+# Bare name FIRST -- see the note at audit.py's copy: it is what makes every consumer with
+# `scripts/` on sys.path converge on ONE module object instead of two caches.
+try:  # dual script/package mode
+    import gitenv as _gitenv                # script-mode / `scripts/` on sys.path
 except ImportError:  # pragma: no cover -- whichever branch this interpreter needs
-    import gitenv as _gitenv                # script-mode: `python scripts/<mod>.py`
+    from scripts import gitenv as _gitenv   # package-mode: `python -m scripts.<mod>`
 
 _SCRIPTS_DIR = Path(__file__).resolve().parent
 _REPO_ROOT = _SCRIPTS_DIR.parent

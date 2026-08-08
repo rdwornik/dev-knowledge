@@ -52,10 +52,17 @@ import yaml
 # import-path risk the LAZY fleet_parity import exists to avoid. Bound to its historical
 # names at the original site below (search `_GIT_LOCATION_ENV_EXTRA`), where the note on
 # WHERE the scrub fires — which this arc does not change — still lives.
-try:  # dual script/package mode, same shape as the lazy fleet_parity import
-    from scripts import gitenv as _gitenv   # package-mode: `python -m scripts.audit`
+#
+# The BARE name is tried FIRST, deliberately (terra HIGH, 2026-08-08). Both spellings resolve
+# the same file, but they produce two DISTINCT module objects with two caches whenever both
+# `scripts/` and the repo root are importable -- e.g. `python -m pytest` from the repo root.
+# Preferring the bare name means every consumer that has `scripts/` on sys.path (which is
+# every test, and script-mode) converges on ONE object; the package-mode fallback is reached
+# only when `scripts/` is NOT importable, where no bare-name consumer can exist to disagree.
+try:  # dual script/package mode
+    import gitenv as _gitenv                # script-mode / `scripts/` on sys.path
 except ImportError:  # pragma: no cover -- whichever branch this interpreter needs
-    import gitenv as _gitenv                # script-mode: `python scripts/audit.py`
+    from scripts import gitenv as _gitenv   # package-mode: `python -m scripts.audit`
 
 # Resolve repo root (scripts/ sibling) — after imports
 _SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))

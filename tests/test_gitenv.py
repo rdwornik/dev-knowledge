@@ -38,6 +38,7 @@ import pytest
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
 import audit as aud  # noqa: E402
+import batch_manifest as bm  # noqa: E402
 import fleet_analytics as fa  # noqa: E402
 import fleet_parity as fp  # noqa: E402
 import gitenv  # noqa: E402
@@ -109,12 +110,43 @@ def test_the_scrub_is_defined_exactly_once():
         path = _SCRIPTS / consumer
         assert not _defines(path, "_git_location_env"), f"{consumer} re-grew a local scrub definition"
 
-    # ...and at runtime the aliases really are gitenv's objects, not look-alikes.
-    assert aud._git_location_env is gitenv.git_location_env
-    assert fp._git_location_env is gitenv.git_location_env
-    assert fp._scrubbed_git_env is gitenv.scrubbed_git_env
-    assert fp._GIT_LOCATION_ENV_FALLBACK is gitenv.GIT_LOCATION_ENV_FALLBACK
-    assert aud._GIT_LOCATION_ENV_EXTRA is gitenv.GIT_LOCATION_ENV_EXTRA
+    # ...and at runtime the aliases really resolve to THIS file, not to a look-alike.
+    #
+    # Asserted on the defining FILE rather than on object identity (terra HIGH, 2026-08-08).
+    # `import gitenv` and `from scripts import gitenv` name the same file but produce two
+    # distinct module objects when both `scripts/` and the repo root are importable — which
+    # `python -m pytest` from the repo root really does. Object identity therefore encoded
+    # the import LAYOUT, not the invariant; the invariant is that there is one DEFINITION.
+    # (The consumers prefer the bare name precisely so the objects also converge in practice,
+    # but this assertion must hold either way, and two caches are behaviourally identical.)
+    for alias in (aud._git_location_env, fp._git_location_env, fp._scrubbed_git_env):
+        assert Path(inspect.getfile(alias)).resolve() == _GITENV.resolve(), \
+            f"{alias.__qualname__} is not defined in gitenv.py"
+    assert fp._GIT_LOCATION_ENV_FALLBACK == gitenv.GIT_LOCATION_ENV_FALLBACK
+    assert aud._GIT_LOCATION_ENV_EXTRA == gitenv.GIT_LOCATION_ENV_EXTRA
+
+
+def test_every_consumer_resolves_the_same_gitenv_file():
+    """All four git callers — including [#512]'s `batch_manifest` — read ONE definition.
+    Whichever spelling their dual-mode import lands on, it must be THIS file."""
+    for mod in (aud._gitenv, fp._gitenv, bm._gitenv, fa.gitenv):
+        assert Path(mod.__file__).resolve() == _GITENV.resolve(), mod
+
+
+def test_the_dual_mode_import_prefers_the_bare_name():
+    """terra HIGH, 2026-08-08. Both spellings resolve the same file but yield two distinct
+    module objects (two caches) when `scripts/` AND the repo root are both importable —
+    `python -m pytest` from the repo root does exactly that. Trying the BARE name first
+    makes every consumer that can see `scripts/` converge on one object; the package-mode
+    branch is reached only where no bare-name consumer can exist to disagree.
+
+    Asserted on source order, because the failure it prevents is invisible at runtime in
+    whichever layout the suite happens to be run under."""
+    for mod in ("audit.py", "fleet_parity.py", "batch_manifest.py"):
+        src = (_SCRIPTS / mod).read_text(encoding="utf-8")
+        bare = src.index("import gitenv as _gitenv")
+        pkg = src.index("from scripts import gitenv as _gitenv")
+        assert bare < pkg, f"{mod} tries the package spelling first — see terra 2026-08-08"
 
 
 # --- semantics: byte-equivalent to the copy this replaced -------------------

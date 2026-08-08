@@ -76,7 +76,12 @@ def test_position_points_at_name_not_keyword():
     assert d.file == "scripts/audit.py"
     assert d.kind == "ClassDef"
     assert d.character == 6          # len("class ") — points at the F, not the keyword
-    assert d.line == 326            # 0-based (audit.py:327 is 1-based)
+    # 0-based (audit.py:344 is 1-based). A LIVE position, so it shifts whenever anything is
+    # inserted above `class Finding` — re-grep `^class Finding` and re-pin rather than
+    # relaxing the assertion; the pin is the only thing proving the oracle reports a real
+    # position and not a plausible-looking one. Last re-pinned 2026-08-08 ([#396]: the
+    # gitenv import block landed near the top of audit.py).
+    assert d.line == 343
 
 
 # --- provenance ------------------------------------------------------------------------
