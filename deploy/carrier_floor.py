@@ -197,7 +197,16 @@ _BARE_RUNNERS = frozenset({"uvx"})                          # `uvx pre-commit ..
 _PY_VERSION_RE = re.compile(r"^-\d+(\.\d+)?$")              # `py -3` / `py -3.12`
 # A trailing lone backslash continues the command on the next physical line (POSIX). Joined
 # before segmentation so a continued arm command is not read as two under-armed segments.
-_LINE_CONTINUATION_RE = re.compile(r"\\\r?\n[ \t]*")
+# The backslash-newline is REMOVED, inserting nothing and consuming no following whitespace —
+# POSIX deletes exactly those two characters, so `pre-\<newline>commit` is the single word
+# `pre-commit`. Substituting a space split it into `pre-` + `commit` and argparse rejected the
+# result, reading a correct consumer as stale (terra pass-10 FALSE-UNARMED). The space before
+# the backslash and the next line's indentation are real separators and stay.
+_LINE_CONTINUATION_RE = re.compile(r"\\\r?\n")
+# Shell prefixes that transparently execute the command after them (`exec pre-commit install`
+# really does install). Bounded on purpose: each of these EXECS what follows, unlike `echo`,
+# which is why a permissive word bag was removed in pass 3 (terra pass-10).
+_TRANSPARENT_PREFIXES = frozenset({"exec", "command", "env", "nohup"})
 # pre-commit's own default stage when `install` names none. NOT a cardinality declaration —
 # a recorded fact about the external tool, so a bare arm leg's diagnostic names the stages
 # that are ACTUALLY dormant rather than claiming all of them are.
@@ -290,6 +299,13 @@ def _settings_sessionstart_commands(data: dict[str, Any]) -> list[str]:
     return [c for c in (_hook_command(h) for h in _sessionstart_hooks(data)) if c]
 
 
+def _basename(tok: str) -> str:
+    """A command token reduced to its comparable program name: path stripped, `.exe` dropped,
+    casefolded (Windows executable names are case-insensitive)."""
+    base = tok.replace("\\", "/").rsplit("/", 1)[-1].casefold()
+    return base[:-4] if base.endswith(".exe") else base
+
+
 def _is_precommit_exe(tok: str) -> bool:
     """True when a token names pre-commit itself (`pre_commit`, `pre-commit`, a path to
     either, or the Windows `.exe` shim) — not merely mentions it.
@@ -299,10 +315,7 @@ def _is_precommit_exe(tok: str) -> bool:
     that a POSIX file deliberately named `PRE-COMMIT` would also match — accepted, since
     such a file being something OTHER than pre-commit is not a real configuration.
     """
-    base = tok.replace("\\", "/").rsplit("/", 1)[-1].casefold()
-    if base.endswith(".exe"):
-        base = base[:-4]
-    return base in _PRECOMMIT_TOKENS
+    return _basename(tok) in _PRECOMMIT_TOKENS
 
 
 def _command_segments(cmd: str) -> list[list[str]]:
@@ -320,7 +333,7 @@ def _command_segments(cmd: str) -> list[list[str]]:
     """
     segments: list[list[str]] = []
     current: list[str] = []
-    for line in _LINE_CONTINUATION_RE.sub(" ", cmd).splitlines():
+    for line in _LINE_CONTINUATION_RE.sub("", cmd).splitlines():
         try:
             lexer = shlex.shlex(line, posix=True, punctuation_chars=True)
             lexer.whitespace_split = True
@@ -404,15 +417,17 @@ def _precommit_args(toks: list[str]) -> list[str] | None:
     `python pre-commit install` and `run pre-commit install`, neither of which reaches the
     pre-commit CLI, so both read as armed (terra pass-3 CRITICAL + one found refuting it)."""
     i = 0
-    while i < len(toks) and _ENV_ASSIGN_RE.match(toks[i]):
+    # Leading `VAR=value` assignments and transparent exec prefixes (`exec`, `env`, ...) —
+    # neither changes WHICH command runs, so skip past them to the real command word.
+    while i < len(toks) and (
+        _ENV_ASSIGN_RE.match(toks[i]) or _basename(toks[i]) in _TRANSPARENT_PREFIXES
+    ):
         i += 1
     if i >= len(toks):
         return None
     if _is_precommit_exe(toks[i]):            # `pre-commit install ...`
         return toks[i + 1 :]
-    head = toks[i].replace("\\", "/").rsplit("/", 1)[-1].casefold()
-    if head.endswith(".exe"):
-        head = head[:-4]
+    head = _basename(toks[i])
     if head in _MODULE_RUNNERS:               # `python [-3.12] -m pre_commit install ...`
         j = i + 1
         while j < len(toks) and _PY_VERSION_RE.match(toks[j]):

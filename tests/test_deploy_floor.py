@@ -532,7 +532,6 @@ def test_long_form_stage_flags_count_as_fully_armed(tmp_path, long_form):
     ("uv pre-commit install -t pre-commit -t commit-msg -t pre-push", set()),
     ("poetry pre-commit install -t pre-commit -t commit-msg -t pre-push", set()),
     ("run pre-commit install -t pre-commit -t commit-msg -t pre-push", set()),
-    ("exec pre-commit install -t pre-commit -t commit-msg -t pre-push", set()),
     # ...while each COMPLETE prefix does
     ("uvx pre-commit install -t pre-commit -t commit-msg -t pre-push",
      {"pre-commit", "commit-msg", "pre-push"}),
@@ -627,6 +626,22 @@ def test_long_form_stage_flags_count_as_fully_armed(tmp_path, long_form):
     ("pre-commit install -t pre-commit -t commit-msg -t pre-push 2>&1 >out.log",
      {"pre-commit", "commit-msg", "pre-push"}),
     ("pre-commit install -t pre-commit -t commit-msg -t pre-push < /dev/null",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    # --- terra pass 10 ---
+    # a shell builtin that transparently EXECS what follows really does install (my own
+    # earlier row wrongly grouped `exec` with incomplete runner prefixes like `run`)
+    ("exec pre-commit install -t pre-commit -t commit-msg -t pre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    ("command pre-commit install -t pre-commit -t commit-msg -t pre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    ("env PRE_COMMIT_HOME=/tmp pre-commit install -t pre-commit -t commit-msg -t pre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    # POSIX DELETES a backslash-newline, inserting nothing: `pre-\<NL>commit` is one word.
+    # Substituting a space split it and argparse rejected `pre-` (FALSE-UNARMED).
+    ("pre-commit install -t pre-\\\ncommit -t commit-msg -t pre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    # ...while the space BEFORE the backslash is a real separator and must survive
+    ("pre-commit install -t pre-commit \\\n-t commit-msg \\\n-t pre-push",
      {"pre-commit", "commit-msg", "pre-push"}),
     ("pre-commit install -c .pre-commit-config.yaml -t pre-commit -t commit-msg -t pre-push",
      {"pre-commit", "commit-msg", "pre-push"}),
