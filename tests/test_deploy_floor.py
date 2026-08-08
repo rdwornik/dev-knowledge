@@ -333,12 +333,15 @@ def _rewrite_arm_leg(repo: Path, command: str) -> None:
 
 
 def _arm_commands(repo: Path) -> list[str]:
+    """Every SessionStart command mentioning `install` — deliberately a BROADER filter than
+    the carrier's own `_is_arm_command`, so a test can see a leg the carrier does not
+    recognise (and catch a leg the carrier wrongly rewrote or duplicated)."""
     data = json.loads(_settings(repo).read_text(encoding="utf-8"))
     return [
         h["command"]
         for g in data["hooks"]["SessionStart"]
         for h in g["hooks"]
-        if "pre_commit install" in h["command"]
+        if "install" in h["command"]
     ]
 
 
@@ -491,6 +494,32 @@ def test_long_form_stage_flags_count_as_fully_armed(tmp_path, long_form):
      {"pre-commit", "commit-msg", "pre-push"}),
     # a bare install arms pre-commit only — the #275 defect, stated honestly
     ("python -m pre_commit install", {"pre-commit"}),
+    # --- terra pass 2: pre-commit must be the command INVOKED, not a token that appears ---
+    # unquoted mention in argument position (the quoted `echo` case above missed this)
+    ("echo pre-commit install -t pre-commit -t commit-msg -t pre-push", set()),
+    ("git commit -m 'run pre-commit install -t pre-push'", set()),
+    # a NEWLINE is a command boundary — a flag on a later line is not this install's
+    ("python -m pre_commit install\necho -t commit-msg -t pre-push", {"pre-commit"}),
+    ("echo arming\npython -m pre_commit install -t pre-commit -t commit-msg -t pre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    # quoting is RESOLVED — a quoted stage name is the stage it names. Reading these as
+    # under-armed is the damaging direction: apply would rewrite a CORRECT consumer.
+    ("PRE_COMMIT_HOME=/tmp pre-commit install -t 'pre-commit' -t 'commit-msg' "
+     "-t 'pre-push'", {"pre-commit", "commit-msg", "pre-push"}),
+    ('pre-commit install -t "pre-commit" -t "commit-msg" -t "pre-push"',
+     {"pre-commit", "commit-msg", "pre-push"}),
+    # a bounded runner prefix is tolerated — this repo's own hooks invoke via `uv run`
+    ("uv run pre-commit install -t pre-commit -t commit-msg -t pre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    ("py -3 -m pre_commit install -t pre-commit -t commit-msg -t pre-push",
+     {"pre-commit", "commit-msg", "pre-push"}),
+    # past `--` a `-t` is a positional, not a stage flag
+    ("python -m pre_commit install -- -t pre-commit -t commit-msg -t pre-push",
+     {"pre-commit"}),
+    # an opaque wrapper is not statically readable -> reads as no invocation (stated limit)
+    ("sh -c 'pre-commit install -t pre-commit -t commit-msg -t pre-push'", set()),
+    # unbalanced quotes must not raise — the whitespace-split fallback still reads the flags
+    ("pre-commit install -t 'pre-commit -t commit-msg", {"pre-commit", "commit-msg"}),
 ])
 def test_armed_stages_binds_flags_to_the_install_invocation(cmd, expected):
     """The stage parser must credit a flag only to the `pre-commit install` that consumes it.
@@ -504,10 +533,53 @@ def test_armed_stages_binds_flags_to_the_install_invocation(cmd, expected):
 @pytest.mark.parametrize("cmd", [
     "python -m pre_commit install-hooks -t pre-commit",
     'echo "pre_commit install"',
+    "echo pre-commit install",
+    "sh -c 'pre-commit install'",
     "python scripts/surface_triage.py",
 ])
 def test_non_arming_commands_are_not_arm_legs(cmd):
     assert cf._is_arm_command(cmd) is False
+
+
+@pytest.mark.parametrize("armed_cmd", [
+    "PRE_COMMIT_HOME=/tmp pre-commit install -t 'pre-commit' -t 'commit-msg' -t 'pre-push'",
+    "uv run pre-commit install -t pre-commit -t commit-msg -t pre-push",
+    "pre-commit install --hook-type=pre-commit --hook-type=commit-msg --hook-type=pre-push",
+])
+def test_apply_never_rewrites_an_already_armed_variant(tmp_path, armed_cmd):
+    """The damaging direction: a FALSE under-armed read would have apply rewrite a correct
+    consumer's command, discarding its env prefix / runner / quoting. These must be no-ops."""
+    car = _carrier(tmp_path)
+    car.apply(_FLOOR_TARGET)
+    _rewrite_arm_leg(tmp_path, armed_cmd)
+
+    assert car.verify(_FLOOR_TARGET).ok is True
+    assert car.detect(_FLOOR_TARGET) is contract.CarrierState.PRESENT_CORRECT
+    assert car.apply(_FLOOR_TARGET).changed is False
+    assert _arm_commands(tmp_path) == [armed_cmd]  # byte-identical, untouched
+
+
+def test_an_opaque_wrapper_gains_a_leg_and_is_never_rewritten(tmp_path):
+    """A `sh -c '...'` arm leg cannot be read statically, so it reads as absent. apply must
+    ADD a canonical leg beside it and leave the wrapper verbatim — repairing without
+    destroying behaviour it cannot understand (the stated parser limit)."""
+    car = _carrier(tmp_path)
+    car.apply(_FLOOR_TARGET)
+    opaque = "sh -c 'pre-commit install -t pre-commit -t commit-msg -t pre-push'"
+    _rewrite_arm_leg(tmp_path, opaque)
+
+    assert car.detect(_FLOOR_TARGET) is contract.CarrierState.PRESENT_DRIFTED
+    car.apply(_FLOOR_TARGET)
+    cmds = [
+        h["command"]
+        for g in json.loads(_settings(tmp_path).read_text(encoding="utf-8"))
+                      ["hooks"]["SessionStart"]
+        for h in g["hooks"]
+    ]
+    assert opaque in cmds                                  # wrapper preserved verbatim
+    assert cf._SESSIONSTART_ARM_CMD in cmds                # canonical leg added beside it
+    assert car.verify(_FLOOR_TARGET).ok is True
+    assert car.apply(_FLOOR_TARGET).changed is False        # and settles (no oscillation)
 
 
 def test_a_fooled_parser_would_false_green_a_dormant_consumer(tmp_path):

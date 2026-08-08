@@ -58,6 +58,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+import shlex
 import sys
 from pathlib import Path
 from typing import Any
@@ -132,8 +133,19 @@ _SESSIONSTART_SENTINEL = "check_floor_hash.py"
 _PRECOMMIT_TOKENS = ("pre_commit", "pre-commit")
 _ARM_SUBCOMMAND = "install"
 # Shell separators that end an invocation's argument list, so a stage flag in a neighbouring
-# segment is never credited to `install` (terra HIGH, 2026-08-08).
-_SHELL_SEPARATOR_RE = re.compile(r"&&|\|\||[;|&]")
+# segment is never credited to `install` (terra HIGH, 2026-08-08). Newlines are boundaries too
+# (terra pass-2 CRITICAL: a flag on a LATER line was credited to an earlier `install`).
+_SHELL_SEPARATORS = frozenset({";", "&&", "||", "|", "&", "\n"})
+# Leading `VAR=value` environment assignments, skipped when locating the command word.
+_ENV_ASSIGN_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
+# The BOUNDED runner prefix tolerated between the start of a segment and the pre-commit word:
+# `python -m pre_commit ...`, `uv run pre-commit ...`, `py -3 -m pre_commit ...`. Anything else
+# in command position means pre-commit is NOT the command being invoked — which is what stops
+# `echo pre-commit install -t ...` from reading as armed (terra pass-2 CRITICAL).
+_RUNNER_WORDS = frozenset({"python", "python3", "py", "-3", "-m", "uv", "uvx", "poetry",
+                           "pipx", "run", "exec"})
+# argparse's end-of-options marker: past it, `-t` is a positional, not a stage flag.
+_END_OF_OPTIONS = "--"
 # pre-commit's own default stage when `install` names none. NOT a cardinality declaration —
 # a recorded fact about the external tool, so a bare arm leg's diagnostic names the stages
 # that are ACTUALLY dormant rather than claiming all of them are.
@@ -235,32 +247,77 @@ def _is_precommit_exe(tok: str) -> bool:
     return base in _PRECOMMIT_TOKENS
 
 
+def _command_segments(cmd: str) -> list[list[str]]:
+    """A SessionStart command string as one token list per shell segment.
+
+    Shell-aware (terra pass-2, 2026-08-08): quoting is resolved, so ``-t 'pre-commit'`` names
+    the stage it obviously names — a naive ``.split()`` kept the quotes, read the command as
+    under-armed, and would have had `apply` REWRITE a genuinely correct consumer, which is
+    the more damaging direction of error. Separators (including newlines) end a segment so a
+    flag on one line or after a ``;`` is never credited to an `install` on another.
+
+    An unparsable command (unbalanced quotes) falls back to whitespace splitting: an
+    imperfect read that under-counts is safe here — it can only produce a repairable
+    not-armed verdict, never a false armed one.
+    """
+    segments: list[list[str]] = []
+    current: list[str] = []
+    for line in cmd.splitlines():
+        try:
+            lexer = shlex.shlex(line, posix=True, punctuation_chars=True)
+            lexer.whitespace_split = True
+            # Backslash is a PATH separator here, not an escape: this fleet is Windows-primary
+            # and posix lexing otherwise turns `C:\venv\Scripts\pre-commit.exe` into
+            # `C:venvScriptspre-commit.exe`, so a correctly-armed Windows consumer would read
+            # as not-armed. Quote handling (the reason for posix=True) is unaffected.
+            lexer.escape = ""
+            toks = list(lexer)
+        except ValueError:
+            toks = line.split()
+        for tok in toks:
+            if tok in _SHELL_SEPARATORS:
+                segments.append(current)
+                current = []
+            else:
+                current.append(tok)
+        segments.append(current)  # end of line == end of segment
+        current = []
+    return [s for s in segments if s]
+
+
 def _install_invocations(cmd: str) -> list[list[str]]:
     """The ARGUMENT list of each real `pre-commit install` invocation inside a command string.
 
-    Scoped parsing, not a substring/whole-token scan (terra HIGH, 2026-08-08 — the reviewed
-    first draft scanned every token in the command, so
-    ``pre_commit install-hooks -t pre-commit -t commit-msg -t pre-push`` and
-    ``pre_commit run -t ... ; pre_commit install`` both read as fully armed. A false
-    PRESENT_CORRECT is exactly the dormant-stage defect these teeth exist to catch, so the
-    parser must bind stage flags to the `install` subcommand that consumes them):
+    Requires pre-commit to be the command being INVOKED, not merely a token that appears
+    somewhere (terra 2026-08-08, both passes — the first draft scanned every token, so
+    ``pre_commit install-hooks -t ...`` read as fully armed; the second bound flags to the
+    preceding token only, so ``echo pre-commit install -t ...`` did too. A false
+    PRESENT_CORRECT is precisely the dormant-stage defect these teeth exist to catch):
 
-    - the command is first split on shell separators, so flags in a neighbouring segment
-      cannot be credited to `install`;
-    - within a segment, `install` counts only when the PRECEDING token actually invokes
-      pre-commit — which rejects `install-hooks` (a distinct token, hence a distinct
-      subcommand) and ``echo "pre_commit install ..."``;
+    - per segment, leading ``VAR=value`` assignments are skipped, then a BOUNDED runner
+      prefix (``python -m``, ``uv run``, ...) is walked to reach the command word;
+    - anything else in command position means pre-commit is not being invoked -> no invocation;
+    - the subcommand must be exactly ``install`` — which rejects ``install-hooks`` and ``run``;
     - the invocation's arguments are the rest of its segment.
 
-    Returns [] when the command performs no `pre-commit install` at all.
+    Returns [] when the command performs no `pre-commit install`. **Stated limit:** a command
+    that hides the invocation from static reading (``sh -c '...'``, a shell function, a
+    wrapper script) is NOT recognised, so it reads as no arm leg. That is deliberate and
+    fail-safe: `apply` then ADDS a canonical arm leg beside it and never rewrites the opaque
+    command, so a wrapper's behaviour is preserved even when it cannot be understood.
     """
     invocations: list[list[str]] = []
-    for segment in _SHELL_SEPARATOR_RE.split(cmd):
-        toks = segment.split()
-        for i in range(1, len(toks)):
-            if toks[i] == _ARM_SUBCOMMAND and _is_precommit_exe(toks[i - 1]):
-                invocations.append(toks[i + 1 :])
-                break  # one install invocation per segment
+    for toks in _command_segments(cmd):
+        i = 0
+        while i < len(toks) and _ENV_ASSIGN_RE.match(toks[i]):
+            i += 1
+        while i < len(toks) and toks[i] in _RUNNER_WORDS and not _is_precommit_exe(toks[i]):
+            i += 1
+        if i >= len(toks) or not _is_precommit_exe(toks[i]):
+            continue
+        rest = toks[i + 1 :]
+        if rest[:1] == [_ARM_SUBCOMMAND]:
+            invocations.append(rest[1:])
     return invocations
 
 
@@ -269,11 +326,13 @@ def _stage_flags(args: list[str]) -> set[str]:
 
     Accepts every spelling `pre-commit install` accepts — ``-t X``, ``-tX``,
     ``--hook-type X``, ``--hook-type=X`` — so a consumer that armed correctly with the long
-    form is never misread as stale (a false DRIFTED would have `apply` rewrite a config that
-    was already right). A flag with no value is simply not a stage name.
+    form is never misread as stale. A flag with no value names no stage, and scanning stops at
+    ``--`` (past end-of-options a ``-t`` is a positional, not a flag).
     """
     named: set[str] = set()
     for i, tok in enumerate(args):
+        if tok == _END_OF_OPTIONS:
+            break
         if tok.startswith("--hook-type="):
             named.add(tok.split("=", 1)[1])
         elif tok in ("-t", "--hook-type"):
@@ -281,7 +340,8 @@ def _stage_flags(args: list[str]) -> set[str]:
                 named.add(args[i + 1])
         elif tok.startswith("-t") and len(tok) > 2:
             named.add(tok[2:])
-    return named
+    # Defensive: the whitespace-split fallback above cannot strip quotes the lexer would have.
+    return {n.strip("'\"") for n in named}
 
 
 def _is_arm_command(cmd: str) -> bool:
