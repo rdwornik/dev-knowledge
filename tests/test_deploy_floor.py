@@ -660,6 +660,9 @@ def test_long_form_stage_flags_count_as_fully_armed(tmp_path, long_form):
      {"pre-commit", "commit-msg", "pre-push"}),
     # ...and `env` wrapping something that is NOT pre-commit still arms nothing
     ("env -u HOME echo pre-commit install -t pre-commit -t commit-msg -t pre-push", set()),
+    # GNU env REFUSES -0/--null when a command is supplied, so pre-commit never runs
+    ("env -0 pre-commit install -t pre-commit -t commit-msg -t pre-push", set()),
+    ("env --null pre-commit install -t pre-commit -t commit-msg -t pre-push", set()),
     # POSIX DELETES a backslash-newline, inserting nothing: `pre-\<NL>commit` is one word.
     # Substituting a space split it and argparse rejected `pre-` (FALSE-UNARMED).
     ("pre-commit install -t pre-\\\ncommit -t commit-msg -t pre-push",

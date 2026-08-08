@@ -211,7 +211,11 @@ _TRANSPARENT_PREFIXES = frozenset({"exec", "command", "env", "nohup"})
 # enough: `env -u PRE_COMMIT_HOME pre-commit install …` really does arm, and stopping at `-u`
 # read it as un-armed (terra pass-13 FALSE-UNARMED). These are env's own options; the others
 # above take none that can precede the wrapped command, so this closes the wrapper surface.
-_ENV_FLAG_OPTS = frozenset({"-i", "--ignore-environment", "-0", "--null", "-v", "--debug"})
+# `-0`/`--null` is deliberately NOT here: GNU env REFUSES it when a command is supplied, so
+# `env -0 pre-commit install …` never runs pre-commit. Leaving it out means the walk stops at
+# the token, the segment yields no invocation, and the command correctly arms nothing — the
+# safe direction (terra pass-14). `-i` and `-v` do run the command, so they are skippable.
+_ENV_FLAG_OPTS = frozenset({"-i", "--ignore-environment", "-v", "--debug"})
 _ENV_VALUE_OPTS = frozenset({"-u", "--unset", "-C", "--chdir", "-S", "--split-string"})
 # pre-commit's own default stage when `install` names none. NOT a cardinality declaration —
 # a recorded fact about the external tool, so a bare arm leg's diagnostic names the stages
