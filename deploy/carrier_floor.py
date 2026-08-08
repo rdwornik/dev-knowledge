@@ -318,8 +318,9 @@ def _is_precommit_exe(tok: str) -> bool:
     return _basename(tok) in _PRECOMMIT_TOKENS
 
 
-def _command_segments(cmd: str) -> list[list[str]]:
-    """A SessionStart command string as one token list per shell segment.
+def _command_segments(cmd: str) -> list[list[str]] | None:
+    """A SessionStart command string as one token list per shell segment, or None if the
+    command is not valid shell at all (so nothing in it runs).
 
     Shell-aware (terra pass-2, 2026-08-08): quoting is resolved, so ``-t 'pre-commit'`` names
     the stage it obviously names — a naive ``.split()`` kept the quotes, read the command as
@@ -353,18 +354,30 @@ def _command_segments(cmd: str) -> list[list[str]]:
                 current = []
             else:
                 current.append(tok)
-        segments.append(_strip_redirections(current))  # end of line == end of segment
+        segments.append(current)  # end of line == end of segment
         current = []
-    return [s for s in segments if s]
+    cleaned: list[list[str]] = []
+    for segment in segments:
+        without_redirects = _strip_redirections(segment)
+        if without_redirects is None:
+            return None  # a shell syntax error anywhere means the command never runs
+        if without_redirects:
+            cleaned.append(without_redirects)
+    return cleaned
 
 
-def _strip_redirections(toks: list[str]) -> list[str]:
-    """Drop shell redirection operators and their targets from a segment's tokens.
+def _strip_redirections(toks: list[str]) -> list[str] | None:
+    """A segment's tokens with shell redirections removed, or None if it is a SYNTAX ERROR.
 
     `pre-commit install -t … >install.log` really does install; the redirection is the shell's
     business, not an argument to `install`. Leaving `>` and `install.log` in the argument list
     made argparse reject them as positionals, so a genuinely-arming consumer read as stale and
     `apply` would rewrite its command (terra pass-9 FALSE-UNARMED).
+
+    A redirection operator with NO target (`… -t pre-push >`) is a shell syntax error: the
+    shell never runs the command, so nothing is installed. Dropping the operator left a
+    well-formed argument list behind and the command read as fully armed — a false
+    PRESENT_CORRECT (terra pass-11). Such a segment now poisons the whole command.
     """
     out: list[str] = []
     i = 0
@@ -375,6 +388,8 @@ def _strip_redirections(toks: list[str]) -> list[str]:
             i += 1
             continue
         if tok in _REDIRECT_OPS:
+            if i + 1 >= len(toks):
+                return None  # dangling operator -> shell syntax error -> nothing runs
             i += 2  # the operator and its target
             continue
         out.append(tok)
@@ -404,7 +419,7 @@ def _install_invocations(cmd: str) -> list[list[str]]:
     command, so a wrapper's behaviour is preserved even when it cannot be understood.
     """
     invocations: list[list[str]] = []
-    for toks in _command_segments(cmd):
+    for toks in _command_segments(cmd) or ():
         rest = _precommit_args(toks)
         if rest is not None and rest[:1] == [_ARM_SUBCOMMAND]:
             invocations.append(rest[1:])

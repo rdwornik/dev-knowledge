@@ -627,6 +627,11 @@ def test_long_form_stage_flags_count_as_fully_armed(tmp_path, long_form):
      {"pre-commit", "commit-msg", "pre-push"}),
     ("pre-commit install -t pre-commit -t commit-msg -t pre-push < /dev/null",
      {"pre-commit", "commit-msg", "pre-push"}),
+    # a redirection with NO target is a shell syntax error — the shell never runs the command,
+    # so dropping the dangling operator and reading the rest as armed is a false green
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push >", set()),
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push 2>", set()),
+    ("pre-commit install -t pre-commit -t commit-msg -t pre-push >>", set()),
     # --- terra pass 10 ---
     # a shell builtin that transparently EXECS what follows really does install (my own
     # earlier row wrongly grouped `exec` with incomplete runner prefixes like `run`)
