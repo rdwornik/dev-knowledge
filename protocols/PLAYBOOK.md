@@ -1878,8 +1878,10 @@ per-Scale detail; the tiering is intake #25 AMENDMENT-b V-3, refined by AMENDMEN
 hub-process surfaces.** The remainder carry product/consumer work. A batch that cannot fill its
 non-process lanes **reports the shortfall** in its end-of-batch packet and runs narrower;
 backfilling the gap with additional process lanes defeats the cap, which exists because
-methodology work is the class that expands to fill whatever width is available. Operator directive
-2026-08-06; carried in-repo by intake #27.
+methodology work is the class that expands to fill whatever width is available. The cap is
+evaluated against **dispatched width**; the end-of-batch packet reports the **close-width
+delta**. Operator directive 2026-08-06; carried in-repo by intake #27. Denominator ratified
+2026-08-08.
 
 **Honest limits.** This protocol is doctrine plus two commands. The only mechanized parts are the
 stale-worktree WARN (`audit.py::check_stale_worktrees`) and the naming enum
