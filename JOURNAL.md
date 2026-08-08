@@ -19,6 +19,40 @@
 
 ---
 
+### 2026-08-08 (k) — CC (Opus 5, bg primary tree): the integrator reviewed its own arc, because condition 3 binds it too
+
+**Did:** The batch-3 close merge `bedcf3fe` turned the ship-gate RED with one new WARN —
+`review_artifact_coverage: 1 code-impact merge(s) … carry no linked review artifact`. The arc
+touched `tests/`, and batch 2's manifest condition 3 is explicit that *"an integrator arc that
+touches `scripts/` or `tests/` carries a review like any lane."* `9ae6e878` carries the review.
+
+**Result — the WARN was cleared by REVIEWING, not by dispositioning.** Disposition was available
+and deliberately not used: the batch-2 precedent is that this exact WARN on an integrator's own
+merge was real, and the retroactive review then found two genuine defects in it. A gate that only
+ever fires on other people's work is not a gate.
+
+- **Producer ≠ reviewer.** `codex exec` (codex-cli 0.145.0) graded the diff, not its author, and
+  was given three falsifiable questions rather than "look for problems".
+- **Tally 0/0/0/2.** Zero findings against the diff itself. The two LOWs are **pre-existing** stale
+  locators sitting in *comments* in other test files (`test_v6_frozen_contract.py:226`,
+  `test_review_artifact_coverage.py:276`) — nothing asserts on them, so no test can catch them.
+  **Carried, not fixed**, per the arc's contract.
+- **The review's real yield is a lane finding, not a diff finding: lane E repinned 1 of 3 live
+  pins and missed 2.** Its own comment at `test_reverse_dep_oracle.py:84` proves it knew the shift
+  had happened — *"Last re-pinned 2026-08-08 ([#396]: the gitenv import block landed near the top
+  of audit.py)"* — yet the two 1-based pins 136 lines below went untouched, and the lane handed
+  back without running its suite against them. **The standing lesson, sharpened: re-grep the pin
+  count, never recall it.** A lane that repins "the" pin, singular, is the shape of this defect.
+
+**Changes:** `docs/audits/2026-08-08-codex-batch-3-integrator-arc.md` (new, with a parseable
+`**Tally:**`); `docs/audits/README.md` regenerated; this entry. No code touched — so this arc
+creates no code-impact WARN of its own, and the loop terminates rather than recursing.
+
+**Abandoned:** nothing.
+
+**Next:** unchanged from (j). The two LOW locator findings join the carried set for whoever takes
+the F3/F4 locator work.
+
 ### 2026-08-08 (j) — CC (Opus 5, bg primary tree): batch 3 integrated — ten lanes, eight closes, teardown to zero, and the gate never bypassed
 
 **Did:** STEP 2 and STEP 3 of the accepted re-dispatch. The manifest committed in (h) made the
