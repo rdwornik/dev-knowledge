@@ -98,9 +98,40 @@ def _safe_rel(value: Any, field: str) -> str:
     win, posix = PureWindowsPath(rel), PurePosixPath(rel)
     if win.is_absolute() or posix.is_absolute() or win.anchor or posix.anchor:
         raise ValueError(f"docs carrier: {field} {rel!r} must be repo-relative, not absolute")
-    if ".." in win.parts:
-        raise ValueError(f"docs carrier: {field} {rel!r} may not contain '..'")
+    for part in win.parts:
+        # Win32 STRIPS trailing dots and spaces when it resolves a path, so `".. "` and
+        # `".."` name the same directory while comparing unequal in Python. A lexical
+        # `".." in parts` test therefore misses `".. "` entirely. Refuse any component
+        # that is not already in its stripped form -- no legitimate doc path has one,
+        # and `_contained` below is the real backstop rather than the only one.
+        canon = part.rstrip(" .")
+        if canon in ("", ".."):
+            raise ValueError(f"docs carrier: {field} {rel!r} may not contain '..'")
+        if canon != part:
+            raise ValueError(
+                f"docs carrier: {field} {rel!r} has a trailing-dot/space component "
+                f"{part!r} (Win32 strips these, so it aliases another path)"
+            )
     return PurePosixPath(*win.parts).as_posix()
+
+
+def _contained(base: Path, rel: str, what: str) -> Path:
+    """``base / rel``, proven to stay inside ``base`` AFTER symlink resolution.
+
+    The lexical guard in ``_safe_rel`` only sees the declared string. It cannot see a
+    SYMLINK: if a consumer's ``docs/`` is a link out of the tree, a textually-innocent
+    ``docs/intake/README.md`` still lands outside. ``resolve()`` follows links (and
+    applies Win32's own trailing-dot/space normalization), so containment is checked on
+    the real destination, and the resolved path is what we then read or write.
+    """
+    base_resolved = base.resolve()
+    resolved = (base_resolved / rel).resolve()
+    if resolved != base_resolved and not resolved.is_relative_to(base_resolved):
+        raise ValueError(
+            f"docs carrier: {what} {rel!r} resolves outside {base_resolved} "
+            f"(-> {resolved}) -- refusing; a symlinked or aliased component escapes the tree"
+        )
+    return resolved
 
 
 def _pairs(target: Any) -> tuple[tuple[str, str], ...]:
@@ -120,8 +151,11 @@ def _pairs(target: Any) -> tuple[tuple[str, str], ...]:
 
 
 def _hub_text(source_rel: str) -> str:
-    """The hub canonical source text for one declared doc, LF-normalized."""
-    src = _HUB_ROOT / source_rel
+    """The hub canonical source text for one declared doc, LF-normalized.
+
+    Containment-checked: a declared source may not read outside the hub root.
+    """
+    src = _contained(_HUB_ROOT, source_rel, "source")
     if not src.exists():
         raise ValueError(f"docs carrier: hub source missing: {source_rel}")
     return _normalize(src.read_text(encoding="utf-8"))
@@ -142,7 +176,7 @@ def _classify_docs(root: Path, pairs: tuple[tuple[str, str], ...]) -> CarrierSta
     present = 0
     correct = 0
     for source_rel, dest_rel in pairs:
-        dest = root / dest_rel
+        dest = _contained(root, dest_rel, "path")
         if not dest.exists():
             continue
         present += 1
@@ -170,7 +204,7 @@ def _verify_docs(root: Path, pairs: tuple[tuple[str, str], ...]) -> list[str]:
     """
     failures: list[str] = []
     for source_rel, dest_rel in pairs:
-        dest = root / dest_rel
+        dest = _contained(root, dest_rel, "path")
         if not dest.exists():
             failures.append(f"carried doc absent: {dest_rel}")
             continue
@@ -208,11 +242,15 @@ class DocsCarrier(Carrier):
         changes: list[str] = []
         for source_rel, dest_rel in pairs:
             desired = _hub_text(source_rel)
-            dest = self.repo_root / dest_rel
+            dest = _contained(self.repo_root, dest_rel, "path")
             existed = dest.exists()
             if existed and _normalize(dest.read_text(encoding="utf-8")) == desired:
                 continue
             dest.parent.mkdir(parents=True, exist_ok=True)
+            # Re-check AFTER mkdir: containment was proven against the pre-mkdir tree, and
+            # creating the parents is the one moment this carrier changes what the path
+            # resolves to. Cheap, and it closes the create-a-symlinked-parent window.
+            dest = _contained(self.repo_root, dest_rel, "path")
             dest.write_text(desired, encoding="utf-8", newline="\n")
             changes.append(f"{'updated' if existed else 'created'} {dest_rel} from {source_rel}")
         if not changes:

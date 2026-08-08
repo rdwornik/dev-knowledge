@@ -209,6 +209,45 @@ def test_escaping_or_missing_path_is_refused(tmp_path, bad):
     assert not (tmp_path.parent / "escaped.md").exists()
 
 
+@pytest.mark.parametrize("alias", ["docs/.. /escaped.md", "docs/../escaped.md", "... /x.md", ".../x.md"])
+def test_windows_trailing_dot_space_alias_is_refused(tmp_path, alias):
+    """Win32 strips trailing dots/spaces, so `".. "` IS `".."` — a lexical `..` test misses it.
+
+    Codex terra CRITICAL (2026-08-08). Without this, a declared `"docs/.. /escaped.md"`
+    compares unequal to `".."` in Python but resolves one level UP on Windows.
+    """
+    with pytest.raises(ValueError):
+        cd.DocsCarrier(tmp_path).detect({"doc_paths": [{"source": "templates/intake-template.md", "path": alias}]})
+
+
+def test_symlinked_parent_cannot_redirect_a_write_out_of_the_consumer(tmp_path):
+    """A textually-innocent path whose parent is a SYMLINK out of the tree is refused.
+
+    Codex terra CRITICAL (2026-08-08): the lexical guard sees only the declared string.
+    Containment is therefore re-checked after symlink resolution.
+    """
+    consumer, outside = tmp_path / "consumer", tmp_path / "outside"
+    consumer.mkdir()
+    outside.mkdir()
+    try:
+        (consumer / "docs").symlink_to(outside, target_is_directory=True)
+    except (OSError, NotImplementedError):
+        pytest.skip("symlink creation not permitted in this environment")
+
+    target = {"doc_paths": [{"source": "templates/intake-template.md", "path": "docs/intake/README.md"}]}
+    with pytest.raises(ValueError, match="resolves outside"):
+        cd.DocsCarrier(consumer).apply(target)
+    assert not (outside / "intake" / "README.md").exists(), "write escaped the consumer tree"
+
+
+def test_symlinked_hub_source_cannot_read_outside_the_hub(tmp_path):
+    """The same containment rule applies to the SOURCE leg — no reads outside the hub."""
+    with pytest.raises(ValueError):
+        cd.DocsCarrier(tmp_path).apply(
+            {"doc_paths": [{"source": "templates/.. /.. /secrets.md", "path": "x.md"}]}
+        )
+
+
 def test_empty_or_malformed_target_is_refused(tmp_path):
     for bad_target in (None, {}, {"doc_paths": []}, {"doc_paths": ["not-a-mapping"]}):
         with pytest.raises(ValueError):
