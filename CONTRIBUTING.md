@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-08-07
+last_reviewed: 2026-08-08
 reconciled_with: handoff-process@6.2.0
 status: active
 owner: Rob
@@ -208,9 +208,10 @@ See ADR-27 through ADR-41 for style reference.
 Protocol: `protocols/HANDOFF_PROCESS.md` — **v6** (stamp v6.2.0, *stable*; ADR-82, operator-ratified 2026-06-11 per #149, amended 2026-06-16 for the v5.1 architect strategic supplement, 2026-06-17 for the v5.2 always-generated supplement file, 2026-06-25 for the v5.3 §5 probe-manifest consolidation, 2026-07-05 for the v5.4 §5 structural anti-bluff + §13 generator note, 2026-07-05 for the v5.5 §14 epic-lane handoffs — EPIC + EPIC RETURN, ADR-97, 2026-07-06 for the v5.6 §14a execution-MODE item, 2026-07-07 for the v5.7 §16 functional/intake mode + §14 developer alias, ADR-98, and **2026-07-31 for the v6.0 one-round-trip boot** — one CC-side command (`/handoff-verify`) runs the whole live gate and emits ONE evidence block the operator pastes once, plus the P0 standing-topic legs, the `Destination` boot-header row + its P3 comparison, the `HANDOFF_BOOT` byte budget, and the A11 generation/verification guards; intake #19 §B(b), rulings R1..R7, built under [#446]; and **2026-07-31 for the v6.0.1 `Destination` branch-field clarification** — the field is the BOOT DESTINATION compared once by P3 at boot, so `main` is legal for a primary-tree architect seat and lane branches are declared at delegation, §13(c″), architect ruling, revertable); and **2026-08-07 for the v6.1.0 boundary invariants
 at the cut** — generation refuses while a committed batch manifest declares an open batch
 (WINDOW = BATCH) and refuses over a linked worktree or a live stash (NO LEFTOVERS), plus the §13
-supplement-authorship re-statement and the successor-boot dispatch-visibility note; and **2026-08-08 for the v6.2.0 §4 BOOT DRILL** — an incoming seat emits one sample dispatch
-line for the operator to read before its first real dispatch, recorded as prose discipline with
-no probe or gate behind it. v6 keeps the
+supplement-authorship re-statement and the successor-boot dispatch-visibility note; and
+**2026-08-08 for the v6.2.0 §4 BOOT DRILL** — an incoming seat emits one sample dispatch
+line for the operator to read before its first real dispatch, recorded as prose discipline
+with no probe or gate behind it. v6 keeps the
 v5 model:  instead of a browser-delivered 8-file bundle, **CC owns the handoff** — it emits a lean **residual** + a **probe manifest** under `docs/handoffs/<slug>/`, and a fresh browser chat boots from the thin `protocols/HANDOFF_BOOT.md`. Verification has teeth: the probes force CC to re-derive every load-bearing fact from the live primary source at check-time. v4.4 is archived at `protocols/archive/HANDOFF_PROCESS_v4.4.md`. The ADR-36 read-only contract holds: a handoff never writes to a target repo.
 
 Claude Code command: **`/handoff`** — `create handoff for <repo>` has CC emit the **residual** + **probe manifest** under `docs/handoffs/<slug>/` and point the next browser at the thin boot (`protocols/HANDOFF_BOOT.md`); `complete handoff for <repo>` cross-checks repo state and finalizes. `<repo>` defaults to `.dev-knowledge` (self-handoff). Not `/session-summary` — that is a separate session-summary command, not the handoff generator.
