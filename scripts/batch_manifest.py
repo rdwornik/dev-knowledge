@@ -71,12 +71,13 @@ from typing import NamedTuple, Optional
 # The [#355] git-env scrub, single-sourced in the LEAF module `scripts/gitenv.py` ([#396]).
 # A leaf — stdlib-only, zero repo imports — so this adds no import edge that could reach the
 # pre-push organ; the containment property this module's own tests assert is unaffected.
-# Bare name FIRST -- see the note at audit.py's copy: it is what makes every consumer with
-# `scripts/` on sys.path converge on ONE module object instead of two caches.
+# PACKAGE spelling FIRST -- order is load-bearing; see the note at audit.py's copy. Bare-first
+# lets a foreign `gitenv` on PYTHONPATH/site-packages win in package-mode and silently supply
+# an EMPTY scrub, which would re-open [#512] through the module that closes it.
 try:  # dual script/package mode
-    import gitenv as _gitenv                # script-mode / `scripts/` on sys.path
-except ImportError:  # pragma: no cover -- whichever branch this interpreter needs
     from scripts import gitenv as _gitenv   # package-mode: `python -m scripts.<mod>`
+except ImportError:  # pragma: no cover -- whichever branch this interpreter needs
+    import gitenv as _gitenv                # script-mode: `scripts/` IS sys.path[0]
 
 #: Where a batch manifest lives and what it is called. The `-manifest` suffix keeps it
 #: distinguishable from the end-of-batch packet that closes it, and the ADR-101 class token

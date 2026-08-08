@@ -53,16 +53,24 @@ import yaml
 # names at the original site below (search `_GIT_LOCATION_ENV_EXTRA`), where the note on
 # WHERE the scrub fires — which this arc does not change — still lives.
 #
-# The BARE name is tried FIRST, deliberately (terra HIGH, 2026-08-08). Both spellings resolve
-# the same file, but they produce two DISTINCT module objects with two caches whenever both
-# `scripts/` and the repo root are importable -- e.g. `python -m pytest` from the repo root.
-# Preferring the bare name means every consumer that has `scripts/` on sys.path (which is
-# every test, and script-mode) converges on ONE object; the package-mode fallback is reached
-# only when `scripts/` is NOT importable, where no bare-name consumer can exist to disagree.
+# ORDER IS LOAD-BEARING: the PACKAGE spelling is tried first (terra HIGH x2, 2026-08-08,
+# both reproduced). Neither branch is safe on its own, and each covers the other's hole:
+#   * package-mode (`python -m scripts.audit`) puts the REPO ROOT on sys.path, not
+#     `scripts/`. A bare `import gitenv` then searches PYTHONPATH and site-packages, where
+#     any foreign module of that name wins. Witnessed: a shadow on PYTHONPATH resolved and
+#     the scrub silently became the EMPTY set -- the [#355] defect re-opened by the very
+#     module that exists to close it, with nothing raised.
+#   * script-mode (`python scripts/audit.py`) puts `scripts/` at sys.path[0], so the bare
+#     fallback resolves THIS file before any PYTHONPATH or site-packages entry can be
+#     reached. Nothing can precede sys.path[0].
+# The cost is that the two spellings are two module objects (two caches) when both roots are
+# importable. That is behaviourally identical -- at most one extra `git rev-parse` -- and the
+# invariant that matters is asserted on the defining FILE in tests/test_gitenv.py, never on
+# object identity, which would only encode the import layout.
 try:  # dual script/package mode
-    import gitenv as _gitenv                # script-mode / `scripts/` on sys.path
-except ImportError:  # pragma: no cover -- whichever branch this interpreter needs
     from scripts import gitenv as _gitenv   # package-mode: `python -m scripts.audit`
+except ImportError:  # pragma: no cover -- whichever branch this interpreter needs
+    import gitenv as _gitenv                # script-mode: `scripts/` IS sys.path[0]
 
 # Resolve repo root (scripts/ sibling) — after imports
 _SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))

@@ -133,20 +133,53 @@ def test_every_consumer_resolves_the_same_gitenv_file():
         assert Path(mod.__file__).resolve() == _GITENV.resolve(), mod
 
 
-def test_the_dual_mode_import_prefers_the_bare_name():
-    """terra HIGH, 2026-08-08. Both spellings resolve the same file but yield two distinct
-    module objects (two caches) when `scripts/` AND the repo root are both importable —
-    `python -m pytest` from the repo root does exactly that. Trying the BARE name first
-    makes every consumer that can see `scripts/` converge on one object; the package-mode
-    branch is reached only where no bare-name consumer can exist to disagree.
+def test_the_dual_mode_import_prefers_the_package_spelling():
+    """terra HIGH, 2026-08-08. Import ORDER is load-bearing, and the source-order pin is the
+    cheap half of the guard — the behavioural half is the next test.
 
-    Asserted on source order, because the failure it prevents is invisible at runtime in
-    whichever layout the suite happens to be run under."""
+    Bare-first is the tempting order (it makes the two spellings converge on one module
+    object) and it is WRONG: package-mode puts the repo ROOT on sys.path, not `scripts/`, so
+    a bare `import gitenv` searches PYTHONPATH and site-packages and a foreign module of
+    that name wins. Package-first cannot lose that race, and its bare fallback only ever
+    runs where `scripts/` IS sys.path[0], which nothing can precede.
+    """
     for mod in ("audit.py", "fleet_parity.py", "batch_manifest.py"):
         src = (_SCRIPTS / mod).read_text(encoding="utf-8")
-        bare = src.index("import gitenv as _gitenv")
         pkg = src.index("from scripts import gitenv as _gitenv")
-        assert bare < pkg, f"{mod} tries the package spelling first — see terra 2026-08-08"
+        bare = src.index("import gitenv as _gitenv", src.index("except ImportError"))
+        assert pkg < bare, f"{mod} tries the bare spelling first — see terra 2026-08-08"
+
+
+def test_a_foreign_gitenv_on_the_path_cannot_supply_the_scrub(tmp_path):
+    """THE BEHAVIOURAL HALF, and the reason this finding was not merely accepted on
+    assertion. Reproduced live before the fix: with a decoy `gitenv.py` on PYTHONPATH,
+    package-mode `from scripts import audit` resolved the DECOY and
+    `audit._git_location_env()` returned the EMPTY set — the [#355] defect silently
+    re-opened by the module that exists to close it, with nothing raised.
+
+    Run in a subprocess because the hazard is about interpreter startup path resolution,
+    which cannot be simulated inside an already-imported test process.
+    """
+    decoy = tmp_path / "decoy"
+    decoy.mkdir()
+    (decoy / "gitenv.py").write_text(
+        "GIT_LOCATION_ENV_EXTRA = ()\nGIT_LOCATION_ENV_FALLBACK = ()\n"
+        "def git_location_env(): return frozenset()\n"
+        "def scrubbed_git_env(): return {}\n", encoding="utf-8")
+
+    env = dict(os.environ, PYTHONPATH=str(decoy))
+    probe = ("from scripts import audit, fleet_parity, batch_manifest\n"
+             "print(audit._gitenv.__file__)\nprint(fleet_parity._gitenv.__file__)\n"
+             "print(batch_manifest._gitenv.__file__)\nprint(len(audit._git_location_env()))")
+    r = subprocess.run([sys.executable, "-c", probe], cwd=str(_SCRIPTS.parent), env=env,
+                       capture_output=True, text=True, encoding="utf-8", errors="replace")
+    assert r.returncode == 0, r.stderr
+
+    *resolved, scrub_size = r.stdout.strip().splitlines()
+    for line in resolved:
+        assert Path(line).resolve() == _GITENV.resolve(), \
+            f"a foreign gitenv on PYTHONPATH supplied the scrub: {line}"
+    assert int(scrub_size) >= 15, "the scrub collapsed -- the decoy won"
 
 
 # --- semantics: byte-equivalent to the copy this replaced -------------------

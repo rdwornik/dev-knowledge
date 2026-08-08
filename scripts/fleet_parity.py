@@ -89,12 +89,14 @@ from packaging.version import InvalidVersion, Version
 
 # The [#355] git-env scrub, single-sourced in the LEAF module `scripts/gitenv.py` ([#396]).
 # Bound to its historical names at the original site below (search `_GIT_LOCATION_ENV_EXTRA`).
-# Bare name FIRST -- see the note at audit.py's copy: it is what makes every consumer with
-# `scripts/` on sys.path converge on ONE module object instead of two caches.
+# PACKAGE spelling FIRST -- order is load-bearing; see the note at audit.py's copy. Bare-first
+# lets a foreign `gitenv` on PYTHONPATH/site-packages win in package-mode and silently supply
+# an EMPTY scrub; package-first cannot, and the bare fallback only ever runs where `scripts/`
+# is sys.path[0] and nothing can precede it.
 try:  # dual script/package mode
-    import gitenv as _gitenv                # script-mode / `scripts/` on sys.path
-except ImportError:  # pragma: no cover -- whichever branch this interpreter needs
     from scripts import gitenv as _gitenv   # package-mode: `python -m scripts.<mod>`
+except ImportError:  # pragma: no cover -- whichever branch this interpreter needs
+    import gitenv as _gitenv                # script-mode: `scripts/` IS sys.path[0]
 
 _SCRIPTS_DIR = Path(__file__).resolve().parent
 _REPO_ROOT = _SCRIPTS_DIR.parent
