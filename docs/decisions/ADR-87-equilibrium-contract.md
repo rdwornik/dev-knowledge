@@ -108,3 +108,26 @@ re-opens GAP-3. GAP-2 stays open until #185 ships — prose in this contract doe
 - `protocols/ESSENTIALS.md` "Writing a Prompt" — the one-line standing rule
 - `protocols/HANDOFF_BOOT.md` "Architect mode — generative posture" — the per-session contract pointer
 - BACKLOG #159 (operator-context beat — adjacent, distinct), #184 (arc tracking item — closes on empirical demonstration), #185 (GAP-2 deterministic backstop — filed, not built)
+
+## Amendment — 2026-08-08: the population boundary on model/effort
+
+> **The architect states the session's boot tier; CC routes sub-steps inside it.**
+
+Ratified 2026-08-06 (architect supplement, A7(c)); landed in-repo 2026-08-08.
+
+**What it resolves.** The equilibrium contract in the Decision section above assigns *model/effort*
+to CC without naming the level that assignment applies at, and the word carries two readings: the
+tier a **session boots at**, and the tier each **sub-step inside that session** runs at. Read as
+the first, it contradicts the architect's dispatch responsibility; read as the second, it is
+exactly right. The boundary is drawn by **population, not by authority** — the architect owns the
+one-per-session choice, CC owns the many-per-session ones.
+
+**This is an amendment section, not an edit.** Decision item 2 ("the equilibrium contract — who
+emits what") stands exactly as written; where the two are read together, this section governs.
+Nothing else in the division of labor moves: the architect still emits intent, closure,
+anti-patterns, the mode, and the thin per-task governance pointer; CC still owns code-impact
+context, generic gotchas, and the prompt skeleton.
+
+**Out of scope.** Which tier any given repo or arc actually boots at is not decided here — the
+routing matrix is `protocols/PLAYBOOK.md` Ch8, "Model + effort are stated at dispatch — the
+routing matrix". This amendment fixes *who states the boot tier*, not *what it is*.
