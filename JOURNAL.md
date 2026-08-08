@@ -19,6 +19,71 @@
 
 ---
 
+### 2026-08-08 (b) — CC (Opus 5, primary tree): the cut, phase-stamped — and the supplement closed four of the eight forks it was carrying
+
+**Did:** Cut the `2026-08-08-dev-knowledge-architect` bundle on final main `9ade771c` per
+`docs/audits/2026-08-08-technical-handoff-cut-staging.md` §3, timing every phase — that timeline is
+the deliverable [#511] asked for, not a by-product. Paused for the architect-authored SUPPLEMENT,
+inserted the answers byte-unchanged, ran the gate, sealed at `0b17d4d4`.
+
+**Result — the [#511] number, phase-stamped.** 16m28s to the pause, ~21m of machine+authoring work
+in total across two sittings:
+
+```
+boundary invariants (open_batches [], primary only, stash empty)      3s
+ship-gate GREEN + 7 generators --check                           1m 51s
+gen_handoff.py --mode architect                                      4s
+locator re-verification + 7 FILL-IN pastes + assemble + health    5m 16s
+probe re-derivation, all 14 rows                                  5m 27s
+verify_handoff_probes.py                                            10s
+--- pause for the architect's supplement ---
+answers inserted + inherited-claims verification + fold + gate     4m 20s
+```
+
+**The shape of the cost is the finding.** Generation is **4 seconds**. Everything else — 99.6% of
+it — is authoring, re-verification and probe re-derivation, and the single largest machine cost
+inside that is the ship-gate the probes re-run. So [#511]'s lever is **not** faster machinery: the
+night memo already refuted a parallel probe runner by measurement (Amdahl caps it at 1.2× because
+one probe is 19.47s of 22.58s). The lever is fewer facts to re-verify, which is what the staging
+doc bought — and it did: four of seven fills pasted straight, three needed re-derivation.
+
+**Result — four of the eight carried forks closed at the supplement, and the residual says which.**
+The operator ratified 3.2 (cap on DISPATCHED width) and 3.3 ([#505] clause 2) and ruled win-tooling
+**private-remote**; A7(c) records the ADR-87 population boundary as ratified with its amendment
+authorized. So §4 ships forks 1/2/3/6 as **ratified-but-unlanded** rather than as open questions,
+and four as genuinely open. A successor that re-litigates a ratified fork burns the window this
+bundle exists to save, which is why the distinction is written into the artifact rather than left
+to inference.
+
+**Result — three drafted fills were wrong by morning, and the drafts said to check.** R5 lost two
+sentences that pre-explained a `fleet_parity` row and a `hooks_armed` row as environment-shaped:
+both organs PASS here, so the sentences described flags that do not exist. R4 dropped a clause
+about re-pegging six rows — `08c3e0b6` had already re-pegged them four hours earlier. R7 item 4
+was reframed for the same reason. **This is the staging pattern working as designed:** the drafts
+carried locators precisely so the morning could catch its own stale facts, and the two container-
+shaped predictions (`canonical_freshness` 4-doc hard fail, three `[stale]` dispositions) did not
+reproduce on this machine either.
+
+**Result — two runbook defects, both costing a round-trip.** The staging doc's §3 step 5 writes
+`python scripts/assemble_paste.py` and step 7 writes `verify_handoff_probes.py`, both **argument-
+less**; each requires `BUNDLE_DIR` and exits 1 without it. Inside the measured number above.
+
+**Honest limit — P3's branch leg cannot pass before the merge.** The `Destination` row declares
+`branch main`; the cut ran on `docs/handoff-cut-2026-08-08`, because core-invariant #5 forbids
+committing a bundle direct to main. The leg resolves at the merge and was re-run there rather than
+adjusted in the bundle. A3's 13/122 tally figure is recorded as **unverified** — its denominator is
+the linked-review-artifact population, not `docs/audits/*.md`, and re-deriving it was not attempted.
+
+**Changes:** `docs/handoffs/2026-08-08-dev-knowledge-architect/` (5 files, sealed), `JOURNAL.md`.
+
+**Abandoned:** nothing. **Next:** the operator pastes `PASTE_THIS.md` into a fresh architect chat,
+then asks CC for `/handoff-verify`. Owed to the successor: the four ratified-but-unlanded landings
+(intake #27 + Ch8 ×2, ADR-87 amendment, win-tooling remote).
+
+**Anchor:** `0b17d4d4` (the sealed bundle this entry rides).
+
+---
+
 ### 2026-08-08 (a) — CC (Opus 5, primary tree): the night branch integrated, and the ledger re-pegged to events that actually happened
 
 **Did:** Fetched first, then verified `claude/night-cloud-contract-exec-g4bk91` (head `93bb905c`,
