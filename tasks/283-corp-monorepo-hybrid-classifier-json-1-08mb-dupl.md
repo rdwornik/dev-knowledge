@@ -1,7 +1,7 @@
 ---
 id: "[#283]"
 title: "corp-monorepo `hybrid_classifier.json` 1.08MB duplication"
-status: open
+status: closed
 priority: P3
 size: S
 theme: "[E6] Cross-repo universalization"

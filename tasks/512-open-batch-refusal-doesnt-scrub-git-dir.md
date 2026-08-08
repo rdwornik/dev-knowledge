@@ -1,7 +1,7 @@
 ---
 id: "[#512]"
 title: "`gen_handoff.py`'s open-batch refusal doesn't scrub `GIT_DIR`"
-status: open
+status: closed
 priority: P2
 size: S
 theme: "[E2] Enforced governance"

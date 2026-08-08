@@ -1,7 +1,7 @@
 ---
 id: "[#280]"
 title: "Propagate the intake area to greenfield consumers via the deploy manifest"
-status: open
+status: closed
 priority: P3
 size: S
 theme: "[E6] Cross-repo universalization"
