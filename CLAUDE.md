@@ -1,13 +1,13 @@
 ---
-last_reviewed: 2026-08-07
-reconciled_with: handoff-process@6.1.0
+last_reviewed: 2026-08-08
+reconciled_with: handoff-process@6.2.0
 status: active
 owner: Rob
 ---
 
 # CLAUDE.md — Dev Knowledge
 <!-- scope: meta -->
-<!-- version: 2.53 — 2026-08-07 -->
+<!-- version: 2.54 — 2026-08-08 -->
 
 > **Session contract for Claude Code in this repo.** Read on every session start (auto). Single canonical agent-instruction file (≤200 lines). Per ADR-53.
 >
@@ -221,6 +221,7 @@ Machine-enumerated (last 5 by number, from `docs/decisions/ADR-*.md` headers; re
 
 > _Entries v1.0–v2.48 condensed to git history per ADR-49/65 (info-preserving — full prior history: `git log --follow -p -- CLAUDE.md`)._
 
+- v2.54 (2026-08-08, ARC-dispatch-surface-codify) — **stamp-clearing re-read; no §-content moved.** The arc's `HANDOFF_PROCESS` 6.1.0→6.2.0 bump forced this file's `reconciled_with` re-stamp, turning `canonical_freshness` A2 RED; the operator ruled it cleared by doing the review, not by re-stamping around it. All twelve sections re-read end-to-end from disk against what the arc could have falsified — **no defect found here**, so nothing below §12 changed (the one runbook correction landed in `docs/handoffs/README.md`). §9's `audit-health` row was exercised adversely en route: the held RED wedged the commit gate exactly as it says. Per-file notes: the re-stamp commit message. `last_reviewed` 2026-08-08; footer with it. L10 2.53→2.54.
 - v2.53 (2026-08-07, PRE-2 arc) — **the fourth enum site is closed.** v2.52 below left
   `~/.claude/rules/core-invariants.md` §5 standing at "three" because core-invariant #6 bars a
   unilateral global-infra edit; the architect ruled that specific edit in the PRE-2 brief, so it
@@ -237,5 +238,5 @@ Machine-enumerated (last 5 by number, from `docs/decisions/ADR-*.md` headers; re
 
 ---
 
-**Last updated:** 2026-08-07
+**Last updated:** 2026-08-08
 **Maintained by:** Rob

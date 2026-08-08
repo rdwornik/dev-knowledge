@@ -82,6 +82,7 @@
   - [The batch protocol — ONE plan → N lanes → ONE integrator (ADR-110)](#the-batch-protocol--one-plan--n-lanes--one-integrator-adr-110)
   - [Dispatch visibility — Agent View shows DISPATCHED sessions only (STANDING_RULINGS B7)](#dispatch-visibility--agent-view-shows-dispatched-sessions-only-standing_rulings-b7)
   - [Dispatch prompts and the contract of record — two locations, one of them in the tree](#dispatch-prompts-and-the-contract-of-record--two-locations-one-of-them-in-the-tree)
+  - [The dispatch surface is `dispatch <file>` — the contract file is the source ([#509] v2)](#the-dispatch-surface-is-dispatch-file--the-contract-file-is-the-source-509-v2)
   - [Model + effort are stated at dispatch — the routing matrix](#model--effort-are-stated-at-dispatch--the-routing-matrix)
   - [Handoff prep for the next architect — an index, not a restatement](#handoff-prep-for-the-next-architect--an-index-not-a-restatement)
 - [Ch9. Tier-1 closure loop — usage](#ch9-tier-1-closure-loop--usage)
@@ -1942,10 +1943,10 @@ it in the launching line, and pastes. It lives in the **prompts dir** — `~/Dow
 overridden by the `CLAUDE_PROMPTS_DIR` environment variable — and a dispatch line cites it as
 `<PROMPTS_DIR>\<file>` rather than as a hard-coded absolute path. The variable form keeps a
 dispatch line portable across machines and keeps one operator's directory layout out of an
-artifact other people read. `win-tooling`'s `scripts/dispatch/Invoke-Dispatch.ps1` joins its
-`-Prompt` arguments and hands the string to `claude --bg` verbatim, so a `<PROMPTS_DIR>` token
-reaches the session unexpanded and the operator expands it by hand until [#509] teaches the
-wrapper to resolve it.
+artifact other people read. Token expansion is no longer the operator's job: `win-tooling`'s
+`scripts/dispatch/Invoke-Dispatch.ps1` resolves the literal `$env:CLAUDE_PROMPTS_DIR` token
+itself, and also resolves a bare contract filename against that same directory ([#509] v2,
+merged `d743937`) — the dispatch-surface section directly below.
 
 **The contract of record is a different object, and it lives in the tree.** [#505] clause 1 asks
 for a fresh seat that runs a full batch from repo artifacts alone, and batch 2 falsified it for
@@ -1975,6 +1976,70 @@ Two consequences, both drawn from batch-2 evidence rather than from design taste
 nothing checks that a manifest's lane rows resolve to committed contracts, and [#505] clause 1
 stays falsified until a batch actually runs that way. The batch-3 manifest is the first artifact
 that can satisfy it.
+
+### The dispatch surface is `dispatch <file>` — the contract file is the source ([#509] v2)
+<!-- scope: hybrid -->
+
+**The operator's whole dispatch surface is one typed line: `dispatch <contract.md>`.** It is not a
+convenience wrapper over a line the operator still has to know — it is the line's *only* author.
+The class this retires is dispatch-line composition by hand: an operator (or a browser seat writing
+one for an operator) assembling `--bg`, `--model`, `--effort`, `--worktree`, `--permission-mode`
+and a board label from memory, where a dropped constant is invisible until the session boots wrong.
+Home: `win-tooling` `scripts/dispatch/Invoke-Dispatch.ps1`, merged `d743937`. The `dispatch` shell
+function is `win-tooling` `config/dev-terminals/dispatch-alias.ps1`, deployed by
+`scripts/dev-terminals/Apply-DevTerminals.ps1` to `$HOME\.dev-terminals\` and dot-sourced by the
+branded VS Code terminal profiles — so `dispatch` is live in every branded terminal, and the
+deployed copy is regenerated from that source rather than hand-edited.
+
+**Contract mode is the default, and it executes the contract's own line verbatim.** Given a
+contract file, the helper looks for a `## Dispatch` heading followed by a fenced code block. If it
+finds one, that line **is** the dispatch — run as written, with exactly one substitution: the
+literal token `$env:CLAUDE_PROMPTS_DIR` becomes the resolved prompts directory
+(`$env:CLAUDE_PROMPTS_DIR`, falling back to `$env:USERPROFILE\Downloads`). The helper does not
+re-compose, re-order or top up that line. **That is the point of the whole design** — one source
+for the dispatch, authored where the arc is authored, so the line the operator runs and the line
+the contract records cannot disagree. A bare filename argument resolves against the same prompts
+directory; an absolute path, or a path that exists relative to the current directory, is used as
+given.
+
+**Table fallback, for a contract with no `## Dispatch` block.** The helper derives a line from the
+contract's `| Model | ... |` and `| Effort | ... |` table rows plus the filename: worktree name =
+the filename stem lower-cased; board label = `[<repo> . #<ids> . <verb-object>]`, where repo is the
+stem's first hyphen-token, ids the first digit-run, and verb-object the remaining tokens. The
+dispatch constants `--bg --permission-mode bypassPermissions` are appended. This path exists so an
+older contract still dispatches; a contract written today carries the block and takes the first
+path.
+
+**Effort is a CLOSED enum — `{low | medium | high | xhigh}` — and a miss is a refusal, not a
+guess.** An effort value outside the enum stops the dispatch with a message naming the enum, so a
+typo surfaces at the operator's terminal rather than booting a session at an effort nobody chose.
+This is the same posture the routing matrix below takes on `max`: an unroutable value is refused at
+the surface instead of being silently rounded to a neighbour.
+
+**The execution gate — a live `claude` never fires bare.** `-DryRun` prints the resolved line and
+stops. `-Run` executes it immediately. With neither flag the resolved line is printed and the
+operator is asked to confirm (`Execute this live claude --bg dispatch? [y/N]`); anything but
+`y`/`yes` refuses — **including empty or non-interactive input**, so a script or an accidental
+invocation with no attached terminal defaults to refused rather than to running. Both parameter
+sets share this gate, which is the operator rider that closed the gap a real accidental firing
+exposed (`win-tooling` JOURNAL 2026-08-08). *Honest limit, worth knowing before relying on it:* the
+`dispatch` alias exposes only `-DryRun`, so a live run **through the alias** always goes through
+the interactive confirm; `-Run` is reachable by invoking `Invoke-Dispatch.ps1` directly.
+
+**Raw-line composition is the FALLBACK form, and it is not the default.** The helper keeps a legacy
+explicit-parts mode (`-Repo -IdOrSlug -VerbObject -Prompt [-Worktree] [-WorktreeName]
+[-PermissionMode]`) that composes the same board-label convention from arguments, and a
+hand-typed `claude --bg ...` line still works because nothing removed it. Both are recorded here
+once, as the form to fall back to when a contract file is not the unit being dispatched — not as an
+equal-standing alternative. The composed-by-hand line is the class this section exists to retire,
+so reaching for it is a deliberate exception rather than a matter of taste.
+
+**What this means for a contract author.** Every lane or arc contract opens with a `## Dispatch`
+block carrying its own literal dispatch line, in the variable form — `templates/prompt-template.md`
+is the point-of-use card and shows one literal example line, so the line is *copied*, never
+composed. The routing decisions that line carries (model, effort, and the dispatch constants) are
+the subject of the section directly below; this section covers only how the line gets from the
+contract to a running session.
 
 ### Model + effort are stated at dispatch — the routing matrix
 <!-- scope: hybrid -->
