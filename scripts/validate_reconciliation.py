@@ -76,10 +76,34 @@ class SpecSource:
 
 
 # The live spec registry. Add a row when a new spec becomes a reconciliation authority.
+#
+# A row here is not free, and the cost is NOT the reconciled_versions check (that one only
+# speaks when a dependent declares an edge). It is `scan_undeclared_edges`, which scans the
+# whole corpus for prose references to every registered spec: adding a spec that many docs
+# mention by name surfaces one advisory WARN per referencing doc until each is either
+# declared or dispositioned. Measure that count BEFORE adding a row -- see the 2026-07-04
+# coherence-spine review on why blanket-declaring is the wrong discharge (it over-couples a
+# doc to every minor bump of a spec it merely mentions).
+#
+# A registered spec MUST declare its version as a bare `Version: <token>` line, which is
+# what the single spine parser `parse_spec_version` reads. An HTML `<!-- version: ... -->`
+# sentinel is the convention for ordinary docs and is INVISIBLE to that parser -- registering
+# a doc that carries only a sentinel yields a permanently unresolvable spec (every edge to it
+# reports `unknown-spec`, and `coherence_nudge` silently never fires, since `should_nudge`
+# requires a parsed version on both sides). Promote the sentinel to a `Version:` line rather
+# than carrying both, so the spec has exactly one version site.
 _SPEC_REGISTRY: dict[str, SpecSource] = {
     "handoff-process": SpecSource(
         "handoff-process",
         "protocols/HANDOFF_PROCESS.md",
+    ),
+    # Registered 2026-08-09 (ARC-1). A live versioned spec (v1.13) that governs work-lane
+    # prompt shape; its version moved 1.6 -> 1.13 across this window with no organ watching
+    # it. Registration arms `coherence_nudge` on its edits -- the actual win here, since no
+    # doc declares a `reconciled_with: prompt-template@...` edge yet.
+    "prompt-template": SpecSource(
+        "prompt-template",
+        "templates/prompt-template.md",
     ),
 }
 
