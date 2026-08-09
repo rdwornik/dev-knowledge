@@ -1856,8 +1856,8 @@ in-repo by intake #27.
 
 **2-touch transport, on both seams.** The interaction budget applies to each seam independently:
 
-- **operator ↔ batch** — **GO** at dispatch, the **end-of-batch packet** at close.
-- **browser ↔ operator** — **batched packets**: one round-trip carries every item.
+- **operator ↔ integration** — **GO** at dispatch, the **end-of-batch packet** at close.
+- **operator ↔ lane** — **batched packets**: one round-trip carries every item.
 
 Single-question round-trips are reserved for genuine ask-class **(a)–(c)** items above; anything
 outside those three classes travels in the next packet. Target metric: ≤2 operator interactions

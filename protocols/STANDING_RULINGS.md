@@ -618,6 +618,92 @@ by the hub.
 
 ---
 
+## H. ARC-3 hygiene close-out landings (2026-08-09)
+
+Four rulings that were taken earlier and lived only in a commit body, a chat answer, or a report
+paragraph. These lines are the landing; none of them is a new decision.
+
+### H1 · A defective-seal bundle retires by external dated marker
+
+A committed handoff bundle whose internal slug names a different directory retires by recording an
+**external dated marker**, with the bundle left byte-unchanged. Editing the sealed artifact to
+repair its own seal is excluded: `docs/handoffs/` is immutable (CLAUDE.md §5 rule 3), so a
+hand-patched seal trades a detectable defect for an undetectable one.
+
+- **The live instance:** `docs/handoffs/2026-08-01-dev-knowledge-architect-2` declares slug
+  `2026-08-01-dev-knowledge-architect` while its directory carries the `-2` suffix. Added at
+  `80dd54d6`, pre-existing to batch 2 and untouched by it. Because the sibling directory exists,
+  every self-reference the bundle carries — the Slug row, the PROBES P0c/P3/P8 locators, the
+  embedded `/handoff-verify` command — resolves green about the wrong bundle.
+- **Consequence today, verified live this arc:** `check_seal_identity` FAILs on that directory, so
+  it FAILs every `pre-commit run --all-files` sweep.
+- **What this settles, and what it leaves open:** it fixes the SHAPE of a retirement — external
+  marker, bundle untouched. The marker's surface and the checker's skip semantics are build work,
+  owned by the row born alongside this entry.
+- **Expiry:** retires when the marker surface exists and the 2026-08-01 instance carries one.
+
+### H2 · The velocity line names the filter it was measured on
+
+An end-of-batch packet reports velocity as `opened · closed · net · open-total`, and states which
+filter `open-total` was measured on. Two live readings exist and differ by exactly the deferred
+set: `validate_backlog`'s live task count (`status: open` **plus** `status: deferred`), and the
+narrower `status: open` count.
+
+- **The denominator is the live count** — the set that includes deferred rows, because a deferred
+  row is not a closed row and a close would have to retire it too.
+- **Measured this arc, three independent reads agreeing:** 168 open + 26 deferred = **194** live,
+  reconciled from `tasks/` frontmatter and cross-checked against `validate_backlog` (194 tasks)
+  and `tasks/manifest.json` (194 task nodes).
+- **Why the filter travels with the number:** one earlier window carried both 169 and 202 as "the
+  open total" and both were correct — they differed by the 33 deferred rows then live. An
+  unlabelled velocity number is unreconcilable by the next seat.
+- **Locator:** `docs/audits/2026-08-09-technical-consolidation-report.md` §1.
+- **Expiry:** retires when the packet template emits the filter mechanically.
+
+### H3 · An ADR archives at zero inbound references
+
+A terminal-status ADR (`Superseded` / `Deprecated`) moves to `docs/decisions/archive/` when its
+inbound reference count is zero. A live prose reference elsewhere in the corpus holds it in place.
+
+- **Provenance, and why this entry exists:** the bar was applied at `216ce3a8` — the first
+  decisions archival — and recorded only in that commit's body: *"ADR-45 deliberately STAYS
+  (PLAYBOOK prose refs fail the zero-refs bar)"*. A rule reachable only by `git log` is a rule the
+  next seat does not have.
+- **Also on that record:** ADR-46/47 stay as partially-superseded conventions, and the moves are
+  byte-identical.
+- **Coverage that already holds:** `scan_undeclared_edges` reaches `archive/` through the
+  `docs/decisions/` prefix, so archiving does not blind the edge scan.
+- **Expiry:** retires when a mechanism computes the inbound count at archival time. The
+  2026-08-08 archival-lifecycle audit found none (`git mv` appears zero times across `scripts/`,
+  `.claude/commands/`, `plugins/`); archival is by hand today.
+
+### H4 · Import convention — Shape B, in the corrected spelling
+
+The `sys.path` substrate adopts **Shape B** as `[tool.pytest.ini_options] pythonpath = [".",
+"scripts", "deploy"]`. The single-entry spelling `["."]` is excluded by measurement. Shape C
+(src-layout) is excluded absent an ADR, because it reverses the recorded `package = false` stance.
+Shape A (root `conftest.py`) stays permitted-not-mandated per `[#430](a)` and F5.
+
+- **Measured, not argued** (`23198aae`; report
+  `docs/audits/2026-08-08-technical-502-pythonpath-measurement.md`): `["."]` → 67 of 99 test files
+  fail isolated collection, every one classified "wrong path root", with zero real coupling and
+  zero flake. `[".", "scripts", "deploy"]` → isolated failures 0/99, outcome-identical to baseline
+  (2 failed / 2544 passed / 9 skipped — the same two standing lane REDs).
+- **Residual, declared:** Shape B retires 74 of 99 sites. Outside its reach are 24 non-test
+  insertions (`scripts/` 18, `deploy/` 6) plus one test-side string literal at
+  `tests/test_enforcement_coverage.py:389` that generates subprocess source.
+- **OWNERSHIP CORRECTION, surfaced by this arc.** The ARC-2 consolidation report §6.2(a) attributes
+  this ruling to *"`[#502]` P3/M import convention"* and routes the residual into that row's
+  Done-when. `[#502]` is the **mutmut** row — `tasks/502-mutmut-mutation-testing-evaluation-ci-hosted.md`,
+  title *"mutmut 3.7.0 mutation-testing evaluation — CI-hosted"* — and the import convention is not
+  its Done-when, which is what the architect's own challenge answer records. **No open row owns the
+  substrate.** Execution was deferred to batch 4 as its own row; it is reported to the operator
+  rather than born here, this arc carrying a one-birth cap.
+- **Expiry:** retires when the rollout row lands the config and the residual is conformant or
+  exempted.
+
+---
+
 ## Editing note (read before adding an entry)
 
 This file sits inside the silent-rule ratchet corpus (`protocols/*.md`; detector

@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "59be00c5bffdbffd6bed10d72c7858f40fd09a57a76f57f8994e6d9b6755011f",
+  "generated_sha256": "d4dda266962326239885ffd0e1211c50d17f6ae26e32bbe4d1e58ed2adec7e48",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -374,6 +374,10 @@
       "file": "310-define-the-cold-bundle-annotation-surface-annota.md"
     },
     {
+      "task": 520,
+      "file": "520-no-sanctioned-way-to-retire-a-committed-bundle-w.md"
+    },
+    {
       "task": 405,
       "file": "405-session-end-leftover-check-nothing-verifies-no-l.md"
     },
@@ -404,6 +408,10 @@
     {
       "task": 500,
       "file": "500-the-stop-hook-s-backlog-advisory-reads-a-correct.md"
+    },
+    {
+      "task": 519,
+      "file": "519-the-close-path-is-two-edits-and-nothing-makes-a.md"
     },
     {
       "prose": ""
