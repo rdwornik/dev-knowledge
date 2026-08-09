@@ -19,6 +19,93 @@
 
 ---
 
+### 2026-08-09 (i) — CC (Opus 5, bg primary tree): ARC-2 Phases B–F — the pipeline ruled, 229 items triaged, three rows born, net 0
+
+**Did:** The rest of ARC-2 plus the three architect amendments. Commits `da274889` (ADR-111),
+`a62d988e` (the Phase-A correction), `6a4a1d78` (Phase D), `a4882b78` (Phase E), `3d68532a` (the
+report). Full decision surface: `docs/audits/2026-08-09-technical-consolidation-report.md`.
+
+**Velocity, whole arc:** `opened 3 · closed 3 · net 0 · open-total 194` — the live task count
+(168 `status: open` + 26 deferred), the denominator that admits the deferred rows a close would also
+have to retire. **Said plainly: the backlog did not shrink. It began at 194 and ends at 194.**
+
+**Phase B — most of the pipeline was already law, so ADR-111 rules only the gap.** Five of eight
+proposed clauses were established as existing doctrine and are **cited, not restated**: ADR-100 §4
+(*"Audit = evidence about state. Intake = a request to change state"*), intake README §5 (REJECTED
+terminal + `docs/intake/archive/` — no new register, no new path), ADR-98 §4/§3, PLAYBOOK
+filing-backpressure. The genuine gap is narrow — **nothing governed the edge from a FINDING to any of
+them**. Two clauses were NOT written as given, and the ADR says why in its own text: *"only an
+accepted ADR births rows"* **contradicts ratified ADR-98 §3** (ADRs are 0..n per intake, authored
+only at a genuine fork; epics are 1..n per *accepted intake*) and live practice matches ADR-98 —
+intakes #16/#26/#25 were all accepted by recorded operator ruling, not by ADR. The weaker coherent
+rule is ratified and the ADR-mandatory form is flagged OPERATOR-owed as an ADR-98 amendment. The
+quantitative equilibrium clause is intake #22 §F, which **ADR-108 explicitly leaves unratified** —
+not ratified here either. **It arms no gate and says so.**
+
+**Phase C — 229 items triaged, zero untriaged** (153 findings · 38 ruling items · 38 memo proposals):
+43 OWNED · 65 DISCHARGED · 71 CANDIDATE · 35 REJECTED · 15 OPERATOR. Every DISCHARGED row carries its
+LANDED-ALREADY locator. The sharpest: **C-1 — four of five lanes independently re-measured `[#453]`,
+an open row that already recorded all three container gaps with these exact workarounds.** That is a
+consumption failure, not a discovery, and it is the argument for reading the open set before dispatch.
+
+**One memo claim FALSE about this repo, verified:** the graph memo says grimp is *"already the engine
+behind your import-linter usage"* — **neither exists here**; `pyproject.toml`,
+`.pre-commit-config.yaml` and `uv.lock` are clean, and the only tree hit is an unrelated placeholder
+in a template. Its cheapest proposed edge source is an unadopted dependency, not a free one.
+
+**One well-argued proposal DECLINED on five measured, repo-specific grounds:** the complexity-ratchet
+stack (xenon/radon/wily/complexipy + `PLR*` families). N5 measured **0 of 41** checks as generic lint,
+so there is no style layer to protect; N3 measured the whole mesh at **11.66s (~0.2% of an arc)**, so
+there is no cost centre; the one measured performance defect was an `rglob` path-walk, which no
+complexity metric finds; `silent_rule_ratchet` (437 ≤ 441) already *is* the ratchet the memo praises;
+and the memo's own advice — *"only refactor where high churn meets high complexity"* — is inverted by
+adopting the gate before the hotspot measurement exists.
+
+**Phase E — THREE rows born, not six, and the reason is a collision resolved rather than dodged.**
+"At most six" and "net ≤ 0" cannot both be maximised at a demonstrated close capacity of three, so the
+smaller bound wins — **births ≤ closes**, which is the doctrine this arc itself ratifies. Born:
+`[#514]` P1 (two rival `LANE_BRANCH_RE` constants, **blocks batch 4**), `[#518]` (`audit.py::_git`,
+one call site, two reproduced defects, one corrupting a gate's own baseline), `[#513]` (propagation
+completeness at n=3, ONE row per the ruling, the **detector** as landing predicate). **Held with text
+preserved:** `[#515]`/`[#517]` → intake #32, `[#516]` → intake #29 Fold B — each already has an intake
+carrying its content, so a row now would duplicate a pending decision rather than record a new one.
+
+**Phase D (amendment 3) — one new intake, two amendments, one scope note.** Cloud compute → intake
+**#32**, filed at 32 and not 30 because ids 30/31 are **reserved** by two authored-but-unfiled
+operator drafts and taking 30 would collide with a permanent join key. Graph + telemetry → intake #29
+amendments; telemetry **converges with N3-21 independently** (*"most of what you want is already
+recorded"* vs *"the correct organ is a READER, not a RECORDER"*). Portability → a scope note on intake
+#25 W-9(a), which it confirms and bounds. **No memo file landed** — no governance clause defines a
+home for external research artefacts and ADR-101 seals the tree against inventing one.
+
+**A CORRECTION, recorded plainly: the Phase-A closes were not real when first committed.** `cd38fb8a`
+set `status: closed` and stopped; BACKLOG still rendered all three and the count never moved. Closing
+is **two edits in one** — terminal status **and** manifest-node removal (ADR-107 §6.3, precedent
+`f98d1262`) — because task frontmatter is **derived**: `--emit-source` re-derived it from the manifest
+and **silently reverted all three to `open`** in the same command that regenerated BACKLOG. Its own
+output said so and I read it as the closes landing. Every gate stayed green, correctly. Fixed at
+`a62d988e`. **How it surfaced is the lesson:** not a gate, not re-reading my own work — verifying an
+unrelated *external* memo claim needed a live open-row count, and that count disagreed with the number
+I had just published.
+
+**Also refuted:** ARC 1's "corp-sca carries no `.gitattributes`" is a **branch-context artefact** —
+the file IS on that repo's `main` (batch 3's `5518c36`); its primary sits on `feature/tenrox-loader`,
+which predates the merge. Consumer left untouched.
+
+**Result:** ship-gate **GREEN** (26 dispositioned), health **OK**, `doc_rot` **clean** (its one
+pre-existing disposition retired when the `[#492]` re-peg dropped a spent date). Zero `SKIP=`, zero
+`--no-verify`, zero force-push, nothing deleted. Self-induced `doc_rot` bloat was **drained twice**
+rather than dispositioned.
+
+**Changes:** `docs/decisions/ADR-111-*` + README + rosters · `docs/intake/` (#32 new, #29 +2 folds,
+#25 +scope note, index/manifest regen) · `tasks/` (3 closed properly, 3 born) · `BACKLOG.md` ·
+`docs/audits/2026-08-09-technical-consolidation-report.md`.
+
+**Next:** ratification batch (intakes #28–#32 + the triage distillate as ONE batch, ADR-111 riding it)
+→ adversarial review of the batch-4 plan **before** the operator's GO → handoff cut → execution week.
+
+---
+
 ### 2026-08-09 (h) — CC (Opus 5, bg primary tree): ARC-2 Phase A — the adjudication wave, run first
 
 **Did:** The whole pending adjudication set, before any research was touched. Commit `cd38fb8a`.
