@@ -90,3 +90,54 @@ The window's ratified-in-chat rulings (regen-hygiene rule, JOURNAL-rides-the-bra
 **(c1) WORKTREE CEILING — the 2–3 self-cap is RETIRED.** That cap calibrated to operator attention, which is exactly the constraint V-1's integrator restructures — so it no longer binds. New guidance: **up to ~10 parallel lanes within reason**, bounded by file-disjointness and integration capacity, never by default caution. Judgment on the actual number for a given batch stays with the emitting architect.
 
 **(c2) PLAN-MODE-BY-EXCEPTION — the contract IS the plan.** The browser plan-of-record plus the frozen contract constitute the plan; lane MODE is set by the architect **in** the contract. Plan-mode is reserved for M/L arcs requiring genuine repo-derivation — the FR-1 D3 class, where CC's derivation can overturn the architect's premises. CC never re-plans what the contract already rules; the **default lane mode is execution** under the V-2 decision budget. Recorded evidence both ways: D3 overturned 3-of-4 enumerated consumers (plan-mode earning its keep), while an S-size one-bit fix cost ~4 interactions (ceremony without value). This ruling refines V-3's tiering rather than replacing it.
+
+---
+
+## SCOPE NOTE 2026-08-09 (ARC-2 consolidation, architect amendment 3) — the portability commission folds into W-9(a)
+
+**Adds no W-item, changes no verdict, births nothing.** One of the six research commissions
+(multi-provider portability, memo `wf-d68b2f7f`) had no owning intake. It is not filed as a seventh
+intake — its target shape is **already W-9(a)'s territory**: one canonical instruction file with
+provider stubs. This note attaches the memo's evidence to the W-item that already owns the decision.
+
+**It CONFIRMS W-9(a)'s chosen mechanism, on external grounds.** W-9(a) proposes `CLAUDE.md →
+AGENTS.md` with a thin `CLAUDE.md` shim carrying `@AGENTS.md`. The memo independently derives the
+same shape and supplies the standard's provenance: AGENTS.md was created August 2025 by OpenAI with
+Google, Cursor, Factory, Sourcegraph and Amp, contributed to the Linux Foundation's Agentic AI
+Foundation on 2025-12-09 alongside MCP, and is read by 20–30+ tools across 60,000+ repositories.
+
+**It also sharpens the bet, narrowing it in two directions:**
+
+- **Claude Code is the portability exception** and the reason the shim exists: as of mid-2026 it
+  reads `CLAUDE.md`, **not** `AGENTS.md` — Anthropic's own docs say so flatly, against several blogs
+  claiming native fallback. The `@AGENTS.md` import (resolving up to 4 hops) is the documented
+  interop, so W-9(a)'s shim is the correct mechanism rather than a workaround.
+- **Only the instruction-file layer ports.** Slash commands, hooks, subagents, skills and permissions
+  do **not** — each tool has its own format, location, event set and blocking semantics. **MCP is the
+  one deep cross-tool standard**, and even there the *servers* are interchangeable while the *config
+  files* are not. This bounds W-10 sharply: a provider-agnostic execution layer can port contracts
+  and prompts, and cannot port the organ mesh.
+
+**Two hazards, both already on this consolidation's dead list and both re-confirmed here rather than
+re-opened:**
+
+1. **Symlinks are refused as the mechanism** on this Windows + git-bash fleet — they degrade to plain
+   text stub files under `core.symlinks=false`. Prefer a generation build step plus a
+   checksum/drift check, which is the shape the floor-hash guard already uses here.
+2. **Routing a Claude Pro/Max subscription through a third-party harness violates Anthropic's
+   Consumer Terms.** Pointing Claude Code at a Moonshot API key is fine; routing the *subscription*
+   is not. The Kimi swap is therefore a **validated fallback, never a daily driver**, and carries
+   documented breakage (prompt caching, WebFetch, tool-name mangling).
+
+**One memo claim recorded but NOT adopted, because it cuts against W-9 and is unverified here:** an
+ETH Zurich study (arXiv:2602.11988, Feb 2026) is cited for *"instruction files themselves do not
+generally improve task success and add 20%+ token cost."* If true it argues against the whole
+instruction-file layer, not merely its filename. It is external, unreplicated on this fleet, and
+this repo has its own contrary evidence — the floor and CLAUDE.md contract are load-bearing here in
+ways a generic study does not measure. **Flagged as a live question for W-9's ratification, not as a
+reason to stop.**
+
+**Provenance:** memo `wf-d68b2f7f-438d-5cd4-a038-b25a21f9223f`, *"Multi-Provider Portability for AI
+Coding Agents on One Repository"*. External evidence — advisory until ratified. The memo file is not
+landed in the repo: no governance clause defines a home for external research artefacts, and ADR-101
+seals the tree against inventing one.

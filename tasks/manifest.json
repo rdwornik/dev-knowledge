@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "7fde34f5a088f680340c5b5b24a55ce587215d74b930ddc8cb7e697406d88d09",
+  "generated_sha256": "59be00c5bffdbffd6bed10d72c7858f40fd09a57a76f57f8994e6d9b6755011f",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -182,6 +182,10 @@
       "file": "485-lf-enforcing-write-helper-replaces-a-gotcha.md"
     },
     {
+      "task": 518,
+      "file": "518-audit-py-git-runs-unscrubbed-and-undecoded-at-one.md"
+    },
+    {
       "task": 484,
       "file": "484-adr106-system-python-divergence-deferral.md"
     },
@@ -223,6 +227,10 @@
     {
       "task": 510,
       "file": "510-scope-r1-exemption-to-enumerated-lanes.md"
+    },
+    {
+      "task": 514,
+      "file": "514-two-rival-lane-branch-re-constants-reconcile-them.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
@@ -541,10 +549,6 @@
       "file": "438-codify-gate-class-posture-terra-design-review-be.md"
     },
     {
-      "task": 441,
-      "file": "441-way-of-working-the-default-is-one-strong-self-co.md"
-    },
-    {
       "task": 443,
       "file": "443-planning-artifacts-outside-the-three-enforced-cl.md"
     },
@@ -659,10 +663,6 @@
       "file": "269-audit-index-count-tiered-shape-freshness-hook.md"
     },
     {
-      "task": 213,
-      "file": "213-playbook-rule-history-condensation.md"
-    },
-    {
       "task": 420,
       "file": "420-does-a-top-level-docs-archive-still-make-sense.md"
     },
@@ -701,10 +701,6 @@
     {
       "task": 82,
       "file": "82-define-per-repository-agentic-review-profiles.md"
-    },
-    {
-      "task": 215,
-      "file": "215-onboard-verify-methodology-in-a-new-repo.md"
     },
     {
       "task": 231,
@@ -1409,6 +1405,10 @@
     {
       "task": 357,
       "file": "357-silent-rule-census-run-2.md"
+    },
+    {
+      "task": 513,
+      "file": "513-propagation-completeness-a-ruled-adoption-that-la.md"
     },
     {
       "task": 358,

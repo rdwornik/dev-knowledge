@@ -1,7 +1,7 @@
 ---
 id: "[#215]"
 title: "Onboard + verify methodology in a new repo"
-status: open
+status: closed
 priority: P2
 size: M
 theme: "[E6] Cross-repo universalization"
