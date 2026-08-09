@@ -19,6 +19,67 @@
 
 ---
 
+### 2026-08-09 (c) — CC (Opus 5, bg primary tree): the night batch is CLOSED — five reports merged under the gate they were never run against
+
+**Did:** drained the night batch's merge queue and closed it. Five lane merges, in manifest order:
+`78f25d8b` (N1 position vs North Star) · `a45afbd1` (N2 mechanism map) · `2bcf3dac` (N3
+performance + the S3a instrumentation design) · `e8e83ede` (N4 structural code review) ·
+`7ce25a88` (N5 library-first sweep), on top of `c0a6a160` (findings index + the anchor). Then
+`7ecf7739` regenerates the audit index N5 did not, and `5c60bf88` lands
+`docs/audits/2026-08-09-technical-batch-night-packet.md` — the exact path the manifest named in
+`closed_by:`, so `batch_manifest.open_batches(.)` now returns `[]` and `/handoff` is unblocked.
+
+**The point of this arc was to be the gate those five artifacts never met.** Every lane ran in a
+container where **no hook could execute** — `uv` 0.8.17 against the ADR-106 `==0.11.19` pin makes
+every `uv run --locked` entry refuse before doing any work, and `.git/hooks/` held only samples.
+Run locally on the merged tree: **suite `1 failed, 2716 passed, 3 skipped, 1 xfailed`** —
+composition byte-identical to the pre-merge baseline measured in this same checkout, same single
+RED (`test_routine_consumers_live_backlog_governs_exactly_one_row`, owner `[#426]`);
+`audit.py health` **OK** with the same **18** WARNs item for item; **ship-gate GREEN**;
+`pre-commit run` over all seven merged audit files passes with the tree unmodified. **Zero new
+failures, zero new WARNs, zero removed.** N1's declared `--no-verify` commit is thereby
+re-verified rather than merely accepted.
+
+**Declared-path conformance: 2 of 5 exact.** N2, N3 and N5 each landed at a path the manifest's
+lane table does not declare — and that table is load-bearing twice, as the disjointness guarantee
+*and* as closure condition 1. Merged on their merits with the divergence named; content is
+unambiguous because each report self-identifies its lane. **N4 caught its own instance and
+repaired it by rename before pushing** (`08a49a4c`) — one lane in five ran the check its own
+report is about. This is the ninth instance in three days of the class N2 §1.7c and N3 §4
+independently name, and unlike the manifest-filename instance it has **no gate at all**: nothing
+compares a landed audit path against a manifest's lane table.
+
+**Velocity: opened 0 · closed 0 · net 0 · open-total 161** (`status: open` across `tasks/*.md`;
+**194 rendered** including the 33 deferred — both stated because which filter "open backlog < 100"
+means is N1's R-9 and its source intake is `DRAFT`). Width delta 5 → 5. Zero births and zero
+closes held exactly: the arc's `BACKLOG.md` + `tasks/` diff is **empty**, and the whole arc is 8
+files of markdown.
+
+**Carried to the architect, adjudicated by nobody:** **38 `Needs a ruling` items** (N1 16 · N2 7 ·
+N3 6 · N4 4 · N5 5, counted mechanically), four kill proposals, and ~95 findings — all indexed one
+line each in `docs/audits/2026-08-09-technical-night-batch-findings-index.md`, whose ownership
+column was re-resolved live against `tasks/*.md` rather than inherited. That re-resolution paid for
+itself: **`[#453]` already records every cloud-container gap that four of the five lanes
+independently re-derived tonight.** Three rulings are asked twice by different lanes and should be
+adjudicated once — `LANE_BRANCH_RE` canonicality, cloud-runtime gate coverage, and the uv pin.
+
+**Checklist item 3 is OPEN and dispositioned, not passed.** `git worktree list` is not
+primary-only: a live concurrent session (`d057ad40`) provisioned
+`worktree-lane-challenge-retrieval` mid-arc, and removing it would destroy another session's tree.
+The same session's HEAD swap is attributed from the reflog in entry (b). Carried to the operator,
+who is the only one who can close that session.
+
+**Changes:** five lane reports + the findings index + the closing packet under `docs/audits/`;
+`docs/audits/README.md` regenerated four times during conflict resolution and twice more after,
+**never hand-edited**; this entry. No code, config, test, `tasks/` or `BACKLOG.md` touched. Zero
+`SKIP=`, zero `--no-verify` in this arc.
+
+**Abandoned:** nothing. No branch was skipped; no lane was dropped.
+
+**Next:** the batch-4 planning GO — the 38 rulings, the 15 expired pegs, and the three
+build-first mechanisms N2 ranks (Rule C, lane-enum at provisioning, dispatch-time open-batch
+refusal). The handoff cut is now unblocked.
+
 ### 2026-08-09 (b) — CC (Opus 5, bg primary tree): the night batch's exemption does not cover the night batch
 
 **Did:** opened the integration of the five night-lane reports. `f7c4c6c0` lands
