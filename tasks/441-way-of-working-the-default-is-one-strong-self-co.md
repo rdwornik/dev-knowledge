@@ -1,7 +1,7 @@
 ---
 id: "[#441]"
 title: "Way-of-working: the DEFAULT is one strong self-contained prompt on primary; worktrees are the exception behind a four-condition test"
-status: open
+status: closed
 priority: P2
 size: S
 theme: "[E3] Lessons feedback loop"

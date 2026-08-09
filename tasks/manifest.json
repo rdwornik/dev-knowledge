@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "7fde34f5a088f680340c5b5b24a55ce587215d74b930ddc8cb7e697406d88d09",
+  "generated_sha256": "3a0e359e1d5460a6c3e432c63266f11c1594ab83cef43b5444ddbe4afb0060e6",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -541,10 +541,6 @@
       "file": "438-codify-gate-class-posture-terra-design-review-be.md"
     },
     {
-      "task": 441,
-      "file": "441-way-of-working-the-default-is-one-strong-self-co.md"
-    },
-    {
       "task": 443,
       "file": "443-planning-artifacts-outside-the-three-enforced-cl.md"
     },
@@ -659,10 +655,6 @@
       "file": "269-audit-index-count-tiered-shape-freshness-hook.md"
     },
     {
-      "task": 213,
-      "file": "213-playbook-rule-history-condensation.md"
-    },
-    {
       "task": 420,
       "file": "420-does-a-top-level-docs-archive-still-make-sense.md"
     },
@@ -701,10 +693,6 @@
     {
       "task": 82,
       "file": "82-define-per-repository-agentic-review-profiles.md"
-    },
-    {
-      "task": 215,
-      "file": "215-onboard-verify-methodology-in-a-new-repo.md"
     },
     {
       "task": 231,

@@ -1,7 +1,7 @@
 ---
 id: "[#213]"
 title: "PLAYBOOK rule/history condensation"
-status: open
+status: closed
 priority: P2
 size: L
 theme: "[E5] Canonical-file integrity"
