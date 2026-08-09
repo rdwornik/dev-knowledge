@@ -312,6 +312,36 @@ dispositions:
       tracking relationship whose whole point is that it does not track. Same fixed-point-in-time
       reasoning as `warn-undeclared-intake-orientation-handoff-process`, and it inherits that row's
       non-self-clearing property, so it carries a `review_date` too.
+  # ---- the NINTH, and this arc created it (2026-08-09, ARC-2 Phase A) ----
+  # The block above says, of the eight: "a NINTH referencing doc re-surfaces and blocks." One did,
+  # within the same arc, and it was written BY this arc. Ratifying intake #25 needed a `decided-by:`
+  # erratum explaining why the flip was a correction rather than a decision, and the honest
+  # explanation names where the intake's already-governing content is quoted — which put the literal
+  # string `templates/prompt-template.md` into an actionable doc and minted a tier-1 edge.
+  #
+  # REPHRASING WAS REFUSED ON THE MERITS. Dropping the path (saying "the work-lane card") would have
+  # cleared the WARN and left the note's meaning intact — and that is exactly the move the
+  # [#492] doc_rot entry refused two paragraphs up: "rephrasing the date games the detector".
+  # The same principle binds here. An edge is discharged by declaring it or dispositioning it, never
+  # by writing around the scanner. So it is dispositioned, under #241, on its merits.
+  #
+  # It is also the cheapest possible evidence for the 17-WARN finding recorded above: the corpus
+  # cannot tell a MENTION from a DEPENDENCY, so writing one accurate sentence about a spec is
+  # indistinguishable, to every organ, from taking a version-coupled dependency on it. The cost of
+  # that ambiguity is now measured at 18 hand-written rows, one of them for a sentence.
+  - id: warn-undeclared-intake-25-prompt-template
+    organ: undeclared_edges
+    match: "docs/intake/2026-08-05-func-simplification-distribution-wave.md -> prompt-template"
+    ref: "#241"
+    review_date: 2026-09-09
+    reason: >-
+      An EVIDENCE CITATION inside a ratification erratum, the same kind as the
+      adoption-consolidation intake row above: the `decided-by:` note names where intake #25's own
+      AMENDMENT-c content is already quoted as governing (the ~10 work-lane ceiling), to show the
+      DRAFT status was the thing out of date rather than the content. It cites a fact about the
+      template at a moment in time; it does not track the template's version, and #25 is now
+      ACCEPTED so its body is frozen. Introduced by ARC-2 2026-08-09 and recorded as such rather
+      than quietly rephrased away. Non-self-clearing, so it carries a review_date.
   - id: warn-undeclared-intake-v6-proposal-prompt-template
     organ: undeclared_edges
     match: "docs/intake/2026-07-27-tech-handoff-process-v6-proposal.md -> prompt-template"
@@ -471,19 +501,18 @@ dispositions:
   # RETIRE-ON-FLIP: the entry leaves the register when [#492] flips open at the Grok acceptance
   # arc — at which point the peg has done its job and the row is rewritten anyway. It does not
   # outlive its reason.
-  - id: warn-doc-rot-backlog-accretion-492-grok-peg
-    organ: doc_rot
-    match: "backlog-accretion BACKLOG#492"
-    ref: "#492"
-    review_date: 2026-09-05
-    reason: >-
-      The ruled peg (>=2026-08-07, Grok 4.6) legitimately carries dates — the third date is
-      operator-ruled content, not accretion; rephrasing the date would game the detector, gutting
-      the body would discard next-seat context. Keyed to the SPECIFIC row per
-      precision-over-recall, so any OTHER backlog-accretion finding re-surfaces and REDs the gate;
-      this suppresses one known finding, not the organ. review_date is the shelf-life so it cannot
-      rot into paper suppression (ADR-75). Retires when [#492] flips open at the Grok acceptance
-      arc (>= 2026-08-07), where the peg is spent and the row is rewritten.
+  # (cleared 2026-08-09, ARC-2 Phase A) warn-doc-rot-backlog-accretion-492-grok-peg — REMOVED,
+  # and the route matters. The entry's own RETIRE-ON-FLIP clause (above) anticipated retiring when
+  # [#492] flips open at the Grok acceptance arc, "where the peg is spent and the row is rewritten".
+  # The peg IS now spent and the row HAS been rewritten — but by the expired-peg adjudication, not
+  # by the acceptance arc: N1 Class D found the calendar leg (>= 2026-08-07) had simply passed, and
+  # the ARC-2 re-peg dropped it, leaving the release leg alone and referring that external fact to
+  # the operator (N1 R-5). Dropping the spent date took the row from three dates back to two, off
+  # the ">=3 dates AND >700" branch, so the suppressed WARN no longer fires and the entry decorated
+  # stale on the very run that produced it. Removed per the ADR-75 decoration rule rather than
+  # re-dated. NOTE the asymmetry this closes: the entry was written because the row got SHORTER and
+  # still crossed; it clears because the row got shorter for a reason that also removed a date.
+  # [#492] remains DEFERRED (pegged on the Grok 4.6 release), so this is not a flip-open.
 
   - id: warn-review-artifact-lane-c-504-no-tally
     organ: review_artifact_coverage
