@@ -19,6 +19,60 @@
 
 ---
 
+### 2026-08-09 (b) — CC (Opus 5, bg primary tree): the night batch's exemption does not cover the night batch
+
+**Did:** opened the integration of the five night-lane reports. `f7c4c6c0` lands
+`docs/audits/2026-08-09-technical-night-batch-findings-index.md` — ~95 findings and all 38
+`Needs a ruling` items across 3,487 lines of report, one line each, ownership re-resolved live
+against `tasks/*.md` rather than inherited from the reports. **This entry is written and merged
+BEFORE the merge queue runs**, which is not the usual order and is the finding below.
+
+**The ADR-110 declared-integration-arc exemption granted this batch nothing.**
+`batch_manifest.exempt()` requires BOTH an open manifest AND a merge whose branch matches
+`LANE_BRANCH_RE = ^worktree-lane-[a-z0-9]+(?:-[a-z0-9]+)*$`. Entry (a) armed condition 2
+correctly and verified it. Condition 1 is unreachable: the lanes were **cloud sessions**, whose
+branches the runtime names `claude/<slug>`. Verified live against all five names before merge
+#1 — every one returns `False`. So `check_journal_spine_anchor` (a **FAIL**, gating
+`audit-health` at pre-commit) would treat every lane merge as unanchored, and the queue would
+wedge at the first *conflicted* merge exactly as batch 3 did — with a manifest that is correct,
+committed, enumerable, and inert. **A precondition can be satisfied and still not apply.**
+
+**Worked around with zero bypasses, using the predicate as specified.** ADR-85 §A7 anchors a
+spine entry by a SHA it *introduced*, and a `--no-ff` merge introduces the merged branch's
+commits — which exist now. So this entry names each lane branch's tip up front: `65624a92`
+(N1), `3110f0d9` (N2), `f4041b68` (N3), `08a49a4c` (N4), `17e4df37` (N5). Every merge is
+anchored on arrival; no `SKIP=`, no `--no-verify`, no edit to any gate. The cost is that the
+batch's JOURNAL is **two entries instead of one** — this one anchors the queue, the closing
+entry anchors the packet — which is a deviation from "the JOURNAL entry is the last commit
+before pushing" and is recorded rather than smoothed over. `[#510]` is adjacent but scoped to
+the opposite failure (the exemption being self-grantable by rename); its proposed fix — resolve
+against a lane roster the manifest declares — would cover this, and tonight's manifest
+deliberately declined to enumerate branch names because cloud lanes are named at launch.
+
+**A concurrent session swapped HEAD in the primary checkout mid-arc, and this one is
+attributed.** The reflog reads `12:07:54 checkout: moving from main to
+docs/night-batch-findings-index` (mine), then `12:09:11 checkout: moving from
+docs/night-batch-findings-index to main` — **a checkout this session did not run**; between
+those points it ran only Write, `gen_audit_index.py --write`, `git add` and `git commit`, none
+of which moves HEAD. The index commit therefore landed directly on `main`, a core-invariant #5
+violation that `block-ff-push` would have refused. Repaired non-destructively — `git branch -f`
+moved the commit onto its intended branch and `main` back to `9e4b294c`; nothing became
+unreachable and nothing was pushed. **The culprit is identified, not inferred:** session
+`d057ad40` is live in this same primary checkout and provisioned
+`worktree-lane-challenge-retrieval` four minutes later. This is the **third** recorded instance
+(JOURNAL 2026-07-21, `JOURNAL.md:6117`) and it makes N2 §4's recommendation concrete: do not
+build a HEAD-swap organ, remove the shared-checkout precondition.
+
+**Changes:** `docs/audits/2026-08-09-technical-night-batch-findings-index.md` (new);
+`docs/audits/README.md` regenerated; this entry. Zero rows born, zero closed, zero re-pegged;
+no code, config or test touched.
+
+**Abandoned:** nothing.
+
+**Next:** the five lane merges, the gate mesh on the merged tree, then the closing packet at the
+manifest's declared `closed_by:` path — which is what expires the exemption and unblocks
+`/handoff`.
+
 ### 2026-08-09 (a) — CC (Opus 5, bg primary tree): the night batch's manifest exists BEFORE the lanes do
 
 **Did:** `ee4fd140` commits `docs/audits/2026-08-09-technical-batch-night-manifest.md` at
