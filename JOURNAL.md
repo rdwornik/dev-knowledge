@@ -19,6 +19,43 @@
 
 ---
 
+### 2026-08-09 (g) — CC (Opus 5, bg primary tree): intake #25 ratified — the status field catches up to how the document was already being used
+
+**Did:** Architect amendment 1. Flipped intake #25 `DRAFT` → `ACCEPTED`, as its own standalone
+commit `ef5b6252` so it could not be buried inside a larger write.
+
+**This is a correction, not a decision.** #25 sat `DRAFT` while its content was already cited as
+governing in three places: the ~10 work-lane ceiling (AMENDMENT-c c1) quoted as live doctrine by
+`templates/prompt-template.md` **and** `protocols/PLAYBOOK.md`; the V-2 decision-budget and V-3
+risk-tiered-ceremony clauses carried by the work-lane card and `/lane-boot`; and six rows in intake
+#27 reading `DEFERRED(W-wave batch — after intake #25 acceptance + births)` — rows that name *this
+document's acceptance* as their own un-parking trigger. The flip un-parks the W-wave and therefore
+batch 4. Zero body edits, zero births, no W-item re-opened.
+
+**Two departures from "status field only", both forced by the flip, both reported not silent:**
+
+1. **Companion frontmatter added** (`decided-by:`, `disposition: active`). README §3 marks both
+   REQUIRED at ACCEPTED and all eight pre-existing ACCEPTED intakes carry them — but a bare status
+   flip **does parse**: `gen_intake_index.py`'s `_STATUS_ORDER` accepts ACCEPTED alone, and no
+   validator or test enforces the companions. So the schema-invalid version would have shipped with
+   nothing saying so. This is the invisible-to-the-machine class again, caught only because the
+   amendment said *verify the parsers accept it* — the verification found the parser was the wrong
+   thing to trust.
+2. **Title reconciled.** The H1 read `# INTAKE DRAFT — …`, and `docs/intake/README.md` renders each
+   entry's H1 under its status group, so the generated index would have listed under **ACCEPTED (9)**
+   an entry whose visible title said **DRAFT**. Repaired in the shape intake #18 already set at its
+   own acceptance (`… (ACCEPTED 2026-07-30)`). Title line only.
+
+**Result:** `docs/intake/README.md` now groups #25 under ACCEPTED (9) with a title that agrees.
+Both generators re-run — `gen_intake_index.py` is hook-gated, `gen_intake_tree.py` is **not**, and
+forgetting the second FAILs `intake_tree_coherence` at the next gate — then both `--check` verified.
+
+**Changes:** `docs/intake/2026-08-05-func-simplification-distribution-wave.md`, `docs/intake/README.md` (regen), `docs/intake/manifest.json` (regen).
+
+**Next:** Phase A — the adjudication wave, before any research is touched.
+
+---
+
 ### 2026-08-09 (f) — CC (Opus 5, bg primary tree): ARC-2 Phase 0 — the gate restored by two different routes
 
 **Did:** Cleared the 9 WARNs ARC 1 left standing. Commit `76d77ebb`.

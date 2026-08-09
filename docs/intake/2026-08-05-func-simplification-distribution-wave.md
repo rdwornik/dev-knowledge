@@ -1,9 +1,11 @@
 ---
 intake-id: 25
-status: DRAFT
+status: ACCEPTED
 origin: sealing 2026-08-04/05 architect, operator-directed retrospective + web research 2026-08-05; landed post-seal by operator instruction
+decided-by: "ERRATUM 2026-08-09 (ARC-2 consolidation, architect amendment 1): operator ratification recorded. This document was ratified doctrine that never landed its status — it sat `status: DRAFT` while its AMENDMENT-b/-c content was already being cited as governing (the ~10 work-lane ceiling in `templates/prompt-template.md` and PLAYBOOK, the V-2/V-3 decision-budget and risk-tiered-ceremony clauses, and the six `DEFERRED(W-wave …)` pegs in intake #27 that name *this document's acceptance* as their un-parking trigger). The flip is a STATUS CORRECTION to live state, not a new decision: zero body edits, zero births, no re-opening of any W-item. Its effect is to un-park the W-wave and therefore batch 4. Companion fields `decided-by`/`disposition` are added because README §3 REQUIRES them at ACCEPTED — a bare status flip parses (the enum in `gen_intake_index.py` accepts it) but is schema-invalid, and every other ACCEPTED intake carries both."
+disposition: active
 ---
-# INTAKE DRAFT — simplification & distribution wave: adopt the commoditized layers, keep the edge
+# INTAKE — simplification & distribution wave: adopt the commoditized layers, keep the edge (ACCEPTED 2026-08-09)
 *(functional mode — WHAT/WHY; receiving architect triages, routes ADR-vs-rows, sequences under plan-governs. Provenance: sealing 2026-08-04/05 architect, operator-directed retrospective + web research 2026-08-05. Companion to intake #24 — extends its "buy commoditized walls" strategy from CI to the WHOLE distribution and object layer.)*
 
 ## WHY — the self-critique this intake encodes
