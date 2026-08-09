@@ -19,6 +19,42 @@
 
 ---
 
+### 2026-08-09 (d) — CC (Opus 5, bg primary tree): consolidation hygiene — the last branch merged, ARC 1 opens
+
+**Did:** merged `worktree-lane-challenge-retrieval`, the one branch still outstanding after
+`663c0f9d` closed the night batch. It was deliberately absent from the night manifest's lane
+table — it was never a batch lane, so it had no merge-queue slot and simply outlived the batch.
+Not a defect; the absence is the reason it needed a separate arc.
+
+`82abd507` is the merge; it brings in **`f4417f21`**, which lands
+`docs/audits/2026-08-09-technical-challenge-retrieval.md` (953 lines — the five inventories the
+browser seat could not witness for itself).
+
+**`docs/audits/README.md` conflicted and was resolved by REGENERATION, never by hand.** The lane
+and the consolidation arc each appended a 2026-08 row to the generated index, which is exactly the
+shape a hand-merge silently corrupts. `git checkout --ours` back to main's version, then
+`python scripts/gen_audit_index.py --write`: net effect is one added row, **448 → 449 documents**,
+and the `audit-index-freshness` gate agrees with disk rather than with me.
+
+**Anchoring shape (ADR-85 §A7), stated because it is the technique and not an accident:** the lane
+branch carries no JOURNAL of its own, so a bare `main`-side merge of it would have put an
+**unanchored entry on main's first-parent spine** — and `journal_spine_anchor` scans that spine
+repo-wide, so the block window is every commit in the repo, not just this arc's. Merging it into an
+integration branch first, then landing that branch with this entry aboard, means the spine entry
+that reaches `main` introduces `f4417f21`, which this entry names. **Main is never unanchored, not
+even for one commit.** Worktree isolation does not buy this; only the ordering does.
+
+**Result:** the ref inventory is now the arc's remaining hygiene work — five `claude/*` night-lane
+tips verified `--is-ancestor` of `main`, six `claude/conformance-*` and `automation/fleet-audit`
+verified NOT merged and therefore retained.
+
+**Changes:** `docs/audits/2026-08-09-technical-challenge-retrieval.md` (new, via the lane),
+`docs/audits/README.md` (regenerated), `JOURNAL.md`.
+
+**Next:** ref hygiene with `--is-ancestor` proof per deletion, then the four measured doc defects.
+
+---
+
 ### 2026-08-09 (c) — CC (Opus 5, bg primary tree): the night batch is CLOSED — five reports merged under the gate they were never run against
 
 **Did:** drained the night batch's merge queue and closed it. Five lane merges, in manifest order:
