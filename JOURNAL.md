@@ -19,6 +19,56 @@
 
 ---
 
+### 2026-08-09 (f) — CC (Opus 5, bg primary tree): ARC-2 Phase 0 — the gate restored by two different routes
+
+**Did:** Cleared the 9 WARNs ARC 1 left standing. Commit `76d77ebb`.
+
+**The two classes got different routes, deliberately.** Eight `undeclared_edges -> prompt-template`
+WARNs were **dispositioned** under ref `#241` — the same reference the nine `-> handoff-process`
+rows carry. ARC-1's D3 registration is NOT reverted: it is correct, and `coherence_nudge` is now
+armed on a spec that moved v1.6 → v1.13 with nothing watching it. No `reconciled_with` was declared
+on a doc that merely *mentions* the spec; over-coupling a mention to every minor bump is precisely
+why the existing nine sit deferred. Three entries carry a `review_date` because they will not
+self-clear; five clear on their own.
+
+**The ninth was discharged by running the review, not by dispositioning it.** `review_artifact_coverage`
+on `df1b05b0`: codex-cli 0.145.0, `gpt-5.6-terra` pinned, code profile, diff filtered to `*.py`.
+**Tally 0/0/0/0.**
+
+**Result:** `ship-gate` RED (9 new/undispositioned) → **GREEN** (26 dispositioned).
+
+**Two things worth carrying forward, both recorded rather than smoothed over:**
+
+1. **17 live WARNs of one class** (9 + 8, across two specs) is a signal about the *check*, not a
+   backlog of docs. Nothing in the corpus distinguishes a doc that **mentions** a spec from one that
+   **depends on** it, so both arrive as the same undifferentiated WARN whose only discharge is a
+   hand-written register row. Same escalation shape as the `no_ff` n=3 entry that became [#210].
+2. **Exactly one of the eight was not a mention.** `protocols/PLAYBOOK.md` cites
+   `templates/prompt-template.md (v1.7)` against a spec now at `Version: 1.13`. The claim that token
+   labels is still **true** — the ~10 work-lane ceiling survives verbatim at v1.13 — so only the
+   token rotted. Deferred, not dismissed, and named in the register so the block cannot be read as
+   asserting all eight are alike. That is the mentions-vs-depends-on gap stated as a measurement:
+   eight WARNs looked identical to the scanner; one had rotted.
+
+**Refuted a rubber stamp before accepting it.** On a diff whose whole content is a *claim about other
+code*, a real pass and a stamp look the same. The claim was that `coherence_nudge` never fires for a
+version-less spec because `should_nudge` needs a parsed version on both sides. Had `_extract_version`
+returned the spine parser's `""`, then `hv is not None` would be True and `hv == sv == ""` would fire
+the nudge on **every** content edit — the exact inverse. It returns `spec_version_numeric(text) or None`.
+Claim holds; the zero is confirmed on the axis most likely to have falsified it.
+
+**One recurrence of a known defect class.** `codex-review.ps1` stamps the *current* branch and HEAD,
+so a retroactive review run from the primary checkout self-stamps `main` — which matches no merge
+subject, so the BRANCH linkage leg would silently not have bound. Header authored from the parser
+instead (`docs/arc1-doc-defects` + `fc0b1f04`, linking on both legs). The wrapper reproduces this on
+*every* retroactive review; a review run after its merge can never self-stamp a linking header.
+
+**Changes:** `ecosystem/disposition-register.yaml` (+8), `docs/audits/2026-08-09-codex-arc1-doc-defects-retro.md` (new), `docs/audits/README.md` (regen).
+
+**Next:** intake #25 DRAFT → ACCEPTED as its own commit (architect amendment 1), then the Phase A adjudication wave.
+
+---
+
 ### 2026-08-09 (e) — CC (Opus 5, bg primary tree): the four measured doc defects — two fixed, one fixed at a named cost, one refuted
 
 **Did:** ARC 1 steps 2–3. Ref hygiene, then the four defects. Commits `80061fc0` (intake #27

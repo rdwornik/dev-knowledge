@@ -209,6 +209,121 @@ dispositions:
       not resolve on ratification, so 2026-08-26 reviews whether a CONSUMED/archived orientation
       snapshot should keep a live disposition at all.
 
+  # ---- prose edges to the SECOND registered spec, prompt-template (ruled 2026-08-09, ARC-2) ----
+  # ARC-1 registered `templates/prompt-template.md` as the second `_SPEC_REGISTRY` row (fc0b1f04).
+  # The registration is correct and independently valuable — the template is a live versioned spec
+  # (v1.6 -> v1.13 across one window with no organ watching it) and `coherence_nudge` is now armed on
+  # its edits. Its KNOWN, declared cost was 8 new advisory `undeclared_edges` WARNs, which took
+  # `ship-gate` GREEN -> RED. ARC-1 deliberately left them undispositioned: exercising the #241
+  # precedent is an architect call. Architect ruling 2026-08-09: **disposition all eight under the
+  # SAME reference as the nine `-> handoff-process` rows (#241); do NOT revert the registration, and
+  # do NOT declare `reconciled_with` on a document that merely MENTIONS a spec** — over-coupling a
+  # mention to every minor bump is precisely why the existing nine sit deferred rather than declared.
+  # Keyed on the specific "<doc> -> prompt-template" pair per the #241 precision-over-recall
+  # discipline: a NINTH referencing doc, or an edge to a different spec, re-surfaces and blocks.
+  #
+  # RECURRENCE, recorded rather than buried: this makes **17 live WARNs of one class** (9 + 8) across
+  # two specs. That is no longer a per-doc backlog, it is a signal about the check — the corpus has
+  # no way to distinguish a doc that MENTIONS a spec from one that DEPENDS ON it, so both arrive as
+  # the same undifferentiated WARN and the only available discharge is a hand-written row here. The
+  # 2026-08-09 consolidation triages that gap as a finding in its own right; these eight are the
+  # measurement behind it, not the fix. Same escalation shape as the no_ff n=3 entry above, which
+  # became [#210].
+  #
+  # ONE OF THE EIGHT IS NOT A MERE MENTION, and is called out so this block cannot be read as
+  # asserting all eight are alike: `protocols/PLAYBOOK.md` carries a VERSIONED citation, "(v1.7)",
+  # against a spec that now reads 1.13. The claim that citation labels is still true (the ~10
+  # work-lane ceiling survives verbatim at v1.13) — only the token rotted. It is the strongest
+  # DECLARE candidate of the eight and it is deferred here, not dismissed.
+  - id: warn-undeclared-backlog-prompt-template
+    organ: undeclared_edges
+    match: "BACKLOG.md -> prompt-template"
+    ref: "#241"
+    reason: >-
+      Twice non-actionable. (1) BACKLOG.md is a GENERATED file since the ADR-107 strangler flip
+      ([#439]) — `tasks/` is the source of truth and `gen_task_tree.py --emit-source` reassembles it
+      — so a hand-authored `reconciled_with` cannot survive a regen; same kind as the
+      docs/intake/README.md row above. (2) The single tier-1 hit is a TICKET DESCRIPTION ([#390],
+      "true up the prompt template") — a work-item ref, not a version-coupled claim. Defer under
+      [#241]; the entry clears by itself when [#390] closes and its row leaves the file.
+  - id: warn-undeclared-vision-prompt-template
+    organ: undeclared_edges
+    match: "VISION.md -> prompt-template"
+    ref: "#241"
+    reason: >-
+      The reference is an EXAMPLE OF A PROBLEM, not a dependency: VISION names the template among the
+      places that "cite absolute paths" while discussing host-coupling. VISION.md is also
+      canonical_freshness-gated, so a declaration would force a re-stamp — the identical pair of
+      reasons that defers `warn-undeclared-vision-handoff-process`. Defer under [#241].
+  - id: warn-undeclared-playbook-prompt-template
+    organ: undeclared_edges
+    match: "protocols/PLAYBOOK.md -> prompt-template"
+    ref: "#241"
+    review_date: 2026-09-09
+    reason: >-
+      THE STRONGEST DECLARE CANDIDATE OF THE EIGHT, deferred rather than dismissed. 13 tier-1 hits —
+      PLAYBOOK is the template's principal consumer ("Template: templates/prompt-template.md", the
+      point-of-use authority note, the Ch8 dispatch-shape prose) — and one hit is genuinely
+      version-coupled: "(v1.7)" against a spec now at 1.13. Two facts keep this deferred and not
+      declared: committing PLAYBOOK to ongoing version-coupling is an operator call (verbatim the
+      reason `warn-undeclared-playbook-handoff-process` sits deferred), and PLAYBOOK is the largest
+      ungated canonical doc whose genuine end-to-end re-read is its own arc (2026-07-08 census A-2).
+      It carries a `review_date` the other seven do not, because unlike them it will not self-clear.
+  - id: warn-undeclared-handoff-process-prompt-template
+    organ: undeclared_edges
+    match: "protocols/HANDOFF_PROCESS.md -> prompt-template"
+    ref: "#241"
+    reason: >-
+      A SPEC-TO-SPEC edge, which is its own kind: HANDOFF_PROCESS is itself a registered
+      `_SPEC_REGISTRY` row, so this is one reconciliation authority naming another. The hit is a
+      CARRIER pointer — the board-label shape "`.claude/commands/lane-boot.md` and
+      `templates/prompt-template.md` carry it by construction" — i.e. HANDOFF_PROCESS states what the
+      template must carry; it does not track the template's version. The dependency, if it were
+      declared, would point the other way. Defer under [#241].
+  - id: warn-undeclared-handoff-boot-prompt-template
+    organ: undeclared_edges
+    match: "protocols/HANDOFF_BOOT.md -> prompt-template"
+    ref: "#241"
+    reason: >-
+      A LOCATOR pointer, structurally identical to the HANDOFF_PROCESS row: HANDOFF_BOOT tells the
+      architect seat where the prompt skeleton lives ("it lives in PLAYBOOK §2 +
+      templates/prompt-template.md"), so the reader can stop hand-authoring one. Naming where a
+      thing lives is not tracking what version it is. HANDOFF_BOOT is additionally under a hard
+      18000-byte boot budget, so it carries pointers precisely to avoid content it would otherwise
+      have to version-track. Defer under [#241].
+  - id: warn-undeclared-standing-rulings-prompt-template
+    organ: undeclared_edges
+    match: "protocols/STANDING_RULINGS.md -> prompt-template"
+    ref: "#241"
+    reason: >-
+      A RULING'S CARRIER CLAUSE, the same shape as the HANDOFF_PROCESS row and from the same
+      doctrine: the dispatch-visibility ruling records that the board-label shape "is carried by
+      `.claude/commands/lane-boot.md` and `templates/prompt-template.md`". The register names the
+      carriers a ruling binds; it is not a dependent tracking their versions. Defer under [#241].
+  - id: warn-undeclared-intake-adoption-consolidation-prompt-template
+    organ: undeclared_edges
+    match: "docs/intake/2026-08-06-tech-adoption-consolidation-intake.md -> prompt-template"
+    ref: "#241"
+    review_date: 2026-09-09
+    reason: >-
+      A DATED EVIDENCE CITATION inside an intake status table — row 26 records the adoption as
+      "ADOPTED-live (templates/prompt-template.md v1.6, 12dbb65a)". It cites v1.6 as the state AT
+      THAT COMMIT and is meant to stay pinned there; declaring `reconciled_with` would assert a
+      tracking relationship whose whole point is that it does not track. Same fixed-point-in-time
+      reasoning as `warn-undeclared-intake-orientation-handoff-process`, and it inherits that row's
+      non-self-clearing property, so it carries a `review_date` too.
+  - id: warn-undeclared-intake-v6-proposal-prompt-template
+    organ: undeclared_edges
+    match: "docs/intake/2026-07-27-tech-handoff-process-v6-proposal.md -> prompt-template"
+    ref: "#241"
+    review_date: 2026-08-26
+    reason: >-
+      The SECOND spec edge from a doc that already has a dispositioned first one
+      (`warn-undeclared-intake-v6-proposal-handoff-process`) — same doc, same reasoning, new spec: an
+      intake PROPOSAL is a not-yet-coupled ref by design. The hit is a fan-out field it PROPOSES the
+      template should gain, not a version it tracks. Shelf-life deliberately matched to its sibling
+      (2026-08-26): both clear together when intake 18 ratifies or retires.
+
   # ---- BACKLOG history-accretion bloat, ruled by grooming leg-c (2026-07-08) ----
   # The 2026-07-07 census-triage arc pushed three tasks past the doc_rot accretion threshold.
   # Grooming leg-c (2026-07-08) ruled them: #286 was re-scoped below threshold (WARN cleared, entry
