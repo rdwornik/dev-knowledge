@@ -19,6 +19,100 @@
 
 ---
 
+### 2026-08-09 (j) — CC (Opus 5, bg primary tree): ARC-3 hygiene close-out — the closes verified real, the carried writes landed, one RED named
+
+**Did:** Executed the frozen ARC-3 contract from the hub PRIMARY checkout, serial, sole writer to
+`main`. Commits `036385a6` (intakes #30/#31), `5f17b771` (the seven-item consolidated write),
+`0323e071` (the decision sheet), `95204e22` (§4 item D). **Zero `SKIP=`, zero `--no-verify`, zero
+force-push, zero deletions** — as contracted.
+
+**Step 1 — the silent-revert audit: ZERO reverts.** All eleven rows closed in the last three days
+are still terminal, read from `tasks/` frontmatter directly rather than from the generated
+BACKLOG.md: `[#396]` `[#512]` `[#280]` `[#315]` `[#290]` `[#283]` `[#416]` `[#282]` plus ARC-2's
+three `[#213]` `[#215]` `[#441]`. The close path's *second* edit held too — **zero** terminal ids
+retain a manifest node or a BACKLOG line.
+
+**The reconciliation, and why 168 ≠ 194 is not a divergence.** True open-total from `tasks/`
+frontmatter is **168** (`status: open`); `validate_backlog` reports **194**. They differ by exactly
+the 26 `status: deferred` rows, and `deferred` is **non-terminal by construction** —
+`_TERMINAL_STATUSES = ("closed", "retired", "superseded")`, so a deferred row stays in the queue by
+design. Three independent reads agree at 194: BACKLOG task lines, `tasks/manifest.json` task nodes,
+and `open ∪ deferred`. Landed as reporting law at `STANDING_RULINGS` H2.
+
+**Step 2 — ownership check, then ONE birth.** No open row owns close-path two-edit atomicity:
+`[#500]` owns the Stop advisory's closure-RECOGNITION heuristic (the *opposite* direction — a
+correct close reading as nothing-closed), `[#440]` owns ledger completeness against a **deleted**
+retired record, `[#487]`/`[#277]` own the proposal pipeline. All three read in full, not by title.
+Born `[#519]` P1/M.
+
+**Step 3 — what was owed, established and landed.** (a) intake #25 DRAFT→ACCEPTED was **already
+landed** at `ef5b6252` — reported with locator, not re-done. (b) `$env:CLAUDE_PROMPTS_DIR` resolved
+to `C:\Users\1028120\Downloads` and is reported because the contract asks; intakes #30/#31 filed
+from it, bodies **byte-identical** to source, zero births. (c) the seven-item write landed as
+`STANDING_RULINGS` section H (H1 defective-seal retirement by external dated marker · H2 the
+velocity law · H3 the ADR zero-refs bar, previously alive only inside `216ce3a8`'s commit body · H4
+the Shape-B import ruling), PLAYBOOK Ch8's seam names aligned to `operator ↔ integration` /
+`operator ↔ lane`, and two LESSONS entries (the wedged-gate pattern; the xdist instrument defect).
+
+**Step 4 — archival: nothing moved, verified.** Live-checked rather than inherited from the audit:
+**0 of 84** live ADRs carry a terminal status, **0 of 26** live intakes do. No quoted rule requires
+a move, so none was made and no mechanism was invented.
+
+**Step 5 — the decision sheet** is `docs/audits/2026-08-09-technical-decision-sheet.md`: §7's 15
+items, the four kill candidates with their evidence, ADR-111's §4 departure, and a §4 for what this
+arc surfaced. No recommendations, no rulings.
+
+**Result — gates, with every deviation named:**
+
+- **Full suite: 1 failed, 2715 passed, 4 skipped, 1 xfailed (592.87 s).** The single failure is the
+  contract's stated baseline RED — `test_routine_consumers_live_backlog_governs_exactly_one_row`
+  pins "exactly one" `· routine:` row while two exist (`[#348]`, `[#426]`). **Proven pre-existing,
+  not inherited on faith:** `git show main:BACKLOG.md` carries the same 2 markers, and neither new
+  row carries the marker.
+- **`audit.py health`: OK.** `ruff check`: clean. Every commit passed the full pre-commit set.
+- **`audit.py ship-gate`: RED — one undispositioned WARN, and it is MINE.** Filing intake #30
+  *verbatim* carried its §E mention of `templates/prompt-template.md`, creating a 20th
+  `undeclared_edges` prose edge. 19 of 20 sit in the standing #241 class, three of them the same
+  intake→prompt-template shape. Baseline pinned: both new intakes are absent from `git ls-tree
+  main`, so bare `main` had 26 WARNs against 26 register entries and was **GREEN**. **Not
+  dispositioned** — the register is a governance surface this contract authorised no write to; it
+  is decision-sheet §4 item D with its one-line remedy. It wedges nothing: `audit-health` (the
+  pre-commit gate) and `journal_spine_anchor` are both green.
+
+**Velocity:** `opened 2 · closed 0 · net +2 · open-total 196` — the live count (170 `status: open` +
+26 deferred), the filter named per H2. **Said plainly: the backlog grew by two this arc.** No close
+was attempted, because step 1 found nothing owed a close; both births are recorded debts, not new
+discoveries.
+
+**One declared departure from the contract.** Step 2 caps the arc at ONE birth; step 3(c)
+separately names "A7(d) row and its direction" as owed. Both landed — `[#519]` (the cap's birth)
+and `[#520]` (A7(d)) — read as: the cap governs births arising from *this arc's triage*, while
+`[#520]` is a carried debt the 2026-08-08 JOURNAL already scheduled ("deliberately NOT created — it
+births at batch-3's first closes"). Flagged in the commit body and on the decision sheet rather
+than silently resolved; the operator kills `[#520]` in one line if the reading is wrong.
+
+**One premise found defective, reported not patched.** The ARC-2 report §6.2(a) attributes the
+Shape-B pythonpath ruling to "`[#502]` P3/M import convention" and routes the residual 24+1 sites
+into that row's Done-when. **`[#502]` is the mutmut row** — title *"mutmut 3.7.0 mutation-testing
+evaluation — CI-hosted"* — and the architect's own challenge answer states the import convention is
+not its Done-when. No open row owns the substrate. Recorded at H4 and as decision-sheet §4 item A;
+no row was born for it, the cap being already spent.
+
+**Changes:** `docs/intake/2026-08-09-func-{verification-organ-and-repeatable-execution,code-style-doctrine}.md`
+(new) + `README.md`/`manifest.json` (both generators), `protocols/STANDING_RULINGS.md` (+section H),
+`protocols/PLAYBOOK.md` (Ch8 seam names), `LESSONS.md` (+2), `tasks/{519,520}-*.md` +
+`tasks/manifest.json` + `BACKLOG.md`, `docs/audits/2026-08-09-technical-decision-sheet.md` (new) +
+`docs/audits/README.md`.
+
+**Abandoned:** nothing. One defect was caught pre-commit and fixed rather than shipped: intake
+#31's `origin:` carried the research report's title in **embedded double quotes inside a
+double-quoted YAML scalar**, so the file counted (28 documents) but its `status:` never parsed and
+it vanished from the DRAFT group — present in the corpus, absent from the index, both generators
+reporting success.
+
+**Next:** the architect rules from the decision sheet. The four kill candidates and ADR-111 are the
+load-bearing items; §4 item D clears the ship-gate RED in one register line.
+
 ### 2026-08-09 (i) — CC (Opus 5, bg primary tree): ARC-2 Phases B–F — the pipeline ruled, 229 items triaged, three rows born, net 0
 
 **Did:** The rest of ARC-2 plus the three architect amendments. Commits `da274889` (ADR-111),

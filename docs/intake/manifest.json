@@ -3,12 +3,12 @@
   "direction": "derived-from",
   "source": "docs/intake/README.md",
   "generator": "scripts/gen_intake_tree.py",
-  "source_sha256": "f71dd7f1e79ba7e0a2ecc46f2c94223e21cdeab6403faaf7eac49df7fc600c95",
+  "source_sha256": "f03fa932aea957e1f152f73ad7ca89d092d1b912979e53cd54a2e95c9566162f",
   "honest_limit": {
     "statement": "ADR-109 section 4 is discharged by a byte-exact round-trip plus a residue manifest, NOT by a derivation ratio. This surface's ratio is INVERTED relative to surface 1 (BACKLOG.md <-> tasks/), where task lines were the majority and residue the minority. Recorded so the generality claim is honest about what was shown.",
-    "item_derived_lines": 26,
+    "item_derived_lines": 28,
     "residue_lines": 238,
-    "total_lines": 264,
+    "total_lines": 266,
     "surface_1_comparison": "inverted -- surface 1 was majority item-derived"
   },
   "not_captured": {
@@ -146,6 +146,14 @@
         "note",
         "origin"
       ],
+      "2026-08-09-func-code-style-doctrine.md": [
+        "note",
+        "origin"
+      ],
+      "2026-08-09-func-verification-organ-and-repeatable-execution.md": [
+        "note",
+        "origin"
+      ],
       "2026-08-09-tech-compute-placement-and-remote-execution.md": [
         "note",
         "origin"
@@ -228,7 +236,7 @@
     },
     {
       "t": "line",
-      "v": "**26 intake documents.**"
+      "v": "**28 intake documents.**"
     },
     {
       "t": "line",
@@ -298,7 +306,7 @@
     },
     {
       "t": "line",
-      "v": "### DRAFT (6)"
+      "v": "### DRAFT (8)"
     },
     {
       "t": "line",
@@ -327,6 +335,16 @@
     {
       "t": "item",
       "file": "2026-08-08-func-multi-model-execution-and-distillation.md",
+      "status": "DRAFT"
+    },
+    {
+      "t": "item",
+      "file": "2026-08-09-func-verification-organ-and-repeatable-execution.md",
+      "status": "DRAFT"
+    },
+    {
+      "t": "item",
+      "file": "2026-08-09-func-code-style-doctrine.md",
       "status": "DRAFT"
     },
     {
