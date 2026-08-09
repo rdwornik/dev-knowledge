@@ -19,6 +19,68 @@
 
 ---
 
+### 2026-08-09 (h) — CC (Opus 5, bg primary tree): ARC-2 Phase A — the adjudication wave, run first
+
+**Did:** The whole pending adjudication set, before any research was touched. Commit `cd38fb8a`.
+
+**Velocity, this phase alone:** `opened 0 · closed 3 · net −3 · open-total 191` (was 194; 165
+`status: open` + 26 deferred). Nothing was born. The three closes are the whole movement.
+
+**Three closes, each re-verified against LIVE HEAD rather than against the merge** — `[#213]`
+(the rule-inventory artifact exists and records both Done-when clauses MET), `[#215]` (the runbook
+carries `## Conformance verify (#215)` + `## Dry-run attestation` at HEAD), `[#441]` (PLAYBOOK Ch8
+:1351/:1367/:1384/:1393 carry the ruling, the four-condition test and the mapping that leaves one
+launch test, not two).
+
+**Both STRONG proposals were REFUSED, which is the point of checking them.** `[#430]` is the one
+row where the store's STRONG flag is live and *wrong*: `3cf3a5b0`'s own body says it closes half
+(a) and that half (b) remains open, and `fleet_parity.py` still documents itself as reading sibling
+trees — so the "reproducible from the subject repo's own state" clause is untouched. `[#505]` is the
+documented false positive (`25ff8ec37`: *"3 rows filed, 0 closed [#505]"* trips `CLOSES_RE` while
+declaring zero closures), and substantively even its leg 1 is unmet.
+
+**The 141 WEAK proposals rejected en bloc, on evidence:** the store defines WEAK as an inference,
+only 11 ids were ever STRONG across all history, and the closure wave's diff pass claimed 7
+DISCHARGED of which 4 were refuted on adversarial re-check. Precedent `57ae83a6` (39/39 rejected).
+
+**The peg census was itself defective, and that is a finding.** N1 claims *"15 of 33 pegs have
+EXPIRED … in five classes"* — Classes A–E enumerate **13** (7+3+1+1+1); its not-expired list is 18;
+13+18 = **31 of 33**. `[#301]` and `[#494]` appear in **neither** list. 15 rows were adjudicated
+here: the 13 enumerated plus the 2 the census dropped.
+
+- **7 un-deferred** (`[#82]` `[#145]` `[#171]` `[#239]` `[#293]` `[#297]` `[#298]`) — a peg whose
+  condition is MET is not a deferral, and re-pegging it would invent a blocker. Wave-1 completed
+  2026-07-07; the pegs naming it were written 2026-07-08. **32 days behind a satisfied condition.**
+  `[#171]` alone held a three-row chain. `[#293]` was checked for closure and **refused** — 0 of 6
+  consumers carry the seeded runbook, so its `n>=1` clause is unmet.
+- **3 re-pegged** — `[#294]` (its "mesh-portability epic" exists nowhere but inside itself),
+  `[#492]` (spent calendar leg dropped, release leg referred to the OPERATOR, deliberately **not**
+  re-dated — inventing a date is the placeholder-peg trap), `[#494]` (peg **unlocatable** outside
+  the JOURNAL entry that wrote it).
+- **4 kill candidates REPORTED, never executed** — K-1 `[#102]`, K-2 `[#308]`, K-3 `[#325]`,
+  K-4 `[#310]`. Deletion candidates go to the operator with evidence; nothing was killed or folded.
+
+**Two side effects, both surfaced rather than absorbed.** (1) Re-pegging `[#492]` dropped its spent
+date, taking the row off the `>=3 dates AND >700` branch — so its doc_rot disposition matched no
+live WARN on the run that produced it, and was removed per ADR-75. It retired at the peg
+adjudication rather than at the Grok arc it anticipated. (2) **This arc minted the ninth
+`prompt-template` edge, and it is mine**: intake #25's ratification erratum names the template's
+path to show where its content already governed. Rephrasing it away would have cleared the WARN and
+kept the meaning — which is exactly the move the `[#492]` entry refused as *"rephrasing … games the
+detector"*. Dispositioned on its merits instead. It is now the cheapest possible evidence for the
+17-WARN finding: **one true sentence about a spec is, to every organ, indistinguishable from
+depending on it.**
+
+**Cost paid to the known trap:** the first pass of peg annotations tripped `doc_rot` on **seven**
+rows. Condensed, not dispositioned — self-induced bloat gets drained. `[#145]` needed a *dateless*
+annotation because the row already carried two date occurrences and any stamp crossed the trigger.
+
+**Changes:** `tasks/` (3 closed, 7 un-deferred, 3 re-pegged), `BACKLOG.md` + `tasks/manifest.json` (regen), `ecosystem/disposition-register.yaml` (+1, −1 stale).
+
+**Next:** Phase B (is the finding pipeline already law?), then the Phase C triage.
+
+---
+
 ### 2026-08-09 (g) — CC (Opus 5, bg primary tree): intake #25 ratified — the status field catches up to how the document was already being used
 
 **Did:** Architect amendment 1. Flipped intake #25 `DRAFT` → `ACCEPTED`, as its own standalone
