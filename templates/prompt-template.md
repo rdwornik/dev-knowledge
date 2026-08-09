@@ -1,6 +1,8 @@
 # Prompt Template for Claude Code
 <!-- scope: meta -->
-<!-- version: 1.13 — 2026-08-08 -->
+
+Version: 1.13
+Updated: 2026-08-08
 
 > **Copy this template, fill placeholders, save as `.md` artifact, deliver to Claude Code via paste-into-prompt.** Browser chat produces this; Claude Code executes it.
 >

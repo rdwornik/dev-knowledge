@@ -19,6 +19,77 @@
 
 ---
 
+### 2026-08-09 (e) — CC (Opus 5, bg primary tree): the four measured doc defects — two fixed, one fixed at a named cost, one refuted
+
+**Did:** ARC 1 steps 2–3. Ref hygiene, then the four defects. Commits `80061fc0` (intake #27
+rows) and `fc0b1f04` (the spec registry).
+
+**Ref hygiene — every deletion carries its proof.** Five `claude/*` night-lane tips deleted from
+`origin` after `git merge-base --is-ancestor <tip> origin/main` returned true for each — checked
+against **`origin/main`**, not local `main`, so the proof does not depend on this arc's own push:
+`65624a927` (N1) · `3110f0d95` (N2) · `f4041b68c` (N3) · `08a49a4c2` (N4) · `17e4df376` (N5).
+Locals `worktree-lane-challenge-retrieval` (`f4417f21`) and the integration branch `f831b902`
+deleted with `-d`. **Retained with reasons:** `automation/fleet-audit` (163 commits ahead, never
+merges to main by design) and six `claude/conformance-*` (1–2 ahead each; the standing EXPLICIT
+PROTECTION in `.claude/rules/git-discipline.md`). End state: **1 worktree, 0 stashes, 0 merged
+branches left behind.**
+
+**D1 — REFUTED, no edit made.** The claim was that `CLAUDE.md` contradicts its own "(≤200 lines)"
+at 242 lines / 32,479 B. It does not: the budget is machine-defined, and `validate_doc_rot.scan_file_budget`
+**excludes comment-only lines** from the count (the #312 ruling, `LESSONS.md` 2026-07-10, whose
+whole point was that the budget is prose-rot backpressure). Measured live: **198 counted lines
+against a budget of 200** — the check returns no finding, and `_FILE_SIZE_BUDGETS = {"CLAUDE.md": 200}`
+is the enforcement site. The premise measured raw lines, which is not the unit the contract uses.
+Nothing was rewritten to fit. **Headroom is 2 lines** — worth knowing before the next §12 entry.
+
+**D2 — both intake #27 rows amended (`80061fc0`).** Row 33 (`pytest-xdist`) read `NEW EVAL
+candidate` targeting `410s` while the tool is adopted: `addopts = "-n auto"` landed at `d11dda35`,
+authorized in ADR-110's decision table, eval record STANDING_RULINGS E1. **Both premises were
+dead** — the measured serial baseline is 1785.61s, never 410s, and the suite is 2716 passing,
+never 2362. Row 36 (`mise`) gained the fourth witnessed instance of the uv-pin class, this one
+fleet-wide: all five night lanes ran with **no executable gate mesh at all**. Its class change is
+recorded **PROPOSED, NOT RULED**, and the row's own counter — mise would not have fixed that
+night, since the missing thing was a specific uv version — is preserved as unanswered. As-landed
+text quoted rather than deleted, third ERRATUM added to the frontmatter per this file's convention.
+
+**D3 — registered, and it costs 8 WARNs (`fc0b1f04`). Named, not dispositioned.** Registering
+`templates/prompt-template.md` alone would have been **inert**: the spine's single parser reads a
+bare `Version:` line and cannot see an HTML `<!-- version: -->` sentinel, so the row would have
+resolved `unknown-spec` forever and `coherence_nudge` would have silently never fired. Measured
+before the change: `parse_spec_version` returned `''`. The sentinel is therefore promoted to the
+`Version:`/`Updated:` shape `HANDOFF_PROCESS.md` already uses — one version site, not two.
+**Consequence, measured and reported rather than papered over:** `scan_undeclared_edges` scans the
+corpus for prose mentions of every registered spec, so this adds **8 advisory `undeclared_edges`
+WARNs** (18 → 26) and takes **`ship-gate` from GREEN to RED at "8 new/undispositioned WARN(s)"**.
+`audit.py health` stays **OK** — these are WARNs, and the commit gate is unaffected. The discharge
+is deliberately left open: the 9 existing `undeclared_edges → handoff-process` WARNs are
+dispositioned under ref `#241` for exactly this reason (declaring `reconciled_with` on a doc that
+merely *mentions* a spec over-couples it to every minor bump — the 2026-07-04 coherence-spine
+review), and the 8 new rows look like the same class. **Naming that precedent is not exercising
+it**, so no disposition entry was written and no edge was auto-declared. One line reverts it.
+
+**D4 — report only, and the contract's premise is wrong in a useful way.** The three satellite
+floors are **not three revisions at three sizes**. They are **one revision**: CRLF-normalized, all
+three hash to `4d268f32…`, identical to the canonical. The 3177 B outlier is
+`corp-sca-time-automation` at **41 CRLF pairs = +41 bytes** over 3136 B. Root cause proved
+mechanically: `core.autocrlf=true` in all three, but ai-council and corp-monorepo carry a
+`.gitattributes` and corp-sca **carries none**, so git checks its floor out as CRLF
+(`git ls-files --eol` → `i/lf w/crlf`). **Its committed blob is correct; its working tree is not** —
+so `floor-hash-verify` and the SessionStart `check_floor_hash.py --require-present` guard are
+**both failing in that repo right now**, silently. Propagating floor content would have fixed
+nothing and re-broken on the next checkout; the fix is a `.gitattributes` entry (or normalizing
+bytes before hashing), which is a hub design call. **Absent** from `.dev-knowledge`, corp-ops,
+demo-prep, life-architect, terminal-setup, win-tooling — six of the nine ADR-104 members. Zero
+satellite writes made.
+
+**Changes:** `docs/intake/2026-08-06-tech-adoption-consolidation-intake.md`,
+`scripts/validate_reconciliation.py`, `templates/prompt-template.md`, `JOURNAL.md`.
+
+**Next:** architect call on the 8 `prompt-template` undeclared-edge WARNs (disposition under the
+#241 precedent, or accept the RED); the corp-sca `.gitattributes` fix is a satellite arc, not this one.
+
+---
+
 ### 2026-08-09 (d) — CC (Opus 5, bg primary tree): consolidation hygiene — the last branch merged, ARC 1 opens
 
 **Did:** merged `worktree-lane-challenge-retrieval`, the one branch still outstanding after
