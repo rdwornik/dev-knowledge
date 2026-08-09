@@ -31,11 +31,10 @@ fill-in skeleton is `templates/intake-template.md`.
 - [#22](2026-07-30-func-operator-decision-routing-and-standards.md) — Operator design input — decision routing, engineering standards, and lane timeline
 - [#23](2026-08-01-func-distillation-and-library-first.md) — Operator design input — distillation and library-first
 
-### DRAFT (6)
+### DRAFT (5)
 
 - [#10](2026-07-11-tech-c4-visualization-memo.md) — C4 / Codemap Visualization — Architect Research Memo
 - [#24](2026-08-05-tech-currency-wave-1.md) — PART B — INTAKE DRAFT: tech-currency wave 1 — buy the commoditized walls
-- [#25](2026-08-05-func-simplification-distribution-wave.md) — INTAKE DRAFT — simplification & distribution wave: adopt the commoditized layers, keep the edge
 - [#27](2026-08-06-tech-adoption-consolidation-intake.md) — INTAKE DRAFT — tech-adoption consolidation ledger (38 items, successor-facing)
 - [#28](2026-08-08-func-skills-tier-adoption-and-hub-finish-line.md) — Skills-tier adoption, the operator's 14, and the hub finish line
 - [#29](2026-08-08-func-multi-model-execution-and-distillation.md) — Multi-model execution flow, session-cost instrumentation, and the distillation engine (measure-first)
@@ -44,7 +43,7 @@ fill-in skeleton is `templates/intake-template.md`.
 
 - [#15](2026-07-16-satellite-onboarding-prompts.md) — Satellite onboarding prompts — ready to fire (four consumers)
 
-### ACCEPTED (8)
+### ACCEPTED (9)
 
 - [#12](2026-07-11-tech-ownership-manifest.md) — Fleet Ownership Manifest (SETTLED) + Nightly Hygiene Decision Tree
 - [#13](2026-07-11-tech-plan-of-record-fleet-hygiene.md) — Plan-of-record — Fleet Hygiene System build (post 2026-07-11 session)
@@ -53,6 +52,7 @@ fill-in skeleton is `templates/intake-template.md`.
 - [#17](2026-07-25-tech-consolidation-decision.md) — CONSOLIDATION DECISION v2 — final form
 - [#18](2026-07-27-tech-handoff-process-v6-proposal.md) — HANDOFF_PROCESS v6 — amendment proposal pack (ACCEPTED 2026-07-30)
 - [#20](2026-07-28-north-star-delta-review.md) — North Star delta review — local 2026-07-21 doc vs in-repo intake #16
+- [#25](2026-08-05-func-simplification-distribution-wave.md) — INTAKE — simplification & distribution wave: adopt the commoditized layers, keep the edge (ACCEPTED 2026-08-09)
 - [#26](2026-08-06-func-parallel-execution-system.md) — Parallel multi-agent execution system — batch protocol as versioned repo artifacts
 <!-- INTAKE-INDEX:END -->
 
