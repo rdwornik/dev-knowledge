@@ -19,6 +19,128 @@
 
 ---
 
+### 2026-08-10 (a) — CC (Opus 5, primary tree): ARC-4 — the disposition, four kills that all survived their own evidence, and the cut
+
+**Did:** Executed the frozen ARC-4 contract from the hub PRIMARY checkout, serial, sole writer to
+`main`. Commits `201191f4` (the 20th `#241` disposition), `01410f94` (K-1/K-2/K-3), `9a7ffcb4`
+(K-4's evidence attachment), `bbc008c3` (the handoff cut). **Zero `SKIP=`, zero `--no-verify`, zero
+force-push, zero deletions beyond the arc's own merged branch** — as contracted.
+
+**Step 1 — the ship-gate RED that ARC-3 introduced is cleared.** Exactly one undispositioned WARN
+stood on `main`: `docs/intake/2026-08-09-func-verification-organ-and-repeatable-execution.md ->
+prompt-template`, minted when ARC-3 filed intake #30 **verbatim** under an explicit no-body-edits
+ruling — §E item 6 of that body names `templates/prompt-template.md` as a registration target.
+Dispositioned under the standing `#241` class rather than declared: an intake proposing what
+`_SPEC_REGISTRY` should *contain* does not track what the template contains, so `reconciled_with`
+would assert a coupling that does not exist (the stale-edge risk decision sheet §4 item D flagged).
+Third instance of that exact shape after `-intake-25-` and `-intake-v6-proposal-`. The class count
+was verified from the parsed YAML, not counted by eye: **exactly 20**.
+
+**And the row names the rule that is missing, because the row itself is the cheap part.** The corpus
+cannot distinguish a MENTION from a DEPENDS-ON. The vocabulary offers only "declare a version
+coupling" or "buy a hand-written register row", with nothing to say for "this document merely names
+the spec". A **verbatim-filing policy inflates the class by construction** — a verbatim body cannot
+be rephrased around the scanner, so the count grows intake-by-intake with nobody taking a single
+dependency. The fix is in the edge vocabulary (the RF-4 family), not a twenty-first row.
+
+**Step 2 — ALL FOUR kill candidates survived contact with their own evidence. Closes: ZERO. Births:
+ZERO.** The operator diverged from the decision sheet on all four, and every divergence was a
+condition the sheet had not tested:
+
+- **K-1 `[#102]`** — the sheet said KILL on a dead peg. Ruled instead that a dead peg is not evidence
+  the Done-when is unmeetable, and the **never-discharged verify-first clause** was run first.
+  Result: **`stacklit` EXISTS** (`glincker/stacklit`) and is the row's exact described shape,
+  including the `hints` field it names — the row's "~50k → ~250 token" figure is that tool's own
+  headline claim, not an independent measurement. **`scip-search` does NOT exist** under that name;
+  the referent is Sourcegraph SCIP + the `scip` CLI, code-navigation indexing rather than a
+  repo-topology summary. Hub half answers NO (not a code project; the pilot shape is already native
+  and gate-enforced). Corp half is untested from Layer 2, which never executes in a child repo — so
+  **not closed**, because closing would assert a corp finding this seat cannot make.
+- **K-2 `[#308]`** — RE-PEGGED, not killed, to the intake #25 W-wave carrier decision (W-2/W-3),
+  named in the row with today's date so the next census verifies rather than inherits it. Confirmed
+  live before pegging that intake #25 is `status: ACCEPTED` and W-2/W-3 exist — a ratified target,
+  not an unborn one, which was the operator's explicit constraint.
+- **K-3 `[#325]`** — the fold condition was **tested and FAILED**. `[#294]` ships a Python validator
+  in serialize-group `audit-py`; `[#325]` ships a command-file artifact in `settings-json`.
+  Different artifact class, carrier mechanism and serialization lane, and `[#325]` carries a second
+  conjunct with no `[#294]` analogue. `[#236]`, the one genuinely same-class row, is **closed** at
+  `40ce3189` — so no live fold target exists at all. Left open with its dead `#221` peg recorded.
+- **K-4 `[#310]`** — **the sheet's premise was already refuted, and this is the arc's real finding.**
+  The escape clause needs `#292`'s evidence to adequately record the 07-05 bundle's cold state.
+  Commit `9fc1a8b4` (2026-07-21) had examined exactly that and kept the row open. All three legs
+  re-verified live: `validate_residual_completeness.py:33-35` is *"DIFF-TRIGGERED, prospective-only
+  … Already-committed bundles are historical"*; the 07-05 bundle still carries **8** `(fill:`
+  markers; **no** cold-annotation surface exists. `#292` being CLOSED is a different proposition
+  from `#292` recording the cold state, and that conflation is what the kill rested on.
+
+**The defect is not the four proposals — it is an audit claim propagating unchecked onto a decision
+surface.** The decision sheet inherited N1's *"the precondition for that escape is now satisfied"*
+without verifying it. This is A2's "ruled-but-unverified" family arriving in the **consumption**
+layer rather than the execution layer. So the refutation now lives **on the row** — replacing the
+escape clause, which was the re-proposal vector — rather than only in a commit body. That is the
+identical fix A7 item 5 demands for the ADR-archival zero-refs bar, and the row had already survived
+two kill attempts without it. `#292` is deliberately kept named so the `[#310] -> #292` match
+signature survives and its disposition does not rot into an ADR-75 stale decoration.
+
+**The measured close capacity of 3 was therefore never exercised.** Against **170 open**, the
+under-100 target needs **71 closes ≈ 24 arcs** at that rate — the strategic fact the incoming seat
+inherits, and it sits *below* the 5.67/batch figure because 5.67 measured lanes executing
+pre-adjudicated work while 3 is what adjudication alone yields.
+
+**Step 3 — the cut.** `docs/handoffs/2026-08-10-dev-knowledge-architect/`, architect mode, five
+files. The supplement's **Part 1 (A1–A7) folded VERBATIM** — zero rewriting, summarising or
+reordering, asserted programmatically by exact substring match of the extracted source block
+(sha256 `a7020232ba3122f4`). **Parts 2–4 carried into `RESIDUAL.md` §4b unedited** rather than
+discarded, with an honesty note attached rather than edited *into* them: Part 3's own `[#511]` and
+"5.67 / distance 62" lines are overtaken and marked NOT-current, because editing a verbatim register
+destroys the thing that makes it worth carrying.
+
+**The path check the source itself demanded was discharged, not inherited.** Part 3 warns that an
+arc once reported a contract file absent that was present, and instructs the next arc to report what
+`$env:CLAUDE_PROMPTS_DIR` resolves to before treating any file as lost. Reported before reading:
+resolved to `C:\Users\1028120\Downloads`, file present at 18,940 bytes.
+
+**`[#511]` — both figures carried, both inconsistencies named, NEITHER resolved.** The relayed
+figure (20m48s end-to-end, generation 4s ≈0.03%) is labelled **relayed, unverified, not reproduced
+in-repo** on the operator's own instruction, since it came from the predecessor seat and reached the
+contract unchecked. Two internal inconsistencies stated: 4s of 20m48s is **≈0.32%**, roughly **ten
+times** the stated 0.03%; and the components (≈5m27s + ≈5m16s + ≈4m20s) sum to **≈15m03s**, leaving
+**≈5m45s unaccounted**. The repo's only measured line (`docs/audits/2026-08-07-technical-handoff-engine-thinning.md`,
+~4.5s mechanized ≈0.25% of a ~30-min cut) is cited as such. **What survives the dispute:** generation
+is a rounding error on every figure, so the fork is the SHAPE of the load — probes + locator
+re-verification + answers — not seconds.
+
+**Step 4 — gates.** Full suite **1 failed / 2715 passed / 4 skipped / 1 xfailed (514s)** — **exactly
+the contracted baseline, zero deviation**: the standing pre-existing `routine_consumers` RED, whose
+test pins "1 declared routine row" while the live BACKLOG carries 2. Not fixed, per contract.
+`audit.py health` **OK**. Ship-gate **GREEN** (27 WARN dispositioned, 0 undispositioned, 0 `[stale]`).
+Bundle: `verify_seal_identity` OK, `validate_residual_completeness` OK, **14 probes / 14 pass / 0
+fail / 0 warn**.
+
+**Result:** the ship-gate RED cleared; four kill proposals adjudicated to zero closes with the reason
+recorded on each row rather than in a commit body; the bundle cut with the supplement verbatim and
+the adjudication debt carried. The number did not move, and the reason it did not move is the
+finding.
+
+**Changes:** `ecosystem/disposition-register.yaml` (+1 entry, the 20th of the `#241` class) ·
+`tasks/{102,308,310,325}-*.md` + regenerated `BACKLOG.md` + `tasks/manifest.json` ·
+`docs/handoffs/2026-08-10-dev-knowledge-architect/` (new bundle, 5 files) · this entry.
+
+**Abandoned:** nothing. Two generator advisories reported and deliberately NOT silenced — 6
+promotion-debt lines in the folded ANSWERS (intake #18 A8) and `PASTE_THIS.md` at 68,901 bytes
+against a 65,000 advisory ceiling. Both follow directly from the verbatim-fold and carry-Parts-2-4
+instructions; trimming either would have violated the contract. K-4's option 3 (build the
+cold-annotation surface, then close on merit) was refused by the operator as inventing an artifact
+shape mid-arc without a governance source, inside an immutable directory, in a zero-births arc.
+
+**Next:** the incoming architect seat owes the **adjudication debt** — `docs/audits/2026-08-09-technical-decision-sheet.md`,
+its 15 §7 items plus ADR-111 §4, all UNADJUDICATED. **Three read-only cloud lanes were in flight
+overnight** (satisfied-row census, decision-sheet claim verification, origin branch census); they
+push report branches and merge nothing, and **no batch manifest was opened, so the morning
+integrator authors one BEFORE integrating** — the ADR-110 exemption does not reach `claude/*` lanes
+at all. `[#502]`'s Shape-B execution row is a batch-4 birth candidate; the ruling is landed at
+`STANDING_RULINGS` H4 but no open row owns it.
+
 ### 2026-08-09 (j) — CC (Opus 5, bg primary tree): ARC-3 hygiene close-out — the closes verified real, the carried writes landed, one RED named
 
 **Did:** Executed the frozen ARC-3 contract from the hub PRIMARY checkout, serial, sole writer to

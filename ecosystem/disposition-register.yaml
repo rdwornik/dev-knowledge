@@ -354,6 +354,45 @@ dispositions:
       template should gain, not a version it tracks. Shelf-life deliberately matched to its sibling
       (2026-08-26): both clear together when intake 18 ratifies or retires.
 
+  # ---- the TWENTIETH, and ARC-3 created it by filing an intake verbatim (2026-08-09) ----
+  # The entry above closed at 19. This one takes the class to 20 — and it was minted the same way
+  # the nineteenth was: not by anyone taking a dependency on the template, but by an arc writing one
+  # accurate sentence that happens to contain the string `templates/prompt-template.md`. ARC-3 filed
+  # intake #30 VERBATIM under an explicit no-body-edits ruling; §E item 6 of the body proposes
+  # registering canonical `AGENTS.md` in `_SPEC_REGISTRY` and notes the template is "same class,
+  # missing today". Filing it unedited was the correct call — the ruling valued the archival record
+  # over tidying — and the arithmetic consequence is a ship-gate RED that only a register row clears.
+  #
+  # THE MISSING RULE, NAMED PLAINLY: the corpus has no way to distinguish a MENTION from a
+  # DEPENDS-ON. `scan_undeclared_edges.py` matches the path string; `reconciled_with` declares a
+  # version coupling. There is no third thing to say, so every doc that merely *names* a registered
+  # spec must either lie (declare a coupling it does not have — the stale-edge risk the decision
+  # sheet §4 item D flagged) or buy a hand-written register row. Twenty rows in, that is the measured
+  # price of the ambiguity, and it now scales with any policy that files source documents verbatim:
+  # a verbatim filing cannot be rephrased around the scanner by construction, so intake-by-intake
+  # this class inflates on its own. The fix is a mentions-vs-depends distinction in the edge
+  # vocabulary itself (the RF-4 family — CoupledSet granularity, or a `mentions:` declaration form),
+  # not a twenty-first row. Recorded here so the count is legible to whoever adjudicates #241.
+  - id: warn-undeclared-intake-30-prompt-template
+    organ: undeclared_edges
+    match: "docs/intake/2026-08-09-func-verification-organ-and-repeatable-execution.md -> prompt-template"
+    ref: "#241"
+    review_date: 2026-09-09
+    reason: >-
+      A PROPOSAL TARGET inside a verbatim-filed intake, not a version coupling. §E item 6 names
+      `templates/prompt-template.md` as a spec that should be registered alongside canonical
+      `AGENTS.md` ("same class, missing today" — a predecessor observation authored off-repo that
+      ARC-1 had already overtaken by registering the template at `fc0b1f04`; left unedited because
+      the body was filed VERBATIM by ruling). An intake proposing what the registry should contain
+      does not track what the template contains, so `reconciled_with` would declare a coupling that
+      does not exist. Same reasoning as `warn-undeclared-intake-v6-proposal-prompt-template` and
+      `warn-undeclared-intake-25-prompt-template`, and the third instance of that exact shape.
+      This row takes the #241 class to TWENTY entries; see the comment block above for why a
+      verbatim-filing policy inflates the class by construction and why the missing rule is
+      mentions-vs-depends rather than another disposition. Non-self-clearing — the body is frozen by
+      the verbatim ruling, so the string survives ratification — hence the review_date, matched to
+      its intake-25 sibling (2026-09-09).
+
   # ---- BACKLOG history-accretion bloat, ruled by grooming leg-c (2026-07-08) ----
   # The 2026-07-07 census-triage arc pushed three tasks past the doc_rot accretion threshold.
   # Grooming leg-c (2026-07-08) ruled them: #286 was re-scoped below threshold (WARN cleared, entry
