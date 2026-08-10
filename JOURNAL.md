@@ -19,6 +19,79 @@
 
 ---
 
+### 2026-08-10 (e) — CC (Opus 5, primary tree): ARC-8 — the Fable adversarial review integrated, and a teardown deliberately not performed
+
+**Did:** Integrated ONE lane branch from the primary checkout, as the integrator. Merged
+`worktree-fable-adversarial-review` (tip `b8f4004`) — the Fable 5 xhigh adversarial falsification
+review of plan v2, cut read-only from `main` @ `a967d27e` in the sandbox worktree
+`.claude/worktrees/fable-adversarial-review`. Pure ADD: one audit
+(`docs/audits/2026-08-10-verification-fable-adversarial-plan-review.md`, 349 lines) plus its
+`docs/audits/README.md` index line. Zero `SKIP=`, zero `--no-verify`, zero force-push, zero
+births, zero status/priority/peg changes, no bundle edits, no BACKLOG change.
+
+**Shape of the merge, and why it is not a bare merge-on-main.** The anchor could not ride a
+direct-to-main commit — `block-ff-push` refuses a non-merge commit on main's first-parent spine —
+and it could not ride the lane branch either, because that branch is checked out in a LOCKED
+worktree held by a live session. So the lane merge and this entry both landed on
+`docs/arc8-fable-adversarial-integration`, which merged into `main` as a single `--no-ff` merge:
+**one merge commit on main's spine**, and `b8f4004` introduced inside the pushed range for the
+ADR-85 hard leg to discharge against.
+
+**What the review found (0 Critical / 3 High / 6 Medium / 6 Low).** Its calibration half is
+substantial and is not a formality: all seven discharge-register locators resolve AND prove their
+claims; A7 items 2–7 verified landed per item at `78ab77b4`; terminal-status integrity 28/28 with
+zero surviving silent reverts; BACKLOG reconciliation exact at 196=196=196; `[#270]` (34d idle,
+3 dependents) and `[#514]` (exemption-inert, proved from the regex pair) both true.
+
+The three **High** findings are the payload:
+1. **`ARCHITECTURE.md` carries 14 checkably-FALSE claims**, and **≥3 were already false on
+   2026-08-08 when `8f09c12d` stamped a genuine review** — so decision-sheet item 12's "residue"
+   is not residue but the live question: **the stamp is current and the content is not.** This
+   sharpens, and does not contradict, the P5 probe result (stamp on last touch) that ARC-7's
+   verify block reported.
+2. **Commission 5 (`wf-fafd931b`) has ZERO in-repo trace** — the only one of six commissions that
+   vanishes entirely if the off-repo memo is lost; plan v2 routes only its decision-lifecycle
+   half. The **seeded-defect corpus spec** (gating `[#491]`/`[#492]`/Copilot) likewise exists
+   nowhere in-repo.
+3. **Plan v2's ratification surface silently drops intake #32 and intake #28 §A**, against
+   `JOURNAL.md:562`'s recorded "#28–#32 … ONE batch" intent and #28's own "§A and §B" acceptance
+   criterion.
+
+It also **corrects two N-B verdicts** this repo has been carrying: item 5's `~4.5s` figure IS in
+the tracked record (`JOURNAL.md:1905`, `RESIDUAL.md:124`) and item 3 is verifiable from the
+adjudication seat — both should be VERIFIED, not UNVERIFIABLE, and the N-B tally (15V/2R/1p/6U)
+is **not reproducible from its own 25-row table**. Nothing here is ruled by this arc; the review
+rules nothing and this integration rules nothing.
+
+**TEARDOWN DELIBERATELY NOT PERFORMED, AND IT IS THE ONE INSTRUCTED STEP LEFT OPEN.** The brief
+asked for `worktree remove` + `prune` + `branch -d`. The worktree is `locked` with reason
+`claude session fable-adversarial-review (pid 37780)`; **pid 37780 is ALIVE** (started 16:23, its
+transcript written 17:32, nine minutes before this entry). Destroying a live session's checkout is
+the hazard core-invariant #3 exists for, and `git branch -d` would refuse the branch anyway while
+it is checked out elsewhere. Reported to the operator rather than forced; **no `--force`, no
+`prune`, no kill, no branch delete.** The lane branch and its worktree therefore survive this
+merge intentionally — a leftover by declared exception, not by omission, and the `no leftovers`
+round-trip is OWED once that session closes.
+
+**Result:** suite **1 failed / 2715 passed / 4 skipped / 1 xfailed** — the standing
+`test_routine_consumers_live_backlog_governs_exactly_one_row` failure only, unchanged and
+untouched by this arc (it asserts 1 declared routine row against a live BACKLOG carrying two
+`· routine:` markers, `[#348]`/`[#426]`). `audit.py health` OK. `ship-gate` GREEN.
+
+**Changes:** `docs/audits/2026-08-10-verification-fable-adversarial-plan-review.md` (new, via the
+lane), `docs/audits/README.md` (index line, via the lane), `JOURNAL.md`.
+
+**Abandoned:** nothing.
+
+**Next (operator-owed):** the worktree teardown, once pid 37780's session ends · the three High
+findings, none of which this arc ruled · re-grading N-B items 5 and 3 before any Phase-2 ruling
+cites them · `ARCHITECTURE.md`'s 14 false claims, which give item 12's "commission a re-read arc"
+option a measured defect list to work from.
+
+**Anchors:** `b8f4004`.
+
+---
+
 ### 2026-08-10 (d) — CC (Opus 5, primary tree): ARC-7 — the boot instruction cites the live predicate, and the row it belongs to stays closed
 
 **Did:** The smallest correct act for the one delta item that existed nowhere in the repo. Zero
