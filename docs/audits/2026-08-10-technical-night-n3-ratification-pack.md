@@ -30,7 +30,20 @@
   - `python scripts/audit.py health` → **could not run**: `ModuleNotFoundError: No module named
     'click'`. The `audit-health` pre-commit gate is therefore **unevaluated**, not passed.
   - `pytest`, `ruff`, `pre-commit` → **not available**. Unevaluated, not passed.
-  - This is the fifth witness of the class intake #32's attestation rule generalizes (§5.2).
+  - The `Stop` backpressure hook (`session_end_backpressure.py`) **also refused**, on the same pin:
+    `error: Required uv version ==0.11.19 does not match the running version 0.8.17`. **That refusal
+    is the ADR-85 amendment 2026-08-03 §A5 working as designed** — the hook is advisory in full, has
+    no hard leg, and its outer error is loud rather than a silent `return 0`, so an organ that cannot
+    run says so instead of passing quietly. No JOURNAL anchor is owed for this lane's push regardless:
+    `block-unanchored-push` is scoped to pushes targeting `main`, and this pushes a `claude/<slug>`
+    lane branch.
+  - **Three organs silenced by one pin, in one lane** — the pre-commit mesh, `audit.py health`, and
+    the `Stop` hook. That is the same count intake #27 §A row 36 records for 2026-08-09 (*"THREE
+    organs silenced by the uv pin, the third an unbidden fail-open Stop hook"*), with one difference
+    worth carrying: **the Stop hook was loud here, not fail-open.** The §A5 amendment closed that
+    specific silence, and this lane is its live confirmation.
+  - This container is the **fifth** witness of the class intake #32's attestation rule generalizes
+    (§5.2) — counted once as an instance, not three times as organs.
 
 ---
 
