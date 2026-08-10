@@ -1,7 +1,8 @@
 # ADR-111: The finding pipeline — every audit finding is triaged into exactly one of four outcomes
 
-- **Status:** Proposed
+- **Status:** Accepted (operator ruling 2026-08-10 — seat-27 ruling checklist, Fork 1 = Option A: ratify AS WRITTEN, the §4 departure intact)
 - **Date:** 2026-08-09
+- **Decided-by:** operator ruling 2026-08-10, seat-27 checklist Fork 1 = **Option A (as written)**. Reason recorded with the ruling: ADR-98 §3 is ratified law and live practice matches it (intakes #16/#25/#26 accepted by recorded ruling in `decided-by`, not by ADR), so Option B would force an ADR at sites that are not genuine forks; the ARC-6/ARC-7 named-unowned defects — a de-facto fifth outcome — ride this ADR's own n=2 measurement clause rather than a new rule. Register: `protocols/STANDING_RULINGS.md` I-F1. Source of record is off-repo (`RULING-CHECKLIST-2026-08-10.md`, operator's `Downloads`); in-repo carrier `docs/audits/2026-08-10-verification-arc9-rulings-recording.md`.
 - **Decision tier:** Architecture (Path A — architect ruling, ARC-2 consolidation contract Phase B, 2026-08-09)
 - **Amends:** ADR-98 (§3 genre demarcation — see "What this changes in ADR-98" below; the amendment is NAMED rather than left as a silent second rule)
 - **Related:** ADR-100 (§4 audit-vs-intake genre split — the half of this doctrine that is already law), ADR-65 (done-item disposition — the close-side sibling of this add-side rule), ADR-108 (§F backlog equilibrium is explicitly NOT ratified there; this ADR does not ratify it either), ADR-66 (story-map schema), ADR-70 (Tier-1 closure loop)

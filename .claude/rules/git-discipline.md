@@ -24,8 +24,17 @@ the merge you were already authorized to perform. `--merged` still gets verified
 nothing is ever force-deleted; the rule removes the *authorization* round-trip, not the
 safety check.
 
+**`automation/*` is EXPLICITLY PROTECTED** (operator ruling 2026-08-10, seat-27 checklist
+3c-3; register `.dev-knowledge/protocols/STANDING_RULINGS.md` I-D). It joins
+`claude/conformance-*` on the protection list. Reason: an `automation/<slug>` lane is an
+organ-produced replication branch (the fourth machine-produced lane prefix, B5) whose
+*whole purpose* is to live outside `main` — `automation/fleet-audit` is the live instance,
+and `audit.py::check_fleet_audit_replication` asserts it stays replicated to origin. It is
+therefore never "a merged branch left alive", and deleting it breaks the organ rather than
+tidying after it.
+
 - verify: `git branch --merged main` lists nothing but `main` and explicitly protected
-  branches (`claude/conformance-*`).
+  branches (`claude/conformance-*`, `automation/*`).
 
 ### WORKTREE TEARDOWN IS TWO BRANCHES, NOT ONE
 
