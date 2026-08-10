@@ -19,6 +19,50 @@
 
 ---
 
+### 2026-08-10 (h) — CC (Opus 5, primary tree): ARC-9 queue lane 2 — batch-4 prep evidence, and a generated index that went stale on a clean merge
+
+**Did:** Second lane of the full-queue GO. Merged `worktree-batch4-prep` (tip `8e63eab3`) on
+`docs/arc9-lane-batch4-prep`, plus the mandatory index regen (`4cab8646`). Pure ADD: one
+997-line evidence sheet. Zero `SKIP=`, zero `--no-verify`, zero births, zero closes.
+
+**The lane's payload.** Six evidence sheets (`[#270]` · `[#514]` · `[#502]` · the 3b-3
+`kill-candidates:` refusal check · the ARC-6 carry-forward · the ARC-7 §6 site), a 6×6 pairwise
+disjointness matrix, six contract skeletons, and four recording paste-blocks. **Feature-class
+verdict: NOT zero, but close in substance** — 5 open rows are L-sized, 24 cite an intake, and the
+overwhelming majority of the 170 open rows are governance repair rather than features, which is
+structural: CLAUDE.md §5 rule 4 makes this Layer 2, so a "feature" here can only be a new
+validator, generator or surface. Top three named: `[#270]` operator-load gauge (the only P1),
+`[#132]` organ-index generator, `[#171]` conformance dashboard.
+
+**What the matrix is actually for.** Three of six subjects plausibly edit `ARCHITECTURE.md`, and
+two edit `CLAUDE.md` — which is freshness-gated, so **D and F cannot be separate lanes**: both
+force a `last_reviewed` re-stamp on one file and `canonical_freshness` A2 wedges `audit-health`,
+a PRE-commit gate. It also catches a seventh subject the batch had not named: `[#510]` re-keys the
+same `exempt()` function `[#514]` deletes a regex from, so **if both are in batch 4 they are one
+lane.**
+
+**Result — the lane's own absorb finding reproduced on this very merge.** `docs/audits/README.md`
+auto-merged **cleanly**, and `gen_audit_index.py --check` still **exited 1**: the generated index
+was stale. That is the digest census's §7.2(3) prediction landing live — a conflict-free merge
+skips `pre-commit` entirely (only `commit-msg` hooks run), so a generated file rots silently and
+`audit-index-freshness` fires later on an unrelated commit. The trailing regen commit is mandatory
+whether or not anything conflicts. Cleared under the regen-hygiene rule (A1), no disposition.
+
+Suite on the merged tree: **1 failed / 2715 passed / 4 skipped / 1 xfailed** (14m24s) — the
+standing `[#426]` row, unchanged and pre-existing.
+
+**Recorded so it is not applied twice:** paste-blocks 3 and 4 (the `[#508]` deliberately-unmechanized
+line, the K-4 supersession pointer) are **already landed** at `57284aaa` as `STANDING_RULINGS` I-D.
+The lane's drafts carry fuller evidence and now sit in the merged sheet; the register lines stay as
+recorded. Blocks 1 and 2 (`[#241]`, `[#390]`) are batched to the operator — ruled, drafted, not
+applied by this walk.
+
+**Changes:** `docs/audits/2026-08-10-technical-batch-4-prep-evidence.md` (new, 997 lines),
+`docs/audits/README.md` (regen).
+
+**Abandoned:** nothing. **Next:** backlog-testability-census, digest-absorb-prep, absorb ×7,
+ingest-research-corpus last.
+
 ### 2026-08-10 (g) — CC (Opus 5, primary tree): ARC-9 queue lane 1 — ARCHITECTURE's 16 false claims corrected, and the review's own count superseded
 
 **Did:** First lane of the operator's full-queue GO, as integrator from the primary checkout.
