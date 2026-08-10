@@ -704,6 +704,159 @@ Shape A (root `conftest.py`) stays permitted-not-mandated per `[#430](a)` and F5
 
 ---
 
+## I. ARC-9 — the 2026-08-10 ruling window (seat-27 checklist)
+
+The operator's answers to the seat-27 ruling checklist, recorded the day they were given. The
+checklist's DEFAULT BLOCK was ratified whole; the four forks and two inputs were answered
+individually. Nothing in this section is a fresh decision — each line is the landing of one
+already-issued answer.
+
+- **Source of record:** `RULING-CHECKLIST-2026-08-10.md`, operator's `Downloads` — **off-repo**,
+  cited rather than claimed as an in-repo locator (the ADR-110 precedent for an off-repo
+  ratifying act). The in-repo carrier is `docs/audits/2026-08-10-verification-arc9-rulings-recording.md`.
+- **Scope, stated so the gaps read as deliberate.** FORK 4 (the births package at the batch-4 GO)
+  is not answered here and is not recorded here. The `[#241]` and `[#390]` row texts are owed to
+  the batch4-prep lane's DRAFT paste-blocks and are deliberately not drafted in this arc. No
+  intake `status:` or `decided-by` field is flipped by this arc — see I-F2.
+
+### I-P0 · The plan's hygiene-first inversion is ratified
+
+Plan v3 inverted the operator's hygiene-first ask. RATIFIED — because ARC-4 measured the failure
+mode the inversion avoids: the triage surface was built and zero rows moved.
+
+### I-P1 · The N-B verdict set binds only in its corrected form
+
+Rulings bind to `docs/audits/2026-08-10-technical-decision-sheet-verification.md` only as
+corrected by the Fable findings M1-a/M1-b
+(`docs/audits/2026-08-10-verification-fable-adversarial-plan-review.md`). ADOPTED, in four parts:
+item 14 ≡ §4A is one claim counted once (documented, rather than reconciled by a silent dedupe) ·
+both hybrid *"VERIFIED (as unverifiable)"* rows — items 1 and 7 — count UNVERIFIABLE for grounding ·
+items 3 and 5 are re-graded VERIFIED on located evidence · items 10, 11 and §4B stay UNVERIFIABLE.
+The corrected 25-row table is emitted at the recording artifact §2.
+
+### I-D · The DEFAULT BLOCK, one line per ruling
+
+- **1 · `[#492]` Grok 4.6** — NOT released; the row parks behind a dated re-check **2026-08-17** —
+  browser-verified 2026-08-10, with no model card and no API id.
+- **2 · the four kills** — ARC-4's dispositions stand as recorded, with no re-ruling — all four
+  survived (`01410f94`, `9a7ffcb4`): K-2 re-pegged, K-3's fold refused, K-4 left open with its
+  refutation attached.
+- **3 · the OneDrive rule conflict** *(N-B: VERIFIED, corrected)* — the fleet unifies on the global
+  tiered permissive-with-enumeration form, and a per-repo TIGHTENING stays legal when its reason is
+  recorded — ai-council's strict form keeps its line, documented rather than silent.
+- **3b-1 · the K-4 supersession pointer** — the immutable decision sheet's §2 source-recommendations
+  are superseded by ARC-4's outcomes — the sheet is immutable and its K-4 row still reads as a kill
+  recommendation, so the record moves by pointer rather than by edit.
+- **6 / §4D / A7-1 · the three discharges** — CONFIRMED (`036385a6` · `201191f4` · the intake #25
+  erratum).
+- **7 · the N2 R6 HEAD swaps** *(UNVERIFIABLE — stated per the join rule)* — accepted as
+  unverifiable and closed — un-gitignoring a reflog buys nothing.
+- **8 · the `2h43m` / `~9min` figures** — STRICKEN as unsourced — untracked seat memory falls below
+  the evidence bar.
+- **9 · pre-commit rewriters** — the read-only set only — rewriters set against the append-only and
+  immutability invariants is complexity spent on whitespace.
+- **10 · the pending-proposals store** *(UNVERIFIABLE — stated)* — a tracked digest is exported per
+  session — cloud-blindness as a stated limit is the fallback.
+- **11 · the two engine amendments** *(UNVERIFIABLE — stated)* — RATIFIED, both — endorsed in voice;
+  ratification makes the plan-zip mechanical and discharges the F25-3 hand-write from the next
+  window on.
+- **12 · `ARCHITECTURE.md`** — COMMISSION the re-read/fix arc as a batch-4 lane, with the
+  12-named-claims list as its input, and re-stamp only once the fix lands — Fable H3 killed the
+  "leave it honest and stale" option: the stamp is current while the content is not.
+- **13 · the `[#322]` peg** — converted to a dated review — the referent was ruled against, and a
+  dead peg tests nothing.
+- **14 → §4A** — the same claim; counted once and documented; ruled under FORK 4's pool, which this
+  arc does not open.
+- **§4B · `[#520]` birth legality** *(UNVERIFIABLE — stated)* — both rows are KEPT and the reading is
+  CONFIRMED for future arcs: the cap governs arc-originated births, and JOURNAL-scheduled carried
+  debt is separate.
+- **§4C · deferred rows inside the open total** — LEGAL; priority reads as *"when un-parked"* — H2
+  already made the denominator law, so forcing a re-priority at defer time is ceremony.
+- **3a-1 · `[#390]`** — a drive-by correction lands WITH the version bump — the coherence-nudge
+  machinery exists for exactly this registered-spec-edit shape. *(Row text owed to batch4-prep.)*
+- **3a-2 · `[#508]`** — the ruling branch is taken: recorded **"deliberately unmechanized"** with its
+  reason — that closes a P3 today against an enum which currently agrees.
+- **3a-3 · `[#241]`** — re-phrased to a cardinality-free predicate — re-pegging to the live count
+  re-breaks on the next drift. *(Row text owed to batch4-prep.)*
+- **3a-5 · `[#505]` clause 1** — the clause STAYS, and batch-4 lanes dispatch from COMMITTED contract
+  files — three same-cause failures mean the mechanism is being dodged, not that it is wrong.
+- **3a-6 · the 0-SATISFIED strategy result** — ACCEPTED as evidence and consumed as the Phase-4 input
+  grounding the A5 exemption — neither kills nor harvesting closes the gap.
+- **3b-4 · the citation convention** — ADOPTED as a PLAYBOOK drafting rule, advisory — it earns a
+  check only on n=2 evidence.
+- **3b-5 · the inherited-vs-measured field** — ADOPTED as a standing advisory field on decision
+  surfaces — the ratio held again inside this window, across three fresh instances (the seat's A7
+  miss · CC's predicted suite number · Fable's own M1-a note).
+- **3c-3 · `automation/fleet-audit` protection** — YES: one line in `.claude/rules/git-discipline.md`
+  naming `automation/*` alongside `claude/conformance-*`. **Landed by this arc.**
+- **3c-5 · the satellite branch census** — DEFERRED with an owner, W-wave scope — satellites are
+  recorded as unexamined-not-clean.
+- **F-c · unowned-defect register lines** — every REJECTED or DEFERRED FORK-4 pool candidate earns a
+  line in this file, rather than packet prose alone.
+
+### I-F1 · FORK 1 — ADR-111 is ratified as written (Option A)
+
+ADR-111 moves Proposed → Accepted **as written**, its §4 departure intact. Reason: ADR-98 §3 is
+ratified law and live practice matches it — intakes #16/#25/#26 were accepted by recorded operator
+ruling in `decided-by`, not by ADR — so Option B (ADR-mandatory-per-birth) would force an ADR at
+sites that are not genuine forks. The ARC-6/ARC-7 named-unowned defects do show a de-facto fifth
+outcome; that is handled by the ADR's own n=2 measurement clause rather than by a new rule today.
+
+- **Landed by this arc:** the status line and a `Decided-by` line at
+  `docs/decisions/ADR-111-finding-triage-pipeline.md` (the ADR-94 status-line-only in-place
+  exception), plus the `docs/decisions/README.md` row's `**PROPOSED** —` prefix dropped per the
+  index's status-prefix convention, plus a regenerated `.claude/generated/recent-adrs.md`.
+
+### I-F2 · FORK 2 — `[#511]` and intake #28 §B, ruled as a pair
+
+`[#511]` is re-scoped to the **non-mechanized** cut load — probes, locator re-verification, and the
+answers — because the machinery half is measured at ~4.5 s of a ~30-minute wall clock, a figure
+re-graded VERIFIED under I-P1. **Landed by this arc** in the row's Done-when.
+
+The intake #28 §B half is **DECIDED and banked, not executed.** Recorded verbatim:
+
+> intake #28 §B DECIDED — ratify with two amendments (add zero-mechanically-untestable-Done-when
+> criterion; clause 5 <10 min stays); status/decided-by flip lands ONLY in the single ratification
+> batch at the GO with §A, #29–#32 and the distillate
+
+So intake #28 carries an operator decision that its own frontmatter does not yet show. That gap is
+deliberate and dated here: the flip is one atomic act at the batch-4 GO, and this arc leaves every
+intake `status:` untouched.
+
+### I-F3 · FORK 3 — the digest strategy, reading (b)
+
+The absorb step **broke** around 2026-08-03; it did not become deliberate (D1 added a night's
+evidence). Three consequences, ruled as one decision:
+
+1. **Absorb ×7 is AUTHORIZED as one batch** — `claude/conformance-2026-08-{03,04,05,07,08,09,10}`,
+   executed serially, each branch deleting at its own merge per MERGE IS ATOMIC. The authorization
+   locator is this recording arc's merge SHA. An eighth digest appearing before execution falls
+   outside the authorization, which covers seven.
+2. **Retention resolves itself** — absorbed digests' branches delete at merge, which removes the
+   ~365/yr growth mechanism without a separate retention rule.
+3. **The absorb step becomes an organ** by amending `[#419]`/`[#426]` — their territory, so no fresh
+   row is born for it.
+
+### I-I1 · `[#360]` — the author's intent is unrecoverable
+
+The operator confirms the row's original intent cannot be recovered; the `file:line` referent has
+drifted and searching does not recover it. `[#360]` converts to a **dated review**. **Landed by this
+arc** in the row's Done-when.
+
+### I-I2 · 2026-08-06 — the scheduler job did not run
+
+Answering 3c-2, which the repo could not settle: **the operator confirms the scheduler job did not
+run that night.** There is no `claude/conformance-2026-08-06` branch because there was no run —
+absence of a branch is explained by absence of a run, not by a lost artifact.
+
+- **Consequence, recorded as an input rather than executed here:** a **scheduler-run check** belongs
+  inside the scope of the `[#419]`/`[#426]` absorb-organ amendment (I-F3 item 3). A gap that is
+  invisible from the repo is exactly the gap an organ covering "we run routines whose output nobody
+  consumes" is for. The amendment DRAFT is owed by the digest-absorb-prep lane and does not exist on
+  disk at the time of this recording, so this line is its input.
+
+---
+
 ## Editing note (read before adding an entry)
 
 This file sits inside the silent-rule ratchet corpus (`protocols/*.md`; detector

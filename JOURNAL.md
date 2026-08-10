@@ -19,6 +19,81 @@
 
 ---
 
+### 2026-08-10 (f) — CC (Opus 5, primary tree): ARC-9 — the 2026-08-10 rulings recorded, the N-B table corrected, and the seed corpus measured against the live gates
+
+**Did:** Recorded the operator's answers to the seat-27 ruling checklist (`57284aaa`), emitted the
+corrected 25-row N-B verdict table, and ran the seed-defect corpus verification pass owed before
+first use. Primary checkout, work on `docs/arc9-rulings-recording`, merged `--no-ff`. Zero `SKIP=`,
+zero `--no-verify`, zero births, zero closes, zero intake flips.
+
+**What was recorded.** `protocols/STANDING_RULINGS.md` gains **section I** — I-P0 (the hygiene-first
+inversion ratified), I-P1 (the corrected N-B set adopted), I-D (the 25 DEFAULT-block lines, each
+id · ruling · reason, including the K-4 supersession pointer and the `[#508]`
+deliberately-unmechanized line), I-F1/I-F2/I-F3 (forks 1–3), I-I1/I-I2 (the two operator inputs).
+**ADR-111 Proposed → Accepted AS WRITTEN** (Fork 1 = Option A, the §4 departure intact) with a
+`Decided-by` line under the ADR-94 status-line-only exception; the index row drops its `**PROPOSED**`
+prefix per the status-prefix convention and the generated roster follows. Four rows moved without
+changing state: `[#492]` gains the browser-verified not-released evidence + `RE-CHECK 2026-08-17`;
+`[#511]` re-scopes to the **non-mechanized** cut load; `[#322]` and `[#360]` convert dead pegs to
+dated reviews. `automation/*` joins `claude/conformance-*` on the git-discipline protection list.
+
+**Result — the correction paid for itself inside the hour.** The 3b-4 citation convention was
+adopted in this same window, and the first thing the recording did was catch a drifted citation:
+the Fable review's `JOURNAL.md:1905` anchor for the `[#511]` re-grade now lives at **`:1977–1978`**,
+pushed down by ARC-8's own prepend. The claim was sound; the *citation form* was the defect, exactly
+as 3b-4 predicts. `tasks/511-…md` therefore cites the anchor text and not the line. Ten of ten cited
+SHAs were re-resolved live rather than carried — the N-B report's own "inherited vs measured"
+diagnostic applied to the arc recording it.
+
+**The table prints TWO tallies, deliberately.** M1-a's finding was that the original 15/6 was
+reachable only via an undocumented dedupe *plus* an arbitrary reclassification of one of two hybrid
+rows. Emitting a single corrected number would have reproduced that defect inside the correction. So:
+**17 VERIFIED / 5 UNVERIFIABLE / 2 REFUTED / 1 PARTIALLY REFUTED by row (25)**, and **16/5/2/1 by
+distinct claim (24, item 14 ≡ §4A collapsed)**. Row count and claim count are different questions and
+are now separately answerable.
+
+**Seed corpus — 12 seeds, measured not reasoned: 9 SEEDABLE · 1 conditional · 1 REWORK · 1
+BLOCKED-BY-GATE.** The six code seeds were rendered as real Python and run through the live ruff
+gate; the format seeds through the live `normalize-dated-headers` rewriter; SD-C3 was actually staged
+and `audit.py health` run to an exit code. Findings: **SD-F3 needs rework** — ruff catches it, but on
+`F841` (unused local binding), not on the unread returncode, so the gate fires on the wrong thing;
+both rework variants verified clean with the oracle intact. **SD-C3 is BLOCKED at its specified
+site** — PyYAML's silent last-wins duplicate-key behaviour is confirmed, but a task-file copy in
+`tasks/` REDs `task_tree_coherence` and `audit.py health` **exits 1**, so `audit-health` refuses the
+commit; the seed is sound, its injection site is not. **SD-C1 carries a named condition** — the
+normalizer is a rewriter and did touch the probe file (promoting `##`+ISO-date headings outside the
+fence), without repairing or concealing the fence. And the load-bearing finding: eleven of twelve
+seeds survive **because of one config line**, `[tool.ruff.lint] extend-select = []`. Selecting `BLE`,
+`S` or `PLR` would convert three seeds into gate-regression seeds overnight, so the verdict table is
+pinned to that value and re-verification is owed if it changes.
+
+**Deliberately not done, and recorded as such:** FORK 4 unanswered and unrecorded; the
+`[#241]`/`[#390]` row texts left to the batch4-prep lane's DRAFT paste-blocks; **every intake
+`status:`/`decided-by` untouched** — intake #28 §B is decided and *banked*, so the intake carries an
+operator decision its own frontmatter does not show, which is deliberate and is written down so a
+later seat reads it as a decision and not an omission. The `[#419]`/`[#426]` absorb-organ amendment
+DRAFT **does not exist on disk** (digest-absorb-prep had zero commits at recording time), so the
+scheduler-run scope line from I-2 is recorded as that DRAFT's *input* rather than applied to a file
+that is not there.
+
+**Two judgment calls, both flagged:** rulings 13 and I-1 say "convert to a dated review" and name no
+date. `[#322]` and `[#360]` are both dated **2026-09-09** — the repo's own 30-day cadence
+(`canonical_freshness_gate.FRESHNESS_CADENCE_DAYS`) from the ruling date. Pegging them to the batch-4
+GO was rejected because that re-introduces the event-peg shape the ruling exists to retire.
+
+**Standing authorization created:** absorb ×7 of `claude/conformance-2026-08-{03,04,05,07,08,09,10}`
+as one serial batch, sequenced after digest-absorb-prep merges, with this arc's merge SHA as the
+authorization locator. It covers **seven**; an eighth digest stops and reports.
+
+**Changes:** `protocols/STANDING_RULINGS.md` (+section I), `docs/decisions/ADR-111-finding-triage-pipeline.md`
+(status + Decided-by), `docs/decisions/README.md`, `.claude/generated/recent-adrs.md` (regen),
+`docs/audits/2026-08-10-verification-arc9-rulings-recording.md` (new) + `docs/audits/README.md`
+(regen), `tasks/{322,360,492,511}-…md` + `BACKLOG.md` + `tasks/manifest.json` (regen),
+`.claude/rules/git-discipline.md`.
+
+**Abandoned:** nothing. **Next:** the five lanes merge one at a time on explicit per-lane operator
+GO, full suite on each merged result; then the authorized absorb ×7.
+
 ### 2026-08-10 (e) — CC (Opus 5, primary tree): ARC-8 — the Fable adversarial review integrated, and a teardown deliberately not performed
 
 **Did:** Integrated ONE lane branch from the primary checkout, as the integrator. Merged
