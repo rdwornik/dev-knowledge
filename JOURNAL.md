@@ -19,6 +19,83 @@
 
 ---
 
+### 2026-08-10 (c) — CC (Opus 5, primary tree): ARC-6 — two evidence attachments, one unowned defect named, and a baseline that turned out to be unstable
+
+**Did:** Two evidence attachments and nothing else, from the hub PRIMARY checkout on branch
+`docs/arc6-evidence-attachments`. Zero `SKIP=`, zero `--no-verify`, zero force-pushes, **zero
+births** (196 tasks before and after), zero status/priority/peg changes, no bundle edits.
+
+1. **`[#419]` — the conformance-digest gap attached as a SECOND instance at identical width.**
+   Six digests (08-03…08-09; 08-06 has no branch) unmerged while `main`'s stream stops at 08-02;
+   the manual absorb merge last ran `24882f8c`; ADR-105 §1 named the failure in advance. Locator:
+   `docs/audits/2026-08-10-verification-ruled-dispositions-and-digest-gap.md` §2.
+2. **`[#310]` — the re-cut FILL-IN defect attached, with the reason it is that row.** `[#310]` is
+   the only open row whose subject is the `(fill:`-placeholder-in-an-immutable-bundle class — it
+   exists *because* the 07-05 bundle shipped with 8 leaked markers and is immutable
+   (annotate-not-backfill). The re-cut incident is that class arriving through a **new door**, and
+   it extends the row's premise: the surface is needed for **superseded** siblings, not only cold
+   ones. Evidence: `86078062`, JOURNAL 2026-08-10 (b).
+
+**Both attachments exist because of STANDING_RULINGS H3's lesson** — a finding reachable only by
+`git log` is a finding the next seat does not have. Until this arc, the re-cut defect lived **only**
+in a commit body, which is the exact shape H3 was landed to prevent.
+
+**The carry-forward half is UNOWNED, recorded on `[#310]` rather than birthed** (as instructed):
+nothing names a re-cut's predecessor sibling or carries its payloads, and `residual_completeness`
+catches only the **empty** case — a region refilled with *thinner* content passes. `[#422]` was
+checked and **rejected as owner** (its subject is cold framing prose surviving a FILLED flip — a
+missing detector after a fold, a different mechanism); `[#511]`, `[#399]`, `[#298]`, `[#404]`,
+`[#353]`, `[#365]`, `[#366]` were each read and none owns it.
+
+**Result:** suite **1 failed / 2715 passed / 4 skipped / 1 xfailed** (582.37s). `audit.py health`
+**OK**. `audit.py ship-gate` **GREEN** (27 WARN dispositioned). `validate_backlog` OK (196 tasks).
+`gen_task_tree --check` ok.
+
+**THE STATED BASELINE OF TWO WAS ITSELF UNSTABLE — reported rather than smoothed over.**
+
+- **Still failing, pre-existing, unchanged:** `test_routine_consumers_live_backlog_governs_exactly_one_row`
+  — asserts *"1 declared routine row"* against a live BACKLOG carrying **two** `· routine:` markers
+  ([#348], [#426]). Verified untouched by this arc: 2 markers at bare `main` and 2 after the edit,
+  and no `· routine:` line appears as a change in the diff.
+- **No longer failing — and NOT because of anything this arc did:**
+  `test_preflight_contract.py::test_every_claim_class_the_brief_names_is_extractable`. My first
+  hypothesis (my SHA references made the `sha` claim class extractable) is **refuted**: the test
+  builds a self-contained fixture from `git rev-parse --short HEAD` and never reads BACKLOG. Its
+  code is unchanged since `63086cf7`. Re-run **3/3 pass** in isolation.
+- **The honest characterization: intermittent, not resolved.** It failed once, inside the ARC-5
+  window in which a real `.git/index.lock` collision also occurred under concurrent git load, and
+  is not reproducible now. **Do not record it as fixed** — it is a flake to watch, and a second
+  sighting should be treated as a real defect rather than noise.
+- **No third failure.**
+
+**CONDENSE-AND-ATTACH, because the guard made a plain append impossible.**
+`validate_doc_rot.scan_backlog_accretion` WARNs at **≥3 full `YYYY-MM-DD` dates AND >700 chars, OR
+>1200 chars**. Both rows sat at **1169 / 1176** chars with exactly 2 full dates — **31 and 24 chars
+of headroom**, and one more full date flips them into the 700-char band. So no meaningful evidence
+fits without condensing, and condensing accreted history is precisely what the WARN asks for
+(ADR-65/49 condense-preserving; git keeps every original byte). **Measured, not assumed:** `doc_rot`
+was `[OK]` and the ship-gate GREEN at bare HEAD — verified by restoring both files from HEAD and
+re-running the gate — so the two WARNs my first draft produced were **mine**, and were fixed by
+shortening rather than dispositioned. Final: `[#419]` 1183 chars / 1 date, `[#310]` 1190 / 1. Each
+row's Done-when, refs, kill-candidates, serialize-group and DEFER peg are **byte-unchanged**.
+
+**A second-order effect caught and repaired:** `gen_task_tree` re-derives `title:` from the row
+head, so the first shortening silently dropped *"+ annotate the 2026-07-05 architect bundle
+as-cold"* from `[#310]`'s title — the row's identity in every listing. Both halves were restored
+(year shortened to `07-05`) and the bytes found elsewhere in the narrative. A budget-driven edit
+quietly rewriting a row's title is worth knowing about before the next one.
+
+**Changes:** `tasks/419-*.md`, `tasks/310-*.md` (narrative only), regenerated `BACKLOG.md` and
+`tasks/manifest.json`.
+
+**Abandoned:** nothing.
+
+**Next (operator-owed):** whether to absorb the six `claude/conformance-*` digests; whether the
+absorb step becomes an organ ([#419]/[#426]); whether the unowned carry-forward half earns a row at
+the batch-4 planning GO.
+
+**Anchors:** `a8c62956`.
+
 ### 2026-08-10 (b) — CC (Opus 5, primary tree): ARC-5 — the night batch archived, four dispositions verified, the digest gap named, and the supplement re-attached
 
 **Did:** Executed the ARC-5 contract from the hub PRIMARY checkout, serial, sole writer to `main`
