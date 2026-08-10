@@ -19,6 +19,58 @@
 
 ---
 
+### 2026-08-10 (i) — CC (Opus 5, primary tree): ARC-9 queue lane 3 — every open Done-when graded, and the 78%-untestable claim cut by 42%
+
+**Did:** Third lane of the full-queue GO. Merged `worktree-backlog-testability-census` (tip
+`08c880f6`) at `fbac3f08` on `docs/arc9-lane-census`. Pure ADD: one 891-line census. The generated
+`docs/audits/README.md` **conflicted** this time and was resolved by **regeneration, never a
+hand-merge** (`git checkout --ours` + `gen_audit_index.py --write`, then `--check` exit 0).
+
+**A gate asymmetry worth recording, now witnessed both ways in one session.** Lane 2's merge was
+conflict-free and therefore ran **only** `commit-msg` hooks, leaving the generated index stale
+silently. Lane 3's merge conflicted and therefore ran the **full** pre-commit set. Same file, same
+kind of change, opposite gate coverage — decided purely by whether git had to ask. That is the
+digest census's §7.2(3) point, confirmed from both sides.
+
+**What the census established.** All **170** open Done-when clauses graded: **MECHANICAL 75
+(44.1%) · PROSE-CONVERTIBLE 72 (42.4%) · PROSE-JUDGMENT 15 (8.8%) · DEFECTIVE 8 (4.7%)**, with 42
+conversion drafts for the P1+P2 band. **Its principal finding corrects a number this plan has been
+carrying:** N-A's *"prose predicate — 132 rows"* reproduces (130 today, a 2-row parse-boundary
+delta) and is sound **as a measurement** — but unsound as a *testability* claim, because **55 of
+those 130 are MECHANICAL anyway.** Path-citation is a bad proxy for testability. So *"78% of the
+open set cannot be mechanically tested"* **overstates the untestable stock by about 42%**; the
+honest figures are **95 (55.9%)** not-testable-as-written and **23 (13.5%)** neither testable nor
+convertible.
+
+**Two findings that touch rulings already recorded this session.**
+
+1. **`[#360]`'s "intent unrecoverable" is REFUTED.** The census located the referent: the
+   `## Scope-freeze` section of `DEFINITION_OF_DONE.md` — a 4-week freeze from ADR-85 that expired
+   ~2026-07-14 and still stands verbatim, which is exactly "expired in place", and fits the row's
+   Done-when and nothing else in the file. Operator input **I-1**, and the dated review this
+   session recorded on its premise at `710dabfa`, rest on a premise this lane disproves.
+   **Surfaced, not reversed** — the ruling is the operator's to revisit.
+2. **`[#505]` clause 1 was falsified a FOURTH time — by tonight.** This lane's own contract arrived
+   as a file in `~/Downloads`, not as a committed repo artifact. Ruling 3a-5 anticipated exactly
+   this ("the mechanism is being dodged, not wrong; batch-4 lanes dispatch from COMMITTED contract
+   files"), so the census supplies its fourth instance. Separately the census finds clause 2
+   **UNMEETABLE** — *"batch-1 executes under it"* is in the past tense and batch-1 ran 2026-08-06,
+   so no future act can satisfy it. That half is **not** covered by 3a-5 and is batched.
+
+Also reproduced live: `[#470]` is not hypothetical — `audit.py checks` crashed in-lane with
+`UnicodeEncodeError` on `→`, the exact defect the row describes. And `footprint:` coverage is
+**5 of 170** against `kill-candidates:`' **117 of 170** — the difference being that one is enforced
+by a commit-msg hook and the other by nothing.
+
+Suite on the merged tree: **1 failed / 2715 passed / 4 skipped / 1 xfailed** (15m51s) — the
+standing `[#426]` row, unchanged.
+
+**Changes:** `docs/audits/2026-08-10-technical-backlog-testability-census.md` (new, 891 lines),
+`docs/audits/README.md` (regen, conflict resolved by regeneration).
+
+**Abandoned:** nothing. **Next:** digest-absorb-prep, then the authorized absorb ×7 (route A),
+then ingest-research-corpus last.
+
 ### 2026-08-10 (h) — CC (Opus 5, primary tree): ARC-9 queue lane 2 — batch-4 prep evidence, and a generated index that went stale on a clean merge
 
 **Did:** Second lane of the full-queue GO. Merged `worktree-batch4-prep` (tip `8e63eab3`) on
