@@ -13,6 +13,24 @@ Not a dumping ground — a triage queue. If something sits here across two revie
 
 Entered as 14 files from `research/` and `council-questions/` (2026-05-27 taxonomy-simplification).
 **First review: 2026-05-28** — 7 council-out transcripts promoted; 7 external-research / scoping / evidence files kept pending second review.
+**2026-08-09 research corpus landed 2026-08-10** — 6 external research memos (below), first review pending; they are the evidence base the plan-v3 ratification batch rules from.
+
+### 2026-08-09 research corpus (6 memos, landed 2026-08-10)
+
+External research memos commissioned by the operator 2026-08-09 and landed byte-identical from
+the source artifacts (no header injected — provenance is this list). Each filename carries its
+source `wf-` id as a trailing token, so the landed file resolves back to the commissioning
+artifact without depending on this list surviving. Distillate: `docs/audits/2026-08-10-technical-research-corpus-distillate.md`.
+Promotion target is the intake / ADR each proposal feeds — not promotion of the memo itself.
+
+- `2026-08-09-research-code-style-doctrine-wf-8a83eb70.md` — code-style doctrine for an LLM-written Python fleet: what is mechanizable (size/complexity ceilings, import contracts, ratchets) vs unenforceable taste (OO vs functional); feeds intake #31
+- `2026-08-09-research-dependency-ontology-graph-wf-f6851745.md` — one queryable dependency/ontology graph: derive-and-commit JSONL edge log + DuckDB/SQLite, grimp for the import graph; names the task↔file `footprint:` gap as highest-leverage
+- `2026-08-09-research-agent-telemetry-model-comparison-wf-02c940ef.md` — agent telemetry + fair model comparison: JSONL transcript / OTel extraction, paired within-task measurement design, and **the seeded-defect corpus spec** (gates `[#491]`/`[#492]`/Copilot)
+- `2026-08-09-research-multi-provider-portability-wf-d68b2f7f.md` — multi-provider portability: AGENTS.md as the one portable layer, `@AGENTS.md` import for Claude Code, generation-plus-checksum over symlinks on Windows; Kimi swap as validated fallback with a ToS boundary
+- `2026-08-09-research-session-continuity-decision-lifecycle-wf-fafd931b.md` — session continuity + decision lifecycle: the bundle design is ahead of practice, retirement is behind; capped intake with Parked/Rejected, ADR sunset dates, ADR-landing predicates
+- `2026-08-09-research-compute-placement-wf-1dc18e42.md` — compute placement: fix the laptop first (Stage 0, $0), then one CLI-provisioned Linux VPS; toolchain-pinning + gates-ran attestation is the gating precondition
+
+### Pre-existing contents
 
 - `2026-06-05-agent-automation-external-research-note.md` — external research: cloud-agent infrastructure (E1/CREAO) + CC automation stack (E2 Desktop scheduler, E3 /goal principles); encodes dispositions for #85/#86/#84(a); verify-before-encode applies to all E2 platform claims — keep pending promotion / n=2-gate clearance
 - `2026-06-03-dynamic-workflows-research-note.md` — #80 deliverable: Dynamic Workflows feature research + pattern→use-case mapping (Amendments A 2026-06-03 + B 2026-06-05); landed 2026-06-05 per the external-research convention — keep pending promotion to the adoption ADR (#84(b))
