@@ -19,6 +19,43 @@
 
 ---
 
+### 2026-08-10 (g) — CC (Opus 5, primary tree): ARC-9 queue lane 1 — ARCHITECTURE's 16 false claims corrected, and the review's own count superseded
+
+**Did:** First lane of the operator's full-queue GO, as integrator from the primary checkout.
+Merged `worktree-arch-claims-fix` (tip `cf039756`) at `316d4ca5` onto the integration branch
+`docs/arc9-lane-b-arch-claims`, plus the rider the GO attached (`e59c5c5b`). Zero `SKIP=`, zero
+`--no-verify`, zero births, zero closes.
+
+**What the lane did.** `ARCHITECTURE.md` carried checkably-false claims — the Fable review's
+High-1 finding, and the operator's item-12 commission. The lane fixed **16**, not 14: it named the
+review's 2 counted-but-unnamed claims and then found **two more** by re-running the report's own
+claim classes (cited-path existence, cardinalities, rosters, ref existence, ADR status, id
+liveness, tool-behaviour-vs-code). So the review's 14 was a **floor produced by a bounded read**,
+not a total — recorded as `STANDING_RULINGS` **I-D2** at the operator's instruction.
+
+**The method is the durable part.** Where a claim was a volatile cardinality, the lane **re-pointed
+it at the surface that computes it** — the manifest `carriers:`, `ecosystem/doc-counts.md`,
+`coverage_scope`, `ALL_CHECKS`, `git branch -r` — instead of restating today's number. Restating is
+precisely how ≥3 of these claims ended up false *underneath their own review stamp* at `8f09c12d`.
+Sample of what was wrong: "five carriers" at 6 live sites (six exist); the Ch2 gate list missing
+`block-unanchored-push` (16 named vs 17 live); `origin/claude/conformance-2026-07-26` asserted to
+exist (it does not); `logs/parity-events.jsonl` lowercase against the [#395] UPPERCASE convention;
+`#195` named as pending when it is built and closed; `#85` cited as the surviving carrier though it
+closed 2026-06-07. The stamp moved to 2026-08-10 with an **honest limit** in the header: doctrinal
+correctness against every cited ADR's full text was NOT re-derived.
+
+**Result:** suite on the merged tree **1 failed / 2715 passed / 4 skipped / 1 xfailed** (20m48s).
+The single RED is `test_routine_consumers_live_backlog_governs_exactly_one_row` — the standing
+`[#426]` row, **proven pre-existing** this session by re-running it on bare `main` `12ef9c91`,
+where it fails identically. Not mine, not dispositioned. Note only ONE of the two expected standing
+REDs appeared; `[#348]` did not fire.
+
+**Changes:** `ARCHITECTURE.md` (106 insertions / 48 deletions, 16 claims + re-stamp),
+`protocols/STANDING_RULINGS.md` (+I-D2).
+
+**Abandoned:** nothing. **Next:** lanes batch4-prep → backlog-testability-census →
+digest-absorb-prep, then the authorized absorb ×7, then ingest-research-corpus last.
+
 ### 2026-08-10 (f) — CC (Opus 5, primary tree): ARC-9 — the 2026-08-10 rulings recorded, the N-B table corrected, and the seed corpus measured against the live gates
 
 **Did:** Recorded the operator's answers to the seat-27 ruling checklist (`57284aaa`), emitted the
