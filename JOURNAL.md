@@ -19,6 +19,38 @@
 
 ---
 
+### 2026-08-11 (c) — CC (Opus 5, primary tree): the terra review persisted — the gate was right about my own arc
+
+**Did:** Closed the one WARN this walk caused. `check_review_artifact_coverage` flagged `e3016465`
+(the absorb arc) as a **code-impact merge with no linked review artifact**, and it was **correct**:
+the terra review the operator's ruling required *did* run pre-merge on `d98c2d45`, and its P1 *was*
+adopted at `cac0ed09` — but nothing persisted it. To the gate, and to every later reader, a review
+that leaves no parseable artifact is a review that did not happen. That is `[#480]`'s point:
+**persistence is not machine-auditability.** `9513da66` writes the artifact.
+
+Authored **from the parser, not from prose intent** — `# Codex Review` title, `**Branch:**`,
+`**HEAD:**`, `**Tally:** 0/1/0/0` — matching `_REVIEW_TITLE_RE` / `_REVIEW_BRANCH_RE` /
+`_REVIEW_HEAD_RE` / `_REVIEW_TALLY_RE`. A review artifact that a human reads as complete but the
+regex skips is the failure mode this repo has already hit once.
+
+**What it records, including the part that reflects badly on the fix.** Terra's P1 caught that my
+first M6 wording advertised a count-tiered index the generator does not emit — I had been one
+commit away from replacing a false pointer (`[#212]`, closed) with a *worse* false claim (an unbuilt
+shape presented as built). It also records that terra's proposed remedy — build the tiering — was
+**not** taken, because that is `[#269]`'s owned work; the claim was corrected to match reality
+instead. Four honest limits are stated, including that the artifact was authored **after** the
+merge, so the WARN was accurate when it fired.
+
+**Result:** the "code-impact merge with no linked review artifact" WARN is **gone**. One
+`review_artifact_coverage` WARN remains and is **not mine** — `5af0b33c` →
+`2026-08-06-codex-lane-c-504-failclosed.md` carries no parseable `**Tally:**` line, and predates
+this session. `audit.py health` exits 0.
+
+**Changes:** `docs/audits/2026-08-11-codex-arc9-absorb-m6-gen-audit-index.md` (new),
+`docs/audits/README.md` (regen).
+
+**Abandoned:** nothing. **Next:** the batched follow-ups in the end-of-batch packet.
+
 ### 2026-08-11 (b) — CC (Opus 5, primary tree): ARC-9 queue lane 5 (last) — the research corpus lands, and a premise stated in three places is refuted by quoted governance
 
 **Did:** Final lane of the full-queue GO. Merged `worktree-ingest-research-corpus` (tip `71476534`,
