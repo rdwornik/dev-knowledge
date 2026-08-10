@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-07-30
+last_reviewed: 2026-08-10
 status: active
 owner: Rob
 ---
@@ -120,7 +120,7 @@ Canonical: PLAYBOOK §2 "Creating a Claude Code Prompt" (incl. "Architect output
 ## Ending a Session
 <!-- scope: hybrid -->
 
-> **JOURNAL is hard-gated at session-end (ADR-85, C1):** a session with commits must name ≥1 commit SHA from *this session* or the Stop-hook blocks turn-end; `/override [reason]` is the only escape. Canon: `protocols/DEFINITION_OF_DONE.md`.
+> **JOURNAL anchoring is hard-gated at PUSH, not at session end (ADR-85 amendment 2026-08-03, §A5/§A2):** a push to `main` whose range carries unanchored first-parent spine entries is REFUSED by the `block-unanchored-push` pre-push hook, which fails CLOSED. Discharge is **range-level** — one JOURNAL entry naming ≥1 SHA the range *introduces* covers the whole range. The session-end `Stop` hook is **advisory in full**: it surfaces, and it blocks nothing. **`/override` is RETIRED and discharges no gate** (§A2). The sole escape is `git push --no-verify`, made non-silent by the `journal_spine_anchor` audit backstop, where a gap is a FAIL. Canon: `protocols/DEFINITION_OF_DONE.md`.
 
 1. Full test suite
 2. `git status` — must be clean
