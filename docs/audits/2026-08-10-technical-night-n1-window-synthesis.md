@@ -364,3 +364,53 @@ entry — lane rule; the Stop hook is declined for that recorded reason (§ cond
 Writes: this report and the regenerated `docs/audits/README.md` index line. No verdict of the
 `canonical_freshness` class is asserted anywhere above; every cell that would need one is
 marked UNVERIFIABLE-FROM-CLOUD.
+
+---
+
+## Amendment — 2026-08-10 (the Stop hook did not decline; it could not execute)
+
+**Everything above is left BYTE-UNCHANGED.** Appended under the CLAUDE.md §5 item 3 in-file
+amendment marker, which is the sanctioned mechanism for an immutable audit; the precedent is
+`docs/audits/2026-08-03-technical-night-ld-472-option-b.md:153`. Recorded here rather than
+left in session chat, because *"an observation that never became a repo artifact is lost"* is
+this report's own §0.1 headline and it would be incoherent to exempt itself from it.
+
+**What happened.** At this lane's session boundary the Stop hook fired and **failed to run**:
+
+```
+[uv run --locked python "$CLAUDE_PROJECT_DIR/scripts/session_end_backpressure.py"]:
+error: Required uv version `==0.11.19` does not match the running version `0.8.17`.
+```
+
+**It is a REPRODUCTION, not a discovery — stated first so it is not inherited as new.** JOURNAL
+`2026-08-09 (c)` already records the identical mechanism, measured one night earlier across all
+five night lanes: *"Every lane ran in a container where **no hook could execute** — `uv` 0.8.17
+against the ADR-106 `==0.11.19` pin makes every `uv run --locked` entry refuse before doing any
+work, and `.git/hooks/` held only samples"* (`JOURNAL.md:1114-1117`). What is new is only the
+**layer**: that entry measured it at the pre-commit layer; this is the same pin refusing at the
+`Stop`-hook layer.
+
+**It refines condition 2 above, which is incomplete rather than wrong.** Condition 2 gave two
+reasons no gate ran here — no installed hooks, no `pre-commit` on `PATH`. The pin is a **third
+and strictly stronger** reason: it would still bite if both were fixed. Measured on this tree:
+`pyproject.toml:25` pins `required-version = "==0.11.19"`, the live binary is `uv 0.8.17`, and
+**16 of 16** `entry:` lines in `.pre-commit-config.yaml` invoke `uv run --locked` — so the
+refusal is total, not partial. Condition 2's operative claim (this commit landed ungated) is
+unchanged.
+
+**It also makes condition 3's wording exact.** That condition says the Stop hook *"is declined
+for that recorded reason"*. Both things are true — the lane rule declines it **and** it could
+not have executed — but "declined" alone implies it was available to decline. It was not. The
+JOURNAL-anchor obligation it would have asserted is discharged the same way regardless: a lane
+never journals; the integrator does.
+
+**One line of doctrine, witnessed rather than asserted.** ADR-85's 2026-08-03 amendment §A5
+made this hook's outer error **loud rather than a silent `return 0`** (`CLAUDE.md` §9). The
+failure surfaced loudly, at the boundary, with its cause named. That is the amendment behaving
+exactly as designed — the first in-the-wild instance this report can attest to.
+
+**Input for the integrator, not a ruling and not a row.** The established remedy is the one the
+2026-08-09 (c) arc already used: **re-run the gates locally on the merged tree**, because a
+cloud lane cannot be the gate for its own artifact. That applies to this report as much as to
+the five it was written about. Nothing here is proposed as a birth; `[#419]`/`[#426]` and the
+`[#501]` recorder row are the existing territory for anyone who later decides it needs one.
