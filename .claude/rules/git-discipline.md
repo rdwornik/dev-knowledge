@@ -33,8 +33,23 @@ and `audit.py::check_fleet_audit_replication` asserts it stays replicated to ori
 therefore never "a merged branch left alive", and deleting it breaks the organ rather than
 tidying after it.
 
-- verify: `git branch --merged main` lists nothing but `main` and explicitly protected
-  branches (`claude/conformance-*`, `automation/*`).
+**`claude/conformance-*` protection is scoped to the UNABSORBED** (operator ruling
+2026-08-10, Fork 3; register `.dev-knowledge/protocols/STANDING_RULINGS.md` I-F3). A digest
+branch is protected **until it is absorbed**, and an **absorbed** branch deletes at its own
+merge under MERGE IS ATOMIC — no separate authorization, no per-instance
+`operator-authorized` subject line.
+
+Why the narrowing was needed, recorded so it is not re-litigated: the protection existed
+because *nothing absorbed*, so the branches were the only copy. Once absorb is an act the
+repo performs, "keep it after absorbing" preserves nothing and merely converts an
+unmerged-and-kept branch into a merged-and-kept one — reinstating the ~319–365 branches/yr
+accumulation the ruling exists to end. The pre-absorb guarantee is untouched: an unabsorbed
+digest is still never deleted. **The two protected globs now have opposite lifecycles on
+purpose** — `automation/*` is protected permanently (it lives outside `main` by design),
+`claude/conformance-*` only until absorbed.
+
+- verify: `git branch --merged main` lists nothing but `main`, `automation/*`, and any
+  `claude/conformance-*` not yet absorbed.
 
 ### WORKTREE TEARDOWN IS TWO BRANCHES, NOT ONE
 

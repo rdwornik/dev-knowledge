@@ -19,6 +19,59 @@
 
 ---
 
+### 2026-08-11 (a) — CC (Opus 5, primary tree): the absorb ×7 executed — eight days of stranded digests land, and the rule that forbade it is narrowed
+
+**Did:** Executed the operator-authorized **absorb ×7** (Fork 3, route A), preceded by its three
+riders, on `docs/arc9-absorb-prep`. Authorization locator: the ARC-9 recording merge `710dabfa`.
+Zero `SKIP=`, zero `--no-verify`, zero force-anything.
+
+**The three riders, in the ruled order.**
+
+1. **M6 fixed first** (`d98c2d45` → `cac0ed09`), because the absorb's own mandatory regen would
+   otherwise re-emit the defect. `docs/audits/README.md` told every reader retention was *"proposed
+   separately (`[#212]`)"*; `[#212]` closed 2026-07-06 at `b4c4b6e4`, folded into ADR-100 — whose
+   title literally reads *"folds and closes #212"*. `[#503]` class at a **generated** site, which is
+   why no edit-keyed signal could ever catch it. **Terra review earned its keep here:** my first
+   wording said *"keep-all-accepted, count-tiered index"* and terra raised a P1 — `render_index`
+   still groups by month, and the count-tiered shape is `[#269]`, **unbuilt**. I had been about to
+   replace a false pointer with a false claim, which is the worse defect. Corrected to state the
+   ruling and name the unbuilt part.
+2. **`ESSENTIALS.md:123` corrected** (`6e76b3f0`) — U10, the census's only live unowned HIGH, found
+   by the digests twice and read by nobody. It was wrong on **both** halves: `/override` was retired
+   by the ADR-85 amendment §A2, *and* the Stop hook has been advisory in full since §A5 (the hard
+   leg moved to pre-push). First-read item 2 for every session here and in every consumer.
+   `last_reviewed` 2026-07-30 → 2026-08-11 on a **genuine end-to-end re-read of all 181 lines**;
+   line 123 was the only defect it surfaced.
+3. **`git-discipline.md` narrowed** (`8edfc788`) per I-F3: `claude/conformance-*` is protected
+   **until absorbed**. This resolves the census's §7.3 rule conflict — the rule made that glob the
+   named exception to MERGE IS ATOMIC, so an absorb that deletes on merge was *not authorised by the
+   rule as written*, and past practice papered over it with per-instance `operator-authorized`
+   subject lines on all five 07-29…08-02 merges. The two protected globs now carry deliberately
+   **opposite** lifecycles: `automation/*` permanent, `claude/conformance-*` until absorbed.
+
+**The absorb.** Seven merges, chronological, `--no-ff` each: `a97d3b38` `bc96124d` `2199bc82`
+`6708fb0f` `99aa39f6` `67732b95` `6d6113f6`. The census's mechanics appendix predicted the shape
+exactly and it reproduced: **five clean, two conflicts** (08-08 and 08-09, both generated-index),
+resolved by **regeneration, never hand-merge**. Then the **mandatory trailing regen** (`ac344a75`) —
+`--check` exited **1 before and 0 after**, confirming the silent-staleness mechanism: a
+conflict-free merge skips `pre-commit` entirely, so five of seven left the index rotting with no
+signal. Eight days of stranded evidence (2026-08-03…08-10, 08-06 absent because the job did not run)
+are now on `main`.
+
+**Set re-verified at absorb time and again after:** exactly **7**, no `2026-08-11` digest, so the
+seven-branch authorization was not exceeded and no STOP condition fired.
+
+**Result:** suite **1 failed / 2715 passed / 4 skipped / 1 xfailed** (11m15s) — only the standing
+`[#426]` row. The hash-dependent `test_preflight_contract` RED from lane 4 did **not** recur, as
+predicted: this arc's commit hashes contain letters.
+
+**Changes:** `scripts/gen_audit_index.py` (M6, 2 sites), `protocols/ESSENTIALS.md` (:123 + stamp),
+`.claude/rules/git-discipline.md` (I-F3 narrowing), seven `docs/audits/*-conformance-nightly-digest.md`
+absorbed, `docs/audits/README.md` (regen ×3).
+
+**Abandoned:** nothing. **Next:** delete the seven absorbed branches (MERGE IS ATOMIC, now
+rule-authorised), then ingest-research-corpus last with the `[#511]` commission-5 attachment.
+
 ### 2026-08-10 (j) — CC (Opus 5, primary tree): ARC-9 queue lane 4 — the digest census, and a test that fails on 2.3% of commit hashes
 
 **Did:** Fourth lane of the full-queue GO. Merged `worktree-digest-absorb-prep` (tip `b166655b`) at
