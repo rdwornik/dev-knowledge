@@ -4,9 +4,9 @@
 `docs/audits/**` is the corpus's single largest doc area (~190 dated artifacts); with no index,
 finding an audit means an `ls` + guess. This generator enumerates every `docs/audits/*.md`
 (date + slug + first-`# `-heading title) into a reverse-chronological index grouped by month —
-the §5.5 navigation-overhead trigger, satisfied mechanically. The RETENTION policy (roll-up /
-compaction of old audits, and whether to gate this index's freshness) is ADR-class and is
-proposed separately ([#212] pairing); this is the index artifact only.
+the §5.5 navigation-overhead trigger, satisfied mechanically. The RETENTION policy is **ruled**:
+ADR-100 (`docs/decisions/ADR-100-audit-retention-index-rule.md`) decided keep-all-accepted with a
+count-tiered index, and folded and closed `[#212]` in doing so; this is the index artifact only.
 
 Loose top-level module BY DESIGN (mirrors gen_claude_rosters.py / gen_methodology_roster.py):
 no codemap node, no ARCHITECTURE codemap regen on edit. Deterministic: same inputs -> byte-
@@ -69,7 +69,7 @@ def render_index(audits_dir: Path | None = None) -> str:
         "",
         "> Mechanical reverse-chronological index of every `docs/audits/*.md` (date · slug ·",
         "> title), grouped by month. The §5.5 navigation-overhead trigger, satisfied by",
-        "> generation. Retention/roll-up policy is proposed separately ([#212]).",
+        "> generation. Retention is ruled by ADR-100: keep-all-accepted, count-tiered index.",
         "> Do not hand-edit. Regenerate: `python scripts/gen_audit_index.py --write`",
         "",
         _GENERATED_NOTE,
