@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-08-08
+last_reviewed: 2026-08-10
 reconciled_with: handoff-process@6.2.0
 status: active
 owner: Rob
@@ -7,7 +7,7 @@ owner: Rob
 
 # CLAUDE.md — Dev Knowledge
 <!-- scope: meta -->
-<!-- version: 2.54 — 2026-08-08 -->
+<!-- version: 2.55 — 2026-08-10 -->
 
 > **Session contract for Claude Code in this repo.** Read on every session start (auto). Single canonical agent-instruction file (≤200 lines). Per ADR-53.
 >
@@ -21,7 +21,7 @@ owner: Rob
 In order, read:
 1. This file (you're here)
 2. The hub methodology protocol `ESSENTIALS.md` — Rob's universal working style (read at the hub `.dev-knowledge/protocols/` set; hub-pointer, never copied into a consumer)
-3. Most recent `docs/handoffs/*/` bundle — start with its `HANDOFF_BOOT.md` (v5/v6 bundles' operator session entry: slug · purpose · mode · destination; older bundles use `README.md`), then the canonical operator runbook `docs/handoffs/README.md` — if continuing prior session
+3. The **active** `docs/handoffs/*/` bundle — **newest by git add-date**, which is what `audit.py::_select_active_bundle` resolves and what `verify_handoff_probes`, `check_handoff_probes` and `validate_residual_completeness` already reuse; a day with more than one handoff produces `<slug>`, `<slug>-2`, … siblings and lexical order is not the rule. Start with its `HANDOFF_BOOT.md` (v5/v6 bundles' operator session entry: slug · purpose · mode · destination; older bundles use `README.md`), then the canonical operator runbook `docs/handoffs/README.md` — if continuing prior session
 4. Last 5 entries of `JOURNAL.md`
 
 `PLAYBOOK.md` (hub `.dev-knowledge/protocols/`) is the universal-protocols **reference**, not a boot-time read — consult the relevant section on demand when a task needs it (ESSENTIALS carries the always-on subset; a consumer never copies PLAYBOOK). If ESSENTIALS — or a PLAYBOOK section a task needs — is unavailable, proceed with the other available first-read sources and flag the gap.
@@ -221,6 +221,7 @@ Machine-enumerated (last 5 by number, from `docs/decisions/ADR-*.md` headers; re
 
 > _Entries v1.0–v2.48 condensed to git history per ADR-49/65 (info-preserving — full prior history: `git log --follow -p -- CLAUDE.md`)._
 
+- v2.55 (2026-08-10, ARC-7 boot-selection predicate) — **§1 item 3 cites the live predicate instead of an undefined phrase.** Selection among same-day handoff siblings was **mechanical for verification and conventional for boot**: `audit.py::_select_active_bundle` resolves the active bundle by **git add-date**, and `verify_handoff_probes` / `check_handoff_probes` / `validate_residual_completeness` all reuse it — while the boot instruction said only “Most recent `docs/handoffs/*/` bundle”, which defines nothing. Witnessed live 2026-08-10 with two same-day siblings: a seat opening the base sibling would learn of it one turn late, at its first `/handoff-verify`. Fixed source-of-truth first — the hub carrier `templates/claude-regions/first-read.md`, then this file's byte-coupled `first-read` region (`test_hub_region_bodies_still_byte_match_the_templates` passes). **The fix is a reference to an existing predicate, not new machinery**, and adds no `must|shall|never` token, so `silent_rule_ratchet` is unmoved at 440 ≤ 441. **A SECOND SITE IS KNOWINGLY LEFT STANDING** — §6 item 3 still reads “Read most recent handoff”; it lives in a different hub region (`session-start-protocol`) and the operator scoped this act to one line, so it is filed rather than widened, the same move v2.52 made with its fourth enum site. Recorded as evidence against `[#473]` (its Done-when leg never reached the boot instruction) **without reopening it — that row stays CLOSED**. L10 version 2.54→2.55. Genuine full-file end-to-end re-read from disk this session (all 12 sections confirmed accurate; §9's roster was exercised adversely today — `audit-health` blocked a bundle commit on `residual_completeness`, and both pre-push organs passed on two pushes — and §6's second site is the one defect the re-read surfaced); `last_reviewed` re-stamped 2026-08-10.
 - v2.54 (2026-08-08, ARC-dispatch-surface-codify) — **stamp-clearing re-read; no §-content moved.** The arc's `HANDOFF_PROCESS` 6.1.0→6.2.0 bump forced this file's `reconciled_with` re-stamp, turning `canonical_freshness` A2 RED; the operator ruled it cleared by doing the review, not by re-stamping around it. All twelve sections re-read end-to-end from disk against what the arc could have falsified — **no defect found here**, so nothing below §12 changed (the one runbook correction landed in `docs/handoffs/README.md`). §9's `audit-health` row was exercised adversely en route: the held RED wedged the commit gate exactly as it says. Per-file notes: the re-stamp commit message. `last_reviewed` 2026-08-08; footer with it. L10 2.53→2.54.
 - v2.53 (2026-08-07, PRE-2 arc) — **the fourth enum site is closed.** v2.52 below left
   `~/.claude/rules/core-invariants.md` §5 standing at "three" because core-invariant #6 bars a
@@ -238,5 +239,5 @@ Machine-enumerated (last 5 by number, from `docs/decisions/ADR-*.md` headers; re
 
 ---
 
-**Last updated:** 2026-08-08
+**Last updated:** 2026-08-10
 **Maintained by:** Rob
