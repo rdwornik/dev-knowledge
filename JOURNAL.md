@@ -19,6 +19,45 @@
 
 ---
 
+### 2026-08-10 (j) — CC (Opus 5, primary tree): ARC-9 queue lane 4 — the digest census, and a test that fails on 2.3% of commit hashes
+
+**Did:** Fourth lane of the full-queue GO. Merged `worktree-digest-absorb-prep` (tip `b166655b`) at
+`92459660` on `docs/arc9-lane-digest-absorb`. Pure ADD: one 489-line content census. Generated
+index conflicted and was resolved by **regeneration** (`--check` exit 0 after).
+
+**The lane's payload — the absorb's consumption input.** Seven stranded digests read end-to-end:
+**38 raw findings → 28 filed slots → 17 unique**, 15 killed by the digests' own skeptics. **16 of
+28 filed findings (57%) re-derive an already-open row** — the number that prices Fork 3. Exactly
+**one live unowned HIGH**: `protocols/ESSENTIALS.md:123` still names `/override` as the escape the
+ADR-85 amendment retired on 2026-08-03; it is first-read item 2 for every session here and in every
+consumer, found by the digests twice and **read by nobody**. Plus a DRAFT ADR-111 triage (OWNED 3 ·
+DISCHARGED 5 · CANDIDATE 7 · REJECTED 2) and a verified absorb-mechanics appendix.
+
+**A SECOND suite RED appeared — and it is nobody's content.** `2 failed / 2714 passed / 4 skipped /
+1 xfailed`; the new one is
+`tests/test_preflight_contract.py::test_every_claim_class_the_brief_names_is_extractable`.
+
+Ownership was established rather than assumed, in three steps. (1) The test **passes on bare main**
+`5455c2a2` and fails on the lane merge — which looks like the lane's content. (2) It is not.
+`scripts/preflight_contract.py:352` carries a deliberate `if sha.isdigit(): continue`, so a token
+of only digits is correctly refused as a SHA. (3) **The merge commit is `92459660` — all digits**,
+and the test seeds its own SHA fixture from `git rev-parse --short HEAD`. Proven on the *identical
+tree* by running `pf.verify` over the same document twice: with `92459660` the extractor returns
+`['backlog-id','file-line','heading']`; with `5455c2a2` it returns all four.
+
+**So the production code is right, the lane is innocent, and the TEST is fragile** — it fails
+whenever a commit's 8-char short hash happens to be all-numeric, probability (10/16)^8 ≈ **2.3%**.
+Roughly one merge in 43 REDs this test for no reason. Reported, **not dispositioned**, and not
+fixed here: a test edit is code-impact and owes a terra review under the standing rule, which this
+walk has no GO for. The RED is expected to evaporate on the next commit, whose hash almost
+certainly contains a letter — which is itself the tell that it was never about the code.
+
+**Changes:** `docs/audits/2026-08-10-census-conformance-digest-content.md` (new, 489 lines),
+`docs/audits/README.md` (regen, conflict resolved by regeneration).
+
+**Abandoned:** nothing. **Next:** the absorb-prep riders (M6 fix, terra-reviewed · ESSENTIALS:123
+· the I-F3 git-discipline amendment), then the authorized absorb ×7, then ingest last.
+
 ### 2026-08-10 (i) — CC (Opus 5, primary tree): ARC-9 queue lane 3 — every open Done-when graded, and the 78%-untestable claim cut by 42%
 
 **Did:** Third lane of the full-queue GO. Merged `worktree-backlog-testability-census` (tip
