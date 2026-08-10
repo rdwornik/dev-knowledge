@@ -19,6 +19,70 @@
 
 ---
 
+### 2026-08-10 (d) — CC (Opus 5, primary tree): ARC-7 — the boot instruction cites the live predicate, and the row it belongs to stays closed
+
+**Did:** The smallest correct act for the one delta item that existed nowhere in the repo. Zero
+`SKIP=`, zero `--no-verify`, zero force-pushes, **zero births**, no bundle edits, no third
+sibling, and nothing done to the `[#310]` carry-forward half (deliberately unowned, the incoming
+seat's).
+
+**Why only this item.** Of the four since-the-cut delta items, three were already durable and
+inside the incoming seat's first-read — items 1 and 2 on the `[#310]` / `[#419]` rows, item 4 and
+the baseline correction in JOURNAL (c). **Item 3 was the only one recorded nowhere**, verified by
+search before acting.
+
+**The defect, as measured:** selection among same-day handoff siblings was **mechanical for
+verification and conventional for boot**. `audit.py::_select_active_bundle` resolves the active
+bundle by **git add-date**, and `verify_handoff_probes`, `check_handoff_probes` and
+`validate_residual_completeness` all reuse that one predicate — while §1 item 3 said only *"Most
+recent `docs/handoffs/*/` bundle"*, which defines nothing. Witnessed live with two same-day
+siblings: a seat opening the base sibling learns of it one turn late, at its first
+`/handoff-verify`, after the turn is already spent on a stale residual.
+
+**The fix is a reference to an existing predicate, not new machinery** — §1 item 3 now names it
+and the rule it implements (newest by git add-date; lexical order is not the rule). Landed
+**source-of-truth first**: the hub carrier `templates/claude-regions/first-read.md`, then this
+file's byte-coupled `first-read` region, one commit, with
+`test_hub_region_bodies_still_byte_match_the_templates` passing. Adds no `must|shall|never`
+token, so `silent_rule_ratchet` is unmoved at **440 ≤ 441** (`templates/**` is in its scope).
+
+**`[#473]` gained an evidence line and STAYS CLOSED.** Its Done-when carried the leg *"the
+operator's existing boot prompt naming the BASE slug verbatim returns the ACTIVE bundle's
+verdict"* — discharged on the VERIFY path, never reaching the BOOT instruction. The line says so
+and says explicitly that it is not a reopen; `status: closed` is unchanged and the row does not
+render into `BACKLOG.md` (checked before and after), so no `doc_rot` budget applies. **The
+operator's fallback — birth ONE row for the unreached leg — was NOT taken, because the edit
+proved lawful without reopening anything.** That was the stated condition, and it did not trigger.
+
+**A SECOND SITE IS KNOWINGLY LEFT STANDING AND FILED, NOT FIXED:** §6 item 3 still reads *"Read
+most recent handoff if continuing prior session"*. It lives in a different hub region
+(`session-start-protocol`, its own carrier) and the act was scoped to one line, so it is reported
+rather than widened — the same move v2.52 made with its fourth enum site. **It is a real residual
+and should not be read as complete coverage of the phrase.**
+
+**Freshness discharged by doing the review, not by re-stamping around it.** Editing `CLAUDE.md`
+puts `last_reviewed` before the edit, which reds `canonical_freshness` and wedges the pre-commit
+gate. All twelve sections were re-read end-to-end from disk against what today's arcs could have
+falsified; §9's roster was exercised **adversely** en route (`audit-health` blocked a bundle
+commit on `residual_completeness`; both pre-push organs passed on two pushes). §6's second site is
+the one defect the re-read surfaced. `last_reviewed` 2026-08-10, footer with it, L10 2.54→2.55.
+
+**Result:** suite **1 failed / 2715 passed / 4 skipped / 1 xfailed** — the standing
+`routine_consumers` failure only, unchanged and untouched by this arc. `audit.py health` **OK**
+(`canonical_freshness` OK, `silent_rule_ratchet` 440 ≤ 441). `ship-gate` **GREEN** (27 WARN
+dispositioned). `tests/test_boundary_headers.py` 40/40. `gen_task_tree --check` ok; `BACKLOG.md`
+unchanged at 196 tasks.
+
+**Changes:** `templates/claude-regions/first-read.md`, `CLAUDE.md` (§1 region + §12 + stamps),
+`tasks/473-*.md` (evidence line on a closed row).
+
+**Abandoned:** nothing.
+
+**Next (operator-owed):** §6 item 3's second "most recent" site; the `[#310]` carry-forward half,
+still unowned by design; the six unmerged `claude/conformance-*` digests.
+
+**Anchors:** `0f3bce67`.
+
 ### 2026-08-10 (c) — CC (Opus 5, primary tree): ARC-6 — two evidence attachments, one unowned defect named, and a baseline that turned out to be unstable
 
 **Did:** Two evidence attachments and nothing else, from the hub PRIMARY checkout on branch
