@@ -843,6 +843,23 @@ The operator confirms the row's original intent cannot be recovered; the `file:l
 drifted and searching does not recover it. `[#360]` converts to a **dated review**. **Landed by this
 arc** in the row's Done-when.
 
+### I-D2 · The Fable ARCHITECTURE count is superseded — 14 was a floor
+
+**Fable ARCHITECTURE count superseded — 14 was a floor; 16 fixed at `cf039756`.** (Operator ruling
+at the lane-B merge, 2026-08-10.) The adversarial review reported *"14 checkably-FALSE claims"* and
+named 12, leaving 2 counted-but-unnamed. Lane B named both **and found two more** by re-running the
+report's own claim classes, so the corrected total is **16**. The review's number was a floor
+produced by a bounded read, not a total — which is the honest reading of any count taken under a
+contract that caps enumeration.
+
+- **Landed:** all 16 corrected at `cf039756`, plus an honest re-stamp (`last_reviewed` → 2026-08-10)
+  whose header records what the pass did and did not establish.
+- **Anti-rot method, worth carrying:** a volatile cardinality is **re-pointed at the surface that
+  computes it** (the manifest `carriers:`, `ecosystem/doc-counts.md`, `coverage_scope`, `ALL_CHECKS`,
+  `git branch -r`) rather than re-stated at today's value. Restating the number is how ≥3 of these
+  claims ended up false under their own review stamp at `8f09c12d`.
+- **Expiry:** retires when a mechanism computes these claims at stamp time.
+
 ### I-I2 · 2026-08-06 — the scheduler job did not run
 
 Answering 3c-2, which the repo could not settle: **the operator confirms the scheduler job did not
