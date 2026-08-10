@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-08-08
+last_reviewed: 2026-08-10
 reconciled_with: handoff-process@6.2.0
 status: active
 owner: Rob
@@ -14,7 +14,21 @@ owner: Rob
 > class this repo exists to kill). Fix the map when reality moves; fix the *source*
 > when the doctrine moves.
 >
-> Last updated: `2026-08-07` — **[#501] closed; two Ch2 status cells corrected.** The
+> Last updated: `2026-08-10` — **claims-correction pass: 16 checkably-false claims fixed** (the
+> 12 named in `docs/audits/2026-08-10-verification-fable-adversarial-plan-review.md` §Mandate 2,
+> plus 4 the follow-up sweep found beyond that report's count of 14 — `logs/PARITY-EVENTS.jsonl`
+> casing, the corp pre-commit-channel row, #195-as-pending, and the dead `#85` pointer). Where a
+> claim was a volatile cardinality it is **re-pointed at the surface that computes it** rather
+> than re-stated at today's value (carrier roster → the manifest `carriers:` block; gate count →
+> `ecosystem/doc-counts.md`; doc→code rules → `coverage_scope`; check registry →
+> `audit.py checks`; conformance branches → `git branch -r`) — restating the number is what put
+> ≥3 of these claims on the wrong side of their own review stamp. **Stamp semantics, stated:**
+> `last_reviewed` is re-stamped because this pass did re-read the file end-to-end from disk and
+> mechanically verified its checkable claims (paths, cardinalities, rosters, ref/branch
+> existence, BACKLOG id liveness, tool behaviour vs code). **Honest limit:** it did *not*
+> re-derive doctrinal correctness against the full text of every cited ADR — a claim that
+> faithfully restates an ADR whose own content has drifted would survive this pass. Prior:
+> `2026-08-07` — **[#501] closed; two Ch2 status cells corrected.** The
 > `report-only-wall.yml` row loses `ARMED (never fired)`: run `31161874468` (event `push`) fired
 > it on this morning's own push and discharged BOTH owed conditions at once — the anchor leg ran
 > a real push range for the first time, and two legs recorded exit 1 while the job stayed green,
@@ -48,9 +62,12 @@ owner: Rob
 > `2026-07-27` — window-close currency lane (bounded, not an audit): governing-ADR
 > roster through **106** (uv / environment isolation) and the Purpose ratification line with it;
 > Ch5 gained the `tasks/` zone ([#433]); the Ch2 `/ship` row records that **merge is atomic**
-> (merge → push → delete source branch). Deliberately NOT added: `silent_rule_ratchet` ([#436], ruled-unbuilt) —
-> this chapter's own Status legend keeps a RULED-UNBUILT organ *out* of the table until it is
-> built. Prior: `2026-07-26` micro-window currency lane (intake #17 §5): governing-ADR
+> (merge → push → delete source branch). Deliberately NOT added *that day*: `silent_rule_ratchet`
+> ([#436], ruled-unbuilt at the time) — this chapter's own Status legend keeps a RULED-UNBUILT
+> organ *out* of the table until it is built. **That exclusion is spent: the check has since been
+> built** and is a blocking `ALL_CHECKS` member (`scripts/audit.py::check_silent_rule_ratchet`);
+> the live check registry is `python scripts/audit.py checks`, which is what §Validators points
+> at rather than a roster restated here. Prior: `2026-07-26` micro-window currency lane (intake #17 §5): governing-ADR
 > roster through **105**; the fleet count repointed at the surface that computes it; the
 > organ map gained a **Status** column; Ch6's nightly loop marked **broken at the triage
 > edge**; the paid ADR-92 amendment recorded. Prior: `2026-07-23` currency lane (carrier
@@ -92,7 +109,10 @@ be unonboarded. Read a count off the surface that defines it; do not restate one
 consulted as context by
 Claude Code, Codex, Cursor, and other agents. **Nothing here executes orchestration**
 — everything is read, consulted, or passively validated. The six chapters below are
-the system as built and ratified through ADR-109.
+the system as built; the decisions that ratified it are curated in **Governing ADRs**
+below against the complete ledger `docs/decisions/README.md`. A bare "ratified through
+ADR-NN" horizon is not stated here — it rots at the next accepted ADR and did (this line
+read "through ADR-109" while ADR-110 had been Accepted since 2026-08-06).
 
 ---
 
@@ -239,7 +259,7 @@ An organ can be ARMED and still tell you nothing. Read the qualifier before trus
 |---|---|---|---|---|---|
 | `block-onedrive.ps1` (PreToolUse) | every Bash/PowerShell/Edit/Write/NotebookEdit call (command + file_path/notebook_path) | L0 | **fail-closed** (P0) | ARMED | ADR-75, global CLAUDE.md §P0 |
 | `block_immutable_edits.py` (PreToolUse) | Claude **mutating tools only** (Edit/MultiEdit/Write/NotebookEdit) on `docs/decisions/transcripts/**` — that zone was **deleted at `b4435fad` (2026-07-23), per the operator ruling of 2026-07-22**, so the guard currently matches nothing; a Bash/PowerShell write is **not** caught | hub | fail-closed in-zone, fail-open out-of-zone | **ARMED (no-op zone)** — kept armed deliberately as the standing refusal that re-creating the zone does not silently re-open in-place editing | ADR-77 (#105); **`.methodology.yaml` `adr77-transcript-guard`** (RULED 2026-07-25, re-read at `review_date: 2026-10-25`) |
-| `fleet_health.py` (SessionStart) | session start, throttled >24h | hub · Tier-2 | fail-soft | ARMED | ADR-69/70/76 |
+| `fleet_health.py` (SessionStart) | session start, throttled to **once per calendar day** (`fleet_health.py:82`, `d != date.today()` — a date comparison, not a rolling 24h window: two sessions either side of midnight both run) | hub · Tier-2 | fail-soft | ARMED | ADR-69/70/76 |
 | `surface_triage.ps1` (SessionStart) | session start | hub | fail-soft | **ARMED (stale input)** | nightly outcome loop (Ch6) |
 | `billing_leak_sentinel.ps1` (SessionStart) | session start | hub | fail-soft (WARN) | ARMED | #101 |
 | `changelog_sentinel.py` (SessionStart) | session start | hub | fail-soft | ARMED | #113 |
@@ -267,7 +287,7 @@ An organ can be ARMED and still tell you nothing. Read the qualifier before trus
 | `boundary_report.py` (reporter) | manual CLI | hub · read-only | fail-soft (writes `logs/BOUNDARY-DRIFT.md`; a reporter, NOT a gate — deliberately not in `ALL_CHECKS`) | **ARMED (manual)** | #312; CLAUDE.md Form-A regions |
 | `boundary_headers.py` (generator) | manual CLI (`--check` regen-and-diff · `--coverage`; pre-commit wiring open #369) | hub | generated-not-hand-maintained (headers derived from the #312 markers via `boundary_report` imports — a hand-edit is overwritten on regen); suite-guarded at ship-gate | **ARMED (manual)** — pre-commit wiring is #369 | #352; `tests/test_boundary_headers.py` |
 | `fleet_analytics.py` (reporter) | manual CLI (nightly wiring open #391) | hub · read-only | fail-soft (writes `logs/FLEET-ANALYTICS.md`; `main()` always 0; NOT in `ALL_CHECKS`) | **ARMED (manual)** — nightly wiring is #391 | #384 (L5a descriptive analytics); intake #16 §3 |
-| `deploy/tool.py` + 5 carriers (`globalconfig`/`plugin`/`precommit`/`floor`/`mesh`) | operator (hub, per-consumer) | hub → consumer | verify-gated (record iff every carrier verifies); write-yes / commit-no | ARMED | ADR-91/92/93; PLAYBOOK §20 |
+| `deploy/tool.py` + its registered carrier modules (roster of record: `deploy/manifest-v*.yaml` `carriers:`; enumerated in §Validators) | operator (hub, per-consumer) | hub → consumer | verify-gated (record iff every carrier verifies); write-yes / commit-no | ARMED | ADR-91/92/93; PLAYBOOK §20 |
 | `floor-hash-verify` (pre-commit) + SessionStart floor guard (`.claude/check_floor_hash.py`) | consumer commit / session start | consumer (armed by `carrier_floor`) | **fail-closed** (loud on floor drift) | ARMED | ADR-93 (#226) |
 | pre-commit gates (`.pre-commit-config.yaml`) | local commit | pre-commit · Tier-1 | **fail-closed** | ARMED | §Validators below (count in `ecosystem/doc-counts.md`) |
 | `report-only-wall.yml` (GitHub Actions) | `push` to `main` (+ `workflow_dispatch`) | **server** | **report-only** — the three measured legs (`pytest`, `audit.py health`, `block_unanchored_push.py`) are `continue-on-error` and never block; the job still reds on a *setup* failure (uv pin assertion / `uv sync`), deliberately, because a green job with no environment would be a lie | **ARMED (FIRED — verification discharged 2026-08-07 by run `31161874468`, event `push`, head `2f2edd2b`: `pytest` exit 1 and `audit.py health` exit 1 recorded in the summary table while the job concluded `success`, and the anchor leg ran a REAL push range `319f885d..2f2edd2b` for the first time, exit 0)** | [#501] closed 2026-08-07; ADR-101 amendment 2026-08-06; `docs/audits/2026-08-06-technical-night-prep-packs.md` §B1 |
@@ -279,7 +299,7 @@ The **Tier-1 closure loop** is three of these organs in a cycle:
 and-propose only; the human gate closes (ADR-70; distribution in Ch4).
 
 **The deploy subsystem** (orchestrator detail in Ch4; validators below) versions the
-methodology corpus (ADR-91) and delivers it to a consumer through the five carrier modules behind a
+methodology corpus (ADR-91) and delivers it to a consumer through its carrier modules behind a
 **per-carrier verify-gate** (ADR-92) — the version record lands only if every carrier
 verifies. The `floor` carrier additionally **arms** the ADR-78 floor under **model A**
 (ADR-93): committed + two-leg hash-guarded (a SessionStart guard + the commit-time
@@ -327,8 +347,11 @@ references, **not an exhaustive inventory** of every script in `scripts/`:
   gates the feature *arc* at `/ship` — it reads `Finding.status` not exit codes (the awareness
   organs exit 0 on drift), blocks on FAIL **and** any new/undispositioned WARN, runs claim-3
   (full verification), and dispositions expected WARNs via `ecosystem/disposition-register.yaml`
-  (e.g. the #77 voided closure). A register entry matching no live WARN is surfaced as stale
-  (ADR-75 decoration rule). Read-only; hub-only organs no-op on children (the `/ship` wiring is
+  (live examples: the three grandfathered `no_ff_merges` June commits; the `undeclared_edges`
+  prose-reference set). A register entry matching no live WARN is surfaced as stale and is
+  **removed**, not kept as decoration (ADR-75) — which is where the former
+  `warn-77-voided-closure` entry went once #77 was KILL-removed from BACKLOG; the register's own
+  comment block keeps that record. Read-only; hub-only organs no-op on children (the `/ship` wiring is
   hub-guarded).
 - `scripts/normalize_headers.py` — dated-log header normalization (pre-commit).
 - `scripts/validate_backlog.py` — BACKLOG story-map schema (ADR-66; pre-commit).
@@ -352,9 +375,12 @@ references, **not an exhaustive inventory** of every script in `scripts/`:
   `no_ff_merges` audit WARN stays the post-hoc backstop; bypass-proof server-side teeth
   deferred under #153 (#153; ADR-84; core-invariants #5).
 - `scripts/validate_doc_claims.py` — prose-vs-state: a living doc's count/list CLAIMS
-  vs ground truth (ARCHITECTURE check-count vs `len(ALL_CHECKS)`; pre-commit gate count
-  + CLAUDE §9 roster vs `.pre-commit-config.yaml`; test-count vs `pytest --collect-only`,
-  off-gate). Read-only; surfaced via the `doc_claims` audit check (WARN). Single-doc
+  vs ground truth. Four claims (`_CLAIMS`, `validate_doc_claims.py:225-236`): the audit
+  check-count (vs `len(ALL_CHECKS)`), the pre-commit gate-count and the pytest collected-count
+  (vs `pytest --collect-only`, off-gate) all read the committed-generated
+  **`ecosystem/doc-counts.md`** — #222 moved them off ARCHITECTURE.md, and **this file no longer
+  carries them**; the roster set-claim reads **CLAUDE.md §9**'s named hook list against
+  `.pre-commit-config.yaml` (order-independent). Read-only; surfaced via the `doc_claims` audit check (WARN). Single-doc
   accuracy only — history-accretion rot is the `doc_rot` check (#140); cross-file fidelity
   is the coherence spine (#179–#182). Standalone CLI: `python scripts/validate_doc_claims.py` (#89).
 - `scripts/validate_doc_rot.py` — doc-rot / grooming checker: history-accretion bloat
@@ -402,10 +428,15 @@ references, **not an exhaustive inventory** of every script in `scripts/`:
   landed: `build_edge_index` (the derived **rebuildable index** — rebuilt from source each scan, no
   hand-maintained manifest, ADR-88 P3) + `scan_structural_integrity` (**L1**: dangling / `code_orphan` =
   code→nonexistent-rule / duplicate), proven on a fixture; the live check now also surfaces `code_orphan`.
-  Hub-only; read-only; live on 13 rules per the ADR-89 OQ1 naming convention (the #194 cohort-1 five +
-  the #201 governance trio + the #202 Tier-3 quartet — `coherence-doc-claims`/`-rot`/`-structure` +
-  `handoff-probes-bind` — + `handoff-boot-budget`, the [#446] R4 split-site pair), the multi-organ ones resolved via **resolver-allows-N / ADR-90**: a rule
-  enforced in N code organs declares its expected `# rule:` count in `multi_site:`. Check in
+  Hub-only; read-only; live on **the rules registered in `ecosystem/doc-code-edge.yaml`
+  `coverage_scope`** per the ADR-89 OQ1 naming convention — the #194 cohort-1 + the #201
+  governance trio + the #202 Tier-3 quartet (`coherence-doc-claims`/`-rot`/`-structure` +
+  `handoff-probes-bind`) + `handoff-boot-budget` ([#446] R4) + `seal-journal-spine-anchor`. Read
+  the count off that file, not off this sentence (it said "13" while `coverage_scope` held 15);
+  the `doc_code_coverage_drift` check is what stops the registered set drifting off the
+  auto-enumerable `ALL_CHECKS` surface. The multi-organ rules resolve via **resolver-allows-N /
+  ADR-90**: a rule enforced in N code organs declares its expected `# rule:` count in
+  `multi_site:`. Check in
   `audit.py::check_doc_code_edge`.
 - `scripts/verify_handoff_probes.py` — handoff-probe teeth: every probe in the latest
   `PROBES.md` bundle binds to live state, by STRUCTURAL resolvability (resolve-only — no
@@ -448,14 +479,20 @@ references, **not an exhaustive inventory** of every script in `scripts/`:
   (`git check-ignore`, armed hook stages, tag-ancestry) over text-grep; refusal findings on
   ambiguous/mis-addressed pointers — detect-and-report, NEVER an action proposal. Writes the
   gitignored `logs/FLEET-PARITY.md` digest + appends schema-versioned checker-run JSONL events
-  to the gitignored rotation-capped `logs/parity-events.jsonl` (fail-open emission). A loose
+  to the gitignored rotation-capped `logs/PARITY-EVENTS.jsonl` (`fleet_parity.py:123`,
+  `EVENTS_PATH`; conformed to the [#395] UPPERCASE-KEBAB `logs/` convention on 2026-07-22 —
+  this line still spelled it lowercase) (fail-open emission). A loose
   module (not a codemap node). **Promoted to a blocking `ALL_CHECKS` member** ([#337], 2026-07-18):
   `audit.py::check_fleet_parity` calls `fleet_parity.walk()` in-process and maps blocking verdicts
   to gating Findings (`exempt:` in doc-code-edge.yaml — manifest-driven, not a doc→code rule). The
   standalone CLI is unchanged: `python scripts/fleet_parity.py --run-date YYYY-MM-DD` (#328/#337).
-- `deploy/tool.py` + `deploy/contract.py` + the five carriers (`carrier_globalconfig`,
-  `carrier_plugin`, `carrier_precommit`, `carrier_floor`, `carrier_mesh`) — the ADR-92 **deploy orchestrator**
-  (Ch4). A read-only ASSESS CLI (`deploy <repo> --target <vX.Y.Z>`) detects each carrier's
+- `deploy/tool.py` + `deploy/contract.py` + the carrier modules registered in
+  `tool.py::make_carriers` — `carrier_globalconfig`, `carrier_plugin`, `carrier_precommit`,
+  `carrier_floor`, `carrier_mesh`, `carrier_docs` — the ADR-92 **deploy orchestrator** (Ch4).
+  **The roster of record is the manifest's `carriers:` block** (`deploy/manifest-v*.yaml`, gated
+  by the `roster-freshness` hook), not a count restated in prose: at v1.4.0 it declares seven —
+  six `implemented: true` plus `editor-config` `implemented: false`. (`carrier_docs` landed at
+  `ec924ae2`, [#280]; this list said "five" until 2026-08-10.) A read-only ASSESS CLI (`deploy <repo> --target <vX.Y.Z>`) detects each carrier's
   state vs a per-tag manifest and prints a plan; `--execute` applies + **per-carrier
   verify-gates** the version record (`ecosystem/deployed-versions.yaml`, ADR-91) + stages the
   consumer carriers (write-yes / commit-no — the Layer-2 boundary). Every carrier implements
@@ -471,8 +508,11 @@ references, **not an exhaustive inventory** of every script in `scripts/`:
   set, completeness/truncation caveat) plus the three honest limits (static-Python-only,
   repo-scoped, references-only) on **every** answer. Read-only query TOOL — **not** a
   validator/gate, **not** in `ALL_CHECKS`, not wired to a hook (a flat module, so not a codemap
-  node); the safe-removal gate that consumes it is #195. Pyright is vendored via `npm install`
-  (pinned in `package.json`; `node_modules/` gitignored). Standalone CLI:
+  node). The gate that gives it teeth is **built**: `audit.py::check_safe_removal` (#195, logic
+  in `scripts/safe_remove.py`) is a FAIL-class `ALL_CHECKS` member — diff-triggered, fail-OPEN
+  when Pyright is absent. #195 is closed; the deferred L3 real-deletion phases are **[#218]**
+  (this bullet named #195 as the *pending* consumer until 2026-08-10). Pyright is vendored via
+  `npm install` (pinned in `package.json`; `node_modules/` gitignored). Standalone CLI:
   `python scripts/reverse_dep_oracle.py <symbol> [--json|--text]`.
 
 **Graph-level conformance — the legibility graph as an integrated whole.** The four
@@ -493,19 +533,21 @@ proven" headline — green never lies. Per-oracle **deep modes** stay in the per
 | Edge-type | In gate? | Registered + operational | Fires on a representative break (integrated entry) | Deep modes (referenced — not owned here) |
 |---|---|---|---|---|
 | spec→dependent (#172) | yes (`ALL_CHECKS`) | PROVEN | PROVEN — stale `reconciled_with` → `check_reconciled_versions` FAIL | `test_coherence_integration.py` + `test_validate_reconciliation.py` |
-| doc→code (#194) | yes (`ALL_CHECKS`, hub-only) | PROVEN | PROVEN — declaration-registry doc + a broken/orphaned rule-ID → `check_doc_code_edge` WARN (broken_edge / code_orphan) | `test_doc_code_edge.py` (move-safety, dup-guard, coverage gate, registry-scoping guard, **L1 structural-integrity + rebuildable-index round-trip**, multi-site + coverage-drift teeth); coverage tail #201/#202/#203 **complete** — 12 rules + the `doc_code_coverage_drift` guard |
+| doc→code (#194) | yes (`ALL_CHECKS`, hub-only) | PROVEN | PROVEN — declaration-registry doc + a broken/orphaned rule-ID → `check_doc_code_edge` WARN (broken_edge / code_orphan) | `test_doc_code_edge.py` (move-safety, dup-guard, coverage gate, registry-scoping guard, **L1 structural-integrity + rebuildable-index round-trip**, multi-site + coverage-drift teeth); coverage tail #201/#202/#203 **complete** — the `coverage_scope` set + the `doc_code_coverage_drift` guard |
 | undeclared (#179/#199) | yes (`ALL_CHECKS`, WARN-only) | PROVEN | PROVEN — prose ref to a registered spec + no edge → candidate surfaced via `scan`/`main` | `test_scan_undeclared_edges.py` (tiers, fenced-exclusion, false-flag precision) |
-| code↔code (#193) | no (query tool; #195) | PROVEN | PROVEN here (vendored Pyright, skipif-guarded) — real reverse-dep query → ≥1 dependent w/ provenance | `test_reverse_dep_oracle.py`; transitive closure → #193/#195 |
+| code↔code (#193) | no (query tool; its gate is `safe_removal`) | PROVEN | PROVEN here (vendored Pyright, skipif-guarded) — real reverse-dep query → ≥1 dependent w/ provenance | `test_reverse_dep_oracle.py`; transitive closure → #193/#195 |
 | **graph-integration** | — | **4/4 PROVEN** | **4/4 PROVEN this env** (code↔code skipif-guarded) | referenced above |
 
 **Env-aware tally.** This env (Pyright vendored) → **8/8 cells proven** (4/4 registered +
 operational, 4/4 fires-on-break); integration **fully proven (this env)**. An unprovisioned env
 → **7/8 proven, 1 skipped** (code↔code fires — Pyright not provisioned): fully **provable**, not
 fully proven there. No green — test name, output, or this map — reads as "fully proven" while a
-cell is skipped or gapped. **Skip/gap tracking:** code↔code fires → skip-guarded, here proven,
-portability via **#195** (integrated enforcement) + **#193**; doc→code coverage tail
-**#201/#202/#203 complete** (12 rules mapped + the `doc_code_coverage_drift` guard over the
-auto-enumerable `ALL_CHECKS` surface; the heterogeneous non-`ALL_CHECKS` remainder stays curated).
+cell is skipped or gapped. **Skip/gap tracking:** code↔code fires → skip-guarded, here proven;
+its integrated enforcement (#195) and the oracle (#193) both **landed** — the live residual is
+**[#218]** (the deferred L3 real-deletion phases); doc→code coverage tail
+**#201/#202/#203 complete** (every `coverage_scope` rule mapped + the `doc_code_coverage_drift`
+guard over the auto-enumerable `ALL_CHECKS` surface; the heterogeneous non-`ALL_CHECKS`
+remainder stays curated).
 
 - `tests/` — pytest unit tests for the validators (collected count in `ecosystem/doc-counts.md`; `pytest -x --tb=short`).
 
@@ -520,9 +562,19 @@ auto-enumerable `ALL_CHECKS` surface; the heterogeneous non-`ALL_CHECKS` remaind
 `validate-backlog`, `audit-health`, `ruff` (≥0.15.5),
 `coherence-nudge` (non-blocking forgotten-version-bump nudge — exits 0 always),
 `backlog-id-on-close` + `backlog-filing-backpressure` (commit-msg — the remove-side and
-add-side backlog gates), and `block-ff-push` (pre-push — #153 prevent
-half; activate once via `pre-commit install --hook-type pre-push`). Editing **this
-file** fires `normalize-dated-headers`, `codemap-freshness`, and `audit-health`.
+add-side backlog gates), and the two **pre-push** gates `block-ff-push` (#153 prevent half) +
+`block-unanchored-push` (the ADR-85 hard leg, amendment 2026-08-03 §A5) — activate both once
+via `pre-commit install --hook-type pre-push`. **The id set and its count live in
+`.pre-commit-config.yaml` and `ecosystem/doc-counts.md`**, with CLAUDE.md §9 carrying the
+annotated roster; `validate_doc_claims` claim 2b holds §9 and the config in step, which is why
+the roster is not re-counted here (this list named sixteen of seventeen from 2026-08-03 to
+2026-08-10, missing `block-unanchored-push`).
+
+Editing **this file** fires every `always_run: true` hook — `validate-hermetization` and
+`audit-health` at pre-commit, `backlog-id-on-close` and `backlog-filing-backpressure` at
+commit-msg — plus the two whose `files:`/`types:` match it: `normalize-dated-headers`
+(markdown) and `codemap-freshness` (its regex names `ARCHITECTURE.md`). The two pre-push gates
+are `always_run` too, but fire at push, not at the edit.
 
 ---
 
@@ -592,16 +644,16 @@ as a persistence host **REJECT** (ADR-74; in-session repair-loop split to #126).
 
 **Chapter 4 — Distribution & transfer.** The methodology is authored in the hub and
 **carried** to where it is consumed. Five distribution **channels**, each with a
-different scope and freshness model (a distinct set from the deploy tool's five
+different scope and freshness model (a distinct set from the deploy tool's
 *carrier modules*, Ch2/Validators — the orchestrator bullet below maps the two):
 
 | Channel | Scope | What it carries | Ref |
 |---|---|---|---|
 | user-layer `~/.claude` | fleet-wide (L0) | `block-onedrive`, gotchas, ROUTING, Codex config, `surface-closures`, the `--no-ff` rule | global; ADR-54 |
 | `tier1-lifecycle` plugin | repo-class | `/ship`, `/review-closures`, `propose_closures`, `validate_backlog` (marketplace install) | ADR-70/73 |
-| pre-commit `.pre-commit-hooks.yaml` | consumer-pull | codemap ×2 + toc ×2 freshness hooks (hub is the source repo; corp consumes @`69558c7`) | ADR-71 |
+| pre-commit `.pre-commit-hooks.yaml` | consumer-pull | the hub's six exported hook ids — `codemap-freshness`/`-generate`, `toc-freshness`/`-generate`, `backlog-id-on-close`, `block-ff-push` (hub is the source repo). **Exported ≠ consumed:** corp-monorepo pulls only `backlog-id-on-close` + `block-ff-push`, pinned at the tag **`v1.3.1`**, and has withdrawn the codemap/toc four by recorded `.methodology.yaml` waiver (`corp-monorepo/.pre-commit-config.yaml:83-95`). This row read "codemap ×2 + toc ×2 … corp consumes @`69558c7`" until 2026-08-10 — wrong on both legs | ADR-71; ADR-102 (gate-rev axis) |
 | child floor `.claude/CLAUDE-FLOOR.md` | per child repo | ≤1,500-tok generated floor + `.sha256` under the child's `.claude/` (not repo root); operator-invoked generator (`scripts/generate_floor.py`, `@.claude/CLAUDE-FLOOR.md`-include from child CLAUDE.md) | ADR-78; hub shipped #121, pilot done |
-| browser bundle | browser sessions | consolidated `BUNDLE.md`; Projects deferred | ADR-79 |
+| browser boot | browser sessions | the Handoff v6 **thin browser boot** — `HANDOFF_BOOT.md` + `PASTE_THIS.md` inside each `docs/handoffs/<bundle>/`. **ADR-79's consolidated-`BUNDLE.md` delivery was superseded by ADR-82** ("a ~3-line thin browser boot … replaces the heavy 8-file bundle", `docs/decisions/README.md:71`); no `BUNDLE.md` exists in the tree. Projects stay deferred — that half of ADR-79 stands | ADR-79 (Projects deferred); ADR-82 (delivery) |
 
 - **Agents-distribution doctrine (extends ADR-71).** Agents are **authored and
   versioned in the hub**; they distribute **user-level (`~/.claude/agents/`) for
@@ -612,12 +664,14 @@ different scope and freshness model (a distinct set from the deploy tool's five
   "URL-swappable later" hatch *for cloud* (ADR-72). The plugin/pre-commit channels are
   **inert by design** in a fresh cloud clone — not bugs.
 - **Deploy orchestrator (ADR-91/92; ADR-93 for the floor; validators in Ch2).** The five rows
-  above are the *channels*; the **deploy tool** (`deploy/tool.py` + the five carriers
-  `globalconfig`/`plugin`/`precommit`/`floor`/`mesh`) is the **versioned orchestrator across them** —
-  it reconciles **four of the five** channels (all but the browser bundle) into a consumer at a
+  above are the *channels*; the **deploy tool** (`deploy/tool.py` + its registered carrier
+  modules — roster in `deploy/manifest-v*.yaml` `carriers:`, enumerated in Ch2/Validators) is the
+  **versioned orchestrator across them** —
+  it reconciles **four of the five** channels (all but the browser boot) into a consumer at a
   pinned corpus version (ADR-91), behind a per-carrier verify-gate, then records the deployed
-  version (Ch6 `deployed_methodology_version`). The `mesh` carrier (#236) deploys the
-  enforcement-mesh corpus — a deployable surface of its own, not one of the five channels;
+  version (Ch6 `deployed_methodology_version`). Two carriers deploy surfaces of their **own**
+  rather than one of the five channels: `mesh` (#236, the enforcement-mesh corpus) and `docs`
+  ([#280], `ec924ae2` — the hub doc areas: the intake area + `INSTALL.md`);
   a further `editor-config` carrier is manifest-declared but not yet implemented
   (`implemented: false`, v1.4.0). The tool is **not itself a carrier** — it is *how* the
   five are delivered as one gated release; the `floor` carrier also arms the floor under model A
@@ -745,7 +799,7 @@ other are both correct:
 |---|---|---|---|
 | In-session | `verify` skill (pytest + ruff + git) | does this step pass its gates | per numbered step |
 | Pre-merge | `/codex-review`; `/ship` gate | code-diff correctness; branch→`--no-ff`→clean | operator-invoked |
-| Post-merge (server) | `report-only-wall.yml` (GitHub Actions) | **what actually landed on `main`** — **three legs of the seventeen** client-side gates, re-run off-host on a full-depth clone (`pytest` — not a hook at all —, `audit.py health`, and the anchor backstop). **NOT** the whole gate set: `ruff` and 13 others are not re-run server-side, so a `--no-verify` push carrying a ruff violation still leaves no server record (LA-3, corrected 2026-08-07 — this row previously said "the client-side gate set", which over-claimed). Widening it to a fourth `pre-commit run --all-files` leg is an open ticket, not an oversight: it changes what the record MEANS | report-only; records, never blocks |
+| Post-merge (server) | `report-only-wall.yml` (GitHub Actions) | **what actually landed on `main`** — **three measured legs**, re-run off-host on a full-depth clone (`pytest` — not a hook at all —, `audit.py health`, and the anchor backstop). **NOT** the whole gate set: exactly **two** pre-commit-managed hooks have a server-side counterpart (`audit-health`, `block-unanchored-push`); every other gate — `ruff` among them — is not re-run, so a `--no-verify` push carrying a ruff violation still leaves no server record. Read the gate count off `ecosystem/doc-counts.md`, not off this cell (it said "`ruff` and 13 others" against a live 17−2 = 15). (LA-3, corrected 2026-08-07 — this row previously said "the client-side gate set", which over-claimed.) Widening it to a fourth `pre-commit run --all-files` leg is an open ticket, not an oversight: it changes what the record MEANS | report-only; records, never blocks |
 | Nightly (cloud) | conformance Routine | **claims-vs-docs** coherence (own repo) | read-only + skeptic |
 | Nightly (local) | `fleet_health.py` / `audit.py run` | structural + **freshness-stamp** health (repo + siblings) | deterministic, fail-soft |
 | Funnel | `surface_triage.ps1` + morning triage | operator ratifies findings before they bind | human gate (#123) |
@@ -784,8 +838,9 @@ What that leaves, and why it is worse than a cleanly-removed loop:
 the `ARMED (stale input)` status in Ch2 reads as a contradiction:
 
 - **Stage 1, digest producer — ALIVE.** The cloud Routine still emits a digest nightly
-  onto `claude/conformance-*` branches (`origin/claude/conformance-2026-07-26` exists
-  today). Nothing merges or reads them — the ADR-105 precipitating evidence: the 07-21
+  onto `claude/conformance-*` branches (live list: `git branch -r | grep conformance` — naming
+  one dated branch here rots within days, and the branch this line used to name,
+  `origin/claude/conformance-2026-07-26`, is long gone). Nothing merges or reads them — the ADR-105 precipitating evidence: the 07-21
   High finding F1 was fixed on `main` by a session that never opened the branch that
   found it, so the finding's second half went unfixed as a direct result.
 - **Stage 2, triage / Issue producer — DEAD** since 2026-07-09 (above). This is the
@@ -852,8 +907,11 @@ in ephemeral read-only worktrees. That local job was **never registered as a
 scheduled task**. In reality the recurring unattended review ships as the **cloud
 Routine + spec-orchestration** described in Ch3/this chapter (the nightly-conformance
 arc). ADR-68 is **immutable** — superseded-in-reality, noted here and in Governing
-ADRs, not edited; the unbuilt local track survives as BACKLOG **#85** (refs
-`docs/audits/2026-06-05-living-doc-staleness.md`; LESSONS/JOURNAL 2026-06-05).
+ADRs, not edited. **The local track has no live backlog home:** this line said it
+"survives as BACKLOG **#85**", but #85 was closed on **2026-06-07** (`cb59705b`, wave-A
+closeout) and no `tasks/` allocation record for it exists — the pointer had been dead for
+two months. The surviving record is the evidence, not a row: `docs/audits/2026-06-05-living-doc-staleness.md`;
+LESSONS/JOURNAL 2026-06-05.
 
 ---
 
@@ -881,11 +939,11 @@ live in the ADRs; git history retains; the ADR-77 guard stays armed, Ch2).
 - **ADR-71/72/73** — doc-tooling source-repo distribution; cloud-Routine hub-independence; per-repo orchestration distribution (Ch4).
 - **ADR-75/77/78** — exclusion-zone register; immutable-paths zone class; child methodology floor + `methodology_surface` zone (Ch5/Ch4).
 - **ADR-76** — local fleet-baseline host (Task Scheduler → Python; no LLM on path).
-- **ADR-79** — browser methodology carrier: bundle-only; Projects deferred (Ch4 — the browser *channel* in today's vocabulary; "carrier" in the ADR title predates the deploy carrier-module set).
+- **ADR-79** — browser methodology carrier: bundle-only; Projects deferred (Ch4 — the browser *channel* in today's vocabulary; "carrier" in the ADR title predates the deploy carrier-module set). **Its bundle-delivery half is superseded by ADR-82** — the thin browser boot replaced the consolidated bundle; the Projects-deferred half stands. Immutable, untouched.
 - **ADR-84** — automation-writer isolation (Q9): both writers commit only to dedicated `automation/*` branches (never `main`); the `no_ff_merges` automation exemption removed — one rule (Ch3/Ch6).
 - **ADR-85/86/87** — session-lifecycle enforcement (deterministic session-end Stop-gate; un-gameable JOURNAL commit-SHA anchor); conformance-dashboard location (`ecosystem/conformance.md`, ADR-80 committed-generated zone); Architect↔CC equilibrium contract (conditional intent-only prompting) (Ch2/Ch6).
 - **ADR-88/89** — file-oriented dependency management (repo files are the dependency unit; declared edges held by machinery, not memory) and computed code-dependency edges (declare-what-you-cannot-compute; Pyright reverse-dependency oracle) — both Accepted 2026-06-21 (`911b561`); ADR-88/89 in-place markers (Ch5/Ch6).
-- **ADR-90/91/92/93** — doc→code resolver-allows-N (a rule declares its expected `# rule:` site count in `multi_site:`; Ch2/Validators); methodology-corpus versioning (semver + a git-tag release marker; the `deployed_methodology_version` record, Ch6); deploy-runbook doctrine (a versioned, verification-gated deploy tool + five carrier modules — five in reality today; ADR-92's body says "four hard-coded carriers", corrected by its **2026-07-25 in-file amendment marker** (`ADR-92:95`, operator-ruled — body preserved verbatim per ADR-94; a sixth carrier `editor-config` is declared, `implemented: false`) — operator-run from the hub; Ch2/Ch4); floor provisioning model A (commit + two-leg hash-guard the ADR-78 floor; Ch2 arming / Ch4 floor carrier) — Accepted.
+- **ADR-90/91/92/93** — doc→code resolver-allows-N (a rule declares its expected `# rule:` site count in `multi_site:`; Ch2/Validators); methodology-corpus versioning (semver + a git-tag release marker; the `deployed_methodology_version` record, Ch6); deploy-runbook doctrine (a versioned, verification-gated deploy tool + a carrier-module set that keeps outgrowing any number written into prose; ADR-92's body says "four hard-coded carriers", corrected by its **2026-07-25 in-file amendment marker** (`ADR-92:95`, operator-ruled — body preserved verbatim per ADR-94). Read the live roster off `deploy/manifest-v*.yaml` `carriers:` (v1.4.0: seven declared, six `implemented: true`, `editor-config` false) — operator-run from the hub; Ch2/Ch4); floor provisioning model A (commit + two-leg hash-guard the ADR-78 floor; Ch2 arming / Ch4 floor carrier) — Accepted.
 - **ADR-98** — requirements-intake pipeline: functional/technical/developer modes turn operator intent into a decomposed epic set (Ch5 requirements intake).
 - **ADR-101** — hermetization: sanctioned top-level set, per-class name grammar, refusal gate (`validate_hermetization.py` pre-commit; Ch2/Ch5).
 - **ADR-102/103** — parity-surfaces axes: enforcement-gate-rev modeled separately from corpus `source_tag`; per-entry ownership `{value, reason, provenance}` classification (fleet_parity organ row, Ch2).
