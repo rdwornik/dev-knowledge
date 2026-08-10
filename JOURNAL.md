@@ -19,6 +19,107 @@
 
 ---
 
+### 2026-08-10 (b) — CC (Opus 5, primary tree): ARC-5 — the night batch archived, four dispositions verified, the digest gap named, and the supplement re-attached
+
+**Did:** Executed the ARC-5 contract from the hub PRIMARY checkout, serial, sole writer to `main`
+from `e67fb8db`. Zero `SKIP=`, zero `--no-verify`, zero force-pushes, zero deletions, zero rows
+born/closed/edited, zero branches reaped.
+
+1. **Authored the batch manifest BEFORE integrating** (`737dd479`), present tense, with its
+   lateness stated rather than concealed. Filename verified against the parser first: `MANIFEST_GLOB`
+   is `docs/audits/*-batch-*-manifest.md`, and the natural word order `...-night-batch-manifest.md`
+   — which is also the branch's own word order — **fails** it. Recorded the honest provenance: the
+   ADR-110 exemption could not have applied even at dispatch, because `LANE_BRANCH_RE` matches only
+   `worktree-lane-*` and these lanes ran on `claude/night-batch-cloud-lanes-a4mpkp`. **The manifest
+   is an archival declaration, not a gate key** — it bought the record and no relaxed check.
+2. **Merged the night branch** (`19aca464`, `--no-ff`), carrying all three lane reports from
+   `fe81e896`. `docs/audits/README.md` conflicted as predicted; **resolved by regeneration, never by
+   hand** — `gen_audit_index.py --write`, then `--check` exit 0, then a grep proving zero conflict
+   markers reached the staged blob. 456 documents.
+3. **Verified four ruled dispositions rather than assuming them** (`189fcb37`): **4 of 4 LANDED**,
+   all in `6a4a1d78`, confirmed an ancestor of `main`.
+4. **Established the conformance digest gap as BROKEN and named the step** (same commit) — the
+   manual, operator-authorized *"absorb the nightly conformance digest"* merge, last run `24882f8c`
+   on 2026-08-02. **Did not merge the six digests**, as instructed and as correct independently.
+5. **Landed the closing packet** (`fd464967`), which is the single act that discharged the batch.
+6. **Re-attached the supplement** (`86078062`) by the mechanism governance already provides.
+
+**Result:** Full suite **2 failed / 2714 passed / 4 skipped / 1 xfailed** (513.88s). `audit.py health`
+**OK**. `audit.py ship-gate` **GREEN** (27 WARN dispositioned). **Deviations named, nothing fixed:**
+
+- **The stated baseline named the right organ but the wrong surface.** `routine_consumers` is **`[OK]`**
+  in both `health` and the ship-gate — there is no audit RED. The standing RED is a **test**:
+  `tests/test_audit.py::test_routine_consumers_live_backlog_governs_exactly_one_row`, which asserts the
+  check governs exactly one row while live `BACKLOG.md` carries **two** `· routine:` markers ([#348],
+  [#426]). Pre-existing: the same two markers are present at bare `e67fb8db`, and [#426] gained its
+  marker at `27ec8bc5`.
+- **A SECOND pre-existing failure the baseline did not name:**
+  `tests/test_preflight_contract.py::test_every_claim_class_the_brief_names_is_extractable` — the `sha`
+  claim class is not extracted. Its inputs were last touched at `63086cf7`, before this arc.
+- **Neither failure is this arc's.** The arc changed 12 files, all under `docs/audits/` and
+  `docs/handoffs/`: **zero code, zero tests, zero BACKLOG, zero `tasks/`**. Both failing tests read
+  inputs byte-identical to `main`.
+- **Declared, not silenced:** `PASTE_THIS.md` is **80,675 bytes** against the 65,000 advisory ceiling
+  (ARC-4's was 68,902). The assembler's warn fired and stands. More live evidence for `[#511]`.
+- **The audit-health gate refused a commit and was right.** My first bundle carry covered only
+  `RESIDUAL.md`, on a heading-set comparison of `HANDOFF_BOOT` that came back IDENTICAL — too coarse
+  to see FILL-IN payloads, which sit inside table rows. `residual_completeness` blocked the commit
+  (`health: DEGRADED`) naming all four unfilled regions. Fixed by filling them and re-assembling; no
+  bypass was reached for.
+
+**The four disposition verdicts, each landed-with-locator:**
+
+| Disposition | Verdict | Locator |
+|---|---|---|
+| dependency-graph → intake #29 amendment | **LANDED** | `docs/intake/2026-08-08-func-multi-model-execution-and-distillation.md:87` (Fold B) |
+| telemetry → intake #29 amendment | **LANDED** | same file `:48` (Fold A); shared AMENDMENT heading `:41` |
+| multi-provider-portability → W-wave scope note | **LANDED** | `docs/intake/2026-08-05-func-simplification-distribution-wave.md:96` → W-9(a) |
+| cloud-compute → its own intake | **LANDED** | `docs/intake/2026-08-09-tech-compute-placement-and-remote-execution.md`, intake-id 32 |
+
+**The digest-gap verdict: BROKEN, not deliberate.** Deliberate is refuted three ways — the only
+written protection those branches carry is against **deletion**, not merging; the producer is healthy
+(six digests emitted on their due nights, one self-amended at `f18419fc`); and the absorb step ran
+regularly right up to the gap, each execution carrying `operator-authorized <date>` in its own
+subject. It is a **step, not an organ**: no trigger, and no gate sees it — `routine_consumers` checks
+only BACKLOG rows carrying a `· routine:` marker, so it ran `[OK]` while six of this routine's digests
+sat unread. **ADR-105 §1 named this failure in advance**, calling `consumption_path` *"the field the
+conformance routine would have failed, since branches nobody opens are a path in name only."* It is a
+**recurrence at identical width** of open `[#419]` (first instance `claude/conformance-2026-07-21`…`-26`,
+also six). `2026-08-06` has no branch and is reported **undetermined from the repo**.
+
+**The lawful path for the supplement, and the clause it rests on.** `$env:CLAUDE_PROMPTS_DIR` resolved
+live to `C:\Users\1028120\Downloads`; the file was **present, 6,597 bytes** — reported before concluding
+anything was missing. The **external dated marker was excluded on its own text**: STANDING_RULINGS H1
+fixes that shape for *"a committed handoff bundle whose internal slug names a different directory"* —
+the defective-seal case, which this is not — and its own Expiry line confirms the marker surface is
+unbuilt. **Taken: the same-day re-cut**, on HANDOFF_PROCESS R5 (*"`--allow-suffix` is the explicit opt-in
+that writes a fresh `-<n>` sibling"*) plus `docs/handoffs/README.md`, which supplies the disambiguation:
+*"A day with more than one handoff produces `<slug>`, `<slug>-2`, … siblings; that is normal … the gate
+runs against the **active** one (newest by git-add date) … `--exact` … reports its supersession rather
+than staying silent."* Precedent is not merely the `-2` family but the identical act at `80dd54d6`.
+**Nothing was invented and the ARC-4 bundle is byte-unchanged.**
+
+**Caught before committing:** a naive re-cut would have made the active bundle **poorer** than the one
+it supersedes — the generator re-renders FILL-IN regions empty, so `RESIDUAL.md` came out at 3,233
+bytes against ARC-4's 19,334, dropping the whole hand-authored §4(a)–(h) and §4b. All payloads were
+carried byte-for-byte and re-verified. **§4(g) is left byte-unchanged and a new §4(i) is APPENDED** —
+append-not-amend, the discipline STANDING_RULINGS B6 fixed for JOURNAL anchors. The two `HANDOFF_BOOT`
+regions that described work this arc had just completed were **authored fresh**: a sealed bundle is
+appended to, a bundle being cut is written true.
+
+**Changes:** `docs/audits/` +6 (manifest, packet, verification artifact, 3 merged lane reports) and its
+regenerated index; `docs/handoffs/2026-08-10-dev-knowledge-architect-2/` +5 (new bundle).
+
+**Abandoned:** nothing.
+
+**Next (operator-owed, none of it assumed):** whether to absorb the six `claude/conformance-*` digests;
+whether the absorb step becomes an organ ([#419]/[#426] territory, not a fresh row); whether 2026-08-06
+warrants a scheduler-side check; and every lane's `## Needs a ruling` section, which stays for the
+architect at the batch-4 planning GO.
+
+**Anchors:** `737dd479` `19aca464` `189fcb37` `fd464967` `86078062` (and `fe81e896`, the night-branch
+commit this arc's merge introduced and whose anchor debt this entry discharges).
+
 ### 2026-08-10 (a) — CC (Opus 5, primary tree): ARC-4 — the disposition, four kills that all survived their own evidence, and the cut
 
 **Did:** Executed the frozen ARC-4 contract from the hub PRIMARY checkout, serial, sole writer to
