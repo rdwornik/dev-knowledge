@@ -19,6 +19,53 @@
 
 ---
 
+### 2026-08-11 (b) — CC (Opus 5, primary tree): ARC-9 queue lane 5 (last) — the research corpus lands, and a premise stated in three places is refuted by quoted governance
+
+**Did:** Final lane of the full-queue GO. Merged `worktree-ingest-research-corpus` (tip `71476534`,
+3 commits) at `7254d753`, generated index conflict resolved by **regeneration**, plus the `[#511]`
+attachment (`74fb0fc0`). The queue is now walked end to end.
+
+**What landed.** Six 2026-08-09 research memos archived **byte-identical** (sha256 verified
+source-vs-landed) into `docs/archive/`, the **ONE distillate** triaging all **59 proposals**
+against measured repo state, and an orphan-split reconcile ledger. **Zero FAIL lines** — all six
+inputs resolved first try, and the failure mode the contract feared (a predecessor dying silently
+on an unresolved path) did not occur.
+
+**The lane's best work is a refutation.** Three sites — intake `#32`'s Provenance, the `#25` W-9(a)
+scope note, and commit `6a4a1d78`'s body — assert that **no in-repo home exists for an external
+research memo**, and cite ADR-101's tree seal as the reason. **A clause does exist and required
+inventing nothing:** ADR-60 defines `archive/` as the *"deliberate holding zone for 'don't yet know
+where this belongs' … not a dumping ground — a triage queue"*; ADR-101 §1 Tier-2 lists `archive/`
+as **sanctioned** (confirmed in code — `SANCTIONED_GENRES` contains it, and `validate-hermetization`
+passed on the landing commit); and the folder already held **four** external-research memos under
+exactly this convention. So the premise was not a ruling to overturn — grep of `STANDING_RULINGS`
+and the disposition register finds no standing ruling on the question at all — it was **an
+unverified assumption repeated until it read as governance.** The lane landed the corpus and
+**reported the three stale sentences rather than editing them** (two live inside filed intakes).
+Repair channel is already ruled: **erratum footnotes at the ratification batch**, never silent edits.
+
+**`[#511]` gains commission 5's homeless half** (`74fb0fc0`) — distillate rows **R43 / R50 / R51**,
+the one half of one commission owned by no intake. Attached as scope+evidence per the operator's
+Lane A answer 2, taking the ingest lane's own recommendation (c): R50/R51 *are* this row's live
+fork, so the coupling is tightest and the new surface smallest, and no intake is born, so the 5/5
+pending ceiling holds.
+
+**Result:** suite **1 failed / 2715 passed / 4 skipped / 1 xfailed** (11m16s) — only the standing
+`[#426]` row, the same single RED every lane in this walk returned.
+
+**One defect in the merged artifact, reported not edited:** the distillate's title says *"the 48
+proposals"* while its own executive summary, its table (R01–R59) and its commit subject all say
+**59**. The body is right and the title is stale; audits are immutable once merged, so it is
+recorded here rather than rewritten.
+
+**Changes:** `docs/archive/` +6 memos +README, `docs/audits/2026-08-10-technical-research-corpus-distillate.md`,
+`docs/audits/2026-08-10-technical-research-ingest-reconcile-and-packet.md`, `docs/audits/README.md`
+(regen), `tasks/511-…md` + `BACKLOG.md` + `tasks/manifest.json`.
+
+**Abandoned:** nothing. **Next:** the batched follow-ups — apply the `[#419]`/`[#426]` Done-when
+amendments, apply batch4-prep Blocks 1–2 (`[#241]`, `[#390]`), and rule on `[#360]`, whose
+"intent unrecoverable" premise the census refuted.
+
 ### 2026-08-11 (a) — CC (Opus 5, primary tree): the absorb ×7 executed — eight days of stranded digests land, and the rule that forbade it is narrowed
 
 **Did:** Executed the operator-authorized **absorb ×7** (Fork 3, route A), preceded by its three
