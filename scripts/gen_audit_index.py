@@ -5,8 +5,10 @@
 finding an audit means an `ls` + guess. This generator enumerates every `docs/audits/*.md`
 (date + slug + first-`# `-heading title) into a reverse-chronological index grouped by month —
 the §5.5 navigation-overhead trigger, satisfied mechanically. The RETENTION policy is **ruled**:
-ADR-100 (`docs/decisions/ADR-100-audit-retention-index-rule.md`) decided keep-all-accepted with a
-count-tiered index, and folded and closed `[#212]` in doing so; this is the index artifact only.
+ADR-100 (`docs/decisions/ADR-100-audit-retention-index-rule.md`) decided keep-all-accepted, and
+folded and closed `[#212]` in doing so. ADR-100 ALSO names a count-tiered index shape, which is
+**not built here** — this module still groups by month, and the tiering plus its freshness hook
+are `[#269]`. The header says so rather than advertising a shape this code does not emit.
 
 Loose top-level module BY DESIGN (mirrors gen_claude_rosters.py / gen_methodology_roster.py):
 no codemap node, no ARCHITECTURE codemap regen on edit. Deterministic: same inputs -> byte-
@@ -69,7 +71,8 @@ def render_index(audits_dir: Path | None = None) -> str:
         "",
         "> Mechanical reverse-chronological index of every `docs/audits/*.md` (date · slug ·",
         "> title), grouped by month. The §5.5 navigation-overhead trigger, satisfied by",
-        "> generation. Retention is ruled by ADR-100: keep-all-accepted, count-tiered index.",
+        "> generation. Retention is ruled keep-all-accepted (ADR-100); the count-tiered index",
+        "> shape ADR-100 also names is [#269] and is NOT built — this index groups by month.",
         "> Do not hand-edit. Regenerate: `python scripts/gen_audit_index.py --write`",
         "",
         _GENERATED_NOTE,
