@@ -708,6 +708,57 @@ Shape A (root `conftest.py`) stays permitted-not-mandated per `[#430](a)` and F5
 - **Expiry:** retires when the rollout row lands the config and the residual is conformant or
   exempted.
 
+#### H4 · RETIRED 2026-08-11 — the expiry condition above is met, in full
+
+Recorded by re-annotation rather than by deletion, so the ruling stays readable and its retirement
+carries its own evidence. `[#521]` — the rollout row this expiry clause names — executed on batch-4
+lane `worktree-lane-f-521-syspath-substrate`.
+
+- **Config landed** at `58427730`: `pythonpath = [".", "scripts", "deploy"]`, the corrected spelling
+  this ruling adopts, verbatim and in the table this ruling names.
+- **The retirement executed** at `04dd9b39`: 75 test-side `sys.path.insert` lines deleted across 72
+  files, plus the 99 `os`/`sys` imports they were the sole user of (`ruff check --fix`; ruff clean
+  both sides, so all 99 are attributable). The live census had grown from 74 sites to **77** in the
+  three days since the measurement, which is why the figure above and the figure here differ.
+- **Two sites are deliberately left standing, and this is the one place the retirement is short of
+  complete.** `tests/test_batch_manifest.py` lines 46 and 511 were excluded because that file was
+  live in batch-4 lane W1 and the lane's dispatch required a footprint disjoint from every live
+  lane. They are redundant rather than wrong — a duplicate path entry, no behaviour change. Owed: a
+  two-line sweep once W1 merges.
+- **Measured on the rollout tree, not inherited.** Isolated per-file collection, one process per
+  file, over 101 test files: **0 failures** post-rollout, against **68 failures** for the same tree
+  with the roots narrowed back to `["."]`. The control is what gives the 0 content — with the
+  inserts still in place the probe reads 0 either way, so a bare 0 would have been vacuous. The 68
+  reproduces this ruling's own 67-of-99 figure on a newer tree. Full suite, both sides, identical on
+  every axis: **2 failed / 2710 passed / 8 skipped / 1 xfailed**, the same two standing REDs
+  (`test_audit.py`'s routine-row count, `test_stale_worktrees.py`'s linked-worktree inversion).
+- **Reviewed:** `docs/audits/2026-08-11-codex-lane-f-521-syspath-substrate.md`, terra, 2 passes,
+  Tally 0/0/0/0 — pass 1's single HIGH refuted by reproduction (it described `[#510]`, which the
+  diff does not touch), pass 2 clean.
+
+**THE DECLARED RESIDUAL, DISPOSED — 25 sites, all EXEMPTED, none conformant.** Re-counted live
+against the tree rather than inherited from the bullet above, and it still reads exactly as
+declared: `scripts/` 18, `deploy/` 6, plus the one test-side literal.
+
+- **The 24 non-test insertions are exempted as OUT OF REACH, not as unfinished work.** `pythonpath`
+  is a pytest setting: it configures the pytest process's `sys.path`. These 24 lines run when a git
+  hook or a CLI invokes the script directly — `uv run --locked python scripts/<x>.py` — with no
+  pytest in the process at all. No spelling of Shape B reaches them, and deleting them would break
+  those scripts. Retiring them is a different change of a different shape (a package, or declared
+  entry points), and it sits outside `[#521]`.
+- **The 1 test-side literal is exempted as DATA, not an import bootstrap.**
+  `tests/test_enforcement_coverage.py:389` is an f-string generating the source of a pre-commit hook
+  script written to `tmp_path` and run as a subprocess; a parent's `sys.path` does not reach a
+  spawned child. Verified live: it survived intact and still sits at line 389, and the line-anchored
+  regex used for the deletion could not have matched it.
+- **Honest limit, carried forward unchanged.** The `scripts/`-side module-level inserts keep leaking
+  across xdist workers (measurement §4a), so the parallel suite stays an inadmissible instrument for
+  any question about import wiring. This rollout neither fixes that nor worsens it.
+
+**What did NOT happen, stated so a reader does not infer it.** No `conftest.py` was added — Shape A
+stays permitted-not-mandated. Shape C stays excluded absent an ADR. No `scripts/` or `deploy/` file
+was modified by the rollout at all.
+
 ---
 
 ## I. ARC-9 — the 2026-08-10 ruling window (seat-27 checklist)
