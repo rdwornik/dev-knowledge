@@ -41,14 +41,30 @@ push-time refusal stays unconditional; only the commit-time verdict about an
 already-declared, still-open batch is deferred to the boundary where the JOURNAL can
 actually name the merges. `tests/test_batch_manifest.py` asserts the non-import on the AST.
 
-HONEST LIMITS, three, none of them hidden:
+HONEST LIMITS, four, none of them hidden:
   * The merged-branch name is read from the MERGE SUBJECT (`Merge branch 'x'`), which is what
     `git merge --no-ff` writes and what `/lane-integrate` produces. A hand-written merge
     message that omits the branch name is not recognised as a lane merge — it fails CLOSED
     (no exemption), which is the safe direction.
-  * The exemption is not scoped to the lanes the manifest ENUMERATES; any `worktree-lane-*`
-    merge qualifies while a batch is open. That is the draft as ratified — its stated concern
-    is temporal, not per-lane — and tightening it is a separate decision, not a silent one.
+  * SCOPE, as of [#514]/[#510] W1 — NARROWED, NOT CLOSED, and the difference is the point.
+    The exemption now covers only branches matching the RATIFIED lane grammar
+    `worktree-lane-<letter>-<id>-<slug>` (the imported `LANE_BRANCH_RE`), where it previously
+    covered any `worktree-lane-*` shape at all. Measured on main's first-parent spine, that is
+    9 of 16 historical lane-shaped merges no longer qualifying. What it is STILL not scoped to
+    is the roster of lanes the open manifest ENUMERATES: any conforming lane branch qualifies
+    while a batch is open, so the self-grant `[#510]` describes — *"one `git branch -m` away"* —
+    is made harder to reach by accident, not impossible to reach on purpose. Closing it needs a
+    machine-readable roster FIELD on the manifest, which in turn needs `PLAYBOOK.md` Ch8 and the
+    manifest template to carry it; shipping the field without those carriers would be exactly
+    the half-landed adoption `[#513]` exists to detect, so `[#510]` stays OPEN on that leg
+    rather than being closed on this one.
+  * The grammar is enforced NOWHERE AT PROVISIONING. `validate_branch_naming` is read-only and
+    wired into no gate (its own posture note), and a batch lane dispatched straight through
+    `claude --worktree <name>` never passes `/lane-boot` step 1. So an off-enum lane name is
+    still creatable; what changed is that it now silently gets NO exemption instead of silently
+    getting one. That direction is the safe one — a missing exemption is a loud gate FAIL at the
+    integrator's first merge, not a hole — but it is a trade, and it is stated rather than
+    implied.
   * This adds a second exemption surface to a gate whose value is having none. Recorded in
     the ADR-110 amendment as an accepted cost, weighed against a standing instruction to turn
     the whole registry off twice per batch.
@@ -266,7 +282,16 @@ def merged_branch_name(repo_path: Path, sha: str) -> Optional[str]:
 
 
 def is_lane_merge(repo_path: Path, sha: str) -> bool:
-    """True iff `sha` is a merge commit whose merged branch matches the lane shape."""
+    """True iff `sha` is a merge commit whose merged branch matches the RATIFIED lane grammar.
+
+    "The lane shape" is `validate_branch_naming.LANE_BRANCH_RE` and nothing else ([#514]) — the
+    same constant `classify()` uses to call a branch `batch-lane`, so the exemption and the
+    naming enum can no longer disagree about what a lane is. They did, on 9 of 16 real merged
+    lane branches, which is what made both organs unenforceable at once.
+
+    Fails CLOSED in every unknown case: a non-merge, an unparseable merge subject, a git read
+    failure and an off-grammar name all return False, i.e. no exemption.
+    """
     name = merged_branch_name(repo_path, sha)
     return bool(name and LANE_BRANCH_RE.match(name))
 
