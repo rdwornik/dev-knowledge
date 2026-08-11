@@ -19,6 +19,53 @@
 
 ---
 
+### 2026-08-11 (d) — CC (Opus 5, primary tree): the four Q-set rulings applied — and re-anchoring [#360] went one site further than the ruling
+
+**Did:** Applied the operator's Q1–Q4 answers (`6179ef17`) on `docs/arc9-qset-applications`.
+Six rows and one register entry touched; zero births, zero closes, zero status changes.
+
+**Q1 — the absorb becomes an organ, by amendment not by birth.** `[#419]`/`[#426]` Done-when
+amended per I-F3. `[#419]` now demands a trigger that fires without an operator remembering, a
+queue-depth detector (unmerged `claude/conformance-*`) on a surface already read, **and the I-2
+scheduler-run check** — so *"the job did not run"* is distinguishable from *"the output was not
+absorbed"*, which is precisely the ambiguity 2026-08-06 produced and the repo alone could not
+settle. `[#426]` closes `routine_consumers`' own stated boundary: it gates only rows carrying a
+`· routine:` marker, so it reports `[OK]` while a routine that is **not a row** accumulates unread
+output — the exact shape that made the 08-03…08-10 queue.
+
+**Q2 — Blocks 1 and 2 only.** `[#241]` re-phrased cardinality-free: it tested *"each of the 6"*
+against a live **20** `warn-undeclared` ids, so the predicate now reads the live surfaced set and
+cannot expire again. `[#390]`: `templates/prompt-template.md:68` offered three Effort rungs while
+**`:126` of the same file** declares `{low | medium | high | xhigh}` a CLOSED enum — one file, two
+cardinalities. Fixed with the version bump **in the same commit** (1.13 → 1.14), because splitting
+them is what fires `coherence-nudge`; no dependent pins the version (`grep 'prompt-template@'` →
+zero). Blocks 3–4 deliberately **not** applied — already landed at `57284aaa`.
+
+**Q3 — the re-anchor reached a site the ruling did not name.** `[#360]`'s 2026-09-09 dated review
+is WITHDRAWN and the row records *"I-1 superseded by census evidence; operator informed."* But
+re-anchoring properly exposed more than the clause: the row's **title** still carried
+`:106-109`, which was correct when `DEFINITION_OF_DONE.md` was 123 lines and is now **stale** — the
+file is 185 lines and `## Scope-freeze` sits at **:168**, so 106-109 holds unrelated text. Fixing
+only the clause would have left the row's own headline citing a dead range. Title, body and
+Done-when now anchor on the **heading**, per convention 3b-4, and the locator history is kept
+in-row as its own drift record — a row about a clause that expired in place should not itself carry
+an expired pointer.
+
+**Q4 — a finish line moved out of the past tense.** `[#505]` clause 2 read *"batch-1 executes under
+it"*; batch-1 ran 2026-08-06, before ADR-110 and before the artifacts the row creates, so the
+measurement was not missing — it could no longer be **taken**. Re-pegged to *"the next batch …
+with its operator-touch count recorded in the batch manifest"*. Plus `STANDING_RULINGS` **I-D3**:
+batch-4 lane contracts are **committed before dispatch**, carrying the four falsifications as
+measurement rather than as complaint.
+
+**Result:** suite **1 failed / 2715 passed / 4 skipped / 1 xfailed** (9m31s) — the standing
+`[#426]` row. `gen_task_tree --check` 0, `validate_backlog` 0, zero new `must/shall/never` tokens.
+
+**Changes:** `tasks/{241,360,419,426,505}-…md`, `templates/prompt-template.md` (cell + version),
+`protocols/STANDING_RULINGS.md` (+I-D3), `BACKLOG.md` + `tasks/manifest.json` (regen).
+
+**Abandoned:** nothing. **Next:** the three night lanes, re-gated on primary.
+
 ### 2026-08-11 (c) — CC (Opus 5, primary tree): the terra review persisted — the gate was right about my own arc
 
 **Did:** Closed the one WARN this walk caused. `check_review_artifact_coverage` flagged `e3016465`

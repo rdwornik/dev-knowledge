@@ -860,6 +860,23 @@ contract that caps enumeration.
   claims ended up false under their own review stamp at `8f09c12d`.
 - **Expiry:** retires when a mechanism computes these claims at stamp time.
 
+### I-D3 · A batch-4 lane contract is COMMITTED to the repo before dispatch
+
+**Batch-4 lane contracts are committed to the repo before dispatch.** (Operator ruling 2026-08-11,
+alongside the `[#505]` clause-2 re-peg.) A contract delivered by paste or by download is not a repo
+artifact, so a lane dispatched from one cannot demonstrate the property `[#505]` clause 1 exists to
+demonstrate — *"a fresh seat runs a full batch from repo artifacts alone."*
+
+- **Measured, not argued: clause 1 has been falsified FOUR times**, each time by the same cause —
+  delivery outside the repo. The 2026-08-10 backlog-testability census recorded the fourth
+  instance against **its own contract**, which arrived as a file in `~/Downloads`; the ARC-9 queue
+  ran the same way. A predicate falsified four times by one cause is a mechanism being dodged, not
+  a wrong predicate — which is the ruling already recorded at I-D 3a-5.
+- **Scope:** batch-4 lane contracts. It does not reach ad-hoc operator prompts, which are not
+  contracts and make no claim to be repo artifacts.
+- **Expiry:** retires when a dispatch surface reads contracts from the tree, so an uncommitted
+  contract is unroutable rather than merely irregular.
+
 ### I-I2 · 2026-08-06 — the scheduler job did not run
 
 Answering 3c-2, which the repo could not settle: **the operator confirms the scheduler job did not
