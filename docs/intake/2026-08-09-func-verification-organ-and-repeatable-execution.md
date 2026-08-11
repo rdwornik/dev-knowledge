@@ -1,7 +1,9 @@
 ---
 intake-id: 30
-status: DRAFT
+status: ACCEPTED
 origin: "Layer-1 architect (predecessor seat), 2026-08-09 — consolidating the challenge answer `CHALLENGE-ANSWER-2026-08-09`, the operator directives of 2026-08-08/09, and the predecessor review; authored off-repo and filed verbatim by the ARC-3 hygiene close-out"
+decided-by: "operator ruling at the batch-4 planning GO, 2026-08-11 - SecA/SecB/SecC ratified per this document's acceptance criterion; SecD confirmed as folded into intake #29 (no new intake). AMENDED AT RATIFICATION: SecA absorbs the DECISION-LIFECYCLE half of research commission 5 (memo `wf-fafd931b`), which N3 recorded as having ZERO in-repo trace and which now lands with the corpus at `docs/archive/2026-08-09-research-session-continuity-decision-lifecycle-wf-fafd931b.md` (`f571ac3c`, merged `4314782a`). The SESSION-CONTINUITY half is NOT carried here - it routes to `[#511]`, attached as scope+evidence at `74fb0fc0` (distillate rows R43/R50/R51), and the register line recording that attach is `protocols/STANDING_RULINGS.md` I-D4, written at this GO because N3 correctly found no in-repo record of it. SecA's organ is NOT born as a new row: `[#513]` is the same organ (its own text - \"the landing predicate is the DETECTOR, not the fixes\" - and its evidence set are SecA's), so its Done-when is AMENDED instead, per the one-birth discipline. In-repo carrier for the GO: docs/audits/2026-08-11-technical-batch-4-go-recording.md"
+disposition: active
 note: "BODY FILED VERBATIM — zero edits, zero births. The body's own header bullet still reads `intake-id: 30 (PROPOSED — verify next-free before filing)`; that check is now DISCHARGED and the id is 30, held in reserve for this document since intake #32 recorded 30/31 as RESERVED rather than free. The bullet is left unedited because the archival value of a verbatim filing outranks tidying a resolved parenthetical."
 ---
 

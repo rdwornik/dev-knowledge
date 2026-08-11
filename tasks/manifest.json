@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "1a6b7fe516857609b14e170484c1c9f011156bf71c78c91f1534fc8016d64e1f",
+  "generated_sha256": "561d472085e36eac6fed6175fbca09ef3e4f509678c49cfeee661ca02230a8d7",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -412,6 +412,10 @@
     {
       "task": 519,
       "file": "519-the-close-path-is-two-edits-and-nothing-makes-a.md"
+    },
+    {
+      "task": 522,
+      "file": "522-re-cut-bundle-carries-predecessor-payloads.md"
     },
     {
       "prose": ""
@@ -920,6 +924,10 @@
     {
       "task": 126,
       "file": "126-backpressure-loop-pattern-evaluation.md"
+    },
+    {
+      "task": 521,
+      "file": "521-syspath-substrate-shape-b-rollout-owner.md"
     },
     {
       "prose": ""

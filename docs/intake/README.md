@@ -31,22 +31,17 @@ fill-in skeleton is `templates/intake-template.md`.
 - [#22](2026-07-30-func-operator-decision-routing-and-standards.md) — Operator design input — decision routing, engineering standards, and lane timeline
 - [#23](2026-08-01-func-distillation-and-library-first.md) — Operator design input — distillation and library-first
 
-### DRAFT (8)
+### DRAFT (3)
 
 - [#10](2026-07-11-tech-c4-visualization-memo.md) — C4 / Codemap Visualization — Architect Research Memo
 - [#24](2026-08-05-tech-currency-wave-1.md) — PART B — INTAKE DRAFT: tech-currency wave 1 — buy the commoditized walls
 - [#27](2026-08-06-tech-adoption-consolidation-intake.md) — INTAKE DRAFT — tech-adoption consolidation ledger (38 items, successor-facing)
-- [#28](2026-08-08-func-skills-tier-adoption-and-hub-finish-line.md) — Skills-tier adoption, the operator's 14, and the hub finish line
-- [#29](2026-08-08-func-multi-model-execution-and-distillation.md) — Multi-model execution flow, session-cost instrumentation, and the distillation engine (measure-first)
-- [#30](2026-08-09-func-verification-organ-and-repeatable-execution.md) — The verification gap, repeatable execution, and the cost of parallelism
-- [#31](2026-08-09-func-code-style-doctrine.md) — Universal code-style doctrine for an LLM-written Python fleet
-- [#32](2026-08-09-tech-compute-placement-and-remote-execution.md) — INTAKE — compute placement and remote execution: fix local first, and make the cloud precondition a rule
 
 ### READY (1)
 
 - [#15](2026-07-16-satellite-onboarding-prompts.md) — Satellite onboarding prompts — ready to fire (four consumers)
 
-### ACCEPTED (9)
+### ACCEPTED (14)
 
 - [#12](2026-07-11-tech-ownership-manifest.md) — Fleet Ownership Manifest (SETTLED) + Nightly Hygiene Decision Tree
 - [#13](2026-07-11-tech-plan-of-record-fleet-hygiene.md) — Plan-of-record — Fleet Hygiene System build (post 2026-07-11 session)
@@ -57,6 +52,11 @@ fill-in skeleton is `templates/intake-template.md`.
 - [#20](2026-07-28-north-star-delta-review.md) — North Star delta review — local 2026-07-21 doc vs in-repo intake #16
 - [#25](2026-08-05-func-simplification-distribution-wave.md) — INTAKE — simplification & distribution wave: adopt the commoditized layers, keep the edge (ACCEPTED 2026-08-09)
 - [#26](2026-08-06-func-parallel-execution-system.md) — Parallel multi-agent execution system — batch protocol as versioned repo artifacts
+- [#28](2026-08-08-func-skills-tier-adoption-and-hub-finish-line.md) — Skills-tier adoption, the operator's 14, and the hub finish line
+- [#29](2026-08-08-func-multi-model-execution-and-distillation.md) — Multi-model execution flow, session-cost instrumentation, and the distillation engine (measure-first)
+- [#30](2026-08-09-func-verification-organ-and-repeatable-execution.md) — The verification gap, repeatable execution, and the cost of parallelism
+- [#31](2026-08-09-func-code-style-doctrine.md) — Universal code-style doctrine for an LLM-written Python fleet
+- [#32](2026-08-09-tech-compute-placement-and-remote-execution.md) — INTAKE — compute placement and remote execution: fix local first, and make the cloud precondition a rule
 <!-- INTAKE-INDEX:END -->
 
 ## 1. What this folder is

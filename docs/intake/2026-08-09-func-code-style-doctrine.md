@@ -1,7 +1,9 @@
 ---
 intake-id: 31
-status: DRAFT
+status: ACCEPTED
 origin: "Layer-1 architect (predecessor seat), 2026-08-09 — operator directive of 2026-08-09 plus the commissioned research report 'Enforcing a universal code-style doctrine across an LLM-written Python fleet'; authored off-repo and filed verbatim by the ARC-3 hygiene close-out"
+decided-by: "operator ruling at the batch-4 planning GO, 2026-08-11 - SecA ratified as the fleet's written code-style doctrine and SecE entered in the do-not-relitigate register per this document's acceptance criterion. SecB's adoption order is ratified SUBJECT TO SecD's hotspot measurement LANDING FIRST, reconciling the measured DECLINE of the complexity-ratchet stack recorded at `docs/audits/2026-08-09-technical-consolidation-report.md` Sec6.4. The ruff rule-family list is LEFT OPEN - it is not ruled here, because SecD binds and a family list settled before the hotspot measurement would be the exact ordering error SecD exists to prevent. SecD BINDS: no refactor row is born before a hotspot measurement. In-repo carrier for the GO: docs/audits/2026-08-11-technical-batch-4-go-recording.md"
+disposition: active
 note: "BODY FILED VERBATIM — zero edits, zero births. The body's own header bullet still reads `intake-id: 31 (PROPOSED — verify next-free before filing)`; that check is now DISCHARGED and the id is 31, held in reserve for this document since intake #32 recorded 30/31 as RESERVED rather than free. The bullet is left unedited because the archival value of a verbatim filing outranks tidying a resolved parenthetical."
 ---
 

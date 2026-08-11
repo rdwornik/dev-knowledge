@@ -1,7 +1,9 @@
 ---
 intake-id: 28
-status: DRAFT
+status: ACCEPTED
 origin: "Layer-1 architect (outgoing 2026-08-06 window seat), 2026-08-08 — the operator's 14-candidate inspiration list plus the window's reflection round; landed VERBATIM by the frozen contract ARC-file-intakes-28-29 (S-write, zero births)"
+decided-by: "operator ruling at the batch-4 planning GO, 2026-08-11 - SecA and SecB ratified as one act per this document's own acceptance criterion. SecB carries the two amendments banked 2026-08-10 and recorded verbatim at `protocols/STANDING_RULINGS.md` I-F2: the zero-mechanically-untestable-Done-when criterion is ADDED, and clause 5 (<10 min measured) STAYS, read against the re-scoped `[#511]`, whose non-mechanized cut load is the thing clause 5 actually measures. The SecB half was DECIDED 2026-08-10 and deliberately not executed then - this flip is the execution of that banked decision, not a fresh ruling. In-repo carrier for the GO: docs/audits/2026-08-11-technical-batch-4-go-recording.md"
+disposition: active
 note: "Class: functional. Provenance (from the body): operator paste 2026-08-08 (14 candidates); tool facts verified by web research 2026-08-08. Triage rides the batch-4 planning GO as ONE ratification batch with intake #29 (the intake-#27 §C pattern) — this filing DECIDES nothing. The body carries its own metadata bullets (intake-id / Class / Date / Author / Status / Provenance) verbatim as source text; this frontmatter is the schema-conformant carrier per docs/intake/README.md §3. The body's `intake-id: 28 (PROPOSED ...)` line is preserved as written — 28 was verified next-free across the live index and all git history before filing."
 ---
 
