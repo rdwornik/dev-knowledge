@@ -994,6 +994,27 @@ absence of a branch is explained by absence of a run, not by a lost artifact.
 
 ---
 
+## J. Batch-4 integration window (2026-08-11 integrator seat)
+
+Source of record: the `AMENDMENT — 2026-08-11` block appended to the batch-4 manifest,
+`docs/audits/2026-08-11-technical-batch-4-manifest.md`, which carries the full reasoning and the
+measurements behind each line below.
+
+- **J-1 · W6 leaves the batch-4 active roster** — the lane is dropped, taking active width to 5 and
+  clearing the process-lane cap overage — recorded reasons: optional, a stated collision with W2 on
+  `ARCHITECTURE.md`, and no row id. The collision leg is **uncorroborated at recording time** and
+  marker A-1 carries the measurement; the drop rests on the other two, one of which is verified.
+- **J-2 · A batch lane is contracted after its work carries a row id** — G-2 resolves as
+  **ids-before-contract**: W4 stays `PENDING-CONTRACT` until its conversions carry a BACKLOG id — a
+  lane is named from a row, rather than a row back-filled to fit a lane already dispatched.
+- **J-3 · A manifest row flip lands as an appended amendment marker** — the batch-3 precedent is
+  ratified as the standard form — `docs/audits/` is immutable, so a disclosed marker is the route
+  and a silent in-place row rewrite is out.
+- **J-4 · The W1 delay is declined; the stranding hazard resolves by roster change** — W1 proceeds
+  with no reordering, because dropping W6 and gating W4 empties the id-less branch set the hazard
+  depended on.
+- **J-5 · `[#505]` leg 1 rides to the packet** — batch 4's manifest landed mid-flight, the third
+  consecutive batch to do so — carried as end-of-batch packet input rather than as a discharge.
 ## Editing note (read before adding an entry)
 
 This file sits inside the silent-rule ratchet corpus (`protocols/*.md`; detector
