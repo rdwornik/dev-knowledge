@@ -103,8 +103,21 @@ _DISPOSITION_ID_RE = re.compile(r"^\s+- id:\s*\S", re.M)
 # passed the looser first cut, recreating the very false-positive class the lever exists
 # to remove. The log heading carries the token PARENTHESIZED and terminal; the per-item
 # marker carries a COLON and an id.
+#
+# Third pass pushed on both again. The ITEM shape is tightened as asked -- a per-item
+# marker names a STRUCTURED id (`AC-1`, `SEQ-2`), so requiring one costs no recall and
+# rejects `**ARCHITECT-REVIEW-PENDING: why this exists**`.
+#
+# The HEADING shape is DELIBERATELY NOT tightened further, and this is a judgment call
+# rather than an oversight. Terra's remaining counterexample is `## How to resolve
+# (ARCHITECT-REVIEW-PENDING)`; pinning the pattern to the one observed literal
+# ("SELF-ADJUDICATION LOG") would reject it, at the cost of missing any future log that
+# titles itself differently. FOR A DEBT GAUGE A MISS IS WORSE THAN A FALSE POSITIVE: a
+# false positive over-reports load and gets read and dismissed, while a miss silently
+# under-reports it -- which is M1's own failure mode, the exact thing this row exists to
+# stop. Precision was bought where it was free; it is not bought here at recall's expense.
 _ARP_HEADING_RE = re.compile(r"^#{1,6} .*\(ARCHITECT-REVIEW-PENDING\)\s*$", re.M)
-_ARP_BOLD_RE = re.compile(r"\*\*ARCHITECT-REVIEW-PENDING:\s*\S[^*]*\*\*")
+_ARP_BOLD_RE = re.compile(r"\*\*ARCHITECT-REVIEW-PENDING:\s*[A-Z][A-Z0-9]*-?\d+\s*\*\*")
 
 LOAD_CSV_NAME = "OPERATOR-LOAD.csv"
 LOAD_CSV_HEADER = (
@@ -464,7 +477,7 @@ def count_open_triage_issues(repo_root: Path, timeout_s: int = _GH_TIMEOUT_S):
     return None if len(payload) >= _GH_ISSUE_LIMIT else len(payload)
 
 
-def count_pending_closures(logs_dir: Path, backlog_text: str) -> int:
+def count_pending_closures(logs_dir: Path, backlog_text: str):
     """Distinct ids proposed-for-closure and still awaiting the operator's word.
 
     An id is pending when it is UNCHECKED in some logs/PROPOSALS-*.md **and**
@@ -478,6 +491,12 @@ def count_pending_closures(logs_dir: Path, backlog_text: str) -> int:
     consumer need not have installed, and this SessionStart-critical path carries
     no cross-tree import -- the same reason groom_escalation_line above mirrors
     validate_doc_rot._latest_groom_date instead of importing it.
+
+    An UNREADABLE candidate file makes the whole producer unavailable (None) rather than
+    silently shrinking the count (terra HIGH, third pass). Skipping it with `continue`
+    reported a partial tally as though it were a measurement -- the same `n/a`-never-0
+    contract already applied to an unreadable BACKLOG, which this path was violating in
+    the same breath. An absent directory is still 0: nothing to read is a measurement.
     """
     if not logs_dir.exists():
         return 0
@@ -487,7 +506,7 @@ def count_pending_closures(logs_dir: Path, backlog_text: str) -> int:
         try:
             text = f.read_text(encoding="utf-8", errors="replace")
         except OSError:
-            continue
+            return None
         pending |= set(_UNCHECKED_PROPOSAL_RE.findall(text)) & open_ids
     return len(pending)
 
@@ -507,7 +526,7 @@ def count_dispositions(register_path: Path):
     return len(_DISPOSITION_ID_RE.findall(text))
 
 
-def count_review_pending(audits_dir: Path) -> int:
+def count_review_pending(audits_dir: Path):
     """Audit artifacts carrying an unadjudicated ARCHITECT-REVIEW-PENDING marker.
 
     Counts FILES, not occurrences: one artifact carrying a self-adjudication
@@ -519,6 +538,10 @@ def count_review_pending(audits_dir: Path) -> int:
     unactioned debt regardless of the artifact's age, and on the live tree BOTH
     standing markers are ~5 weeks old, so any plausible N would report zero and
     make the gauge blind to 100% of its own signal. Reached once per day.
+
+    An UNREADABLE artifact makes the producer unavailable (None), for the same reason
+    count_pending_closures does: a partial scan reported as a count is a wrong number,
+    and an artifact nobody can open is exactly the kind that hides a pending review.
     """
     if not audits_dir.exists():
         return 0
@@ -527,7 +550,7 @@ def count_review_pending(audits_dir: Path) -> int:
         try:
             text = f.read_text(encoding="utf-8", errors="replace")
         except OSError:
-            continue
+            return None
         if _ARP_HEADING_RE.search(text) or _ARP_BOLD_RE.search(text):
             n += 1
     return n
@@ -660,23 +683,28 @@ def append_load_row(csv_path: Path, run_date: date, counts: dict) -> None:
         # concurrent create". FALSE: O_EXCL creates a zero-byte file, so a racing writer
         # CAN observe size 0 -- and the recovery then opened with "w", truncating the
         # creator's already-written row. That was data loss, not a cosmetic race.
-        # The recovery path is therefore APPEND-ONLY: "a" cannot destroy another writer's
-        # row under any interleaving. Honest residual: a true create race can leave a
-        # duplicate header line mid-file. That is ugly and self-evident on read, and it
-        # never costs a measurement -- the trade this file wants.
+        #
+        # THIRD pass killed the last offset-zero write. Making only the RECOVERY path
+        # append-only still left the CREATOR holding a `"w"` descriptor at offset 0: a
+        # racing writer could append its header and row into the newly created file, and
+        # the creator would then write straight over them. So O_EXCL is now used purely
+        # to CLAIM THE NAME -- the descriptor is closed immediately and every writer,
+        # creator included, goes through the same O_APPEND path. No descriptor in this
+        # function can overwrite a byte another process wrote.
+        #
+        # Honest residual, unchanged and accepted: two writers can both observe size 0
+        # and emit a duplicate header line. That is ugly, self-evident on read, and never
+        # costs a measurement -- the trade this file wants, and the reason a cross-process
+        # lock is not bought for a local trend meter.
         try:
-            fd = os.open(csv_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            os.close(os.open(csv_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY))
         except FileExistsError:
-            with open(csv_path, "a", encoding="utf-8", newline="") as f:
-                writer = csv.writer(f, lineterminator="\n")
-                if csv_path.stat().st_size == 0:
-                    writer.writerow(LOAD_CSV_HEADER)
-                writer.writerow(row)
-        else:
-            with os.fdopen(fd, "w", encoding="utf-8", newline="") as f:
-                writer = csv.writer(f, lineterminator="\n")
+            pass
+        with open(csv_path, "a", encoding="utf-8", newline="") as f:
+            writer = csv.writer(f, lineterminator="\n")
+            if csv_path.stat().st_size == 0:
                 writer.writerow(LOAD_CSV_HEADER)
-                writer.writerow(row)
+            writer.writerow(row)
     except OSError as exc:
         print(f"fleet_health: WARNING -- operator-load CSV not written: {exc!r}",
               file=sys.stderr)

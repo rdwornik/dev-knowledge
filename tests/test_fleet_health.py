@@ -1090,6 +1090,81 @@ def test_refresh_still_writes_the_digest_when_the_csv_append_explodes(tmp_path):
     assert "## Operator load" in health.read_text(encoding="utf-8")
 
 
+def test_csv_creator_cannot_overwrite_a_racing_writers_row(tmp_path):
+    # terra HIGH, THIRD pass: making only the RECOVERY path append-only left the CREATOR
+    # holding a "w" descriptor at offset 0, so a racer could append header + row into the
+    # just-created file and the creator would write straight over them. O_EXCL now only
+    # claims the name; every writer, creator included, uses O_APPEND.
+    csv_path = tmp_path / "OPERATOR-LOAD.csv"
+    real_close = fh.os.close
+
+    def racing_close(fd):
+        # We won the create. A competitor appends between our create and our append.
+        result = real_close(fd)
+        with open(csv_path, "a", encoding="utf-8", newline="") as f:
+            f.write(",".join(fh.LOAD_CSV_HEADER) + "\n")
+            f.write("2026-08-04,1,1,1,1,1,1,1,50\n")
+        return result
+
+    with mock.patch.object(fh.os, "close", racing_close):
+        fh.append_load_row(csv_path, date(2026, 8, 11), _COUNTS)
+    lines = csv_path.read_text(encoding="utf-8").splitlines()
+    assert any(line.startswith("2026-08-04,") for line in lines), \
+        f"the racing writer's row was overwritten by the creator: {lines}"
+    assert any(line.startswith("2026-08-11,") for line in lines)
+
+
+def test_unreadable_proposals_file_makes_closures_unavailable(tmp_path):
+    # terra HIGH, third pass: an OSError on one candidate was swallowed with `continue`,
+    # so a partial tally was reported as a measurement -- the n/a-never-0 contract
+    # violated in the same breath as it was being enforced for BACKLOG.
+    logs = tmp_path / "logs"
+    logs.mkdir()
+    (logs / "PROPOSALS-2026-08-01.md").write_text("- [ ] **#11** - a\n", encoding="utf-8")
+    with mock.patch.object(Path, "read_text", side_effect=PermissionError("locked")):
+        assert fh.count_pending_closures(logs, _BACKLOG_TWO_OPEN) is None
+
+
+def test_unreadable_audit_artifact_makes_review_pending_unavailable(tmp_path):
+    audits = tmp_path / "audits"
+    audits.mkdir()
+    (audits / "a.md").write_text("## X (ARCHITECT-REVIEW-PENDING)\n", encoding="utf-8")
+    with mock.patch.object(Path, "read_text", side_effect=PermissionError("locked")):
+        assert fh.count_review_pending(audits) is None
+
+
+def test_absent_producer_dir_is_zero_not_unavailable(tmp_path):
+    # The distinction the fix above must NOT blur: nothing to read is a measurement (0);
+    # something present that cannot be read is an outage (None).
+    assert fh.count_pending_closures(tmp_path / "nope", _BACKLOG_TWO_OPEN) == 0
+    assert fh.count_review_pending(tmp_path / "nope") == 0
+
+
+def test_review_pending_item_marker_requires_a_structured_id(tmp_path):
+    # terra HIGH, third pass — the ACCEPTED half. A per-item marker names an id; prose
+    # after the colon is explanatory text, not a tracked item.
+    (tmp_path / "prose.md").write_text(
+        "**ARCHITECT-REVIEW-PENDING: why this exists** is explained below.\n",
+        encoding="utf-8")
+    assert fh.count_review_pending(tmp_path) == 0
+    (tmp_path / "real.md").write_text(
+        "**ARCHITECT-REVIEW-PENDING: AC-1** (the hooksPath unset)\n", encoding="utf-8")
+    (tmp_path / "real2.md").write_text(
+        "**ARCHITECT-REVIEW-PENDING: SEQ-2** (a sequencing fork)\n", encoding="utf-8")
+    assert fh.count_review_pending(tmp_path) == 2
+
+
+def test_review_pending_heading_recall_is_deliberately_kept_broad(tmp_path):
+    # terra HIGH, third pass — the DECLINED half, pinned so the decision is visible and
+    # a later tightening has to argue with a test rather than a comment. A log titled
+    # something other than "SELF-ADJUDICATION LOG" must still COUNT: for a debt gauge a
+    # miss (silently under-reporting load, M1's own failure mode) is worse than a false
+    # positive (over-reports, gets read, gets dismissed).
+    (tmp_path / "differently-titled.md").write_text(
+        "## OPEN ADJUDICATIONS (ARCHITECT-REVIEW-PENDING)\n", encoding="utf-8")
+    assert fh.count_review_pending(tmp_path) == 1
+
+
 def test_review_pending_excludes_prose_headings_and_explanatory_bold(tmp_path):
     # terra HIGH #4: the first cut matched ANY heading or bold run containing the token,
     # so prose ABOUT the marker still counted -- recreating the false-positive class the
