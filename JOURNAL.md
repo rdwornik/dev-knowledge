@@ -19,6 +19,50 @@
 
 ---
 
+### 2026-08-11 (n) — CC (Opus 5, primary tree): the anchor the W1 integration owed — `17bab0f1`, named here so `fd4149ba` is discharged on the integrator's own terms
+
+**Did:** Wrote the JOURNAL anchor that the batch-4 W1 register-hygiene merge left owed.
+The spine entry `fd4149ba` ("Merge branch 'docs/batch-4-w1-register-hygiene'") **introduces
+`17bab0f1`**, and nothing in this file named it. Entry (m) below anchors `0136cec6` — which
+was already on the spine via its own earlier merge — so it discharged nothing for
+`fd4149ba`. Naming `17bab0f1` here closes that.
+
+**What `17bab0f1` actually was**, recorded so the anchor carries meaning rather than a bare
+hash: the two register lines the integrator's surface owed at the W1 merge — F2's
+chain-to-the-consequence bullet marked **PRESENT TENSE SUPERSEDED** (W1 falsified its live
+"second constant" claim at `92d735a7`; `batch_manifest.py` now imports
+`validate_branch_naming`'s constant and exactly one module-level binding survives repo-wide,
+so a digit-form `worktree-lane-1-…` is no longer R-1 exempt) — plus the W1 integration
+entry itself.
+
+**Result:** `unanchored_on_spine(main, floor, journal_text(main))` returns **empty**. Before
+this, it returned exactly `fd4149ba`.
+
+**Why this landed FIRST, before the W2 merge — the operator's ordering ruling, and the
+reason for it.** `journal_spine_anchor` scans **main's** first-parent spine but reads the
+**working tree's** `JOURNAL.md`, so an unanchored spine entry REDs `audit-health` — a
+**pre-commit** gate — in *every* checkout of this repo, blocking even the commit that would
+explain it. The W2 lane hit exactly that and reported it: its own entry names `17bab0f1`
+and therefore clears the gate incidentally. **That incidental clearing is precisely why this
+entry had to land first.** Merging W2 before repairing main would have left a green gate
+with no integrator entry behind it, and a later reader would have had no way to tell that
+the register-hygiene merge was never journalled on its own terms. The lane flagged the
+masking risk rather than quietly benefiting from it; this is the repair it asked for.
+
+**The generalisable bit:** a lane that clears a gate as a side effect of its own honest
+bookkeeping has **not** discharged the obligation the gate was tracking. Green is not
+evidence of the thing the check exists to force — it is only evidence that some text
+satisfied the predicate.
+
+**Changes:** `JOURNAL.md` (this entry only).
+
+**Abandoned:** Nothing.
+
+**Next:** W2 integration proceeds — `/lane-integrate worktree-lane-b-270-fleet-audit`, then
+the `[#270]` close in the integrator's remit.
+
+---
+
 ### 2026-08-11 (m) — CC (Opus 5, primary tree): batch-4 W1 integrated — a day-letter collision resolved by re-lettering, and the one suite RED proved not mine
 
 **Did:** Integrated batch-4 W1 on the browser seat's APPROVE of packet tip `428ff5f7`. Verified the
