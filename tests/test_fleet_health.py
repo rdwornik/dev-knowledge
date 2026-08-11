@@ -1165,6 +1165,51 @@ def test_review_pending_heading_recall_is_deliberately_kept_broad(tmp_path):
     assert fh.count_review_pending(tmp_path) == 1
 
 
+def test_unreadable_producer_directory_is_na_not_zero(tmp_path):
+    # terra HIGH, FOURTH pass: Path.exists()/glob() swallow a directory-access OSError,
+    # so an ACL-denied logs/ or docs/audits/ listed as empty and its producer reported 0
+    # -- the n/a-never-0 contract defeated one level up from where pass 3 enforced it.
+    logs = tmp_path / "logs"
+    logs.mkdir()
+    with mock.patch.object(fh.os, "scandir", side_effect=PermissionError("denied")):
+        assert fh.count_pending_closures(logs, _BACKLOG_TWO_OPEN) is None
+        assert fh.count_review_pending(logs) is None
+
+
+def test_delta_is_na_when_today_is_partial(tmp_path):
+    # terra HIGH, fourth pass — the sharpest of the run. funnel_total is DELIBERATELY
+    # partial when a producer is down, so a partial-minus-complete subtraction invented a
+    # precise signed number for a change nobody measured. Here the baseline is a complete
+    # 90 and today's triage is unavailable, so the naive delta reads -90: the funnel
+    # "collapsing" when it was merely unobserved. M1's own series must not invent movement.
+    csv_path = tmp_path / "OPERATOR-LOAD.csv"
+    complete = {"triage": 90, "closures": 0, "dispositions": 0, "review_pending": 0,
+                "backlog": {"P1": 0, "P2": 0, "P3": 0}, "funnel_total": 90}
+    fh.append_load_row(csv_path, date(2026, 8, 4), complete)
+    today = dict(complete, triage=None, funnel_total=0)
+    assert fh.load_delta(csv_path, today, date(2026, 8, 11)) is None
+
+
+def test_delta_skips_a_partial_baseline_row(tmp_path):
+    # The other direction: a stored row whose own producers were partial is not a
+    # baseline, and the scan falls back to an older COMPLETE row.
+    csv_path = tmp_path / "OPERATOR-LOAD.csv"
+    fh.append_load_row(csv_path, date(2026, 8, 1), dict(_COUNTS, funnel_total=50))
+    fh.append_load_row(csv_path, date(2026, 8, 4),
+                       dict(_COUNTS, triage=None, funnel_total=61))
+    assert fh.load_delta(csv_path, _COUNTS, date(2026, 8, 11)) == 14   # vs 08-01's 50
+
+
+def test_delta_uses_the_newest_run_of_a_same_day_baseline(tmp_path):
+    # terra HIGH, fourth pass: `d > best[0]` never replaced an equal date, so the OLDEST
+    # run of the baseline day won -- contradicting the function's own "newest stored row"
+    # contract. One row per RUN makes same-day rows normal, so this is a live shape.
+    csv_path = tmp_path / "OPERATOR-LOAD.csv"
+    fh.append_load_row(csv_path, date(2026, 8, 4), dict(_COUNTS, funnel_total=50))
+    fh.append_load_row(csv_path, date(2026, 8, 4), dict(_COUNTS, funnel_total=60))
+    assert fh.load_delta(csv_path, _COUNTS, date(2026, 8, 11)) == 4    # 64 - 60, not -14
+
+
 def test_review_pending_excludes_prose_headings_and_explanatory_bold(tmp_path):
     # terra HIGH #4: the first cut matched ANY heading or bold run containing the token,
     # so prose ABOUT the marker still counted -- recreating the false-positive class the

@@ -125,6 +125,8 @@ LOAD_CSV_HEADER = (
     "backlog_p1", "backlog_p2", "backlog_p3", "funnel_total",
 )
 _NA = "n/a"
+# The four producers that make up the funnel (backlog bands are trend, not funnel).
+_FUNNEL_KEYS = ("triage", "closures", "dispositions", "review_pending")
 # M1's comparison window (the ex-ante metric reads a 4-week trend; the digest
 # line carries the 7d step so a single read shows direction).
 _LOAD_DELTA_DAYS = 7
@@ -426,6 +428,26 @@ def _drift_section(drift_by_repo: dict | None) -> list:
 # ---------------------------------------------------------------------------
 
 
+def _scan_md(directory: Path, prefix: str = ""):
+    """Sorted `<prefix>*.md` paths in `directory`; `[]` if ABSENT, None if UNREADABLE.
+
+    `Path.exists()` and `Path.glob()` both swallow a directory-access OSError, so an
+    ACL-denied `logs/` or `docs/audits/` listed as empty and its producer reported 0 --
+    the n/a-never-0 contract defeated one level up from where it was being enforced
+    (terra HIGH, fourth pass). `os.scandir` raises instead, which is what lets the two
+    cases be told apart: nothing to read is a measurement, unable to read is an outage.
+    """
+    try:
+        with os.scandir(directory) as entries:
+            names = [e.name for e in entries if e.is_file()]
+    except FileNotFoundError:
+        return []
+    except OSError:
+        return None
+    return sorted(directory / n for n in names
+                  if n.startswith(prefix) and n.endswith(".md"))
+
+
 def _gh_fallback_path():
     """The default Windows `gh` install location, when it is not on PATH.
 
@@ -498,11 +520,12 @@ def count_pending_closures(logs_dir: Path, backlog_text: str):
     contract already applied to an unreadable BACKLOG, which this path was violating in
     the same breath. An absent directory is still 0: nothing to read is a measurement.
     """
-    if not logs_dir.exists():
-        return 0
+    candidates = _scan_md(logs_dir, prefix="PROPOSALS-")
+    if candidates is None:
+        return None
     open_ids = set(_BACKLOG_ID_RE.findall(backlog_text))
     pending: set = set()
-    for f in sorted(logs_dir.glob("PROPOSALS-*.md")):
+    for f in candidates:
         try:
             text = f.read_text(encoding="utf-8", errors="replace")
         except OSError:
@@ -543,10 +566,11 @@ def count_review_pending(audits_dir: Path):
     count_pending_closures does: a partial scan reported as a count is a wrong number,
     and an artifact nobody can open is exactly the kind that hides a pending review.
     """
-    if not audits_dir.exists():
-        return 0
+    candidates = _scan_md(audits_dir)
+    if candidates is None:
+        return None
     n = 0
-    for f in sorted(audits_dir.glob("*.md")):
+    for f in candidates:
         try:
             text = f.read_text(encoding="utf-8", errors="replace")
         except OSError:
@@ -572,8 +596,7 @@ def funnel_total(counts: dict):
     in the CSV; recomputing the total later from an `n/a` cell would silently
     differ from what was actually measurable that day.
     """
-    vals = [counts.get(k) for k in ("triage", "closures", "dispositions", "review_pending")]
-    present = [v for v in vals if isinstance(v, int)]
+    present = [v for v in (counts.get(k) for k in _FUNNEL_KEYS) if isinstance(v, int)]
     return sum(present) if present else None
 
 
@@ -726,6 +749,15 @@ def load_delta(csv_path: Path, counts: dict, today: date, days: int = _LOAD_DELT
     current = counts.get("funnel_total")
     if not isinstance(current, int):
         return None
+    # A DELTA IS ONLY EMITTED BETWEEN TWO COMPLETE TOTALS (terra HIGH, fourth pass).
+    # funnel_total is deliberately PARTIAL when a producer is down, so subtracting a
+    # partial from a complete one produced a precise signed number for a change nobody
+    # measured: a baseline of `triage 90, total 90` against a today whose triage is
+    # unavailable and whose other producers sum to 0 rendered `-90`, reading as the
+    # funnel collapsing when in truth it was unobserved. The primary series M1 reads must
+    # not invent movement, so both sides must carry all four producers, else n/a.
+    if any(not isinstance(counts.get(k), int) for k in _FUNNEL_KEYS):
+        return None
     cutoff = today - timedelta(days=days)
     best = None
     try:
@@ -736,7 +768,14 @@ def load_delta(csv_path: Path, counts: dict, today: date, days: int = _LOAD_DELT
                     total = int((row.get("funnel_total") or "").strip())
                 except (ValueError, TypeError, AttributeError):
                     continue
-                if d <= cutoff and (best is None or d > best[0]):
+                if any((row.get(k) or _NA).strip() == _NA for k in _FUNNEL_KEYS):
+                    continue          # that run was partial -> not an honest baseline
+                # `>=`, not `>`: one row per RUN makes same-day rows normal, and the
+                # NEWEST eligible one is wanted. Iteration is in append order, so `>=`
+                # lets a later run of the same date replace an earlier one -- with `>`
+                # the OLDEST run of that day won, contradicting this function's own
+                # "newest stored row" contract (terra HIGH, fourth pass).
+                if d <= cutoff and (best is None or d >= best[0]):
                     best = (d, total)
     except (OSError, csv.Error, ValueError):
         return None
