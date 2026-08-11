@@ -820,6 +820,29 @@ The corrected 25-row table is emitted at the recording artifact §2.
   which means **no row with dependents can close without editing its dependents**. Batch-4 W2 hit
   this on `[#270]` (dependents `[#271]`, `[#348]`), stopped on the clause rather than force-closing or
   bypassing, and escalated; the clauses were stripped here at the close.
+- **W2-anchor · anchor-repair entries ride the next real work-merge** — **Anchor-repair entries
+  ride the NEXT REAL work-merge, which names them; a journal-only wrap merge is structurally
+  unanchorable and re-REDs `journal_spine_anchor` on itself (measured 2026-08-11 at
+  `ce81d5bd`/`7d7697f7`). The gate is the enforcement; this line records the measured shape.**
+  Operator ruling 2026-08-11, reworded by the operator at the ratchet: the first phrasing carried
+  two normative tokens and would have pushed the silent-rule pool past its baseline, and the
+  ratchet lowers only. The rewording is not a softening — it is the accurate register, because
+  `journal_spine_anchor` already enforces this and a second normative sentence would only
+  restate a live gate in prose. Found by walking into it: the W2 integration repaired
+  `fd4149ba`'s missing anchor on a short-lived `docs/` branch, and that branch's merge introduced
+  only the entry commit — which no entry can name, since the SHA does not exist until the entry
+  is committed. Discharged by carrying `7d7697f7` into the W2 merge's conflict resolution.
+  Extends the standing *"JOURNAL rides the work branch"* lesson to the repair case, where the
+  pull to isolate the fix is strongest.
+- **W2-reds · expected-RED lists are context-local** — **Expected-RED lists are context-local
+  (lane vs primary; measured 2026-08-11: linked-worktrees RED in-lane, PASS on primary;
+  sed-absent predicted, absent in both). Contracts state the class + revert-proof duty, not a
+  fixed list.** Operator ruling 2026-08-11. Evidence: batch-4 W2 measured 2 REDs in its lane
+  worktree and the integrator measured 1 on the same merged code in the primary —
+  `test_linked_worktrees_reader_excludes_the_primary` is worktree-context-only — while the W2
+  contract's predicted *"sed-absent x2"* appeared in neither context. A fixed list therefore
+  mis-describes one context or both, and a lane quoting it cannot tell inherited noise from its
+  own breakage; the revert-and-rerun duty is what actually settles ownership.
 
 ### I-F1 · FORK 1 — ADR-111 is ratified as written (Option A)
 

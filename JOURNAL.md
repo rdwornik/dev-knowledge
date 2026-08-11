@@ -19,6 +19,61 @@
 
 ---
 
+### 2026-08-11 (q) — CC (Opus 5, primary tree): `[#117]` un-deferred on its met peg, and the ratchet reworded a ruling rather than absorbing it
+
+**Did:** Closed out the W2 integration's two remaining operator items at `64ea92bb`, on a
+branch whose JOURNAL entry rides the work — obeying **W2-anchor** at the first opportunity
+after recording it.
+
+**`[#117]` UN-DEFERRED, not closed.** Its peg was `DEFER — peg: #270`; the gauge landed at
+`7e4d503e` and `[#270]` closed at `679d8eca`, so the peg is **MET and verified rather than
+assumed**. Same treatment ARC-2 gave `[#293]` and `[#298]`. The mechanical detail worth
+keeping: `derive_status` keys on the literal `· DEFER`, so *removing that clause* is what
+flips the derived frontmatter — the replacement note deliberately avoids the token, and the
+flip was verified (`status: open`, row back in `BACKLOG.md`) rather than assumed from the
+edit. Leaving it deferred was declined because its peg pointed at a row no longer in
+BACKLOG — the same dangling shape the `[#270]` close had just cleaned for `[#271]`/`[#348]`,
+except a body-text peg is not gate-checked and so would have rotted silently.
+
+**Two register lines recorded** — W2-anchor (anchor-repair entries ride the next real
+work-merge) and W2-reds (expected-RED lists are context-local). Each carries its measurement,
+so a later reader re-derives instead of trusting.
+
+**THE RATCHET CHANGED A RULING'S WORDS, and the sequence is the point.** W2-anchor's first
+phrasing carried two normative tokens and took the silent-rule pool to **442 against baseline
+441**. `ecosystem/silent-rule-baseline.yaml` says the baseline may be lowered or held and not
+raised, and `silent_rule_detector.validate_transition` rejects any increase in terms —
+*"raising it is an operator ruling, not a commit"*. So there was no commit-side path, by
+design.
+
+What I did with that, in order: **drained the one token that was MINE** (a `never` in my own
+explanatory prose, freely rewordable), which left **+1 that was irreducibly the ruling's own
+words**; declined to reword an operator ruling myself; declined to buy budget by editing an
+unrelated standing rule, which is the drift the ratchet exists to surface; and escalated with
+the line-by-line attribution. The operator reworded it. Live count is now **440 ≤ 441** —
+under baseline, no raise, ratchet-down headroom preserved.
+
+**The rewording is not a softening, which is the part worth recording.** The new form is
+descriptive — *"the gate is the enforcement; this line records the measured shape"* — and
+that is the *accurate* register entry, because `journal_spine_anchor` already enforces the
+rule. A normative sentence would have restated a live gate in prose and spent ratchet budget
+to do it. **The gate caught a rule being written twice, once in code and once in English.**
+That is the ratchet doing exactly its job rather than obstructing one.
+
+**Changes:** `tasks/117-*.md` · `protocols/STANDING_RULINGS.md` · `BACKLOG.md` ·
+`tasks/manifest.json` · `JOURNAL.md`.
+
+**Abandoned:** Nothing.
+
+**Next:** batch 4 stays OPEN — W3/W4 uncontracted, W5 (`lane-e-132-feature`) and the
+`[#521]` lane (`lane-f-521-syspath-substrate`) still live and locked in their worktrees, so
+`/lane-integrate` checklist items 1 and 3 are open by construction. Still owed from W2: the
+`ARCHITECTURE.md` Ch2/Ch6 organ row for the new digest section (W2 was scoped out of that
+file by plan §4.2 step 6). The schema question behind W2-close — whether strict live-id
+existence is the right `depends-on` predicate — remains parked, not answered.
+
+---
+
 ### 2026-08-11 (p) — CC (Opus 5, primary tree): batch-4 W2 integrated — [#270] closed in the integrator's remit, and a journal-only merge that could not anchor itself
 
 **Did:** Integrated batch-4 **W2** on the browser seat's APPROVE of packet tip `de56b9ab`, in
