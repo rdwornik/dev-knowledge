@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "a8b7e7fd0a321dd2939890b803d2c82d042e903d0b74fe56b01b7d26dee4a3b6",
+  "generated_sha256": "ba19f7068ea435156c6701f95f34d4cb741d10042385db4390fa4a5203fc9bfa",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -245,10 +245,6 @@
     {
       "task": 99,
       "file": "99-fleet-health-digest-names-the-failing-check-per.md"
-    },
-    {
-      "task": 132,
-      "file": "132-organ-index-generator.md"
     },
     {
       "task": 190,

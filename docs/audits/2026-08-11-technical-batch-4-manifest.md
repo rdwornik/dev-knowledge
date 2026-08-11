@@ -273,3 +273,59 @@ stays unmet and this batch does not discharge it.
 
 Merge order is unchanged and stays **on the seat's APPROVE, as lanes finish** — no queue order is
 fixed by this amendment. The batch is HELD for lane packets.
+
+---
+
+## AMENDMENT — 2026-08-11, appended by W5: the W5 row resolves to a committed contract path
+
+**Appended, not edited.** The roster table above still reads `PENDING-CONTRACT` in the W5 row and
+that row is left byte-untouched: `docs/audits/` is immutable (CLAUDE.md §5 rule 3 — *"supersede
+with a new file or an in-file amendment marker; never edit in place"*), and this file's own
+"row-update leg" section names the batch-3 appended-marker device as the safe default. This is
+that device, used as named. A reader resolving the W5 row reads the table **and** this marker.
+
+**The resolution.**
+
+| Lane | Worktree / branch | Rows | Bucket | Contract of record |
+|---|---|---|---|---|
+| **W5** | `worktree-lane-e-132-feature` | `[#132]` | feature | `docs/audits/2026-08-11-technical-batch-4-w5-lane-contract.md` |
+
+The contract is committed **on the lane branch `worktree-lane-e-132-feature`, not on `main`** —
+the same standing this file records for W1 and W2 — and it is byte-identical to the prompts-dir
+original `W5-LANE-132-FEATURE.md` (SHA256
+`cdcb3b9783a058e1fbfa0733a815eeba5670f85cca784cada65b70c392f29f99`, both files hashed and compared
+before the commit). It reaches `main` when W5 merges.
+
+**Two facts the roster's own numbers get slightly wrong, corrected here rather than in place.**
+
+1. **The dispatched slug is `feature`, not `organ-index`.** The strict/loose measurement table in
+   "THE ONE HAZARD" above enumerates `worktree-lane-e-132-organ-index`, which is the name the
+   execution-plan draft anticipated; the branch the operator actually dispatched is
+   `worktree-lane-e-132-feature`. **The hazard's conclusion is unchanged** — re-measured live in
+   this lane against `validate_branch_naming.LANE_BRANCH_RE`, `worktree-lane-e-132-feature` →
+   `True`, so W5 carries an `<id>` under the strict grammar exactly as the row predicted and is
+   **not** one of the two lanes W1's deliverable can strand. W4 and W6 remain the only two.
+2. **W5 is dispatched, so the "W3–W6 not yet provisioned" baseline line is one lane stale.** At
+   this commit `git worktree list` reads 4 entries: primary + `lane-a-514-lane-regex` +
+   `lane-b-270-fleet-audit` + `lane-e-132-feature` (all three lanes locked). Recorded as drift in
+   a point-in-time baseline, not as a defect — the baseline section is accurate as of the
+   manifest's own commit and is not being rewritten to stay current.
+
+**Disjointness re-witnessed at this commit, per STANDING_RULINGS G2** (witnessed footprints, never
+row prose). `git diff --name-only main...<lane>` against both live lanes:
+
+- **substantive-file overlap with W1 and W2: ZERO.** W1 holds `scripts/batch_manifest.py`,
+  `tests/test_batch_manifest.py`, `CLAUDE.md`, `templates/claude-regions/session-start-protocol.md`,
+  `tasks/510-*`, `tasks/514-*`; W2 holds `.gitignore`, `scripts/fleet_health.py`,
+  `tests/test_fleet_health.py`. W5's footprint intersects neither set.
+- The files W5 *does* share with them — `docs/audits/README.md`, `ecosystem/doc-counts.md`,
+  `BACKLOG.md`, `tasks/manifest.json`, `JOURNAL.md` — are **generated or batch-coordination
+  surfaces, excluded from the disjointness question** by the execution-plan draft §5.2 ("Generated
+  files … are excluded … by the §4 clause and the ARC-5 resolve-by-regeneration precedent"). W1 and
+  W2 already both touch the first two. This is reported, not treated as the contract's
+  STOP-and-report trigger, because a reading under which it were would make every lane in every
+  batch stop at step 0.
+- **`CLAUDE.md` and `ARCHITECTURE.md` are OUT OF SCOPE for W5**, per its contract's "What NOT to
+  do" and the execution-plan draft §5.2 one-owner rule. W5 therefore **owes the integrator a
+  `CLAUDE.md` §9 pre-commit-roster row** for the freshness hook it ships. That owed row is named
+  again in W5's end packet.

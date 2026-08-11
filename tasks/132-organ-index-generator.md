@@ -1,7 +1,7 @@
 ---
 id: "[#132]"
 title: "Organ-index generator"
-status: open
+status: closed
 priority: P2
 size: M
 theme: "[E2] Enforced governance"
