@@ -19,6 +19,50 @@
 
 ---
 
+### 2026-08-11 (k) — CC (Opus 5, primary tree): the batch-4 integrator rulings recorded — a roster change beats a queue reorder, and one ruled reason did not verify
+
+**Did:** Recorded the browser seat's rulings on the two hazards the batch-4 manifest filed, at
+`62159836` on `docs/batch-4-integrator-rulings`. Landed as **appended amendment markers** on the
+manifest (A-1…A-5) plus one register line each in a new `protocols/STANDING_RULINGS.md` section
+**J** (J-1…J-5). The manifest frontmatter is untouched — `status: open` and `closed_by:` stand, so
+the ADR-110 exemption is unchanged by the amendment.
+
+**Result:** The rulings are better instruments than what the manifest recommended, and the record
+says so. My hazard section proposed merging W4/W6 **before** W1 to avoid stranding two id-less
+branches when W1's strict-grammar unification lands. The seat **declined the delay** and changed
+the roster instead: **W6 is dropped** (active width 6 → 5, which also clears the process-lane cap
+overage — W1 becomes the sole hub occupant) and **W4 is id-gated**, G-2 resolving as
+*ids-before-contract*. Between them the id-less branch set the hazard depended on becomes **empty**,
+so W1 proceeds unmodified and strands nothing. The queue-order recommendation is explicitly marked
+superseded rather than left standing next to the ruling that overtook it. Separately, the
+appended-marker route for manifest row flips is **ratified as standard** (batch-3 precedent), and
+this commit is its first application; `[#505]` leg 1 rides to the end-of-batch packet as input,
+closing nothing.
+
+**One ruled reason did not verify, and the marker records the measurement rather than smoothing it
+over.** The W6 drop was ruled with three reasons; reason 2 — *"collides with live W2 on
+`ARCHITECTURE.md`"* — is **not corroborated at recording time**. W2's contract of record
+(`7ef6f50f`) does not name `ARCHITECTURE.md`, and `git diff --name-only
+main...worktree-lane-b-270-fleet-audit` returns `.gitignore`, the contract, `docs/audits/README.md`,
+`ecosystem/doc-counts.md`, `scripts/fleet_health.py`, `tests/test_fleet_health.py` — no
+`ARCHITECTURE.md`; the same probe against W1 returns zero too. W2 is mid-flight so its footprint may
+yet grow to meet the claim, but it had not. **The drop is unaffected**: reasons 1 (optional) and 3
+(no row id) are independently sufficient, and reason 3 is verified by the strict-grammar
+measurement already in the manifest. Recorded so a later reader does not inherit an uncorroborated
+collision as established fact.
+
+**Changes:** `docs/audits/2026-08-11-technical-batch-4-manifest.md` (amendment markers appended,
+frontmatter untouched), `protocols/STANDING_RULINGS.md` (new section J, 5 lines).
+
+**Silent-rule ratchet:** live **440 ≤ baseline 441**, unmoved — the section-J lines were drafted
+declaratively and add **zero** normative tokens, which the file's own editing note requires at
+441 = 441. The one token of headroom (i) kept is still there.
+
+**Abandoned:** Nothing. My own queue-order recommendation was superseded by ruling, not withdrawn
+by me, and is left in place above the marker that supersedes it.
+
+**Next:** HOLD for lane packets. Merge order stays on the seat's APPROVE, as lanes finish. W4 stays
+`PENDING-CONTRACT` until its conversions carry a row id; W3/W5 uncontracted.
 ### 2026-08-11 (j) — CC (Opus 5, primary tree): the batch-4 manifest lands MID-FLIGHT — W1's step 0 was unexecutable, and the file it needed says so
 
 **Did:** Committed `docs/audits/2026-08-11-technical-batch-4-manifest.md` at `70a9ce2a` on the
