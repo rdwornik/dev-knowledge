@@ -812,6 +812,14 @@ The corrected 25-row table is emitted at the recording artifact §2.
   recorded as unexamined-not-clean.
 - **F-c · unowned-defect register lines** — every REJECTED or DEFERRED FORK-4 pool candidate earns a
   line in this file, rather than packet prose alone.
+- **W2-close · closing a depended-upon row** — **closing a depended-upon row strips its inbound
+  depends-on clauses in the same commit (precedent 79047095/40ce3189) — interim law until a
+  schema ruling supersedes; the schema-level question is a parked candidate.** Operator ruling
+  2026-08-11, taken in the integrator's remit at the `[#270]` close. Why it was needed: `validate_backlog._check_dep_references` is strict existence against **live** BACKLOG ids, so
+  the moment a depended-upon row leaves `BACKLOG.md` its dependents dangle and the gate hard-FAILs —
+  which means **no row with dependents can close without editing its dependents**. Batch-4 W2 hit
+  this on `[#270]` (dependents `[#271]`, `[#348]`), stopped on the clause rather than force-closing or
+  bypassing, and escalated; the clauses were stripped here at the close.
 
 ### I-F1 · FORK 1 — ADR-111 is ratified as written (Option A)
 
