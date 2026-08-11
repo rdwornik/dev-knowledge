@@ -114,14 +114,31 @@ MANIFEST_GLOB = "docs/audits/*-batch-*-manifest.md"
 #: both organs could not be enforced. Re-measured on this branch over every lane-shaped merge on
 #: main's first-parent spine: 16 merges, loose matches 16, strict matches 7, DISAGREE 9/16.
 #:
-#: Imported BY NAME, deliberately, and not by the by-path loader used for `gitenv` below. The
-#: two hazards are opposites: a shadowed `gitenv` silently EMPTIES a scrub (a wrong answer that
-#: looks right), whereas a shadowed or missing `validate_branch_naming` yields a DIFFERENT regex
-#: object -- which `tests/test_batch_manifest.py` pins by asserting object identity with
-#: `validate_branch_naming.LANE_BRANCH_RE`, and an outright ImportError surfaces as a
-#: `journal_spine_anchor` FAIL rather than a silent pass (audit.py's FR6 `except`). A by-path
-#: load would defeat that pin by construction, since it builds a second module object.
-from validate_branch_naming import LANE_BRANCH_RE   # noqa: E402  (after the by-path gitenv load)
+#: Imported BY NAME rather than through the by-path loader used for `gitenv` above, because the
+#: object identity a name-import preserves is what lets a test assert that this module and the
+#: enum module hold the SAME regex -- a by-path load builds a second module object and defeats
+#: that pin by construction.
+#:
+#: THE SHADOW HOLE THAT BUYS, AND THE GUARD THAT CLOSES IT (terra HIGH, 2026-08-11). The first
+#: version of this comment claimed the identity test also catches a shadowed
+#: `validate_branch_naming`. IT DOES NOT, and the claim was reproduced false: preload any module
+#: under that name into `sys.modules` and BOTH this module and the test receive the shadow, so
+#: `bm.LANE_BRANCH_RE is vbn.LANE_BRANCH_RE` still holds while a LOOSE regex silently governs the
+#: exemption -- the `gitenv` failure mode exactly, arriving through the door left open by the
+#: argument that it could not. So provenance is checked here instead of asserted in prose: the
+#: resolved module has to be this file's own sibling, and anything else raises at import. That
+#: is the loud failure the earlier comment promised -- `audit.py`'s FR6 `except` renders it as a
+#: `journal_spine_anchor` FAIL, never a silent pass. Regression: the subprocess shadow test in
+#: `tests/test_batch_manifest.py`.
+import validate_branch_naming as _vbn   # noqa: E402  (after the by-path gitenv load)
+from validate_branch_naming import LANE_BRANCH_RE   # noqa: E402
+
+if Path(getattr(_vbn, "__file__", "") or "").resolve().parent != Path(__file__).resolve().parent:
+    raise ImportError(
+        f"validate_branch_naming resolved to {getattr(_vbn, '__file__', None)!r}, which is not "
+        f"this module's sibling in {Path(__file__).resolve().parent}. Refusing to import a "
+        f"shadowed lane grammar: the ADR-110 exemption would be decided by an unknown regex "
+        f"([#514]).")
 
 #: `git merge --no-ff <branch>` writes this subject; `/lane-integrate` relies on it too.
 _MERGE_SUBJECT_RE = re.compile(r"^Merge branch '([^']+)'")

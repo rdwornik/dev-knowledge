@@ -589,6 +589,48 @@ def test_exactly_one_LANE_BRANCH_RE_definition_ships_in_scripts():
     assert bm.LANE_BRANCH_RE is vbn.LANE_BRANCH_RE
 
 
+_SHADOW_PROBE = '''
+import re, sys, types
+sys.path.insert(0, {scripts!r})
+shadow = types.ModuleType("validate_branch_naming")
+shadow.__file__ = "/nowhere/validate_branch_naming.py"
+shadow.LANE_BRANCH_RE = re.compile(r"^worktree-lane-[a-z0-9]+(?:-[a-z0-9]+)*$")
+sys.modules["validate_branch_naming"] = shadow
+try:
+    import batch_manifest as bm
+except ImportError as exc:
+    print("REFUSED")
+    raise SystemExit(0)
+import validate_branch_naming as vbn
+print("IDENTITY_HOLDS" if bm.LANE_BRANCH_RE is vbn.LANE_BRANCH_RE else "IDENTITY_BROKEN")
+print("LOOSE_IN_FORCE" if bm.LANE_BRANCH_RE.match("worktree-lane-wave-closures") else "STRICT")
+'''
+
+
+def test_a_preloaded_shadow_of_the_enum_module_is_REFUSED_at_import():
+    """The shadow hole the identity assertion above CANNOT see (terra HIGH, 2026-08-11).
+
+    `test_exactly_one_LANE_BRANCH_RE_definition_ships_in_scripts` compares
+    `bm.LANE_BRANCH_RE` with `vbn.LANE_BRANCH_RE`, and both names resolve through the SAME
+    `sys.modules` entry. Preload a shadow under that name and the two agree perfectly — while a
+    LOOSE regex governs the ADR-110 exemption. Reproduced before this guard existed: identity
+    True, pattern `^worktree-lane-[a-z0-9]+…$`, `worktree-lane-wave-closures` matching. That is
+    the `gitenv` failure mode arriving through the door held open by the very argument that a
+    name-import could not suffer it.
+
+    So `batch_manifest` checks PROVENANCE at import — the resolved module must be its own
+    sibling — and the check has to be exercised in a SUBPROCESS, because a shadow installed in
+    this interpreter would poison every later test in the worker.
+    """
+    probe = _SHADOW_PROBE.format(scripts=str(_SCRIPTS))
+    proc = subprocess.run([sys.executable, "-c", probe], capture_output=True, text=True,
+                          encoding="utf-8", errors="replace", timeout=60)
+    out = proc.stdout.strip()
+    assert out == "REFUSED", (
+        "a preloaded shadow of validate_branch_naming was NOT refused at import; "
+        f"probe said {out!r} (stderr: {proc.stderr.strip()[:400]!r})")
+
+
 @pytest.mark.parametrize("name, accepted", [
     # the ratified shape, including this very lane's branch
     ("worktree-lane-a-514-lane-regex", True),
