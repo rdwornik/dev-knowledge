@@ -138,6 +138,18 @@ digits is a count far more often than a commit"). This lane's HEAD abbreviated t
 all digits. The test fails for any commit whose short hash happens to carry no letter, on any
 branch. Not filed as a row by this lane (out of contract footprint); reported to the integrator.
 
+**FINAL suite, at the lane tip after the sync: 2 failed / 2726 passed / 8 skipped / 1 xfailed
+(825.44s).** Back to exactly the two REDs the contract predicted — `[#426]`'s routine-row drift
+and the linked-worktree inversion — which is the confirmation, not merely the hope, that the two
+extra REDs of the middle run were the concurrent-merge and all-digit-SHA effects described above
+and not anything this diff introduced. Three full runs, all recorded: 2 / 4 / 2.
+
+**Live exemption proof, taken once batch 4 was actually open** — `open_batches` returns
+`('4', 'docs/audits/2026-08-11-technical-batch-4-manifest.md')`, and the unified constant admits
+W1, W2, W3, W5 and rejects W4 (`worktree-lane-d-conversions-w1`) and W6
+(`worktree-lane-f-arch-soft-obs`). That is this lane independently reproducing the manifest's
+filed observation (1) against live code rather than carrying it as a quotation.
+
 ### 2026-08-11 (j) — CC (Opus 5, primary tree): the batch-4 manifest lands MID-FLIGHT — W1's step 0 was unexecutable, and the file it needed says so
 
 **Did:** Committed `docs/audits/2026-08-11-technical-batch-4-manifest.md` at `70a9ce2a` on the
