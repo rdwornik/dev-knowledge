@@ -146,6 +146,69 @@ without enumerating the digest's sections, so a new section does not falsify it.
    transparent discharge was taken and flagged rather than a bypass taken and buried.
    **Owed: the integrator's own anchor for `17bab0f1`.**
 
+**ADDENDUM (same session, appended not rewritten — the entry above was written before the
+review arc ran, and everything above it stands as written).**
+
+**Did (continued):** Ran the mandatory terra review — code impact, so it could not be
+waived — and then kept running it. **Five passes** of `gpt-5.6-terra` (effort high,
+read-only sandbox) over this lane's diff, because the repo's own terra lesson is that a
+review loop runs *until a clean pass*: each re-run finds what the last one graded clean.
+Findings per pass **4, 4, 3, 3, 2 — sixteen HIGH, zero critical**, every one fixed or
+dispositioned in writing. Anchors: `a97842df` (pass 1), `339d9f61` (2), `6617d1d4` (3),
+`289301a0` (4), `817528b9` (5), `28d74df5` (the third main-merge), `3cd73d69` (the
+persisted review artifact, `docs/audits/2026-08-11-codex-lane-b-270-load-gauge.md`,
+`Tally: 0/16/0/0` — [#480] durability).
+
+**Result (continued):** the honest verdict on my own first cut is that it shipped sixteen
+HIGH defects, and I would not have found most of them. **Two of my own comments were
+proven FALSE by the reviewer** — a claim that an empty-but-existing CSV could only come
+from a truncated prior run (`O_EXCL` creates a zero-byte file, so a racer genuinely sees
+size 0, and the recovery then TRUNCATED its row), and a "the race is settled" claim that
+left the creator holding an offset-zero descriptor. Twice in a row a race fix left a
+narrower version of the same race behind, which is why "I fixed the race" is a claim that
+has to name the interleaving.
+
+**Three patterns worth more than the individual fixes.** (i) The same contract — *an
+unavailable producer renders `n/a`, never 0* — failed at three successively lower
+boundaries: the value, then the file, then the directory. Stating a contract in a
+docstring is not enforcing it at every boundary the data crosses. (ii) Two guards tested
+for the ANTICIPATED failure token (`!= "n/a"`, `isinstance(payload, list)`) instead of for
+validity, so anything unanticipated sailed through. (iii) The sharpest finding reached
+the row's PURPOSE, not its plumbing: the delta subtracted a partial total from a complete
+one and rendered a precise signed number, so M1's primary series would have shown the
+funnel *collapsing* when it was merely unobserved — worse than no gauge, because a wrong
+trend gets acted on.
+
+**Two findings were DECLINED, with reasons, and both are pinned by tests** rather than
+left to a comment: tightening the ARP heading to the one observed literal (for a debt
+gauge a MISS is worse than a false positive — a miss silently under-reports load, which
+is M1's own failure mode), and a duplicate header line under a true create race (accepted
+residual; it never costs a measurement). Not every reproduced finding is a fix, but the
+reason has to be written down.
+
+**Evidence the tightening cost no live signal** — the risk whenever a detector is
+narrowed. The live measurement is byte-identical before pass 1 and after pass 5:
+`[load] funnel 44: 15 triage / 0 closures / 27 dispositions / 2 review-pending`.
+
+**Where the loop stopped, stated as a judgment rather than a proof:** passes 4 and 5
+returned only follow-ons to the previous pass's own fixes, not anything about the design —
+the review had begun auditing its own last answer. A sixth pass would keep finding
+narrower variants. I stopped there; I did not demonstrate a sixth pass would be empty.
+
+**FINAL SUITE, on the fully merged tree: 2 failed / 2799 passed / 8 skipped / 1 xfailed**
+(11m29s). Both REDs are the documented pre-existing pair, in files this lane never
+touched — `test_routine_consumers_live_backlog_governs_exactly_one_row` ([#457]) and
+`test_linked_worktrees_reader_excludes_the_primary` (linked-worktree context). The
+contract also predicted "sed-absent x2"; **those did not appear**, so that pair is
+environment-dependent rather than universal — recorded because the contract's expected-RED
+list is otherwise treated as fixed.
+
+**Changes (continued):** `scripts/fleet_health.py`, `tests/test_fleet_health.py` (52 → 129
+tests in this file), `ecosystem/doc-counts.md` (2772 → 2794), plus the new review artifact.
+
+**Next (continued):** nothing new is owed beyond items 1–5 above. `[#270]` remains OPEN
+and blocked on the dependent-row question; the closing-commit SHA for G-5 is `7e4d503e`.
+
 ---
 
 ### 2026-08-11 (m) — CC (Opus 5, primary tree): batch-4 W1 integrated — a day-letter collision resolved by re-lettering, and the one suite RED proved not mine
