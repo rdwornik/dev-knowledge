@@ -1210,6 +1210,31 @@ def test_delta_uses_the_newest_run_of_a_same_day_baseline(tmp_path):
     assert fh.load_delta(csv_path, _COUNTS, date(2026, 8, 11)) == 4    # 64 - 60, not -14
 
 
+def test_triage_rejects_well_formed_json_of_the_wrong_shape(tmp_path):
+    # terra HIGH, FIFTH pass: `[{"number": "not-an-int"}]` and `[null]` parse as
+    # one-element lists, so len() rendered `1 triage` from garbage. Well-formed JSON of
+    # the wrong shape is still an unavailable producer, not a measurement of 1.
+    for payload in ('[{"number": "not-an-int"}]', "[null]", '["17"]', '[{"id": 4}]'):
+        fake = mock.Mock(returncode=0, stdout=payload, stderr="")
+        with mock.patch.object(fh.shutil, "which", return_value="gh"), \
+             mock.patch.object(fh.subprocess, "run", return_value=fake):
+            assert fh.count_open_triage_issues(_git_repo(tmp_path)) is None, payload
+
+
+def test_delta_rejects_a_corrupt_baseline_cell(tmp_path):
+    # terra HIGH, fifth pass: the pass-4 completeness guard tested "not n/a", so a
+    # CORRUPT cell sailed through and became a complete baseline -- a hole in exactly
+    # the case (damaged history) the guard exists for. Cells must PARSE, not merely
+    # differ from the n/a token.
+    csv_path = tmp_path / "OPERATOR-LOAD.csv"
+    csv_path.write_text(
+        ",".join(fh.LOAD_CSV_HEADER) + "\n"
+        + "2026-08-01,1,1,1,1,1,1,1,50\n"
+        + "2026-08-04,corrupt,0,0,0,0,0,0,90\n", encoding="utf-8")
+    # falls back to the 08-01 row (64 - 50), never 64 - 90
+    assert fh.load_delta(csv_path, _COUNTS, date(2026, 8, 11)) == 14
+
+
 def test_review_pending_excludes_prose_headings_and_explanatory_bold(tmp_path):
     # terra HIGH #4: the first cut matched ANY heading or bold run containing the token,
     # so prose ABOUT the marker still counted -- recreating the false-positive class the

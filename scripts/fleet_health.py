@@ -495,6 +495,13 @@ def count_open_triage_issues(repo_root: Path, timeout_s: int = _GH_TIMEOUT_S):
         return None
     if not isinstance(payload, list):
         return None
+    # Well-formed JSON of the WRONG SHAPE is still garbage, and its length is not a
+    # measurement (terra HIGH, fifth pass): `[{"number": "not-an-int"}]` and `[null]`
+    # both parse as one-element lists and would have rendered `1 triage`. Every item
+    # must actually look like an Issue before the length means anything.
+    if any(not isinstance(item, dict) or not isinstance(item.get("number"), int)
+           for item in payload):
+        return None
     # A result set at the ceiling is indistinguishable from a larger one -> unavailable.
     return None if len(payload) >= _GH_ISSUE_LIMIT else len(payload)
 
@@ -768,8 +775,15 @@ def load_delta(csv_path: Path, counts: dict, today: date, days: int = _LOAD_DELT
                     total = int((row.get("funnel_total") or "").strip())
                 except (ValueError, TypeError, AttributeError):
                     continue
-                if any((row.get(k) or _NA).strip() == _NA for k in _FUNNEL_KEYS):
-                    continue          # that run was partial -> not an honest baseline
+                # Every funnel cell must PARSE, not merely differ from "n/a" (terra HIGH,
+                # fifth pass): a corrupt cell like `2026-08-04,corrupt,0,0,0,...` passed
+                # the not-n/a test and was accepted as a complete baseline, so the
+                # pass-4 guard against inventing movement had a hole in exactly the case
+                # -- damaged history -- it was written for.
+                try:
+                    [int((row.get(k) or "").strip()) for k in _FUNNEL_KEYS]
+                except (ValueError, TypeError, AttributeError):
+                    continue          # n/a or corrupt -> not an honest baseline
                 # `>=`, not `>`: one row per RUN makes same-day rows normal, and the
                 # NEWEST eligible one is wanted. Iteration is in append order, so `>=`
                 # lets a later run of the same date replace an earlier one -- with `>`
