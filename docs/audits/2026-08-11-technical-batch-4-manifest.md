@@ -374,3 +374,36 @@ Closure item 3 gains `[#521]` to its named-rows list — the row is closed with 
 this lane, or the lane is recorded as abandoned with a reason. Items 1, 2 and 5–7 are unchanged
 in kind; the merge queue simply has one more lane branch to drain and one more worktree to tear
 down (both branches — work and provisioning — per the teardown rule).
+
+---
+
+## AMENDMENT — 2026-08-11, integration status at the close of this window (integrator)
+
+**Appended per A-4; the roster table, the frontmatter and every earlier amendment block above
+are byte-untouched.** `status:` stays **open** — this marker records integration state, it does
+not close the batch.
+
+**W1/W2/W5/W-521 integrated; W3 (contract pending) and W4 (id-gated) CARRIED to the next
+window; W6 dropped (A-3).**
+
+Merge SHAs, in landing order:
+
+| Lane | Row | Lane tip | Merge |
+|------|-----|----------|-------|
+| W1 | `[#514]` + `[#510]` | `b412ba7d` | `0136cec6` |
+| W2 | `[#270]` | `de56b9ab` | `c7f4fd92` |
+| W5 | `[#132]` | `d5b19a2d` | `e624a172` |
+| W-521 | `[#521]` | `afe79c8c` | `aafe3c8e` |
+
+Rows closed in the window: `[#514]`, `[#510]`, `[#270]`, `[#132]`, `[#521]`, plus `[#117]`
+un-deferred on its met peg. `[#270]` closed in the integrator's remit because the lane could
+not — see `STANDING_RULINGS` **W2-close**.
+
+**The end-of-batch packet is NOT due here.** It is due at the batch's true close, next window,
+when W3 and W4 land or are recorded as abandoned. The `/lane-integrate` refuse-to-finish
+checklist accordingly stands with items 1 and 3 **open by construction** rather than passed:
+every lane branch that exists is merged and torn down (`git worktree list` is primary-only and
+no `worktree-*` branch remains), but two planned lanes have not been dispatched, so
+"every planned lane has a merge SHA or a recorded abandonment" is not yet true. Recorded this
+way rather than checked off, because a checklist item passed on a technicality is the failure
+mode the checklist exists to catch.
