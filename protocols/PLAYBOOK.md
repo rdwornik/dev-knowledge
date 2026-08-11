@@ -1935,6 +1935,25 @@ worktree session from inside itself, for instance), the fallback is dispatching 
 a worktree the lane-boot protocol already provisioned — the two steps run in sequence rather than
 composed on one command line, with the same visibility result.
 
+**A nested session carries no row of its own — so the OPERATOR dispatches, from a terminal (AM-5,
+operator-ratified 2026-08-11).** A session spawned from *inside* another session (nested / child)
+does not surface as its own Agent View row. The consequence for the batch protocol above is
+direct: **batch lanes are dispatched by the operator via `dispatch <contract>` from a terminal,
+never spawned from the primary session or any other session.** A lane spawned session-side runs
+invisibly, which is the one property "VISIBLE = DISPATCHED" exists to guarantee — defeated at the
+point of dispatch rather than by a dropped flag, and therefore invisible to the flag discipline
+the paragraph above encodes. This also settles the sequencing fallback recorded there: the second
+step is an operator act at a terminal, not a spawn from the session that provisioned the tree.
+
+**The agent-view dispatch input is scoped to ad-hoc, read-only, default-model tasks.** The input
+inherits the *view session's* default model and effort — fixed when the view is opened
+(`claude agents --model … --effort …`) or changed in-view via `/model` — and offers **no per-task
+override**. A task typed there runs at whatever routing the view happens to carry, which is
+exactly what disqualifies it for a batch lane: a lane's model and effort are stated at dispatch
+and travel on the lane's own dispatch line ("Model + effort are stated at dispatch — the routing
+matrix" below). Ad-hoc read-only work is what the input is for; a lane goes through
+`dispatch <contract>` instead.
+
 ### Dispatch prompts and the contract of record — two locations, one of them in the tree
 <!-- scope: meta -->
 
