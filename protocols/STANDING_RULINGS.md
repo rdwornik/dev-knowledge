@@ -467,6 +467,19 @@ and discovered later by whoever boots against it.
   was paid for not by the freehand name but by the lane that declined to adopt it, surfacing as a
   lost R-1 exemption at merge time — one step from the `SKIP=audit-health` the manifest existed to
   retire.
+
+- **PRESENT TENSE SUPERSEDED — 2026-08-11, recorded at the batch-4 W1 merge (integrator seat).**
+  The bullet above describes `batch_manifest.LANE_BRANCH_RE` as a live second constant whose
+  `^worktree-lane-[a-z0-9]+…` shape admits digits. That reading expired when W1 landed:
+  `92d735a7` collapsed the two rival constants, and `scripts/batch_manifest.py` now imports
+  `validate_branch_naming.LANE_BRANCH_RE` rather than defining its own, so exactly one
+  module-level binding survives repo-wide and the two modules resolve to the same object. A
+  digit-form branch such as `worktree-lane-1-…` is no longer R-1 exempt. `04714407` added an
+  import-time refusal so a re-shadowed grammar fails loudly rather than silently governing.
+  **The paragraph above is left standing unrewritten.** It is an accurate record of what the
+  batch-2 arc measured, and its evidence about *how* a freehand manifest grammar cost an
+  exemption is untouched by the fix — only its tense is. This is the same append-rather-than-
+  amend discipline B6 landed for JOURNAL anchors, applied to a register line.
 - **Batch-1's precedent is the same class:** two `docs/audits/` filenames composed without an
   ADR-101 class token, both renamed by lanes spending decision budget (PLAYBOOK Ch8, the F3
   paragraph, which states the authoring-time fix for paths a contract *names*; this entry extends
@@ -1015,6 +1028,14 @@ measurements behind each line below.
   depended on.
 - **J-5 · `[#505]` leg 1 rides to the packet** — batch 4's manifest landed mid-flight, the third
   consecutive batch to do so — carried as end-of-batch packet input rather than as a discharge.
+- **J-6 · The 2026-08-11 global gotcha write is KEPT under a core-invariant #6
+  exception-with-ruling** — `~/.claude/skills/gotchas/gotchas.md` gained the sibling-venv /
+  stale-`__pycache__` trap during this batch (the entry at `gotchas.md:631`, witnessed
+  2026-08-11 in win-tooling). Core-invariant #6 makes a `~/.claude/` edit
+  exception-with-ruling rather than precedent, so the write stood unauthorized until ruled; the
+  operator ruled it KEPT. The exception is scoped to that one entry and does not generalize to
+  the next global edit, which is what #6 asks of every such ruling.
+
 ## Editing note (read before adding an entry)
 
 This file sits inside the silent-rule ratchet corpus (`protocols/*.md`; detector

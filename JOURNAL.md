@@ -19,7 +19,7 @@
 
 ---
 
-### 2026-08-11 (l) — CC (Opus 5, batch-4 lane W2): the operator-load gauge is built and proven — and [#270] cannot close, because closing a row with dependents is structurally barred
+### 2026-08-11 (n) — CC (Opus 5, batch-4 lane W2): the operator-load gauge is built and proven — and [#270] cannot close, because closing a row with dependents is structurally barred
 
 **Did:** Ran batch-4 lane **W2** (feature bucket, G-8) on branch
 `worktree-lane-b-270-fleet-audit`, contract
@@ -116,11 +116,229 @@ without enumerating the digest's sections, so a new section does not falsify it.
    (`depends-on: "#270"`, open) both become unblocked on closure; `[#117]` (`DEFER —
    peg: #270`, body not frontmatter) has its peg MET, and un-deferring is an operator
    act.
-3. **JOURNAL letter race, resolved not guessed:** main took (j); W1 initially took (j)
-   on its branch, then re-lettered to **(k)** after taking the same main-merge; this
-   entry is **(l)**. No collision remains, but the integrator should re-check at merge
-   time rather than trusting this note.
+3. **JOURNAL letter race — it actually collided, twice, and the note that said otherwise
+   was wrong within the hour.** History: main took (j); W1 took (j) on its branch, then
+   re-lettered to (k) after taking the main-merge; main then took (k) as well; this entry
+   became (l); W1 merged and the integrator re-lettered W1's to **(l)** and its own to
+   **(m)** — colliding with this entry, which is now **(n)**. The lesson is not the
+   sequence but that **a lane cannot own a day-letter**: every allocation here was
+   correct when made and stale within the hour, because main advances underneath a lane
+   that is still running. Derive the letter at MERGE time from `JOURNAL.md`, never from a
+   contract and never from a lane's own note — including this one.
 4. `ARCHITECTURE.md` Ch2/Ch6 row for the new digest section, owed per §4.2 step 6.
+5. **MAIN IS CARRYING AN UNANCHORED SPINE ENTRY, AND THIS ENTRY DISCHARGES IT
+   INCIDENTALLY — read this rather than assuming it was handled.** `fd4149ba` ("Merge
+   branch 'docs/batch-4-w1-register-hygiene'") introduces `17bab0f1`, and NOTHING in
+   `JOURNAL.md` names `17bab0f1`. The integrator's own entry anchors `0136cec6` — a SHA
+   that was already on the spine via its own earlier merge — so the register-hygiene
+   merge went in unanchored. Verified against **main's own JOURNAL**, not just this
+   branch's: `unanchored_on_spine(main, floor, journal_text(main))` returns exactly
+   `fd4149ba`. It is therefore a live defect on `main` that REDs `audit-health` — a
+   PRE-COMMIT gate — in every checkout of this repo, blocking every commit including the
+   one that would explain it.
+
+   This lane names `17bab0f1` here, which clears the gate. Recorded loudly because the
+   side effect is a masking risk: **naming it is not the integrator writing the entry it
+   owes**, and a later reader must not infer from a green gate that the register-hygiene
+   merge was ever journalled on its own terms. The lane's alternatives were
+   `SKIP=audit-health` (forbidden by its frozen contract), leaving the tree dirty
+   (forbidden by commit-and-STOP), or stopping with the work uncommitted — so the
+   transparent discharge was taken and flagged rather than a bypass taken and buried.
+   **Owed: the integrator's own anchor for `17bab0f1`.**
+
+---
+
+### 2026-08-11 (m) — CC (Opus 5, primary tree): batch-4 W1 integrated — a day-letter collision resolved by re-lettering, and the one suite RED proved not mine
+
+**Did:** Integrated batch-4 W1 on the browser seat's APPROVE of packet tip `428ff5f7`. Verified the
+two manifest amendment markers FIRST, since the lane's escalation-1 wedge depended on them: both
+are live on `main` at `62159836` — **A-1** drops W6 from the active roster (width 6 → 5) and
+**A-2** gates W4 as `PENDING-CONTRACT` until its work carries a row id (G-2 resolved
+ids-before-contract), with register twins at `protocols/STANDING_RULINGS.md` J-1/J-2. Nothing
+needed recording; the wedge was already dissolved, so the merge proceeded with no reordering
+(A-3 having declined the W1 delay the manifest's own hazard section recommended). Single-entry
+queue merged `--no-ff` at `0136cec6`.
+
+**Result — the merge's only conflict was a day letter, and the fix was to move the entry that had
+not yet landed.** `JOURNAL.md` collided with both sides carrying a 2026-08-11 **(k)**. The lane had
+already folded its own (j) into (k) at its sync merge `1b914aee`, after main's (j) — the manifest,
+`aac70ace` — landed; main then took (k) as well at `e48731da`. Day letters are derived at merge
+time rather than carried, so the LANE's entry was re-lettered (k) → (l) and prepended above main's
+(k). Main's landed entry is untouched: JOURNAL is append-only, and the entry that has not reached
+main is the only one it is lawful to move. Both entries survive whole. The day's letter run is now
+contiguous `a..m` with no duplicate and no gap. One honest wrinkle recorded rather than smoothed:
+the lane's (l) is 3 minutes OLDER by commit time (16:31) than main's (k) (16:34), so letter order
+here reflects landing order, not authorship order.
+
+**Result — the suite RED is pre-existing, and I proved it rather than asserting it.**
+`1 failed, 2732 passed, 3 skipped, 1 xfailed` in 24m15s on the merged result. The failure is
+`tests/test_audit.py::test_routine_consumers_live_backlog_governs_exactly_one_row`, which pins
+`"1 declared routine row"` while the live BACKLOG declares 2. **It is not this merge's**, by a
+probe rather than by inference: `audit.check_routine_consumers` run against the PRE-merge
+`BACKLOG.md` blob (`7245d4f6`) in a scratch dir returns the identical `2 declared routine row(s)`,
+and the `· routine:` marker count is 2 on every first-parent BACKLOG commit back to 2026-08-03.
+The merge's BACKLOG diff touches only `[#510]` and `[#514]`, neither of which carries the marker.
+The check itself PASSES — it is the test's hard-pinned count that is stale, and its own docstring
+says the ADR, the docstring and `[#426]` move together when that number moves, which makes the
+repair a decision rather than an integrator's tidy-up. **The anticipated linked-worktree RED did
+NOT appear** despite four live worktrees, and the two lane-venv REDs did not either — this run
+used the primary checkout's own venv.
+
+**Findings recorded, no fix this arc:**
+1. `scripts/preflight_contract.py:352` skips any short SHA that is all digits (`if sha.isdigit():
+   continue` — a run of digits is more often a count than a commit), while
+   `tests/test_preflight_contract.py:169` writes the LIVE short HEAD into its fixture and asserts
+   all four claim kinds were extracted. When HEAD's 8-char short SHA happens to be all decimal
+   digits the `sha` claim is silently dropped and the test REDs — **flaky-by-hash-luck**, roughly
+   a 2.3% chance per commit ((10/16)^8). Verified by reading both sites; not reproduced, since
+   reproducing it means waiting for the hash.
+2. The stale routine-row count pin above.
+
+**Changes:** `protocols/STANDING_RULINGS.md` — register hygiene at the integrator's surface: an
+appended **PRESENT TENSE SUPERSEDED** marker under F2 (its `batch_manifest.LANE_BRANCH_RE` bullet
+described the loose rival constant in the present tense; `92d735a7` unified it), with the original
+paragraph left standing unrewritten per the B6 append-rather-than-amend discipline; plus **J-6**,
+the queued core-invariant #6 exception-with-ruling keeping the 2026-08-11 global gotcha write to
+`~/.claude/skills/gotchas/gotchas.md` (the sibling-venv / stale-`__pycache__` trap at
+`gotchas.md:631`). Zero normative tokens added — ratchet measured 440 ≤ baseline 441.
+
+**Abandoned:** Nothing. The `---` separator missing between §J and the Editing note heading
+(inherited from `62159836`) was left alone as outside this act's scope, and is noted here so it is
+not lost.
+
+**Next:** W1's worktree torn down once the merge verifies ancestor-of-main. Batch 4 stays HELD for
+the remaining lane packets; W4 stays `PENDING-CONTRACT`, W3/W5 uncontracted, W6 off the roster.
+
+### 2026-08-11 (l) — CC (Opus 5, batch-4 lane A): one lane grammar, one constant — and two rows left open on purpose
+
+**Did:** Ran batch-4 W1 (`[#514]` + `[#510]` + the I-D8 drive-by) on
+`worktree-lane-a-514-lane-regex`, six commits: `e0de6bba` contract of record, `92d735a7` the
+constant collapse, `1c6d4255` the exemption scoping, `ffc32099` the four pins, `d60f2457` the
+I-D8 drive-by, `f0f1cf9d` the row records. Plus one sync merge `f8b375b7` (below).
+`scripts/batch_manifest.py` no longer defines a rival `LANE_BRANCH_RE`; it imports the enum's,
+so exactly one module-level binding survives repo-wide (`validate_branch_naming.py`) and the
+two modules resolve to the same object.
+
+**Result — the row's own risk claim was falsified before the fix landed, not after.** `[#514]`
+warns that tightening first makes "9 of 10 historical lane merges non-exempt — a merge-queue
+outage", and the whole row is sequenced around that fear. Re-measured over main's
+first-parent spine: **16 lane-shaped merges, loose matched 16, strict 7, DISAGREE 9 of 16**
+(the row's "8 of 11" is stale — the corpus grew). But `check_journal_spine_anchor` applies
+`exempt()` only to entries that are ALREADY UNANCHORED, and live measurement read **0
+unanchored spine entries and 0 open batches**. Every one of those 9 is JOURNAL-anchored today,
+so `exempt()` never sees one and nothing could be stranded. The outage is prospective-only.
+That measurement is what made it safe to land in the contract's order rather than re-sequence.
+
+**Two rows deliberately NOT closed, which is this lane's one escalation.** `[#514]` leg 3 is
+done and pinned; leg 1 — "provisioning refuses an off-enum lane name" — is not.
+`validate_branch_naming --lane` refuses at `/lane-boot` step 1, but every batch-4 lane
+including this one is dispatched straight through `claude --worktree`, which never reaches
+that check, and the row's own `git branch --show-current` BLOCK is unbuilt with no contract
+step for it. Leg 2 is G-4 and only an integrator can assert it; the discharge line is drafted
+with its blanks intact. `[#510]` is narrowed (grammar-scoped, pinned) with all four roster
+legs standing — a `lanes:` manifest field whose Ch8 and template carriers do not exist would
+be exactly the half-landed adoption `[#513]` was amended to detect. Closing a P1 merge-queue
+row while its enforcement leg is absent costs more than leaving it open costs.
+
+**BATCH 4 HAS NO COMMITTED MANIFEST, and that blocks the queue, not this lane.** Step 0's
+second half — flip the manifest's W1 row to the contract path — was unexecutable: no batch-4
+manifest exists in any ref, `PENDING-CONTRACT` has zero hits in the tree, and the primary's
+working directory carries none. Without a committed manifest `open_batches` returns empty, so
+the ADR-110 exemption grants the integration queue nothing and it wedges at the first
+conflicted merge exactly as batch 3's did — with `SKIP=` and `--no-verify` both forbidden by
+the W1 contract. The manifest must name
+`docs/audits/2026-08-11-technical-batch-4-w1-lane-contract.md` for W1.
+
+**A concurrent merge blocked a commit, and the cause is structural.** `5259b0f0` (entry (i),
+above) landed on main at 14:42 mid-lane and `journal_spine_anchor` FAILed my next commit.
+Ownership was proven first — not an ancestor of this HEAD, touching only files this lane never
+edits. The cause: the check walks the shared `main` REF but reads JOURNAL.md from the WORKING
+TREE, so a lane worktree one merge behind main judges main's newest spine entry against its
+own stale JOURNAL. On main it was correctly anchored all along. Fixed by `git merge main` — a
+real sync, not a workaround. **No `SKIP=` and no `--no-verify` were used anywhere in this
+lane**, and the standing remedy for this failure class (a declared `SKIP=audit-health`) was
+deliberately declined.
+
+**Silent-rule ratchet:** 440 before the I-D8 edit, 440 after, against baseline 441. The new
+wording cites an existing predicate and adds no `must|shall|never` token.
+
+**Suite: 2 failed / 2724 passed / 9 skipped / 1 xfailed (689.78s).** Both REDs are the two the
+contract predicted, and both are proven-not-mine rather than asserted.
+`test_routine_consumers_live_backlog_governs_exactly_one_row` is the standing `[#426]` drift
+(asserts "1 declared routine row", live evidence reads "2 declared routine row(s)"); this
+lane's BACKLOG edit appended prose to two existing rows and added none.
+`test_linked_worktrees_reader_excludes_the_primary` inverts structurally inside any lane
+worktree — the captured failure shows `aud._REPO_ROOT` resolving to
+`…/.claude/worktrees/lane-a-514-lane-regex`, which is itself a member of the linked-worktree
+set it asserts absence from. Neither `tests/test_stale_worktrees.py`, `tests/test_audit.py`
+nor `scripts/audit.py` appears in this lane's diff.
+
+**Changes:** `scripts/batch_manifest.py` (constant collapsed, HONEST LIMITS 3→4),
+`tests/test_batch_manifest.py` (+4 tests, run negative control: rival reinstated → 9 RED),
+`CLAUDE.md` §6 item 3 + v2.56 + `last_reviewed` 2026-08-11,
+`templates/claude-regions/session-start-protocol.md`, `tasks/510` + `tasks/514` + regenerated
+`BACKLOG.md`, `docs/audits/2026-08-11-technical-batch-4-w1-lane-contract.md` + regenerated
+`docs/audits/README.md`, `ecosystem/doc-counts.md`.
+
+**Abandoned:** the `[#510]` manifest `lanes:` roster — deliberately not built without its Ch8
+and template carriers. Provisioning enforcement for `[#514]` leg 1 — outside the contract's
+steps; reported rather than improvised into a module whose posture note reserves gating to a
+separate ruling.
+
+**Next:** integrator — commit a batch-4 manifest BEFORE merge #1; sign or refuse the drafted
+G-4 line at close; decide `[#514]`/`[#510]` closure on the discharge records. Separately,
+`protocols/STANDING_RULINGS.md` (~line 455) still describes `batch_manifest.LANE_BRANCH_RE` as
+`^worktree-lane-[a-z0-9]+…` in the present tense — left untouched as an append-only register
+entry recording a past measurement, flagged for the doc-currency sweep rather than amended.
+
+**ADDENDUM (post-sync, same lane, appended rather than rewritten above).** Three things landed
+after the body was written, and the body is left standing as the record of what was true then.
+
+1. **Step 0 is DISCHARGED IN FULL, by verification and not by an edit.** The batch-4 manifest
+   arrived mid-flight (`70a9ce2a`, merge `1b4abd21`) precisely to unblock it. Its W1 row names
+   `docs/audits/2026-08-11-technical-batch-4-w1-lane-contract.md` — byte-for-byte the path
+   committed at `e0de6bba` — and the manifest states W1/W2 "land here already resolved, so
+   neither needs to touch this file". Per operator directive the manifest was NOT edited; row
+   resolution follows the batch-3 amendment-marker precedent. So the "no manifest" blocker
+   recorded above is CLOSED, and my own PENDING-CONTRACT flip is moot rather than skipped.
+2. **The terra review found a real HIGH in my own reasoning, and it is fixed at `04714407`.**
+   The by-name import could consume a preloaded shadow `validate_branch_naming`, and the
+   identity test could not see it — both resolve through the same `sys.modules` entry.
+   Reproduced (identity True, loose regex in force), then closed with an import-time provenance
+   guard plus a subprocess regression test; negative control REDs with `IDENTITY_HOLDS` /
+   `LOOSE_IN_FORCE`. Artifact `docs/audits/2026-08-11-codex-batch4-w1-lane-regex.md`, tally
+   0/1/0/0, disposition appended.
+3. **The manifest's filed observation (1) is CONFIRMED by this lane's own measurement, and it
+   sets the merge order.** `worktree-lane-d-conversions-w1` (W4) and `worktree-lane-f-arch-soft-obs`
+   (W6) both lack an `<id>` and so are rejected by the strict grammar this lane makes canonical.
+   They are exempt today only because the exemption still keys on the loose constant. **The
+   moment W1 merges, W4 and W6 stop being lane merges and the queue wedges at their first
+   conflicted merge.** MERGE W4 AND W6 BEFORE W1. W1 must not resolve this by loosening the
+   grammar — its contract forbids it, and loosening is the G-2 defect the row exists to end.
+   This is the prospective-only outage the body predicted, arriving with names attached.
+
+**Suite, re-run after the terra fix: 4 failed / 2723 passed / 9 skipped / 1 xfailed (803.78s)** —
+two more than the earlier 2-RED run, both attributed and neither a defect in this diff.
+`test_health_stays_ok_with_na_status` is the concurrent-merge class again (the manifest merge
+landed unanchored in this stale worktree; cleared by the sync above).
+`test_every_claim_class_the_brief_names_is_extractable` is a LATENT TEST DEFECT this lane merely
+had the luck to trip: it writes the live `git rev-parse --short HEAD` into a fixture and expects a
+`sha` claim back, while `preflight_contract.py:352` deliberately skips pure-digit SHAs ("a run of
+digits is a count far more often than a commit"). This lane's HEAD abbreviated to `04714407` —
+all digits. The test fails for any commit whose short hash happens to carry no letter, on any
+branch. Not filed as a row by this lane (out of contract footprint); reported to the integrator.
+
+**FINAL suite, at the lane tip after the sync: 2 failed / 2726 passed / 8 skipped / 1 xfailed
+(825.44s).** Back to exactly the two REDs the contract predicted — `[#426]`'s routine-row drift
+and the linked-worktree inversion — which is the confirmation, not merely the hope, that the two
+extra REDs of the middle run were the concurrent-merge and all-digit-SHA effects described above
+and not anything this diff introduced. Three full runs, all recorded: 2 / 4 / 2.
+
+**Live exemption proof, taken once batch 4 was actually open** — `open_batches` returns
+`('4', 'docs/audits/2026-08-11-technical-batch-4-manifest.md')`, and the unified constant admits
+W1, W2, W3, W5 and rejects W4 (`worktree-lane-d-conversions-w1`) and W6
+(`worktree-lane-f-arch-soft-obs`). That is this lane independently reproducing the manifest's
+filed observation (1) against live code rather than carrying it as a quotation.
 
 ---
 
@@ -215,6 +433,7 @@ directive was a short-lived branch merged from the **primary** checkout, which a
 
 **Next:** W1 resumes at step 0 against a manifest that now exists. The integrator owes the merge
 order decision (W4/W6 before W1) and the packet owes disposition of both filed observations.
+
 ### 2026-08-11 (i) — CC (Opus 5, worktree lane): AM-5 lands — the dispatch surface is an operator act, because a nested session has no row to be seen in
 
 **Did:** Landed AM-5 (operator-ratified 2026-08-11) at `dcafcb51` on
