@@ -19,6 +19,181 @@
 
 ---
 
+### 2026-08-11 (m) — CC (Opus 5, batch-4 lane E / W5): the organ index ships — and a lane cleared a foreign gate without a bypass
+
+**LETTER CLAIM, for the integrator:** this entry claims **(m)**, derived from `JOURNAL.md` at
+write time (highest existing was `(l)`, W1's) rather than from any contract. W2
+(`worktree-lane-b-270-fleet-audit`) is still live and has not written its entry, so **(m) may
+collide** — if W2 lands first, reallocate this entry's letter at integration. The letter is the
+only field here that is not self-verifying.
+
+**Did:** Ran batch-4 W5 (`[#132]` organ-index generator) on `worktree-lane-e-132-feature`, four
+commits: `0a462029` contract of record + the manifest amendment marker resolving the W5 row,
+`8a21874d` a sync merge of `main` (below), `07be8b44` the build, `83a869e6` the row closure.
+`[#132]` is CLOSED with `closes [#132]` and the closing-commit metric `07be8b44`.
+
+**Result — both Done-when clauses discharged, and clause (b) was proven by tripping the gate, not
+by reading it.** The row wanted "the generator emits `docs/ORGAN-INDEX.md` covering all organ
+classes and a freshness hook flags a stale index".
+
+- **Clause (a):** `scripts/generate_organ_index.py` emits **52 organs across 8 classes** — agent 3
+  · command 12 · skill 3 · workflow 1 · rule 2 · session-hook 12 · git-hook 18 · plugin 1.
+  "All organ classes" is measured against a CLOSED vocabulary (`ORGAN_CLASSES`), so the predicate
+  is checkable rather than impressionistic, and an empty class still renders a section — a
+  silently omitted one reads as "no such class".
+- **Clause (b):** `organ-index-freshness` runs `--check` (regen-and-diff). Exercised live against
+  the real config three ways: clean → `exit 0 Passed`; a perturbed index → `exit 1 Failed` with a
+  precise unified diff; a NEW `.claude/commands/*.md` → `exit 1 Failed`, diff showing the added
+  row and the coverage count moving 52 → 53. It then fired for real as a gate on `07be8b44`
+  itself. The trip-test command file was deleted and its removal verified.
+
+**The `#248` fork is resolved as a HYBRID, and determinism is the reason — not taste.** `#248`
+offered "build a hub-local registry, or accept the hand-authored + freshness-gated boundary". A
+generator that walked `~/.claude` live would emit different bytes on every machine, so a
+regen-and-diff gate over them is unholdable on any host but the last one to regenerate. So
+repo-tracked organs are DERIVED, the user-level (L0) organs are DECLARED in
+`ecosystem/organ-registry.yaml`, and `--probe-user-level` is a non-gating diagnostic that reads
+`~/.claude` read-only and reports drift. **The boundary is stated, not hidden:** a stale registry
+row is invisible to the commit gate and visible to the probe, and both the registry header and the
+generated index say exactly that. `test_render_never_reads_the_user_home` asserts the determinism
+against an emptied `HOME` instead of claiming it in prose.
+
+**A LANE CLEARED A FOREIGN `audit-health` FAIL WITHOUT A BYPASS — and W1 had already hit the same
+wall.** Mid-work, `main` advanced (integrator rulings `62159836`, merge `7245d4f6`, plus W1). Every
+commit in this worktree then blocked on `journal_spine_anchor`. Measured before acting, rather than
+assumed:
+
+```
+floor: 24882f8cc
+gaps with MY worktree JOURNAL.md : ['7245d4f6...']
+gaps with MAIN's   JOURNAL.md    : []
+```
+
+The check reads `main`'s spine from the SHARED refs but `JOURNAL.md` from the LANE's tree — so the
+anchor existed (entry `(k)`, `e48731da`, names `62159836`, which `7245d4f6` introduced) and only
+this lane's lagging tree could not see it. `7245d4f6` is a `docs/*` integrator merge, not a
+`worktree-lane-*` merge, so the ADR-110 R-1 exemption correctly does not cover it.
+
+**`SKIP=audit-health` was NOT used and there was no rule-vs-ruling conflict to escalate.** The
+contract forbids `SKIP=`/`--no-verify`, and that prohibition AGREES with the corpus — STANDING_RULINGS
+F2 records `SKIP=audit-health` as a trained bypass the ADR-110 exemption exists to retire. No ruling
+authorises it, so none was invoked. The lane merged `main` instead (`8a21874d`), which is a plain git
+operation the contract does not forbid ("no self-merge" scopes the other direction) and which fixes
+the block at its actual cause. **W1 independently did the same thing for the same reason** at
+`f8b375b7` ("the manifest merge landed unanchored in this stale worktree; cleared by the sync
+above") — so this is now n=2 within one batch, and it is worth a durable home: *a lane whose tree
+lags `main` inherits main's unanchored-looking spine entries, and the remedy is a sync merge, not a
+bypass.*
+
+**Two conflicts in that sync, both resolved mechanically, nothing adjudicated.** The batch-4
+manifest — both sides APPEND an amendment marker, so UNION in landing order (integrator's
+`62159836` 16:30:20, then W5's `0a462029` 16:30:43), both blocks byte-untouched, roster table and
+frontmatter untouched. `docs/audits/README.md` — REGENERATED, the ARC-5 resolve-by-regeneration
+precedent the execution-plan draft §5.2 names for exactly this class.
+
+**One supersession recorded rather than rewritten.** W5's marker, written before the rulings landed,
+says W4 and W6 "remain the only two" lanes W1's strict grammar can strand. Ruling A-3 supersedes it:
+W6 is dropped, W4 is id-gated, the id-less set is empty. **W5's marker is left byte-untouched** — it
+accurately records what was true when written, and amending a landed marker is the edit-the-record
+move STANDING_RULINGS B6 and the CLAUDE.md v2.53/v2.55 precedent both refuse.
+
+**Two defects this lane found in its OWN output and fixed — both looked green first.** (1) The
+Tier-1 Stop hook rendered without its `deployed` mark, because the manifest roster writes
+`Stop: propose_closures` while the hook command names `propose_closures.py`; the match now absorbs
+the extension. (2) `--probe-user-level` reported all four declared L0 session hooks as "declared but
+absent" — it inventories FILES, and a session hook is a command string inside `settings.json`; probe
+scope is now commands/agents/rules/skills and the output states that scope. **False drift is worse
+than the silence it replaces.**
+
+**THE TERRA REVIEW FOUND FOUR MORE, AND ONE OF THEM FALSIFIED THIS MODULE'S CENTRAL CLAIM.** A
+`gpt-5.6-terra` code-lane review returned 4 findings; each was REPRODUCED against live state before
+being accepted (PLAYBOOK Ch7 — read the body, not the band), and **all four reproduced**. Fixed in
+this entry's own commit — the lane's fifth, which carries the fixes, the review artifact and this
+entry together because `audit-health` reads the WORKING TREE's `JOURNAL.md` and pre-commit stashes
+unstaged changes, so the entry had to be staged alongside what it describes. Tests 33 → 51.
+
+- **CRITICAL — untracked files changed the generated bytes.** An untracked
+  `.claude/commands/*.md` rendered as a row, so the index was NOT a pure function of committed
+  state and `--check` would have red on every checkout but the one that last regenerated. **The
+  gate would have looked armed and been unusable anywhere else.** Fixed by filtering every
+  collector through `git ls-files`; the earlier `settings.local.json` exclusion was a special case
+  for one file and this rule subsumes it. Pinned by a test that builds a REAL git repo.
+- **HIGH ×2 — valid-but-wrong-SHAPED sources crashed the gate.** `repos: [bad]` and
+  `{"Stop": "bad"}` parse cleanly, then raise on the first `.get()`; `--check` would exit through a
+  traceback instead of its 0/1/2 contract, giving the hook neither a verdict nor a diff. Every
+  nested level is now shape-guarded and renders a visible `(unparsed)` row. Same fix class covers
+  the registry, where `organs: bad` iterated the STRING and skipped every character in silence.
+- **HIGH — an absent source was MASKED by another source's rows.** The subtlest: a vanished
+  `.claude/agents/` returned `[]`, and an empty result is invisible whenever the L0 registry still
+  fills that class, so the section rendered normally. **Loud degradation has to be per-SOURCE, not
+  per-class.** The older test asserting the class-level "(no organ in this class)" was REPLACED, not
+  kept — it was the assertion that made the defect look covered.
+
+**The shipped index is byte-unchanged by all four fixes** (`--check` exit 0 before any
+regeneration), because every hub source is tracked and present. The fixes change robustness, not
+output — measured, not assumed. The reviewer also checked the hook's `files:` regex against every
+source and found **no hole**; recorded because a negative from an adversarial pass is evidence.
+
+**Measured, not assumed:** `worktree_import_probe` (D4) run once before any work — `uv run --locked`
+resolved to this lane's own `.venv` and this lane's `scripts/`. Silent-rule ratchet **440 ≤ 441,
+unmoved**, with the new `ecosystem/*.yaml` inside the detector corpus (57 → 58 files) and zero
+`must`/`shall`/`never` tokens in it. Post-merge, against the NOW-LIVE strict grammar W1 unified:
+`worktree-lane-e-132-feature` → `True`, and `batch_manifest.LANE_BRANCH_RE is
+validate_branch_naming.LANE_BRANCH_RE` → `True`. Disjointness re-witnessed against the one still-live
+lane (W2): **zero substantive-file overlap**; the shared files are the generated/coordination class
+the execution-plan draft §5.2 excludes from the disjointness question.
+
+**Suite: 4 failed / 2775 passed / 8 skipped / 1 xfailed (710.53s), and all four are attributed
+away from this diff.** Two are the pre-existing REDs W1 measured on the same tree — `[#426]`'s
+routine-row drift (`test_routine_consumers_live_backlog_governs_exactly_one_row`) and the
+linked-worktree inversion (`test_linked_worktrees_reader_excludes_the_primary`), which is the
+contract's predicted "linked-worktree context". The other two — `test_health_ok_with_registered_repo`
+and `test_health_stays_ok_with_na_status` — are BOTH downstream of a single foreign finding:
+`audit.py health` carries **exactly one** `[!!]` FAIL repo-wide, `journal_spine_anchor` on
+`fd4149ba`, and those two tests assert `health` exits 0. **Zero failures attributable to W5's
+diff.** An earlier run showed 16 additional REDs, all `ModuleNotFoundError: No module named
+'pandas'` — the lane venv lacked the `analytics` dependency group; `uv sync --locked --group
+analytics` cleared all 16, which is environment, not code.
+
+**A SECOND, DIFFERENT ANCHOR BLOCK — and this one a lane cannot legitimately clear.** After the
+sync above, `main` advanced again to `fd4149ba` ("register hygiene owed at the batch-4 W1 merge")
+and `audit-health` blocked this lane once more. **This one is NOT lane lag:** measured against
+`main`'s OWN `JOURNAL.md`, the gap is still there. `fd4149ba` introduced exactly one commit,
+`17bab0f1`, whose subject reads "(anchor 0136cec6)" — but `0136cec6` is the PREVIOUS spine entry,
+which `fd4149ba` did not introduce, so the ADR-85 predicate ("names ≥1 SHA the entry INTRODUCED")
+is unsatisfied. It is the *a merge cannot name its own hash* trap arriving one level up: the
+hygiene merge anchored the merge BELOW it instead of itself.
+
+**W5 deliberately did not discharge it.** Naming `17bab0f1` in this entry would have greened the
+gate on the integrator's behalf and left them no signal that they had left it open — which is
+precisely the failure `journal_spine_anchor` exists to catch, and the reason ADR-85 made a gap a
+FAIL rather than a dispositionable WARN. `SKIP=`/`--no-verify` was likewise not used. The lane
+waited instead: the integrator is blocked by the same pre-commit gate on `main`, so the discharge
+is theirs and it is one appended entry.
+
+**Owed to the integrator, named rather than taken.** `CLAUDE.md` §9's pre-commit roster does not list
+`organ-index-freshness`, so `doc_claims` reports a hook-list mismatch — **WARN-class, not gating, and
+it is W5's.** `CLAUDE.md` is out of scope for this lane by two independent constraints (the
+contract's "What NOT to do", and the execution-plan draft §5.2 one-owner rule), so the roster row is
+owed, not taken. Likewise `ARCHITECTURE.md` Ch2, which already names `docs/ORGAN-INDEX.md` as its
+intended verified source ("When they disagree, trust the index") — that reconciliation is a separate
+act on a file this lane is forbidden to touch. Both are recorded in the manifest amendment marker and
+the lane packet.
+
+**Changes:** `scripts/generate_organ_index.py` (new), `tests/test_generate_organ_index.py` (new, 33
+tests), `docs/ORGAN-INDEX.md` (new, generated), `ecosystem/organ-registry.yaml` (new),
+`.pre-commit-config.yaml` (+`organ-index-freshness`), `docs/audits/2026-08-11-technical-batch-4-w5-lane-contract.md`
+(new, contract of record), `docs/audits/2026-08-11-technical-batch-4-manifest.md` (W5 amendment
+marker appended), `BACKLOG.md` + `tasks/132-organ-index-generator.md` + `tasks/manifest.json` (row
+closed, 198 → 197), `docs/audits/README.md` + `ecosystem/doc-counts.md` (regenerated).
+
+**Abandoned:** nothing. **`git stash list` empty at STOP.**
+
+**Next:** the integrator merges W5 (`--no-ff`) and takes the two owed rows above. `[#132]` is closed;
+`#248` is absorbed by it and needs no separate act.
+
+---
+
 ### 2026-08-11 (l) — CC (Opus 5, batch-4 lane A): one lane grammar, one constant — and two rows left open on purpose
 
 **Did:** Ran batch-4 W1 (`[#514]` + `[#510]` + the I-D8 drive-by) on

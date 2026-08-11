@@ -19,6 +19,8 @@ import os
 import sys
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
 import generate_organ_index as goi  # noqa: E402
@@ -399,15 +401,43 @@ def test_probe_writes_nothing_and_never_gates(tmp_path):
 # loud-not-silent degradation
 # --------------------------------------------------------------------------------------
 
-def test_a_missing_source_directory_is_skipped_not_fatal(tmp_path):
-    """A tree without .claude/agents/ still renders — a consumer need not carry every
-    organ class for the generator to run."""
+def test_a_missing_source_directory_renders_a_visible_absent_row(tmp_path):
+    """A tree without .claude/agents/ still renders — and says the SOURCE is gone.
+
+    terra finding 4: an empty collector result is invisible whenever another source (the
+    L0 registry, the plugin) still fills that class, so "loud degradation" has to be
+    per-SOURCE, not per-class.
+    """
     root = _tree(tmp_path)
     for p in (root / ".claude" / "agents").glob("*"):
         p.unlink()
     (root / ".claude" / "agents").rmdir()
     text = goi.render_index(root)
-    assert "## agent" in text and "_(no organ in this class)_" in text
+    assert "## agent" in text
+    assert ".claude/agents/ — source absent" in text
+
+
+def test_absent_source_stays_visible_even_when_another_source_fills_the_class(tmp_path):
+    """The exact shape terra named: registry rows must not mask a vanished local dir."""
+    root = _tree(tmp_path)
+    _write(root / "ecosystem" / "organ-registry.yaml", (
+        'registry_version: "1.0.0"\n'
+        "organs:\n"
+        "  - name: ghost-agent\n"
+        "    class: agent\n"
+        "    trigger: subagent-dispatch\n"
+        '    source: "~/.claude/agents/ghost.md"\n'
+        "    distribution: L0\n"
+        "    status: ARMED\n"
+    ))
+    for p in (root / ".claude" / "agents").glob("*"):
+        p.unlink()
+    (root / ".claude" / "agents").rmdir()
+    organs = goi.collect_organs(root)
+    agents = [o for o in organs if o.cls == "agent"]
+    assert any(o.status == "(absent)" for o in agents), (
+        "a vanished .claude/agents/ was masked by the registry's own agent row")
+    assert any(o.name == "ghost-agent" for o in agents)
 
 
 def test_a_command_without_frontmatter_falls_back_to_its_stem(tmp_path):
@@ -425,3 +455,82 @@ def test_an_unparseable_settings_json_degrades_loudly_not_silently(tmp_path):
     hooks = [o for o in organs if o.cls == "session-hook" and o.distribution == "hub"]
     assert len(hooks) == 1
     assert hooks[0].status == "(unparsed)"
+
+
+# --------------------------------------------------------------------------------------
+# terra review 2026-08-11 — the four findings, each pinned by the case that reproduced it
+# --------------------------------------------------------------------------------------
+
+def _git(root: Path, *args: str) -> None:
+    import subprocess
+    subprocess.run(["git", "-C", str(root), *args], check=True,
+                   capture_output=True, text=True)
+
+
+def test_an_untracked_source_file_does_not_change_the_generated_bytes(tmp_path):
+    """terra finding 1 (CRITICAL), reproduced live before the fix.
+
+    THE determinism guarantee: the index is a function of COMMITTED state. An untracked
+    `.claude/commands/local.md` rendering as `/local` would make `--check` red on every
+    other checkout of the same commit — the freshness gate would be unholdable.
+    """
+    root = _tree(tmp_path)
+    _git(root, "init", "-q")
+    _git(root, "config", "user.email", "t@t")
+    _git(root, "config", "user.name", "t")
+    _git(root, "add", "-A")
+    before = goi.render_index(root)
+
+    _write(root / ".claude" / "commands" / "local-scratch.md",
+           _fm("local-scratch", "an untracked private command"))
+    assert "/local-scratch" not in goi.render_index(root)
+    assert goi.render_index(root) == before
+
+    _git(root, "add", ".claude/commands/local-scratch.md")   # now tracked -> appears
+    assert "/local-scratch" in goi.render_index(root)
+
+
+def test_tracked_files_returns_none_outside_a_git_work_tree(tmp_path):
+    """The honest limit, asserted: no repo -> no filtering, rather than an empty index."""
+    assert goi.tracked_files(tmp_path) is None
+
+
+@pytest.mark.parametrize("source,payload", [
+    (".claude/settings.json", "[]"),
+    (".claude/settings.json", '"a string"'),
+    (".claude/settings.json", '{"hooks": "not-a-mapping"}'),
+    (".claude/settings.json", '{"hooks": {"Stop": "bad"}}'),
+    (".claude/settings.json", '{"hooks": {"Stop": [["bad"]]}}'),
+    (".pre-commit-config.yaml", "repos: [bad]"),
+    (".pre-commit-config.yaml", "- a\n- b\n"),
+    (".pre-commit-config.yaml", "repos: not-a-list"),
+    ("ecosystem/organ-registry.yaml", "organs: bad"),
+    ("ecosystem/organ-registry.yaml", "organs: [not-a-mapping]"),
+    ("ecosystem/organ-registry.yaml", "- a\n- b\n"),
+    ("plugins/tier1-lifecycle/hooks/hooks.json", "[]"),
+    ("plugins/tier1-lifecycle/.claude-plugin/plugin.json", "[]"),
+])
+def test_valid_but_wrong_shaped_sources_never_crash_the_gate(tmp_path, source, payload):
+    """terra finding 2 (HIGH) + finding 3 (HIGH), reproduced: these all PARSE and then
+    used to raise AttributeError on the first `.get()`, taking --check out through a
+    traceback instead of its 0/1/2 contract."""
+    root = _tree(tmp_path)
+    _write(root / source, payload)
+    text = goi.render_index(root)          # must not raise
+    assert goi.main(["--write", "--repo-root", str(root)]) == 0
+    assert goi.main(["--check", "--repo-root", str(root)]) == 0
+    for cls in goi.ORGAN_CLASSES:          # the index stays whole
+        assert f"## {cls}" in text
+
+
+@pytest.mark.parametrize("payload,needle", [
+    ("organs: bad", "unparseable"),
+    ("organs: [not-a-mapping]", "is not a mapping"),
+])
+def test_a_malformed_registry_says_so_instead_of_rendering_nothing(tmp_path, payload,
+                                                                   needle):
+    """terra finding 3: `organs: bad` iterated the STRING and skipped every character in
+    silence — a registry that renders zero rows and reports nothing."""
+    root = _tree(tmp_path)
+    _write(root / "ecosystem" / "organ-registry.yaml", payload)
+    assert needle in goi.render_index(root)
