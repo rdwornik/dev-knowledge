@@ -931,7 +931,98 @@ def test_collect_load_never_raises_when_nothing_exists(tmp_path):
     with mock.patch.object(fh.shutil, "which", return_value=None), \
          mock.patch.object(fh, "_gh_fallback_path", return_value=None):
         counts = fh.collect_load(tmp_path, tmp_path / "l", tmp_path / "r", tmp_path / "a")
-    assert counts["backlog"] == {"P1": 0, "P2": 0, "P3": 0}
+    # No BACKLOG.md at all is UNAVAILABLE, not an empty backlog (see the regression below).
+    assert counts["backlog"] == {"P1": None, "P2": None, "P3": None}
+    assert counts["closures"] is None
+
+
+# --- terra HIGH regressions (2026-08-11) ------------------------------------
+# Four correctness defects found by the gpt-5.6-terra review of this lane's diff. All
+# four reproduced against live state; none closed as not-reproduced. Pinned here so a
+# later edit cannot quietly reintroduce them.
+
+
+def test_triage_query_passes_an_explicit_limit(tmp_path):
+    # terra HIGH #1: `gh issue list` page-caps at 30 without --limit, so the funnel
+    # would silently understate itself past 30 open Issues -- the meter going blind
+    # exactly when the saturation it measures arrives.
+    seen = {}
+
+    def fake_run(cmd, **kw):
+        seen["cmd"] = cmd
+        return mock.Mock(returncode=0, stdout="[]", stderr="")
+
+    with mock.patch.object(fh.shutil, "which", return_value="gh"), \
+         mock.patch.object(fh.subprocess, "run", fake_run):
+        fh.count_open_triage_issues(_git_repo(tmp_path))
+    assert "--limit" in seen["cmd"]
+    limit = seen["cmd"][seen["cmd"].index("--limit") + 1]
+    assert int(limit) >= 100, f"page cap {limit} is too low to be honest"
+
+
+def test_unreadable_backlog_is_na_not_zero(tmp_path):
+    # terra HIGH #2: degrading an unreadable BACKLOG.md to "" reported a serene, EMPTY
+    # funnel at the exact moment the repo could not be read -- 0 where the contract
+    # requires n/a. Both text-dependent producers must go unavailable together.
+    logs, reg, audits = _seed_load_inputs(tmp_path)
+    (tmp_path / "BACKLOG.md").unlink()
+    with mock.patch.object(fh.shutil, "which", return_value=None), \
+         mock.patch.object(fh, "_gh_fallback_path", return_value=None):
+        counts = fh.collect_load(tmp_path, logs, reg, audits)
+    assert counts["backlog"] == {"P1": None, "P2": None, "P3": None}
+    assert counts["closures"] is None
+    line = fh.load_line(counts, delta=None)
+    assert "n/a P1" in line and "n/a closures" in line
+    assert counts["funnel_total"] == 3          # dispositions 2 + review-pending 1 only
+
+
+def test_csv_header_is_written_once_under_a_concurrent_create(tmp_path):
+    # terra HIGH #3: the existence check happened BEFORE the open, so a scheduled run
+    # and an interactive SessionStart could both see "no file" and both emit a header.
+    # Simulated by letting a second writer land between the check and the write.
+    csv_path = tmp_path / "OPERATOR-LOAD.csv"
+    real_open = fh.os.open
+
+    def racing_open(path, flags, *a, **kw):
+        # The competing process wins the create; ours must NOT also write a header.
+        if not Path(path).exists():
+            with open(path, "w", encoding="utf-8", newline="") as f:
+                f.write(",".join(fh.LOAD_CSV_HEADER) + "\n")
+        return real_open(path, flags, *a, **kw)
+
+    with mock.patch.object(fh.os, "open", racing_open):
+        fh.append_load_row(csv_path, date(2026, 8, 11), _COUNTS)
+    text = csv_path.read_text(encoding="utf-8")
+    assert text.count(",".join(fh.LOAD_CSV_HEADER)) == 1, text
+
+
+def test_csv_headers_an_empty_preexisting_file(tmp_path):
+    # The truncated-prior-run case the atomic create cannot claim.
+    csv_path = tmp_path / "OPERATOR-LOAD.csv"
+    csv_path.write_text("", encoding="utf-8")
+    fh.append_load_row(csv_path, date(2026, 8, 11), _COUNTS)
+    lines = csv_path.read_text(encoding="utf-8").splitlines()
+    assert lines[0] == ",".join(fh.LOAD_CSV_HEADER)
+    assert len(lines) == 2
+
+
+def test_review_pending_excludes_prose_headings_and_explanatory_bold(tmp_path):
+    # terra HIGH #4: the first cut matched ANY heading or bold run containing the token,
+    # so prose ABOUT the marker still counted -- recreating the false-positive class the
+    # lever exists to remove. The real shapes are parenthesized-terminal (heading) and
+    # colon-plus-id (item).
+    (tmp_path / "prose-heading.md").write_text(
+        "## Why ARCHITECT-REVIEW-PENDING exists\n", encoding="utf-8")
+    (tmp_path / "prose-bold.md").write_text(
+        "**ARCHITECT-REVIEW-PENDING is a marker** we use for adjudication.\n",
+        encoding="utf-8")
+    assert fh.count_review_pending(tmp_path) == 0
+    # ...and the two real shapes still count.
+    (tmp_path / "real-heading.md").write_text(
+        "## SELF-ADJUDICATION LOG (ARCHITECT-REVIEW-PENDING)\n", encoding="utf-8")
+    (tmp_path / "real-item.md").write_text(
+        "**ARCHITECT-REVIEW-PENDING: AC-1** (the hooksPath unset)\n", encoding="utf-8")
+    assert fh.count_review_pending(tmp_path) == 2
 
 
 # --- refresh wiring: one CSV row per digest run -----------------------------

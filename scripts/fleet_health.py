@@ -74,6 +74,13 @@ _NEXT_QUARTERLY_RE = re.compile(r"next\s+quarterly", re.IGNORECASE)
 # omitted from the total; it is never dropped from the shape (a vanishing column
 # would break the CSV's header stability and hide the outage).
 _GH_TIMEOUT_S = 20
+# `gh issue list` PAGE-CAPS AT 30 WITHOUT --limit (terra HIGH, 2026-08-11): the funnel
+# would silently understate itself the moment the triage queue passed 30, which is
+# precisely the saturation the gauge exists to catch -- the meter would go blind exactly
+# when it mattered. Honest residual: a count equal to this ceiling cannot be told apart
+# from a larger one, so the ceiling is set far above any plausible triage queue rather
+# than paginated.
+_GH_ISSUE_LIMIT = 1000
 _UNCHECKED_PROPOSAL_RE = re.compile(r"-\s+\[ \]\s+\*\*#(\d+)\*\*")
 _BACKLOG_ID_RE = re.compile(r"^- \[#(\d+)\]", re.M)
 # Mirrors gen_task_tree._PRIORITY_RE. BACKLOG.md carries OPEN rows only
@@ -87,8 +94,14 @@ _DISPOSITION_ID_RE = re.compile(r"^\s+- id:\s*\S", re.M)
 # self-adjudication log, and the bolded per-item marker. A gauge reporting 7
 # where the truth is 2 is noise -- and noise is what this row's own kill
 # criterion demotes. Same class as the git-log detector's backtick stripping.
-_ARP_HEADING_RE = re.compile(r"^#{1,6} .*ARCHITECT-REVIEW-PENDING", re.M)
-_ARP_BOLD_RE = re.compile(r"\*\*ARCHITECT-REVIEW-PENDING\b[^*]*\*\*")
+# Both patterns match the COMPLETE authored shape, not merely a heading/bold run that
+# happens to contain the token (terra HIGH, 2026-08-11): `## Why ARCHITECT-REVIEW-PENDING
+# exists` and `**ARCHITECT-REVIEW-PENDING is a marker**` are prose ABOUT the marker and
+# passed the looser first cut, recreating the very false-positive class the lever exists
+# to remove. The log heading carries the token PARENTHESIZED and terminal; the per-item
+# marker carries a COLON and an id.
+_ARP_HEADING_RE = re.compile(r"^#{1,6} .*\(ARCHITECT-REVIEW-PENDING\)\s*$", re.M)
+_ARP_BOLD_RE = re.compile(r"\*\*ARCHITECT-REVIEW-PENDING:\s*\S[^*]*\*\*")
 
 LOAD_CSV_NAME = "OPERATOR-LOAD.csv"
 LOAD_CSV_HEADER = (
@@ -430,7 +443,7 @@ def count_open_triage_issues(repo_root: Path, timeout_s: int = _GH_TIMEOUT_S):
     try:
         result = subprocess.run(
             [gh, "issue", "list", "--label", "nightly-triage", "--state", "open",
-             "--json", "number"],
+             "--limit", str(_GH_ISSUE_LIMIT), "--json", "number"],
             capture_output=True, text=True, encoding="utf-8", errors="replace",
             cwd=str(repo_root), timeout=timeout_s,
         )
@@ -537,17 +550,26 @@ def funnel_total(counts: dict):
 
 def collect_load(repo_root: Path, logs_dir: Path, register_path: Path,
                  audits_dir: Path) -> dict:
-    """Read all five producers once. Fail-soft per producer, never raises."""
+    """Read all five producers once. Fail-soft per producer, never raises.
+
+    AN UNREADABLE BACKLOG.md YIELDS `n/a`, NOT ZERO (terra HIGH, 2026-08-11). The first
+    cut degraded it to `""`, which flowed on as a measured-empty backlog AND a measured
+    zero pending-closures -- reporting a serene funnel at the exact moment the repo could
+    not be read. Two producers depend on that text, so both go unavailable together: the
+    closure count needs the open-id set for its still-open guard, and without it there is
+    no honest number to report.
+    """
     try:
         backlog_text = (repo_root / "BACKLOG.md").read_text(encoding="utf-8", errors="replace")
     except OSError:
-        backlog_text = ""
+        backlog_text = None
     counts = {
         "triage": count_open_triage_issues(repo_root),
-        "closures": count_pending_closures(logs_dir, backlog_text),
+        "closures": None if backlog_text is None else count_pending_closures(logs_dir, backlog_text),
         "dispositions": count_dispositions(register_path),
         "review_pending": count_review_pending(audits_dir),
-        "backlog": count_backlog_by_priority(backlog_text),
+        "backlog": ({"P1": None, "P2": None, "P3": None} if backlog_text is None
+                    else count_backlog_by_priority(backlog_text)),
     }
     counts["funnel_total"] = funnel_total(counts)
     return counts
@@ -621,12 +643,24 @@ def append_load_row(csv_path: Path, run_date: date, counts: dict) -> None:
     ]
     try:
         csv_path.parent.mkdir(parents=True, exist_ok=True)
-        need_header = not csv_path.exists() or csv_path.stat().st_size == 0
+        # HEADER AUTHORSHIP IS CLAIMED ATOMICALLY (terra HIGH, 2026-08-11). The first cut
+        # tested existence and then opened, so an overlapping scheduled run and
+        # interactive SessionStart -- the very pair _atomic_write already guards the
+        # digest against -- could both observe "no file" and both emit a header.
+        # O_CREAT|O_EXCL succeeds in exactly one process, which settles it without a lock.
+        # A file that exists but is EMPTY can only come from a truncated prior run, never
+        # from a concurrent create, so heading that case non-atomically is safe.
+        try:
+            fd = os.open(csv_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        except FileExistsError:
+            if csv_path.is_file() and csv_path.stat().st_size == 0:
+                with open(csv_path, "w", encoding="utf-8", newline="") as f:
+                    csv.writer(f, lineterminator="\n").writerow(LOAD_CSV_HEADER)
+        else:
+            with os.fdopen(fd, "w", encoding="utf-8", newline="") as f:
+                csv.writer(f, lineterminator="\n").writerow(LOAD_CSV_HEADER)
         with open(csv_path, "a", encoding="utf-8", newline="") as f:
-            writer = csv.writer(f, lineterminator="\n")
-            if need_header:
-                writer.writerow(LOAD_CSV_HEADER)
-            writer.writerow(row)
+            csv.writer(f, lineterminator="\n").writerow(row)
     except OSError as exc:
         print(f"fleet_health: WARNING -- operator-load CSV not written: {exc!r}",
               file=sys.stderr)
