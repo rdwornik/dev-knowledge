@@ -19,6 +19,49 @@
 
 ---
 
+### 2026-08-11 (g) — CC (Opus 5, primary tree): night lane N3 re-gated and merged — the ratification pack, and a ceiling nobody can locate
+
+**Did:** Merged the last night branch, `claude/night-n3-ratification-pack-r2jxj0` (tip `71da4de2`)
+at `0229ae8b` on `docs/arc9-night-n3`. Index conflicted; resolved by **regeneration**. Pure ADD:
+the batch-4 GO ratification pack for intakes #28–#32 plus the ARC-2 distillate.
+
+**What it is.** A seven-item ratification surface with, per intake, live frontmatter quoted, the
+decision-bearing sections quoted **verbatim**, the acceptance criterion, the amendments owed, and a
+**DRAFT `decided-by` line** ready to paste. It changes nothing: **8 DRAFT intakes before the merge
+and 8 after** — verified, because a pack that accidentally ratified would be the worst possible
+defect in it.
+
+**Its most useful finding is a negative one.** The *"five-intake working ceiling"* that has been
+shaping these decisions is **UNLOCATABLE in-repo** — the nearest statement is #29's own amendment
+(*"take the pending set from four to seven and break the same ceiling"*), which admits two readings:
+**R1** puts the ceiling numerically in **[4, 6]**; **R2** reads it as a *rate* rule, under which
+there is no numeric intake ceiling at all. The pack does not pick, and says why: if the ceiling
+matters to a decision at the GO, it needs a **number ruled**, not a number inferred.
+
+**The schema note that matters operationally:** `docs/intake/README.md` §3 makes `decided-by` **and**
+`disposition` REQUIRED at ACCEPTED and forbidden at any other status. So the DRAFT `decided-by` lines
+**cannot be pre-landed at DRAFT** to de-risk the GO — they are only writable paired with the status
+flip. Intake #25 records that rule being learned the hard way: *"a bare status flip parses … but is
+schema-invalid."*
+
+**Its own gate-posture amendment (`71da4de2`)** records the same uv-pin refusal N1 documented — the
+third layer of one mechanism, now on the record at all three.
+
+**Re-gated in full on primary:** audit-index, hermetization, task-tree, backlog, rosters, intake
+index, ruff — **all 0**. Suite **1 failed / 2715 passed / 4 skipped / 1 xfailed** (9m37s), the
+standing `[#426]` row.
+
+**Recorded, not absorbed:** a **fourth** night branch exists that no brief named —
+`claude/night-batch-cloud-lanes-a4mpkp` @ `fe81e896` (2026-08-09, the older three-lane report). Per
+the batch protocol a branch present but absent from the plan is a finding, not a silent merge: it is
+left untouched and undeleted for the operator.
+
+**Changes:** `docs/audits/2026-08-10-technical-night-n3-ratification-pack.md` (new + its amendment),
+`docs/audits/README.md` (regen).
+
+**Abandoned:** nothing. **Next:** the batch-4 GO itself — the pack's seven-item surface, with the
+ceiling question needing a ruled number.
+
 ### 2026-08-11 (f) — CC (Opus 5, primary tree): night lane N2 re-gated and merged — a batch-4 plan that is mostly a register of what is not yet ruled
 
 **Did:** Merged `claude/night-n2-batch4-plan-qmd38e` (tip `09161a3d`) at `c592c98f` on
