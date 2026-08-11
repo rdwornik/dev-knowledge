@@ -1,7 +1,9 @@
 ---
 intake-id: 29
-status: DRAFT
+status: ACCEPTED
 origin: "Layer-1 architect (outgoing seat), 2026-08-08 — the operator's problem statement on long single-model sessions; landed VERBATIM by the frozen contract ARC-file-intakes-28-29 (S-write, zero births)"
+decided-by: "operator ruling at the batch-4 planning GO, 2026-08-11 - S1/S2/S3 ratified as the measurement-and-routing authority, with the S3a MEASURE-FIRST precondition intact and BINDING on both folds (Amendment 2026-08-09). AMENDED AT RATIFICATION: the seeded-defect corpus spec - the bake-off gate this document's own Fold-A bar names - is LANDED, not owed: the extracted spec is `docs/audits/2026-08-10-technical-research-corpus-distillate.md` Sec4 (landed `1cb4c09d`, merged `4314782a`), with `docs/audits/2026-08-08-technical-seeded-defect-substrate-inventory.md` as the named substrate input. CC's seedability verification of the 12-seed draft corpus ran 2026-08-10 and is recorded at `docs/audits/2026-08-10-verification-arc9-rulings-recording.md` Sec3 (9 SEEDABLE / 1 conditional / 1 REWORK / 1 BLOCKED-BY-GATE, measured against the live gates). In-repo carrier for the GO: docs/audits/2026-08-11-technical-batch-4-go-recording.md"
+disposition: active
 note: "Class: functional. Provenance (from the body): the \"distillation engine\" intent carried NO repo locator until this intake — third instance of the intention-without-locator class; this filing is the F5-style repair. Triage rides the batch-4 planning GO with intake #28 as ONE ratification batch — this filing DECIDES nothing. The body carries its own metadata bullets (intake-id / Class / Date / Status / Author / Provenance note) verbatim as source text; this frontmatter is the schema-conformant carrier per docs/intake/README.md §3. The body's `intake-id: 29 (PROPOSED ...)` line is preserved as written — 29 was verified next-free across the live index and all git history before filing."
 ---
 

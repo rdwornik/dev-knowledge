@@ -3,7 +3,7 @@
   "direction": "derived-from",
   "source": "docs/intake/README.md",
   "generator": "scripts/gen_intake_tree.py",
-  "source_sha256": "f03fa932aea957e1f152f73ad7ca89d092d1b912979e53cd54a2e95c9566162f",
+  "source_sha256": "c1d586d9f6bb93b4bc2a9332a3186b7d9cfd1b321ba57a9bf88acf7f6f459c95",
   "honest_limit": {
     "statement": "ADR-109 section 4 is discharged by a byte-exact round-trip plus a residue manifest, NOT by a derivation ratio. This surface's ratio is INVERTED relative to surface 1 (BACKLOG.md <-> tasks/), where task lines were the majority and residue the minority. Recorded so the generality claim is honest about what was shown.",
     "item_derived_lines": 28,
@@ -139,22 +139,32 @@
         "origin"
       ],
       "2026-08-08-func-multi-model-execution-and-distillation.md": [
+        "decided-by",
+        "disposition",
         "note",
         "origin"
       ],
       "2026-08-08-func-skills-tier-adoption-and-hub-finish-line.md": [
+        "decided-by",
+        "disposition",
         "note",
         "origin"
       ],
       "2026-08-09-func-code-style-doctrine.md": [
+        "decided-by",
+        "disposition",
         "note",
         "origin"
       ],
       "2026-08-09-func-verification-organ-and-repeatable-execution.md": [
+        "decided-by",
+        "disposition",
         "note",
         "origin"
       ],
       "2026-08-09-tech-compute-placement-and-remote-execution.md": [
+        "decided-by",
+        "disposition",
         "note",
         "origin"
       ]
@@ -306,7 +316,7 @@
     },
     {
       "t": "line",
-      "v": "### DRAFT (8)"
+      "v": "### DRAFT (3)"
     },
     {
       "t": "line",
@@ -325,31 +335,6 @@
     {
       "t": "item",
       "file": "2026-08-06-tech-adoption-consolidation-intake.md",
-      "status": "DRAFT"
-    },
-    {
-      "t": "item",
-      "file": "2026-08-08-func-skills-tier-adoption-and-hub-finish-line.md",
-      "status": "DRAFT"
-    },
-    {
-      "t": "item",
-      "file": "2026-08-08-func-multi-model-execution-and-distillation.md",
-      "status": "DRAFT"
-    },
-    {
-      "t": "item",
-      "file": "2026-08-09-func-verification-organ-and-repeatable-execution.md",
-      "status": "DRAFT"
-    },
-    {
-      "t": "item",
-      "file": "2026-08-09-func-code-style-doctrine.md",
-      "status": "DRAFT"
-    },
-    {
-      "t": "item",
-      "file": "2026-08-09-tech-compute-placement-and-remote-execution.md",
       "status": "DRAFT"
     },
     {
@@ -375,7 +360,7 @@
     },
     {
       "t": "line",
-      "v": "### ACCEPTED (9)"
+      "v": "### ACCEPTED (14)"
     },
     {
       "t": "line",
@@ -424,6 +409,31 @@
     {
       "t": "item",
       "file": "2026-08-06-func-parallel-execution-system.md",
+      "status": "ACCEPTED"
+    },
+    {
+      "t": "item",
+      "file": "2026-08-08-func-skills-tier-adoption-and-hub-finish-line.md",
+      "status": "ACCEPTED"
+    },
+    {
+      "t": "item",
+      "file": "2026-08-08-func-multi-model-execution-and-distillation.md",
+      "status": "ACCEPTED"
+    },
+    {
+      "t": "item",
+      "file": "2026-08-09-func-verification-organ-and-repeatable-execution.md",
+      "status": "ACCEPTED"
+    },
+    {
+      "t": "item",
+      "file": "2026-08-09-func-code-style-doctrine.md",
+      "status": "ACCEPTED"
+    },
+    {
+      "t": "item",
+      "file": "2026-08-09-tech-compute-placement-and-remote-execution.md",
       "status": "ACCEPTED"
     },
     {

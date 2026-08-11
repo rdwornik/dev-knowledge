@@ -877,6 +877,103 @@ demonstrate — *"a fresh seat runs a full batch from repo artifacts alone."*
 - **Expiry:** retires when a dispatch surface reads contracts from the tree, so an uncommitted
   contract is unroutable rather than merely irregular.
 
+### I-D4 · Commission 5's session-continuity half is attached to `[#511]`
+
+The session-continuity half of research commission 5 — distillate rows **R43 / R50 / R51** — is
+attached to `[#511]` as **scope and evidence**, not born as a row and not filed as an intake.
+Landed `74fb0fc0`.
+
+- **Why this line exists at all:** the attach was ruled on 2026-08-11 and executed the same day, but
+  the N3 ratification pack, reading the tree, found **no in-repo record of it**. A ruling whose only
+  trace is a row body is a ruling the next seat meets as a surprise. This is the half-landed-ruling
+  class that intake #30 §A is about, caught inside the arc that ratified §A.
+- **Why `[#511]` and not a new intake:** R50/R51 *are* that row's live fork, so the coupling is
+  tightest and the added surface smallest; a new intake would also have pushed the pending set past
+  the ceiling ruled at I-D6.
+- **Expiry:** retires when `[#511]` closes or the rows are re-homed by a later ruling.
+
+### I-D5 · The research-corpus distillate is the batch-4 ratification's evidence artifact
+
+`docs/audits/2026-08-10-technical-research-corpus-distillate.md` is **accepted as the evidence
+artifact** the batch-4 ratification rests on: it triages all 59 proposals of the six commissioned
+memos against measured repo state, and its `LANDED-ALREADY` / `declined-on-measured-repo-grounds` /
+`false-about-this-repo` columns are the grounding for the five `decided-by` lines written at this GO.
+
+- **Its own measured shape:** 27 rows carry something landed, 12 decline on measured grounds
+  (8 in-table + 4 self-declines), 7 rest on a claim false or stale about this repo.
+- **Known defect, recorded rather than edited:** the artifact's **title says "48 proposals"** while
+  its executive summary, its table (R01–R59) and its commit subject all say **59**. The body is
+  right; the title is stale. Audits are immutable, so the correction lives here.
+- **Expiry:** none — an evidence acceptance is a point-in-time fact.
+
+### I-D6 · The working intake ceiling is SIX (reading R1 adopted)
+
+The "five-intake working ceiling" was **UNLOCATABLE in-repo** — the N3 pack established that the
+nearest statement is intake #29's own amendment (*"take the pending set from four to seven and break
+the same ceiling"*), which admits two readings: **R1**, a number in `[4, 6]`; **R2**, a rate rule with
+no numeric ceiling at all. **Ruled 2026-08-11: R1, and the number is SIX working intakes.**
+
+- **What "working" counts:** intakes in the live pre-ratification set (SEED / DRAFT / READY). ACCEPTED
+  and terminal documents are outside it, which is why this GO's S1 outcome takes the working set to 0.
+- **This also adjudicates intake #32's open question 3 and intake #30 §C's lane-count question**,
+  which the pack established are the same question asked twice; they are answered once, here.
+- **Why a number rather than the rate reading:** a ceiling that cannot be evaluated is not a ceiling.
+  R2 was defensible but leaves every future "are we over?" unanswerable from the tree.
+- **Expiry:** retires when a mechanism computes the working set and compares it to this number.
+
+### I-D7 · Intake #10 — survival review OPENED, disposition owed
+
+`docs/intake/2026-07-11-tech-c4-visualization-memo.md` (intake #10) has been `status: DRAFT` for
+**31 days** as of 2026-08-11, which fires the `docs/intake/README.md` §7 survival metric verbatim —
+*"intake docs sitting unconsumed after ~1 month of operation trigger a review of the scene for
+removal (ADR-98 §6)"*.
+
+- **Ruled at this GO: the review is OPENED, and nothing else.** The document is **not** rejected, not
+  archived, and not status-changed by this arc. Firing a survival metric is the trigger for a
+  decision, not the decision.
+- **Owner:** operator. **Due:** next window.
+- **Expiry:** retires when the disposition is recorded.
+
+### I-D8 · The ARC-7 §6-item-3 site is a DRIVE-BY FIX in W1, not a birth
+
+The second boot-instruction site left standing by ARC-7 (`CLAUDE.md` §6 item 3, *"Read most recent
+handoff"*, which the `session-start-protocol` hub region carries) is ruled a **drive-by fix scheduled
+in W1**. It births no row.
+
+- **Why not a birth:** it is a one-line correction to a region whose source-of-truth carrier is
+  already edited by the W1 lane; a row for it would cost more to track than to fix.
+- **Expiry:** retires when W1 lands the correction at the carrier and its byte-coupled region.
+
+### I-D9 · The `kill-candidates:` refusal check is DEFERRED behind ADR-111's n=2
+
+The proposal-time `kill-candidates:` refusal check (N2's gate **G-3**; the mechanism the decision-sheet
+verification's §5 designed and did not build) is **DEFERRED**, dated **2026-08-11**, behind
+**ADR-111's own n=2 measurement clause**.
+
+- **Reason:** ADR-111 arms no gate by design and says whether the rule earns one is an n=2 question to
+  be measured on the next two audits. Building a refusal check before that measurement would pre-empt
+  the very clause the ADR was ratified with.
+- **Consequence, stated honestly:** the K-4 class stays contained by an adjudicator reading carefully,
+  which is the control that does not scale — accepted knowingly for two audits.
+- **Expiry:** retires when ADR-111's n=2 measurement is taken; the check is then built or refused on
+  that evidence.
+
+### I-D10 · Batch-4 detail rulings — G-4, G-5, G-6, G-7, G-8
+
+Five of N2's `GATED(ruling)` register items, ruled at the GO so the batch can be cut.
+
+- **G-4 · `[#514]` leg 3** — *"one clean batch runs under it"* discharges **in W1**.
+- **G-5 · `[#270]`** — **YES**, it adopts the closing-commit metric convention.
+- **G-6 · the Form-E record home** — a *"recorded with a reason"* record lives **in this file**
+  (`protocols/STANDING_RULINGS.md`). This is the single decision that converts 21 of the census's 42
+  drafts and, by substitution, ~30 open rows.
+- **G-7 · "ARCHITECTURE soft observations"** — scope is **the `cf039756` STEP-3 list plus I-D2, and
+  nothing wider**. The phrase had zero in-repo hits, so it is defined here rather than inferred.
+- **G-8 · the ≤1/4 process-lane cap** — it **binds**, via a three-way execution-class split:
+  **feature/satellite · finish-line · hub-introspection**. Batch 4 declares each lane's class
+  **ex-ante**. Per-lane buckets: **W1 hub · W2 feature · W3 finish-line · W4 finish-line ·
+  W5 feature · W6 hub**.
+
 ### I-I2 · 2026-08-06 — the scheduler job did not run
 
 Answering 3c-2, which the repo could not settle: **the operator confirms the scheduler job did not
