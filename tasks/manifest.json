@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "216bcc5357cce7e0f4d05572fae0437db959b461651f3a757923cf85baba492e",
+  "generated_sha256": "b4b63ac6dac4de8f78e88846b29935d90cb6d856b22fd51d768b560b4071279b",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -976,10 +976,6 @@
     },
     {
       "prose": "So that unattended routines run only with a named consumer, a survival metric, and a bounded operator load — never as rot generators (the fleet-audit lesson; sequencing per the standing operator ruling: the load-gauge lands before anything else in the Tier-2 nightly layer)."
-    },
-    {
-      "task": 270,
-      "file": "270-operator-load-gauge.md"
     },
     {
       "task": 271,
