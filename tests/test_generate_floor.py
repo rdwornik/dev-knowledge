@@ -2,11 +2,9 @@
 F5 self-containment, and emit behavior (ADR-78 O2)."""
 from __future__ import annotations
 
-import os
 import sys
 from pathlib import Path
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
 import pytest
 from click.testing import CliRunner

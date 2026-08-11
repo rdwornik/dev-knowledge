@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "ba19f7068ea435156c6701f95f34d4cb741d10042385db4390fa4a5203fc9bfa",
+  "generated_sha256": "68550934868446cadc8bae98266e13609a259f2ca6e1b351017434773dd6f2a1",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -920,10 +920,6 @@
     {
       "task": 126,
       "file": "126-backpressure-loop-pattern-evaluation.md"
-    },
-    {
-      "task": 521,
-      "file": "521-syspath-substrate-shape-b-rollout-owner.md"
     },
     {
       "prose": ""

@@ -6,11 +6,8 @@ Prompt-B enumerate_edges contract, and the audit.check_reconciled_versions mappi
 """
 from __future__ import annotations
 
-import os
-import sys
 from pathlib import Path
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
 import audit as aud
 import validate_reconciliation as vr

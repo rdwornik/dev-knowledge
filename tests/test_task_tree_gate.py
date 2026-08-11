@@ -6,12 +6,9 @@ the WITNESSED one: a BACKLOG edit without a regen must FAIL the leg.
 """
 from __future__ import annotations
 
-import os
 import shutil
-import sys
 from pathlib import Path
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
 import audit as aud
 import gen_task_tree as gtt

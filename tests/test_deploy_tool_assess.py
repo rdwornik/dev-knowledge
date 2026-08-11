@@ -23,8 +23,6 @@ Git and the carrier factory are injected, so no real git / real fleet / real
 from __future__ import annotations
 
 import io
-import os
-import sys
 from pathlib import Path
 
 import pytest
@@ -32,7 +30,6 @@ import yaml
 from click.testing import CliRunner
 from rich.console import Console
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "deploy"))
 
 import carrier_plugin as cp  # noqa: E402
 import contract  # noqa: E402

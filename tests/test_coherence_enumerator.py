@@ -11,12 +11,9 @@ nothing. Tests mirror test_validate_doc_claims' sys.path import shim.
 """
 from __future__ import annotations
 
-import os
 import re
-import sys
 from pathlib import Path
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
 import coherence_enumerator as ce  # noqa: E402
 import pytest

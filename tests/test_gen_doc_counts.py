@@ -10,10 +10,7 @@ in test_validate_doc_claims.py (which now read the repointed ecosystem/doc-count
 """
 from __future__ import annotations
 
-import os
-import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
 import gen_doc_counts as gdc  # noqa: E402
 import validate_doc_claims as vdc  # noqa: E402

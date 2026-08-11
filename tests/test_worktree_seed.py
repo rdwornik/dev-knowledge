@@ -21,15 +21,12 @@ WHAT THESE PIN, and why each is a defect waiting rather than a coverage box:
 """
 from __future__ import annotations
 
-import os
 import shutil
 import subprocess
-import sys
 from pathlib import Path
 
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
 import worktree_seed as ws  # noqa: E402
 

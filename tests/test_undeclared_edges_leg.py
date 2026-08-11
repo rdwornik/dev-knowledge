@@ -8,11 +8,8 @@ crafted undeclared-edge repo (presence in ALL_CHECKS is NOT closure; demonstrate
 """
 from __future__ import annotations
 
-import os
-import sys
 from pathlib import Path
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
 import audit as aud
 

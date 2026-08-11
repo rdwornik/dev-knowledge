@@ -1,7 +1,7 @@
 ---
 id: "[#521]"
 title: "sys.path substrate — roll out Shape B and own the declared residual"
-status: open
+status: closed
 priority: P2
 size: M
 theme: "[E7] Tooling & evaluation"

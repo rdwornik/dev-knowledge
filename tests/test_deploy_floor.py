@@ -23,7 +23,6 @@ network, no real consumer repos, and the hub tree is left untouched.
 from __future__ import annotations
 
 import json
-import os
 import re
 import subprocess
 import sys
@@ -31,7 +30,6 @@ from pathlib import Path
 
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "deploy"))
 
 import carrier_floor as cf  # noqa: E402
 import contract  # noqa: E402

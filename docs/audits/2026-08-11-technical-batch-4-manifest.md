@@ -329,3 +329,48 @@ row prose). `git diff --name-only main...<lane>` against both live lanes:
   do" and the execution-plan draft §5.2 one-owner rule. W5 therefore **owes the integrator a
   `CLAUDE.md` §9 pre-commit-roster row** for the freshness hook it ships. That owed row is named
   again in W5's end packet.
+
+## AMENDMENT — 2026-08-11, W-521 joins the roster (lane seat), appended per A-4
+
+**Nothing above this line is altered, and the frontmatter is untouched** — `status: open` and
+`closed_by:` stand. This marker is written under the form **A-4 ratified**: a roster/row change
+lands as an appended, fully-disclosed marker, never as an in-place rewrite. It is written by the
+lane it adds, because the lane's own contract step 0 instructs it to record itself here
+(batch-3 precedent, named in the contract).
+
+### B-1 · W-521 is added to the active roster
+
+| Lane | Worktree / branch | Rows | Bucket | Contract of record |
+|---|---|---|---|---|
+| **W-521** | `worktree-lane-f-521-syspath-substrate` | `[#521]` | substrate / finish-line-serving | `docs/audits/2026-08-11-technical-batch-4-w521-lane-contract.md` |
+
+**Active width becomes 6** — W1–W5 per A-1 (which took active width to 5), plus this lane. The
+lane was dispatched by the operator after the A-1/A-2 rulings landed; it is **not** a revival of
+the dropped W6, and it does not reuse W6's `worktree-lane-f-arch-soft-obs` name, scope, or bucket.
+The two names share only the `lane-f` letter slot, which the drop freed.
+
+### B-2 · The lane letter is reused, and the branch satisfies the STRICT grammar
+
+`worktree-lane-f-521-syspath-substrate` carries an id, so it is accepted by the strict lane
+grammar `^worktree-lane-[a-z]-\d+-<slug>$` that W1's `[#514]`/`[#510]` deliverable unifies on.
+It therefore **does not re-open the stranding hazard A-3 closed by removal**: the id-less set
+stays empty, and W1 still needs no delay. Measured live, not asserted — the branch is the shape
+the hazard section's table calls `strict True`.
+
+### B-3 · The process-lane cap arithmetic, restated at width 6
+
+PLAYBOOK Ch8 caps hub-process lanes at ≤1/4 of dispatched width. At active width 6 that permits
+**1** whole lane, which is unchanged from the width-5 arithmetic A-3 cleared (⌊5/4⌋ = ⌊6/4⌋ = 1).
+W1 remains the sole occupant of the `hub` bucket. **This lane is not a hub-process lane**: the
+`[#521]` row's frontmatter carries `theme: "[E7] Tooling & evaluation"`, `story: "[S19] Decide the
+undecided artifact/tool models"` and **no hub/process bucket field at all**, and its deliverable is
+the `sys.path` import substrate every other lane's tests run on — enabling substrate, not
+methodology surface. **The cap is not exceeded by this addition.** Recorded as arithmetic, not as
+a ruling: the packet still reports the dispatched-vs-close width delta per the closure contract.
+
+### B-4 · Closure-contract consequence
+
+Closure item 3 gains `[#521]` to its named-rows list — the row is closed with ADR-65 evidence by
+this lane, or the lane is recorded as abandoned with a reason. Items 1, 2 and 5–7 are unchanged
+in kind; the merge queue simply has one more lane branch to drain and one more worktree to tear
+down (both branches — work and provisioning — per the teardown rule).

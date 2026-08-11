@@ -15,13 +15,10 @@ If either test reds, the conversion changed deploy behavior and P1 is wrong.
 """
 from __future__ import annotations
 
-import os
-import sys
 from pathlib import Path
 
 import yaml
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "deploy"))
 
 import contract  # noqa: E402
 import tool  # noqa: E402

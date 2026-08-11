@@ -11,11 +11,9 @@ import os
 import re
 import shutil
 import subprocess
-import sys
 
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
 import gen_handoff as gh  # noqa: E402
 import verify_handoff_probes as vhp  # noqa: E402

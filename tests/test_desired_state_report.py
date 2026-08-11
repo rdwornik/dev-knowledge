@@ -19,12 +19,9 @@ docs/audits/2026-07-31-codex-382-w4-report.md, 6 High — all accepted):
 from __future__ import annotations
 
 import os
-import sys
 
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-sys.path.insert(0, os.path.dirname(__file__))
 
 import test_desired_state_loader as tl  # noqa: E402  (fixture source strings reused)
 

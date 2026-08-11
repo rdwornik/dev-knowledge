@@ -5,10 +5,7 @@ The live hub tree is never written (the don't-touch guardrail — and no consume
 """
 from __future__ import annotations
 
-import os
-import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
 import seed_runbook as sr  # noqa: E402
 

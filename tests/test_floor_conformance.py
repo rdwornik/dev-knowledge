@@ -28,7 +28,6 @@ from pathlib import Path
 import pytest
 import yaml
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "deploy"))
 
 import carrier_floor as cf  # noqa: E402
 import carrier_precommit as cp  # noqa: E402

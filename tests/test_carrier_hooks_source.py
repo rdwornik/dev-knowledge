@@ -41,7 +41,6 @@ requires_precommit = pytest.mark.skipif(
 
 # The deploy carrier + its typed contract (the #319 upgrade-path test drives the
 # real reconcile engine, not the hub-source E2E). Idiom mirrors test_deploy_precommit.py.
-sys.path.insert(0, str(_HUB / "deploy"))
 import carrier_precommit as cp   # noqa: E402
 import contract                  # noqa: E402
 

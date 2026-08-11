@@ -34,7 +34,6 @@ def _load():
 
 vdce = _load()
 
-sys.path.insert(0, str(_REPO_ROOT / "scripts"))
 import audit as aud  # noqa: E402  (audit imports the same module as its _vdce)
 
 

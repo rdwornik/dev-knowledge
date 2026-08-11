@@ -19,6 +19,110 @@
 
 ---
 
+### 2026-08-11 (s) — CC (Opus 5, batch-4 lane W-521): the sys.path substrate rolled out — and a 0 that proves nothing until you break it on purpose
+
+**Did:** Executed `[#521]` on `worktree-lane-f-521-syspath-substrate`, the lane the operator
+dispatched outside the W1–W6 roster. Five commits: the contract of record + a manifest amendment
+marker adding the lane row (`60d7d40d`), the Shape B config line (`58427730`), the retirement of the
+bootstrap it replaces (`04dd9b39`), the terra review artifact (`f9f7441f`), and the closure. Row
+closed retire-not-delete: `tasks/521-*.md` kept at `status: closed`, node removed from
+`tasks/manifest.json`, `BACKLOG.md` regenerated via `--emit-source`, `gen_task_tree --check` ok.
+
+**Result:** All five Done-when clauses met. `pyproject.toml` carries `pythonpath = [".", "scripts",
+"deploy"]` (a); isolated per-file collection over 101 test files reports **0 failures** (b); the full
+suite is **identical on every axis** — `2 failed / 2710 passed / 8 skipped / 1 xfailed` both sides,
+the same two standing REDs (c); the 25-site residual is disposed as **all exempted, none conformant**
+(d); and `STANDING_RULINGS` **H4 is retired** by re-annotation, carrying its own evidence (e).
+
+**THE MEASUREMENT THAT MATTERS IS THE ONE THAT FAILS.** Clause (b) asks for 0 isolated-collection
+failures — and the pre-rollout tree already reported **0/101**, because the 77 `sys.path.insert`
+lines were carrying the imports. A 0 measured with those still in place is **vacuous**: it would have
+been satisfied by changing nothing. So the clause was made load-bearing by breaking it on purpose.
+Four measurements, one control:
+
+    pre-rollout   (inserts present, no pythonpath)     0 / 101
+    config only   (inserts present, pythonpath on)     0 / 101
+    POST-ROLLOUT  (inserts gone,    pythonpath on)     0 / 101
+    NEGATIVE CTRL (inserts gone, -o pythonpath=.)     68 / 101
+
+Narrowing the roots back to the contract-literal `["."]` on the finished tree breaks 68 of 101 files,
+every one a plain `ModuleNotFoundError` on a bare module name (`audit` ×20, `carrier_precommit` ×4,
+then a long tail across 39 modules) — reproducing the `[#502]` measurement's 67-of-99 on a tree three
+days newer. **That is what makes the post-rollout 0 evidence that the CONFIG carries the imports**,
+rather than evidence that nothing was tested. Generalizable: a green whose red you have never seen is
+a green you cannot spend.
+
+**Two counts moved under the ruling, and the record says so rather than quietly reconciling.** H4
+declares "retires 74 of 99 sites"; the live census three days later is **77 executable sites in 73
+files** (78 total, one non-executable). 75 were retired across 72 files, plus the 99 `os`/`sys`
+imports they were the sole user of — deletions found by ruff, not by hand, and ruff was clean both
+before and after, so all 99 are attributable to this arc.
+
+**One place the retirement is deliberately short of complete.** `tests/test_batch_manifest.py` keeps
+its 2 inserts (lines 46, 511). It is the single real work-file collision the preamble's
+zero-shared-files check found against the live lanes — W1 owns that file — and excluding it is what
+kept this lane's footprint disjoint, which the dispatch required. The alternative was to STOP the
+whole lane over two redundant lines. They are redundant, not wrong; a two-line sweep is owed once W1
+merges, and it is written into the H4 retirement rather than left in a commit message.
+
+**The terra loop found one HIGH and it was refuted, which is why both passes are in the artifact.**
+Pass 1 reported `scripts/batch_manifest.py:91` broadened, "the regression tests that prevented this
+were deleted". Two commands refuted it, both empty: this branch touches **zero** files under
+`scripts/` or `deploy/`, and every deleted line in `tests/` is an insert or a bare `import os`/`import
+sys` (72 files, 174 deletions = 75 + 99 — it reconciles exactly). What the reviewer described is the
+live, still-open `[#510]`, which is W1's deliverable and which this diff does not touch. Pass 2, given
+the refutation, returned clean. Tally recorded **0/0/0/0** — counting a refuted finding would report a
+defect that does not exist, and deleting it would hide that the loop contained a false positive.
+
+**BLOCKED AT THE CLOSING COMMIT BY A GAP THAT IS NOT THIS LANE'S — reported, not bypassed.**
+`audit-health` FAILs on `journal_spine_anchor`: `fd4149ba` (now the tip of `main` and of
+`origin/main`) carries no JOURNAL anchor. Ownership was established before anything was done about
+it — `git merge-base --is-ancestor fd4149ba HEAD` returns **no**, this lane branched at `7245d4f6`,
+and all five of its commits are its own. The cause is diagnosable and is the exact trap PLAYBOOK Ch8
+names: the branch `docs/batch-4-w1-register-hygiene` carried **one** commit (`17bab0f1`, itself the
+JOURNAL entry), so the merge that brought it in has only that commit's hash available to be named by
+— and that commit was written before its own hash existed. `17bab0f1`'s message anchors `0136cec6`,
+which belongs to the *earlier* W1 lane merge, not to this one. **A one-commit integration branch is
+structurally unanchorable.** The lane's contract forbids `SKIP=` and `--no-verify`, and neither was
+used.
+
+**AND THIS ENTRY IS WHY THE GATE IS NOW GREEN — stated because a green nobody can explain is worse
+than a red.** Writing the diagnosis above put the literal string `17bab0f1` into `JOURNAL.md`, and
+the anchoring predicate matches a SHA **anywhere in the file**. So the closing commit passed
+`audit-health` on the strength of a *diagnosis of the gap* rather than a record of the arc that
+created it. That is a legitimate discharge shape by the letter of STANDING_RULINGS B6 — a new
+appended entry naming the SHA, not an edit to a landed one — but it is **not** a substantive one, and
+the difference matters: **the integrator's own entry for `fd4149ba` is still owed**, and the backstop
+that would have kept asking for it is now quiet. Flagged here rather than banked, because the next
+seat would otherwise find a green gate, no red, and no reason to think anything was ever missing.
+Nothing was worded to evade the predicate either — dodging it in the other direction would have been
+the same cleverness with the opposite sign.
+
+**Changes:** `pyproject.toml` (+27, the `pythonpath` entry and why three roots), 72 files under
+`tests/` (−174), `protocols/STANDING_RULINGS.md` (H4 retirement + residual disposition),
+`docs/audits/2026-08-11-technical-batch-4-w521-lane-contract.md` (new),
+`docs/audits/2026-08-11-codex-lane-f-521-syspath-substrate.md` (new),
+`docs/audits/2026-08-11-technical-batch-4-manifest.md` (amendment marker B-1…B-4 appended,
+frontmatter untouched), `BACKLOG.md` / `tasks/` (row closed), `docs/audits/README.md` (regenerated).
+
+**Silent-rule ratchet:** live **440 ≤ baseline 441**, unmoved — the H4 retirement adds **zero**
+`must`/`shall`/`never` tokens, verified by grep over the added lines and by re-running the detector.
+
+**Day-letter:** claimed **(n)**, re-derived from `main`'s `JOURNAL.md` at write time rather than from
+the contract. Main had reached (m) by then — the letter would have been wrong twice over if taken
+from the dispatch. Noted for the integrator: **W2 and W5 have each claimed (l) on their own
+branches**, and main's (l) is already occupied by W1's re-lettered entry, so two more collisions are
+queued behind this one.
+
+**Abandoned:** Nothing. The 2 excluded inserts and the 24+1 residual are exempted with reasons on the
+record, not dropped.
+
+**Next:** Commit-and-STOP; this lane does not merge. Integration is `/lane-integrate` from the
+primary. Owed at integration: the `journal_spine_anchor` gap above (integrator's), the two-line
+`test_batch_manifest.py` sweep once W1 lands, and the two day-letter collisions.
+
+---
+
 ### 2026-08-11 (r) — CC (Opus 5, batch-4 lane E / W5): the organ index ships — and a lane cleared a foreign gate without a bypass
 
 **LETTER CLAIM, for the integrator:** this entry claims **(m)**, derived from `JOURNAL.md` at

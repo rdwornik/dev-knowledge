@@ -42,12 +42,10 @@ from __future__ import annotations
 import inspect
 import shutil
 import subprocess
-import sys
 from pathlib import Path
 
 import pytest
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 import audit as aud   # noqa: E402
 
 requires_git = pytest.mark.skipif(shutil.which("git") is None, reason="git not available")

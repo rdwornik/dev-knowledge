@@ -15,12 +15,10 @@ from __future__ import annotations
 import os
 import shutil
 import subprocess
-import sys
 from pathlib import Path
 
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
 import validate_no_ff as vnf  # noqa: E402
 import audit as aud  # noqa: E402

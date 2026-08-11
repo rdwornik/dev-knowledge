@@ -12,10 +12,7 @@ Pure + fixture-driven (no live-file mutation): CLI-path tests monkeypatch the mo
 """
 from __future__ import annotations
 
-import os
-import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
 import gen_methodology_roster as gmr  # noqa: E402
 

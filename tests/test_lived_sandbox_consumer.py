@@ -9,12 +9,10 @@ from __future__ import annotations
 import contextlib
 import itertools
 import json
-import sys
 import types
 from pathlib import Path
 
 _REPO = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(_REPO / "deploy"))
 
 from lived_sandbox import arc as arcmod  # noqa: E402
 from lived_sandbox import cli  # noqa: E402

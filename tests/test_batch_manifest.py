@@ -35,7 +35,6 @@ access to the exemption at all.
 from __future__ import annotations
 
 import ast
-import os
 import shutil
 import subprocess
 import sys
@@ -43,7 +42,6 @@ from pathlib import Path
 
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
 import audit as aud  # noqa: E402
 import batch_manifest as bm  # noqa: E402
@@ -509,7 +507,6 @@ def test_the_handoff_open_batch_refusal_survives_an_inherited_GIT_DIR(tmp_path, 
 
     Driven through `assert_batch_boundary`, the real entry point, so the assertion survives
     the reader being swapped underneath it."""
-    sys.path.insert(0, str(_SCRIPTS))
     import gen_handoff as gh  # noqa: PLC0415 -- local: only this test needs the generator
 
     repo, _floor = _seed(tmp_path)

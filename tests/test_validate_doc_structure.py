@@ -16,10 +16,7 @@ separately by the toc-freshness hook (this is the WARN-level fence-aware awarene
 """
 from __future__ import annotations
 
-import os
-import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
 import validate_doc_structure as vds  # noqa: E402
 import audit as aud  # noqa: E402

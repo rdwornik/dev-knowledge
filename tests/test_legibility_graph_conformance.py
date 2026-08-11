@@ -33,12 +33,9 @@ not-proven-in-this-env, never silently "proven".
 
 from __future__ import annotations
 
-import os
 import shutil
-import sys
 from pathlib import Path
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
 import pytest  # noqa: E402
 

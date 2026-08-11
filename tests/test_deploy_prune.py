@@ -23,15 +23,12 @@ from the real manifest-v1.2.0.yaml so the tests track the shipped spec.
 from __future__ import annotations
 
 import copy
-import os
 import subprocess
-import sys
 from pathlib import Path
 
 import pytest
 import yaml
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "deploy"))
 
 import carrier_precommit as cp  # noqa: E402
 import contract  # noqa: E402

@@ -8,15 +8,12 @@ generality, and the report's two sections + confirm hint.
 """
 from __future__ import annotations
 
-import os
 import shutil
 import subprocess
-import sys
 from pathlib import Path
 
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
 import scan_undeclared_edges as sue
 import validate_reconciliation as vr

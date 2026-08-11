@@ -20,15 +20,12 @@ import importlib.util
 import json
 import re
 import subprocess
-import sys
 from pathlib import Path
 
 import pytest
 import yaml
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(_REPO_ROOT / "scripts"))
-sys.path.insert(0, str(_REPO_ROOT / "deploy"))
 
 import audit  # noqa: E402
 import enforcement_coverage as ec  # noqa: E402

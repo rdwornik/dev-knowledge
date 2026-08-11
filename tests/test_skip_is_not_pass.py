@@ -17,12 +17,9 @@ optional artifact exists so every presence-guarded check skips too.
 """
 from __future__ import annotations
 
-import os
 import re
-import sys
 from pathlib import Path
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
 import pytest
 
