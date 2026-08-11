@@ -276,6 +276,12 @@ absent from that view by design, not by defect.
   `protocols/PLAYBOOK.md` Ch8 "Dispatch visibility"; the board-label shape it prescribes for a
   dispatch prompt is carried by `.claude/commands/lane-boot.md` and
   `templates/prompt-template.md`.
+- **AM-5 (operator-ratified 2026-08-11) — a nested session carries no row, so dispatch is an
+  operator act.** A session spawned from inside another session does not surface in Agent View, so
+  batch lanes are dispatched by the operator via `dispatch <contract>` from a terminal rather than
+  spawned session-side; the agent-view dispatch input inherits the view session's model/effort with
+  no per-task override, which scopes it to ad-hoc, read-only, default-model tasks. Encoded
+  doctrine: `protocols/PLAYBOOK.md` Ch8 "Dispatch visibility".
 
 ---
 
