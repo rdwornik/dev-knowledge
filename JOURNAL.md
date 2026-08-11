@@ -19,6 +19,198 @@
 
 ---
 
+### 2026-08-11 (o) — CC (Opus 5, batch-4 lane W2): the operator-load gauge is built and proven — and [#270] cannot close, because closing a row with dependents is structurally barred
+
+**Did:** Ran batch-4 lane **W2** (feature bucket, G-8) on branch
+`worktree-lane-b-270-fleet-audit`, contract
+`docs/audits/2026-08-11-technical-batch-4-w2-lane-contract.md`. Three commits plus a
+merge: step 0's contract-of-record (`7ef6f50f`), the `[#270]` build (`7e4d503e`), a
+main-merge (`f457db3e`), and this entry.
+
+**Built** the operator-load gauge into `scripts/fleet_health.py` — the gating FIRST
+element of any Tier-2 nightly layer, idle 34 days. Five funnel producers (open
+nightly-triage Issues · pending closure proposals · disposition-register rows ·
+ARCHITECT-REVIEW-PENDING markers · open BACKLOG by band), a `[load]` line, a digest
+section, a header-stable append-only `logs/OPERATOR-LOAD.csv`, and the `.gitignore` line
+batch4-prep found missing. Measured live:
+
+`[load] funnel 44: 15 triage / 0 closures / 27 dispositions / 2 review-pending; backlog: 7 P1 / 91 P2 / 100 P3; 7d delta: n/a`
+
+Every figure cross-checks against its own producer independently of the code that
+produced it — the triage 15 equals this very session's `surface_triage.ps1` SessionStart
+line, dispositions 27 equals a direct grep of the register, backlog 7/91/100 equals a
+direct grep of BACKLOG.md.
+
+**Tests-first, proven rather than asserted:** the 52 new tests were run against HEAD's
+`scripts/fleet_health.py` in an isolated out-of-repo tree — **52 failed, 55 passed** —
+before the implementation existed; 107/107 pass with it.
+
+**Result:** the row's Done-when is **met on legs 1 and 2 and blocked on the close
+itself.** `[#270]` IS STILL OPEN, deliberately.
+
+**THE BLOCKER, with evidence — a structural property, not a slip.** Closing `[#270]`
+requires removing it from `BACKLOG.md` (ADR-107 §6.3 retire-not-delete: drop the node
+from `tasks/manifest.json`; `--prune` is refused by the generator). But
+`validate_backlog._check_dep_references` (`scripts/validate_backlog.py:127-136`) is
+strict reference-existence against **live** BACKLOG ids — `ids = {t["id"] for t in
+tasks}` — so the moment `[#270]` leaves, its two dependents dangle. Observed live, as a
+hard pre-commit refusal:
+
+```
+FAIL  depends-on references non-existent id #270 - [#271] line 272
+FAIL  depends-on references non-existent id #270 - [#348] line 274
+validate_backlog: 2 hard-fail(s), 1 warning(s)
+```
+
+The repo's own precedent says the remedy is to strip the inbound clause in the same
+commit, and it has done so **twice**: `79047095` closed `[#226]` and stripped
+`[#221]`'s `depends-on: #226`; `40ce3189` closed `[#236]` and stripped `[#238]`'s and
+`[#240]`'s. **This lane's frozen contract forbids exactly that** — "no edits to the
+three dependent rows", stated twice — and forbids the two other escapes, "no
+`SKIP=`/`--no-verify`". So the clause is unmeetable as written. Per the contract's own
+budget item (c) the lane **STOPPED on that clause, recorded it with evidence, and
+continued the meetable ones** rather than reinterpreting silently. The closure was
+drafted in full, refused by the gate, and **reverted to a clean tree** — nothing
+half-closed was left behind.
+
+**The generalization, which is the part worth keeping:** under the current validator
+**no row that has dependents can ever be closed without editing its dependents.** That
+makes the G-5 closing-commit metric inapplicable to any depended-upon row, and it is a
+schema-level question, not a `[#270]` question. Escalated, not filed — the contract
+forbids births.
+
+**Also found, not introduced:** `ecosystem/doc-counts.md` was **stale on main by one** —
+it claimed 2721 collected where live HEAD was 2720 (measured: suite-minus-this-file 2665
++ 55 at HEAD = 2720; + 107 now = 2772, the regenerated figure). The regeneration
+silently corrects the pre-existing off-by-one alongside the real +52.
+
+**Suite:** 4 REDs on the first run, **2 after the main-merge**. The two that cleared
+(`test_health_ok_with_registered_repo`, `test_health_stays_ok_with_na_status`) were
+never real: `journal_spine_anchor` scans MAIN's first-parent spine but reads the WORKING
+TREE's `JOURNAL.md`, so a branch based pre-manifest manufactures a DEGRADED verdict for
+a merge main had already anchored. **A lane sitting behind main fabricates this RED** —
+worth knowing, because the reflex fix is `SKIP=audit-health` and the correct fix is to
+take the merge. The 2 remaining are the documented pair (`[#457]` routine-consumers ·
+linked-worktree context). The contract also predicted "sed-absent x2"; those did **not**
+appear here — `sed` is present in this environment, so that pair is environment-dependent,
+not universal.
+
+**Changes:** `scripts/fleet_health.py` (+~250) · `tests/test_fleet_health.py` (+52 tests)
+· `.gitignore` (`logs/OPERATOR-LOAD.csv`) · `ecosystem/doc-counts.md` (2721→2772) ·
+`docs/audits/2026-08-11-technical-batch-4-w2-lane-contract.md` (new, step 0) ·
+`docs/audits/README.md` (regenerated twice — once for the contract, once to resolve the
+merge conflict).
+
+**Abandoned:** the `[#270]` closure (blocked, above). `ARCHITECTURE.md`'s Ch2/Ch6 organ
+row — OUT OF SCOPE for this lane per the batch-4 plan §4.2 step 6, owed to the
+integrator. `CLAUDE.md` §9 — deliberately untouched; its row names `fleet_health.py`
+without enumerating the digest's sections, so a new section does not falsify it.
+
+**Next (for the integrator, all drafted here and none executed):**
+1. **Rule on the closure.** Smallest option: close `[#270]` in the integrator's own
+   commit, where the dependent-row edit is in the integrator's remit rather than the
+   lane's. The closing-commit SHA is `7e4d503e` and the G-5 metric + kill-criterion text
+   is ready.
+2. **The three dependents' unblock**, verified in-row and NOT edited: `[#271]` nightly
+   proposal loop (`depends-on: "#270"`, open) and `[#348]` backlog grooming
+   (`depends-on: "#270"`, open) both become unblocked on closure; `[#117]` (`DEFER —
+   peg: #270`, body not frontmatter) has its peg MET, and un-deferring is an operator
+   act.
+3. **JOURNAL letter race — it actually collided, twice, and the note that said otherwise
+   was wrong within the hour.** History: main took (j); W1 took (j) on its branch, then
+   re-lettered to (k) after taking the main-merge; main then took (k) as well; this entry
+   became (l); W1 merged and the integrator re-lettered W1's to **(l)** and its own to
+   **(m)** — colliding with this entry, which is now **(n)**. The lesson is not the
+   sequence but that **a lane cannot own a day-letter**: every allocation here was
+   correct when made and stale within the hour, because main advances underneath a lane
+   that is still running. Derive the letter at MERGE time from `JOURNAL.md`, never from a
+   contract and never from a lane's own note — including this one.
+4. `ARCHITECTURE.md` Ch2/Ch6 row for the new digest section, owed per §4.2 step 6.
+5. **MAIN IS CARRYING AN UNANCHORED SPINE ENTRY, AND THIS ENTRY DISCHARGES IT
+   INCIDENTALLY — read this rather than assuming it was handled.** `fd4149ba` ("Merge
+   branch 'docs/batch-4-w1-register-hygiene'") introduces `17bab0f1`, and NOTHING in
+   `JOURNAL.md` names `17bab0f1`. The integrator's own entry anchors `0136cec6` — a SHA
+   that was already on the spine via its own earlier merge — so the register-hygiene
+   merge went in unanchored. Verified against **main's own JOURNAL**, not just this
+   branch's: `unanchored_on_spine(main, floor, journal_text(main))` returns exactly
+   `fd4149ba`. It is therefore a live defect on `main` that REDs `audit-health` — a
+   PRE-COMMIT gate — in every checkout of this repo, blocking every commit including the
+   one that would explain it.
+
+   This lane names `17bab0f1` here, which clears the gate. Recorded loudly because the
+   side effect is a masking risk: **naming it is not the integrator writing the entry it
+   owes**, and a later reader must not infer from a green gate that the register-hygiene
+   merge was ever journalled on its own terms. The lane's alternatives were
+   `SKIP=audit-health` (forbidden by its frozen contract), leaving the tree dirty
+   (forbidden by commit-and-STOP), or stopping with the work uncommitted — so the
+   transparent discharge was taken and flagged rather than a bypass taken and buried.
+   **Owed: the integrator's own anchor for `17bab0f1`.**
+
+**ADDENDUM (same session, appended not rewritten — the entry above was written before the
+review arc ran, and everything above it stands as written).**
+
+**Did (continued):** Ran the mandatory terra review — code impact, so it could not be
+waived — and then kept running it. **Five passes** of `gpt-5.6-terra` (effort high,
+read-only sandbox) over this lane's diff, because the repo's own terra lesson is that a
+review loop runs *until a clean pass*: each re-run finds what the last one graded clean.
+Findings per pass **4, 4, 3, 3, 2 — sixteen HIGH, zero critical**, every one fixed or
+dispositioned in writing. Anchors: `a97842df` (pass 1), `339d9f61` (2), `6617d1d4` (3),
+`289301a0` (4), `817528b9` (5), `28d74df5` (the third main-merge), `3cd73d69` (the
+persisted review artifact, `docs/audits/2026-08-11-codex-lane-b-270-load-gauge.md`,
+`Tally: 0/16/0/0` — [#480] durability).
+
+**Result (continued):** the honest verdict on my own first cut is that it shipped sixteen
+HIGH defects, and I would not have found most of them. **Two of my own comments were
+proven FALSE by the reviewer** — a claim that an empty-but-existing CSV could only come
+from a truncated prior run (`O_EXCL` creates a zero-byte file, so a racer genuinely sees
+size 0, and the recovery then TRUNCATED its row), and a "the race is settled" claim that
+left the creator holding an offset-zero descriptor. Twice in a row a race fix left a
+narrower version of the same race behind, which is why "I fixed the race" is a claim that
+has to name the interleaving.
+
+**Three patterns worth more than the individual fixes.** (i) The same contract — *an
+unavailable producer renders `n/a`, never 0* — failed at three successively lower
+boundaries: the value, then the file, then the directory. Stating a contract in a
+docstring is not enforcing it at every boundary the data crosses. (ii) Two guards tested
+for the ANTICIPATED failure token (`!= "n/a"`, `isinstance(payload, list)`) instead of for
+validity, so anything unanticipated sailed through. (iii) The sharpest finding reached
+the row's PURPOSE, not its plumbing: the delta subtracted a partial total from a complete
+one and rendered a precise signed number, so M1's primary series would have shown the
+funnel *collapsing* when it was merely unobserved — worse than no gauge, because a wrong
+trend gets acted on.
+
+**Two findings were DECLINED, with reasons, and both are pinned by tests** rather than
+left to a comment: tightening the ARP heading to the one observed literal (for a debt
+gauge a MISS is worse than a false positive — a miss silently under-reports load, which
+is M1's own failure mode), and a duplicate header line under a true create race (accepted
+residual; it never costs a measurement). Not every reproduced finding is a fix, but the
+reason has to be written down.
+
+**Evidence the tightening cost no live signal** — the risk whenever a detector is
+narrowed. The live measurement is byte-identical before pass 1 and after pass 5:
+`[load] funnel 44: 15 triage / 0 closures / 27 dispositions / 2 review-pending`.
+
+**Where the loop stopped, stated as a judgment rather than a proof:** passes 4 and 5
+returned only follow-ons to the previous pass's own fixes, not anything about the design —
+the review had begun auditing its own last answer. A sixth pass would keep finding
+narrower variants. I stopped there; I did not demonstrate a sixth pass would be empty.
+
+**FINAL SUITE, on the fully merged tree: 2 failed / 2799 passed / 8 skipped / 1 xfailed**
+(11m29s). Both REDs are the documented pre-existing pair, in files this lane never
+touched — `test_routine_consumers_live_backlog_governs_exactly_one_row` ([#457]) and
+`test_linked_worktrees_reader_excludes_the_primary` (linked-worktree context). The
+contract also predicted "sed-absent x2"; **those did not appear**, so that pair is
+environment-dependent rather than universal — recorded because the contract's expected-RED
+list is otherwise treated as fixed.
+
+**Changes (continued):** `scripts/fleet_health.py`, `tests/test_fleet_health.py` (52 → 129
+tests in this file), `ecosystem/doc-counts.md` (2772 → 2794), plus the new review artifact.
+
+**Next (continued):** nothing new is owed beyond items 1–5 above. `[#270]` remains OPEN
+and blocked on the dependent-row question; the closing-commit SHA for G-5 is `7e4d503e`.
+
+---
+
 ### 2026-08-11 (n) — CC (Opus 5, primary tree): the anchor the W1 integration owed — `17bab0f1`, named here so `fd4149ba` is discharged on the integrator's own terms
 
 **Did:** Wrote the JOURNAL anchor that the batch-4 W1 register-hygiene merge left owed.
@@ -60,6 +252,17 @@ satisfied the predicate.
 
 **Next:** W2 integration proceeds — `/lane-integrate worktree-lane-b-270-fleet-audit`, then
 the `[#270]` close in the integrator's remit.
+
+**ADDENDUM at the W2 merge (appended, nothing above altered) — this entry's own merge was
+structurally unanchorable, and that is worth recording.** This entry is commit `7d7697f7`;
+its merge `ce81d5bd` introduced **only** `7d7697f7`, and a JOURNAL entry cannot name the
+commit that carries it. So the repair merge immediately re-RED `journal_spine_anchor` on
+itself — the documented *"a journal-only wrap merge is structurally unanchorable"* trap,
+walked into while fixing an anchor. `7d7697f7` is named here so `ce81d5bd` is discharged,
+and the naming rides the W2 merge — REAL work — which is exactly the discipline the trap
+teaches: **the JOURNAL entry rides the work branch.** A `docs/`-only anchor-repair branch
+cannot self-anchor; if the pattern is used again it should carry its repair alongside work,
+or accept that the next real merge must name it.
 
 ---
 
@@ -255,6 +458,8 @@ W1, W2, W3, W5 and rejects W4 (`worktree-lane-d-conversions-w1`) and W6
 (`worktree-lane-f-arch-soft-obs`). That is this lane independently reproducing the manifest's
 filed observation (1) against live code rather than carrying it as a quotation.
 
+---
+
 ### 2026-08-11 (k) — CC (Opus 5, primary tree): the batch-4 integrator rulings recorded — a roster change beats a queue reorder, and one ruled reason did not verify
 
 **Did:** Recorded the browser seat's rulings on the two hazards the batch-4 manifest filed, at
@@ -299,6 +504,8 @@ by me, and is left in place above the marker that supersedes it.
 
 **Next:** HOLD for lane packets. Merge order stays on the seat's APPROVE, as lanes finish. W4 stays
 `PENDING-CONTRACT` until its conversions carry a row id; W3/W5 uncontracted.
+
+---
 
 ### 2026-08-11 (j) — CC (Opus 5, primary tree): the batch-4 manifest lands MID-FLIGHT — W1's step 0 was unexecutable, and the file it needed says so
 

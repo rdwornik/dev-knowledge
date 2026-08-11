@@ -18,8 +18,11 @@ Implements BACKLOG #72 (cross-repo no_sibling_orphans now runs daily, all
 
 from __future__ import annotations
 
+import csv
+import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -56,6 +59,77 @@ _GROOM_DATE_RE = re.compile(r"\d{4}-\d{2}-\d{2}")
 # not a completed groom — excluded regardless of whether that target is past or future
 # (twin of validate_doc_rot._NEXT_QUARTERLY_RE; F2-twin fix, GPT-5.6 A/B trial 2026-07-11).
 _NEXT_QUARTERLY_RE = re.compile(r"next\s+quarterly", re.IGNORECASE)
+
+# --- Operator-load gauge ([#270]) -------------------------------------------
+# The gating FIRST element of any Tier-2 nightly layer (standing operator rule).
+# Design of record: docs/audits/2026-07-05-draft-tier2-nightly-layer.md. Every
+# deterministic gate in the system discharges into ONE place -- the operator's
+# ratification funnel -- and when that funnel saturates, ratification degrades to
+# rubber-stamping, silently re-opening every gate that assumes a genuine human
+# check. Adding more findings before the funnel is measured makes the one
+# unmeasured leak worse. Hence: measure the funnel before feeding it.
+#
+# Five producers, each already live in-repo -- this is AGGREGATION, not new
+# measurement. Fail-soft per producer: an unavailable one renders `n/a` and is
+# omitted from the total; it is never dropped from the shape (a vanishing column
+# would break the CSV's header stability and hide the outage).
+_GH_TIMEOUT_S = 20
+# `gh issue list` PAGE-CAPS AT 30 WITHOUT --limit (terra HIGH, 2026-08-11): the funnel
+# would silently understate itself the moment the triage queue passed 30, which is
+# precisely the saturation the gauge exists to catch -- the meter would go blind exactly
+# when it mattered.
+#
+# The ceiling does not merely move the blindness (terra HIGH, second pass): a result set
+# that REACHES the ceiling is reported as `n/a`, not as the ceiling. Presenting 1000 for
+# a queue of 1001 would be a wrong number wearing the costume of a measurement, and this
+# whole gauge is built on the rule that an unknown is `n/a` and never a plausible digit.
+_GH_ISSUE_LIMIT = 1000
+_UNCHECKED_PROPOSAL_RE = re.compile(r"-\s+\[ \]\s+\*\*#(\d+)\*\*")
+_BACKLOG_ID_RE = re.compile(r"^- \[#(\d+)\]", re.M)
+# Mirrors gen_task_tree._PRIORITY_RE. BACKLOG.md carries OPEN rows only
+# (done-items-leave, ADR-65), so a row count by band IS the open count by band.
+_BACKLOG_PRIORITY_RE = re.compile(r"^- \[#\d+\] \[(P\d)\]", re.M)
+_DISPOSITION_ID_RE = re.compile(r"^\s+- id:\s*\S", re.M)
+# THE PRECISION LEVER for ARCHITECT-REVIEW-PENDING. A bare substring grep over
+# docs/audits/ scores 7 hits on the live tree, of which FIVE are prose ABOUT the
+# marker (this row's own design doc, the batch-4 evidence sheet, a table cell in
+# an audit). Only two authored shapes are real: the section heading that opens a
+# self-adjudication log, and the bolded per-item marker. A gauge reporting 7
+# where the truth is 2 is noise -- and noise is what this row's own kill
+# criterion demotes. Same class as the git-log detector's backtick stripping.
+# Both patterns match the COMPLETE authored shape, not merely a heading/bold run that
+# happens to contain the token (terra HIGH, 2026-08-11): `## Why ARCHITECT-REVIEW-PENDING
+# exists` and `**ARCHITECT-REVIEW-PENDING is a marker**` are prose ABOUT the marker and
+# passed the looser first cut, recreating the very false-positive class the lever exists
+# to remove. The log heading carries the token PARENTHESIZED and terminal; the per-item
+# marker carries a COLON and an id.
+#
+# Third pass pushed on both again. The ITEM shape is tightened as asked -- a per-item
+# marker names a STRUCTURED id (`AC-1`, `SEQ-2`), so requiring one costs no recall and
+# rejects `**ARCHITECT-REVIEW-PENDING: why this exists**`.
+#
+# The HEADING shape is DELIBERATELY NOT tightened further, and this is a judgment call
+# rather than an oversight. Terra's remaining counterexample is `## How to resolve
+# (ARCHITECT-REVIEW-PENDING)`; pinning the pattern to the one observed literal
+# ("SELF-ADJUDICATION LOG") would reject it, at the cost of missing any future log that
+# titles itself differently. FOR A DEBT GAUGE A MISS IS WORSE THAN A FALSE POSITIVE: a
+# false positive over-reports load and gets read and dismissed, while a miss silently
+# under-reports it -- which is M1's own failure mode, the exact thing this row exists to
+# stop. Precision was bought where it was free; it is not bought here at recall's expense.
+_ARP_HEADING_RE = re.compile(r"^#{1,6} .*\(ARCHITECT-REVIEW-PENDING\)\s*$", re.M)
+_ARP_BOLD_RE = re.compile(r"\*\*ARCHITECT-REVIEW-PENDING:\s*[A-Z][A-Z0-9]*-?\d+\s*\*\*")
+
+LOAD_CSV_NAME = "OPERATOR-LOAD.csv"
+LOAD_CSV_HEADER = (
+    "date", "triage", "closures", "dispositions", "review_pending",
+    "backlog_p1", "backlog_p2", "backlog_p3", "funnel_total",
+)
+_NA = "n/a"
+# The four producers that make up the funnel (backlog bands are trend, not funnel).
+_FUNNEL_KEYS = ("triage", "closures", "dispositions", "review_pending")
+# M1's comparison window (the ex-ante metric reads a 4-week trend; the digest
+# line carries the 7d step so a single read shows direction).
+_LOAD_DELTA_DAYS = 7
 
 
 # ---------------------------------------------------------------------------
@@ -344,8 +418,386 @@ def _drift_section(drift_by_repo: dict | None) -> list:
     return lines
 
 
+# ---------------------------------------------------------------------------
+# Operator-load gauge ([#270]): the five funnel producers. Each is read-only and
+# — with the single documented exception of the triage count — local. Each
+# returns None when its producer is UNAVAILABLE, which is deliberately distinct
+# from 0 (a measured-empty funnel): collapsing the two would make a broken
+# producer indistinguishable from a healthy one, the exact blindness the gauge
+# exists to end.
+# ---------------------------------------------------------------------------
+
+
+def _scan_md(directory: Path, prefix: str = ""):
+    """Sorted `<prefix>*.md` paths in `directory`; `[]` if ABSENT, None if UNREADABLE.
+
+    `Path.exists()` and `Path.glob()` both swallow a directory-access OSError, so an
+    ACL-denied `logs/` or `docs/audits/` listed as empty and its producer reported 0 --
+    the n/a-never-0 contract defeated one level up from where it was being enforced
+    (terra HIGH, fourth pass). `os.scandir` raises instead, which is what lets the two
+    cases be told apart: nothing to read is a measurement, unable to read is an outage.
+    """
+    try:
+        with os.scandir(directory) as entries:
+            names = [e.name for e in entries if e.is_file()]
+    except FileNotFoundError:
+        return []
+    except OSError:
+        return None
+    return sorted(directory / n for n in names
+                  if n.startswith(prefix) and n.endswith(".md"))
+
+
+def _gh_fallback_path():
+    """The default Windows `gh` install location, when it is not on PATH.
+
+    The SessionStart shell does not always inherit an updated PATH; the same
+    fallback surface_triage.ps1 uses. Returns a str path or None.
+    """
+    program_files = os.environ.get("ProgramFiles", "")
+    if not program_files:
+        return None
+    candidate = Path(program_files) / "GitHub CLI" / "gh.exe"
+    return str(candidate) if candidate.exists() else None
+
+
+def count_open_triage_issues(repo_root: Path, timeout_s: int = _GH_TIMEOUT_S):
+    """Open `nightly-triage` Issues, or None when the producer is unavailable.
+
+    The ONE non-local read in the gauge, and it is reached only on the once/day
+    refresh path -- the every-session surfacing reads the rendered line back out
+    of the digest instead (see load_surface_line), so no session pays a network
+    round-trip for the meter. surface_triage.ps1 already makes the same call.
+
+    Refuses without spawning anything when repo_root is not a git worktree: `gh`
+    resolves the repo from the cwd's git remote, so there is nothing to ask.
+    Fail-soft to None on absent gh, bad auth, offline, timeout, or garbage JSON.
+    """
+    if not (repo_root / ".git").exists():
+        return None
+    gh = shutil.which("gh") or _gh_fallback_path()
+    if not gh:
+        return None
+    try:
+        result = subprocess.run(
+            [gh, "issue", "list", "--label", "nightly-triage", "--state", "open",
+             "--limit", str(_GH_ISSUE_LIMIT), "--json", "number"],
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
+            cwd=str(repo_root), timeout=timeout_s,
+        )
+    except (subprocess.TimeoutExpired, OSError):
+        return None
+    if result.returncode != 0:
+        return None
+    try:
+        payload = json.loads(result.stdout)
+    except (ValueError, TypeError):
+        return None
+    if not isinstance(payload, list):
+        return None
+    # Well-formed JSON of the WRONG SHAPE is still garbage, and its length is not a
+    # measurement (terra HIGH, fifth pass): `[{"number": "not-an-int"}]` and `[null]`
+    # both parse as one-element lists and would have rendered `1 triage`. Every item
+    # must actually look like an Issue before the length means anything.
+    if any(not isinstance(item, dict) or not isinstance(item.get("number"), int)
+           for item in payload):
+        return None
+    # A result set at the ceiling is indistinguishable from a larger one -> unavailable.
+    return None if len(payload) >= _GH_ISSUE_LIMIT else len(payload)
+
+
+def count_pending_closures(logs_dir: Path, backlog_text: str):
+    """Distinct ids proposed-for-closure and still awaiting the operator's word.
+
+    An id is pending when it is UNCHECKED in some logs/PROPOSALS-*.md **and**
+    still open in BACKLOG -- propose_closures' own #98 still-open guard, mirrored
+    (an unchecked proposal for an id that has since left BACKLOG is already
+    discharged, not load). Counted DISTINCT: the same id unchecked in two files
+    is one decision the operator owes, not two.
+
+    The regex mirrors propose_closures._UNCHECKED_RE. Kept inline rather than
+    imported: that module ships inside the tier1-lifecycle PLUGIN, which a
+    consumer need not have installed, and this SessionStart-critical path carries
+    no cross-tree import -- the same reason groom_escalation_line above mirrors
+    validate_doc_rot._latest_groom_date instead of importing it.
+
+    An UNREADABLE candidate file makes the whole producer unavailable (None) rather than
+    silently shrinking the count (terra HIGH, third pass). Skipping it with `continue`
+    reported a partial tally as though it were a measurement -- the same `n/a`-never-0
+    contract already applied to an unreadable BACKLOG, which this path was violating in
+    the same breath. An absent directory is still 0: nothing to read is a measurement.
+    """
+    candidates = _scan_md(logs_dir, prefix="PROPOSALS-")
+    if candidates is None:
+        return None
+    open_ids = set(_BACKLOG_ID_RE.findall(backlog_text))
+    pending: set = set()
+    for f in candidates:
+        try:
+            text = f.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            return None
+        pending |= set(_UNCHECKED_PROPOSAL_RE.findall(text)) & open_ids
+    return len(pending)
+
+
+def count_dispositions(register_path: Path):
+    """Standing rows in ecosystem/disposition-register.yaml, or None if absent.
+
+    Each row is a ratified-but-live exception the operator carries, so the count
+    is funnel load even though every row is individually sanctioned. Commented
+    (`# - id:`) lines do not match -- the register keeps cleared entries as
+    comments, and a cleared entry is not load.
+    """
+    try:
+        text = register_path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return None
+    return len(_DISPOSITION_ID_RE.findall(text))
+
+
+def count_review_pending(audits_dir: Path):
+    """Audit artifacts carrying an unadjudicated ARCHITECT-REVIEW-PENDING marker.
+
+    Counts FILES, not occurrences: one artifact carrying a self-adjudication
+    heading and three bolded items is one artifact the architect owes a read,
+    not four. Only the two AUTHORED shapes count (heading / bold) -- see
+    _ARP_HEADING_RE for why the naive substring scan is unusable.
+
+    Scans the whole directory rather than a newest-N window: the marker is
+    unactioned debt regardless of the artifact's age, and on the live tree BOTH
+    standing markers are ~5 weeks old, so any plausible N would report zero and
+    make the gauge blind to 100% of its own signal. Reached once per day.
+
+    An UNREADABLE artifact makes the producer unavailable (None), for the same reason
+    count_pending_closures does: a partial scan reported as a count is a wrong number,
+    and an artifact nobody can open is exactly the kind that hides a pending review.
+    """
+    candidates = _scan_md(audits_dir)
+    if candidates is None:
+        return None
+    n = 0
+    for f in candidates:
+        try:
+            text = f.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            return None
+        if _ARP_HEADING_RE.search(text) or _ARP_BOLD_RE.search(text):
+            n += 1
+    return n
+
+
+def count_backlog_by_priority(backlog_text: str) -> dict:
+    """{P1,P2,P3: n} open BACKLOG rows per priority band. Trend, not alarm."""
+    found = _BACKLOG_PRIORITY_RE.findall(backlog_text)
+    return {band: found.count(band) for band in ("P1", "P2", "P3")}
+
+
+def funnel_total(counts: dict):
+    """Sum of the four FUNNEL producers, or None when every one is unavailable.
+
+    Backlog counts are excluded by design -- the draft calls them trend, not
+    alarm, and folding ~200 standing rows into the funnel would swamp the signal
+    M1 reads. A PARTIAL total (some producer unavailable) is returned rather
+    than None, and is honest because the per-producer cells are stored beside it
+    in the CSV; recomputing the total later from an `n/a` cell would silently
+    differ from what was actually measurable that day.
+    """
+    present = [v for v in (counts.get(k) for k in _FUNNEL_KEYS) if isinstance(v, int)]
+    return sum(present) if present else None
+
+
+def collect_load(repo_root: Path, logs_dir: Path, register_path: Path,
+                 audits_dir: Path) -> dict:
+    """Read all five producers once. Fail-soft per producer, never raises.
+
+    AN UNREADABLE BACKLOG.md YIELDS `n/a`, NOT ZERO (terra HIGH, 2026-08-11). The first
+    cut degraded it to `""`, which flowed on as a measured-empty backlog AND a measured
+    zero pending-closures -- reporting a serene funnel at the exact moment the repo could
+    not be read. Two producers depend on that text, so both go unavailable together: the
+    closure count needs the open-id set for its still-open guard, and without it there is
+    no honest number to report.
+    """
+    try:
+        backlog_text = (repo_root / "BACKLOG.md").read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        backlog_text = None
+    counts = {
+        "triage": count_open_triage_issues(repo_root),
+        "closures": None if backlog_text is None else count_pending_closures(logs_dir, backlog_text),
+        "dispositions": count_dispositions(register_path),
+        "review_pending": count_review_pending(audits_dir),
+        "backlog": ({"P1": None, "P2": None, "P3": None} if backlog_text is None
+                    else count_backlog_by_priority(backlog_text)),
+    }
+    counts["funnel_total"] = funnel_total(counts)
+    return counts
+
+
+def _fmt(value) -> str:
+    """A count for display: the number, or `n/a` when the producer was down."""
+    return str(value) if isinstance(value, int) else _NA
+
+
+def load_line(counts: dict, delta=None) -> str:
+    """The one flat `[load]` line. ASCII-only (it reaches a cp1252 console)."""
+    backlog = counts.get("backlog") or {}
+    return (
+        f"[load] funnel {_fmt(counts.get('funnel_total'))}: "
+        f"{_fmt(counts.get('triage'))} triage / "
+        f"{_fmt(counts.get('closures'))} closures / "
+        f"{_fmt(counts.get('dispositions'))} dispositions / "
+        f"{_fmt(counts.get('review_pending'))} review-pending; backlog: "
+        f"{_fmt(backlog.get('P1'))} P1 / {_fmt(backlog.get('P2'))} P2 / "
+        f"{_fmt(backlog.get('P3'))} P3; "
+        f"{_LOAD_DELTA_DAYS}d delta: {f'{delta:+d}' if isinstance(delta, int) else _NA}"
+    )
+
+
+def _load_section(counts: dict | None) -> list:
+    """The [#270] operator-load block. Empty when the gauge did not run."""
+    if not counts:
+        return []
+    return [
+        "## Operator load",
+        "",
+        load_line(counts, counts.get("delta_7d")),
+        "",
+        "Funnel = triage + closures + dispositions + review-pending; it is M1's primary",
+        f"series. Backlog bands are trend, not alarm. `{_NA}` marks a producer that was",
+        "unavailable on this run (never 0 -- that is a measurement). Trend rows append to",
+        f"logs/{LOAD_CSV_NAME} (gitignored), one per digest run.",
+        "",
+    ]
+
+
+def load_surface_line(health_file: Path):
+    """Read the rendered `[load]` line back out of the digest, or None.
+
+    The every-session SessionStart path: the line is re-surfaced from the cached
+    digest rather than recomputed, so no session pays for the gh call. Same
+    pattern surface_line already uses for the repo counts.
+    """
+    try:
+        text = health_file.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return None
+    m = re.search(r"^\[load\] .*$", text, re.M)
+    return m.group(0) if m else None
+
+
+def append_load_row(csv_path: Path, run_date: date, counts: dict) -> None:
+    """Append exactly one row per digest run. Header written once, never rewritten.
+
+    Fail-soft in full: a gauge that cannot persist its trend must not break the
+    health digest it rides on.
+    """
+    backlog = counts.get("backlog") or {}
+    row = [
+        run_date.isoformat(),
+        _fmt(counts.get("triage")), _fmt(counts.get("closures")),
+        _fmt(counts.get("dispositions")), _fmt(counts.get("review_pending")),
+        _fmt(backlog.get("P1")), _fmt(backlog.get("P2")), _fmt(backlog.get("P3")),
+        _fmt(counts.get("funnel_total")),
+    ]
+    try:
+        csv_path.parent.mkdir(parents=True, exist_ok=True)
+        # HEADER AUTHORSHIP IS CLAIMED ATOMICALLY, AND NOTHING EVER TRUNCATES (terra HIGH
+        # x2, 2026-08-11). The first cut tested existence and then opened, so an
+        # overlapping scheduled run and interactive SessionStart -- the very pair
+        # _atomic_write already guards the digest against -- could both emit a header.
+        # O_CREAT|O_EXCL settles that without a lock: exactly one process creates.
+        #
+        # The SECOND pass refuted this function's own follow-up comment, which claimed an
+        # empty-but-existing file "can only come from a truncated prior run, never from a
+        # concurrent create". FALSE: O_EXCL creates a zero-byte file, so a racing writer
+        # CAN observe size 0 -- and the recovery then opened with "w", truncating the
+        # creator's already-written row. That was data loss, not a cosmetic race.
+        #
+        # THIRD pass killed the last offset-zero write. Making only the RECOVERY path
+        # append-only still left the CREATOR holding a `"w"` descriptor at offset 0: a
+        # racing writer could append its header and row into the newly created file, and
+        # the creator would then write straight over them. So O_EXCL is now used purely
+        # to CLAIM THE NAME -- the descriptor is closed immediately and every writer,
+        # creator included, goes through the same O_APPEND path. No descriptor in this
+        # function can overwrite a byte another process wrote.
+        #
+        # Honest residual, unchanged and accepted: two writers can both observe size 0
+        # and emit a duplicate header line. That is ugly, self-evident on read, and never
+        # costs a measurement -- the trade this file wants, and the reason a cross-process
+        # lock is not bought for a local trend meter.
+        try:
+            os.close(os.open(csv_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY))
+        except FileExistsError:
+            pass
+        with open(csv_path, "a", encoding="utf-8", newline="") as f:
+            writer = csv.writer(f, lineterminator="\n")
+            if csv_path.stat().st_size == 0:
+                writer.writerow(LOAD_CSV_HEADER)
+            writer.writerow(row)
+    except OSError as exc:
+        print(f"fleet_health: WARNING -- operator-load CSV not written: {exc!r}",
+              file=sys.stderr)
+
+
+def load_delta(csv_path: Path, counts: dict, today: date, days: int = _LOAD_DELTA_DAYS):
+    """Funnel-total change vs the newest stored row at least `days` old, or None.
+
+    Rows whose total was unavailable are skipped rather than treated as zero --
+    a missing measurement is not a measurement of nothing. Never raises.
+
+    Reads with errors="replace" (this file's convention everywhere else) and catches
+    ValueError: a single cp1252 byte in the trend history used to raise
+    UnicodeDecodeError -- a ValueError subclass that neither OSError nor csv.Error
+    catches -- which escaped to refresh()'s wrapper and discarded the WHOLE gauge for
+    that run (terra HIGH, second pass). Corrupt HISTORY must cost the delta and nothing
+    else; today's counts are still measured, rendered and persisted.
+    """
+    current = counts.get("funnel_total")
+    if not isinstance(current, int):
+        return None
+    # A DELTA IS ONLY EMITTED BETWEEN TWO COMPLETE TOTALS (terra HIGH, fourth pass).
+    # funnel_total is deliberately PARTIAL when a producer is down, so subtracting a
+    # partial from a complete one produced a precise signed number for a change nobody
+    # measured: a baseline of `triage 90, total 90` against a today whose triage is
+    # unavailable and whose other producers sum to 0 rendered `-90`, reading as the
+    # funnel collapsing when in truth it was unobserved. The primary series M1 reads must
+    # not invent movement, so both sides must carry all four producers, else n/a.
+    if any(not isinstance(counts.get(k), int) for k in _FUNNEL_KEYS):
+        return None
+    cutoff = today - timedelta(days=days)
+    best = None
+    try:
+        with open(csv_path, encoding="utf-8", errors="replace", newline="") as f:
+            for row in csv.DictReader(f):
+                try:
+                    d = date.fromisoformat((row.get("date") or "").strip())
+                    total = int((row.get("funnel_total") or "").strip())
+                except (ValueError, TypeError, AttributeError):
+                    continue
+                # Every funnel cell must PARSE, not merely differ from "n/a" (terra HIGH,
+                # fifth pass): a corrupt cell like `2026-08-04,corrupt,0,0,0,...` passed
+                # the not-n/a test and was accepted as a complete baseline, so the
+                # pass-4 guard against inventing movement had a hole in exactly the case
+                # -- damaged history -- it was written for.
+                try:
+                    [int((row.get(k) or "").strip()) for k in _FUNNEL_KEYS]
+                except (ValueError, TypeError, AttributeError):
+                    continue          # n/a or corrupt -> not an honest baseline
+                # `>=`, not `>`: one row per RUN makes same-day rows normal, and the
+                # NEWEST eligible one is wanted. Iteration is in append order, so `>=`
+                # lets a later run of the same date replace an earlier one -- with `>`
+                # the OLDEST run of that day won, contradicting this function's own
+                # "newest stored row" contract (terra HIGH, fourth pass).
+                if d <= cutoff and (best is None or d >= best[0]):
+                    best = (d, total)
+    except (OSError, csv.Error, ValueError):
+        return None
+    return None if best is None else current - best[1]
+
+
 def build_digest(states: list, run_date: date, completed_at: str | None = None,
-                 drift_by_repo: dict | None = None) -> str:
+                 drift_by_repo: dict | None = None, load: dict | None = None) -> str:
     """Build the FLEET-HEALTH.md content from a list of state dicts.
 
     completed_at: ISO timestamp written to the frontmatter only when the audit
@@ -356,6 +808,11 @@ def build_digest(states: list, run_date: date, completed_at: str | None = None,
     drift_by_repo: optional {consumer_name: static_drift_summary dict} ([#244] P4);
     renders a trailing Drift section (aggregated from each consumer's own allowlist).
     None/empty -> no section (legacy two/three-arg callers are unchanged).
+
+    load: optional operator-load counts ([#270], collect_load + a delta_7d key);
+    renders the Operator load section ABOVE Drift -- the funnel is the headline
+    the gauge exists to put in front of the operator, drift is the deeper
+    roll-up. None -> no section (legacy callers are unchanged).
     """
     rows = [repo_summary(s) for s in states]
     n_pass = sum(1 for _, p, f, _w in rows if f == 0)
@@ -392,6 +849,7 @@ def build_digest(states: list, run_date: date, completed_at: str | None = None,
     else:
         lines += [f"{n_fail}/{len(rows)} repo(s) have findings -- run `audit.py run` for details."]
     lines += [""]
+    lines += _load_section(load)
     lines += _drift_section(drift_by_repo)
     return "\n".join(lines)
 
@@ -479,7 +937,34 @@ def refresh(repo_root: Path, ecosystem_dir: Path,
     # Reached only on the once/day, siblings-present refresh path -> SessionStart-safe.
     drift_by_repo = drift_summaries(ecosystem_dir, repo_root, today)
     logs_dir.mkdir(exist_ok=True)
-    _atomic_write(health_file, build_digest(states, today, completed_at, drift_by_repo))
+    # Operator-load gauge ([#270]): read the five producers, record the 7d step
+    # against the stored trend, append exactly ONE row for this run. Wrapped
+    # whole: the gauge is a MEASUREMENT bolted onto a health organ, so a broken
+    # gauge must never cost the digest it rides on -- it is not load-bearing for
+    # the thing it measures.
+    load = None
+    try:
+        load = collect_load(
+            repo_root, logs_dir,
+            ecosystem_dir / "disposition-register.yaml",
+            repo_root / "docs" / "audits",
+        )
+        load["delta_7d"] = load_delta(logs_dir / LOAD_CSV_NAME, load, today)
+    except Exception as exc:  # noqa: BLE001 -- surfacing organ: never break the digest
+        print(f"fleet_health: WARNING -- operator-load gauge unavailable: {exc!r}",
+              file=sys.stderr)
+        load = None
+    _atomic_write(health_file, build_digest(states, today, completed_at, drift_by_repo, load))
+    # The trend row is appended only AFTER the digest is durably replaced (terra HIGH,
+    # second pass): appending first left a row for a digest run that never completed if
+    # _atomic_write raised, quietly breaking the one-row-per-digest-run invariant leg 2
+    # rests on. Guarded separately so a CSV problem still cannot cost the digest.
+    if load is not None:
+        try:
+            append_load_row(logs_dir / LOAD_CSV_NAME, today, load)
+        except Exception as exc:  # noqa: BLE001 -- the trend never outranks the digest
+            print(f"fleet_health: WARNING -- operator-load row not appended: {exc!r}",
+                  file=sys.stderr)
     return ok
 
 
@@ -515,6 +1000,13 @@ def main() -> int:
             if groom:
                 print(groom)
         print(surface_line(_HEALTH_FILE))
+        # Operator-load gauge ([#270]): surfaced EVERY session by reading the
+        # rendered line back out of the digest -- the counts are computed once a
+        # day on the refresh path above, so this costs one file read and no gh
+        # call. Silent when the digest carries no block (nothing to claim).
+        load = load_surface_line(_HEALTH_FILE)
+        if load:
+            print(load)
         return 0
     except Exception as exc:
         print(f"fleet_health: WARNING -- unexpected error: {exc!r}", file=sys.stderr)
