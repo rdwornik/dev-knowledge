@@ -525,3 +525,467 @@ def test_groom_escalation_boundary_at_threshold():
     footer = f"**Grooming log:** Recent: {last.isoformat()}.\n"
     assert fh.groom_escalation_line(footer, at) is None
     assert fh.groom_escalation_line(footer, over) is not None
+
+
+# ---------------------------------------------------------------------------
+# Operator-load gauge ([#270]) — the gating FIRST element of any Tier-2 nightly
+# layer. Design of record: docs/audits/2026-07-05-draft-tier2-nightly-layer.md.
+# Every producer below is SEEDED and the rendered count asserted, per the row's
+# Done-when leg 1 ("renders ... from live counts").
+# ---------------------------------------------------------------------------
+
+# --- producer 1: open nightly-triage Issues (the one non-local read) --------
+
+def _git_repo(tmp_path: Path) -> Path:
+    """gh resolves the repo from the cwd's git remote, so the counter refuses
+    without spawning anything outside a git worktree. Seed the marker."""
+    (tmp_path / ".git").mkdir(exist_ok=True)
+    return tmp_path
+
+
+def test_count_triage_issues_parses_gh_json(tmp_path):
+    fake = mock.Mock(returncode=0, stdout='[{"number": 47}, {"number": 45}]', stderr="")
+    with mock.patch.object(fh.shutil, "which", return_value="gh"), \
+         mock.patch.object(fh.subprocess, "run", return_value=fake):
+        assert fh.count_open_triage_issues(_git_repo(tmp_path)) == 2
+
+
+def test_count_triage_issues_zero_open_is_zero_not_none(tmp_path):
+    # Zero open Issues is a MEASUREMENT (0), not an unavailable producer (None).
+    # Collapsing the two would make an empty funnel indistinguishable from a
+    # broken gh, which is exactly the blindness M2 exists to catch.
+    fake = mock.Mock(returncode=0, stdout="[]", stderr="")
+    with mock.patch.object(fh.shutil, "which", return_value="gh"), \
+         mock.patch.object(fh.subprocess, "run", return_value=fake):
+        assert fh.count_open_triage_issues(_git_repo(tmp_path)) == 0
+
+
+def test_count_triage_issues_refuses_outside_a_git_worktree(tmp_path):
+    # No .git -> no repo for gh to resolve -> refuse WITHOUT spawning. Pinned
+    # because it is also what keeps every other test in this file hermetic.
+    ran = mock.Mock(side_effect=AssertionError("gh must not be spawned"))
+    with mock.patch.object(fh.shutil, "which", return_value="gh"), \
+         mock.patch.object(fh.subprocess, "run", ran):
+        assert fh.count_open_triage_issues(tmp_path) is None
+
+
+def test_count_triage_issues_none_when_gh_absent(tmp_path):
+    with mock.patch.object(fh.shutil, "which", return_value=None), \
+         mock.patch.object(fh, "_gh_fallback_path", return_value=None):
+        assert fh.count_open_triage_issues(_git_repo(tmp_path)) is None
+
+
+def test_count_triage_issues_none_when_gh_fails(tmp_path):
+    fake = mock.Mock(returncode=1, stdout="", stderr="auth required")
+    with mock.patch.object(fh.shutil, "which", return_value="gh"), \
+         mock.patch.object(fh.subprocess, "run", return_value=fake):
+        assert fh.count_open_triage_issues(_git_repo(tmp_path)) is None
+
+
+def test_count_triage_issues_none_on_timeout(tmp_path):
+    boom = fh.subprocess.TimeoutExpired(cmd="gh", timeout=1)
+    with mock.patch.object(fh.shutil, "which", return_value="gh"), \
+         mock.patch.object(fh.subprocess, "run", side_effect=boom):
+        assert fh.count_open_triage_issues(_git_repo(tmp_path)) is None
+
+
+def test_count_triage_issues_none_on_garbage_json(tmp_path):
+    fake = mock.Mock(returncode=0, stdout="not json at all", stderr="")
+    with mock.patch.object(fh.shutil, "which", return_value="gh"), \
+         mock.patch.object(fh.subprocess, "run", return_value=fake):
+        assert fh.count_open_triage_issues(_git_repo(tmp_path)) is None
+
+
+# --- producer 2: pending closure proposals ----------------------------------
+
+_BACKLOG_TWO_OPEN = "- [#11] [P2][M] eleven\n- [#22] [P3][S] twenty-two\n"
+
+
+def test_count_pending_closures_counts_unchecked_and_still_open(tmp_path):
+    (tmp_path / "PROPOSALS-2026-08-01.md").write_text(
+        "- [ ] **#11** - a\n- [x] **#22** - already reviewed\n", encoding="utf-8")
+    assert fh.count_pending_closures(tmp_path, _BACKLOG_TWO_OPEN) == 1
+
+
+def test_count_pending_closures_ignores_ids_no_longer_open(tmp_path):
+    # #98's still-open guard, mirrored: an unchecked proposal for an id that has
+    # since left BACKLOG is NOT operator load -- it is already discharged.
+    (tmp_path / "PROPOSALS-2026-08-01.md").write_text(
+        "- [ ] **#11** - a\n- [ ] **#999** - closed long ago\n", encoding="utf-8")
+    assert fh.count_pending_closures(tmp_path, _BACKLOG_TWO_OPEN) == 1
+
+
+def test_count_pending_closures_dedupes_across_files(tmp_path):
+    # The same id unchecked in two PROPOSALS files is ONE pending decision.
+    (tmp_path / "PROPOSALS-2026-08-01.md").write_text("- [ ] **#11** - a\n", encoding="utf-8")
+    (tmp_path / "PROPOSALS-2026-08-02.md").write_text("- [ ] **#11** - a\n", encoding="utf-8")
+    assert fh.count_pending_closures(tmp_path, _BACKLOG_TWO_OPEN) == 1
+
+
+def test_count_pending_closures_zero_when_no_files(tmp_path):
+    assert fh.count_pending_closures(tmp_path / "nope", _BACKLOG_TWO_OPEN) == 0
+
+
+# --- producer 3: disposition-register rows ----------------------------------
+
+def test_count_dispositions_counts_entry_ids(tmp_path):
+    reg = tmp_path / "disposition-register.yaml"
+    reg.write_text(
+        "# a comment mentioning - id: not-an-entry\n"
+        "dispositions:\n"
+        "  - id: warn-one\n    organ: x\n"
+        "  - id: warn-two\n    organ: y\n", encoding="utf-8")
+    assert fh.count_dispositions(reg) == 2
+
+
+def test_count_dispositions_none_when_missing(tmp_path):
+    assert fh.count_dispositions(tmp_path / "absent.yaml") is None
+
+
+# --- producer 4: ARCHITECT-REVIEW-PENDING markers ---------------------------
+
+def test_count_review_pending_counts_heading_and_bold_shapes(tmp_path):
+    (tmp_path / "a.md").write_text(
+        "## SELF-ADJUDICATION LOG (ARCHITECT-REVIEW-PENDING)\n", encoding="utf-8")
+    (tmp_path / "b.md").write_text(
+        "text\n**ARCHITECT-REVIEW-PENDING: AC-1** (the hooksPath unset)\n", encoding="utf-8")
+    assert fh.count_review_pending(tmp_path) == 2
+
+
+def test_count_review_pending_excludes_prose_and_backticked_mentions(tmp_path):
+    # THE PRECISION LEVER. A bare substring grep over docs/audits/ scores 7 hits
+    # on the live tree, of which 5 are prose ABOUT the marker (a design doc, an
+    # evidence sheet, a table cell). A gauge that reports 7 where the truth is 2
+    # is noise, and noise is what this row's own kill criterion demotes.
+    (tmp_path / "prose.md").write_text(
+        "the ratification funnel (closure proposals, nightly-triage Issues,\n"
+        "ARCHITECT-REVIEW-PENDING items, grooming digests) saturates.\n", encoding="utf-8")
+    (tmp_path / "backticked.md").write_text(
+        "  4. `ARCHITECT-REVIEW-PENDING` markers in the latest run artifacts\n", encoding="utf-8")
+    (tmp_path / "table.md").write_text(
+        "| epic | a narrowing left ARCHITECT-REVIEW-PENDING without closure | - |\n",
+        encoding="utf-8")
+    assert fh.count_review_pending(tmp_path) == 0
+
+
+def test_count_review_pending_counts_files_not_occurrences(tmp_path):
+    # One artifact carrying a heading AND a bold item is ONE pending artifact.
+    (tmp_path / "a.md").write_text(
+        "## SELF-ADJUDICATION LOG (ARCHITECT-REVIEW-PENDING)\n"
+        "**ARCHITECT-REVIEW-PENDING: AC-1** (one)\n"
+        "**ARCHITECT-REVIEW-PENDING: AC-2** (two)\n", encoding="utf-8")
+    assert fh.count_review_pending(tmp_path) == 1
+
+
+def test_count_review_pending_zero_when_dir_absent(tmp_path):
+    assert fh.count_review_pending(tmp_path / "nope") == 0
+
+
+# --- producer 5: open BACKLOG by priority band ------------------------------
+
+def test_count_backlog_by_priority_bands():
+    text = ("- [#1] [P1][M] one\n- [#2] [P2][S] two\n- [#3] [P2][L] three\n"
+            "- [#4] [P3][S] four\nsome prose [P2] that is not a row\n")
+    assert fh.count_backlog_by_priority(text) == {"P1": 1, "P2": 2, "P3": 1}
+
+
+def test_count_backlog_by_priority_empty_text():
+    assert fh.count_backlog_by_priority("") == {"P1": 0, "P2": 0, "P3": 0}
+
+
+# --- the funnel total + the rendered line -----------------------------------
+
+_COUNTS = {"triage": 3, "closures": 45, "dispositions": 10, "review_pending": 6,
+           "backlog": {"P1": 7, "P2": 91, "P3": 100}, "funnel_total": 64}
+
+
+def test_funnel_total_sums_the_four_funnel_producers():
+    assert fh.funnel_total({"triage": 3, "closures": 45,
+                            "dispositions": 10, "review_pending": 6}) == 64
+
+
+def test_funnel_total_sums_only_available_producers():
+    # A partial total is honest and recoverable (the per-producer cells are stored
+    # alongside it); recomputing later from an `n/a` cell would silently differ.
+    assert fh.funnel_total({"triage": None, "closures": 45,
+                            "dispositions": 10, "review_pending": 6}) == 61
+
+
+def test_funnel_total_none_when_every_producer_unavailable():
+    assert fh.funnel_total({"triage": None, "closures": None,
+                            "dispositions": None, "review_pending": None}) is None
+
+
+def test_load_line_renders_all_five_counts():
+    line = fh.load_line(_COUNTS, delta=4)
+    assert line.startswith("[load] ")
+    for token in ("3 triage", "45 closures", "10 dispositions", "6 review-pending",
+                  "7 P1", "91 P2", "100 P3"):
+        assert token in line, f"{token!r} missing from {line!r}"
+    assert "64" in line          # the funnel total
+    assert "+4" in line          # signed 7d delta
+
+
+def test_load_line_is_ascii_only():
+    # The cp1252 lesson: this string reaches a Windows SessionStart console.
+    fh.load_line(_COUNTS, delta=-4).encode("ascii")
+    fh.load_line({"triage": None, "closures": None, "dispositions": None,
+                  "review_pending": None, "backlog": {"P1": 0, "P2": 0, "P3": 0},
+                  "funnel_total": None}, delta=None).encode("ascii")
+
+
+def test_load_line_renders_na_for_unavailable_producer():
+    counts = dict(_COUNTS, triage=None)
+    line = fh.load_line(counts, delta=None)
+    assert "n/a triage" in line
+    assert "delta: n/a" in line
+
+
+def test_load_line_negative_delta_is_signed():
+    assert "-9" in fh.load_line(_COUNTS, delta=-9)
+
+
+# --- the CSV: one row per run, header-stable, append-not-overwrite ----------
+
+def test_append_load_row_writes_header_then_row(tmp_path):
+    csv_path = tmp_path / "OPERATOR-LOAD.csv"
+    fh.append_load_row(csv_path, date(2026, 8, 11), _COUNTS)
+    lines = csv_path.read_text(encoding="utf-8").splitlines()
+    assert lines[0] == ",".join(fh.LOAD_CSV_HEADER)
+    assert len(lines) == 2
+    assert lines[1].startswith("2026-08-11,3,45,10,6,7,91,100,64")
+
+
+def test_append_load_row_appends_across_two_runs(tmp_path):
+    # Done-when leg 2, pinned: the CSV APPENDS per run and never overwrites.
+    csv_path = tmp_path / "OPERATOR-LOAD.csv"
+    fh.append_load_row(csv_path, date(2026, 8, 10), _COUNTS)
+    fh.append_load_row(csv_path, date(2026, 8, 11), dict(_COUNTS, funnel_total=60))
+    lines = csv_path.read_text(encoding="utf-8").splitlines()
+    assert len(lines) == 3                       # header + two runs
+    assert lines[0] == ",".join(fh.LOAD_CSV_HEADER)   # header written ONCE
+    assert lines[1].startswith("2026-08-10,")
+    assert lines[2].startswith("2026-08-11,")
+
+
+def test_append_load_row_header_stays_stable_across_runs(tmp_path):
+    csv_path = tmp_path / "OPERATOR-LOAD.csv"
+    for i in range(3):
+        fh.append_load_row(csv_path, date(2026, 8, 10 + i), _COUNTS)
+    text = csv_path.read_text(encoding="utf-8")
+    assert text.count(",".join(fh.LOAD_CSV_HEADER)) == 1
+
+
+def test_append_load_row_writes_na_for_unavailable_producer(tmp_path):
+    csv_path = tmp_path / "OPERATOR-LOAD.csv"
+    fh.append_load_row(csv_path, date(2026, 8, 11), dict(_COUNTS, triage=None))
+    assert "2026-08-11,n/a,45," in csv_path.read_text(encoding="utf-8")
+
+
+def test_append_load_row_creates_parent_dir(tmp_path):
+    csv_path = tmp_path / "logs" / "OPERATOR-LOAD.csv"
+    fh.append_load_row(csv_path, date(2026, 8, 11), _COUNTS)
+    assert csv_path.exists()
+
+
+def test_append_load_row_never_raises_on_unwritable_path(tmp_path):
+    # Fail-soft contract: the gauge never breaks SessionStart. tmp_path itself is
+    # a directory, so opening it for append raises inside -- and must be swallowed.
+    fh.append_load_row(tmp_path, date(2026, 8, 11), _COUNTS)
+
+
+# --- the 7d trend delta -----------------------------------------------------
+
+def test_load_delta_compares_against_a_seven_day_old_row(tmp_path):
+    csv_path = tmp_path / "OPERATOR-LOAD.csv"
+    fh.append_load_row(csv_path, date(2026, 8, 4), dict(_COUNTS, funnel_total=50))
+    assert fh.load_delta(csv_path, _COUNTS, date(2026, 8, 11)) == 14   # 64 - 50
+
+
+def test_load_delta_uses_the_newest_row_at_least_seven_days_old(tmp_path):
+    csv_path = tmp_path / "OPERATOR-LOAD.csv"
+    fh.append_load_row(csv_path, date(2026, 7, 1), dict(_COUNTS, funnel_total=10))
+    fh.append_load_row(csv_path, date(2026, 8, 4), dict(_COUNTS, funnel_total=50))
+    fh.append_load_row(csv_path, date(2026, 8, 10), dict(_COUNTS, funnel_total=63))  # too recent
+    assert fh.load_delta(csv_path, _COUNTS, date(2026, 8, 11)) == 14   # vs 08-04, not 07-01/08-10
+
+
+def test_load_delta_none_when_no_old_enough_row(tmp_path):
+    csv_path = tmp_path / "OPERATOR-LOAD.csv"
+    fh.append_load_row(csv_path, date(2026, 8, 10), _COUNTS)
+    assert fh.load_delta(csv_path, _COUNTS, date(2026, 8, 11)) is None
+
+
+def test_load_delta_none_when_csv_absent(tmp_path):
+    assert fh.load_delta(tmp_path / "absent.csv", _COUNTS, date(2026, 8, 11)) is None
+
+
+def test_load_delta_none_when_today_total_unavailable(tmp_path):
+    csv_path = tmp_path / "OPERATOR-LOAD.csv"
+    fh.append_load_row(csv_path, date(2026, 8, 4), dict(_COUNTS, funnel_total=50))
+    counts = dict(_COUNTS, funnel_total=None)
+    assert fh.load_delta(csv_path, counts, date(2026, 8, 11)) is None
+
+
+def test_load_delta_skips_rows_whose_total_is_na(tmp_path):
+    csv_path = tmp_path / "OPERATOR-LOAD.csv"
+    fh.append_load_row(csv_path, date(2026, 8, 3), dict(_COUNTS, funnel_total=50))
+    fh.append_load_row(csv_path, date(2026, 8, 4), dict(_COUNTS, funnel_total=None))
+    assert fh.load_delta(csv_path, _COUNTS, date(2026, 8, 11)) == 14   # falls back to 08-03
+
+
+def test_load_delta_never_raises_on_garbage_csv(tmp_path):
+    csv_path = tmp_path / "OPERATOR-LOAD.csv"
+    csv_path.write_text("not,a,valid\nheader\x00\n", encoding="utf-8")
+    assert fh.load_delta(csv_path, _COUNTS, date(2026, 8, 11)) is None
+
+
+# --- the digest section + the SessionStart read-back ------------------------
+
+def test_build_digest_renders_load_section():
+    out = fh.build_digest(_STATES, date(2026, 8, 11), "2026-08-11T09:00:00",
+                          None, dict(_COUNTS, delta_7d=4))
+    assert "## Operator load" in out
+    assert "[load] " in out
+    assert "3 triage" in out
+
+
+def test_build_digest_no_load_section_when_absent():
+    out = fh.build_digest(_STATES, date(2026, 8, 11), "2026-08-11T09:00:00")
+    assert "Operator load" not in out
+    assert "[load]" not in out
+
+
+def test_load_surface_line_reads_it_back_from_the_digest(tmp_path):
+    # Done-when leg 1: the line renders at SessionStart. It is read BACK from the
+    # digest rather than recomputed, so the every-session path costs no gh call --
+    # the same pattern surface_line already uses for the repo counts.
+    f = tmp_path / "FLEET-HEALTH.md"
+    f.write_text(fh.build_digest(_STATES, date(2026, 8, 11), "2026-08-11T09:00:00",
+                                 None, dict(_COUNTS, delta_7d=4)), encoding="utf-8")
+    line = fh.load_surface_line(f)
+    assert line is not None
+    assert line.startswith("[load] ")
+    assert "45 closures" in line
+
+
+def test_load_surface_line_none_when_digest_has_no_load_block(tmp_path):
+    f = tmp_path / "FLEET-HEALTH.md"
+    f.write_text(fh.build_digest(_STATES, date(2026, 8, 11), "2026-08-11T09:00:00"),
+                 encoding="utf-8")
+    assert fh.load_surface_line(f) is None
+
+
+def test_load_surface_line_none_when_file_missing(tmp_path):
+    assert fh.load_surface_line(tmp_path / "absent.md") is None
+
+
+# --- collect_load: the aggregation, fail-soft per producer ------------------
+
+def _seed_load_inputs(tmp_path):
+    logs = tmp_path / "logs"
+    logs.mkdir()
+    (logs / "PROPOSALS-2026-08-01.md").write_text("- [ ] **#11** - a\n", encoding="utf-8")
+    eco = tmp_path / "ecosystem"
+    eco.mkdir()
+    (eco / "disposition-register.yaml").write_text(
+        "dispositions:\n  - id: warn-one\n  - id: warn-two\n", encoding="utf-8")
+    audits = tmp_path / "docs" / "audits"
+    audits.mkdir(parents=True)
+    (audits / "run.md").write_text(
+        "## SELF-ADJUDICATION LOG (ARCHITECT-REVIEW-PENDING)\n", encoding="utf-8")
+    (tmp_path / "BACKLOG.md").write_text(_BACKLOG_TWO_OPEN, encoding="utf-8")
+    _git_repo(tmp_path)
+    return logs, eco / "disposition-register.yaml", audits
+
+
+def test_collect_load_reads_every_producer(tmp_path):
+    logs, reg, audits = _seed_load_inputs(tmp_path)
+    fake = mock.Mock(returncode=0, stdout='[{"number": 1}, {"number": 2}, {"number": 3}]',
+                     stderr="")
+    with mock.patch.object(fh.shutil, "which", return_value="gh"), \
+         mock.patch.object(fh.subprocess, "run", return_value=fake):
+        counts = fh.collect_load(tmp_path, logs, reg, audits)
+    assert counts["triage"] == 3
+    assert counts["closures"] == 1
+    assert counts["dispositions"] == 2
+    assert counts["review_pending"] == 1
+    assert counts["backlog"] == {"P1": 0, "P2": 1, "P3": 1}
+    assert counts["funnel_total"] == 7
+
+
+def test_collect_load_degrades_to_none_per_producer(tmp_path):
+    logs, reg, audits = _seed_load_inputs(tmp_path)
+    reg.unlink()
+    with mock.patch.object(fh.shutil, "which", return_value=None), \
+         mock.patch.object(fh, "_gh_fallback_path", return_value=None):
+        counts = fh.collect_load(tmp_path, logs, reg, audits)
+    assert counts["triage"] is None
+    assert counts["dispositions"] is None
+    assert counts["funnel_total"] == 2          # 1 closure + 1 review-pending
+    line = fh.load_line(counts, delta=None)     # still renders, still ASCII
+    line.encode("ascii")
+
+
+def test_collect_load_never_raises_when_nothing_exists(tmp_path):
+    with mock.patch.object(fh.shutil, "which", return_value=None), \
+         mock.patch.object(fh, "_gh_fallback_path", return_value=None):
+        counts = fh.collect_load(tmp_path, tmp_path / "l", tmp_path / "r", tmp_path / "a")
+    assert counts["backlog"] == {"P1": 0, "P2": 0, "P3": 0}
+
+
+# --- refresh wiring: one CSV row per digest run -----------------------------
+
+def test_refresh_appends_exactly_one_load_row_per_run(tmp_path):
+    # Done-when leg 2 end-to-end, through the real refresh() path.
+    eco = _seed_states(tmp_path)
+    logs = tmp_path / "logs"
+    health = logs / "FLEET-HEALTH.md"
+    csv_path = logs / "OPERATOR-LOAD.csv"
+    with mock.patch.object(fh, "run_audit", return_value=True), \
+         mock.patch.object(fh, "drift_summaries", return_value={}), \
+         mock.patch.object(fh, "count_open_triage_issues", return_value=3):
+        fh.refresh(tmp_path, eco, logs, health, date(2026, 8, 10))
+        fh.refresh(tmp_path, eco, logs, health, date(2026, 8, 11))
+    lines = csv_path.read_text(encoding="utf-8").splitlines()
+    assert len(lines) == 3                       # header + one row per run
+    assert lines[1].startswith("2026-08-10,3,")
+    assert lines[2].startswith("2026-08-11,3,")
+
+
+def test_refresh_renders_the_load_block_into_the_digest(tmp_path):
+    eco = _seed_states(tmp_path)
+    logs = tmp_path / "logs"
+    health = logs / "FLEET-HEALTH.md"
+    with mock.patch.object(fh, "run_audit", return_value=True), \
+         mock.patch.object(fh, "drift_summaries", return_value={}), \
+         mock.patch.object(fh, "count_open_triage_issues", return_value=3):
+        fh.refresh(tmp_path, eco, logs, health, date(2026, 8, 11))
+    text = health.read_text(encoding="utf-8")
+    assert "## Operator load" in text
+    assert "3 triage" in text
+    assert fh.load_surface_line(health) is not None
+
+
+def test_refresh_survives_a_gauge_that_explodes(tmp_path):
+    # The gauge is a MEASUREMENT bolted onto a health organ. If it breaks, the
+    # health digest must still be written -- the gauge is never load-bearing for
+    # the thing it measures.
+    eco = _seed_states(tmp_path)
+    logs = tmp_path / "logs"
+    health = logs / "FLEET-HEALTH.md"
+    with mock.patch.object(fh, "run_audit", return_value=True), \
+         mock.patch.object(fh, "drift_summaries", return_value={}), \
+         mock.patch.object(fh, "collect_load", side_effect=RuntimeError("boom")):
+        assert fh.refresh(tmp_path, eco, logs, health, date(2026, 8, 11)) is True
+    assert health.exists()
+    assert "Fleet Health" in health.read_text(encoding="utf-8")
+
+
+def test_main_prints_the_load_line(tmp_path, capsys):
+    health = tmp_path / "FLEET-HEALTH.md"
+    health.write_text(fh.build_digest(_STATES, date.today(), "2026-08-11T09:00:00",
+                                      None, dict(_COUNTS, delta_7d=4)), encoding="utf-8")
+    with mock.patch.object(fh, "_HEALTH_FILE", health):
+        assert fh.main() == 0
+    assert "[load] " in capsys.readouterr().out

@@ -56,6 +56,14 @@ logs/FLEET-PARITY.md
 logs/PARITY-EVENTS.jsonl
 logs/PARITY-EVENTS.jsonl.1
 
+# Operator-load gauge trend rows ([#270] — one row per fleet_health.py digest run; the
+# gauge writes it at SessionStart, so committing it would dirty the tree on every boot,
+# exactly as FLEET-HEALTH.md would. Gitignored is the ROW's own wording, not a default:
+# "a gitignored logs/OPERATOR-LOAD.csv row per run". The design (2026-07-05 draft) names
+# committed promotion a later, separate decision. UPPERCASE-KEBAB stem + honest extension
+# per the 2026-07-22 logs/ naming ruling — .csv is a format claim, so it is not restyled.)
+logs/OPERATOR-LOAD.csv
+
 # Ecosystem mutable pointers (ADR-80 mutable/durable split — high-churn pointer, not committed;
 # durable records are ecosystem/*/history/*.md + docs/audits/*.md, committed by audit.py)
 ecosystem/*/state.yaml
