@@ -101,6 +101,33 @@ markers = [
     "live_repo: test asserts against the live repo tree (docs/config), not a tmp_path fixture",
     "slow: opt-in slow test (subprocess / pre-commit / real-git spawns) — the #317 marker tier; the E2E consumer-lifecycle gauntlet gates additionally on RUN_E2E=1",
 ]
+# === IMPORT SUBSTRATE — Shape B ([#521]; STANDING_RULINGS H4; ADR-106 env) =====
+# This is the repo's import convention, RULED on measurement and rolled out here.
+# It replaces the per-file `sys.path.insert(...)` bootstrap that used to open 73 of
+# the test modules: pytest puts these roots on sys.path for the whole session, so a
+# test file imports `audit` / `tool` / `carrier_precommit` by bare name and needs no
+# preamble of its own.
+#
+# WHY THREE ROOTS AND NOT `["."]`. `scripts/` and `deploy/` carry NO `__init__.py`
+# (only their `codemap`/`toc`/`lived_sandbox` subpackages do), so tests import bare
+# module names, not dotted paths — and bare names are unreachable from the repo root
+# alone. Measured, not argued (`23198aae`;
+# docs/audits/2026-08-08-technical-502-pythonpath-measurement.md): `["."]` failed
+# isolated collection on 67 of 99 test files, every failure a plain
+# `ModuleNotFoundError` across 39 distinct modules, with ZERO real coupling and ZERO
+# flake; `[".", "scripts", "deploy"]` failed 0 of 99 and was outcome-identical to
+# baseline. `["."]` is the measurement of a SPELLING, not of the shape.
+#
+# WHY NOT src-layout (Shape C): it reverses the recorded `package = false` stance
+# above and is excluded absent an ADR. Root `conftest.py` (Shape A) stays
+# permitted-not-mandated ([#430](a), STANDING_RULINGS F5) — none exists in this repo.
+#
+# HONEST LIMIT — this reaches pytest and nothing else. The 24 non-test insertions
+# (`scripts/` 18, `deploy/` 6) fire when a git hook or CLI runs a script directly,
+# with no pytest in the process; they are DECLARED RESIDUAL, exempted with reasons at
+# STANDING_RULINGS H4. Verified live before this line landed: zero of the 74 module
+# names these roots expose shadow a stdlib module or an installed package.
+pythonpath = [".", "scripts", "deploy"]
 # PARALLEL BY DEFAULT — adopted on measurement, 2026-08-06 (intake #27 §A item 33,
 # ARC-2 S-batch). Same tree, same day, 2362 tests collected:
 #   serial          1785.61s  (29m45s)
