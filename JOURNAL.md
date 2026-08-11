@@ -19,6 +19,48 @@
 
 ---
 
+### 2026-08-11 (i) — CC (Opus 5, worktree lane): AM-5 lands — the dispatch surface is an operator act, because a nested session has no row to be seen in
+
+**Did:** Landed AM-5 (operator-ratified 2026-08-11) at `dcafcb51` on
+`worktree-am5-dispatch-visibility`. Two paragraphs appended to `protocols/PLAYBOOK.md` Ch8
+"Dispatch visibility" — the doctrinal home named by STANDING_RULINGS B7 — plus a one-entry register
+echo under B7 itself. Preceded by a read-only protocol pull (the batch-protocol artifact set,
+`/lane-boot`, `/lane-integrate`, the AM-4 sections, I-D3), which is what established that the
+parent-vs-child visibility question was NOT ADDRESSED anywhere in the landed corpus.
+
+**Result:** The gap AM-5 closes is narrow and load-bearing. B7 made `--bg` the visibility predicate;
+nothing said that a `--bg` dispatch *issued from inside another session* still fails to produce its
+own row. So a lane could satisfy every stated flag rule and still be invisible — the failure mode the
+flag discipline structurally cannot catch, since no flag is missing. AM-5 moves the requirement from
+the flag to the *actor*: the operator dispatches, from a terminal. The second paragraph fences the
+agent-view dispatch input to ad-hoc read-only work, because it inherits the view session's
+model/effort with no per-task override, which is incompatible with a lane whose routing is stated at
+dispatch.
+
+**Silent-rule ratchet:** 439 → 440 against baseline 441. One token of headroom kept deliberately: the
+ratified wording in the doctrinal home spends it, the register echo is worded with no normative
+keyword. Draining the echo rather than the ruling is the sanctioned move (rewording, not re-ruling).
+
+**Suite, and the attribution that matters:** 4 failed / 2702 passed / 14 skipped / 1 xfailed (908s).
+All four were re-run at HEAD with the diff reverted and failed identically, so none belongs to this
+arc. One is `[#457]` leg (ii) — a known open row that documents its own RED ("the live check reports
+2", witnessed on bare main 2026-07-31). Two are `tool absent: sed` in this environment plus its
+skipped-vs-pass cascade. One is `test_linked_worktrees_reader_excludes_the_primary`, caused by this
+arc's own worktree existing and clearing at teardown. Recording the proof rather than the verdict:
+"not mine" is a claim, and the reverted re-run is what makes it evidence.
+
+**Changes:** `protocols/PLAYBOOK.md` (+19), `protocols/STANDING_RULINGS.md` (+6), this entry.
+
+**Abandoned:** Nothing. The side-task `dispatch`-alias diagnosis was read-only by instruction and
+produced no commit here — its finding belongs to `win-tooling`, not to this repo.
+
+**Next:** The operator's `dispatch` alias is dead on this machine until
+`win-tooling\scripts\dev-terminals\Apply-DevTerminals.ps1` is re-run — `dispatch-alias.ps1` was never
+copied to `$HOME\.dev-terminals\` and the live VS Code profile args still lack the dot-source clause,
+so no shell here can resolve `dispatch`. Diagnosed this session, not fixed (cross-repo). Related and
+worth a decision: `W1-LANE-514-LANE-REGEX.md` exists only in `~/Downloads`, which puts a batch-4 lane
+contract outside the repo that I-D3 requires it to be committed to.
+
 ### 2026-08-11 (h) — CC (Opus 5, primary tree): the batch-4 GO — five intakes ratified in one act, a ceiling given a number, and one birth that turned out to be an amendment
 
 **Did:** The batch-4 GO recording arc (`3aaf5140`) on `docs/batch4-go-recording`: the single
