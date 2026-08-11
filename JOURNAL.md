@@ -19,6 +19,87 @@
 
 ---
 
+### 2026-08-11 (p) — CC (Opus 5, primary tree): batch-4 W2 integrated — [#270] closed in the integrator's remit, and a journal-only merge that could not anchor itself
+
+**Did:** Integrated batch-4 **W2** on the browser seat's APPROVE of packet tip `de56b9ab`, in
+the operator's ordered sequence. Three merges and a close: the anchor repair `ce81d5bd`, the
+lane merge `c7f4fd92`, the `[#270]` close `679d8eca`.
+
+**1 — Repaired main FIRST, before merging W2.** `fd4149ba` introduced `17bab0f1` unanchored;
+entry (n) supplies the anchor. The ordering was the ruling and the reason is worth keeping:
+W2's own entry names `17bab0f1` and so clears `journal_spine_anchor` *incidentally*, and
+merging the lane first would have left a green gate with no integrator entry behind it. **A
+gate cleared as a side effect of someone else's honest bookkeeping has not discharged the
+obligation it was tracking.**
+
+**2 — And then walked straight into the trap the repair was supposed to model.** The
+anchor-repair branch carried **only** a JOURNAL commit, so its merge `ce81d5bd` introduced
+only `7d7697f7` — and a JOURNAL entry cannot name the commit that carries it. The repair
+merge therefore re-RED `journal_spine_anchor` **on itself**, which is the documented *"a
+journal-only wrap merge is structurally unanchorable"* lesson, met while fixing an anchor.
+Resolved by carrying `7d7697f7` into the W2 merge's conflict resolution — i.e. by making the
+anchor ride real work, which is exactly what the lesson prescribes. **Recorded because the
+prescribed pattern (a short-lived `docs/` branch + `--no-ff`) cannot self-anchor when its
+only content is the entry**: either the repair rides work, or the next real merge must name
+it. This entry rides `679d8eca` for that reason.
+
+**3 — `[#270]` CLOSED at `679d8eca`, closing commit `7e4d503e` (G-5).** The lane built and
+proved the row, then **stopped on the close** rather than force-closing or bypassing:
+`validate_backlog._check_dep_references` is strict existence against **live** BACKLOG ids, so
+`[#270]` leaving `BACKLOG.md` dangles `[#271]` and `[#348]` and hard-FAILs the gate. W2's
+frozen contract forbade it from editing dependent rows and forbade `SKIP=`/`--no-verify`, so
+the stop was correct and the escalation was the deliverable. The integrator has the remit the
+lane lacked: both inbound clauses stripped **in the same commit** as the close, on the repo's
+own twice-used precedent (`79047095` closed `[#226]` and stripped `[#221]`'s; `40ce3189`
+closed `[#236]` and stripped `[#238]`/`[#240]`'s). Recorded as interim law in
+`STANDING_RULINGS.md`.
+
+**The generalisation, parked rather than answered:** under the current predicate **no row
+with dependents can ever close without editing its dependents**, which also makes the G-5
+closing-commit metric inapplicable to any depended-upon row. Whether strict live-id existence
+is the right predicate — a dependency edge arguably survives its target's closure, and
+resolving against `tasks/` rather than BACKLOG rows would preserve it — is a schema question.
+The register line says it is parked; nothing here answers it.
+
+**4 — `[#117]` deliberately NOT touched.** Its `DEFER — peg: #270` is now MET, but the ruling
+made the un-defer conditional on an operator YES that **was not present in the message** — the
+"IF the operator answers YES below" had no *below*. Un-deferring is an operator act, so it is
+left alone and reported rather than inferred.
+
+**Result:** suite on the final merged tree — **1 failed / 2805 passed / 3 skipped / 1
+xfailed** (14m20s). The single RED is the documented `[#457]` routine-consumers one, in a
+file neither the lane nor this integration touched.
+
+**The lane reported TWO REDs and the merged tree shows ONE — the difference is real and
+worth stating, not a discrepancy to wave through.** `test_linked_worktrees_reader_excludes_
+the_primary` fails *in a linked worktree* and passes here, because this run is in the
+primary checkout. That is the documented worktree-context RED behaving exactly as
+documented: a lane's honest-green baseline is not the integrator's. It also means the pair
+a lane must discount is **environment-dependent**, so quoting a fixed expected-RED list
+across both contexts will mislead in one of them. (The W2 contract's predicted "sed-absent
+x2" never appeared in either context, for the same class of reason.)
+
+**What W2 shipped**, since the row it closes understates it: the operator-load gauge — the
+gating FIRST element of any Tier-2 nightly layer, idle 34 days — as a `[load]` funnel section
+in the `fleet_health.py` digest plus a gitignored per-run trend CSV. Live at merge:
+`funnel 44: 15 triage / 0 closures / 27 dispositions / 2 review-pending; backlog 7 P1 / 91 P2
+/ 100 P3`. **Five terra passes found 16 HIGH defects in it** (4/4/3/3/2), all fixed or
+dispositioned, two of the lane's own comments proven false by the reviewer; three findings
+were one contract (`n/a`, never 0) failing at three successively lower boundaries — value,
+file, directory.
+
+**Changes:** `JOURNAL.md` · `BACKLOG.md` · `protocols/STANDING_RULINGS.md` ·
+`tasks/{270,271,348}-*.md` · `tasks/manifest.json`, plus everything W2 carried in.
+
+**Abandoned:** Nothing. `[#117]`'s un-defer is deferred to the operator, not dropped.
+
+**Next:** `[#271]` and `[#348]` are now unblocked and carry no inbound peg. `[#117]` awaits
+the operator's YES/NO. The `ARCHITECTURE.md` Ch2/Ch6 organ row for the new digest section is
+still owed — W2 was scoped out of that file by the batch-4 plan §4.2 step 6. Batch 4 stays
+open: W3/W4 uncontracted, W5 and the `[#521]` lane still live in their worktrees.
+
+---
+
 ### 2026-08-11 (o) — CC (Opus 5, batch-4 lane W2): the operator-load gauge is built and proven — and [#270] cannot close, because closing a row with dependents is structurally barred
 
 **Did:** Ran batch-4 lane **W2** (feature bucket, G-8) on branch
