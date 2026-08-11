@@ -12,7 +12,9 @@ five times per batch.
 THE EXEMPTION. A first-parent spine entry is exempt from `check_journal_spine_anchor` when
 BOTH hold:
 
-  1. it is a `--no-ff` merge of a `worktree-lane-*` branch, AND
+  1. it is a `--no-ff` merge of a branch matching the RATIFIED lane grammar
+     `worktree-lane-<letter>-<id>-<slug>` -- `validate_branch_naming.LANE_BRANCH_RE`, imported,
+     the single definition of that grammar in the repo ([#514]), AND
   2. a committed batch manifest declares an OPEN batch.
 
 Neither alone. Condition 1 without 2 would exempt any lane merge forever; condition 2
@@ -39,14 +41,30 @@ push-time refusal stays unconditional; only the commit-time verdict about an
 already-declared, still-open batch is deferred to the boundary where the JOURNAL can
 actually name the merges. `tests/test_batch_manifest.py` asserts the non-import on the AST.
 
-HONEST LIMITS, three, none of them hidden:
+HONEST LIMITS, four, none of them hidden:
   * The merged-branch name is read from the MERGE SUBJECT (`Merge branch 'x'`), which is what
     `git merge --no-ff` writes and what `/lane-integrate` produces. A hand-written merge
     message that omits the branch name is not recognised as a lane merge — it fails CLOSED
     (no exemption), which is the safe direction.
-  * The exemption is not scoped to the lanes the manifest ENUMERATES; any `worktree-lane-*`
-    merge qualifies while a batch is open. That is the draft as ratified — its stated concern
-    is temporal, not per-lane — and tightening it is a separate decision, not a silent one.
+  * SCOPE, as of [#514]/[#510] W1 — NARROWED, NOT CLOSED, and the difference is the point.
+    The exemption now covers only branches matching the RATIFIED lane grammar
+    `worktree-lane-<letter>-<id>-<slug>` (the imported `LANE_BRANCH_RE`), where it previously
+    covered any `worktree-lane-*` shape at all. Measured on main's first-parent spine, that is
+    9 of 16 historical lane-shaped merges no longer qualifying. What it is STILL not scoped to
+    is the roster of lanes the open manifest ENUMERATES: any conforming lane branch qualifies
+    while a batch is open, so the self-grant `[#510]` describes — *"one `git branch -m` away"* —
+    is made harder to reach by accident, not impossible to reach on purpose. Closing it needs a
+    machine-readable roster FIELD on the manifest, which in turn needs `PLAYBOOK.md` Ch8 and the
+    manifest template to carry it; shipping the field without those carriers would be exactly
+    the half-landed adoption `[#513]` exists to detect, so `[#510]` stays OPEN on that leg
+    rather than being closed on this one.
+  * The grammar is enforced NOWHERE AT PROVISIONING. `validate_branch_naming` is read-only and
+    wired into no gate (its own posture note), and a batch lane dispatched straight through
+    `claude --worktree <name>` never passes `/lane-boot` step 1. So an off-enum lane name is
+    still creatable; what changed is that it now silently gets NO exemption instead of silently
+    getting one. That direction is the safe one — a missing exemption is a loud gate FAIL at the
+    integrator's first merge, not a hole — but it is a trade, and it is stated rather than
+    implied.
   * This adds a second exemption surface to a gate whose value is having none. Recorded in
     the ADR-110 amendment as an accepted cost, weighed against a standing instruction to turn
     the whole registry off twice per batch.
@@ -86,9 +104,41 @@ _gitenv_spec.loader.exec_module(_gitenv)
 #: (`-technical-`) is what lets it exist under `docs/audits/` at all.
 MANIFEST_GLOB = "docs/audits/*-batch-*-manifest.md"
 
-#: The lane-branch shape the exemption covers. A REFINEMENT of `worktree-<name>` (Ch8), so
-#: it needs no new prefix-enum ruling to exist.
-LANE_BRANCH_RE = re.compile(r"^worktree-lane-[a-z0-9]+(?:-[a-z0-9]+)*$")
+#: The lane-branch shape the exemption covers -- THE ENUM'S OWN CONSTANT, imported, never a
+#: second spelling of it ([#514]). A REFINEMENT of `worktree-<name>` (Ch8), so it needs no new
+#: prefix-enum ruling to exist.
+#:
+#: This module used to define its own, looser rival: `^worktree-lane-[a-z0-9]+(?:-[a-z0-9]+)*$`.
+#: Two constants shared one name and one purpose and disagreed on grammar, so the exemption rode
+#: the loose one while `validate_branch_naming.classify` called the same branches `unknown` --
+#: both organs could not be enforced. Re-measured on this branch over every lane-shaped merge on
+#: main's first-parent spine: 16 merges, loose matches 16, strict matches 7, DISAGREE 9/16.
+#:
+#: Imported BY NAME rather than through the by-path loader used for `gitenv` above, because the
+#: object identity a name-import preserves is what lets a test assert that this module and the
+#: enum module hold the SAME regex -- a by-path load builds a second module object and defeats
+#: that pin by construction.
+#:
+#: THE SHADOW HOLE THAT BUYS, AND THE GUARD THAT CLOSES IT (terra HIGH, 2026-08-11). The first
+#: version of this comment claimed the identity test also catches a shadowed
+#: `validate_branch_naming`. IT DOES NOT, and the claim was reproduced false: preload any module
+#: under that name into `sys.modules` and BOTH this module and the test receive the shadow, so
+#: `bm.LANE_BRANCH_RE is vbn.LANE_BRANCH_RE` still holds while a LOOSE regex silently governs the
+#: exemption -- the `gitenv` failure mode exactly, arriving through the door left open by the
+#: argument that it could not. So provenance is checked here instead of asserted in prose: the
+#: resolved module has to be this file's own sibling, and anything else raises at import. That
+#: is the loud failure the earlier comment promised -- `audit.py`'s FR6 `except` renders it as a
+#: `journal_spine_anchor` FAIL, never a silent pass. Regression: the subprocess shadow test in
+#: `tests/test_batch_manifest.py`.
+import validate_branch_naming as _vbn   # noqa: E402  (after the by-path gitenv load)
+from validate_branch_naming import LANE_BRANCH_RE   # noqa: E402
+
+if Path(getattr(_vbn, "__file__", "") or "").resolve().parent != Path(__file__).resolve().parent:
+    raise ImportError(
+        f"validate_branch_naming resolved to {getattr(_vbn, '__file__', None)!r}, which is not "
+        f"this module's sibling in {Path(__file__).resolve().parent}. Refusing to import a "
+        f"shadowed lane grammar: the ADR-110 exemption would be decided by an unknown regex "
+        f"([#514]).")
 
 #: `git merge --no-ff <branch>` writes this subject; `/lane-integrate` relies on it too.
 _MERGE_SUBJECT_RE = re.compile(r"^Merge branch '([^']+)'")
@@ -249,7 +299,16 @@ def merged_branch_name(repo_path: Path, sha: str) -> Optional[str]:
 
 
 def is_lane_merge(repo_path: Path, sha: str) -> bool:
-    """True iff `sha` is a merge commit whose merged branch matches the lane shape."""
+    """True iff `sha` is a merge commit whose merged branch matches the RATIFIED lane grammar.
+
+    "The lane shape" is `validate_branch_naming.LANE_BRANCH_RE` and nothing else ([#514]) — the
+    same constant `classify()` uses to call a branch `batch-lane`, so the exemption and the
+    naming enum can no longer disagree about what a lane is. They did, on 9 of 16 real merged
+    lane branches, which is what made both organs unenforceable at once.
+
+    Fails CLOSED in every unknown case: a non-merge, an unparseable merge subject, a git read
+    failure and an off-grammar name all return False, i.e. no exemption.
+    """
     name = merged_branch_name(repo_path, sha)
     return bool(name and LANE_BRANCH_RE.match(name))
 
