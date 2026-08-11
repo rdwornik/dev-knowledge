@@ -19,6 +19,88 @@
 
 ---
 
+### 2026-08-11 (j) — CC (Opus 5, batch-4 lane A): one lane grammar, one constant — and two rows left open on purpose
+
+**Did:** Ran batch-4 W1 (`[#514]` + `[#510]` + the I-D8 drive-by) on
+`worktree-lane-a-514-lane-regex`, six commits: `e0de6bba` contract of record, `92d735a7` the
+constant collapse, `1c6d4255` the exemption scoping, `ffc32099` the four pins, `d60f2457` the
+I-D8 drive-by, `f0f1cf9d` the row records. Plus one sync merge `f8b375b7` (below).
+`scripts/batch_manifest.py` no longer defines a rival `LANE_BRANCH_RE`; it imports the enum's,
+so exactly one module-level binding survives repo-wide (`validate_branch_naming.py`) and the
+two modules resolve to the same object.
+
+**Result — the row's own risk claim was falsified before the fix landed, not after.** `[#514]`
+warns that tightening first makes "9 of 10 historical lane merges non-exempt — a merge-queue
+outage", and the whole row is sequenced around that fear. Re-measured over main's
+first-parent spine: **16 lane-shaped merges, loose matched 16, strict 7, DISAGREE 9 of 16**
+(the row's "8 of 11" is stale — the corpus grew). But `check_journal_spine_anchor` applies
+`exempt()` only to entries that are ALREADY UNANCHORED, and live measurement read **0
+unanchored spine entries and 0 open batches**. Every one of those 9 is JOURNAL-anchored today,
+so `exempt()` never sees one and nothing could be stranded. The outage is prospective-only.
+That measurement is what made it safe to land in the contract's order rather than re-sequence.
+
+**Two rows deliberately NOT closed, which is this lane's one escalation.** `[#514]` leg 3 is
+done and pinned; leg 1 — "provisioning refuses an off-enum lane name" — is not.
+`validate_branch_naming --lane` refuses at `/lane-boot` step 1, but every batch-4 lane
+including this one is dispatched straight through `claude --worktree`, which never reaches
+that check, and the row's own `git branch --show-current` BLOCK is unbuilt with no contract
+step for it. Leg 2 is G-4 and only an integrator can assert it; the discharge line is drafted
+with its blanks intact. `[#510]` is narrowed (grammar-scoped, pinned) with all four roster
+legs standing — a `lanes:` manifest field whose Ch8 and template carriers do not exist would
+be exactly the half-landed adoption `[#513]` was amended to detect. Closing a P1 merge-queue
+row while its enforcement leg is absent costs more than leaving it open costs.
+
+**BATCH 4 HAS NO COMMITTED MANIFEST, and that blocks the queue, not this lane.** Step 0's
+second half — flip the manifest's W1 row to the contract path — was unexecutable: no batch-4
+manifest exists in any ref, `PENDING-CONTRACT` has zero hits in the tree, and the primary's
+working directory carries none. Without a committed manifest `open_batches` returns empty, so
+the ADR-110 exemption grants the integration queue nothing and it wedges at the first
+conflicted merge exactly as batch 3's did — with `SKIP=` and `--no-verify` both forbidden by
+the W1 contract. The manifest must name
+`docs/audits/2026-08-11-technical-batch-4-w1-lane-contract.md` for W1.
+
+**A concurrent merge blocked a commit, and the cause is structural.** `5259b0f0` (entry (i),
+above) landed on main at 14:42 mid-lane and `journal_spine_anchor` FAILed my next commit.
+Ownership was proven first — not an ancestor of this HEAD, touching only files this lane never
+edits. The cause: the check walks the shared `main` REF but reads JOURNAL.md from the WORKING
+TREE, so a lane worktree one merge behind main judges main's newest spine entry against its
+own stale JOURNAL. On main it was correctly anchored all along. Fixed by `git merge main` — a
+real sync, not a workaround. **No `SKIP=` and no `--no-verify` were used anywhere in this
+lane**, and the standing remedy for this failure class (a declared `SKIP=audit-health`) was
+deliberately declined.
+
+**Silent-rule ratchet:** 440 before the I-D8 edit, 440 after, against baseline 441. The new
+wording cites an existing predicate and adds no `must|shall|never` token.
+
+**Suite: 2 failed / 2724 passed / 9 skipped / 1 xfailed (689.78s).** Both REDs are the two the
+contract predicted, and both are proven-not-mine rather than asserted.
+`test_routine_consumers_live_backlog_governs_exactly_one_row` is the standing `[#426]` drift
+(asserts "1 declared routine row", live evidence reads "2 declared routine row(s)"); this
+lane's BACKLOG edit appended prose to two existing rows and added none.
+`test_linked_worktrees_reader_excludes_the_primary` inverts structurally inside any lane
+worktree — the captured failure shows `aud._REPO_ROOT` resolving to
+`…/.claude/worktrees/lane-a-514-lane-regex`, which is itself a member of the linked-worktree
+set it asserts absence from. Neither `tests/test_stale_worktrees.py`, `tests/test_audit.py`
+nor `scripts/audit.py` appears in this lane's diff.
+
+**Changes:** `scripts/batch_manifest.py` (constant collapsed, HONEST LIMITS 3→4),
+`tests/test_batch_manifest.py` (+4 tests, run negative control: rival reinstated → 9 RED),
+`CLAUDE.md` §6 item 3 + v2.56 + `last_reviewed` 2026-08-11,
+`templates/claude-regions/session-start-protocol.md`, `tasks/510` + `tasks/514` + regenerated
+`BACKLOG.md`, `docs/audits/2026-08-11-technical-batch-4-w1-lane-contract.md` + regenerated
+`docs/audits/README.md`, `ecosystem/doc-counts.md`.
+
+**Abandoned:** the `[#510]` manifest `lanes:` roster — deliberately not built without its Ch8
+and template carriers. Provisioning enforcement for `[#514]` leg 1 — outside the contract's
+steps; reported rather than improvised into a module whose posture note reserves gating to a
+separate ruling.
+
+**Next:** integrator — commit a batch-4 manifest BEFORE merge #1; sign or refuse the drafted
+G-4 line at close; decide `[#514]`/`[#510]` closure on the discharge records. Separately,
+`protocols/STANDING_RULINGS.md` (~line 455) still describes `batch_manifest.LANE_BRANCH_RE` as
+`^worktree-lane-[a-z0-9]+…` in the present tense — left untouched as an append-only register
+entry recording a past measurement, flagged for the doc-currency sweep rather than amended.
+
 ### 2026-08-11 (i) — CC (Opus 5, worktree lane): AM-5 lands — the dispatch surface is an operator act, because a nested session has no row to be seen in
 
 **Did:** Landed AM-5 (operator-ratified 2026-08-11) at `dcafcb51` on
