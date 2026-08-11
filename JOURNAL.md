@@ -19,6 +19,40 @@
 
 ---
 
+### 2026-08-11 (e) — CC (Opus 5, primary tree): night lane N1 re-gated and merged — a cloud lane that documented its own ungatedness
+
+**Did:** Merged the first of three night branches, `claude/night-n1-synthesis-467s4h`
+(tips `9a153973` + `cc1e5d96`) at `2539d28f` on `docs/arc9-night-n1`. Generated index conflicted;
+resolved by **regeneration**. Pure ADD: one window-synthesis audit.
+
+**Why re-gating on primary was not ceremony.** These lanes ran in cloud containers where **zero
+hooks fired**, and the lane says so itself. Its amendment marker `cc1e5d96` records the Stop hook
+failing to execute with `error: Required uv version ==0.11.19 does not match the running version
+0.8.17` — the ADR-106 pin refusing before doing any work. The lane is careful about what that is:
+**a REPRODUCTION, not a discovery**, stated first so it is not inherited as new — JOURNAL
+2026-08-09 (c) already measured the identical mechanism one night earlier at the *pre-commit* layer
+across all five lanes. What is new is only the **layer**: the same pin refusing at the `Stop` layer.
+It also refines its own condition 2 as *incomplete rather than wrong* — the pin is a third and
+strictly stronger reason no gate ran, one that would still bite if the other two were fixed.
+
+That is the whole case for the operator's re-gate instruction, made by the lane against itself:
+**a cloud lane's green is not evidence.** So every gate ran here — hermetization, task-tree
+coherence, backlog schema, ruff, CLAUDE-roster freshness, intake index, audit index — all **0**,
+plus the full suite.
+
+**Also worth recording:** the lane used the CLAUDE.md §5 item-3 **in-file amendment marker** rather
+than editing its own immutable audit, and said why in the file — because *"an observation that never
+became a repo artifact is lost"* is that report's own headline, and exempting itself from it would
+be incoherent.
+
+**Result:** suite **1 failed / 2715 passed / 4 skipped / 1 xfailed** (9m47s) — the standing `[#426]`
+row, unchanged. No night-lane content REDed any gate, so no STOP condition fired.
+
+**Changes:** `docs/audits/2026-08-10-technical-night-n1-window-synthesis.md` (new + its amendment),
+`docs/audits/README.md` (regen).
+
+**Abandoned:** nothing. **Next:** night lanes N2 then N3, same re-gating.
+
 ### 2026-08-11 (d) — CC (Opus 5, primary tree): the four Q-set rulings applied — and re-anchoring [#360] went one site further than the ruling
 
 **Did:** Applied the operator's Q1–Q4 answers (`6179ef17`) on `docs/arc9-qset-applications`.
