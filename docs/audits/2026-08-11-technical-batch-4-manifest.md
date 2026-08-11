@@ -199,3 +199,77 @@ is correct sequencing rather than an obstacle — and never a bypass.
 - It does not rule on the immutability tension in the W3–W6 row-update leg; it names the batch-3
   amendment-marker precedent as the safe default.
 - It does not birth, close, or edit a single BACKLOG row. **Births — ZERO.**
+
+---
+
+## AMENDMENT — 2026-08-11, integrator rulings (browser seat), recorded as markers not row edits
+
+**Nothing above this line is altered, and the frontmatter is untouched** — `status: open` and
+`closed_by:` stand, so the batch stays open and the ADR-110 exemption is unchanged by this
+amendment. The two hazards this manifest filed came back ruled; both rulings are recorded here as
+appended markers, per the batch-3 precedent this same seat has now ratified as standard (A-4 below).
+
+### A-1 · W6 is DROPPED from the batch-4 active roster
+
+The W6 row above (`worktree-lane-f-arch-soft-obs`, I-D2 scope, hub bucket) leaves the active
+roster. **Active width becomes 5 (W1–W5).** Reasons as ruled, all three recorded:
+
+1. **optional** — the lane is not load-bearing for any other lane's completion;
+2. **collides with live W2 on `ARCHITECTURE.md`**;
+3. **carries no id** — `worktree-lane-f-arch-soft-obs` is rejected by the strict lane grammar.
+
+**Reason 2 is recorded as ruled but was NOT corroborated at recording time, and saying so is the
+point of a register.** Measured against the tree when this marker was written: W2's contract of
+record (`7ef6f50f`) does not name `ARCHITECTURE.md` anywhere, and `git diff --name-only
+main...worktree-lane-b-270-fleet-audit` returns `.gitignore`, the contract itself,
+`docs/audits/README.md`, `ecosystem/doc-counts.md`, `scripts/fleet_health.py` and
+`tests/test_fleet_health.py` — no `ARCHITECTURE.md`. The same probe against
+`worktree-lane-a-514-lane-regex` also returns zero `ARCHITECTURE.md` paths. W2 is mid-flight, so
+its final footprint may still grow to meet the claim; it had not at recording time. **The drop is
+not weakened by this**: reasons 1 and 3 are independently sufficient, and reason 3 is verified
+(the strict-grammar measurement is in the hazard section above). Recorded rather than smoothed
+over, so a later reader does not inherit an uncorroborated collision as established fact.
+
+### A-2 · W4 is not contracted until it carries a row id — G-2 resolved as ids-before-contract
+
+The W4 row above (`worktree-lane-d-conversions-w1`, census P1/P2 conversions) stays
+`PENDING-CONTRACT` and is **gated**: it becomes contractable once its work carries a BACKLOG row
+id, not before. This resolves G-2 in the **ids-before-contract** direction — a lane is named from
+a row, rather than a row being back-filled to fit a lane already dispatched.
+
+### A-3 · Consequence: both filed hazards are resolved by REMOVAL, not by ordering — W1 is not delayed
+
+The manifest's hazard section recommended merging W4/W6 before W1. **That recommendation is
+superseded**, and the ruling is the better instrument:
+
+- **The stranding hazard dissolves.** Its whole content was that two id-less branches would lose
+  the exemption the moment W1's strict-grammar unification landed. W6 leaves the roster; W4 cannot
+  be contracted until it carries an id, and a lane named `lane-d-<id>-conversions-w1` satisfies the
+  strict grammar. **The id-less set becomes empty**, so W1's deliverable strands nothing and needs
+  no delay.
+- **The cap overage clears.** At active width 5 the ≤1/4 cap permits 1 hub-process lane; with W6
+  gone, W1 is its sole occupant.
+
+This is worth stating plainly because it inverts the manifest's own recommendation: the hazard was
+real, and the fix was to change the roster rather than the queue order.
+
+### A-4 · The amendment-marker route for manifest row flips is RATIFIED as standard
+
+The manifest above recorded a tension — a lane contract instructing a lane to flip its own
+`PENDING-CONTRACT` row would edit an immutable `docs/audits/` artifact (CLAUDE.md §5 rule 3) — and
+named the batch-3 appended-marker precedent as the safe default without ruling on it. **That
+default is now the ratified standard**: a manifest row flip lands as an appended, fully-disclosed
+amendment marker, never as a silent in-place rewrite of the row. This marker is itself the first
+application of the ratified form.
+
+### A-5 · `[#505]` leg 1 — the mid-flight manifest is packet input
+
+The provenance section's observation — this manifest was committed mid-flight, the **third
+consecutive batch** to miss the commit-at-dispatch condition — is carried forward as **input to the
+end-of-batch packet**, alongside the two dispositions above. It closes nothing: `[#505]` leg 1
+stays unmet and this batch does not discharge it.
+
+### Merge order and current posture
+
+Merge order is unchanged and stays **on the seat's APPROVE, as lanes finish** — no queue order is
+fixed by this amendment. The batch is HELD for lane packets.
