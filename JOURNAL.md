@@ -19,6 +19,67 @@
 
 ---
 
+### 2026-08-11 (m) — CC (Opus 5, primary tree): batch-4 W1 integrated — a day-letter collision resolved by re-lettering, and the one suite RED proved not mine
+
+**Did:** Integrated batch-4 W1 on the browser seat's APPROVE of packet tip `428ff5f7`. Verified the
+two manifest amendment markers FIRST, since the lane's escalation-1 wedge depended on them: both
+are live on `main` at `62159836` — **A-1** drops W6 from the active roster (width 6 → 5) and
+**A-2** gates W4 as `PENDING-CONTRACT` until its work carries a row id (G-2 resolved
+ids-before-contract), with register twins at `protocols/STANDING_RULINGS.md` J-1/J-2. Nothing
+needed recording; the wedge was already dissolved, so the merge proceeded with no reordering
+(A-3 having declined the W1 delay the manifest's own hazard section recommended). Single-entry
+queue merged `--no-ff` at `0136cec6`.
+
+**Result — the merge's only conflict was a day letter, and the fix was to move the entry that had
+not yet landed.** `JOURNAL.md` collided with both sides carrying a 2026-08-11 **(k)**. The lane had
+already folded its own (j) into (k) at its sync merge `1b914aee`, after main's (j) — the manifest,
+`aac70ace` — landed; main then took (k) as well at `e48731da`. Day letters are derived at merge
+time rather than carried, so the LANE's entry was re-lettered (k) → (l) and prepended above main's
+(k). Main's landed entry is untouched: JOURNAL is append-only, and the entry that has not reached
+main is the only one it is lawful to move. Both entries survive whole. The day's letter run is now
+contiguous `a..m` with no duplicate and no gap. One honest wrinkle recorded rather than smoothed:
+the lane's (l) is 3 minutes OLDER by commit time (16:31) than main's (k) (16:34), so letter order
+here reflects landing order, not authorship order.
+
+**Result — the suite RED is pre-existing, and I proved it rather than asserting it.**
+`1 failed, 2732 passed, 3 skipped, 1 xfailed` in 24m15s on the merged result. The failure is
+`tests/test_audit.py::test_routine_consumers_live_backlog_governs_exactly_one_row`, which pins
+`"1 declared routine row"` while the live BACKLOG declares 2. **It is not this merge's**, by a
+probe rather than by inference: `audit.check_routine_consumers` run against the PRE-merge
+`BACKLOG.md` blob (`7245d4f6`) in a scratch dir returns the identical `2 declared routine row(s)`,
+and the `· routine:` marker count is 2 on every first-parent BACKLOG commit back to 2026-08-03.
+The merge's BACKLOG diff touches only `[#510]` and `[#514]`, neither of which carries the marker.
+The check itself PASSES — it is the test's hard-pinned count that is stale, and its own docstring
+says the ADR, the docstring and `[#426]` move together when that number moves, which makes the
+repair a decision rather than an integrator's tidy-up. **The anticipated linked-worktree RED did
+NOT appear** despite four live worktrees, and the two lane-venv REDs did not either — this run
+used the primary checkout's own venv.
+
+**Findings recorded, no fix this arc:**
+1. `scripts/preflight_contract.py:352` skips any short SHA that is all digits (`if sha.isdigit():
+   continue` — a run of digits is more often a count than a commit), while
+   `tests/test_preflight_contract.py:169` writes the LIVE short HEAD into its fixture and asserts
+   all four claim kinds were extracted. When HEAD's 8-char short SHA happens to be all decimal
+   digits the `sha` claim is silently dropped and the test REDs — **flaky-by-hash-luck**, roughly
+   a 2.3% chance per commit ((10/16)^8). Verified by reading both sites; not reproduced, since
+   reproducing it means waiting for the hash.
+2. The stale routine-row count pin above.
+
+**Changes:** `protocols/STANDING_RULINGS.md` — register hygiene at the integrator's surface: an
+appended **PRESENT TENSE SUPERSEDED** marker under F2 (its `batch_manifest.LANE_BRANCH_RE` bullet
+described the loose rival constant in the present tense; `92d735a7` unified it), with the original
+paragraph left standing unrewritten per the B6 append-rather-than-amend discipline; plus **J-6**,
+the queued core-invariant #6 exception-with-ruling keeping the 2026-08-11 global gotcha write to
+`~/.claude/skills/gotchas/gotchas.md` (the sibling-venv / stale-`__pycache__` trap at
+`gotchas.md:631`). Zero normative tokens added — ratchet measured 440 ≤ baseline 441.
+
+**Abandoned:** Nothing. The `---` separator missing between §J and the Editing note heading
+(inherited from `62159836`) was left alone as outside this act's scope, and is noted here so it is
+not lost.
+
+**Next:** W1's worktree torn down once the merge verifies ancestor-of-main. Batch 4 stays HELD for
+the remaining lane packets; W4 stays `PENDING-CONTRACT`, W3/W5 uncontracted, W6 off the roster.
+
 ### 2026-08-11 (l) — CC (Opus 5, batch-4 lane A): one lane grammar, one constant — and two rows left open on purpose
 
 **Did:** Ran batch-4 W1 (`[#514]` + `[#510]` + the I-D8 drive-by) on
