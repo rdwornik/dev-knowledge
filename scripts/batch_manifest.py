@@ -12,7 +12,9 @@ five times per batch.
 THE EXEMPTION. A first-parent spine entry is exempt from `check_journal_spine_anchor` when
 BOTH hold:
 
-  1. it is a `--no-ff` merge of a `worktree-lane-*` branch, AND
+  1. it is a `--no-ff` merge of a branch matching the RATIFIED lane grammar
+     `worktree-lane-<letter>-<id>-<slug>` -- `validate_branch_naming.LANE_BRANCH_RE`, imported,
+     the single definition of that grammar in the repo ([#514]), AND
   2. a committed batch manifest declares an OPEN batch.
 
 Neither alone. Condition 1 without 2 would exempt any lane merge forever; condition 2
@@ -86,9 +88,24 @@ _gitenv_spec.loader.exec_module(_gitenv)
 #: (`-technical-`) is what lets it exist under `docs/audits/` at all.
 MANIFEST_GLOB = "docs/audits/*-batch-*-manifest.md"
 
-#: The lane-branch shape the exemption covers. A REFINEMENT of `worktree-<name>` (Ch8), so
-#: it needs no new prefix-enum ruling to exist.
-LANE_BRANCH_RE = re.compile(r"^worktree-lane-[a-z0-9]+(?:-[a-z0-9]+)*$")
+#: The lane-branch shape the exemption covers -- THE ENUM'S OWN CONSTANT, imported, never a
+#: second spelling of it ([#514]). A REFINEMENT of `worktree-<name>` (Ch8), so it needs no new
+#: prefix-enum ruling to exist.
+#:
+#: This module used to define its own, looser rival: `^worktree-lane-[a-z0-9]+(?:-[a-z0-9]+)*$`.
+#: Two constants shared one name and one purpose and disagreed on grammar, so the exemption rode
+#: the loose one while `validate_branch_naming.classify` called the same branches `unknown` --
+#: both organs could not be enforced. Re-measured on this branch over every lane-shaped merge on
+#: main's first-parent spine: 16 merges, loose matches 16, strict matches 7, DISAGREE 9/16.
+#:
+#: Imported BY NAME, deliberately, and not by the by-path loader used for `gitenv` below. The
+#: two hazards are opposites: a shadowed `gitenv` silently EMPTIES a scrub (a wrong answer that
+#: looks right), whereas a shadowed or missing `validate_branch_naming` yields a DIFFERENT regex
+#: object -- which `tests/test_batch_manifest.py` pins by asserting object identity with
+#: `validate_branch_naming.LANE_BRANCH_RE`, and an outright ImportError surfaces as a
+#: `journal_spine_anchor` FAIL rather than a silent pass (audit.py's FR6 `except`). A by-path
+#: load would defeat that pin by construction, since it builds a second module object.
+from validate_branch_naming import LANE_BRANCH_RE   # noqa: E402  (after the by-path gitenv load)
 
 #: `git merge --no-ff <branch>` writes this subject; `/lane-integrate` relies on it too.
 _MERGE_SUBJECT_RE = re.compile(r"^Merge branch '([^']+)'")
