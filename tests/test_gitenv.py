@@ -35,7 +35,6 @@ from pathlib import Path
 
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
 import audit as aud  # noqa: E402
 import batch_manifest as bm  # noqa: E402

@@ -19,13 +19,10 @@ Three layers, ordered by how strongly they prove teeth:
 
 from __future__ import annotations
 
-import os
 import shutil
 import subprocess
-import sys
 from pathlib import Path
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
 import pytest  # noqa: E402
 

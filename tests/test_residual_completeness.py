@@ -13,12 +13,10 @@ argument that this gate cannot fight `verify_handoff_probes` rests on them.
 from __future__ import annotations
 
 import subprocess
-import sys
 from pathlib import Path
 
 import pytest
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
 import validate_residual_completeness as vrc  # noqa: E402
 
@@ -232,7 +230,6 @@ def test_git_failure_is_fail_soft(tmp_path):
 # --- audit.py adapter -------------------------------------------------------------------
 
 def test_audit_check_is_registered_and_fails_on_unfilled(monkeypatch):
-    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
     import audit as aud
 
     assert any(c.__name__ == "check_residual_completeness" for c in aud.ALL_CHECKS)

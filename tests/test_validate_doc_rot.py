@@ -15,11 +15,8 @@ Scope boundary (do NOT duplicate): #140 defers cross-file fidelity drift -> cohe
 """
 from __future__ import annotations
 
-import os
-import sys
 from datetime import date
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
 import validate_doc_rot as vdr  # noqa: E402
 import audit as aud  # noqa: E402

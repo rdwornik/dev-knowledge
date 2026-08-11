@@ -8,12 +8,9 @@ existing SessionStart; the override-token .gitignore block added beside an exist
 from __future__ import annotations
 
 import json
-import os
 import subprocess
-import sys
 from pathlib import Path
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "deploy"))
 
 import carrier_mesh as cm  # noqa: E402
 import contract  # noqa: E402

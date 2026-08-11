@@ -11,7 +11,6 @@ from datetime import date
 from pathlib import Path
 from types import SimpleNamespace
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
 import pytest
 

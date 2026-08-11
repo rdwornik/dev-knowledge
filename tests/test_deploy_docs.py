@@ -27,14 +27,11 @@ No network; hub sources are read live so the tests track the real shipped doc by
 """
 from __future__ import annotations
 
-import os
-import sys
 from pathlib import Path
 
 import pytest
 import yaml
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "deploy"))
 
 import carrier_docs as cd  # noqa: E402
 import contract  # noqa: E402

@@ -6,13 +6,11 @@ covers the CONSUMER surface: the pure `evaluate` contract, the `__main__` gate e
 """
 from __future__ import annotations
 
-import os
 import subprocess
 import sys
 from datetime import date
 from pathlib import Path
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
 import canonical_freshness_gate as cfg
 

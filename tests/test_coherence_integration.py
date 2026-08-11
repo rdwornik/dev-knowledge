@@ -19,11 +19,8 @@ NOT closed.
 """
 from __future__ import annotations
 
-import os
-import sys
 from pathlib import Path
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
 import audit as aud  # noqa: E402
 import coherence_enumerator as ce  # noqa: E402

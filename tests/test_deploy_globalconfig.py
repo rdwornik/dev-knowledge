@@ -17,11 +17,8 @@ shipped reviewer-config bytes.
 """
 from __future__ import annotations
 
-import os
-import sys
 from pathlib import Path
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "deploy"))
 
 import carrier_globalconfig as cgc  # noqa: E402
 import contract  # noqa: E402

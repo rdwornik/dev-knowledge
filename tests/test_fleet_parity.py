@@ -29,7 +29,6 @@ import pytest
 import yaml
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(_REPO_ROOT / "scripts"))
 
 import fleet_parity as fp  # noqa: E402
 

@@ -24,7 +24,6 @@ from pathlib import Path
 
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
 import block_ff_push as bfp  # noqa: E402
 import validate_no_ff as vnf  # noqa: E402

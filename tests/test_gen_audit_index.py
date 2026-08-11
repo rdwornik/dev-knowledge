@@ -1,11 +1,8 @@
 """Coverage for scripts/gen_audit_index.py (Block-3.3 audits navigation index)."""
 from __future__ import annotations
 
-import os
-import sys
 from pathlib import Path
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
 import gen_audit_index as gai  # noqa: E402
 

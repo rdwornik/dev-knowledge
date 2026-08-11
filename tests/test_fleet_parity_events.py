@@ -7,14 +7,12 @@ from __future__ import annotations
 
 import json
 import subprocess
-import sys
 from pathlib import Path
 
 import yaml
 from click.testing import CliRunner
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(_REPO_ROOT / "scripts"))
 
 import fleet_parity as fp  # noqa: E402
 

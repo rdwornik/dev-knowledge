@@ -10,7 +10,6 @@ import sys
 from pathlib import Path
 
 SCRIPTS_DIR = Path(__file__).parent.parent / "scripts"
-sys.path.insert(0, str(SCRIPTS_DIR))
 
 from toc.generator import (  # noqa: E402
     _EOL_RE, _HEADER_RE, _code_line_indices, _display, _slugify, generate_toc, parse_headers,

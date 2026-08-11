@@ -20,7 +20,6 @@ FIXTURES = Path(__file__).parent / "fixtures"
 SIMPLE_REPO = FIXTURES / "codemap-simple-repo"
 SCRIPTS_DIR = Path(__file__).parent.parent / "scripts"
 
-sys.path.insert(0, str(SCRIPTS_DIR))
 
 from codemap.ast_walker import analyze_repo  # noqa: E402
 from codemap.mermaid_emit import emit_mermaid  # noqa: E402

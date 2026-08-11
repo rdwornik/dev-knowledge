@@ -6,13 +6,10 @@ without a version bump -> nudge fires + logs; version bumped -> silent.
 """
 from __future__ import annotations
 
-import os
 import subprocess
-import sys
 from datetime import datetime
 from pathlib import Path
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
 import coherence_nudge as cn
 import validate_reconciliation as vr

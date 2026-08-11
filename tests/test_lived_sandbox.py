@@ -9,13 +9,11 @@ import json
 import os
 import re
 import shutil
-import sys
 from pathlib import Path
 
 import pytest
 
 _REPO = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(_REPO / "deploy"))
 import floor_conformance as fc  # noqa: E402
 from lived_sandbox import isolation as iso  # noqa: E402
 from lived_sandbox import spawn as sp  # noqa: E402

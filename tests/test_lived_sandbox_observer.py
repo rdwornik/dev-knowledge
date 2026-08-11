@@ -8,13 +8,11 @@ from __future__ import annotations
 
 import json
 import re
-import sys
 from pathlib import Path
 
 import pytest
 
 _REPO = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(_REPO / "deploy"))
 import os  # noqa: E402
 import shutil  # noqa: E402
 

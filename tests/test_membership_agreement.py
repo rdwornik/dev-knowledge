@@ -19,11 +19,9 @@ parsers cannot drift into disagreeing about who is registered.
 from __future__ import annotations
 
 import importlib.util
-import os
 import sys
 from pathlib import Path
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
 import pytest
 

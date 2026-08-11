@@ -76,7 +76,6 @@ def test_parse_frontmatter_covers_the_key_shapes_this_repo_actually_uses():
     test FAILS rather than passing on an empty set — the exact failure mode under repair.
     """
     repo_root = Path(__file__).resolve().parent.parent
-    sys.path.insert(0, str(repo_root / "scripts"))
     import canonical_freshness_gate as cfg
 
     live_keys: set[str] = set()

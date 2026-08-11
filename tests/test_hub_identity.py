@@ -29,11 +29,8 @@ skip-gates plus one inverted site) are 16 chances for the next check to gate dif
 """
 from __future__ import annotations
 
-import os
-import sys
 from pathlib import Path
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
 import audit as aud
 

@@ -15,11 +15,8 @@ So the two legs are tested for the properties that failure mode demands:
 """
 
 import logging
-import os
 import subprocess
-import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
 import pytest
 

@@ -28,7 +28,6 @@ from __future__ import annotations
 import os
 import re
 import subprocess
-import sys
 import tempfile
 from pathlib import Path
 
@@ -36,7 +35,6 @@ import pytest
 import yaml
 from click.testing import CliRunner
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "deploy"))
 
 import contract  # noqa: E402
 import tool  # noqa: E402

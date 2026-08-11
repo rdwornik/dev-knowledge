@@ -25,12 +25,9 @@ unmet preconditions, not bad locators). Adoption-first: nothing wires it into a 
 """
 from __future__ import annotations
 
-import os
 import subprocess
-import sys
 from pathlib import Path
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
 import pytest
 

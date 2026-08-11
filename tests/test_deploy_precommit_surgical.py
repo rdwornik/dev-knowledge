@@ -13,13 +13,10 @@ fallback, not to fake success).
 """
 from __future__ import annotations
 
-import os
-import sys
 from pathlib import Path
 
 import yaml
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "deploy"))
 
 import carrier_precommit as cp  # noqa: E402
 

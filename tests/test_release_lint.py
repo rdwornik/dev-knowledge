@@ -10,16 +10,13 @@ probe is injected — no test depends on real tags.
 from __future__ import annotations
 
 import copy
-import os
 import shutil
-import sys
 from pathlib import Path
 
 import pytest
 import yaml
 from click.testing import CliRunner
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "deploy"))
 
 import release_lint as rl  # noqa: E402
 
