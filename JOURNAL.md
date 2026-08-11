@@ -19,6 +19,70 @@
 
 ---
 
+### 2026-08-11 (t) — CC (Opus 5, primary tree): batch-4 W5 and W-521 integrated — the queue drains to zero worktrees, and a checklist stays open on purpose
+
+**Did:** Integrated the last two approved lanes in the operator's order, W5 then W-521, and
+paid the three post-merge riders at `8cb938d6`. Merge SHAs `e624a172` (W5, `[#132]`) and
+`aafe3c8e` (W-521, `[#521]`). Day-letters re-derived at merge time, not carried: W5's own
+`(m)` and W-521's own `(n)` were both taken on `main` by then, so they landed as **(r)** and
+**(s)**.
+
+**The day-letter machinery earned its keep twice more.** W5's entry collided with the W1
+integration entry; W-521's collided with the anchor-repair entry `(n)`. Both were caught by
+asserting **no duplicate letters across the whole file**, not by inspecting the merge seam —
+which matters, because in the W-521 merge the lane's entry auto-placed itself *mid-file*
+between `(l)` and `(k)` rather than at the seam. A check that only reads the conflict region
+would have passed it.
+
+**One correction against my own earlier reading, recorded because I said it out loud:** I
+first reported that W-521's JOURNAL had auto-merged cleanly and smuggled a duplicate `(n)`
+through. It had not — `JOURNAL.md` conflicted normally and the "duplicate" was the two sides
+of the hunk. My `tail -8` on the merge output had truncated the conflict line. The resolution
+was identical either way; the diagnosis was not, and a wrong diagnosis of a merge is exactly
+the thing that becomes folklore.
+
+**Conflict rules applied as ruled:** the batch-4 manifest resolved by **UNION in landing
+order** with both amendment blocks asserted byte-identical afterwards (they are appended
+sections by construction, which is what makes union correct rather than a choice);
+`docs/audits/README.md`, `ecosystem/doc-counts.md` and `docs/ORGAN-INDEX.md` by
+**regeneration**, never by hand (ARC-5 `19aca464`); `tasks/manifest.json`'s only conflict was
+the `generated_sha256` pin, recomputed by `--emit-source`.
+
+**The rider that needed judgment.** The H4 retirement text licensed a two-line sweep of
+`tests/test_batch_manifest.py` "once W1 merges" — W1 merged at `0136cec6`, so the condition
+was met and the file had no live owner. The file carries **three** `sys.path.insert`
+occurrences, not two: the module-level bootstrap and the in-test insert were swept; the third
+lives inside the `_SHADOW_PROBE` string literal, which is generated source for a **subprocess**
+that carries no pytest `pythonpath`, so sweeping it would have broken the probe. Same class as
+the residual `[#521]` exempted at `test_enforcement_coverage.py:389` — **a literal is not a
+site.** `os` became unused and went with it; `sys` and `_SCRIPTS` kept real users. The H4
+count is now complete: 75 of 77 retired by the lane, the last 2 here, 77 of 77.
+
+**The two health tests that failed downstream of `fd4149ba` now PASS**, confirming the
+`7d7697f7` anchor did what it was landed for.
+
+**Result:** `git worktree list` is **primary-only** and no `worktree-*` branch remains — the
+first time this repo has been at zero linked worktrees since the batch opened.
+
+**And the checklist stays OPEN, deliberately.** Items 1 and 3 read open-by-construction in the
+manifest marker rather than passed: every lane branch that *exists* is merged and torn down,
+but W3 and W4 were never dispatched, so *"every planned lane has a merge SHA or a recorded
+abandonment"* is not yet true. Passing an item because the branch list happens to be empty
+would be the technicality the checklist exists to catch. The end-of-batch packet is due at the
+batch's true close, next window.
+
+**Changes:** `CLAUDE.md` (§9 roster row + §12 entry, L10 2.56→2.57) · `LESSONS.md` (one
+descriptive line) · the batch-4 manifest (A-4 marker) · `tests/test_batch_manifest.py` (the
+sweep) · the regenerated indexes · everything the two lanes carried in.
+
+**Abandoned:** Nothing. W3/W4 are carried, not dropped; W6 stays dropped per A-3.
+
+**Next:** batch 4 closes next window when W3 and W4 land or are recorded abandoned. Still
+owed from W2: the `ARCHITECTURE.md` Ch2/Ch6 organ row for the load-gauge digest section. The
+`depends-on` schema question behind `W2-close` remains parked.
+
+---
+
 ### 2026-08-11 (s) — CC (Opus 5, batch-4 lane W-521): the sys.path substrate rolled out — and a 0 that proves nothing until you break it on purpose
 
 **Did:** Executed `[#521]` on `worktree-lane-f-521-syspath-substrate`, the lane the operator
