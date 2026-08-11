@@ -19,6 +19,42 @@
 
 ---
 
+### 2026-08-11 (u) — CC (Opus 5, primary tree): short close — the two operator-supplied window-close artifacts land beside the batch-4 manifest
+
+**Did:** Committed the two files the operator produced at the close of the 2026-08-10/11
+window into `docs/audits/`, beside `2026-08-11-technical-batch-4-manifest.md`: the seat-27
+execution challenge answer and the incoming-architect strategy brief. Both were verified
+present at `$env:CLAUDE_PROMPTS_DIR` before anything else ran — the instruction was
+FAIL-LOUD-per-missing, so absence would have stopped the session rather than produced a
+partial commit. Content copied byte-identical: no editing, no reflow, no summarizing.
+
+**The naming was the only judgment call.** Operator-supplied stems (`CHALLENGE-ANSWER-…`,
+`BRIEF-NEXT-ARCHITECT-…`) are off-grammar for `docs/audits/`, which since ADR-101 R3/R4
+requires `YYYY-MM-DD-<enum-class>[-<slug>]` in lowercase kebab. Renamed into the batch-4
+family so they sort with their siblings, and split across two classes on what each document
+actually *is* rather than when it was written: the challenge answer grades executed work
+against the plan with a per-cell evidence locator, so it is **`verification`**; the brief maps
+themes to owners and proposes an order, so it is **`technical`**. Both candidate names were
+run through `validate_hermetization.rule_a_violation` / `rule_b_violation` **before** the copy,
+not after a gate refused — the cheap direction of that loop.
+
+**Changes:** `docs/audits/2026-08-11-verification-batch-4-challenge-answer.md` (new),
+`docs/audits/2026-08-11-technical-batch-4-brief-next-architect.md` (new),
+`docs/audits/README.md` (regenerated via `gen_audit_index.py --write`, keeping
+`audit-index-freshness` green — the index is generated, so a new audit file without the regen
+is a wedged next commit, not a cosmetic gap). Commit `0abb70ed` on
+`docs/batch4-challenge-answer-and-architect-brief`, merged `--no-ff`.
+
+**Abandoned:** nothing. This entry also discharges `block-unanchored-push` at the range level
+by naming `0abb70ed`; the alternative was `git push --no-verify`, which would have left
+`journal_spine_anchor` FAILing and wedged tomorrow morning's first commit — the whole point of
+the backstop. Anchoring costs one entry tonight; bypassing costs the packet session.
+
+**Next:** the batch-4 packet and the cut, tomorrow morning. Per the brief's own §3, the
+remnant after that is W3 (`[#513]` organ), W4 behind its row id, and `[#522]`.
+
+---
+
 ### 2026-08-11 (t) — CC (Opus 5, primary tree): batch-4 W5 and W-521 integrated — the queue drains to zero worktrees, and a checklist stays open on purpose
 
 **Did:** Integrated the last two approved lanes in the operator's order, W5 then W-521, and
