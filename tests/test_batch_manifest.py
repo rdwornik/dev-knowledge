@@ -48,6 +48,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 import audit as aud  # noqa: E402
 import batch_manifest as bm  # noqa: E402
 import journal_anchor as ja  # noqa: E402
+import validate_branch_naming as vbn  # noqa: E402
 
 requires_git = pytest.mark.skipif(shutil.which("git") is None, reason="git not available")
 
@@ -536,3 +537,170 @@ def test_the_handoff_open_batch_refusal_survives_an_inherited_GIT_DIR(tmp_path, 
     _close_it(repo)
     monkeypatch.setenv("GIT_DIR", str(other / ".git"))
     gh.assert_batch_boundary(repo)
+
+
+# --- [#514] ONE lane grammar, defined once ----------------------------------
+#
+# Two constants shared the name `LANE_BRANCH_RE` and disagreed: `validate_branch_naming`'s
+# strict `^worktree-lane-<letter>-<id>-<slug>$` versus this module's own loose
+# `^worktree-lane-[a-z0-9]+(?:-[a-z0-9]+)*$`. Re-measured over every lane-shaped merge on the
+# live repo's first-parent spine at the time of the fix: 16 merges, loose matched 16, strict
+# matched 7 -- DISAGREE 9/16. The consequence was not cosmetic. The loose one granted the
+# ADR-85 anchoring exemption to branches `classify()` deliberately calls `unknown`, so the
+# naming enum and the exemption could not both be enforced.
+#
+# These four pin the collapse, not the fix's prose. Each FAILS if the rival is reintroduced,
+# in a different way: (a) by counting definitions, (b) by grammar, (c) by `is_lane_merge`'s
+# verdict, (d) end-to-end through the gate the exemption feeds.
+
+def _module_level_assignments(path: Path, name: str) -> int:
+    """How many MODULE-LEVEL bindings of `name` a source file makes.
+
+    An AST walk and not a grep, so a mention inside a docstring or comment -- of which this
+    module now has several, describing the constant it deleted -- cannot be miscounted as a
+    definition. That distinction is the whole assertion in (a).
+    """
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    count = 0
+    for node in tree.body:                       # module level ONLY, never nested scopes
+        targets: list[ast.expr] = []
+        if isinstance(node, ast.Assign):
+            targets = list(node.targets)
+        elif isinstance(node, ast.AnnAssign):
+            targets = [node.target]
+        count += sum(1 for t in targets if isinstance(t, ast.Name) and t.id == name)
+    return count
+
+
+def test_exactly_one_LANE_BRANCH_RE_definition_ships_in_scripts():
+    """(a) ONE definition, and it lives in the enum module.
+
+    The identity assertion is the load-bearing half. Counting to one proves no second
+    `LANE_BRANCH_RE = ...` statement exists; asserting the two modules resolve to the SAME
+    OBJECT proves `batch_manifest` actually consumes that definition rather than shadowing
+    it -- which is also what makes the by-NAME import safe, since a shadowed or stale
+    `validate_branch_naming` on `sys.path` yields a different object and REDs here.
+    """
+    defs = {p.name: _module_level_assignments(p, "LANE_BRANCH_RE")
+            for p in sorted(_SCRIPTS.glob("*.py"))}
+    defining = {n: c for n, c in defs.items() if c}
+    assert defining == {"validate_branch_naming.py": 1}, (
+        f"LANE_BRANCH_RE must be defined exactly once, in the enum module; found {defining}")
+    assert bm.LANE_BRANCH_RE is vbn.LANE_BRANCH_RE
+
+
+_SHADOW_PROBE = '''
+import re, sys, types
+sys.path.insert(0, {scripts!r})
+shadow = types.ModuleType("validate_branch_naming")
+shadow.__file__ = "/nowhere/validate_branch_naming.py"
+shadow.LANE_BRANCH_RE = re.compile(r"^worktree-lane-[a-z0-9]+(?:-[a-z0-9]+)*$")
+sys.modules["validate_branch_naming"] = shadow
+try:
+    import batch_manifest as bm
+except ImportError as exc:
+    print("REFUSED")
+    raise SystemExit(0)
+import validate_branch_naming as vbn
+print("IDENTITY_HOLDS" if bm.LANE_BRANCH_RE is vbn.LANE_BRANCH_RE else "IDENTITY_BROKEN")
+print("LOOSE_IN_FORCE" if bm.LANE_BRANCH_RE.match("worktree-lane-wave-closures") else "STRICT")
+'''
+
+
+def test_a_preloaded_shadow_of_the_enum_module_is_REFUSED_at_import():
+    """The shadow hole the identity assertion above CANNOT see (terra HIGH, 2026-08-11).
+
+    `test_exactly_one_LANE_BRANCH_RE_definition_ships_in_scripts` compares
+    `bm.LANE_BRANCH_RE` with `vbn.LANE_BRANCH_RE`, and both names resolve through the SAME
+    `sys.modules` entry. Preload a shadow under that name and the two agree perfectly — while a
+    LOOSE regex governs the ADR-110 exemption. Reproduced before this guard existed: identity
+    True, pattern `^worktree-lane-[a-z0-9]+…$`, `worktree-lane-wave-closures` matching. That is
+    the `gitenv` failure mode arriving through the door held open by the very argument that a
+    name-import could not suffer it.
+
+    So `batch_manifest` checks PROVENANCE at import — the resolved module must be its own
+    sibling — and the check has to be exercised in a SUBPROCESS, because a shadow installed in
+    this interpreter would poison every later test in the worker.
+    """
+    probe = _SHADOW_PROBE.format(scripts=str(_SCRIPTS))
+    proc = subprocess.run([sys.executable, "-c", probe], capture_output=True, text=True,
+                          encoding="utf-8", errors="replace", timeout=60)
+    out = proc.stdout.strip()
+    assert out == "REFUSED", (
+        "a preloaded shadow of validate_branch_naming was NOT refused at import; "
+        f"probe said {out!r} (stderr: {proc.stderr.strip()[:400]!r})")
+
+
+@pytest.mark.parametrize("name, accepted", [
+    # the ratified shape, including this very lane's branch
+    ("worktree-lane-a-514-lane-regex", True),
+    ("worktree-lane-b-429-worktree-portability", True),
+    ("worktree-lane-c-393-rot", True),
+    # ID-LESS -- accepted by the deleted rival, rejected now. Each of these is a REAL branch
+    # that reached main's first-parent spine, which is why the disagreement mattered.
+    ("worktree-lane-wave-closures", False),
+    ("worktree-lane-archival-audit", False),
+    ("worktree-lane-intakes-28-29", False),
+    # letter-less but id-bearing, and multi-letter -- also rival-only
+    ("worktree-lane-502-pythonpath-measure", False),
+    ("worktree-lane-ab-514-two-letters", False),
+    # the batch-4 plan's live off-enum instance: a letter, then a slug, no id
+    ("worktree-lane-f-architecture-soft-sweep", False),
+    # LEGACY `worktree-<slug>` -- never a lane, and must not become one
+    ("worktree-am5-dispatch-visibility", False),
+    # anchoring probes: neither end may be loose
+    ("worktree-lane-a-514-lane-regex ", False),
+    ("xworktree-lane-a-514-lane-regex", False),
+])
+def test_the_unified_grammar_accepts_the_enum_and_rejects_what_the_rival_admitted(name, accepted):
+    """(b) The grammar TIGHTENED. Nothing the strict constant rejected is now accepted; the
+    id-less and legacy shapes the loose rival waved through are refused."""
+    assert bool(bm.LANE_BRANCH_RE.match(name)) is accepted
+
+
+@requires_git
+def test_is_lane_merge_is_seeded_on_both_sides_of_the_grammar(tmp_path):
+    """(c) `is_lane_merge` seeded both ways against real merge commits.
+
+    Both branches carry the `worktree-lane-` prefix, so this is not the easy lane-vs-`feat/`
+    discrimination the older edge test makes -- it is exactly the pair the two rival
+    constants disagreed about, and the second assertion FAILS if the loose one returns.
+    """
+    repo, _ = _seed(tmp_path)
+    conforming = _merge(repo, "worktree-lane-a-514-lane-regex")
+    off_grammar = _merge(repo, "worktree-lane-wave-closures")
+
+    assert bm.is_lane_merge(repo, conforming) is True
+    assert bm.is_lane_merge(repo, off_grammar) is False
+    # A non-merge commit is not a lane merge either -- the fail-CLOSED direction.
+    assert bm.is_lane_merge(repo, _rev(repo, "HEAD^2")) is False
+
+
+@requires_git
+def test_an_off_grammar_lane_branch_gets_NO_exemption_mid_batch(tmp_path, monkeypatch):
+    """(d) End-to-end: an open batch does NOT amnesty a `worktree-lane-*` branch that misses
+    the ratified grammar.
+
+    This is `[#510]`'s self-grant hole, narrowed. Before the collapse BOTH merges below were
+    exempt and the gate reported PASS; now the off-grammar one is reported as unanchored
+    while the conforming one is exempt AND the exemption is disclosed -- the mixed-case
+    "reported, never applied silently" clause holding under the new, tighter scope.
+
+    HONEST LIMIT this test does NOT cover, stated so nobody reads more into it: the exemption
+    is still not scoped to the manifest's lane ROSTER, so a branch that merely CONFORMS is
+    exempt whether or not the open manifest enumerates it. That remaining leg is `[#510]`.
+    """
+    repo, _ = _seed(tmp_path)
+    _write_manifest(repo)
+    floor = _rev(repo)
+    conforming = _merge(repo, "worktree-lane-a-514-lane-regex")
+    off_grammar = _merge(repo, "worktree-lane-wave-closures")
+
+    monkeypatch.setattr(aud, "_is_hub", lambda p: True)
+    monkeypatch.setattr(ja, "floor_sha", lambda p: floor)
+    findings = aud.check_journal_spine_anchor(repo)
+
+    assert findings[0].status == "fail"
+    assert off_grammar[:7] in findings[0].evidence
+    assert conforming[:7] not in findings[0].evidence
+    assert "NOT counted above" in findings[0].evidence
