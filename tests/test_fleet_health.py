@@ -1,9 +1,12 @@
 """Unit tests for scripts/fleet_health.py (ADR-70 Tier-2 daily fleet audit)."""
 
 import importlib.util
+import json
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from unittest import mock
+
+import pytest
 
 
 _P = Path(__file__).resolve().parent.parent / "scripts" / "fleet_health.py"
@@ -1004,6 +1007,87 @@ def test_csv_headers_an_empty_preexisting_file(tmp_path):
     lines = csv_path.read_text(encoding="utf-8").splitlines()
     assert lines[0] == ",".join(fh.LOAD_CSV_HEADER)
     assert len(lines) == 2
+
+
+def test_csv_recovery_path_never_truncates_a_concurrent_writers_row(tmp_path):
+    # terra HIGH, SECOND pass — and it refuted this function's own comment. The comment
+    # claimed an empty-but-existing file could only come from a truncated prior run and
+    # never from a concurrent create. FALSE: O_EXCL creates a ZERO-BYTE file, so a racing
+    # writer observes size 0; the recovery then opened with "w" and truncated the
+    # creator's already-written row. That is data loss. The recovery is append-only now.
+    csv_path = tmp_path / "OPERATOR-LOAD.csv"
+    real_open = fh.os.open
+
+    def racing_open(path, flags, *a, **kw):
+        # Our O_EXCL loses; the winner then completes header + a row before we resume.
+        if not Path(path).exists():
+            with open(path, "w", encoding="utf-8", newline="") as f:
+                f.write(",".join(fh.LOAD_CSV_HEADER) + "\n")
+                f.write("2026-08-04,1,1,1,1,1,1,1,4\n")
+        return real_open(path, flags, *a, **kw)
+
+    with mock.patch.object(fh.os, "open", racing_open):
+        fh.append_load_row(csv_path, date(2026, 8, 11), _COUNTS)
+    lines = csv_path.read_text(encoding="utf-8").splitlines()
+    assert any(line.startswith("2026-08-04,") for line in lines), \
+        f"the concurrent writer's row was destroyed: {lines}"
+    assert any(line.startswith("2026-08-11,") for line in lines)
+
+
+def test_triage_count_at_the_page_ceiling_is_na_not_the_ceiling(tmp_path):
+    # terra HIGH, second pass: --limit moved the blindness rather than removing it.
+    # Reporting the ceiling as an exact count would be a wrong number wearing the
+    # costume of a measurement — the one thing this gauge refuses to emit.
+    payload = json.dumps([{"number": i} for i in range(fh._GH_ISSUE_LIMIT)])
+    fake = mock.Mock(returncode=0, stdout=payload, stderr="")
+    with mock.patch.object(fh.shutil, "which", return_value="gh"), \
+         mock.patch.object(fh.subprocess, "run", return_value=fake):
+        assert fh.count_open_triage_issues(_git_repo(tmp_path)) is None
+
+
+def test_load_delta_survives_non_utf8_history(tmp_path):
+    # terra HIGH, second pass: UnicodeDecodeError subclasses ValueError, which neither
+    # OSError nor csv.Error catches — so ONE cp1252 byte in the trend history escaped to
+    # refresh()'s wrapper and discarded the WHOLE gauge for that run. Corrupt history
+    # must cost the delta and nothing else.
+    csv_path = tmp_path / "OPERATOR-LOAD.csv"
+    csv_path.write_bytes(
+        ",".join(fh.LOAD_CSV_HEADER).encode() + b"\n"
+        + b"2026-08-04,1,1,1,1,1,1,1,50\n"
+        + b"2026-08-05,\x96corrupt,1,1,1,1,1,1,7\n")
+    delta = fh.load_delta(csv_path, _COUNTS, date(2026, 8, 11))
+    assert delta == 14                       # still reads the 08-04 row: 64 - 50
+
+
+def test_refresh_writes_no_trend_row_when_the_digest_write_fails(tmp_path):
+    # terra HIGH, second pass: the row was appended BEFORE the digest was durably
+    # replaced, so a failed _atomic_write left a row for a run that never completed —
+    # quietly breaking the one-row-per-digest-run invariant leg 2 rests on.
+    eco = _seed_states(tmp_path)
+    logs = tmp_path / "logs"
+    csv_path = logs / "OPERATOR-LOAD.csv"
+    with mock.patch.object(fh, "run_audit", return_value=True), \
+         mock.patch.object(fh, "drift_summaries", return_value={}), \
+         mock.patch.object(fh, "count_open_triage_issues", return_value=3), \
+         mock.patch.object(fh, "_atomic_write", side_effect=PermissionError("held open")):
+        with pytest.raises(PermissionError):
+            fh.refresh(tmp_path, eco, logs, tmp_path / "logs" / "FLEET-HEALTH.md",
+                       date(2026, 8, 11))
+    assert not csv_path.exists(), "an orphan trend row outlived a digest that never landed"
+
+
+def test_refresh_still_writes_the_digest_when_the_csv_append_explodes(tmp_path):
+    # The converse, pinned so the reordering above cannot invert the priority: the trend
+    # is subordinate to the digest, never the other way round.
+    eco = _seed_states(tmp_path)
+    logs = tmp_path / "logs"
+    health = logs / "FLEET-HEALTH.md"
+    with mock.patch.object(fh, "run_audit", return_value=True), \
+         mock.patch.object(fh, "drift_summaries", return_value={}), \
+         mock.patch.object(fh, "count_open_triage_issues", return_value=3), \
+         mock.patch.object(fh, "append_load_row", side_effect=RuntimeError("boom")):
+        assert fh.refresh(tmp_path, eco, logs, health, date(2026, 8, 11)) is True
+    assert "## Operator load" in health.read_text(encoding="utf-8")
 
 
 def test_review_pending_excludes_prose_headings_and_explanatory_bold(tmp_path):

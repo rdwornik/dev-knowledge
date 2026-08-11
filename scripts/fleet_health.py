@@ -77,9 +77,12 @@ _GH_TIMEOUT_S = 20
 # `gh issue list` PAGE-CAPS AT 30 WITHOUT --limit (terra HIGH, 2026-08-11): the funnel
 # would silently understate itself the moment the triage queue passed 30, which is
 # precisely the saturation the gauge exists to catch -- the meter would go blind exactly
-# when it mattered. Honest residual: a count equal to this ceiling cannot be told apart
-# from a larger one, so the ceiling is set far above any plausible triage queue rather
-# than paginated.
+# when it mattered.
+#
+# The ceiling does not merely move the blindness (terra HIGH, second pass): a result set
+# that REACHES the ceiling is reported as `n/a`, not as the ceiling. Presenting 1000 for
+# a queue of 1001 would be a wrong number wearing the costume of a measurement, and this
+# whole gauge is built on the rule that an unknown is `n/a` and never a plausible digit.
 _GH_ISSUE_LIMIT = 1000
 _UNCHECKED_PROPOSAL_RE = re.compile(r"-\s+\[ \]\s+\*\*#(\d+)\*\*")
 _BACKLOG_ID_RE = re.compile(r"^- \[#(\d+)\]", re.M)
@@ -455,7 +458,10 @@ def count_open_triage_issues(repo_root: Path, timeout_s: int = _GH_TIMEOUT_S):
         payload = json.loads(result.stdout)
     except (ValueError, TypeError):
         return None
-    return len(payload) if isinstance(payload, list) else None
+    if not isinstance(payload, list):
+        return None
+    # A result set at the ceiling is indistinguishable from a larger one -> unavailable.
+    return None if len(payload) >= _GH_ISSUE_LIMIT else len(payload)
 
 
 def count_pending_closures(logs_dir: Path, backlog_text: str) -> int:
@@ -643,24 +649,34 @@ def append_load_row(csv_path: Path, run_date: date, counts: dict) -> None:
     ]
     try:
         csv_path.parent.mkdir(parents=True, exist_ok=True)
-        # HEADER AUTHORSHIP IS CLAIMED ATOMICALLY (terra HIGH, 2026-08-11). The first cut
-        # tested existence and then opened, so an overlapping scheduled run and
-        # interactive SessionStart -- the very pair _atomic_write already guards the
-        # digest against -- could both observe "no file" and both emit a header.
-        # O_CREAT|O_EXCL succeeds in exactly one process, which settles it without a lock.
-        # A file that exists but is EMPTY can only come from a truncated prior run, never
-        # from a concurrent create, so heading that case non-atomically is safe.
+        # HEADER AUTHORSHIP IS CLAIMED ATOMICALLY, AND NOTHING EVER TRUNCATES (terra HIGH
+        # x2, 2026-08-11). The first cut tested existence and then opened, so an
+        # overlapping scheduled run and interactive SessionStart -- the very pair
+        # _atomic_write already guards the digest against -- could both emit a header.
+        # O_CREAT|O_EXCL settles that without a lock: exactly one process creates.
+        #
+        # The SECOND pass refuted this function's own follow-up comment, which claimed an
+        # empty-but-existing file "can only come from a truncated prior run, never from a
+        # concurrent create". FALSE: O_EXCL creates a zero-byte file, so a racing writer
+        # CAN observe size 0 -- and the recovery then opened with "w", truncating the
+        # creator's already-written row. That was data loss, not a cosmetic race.
+        # The recovery path is therefore APPEND-ONLY: "a" cannot destroy another writer's
+        # row under any interleaving. Honest residual: a true create race can leave a
+        # duplicate header line mid-file. That is ugly and self-evident on read, and it
+        # never costs a measurement -- the trade this file wants.
         try:
             fd = os.open(csv_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
         except FileExistsError:
-            if csv_path.is_file() and csv_path.stat().st_size == 0:
-                with open(csv_path, "w", encoding="utf-8", newline="") as f:
-                    csv.writer(f, lineterminator="\n").writerow(LOAD_CSV_HEADER)
+            with open(csv_path, "a", encoding="utf-8", newline="") as f:
+                writer = csv.writer(f, lineterminator="\n")
+                if csv_path.stat().st_size == 0:
+                    writer.writerow(LOAD_CSV_HEADER)
+                writer.writerow(row)
         else:
             with os.fdopen(fd, "w", encoding="utf-8", newline="") as f:
-                csv.writer(f, lineterminator="\n").writerow(LOAD_CSV_HEADER)
-        with open(csv_path, "a", encoding="utf-8", newline="") as f:
-            csv.writer(f, lineterminator="\n").writerow(row)
+                writer = csv.writer(f, lineterminator="\n")
+                writer.writerow(LOAD_CSV_HEADER)
+                writer.writerow(row)
     except OSError as exc:
         print(f"fleet_health: WARNING -- operator-load CSV not written: {exc!r}",
               file=sys.stderr)
@@ -671,6 +687,13 @@ def load_delta(csv_path: Path, counts: dict, today: date, days: int = _LOAD_DELT
 
     Rows whose total was unavailable are skipped rather than treated as zero --
     a missing measurement is not a measurement of nothing. Never raises.
+
+    Reads with errors="replace" (this file's convention everywhere else) and catches
+    ValueError: a single cp1252 byte in the trend history used to raise
+    UnicodeDecodeError -- a ValueError subclass that neither OSError nor csv.Error
+    catches -- which escaped to refresh()'s wrapper and discarded the WHOLE gauge for
+    that run (terra HIGH, second pass). Corrupt HISTORY must cost the delta and nothing
+    else; today's counts are still measured, rendered and persisted.
     """
     current = counts.get("funnel_total")
     if not isinstance(current, int):
@@ -678,7 +701,7 @@ def load_delta(csv_path: Path, counts: dict, today: date, days: int = _LOAD_DELT
     cutoff = today - timedelta(days=days)
     best = None
     try:
-        with open(csv_path, encoding="utf-8", newline="") as f:
+        with open(csv_path, encoding="utf-8", errors="replace", newline="") as f:
             for row in csv.DictReader(f):
                 try:
                     d = date.fromisoformat((row.get("date") or "").strip())
@@ -687,7 +710,7 @@ def load_delta(csv_path: Path, counts: dict, today: date, days: int = _LOAD_DELT
                     continue
                 if d <= cutoff and (best is None or d > best[0]):
                     best = (d, total)
-    except (OSError, csv.Error):
+    except (OSError, csv.Error, ValueError):
         return None
     return None if best is None else current - best[1]
 
@@ -845,14 +868,22 @@ def refresh(repo_root: Path, ecosystem_dir: Path,
             ecosystem_dir / "disposition-register.yaml",
             repo_root / "docs" / "audits",
         )
-        csv_path = logs_dir / LOAD_CSV_NAME
-        load["delta_7d"] = load_delta(csv_path, load, today)
-        append_load_row(csv_path, today, load)
+        load["delta_7d"] = load_delta(logs_dir / LOAD_CSV_NAME, load, today)
     except Exception as exc:  # noqa: BLE001 -- surfacing organ: never break the digest
         print(f"fleet_health: WARNING -- operator-load gauge unavailable: {exc!r}",
               file=sys.stderr)
         load = None
     _atomic_write(health_file, build_digest(states, today, completed_at, drift_by_repo, load))
+    # The trend row is appended only AFTER the digest is durably replaced (terra HIGH,
+    # second pass): appending first left a row for a digest run that never completed if
+    # _atomic_write raised, quietly breaking the one-row-per-digest-run invariant leg 2
+    # rests on. Guarded separately so a CSV problem still cannot cost the digest.
+    if load is not None:
+        try:
+            append_load_row(logs_dir / LOAD_CSV_NAME, today, load)
+        except Exception as exc:  # noqa: BLE001 -- the trend never outranks the digest
+            print(f"fleet_health: WARNING -- operator-load row not appended: {exc!r}",
+                  file=sys.stderr)
     return ok
 
 
