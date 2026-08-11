@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-08-10
+last_reviewed: 2026-08-11
 reconciled_with: handoff-process@6.2.0
 status: active
 owner: Rob
@@ -7,7 +7,7 @@ owner: Rob
 
 # CLAUDE.md — Dev Knowledge
 <!-- scope: meta -->
-<!-- version: 2.55 — 2026-08-10 -->
+<!-- version: 2.56 — 2026-08-11 -->
 
 > **Session contract for Claude Code in this repo.** Read on every session start (auto). Single canonical agent-instruction file (≤200 lines). Per ADR-53.
 >
@@ -106,7 +106,7 @@ See `ARCHITECTURE.md` for the structural model; read it before structural change
 
 1. `git status` — clean working tree?
 2. `git log --oneline -5` — recent context
-3. Read most recent handoff if continuing prior session
+3. Read the **active** `docs/handoffs/*/` bundle — **newest by git add-date**, which is what `audit.py::_select_active_bundle` resolves; same predicate as §1 item 3, so the two boot instructions select the same bundle — if continuing prior session
 4. Check `BACKLOG.md` for in-progress items
 5. `pytest --collect-only` — test discovery sanity check
 6. Wait for Rob's prompt — never improvise
@@ -221,6 +221,7 @@ Machine-enumerated (last 5 by number, from `docs/decisions/ADR-*.md` headers; re
 
 > _Entries v1.0–v2.48 condensed to git history per ADR-49/65 (info-preserving — full prior history: `git log --follow -p -- CLAUDE.md`)._
 
+- v2.56 (2026-08-11, batch-4 W1 — the I-D8 drive-by) — **the second boot-instruction site is closed; boot-bundle selection is now stated once, identically, at both sites.** v2.55 fixed §1 item 3 to cite `audit.py::_select_active_bundle` and knowingly left §6 item 3 reading “Read most recent handoff”, because that line lives in a different hub region (`session-start-protocol`) and the ARC-7 act was scoped to one line. The operator ruled the remainder a **drive-by fix scheduled in W1, birthing no row** — `protocols/STANDING_RULINGS.md` **I-D8** — and this is that fix. Two sites edited byte-identically, source-of-truth first: the hub carrier `templates/claude-regions/session-start-protocol.md` line 4, then this file's byte-coupled `session-start-protocol` region (`test_hub_region_bodies_still_byte_match_the_templates` passes). The new line cites the same predicate as §1 item 3 and says so, so the two instructions are checkably one rule rather than two that happen to agree. **Fleet-wide drift on this phrase is now 0 sites** — the same terminal state v2.53 recorded for the branch-prefix enum. Like v2.55 it is a reference to an existing predicate, not new machinery, and adds no `must|shall|never` token: `silent_rule_ratchet` measured 440 before the edit and 440 after, against baseline 441. **v2.55's text is deliberately NOT rewritten** even though its “A SECOND SITE IS KNOWINGLY LEFT STANDING” sentence is now historical — it is an accurate record of what v2.55 did, and amending it would be the edit-the-record move the v2.53 precedent and STANDING_RULINGS B6 both refuse. L10 version 2.55→2.56. Genuine full-file end-to-end re-read from disk this session (all 12 sections confirmed accurate; §9's roster was exercised live against this lane's own four commits — `audit-health`, `ruff`, `validate-hermetization`, `audit-index-freshness`, `codemap-freshness`, `backlog-id-on-close` and `backlog-filing-backpressure` each fired, and `audit-health` BLOCKED one commit on `journal_spine_anchor`, exactly as its row says it does — and §6 item 3 is the one defect the re-read had left to surface); `last_reviewed` re-stamped 2026-08-11.
 - v2.55 (2026-08-10, ARC-7 boot-selection predicate) — **§1 item 3 cites the live predicate instead of an undefined phrase.** Selection among same-day handoff siblings was **mechanical for verification and conventional for boot**: `audit.py::_select_active_bundle` resolves the active bundle by **git add-date**, and `verify_handoff_probes` / `check_handoff_probes` / `validate_residual_completeness` all reuse it — while the boot instruction said only “Most recent `docs/handoffs/*/` bundle”, which defines nothing. Witnessed live 2026-08-10 with two same-day siblings: a seat opening the base sibling would learn of it one turn late, at its first `/handoff-verify`. Fixed source-of-truth first — the hub carrier `templates/claude-regions/first-read.md`, then this file's byte-coupled `first-read` region (`test_hub_region_bodies_still_byte_match_the_templates` passes). **The fix is a reference to an existing predicate, not new machinery**, and adds no `must|shall|never` token, so `silent_rule_ratchet` is unmoved at 440 ≤ 441. **A SECOND SITE IS KNOWINGLY LEFT STANDING** — §6 item 3 still reads “Read most recent handoff”; it lives in a different hub region (`session-start-protocol`) and the operator scoped this act to one line, so it is filed rather than widened, the same move v2.52 made with its fourth enum site. Recorded as evidence against `[#473]` (its Done-when leg never reached the boot instruction) **without reopening it — that row stays CLOSED**. L10 version 2.54→2.55. Genuine full-file end-to-end re-read from disk this session (all 12 sections confirmed accurate; §9's roster was exercised adversely today — `audit-health` blocked a bundle commit on `residual_completeness`, and both pre-push organs passed on two pushes — and §6's second site is the one defect the re-read surfaced); `last_reviewed` re-stamped 2026-08-10.
 - v2.54 (2026-08-08, ARC-dispatch-surface-codify) — **stamp-clearing re-read; no §-content moved.** The arc's `HANDOFF_PROCESS` 6.1.0→6.2.0 bump forced this file's `reconciled_with` re-stamp, turning `canonical_freshness` A2 RED; the operator ruled it cleared by doing the review, not by re-stamping around it. All twelve sections re-read end-to-end from disk against what the arc could have falsified — **no defect found here**, so nothing below §12 changed (the one runbook correction landed in `docs/handoffs/README.md`). §9's `audit-health` row was exercised adversely en route: the held RED wedged the commit gate exactly as it says. Per-file notes: the re-stamp commit message. `last_reviewed` 2026-08-08; footer with it. L10 2.53→2.54.
 - v2.53 (2026-08-07, PRE-2 arc) — **the fourth enum site is closed.** v2.52 below left
@@ -239,5 +240,5 @@ Machine-enumerated (last 5 by number, from `docs/decisions/ADR-*.md` headers; re
 
 ---
 
-**Last updated:** 2026-08-10
+**Last updated:** 2026-08-11
 **Maintained by:** Rob
