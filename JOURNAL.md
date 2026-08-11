@@ -19,6 +19,111 @@
 
 ---
 
+### 2026-08-11 (l) — CC (Opus 5, batch-4 lane W2): the operator-load gauge is built and proven — and [#270] cannot close, because closing a row with dependents is structurally barred
+
+**Did:** Ran batch-4 lane **W2** (feature bucket, G-8) on branch
+`worktree-lane-b-270-fleet-audit`, contract
+`docs/audits/2026-08-11-technical-batch-4-w2-lane-contract.md`. Three commits plus a
+merge: step 0's contract-of-record (`7ef6f50f`), the `[#270]` build (`7e4d503e`), a
+main-merge (`f457db3e`), and this entry.
+
+**Built** the operator-load gauge into `scripts/fleet_health.py` — the gating FIRST
+element of any Tier-2 nightly layer, idle 34 days. Five funnel producers (open
+nightly-triage Issues · pending closure proposals · disposition-register rows ·
+ARCHITECT-REVIEW-PENDING markers · open BACKLOG by band), a `[load]` line, a digest
+section, a header-stable append-only `logs/OPERATOR-LOAD.csv`, and the `.gitignore` line
+batch4-prep found missing. Measured live:
+
+`[load] funnel 44: 15 triage / 0 closures / 27 dispositions / 2 review-pending; backlog: 7 P1 / 91 P2 / 100 P3; 7d delta: n/a`
+
+Every figure cross-checks against its own producer independently of the code that
+produced it — the triage 15 equals this very session's `surface_triage.ps1` SessionStart
+line, dispositions 27 equals a direct grep of the register, backlog 7/91/100 equals a
+direct grep of BACKLOG.md.
+
+**Tests-first, proven rather than asserted:** the 52 new tests were run against HEAD's
+`scripts/fleet_health.py` in an isolated out-of-repo tree — **52 failed, 55 passed** —
+before the implementation existed; 107/107 pass with it.
+
+**Result:** the row's Done-when is **met on legs 1 and 2 and blocked on the close
+itself.** `[#270]` IS STILL OPEN, deliberately.
+
+**THE BLOCKER, with evidence — a structural property, not a slip.** Closing `[#270]`
+requires removing it from `BACKLOG.md` (ADR-107 §6.3 retire-not-delete: drop the node
+from `tasks/manifest.json`; `--prune` is refused by the generator). But
+`validate_backlog._check_dep_references` (`scripts/validate_backlog.py:127-136`) is
+strict reference-existence against **live** BACKLOG ids — `ids = {t["id"] for t in
+tasks}` — so the moment `[#270]` leaves, its two dependents dangle. Observed live, as a
+hard pre-commit refusal:
+
+```
+FAIL  depends-on references non-existent id #270 - [#271] line 272
+FAIL  depends-on references non-existent id #270 - [#348] line 274
+validate_backlog: 2 hard-fail(s), 1 warning(s)
+```
+
+The repo's own precedent says the remedy is to strip the inbound clause in the same
+commit, and it has done so **twice**: `79047095` closed `[#226]` and stripped
+`[#221]`'s `depends-on: #226`; `40ce3189` closed `[#236]` and stripped `[#238]`'s and
+`[#240]`'s. **This lane's frozen contract forbids exactly that** — "no edits to the
+three dependent rows", stated twice — and forbids the two other escapes, "no
+`SKIP=`/`--no-verify`". So the clause is unmeetable as written. Per the contract's own
+budget item (c) the lane **STOPPED on that clause, recorded it with evidence, and
+continued the meetable ones** rather than reinterpreting silently. The closure was
+drafted in full, refused by the gate, and **reverted to a clean tree** — nothing
+half-closed was left behind.
+
+**The generalization, which is the part worth keeping:** under the current validator
+**no row that has dependents can ever be closed without editing its dependents.** That
+makes the G-5 closing-commit metric inapplicable to any depended-upon row, and it is a
+schema-level question, not a `[#270]` question. Escalated, not filed — the contract
+forbids births.
+
+**Also found, not introduced:** `ecosystem/doc-counts.md` was **stale on main by one** —
+it claimed 2721 collected where live HEAD was 2720 (measured: suite-minus-this-file 2665
++ 55 at HEAD = 2720; + 107 now = 2772, the regenerated figure). The regeneration
+silently corrects the pre-existing off-by-one alongside the real +52.
+
+**Suite:** 4 REDs on the first run, **2 after the main-merge**. The two that cleared
+(`test_health_ok_with_registered_repo`, `test_health_stays_ok_with_na_status`) were
+never real: `journal_spine_anchor` scans MAIN's first-parent spine but reads the WORKING
+TREE's `JOURNAL.md`, so a branch based pre-manifest manufactures a DEGRADED verdict for
+a merge main had already anchored. **A lane sitting behind main fabricates this RED** —
+worth knowing, because the reflex fix is `SKIP=audit-health` and the correct fix is to
+take the merge. The 2 remaining are the documented pair (`[#457]` routine-consumers ·
+linked-worktree context). The contract also predicted "sed-absent x2"; those did **not**
+appear here — `sed` is present in this environment, so that pair is environment-dependent,
+not universal.
+
+**Changes:** `scripts/fleet_health.py` (+~250) · `tests/test_fleet_health.py` (+52 tests)
+· `.gitignore` (`logs/OPERATOR-LOAD.csv`) · `ecosystem/doc-counts.md` (2721→2772) ·
+`docs/audits/2026-08-11-technical-batch-4-w2-lane-contract.md` (new, step 0) ·
+`docs/audits/README.md` (regenerated twice — once for the contract, once to resolve the
+merge conflict).
+
+**Abandoned:** the `[#270]` closure (blocked, above). `ARCHITECTURE.md`'s Ch2/Ch6 organ
+row — OUT OF SCOPE for this lane per the batch-4 plan §4.2 step 6, owed to the
+integrator. `CLAUDE.md` §9 — deliberately untouched; its row names `fleet_health.py`
+without enumerating the digest's sections, so a new section does not falsify it.
+
+**Next (for the integrator, all drafted here and none executed):**
+1. **Rule on the closure.** Smallest option: close `[#270]` in the integrator's own
+   commit, where the dependent-row edit is in the integrator's remit rather than the
+   lane's. The closing-commit SHA is `7e4d503e` and the G-5 metric + kill-criterion text
+   is ready.
+2. **The three dependents' unblock**, verified in-row and NOT edited: `[#271]` nightly
+   proposal loop (`depends-on: "#270"`, open) and `[#348]` backlog grooming
+   (`depends-on: "#270"`, open) both become unblocked on closure; `[#117]` (`DEFER —
+   peg: #270`, body not frontmatter) has its peg MET, and un-deferring is an operator
+   act.
+3. **JOURNAL letter race, resolved not guessed:** main took (j); W1 initially took (j)
+   on its branch, then re-lettered to **(k)** after taking the same main-merge; this
+   entry is **(l)**. No collision remains, but the integrator should re-check at merge
+   time rather than trusting this note.
+4. `ARCHITECTURE.md` Ch2/Ch6 row for the new digest section, owed per §4.2 step 6.
+
+---
+
 ### 2026-08-11 (j) — CC (Opus 5, primary tree): the batch-4 manifest lands MID-FLIGHT — W1's step 0 was unexecutable, and the file it needed says so
 
 **Did:** Committed `docs/audits/2026-08-11-technical-batch-4-manifest.md` at `70a9ce2a` on the
