@@ -19,6 +19,74 @@
 
 ---
 
+### 2026-08-11 (h) — CC (Opus 5, primary tree): the batch-4 GO — five intakes ratified in one act, a ceiling given a number, and one birth that turned out to be an amendment
+
+**Did:** The batch-4 GO recording arc (`3aaf5140`) on `docs/batch4-go-recording`: the single
+ratification act, the errata, the register, and the births. Authority: the operator's Fork-4 picker,
+2026-08-11.
+
+**Ratification — S1 exactly, and the arithmetic came out as predicted.** Intakes **#28 #29 #30 #31
+#32** flipped `DRAFT → ACCEPTED` in one commit, each with the schema-required `decided-by` **and**
+`disposition` pair — which is why the flip could not be pre-staged: `docs/intake/README.md` §3
+requires both at ACCEPTED and forbids them at any other status, so the line is only writable
+*paired with* the flip. Intake counts moved **ACCEPTED 9 → 14, DRAFT 8 → 3, working set → 0**,
+matching N3's S1 row on the nose. The three residual DRAFTs are `#10`, `#24`, `#27`.
+
+**The ceiling finally has a number.** It had been shaping decisions while being **UNLOCATABLE
+in-repo**; N3 established the only nearby statement admits two readings. **Ruled: R1, six working
+intakes** (I-D6) — and because #32's open question 3 and #30 §C are the same question asked twice,
+they are answered once, there. A ceiling that cannot be evaluated is not a ceiling.
+
+**The birth ledger came in at 2, not 3, and the reason is the interesting part.** The A5
+landing-predicate row was checked against `tasks/513-*` **before** birthing, as instructed — and
+`[#513]` **is** that organ: its own text reads *"the landing predicate is the DETECTOR, not the
+fixes"*, over intake #30 §A's own evidence set (`markdown_it` half-landed, `yaml.safe_load`
+half-landed, the rival `LANE_BRANCH_RE` constants). So §A births nothing and `[#513]`'s Done-when is
+**amended and made mechanically testable** — four clauses naming an `ALL_CHECKS` member, its armed
+state, a seeded-RED test, and a dated exemption path. A landing-predicate row whose own predicate is
+prose would have been a self-refutation, which is the one thing this row cannot be.
+
+Born instead: **`[#521]`** (the `sys.path` Shape-B rollout owner — `STANDING_RULINGS` H4 names *"no
+open row owns the substrate"* and names this row as its own expiry condition; the ARC-2 report had
+misrouted it into `[#502]`, the mutmut row) and **`[#522]`** (a re-cut handoff sibling carrying its
+predecessor's payloads — the hole `validate_residual_completeness` *states in its own docstring* that
+it does not catch: it asserts placeholder-replaced, never value-present, so a **thinner** refill
+passes).
+
+**Two errata, authorized rather than silent.** **E-1** on #32: the xdist figures attributed to
+`STANDING_RULINGS` E1 are not E1's — the fused pair implies ~3.3× where E1 records **5.2×**, so the
+mis-citation *understates* the adopted tool and the correction strengthens #32's own conclusion.
+**E-2** on #32 and #25: the *"no home for external research artefacts"* premise — clause (b) verified
+TRUE, clause (a) **refuted and settled by events**, since the six memos landed in `docs/archive/` at
+`f571ac3c`. Worth recording that the correction went **further than the pack proposed**: N3 offered
+`docs/audits/`, and the ingest lane derived `docs/archive/` from quoted governance (ADR-60's
+holding-zone role) instead — the better-grounded home. Three further premise sites are immutable or
+append-only and are **superseded, not rewritten**.
+
+**A ruling that had already been executed but never recorded** — the commission-5 session-continuity
+attach to `[#511]` — got its register line (I-D4). N3 found no in-repo trace of it. That is exactly
+the half-landed-ruling class intake #30 §A is about, caught inside the arc that ratified §A.
+
+**Also ruled:** intake **#10**'s survival review is **OPENED, and nothing more** — the README §7
+metric fired at 31 days, and firing a metric is a trigger for a decision, not the decision; the
+document is not rejected, archived, or status-changed here (I-D7). The `kill-candidates:` refusal
+check is **deferred behind ADR-111's own n=2 clause** (I-D9), which means the K-4 class stays
+contained by careful reading — the control that does not scale — knowingly, for two audits.
+
+**The fourth night branch is gone, and it was verified before deletion**, not assumed:
+`claude/night-batch-cloud-lanes-a4mpkp` @ `fe81e896` was a strict ancestor of `main` with zero
+unmerged commits, and all four of its artifacts were confirmed present on `main` *today* rather than
+merely somewhere in history. Deleted. **Zero `claude/*` branches remain.**
+
+**Result:** suite **1 failed / 2715 passed / 4 skipped / 1 xfailed** (10m39s) — the standing `[#426]`
+row, unmoved by two births. Ratchet **439 ≤ 441**, zero new tokens.
+
+**Changes:** five `docs/intake/*.md` (+#25 erratum), `docs/intake/README.md` + the intake tree
+(regen), `protocols/STANDING_RULINGS.md` (+I-D4…I-D10), `tasks/513` (amended),
+`tasks/{521,522}` (new), `BACKLOG.md` + `tasks/manifest.json`.
+
+**Abandoned:** nothing. **Next:** the browser seat's W1 contract.
+
 ### 2026-08-11 (g) — CC (Opus 5, primary tree): night lane N3 re-gated and merged — the ratification pack, and a ceiling nobody can locate
 
 **Did:** Merged the last night branch, `claude/night-n3-ratification-pack-r2jxj0` (tip `71da4de2`)
