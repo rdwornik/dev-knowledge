@@ -1,7 +1,7 @@
 # Prompt Template for Claude Code
 <!-- scope: meta -->
 
-Version: 1.13
+Version: 1.14
 Updated: 2026-08-08
 
 > **Copy this template, fill placeholders, save as `.md` artifact, deliver to Claude Code via paste-into-prompt.** Browser chat produces this; Claude Code executes it.
@@ -65,7 +65,7 @@ Updated: 2026-08-08
 
 | Model  | `<opus | sonnet>` — see the routing matrix below; `opus` is the `.dev-knowledge` default |
 | Mode   | `<execution (default) | plan-then-auto (M/L repo-derivation only) | auto-accept>` |
-| Effort | `<low | medium | high>`       |
+| Effort | `<low | medium | high | xhigh>` |
 
 **This table is M/L-only (ruled 2026-08-07).** The **dispatch line is authoritative for model and
 effort**, so an **S-class contract omits the whole table** — the line that launched the session
