@@ -19,6 +19,44 @@
 
 ---
 
+### 2026-08-11 (f) — CC (Opus 5, primary tree): night lane N2 re-gated and merged — a batch-4 plan that is mostly a register of what is not yet ruled
+
+**Did:** Merged `claude/night-n2-batch4-plan-qmd38e` (tip `09161a3d`) at `c592c98f` on
+`docs/arc9-night-n2`. Index conflicted; resolved by **regeneration**. Pure ADD: an 812-line DRAFT
+batch-4 execution plan.
+
+**What it contains.** Seven candidate lanes with contracts, order and sizing — and a **§9
+GATED(ruling) register of ten items**, which is the honest headline: **five of the seven lanes are
+gated**, two of them (F and G) on the fact that **no row id exists**, so they cannot even be *named*
+under the `validate_branch_naming` grammar that requires `\d+`. A plan whose main output is an
+enumeration of what it may not decide is the correct product for a lane with no ruling authority,
+and it says so rather than inventing ids.
+
+The gate that moves the most is **G-8** — whether the ≤1/4 process-lane cap binds a hub build batch
+— because it decides the batch's width and therefore which lanes exist at all. **G-2** is the
+sharpest: two grammar-legal names exist for an id-less lane and *both are inventions*, and F2 says a
+name derives from an enum, so it is a ruling rather than a choice.
+
+**Two of its ten gates are already answered by this session's own work, and the plan predates that.**
+**G-9** asked whether *"the research-corpus distillate"* meant the ARC-2 §6 triage or the output of
+the *"not-yet-run"* ingest lane — that lane **has since run and merged** (`4314782a`), so the
+referent is now `docs/audits/2026-08-10-technical-research-corpus-distillate.md` and the question is
+closed by events. And §9's closing note records `[#241]` and `[#390]` as *"drafted and unapplied"* —
+**both were applied at `6179ef17`** hours later under Q2. Recorded here rather than edited into the
+merged artifact, which is immutable: the plan was accurate when written, and a reader needs the
+delta, not a rewrite.
+
+**Re-gated in full on primary** (the cloud container ran zero hooks): audit-index, hermetization,
+task-tree coherence, backlog schema, CLAUDE rosters, intake index, ruff — **all exit 0**.
+
+**Result:** suite **1 failed / 2715 passed / 4 skipped / 1 xfailed** (9m42s) — the standing `[#426]`
+row. No night-lane content REDed a gate.
+
+**Changes:** `docs/audits/2026-08-10-technical-batch-4-execution-plan-draft.md` (new, 812 lines),
+`docs/audits/README.md` (regen).
+
+**Abandoned:** nothing. **Next:** night lane N3, the ratification pack.
+
 ### 2026-08-11 (e) — CC (Opus 5, primary tree): night lane N1 re-gated and merged — a cloud lane that documented its own ungatedness
 
 **Did:** Merged the first of three night branches, `claude/night-n1-synthesis-467s4h`
