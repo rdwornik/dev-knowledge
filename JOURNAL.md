@@ -19,6 +19,48 @@
 
 ---
 
+### 2026-08-12 (e) — CC (Opus 5, primary tree): the INH-3 gate FAIL clears by correction addendum, not by editing the record
+
+**Did:** Cleared the one FAIL from `/handoff-verify` on `2026-08-12-dev-knowledge-architect` at
+**`dd49a49b`**, on the operator's instruction. The supplement's §6 calendar carried
+*"`[#322]`/`[#360]` dated reviews 2026-09-09"*; the live row records `[#360]`'s 2026-09-09 review
+**WITHDRAWN** by operator ruling on 2026-08-11 (`tasks/360-*.md`, RE-ANCHORED note — I-1 superseded
+by census evidence). `[#322]`'s 2026-09-09 review stands and is untouched.
+
+**Result:** The correction landed as an **appended addendum below the existing ANSWERS text, with
+nothing above it altered** — `git diff` shows **3 insertions, 0 removals**, and the append script
+asserted the original prefix byte-identical before writing. That shape is the point, not a
+formality: the ANSWERS region is the **outgoing seat's own record**, and rewriting their text to
+match the tree would falsify a primary source in order to make a gate go green. The addendum states
+the strike, cites the live locator, and says the original is preserved above.
+
+**Re-folded rather than hand-patched:** `assemble_paste.py` regenerated `PASTE_THIS.md`
+(54707 → 55112 bytes) so the paste the incoming seat reads carries the correction. The
+promotion-debt advisory moved 3 → 4 ruling-bearing lines, which is expected — the addendum is
+itself a ruling-bearing line.
+
+**Deviation, stated rather than made silently:** the instruction said *commit on main*. A
+direct-to-main commit is barred by core-invariant #5 and would be **refused by the `block-ff-push`
+pre-push hook**, which exists to stop exactly that shape reaching main's first-parent spine. The
+operator's commit message was used verbatim on branch `docs/inh3-correction-addendum` and merged
+`--no-ff`. Same landing, gate-compatible; no bypass was used or needed.
+
+**Gate re-run after the fix — INH-3 only, plus the rows the edit could have moved:** INH-3 **PASS**
+(the calendar claim now reconciles with `tasks/360-*.md`); P8 still reports SUPPLEMENT present with
+ANSWERS **FILLED**; `verify_handoff_probes` 14/14 bind; `check_seal_identity` exit 0;
+`validate_residual_completeness` OK. **17 PASS / 0 FAIL — ONBOARDING CLEARED.**
+
+**Changes:** `docs/handoffs/2026-08-12-dev-knowledge-architect/{SUPPLEMENT,PASTE_THIS}.md`.
+
+**Abandoned:** Nothing. **Not done, deliberately:** `[#360]`'s task row was NOT edited — the row is
+already correct, and it is the supplement that had drifted from it, not the reverse. No ruling was
+reversed; the withdrawal stands as ruled on 2026-08-11.
+
+**Next:** onboarding proceeds — the incoming architect seat boots this bundle: adjudication hour
+first, then execution.
+
+---
+
 ### 2026-08-12 (d) — CC (Opus 5, primary tree): the supplement is FILLED — the outgoing seat's answers fold into the paste
 
 **Did:** Executed the v6 fill step at the operator's `supplement filled`. **`eba94d46`** folded the
