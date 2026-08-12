@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "44aa869b80093aa354dd6e4f4a6a04de5b0c0da3b8855a81511840d8f69fc8af",
+  "generated_sha256": "8cc98043493615f4b6a70215b4b33542ccd18f1a748b28e44a68f83f026e8fd5",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -935,6 +935,10 @@
     {
       "task": 440,
       "file": "440-make-the-tasks-id-ledger-tamper-evident-a-delete.md"
+    },
+    {
+      "task": 523,
+      "file": "523-executive-index-render-leg-on-generated-backlog.md"
     },
     {
       "task": 494,
