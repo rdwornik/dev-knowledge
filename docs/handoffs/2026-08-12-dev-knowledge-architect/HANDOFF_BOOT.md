@@ -10,7 +10,7 @@
 | **Destination** | worktree <!-- FILL-IN:dest-worktree START (hand-authored — the worktree name, or `none (primary tree)`) -->`none (primary tree)`<!-- FILL-IN:dest-worktree END --> · branch `main` · write-scope <!-- FILL-IN:dest-scope START (hand-authored — what this lane may write; PROSE, deliberately outside P3) -->adjudication output — rulings into `protocols/STANDING_RULINGS.md`, ADRs, intake status flips, and BACKLOG rows. **Not** a code lane: the closing arc left the tree green and the two night artifacts are immutable audits, so nothing here is edited to make a finding go away<!-- FILL-IN:dest-scope END --> · MODE **architect** — basis <!-- FILL-IN:dest-mode-basis START (hand-authored — WHY this mode, per ADR-87 item 5; PROSE, deliberately outside P3) -->the whole inbound payload is undecided — two unadjudicated DRAFTS, an open ruling with two irreconcilable readings, and eight RECORDED-ONLY rulings that never reached the tree. Every one is a *what should be true* question, which is architect scope; sending it to an execution seat would ask a lane to decide what it was dispatched to implement<!-- FILL-IN:dest-mode-basis END --> |
 | **Generated at** | Bundle cut by `scripts/gen_handoff.py` from **committed** repo state on branch `docs/batch-4-packet-and-handoff`. This line names only which branch was checked out — it states **no** sha, count, or verdict. **Re-derive HEAD / tree-clean / branch / ahead-behind live** (`PROBES.md` P3). |
 
-> **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 > **The `Destination` row is declared ex-ante — a lane inherits none of it from a prior prompt.**
 > Only its **branch** field has a mechanical counterpart: `PROBES.md` **P3** compares it against
@@ -48,7 +48,7 @@
    every `PROBES.md` row, the orientation reads, the inherited claims — against live state at
    check-time, and emits a single table. You paste it **once**. The browser reads the table; it does
    not dictate commands one at a time (HANDOFF_PROCESS §5, the v6 one-round-trip boot).
-6. **Then the operator-context beat (§13d).** The supplement is **generated EMPTY**, so unless the operator fills it first the beat fires **FULL**: *"what off-repo context — intent, priorities, findings not in the repo, changed decisions?"*
+6. **Then the operator-context beat (§13d).** The supplement is **FILLED**; its ANSWERS are in the paste, so the beat **NARROWS** to *"anything changed since the supplement was written?"*.
 7. Hand `RESIDUAL.md` — **drift-flags first** (the §1 headline) — then the **next-frontier decisions**
    (§4) + the **shipped-this-window** map (§2). The probe answers are already in the evidence block
    from step 5. **Any FAIL there blocks onboarding** (the escalation ladder); a missing required row
