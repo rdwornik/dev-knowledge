@@ -19,6 +19,58 @@
 
 ---
 
+### 2026-08-12 (a) — CC (Opus 5, primary tree): pre-handoff closing arc — the night-lane merge queue is anchored before it runs, and PLAYBOOK Ch8's dispatch claim is corrected
+
+**Did:** Opened the pre-handoff closing arc from the primary checkout on `main` at
+`9b2a6559`. Two acts in this branch, in this order and for a stated reason. (1) Corrected
+`protocols/PLAYBOOK.md` Ch8 "The dispatch surface is `dispatch <file>`" at **`10822b09`**:
+the section asserted the `dispatch` shell function is `config/dev-terminals/dispatch-alias.ps1`
+dot-sourced by the branded VS Code terminal profiles, "so `dispatch` is live in every branded
+terminal". `win-tooling@fb52bf6` changed the mechanism class on 2026-08-11 — `dispatch` is now
+a file on the PATH (`bin/dispatch.ps1` + a `dispatch.cmd` shim, deployed to
+`$HOME\.dev-terminals\bin`, that dir added to the user PATH) — and the old claim was not merely
+stale but false on its own terms, since no dot-source route ever reached every branded terminal.
+The cross-repo SHA is written `win-tooling@fb52bf6` and flagged in-line as cross-repo, applying
+the I-D 3b-4 citation convention at the one site edited. (2) **Anchored the night-lane merge
+queue before merging it**, which is what this entry is for.
+
+**Result:** Two cloud lanes are queued for integration and neither is merged yet:
+**`2ea9f2c9`** — `claude/night-1-truth-and-handoff`, the night-1 truth audit + morning handoff
+numbers (`docs/audits/2026-08-12-verification-night-1-truth-audit-and-handoff-numbers.md`,
+read-only lane, 627 lines) — and **`298fc1c0`** — `claude/night-2-strategy`, the night-2
+lessons/governance/strategy DRAFT
+(`docs/audits/2026-08-12-technical-night-2-lessons-governance-strategy.md`, 1028 lines, built
+with `commit-tree` so no hook ever fired on it, and carrying a declared
+`SKIP=audit-index-freshness` that resolves at its merge). Naming both tips **here, before the
+merges exist**, is the whole point: `check_journal_spine_anchor` reads the WORKING TREE's
+JOURNAL.md, so once this branch merges, each lane merge's introduced set already has its anchor
+in the tree and the ADR-85 predicate is satisfied at the moment the merge lands rather than
+after it. This is the standing lesson "anchor the queue before merging cloud lanes" executed as
+written — the ADR-110 batch exemption never covers `claude/*`, and zero bypasses are used in
+this arc.
+
+**Why the PLAYBOOK fix rides this branch rather than a later one:** a JOURNAL-only branch is
+structurally unanchorable — its merge introduces only the journal commit and a JOURNAL entry
+cannot name its own hash. Pairing the entry with real work in the same branch (`10822b09`) is
+the W2-anchor law's shape ("anchor-repair rides the next real work-merge"), and it is why this
+merge is anchored and a bare wrap merge would not have been.
+
+**Changes:** `protocols/PLAYBOOK.md` (Ch8 dispatch-surface paragraph, 15+/5-); `JOURNAL.md`
+(this entry). `silent_rule_ratchet` measured **440 ≤ 441** with the edit staged — unmoved, the
+correction adds no normative keyword. `audit.py health` **OK** before the commit.
+
+**Abandoned:** Nothing. Night-1's B4 filed this PLAYBOOK paragraph as "may now be stale" and
+declined to touch it (read-only lane, and PLAYBOOK sits at ratchet headroom 1); it is fixed here
+at the seat that can run the gates against it, rather than carried forward again.
+
+**Next:** merge `claude/night-1-truth-and-handoff` then `claude/night-2-strategy`, one at a
+time, `--no-ff`, regenerating `docs/audits/README.md` inside each merge commit so
+`audit-index-freshness` is satisfied by the merge that creates the staleness; full gate set on
+each merged result; then the ORGAN-INDEX relocation under operator ruling A, the new-path guard
+leg, the `gen_audit_index.py` twin fix, the batch-4 packet, the supplement and the bundle.
+
+---
+
 ### 2026-08-11 (u) — CC (Opus 5, primary tree): short close — the two operator-supplied window-close artifacts land beside the batch-4 manifest
 
 **Did:** Committed the two files the operator produced at the close of the 2026-08-10/11
