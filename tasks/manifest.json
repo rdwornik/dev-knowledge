@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "68550934868446cadc8bae98266e13609a259f2ca6e1b351017434773dd6f2a1",
+  "generated_sha256": "8cc98043493615f4b6a70215b4b33542ccd18f1a748b28e44a68f83f026e8fd5",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -265,10 +265,6 @@
     {
       "task": 296,
       "file": "296-audit-py-repo-name-repo-path-doesn-t-persist-its.md"
-    },
-    {
-      "task": 452,
-      "file": "452-433-382-dependency-is-prose-only.md"
     },
     {
       "prose": ""
@@ -941,6 +937,10 @@
       "file": "440-make-the-tasks-id-ledger-tamper-evident-a-delete.md"
     },
     {
+      "task": 523,
+      "file": "523-executive-index-render-leg-on-generated-backlog.md"
+    },
+    {
       "task": 494,
       "file": "494-ladder-ratification-l0-l5-promote-vs-leave-is-un.md"
     },
@@ -1429,10 +1429,6 @@
     {
       "task": 399,
       "file": "399-templates-handoff-v5-readme-md-tmpl-phantom-sour.md"
-    },
-    {
-      "task": 360,
-      "file": "360-protocols-definition-of-done-md-106-109-expired.md"
     },
     {
       "task": 361,

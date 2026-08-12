@@ -306,3 +306,40 @@ the ledger record is intake #27's "Ratification amendment — 2026-08-08".
 **Scope — denominator only.** The 1/4 fraction, the from-batch-2-onward start date, the
 report-the-shortfall-and-run-narrower behaviour, and the no-backfill rule are all unchanged by
 this amendment.
+
+## Amendment — 2026-08-12: a pointer block for the live batch protocol (navigational only)
+
+**This amendment adds no rule and changes no decision.** It exists because the cost the promotion
+assessment measured (`N2-D1-03`) is **navigational, not decisional**: nothing in this ADR's
+amendment trail is contested — the three prior amendments were each adjudicated APPROVED — but the
+live batch protocol is spread across this ADR's body plus three amendments plus three separate
+register sections, and a fresh seat reads five places to assemble it.
+
+Promoted at the 2026-08-12 adjudication hour as a **consolidation** (register
+`protocols/STANDING_RULINGS.md` M-5 / `N2-D1-03`). **Explicitly NOT proposed, then or now:**
+rewriting `STANDING_RULINGS` §G / §I-D10 / §J into this ADR. The register entries stay where they
+are and stay authoritative; this table only says where to look.
+
+| Rule | Lives at | One line |
+|---|---|---|
+| Adopt-native; protocol as versioned artifacts | this ADR §1 | the founding decision |
+| Lane-count parameterization | this ADR §2 | drilled at 3, designed for 4–10 (AM-2i) |
+| Refuse-to-finish integrator checklist | this ADR §3 | mechanical close-out (AM-2ii) |
+| Rejected alternatives, with reasons | this ADR §4 | kept so they are not re-proposed |
+| Vibe Kanban eval is a gate, not a build | this ADR §5 | Track 2 |
+| Operator directives carrier | Amendment 2026-08-06 | the same day's directives get an in-repo home |
+| The declared integration arc (R-1) | Amendment 2026-08-07 | adjudicated APPROVED as drafted |
+| Process-lane cap evaluated on DISPATCHED width | Amendment 2026-08-08 | denominator only; the 1/4 fraction is unchanged |
+| **G-8 · the ≤1/4 process-lane cap binds via a three-way split** | `STANDING_RULINGS` **I-D10** | execution classes **feature/satellite · finish-line · hub-introspection**, declared ex-ante per lane |
+| G-4/G-5/G-6/G-7 · batch-4 detail rulings | `STANDING_RULINGS` **I-D10** | leg discharge · closing-commit metric · the Form-E home · soft-observations scope |
+| I-D3 · a lane contract is COMMITTED before dispatch | `STANDING_RULINGS` **I-D3** | falsified four times; the reason it is a standing rule |
+| **J-2 · ids-before-contract** | `STANDING_RULINGS` **J-2** | a lane is named FROM a row; a row is not back-filled to fit a dispatched lane |
+| J-1/J-3/J-4/J-5/J-6 · batch-4 integration rulings | `STANDING_RULINGS` **J** | roster change · marker form · delay declined · leg-1 to the packet · the scoped global-edit exception |
+| W2-reds · expected-RED lists are context-local | `STANDING_RULINGS` **I-D** | a contract carries the class plus the revert-proof duty, not a fixed list |
+| W2-anchor · anchor repair rides the next real work-merge | `STANDING_RULINGS` **I-D** | a one-commit integration branch is structurally unanchorable |
+
+**Honest limit:** this is a hand-maintained table inside an immutable-by-convention document, so it
+is a snapshot rather than a generated surface. It carries the same staleness exposure as any
+enumerated list, which is the defect class `[#369]` was re-scoped away from on the same day this
+landed. A later seat that finds it stale is reading a navigational aid, not a rule — the register
+sections it names remain the authority.

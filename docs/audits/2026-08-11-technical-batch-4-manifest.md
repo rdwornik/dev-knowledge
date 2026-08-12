@@ -407,3 +407,50 @@ no `worktree-*` branch remains), but two planned lanes have not been dispatched,
 "every planned lane has a merge SHA or a recorded abandonment" is not yet true. Recorded this
 way rather than checked off, because a checklist item passed on a technicality is the failure
 mode the checklist exists to catch.
+
+## AMENDMENT — 2026-08-12, correction to the integration marker (adjudication hour)
+
+**Appended per A-4. The integration marker above, the roster table, the frontmatter and every
+earlier amendment block are byte-untouched** — this corrects the record by addition, which is the
+route A-4 ratified and which `STANDING_RULINGS` B6 requires. Editing the marker in place would be
+the edit-the-record move this manifest already declines for its own superseded queue-order
+recommendation.
+
+**What is wrong.** The integration marker states *"Rows closed in the window: `[#514]`, `[#510]`,
+`[#270]`, `[#132]`, `[#521]`"*. **Two of those five did not close.** Re-measured against `tasks/`
+at this correction's own commit:
+
+| Row | Marker claims | Live `status:` |
+|---|---|---|
+| `[#270]` | closed | **closed** ✓ |
+| `[#132]` | closed | **closed** ✓ |
+| `[#521]` | closed | **closed** ✓ |
+| `[#514]` | closed | **open** ✗ |
+| `[#510]` | closed | **open** ✗ |
+
+`[#514]` is open because only **leg 3** discharged in W1 (G-4); leg 1 is explicitly not discharged,
+since every batch-4 lane dispatched through `claude --worktree` and never reached `/lane-boot`
+step 1. `[#510]` carries its own self-limiting text. Both rows say so in their own bodies — the
+marker is the surface that disagreed with them, which is why the correction lands here rather than
+on the rows.
+
+**Why it matters, stated plainly:** the closure contract (§Closure contract, item 3) names five
+rows that close before the batch closes. A packet written from the marker would close batch 4 on a
+false predicate — it would read five-of-five when the tree reads three-of-five.
+
+**The corrected statement of record:**
+
+- **CLOSED in the window (3):** `[#270]` · `[#132]` · `[#521]`, plus `[#117]` un-deferred on its
+  met peg (unchanged, and not a close).
+- **CARRIED to the next window (3):** `[#514]` · `[#510]` · `[#513]`.
+
+**The decision, ruled at the 2026-08-12 adjudication hour** (operator `OK` en bloc; register
+`protocols/STANDING_RULINGS.md` M-3 / `N1-FLAG-1`): **the batch closes on the three that closed,
+with the three carried recorded as carried** — rather than holding the batch open until all five
+land. Holding it would contradict an execution-only week, and W3 and W4 are the carried rows' own
+discharge path, so the work is owned either way. `[#514]`, `[#510]` and `[#513]` are **not closed
+by this correction** and remain open with their own rows as owners.
+
+**`status:` stays `open`.** This marker corrects a factual list; it does not close the batch. The
+close itself happens at the end-of-batch packet, which is still due next window, and this
+correction is one of its named inputs.

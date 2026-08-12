@@ -444,3 +444,20 @@ for historical reference. The Q1-Q5 architectural concepts captured in this ADR
 - Ratification -> replaced by operator escalation ladder (Tier 1/2/3)
 
 Decision body preserved as historical record.
+
+---
+
+**FORWARD POINTER — appended 2026-08-12 (not a status edit).** The handoff architecture recorded
+here was superseded in practice by **ADR-82**, which carries `HANDOFF_PROCESS` v6 — the live
+specification. This ADR's status line still reads `Accepted` and its own dates stop at 2026-05-26;
+both are left exactly as they are, because the decision body is the record of what was decided and
+editing it to match today's tree would falsify a primary source.
+
+Night-2 `N2-D2-ii` named this the clearest instance of **superseded-without-note**: the supersession
+is real, it was carried by amendment rather than by status, and nothing at the top of this file said
+so. **ADR-94 permits an in-place status edit only on ratification** — a forward pointer is not one —
+so the append is the route (`STANDING_RULINGS` B6). Recorded at the 2026-08-12 adjudication hour,
+register `protocols/STANDING_RULINGS.md` M-6 / `N2-D2-ii`.
+
+**Retained, not archived:** live `protocols/` prose still cites this ADR, so H3's zero-inbound bar
+is not met (`N2-R3-01`).

@@ -33,9 +33,9 @@ fill-in skeleton is `templates/intake-template.md`.
 
 ### DRAFT (3)
 
-- [#10](2026-07-11-tech-c4-visualization-memo.md) — C4 / Codemap Visualization — Architect Research Memo
 - [#24](2026-08-05-tech-currency-wave-1.md) — PART B — INTAKE DRAFT: tech-currency wave 1 — buy the commoditized walls
 - [#27](2026-08-06-tech-adoption-consolidation-intake.md) — INTAKE DRAFT — tech-adoption consolidation ledger (38 items, successor-facing)
+- [#33](2026-08-12-func-repo-self-description-consolidation.md) — Consolidation — the repo's self-description: architecture freshness, docs taxonomy, and per-provider config
 
 ### READY (1)
 

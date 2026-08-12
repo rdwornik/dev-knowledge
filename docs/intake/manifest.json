@@ -3,7 +3,7 @@
   "direction": "derived-from",
   "source": "docs/intake/README.md",
   "generator": "scripts/gen_intake_tree.py",
-  "source_sha256": "c1d586d9f6bb93b4bc2a9332a3186b7d9cfd1b321ba57a9bf88acf7f6f459c95",
+  "source_sha256": "b016f351ba465b78a3021671f2ae78078d0a792b3ba04a05e6ff050503ce43eb",
   "honest_limit": {
     "statement": "ADR-109 section 4 is discharged by a byte-exact round-trip plus a residue manifest, NOT by a derivation ratio. This surface's ratio is INVERTED relative to surface 1 (BACKLOG.md <-> tasks/), where task lines were the majority and residue the minority. Recorded so the generality claim is honest about what was shown.",
     "item_derived_lines": 28,
@@ -40,10 +40,6 @@
       ],
       "2026-07-08-func-night-routines-suite.md": [
         "consumed-by",
-        "origin"
-      ],
-      "2026-07-11-tech-c4-visualization-memo.md": [
-        "consumers",
         "origin"
       ],
       "2026-07-11-tech-ownership-manifest.md": [
@@ -166,6 +162,10 @@
         "decided-by",
         "disposition",
         "note",
+        "origin"
+      ],
+      "2026-08-12-func-repo-self-description-consolidation.md": [
+        "consumers",
         "origin"
       ]
     },
@@ -324,17 +324,17 @@
     },
     {
       "t": "item",
-      "file": "2026-07-11-tech-c4-visualization-memo.md",
-      "status": "DRAFT"
-    },
-    {
-      "t": "item",
       "file": "2026-08-05-tech-currency-wave-1.md",
       "status": "DRAFT"
     },
     {
       "t": "item",
       "file": "2026-08-06-tech-adoption-consolidation-intake.md",
+      "status": "DRAFT"
+    },
+    {
+      "t": "item",
+      "file": "2026-08-12-func-repo-self-description-consolidation.md",
       "status": "DRAFT"
     },
     {
