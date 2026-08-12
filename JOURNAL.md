@@ -19,6 +19,68 @@
 
 ---
 
+### 2026-08-12 (b) — CC (Opus 5, primary tree): the organ index leaves `docs/`, and the gate-shape hole that let it land there is closed
+
+**Did:** Executed operator ruling A of 2026-08-11 in the pre-handoff closing arc, as three
+commits on `feat/organ-index-relocation-and-path-guard`. **`98d50e78`** relocated
+`docs/ORGAN-INDEX.md` → `ecosystem/organ-index.md` and added **Rule C** to
+`scripts/validate_hermetization.py`; **`0258a1dc`** applied W5's `d5b19a2d` F1 fix
+(tracked-files-only) to its twin `gen_audit_index.py`; **`0fba1be1`** consumed both findings
+from one terra review pass over the combined code diff. Register entry: `protocols/STANDING_RULINGS.md`
+**K-1**.
+
+**Result:** The relocation is a row-scope act, not a tidy-up — the old path is named in the
+ratified Done-when of the CLOSED row `[#132]`, so the Done-when text stays verbatim as the record
+of what was accepted and a dated relocation marker rides the row instead. Every site from the
+night-1 A4 cost sheet moved in one commit, and the cost sheet was verified live against the tree
+before being acted on rather than trusted: 1 generator constant + 3 prose sites, 3
+`.pre-commit-config.yaml` sites, 5 test assertions, `boundary_report.py`, `ARCHITECTURE.md` Ch2 +
+§Validators, `CLAUDE.md` §9, and the regenerated index.
+
+**Why the guard, and not just the move:** how the index got to `docs/` is a **gate-shape finding**.
+ADR-101's refusal gate reads the top level and the `docs/<genre>/` level and stops, so a file loose
+at `docs/` introduces no new top-level entry and no new genre folder — Rule A was silent **by its
+own literal spec**, and the suite carried a test asserting exactly that silence. Rule C is the leg
+that reads the rest of the path. Rule A's reading is left untouched and its test kept, now paired
+with a Rule C assertion, because re-interpreting an existing rule to cover a case it was never
+written for is how a gate stops being checkable. The allowlist is **derived** from the live
+taxonomy and a test asserts Rule C refuses none of the 2054 currently-tracked paths.
+
+**The review earned its keep.** Terra (`gpt-5.6-terra`, tally 0/1/1/0) found that an untracked
+**symlink** walked straight back through the tracked-files filter — `_is_tracked` resolved the
+candidate, which follows the link out of the repo, hit the include-on-unknown branch, and indexed
+it. The same defect the commit was written to fix, through the one door left open. Reproduced on a
+real repo before acceptance, fixed by deriving the name lexically, re-verified. Its second finding
+(no timeout on `git ls-files`, so a stalled git hangs the commit rather than failing it) was fixed
+in **both** twins — declared, because fixing only the file the finding named would have re-created
+the RECORDED-ONLY pattern night-1 flagged as this corpus's systemic failure.
+
+**Drift the freshness re-reads found, unrelated to any of the above.** `ARCHITECTURE.md` was
+re-read end-to-end from disk (which is all its `last_reviewed` stamp claims): §Validators still
+described `validate_hermetization` as Rule A + Rule B only; the pre-commit gate list was missing
+`organ-index-freshness` — **seventeen of eighteen** against `ecosystem/doc-counts.md`, the *second*
+time that list has trailed the config by exactly one; and the governing-ADR roster stopped at
+ADR-109 while ADR-110 and ADR-111 were Accepted. Ch2's map note was also stale on its own terms
+("will become its verified source once it ships" — it shipped 2026-08-11). All fixed; `CLAUDE.md`
+records the arc as v2.58. Both stamps moved only after the re-reads they claim.
+
+**Changes:** `docs/ORGAN-INDEX.md` → `ecosystem/organ-index.md`; `scripts/{validate_hermetization,
+generate_organ_index,gen_audit_index,boundary_report}.py`; `tests/test_{validate_hermetization,
+generate_organ_index,gen_audit_index}.py`; `.pre-commit-config.yaml`; `ARCHITECTURE.md`;
+`CLAUDE.md`; `protocols/STANDING_RULINGS.md`; `tasks/132-*.md`; `ecosystem/doc-counts.md`;
+`docs/audits/README.md`; the terra artifact
+`docs/audits/2026-08-12-codex-closing-arc-organ-index-guard.md`.
+
+**Abandoned:** Nothing. **Not done, and named:** the five unexamined `claude/*` origin satellites
+were NOT deleted — each carries unmerged commits, ruling 3c-5 defers their census, and deleting
+unexamined work needs operator word. The hygiene sweep reports them standing rather than claiming
+zero.
+
+**Next:** the batch-4 packet (the single act that closes the batch), the outgoing supplement, and
+the handoff bundle.
+
+---
+
 ### 2026-08-12 (a) — CC (Opus 5, primary tree): pre-handoff closing arc — the night-lane merge queue is anchored before it runs, and PLAYBOOK Ch8's dispatch claim is corrected
 
 **Did:** Opened the pre-handoff closing arc from the primary checkout on `main` at

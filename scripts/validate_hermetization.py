@@ -14,6 +14,16 @@ disambiguates). Two rules, both BLOCK (exit 1) on violation:
   -> BLOCK. The tree is hermetic: growing its top level is a deliberate, surfaced act
   (an ADR-101 amendment), never a drive-by folder -- directly fixing the #131 root cause.
 
+  Rule C (home allowlist, operator ruling A of 2026-08-11; register
+    `protocols/STANDING_RULINGS.md` K-1): an added path INSIDE a sanctioned Tier-1
+    directory whose immediate home directory is not on the allowlist below
+  -> BLOCK, with the message "new path outside allowlisted homes -- operator approval
+  required". Rule A seals the TOP level and the `docs/<genre>/` level and stops there,
+  which is exactly how `docs/ORGAN-INDEX.md` was born: a file loose at the `docs/` root
+  introduces no new top-level entry and no new genre folder, so Rule A was silent by its
+  own literal spec (the test asserting that silence is still in the suite, now paired with
+  a Rule C assertion). Rule C is the leg that reads the rest of the path.
+
   Rule B (audit grammar, ADR-101 section 2 + ratification R3/R4): an added
   `docs/audits/*.md` whose name fails `<YYYY-MM-DD>-<class>[-<slug>]` with
     * <class> whole-token LONGEST-MATCH against the CLOSED 11-class enum (never
@@ -118,6 +128,71 @@ _LOWER_KEBAB_DOT = re.compile(r"^[a-z0-9.-]+$")
 _SLUG_RE = re.compile(r"^[a-z0-9.]+(-[a-z0-9.]+)*$")
 
 
+# --- Rule C: the HOME allowlist (operator ruling A 2026-08-11; register K-1) ----------
+# DERIVED FROM THE LIVE TAXONOMY, not invented: every pattern below is a home that tracked
+# files already occupy at the time of writing, and `test_rule_c_admits_every_tracked_path`
+# asserts exactly that against `git ls-files`. So the allowlist cannot silently diverge
+# from the tree it describes -- if a pattern is dropped, that test reds rather than the
+# gate quietly refusing legitimate work.
+#
+# Pattern grammar, deliberately three tokens wide so the set stays readable:
+#   `a/b`   -- that literal home, exactly
+#   `a/*`   -- any single immediate child of `a` is a home
+#   `a/**`  -- any home at one-or-more levels below `a` (bundle / fixture trees)
+#
+# HONEST LIMIT, stated rather than left to be discovered: Rule C polices the HOME of an
+# added file, and `**` homes admit arbitrary depth below them. A new sub-directory inside
+# an already-open home (a new handoff bundle, a new test fixture tree) is admitted by
+# design -- those are the shapes the repo creates routinely and gating them would make the
+# organ a nuisance rather than a seal. What it catches is a file whose home is a place the
+# repo has no convention for, which is the class `docs/ORGAN-INDEX.md` belonged to.
+_HOME_PATTERNS: tuple[str, ...] = (
+    # agent/runtime config
+    ".claude", ".claude/*", ".claude/skills/*",
+    ".claude-plugin",
+    ".github/workflows",
+    ".vscode",
+    # source + tooling
+    "codex",
+    "config",
+    "deploy", "deploy/lived_sandbox",
+    "logs",
+    "plugins/*", "plugins/*/*",
+    "protocols", "protocols/archive",
+    "scripts", "scripts/codemap", "scripts/hooks", "scripts/toc",
+    "tasks",
+    "templates", "templates/archive", "templates/claude-regions",
+    "templates/handoff", "templates/handoff/*",
+    "tests", "tests/fixtures", "tests/fixtures/**",
+    # generated / declared ecosystem state (the organ index's home since 2026-08-12)
+    "ecosystem", "ecosystem/schema", "ecosystem/*/history",
+    # docs: GENRE trees only. `docs` itself is absent BY DESIGN -- that absence is the
+    # rule this leg exists to state, and it is why the relocation was owed.
+    "docs/archive",
+    "docs/audits",
+    "docs/decisions", "docs/decisions/archive",
+    "docs/handoffs", "docs/handoffs/**",
+    "docs/intake", "docs/intake/archive",
+)
+
+
+def _home_matches(home: str, pattern: str) -> bool:
+    """One home vs one pattern under the three-token grammar above."""
+    hp = home.split("/")
+    pp = pattern.split("/")
+    if pp[-1] == "**":
+        head = pp[:-1]
+        return len(hp) > len(head) and hp[: len(head)] == head
+    if len(hp) != len(pp):
+        return False
+    return all(p == "*" or p == h for h, p in zip(hp, pp))
+
+
+def is_allowed_home(home: str) -> bool:
+    """True iff `home` (a repo-relative POSIX directory) is an admissible home."""
+    return any(_home_matches(home, pat) for pat in _HOME_PATTERNS)
+
+
 # --- pure classifiers (unit-tested directly; no git) ----------------------------------
 
 def _posix_parts(path: str) -> list[str]:
@@ -196,9 +271,30 @@ def rule_b_violation(path: str) -> Optional[str]:
             f"incident-evidence; whole-token longest-match)")
 
 
+def rule_c_violation(path: str) -> Optional[str]:
+    """Rule C (home allowlist). Return a BLOCK reason, or None.
+
+    Scoped to paths whose top-level entry is ALREADY sanctioned: when it is not, Rule A
+    refuses first and says something more useful about it, and two rules shouting about
+    one path helps nobody. A top-level FILE is Rule A's territory entirely.
+    """
+    parts = _posix_parts(path)
+    if len(parts) < 2:
+        return None                       # top-level file -> Rule A owns it
+    if parts[0] not in SANCTIONED_TIER1_DIRS:
+        return None                       # Rule A already blocks, with a better message
+    home = "/".join(parts[:-1])
+    if is_allowed_home(home):
+        return None
+    return (f"new path outside allowlisted homes -- operator approval required: "
+            f"'{home}/' is not an admissible home for a new file. The repo's homes are "
+            f"derived from the live taxonomy (see _HOME_PATTERNS); a genuinely new one is "
+            f"an operator decision recorded as a ruling, not a drive-by add")
+
+
 def classify(path: str) -> Optional[str]:
-    """One added path -> the first BLOCK reason (Rule A then Rule B), or None if clean."""
-    return rule_a_violation(path) or rule_b_violation(path)
+    """One added path -> the first BLOCK reason (Rule A, then B, then C), or None."""
+    return rule_a_violation(path) or rule_b_violation(path) or rule_c_violation(path)
 
 
 def check(added_paths: list[str]) -> list[str]:
@@ -241,9 +337,10 @@ def main() -> int:
               file=sys.stderr)
         for r in reasons:
             print(f"  {r}", file=sys.stderr)
-        print("  The tree is hermetic (ADR-101): a new top-level entry / docs genre, or "
-              "an off-grammar audit filename, is a deliberate ADR-101 amendment -- not a "
-              "drive-by add. Bypass (peer-hook parity): git commit --no-verify.",
+        print("  The tree is hermetic (ADR-101): a new top-level entry / docs genre, an "
+              "off-grammar audit filename, or a file in a home the repo has no convention "
+              "for, is a deliberate act -- not a drive-by add. Bypass (peer-hook parity): "
+              "git commit --no-verify.",
               file=sys.stderr)
         return 1
     return 0

@@ -77,11 +77,11 @@ repos:
         files: '(^docs/audits/.*\.md$|^scripts/gen_audit_index\.py$)'
         pass_filenames: false
       - id: organ-index-freshness
-        name: Organ index freshness check ([#132]; docs/ORGAN-INDEX.md)
+        name: Organ index freshness check ([#132]; ecosystem/organ-index.md)
         # Fail-on-stale regen-and-diff, mirroring audit-index-freshness /
         # claude-rosters-freshness: regenerate with
         # `python scripts/generate_organ_index.py --write`. Guards the generated organ
-        # inventory (docs/ORGAN-INDEX.md) against silent rot — the surface that replaces
+        # inventory (ecosystem/organ-index.md) against silent rot — the surface that replaces
         # "operator-as-registry", so a stale one is worse than none. Fires on EVERY organ
         # source the generator reads (.claude/{agents,commands,skills,workflows,rules},
         # settings.json, this config itself, the plugin manifest, the declared L0
@@ -90,7 +90,7 @@ repos:
         # HUB-ONLY (n=1), like its three peer freshness gates. Bypass: --no-verify.
         entry: uv run --locked python scripts/generate_organ_index.py --check
         language: system
-        files: '(^\.claude/(agents|commands|skills|workflows|rules)/|^\.claude/settings\.json$|^\.pre-commit-config\.yaml$|^plugins/|^ecosystem/organ-registry\.yaml$|^deploy/manifest-v.*\.yaml$|^docs/ORGAN-INDEX\.md$|^scripts/generate_organ_index\.py$)'
+        files: '(^\.claude/(agents|commands|skills|workflows|rules)/|^\.claude/settings\.json$|^\.pre-commit-config\.yaml$|^plugins/|^ecosystem/organ-registry\.yaml$|^deploy/manifest-v.*\.yaml$|^ecosystem/organ-index\.md$|^scripts/generate_organ_index\.py$)'
         pass_filenames: false
       - id: validate-hermetization
         name: ADR-101 hermetization refusal gate (#306; HUB-ONLY, prospective-only)

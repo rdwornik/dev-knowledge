@@ -2,7 +2,9 @@
 
 The row's Done-when has two mechanical clauses and this file tests both:
 
-  (a) "the generator emits docs/ORGAN-INDEX.md covering all organ classes"
+  (a) "the generator emits ecosystem/organ-index.md covering all organ classes"
+      (the row names the OLD path; relocated by operator ruling A of 2026-08-11 —
+       register STANDING_RULINGS K-1 — so the clause binds at the new target)
       -> test_render_covers_every_declared_organ_class + the live-tree coverage test
   (b) "a freshness hook flags a stale index"
       -> test_check_flags_a_stale_index (the --check contract the hook entry runs)
@@ -254,10 +256,10 @@ def test_live_repo_index_covers_every_organ_class():
 
 
 def test_live_committed_index_is_the_generated_bytes():
-    """The committed docs/ORGAN-INDEX.md equals a fresh render — the same predicate the
-    freshness hook enforces, asserted in the suite so a stale index reds two ways."""
-    target = _REPO_ROOT / "docs" / "ORGAN-INDEX.md"
-    assert target.exists(), "docs/ORGAN-INDEX.md is missing — run --write"
+    """The committed ecosystem/organ-index.md equals a fresh render — the same predicate
+    the freshness hook enforces, asserted in the suite so a stale index reds two ways."""
+    target = _REPO_ROOT / "ecosystem" / "organ-index.md"
+    assert target.exists(), "ecosystem/organ-index.md is missing — run --write"
     assert target.read_text(encoding="utf-8") == goi.render_index(_REPO_ROOT)
 
 
@@ -302,7 +304,7 @@ def test_the_freshness_hook_is_wired_into_pre_commit():
     cfg = (_REPO_ROOT / ".pre-commit-config.yaml").read_text(encoding="utf-8")
     assert "id: organ-index-freshness" in cfg
     assert "generate_organ_index.py --check" in cfg
-    for source in ("docs/ORGAN-INDEX", "ecosystem/organ-registry", r"\.claude/"):
+    for source in ("ecosystem/organ-index", "ecosystem/organ-registry", r"\.claude/"):
         assert source in cfg, f"hook files: pattern does not cover {source}"
 
 
@@ -390,11 +392,11 @@ def test_probe_writes_nothing_and_never_gates(tmp_path):
     """Layer-2 read-only + wired into no gate: exit 0 even with drift, tree untouched."""
     root = _tree(tmp_path)
     goi.main(["--write", "--repo-root", str(root)])
-    before = (root / "docs" / "ORGAN-INDEX.md").read_text(encoding="utf-8")
+    before = (root / "ecosystem" / "organ-index.md").read_text(encoding="utf-8")
     home = tmp_path / "home"
     _write(home / ".claude" / "commands" / "ghost.md", "x")
     assert goi.main(["--probe-user-level", "--repo-root", str(root), "--home", str(home)]) == 0
-    assert (root / "docs" / "ORGAN-INDEX.md").read_text(encoding="utf-8") == before
+    assert (root / "ecosystem" / "organ-index.md").read_text(encoding="utf-8") == before
 
 
 # --------------------------------------------------------------------------------------
