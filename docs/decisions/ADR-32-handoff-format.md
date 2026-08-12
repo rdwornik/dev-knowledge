@@ -134,3 +134,21 @@ Handoffs for work spanning multiple repos live in `.dev-knowledge/docs/handoffs/
 - ADR-28: three-layer architecture (browser = Layer 1 strategic; Claude Code = Layer 2 execution)
 - ADR-31: authority model (centralized audit — audit script as grounding tool at session open)
 - Follow-up: `protocols/HANDOFF_PROCESS.md` rewrite (separate session, not yet scheduled)
+
+---
+
+**FORWARD POINTER — appended 2026-08-12 (not a status edit).** The handoff architecture this ADR
+established was carried forward by **ADR-42**, and then by **ADR-82** (`HANDOFF_PROCESS` v6), which
+is the live specification today. This ADR's decision body is **unchanged and remains the record of
+what was decided here**; the marker exists because the superseded-without-note class is real —
+night-2 `N2-D2-ii` measured this chain (ADR-32 → ADR-42 → ADR-82) carrying its supersession by
+amendment rather than by status, so a reader arriving at the top of this file saw `Accepted` and no
+onward pointer.
+
+**Why a marker and not a status change:** ADR-94 permits editing an ADR's status line in place
+**only on ratification**, and adding a forward pointer is not a ratification. The append is the
+sanctioned route (`STANDING_RULINGS` B6). Recorded at the 2026-08-12 adjudication hour — register
+`protocols/STANDING_RULINGS.md` M-6 / `N2-D2-ii`.
+
+**This ADR is deliberately retained.** H3's archival bar is zero inbound references, and live prose
+in `protocols/` still cites it, so it stays where it is (`N2-R3-01`).
