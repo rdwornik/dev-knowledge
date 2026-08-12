@@ -19,6 +19,58 @@
 
 ---
 
+### 2026-08-12 (c) — CC (Opus 5, primary tree): batch 4 CLOSES on three of five contract rows, and the outgoing bundle is cut
+
+**Did:** Closed the pre-handoff arc. **`d9dbc212`** committed the end-of-batch packet
+`docs/audits/2026-08-11-technical-batch-4-packet.md` — the manifest's own `closed_by:` target, so
+committing it is the single act that expires batch 4 (`batch_manifest.open_batches(.)` returned
+`['4']` immediately before and `[]` after). **`b5902e83`** cut and filled the outgoing architect
+bundle `docs/handoffs/2026-08-12-dev-knowledge-architect`.
+
+**Result — and the packet's own claim is the interesting part: it does NOT claim the closure
+contract discharged.** Contract item 3 names five rows to close with ADR-65 evidence; **three are
+still open** (`[#514]`, `[#510]`, `[#513]`), each by its own lane's honest self-limiting
+declaration. The batch closes on the three that did close (`[#270]`, `[#132]`, `[#521]`) with the
+rest recorded CARRIED. A packet written from the manifest's integration marker would have closed
+the batch on a false predicate — that marker at `:398` claims `[#514]` and `[#510]` closed, and
+both measure `status: open`. The correction route is an appended A-4 amendment marker, not an edit;
+it is **owed** and named in the packet so it is not discovered later.
+
+**Every inherited figure was re-measured before being carried**, and §7 of the packet records where
+the re-measurement disagreed with its source rather than smoothing it. The consequential one:
+night-1's I-D6 box reports *"SEED 9 · DRAFT 3 · READY 1 → 13"*; measured **SEED 10 → 14**, against
+a `docs/intake/` byte-identical to the `9b2a6559` night-1 measured at — a counting error, not tree
+movement. It matters because it makes the definition-reading **8 over** the ceiling rather than 7,
+and makes the two readings differ by exactly **11**, which is the figure the carried ruling states.
+
+**The bundle carries a payload, not a task list.** The residual's §4 is seven decisions ordered by
+what blocks what: adjudicate the two night DRAFTS first; settle I-D6; re-scope the consolidation
+intake (GAP-2's archive leg is owned by `[#420]` under a live do-not-touch order, GAP-3 is W-9(a)
+inside an ACCEPTED intake); land the two load-bearing RECORDED-ONLY rulings; build the
+seeded-defect corpus before `[#492]`'s **2026-08-17** re-check measures nothing; find a vehicle for
+the ownerless ARCHITECTURE commission; append the owed manifest marker. §1 separates STANDING from
+MOVED and states no verdict, count or sha — those are the probes' live answers. The SUPPLEMENT's
+ANSWERS region is **committed EMPTY**, which is the defined cold-handoff disposition: those answers
+belong to the outgoing architect chat and CC does not fabricate them. CC's own observations ride in
+the sanctioned addenda block, labelled as observations.
+
+**Changes:** `docs/audits/2026-08-11-technical-batch-4-packet.md` (new, closes the batch);
+`docs/handoffs/2026-08-12-dev-knowledge-architect/` (5 files); `docs/audits/README.md`.
+
+**Abandoned:** Nothing. **Not done, and named rather than quietly skipped:** the five unexamined
+`claude/*` origin satellites were NOT deleted — each carries unmerged commits, ruling 3c-5 defers
+their census with an owner, and deleting unexamined work needs operator word. The hygiene sweep
+reports them standing rather than claiming zero, which is the honest reading of a sweep that
+cannot pass on its own terms.
+
+**Verification at the cut:** `verify_handoff_probes` 14/14 bind; `check_seal_identity` exit 0;
+`validate_residual_completeness` OK; `audit.py health` OK; `silent_rule_ratchet` 440 ≤ 441,
+unmoved across the whole arc; **zero bypasses — no `--no-verify`, no `SKIP=`, at any point.**
+
+**Next:** the incoming architect seat adjudicates night-1 and night-2, then rules I-D6.
+
+---
+
 ### 2026-08-12 (b) — CC (Opus 5, primary tree): the organ index leaves `docs/`, and the gate-shape hole that let it land there is closed
 
 **Did:** Executed operator ruling A of 2026-08-11 in the pre-handoff closing arc, as three
