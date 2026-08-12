@@ -3,12 +3,12 @@
   "direction": "derived-from",
   "source": "docs/intake/README.md",
   "generator": "scripts/gen_intake_tree.py",
-  "source_sha256": "c1d586d9f6bb93b4bc2a9332a3186b7d9cfd1b321ba57a9bf88acf7f6f459c95",
+  "source_sha256": "348112ac05d7b829fea03c676b5ab0ce347652f9e17e63db538d5f4f45bc6522",
   "honest_limit": {
     "statement": "ADR-109 section 4 is discharged by a byte-exact round-trip plus a residue manifest, NOT by a derivation ratio. This surface's ratio is INVERTED relative to surface 1 (BACKLOG.md <-> tasks/), where task lines were the majority and residue the minority. Recorded so the generality claim is honest about what was shown.",
-    "item_derived_lines": 28,
+    "item_derived_lines": 27,
     "residue_lines": 238,
-    "total_lines": 266,
+    "total_lines": 265,
     "surface_1_comparison": "inverted -- surface 1 was majority item-derived"
   },
   "not_captured": {
@@ -40,10 +40,6 @@
       ],
       "2026-07-08-func-night-routines-suite.md": [
         "consumed-by",
-        "origin"
-      ],
-      "2026-07-11-tech-c4-visualization-memo.md": [
-        "consumers",
         "origin"
       ],
       "2026-07-11-tech-ownership-manifest.md": [
@@ -246,7 +242,7 @@
     },
     {
       "t": "line",
-      "v": "**28 intake documents.**"
+      "v": "**27 intake documents.**"
     },
     {
       "t": "line",
@@ -316,16 +312,11 @@
     },
     {
       "t": "line",
-      "v": "### DRAFT (3)"
+      "v": "### DRAFT (2)"
     },
     {
       "t": "line",
       "v": ""
-    },
-    {
-      "t": "item",
-      "file": "2026-07-11-tech-c4-visualization-memo.md",
-      "status": "DRAFT"
     },
     {
       "t": "item",

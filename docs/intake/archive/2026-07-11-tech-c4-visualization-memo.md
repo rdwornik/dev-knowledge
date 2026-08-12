@@ -1,6 +1,7 @@
 ---
 intake-id: 10
-status: DRAFT
+status: REJECTED
+reason: 32 days DRAFT with zero status movement, caught by the I-D7 survival review; its one pointing row [#322] leg (b) was re-pegged to a dated review by seat-27 ruling, so the row that pointed at it has stopped pointing at it — F1/F3 are preserved here as the evidence behind the ADR-51 amendment 2026-07-05 (operator ruling A2, adjudication hour 2026-08-12)
 origin: architect research memo (open-web research synthesis), 2026-07-11 — input for the deferred system-visualization work
 consumers: "the deferred system-visualization work (#326 ruling / #165)"
 ---
