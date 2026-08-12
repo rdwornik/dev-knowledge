@@ -19,6 +19,55 @@
 
 ---
 
+### 2026-08-12 (d) — CC (Opus 5, primary tree): the supplement is FILLED — the outgoing seat's answers fold into the paste
+
+**Did:** Executed the v6 fill step at the operator's `supplement filled`. **`eba94d46`** folded the
+outgoing architect chat's ANSWERS into `PASTE_THIS.md` and flipped the cold framing to FILLED
+across the bundle `docs/handoffs/2026-08-12-dev-knowledge-architect`.
+
+**Result:** The bundle was cut with `SUPPLEMENT.md` committed **EMPTY** at `b5902e83` — the defined
+cold-handoff disposition, because those answers belong to the outgoing chat and CC does not
+fabricate them. They arrived, so the file did what it was cut to do. Verified filled *before*
+folding via `assemble_paste._extract_answers` — the same shared predicate `gen_handoff._is_filled`
+uses, so the fold and the framing cannot disagree about the fill-state. The fold and reflow ran
+**through the assembler**, not by hand, so `PASTE_THIS.md` stays derived from its canonical sources
+(46143 → 54707 bytes); `HANDOFF_BOOT.md`, `RESIDUAL.md` and `PROBES.md` flipped to FILLED, so the
+incoming §13(d) operator-context beat **NARROWS** rather than firing FULL.
+
+**Swept the whole bundle after the fold, because the reflow covers generator sites only.** A grep
+for every cold-framing phrase — "generated EMPTY", "ANSWERS region is empty", "cold handoff",
+"not-yet-filled", "folds nothing", the FULL-beat sentence — returns nothing across all five files.
+No stale cold sentence survives beside a filled supplement.
+
+**The answers corroborate this window's own work rather than contradicting it**, which is worth
+recording because it was checkable either way: §3 lists `protocols/` as the **considered and
+rejected** organ-index home, with ruling A choosing `ecosystem/` on the generated-artifact pattern
+(register K-1) — which is what landed at `98d50e78`. §4(ii) independently reaches night-1's A3
+conclusion and states the re-scoped consolidation filing: GAP-1 plus only the genuinely unowned
+legs, cross-referencing `[#420]` and W-9(a) as owners instead of re-scoping them. §6 records VS
+Code healthy, its root cause pre-dating us and removed.
+
+**Promotion-debt advisory, surfaced rather than silently carried (intake #18 A8):** the assembler
+flagged 3 ruling-bearing lines in the folded ANSWERS. §7 dispositions all three itself — (a) the
+**OneDrive read-only rule is PENDING the operator's word**, home `STANDING_RULINGS` when ruled;
+(b) the execution-only-week intent is recorded in the supplement, which §7 names as its home;
+(c) the file-upload transport practice needs no repo home. **Nothing was landed from (a)** — it is
+explicitly pending, and core-invariant #6 makes a global-infra edit exception-with-ruling in any
+case. Flagged, not executed.
+
+**Changes:** the five bundle files under `docs/handoffs/2026-08-12-dev-knowledge-architect/`.
+
+**Abandoned:** Nothing. **Not done, deliberately:** the OneDrive rule above; and the residual's §4
+was NOT rewritten to restate the answers now riding in the paste — the incoming seat reads both,
+and duplicating them would split the truth.
+
+**Verification:** `verify_handoff_probes` 14/14 bind, 0 fail, 0 warn · `check_seal_identity` exit 0
+· `validate_residual_completeness` OK · `audit.py health` OK · zero bypasses.
+
+**Next:** the incoming architect seat boots this bundle — adjudication hour first, then execution.
+
+---
+
 ### 2026-08-12 (c) — CC (Opus 5, primary tree): batch 4 CLOSES on three of five contract rows, and the outgoing bundle is cut
 
 **Did:** Closed the pre-handoff arc. **`d9dbc212`** committed the end-of-batch packet
