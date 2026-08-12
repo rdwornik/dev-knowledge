@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """boundary_report.py — #312 read-only fleet CLAUDE.md methodology-boundary reporter (C1).
 
-A faithful sibling of `fleet_health.py` / `audit.py` (kin to the #132 ORGAN-INDEX
+A faithful sibling of `fleet_health.py` / `audit.py` (kin to the #132 organ-index
 generator): parse each fleet repo's `CLAUDE.md` for the #312 Form-A fenced region
 markers (`<!-- methodology:start/end id=… owner=hub|repo -->`), align every consumer's
 `owner=hub` regions against the hub baseline by `id`, and REPORT drift. It is a

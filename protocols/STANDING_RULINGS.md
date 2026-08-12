@@ -1118,6 +1118,39 @@ measurements behind each line below.
   operator ruled it KEPT. The exception is scoped to that one entry and does not generalize to
   the next global edit, which is what #6 asks of every such ruling.
 
+## K. Window-close operator rulings (2026-08-11/12)
+
+- **K-1 · The organ index lives at `ecosystem/organ-index.md`** — operator ruling A of
+  2026-08-11, executed 2026-08-12 in the pre-handoff closing arc. The generated organ
+  inventory moved from `docs/ORGAN-INDEX.md` to `ecosystem/organ-index.md`, and the name
+  dropped to lowercase kebab-case to match every other member of `ecosystem/`.
+  **The breach it corrects:** `docs/` is a Tier-2 GENRE tree under ADR-101 section 1 —
+  its members live in `docs/<genre>/` — and the organ index is none of the five genres
+  (archive, audits, decisions, handoffs, intake). It is generated ecosystem state, the
+  same class as `ecosystem/organ-registry.yaml`, which it reads. It was the only file
+  that ever sat loose at the `docs/` root, and it got there because the ADR-101 refusal
+  gate reads the TOP level and the `docs/<genre>/` level and stops: a file loose at
+  `docs/` introduces no new top-level entry and no new genre folder, so Rule A was silent
+  by its own literal spec. `tests/test_validate_hermetization.py` carried a test asserting
+  exactly that silence.
+  **Scope note:** the path is named in the ratified Done-when of the CLOSED row `[#132]`,
+  so relocating it is a row-scope act rather than a lane-scope one — which is why it is
+  recorded here as a ruling instead of landing as an edit. The row's Done-when text is
+  retained verbatim as the record of what was accepted; a dated relocation marker is
+  appended to the row so the row and the tree do not silently disagree.
+  **Landed with a guard, so the class closes rather than the instance:** the same commit
+  series adds **Rule C** to `scripts/validate_hermetization.py` — an added file whose home
+  directory is outside the allowlist derived from the live taxonomy is refused with
+  *"new path outside allowlisted homes — operator approval required"*. Rule A's reading is
+  left exactly as it was and the test asserting its silence is kept, now paired with a
+  Rule C assertion. A live-tree test asserts Rule C admits all 2054 currently-tracked
+  paths, so the allowlist and the tree it describes cannot drift apart quietly.
+  Sites moved in one commit: the generator's target constant and its three prose sites,
+  the `organ-index-freshness` hook name/comment/`files:` regex, five test assertions,
+  `boundary_report.py`'s kinship comment, `ARCHITECTURE.md` Ch2 (also stale on its own
+  terms — it read "will become its verified source once it ships", and it had shipped),
+  `CLAUDE.md` §9, and the regenerated index itself.
+
 ## Editing note (read before adding an entry)
 
 This file sits inside the silent-rule ratchet corpus (`protocols/*.md`; detector

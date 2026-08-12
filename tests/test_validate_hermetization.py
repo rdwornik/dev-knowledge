@@ -99,10 +99,15 @@ def test_rule_a_allows_file_in_sanctioned_genre():
     assert vh.rule_a_violation("docs/decisions/ADR-102-thing.md") is None
 
 
-def test_rule_a_allows_file_directly_under_docs_root():
+def test_rule_a_allows_file_directly_under_docs_root_but_rule_c_does_not():
     # ADR-101 section 3 Rule A enumerates: new top-level dir / file / genre FOLDER. A file
     # directly under docs/ introduces no new genre folder, so Rule A is silent (literal spec).
+    # THAT SILENCE IS HOW docs/ORGAN-INDEX.md WAS BORN. Rule A's reading is kept exactly as
+    # it was -- the fix is a new leg, not a re-interpretation of an existing one -- and this
+    # test now pins BOTH halves so neither can drift into the other.
     assert vh.rule_a_violation("docs/ORGAN-INDEX.md") is None
+    assert vh.rule_c_violation("docs/ORGAN-INDEX.md") is not None
+    assert vh.classify("docs/ORGAN-INDEX.md") is not None
 
 
 # --- Rule B: audit grammar + R4 casing ---------------------------------------
@@ -308,3 +313,82 @@ def test_main_fail_open_on_git_error(monkeypatch, capsys):
     monkeypatch.setattr(vh, "staged_added_paths", _boom)
     assert vh.main() == 0                          # fail OPEN
     assert "skipped" in capsys.readouterr().err    # but LOUD
+
+
+# --- Rule C: the home allowlist (operator ruling A 2026-08-11; register K-1) --
+
+def test_rule_c_blocks_a_file_loose_at_the_docs_root():
+    """The seeded out-of-home file REDs -- the exact breach the ruling corrects."""
+    r = vh.rule_c_violation("docs/stray-note.md")
+    assert r is not None
+    assert "new path outside allowlisted homes -- operator approval required" in r
+    assert "'docs/'" in r
+
+
+def test_rule_c_admits_the_relocated_organ_index():
+    """The organ-index move PASSES: ecosystem/ is an allowlisted home."""
+    assert vh.rule_c_violation("ecosystem/organ-index.md") is None
+    assert vh.classify("ecosystem/organ-index.md") is None
+
+
+def test_rule_c_blocks_a_new_package_dir_under_an_allowlisted_parent():
+    # scripts/ is sanctioned and scripts/codemap|hooks|toc are known homes; a NEW package
+    # dir is a deliberate act (it adds a codemap node), so it is surfaced rather than added.
+    assert vh.rule_c_violation("scripts/newpkg/mod.py") is not None
+    assert vh.rule_c_violation("scripts/codemap/mod.py") is None
+
+
+def test_rule_c_admits_open_homes_the_repo_creates_routinely():
+    # Handoff bundles and fixture trees are created constantly; gating them would make the
+    # organ a nuisance. `**` admits arbitrary depth below those two roots BY DESIGN.
+    assert vh.rule_c_violation("docs/handoffs/2026-08-12-dev-knowledge-architect/README.md") is None
+    assert vh.rule_c_violation("docs/handoffs/archive/legacy/old/x.md") is None
+    assert vh.rule_c_violation("tests/fixtures/brand-new-tree/src/pkg/mod.py") is None
+    assert vh.rule_c_violation("ecosystem/win-tooling/history/2026-01-01.md") is None
+    assert vh.rule_c_violation(".claude/skills/a-new-skill/SKILL.md") is None
+
+
+def test_rule_c_is_silent_where_rule_a_already_speaks():
+    # Two rules shouting about one path helps nobody: an unsanctioned TOP-LEVEL dir is
+    # Rule A's refusal, and a top-level FILE is Rule A's territory entirely.
+    assert vh.rule_c_violation("brandnew/thing.md") is None
+    assert vh.rule_a_violation("brandnew/thing.md") is not None
+    assert vh.rule_c_violation("STRAY.md") is None
+
+
+def test_rule_c_admits_every_tracked_path_in_the_live_repo():
+    """THE ANTI-DRIFT TEST: the allowlist is DERIVED from the live taxonomy, so every
+    path the repo already tracks is admissible. If a pattern is dropped or a convention
+    changes, this reds -- rather than the gate quietly refusing legitimate work."""
+    repo = Path(__file__).resolve().parent.parent
+    out = subprocess.run(["git", "-C", str(repo), "ls-files"],
+                         capture_output=True, text=True, encoding="utf-8")
+    assert out.returncode == 0, out.stderr
+    paths = [p for p in out.stdout.splitlines() if p.strip()]
+    assert len(paths) > 500, "guard against a vacuous pass on an empty ls-files"
+    offenders = {p: vh.rule_c_violation(p) for p in paths if vh.rule_c_violation(p)}
+    assert not offenders, f"Rule C refuses {len(offenders)} already-tracked path(s): " \
+                          f"{sorted(offenders)[:5]}"
+
+
+def test_rule_c_blocks_end_to_end_through_the_hook(tmp_path):
+    """Firing test, not a presence test: the hook exits 1 on a staged out-of-home ADD."""
+    repo = _init_repo(tmp_path)
+    stray = repo / "docs" / "stray-note.md"
+    stray.write_text("# stray\n", encoding="utf-8")
+    _git(repo, "add", str(stray))
+    res = _run_hook(repo)
+    assert res.returncode == 1
+    assert "new path outside allowlisted homes" in res.stderr
+    assert "operator approval required" in res.stderr
+
+
+def test_rule_c_lets_the_organ_index_relocation_through_the_hook(tmp_path):
+    """The move itself passes the live organ, staged exactly as `git mv` stages it."""
+    repo = _init_repo(tmp_path)
+    (repo / "ecosystem").mkdir(parents=True, exist_ok=True)
+    idx = repo / "ecosystem" / "organ-index.md"
+    idx.write_text("# organ index\n", encoding="utf-8")
+    _git(repo, "add", str(idx))
+    res = _run_hook(repo)
+    assert res.returncode == 0, res.stderr

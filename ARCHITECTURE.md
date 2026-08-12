@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-08-10
+last_reviewed: 2026-08-12
 reconciled_with: handoff-process@6.2.0
 status: active
 owner: Rob
@@ -14,7 +14,24 @@ owner: Rob
 > class this repo exists to kill). Fix the map when reality moves; fix the *source*
 > when the doctrine moves.
 >
-> Last updated: `2026-08-10` — **claims-correction pass: 16 checkably-false claims fixed** (the
+> Last updated: `2026-08-12` — **pre-handoff closing arc: the organ index relocates, and two
+> defects this re-read found are fixed.** Ch2's map note and §Validators now name
+> `ecosystem/organ-index.md` (moved from `docs/ORGAN-INDEX.md` by operator ruling A of
+> 2026-08-11; register `protocols/STANDING_RULINGS.md` K-1), and the Ch2 note is no longer
+> stale on its own terms — it read *"will become its verified source once it ships"* about an
+> index that shipped 2026-08-11. **Drift caught by this re-read, unrelated to the relocation:**
+> (1) the §Validators `validate_hermetization` entry described Rule A + Rule B only, and now
+> carries **Rule C** (the home allowlist landed in this same arc); (2) the pre-commit gate list
+> was missing `organ-index-freshness` — seventeen of eighteen against the live count in
+> `ecosystem/doc-counts.md` — which is the *second* time that list has silently trailed the
+> config by one, so the parenthetical now records both misses rather than only the first;
+> (3) the governing-ADR roster stopped at **ADR-109** while **ADR-110** and **ADR-111** were
+> Accepted, and both are live doctrine this window leaned on. **Stamp semantics, stated:**
+> `last_reviewed` is re-stamped because this pass re-read the file end-to-end from disk and
+> mechanically checked the claims it could (gate count vs `doc-counts.md`, ADR statuses vs
+> `.claude/generated/recent-adrs.md`, every `ORGAN-INDEX` reference vs the tree). **Honest
+> limit, unchanged:** it did not re-derive doctrinal correctness against the full text of every
+> cited ADR. Prior: `2026-08-10` — **claims-correction pass: 16 checkably-false claims fixed** (the
 > 12 named in `docs/audits/2026-08-10-verification-fable-adversarial-plan-review.md` §Mandate 2,
 > plus 4 the follow-up sweep found beyond that report's count of 14 — `logs/PARITY-EVENTS.jsonl`
 > casing, the corp pre-commit-channel row, #195-as-pending, and the dead `#85` pointer). Where a
@@ -223,10 +240,14 @@ standard (`~/.codex/AGENTS.md`, canonical source `codex/AGENTS.md`; ADR-54).
 **Chapter 2 — Organ map.** The behavioural inventory: every enforcement/awareness
 organ, what fires it, the layer it lives in, and how it fails.
 
-> **Map, not prose.** This table is hand-maintained today. A generated
-> `docs/ORGAN-INDEX.md` (**#132**) will become its **verified source** once it ships;
-> at that point this section is reconciled with — and may be replaced by a pointer to
-> — the generated index. When they disagree, trust the index.
+> **Map, not prose.** This table is hand-maintained. The generated
+> `ecosystem/organ-index.md` (**#132**) **is** its **verified source** — it shipped
+> 2026-08-11 (`83a869e6`, merge `e624a172`) and is guarded by the
+> `organ-index-freshness` pre-commit gate; this section is reconciled with it and may be
+> replaced by a pointer to it. When they disagree, trust the index. The index moved from
+> `docs/ORGAN-INDEX.md` to `ecosystem/organ-index.md` on 2026-08-12 by operator ruling A
+> of 2026-08-11 (register `protocols/STANDING_RULINGS.md` K-1): it is generated ecosystem
+> state, not a `docs/<genre>/` artifact.
 
 Every enforcement/awareness organ, with its trigger, the layer it lives in, and its
 **failure posture** (fail-closed = blocks the action; propose-only = writes a
@@ -458,7 +479,14 @@ references, **not an exhaustive inventory** of every script in `scripts/`:
   only, not stale P0c/P3/P8 locators inside a correctly-labelled bundle.
 - `scripts/validate_hermetization.py` — ADR-101 §3 tree-seal refusal gate (pre-commit,
   prospective-only on staged ADDs; Rule A top-level/genre seal, Rule B audit-name grammar
-  + R4 casing; HUB-ONLY; fail-open-loud on git error) (#306).
+  + R4 casing, **Rule C home allowlist** — an added file whose home directory is outside the
+  allowlist derived from the live taxonomy is refused (operator ruling A of 2026-08-11,
+  register `protocols/STANDING_RULINGS.md` K-1). Rule C exists because A and B between them
+  read the top level, the `docs/<genre>/` level and audit filenames, and nothing read the
+  rest of the path — which is how `docs/ORGAN-INDEX.md` came to sit loose at the `docs/`
+  root. Honest limit: it polices the HOME of an added file, and the two open homes
+  (`docs/handoffs/**`, `tests/fixtures/**`) admit arbitrary depth by design; HUB-ONLY;
+  fail-open-loud on git error) (#306).
 - `scripts/validate_residual_completeness.py` — handoff residual-completeness gate: a
   changed v5 bundle file may not ship a hand-authored FILL-IN region still carrying its
   generator placeholder. Surfaced via the `residual_completeness` audit check
@@ -556,6 +584,7 @@ remainder stays curated).
 (PLAYBOOK.md), `roster-freshness` (methodology-roster vs manifest, #244 P3),
 `claude-rosters-freshness` (CLAUDE.md `.claude/generated/*` fragments vs disk, #258 phase-2),
 `audit-index-freshness` (`docs/audits/README.md` index vs `docs/audits/*`, census A-2),
+`organ-index-freshness` (`ecosystem/organ-index.md` vs the organ sources, [#132]),
 `validate-hermetization` (ADR-101 tree-seal refusal gate, #306),
 `intake-index-freshness` (`docs/intake/README.md` Contents block vs frontmatter, #307),
 `check-seal-identity` (handoff-bundle seal-identity at commit time, [#475]),
@@ -568,7 +597,10 @@ via `pre-commit install --hook-type pre-push`. **The id set and its count live i
 `.pre-commit-config.yaml` and `ecosystem/doc-counts.md`**, with CLAUDE.md §9 carrying the
 annotated roster; `validate_doc_claims` claim 2b holds §9 and the config in step, which is why
 the roster is not re-counted here (this list named sixteen of seventeen from 2026-08-03 to
-2026-08-10, missing `block-unanchored-push`).
+2026-08-10, missing `block-unanchored-push`; it then named seventeen of eighteen from
+2026-08-11 to 2026-08-12, missing `organ-index-freshness`, which landed with batch-4 W5 —
+the same defect twice, and the reason the count itself is read off
+`ecosystem/doc-counts.md` rather than restated in this sentence).
 
 Editing **this file** fires every `always_run: true` hook — `validate-hermetization` and
 `audit-health` at pre-commit, `backlog-id-on-close` and `backlog-filing-backpressure` at
@@ -952,6 +984,12 @@ live in the ADRs; git history retains; the ADR-77 guard stays armed, Ch2).
 - **ADR-106** — environment isolation via `uv`: pinned toolchain (`required-version == 0.11.19`, a uv upgrade is its own gated change), committed `uv.lock` + `.python-version`, and every gate invoked through `uv run --locked` so the gate environment is *declared* rather than per-machine folklore. Closes two defect classes — environment/test isolation and gate reproducibility. Fleet rollout is **gated per repo**, never a bulk sweep; the hub went first ([#432]). The ADR-101 amendment 2026-07-27 sanctions `uv.lock`/`.python-version` in the top-level set (Ch5) — Accepted 2026-07-27.
 - **ADR-107** — BACKLOG restructure: **build-thin engine, fleet-owned schema, viewer slot declared EMPTY**. Rules the architecture only — it authorizes no execution, and gates the source-of-truth flip on **two** preconditions (the ADR Accepted **and** the `tasks/` coherence gate armed). Both held on 2026-07-28, so **strangler step 3 executed under its own contract as [#439]**: `tasks/` became the source of truth and `BACKLOG.md` became generated (Ch5 source zone). Amends ADR-65 narrowly — a retired task keeps a minimal allocation record so its id is never re-issued (**retire, never delete**). **Step 4 (prose relocation + the genre-lifecycle leg) stays explicitly DEFERRED**, and the viewer slot stays parked empty behind four re-entry criteria; [#433] does **not** close on this ADR (§6.2's generalization obligation is undischarged) — Accepted (ratified) 2026-07-28.
 - **ADR-108** — decision-routing doctrine + standing engineering standards (ratifies intake #22 §A + §B by **promotion**, the intake doc stays SEED): the operator rules FUNCTIONAL questions only; the architect rules TECHNICAL questions in its own lane (decide → record → revert-if-wrong; no operator option-menus); AI Council is the distillation organ for genuinely contested technical decisions. Doctrine only — no organ, no execution — Accepted 2026-07-31.
+- **ADR-110** — parallel multi-agent execution: the batch protocol as **versioned artifacts**
+  (a manifest committed at dispatch, a packet at close), and the exemption that lets a merge
+  queue run while a batch is open. The exemption is scoped to lane branches the batch declares
+  and **does not reach `claude/*` cloud lanes** — Accepted 2026-08-06.
+- **ADR-111** — the finding pipeline: every audit finding is triaged into exactly one of four
+  outcomes, so a finding cannot be left in an undeclared state — Accepted 2026-08-09.
 - **ADR-109** — fleet desired-state contract v1: one typed, versioned, queryable schema (`ecosystem/schema/desired_state.py`, the Terraform *model* — declarative typed data, state in git, apply = the existing regenerate-and-diff machinery) over the hand-divergent registries; `ecosystem/registry.md` **loses authority** (§2 — file retirement is loader-wave/[#383] work; [#455] moot); intake #22 §E transcribed as the functional requirement. Downstream consumers [#383]/[#385]; ARCHITECTURE organ-class prose is [#459] — Accepted 2026-07-31.
 
 ---
