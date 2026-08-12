@@ -774,6 +774,8 @@ Prompt format updates when:
 
 This section's history is in git log (search commits for "prompt template" or "Gap #2").
 
+**Paste-vs-file transport — a partial artifact reads as a whole one.** A paste channel can deliver a truncated artifact that looks complete, and the cost lands on the *reader's assumption that it arrived whole* rather than on the transport. Two instances in the 2026-08-10/11 window: a lane stood blocked for an hour on an unverified assumption that a half-landed paste had landed whole, and the browser paste channel later degraded to empty frames mid-window. The cheap discriminator is a check the reader can run before acting — the artifact's own tail, a line count, the closing fence. The mechanical half already exists as `STANDING_RULINGS` **I-D3** (a batch lane's contract is COMMITTED to the repo before dispatch), which takes the paste channel out of the path entirely for the artifact class where it cost the most.
+
 ---
 
 ## Ch5. Project complexity bands
@@ -1129,6 +1131,10 @@ Per Token-LOG flip 2026-04-24:
 - **Living (in-place updates):** README, CLAUDE.md, PLAYBOOK, ESSENTIALS, ENVIRONMENT. Rationale: not logs; current state matters more than history.
 - **Immutable (dated):** ADRs, transcripts, handoffs, audits, research. Rationale: point-in-time records; supersession via new file or in-file marker.
 
+**Generator determinism is a property of the input set, not of the code.** A generator that walks the filesystem rather than the *tracked* set emits different bytes per checkout, so its regen-and-diff gate is armed everywhere and satisfiable only on the machine that last regenerated — it stops describing committed state, which is the thing it claims to check. Three instances, one of them live and unfixed when this was written: an untracked `.claude/commands/*.md` rendered as a row in the organ index; `--probe-user-level` reporting four present session hooks as *"declared but absent"* because it inventoried files; and `scripts/gen_audit_index.py:57` reading `audits_dir.glob("*.md")` unfiltered, where a sibling session's untracked audit rendered as an index row and moved the count 487 → 489. The repair that generalizes: route every collector through `git ls-files`, pinned by a test that builds a real git repo containing an untracked file of the collected type.
+
+**Loud degradation is per-SOURCE, not per-class.** An absent source is invisible whenever another source still populates the same rendered class — the section renders, the class is non-empty, and nothing reports that one contributor vanished. Witnessed when a disappeared `.claude/agents/` returned `[]` and the L0 registry kept the class populated. The instructive part is the test history: a class-level *"(no organ in this class)"* assertion was **replaced** rather than kept, and replacing it is what made the defect look covered. An assertion per source, retained alongside the class-level one, is what makes the absence audible.
+
 ---
 
 ## Ch7. Review postures
@@ -1140,6 +1146,10 @@ Four review postures distilled from the 2026-05-19 posture-audit (`docs/audits/2
 - **Verify-destination** (audit H4) — *"When relocating or dropping content, Plan Mode confirms destination genuinely covers it."* Before deleting a pointer or relocating a section, confirm the destination already carries each sub-part — verify, don't assume.
 - **No-delete-canonical-dup** (audit T1) — single-source-of-truth (P1) overrides never-delete (P7) **only** when the deletion targets a *"duplicate of canonical content"* preserved elsewhere. The no-delete invariant has an explicit exception for duplicates of canonical content; deleting a unique copy is still forbidden.
 - **ADR-with-N=1** (audit T2) — *"A single architectural CHOICE with no prior precedent can be an ADR-with-N=1 because the choice itself is the record, not a pattern claim."* The N≥2 bar blocks PATTERN extraction without evidence; it does not block recording a singular decision whose record IS the choice.
+
+- **Single-witness verification insufficiency (the PATH-regression class)** — *"it works here"* establishes that it works **there**. The failure surfaces on the first machine that was not the witness, which is usually the machine that runs the work rather than the one that authored it. Four failures across one saga made the point: the dispatch helper's root causes were measured layer by layer on a machine that had not been the witness. The recorded sibling is the relic `core.hooksPath` disarm (n=2), where a repo looked gated and was not. A second witness — another machine, a clean clone, a container — is the cheap discriminator, and its absence is worth stating rather than assuming away. (The fleet-attestation question this raises is owned by intake #32 and is not re-derived here.)
+- **A refuted finding is kept, not deleted** — a review tally that COUNTS a refuted finding reports a defect that does not exist; a tally that ERASES the finding hides that the loop produced a false positive. Both errors live in the same place, so the tally **excludes** the refuted finding and the body **retains** it, with the refutation and its commands recorded alongside. Worked examples: a `Tally: 0/0/0/0` artifact carrying its pass-1 HIGH in full together with the two commands that refuted it, and a `Tally: 0/16/0/0` artifact whose two DECLINED findings carry reasons and are pinned by tests. A checker cannot tell a refuted finding from an unfixed one, which is why this is a drafting posture rather than a gate.
+- **Citation convention — cite by anchor; carry the locator or mark the paraphrase** (adopted 2026-08-10 as ruling 3b-4, advisory) — a claim about repo state cites something a reader can resolve: a heading or other stable anchor, a SHA, or a command with its output. Line numbers are recorded as *the measurement taken on a date*, not as the anchor, because a line range rots inside its own file while the claim still reads as current — which is how a row came to cite `:517-518` for a clause that had moved to `:775-776` and was restated at `:938-939`. The rule earns a check on n=2 evidence; it had already produced two citation defects in the window before it landed anywhere. Pairs with *Architect epistemic discipline: explicit verification markers* (Part II), whose locator-or-paraphrase half covers claims arriving from outside the repo.
 
 ---
 
@@ -2178,6 +2188,8 @@ process-lane cap. `/lane-boot` boots one lane against it; `/lane-integrate` walk
 **Rulings an incoming seat applies without asking:** `protocols/STANDING_RULINGS.md` — section F
 carries the batch-execution set landed 2026-08-07.
 
+**Green-without-predicate, shape (b): cleared-incidentally — order the repair before the merge that would mask it.** A gate cleared as a side effect of another actor's honest bookkeeping has not discharged the obligation it was tracking: the signal is gone and the work is still owed. Witnessed at the batch-4 integration, where a lane's own truthful JOURNAL entry would have cleared an anchor gap the lane did not create — so the integrator landed the repair `ce81d5bd` **before** the W2 merge `c7f4fd92`, deliberately, rather than letting the merge absorb it. The ordering generalizes: when a pending repair and an incoming merge would both satisfy the same predicate, the repair lands first, so the gate reports the repair rather than the coincidence. (Shape (a), *gate-greened-by-diagnosis*, is the mechanical sibling and is routed to an "anchored by mention, not by record" WARN inside `scripts/journal_anchor.py`.)
+
 ---
 
 ## Ch9. Tier-1 closure loop — usage
@@ -2382,6 +2394,8 @@ Announcing before (2)–(6) is **premature closure**, not shipped. Point (6) is 
 
 **Distinct from the per-session close gate:** this "organ done" (ADR-81) and "arc shipped" gate answer *"is this feature/arc complete?"* The adjacent, narrower question *"did THIS session leave the record current?"* has its own single-source — `protocols/DEFINITION_OF_DONE.md` (ADR-85), enforced mechanically by the session-end Stop-hook (JOURNAL SHA-anchor hard block + BACKLOG nudge). Don't conflate the three scopes: organ-completeness, arc-shipped, session-close.
 
+**Vacuous-zero negative control — a measurement already reading 0 is 0 evidence.** Leg (e) above requires that a mechanism be shown to FIRE; the measurement analogue is that a number already reading 0 before the change says nothing about the change, and becomes evidence only once the red is produced deliberately. Worked example from `[#521]`: pre-rollout **0/101**, config-only **0/101**, post-rollout **0/101** — three greens carrying no information, because 77 `sys.path.insert` lines were carrying the imports the whole time. The clause became load-bearing when the roots were narrowed back to `["."]` on the finished tree and **68 of 101** files broke, reproducing `[#502]`'s 67-of-99 on a tree three days newer. So a clause phrased as *"zero X"* is paired with the deliberate production of a non-zero X — the same pairing leg (e) makes between presence and demonstrated firing.
+
 ---
 
 ## Ch13. Continuous Improvement
@@ -2528,6 +2542,10 @@ Cross-link the ADR to its implementation commits; the JOURNAL entry records the 
 - **ADRs** in `docs/decisions/` — the adopt/reject decision itself (research-mode debate transcripts stay canonical in `ai-council/output/`; routed-mirror retired 2026-07-22 per ADR-43 amendment).
 - **BACKLOG** "Tooling & evaluation" theme — deferred tool evals carrying their reopen triggers (e.g. Kimi K2).
 - **JOURNAL** — the per-session record of what was evaluated and decided.
+
+**Mechanism-class-before-more-fixes.** Four consecutive repairs of the dispatch helper each addressed a symptom inside a mechanism class — a profile-sourced shell alias — that was wrong for the machine it ran on. The recurrence ended when the **class** changed, to a PATH command with `-Check` guarding, rather than when a better fix landed inside the old class. The recognition signal is the third repair in the same family: at that point the cheaper question is which class the mechanism belongs to, not which detail is broken. Not mechanizable as stated — a checkable proxy would need a register of repair-attempts-per-mechanism that does not exist — so it is a diagnosis posture rather than a gate.
+
+**A literal is not a site.** A pattern occurrence inside *generated source for a subprocess* is data, not an instance of the thing being swept, and a mechanical sweep that treats the two alike breaks what it was tidying. Witnessed on the `sys.path.insert` sweep: `tests/test_batch_manifest.py` carries three occurrences and only two are sites — the third lives inside the `_SHADOW_PROBE` string literal that generates source for a subprocess carrying no pytest `pythonpath`, so sweeping it would have broken the probe. Same class as the residual exempted at `tests/test_enforcement_coverage.py:389`. A sweep step therefore reports occurrences inside string literals separately from occurrences at statement level — a contract-time check, not an organ.
 
 ---
 

@@ -4,6 +4,7 @@
 - **Source-session:** <run / lane / HEAD or session context>
 - **Status:** <PROPOSAL-ONLY | complete | …>
 - **Model:** <model-in-effect — recommended for unattended runs, ADR-80 §5 silent-swap doctrine>
+- **Inherited-vs-measured:** <which claims below were MEASURED in this run, and which are INHERITED from an earlier artifact and carried forward — advisory, ruling 3b-5>
 
 <!--
   Audit-file template — ADR-101 (Accepted 2026-07-11, ratification amendment §R3–R6).
@@ -38,6 +39,18 @@
   Genre reminder (ADR-100): an audit is evidence *about* state — separate lifecycle
   from intake (a request to *change* state, ADR-98). Every claim carries a SHA /
   file:line / URL, or an explicit UNVERIFIED flag.
+
+  ── Inherited-vs-measured (standing advisory field — ruling 3b-5, 2026-08-10) ──
+  The header field above states, for THIS artifact, which claims were measured during
+  this run and which were inherited from an earlier artifact and carried forward. It is
+  ADVISORY: no gate reads it. It exists because the ratio is the part that goes stale —
+  once an inherited claim is on the page it reads exactly like a measured one, and a
+  later reader has no way to separate them, which is how a superseded number survives
+  three artifacts. Stating the split costs a sentence and makes the staleness legible.
+  This template is the field's durable home, landed by ARC2 2026-08-12 (register
+  `protocols/STANDING_RULINGS.md` M-1 / `N1-D22`): the ruling adopted the field for
+  decision surfaces and nothing carried it, so the term appeared in prose at three
+  sites while no template or generator asked for it.
 -->
 
 ## Executive so-what
