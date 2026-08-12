@@ -19,6 +19,46 @@
 
 ---
 
+### 2026-08-12 (f) — CC (Opus 5, primary tree): ARC1's ROADMAP merge gets the JOURNAL anchor it landed without
+
+**Did:** Opened ARC2 (the adjudication tail) on branch `docs/arc2-adjudication-tail` and hit
+`audit-health` FAIL on the **first** commit attempt: `journal_spine_anchor` reported
+*"1 first-parent spine entry above the disposition floor `24882f8cc` carries no JOURNAL anchor:
+`80cfd204` (2026-08-12) Merge branch 'docs/arc1-adj-sheet-roadmap'"*. This entry discharges it by
+naming **`5ffa567d`** — *"docs(audits): land the frozen North-Star ROADMAP (seat 27 -> seat 28)"* —
+the commit that merge introduced. A merge cannot name its own hash, so the anchoring predicate is
+satisfied by a commit the range brings in.
+
+**Result:** The gap is real rather than tree-lag: ARC1 landed
+`docs/audits/2026-08-12-technical-roadmap-north-star-frozen.md` and merged `--no-ff` to `main`
+**without journalling**, so the anchor was owed from the moment that merge landed. ARC2's own
+contract already owed this anchor at its step 11; the gate simply collected the debt at step 1
+instead, since `audit-health` is a **pre-commit** hook and wedges every commit — including the ones
+that would explain it — until the spine is clean.
+
+**Ordering deviation, stated rather than made silently:** the ARC2 contract sequences the JOURNAL at
+step 11. It is landed here, first, because no other step can commit until it is. Nothing is skipped
+and no bypass was used — `SKIP=audit-health` and `--no-verify` were both available and both
+declined, since the FAIL names a genuine missing record rather than a false positive. A second
+entry, **(g)**, follows at step 11 carrying ARC2's own shas; this one is scoped to ARC1's.
+
+**What ARC1 landed, so the anchor carries meaning rather than just a hash:** the frozen North-Star
+ROADMAP for the seat-27 → seat-28 transition, plus the compilation of
+`ADJUDICATION-SHEET-2026-08-12.md` (143 items) as an off-repo working paper. The sheet records no
+ruling by design; the operator's `OK` en bloc against `PICKER-2026-08-12-annotated.md` is what ARC2
+converts into landed law.
+
+**Changes:** `JOURNAL.md` (this entry only).
+
+**Abandoned:** Nothing. **Not done, deliberately:** ARC1's ROADMAP artifact was NOT edited or
+re-opened — it is a landed immutable audit and the anchor is a JOURNAL act, not a repair of the
+artifact.
+
+**Next:** ARC2 steps 1–13 — register ruling lines + 143 dispositions, BACKLOG surgery, the one
+cross-repo ai-council edit, lessons, intake #10 REJECT, ADR work, FLAG-1's amendment marker, the A4
+row birth, the consolidation-intake filing, entry (g), the code-work routing record, and the D1
+coverage grep.
+
 ### 2026-08-12 (e) — CC (Opus 5, primary tree): the INH-3 gate FAIL clears by correction addendum, not by editing the record
 
 **Did:** Cleared the one FAIL from `/handoff-verify` on `2026-08-12-dev-knowledge-architect` at

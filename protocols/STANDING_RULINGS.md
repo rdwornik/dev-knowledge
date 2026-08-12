@@ -1151,6 +1151,204 @@ measurements behind each line below.
   terms — it read "will become its verified source once it ships", and it had shipped),
   `CLAUDE.md` §9, and the regenerated index itself.
 
+## L. The 2026-08-12 adjudication-hour rulings (ARC2)
+
+Source of record: the working paper `ADJUDICATION-SHEET-2026-08-12.md` (143 items) and its
+annotated picker `PICKER-2026-08-12-annotated.md`, both compiled at `5ffa567d` and both held
+off-repo by the operator. The operator accepted every picker recommendation **en bloc** (`OK`,
+2026-08-12). The sheet itself recorded no ruling and was not committed — these entries and the
+disposition table at section M are the durable record, which is the whole reason this arc exists.
+The evidence behind the items is in-tree at the two night drafts the sheet reads:
+`docs/audits/2026-08-12-verification-night-1-truth-audit-and-handoff-numbers.md` and
+`docs/audits/2026-08-12-technical-night-2-lessons-governance-strategy.md`.
+
+### L-1 · `A1` — I-D6's working-set reading is DRAFT+READY
+
+The count that I-D6's ceiling of **six** is evaluated against reads the **DRAFT and READY** intake
+statuses. **SEED sits outside it**, as the parking lot it functions as. Live at the ruling: **4 of 6**.
+
+**This clarifies the reading; it does not re-open the ruling.** I-D6's text stays byte-unchanged and
+its own stated expiry (*"retires when a mechanism computes the working set and compares it to this
+number"*) stands. The clarification is appended here per **B6** rather than edited into I-D6.
+`N2-D1-05`'s recommendation — keep the ceiling in this register rather than promote it to an ADR — is
+adopted for the reason it gives: reversal is cheap and local (no code reads the number), and a
+self-retiring number promoted into an immutable ADR is the shape that produces
+superseded-without-note ADRs, which is D2's own finding.
+
+**Why this reading and not the two alternatives.** R-DEF (SEED+DRAFT+READY, the definition as
+literally written) measures **14** live, which puts the ceiling over by eight on the day it is read
+and blocks the filing this window needs. R-APP (DRAFT only, the reading the BRIEF actually applied)
+measures **3**, and makes a READY intake invisible — the most actively-worked state a
+pre-ratification document has. DRAFT+READY counts the actively-shaped set. It is the supplement's own
+recommendation (`SUPPLEMENT.md:114`, identically `PASTE_THIS.md:563`) and the only recommendation on
+the record: both night drafts declined to pick, in terms.
+
+**One correction carried, because the ruling turns on it.** The drafts disagreed by one on the R-DEF
+number — night-1 read 13 (SEED 9), night-2 read 14 (SEED 10). Live frontmatter at `5ffa567d` reads
+SEED 10 · DRAFT 3 · READY 1, and `docs/intake/README.md`'s generated Contents block agrees, so
+**night-2 is the correct one**. Recorded here; both drafts stay byte-untouched, per the immutability
+rule that governs them.
+
+**Items released by this line:** `N2-D1-05` (answered above), `N2-E5c` (the consolidation intake,
+filed this arc), and the ceiling arithmetic those two share — see L-9.
+
+### L-2 · `A3` + `N1-D03` — OneDrive diagnostic reads route through the existing T1 grant
+
+**The shape of the ruling.** A diagnostic read of an excluded OneDrive path is taken through the
+**T1 grant mechanism that already exists** (`~/.claude/rules/core-invariants.md` §1): dated,
+scoped to one literal subtree, added by a ruling that edits the hook **and** the rule together,
+binding the `Read` tool only, and disclosed in the report that consumes it. **T2 is unchanged** —
+write, delete, move, rename and copy-INTO stay absolutely denied, with no grant mechanism in code.
+
+**The standing "declared-need" clause is explicitly not adopted.** The §7(a) proposal
+(*"read-only under declared diagnostic need, disclosed in-report"*) named a posture with no expiry
+and no scope, which is config-as-hope: the T1 grant is the already-mechanized form of the same
+intent, and routing through it keeps the guard checkable rather than declarative. The proposal
+therefore lapses **as a standing clause** while its intent is served by the existing path.
+
+**`N1-D03` lands in the same act, which is the point.** The 2026-08-10 ruling
+*"the fleet unifies on the global tiered form"* was RECORDED-ONLY: `ai-council/.claude/rules/code-standards.md:13`
+still carried the bare strict form with **no recorded reason**, leaving the ruling's own condition
+(*"documented rather than silent"*) unmet. Ruling `A3` without landing `N1-D03` would leave two
+OneDrive rules live in the fleet, one of them undocumented — so the satellite edit is part of this
+ruling rather than a follow-on. The ai-council commit is named in this arc's packet. No other
+satellite is touched.
+
+### L-3 · `N2-E1-3` + `N2-E3-01` — §B clause 3's filter is the H2 live denominator
+
+**§B clause 3 ("open backlog < 100") is scored on the H2 live denominator.** Clause 3 does not name
+its own filter, so it inherits H2's rule rather than the bare `status: open` count — **one
+denominator everywhere**. Two denominators in circulation is the defect class I-D6 was created to
+end, and it is not re-introduced one level down.
+
+**A dedicated closing campaign is owed, named in the windows-3–8 sequence.** `N2-E3-01` established
+that the ratified finish line requires an activity the proposed order does not contain: of BRIEF §3's
+five items, none of items 2–5 closes rows and item 1 closes at most three, while the census settled
+that *"the rows are open because the work is not done."* A finish line nobody is walking toward stops
+functioning as one, so the sequence carries the campaign explicitly.
+
+**Re-scoping the number is available only on evidence.** The clause's number is re-scoped on **two or
+more windows of net closure data** showing under-100 unreachable — not before. Re-scoping now, ahead
+of the conversion campaign firing, would be surrender-by-optics rather than a measurement.
+
+### L-4 · `N2-E1-7` — "dispositioned" for a standing suite RED is a register entry
+
+**A BACKLOG row is an owner; a disposition is a record with a reason.** For §B clause 7 ("zero
+standing suite REDs without a dispositioned owner"), the disposition is an entry in **this file** —
+the Form-E *"recorded with a reason"* home G-6 already names. A row identifies who holds the work; it
+does not by itself say why a RED is standing and what makes standing acceptable, which is the
+information the clause exists to require.
+
+**Scope note, so the surface is not confused with the other register.**
+`ecosystem/disposition-register.yaml` is the ship-gate's **awareness-organ WARN** suppression
+surface, keyed on `organ` + a WARN-evidence `match`. A suite RED is a test failure rather than an
+awareness WARN, so it has no well-formed entry there; night-2's grep of that file measured the
+absence honestly, and the home the ruling points at is G-6's.
+
+**The entry, written now.**
+
+- **RED · `test_routine_consumers_live_backlog_governs_exactly_one_row`** — the `[#426]` routine-row
+  drift. **Owner:** `[#426]` (`status: open`, P2/M), which carries the retrofit as amended
+  2026-08-11 under I-F3. **Why it stands:** the test pins `routine_consumers`' stated boundary —
+  it gates only BACKLOG rows carrying a `· routine:` marker — and `[#426]`'s own Done-when names
+  closing or permanently-defer-with-reason'ing exactly that boundary. The RED is therefore the
+  row's subject rendered as a failing assertion, and it clears when the row lands rather than by a
+  test edit. **Acceptable while:** `[#426]` stays open with its `review_date=2026-08-26`.
+  **Recorded 2026-08-12**, which is what makes clause 7's ⬤ honest rather than row-shaped.
+
+### L-5 · `N2-E1-9` + `N2-E4-04` (census §8 Q1) — the judgment carve-out class
+
+**A hollow existence check is not acceptable for the §B amendment.** Answering census §8 Q1 in the
+negative: satisfying *"zero mechanically-untestable Done-when"* by attaching a `test -f`-shaped
+assertion to a row whose substance is a human adjudication produces a green that cannot be spent —
+the family the C3 (c) lesson names. The check would pass while the thing it claims to verify stays
+unverified, which is worse than a recorded gap.
+
+**The 15 PROSE-JUDGMENT rows are a recorded judgment carve-out class.** Named from the census
+(`docs/audits/2026-08-10-technical-backlog-testability-census.md`), the set is:
+
+`[#43]` · `[#122]` · `[#126]` · `[#153]` · `[#281]` · `[#323]` · `[#397]` · `[#400]` · `[#406]` ·
+`[#407]` · `[#420]` · `[#449]` · `[#450]` · `[#488]` · `[#507]`
+
+Each is **verified at close by the architect against the row's own named criterion** — the ADR-81
+soft-gate shape, which is already doctrine here rather than a new mechanism. The carve-out is
+recorded, so it is countable and reviewable; an unrecorded judgment row stays out of compliance.
+
+**§B clause 9's target reads: zero mechanically-untestable Done-when *without a recorded
+carve-out*.** The amendment's bar is unchanged for the 72 PROSE-CONVERTIBLE rows the W4 campaign
+converts; the carve-out covers the class where conversion would be theatre.
+
+### L-6 · Night-1 ruling-line dispositions with content beyond a confirmation
+
+- **`N1-D09` — the per-session pending-proposals digest ruling is WITHDRAWN.** No export surface
+  exists, `logs/PROPOSALS-*.md` predate it and are the older shape, and nothing consumes the output
+  it described. Inventing a home for a ruling with no consumer costs more than re-filing it, so it
+  is withdrawn and **re-filed on demonstrated need**.
+- **`N1-D10` — forward-acting-only is the whole of it.** Both engine amendments were ratified in
+  voice, which discharges the F25-3 hand-write **forward** and nothing further is owed backward.
+  This confirms the RECORDED-ONLY verdict as complete rather than partial.
+- **`N1-D07`, extended — I-4's "5 h / 4 recurrences" is STRICKEN on the same bar.** The 2026-08-10
+  ruling struck `2h43m` and `~9min` as unsourced; the challenge-answer then introduced an
+  equally-untracked pair in the same evidence class, un-struck. One bar, applied once, with no
+  exception for the figure that arrived later. The strike is recorded **here**; the audit carrying
+  the figures stays **byte-untouched**, per the immutability rule and B6.
+
+### L-7 · `N2-R2-07` — `[#294]` / `[#308]` are pegged to an unlocatable referent
+
+Both rows carry `DEFER — peg: the intake #25 W-wave carrier decision (W-2/W-3)`, and **that decision
+has no in-repo referent** any lane has been able to locate. The rows stay deferred; the peg is
+recorded as unlocatable rather than left to look satisfiable. **The re-peg decision is owed at the
+consolidation-intake filing**, which is the same treatment the ceiling received before I-D6 gave it a
+number: a named home rather than a silent gap. `N2-E1-1`'s W-wave referent definition is the same
+question from the other side, and is routed to the same place.
+
+### L-8 · Removal-sheet rulings the census left to the operator
+
+- **Fold set A (`[#409]`/`[#410]`/`[#411]`) and fold set B (`[#415]`/`[#425]`) — NIE, both.**
+  Per-batch trackability outlives a cosmetic −3 on the open count. The number moves where the work
+  is: W4's 72 conversions, not a fold.
+- **`N2-D4` `kill-candidates:` backfill — DEFERRED past batch-4 close.** 52 uncovered rows at
+  ~3–4.5 h for **zero closes**, against an add-side that is already sealed (every open row from
+  `[#389]` up carries the field, 100% with no exceptions — not a discipline problem and not
+  growing). **The P2-only variant is pre-approved for a future grooming window**: backfill the 19
+  P2 rows (~1.5 h), record the 33 P3s as deliberately-unbackfilled with a reason on the `[#508]`
+  3a-2 precedent, reaching 137/170 with the P1+P2 band at 100%. Filling rows with a literal `none`
+  to move a percentage is the named anti-pattern and stays outside the variant.
+- **`N2-E3-06` `[#511]` — WATCH.** The row now carries three distinct loads: the re-scoped
+  non-mechanized cut load (I-F2), commission 5's continuity half (I-D4), and the JOURNAL-purpose
+  observation. Each attach was individually correct, and the accumulation is the shape that makes a
+  row unclosable. **The split decision is taken at the batch-4 packet** — splitting mid-execution-week
+  would be planning relapse, so the watch line is the instrument until then.
+
+### L-9 · `N2-E1-6` / `N2-E3-04` / `N2-E1-5` — how the two open §B clauses discharge
+
+- **Clause 6 (provider-swap, codex as PRODUCER) discharges by one deliberate Codex-producer lane,
+  and the clause text is unamended.** The window's 8 terra passes all ran codex as REVIEWER, so
+  executing BRIEF §3 item 3 in full advances clause 6 by zero. A bounded producer lane is real work
+  against the clause as written; amending the clause to match the direction the fleet already uses
+  would score the clause by redefining it. The lane's scope is recorded at L-10.
+- **Clause 5 (handoff cut < 10 min) discharges by timing the very next cut** under `[#511]`'s
+  re-scoped, non-mechanized definition. The instrument is work already being done, so the added cost
+  is zero and the clause stops being unmeasured on the next handoff.
+
+### L-10 · Code work routed, not built in this arc
+
+This arc writes records. The approved mechanism work is owned by a **Codex-producer lane (CC
+verifies)** — which is simultaneously the clause-6 discharge at L-9 — and carries four check
+extensions, each an extension of an existing organ rather than a new organ family:
+
+- **`N2-E4-02`** — whole-file JOURNAL day-letter check in `scripts/audit.py` (~20 lines, 3 tests).
+- **`N2-E4-03`** — body-date scan in `scripts/validate_backlog.py` (~15 lines, 2 tests).
+- **`N2-L5`** — an *"anchored by mention, not by record"* WARN in `scripts/journal_anchor.py`; a
+  WARN by design, since it catches the shape rather than the intent.
+- **`N2-L12`** — `audit.py::check_hooks_armed` asserting the **pre-push** hook type (~8 lines, 1
+  test).
+
+**`N2-E4-05` rides W3 as a drive-by** (route (i), the I-D8 precedent, costing no lane width): the
+PLAYBOOK Ch8 dispatch-paragraph repair (`N2-R3-07`) and the `git ls-files` port in
+`scripts/gen_audit_index.py:57` (`N2-R3-08`). Contracts for all of it follow from the browser seat;
+ownership is recorded here so nothing in the set is unowned overnight.
+
 ## Editing note (read before adding an entry)
 
 This file sits inside the silent-rule ratchet corpus (`protocols/*.md`; detector
