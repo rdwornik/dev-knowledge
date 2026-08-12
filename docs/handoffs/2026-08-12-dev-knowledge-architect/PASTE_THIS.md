@@ -573,5 +573,8 @@ Mechanical success condition (D6 of the interrogation): after step 3, the regist
 **Blind-spot check, honestly:** (1) the consolidation-intake mis-scope — CAUGHT by night-1, corrected above; (2) satellite consumption — named above with a two-window deadline; (3) the calendar items are in §6; beyond these, no unplanned known work remains: every theme from the operator's strategy dump, the six research commissions, and three instruments maps to a row, an intake, a register line, or a dated gate. The planning is DONE. The week is for the plan.
 
 ---
+CORRECTION ADDENDUM (incoming seat, 2026-08-12, gate INH-3): §6's calendar line carried "[#322]/[#360] dated reviews 2026-09-09". The [#360] leg is struck — its 2026-09-09 review was WITHDRAWN by operator ruling on 2026-08-11 (see tasks/360-*.md, RE-ANCHORED note; I-1 superseded by census evidence). [#322]'s 2026-09-09 review stands. Original text preserved above per primary-source discipline.
 
-=== END OF PASTE — 5 sections · 54650 bytes ===
+---
+
+=== END OF PASTE — 5 sections · 55055 bytes ===
