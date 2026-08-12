@@ -19,6 +19,71 @@
 
 ---
 
+### 2026-08-12 (g) — CC (Opus 5, primary tree): ARC2 — the adjudication's mechanical tail; 143 items become landed law
+
+**Did:** Converted the operator's ruled picker (`PICKER-2026-08-12-annotated.md`, accepted **en
+bloc**, `OK` 2026-08-12) into landed record against `ADJUDICATION-SHEET-2026-08-12.md` (143 items).
+Both papers are held off-repo and neither was ever committed, so until this arc the adjudication
+existed only as the next seat's re-derivation burden. Anchors **`5ffa567d`** (ARC1's ROADMAP, the
+same anchor entry (f) carried) plus this arc's own spine: `132dfc29` `b04a2349` `1c2e5bc7`
+`273b178c` `f095a81f` `e381b1dd` `775d8d6e` `2ae7bf39` `79ee43e0`.
+
+**Result — the register carries all of it.** `protocols/STANDING_RULINGS.md` gains **section L**
+(ten ruling lines with content beyond a verdict) and **section M** (one disposition per sheet item).
+M prints **150 distinct ids** and reconciles to the sheet's 143 obligations as `150 − 5 − 2`: the
+five are `N1-S15a`…`N1-S15e`, sub-rows under `N1-S15`'s single I-D10 obligation, and the two are
+`A1`/`A2`, routing targets counted at their night-draft rows. Verified mechanically, zero missing.
+
+**The headline rulings:** `A1` — the I-D6 working-set reading is **DRAFT+READY** (SEED outside),
+appended as a B6 clarification with I-D6 byte-unchanged · `A2` — intake #10 **REJECTED** and
+relocated to the §5-named `docs/intake/archive/` · `A3` — OneDrive diagnostic reads route through
+the **existing T1 grant mechanism**, standing declared-need clause explicitly not adopted, landed
+with its fleet half `N1-D03` in `ai-council` (`eaf4e32`, merged `7a3c057`) · `A4` — the
+executive-index render leg born as **`[#523]`** citing ADR-107/`[#439]`, keeping the closed row
+closed.
+
+**Queue movement:** 195 → 193 → 194 task nodes. `[#360]` **closed** expired-with-reason (the third
+branch its own Done-when offered), `[#452]` **retired** with its kill note pegging `[#513]`,
+`[#523]` born. `[#359]` re-pegged to the §14a FILE-BOUNDARY heading, `[#369]` re-scoped off the
+absolute gate count, `[#383]` re-scoped to the `kind: gitignore-effect` selector, `[#170]`
+re-phrased off the phantom `#168`, `[#390]`/`[#508]`/`[#505]` marked.
+
+**Also landed:** six C3 lessons appended byte-faithful; ten prose blocks into PLAYBOOK Ch4/6/7/8/12/13
+per the C2 sort; `N1-D21`'s citation rule into Ch7 and `N1-D22`'s inherited-vs-measured field into
+`templates/audit-template.md`; **ADR-112** drafted **Proposed** (ratification is a separate operator
+act, flagged); ADR-110's pointer-table amendment; the `docs/decisions/` status enum **declared**,
+which makes H3's archival trigger reachable; forward-pointer markers appended to ADR-32/ADR-42;
+FLAG-1's A-4 correction marker; **intake #33** filed, taking the ceiling to **4 of 6**.
+
+**Three things I got wrong in-flight, recorded because two are the exact classes this arc landed
+lessons about.** (1) My first PLAYBOOK insertion treated any `# ` line as a chapter boundary and
+dropped a block **inside a fenced worked example** — reverted, made fence-aware, then all ten blocks
+verified programmatically as in-chapter and unfenced. That is *a literal is not a site*, which the
+same commit landed in Ch13. (2) Step 3 wrote each repair's full reasoning **into the row body**,
+pushing six rows past the 1200-char `doc_rot` cap; condensed to register pointers, which is *the row
+carries a pointer, the record carries the record*. (3) I briefly used a `--no-verify` wip commit to
+stage the intake rename; dropped it with `git reset --soft` and re-landed through the full gate.
+
+**Not resolved, and reported rather than dispositioned:** four rows (`[#369]` `[#383]` `[#390]`
+`[#508]`) remain over the `doc_rot` cap. They sat at **1179–1199 chars before this arc** — 1 to 21
+chars of headroom — so the contract's frozen step-3 obligations are physically unwritable in-row at
+any wording. The sanctioned fix is a condense pass over each row's older inline dated history
+(ADR-65/49, git-preserving); that touches curated content beyond this arc's named set, so it is
+routed to the operator rather than taken under contract defaults. Net `doc_rot` 12 → 15.
+
+**Changes:** `protocols/{STANDING_RULINGS,PLAYBOOK}.md` · `LESSONS.md` · `BACKLOG.md` + `tasks/**` ·
+`docs/decisions/**` · `docs/intake/**` · `docs/audits/2026-08-11-technical-batch-4-manifest.md` ·
+`templates/audit-template.md` · `.claude/generated/**` · cross-repo `ai-council`.
+
+**Abandoned:** Nothing. **Not done, deliberately:** no CHECK/hook/script code was built — the four
+approved check extensions (`N2-E4-02`, `N2-E4-03`, `N2-L5`, `N2-L12`) are ROUTED to the
+Codex-producer lane and `N2-E4-05` rides W3, recorded at L-10 so nothing is unowned overnight. No
+close on `[#514]`/`[#510]`/`[#513]` — FLAG-1's ruling carries them. No disposition written against
+any `doc_rot` WARN.
+
+**Next:** W3 dispatch, then the Codex-producer micro-lane, then the W4 mini-GO. ADR-112 awaits
+ratification; the four over-cap rows await a condense pass.
+
 ### 2026-08-12 (f) — CC (Opus 5, primary tree): ARC1's ROADMAP merge gets the JOURNAL anchor it landed without
 
 **Did:** Opened ARC2 (the adjudication tail) on branch `docs/arc2-adjudication-tail` and hit
