@@ -12,7 +12,7 @@
 | **Destination** | worktree <!-- FILL-IN:dest-worktree START (hand-authored — the worktree name, or `none (primary tree)`) -->`none (primary tree)`<!-- FILL-IN:dest-worktree END --> · branch `main` · write-scope <!-- FILL-IN:dest-scope START (hand-authored — what this lane may write; PROSE, deliberately outside P3) -->adjudication output — rulings into `protocols/STANDING_RULINGS.md`, ADRs, intake status flips, and BACKLOG rows. **Not** a code lane: the closing arc left the tree green and the two night artifacts are immutable audits, so nothing here is edited to make a finding go away<!-- FILL-IN:dest-scope END --> · MODE **architect** — basis <!-- FILL-IN:dest-mode-basis START (hand-authored — WHY this mode, per ADR-87 item 5; PROSE, deliberately outside P3) -->the whole inbound payload is undecided — two unadjudicated DRAFTS, an open ruling with two irreconcilable readings, and eight RECORDED-ONLY rulings that never reached the tree. Every one is a *what should be true* question, which is architect scope; sending it to an execution seat would ask a lane to decide what it was dispatched to implement<!-- FILL-IN:dest-mode-basis END --> |
 | **Generated at** | Bundle cut by `scripts/gen_handoff.py` from **committed** repo state on branch `docs/batch-4-packet-and-handoff`. This line names only which branch was checked out — it states **no** sha, count, or verdict. **Re-derive HEAD / tree-clean / branch / ahead-behind live** (`PROBES.md` P3). |
 
-> **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 > **The `Destination` row is declared ex-ante — a lane inherits none of it from a prior prompt.**
 > Only its **branch** field has a mechanical counterpart: `PROBES.md` **P3** compares it against
@@ -293,7 +293,7 @@ materially-affected*, not per-session-gated.
 > = reconstructed from the JOURNAL/git window, may have moved (the load-bearing ones are re-checkable
 > via `PROBES.md`); `unknown` = stated as such.
 
-> **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 ---
 
@@ -453,7 +453,7 @@ the whole task-state.
 > branch is checked out so CC knows which live value to compare — **re-derive HEAD / tree / branch /
 > ahead-behind live (P3); do not trust this line.**
 >
-> > **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> > **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 >
 > **Windows note:** `audit.py checks` (P2) can crash mid-listing on a bare cp1252 PowerShell console
 > (a non-ASCII glyph in a check docstring) — run with `PYTHONUTF8=1` (or `PYTHONIOENCODING=utf-8`); this
@@ -500,7 +500,7 @@ backlog navigates** (§13c), not this read.
 **Gate:** the architect may not proceed to design until it **holds both orienting lines** — read live
 by CC, substring-matched. **Then, before design, the operator-context beat fires (§13d):** the browser
 asks the operator for **off-repo** context.
-This bundle's supplement is **generated EMPTY**, so the beat fires **FULL** — *"what off-repo context: intent, priorities, findings not in the repo, changed decisions?"* — not a narrowed "anything changed since?". (If the operator runs `supplement filled`, its ANSWERS fold in and the beat narrows.)
+The operator has **filled** the supplement, so its ANSWERS are in the paste and the beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 ## Teeth probes (state fidelity — same contract; **answers deliberately withheld, §5**)
 
@@ -535,4 +535,43 @@ This bundle's supplement is **generated EMPTY**, so the beat fires **FULL** — 
 
 ---
 
-=== END OF PASTE — 4 sections · 46086 bytes ===
+=== SUPPLEMENT.md ===
+
+# SUPPLEMENT — ANSWERS from the outgoing architect (seat 27, browser) · 2026-08-12
+Paste everything below into the ANSWERS region of SUPPLEMENT.md, then tell CC `supplement filled`.
+
+**1. Strategic intent.** The next session's way-of-working goal is a single flip: **adjudicate-then-execute**. This window (and the two before it) produced a planning SURPLUS — two night reports, a ratification batch, a brief, three instruments answered — and the surplus is now the risk: every unadjudicated draft is a page someone will re-derive. The next session converts the surplus into law in ONE morning act (the adjudication hour), and then the seat's job for the rest of the week is **execution only**: no new planning artifacts, no new instruments, no new intakes beyond the one re-scoped filing below, until batch-4 truly closes. The operator has said this in his own words; treat it as the window's contract.
+
+**2. Tensions weighed.** (a) Measure-first vs the operator's tempo — held in governance (ruff behind hotspots, providers behind the corpus, refactors behind §D) and broken once by drift in tooling (the dispatch saga: four tempo-fixes before the mechanism class was questioned); the repair was mechanization, not apology (`fb52bf6`, `-Check`). (b) Research consumption vs the birth cap — resolved amendment-over-birth (`[#513]`), ledger held at 2+1. (c) Honest-red vs green optics — chosen every time it mattered: W1/W2 refused to close rows over blank legs; the untestable count is reported as NOT fallen; the §B dashboard shipped at 0🟢. (d) Sequential vs parallel — settled as sequential-by-default with matrix-proven, operator-approved pairs; the matrix is the law, not caution.
+
+**3. Considered + rejected (do not relitigate).** Building a prompt-distiller (backlog verdict PARTIALLY — every axis owned, `[#412]` lead; library-first says measure CC-native agents/skills first) · Fable as the architect seat (Ch8 routing; Fable stays the adversarial reserve) · "merge W4/W6 before W1" (rejected for ids-before-contract + W6 drop) · `protocols/` as the organ-index home (ruling A: `ecosystem/`, generated-artifact pattern; register K-1) · immediate ruff-family adoption (behind churn×complexity hotspots, unrun) · graph-DB/server storage (dead list) · retiring Codex before Grok passes the corpus (admit-then-retire) · backlog bankruptcy (per-row argued removal instead).
+
+**4. Open questions (deliberate, each with its gate).** (i) **I-D6 working-set reading** — operator's word; gates the intake filing. (ii) **The consolidation intake's FINAL scope** — night-1 falsified the draft scoping: GAP-2's archive leg is OWNED by `[#420]` under a live do-not-touch order, GAP-3 is W-9(a) inside an ACCEPTED intake with a recorded AGENTS.md collision hazard; the filing therefore covers **GAP-1 (architecture-freshness mechanism) + the ontology/graph attach + ONLY the genuinely unowned legs of taxonomy/portability, cross-referencing [#420] and W-9(a) as owners instead of re-scoping them**. (iii) The strict live-id `depends-on` predicate (parked; interim strip-law covers operations). (iv) §B clauses 1/5 falsifiability-from-tree (22% of the finish line). (v) The OneDrive read-only rule (operator TAK/NIE pending). (vi) Bake-off timing vs the corpus-reconciliation gate (11/12 verdicts pinned to `extend-select = []`).
+
+**5. Decomposition rationale — what must NOT be redone.** Batch-4's shape stands: W1/W2/W5/W-521 merged, W3 carried because it shared freshness-gated CLAUDE.md with live W1 (unblocked at `0136cec6`), W4 carried because a lane without a row id is the defect W1 exists to prevent (G-2: ids-before-contract), W6 dropped (cap + ARCHITECTURE collision + no id). The next-session order 1–8 is gate-derived, not preference: adjudication unlocks removals, lessons and I-D6 at once; W4 outranks W3 because repairing 72 existing rows beats protecting future ones on the under-100 axis; everything later sits behind a named gate (intake←I-D6; bake-offs←corpus reconciliation; style←hotspots; telemetry←two windows of data). Do NOT re-derive: the disjointness matrix, the census classes (95/72/23/8), the G-register resolutions, or the night reports' evidence — adjudicate them, don't re-measure them.
+
+**6. Off-repo context.** The operator's declared week-goal: **execution only** — calibrate expectations: the adjudication hour is the one non-execution act and it is the unlock, not a detour. Transport: the browser paste channel degraded mid-window; the standing practice is FILE UPLOAD for anything longer than a line. Tooling: `dispatch <contract>.md` works in every shell (PATH command, `-Check`-guarded); VS Code is healthy (root cause pre-dated us, removed); the machine owes nothing. The three instrument answers (execution challenge, consumption challenge, interrogation) are committed or riding the closing addendum — they are the window's self-account and the fastest way for the incoming seat to calibrate against reality. Calendar: `[#492]` Grok re-check **2026-08-17 (this week)** · intake #10 disposition rides the adjudication · `[#322]`/`[#360]` dated reviews 2026-09-09.
+
+**7. Ratified-in-chat, not yet in repo.** (a) The **OneDrive read rule** — proposed "read-only under declared diagnostic need, disclosed in-report; writes absolutely denied"; PENDING the operator's word → home: STANDING_RULINGS line when ruled. (b) The operator's **execution-only-week intent** → home: this supplement (now recorded). (c) The **paste-completeness / file-upload transport practice** — browser-seat working rule, no repo home needed (not doctrine, a channel fact). Otherwise: none — every other in-chat ruling of this window was landed with a locator (I-D3, I-D8, AM-5, K-1, strip-law, anchor-law, re-ruling on pairs) or is listed in (4) as deliberately open.
+
+---
+
+## THE PLAN (short-term → session → week → horizon)
+
+**SESSION 1 of the new window (the adjudication hour, then dispatch).**
+1. Boot per bundle (Opus; Fable held adversarial). Read: night-1 report · night-2 report · BRIEF · this supplement. No re-derivation.
+2. **Operator adjudication batch (one picker set, ≤30 min):** I-D6 reading (rec: DRAFT+READY) · lessons table TAK/NIE per line (19 items, ratchet-clean drafts ready) · removal sheet KEEP/RETIRE/FOLD per row + intake #10 · intake→ADR promotions (per night-2's fork-test arguments) · the re-scoped consolidation-intake filing decision (per §4.ii above) · OneDrive rule.
+3. **Execute the adjudication's mechanical tail the same arc:** removals per TAK, lessons→LESSONS/PLAYBOOK, promotion drafts opened, register lines.
+4. **Dispatch W3** (`lane-c-513-landing-predicate`, skeleton ready in night-2 E5) — the organ that ends the ruled-but-unlanded class.
+5. **Mini-GO: birth the W4 row** (conversion campaign, mechanical Done-when over the census P1/P2 drafts) → dispatch W4 wave 1.
+Mechanical success condition (D6 of the interrogation): after step 3, the register holds a disposition for 100% of both night drafts' items — grep-countable, zero lines without a verse.
+
+**THE WEEK (execution only).** W3 merge → W4 waves (the single biggest under-100 lever: 72 rows) → removal executions land → `[#492]` re-check on 2026-08-17 via the corpus (reconciliation first — the pin gate) → batch-4 CLOSES with its packet (checklist items 1+3 finally checkable) → if capacity remains: ARCHITECTURE Ch2/Ch6 organ rows + the `[#514]`/`[#510]` remaining legs. No new intakes, no new instruments, no new planning artifacts this week.
+
+**THE HORIZON (windows 3–8).** Under-100 in ~2–4 execution windows (conditional: W4 fires, net ≤ 0 holds); zero-untestable in ~3–5 — the constraint that moves the finish line most. The consolidation intake (as re-scoped) lands the architecture-freshness mechanism and the ontology recon. Provider table settled by MEASUREMENT: Gemini `[#491]` and Grok `[#492]` on the corpus, Codex sunsets only after a pass, Copilot as the third probe. Code-style stack enters after the hotspot baseline; telemetry reads after two windows of data. **Satellite re-entry:** the feature/satellite quota bucket exists and the fleet gauge (`[#270]`) now watches the satellites — schedule the first satellite-serving lane within two windows so the hub's outputs start paying rent outside the hub (this is the one soft blind spot the plans kept deferring). Monorepo: parked by the operator's own consolidate-first sentence until §B v1.0.
+
+**Blind-spot check, honestly:** (1) the consolidation-intake mis-scope — CAUGHT by night-1, corrected above; (2) satellite consumption — named above with a two-window deadline; (3) the calendar items are in §6; beyond these, no unplanned known work remains: every theme from the operator's strategy dump, the six research commissions, and three instruments maps to a row, an intake, a register line, or a dated gate. The planning is DONE. The week is for the plan.
+
+---
+
+=== END OF PASTE — 5 sections · 54650 bytes ===
