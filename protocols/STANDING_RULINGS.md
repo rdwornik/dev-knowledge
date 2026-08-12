@@ -1349,6 +1349,231 @@ PLAYBOOK Ch8 dispatch-paragraph repair (`N2-R3-07`) and the `git ls-files` port 
 `scripts/gen_audit_index.py:57` (`N2-R3-08`). Contracts for all of it follow from the browser seat;
 ownership is recorded here so nothing in the set is unowned overnight.
 
+## M. The 2026-08-12 adjudication — per-item dispositions (143 items)
+
+Companion to section L, which carries the ruling lines that have content beyond a verdict. This
+section carries **one disposition per sheet item**, so that after this arc **zero adjudicated items
+lack a landed disposition** and the next seat re-derives nothing. Verdicts are the operator's, taken
+en bloc from `PICKER-2026-08-12-annotated.md` (`OK`, 2026-08-12); the transcription is mechanical.
+
+**Verdict classes** (the sheet's own mapping, from each item's verdict class in its source draft):
+`CONFIRM` the tree carries it, closes as landed · `CONFIRM-WITH-NOTE` landed with the draft's own
+qualifier · `CONFIRM-DEFERRAL` the deferral was the ruling's content · `CONFIRM-SUPERSESSION` landed
+then withdrawn in-window · `LANDED-THIS-ARC` the record was owed and is written here ·
+`ROUTED` the item's disposition is a section-L line or another item's landing · `DO-NOT-ACT` the
+draft's own instruction · `TAK` / `NIE` accept / decline as drafted.
+
+**Coverage arithmetic, so the count is checkable rather than asserted.** This table prints **150
+distinct ids**. The sheet's §7 footer counts **143 obligations**, and the two reconcile exactly:
+`150 − 5 − 2 = 143`, where the 5 are `N1-S15a`…`N1-S15e` (sub-rows printed under `N1-S15`'s single
+I-D10 obligation) and the 2 are `A1` and `A2` (routing targets counted at their night-draft rows,
+once only). Every id below carries exactly one disposition.
+
+### M-1 · Night-1 — the I-D default block (`§2a`, 28 items)
+
+| id | Disposition | Note |
+|---|---|---|
+| `N1-D01` | CONFIRM | `[#492]` parked behind 2026-08-17; row carries the dated re-check |
+| `N1-D02` | CONFIRM | ARC-4's four kills stand; `01410f94` + `9a7ffcb4` resolve |
+| `N1-D03` | **LANDED-THIS-ARC** | ai-council satellite edit with the reason recorded in-file → **L-2**, step 4 |
+| `N1-D04` | CONFIRM-WITH-NOTE | K-4 supersession by pointer; decision sheet byte-unchanged |
+| `N1-D05` | CONFIRM | three discharges verified (`036385a6`, `201191f4`, intake #25 erratum) |
+| `N1-D06` | CONFIRM-WITH-NOTE | closing an unverifiable is the ruling's own content |
+| `N1-D07` | CONFIRM-WITH-NOTE + **extended** | I-4's "5 h / 4 recurrences" STRICKEN on the same bar → **L-6** |
+| `N1-D08` | CONFIRM | `.pre-commit-config.yaml` carries zero rewriter hooks |
+| `N1-D09` | **WITHDRAWN** | no surface, no consumer; re-file on demonstrated need → **L-6** |
+| `N1-D10` | CONFIRM | forward-acting-only is the whole of it → **L-6** |
+| `N1-D11` | **ASSIGN-OWNER** | re-read arc + G-7 soft-observations scope → consolidation intake **Section A**, step 10 (option i) |
+| `N1-D12` | CONFIRM | `[#322]` peg → dated review 2026-09-09, live in the row |
+| `N1-D13` | CONFIRM | I-P1's dedupe documented rather than silent |
+| `N1-D14` | CONFIRM | `[#520]` both rows kept and live |
+| `N1-D15` | CONFIRM | deferred-rows-inside-open-total is legal; H2's denominator holds |
+| `N1-D16` | **LANDED-THIS-ARC** | `[#390]` drive-by marker written → step 3 |
+| `N1-D17` | **LANDED-THIS-ARC** | `[#508]` branch-taken recorded **with its reason** → step 3 |
+| `N1-D18` | CONFIRM | `[#241]` re-phrased cardinality-free at `6179ef17` |
+| `N1-D19` | CONFIRM | `[#505]` clause 1 stays; four lane contracts committed |
+| `N1-D20` | CONFIRM | 0-SATISFIED census result accepted as evidence |
+| `N1-D21` | **LANDED-THIS-ARC** | citation convention → PLAYBOOK drafting rule, step 5 (load-bearing: two citation defects trace to it) |
+| `N1-D22` | **LANDED-THIS-ARC** | inherited-vs-measured → carrier chosen at step 5 per the ruled fallback |
+| `N1-D23` | CONFIRM | `automation/*` protection line live; replication 0 commits ahead |
+| `N1-D24` | CONFIRM-DEFERRAL | satellite branch census deferred with owner; five satellites named |
+| `N1-D25` | CONFIRM-WITH-NOTE | wider FORK-4 pool remains undispositioned **by declaration** |
+| `N1-D26` | CONFIRM | `679d8eca` — close + inbound-clause strip in one commit |
+| `N1-D27` | CONFIRM | `7d7697f7` verified ancestor of `c7f4fd92` |
+| `N1-D28` | CONFIRM | expected-RED lists are context-local; corroborated at zero worktrees |
+
+### M-2 · Night-1 — the sub-section rulings (`§2b`, 16 rulings printed as 21 rows)
+
+| id | Disposition | Note |
+|---|---|---|
+| `N1-S01` | CONFIRM | ADR-111 ratified as written (Option A) |
+| `N1-S02` | CONFIRM | both rows — `[#511]` re-scope + intake #28 §B flipped at `3aaf5140` |
+| `N1-S03` | CONFIRM | absorb ×7 executed in full; zero `claude/conformance-*` branches remain |
+| `N1-S04` | CONFIRM | retention resolved by merge-deletion |
+| `N1-S05` | CONFIRM | absorb-as-organ amendment carried by `[#419]`/`[#426]` |
+| `N1-S06` | CONFIRM-SUPERSESSION | `[#360]`'s 2026-09-09 review withdrawn; close-eligible → `N2-R2-06`, step 3 |
+| `N1-S07` | CONFIRM | Fable count superseded; `canonical_freshness` OK |
+| `N1-S08` | CONFIRM-WITH-NOTE | property met at four sites, not at the dispatch surface — I-D3's own expiry names the residual |
+| `N1-S09` | CONFIRM | commission 5's continuity half attached at `74fb0fc0` → see `N2-E3-06` |
+| `N1-S10` | CONFIRM-WITH-NOTE | distillate title/body mismatch; correction stays in the register (audits immutable) |
+| `N1-S11` | **ROUTED → `A1`** | counted at `A1`, once only → **L-1** |
+| `N1-S12` | CONFIRM + **ROUTED → `A2`** | I-D7 executed exactly as ruled; the owed disposition lands at step 6 |
+| `N1-S13` | CONFIRM | I-D8 drive-by; both sites byte-identical, no row born, ratchet unmoved |
+| `N1-S14` | CONFIRM-DEFERRAL | `kill-candidates:` refusal check deferred behind n=2 |
+| `N1-S15` | CONFIRM per sub-row | the five G-items disposition individually below |
+| `N1-S15a` | CONFIRM-WITH-NOTE | G-4 · `[#514]` leg 3 only; row still open — contradicts the manifest marker → `N1-FLAG-1` |
+| `N1-S15b` | CONFIRM | G-5 · `[#270]` adopted the closing-commit metric convention |
+| `N1-S15c` | CONFIRM | G-6 · Form-E home is this file — **load-bearing**, pinned in the W4 contract per `N2-E3-05` |
+| `N1-S15d` | **ASSIGN-OWNER** | G-7 · scope defined but its consuming lane was dropped → Section A with `N1-D11`, step 10 |
+| `N1-S15e` | CONFIRM-WITH-NOTE | G-8 · within cap at the line, and only because W6 was dropped |
+| `N1-S16` | CONFIRM | scheduler-run check carried as `[#419]` amendment scope |
+
+### M-3 · Night-1 — preamble rows and flags (`§2c`/`§2d`, 6 items)
+
+| id | Disposition | Note |
+|---|---|---|
+| `N1-P01` | CONFIRM | source-of-record carrier artifact present |
+| `N1-P02` | CONFIRM-WITH-NOTE | a plan-shape ratification has no tree artifact by nature |
+| `N1-P03` | CONFIRM | N-B binds only in its corrected 25-row form |
+| `N1-FLAG-1` | **LANDED-THIS-ARC** | A-4 appended amendment marker; batch closes on the three that closed, `[#514]`/`[#510]`/`[#513]` recorded **carried** → step 8 |
+| `N1-FLAG-2` | **ROUTED → `A1`** | I-D6's "working set to 0" is false → **L-1** |
+| `N1-FLAG-3` | **DO-NOT-ACT** | the draft's own verbatim instruction on the `[#505]` `git_backlog_drift` WARN; `[#505]` is open and correctly so |
+
+### M-4 · Night-2 Part C — the 19 lessons and 6 drafts (25 items)
+
+| id | Disposition | Landing |
+|---|---|---|
+| `N2-L1` | TAK | CHECK — routed to the Codex-producer lane as `N2-E4-03` → **L-10** |
+| `N2-L2` | **NIE — already landed** | `LESSONS.md` 2026-08-11; a re-draft would duplicate into an append-only file |
+| `N2-L3` | TAK (prose) | PLAYBOOK **Ch13**, step 5 |
+| `N2-L4` | TAK (prose) | PLAYBOOK **Ch12**, beside the ADR-81 leg (e), step 5 |
+| `N2-L5` | TAK | CHECK — routed as an `journal_anchor.py` WARN → **L-10** |
+| `N2-L6` | TAK (prose) | PLAYBOOK **Ch8** integrator ordering, step 5 |
+| `N2-L7` | TAK (prose) | `LESSONS.md` via draft `N2-C3b`, step 5 |
+| `N2-L8` | TAK | CHECK — routed as `N2-E4-02` → **L-10** |
+| `N2-L9` | **NIE — already landed** | register, I-D W2-reds |
+| `N2-L10` | **NIE — already landed** | register, I-D W2-anchor |
+| `N2-L11` | TAK (prose) | PLAYBOOK **Ch4**, step 5; mechanical half already exists as I-D3 |
+| `N2-L12` | TAK | CHECK — routed as the `check_hooks_armed` pre-push assert → **L-10**; the `win-tooling` half stays prose |
+| `N2-L13` | TAK (prose) | PLAYBOOK **Ch7**, step 5 |
+| `N2-L14` | TAK | **rides the W4 contract** (step 0/1), not an organ and not landed here |
+| `N2-L15` | TAK | one PLAYBOOK **Ch6** line, step 5; live instance (iii) → `N2-R3-08` |
+| `N2-L16` | TAK (prose) | PLAYBOOK **Ch6**, step 5 |
+| `N2-L17` | TAK (prose) | PLAYBOOK **Ch7**, step 5 |
+| `N2-L18` | TAK (prose) | PLAYBOOK **Ch13**, step 5 (Ch3 is the wrong home, per the draft) |
+| `N2-L19` | **DEFECT — REPAIR** | not a lesson; **W3's first test case**, repaired via `N2-E4-05`(a). No landing here |
+| `N2-C3a` | TAK | appended byte-faithful to `LESSONS.md`, step 5 |
+| `N2-C3b` | TAK | appended byte-faithful to `LESSONS.md`, step 5 |
+| `N2-C3c` | TAK | appended byte-faithful to `LESSONS.md`, step 5 |
+| `N2-C3d` | TAK | appended byte-faithful to `LESSONS.md`, step 5 |
+| `N2-C3e` | TAK | appended byte-faithful to `LESSONS.md`, step 5 |
+| `N2-C3f` | TAK | appended byte-faithful to `LESSONS.md`, step 5 |
+
+### M-5 · Night-2 Part D1 — promotion candidates (9 items)
+
+| id | Disposition | Note |
+|---|---|---|
+| `N2-D1-01` | **PROMOTE — new ADR** | #28 §A two-tier adoption bar, status **Proposed**, step 7(a); sequenced BEFORE BRIEF §3 items 3–4 |
+| `N2-D1-02` | **DO-NOT-PROMOTE YET** | #30 §A landing predicate — target `[#513]`; reassess after W3 lands |
+| `N2-D1-03` | **PROMOTE AS CONSOLIDATION** | ADR-110 fourth amendment, **pointer table only**, step 7(b); rewriting §G/§I/§J is explicitly not proposed |
+| `N2-D1-04` | **DO-NOT-PROMOTE — it is done** | strict-grammar unification lives at `CLAUDE.md` §4 + B5; `[#514]` leg 1 is a row-level gap, not an ADR |
+| `N2-D1-05` | **DO-NOT-PROMOTE** | the ceiling stays at I-D6 and self-retires → **L-1** |
+| `N2-D1-06` | **CONSOLIDATION-INTAKE Section A** | GAP-1 in full; its output IS the "architecture-described surface" definition, step 10 |
+| `N2-D1-07` | **CONSOLIDATION-INTAKE Section B (narrowed)** | GAP-2 limited to **repairing the belief** about `docs/archive/`; `[#420]` cross-referenced as owner with its do-not-touch order quoted, step 10 |
+| `N2-D1-08` | **CONSOLIDATION-INTAKE Section C** | GAP-3 as the un-park of W-9(a); `AGENTS.md` collision is the decision; `SANCTIONED_TIER1_DIRS` already contains `codex`, step 10 |
+| `N2-D1-09` | **ONE intake, three sections** | night-1's ownership map inside night-2's envelope, so nothing double-births, step 10 |
+
+### M-6 · Night-2 Part D2 — ADR set hygiene (5 items)
+
+| id | Disposition | Note |
+|---|---|---|
+| `N2-D2-i` | **RULE — declare the enum** | `docs/decisions/README.md` states the live five + `Superseded` + `Deprecated`; makes H3's trigger reachable, step 7(c) |
+| `N2-D2-ii` | TAK | appended forward-pointer markers on ADR-32 and ADR-42; **no status edits** (ADR-94 permits in-place only on ratification), step 7(d) |
+| `N2-D2-iii` | **REVIEW-EACH, no action now** | the six sunset/review candidates stand with the draft's named blockers |
+| `N2-D2-iv` | **ROUTED → `A1`** | the live discrepancy belongs to the ceiling → **L-1** |
+| `N2-D2-gaps` | **FLAGGED, NOT ACTED ON** | numbering gaps 40, 44, 52 — ids are not reused; the draft's own posture is kept |
+
+### M-7 · Night-2 Part D3.1 — the DEFECTIVE-8 removal sheet and the two fold sets (10 items)
+
+| id | Row | Disposition |
+|---|---|---|
+| `N2-R1-01` | `[#170]` | **RE-PHRASE (keep)** — absorbed-`#168` ADR half stated in-row, step 3 |
+| `N2-R1-02` | `[#241]` | **RE-SCOPE (keep)** — already executed cardinality-free at `6179ef17`; CONFIRM |
+| `N2-R1-03` | `[#359]` | **RE-PEG (keep)** — to the live two-site locators `:775-776` and `:938-939`, step 3 |
+| `N2-R1-04` | `[#360]` | **KEEP — already repaired, close-eligible** → closed at `N2-R2-06`, step 3 |
+| `N2-R1-05` | `[#369]` | **RE-SCOPE (keep)** — off the absolute gate count, step 3 |
+| `N2-R1-06` | `[#383]` | **RE-SCOPE (keep)** — to the `kind: gitignore-effect` **selector**, not a line range, step 3 |
+| `N2-R1-07` | `[#452]` | **RETIRE** — the one genuine kill candidate; kill note pegs to `[#513]`, step 3 |
+| `N2-R1-08` | `[#505]` | **CLAUSE STRIKE confirmed (row keeps)** — clause 1 stays; only clause 2 was unmeetable, step 3 |
+| `N2-R1-09` | Fold set A | **NIE** — `[#409]`/`[#410]`/`[#411]` stay distinct → **L-8** |
+| `N2-R1-10` | Fold set B | **NIE** — `[#415]`/`[#425]` stay distinct → **L-8** |
+
+### M-8 · Night-2 Part D3.3 — superseded docs (8 items)
+
+| id | Disposition | Note |
+|---|---|---|
+| `N2-R3-01` | **KEEP + amend** | ADR-32/ADR-42 held in place by H3's zero-inbound bar; markers at step 7(d) |
+| `N2-R3-02` | **KEEP** | ADR-45 deliberately stayed at `216ce3a8`; PLAYBOOK prose refs fail the zero-refs test |
+| `N2-R3-03` | **KEEP as written** | the manifest's superseded queue-order text; B6 forbids the rewrite, the marker is the mechanism |
+| `N2-R3-04` | **KEEP byte-untouched** | W5's "only two strandable lanes" marker, superseded by A-3 and left standing |
+| `N2-R3-05` | **KEEP** | the distillate's title/body mismatch; correction lives at I-D5 |
+| `N2-R3-06` | **KEEP — already marked** | the F2 `LANE_BRANCH_RE` present-tense marker landed at `17bab0f1`; listed so no sweep fixes it twice |
+| `N2-R3-07` | **REPAIR** | PLAYBOOK Ch8 dispatch-alias paragraph — `N2-E4-05`(a), **rides W3** → **L-10** |
+| `N2-R3-08` | **REPAIR** | `gen_audit_index.py:57` `git ls-files` port — `N2-E4-05`(b), **rides W3** → **L-10** |
+
+### M-9 · Night-2 Part D3.4 and D4 — met kill-criteria, coverage (8 items)
+
+| id | Row | Disposition |
+|---|---|---|
+| `N2-R2-01` | `[#117]` | **NO ACTION** — correctly handled; un-deferred at `64ea92bb` |
+| `N2-R2-02` | `[#452]` | **RETIRE** → executed at `N2-R1-07`, step 3 |
+| `N2-R2-03` | `[#492]` | **KEEP deferred** — peg unmet, re-check 2026-08-17; the date is watched by nothing → `N2-L1` |
+| `N2-R2-04` | `[#322]` | **KEEP** — dated review 2026-09-09 → `N2-L1` |
+| `N2-R2-05` | `[#413]` | **KEEP** — review on or after 2026-10-22 → `N2-L1` |
+| `N2-R2-06` | `[#360]` | **CLOSE — expired-with-reason**, satisfying the condition's third branch today, step 3 |
+| `N2-R2-07` | `[#294]`, `[#308]` | **KEEP deferred; peg recorded unlocatable** — re-peg decision owed at the intake filing → **L-7** |
+| `N2-D4` | backfill lane | **DEFER past batch-4 close**; 19-P2-only variant pre-approved for a grooming window → **L-8** |
+
+### M-10 · Night-2 Part E — dashboard, retrospective, coherence, execution (26 items)
+
+| id | Disposition | Note |
+|---|---|---|
+| `N2-E1-1` | **DEFINE THE REFERENT in the intake** | the W-wave referent is owed in **Section A**, step 10 → **L-7** |
+| `N2-E1-2` | **CARRY** | the batch-4 packet is the organ instance (`N2-E4-01`); H2's expiry names the mechanical emit |
+| `N2-E1-3` | **RULE — filter = the H2 live denominator** | plus a dedicated closing campaign in the sequence → **L-3** |
+| `N2-E1-4` | **CARRY** | satellite onboarding; ROADMAP §1 sets the first satellite-serving lane at ≤2 windows |
+| `N2-E1-5` | **TAK — time the next cut** | under the re-scoped `[#511]` definition → **L-9** |
+| `N2-E1-6` | **One deliberate Codex-producer lane** | clause text unamended → **L-9**, **L-10** |
+| `N2-E1-7` | **RULE — a register entry is required** | and the `[#426]` RED entry is written → **L-4** |
+| `N2-E1-8` | **CARRY** | the weekly so-what packet; the batch-4 packet is the nearest instance |
+| `N2-E1-9` | **RULE — hollow existence checks are not acceptable** | the 15-row judgment carve-out class → **L-5** |
+| `N2-E2` | **NO DISPOSITION OWED** | retrospective, itemized for coverage; its one live residue is `N2-R3-07` |
+| `N2-E3-01` | **RULE** | closing campaign named in the windows-3–8 sequence → **L-3** |
+| `N2-E3-02` | **OK** | bake-offs stay behind intake #30 §B's pin repair — night lanes where no gate fires is the witnessed failure mode |
+| `N2-E3-03` | **TAK — state it in the intake** | the anti-goal does not block work it was not aimed at, step 10 |
+| `N2-E3-04` | **DECIDE — producer lane** | same fork as `N2-E1-6` → **L-9** |
+| `N2-E3-05` | **TAK — pin G-6 in the W4 contract** | so the lane does not re-litigate a question ruled at the GO |
+| `N2-E3-06` | **WATCH now; split decision at the batch-4 packet** | `[#511]` carries three loads → **L-8** |
+| `N2-E4-01` | **DO IT** | close batch 4 — W3 + W4 + the end-of-batch packet; un-blocks `N2-E1-2` and `N2-E1-8` |
+| `N2-E4-02` | **DO IT** | day-letter check — routed to the Codex-producer lane → **L-10** |
+| `N2-E4-03` | **DO IT** | body-date scan — routed to the Codex-producer lane → **L-10** |
+| `N2-E4-04` | **RULE IT** | census §8 Q1 answered in the negative → **L-5** |
+| `N2-E4-05` | **DO BOTH** | the drive-by pair rides W3 per route (i) → **L-10** |
+| `N2-E4-not5` | **EXCLUSIONS CONFIRMED** | `kill-candidates:` backfill · provider bake-offs · the conversion campaign itself stay outside the top-5 |
+| `N2-E5a` | **APPROVE as the W3 contract base** | dispatch after the contract is committed (I-D3) |
+| `N2-E5b` | **BIRTH THE ROW, then contract** | id-gated per J-2; the contract pins G-6 |
+| `N2-E5c` | **FILE** | amended to BLOCK-4's packaging ruling → step 10 |
+| `N2-E5d` | **ROUTE (i)** | the cap-clearing drive-by rides inside W3 (I-D8 precedent), costing no width |
+
+### M-11 · The four routed / addendum items
+
+| id | Disposition | Note |
+|---|---|---|
+| `A1` | **DRAFT+READY** | → **L-1**. Routing target — counted at `N1-S11` / `N2-D1-05` / `N2-D2-iv`, once only |
+| `A2` | **REJECT** (doc kept, relocated byte-identical) | → step 6. Routing target — counted at `N1-S12` |
+| `A3` | **TAK, via the existing T1 grant mechanism** | → **L-2**, landed with `N1-D03` in one act |
+| `A4` | **TAK — new row citing ADR-107/`[#439]`** | → step 9; keeps the closed row closed, obeys retire-not-delete |
+
 ## Editing note (read before adding an entry)
 
 This file sits inside the silent-rule ratchet corpus (`protocols/*.md`; detector
