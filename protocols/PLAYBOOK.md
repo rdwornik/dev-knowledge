@@ -2004,11 +2004,21 @@ convenience wrapper over a line the operator still has to know — it is the lin
 The class this retires is dispatch-line composition by hand: an operator (or a browser seat writing
 one for an operator) assembling `--bg`, `--model`, `--effort`, `--worktree`, `--permission-mode`
 and a board label from memory, where a dropped constant is invisible until the session boots wrong.
-Home: `win-tooling` `scripts/dispatch/Invoke-Dispatch.ps1`, merged `d743937`. The `dispatch` shell
-function is `win-tooling` `config/dev-terminals/dispatch-alias.ps1`, deployed by
-`scripts/dev-terminals/Apply-DevTerminals.ps1` to `$HOME\.dev-terminals\` and dot-sourced by the
-branded VS Code terminal profiles — so `dispatch` is live in every branded terminal, and the
-deployed copy is regenerated from that source rather than hand-edited.
+Home: `win-tooling` `scripts/dispatch/Invoke-Dispatch.ps1`, merged `d743937`. **`dispatch` is a
+PATH command, not a dot-sourced shell function** — `win-tooling@fb52bf6` (2026-08-11; a
+cross-repo SHA, named as one per the citation convention): `scripts/dev-terminals/bin/dispatch.ps1`
+plus a `dispatch.cmd` shim for `cmd.exe`, both deployed by
+`scripts/dev-terminals/Apply-DevTerminals.ps1` to `$HOME\.dev-terminals\bin`, with that directory
+added to the user PATH (HKCU, unexpanded, no elevation). The superseded route —
+`config/dev-terminals/dispatch-alias.ps1` dot-sourced by the branded VS Code terminal profiles —
+is why the earlier claim here, that `dispatch` was thereby *live in every branded terminal*, did not
+hold: that commit body records three dot-source routes and how each covers only part of the machine
+(profile args reach 1 of 8 terminal types, and only when picked or default; `CurrentUser $PROFILE`
+sits inside the OneDrive - Blue Yonder exclusion zone and cannot be written at all;
+`$PROFILE.AllUsersAllHosts` has the right scope but wants an elevated run no agent can perform).
+PATH lookup is the shell's own mechanism rather than something each shell has to be configured to
+do, so every shell resolves it. The alias, the profile args and `-Global` all still work, demoted to
+an optional fallback; the deployed copies are regenerated from source rather than hand-edited.
 
 **Contract mode is the default, and it executes the contract's own line verbatim.** Given a
 contract file, the helper looks for a `## Dispatch` heading followed by a fenced code block. If it
