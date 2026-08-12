@@ -239,8 +239,11 @@ def tracked_files(root: Path) -> frozenset[str] | None:
     """
     try:
         out = subprocess.run(["git", "-C", str(root), "ls-files", "-z"],
-                             capture_output=True, text=True, encoding="utf-8")
-    except OSError:
+                             capture_output=True, text=True, encoding="utf-8", timeout=30)
+    except (OSError, subprocess.SubprocessError):
+        # SubprocessError covers TimeoutExpired. Bounded 2026-08-12 alongside the identical
+        # gap terra finding 2 raised against the gen_audit_index twin: the same unbounded
+        # wait, in the same function, inside the same pre-commit gate class.
         return None
     if out.returncode != 0:
         return None
