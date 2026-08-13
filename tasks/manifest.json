@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "306f13c3f629c8b3a177344f67a8201b0c20b187fef46b82530c37580c472d26",
+  "generated_sha256": "60d3af8e647b7f608fd7f2e65ce04cb6d98e55b9b78f81e7a0e3b70cfdf8c892",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -265,6 +265,10 @@
     {
       "task": 296,
       "file": "296-audit-py-repo-name-repo-path-doesn-t-persist-its.md"
+    },
+    {
+      "task": 524,
+      "file": "524-four-ruled-check-extensions.md"
     },
     {
       "prose": ""
