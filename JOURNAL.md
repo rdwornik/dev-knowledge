@@ -19,6 +19,66 @@
 
 ---
 
+### 2026-08-13 (h) — CC (Sonnet 5, lane `worktree-lane-i-conversions-w4b`): W4b — 13/18 Done-when conversions applied, 5 SKIPPED (no census draft)
+
+**Did:** Executed the frozen contract `docs/audits/2026-08-13-technical-w4b-conversions-lane-
+contract.md` (committed I-D3 step 0 at `d4d814e7`) — group B of the 2026-08-13 Done-when
+conversion partition, 18 assigned ids: 324, 338, 341, 344, 346, 347, 349, 350, 351, 353, 356,
+357, 358, 361, 362, 364, 366, 371. Step 0 verified all 18 `status: open` live (none closed or
+in-flight; none SKIPPED at that step). Cross-checked each of the 18 against the census's §4
+conversion drafts (`docs/audits/2026-08-10-technical-backlog-testability-census.md`) — the
+census drafted 42 conversions for the P1+P2 band only, so this group's 5 P3 ids (`#324`, `#350`,
+`#351`, `#361`, `#364` — none carries a draft) were SKIPPED with that one-line reason. The remaining 13 (all
+P2) had their "Now:" quote verified byte-for-byte against the live row before applying — zero
+stale drafts in this group, so all 13 applied verbatim-with-adaptation, batched in commits of
+~5: `8b04b6f1` (#338, #341, #344, #346, #347), `9ca3c8f3` (#349, #353, #356, #357, #358),
+`ca49020a` (#362, #366, #371) — each commit's `tasks/*.md` edit paired with a
+`gen_task_tree.py --emit-source` regeneration in the same commit, since the pre-commit
+`task_tree_coherence` gate blocks a task-body edit not accompanied by a synced BACKLOG.md/
+manifest.json (learned live at the first attempt, which failed and was fixed forward rather than
+`--no-verify`'d).
+
+**Result — 13 rows converted, 5 honestly SKIPPED, zero remaining `permanent-defer-with-reason`
+prose in the 13.** Grep-countable per the master W4 contract's clause (c) instrument: a
+post-conversion sweep of `tasks/*.md` for `permanent-defer-with-reason` returns 7 hits
+repo-wide, none of them among this group's 13 converted ids (`#350` is one of the 7 — it is a
+SKIPPED id, correctly still prose). `validate_backlog.py` exits `OK (9 themes, 26 stories, 195
+tasks, 1 warning(s))` — the one WARN (`[S24]` empty story) predates this lane and is untouched.
+No status/priority/size/theme changed on any row (verified: only the `Done when:` clause line
+differs per diff). No births, no closes, no `CLAUDE.md`/`ARCHITECTURE.md`/`scripts/` edits.
+
+**A judgment call recorded, not escalated:** step 0's inherited "manifest amendment marker"
+language (from the single-lane W4 skeleton this group's 4-way split superseded) conflicts with
+this contract's own File-footprint clause (`tasks/<id>-*.md` + regen outputs + own contract/
+JOURNAL, "nothing else") — editing the shared `docs/audits/2026-08-11-technical-batch-4-
+manifest.md` would risk a 4-way collision with sibling lanes h/j/k on the same wave. Resolved as:
+this lane's own contract-of-record commit **is** its manifest-amendment marker; the shared
+batch-4 manifest's `W4` row is left for the integrator to reconcile once, against all four
+sibling contracts together, rather than four uncoordinated edits. Recorded in the contract file
+itself under "Step 0 execution note".
+
+**V-2 decision budget, stated back:** two decisions taken under budget — (1) the 5 P3
+no-draft SKIPs (mechanical: census §4 has no entry for a P3 row, nothing to apply), (2) the
+manifest-amendment-marker resolution above (a rule-vs-footprint conflict, decided per contract
+rather than escalated, and reported here). No curated-baseline touch, no rule-vs-ruling
+conflict beyond the one resolved above, no fork class with no standing ruling — nothing else
+met the escalation bar.
+
+**Changes:** `tasks/338-*.md`, `341-*.md`, `344-*.md`, `346-*.md`, `347-*.md`, `349-*.md`,
+`353-*.md`, `356-*.md`, `357-*.md`, `358-*.md`, `362-*.md`, `366-*.md`, `371-*.md` (Done-when
+clause converted, one line each); `BACKLOG.md` + `tasks/manifest.json` (regenerated three times,
+once per batch); `docs/audits/2026-08-13-technical-w4b-conversions-lane-contract.md` (new,
+contract of record) + `docs/audits/README.md` (regenerated index).
+
+**Abandoned:** nothing. **`git stash list` empty at STOP.**
+
+**Next:** the integrator merges W4b (`--no-ff`) alongside siblings h/j/k, reconciles the shared
+batch-4 manifest's `W4` `PENDING-CONTRACT` row against all four contracts in one pass, and (per
+this lane's Done-when clause 4) folds this packet's shas/counts into the wave's combined
+before/after grep-count for clause (c) of the master W4 row.
+
+---
+
 ### 2026-08-13 (g) — CC (Sonnet 5, lane `worktree-lane-h-conversions-w4a`): W4a conversions — 6 of 17 assigned Done-when rows mechanized, 11 P3 rows SKIPPED (no census draft)
 
 **Did:** Committed the frozen W4a contract as the contract of record (`96c32a4d`, I-D3), then
