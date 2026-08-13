@@ -19,6 +19,27 @@
 
 ---
 
+### 2026-08-13 (k) — CC (Sonnet 5, primary checkout, INTEGRATE-ALL consolidation): hygiene sweep -- ADR-112 enum fix; [#525] checked clean
+
+**Did:** Contract step 4 (hygiene sweep). Checked `[#525]`'s merged BACKLOG row: no
+absolute path present (the recorded lane-birth leak class does not recur), and its
+JOURNAL coverage gap was already discharged by this file's own entry (d) above (lane-c's
+diagnosing entry, anchoring `59d05dd0`/`d895581c`/`7ce704bb`) -- nothing further owed.
+Fixed the stale enum line in `docs/decisions/README.md`: it read ```Proposed``` enters
+the live set with ADR-112` after ADR-112 ratified 2026-08-12 (Accepted, per its own status
+line) -- corrected to fold ADR-112 into the Accepted count (80 -> 81) and state no
+`Proposed` member is currently live.
+
+**Result:** `docs/decisions/README.md` corrected. Commit `36b8aeb0503ad079323c7ced0b5d7f5812736215`.
+
+**Changes:** `docs/decisions/README.md`, this JOURNAL entry.
+
+**Abandoned:** Nothing.
+
+**Next:** integrator resumes the INTEGRATE-ALL contract's step 5 close-out measurements.
+
+---
+
 ### 2026-08-13 (j) — CC (Sonnet 5, lane `worktree-lane-k-conversions-w4d`): W4d — 11 Done-when conversions applied, 5 P3 rows skipped (no census draft)
 
 **Did:** Ran the W4d lane (`docs/audits/2026-08-13-technical-batch-4-w4d-lane-contract.md`,
