@@ -19,6 +19,73 @@
 
 ---
 
+### 2026-08-13 (a) — CC (Opus 5, primary tree): ARC2b — the ruled micro-tail; the four over-cap rows finally fit, and the dispatch shape is decided
+
+**Did:** Executed the operator's five ARC2-packet rulings (all TAK, 2026-08-12) plus the `[#524]`
+birth, and closed with the W3 ∥ CODEX-524 file-disjointness verdict that decides the next dispatch.
+Anchors this arc's own spine: `52d230cc` `b98f74ca` `1db80800` `343c1110` `fc78c6d6` `72e35f45`.
+
+**Result — the thing ARC2 reported as unlandable is landed.** ARC2 closed by reporting four rows
+(`[#369]` `[#383]` `[#390]` `[#508]`) it could not fix: they sat at **1179–1199 chars before that
+arc**, 1 to 21 chars of headroom under the 1200-char `doc_rot` cap, so the frozen step-3
+obligations were physically unwritable in-row at any wording. The sanctioned fix — a condense pass
+over each row's older inline history (ADR-65/49, git-preserving) — touched curated content beyond
+ARC2's named set, so it was routed to the operator rather than taken under contract defaults. Q1
+ruled it. Condensed and rewritten: **1240→1055, 1313→1100, 1282→1085, 1384→1100**, headroom
+**100–145 chars** rather than 1-char squeaks. `doc_rot` **15 → 11 loci, exactly −4**, and the other
+11 are byte-untouched.
+
+**`[#383]` needed date arithmetic, not just length.** The predicate is (≥3 dates AND >700 chars) OR
+(>1200 chars), so at 4 dated blocks its real cap was **700**, not 1200. The two dropped dates were
+both the duplicated `2026-08-12` ARC2 stamp; the register pointer replacing them identifies the arc
+more precisely than a date. Its leg (a) also still read *"any of the 8 rows"* while the row's own
+marker said 9 — a residual absolute count inside the clause the selector re-scope existed to kill.
+Verified live (`grep -c "kind: gitignore-effect"` = **9**) and removed.
+
+**Also landed:** **ADR-112 RATIFIED** Proposed → Accepted *as written* (Q2), following the ADR-111
+precedent at `57284aaa` — status line in place under ADR-94, a `Decided-by` line, one index line,
+`recent-adrs.md` regenerated · **`[#508]` CLOSED** (Q3) on branch 2 with the G-5 closing-commit
+convention, naming `1c2e5bc7` and `52d230cc` · **register L-11** records ADR-61's
+status-unparsable-by-construction with its repair deferred to that ADR's next genuine ratification
+event (Q4) · **`ai-council` pushed** (Q5), `origin/main` now `7a3c0579`, its own `block-ff-push`
+passing · **`[#524]` born** `[P2][S]` under `[E2]`/`[S4]`, the four ruled check extensions,
+producer Codex per L-10.
+
+**The verdict, which was the point of the arc:** `OVERLAP on scripts/audit.py,
+tests/test_audit.py, tests/test_doc_code_edge.py, tests/test_writer_integrity.py,
+ecosystem/doc-counts.md — sequential W3 → CODEX-524`. `[#513]` leg (b) requires the check ARMED as
+an `ALL_CHECKS` member *"evidenced by `audit.py health` exiting non-zero on a seeded violation"*, so
+the W5 precedent does not transfer — W5 deferred a **description** of a landed gate, while deferring
+registration here would defer **the landing**. The intersection is wider than the two obvious files
+because both lanes add an `ALL_CHECKS` member and its cardinality is pinned in **six live places**,
+all reading 41: each lane moves them 41→42 and goes green alone, while merged the registry holds
+**43** with every pin reading 42 — and since the pin lines are textually identical in both branches,
+**git resolves them without a conflict**. Green in isolation, red together, attributable to neither.
+
+**Three things reported rather than dispositioned.** (1) The contract says to derive W3's manifest
+from *"the committed E5a-based contract"* — **no W3 contract exists on disk**; the manifest row still
+reads `PENDING-CONTRACT` and I-D3 gates dispatch on it. Derived from `[#513]`'s committed Done-when
+instead; the verdict is unaffected, but W3 cannot dispatch until its contract lands. (2) The suite
+is **2871 passed / 1 failed** — `test_routine_consumers_live_backlog_governs_exactly_one_row`
+asserts 1 while live reads 2. **Proven pre-existing, not mine:** the check's only two qualifying
+rows (`[#348]`, `[#426]`) hash byte-identical between `d5d74612` and HEAD and this arc touched
+neither; it is the `[#415]` class, a test coupled to live mutable content. (3) Adding CODEX-524 to
+the batch-4 roster **exceeds the Ch8 process-lane cap by exactly one lane** (width 6→7, permitted
+`⌊7/4⌋`=1, occupants 2); width 8 is the first roster admitting two. Recorded, not ruled.
+
+**One mechanic worth keeping.** Closing a row post-flip is not a `status:` edit: `derive_status()`
+returns only `open`/`deferred`, so `--emit-source` puts `open` straight back. A row leaves
+`BACKLOG.md` by having its node dropped from `tasks/manifest.json`, with the file retained and
+hand-stamped terminal (ADR-107 §6.3). Measured, not reasoned — the first attempt did the wrong one.
+
+**Changes:** `BACKLOG.md` + `tasks/**` · `docs/decisions/**` · `protocols/STANDING_RULINGS.md` ·
+`docs/audits/2026-08-11-technical-batch-4-manifest.md` · `.claude/generated/**` · cross-repo
+`ai-council` (push only). **No `scripts/` file touched**, so the ex-ante Terra conditional is
+correctly waived. Net: closed 1 / opened 1 → **net 0**.
+
+**Next:** operator's mini-GO on the dispatch shape. W3's contract lands first, then W3, then
+CODEX-524.
+
 ### 2026-08-12 (g) — CC (Opus 5, primary tree): ARC2 — the adjudication's mechanical tail; 143 items become landed law
 
 **Did:** Converted the operator's ruled picker (`PICKER-2026-08-12-annotated.md`, accepted **en

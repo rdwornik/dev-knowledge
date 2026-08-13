@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "8cc98043493615f4b6a70215b4b33542ccd18f1a748b28e44a68f83f026e8fd5",
+  "generated_sha256": "60d3af8e647b7f608fd7f2e65ce04cb6d98e55b9b78f81e7a0e3b70cfdf8c892",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -267,11 +267,11 @@
       "file": "296-audit-py-repo-name-repo-path-doesn-t-persist-its.md"
     },
     {
-      "prose": ""
+      "task": 524,
+      "file": "524-four-ruled-check-extensions.md"
     },
     {
-      "task": 508,
-      "file": "508-lane-prefix-enum-cardinality-coupling.md"
+      "prose": ""
     },
     {
       "prose": "### [S5] Catch spec/dependent drift mechanically, not by memory"

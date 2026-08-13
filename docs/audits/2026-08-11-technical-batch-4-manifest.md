@@ -454,3 +454,103 @@ by this correction** and remain open with their own rows as owners.
 **`status:` stays `open`.** This marker corrects a factual list; it does not close the batch. The
 close itself happens at the end-of-batch packet, which is still due next window, and this
 correction is one of its named inputs.
+
+---
+
+## AMENDMENT — 2026-08-13, the W3 ∥ CODEX-524 dispatch-shape verdict (appended per A-4)
+
+Recorded by ARC2b step 7. The operator asked for one question to be settled before the mini-GO:
+can `W3` and a new `CODEX-524` lane run in parallel, or does one have to follow the other? Below
+is the derivation, the verdict, and the cap arithmetic — **reported, not adjudicated**, the same
+posture this file's cap section already takes.
+
+### C-1 · The two lane file-manifests, and how each was derived
+
+**`W3`** — derived from **`[#513]`'s amended Done-when**, not from a lane contract. `N2-E5a` was
+approved as the W3 contract *base* and I-D3 gates dispatch on that contract being committed; **no
+W3 contract exists on disk** and the W3 row above still reads `PENDING-CONTRACT`. So the binding
+predicate available today is the row, which is committed and is what the lane would be held to:
+
+- `scripts/audit.py` — **forced by legs (a) and (b)**, which name `audit.py::ALL_CHECKS` explicitly.
+- a new module for the organ itself (the `check_doc_rot` → `validate_doc_rot.py` shape) — permitted,
+  since (a) constrains where the check is *registered*, not where its logic lives.
+- `tests/` — leg (c) seeds a half-landed adoption and asserts RED then GREEN.
+- `ecosystem/disposition-register.yaml` — leg (d), the dated exemptions.
+- `protocols/STANDING_RULINGS.md` — the `landed:` predicates the check reads.
+- drive-bys riding W3 per L-10 / route (i): `protocols/PLAYBOOK.md` Ch8 (`N2-R3-07`) and
+  `scripts/gen_audit_index.py` (`N2-R3-08`).
+
+**`CODEX-524`** — `[#524]`, born this arc:
+
+- `scripts/audit.py` — leg (a) `N2-E4-02` (the JOURNAL day-letter check, which `audit.py health`
+  has to run, so it is an `ALL_CHECKS` member) and leg (d) `N2-L12` (`check_hooks_armed`).
+- `scripts/validate_backlog.py` — leg (b). · `scripts/journal_anchor.py` — leg (c).
+- `tests/test_audit.py`, `tests/test_validate_backlog.py`, and a journal-anchor test.
+
+### C-2 · The question actually asked: can registration be owed to the integrator?
+
+The W5 precedent is the `CLAUDE.md` §9 roster row — a lane landed a live gate and left one line of
+**documentation about it** to the integrator, keeping the lane out of a freshness-gated collision
+file. **That precedent does not transfer here**, and the reason is in `[#513]`'s own text:
+
+> **(b)** the check is ARMED — an `ALL_CHECKS` member, so it runs in the `audit-health` pre-commit
+> gate, **evidenced by `audit.py health` exiting non-zero on a seeded violation**
+
+W5 deferred a *description* of a gate that had already landed. Deferring `ALL_CHECKS` registration
+would defer **the landing itself**: an unregistered check does not run under `audit.py health`, so
+the lane could not produce leg (b)'s evidence, and leg (c)'s RED assertion runs through that same
+registered path. A lane that ends with (b) and (c) unmet has not met the Done-when as written.
+
+**So `W3` touches `scripts/audit.py`. It is not an authoring choice that can be avoided.**
+
+### C-3 · VERDICT
+
+```
+OVERLAP on scripts/audit.py, tests/test_audit.py, tests/test_doc_code_edge.py,
+tests/test_writer_integrity.py, ecosystem/doc-counts.md — sequential W3 → CODEX-524
+```
+
+The intersection is larger than the two obvious files, because **both lanes add an `ALL_CHECKS`
+member and the registry's cardinality is pinned in six live places**, measured on the tree today:
+
+| pin site | current |
+|---|---|
+| `tests/test_audit.py:2062` · `:2078` | `== 41` |
+| `tests/test_doc_code_edge.py:248` · `:713` | `== 41` |
+| `tests/test_writer_integrity.py:183` | `== 41` |
+| `ecosystem/doc-counts.md:14` | "41 registered checks" |
+
+**Why that matters more than an ordinary conflict.** Each lane in isolation moves every pin
+41 → 42 and goes green. Merged, `ALL_CHECKS` holds **43** while all six pins read **42** — and
+because the pins are textually identical in both branches, git resolves them **without a
+conflict**. The failure surfaces after both merges, in the integrator's tree, attributable to
+neither lane. Two lanes that both go green in isolation and red together is precisely the shape
+sequencing exists to prevent.
+
+Sequential ordering: **W3 first**, because `[#513]`'s organ is the finish-line row already carried
+out of batch 4, and because CODEX-524 then bumps the pins once, from a tree where W3's member is
+already registered.
+
+### C-4 · Process-lane cap arithmetic for adding CODEX-524 — reported, not ruled
+
+Ch8 caps hub-process lanes at ≤1/4 of **dispatched width**, floor arithmetic, the same convention
+B-3 used. `CODEX-524` is declared **hub-introspection** ex-ante: its four legs check the hub's own
+records — JOURNAL day-letters, BACKLOG body-dates, journal anchoring, hook arming.
+
+| roster | width | permitted `⌊w/4⌋` | hub occupants | verdict |
+|---|---|---|---|---|
+| as dispatched (W1–W6) | 6 | 1 | 2 (W1, W6) | over by 1 — the overage A-1 cleared |
+| after A-1 drops W6 | 5 | 1 | 1 (W1) | within |
+| after B-1 adds W-521 | 6 | 1 | 1 (W1) | within — the live state |
+| **+ CODEX-524** | **7** | **1** | **2 (W1, CODEX-524)** | **over by 1** |
+
+**Adding CODEX-524 to the batch-4 roster exceeds the cap by exactly one lane.** Width 8 would be
+the first roster admitting two hub lanes (`⌊8/4⌋ = 2`), so at width 7 the roster is one lane short.
+
+Stated without recommending, since a manifest is not the place to overturn a dispatch: the
+denominator is a *batch's* dispatched width, and `[#524]` is not batch-4 work — it originates at
+the 2026-08-12 adjudication (register L-10), and batch 4 is already closing on three-of-five with
+three carried. Dispatching it outside this roster loads this denominator with nothing. The
+arithmetic above is the input the closure contract's width-delta report needs either way.
+
+**`status:` stays `open`.** This marker records a verdict about future dispatch; it closes nothing.
