@@ -19,6 +19,35 @@
 
 ---
 
+### 2026-08-13 (b) — CC (Sonnet 5, worktree lane-birth-arch-organ-row): birth [#525] — the owed ARCHITECTURE Ch2/Ch6 organ rows
+
+**Did:** Filed `[#525]` `[P2][S]` under `[E5]`/`[S13]` for the ARCHITECTURE.md Ch2/Ch6 organ
+rows owed since `[#270]`'s operator-load gauge closed 2026-08-11 (`7e4d503e`) with
+`ARCHITECTURE.md` explicitly out of scope for the landing lane. Sources: batch-4 execution plan
+`docs/audits/2026-08-10-technical-batch-4-execution-plan-draft.md:300-301` ("the owed Ch2/Ch6
+row is collected by the integrator"), `JOURNAL.md` W2 close (:546) and W1 register-hygiene
+(:1074), and the frozen roadmap `docs/audits/2026-08-12-technical-roadmap-north-star-frozen.md:30`
+("Ch2/Ch6 organ rows owed"). Live-checked: neither Ch2's organ table nor Ch6's verification-mesh
+table names the `[load]` digest section or `logs/OPERATOR-LOAD.csv` today, so the debt is real,
+not stale. Filed via `tasks/525-…md` + a `tasks/manifest.json` node inserted at the last position
+of `[S13]` (theme/story derive from node position, not frontmatter), regenerated with
+`gen_task_tree.py --emit-source`, verified with `--check` and `validate_backlog.py`.
+`audit.py health` ran DEGRADED on pre-existing WARNs only (doc_rot/undeclared_edges/no_ff_merges
+all predate this change); `silent_rule_ratchet` unmoved at 440 <= 441.
+
+**Result:** Commit `7ce704bb` on `worktree-lane-birth-arch-organ-row`. `[#270]` confirmed closed
+(no re-opening); no open row previously owned this obligation (kill-candidates: none).
+
+**Changes:** `BACKLOG.md` (+1 row) · `tasks/525-architecture-ch2-ch6-organ-rows-for-the-load-gaug.md`
+(new) · `tasks/manifest.json` (+1 node).
+
+**Abandoned:** Nothing.
+
+**Next:** the born row awaits an integrator lane to actually land the two ARCHITECTURE.md table
+rows; dispatch command follows in this session's report.
+
+---
+
 ### 2026-08-13 (a) — CC (Opus 5, primary tree): ARC2b — the ruled micro-tail; the four over-cap rows finally fit, and the dispatch shape is decided
 
 **Did:** Executed the operator's five ARC2-packet rulings (all TAK, 2026-08-12) plus the `[#524]`
