@@ -19,6 +19,53 @@
 
 ---
 
+### 2026-08-13 (g) — CC (Sonnet 5, lane `worktree-lane-h-conversions-w4a`): W4a conversions — 6 of 17 assigned Done-when rows mechanized, 11 P3 rows SKIPPED (no census draft)
+
+**Did:** Committed the frozen W4a contract as the contract of record (`96c32a4d`, I-D3), then
+applied the census's P1/P2 conversion drafts (`docs/audits/2026-08-10-technical-backlog-
+testability-census.md` §4) to the assigned 17-id group A, re-resolving each draft against live
+`tasks/<id>-*.md` `status:` first per L14 (`N2-L14`).
+
+**Result:** All 17 assigned ids verified `status: open` live — none closed/in-flight, so no id was
+skipped on that ground. Of the 17, only 6 carry a P1/P2 draft in the census (§4 drafts only the
+P1+P2 band by its own stated scope; the assigned set mixes P1/P2 with P3 rows): `[#112]`
+`[#123]` `[#162]` `[#220]` `[#277]` `[#278]`. Each converted verbatim — the row's live Done-when
+text matched the census's "Now" quote exactly, so nothing needed adapting. The other 11
+(`[#82]` `[#130]` `[#145]` `[#146]` `[#210]` `[#239]` `[#263]` `[#266]` `[#271]` `[#274]`
+`[#285]`) are P3, carry no census draft, and are recorded not-applied for that reason — not a
+guessed rewrite, per the census's own DEFECTIVE-not-improvised rule. `docs/tasks/manifest.json`
++ `BACKLOG.md` regenerated in the same commit as the conversions (`gen_task_tree.py
+--emit-source`) so `task_tree_coherence` stayed green; `validate_backlog.py` OK (195 tasks, 1
+pre-existing unrelated WARN on story S24).
+
+**One naming observation, flagged rather than fixed:** this wave's three sibling branches
+(`worktree-lane-h-conversions-w4a`, `-i-conversions-w4b`, `-j-conversions-w4c`) do not match the
+strict batch-lane grammar (`LANE_BRANCH_RE`, `worktree-lane-<letter>-<id>-<slug>`) because each
+lane targets a 17-id *group*, not a single row id. They classify as plain `KIND_WORKTREE`
+(conforming) rather than `KIND_BATCH_LANE`. This is not a defect in this lane's own work — no
+batch is currently open (`batch_manifest.open_batches('.')` → `[]`), so no ADR-110 exemption was
+ever claimed, and merge will rely on ordinary JOURNAL-anchor discipline like any serial-arc
+branch. Recorded so the integrator does not go looking for a batch-4-style manifest row that
+does not exist for this wave.
+
+**Changes:** `docs/audits/2026-08-13-technical-w4a-conversions-lane-contract.md` (new, byte-
+identical to the operator's prompts-dir original), `docs/audits/README.md` (regenerated),
+`tasks/{112,123,162,220,277,278}-*.md` (Done-when converted), `BACKLOG.md` +
+`tasks/manifest.json` (regenerated).
+
+**Abandoned:** Nothing. The 11 P3 ids were never eligible for conversion under this lane's own
+contract (drafts don't exist for them) — SKIP is the correct disposition, not an abandonment.
+
+**Decision budget:** no curated-baseline touches, no rule-vs-ruling conflict, no fork class
+lacking a standing ruling — the branch-grammar mismatch above is reported, not escalated, since
+it blocks nothing this lane needed to do.
+
+**Next:** integrator — merge alongside sibling lanes W4b/W4c (groups B/C of the same 2026-08-13
+partition print); no queue-order dependency known between the three groups (file-disjoint by
+assigned-id set). Commit-and-STOP; this lane does not self-merge.
+
+---
+
 ### 2026-08-13 (f) — CC (Sonnet 5, primary checkout, INTEGRATE-ALL consolidation): W3 merge-gate condition 3 -- re-pin the reverse_dep_oracle live-position test, close [#513]
 
 **Did:** Contract step 1 condition 3 (full suite on merged main must clear the 17
