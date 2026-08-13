@@ -484,6 +484,15 @@ and discovered later by whoever boots against it.
   ADR-101 class token, both renamed by lanes spending decision budget (PLAYBOOK Ch8, the F3
   paragraph, which states the authoring-time fix for paths a contract *names*; this entry extends
   the same reading to the names a manifest *assigns*).
+- **Landed** ([#513] instance, added by W3 2026-08-13): the unification the "PRESENT TENSE
+  SUPERSEDED" bullet records, stated as a checkable predicate — the canonical module still
+  defines the constant, and its former rival now imports rather than re-defines:
+
+  ```landed
+  site: scripts/validate_branch_naming.py | pattern: ^LANE_BRANCH_RE\s*=
+  site: scripts/batch_manifest.py | pattern: from validate_branch_naming import LANE_BRANCH_RE
+  ```
+
 - **Expiry:** retires when the manifest template's name-bearing columns are generated from the
   validators and `/lane-boot` declines a branch that does not classify `batch-lane`. Both are
   dispatch acts, so neither is done here.
@@ -1596,6 +1605,76 @@ once only). Every id below carries exactly one disposition.
 | `A3` | **TAK, via the existing T1 grant mechanism** | → **L-2**, landed with `N1-D03` in one act |
 | `A4` | **TAK — new row citing ADR-107/`[#439]`** | → step 9; keeps the closed row closed, obeys retire-not-delete |
 
+## N. [#513] landing-predicate declarations (2026-08-13, W3)
+
+The two 2026-08-03 ADOPT rulings [#513]'s row cites as its own evidence set, given a checkable
+`landed:` predicate for the first time (the shape above). Both were ORIGINATED, not ruled here —
+source of record is the 2026-08-03 JOURNAL entries below; this section is the register home the
+row's clause (a) reads.
+
+### N-1 · the `markdown_it` fence-region ADOPT (2026-08-03)
+
+Fenced-code-region detection moves from a bespoke `^```...^```` / `startswith("```")` toggle to
+`markdown_it`'s own CommonMark tokenizer, wherever a site decides "is this line inside a fence."
+Originated JOURNAL 2026-08-03 (i) row 4 (`75fce455`, `scripts/normalize_headers.py`'s rewriting
+hook) and (k) row 3 (`62592646`, `scripts/toc/generator.py::parse_headers`) — a column-0-anchored
+toggle is blind to `~~~` fences and to a legal 1-3-space indent, and inverts on a 3-backtick line
+legally nested inside a 4-backtick outer fence. `[#513]`'s own row named the two sites that had
+not yet adopted it: `scripts/audit.py::_strip_code_regions` (`@import` scan leaking indented-fence
+content) and `scripts/validate_doc_structure.py::_nonfence_lines` (blind to `~~~`, the same
+inversion). Both landed in this W3 lane, reusing `scripts/toc/generator.py::_code_line_indices`
+at the second site rather than a third independent instrument.
+
+```landed
+site: scripts/toc/generator.py | pattern: from markdown_it import MarkdownIt
+site: scripts/normalize_headers.py | pattern: from markdown_it import MarkdownIt
+site: scripts/audit.py | pattern: from markdown_it import MarkdownIt
+site: scripts/validate_doc_structure.py | pattern: _code_line_indices
+```
+
+- **Expiry:** open-ended — a landing-predicate declaration retires only if the mechanism itself
+  is retired; the fenced-region instrument is expected to stay live indefinitely.
+
+### N-2 · the `yaml.safe_load` frontmatter-reader ADOPT (2026-08-03)
+
+Frontmatter parsing moves from a hand-rolled regex/prefix reader to `yaml.safe_load`, the same
+call `audit.check_vision_md` already made. Originated JOURNAL 2026-08-03 (i) row 2 (`7cc9b183`,
+`scripts/gen_intake_index.py::_parse_frontmatter`) — a `[a-z0-9-]+` key-class regex has no
+underscore, so an underscore-bearing key such as `reconciled_with` matched nothing and vanished
+from a dict the docstring called YAML frontmatter. `[#513]`'s own row named
+`scripts/gen_claude_rosters.py` as the twin that had not migrated. Landed in this W3 lane,
+mirroring `gen_intake_index._parse_frontmatter`'s exact shape.
+
+```landed
+site: scripts/gen_intake_index.py | pattern: yaml\.safe_load
+site: scripts/gen_claude_rosters.py | pattern: yaml\.safe_load
+```
+
+- **Expiry:** open-ended — the same reasoning as N-1's.
+
+### N-3 · Ch8's dispatch surface is a PATH command, not a dot-sourced alias — [#513]'s own first test case
+
+The night-2 lessons document (`docs/audits/2026-08-12-technical-night-2-lessons-governance-
+strategy.md`, lesson L19) named this ruling as the row's own first natural test case: a doctrine
+site that changed a mechanism class and, at the TIME L19 was written, had not yet reached its
+own doctrine paragraph. Re-verified live by this W3 lane rather than re-derived from the lesson:
+the repair landed BEFORE this lane started, at `10822b09` (2026-08-12, already on `main`,
+committed `docs(playbook): Ch8's dispatch surface is a PATH command, not a dot-sourced alias`) —
+so this entry is the organ's proof that it reports the already-landed site as landed, not a
+site this lane fixed.
+
+**Single-site by construction, not by omission.** The corrected mechanism's OWN implementation
+(`win-tooling@fb52bf6`, `scripts/dev-terminals/bin/dispatch.ps1`) lives in a different repo, so
+it sits outside this register's site model — `path:` in a `landed:` block resolves against THIS
+repo's tree (`scripts/validate_landing_predicate.py`'s module docstring). The doctrine paragraph
+is the only in-repo site the ruling touches.
+
+```landed
+site: protocols/PLAYBOOK.md | pattern: not a dot-sourced shell function
+```
+
+- **Expiry:** open-ended — the same reasoning as N-1's.
+
 ## Editing note (read before adding an entry)
 
 This file sits inside the silent-rule ratchet corpus (`protocols/*.md`; detector
@@ -1607,3 +1686,24 @@ which blocks the commit through the `audit-health` hook. Entries here are phrase
 declaratively for that reason. Where a verbatim source text carries such a keyword, this file
 points at the locator instead of transcribing it — see A3 and A4, whose Q7-declared homes are
 row bodies in any case.
+
+**The `landed:` predicate shape ([#513], added by W3 2026-08-13).** An entry declares where a
+ruling is expected to hold, in a fenced ```` ```landed ```` block anywhere in its own body, one
+`site:` line per location — reusing this section's existing `- **Expiry:**` bullet position
+rather than a second convention:
+
+```landed-shape
+site: <repo-relative path> | pattern: <regex, re.search against the live file text>
+```
+
+The `scripts/audit.py::check_landing_predicate` gate (logic in `scripts/
+validate_landing_predicate.py`) reads every such block: a site resolves TRUE when `pattern`
+is found in `path`'s current text; an entry whose declared sites disagree is a propagation
+gap — the class this row exists to surface. See N below for the shipped instances.
+
+A pattern authoring note, witnessed writing N-3: prose in this repo's `.md` files soft-wraps at
+a column width, so a phrase spanning two SOURCE lines has a real newline where a reader sees a
+space. `re.search` runs `re.MULTILINE` (a leading `^`/trailing `$` anchor to any line), which
+does not itself join wrapped words — a literal space in `pattern:` still fails across a wrap.
+Picking a shorter phrase that stays within one source line side-steps the issue entirely; a
+pattern that spans a wrap needs `\s+` in place of the space.

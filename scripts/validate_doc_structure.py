@@ -60,9 +60,9 @@ from pathlib import Path
 # H2 oracle pass: a fence-blind parser would treat `## What this project does` inside a
 # fenced template as a real header -> false positive).
 try:
-    from scripts.toc.generator import _slugify, parse_headers
+    from scripts.toc.generator import _code_line_indices, _slugify, parse_headers
 except ImportError:  # invoked from inside scripts/ (mirrors validate_doc_rot's import shape)
-    from toc.generator import _slugify, parse_headers
+    from toc.generator import _code_line_indices, _slugify, parse_headers
 
 _SCRIPTS_DIR = Path(__file__).resolve().parent
 _REPO_ROOT = _SCRIPTS_DIR.parent
@@ -106,17 +106,16 @@ def parse_allow_markers(text: str) -> set[tuple[str, str]]:
 
 
 def _nonfence_lines(text: str) -> list[str]:
-    """Lines outside ``` fenced code blocks (mirrors parse_headers' fence toggle exactly)."""
-    out: list[str] = []
-    in_fence = False
-    for line in text.splitlines():
-        if line.lstrip().startswith("```"):
-            in_fence = not in_fence
-            continue
-        if in_fence:
-            continue
-        out.append(line)
-    return out
+    """Lines outside fenced code blocks — TRUE mirror of `parse_headers`' fence decision,
+    via the same `_code_line_indices` CommonMark (markdown_it) instrument, rather than a
+    second hand-rolled ``` toggle. [#513] instance N5-03: the toggle was blind to `~~~`
+    fences (their contents leaked into structural scans as live prose) and inverted on a
+    3-backtick line legally nested inside a 4-backtick outer fence (closed the outer fence
+    early). Both are exactly the two failure modes `parse_headers`' own docstring already
+    documents for the toggle it replaced — this site never got that fix."""
+    lines = text.splitlines()
+    code = _code_line_indices(text)
+    return [line for i, line in enumerate(lines) if i not in code]
 
 
 def _numbered_h2(text: str) -> list[int]:

@@ -19,6 +19,28 @@
 
 ---
 
+### 2026-08-13 (b) — CC (Sonnet 5, lane-c-513-landing-predicate): diagnosing the birth-[#525] merge unblocks W3's own commit
+
+**Did:** While landing batch-4 W3 (`[#513]` propagation-completeness organ), `audit-health`'s
+`journal_spine_anchor` check blocked this lane's first commit on unrelated pre-existing drift: the
+merge `59d05dd0` ("birth `[#525]`, the owed ARCHITECTURE Ch2/Ch6 organ rows") sits on `main`'s
+first-parent spine above the ADR-85 disposition floor with no JOURNAL anchor, even though its
+introduced commits (`d895581c`, `7ce704bb`) claim journal coverage in their own commit messages.
+Confirmed via `git rev-list --parents` + `grep` that none of `59d05dd0` / `d895581c` / `7ce704bb`
+appear anywhere in this repo's live `JOURNAL.md` — the anchoring entry those commits describe was
+never actually prepended, or landed on a branch this file never merged. This is not W3's own work;
+recorded here only to discharge the shared spine-anchor gate per repo convention (naming an
+introduced SHA to explain it counts as anchoring it), so W3's commits can proceed.
+
+**Result:** `journal_spine_anchor` clears; `59d05dd0` / `d895581c` / `7ce704bb` are now anchored.
+
+**Changes:** JOURNAL.md only (this entry).
+
+**Next:** [#525]'s own substantive JOURNAL coverage, if still missing, is owed by that lane/its
+integrator, not by W3 — flagged here rather than authored, since W3 has no context on that work.
+
+---
+
 ### 2026-08-13 (a) — CC (Opus 5, primary tree): ARC2b — the ruled micro-tail; the four over-cap rows finally fit, and the dispatch shape is decided
 
 **Did:** Executed the operator's five ARC2-packet rulings (all TAK, 2026-08-12) plus the `[#524]`
