@@ -554,3 +554,44 @@ three carried. Dispatching it outside this roster loads this denominator with no
 arithmetic above is the input the closure contract's width-delta report needs either way.
 
 **`status:` stays `open`.** This marker records a verdict about future dispatch; it closes nothing.
+
+---
+
+## AMENDMENT — 2026-08-13, appended by W3: the W3 row resolves to a committed contract path
+
+**Appended, not edited.** The roster table above still reads `PENDING-CONTRACT` in the W3 row and
+that row is left byte-untouched: `docs/audits/` is immutable (CLAUDE.md §5 rule 3 — *"supersede
+with a new file or an in-file amendment marker; never edit in place"*), and this file's own
+"row-update leg" section names the batch-3 appended-marker device (ratified standard, A-4) as the
+device to use. A reader resolving the W3 row reads the table **and** this marker.
+
+**The resolution.**
+
+| Lane | Worktree / branch | Rows | Bucket | Contract of record |
+|---|---|---|---|---|
+| **W3** | `worktree-lane-c-513-landing-predicate` | `[#513]` (as amended) | finish-line | `docs/audits/2026-08-13-technical-batch-4-w3-lane-contract.md` |
+
+The contract is committed **on the lane branch `worktree-lane-c-513-landing-predicate`, not on
+`main`** — the same standing this file records for W1, W2 and W5 — and it is byte-identical to the
+prompts-dir original `W3-lane-c-513-landing-predicate.md` (SHA256
+`b7570f4b90f058539de3bb345a00a74b3ee176cbdb38bb9630e33db225a6fb32`, both files hashed and compared
+before the commit). It reaches `main` when W3 merges.
+
+**Why the contract-path date reads 2026-08-13, one day after the night-2 skeleton's aspirational
+`Contract path` bullet named `2026-08-12`.** The skeleton (`docs/audits/2026-08-12-technical-
+night-2-lessons-governance-strategy.md` §"(a) W3 contract skeleton") was drafted the night before
+dispatch and named a path as if committed that night; this lane was not actually dispatched until
+2026-08-13, and the file did not exist in the tree before today. Per the same discipline this
+manifest already applies to its own provenance ("no timestamp in it is back-dated"), the contract
+is dated to the day it is genuinely committed, not backdated to match the skeleton's draft-night
+aspiration. The skeleton's technical content (the seven steps, the acceptance clauses, the What
+NOT to do list) is otherwise carried verbatim into the committed contract's frozen dispatch file.
+
+**Dispatch-shape verdict already on record.** The W3 ∥ CODEX-524 disjointness question this row's
+own contract would otherwise have to re-derive is already settled by the amendment directly above
+this one (ARC2b step 7, 2026-08-13): **OVERLAP** on `scripts/audit.py` and its cardinality-pinned
+test/doc-count surfaces, **sequential W3 → CODEX-524**. Per the W3 contract's scope addition 3,
+an OVERLAP verdict means this lane registers its check in `scripts/audit.py::ALL_CHECKS` normally
+— no registration is owed to the integrator.
+
+**`status:` stays `open`.** This marker resolves one roster row; it does not close the batch.
