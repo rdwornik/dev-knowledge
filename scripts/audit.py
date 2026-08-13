@@ -47,6 +47,7 @@ from typing import Optional
 
 import click
 import yaml
+from markdown_it import MarkdownIt
 
 # The [#355] git-env scrub, single-sourced in the LEAF module `scripts/gitenv.py` ([#396]).
 # Leaf = stdlib-only, ZERO repo imports, so this top-level import carries none of the
@@ -187,6 +188,13 @@ try:
     from scripts import gen_intake_tree as _gint
 except ImportError:
     import gen_intake_tree as _gint
+
+# [#513] propagation-completeness landing-predicate scanner — same module-import + thin-adapter
+# shape as the validators above; tests monkeypatch `_vlp.scan`.
+try:
+    from scripts import validate_landing_predicate as _vlp
+except ImportError:
+    import validate_landing_predicate as _vlp
 
 # #179 undeclared-edge scan (Fable consult #1 ruling #2, 2026-07-03) — ship-gate WARN leg; same
 # module-import + thin-adapter shape; tests monkeypatch `_sue.scan`.
@@ -2706,12 +2714,35 @@ def _blank_preserving_lines(match: "re.Match[str]") -> str:
     return "\n" * match.group(0).count("\n")
 
 
+_FENCE_MD = MarkdownIt("commonmark")
+
+
+def _blank_fenced_code_blocks(text: str) -> str:
+    """Blank every fenced code block (``` or ~~~, any indent 0-3) line-count-preserving,
+    per CommonMark rather than a column-0-anchored regex. [#513] instance N5-03: the prior
+    `^```.*?^```` regex only matched an UN-indented fence, so a legal 1-3-space-indented
+    fence leaked its contents into `check_import_edges`'s `@import` scan. markdown_it's own
+    `.map` line-range is CommonMark-correct (indented and `~~~` fences both close exact,
+    proven against markdown_it's own commonmark spec fixtures) and is the same parser this
+    repo already ADOPTED for TOC/header extraction (`scripts/toc/generator.py`,
+    `scripts/normalize_headers.py`) — reusing it here is the propagation this row exists for,
+    not a new instance of the class it detects."""
+    lines = text.splitlines(keepends=True)
+    for token in _FENCE_MD.parse(text):
+        if token.type != "fence" or not token.map:
+            continue
+        start, end = token.map
+        for i in range(start, min(end, len(lines))):
+            lines[i] = "\n" if lines[i].endswith("\n") else ""
+    return "".join(lines)
+
+
 def _strip_code_regions(text: str) -> str:
     """Blank fenced code blocks, HTML comments, and inline code spans so a `@path`
     quoted as an example — or the roster's backtick-neutralized import tokens
     (gen_methodology_roster._neutralize_import) — is not read as a live @import.
     Multi-line regions are blanked line-count-preserving; inline spans are single-line."""
-    text = re.sub(r"(?ms)^```.*?^```", _blank_preserving_lines, text)
+    text = _blank_fenced_code_blocks(text)
     text = re.sub(r"(?s)<!--.*?-->", _blank_preserving_lines, text)
     text = re.sub(r"`[^`\n]*`", "", text)
     return text
@@ -4174,6 +4205,65 @@ def check_review_artifact_coverage(repo_path: Path) -> list[Finding]:
         return [Finding(name, "warn", f"could not scan: {exc!r}".replace("|", "/"))]
 
 
+def check_landing_predicate(repo_path: Path) -> list[Finding]:
+    """[#513] propagation completeness — a ruling that changed a mechanism class can land at
+    some call sites and not others; nothing previously owned noticing the CLASS (fixing a found
+    site repairs the instance, not the pattern). Reads every `landed:` predicate declared in
+    `protocols/STANDING_RULINGS.md` (register entries opt in with a fenced ```landed``` block —
+    see `scripts/validate_landing_predicate.py`'s module docstring for the shape) and FAILs when
+    a declared ruling's sites disagree — landed at >=1 site, not landed at >=1 other.
+
+    Hub-only: the register is .dev-knowledge-specific, so on any other repo this is a no-op pass
+    (mirrors check_doc_rot / check_git_backlog_drift). GATING, not awareness (row clause (a)/(b)):
+    unlike doc_rot/doc_structure this emits FAIL, not WARN, and one Finding PER ruling so a future
+    dispositioned instance clears independently (the #147 ship-gate contract). A mixed ruling is
+    still checked against `ecosystem/disposition-register.yaml` here, inside the check itself,
+    rather than deferred to ship-gate's WARN-only disposition layer — audit-health (the pre-commit
+    gate this arms) is FAIL-only and never runs ship-gate's dispositioning pass, so a check that
+    wants a dated exemption to actually suppress a pre-commit block has to consult the register
+    itself (row clause (d)). A dispositioned mixed ruling downgrades to `warn` (visible, not
+    blocking); an undispositioned one stays `fail`. A `landed:` site naming a file that does not
+    exist is reported as its own `warn` (a broken declaration, not a propagation gap) rather than
+    silently folded into either boolean. Logic lives in scripts/validate_landing_predicate.py.
+    """
+    name = "landing_predicate"
+    if not _is_hub(repo_path):
+        return [_na(name, "NOT-APPLICABLE",
+                    "hub-only — landing-predicate scanner skipped (not the hub repo)")]
+    try:
+        entries = _vlp.scan(Path(repo_path))
+    except Exception as exc:  # noqa: BLE001 -- never wedge audit-health on its own input
+        return [Finding(name, "warn", f"check degraded (read-only, non-blocking): {exc!r}".replace("|", "/"))]
+    if not entries:
+        return [Finding(name, "pass", "no landed: predicates declared in STANDING_RULINGS.md")]
+
+    dispositions = _load_dispositions()
+    out: list[Finding] = []
+    for entry in entries:
+        site_desc = "; ".join(
+            f"{s.path}={'ERROR' if s.landed is None else s.landed}" for s in entry.sites
+        )
+        if entry.mixed:
+            evidence = (f"[#513] {entry.ruling_id} ({entry.title}) landed at some sites and "
+                        f"not others: {site_desc}".replace("|", "/"))
+            f = Finding(name, "fail", evidence)
+            disp = _match_disposition(f, dispositions)
+            if disp is not None:
+                out.append(Finding(name, "warn",
+                                    f"{evidence} -- dispositioned: {disp.get('reason', '')}".replace("|", "/")))
+            else:
+                out.append(f)
+        elif entry.errors:
+            broken = ", ".join(s.path for s in entry.errors)
+            out.append(Finding(name, "warn",
+                                f"{entry.ruling_id} ({entry.title}) declares a landed: site that "
+                                f"could not be read: {broken}".replace("|", "/")))
+        else:
+            out.append(Finding(name, "pass",
+                                f"{entry.ruling_id} ({entry.title}) landed uniformly: {site_desc}".replace("|", "/")))
+    return out
+
+
 ALL_CHECKS = [
     check_vision_md,
     check_adr38_baseline,
@@ -4221,6 +4311,8 @@ ALL_CHECKS = [
     check_review_artifact_coverage,   # [#480] P3 — ADVISORY (WARN-tier by ruling);
                                      # the hard pre-push leg is deferred behind a
                                      # two-window zero-false-positive evidence bar
+    check_landing_predicate,   # [#513] propagation-completeness — GATING (FAIL-capable), one
+                               # Finding per declared ruling in STANDING_RULINGS.md
 ]
 
 

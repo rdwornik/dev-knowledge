@@ -1710,6 +1710,91 @@ def test_amendment_coherence_gate_blocks_health(
     assert "OK" in passed.output
 
 
+def _seed_landing_predicate_register(repo: Path, *, conform: bool) -> None:
+    """A minimal STANDING_RULINGS.md carrying one `landed:` declaration over two site files
+    this helper also writes. `conform=False` leaves the two sites disagreeing (MIXED); `True`
+    makes both sites match (the [#513] clause (c) seed test, both directions)."""
+    (repo / "scripts").mkdir(parents=True, exist_ok=True)
+    (repo / "protocols").mkdir(parents=True, exist_ok=True)
+    (repo / "scripts" / "adopted.py").write_text("MARKER_PRESENT = True\n", encoding="utf-8")
+    (repo / "scripts" / "other.py").write_text(
+        "MARKER_PRESENT = True\n" if conform else "pass\n", encoding="utf-8")
+    (repo / "protocols" / "STANDING_RULINGS.md").write_text(
+        "### SEED-1 · a seeded half-landed adoption\n\n"
+        "```landed\n"
+        "site: scripts/adopted.py | pattern: MARKER_PRESENT\n"
+        "site: scripts/other.py | pattern: MARKER_PRESENT\n"
+        "```\n\n- **Expiry:** test-only\n",
+        encoding="utf-8",
+    )
+
+
+def test_landing_predicate_gate_blocks_health(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """[#513] clause (b) E2E: a seeded half-landed `landed:` predicate routed through the REAL
+    gate (`audit.py health` / cmd_health) makes it EXIT 1, demonstrated rather than asserted
+    against the bare function return. Clause (c), the GREEN-via-conform direction: fixing the
+    disagreeing site clears the block. Isolates ALL_CHECKS to this check (precedent:
+    test_amendment_coherence_gate_blocks_health directly above)."""
+    from click.testing import CliRunner
+
+    eco = tmp_path / "ecosystem" / "r"
+    eco.mkdir(parents=True)
+    (eco / "state.yaml").write_text(
+        "name: r\npath: /tmp/r\nlast_audit: null\nfindings: []\n", encoding="utf-8")
+    monkeypatch.setattr(aud, "ECOSYSTEM_DIR", tmp_path / "ecosystem")
+    monkeypatch.setattr(aud, "ALL_CHECKS", [aud.check_landing_predicate])
+    monkeypatch.setattr(aud, "DISPOSITION_REGISTER", tmp_path / "no-such-register.yaml")
+
+    repo = tmp_path / "repo"
+    _seed_landing_predicate_register(repo, conform=False)
+    monkeypatch.setattr(aud, "_REPO_ROOT", str(repo))
+    blocked = CliRunner().invoke(aud.cmd_health)
+    assert blocked.exit_code == 1
+    assert "DEGRADED" in blocked.output
+
+    _seed_landing_predicate_register(repo, conform=True)     # GREEN direction 1: conformed
+    passed = CliRunner().invoke(aud.cmd_health)
+    assert passed.exit_code == 0
+    assert "OK" in passed.output
+
+
+def test_landing_predicate_gate_clears_via_dated_disposition(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """[#513] clause (c) GREEN direction 2: a mixed ruling matched by a dated
+    `ecosystem/disposition-register.yaml` entry downgrades fail -> warn INSIDE the check
+    itself (audit-health is FAIL-only and never runs ship-gate's WARN-disposition pass, so
+    the check has to consult the register itself for clause (d)'s exemption to actually
+    suppress a pre-commit block)."""
+    from click.testing import CliRunner
+
+    eco = tmp_path / "ecosystem" / "r"
+    eco.mkdir(parents=True)
+    (eco / "state.yaml").write_text(
+        "name: r\npath: /tmp/r\nlast_audit: null\nfindings: []\n", encoding="utf-8")
+    monkeypatch.setattr(aud, "ECOSYSTEM_DIR", tmp_path / "ecosystem")
+    monkeypatch.setattr(aud, "ALL_CHECKS", [aud.check_landing_predicate])
+
+    repo = tmp_path / "repo"
+    _seed_landing_predicate_register(repo, conform=False)
+    monkeypatch.setattr(aud, "_REPO_ROOT", str(repo))
+
+    register = tmp_path / "disposition-register.yaml"
+    register.write_text(
+        "dispositions:\n"
+        "  - id: warn-landing-predicate-seed-1-test\n"
+        "    organ: landing_predicate\n"
+        "    match: \"SEED-1\"\n"
+        "    ref: test-only\n"
+        "    reason: seeded exemption for the [#513] clause (c) test\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(aud, "DISPOSITION_REGISTER", register)
+    dispositioned = CliRunner().invoke(aud.cmd_health)
+    assert dispositioned.exit_code == 0
+    assert "OK" in dispositioned.output
+
+
 def test_amendment_coherence_present_surface_missing_mention_warns(tmp_path: Path) -> None:
     """Codex HIGH-1: a present coupled surface whose normative version mention vanished
     (reworded/removed) is surfaced as drift (WARN), never a silent PASS. Anchor present
@@ -2059,7 +2144,7 @@ def test_import_edges_live_repo_passes_and_is_registered() -> None:
     f = aud.check_import_edges(Path(aud._REPO_ROOT))[0]
     assert f.status == "pass", f.evidence
     assert aud.check_import_edges in aud.ALL_CHECKS
-    assert len(aud.ALL_CHECKS) == 41  # 30 -> 31: check_residual_completeness added (ARC-5 residual gate, 2026-07-19); 29 -> 30: check_fleet_parity added ([#337], 2026-07-18); 31 -> 32: check_routine_consumers added ([#419]/ADR-105 activation gate, 2026-07-26); 32 -> 34: check_silent_rule_ratchet ([#436] D4 ratchet) + check_task_tree_coherence ([#433] C1 gate-arm) added, 2026-07-27; 34 -> 35: check_boot_byte_budget added ([#446] A10 item 2 / R4 boot byte budget, 2026-07-31); 35 -> 36: check_intake_tree_coherence added ([#383] wave 1 — ADR-109 §4 generality proof, 2026-07-31); 36 -> 37: check_fleet_audit_replication added ([#460] — ADR-80 durable-record replication alarm, 2026-08-01); 37 -> 38: check_membership_agreement added ([#462] — ADR-104 declaration vs every repo-keyed machine surface, 2026-08-01); 38 -> 39: check_journal_spine_anchor added (ADR-85 amendment 2026-08-03 §A8/FR4 — pre-push backstop, 2026-08-03); 39 -> 38: check_handoff_tag_canonicity RETIRED ([#465] leg 4 — its subject (§3.1 four-tag section) has not existed since the v5 flip; the inert-check detector found it, 2026-08-04); 38 -> 39: check_preflight_backlog_ids added ([#483] R3 -- ADVISORY leg, WARN-tier; hard-gating deferred pending 0 false positives over two windows, 2026-08-04); 39 -> 40: check_review_artifact_coverage added ([#480] P3 -- ADVISORY leg, WARN-tier; the hard pre-push leg is deferred pending 0 false positives over two consecutive windows, 2026-08-05); 40 -> 41: check_stale_worktrees added ([#505] batch hygiene -- WARN-tier by ruling, ADR-110 §1 item 4 / intake #26 Track 1 item 4, 2026-08-06)
+    assert len(aud.ALL_CHECKS) == 42  # 30 -> 31: check_residual_completeness added (ARC-5 residual gate, 2026-07-19); 29 -> 30: check_fleet_parity added ([#337], 2026-07-18); 31 -> 32: check_routine_consumers added ([#419]/ADR-105 activation gate, 2026-07-26); 32 -> 34: check_silent_rule_ratchet ([#436] D4 ratchet) + check_task_tree_coherence ([#433] C1 gate-arm) added, 2026-07-27; 34 -> 35: check_boot_byte_budget added ([#446] A10 item 2 / R4 boot byte budget, 2026-07-31); 35 -> 36: check_intake_tree_coherence added ([#383] wave 1 — ADR-109 §4 generality proof, 2026-07-31); 36 -> 37: check_fleet_audit_replication added ([#460] — ADR-80 durable-record replication alarm, 2026-08-01); 37 -> 38: check_membership_agreement added ([#462] — ADR-104 declaration vs every repo-keyed machine surface, 2026-08-01); 38 -> 39: check_journal_spine_anchor added (ADR-85 amendment 2026-08-03 §A8/FR4 — pre-push backstop, 2026-08-03); 39 -> 38: check_handoff_tag_canonicity RETIRED ([#465] leg 4 — its subject (§3.1 four-tag section) has not existed since the v5 flip; the inert-check detector found it, 2026-08-04); 38 -> 39: check_preflight_backlog_ids added ([#483] R3 -- ADVISORY leg, WARN-tier; hard-gating deferred pending 0 false positives over two windows, 2026-08-04); 39 -> 40: check_review_artifact_coverage added ([#480] P3 -- ADVISORY leg, WARN-tier; the hard pre-push leg is deferred pending 0 false positives over two consecutive windows, 2026-08-05); 40 -> 41: check_stale_worktrees added ([#505] batch hygiene -- WARN-tier by ruling, ADR-110 §1 item 4 / intake #26 Track 1 item 4, 2026-08-06); 41 -> 42: check_landing_predicate added ([#513] propagation completeness / landing-predicate scanner, 2026-08-13)
 
 
 def test_import_edges_wired_into_audit_repo(tmp_path: Path) -> None:
@@ -2075,7 +2160,7 @@ def test_import_edges_wired_into_audit_repo(tmp_path: Path) -> None:
 
 def test_fleet_parity_registered_in_all_checks():
     assert "check_fleet_parity" in [c.__name__ for c in aud.ALL_CHECKS]
-    assert len(aud.ALL_CHECKS) == 41  # 30 -> 31: check_residual_completeness added (ARC-5 residual gate, 2026-07-19); 31 -> 32: check_routine_consumers added ([#419]/ADR-105 activation gate, 2026-07-26); 32 -> 34: check_silent_rule_ratchet ([#436] D4 ratchet) + check_task_tree_coherence ([#433] C1 gate-arm) added, 2026-07-27; 34 -> 35: check_boot_byte_budget added ([#446] A10 item 2 / R4 boot byte budget, 2026-07-31); 35 -> 36: check_intake_tree_coherence added ([#383] wave 1 — ADR-109 §4 generality proof, 2026-07-31); 36 -> 37: check_fleet_audit_replication added ([#460] — ADR-80 durable-record replication alarm, 2026-08-01); 37 -> 38: check_membership_agreement added ([#462] — ADR-104 declaration vs every repo-keyed machine surface, 2026-08-01); 38 -> 39: check_journal_spine_anchor added (ADR-85 amendment 2026-08-03 §A8/FR4 — pre-push backstop, 2026-08-03); 39 -> 38: check_handoff_tag_canonicity RETIRED ([#465] leg 4 — its subject (§3.1 four-tag section) has not existed since the v5 flip; the inert-check detector found it, 2026-08-04); 38 -> 39: check_preflight_backlog_ids added ([#483] R3 -- ADVISORY leg, WARN-tier; hard-gating deferred pending 0 false positives over two windows, 2026-08-04); 39 -> 40: check_review_artifact_coverage added ([#480] P3 -- ADVISORY leg, WARN-tier; the hard pre-push leg is deferred pending 0 false positives over two consecutive windows, 2026-08-05); 40 -> 41: check_stale_worktrees added ([#505] batch hygiene -- WARN-tier by ruling, ADR-110 §1 item 4 / intake #26 Track 1 item 4, 2026-08-06)
+    assert len(aud.ALL_CHECKS) == 42  # 30 -> 31: check_residual_completeness added (ARC-5 residual gate, 2026-07-19); 31 -> 32: check_routine_consumers added ([#419]/ADR-105 activation gate, 2026-07-26); 32 -> 34: check_silent_rule_ratchet ([#436] D4 ratchet) + check_task_tree_coherence ([#433] C1 gate-arm) added, 2026-07-27; 34 -> 35: check_boot_byte_budget added ([#446] A10 item 2 / R4 boot byte budget, 2026-07-31); 35 -> 36: check_intake_tree_coherence added ([#383] wave 1 — ADR-109 §4 generality proof, 2026-07-31); 36 -> 37: check_fleet_audit_replication added ([#460] — ADR-80 durable-record replication alarm, 2026-08-01); 37 -> 38: check_membership_agreement added ([#462] — ADR-104 declaration vs every repo-keyed machine surface, 2026-08-01); 38 -> 39: check_journal_spine_anchor added (ADR-85 amendment 2026-08-03 §A8/FR4 — pre-push backstop, 2026-08-03); 39 -> 38: check_handoff_tag_canonicity RETIRED ([#465] leg 4 — its subject (§3.1 four-tag section) has not existed since the v5 flip; the inert-check detector found it, 2026-08-04); 38 -> 39: check_preflight_backlog_ids added ([#483] R3 -- ADVISORY leg, WARN-tier; hard-gating deferred pending 0 false positives over two windows, 2026-08-04); 39 -> 40: check_review_artifact_coverage added ([#480] P3 -- ADVISORY leg, WARN-tier; the hard pre-push leg is deferred pending 0 false positives over two consecutive windows, 2026-08-05); 40 -> 41: check_stale_worktrees added ([#505] batch hygiene -- WARN-tier by ruling, ADR-110 §1 item 4 / intake #26 Track 1 item 4, 2026-08-06); 41 -> 42: check_landing_predicate added ([#513] propagation completeness / landing-predicate scanner, 2026-08-13)
 
 
 def test_fleet_parity_findings_maps_blocking_verdicts():
