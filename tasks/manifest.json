@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "60d3af8e647b7f608fd7f2e65ce04cb6d98e55b9b78f81e7a0e3b70cfdf8c892",
+  "generated_sha256": "c045c3eed2045d397bf7099c559e3d3fbab79c99f26f889f60fe0136c4e8d7ac",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -652,6 +652,10 @@
     {
       "task": 388,
       "file": "388-the-10-20-repo-fleet-scale-target-is-fabricated.md"
+    },
+    {
+      "task": 525,
+      "file": "525-architecture-ch2-ch6-organ-rows-for-the-load-gaug.md"
     },
     {
       "prose": ""
