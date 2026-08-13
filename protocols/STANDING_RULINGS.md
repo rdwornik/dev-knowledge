@@ -1349,6 +1349,28 @@ PLAYBOOK Ch8 dispatch-paragraph repair (`N2-R3-07`) and the `git ls-files` port 
 `scripts/gen_audit_index.py:57` (`N2-R3-08`). Contracts for all of it follow from the browser seat;
 ownership is recorded here so nothing in the set is unowned overnight.
 
+### L-11 · `ADR-61` carries no parsable status line — recorded, repair deferred
+
+The `docs/decisions/` status enum declared at ARC2 step 7 measured exactly one file its reader
+returns nothing for: `ADR-61-git-worktree-parallel-sessions.md` states its status in YAML
+frontmatter (`status: Accepted 2026-05-28`) rather than in the `- **Status:**` bullet every other
+ADR uses. The condition is **unparsable-by-construction** rather than missing or contradictory —
+the file does say Accepted, in a shape the reader does not look at. That distinction is the whole
+of why this is recorded rather than repaired.
+
+**Ruled 2026-08-12: recorded here; the repair rides ADR-61's next genuine ratification event.**
+Neither an in-place edit nor an appended marker lands in this arc. The reasoning is ADR-94's, taken
+at its word: its in-place exception covers a status line **on ratification**, and reshaping a
+status line for a parser's convenience is not a ratification, so the edit that would fix this has
+no authorizing event yet. An appended marker was available and is declined as disproportionate —
+it would record that the file's status is hard to read, which is a fact about the reader rather
+than about the decision, and `docs/decisions/README.md` already carries that fact as its
+honest-limit 2.
+
+Deferring has a cost and it is small, which is the reason deferral is affordable here: ADR-61 is
+Accepted and reads as Accepted to a human, so the gap is machine-visibility only. It surfaces
+again the next time the corpus is counted by status, which is where honest-limit 2 already points.
+
 ## M. The 2026-08-12 adjudication — per-item dispositions (143 items)
 
 Companion to section L, which carries the ruling lines that have content beyond a verdict. This
