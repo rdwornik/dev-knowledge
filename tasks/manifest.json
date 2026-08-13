@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "d2a15f9e1265e7ad5db983ba50dfe97ed8375b35409f6250d42bfe37230b78a7",
+  "generated_sha256": "306f13c3f629c8b3a177344f67a8201b0c20b187fef46b82530c37580c472d26",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -268,10 +268,6 @@
     },
     {
       "prose": ""
-    },
-    {
-      "task": 508,
-      "file": "508-lane-prefix-enum-cardinality-coupling.md"
     },
     {
       "prose": "### [S5] Catch spec/dependent drift mechanically, not by memory"
