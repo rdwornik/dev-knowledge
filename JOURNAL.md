@@ -19,6 +19,58 @@
 
 ---
 
+### 2026-08-13 (d) — CC (Sonnet 5, lane `worktree-lane-k-conversions-w4d`): W4d — 11 Done-when conversions applied, 5 P3 rows skipped (no census draft)
+
+**Did:** Ran the W4d lane (`docs/audits/2026-08-13-technical-batch-4-w4d-lane-contract.md`,
+committed byte-identical from the prompts-dir original, I-D3) on the 16-id group-D partition:
+`425 428 430 438 443 453 456 463 464 484 487 491 493 502 506 511`. Step 0 (`3edbc6fd`) verified
+all 16 `status: open` live and the worktree letter `k` free against `git worktree list` (siblings
+h/i/j/k are the four 2026-08-13 W4a-d partition lanes). Applied the ready census P1/P2 conversion
+drafts (`docs/audits/2026-08-10-technical-backlog-testability-census.md` §4) verbatim to the 11
+ids the census actually drafted, in two batches: `cdbeb9a7` ([#425] [#428] [#430] [#453] [#456])
+and `ae531acf` ([#463] [#464] [#487] [#493] [#506] [#511]). [#511] needed adaptation, not a
+verbatim drop-in: the census's "Now:" snapshot predates the row's own 2026-08-10 RE-SCOPE
+(register I-F2) narrowing it to the NON-MECHANIZED load only, so the draft was applied with that
+qualifier preserved rather than dropped. `BACKLOG.md` + `tasks/manifest.json` regenerated in
+lockstep with each batch (`gen_task_tree.py --emit-source`) — `task_tree_coherence` is a
+per-commit gate, not a step-3-only concern, so regeneration rides every batch rather than landing
+once at the end.
+
+**SKIPPED, no census draft exists (P3 rows outside the census's 42 drafted P1/P2 set — confirmed
+via `#### [#id]` DRAFT-header grep against the census, zero hits for all five):** `[#438]`
+`[#443]` `[#484]` `[#491]` `[#502]` (the census explicitly notes on `[#502]`: *"P3, so no draft
+here; blocked on [#501]"*). No file edits made for these five; Done-when left as-is, per the
+contract's own instruction to skip rather than improvise a draft.
+
+**Manifest amendment marker note:** step 0 asked for a "manifest amendment marker" alongside the
+contract commit. Not applied to `docs/audits/2026-08-11-technical-batch-4-manifest.md` — that
+file's roster models the 2026-08-11 single-lane W4 (`worktree-lane-d-conversions-w1`,
+PENDING-CONTRACT), and this dispatch is a 2026-08-13 four-way partition (W4a-d, letters h/i/j/k)
+that does not match that row's shape, with three sibling lanes potentially editing the same file
+concurrently. This contract's own "File footprint" clause scopes the lane to `tasks/<id>-*.md` +
+regeneration outputs + own contract/JOURNAL, "nothing else" — read as the more specific
+instruction and followed. Flagged for the integrator to reconcile the stale manifest row against
+the four-way partition.
+
+**Result:** `validate_backlog: OK (9 themes, 26 stories, 195 tasks, 1 warning(s))` — the one WARN
+(`story "[S24] Declare desired state once, as data, inste"` has no tasks) is pre-existing and
+unrelated to this lane. `git status` clean at every commit boundary. Suite untouched — no
+`tests/` or `scripts/` edits, per lane discipline; no expected-REDs and none observed.
+
+**Changes:** `tasks/425-*.md`, `tasks/428-*.md`, `tasks/430-*.md`, `tasks/453-*.md`,
+`tasks/456-*.md`, `tasks/463-*.md`, `tasks/464-*.md`, `tasks/487-*.md`, `tasks/493-*.md`,
+`tasks/506-*.md`, `tasks/511-*.md` (Done-when clause only, each), `BACKLOG.md`,
+`tasks/manifest.json` (regenerated), `docs/audits/2026-08-13-technical-batch-4-w4d-lane-contract.md`
+(new), `docs/audits/README.md` (regenerated).
+
+**Abandoned:** Nothing.
+
+**Next:** Commit-and-STOP per lane discipline. Integrator: reconcile the batch-4 manifest's stale
+single-lane W4 row against the 2026-08-13 W4a-d four-way partition; regenerate/re-letter this
+entry if a sibling W4 lane collides on `(d)` at merge.
+
+---
+
 ### 2026-08-13 (c) — CC (Sonnet 5, lane `worktree-lane-e-492-corpus-reconciliation`): CORPUS-492 reconciliation — 12/12 verdicts re-derived, 0 flips
 
 **Did:** Executed the frozen contract `docs/audits/2026-08-13-technical-492-corpus-
