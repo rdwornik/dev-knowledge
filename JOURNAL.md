@@ -19,6 +19,55 @@
 
 ---
 
+### 2026-08-13 (i) — CC (Sonnet 5, lane `worktree-lane-j-conversions-w4c`): W4c — 9/18 Done-when conversions landed, 9 skipped with reason
+
+**Did:** Executed the frozen contract `docs/audits/2026-08-13-technical-batch-4-w4c-lane-
+contract.md` (committed I-D3 step 0 at `93c96471`, alongside a batch-4 manifest amendment
+marker resolving the W4c slice of the id-gated W4 row's four-way split). Per this lane's
+group-C assignment (18 ids, reconstructed from the operator's 72-list partition print after
+its group-C line was garbled in transport), re-verified each id `status: open` in
+`tasks/<id>-*.md` before touching anything (L14 re-resolve discipline — the census's own
+lesson that drafts rot under the campaign they built). Applied the ready census P1/P2
+conversion drafts (`docs/audits/2026-08-10-technical-backlog-testability-census.md` §4)
+verbatim to the 9 ids whose draft's "Now:" quote still matched the live row exactly.
+Anchors: `93c96471` `992891c4` `6f06c8a5`.
+
+**Result:** **9 converted:** #387, #389, #399, #408, #413, #414, #415, #418, #423 — each
+Done-when now names a concrete artifact/test/check rather than prose judgment. **9 skipped,
+each with a one-line reason:**
+- **#419** — draft STALE against the live row: the census's "Now:" quote is the
+  pre-amendment Done-when; the row was AMENDED 2026-08-11 (Fork 3 / I-F3) adding three
+  clauses the draft never covers (organ-not-habit, scheduler-run check, queue-depth
+  detector). Converting only the drafted clause would silently drop the amended acceptance
+  criteria — exactly the L14 failure mode. Left prose, unconverted.
+- **#385, #391, #393, #409, #410, #411, #412, #417** — no census draft exists: all eight
+  graded P3 in the census, and §4 drafts only P1/P2 rows by the census's own contract.
+  §6's grouped conversion note for #409/#410/#411 ("point the Done-when at a
+  `routine_consumers`-verdicted `routine:` block") is a strategy note, not a paste-ready
+  draft, and this lane designs nothing per its own hard law — left prose, unconverted.
+
+Regeneration: `gen_task_tree.py --emit-source` run after each batch (not deferred to a
+single end-of-lane step — `task_tree_coherence` in `audit.py health` blocks a task-file
+commit against a stale `BACKLOG.md`, discovered when batch 1's first commit attempt FAILed
+on it). `gen_task_tree.py --check` clean and `validate_backlog.py` OK after both batches;
+nothing left to regenerate at lane close.
+
+**Changes:** `docs/audits/2026-08-13-technical-batch-4-w4c-lane-contract.md` (new, contract
+of record) · `docs/audits/2026-08-11-technical-batch-4-manifest.md` (amendment marker
+appended) · `docs/audits/README.md` (regenerated index) · `tasks/{387,389,399,408,413,414,
+415,418,423}-*.md` (Done-when conversions) · `tasks/manifest.json` + `BACKLOG.md`
+(regenerated, ×2).
+
+**Abandoned:** none.
+
+**Next:** `/lane-integrate` merges this branch from the primary checkout, sequenced against
+sibling lanes W4a/W4b/W4d (worktrees `lane-h/i/k-conversions-w4*`, observed live at this
+lane's boot but not resolved by this lane's manifest marker — each self-serves its own row).
+Day-letter `(d)` picked from JOURNAL.md's live state at this lane's boot; expect
+reconciliation against sibling lanes' own letters at actual merge time, not before.
+
+---
+
 ### 2026-08-13 (h) — CC (Sonnet 5, lane `worktree-lane-i-conversions-w4b`): W4b — 13/18 Done-when conversions applied, 5 SKIPPED (no census draft)
 
 **Did:** Executed the frozen contract `docs/audits/2026-08-13-technical-w4b-conversions-lane-
