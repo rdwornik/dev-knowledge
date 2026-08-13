@@ -19,6 +19,42 @@
 
 ---
 
+### 2026-08-13 (f) — CC (Sonnet 5, primary checkout, INTEGRATE-ALL consolidation): W3 merge-gate condition 3 -- re-pin the reverse_dep_oracle live-position test, close [#513]
+
+**Did:** Contract step 1 condition 3 (full suite on merged main must clear the 17
+analytics-dep failures the lane's own worktree run carried). Ran the full suite on
+merged main post-W3: the 17 analytics-dep failures cleared, but a NEW live-position pin
+broke -- `tests/test_reverse_dep_oracle.py::test_finding_headline_resolves_with_provenance`
+expected `class Finding` at `scripts/audit.py:344`, live position is `352` (the merge
+shifted it further than the lane's own worktree saw, the same class of pin its sibling
+test `test_position_points_at_name_not_keyword` already needed re-pinning for). Re-pinned
+both assertion sites (line number and reverse-dependents check). Verified via
+`uv run pytest tests/test_reverse_dep_oracle.py -q`: 21 passed.
+
+Also completed W3's integrator obligation: flipped `[#513]` to `closed`. Verified via
+`audit.py health`'s `landing_predicate` check that all four amended Done-when clauses hold
+on merged main (F2/N-1/N-2/N-3 all report landed uniformly). Retired per ADR-107 §6.3
+(retire-not-delete): node removed from `tasks/manifest.json`'s active list, the task file
+kept in place as the terminal allocation record with `status: closed`, BACKLOG.md +
+manifest `generated_sha256` regenerated via `gen_task_tree.py --emit-source`.
+
+**Result:** Condition 3 of the W3 merge gate is now genuinely satisfied: full suite on
+merged main, 2883 passed / 2 failed (both pre-existing and unrelated to this repin --
+the documented `[#426]` routine-row RED) / 4 skipped / 1 xfailed. `audit.py health`: OK.
+`gen_task_tree.py --check`: ok. `validate_backlog.py`: OK (194 tasks, 1 pre-existing
+unrelated WARN on story S24).
+
+**Changes:** `tests/test_reverse_dep_oracle.py` (re-pin), `tasks/513-propagation-
+completeness-a-ruled-adoption-that-la.md` (status: closed), `tasks/manifest.json`
+(node removed, `generated_sha256` re-pinned), `BACKLOG.md` (regenerated, [#513] row
+removed as retired), this JOURNAL entry. Commit `89f19ac8b`.
+
+**Abandoned:** Nothing.
+
+**Next:** integrator resumes the INTEGRATE-ALL contract's step 2, W4 lanes h->i->j->k.
+
+---
+
 ### 2026-08-13 (e) — CC (Sonnet 5, lane-c-513-landing-predicate): batch-4 W3 — the `[#513]` landing-predicate organ, plus the E4-05 ruled drive-by pair
 
 **Did:** Executed the frozen W3 contract end to end. Committed the contract of record and
