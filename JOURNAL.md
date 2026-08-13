@@ -19,6 +19,41 @@
 
 ---
 
+### 2026-08-13 (d) — CC (Sonnet 5, lane `worktree-lane-l-524-check-extensions`): CODEX-524 v2 — boot check finds the dispatch precondition unmet, STOP before any edit
+
+**Did:** Committed the frozen contract `docs/audits/2026-08-13-technical-524-check-
+extensions-lane-contract.md` per I-D3 step 0 (`f33eef59`), confirmed lane letter `l` free
+against `git worktree list` (5-wide roster: `h`/`i`/`j`/`k` conversion lanes + this — within
+the stated G-8 cap). Ran the contract's own mandatory v2 boot check — the repin guard —
+before touching any of the four named files.
+
+**Result:** **STOP.** The contract's own dispatch line gates this lane on "W3 (lane-c) is
+merged to `main`" and its boot check expects `len(ALL_CHECKS) == 42` post-W3. Live
+`len(ALL_CHECKS)` is **41**, and all 6 count-pin sites (`tests/test_writer_integrity.py:183`,
+`tests/test_audit.py:2062`+`:2078`, `tests/test_doc_code_edge.py:248`+`:713`,
+`ecosystem/doc-counts.md:14`) agree with each other at **41** — internally consistent, but
+not the 42 the contract requires as evidence W3 landed. Checked directly:
+`worktree-lane-c-513-landing-predicate` commits (`395a9b83` etc.) are unreachable from
+`main` (`git log --oneline main -10` has no `[#513]`/W3 commits) — W3 has **not** merged.
+This is the precondition failure, not ordinary pin drift: the boot check is doing exactly
+its job (recorded silent-merge hazard), and per the contract ("If any pin disagrees with
+live, STOP and batch") and lane discipline ("commit-and-STOP, never self-merge... questions
+batched"), no further edit is made. The four Codex-produced clauses are not started.
+
+**Changes:** `docs/audits/2026-08-13-technical-524-check-extensions-lane-contract.md` (new),
+`docs/audits/README.md` (regenerated, 495 audit documents), this JOURNAL entry.
+
+**Abandoned:** Nothing abandoned — work not yet started, correctly, given the unmet
+precondition.
+
+**Next:** Batch to the operator: confirm whether W3/`[#513]` should be merged to `main`
+first (as the contract's dispatch line requires), or whether the contract's "expected 42"
+figure is stale and this lane should proceed against the live count of 41 with its own
+re-pin target of 42 instead of 43. Branch `worktree-lane-l-524-check-extensions` hands back
+unmerged, commit-and-STOP.
+
+---
+
 ### 2026-08-13 (c) — CC (Sonnet 5, lane `worktree-lane-e-492-corpus-reconciliation`): CORPUS-492 reconciliation — 12/12 verdicts re-derived, 0 flips
 
 **Did:** Executed the frozen contract `docs/audits/2026-08-13-technical-492-corpus-
