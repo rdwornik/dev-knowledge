@@ -19,6 +19,38 @@
 
 ---
 
+### 2026-08-13 (b) — CC (Sonnet 5, lane `worktree-lane-e-492-corpus-reconciliation`): CORPUS-492 reconciliation — 12/12 verdicts re-derived, 0 flips
+
+**Did:** Executed the frozen contract `docs/audits/2026-08-13-technical-492-corpus-
+reconciliation-lane-contract.md` (committed I-D3 step 0 at `900006f6`) — reconciled the
+seeded-defect corpus v0.1's 12 seed verdicts (`docs/audits/2026-08-10-verification-arc9-
+rulings-recording.md` §3) to the landed spec on this branch. Anchors: `900006f6` `e41b11a8`
+`07d90533`.
+
+**Result:** Config-identity check found zero drift since 2026-08-10 on every axis the 12
+verdicts cite (`pyproject.toml:160` `extend-select = []`, ruff 0.15.5,
+`check_task_tree_coherence`, `normalize-dated-headers`) — live-reproduced the one
+non-trivial gate interaction (SD-F3 naive-vs-reworked `subprocess.run` rendering: naive
+binds `result` unused → `F841`; reworked form ruff-clean) off-tree in job scratch, never
+landed on `main`. **12/12 re-pinned, 0 flips**: 9 SEEDABLE · 1 SEEDABLE-with-condition
+(SD-C1) · 1 REWORK (SD-F3) · 1 BLOCKED-BY-GATE (SD-C3). New audit file per immutability
+(the 2026-08-10 pass is not edited). `[#492]` row: RECONCILIATION leg recorded on the
+`tasks/492-*.md` source of truth, regenerated into `BACKLOG.md`; the 2026-08-17 re-check
+date is **unmoved** — only the corpus-currency leg closes here.
+
+**Changes:** `docs/audits/2026-08-13-technical-492-corpus-reconciliation-lane-contract.md`
+(new, contract of record) · `docs/audits/2026-08-13-verification-492-corpus-
+reconciliation.md` (new, the reconciliation) · `docs/audits/README.md` (regenerated index,
+494 docs) · `tasks/492-*.md` + `tasks/manifest.json` + `BACKLOG.md` (reconciliation note).
+
+**Abandoned:** none.
+
+**Next:** `/lane-integrate` merges this branch from the primary checkout; no further work
+owed by this lane. `SEEDED-DEFECT-CORPUS-v0.1.md` itself and the `wf-02c940ef` corpus SPEC
+reconciliation stay out of scope — named in the frozen contract as separate legs.
+
+---
+
 ### 2026-08-13 (a) — CC (Opus 5, primary tree): ARC2b — the ruled micro-tail; the four over-cap rows finally fit, and the dispatch shape is decided
 
 **Did:** Executed the operator's five ARC2-packet rulings (all TAK, 2026-08-12) plus the `[#524]`
