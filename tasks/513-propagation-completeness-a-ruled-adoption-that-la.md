@@ -1,7 +1,7 @@
 ---
 id: "[#513]"
 title: "Propagation completeness — a ruled adoption that landed at some sites and not others."
-status: open
+status: closed
 priority: P2
 size: M
 theme: "[E8] ARC-5 execution"
