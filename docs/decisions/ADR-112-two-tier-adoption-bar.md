@@ -1,7 +1,8 @@
 # ADR-112: Two-tier adoption bar — Tier L evaluates, Tier S tries and keeps or deletes
 
-- **Status:** Proposed
+- **Status:** Accepted (operator ratification 2026-08-12 — ruled TAK on the ARC2 packet, Q2)
 - **Date:** 2026-08-12
+- **Decided-by:** operator ratification 2026-08-12, ruled **TAK** against the ARC2 packet's Q2. Ratified **as written** — no clause was amended at ratification, so the fork test, the Tier S guard sentence and the graduation clause all bind in the form drafted. Register: `protocols/STANDING_RULINGS.md` L-10 / M-5 records the promotion; this arc records the ratification. Landed by the ADR-94 status-line-only in-place exception — the same route ADR-111 took at `57284aaa`.
 - **Decision tier:** Architecture (Path A — architect promotion at the 2026-08-12 adjudication hour; **ratification is a separate operator act and has not happened**)
 - **Related:** ADR-108 (§B standing engineering standards), ADR-110 (batch protocol — the process-lane cap this bar keeps out of the eval queue), ADR-81 (organ definition-of-done — what a Tier S item is exempted from, and what it is not), ADR-98 (intake → ADR traceability)
 - **Intake:** #28 (§A) — `docs/intake/2026-08-08-func-skills-tier-adoption-and-hub-finish-line.md`
@@ -123,3 +124,23 @@ reintroduce the classification ambiguity the guard sentence exists to remove.
 
 **A row instead of an ADR.** Rejected by the fork test: leg 2 turns on reversal cost against an
 installed surface, which is precisely the asymmetry an ADR exists to record.
+
+---
+
+**RATIFICATION MARKER — appended 2026-08-12.** This ADR is now **Accepted**; the operator ruled
+TAK on the ARC2 packet's Q2. Two earlier statements in this file are thereby **superseded and are
+deliberately left byte-unchanged**: the `Decision tier` parenthetical *"ratification is a separate
+operator act and has not happened"*, and the whole `## Status note` section above, which opens
+*"This ADR is **Proposed**, not Accepted."* Both were true when written and are the record of the
+gap between promotion and ratification.
+
+**Why a marker rather than editing those two sites.** ADR-94's in-place exception covers an ADR's
+**status line only**; the tier parenthetical and the Status-note section are decision content, and
+`STANDING_RULINGS` B6 forbids rewriting a record to make it read as though it had always said the
+current thing. The append is the sanctioned route — the same one ADR-32/ADR-42 took for their
+forward pointers at `e381b1dd`. The Status note's own closing sentence anticipated *"one line here
+and one line in `docs/decisions/README.md`; nothing else moves"*; this marker is the honest cost of
+that sentence having also asserted a status, which a one-line status edit cannot retract.
+
+**What binds:** the header `Status` / `Decided-by` lines and the decision body, as written. Nothing
+in the decision was amended at ratification.

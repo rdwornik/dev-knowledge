@@ -10,4 +10,4 @@
 - ADR-109 (Accepted, 2026-07-31): Fleet desired-state contract v1 — schema, registry dissolution, and the §E functional requirement
 - ADR-110 (Accepted, 2026-08-06): Parallel multi-agent execution — batch protocol as versioned artifacts
 - ADR-111 (Accepted, 2026-08-09): The finding pipeline — every audit finding is triaged into exactly one of four outcomes
-- ADR-112 (Proposed, 2026-08-12): Two-tier adoption bar — Tier L evaluates, Tier S tries and keeps or deletes
+- ADR-112 (Accepted, 2026-08-12): Two-tier adoption bar — Tier L evaluates, Tier S tries and keeps or deletes
