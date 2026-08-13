@@ -19,6 +19,91 @@
 
 ---
 
+### 2026-08-13 (c) — CC (Sonnet 5, lane-c-513-landing-predicate): batch-4 W3 — the `[#513]` landing-predicate organ, plus the E4-05 ruled drive-by pair
+
+**Did:** Executed the frozen W3 contract end to end. Committed the contract of record and
+manifest amendment marker (`ce390851`). Built `scripts/validate_landing_predicate.py`, a
+read-only Layer-2 scanner reading `landed:` predicates from `protocols/STANDING_RULINGS.md`
+(one fenced ` ```landed` ` block per register entry, one `site:` line per location) and
+reporting MIXED when a ruling/adoption has landed at some code sites but not others. Wired
+it into `scripts/audit.py` as `check_landing_predicate` (`ALL_CHECKS` 41 → 42, hub-only),
+consulting `ecosystem/disposition-register.yaml` directly so a dated disposition clears the
+gate pre-commit (`audit-health` never runs `ship-gate`'s WARN-dispositioning pass, so the
+check has to do it itself). Dogfooded `markdown_it` for the organ's own fence-block parsing
+(`_blank_fenced_code_blocks`) rather than reproducing the exact silent-divergence defect
+class this check exists to catch (`cec9a533`).
+
+Declared three `landed:` register entries (`e86d1c6d`): **F2** (`LANE_BRANCH_RE` — already
+uniformly landed), **N-1** (the `markdown_it` fence-region ADOPT, landing the last two open
+sites — `validate_doc_structure.py`'s `_nonfence_lines` now shares `_code_line_indices`'
+CommonMark fence detection instead of its own bespoke toggle parser), **N-2** (the
+`yaml.safe_load` frontmatter-reader ADOPT, landing `gen_claude_rosters.py`'s frontmatter
+reader, mirroring `gen_intake_index.py`), and **N-3** (the E4-05 (a) drive-by's own
+first natural, non-synthetic test case).
+
+**E4-05 drive-by, both items found ALREADY LANDED by other work before this lane started:**
+(a) PLAYBOOK Ch8 L19 dispatch-doctrine repair — landed `10822b09` (2026-08-12); (b) the git
+`ls-files` tracked-corpus filter port into `gen_audit_index.py` — landed `0258a1dc`/`0fba1be1`
+(2026-08-12), 19/19 tests passing. Verified via `git merge-base --is-ancestor` and reading the
+live tests rather than assumed; did not re-implement either. Completed only the piece still
+owed: the N-3 `landed:` declaration plus
+`tests/test_validate_landing_predicate.py::test_l19_dispatch_doctrine_site_reports_landed_on_the_live_repo`,
+a live-repo (non-synthetic) assertion that the organ reads the real register and reports the
+already-landed PLAYBOOK.md site correctly.
+
+**Terra review (mandatory pre-merge):** `docs/audits/2026-08-13-codex-w3-landing-predicate.md`
+(gpt-5.6-terra, code profile). One HIGH: `_blank_fenced_code_blocks` used
+`text.splitlines(keepends=True)`, which treats Unicode line separators (U+2028/U+2029, `\x0b`,
+`\x0c`, `\x1c`-`\x1e`, `\x85`) as line breaks that CommonMark does not — desyncing from
+markdown_it's `.map` indices and reintroducing the exact N5-03 leak class the fix exists to
+close. Fixed by splitting on the same predicate as `scripts/toc/generator.py`'s `_EOL_RE`
+(`r"(\r\n|\r|\n)"`), captured so each line's separator survives reconstruction. Verified the
+discrimination directly — constructed the pre-fix and post-fix implementations side by side,
+confirmed a two-U+2028-separator fixture leaks under the old code and does not under the fix —
+before writing the regression test, and confirmed the test itself fails against the reverted
+pre-fix code (`677085e1`). **Caught in the same pass:** my own first attempt at the fix's
+explanatory comment had accidentally embedded literal raw U+2028/U+2029 bytes describing the
+very defect class it fixes, silently desyncing `_markers_for_check`'s marker walk-back for
+every `ALL_CHECKS` function defined later in the file — surfaced as `boot_byte_budget` and
+`journal_spine_anchor` losing their `# rule:` markers in a full-suite run. Fixed in the same
+commit. Tally: 0 Critical / 1 High / 0 Medium / 0 Low, disposition recorded in the artifact.
+
+**Also fixed:** `tests/test_reverse_dep_oracle.py::test_position_points_at_name_not_keyword`
+— a live-position pin on `class Finding` in `audit.py` that its own docstring instructs to
+re-grep-and-re-pin rather than relax; this lane's new import block shifted it 343→351
+(0-based). Re-pinned (`395a9b83`).
+
+**Result:** `[#513]`'s four amended Done-when clauses land: the organ exists and is wired
+in (hub-only, `landing_predicate` in `ALL_CHECKS`); all six `ALL_CHECKS`-count pins are
+consistent at 42; the seed test fires RED and clears GREEN both directions
+(`tests/test_validate_landing_predicate.py`); the three named `[#513]` instances (F2, N-1,
+N-2) are declared and verified landed, plus N-3 for the E4-05 (a) drive-by. Full targeted
+suite (`test_audit.py`, `test_doc_code_edge.py`, `test_writer_integrity.py`,
+`test_validate_landing_predicate.py`, `test_validate_doc_structure.py`,
+`test_gen_claude_rosters.py`, `test_reverse_dep_oracle.py`) green except the pre-existing,
+out-of-scope `[#426]` routine-row RED (never touched `BACKLOG.md`). Full repo suite: 2858
+passed, 1 xfailed, 11 skipped, 20 failed at first pass — of those, 17 are the documented
+"fresh lane venv needs `uv sync --locked --group analytics`" pandas gap (environmental, not
+this lane's to fix per scope), 1 (`test_stale_worktrees.py`) is environmental
+worktree-context drift (`_REPO_ROOT` resolves to this worktree, not the primary, inside a
+lane), 1 is the pre-existing `[#426]` RED, and 1 (the reverse_dep_oracle pin) was this lane's
+own and is now fixed and re-verified green.
+
+**Changes:** `scripts/validate_landing_predicate.py` (new), `scripts/audit.py`,
+`scripts/gen_claude_rosters.py`, `scripts/validate_doc_structure.py`,
+`protocols/STANDING_RULINGS.md`, `ecosystem/doc-code-edge.yaml`, `ecosystem/doc-counts.md`,
+`tests/test_validate_landing_predicate.py` (new), `tests/test_audit.py`,
+`tests/test_doc_code_edge.py`, `tests/test_writer_integrity.py`,
+`tests/test_reverse_dep_oracle.py`, plus the step-0 contract/manifest artifacts and this
+JOURNAL. Commits (fork point `09bce194`): `ce390851` `e86d1c6d` `cec9a533` `677085e1`
+`395a9b83`.
+
+**Next:** Owed to the integrator — merge this lane per the batch-4 queue; no further W3 work
+outstanding. `[#525]`'s own JOURNAL coverage (flagged in entry (b) above) remains that lane's
+open item, not W3's.
+
+---
+
 ### 2026-08-13 (b) — CC (Sonnet 5, lane-c-513-landing-predicate): diagnosing the birth-[#525] merge unblocks W3's own commit
 
 **Did:** While landing batch-4 W3 (`[#513]` propagation-completeness organ), `audit-health`'s
