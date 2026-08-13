@@ -2118,6 +2118,29 @@ def test_import_edges_ignores_backticked_and_fenced_and_versions(tmp_path: Path)
     assert "0 @import edge" in f.evidence
 
 
+def test_import_edges_fence_survives_unicode_line_separator(tmp_path: Path) -> None:
+    # Terra HIGH (2026-08-13, docs/audits/2026-08-13-codex-w3-landing-predicate.md):
+    # two Unicode line separators (U+2028 -- not a CommonMark line break) before a fence
+    # accumulate a 2-line desync between `text.splitlines(keepends=True)` and markdown_it's
+    # CommonMark `.map`. Verified directly against both implementations before writing this
+    # fixture: this exact shape LEAKS the fenced @import under the pre-fix
+    # `splitlines(keepends=True)` blanking (one separator is not enough to be discriminating
+    # -- the shift happens to still cover the import line by coincidence at n=1).
+    sep = chr(0x2028)
+    body = (
+        "# C\n\n"
+        f"Line 0 has a real {sep} separator in it.\n"
+        f"Line 1 has a real {sep} separator in it.\n"
+        "\n```\nharmless first fence content\n```\n\n"
+        "more prose\n\n"
+        "```\n@.claude/also-not-real.md\n```\n"
+    )
+    _mk(tmp_path / "CLAUDE.md", body)
+    f = aud.check_import_edges(tmp_path)[0]
+    assert f.status == "pass", f.evidence
+    assert "0 @import edge" in f.evidence
+
+
 def test_import_edges_skips_home_and_absolute(tmp_path: Path) -> None:
     abs = "/etc/hosts.md" if os.name != "nt" else "C:/Windows/notreal.md"
     _mk(tmp_path / "CLAUDE.md", f"# C\n\n@~/global/floor.md\n@{abs}\n")

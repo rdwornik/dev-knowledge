@@ -2715,6 +2715,15 @@ def _blank_preserving_lines(match: "re.Match[str]") -> str:
 
 
 _FENCE_MD = MarkdownIt("commonmark")
+# Split exactly where markdown_it does (`\r\n | \r | \n`), captured so each line's own
+# separator survives reconstruction — same predicate as scripts/toc/generator.py's
+# `_EOL_RE`. Terra HIGH (2026-08-13, docs/audits/2026-08-13-codex-w3-landing-predicate.md):
+# `text.splitlines(keepends=True)` also breaks on Unicode line separators (\x0b \x0c
+# \x1c-\x1e \x85 U+2028 U+2029) that CommonMark does not treat as line boundaries, so a
+# fence following one of those desyncs from markdown_it's `.map` indices and leaks live
+# text into `check_import_edges`'s `@import` scan — the exact defect class N5-03 exists to
+# catch, reintroduced by the fix for it.
+_EOL_SPLIT_RE = re.compile(r"(\r\n|\r|\n)")
 
 
 def _blank_fenced_code_blocks(text: str) -> str:
@@ -2727,14 +2736,15 @@ def _blank_fenced_code_blocks(text: str) -> str:
     repo already ADOPTED for TOC/header extraction (`scripts/toc/generator.py`,
     `scripts/normalize_headers.py`) — reusing it here is the propagation this row exists for,
     not a new instance of the class it detects."""
-    lines = text.splitlines(keepends=True)
+    parts = _EOL_SPLIT_RE.split(text)
+    n_lines = (len(parts) + 1) // 2  # parts alternates line, sep, line, sep, ..., line
     for token in _FENCE_MD.parse(text):
         if token.type != "fence" or not token.map:
             continue
         start, end = token.map
-        for i in range(start, min(end, len(lines))):
-            lines[i] = "\n" if lines[i].endswith("\n") else ""
-    return "".join(lines)
+        for i in range(start, min(end, n_lines)):
+            parts[i * 2] = ""
+    return "".join(parts)
 
 
 def _strip_code_regions(text: str) -> str:
