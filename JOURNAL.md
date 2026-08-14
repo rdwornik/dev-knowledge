@@ -19,6 +19,66 @@
 
 ---
 
+### 2026-08-14 (a) — CC (Sonnet 5, lane `worktree-lane-l-524-check-extensions`): CODEX-524 v2 — repin boot check clears (42/42), but Codex-producer delegation structurally refused; STOP before any of the four legs land
+
+**Did:** Resumed the frozen contract from the repin boot check (v2 addition). Local `main`
+was already synced to `origin/main` (`7f5d2105`), but the lane branch itself was still 33
+commits behind (forked before W3/`[#513]` landed) and 2 ahead (its own step-0 contract +
+the prior session's STOP journal entry) — `git merge main --no-ff` (`8ec77f3e`) pulled in
+W3 and everything through the ADR-112 hygiene fix. Two append-only-file conflicts
+(`JOURNAL.md` prepend collision, `docs/audits/README.md` generated index) resolved by
+reordering the JOURNAL blocks newest-first (main's (e)-(k) entries ahead of this lane's own
+(d) STOP entry, since main's side is chronologically later) and by regenerating the audits
+index fresh (`gen_audit_index.py --write`) rather than hand-merging it. Re-ran the boot
+check post-sync: live `len(ALL_CHECKS)` is **42**, and all 6 count-pin sites
+(`tests/test_writer_integrity.py:183`, `tests/test_audit.py:2170`+`:2186`,
+`tests/test_doc_code_edge.py:248`+`:713`, `ecosystem/doc-counts.md:14`) already read **42**
+— internally consistent and matching the contract's expected post-W3 figure. No repin was
+owed before this lane's own addition.
+
+Proceeded to the Codex delegation per the contract's division of labor ("Codex (`codex exec`,
+model terra) produces… CC verifies"). Wrote a scoped delegation prompt quoting `[#524]`'s
+four clauses verbatim (from `tasks/524-*.md` + `protocols/STANDING_RULINGS.md` L-10) and
+dispatched `codex exec -m gpt-5.6-terra -s workspace-write` from this worktree.
+
+**Result:** **STOP — structural precondition failure, not a Codex judgment call.** Codex
+refused the entire delegation outright: *"I can't implement this request because this
+worktree's binding `AGENTS.md` config designates Codex as a read-only code reviewer and
+explicitly prohibits modifying files or running state-changing commands."* Confirmed by
+reading `~/.codex/AGENTS.md` directly — it is the canonical, hub-owned, global Codex config
+("Codex is a **read-only code reviewer** across all repos. It does not build, fix, or
+modify… Codex MUST NOT: Modify any file… Run any command that writes, deletes, or modifies
+state"), and it applies uniformly, with no per-repo or per-invocation override mechanism.
+This matches `protocols/PLAYBOOK.md`'s own standing note (Ch8, "Sanctioned interim
+producer-lane fallback (R5 — codified)"): true Codex-as-producer has **no activation
+mechanism yet** — that design is explicitly still open at `#341`. The frozen contract's
+"Codex as PRODUCER" division of labor (and the L-9/L-10 ruling it implements, discharging
+§B clause 6) presumes a capability that does not exist in the deployed tooling. `git status`
+confirms zero files changed by the refused run — nothing to revert. Per Core Invariant #6
+(global-infra edits are exception-with-ruling, never unilateral) and this lane's own
+discipline ("commit-and-STOP, never self-merge… questions batched"), `~/.codex/AGENTS.md`
+is not edited to force this through; the four legs (E4-02, E4-03, L5, L12) are not started.
+
+**Changes:** `JOURNAL.md` (main-sync reorder + this entry), `docs/audits/README.md`
+(regenerated, no content drift beyond the merge). No production or test files touched —
+the boot check and the delegation attempt were both read/dispatch-only until Codex's own
+refusal stopped it before any write.
+
+**Abandoned:** Nothing abandoned — the four Codex-producer legs were never started, given
+the precondition failure discovered at the first delegation attempt.
+
+**Next:** Batch to the operator — the contract's "Codex as PRODUCER" premise needs either
+(a) a per-invocation Codex-producer activation mechanism designed and landed (closing
+`#341`, which `~/.codex/AGENTS.md` and the R5 PLAYBOOK note both point at as the missing
+piece), or (b) an explicit ruling amending this lane's division of labor to the standing R5
+fallback shape (Codex specifies a design as read-only text → CC implements → terra reviews)
+instead of true producer mode, or (c) an operator-authorized one-off edit to
+`~/.codex/AGENTS.md` scoped to this lane. None of the three is this lane's call to make.
+Branch `worktree-lane-l-524-check-extensions` hands back with the repin boot check cleared
+(42/42, no drift) and the delegation blocker documented; the four `[#524]` legs remain open.
+
+---
+
 ### 2026-08-13 (k) — CC (Sonnet 5, primary checkout, INTEGRATE-ALL consolidation): hygiene sweep -- ADR-112 enum fix; [#525] checked clean
 
 **Did:** Contract step 4 (hygiene sweep). Checked `[#525]`'s merged BACKLOG row: no
