@@ -8,8 +8,8 @@
 | **Slug** | `2026-08-14-dev-knowledge-architect` |
 | **Chat title** | `[dev-knowledge] Technical Architect — 2026-08-14-dev-knowledge-architect · SEQ 1` — name the fresh browser chat this (bump `SEQ` per parallel chat) |
 | **Mode** | **architect** (HANDOFF_PROCESS §13 — planning / way-of-working scope) |
-| **Purpose** | <!-- FILL-IN:purpose START (hand-authored — ~3 sentences + a BACKLOG pointer; a session HEADER, NOT a second residual; the generator never writes this) -->Execute wave 2 of W4 from the prepared `W4-WAVE2-INPUT.md` operator-side input file, and stand up the telemetry v1 EMIT lane (Stage 1 of the 2026-08-14 usage-telemetry design memo, `docs/archive/2026-08-14-research-usage-telemetry-design-wf-0e8cd658.md`, attached as a leg on intake #29 Fold A). Two carried rows from batch-4's TRUE close — `[#514]` and `[#510]` — and the five-branch `claude/*` night-lane set (see `RESIDUAL.md` §1 — now unverified against `origin`) are this window's inheritance, and the `[#492]` Grok re-check falls due 2026-08-17, inside this window. Live row set: `BACKLOG.md`.<!-- FILL-IN:purpose END --> |
-| **Destination** | worktree <!-- FILL-IN:dest-worktree START (hand-authored — the worktree name, or `none (primary tree)`) -->none (primary tree)<!-- FILL-IN:dest-worktree END --> · branch `main` · write-scope <!-- FILL-IN:dest-scope START (hand-authored — what this lane may write; PROSE, deliberately outside P3) -->ratification/GO decisions named in `SUPPLEMENT.md` §7 — the wave-2 width GO, the telemetry v1 lane GO, and any remaining ADR-112-adjacent promotion ratifications — plus resolving the §1 night-branch-set finding. **Not** a code lane: dispatch to execution lanes follows once GO is given<!-- FILL-IN:dest-scope END --> · MODE **architect** — basis <!-- FILL-IN:dest-mode-basis START (hand-authored — WHY this mode, per ADR-87 item 5; PROSE, deliberately outside P3) -->`SUPPLEMENT.md` §7 lists three pending operator words (ADR-112-adjacent promotion ratification, wave-2 width GO, telemetry v1 lane GO) that gate every execution lane this window would otherwise start, and `RESIDUAL.md` §1 surfaces an unresolved state-integrity question (the missing night-branch set) that needs a judgment call before work resumes on top of it — both are *what should be true* questions, which is architect scope, not execution scope<!-- FILL-IN:dest-mode-basis END --> |
+| **Purpose** | <!-- FILL-IN:purpose START (hand-authored — ~3 sentences + a BACKLOG pointer; a session HEADER, NOT a second residual; the generator never writes this) -->Execute wave 2 of W4 from the prepared `W4-WAVE2-INPUT.md` operator-side input file, and stand up the telemetry v1 EMIT lane (Stage 1 of the 2026-08-14 usage-telemetry design memo, `docs/archive/2026-08-14-research-usage-telemetry-design-wf-0e8cd658.md`, attached as a leg on intake #29 Fold A). Two carried rows from batch-4's TRUE close — `[#514]` and `[#510]` — and the corrected five-branch `claude/*` night-lane resolution (see `RESIDUAL.md` §1 — SUPERSEDED-DELETE, dispositioned in STANDING_RULINGS §L/§M) are this window's inheritance, and the `[#492]` Grok re-check falls due 2026-08-17, inside this window. Live row set: `BACKLOG.md`.<!-- FILL-IN:purpose END --> |
+| **Destination** | worktree <!-- FILL-IN:dest-worktree START (hand-authored — the worktree name, or `none (primary tree)`) -->none (primary tree)<!-- FILL-IN:dest-worktree END --> · branch `main` · write-scope <!-- FILL-IN:dest-scope START (hand-authored — what this lane may write; PROSE, deliberately outside P3) -->ratification/GO decisions named in `SUPPLEMENT.md` §7 — the wave-2 width GO, the telemetry v1 lane GO, the [#528] lane-latency GO, and any remaining ADR-112-adjacent promotion ratifications. **Not** a code lane: dispatch to execution lanes follows once GO is given, per the §1/§2 EXPANDED addenda in `SUPPLEMENT.md`<!-- FILL-IN:dest-scope END --> · MODE **architect** — basis <!-- FILL-IN:dest-mode-basis START (hand-authored — WHY this mode, per ADR-87 item 5; PROSE, deliberately outside P3) -->`SUPPLEMENT.md` §7 lists pending operator words (ADR-112-adjacent promotion ratification, wave-2 width GO, telemetry v1 lane GO, [#528] GO, the single-flight dispatch guard GO-or-park) that gate every execution lane this window would otherwise start — all *what should be true* questions, which is architect scope, not execution scope. The one state-integrity question this cut surfaced (the night-branch set) is now RESOLVED by the supplement's correction addendum, not a blocker on its own<!-- FILL-IN:dest-mode-basis END --> |
 | **Generated at** | Bundle cut by `scripts/gen_handoff.py` from **committed** repo state on branch `docs/handoff-cut-2026-08-14`. This line names only which branch was checked out — it states **no** sha, count, or verdict. **Re-derive HEAD / tree-clean / branch / ahead-behind live** (`PROBES.md` P3). |
 
 > **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
@@ -319,17 +319,22 @@ verdict, WARN count, `[stale]` status, drifted `#id`, or count — those are the
 - `doc_rot` backlog-accretion on the large rows (`[#511]` `[#510]` `[#514]` `[#522]` `[#505]`
   `[#322]`) — the condense route is `[#426]`/grooming territory, not an in-window fix.
 
-**NEW THIS WINDOW — not from the standard drift-check set, from CC's own state read:** the
-2026-08-14 batch-4 TRUE close packet (`docs/audits/2026-08-14-technical-batch-4-true-close-
-packet.md` §5) named **five** `claude/*` branches as "the next window's inheritance" —
-`claude/nc-lessons-mechanisms-jw5dda`, `claude/nd-governance-promotion-prune-77qc6b`,
-`claude/night-nb-handoff-prep`, `claude/night-ne-northstar-value`,
-`claude/window-truth-audit-yr83j2` — reporting them "unexamined-not-clean" with **no merges
-performed**. As of this cut (post-PR-67, `git branch -a` after `fetch --prune` and
-`gh api repos/rdwornik/dev-knowledge/branches`) **none of the five exist on `origin`** — only
-`main` and `automation/fleet-audit` remain. Whether they were absorbed, deliberately pruned, or
-lost is **unknown from this seat** — verify before treating them as "carried"; do not assume
-adjudication already happened.
+**NEW THIS WINDOW, RESOLVED BY CORRECTION:** the 2026-08-14 batch-4 TRUE close packet
+(`docs/audits/2026-08-14-technical-batch-4-true-close-packet.md` §5) named **five** `claude/*`
+branches as "the next window's inheritance" — `claude/nc-lessons-mechanisms-jw5dda`,
+`claude/nd-governance-promotion-prune-77qc6b`, `claude/night-nb-handoff-prep`,
+`claude/night-ne-northstar-value`, `claude/window-truth-audit-yr83j2`. This seat confirmed
+(twice, via `git branch -a` after `fetch --prune` and `gh api repos/rdwornik/dev-knowledge/
+branches`) that **none of the five exist on `origin`** — only `main` and `automation/
+fleet-audit` remain. **`SUPPLEMENT.md`'s correction addendum resolves this**: all five were
+verified branch-by-branch and deliberately deleted (verdict SUPERSEDED-DELETE — none was an
+ancestor of `main`), with every actionable item individually dispositioned in
+`STANDING_RULINGS.md` §L/§M (the 143/143 adjudication, tables M-1..M-11 — both confirmed
+present in-repo). The per-branch deletion evidence itself is an **off-repo operator record**,
+so it is advisory rather than re-derivable here — but the repo-verifiable half (branch
+non-existence + the §L/§M disposition tables) checks out. Nothing was lost; the TRUE-close
+packet's "next window's inheritance" phrasing is superseded, not this session's to edit
+(`docs/audits/` is immutable).
 <!-- FILL-IN:driftflags END -->
 
 ---
@@ -361,12 +366,12 @@ Detail is in `JOURNAL.md` 2026-08-14 (d)/(c); this is the map, not the recap.
 **Three items, ordered by what blocks what — this session's own residual, distinct from
 `SUPPLEMENT.md` (pointer, not a duplicate; its answers are folded into `PASTE_THIS.md`).**
 
-1. **THE 5-BRANCH NIGHT-LANE SET NAMED "INHERITED" IS NOW UNVERIFIABLE FROM THIS SEAT.** §1
-   above flags it as new-this-window; the design-level question for the incoming architect is
-   whether `[#511]`'s I-D4 continuity legs (R43/R50/R51, the commission-5 distillate rows
-   attached to `[#511]` as scope+evidence) depended on content that lived only on one of those
-   five branches. If so, "carried" in `SUPPLEMENT.md` §6 is optimistic language for a state that
-   may need recovery work, not adjudication work.
+1. **THE 5-BRANCH NIGHT-LANE SET IS RESOLVED, NOT OPEN.** §1 above records the correction:
+   `SUPPLEMENT.md`'s addendum confirms deliberate SUPERSEDED-DELETE with every actionable item
+   dispositioned in `STANDING_RULINGS.md` §L/§M. The remaining open question for `[#511]`'s I-D4
+   continuity legs (R43/R50/R51) is narrower than "was this lost" — it is whether those
+   distillate rows' own text still accurately cites what the (now-deleted) branches carried, a
+   normal staleness check, not a recovery investigation.
 
 2. **`SUPPLEMENT.md` §2 NAMES A CONCRETE NEXT-WINDOW MECHANISM CANDIDATE** — a single-flight
    dispatch guard against contract-of-record collision, born from this window's own near-miss
@@ -510,6 +515,30 @@ This bundle's supplement is **FILLED** — its ANSWERS fold into `PASTE_THIS.md`
 §6 Calendar: 2026-08-17 [#492] Grok re-check (corpus ready) · 2026-09-09 [#322] dated review · night-branch (claude/*) adjudication owed · #341 activation design when a window affords it. orphan packet-close branches deleted post-PR-67, [#514]/[#510] carried, night claude/* branches awaiting adjudication.
 §7 Pending operator words: ADR-112-adjacent promotions ratification if any remain Proposed · wave-2 width GO · telemetry v1 lane GO.
 
+---CORRECTION + EXPANSION ADDENDUM (outgoing browser seat, 2026-08-14, appended below the original answers per primary-source discipline; the original stands, this supersedes where they differ)---
+
+**§6 CORRECTION (clears the gate's INHER FAIL):** The line "night claude/* branches awaiting adjudication" is STRUCK — it was written before the cleanup executed later the same day. Live truth: all five night branches (nc-lessons-mechanisms-jw5dda, nd-governance-promotion-prune-77qc6b, night-nb-handoff-prep, night-ne-northstar-value, window-truth-audit-yr83j2) were verified branch-by-branch and DELETED with verdict SUPERSEDED-DELETE — none was an ancestor of main, but every actionable item each carried is individually dispositioned in STANDING_RULINGS §L/§M (143/143 adjudication + tables M-1..M-11); the deletion report with per-branch evidence is in this window's operator record. Nothing was lost; the TRUE-close packet's "next window's inheritance" phrasing is superseded by this addendum. Remaining refs by design: main + automation/fleet-audit only.
+
+**§1 EXPANDED — the next window's first hour, prescriptive:** Boot → gate → then dispatch WITHOUT a planning phase, in this order: (1) wave-2 W4 mini-GO straight from `~/Downloads/W4-WAVE2-INPUT.md` and its on-main twin (29 needs-draft ids + 1 re-check [#419]) — the needs-draft class means ONE draft-production lane (census-instrument, produces conversion drafts) runs FIRST, then conversion lanes consume them; (2) telemetry v1 EMIT lane per the landed memo's Stage 1 (events check_run / hook_run / blocker_fired; SQLite WAL + structlog; the leg is already filed on the telemetry owner — row-is-the-spec); (3) [#528] lane-latency P1 (pytest-xdist into the gate runs + codify the tiered-suite law: targeted in-lane, ONE full suite at integration) — this lane pays for every future lane, dispatch it early; (4) [#527] anti-direct-to-main local hook; (5) 2026-08-17: [#492] Grok re-check on the reconciled corpus (12/12 pinned, 0 flips — do not re-reconcile); (6) single-flight dispatch guard design (the §2 collision); (7) satellite-serving lane is DUE this window or next (≤2 windows from 2026-08-12 — [#293] runbooks 0/6 is the natural target). [#514]/[#510] carried legs ride as spare capacity.
+
+**§2 EXPANDED — width and the review gate:** Run wave-2 at 6–10 lanes; the disjointness law is tasks/-file ownership (one file per id — partition freely). The serial browser-review gate is the true ceiling: BATCH the reviews — lanes commit-and-STOP, the operator relays packets in ONE file batch, the browser seat reviews the batch in one pass, the integrator merges the approved queue serially. Do not relay packets one-per-turn; that pattern cost this window hours. Suite economics until [#528] lands: full suite ≈ 15–16 min — budget one full run per merge, not per lane step.
+
+**§4 EXPANDED — exercised operational law (verbatim, do not re-derive):**
+- Dispatch template: `claude --bg --model <alias> --effort <low|medium|high> --worktree lane-<letter>-<id>-<slug> --permission-mode bypassPermissions "[dk · #<id> · <label>] Read and execute the frozen contract at $env:CLAUDE_PROMPTS_DIR\<CONTRACT>.md — step 0 commits the contract of record; run the /lane-boot sequence from step 3 onward, commit-and-STOP."` Every contract carries this LITERALLY in a fenced ## Dispatch block, all fields filled by the architect/machine — the operator NEVER fills placeholders.
+- PowerShell quoting: inner strings in single quotes; `\"` is a witnessed ParserError.
+- Integration: `/lane-integrate <worktree-name>` in PRIMARY; regenerate BACKLOG/manifest/audit-index at merge, never hand-merge; JOURNAL day-letters derived at merge (re-letter later entry).
+- Background sessions may refuse merge/push-to-main by their own standing policy and open a draft PR instead — that is lawful; the operator merges the PR (witnessed: PR #67 → 65bdd836).
+- Teardown after merge: close the holding session on the Agents board FIRST (locks name live pids), then worktree remove + prune + branch -d.
+- Transport: files, never long pastes; PASTE_THIS.md is the only sanctioned chat-paste.
+
+**§5 EXPANDED — do-not-rederive additions (with locators):** PR #67 content IS the packet-close truth on main at 65bdd836 — the parallel duplicate runs' branches are deleted and ids [#529]/[#530] are FREE; [#526]=root-hygiene audit, [#527]=anti-direct-to-main mechanism, [#528]=lane-latency (P1) — these meanings are fixed, do not re-read them from the discarded run. [#511] is DEFERRED-unsplit by register ruling (N2-E3-06) — the discarded SPLIT never landed. Four window lessons are in LESSONS.md as PLAYBOOK-promotion candidates (dispatch-block law, PS quoting, repin guard, R5/#341) — promote via adjudication, do not hand-edit PLAYBOOK chapters. [#524]'s four legs are LIVE on main (62f42dad): day-letter check floored at 2026-07-30, past-review-date WARN, mention-not-record WARN (advisory, noisy at 381 mentions by design), hooks-armed assert.
+
+**§6 EXPANDED — measured state at seal (baseline for the next window's deltas):** seal 1ffb030d (handoff cut ~43 min — the L-9/[#511] measurement, OVER the 10-min bar: register-line it and treat [#511] as evidence-fed now) · open-total 196, window net +3 (three ruled P1/P2 births — deliberate, priced) · untestable ≈58 (from 95; wave-2 target: ≤29) · doc_rot pin 38 (new instrument; the ship-gate WARN count is the OPERATIVE gate metric — P7 shows 41 undispositioned WARNs at seal: first grooming target) · suite 2891 pass / 1 owned RED ([#457] leg ii) / 17 environmental pandas-dep fails appear ONLY in isolation worktrees (not on primary — do not chase them) · P6 drift: doc-counts 2895 vs live 2897 (two tests landed after the count regen — one-line refresh, first mechanical fix of the window) · P4: #505 drift flag is the KNOWN false positive, do not close.
+
+**§7 EXPANDED — pending operator words, complete list:** wave-2 width GO (recommend 6–8 + draft-production lane first) · telemetry v1 lane GO · [#528] lane-latency GO (recommend same wave) · single-flight guard: mechanism design GO or backlog-park · promotions still Proposed (if any at boot — check register) ratification · P10 full grooming census is the incoming seat's boot duty per the process's own text.
+
+---END ADDENDUM---
+
 ---
 
-=== END OF PASTE — 5 sections · 46048 bytes ===
+=== END OF PASTE — 5 sections · 52991 bytes ===

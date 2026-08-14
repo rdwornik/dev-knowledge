@@ -19,6 +19,38 @@
 
 ---
 
+### 2026-08-14 (f) — CC (Sonnet 5, background dispatch, branch `docs/handoff-cut-2026-08-14-correction`): handoff `2026-08-14-dev-knowledge-architect` correction cycle — night-branch INHER finding resolved, `/handoff-verify` re-run
+
+**Did:** Operator appended a correction + expansion addendum directly to `SUPPLEMENT.md` below
+the original ANSWERS (per the standard "supplement filled" fold contract — the original stands,
+the addendum supersedes where they differ) and asked for a re-commit + INHER re-check. Verified
+the addendum's repo-checkable claims before folding: `[#529]`/`[#530]` are absent from
+`BACKLOG.md` (free, as claimed); `STANDING_RULINGS.md` §L/§M carries 11 `M-*` tables (matches
+"tables M-1..M-11"); the five night `claude/*` branches remain absent from `origin` on a third
+check (`gh api repos/rdwornik/dev-knowledge/branches`). The addendum's per-branch
+SUPERSEDED-DELETE evidence is an off-repo operator record — advisory by construction, not
+re-derivable here, and not required to be (HANDOFF_PROCESS §5: only repo-verifiable facts are
+checked). Updated `RESIDUAL.md` §1/§4 and `HANDOFF_BOOT.md`'s Purpose/dest-scope/dest-mode-basis
+to retire the "unknown, needs investigation" framing this cut's own `/handoff-verify` run had
+surfaced, replacing it with the resolved state — these are this session's own hand-authored
+artifacts, not the supplement, so revising them as new information lands is in scope. Re-ran
+`assemble_paste.py` (folded cleanly; one non-blocking `[promotion-debt]` advisory fired on the
+addendum's §5 EXPANDED block, per intake #18 A8 — a durable-home question for later adjudication,
+not acted on here) and re-verified no stray FILL-IN placeholders.
+
+**Re-ran `/handoff-verify`'s INHER row** (and spot-re-ran P3/P8) against merged `main`: the
+previously-FAILing claim ("night claude/* branches awaiting adjudication") is superseded and its
+repo-verifiable half (branch non-existence) is confirmed true — **INHER now PASSes**.
+
+**Changes:** `docs/handoffs/2026-08-14-dev-knowledge-architect/{HANDOFF_BOOT,PASTE_THIS,
+RESIDUAL,SUPPLEMENT}.md`. Commit: `3746c723`, plus this wrap.
+
+**Abandoned:** Nothing.
+
+**Next:** Merge `--no-ff` into `main`, push, report the corrected evidence block.
+
+---
+
 ### 2026-08-14 (e) — CC (Sonnet 5, background dispatch, branch `docs/handoff-cut-2026-08-14`): handoff cut `2026-08-14-dev-knowledge-architect` — timed per E1-5/L-9, supplement filled, 5-branch night-lane set found absent from origin
 
 **Did:** Executed the operator's `HANDOFF-CUT.md` frozen contract (Downloads) from the
