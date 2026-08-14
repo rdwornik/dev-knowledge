@@ -19,6 +19,162 @@
 
 ---
 
+### 2026-08-14 (c) — CC (Sonnet 5, lane `worktree-lane-l-524-check-extensions`): CODEX-524 v2 — the R5 fallback lands all four `[#524]` legs; commit-and-STOP
+
+**Did:** Resumed on the operator's ruling (option b, standing R5 fallback): Codex (terra) produces
+a text-only DESIGN against `[#524]`'s four clauses quoted verbatim, CC implements the code, terra
+reviews pre-merge (legal — CC is the code producer, so role independence holds even though terra
+also designed). Dispatched `codex exec -m gpt-5.6-terra -s read-only` with the four clauses, the
+repo's `Finding`/`ALL_CHECKS` shape, and two findings from CC's own investigation baked into the
+prompt so Codex's design had to resolve them rather than hand them back: (1) a whole-file
+day-letter scan finds the live JOURNAL already carries a real duplicate `2026-08-13 (d)` — this
+lane's own not-yet-landed entry colliding with `lane-c-513`'s already-landed one after the boot-
+check sync merge — plus two immutable pre-existing collisions on `main` (`2026-07-26` `f`/`g`;
+`2026-05-09` `night`); (2) `check_hooks_armed` (landed `d363af8b`, 2026-07-04, predates this arc)
+already asserts the pre-push hook type end to end, with an existing test
+(`test_hooks_armed_deleted_pre_push_fails`) already covering it — leg (d) may already be fully
+discharged. Codex's design confirmed both: re-letter this lane's own `(d)` per the `2026-08-11 (m)`
+precedent (done — see below) and floor the new day-letter check at 2026-07-30 (intake #18 A5
+ratification, verified against `docs/audits/2026-07-30-technical-intake18-ratification-record.md`
+— genuinely establishes "assigned at integration, lanes never allocate"); leg (d) needs no code.
+
+Implemented from the design (CC-authored code, Codex-specified shape):
+- **Leg (a) (E4-02):** `scripts/audit.py::check_journal_day_letters` — whole-file duplicate
+  day-letter scan, floored at 2026-07-30, FAIL on a post-floor duplicate. 3 tests.
+- **Leg (b) (E4-03):** `scripts/validate_backlog.py::_check_past_review_dates` — WARN on a past
+  `· review_date=YYYY-MM-DD`, silent on today/future; wired into `validate()`. 2 tests. Verified no
+  twin-parity break (`tests/test_validate_backlog_twin_parity.py`, 7/7 green — the plugin floor is
+  untouched and no shared fixture carries `review_date=`).
+- **Leg (c) (L5):** `scripts/journal_anchor.py::mention_not_record_warnings` — an anchored spine
+  entry whose introduced SHA is only ever MENTIONED (never on this repo's real `**Anchors:**`
+  record-line convention) gets an advisory `warn` Finding appended by
+  `audit.py::check_journal_spine_anchor`, alongside its unchanged pass/fail verdict. 2 tests.
+  **Honest limit:** on the live repo this surfaces widely (381 mentions across the 155-entry
+  ADR-85-floor spine, since the `Anchors:` convention is sparse historically) — WARN never fails
+  `audit.py health` (`warn` exits 0), and the evidence caps to 5 shown + a count, but the volume is
+  real and disclosed here rather than tuned quiet.
+- **Leg (d) (L12):** no code change. `check_hooks_armed` + its existing test already discharge the
+  clause; cited, not duplicated.
+
+**Provenance (§B clause-6 evidence):** Codex-specified (design text, zero files touched by Codex —
+confirmed via `git status` after the dispatch) / CC-implemented (all diffs in `scripts/audit.py`,
+`scripts/validate_backlog.py`, `scripts/journal_anchor.py`, and their tests are CC's own commits).
+
+**Pins:** `len(ALL_CHECKS)` 42 → 43. All 6 sites re-pinned in this commit + a 7th CC found by
+running the full suite (`tests/test_audit.py::test_fleet_parity_registered_in_all_checks`, not on
+the contract's list — grep for `== 42` confirms no site remains): `tests/test_writer_integrity.py`,
+`tests/test_audit.py` (×3), `tests/test_doc_code_edge.py` (×2), `ecosystem/doc-counts.md`
+(regenerated, not hand-edited).
+
+**Review:** `docs/audits/2026-08-14-codex-524-check-extensions.md` — terra, pre-merge, diff-review
+mode. **Tally: 0/1/0/0.** The 1 High (`tasks/manifest.json:657`, an apparent `#525` addition) is
+DISPOSITIONED IN-FILE as a false positive: `git diff --stat main...HEAD -- tasks/manifest.json`
+(three-dot, what this lane actually changed) is empty, and `git status --short` confirms zero
+uncommitted change to that file — the finding is an artifact of the review script's two-dot
+`main..branch` range comparing two independently-diverged snapshots (this lane forked before a
+concurrent `#525`-implementation lane landed on `main`), not an edit this lane made. Verified via
+`git show main:… ` vs `git show HEAD:…` before writing the disposition.
+
+**Result:** All four `[#524]` legs land. Full suite: 22 failures on the first full run, all but ONE
+triaged to pre-existing/environmental and unrelated to this diff — `test_fleet_parity_registered_
+in_all_checks` (the 7th pin site above) was this lane's own bug, fixed; re-run of every touched/
+related file afterward: 3 failed / 378 passed (the 3 are `test_routine_consumers_live_backlog_
+governs_exactly_one_row` — a stale count pin recorded pre-existing at `2026-08-11 (m)` — and
+`test_health_ok_with_registered_repo` / `test_health_stays_ok_with_na_status`, both invoking live
+`audit.py health` against local `main`, which currently carries ONE real unanchored spine entry
+(`d581c60f`, a concurrent `[#525]`-implementation lane merge landed on `main` after this lane
+forked) — the "lane tree-lag inherits main's unanchored spine" class, not a defect in this diff).
+17 `test_fleet_analytics.py` failures (`ModuleNotFoundError: pandas`) are the standing fresh-lane-
+venv gap (needs `uv sync --locked --group analytics`), and one `test_stale_worktrees.py` failure is
+this machine's live `git worktree list` state — both environmental, neither touched by this diff.
+
+**Also fixed, lawfully, not scope creep:** the live JOURNAL day-letter collision the day-letter
+check's own floor exists to route around. This lane's own not-yet-landed `2026-08-13 (d)` entry
+(colliding with `lane-c-513`'s already-landed `(d)`) is re-lettered `(d)` → `(l)` and repositioned
+as the day's newest, per the `2026-08-11 (m)` precedent — main's entry is untouched, JOURNAL stays
+append-only, and `check_journal_day_letters` now passes clean against the live repo (verified).
+
+**Changes:** `scripts/audit.py` (`check_journal_day_letters` + `check_journal_spine_anchor`'s WARN
+leg + `ALL_CHECKS` registration), `scripts/validate_backlog.py` (`_check_past_review_dates`),
+`scripts/journal_anchor.py` (`mention_not_record_warnings`), `tests/test_audit.py`,
+`tests/test_batch_manifest.py`, `tests/test_validate_backlog.py`, `tests/test_writer_integrity.py`,
+`tests/test_doc_code_edge.py` (7 new tests + the 3 count-pin re-stamps), `ecosystem/doc-counts.md`
+(regenerated), `ecosystem/doc-code-edge.yaml` (one exempt-list line — `journal_day_letters` has no
+`declaration_docs` site, same shape as `landing_predicate`/`fleet_audit_replication` immediately
+above it), `docs/audits/2026-08-14-codex-524-check-extensions.md` (new, the review artifact),
+`JOURNAL.md` (this entry + the `(d)`→`(l)` re-lettering).
+
+**Abandoned:** Nothing. All four legs landed; the two out-of-scope-file edits
+(`ecosystem/doc-code-edge.yaml`, the JOURNAL re-lettering) are necessary companions, not creep,
+and are called out above rather than folded in quietly.
+
+**Next:** Owed to the integrator — merge this lane. Two pre-existing-drift items are NOT this
+lane's to fix and are flagged for whoever integrates: (1) `main`'s unanchored `d581c60f` spine
+entry (a different, already-landed lane's gap), (2) the stale `routine_consumers` count pin. Branch
+`worktree-lane-l-524-check-extensions` hands back with all four `[#524]` legs landed, commit-and-STOP.
+
+---
+
+### 2026-08-14 (b) — CC (Sonnet 5, lane `worktree-lane-l-524-check-extensions`): CODEX-524 v2 — repin boot check clears (42/42), but Codex-producer delegation structurally refused; STOP before any of the four legs land
+
+**Did:** Resumed the frozen contract from the repin boot check (v2 addition). Local `main`
+was already synced to `origin/main` (`7f5d2105`), but the lane branch itself was still 33
+commits behind (forked before W3/`[#513]` landed) and 2 ahead (its own step-0 contract +
+the prior session's STOP journal entry) — `git merge main --no-ff` (`8ec77f3e`) pulled in
+W3 and everything through the ADR-112 hygiene fix. Two append-only-file conflicts
+(`JOURNAL.md` prepend collision, `docs/audits/README.md` generated index) resolved by
+reordering the JOURNAL blocks newest-first (main's (e)-(k) entries ahead of this lane's own
+(d) STOP entry, since main's side is chronologically later) and by regenerating the audits
+index fresh (`gen_audit_index.py --write`) rather than hand-merging it. Re-ran the boot
+check post-sync: live `len(ALL_CHECKS)` is **42**, and all 6 count-pin sites
+(`tests/test_writer_integrity.py:183`, `tests/test_audit.py:2170`+`:2186`,
+`tests/test_doc_code_edge.py:248`+`:713`, `ecosystem/doc-counts.md:14`) already read **42**
+— internally consistent and matching the contract's expected post-W3 figure. No repin was
+owed before this lane's own addition.
+
+Proceeded to the Codex delegation per the contract's division of labor ("Codex (`codex exec`,
+model terra) produces… CC verifies"). Wrote a scoped delegation prompt quoting `[#524]`'s
+four clauses verbatim (from `tasks/524-*.md` + `protocols/STANDING_RULINGS.md` L-10) and
+dispatched `codex exec -m gpt-5.6-terra -s workspace-write` from this worktree.
+
+**Result:** **STOP — structural precondition failure, not a Codex judgment call.** Codex
+refused the entire delegation outright: *"I can't implement this request because this
+worktree's binding `AGENTS.md` config designates Codex as a read-only code reviewer and
+explicitly prohibits modifying files or running state-changing commands."* Confirmed by
+reading `~/.codex/AGENTS.md` directly — it is the canonical, hub-owned, global Codex config
+("Codex is a **read-only code reviewer** across all repos. It does not build, fix, or
+modify… Codex MUST NOT: Modify any file… Run any command that writes, deletes, or modifies
+state"), and it applies uniformly, with no per-repo or per-invocation override mechanism.
+This matches `protocols/PLAYBOOK.md`'s own standing note (Ch8, "Sanctioned interim
+producer-lane fallback (R5 — codified)"): true Codex-as-producer has **no activation
+mechanism yet** — that design is explicitly still open at `#341`. The frozen contract's
+"Codex as PRODUCER" division of labor (and the L-9/L-10 ruling it implements, discharging
+§B clause 6) presumes a capability that does not exist in the deployed tooling. `git status`
+confirms zero files changed by the refused run — nothing to revert. Per Core Invariant #6
+(global-infra edits are exception-with-ruling, never unilateral) and this lane's own
+discipline ("commit-and-STOP, never self-merge… questions batched"), `~/.codex/AGENTS.md`
+is not edited to force this through; the four legs (E4-02, E4-03, L5, L12) are not started.
+
+**Changes:** `JOURNAL.md` (main-sync reorder + this entry), `docs/audits/README.md`
+(regenerated, no content drift beyond the merge). No production or test files touched —
+the boot check and the delegation attempt were both read/dispatch-only until Codex's own
+refusal stopped it before any write.
+
+**Abandoned:** Nothing abandoned — the four Codex-producer legs were never started, given
+the precondition failure discovered at the first delegation attempt.
+
+**Next:** Batch to the operator — the contract's "Codex as PRODUCER" premise needs either
+(a) a per-invocation Codex-producer activation mechanism designed and landed (closing
+`#341`, which `~/.codex/AGENTS.md` and the R5 PLAYBOOK note both point at as the missing
+piece), or (b) an explicit ruling amending this lane's division of labor to the standing R5
+fallback shape (Codex specifies a design as read-only text → CC implements → terra reviews)
+instead of true producer mode, or (c) an operator-authorized one-off edit to
+`~/.codex/AGENTS.md` scoped to this lane. None of the three is this lane's call to make.
+Branch `worktree-lane-l-524-check-extensions` hands back with the repin boot check cleared
+(42/42, no drift) and the delegation blocker documented; the four `[#524]` legs remain open.
+
+---
+
 ### 2026-08-14 (a) — CC (Sonnet 5, `worktree-lane-g-525-arch-organ-rows`, spare-capacity lane): [#525] Ch2/Ch6 organ rows for the load-gauge digest land; row closed
 
 **Did:** Executed the frozen ARCH-ORGAN-rows contract for `[#525]` -- the owed
@@ -62,6 +218,49 @@ removed, `generated_sha256` re-pinned). Commits on this branch: `3d999ff3`, `7b9
 **Next:** commit-and-STOP per lane discipline; hand back to `/lane-integrate` for merge.
 Flagged-not-fixed for a future pass: the Governing ADRs roster in `ARCHITECTURE.md` needs
 ADR-112 added (outside this lane's Ch2/Ch6 scope).
+
+---
+
+### 2026-08-13 (l) — CC (Sonnet 5, lane `worktree-lane-l-524-check-extensions`): CODEX-524 v2 — boot check finds the dispatch precondition unmet, STOP before any edit
+
+**Did:** Committed the frozen contract `docs/audits/2026-08-13-technical-524-check-
+extensions-lane-contract.md` per I-D3 step 0 (`f33eef59`), confirmed lane letter `l` free
+against `git worktree list` (5-wide roster: `h`/`i`/`j`/`k` conversion lanes + this — within
+the stated G-8 cap). Ran the contract's own mandatory v2 boot check — the repin guard —
+before touching any of the four named files.
+
+**Result:** **STOP.** The contract's own dispatch line gates this lane on "W3 (lane-c) is
+merged to `main`" and its boot check expects `len(ALL_CHECKS) == 42` post-W3. Live
+`len(ALL_CHECKS)` is **41**, and all 6 count-pin sites (`tests/test_writer_integrity.py:183`,
+`tests/test_audit.py:2062`+`:2078`, `tests/test_doc_code_edge.py:248`+`:713`,
+`ecosystem/doc-counts.md:14`) agree with each other at **41** — internally consistent, but
+not the 42 the contract requires as evidence W3 landed. Checked directly:
+`worktree-lane-c-513-landing-predicate` commits (`395a9b83` etc.) are unreachable from
+`main` (`git log --oneline main -10` has no `[#513]`/W3 commits) — W3 has **not** merged.
+This is the precondition failure, not ordinary pin drift: the boot check is doing exactly
+its job (recorded silent-merge hazard), and per the contract ("If any pin disagrees with
+live, STOP and batch") and lane discipline ("commit-and-STOP, never self-merge... questions
+batched"), no further edit is made. The four Codex-produced clauses are not started.
+
+**Changes:** `docs/audits/2026-08-13-technical-524-check-extensions-lane-contract.md` (new),
+`docs/audits/README.md` (regenerated, 495 audit documents), this JOURNAL entry.
+
+**Abandoned:** Nothing abandoned — work not yet started, correctly, given the unmet
+precondition.
+
+**Next:** Batch to the operator: confirm whether W3/`[#513]` should be merged to `main`
+first (as the contract's dispatch line requires), or whether the contract's "expected 42"
+figure is stale and this lane should proceed against the live count of 41 with its own
+re-pin target of 42 instead of 43. Branch `worktree-lane-l-524-check-extensions` hands back
+unmerged, commit-and-STOP.
+
+**Re-lettered 2026-08-14:** this entry originally landed as `(d)`, colliding with
+`lane-c-513-landing-predicate`'s already-main-landed `(d)` after this lane's boot-check sync
+merge (`8ec77f3e`) brought both into one file without reordering. Per the `2026-08-11 (m)`
+precedent ("day letters are derived at merge time rather than carried... the entry that has
+not reached main is the only one it is lawful to move"), this lane's own not-yet-landed
+entry is re-lettered `(d)` → `(l)` and repositioned as the day's newest — main's `(d)` stays
+untouched. Content otherwise byte-identical to the original entry.
 
 ---
 
@@ -434,6 +633,9 @@ introduced SHA to explain it counts as anchoring it), so W3's commits can procee
 
 **Next:** [#525]'s own substantive JOURNAL coverage, if still missing, is owed by that lane/its
 integrator, not by W3 — flagged here rather than authored, since W3 has no context on that work.
+
+---
+
 ### 2026-08-13 (c) — CC (Sonnet 5, lane `worktree-lane-e-492-corpus-reconciliation`): CORPUS-492 reconciliation — 12/12 verdicts re-derived, 0 flips
 
 **Did:** Executed the frozen contract `docs/audits/2026-08-13-technical-492-corpus-

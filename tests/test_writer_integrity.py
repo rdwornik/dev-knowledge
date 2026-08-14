@@ -175,12 +175,14 @@ def test_all_checks_count_is_pinned():
     hard-gating deferred pending zero false positives over two windows, 2026-08-04); 39 -> 40
     when check_review_artifact_coverage was added ([#480] P3, 2026-08-05); 40 -> 41 when
     check_stale_worktrees was added ([#505] batch hygiene — WARN-tier by ruling, ADR-110 §1
-    item 4, 2026-08-06).
+    item 4, 2026-08-06); 41 -> 42 when check_landing_predicate was added ([#513] propagation
+    completeness, 2026-08-13); 42 -> 43 when check_journal_day_letters was added ([#524] leg
+    a — whole-file JOURNAL day-letter uniqueness since 2026-07-30, 2026-08-14).
 
     Renamed from `..._post_retirement_38`: the count moved by an ADDITION, so a name asserting
     a post-retirement 38 would have described neither the number nor the reason.
     """
-    assert len(aud.ALL_CHECKS) == 42
+    assert len(aud.ALL_CHECKS) == 43
 
 
 def test_no_surviving_docstring_describes_the_removed_skip_as_pass_behaviour():

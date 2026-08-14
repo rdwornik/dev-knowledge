@@ -701,3 +701,47 @@ def test_an_off_grammar_lane_branch_gets_NO_exemption_mid_batch(tmp_path, monkey
     assert off_grammar[:7] in findings[0].evidence
     assert conforming[:7] not in findings[0].evidence
     assert "NOT counted above" in findings[0].evidence
+
+
+# --- #524 leg (c): "anchored by mention, not by record" WARN ---------------------------
+
+@requires_git
+def test_anchor_mention_without_sha_anchor_record_warns(tmp_path, monkeypatch):
+    """The live 2026-08-13 (d) shape, reproduced: a merge is anchored (its SHA is MENTIONED
+    in JOURNAL prose, so the hard predicate passes), but never appears on an explicit
+    'Anchors:' record line. `check_journal_spine_anchor` still reports pass/fail correctly
+    (the hard verdict never changes) AND appends an advisory warn Finding naming the shape."""
+    repo, floor = _seed(tmp_path)
+    merge = _merge(repo, "worktree-lane-a-524-mention-only")
+    (repo / "JOURNAL.md").write_text(
+        "# Journal\n\n### 2026-08-14 (a) — diagnosing an unrelated block\n\n"
+        f"**Did:** confirmed `{merge[:7]}` is the merge in question, recorded here only to "
+        "discharge the shared spine-anchor gate.\n", encoding="utf-8")
+
+    monkeypatch.setattr(aud, "_is_hub", lambda p: True)
+    monkeypatch.setattr(ja, "floor_sha", lambda p: floor)
+    findings = aud.check_journal_spine_anchor(repo)
+
+    assert findings[0].status == "pass", findings[0].evidence  # hard predicate unchanged
+    warns = [f for f in findings if f.status == "warn"]
+    assert len(warns) == 1
+    assert "anchored by mention, not by record" in warns[0].evidence
+    assert merge[:7] in warns[0].evidence
+
+
+@requires_git
+def test_explicit_sha_anchor_record_is_silent(tmp_path, monkeypatch):
+    """The SAME merge, anchored via this repo's real 'Anchors:' record-line convention --
+    no mention-not-record WARN fires."""
+    repo, floor = _seed(tmp_path)
+    merge = _merge(repo, "worktree-lane-b-524-record")
+    (repo / "JOURNAL.md").write_text(
+        "# Journal\n\n### 2026-08-14 (a) — lands the merge\n\n"
+        f"**Did:** landed the work.\n\n**Anchors:** `{merge[:7]}`.\n", encoding="utf-8")
+
+    monkeypatch.setattr(aud, "_is_hub", lambda p: True)
+    monkeypatch.setattr(ja, "floor_sha", lambda p: floor)
+    findings = aud.check_journal_spine_anchor(repo)
+
+    assert findings[0].status == "pass", findings[0].evidence
+    assert not any(f.status == "warn" for f in findings)

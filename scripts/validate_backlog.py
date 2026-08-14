@@ -46,6 +46,7 @@ from __future__ import annotations
 
 import re
 import sys
+from datetime import date
 from pathlib import Path
 
 BIG_PICTURE = "Big picture"
@@ -80,6 +81,12 @@ _DEPENDS_CLAUSE_RE = re.compile(r"·\s*depends-on\s*:\s*([^·]*)")
 # the summary print (the crash that accompanied the self-trip).
 _SERIALIZE_CLAUSE_RE = re.compile(r"·\s*serialize-group\s*:\s*([A-Za-z0-9][A-Za-z0-9_-]*)\s*(?=·|$)")
 _DEPID_RE = re.compile(r"#(\d+)")
+# N2-E4-03 (#524 leg b) — body-date scan. Narrowly scoped to the machine-shaped
+# `· review_date=YYYY-MM-DD` clause (the same field `· routine:` rows already carry, e.g.
+# BACKLOG.md #348/#426), never free ISO dates in prose (commit dates, refs, "DECOMPOSED
+# 2026-07-25" markers) — those are provenance, not a deadline, and would WARN on nearly
+# every row if scanned.
+_REVIEW_DATE_RE = re.compile(r"\breview_date=(\d{4}-\d{2}-\d{2})\b")
 # #187 dedup-on-entry — deterministic near-duplicate backstop. Compares NORMALIZED-TITLE
 # token-sets (the action segment before the first ` · ` clause, band-stripped, lowercased,
 # stopworded) by Jaccard overlap; a pair >= _DUP_TITLE_THRESHOLD is a WARN (never a
@@ -232,6 +239,25 @@ def _check_duplicate_titles(tasks):
     return warn
 
 
+def _check_past_review_dates(tasks, today):
+    """WARN-only (N2-E4-03, #524 leg b): a task carrying `· review_date=<past date>` is
+    surfaced -- the review came due and nobody re-checked it. Silent on today/future dates;
+    never a hard-fail (Layer-2-safe, and a stale review is a nudge, not a schema defect).
+    `today` is injected so this stays deterministic in tests; `validate()` passes
+    `date.today()`."""
+    warn = []
+    for t in tasks:
+        loc = f'[#{t["id"]}] line {t["line"]}'
+        for m in _REVIEW_DATE_RE.finditer(t["rest"]):
+            try:
+                d = date.fromisoformat(m.group(1))
+            except ValueError:
+                continue  # malformed date-shaped value -- not this check's job to flag
+            if d < today:
+                warn.append(f'past review_date={m.group(1)} — {loc}')
+    return warn
+
+
 def parse(text):
     """Return (themes, stories, tasks)."""
     themes, stories, tasks = [], [], []
@@ -275,8 +301,9 @@ def parse(text):
 
 
 # rule: governance-backlog-schema
-def validate(themes, stories, tasks):
-    """Return (hard_fails, warnings)."""
+def validate(themes, stories, tasks, today=None):
+    """Return (hard_fails, warnings). `today` defaults to `date.today()`; a caller may inject
+    a fixed date (tests only) for the review_date scan (#524 leg b)."""
     hard, warn = [], []
     big = themes.count(BIG_PICTURE)
     if big != 1:
@@ -325,6 +352,8 @@ def validate(themes, stories, tasks):
     hard += _check_dep_cycles(tasks)
     # #187 dedup-on-entry — deterministic near-duplicate WARN (token-overlap, no LLM)
     warn += _check_duplicate_titles(tasks)
+    # #524 leg (b) — body-date scan (review_date=<past date> WARN, silent on future/today)
+    warn += _check_past_review_dates(tasks, today if today is not None else date.today())
     return hard, warn
 
 

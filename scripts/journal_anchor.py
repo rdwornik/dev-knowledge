@@ -196,6 +196,50 @@ def unanchored_on_spine(repo: Path, ref: str, floor: str, journal: str) -> list[
     return [s for s in entries if not is_anchored(repo, s, journal)]
 
 
+# N2-L5 (#524 leg c): "anchored by mention, not by record" WARN. `is_anchored` above is the
+# HARD predicate (§A7: a SHA occurring anywhere in JOURNAL text) and stays unchanged -- this
+# is a strictly weaker, advisory question layered on top: among the SHAs that satisfy
+# `is_anchored`, which were only ever MENTIONED in prose (e.g. "Confirmed ... `59d05dd0` ...
+# recorded here only to discharge the shared spine-anchor gate", the live 2026-08-13 (d)
+# shape) versus explicitly RECORDED on a declarative line -- this repo's own live convention,
+# e.g. "**Anchors:** `b8f4004`." or "Anchors this arc's own spine: `52d230cc` ...". A WARN by
+# design (STANDING_RULINGS L-10): it catches the SHAPE (no record line), not the INTENT (a
+# mention can be a legitimate, deliberate discharge, per repo convention) -- so it never
+# changes `is_anchored` or the hard pass/fail verdict, only flags the weaker shape for a
+# human's second look.
+_RECORD_LINE_RE = re.compile(r"^\*{0,2}Anchors?\b", re.IGNORECASE)
+_ENTRY_SPLIT_RE = re.compile(r"(?=^### )", re.MULTILINE)
+
+
+def _entries(journal: str) -> list[str]:
+    """JOURNAL text split into per-entry chunks at `### ` headings (order-preserving)."""
+    return [p for p in _ENTRY_SPLIT_RE.split(journal) if p.strip()]
+
+
+def mention_not_record_warnings(repo: Path, sha: str, journal: str) -> list[str]:
+    """Advisory strings, one per introduced commit of `sha` that is `is_anchored` (mentioned
+    somewhere in `journal`) but never appears on an explicit record line (`_RECORD_LINE_RE`)
+    anywhere in `journal`. Never raises -- a scan of already-fetched text, not a git read."""
+    warnings = []
+    for c in introduced(repo, sha):
+        short = c[:_SHORT]
+        recorded = False
+        mentioned = False
+        for entry in _entries(journal):
+            for line in entry.splitlines():
+                if short not in line:
+                    continue
+                if _RECORD_LINE_RE.match(line.strip()):
+                    recorded = True
+                else:
+                    mentioned = True
+        if mentioned and not recorded:
+            warnings.append(
+                f"anchored by mention, not by record: {short} appears outside an "
+                "explicit 'Anchors:' record line")
+    return warnings
+
+
 def describe(repo: Path, sha: str) -> str:
     """`<short> (<date>) <subject>` for an operator-facing refusal line."""
     try:
