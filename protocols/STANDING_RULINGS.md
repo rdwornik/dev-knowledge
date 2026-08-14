@@ -1675,6 +1675,44 @@ site: protocols/PLAYBOOK.md | pattern: not a dot-sourced shell function
 
 - **Expiry:** open-ended — the same reasoning as N-1's.
 
+## O. Baseline re-pins — 2026-08-14 (packet-close, window-tail)
+
+Three named instruments, re-measured live against `main` at `62f42dad` plus this window's own
+commits. The point of this section is separating instruments that sound alike, not adjudicating
+between them.
+
+### O-1 · doc_rot operative metric = ship-gate WARN count
+
+`python scripts/audit.py health`, live 2026-08-14: **36 total WARN findings**, zero FAIL, exit
+`health: OK`. Breakdown by check: `doc_rot` 12 · `undeclared_edges` 20 · `review_artifact_coverage`
+2 · `journal_spine_anchor` 1 · `preflight_backlog_ids` 1.
+
+### O-2 · the 36-loci accretion heuristic — a SEPARATE instrument, not a contradiction
+
+`python scripts/validate_doc_rot.py` standalone, same tree: **38 raw loci** (37 `backlog-accretion`
++ 1 `file-budget`), up from the 2026-08-13 consolidation baseline of 36 (`CONSOLIDATION-REPORT-
+2026-08-13.md` §4a) by the 2 loci this window's own [#527]/[#528] filings introduced. The
+standalone script reports every locus meeting the threshold (`>= 3 dates & > 700 chars, or >
+1200 chars`), dispositioned or not. O-1's 12 is the SAME check's subset that ALSO lacks a live
+`ecosystem/disposition-register.yaml` entry — the ship-gate-visible remainder. The two figures
+measure different things over the same threshold rule: raw accretion stock (38) vs. undispositioned
+stock the health gate still surfaces (12). Neither supersedes the other.
+
+### O-3 · untestable-count re-measurement (census instrument: `docs/audits/2026-08-10-technical-
+backlog-testability-census.md`)
+
+The census graded all 170 rows open on 2026-08-10: MECHANICAL 75 · PROSE-CONVERTIBLE 72 ·
+PROSE-JUDGMENT 15 · DEFECTIVE 8 — **95** not-testable-as-written (PROSE-CONVERTIBLE + PROSE-
+JUDGMENT + DEFECTIVE). Wave-1 (W4a–d, 2026-08-13, JOURNAL-verified per lane: 6+13+9+11) converted
+**39** rows from PROSE-CONVERTIBLE to a MECHANICAL Done-when. Arithmetic: 95 − 39 = 56 remaining
+from the graded set. This window's own three new filings ([#526]/[#527]/[#528]) add a further +2
+as written (`[#526]`/`[#528]` read PROSE-CONVERTIBLE-or-JUDGMENT; `[#527]`'s Done-when names an
+explicit test and reads MECHANICAL) → **58**, a derived live estimate. **Honest limit:** this is
+arithmetic over the 2026-08-10 grades plus verified deltas, not a fresh full re-grading pass —
+the 196-row live set has not been re-graded row-by-row since 2026-08-10, so rows closed, re-scoped,
+or newly filed by OTHER lanes since then (outside the W4a–d conversions and this window's own three)
+are not individually re-verified here.
+
 ## Editing note (read before adding an entry)
 
 This file sits inside the silent-rule ratchet corpus (`protocols/*.md`; detector
