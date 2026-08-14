@@ -37,17 +37,22 @@ verdict, WARN count, `[stale]` status, drifted `#id`, or count — those are the
 - `doc_rot` backlog-accretion on the large rows (`[#511]` `[#510]` `[#514]` `[#522]` `[#505]`
   `[#322]`) — the condense route is `[#426]`/grooming territory, not an in-window fix.
 
-**NEW THIS WINDOW — not from the standard drift-check set, from CC's own state read:** the
-2026-08-14 batch-4 TRUE close packet (`docs/audits/2026-08-14-technical-batch-4-true-close-
-packet.md` §5) named **five** `claude/*` branches as "the next window's inheritance" —
-`claude/nc-lessons-mechanisms-jw5dda`, `claude/nd-governance-promotion-prune-77qc6b`,
-`claude/night-nb-handoff-prep`, `claude/night-ne-northstar-value`,
-`claude/window-truth-audit-yr83j2` — reporting them "unexamined-not-clean" with **no merges
-performed**. As of this cut (post-PR-67, `git branch -a` after `fetch --prune` and
-`gh api repos/rdwornik/dev-knowledge/branches`) **none of the five exist on `origin`** — only
-`main` and `automation/fleet-audit` remain. Whether they were absorbed, deliberately pruned, or
-lost is **unknown from this seat** — verify before treating them as "carried"; do not assume
-adjudication already happened.
+**NEW THIS WINDOW, RESOLVED BY CORRECTION:** the 2026-08-14 batch-4 TRUE close packet
+(`docs/audits/2026-08-14-technical-batch-4-true-close-packet.md` §5) named **five** `claude/*`
+branches as "the next window's inheritance" — `claude/nc-lessons-mechanisms-jw5dda`,
+`claude/nd-governance-promotion-prune-77qc6b`, `claude/night-nb-handoff-prep`,
+`claude/night-ne-northstar-value`, `claude/window-truth-audit-yr83j2`. This seat confirmed
+(twice, via `git branch -a` after `fetch --prune` and `gh api repos/rdwornik/dev-knowledge/
+branches`) that **none of the five exist on `origin`** — only `main` and `automation/
+fleet-audit` remain. **`SUPPLEMENT.md`'s correction addendum resolves this**: all five were
+verified branch-by-branch and deliberately deleted (verdict SUPERSEDED-DELETE — none was an
+ancestor of `main`), with every actionable item individually dispositioned in
+`STANDING_RULINGS.md` §L/§M (the 143/143 adjudication, tables M-1..M-11 — both confirmed
+present in-repo). The per-branch deletion evidence itself is an **off-repo operator record**,
+so it is advisory rather than re-derivable here — but the repo-verifiable half (branch
+non-existence + the §L/§M disposition tables) checks out. Nothing was lost; the TRUE-close
+packet's "next window's inheritance" phrasing is superseded, not this session's to edit
+(`docs/audits/` is immutable).
 <!-- FILL-IN:driftflags END -->
 
 ---
@@ -79,12 +84,12 @@ Detail is in `JOURNAL.md` 2026-08-14 (d)/(c); this is the map, not the recap.
 **Three items, ordered by what blocks what — this session's own residual, distinct from
 `SUPPLEMENT.md` (pointer, not a duplicate; its answers are folded into `PASTE_THIS.md`).**
 
-1. **THE 5-BRANCH NIGHT-LANE SET NAMED "INHERITED" IS NOW UNVERIFIABLE FROM THIS SEAT.** §1
-   above flags it as new-this-window; the design-level question for the incoming architect is
-   whether `[#511]`'s I-D4 continuity legs (R43/R50/R51, the commission-5 distillate rows
-   attached to `[#511]` as scope+evidence) depended on content that lived only on one of those
-   five branches. If so, "carried" in `SUPPLEMENT.md` §6 is optimistic language for a state that
-   may need recovery work, not adjudication work.
+1. **THE 5-BRANCH NIGHT-LANE SET IS RESOLVED, NOT OPEN.** §1 above records the correction:
+   `SUPPLEMENT.md`'s addendum confirms deliberate SUPERSEDED-DELETE with every actionable item
+   dispositioned in `STANDING_RULINGS.md` §L/§M. The remaining open question for `[#511]`'s I-D4
+   continuity legs (R43/R50/R51) is narrower than "was this lost" — it is whether those
+   distillate rows' own text still accurately cites what the (now-deleted) branches carried, a
+   normal staleness check, not a recovery investigation.
 
 2. **`SUPPLEMENT.md` §2 NAMES A CONCRETE NEXT-WINDOW MECHANISM CANDIDATE** — a single-flight
    dispatch guard against contract-of-record collision, born from this window's own near-miss
