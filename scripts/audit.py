@@ -3899,14 +3899,28 @@ def check_journal_spine_anchor(repo_path: Path) -> list[Finding]:
         import journal_anchor as _ja
         floor = _ja.floor_sha(repo_path)
         journal = _ja.journal_text(repo_path)
-        gaps = _ja.unanchored_on_spine(repo_path, "main", floor, journal)
+        unanchored_all = _ja.unanchored_on_spine(repo_path, "main", floor, journal)
         live = _bm.open_batches(repo_path)
-        exempted = _bm.exempt(repo_path, gaps, batches=live)
-        gaps = [s for s in gaps if s not in exempted]
+        exempted = _bm.exempt(repo_path, unanchored_all, batches=live)
+        gaps = [s for s in unanchored_all if s not in exempted]
+        # N2-L5 (#524 leg c): among spine entries that ARE anchored (i.e. NOT in
+        # unanchored_all), which are anchored only by MENTION -- no explicit 'Anchors:'
+        # record line -- versus by record? Advisory only; never changes the fail/pass verdict
+        # this function returns below (STANDING_RULINGS L-10: "a WARN by design").
+        mention_warnings: list[str] = []
+        for s in _ja.spine_entries(repo_path, f"{floor}..main"):
+            if s not in unanchored_all:
+                mention_warnings.extend(_ja.mention_not_record_warnings(repo_path, s, journal))
     except Exception as exc:  # noqa: BLE001 -- FR6: an error is never a silent pass
         return [Finding("journal_spine_anchor", "fail",
                         f"backstop could not complete ({exc!r}) -- an unknown anchoring "
                         "state is not a clean one (ADR-85 §A6)".replace("|", "/"))]
+    warn_finding: list[Finding] = []
+    if mention_warnings:
+        shown = "; ".join(mention_warnings[:5])
+        more = f" (+{len(mention_warnings) - 5} more)" if len(mention_warnings) > 5 else ""
+        warn_finding = [Finding("journal_spine_anchor", "warn",
+                                f"{shown}{more}".replace("|", "/"))]
     if gaps:
         named = "; ".join(_ja.describe(repo_path, s) for s in gaps[:5])
         more = f" (+{len(gaps) - 5} more)" if len(gaps) > 5 else ""
@@ -3924,7 +3938,7 @@ def check_journal_spine_anchor(repo_path: Path) -> list[Finding]:
         return [Finding("journal_spine_anchor", "fail",
                         f"{len(gaps)} first-parent spine entry(ies) above the disposition "
                         f"floor {floor[:9]} carry no JOURNAL anchor: {named}{more}{also}"
-                        .replace("|", "/"))]
+                        .replace("|", "/"))] + warn_finding
     if exempted:
         named = ", ".join(sorted(b.batch for b in live))
         return [Finding("journal_spine_anchor", "pass",
@@ -3932,10 +3946,64 @@ def check_journal_spine_anchor(repo_path: Path) -> list[Finding]:
                         f"{floor[:9]} is JOURNAL-anchored, EXCEPT {len(exempted)} lane "
                         f"merge(s) exempt under the ADR-110 declared-integration-arc rule "
                         f"while batch {named} is open ({live[0].path}) -- the exemption "
-                        f"expires when {live[0].closed_by} lands".replace("|", "/"))]
+                        f"expires when {live[0].closed_by} lands".replace("|", "/"))] + warn_finding
     return [Finding("journal_spine_anchor", "pass",
                     f"every first-parent spine entry above the ADR-85 disposition floor "
-                    f"{floor[:9]} is JOURNAL-anchored")]
+                    f"{floor[:9]} is JOURNAL-anchored")] + warn_finding
+
+
+# N2-E4-02 (#524 leg a): whole-file JOURNAL day-letter check.
+_JOURNAL_HEADING_RE = re.compile(r"^### (\d{4}-\d{2}-\d{2}) \(([a-z]+)\)", re.MULTILINE)
+# Floor: intake #18 A5 ratification (2026-07-30, docs/audits/2026-07-30-technical-
+# intake18-ratification-record.md) -- "PLAYBOOK Ch8 letter-allocation convention: assigned
+# at integration, lanes never allocate" is the doctrine this check enforces, so nothing
+# dated before its own ratification is in scope. Without a floor, this check REDs forever
+# on two immutable pre-doctrine collisions already on main (2026-07-26 duplicate `f`/`g`;
+# 2026-05-09 duplicate `night`) that this lane has no standing to rewrite (JOURNAL is
+# append-only, and neither entry is this lane's own to move per the 2026-08-11 (m)
+# precedent). A Python-literal floor can drift silently, same risk `journal_anchor.floor_sha`
+# names for the ADR-85 SHA floor -- but no ratified machine-readable floor marker exists yet
+# for this doctrine, and adding one is outside the ~20-line budget this leg was given.
+_JOURNAL_DAY_LETTER_FLOOR = "2026-07-30"
+
+
+def check_journal_day_letters(repo_path: Path) -> list[Finding]:
+    """N2-E4-02 (#524 leg a): every `### YYYY-MM-DD (<letter>)` JOURNAL heading on or after
+    `_JOURNAL_DAY_LETTER_FLOOR` must carry a unique letter suffix within its date -- day
+    letters are assigned once, at integration (intake #18 A5, 2026-07-30; PLAYBOOK Ch8).
+    A duplicate is a stale/collided re-letter that integration missed (exactly the
+    2026-08-13 `(d)` collision this lane found and fixed by moving its own not-yet-landed
+    entry). FAIL, not WARN: a collision misorders history for any reader.
+
+    Hub-only (JOURNAL day-letter doctrine is this repo's own convention). Read-only.
+    """
+    if not _is_hub(repo_path):
+        return [_na("journal_day_letters", "NOT-APPLICABLE",
+                        "hub-only -- JOURNAL day-letter doctrine is hub-owned")]
+    try:
+        text = (Path(repo_path) / "JOURNAL.md").read_text(encoding="utf-8")
+    except OSError as exc:
+        return [Finding("journal_day_letters", "fail",
+                        f"cannot read JOURNAL.md: {exc!r}".replace("|", "/"))]
+    by_date: dict[str, list[str]] = {}
+    for date_str, letter in _JOURNAL_HEADING_RE.findall(text):
+        if date_str < _JOURNAL_DAY_LETTER_FLOOR:
+            continue
+        by_date.setdefault(date_str, []).append(letter)
+    dupes = []
+    for date_str, letters in sorted(by_date.items()):
+        seen: set[str] = set()
+        for letter in letters:
+            if letter in seen:
+                dupes.append(f"{date_str} ({letter})")
+            seen.add(letter)
+    if dupes:
+        return [Finding("journal_day_letters", "fail",
+                        f"duplicate JOURNAL day-letter(s) since {_JOURNAL_DAY_LETTER_FLOOR}: "
+                        + ", ".join(dupes))]
+    return [Finding("journal_day_letters", "pass",
+                    f"JOURNAL day-letter suffixes are unique per day since "
+                    f"{_JOURNAL_DAY_LETTER_FLOOR}")]
 
 
 def check_preflight_backlog_ids(repo_path: Path) -> list[Finding]:
@@ -4316,6 +4384,7 @@ ALL_CHECKS = [
     check_membership_agreement,   # [#462] — ADR-104's declaration vs every repo-keyed surface
     check_journal_spine_anchor,   # ADR-85 amendment 2026-08-03 §A8/FR4 — backstop for the
                                   # pre-push hard leg; makes `--no-verify` non-silent
+    check_journal_day_letters,   # [#524] leg a — day-letter uniqueness since 2026-07-30
     check_preflight_backlog_ids,   # [#483] R3 — ADVISORY (WARN-tier by ruling); hard-gating is
                                    # deferred pending 0 false positives over two windows
     check_review_artifact_coverage,   # [#480] P3 — ADVISORY (WARN-tier by ruling);

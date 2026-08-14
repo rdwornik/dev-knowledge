@@ -378,3 +378,25 @@ def test_dedup_specificity_holds_on_a_distinct_fixture():
     ])
     _, warn = _run(text)
     assert not any("possible duplicate" in w for w in warn)
+
+
+# --- #524 leg (b): body-date scan (review_date=<past date> WARN) ------------------------
+
+def test_past_review_date_warns():
+    text = VALID.replace(
+        "- [#1] [P1][M] do a thing · Done when: it is done · refs ADR-1",
+        "- [#1] [P1][M] do a thing · Done when: it is done · review_date=2026-08-13",
+    )
+    hard, warn = vb.validate(*vb.parse(text), today=vb.date(2026, 8, 14))
+    assert hard == []
+    assert any("past review_date=2026-08-13" in w and "#1" in w for w in warn)
+
+
+def test_future_review_date_is_silent():
+    text = VALID.replace(
+        "- [#1] [P1][M] do a thing · Done when: it is done · refs ADR-1",
+        "- [#1] [P1][M] do a thing · Done when: it is done · review_date=2026-08-26",
+    )
+    hard, warn = vb.validate(*vb.parse(text), today=vb.date(2026, 8, 14))
+    assert hard == []
+    assert not any("review_date" in w for w in warn)
