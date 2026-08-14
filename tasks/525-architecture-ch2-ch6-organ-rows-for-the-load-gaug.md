@@ -1,7 +1,7 @@
 ---
 id: "[#525]"
 title: "ARCHITECTURE.md Ch2/Ch6 organ rows for the load-gauge digest section — owed since W2, integrator-collected"
-status: open
+status: closed
 priority: P2
 size: S
 theme: "[E5] Canonical-file integrity"
