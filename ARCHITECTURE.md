@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-08-12
+last_reviewed: 2026-08-14
 reconciled_with: handoff-process@6.2.0
 status: active
 owner: Rob
@@ -14,7 +14,20 @@ owner: Rob
 > class this repo exists to kill). Fix the map when reality moves; fix the *source*
 > when the doctrine moves.
 >
-> Last updated: `2026-08-12` — **pre-handoff closing arc: the organ index relocates, and two
+> Last updated: `2026-08-14` — **[#525] the owed load-gauge organ rows land.** Ch2's organ map
+> gains a row for the `[load]` operator-load gauge — `collect_load`/`load_line`/`append_load_row`
+> (`scripts/fleet_health.py:610,642,689`), the `[#270]` sub-organ of `fleet_health.py`'s
+> SessionStart trigger that neither table named since it shipped (owed since W2 per
+> `docs/audits/2026-08-12-technical-roadmap-north-star-frozen.md:30`); Ch6's verification-mesh
+> "Nightly (local)" row now names the gauge as a dimension alongside structural/freshness-stamp
+> health, with the same two locators. **Drift found by this re-read, out of scope to fix (Ch2/Ch6
+> only per this lane's contract):** the Governing ADRs list still stops at ADR-111/ADR-109 and
+> does not carry **ADR-112** (Accepted 2026-08-12, per `.claude/generated/recent-adrs.md`) —
+> flagged for the next pass that touches that section. **Stamp semantics, stated:** `last_reviewed`
+> is re-stamped because this pass re-read the file end-to-end from disk (all six chapters); the
+> only correction it was licensed to make is the two rows above. **Honest limit:** it did not
+> re-derive doctrinal correctness against the full text of every cited ADR, and it did not fix the
+> ADR-112 gap it found. Prior: `2026-08-12` — **pre-handoff closing arc: the organ index relocates, and two
 > defects this re-read found are fixed.** Ch2's map note and §Validators now name
 > `ecosystem/organ-index.md` (moved from `docs/ORGAN-INDEX.md` by operator ruling A of
 > 2026-08-11; register `protocols/STANDING_RULINGS.md` K-1), and the Ch2 note is no longer
