@@ -19,6 +19,54 @@
 
 ---
 
+### 2026-08-14 (e) — CC (Sonnet 5, background dispatch, branch `docs/handoff-cut-2026-08-14`): handoff cut `2026-08-14-dev-knowledge-architect` — timed per E1-5/L-9, supplement filled, 5-branch night-lane set found absent from origin
+
+**Did:** Executed the operator's `HANDOFF-CUT.md` frozen contract (Downloads) from the
+post-PR-67 tree (`main` @ `65bdd836`). The v6 assembler's NO-LEFTOVERS boundary check refuses
+generation while any linked worktree exists anywhere in the repo, and this session's own
+isolation worktree tripped it — the contract's own dispatch header says PRIMARY tree, so exited
+isolation (nothing had been written there) and worked directly on branch
+`docs/handoff-cut-2026-08-14`. Ran `scripts/gen_handoff.py --mode architect --slug
+2026-08-14-dev-knowledge-architect` (cold), filled `SUPPLEMENT.md` ANSWERS verbatim from the
+contract's block plus two operator-directed additions (§2: the three-concurrent-execution
+near-miss + a single-flight dispatch guard candidate as a next-window mechanism candidate; §6:
+orphan packet-close branches / `[#514]`/`[#510]` / night `claude/*` branches), hand-authored the
+`RESIDUAL.md` driftflags/shipped/frontier and `HANDOFF_BOOT.md` purpose/destination FILL-INs
+(the residual is CC's own, distinct from the folded supplement), fixed the four cold-state
+framing-note sites to their filled-state text, and re-ran `assemble_paste.py`. `audit.py health`
+confirmed `residual_completeness: OK` before commit; `verify_handoff_probes.py` passed 14/14
+structural binds.
+
+**Found, not fabricated:** cross-checking the 2026-08-14 TRUE close packet's §5 (five `claude/*`
+branches named as "the next window's inheritance," reported "unexamined-not-clean," no merges
+performed) against live `origin` (`git branch -a` post-`fetch --prune` + `gh api
+repos/rdwornik/dev-knowledge/branches`) shows **none of the five branches exist on `origin`** as
+of this cut. Flagged as the headline drift-flag in `RESIDUAL.md` §1/§4 rather than silently
+assumed carried — whether they were absorbed, deliberately pruned, or lost is unknown from this
+seat.
+
+**Timing (the `[#511]`/L-9 instrument):** T_start `2026-08-14T16:48:33Z` (before the first
+command) → T_ready `2026-08-14T17:31:05Z` (bundle validated + committed) = **~43 minutes**. Over
+the L-9 "handoff cut < 10 min" bar — reported as measured, not adjusted to fit; consistent with
+I-F2's prior ~30-minute non-mechanized-load figure plus this window's own worktree/commit-timeout
+friction and the night-branch investigation above.
+
+**Result:** Bundle committed at `7cba1538` (5 files, cold→filled). Full `/handoff-verify` live
+evidence block deferred to **after** this merge lands — running it pre-merge would report a
+transient P3 branch mismatch (this work not yet on `main`) that resolves once pushed, and a
+stale evidence block is worse than none.
+
+**Changes:** `docs/handoffs/2026-08-14-dev-knowledge-architect/{HANDOFF_BOOT,PASTE_THIS,PROBES,
+RESIDUAL,SUPPLEMENT}.md` (new). Commit: `7cba1538`, plus this wrap.
+
+**Abandoned:** Nothing.
+
+**Next:** Merge `--no-ff` into `main`, push, run `/handoff-verify` against the merged state, and
+report the full packet (slug · timing · bundle location · probe results · seal sha) to the
+operator per the contract.
+
+---
+
 ### 2026-08-14 (d) — CC (Sonnet 5, `worktree-packet-close`, autonomous background session): packet-close window-tail — 9-step frozen contract, batch-4 TRUE close, doc_rot claim corrected
 
 **Did:** Executed `PACKET-CLOSE.md` (operator's Downloads, 9 serial steps) on branch
