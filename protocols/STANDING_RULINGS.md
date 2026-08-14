@@ -1689,22 +1689,32 @@ Three named instruments, re-measured live against `main` at `62f42dad` plus this
 commits. The point of this section is separating instruments that sound alike, not adjudicating
 between them.
 
-### O-1 · doc_rot operative metric = ship-gate WARN count
+### O-1 · doc_rot operative metric = ship-gate WARN count — CORRECTED at step 9 close-out
 
-`python scripts/audit.py health`, live 2026-08-14: **36 total WARN findings**, zero FAIL, exit
-`health: OK`. Breakdown by check: `doc_rot` 12 · `undeclared_edges` 20 · `review_artifact_coverage`
-2 · `journal_spine_anchor` 1 · `preflight_backlog_ids` 1.
+**This entry originally claimed a disposition-register suppression that does not exist in the
+code, and the number below it was wrong as a result. Corrected here rather than left standing,
+per the same discipline as `[#511]`'s locator requirement above.** `scripts/audit.py::check_doc_rot`
+(read live, 2026-08-14, packet-close close-out) calls `_vdr.scan()` — `scripts/validate_doc_rot.py`
+— and emits one WARN per result **unconditionally**; neither that function nor `validate_doc_rot.py`
+reads `ecosystem/disposition-register.yaml` or any other suppression source anywhere in the call
+path. **`doc_rot`'s ship-gate WARN count and `validate_doc_rot.py`'s raw loci count are the SAME
+instrument, not two.** `python scripts/audit.py health`, re-measured live at step 9 close-out
+(2026-08-14, post steps 5-7): **67 total WARN findings**, zero FAIL, exit `health: OK`. Breakdown:
+`doc_rot` 38 · `undeclared_edges` 20 · `no_ff_merges` 3 · `review_artifact_coverage` 2 ·
+`reconciled_versions` 1 · `preflight_backlog_ids` 1 · `journal_spine_anchor` 1 · `git_backlog_drift`
+1. `doc_rot`'s 38 matches `validate_doc_rot.py` standalone exactly (37 `backlog-accretion` + 1
+`file-budget`), as the single-instrument reading predicts.
 
-### O-2 · the 36-loci accretion heuristic — a SEPARATE instrument, not a contradiction
+### O-2 · superseded by O-1's correction — kept for the record, not the number
 
-`python scripts/validate_doc_rot.py` standalone, same tree: **38 raw loci** (37 `backlog-accretion`
-+ 1 `file-budget`), up from the 2026-08-13 consolidation baseline of 36 (`CONSOLIDATION-REPORT-
-2026-08-13.md` §4a) by the 2 loci this window's own [#527]/[#528] filings introduced. The
-standalone script reports every locus meeting the threshold (`>= 3 dates & > 700 chars, or >
-1200 chars`), dispositioned or not. O-1's 12 is the SAME check's subset that ALSO lacks a live
-`ecosystem/disposition-register.yaml` entry — the ship-gate-visible remainder. The two figures
-measure different things over the same threshold rule: raw accretion stock (38) vs. undispositioned
-stock the health gate still surfaces (12). Neither supersedes the other.
+The original text below claimed a 12-vs-38 split attributed to disposition suppression. **The
+split does not exist**; O-1 above carries the corrected single number. This paragraph is struck
+from active use and left in place rather than deleted, because deleting a wrong claim erases the
+evidence that it was made — the same reasoning this file's own editing note applies to superseded
+material elsewhere. Original text, for the record only: *"`python scripts/validate_doc_rot.py`
+standalone, same tree: 38 raw loci (37 `backlog-accretion` + 1 `file-budget`)... O-1's 12 is the
+SAME check's subset that ALSO lacks a live `ecosystem/disposition-register.yaml` entry... Neither
+supersedes the other."* It does not describe live code; do not cite it.
 
 ### O-3 · untestable-count re-measurement (census instrument: `docs/audits/2026-08-10-technical-
 backlog-testability-census.md`)
