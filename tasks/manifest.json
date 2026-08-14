@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "2d59c3bc57a1ffd52111407a20dd16a605ca1d75f682ea4e11e2818c47026acf",
+  "generated_sha256": "d073768737ed030699c65601ff3c94da2b98684f114c083bdf3cb966cf2ac7ff",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -231,6 +231,10 @@
     {
       "task": 514,
       "file": "514-two-rival-lane-branch-re-constants-reconcile-them.md"
+    },
+    {
+      "task": 527,
+      "file": "527-anti-direct-to-main-mechanism.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
@@ -654,6 +658,10 @@
       "file": "388-the-10-20-repo-fleet-scale-target-is-fabricated.md"
     },
     {
+      "task": 526,
+      "file": "526-root-hygiene-audit-which-root-files-must-be-root.md"
+    },
+    {
       "prose": ""
     },
     {
@@ -903,6 +911,10 @@
     {
       "task": 509,
       "file": "509-invoke-dispatch-resolves-claude-prompts-dir.md"
+    },
+    {
+      "task": 528,
+      "file": "528-lane-latency-full-suite-multiplied-across-a-batch.md"
     },
     {
       "prose": ""

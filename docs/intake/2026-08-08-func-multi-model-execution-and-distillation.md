@@ -86,6 +86,20 @@ the METR RCT found experienced developers were **19% slower** with AI while beli
 faster. Consequence for this repo, ruled: the 2026-07-31 single-diff A/B is **precedent for method,
 not an admission instrument**, and **no bake-off runs before the seeded-defect corpus exists.**
 
+**LEG — 2026-08-14 (packet-close window-tail), attached, not a new thread.** A second, sibling
+memo commissioned the same 2026-08-09 wave and landed 2026-08-14 —
+`docs/archive/2026-08-14-research-usage-telemetry-design-wf-0e8cd658.md` (usage-telemetry design:
+SQLite WAL + structlog event log, 8 event types, `rich`/`plotext` + Datasette read surfaces;
+explicit do-not-adopt verdicts on OpenTelemetry/Prometheus+Grafana/Zabbix/Splunk) — sharpens S3a's
+already-EXTRACTION-first scope into a concrete v1 slice: **emit `check_run`/`hook_run`/
+`blocker_fired` first (Stage 1 — the two irreplaceable signals, per the memo's own staging), the
+derived signals (`test_run`, `mutation_run`, `dep_scan`) second (Stage 2); reader per the ROADMAP's
+own "telemetry reader after 2 windows of data" line** (`ROADMAP-2026-08-12.md` §1, THIS WEEK →
+WINDOWS 3–8 horizon) — the reader is explicitly NOT v1 scope, it follows two windows of clean
+event data, matching this memo's own "two consecutive windows before any optimization is designed"
+acceptance bar (§D above). Zero births by this leg — S3a's Births candidacy (below) is unchanged,
+this only narrows what "S3a instrumentation" means when it is picked up.
+
 ### Fold B — the dependency/ontology graph (memo `wf-f6851745`)
 
 Folded here because a graph is a measurement surface, not a new domain.

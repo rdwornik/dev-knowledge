@@ -14,6 +14,11 @@ Not a dumping ground — a triage queue. If something sits here across two revie
 Entered as 14 files from `research/` and `council-questions/` (2026-05-27 taxonomy-simplification).
 **First review: 2026-05-28** — 7 council-out transcripts promoted; 7 external-research / scoping / evidence files kept pending second review.
 **2026-08-09 research corpus landed 2026-08-10** — 6 external research memos (below), first review pending; they are the evidence base the plan-v3 ratification batch rules from.
+**Usage-telemetry design landed 2026-08-14** — a 7th memo from the same 2026-08-09 commissioning wave, landed separately (see below); carries a 3-line provenance header, unlike the byte-identical six.
+
+### 2026-08-14 — usage-telemetry design (1 memo, commissioned 2026-08-09, landed 2026-08-14)
+
+- `2026-08-14-research-usage-telemetry-design-wf-0e8cd658.md` — usage telemetry for a solo local-first methodology ecosystem: SQLite WAL + structlog event log (8 event types: `check_run`/`hook_run`/`blocker_fired`/`dispatch_invoked`/`agent_session`/`test_run`/`mutation_run`/`dep_scan`), `rich`/`plotext` + Datasette read surfaces; explicit do-not-adopt verdicts on OpenTelemetry/Prometheus+Grafana/Zabbix/Splunk; feeds intake #29 §S3a (Fold A)
 
 ### 2026-08-09 research corpus (6 memos, landed 2026-08-10)
 

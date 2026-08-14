@@ -1323,11 +1323,19 @@ question from the other side, and is routed to the same place.
   P2 rows (~1.5 h), record the 33 P3s as deliberately-unbackfilled with a reason on the `[#508]`
   3a-2 precedent, reaching 137/170 with the P1+P2 band at 100%. Filling rows with a literal `none`
   to move a percentage is the named anti-pattern and stays outside the variant.
-- **`N2-E3-06` `[#511]` — WATCH.** The row now carries three distinct loads: the re-scoped
-  non-mechanized cut load (I-F2), commission 5's continuity half (I-D4), and the JOURNAL-purpose
-  observation. Each attach was individually correct, and the accumulation is the shape that makes a
-  row unclosable. **The split decision is taken at the batch-4 packet** — splitting mid-execution-week
-  would be planning relapse, so the watch line is the instrument until then.
+- **`N2-E3-06` `[#511]` — DEFERRED at the batch-4 packet (2026-08-14, packet-close window-tail).**
+  The row carries three distinct loads: the re-scoped non-mechanized cut load (I-F2), commission
+  5's continuity half (I-D4), and the JOURNAL-purpose observation. The first two carry located
+  scope — I-F2's probes/locators/FILL-IN text and I-D4's R43/R50/R51 distillate rows are both
+  written into the row body. The third does not: `docs/audits/2026-08-12-technical-night-2-lessons-
+  governance-strategy.md` finding 6 names it only as a BRIEF §1 topic-routing label
+  ("JOURNAL-purpose → `[#511]`") with no Done-when, no scope sentence, and no locator beyond that
+  routing line — searched across `tasks/511-*.md`, `JOURNAL.md`, and this file; nothing further
+  exists. A split now would mean authoring the third load's scope from nothing rather than
+  extracting a ruled one, which is a different act than the split this entry originally watched
+  for. **Disposition: stays unsplit, P2/M.** Revisit if "JOURNAL-purpose" ever gets an actual
+  scope statement to split out; until then the accumulation risk this entry named is accepted, not
+  resolved.
 
 ### L-9 · `N2-E1-6` / `N2-E3-04` / `N2-E1-5` — how the two open §B clauses discharge
 
@@ -1584,7 +1592,7 @@ once only). Every id below carries exactly one disposition.
 | `N2-E3-03` | **TAK — state it in the intake** | the anti-goal does not block work it was not aimed at, step 10 |
 | `N2-E3-04` | **DECIDE — producer lane** | same fork as `N2-E1-6` → **L-9** |
 | `N2-E3-05` | **TAK — pin G-6 in the W4 contract** | so the lane does not re-litigate a question ruled at the GO |
-| `N2-E3-06` | **WATCH now; split decision at the batch-4 packet** | `[#511]` carries three loads → **L-8** |
+| `N2-E3-06` | **DEFERRED (2026-08-14) — stays unsplit, P2/M** | `[#511]` carries three loads, third has no located scope → **L-8** |
 | `N2-E4-01` | **DO IT** | close batch 4 — W3 + W4 + the end-of-batch packet; un-blocks `N2-E1-2` and `N2-E1-8` |
 | `N2-E4-02` | **DO IT** | day-letter check — routed to the Codex-producer lane → **L-10** |
 | `N2-E4-03` | **DO IT** | body-date scan — routed to the Codex-producer lane → **L-10** |
@@ -1674,6 +1682,54 @@ site: protocols/PLAYBOOK.md | pattern: not a dot-sourced shell function
 ```
 
 - **Expiry:** open-ended — the same reasoning as N-1's.
+
+## O. Baseline re-pins — 2026-08-14 (packet-close, window-tail)
+
+Three named instruments, re-measured live against `main` at `62f42dad` plus this window's own
+commits. The point of this section is separating instruments that sound alike, not adjudicating
+between them.
+
+### O-1 · doc_rot operative metric = ship-gate WARN count — CORRECTED at step 9 close-out
+
+**This entry originally claimed a disposition-register suppression that does not exist in the
+code, and the number below it was wrong as a result. Corrected here rather than left standing,
+per the same discipline as `[#511]`'s locator requirement above.** `scripts/audit.py::check_doc_rot`
+(read live, 2026-08-14, packet-close close-out) calls `_vdr.scan()` — `scripts/validate_doc_rot.py`
+— and emits one WARN per result **unconditionally**; neither that function nor `validate_doc_rot.py`
+reads `ecosystem/disposition-register.yaml` or any other suppression source anywhere in the call
+path. **`doc_rot`'s ship-gate WARN count and `validate_doc_rot.py`'s raw loci count are the SAME
+instrument, not two.** `python scripts/audit.py health`, re-measured live at step 9 close-out
+(2026-08-14, post steps 5-7): **67 total WARN findings**, zero FAIL, exit `health: OK`. Breakdown:
+`doc_rot` 38 · `undeclared_edges` 20 · `no_ff_merges` 3 · `review_artifact_coverage` 2 ·
+`reconciled_versions` 1 · `preflight_backlog_ids` 1 · `journal_spine_anchor` 1 · `git_backlog_drift`
+1. `doc_rot`'s 38 matches `validate_doc_rot.py` standalone exactly (37 `backlog-accretion` + 1
+`file-budget`), as the single-instrument reading predicts.
+
+### O-2 · superseded by O-1's correction — kept for the record, not the number
+
+The original text below claimed a 12-vs-38 split attributed to disposition suppression. **The
+split does not exist**; O-1 above carries the corrected single number. This paragraph is struck
+from active use and left in place rather than deleted, because deleting a wrong claim erases the
+evidence that it was made — the same reasoning this file's own editing note applies to superseded
+material elsewhere. Original text, for the record only: *"`python scripts/validate_doc_rot.py`
+standalone, same tree: 38 raw loci (37 `backlog-accretion` + 1 `file-budget`)... O-1's 12 is the
+SAME check's subset that ALSO lacks a live `ecosystem/disposition-register.yaml` entry... Neither
+supersedes the other."* It does not describe live code; do not cite it.
+
+### O-3 · untestable-count re-measurement (census instrument: `docs/audits/2026-08-10-technical-
+backlog-testability-census.md`)
+
+The census graded all 170 rows open on 2026-08-10: MECHANICAL 75 · PROSE-CONVERTIBLE 72 ·
+PROSE-JUDGMENT 15 · DEFECTIVE 8 — **95** not-testable-as-written (PROSE-CONVERTIBLE + PROSE-
+JUDGMENT + DEFECTIVE). Wave-1 (W4a–d, 2026-08-13, JOURNAL-verified per lane: 6+13+9+11) converted
+**39** rows from PROSE-CONVERTIBLE to a MECHANICAL Done-when. Arithmetic: 95 − 39 = 56 remaining
+from the graded set. This window's own three new filings ([#526]/[#527]/[#528]) add a further +2
+as written (`[#526]`/`[#528]` read PROSE-CONVERTIBLE-or-JUDGMENT; `[#527]`'s Done-when names an
+explicit test and reads MECHANICAL) → **58**, a derived live estimate. **Honest limit:** this is
+arithmetic over the 2026-08-10 grades plus verified deltas, not a fresh full re-grading pass —
+the 196-row live set has not been re-graded row-by-row since 2026-08-10, so rows closed, re-scoped,
+or newly filed by OTHER lanes since then (outside the W4a–d conversions and this window's own three)
+are not individually re-verified here.
 
 ## Editing note (read before adding an entry)
 

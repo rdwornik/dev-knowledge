@@ -19,6 +19,95 @@
 
 ---
 
+### 2026-08-14 (d) — CC (Sonnet 5, `worktree-packet-close`, autonomous background session): packet-close window-tail — 9-step frozen contract, batch-4 TRUE close, doc_rot claim corrected
+
+**Did:** Executed `PACKET-CLOSE.md` (operator's Downloads, 9 serial steps) on branch
+`worktree-packet-close`, one commit per step: (1) landed the 2026-08-14 usage-telemetry
+design memo into `docs/archive/`; (2) attached it as a LEG on intake #29 Fold A (v1-EMIT
+slice: `check_run`/`hook_run`/`blocker_fired` first, derived signals second); (3) filed four
+ruled items from the 2026-08-11 needs-review — births `[#526]` (root-hygiene audit, P3/S),
+`[#527]` (anti-direct-to-main commit-time hook, P2/S), `[#528]` (lane-latency gate-mesh cost,
+P1/M), plus a leg on `[#523]`; (4) re-pinned three baseline instruments in
+`STANDING_RULINGS.md` §O (doc_rot, the 36-loci heuristic, untestable-count); (5) added the
+missing ADR-112 bullet to `ARCHITECTURE.md`'s Governing-ADRs list and ruled the `[#511]`
+three-loads split **DEFERRED** — traced "the JOURNAL-purpose observation" to a bare topic-
+routing label with no located scope anywhere in the tree, so splitting now would mean
+authoring scope from nothing; (6) wrote the batch-4 **TRUE close packet**
+(`docs/audits/2026-08-14-technical-batch-4-true-close-packet.md`) correcting FLAG-1's carried
+count now that `[#513]` has discharged (`387b794a`, confirmed ancestor of HEAD) — CLOSED (4)
+`[#270]`/`[#132]`/`[#521]`/`[#513]`, CARRIED (2) `[#514]`/`[#510]` — plus CODEX-524 state (all
+four legs landed, R5 fallback), W4 wave-1 arithmetic (39 converted/30 skipped of 69), the
+git-surgery incident summary citing `[#527]` as its new mechanism-gap owner, and the 5-branch
+`claude/*` night-branch set for the next window under `N1-D24`; (7) appended 4 declarative
+process learnings to `LESSONS.md` as PLAYBOOK-promotion candidates; (8) compiled the W4
+wave-2 skipped-id input (29 needs-draft, 1 re-check) to `~/Downloads/W4-WAVE2-INPUT.md`
+(Downloads-only, no repo change); (9) this close-out.
+
+**Self-correction, mid-step-9:** re-verified `scripts/audit.py::check_doc_rot`'s source
+before trusting step 4's own pinned number, and found step 4's claim — that a
+`ecosystem/disposition-register.yaml` cross-reference suppresses 26 of 38 doc_rot loci from
+the ship-gate WARN list (pinning "12") — describes no code that exists. `check_doc_rot` calls
+`_vdr.scan()` and emits one WARN per result unconditionally; there is one instrument, not two.
+Corrected `STANDING_RULINGS.md` §O-1/O-2 in place (commit `90daea1e`) and appended a
+correcting `LESSONS.md` entry (that file is append-only; the wrong entry stands, corrected by
+the new one, not edited).
+
+**Also found and stopped, before any repo edit:** two other independent executions of this
+same contract were live at session start — a `local_agent` (`a9c698ec027a4e959`) running the
+identical 9 steps in its own isolated worktree on `docs/packet-close-v2` (own conflicting
+`[#526]`-`[#529]` numbering for the same four filings), stopped via `TaskStop` before it could
+merge anything; and a resumed agent (`a4da75f9a8988fd58`) whose completion report carried no
+verifiable file-level result. Neither had merged — `main` was unchanged at `62f42dad`
+throughout. `docs/packet-close-v2` (unmerged) and a stray no-op `docs/packet-close` branch
+(identical to main) are left on disk for the operator to dispose of; not touched here.
+
+**Close-out numbers:**
+- **Suite:** 2866 passed / 19 failed / 11 skipped / 1 xfailed, 907.74s (~15m8s), `-n auto
+  --dist worksteal`. Of the 19 failures: **17** are `ModuleNotFoundError: No module named
+  'pandas'` — this worktree's venv lacks the `analytics` optional group (`uv sync --locked
+  --group analytics` fixes it; environmental, not a code regression). **1**
+  (`test_routine_consumers_live_backlog_governs_exactly_one_row`) is a pre-existing stale
+  premise: live BACKLOG has carried 2 `· routine:` rows (`[#348]`, `[#426]`) since `[#426]`'s
+  2026-08-11 amendment, predating this window. **1**
+  (`test_linked_worktrees_reader_excludes_the_primary`) is the known worktree-vs-primary class
+  (memory precedent: a worktree-isolated run adds REDs a primary-checkout run doesn't carry).
+  **Zero failures trace to this window's own edits** — no `scripts/`/`tests/` file was touched
+  by any of the 9 steps.
+- **Ship-gate live:** `audit.py health` → `health: OK`, 0 FAIL, **67 WARN** (`doc_rot` 38 ·
+  `undeclared_edges` 20 · `no_ff_merges` 3 · `review_artifact_coverage` 2 ·
+  `reconciled_versions` 1 · `preflight_backlog_ids` 1 · `journal_spine_anchor` 1 ·
+  `git_backlog_drift` 1).
+- **doc_rot pin (corrected):** one instrument, **38** (was mis-pinned "12" at step 4; see the
+  self-correction above). Matches `validate_doc_rot.py` standalone exactly (37
+  `backlog-accretion` + 1 `file-budget`).
+- **Untestable (derived, not re-graded):** **58** — 2026-08-10 census baseline 95, minus 39
+  wave-1 conversions, plus 2 from this window's own three filings' as-written grade. STANDING_
+  RULINGS §O-3 states the honest limit: arithmetic over verified deltas, not a fresh pass.
+- **Open-total + window net:** **196** live (171 `open` + 25 `deferred`, the H2 filter —
+  matches `validate_backlog` and `tasks/manifest.json` exactly). This window: **+3** net
+  (births `[#526]`/`[#527]`/`[#528]`, zero closes).
+- **`[#492]` re-check date:** 2026-08-17 (unchanged, carried forward — not this window's
+  concern).
+
+**Changes:** `docs/archive/2026-08-14-research-usage-telemetry-design-wf-0e8cd658.md` (new),
+`docs/archive/README.md`, `docs/intake/2026-08-08-func-multi-model-execution-and-
+distillation.md`, `tasks/523-*.md`, `tasks/526-*.md` (new), `tasks/527-*.md` (new),
+`tasks/528-*.md` (new), `tasks/manifest.json`, `BACKLOG.md`, `protocols/STANDING_RULINGS.md`
+(§O added, §O-1/O-2 corrected), `ARCHITECTURE.md`, `docs/audits/2026-08-14-technical-
+batch-4-true-close-packet.md` (new), `docs/audits/README.md`, `LESSONS.md` (5 entries),
+`JOURNAL.md` (this entry). Commits: `c3c7aa90` `30c1ed91` `2588d07d` `50e9f251` `d63a6dc6`
+`e4e1624b` `eac92922` `90daea1e`, plus this wrap.
+
+**Abandoned:** Nothing. Two duplicate-execution artifacts (`docs/packet-close-v2`,
+`docs/packet-close`) left on disk, flagged above, not this session's to remove.
+
+**Next:** Merge `--no-ff` into `main`, push. Wave-2 dispatch reads
+`~/Downloads/W4-WAVE2-INPUT.md`. `[#526]`/`[#527]`/`[#528]` are open rows awaiting normal
+pickup. The two carried batch-4 rows (`[#514]`/`[#510]`) and the 5-branch night-branch set
+are the next window's inheritance per the TRUE close packet.
+
+---
+
 ### 2026-08-14 (c) — CC (Sonnet 5, lane `worktree-lane-l-524-check-extensions`): CODEX-524 v2 — the R5 fallback lands all four `[#524]` legs; commit-and-STOP
 
 **Did:** Resumed on the operator's ruling (option b, standing R5 fallback): Codex (terra) produces
