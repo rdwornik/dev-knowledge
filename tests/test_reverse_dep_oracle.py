@@ -76,12 +76,12 @@ def test_position_points_at_name_not_keyword():
     assert d.file == "scripts/audit.py"
     assert d.kind == "ClassDef"
     assert d.character == 6          # len("class ") — points at the F, not the keyword
-    # 0-based (audit.py:344 is 1-based). A LIVE position, so it shifts whenever anything is
+    # 0-based (audit.py:352 is 1-based). A LIVE position, so it shifts whenever anything is
     # inserted above `class Finding` — re-grep `^class Finding` and re-pin rather than
     # relaxing the assertion; the pin is the only thing proving the oracle reports a real
-    # position and not a plausible-looking one. Last re-pinned 2026-08-08 ([#396]: the
-    # gitenv import block landed near the top of audit.py).
-    assert d.line == 343
+    # position and not a plausible-looking one. Last re-pinned 2026-08-13 ([#513]: the
+    # validate_landing_predicate thin-adapter import block landed near the top of audit.py).
+    assert d.line == 351
 
 
 # --- provenance ------------------------------------------------------------------------
@@ -217,10 +217,10 @@ def test_finding_headline_resolves_with_provenance():
     res = ans["resolution"]
     assert res["status"] == "resolved", ans
     assert res["definition"]["file"] == "scripts/audit.py"
-    assert res["definition"]["line"] == 344                  # 1-based output
+    assert res["definition"]["line"] == 352                  # 1-based output
     assert ans["reverse_dependent_count"] >= 50              # floor (measured ~110), drift-robust
     # the declaration site is not its own reverse-dependent
-    assert {"file": "scripts/audit.py", "line": 344} not in ans["reverse_dependents"]
+    assert {"file": "scripts/audit.py", "line": 352} not in ans["reverse_dependents"]
     prov = ans["provenance"]
     assert prov["completeness"] == "complete"
     assert prov["git_rev"]

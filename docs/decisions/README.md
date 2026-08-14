@@ -28,10 +28,11 @@ zero live ADRs, so the bar's trigger was unreachable by its own wording.
 | **Deprecated** | withdrawn without a direct successor. Terminal — same archival eligibility |
 
 **Measured at declaration, so the enum describes the corpus rather than an intention:** across the
-86 ADR files in this folder and `archive/`, the live values were **Accepted** (80), **Partially
-superseded** (2 — ADR-46/47), **Deprecated** (1 — ADR-40, archived), **Superseded** (1 — ADR-52,
-archived, written in the `~~Accepted~~ Superseded by ADR-53` strikethrough form), and **Explored,
-not adopted** (1 — ADR-45). `Proposed` enters the live set with ADR-112.
+86 ADR files in this folder and `archive/`, the live values were **Accepted** (81 — includes
+ADR-112, ratified 2026-08-12), **Partially superseded** (2 — ADR-46/47), **Deprecated** (1 —
+ADR-40, archived), **Superseded** (1 — ADR-52, archived, written in the `~~Accepted~~ Superseded
+by ADR-53` strikethrough form), and **Explored, not adopted** (1 — ADR-45). No `Proposed` member
+is currently live.
 
 **Two honest limits, recorded rather than quietly fixed.** (1) Nothing checks this enum — it is a
 declared domain, not a gate; a validator is available work and is not claimed here. (2) One file,

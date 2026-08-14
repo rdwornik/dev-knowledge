@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "ea4609a2e0db9d3d820e384b88dfaeaddc3fb9d4e0228d08e33d27bf0a3a6211",
+  "generated_sha256": "e1a60c58d0183e4b586f7b83e0113223530909f06a344118ce7f0065fb131c96",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -1413,10 +1413,6 @@
     {
       "task": 357,
       "file": "357-silent-rule-census-run-2.md"
-    },
-    {
-      "task": 513,
-      "file": "513-propagation-completeness-a-ruled-adoption-that-la.md"
     },
     {
       "task": 358,

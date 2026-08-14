@@ -554,3 +554,94 @@ three carried. Dispatching it outside this roster loads this denominator with no
 arithmetic above is the input the closure contract's width-delta report needs either way.
 
 **`status:` stays `open`.** This marker records a verdict about future dispatch; it closes nothing.
+
+---
+
+## AMENDMENT — 2026-08-13, appended by W3: the W3 row resolves to a committed contract path
+
+**Appended, not edited.** The roster table above still reads `PENDING-CONTRACT` in the W3 row and
+that row is left byte-untouched: `docs/audits/` is immutable (CLAUDE.md §5 rule 3 — *"supersede
+with a new file or an in-file amendment marker; never edit in place"*), and this file's own
+"row-update leg" section names the batch-3 appended-marker device (ratified standard, A-4) as the
+device to use. A reader resolving the W3 row reads the table **and** this marker.
+
+**The resolution.**
+
+| Lane | Worktree / branch | Rows | Bucket | Contract of record |
+|---|---|---|---|---|
+| **W3** | `worktree-lane-c-513-landing-predicate` | `[#513]` (as amended) | finish-line | `docs/audits/2026-08-13-technical-batch-4-w3-lane-contract.md` |
+
+The contract is committed **on the lane branch `worktree-lane-c-513-landing-predicate`, not on
+`main`** — the same standing this file records for W1, W2 and W5 — and it is byte-identical to the
+prompts-dir original `W3-lane-c-513-landing-predicate.md` (SHA256
+`b7570f4b90f058539de3bb345a00a74b3ee176cbdb38bb9630e33db225a6fb32`, both files hashed and compared
+before the commit). It reaches `main` when W3 merges.
+
+**Why the contract-path date reads 2026-08-13, one day after the night-2 skeleton's aspirational
+`Contract path` bullet named `2026-08-12`.** The skeleton (`docs/audits/2026-08-12-technical-
+night-2-lessons-governance-strategy.md` §"(a) W3 contract skeleton") was drafted the night before
+dispatch and named a path as if committed that night; this lane was not actually dispatched until
+2026-08-13, and the file did not exist in the tree before today. Per the same discipline this
+manifest already applies to its own provenance ("no timestamp in it is back-dated"), the contract
+is dated to the day it is genuinely committed, not backdated to match the skeleton's draft-night
+aspiration. The skeleton's technical content (the seven steps, the acceptance clauses, the What
+NOT to do list) is otherwise carried verbatim into the committed contract's frozen dispatch file.
+
+**Dispatch-shape verdict already on record.** The W3 ∥ CODEX-524 disjointness question this row's
+own contract would otherwise have to re-derive is already settled by the amendment directly above
+this one (ARC2b step 7, 2026-08-13): **OVERLAP** on `scripts/audit.py` and its cardinality-pinned
+test/doc-count surfaces, **sequential W3 → CODEX-524**. Per the W3 contract's scope addition 3,
+an OVERLAP verdict means this lane registers its check in `scripts/audit.py::ALL_CHECKS` normally
+— no registration is owed to the integrator.
+
+**`status:` stays `open`.** This marker resolves one roster row; it does not close the batch.
+## AMENDMENT — 2026-08-13, appended by W4c: the id-gated W4 row splits into a four-way partition, W4c resolves
+
+**Appended, not edited.** The roster table above still reads `PENDING-CONTRACT` in the W4 row
+(line 58, worktree `worktree-lane-d-conversions-w1`) and that row is left byte-untouched:
+`docs/audits/` is immutable (CLAUDE.md §5 rule 3 — *"supersede with a new file or an in-file
+amendment marker; never edit in place"*), and this file's own row-update-leg section names the
+batch-3 appended-marker device (ratified standard, A-4) as the device to use — the same device
+W3's 2026-08-13 amendment above used to resolve its own row. A reader resolving the W4 row reads
+the table **and** this marker.
+
+**What changed since A-2.** A-2 (above) held the W4 row `PENDING-CONTRACT`/id-gated until it
+"carries a row id." The operator's 2026-08-13 partition print assigns the census P1/P2 conversion
+work across a 72-id list split into four 18-id groups — **W4a/W4b/W4c/W4d** — dispatched as four
+sibling worktree lanes rather than the single `worktree-lane-d-conversions-w1` the original W4 row
+named. This amendment resolves **only the W4c slice**; W4a, W4b and W4d each resolve by their own
+lane's own step 0, on their own branches — this marker does not speak for them and does not assert
+their id lists, which this lane's contract does not carry.
+
+**The W4c resolution.**
+
+| Lane | Worktree / branch | Rows | Bucket | Contract of record |
+|---|---|---|---|---|
+| **W4c** | `worktree-lane-j-conversions-w4c` | `[#385] [#387] [#389] [#391] [#393] [#399] [#408] [#409] [#410] [#411] [#412] [#413] [#414] [#415] [#417] [#418] [#419] [#423]` (18 ids, group C) | finish-line | `docs/audits/2026-08-13-technical-batch-4-w4c-lane-contract.md` |
+
+The contract is committed **on the lane branch `worktree-lane-j-conversions-w4c`, not on `main`**
+— the same standing this file records for W1, W2, W3 and W5 — and it is byte-identical to the
+prompts-dir original `W4C-conversions.md` (SHA256
+`b29272b9363b17c40f5fd251855c026aaad3a21dfc86a64bb07b9d82adca8836`, both files hashed and compared
+before this commit). It reaches `main` when W4c merges.
+
+**Sibling lanes observed, not resolved by this marker.** `git worktree list` at this lane's boot
+shows three sibling worktrees already provisioned at the same base commit: `lane-h-conversions-w4a`
+(branch `worktree-lane-h-conversions-w4a`), `lane-i-conversions-w4b`
+(`worktree-lane-i-conversions-w4b`), and `lane-k-conversions-w4d`
+(`worktree-lane-k-conversions-w4d`) — matching Downloads prompts-dir siblings
+`W4A-conversions.md`, `W4B-conversions.md`, `W4D-conversions.md`. Each is a separate session's
+step 0 to self-serve; this marker records their existence as an observed fact at boot time, not
+their id lists or contract paths, which this lane cannot read authoritatively from its own
+contract.
+
+**Why the partition print's group-C line needed reconstruction.** Per this lane's own contract
+(`docs/audits/2026-08-13-technical-batch-4-w4c-lane-contract.md` "Assigned ids" heading): the
+72-list order was garbled in transport for the group-C line specifically, so the 18 ids above were
+reconstructed from the 72-list order rather than copied verbatim from a clean group-C line. Step 0
+of the same contract required re-verifying each reconstructed id against the census class before
+touching it — done: all 18 confirmed `status: open` live in `tasks/<id>-*.md` before any Done-when
+edit in this lane.
+
+**`status:` stays `open`.** This marker resolves one roster row's W4c slice; it does not close the
+batch and does not speak for W4a/W4b/W4d.

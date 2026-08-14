@@ -19,6 +19,375 @@
 
 ---
 
+### 2026-08-13 (k) — CC (Sonnet 5, primary checkout, INTEGRATE-ALL consolidation): hygiene sweep -- ADR-112 enum fix; [#525] checked clean
+
+**Did:** Contract step 4 (hygiene sweep). Checked `[#525]`'s merged BACKLOG row: no
+absolute path present (the recorded lane-birth leak class does not recur), and its
+JOURNAL coverage gap was already discharged by this file's own entry (d) above (lane-c's
+diagnosing entry, anchoring `59d05dd0`/`d895581c`/`7ce704bb`) -- nothing further owed.
+Fixed the stale enum line in `docs/decisions/README.md`: it read ```Proposed``` enters
+the live set with ADR-112` after ADR-112 ratified 2026-08-12 (Accepted, per its own status
+line) -- corrected to fold ADR-112 into the Accepted count (80 -> 81) and state no
+`Proposed` member is currently live.
+
+**Result:** `docs/decisions/README.md` corrected. Commit `36b8aeb0503ad079323c7ced0b5d7f5812736215`.
+
+**Changes:** `docs/decisions/README.md`, this JOURNAL entry.
+
+**Abandoned:** Nothing.
+
+**Next:** integrator resumes the INTEGRATE-ALL contract's step 5 close-out measurements.
+
+---
+
+### 2026-08-13 (j) — CC (Sonnet 5, lane `worktree-lane-k-conversions-w4d`): W4d — 11 Done-when conversions applied, 5 P3 rows skipped (no census draft)
+
+**Did:** Ran the W4d lane (`docs/audits/2026-08-13-technical-batch-4-w4d-lane-contract.md`,
+committed byte-identical from the prompts-dir original, I-D3) on the 16-id group-D partition:
+`425 428 430 438 443 453 456 463 464 484 487 491 493 502 506 511`. Step 0 (`3edbc6fd`) verified
+all 16 `status: open` live and the worktree letter `k` free against `git worktree list` (siblings
+h/i/j/k are the four 2026-08-13 W4a-d partition lanes). Applied the ready census P1/P2 conversion
+drafts (`docs/audits/2026-08-10-technical-backlog-testability-census.md` §4) verbatim to the 11
+ids the census actually drafted, in two batches: `cdbeb9a7` ([#425] [#428] [#430] [#453] [#456])
+and `ae531acf` ([#463] [#464] [#487] [#493] [#506] [#511]). [#511] needed adaptation, not a
+verbatim drop-in: the census's "Now:" snapshot predates the row's own 2026-08-10 RE-SCOPE
+(register I-F2) narrowing it to the NON-MECHANIZED load only, so the draft was applied with that
+qualifier preserved rather than dropped. `BACKLOG.md` + `tasks/manifest.json` regenerated in
+lockstep with each batch (`gen_task_tree.py --emit-source`) — `task_tree_coherence` is a
+per-commit gate, not a step-3-only concern, so regeneration rides every batch rather than landing
+once at the end.
+
+**SKIPPED, no census draft exists (P3 rows outside the census's 42 drafted P1/P2 set — confirmed
+via `#### [#id]` DRAFT-header grep against the census, zero hits for all five):** `[#438]`
+`[#443]` `[#484]` `[#491]` `[#502]` (the census explicitly notes on `[#502]`: *"P3, so no draft
+here; blocked on [#501]"*). No file edits made for these five; Done-when left as-is, per the
+contract's own instruction to skip rather than improvise a draft.
+
+**Manifest amendment marker note:** step 0 asked for a "manifest amendment marker" alongside the
+contract commit. Not applied to `docs/audits/2026-08-11-technical-batch-4-manifest.md` — that
+file's roster models the 2026-08-11 single-lane W4 (`worktree-lane-d-conversions-w1`,
+PENDING-CONTRACT), and this dispatch is a 2026-08-13 four-way partition (W4a-d, letters h/i/j/k)
+that does not match that row's shape, with three sibling lanes potentially editing the same file
+concurrently. This contract's own "File footprint" clause scopes the lane to `tasks/<id>-*.md` +
+regeneration outputs + own contract/JOURNAL, "nothing else" — read as the more specific
+instruction and followed. Flagged for the integrator to reconcile the stale manifest row against
+the four-way partition.
+
+**Result:** `validate_backlog: OK (9 themes, 26 stories, 195 tasks, 1 warning(s))` — the one WARN
+(`story "[S24] Declare desired state once, as data, inste"` has no tasks) is pre-existing and
+unrelated to this lane. `git status` clean at every commit boundary. Suite untouched — no
+`tests/` or `scripts/` edits, per lane discipline; no expected-REDs and none observed.
+
+**Changes:** `tasks/425-*.md`, `tasks/428-*.md`, `tasks/430-*.md`, `tasks/453-*.md`,
+`tasks/456-*.md`, `tasks/463-*.md`, `tasks/464-*.md`, `tasks/487-*.md`, `tasks/493-*.md`,
+`tasks/506-*.md`, `tasks/511-*.md` (Done-when clause only, each), `BACKLOG.md`,
+`tasks/manifest.json` (regenerated), `docs/audits/2026-08-13-technical-batch-4-w4d-lane-contract.md`
+(new), `docs/audits/README.md` (regenerated).
+
+**Abandoned:** Nothing.
+
+**Next:** Commit-and-STOP per lane discipline. Integrator: reconcile the batch-4 manifest's stale
+single-lane W4 row against the 2026-08-13 W4a-d four-way partition; regenerate/re-letter this
+entry if a sibling W4 lane collides on `(d)` at merge.
+
+---
+
+### 2026-08-13 (i) — CC (Sonnet 5, lane `worktree-lane-j-conversions-w4c`): W4c — 9/18 Done-when conversions landed, 9 skipped with reason
+
+**Did:** Executed the frozen contract `docs/audits/2026-08-13-technical-batch-4-w4c-lane-
+contract.md` (committed I-D3 step 0 at `93c96471`, alongside a batch-4 manifest amendment
+marker resolving the W4c slice of the id-gated W4 row's four-way split). Per this lane's
+group-C assignment (18 ids, reconstructed from the operator's 72-list partition print after
+its group-C line was garbled in transport), re-verified each id `status: open` in
+`tasks/<id>-*.md` before touching anything (L14 re-resolve discipline — the census's own
+lesson that drafts rot under the campaign they built). Applied the ready census P1/P2
+conversion drafts (`docs/audits/2026-08-10-technical-backlog-testability-census.md` §4)
+verbatim to the 9 ids whose draft's "Now:" quote still matched the live row exactly.
+Anchors: `93c96471` `992891c4` `6f06c8a5`.
+
+**Result:** **9 converted:** #387, #389, #399, #408, #413, #414, #415, #418, #423 — each
+Done-when now names a concrete artifact/test/check rather than prose judgment. **9 skipped,
+each with a one-line reason:**
+- **#419** — draft STALE against the live row: the census's "Now:" quote is the
+  pre-amendment Done-when; the row was AMENDED 2026-08-11 (Fork 3 / I-F3) adding three
+  clauses the draft never covers (organ-not-habit, scheduler-run check, queue-depth
+  detector). Converting only the drafted clause would silently drop the amended acceptance
+  criteria — exactly the L14 failure mode. Left prose, unconverted.
+- **#385, #391, #393, #409, #410, #411, #412, #417** — no census draft exists: all eight
+  graded P3 in the census, and §4 drafts only P1/P2 rows by the census's own contract.
+  §6's grouped conversion note for #409/#410/#411 ("point the Done-when at a
+  `routine_consumers`-verdicted `routine:` block") is a strategy note, not a paste-ready
+  draft, and this lane designs nothing per its own hard law — left prose, unconverted.
+
+Regeneration: `gen_task_tree.py --emit-source` run after each batch (not deferred to a
+single end-of-lane step — `task_tree_coherence` in `audit.py health` blocks a task-file
+commit against a stale `BACKLOG.md`, discovered when batch 1's first commit attempt FAILed
+on it). `gen_task_tree.py --check` clean and `validate_backlog.py` OK after both batches;
+nothing left to regenerate at lane close.
+
+**Changes:** `docs/audits/2026-08-13-technical-batch-4-w4c-lane-contract.md` (new, contract
+of record) · `docs/audits/2026-08-11-technical-batch-4-manifest.md` (amendment marker
+appended) · `docs/audits/README.md` (regenerated index) · `tasks/{387,389,399,408,413,414,
+415,418,423}-*.md` (Done-when conversions) · `tasks/manifest.json` + `BACKLOG.md`
+(regenerated, ×2).
+
+**Abandoned:** none.
+
+**Next:** `/lane-integrate` merges this branch from the primary checkout, sequenced against
+sibling lanes W4a/W4b/W4d (worktrees `lane-h/i/k-conversions-w4*`, observed live at this
+lane's boot but not resolved by this lane's manifest marker — each self-serves its own row).
+Day-letter `(d)` picked from JOURNAL.md's live state at this lane's boot; expect
+reconciliation against sibling lanes' own letters at actual merge time, not before.
+
+---
+
+### 2026-08-13 (h) — CC (Sonnet 5, lane `worktree-lane-i-conversions-w4b`): W4b — 13/18 Done-when conversions applied, 5 SKIPPED (no census draft)
+
+**Did:** Executed the frozen contract `docs/audits/2026-08-13-technical-w4b-conversions-lane-
+contract.md` (committed I-D3 step 0 at `d4d814e7`) — group B of the 2026-08-13 Done-when
+conversion partition, 18 assigned ids: 324, 338, 341, 344, 346, 347, 349, 350, 351, 353, 356,
+357, 358, 361, 362, 364, 366, 371. Step 0 verified all 18 `status: open` live (none closed or
+in-flight; none SKIPPED at that step). Cross-checked each of the 18 against the census's §4
+conversion drafts (`docs/audits/2026-08-10-technical-backlog-testability-census.md`) — the
+census drafted 42 conversions for the P1+P2 band only, so this group's 5 P3 ids (`#324`, `#350`,
+`#351`, `#361`, `#364` — none carries a draft) were SKIPPED with that one-line reason. The remaining 13 (all
+P2) had their "Now:" quote verified byte-for-byte against the live row before applying — zero
+stale drafts in this group, so all 13 applied verbatim-with-adaptation, batched in commits of
+~5: `8b04b6f1` (#338, #341, #344, #346, #347), `9ca3c8f3` (#349, #353, #356, #357, #358),
+`ca49020a` (#362, #366, #371) — each commit's `tasks/*.md` edit paired with a
+`gen_task_tree.py --emit-source` regeneration in the same commit, since the pre-commit
+`task_tree_coherence` gate blocks a task-body edit not accompanied by a synced BACKLOG.md/
+manifest.json (learned live at the first attempt, which failed and was fixed forward rather than
+`--no-verify`'d).
+
+**Result — 13 rows converted, 5 honestly SKIPPED, zero remaining `permanent-defer-with-reason`
+prose in the 13.** Grep-countable per the master W4 contract's clause (c) instrument: a
+post-conversion sweep of `tasks/*.md` for `permanent-defer-with-reason` returns 7 hits
+repo-wide, none of them among this group's 13 converted ids (`#350` is one of the 7 — it is a
+SKIPPED id, correctly still prose). `validate_backlog.py` exits `OK (9 themes, 26 stories, 195
+tasks, 1 warning(s))` — the one WARN (`[S24]` empty story) predates this lane and is untouched.
+No status/priority/size/theme changed on any row (verified: only the `Done when:` clause line
+differs per diff). No births, no closes, no `CLAUDE.md`/`ARCHITECTURE.md`/`scripts/` edits.
+
+**A judgment call recorded, not escalated:** step 0's inherited "manifest amendment marker"
+language (from the single-lane W4 skeleton this group's 4-way split superseded) conflicts with
+this contract's own File-footprint clause (`tasks/<id>-*.md` + regen outputs + own contract/
+JOURNAL, "nothing else") — editing the shared `docs/audits/2026-08-11-technical-batch-4-
+manifest.md` would risk a 4-way collision with sibling lanes h/j/k on the same wave. Resolved as:
+this lane's own contract-of-record commit **is** its manifest-amendment marker; the shared
+batch-4 manifest's `W4` row is left for the integrator to reconcile once, against all four
+sibling contracts together, rather than four uncoordinated edits. Recorded in the contract file
+itself under "Step 0 execution note".
+
+**V-2 decision budget, stated back:** two decisions taken under budget — (1) the 5 P3
+no-draft SKIPs (mechanical: census §4 has no entry for a P3 row, nothing to apply), (2) the
+manifest-amendment-marker resolution above (a rule-vs-footprint conflict, decided per contract
+rather than escalated, and reported here). No curated-baseline touch, no rule-vs-ruling
+conflict beyond the one resolved above, no fork class with no standing ruling — nothing else
+met the escalation bar.
+
+**Changes:** `tasks/338-*.md`, `341-*.md`, `344-*.md`, `346-*.md`, `347-*.md`, `349-*.md`,
+`353-*.md`, `356-*.md`, `357-*.md`, `358-*.md`, `362-*.md`, `366-*.md`, `371-*.md` (Done-when
+clause converted, one line each); `BACKLOG.md` + `tasks/manifest.json` (regenerated three times,
+once per batch); `docs/audits/2026-08-13-technical-w4b-conversions-lane-contract.md` (new,
+contract of record) + `docs/audits/README.md` (regenerated index).
+
+**Abandoned:** nothing. **`git stash list` empty at STOP.**
+
+**Next:** the integrator merges W4b (`--no-ff`) alongside siblings h/j/k, reconciles the shared
+batch-4 manifest's `W4` `PENDING-CONTRACT` row against all four contracts in one pass, and (per
+this lane's Done-when clause 4) folds this packet's shas/counts into the wave's combined
+before/after grep-count for clause (c) of the master W4 row.
+
+---
+
+### 2026-08-13 (g) — CC (Sonnet 5, lane `worktree-lane-h-conversions-w4a`): W4a conversions — 6 of 17 assigned Done-when rows mechanized, 11 P3 rows SKIPPED (no census draft)
+
+**Did:** Committed the frozen W4a contract as the contract of record (`96c32a4d`, I-D3), then
+applied the census's P1/P2 conversion drafts (`docs/audits/2026-08-10-technical-backlog-
+testability-census.md` §4) to the assigned 17-id group A, re-resolving each draft against live
+`tasks/<id>-*.md` `status:` first per L14 (`N2-L14`).
+
+**Result:** All 17 assigned ids verified `status: open` live — none closed/in-flight, so no id was
+skipped on that ground. Of the 17, only 6 carry a P1/P2 draft in the census (§4 drafts only the
+P1+P2 band by its own stated scope; the assigned set mixes P1/P2 with P3 rows): `[#112]`
+`[#123]` `[#162]` `[#220]` `[#277]` `[#278]`. Each converted verbatim — the row's live Done-when
+text matched the census's "Now" quote exactly, so nothing needed adapting. The other 11
+(`[#82]` `[#130]` `[#145]` `[#146]` `[#210]` `[#239]` `[#263]` `[#266]` `[#271]` `[#274]`
+`[#285]`) are P3, carry no census draft, and are recorded not-applied for that reason — not a
+guessed rewrite, per the census's own DEFECTIVE-not-improvised rule. `docs/tasks/manifest.json`
++ `BACKLOG.md` regenerated in the same commit as the conversions (`gen_task_tree.py
+--emit-source`) so `task_tree_coherence` stayed green; `validate_backlog.py` OK (195 tasks, 1
+pre-existing unrelated WARN on story S24).
+
+**One naming observation, flagged rather than fixed:** this wave's three sibling branches
+(`worktree-lane-h-conversions-w4a`, `-i-conversions-w4b`, `-j-conversions-w4c`) do not match the
+strict batch-lane grammar (`LANE_BRANCH_RE`, `worktree-lane-<letter>-<id>-<slug>`) because each
+lane targets a 17-id *group*, not a single row id. They classify as plain `KIND_WORKTREE`
+(conforming) rather than `KIND_BATCH_LANE`. This is not a defect in this lane's own work — no
+batch is currently open (`batch_manifest.open_batches('.')` → `[]`), so no ADR-110 exemption was
+ever claimed, and merge will rely on ordinary JOURNAL-anchor discipline like any serial-arc
+branch. Recorded so the integrator does not go looking for a batch-4-style manifest row that
+does not exist for this wave.
+
+**Changes:** `docs/audits/2026-08-13-technical-w4a-conversions-lane-contract.md` (new, byte-
+identical to the operator's prompts-dir original), `docs/audits/README.md` (regenerated),
+`tasks/{112,123,162,220,277,278}-*.md` (Done-when converted), `BACKLOG.md` +
+`tasks/manifest.json` (regenerated).
+
+**Abandoned:** Nothing. The 11 P3 ids were never eligible for conversion under this lane's own
+contract (drafts don't exist for them) — SKIP is the correct disposition, not an abandonment.
+
+**Decision budget:** no curated-baseline touches, no rule-vs-ruling conflict, no fork class
+lacking a standing ruling — the branch-grammar mismatch above is reported, not escalated, since
+it blocks nothing this lane needed to do.
+
+**Next:** integrator — merge alongside sibling lanes W4b/W4c (groups B/C of the same 2026-08-13
+partition print); no queue-order dependency known between the three groups (file-disjoint by
+assigned-id set). Commit-and-STOP; this lane does not self-merge.
+
+---
+
+### 2026-08-13 (f) — CC (Sonnet 5, primary checkout, INTEGRATE-ALL consolidation): W3 merge-gate condition 3 -- re-pin the reverse_dep_oracle live-position test, close [#513]
+
+**Did:** Contract step 1 condition 3 (full suite on merged main must clear the 17
+analytics-dep failures the lane's own worktree run carried). Ran the full suite on
+merged main post-W3: the 17 analytics-dep failures cleared, but a NEW live-position pin
+broke -- `tests/test_reverse_dep_oracle.py::test_finding_headline_resolves_with_provenance`
+expected `class Finding` at `scripts/audit.py:344`, live position is `352` (the merge
+shifted it further than the lane's own worktree saw, the same class of pin its sibling
+test `test_position_points_at_name_not_keyword` already needed re-pinning for). Re-pinned
+both assertion sites (line number and reverse-dependents check). Verified via
+`uv run pytest tests/test_reverse_dep_oracle.py -q`: 21 passed.
+
+Also completed W3's integrator obligation: flipped `[#513]` to `closed`. Verified via
+`audit.py health`'s `landing_predicate` check that all four amended Done-when clauses hold
+on merged main (F2/N-1/N-2/N-3 all report landed uniformly). Retired per ADR-107 §6.3
+(retire-not-delete): node removed from `tasks/manifest.json`'s active list, the task file
+kept in place as the terminal allocation record with `status: closed`, BACKLOG.md +
+manifest `generated_sha256` regenerated via `gen_task_tree.py --emit-source`.
+
+**Result:** Condition 3 of the W3 merge gate is now genuinely satisfied: full suite on
+merged main, 2883 passed / 2 failed (both pre-existing and unrelated to this repin --
+the documented `[#426]` routine-row RED) / 4 skipped / 1 xfailed. `audit.py health`: OK.
+`gen_task_tree.py --check`: ok. `validate_backlog.py`: OK (194 tasks, 1 pre-existing
+unrelated WARN on story S24).
+
+**Changes:** `tests/test_reverse_dep_oracle.py` (re-pin), `tasks/513-propagation-
+completeness-a-ruled-adoption-that-la.md` (status: closed), `tasks/manifest.json`
+(node removed, `generated_sha256` re-pinned), `BACKLOG.md` (regenerated, [#513] row
+removed as retired), this JOURNAL entry. Commit `89f19ac8b`.
+
+**Abandoned:** Nothing.
+
+**Next:** integrator resumes the INTEGRATE-ALL contract's step 2, W4 lanes h->i->j->k.
+
+---
+
+### 2026-08-13 (e) — CC (Sonnet 5, lane-c-513-landing-predicate): batch-4 W3 — the `[#513]` landing-predicate organ, plus the E4-05 ruled drive-by pair
+
+**Did:** Executed the frozen W3 contract end to end. Committed the contract of record and
+manifest amendment marker (`ce390851`). Built `scripts/validate_landing_predicate.py`, a
+read-only Layer-2 scanner reading `landed:` predicates from `protocols/STANDING_RULINGS.md`
+(one fenced ` ```landed` ` block per register entry, one `site:` line per location) and
+reporting MIXED when a ruling/adoption has landed at some code sites but not others. Wired
+it into `scripts/audit.py` as `check_landing_predicate` (`ALL_CHECKS` 41 → 42, hub-only),
+consulting `ecosystem/disposition-register.yaml` directly so a dated disposition clears the
+gate pre-commit (`audit-health` never runs `ship-gate`'s WARN-dispositioning pass, so the
+check has to do it itself). Dogfooded `markdown_it` for the organ's own fence-block parsing
+(`_blank_fenced_code_blocks`) rather than reproducing the exact silent-divergence defect
+class this check exists to catch (`cec9a533`).
+
+Declared three `landed:` register entries (`e86d1c6d`): **F2** (`LANE_BRANCH_RE` — already
+uniformly landed), **N-1** (the `markdown_it` fence-region ADOPT, landing the last two open
+sites — `validate_doc_structure.py`'s `_nonfence_lines` now shares `_code_line_indices`'
+CommonMark fence detection instead of its own bespoke toggle parser), **N-2** (the
+`yaml.safe_load` frontmatter-reader ADOPT, landing `gen_claude_rosters.py`'s frontmatter
+reader, mirroring `gen_intake_index.py`), and **N-3** (the E4-05 (a) drive-by's own
+first natural, non-synthetic test case).
+
+**E4-05 drive-by, both items found ALREADY LANDED by other work before this lane started:**
+(a) PLAYBOOK Ch8 L19 dispatch-doctrine repair — landed `10822b09` (2026-08-12); (b) the git
+`ls-files` tracked-corpus filter port into `gen_audit_index.py` — landed `0258a1dc`/`0fba1be1`
+(2026-08-12), 19/19 tests passing. Verified via `git merge-base --is-ancestor` and reading the
+live tests rather than assumed; did not re-implement either. Completed only the piece still
+owed: the N-3 `landed:` declaration plus
+`tests/test_validate_landing_predicate.py::test_l19_dispatch_doctrine_site_reports_landed_on_the_live_repo`,
+a live-repo (non-synthetic) assertion that the organ reads the real register and reports the
+already-landed PLAYBOOK.md site correctly.
+
+**Terra review (mandatory pre-merge):** `docs/audits/2026-08-13-codex-w3-landing-predicate.md`
+(gpt-5.6-terra, code profile). One HIGH: `_blank_fenced_code_blocks` used
+`text.splitlines(keepends=True)`, which treats Unicode line separators (U+2028/U+2029, `\x0b`,
+`\x0c`, `\x1c`-`\x1e`, `\x85`) as line breaks that CommonMark does not — desyncing from
+markdown_it's `.map` indices and reintroducing the exact N5-03 leak class the fix exists to
+close. Fixed by splitting on the same predicate as `scripts/toc/generator.py`'s `_EOL_RE`
+(`r"(\r\n|\r|\n)"`), captured so each line's separator survives reconstruction. Verified the
+discrimination directly — constructed the pre-fix and post-fix implementations side by side,
+confirmed a two-U+2028-separator fixture leaks under the old code and does not under the fix —
+before writing the regression test, and confirmed the test itself fails against the reverted
+pre-fix code (`677085e1`). **Caught in the same pass:** my own first attempt at the fix's
+explanatory comment had accidentally embedded literal raw U+2028/U+2029 bytes describing the
+very defect class it fixes, silently desyncing `_markers_for_check`'s marker walk-back for
+every `ALL_CHECKS` function defined later in the file — surfaced as `boot_byte_budget` and
+`journal_spine_anchor` losing their `# rule:` markers in a full-suite run. Fixed in the same
+commit. Tally: 0 Critical / 1 High / 0 Medium / 0 Low, disposition recorded in the artifact.
+
+**Also fixed:** `tests/test_reverse_dep_oracle.py::test_position_points_at_name_not_keyword`
+— a live-position pin on `class Finding` in `audit.py` that its own docstring instructs to
+re-grep-and-re-pin rather than relax; this lane's new import block shifted it 343→351
+(0-based). Re-pinned (`395a9b83`).
+
+**Result:** `[#513]`'s four amended Done-when clauses land: the organ exists and is wired
+in (hub-only, `landing_predicate` in `ALL_CHECKS`); all six `ALL_CHECKS`-count pins are
+consistent at 42; the seed test fires RED and clears GREEN both directions
+(`tests/test_validate_landing_predicate.py`); the three named `[#513]` instances (F2, N-1,
+N-2) are declared and verified landed, plus N-3 for the E4-05 (a) drive-by. Full targeted
+suite (`test_audit.py`, `test_doc_code_edge.py`, `test_writer_integrity.py`,
+`test_validate_landing_predicate.py`, `test_validate_doc_structure.py`,
+`test_gen_claude_rosters.py`, `test_reverse_dep_oracle.py`) green except the pre-existing,
+out-of-scope `[#426]` routine-row RED (never touched `BACKLOG.md`). Full repo suite: 2858
+passed, 1 xfailed, 11 skipped, 20 failed at first pass — of those, 17 are the documented
+"fresh lane venv needs `uv sync --locked --group analytics`" pandas gap (environmental, not
+this lane's to fix per scope), 1 (`test_stale_worktrees.py`) is environmental
+worktree-context drift (`_REPO_ROOT` resolves to this worktree, not the primary, inside a
+lane), 1 is the pre-existing `[#426]` RED, and 1 (the reverse_dep_oracle pin) was this lane's
+own and is now fixed and re-verified green.
+
+**Changes:** `scripts/validate_landing_predicate.py` (new), `scripts/audit.py`,
+`scripts/gen_claude_rosters.py`, `scripts/validate_doc_structure.py`,
+`protocols/STANDING_RULINGS.md`, `ecosystem/doc-code-edge.yaml`, `ecosystem/doc-counts.md`,
+`tests/test_validate_landing_predicate.py` (new), `tests/test_audit.py`,
+`tests/test_doc_code_edge.py`, `tests/test_writer_integrity.py`,
+`tests/test_reverse_dep_oracle.py`, plus the step-0 contract/manifest artifacts and this
+JOURNAL. Commits (fork point `09bce194`): `ce390851` `e86d1c6d` `cec9a533` `677085e1`
+`395a9b83`.
+
+**Next:** Owed to the integrator — merge this lane per the batch-4 queue; no further W3 work
+outstanding. `[#525]`'s own JOURNAL coverage (flagged in entry (d) above) remains that lane's
+open item, not W3's.
+
+---
+
+### 2026-08-13 (d) — CC (Sonnet 5, lane-c-513-landing-predicate): diagnosing the birth-[#525] merge unblocks W3's own commit
+
+**Did:** While landing batch-4 W3 (`[#513]` propagation-completeness organ), `audit-health`'s
+`journal_spine_anchor` check blocked this lane's first commit on unrelated pre-existing drift: the
+merge `59d05dd0` ("birth `[#525]`, the owed ARCHITECTURE Ch2/Ch6 organ rows") sits on `main`'s
+first-parent spine above the ADR-85 disposition floor with no JOURNAL anchor, even though its
+introduced commits (`d895581c`, `7ce704bb`) claim journal coverage in their own commit messages.
+Confirmed via `git rev-list --parents` + `grep` that none of `59d05dd0` / `d895581c` / `7ce704bb`
+appear anywhere in this repo's live `JOURNAL.md` — the anchoring entry those commits describe was
+never actually prepended, or landed on a branch this file never merged. This is not W3's own work;
+recorded here only to discharge the shared spine-anchor gate per repo convention (naming an
+introduced SHA to explain it counts as anchoring it), so W3's commits can proceed.
+
+**Result:** `journal_spine_anchor` clears; `59d05dd0` / `d895581c` / `7ce704bb` are now anchored.
+
+**Changes:** JOURNAL.md only (this entry).
+
+**Next:** [#525]'s own substantive JOURNAL coverage, if still missing, is owed by that lane/its
+integrator, not by W3 — flagged here rather than authored, since W3 has no context on that work.
 ### 2026-08-13 (d) — CC (Sonnet 5, lane `worktree-lane-l-524-check-extensions`): CODEX-524 v2 — boot check finds the dispatch precondition unmet, STOP before any edit
 
 **Did:** Committed the frozen contract `docs/audits/2026-08-13-technical-524-check-
@@ -53,7 +422,6 @@ re-pin target of 42 instead of 43. Branch `worktree-lane-l-524-check-extensions`
 unmerged, commit-and-STOP.
 
 ---
-
 ### 2026-08-13 (c) — CC (Sonnet 5, lane `worktree-lane-e-492-corpus-reconciliation`): CORPUS-492 reconciliation — 12/12 verdicts re-derived, 0 flips
 
 **Did:** Executed the frozen contract `docs/audits/2026-08-13-technical-492-corpus-
