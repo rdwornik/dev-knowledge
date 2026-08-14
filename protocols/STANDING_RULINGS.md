@@ -1323,11 +1323,19 @@ question from the other side, and is routed to the same place.
   P2 rows (~1.5 h), record the 33 P3s as deliberately-unbackfilled with a reason on the `[#508]`
   3a-2 precedent, reaching 137/170 with the P1+P2 band at 100%. Filling rows with a literal `none`
   to move a percentage is the named anti-pattern and stays outside the variant.
-- **`N2-E3-06` `[#511]` — WATCH.** The row now carries three distinct loads: the re-scoped
-  non-mechanized cut load (I-F2), commission 5's continuity half (I-D4), and the JOURNAL-purpose
-  observation. Each attach was individually correct, and the accumulation is the shape that makes a
-  row unclosable. **The split decision is taken at the batch-4 packet** — splitting mid-execution-week
-  would be planning relapse, so the watch line is the instrument until then.
+- **`N2-E3-06` `[#511]` — DEFERRED at the batch-4 packet (2026-08-14, packet-close window-tail).**
+  The row carries three distinct loads: the re-scoped non-mechanized cut load (I-F2), commission
+  5's continuity half (I-D4), and the JOURNAL-purpose observation. The first two carry located
+  scope — I-F2's probes/locators/FILL-IN text and I-D4's R43/R50/R51 distillate rows are both
+  written into the row body. The third does not: `docs/audits/2026-08-12-technical-night-2-lessons-
+  governance-strategy.md` finding 6 names it only as a BRIEF §1 topic-routing label
+  ("JOURNAL-purpose → `[#511]`") with no Done-when, no scope sentence, and no locator beyond that
+  routing line — searched across `tasks/511-*.md`, `JOURNAL.md`, and this file; nothing further
+  exists. A split now would mean authoring the third load's scope from nothing rather than
+  extracting a ruled one, which is a different act than the split this entry originally watched
+  for. **Disposition: stays unsplit, P2/M.** Revisit if "JOURNAL-purpose" ever gets an actual
+  scope statement to split out; until then the accumulation risk this entry named is accepted, not
+  resolved.
 
 ### L-9 · `N2-E1-6` / `N2-E3-04` / `N2-E1-5` — how the two open §B clauses discharge
 
@@ -1584,7 +1592,7 @@ once only). Every id below carries exactly one disposition.
 | `N2-E3-03` | **TAK — state it in the intake** | the anti-goal does not block work it was not aimed at, step 10 |
 | `N2-E3-04` | **DECIDE — producer lane** | same fork as `N2-E1-6` → **L-9** |
 | `N2-E3-05` | **TAK — pin G-6 in the W4 contract** | so the lane does not re-litigate a question ruled at the GO |
-| `N2-E3-06` | **WATCH now; split decision at the batch-4 packet** | `[#511]` carries three loads → **L-8** |
+| `N2-E3-06` | **DEFERRED (2026-08-14) — stays unsplit, P2/M** | `[#511]` carries three loads, third has no located scope → **L-8** |
 | `N2-E4-01` | **DO IT** | close batch 4 — W3 + W4 + the end-of-batch packet; un-blocks `N2-E1-2` and `N2-E1-8` |
 | `N2-E4-02` | **DO IT** | day-letter check — routed to the Codex-producer lane → **L-10** |
 | `N2-E4-03` | **DO IT** | body-date scan — routed to the Codex-producer lane → **L-10** |

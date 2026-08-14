@@ -14,7 +14,11 @@ owner: Rob
 > class this repo exists to kill). Fix the map when reality moves; fix the *source*
 > when the doctrine moves.
 >
-> Last updated: `2026-08-14` — **[#525] the owed load-gauge organ rows land.** Ch2's organ map
+> Last updated: `2026-08-14` — **packet-close drift repair: the flagged ADR-112 gap is closed.**
+> The Governing ADRs list gains its ADR-112 bullet (Two-tier adoption bar, Accepted 2026-08-12) —
+> exactly the gap the immediately-prior pass below flagged and explicitly left unfixed. Pure
+> drift-repair, not a fresh re-read: `last_reviewed` stays `2026-08-14` (already stamped by that
+> pass), unchanged here. Prior: `2026-08-14` — **[#525] the owed load-gauge organ rows land.** Ch2's organ map
 > gains a row for the `[load]` operator-load gauge — `collect_load`/`load_line`/`append_load_row`
 > (`scripts/fleet_health.py:610,642,689`), the `[#270]` sub-organ of `fleet_health.py`'s
 > SessionStart trigger that neither table named since it shipped (owed since W2 per
@@ -1005,6 +1009,11 @@ live in the ADRs; git history retains; the ADR-77 guard stays armed, Ch2).
 - **ADR-111** — the finding pipeline: every audit finding is triaged into exactly one of four
   outcomes, so a finding cannot be left in an undeclared state — Accepted 2026-08-09.
 - **ADR-109** — fleet desired-state contract v1: one typed, versioned, queryable schema (`ecosystem/schema/desired_state.py`, the Terraform *model* — declarative typed data, state in git, apply = the existing regenerate-and-diff machinery) over the hand-divergent registries; `ecosystem/registry.md` **loses authority** (§2 — file retirement is loader-wave/[#383] work; [#455] moot); intake #22 §E transcribed as the functional requirement. Downstream consumers [#383]/[#385]; ARCHITECTURE organ-class prose is [#459] — Accepted 2026-07-31.
+- **ADR-112** — two-tier adoption bar: adoption runs at two tiers by CODE IMPACT, not artifact
+  format. Tier L (libraries/code) stays measured-divergence evaluation, ADOPT/REJECT on numbers,
+  consuming a gap-week slot. Tier S (skills/plugins/commands) is install → 30-minute sandbox try →
+  KEEP or DELETE → one ledger line — no evaluation ceremony, **no births**, keeping trials out of
+  the open-set BACKLOG arithmetic — Accepted 2026-08-12.
 
 ---
 
