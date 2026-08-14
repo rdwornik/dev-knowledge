@@ -19,6 +19,52 @@
 
 ---
 
+### 2026-08-14 (a) — CC (Sonnet 5, `worktree-lane-g-525-arch-organ-rows`, spare-capacity lane): [#525] Ch2/Ch6 organ rows for the load-gauge digest land; row closed
+
+**Did:** Executed the frozen ARCH-ORGAN-rows contract for `[#525]` -- the owed
+`ARCHITECTURE.md` Ch2/Ch6 organ rows for `[#270]`'s operator-load gauge (`fleet_health.py`'s
+`[load]` block / `logs/OPERATOR-LOAD.csv`), scoped out of the W2 landing lane and collected
+here per the batch-4 execution plan's own routing. Step 0: committed the contract
+byte-identical to `docs/audits/2026-08-14-technical-525-arch-organ-rows-lane-contract.md`
+(`3d999ff3`); no batch-4 manifest amendment needed -- this lane sits outside the W-numbered
+roster, following the CORPUS-492/CODEX-524-v2 precedent (contract commit + audit-index regen
+only). Step 2: added a Ch2 organ-map row for `collect_load`/`load_line`/`append_load_row`
+(`scripts/fleet_health.py:610,642,689`) as a sub-organ of `fleet_health.py`'s SessionStart
+trigger, writing the gitignored `logs/OPERATOR-LOAD.csv` trend sink; amended Ch6's "Nightly
+(local)" verification-mesh row to name the same gauge as a funnel-layer dimension, same two
+locators (`7b94a437`). Step 3: `last_reviewed` re-stamped 2026-08-14 after a genuine
+end-to-end re-read of all six chapters; one drift item found and left unfixed (out of this
+lane's Ch2/Ch6-only scope) -- the Governing ADRs list stops at ADR-111/ADR-109 and omits
+**ADR-112** (Accepted 2026-08-12) -- flagged in the doc's own "Last updated" narrative
+(`e48e5eed`). Step 4: `tasks/525-*.md` flipped `status: open` -> `closed` and its node
+removed from `tasks/manifest.json` (a bare frontmatter edit alone reverts under
+`--emit-source`, confirmed empirically before use, same pattern `[#132]`'s closure recorded);
+`BACKLOG.md` regenerated (193 tasks), `--check` exit 0 (`56f1a8a5`).
+
+**Result:** `[#525]`'s Done-when satisfied as written -- both organ statements declarative
+and locator-backed, `silent_rule_ratchet` unmoved (live 440 <= baseline 441, measured via
+`audit.py health` before and after the row edits). Zero W3/CORPUS-492-named files touched
+(this lane's whole footprint is `ARCHITECTURE.md` Ch2/Ch6 + its own row bodies + the contract
+artifact); the three-way-disjointness the contract required stands undisturbed. No births.
+Decision budget: nothing escalated -- no curated-baseline touch, no rule-vs-ruling conflict,
+no fork class without a standing ruling; the one judgment call (no manifest amendment needed)
+was decided per the CORPUS-492/CODEX-524-v2 precedent and reported here rather than asked.
+
+**Changes:** `ARCHITECTURE.md` (Ch2 organ-map row, Ch6 mesh-row amendment, `last_reviewed`
+stamp) -- `docs/audits/2026-08-14-technical-525-arch-organ-rows-lane-contract.md` (new,
+contract of record) -- `docs/audits/README.md` (regenerated) -- `BACKLOG.md` (regenerated,
+`[#525]` row leaves) -- `tasks/525-*.md` (status closed) -- `tasks/manifest.json` (node
+removed, `generated_sha256` re-pinned). Commits on this branch: `3d999ff3`, `7b94a437`,
+`e48e5eed`, `56f1a8a5`.
+
+**Abandoned:** nothing.
+
+**Next:** commit-and-STOP per lane discipline; hand back to `/lane-integrate` for merge.
+Flagged-not-fixed for a future pass: the Governing ADRs roster in `ARCHITECTURE.md` needs
+ADR-112 added (outside this lane's Ch2/Ch6 scope).
+
+---
+
 ### 2026-08-13 (k) — CC (Sonnet 5, primary checkout, INTEGRATE-ALL consolidation): hygiene sweep -- ADR-112 enum fix; [#525] checked clean
 
 **Did:** Contract step 4 (hygiene sweep). Checked `[#525]`'s merged BACKLOG row: no
