@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "eadd6fe52749053787c96a463751aed71f14198ada41d9220643500e0a986e7f",
+  "generated_sha256": "26506d7399359c848e8134776e5b9ab918b4cb1f0c3254cedd6b6da3d7fab3be",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -235,6 +235,10 @@
     {
       "task": 527,
       "file": "527-anti-direct-to-main-mechanism.md"
+    },
+    {
+      "task": 530,
+      "file": "530-single-flight-dispatch-guard-one-contract-execut.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
