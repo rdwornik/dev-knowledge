@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "b3f46ab98da75bc50344d7d0a08a4451ff6f9938b5812ac633fb5d0331c83a75",
+  "generated_sha256": "eadd6fe52749053787c96a463751aed71f14198ada41d9220643500e0a986e7f",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -907,6 +907,10 @@
     {
       "task": 528,
       "file": "528-lane-latency-full-suite-multiplied-across-a-batch.md"
+    },
+    {
+      "task": 529,
+      "file": "529-telemetry-v1-emit-stage-1-events-from-the-gate-m.md"
     },
     {
       "prose": ""
