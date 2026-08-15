@@ -19,6 +19,66 @@
 
 ---
 
+### 2026-08-15 (b) — CC (Opus 5, branch `docs/phase1-batch-manifest`): the phase-1 batch manifest — R1 discharged, the merge queue unblocked
+
+**Did:** Opened the phase-1 batch (batch 5, width 7 — lanes M N O P Q R S) with the committed
+manifest ADR-110 requires, discharging architect ruling **R1**. The batch had none: the newest in
+the tree was batch 4's, closed since 2026-08-11, and `batch_manifest.open_batches(.)` read `[]` —
+so all seven lanes were unintegrable under the exemption key. Both lane M and lane P had flagged
+the absence independently and correctly declined to file one themselves. Shape derived from
+`scripts/batch_manifest.py` (the surface actually read) rather than copied from a prior file, and
+every field run through the parser before writing: the filename against `MANIFEST_GLOB` → `True`,
+`_valid_closer()` on the `closed_by` path → `True`, `batch: 5` a digit because
+`test_the_live_repos_own_manifest_is_well_formed` pins `isdigit()`.
+
+Also ran the R1 authorization line for the four new files lanes M and P add (`telemetry_emit.py`,
+`single_flight.py` and their tests — the ruled births `[#529]`/`[#530]`) through
+`validate_hermetization.classify()` first: all four **admit** with no grant needed, because
+`scripts/` and `tests/` are established allowlisted homes. Recorded that way in the manifest, so
+the authorization reads as an operator decision that the births land rather than as an override of
+a refusal that never happened.
+
+**Result:** Batch 5 is open; the exemption is live and expires automatically when
+`docs/audits/2026-08-15-technical-batch-phase1-packet.md` lands. Baseline captured before any
+merge: `audit.py health` → **`health: OK`** on bare `main` @ `d62796ad`, `git stash list` empty,
+all seven lanes verified off the same base (`git merge-base` → `d62796ad` ×7, zero inter-lane
+dependencies).
+
+**One real finding, surfaced by writing the manifest and filed in it.** Lanes **S** and **R** are
+REFUSED by the ratified lane grammar `LANE_BRANCH_RE` that `batch_manifest.is_lane_merge` imports —
+`worktree-lane-s-w20-draft-landing` has `w20` where `\d+` is required, and
+`worktree-lane-r-gateclose-drain8` has no id slot at all. **The ADR-110 exemption therefore covers
+five of seven merges, not seven**, and S is merge #1 under the R4 order. Unfixed, their merges land
+unanchored non-exempt spine entries and — because `audit-health` is a *pre-commit* gate — a
+`journal_spine_anchor` FAIL wedges every following commit in the queue. Third occurrence of the
+class: batch 4 filed the same hazard against its W4/W6 and resolved it by dropping both lanes. The
+root cause is not the two names but that **the grammar is enforced nowhere at provisioning**, which
+`batch_manifest.py`'s own honest-limits block already states.
+
+Resolved by **anchoring**, not by renaming or reordering — reordering is foreclosed (R4 rules the
+order) and would not help anyway, since unlike batch 4 the strict grammar is already on `main`;
+renaming would work but invents sentinel ids for two lanes that carry no row id. This entry's
+`Anchors:` line names both lane tips, so both merges satisfy the gate's ordinary predicate the
+instant they land. The route's honest limit is disclosed in the manifest rather than left implicit:
+it works because the anchoring predicate is a text match over JOURNAL, which lets an integrator
+anchor a merge before making it.
+
+**Anchors:** `a8208619` (this arc's manifest commit — anchors this merge), `6516f6e2` (lane S tip)
+and `41c040b4` (lane R tip) — the two lanes the ADR-110 exemption cannot reach, anchored here by
+the ordinary `journal_anchor.is_anchored` predicate rather than by exemption.
+
+**Changes:** `docs/audits/2026-08-15-technical-batch-phase1-manifest.md` (new),
+`docs/audits/README.md` (generated index regen), `JOURNAL.md`.
+
+**Abandoned:** Nothing. Two routes considered and rejected with reasons, both recorded in the
+manifest: renaming S and R to sentinel-id branch names, and reordering the queue.
+
+**Next:** The R4 merge queue — S → Q → R → N → M → P → O — then the R3/R5/R6/R7 wrap arc, one full
+suite, the gate stack, and the closing packet that expires this exemption. Also reported to the
+packet, not adjudicated here: the process-lane cap is over by exactly one lane (width 7 permits 1;
+N and O both sit in `hub-introspection`), and this is the **fourth consecutive batch** to miss the
+commit-at-dispatch condition — `[#505]` leg 1 stays unmet.
+
 ### 2026-08-15 (a) — CC (Opus 5, branch `chore/boot-acts-0815`): night-2 consolidation + the §B boot-acts contract executed — 14 commits, gate 41 → 11
 
 **Did:** Two arcs in one session. First, consolidated the seven night-2 lane reports
