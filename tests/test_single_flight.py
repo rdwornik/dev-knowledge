@@ -70,7 +70,8 @@ def _cli(repo, *args):
     """Invoke the guard the way an operator or a step-0 gate would -- as a process, so the EXIT
     CODE is what is asserted, not a return value."""
     return subprocess.run([sys.executable, str(_SCRIPT), *args, "--repo", str(repo)],
-                          capture_output=True, text=True, encoding="utf-8")
+                          capture_output=True, text=True, encoding="utf-8",
+                          errors="replace")
 
 
 def _ref_exists(repo, ref) -> bool:
