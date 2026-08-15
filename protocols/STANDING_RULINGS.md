@@ -1043,6 +1043,15 @@ removal (ADR-98 §6)"*.
   decision, not the decision.
 - **Owner:** operator. **Due:** next window.
 - **Expiry:** retires when the disposition is recorded.
+- **RETIREMENT RECORDED 2026-08-15** (morning adjudication D3.5, appended per B6 — the text above
+  stands as written). The owed disposition is on record: intake #10 was **REJECTED and relocated to
+  the archive** at `f095a81f` (2026-08-12), and the document now lives at
+  `docs/intake/archive/2026-07-11-tech-c4-visualization-memo.md`. This entry's expiry condition is
+  therefore met and the entry is **spent**. The locator in the opening line
+  (`docs/intake/2026-07-11-tech-c4-visualization-memo.md`) no longer resolves — it is left standing
+  rather than corrected in place, because append-not-amend is what B6 asks of this register, and
+  this line is the correction. Surfaced by the night-2 census (NB2-F §5d) as the `[#503]`
+  doc-currency class landing inside the register itself.
 
 ### I-D8 · The ARC-7 §6-item-3 site is a DRIVE-BY FIX in W1, not a birth
 

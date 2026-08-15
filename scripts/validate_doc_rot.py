@@ -55,7 +55,15 @@ _REPO_ROOT = _SCRIPTS_DIR.parent
 # --- thresholds (tunable; defaults grounded in measured live data) ----------
 _BACKLOG_DATED_BLOCKS = 3        # >= this many YYYY-MM-DD blocks in a task line ...
 _BACKLOG_LONG_CHARS = 700        # ... AND longer than this -> inline-history accretion
-_BACKLOG_GROSS_CHARS = 1200      # OR longer than this regardless of dates -> gross bloat
+_BACKLOG_GROSS_CHARS = 1320      # OR longer than this regardless of dates -> gross bloat
+# 1200 -> 1320 ruled 2026-08-15 (morning adjudication D1.1). 1320 is p90 of the
+# POST-Done-when-conversion row-length distribution measured live over all 196 rows
+# (median 1120, p75 1195, p80 1199, p81 1200, p90 1318). At 1200 the detector fired above
+# p81 of the tree's own normal shape -- it was ranking the top fifth of an ordinary
+# distribution, not detecting outliers, and the W4a-d conversion wave (2026-08-13,
+# a4fc652d / 8a091278) is what lengthened the rows it then flagged. p95 (1675) was
+# considered and rejected: it would silence genuine accretion. The dated-block arm
+# (>= 3 dates AND > 700) is unchanged and keeps the history-accretion teeth.
 _SECTION_HISTORY_MAX_ENTRIES = 12  # >= this many entries in a Section-history block
 _FILE_SIZE_BUDGETS = {"CLAUDE.md": 200}  # file -> self-declared line budget (ADR-53)
 _GROOMING_CADENCE_DAYS = 21      # BACKLOG grooming-log most-recent date older than this

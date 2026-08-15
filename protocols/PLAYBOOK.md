@@ -2266,7 +2266,7 @@ A nightly Routine deployment is four parts:
 
 1. **Routine** — the cloud-scheduled trigger (a Claude Code Routine, ~03:00 local) that launches the run on a fresh `claude/<task>-YYYY-MM-DD` branch.
 2. **Workflow spec** — the orchestration logic committed as `.claude/workflows/<name>.js` (e.g. `conformance-hub.js`): verifier fan-out → adversarial skeptic → digest synthesis.
-3. **Action** — the outcome handler (`.github/workflows/nightly-conformance-triage.yml`): diff-guard + auto-merge / triage on the PR the run opens.
+3. **Action** — the outcome handler (`.github/workflows/nightly-conformance-triage.yml`): diff-guard + auto-merge / triage on the PR the run opens. **RETIRED by `82227f08`** (`.github/` deleted, 2026-07-08, `closes [#255]`) — the file named here no longer exists; `.github/workflows/` now holds only `report-only-wall.yml`. Described in the past tense from here on, and kept rather than deleted because the mechanism it documents is what the rest of this section reasons about.
 4. **SessionStart surfacing** — `scripts/surface_triage.ps1` prints a `[triage] N …` line at the next session start, so the operator touches only findings (CONTRIBUTING "Nightly outcome management").
 
 ### Naming
@@ -2302,7 +2302,7 @@ A cloud run leaves a `claude/<task>-YYYY-MM-DD` branch behind. Closeout conventi
 
 ### The shallow-clone false-positive class
 
-A cloud runner may produce a **shallow clone**, so a verifier that checks "does commit X exist in history" will falsely report any SHA older than the shallow boundary as **absent** — a false "commit absent" finding, not a real conformance defect. Two guards: (1) the Action sets `fetch-depth: 0` so three-dot `base...head` diffs have both endpoints reachable (`.github/workflows/nightly-conformance-triage.yml`); (2) the `conformance-hub` V1 stage treats SHAs older than the history boundary as **out-of-scope**, not absent (JOURNAL 2026-06-04 "V1 shallow-history guard"). Read a first production raw count with this class in mind (JOURNAL 2026-06-05).
+A cloud runner may produce a **shallow clone**, so a verifier that checks "does commit X exist in history" will falsely report any SHA older than the shallow boundary as **absent** — a false "commit absent" finding, not a real conformance defect. Two guards: (1) the Action set `fetch-depth: 0` so three-dot `base...head` diffs have both endpoints reachable (`.github/workflows/nightly-conformance-triage.yml` — **RETIRED by `82227f08`**; the live carrier of the same guard is `.github/workflows/report-only-wall.yml`, which sets `fetch-depth: 0` for this reason); (2) the `conformance-hub` V1 stage treats SHAs older than the history boundary as **out-of-scope**, not absent (JOURNAL 2026-06-04 "V1 shallow-history guard"). Read a first production raw count with this class in mind (JOURNAL 2026-06-05).
 
 ### Cloud-session hub-independence (self-containment)
 
@@ -3514,7 +3514,7 @@ Where:
 - `YYYY-MM-DD` — date of review
 - `{slug}` — kebab-case identifier (feature, branch, or commit topic)
 
-Example: `docs/audits/2026-04-22-codex-handoff-process-rewrite.md`
+Example (illustrative, not a real file): `docs/audits/2026-04-22-codex-handoff-process-rewrite.md`
 
 #### Format
 <!-- scope: meta -->

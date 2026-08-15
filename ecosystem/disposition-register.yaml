@@ -618,3 +618,44 @@ dispositions:
       [#505] stays open -- clause 2 remains a pending operator ratification, no clause of it
       was closed by this commit. review_date is the shelf-life (ADR-75); clears if [#505]
       genuinely closes or the detector gains negation-awareness.
+
+  # [#524] was CLOSED 2026-08-15 (morning adjudication D2.1 -- already-shipped, all four legs
+  # landed at 62f42dad). The ref below is retained as a PROVENANCE pointer to the row that
+  # shipped this advisory, not as a live owner. That is the Y-1 resolution of the same
+  # adjudication: a provenance ref to a closed row is lawful, a dangling silent one is not, so
+  # the closure is annotated in the ref itself rather than left for a reader to discover.
+  - id: warn-journal-spine-anchored-by-mention
+    organ: journal_spine_anchor
+    match: "anchored by mention, not by record"
+    ref: "[#524] leg c (row closed 2026-08-15, landed 62f42dad -- historical owner, provenance ref)"
+    review_date: 2026-11-14
+    reason: >-
+      ADVISORY BY DESIGN, and structurally unfixable in bulk: the [#524] leg-c WARN fires when a
+      spine SHA appears in JOURNAL prose rather than on an explicit `Anchors:` record line. It
+      currently names 401 commits (5 listed + 396 more) -- the accumulated history of a convention
+      adopted AFTER most of those entries were written, and JOURNAL.md is append-only (CLAUDE.md
+      section 5 rule 2), so that backlog of 401 is not retro-fixable without the edit the
+      append-only rule forbids. The HARD leg (block_unanchored_push) is unaffected and passes on
+      every push; this is the softer record-shape advisory. Dispositions the historical mass only
+      -- the convention holds going forward, and a genuinely unanchored spine entry still FAILs
+      the backstop rather than matching here.
+
+  # D1.7 was the single OPERATOR WORD inside the 45-WARN batch. NB2-A drafted this block but
+  # explicitly declined to rule it -- "Two honest routes, both the operator's to pick ... A sweep
+  # cannot rule which" -- offering retroactive review or disposition. The operator ruled
+  # DISPOSITION on 2026-08-15. Keyed on the specific commit+branch signature per
+  # precision-over-recall, so a DIFFERENT unreviewed code-impact merge still surfaces and blocks.
+  - id: warn-review-artifact-387b794a-repin-close
+    organ: review_artifact_coverage
+    match: "387b794a integrator/513-repin-close"
+    ref: "[#480] P3"
+    review_date: 2026-11-14
+    reason: >-
+      MECHANICAL RE-PIN -- ruled 2026-08-15 (morning adjudication D1.7). One code-impact merge
+      since 2026-08-05 carries no linked review artifact: 387b794a integrator/513-repin-close.
+      The diff class is a line-number bump on an integrator re-pin, so a retroactive review of it
+      recovers nothing the git diff does not already show, and the artifact it would produce would
+      restate the diff rather than judge it. Advisory in any case per the [#480] P3 ruling -- the
+      hard pre-push leg stays deferred pending 0 false positives over two consecutive windows, and
+      this entry is one of the inputs that window counts. review_date is the ADR-75 shelf-life;
+      the entry decorates stale and surfaces if the merge it names ever leaves the scan window.

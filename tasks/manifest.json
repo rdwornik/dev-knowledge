@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "d073768737ed030699c65601ff3c94da2b98684f114c083bdf3cb966cf2ac7ff",
+  "generated_sha256": "f73561b19c1bc7471ea56c7715211964a1ebda059680fd5eafb52aab6e39643c",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -237,6 +237,10 @@
       "file": "527-anti-direct-to-main-mechanism.md"
     },
     {
+      "task": 530,
+      "file": "530-single-flight-dispatch-guard-one-contract-execut.md"
+    },
+    {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
     },
     {
@@ -269,10 +273,6 @@
     {
       "task": 296,
       "file": "296-audit-py-repo-name-repo-path-doesn-t-persist-its.md"
-    },
-    {
-      "task": 524,
-      "file": "524-four-ruled-check-extensions.md"
     },
     {
       "prose": ""
@@ -755,10 +755,6 @@
       "file": "351-fleet-python-upgrade-ticket.md"
     },
     {
-      "task": 352,
-      "file": "352-versioned-vscode-region-decoration.md"
-    },
-    {
       "task": 407,
       "file": "407-universal-fleet-python-style-functional-vs-oop-s.md"
     },
@@ -915,6 +911,10 @@
     {
       "task": 528,
       "file": "528-lane-latency-full-suite-multiplied-across-a-batch.md"
+    },
+    {
+      "task": 529,
+      "file": "529-telemetry-v1-emit-stage-1-events-from-the-gate-m.md"
     },
     {
       "prose": ""
@@ -1448,10 +1448,6 @@
     },
     {
       "prose": ""
-    },
-    {
-      "task": 364,
-      "file": "364-doc-rot-s-length-cap-blocks-353-from-doing-its-j.md"
     },
     {
       "task": 365,
