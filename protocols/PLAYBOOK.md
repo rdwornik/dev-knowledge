@@ -824,6 +824,79 @@ After every numbered step in a Claude Code prompt:
 
 This cadence catches regressions early and keeps each commit's diff sane to review.
 
+#### Tiered suite — targeted in-lane, one full suite at integration
+<!-- scope: dev -->
+
+The cadence above states *when* the suite runs; this states *which* suite. A batch lane pays a
+suite run once per step plus once at its merge, so an undifferentiated full suite multiplies
+across a batch instead of being paid once. **Tier A — the targeted gate** runs in-lane, per step:
+the test files covering the lane's own diff. **Tier B — the full suite** runs once, at
+integration, on the merged result (the refuse-to-finish item in Ch8's batch protocol). Per-lane
+greens are evidence about each lane in isolation; the merged tree is a state no lane exercised.
+
+**Measured basis.** Host full suite **918.9 s** (`JOURNAL.md` 2026-08-15 (a)). On a 4-core cloud
+container — INDICATIVE, so ratios travel and absolute minutes do not — the same tree ran
+**701.6 s** serial against **473.0 s** at `-n auto`: a 1.48× ratio, with the outcome sets
+identical in both arms (14 failed / 2874 passed / 8 skipped / 1 xfailed, set-differenced both
+ways). The suite is not uniformly slow — one test carries 38.4 % of it, and 2489 of 2897 tests
+share 11 % between them. Excluding five files leaves 96.5 % of the tests at 22.1 % of the cost,
+which is where tier A comes from. Source: the night-2 lane-latency audit, commit `8387ff2a`
+§1–§3 — a draft on the unmerged branch `claude/night2-latency-audit-6s1k6p`, whose §3 tier-A
+figure is derived arithmetic that the audit itself flags as not measured.
+
+**The exclusion set — five files, and why each is integration-only.**
+
+| Tier | Files | Why |
+|---|---|---|
+| Oracle | `test_safe_remove.py`, `test_reverse_dep_oracle.py`, `test_legibility_graph_conformance.py` | each drives a real `pyright-langserver` subprocess; the cost is I/O-wait on an external language server, and these are the only tests needing one |
+| Corpus | `test_normalize_headers.py`, `test_toc.py` | whole-repo corpus scans — cost scales with the doc tree and is invariant to a lane's diff |
+
+**A cost split is not a correctness split — the oracle-tier rule.** A lane that touches
+`scripts/safe_remove.py` or `scripts/reverse_dep_oracle.py` runs the oracle tier in-lane, because
+those modules are exactly what that tier covers. The general form is *tier A plus anything
+covering the touched module*, which is [#278] (impacted-test selection); until that lands, the
+named-module rule above is its checkable subset. Two limits stated rather than left to be
+discovered: the existing `slow` marker does **not** express this split — it marks
+`test_e2e_consumer_lifecycle.py` and `test_fleet_analytics.py`, neither of which is in the top-10
+cost list, so `pytest -m "not slow"` removes almost none of the 89 % — and deferring the oracle
+tier to integration defers real signal on a host where the oracle works.
+
+**Settings ladder — what makes xdist safe in a gate context**, ordered by what each buys. Source
+for the whole ladder: the night-2 research audit, commit `757077f2` §2.2–§2.6 (a draft on the
+unmerged branch `claude/night2-research-d30vhu`).
+
+1. **`--max-worker-restart=0`.** xdist's default restart budget is `numprocesses × 4`, so a
+   crashed worker is replaced silently up to 4N times — the witnessed 19 strays sit inside what
+   that default permits. Zero converts quiet proliferation into a loud, bounded failure, which is
+   the honest posture for a gate: one that restarts workers quietly reports a verdict it did not
+   earn.
+2. **The tier split above.** A full suite inside a commit hook is the multiplication risk itself,
+   and parallelism is not its cure.
+3. **`--maxprocesses=N`** caps `-n auto` so a high-core host does not pay N full-suite imports
+   inside a gate. `-n auto` counts *physical* cores; `-n logical` wants `psutil`, which is absent
+   from the lock.
+4. **`-n 0` for anything running inside a forking parent** (mutmut forks one process per mutant).
+   `-p no:xdist` is **not** a way to force serial — it unloads the plugin that supplies the `-n`
+   which `addopts` already passes, so pytest exits 4 before collecting a single test and the run
+   looks green while measuring nothing (`pyproject.toml` L83–91, measured twice in-repo).
+5. **`--dist loadfile` / `loadgroup`** for tests sharing the real tree (the `live_repo` marker),
+   which keeps them on one worker; `--dist worksteal` is the default for the balanced remainder.
+6. **`-p no:cacheprovider` in hook context** keeps `.pytest_cache` writes out of a mid-staging
+   tree.
+7. **A detection leg, because no setting covers a killed controller.** execnet spawns workers
+   with a plain `Popen` — no process group, no Job Object — so on Windows a controller that dies
+   before teardown orphans its workers, which survive holding pipes open. They carry a constant
+   bootstrap command line, so detection is exact and a blunt image-name sweep is unwarranted (it
+   would take out the operator's own live interpreter):
+
+   ```powershell
+   Get-CimInstance Win32_Process -Filter "Name='python.exe'" |
+     Where-Object { $_.CommandLine -like '*exec(eval(sys.stdin.readline()))*' } |
+     Select-Object ProcessId, CreationDate, CommandLine
+   ```
+
+Live call site carrying items 1 and 5: `.claude/skills/verify/verify.py` ([#528] leg 1).
+
 #### Tests derive from acceptance criteria, not the implementation (circular-testing guard)
 <!-- scope: hybrid -->
 
@@ -1791,7 +1864,8 @@ recorded addition here until the ADR is amended.)
 - **Every lane branch merged-or-explicitly-abandoned.** "Explicitly abandoned" is a recorded
   disposition; a lane branch with no verdict leaves the checklist open.
 - **Full suite run once on the merged result.** Per-lane greens are evidence about each lane in
-  isolation; the merged tree is a state no lane tested.
+  isolation; the merged tree is a state no lane tested. Which suite a lane runs in-lane and which
+  one lands here is Ch5 "Tiered suite — targeted in-lane, one full suite at integration".
 - **`git worktree list` == primary only.** The batch-scale form of the no-leftovers round-trip
   stated immediately above.
 - **Manifest/packet archived — TWO halves, one at each end (batch-1 packet §8).** The **batch
