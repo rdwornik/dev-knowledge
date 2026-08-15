@@ -179,10 +179,7 @@ the census's Form E Q2.
 - **DRAFT:** *"either `protocols/AI_COUNCIL_PROCESS.md` and `templates/claude-regions/critical-rules-records.md` state the guard's real zone — `docs/decisions/transcripts/**` only, and that the zone is a live no-op since that tree was deleted — or `scripts/hooks/block_immutable_edits.py` widens to cover ADRs, handoffs and audits, with a test per newly-covered class"*
 - **Intent:** both disjuncts gain the exact loci the row's own refs already name, so each is verdictable by reading one file. The widen branch gains a per-class test obligation, which is what "match the claim" has to mean when the claim is *four of four classes are immutable* — verified live at drafting: the guard's zone is still transcripts-only. The row's finding is preserved intact, including the uncomfortable half (the guard's only zone no longer exists).
 
-#### `[#364]` P3/S — `doc_rot`'s length cap blocks `[#353]` — **AMBIGUITY (§5.1)**
-- **Now:** *"[#353] can accrue further incidents without tripping `doc_rot`, or the constraint is recorded as accepted-with-reason"*
-- **DRAFT:** *"`[#353]` records a further incident with no `doc_rot` `backlog-accretion` finding against it — via an `incident-evidence`-class artifact carrying the detail with the row holding only a pointer, or a per-ticket cap exemption declared in `ecosystem/disposition-register.yaml` — or `protocols/STANDING_RULINGS.md` carries a section naming `[#364]` and stating the accepted constraint"*
-- **Intent:** the row's own options (a) and (b) become the two build paths, and both already have homes in the tree: `incident-evidence` is in ADR-101's closed audit-class enum, and the disposition register's contract is one entry per suppressed finding — the sanctioned use, not the general "we decided not to" that ADR-75 forbids. Form E homes the accept branch. The row's insistence that an exemption be per-ticket, never blanket, is carried into the draft. **The premise has been overtaken since the row was written — see §5.1.**
+[#364] withdrawn — obsoleted 2026-08-15, premise discharged by the 1320 threshold (Y-2)
 
 ---
 
@@ -195,7 +192,7 @@ the census's Form E Q2.
 
 #### `[#391]` P3/S — Wire `fleet_analytics` into a nightly lane — **AMBIGUITY (§5.2)**
 - **Now:** *"fleet_analytics fires nightly OR #384 is narrowed to manual + scheduling filed separately"*
-- **DRAFT:** *"`scripts/fleet_analytics.py` fires on a schedule under a `· routine:` block that `routine_consumers` passes, fail-soft, with `[S20]`'s load-gauge discipline applied — or the manual-reporter scope is recorded in `protocols/STANDING_RULINGS.md` in a section naming `[#391]`, with the scheduling work filed under its own BACKLOG id"*
+- **DRAFT:** *"`scripts/fleet_analytics.py` fires on a schedule under a `· routine:` block that `routine_consumers` passes, fail-soft, with `[S20]`'s load-gauge discipline applied"*
 - **Intent:** branch (a) gains the organ that verdicts a routine declaration and keeps the row's own fail-soft and load-gauge conditions verbatim. **Branch (b) could not be converted as written: it acts on `[#384]`, which was closed 2026-07-23, and a closed row cannot be narrowed.** The draft re-expresses (b) as recording the scope decision and filing the scheduling work fresh — the recoverable intent — rather than guessing at a rewrite. See §5.2.
 
 #### `[#393]` P3/S — corp-sca rot review, 3 candidates
@@ -227,6 +224,7 @@ the census's Form E Q2.
 - **Now:** *"the dirty-tree leg ignores tool-owned writer-isolated paths with a test, or the exclusion is recorded rejected with a reason"*
 - **DRAFT:** *"`check_dirty_tree` excludes tool-owned writer-isolated paths — untracked `ecosystem/*/history/*.md` dailies already replicated on the lane — proven by a test in both directions (a lane-owned daily passes; a stray untracked file still fires) — or `protocols/STANDING_RULINGS.md` carries a section naming `[#417]` and stating why the exclusion was rejected"*
 - **Intent:** Form E homes the reject branch; the build branch gains the both-directions test, because an exclusion tested only on the passing case is indistinguishable from disabling the check. **This clause appears already MET in the live tree — see §5.3.** The draft is written as the conversion the row would take if it is kept open; if the operator rules it discharged, the draft is moot rather than wrong.
+- **Remainder (D6.4(b)):** the landed half (§5.3) is acknowledged in-row; the converted clause carries the row's unlanded remainder — extracting the shared scope list from `scripts/audit.py:2625-2633` — with no closure and no birth.
 
 #### `[#419]` P2/M — Routines whose output nobody consumes — **THE RE-CHECK**
 - **Now:** *"every standing routine has a named consumer and a consumption path; unconsumed output is SURFACED, not silently accumulating; and for the nightly conformance routine specifically, the absorb is an ORGAN and not a habit — it has a trigger that fires without an operator remembering, a detector that reports queue depth (count of unmerged `claude/conformance-*`) at a surface the operator already reads, **and a scheduler-run check, so a night the job did not run is distinguishable from a night whose output was not absorbed** (from operator input I-2: 2026-08-06 had no branch because there was no run, and the repo alone could not establish that) — so a lapse is visible on the day it starts rather than eight days later"*
