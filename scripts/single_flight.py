@@ -274,16 +274,17 @@ def release(contract_id: str, repo: Path | str = ".", remote: str = "origin",
         if local.returncode != 0:
             raise SingleFlightError(f"local release failed: {local.stderr.strip()}")
     if local_only:
-        print(f"single_flight: released {ref} locally")
+        print(f"single_flight: {ref} is now free locally")
         return CLAIMED
     push = _git(repo, "push", remote, f":{ref}")
     if push.returncode != 0:
         blob = f"{push.stderr}\n{push.stdout}".lower()
         if "remote ref does not exist" not in blob:
             raise SingleFlightError(f"remote release failed: {push.stderr.strip()}")
-        print(f"single_flight: {ref} was not held on {remote} — nothing to release")
-        return CLAIMED
-    print(f"single_flight: released {ref} on {remote}")
+    # "is now free", not "released": a delete of a ref that was never held reports `- [deleted]`
+    # and exit 0 against GitHub (measured 2026-08-15), so the outcome is knowable and the action
+    # is not. The freed state is what the caller acts on, so that is what gets claimed.
+    print(f"single_flight: {ref} is now free on {remote}")
     return CLAIMED
 
 
