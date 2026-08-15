@@ -69,13 +69,38 @@ returns `None` -- telemetry is never worth failing a commit over.
     safe_emit(emit_check_run, "no_ff_merges", "pass")
 
 Reading back is `sqlite3` and SQL; this module owns no read surface (memo Stage 3).
+
+THE THREE BINDING CONSTRAINTS also live on that surface, and each is enforced by a REFUSAL
+rather than by a convention a wiring site could forget:
+
+    emit_check_run("commit_cadence", "pass", git_derived=True)   # refuses on a shallow clone
+    emit_check_run("doc_code_edge", "pass", coverage=None)       # context coverage="unknown"
+    emit_check_run("fleet_parity", "pass", skipped=3)            # context carries capabilities
+
+  1. GIT-DERIVED METRICS REFUSE ON A SHALLOW CLONE. `git_derived=True` runs
+     `git rev-parse --is-shallow-repository` first and raises `ShallowRepositoryRefusal`
+     unless the answer is `false`; nothing is written. A truncated history yields a number
+     that looks measured and is wrong, which is worse than no number at all. "Cannot
+     determine" refuses too -- an unverifiable provenance claim is not a verified one.
+  2. UNRESOLVED COVERAGE IS `"unknown"`, NEVER `0`. Pass `coverage=None` when the signal's
+     only evidence is a non-call reference; it stores the string `"unknown"`. `coverage=0`
+     stays available and means a MEASURED zero. Putting a raw `coverage` key in `context`
+     is refused, because from a raw `0` a reader cannot tell the two apart -- which is the
+     whole defect.
+  3. SKIP COUNTS CARRY THE HOST CAPABILITY VECTOR. Pass `skipped=<n>`; the event gains
+     `capabilities` -- git / grep / pre-commit / powershell / pandas presence on THIS host.
+     A bare skip count is unreadable later: 3 skips on a host without `grep` and 3 skips on
+     a fully-equipped host are different facts. A raw skip key in `context` is refused.
 """
 from __future__ import annotations
 
+import importlib.util
 import json
 import logging
 import os
+import shutil
 import sqlite3
+import subprocess
 from collections.abc import Callable, Mapping
 from contextlib import contextmanager
 from datetime import datetime, timezone
@@ -83,6 +108,17 @@ from pathlib import Path
 from typing import Any
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
+
+# The [#355] git-env scrub, single-sourced in the LEAF module `scripts/gitenv.py` ([#396]).
+# Loaded BY PATH, never by name: `import gitenv` and `from scripts import gitenv` each have a
+# shadow hole that silently empties the scrub, and ordering them only moves it. Full argument
+# in gitenv.py's docstring. Without the scrub an inherited GIT_DIR would answer the shallow
+# question about the PARENT repo while this module labelled it as the target's -- exactly the
+# provenance lie constraint 1 exists to refuse.
+_gitenv_spec = importlib.util.spec_from_file_location(
+    "dev_knowledge_gitenv", Path(__file__).resolve().with_name("gitenv.py"))
+_gitenv = importlib.util.module_from_spec(_gitenv_spec)
+_gitenv_spec.loader.exec_module(_gitenv)
 
 #: Env var that relocates the store. Set it in a test, a sandbox, or a satellite checkout.
 DB_PATH_ENV = "DEV_KNOWLEDGE_TELEMETRY_DB"
@@ -123,9 +159,108 @@ CREATE TABLE IF NOT EXISTS events (
 """
 
 
+#: Constraint 2's sentinel. A coverage signal whose only evidence is a non-call reference is
+#: UNRESOLVED, and unresolved is not zero. Stored as this string so no reader can average it
+#: into a number by accident.
+UNKNOWN = "unknown"
+
+#: Constraint 3's probe set, in the order the row names them: git / grep / pre-commit /
+#: powershell / pandas. The first four are executables on PATH; pandas is an importable
+#: module (the `analytics` dependency group), so it is probed as one.
+CAPABILITY_PROBES: tuple[str, ...] = ("git", "grep", "pre-commit", "powershell", "pandas")
+
+#: Context keys that carry a skip count. Any of these arriving through raw `context` is
+#: refused -- constraint 3 is structural, not a convention a wiring site can forget.
+_SKIP_KEYS = frozenset({"skipped", "skips", "skip_count", "skipped_count"})
+
+#: `coverage=None` MEANS "unresolved" (constraint 2), so it cannot double as "not supplied".
+#: This sentinel is the third state: the caller said nothing about coverage at all.
+_UNSET: Any = object()
+
+
 class TelemetryError(Exception):
     """Base for every refusal this module raises. Callers that must not break their host
     catch this (or use `safe_emit`); callers that want the defect loud let it propagate."""
+
+
+class ShallowRepositoryRefusal(TelemetryError):
+    """Constraint 1: a git-history-derived metric was asked for on a shallow (or
+    unverifiable) clone, so nothing was emitted. Raised INSTEAD of writing a truncated
+    number -- the memo's "wrong numbers worse than none" in enforceable form."""
+
+
+def is_shallow_repository(repo_path: str | os.PathLike[str] | None = None) -> bool | None:
+    """`git rev-parse --is-shallow-repository`, as a tri-state.
+
+    `False` -> full history. `True` -> shallow. `None` -> could not be determined (git
+    absent, not a repository, git errored). The third state is separate on purpose: callers
+    must not read "could not ask" as "answered no", which is how an unverified provenance
+    claim becomes a verified-looking one.
+    """
+    root = Path(repo_path) if repo_path is not None else _REPO_ROOT
+    try:
+        proc = subprocess.run(
+            ["git", "-C", str(root), "rev-parse", "--is-shallow-repository"],
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
+            env=_gitenv.scrubbed_git_env(),
+        )
+    except OSError:
+        return None
+    if proc.returncode != 0:
+        return None
+    answer = proc.stdout.strip().lower()
+    if answer == "false":
+        return False
+    if answer == "true":
+        return True
+    return None
+
+
+def assert_not_shallow(repo_path: str | os.PathLike[str] | None = None) -> None:
+    """Constraint 1's gate. Passes only on a verified-full history; raises otherwise."""
+    shallow = is_shallow_repository(repo_path)
+    if shallow is False:
+        return
+    if shallow is True:
+        raise ShallowRepositoryRefusal(
+            "refusing to emit a git-history-derived metric: "
+            "`git rev-parse --is-shallow-repository` reports true, so the history is truncated"
+        )
+    raise ShallowRepositoryRefusal(
+        "refusing to emit a git-history-derived metric: "
+        "`git rev-parse --is-shallow-repository` could not be answered, so the history is unverified"
+    )
+
+
+def capability_vector() -> dict[str, bool]:
+    """Constraint 3's host vector: presence of git / grep / pre-commit / powershell / pandas.
+
+    Probed live per call, never cached -- a cached vector outlives the host state it
+    describes, and the whole point of shipping it beside a skip count is that it is true of
+    the run that produced the count. `powershell` is satisfied by either `pwsh` (7+) or
+    `powershell` (Windows PowerShell), because a host with either can run a `.ps1` organ.
+    """
+    return {
+        "git": shutil.which("git") is not None,
+        "grep": shutil.which("grep") is not None,
+        "pre-commit": shutil.which("pre-commit") is not None,
+        "powershell": shutil.which("pwsh") is not None or shutil.which("powershell") is not None,
+        "pandas": importlib.util.find_spec("pandas") is not None,
+    }
+
+
+def coverage_value(resolved: int | None) -> int | str:
+    """Constraint 2's normalizer: `None` -> `"unknown"`, an int -> itself.
+
+    `0` passes through untouched and means a MEASURED zero. The distinction this preserves is
+    the finding: a signal whose only evidence is a non-call reference has NOT been measured at
+    zero, it has not been measured.
+    """
+    if resolved is None:
+        return UNKNOWN
+    if not isinstance(resolved, int) or isinstance(resolved, bool):
+        raise TelemetryError(f"coverage must be an int or None, got {type(resolved).__name__}")
+    return resolved
 
 
 def default_db_path() -> Path:
@@ -205,6 +340,10 @@ def emit_event(
     context: Mapping[str, Any] | None = None,
     db_path: str | os.PathLike[str] | None = None,
     ts: str | None = None,
+    git_derived: bool = False,
+    coverage: int | None = _UNSET,
+    skipped: int | None = None,
+    repo_path: str | os.PathLike[str] | None = None,
 ) -> int:
     """Append one event and return its row id.
 
@@ -212,6 +351,17 @@ def emit_event(
     `name`, and on a `context` that will not serialize -- all four are wiring defects, and a
     silently-dropped or silently-mangled event is the "plausible-but-false metric" this slice
     exists to avoid.
+
+    The three binding constraints ride the last four parameters:
+
+      * `git_derived=True` -- this event's number came from git history. Checked against
+        `assert_not_shallow(repo_path)` BEFORE anything is written, so a refusal leaves no
+        row. Stamps `context["git_derived"] = True` so a reader can tell which rows carry a
+        history-derived number without re-deriving provenance.
+      * `coverage=<int|None>` -- routed through `coverage_value()`. `None` stores `"unknown"`,
+        `0` stores a measured zero. A raw `coverage` key in `context` is refused.
+      * `skipped=<int>` -- stores the count AND `context["capabilities"]`, the live host
+        vector. A raw skip key in `context` is refused.
     """
     if event_type not in EVENT_TYPES:
         raise TelemetryError(f"unknown event_type {event_type!r}; expected one of {sorted(EVENT_TYPES)}")
@@ -223,6 +373,36 @@ def emit_event(
         raise TelemetryError(f"duration_ms must be an int or None, got {type(duration_ms).__name__}")
 
     payload = dict(context or {})
+
+    # Constraint 2 and 3 are refused at the RAW-CONTEXT door as well as offered as parameters.
+    # Without this, a wiring site that spells the field by hand bypasses the normalizer and the
+    # vector silently, and the constraint becomes a convention.
+    if "coverage" in payload:
+        raise TelemetryError(
+            "pass coverage through the `coverage=` parameter, not raw context: a raw 0 cannot be "
+            "told apart from an unresolved signal, which is the defect the constraint closes"
+        )
+    bare_skip = _SKIP_KEYS & payload.keys()
+    if bare_skip:
+        raise TelemetryError(
+            f"pass skip counts through the `skipped=` parameter, not raw context ({sorted(bare_skip)}): "
+            "a bare skip count carries no host capability vector and is unreadable later"
+        )
+
+    # Constraint 1 fires BEFORE the insert, so a refusal leaves no row behind.
+    if git_derived:
+        assert_not_shallow(repo_path)
+        payload["git_derived"] = True
+
+    if coverage is not _UNSET:
+        payload["coverage"] = coverage_value(coverage)
+
+    if skipped is not None:
+        if not isinstance(skipped, int) or isinstance(skipped, bool):
+            raise TelemetryError(f"skipped must be an int or None, got {type(skipped).__name__}")
+        payload["skipped"] = skipped
+        payload["capabilities"] = capability_vector()
+
     try:
         context_json = json.dumps(payload, sort_keys=True)
     except (TypeError, ValueError) as exc:
@@ -281,8 +461,10 @@ def safe_emit(emitter: Callable[..., int], *args: Any, **kwargs: Any) -> int | N
 
     For wiring sites on a gate's critical path: a locked database or a read-only disk must not
     turn into a failed commit. `TelemetryError` is NOT swallowed -- that class is a wiring
-    defect (bad event type, unserializable context), and hiding it would ship a gate that
-    silently records nothing.
+    defect (bad event type, unserializable context, a raw coverage/skip key), and hiding it
+    would ship a gate that silently records nothing. `ShallowRepositoryRefusal` propagates for
+    the same reason: constraint 1 refusing is the mechanism working, and a swallowed refusal is
+    indistinguishable from a metric that was never asked for.
     """
     try:
         return emitter(*args, **kwargs)
