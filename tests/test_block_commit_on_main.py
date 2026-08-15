@@ -356,3 +356,19 @@ def test_internal_error_fails_closed_exit_2(monkeypatch, tmp_path):
 def test_protected_branch_is_main():
     """The gate protects exactly `main` — the branch core-invariant #5 names."""
     assert bcm.PROTECTED_BRANCH == "main"
+
+
+@pytest.mark.live_repo
+def test_the_hook_is_wired_and_therefore_armed():
+    """A script is only a gate once it is CONFIGURED — the row's arming leg.
+
+    Arming needs no new mechanism: a `pre-commit` stage entry in .pre-commit-config.yaml is
+    installed by the existing SessionStart `arm_hooks.py` and asserted by
+    `audit.py::check_hooks_armed`. So the checkable claim is the entry itself — read from
+    the live config, so deleting it reddens here rather than silently at some later commit.
+    """
+    cfg = (Path(__file__).resolve().parent.parent / ".pre-commit-config.yaml").read_text(
+        encoding="utf-8")
+    assert "id: block-commit-on-main" in cfg
+    assert "scripts/block_commit_on_main.py" in cfg
+    assert "pre-commit" in bcm.__doc__ and "arm_hooks.py" in bcm.__doc__

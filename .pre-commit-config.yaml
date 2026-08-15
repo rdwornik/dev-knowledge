@@ -19,6 +19,31 @@ default_stages: [pre-commit]
 repos:
   - repo: local
     hooks:
+      - id: block-commit-on-main
+        name: Block a direct (non-merge) commit on main ([#527] — core-invariant #5 prevent)
+        # Pre-commit GATE, the commit-time half of core-invariant #5; block-ff-push below
+        # stays the push-time half. The 2026-08-13 incident landed three direct-to-main
+        # commits that the pre-push gate could only catch once they already existed, forcing
+        # a commit-tree re-land to unwind — this refuses before one exists.
+        #
+        # FIRST in the list on purpose: a commit that will not be allowed should not first
+        # pay for the codemap / audit / index checks below, and normalize-dated-headers
+        # should not rewrite files for it.
+        #
+        # Predicate copied from upstream no-commit-to-branch (`git symbolic-ref HEAD`), plus
+        # ONE carve-out: MERGE_HEAD present => allow, so a CONFLICTED integration merge on
+        # main is never refused (a clean --no-ff merge is routed to pre-merge-commit and
+        # never reaches this hook at all). Stated holes — detached HEAD passes; only
+        # MERGE_HEAD carves out — are documented in the script and pinned by its tests.
+        # `stages` is explicit though it matches default_stages, so the neighbouring
+        # pre-push entries cannot make a reader guess which stage this one runs at.
+        # HUB-ONLY. Fails CLOSED (exit 2) on internal error. Bypass: `git commit --no-verify`
+        # (block-ff-push then still refuses the push).
+        entry: uv run --locked python scripts/block_commit_on_main.py
+        language: system
+        stages: [pre-commit]
+        always_run: true
+        pass_filenames: false
       - id: normalize-dated-headers
         name: Normalize dated-log entry headers (auto-format)
         entry: uv run --locked python scripts/normalize_headers.py
