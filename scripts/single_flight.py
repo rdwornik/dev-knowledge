@@ -16,11 +16,25 @@ evidence T2) is that a second clone which has NEVER FETCHED the lock ref is stil
 `--force-with-lease` is evaluated by the RECEIVING repo, not by the pusher. The racer does not need
 to know the lock exists. No filesystem lock has that property.
 
-THE TRAP THIS EXISTS TO AVOID (T4). A plain `git push <remote> HEAD:refs/locks/<id>` onto an
-ALREADY-HELD ref, when both sessions sit at the same commit, prints `Everything up-to-date` and
-exits **0**. A naive guard reads that as "lock won" — and same-base is not an edge case, it is the
-normal batch-dispatch state where N lanes fork from one HEAD. `--force-with-lease=<ref>:` (empty
-expect = "this ref must not exist") is therefore not a hardening detail; it is the whole mechanism.
+THE TRAP THIS EXISTS TO AVOID (T4), AND HOW MUCH FURTHER IT GOES THAN RECORDED. A plain
+`git push <remote> HEAD:refs/locks/<id>` onto an ALREADY-HELD ref, when both sessions sit at the
+same commit, prints `Everything up-to-date` and exits **0**. A naive guard reads that as "lock won"
+— and same-base is not an edge case, it is the normal batch-dispatch state where N lanes fork from
+one HEAD.
+
+**MEASURED HERE, 2026-08-15, git 2.55.0.windows.3: `--force-with-lease=<ref>:` DOES NOT CLOSE THAT
+CASE ON ITS OWN.** The lease is genuinely evaluated when the pushed value differs from the held one
+(`! [rejected] … (stale info)`, exit 1 — the recorded T2/T3 behaviour, reproduced), but when the
+racer's HEAD *equals* the held value git short-circuits to `= [up to date]` and exit **0** before
+the lease decides. The design sketch's own exit-code test (`if r.returncode == 0: return 0`)
+therefore greenlights the same-HEAD race — the exact race it was written against.
+
+So the mechanism here is the lease PLUS a machine-readable verdict: the push runs with
+`--porcelain`, and a claim counts as WON only when git reports the flag `*` (`[new reference]`) for
+the lock ref. `=` (`[up to date]`) means somebody already holds it at this value and is refused;
+`!` carrying a lock-attributable reason is refused; anything else is an internal error. The exit
+code is not the verdict — the status flag is. Flags are single characters git does not translate,
+so this survives a localized git in a way prose matching does not.
 
 WHY THE REF POINTS AT HEAD. Under ruling I-D3 a lane commits its contract of record before dispatch,
 so HEAD at claim time IS that commit: `git show` on the claimed ref names the holder, its message
@@ -76,9 +90,15 @@ IN_FLIGHT = 3
 
 LOCK_NAMESPACE = "refs/locks/"
 
-# Git attributes a lock-ref rejection with one of these; anything else is an internal error and
-# exits 2 (fail closed). `stale info` is the --force-with-lease refusal (T2/T4), `non-fast-forward`
-# the plain-push refusal against a different commit (T3), `fetch first` its sibling wording.
+# `git push --porcelain` prints one `<flag>\t<from>:<to>\t<summary>` line per ref. The flag is a
+# single untranslated character, which is why the verdict is read from it and not from the exit
+# code or the prose: `*` new reference (the claim is WON), `=` already at this value (held — the
+# same-HEAD race, which exits 0), `!` rejected.
+_PUSH_NEW, _PUSH_UP_TO_DATE, _PUSH_REJECTED = "*", "=", "!"
+# Reasons a `!` is attributable to the lock rather than to something broken; anything else is an
+# internal error and exits 2 (fail closed). `stale info` is the --force-with-lease refusal (T2),
+# `non-fast-forward` the plain-push refusal against a different commit (T3), `fetch first` its
+# sibling wording.
 _CONTENTION_MARKERS = ("stale info", "non-fast-forward", "fetch first")
 # The local leg's own refusal, which arrives as exit 128 rather than 1 (T7) — with THIS wording.
 # 128 is git's generic fatal, so both halves are required before a refusal is reported.
@@ -163,6 +183,19 @@ def _refusal(ref: str, holder: str, remote: str | None) -> None:
           f"   two lines above name the holder and clear it.)", file=sys.stderr)
 
 
+def _push_status(stdout: str, ref: str) -> tuple[str, str]:
+    """The `--porcelain` status flag and summary for `ref`, or ('', '') if git reported none.
+
+    An absent line is NOT read as success anywhere above — a claim requires the `*` flag, so a
+    missing status falls through to the internal-error path and exits 2.
+    """
+    for line in stdout.splitlines():
+        fields = line.split("\t")
+        if len(fields) >= 3 and fields[1].endswith(f":{ref}"):
+            return fields[0].strip(), fields[2]
+    return "", ""
+
+
 def _head_sha(repo: Path) -> str:
     r = _git(repo, "rev-parse", "HEAD")
     if r.returncode != 0:
@@ -205,10 +238,12 @@ def claim(contract_id: str, repo: Path | str = ".", remote: str = "origin",
               f"arbitration; a second clone is not refused)")
         return CLAIMED
 
-    # Leg 2 — the remote compare-and-swap. The empty expect after `=<ref>:` means "must not exist";
-    # a plain push here would return 0 on the same-HEAD race (T4).
-    push = _git(repo, "push", f"--force-with-lease={ref}:", remote, f"HEAD:{ref}")
-    if push.returncode == 0:
+    # Leg 2 — the remote compare-and-swap. The empty expect after `=<ref>:` means "must not exist".
+    # The claim is won ONLY on the porcelain flag `*`: exit 0 also covers `= [up to date]`, which is
+    # the same-HEAD race arriving as a success (measured, see the module docstring).
+    push = _git(repo, "push", "--porcelain", f"--force-with-lease={ref}:", remote, f"HEAD:{ref}")
+    flag, summary = _push_status(push.stdout, ref)
+    if push.returncode == 0 and flag == _PUSH_NEW:
         print(f"single_flight: claimed {ref} at {sha[:8]} on {remote}")
         return CLAIMED
 
@@ -219,8 +254,9 @@ def claim(contract_id: str, repo: Path | str = ".", remote: str = "origin",
     if rollback.returncode != 0:
         print(f"single_flight: WARNING — could not roll back the local {ref}: "
               f"{rollback.stderr.strip()} (clear it with: git update-ref -d {ref})", file=sys.stderr)
-    blob = f"{push.stderr}\n{push.stdout}".lower()
-    if any(marker in blob for marker in _CONTENTION_MARKERS):
+    contended = flag == _PUSH_UP_TO_DATE or (
+        flag == _PUSH_REJECTED and any(m in summary.lower() for m in _CONTENTION_MARKERS))
+    if contended:
         _refusal(ref, _remote_holder(repo, remote, ref), remote)
         return IN_FLIGHT
     raise SingleFlightError(f"remote claim failed: {push.stderr.strip() or push.stdout.strip()}")
