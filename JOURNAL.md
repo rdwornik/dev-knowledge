@@ -19,6 +19,72 @@
 
 ---
 
+### 2026-08-15 (c) — CC (Opus 5, branch `docs/phase1-integration-wrap`): phase-1 batch (batch 5) integrated — 7 lanes merged in the ruled order, batch closed
+
+**Did:** Executed the phase-1 integration per architect rulings **R1–R7**. Opened batch 5 with the
+ADR-110 manifest (arc `(b)`), walked the ruled merge queue **S → Q → R → N → M → P → O** serially
+from the primary checkout — `--no-ff` every time, audit index resolved by regeneration at each
+merge, targeted checks per merge — then landed the owed row updates, the `CLAUDE.md` §9 roster row
+lane O left to the integrator, and this packet, which is the artifact that closes the batch.
+
+**Result:** 7 of 7 lanes merged, **0 abandoned**, close-width delta **0**. Full suite:
+SUITE_ONELINE_TOKEN Rows: `[#527]` proposed-closeable but **not closed** (no ruling closes it, and
+`merged ≠ closed` is this batch's posture); `[#528]` `[#529]` `[#530]` `[#293]` all updated at the
+`tasks/` source and all **still open**.
+
+**The finding that almost wedged the queue at merge #1.** Lanes **S** and **R** are REFUSED by the
+ratified lane grammar `LANE_BRANCH_RE` (`w20` is not `\d+`; `gateclose-drain8` has no id slot), so
+`batch_manifest.is_lane_merge` returns False and the ADR-110 exemption covered **five of seven
+merges, not seven** — with S first in the ruled order. Their merges would have landed unanchored,
+non-exempt spine entries, and because `audit-health` is a **pre-commit** gate the resulting
+`journal_spine_anchor` FAIL wedges every following commit. Resolved by **anchoring** rather than
+renaming (which invents sentinel ids for lanes carrying no row id) or reordering (foreclosed by R4,
+and useless anyway — unlike batch 4 the strict grammar is already on `main`): entry `(b)` names both
+lane tips on an `Anchors:` line, so both merges satisfy the ordinary predicate. Verified immediately
+after merge #1 — `is_lane_merge → False`, `is_anchored → True`, `health: OK`. **Third occurrence of
+the class**; the root is that the grammar is enforced **nowhere at provisioning**, which
+`batch_manifest.py`'s own honest-limits block already states. Needs a row; none exists.
+
+**R5 landed the two PLAYBOOK-cited night-2 audits inside the lane-N merge itself**, so `main` never
+held a state where newly-landed doctrine cited objects only an unmerged branch kept reachable —
+`night2-latency` (blob `41aa7bae`, byte-identical to the cited `8387ff2a`) and `night2-research`
+(blob `c01efd44`, the tip, whose delta over the cited `757077f2` is +24/−0 in one hunk amending
+§4.6, so the cited material is byte-identical and the correction travels). **R5's own expectation
+was falsified by the re-verdict:** teardown table v2 reads **3 SUPERSEDED-DELETE, 5 UNIQUE-HOLD**,
+not "SUPERSEDED-DELETE across the board" — five branches still carry artifacts nothing has landed
+and are the sole refs keeping them reachable. **Nothing was deleted**, and worktree teardown is
+withheld pending the operator naming which board sessions are closed.
+
+**One owned WARN delta, reported not engineered around.** `doc_rot` goes **5 → 7** loci: `[#529]`
+and `[#530]` sat at 1293 and **1319** chars against a 1320 ceiling raised only this morning (D1.1),
+so recording the ruled legs mints a locus by construction. The `[#480]` detail-section shape was
+tried first and **refused by `gen_task_tree`** (a task body is ONE physical line); row text was then
+cut to only what is actionable, and `[#293]` — the one row with headroom — was kept under the
+ceiling. Net across the batch: main began at **11**, lane R drained to **5**, ruled updates take it
+to **7** — still −4, and `doc_rot` gates nothing.
+
+**Anchors:** this arc's own spine entry — `87ba324e` (row updates) and `a84f069d` (`CLAUDE.md` §9
+roster row). Lane merges introduced by this push range: `82d128f8` (Q), `03814f6c` (N), `d45fdb9e`
+(M), `11b0cbdb` (P), `9732daea` (O); `6516f6e2` (S) and `41c040b4` (R) are anchored by entry `(b)`
+above, and `a8208619` is the manifest arc. Naming all seven here is what keeps the spine anchored
+**after** this packet expires the ADR-110 exemption — which is the exact obligation the exemption
+defers rather than removes.
+
+**Changes:** `docs/audits/2026-08-15-technical-batch-phase1-{manifest,packet}.md`,
+`docs/audits/2026-08-14-technical-night2-{latency,research}.md`, `CLAUDE.md` (§9 + §12, L10 2.59 →
+2.60), `tasks/{293,528,529,530}-*.md`, `BACKLOG.md`, `tasks/manifest.json`, plus every lane's own
+footprint, `docs/audits/README.md`, `ecosystem/{doc-counts,organ-index}.md`.
+
+**Abandoned:** No lane. Two routes considered and rejected with recorded reasons (renaming S and R;
+reordering the queue). The `[#480]` section-below-the-row shape, refused by the generator.
+
+**Next:** Operator decisions carried in the packet's wrap items — `CLAUDE.md` §5 rule 4's
+descriptive falsity (ruled R3 as carry-not-edit), re-pointing PLAYBOOK L844/L866 at the landed audit
+paths, a row for the provisioning-time lane-grammar gap, the `[#527]` closure proposal, the
+process-lane cap overage (width 7 permits 1 hub lane; N and O both occupy it), and `[#505]` leg 1 —
+**fourth consecutive batch** to miss commit-at-dispatch. Then worktree teardown on your word: all
+seven lanes are merged and removable.
+
 ### 2026-08-15 (b) — CC (Opus 5, branch `docs/phase1-batch-manifest`): the phase-1 batch manifest — R1 discharged, the merge queue unblocked
 
 **Did:** Opened the phase-1 batch (batch 5, width 7 — lanes M N O P Q R S) with the committed
