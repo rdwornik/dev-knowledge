@@ -19,6 +19,66 @@
 
 ---
 
+### 2026-08-15 (a) — CC (Opus 5, branch `chore/boot-acts-0815`): night-2 consolidation + the §B boot-acts contract executed — 14 commits, gate 41 → 11
+
+**Did:** Two arcs in one session. First, consolidated the seven night-2 lane reports
+(`claude/night2-*`, read via `git show`, none merged) into one adjudication input at
+`docs/audits/2026-08-15-technical-night2-consolidated-briefing.md` on branch
+`claude/night2-consolidation` — 7/7 lanes present, 37 decisions queued, an 18-entry contradiction
+ledger, and 3 cross-lane collisions (Y-1/Y-2/Y-3) that no single lane could see. Then executed §B
+of the operator's `MORNING-ADJUDICATION-2026-08-15.md` on this branch: step 0 host verification,
+then twelve ruled acts, commit-and-STOP, no merge.
+
+**Result:** Step 0 produced **exactly the 41-WARN projection with zero hard-fail organs** and
+`health: OK`, so no abort condition fired — and it settled four ledger contradictions against the
+host: X-1 (NB2-A's 3 `fleet_parity` + 1 `deployed_methodology_version` composition was right, not
+NB2-E's 4 `fleet_parity`), X-2 (`VISION.md last_reviewed` is 2026-07-25 == its last content commit
+`30a8c42b`, so NB2-B's 2026-06-02 read was a container artifact and NB2-D was right to refuse to
+clear it from a container), X-8 (0 FAILs on the host against lanes reporting 1/1/2/4/4), X-9
+(`[stale]` = 0, exactly as NB2-E self-caveated). `hooks_armed`, the sole hard-fail NB2-A saw,
+cleared by arming — it was never repo state. Undispositioned WARNs **41 → 11**. Full suite
+**1 failed · 2891 passed · 4 skipped · 1 xfailed** (918.90 s) — reproducing NB2-E's K9 baseline
+term for term (2891+1+4+1 = 2897), and the single RED is the known `[#457]` leg (ii), proven
+pre-existing because `routine_consumers`' evidence line is byte-identical before and after the arc
+(`2 declared routine row(s)`).
+
+**Four deviations, each self-reported rather than found later.** (1) D1.1's "clears 26" is wrong —
+the recalibration cleared **18** (37 → 19); 8 of NB2-A's 26 sit above 1320 and correctly keep
+firing, and 19/196 = 9.7% confirms p90 exactly, so the ruling's stated basis is verified rather than
+contradicted. (2) Step 7's `[#494]` un-defer marker tripped `doc_rot` on its own row (11 → 12) and
+was fixed in its own commit; the same trap was then pre-empted at steps 8–10, with `[#529]` trimmed
+2244 → 1293 and `[#530]` 1810 → 1319 **before** committing. (3) Closing a row is **manifest-first**:
+flipping `status:` while the task node is still in `tasks/manifest.json` lets `--emit-source` rewrite
+the frontmatter back to `open` *while reporting success* — caught by `gen_task_tree.py --check`,
+which named both files as retired allocation records still marked open. (4) `[#364]`'s ruled ADR-65
+class is *obsoleted*, which `_TERMINAL_STATUSES` has no value for; recorded `retired` on the `[#452]`
+precedent with the real class stated in the row body.
+
+**Changes:** `ecosystem/doc-counts.md` (2895 → 2897) · `scripts/validate_doc_rot.py`
+(`_BACKLOG_GROSS_CHARS` 1200 → 1320, p90) · `CLAUDE.md` (203 → 193 counted lines; the stale L10
+`version: 2.57` sentinel corrected to 2.59 — v2.58 recorded a bump it never made; `last_reviewed`
+re-stamped after a genuine full-file re-read) · 8 drained `tasks/` bodies + `BACKLOG.md` +
+`tasks/manifest.json` · `ecosystem/disposition-register.yaml` (+2 entries: the journal-spine
+mention-not-record advisory, and 387b794a as a mechanical re-pin) · `protocols/STANDING_RULINGS.md`
+(I-D7 retirement line, appended per B6) · `[#524]`/`[#352]` closed, `[#494]` un-deferred, `[#364]`
+obsoleted, `[#529]`/`[#530]` born · `protocols/PLAYBOOK.md` (two retired-Action sites marked
+retired-at-`82227f08`, illustrative locator labelled).
+
+**Abandoned:** Nothing. `--prune` was not used (refused post-`[#439]`); no `--no-verify`, no `SKIP=`
+— every gate fired on every commit. `silent_rule_ratchet` held at 440 ≤ 441 throughout.
+
+**Next:** Operator merges this branch (serial gate), then the wave contracts are emitted per §D.
+Still owed from §C: promotions (`N2-D1-02`, intake #33), the `[#530]` network precondition, wave
+width `7+1` — now **29 ids with W2-b = 3** after `[#364]`'s obsolescence — and the `[#293]`
+acknowledgement. The 11 remaining WARNs are all `doc_rot`: 8 genuine top-decile rows above the new
+threshold, plus `#419`/`#492`/`#528` deferred by the Y-3 resolution to their owning acts.
+
+**Anchors:** `ff8cef2d` `5860f111` `e9482bfc` `bf3c1b4e` `e40308a0` `05df81fb` `0f6ddc15` `8f9896e4`
+`a102e0db` `05fb0f37` `23060244` `ad6c6299` `64b93307` (this branch's 14 commits; the consolidation
+arc is `b97499a8` on `claude/night2-consolidation`).
+
+---
+
 ### 2026-08-14 (f) — CC (Sonnet 5, background dispatch, branch `docs/handoff-cut-2026-08-14-correction`): handoff `2026-08-14-dev-knowledge-architect` correction cycle — night-branch INHER finding resolved, `/handoff-verify` re-run
 
 **Did:** Operator appended a correction + expansion addendum directly to `SUPPLEMENT.md` below
