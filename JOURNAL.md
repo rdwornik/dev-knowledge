@@ -19,6 +19,55 @@
 
 ---
 
+### 2026-08-15 (d) — CC (Opus 5, branch `docs/night2-land-unique-holds`): the five night-2 UNIQUE-HOLD artifacts land — the teardown trap dissolves
+
+**Did:** Executed the architect ruling of 2026-08-15 (§0b of `CLEANUP-AND-NIGHT-BATCH-3.md`): landed
+on `main`, byte-faithful, the five night-2 audit artifacts that no branch merge had ever brought in
+— the census (196 open rows verdicted), the hygiene sweep (45 WARNs proposed-dispositioned, its tip
+an amendment withdrawing the §0.3 toolchain caveat), the plancheck (61 claims, 2 MISSING / 10
+STALE), the quality audit (whose M-2/M-3 constraints `[#529]` already consumes), and the
+consolidated briefing that indexes the other seven. Landing commit `ed3abe9f`, one commit, index
+regenerated after staging.
+
+**Why it had to happen before any deletion, which is the whole point of the act.** The batch-5
+packet's teardown table v2 measured **3 SUPERSEDED-DELETE and 5 UNIQUE-HOLD**. For those five the
+branch was the **only ref keeping its artifact reachable**: deleting it would orphan the commits and,
+once gc ran, destroy the sole copy of work the adjudication of record cites. The ruling inverts that
+— land the content, and the branches stop carrying anything unique. Deleting them then becomes safe
+rather than merely tidy.
+
+**Byte-faithfulness was proved per file, not asserted.** Each artifact was extracted from its source
+branch and the STAGED blob compared against the SOURCE blob before the commit: `5ffddd02` census ·
+`a42e1358` hygiene · `b2a9efd7` plancheck · `321a2289` quality · `9e6741d3` consolidated-briefing —
+five MATCHes, zero differences. All five were verified ABSENT from `main` immediately beforehand, so
+nothing overwrote an existing artifact.
+
+**One ordering gotcha observed rather than rediscovered:** all five were staged **before**
+`gen_audit_index.py --write`, because the generator reads TRACKED files only and would otherwise
+have omitted every one of them from the index silently.
+
+**Result:** the five artifacts are on `main`; the eight `claude/night2-*` branches can now be
+re-verdicted, and deletion proceeds only on a per-branch byte-coverage proof — any branch not
+byte-covered is HELD, not deleted.
+
+**Anchors:** `ed3abe9f` — the landing commit this arc introduces.
+
+**Changes:** `docs/audits/2026-08-14-census-night2-census.md`,
+`docs/audits/2026-08-14-verification-night2-hygiene.md`,
+`docs/audits/2026-08-14-verification-night2-plancheck.md`,
+`docs/audits/2026-08-14-qa-night2-quality.md`,
+`docs/audits/2026-08-15-technical-night2-consolidated-briefing.md` (all new, byte-faithful),
+`docs/audits/README.md` (generated index regen), `JOURNAL.md`.
+
+**Abandoned:** Nothing. No BACKLOG row, register entry or ADR is touched — the artifacts are
+immutable records landing as-is, and they bind nothing by landing.
+
+**Next:** Re-verdict all eight `claude/night2-*` branches with a `git rev-parse` blob proof each,
+then delete local and origin refs only if every one reads SUPERSEDED-DELETE, then
+`git remote prune origin`. Expected end state: `git branch -r` shows `origin/main` and
+`origin/automation/fleet-audit` only — the latter is EXPLICITLY PROTECTED (git-discipline; register
+I-D) and is never deleted.
+
 ### 2026-08-15 (c) — CC (Opus 5, branch `docs/phase1-integration-wrap`): phase-1 batch (batch 5) integrated — 7 lanes merged in the ruled order, batch closed
 
 **Did:** Executed the phase-1 integration per architect rulings **R1–R7**. Opened batch 5 with the
