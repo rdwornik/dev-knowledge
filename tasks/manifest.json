@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "26bf3ae723270dd056861abe1056c8d7ee0f47c5104597c4df8980fbaadac5ed",
+  "generated_sha256": "51c6bd7e769bc316f39d5aba29a19876aa06263bd76737843170aee6d91c8e05",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -269,10 +269,6 @@
     {
       "task": 296,
       "file": "296-audit-py-repo-name-repo-path-doesn-t-persist-its.md"
-    },
-    {
-      "task": 524,
-      "file": "524-four-ruled-check-extensions.md"
     },
     {
       "prose": ""
@@ -753,10 +749,6 @@
     {
       "task": 351,
       "file": "351-fleet-python-upgrade-ticket.md"
-    },
-    {
-      "task": 352,
-      "file": "352-versioned-vscode-region-decoration.md"
     },
     {
       "task": 407,
