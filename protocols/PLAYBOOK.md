@@ -1126,9 +1126,9 @@ Append-only (`JOURNAL`, `LESSONS`) and per-session (`BACKLOG`) files are exclude
 <!-- scope: meta -->
 <!-- rule: coherence-doc-rot -->
 
-**A living doc must not accrete unbounded history past its grooming thresholds.** Four read-only sub-detectors in `scripts/validate_doc_rot.py` (surfaced via `scripts/audit.py` `doc_rot`, in `ALL_CHECKS`) flag BACKLOG inline-history accretion, per-section Section-history accretion, file-bloat vs a self-declared line budget, and grooming-cadence lapse — one **WARN** per locus, DETECT-ONLY (never condenses). Load-bearing doctrine: ADR-65 condense-to-git / ADR-49 retired changelogs / ADR-41 cadence (ADR-88 FC4). Pre-existing loci are grandfathered in the disposition register; read-only (#140).
+**A living doc must not accrete unbounded history past its grooming thresholds.** Five read-only sub-detectors in `scripts/validate_doc_rot.py` (surfaced via `scripts/audit.py` `doc_rot`, in `ALL_CHECKS`) flag BACKLOG inline-history accretion (ARM 1 — citation-blind dates, with a span term), BACKLOG row length against a declared ceiling (ARM 2, split out by `[#532]` because length is a different property from accretion), per-section Section-history accretion, file-bloat vs a self-declared line budget, and grooming-cadence lapse — one **WARN** per locus, DETECT-ONLY (never condenses). Load-bearing doctrine: ADR-65 condense-to-git / ADR-49 retired changelogs / ADR-41 cadence (ADR-88 FC4). Pre-existing loci are grandfathered in the disposition register; read-only (#140).
 
-**The row carries a pointer, the record carries the record.** When a tracked row and a durable record both want the same content, the record takes the load and the row keeps a one-line pointer. This is a container rule, not a style preference: `_BACKLOG_GROSS_CHARS` caps a BACKLOG task line at 1200 chars, so a row absorbing narrative becomes physically unwritable and the failure surfaces as a doc-rot WARN at commit time rather than as a design signal. It blocked a write twice in two days in 2026-08 — `[#457]` sits at 1182 of 1200, and `[#383]` measured 1206 as its irreducible minimum before a wave record took the load. Read the ceiling as the mechanism saying the content is in the wrong container. The escape is **not** a disposition: every past `warn-doc-rot-backlog-*` entry in the register is `(cleared …)`, resolved by condensing.
+**The row carries a pointer, the record carries the record.** When a tracked row and a durable record both want the same content, the record takes the load and the row keeps a one-line pointer. This is a container rule, not a style preference: `_BACKLOG_ROW_CEILING` caps a BACKLOG task line at 1320 chars — ARM 2's declared ceiling, which superseded `_BACKLOG_GROSS_CHARS` at 1200 when `[#532]` split the check — so a row absorbing narrative becomes physically unwritable and the failure surfaces as a doc-rot WARN at commit time rather than as a design signal. It blocked a write twice in two days in 2026-08, both measured against the then-current 1200 — `[#457]` sat at 1182 of 1200, and `[#383]` measured 1206 as its irreducible minimum before a wave record took the load. At the 1320 ceiling neither of those two crosses, which is worth stating plainly: the container argument rests on the mechanism, not on those two figures. Read the ceiling as the mechanism saying the content is in the wrong container. The escape is **not** a disposition: every past `warn-doc-rot-backlog-*` entry in the register is `(cleared …)`, resolved by condensing.
 
 ### Prose structural coherence (audit check `doc_structure`)
 <!-- scope: meta -->
@@ -2092,6 +2092,17 @@ convenience wrapper over a line the operator still has to know — it is the lin
 The class this retires is dispatch-line composition by hand: an operator (or a browser seat writing
 one for an operator) assembling `--bg`, `--model`, `--effort`, `--worktree`, `--permission-mode`
 and a board label from memory, where a dropped constant is invisible until the session boots wrong.
+
+**Witnessed 2026-08-16 (batch 6), on this exact flag.** `--worktree` takes the **bare** lane name,
+and the provisioner prefixes `worktree-` **exactly once** — the branch is `worktree-<name>`, as the
+parallel-session section above records. A hand-assembled dispatch line passed the intended *branch*
+name as the `--worktree` value, so `worktree-lane-a-409-conversions` produced the branch
+`worktree-worktree-lane-a-409-conversions`, uniformly across all twelve lanes. Nothing surfaced it
+at dispatch: the pre-dispatch grammar check had validated the *intended* names rather than the ones
+git created, and the cost appeared only at the integrator's merge queue, where
+`batch_manifest.is_lane_merge` matched 0 of 12 and the ADR-110 exemption silently did not apply.
+The repair was a uniform rename; `[#531]` is the gate that refuses such a name at creation.
+
 Home: `win-tooling` `scripts/dispatch/Invoke-Dispatch.ps1`, merged `d743937`. **`dispatch` is a
 PATH command, not a dot-sourced shell function** — `win-tooling@fb52bf6` (2026-08-11; a
 cross-repo SHA, named as one per the citation convention): `scripts/dev-terminals/bin/dispatch.ps1`

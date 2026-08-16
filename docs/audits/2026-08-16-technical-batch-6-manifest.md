@@ -306,3 +306,92 @@ property the original roster established.
 - It does not close the batch — D-2 rules it stays OPEN.
 - It births nothing here: `[#533]` is a Position-0b act committed before this amendment and cited
   by it.
+
+---
+
+# AMENDMENT 2 — grammar-table correction, architect FINDING-1 ruling, 2026-08-16
+
+**The grammar tables above are WRONG about the tree that existed, and this section is the
+correction.** Both the original roster table and AMENDMENT 1's re-check report `refused: 0` and
+call this "the first roster to reach zero refusals". Measured against the branches git actually
+created, the number was **0 of 12 passing**, not 12 of 12.
+
+The false tables are left in place, per the same immutability reasoning AMENDMENT 1 used: an audit
+artifact records what was believed at the time, and rewriting it would destroy the evidence that
+the check was run against the wrong input. Read them as history; read this as what governs.
+
+## What was actually true
+
+```
+LANE_BRANCH_RE  ^worktree-lane-[a-z]-\d+-[a-z0-9]+(?:-[a-z0-9]+)*$
+
+worktree-lane-x-532-docrot-arms            -> True    (the name the tables tested)
+worktree-worktree-lane-x-532-docrot-arms   -> False   (the name that existed)
+
+live branches at dispatch:  exempt-eligible 0 of 12
+```
+
+## Cause — a dispatch-template defect, ruled architect-owned
+
+`claude --worktree <name>` prefixes `worktree-` when it creates the branch. The dispatch passed the
+intended BRANCH name as the WORKTREE name, so the prefix was applied twice, uniformly, across all
+twelve. The §B step-9 grammar gate tested the names the roster intended rather than the names git
+produced, so it passed on the wrong input.
+
+**Ruled a DISPATCH-TEMPLATE defect, not lane error.** No lane authored its own branch name.
+
+## Found by lane x; corroborated twice
+
+Lane **x** found it and declined to fix it, on integrator-boundary grounds: *"Renaming one branch
+of twelve conforms my lane and leaves ten inconsistent, which is worse than a uniform condition
+with one clear report — and the exemption is the integrator's surface, not a lane's."*
+
+Independently reported by lane **k** (*"all 11 sibling batch-6 lanes carry a doubled prefix … a
+provisioning-tool artifact across the whole roster"*) and by lane **m** (*"Renaming only lane m
+would make it your queue's outlier"*). Three witnesses, none sharing a subject.
+
+## Remediation — uniform rename, no hand-anchoring
+
+Ruled fix: rename every branch, then let `batch_manifest.is_lane_merge` govern the queue.
+Batch 5's hand-anchoring precedent was explicitly named the emergency shape rather than the
+standard, and was not used here.
+
+```
+renamed:  11 of 12   (git branch -m worktree-worktree-lane-<rest> worktree-lane-<rest>)
+held:     lane m — its session was still live at rename time, so its ref was left
+          untouched rather than mutated under a running lane; it did not merge
+
+post-rename grammar table, re-run against LIVE refs:
+  PASS  worktree-lane-a-409-conversions      PASS  worktree-lane-h-310-ledger-docs
+  PASS  worktree-lane-b-210-conversions      PASS  worktree-lane-i-277-issues-evidence
+  PASS  worktree-lane-c-146-conversions      PASS  worktree-lane-k-293-seeding
+  PASS  worktree-lane-d-351-conversions      PASS  worktree-lane-x-532-docrot-arms
+  PASS  worktree-lane-e-82-conversions
+  PASS  worktree-lane-f-130-conversions      REFUSED  worktree-worktree-lane-m-533-...
+  PASS  worktree-lane-g-271-conversions               (renamed after its session ends)
+
+  TOTAL 12 | pass 11 | refused 1
+```
+
+`git worktree list` verified afterwards: every checkout followed its branch.
+
+## The exemption verified LIVE, on the first merge rather than assumed
+
+```
+merged branch  : worktree-lane-a-409-conversions
+is_lane_merge  : True
+open batches   : ['6']
+exempt         : {'51d7fa08...'}
+```
+
+`audit-health` then passed on all ten merges, which is the operating proof: without the exemption
+`check_journal_spine_anchor` would have FAILed at merge #1 and wedged the queue, since it is a
+pre-commit gate.
+
+## What this changes about the batch's claims
+
+The "first roster to reach zero refusals" claim is withdrawn. What is true is narrower and worth
+stating exactly: **every branch merged in this batch matched the ratified grammar at merge time,
+after a uniform rename that repaired a dispatch defect** — and the class remains open at
+provisioning, which is `[#531]`, born at Position 0 and deferred to batch 7 along with lane y.
+`[#531]`'s gate would have refused all twelve of these names at creation had it been armed.

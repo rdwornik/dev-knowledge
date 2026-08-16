@@ -1124,8 +1124,9 @@ def check_doc_rot(repo_path: Path) -> list[Finding]:
     (ADR-41). DETECT-ONLY / condense-preserving — never edits, never removes a rule.
 
     Hub-only: BACKLOG.md + the hub living docs are .dev-knowledge-specific, so on any other repo
-    this is a no-op pass. Four sub-detectors (BACKLOG inline-history accretion, Section-history
-    accretion, file-bloat vs a declared budget, grooming-cadence lapse) — scripts/validate_doc_rot.py.
+    this is a no-op pass. Five sub-detectors (BACKLOG inline-history accretion as ARM 1, BACKLOG
+    row length against a declared ceiling as ARM 2, Section-history accretion, file-bloat vs a
+    declared budget, grooming-cadence lapse) — scripts/validate_doc_rot.py.
 
     Awareness layer, not a gate: emits one WARN PER rot locus (never FAIL -> never blocks the
     audit-health commit gate; one Finding per locus so the #147 ship-gate dispositions each
