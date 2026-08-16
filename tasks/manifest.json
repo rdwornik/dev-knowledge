@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "0ea2245670e69becfe29ac1b043609b35ebb55e43679c954199322be7c3335ce",
+  "generated_sha256": "6461926e340bd9708d55f188aae0fa6790a9c79666eaf56810217862c616ed77",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -239,6 +239,14 @@
     {
       "task": 530,
       "file": "530-single-flight-dispatch-guard-one-contract-execut.md"
+    },
+    {
+      "task": 531,
+      "file": "531-lane-grammar-enforcement-at-provisioning-the-enu.md"
+    },
+    {
+      "task": 532,
+      "file": "532-doc-rot-backlog-accretion-conflates-three-defect.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"

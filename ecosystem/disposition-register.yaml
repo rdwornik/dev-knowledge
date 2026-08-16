@@ -676,7 +676,7 @@ dispositions:
       artifacts landed by W9 are TRANSCRIPTIONS of reviews that genuinely ran on 2026-08-15 and
       whose verdicts were captured off-repo to ~/Downloads/PHASE1-TERRA-RAW-2026-08-15.md; that
       record covers lanes M, N, O and P ONLY -- it says so in its own header ("Lanes reviewed: M,
-      N, O, P"). d62796ad is the morning boot-acts merge and was never sent to the code profile,
+      N, O, P"). d62796ad is the morning boot-acts merge and was not sent to the code profile,
       so there is no captured verdict to transcribe. Writing one now would be the fabricated
       header the [#480] docstring names as the thing this leg cannot detect, which is exactly why
       it is not done.
