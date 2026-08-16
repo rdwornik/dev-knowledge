@@ -659,3 +659,40 @@ dispositions:
       hard pre-push leg stays deferred pending 0 false positives over two consecutive windows, and
       this entry is one of the inputs that window counts. review_date is the ADR-75 shelf-life;
       the entry decorates stale and surfaces if the merge it names ever leaves the scan window.
+
+  # W9 (phase-2 Position 0, ruled §A10). Landing the four canonical codex artifacts for lanes
+  # M/N/O/P cleared 4 of the 6 unlinked code-impact merges by producing real evidence rather
+  # than suppression. Two remain, and they are NOT the same case as each other: 387b794a is
+  # already dispositioned directly above (D1.7, 2026-08-15) and is untouched here; d62796ad is
+  # the one this entry covers. Keyed on the specific commit+subject signature per
+  # precision-over-recall, so a DIFFERENT unreviewed code-impact merge still surfaces.
+  - id: warn-review-artifact-d62796ad-boot-acts
+    organ: review_artifact_coverage
+    match: "d62796ad merge boot-acts 2026-08-15: gate 41->11,"
+    ref: "[#480] P3; §A10 (W9); ~/Downloads/PHASE1-TERRA-RAW-2026-08-15.md"
+    review_date: 2026-11-14
+    reason: >-
+      NO REVIEW EXISTS TO LAND, and that is stated plainly rather than dressed up. The four
+      artifacts landed by W9 are TRANSCRIPTIONS of reviews that genuinely ran on 2026-08-15 and
+      whose verdicts were captured off-repo to ~/Downloads/PHASE1-TERRA-RAW-2026-08-15.md; that
+      record covers lanes M, N, O and P ONLY -- it says so in its own header ("Lanes reviewed: M,
+      N, O, P"). d62796ad is the morning boot-acts merge and was not sent to the code profile,
+      so there is no captured verdict to transcribe. Writing one now would be the fabricated
+      header the [#480] docstring names as the thing this leg cannot detect, which is exactly why
+      it is not done.
+      WHY DISPOSITION RATHER THAN A RETROACTIVE REVIEW. The merge is a boot-acts arc -- gate
+      count 41->11, closes #524 #352, births #529 -- whose code impact is the gate-count movement
+      itself, already fully evidenced by the audit run that produced the numbers and by the
+      commits it names. Its subject is also not a `Merge branch '<x>'` line, so the BRANCH
+      linkage leg is structurally unavailable to it and only a HEAD-naming artifact could ever
+      link it. Advisory in any case per the [#480] P3 ruling -- the hard pre-push leg stays
+      deferred pending 0 false positives over two consecutive windows, and this entry is one of
+      the inputs that window counts.
+      HONEST LIMIT OF THIS ENTRY, since the register's own header demands precision: the organ
+      emits ONE Finding listing every unlinked merge, so a match on this signature suppresses
+      that whole Finding at the ship-gate, not just this merge's line. That is a pre-existing
+      property of the organ's one-Finding-per-scan shape (the register header calls for one
+      Finding PER concern), not something this entry introduces, and it is recorded here so the
+      next reader does not mistake a suppressed Finding for a clean scan. review_date is the
+      ADR-75 shelf-life; the entry decorates stale and surfaces if the merge it names ever leaves
+      the scan window.

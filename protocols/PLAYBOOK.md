@@ -840,8 +840,8 @@ container — INDICATIVE, so ratios travel and absolute minutes do not — the s
 identical in both arms (14 failed / 2874 passed / 8 skipped / 1 xfailed, set-differenced both
 ways). The suite is not uniformly slow — one test carries 38.4 % of it, and 2489 of 2897 tests
 share 11 % between them. Excluding five files leaves 96.5 % of the tests at 22.1 % of the cost,
-which is where tier A comes from. Source: the night-2 lane-latency audit, commit `8387ff2a`
-§1–§3 — a draft on the unmerged branch `claude/night2-latency-audit-6s1k6p`, whose §3 tier-A
+which is where tier A comes from. Source: the night-2 lane-latency audit, landed on `main` at
+`docs/audits/2026-08-14-technical-night2-latency.md` §1–§3, whose §3 tier-A
 figure is derived arithmetic that the audit itself flags as not measured.
 
 **The exclusion set — five files, and why each is integration-only.**
@@ -862,8 +862,8 @@ cost list, so `pytest -m "not slow"` removes almost none of the 89 % — and def
 tier to integration defers real signal on a host where the oracle works.
 
 **Settings ladder — what makes xdist safe in a gate context**, ordered by what each buys. Source
-for the whole ladder: the night-2 research audit, commit `757077f2` §2.2–§2.6 (a draft on the
-unmerged branch `claude/night2-research-d30vhu`).
+for the whole ladder: the night-2 research audit, landed on `main` at
+`docs/audits/2026-08-14-technical-night2-research.md` §2.2–§2.6 (blob `c01efd44`).
 
 1. **`--max-worker-restart=0`.** xdist's default restart budget is `numprocesses × 4`, so a
    crashed worker is replaced silently up to 4N times — the witnessed 19 strays sit inside what

@@ -1,7 +1,7 @@
 ---
 id: "[#527]"
 title: "Anti-direct-to-main mechanism — a commit-time local hook, not vigilance"
-status: open
+status: closed
 priority: P2
 size: S
 theme: "[E2] Enforced governance"
