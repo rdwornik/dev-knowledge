@@ -34,12 +34,13 @@ For each lane, in order:
 
 ```bash
 git merge --no-ff worktree-lane-<letter>-<id>-<slug>
-uv run --locked pytest -q            # this lane's merge, on the merged tree
+uv run --locked pytest -q --dist worksteal --max-worker-restart=0   # this lane's merge, on the merged tree
 git worktree remove .claude/worktrees/lane-<letter>-<id>-<slug>
 git worktree prune
 git branch -d worktree-lane-<letter>-<id>-<slug>
 ```
 
+- **The xdist flags change failure semantics BY DESIGN** — `--max-worker-restart=0` removes xdist's silent `numprocesses × 4` restart budget, so a crashed worker is now a loud bounded failure instead of a quiet replacement, and `--dist worksteal` rebalances a drained queue; spelled out here rather than inherited, matching the one live call site `.claude/skills/verify/verify.py`.
 - **One merge at a time.** A red suite stops the chain and surfaces — the next lane waits.
 - **Teardown is part of the merge, not a follow-up** (MERGE IS ATOMIC; and teardown is *two*
   branches when a provisioning branch exists — `.claude/rules/git-discipline.md`).
@@ -56,7 +57,7 @@ it seemed fine.
 | # | Condition | How it is checked |
 |---|---|---|
 | 1 | Every lane branch merged-or-explicitly-abandoned | `git branch --list 'worktree-lane-*'` is empty, and every planned lane has a merge SHA or a recorded abandonment |
-| 2 | Full suite run once on the merged result | `uv run --locked pytest -q` on the final merged `main`, verdict quoted |
+| 2 | Full suite run once on the merged result | `uv run --locked pytest -q --dist worksteal --max-worker-restart=0` on the final merged `main`, verdict quoted |
 | 3 | `git worktree list` == primary only | run it; one line of output |
 | 4 | Manifest/packet archived | the lane manifest and end-of-batch packet are committed in the tree |
 | 5 | `git stash list` is empty | run it; empty output. An entry that stays gets a recorded disposition — never a silent pass, and never a blind `drop` |
