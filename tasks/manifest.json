@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "99db9dac12265085376fb4d23d50e7aa82b41721cacfae62eed2a3405ca3f24c",
+  "generated_sha256": "38a3b73b3ccb8790e9d232be40535129d8b436521b7fec9c757a97731e2c50c6",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -239,10 +239,6 @@
     {
       "task": 531,
       "file": "531-lane-grammar-enforcement-at-provisioning-the-enu.md"
-    },
-    {
-      "task": 532,
-      "file": "532-doc-rot-backlog-accretion-conflates-three-defect.md"
     },
     {
       "task": 533,

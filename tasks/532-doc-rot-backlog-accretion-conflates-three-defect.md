@@ -1,7 +1,7 @@
 ---
 id: "[#532]"
 title: "`doc_rot` backlog-accretion conflates three defect classes — split it into two armed checks with declared thresholds"
-status: open
+status: closed
 priority: P2
 size: S
 theme: "[E2] Enforced governance"
