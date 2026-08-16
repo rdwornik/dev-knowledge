@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "a9ca3017c223609e744ad313aa6284bc1bab7c67f402965f75581b9860184109",
+  "generated_sha256": "99c28128020a2ded073eb8512e8a51abc9b735c9f94c78432e61b05c224eec76",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -243,6 +243,10 @@
     {
       "task": 532,
       "file": "532-doc-rot-backlog-accretion-conflates-three-defect.md"
+    },
+    {
+      "task": 533,
+      "file": "533-decompose-the-audit-py-check-monolith-into-scrip.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"

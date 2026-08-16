@@ -186,3 +186,123 @@ sequencing rather than an obstacle — and never a bypass.
   batch's packet carries the register line.
 - It does not birth, close, or edit a single BACKLOG row. **Births — ZERO** (the two births of this
   arc are Position-0 acts, committed before this file and cited by it, not made here).
+
+---
+
+# AMENDMENT 1 — architect ruling D-1v2, 2026-08-16
+
+**This is an IN-FILE AMENDMENT MARKER, not an in-place edit.** `docs/audits/` is immutable
+(CLAUDE.md §5 rule 3), and that rule names exactly two sanctioned routes: supersede with a new
+file, or mark the amendment in the file. The roster table above is **left exactly as it was
+written** — including the two lanes this amendment removes — because rewriting it would destroy
+the record of what was dispatched-as-planned and what changed after. Read the table above as the
+original roster and this section as what governs.
+
+Nothing in the frontmatter changes: `batch: 6`, `status: open`, and the same `closed_by:`. The
+batch stays OPEN, which is ruling **D-2**.
+
+## What happened between the manifest and this amendment
+
+The pre-dispatch 12×12 OWNED-FILES matrix (§B step 10) found **one collision in 66 pairs**:
+
+```
+COLLISION  l <-> y : scripts/audit.py , tests/test_audit.py
+```
+
+Derived rather than assumed — neither contract names the file literally, and lane l's own text
+says *"derive names, quote"*:
+
+```
+lane y  "the check" = check_hooks_armed      -> scripts/audit.py:1625  (logic INLINE, no module)
+lane l  "the stale_worktrees check file"     -> scripts/audit.py:1221  (logic INLINE, no module)
+lane l  tests/test_audit.py                  -> named EXPLICITLY in its OWNED-FILES
+```
+
+Lane l's other two detectors are **not** collisions and were checked, not guessed:
+`check_reconciled_versions` delegates to `scripts/validate_reconciliation.py` and
+`check_undeclared_edges` to `scripts/scan_undeclared_edges.py`. The collision is narrow and
+specific: leg 4 of lane l meeting item 2 of lane y inside one ~5000-line file.
+
+The run STOPPED before dispatch, as its contract requires, and the architect ruled.
+
+## THE RULING — the root cause is module topology, and it is fixed THIS batch
+
+**D-1v2 declines the scheduling workarounds** (serialize, narrow, merge-the-lanes) and names the
+`audit.py` check monolith as the root cause: two unrelated checks cannot be worked in parallel
+because they share a file. That makes the monolith a throughput constraint on the batch protocol
+itself, not a legibility complaint — so it is fixed structurally, now.
+
+**Birthed pre-dispatch and lawfully: `[#533]`** — decompose the `audit.py` check monolith into
+`scripts/audit_checks/` (one module per check + an ordered registry); `audit.py` becomes a thin
+facade whose CLI, `ALL_CHECKS` and output stay byte-identical. `[P2][M]`.
+
+## Roster: 12 → 11
+
+**REMOVED — lanes `l` and `y`.** Neither is cancelled and neither contract is edited: both
+contract files stay in `$env:CLAUDE_PROMPTS_DIR` **untouched**, and they open **batch 7**
+tomorrow, running against the decomposed structure this batch lands. That is the point of the
+ordering — the work is deferred by one batch and arrives on a tree where it no longer collides.
+
+**ADDED — lane `m`:**
+
+| Lane | Branch | Row | Bucket | Contract of record | Model |
+|---|---|---|---|---|---|
+| **m** | `worktree-lane-m-533-audit-decompose` | `[#533]` | **hub-introspection** | `CONTRACT-M533-DECOMPOSE.md` | opus / effort high |
+
+Lane m's contract is written from this ruling rather than split from §C, because §C predates it.
+Its OWNED-FILES are `scripts/audit.py` + the new `scripts/audit_checks/**` + `tasks/533-*.md`,
+with **`tests/test_audit.py` READ-ONLY to it** — which is precisely what keeps lane m disjoint
+from everything else on the roster.
+
+**The amended roster of 11, in dispatch order:** a b c d e f g h i x m.
+
+## Process-lane cap — restated ex-ante for width 11
+
+```
+width 11  ->  cap = floor(11/4) = 2 hub-process lanes
+declared  ->  2 : lane x ([#532] doc_rot arms) and lane m ([#533] audit decomposition)
+verdict   ->  AT CAP, within it
+```
+
+The other nine lanes (a–i) are `finish-line`. The `feature/satellite` bucket stays empty — lane k
+was never dispatched. Removing l and y took the hub count from 3 to 2 while the cap fell from 3 to
+2, so the roster is at cap both before and after; that is arithmetic, not slack.
+
+## Merge-order amendment (governs §D and Stage 6)
+
+```
+a  b  c  e  f  g  d  h  i  x  m
+```
+
+**`m` is LAST, deliberately.** The queue completes on today's module structure, and the new
+topology lands at the very end — so nothing in this batch is merged against a moving foundation,
+and **batch 7 boots on the decomposed tree**. This is the same reasoning that put lane O last in
+batch 5 (a lane that changes the rules for everything after it goes at the edge, not the middle).
+
+## Grammar re-check after the amendment
+
+All eleven names re-run against `validate_branch_naming.LANE_BRANCH_RE`, the constant
+`batch_manifest.is_lane_merge` imports:
+
+```
+PASS  worktree-lane-a-409-conversions      PASS  worktree-lane-h-310-ledger-docs
+PASS  worktree-lane-b-210-conversions      PASS  worktree-lane-i-277-issues-evidence
+PASS  worktree-lane-c-146-conversions      PASS  worktree-lane-x-532-docrot-arms
+PASS  worktree-lane-d-351-conversions      PASS  worktree-lane-m-533-audit-decompose
+PASS  worktree-lane-e-82-conversions
+PASS  worktree-lane-f-130-conversions
+PASS  worktree-lane-g-271-conversions
+
+TOTAL 11 | refused: 0
+```
+
+So the ADR-110 exemption covers 11 of 11 merges, and the amended roster keeps the zero-refusal
+property the original roster established.
+
+## What this amendment does NOT do
+
+- It does not edit the roster table above, the frontmatter, or any other committed line.
+- It does not cancel lanes l or y, or touch their contract files.
+- It does not close the batch — D-2 rules it stays OPEN.
+- It births nothing here: `[#533]` is a Position-0b act committed before this amendment and cited
+  by it.

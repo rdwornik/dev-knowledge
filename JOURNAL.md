@@ -19,6 +19,69 @@
 
 ---
 
+### 2026-08-16 (c) — CC (Opus 5, branch `chore/phase2-d1v2-amendment`): D-1v2 — the l/y collision is ruled structural; `[#533]` born, batch-6 roster amended 12 → 11
+
+**Did:** Executed architect ruling **D-1v2**, which supersedes D-1 entirely. The phase-2 autorun
+had STOPPED at Stage 2 on a pre-dispatch manifest collision; this arc resolves it and re-arms the
+run.
+
+**Anchors:** `f24a1692` (birth `[#533]`) · `3c07314c` (batch-6 manifest AMENDMENT 1).
+
+**Result:** The collision was `l ↔ y` on `scripts/audit.py` + `tests/test_audit.py`, derived
+rather than assumed — lane y's *"the check"* is `check_hooks_armed` (`audit.py:1625`) and lane l's
+*"stale_worktrees check file"* is `check_stale_worktrees` (`audit.py:1221`), both inline in one
+5243-line module with no separate home. Lane l's other two detectors were checked and are genuinely
+separate modules, so the collision was narrow and specific.
+
+**The ruling declined all three scheduling workarounds** (serialize / narrow / merge-the-lanes) and
+named the monolith itself as the root cause: two unrelated checks cannot be worked in parallel
+because they share a file, which makes the monolith a **throughput constraint on the batch protocol**
+rather than a legibility complaint.
+
+- **`[#533]` born** `[P2][M]` — decompose `audit.py` into `scripts/audit_checks/`, one module per
+  check plus an ordered registry, `audit.py` left a thin facade. The extraction is MECHANICAL, so
+  the Done-when is a byte-comparison and not a judgement: `audit.py health` output byte-identical
+  before and after, `ALL_CHECKS` order AND count preserved (baseline measured live: **43**), every
+  public entrypoint and CLI verb byte-compatible because the git hooks call them. A check that
+  resists mechanical extraction is **left in the facade and REPORTED** — a partial decomposition
+  with an honest list is the successful outcome; a complete one bought with a behaviour change is
+  a failure.
+- **Batch-6 manifest amended by an IN-FILE AMENDMENT MARKER**, which is one of the two routes §5
+  rule 3 sanctions for an immutable artifact. The roster table is left exactly as written,
+  including the two removed lanes, because rewriting it would destroy the record of planned-versus-
+  changed. Frontmatter untouched; `open_batches()` re-verified after the append and batch 6 is
+  still **OPEN**, which is ruling D-2.
+- **Roster 12 → 11.** Lanes `l` and `y` REMOVED but **not cancelled** — their contract files stay
+  in the prompts dir untouched and open **batch 7** tomorrow, on the decomposed tree. Lane **m**
+  added (`worktree-lane-m-533-audit-decompose`, opus/high, HUB), its contract written from the
+  ruling because §C predates it. `tests/test_audit.py` is READ-ONLY to lane m, which is exactly
+  what keeps it disjoint from the whole roster.
+- **Cap restated ex-ante:** width 11 permits ⌊11/4⌋ = 2 hub lanes; 2 declared (x, m). At cap. Hub
+  lanes fell 3 → 2 as the cap fell 3 → 2 — arithmetic, not slack.
+- **Merge order amended:** `a b c e f g d h i x m`, with **m LAST** so the queue completes on
+  today's structure and batch 7 boots on the new topology. Same reasoning that put lane O last in
+  batch 5.
+
+**Both pre-dispatch gates re-run over the amended roster and both are clean:** grammar **11/11,
+refused 0**; matrix **55 pairs, 0 collisions**. The zero-refusal property the original roster
+established is preserved, so the ADR-110 exemption covers 11 of 11 merges.
+
+**Changes:** `tasks/` +1 birth (`[#533]`) · `BACKLOG.md` regenerated (196→197) ·
+`docs/audits/2026-08-16-technical-batch-6-manifest.md` (AMENDMENT 1 appended) ·
+`CONTRACT-M533-DECOMPOSE.md` written to the prompts dir (off-repo).
+
+**Abandoned:** Nothing. Lanes l and y are deferred to batch 7, not dropped; lane k remains
+undispatched for want of an operator word.
+
+**Next:** Dispatch the eleven lanes, poll to the 3h30m cap, harvest, then integrate in the amended
+order `a b c e f g d h i x m` under the honest-RED clause. Five Stage-7 wrap additions are ruled
+and owed: the third dead-SHA site in `.claude/skills/`, `CLAUDE.md` §3 L49 as a standalone act,
+a LESSONS promotion candidate on unattended-run fallbacks, a DRAFT intake on fleet
+code-architecture enforcement, and a batch-7-scoped performance leg appended to `[#533]` after
+lane m merges.
+
+---
+
 ### 2026-08-16 (b) — CC (Opus 5, branch `chore/phase2-position0`): phase-2 Position 0 — seven sequential acts, two births, batch 6 opened BEFORE dispatch
 
 **Did:** Executed `PHASE2-MAX-PACK.md` §B steps 1–7 as one arc, one commit per act, full gate stack
