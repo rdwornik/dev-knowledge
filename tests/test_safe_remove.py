@@ -205,14 +205,16 @@ def test_real_oracle_blocks_real_cross_module_removal(tmp_path):
     """The REAL Pyright oracle, over a faithful FULL copy of the live scripts/ (the build-time
     materialization shape — cross-module parity with the live repo verified empirically, #195
     probe), surfaces a REAL cross-module referrer: removing scripts/generate_floor.py would leave
-    scripts/audit.py (which imports floor_sha256) dangling -> unsafe, audit.py NAMED. This is the
+    scripts/audit_checks/check_floor_integrity.py (which imports floor_sha256) dangling -> unsafe,
+    that module NAMED. This is the
     demonstrated catch through the real oracle, not a stub."""
     shutil.copytree(_REPO_ROOT / "scripts", tmp_path / "scripts")
     verdict = sr.evaluate_removal(
         ["scripts/generate_floor.py"], tmp_path, langserver=_LS_OVERRIDE)
     assert verdict.status == "unsafe", verdict
     referrers = {r["referrer"] for r in verdict.surviving_referrers}
-    assert "scripts/audit.py" in referrers, verdict.surviving_referrers
+    # [#533] layout re-point (STANDING_RULINGS K-2, `scripts/audit_checks/` is an admitted home).
+    assert "scripts/audit_checks/check_floor_integrity.py" in referrers, verdict.surviving_referrers
 
 
 @requires_pyright

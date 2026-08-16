@@ -73,15 +73,16 @@ def test_position_points_at_name_not_keyword():
     defs = oracle.resolve_symbol("Finding", _REPO_ROOT)
     assert len(defs) == 1
     d = defs[0]
-    assert d.file == "scripts/audit.py"
+    # [#533] layout re-point (STANDING_RULINGS K-2, `scripts/audit_checks/` is an admitted home).
+    assert d.file == "scripts/audit_checks/_common.py"
     assert d.kind == "ClassDef"
     assert d.character == 6          # len("class ") — points at the F, not the keyword
-    # 0-based (audit.py:352 is 1-based). A LIVE position, so it shifts whenever anything is
-    # inserted above `class Finding` — re-grep `^class Finding` and re-pin rather than
+    # 0-based (audit_checks/_common.py:30 is 1-based). A LIVE position, so it shifts whenever
+    # anything is inserted above `class Finding` — re-grep `^class Finding` and re-pin rather than
     # relaxing the assertion; the pin is the only thing proving the oracle reports a real
-    # position and not a plausible-looking one. Last re-pinned 2026-08-13 ([#513]: the
-    # validate_landing_predicate thin-adapter import block landed near the top of audit.py).
-    assert d.line == 351
+    # position and not a plausible-looking one. Last re-pinned 2026-08-16 ([#533]: `Finding` moved
+    # out of audit.py into scripts/audit_checks/_common.py — STANDING_RULINGS K-2).
+    assert d.line == 29
 
 
 # --- provenance ------------------------------------------------------------------------
@@ -216,11 +217,12 @@ def test_finding_headline_resolves_with_provenance():
     ans = oracle.run_oracle("Finding", None, _REPO_ROOT, timeout=40)
     res = ans["resolution"]
     assert res["status"] == "resolved", ans
-    assert res["definition"]["file"] == "scripts/audit.py"
-    assert res["definition"]["line"] == 352                  # 1-based output
+    # [#533] layout re-point (STANDING_RULINGS K-2, `scripts/audit_checks/` is an admitted home).
+    assert res["definition"]["file"] == "scripts/audit_checks/_common.py"
+    assert res["definition"]["line"] == 30                   # 1-based output
     assert ans["reverse_dependent_count"] >= 50              # floor (measured ~110), drift-robust
     # the declaration site is not its own reverse-dependent
-    assert {"file": "scripts/audit.py", "line": 352} not in ans["reverse_dependents"]
+    assert {"file": "scripts/audit_checks/_common.py", "line": 30} not in ans["reverse_dependents"]
     prov = ans["provenance"]
     assert prov["completeness"] == "complete"
     assert prov["git_rev"]
