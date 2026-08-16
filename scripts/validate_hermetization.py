@@ -159,7 +159,7 @@ _HOME_PATTERNS: tuple[str, ...] = (
     "logs",
     "plugins/*", "plugins/*/*",
     "protocols", "protocols/archive",
-    "scripts", "scripts/codemap", "scripts/hooks", "scripts/toc",
+    "scripts", "scripts/audit_checks", "scripts/codemap", "scripts/hooks", "scripts/toc",
     "tasks",
     "templates", "templates/archive", "templates/claude-regions",
     "templates/handoff", "templates/handoff/*",
