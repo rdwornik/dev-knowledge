@@ -19,6 +19,51 @@
 
 ---
 
+### 2026-08-16 (f) — CC (Opus 5, branch `docs/batch6-close`): D-A executed; batch 6 closes
+
+**Did:** Executed architect ruling **D-A** — re-pointed the three `[#533]` oracle pins, layout-only
+— and landed the batch-6 closing packet, which expires the ADR-110 exemption.
+
+**Anchors:** `a6efc82` (the layout re-point, introduced by merge `e32093fd`).
+
+**Result.** *This is a ruled-layout update, not an oracle re-scope.* Each referrer assertion moved
+from `scripts/audit.py` to the check's new `scripts/audit_checks/<module>.py` home
+(STANDING_RULINGS K-2), measured against the live tree rather than inferred: `Finding` →
+`_common.py` (0-based line 29, 1-based 30), and the `floor_sha256` referrer →
+`check_floor_integrity.py`, that last one read off the failure itself since `scripts/audit.py`
+still mentions the symbol but is no longer the referrer the oracle names. **Every behavioral
+assertion is byte-untouched, and the diff proves it** — `git diff -U0 tests/ | grep assert` shows
+only path and position locators moving; `d.kind`, `d.character`, `verdict.status`,
+`reverse_dependent_count` and `prov["completeness"]` never appear. The 0-based pin was re-pinned
+the way the test's own comment instructs, and its "Last re-pinned" note now records `[#533]`.
+
+**Two owned REDs remain — the ruled boot-state posture.** `routine_consumers` is batch-7 lane l's
+named subject; the `doc_rot` ARM-1 finding on `BACKLOG#428` is the detector working correctly on a
+row lane h legitimately edited.
+
+**A third apparent RED was triaged as ENVIRONMENTAL, not a defect.**
+`test_finding_headline_resolves_with_provenance` fails at 16 xdist workers (`assert 3 >= 50`) and
+**passes serially** — the pyright oracle returns partial results under contention inside its 40 s
+timeout. Recorded rather than dispositioned.
+
+**An integrator ordering trap, worth the record.** `audit-health` is a PRE-COMMIT gate and
+`journal_spine_anchor` reads the spine, so an unanchored `fix/` merge (no ADR-110 exemption, unlike
+a lane merge) turned health DEGRADED — which in turn failed two `test_audit.py` tests that invoke
+`cmd_health` against the real repo and expect exit 0. Those two looked like a lane-m regression and
+were not: they were this arc's own missing anchor. The gate then blocked the very commit that would
+supply it. Resolved by landing the anchor **in the same commit** as the packet rather than reaching
+for `SKIP=`, which stays unused across the whole batch.
+
+**Changes:** `tests/test_reverse_dep_oracle.py` · `tests/test_safe_remove.py` ·
+`docs/audits/2026-08-16-technical-batch-6-packet.md` (the manifest's declared `closed_by`).
+
+**Abandoned:** Nothing.
+
+**Next:** batch 7 — lanes l and y on the decomposed tree, `[#533]` leg 2, and the PINNED-BY-TESTS
+contract section.
+
+---
+
 ### 2026-08-16 (e) — CC (Opus 5, branch `docs/batch6-wrap`): batch-6 wrap ledger — corrections, re-measures, and the items that stayed owed
 
 **Did:** The ruled wrap acts (i)–(vii) for batch 6, plus the ledger corrections §A10 and the
