@@ -56,6 +56,7 @@ from .check_amendment_coherence import (
     check_amendment_coherence,
     CoupledSet,
 )
+from .check_boot_byte_budget import _assemble_paste, check_boot_byte_budget
 from .check_canonical_md_visibility import (
     _CANONICAL_ALL,
     _CANONICAL_MANDATORY,
@@ -89,6 +90,25 @@ from .check_handoff_version_stamp import (
     _STAMP_RE,
     check_handoff_version_stamp,
 )
+from .check_reconciled_versions import _vr, check_reconciled_versions
+from .check_residual_completeness import _vrc, check_residual_completeness
+from .check_routine_consumers import (
+    _ROUTINE_ANYFIELD_RE,
+    _ROUTINE_FENCE_RE,
+    _ROUTINE_FIELD_RE,
+    _ROUTINE_INVISIBLE,
+    _ROUTINE_LOOKALIKE_RE,
+    _ROUTINE_MARKER_RE,
+    _ROUTINE_REQUIRED,
+    _ROUTINE_SENTINELS,
+    _ROUTINE_TASK_RE,
+    _ROUTINE_TICK_RUN_RE,
+    _routine_code_spans,
+    _routine_in_code,
+    _routine_value_is_named,
+    check_routine_consumers,
+)
+from .check_safe_removal import _sr, check_safe_removal
 from .check_vision_md import check_vision_md
 from .check_workspace_settings import (
     _strip_jsonc,
@@ -121,23 +141,23 @@ CHECK_ORDER: tuple[str, ...] = (
     "check_doc_claims",                   # facade — ALL_CHECKS/_GATE_MODE/_is_hub seams
     "check_no_ff_merges",                 # facade — _is_hub/_REPO_ROOT seam
     "check_handoff_probes",               # facade — _gitenv path-load
-    "check_reconciled_versions",          # facade
+    "check_reconciled_versions",
     "check_doc_rot",                      # facade — _is_hub/_REPO_ROOT seam
     "check_doc_structure",                # facade — _is_hub/_REPO_ROOT seam
     "check_doc_code_edge",                # facade — _is_hub/_REPO_ROOT seam
-    "check_safe_removal",                 # facade
-    "check_residual_completeness",        # facade
+    "check_safe_removal",
+    "check_residual_completeness",
     "check_deployed_methodology_version",  # facade — DEPLOYED_VERSIONS_REGISTRY seam
     "check_enforcement_coverage",         # facade — _is_hub/_REPO_ROOT seam
     "check_undeclared_edges",             # facade — _is_hub/_REPO_ROOT seam
     "check_doc_code_coverage_drift",      # facade — ALL_CHECKS/_is_hub seams
-    "check_import_edges",                 # facade
+    "check_import_edges",                 # facade — STANDING_RULINGS N-1 site
     "check_fleet_parity",                 # facade — _is_hub/_REPO_ROOT seam
-    "check_routine_consumers",            # facade
+    "check_routine_consumers",
     "check_silent_rule_ratchet",          # facade — _ref_baseline_state/_git/_is_hub seams
     "check_task_tree_coherence",          # facade — _index_worktree_divergence/_is_hub seams
     "check_intake_tree_coherence",        # facade — _index_worktree_divergence/_is_hub seams
-    "check_boot_byte_budget",             # facade
+    "check_boot_byte_budget",
     "check_fleet_audit_replication",      # facade — _is_hub/_REPO_ROOT seam
     "check_membership_agreement",         # facade — _is_hub/_REPO_ROOT seam
     "check_journal_spine_anchor",         # facade — _is_hub/_REPO_ROOT seam
@@ -160,6 +180,11 @@ EXTRACTED_CHECKS = (
     check_handoff_version_stamp,
     check_amendment_coherence,
     check_floor_integrity,
+    check_reconciled_versions,
+    check_safe_removal,
+    check_residual_completeness,
+    check_routine_consumers,
+    check_boot_byte_budget,
 )
 
 # The flat surface `audit.py` re-exports. Names beyond the check functions appear here because a
@@ -188,17 +213,35 @@ __all__ = [
     "_NA_REASONS",
     "_NA_REASON_RE",
     "_NA_SUBJECT_ABSENT",
+    "_ROUTINE_ANYFIELD_RE",
+    "_ROUTINE_FENCE_RE",
+    "_ROUTINE_FIELD_RE",
+    "_ROUTINE_INVISIBLE",
+    "_ROUTINE_LOOKALIKE_RE",
+    "_ROUTINE_MARKER_RE",
+    "_ROUTINE_REQUIRED",
+    "_ROUTINE_SENTINELS",
+    "_ROUTINE_TASK_RE",
+    "_ROUTINE_TICK_RUN_RE",
     "_STAMP_FILES",
     "_STAMP_RE",
     "_WORKSPACE_REQUIRED_SETTINGS",
+    "_assemble_paste",
     "_floor_sha256",
     "_heading_present",
     "_na",
     "_na_reason",
     "_norm_version",
+    "_routine_code_spans",
+    "_routine_in_code",
+    "_routine_value_is_named",
+    "_sr",
     "_strip_jsonc",
+    "_vr",
+    "_vrc",
     "check_adr38_baseline",
     "check_amendment_coherence",
+    "check_boot_byte_budget",
     "check_canonical_md_visibility",
     "check_canonical_structure",
     "check_claude_md",
@@ -206,6 +249,10 @@ __all__ = [
     "check_floor_integrity",
     "check_handoff_bundle_structure",
     "check_handoff_version_stamp",
+    "check_reconciled_versions",
+    "check_residual_completeness",
+    "check_routine_consumers",
+    "check_safe_removal",
     "check_vision_md",
     "check_workspace_settings",
 ]

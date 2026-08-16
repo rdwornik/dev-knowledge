@@ -113,18 +113,11 @@ try:
 except ImportError:
     import verify_handoff_probes as _vhp
 
-# [#446] A10 item 2 / R4 — the boot byte budget lives ONCE, in the assembler that also warns
-# on it; this check reads the constant rather than re-declaring the number. Same shape.
-try:
-    from scripts import assemble_paste as _assemble_paste
-except ImportError:
-    import assemble_paste as _assemble_paste
+# [#533] the assemble_paste dual-import moved to audit_checks/check_boot_byte_budget.py,
+# its only user; _assemble_paste is re-exported from there.
 
-# Coherence-spine reconciliation checker — same module-import + thin-adapter shape.
-try:
-    from scripts import validate_reconciliation as _vr
-except ImportError:
-    import validate_reconciliation as _vr
+# [#533] the validate_reconciliation dual-import moved to
+# audit_checks/check_reconciled_versions.py, its only user; _vr is re-exported from there.
 
 # #140 doc-rot / grooming checker — same module-import + thin-adapter shape.
 try:
@@ -144,20 +137,11 @@ try:
 except ImportError:
     import validate_doc_structure as _vds
 
-# #195 code→code safe-removal gate (consumes the #193 reverse-dep oracle) — same module-import
-# + thin-adapter shape as the validators above; tests monkeypatch `_sr.check_removal`.
-try:
-    from scripts import safe_remove as _sr
-except ImportError:
-    import safe_remove as _sr
+# [#533] the safe_remove dual-import moved to audit_checks/check_safe_removal.py,
+# its only user; _sr is re-exported from there.
 
-# ARC-5 residual-completeness gate — refuses a bundle shipping a hand-authored FILL-IN region
-# still carrying its generator placeholder; same module-import + thin-adapter shape; tests
-# monkeypatch `_vrc.find_unfilled`.
-try:
-    from scripts import validate_residual_completeness as _vrc
-except ImportError:
-    import validate_residual_completeness as _vrc
+# [#533] the validate_residual_completeness dual-import moved to
+# audit_checks/check_residual_completeness.py; _vrc is re-exported from there.
 
 # [#436] silent-rule ratchet detector — the PINNED definition of the metric (regex + file
 # filter + detector id). Same module-import + thin-adapter shape; the check is an adapter
@@ -266,6 +250,29 @@ _norm_version = _registry._norm_version
 _FLOOR_MD_REF_RE = _registry._FLOOR_MD_REF_RE
 _FLOOR_F5 = _registry._FLOOR_F5
 _floor_sha256 = _registry._floor_sha256
+check_reconciled_versions = _registry.check_reconciled_versions
+check_residual_completeness = _registry.check_residual_completeness
+check_safe_removal = _registry.check_safe_removal
+check_routine_consumers = _registry.check_routine_consumers
+check_boot_byte_budget = _registry.check_boot_byte_budget
+
+_vr = _registry._vr
+_vrc = _registry._vrc
+_sr = _registry._sr
+_assemble_paste = _registry._assemble_paste
+_ROUTINE_MARKER_RE = _registry._ROUTINE_MARKER_RE
+_ROUTINE_FIELD_RE = _registry._ROUTINE_FIELD_RE
+_ROUTINE_TASK_RE = _registry._ROUTINE_TASK_RE
+_ROUTINE_REQUIRED = _registry._ROUTINE_REQUIRED
+_ROUTINE_LOOKALIKE_RE = _registry._ROUTINE_LOOKALIKE_RE
+_ROUTINE_ANYFIELD_RE = _registry._ROUTINE_ANYFIELD_RE
+_ROUTINE_FENCE_RE = _registry._ROUTINE_FENCE_RE
+_ROUTINE_TICK_RUN_RE = _registry._ROUTINE_TICK_RUN_RE
+_ROUTINE_INVISIBLE = _registry._ROUTINE_INVISIBLE
+_ROUTINE_SENTINELS = _registry._ROUTINE_SENTINELS
+_routine_code_spans = _registry._routine_code_spans
+_routine_in_code = _registry._routine_in_code
+_routine_value_is_named = _registry._routine_value_is_named
 
 # Gate-mode flag (#89): cmd_health sets this True around its self-audit loop so the
 # expensive claim-3 (pytest --collect-only) is SKIPPED on the per-commit gate and
@@ -1506,55 +1513,7 @@ def check_handoff_probes(repo_path: Path) -> list[Finding]:
                     f"{len(results)} probe(s) bind to live state ({latest.name})")]
 
 
-# rule: coherence-spec-reconciled
-def check_reconciled_versions(repo_path: Path) -> list[Finding]:
-    """Coherence-spine reconciliation gate: a dependent's declared `reconciled_with`
-    version must match the spec's CURRENT (live) version.
-
-    A dependent doc declares `reconciled_with: <spec-id>@<version>` in its frontmatter;
-    the checker resolves the spec via the registry (validate_reconciliation._SPEC_REGISTRY),
-    reads its version LIVE, and compares. In v1 exactly one edge is declared
-    (docs/handoffs/README.md -> handoff-process). Generic: a child repo with no
-    `reconciled_with` edge is a no-op PASS, so this no-ops on the fleet.
-
-    FAIL-class (gating) on a version mismatch — fail-closed: a dependent still claiming an
-    old spec version is the drift this exists to block. One Finding per mismatch so the
-    #147 ship-gate dispositions each independently (same contract as git_backlog_drift /
-    handoff_probes). A checker that cannot read its OWN inputs (malformed frontmatter,
-    unknown spec-id, spec absent/unparseable) -> WARN: fail-OPEN on its own error, never a
-    synthesized FAIL. Fail-soft on any unexpected error. Read-only. Logic lives in
-    scripts/validate_reconciliation.py.
-
-    The mismatch remediation points at the re-stamp flow (run check-against-spec, then bump
-    reconciled_with) — but this gate gates the VERSION MISMATCH only. Running or passing
-    check-against-spec is DELIBERATELY never a gate condition here: the semantic skill is
-    triggered by the re-stamp flow, not the ship-gate (check-against-spec v1 scope). #205.
-    """
-    try:
-        results = _vr.reconcile(Path(repo_path))
-    except Exception as exc:  # never wedge the audit-health gate
-        return [Finding("reconciled_versions", "warn",
-                        f"check degraded (read-only, non-blocking): {exc!r}".replace("|", "/"))]
-    findings: list[Finding] = []
-    for r in results:
-        if r.status == "mismatch":
-            findings.append(Finding("reconciled_versions", "fail",
-                (f"{r.dependent_path} declares {r.spec_id}@{r.declared} but spec is "
-                 f"{r.current} - re-stamp flow: run check-against-spec "
-                 f"(py scripts/validate_reconciliation.py emits the invocation), then "
-                 f"bump reconciled_with").replace("|", "/")))
-        elif r.status in ("malformed", "unknown-spec"):
-            findings.append(Finding("reconciled_versions", "warn",
-                (f"{r.dependent_path}: {r.status} ({r.current})").replace("|", "/")))
-    if findings:
-        return findings
-    n = len(results)
-    # Status follows the BRANCH, not the call site ([#465] leg 1): edges that were checked and
-    # matched are a real `pass`; zero declared edges is a skip and must not borrow that pass.
-    if n:
-        return [Finding("reconciled_versions", "pass",
-                        f"{n} reconciled_with edge(s) match live spec version(s)")]
-    return [_na("reconciled_versions", "NOT-APPLICABLE", "no reconciled_with edges declared")]
+# [#533] moved to audit_checks/ — re-exported above.
 
 
 def _load_declaration_docs(repo_path: Path) -> tuple[str, ...]:
@@ -1728,99 +1687,7 @@ def check_doc_code_edge(repo_path: Path) -> list[Finding]:
                     f"{resolved} doc->code edge(s) resolved; none broken/ambiguous/orphaned")]
 
 
-def check_residual_completeness(repo_path: Path) -> list[Finding]:
-    """ARC-5 residual-completeness gate: a handoff bundle may not ship a hand-authored
-    FILL-IN region still carrying the generator's `_(fill: ...)_` placeholder.
-
-    Closes a witnessed failure: the ARC-5 inbound bundle merged with §1 ("THE HEADLINE"),
-    §2 and §4 ("the residual's core payload") as literal unfilled templates, and no organ
-    objected. The generator scaffolds those regions and cannot author them, so landing-time
-    is the only catchable moment.
-
-    FAIL-class (gating, like check_handoff_probes): one FAIL Finding per unfilled region, so
-    the #147 ship-gate dispositions each independently.
-
-    Diff-triggered / prospective-only (the check_safe_removal shape + the ADR-101
-    grandfathering rule): only bundle files added or modified vs HEAD are scanned; a clean
-    tree is an instant PASS. Already-committed bundles are historical artifacts, the same
-    reasoning check_handoff_probes uses for validating only the active bundle. Stated
-    plainly: this does not retroactively fail the ARC-5 bundle that motivated it, but it
-    would have failed the commit that landed it.
-
-    ANTI-BLUFF NON-COLLISION: asserts only that the placeholder was replaced — never that a
-    value is present, and never on PROBES.md. A demand for concrete content would push an
-    author to write the ship-gate verdict / WARN count / drifted #id that probe P7 and the
-    verify_handoff_probes answer-hint rung require to be ABSENT. Full rationale and the two
-    pinning tests: scripts/validate_residual_completeness.py.
-
-    Fail-soft on any error (never wedge audit-health). Read-only (Layer 2, ADR-28/36).
-    """
-    try:
-        unfilled = _vrc.find_unfilled(Path(repo_path))
-    except Exception as exc:  # never wedge the audit-health gate
-        return [Finding("residual_completeness", "warn",
-                        f"check degraded (read-only, non-blocking): {exc!r}".replace("|", "/"))]
-    if not unfilled:
-        return [Finding("residual_completeness", "pass",
-                        "no unfilled FILL-IN region in changed handoff bundle files")]
-    return [
-        Finding("residual_completeness", "fail",
-                f"{u.path}: FILL-IN region '{u.region}' still carries the generator "
-                f"placeholder (a hand-authored residual shipped as a template)".replace("|", "/"))
-        for u in unfilled
-    ]
-
-
-def check_safe_removal(repo_path: Path) -> list[Finding]:
-    """#195 code->code safe-removal gate: removing a scripts/ module while a live EXTERNAL
-    referrer still uses one of its top-level symbols FAILs, naming the referrer. The consumer
-    that gives the #193 reverse-dep oracle teeth (GAP-1) and the automated form of the manual
-    "scan references before cutting" (LESSONS 2026-06-03) — guards the 2026-03-14 bulk-restore
-    failure class (removing still-needed files).
-
-    Diff-triggered: a clean tree (no scripts/*.py deletion vs HEAD) is an instant PASS — no
-    Pyright cost. On an actual removal, safe_remove.check_removal materializes a query root
-    (working scripts/ + removed module(s) restored from HEAD) and queries the oracle there.
-
-    FAIL-class (gating, like check_handoff_probes): one FAIL Finding per SURVIVING referrer so
-    the #147 ship-gate dispositions each independently. The oracle's inability to verify (Pyright
-    absent -> oracle-unavailable, or an `ambiguous` symbol) is a single WARN — fail-OPEN + ALLOW
-    (operator ruling #195), never a synthesized FAIL. Check's own error -> WARN (fail-soft, never
-    wedge audit-health). RESOLVE-ONLY / read-only (Layer 2): the oracle spawns Pyright for
-    analysis and writes only a temp dir; this writes no repo files. Logic lives in
-    scripts/safe_remove.py.
-
-    HONEST LIMIT (inherited from the oracle): static-Python-only. Dynamic/getattr/string-keyed/
-    cross-language referrers are INVISIBLE -> a non-blocking false PASS is possible here, never a
-    false FAIL. The reliable catch is the pre-removal CLI (queries the live repo); the automatic
-    build-time path's cross-module fidelity depends on Pyright resolving the materialized copy.
-    """
-    try:
-        verdict = _sr.check_removal(Path(repo_path))
-    except Exception as exc:  # never wedge the audit-health gate
-        return [Finding("safe_removal", "warn",
-                        f"check degraded (read-only, non-blocking): {exc!r}".replace("|", "/"))]
-    if verdict.status == "safe" and not verdict.removal_set:
-        return [Finding("safe_removal", "pass", "no scripts/*.py module removal in the diff")]
-    findings: list[Finding] = []
-    # One FAIL per surviving referrer (atomic disposition unit) — the load-bearing block.
-    for r in verdict.surviving_referrers:
-        findings.append(Finding(
-            "safe_removal", "fail",
-            (f"{r['referrer']}:{r['line']} still references {r['symbol']} from removed "
-             f"{r['module']} — co-remove the referrer or keep the module").replace("|", "/")))
-    # All unverifiable symbols collapse to ONE WARN (honest static-only limit; allow).
-    if verdict.unverifiable:
-        reasons = ", ".join(sorted({u["reason"] for u in verdict.unverifiable}))
-        findings.append(Finding(
-            "safe_removal", "warn",
-            (f"{len(verdict.unverifiable)} symbol(s) unverifiable ({reasons}) for removal of "
-             f"{', '.join(verdict.removal_set)} — WARN+allow, static-only limit").replace("|", "/")))
-    if findings:
-        return findings
-    return [Finding("safe_removal", "pass",
-                    (f"removal of {', '.join(verdict.removal_set)} has no surviving referrers")
-                    .replace("|", "/"))]
+# [#533] moved to audit_checks/ — re-exported above.
 
 
 def _markers_for_check(fn) -> set[str]:
@@ -2181,163 +2048,7 @@ def check_import_edges(repo_path: Path) -> list[Finding]:
                     f"{edge_count} @import edge(s) resolve across {file_count} file(s)")]
 
 
-# ADR-105 routine marker. Clause-scoped extraction in the established
-# _SERIALIZE_CLAUSE_RE idiom (validate_backlog.py:81) — delimiter-anchored, so a prose
-# mention of the keyword in a task body cannot register as a phantom declaration.
-_ROUTINE_MARKER_RE = re.compile("·\\s*routine\\s*:")
-_ROUTINE_FIELD_RE = re.compile("·\\s*(consumer|consumption_path)\\s*=([^·]*)")
-_ROUTINE_TASK_RE = re.compile(r"^- \[#(\d+)\]")
-_ROUTINE_REQUIRED = ("consumer", "consumption_path")
-# A LOOKALIKE delimiter before `routine:` (bullet/interpunct variants that are NOT the
-# canonical U+00B7). Without this a mistyped marker parses as "no declaration" and fails
-# OPEN -- the exact silent-inertness class [#424]/[#425] were filed for, so this check
-# refuses to reproduce it. A bare prose "routine:" with no bullet is NOT a lookalike.
-_ROUTINE_LOOKALIKE_RE = re.compile("[•∙‧⋅]\\s*routine\\s*:")
-# Declaration CONTEXT — a lookalike is only a mistyped marker if the row also carries a
-# `field=` clause. Without this, prose comparing bullet-listed terms false-FAILs.
-_ROUTINE_ANYFIELD_RE = re.compile(r"\b(consumer|consumption_path|trigger|scope)\s*=")
-_ROUTINE_FENCE_RE = re.compile(r"^(?P<indent> {0,3})(?P<fence>`{3,}|~{3,})")
-_ROUTINE_TICK_RUN_RE = re.compile(r"`+")
-_ROUTINE_INVISIBLE = str.maketrans({c: None for c in "​‌‍﻿⁠"})
-# Values that carry word characters but name nothing.
-_ROUTINE_SENTINELS = frozenset({"tbd", "todo", "tba", "n/a", "na", "none", "xxx", "?"})
-
-
-def _routine_code_spans(line: str) -> list[tuple[int, int]]:
-    """Inline-code spans as [start, end) — a backtick run opens, an EQUAL-length run closes.
-
-    Length-matched per CommonMark, so a double-backtick span ``· routine:`` is ONE span
-    rather than two single-tick spans that would leave the marker exposed. Deleting spans
-    outright was the earlier bug: it erased legitimate backticked VALUES
-    (`consumer=`ops-bot``), so spans are located and consulted, never removed.
-    """
-    runs = [(m.start(), m.end()) for m in _ROUTINE_TICK_RUN_RE.finditer(line)]
-    spans: list[tuple[int, int]] = []
-    i = 0
-    while i < len(runs):
-        start, start_end = runs[i]
-        width = start_end - start
-        for j in range(i + 1, len(runs)):
-            close, close_end = runs[j]
-            if close_end - close == width:
-                spans.append((start, close_end))
-                i = j
-                break
-        i += 1
-    return spans
-
-
-def _routine_in_code(idx: int, spans: list[tuple[int, int]]) -> bool:
-    return any(a <= idx < b for a, b in spans)
-
-
-def _routine_value_is_named(raw: str) -> bool:
-    """True only for a value that actually NAMES something.
-
-    Rejects blank, invisible-only, punctuation-only, sentinel (`TBD`/`TODO`/`N/A`), and
-    unfilled `<template placeholders>`. A placeholder is angle-wrapped AND contains a
-    space (ADR-105's template reads `consumer=<who reads it>`); an angle-wrapped autolink
-    (`<https://…>`, `<mailto:…>`) has no space and is a legitimate consumption path, so
-    it passes. Backticks around a value are formatting, not content.
-    """
-    v = raw.translate(_ROUTINE_INVISIBLE).strip().strip("`").strip()
-    if not v:
-        return False
-    if v.startswith("<") and v.endswith(">") and " " in v:
-        return False
-    if v.lower() in _ROUTINE_SENTINELS:
-        return False
-    return any(ch.isalnum() for ch in v)
-
-
-def check_routine_consumers(repo_path: Path) -> list[Finding]:
-    """[#419]/ADR-105 — a declared routine must name a `consumer` and a `consumption_path`.
-
-    COVERAGE BOUNDARY — read before reading a green result: this checks ONLY BACKLOG
-    rows carrying an ADR-105 `· routine:` marker, which at acceptance is exactly ONE row
-    ([#348]). The ~30 live routines — session hooks, commit-time gates, scheduled jobs —
-    are not BACKLOG rows, carry no marker, and are NOT checked; a pass here says nothing
-    whatever about them (retrofit: [#426]). Green does NOT mean the fleet's routines have
-    consumers.
-
-    ADR-105 gates at ACTIVATION, not at filing: a row that merely *proposes* a routine
-    carries no marker and is correctly not checked. ADR-105 declares six fields; this
-    gates the two that make output reach a decision — the other four
-    (trigger/scope/verified_by/review_date) are declared, not gated. A marker whose
-    `consumer` or `consumption_path` is missing, blank, placeholder, or duplicated is a
-    FAIL: an unconsumed routine is the defect [#419] names, and a routine that cannot
-    name a consumer is retired rather than activated (that decision is the operator's,
-    never this check's).
-
-    Parsing is deliberately hostile to near-misses: fields are read ONLY from the suffix
-    after the marker (so prose earlier in the row cannot satisfy the gate), duplicates
-    are rejected rather than last-wins, fenced blocks and inline-code spans are stripped
-    (so a row *quoting* the marker stays a proposal), and a lookalike delimiter is
-    surfaced rather than failing open. Read-only.
-    """
-    name = "routine_consumers"
-    backlog = Path(repo_path) / "BACKLOG.md"
-    if not backlog.exists():
-        return [_na(name, "NOT-APPLICABLE", "no BACKLOG.md in this repo")]
-    try:
-        text = backlog.read_text(encoding="utf-8", errors="replace")
-    except OSError as exc:
-        return [Finding(name, "unavailable", f"cannot read BACKLOG.md: {exc}")]
-    bad: list[str] = []
-    declared = 0
-    fence: tuple[str, int] | None = None      # (char, run-length) of the OPEN fence
-    for lineno, line in enumerate(text.splitlines(), 1):
-        fm = _ROUTINE_FENCE_RE.match(line)
-        if fm:
-            run = fm.group("fence")
-            if fence is None:
-                fence = (run[0], len(run))    # indented >3 never opens (regex bounds it)
-                continue
-            if run[0] == fence[0] and len(run) >= fence[1]:
-                fence = None                  # only a same-char, >=-length run closes
-            continue
-        if fence is not None:
-            continue                          # an example is not a declaration
-        task = _ROUTINE_TASK_RE.match(line)
-        if not task:
-            continue
-        loc = f"[#{task.group(1)}] line {lineno}"
-        spans = _routine_code_spans(line)
-        markers = [m for m in _ROUTINE_MARKER_RE.finditer(line)
-                   if not _routine_in_code(m.start(), spans)]
-        if not markers:
-            look = _ROUTINE_LOOKALIKE_RE.search(line)
-            if look and not _routine_in_code(look.start(), spans) \
-                    and _ROUTINE_ANYFIELD_RE.search(line):
-                bad.append(f"{loc}: lookalike delimiter before 'routine:' — a mistyped "
-                           f"marker must not fail open".replace("|", "/"))
-            continue
-        declared += 1
-        if len(markers) > 1:
-            # A second marker would lend its fields to an incomplete first declaration.
-            bad.append(f"{loc}: {len(markers)} 'routine:' markers on one row — "
-                       f"ambiguous declaration".replace("|", "/"))
-            continue
-        suffix = line[markers[0].end():]  # fields belong to the DECLARATION, not the row
-        found: dict[str, list[str]] = {}
-        for key, value in _ROUTINE_FIELD_RE.findall(suffix):
-            found.setdefault(key, []).append(value)
-        problems: list[str] = []
-        for required in _ROUTINE_REQUIRED:
-            values = found.get(required, [])
-            if len(values) > 1:
-                problems.append(f"{required} declared {len(values)}x")
-            elif not values or not _routine_value_is_named(values[0]):
-                problems.append(required)
-        if problems:
-            bad.append(f"{loc}: {', '.join(problems)}".replace("|", "/"))
-    if bad:
-        return [Finding(name, "fail",
-                        "declared routine(s) with no named consumer/consumption_path: "
-                        + "; ".join(bad))]
-    return [Finding(name, "pass",
-                    f"{declared} declared routine row(s) name a consumer and a "
-                    f"consumption_path (live hooks/schedules out of scope — [#426])")]
+# [#533] moved to audit_checks/ — re-exported above.
 
 
 def _index_worktree_divergence(repo_path: Path, *paths: str) -> tuple[str, list[str]]:
@@ -2786,43 +2497,7 @@ def check_intake_tree_coherence(repo_path: Path) -> list[Finding]:
                     (f"{'; '.join(reasons)} — run {_gint.REMEDY}").replace("|", "/"))]
 
 
-# rule: handoff-boot-budget
-def check_boot_byte_budget(repo_path: Path) -> list[Finding]:
-    """A10 item 2 / R4 ([#446]): `protocols/HANDOFF_BOOT.md` stays within its stated numeric
-    byte budget — 18,000 bytes, ruled 2026-07-31 (architect technical lane).
-
-    WHY A GATE AND NOT JUST A WARN (operator ruling 2026-07-31). Enforcement is split by
-    site: `assemble_paste.py` WARNs and still assembles, so an over-long boot stays
-    GENERATABLE; this check FAILs, so it stops being SHIPPABLE. The guarantee belongs in the
-    organ that blocks the merge — a warning nobody has to clear is how the 36.5 KB -> 59 KB
-    paste creep happened in the first place (the precedent that motivated a budget at all).
-
-    The budget VALUE is single-sourced from `assemble_paste.HANDOFF_BOOT_BYTE_BUDGET`, never
-    re-declared here: two organs enforcing the same rule against two different numbers is the
-    drift this pairing exists to prevent. Scope is the boot file ALONE — the per-bundle
-    session header is explicitly NOT governed by it (R4), and the assembled `PASTE_THIS.md`
-    keeps its own separate `_SIZE_WARN_BYTES` budget.
-
-    Portable: every repo with a `protocols/HANDOFF_BOOT.md` is measured. Absent file -> n/a
-    (a consumer that has not adopted the browser boot is not in breach). Read-only.
-    """
-    boot = Path(repo_path) / "protocols" / "HANDOFF_BOOT.md"
-    if not boot.exists():
-        return [_na("boot_byte_budget", "NOT-APPLICABLE",
-                        "no protocols/HANDOFF_BOOT.md — repo has not adopted the browser boot")]
-    try:
-        size = len(boot.read_bytes())
-    except OSError as exc:
-        return [Finding("boot_byte_budget", "warn",
-                        f"could not read protocols/HANDOFF_BOOT.md: {exc!r}".replace("|", "/"))]
-    budget = _assemble_paste.HANDOFF_BOOT_BYTE_BUDGET
-    if size > budget:
-        return [Finding("boot_byte_budget", "fail",
-                        f"protocols/HANDOFF_BOOT.md is {size} bytes, over its {budget}-byte "
-                        f"budget by {size - budget} — trim the browser role file "
-                        f"(A10 item 2 / R4)")]
-    return [Finding("boot_byte_budget", "pass",
-                    f"protocols/HANDOFF_BOOT.md is {size} bytes, within its {budget}-byte budget")]
+# [#533] moved to audit_checks/ — re-exported above.
 
 
 # --- [#460] replication of the ADR-80 durable record ------------------------
