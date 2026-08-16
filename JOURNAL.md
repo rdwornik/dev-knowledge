@@ -19,6 +19,72 @@
 
 ---
 
+### 2026-08-16 (e) — CC (Opus 5, branch `docs/batch6-wrap`): batch-6 wrap ledger — corrections, re-measures, and the items that stayed owed
+
+**Did:** The ruled wrap acts (i)–(vii) for batch 6, plus the ledger corrections §A10 and the
+architect's acceptance ruling call for.
+
+**Anchors:** `5c2c80e9` · `86e16932` · `965721f4` · `14cdc2a0` (the four wrap commits this merge
+introduces). Lane **m**'s anchors, per the batch-lane rule and ruling (2): `e17d968f` `7731d9d5`
+`f84b4d81` `bc31b33d`.
+
+**SUITE_ONELINE_TOKEN — correction by append, since JOURNAL is append-only.** Entry
+`2026-08-15 (c)` shipped the literal placeholder `SUITE_ONELINE_TOKEN` where batch 5's suite
+one-liner belonged. The true figure, recovered from the phase-1 packet rather than reconstructed:
+**`1 failed, 2955 passed, 3 skipped, 1 xfailed in 1431.73s (0:23:51)`**. The 2026-08-15 (c) entry
+is left exactly as written; this is the correction.
+
+**Untestable re-measure — arithmetic, with STANDING_RULINGS O-3's own honest limit carried
+forward.** O-3's chain was census 95 → wave-1 −39 → 56 → +2 → **58**. This batch converted exactly
+**29** rows (a:4 b:3 c:4 d:5 e:4 f:4 g:5), so **58 − 29 = 29 remaining**, against a live
+denominator of **196** open rows. The denominator is 196 and not the anticipated 195 because
+`[#533]` was born mid-arc. **Same limit as O-3:** this is arithmetic over the 2026-08-10 grades
+plus verified deltas, **not** a fresh row-by-row re-grading, and rows re-scoped by other lanes
+since then are not individually re-verified.
+
+**W5 exceedance, recorded not re-litigated.** Phase-1 (batch 5) dispatched 2 hub-introspection
+lanes against a width-7 cap of ⌊7/4⌋ = 1 — over by exactly one, ruled §A4 a **recorded
+exceedance** with the surface reading adopted (lane O read as hub-introspection). Batch 6 by
+contrast declared its buckets **ex-ante** and stayed within cap: width 11 permits ⌊11/4⌋ = 2, and
+2 were declared (x, m). The 12th lane, k, was not on the roster.
+
+**`#371` is left UN-RULED.** Said explicitly, as §A10 requires the record to.
+
+**Owed, not done — each with its reason.** Promotions **D3.1–D3.5**
+(`docs/audits/2026-08-15-technical-night2-consolidated-briefing.md` §D3.1–§D3.5) were ruled "at
+close-out"; no close-out occurred, so they were not half-performed. **`ARCHITECTURE.md:427`**
+("four sub-detectors" → five) is freshness-gated at 1020 lines, and one word does not justify a
+review stamp this arc has not earned. **`[#415]` and `[#425]`** carry the identical Form-E
+predicate defect and were *verified* rather than edited, the ruling's verb for them.
+
+**Result — the wrap acts.** (i) the third dead-SHA site turned out to be **two** sites in
+`verify.py`, both re-pointed and reflowed under the 120-char limit. (ii) `CLAUDE.md` §3's duplicate
+of the rule-4 claim closed as a standalone act with a genuine full re-read; **fleet drift on that
+claim is now 0 sites**; v2.61→2.62, and the file was condensed back off 200/200 to 198. (iii) the
+LESSONS entry filed as a promotion candidate, not a PLAYBOOK edit. (iv) intake **#34** DRAFT with
+the compass TL;DR quoted verbatim. (v) `[#533]` leg 2 appended at source — its precondition met by
+lane m's merge — and strengthened with this run's own measurement: `audit.py health` is
+**I/O-bound** (~2 min CPU per ~5 min wall at 8% load), so the ruling's condition for
+`ProcessPoolExecutor` is not met and `ThreadPoolExecutor` is the indicated executor. (vi) NB4-E's
+Form-E predicate repair on `[#409] [#410] [#411]`. (vii) `#417` recorded in the packet.
+
+**Lane m's throughput note, verbatim, as the third admission-control evidence line:**
+
+> *"Eleven lanes running whole-repo `audit.py health` concurrently was the real cost driver:
+> **25-40 min wall-clock per gated commit**. Worth pricing into batch sizing."*
+
+**Changes:** `verify.py` · `scripts/audit.py` · `protocols/PLAYBOOK.md` (sub-detector count, the
+retired `_BACKLOG_GROSS_CHARS` citation, and the dispatch-template witness) · `CLAUDE.md` v2.62 ·
+`LESSONS.md` · `docs/intake/` +1 (#34) · the batch-6 manifest AMENDMENT 2 · `tasks/` 409/410/411/533.
+
+**Abandoned:** Nothing. `ARCHITECTURE.md:427` and the D3.1–D3.5 promotions are owed, not dropped.
+
+**Next:** the final gate stack. `main` carries 5 REDs — 1 inherited, 1 semantic collision
+(`ARM 1` vs `BACKLOG#428`), and 3 oracle pins broken by the ruled decomposition — and the push
+decision on those is the operator's, recorded in the packet as D-A.
+
+---
+
 ### 2026-08-16 (d) — CC (Opus 5, primary on `main`): batch 6 integrated — 12 lanes merged, one PARTIAL, one revert, and two REDs reported rather than smoothed
 
 **Did:** Integrated phase-2 batch 6 as the single orchestrator/integrator. Dispatched 11 lanes at
