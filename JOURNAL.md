@@ -19,6 +19,70 @@
 
 ---
 
+### 2026-08-16 (d) — CC (Opus 5, primary on `main`): batch 6 integrated — 12 lanes merged, one PARTIAL, one revert, and two REDs reported rather than smoothed
+
+**Did:** Integrated phase-2 batch 6 as the single orchestrator/integrator. Dispatched 11 lanes at
+14:06–14:09 from `43cd1cee`, polled to the 3h30m cap, harvested every branch against its
+OWNED-FILES manifest, and merged in the D-1v2 order `a b c e f g d h i x` + `k` + `m`.
+
+**Anchors:** `3def2821` (the `[#532]` close restoration, introduced by merge `121c3417`).
+
+**Result — what landed.** Ten lane merges plus the lane-k merge, each through the full gate stack
+with **no `--no-verify` and no `SKIP=` anywhere in the batch**:
+
+`51d7fa08` a · `40dd51d8` b · `b4862b9b` c · `65cd26a0` e · `8e8d55a2` f · `9997bc32` g ·
+`4ca67eed` d · `b150bfe4` h · `fa746e14` i · `e2403a44` x · `121c3417` the `[#532]` repair.
+
+**Two REDs on the one full suite, both reported at live value:**
+`2 failed, 2968 passed, 3 skipped, 1 xfailed in 1473.52s`. The first is the inherited
+`routine_consumers` live pin, whose owner `[#348]`/lane l was deferred to batch 7 by D-1v2 — so
+the contract's *"0 RED is then the expectation"* was conditional on a lane that did not run, and 1
+was always the right expectation for this roster. The second is new: `[#532]`'s **ARM 1 fires on
+`BACKLOG#428`** (3 dates spanning 52d, 2030 chars), which is lane h's row after its D6 locator
+correction. **ARM 1 is behaving correctly** — that is exactly the time-extent accretion the old
+single-armed check could not see. Lane x's `test_live_corpus_has_no_accretion_arm_findings…`
+asserts the corpus yields zero ARM-1 findings, which was true on its own branch and false once
+lane h merged. The test is over-specified; it was **not** relaxed, because relaxing it would delete
+the evidence that ARM 1 works.
+
+**INTEGRATOR ERROR, found and repaired.** The merge resolver treated `tasks/manifest.json` as a
+generated file and took `--ours`, silently discarding lane x's node removal and reverting the ruled
+close of `[#532]` — so `main` carried the row OPEN while its own merge commit said *"closes
+[#532]"*. No gate caught it: `gen_task_tree --check` passed throughout because node-present +
+`status: open` is an internally COHERENT pair. **Coherence is not correctness.** Found only by
+re-measuring the live denominator (197 where the arithmetic said 196). Repaired at `3def2821`;
+bounded to one lane, one node, one row. The resolver now compares node lists and REFUSES rather
+than choosing — and that fix caught a real case on its first use, at lane k's merge.
+
+**Two lanes behaved better than their instructions.** Lane **k** executed operator-authorised
+cross-repo seeding, then kept auditing, found `[#303]`/ADR-60/the 2026-07-08 census amendment all
+forbid a child repo's local `docs/handoffs/`, and **reverted all seven consumer PRs** — verified
+independently here: all CLOSED, `mergedAt=null`, zero open PRs remaining, content preserved in its
+packet appendix, `[#293]` set to BLOCKED-ON-RULING with `[#303]`'s two candidate homes proposed and
+no path invented. **Net change in every consumer repo: zero.** Lane **x** found that all twelve
+branches carried a doubled `worktree-worktree-lane-*` prefix — an orchestrator dispatch defect that
+made the manifest's "zero refusals" claim false (**0 of 12**, not 12 of 12) — and declined to
+self-fix because *"the exemption is the integrator's surface, not a lane's"*. Corroborated by lanes
+k and m. Repaired by uniform rename; **12 of 12 now pass**, verified live on the first merge
+(`is_lane_merge: True`, merge SHA in the exempt set).
+
+**Changes:** 29 Done-when conversions across lanes a–g · `[#310]`/`[#428]` ledger acts + K1
+declares · 15 nightly-triage Issues closed (verified) · `[#532]` doc_rot split into ARM 1
+`backlog-accretion` + ARM 2 `backlog-row-length` (declared ceiling 1320) and CLOSED · `[#293]`
+blocked · BACKLOG 197 → 196 live rows.
+
+**Abandoned:** Nothing. Lane **e** is a PARTIAL merge — its tip `f5c5e9dd` is HELD, a lane-authored
+`JOURNAL.md` entry claiming day-letter `(d)`; a batch lane never journals, and holding it also
+averted a duplicate-letter collision, since `(d)` is the letter this entry needed. Lane **m** was
+TIMED-OUT-HOLD at the cap and merges last per the ruling; its `[#533]` stays OPEN with a dated
+PARTIAL marker (16 of 43 extracted), which is its contract's success condition rather than a
+shortfall.
+
+**Next:** merge lane m, one suite, wrap items (i)–(vii), gates, push. `[#428]` condense-or-rescope
+is the operator's call and is the only thing between this batch and a clean suite.
+
+---
+
 ### 2026-08-16 (c) — CC (Opus 5, branch `chore/phase2-d1v2-amendment`): D-1v2 — the l/y collision is ruled structural; `[#533]` born, batch-6 roster amended 12 → 11
 
 **Did:** Executed architect ruling **D-1v2**, which supersedes D-1 entirely. The phase-2 autorun
