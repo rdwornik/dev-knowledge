@@ -19,6 +19,84 @@
 
 ---
 
+### 2026-08-16 (b) — CC (Opus 5, branch `chore/phase2-position0`): phase-2 Position 0 — seven sequential acts, two births, batch 6 opened BEFORE dispatch
+
+**Did:** Executed `PHASE2-MAX-PACK.md` §B steps 1–7 as one arc, one commit per act, full gate stack
+on every commit, no `--no-verify` and no `SKIP=` anywhere. This is the sequential head of the
+phase-2 autorun: the twelve lane sessions are dispatched only after this arc reaches `main`.
+
+**Anchors:** `03a1c1ff` (D12 citation repair) · `cce0d644` (W1 Option B) · `06b3dcda` (lane-integrate
+xdist flags) · `d6648d61` (W9 codex artifacts) · `e6ee9a15` (the two births) · `e123947c` ([#527]
+close) · `cd5cd32d` (batch-6 manifest).
+
+**Result:** Seven acts landed, each measured rather than asserted.
+
+- **D12** — both PLAYBOOK night-2 citations pointed at commits (`8387ff2a`, `757077f2`) that
+  `git merge-base --is-ancestor` shows are NOT reachable from `main` and that no branch contains:
+  dangling, resolvable in this clone alone and in no fresh one. Re-pointed to the landed artifacts
+  R5 put on `main`. The prose also claimed each was "a draft on the unmerged branch <x>", which
+  stopped being true when those reports landed — so a false claim went with the dead locator. **A
+  THIRD SITE SURVIVES and is reported, not fixed:** `.claude/skills/verify/verify.py:29` cites the
+  same dead `8387ff2a`; D12 scoped the act to PLAYBOOK, and widening it silently would be the
+  wrong move.
+- **W1** — `CLAUDE.md` §5 rule 4 re-scoped per Option B, as a standalone act with its own genuine
+  full-file re-read, which satisfies both prior readings (NB3-B wanted the fix; NB3-E wanted it off
+  a wave). Budget measured live: 196 → 198 counted lines of 200. `silent_rule_ratchet` unmoved.
+  **The re-read found a defect the briefing's premise missed:** §3 line 49 carries the identical
+  "read-only validators only" claim, so this was never a single-site edit. Left standing and filed
+  on the v2.55 precedent rather than swept in beyond the ruled scope.
+- **lane-integrate** — both bare `pytest -q` lines now carry `--dist worksteal
+  --max-worker-restart=0`, matching the one live call site. NB3-D's premise was false (`-n auto` is
+  already the `addopts` default), and the real staleness was in this runbook. A one-line note
+  records that failure semantics got STRICTER by design: a run that previously went green by
+  silently restarting workers can now go RED.
+- **W9** — `review_artifact_coverage` **6 → 2 unlinked**. Four canonical codex artifacts landed for
+  lanes M/N/O/P, authored against the parser regexes rather than against prose intent, with both
+  linkage legs verified live (branch name matches the merge subject AND the HEAD is inside the
+  merge's introduced set). Each file states that it is a TRANSCRIPTION of a review that ran
+  2026-08-15 and was captured off-repo — nothing back-dated, no verdict re-derived. Of the two
+  remaining, `387b794a` was ALREADY dispositioned (D1.7) and was left alone; only `d62796ad` got a
+  new entry, which says plainly that no review exists to land because the harvest record covers
+  M/N/O/P only.
+- **BIRTHS ×2, exactly the two ruled.** **`[#531]`** (W3 lane-grammar enforcement at provisioning)
+  is NB3-C §3.1 verbatim; **`[#532]`** (the `doc_rot` two-arm split) is authored to the §A6
+  amendment. Ids from a full-history scan, max real id 530, synthetic `[#777]` excluded per
+  precedent. Written at SOURCE through the generator's own emitters so frontmatter derives from
+  body; both land in `serialize-group: gates`.
+- **`[#527]` CLOSED** — retire-not-delete, manifest-first, file retained with terminal
+  `status: closed`. All three Done-when clauses evidenced. The honest limit travels verbatim in the
+  closing commit: *`current_branch()` silently allows on git failure; `block-ff-push` remains the
+  real teeth.* The config-comment `fail_fast` defect was fixed in the same act, comment only — the
+  ordering rationale claimed a cost and side-effect saving that `pre-commit` does not deliver
+  without `fail_fast`, which appears 0 times in that file.
+- **Batch 6 opened AT DISPATCH** — the first time `[#505]` leg 1 has been met. The prior four
+  batches all committed their manifest late; this one is committed before a single lane exists.
+  All twelve worktree names passed `LANE_BRANCH_RE` (**refused: 0** — the first roster to do so,
+  against batch 5's two refusals and batch 4's two dropped lanes), and the process-lane cap is
+  declared ex-ante at 3 of a permitted 3.
+
+**Honest-RED, recorded not suppressed:** `doc_rot` went 7 → 9 loci, and the two new WARNs are the
+two rows this arc births — the defect `[#532]` exists to fix, demonstrating itself on arrival.
+Neither row was trimmed to duck an undeclared threshold. `silent_rule_ratchet` transiently hit its
+baseline (441/441) because a register comment used the word "never"; reworded to "not", identical
+meaning, rather than leaving zero headroom for the lanes that edit `protocols/*.md`. `audit.py
+health` → **`health: OK`** at the end of the arc.
+
+**Changes:** `protocols/PLAYBOOK.md` · `CLAUDE.md` (v2.60→2.61, `last_reviewed` 2026-08-16) ·
+`.claude/commands/lane-integrate.md` · `.pre-commit-config.yaml` (comment only) ·
+`ecosystem/disposition-register.yaml` · `docs/audits/` +5 (4 codex artifacts + the batch-6
+manifest) · `tasks/` +2 births, `[#527]` retired · `BACKLOG.md` regenerated (197→196 live tasks).
+
+**Abandoned:** Nothing. Lane **k** (`[#293]` cross-repo seeding) is defined in the pack but was NOT
+dispatched — operator-word-gated and no word was given — so it is absent from the batch-6 roster
+rather than carried silently.
+
+**Next:** Split §C into twelve per-lane contract files with the 531/532 substitutions, run the
+12×12 OWNED-FILES collision matrix, dispatch all twelve lanes, then integrate in the §D order
+a b c e f g d h i l x y under the honest-RED clause.
+
+---
+
 ### 2026-08-16 (a) — CC (Opus 5, branch `docs/night3-land-consolidated`): the five night-3 lane reports land byte-faithful; the consolidated morning briefing is cut
 
 **Did:** Executed the night-3 consolidation act on the §0b proven shape. Located the report on each
