@@ -19,6 +19,61 @@
 
 ---
 
+### 2026-08-16 (a) — CC (Opus 5, branch `docs/night3-land-consolidated`): the five night-3 lane reports land byte-faithful; the consolidated morning briefing is cut
+
+**Did:** Executed the night-3 consolidation act on the §0b proven shape. Located the report on each
+of the five `claude/night3-*` branches and landed all five on `main` byte-faithful in one commit
+`addca403`. **Five of five branches present; zero MISSING; nothing synthesized.** Per-branch
+re-verdict and teardown follow this commit, and the aggregate morning briefing
+(`~/Downloads/NIGHT3-MORNING-BRIEFING.md`) is written after it — this entry is the anchor for the
+landing, so it states only what the landing did.
+
+**Byte-faithfulness is a property of the staging method here, not an assertion.** Each file was
+extracted with `git checkout <source-ref> -- <path>`, which writes the SOURCE blob straight into the
+index, so the STAGED blob cannot differ from the source by construction; it was still compared per
+file before the commit and each pair matched: `22bc3916` landed-review · `92706473` decision-queue ·
+`7c2c8106` warn-ledger · `94654dc0` research · `f310b2ac` sessionplan. The sessionplan blob is the
+branch TIP `6d4818c9`, not its first commit `8662e8e2` — the tip is a §5a amendment correcting the
+FAIL count, so landing the first commit's blob would have landed a version its own author had
+already superseded. Index regenerated **after** staging (tracked-files-only), 526 → 531, +5 exactly.
+
+**Result:** All five landed; the full pre-commit stack passed on the landing commit
+(`block-commit-on-main`, `audit-index-freshness`, `validate-hermetization`, `audit-health`,
+`backlog-id-on-close`, `backlog-filing-backpressure`). No `--no-verify`, no `SKIP=`. Teardown of the
+five source branches is gated on the merge reaching `origin/main` and on a per-branch blob-coverage
+proof re-run against the landed tree — deleting them before the push would leave the artifacts on no
+pushed ref at all, which is the precise trap the night-2 landing was invented to dissolve.
+
+**The reports themselves bind nothing and none of them was adjudicated here.** All five are
+DRAFT/PROPOSAL; the briefing aggregates them under a header saying so and classes every claim
+VERIFIED / PROPOSED / UNVERIFIABLE without upgrading any. Where lanes disagree — and they do, on the
+closure-proposal count (brief 153 · NB3-B 161 · this host's live SessionStart 154) and on the wave
+arithmetic (NB3-B §6 renders "30 / 30" over an enumeration of 29 ids that matches NB3-E's 29 exactly)
+— both readings are cited verbatim in the briefing §0 rather than reconciled by me.
+
+**Two lane premises were falsified by the live tree and are recorded as such, not carried forward.**
+NB3-A §0 and NB3-E §1.5 both measure `origin/main` at `7bbb0674` and NB3-E raises it as blocking
+premise **P7** ("59 commits behind"); on this host `main` == `origin/main` == `65dc3183` at session
+start, so P7 was already discharged before the briefing was written. Both lanes ran on shallow cloud
+clones and both said so up front — NB3-B §0, NB3-C §0, NB3-E §5/§5a each disclose that their
+`audit.py health` DEGRADED verdicts are graft artifacts and decline to claim the packet's `health:
+OK`. That disclosure is why their tree-content numbers remain usable.
+
+**Changes:** `docs/audits/` (+5 night-3 reports), `docs/audits/README.md` (index 526 → 531),
+`JOURNAL.md` (this entry). No BACKLOG row, `tasks/` body, register entry, ADR, protocol or detector
+was touched — the landing is content-only.
+
+**Abandoned:** Nothing. NB3-E §1.7's proposed correction of the unsubstituted `SUITE_ONELINE_TOKEN`
+placeholder at `JOURNAL.md` entry `2026-08-15 (c)` was deliberately **not** acted on here — it is a
+proposal awaiting the architect and acting on it would be adjudication, so it is carried into the
+briefing's decision queue instead.
+
+**Next:** The operator reads `~/Downloads/NIGHT3-MORNING-BRIEFING.md` and rules. Nothing in it is
+executable until it does: the 161-vs-153 closure surface, `[#527]`'s close, the two W1 diffs, the W5
+cap reading, the `doc_rot` amendment, the W3 row birth, the `routine_consumers` fix side, NB3-D's
+three recommendations, and NB3-E's two NO-GO premises (P6 forks D6.5/D6.6 — P7 is already clear) all
+await a word.
+
 ### 2026-08-15 (d) — CC (Opus 5, branch `docs/night2-land-unique-holds`): the five night-2 UNIQUE-HOLD artifacts land — the teardown trap dissolves
 
 **Did:** Executed the architect ruling of 2026-08-15 (§0b of `CLEANUP-AND-NIGHT-BATCH-3.md`): landed
