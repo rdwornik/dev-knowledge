@@ -24,7 +24,7 @@
 **Did:** Executed architect ruling **D-A** — re-pointed the three `[#533]` oracle pins, layout-only
 — and landed the batch-6 closing packet, which expires the ADR-110 exemption.
 
-**Anchors:** `a6efc82` (the layout re-point, introduced by merge `e32093fd`).
+**Anchors:** `a6efc82` (the layout re-point, introduced by merge `e32093fd`) · `1829d86a` (the closing packet, introduced by this arc's own merge — named here because a merge cannot name its own hash, which is what makes a journal-only wrap merge unanchorable) · `b32b709a` (lane k's tip, introduced by merge `94f9307b`). **Lane k's anchor is named HERE rather than in entry (d) because that entry predates its merge — and it became REQUIRED the moment this arc's packet landed: committing the manifest's `closed_by` expired the ADR-110 exemption, so every lane merge stands on a JOURNAL anchor alone from that instant. Lane m's merge was already anchored by entry (e), which names its four commits.**
 
 **Result.** *This is a ruled-layout update, not an oracle re-scope.* Each referrer assertion moved
 from `scripts/audit.py` to the check's new `scripts/audit_checks/<module>.py` home
