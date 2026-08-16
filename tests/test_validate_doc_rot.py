@@ -1,13 +1,19 @@
 """Tests for scripts/validate_doc_rot.py — #140 doc-rot / grooming checker.
 
 A read-only Layer-2 validator (mirrors #89 validate_doc_claims): surface history-accretion
-bloat (ADR-88 FC4) across four deterministic sub-detectors — BACKLOG inline-history
-accretion, per-section Section-history accretion, file bloat vs a declared budget, and
-grooming-cadence lapse. WARN-only / fail-soft; never a gate; never mutates; one Finding
-PER locus (so the #147 ship-gate dispositions each independently).
+bloat (ADR-88 FC4) across five deterministic sub-detectors — BACKLOG inline-history
+accretion (ARM 1), BACKLOG row length (ARM 2), per-section Section-history accretion, file
+bloat vs a declared budget, and grooming-cadence lapse. WARN-only / fail-soft; never a gate;
+never mutates; one Finding PER locus (so the #147 ship-gate dispositions each independently).
 
 The hard closure metric (per the prompt): each detector FIRES on a real bloat condition,
 witnessed by a test that trips it (the *_fires_* tests below) — not "tests pass".
+
+[#532] raises that bar for ARM 1 specifically. ARM 1 fires on ZERO live rows (the corpus is
+clean of the class), and an arm that fires on nothing is indistinguishable from an arm that
+is dead — so its firing behaviour is pinned by a MANDATORY SYNTHETIC FIXTURE
+(`_ACCRETED_ROW`) rather than by live data, and the arm's three terms each carry a negative
+control that isolates it. Without those, the amendment would be unfalsifiable.
 
 Scope boundary (do NOT duplicate): #140 defers cross-file fidelity drift -> coherence-spine
 (#179/#180/#182) and intra-file duplication -> #190; check #10 owns last_reviewed staleness;
@@ -45,37 +51,150 @@ def _backlog(tasks: list[str], *, groom_line: str = "") -> str:
     return head + body + tail
 
 
-# --- sub-detector: BACKLOG inline-history accretion -------------------------
+# --- [#532] ARM 1: BACKLOG inline-history accretion -------------------------
+# ARM 1 = >= 3 DISTINCT citation-blind history dates AND span >= 30d AND > 700 chars.
+# Every test in this block passes an explicit `today` so the suite cannot drift with the
+# wall clock (the future-date filter is date-relative).
 
-def test_backlog_accretion_fires_on_dated_accretion():
-    # 3 dated blocks AND > 700 chars -> the #159/#164 condensation/grooming-gate class.
-    findings = vdr.scan_backlog_accretion(_backlog([_task(134, dates=3, pad=900)]))
+_TODAY = date(2026, 8, 16)
+
+
+def _dated_row(idn: int, dates: list[str], *, pad: int = 900) -> str:
+    """A BACKLOG task line carrying exactly `dates` as BARE inline history dates."""
+    return (f"- [#{idn}] [P3][S] task {idn} — " + "x" * pad + " "
+            + " ".join(dates) + " · Done when: it is done")
+
+
+# THE MANDATORY ARM-1 FIXTURE. Three distinct citation-blind history dates spanning 166
+# days in a 900-char body: the ADR-65/49 shape the arm exists to name. Pinned synthetically
+# because the live corpus has ZERO instances -- this row is the proof the arm is alive.
+_ACCRETED_ROW = _dated_row(777, ["2026-01-05", "2026-03-10", "2026-06-20"])
+
+
+def test_arm1_fires_on_the_mandatory_accretion_fixture():
+    findings = vdr.scan_backlog_accretion(_backlog([_ACCRETED_ROW]), _TODAY)
+    arm1 = [f for f in findings if f.category == "backlog-accretion"]
+    assert len(arm1) == 1
+    assert arm1[0].locus == "BACKLOG#777"
+    assert "3 history dates" in arm1[0].detail
+    assert "spanning 166d" in arm1[0].detail          # 2026-01-05 -> 2026-06-20
+
+
+def test_arm1_no_fire_when_span_below_threshold():
+    # NEGATIVE CONTROL for the SPAN term (the young-row misfire, [#523], that ARM 1 fixes):
+    # 3 distinct dates and > 700 chars — the OLD predicate fired here — but 19d apart.
+    row = _dated_row(778, ["2026-06-01", "2026-06-10", "2026-06-20"])
+    assert [f for f in vdr.scan_backlog_accretion(_backlog([row]), _TODAY)
+            if f.category == "backlog-accretion"] == []
+
+
+def test_arm1_no_fire_when_dates_are_artifact_citations():
+    # NEGATIVE CONTROL for CITATION-BLINDNESS: the same three wide-span dates, but each one
+    # inside a `YYYY-MM-DD-slug` artifact identifier. Citing evidence is not accreting it.
+    row = _dated_row(779, ["docs/audits/2026-01-05-technical-a.md",
+                           "docs/audits/2026-03-10-technical-b.md",
+                           "2026-06-20-dev-knowledge-architect"])
+    assert [f for f in vdr.scan_backlog_accretion(_backlog([row]), _TODAY)
+            if f.category == "backlog-accretion"] == []
+
+
+def test_arm1_no_fire_on_short_multidate():
+    # The #100 false-positive guard, unchanged by the split: 3 wide-span FACTUAL dates but a
+    # SHORT line (< 700) -> no fire. The length term still suppresses it.
+    row = _dated_row(100, ["2026-01-05", "2026-03-10", "2026-06-20"], pad=50)
+    assert vdr.scan_backlog_accretion(_backlog([row]), _TODAY) == []
+
+
+def test_arm1_no_fire_on_long_legit_low_date():
+    # A legitimately detailed line (800 chars) with 1 date and under the ceiling -> no fire.
+    assert vdr.scan_backlog_accretion(_backlog([_task(50, dates=1, pad=800)]), _TODAY) == []
+
+
+def test_arm1_ignores_non_task_lines():
+    assert vdr.scan_backlog_accretion(
+        "# BACKLOG\n\nsome prose 2026-01-01 2026-03-03 2026-06-06\n", _TODAY) == []
+
+
+# --- [#532] _history_dates: the three filters, in isolation -----------------
+
+def test_history_dates_strips_artifact_identifiers():
+    line = "cites docs/audits/2026-08-15-technical-x.md and 2026-07-02-ai-council-architect"
+    assert vdr._history_dates(line, _TODAY) == []
+
+
+def test_history_dates_keeps_a_bare_inline_date():
+    assert vdr._history_dates("ruled 2026-05-01 by the architect", _TODAY) == [date(2026, 5, 1)]
+
+
+def test_history_dates_collapses_duplicates():
+    # The same date written twice is ONE history entry, not two.
+    assert vdr._history_dates("2026-05-01 and again 2026-05-01", _TODAY) == [date(2026, 5, 1)]
+
+
+def test_history_dates_drops_future_recheck_pegs():
+    # A FUTURE date is a re-check peg (a plan), never accreted history ([#492]'s 2026-08-17).
+    assert vdr._history_dates("done 2026-05-01, re-check 2099-01-01", _TODAY) == [date(2026, 5, 1)]
+
+
+def test_history_dates_survives_a_date_shaped_non_date():
+    # _DATE_RE matches on SHAPE, so a malformed token must be dropped, never raised on —
+    # the scanner is fail-soft by contract and must not degrade the check to a WARN.
+    assert vdr._history_dates("2026-99-99 and 2026-05-01", _TODAY) == [date(2026, 5, 1)]
+
+
+# --- [#532] ARM 2: BACKLOG row length (a DECLARED ceiling) ------------------
+
+def _row_of_length(idn: int, n: int) -> str:
+    """A task line of EXACTLY `n` characters, carrying no dates."""
+    stem = f"- [#{idn}] [P3][S] task {idn} — "
+    return stem + "x" * (n - len(stem))
+
+
+def test_arm2_fires_one_char_over_the_declared_ceiling():
+    # THE ARM-2 FIXTURE, pinned AT its declared ceiling: 1321 chars fires...
+    row = _row_of_length(164, vdr._BACKLOG_ROW_CEILING + 1)
+    assert len(row) == 1321
+    findings = vdr.scan_backlog_accretion(_backlog([row]), _TODAY)
     assert len(findings) == 1
-    assert findings[0].category == "backlog-accretion"
-    assert findings[0].locus == "BACKLOG#134"
-    assert "3 dated block" in findings[0].detail
-
-
-def test_backlog_accretion_fires_on_gross_length_no_dates():
-    # > 1200 chars with ZERO dates (the live #164 shape) -> gross bloat arm.
-    findings = vdr.scan_backlog_accretion(_backlog([_task(164, dates=0, pad=1300)]))
-    assert len(findings) == 1
+    assert findings[0].category == "backlog-row-length"
     assert findings[0].locus == "BACKLOG#164"
+    assert "1321 chars" in findings[0].detail
+    assert "declared ceiling 1320" in findings[0].detail
 
 
-def test_backlog_accretion_no_fire_on_short_multidate():
-    # The #100 false-positive guard: 3 FACTUAL dates but a SHORT line (< 700) -> no fire.
-    # Raw date-count alone would mis-flag; the AND-length predicate suppresses it.
-    assert vdr.scan_backlog_accretion(_backlog([_task(100, dates=3, pad=50)])) == []
+def test_arm2_no_fire_exactly_at_the_declared_ceiling():
+    # ...and 1320 does NOT. The ceiling is a DECLARED contract, so its boundary is pinned
+    # in both directions — `> ceiling`, not `>=`.
+    row = _row_of_length(165, vdr._BACKLOG_ROW_CEILING)
+    assert len(row) == 1320
+    assert vdr.scan_backlog_accretion(_backlog([row]), _TODAY) == []
 
 
-def test_backlog_accretion_no_fire_on_long_legit_low_date():
-    # A legitimately detailed line (800 chars) with < 3 dates and < 1200 chars -> no fire.
-    assert vdr.scan_backlog_accretion(_backlog([_task(50, dates=1, pad=800)])) == []
+def test_arm2_fires_with_zero_dates():
+    # ARM 2 is a SIZE contract: it is entirely independent of the date terms.
+    row = _row_of_length(166, 2000)
+    findings = vdr.scan_backlog_accretion(_backlog([row]), _TODAY)
+    assert [f.category for f in findings] == ["backlog-row-length"]
 
 
-def test_backlog_accretion_ignores_non_task_lines():
-    assert vdr.scan_backlog_accretion("# BACKLOG\n\nsome prose 2026-01-01 2026-02-02 2026-03-03\n") == []
+# --- [#532] the split itself: two arms, two names, one locus ----------------
+
+def test_both_arms_fire_independently_on_one_row():
+    # A row that is BOTH accreted and over-long yields TWO findings on the SAME locus, with
+    # DIFFERENT categories — which is the whole point of the split: the output says which
+    # contract was breached, and the #147 ship-gate dispositions each independently.
+    row = _dated_row(780, ["2026-01-05", "2026-03-10", "2026-06-20"], pad=1500)
+    findings = vdr.scan_backlog_accretion(_backlog([row]), _TODAY)
+    assert {f.category for f in findings} == {"backlog-accretion", "backlog-row-length"}
+    assert {f.locus for f in findings} == {"BACKLOG#780"}
+
+
+def test_the_two_arm_names_are_distinct_and_registered():
+    # Both arms must be reachable under their OWN name — a rename that silently collapsed
+    # one into the other would still pass every per-arm test above.
+    both = vdr.scan_backlog_accretion(
+        _backlog([_ACCRETED_ROW, _row_of_length(781, 1400)]), _TODAY)
+    assert {f.category for f in both} == {"backlog-accretion", "backlog-row-length"}
 
 
 # --- sub-detector: Section-history accretion --------------------------------
@@ -208,15 +327,27 @@ def test_scan_clean_repo_returns_empty(tmp_path):
 
 
 def test_scan_aggregates_multiple_loci(tmp_path):
-    # a bloated backlog line + an over-threshold section-history block -> 2 distinct loci.
+    # an accreted backlog line + an over-threshold section-history block -> 2 distinct loci.
     (tmp_path / "BACKLOG.md").write_text(
-        _backlog([_task(134, dates=3, pad=900)],
-                 groom_line="**Grooming log:** Recent: 2026-06-18."), encoding="utf-8")
+        _backlog([_ACCRETED_ROW],
+                 groom_line="**Grooming log:** Recent: 2026-08-15."), encoding="utf-8")
     (tmp_path / "CLAUDE.md").write_text(_history_block(20), encoding="utf-8")
-    results = vdr.scan(tmp_path, today=date(2026, 6, 19))
+    results = vdr.scan(tmp_path, today=_TODAY)
     loci = {r.locus for r in results}
-    assert "BACKLOG#134" in loci
+    assert "BACKLOG#777" in loci
     assert "CLAUDE.md#section-history" in loci
+
+
+def test_scan_threads_today_into_the_backlog_arms(tmp_path):
+    # [#532] wiring proof: scan() must pass its `today` down to the BACKLOG scanner, or the
+    # future-date filter silently uses the wall clock. Same row, two `today` values: with
+    # today BEFORE the newest date that date is a future peg (2 dates, no ARM 1); after it,
+    # the row is accreted (3 dates, span 166d).
+    (tmp_path / "BACKLOG.md").write_text(_backlog([_ACCRETED_ROW]), encoding="utf-8")
+    before = vdr.scan(tmp_path, today=date(2026, 6, 19))
+    after = vdr.scan(tmp_path, today=_TODAY)
+    assert [r for r in before if r.category == "backlog-accretion"] == []
+    assert [r.locus for r in after if r.category == "backlog-accretion"] == ["BACKLOG#777"]
 
 
 def test_scan_skips_missing_docs(tmp_path):
@@ -259,10 +390,48 @@ def test_scan_no_file_budget_under_via_live_constant(tmp_path):
 
 
 def test_format_findings_no_pipe():
-    results = vdr.scan_backlog_accretion(_backlog([_task(134, dates=3, pad=900)]))
+    results = vdr.scan_backlog_accretion(_backlog([_ACCRETED_ROW]), _TODAY)
     out = vdr.format_findings(results)
-    assert "BACKLOG#134" in out
+    assert "BACKLOG#777" in out
     assert "|" not in out
+
+
+# --- [#532] the citation regex vs THE LIVE CORPUS IT WAS MEASURED ON ---------
+# NB3-C §2.4 measured the citation-stripping regex on the live BACKLOG and reported a
+# 0-false-strip rate. That claim is re-measured here against the tree rather than trusted,
+# and it is denominator-free: it asserts a PROPERTY of every token stripped, so it cannot
+# rot as the corpus grows. `live_repo` because it reads the hub's real BACKLOG.md.
+
+@pytest.mark.live_repo
+def test_citation_regex_strips_only_real_dated_artifact_identifiers():
+    root = Path(aud._REPO_ROOT)
+    backlog = (root / "BACKLOG.md").read_text(encoding="utf-8")
+    stripped = set()
+    for line in backlog.splitlines():
+        if vdr._TASK_RE.match(line):
+            stripped.update(vdr._ARTIFACT_DATE_RE.findall(line))
+    assert stripped, "no citations found — the corpus or the regex has changed shape"
+
+    # Every stripped token must be a GENUINE dated-artifact identifier. Two admissible
+    # shapes, and the second is checked against the filesystem, not asserted:
+    false_strips = []
+    for tok in sorted(stripped):
+        if "/" in tok:
+            continue                                   # a path-qualified citation
+        if (root / "docs" / "handoffs" / tok).is_dir():
+            continue                                   # a REAL handoff bundle directory
+        false_strips.append(tok)
+    assert false_strips == [], f"citation regex false-stripped: {false_strips}"
+
+
+@pytest.mark.live_repo
+def test_live_corpus_has_no_accretion_arm_findings_only_length_findings():
+    # The amendment's measured live effect ([#532]): every live locus is a LENGTH finding.
+    # This is the assertion that would break first if ARM 1 ever started mislabelling
+    # again — and it is safe to pin because ARM 1's firing behaviour is proved separately
+    # by the synthetic fixture above, not by this zero.
+    results = vdr.scan(Path(aud._REPO_ROOT))
+    assert [r for r in results if r.category == "backlog-accretion"] == []
 
 
 # --- deployed audit check: check_doc_rot ------------------------------------
