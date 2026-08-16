@@ -1,3 +1,7 @@
+---
+reconciled_with: handoff-process@6.2.0
+---
+
 # Dev Practice Playbook
 
 > **Living document.** Repeatable processes for everything Rob does regularly with AI-assisted development.
@@ -1180,7 +1184,7 @@ items are removed or tracked in BACKLOG.
 
 <!-- scope: meta -->
 
-**Authoritative spec: `protocols/HANDOFF_PROCESS.md` v5** — the single live source of truth for handoff mechanics. This is a pointer, not a duplicate; do not re-document the structure here (the duplication is what drifted).
+**Authoritative spec: `protocols/HANDOFF_PROCESS.md` v6.2.0** — the single live source of truth for handoff mechanics. This is a pointer, not a duplicate; do not re-document the structure here (the duplication is what drifted).
 
 Formats in `docs/handoffs/`, all but the current one historical:
 
@@ -1736,7 +1740,7 @@ not descend; every lane boots from a generated §14a handoff and closes with a �
 **Scope, declared 2026-08-06 — this cap counts EPIC lanes, not work lanes.** An ADR-97 epic lane
 runs its own chat with a §14a boot and a §14b return. A *work lane* is a different object: one
 footprint-disjoint slice of a batch, pasted into a session as a frozen contract.
-`templates/prompt-template.md` (v1.7) carries a separate **~10** ceiling for work lanes (intake
+`templates/prompt-template.md` (v1.14) carries a separate **~10** ceiling for work lanes (intake
 #25 `AMENDMENT 2026-08-05-c` c1), bounded by file-disjointness and integration capacity rather
 than by integrator bandwidth. Different objects, different bottlenecks, both live — ~10 work
 lanes can sit inside far fewer epic lanes, and the two figures are deliberately **not** reconciled

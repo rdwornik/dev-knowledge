@@ -115,6 +115,8 @@ dispositions:
     reason: >-
       Pre-existing tier-1 prose reference (session-close verification pointer). VISION.md is
       canonical_freshness-gated — a reconciled_with declaration would force a re-stamp; defer to [#241].
+      RE-ANNOTATED 2026-08-16 (phase-2 lane h, shape D): kind K2 LOCATOR — a bare pointer, no
+      version claim. RATIFIED PERMANENT-DEFER (docs/audits/2026-08-15-verification-night3-warn-ledger.md §1.3).
   - id: warn-undeclared-ai-council-handoff-process
     organ: undeclared_edges
     match: "protocols/AI_COUNCIL_PROCESS.md -> handoff-process"
@@ -122,6 +124,8 @@ dispositions:
     reason: >-
       Pre-existing prose reference (handoff-analogue pattern citation — "the same pattern as
       HANDOFF_PROCESS"). An analogy ref, not a version-coupled dependency; adjudicate under [#241].
+      RE-ANNOTATED 2026-08-16 (phase-2 lane h, shape D): kind K3 ANALOGY — an example-of-a-pattern
+      reference, not a dependency. RATIFIED PERMANENT-DEFER (docs/audits/2026-08-15-verification-night3-warn-ledger.md §1.3).
   - id: warn-undeclared-essentials-handoff-process
     organ: undeclared_edges
     match: "protocols/ESSENTIALS.md -> handoff-process"
@@ -129,21 +133,15 @@ dispositions:
     reason: >-
       Pre-existing tier-1 prose reference. ESSENTIALS.md is canonical_freshness-gated — a
       reconciled_with declaration would force a re-stamp; defer to the [#241] grooming pass.
-  - id: warn-undeclared-playbook-handoff-process
-    organ: undeclared_edges
-    match: "protocols/PLAYBOOK.md -> handoff-process"
-    ref: "#241"
-    reason: >-
-      Pre-existing prose reference; PLAYBOOK carries a version-coupled "Authoritative spec:
-      HANDOFF_PROCESS.md v5" line — a likely DECLARE outcome, but committing the doc to ongoing
-      version-coupling is an operator call; deferred to [#241] rather than declared unilaterally.
-  - id: warn-undeclared-session-setup-handoff-process
-    organ: undeclared_edges
-    match: "protocols/SESSION_SETUP.md -> handoff-process"
-    ref: "#241"
-    reason: >-
-      Pre-existing prose reference ("follow HANDOFF_PROCESS v5") — version-coupled, a likely DECLARE
-      outcome; deferred to [#241] rather than committing the doc to version-coupling unilaterally.
+      RE-ANNOTATED 2026-08-16 (phase-2 lane h, shape D): kind K2 LOCATOR — a bare pointer, no
+      version claim. RATIFIED PERMANENT-DEFER (docs/audits/2026-08-15-verification-night3-warn-ledger.md §1.3).
+  # warn-undeclared-playbook-handoff-process and warn-undeclared-session-setup-handoff-process
+  # RETIRED 2026-08-16 (phase-2 lane h, shape D K1 DECLARE): both docs now carry
+  # `reconciled_with: handoff-process@6.2.0` frontmatter and their stale "v5" prose was corrected
+  # to v6.2.0 in the same commit. Removed rather than left to decorate stale, per the night-3
+  # warn-ledger's own instruction (docs/audits/2026-08-15-verification-night3-warn-ledger.md §1.3):
+  # "removed at the same commit that adds the reconciled_with lines, so the ADR-75 decoration rule
+  # surfaces any that were missed."
 
   # ---- tier-2 intake edges to handoff-process, ruled 2026-07-27 (handoff-review arc) ----
   # The handoff-process verification audit filed intake 18 — a v6 PROPOSAL pack (11 mechanism
@@ -168,6 +166,8 @@ dispositions:
       HANDOFF_PROCESS v5.7, it does not track v5.7. Declaring `reconciled_with` would assert a
       version-coupling the doc does not have. Deferred under the [#241] adjudication family;
       clears on its own when intake 18 ratifies or retires.
+      RE-ANNOTATED 2026-08-16 (phase-2 lane h, shape D): kind K6 DATED RECORD — a not-yet-coupled
+      proposal. RATIFIED PERMANENT-DEFER (docs/audits/2026-08-15-verification-night3-warn-ledger.md §1.3).
   - id: warn-undeclared-intake-design-input-handoff-process
     organ: undeclared_edges
     match: "docs/intake/2026-07-27-func-operator-design-input-night-shift-handoff-reform.md -> handoff-process"
@@ -182,6 +182,8 @@ dispositions:
       declare, so declaring one would assert a relationship that does not exist. Distinct from the
       two sibling rows above, which are proposal-to-spec edges deferred until ratification; this
       one has nothing to defer. Clears when intake 18 ratifies or retires and the pointer resolves.
+      RE-ANNOTATED 2026-08-16 (phase-2 lane h, shape D): kind K6 DATED RECORD — an intake-to-intake
+      cross-reference, not a doc-to-spec edge. RATIFIED PERMANENT-DEFER (docs/audits/2026-08-15-verification-night3-warn-ledger.md §1.3).
   - id: warn-undeclared-intake-index-handoff-process
     organ: undeclared_edges
     match: "docs/intake/README.md -> handoff-process"
@@ -208,6 +210,8 @@ dispositions:
       shelf-life is deliberate rather than self-clearing: unlike the proposal rows, this edge does
       not resolve on ratification, so 2026-08-26 reviews whether a CONSUMED/archived orientation
       snapshot should keep a live disposition at all.
+      RE-ANNOTATED 2026-08-16 (phase-2 lane h, shape D): kind K6 DATED RECORD — a fixed-point-in-time
+      snapshot. RATIFIED PERMANENT-DEFER (docs/audits/2026-08-15-verification-night3-warn-ledger.md §1.3).
 
   # ---- prose edges to the SECOND registered spec, prompt-template (ruled 2026-08-09, ARC-2) ----
   # ARC-1 registered `templates/prompt-template.md` as the second `_SPEC_REGISTRY` row (fc0b1f04).
@@ -255,20 +259,25 @@ dispositions:
       places that "cite absolute paths" while discussing host-coupling. VISION.md is also
       canonical_freshness-gated, so a declaration would force a re-stamp — the identical pair of
       reasons that defers `warn-undeclared-vision-handoff-process`. Defer under [#241].
+      RE-ANNOTATED 2026-08-16 (phase-2 lane h, shape D): kind K3 ANALOGY/EXAMPLE — the template is
+      named as an instance of a defect, not a dependency. RATIFIED PERMANENT-DEFER (docs/audits/2026-08-15-verification-night3-warn-ledger.md §1.3).
   - id: warn-undeclared-playbook-prompt-template
     organ: undeclared_edges
     match: "protocols/PLAYBOOK.md -> prompt-template"
     ref: "#241"
     review_date: 2026-09-09
     reason: >-
-      THE STRONGEST DECLARE CANDIDATE OF THE EIGHT, deferred rather than dismissed. 13 tier-1 hits —
-      PLAYBOOK is the template's principal consumer ("Template: templates/prompt-template.md", the
-      point-of-use authority note, the Ch8 dispatch-shape prose) — and one hit is genuinely
-      version-coupled: "(v1.7)" against a spec now at 1.13. Two facts keep this deferred and not
-      declared: committing PLAYBOOK to ongoing version-coupling is an operator call (verbatim the
-      reason `warn-undeclared-playbook-handoff-process` sits deferred), and PLAYBOOK is the largest
-      ungated canonical doc whose genuine end-to-end re-read is its own arc (2026-07-08 census A-2).
-      It carries a `review_date` the other seven do not, because unlike them it will not self-clear.
+      STRUCTURALLY BLOCKED, not a judgment call, as of 2026-08-16 (phase-2 lane h, shape D K1
+      attempt). PLAYBOOK.md's stale "(v1.7)" citation was corrected in-prose to v1.14 (the spec's
+      live version), but the formal `reconciled_with` DECLARE could not be added alongside it:
+      `validate_reconciliation.parse_reconciled_with` reads exactly one frontmatter key per
+      dependent, and PLAYBOOK's single edge already declares the stronger, longer-standing
+      coupling (`handoff-process@6.2.0`, matching CLAUDE.md/HANDOFF_BOOT.md/README.md convention).
+      There is no multi-spec-per-file declaration shape today, and extending one is a detector
+      change (lane x/l territory, out of scope here). Genuinely deferred pending either an
+      architect ruling on which edge a shared dependent declares, or a schema extension; not a
+      "committing to version-coupling is an operator call" defer like its retired siblings above —
+      the text drift itself is already fixed.
   - id: warn-undeclared-handoff-process-prompt-template
     organ: undeclared_edges
     match: "protocols/HANDOFF_PROCESS.md -> prompt-template"
@@ -280,6 +289,8 @@ dispositions:
       `templates/prompt-template.md` carry it by construction" — i.e. HANDOFF_PROCESS states what the
       template must carry; it does not track the template's version. The dependency, if it were
       declared, would point the other way. Defer under [#241].
+      RE-ANNOTATED 2026-08-16 (phase-2 lane h, shape D): kind K2 LOCATOR — a spec-to-spec carrier
+      pointer, no version claim. RATIFIED PERMANENT-DEFER (docs/audits/2026-08-15-verification-night3-warn-ledger.md §1.3).
   - id: warn-undeclared-handoff-boot-prompt-template
     organ: undeclared_edges
     match: "protocols/HANDOFF_BOOT.md -> prompt-template"
@@ -291,6 +302,8 @@ dispositions:
       thing lives is not tracking what version it is. HANDOFF_BOOT is additionally under a hard
       18000-byte boot budget, so it carries pointers precisely to avoid content it would otherwise
       have to version-track. Defer under [#241].
+      RE-ANNOTATED 2026-08-16 (phase-2 lane h, shape D): kind K2 LOCATOR — a bare pointer, no
+      version claim. RATIFIED PERMANENT-DEFER (docs/audits/2026-08-15-verification-night3-warn-ledger.md §1.3).
   - id: warn-undeclared-standing-rulings-prompt-template
     organ: undeclared_edges
     match: "protocols/STANDING_RULINGS.md -> prompt-template"
@@ -300,6 +313,8 @@ dispositions:
       doctrine: the dispatch-visibility ruling records that the board-label shape "is carried by
       `.claude/commands/lane-boot.md` and `templates/prompt-template.md`". The register names the
       carriers a ruling binds; it is not a dependent tracking their versions. Defer under [#241].
+      RE-ANNOTATED 2026-08-16 (phase-2 lane h, shape D): kind K2 LOCATOR — a ruling's carrier
+      clause, no version claim. RATIFIED PERMANENT-DEFER (docs/audits/2026-08-15-verification-night3-warn-ledger.md §1.3).
   - id: warn-undeclared-intake-adoption-consolidation-prompt-template
     organ: undeclared_edges
     match: "docs/intake/2026-08-06-tech-adoption-consolidation-intake.md -> prompt-template"
@@ -312,6 +327,8 @@ dispositions:
       tracking relationship whose whole point is that it does not track. Same fixed-point-in-time
       reasoning as `warn-undeclared-intake-orientation-handoff-process`, and it inherits that row's
       non-self-clearing property, so it carries a `review_date` too.
+      RE-ANNOTATED 2026-08-16 (phase-2 lane h, shape D): kind K6 DATED RECORD — a fixed-point-in-time
+      citation. RATIFIED PERMANENT-DEFER (docs/audits/2026-08-15-verification-night3-warn-ledger.md §1.3).
   # ---- the NINTH, and this arc created it (2026-08-09, ARC-2 Phase A) ----
   # The block above says, of the eight: "a NINTH referencing doc re-surfaces and blocks." One did,
   # within the same arc, and it was written BY this arc. Ratifying intake #25 needed a `decided-by:`
@@ -342,6 +359,8 @@ dispositions:
       template at a moment in time; it does not track the template's version, and #25 is now
       ACCEPTED so its body is frozen. Introduced by ARC-2 2026-08-09 and recorded as such rather
       than quietly rephrased away. Non-self-clearing, so it carries a review_date.
+      RE-ANNOTATED 2026-08-16 (phase-2 lane h, shape D): kind K6 DATED RECORD — an evidence
+      citation, frozen at a moment in time. RATIFIED PERMANENT-DEFER (docs/audits/2026-08-15-verification-night3-warn-ledger.md §1.3).
   - id: warn-undeclared-intake-v6-proposal-prompt-template
     organ: undeclared_edges
     match: "docs/intake/2026-07-27-tech-handoff-process-v6-proposal.md -> prompt-template"
@@ -353,6 +372,8 @@ dispositions:
       intake PROPOSAL is a not-yet-coupled ref by design. The hit is a fan-out field it PROPOSES the
       template should gain, not a version it tracks. Shelf-life deliberately matched to its sibling
       (2026-08-26): both clear together when intake 18 ratifies or retires.
+      RE-ANNOTATED 2026-08-16 (phase-2 lane h, shape D): kind K6 DATED RECORD — a not-yet-coupled
+      proposal. RATIFIED PERMANENT-DEFER (docs/audits/2026-08-15-verification-night3-warn-ledger.md §1.3).
 
   # ---- the TWENTIETH, and ARC-3 created it by filing an intake verbatim (2026-08-09) ----
   # The entry above closed at 19. This one takes the class to 20 — and it was minted the same way
@@ -392,6 +413,8 @@ dispositions:
       mentions-vs-depends rather than another disposition. Non-self-clearing — the body is frozen by
       the verbatim ruling, so the string survives ratification — hence the review_date, matched to
       its intake-25 sibling (2026-09-09).
+      RE-ANNOTATED 2026-08-16 (phase-2 lane h, shape D): kind K6 DATED RECORD — a proposal target
+      inside a verbatim-frozen intake. RATIFIED PERMANENT-DEFER (docs/audits/2026-08-15-verification-night3-warn-ledger.md §1.3).
 
   # ---- BACKLOG history-accretion bloat, ruled by grooming leg-c (2026-07-08) ----
   # The 2026-07-07 census-triage arc pushed three tasks past the doc_rot accretion threshold.
