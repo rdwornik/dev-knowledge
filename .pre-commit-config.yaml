@@ -26,9 +26,14 @@ repos:
         # commits that the pre-push gate could only catch once they already existed, forcing
         # a commit-tree re-land to unwind — this refuses before one exists.
         #
-        # FIRST in the list on purpose: a commit that will not be allowed should not first
-        # pay for the codemap / audit / index checks below, and normalize-dated-headers
-        # should not rewrite files for it.
+        # FIRST in the list on purpose — but ORDERING BUYS OUTPUT ORDER, NOT COST OR
+        # SIDE-EFFECT AVOIDANCE. An earlier comment here claimed it saved both; it does
+        # not. `fail_fast` appears 0 times in this file (verified live across its hooks),
+        # and pre-commit only short-circuits under `fail_fast`, so every hook still runs
+        # after this one refuses: a blocked direct-commit-on-main still pays for the
+        # codemap / audit / index checks below AND still has its markdown rewritten by
+        # normalize-dated-headers. What being first actually buys is that the REASON for
+        # the refusal is the first thing the operator reads. (NB3-A §7.2, non-blocking.)
         #
         # Predicate copied from upstream no-commit-to-branch (`git symbolic-ref HEAD`), plus
         # ONE carve-out: MERGE_HEAD present => allow, so a CONFLICTED integration merge on

@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "6461926e340bd9708d55f188aae0fa6790a9c79666eaf56810217862c616ed77",
+  "generated_sha256": "a9ca3017c223609e744ad313aa6284bc1bab7c67f402965f75581b9860184109",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -231,10 +231,6 @@
     {
       "task": 514,
       "file": "514-two-rival-lane-branch-re-constants-reconcile-them.md"
-    },
-    {
-      "task": 527,
-      "file": "527-anti-direct-to-main-mechanism.md"
     },
     {
       "task": 530,
