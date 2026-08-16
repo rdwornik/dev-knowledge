@@ -1169,6 +1169,34 @@ measurements behind each line below.
   terms — it read "will become its verified source once it ships", and it had shipped),
   `CLAUDE.md` §9, and the regenerated index itself.
 
+- **K-2 · `scripts/audit_checks/` is an admitted home** — operator ruling of 2026-08-16,
+  executed the same day by batch-6 lane m. `"scripts/audit_checks"` joins `_HOME_PATTERNS`
+  in `scripts/validate_hermetization.py`, alongside the three `scripts/` subdirectories
+  already listed (`codemap`, `hooks`, `toc`).
+  **Why a ruling rather than an edit:** ADR-101 **Rule C** — landed by K-1 above — refuses
+  an added file whose home is outside the allowlist, with *"new path outside allowlisted
+  homes — operator approval required"*, and it names the approval as a recorded operator
+  decision rather than a drive-by add. `_HOME_PATTERNS` is a hand-maintained literal that
+  enumerates each `scripts/` subdirectory explicitly, so a new package directory under
+  `scripts/` is outside it by construction. The refusal is deliberate and pinned:
+  `tests/test_validate_hermetization.py::test_rule_c_blocks_a_new_package_dir_under_an_allowlisted_parent`
+  asserts `scripts/newpkg/mod.py` is refused. Rule C fired exactly as designed, on 13 staged
+  adds, and the gate is left with its reading unchanged.
+  **What the ruling admits, and only that:** the home `scripts/audit_checks/` itself. Measured
+  read-only before the edit (`probe_rulec.py`, in-memory patch, wrote nothing): the staged
+  `[#533]` adds go 13/13 refused → 0/13; the pinned `scripts/newpkg/mod.py` stays refused; a
+  deeper new directory `scripts/audit_checks/sub/x.py` stays refused; an unrelated new home
+  `scripts/other/x.py` stays refused; and the live-tree assertion holds at 0 offenders across
+  2147 tracked paths. The admission widens the allowlist by one leaf and seals everything else
+  as before.
+  **Evidence:** batch-6 lane m's STOP packet, which surfaced the conflict rather than bypassing
+  it — the escape available at the gate is `git commit --no-verify`, which lane m's frozen
+  contract forecloses. The governing row is `[#533]` (architect ruling D-1v2, 2026-08-16),
+  whose Done-when names `scripts/audit_checks/<check_name>.py`, as do the batch-6 manifest
+  `docs/audits/2026-08-16-technical-batch-6-manifest.md` and the lane contract of record
+  `docs/audits/2026-08-16-technical-533-audit-decompose-lane-contract.md` (committed at
+  `e17d968f`). Those three named the home; this entry is where that naming becomes checkable.
+
 ## L. The 2026-08-12 adjudication-hour rulings (ARC2)
 
 Source of record: the working paper `ADJUDICATION-SHEET-2026-08-12.md` (143 items) and its

@@ -31,7 +31,6 @@ from __future__ import annotations
 
 import importlib.util
 import inspect
-import json
 import logging
 import os
 import re
@@ -86,15 +85,8 @@ def _is_hub(repo_path) -> bool:
     except OSError:  # an unresolvable path is never the hub; never wedge a check
         return False
 
-# Floor policy is single-sourced in generate_floor.py (the generator owns it; audit enforces).
-# Dual import: `scripts.generate_floor` for `python -m scripts.audit`; `generate_floor` for
-# `python scripts/audit.py` and the test path (scripts/ on sys.path).
-try:
-    from scripts.generate_floor import F5_BLACKLIST as _FLOOR_F5
-    from scripts.generate_floor import floor_sha256 as _floor_sha256
-except ImportError:
-    from generate_floor import F5_BLACKLIST as _FLOOR_F5
-    from generate_floor import floor_sha256 as _floor_sha256
+# [#533] the generate_floor dual-import moved to audit_checks/check_floor_integrity.py,
+# its only user; _FLOOR_F5 / _floor_sha256 are re-exported from there.
 
 # #90 git↔backlog drift verifier — imported as a module so the check stays a thin
 # adapter and tests can monkeypatch `_vgb.reconcile`. Same dual-import shape.
@@ -211,6 +203,70 @@ try:
 except ImportError:
     import canonical_freshness_gate as _cfg
 
+# [#533] The decomposed check package. Every symbol moved out of this module is RE-EXPORTED
+# below under its original name, so `audit.Finding`, `audit.check_vision_md`, `audit._strip_jsonc`
+# … all still resolve, to the SAME objects. Live consumers of exactly this surface:
+# scripts/{boundary_report,enforcement_coverage,fleet_analytics,gen_doc_counts,gen_handoff}.py,
+# deploy/release_lint.py, and ~45 files under tests/.
+#
+# Same dual-import shape as the sibling validators above — `scripts.` first, bare second — so
+# BOTH entry paths (`python scripts/audit.py`, `python -m scripts.audit`) resolve ONE spelling
+# and the package cannot end up loaded twice under two sys.modules keys. The sibling-validator
+# imports the extracted checks need (`generate_floor`, `validate_reconciliation`, `safe_remove`,
+# `validate_residual_completeness`, `assemble_paste`) moved INTO those modules and are re-exported
+# from there rather than imported again here: same try/except order → same sys.modules entry →
+# `aud._sr` and the check's `_sr` are one object, which is what keeps
+# `monkeypatch.setattr(aud._sr, ...)` working.
+#
+# WHY ONLY SOME CHECKS MOVED — the criterion is mechanical, stated in audit_checks/registry.py:
+# a check is movable only if nothing in its transitive closure is monkeypatched onto THIS module
+# by a test. 25 of 43 are not, `_is_hub`/`_REPO_ROOT` alone accounting for 19.
+try:
+    from scripts.audit_checks import registry as _registry
+except ImportError:
+    from audit_checks import registry as _registry
+
+Finding = _registry.Finding
+_NA_SUBJECT_ABSENT = _registry._NA_SUBJECT_ABSENT
+_NA_NOT_APPLICABLE = _registry._NA_NOT_APPLICABLE
+_NA_REASONS = _registry._NA_REASONS
+_NA_REASON_RE = _registry._NA_REASON_RE
+_na = _registry._na
+_na_reason = _registry._na_reason
+_BUNDLE_EXCLUDE_DIRS = _registry._BUNDLE_EXCLUDE_DIRS
+
+check_vision_md = _registry.check_vision_md
+check_adr38_baseline = _registry.check_adr38_baseline
+check_claude_md = _registry.check_claude_md
+check_dot_prefix_discipline = _registry.check_dot_prefix_discipline
+check_canonical_md_visibility = _registry.check_canonical_md_visibility
+check_workspace_settings = _registry.check_workspace_settings
+check_handoff_bundle_structure = _registry.check_handoff_bundle_structure
+check_canonical_structure = _registry.check_canonical_structure
+check_handoff_version_stamp = _registry.check_handoff_version_stamp
+check_amendment_coherence = _registry.check_amendment_coherence
+check_floor_integrity = _registry.check_floor_integrity
+
+_CONFIG_SUFFIXES = _registry._CONFIG_SUFFIXES
+_DOT_PREFIX_EXCEPTIONS = _registry._DOT_PREFIX_EXCEPTIONS
+_CANONICAL_MANDATORY = _registry._CANONICAL_MANDATORY
+_CANONICAL_ALL = _registry._CANONICAL_ALL
+_WORKSPACE_REQUIRED_SETTINGS = _registry._WORKSPACE_REQUIRED_SETTINGS
+_strip_jsonc = _registry._strip_jsonc
+_BUNDLE_BUDGETS = _registry._BUNDLE_BUDGETS
+_BUNDLE_REQUIRED_FILES = _registry._BUNDLE_REQUIRED_FILES
+_BUNDLE_STAMP_RE = _registry._BUNDLE_STAMP_RE
+_CANONICAL_SPINE = _registry._CANONICAL_SPINE
+_heading_present = _registry._heading_present
+_STAMP_RE = _registry._STAMP_RE
+_STAMP_FILES = _registry._STAMP_FILES
+CoupledSet = _registry.CoupledSet
+_COUPLED_VERSION_SETS = _registry._COUPLED_VERSION_SETS
+_norm_version = _registry._norm_version
+_FLOOR_MD_REF_RE = _registry._FLOOR_MD_REF_RE
+_FLOOR_F5 = _registry._FLOOR_F5
+_floor_sha256 = _registry._floor_sha256
+
 # Gate-mode flag (#89): cmd_health sets this True around its self-audit loop so the
 # expensive claim-3 (pytest --collect-only) is SKIPPED on the per-commit gate and
 # evaluated only on the full-audit path (run/repo/CLI/SessionStart). Operator ruling.
@@ -234,44 +290,8 @@ DEPLOYED_VERSIONS_REGISTRY = Path(_REPO_ROOT) / "ecosystem" / "deployed-versions
 # ---------------------------------------------------------------------------
 # Universal visual pattern (ADR-59) — constants
 # ---------------------------------------------------------------------------
-
-# Config-file suffixes subject to dot-prefix discipline (root-level only).
-_CONFIG_SUFFIXES = {".toml", ".yaml", ".yml", ".json", ".ini", ".cfg", ".conf"}
-
-# Industry-standard names that MUST NOT be dot-prefixed (ADR-59 exception list).
-# This is a mirror of the ADR-59 exception list — update BOTH together when a
-# new tool is adopted (see PLAYBOOK "Universal visual pattern" maintenance rule).
-_DOT_PREFIX_EXCEPTIONS = {
-    "pyproject.toml",       # Python PEP 518
-    "package.json",         # npm
-    "package-lock.json",    # npm lockfile
-    "Cargo.toml",           # Rust
-    "setup.py",             # Python legacy
-    "setup.cfg",            # Python legacy
-    "pytest.ini",           # pytest will not read .pytest.ini (ADR-59 amend 2026-06-02)
-    "requirements.txt",     # pip convention
-    "requirements-dev.txt",
-    "Dockerfile",
-    "Makefile",
-    "LICENSE",
-    "tach.toml",            # verified 2026-05-27: tach 0.34.0 does not read .tach.toml
-    "README.md",            # deprecated from baseline; if present, no dot
-}
-
-# Canonical files universally mandatory at repo root (ADR-38 A5 / ADR-51).
-# ADR-38 A6 (2026-06-02): the seven-file canonical set is mandatory for every repo.
-# CONTRIBUTING/JOURNAL/LESSONS were promoted from optional (A5) to mandatory here so
-# cross-repo navigation is identical (the same seven anchors in every repo).
-_CANONICAL_MANDATORY = [
-    "VISION.md", "ARCHITECTURE.md", "CLAUDE.md", "BACKLOG.md",
-    "CONTRIBUTING.md", "JOURNAL.md", "LESSONS.md",
-]
-
-# All canonical names whose casing is checked when present (mandatory + optional
-# + .dev-knowledge-only). Presence is required only for _CANONICAL_MANDATORY.
-_CANONICAL_ALL = _CANONICAL_MANDATORY + [
-    "ENVIRONMENT.md", "ESSENTIALS.md", "PLAYBOOK.md", "TOKEN-LOG.md", "README.md",
-]
+# [#533] _CONFIG_SUFFIXES / _DOT_PREFIX_EXCEPTIONS / _CANONICAL_MANDATORY / _CANONICAL_ALL
+# travelled with the checks that exclusively own them — re-exported above.
 
 # Canonical living docs subject to the freshness cadence (check #10; operationalizes
 # the ADR-39 "grooming" lifecycle element). PORTABLE: a child repo inherits this list
@@ -296,113 +316,12 @@ _HUB_ONLY_FRESHNESS_FILES = ["protocols/SESSION_SETUP.md", "protocols/AI_COUNCIL
 _FRESHNESS_FILES = _cfg.DEFAULT_FRESHNESS_FILES + _HUB_ONLY_FRESHNESS_FILES
 _FRESHNESS_CADENCE_DAYS = _cfg.FRESHNESS_CADENCE_DAYS
 
-# Required VS Code workspace settings (ADR-59 Decision 3). "upper" (not "default")
-# is what clusters ALL-CAPS canonical .md files ahead of lowercase configs.
-_WORKSPACE_REQUIRED_SETTINGS = {
-    "explorer.sortOrder": "default",
-    "explorer.sortOrderLexicographicOptions": "upper",
-}
-
-
-def _strip_jsonc(text: str) -> str:
-    """Strip // and /* */ comments and trailing commas from JSON-with-comments.
-
-    VS Code .code-workspace files are JSONC; json.loads cannot parse them. Comment
-    stripping respects string literals so a `//` inside a string value survives.
-    """
-    out: list[str] = []
-    i, n = 0, len(text)
-    in_str = False
-    while i < n:
-        c = text[i]
-        if in_str:
-            out.append(c)
-            if c == "\\" and i + 1 < n:
-                out.append(text[i + 1])
-                i += 2
-                continue
-            if c == '"':
-                in_str = False
-            i += 1
-            continue
-        if c == '"':
-            in_str = True
-            out.append(c)
-            i += 1
-            continue
-        if c == "/" and i + 1 < n and text[i + 1] == "/":
-            while i < n and text[i] != "\n":
-                i += 1
-            continue
-        if c == "/" and i + 1 < n and text[i + 1] == "*":
-            i += 2
-            while i + 1 < n and not (text[i] == "*" and text[i + 1] == "/"):
-                i += 1
-            i += 2
-            continue
-        out.append(c)
-        i += 1
-    return re.sub(r",(\s*[}\]])", r"\1", "".join(out))
+# [#533] _WORKSPACE_REQUIRED_SETTINGS + _strip_jsonc travelled with
+# check_workspace_settings, their only user — re-exported above.
 
 # ---------------------------------------------------------------------------
 # State schema
 # ---------------------------------------------------------------------------
-
-@dataclass
-class Finding:
-    """One audit/check result — the LOCKED coherence-spine output contract.
-
-    Stable shape: exactly three string fields — `check_name`, `status`, `evidence`.
-    `status` is one of the five-value enum: "pass" | "fail" | "warn" | "unavailable" | "n/a".
-    `evidence` is markdown-table-safe (no literal `|` — emitters replace it with `/`).
-
-    This is the surface the #171 conformance dashboard consumes (ADR-86): the coherence
-    checker emits `check_name == "reconciled_versions"` here (check_reconciled_versions),
-    a `fail` per drifting edge. The shape is LOCKED — do not add/rename fields without
-    updating that consumer. Pinned by tests/test_coherence_integration.py
-    (test_finding_format_is_locked). No dashboard is built yet (#171, v2); this only
-    fixes the format it will read.
-    """
-    check_name: str
-    status: str          # "pass" | "fail" | "warn" | "unavailable" | "n/a"
-    evidence: str
-
-
-# --- [#465] leg 4, FR-1: why an n/a is an n/a -------------------------------
-# A dead check and a correctly-skipped one both rendered as the bare token "n/a", so they were
-# indistinguishable in every daily -- which is how `handoff_tag_canonicity` emitted a verdict
-# for two spec generations after its subject stopped existing, unnoticed.
-#
-# The reason rides a parsable PREFIX inside the existing `evidence` string. That is deliberate
-# and it is what keeps tripwire T1 from firing: `Finding` keeps exactly three fields and the
-# five-value status enum, so the LOCKED coherence-spine contract and the daily's column grammar
-# are untouched, and `test_finding_format_is_locked` still passes.
-#
-#   SUBJECT-ABSENT  the governed thing does not exist ANYWHERE -- the check can never fire
-#   NOT-APPLICABLE  this repo legitimately lacks the surface; another repo has it
-_NA_SUBJECT_ABSENT = "SUBJECT-ABSENT"
-_NA_NOT_APPLICABLE = "NOT-APPLICABLE"
-_NA_REASONS = (_NA_SUBJECT_ABSENT, _NA_NOT_APPLICABLE)
-_NA_REASON_RE = re.compile(rf"^\[n/a-reason:({'|'.join(_NA_REASONS)})\] (.+)$", re.DOTALL)
-
-
-def _na(check_name: str, reason: str, evidence: str) -> Finding:
-    """An n/a Finding carrying a machine-readable reason. Raises on an unknown reason --
-    a mis-typed reason must not silently become an unclassifiable n/a."""
-    if reason not in _NA_REASONS:
-        raise ValueError(f"unknown n/a reason: {reason!r}")
-    return Finding(check_name, "n/a", f"[n/a-reason:{reason}] {evidence}".replace("|", "/"))
-
-
-def _na_reason(finding: Finding) -> str | None:
-    """The encoded reason, or None for a non-n/a finding OR an unclassified one.
-
-    None is meaningful, not an error value: the detector treats an unclassified n/a as a loud
-    WARN rather than assuming either reason (FR-3 -- never pass silently)."""
-    if finding.status != "n/a":
-        return None
-    m = _NA_REASON_RE.match(finding.evidence)
-    return m.group(1) if m else None
 
 @dataclass
 class RepoState:
@@ -575,159 +494,7 @@ def discover_repos() -> list[str]:
 # Audit checks
 # ---------------------------------------------------------------------------
 
-def check_vision_md(repo_path: Path) -> list[Finding]:
-    """VISION.md presence + parseable YAML frontmatter per ADR-33."""
-    vision = repo_path / "VISION.md"
-    if not vision.exists():
-        return [Finding("vision_md", "fail", "VISION.md absent at repo root")]
-    text = vision.read_text(encoding="utf-8")
-    if not text.startswith("---"):
-        return [Finding("vision_md", "fail", "VISION.md has no YAML frontmatter (must start with '---')")]
-    # Extract frontmatter between first two ---
-    parts = text.split("---", 2)
-    if len(parts) < 3:
-        return [Finding("vision_md", "fail", "VISION.md frontmatter not closed (missing closing '---')")]
-    try:
-        fm = yaml.safe_load(parts[1])
-    except yaml.YAMLError as e:
-        return [Finding("vision_md", "fail", f"VISION.md frontmatter YAML parse error: {e}")]
-    if not isinstance(fm, dict):
-        return [Finding("vision_md", "fail", "VISION.md frontmatter is not a YAML mapping")]
-    required_keys = {"version", "last_reviewed", "owner", "status"}
-    missing = required_keys - fm.keys()
-    if missing:
-        return [Finding("vision_md", "warn", f"VISION.md frontmatter missing keys: {sorted(missing)}")]
-    return [Finding("vision_md", "pass", f"VISION.md present; frontmatter keys: {sorted(fm.keys())}")]
-
-
-def check_adr38_baseline(repo_path: Path) -> list[Finding]:
-    """ADR-38 (amendments A5 2026-05-23, A6 2026-06-02) universal governance baseline.
-
-    Checks the governance documents every repo must carry — not code structure.
-    The repo-tier system is deprecated, so there is no per-tier branching. Code
-    layout (src/, tests/, pyproject.toml) is scoped to code projects per the
-    amendment and is NOT part of this universal governance check (governance-only
-    repos such as .dev-knowledge have no src/ or pyproject.toml). README.md is
-    optional (deprecated from the baseline); CHANGELOG.md was removed by ADR-49.
-    CLAUDE.md is covered by check_claude_md, so it is not duplicated here.
-
-    A6 (2026-06-02) promoted CONTRIBUTING.md, JOURNAL.md and LESSONS.md from optional
-    to the mandatory seven-file canonical set — superseding the A5 "JOURNAL/LESSONS
-    remain repo-specific" line.
-    """
-    required_files = ["VISION.md", "ARCHITECTURE.md", "BACKLOG.md",
-                      "CONTRIBUTING.md", "JOURNAL.md", "LESSONS.md"]
-
-    missing_files = [f for f in required_files if not (repo_path / f).exists()]
-
-    if missing_files:
-        status = "fail"
-        evidence = f"Missing required: {missing_files}"
-    else:
-        status = "pass"
-        evidence = "All ADR-38 universal governance baseline files present"
-    return [Finding("adr38_baseline", status, evidence)]
-
-
-def check_claude_md(repo_path: Path) -> list[Finding]:
-    """ADR-31 CLAUDE.md presence and non-empty per authority model baseline."""
-    claude = repo_path / "CLAUDE.md"
-    if not claude.exists():
-        return [Finding("claude_md", "fail", "CLAUDE.md absent at repo root")]
-    content = claude.read_text(encoding="utf-8").strip()
-    if not content:
-        return [Finding("claude_md", "fail", "CLAUDE.md exists but is empty")]
-    return [Finding("claude_md", "pass", f"CLAUDE.md present ({len(content)} chars)")]
-
-
-def check_dot_prefix_discipline(repo_path: Path) -> list[Finding]:
-    """Root config files dot-prefixed unless on exception list (ADR-59 D1).
-
-    Root-level only — subfolder configs are ignored. A config-suffix file that is
-    neither dot-prefixed nor on the ADR-59 exception list is a violation.
-    """
-    violations = []
-    for p in sorted(repo_path.iterdir()):
-        if not p.is_file():
-            continue
-        if p.suffix not in _CONFIG_SUFFIXES:
-            continue
-        if p.name.startswith("."):
-            continue
-        if p.name in _DOT_PREFIX_EXCEPTIONS:
-            continue
-        violations.append(p.name)
-    if violations:
-        return [Finding("dot_prefix_discipline", "fail",
-                        f"Root config files not dot-prefixed (not on ADR-59 exception list): {violations}")]
-    return [Finding("dot_prefix_discipline", "pass",
-                    "All root config files dot-prefixed or on ADR-59 exception list")]
-
-
-def check_canonical_md_visibility(repo_path: Path) -> list[Finding]:
-    """Mandatory canonical files present + correct ALL-CAPS casing (ADR-59 D2).
-
-    Requires the seven universal files (ADR-38 A6 / A5 / ADR-51). Optional and
-    .dev-knowledge-only canonical files are NOT required, but if present (under any
-    casing) they must use the canonical ALL-CAPS spelling — a mis-cased canonical
-    file breaks the visual clustering the pattern exists to produce.
-    """
-    missing = [f for f in _CANONICAL_MANDATORY if not (repo_path / f).exists()]
-
-    canonical_lower = {name.lower(): name for name in _CANONICAL_ALL}
-    miscased = []
-    for p in repo_path.iterdir():
-        if not p.is_file():
-            continue
-        canonical = canonical_lower.get(p.name.lower())
-        if canonical and p.name != canonical:
-            miscased.append(f"{p.name} (expected {canonical})")
-
-    if missing:
-        return [Finding("canonical_md_visibility", "fail",
-                        f"Missing mandatory canonical files: {missing}")]
-    if miscased:
-        return [Finding("canonical_md_visibility", "fail",
-                        f"Mis-cased canonical files: {sorted(miscased)}")]
-    return [Finding("canonical_md_visibility", "pass",
-                    f"Mandatory canonical files present + correctly cased: {_CANONICAL_MANDATORY}")]
-
-
-def check_workspace_settings(repo_path: Path) -> list[Finding]:
-    """Dot-prefixed .code-workspace carrying required sort settings (ADR-59 D3).
-
-    FAIL if absent or unparseable; WARN if present but not dot-prefixed or a
-    required setting is missing/wrong; PASS if dot-prefixed with correct settings.
-    """
-    workspaces = sorted(p for p in repo_path.iterdir()
-                        if p.is_file() and p.name.endswith(".code-workspace"))
-    if not workspaces:
-        return [Finding("workspace_settings", "fail",
-                        "No .code-workspace file at repo root")]
-
-    ws = workspaces[0]
-    try:
-        data = json.loads(_strip_jsonc(ws.read_text(encoding="utf-8")))
-    except (json.JSONDecodeError, ValueError) as e:
-        return [Finding("workspace_settings", "fail",
-                        f"{ws.name} is not parseable JSON(C): {e}")]
-
-    issues = []
-    if not ws.name.startswith("."):
-        issues.append(f"workspace file '{ws.name}' is not dot-prefixed")
-
-    settings = data.get("settings", {})
-    if not isinstance(settings, dict):
-        settings = {}
-    for key, expected in _WORKSPACE_REQUIRED_SETTINGS.items():
-        actual = settings.get(key, "<absent>")
-        if actual != expected:
-            issues.append(f"{key}={actual!r} (expected {expected!r})")
-
-    if issues:
-        return [Finding("workspace_settings", "warn", f"{ws.name}: " + "; ".join(issues))]
-    return [Finding("workspace_settings", "pass",
-                    f"{ws.name} present, dot-prefixed, required sort settings correct")]
+# [#533] moved to audit_checks/ — re-exported above.
 
 
 # check_mermaid_theme_directive (check #7, ADR-51 v2) RETIRED by ADR-51 amendment
@@ -737,111 +504,7 @@ def check_workspace_settings(repo_path: Path) -> list[Finding]:
 # per-repo migration (root-scheduled), and a presence-ban would red every child.
 
 
-# ---------------------------------------------------------------------------
-# Handoff-bundle enforcement (HANDOFF_PROCESS v4.3 item F) — constants
-# ---------------------------------------------------------------------------
-
-# Per-file line budgets for a v4 handoff bundle (HANDOFF_PROCESS §4).
-_BUNDLE_BUDGETS = {
-    "01_ROLE.md": 100,
-    "02_METHODOLOGY.md": 200,
-    "03_PROJECT.md": 150,
-    "04_RECENT.md": 250,
-    "05_NOW.md": 100,
-    "06_QUESTIONS.md": 80,
-    "07_ASK_BACK.md": 50,
-}
-# The 8 required files: README + 01–07.
-_BUNDLE_REQUIRED_FILES = ["README.md", *_BUNDLE_BUDGETS.keys()]
-
-# A v4 bundle declares its contract via this README stamp (added v4.2 item D).
-# The optional `(?:\.\d+)?` matches a patch segment (v4.3.1) without capturing it —
-# major.minor still drive the v4.3+ gate. Without it, three-segment stamps (v4.3.1,
-# first used 2026-05-31) silently fail to match and the bundle is skipped, not validated.
-_BUNDLE_STAMP_RE = re.compile(
-    r"Generated by HANDOFF_PROCESS v(\d+)\.(\d+)(?:\.\d+)? \(status: (?:beta|stable)\)"
-)
-
-# Sibling dirs under docs/handoffs/ that are not bundles to validate.
-_BUNDLE_EXCLUDE_DIRS = {"aborted", "in-progress", "archive"}
-
-
-def check_handoff_bundle_structure(repo_path: Path) -> list[Finding]:
-    """Historical v4 handoff-bundle structure validator (HANDOFF_PROCESS v4.3 item F).
-
-    Post-#149 flip, v5 is canonical and emits a different artifact (lean residual +
-    probe manifest + thin boot — no 8-file bundle), so this check now governs only the
-    HISTORICAL v4 bundles. v5-bundle validation is owned by the read-only teeth validator
-    (`scripts/verify_handoff_probes.py`, #163 — now live and gating via `check_handoff_probes`
-    in ALL_CHECKS); the manual probe-gate (HANDOFF_PROCESS.md §5) remains the rationale-quality
-    backstop.
-
-    Scans docs/handoffs/<slug>/ and validates only STAMPED v4 bundles — those whose
-    README.md carries the `Generated by HANDOFF_PROCESS v4.x (status: beta|stable)`
-    stamp. v5 bundles carry no v4 stamp, so they are skipped here by design. Pre-stamp
-    bundles (the v4.1 first-run) and v3.x sync bundles predate the contract and are out
-    of scope (preserved historical evidence). The four-tag section is required only for
-    v4.3+ bundles.
-
-    Per stamped bundle: 8 files present (README + 01–07); README carries a
-    `## Drift cross-check` section; 04_RECENT carries `## Load-bearing facts` (and,
-    for v4.3+, `## Four-tag discipline (canonical)`); per-file line budgets respected.
-    Excludes aborted/, in-progress/, archive/. Read-only (ADR-28/36).
-    """
-    handoffs = repo_path / "docs" / "handoffs"
-    if not handoffs.exists():
-        return [_na("handoff_bundle_structure", "NOT-APPLICABLE",
-                        "no docs/handoffs/ — nothing to validate")]
-
-    violations: list[str] = []
-    validated = 0
-    for d in sorted(handoffs.iterdir()):
-        if not d.is_dir() or d.name in _BUNDLE_EXCLUDE_DIRS:
-            continue
-        readme = d / "README.md"
-        if not readme.exists():
-            continue  # v3.x sync bundles use 00_README.md — not a v4 bundle
-        readme_text = readme.read_text(encoding="utf-8")
-        stamp = _BUNDLE_STAMP_RE.search(readme_text)
-        if not stamp:
-            continue  # pre-stamp / non-v4 bundle — out of scope
-        validated += 1
-        is_v43_plus = (int(stamp.group(1)), int(stamp.group(2))) >= (4, 3)
-
-        for fname in _BUNDLE_REQUIRED_FILES:
-            if not (d / fname).exists():
-                violations.append(f"{d.name}: missing {fname}")
-
-        if "## Drift cross-check" not in readme_text:
-            violations.append(f"{d.name}/README.md: missing '## Drift cross-check' section")
-
-        recent = d / "04_RECENT.md"
-        if recent.exists():
-            recent_text = recent.read_text(encoding="utf-8")
-            if "## Load-bearing facts" not in recent_text:
-                violations.append(f"{d.name}/04_RECENT.md: missing '## Load-bearing facts' section")
-            if is_v43_plus and "## Four-tag discipline (canonical)" not in recent_text:
-                violations.append(
-                    f"{d.name}/04_RECENT.md: missing '## Four-tag discipline (canonical)' "
-                    "section (v4.3+ requirement)")
-
-        for fname, budget in _BUNDLE_BUDGETS.items():
-            fpath = d / fname
-            if not fpath.exists():
-                continue
-            nlines = len(fpath.read_text(encoding="utf-8").splitlines())
-            if nlines > budget:
-                violations.append(f"{d.name}/{fname}: {nlines} lines > budget {budget}")
-
-    if violations:
-        evidence = (f"{len(violations)} violation(s) across {validated} stamped bundle(s): "
-                    + "; ".join(violations[:5]))
-        if len(violations) > 5:
-            evidence += f" … (+{len(violations) - 5} more)"
-        return [Finding("handoff_bundle_structure", "fail", evidence)]
-    return [Finding("handoff_bundle_structure", "pass",
-                    f"{validated} stamped v4 bundle(s) valid (structure + sections + budgets)")]
-
+# [#533] moved to audit_checks/ — re-exported above.
 
 
 # Single-sourced in canonical_freshness_gate.py; audit-level aliases keep the monkeypatch seam
@@ -1308,318 +971,7 @@ def check_stale_worktrees(repo_path: Path, now: Optional[float] = None) -> list[
                     f"lanes, not leftovers"), *stash]
 
 
-# ADR-38 A6 (2026-06-02): the universal [U] heading spine each canonical file must
-# carry. Presence-only (not strict order) — child-repo-safe; the [R]/[C] sections
-# (repo-specific / conditional) vary per repo and are deliberately NOT asserted.
-# A heading matches if any line .startswith() the substring, so a repo's own H1 suffix
-# (e.g. "# Journal - ai-council") still matches. The substrings are taken from
-# .dev-knowledge's own canonical files, so the self-only health gate passes by
-# construction. BACKLOG.md hierarchy beyond "## Big picture" is covered by
-# validate_backlog.py, not duplicated here.
-_CANONICAL_SPINE = {
-    "VISION.md": ["## Vision", "## Scope", "## Values", "## Lifecycle", "## References"],
-    "ARCHITECTURE.md": ["## Purpose", "## Codemap", "## Layer Boundaries & Invariants",
-                        "## Key conventions", "## Authority and governance",
-                        "## Validators and enforcement"],
-    "CLAUDE.md": ["## 1. First read", "## 5. Critical rules", "## 6. Session start protocol"],
-    "BACKLOG.md": ["## Big picture"],
-    "CONTRIBUTING.md": ["## Branch naming", "## Commit style", "## Handoff process"],
-    "JOURNAL.md": ["# Journal"],
-    "LESSONS.md": ["# Lessons Learned"],
-}
-
-
-def _heading_present(lines: list[str], heading: str) -> bool:
-    """True if some line IS `heading` or continues it past a word boundary.
-
-    Boundary-aware so a repo-specific suffix matches but a near-miss does not:
-    `## Purpose [CORE]` and `# Journal - ai-council` satisfy `## Purpose` / `# Journal`,
-    while `## Visionary` and `# Journalized` do NOT satisfy `## Vision` / `# Journal`
-    (the char after the heading must be absent or a non-word boundary, not a letter or
-    digit). Closes Codex review HIGH 2026-06-02 (startswith false-pass).
-    """
-    n = len(heading)
-    for line in lines:
-        if not line.startswith(heading):
-            continue
-        rest = line[n:]
-        if rest == "" or not (rest[0].isalnum() or rest[0] == "_"):
-            return True
-    return False
-
-
-def check_canonical_structure(repo_path: Path) -> list[Finding]:
-    """Each present canonical file carries its [U] heading spine (ADR-38 A6).
-
-    Asserts the universal navigation backbone only — presence of required headings,
-    not their order, and not the [R]/[C] sections that legitimately vary per repo. A
-    canonical file that is ABSENT is not flagged here (presence is owned by
-    check_adr38_baseline / check_canonical_md_visibility); this check validates the
-    shape of files that exist. Read-only and child-repo-safe: a not-yet-unified repo
-    FAILs, surfacing the structural gap without blocking .dev-knowledge (health is
-    self-only).
-    """
-    missing: list[str] = []
-    for fname, required in _CANONICAL_SPINE.items():
-        fpath = repo_path / fname
-        if not fpath.exists():
-            continue
-        lines = fpath.read_text(encoding="utf-8", errors="replace").splitlines()
-        for heading in required:
-            if not _heading_present(lines, heading):
-                missing.append(f"{fname}: {heading!r}")
-    if missing:
-        return [Finding("canonical_structure", "fail",
-                        f"Canonical file(s) missing required spine heading(s): {missing}")]
-    return [Finding("canonical_structure", "pass",
-                    "All present canonical files carry their required [U] spine headings")]
-
-
-_STAMP_RE = re.compile(r"stamp\s+v?(\d+\.\d+(?:\.\d+)?)", re.IGNORECASE)
-_STAMP_FILES = ["ARCHITECTURE.md", "CONTRIBUTING.md"]
-
-
-def check_handoff_version_stamp(repo_path: Path) -> list[Finding]:
-    """HANDOFF_PROCESS.md version header matches 'stamp v?X.Y' occurrences in living docs.
-
-    Parses the canonical version from the `Version:` line in
-    protocols/HANDOFF_PROCESS.md, then greps ARCHITECTURE.md and CONTRIBUTING.md
-    for `stamp v?X.Y` patterns. FAILs if any stamp's version does not match the
-    canonical version — the S1 recurrence class surfaced in nightly arc #81.
-    Read-only; child-repo-safe (HANDOFF_PROCESS.md absent → pass-with-skip).
-    """
-    spec = repo_path / "protocols" / "HANDOFF_PROCESS.md"
-    if not spec.exists():
-        return [_na("handoff_version_stamp", "NOT-APPLICABLE",
-                        "no protocols/HANDOFF_PROCESS.md — nothing to validate")]
-
-    spec_text = spec.read_text(encoding="utf-8")
-    version_match = re.search(r"^Version:\s+v?(\d+\.\d+(?:\.\d+)?)", spec_text, re.MULTILINE)
-    if not version_match:
-        return [Finding("handoff_version_stamp", "warn",
-                        "protocols/HANDOFF_PROCESS.md: no parseable 'Version:' line")]
-    canonical = version_match.group(1)
-
-    mismatches: list[str] = []
-    found_any = False
-    for fname in _STAMP_FILES:
-        fpath = repo_path / fname
-        if not fpath.exists():
-            continue
-        for lineno, line in enumerate(fpath.read_text(encoding="utf-8").splitlines(), start=1):
-            m = _STAMP_RE.search(line)
-            if m:
-                found_any = True
-                stamp_ver = m.group(1)
-                if stamp_ver != canonical:
-                    mismatches.append(
-                        f"{fname}:{lineno}: stamp {stamp_ver!r} != canonical {canonical!r}"
-                    )
-
-    if mismatches:
-        return [Finding("handoff_version_stamp", "fail",
-                        f"{len(mismatches)} stamp mismatch(es): " + "; ".join(mismatches))]
-    if not found_any:
-        return [Finding("handoff_version_stamp", "warn",
-                        f"No 'stamp vX.Y' patterns found in {_STAMP_FILES} — "
-                        "convention may have drifted")]
-    return [Finding("handoff_version_stamp", "pass",
-                    f"All stamp occurrences in {_STAMP_FILES} match "
-                    f"canonical HANDOFF_PROCESS v{canonical}")]
-
-
-@dataclass
-class CoupledSet:
-    """A family of hand-maintained surfaces that must share one authority version (#11).
-
-    A *straggler* — a surface left at a stale version after a multi-surface amendment — is
-    the v3.4-abort failure class (LESSONS.md 2026-05-29: the skill announced v3.3.3 while the
-    spec was v3.4). `anchor` is the source of truth; every `surface` must agree with it at
-    `granularity`. Each regex carries exactly one capture group yielding a dotted version.
-    Membership criterion is SEMANTIC intent-to-mirror, not mere co-occurrence of a version.
-    """
-    name: str
-    anchor: tuple[str, str]                  # (path, regex with one capture group)
-    surfaces: list[tuple[str, str]]          # [(path, regex with one capture group), ...]
-    granularity: str = "full"                # "full" (X.Y[.Z], trailing-zero-normalized) | "major"
-
-
-# The live coupled-surface manifest — the cross-case "checklist as data" (#11). Add a set
-# when a new family of surfaces must track one authority version. Honest limit: this guards
-# only surfaces that still HAND-MAINTAIN a version; surfaces de-hardcoded to interpolate the
-# spec ({{VERSION}}) carry no static token and are out of scope by design.
-_COUPLED_VERSION_SETS: list[CoupledSet] = [
-    CoupledSet(
-        name="handoff-major-version",
-        anchor=("protocols/HANDOFF_PROCESS.md", r"(?m)^Version:\s+v?(\d+(?:\.\d+)*)"),
-        surfaces=[
-            # The major the command declares it implements — mirrors the spec's major
-            # (the full version/status is de-hardcoded to {{VERSION}}, out of scope).
-            # Keyed on the NORMATIVE "handoff per HANDOFF_PROCESS.md vN" declaration so a
-            # non-authority mention (e.g. a historical "HANDOFF_PROCESS.md v4.2 Amendment"
-            # note) does NOT false-match (Codex HIGH-2 / the semantic-coupling criterion).
-            ("CLAUDE.md", r"handoff per `?HANDOFF_PROCESS\.md`?\s+v(\d+)\b"),
-            (".claude/commands/handoff.md", r"handoff per `?HANDOFF_PROCESS\.md`?\s+v(\d+)\b"),
-        ],
-        granularity="major",
-    ),
-]
-
-
-def _norm_version(raw: str, granularity: str) -> tuple[int, ...]:
-    """Parse a dotted version to an int tuple at `granularity`.
-
-    "major" -> (X,); "full" -> (X, Y, ...) with trailing zeros stripped so 3.4 == 3.4.0.
-    """
-    parts = [int(p) for p in raw.split(".") if p.isdigit()]
-    if not parts:
-        return ()
-    if granularity == "major":
-        return (parts[0],)
-    while len(parts) > 1 and parts[-1] == 0:
-        parts.pop()
-    return tuple(parts)
-
-
-# rule: coherence-amendment
-def check_amendment_coherence(
-    repo_path: Path, _sets: Optional[list[CoupledSet]] = None) -> list[Finding]:
-    """#11 multi-surface amendment gate: coupled surfaces must share one authority version.
-
-    Converts LESSON-#9's advisory "cross-case trace before a multi-surface amendment" guard
-    into an enforced gate (the v3.4 self-handoff abort: the skill announced v3.3.3 while the
-    spec was v3.4 — a version STRAGGLER that mis-signalled authority). For each set in the
-    manifest (_COUPLED_VERSION_SETS): read the anchor's authority version; every coupled
-    surface must agree at the set's granularity. A disagreement is a straggler -> FAIL.
-
-    Child-repo-safe: a set whose anchor file is absent is skipped; an absent surface file is
-    skipped; the hub anchors are absent on child repos -> all sets skip -> PASS. An anchor
-    present-but-unparseable is reported as drift (WARN), never a FAIL.
-
-    Honest enforcement limit (state-honest-enforcement-limits): guards only surfaces that
-    still HAND-MAINTAIN a version. De-hardcoded surfaces (handoff skill/templates interpolate
-    {{VERSION}}) carry no static token and are out of scope by design — de-hardcoding, not
-    this gate, prevents their straggler class. The narrow `check_handoff_version_stamp` owns
-    the full `stamp vX.Y` mirrors in _STAMP_FILES; this is the generalized manifest for other
-    coupled families. Read-only.
-    """
-    sets = _COUPLED_VERSION_SETS if _sets is None else _sets
-    stragglers: list[str] = []
-    drift: list[str] = []
-    checked = 0
-    for cset in sets:
-        anchor_path, anchor_re = cset.anchor
-        ap = repo_path / anchor_path
-        if not ap.exists():
-            continue  # child-repo-safe skip
-        am = re.search(anchor_re, ap.read_text(encoding="utf-8", errors="replace"))
-        if not am:
-            drift.append(f"{cset.name}: anchor {anchor_path} has no parseable version")
-            continue
-        canonical = _norm_version(am.group(1), cset.granularity)
-        if not canonical:
-            drift.append(f"{cset.name}: anchor {anchor_path} version unparseable {am.group(1)!r}")
-            continue
-        for spath, sre in cset.surfaces:
-            fp = repo_path / spath
-            if not fp.exists():
-                continue
-            rx = re.compile(sre)
-            lines = fp.read_text(encoding="utf-8", errors="replace").splitlines()
-            surface_hits = 0
-            for lineno, line in enumerate(lines, 1):
-                m = rx.search(line)
-                if not m:
-                    continue
-                surface_hits += 1
-                checked += 1
-                if _norm_version(m.group(1), cset.granularity) != canonical:
-                    stragglers.append(
-                        f"{spath}:{lineno}: {m.group(1)!r} != anchor "
-                        f"{am.group(1)!r} (set {cset.name})")
-            if surface_hits == 0:
-                # Present surface, no normative mention -> the coupling marker vanished
-                # (reworded/removed). Surface it as drift, never silently PASS (Codex
-                # HIGH-1). WARN not FAIL: a removed mention may be legitimate. Anchor-
-                # absent (child) repos never reach here, so this cannot false-WARN a child.
-                drift.append(
-                    f"{cset.name}: surface {spath} present but no normative version "
-                    f"mention matched (coupling marker missing/reworded?)")
-
-    if stragglers:
-        ev = f"{len(stragglers)} version straggler(s): " + "; ".join(stragglers)
-        if drift:
-            ev += " | drift: " + "; ".join(drift)
-        return [Finding("amendment_coherence", "fail", ev)]
-    if drift:
-        return [Finding("amendment_coherence", "warn", "; ".join(drift))]
-    return [Finding("amendment_coherence", "pass",
-                    f"{checked} coupled-surface version mention(s) coherent across "
-                    f"{len(sets)} set(s)")]
-
-
-_FLOOR_MD_REF_RE = re.compile(r"[A-Za-z0-9_-]+\.md")
-
-
-# rule: governance-child-floor
-def check_floor_integrity(repo_path: Path) -> list[Finding]:
-    """Child methodology-floor conformance (ADR-78 O2; methodology_surface zone, ADR-75).
-
-    Skipped (PASS) when the repo carries no .claude/CLAUDE-FLOOR.md — the floor rollout is gradual,
-    and the hub itself (where `health` runs this) is the floor SOURCE, not a carrier, so it
-    has none. Where a floor IS present, three conformance signals (all FAIL on violation):
-
-      - Hash integrity: sha256 of the floor (LF-normalized, autocrlf-proof) must match the
-        committed CLAUDE-FLOOR.md.sha256 sidecar. A mismatch means the floor was edited
-        without regenerating (run the hub generator) or tampered with (restore it).
-      - F5 self-containment: no hub-internal artifact tokens leak into the floor (the
-        shared generate_floor.F5_BLACKLIST — ADR-72 self-containment / ADR-78 §3 grep).
-      - Pointer existence (T3 fold-in): every same-repo `*.md` the floor names must exist
-        in the repo (a zero-URL floor has no external links to check).
-
-    Hash + F5 mirror the generator's emit-time gate so a drifted floor is caught fleet-side;
-    the sidecar-match here is the hub-runnable signal the tamper test exercises (`audit repo
-    <child>`). Read-only; child-repo-safe.
-    """
-    floor = repo_path / ".claude" / "CLAUDE-FLOOR.md"
-    if not floor.exists():
-        return [_na("floor_integrity", "NOT-APPLICABLE",
-                        "no .claude/CLAUDE-FLOOR.md — repo has not adopted the methodology floor (skip)")]
-
-    text = floor.read_text(encoding="utf-8", errors="replace")
-    issues: list[str] = []
-
-    # 1. Hash integrity vs sidecar.
-    sidecar = repo_path / ".claude" / "CLAUDE-FLOOR.md.sha256"
-    actual = _floor_sha256(text)
-    if not sidecar.exists():
-        issues.append("CLAUDE-FLOOR.md.sha256 sidecar missing (regenerate via hub generator)")
-    else:
-        m = re.search(r"[0-9a-f]{64}", sidecar.read_text(encoding="utf-8", errors="replace"))
-        expected = m.group(0) if m else ""
-        if not expected:
-            issues.append("CLAUDE-FLOOR.md.sha256 has no parseable sha256")
-        elif actual != expected:
-            issues.append(
-                f"hash drift: floor sha256 {actual[:12]}… != sidecar {expected[:12]}… — floor "
-                "edited without regenerating (run hub generator) OR tampered (restore the floor)")
-
-    # 2. F5 self-containment.
-    leaks = [label for label, pat in _FLOOR_F5 if pat.search(text)]
-    if leaks:
-        issues.append(f"F5 self-containment violation — hub-internal token(s) in floor: {leaks}")
-
-    # 3. Pointer existence (same-repo .md targets the floor names).
-    refs = {r for r in _FLOOR_MD_REF_RE.findall(text) if r != "CLAUDE-FLOOR.md"}
-    broken = sorted(r for r in refs if not (repo_path / r).exists())
-    if broken:
-        issues.append(f"floor names same-repo file(s) that do not exist: {broken}")
-
-    if issues:
-        return [Finding("floor_integrity", "fail", "; ".join(issues))]
-    return [Finding("floor_integrity", "pass",
-                    f"CLAUDE-FLOOR.md present; hash matches sidecar; F5 clean; pointers resolve "
-                    f"(sha256 {actual[:12]}…)")]
+# [#533] moved to audit_checks/ — re-exported above.
 
 
 def check_hooks_armed(repo_path: Path) -> list[Finding]:
