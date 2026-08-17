@@ -1,0 +1,12 @@
+---
+id: "[#548]"
+title: "Intake #12's SETTLED ownership manifest is parked on a departed id, and three live rows depend on it by name"
+status: open
+priority: P2
+size: S
+theme: "[E4] Decision management"
+story: "[S11] Keep the decision corpus navigable and contradiction-aware"
+generates: BACKLOG.md
+---
+
+- [#548] [P2][S] **Intake #12's SETTLED ownership manifest is parked on a departed id, and three live rows depend on it by name** — `docs/intake/2026-07-11-tech-ownership-manifest.md` carries `status: ACCEPTED`, `disposition: deferred`, `trigger: "#328 build"`, and its own `note:` reads *"#328's build consumes this as its FIXED charter target"*. **[#328] does not exist** — no `tasks/328-*.md` and zero `^- [#328]` rows in `BACKLOG.md` (verified 2026-08-17) — so the un-park condition can never fire. Meanwhile **[#329], [#331] and [#332] each name the `#328` fleet_parity manifest as their input**, so three live rows depend on an artifact whose producing row departed. `docs/intake/README.md` requires a deferred ACCEPTED doc to carry `trigger:` or `review-date:` precisely so that *"the un-park condition is part of the record, not tribal memory"* — and nothing checks that the trigger still RESOLVES, so this document is schema-conformant and permanently parked at the same time. That is the DECIDED-UNFILED class: content ruled SETTLED that became neither a row nor an ADR. **Not an archival candidate** — `docs/intake/README.md` §5 rules ACCEPTED explicitly non-terminal (*"a standing authority must stay visible live"*), so the answer is a carrier, not a move. · Done when: intake #12's TIER-1/TIER-2 manifest content has a live carrier — a row that owns building it or retiring it — OR the document's `trigger:` is re-anchored onto a live id or a date on the [#322] precedent (*"a peg whose referent will not occur tests nothing, so the trigger is a date"*), with [#329]/[#331]/[#332]'s dangling `#328` references repointed in the same act · refs docs/intake/2026-07-11-tech-ownership-manifest.md, docs/intake/README.md, #329, #331, #332, #322, ADR-98 · kill-candidates: none — [#329]/[#331]/[#332] CONSUME the manifest and none owns producing it; [#549] and [#550] carry the plan and requirements halves of the same departed build and each closes differently · source: docs/audits/2026-08-17-technical-batch-7a-lane-b-contract.md step 2 (intake sweep), building on docs/audits/2026-08-16-census-nb6-archive-sweep.md §1.3 (the #328 departed-trigger finding)

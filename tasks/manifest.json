@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "a9893b73206ebeee3693662b9e5a58ebbad295a036a0fde0c3fb10e5c3e3c5f0",
+  "generated_sha256": "5f4cc4920e2aac080fbe7deb105d121fd2294f904d3497b172920846e80083f6",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -112,6 +112,10 @@
     {
       "task": 449,
       "file": "449-assembled-paste-byte-budget.md"
+    },
+    {
+      "task": 547,
+      "file": "547-split-brain-prevention-has-no-referent-under-v6.md"
     },
     {
       "prose": ""
@@ -251,6 +255,10 @@
     {
       "task": 536,
       "file": "536-the-arm-2-row-length-pile-has-no-owner-and-the-con.md"
+    },
+    {
+      "task": 552,
+      "file": "552-window-close-disposition-and-archival-routine.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
@@ -617,6 +625,22 @@
       "file": "456-ruling-blocked-cohort-sweep-adr-108-re-route.md"
     },
     {
+      "task": 546,
+      "file": "546-adr-60-docs-taxonomy-no-longer-describes-the-tree.md"
+    },
+    {
+      "task": 548,
+      "file": "548-intake-12-settled-ownership-manifest-has-no-carrier.md"
+    },
+    {
+      "task": 549,
+      "file": "549-fleet-hygiene-plan-of-record-has-no-carrier.md"
+    },
+    {
+      "task": 550,
+      "file": "550-intake-14-ruled-siem-requirements-half-dispositioned.md"
+    },
+    {
       "prose": ""
     },
     {
@@ -708,6 +732,14 @@
     {
       "task": 506,
       "file": "506-whole-set-p10-grooming-arc-full-open-set.md"
+    },
+    {
+      "task": 551,
+      "file": "551-audit-artifacts-carry-no-status-field.md"
+    },
+    {
+      "task": 553,
+      "file": "553-adr-census-in-decisions-readme-is-ungated-and-wrong.md"
     },
     {
       "prose": "---"
