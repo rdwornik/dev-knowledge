@@ -19,6 +19,125 @@
 
 ---
 
+### 2026-08-17 (a) — CC (Opus 5, branch `chore/window-close-hygiene`): window close — lane e's orphan lands, 12 worktrees torn down, 15 night-batch reports landed byte-faithful
+
+**Did:** Executed the window-close full-hygiene brief as one arc from the primary checkout, in its
+ruled order: lane e's held tip first, then teardown, then the land-then-delete of every `claude/*`
+branch on `origin`. `main` was verified `== origin/main` at `88422f5c` before anything moved.
+
+**Anchors:** `f5c5e9dd` (lane e's orphaned entry, introduced by merge `dedfec9e`) · `dedfec9e` (the
+lane-e merge) · `70e01a46` (the 15-report landing). All three are introduced by this arc's own merge
+to `main`, which cannot name its own hash.
+
+**Two of the brief's premises were falsified before any destructive act, and both were ruled rather
+than worked around.** (1) The brief directed a **cherry-pick** of `f5c5e9dd` "so its branch becomes
+`-d`-safe". It does not: witnessed in a throwaway repo, `git branch -d` refuses a patch-identical
+cherry-pick with *"not fully merged"*, because `-d` tests ancestry, not content. The operator ruled
+`--no-ff` **merge** instead — the same scratch test then deleted the branch cleanly — which reaches
+the brief's stated goal by the only mechanism that can. (2) The entry claimed `2026-08-16 (d)`,
+which `main` already spends on the batch-6 integration entry; landing it verbatim would have put two
+different entries under one day-letter and destroyed the letter as a sequence key. Ruled re-letter
+to **(g)**, placed at the top of the 08-16 block as the newest addition, carrying a landing note
+that records both the re-lettering and the late landing. Its body is byte-identical to
+`f5c5e9dd:JOURNAL.md`, compared line by line rather than asserted.
+
+**Result — teardown.** All **12** lane worktrees removed and pruned; `.claude/worktrees/` is empty
+and `git worktree list` is the primary alone. (The brief said 13; `git worktree list` prints 13 rows
+because one is the primary checkout — 12 is the removable count, not a shortfall.) **11** lane
+branches deleted with `-d` at that point — zero `-D`, zero refusals. `git stash list` empty
+throughout. **Lane e's branch and all 14 `claude/*` branches are deliberately still alive as of this
+commit**, and their deletion follows it: it is gated on this arc's merge reaching `origin/main`,
+because deleting a branch whose content sits on no pushed ref is the precise trap the night-2
+landing was invented to dissolve. The per-branch blob-coverage re-verdict and the deletions are run
+against the pushed tree, after this entry — so the totals this arc closes on are 12 lane branches
+and 14 `claude/*` branches, 26 in all, every one by `-d`.
+
+**Result — the landing.** 14 of 14 `claude/*` branches present, zero MISSING, nothing synthesized;
+15 reports landed in one commit `70e01a46`, all 15 verified ABSENT from `main` immediately beforehand
+so nothing was overwritten. Byte-faithfulness is a property of the staging method, not a claim: each
+file was extracted with `git checkout <ref> -- <path>`, which writes the SOURCE blob straight into
+the index, and each staged blob was still compared against its source — **15 of 15 MATCH, 0
+mismatches**. Index regenerated AFTER staging (tracked-files-only): 550 → 565, +15 exactly. All 15
+carry their own DRAFT / *advisory until ratified* headers and none was adjudicated here; both halves
+of the NB4-G pair land, because v2's header says v1 "stays on disk as the record". Every commit
+passed the full gate stack — `block-commit-on-main`, `validate-hermetization`, `audit-health`,
+`audit-index-freshness`, `backlog-id-on-close`, `backlog-filing-backpressure` — with **no
+`--no-verify` and no `SKIP=`**.
+
+**A self-inflicted near-miss is recorded rather than quietly repaired.** A throwaway-repo test of the
+`-d` semantics used `$TMPDIR`, which is **unset** in this harness's git-bash: the path collapsed to
+bare root, `mkdir` and `cd` both failed, `set -e` did not abort the compound line, and the remaining
+commands ran **against the live hub checkout** — `git init` re-initialised it and `git config` wrote
+a throwaway identity (`t@t`) into `.git/config` as a local override outranking the correct global
+one. **Nothing landed:** `block-commit-on-main` and `validate-hermetization` both refused the stray
+commit, which is the roster's claim for those two organs behaving exactly as written. Repaired by
+unsetting the local keys (restoring the global), removing the staged file, and re-verifying HEAD
+unmoved, tree clean, `core.hooksPath` unset and all three hook types still armed. Filed as a
+`gotchas` entry (Environment / toolchain) with the absolute-path + `git -C` fix.
+
+**A worktree-lock finding surfaced that no hub organ owns.** All 12 worktrees were locked at session
+start; by teardown only lane d still was. The 11 releases are stamped 2026-08-17 10:07:22 on the
+admin dirs — inside this session, and no hub script contains unlock logic, so the reaper is the
+Claude Code harness that wrote the locks (they carry its `claude session <name> (pid N)` format).
+Lane d's survived because its recorded pid **is** alive — as `msedgewebview2`, a recycled pid, not a
+Claude session. **A pid-liveness lock reaper is fooled by pid reuse**, and the tell is the process
+NAME, not its existence. All 12 lane session transcripts last wrote 2026-08-16, so no session was
+live; the stale lock was released and the worktree removed cleanly.
+
+**Changes:** `docs/audits/` (+15 night-batch-4/5/6 reports), `docs/audits/README.md` (index 550 →
+565), `JOURNAL.md` (lane e's re-lettered entry + this one). No BACKLOG row, `tasks/` body, register
+entry, ADR, protocol or detector was touched — the arc is hygiene and content only.
+
+**This discharges the batch-6 packet's Teardown checklist item**, which recorded *"Not run in this
+arc. Twelve worktrees and twelve lane branches are intact"* and predicted lane e's `-d` refusal by
+design. Both halves are now run: the refusal was reached by the predicted route and dissolved by
+landing the content first, never by `-D`.
+
+**Next:** nothing is owed by this arc. The 15 landed reports are unadjudicated DRAFTs and their
+decision queues — the NB4 consolidated briefing, the NB6 backlog-truth batch-7 morning queue, the
+NB6 handoff-prep residual — await an operator word before any of them becomes executable.
+
+---
+
+### 2026-08-16 (g) — CC (Sonnet 5, lane `worktree-lane-e-82-conversions`): #82 conversions — 4 of 4 assigned Done-when rows mechanized (`[#82]` `[#145]` `[#239]` `[#263]`)
+
+> **Landed 2026-08-17 by the window-close hygiene arc; re-lettered `(d)` → `(g)`.** Authored on
+> `worktree-lane-e-82-conversions` at 15:31 on 2026-08-16 (`f5c5e9dd`) and never merged — the batch-6
+> integration took `(d)` before it could land. Placed at the top of the 08-16 block as the newest
+> addition to the record, per newest-first prepend. Body below is the lane's own text, unaltered.
+
+**Did:** Committed the frozen CONTRACT-W2E as the contract of record (`77f5108d`, I-D3), then
+applied the wave-2 census conversion drafts (`docs/audits/2026-08-14-technical-w4-wave2-
+conversion-drafts.md`, landed on `main` by CONTRACT W2-0) to the four assigned ids — all four
+had been SKIPPED at W4a (`a4fc652d`) for lack of a P1/P2 draft in the original 2026-08-10 census.
+
+**Result:** All four ids verified `status: open` live. Each draft applied verbatim to the row's
+Done-when clause: `[#82]` gains a countable denominator via the ADR-104 `adr104-fleet-members`
+anchor (verified live, `docs/decisions/ADR-104-fleet-repository-shape.md:149-161`) — the draft's
+own "Open substitution" note flags this as a textual substitution if the operator later names
+another home; `[#145]` gains a filed `docs/audits/<date>-technical-*` artifact home; `[#239]`
+inlines "those methodology elements" as the three named classes (skills / commands / review-
+closure tooling), each verdictable via `scripts/enforcement_coverage.py` or a `[#239]`-naming
+`STANDING_RULINGS.md` section; `[#263]` inlines its two loci by key rather than by (already-
+drifted) line number. All cited referents (`scripts/enforcement_coverage.py`,
+`ecosystem/doc-code-edge.yaml`'s `mermaid_theme_directive` entry, both PLAYBOOK ESSENTIALS refs,
+the AI_COUNCIL_PROCESS ESSENTIALS ref) verified live before applying. `BACKLOG.md` +
+`tasks/manifest.json` regenerated in the same commit as the conversions (`gen_task_tree.py
+--emit-source`); `validate_backlog.py` OK (197 tasks, 1 pre-existing unrelated WARN on story S24).
+
+**Gotcha hit and recovered:** the step-0 contract commit's `audit-health` pre-commit run stashed
+this lane's then-unstaged task-file edits (`[[pre-commit-stash-drops-unstaged-across-commits]]`);
+a first commit attempt failed on `task_tree_coherence` (index/working-tree disagreement) and the
+retry stashed cleanly, then restored the edits intact on success. No content was lost — verified
+by diff before re-staging. Lesson: stage per-commit, never leave edits unstaged across a
+pre-commit run that itself takes multiple minutes (`[[hub-commit-exceeds-default-bash-timeout]]`).
+
+**Changes:** `docs/audits/2026-08-16-technical-82-conversions-lane-contract.md` (new, contract of
+record), `docs/audits/README.md` (regenerated), `tasks/{82,145,239,263}-*.md` (Done-when
+converted), `BACKLOG.md` + `tasks/manifest.json` (regenerated).
+
+---
+
 ### 2026-08-16 (f) — CC (Opus 5, branch `docs/batch6-close`): D-A executed; batch 6 closes
 
 **Did:** Executed architect ruling **D-A** — re-pointed the three `[#533]` oracle pins, layout-only
