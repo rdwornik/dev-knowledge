@@ -1,0 +1,12 @@
+---
+id: "[#551]"
+title: "Audit artifacts carry no `status:`, so a consumed audit is indistinguishable from a live one"
+status: open
+priority: P2
+size: S
+theme: "[E5] Canonical-file integrity"
+story: "[S14] Keep the day-to-day docs right-sized and current"
+generates: BACKLOG.md
+---
+
+- [#551] [P2][S] **Audit artifacts carry no `status:`, so a consumed audit is indistinguishable from a live one** — the smallest audit-corpus change consistent with **ADR-100** (*audit files are never physically moved, rolled up or compacted*): a `status:` frontmatter field on `docs/audits/*.md` with the closed enum **LIVE | CONSUMED | SUPERSEDED**, written by the batch-7a disposition ledger (`docs/audits/2026-08-17-technical-audit-disposition-ledger.md`, lane a of the same batch) as it dispositions each artifact, so the generated index can fold consumed evidence instead of listing every file forever. **Three boundaries, stated so this is not read as re-opening settled ground.** (i) It moves NO file: ADR-100 forecloses that, and ~78% of audit citations sit in immutable ADRs / append-only LESSONS / immutable transcripts that can never be re-pointed. (ii) It is NOT W4's rejected **R2(a)** — R2 was ruled 2026-07-22 to (b) archive-inside-each-folder for the corpora where a move is legal, and `docs/audits/` is precisely the corpus where ADR-100 forbids (b), which is why ADR-100 names the INDEX as its own remedy. (iii) It is NOT [#269], which owns the count-tiered index SHAPE; this row owns the per-file field that shape would read. Second-order value: the census's proposed `archival_residency` check excludes `docs/audits/**` partly for want of any status to read — a field gives that leg something to check without moving anything. · Done when: `docs/audits/*.md` carry a `status:` field with its closed enum stated at a canonical home, the index generator reads it, a CONSUMED artifact is visibly folded rather than flat-listed, the writer of the field is named, and the implementing commit restates the ADR-100 no-move invariant · refs ADR-100, docs/audits/2026-08-17-technical-audit-disposition-ledger.md, scripts/gen_audit_index.py, docs/audits/2026-08-16-census-nb6-archive-sweep.md, #269, #420 · kill-candidates: none — [#269] owns the index shape, not the per-file status field it would read, and no open row proposes any audit-corpus frontmatter change · source: docs/audits/2026-08-17-technical-batch-7a-lane-b-contract.md step 3

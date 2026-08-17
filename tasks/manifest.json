@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "f4f11c226c9a6d858fd20bc905db6b6fce8b9d0d219c283e2b6233ac03628b88",
+  "generated_sha256": "2394bb378d83908b1ae5df518eecfad0c68fd878d1c702ebc6c43e2c61ca1104",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -712,6 +712,10 @@
     {
       "task": 506,
       "file": "506-whole-set-p10-grooming-arc-full-open-set.md"
+    },
+    {
+      "task": 551,
+      "file": "551-audit-artifacts-carry-no-status-field.md"
     },
     {
       "prose": "---"
