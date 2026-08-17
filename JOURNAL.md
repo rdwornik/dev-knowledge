@@ -19,6 +19,45 @@
 
 ---
 
+### 2026-08-16 (g) — CC (Sonnet 5, lane `worktree-lane-e-82-conversions`): #82 conversions — 4 of 4 assigned Done-when rows mechanized (`[#82]` `[#145]` `[#239]` `[#263]`)
+
+> **Landed 2026-08-17 by the window-close hygiene arc; re-lettered `(d)` → `(g)`.** Authored on
+> `worktree-lane-e-82-conversions` at 15:31 on 2026-08-16 (`f5c5e9dd`) and never merged — the batch-6
+> integration took `(d)` before it could land. Placed at the top of the 08-16 block as the newest
+> addition to the record, per newest-first prepend. Body below is the lane's own text, unaltered.
+
+**Did:** Committed the frozen CONTRACT-W2E as the contract of record (`77f5108d`, I-D3), then
+applied the wave-2 census conversion drafts (`docs/audits/2026-08-14-technical-w4-wave2-
+conversion-drafts.md`, landed on `main` by CONTRACT W2-0) to the four assigned ids — all four
+had been SKIPPED at W4a (`a4fc652d`) for lack of a P1/P2 draft in the original 2026-08-10 census.
+
+**Result:** All four ids verified `status: open` live. Each draft applied verbatim to the row's
+Done-when clause: `[#82]` gains a countable denominator via the ADR-104 `adr104-fleet-members`
+anchor (verified live, `docs/decisions/ADR-104-fleet-repository-shape.md:149-161`) — the draft's
+own "Open substitution" note flags this as a textual substitution if the operator later names
+another home; `[#145]` gains a filed `docs/audits/<date>-technical-*` artifact home; `[#239]`
+inlines "those methodology elements" as the three named classes (skills / commands / review-
+closure tooling), each verdictable via `scripts/enforcement_coverage.py` or a `[#239]`-naming
+`STANDING_RULINGS.md` section; `[#263]` inlines its two loci by key rather than by (already-
+drifted) line number. All cited referents (`scripts/enforcement_coverage.py`,
+`ecosystem/doc-code-edge.yaml`'s `mermaid_theme_directive` entry, both PLAYBOOK ESSENTIALS refs,
+the AI_COUNCIL_PROCESS ESSENTIALS ref) verified live before applying. `BACKLOG.md` +
+`tasks/manifest.json` regenerated in the same commit as the conversions (`gen_task_tree.py
+--emit-source`); `validate_backlog.py` OK (197 tasks, 1 pre-existing unrelated WARN on story S24).
+
+**Gotcha hit and recovered:** the step-0 contract commit's `audit-health` pre-commit run stashed
+this lane's then-unstaged task-file edits (`[[pre-commit-stash-drops-unstaged-across-commits]]`);
+a first commit attempt failed on `task_tree_coherence` (index/working-tree disagreement) and the
+retry stashed cleanly, then restored the edits intact on success. No content was lost — verified
+by diff before re-staging. Lesson: stage per-commit, never leave edits unstaged across a
+pre-commit run that itself takes multiple minutes (`[[hub-commit-exceeds-default-bash-timeout]]`).
+
+**Changes:** `docs/audits/2026-08-16-technical-82-conversions-lane-contract.md` (new, contract of
+record), `docs/audits/README.md` (regenerated), `tasks/{82,145,239,263}-*.md` (Done-when
+converted), `BACKLOG.md` + `tasks/manifest.json` (regenerated).
+
+---
+
 ### 2026-08-16 (f) — CC (Opus 5, branch `docs/batch6-close`): D-A executed; batch 6 closes
 
 **Did:** Executed architect ruling **D-A** — re-pointed the three `[#533]` oracle pins, layout-only
