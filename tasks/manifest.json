@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "96d0f1d17c1fd512b7135745fa0aa8b3266cfa1434ffd389b5987329d8827771",
+  "generated_sha256": "81c28bd19bcd37a75d04616f23bdd645466cc532202b459e63fa2dd9117aaadb",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -1113,6 +1113,10 @@
     {
       "task": 537,
       "file": "537-disposition-token-is-a-done-when-branch-nothing-de.md"
+    },
+    {
+      "file": "555-closing-campaign-batch-1-kill-candidates-instrum.md",
+      "task": 555
     },
     {
       "prose": "## [E8] ARC-5 execution"
