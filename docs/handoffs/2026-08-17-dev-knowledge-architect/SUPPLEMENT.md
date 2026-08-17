@@ -1,0 +1,226 @@
+<!-- scope: meta -->
+# SUPPLEMENT — next-session plan · window closing 2026-08-17
+
+**Filled from the live tree, not from memory.** Every number here was re-derived at write time;
+where a figure disagrees with one carried in a prior artifact, this file says so and says which is
+right. Hand-authored per HANDOFF_PROCESS v6 — no generator placeholder regions, so
+`residual_completeness` has nothing to find.
+
+---
+
+## STATE
+
+```
+main                aee1b030   == origin/main, pushed, working tree clean
+gate                python scripts/audit.py health  ->  health: OK   (0 FAIL)
+suite               2 failed, 2968 passed, 3 skipped, 1 xfailed in 948.45s
+                    uv run --locked pytest -q --dist worksteal --max-worker-restart=0
+open rows           189        re-derived live from tasks/ frontmatter, NOT carried
+live rows           213        open 189 + deferred 24
+batches open        none       batch_manifest.open_batches('.') -> []
+worktrees           2          primary + lane-r-412-research-intake (a concurrent session's, NOT ours)
+stash               empty
+```
+
+### The two suite REDs, with owners
+
+| test | owner | state |
+|---|---|---|
+| `test_audit.py::test_routine_consumers_live_backlog_governs_exactly_one_row` | **owned** — the pin asserts exactly 1 routine row; live is now **3** | Moved 2 → 3 this window: `[#552]` is a new ADR-105 routine row, which the batch was explicitly told to birth. The pin is a live-corpus assertion, not a defect detector. |
+| `test_validate_doc_rot.py::test_live_corpus_has_no_accretion_arm_findings_only_length_findings` | **owned** — ARM 1 fires on `BACKLOG#293` (4 dates / 40d / 2864 chars) | Locus **moved** from `#428` (batch 6's record) to `#293`. The detector is right; the pin tracks a corpus that keeps changing. |
+
+**A third and fourth RED exist but are environmental and will appear intermittently.**
+`tests/test_reverse_dep_oracle.py::test_finding_headline_resolves_with_provenance` and
+`::test_main_finding_json_exit_zero` both `assert 3 >= 50` under xdist contention and **pass
+serially** (`-n 0` → `2 passed in 10.25s`, proven in this tree). They fired in the pre-merge
+baseline run (which was competing with three live lanes) and did not fire in the post-merge run.
+**Expect 2 REDs on a quiet box and up to 4 on a busy one.** Batch 6's record named only the first of
+the pair.
+
+### Carried WARNs — 7 classes, not 5
+
+```
+doc_rot                    31    (was 21 pre-window; +10 from this window's 17 new rows)
+undeclared_edges           18
+no_ff_merges                3    legacy June commits — never rewrite them
+review_artifact_coverage    2    advisory per the [#480] P3 ruling
+reconciled_versions         1    templates/CONTRIBUTING-md-template.md — a template placeholder
+journal_spine_anchor        1    advisory: anchored-by-mention, not by an 'Anchors:' record line
+git_backlog_drift           1    FALSE POSITIVE on #505 (see DRIFT FLAGS)
+```
+
+---
+
+## WHAT THIS WINDOW DID
+
+- Landed lane e's orphaned JOURNAL entry, tore down 12 worktrees, and landed 15 night-batch reports byte-faithful.
+- Opened batch 7a's manifest at dispatch — the second batch ever to meet `[#505]` leg 1, and the first to do it with a grammar check against live refs rather than intended names.
+- Dispatched three lanes, merged three, held none.
+- Disposed **80 audits**: ACTIONED 49, FILED 25, REJECTED 2, SUPERSEDED 2, PENDING 2.
+- Born **17 rows** — `[#534]`–`[#542]` and `[#546]`–`[#553]` — every id inside its lane's reserved block.
+- Produced a whole-tree north-star inventory: 78 items classified, each status evidence-backed.
+- Established that zero live ADRs carry a terminal status value, so the archival rule's target set is empty; filed the routine that fixes it as `[#552]`.
+- Closed batch 7a; the ADR-110 exemption expired by its own `closed_by:` contract with no edit to an immutable artifact.
+
+---
+
+## RESIDUAL — every open item with an owner
+
+| item | owner | note |
+|---|---|---|
+| 17 rows born this window | unassigned | `[#534]`–`[#542]`, `[#546]`–`[#553]`. Ranked below. |
+| `[#533]` leg 2 — parallel checks + `journal_anchor` memoization | unassigned | Leg 1 landed 16 of 43 checks in batch 6. Leg 2 is **unstarted**: `lru_cache` has zero sites in `scripts/` and `tests/`. |
+| `[#533]` seam re-point leg | unassigned | 25 of the remaining 27 checks are blocked on `tests/test_audit.py` monkeypatch seams; that file was read-only to batch 6's lane m. |
+| Lanes **l** and **y** | deferred twice | Dropped from batch 6 by ruling D-1v2, not dispatched in 7a. Their contracts are untouched in the operator's prompts dir. |
+| `[#531]` lane-grammar enforcement at provisioning | unassigned | Third occurrence and counting; see DRIFT FLAGS. |
+| `[#510]` exemption-vs-roster scoping | unassigned | **Now observed live, not theorised** — see DRIFT FLAGS. |
+| 49 earlier uncited audits | named list in the ledger §4 | Deliberately a list, not a row — lane a's contract said not to stall on them. |
+| 2 PENDING audit dispositions | named in the ledger with their exact questions | Undecidable against the live tree; each carries the question it needs answered. |
+| `lane-r-412-research-intake` | a concurrent session | 6 commits, unmerged, **not ours, not touched**. |
+| 7 reserved-but-unused ids | released | 543–545, 554–557. **Not** reserved forward; next-free derives from the tree and will find 554. |
+
+---
+
+## DRIFT FLAGS
+
+1. **`[#510]` is now an observed defect, not a predicted one.** A concurrent session's
+   `worktree-lane-r-412-research-intake` matches `LANE_BRANCH_RE` while batch 7a was open, so
+   merging it would have satisfied **both** ADR-110 exemption conditions though no manifest ever
+   enumerated it. The row predicts this is *"one `git branch -m` away"*; **no rename was needed** —
+   ordinary parallel work picked a conforming name. Raise the row's priority on this evidence.
+
+2. **`git_backlog_drift` on `#505` is a FALSE POSITIVE.** The cited commit `25ff8ec3` (2026-08-07)
+   says in its own subject *"3 rows filed, **0 closed** [#505] [#430]"*. The detector matches the
+   word near the id in prose. `#505` is legitimately open. Do not action it; do not "fix" the row.
+
+3. **`ARCHITECTURE.md:427` claims four `doc_rot` sub-detectors; the detector declares five.** Named
+   in batch 6's Owed list and never paid; re-found by lane a and now filed as `[#542]`.
+   `validate_doc_claims` checks 4 claims and this is not one of them, so nothing catches it.
+
+4. **Four open rows cite `scripts/audit.py` by dead line numbers.** `[#417]`'s pin `:4751-4760` is
+   past EOF (the file is 4271 lines after the `[#533]` decomposition). Filed as `[#534]`. Note that
+   `[#417]` is *simultaneously* proposed NOW-CLOSABLE by the closing campaign — resolve which
+   before acting on either.
+
+5. **`audit.py` loads as two distinct module objects in one process** (`audit` and `scripts.audit`).
+   A test can pass while exercising a module it never patched. Filed as `[#535]`. This is a
+   **vacuous-green** class — the most expensive kind, because it looks like coverage.
+
+6. **"Universalization" has no formal definition** anywhere across 87 ADRs, 36 intakes and 14
+   protocol/VISION/ARCHITECTURE files, despite organising five ADRs' worth of structure since
+   2026-04-28. Any plan item phrased as "universalization" inherits an undefined term.
+
+7. **Live-row arithmetic has two legitimate readings.** "196" (batch 6) and "172" (pre-window) were
+   both right: 196 = open + deferred, 172 = open only. This window: **189 open, 213 live.** State
+   which you mean.
+
+---
+
+## DO-NOT-REDERIVE
+
+- **The pre-merge suite baseline** is measured and recorded: `4 failed, 2966 passed` on `397cfdae`,
+  of which 2 owned + 2 xdist-contention. The serial re-run proving the pair environmental is done
+  (`2 passed in 10.25s`). Do not re-litigate whether they are real.
+- **The `[#533]` `lru_cache` question is settled.** `lru_cache`/`functools.cache`/`@cache` have zero
+  sites in `scripts/` and `tests/`. The row does **not** claim a landing — LEG 2 lists the
+  memoization as *scope of unstarted work*, and "NB3-D-measured" cites an analysis. **No defect in
+  the row.** Lane c's flagged evidence conflict is resolved; do not re-open it.
+- **Zero archival moves was correct.** The archival bar keys on `Superseded`/`Deprecated`, which
+  zero live ADRs carry. Do not re-run the sweep expecting a different answer; work `[#552]`.
+- **`claude --worktree` prefixes `worktree-` itself.** Pass the BARE name. Batch 6 lost the ADR-110
+  exemption on all 12 lanes to this; batch 7a passed 3 of 3 by passing bare names and verifying
+  against `git for-each-ref` rather than against intent.
+- **`idle/blocked` is not "done".** A background lane reports it while actively inferring. The
+  terminal signal is `state == 'done'`. A poller that treats idle-plus-unchanged-tip as done will
+  report a lane finished when it has only its contract commit.
+- **A stalled lane is resumable.** `claude stop <id>` then `claude --bg --resume <sessionId>`
+  preserves the conversation; a fresh dispatch does not.
+
+---
+
+## ORDERED PLAN
+
+Seeded from the architect's ruled priorities. **Order is preserved** — the tree contradicted the
+premises in two places, and both are recorded as annotations rather than as re-orderings, because
+what the tree contradicted was *whether an item is a row*, not *where it belongs*.
+
+| rank | row | title | size | what it unblocks | why this rank |
+|---|---|---|---|---|---|
+| **1** | `[#533]` leg 2 | Parallel check execution + `journal_anchor` memoization | **M** | Every commit in the repo. `audit-health` is a pre-commit gate, so its cost is paid on every single commit by every lane and the integrator. | The throughput lever. Verified unstarted (zero `lru_cache` sites). Batch 6 measured the workload **I/O-bound**, so `ThreadPoolExecutor` is indicated and the `ProcessPoolExecutor` condition is not met — that decision is already made. |
+| **2** | **NO ROW — file it first** | devcontainer + provisioning script (NB4-G stage 1, free Codespaces tier) | M | Every future lane's environment. The deliverable is the **SCRIPT**, not a working container on one machine. | Ranked 2 by the architect. **The tree contradicts the premise that this is rankable work: `devcontainer` and `Codespaces` appear zero times in any BACKLOG row body.** It is DECIDED-UNFILED. Smallest next step is to file it, then work it. |
+| **3** | `[#533]` seam leg → `[#531]` + lane l | Re-point `tests/test_audit.py` monkeypatch seams, then the two deferred lanes | M | **The other 27 checks.** 25 of them are blocked on exactly this seam class. | Strict dependency: lanes l and y have now been deferred twice and cannot land until the seam moves. Do not dispatch them before this. |
+| **4** | `[#529]` + `[#530]` | Telemetry v1 EMIT wiring · single-flight dispatch guard wiring | M + S | The repo's ability to answer "is this gate actually firing" from **data** rather than from prose. | Two finished libraries with **zero non-test call sites**. Smallest next step is one call site each. **⚠ The tree ranks this HIGHER:** lane c's independent evidence-backed inventory puts telemetry at **#1** on its honest top-10, on the grounds that every enforcement-coverage claim in the repo currently rests on manual witnessing. Surfaced, not silently re-ordered — the architect ranked by unblock value, lane c by cost to the operator. **This is the one ranking worth a deliberate second look.** |
+| **5** | **NO ROW — file it first** | Closing campaign batch 1, incl. the kill-candidates instrument | M | The only thing that shrinks the backlog. This window grew it 172 → 189. | Ranked 5 by the architect. **The tree contradicts rankability again:** "closing campaign" appears exactly once in `BACKLOG.md`, inside `[#534]`'s body as a mention; no row owns it. File it first. |
+| **6** | the 17 new rows | `[#534]`–`[#542]`, `[#546]`–`[#553]` | mostly **S** | Assorted; three are correctness-class. | Ranked among the above by size and unblock value. **Take `[#535]` early despite its rank** — the dual-module-identity defect is a vacuous-green class, and a test that passes while asserting nothing is worse than a failing one. `[#542]` and `[#534]` are both S and both close a documented-wrong claim. |
+| **7** | `[#538]` | The NB4-C PLAYBOOK 12-act arc — twelve paste-ready acts, none landed | **M** | Operator-facing process documentation. | Born this window by lane a. Any subset may be ruled; it is paste-ready, so it is cheap to start and cheap to stop. |
+| **8** | see lane c §B | Universalization / Codex readiness | L | Consumer repos. | **Blocked on a definition that does not exist** (drift flag 6). Concrete sub-items that are ready now: 2 of 5 registered consumers (`corp-ops`, `win-tooling`) consume nothing from the hub — the smallest next step is running the floor-deploy carrier once against each. |
+
+**Also unowned and older than anything above**, from lane c's DECIDED-UNFILED ranking: the
+**dev-knowledge-kernel package** and the **shared GitHub reusable workflow**, both ACCEPTED by
+intake on 2026-08-05 and unfiled for **12 days**. They are the two largest structural commitments in
+the intake corpus. Neither appears in the seeded priorities.
+
+---
+
+# OPERATOR VIEW
+
+*Plain language. No process vocabulary.*
+
+## What changed for you this window
+
+You had 566 audit reports sitting in a folder and no way to tell which ones had been acted on. Now
+80 of them — the recent ones and the ones nobody had ever cited — each carry a verdict: already
+done, now owned by a numbered task, deliberately declined, or replaced by something newer. Two were
+genuinely undecidable, and rather than guess, they're written down with the exact question each one
+needs. Forty-nine older ones are listed by name as a follow-on, so they're visible rather than
+forgotten.
+
+Three of those reports turned out to describe problems that are still real and that nobody owned.
+The most serious: a core file in this repo gets loaded twice under two different names, which means
+a test can pass while checking a copy it never actually touched. That's the kind of bug that makes
+you trust a green result you shouldn't. It now has an owner.
+
+You also have, for the first time, a single document that lists every tool and idea this repo has
+ever named — 78 of them — and says for each one whether it's actually running, built but never
+switched on, someone's assigned job, decided-but-forgotten, tried-and-rejected, or just mentioned
+once. It's built from evidence: "running" means there's a line of code that calls it, and the
+document shows you that line.
+
+Two things it found are worth your attention. Telemetry and one other tool are completely built and
+connected to nothing — finished work sitting idle. And the word "universalization", which five major
+decisions are organised around, has never actually been defined anywhere.
+
+Seventeen new tasks were created. The backlog got bigger, not smaller. That was the point of this
+window — turning vague findings into specific owned work — but it does mean the next window should
+be about finishing things, not finding more.
+
+## What you will see after the next window
+
+Commits should get noticeably faster. Right now every single commit runs a full checking pass, and
+that pass does the same expensive work over and over. The top-ranked job is to run those checks
+side by side and stop repeating the expensive part. You'll feel this every time you commit.
+
+You should also be able to ask "is this safety check actually running?" and get an answer from
+recorded data instead of someone reading the code and telling you. The machinery for that is
+already built; it just needs to be plugged in.
+
+And roughly two dozen checks that currently can't be worked on in parallel should become workable,
+because the thing blocking them is a single shared file that needs untangling first.
+
+## Three things that still will not exist
+
+1. **A way to work on this from another machine.** There's a plan for it and a costed set of
+   options, but no script, and — this is the honest part — it isn't even written down as a job yet.
+   Someone has to write it down before anyone can do it.
+
+2. **A dashboard.** There's still no single screen showing you whether everything is healthy. The
+   data format it would read has been built. Nothing reads it. You will still be running a command
+   and reading text.
+
+3. **A shrinking backlog.** Nothing scheduled shrinks it. This window grew it from 172 to 189 open
+   items. The work that would close things out in bulk has been discussed repeatedly and, like the
+   first item, was never actually written down as a job — so it keeps not happening.
+
+The pattern behind items 1 and 3 is worth naming: **the two most useful things on your list have no
+owner because nobody ever filed them.** The oldest examples are twelve days old and were formally
+accepted at the time. That is the single cheapest thing to fix next — filing costs minutes.
