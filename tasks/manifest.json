@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "47c384885ae2ef178d7d1a4bbcb21a4156c7d2662398d3e15e7ac72bdb62438b",
+  "generated_sha256": "a9893b73206ebeee3693662b9e5a58ebbad295a036a0fde0c3fb10e5c3e3c5f0",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -243,6 +243,14 @@
     {
       "task": 533,
       "file": "533-decompose-the-audit-py-check-monolith-into-scrip.md"
+    },
+    {
+      "task": 534,
+      "file": "534-audit-py-line-locators-on-four-open-rows-died-at-t.md"
+    },
+    {
+      "task": 536,
+      "file": "536-the-arm-2-row-length-pile-has-no-owner-and-the-con.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
@@ -578,6 +586,10 @@
       "prose": ""
     },
     {
+      "task": 538,
+      "file": "538-the-nb4-c-playbook-gap-arc-twelve-paste-ready-acts.md"
+    },
+    {
       "prose": "## [E4] Decision management"
     },
     {
@@ -667,6 +679,10 @@
     },
     {
       "prose": ""
+    },
+    {
+      "task": 542,
+      "file": "542-architecture-md-still-claims-four-doc-rot-sub-dete.md"
     },
     {
       "prose": "### [S14] Keep the day-to-day docs right-sized and current"
@@ -924,6 +940,14 @@
       "prose": ""
     },
     {
+      "task": 539,
+      "file": "539-gen-lane-contract-py-assembly-not-generation-with.md"
+    },
+    {
+      "task": 540,
+      "file": "540-harvest-batch-py-read-the-board-then-fetch-packets.md"
+    },
+    {
       "prose": "### [S19] Decide the undecided artifact/tool models"
     },
     {
@@ -978,6 +1002,14 @@
     {
       "task": 502,
       "file": "502-mutmut-mutation-testing-evaluation-ci-hosted.md"
+    },
+    {
+      "task": 535,
+      "file": "535-audit-py-has-two-module-identities-in-one-process.md"
+    },
+    {
+      "task": 541,
+      "file": "541-scale-out-substrate-decision-unowned-after-two-rep.md"
     },
     {
       "prose": "### [S20] Revive the nightly layer, load-gauge first (rent-rule discipline)"
@@ -1041,6 +1073,10 @@
     },
     {
       "prose": ""
+    },
+    {
+      "task": 537,
+      "file": "537-disposition-token-is-a-done-when-branch-nothing-de.md"
     },
     {
       "prose": "## [E8] ARC-5 execution"
