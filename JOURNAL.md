@@ -19,6 +19,67 @@
 
 ---
 
+### 2026-08-17 (c) — CC (Opus 5, branch `docs/batch-7a-close`): batch 7a integrates — 3 lanes merged, 17 rows born, the audit pile-up gets a ledger
+
+**Did:** Ran batch 7a end-to-end as one seat — head, dispatch, poll, harvest-review, serial
+integration and close. Merge queue drained in the ruled order c, a, b. Wrote the closing packet,
+which expires the ADR-110 exemption by its own `closed_by:` contract with no edit to an immutable
+artifact.
+
+**Anchors:** `7a5f2e1d` (lane c, the north-star inventory census) · `fe6200bf` (lane a, the audit
+disposition ledger + 9 births) · `99ec4b19` (lane b, ADR/intake currency + 8 births). All three are
+introduced by this arc's merge to `main`, which cannot name its own hash.
+
+**Result:** `2 failed, 2968 passed, 3 skipped, 1 xfailed in 948.45s` — **exactly the two known owned
+REDs, nothing new**; `audit.py health` OK after each of the three merges and at close, with **zero
+new WARN classes**. Rows 172 → 189 open (213 live incl. deferred); births `[#534]`–`[#542]` and
+`[#546]`–`[#553]`, every id inside its lane's reserved block, 7 reserved ids deliberately unused.
+Lane a disposed **80 audits — ACTIONED 49 · FILED 25 · REJECTED 2 · SUPERSEDED 2 · PENDING 2**. Lane
+b executed **zero archival moves and was right to**: the existing archival bar keys on
+`Superseded`/`Deprecated` status values that **zero live ADRs carry because nothing writes them**, so
+the terminal set is empty by the rule's own terms — filed as `[#552]`, the recurring routine, rather
+than worked around. Lane c found **"universalization" has no formal definition anywhere** across 87
+ADRs and 36 intakes despite organising five ADRs since April. Zero `--no-verify`, zero `SKIP=`, by
+any lane or the integrator.
+
+**Three things worth carrying forward, none of them comfortable:**
+
+1. **A pre-merge baseline suite is what made honest-RED checkable.** Measured before any merge:
+   4 failed, not 2 — the two owned plus a pair in `test_reverse_dep_oracle.py` that fails only under
+   xdist contention and **passes serially (`2 passed in 10.25s`), proven in this tree rather than
+   inherited from batch 6's record**, which named only one of the pair. Without that measurement the
+   post-merge 2-RED result would have looked like an improvement nobody could explain.
+
+2. **My own baseline WARN tally was wrong, and the packet carries the correction.** I recorded five
+   carried WARN classes in the manifest; there were seven. `reconciled_versions` and
+   `git_backlog_drift` both sit at count 1, my tally was `head -25`-truncated, and I read their
+   absence from a printout as absence from the tree. Caught by checking `397cfdae` out into a
+   scratch worktree and re-running the gate there. Two pre-existing WARNs would otherwise have been
+   reported as damage this batch caused.
+
+3. **`[#510]` is now observed rather than theorised.** A concurrent session's
+   `worktree-lane-r-412-research-intake` — 6 commits, not part of this batch — matches
+   `LANE_BRANCH_RE` while batch 7a is open, so merging it would satisfy **both** ADR-110 exemption
+   conditions though no manifest ever enumerated it. The row predicts this is *"one `git branch -m`
+   away"*; **no rename was needed**. Left untouched, and it is why the refuse-to-finish item
+   *"worktree list == primary only"* is recorded as an honest exception instead of being forced.
+
+**Also on the record:** lane a stalled 41 minutes on an `API Error: 529` and was **resumed, not
+restarted**, preserving its context; the first poller's `idle + unchanged tip` DONE heuristic
+**false-positived on that stall** and was corrected to `state == 'done'` before it merged anything;
+and the 2h30m cap was extended by **exactly the 41 minutes measured**, a disclosed deviation, inside
+which lane a finished with 18 minutes to spare.
+
+**Changes:** `docs/audits/2026-08-17-technical-batch-7a-packet.md` (new, CLOSES the batch);
+`docs/audits/2026-08-17-technical-audit-disposition-ledger.md`,
+`docs/audits/2026-08-17-census-north-star-inventory.md` and the three lane contracts (landed by the
+merges); `BACKLOG.md`, `tasks/` (+17 rows), `tasks/manifest.json`, `docs/audits/README.md`.
+
+**Abandoned:** nothing. 0 lanes held, 0 timed out.
+
+**Next:** the §D supplement with the ranked next-session plan and the operator view, then teardown of
+the three merged lanes only.
+
 ### 2026-08-17 (b) — CC (Opus 5, branch `chore/batch-7a-dispatch`): batch 7a opens — the manifest lands before a single lane branch exists
 
 **Did:** Ran §A of `SESSION-CLOSE-BATCH-7A.md` as the batch head from the primary checkout, in its
