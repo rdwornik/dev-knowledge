@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "4160a61eea960057bb0c5d4c1cdb190ad74b65761a062d4fdea50178cac2433e",
+  "generated_sha256": "7cc85c37e7a2cccc9a488febd528220067e65da2c4e65b79c4bad30e9e774e03",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -247,6 +247,10 @@
     {
       "task": 534,
       "file": "534-audit-py-line-locators-on-four-open-rows-died-at-t.md"
+    },
+    {
+      "task": 536,
+      "file": "536-the-arm-2-row-length-pile-has-no-owner-and-the-con.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
