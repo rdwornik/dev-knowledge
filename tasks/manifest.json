@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "8c95c8d955bf2d77970c437c6b53606743b5741f8cc5b2cf7b1003248517244c",
+  "generated_sha256": "3b6655f023aaea6cabaa50ab1cf37cf0bc767029c2625f38c97f62b2c5f03438",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -679,6 +679,10 @@
     },
     {
       "prose": ""
+    },
+    {
+      "task": 542,
+      "file": "542-architecture-md-still-claims-four-doc-rot-sub-dete.md"
     },
     {
       "prose": "### [S14] Keep the day-to-day docs right-sized and current"
