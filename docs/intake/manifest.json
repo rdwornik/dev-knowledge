@@ -3,12 +3,12 @@
   "direction": "derived-from",
   "source": "docs/intake/README.md",
   "generator": "scripts/gen_intake_tree.py",
-  "source_sha256": "267e3dcb0d6736990fb8b6b845a4c8bcf8a73eb3e9ee44d4342b2b1a2e022ed2",
+  "source_sha256": "7a07e0d489f300f6be316c917c8322385b37f0af3bd8569aa29f0a2553fae777",
   "honest_limit": {
     "statement": "ADR-109 section 4 is discharged by a byte-exact round-trip plus a residue manifest, NOT by a derivation ratio. This surface's ratio is INVERTED relative to surface 1 (BACKLOG.md <-> tasks/), where task lines were the majority and residue the minority. Recorded so the generality claim is honest about what was shown.",
-    "item_derived_lines": 33,
+    "item_derived_lines": 34,
     "residue_lines": 238,
-    "total_lines": 271,
+    "total_lines": 272,
     "surface_1_comparison": "inverted -- surface 1 was majority item-derived"
   },
   "not_captured": {
@@ -187,6 +187,11 @@
         "note",
         "origin"
       ],
+      "2026-08-17-tech-off-machine-agent-substrate.md": [
+        "consumers",
+        "note",
+        "origin"
+      ],
       "2026-08-17-tech-repository-autonomy-and-gate-liveness.md": [
         "consumers",
         "note",
@@ -270,7 +275,7 @@
     },
     {
       "t": "line",
-      "v": "**33 intake documents.**"
+      "v": "**34 intake documents.**"
     },
     {
       "t": "line",
@@ -340,7 +345,7 @@
     },
     {
       "t": "line",
-      "v": "### DRAFT (8)"
+      "v": "### DRAFT (9)"
     },
     {
       "t": "line",
@@ -384,6 +389,11 @@
     {
       "t": "item",
       "file": "2026-08-17-tech-fleet-config-standardization.md",
+      "status": "DRAFT"
+    },
+    {
+      "t": "item",
+      "file": "2026-08-17-tech-off-machine-agent-substrate.md",
       "status": "DRAFT"
     },
     {
