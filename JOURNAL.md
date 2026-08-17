@@ -19,6 +19,46 @@
 
 ---
 
+### 2026-08-17 (b) — CC (Opus 5, branch `chore/batch-7a-dispatch`): batch 7a opens — the manifest lands before a single lane branch exists
+
+**Did:** Ran §A of `SESSION-CLOSE-BATCH-7A.md` as the batch head from the primary checkout, in its
+ruled order: verify `main`, derive the next free id, reserve two disjoint blocks, open the manifest,
+split §B into three frozen contracts, and check the lane grammar against the branches git will
+actually create — all before provisioning anything.
+
+**Anchors:** `f72541c1` (the batch-7a manifest), introduced by this arc's merge to `main`, which
+cannot name its own hash.
+
+**Result:** `main` verified `== origin/main` at `4154b61f`, clean tree, one worktree, empty stash.
+`batch_manifest.open_batches('.')` → `[]` — batch 6 is closed and no exemption is inherited. Next
+free id derived as **534** from four independently agreeing sources (`tasks/` filenames,
+`BACKLOG.md`, `git log --all`, `JOURNAL.md`, all max 533) with the documented synthetics excluded
+per precedent `c2f10440` — `[#777]`, `[#999]`, the `[#900-905]` and `[#715-721]` test fixtures, the
+`[#999999]` documentation example and `[#6235]` (a GitHub issue number, not a backlog id). Reserved
+**534–545** to lane a and **546–557** to lane b, disjoint, zero clash with any real id; lane c
+births nothing. `LANE_BRANCH_RE` 3/3 PASS. 3×3 OWNED-FILES matrix: **0 collisions in 3 pairs**.
+Process-lane cap `floor(3/4)=0`, declared 0, within cap. `audit.py health` → **OK**, 0 FAIL, with
+the carried WARNs (doc_rot 21 · undeclared_edges 18 · no_ff_merges 3 · review_artifact_coverage 2 ·
+journal_spine_anchor 1 advisory) recorded in the manifest as the baseline every later reading is
+measured against.
+
+**The one thing worth carrying forward:** the grammar check is shaped around batch 6's AMENDMENT 2
+defect. `claude --worktree <name>` prefixes `worktree-` itself, so passing the intended *branch*
+name produced `worktree-worktree-lane-…` across all twelve batch-6 lanes and silently forfeited the
+ADR-110 exemption on every one of them — the check had passed on the wrong input. This roster
+passes the **bare** name and checks both the input (`LANE_WORKTREE_RE`) and the output
+(`LANE_BRANCH_RE`), and the packet re-checks against **live refs** after provisioning rather than
+against intent. `[#531]` — enforcement at provisioning — remains open and undispatched.
+
+**Changes:** `docs/audits/2026-08-17-technical-batch-7a-manifest.md` (new, opens the batch);
+`docs/audits/README.md` (regenerated index).
+
+**Abandoned:** nothing.
+
+**Next:** provision the three worktrees with bare names, dispatch a/b/c, then §C serial integration
+in order c → a → b and §D supplement. The batch stays open until
+`docs/audits/2026-08-17-technical-batch-7a-packet.md` is committed.
+
 ### 2026-08-17 (a) — CC (Opus 5, branch `chore/window-close-hygiene`): window close — lane e's orphan lands, 12 worktrees torn down, 15 night-batch reports landed byte-faithful
 
 **Did:** Executed the window-close full-hygiene brief as one arc from the primary checkout, in its
