@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "7cc85c37e7a2cccc9a488febd528220067e65da2c4e65b79c4bad30e9e774e03",
+  "generated_sha256": "8c95c8d955bf2d77970c437c6b53606743b5741f8cc5b2cf7b1003248517244c",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -584,6 +584,10 @@
     },
     {
       "prose": ""
+    },
+    {
+      "task": 538,
+      "file": "538-the-nb4-c-playbook-gap-arc-twelve-paste-ready-acts.md"
     },
     {
       "prose": "## [E4] Decision management"
