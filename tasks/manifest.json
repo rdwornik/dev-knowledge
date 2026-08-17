@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "47c384885ae2ef178d7d1a4bbcb21a4156c7d2662398d3e15e7ac72bdb62438b",
+  "generated_sha256": "4160a61eea960057bb0c5d4c1cdb190ad74b65761a062d4fdea50178cac2433e",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -243,6 +243,10 @@
     {
       "task": 533,
       "file": "533-decompose-the-audit-py-check-monolith-into-scrip.md"
+    },
+    {
+      "task": 534,
+      "file": "534-audit-py-line-locators-on-four-open-rows-died-at-t.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
