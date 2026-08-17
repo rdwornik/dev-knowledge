@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "febc9b7329054b958e78c26a3593e24fab2f5180912048c49aa03d193adb6ba7",
+  "generated_sha256": "09d59bca234170ce9d6e5fb356091ce16c0f974003169dc166a449558e900da7",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -720,6 +720,10 @@
     {
       "task": 551,
       "file": "551-audit-artifacts-carry-no-status-field.md"
+    },
+    {
+      "task": 553,
+      "file": "553-adr-census-in-decisions-readme-is-ungated-and-wrong.md"
     },
     {
       "prose": "---"
