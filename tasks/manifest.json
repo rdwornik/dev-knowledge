@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "5f4cc4920e2aac080fbe7deb105d121fd2294f904d3497b172920846e80083f6",
+  "generated_sha256": "96d0f1d17c1fd512b7135745fa0aa8b3266cfa1434ffd389b5987329d8827771",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -978,6 +978,10 @@
     {
       "task": 540,
       "file": "540-harvest-batch-py-read-the-board-then-fetch-packets.md"
+    },
+    {
+      "file": "554-devcontainer-provisioning-script-nb4-g-stage-1.md",
+      "task": 554
     },
     {
       "prose": "### [S19] Decide the undecided artifact/tool models"
