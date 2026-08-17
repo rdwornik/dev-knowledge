@@ -703,6 +703,47 @@ a second registry (fleet-exceptions.yml style)  REJECT here -- intake #38 R19's 
 
 ---
 
+## §9 · Amendment 2026-08-17 (same session, appended per CLAUDE.md §5 rule 3 — the text above stands as written)
+
+**A fourth organ was silenced by the uv pin, and it was this lane's own session-end gate.** §8 item 5
+listed the pre-commit mesh and `audit.py health`; the list was incomplete, and the missing entry
+arrived after the report was committed. At Stop, the ADR-85 backpressure hook fired and could not run:
+
+```
+[uv run --locked python "$CLAUDE_PROJECT_DIR/scripts/session_end_backpressure.py"]:
+error: Required uv version `==0.11.19` does not match the running version `0.8.17`.
+```
+
+This matters beyond one more instance, for two reasons.
+
+1. **It is the class adoption-ledger item 36 already annotates, witnessed a further time on the cloud
+   channel.** That annotation records "THREE organs silenced by the uv pin, **the third an unbidden
+   fail-open Stop hook**". This is that third class, recurring — and the recurrence is now on a
+   *remote* channel rather than the operator's host, which is the surface intake #32 and [#501] both
+   reason about.
+2. **It sharpens ADR-85 §A5's own argument rather than contradicting it.** §A5 retired the Stop hook's
+   hard leg on the reasoning that "an organ that can be exhausted cannot carry teeth". The evidence
+   here is adjacent and worse: on this channel the organ cannot *start*. An advisory organ that fails
+   loudly is behaving correctly — it printed rather than passing silently — but the ADR-106 pin means
+   the cloud channel has no session-end surfacing at all, which is a coverage fact the ARCHITECTURE
+   Ch2 failure-posture table does not currently state.
+
+**What this leaves owed, stated precisely so nothing is assumed discharged:**
+
+- **Nothing was bypassed.** `scripts/block_unanchored_push.py:20` is explicit — "A push that does not
+  target `main` is not this organ's business" — and this lane pushed to
+  `claude/nb7-instrument-verdict-8yw1a2`. The ADR-85 hard leg never applied.
+- **The JOURNAL anchor is owed at merge, not here.** Discharge is range-level, so it is the
+  integrator's act at the `--no-ff` merge to `main`, on the same lane precedent `CLAUDE.md` §12 v2.57
+  and v2.60 record for owed roster rows: a lane keeps its footprint out of a high-collision living
+  file, and the debt is paid at the merge — the point at which the spine entry it anchors exists.
+  This lane deliberately writes no `JOURNAL.md` entry.
+- **Working tree is clean** (`git status --short` empty), satisfying `.claude/rules/git-discipline.md`.
+
+No claim in §0–§8 changes. This amendment adds one witness and one owed-item statement.
+
+---
+
 **Final metric line —** gap requirements **5** · existing machinery **17 organs** · verdict instrument
 **the decision-carrier ledger** = Part A pinned horizon + [#551]'s audit `status:` (~0 new code) ·
 Part B `check_decision_carriers` (4 legs, ~180 lines) · Part C `ecosystem/lifecycle-ledger.md` +
