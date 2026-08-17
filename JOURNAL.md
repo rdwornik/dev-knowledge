@@ -19,6 +19,72 @@
 
 ---
 
+### 2026-08-17 (g) — CC (Opus 5, branch `docs/handoff-p0c-repair`): P0c caught its own author's bundle — the `-3` repair, and three findings filed
+
+**Did:** Ran `/handoff-verify` against the `-2` architect bundle I had generated an hour earlier in
+this same session. **It FAILED on P0c** — the bundle's own Purpose named no live standing authority
+— which blocked onboarding. Regenerated a `-3` sibling amending ONLY the Purpose, and filed the
+three other findings the gate surfaced as `[#556]`, `[#557]`, `[#558]`.
+
+**Anchors:** `69baa399` (the three filed rows), a commit this branch's own merge introduces.
+
+**THE FINDING WORTH KEEPING, and it is about the probe rather than about me.** P0c asks a narrow
+mechanical question: does this bundle's Purpose **NAME** at least one authority that the live
+P0a/P0b enumeration contains — an `[E#]` theme or an ACCEPTED intake? My Purpose was accurate,
+specific and readable. It named `[#533]`, `[#529]`, `[#530]`, `[#554]`, `[#555]` and the DRAFT
+intakes #35–#39. It named **zero** authorities: no `[E#]` id or label, and #35–#39 are
+`status: DRAFT`, deliberately outside P0b's ACCEPTED set. Tested mechanically — substring of every
+theme id, theme label and ACCEPTED title against the Purpose text — **MATCHES: NONE**. So the
+reconciliation-against-standing-authorities step that P0 exists to force had simply not happened,
+and nothing about reading the Purpose would have told you that: it *reads* like a purpose that has
+been reconciled.
+
+**This is the fourth catch of a rule that had failed three windows silently.** The probe manifest
+says P0 was mechanized precisely because the §13 prose rule *"failed three consecutive windows — a
+rule with no probe has no teeth"*. It has now caught a fifth-window instance, and the instance was
+produced **by the same session that ran the gate**, minutes apart, with full context loaded. That is
+the part to generalize: **an author cannot self-check a name-match, because the author knows what
+the Purpose means and the probe only asks what it says.** Intent is invisible to a substring test,
+and that is the feature — a Purpose that means the right thing but names nothing cannot be
+reconciled by any later reader either. **LESSONS-promotion candidate** (operator flagged): *a
+generated artifact must be run through its own gate before it is called done; producing it and
+verifying it are different acts even inside one session.*
+
+**The repair is a new sibling, not an edit.** `-2` is committed and pushed, and handoffs are
+immutable (§5 rule 3), so the fix is a regenerated `-3`. Cut from the same committed `883618e5`
+state, and the "amend only the Purpose" constraint was enforced **mechanically rather than by
+careful retyping**: the six non-Purpose regions were transplanted byte-identical out of `-2` and
+the script asserted `non-purpose regions differing from -2: NONE` before writing. The SUPPLEMENT
+ANSWERS region was likewise byte-compared against `-2` and is identical. The new Purpose names
+exactly the two authorities the operator specified — `[E7] Tooling & evaluation` and the ACCEPTED
+intake *"Parallel multi-agent execution system — batch protocol as versioned repo artifacts"* — and
+no others; re-tested before commit: **P0c PASS**. `-3` is now newest by git add-date, so
+`_select_active_bundle` resolves boot to it.
+
+**The other three findings are FILED, not fixed** — the operator's instruction, and the right shape
+for each. `[#556]` `[#505]` closed-but-present (probes P4 + P10): closed by `25ff8ec37`, still in
+`BACKLOG.md`, record still `status: open`. `[#557]` three `[stale]` dispositions matching no live
+WARN (probe P7) — the row records that *remove* and *re-point* are different verdicts, because
+removing a re-pointable entry would silently un-disposition a live finding. `[#558]` `VISION.md:15`
+still calling `scripts/` read-only (probe P1a) — **the third site of a claim `CLAUDE.md` corrected
+twice**, and both of those entries had recorded fleet-wide drift as reaching *0 sites*, which means
+the sweep was scoped to `CLAUDE.md` alone. A drift count is only as wide as the files it looked at.
+
+**Result:** `-3` bundle: `verify_handoff_probes` 14/14 pass; P0c re-tested PASS before commit.
+Rows: 215 → 218, `validate_backlog` OK. **Reported against my own work:** the three new rows each
+exceed `doc_rot`'s declared row-length ceiling, so this session has now added **five** findings to
+that class — compounding rather than resolving the ceiling-versus-practice decision already
+escalated in the residual. Trimming would have cost `[#557]`'s remove-vs-re-point distinction and
+`[#558]`'s scoped-sweep finding, so it is surfaced again rather than absorbed.
+
+**Changes:** `docs/handoffs/2026-08-17-dev-knowledge-architect-3/` +5 generated files · `tasks/` +3
+rows + `manifest.json` · `BACKLOG.md` regenerated · JOURNAL this entry.
+
+**Abandoned:** Nothing. `-2` is left exactly as committed — superseded, not edited, and still the
+honest record of what was shipped and what the gate caught.
+
+**Next:** `/handoff-verify` against `-3` for the evidence block the operator pastes.
+
 ### 2026-08-17 (f) — CC (Opus 5, branch `docs/window-close-final`): window close — two births, the plan amended to priority order v2, and the seat handoff run by the book
 
 **Did:** Closed the window on one branch: births `[#554]` and `[#555]`, the 08-17 supplement amended
