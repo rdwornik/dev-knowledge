@@ -27,7 +27,9 @@ FLAGS, DO-NOT-REDERIVE, the ordered plan, and a plain-language OPERATOR VIEW pag
 re-derived live at write time; nothing carried.
 
 **Anchors:** `6cfde8d9` (the batch-7a closing packet + entry (c), the commit that merge `aee1b030`
-introduced).
+introduced) · `8b3efc18` (this arc's own supplement + journal commit, named here so THIS arc's
+merge is anchored by a SHA it actually introduces — the rule the rest of this entry is about,
+applied to itself rather than merely described).
 
 **THE DEFECT THIS ENTRY REPAIRS, because it is a rule about how anchoring actually works and I got
 it wrong twice.** `is_anchored(M)` is true iff JOURNAL names ≥1 SHA in `introduced(M)` — the merge
