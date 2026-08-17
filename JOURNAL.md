@@ -19,6 +19,59 @@
 
 ---
 
+### 2026-08-17 (e) — CC (Opus 5, branch `docs/window-close-final`): lane r integrates — 5 research artifacts, intakes #35-#39, and the last lane worktree torn down
+
+**Did:** Integrated the final batch-7a-adjacent lane, `worktree-lane-r-412-research-intake`, from
+the primary checkout, then tore its worktree and branch down. New-files-only lane: 5 EXTERNAL
+EVIDENCE browser-research artifacts into `docs/archive/`, intakes #35-#39 into `docs/intake/` all
+at `status: DRAFT`, and the lane's own contract of record into `docs/audits/`.
+
+**Anchors:** `c0c7a24a` (the lane-r `--no-ff` merge, made on THIS branch and therefore a commit
+this branch's own merge introduces — the entry-(d) rule applied rather than restated) · `13f3d01f`
+(lane r's tip, brought in by that merge).
+
+**THE SHAPE, and why the lane was NOT merged straight onto main.** `check_journal_spine_anchor`
+scans `main` **per-entry**, unlike the pre-push organ's any-of-range discharge. Merging lane r
+directly onto main would therefore put an unanchored spine entry on main the moment the merge
+landed, and `audit-health` is a **pre-commit** gate — so the very next commit, including the
+JOURNAL commit that would have anchored it, gets wedged. The recorded escape from that corner is a
+declared `SKIP=audit-health`, which this arc was told not to use. So the whole window-close runs on
+one branch: lane r merged HERE, and main receives exactly ONE spine entry at the end, carrying this
+JOURNAL entry inside it. No gate skipped, no bypass, nothing to unwind.
+
+**The conflict was resolved by regeneration, not by hand.** `docs/audits/README.md` is a generated
+index and both sides added a 2026-08-17 row plus a different document count (572 vs 567). Hand-
+merging a generated file produces a result no generator would emit, so the new audit was staged
+first — `gen_audit_index.py` reads **tracked** files, so an unstaged addition is silently omitted —
+and the index regenerated: 573 = 572 + 1, both 08-17 rows present, zero conflict markers. The other
+two surfaces, `docs/intake/README.md` and `docs/intake/manifest.json`, came back **byte-identical**
+to what the lane had committed, which is the evidence that the lane ran its own two intake
+generators rather than only one.
+
+**Teardown was not forced.** The worktree carried a lock naming `pid 41580`; the escalation ladder
+says check the pid for liveness before touching a lock, and that process was dead, so the lock was
+stale rather than a live session. The lane tree was also clean — nothing uncommitted to lose. Unlock
+→ remove → prune → `git branch -d` (containment in HEAD verified first, so `-d` was a real ancestry
+test rather than a formality). `git worktree list` is now primary-only and
+`git branch --list 'worktree-lane-*'` is empty.
+
+**Result:** `audit.py health` **OK** on the merged tree — `task_tree_coherence` OK,
+`intake_tree_coherence` OK (272 nodes), `silent_rule_ratchet` 440 ≤ baseline 441. Pre-commit ran in
+full on the merge (a *conflicted* merge does fire `pre-commit`, unlike a clean one which runs
+commit-msg hooks only): `block-commit-on-main`, `audit-index-freshness`, `validate-hermetization`,
+`audit-health`, `backlog-id-on-close` and `backlog-filing-backpressure` all passed.
+
+**Changes:** `docs/archive/` +5 · `docs/intake/` +5 intakes, README + manifest.json regenerated ·
+`docs/audits/` +1 contract, README regenerated · JOURNAL this entry.
+
+**Abandoned:** Nothing. `[#412]` is **referenced, not closed** — its Done-when also requires a
+routing doctrine in `protocols/PLAYBOOK.md`, which this lane did not deliver, so claiming the close
+would have been false. Intakes #35-#39 stay DRAFT: ratification into ADRs + rows is next-window
+work, not something an integrator grants itself.
+
+**Next:** Two architect-authorized births, the priority-table correction to the 08-17 supplement,
+and the seat handoff — all on this same branch, ahead of one `--no-ff` merge to main.
+
 ### 2026-08-17 (d) — CC (Opus 5, branch `docs/batch-7a-supplement`): the next-session plan, and an anchoring defect the gate caught
 
 **Did:** Wrote `docs/handoffs/2026-08-17-dev-knowledge-architect/SUPPLEMENT.md` from the three
