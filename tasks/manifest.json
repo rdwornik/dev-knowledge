@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "47c384885ae2ef178d7d1a4bbcb21a4156c7d2662398d3e15e7ac72bdb62438b",
+  "generated_sha256": "644ea77b9d4eaca30925a2a22ed53df5d748fbc61ff9f8520446d1a9db77a696",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -603,6 +603,10 @@
     {
       "task": 456,
       "file": "456-ruling-blocked-cohort-sweep-adr-108-re-route.md"
+    },
+    {
+      "task": 546,
+      "file": "546-adr-60-docs-taxonomy-no-longer-describes-the-tree.md"
     },
     {
       "prose": ""

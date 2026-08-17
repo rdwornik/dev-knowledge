@@ -1,0 +1,12 @@
+---
+id: "[#546]"
+title: "ADR-60's `docs/` taxonomy no longer describes the tree it governs"
+status: open
+priority: P3
+size: S
+theme: "[E4] Decision management"
+story: "[S11] Keep the decision corpus navigable and contradiction-aware"
+generates: BACKLOG.md
+---
+
+- [#546] [P3][S] **ADR-60's `docs/` taxonomy no longer describes the tree it governs** — the ADR assigns a semantic role per subfolder (`audits/`=outputs, `council-questions/`=inputs, `decisions/`=ADRs+transcripts, `handoffs/`=session bundles, `research/`=working scratchpad, `archive/`=superseded/dormant) and **three of those clauses are now false**: `docs/council-questions/` and `docs/research/` do not exist (verified 2026-08-17, directory listing), and `decisions/`'s stated contents include `transcripts/`, deleted 2026-07-22 by operator ruling with *"Do not recreate it"* recorded at `CLAUDE.md` §4. The live genre set is FIVE and is machine-enforced elsewhere — `scripts/validate_hermetization.py` `SANCTIONED_GENRES = {archive, audits, decisions, handoffs, intake}` — so `intake/`, a genre ADR-60 never names, is sanctioned, while two genres it does name are unsanctioned. **ADR-60 is NOT wholly stale and must not be retired:** its Rule 5 (append-only/immutable records are not rewritten on move) is live doctrine and is what the four archival precedents cite; the divergence is the folder ENUMERATION only. **Never rewrite the ADR** (CLAUDE.md §5 rule 3 — ADR-94's in-place exception is status-line-on-ratification only): the fix is an APPENDED in-file amendment marker or a named-successor pointer to ADR-101, which already seals the Tier-2 genre set and is the later artifact — and choosing between them is the architect's call, not the executor's. · Done when: a reader of ADR-60 cannot be misled about which `docs/` genres exist — either an appended amendment marker re-scopes the enumeration while preserving Rule 5, or ADR-101 is recorded as the successor for the genre set — with the choice and its reason recorded, and no living doc still asserting the six-folder taxonomy · refs docs/decisions/ADR-60-docs-folder-taxonomy.md, docs/decisions/ADR-101-hermetization.md, scripts/validate_hermetization.py, ADR-94, #345, #420 · kill-candidates: none — [#345] externalizes the ADR-101 frozensets and [#420] asks whether a top-level `docs/archive/` still makes sense; neither touches ADR-60's own stale enumeration · source: docs/audits/2026-08-17-technical-batch-7a-lane-b-contract.md step 1 (ADR currency sweep)
