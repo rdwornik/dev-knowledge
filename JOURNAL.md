@@ -19,6 +19,62 @@
 
 ---
 
+### 2026-08-17 (d) — CC (Opus 5, branch `docs/batch-7a-supplement`): the next-session plan, and an anchoring defect the gate caught
+
+**Did:** Wrote `docs/handoffs/2026-08-17-dev-knowledge-architect/SUPPLEMENT.md` from the three
+reports batch 7a landed, per HANDOFF_PROCESS v6 — STATE, WHAT THIS WINDOW DID, RESIDUAL, DRIFT
+FLAGS, DO-NOT-REDERIVE, the ordered plan, and a plain-language OPERATOR VIEW page. Every figure
+re-derived live at write time; nothing carried.
+
+**Anchors:** `6cfde8d9` (the batch-7a closing packet + entry (c), the commit that merge `aee1b030`
+introduced).
+
+**THE DEFECT THIS ENTRY REPAIRS, because it is a rule about how anchoring actually works and I got
+it wrong twice.** `is_anchored(M)` is true iff JOURNAL names ≥1 SHA in `introduced(M)` — the merge
+itself **plus every commit its branch brought in**. So a JOURNAL entry must name a commit **from its
+own branch**. Entry (b) did that (`f72541c1`, the manifest commit) and `397cfdae` anchored cleanly.
+**Entry (c) did not**: it named `7a5f2e1d`, `fe6200bf` and `99ec4b19` — all three already merged,
+none of them introduced by its own merge — so `aee1b030` landed on the spine **unanchored**. That
+push still succeeded, because `range_is_anchored` is ANY-of-range and `99ec4b19` was in the range
+carrying its own anchor. The defect was real and simply had a sibling to hide behind.
+
+It surfaced one arc later, when the supplement's push range held exactly one spine entry and there
+was nothing to hide behind: `block-unanchored-push` **refused the push**, and `audit-health` went
+`DEGRADED`, which — being a pre-commit gate — then wedged every commit including the one that would
+fix it. That wedge is the documented failure mode, and the escape is not a bypass: staging a JOURNAL
+entry that names the missing SHA clears the predicate *before* the gate reads it.
+
+**Resolved with zero `--no-verify` and zero `SKIP=`.** The two offending commits were local-only and
+unpushed and were reset away rather than papered over; this branch re-lands the same supplement
+content byte-for-byte, with the JOURNAL naming a commit the merge actually introduces.
+
+**Result:** Open total re-derived as **189 open / 213 live** — and the two figures prior artifacts
+disagreed on (196 and 172) are both correct under different definitions, which the supplement states
+rather than silently picking one. The architect's eight seeded priorities are kept **in order**,
+because what the tree contradicted was not their ranking but their *rankability*: **priorities 2
+(devcontainer/Codespaces) and 5 (closing campaign + kill-candidates instrument) have no owning row
+at all** — `devcontainer` and `Codespaces` appear zero times in any BACKLOG row body, and "closing
+campaign" appears exactly once, inside `[#534]`'s body as a mention. Both are annotated
+NO ROW — FILE IT FIRST rather than re-ordered.
+
+**One ranking flagged for a deliberate second look:** the architect ranked telemetry +
+`single_flight` wiring 4th; lane c's independent evidence-backed inventory ranks telemetry **1st** on
+its honest top-10, because every enforcement-coverage claim in this repo currently rests on manual
+witnessing rather than measurement. Surfaced in the plan rather than silently re-ordered — the two
+rank by different criteria, and overruling an architect ruling on a judgement call is not the
+integrator's to make.
+
+**Changes:** `docs/handoffs/2026-08-17-dev-knowledge-architect/SUPPLEMENT.md` (new bundle,
+hand-authored — no `PROBES.md`, so `check_handoff_probes` does not select it, and no generator
+placeholder regions, so `residual_completeness` finds nothing; both verified against the checks' own
+predicates before committing).
+
+**Abandoned:** the first two supplement commits (`1a130677`, `5083237e`) — local-only, unpushed,
+reset and re-landed correctly rather than left as an unanchored spine entry.
+
+**Next:** teardown of the three MERGED lanes only — the concurrent `lane-r-412-research-intake` is
+another session's live work and stays untouched.
+
 ### 2026-08-17 (c) — CC (Opus 5, branch `docs/batch-7a-close`): batch 7a integrates — 3 lanes merged, 17 rows born, the audit pile-up gets a ledger
 
 **Did:** Ran batch 7a end-to-end as one seat — head, dispatch, poll, harvest-review, serial
