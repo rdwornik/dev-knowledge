@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "644ea77b9d4eaca30925a2a22ed53df5d748fbc61ff9f8520446d1a9db77a696",
+  "generated_sha256": "48122e48744ef12b9586e238b34118108dea94c5c3ab0985c7b0df6fa36da850",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -112,6 +112,10 @@
     {
       "task": 449,
       "file": "449-assembled-paste-byte-budget.md"
+    },
+    {
+      "task": 547,
+      "file": "547-split-brain-prevention-has-no-referent-under-v6.md"
     },
     {
       "prose": ""
