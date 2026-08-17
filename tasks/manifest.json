@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "81c28bd19bcd37a75d04616f23bdd645466cc532202b459e63fa2dd9117aaadb",
+  "generated_sha256": "a938d0306757a58a11528aae702fa0df94e69051603c0e5fcada39fba31fa96f",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -349,6 +349,14 @@
     },
     {
       "prose": ""
+    },
+    {
+      "file": "556-505-is-closed-but-present-the-adr-65-done-items.md",
+      "task": 556
+    },
+    {
+      "file": "557-three-stale-dispositions-match-no-live-warn-the.md",
+      "task": 557
     },
     {
       "prose": "### [S6] Know what depends on code before removing it (ADR-89 computed edges)"
@@ -707,6 +715,10 @@
     {
       "task": 542,
       "file": "542-architecture-md-still-claims-four-doc-rot-sub-dete.md"
+    },
+    {
+      "file": "558-vision-md-still-describes-scripts-as-read-only-v.md",
+      "task": 558
     },
     {
       "prose": "### [S14] Keep the day-to-day docs right-sized and current"
