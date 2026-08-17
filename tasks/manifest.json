@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "4d19eea97fa64b71dc0dc4b1e7f6fad7d369ab9a2d3433a5fb0c3c627f4bcdcf",
+  "generated_sha256": "30beaee5f1a8eb594027d32824559e0d10c2566fabfa675c7d137be163c8c9d8",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -1006,6 +1006,10 @@
     {
       "task": 535,
       "file": "535-audit-py-has-two-module-identities-in-one-process.md"
+    },
+    {
+      "task": 541,
+      "file": "541-scale-out-substrate-decision-unowned-after-two-rep.md"
     },
     {
       "prose": "### [S20] Revive the nightly layer, load-gauge first (rent-rule discipline)"
