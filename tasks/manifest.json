@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "5f4cc4920e2aac080fbe7deb105d121fd2294f904d3497b172920846e80083f6",
+  "generated_sha256": "81c28bd19bcd37a75d04616f23bdd645466cc532202b459e63fa2dd9117aaadb",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -980,6 +980,10 @@
       "file": "540-harvest-batch-py-read-the-board-then-fetch-packets.md"
     },
     {
+      "file": "554-devcontainer-provisioning-script-nb4-g-stage-1.md",
+      "task": 554
+    },
+    {
       "prose": "### [S19] Decide the undecided artifact/tool models"
     },
     {
@@ -1109,6 +1113,10 @@
     {
       "task": 537,
       "file": "537-disposition-token-is-a-done-when-branch-nothing-de.md"
+    },
+    {
+      "file": "555-closing-campaign-batch-1-kill-candidates-instrum.md",
+      "task": 555
     },
     {
       "prose": "## [E8] ARC-5 execution"
