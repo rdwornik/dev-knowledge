@@ -19,6 +19,114 @@
 
 ---
 
+### 2026-08-17 (f) — CC (Opus 5, branch `docs/window-close-final`): window close — two births, the plan amended to priority order v2, and the seat handoff run by the book
+
+**Did:** Closed the window on one branch: births `[#554]` and `[#555]`, the 08-17 supplement amended
+to **priority order v2** and marked INPUT-not-handoff, and the architect seat handoff generated,
+filled and completed through the repo's own machinery. Continues entry (e), which merged lane r and
+tore down the last lane worktree.
+
+**Anchors:** `e5149266` (the handoff-bundle commit) · `c0c7a24a` (the lane-r merge). Both are
+commits this branch's own merge introduces, so the single spine entry main receives is anchored by
+record rather than by mention.
+
+**The births, and the two premises that did not survive checking.** `[#554]` devcontainer +
+provisioning script (NB4-G stage 1, P2/M) and `[#555]` closing campaign batch 1 + the
+kill-candidates instrument (P1/M) — ids derived as max-real-bracketed-across-all-history + 1, with
+the `[#777]` hit excluded as the documented synthetic trip-test, the same exclusion five prior
+derivations made. Both authored into `tasks/` as the source of truth and rendered by
+`gen_task_tree.py --emit-source`; `--write` is the **import** direction and refused loudly when
+tried, because re-deriving filenames from titles can re-slug live ids (the `[#473]` incident, 17
+files). Filenames came from the generator's own `slugify()` rather than a guess, and each needed a
+`tasks/manifest.json` node — without one the generator classifies the file as a *retired allocation
+record* and refuses to emit, which is how it caught the omission rather than silently dropping the
+row. **Premise 1 failed:** `[#554]`'s authorized `kill-candidates: none — no row owns off-machine
+provisioning` is true of *provisioning*, but `[#453]` owns cloud-container **preflight** and names
+the unshallow **and** the `uv`-pin assert in its own Done-when — a two-of-four-leg overlap. The
+authorized verdict is kept; the overlap is recorded inside the reason, on the `[#553]` precedent of
+naming ids in a `none — …` clause to say what they do *not* cover. **Premise 2 failed:** a draft of
+`[#555]` conflated the open-set breakdown with the BACKLOG-row breakdown. Corrected before commit —
+a row about denominator discipline that misstates its own denominator is worse than no row.
+
+**THREE COUNTS OF THE SAME BACKLOG DISAGREE, and this is now `[#555]`'s first act.** The open set is
+**191** rows (7 P1 / 96 P2 / 88 P3) from `tasks/` frontmatter; `BACKLOG.md` renders **215** bullets
+once the 24 `deferred` rows are included; and the `SessionStart` load gauge printed
+`8 P1 / 92 P2 / 96 P3` = **196**, which matches neither basis. The prompt's stated open-total of 189
+is confirmed as the *pre-birth* figure — 189 + 2 = 191. Until one predicate is named, any
+"net-negative" claim is unfalsifiable, which is precisely the row's point.
+
+**The supplement was amended, not edited.** Handoffs are immutable (§5 rule 3) and the sanctioned
+mechanism is an in-file amendment marker, so the ORDERED PLAN table is left byte-intact and an
+AMENDMENT block supersedes its rank order beneath it: **56 insertions, 0 deletions**, checkable with
+`git show --numstat`. Priority order v2 — `[#533]` leg 2 · telemetry + single-flight wiring ·
+`[#554]` · the seam leg then lanes l/y · `[#555]` — then the born rows, the PLAYBOOK arc, the
+universalization check. The lane-c disagreement is *ruled* rather than quietly reordered: rank 4's
+own cell had flagged that lane c put telemetry at #1 and called it "the one ranking worth a
+deliberate second look"; the architect ruled #2, measured commit-tax beating measurement
+infrastructure by exactly one slot and no lower. Both "NO ROW — file it first" entries are
+discharged by the two births. Stale figures above are *stated*, not corrected, for the same
+immutability reason.
+
+**The handoff ran by the book, and the book blocked it once — which is the useful part.**
+`gen_handoff.py --mode architect` **refused** to render into `2026-08-17-dev-knowledge-architect`,
+because that directory already holds a git-tracked `SUPPLEMENT.md` from the §D direct-supplement act
+and "re-rendering would silently overwrite shipped state"; it named `--allow-suffix` as the
+sanctioned path, so the bundle is the `-2` sibling and the §D file is untouched. The operator's
+architect answers went in **verbatim** below the ANSWERS divider, then `assemble_paste.py` folded
+the ANSWERS region and flipped the cold→FILLED framing in three files. **The first commit attempt
+was refused by `residual_completeness`** on 14 unfilled FILL-IN regions: the generator emits those
+deliberately because the residual is CC-owned per §2 and the generator "cannot author it", so
+filling them is the process's next step, not a hand-edit of generated output. Seven regions
+authored; `PASTE_THIS.md` was then **regenerated**, never edited, because it is assembled output.
+The `driftflags` region forbids naming any verdict, count, `[stale]` status or sha — those are
+P4/P6/P7/P9's live answers — so it classifies by reference only, and draws the distinction that
+matters: register-dispositioned classes versus advisory-**by-ruling** classes, which will never
+appear in the register however long they persist. `/handoff-verify` was deliberately **not** run:
+it is the check-time organ the *incoming* session runs, and generation time is not check time.
+
+**Result:** `audit.py health` **OK** (`residual_completeness` green, `handoff_probes` 14 bind);
+`verify_handoff_probes.py` 14 probes / 14 pass / 0 fail / 0 warn; `validate_backlog` OK, 215 tasks.
+Full suite on the merged tree: **2966 passed, 3 failed**. Two are the expected OWNED REDs — the
+`routine_consumers` live-corpus pin (asserts exactly 1 routine row; live is 3, and the batch was
+told to birth one) and the `doc_rot` accretion pin. **The third, `test_reverse_dep_oracle.py::
+test_main_finding_json_exit_zero` (`assert 3 >= 50`), is NOT mine and was proven so rather than
+asserted:** this arc touched **zero** `.py` files (`git diff --name-only f87896cc..HEAD` has no
+`.py` entry), and the sibling assertion carrying the same `>= 50` floor passed in the same run. The
+failing variant is the `--timeout 40` pyright path, and it was measured while I was running
+`audit.py` and `validate_doc_rot.py` concurrently with a full xdist suite — contention I caused as
+the observer, not a defect in the tree. **Re-measured on a quiet tree with no concurrent load:
+2967 passed, 2 failed — the two owned REDs alone, the oracle test green.** Hypothesis confirmed, so
+the honest green for this tree is **2 REDs, not 3**, and the pattern is worth remembering: a
+pyright-backed test with a wall-clock `--timeout` returns a *partial* result under CPU contention
+and fails an assertion about corpus size, which reads exactly like a real regression. Measuring the
+tree while measuring the tree is how you manufacture a defect that is not there.
+
+**Two findings against my own work, recorded rather than absorbed.** (1) `[#554]` and `[#555]` each
+exceed `doc_rot`'s declared `backlog-row-length` ceiling, so this window **added** to a class the
+standing stance says is greened by fixes and never by dispositions. They add nothing to the
+`backlog-accretion` ARM class — a new row has one history date — so the owned RED's condition was
+not worsened; the ceiling-versus-practice gap is escalated to the next seat as a decision, because
+trimming authorized content to the ceiling would have cost the load-bearing reasoning and silently
+absorbing it either way is the failure mode. (2) The owned `doc_rot` RED's **locus set has grown
+past what the prior supplement recorded** — it named one accreting row; the live corpus now carries
+several, `[#553]` among them. The residual tells the next session to re-derive rather than inherit
+that framing.
+
+**Changes:** `tasks/` +2 rows + `manifest.json` · `BACKLOG.md` regenerated (213→215) ·
+`docs/handoffs/2026-08-17-dev-knowledge-architect/SUPPLEMENT.md` +56/-0 ·
+`docs/handoffs/2026-08-17-dev-knowledge-architect-2/` +5 generated files · JOURNAL this entry.
+
+**Abandoned:** Nothing silently. `[#412]` referenced, not closed. Intakes #35–#39 stay DRAFT —
+ratification is the next window's act, not an integrator's to grant. No `serialize-group` added to
+either birth, though `environment` would fit `[#554]`'s siblings: outside what was authorized, and
+the `[#453]` coupling is already explicit in the row.
+
+**Next:** Push, then the next seat boots from
+`docs/handoffs/2026-08-17-dev-knowledge-architect-2/PASTE_THIS.md` and asks CC for
+`/handoff-verify`. Carried: 3 promotion-debt lines the assembler flagged in the folded ANSWERS —
+answer 7 names durable homes for six ratified terms, but the promotion **act** is unowned, the same
+decided-unfiled failure mode the amended plan flags twice.
+
 ### 2026-08-17 (e) — CC (Opus 5, branch `docs/window-close-final`): lane r integrates — 5 research artifacts, intakes #35-#39, and the last lane worktree torn down
 
 **Did:** Integrated the final batch-7a-adjacent lane, `worktree-lane-r-412-research-intake`, from
