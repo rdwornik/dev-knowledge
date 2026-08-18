@@ -19,6 +19,66 @@
 
 ---
 
+### 2026-08-18 (c) — CC (Opus 5, branch `docs/phase0-baselines`): phase 0 — the commit-tax is 6.9x its record, and the mutation pilot measures nothing
+
+**Did:** Landed the four measurement inputs later acts of this session consume: the true
+`audit-health` commit-tax on a quiet tree (T0.1), the [#502] mutation pilot dispatched remotely
+(T0.2), the intake-#31 section-D churn-x-complexity hotspot baseline (T0.5), and a read-only
+`LANE_BRANCH_RE` verify for the coming lane batch (T0.6). Measurements and landings only — no fix,
+trim, birth, disposition or ruling execution, and no dependency added.
+
+**Anchors:** `3d64a9ff` (the baselines artifact + audits-index regen), a commit this branch's own merge introduces.
+
+**Result:** **The commit-tax regression is REAL, not a contention artifact.** Median 290.9 s over 3
+runs of the hook's own entry (spread 4.9%) against the recorded 42.2 s is 6.9x — past the >=5x
+threshold the contract set for "real", and the `~1.4s` comment at `.pre-commit-config.yaml:171` is
+stale by two orders of magnitude. The interpreter-path pair kills the uv-overhead hypothesis: uv
+283.6 s vs venv-direct 287.3 s, i.e. uv is marginally *faster* and the gap is inside the run-to-run
+spread. Yesterday's 373 s reading was inflated by load, but load explains only that margin (~22%),
+never the 6.9x.
+
+**The mutation pilot ran and produced zero survivor data — and that is the finding.** Remote
+dispatch was available (`workflow_dispatch`), so the local-fallback default was not taken; local was
+never possible anyway since mutmut needs `fork()`. Run 32127150367 generated **2291 mutants and
+checked none of them**: mutmut halts early because the tests import `fleet_analytics` while it
+expects `scripts.fleet_analytics`, so no mutant is ever attributed to a test. This is a
+configuration/import-path mismatch, **not** a test-quality signal, and it is the same failure the
+workflow already recorded at 84 mutants. Decision-6 therefore has no survivor count to consume, and
+[#502]'s verdict leg stays open.
+
+**Section D's concentration premise holds, strongly.** Over 223 of 257 tracked `.py` (the 34
+unscored have no function/class block, so none is a hidden hotspot), `scripts/audit.py` alone is
+**35.1%** of total churn-x-complexity — highest churn (135) and highest complexity (709)
+simultaneously — its test file is #2, and the pair exceeds half the corpus. Top-10 = 69.0%. The same
+module T0.1 measures at 291 s is the corpus hotspot. Churn window 180 days, recorded as a named
+default since section D specifies none. Mapping to section B is mapping only; no adoption verdicts.
+`LANE_BRANCH_RE`: 4/4 candidate lane branches PASS, no rename required, nothing renamed.
+
+**Two items are NOT delivered, and neither was silently absorbed.** (1) **T0.3 STOPPED** — the P10
+grooming evidence sheet's source no longer exists: job dir `bbe22c7f` was removed by job cleanup and
+an exact-name search across `.claude`, `Documents`, `Downloads` and Temp returns nothing. The
+contract forbids regenerating it from memory, so it was not regenerated; the sheet is unlanded and
+the recovery decision is the architect's. The merge message says so rather than claiming the landing.
+(2) The suite's third RED was **refuted, not fixed**: `test_main_finding_json_exit_zero` failed
+`3 >= 50` inside the 20-minute xdist run and **passes in 5.04 s run serially**, so it is the known
+pyright-starvation artifact, not a real failure and not caused by a docs-only change. Honest green
+stays the 2 owned REDs.
+
+**Suite:** 3 failed / 2966 passed / 4 skipped / 1 xfailed in **1216.02 s (20:16)** — recorded as
+measured with the caveat that it is 2.2x the 2026-08-09 ~9-minute reading and that the run
+self-contended enough to starve pyright, so it reads as an upper bound for the default `-n auto`
+invocation rather than a floor.
+
+**Changes:** `docs/audits/2026-08-18-technical-phase0-baselines.md` (new), `docs/audits/README.md`
+(regenerated index), `JOURNAL.md`.
+
+**Abandoned:** Nothing. The local mutmut fallback was moot (remote trigger existed; Windows cannot
+`fork()`).
+
+**Next:** Architect decides (a) whether the P10 sheet is regenerated and by whom, (b) whether the
+mutmut module-path mismatch is worth closing before decision 6, (c) section-D procedure steps 3-5
+(coverage on hotspots, duplication, dependency cycles) which this arc did not run.
+
 ### 2026-08-18 (b) — CC (Opus 5, branch `docs/nb7-morning-consolidation`): the wrap — anchoring the morning arc, and re-deriving the figure the trim made stale
 
 **Did:** Closed the morning consolidation arc: anchored its own work commit, and re-derived the
