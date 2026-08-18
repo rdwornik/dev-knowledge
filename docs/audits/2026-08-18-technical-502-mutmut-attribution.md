@@ -251,3 +251,27 @@ came true, and what that implies for ADOPT/REJECT is the architect's call.
   reaches — expected for a single-file test selection over a 56KB module, but not investigated.
 - **The pilot ran on a lane branch, not `main`.** The fix must merge before `main` produces this
   result; the run above is evidence about the fixed code, not about `main`'s current state.
+
+---
+
+## AMENDMENT — 2026-08-18, same session · §4's after-case landed
+
+**In-file amendment marker, per CLAUDE.md §5 rule 3.** Nothing above is edited; this block is
+appended. §4 stated that the after-case harness run was "still generating when this lane stopped"
+and therefore not reported. It finished shortly after §4 was committed (`b24758d3`), so the number
+is recorded here rather than left as an unreported measurement.
+
+| loader module name | mutants generated | distinct fn keys expected | trampoline hits | keys matching | attribution |
+|---|---|---|---|---|---|
+| `fleet_analytics` (before) | 2291 | 37 | 4 | **0** | **ZERO** |
+| `scripts.fleet_analytics` (after) | 2291 | 37 | 4 | **4** | **WORKS** |
+
+Same three calls, same generated corpus, one changed string: every recorded key now matches an
+expected one (`scripts.fleet_analytics.x__int_or_none`, `…x__posix`, `…x_canonical_path`). The run
+reported `cleanup: mutants/ removed -> True`.
+
+This does **not** upgrade §5's standing: the CI run remains the load-bearing evidence, because it
+measures all 2291 mutants against the real suite with the real forked runner, while this harness
+measures three hand-picked calls under three stated stubs. The after-row is corroboration, not the
+proof. §4's reasoning for excluding it — that a measurement which has not finished must not be
+claimed — was correct when written and is left standing as the record of that call.
