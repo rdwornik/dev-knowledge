@@ -19,6 +19,84 @@
 
 ---
 
+### 2026-08-18 (b) — CC (Opus 5, branch `docs/nb7-morning-consolidation`): the wrap — anchoring the morning arc, and re-deriving the figure the trim made stale
+
+**Did:** Closed the morning consolidation arc: anchored its own work commit, and re-derived the
+denominator inside `[#555]` that this session's other act had left one window out of date.
+
+**Anchors:** `ba394476` (the NB7 landing + index regen + the `[#554]`/`[#555]` trim), a commit this
+branch's own merge introduces.
+
+**Result:** `[#555]` now reads `194 open · 218 bullets incl. deferred` where it read `191 · 215`.
+That was not a pre-existing defect — the row was born on 2026-08-17 quoting figures that were true
+then, and `[#556]`/`[#557]`/`[#558]` landed after it. **Fixing it is repair of this session's own
+edit rather than new scope:** the trim rewrote the clause carrying those numbers, so leaving them
+would have been a fresh assertion of a stale figure, and this row's own Done-when requires the
+denominator be *"re-derived rather than carried"*. The third figure is now stated as disagreeing
+rather than pinned to `196` — that value was measured at a prior boot and re-quoting it unmeasured
+would repeat the defect the clause is about. Row length 1306 → 1313 chars, still under the declared
+1320 ceiling.
+
+**Changes:** `tasks/555`, `tasks/manifest.json`, `BACKLOG.md`, `JOURNAL.md`.
+
+**Abandoned:** nothing.
+
+**Next:** the two operator-facing files (`~/Downloads/NB7-MORNING-REPORT.md`,
+`~/Downloads/POST-HANDOFF-DELTA.md`) are written outside the repo by design — they are seat
+artifacts for the incoming browser architect, not repo state.
+
+---
+
+### 2026-08-18 (a) — CC (Opus 5, branch `docs/nb7-morning-consolidation`): the NB7 night lands two of four, and the two oversized rows come under the ceiling
+
+**Did:** Landed the night-batch 7 cloud lanes that produced output, regenerated the audit index over
+both, and trimmed `[#554]` and `[#555]` under the declared `doc_rot` ARM-2 row ceiling on architect
+authorization.
+
+**Anchors:** `b88a8cac` (the NB7-A orphan census report, introduced by merge `ab9b47b8`) and
+`d036b0a9` (the NB7-C lifecycle-instrument verdict, introduced by merge `839ac970`).
+
+**Result:** `docs/audits/2026-08-17-census-nb7-orphan-census.md` (513 lines) and
+`docs/audits/2026-08-17-technical-nb7-lifecycle-instrument-verdict.md` (751 lines) are on `main`;
+the generated index moves 573 → 575. `[#554]` 2644 → 1296 chars, `[#555]` 2859 → 1306, both under
+the `_BACKLOG_ROW_CEILING = 1320` that `validate_doc_rot` ARM 2 measures on the rendered
+`BACKLOG.md` line. No prose was relocated: `[#554]`'s removed detail is carried by intake #39, and
+`[#555]`'s by `docs/audits/2026-08-16-census-nb4-closing-campaign.md`.
+
+**TWO OF FOUR NIGHT LANES PRODUCED NOTHING, and that is a finding rather than a gap in this
+session's work.** `claude/nb7-error-mechanisms` (NB7-B) and `claude/nb7-adoption-preflight` (NB7-D)
+exist on **no** ref — not local, not `origin`, and no commit anywhere in the object graph touches a
+`docs/audits/*nb7*` path for either. Verified by `git ls-remote --heads origin` after a live fetch,
+not by a stale remote-tracking read. The two lanes that did land were both cloud lanes on the
+`claude/<slug>` prefix, so the channel works; what is unknown is whether B and D were dispatched and
+died, or were never dispatched. Nothing in the tree distinguishes those two cases, and this entry
+does not guess between them.
+
+**THE ROW-TRIM PREMISE WAS PARTLY WRONG AND IS CORRECTED IN THE ROW ITSELF.** The authorization
+named intakes #39 and #38 as the carriers of the prose being removed. #39 is correct — it is the
+off-machine-substrate intake and carries `[#554]`'s four-leg rationale in full. **#38 is not**: it
+is *"Multi-repo config standardization and fleet conformance at N=8"* and carries none of `[#555]`'s
+closing-campaign census, denominator arithmetic, or kill-candidates argument. Grepped across all 34
+live intakes: **zero** carry that prose. Its real carrier is
+`docs/audits/2026-08-16-census-nb4-closing-campaign.md`, which is what `[#555]`'s `source:` clause
+now names — so no prose was orphaned by the trim. Intake #38 is retained in the row's `refs`, where
+the authorization's intent survives without the row asserting something false.
+
+**A third row is over the same ceiling and was deliberately NOT trimmed.** `[#556]` renders at 1768
+chars. The authorization named `[#554]` and `[#555]` only, and widening a scoped act silently is how
+a scoped act stops being checkable (the `CLAUDE.md` v2.55/v2.61 precedent). It is reported to the
+architect rather than swept in.
+
+**Changes:** `docs/audits/` (+2 reports, index regen), `tasks/554`, `tasks/555`, `tasks/manifest.json`,
+`BACKLOG.md`, `JOURNAL.md`.
+
+**Abandoned:** nothing.
+
+**Next:** the consolidated morning report and the post-handoff delta for the incoming architect;
+`[#556]`'s length, and the NB7-B / NB7-D dispatch question, are both architect calls.
+
+---
+
 ### 2026-08-17 (g) — CC (Opus 5, branch `docs/handoff-p0c-repair`): P0c caught its own author's bundle — the `-3` repair, and three findings filed
 
 **Did:** Ran `/handoff-verify` against the `-2` architect bundle I had generated an hour earlier in
