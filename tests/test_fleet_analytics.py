@@ -21,11 +21,28 @@ import pytest
 
 _P = Path(__file__).resolve().parent.parent / "scripts" / "fleet_analytics.py"
 
+# The NAME this module is loaded under is load-bearing for [#502]'s mutation pilot, not a
+# cosmetic detail. mutmut derives every mutant key from the source file's path relative to the
+# repo root (`mutmut/utils/format_utils.py::get_mutant_name`, whose only escape hatch is a
+# hardcoded `src.` strip), so the pilot's keys are `scripts.fleet_analytics.<fn>__mutmut_N`.
+# Its trampoline meanwhile records `f"{orig_func.__module__}.{fn}"` -- i.e. whatever name THIS
+# loader passes. Loading as bare "fleet_analytics" made the two halves disagree, so all 2291
+# generated mutants were attributed to zero tests and reported "not checked" (CI run
+# 32127150367; mutmut printed the mismatch itself and named this as the fix). Nothing in
+# mutmut's config surface can rename a mutant key -- `[tool.mutmut]` is already scoped
+# correctly -- so the alignment has to happen at the one place the name is chosen: here.
+_MODNAME = "scripts.fleet_analytics"
+
 
 def _load():
-    spec = importlib.util.spec_from_file_location("fleet_analytics", _P)
+    spec = importlib.util.spec_from_file_location(_MODNAME, _P)
     module = importlib.util.module_from_spec(spec)
     # Register before exec so module-level @dataclass can resolve cls.__module__.
+    sys.modules[_MODNAME] = module
+    # Keep the bare name pointing at the SAME object. tests/test_gitenv.py does a plain
+    # `import fleet_analytics`, and when the two modules share a session this registration is
+    # what that import has always resolved to; dropping it would silently change that test's
+    # subject. The alias is not what mutmut reads -- `__module__` is -- so it costs nothing.
     sys.modules["fleet_analytics"] = module
     spec.loader.exec_module(module)
     return module

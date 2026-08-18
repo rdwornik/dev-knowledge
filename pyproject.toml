@@ -73,6 +73,20 @@ analytics = [
 # Key names verified against mutmut 3.7.0's own `configuration.py` this session, NOT assumed:
 # 3.x renamed `paths_to_mutate` -> `source_paths` and `tests_dir` ->
 # `pytest_add_cli_args_test_selection` (both still accepted, both emit DeprecationWarnings).
+#
+# WHERE THE MODULE NAME COMES FROM, and why it is NOT settable here ([#502] lane E,
+# 2026-08-18). mutmut names every mutant from the source file's path relative to the repo
+# root: `mutmut/utils/format_utils.py::get_mutant_name` does
+# `str(rel_path)[:-len(suffix)].replace(os.sep, ".")` and then strips exactly one hardcoded
+# prefix, `src.`. So with `source_paths = ["scripts"]` the keys are, verbatim from CI run
+# 32127150367, `scripts.fleet_analytics.x_main__mutmut_39`. The trampoline that records which
+# tests reach a function instead records `f"{orig_func.__module__}.{fn}"` -- the name PYTHON
+# knows the module by, chosen by whatever loads it. Attribution happens only where those two
+# agree. Enumerated against mutmut 3.7.0's `Config` dataclass field-by-field, there is NO
+# module-naming key on this surface, so this table cannot close such a gap; the alignment
+# belongs to the loader. That is why the [#502] repair landed in
+# `tests/test_fleet_analytics.py::_load` (which now loads under `scripts.fleet_analytics`)
+# and this table is functionally UNCHANGED -- its scoping was already correct.
 source_paths = ["scripts"]
 only_mutate = ["*fleet_analytics.py"]           # fnmatch, not glob; must end .py or *
 pytest_add_cli_args_test_selection = ["tests/test_fleet_analytics.py"]
@@ -88,6 +102,14 @@ pytest_add_cli_args_test_selection = ["tests/test_fleet_analytics.py"]
 # mutants reported `not checked`, i.e. a pilot that measures nothing while looking green.
 # `-n 0` keeps xdist loaded and runs in-process; addopts is PREPENDED, so the later `-n 0`
 # wins over `-n auto` and the serial intent holds.
+#
+# THAT FIX WAS REAL BUT NOT SUFFICIENT, and the correction is recorded rather than quietly
+# overwritten. `-n 0` cured the exit-4 cause of "all mutants not checked" (every mutant's
+# pytest died on `unrecognized arguments: -n` before collecting). A SECOND, independent cause
+# of the same visible symptom survived it and produced the 2291-mutant / 0-checked phase-0
+# result: the module-name mismatch documented above. Two different defects presenting as one
+# indistinguishable output is why the 84-mutant and 2291-mutant scopes both read as "green but
+# measuring nothing" -- the symptom was never diagnostic of its cause.
 pytest_add_cli_args = ["-n", "0"]
 
 [tool.pytest.ini_options]
