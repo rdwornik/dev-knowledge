@@ -19,6 +19,27 @@
 
 ---
 
+### 2026-08-18 (f) — CC (Opus 5, branch `docs/batch1-packet-amendment`): the batch-1 packet gets its measured close-out
+
+**Did:** Appended an in-file AMENDMENT to
+`docs/audits/2026-08-18-technical-batch1-integrator-packet.md`. The packet body was written
+before the failure re-run and the final measurements and left two placeholders; audits are
+immutable, so the results are appended under an amendment marker rather than written over them.
+
+**Anchors:** `e971375c` (the amendment), a commit this branch's own merge introduces.
+
+**Result:** Attribution is now measured rather than suspected — three of the five clean-run
+failures are confirmed working-tree artifacts (they pass on the committed tree), one is the owned
+`routine_consumers` RED, and one is the new `fleet_parity` `.devcontainer` RED handed back as the
+batch's single open operator decision. Ship-gate delta recorded by class: **60 → 32** WARNs,
+undispositioned **35 → 2**, `[stale]` **3 → 0**, hard-fail organs **1 → 0**. Commit tax measured
+at **206.9 s vs the 290.9 s baseline (1.41x)** on the default serial path — neither of branch A's
+claimed factors, and the amendment says why that is consistent rather than contradictory.
+
+**Changes:** `docs/audits/2026-08-18-technical-batch1-integrator-packet.md` (amendment only).
+
+**Next:** the operator's `.devcontainer` parity ruling — hub template or `.methodology.yaml`.
+
 ### 2026-08-18 (e) — CC (Opus 5, branch `docs/batch1-consequential-repairs`): the batch's own two drifts, repaired in the arc that caused them
 
 **Did:** Closed the two drifts the batch-1 integration itself introduced, both found by the

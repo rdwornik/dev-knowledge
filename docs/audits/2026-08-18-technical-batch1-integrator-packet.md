@@ -210,3 +210,139 @@ All six edited rows were verified under the ceiling afterwards; `[#539]` sits at
 7. **The first full-suite run was discarded.** It was started before the closure acts and I
    edited `BACKLOG.md` while it was still running, which can fake REDs. It was re-run clean with
    no concurrent writes, and only the clean run is reported.
+
+---
+
+# AMENDMENT — 2026-08-18, post-teardown close
+
+> **In-file amendment marker** (audits are immutable; superseded content is not rewritten).
+> The body above was written *before* the failure re-run and the final measurements, and §3 left
+> two placeholders. This section resolves them with measured results, and supersedes those
+> placeholders only.
+
+## A1 · Failure attribution — the re-run, resolved
+
+Re-run with `-n 0` on the committed tree (after `fce8b5b0` and the JOURNAL landed):
+
+```
+tests/test_task_tree_gate.py::test_registered_and_green_on_live_repo   PASSED
+tests/test_audit.py::test_health_ok_with_registered_repo               PASSED
+tests/test_audit.py::test_health_stays_ok_with_na_status               PASSED
+tests/test_audit.py::test_routine_consumers_live_backlog_...           FAILED  (owned RED, stands)
+tests/test_audit.py::test_check_fleet_parity_green_on_live_repo        FAILED  (NEW — see A2)
+2 failed, 3 passed in 375.14s
+```
+
+The three suspected working-tree artifacts are **confirmed** artifacts: they failed only because
+the closure edits were still uncommitted (`check_task_tree_coherence` refuses to answer while the
+index and working tree disagree) and because `audit.py health` cannot exit 0 while this arc's own
+merges are unjournaled. Both conditions are gone. `audit.py health` now reports **OK, exit 0, no
+hard-fail organs**.
+
+## A2 · The one genuinely new RED — STOP condition, reported not fixed
+
+```
+fleet_parity: .dev-knowledge root-sweep WARN-undeclared:
+  top-level entry '.devcontainer' is not in the template for role 'hub'
+```
+
+Lane C landed a new **top-level tree** and closed the ADR-101 hermetization surface for it, but
+not the fleet desired-state surface. It was **not** present in the pre-merge baseline, so it is
+attributable to this batch.
+
+It is left unfixed deliberately. The contract forbids fixes beyond the FIX-BEFORE-MERGE items and
+trivial merge artifacts, and this is neither — it is a governance-data change with **two lawful
+routes**, and `fleet_parity`'s own logic is what makes both legitimate (*"not in template? ->
+declared in that repo's `.methodology.yaml` -> OK"*):
+
+1. add `.devcontainer/` to the `hub` role in `ecosystem/parity-surfaces.yaml`, or
+2. declare it in this repo's `.methodology.yaml`.
+
+Choosing between them decides whether `.devcontainer/` is *fleet-wide hub doctrine* or *a local
+opt-in* — an operator ruling, not an integrator's. **This is the one open decision this batch
+hands back.**
+
+## A3 · Measurements
+
+**Commit tax** — one quiet `audit.py health` on the merged result, nothing else running:
+
+```
+206.871 s   vs the 290.9 s baseline   =   1.41x faster   (default SERIAL path)
+```
+
+**Which claimed factor holds: neither, exactly as measured.** Branch A claimed 1.87x memoized and
+4.28x parallel. The measured end-to-end gain on the path the `audit-health` hook actually uses is
+**1.41x**. That does not contradict A's numbers — A measured the memoized *functions* and the
+*parallel* runner, whereas this measures the whole command with `--parallel` off, which is the
+default A deliberately did not flip. The honest reading: the memoization is real and worth roughly
+85 s of a 291 s commit tax, and the 4.28x stays unrealized until someone rules on flipping the
+hook's default. **Caveat:** this is a single run against a baseline that was a median of 3 (4.9%
+spread), so 1.41x is approximate.
+
+**Ship-gate WARN delta, by class** (before = pre-first-merge, after = post-teardown):
+
+```
+class                       before   after   delta
+doc_rot                        34       6     -28
+undeclared_edges               18      18       0
+no_ff_merges                    3       3       0
+review_artifact_coverage        2       2       0
+reconciled_versions             1       1       0
+journal_spine_anchor            1       1       0
+git_backlog_drift               1       0      -1
+fleet_parity                    0       1      +1
+---------------------------------------------------
+TOTAL WARNs                    60      32     -28
+new/undispositioned            35       2     -33
+[stale] dispositions            3       0      -3
+hard-fail organs                1       0      -1
+```
+
+The two remaining undispositioned WARNs are `fleet_parity` (A2) and `review_artifact_coverage`
+(code-impact merges since 2026-08-05 carrying no linked review artifact — now including this
+batch's own; advisory per the `[#480]` P3 ruling, whose hard leg stays deferred).
+
+**The gate is still RED**, and it is worth being plain that this is the correct outcome rather
+than a failure: it is RED on two undispositioned WARNs, one of which is the operator decision
+above. It was RED before this batch too — on 35 undispositioned WARNs and a hard-fail organ.
+
+## A4 · Two consequential drifts this batch caused, and repaired in-arc
+
+Both were found by the post-act ship-gate, not assumed. See JOURNAL `2026-08-18 (e)` and the
+merge of `docs/batch1-consequential-repairs`:
+
+- `doc_claims` — `pytest_collected` read 2976 against an actual 3033 (lanes A and C added tests).
+  Regenerated with `gen_doc_counts.py --write`, not hand-edited.
+- **A new `[stale]` disposition appeared the moment act 1 landed.**
+  `warn-git-backlog-drift-505-zero-closed` decorated the very WARN that act 1 cleared, and its own
+  `reason` had named that clearing condition in advance. Removing it in the same arc is the
+  discipline `[#557]` closed on — leaving it would have re-opened `[#557]`'s defect one commit
+  after banking it. The `[stale]` count is now **0**.
+
+## A5 · Teardown — verified, not assumed
+
+```
+git worktree list        ->  primary only
+lane branches remaining  ->  0    (all 8 deleted with `-d`, i.e. all fully merged)
+.claude/worktrees/ dirs  ->  0
+.git/worktrees/ locks    ->  0    (no stale locks)
+remote branch            ->  worktree-lane-e-502-mutmut deleted on origin
+push                     ->  328d1086..307c34b6, BOTH pre-push gates Passed
+```
+
+All eight lane branches were deleted with `-d` rather than `-D`, which is itself the proof that
+every lane was genuinely merged rather than assumed merged.
+
+## A6 · Green-list scoring (8 items)
+
+```
+1  mutmut decision banked ([#502])            GREEN      pre-banked; ruling transcribed to intake #27
+2  [#505] closed-but-present drift repaired   GREEN      validate_git_backlog: OK
+3  stale dispositions cleared ([#557])        GREEN      [stale] 3 -> 0
+4  VISION re-scope ([#558])                   GREEN
+5  row-length pile dispositioned ([#536])     GREEN      6 loci / 6 dispositions; accretion arm 0
+6  devcontainer stage 1 ([#554])              AMBER      landed + C-1 fixed; D1/D2 proof OPEN
+7  [#533] leg 2 landed                        GREEN      merged MERGE-CLEAN; 1.41x measured
+8  batch integrated + torn down               GREEN      with the A2 exception
+   #529 / #530                                NOT GREEN  batch-2 work, untouched, as instructed
+```
