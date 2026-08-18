@@ -19,6 +19,48 @@
 
 ---
 
+### 2026-08-18 (d) — CC (Opus 5, branch `docs/batch1-integration-wrap`): batch 1 integrates — 8 lanes merged, 6 rows banked, and the row-length pile reaches zero undispositioned
+
+**Did:** Walked the batch-1 serial merge queue from the primary checkout as the sole writer:
+P1 branch-grammar verification, P2 honoring lane H's verdicts for C and E, P3 an in-arc terra
+review of the late-frozen branch A, then eight lane merges, the seat's closure acts and teardown.
+
+**Anchors:** `07206d53` (contract of record), `82fb0363` (D), `356232ae` (F), `05af91e4` (I), `9a2f6f29` (H), `4ec26fbf` (G), `46ac8fcd` (C), `2bc1ea6c` (E), `741cd857` (A), `fce8b5b0` (the seat's closure acts) — one commit per spine entry this arc introduced.
+
+**Result:** **Eight lanes merged, six rows banked, zero births.** `[#505]` `[#556]` `[#557]`
+`[#558]` `[#502]` `[#536]` closed; `[#554]` deliberately LEFT OPEN because lane C's proof fork
+was taken (no boot channel — its `gh` token lacks the `codespace` scope) and D1/D2 *are* that
+row's Done-when items (a) and (b). Only C needed a pre-merge fix: H's single itemized blocker
+C-1, `waitFor` gating on `postCreateCommand` instead of `postStartCommand`, so a *resumed*
+container never waited on the `--gate` re-assert path — one token, applied at `57313811`, lane's
+45 targeted tests green after it. Branch A reviewed MERGE-CLEAN (0/0/0/2).
+
+**Two lanes reached the integrator off-grammar, which is the measurement `[#514]` wanted.**
+`worktree-lane-f-p10-evidence` and `worktree-lane-g-a9-trim` both fail `LANE_BRANCH_RE`
+(`p10`/`a9` are not `\d+`); renamed to `worktree-lane-f-348-p10-evidence` and
+`worktree-lane-g-536-a9-trim`. The contract's premise that two rival constants ship is **out of
+date** — `batch_manifest` now imports the one definition (`bm.LANE_BRANCH_RE is
+vbn.LANE_BRANCH_RE` is `True`), so the surviving gap is `[#514]`'s leg 1: nothing BLOCKS an
+off-grammar name at provisioning, and the grammar held here only because a human ran it.
+
+**The row-length pile is at zero undispositioned, and the accretion arm cleared itself.** Lane G
+drained 20 rows under the 1320 ceiling; the seat wrote six route-(ii) dispositions covering every
+remaining locus (`[#546]` `[#547]` `[#552]` `[#533]` `[#529]` `[#530]`), each keyed on row id AND
+measured length so a changed row re-surfaces. `backlog-accretion` now reports **0** loci — the
+second RED the contract expected to stand is simply gone, cleared by G's trim rather than fixed.
+
+**Abandoned:** two full-suite runs. The first was started before the closure acts and I edited
+`BACKLOG.md` underneath it; worse, it never exited and was still holding workers when the second
+began — 70 python processes contending, the exact measuring-while-measuring trap. Both were
+stopped and one clean run taken: **5 failed, 3023 passed, 4 skipped** in 27:31.
+
+**Changes:** `BACKLOG.md` + `tasks/` (6 closures, 6 A13 row pointers),
+`ecosystem/disposition-register.yaml` (−3 stale, +6 A9), intake #27 row 8 (ADOPT ruling,
+still DRAFT), three new `docs/audits/` artifacts (contract, branch-A review, integrator packet).
+
+**Next:** `[#554]`'s D1/D2 proof once a boot channel exists; `[#514]` leg 1 (BLOCK at
+provisioning); `[#348]` the 194-verdict grooming arc; `[#540]`/`[#539]` dispatch/harvest.
+
 ### 2026-08-18 (c) — CC (Opus 5, branch `docs/phase0-baselines`): phase 0 — the commit-tax is 6.9x its record, and the mutation pilot measures nothing
 
 **Did:** Landed the four measurement inputs later acts of this session consume: the true

@@ -24,7 +24,7 @@ The fleet decides fast and executes through one serial channel; ~21 of the 36 tr
 | 5 | Actions report-only recorder [#501] | SCHEDULED(batch 1) | row e7c0b70e; YAML in night packs c55c7e51 | P-A |
 | 6 | Scheduled runs + dead-man ([#493], P2 folded) | DEFERRED(no date) — B-2 still silent | FR-3 fold ruling | P-C |
 | 7 | gh findings-as-Issues (P3) | UNPLACED(reshaped: batch-per-run) | night finding 5 (rate limits, ~150→403) | P-C |
-| 8 | mutmut [#502] | EVAL-RUN(pass) + SCHEDULED(behind [#501], CI-only) | night research; B2→B1 dependency edge | P-A |
+| 8 | mutmut [#502] | **ADOPTED (Tier-L, ruled 2026-08-18)** — decision 6 = ADOPT; CI-only (Windows walls: POSIX `resource`, `fork`); report-only ratchet; baseline **1210 survivors** on the `fleet_analytics` slice, direction **no-growth**; survivor triage **deferred**, trigger post-[#533] / next audit-py batch | night research; B2→B1 dependency edge; [#502] CLOSED at batch-1 integration 2026-08-18 | P-A (spent — adopted) |
 | 9 | CONTRIBUTING currency [#503] | SCHEDULED(batch 1, ×6 claims + DoD + override.md) | Lane D + night finding 7 | P-A |
 | 10 | vale (P6) | REFUTED | commit 5125dd6 + JOURNAL (b) 616f4814 | — |
 | 11 | commitlint / gitlint (P6) | EVAL-RUN(LEAVE) | night packs 81cf13b | — |

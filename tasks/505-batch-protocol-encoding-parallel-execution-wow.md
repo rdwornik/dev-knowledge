@@ -1,7 +1,7 @@
 ---
 id: "[#505]"
 title: "Batch-protocol encoding — the parallel-execution way-of-working as versioned repo artifacts"
-status: open
+status: closed
 priority: P1
 size: M
 theme: "[E3] Lessons feedback loop"

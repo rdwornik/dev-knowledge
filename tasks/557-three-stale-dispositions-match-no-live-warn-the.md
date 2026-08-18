@@ -1,7 +1,7 @@
 ---
 id: "[#557]"
 title: "Three `[stale]` dispositions match no live WARN — the ADR-75 decoration-rule review"
-status: open
+status: closed
 priority: P3
 size: S
 theme: "[E2] Enforced governance"

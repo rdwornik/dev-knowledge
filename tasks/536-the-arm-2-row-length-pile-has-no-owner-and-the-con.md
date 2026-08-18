@@ -1,7 +1,7 @@
 ---
 id: "[#536]"
 title: "The ARM-2 row-length pile has no owner, and the conversion program keeps feeding it"
-status: open
+status: closed
 priority: P2
 size: S
 theme: "[E2] Enforced governance"

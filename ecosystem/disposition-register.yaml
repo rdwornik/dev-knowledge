@@ -538,18 +538,11 @@ dispositions:
   # dispositioned rather than ignored.
   # RETIRE-ON-CLOSE: the FR-8a grooming row cites this disposition id. When [#310]'s stale
   # kill-candidate is groomed, this entry leaves WITH it — it does not outlive its reason.
-  - id: warn-preflight-backlog-ids-310-292
-    organ: preflight_backlog_ids
-    match: "[#310] -> #292"
-    ref: "#310"
-    review_date: 2026-09-04
-    reason: >-
-      Row [#310] carries `kill-candidates: #292`, and #292 is closed — a spent kill condition, which
-      is exactly the class this leg was built to surface. Keyed to the SPECIFIC row-and-id pair per
-      precision-over-recall, so any OTHER stale kill-candidates assertion re-surfaces and REDs the
-      gate; this disposition suppresses one known finding, not the leg. review_date is the
-      shelf-life so it cannot rot into paper suppression (ADR-75); it should clear by itself when
-      FR-8a grooms [#310], at which point the entry decorates stale and is removed with it.
+# (cleared 2026-08-18, batch-1 integration act 2 / [#557]) warn-preflight-backlog-ids-310-292 --
+# the preflight_backlog_ids WARN it decorated no longer fires, so the entry decorated STALE under
+# ADR-75's decoration rule. REMOVED rather than re-pointed: the finding is gone, not moved or
+# renamed, so there is nothing live left to disposition. The entry's own RETIRE-ON-CLOSE rider
+# said it leaves with [#310]'s grooming and does not outlive its reason -- honored here.
 
   # (2026-08-05) The ONE place in the FR-8 flip batch where the doc_rot rule and an operator
   # ruling genuinely conflict. Every other row this arc touched was brought under threshold by
@@ -668,20 +661,11 @@ dispositions:
   # cannot rule which" -- offering retroactive review or disposition. The operator ruled
   # DISPOSITION on 2026-08-15. Keyed on the specific commit+branch signature per
   # precision-over-recall, so a DIFFERENT unreviewed code-impact merge still surfaces and blocks.
-  - id: warn-review-artifact-387b794a-repin-close
-    organ: review_artifact_coverage
-    match: "387b794a integrator/513-repin-close"
-    ref: "[#480] P3"
-    review_date: 2026-11-14
-    reason: >-
-      MECHANICAL RE-PIN -- ruled 2026-08-15 (morning adjudication D1.7). One code-impact merge
-      since 2026-08-05 carries no linked review artifact: 387b794a integrator/513-repin-close.
-      The diff class is a line-number bump on an integrator re-pin, so a retroactive review of it
-      recovers nothing the git diff does not already show, and the artifact it would produce would
-      restate the diff rather than judge it. Advisory in any case per the [#480] P3 ruling -- the
-      hard pre-push leg stays deferred pending 0 false positives over two consecutive windows, and
-      this entry is one of the inputs that window counts. review_date is the ADR-75 shelf-life;
-      the entry decorates stale and surfaces if the merge it names ever leaves the scan window.
+# (cleared 2026-08-18, batch-1 integration act 2 / [#557]) warn-review-artifact-387b794a-repin-close --
+# 387b794a has left review_artifact_coverage's scan window, which the entry itself named as the
+# condition under which it would decorate stale. REMOVED rather than re-pointed: the live WARN
+# names a different merge set entirely, so re-pointing would invent a suppression for a finding
+# this entry never covered.
 
   # W9 (phase-2 Position 0, ruled §A10). Landing the four canonical codex artifacts for lanes
   # M/N/O/P cleared 4 of the 6 unlinked code-impact merges by producing real evidence rather
@@ -689,33 +673,87 @@ dispositions:
   # already dispositioned directly above (D1.7, 2026-08-15) and is untouched here; d62796ad is
   # the one this entry covers. Keyed on the specific commit+subject signature per
   # precision-over-recall, so a DIFFERENT unreviewed code-impact merge still surfaces.
-  - id: warn-review-artifact-d62796ad-boot-acts
-    organ: review_artifact_coverage
-    match: "d62796ad merge boot-acts 2026-08-15: gate 41->11,"
-    ref: "[#480] P3; §A10 (W9); ~/Downloads/PHASE1-TERRA-RAW-2026-08-15.md"
-    review_date: 2026-11-14
+# (cleared 2026-08-18, batch-1 integration act 2 / [#557]) warn-review-artifact-d62796ad-boot-acts --
+# d62796ad has likewise left the scan window. REMOVED rather than re-pointed, same reasoning.
+# Its stated honest limit -- that matching this signature suppressed the organ's WHOLE Finding --
+# means removing it RESTORES full visibility of review_artifact_coverage rather than losing any.
+
+  # ---------------------------------------------------------------------------
+  # A9 ROUTE (ii) — batch-1 integration, 2026-08-18. Ruled [#532]/A9.
+  #
+  # Route (i) (TRIM with a grep-verified carrier) was lane G's act and drained 20 rows under the
+  # 1320 ceiling. What remains is the residue route (i) CANNOT take, and each entry below says
+  # which of the two reasons applies: either the row has NO carrier (trimming would destroy the
+  # only record of the thing), or a carrier exists but the row is structurally above the ceiling
+  # before any prose is written. Keyed on the row id AND its measured length per the register's
+  # precision-over-recall rule, so a row that CHANGES re-surfaces and blocks rather than staying
+  # silently suppressed at a length nobody agreed to.
+  # ---------------------------------------------------------------------------
+
+  - id: warn-row-length-546-adr60-taxonomy
+    organ: doc_rot
+    match: "backlog-row-length BACKLOG#546 (2227 chars"
+    ref: "[#532]/A9; docs/audits/2026-08-18-technical-a9-trim-lane-packet.md §4"
+    review_date: 2026-11-18
     reason: >-
-      NO REVIEW EXISTS TO LAND, and that is stated plainly rather than dressed up. The four
-      artifacts landed by W9 are TRANSCRIPTIONS of reviews that genuinely ran on 2026-08-15 and
-      whose verdicts were captured off-repo to ~/Downloads/PHASE1-TERRA-RAW-2026-08-15.md; that
-      record covers lanes M, N, O and P ONLY -- it says so in its own header ("Lanes reviewed: M,
-      N, O, P"). d62796ad is the morning boot-acts merge and was not sent to the code profile,
-      so there is no captured verdict to transcribe. Writing one now would be the fabricated
-      header the [#480] docstring names as the thing this leg cannot detect, which is exactly why
-      it is not done.
-      WHY DISPOSITION RATHER THAN A RETROACTIVE REVIEW. The merge is a boot-acts arc -- gate
-      count 41->11, closes #524 #352, births #529 -- whose code impact is the gate-count movement
-      itself, already fully evidenced by the audit run that produced the numbers and by the
-      commits it names. Its subject is also not a `Merge branch '<x>'` line, so the BRANCH
-      linkage leg is structurally unavailable to it and only a HEAD-naming artifact could ever
-      link it. Advisory in any case per the [#480] P3 ruling -- the hard pre-push leg stays
-      deferred pending 0 false positives over two consecutive windows, and this entry is one of
-      the inputs that window counts.
-      HONEST LIMIT OF THIS ENTRY, since the register's own header demands precision: the organ
-      emits ONE Finding listing every unlinked merge, so a match on this signature suppresses
-      that whole Finding at the ship-gate, not just this merge's line. That is a pre-existing
-      property of the organ's one-Finding-per-scan shape (the register header calls for one
-      Finding PER concern), not something this entry introduces, and it is recorded here so the
-      next reader does not mistake a suppressed Finding for a clean scan. review_date is the
-      ADR-75 shelf-life; the entry decorates stale and surfaces if the merge it names ever leaves
-      the scan window.
+      NO CARRIER — accepted at length, ruled [#532]/A9. Lane G's per-row worksheet put this row on
+      the REPORT list precisely because route (i) is unavailable: the row IS the only record of the
+      ADR-60 taxonomy divergence, so a trim would not compress the record, it would delete it. The
+      A9 ruling's own distinction is that self-induced framing prose gets drained while a row whose
+      length IS its evidence gets accepted; this is the second case.
+
+  - id: warn-row-length-547-split-brain-referent
+    organ: doc_rot
+    match: "backlog-row-length BACKLOG#547 (2099 chars"
+    ref: "[#532]/A9; docs/audits/2026-08-18-technical-a9-trim-lane-packet.md §4"
+    review_date: 2026-11-18
+    reason: >-
+      NO CARRIER — accepted at length, ruled [#532]/A9. Same class as [#546] and reported by the
+      same lane-G worksheet: the row is the only record of the split-brain instruction's missing
+      referent, so trimming deletes the finding rather than condensing it.
+
+  - id: warn-row-length-552-governance-clauses
+    organ: doc_rot
+    match: "backlog-row-length BACKLOG#552 (3576 chars"
+    ref: "[#532]/A9; docs/audits/2026-08-18-technical-a9-trim-lane-packet.md §2.2, §4"
+    review_date: 2026-11-18
+    reason: >-
+      CARRIER PROVEN, TRIM STRUCTURALLY IMPOSSIBLE — accepted at length, ruled [#532]/A9. Lane G
+      measured 1654 chars of governance clauses ALONE, i.e. the row is above the 1320 ceiling
+      before one character of prose exists. Route (i) cannot reach it by construction. A
+      clause-condensation route exists and was explicitly left to the seat rather than taken by
+      the lane; it is NOT taken here either, so this disposition accepts a known-open alternative
+      rather than pretending none exists.
+
+  - id: warn-row-length-533-audit-decomposition
+    organ: doc_rot
+    match: "backlog-row-length BACKLOG#533 (4210 chars"
+    ref: "[#532]/A9"
+    review_date: 2026-11-18
+    reason: >-
+      LENGTH IS THE LEG ENUMERATION — accepted, ruled [#532]/A9. The row decomposes the audit.py
+      check monolith into one module per check plus an ordered registry, and it carries its legs,
+      their sequencing and their discharge state inline; that enumeration is what makes the row
+      executable across several arcs (leg 2 landed in this very batch as lane A). Draining it
+      would move the sequencing somewhere the row no longer names. Excluded from lane G's scope by
+      that lane's own contract, so no trim attempt was made or refused.
+
+  - id: warn-row-length-529-telemetry-emit
+    organ: doc_rot
+    match: "backlog-row-length BACKLOG#529 (2001 chars"
+    ref: "[#532]/A9"
+    review_date: 2026-11-18
+    reason: >-
+      MECHANISM SPEC — accepted, ruled [#532]/A9. Named in lane G's contract-EXCLUDED set and left
+      untouched by this batch by explicit instruction (the row is batch-2 work). Its length carries
+      the stage-1 event specification for the gate mesh, which is the part a future implementer
+      reads; this entry accepts the length, it does not bless the row's content.
+
+  - id: warn-row-length-530-single-flight
+    organ: doc_rot
+    match: "backlog-row-length BACKLOG#530 (1871 chars"
+    ref: "[#532]/A9"
+    review_date: 2026-11-18
+    reason: >-
+      MECHANISM SPEC — accepted, ruled [#532]/A9. Same case as [#529]: contract-EXCLUDED from lane
+      G, batch-2 work, and the length is the single-flight dispatch guard's own specification.
