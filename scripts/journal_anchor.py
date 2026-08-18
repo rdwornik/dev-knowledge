@@ -42,6 +42,17 @@ from pathlib import Path
 _JOURNAL = "JOURNAL.md"
 _SHORT = 7
 
+# Only a FULL 40-hex object name is an immutable cache key. A ref (`main`, `HEAD`, a short
+# prefix that could later become ambiguous) can resolve to a different commit tomorrow, so
+# `introduced` refuses to memoize one -- see its docstring.
+_FULL_SHA_RE = re.compile(r"^[0-9a-f]{40}$")
+
+# Ceiling for the `_introduced_tuple` memo. This repo's whole first-parent spine is ~1300
+# entries and the two spine-walking checks each traverse it, so 2048 holds a full double walk
+# with headroom. Each value is a short tuple of hex strings -- kilobytes, not megabytes, which
+# is why this ceiling is generous where `_ENTRIES_CACHE_MAXSIZE` is tight.
+_INTRODUCED_CACHE_MAXSIZE = 2048
+
 # ADR-85's dated disposition floor is read FROM THE ADR, never hardcoded here and never
 # re-derived. FR4: "Floor read from the ADR, never re-derived and never widened in code."
 # Keeping the constant out of code is the point: a floor that lives in a Python literal can
@@ -128,6 +139,31 @@ def spine_entries(repo: Path, rev_range: str) -> list[str]:
     return [ln.strip() for ln in out.splitlines() if ln.strip()]
 
 
+def _introduced_uncached(repo: Path, sha: str) -> list[str]:
+    """The uncached body of `introduced`. Two `git rev-list` reads, no memory."""
+    parents = _git(repo, "rev-list", "--parents", "-n", "1", sha).split()
+    if len(parents) < 2:          # root commit: no first parent
+        return [sha]
+    first_parent = parents[1]
+    out = _git(repo, "rev-list", f"{first_parent}..{sha}")
+    brought = [ln.strip() for ln in out.splitlines() if ln.strip()]
+    return brought or [sha]
+
+
+@functools.lru_cache(maxsize=_INTRODUCED_CACHE_MAXSIZE)
+def _introduced_tuple(repo_key: str, sha: str) -> tuple[str, ...]:
+    """The memoized answer for an IMMUTABLE key. Guarded by `introduced` below.
+
+    `repo_key` is `str(repo)` rather than a `Path`: two spellings of the same directory are
+    two keys, which costs a miss and never a wrong answer, whereas resolving the path on every
+    call would add a syscall to a function whose entire purpose is to avoid work.
+
+    `lru_cache` does NOT cache exceptions, so an `AnchorError` from an unreadable history is
+    re-raised from a real git read every time -- the fail-CLOSED posture is untouched.
+    """
+    return tuple(_introduced_uncached(Path(repo_key), sha))
+
+
 def introduced(repo: Path, sha: str) -> list[str]:
     """The commits a spine entry INTRODUCED: `firstparent..sha`, plus the entry itself.
 
@@ -136,14 +172,32 @@ def introduced(repo: Path, sha: str) -> list[str]:
     (§A9) it is just the entry: structurally unanchorable at push time, since no JOURNAL
     can name a SHA that does not yet exist. A root commit has no first parent and likewise
     introduces only itself.
+
+    MEMOIZED, BUT ONLY ON A FULL 40-HEX SHA ([#533] leg 2). What a commit introduced is
+    fixed forever by the commit's own hash -- its parents, and their ancestry, are part of
+    what the hash commits to -- so for a full SHA this answer cannot go stale and the memo is
+    safe by construction, not by policy. A REF is a different matter: `main` moves, so a
+    `main`-keyed entry could outlive its own truth, and any argument other than a full SHA
+    therefore bypasses the cache entirely rather than being cached under a caveat. Callers in
+    this repo pass `%H` from `spine_entries`, so the fast path is the one that runs.
+
+    WHY IT EXISTS, measured rather than assumed ([#533] leg 2, STEP 1): a single
+    `audit.py health` run called this 404 times and spawned 808 `git rev-list` processes at
+    ~144 ms each, 116.8 s in all -- because `check_journal_spine_anchor` reaches it TWICE for
+    every spine entry, once via `unanchored_on_spine -> is_anchored` and again via
+    `mention_not_record_warnings`. About half of those spawns recomputed an answer the process
+    already held. `check_review_artifact_coverage` walks the same spine and calls it again.
+
+    Returns a fresh `list` so a caller mutating the result cannot corrupt later readers.
     """
-    parents = _git(repo, "rev-list", "--parents", "-n", "1", sha).split()
-    if len(parents) < 2:          # root commit: no first parent
-        return [sha]
-    first_parent = parents[1]
-    out = _git(repo, "rev-list", f"{first_parent}..{sha}")
-    brought = [ln.strip() for ln in out.splitlines() if ln.strip()]
-    return brought or [sha]
+    if not _FULL_SHA_RE.match(sha):
+        return _introduced_uncached(repo, sha)
+    return list(_introduced_tuple(str(repo), sha))
+
+
+# Cache-management surface, forwarded for the same reason as `_entries`'.
+introduced.cache_info = _introduced_tuple.cache_info
+introduced.cache_clear = _introduced_tuple.cache_clear
 
 
 def is_anchored(repo: Path, sha: str, journal: str) -> bool:

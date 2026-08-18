@@ -26,6 +26,8 @@ which WOULD be mtime-sensitive and WOULD go stale.
 from __future__ import annotations
 
 import re
+import shutil
+import subprocess
 
 import pytest
 
@@ -234,3 +236,215 @@ def test_mention_not_record_warnings_is_stable_across_repeated_calls(monkeypatch
     # `cafe002` is mentioned in prose only; `0badf00` sits on an explicit `**Anchors:**` line.
     assert len(first) == 1
     assert "cafe002" in first[0]
+
+
+# ==========================================================================================
+# The `introduced` memo -- the SECOND pathology STEP-1 attribution found, and an addition
+# BEYOND the two mechanisms the contract named. It is tested harder than the first for that
+# reason: it caches the result of a git read, where `_entries` only caches a string split.
+#
+# The safety argument it rests on: what a commit INTRODUCED is fixed forever by the commit's
+# own hash, because its parents -- and therefore their whole ancestry -- are part of what the
+# hash commits to. A full 40-hex SHA is thus an immutable key. A REF is not, so `introduced`
+# refuses to cache one at all rather than caching it under a caveat.
+# ==========================================================================================
+
+_SHA_A = "a" * 40
+_SHA_B = "b" * 40
+_PARENT = "c" * 40
+
+
+@pytest.fixture(autouse=True)
+def _clear_introduced_memo():
+    ja.introduced.cache_clear()
+    yield
+    ja.introduced.cache_clear()
+
+
+def _counting_git(calls):
+    """A `_git` stand-in that records every invocation and answers the two rev-list forms."""
+    def _git(repo, *args):
+        calls.append((str(repo), args))
+        if args[:2] == ("rev-list", "--parents"):
+            return f"{args[-1]} {_PARENT}\n"
+        if args[0] == "rev-list":
+            return f"{args[-1].split('..')[-1]}\n{_SHA_B}\n"
+        raise AssertionError(f"unexpected git call: {args}")
+    return _git
+
+
+def test_introduced_memoizes_a_full_sha_and_stops_spawning_git(monkeypatch, tmp_path):
+    """The whole point: the second identical call must cost ZERO subprocesses.
+
+    Asserted on the git-call log rather than on a hit counter alone, because the saving that
+    matters here is process spawns (~144 ms each on this platform), not cache bookkeeping.
+    """
+    calls = []
+    monkeypatch.setattr(ja, "_git", _counting_git(calls))
+
+    first = ja.introduced(tmp_path, _SHA_A)
+    assert len(calls) == 2                     # rev-list --parents, then rev-list range
+    second = ja.introduced(tmp_path, _SHA_A)
+    assert len(calls) == 2                     # unchanged: served from the memo
+    assert first == second
+    assert ja.introduced.cache_info().hits == 1
+
+
+def test_introduced_refuses_to_memoize_a_moving_ref(monkeypatch, tmp_path):
+    """`main` is not an immutable key -- it moves -- so it must hit git every single time.
+
+    This is the guard that makes the safety argument true rather than merely plausible: without
+    it, a long-lived process could answer for a `main` that had since advanced.
+    """
+    calls = []
+    monkeypatch.setattr(ja, "_git", _counting_git(calls))
+
+    ja.introduced(tmp_path, "main")
+    assert len(calls) == 2
+    ja.introduced(tmp_path, "main")
+    assert len(calls) == 4                     # re-read, not remembered
+    assert ja.introduced.cache_info().hits == 0
+    assert ja.introduced.cache_info().misses == 0   # never entered the cache at all
+
+
+@pytest.mark.parametrize("ref", ["main", "HEAD", "a" * 7, "a" * 39, "A" * 40, "z" * 40,
+                                 "refs/heads/main", "HEAD~1", ""])
+def test_only_a_full_lowercase_hex_object_name_is_treated_as_immutable(ref):
+    assert ja._FULL_SHA_RE.match(ref) is None
+
+
+def test_a_full_sha_is_treated_as_immutable():
+    assert ja._FULL_SHA_RE.match(_SHA_A) is not None
+    assert ja._FULL_SHA_RE.match("0123456789abcdef" * 2 + "01234567") is not None
+
+
+def test_distinct_shas_do_not_share_a_cache_entry(monkeypatch, tmp_path):
+    calls = []
+    monkeypatch.setattr(ja, "_git", _counting_git(calls))
+    a = ja.introduced(tmp_path, _SHA_A)
+    b = ja.introduced(tmp_path, _SHA_B)
+    assert len(calls) == 4
+    assert a != b
+
+
+def test_distinct_repos_do_not_share_a_cache_entry(monkeypatch, tmp_path):
+    """Two checkouts can hold the same SHA; keying on the sha alone would be a real bug."""
+    calls = []
+    monkeypatch.setattr(ja, "_git", _counting_git(calls))
+    ja.introduced(tmp_path / "one", _SHA_A)
+    ja.introduced(tmp_path / "two", _SHA_A)
+    assert len(calls) == 4
+    assert {c[0] for c in calls} == {str(tmp_path / "one"), str(tmp_path / "two")}
+
+
+def test_a_caller_mutating_the_introduced_result_cannot_poison_the_cache(monkeypatch, tmp_path):
+    monkeypatch.setattr(ja, "_git", _counting_git([]))
+    first = ja.introduced(tmp_path, _SHA_A)
+    first.append("INJECTED")
+    assert "INJECTED" not in ja.introduced(tmp_path, _SHA_A)
+
+
+def test_an_anchor_error_is_never_cached(monkeypatch, tmp_path):
+    """FAIL-LOUD must survive the memo: an unreadable history re-reads and re-raises.
+
+    `lru_cache` does not store exceptions, so this holds for free -- but "holds for free" is
+    the kind of property that quietly stops holding when somebody swaps the caching strategy,
+    and this module's entire posture is that an unknown anchoring state never renders as clean.
+    """
+    calls = []
+
+    def _boom(repo, *args):
+        calls.append(args)
+        raise ja.AnchorError("git exploded")
+
+    monkeypatch.setattr(ja, "_git", _boom)
+    for _ in range(2):
+        with pytest.raises(ja.AnchorError):
+            ja.introduced(tmp_path, _SHA_A)
+    assert len(calls) == 2                     # a real git read on BOTH attempts
+    # A raising call still counts as a MISS -- the lookup did miss -- but `currsize` is what
+    # says whether anything was retained, and nothing was. Asserting on `currsize` rather than
+    # on the miss counter is the difference between testing the property and testing the
+    # bookkeeping.
+    assert ja.introduced.cache_info().currsize == 0
+
+
+def test_the_introduced_cache_is_bounded():
+    assert ja.introduced.cache_info().maxsize is not None
+
+
+def test_a_root_commit_still_introduces_only_itself(monkeypatch, tmp_path):
+    """The `len(parents) < 2` branch, preserved through the split into _introduced_uncached."""
+    monkeypatch.setattr(ja, "_git", lambda repo, *args: f"{_SHA_A}\n")
+    assert ja.introduced(tmp_path, _SHA_A) == [_SHA_A]
+
+
+# --- real git: the memo must not change the ANSWER -----------------------------------------
+
+requires_git = pytest.mark.skipif(shutil.which("git") is None, reason="git not available")
+
+
+def _git(repo, *args):
+    subprocess.run(["git", "-C", str(repo), *args], check=True,
+                   capture_output=True, text=True)
+
+
+@requires_git
+def test_memoized_introduced_matches_the_uncached_body_on_a_real_no_ff_merge(tmp_path):
+    """Parity against a real DAG, which is the only oracle that proves the memo is honest.
+
+    Builds root -> branch(2 commits) -> `--no-ff` merge, then asserts the memoized `introduced`
+    equals `_introduced_uncached` for the merge (which must report the merge plus both brought
+    commits) and for a plain non-merge spine entry, on both the cold and the cached path.
+    """
+    repo = tmp_path / "r"
+    repo.mkdir()
+    _git(repo, "init", "-q", "-b", "main")
+    _git(repo, "config", "user.email", "t@t")
+    _git(repo, "config", "user.name", "t")
+    (repo / "f.txt").write_text("1\n", encoding="utf-8")
+    _git(repo, "add", "f.txt")
+    _git(repo, "commit", "-q", "-m", "root")
+    _git(repo, "checkout", "-q", "-b", "side")
+    for i in (2, 3):
+        (repo / "f.txt").write_text(f"{i}\n", encoding="utf-8")
+        _git(repo, "commit", "-q", "-am", f"side {i}")
+    _git(repo, "checkout", "-q", "main")
+    _git(repo, "merge", "-q", "--no-ff", "side", "-m", "merge side")
+
+    spine = ja.spine_entries(repo, "main")
+    merge_sha, root_sha = spine[0], spine[-1]
+
+    memoized = ja.introduced(repo, merge_sha)
+    assert memoized == ja._introduced_uncached(repo, merge_sha)
+    assert ja.introduced(repo, merge_sha) == memoized       # cached path, same answer
+    assert len(memoized) == 3                               # the merge + both side commits
+
+    assert ja.introduced(repo, root_sha) == ja._introduced_uncached(repo, root_sha)
+    assert ja.introduced(repo, root_sha) == [root_sha]
+
+
+@requires_git
+def test_is_anchored_is_unchanged_by_the_memo_on_a_real_repo(tmp_path):
+    """The predicate the ADR-85 organs actually call, exercised twice through the cache."""
+    repo = tmp_path / "r"
+    repo.mkdir()
+    _git(repo, "init", "-q", "-b", "main")
+    _git(repo, "config", "user.email", "t@t")
+    _git(repo, "config", "user.name", "t")
+    (repo / "f.txt").write_text("1\n", encoding="utf-8")
+    _git(repo, "add", "f.txt")
+    _git(repo, "commit", "-q", "-m", "root")
+    _git(repo, "checkout", "-q", "-b", "side")
+    (repo / "f.txt").write_text("2\n", encoding="utf-8")
+    _git(repo, "commit", "-q", "-am", "side work")
+    side_sha = ja.spine_entries(repo, "side")[0]
+    _git(repo, "checkout", "-q", "main")
+    _git(repo, "merge", "-q", "--no-ff", "side", "-m", "merge side")
+    merge_sha = ja.spine_entries(repo, "main")[0]
+
+    naming = f"### entry\n\n**Anchors:** `{side_sha[:7]}`.\n"
+    silent = "### entry\n\nno shas here\n"
+    for _ in range(2):
+        assert ja.is_anchored(repo, merge_sha, naming) is True
+        assert ja.is_anchored(repo, merge_sha, silent) is False
