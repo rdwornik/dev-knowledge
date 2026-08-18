@@ -322,3 +322,132 @@ is limit (b) above, reproduced. **The arming path was deliberately NOT run to ma
 that would rewrite the shared primary checkout's hooks and rebind them away from whatever session is using
 them. Turning a refusal green by mutating shared state that other live sessions depend on is not
 verification.
+
+---
+
+# STEP 4 — the fork is taken: **no boot channel exists from this session**
+
+The contract's STEP 4 offers a fork: boot the devcontainer where it can actually be proven, **or** — *"if no
+boot channel is available from this session, deliver everything else and STOP-report the proof as the one
+open acceptance item — do not fake a log."* **The fork is taken.** No log is fabricated, no partial output
+is dressed up as a boot, and D1/D2 are reported open below.
+
+## 4.1 Every channel was probed, and this is what each returned
+
+| Channel | Probe | Result |
+|---|---|---|
+| local Docker | `command -v docker` | **absent** |
+| local Podman | `command -v podman` | **absent** |
+| devcontainer CLI | `command -v devcontainer` | **absent** |
+| WSL (as a runtime host) | `wsl -l -v` | **no distribution installed** — *"Windows Subsystem for Linux has no installed distributions"* |
+| GitHub Codespaces | `gh codespace list` | **refused**: `HTTP 403 … This API operation needs the "codespace" scope` |
+
+The Codespaces refusal is the closest thing to a live channel and it is worth being precise about, because
+it is one interactive step away rather than architecturally blocked. `gh` **is** authenticated (account
+`rdwornik`, repo `rdwornik/dev-knowledge`), but its token carries `gist, read:org, repo, workflow` and
+**not** `codespace`. Widening it means `gh auth refresh -h github.com -s codespace`, a **browser OAuth flow
+that requires the operator** — and it is a scope change on the operator's GitHub credential, which is not a
+thing a lane grants itself. Creating a Codespace would additionally consume the account's free-tier
+core-hours, an outward-facing, billable-adjacent act this contract does not authorize.
+
+Installing a container runtime was likewise not attempted: Docker Desktop or a WSL distribution is a new
+machine-level dependency, several orders outside *"no new paths beyond `.devcontainer/`"*, and the global
+standing rule is that new dependencies are never added without confirmation.
+
+**Intake #39's own open question 2 — *"Is the Codespaces free tier available on this account…?"* — therefore
+remains open, and this lane has now bounded it:** the account is reachable and the repo exists; only the
+token scope was tested and found insufficient. Nothing here says the free tier is or is not available.
+
+## 4.2 What is proven, and what is not — stated without hedging
+
+**Proven** (§3.1/§3.2, on this workstation): the script's syntax, its usage path, its section-scoped pin
+reader against the live `pyproject.toml`, and **three firing tests of the L4 env gate** — refusal with no
+stamp, refusal on a moved uv pin (`0.8.17` vs `0.11.19`, the exact drift the contract names), and passage
+through every stamp check to the live asserts on a current stamp. Plus the hermetization suite and lint.
+
+**Not proven:** that the image builds; that `postCreateCommand` runs to completion inside a container; that
+L1's pinned-uv install path works against the astral endpoint from inside that container; that L2's
+`--unshallow` actually fires on a genuinely shallow Codespaces clone; that L3 goes **green** rather than
+merely refusing; and that `audit.py health` + `pytest -m 'not slow'` are green there. Those are D1 and D2,
+and this session cannot speak to any of them.
+
+Note which legs that split lands on. L4's *refusal* behaviour is the best-tested thing in this lane; L1/L2/L3
+are proven only as far as the logic that reads and compares — their **install/fetch/arm** side has never
+executed. The gate-liveness smoke C2 has not run against a container either. That asymmetry is the honest
+shape of the evidence and is not narrowed by re-describing it.
+
+## 4.3 The exact remaining work, so the next session starts from a command and not a question
+
+Closing **D1** (Codespaces free tier — also intake #39 acceptance criterion 4, which requires the run be
+recorded **with its wall-clock**):
+
+1. `gh auth refresh -h github.com -s codespace` — interactive; the operator must complete the browser flow.
+2. Publish the lane branch so Codespaces can see `.devcontainer/`: `git push -u origin
+   worktree-lane-c-554-devcontainer`. **This lane deliberately did not push** — see §5.3.
+3. `gh codespace create -R rdwornik/dev-knowledge -b worktree-lane-c-554-devcontainer`, selecting the
+   **2-core** machine when prompted (the free-tier shape `hostRequirements` declares).
+4. In the codespace: `time uv run --locked python scripts/audit.py health` and
+   `time uv run --locked pytest -m 'not slow'`. **Record both wall-clocks** — criterion 4 exists so later
+   substrate claims are measured against a number rather than estimated.
+5. Re-run `bash .devcontainer/provision.sh` a second time and confirm it prints the idempotence line
+   (*"nothing changed, all four legs were already satisfied"*) — that is C1's only real test.
+
+Closing **D2** (identical script on a VPS): on the host, `npm i -g @devcontainers/cli` then
+`devcontainer up --workspace-folder .` against a clone of the same branch. The assertion under test is that
+**the same two files run unchanged** — no Codespaces-specific branch exists in either, which is why the row
+words it as *"the identical script"*.
+
+Both are boot-time facts. Neither can be closed by reading the files, and neither is claimed here.
+
+---
+
+# STOP packet
+
+## 5.1 Done-when checklist, per-item state
+
+| # | Requirement | State | Evidence |
+|---|---|---|---|
+| L1 | pinned-`uv` assert | **DONE** | `read_uv_pin()` returns `==0.11.19` against the live `pyproject.toml`, correctly ignoring `[tool.ruff]`; install is from the version-pinned URL; the assert compares `uv --version` to the pin |
+| L2 | `git fetch --unshallow` | **DONE (logic); unfired** | guarded, asserted, no-op on a full clone. The fetch itself has never run — this workstation's clone is not shallow |
+| L3 | three hook types armed | **DONE (assert); refuses here** | reuses `arm_hooks._hooks_dir` / `_armed`; refused on this workstation for a diagnosed, container-inapplicable reason (§3.2) |
+| L4 | env gate refuses a half-provisioned start | **DONE, and the best-evidenced item** | three firing tests, §3.1 |
+| C1 | idempotent, says so | **DONE (code); untested end-to-end** | check-then-act on every leg + `CHANGED` counter; only a real second run proves it (§4.3 step 5) |
+| C2 | gate-liveness smoke | **DONE (code); unfired** | uses `.pre-commit-config.yaml`'s exact `validate-backlog` command line |
+| D1 | one lane green on Codespaces free tier | **OPEN — the one open acceptance item** | no boot channel; `gh` token lacks the `codespace` scope (§4.1) |
+| D2 | identical script via `devcontainer up` on a VPS | **OPEN** | no VPS and no devcontainer CLI from this session (§4.1) |
+
+## 5.2 Files
+
+**Added (2 — the complete new-path footprint):**
+- `.devcontainer/devcontainer.json`
+- `.devcontainer/provision.sh` (mode `100755`)
+
+**Modified (5, all lockstep or generated):**
+- `docs/decisions/ADR-101-hermetization.md` — Amendment 2026-08-18 appended (in-file marker per ADR-94; the
+  decision body untouched)
+- `scripts/validate_hermetization.py` — Rule A + Rule C entries
+- `tests/test_validate_hermetization.py` — two pins
+- `ecosystem/doc-counts.md` — regenerated (`pytest_collected` 2974 → 2976)
+- `docs/audits/README.md` — regenerated index; this artifact
+
+**Tests:** `pytest tests/test_validate_hermetization.py tests/test_gen_doc_counts.py
+tests/test_validate_doc_claims.py tests/test_generator_newlines.py -n 0` → **94 passed**. Every commit
+passed the live pre-commit gate set, including `validate-hermetization` firing on the staged
+`.devcontainer/` ADD.
+
+## 5.3 What this lane deliberately did NOT do
+
+- **Did not push.** The contract is commit-and-STOP; the branch `worktree-lane-c-554-devcontainer` exists
+  locally only. Publishing it is step 2 of §4.3 and is the integrator's or the operator's call — flagged
+  because the worktree can be removed with the session, and an unpushed branch in a removed worktree is a
+  loss risk.
+- **Did not merge, and did not journal.** A batch lane never journals; the integrator does.
+- **Did not touch `[#554]`'s row or `BACKLOG.md`.** D1/D2 are open, so the row is not closable.
+- **Did not implement intake #39's R26** (`audit.py health` env-flag skip semantics). It is a separate
+  unborn row, rated *Could*, and would mean editing `scripts/audit.py` — outside this contract's scope. See
+  §1.4; it may surface as a D1 failure mode in a single-repo container, and that would be R26's gap, not
+  this script's defect.
+- **Did not add a CI workflow, and did not touch `.github/`.**
+- **Did not run the hook-arming path to turn the §3.2 refusal green** — in a worktree that rewrites the
+  shared primary checkout's hooks.
+- **Did not widen the `gh` token scope or create a Codespace.**
