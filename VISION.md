@@ -1,7 +1,7 @@
 ---
 version: 1.0
 owner: rob
-last_reviewed: 2026-07-25
+last_reviewed: 2026-08-18
 status: active
 ---
 
@@ -12,10 +12,10 @@ status: active
 
 `.dev-knowledge` is a universal LLM-driven development guide and
 methodology framework. Its **doctrine is host-independent**: the
-conventions it defines, and the read-only validators in `scripts/` that
-enforce them, carry no machine-specific paths and apply to any repo in any
-folder. Its **artifacts are not** — two layers bind to this host, in
-different ways. The corpus *documents* the host in places
+conventions it defines, and the hub-local validators, generators and gates
+in `scripts/` that enforce them, carry no machine-specific paths and apply
+to any repo in any folder. Its **artifacts are not** — two layers bind to
+this host, in different ways. The corpus *documents* the host in places
 (`protocols/ENVIRONMENT.md` is a machine description by design;
 `templates/prompt-template.md` and some ADR examples cite absolute paths).
 The **fleet-registry and machine-automation layer** *depends* on it: the
