@@ -594,3 +594,80 @@ JOURNAL entry naming ≥1 SHA the merge range introduces, or `block-unanchored-p
 the push (fails CLOSED, exit 2) and the `journal_spine_anchor` audit check will FAIL. That
 matches the house pattern already visible in the log (`docs(journal): anchor the … arc`, done
 by the integration arc, not by the lane).
+
+---
+
+## AMENDMENT 2 — 2026-08-18: the gates became AVAILABLE, and what that verified
+
+In-file amendment marker (audits immutable, CLAUDE.md §5 rule 3). **This amendment partly
+retracts §0 and corrects two lines of the §5.2 contract.** §0 said no claim here was backed by
+a run. That was true when written; it is no longer, and the difference is material enough that
+a reader must not stop at §0.
+
+**How the gate state changed.** `uv self update` could not reach the pinned version (managed
+install), but `pip install --user uv==0.11.19` lands the pinned binary at the same path. The
+whole mesh then runs: `uv run --locked` provisioned CPython 3.12.10 and the locked dependency
+set into `.venv` (gitignored — the tree stayed clean throughout). **The Stop hook that
+triggered this exits 0.**
+
+### What the live tree then confirmed — three claims, upgraded from static to runtime
+
+| Claim | §  | Status |
+|---|---|---|
+| 43 `ALL_CHECKS`, 43 `CHECK_ORDER`, 16 extracted, 27 facade-resident | §1.1 | **CONFIRMED at runtime** (`f.__module__ == "audit"` on live objects) |
+| **`_is_hub` is read by 21 facade checks, not the registry docstring's 19** | §6 D1 | **CONFIRMED by a third, independent method** — `inspect.getsource` over the live function objects, after AST and `awk`. D1 stands. |
+| N-1's four `landed:` sites are **all True today, `scripts/audit.py` among them** | §3.2 | **CONFIRMED by the live check's own output.** So moving `check_import_edges` flips exactly one site to False → mixed → `check_landing_predicate` FAIL. The §3.2 blocker is real, not projected. |
+
+`ALL_CHECKS == tuple(CHECK_ORDER)` evaluates **True** right now — so the §5.2 **P5** guard test
+would pass on the day it is added. It is cheap and it locks in a currently-true invariant that
+`registry.py` itself documents as unasserted.
+
+### The §2.0 taxonomy is now DEMONSTRATED, not argued
+
+A minimal faithful model — a facade module and the same check text relocated into a second
+module — was run with the two patch forms the tests actually use:
+
+```
+CLASS B  setattr(facade, "_is_hub", fake)          facade sees 'FAKED' | moved sees True
+         -> *** SEAM DETACHED SILENTLY ***
+CLASS D  setattr(facade._vgb, "reconcile", fake)   facade sees 'FAKED' | moved sees 'FAKED'
+         -> SEAM HELD
+```
+
+The detail that matters is *how* Class B fails: the relocated check returned `True` — a
+**plausible, non-erroring value**. A test asserting on it keeps passing while exercising the
+real implementation. That is the failure mode in one line, and it is why §5.2 rule 1 forbids
+back-compat re-exports.
+
+### CONTRACT CORRECTION — §5.2 P1 and P2 as written would be unsatisfiable
+
+Measured baseline on this branch, full suite: **32 failed, 2990 passed, 10 skipped, 1 xfailed**
+(3033 collected, 500s). **The 32 are pre-existing and environmental, not caused by this lane** —
+attribution verified rather than asserted: five representative failures were re-run at the
+merge-base `87dd41a`, *without* this lane's three markdown files, and **all five fail
+identically there**. This lane's whole diff is 656 inserted lines of markdown under
+`docs/audits/`.
+
+Environmental causes, named for whoever runs the seam lane in a container like this one:
+
+- `pandas` absent → the 13 `test_fleet_analytics.py` failures
+- the clone lacks older history → `journal_spine_anchor` raises *"disposition floor 24882f8cc
+  is not a valid object name"*, which alone turns `audit.py health` **DEGRADED** and fails the
+  three `test_audit.py` health/run tests
+- sibling fleet repos (`ai-council`, `corp-monorepo`) absent → `fleet_parity` unavailable legs
+- `pre-commit` stages not armed → a `fleet_parity` hooks-armed WARN
+- no langserver → the four `test_reverse_dep_oracle.py` failures + `test_safe_remove.py`
+
+**Therefore, amend §5.2:**
+
+- **P1** must read *"no NEW failures against the baseline captured at STEP 0"*, **not** "suite
+  green". A lane held to a literal green bar in an environment like this cannot finish, and the
+  likely response — chasing 32 unrelated environmental failures — is strictly worse than the
+  work it displaces.
+- **P2** must read *"`audit.py health` output byte-identical to the STEP 0 capture"* **without**
+  the implicit assumption that health is OK. Here it is **DEGRADED**, and byte-identical-to-
+  baseline remains the correct and achievable parity test regardless.
+
+The **`.venv`** created here is gitignored and the working tree ended clean and on-branch
+(verified after a detached-HEAD attribution run: `branch=claude/seam-leg-monkeypatch-pins-91fh27`,
+`dirty=0`). No repo file outside `docs/audits/` was written by this lane at any point.
