@@ -49,7 +49,7 @@
   // Do not report the container ready — or attach a session to it — until provisioning has
   // actually finished. Without this the window between "container up" and "hooks armed" is
   // exactly the arming race this row exists to close.
-  "waitFor": "postCreateCommand",
+  "waitFor": "postStartCommand",
 
   // Codespaces free tier is a 2-core / 8 GB machine; declaring the floor keeps a lane from
   // being scheduled somewhere that cannot run the suite. Storage is deliberately NOT declared:
