@@ -99,3 +99,99 @@ provisioning a second tree would have left a leftover to clean up (§5 rule 9).
 Filled in by the sections appended below as each step lands: STEP 1 the Done-when checklist derived from the
 row, STEP 2/3 what landed, STEP 4 the proof log or the fork report. This artifact is the lane's single
 record.
+
+---
+
+# STEP 1 — the governing text, quoted, and the checklist derived from it
+
+## 1.1 `[#554]`'s Done-when, quoted verbatim
+
+From `tasks/554-devcontainer-provisioning-script-nb4-g-stage-1.md`:
+
+> - [#554] [P2][M] **Devcontainer + provisioning script (NB4-G stage 1)** — the reproducible container plus
+>   provisioning script that lets a lane run OFF this machine, so batch width stops being bounded by one
+>   workstation's measured admission ceiling of 6 concurrent lanes. Four legs, each a measured failure mode:
+>   a pinned-`uv` assert, `git fetch --unshallow` (the gates read history; on a shallow clone they are
+>   vacuous), deterministic `pre-commit install` for all three hook types, and an env gate that refuses to
+>   start on a half-provisioned environment. The substrate is operator-decided and not this row's question.
+>   · Done when: one lane runs green (`audit.py health` **and** `pytest -m 'not slow'`) on the Codespaces
+>   free tier, and the *identical* script is runnable via `devcontainer up` on a VPS · refs
+>   docs/intake/2026-08-17-tech-off-machine-agent-substrate.md, #541, #453, #528 · kill-candidates: none — no
+>   row owns off-machine provisioning; [#541] owns the substrate DECISION and [#453] the cloud-container
+>   PREFLIGHT for an already-provisioned session, a two-of-four-leg overlap whose second lander discharges by
+>   pointing at the first · source: intake #39
+>   `docs/intake/2026-08-17-tech-off-machine-agent-substrate.md`, which carries the four-leg rationale and
+>   the substrate pricing in full
+
+## 1.2 Intake #39's stage-1 clauses, quoted verbatim
+
+**Section D — "the smallest first build the artifact names":**
+
+> A `.devcontainer/devcontainer.json` + `provision.sh` that: (1) installs uv at the exact pinned version and
+> **asserts** it; (2) runs `git fetch --unshallow`; (3) runs `pre-commit install` for commit+push hooks and
+> **fails if not armed**; (4) gates the fleet-wide health check behind an env flag; then proves **one lane
+> green (`audit.py health` + `pytest -m "not slow"`) on the Codespaces free tier.** The same file runs
+> unchanged on the Hetzner VPS via `devcontainer up`.
+
+**Proposed row R25** (the row this lane executes; NOT born as a backlog id — `[#554]` is):
+
+> ```
+> PROPOSED ROW R25 - .devcontainer + provision.sh that ASSERTS the three traps closed
+>   Done-when: on a clean container build, the uv version equals the pinned value, `git
+>              rev-parse --is-shallow-repository` returns false, and all three pre-commit hook
+>              types are armed -- and the BUILD FAILS if any assertion fails (assert, not log).
+>   kill-candidates: none -- arm_hooks.py closes the arming trap at SESSION start in the hub;
+>              this closes it at PROVISION time for a fresh host, which is a different moment
+> ```
+
+**Acceptance criteria (ex-ante) 2 and 4**, the two that bind a provisioning script:
+
+> 2. A container cannot start a lane with an unpinned toolchain, a shallow clone, or unarmed hooks — the
+>    build fails first.
+> 4. One lane has actually run green off-machine, with a recorded wall-clock, before any recurring spend is
+>    committed.
+
+## 1.3 The checklist — the row's list, not an invented one
+
+Six items. **L1–L4 are the row's own four legs**, verbatim in kind; **D1–D2 are the row's own Done-when
+clause, split at its `and`.** Nothing here is added by this lane.
+
+| # | Source | Requirement | Lane state |
+|---|---|---|---|
+| L1 | row leg 1 | a pinned-`uv` assert — the provisioned uv equals the ADR-106 pin `==0.11.19`, asserted, not logged | see STEP 3 |
+| L2 | row leg 2 | `git fetch --unshallow` — the gates read history; on a shallow clone they are vacuous | see STEP 3 |
+| L3 | row leg 3 | deterministic `pre-commit install` for **all three** hook types (`pre-commit`, `commit-msg`, `pre-push`), asserted armed | see STEP 3 |
+| L4 | row leg 4 | an env gate that **refuses to start** on a half-provisioned environment | see STEP 3 |
+| D1 | Done-when a | one lane runs green — `audit.py health` **and** `pytest -m 'not slow'` — on the Codespaces free tier | STEP 4 proof; at risk |
+| D2 | Done-when b | the *identical* script is runnable via `devcontainer up` on a VPS | STEP 4 proof; at risk |
+
+**Two derived obligations the contract adds on top of the row** (recorded as the contract's, not the row's,
+so the provenance stays checkable):
+
+| # | Source | Requirement |
+|---|---|---|
+| C1 | contract STEP 3 | the script is **idempotent** — a second run is a no-op *and says so* |
+| C2 | contract STEP 3 | a **gate-liveness smoke**: run one cheap real gate (`validate_backlog`) and assert exit 0 — provisioning that cannot prove its gates run is the intake-#32 failure shape |
+
+## 1.4 One divergence between the row and the intake, resolved in the row's favour
+
+Intake #39's Section-D clause **(4)** reads *"gates the fleet-wide health check behind an env flag"* — that
+is the intake's **proposed row R26** (`audit.py health` in a single-repo container SKIPS sibling-repo checks
+cleanly rather than FAILing, `FLEET=1` restores them). The **row's** leg 4 is a different mechanism: *"an env
+gate that refuses to start on a half-provisioned environment"* — a refusal in the provisioning script, not a
+skip-semantics change in `audit.py`.
+
+**The row governs** (contract: "its Done-when governs this lane, this prompt only frames it"), so leg 4 is
+implemented as the row states it. R26 is rated *Could* by the intake, is a separate unborn row, and would
+require editing `scripts/audit.py` — outside this contract's declared scope (`devcontainer.json`, one
+provisioning script, one smoke assertion). **It is therefore NOT done here, and is named as an open
+dependency rather than silently folded in.** Practical consequence for D1: if `audit.py health` in a
+single-repo container FAILs on sibling-repo-dependent checks, that is R26's gap surfacing, not a defect in
+this lane's script — and it is called out in the STEP 4 report rather than papered over.
+
+## 1.5 Overlap discharge required by the row
+
+The row names a *"two-of-four-leg overlap"* with `[#453]` (cloud-container PREFLIGHT for an
+already-provisioned session) *"whose second lander discharges by pointing at the first"*. `[#453]` is
+**open** and has **not** landed, so `[#554]` is the first lander on those legs and the discharge obligation
+falls on `[#453]`, not here. Recorded so the second lander can find it.
