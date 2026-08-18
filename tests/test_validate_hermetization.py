@@ -79,6 +79,17 @@ def test_rule_a_allows_github_workflows_dir():
     assert vh.rule_a_violation(".github/workflows/report-only-wall.yml") is None
 
 
+def test_rule_a_allows_devcontainer_dir():
+    # .devcontainer/: ADR-101 amendment 2026-08-18 ([#554]) -- operator path-approval D6,
+    # granted at the batch GO for the lane-C contract of record. The off-machine lane
+    # substrate joined the sanctioned Tier-1 directories. Unlike `.github/` above it
+    # carries no organ and fires on no git event: a container runtime reads it, this
+    # repo's gate mesh never does.
+    assert ".devcontainer" in vh.SANCTIONED_TIER1_DIRS
+    assert vh.rule_a_violation(".devcontainer/devcontainer.json") is None
+    assert vh.rule_a_violation(".devcontainer/provision.sh") is None
+
+
 def test_rule_a_allows_sanctioned_top_level_file():
     # uv.lock + .python-version: ADR-101 amendment 2026-07-27 ([#432]/ADR-106) --
     # the uv toolchain's lockfile + interpreter pin joined the build/package class.
@@ -329,6 +340,17 @@ def test_rule_c_admits_the_relocated_organ_index():
     """The organ-index move PASSES: ecosystem/ is an allowlisted home."""
     assert vh.rule_c_violation("ecosystem/organ-index.md") is None
     assert vh.classify("ecosystem/organ-index.md") is None
+
+
+def test_rule_c_admits_the_devcontainer_home_but_not_a_subdir():
+    # [#554] / ADR-101 amendment 2026-08-18. The home is the BARE literal `.devcontainer`,
+    # so the two substrate files pass and a sub-directory inside it does NOT -- the D6
+    # approval sanctioned one directory carrying two files, and anything deeper stays a
+    # surfaced act. This is the same shape as `scripts/newpkg/` below.
+    assert vh.rule_c_violation(".devcontainer/devcontainer.json") is None
+    assert vh.rule_c_violation(".devcontainer/provision.sh") is None
+    assert vh.classify(".devcontainer/devcontainer.json") is None
+    assert vh.rule_c_violation(".devcontainer/scripts/extra.sh") is not None
 
 
 def test_rule_c_blocks_a_new_package_dir_under_an_allowlisted_parent():

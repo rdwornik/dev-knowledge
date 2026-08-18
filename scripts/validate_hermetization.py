@@ -70,6 +70,12 @@ SANCTIONED_TIER1_DIRS: frozenset[str] = frozenset({
     # directory that `82227f08` deleted under [#255]. Report-only forever (private
     # repo, Free tier -- required checks are unavailable), so no gate lives here.
     ".github",
+    # [#554] off-machine lane substrate (ADR-101 amendment 2026-08-18, operator
+    # path-approval D6 at the batch GO): the devcontainer spec + its idempotent
+    # provisioning script. Read by a container runtime (Codespaces / `devcontainer up`),
+    # never by this repo's gate mesh -- it carries no organ and judges nothing, which is
+    # what distinguishes it from the `.github/` sanction above.
+    ".devcontainer",
 })
 
 # Tier-1 -- sanctioned top-level FILES (the closed class members, ADR-101 section 1).
@@ -150,6 +156,10 @@ _HOME_PATTERNS: tuple[str, ...] = (
     # agent/runtime config
     ".claude", ".claude/*", ".claude/skills/*",
     ".claude-plugin",
+    # [#554] / ADR-101 amendment 2026-08-18: the BARE literal, deliberately -- the
+    # substrate is two files at ONE level (devcontainer.json + provision.sh), so a
+    # sub-directory inside it stays a surfaced act rather than a `*`/`**` free pass.
+    ".devcontainer",
     ".github/workflows",
     ".vscode",
     # source + tooling
