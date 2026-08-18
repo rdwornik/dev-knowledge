@@ -19,6 +19,34 @@
 
 ---
 
+### 2026-08-18 (b) — CC (Opus 5, branch `docs/nb7-morning-consolidation`): the wrap — anchoring the morning arc, and re-deriving the figure the trim made stale
+
+**Did:** Closed the morning consolidation arc: anchored its own work commit, and re-derived the
+denominator inside `[#555]` that this session's other act had left one window out of date.
+
+**Anchors:** `ba394476` (the NB7 landing + index regen + the `[#554]`/`[#555]` trim), a commit this
+branch's own merge introduces.
+
+**Result:** `[#555]` now reads `194 open · 218 bullets incl. deferred` where it read `191 · 215`.
+That was not a pre-existing defect — the row was born on 2026-08-17 quoting figures that were true
+then, and `[#556]`/`[#557]`/`[#558]` landed after it. **Fixing it is repair of this session's own
+edit rather than new scope:** the trim rewrote the clause carrying those numbers, so leaving them
+would have been a fresh assertion of a stale figure, and this row's own Done-when requires the
+denominator be *"re-derived rather than carried"*. The third figure is now stated as disagreeing
+rather than pinned to `196` — that value was measured at a prior boot and re-quoting it unmeasured
+would repeat the defect the clause is about. Row length 1306 → 1313 chars, still under the declared
+1320 ceiling.
+
+**Changes:** `tasks/555`, `tasks/manifest.json`, `BACKLOG.md`, `JOURNAL.md`.
+
+**Abandoned:** nothing.
+
+**Next:** the two operator-facing files (`~/Downloads/NB7-MORNING-REPORT.md`,
+`~/Downloads/POST-HANDOFF-DELTA.md`) are written outside the repo by design — they are seat
+artifacts for the incoming browser architect, not repo state.
+
+---
+
 ### 2026-08-18 (a) — CC (Opus 5, branch `docs/nb7-morning-consolidation`): the NB7 night lands two of four, and the two oversized rows come under the ceiling
 
 **Did:** Landed the night-batch 7 cloud lanes that produced output, regenerated the audit index over
