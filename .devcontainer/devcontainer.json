@@ -1,0 +1,72 @@
+// .devcontainer/devcontainer.json — [#554] NB4-G stage 1: the off-machine lane substrate.
+//
+// WHY THIS EXISTS: a lane that runs off this workstation must run on a *provisioned* host.
+// The measured failure shape is not "the container won't build" — it is a container that
+// builds fine and then runs gates that are silently vacuous: the wrong `uv`, a shallow clone
+// (every history-dependent detector reads as clean), or unarmed git hooks. Intake #39 §D and
+// [#554]'s four legs name those traps; `provision.sh` ASSERTS each one closed and REFUSES
+// rather than logging.
+//
+// SINGLE SOURCE OF PINS: this file declares no version it does not have to. `devcontainer.json`
+// is static JSON and cannot read a file, so every pin that has a home in the repo is read at
+// provision time by `provision.sh` from that home, never restated here:
+//   * uv version   <- pyproject.toml [tool.uv] required-version   (ADR-106: `==0.11.19`)
+//   * interpreter  <- .python-version                             (`3.12.10`, installed BY uv)
+//   * deps         <- uv.lock via `uv sync --locked`
+// The base-image tag below is the ONE version token this file carries, and it is a floor, not
+// the pin: uv installs the exact `.python-version` interpreter for the project venv and
+// `provision.sh` asserts the result, so the image's own Python never decides what the gates run
+// on. Bumping `.python-version` therefore needs no edit here.
+//
+// PORTABILITY (row Done-when clause 2): nothing below is Codespaces-specific. The identical
+// pair of files runs on a VPS via `devcontainer up --workspace-folder .` — that is the whole
+// point of using the devcontainer spec rather than a Codespaces-only setup script.
+{
+  "name": "dev-knowledge — lane substrate (NB4-G stage 1)",
+
+  // Debian-based devcontainer image with git + a system Python floor. The `1-3.12-bookworm`
+  // tag tracks the 3.12 line, matching pyproject's `requires-python = ">=3.12"`; the EXACT
+  // interpreter is provisioned by uv from `.python-version`.
+  "image": "mcr.microsoft.com/devcontainers/python:1-3.12-bookworm",
+
+  "containerEnv": {
+    // THE ENV GATE ([#554] leg 4). `provision.sh` writes this stamp only after all four legs
+    // assert clean, and `--gate` (wired to postStartCommand below) refuses to let a container
+    // come up when the stamp is missing or records a pin that no longer matches the repo.
+    // Declared here rather than hardcoded in the script so a VPS host can relocate it.
+    "DEV_KNOWLEDGE_PROVISION_STAMP": "${containerEnv:HOME}/.dev-knowledge-provision-stamp"
+  },
+
+  // Provision once per container creation: install pinned uv, unshallow, sync, arm hooks,
+  // assert all four legs, run the gate-liveness smoke, then stamp.
+  "postCreateCommand": "bash .devcontainer/provision.sh",
+
+  // Re-assert on EVERY start. A container resumed from a stale image, or one whose repo has
+  // since moved its uv pin, is half-provisioned — and this refuses it instead of handing a
+  // lane an environment whose gates do not execute.
+  "postStartCommand": "bash .devcontainer/provision.sh --gate",
+
+  // Do not report the container ready — or attach a session to it — until provisioning has
+  // actually finished. Without this the window between "container up" and "hooks armed" is
+  // exactly the arming race this row exists to close.
+  "waitFor": "postStartCommand",
+
+  // Codespaces free tier is a 2-core / 8 GB machine; declaring the floor keeps a lane from
+  // being scheduled somewhere that cannot run the suite. Storage is deliberately NOT declared:
+  // raising it forces a larger (billable) machine type, and stage 1 is a €0 build.
+  "hostRequirements": {
+    "cpus": 2,
+    "memory": "8gb"
+  },
+
+  "remoteUser": "vscode",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "charliermarsh.ruff"
+      ]
+    }
+  }
+}
