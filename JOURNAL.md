@@ -19,6 +19,30 @@
 
 ---
 
+### 2026-08-18 (e) — CC (Opus 5, branch `docs/batch1-consequential-repairs`): the batch's own two drifts, repaired in the arc that caused them
+
+**Did:** Closed the two drifts the batch-1 integration itself introduced, both found by the
+post-act `ship-gate` rather than assumed.
+
+**Anchors:** `33087cd7` (doc-counts regen + the orphaned [#505] disposition removed), a commit this branch's own merge introduces.
+
+**Result:** `doc_claims` cleared — `pytest_collected` in `ecosystem/doc-counts.md` read 2976
+against an actual 3033 because lanes A and C added tests; regenerated with
+`gen_doc_counts.py --write`. And the register's `warn-git-backlog-drift-505-zero-closed` was
+removed: its own `reason` named the clearing condition — *"clears if `[#505]` genuinely closes"* —
+and `[#505]` closed in act 1 of the (d) arc, so it decorated **stale on the very run that banked
+the closure**. Removing it in the same arc that orphaned it is the discipline `[#557]` closed on;
+leaving it would have re-opened `[#557]`'s defect one commit after banking it.
+
+**Not fixed, deliberately — STOP condition reported to the operator:** `fleet_parity` WARNs that
+top-level `.devcontainer` (landed by lane C) is not in the template for role `hub`. It has **two**
+lawful fixes — declare it in `ecosystem/parity-surfaces.yaml`'s hub role, or in the repo's
+`.methodology.yaml` — and choosing between them is a governance call, not an integrator's.
+
+**Changes:** `ecosystem/doc-counts.md`, `ecosystem/disposition-register.yaml`.
+
+**Next:** the operator's `.devcontainer` parity ruling.
+
 ### 2026-08-18 (d) — CC (Opus 5, branch `docs/batch1-integration-wrap`): batch 1 integrates — 8 lanes merged, 6 rows banked, and the row-length pile reaches zero undispositioned
 
 **Did:** Walked the batch-1 serial merge queue from the primary checkout as the sole writer:
