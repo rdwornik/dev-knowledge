@@ -33,7 +33,10 @@ content.* Two consequences, both of which changed this lane's output:
    *lane brief* — it orders the sweep, it does not record the findings. Read as a carrier it would
    have licensed deleting prose that exists nowhere else. Each row was therefore re-grepped against
    the corpus rather than trusted to its own `source:` line.
-2. **Two rows have no carrier at all** and are REPORTED rather than trimmed (§4).
+2. **Three rows are REPORTED rather than trimmed** (§4), for two different reasons: `#546` and
+   `#547` have no carrier anywhere in the corpus, and `#552`'s carrier is proven but its
+   governance clauses alone measure 1654 chars — above the ceiling before any prose exists, so
+   the trim route cannot reach it without rewriting clauses the contract protects.
 
 Carrier classes accepted here: intake docs, audit docs, ADRs, `protocols/STANDING_RULINGS.md`, and —
 for the trivial set only — the row's own `Done when:` clause, where the body prose is a verbatim
@@ -45,11 +48,10 @@ that figure was **kept**, not cut.
 Legend — **cut**: the prose span proposed for deletion. **carrier**: path + matched phrase proving
 that span survives elsewhere.
 
-### 2.1 TRIM — carrier proven (21 rows)
+### 2.1 TRIM — carrier proven and executed (20 rows)
 
 | id | rendered | cut (span) | carrier + matched phrase |
 |---|---|---|---|
-| `#552` | 3576 | the two-leg mechanism build-out, the hand-archival SHA list, the ADR-status unreachability paragraph, the parser hazard | `docs/audits/2026-08-16-census-nb6-archive-sweep.md` §5.2 `:358` *"One new check `archival_residency` in the existing `scripts/audit_checks/` package"*; `:370` *"three ADR status-line formats coexist"*; `:176` *"Zero live ADRs carry `Superseded` or `Deprecated`"*; `:330` *"`216ce3a8` (ADRs), `6551d363` (intake, under `[#398]`)"*; `:186` the `[#242]`/`[#362]` honest limit |
 | `#293` | 2864 | the whole lane-k execution narrative — 7 PR numbers, the revert, ai-council's hook, the two candidate homes | `docs/audits/2026-08-16-technical-k-293-cross-repo-seeding-lane-packet.md` `:53` *"corp-monorepo \| seeded, then reverted \| ~~rdwornik/corp-monorepo#54~~ closed"*; `:66` *"Why 7 were reverted — the ADR-60 conflict"*; `:114` *"Closed all 7 PRs (`gh pr close`, never merged)"*; `:129`/`:134` candidates (a)/(b); `:146` *"its own pre-commit hook `validate-docs-registry` refused the commit"* |
 | `#553` | 2498 | the census arithmetic, the n=2 provenance, the silent-rot-class comparison | `docs/audits/2026-08-16-census-nb6-archive-sweep.md` `:190-191` *"the 86 ADR files in this folder and `archive/`" with **Accepted (81)** … is **stale by exactly one**"*; `:193` *"hand-maintained with no generator and no freshness gate — precisely the silent-rot class that `audit-index-freshness` guards"*; `:371` the three-format parser hazard. **KEPT** (uncarried): the second false claim about ADR-61's status line, and the number-swap-is-the-wrong-fix reasoning |
 | `#514` | 2420 | the W1 discharge narrative — SHAs, the four pins, the negative control, the retroactive-safety proof | `docs/audits/2026-08-11-technical-batch-4-packet.md` `:279-280` *"leg 3 discharged in W1 (`92d735a7` + `ffc32099`); **leg 1 explicitly NOT discharged**"*; `protocols/STANDING_RULINGS.md` `:474` *"`92d735a7` collapsed the two rival constants, and `scripts/batch_manifest.py` now imports"*. **KEPT**: the re-measured *9 of 16* figure, whose only carrier is `JOURNAL.md:3384` |
@@ -71,26 +73,61 @@ that span survives elsewhere.
 | `#361` | 1331 | the no-op restatement | in-row: `Done when:` retains *"and that the zone is a live no-op since that tree was deleted"* |
 | `#146` | 1323 | the `{{VERSION}}` parenthetical | `protocols/PLAYBOOK.md` `:1109` *"the handoff skill/templates read `{{VERSION}}`"* — the `amendment_coherence` honest-limits paragraph, which is the same text the row points at |
 
-### 2.2 REPORT — no carrier (2 rows) → §4
+### 2.2 REPORT — not trimmable by this route (3 rows) → §4
 
 | id | rendered | why no trim |
 |---|---|---|
 | `#546` | 2227 | Nothing in the corpus holds the finding. Grepped: the row's own `source:` (`…batch-7a-lane-b-contract.md`) orders an *"ADR currency sweep"* and records no result; `…batch-7a-packet.md` records the birth, not the finding; `…census-nb6-archive-sweep.md` touches `docs/archive/`'s ADR-60 role but not the stale six-folder enumeration. `SANCTIONED_GENRES` appears in five audits, none of them about ADR-60's divergence. Every load-bearing claim (three false clauses · the five-genre live set · Rule 5 still live · never-rewrite-the-ADR) exists **only in this row**. |
 | `#547` | 2099 | Same shape. `Future State` appears in exactly one audit corpus-wide (`2026-04-30-dev-knowledge-self-audit.md`, unrelated) and `Split-brain prevention` only at `protocols/PLAYBOOK.md:195/:4015` — which is the **defect site**, not a carrier. The measurement (v6.2.0, zero `current state\|future state` hits), the *"instruction with no referent"* claim and the explicit *"NOT [#362]'s defect"* discrimination exist only in this row. |
+| `#552` | 3576 | **Carrier proven, trim structurally impossible.** Its ELEVEN governance clauses — `routine:` 140 · `scope=` 176 · `consumer=` 41 · `consumption_path=` 292 · `verified_by=` 157 · `review_date=` 22 · `Done when` 218 · `refs` 165 · `kill-candidates` 242 · `serialize-group` 25 · `source:` 146 — total **1654 chars before a single word of title or body**. With a zero-length title and zero prose the row still renders above 1320 while every clause survives, so no amount of detail-prose deletion clears the WARN. The carrier is real and was verified (`docs/audits/2026-08-16-census-nb6-archive-sweep.md` §5.2 `:358` *"One new check `archival_residency` in the existing `scripts/audit_checks/` package"*; `:370` *"three ADR status-line formats coexist"*; `:176` *"Zero live ADRs carry `Superseded` or `Deprecated`"*; `:330` *"`216ce3a8` (ADRs), `6551d363` (intake, under `[#398]`)"*; `:186` the `[#242]`/`[#362]` honest limit) — the obstacle is the contract's own *structure is untouchable* term, not a missing carrier. |
 
-Both are route-(ii) candidates: the finding is real and cheap to read, and the length is the price of
-being the only place it is written down. **This lane does not disposition them.**
+`#546` and `#547` are route-(ii) candidates because the finding is real and the length is the price
+of being the only place it is written down. `#552` is a different case and should be read as one: a
+route-(ii) disposition would accept it as-is, but a THIRD option exists that this lane is not
+authorised to take — condensing the eleven clause VALUES (`consumption_path=` alone is 292 chars).
+That is a rewrite of an ADR-105 routine declaration a live check reads, not a prose trim, and it is
+the seat's call. **This lane dispositions nothing.**
 
-## 3 · Trims executed
+## 3 · Trims executed — 20 rows, three commits
 
-_(§3 is completed at STEP 2; see the per-batch commits.)_
+All measured on the rendered `BACKLOG.md` line after `gen_task_tree --emit-source`; `--check` exits 0
+after every batch. No `BACKLOG.md` or `tasks/manifest.json` hand-edit at any point.
+
+| batch | rows | before → after |
+|---|---|---|
+| 1 | `#293` `#514` `#528` `#417` `#548` `#551` `#553` `#531` | 2864→1258 · 2420→1292 · 2397→1311 · 2360→1309 · 2167→1307 · 2154→1292 · 2498→1301 · 2067→1287 |
+| 2 | `#428` `#277` `#549` `#550` `#492` `#523` | 2030→1298 · 2006→1289 · 1973→1298 · 1869→1312 · 1807→1240 · 1738→1273 |
+| 3 | `#412` `#484` `#443` `#271` `#361` `#146` | 1389→1310 · 1374→1307 · 1370→1311 · 1364→1279 · 1331→1308 · 1323→1240 |
+
+**Governance clauses survived every trim.** `Done when` · `refs` · `kill-candidates` ·
+`serialize-group` · `source` are present on every trimmed row, condensed at most. Three condensations
+are named rather than buried, because each drops a `refs` entry:
+
+- `#531` — drops `.claude/commands/lane-boot.md`; the file is still named in the row body.
+- `#277` — drops `logs/PROPOSALS-2026-07-07.md`, **which does not exist in the tree** (`logs/` holds
+  only `TOKEN-LOG.md`). A dead ref was removed, not a live one.
+- `#549` — drops `#301`; the `#301(iv)` comparison-baseline claim it stood for is readable in the
+  intake the row still cites.
+
+**Where the removed detail went: nowhere.** Nothing was relocated. Every trim deletes prose that a
+carrier already held, and each row's `source:` clause now names that carrier, so the detail is one
+path away for any reader who wants it.
+
+**One locator deliberately left broken.** `#146` pins `PLAYBOOK:1016-1024`; the paragraph it names now
+renders at `:1109`. Repairing it is a claim change owned by whoever owns the row — a length lane that
+also quietly fixes claims is a lane whose diff cannot be checked against its mandate.
 
 ## 4 · REPORT list for the seat's route-(ii) act
 
-- **`[#546]`** — 2227 chars, no carrier. Trimming would delete the only record of the ADR-60
+Three rows, two distinct reasons:
+
+- **`[#546]`** — 2227 chars, **no carrier**. Trimming would delete the only record of the ADR-60
   taxonomy divergence.
-- **`[#547]`** — 2099 chars, no carrier. Trimming would delete the only record of the split-brain
+- **`[#547]`** — 2099 chars, **no carrier**. Trimming would delete the only record of the split-brain
   instruction's missing referent.
+- **`[#552]`** — 3576 chars, **carrier proven, trim structurally impossible**: 1654 chars of
+  governance clauses alone, above the ceiling before any prose exists (§2.2). Route (ii) can accept it
+  as-is; a clause-condensation route also exists and is the seat's to weigh, not this lane's.
 
 Route-(ii) is the seat's register act. Nothing in this lane writes a disposition.
 
@@ -104,7 +141,44 @@ contract names as the accretion arm:
 BEFORE (328d1086)   backlog-accretion  4   BACKLOG#293  BACKLOG#428  BACKLOG#550  BACKLOG#553
 ```
 
-This lane chases **length only**. The firing set is re-measured after the trims and any change is
-stated in §3 rather than left to be discovered — the pre-existing accretion RED is the seat's.
+This lane chases **length only**. The firing set was re-measured after the trims, and it moved:
 
-_(after-state completed at STEP 3.)_
+```
+AFTER  (this lane)   backlog-accretion  0   -- the firing set is EMPTY
+```
+
+**This lane emptied it, and that is stated rather than left to be discovered.** Batch 1 took out
+`#293` and `#553`; batch 2 took out `#428` and `#550`. The cause is mechanical and not a chased
+finding: ARM 1 requires **>=3 distinct citation-blind history dates AND >=30d span AND >700 chars**,
+and the relocatable status prose these four rows carried was exactly where their dated blocks lived.
+No accretion finding was worked and no ARM-1 threshold was touched.
+
+The consequence for the seat is concrete: **the pre-existing accretion RED should be re-read against a
+firing set of 0, not the 4 it was filed against.** No test pins the live firing set — every
+`backlog-accretion` assertion in `tests/test_validate_doc_rot.py` runs on synthetic fixtures — so the
+suite is unaffected either way.
+
+## 6 · Delta measurement (STEP 3)
+
+`validate_doc_rot` row-length WARNs, measured live:
+
+```
+BEFORE  (328d1086)   30 rows over the 1320 ceiling   -- 23 in scope, 7 excluded
+AFTER   (this lane)  10 rows over the 1320 ceiling   -- 3 in scope, 7 excluded
+
+  cleared by this lane        20
+  in-scope remaining           3   #546 #547 #552  (the REPORT list, SS4)
+  excluded, untouched          7   #502 #529 #530 #533 #556 #557 #558
+```
+
+The seven excluded rows are byte-identical to their base-commit state; this lane opened none of them.
+
+Final targeted checks, `-n 0`:
+
+```
+gen_task_tree --check      exit 0   check ok
+validate_backlog           exit 0   9 themes, 26 stories, 218 tasks, 1 warning
+                                    (the [S24] no-tasks WARN -- verified IDENTICAL on the
+                                     base commit's BACKLOG.md, so it is inherited, not caused)
+validate_doc_rot --all     exit 0   10 loci, all row-length, all listed above
+```
