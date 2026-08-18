@@ -34,6 +34,7 @@ FAIL-LOUD: every helper raises `AnchorError` on a git failure. Callers decide th
 """
 from __future__ import annotations
 
+import functools
 import re
 import subprocess
 from pathlib import Path
@@ -210,10 +211,55 @@ def unanchored_on_spine(repo: Path, ref: str, floor: str, journal: str) -> list[
 _RECORD_LINE_RE = re.compile(r"^\*{0,2}Anchors?\b", re.IGNORECASE)
 _ENTRY_SPLIT_RE = re.compile(r"(?=^### )", re.MULTILINE)
 
+# Ceiling for the `_entries_tuple` memo. Named rather than inlined so the memory it commits is
+# a stated number: a live run holds at most two distinct journal texts (the working tree, plus a
+# `rev` when the pre-push organ reads the tip it is pushing), so 4 leaves headroom without
+# letting a pathological caller pin an unbounded number of multi-megabyte strings.
+_ENTRIES_CACHE_MAXSIZE = 4
+
+
+@functools.lru_cache(maxsize=_ENTRIES_CACHE_MAXSIZE)
+def _entries_tuple(journal: str) -> tuple[str, ...]:
+    """The memoized split. Returns a TUPLE so the cached object cannot be mutated in place.
+
+    KEYED ON THE JOURNAL TEXT, deliberately -- not on a path, an mtime or a run counter. That
+    choice is what makes the memo safe rather than merely fast: a journal that has grown is a
+    DIFFERENT key, so a grown file cannot register a hit against the old entries. There is
+    nothing to invalidate, so there is no invalidation to get wrong. ([#533] leg 2, STEP 3.)
+
+    Hashing a ~2.6 MiB key is not the cost it looks like: CPython memoizes `str.__hash__` on
+    the object, and every call in the hot loop passes the SAME string object -- the one
+    `check_journal_spine_anchor` read once -- so the hash is computed once and the dict lookup
+    then short-circuits on pointer identity.
+
+    Bounded on purpose (`_ENTRIES_CACHE_MAXSIZE`): the key is ~2.6 MiB and the value is another
+    ~2.6 MiB of fresh strings, and the audit runner holds ONE process across all 43 checks. An
+    unbounded cache here would be a leak dressed as an optimization. A live run sees at most two
+    distinct texts (the working tree, and a `rev` for the pre-push organ), so a small ceiling
+    costs nothing and caps the worst case.
+    """
+    return tuple(p for p in _ENTRY_SPLIT_RE.split(journal) if p.strip())
+
 
 def _entries(journal: str) -> list[str]:
-    """JOURNAL text split into per-entry chunks at `### ` headings (order-preserving)."""
-    return [p for p in _ENTRY_SPLIT_RE.split(journal) if p.strip()]
+    """JOURNAL text split into per-entry chunks at `### ` headings (order-preserving).
+
+    Memoized via `_entries_tuple`. The public shape is unchanged -- a fresh `list[str]`, so no
+    caller sees a behaviour change and no caller can corrupt the cache for every later reader by
+    mutating what it got back. Copying ~1.3k pointers is free next to re-running the split.
+
+    WHY THE MEMO EXISTS, measured rather than assumed ([#533] leg 2, STEP 1): the ADR-85
+    backstop called this 934 times in a single `audit.py health` run, re-splitting the same
+    immutable 2607 KiB `JOURNAL.md` every time -- 2.47 GB of regex for one answer, 76.9 s, 37%
+    of `check_journal_spine_anchor` and 23% of the whole 43-check loop.
+    """
+    return list(_entries_tuple(journal))
+
+
+# The cache-management surface, forwarded onto `_entries` so a caller reasons about the memo
+# through the function it actually calls instead of reaching past it into a private helper.
+_entries.cache_info = _entries_tuple.cache_info
+_entries.cache_clear = _entries_tuple.cache_clear
 
 
 def mention_not_record_warnings(repo: Path, sha: str, journal: str) -> list[str]:

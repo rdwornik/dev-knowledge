@@ -86,7 +86,13 @@ def test_memoized_second_call_returns_identical_entries():
     first = ja._entries(_FIXTURE)
     second = ja._entries(_FIXTURE)
     assert first == second
-    assert len(first) == 3
+    # FOUR chunks, not three: the split is a lookahead at `### `, so everything BEFORE the first
+    # heading -- the `# JOURNAL` title and its preamble prose -- survives as chunk 0. Pinned
+    # explicitly because it is the one non-obvious thing about this function's output, and a
+    # memo is exactly the kind of change under which such a detail could quietly move.
+    assert len(first) == 4
+    assert first[0].startswith("# JOURNAL")
+    assert all(e.startswith("### ") for e in first[1:])
 
 
 def test_the_second_call_is_actually_a_cache_hit_not_a_recompute():
@@ -127,14 +133,14 @@ def test_append_between_runs_is_seen_by_the_second_call(tmp_path):
     (tmp_path / "JOURNAL.md").write_text(_FIXTURE, encoding="utf-8", newline="\n")
 
     before = ja._entries(ja.journal_text(tmp_path))
-    assert len(before) == 3
+    assert len(before) == 4          # preamble chunk + three entries
     assert not any("appended after the first read" in e for e in before)
 
     with open(tmp_path / "JOURNAL.md", "a", encoding="utf-8", newline="\n") as fh:
         fh.write(_NEW_ENTRY)
 
     after = ja._entries(ja.journal_text(tmp_path))
-    assert len(after) == 4
+    assert len(after) == 5
     assert any("appended after the first read" in e for e in after)
     assert any("abcdef12" in e for e in after)
 
@@ -160,8 +166,8 @@ def test_journal_text_is_not_cached(tmp_path):
 def test_distinct_journal_texts_do_not_share_a_cache_entry():
     grown = _FIXTURE + _NEW_ENTRY
     assert ja._entries(_FIXTURE) != ja._entries(grown)
-    assert len(ja._entries(_FIXTURE)) == 3
-    assert len(ja._entries(grown)) == 4
+    assert len(ja._entries(_FIXTURE)) == 4
+    assert len(ja._entries(grown)) == 5
 
 
 # --- (c) byte-identity against the uncached reference ----------------------------------
