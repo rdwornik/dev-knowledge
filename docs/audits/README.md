@@ -14,6 +14,7 @@
 ## 2026-08
 
 - [2026-08-17](2026-08-17-technical-research-intake-lane-contract.md) — Lane R — research-intake: contract of record, committed AT STEP 0
+- [2026-08-17](2026-08-17-technical-nb7-lifecycle-instrument-verdict.md) — Lifecycle instrument verdict — nb7-C · 2026-08-17
 - [2026-08-17](2026-08-17-technical-batch-7a-packet.md) — Batch 7a — end-of-batch packet
 - [2026-08-17](2026-08-17-technical-batch-7a-manifest.md) — Batch 7a — manifest, committed AT DISPATCH
 - [2026-08-17](2026-08-17-technical-batch-7a-lane-c-contract.md) — CONTRACT-CLOSE-C-northstar.md — LANE c, batch 7a · 2026-08-17
