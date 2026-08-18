@@ -211,3 +211,96 @@ spine entry above its cutoff — rather than through the memoized `introduced`, 
 several per-entry calls can benefit at all. Sharing the memo would mean changing that check's body
 in `audit.py`, a different change with a different blast radius and no test-first coverage in this
 lane. It is written down so the next reader inherits the finding instead of rediscovering it.
+
+
+---
+
+## STEP 6 — measurement
+
+### Method
+
+`temp/measure.py` (gitignored, deleted at lane close) times one `audit.run_checks(_REPO_ROOT)`
+call with `_GATE_MODE = True` — the exact loop `cmd_health` runs — and prints the elapsed
+seconds plus a digest of every finding as `check_name:status` in emission order.
+
+- **One timed run per PROCESS**, never repeated in-process. A cached run repeated in one
+  process would warm its own repeat and report a number no `audit-health` invocation will ever
+  see; the hook spawns a fresh process per commit, so a fresh process is the honest unit.
+- **Runs are strictly sequential.** Two concurrent runs measure each other.
+- `uncached` restores pre-memo behaviour by rebinding `journal_anchor._entries` and
+  `journal_anchor.introduced` to uncached bodies. Both call sites reach them through the module
+  namespace at call time, so this is a faithful A/B rather than an approximation.
+- `parallel` runs at the default width, `min(_PARALLEL_MAX_WORKERS, 43)` = **8 workers**.
+
+### The three medians
+
+| mode | runs (s) | **median** | min | speedup vs uncached |
+|---|---|---|---|---|
+| serial, uncached | 366.14 · 674.26 · 354.99 | **366.14** | 354.99 | 1.00× |
+| serial, cached | 220.02 · 195.50 · 191.99 | **195.50** | 191.99 | **1.87×** |
+| `--parallel`, cached | 97.77 · 85.60 · 85.01 | **85.60** | 85.01 | **4.28×** |
+
+**Parallel over cached alone: 2.28×.** On minima rather than medians — which discards the one
+load-spike outlier entirely — the same three figures are **1.85× / 4.18× / 2.26×**, so the
+conclusion does not depend on how the outlier is treated.
+
+### Read the seconds with the caveat they deserve
+
+The 674.26 s uncached run is not a typo and has not been dropped: two identical uncached runs on
+an unchanged tree measured **366 s and 674 s**, an **84% spread**, against the 4.9% spread
+Phase-0 recorded on a quiet tree. Four sibling lane worktrees were live throughout. Absolute
+seconds here are therefore **indicative only** and the authoritative quiet-tree measure belongs
+to integration, exactly as the dispatch stipulated.
+
+Two things keep the result trustworthy anyway. First, the modes were **interleaved** rather than
+run three-of-a-kind, so drift lands on all three alike. Second — and this is the part that does
+not care about load at all — the work *removed* was counted directly.
+
+### The load-independent measurement (counts, not seconds)
+
+`temp/counters.py` runs the dominant check in both modes with counters around
+`journal_anchor._git` and `journal_anchor._entries`. How many subprocesses were spawned and how
+many megabytes were re-split are properties of the code; they do not move when the machine gets
+busy.
+
+| | uncached | cached |
+|---|---|---|
+| `git` subprocesses spawned | **812** | **408** |
+| seconds inside those subprocesses | 121.09 | 60.37 |
+| `_entries` calls | 934 | 934 |
+| text handed to `_entries` | 2468.9 MB | 2468.9 MB |
+| **seconds spent splitting it** | **75.22** | **0.10** |
+| check wall time | 210.37 s | 75.04 s |
+| findings | `pass` + `warn` | `pass` + `warn` (identical) |
+
+**Exactly 404 subprocess spawns removed** — precisely the duplicate count STEP-1 attribution
+predicted from `introduced()` being reached twice per spine entry, confirmed rather than
+estimated. And the entry split goes from **75.22 s to 0.10 s**: the call count is unchanged at
+934 because the memo does not remove calls, it removes the *work* — 933 of them are now hits.
+
+### Verdicts are byte-identical across all three modes
+
+Not inferred from the timings — checked. Each run wrote its full `check_name:status` digest in
+emission order; all three files are 2005 bytes and hash identically:
+
+```
+f2577dbc83f70248ff878bf03f2de69f  temp/digest-uncached.txt
+f2577dbc83f70248ff878bf03f2de69f  temp/digest-cached.txt
+f2577dbc83f70248ff878bf03f2de69f  temp/digest-parallel.txt
+```
+
+102 findings in every run. Same verdicts, same order, memoized or not, threaded or not — which
+is the STEP-4 parity requirement demonstrated on the live tree at full registry width, not only
+on the synthetic fixtures the unit tests use.
+
+### What this means for the hook tax, stated as an extrapolation
+
+Phase-0's quiet-tree baseline for the whole `health` invocation is **290.9 s**. If the measured
+ratios hold on a quiet tree, that becomes roughly **155 s** memoized and **~68 s** with
+`--parallel`. **That is an extrapolation and is labelled as one** — it multiplies a quiet-tree
+baseline by ratios measured under load, and only the integration measure can confirm it.
+
+**The default remains SERIAL.** Landing this changes no hook's behaviour; the 1.87× is what
+every commit gets for free, and the further 2.28× is available to anyone who passes
+`--parallel`. Flipping the `audit-health` default is a separate ruling and this lane does not
+take it.
