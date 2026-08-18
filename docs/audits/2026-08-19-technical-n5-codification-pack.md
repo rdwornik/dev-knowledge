@@ -674,3 +674,43 @@ re-implementation, not the real module (§0 Limit 2) — the reproduction comman
 with the environment should re-run it before filing the row; the §2.1 end-to-end parallel estimate
 is arithmetic on two measurements taken under different conditions and is labelled derived, not
 measured; and no gate ran on this branch (§0 Limit 3).
+
+---
+
+# AMENDMENT — 2026-08-19, post-STOP · item 4 measured against the REAL module
+
+> **In-file amendment marker** (audits are immutable; superseded content is not rewritten —
+> CLAUDE.md §5 rule 3, same form the batch-1 integrator packet uses). This section resolves §0
+> Limit 2 **for item 4 only**. Nothing above is edited, and no conclusion above changes.
+
+**What changed in the environment.** `uv self update 0.11.19` was attempted first and **failed**
+(*"version 0.11.19 was not found for the app uv in workspace uv"*), so the pinned-`uv` path stayed
+shut. The three missing imports were installed directly instead — `click`, `markdown-it-py`,
+`pyyaml` — after which `import audit` succeeds under the container's Python 3. The local `main`
+ref was also fast-forwarded to `origin/main` @ `87dd41af` (a **local ref move only, never pushed**;
+`main` is not checked out here), because the check walks `main` by name and this container's copy
+was the stale 2026-08-14 one recorded in §0 Limit 1. **No tracked file was changed by any of this.**
+
+**The real `check_review_artifact_coverage`, run in-process:**
+
+```
+WARN | 9 code-impact merge(s) since 2026-08-05 carry no linked review artifact: f4a01f0e
+       worktree-lane-a-533-leg2, 7a316976 worktree-lane-e-502-mutmut, e32093fd
+       fix/533-oracle-pin-repoint, b5054945 docs/batch6-wrap, d714cfea
+       worktree-lane-m-533-audit-decompose (+4 more) -- advisory per the [#480] P3 ruling ...
+
+WARN | 1 linked artifact(s) carry no parseable **Tally:** line: 5af0b33c ->
+       2026-08-06-codex-lane-c-504-failclosed.md -- persistence is not machine-auditability ...
+```
+
+**Agreement with §4.1 is exact** — 9 unlinked, the same five names in the same order, the same
+`(+4 more)`, the same single untallied artifact, and **two Finding objects**, which independently
+confirms §4.1's reading that the packet's "2 WARNs" counts Findings and not merges. The
+re-implementation was faithful; §4.1's numbers stand as measured against the real module.
+
+**What this retires, and what it does not.** It retires §0 Limit 2's instruction to *"re-run before
+filing the row"* — the row at §4.5 may be filed on these numbers. It does **not** retire §0 Limit 1
+(recorded because the stale-ref reading really did return a false clean) or §0 Limit 3: the
+pre-commit gates remain unarmed here, `audit.py health` as a whole was never run, and the
+`session_end_backpressure.py` Stop hook still cannot start, because it is invoked through
+`uv run --locked` and that path is the one the failed `uv` update left shut.
