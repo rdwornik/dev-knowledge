@@ -560,3 +560,37 @@ git merge-base --is-ancestor f4a01f0e HEAD              # leg 2 present
 
 Analysis scripts were written to the session scratchpad, not to the repo — this lane is
 read-only to `scripts/` and `tests/` and left both untouched.
+
+---
+
+## AMENDMENT 1 — 2026-08-18, at session wrap: the Stop hook is a fifth gates-unavailable instance
+
+Added as an in-file amendment marker, not an edit to §0 (audits are immutable — CLAUDE.md §5
+rule 3). §0 was written before session wrap; this instance was hit after it.
+
+**What happened.** The `Stop` hook `session_end_backpressure.py` failed to run, with the same
+root cause §0 already records — its wrapper is `uv run --locked`, and `uv` 0.8.17 refuses
+against the `pyproject` `required-version = "==0.11.19"` pin. The failure is in the **runner**,
+not in any check: no leg reported anything, because no leg executed.
+
+**Useful for the next lane in this container:** the hook itself runs fine under the plain
+interpreter — `python scripts/session_end_backpressure.py` exits 0 (silent pass). The uv pin
+blocks the wrapper, not the script. Anything in `scripts/` that is stdlib-or-`yaml`-only can be
+run directly; only `markdown_it` consumers (i.e. `audit.py`) are genuinely unrunnable here.
+
+**All four advisory legs verified independently, since a silent pass under a hand-run hook is
+not by itself evidence:**
+
+| Leg | State | Evidence |
+|---|---|---|
+| dirty tree | clean | `git status --porcelain` → 0 lines |
+| BACKLOG marker (ADR-85 R1) | none owed | the session's whole diff is 3 files, none is `BACKLOG.md` |
+| canonical cadence | none owed | no `VISION`/`ARCHITECTURE`/`CLAUDE`/`CONTRIBUTING`/`ESSENTIALS` edit |
+| JOURNAL anchor | **not owed here** | HEAD is `claude/seam-leg-monkeypatch-pins-91fh27`; the hard leg `block_unanchored_push.py` states its own scope — *"A push that does not target `main` is not this organ's business"* — and the `journal_spine_anchor` backstop walks `git log --first-parent main` |
+
+**The JOURNAL anchor is owed at INTEGRATION, not here,** and that is a real obligation, not a
+dismissal: these two commits carry no anchor, so whoever merges this branch to `main` owes a
+JOURNAL entry naming ≥1 SHA the merge range introduces, or `block-unanchored-push` will refuse
+the push (fails CLOSED, exit 2) and the `journal_spine_anchor` audit check will FAIL. That
+matches the house pattern already visible in the log (`docs(journal): anchor the … arc`, done
+by the integration arc, not by the lane).
