@@ -1,7 +1,7 @@
 ---
 id: "[#556]"
 title: "`[#505]` is closed-but-present — the ADR-65 done-items-leave grooming close"
-status: open
+status: closed
 priority: P3
 size: S
 theme: "[E2] Enforced governance"

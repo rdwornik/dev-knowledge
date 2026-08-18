@@ -1,7 +1,7 @@
 ---
 id: "[#502]"
 title: "mutmut 3.7.0 mutation-testing evaluation — CI-hosted"
-status: open
+status: closed
 priority: P3
 size: M
 theme: "[E7] Tooling & evaluation"

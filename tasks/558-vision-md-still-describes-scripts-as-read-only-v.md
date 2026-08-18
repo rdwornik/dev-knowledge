@@ -1,7 +1,7 @@
 ---
 id: "[#558]"
 title: "`VISION.md` still describes `scripts/` as read-only validators — the third site of a correction that landed twice"
-status: open
+status: closed
 priority: P3
 size: S
 theme: "[E5] Canonical-file integrity"

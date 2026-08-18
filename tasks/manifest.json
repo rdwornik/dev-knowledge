@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "a959083ee898a8e97848363b94bd4ef4433d04dff302b802a138425e902699d7",
+  "generated_sha256": "0c83e2d5df0cc495543068739464e847a2fc1a817a8110135b61d9aca3fb0a6b",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -253,10 +253,6 @@
       "file": "534-audit-py-line-locators-on-four-open-rows-died-at-t.md"
     },
     {
-      "task": 536,
-      "file": "536-the-arm-2-row-length-pile-has-no-owner-and-the-con.md"
-    },
-    {
       "task": 552,
       "file": "552-window-close-disposition-and-archival-routine.md"
     },
@@ -349,14 +345,6 @@
     },
     {
       "prose": ""
-    },
-    {
-      "file": "556-505-is-closed-but-present-the-adr-65-done-items.md",
-      "task": 556
-    },
-    {
-      "file": "557-three-stale-dispositions-match-no-live-warn-the.md",
-      "task": 557
     },
     {
       "prose": "### [S6] Know what depends on code before removing it (ADR-89 computed edges)"
@@ -589,10 +577,6 @@
       "file": "443-planning-artifacts-outside-the-three-enforced-cl.md"
     },
     {
-      "task": 505,
-      "file": "505-batch-protocol-encoding-parallel-execution-wow.md"
-    },
-    {
       "prose": ""
     },
     {
@@ -715,10 +699,6 @@
     {
       "task": 542,
       "file": "542-architecture-md-still-claims-four-doc-rot-sub-dete.md"
-    },
-    {
-      "file": "558-vision-md-still-describes-scripts-as-read-only-v.md",
-      "task": 558
     },
     {
       "prose": "### [S14] Keep the day-to-day docs right-sized and current"
@@ -1046,10 +1026,6 @@
     },
     {
       "prose": ""
-    },
-    {
-      "task": 502,
-      "file": "502-mutmut-mutation-testing-evaluation-ci-hosted.md"
     },
     {
       "task": 535,
