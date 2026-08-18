@@ -195,3 +195,130 @@ The row names a *"two-of-four-leg overlap"* with `[#453]` (cloud-container PREFL
 already-provisioned session) *"whose second lander discharges by pointing at the first"*. `[#453]` is
 **open** and has **not** landed, so `[#554]` is the first lander on those legs and the discharge obligation
 falls on `[#453]`, not here. Recorded so the second lander can find it.
+
+---
+
+# STEPS 2–3 — what landed, and how each leg is asserted
+
+## 2.1 Files added (the complete footprint of this lane)
+
+| Path | Role |
+|---|---|
+| `.devcontainer/devcontainer.json` | the spec file — image, wiring, the env-gate knob |
+| `.devcontainer/provision.sh` | the one idempotent provisioning script; all six asserts live here |
+
+**No other new path exists in this lane.** Four *existing* files were modified, all of them the lockstep the
+D6 approval requires or a generated count: `docs/decisions/ADR-101-hermetization.md` (amendment appended),
+`scripts/validate_hermetization.py` (Rule A + Rule C entries), `tests/test_validate_hermetization.py` (two
+pins), `ecosystem/doc-counts.md` (regenerated), plus this artifact and `docs/audits/README.md`.
+
+## 2.2 The tree-seal lockstep
+
+`.devcontainer/` is a new Tier-1 top-level directory and `scripts/validate_hermetization.py` refuses those by
+construction. Landed in one commit on the four standing precedents (`.methodology.yaml`, `uv.lock` +
+`.python-version`, `tasks/`, `.github/`): the ADR-101 in-file amendment, `SANCTIONED_TIER1_DIRS +=
+".devcontainer"` (Rule A), `_HOME_PATTERNS += ".devcontainer"` (Rule C), and two test pins.
+
+**Rule C needed its own entry, and this is not a formality.** Rule A seals the top level only; Rule C reads
+the rest of the path against a home allowlist derived from the live taxonomy. Sanctioning the directory
+without adding the home would have refused the very file the approval sanctions —
+*"new path outside allowlisted homes"* — and would have redded
+`test_rule_c_admits_every_tracked_path_in_the_live_repo` the moment the file was tracked. The home is the
+**bare literal**, not `.devcontainer/*` or `.devcontainer/**`: two files at one level, so a sub-directory
+stays a surfaced act. The added pin asserts exactly that (`.devcontainer/scripts/extra.sh` is still refused).
+
+## 2.3 Single source of pins — the discipline, concretely
+
+`devcontainer.json` is static JSON and cannot read a file, so **no pin is restated in it**. Every version is
+read at provision time from the home it already has:
+
+| Pin | Home | Read by |
+|---|---|---|
+| uv `0.11.19` | `pyproject.toml` `[tool.uv] required-version` (ADR-106) | `read_uv_pin()` |
+| interpreter `3.12.10` | `.python-version` | `read_python_pin()` |
+| dependencies | `uv.lock` | `uv sync --locked` |
+
+`read_uv_pin()` is **section-scoped awk**, not a grep, and that is load-bearing: `[tool.ruff]` carries a
+`required-version` too (`>=0.15.5`), and a naive line match would read the ruff floor as the uv pin. It also
+**refuses a non-`==` spec** — leg 1 is *"a pinned-`uv` assert"*, and a range is not a pin. Verified against
+the live file: it returns `==0.11.19`, not `>=0.15.5`.
+
+The base-image tag is the one version token `devcontainer.json` carries, and it is a **floor, not the pin**:
+uv installs the exact `.python-version` interpreter for the project venv and the script asserts the result,
+so the image's own Python never decides what the gates run on, and bumping `.python-version` needs no edit
+to the spec file.
+
+## 2.4 The checklist, leg by leg
+
+| # | Requirement | How it is satisfied | State |
+|---|---|---|---|
+| L1 | pinned-`uv` assert | installs from the **version-pinned** astral URL (`astral.sh/uv/<pin>/install.sh` — never `latest`, which is how a cloud channel drifted onto `0.8.17`), then asserts `uv --version` **equals** the pin. The install is not the leg; the assert is. | **done** |
+| L2 | `git fetch --unshallow` | guarded by `git rev-parse --is-shallow-repository` (so it is a no-op on a full clone, where `--unshallow` would error), then asserts the repo is no longer shallow and prints the reachable commit count. Adds `safe.directory` check-then-add first, since a bind-mounted tree is otherwise untrusted by git. | **done** |
+| L3 | all three hook types armed | delegates the install to `scripts/arm_hooks.py` (**reuse**, one predicate not two) and then asserts hard via that module's own `_hooks_dir` + `_armed`, which resolve through `core.hooksPath` and reject a shim bound to a stale interpreter. `arm_hooks` is fail-**soft** by design — correct at SessionStart, wrong at provision time — so the **refusal is this script's**, per intake #39 §D(3) *"fails if not armed"*. | **done** |
+| L4 | env gate refusing a half-provisioned start | `--gate` mode, wired to `postStartCommand`. Refuses when the stamp is absent, when its schema is wrong, when the **repo's pins have moved since it was written**, or when any live assert (uv version / not shallow / hooks armed) fails. Stamp path is `DEV_KNOWLEDGE_PROVISION_STAMP`, declared in `containerEnv`. | **done** |
+| C1 | idempotent, and says so | every leg is check-then-act; a `CHANGED` counter drives the closing line, which reads *"idempotent: nothing changed, all four legs were already satisfied"* when nothing acted. | **done** |
+| C2 | gate-liveness smoke | runs `uv run --locked python scripts/validate_backlog.py` — **the invocation `.pre-commit-config.yaml`'s `validate-backlog` hook uses, verbatim**, so it proves that command line rather than a lookalike — asserts exit 0 and echoes its first output line, because a passing gate that printed nothing is indistinguishable from one that no-oped. | **done** |
+| D1 | one lane green on Codespaces free tier | **open — see STEP 4** | at risk |
+| D2 | identical script via `devcontainer up` on a VPS | **open — see STEP 4** | at risk |
+
+## 2.5 Two honest limits, stated rather than left to be discovered
+
+**(a) "Refuses to start" is as strong as the devcontainer spec allows.** There is no hook that hard-aborts a
+container mid-start. A non-zero `postStartCommand` is the strongest refusal available: the runtime surfaces
+a failed start, and `"waitFor": "postCreateCommand"` prevents a session attaching before provisioning
+finishes. L4 blocks the session's start path loudly; it does not kill the container process. Nor is any of
+this server-side — an operator can still run the tools by hand.
+
+**(b) `arm_hooks._armed` is worktree-hostile, and this was measured, not reasoned about.** Git gives every
+worktree of a clone the **same** hooks directory while `uv sync` gives each its **own** venv, so on a host
+running N worktrees at most one satisfies L3 and the rest are refused as *"bound to a stale interpreter"*.
+Reproduced on this workstation while testing (§3.2 below). Inside a container it cannot arise — one
+checkout, one venv — but **intake #39's own stage-2 model is "N git worktrees" on the VPS**, so anyone
+extending this to stage 2 inherits it. The limit belongs to `arm_hooks._stale_interpreter`, not to this
+script, and is deliberately left there: a softened private copy of the predicate would give the repo two
+answers to one question.
+
+# STEP 3 — verification actually performed on this workstation
+
+## 3.1 What could be exercised here, and what could not
+
+This is a Windows workstation with no container runtime available to this session, so the **container** is
+unproven (that is STEP 4's fork). What *was* exercised is the script's own logic, against the live repo:
+
+| Check | Command | Result |
+|---|---|---|
+| shell syntax | `bash -n .devcontainer/provision.sh` | **OK** |
+| usage path | `bash .devcontainer/provision.sh --help` | prints the three modes, exit 0 |
+| pin reader vs the real file | the `read_uv_pin` awk against `pyproject.toml` | returns `==0.11.19` — correctly **ignores** `[tool.ruff]`'s `required-version = ">=0.15.5"` |
+| L4 refuses an unprovisioned env | `provision.sh --gate` with no stamp | **REFUSED**, exit 1: *"no provisioning stamp … this container was never provisioned"* |
+| L4 refuses a **moved pin** | `--gate` against a stamp recording `uv_pin=0.8.17` | **REFUSED**, exit 1: *"stamped uv pin 0.8.17 != repo pin 0.11.19 — the pin moved; re-provision"* |
+| L4 live asserts run | `--gate` against a current stamp | proceeded past every stamp check to the live asserts, and refused on L3 — see §3.2 |
+| hermetization suite | `pytest tests/test_validate_hermetization.py -n 0` | **45 passed** |
+| lint | `ruff check` on both changed Python files | clean |
+
+The `0.8.17` case is worth naming: that is the exact drift the lane contract calls *"half the reason this
+row exists"*, and the gate refuses it.
+
+## 3.2 The L3 refusal on this workstation is a real finding, not a script defect
+
+`--gate` with a current stamp cleared uv (`0.11.19`) and the shallow check (`false`), then refused:
+
+```
+[provision] L3 resolved hooks dir: C:\Users\1028120\Documents\Dev\.dev-knowledge\.git\hooks
+hooks present but NOT pre-commit-managed or bound to a stale interpreter
+[provision] REFUSED: L4 git hooks are not armed
+```
+
+Diagnosed rather than assumed. All three shims exist and carry the pre-commit signature; the cause is the
+interpreter binding:
+
+```
+INSTALL_PYTHON='...\.claude\worktrees\lane-e-502-mutmut\.venv\Scripts\python.exe'
+uv run python -> ...\.claude\worktrees\lane-c-554-devcontainer\.venv\Scripts\python.exe
+```
+
+The shim is bound to a **sibling lane's** venv, so `_stale_interpreter` is True and `_armed` is False. This
+is limit (b) above, reproduced. **The arming path was deliberately NOT run to make it green**: in a worktree
+that would rewrite the shared primary checkout's hooks and rebind them away from whatever session is using
+them. Turning a refusal green by mutating shared state that other live sessions depend on is not
+verification.
