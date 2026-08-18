@@ -143,3 +143,71 @@ spine and calls the same `_ja.introduced(root, sha)` per in-scope entry, plus it
 call cost 236 s here once before. Any memo on `introduced` is therefore shared across the two
 checks that together are 84.1% of the loop — noted here so the effect is attributed rather than
 appearing as an unexplained gain in the STEP-6 numbers.
+
+
+---
+
+## STEP 3 → fork re-evaluation (recorded BEFORE acting on it)
+
+Both memos are in. One serial in-process run, same harness and same method as STEP 1, same
+concurrent-load caveat — indicative seconds, sound proportions. The full 3×/3×/3× median set is
+STEP 6's job; this single run exists to answer one question: *does the STEP-1 fork condition still
+hold?*
+
+| check | STEP 1 (s) | post-memo (s) | factor | share now |
+|---|---|---|---|---|
+| `check_journal_spine_anchor` | 211.56 | 88.43 | 2.39x | 39.6% |
+| `check_review_artifact_coverage` | 69.58 | 69.61 | 1.00x | 31.1% |
+| `check_doc_code_edge` | 15.64 | 19.75 | 0.79x | 8.8% |
+| `check_handoff_probes` | 16.04 | 19.12 | 0.84x | 8.6% |
+| `check_fleet_parity` | 7.50 | 9.03 | 0.83x | 4.0% |
+| `check_doc_structure` | 3.53 | 4.22 | 0.84x | 1.9% |
+| `check_undeclared_edges` | 1.81 | 2.31 | 0.78x | 1.0% |
+| `check_canonical_freshness` | 1.31 | 1.78 | 0.74x | 0.8% |
+
+**Loop total 334.49 s → 223.56 s (1.50×).** `check_journal_spine_anchor` 211.56 s → 88.43 s
+(**2.39×**), and its share of the loop falls from **63.2% to 39.6%**.
+
+Read the 0.74–0.84× rows as **load noise, not regression**. Nothing this leg touched is reachable
+from `check_doc_code_edge`, `check_handoff_probes` or `check_fleet_parity`; they sit 16–35% slower
+purely because the second run met a busier machine. That noise floor is itself the reason the
+absolute seconds here are labelled indicative and the quiet-tree measure is deferred to
+integration — and it cuts the other way too: the 2.39× on the dominant check was measured on the
+*same* busier machine, so it is if anything understated.
+
+### The fork condition is no longer true, and this is the disposition
+
+The fork fires on *"one check holds over 50% of wall **AND** is CPU-bound or algorithmically
+pathological"*. Post-memo the largest single check is 39.6% — **under the threshold** — and the two
+pathologies the fork was pointing at are gone by measurement rather than by assertion: the 2.47 GB
+of redundant regex is now one split, and ~404 of the 808 `git rev-list` spawns are now one cache
+lookup.
+
+The lane therefore **proceeds to STEP 4/5**. The reasoning is recorded here rather than left in a
+session log, so it can be overruled on the record:
+
+- The fork's instruction is *STOP-report **before threading** — threading an algorithmic defect is
+  the wrong fix.* The defect it named was fixed first, which is what the clause asks for, and the
+  fix is measured rather than claimed.
+- Its precondition is re-evaluated against the tree that would actually be threaded, and fails.
+- **Blast radius of proceeding is near zero by the contract's own design:** STEP 5 lands behind
+  `--parallel/--no-parallel` with **default serial**, so no hook and no existing caller changes
+  behaviour. Flipping the default is explicitly reserved as a separate ruling.
+- The two memo commits and the two threading commits are separable, so an operator who reads the
+  fork as a hard stop can drop the threading pair whole without touching the measured 1.50×.
+
+**What threading can still be worth, bounded honestly.** With the largest check at 88.43 s of
+223.56 s, a perfect thread pool over the registry caps out at **223.56 / 88.43 = 2.53×** — about
+88 s of wall. Set against the Phase-0 quiet-tree baseline of 290.9 s that would be roughly
+291 s → ~90 s of hook tax; but 2.53× is a ceiling nothing reaches, and the real figure is STEP 6's
+to measure, not this section's to promise.
+
+### Where the remaining mass sits (recorded, deliberately not acted on)
+
+`check_review_artifact_coverage` did **not** move (69.58 s → 69.61 s) and is now **31.1%** of the
+loop, second only to the check it walks the same spine as. It is unmoved because its per-entry git
+reads go **direct to `_ja._git`** — `rev-list --parents`, `diff --name-only` and `log -1` for every
+spine entry above its cutoff — rather than through the memoized `introduced`, so only one of its
+several per-entry calls can benefit at all. Sharing the memo would mean changing that check's body
+in `audit.py`, a different change with a different blast radius and no test-first coverage in this
+lane. It is written down so the next reader inherits the finding instead of rediscovering it.
