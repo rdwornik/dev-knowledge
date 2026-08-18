@@ -39,6 +39,7 @@ import sys
 import tempfile
 from collections import Counter
 from collections.abc import Callable, Sequence
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from datetime import date, datetime, timezone
 from pathlib import Path
@@ -3527,6 +3528,72 @@ def classify_inert_checks(by_check: "dict[str, dict[str, list[Finding]]]",
     return out
 
 
+# ---------------------------------------------------------------------------
+# The check runner ([#533] leg 2) — serial by default, optionally threaded
+# ---------------------------------------------------------------------------
+
+# Ceiling on worker threads. NAMED, not inlined, so the number is configuration a reader can
+# find and an operator can argue with rather than a literal buried in a call. The checks are
+# I/O-bound (git subprocesses and file reads, measured 2026-08-16), so threads are the right
+# primitive and the useful width is set by how many git processes the machine will usefully
+# run at once, not by core count. `--workers` overrides it per invocation.
+_PARALLEL_MAX_WORKERS = 8
+
+
+def _parallel_workers(n_checks: int) -> int:
+    """Default width for `n_checks` checks: the configured cap, but never wider than the work.
+
+    Floored at 1 because `ThreadPoolExecutor(max_workers=0)` raises -- an empty registry is a
+    legitimate call (`tests/test_audit.py` monkeypatches `ALL_CHECKS` down to a single check,
+    and a future caller could pass none) and it must not become a crash.
+    """
+    return max(1, min(_PARALLEL_MAX_WORKERS, n_checks))
+
+
+def run_checks(repo_path: Path, checks: Sequence[Callable] | None = None,
+               parallel: bool = False, workers: int | None = None) -> list[Finding]:
+    """Run `checks` against `repo_path` and return their findings IN REGISTRY ORDER.
+
+    ORDER IS THE CONTRACT, not a side effect. `CHECK_ORDER` is the order findings are emitted
+    in, so it is part of the byte-identical output the git hooks read; results are therefore
+    collected into a per-check slot and flattened in submission order, NEVER appended as work
+    completes. A check emitting several findings keeps them contiguous in its own slot.
+
+    SERIAL IS THE DEFAULT and this function changes no caller's behaviour by existing. Every
+    runner loop routes through it so the two modes cannot drift into two different definitions
+    of "run the checks", but nothing switches to threads unless it is asked to. Flipping the
+    `audit-health` hook's default is a separate ruling ([#533] leg 2 contract), not a
+    consequence of this code landing.
+
+    `checks=None` reads the module-level `ALL_CHECKS` AT CALL TIME, deliberately: binding it as
+    a default argument would freeze the list at import and silently detach the seam
+    `tests/test_audit.py` monkeypatches -- a check that keeps passing while testing nothing,
+    which is the exact failure class `audit_checks/registry.py` documents.
+
+    THREADS, not processes: the checks are I/O-bound (git subprocesses, file reads), they share
+    process-global state a `ProcessPoolExecutor` could not (`_GATE_MODE`, the `journal_anchor`
+    memos), and several are closures over module state that would not pickle.
+
+    An exception in a worker PROPAGATES -- `future.result()` re-raises it on this thread. A
+    runner that swallowed it would turn a loud failure into a silently short report, which is
+    the worst outcome available to an audit.
+    """
+    active = list(ALL_CHECKS if checks is None else checks)
+    if not parallel:
+        out: list[Finding] = []
+        for check in active:
+            out.extend(check(repo_path))
+        return out
+
+    width = workers if workers is not None else _parallel_workers(len(active))
+    slots: list[list[Finding]] = [[] for _ in active]
+    with ThreadPoolExecutor(max_workers=max(1, width)) as pool:
+        futures = {pool.submit(check, repo_path): i for i, check in enumerate(active)}
+        for future in as_completed(futures):
+            slots[futures[future]] = list(future.result())
+    return [f for slot in slots for f in slot]
+
+
 def audit_repo(repo_name: str, repo_path: Path, run_date: date) -> RepoState:
     """Run all checks on a single repo and return updated state."""
     if not repo_path.exists():
@@ -3538,9 +3605,7 @@ def audit_repo(repo_name: str, repo_path: Path, run_date: date) -> RepoState:
         )
         return state
 
-    findings: list[Finding] = []
-    for check in ALL_CHECKS:
-        findings.extend(check(repo_path))
+    findings = run_checks(repo_path)
     state = RepoState(
         name=repo_name,
         path=str(repo_path),
@@ -4052,7 +4117,14 @@ def cmd_registry(action: str) -> None:
 
 
 @cli.command("health")
-def cmd_health() -> None:
+@click.option("--parallel/--no-parallel", "parallel", default=False, show_default=True,
+              help="Run the self-audit checks on a thread pool. DEFAULT SERIAL: this flag "
+                   "exists so the speedup can be measured and opted into; flipping the "
+                   "audit-health hook's default is a separate ruling ([#533] leg 2).")
+@click.option("--workers", type=click.IntRange(min=1), default=None,
+              help=f"Worker threads when --parallel (default: min({_PARALLEL_MAX_WORKERS}, "
+                   "number of checks)). Ignored when serial.")
+def cmd_health(parallel: bool, workers: int | None) -> None:
     """Quick TTY status: operational deps + .dev-knowledge self-conformance. No file writes.
 
     Two parts: (1) operational preflight — click/pyyaml importable, ecosystem/ exists,
@@ -4099,8 +4171,7 @@ def cmd_health() -> None:
     self_findings: list[Finding] = []
     _GATE_MODE = True
     try:
-        for check in ALL_CHECKS:
-            self_findings.extend(check(Path(_REPO_ROOT)))
+        self_findings = run_checks(Path(_REPO_ROOT), parallel=parallel, workers=workers)
     finally:
         _GATE_MODE = False
     self_fail = any(f.status == "fail" for f in self_findings)
@@ -4199,8 +4270,7 @@ def cmd_ship_gate() -> None:
     findings: list[Finding] = []
     _GATE_MODE = False  # ship-time = full verification (run the expensive claim-3)
     try:
-        for check in ALL_CHECKS:
-            findings.extend(check(Path(_REPO_ROOT)))
+        findings = run_checks(Path(_REPO_ROOT))
     finally:
         _GATE_MODE = False
 
