@@ -317,3 +317,86 @@ so no edge between them can appear. **This is the part that mattered:** `ARCHITE
 have wedged the lane on a re-stamp nobody had earned. The `codemap-freshness` pre-commit hook
 still FIRES on every commit here (its `files` pattern matches `^scripts/.*\.py$`) and passes,
 which is the difference between "the gate did not run" and "the gate ran and found nothing".
+
+---
+
+## STEP 9 — THE RECORDED GATE RUN, read back without re-measurement
+
+This is `[#529]`'s own Done-when leg: *"a recorded gate run reads back without re-measurement"*.
+One real run of the live gate, then SQL over the store — no check re-executed to produce any
+number below.
+
+```
+$ python scripts/audit.py health --telemetry
+... health: DEGRADED   (exit 1 — the foreign fleet_audit_replication FAIL, see above)
+```
+
+Readback, `sqlite3` only:
+
+```
+ROW COUNT            : 43
+EVENT TYPES          : [('check_run', 43)]
+DISTINCT CHECK NAMES : 43
+OUTCOMES             : [('pass', 42), ('block', 1)]
+TOTAL duration_ms    : 225318
+```
+
+**43 rows for 43 registered checks, 43 distinct names, one event per check.** The count agrees
+with `ecosystem/doc-counts.md`'s `43 registered checks` without anyone counting them again.
+
+Three sample rows, verbatim:
+
+```
+(15, '2026-08-19T12:00:26.749404+00:00', 'check_run', 'check_hooks_armed',
+     'pass', 162, '{"finding_names": ["hooks_armed"], "findings": 1, "statuses": {"pass": 1}}')
+(17, '2026-08-19T12:00:26.783382+00:00', 'check_run', 'check_doc_claims',
+     'pass',  64, '{"finding_names": ["doc_claims"], "findings": 1, "statuses": {"pass": 1}}')
+(37, '2026-08-19T12:00:27.116335+00:00', 'check_run', 'check_fleet_audit_replication',
+     'block', 936, '{"finding_names": ["fleet_audit_replication"], "findings": 1, "statuses": {"fail": 1}}')
+```
+
+**The single `block` row is the STEP-1 mapping working on real data, not on a fixture.** The one
+check that emitted a `fail` is the one that blocked the commit, and `context.statuses` preserves
+the `fail` the three-value outcome collapsed — so a reader recovers the five-value status without
+re-running anything. `finding_names` carries `fleet_audit_replication`, the string the disposition
+register and the ship-gate key on, next to the function name `check_fleet_audit_replication` the
+event is named by. That is the join the STEP-1 decision added `finding_names` for, exercised.
+
+**And the store immediately answers a question nobody could answer before it existed:**
+
+```
+slowest 5 checks, by the store alone:
+   90244 ms  check_journal_spine_anchor
+   73184 ms  check_review_artifact_coverage
+   18171 ms  check_handoff_probes
+   17016 ms  check_doc_code_edge
+    9756 ms  check_fleet_parity
+```
+
+Two checks are **73% of a 225-second per-commit gate**. That is the "is this organ worth its
+cost" question the usage-telemetry memo exists to ask, and it is now measured rather than felt —
+directly relevant to `[#528]`'s lane-latency row, which names `[#529]` as its leg-3 dependency.
+
+### The two MEASURED blockers, verified on the real run rather than on a fixture
+
+**Blocker (a) — stderr.** The full captured output of a 43-check `--telemetry` run contains
+**zero** `telemetry: ` lines:
+
+```
+$ grep -c 'telemetry: ' <the whole run's captured output>   ->  0
+```
+
+Without the caller-side fix this would have been 43. The regression test
+(`test_a_wired_health_run_puts_no_telemetry_line_on_stderr`) asserts the same property on
+synthetic checks; this is the same property on the live gate.
+
+**Leg 2 — the `.gitignore` glob**, with a real store on disk:
+
+```
+$ git status --short          ->  (empty)
+$ git check-ignore -v logs/TELEMETRY.db
+  .gitignore:95:logs/TELEMETRY.db*   logs/TELEMETRY.db
+```
+
+A live emitting gate leaves the working tree clean. That is the whole of leg 2, proven
+end-to-end rather than by reading the pattern.
