@@ -325,6 +325,76 @@ def test_adr_rows_flag_a_file_with_no_parsable_status(tmp_path):
     assert row.flag == gd.FLAG_UNPARSED
 
 
+_LEGACY_ADR = """# ADR-34 — File naming convention (cross-repo)
+
+<!-- scope: meta -->
+
+Status: Accepted
+Date: 2026-04-29
+Related: ADR-27
+"""
+
+
+def test_adr_rows_read_the_pre_2026_05_header_dialect(tmp_path):
+    """A third dialect exists in the corpus; the shared parser only ever sees the last five."""
+    d = _write_tree(tmp_path, {"decisions/ADR-34-file-naming.md": _LEGACY_ADR})
+    row = gd.adr_rows(d / "decisions")[0]
+    assert row.status == "Accepted"
+    assert row.date == "2026-04-29"
+    assert row.title == "File naming convention (cross-repo)"
+    assert row.dialect == gd.DIALECT_LEGACY
+    assert row.flag == ""
+
+
+def test_legacy_dialect_status_qualifier_is_trimmed_like_the_shared_parser(tmp_path):
+    text = _LEGACY_ADR.replace("Status: Accepted",
+                               "Status: Accepted (amended four times: 2026-05-09, ...)")
+    d = _write_tree(tmp_path, {"decisions/ADR-42-handoff.md": text})
+    assert gd.adr_rows(d / "decisions")[0].status == "Accepted"
+
+
+def test_adr_file_off_the_filename_grammar_is_reported_not_dropped(tmp_path):
+    """`ADR-43_underscore.md` is invisible to the shared filename regex — absent, not unparsed."""
+    d = _write_tree(tmp_path, {
+        "decisions/ADR-10-a.md": _adr(10, "Accepted"),
+        "decisions/ADR-43_cross_project_routing.md": _LEGACY_ADR.replace("ADR-34", "ADR-43"),
+    })
+    rows = gd.adr_rows(d / "decisions")
+    assert len(rows) == 2
+    off = [r for r in rows if r.flag == gd.FLAG_OFF_GRAMMAR]
+    assert [r.number for r in off] == [43]
+    assert off[0].filename == "ADR-43_cross_project_routing.md"
+    note = gd._dialect_note(rows)
+    assert "INVISIBLE" in note
+    assert "ADR-43_cross_project_routing.md" in note
+
+
+def test_dialect_note_is_quiet_when_every_row_read_cleanly(tmp_path):
+    d = _write_tree(tmp_path, {"decisions/ADR-10-a.md": _adr(10, "Accepted")})
+    note = gd._dialect_note(gd.adr_rows(d / "decisions"))
+    assert "INVISIBLE" not in note and "fallback" not in note
+
+
+def test_a_status_that_resolves_to_no_enum_member_is_off_enum(tmp_path):
+    """ADR-41's live text parses to a BACKLOG status enum, not an ADR status — flag it."""
+    d = _write_tree(tmp_path, {"decisions/ADR-41-x.md":
+                               _adr(41, "open | in-progress | blocked | done")})
+    assert gd.adr_rows(d / "decisions")[0].flag == gd.FLAG_OFF_ENUM
+
+
+def test_a_pipe_in_a_derived_value_cannot_shred_the_markdown_table(tmp_path):
+    """The same ADR-41 value: an unescaped `|` silently splits the row into extra columns."""
+    d = _write_tree(tmp_path, {"decisions/ADR-41-x.md":
+                               _adr(41, "open | in-progress | blocked | done")})
+    out = gd.render_adrs(gd.adr_rows(d / "decisions"))
+    body = [ln for ln in out.splitlines() if ln.startswith("| ADR-41")]
+    assert body, "the flagged row must render"
+    for line in body:
+        assert r"\|" in line
+        # 5-column table -> exactly 6 unescaped pipes per row.
+        assert len(re.findall(r"(?<!\\)\|", line)) in (6, 7)
+
+
 def test_render_adrs_lists_the_archivable_candidates(tmp_path):
     rows = [gd.AdrRow(number=11, status="Superseded", date="2026-01-01", title="B",
                       archived=False, flag=gd.FLAG_ARCHIVABLE)]

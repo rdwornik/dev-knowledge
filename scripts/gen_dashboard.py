@@ -110,6 +110,16 @@ ADR_ARCHIVE_DIRNAME = "archive"
 FLAG_ARCHIVABLE = "ARCHIVABLE"
 FLAG_OFF_ENUM = "OFF-ENUM"
 FLAG_UNPARSED = "UNPARSED"
+#: A file whose NAME is off the `ADR-<n>-<slug>.md` grammar the shared filename regex requires.
+FLAG_OFF_GRAMMAR = "OFF-GRAMMAR-FILENAME"
+
+#: The shared parser's own "field absent" sentinel; matched, never re-spelled.
+UNPARSED = "(unparsed)"
+
+#: Which header dialect a ledger row was actually read with.
+DIALECT_SHARED = "shared"
+DIALECT_LEGACY = "legacy"
+DIALECT_OFF_GRAMMAR = "off-grammar"
 
 SECTION_TITLES = (
     "Section 0 — Release notes",
@@ -182,6 +192,8 @@ class AdrRow:
     title: str
     archived: bool
     flag: str
+    dialect: str = DIALECT_SHARED
+    filename: str = ""
 
 
 @dataclass(frozen=True)
@@ -392,6 +404,17 @@ def theme_stats(backlog_text: str, tasks_dir: Path) -> list[ThemeStats]:
             for t in sorted(order)]
 
 
+def _cell(value) -> str:
+    r"""One markdown TABLE cell, pipe-escaped.
+
+    A raw `|` inside a value silently splits the row into extra columns, and derived content is
+    exactly where an unescaped pipe arrives from: ADR-41's live status line reads
+    `open | in-progress | blocked | done`, which shredded this table before it was escaped.
+    Newlines collapse for the same reason.
+    """
+    return str(value).replace("|", r"\|").replace("\n", " ")
+
+
 def _size_mix(sizes: dict[str, int]) -> str:
     return " · ".join(f"{k} {v}" for k, v in sizes.items()) or "—"
 
@@ -402,7 +425,8 @@ def render_backlog(themes: list[ThemeStats], total_open: int, total_open_prior: 
            "| Theme | Open | Deferred | Closed | Size mix (live rows) |",
            "|---|---:|---:|---:|---|"]
     for t in themes:
-        out.append(f"| {t.theme} | {t.open} | {t.deferred} | {t.closed} | {_size_mix(t.sizes)} |")
+        out.append(f"| {_cell(t.theme)} | {t.open} | {t.deferred} | {t.closed} | "
+                   f"{_cell(_size_mix(t.sizes))} |")
     out.append("")
     if total_open_prior is None:
         out.append(f"**Total live rows: {total_open}.** {window_days}-day trend **unavailable** — "
@@ -501,8 +525,8 @@ def render_intake(rows: list[IntakeRow]) -> str:
         status = r.status if r.status in INTAKE_STATUS_ORDER else f"{r.status} → {STATUS_UNKNOWN}"
         archived = "yes" if r.archived else ("**no**" if r.status in INTAKE_TERMINAL_STATUSES
                                              else "—")
-        out.append(f"| {label} | {status} | `{r.filename}` | {r.verdict or '—'} | "
-                   f"{r.detail or '—'} | {archived} |")
+        out.append(f"| {_cell(label)} | {_cell(status)} | `{_cell(r.filename)}` | "
+                   f"{_cell(r.verdict) or '—'} | {_cell(r.detail) or '—'} | {archived} |")
     out += ["", "_Terminal docs (CONSUMED / SUPERSEDED / REJECTED) belong in "
             "`docs/intake/archive/` per docs/intake/README.md §5; a bold **no** is one that has "
             "not been relocated._", ""]
@@ -513,6 +537,15 @@ def render_intake(rows: list[IntakeRow]) -> str:
 
 _STRIKETHROUGH_RE = re.compile(r"~~[^~]*~~")
 _ENUM_BY_LENGTH = tuple(sorted(ADR_STATUS_ENUM, key=len, reverse=True))
+
+#: The filename grammar the shared parser requires. Mirrored (not imported) so a file the
+#: shared regex SKIPS can be enumerated here rather than silently vanishing from the ledger.
+_ADR_FILENAME_RE = re.compile(r"^ADR-(\d+)-[\w.-]+\.md$")
+
+#: The third, pre-2026-05 header dialect: `# ADR-NN — Title` + a BARE `Status:` / `Date:` line.
+_LEGACY_STATUS_RE = re.compile(r"^Status:\s*(.+?)\s*$", re.MULTILINE)
+_LEGACY_DATE_RE = re.compile(r"^Date:\s*(\d{4}-\d{2}-\d{2})", re.MULTILINE)
+_LEGACY_TITLE_RE = re.compile(r"^#\s+ADR-\d+\s*[—:\-]\s*(.+?)\s*$", re.MULTILINE)
 
 
 def normalize_adr_status(status: str) -> str:
@@ -539,7 +572,7 @@ def normalize_adr_status(status: str) -> str:
 
 
 def _adr_flag(status: str, archived: bool) -> str:
-    if status == "(unparsed)":
+    if status == UNPARSED:
         return FLAG_UNPARSED
     normalized = normalize_adr_status(status)
     if not normalized:
@@ -549,32 +582,85 @@ def _adr_flag(status: str, archived: bool) -> str:
     return ""
 
 
+def _legacy_header(text: str) -> tuple[str, str, str]:
+    """The pre-2026-05 ADR header dialect: `# ADR-NN — Title` with a BARE `Status:` line.
+
+    A third dialect exists in this corpus and the shared parser does not cover it. That is not
+    a defect in `gen_claude_rosters` -- it reads the LAST FIVE ADRs, which are all modern, so
+    the dialect has never been in its field of view. Reading a whole ledger puts it there. This
+    fallback fires ONLY on a row the shared parser already returned `(unparsed)` for, so the
+    shared parser stays primary and its behaviour is not altered; the dialect a row was read
+    with is carried on the row and reported.
+    """
+    status_m = _LEGACY_STATUS_RE.search(text)
+    title_m = _LEGACY_TITLE_RE.search(text)
+    date_m = _LEGACY_DATE_RE.search(text)
+    status = status_m.group(1).strip() if status_m else UNPARSED
+    if status != UNPARSED:
+        # Same qualifier trim the shared parser applies to the bold dialect, so both dialects
+        # land on comparable values: `Accepted (amended four times: ...)` -> `Accepted`.
+        status = re.split(r"\s*[(—]", status, maxsplit=1)[0].strip() or UNPARSED
+    return (status,
+            date_m.group(1) if date_m else UNPARSED,
+            title_m.group(1).strip() if title_m else UNPARSED)
+
+
 def _adr_dir_rows(directory: Path, archived: bool) -> list[AdrRow]:
     if not directory.is_dir():
         return []
-    count = len(list(directory.glob("ADR-*.md")))
-    if not count:
+    files = sorted(directory.glob("ADR-*.md"))
+    if not files:
         return []
+    by_number: dict[int, Path] = {}
+    off_grammar: list[Path] = []
+    for path in files:
+        m = _ADR_FILENAME_RE.match(path.name)
+        if m:
+            by_number[int(m.group(1))] = path
+        else:
+            off_grammar.append(path)
+
     rows: list[AdrRow] = []
-    # collect_recent_adrs is the repo's ADR header parser (both `Status:` dialects, the
-    # `(unparsed)` honesty). Asking it for `count` ADRs asks it for all of them.
-    for number, status, date, title in _gcr.collect_recent_adrs(directory, count=count):
+    # collect_recent_adrs is the repo's ADR header parser (both bold `Status:` dialects, and
+    # the `(unparsed)` honesty). Asking it for `len(files)` ADRs asks it for all of them.
+    for number, status, date, title in _gcr.collect_recent_adrs(directory, count=len(files)):
+        dialect = DIALECT_SHARED
+        if UNPARSED in (status, title, date) and number in by_number:
+            text = by_number[number].read_text(encoding="utf-8", errors="replace")
+            alt_status, alt_date, alt_title = _legacy_header(text)
+            if alt_status != UNPARSED or alt_title != UNPARSED:
+                dialect = DIALECT_LEGACY
+                status = alt_status if status == UNPARSED else status
+                date = alt_date if date == UNPARSED else date
+                title = alt_title if title == UNPARSED else title
         rows.append(AdrRow(number=number, status=status, date=date, title=title,
-                           archived=archived, flag=_adr_flag(status, archived)))
+                           archived=archived, flag=_adr_flag(status, archived), dialect=dialect))
+
+    # A file whose NAME is off the `ADR-<n>-<slug>.md` grammar is invisible to the shared
+    # parser's filename regex -- it is not "(unparsed)", it is absent. Reported as its own row
+    # so a whole decision cannot go missing from a ledger that claims to be complete.
+    for path in off_grammar:
+        m = re.match(r"^ADR-(\d+)", path.name)
+        text = path.read_text(encoding="utf-8", errors="replace")
+        alt_status, alt_date, alt_title = _legacy_header(text)
+        rows.append(AdrRow(number=int(m.group(1)) if m else -1, status=alt_status, date=alt_date,
+                           title=alt_title, archived=archived, flag=FLAG_OFF_GRAMMAR,
+                           dialect=DIALECT_OFF_GRAMMAR, filename=path.name))
     return rows
 
 
 def adr_rows(decisions_dir: Path) -> list[AdrRow]:
     rows = _adr_dir_rows(decisions_dir, False)
     rows += _adr_dir_rows(decisions_dir / ADR_ARCHIVE_DIRNAME, True)
-    return sorted(rows, key=lambda r: r.number)
+    return sorted(rows, key=lambda r: (r.number, r.filename))
 
 
 def _status_mix(rows: list[AdrRow]) -> dict[str, int]:
     """Counts by NORMALIZED status, so `Superseded by ADR-53` lands in the `Superseded` bucket."""
     counts: dict[str, int] = {}
     for r in rows:
-        counts[normalize_adr_status(r.status) or r.status] =             counts.get(normalize_adr_status(r.status) or r.status, 0) + 1
+        key = normalize_adr_status(r.status) or r.status
+        counts[key] = counts.get(key, 0) + 1
     return counts
 
 
@@ -585,22 +671,54 @@ def render_adrs(rows: list[AdrRow]) -> str:
             "archive trigger** — `docs/decisions/README.md` keys the bar on `Superseded` / "
             "`Deprecated` only, so an implemented-and-still-binding ADR correctly stays put. "
             "The flag below is a report; no file is moved._", "",
-            "**Status mix:** " + " · ".join(f"{k} {v}" for k, v in sorted(counts.items())), ""]
+            "**Status mix:** " + " · ".join(f"{k} {v}" for k, v in sorted(counts.items())), "",
+            _dialect_note(rows), ""]
     flagged = [r for r in rows if r.flag]
     if flagged:
         out += ["| ADR | Status | Date | Flag | Title |", "|---|---|---|---|---|"]
         for r in flagged:
-            out.append(f"| ADR-{r.number} | {r.status} | {r.date} | **{r.flag}** | {r.title} |")
+            out.append(f"| ADR-{r.number} | {_cell(r.status)} | {_cell(r.date)} | "
+                       f"**{r.flag}** | {_cell(r.title)} |")
         out.append("")
     else:
         out += ["No archival candidates and no off-enum or unparsed status.", ""]
     out += ["<details><summary>Full ledger (" + str(len(rows)) + " ADRs)</summary>", "",
-            "| ADR | Status | Date | Home | Title |", "|---|---|---|---|---|"]
+            "| ADR | Status | Date | Home | Read as | Title |", "|---|---|---|---|---|---|"]
     for r in rows:
         home = "archive/" if r.archived else "decisions/"
-        out.append(f"| ADR-{r.number} | {r.status} | {r.date} | {home} | {r.title} |")
+        out.append(f"| ADR-{r.number} | {_cell(r.status)} | {_cell(r.date)} | {home} | "
+                   f"{r.dialect} | {_cell(r.title)} |")
     out += ["", "</details>", ""]
     return "\n".join(out)
+
+
+def _dialect_counts(rows: list[AdrRow]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for r in rows:
+        counts[r.dialect] = counts.get(r.dialect, 0) + 1
+    return counts
+
+
+def _dialect_note(rows: list[AdrRow]) -> str:
+    """How each row was READ. A ledger that hides its own coverage gap is worse than none."""
+    counts = _dialect_counts(rows)
+    legacy = counts.get(DIALECT_LEGACY, 0)
+    off = counts.get(DIALECT_OFF_GRAMMAR, 0)
+    if not legacy and not off:
+        return ("**Header coverage:** every row read with the shared parser "
+                "(`gen_claude_rosters.collect_recent_adrs`).")
+    parts = [f"**Header coverage:** {counts.get(DIALECT_SHARED, 0)} rows read with the shared "
+             "parser (`gen_claude_rosters.collect_recent_adrs`)"]
+    if legacy:
+        parts.append(f"{legacy} needed the pre-2026-05 dialect fallback for at least one header "
+                     "field (bare `Status:` / `Date:` + `# ADR-NN — Title`), which the shared "
+                     "parser does not cover — it reads only the last five ADRs, so the dialect "
+                     "has never been in its field of view")
+    if off:
+        names = " · ".join(f"`{r.filename}`" for r in rows if r.dialect == DIALECT_OFF_GRAMMAR)
+        parts.append(f"{off} sit outside its filename grammar entirely and are INVISIBLE to it "
+                     f"({names}) — not `(unparsed)`, absent")
+    return "; ".join(parts) + ". Reported, not repaired."
 
 
 # --------------------------------------------------------------------------- section 4
@@ -743,10 +861,10 @@ def render_gate_health(gate: GateHealth) -> str:
             else "current"
         out += [f"Last recorded ship-gate composition — source `{gate.source}`; "
                 f"the `{label}` column is the standing count.", "",
-                "| WARN class | " + " | ".join(gate.columns) + " |",
+                "| WARN class | " + " | ".join(_cell(c) for c in gate.columns) + " |",
                 "|---" * (len(gate.columns) + 1) + "|"]
         for name, values in gate.rows:
-            out.append(f"| `{name}` | " + " | ".join(str(v) for v in values) + " |")
+            out.append(f"| `{_cell(name)}` | " + " | ".join(str(v) for v in values) + " |")
         out += ["", f"**Standing WARN total: {gate.current_total}** across "
                 f"{len(gate.rows)} classes.", ""]
     if gate.commit_tax:
@@ -882,6 +1000,21 @@ def _esc(value) -> str:
     return html.escape(str(value), quote=True)
 
 
+_MD_BOLD_RE = re.compile(r"\*\*(.+?)\*\*")
+_MD_CODE_RE = re.compile(r"`([^`]+)`")
+
+
+def _md_to_text(markdown: str) -> str:
+    """Render one line of prose shared with the markdown output: escape first, then re-mark.
+
+    Escaping BEFORE the markers are converted is what keeps a `<` in the source text from
+    reaching the page as markup.
+    """
+    escaped = _esc(markdown)
+    escaped = _MD_BOLD_RE.sub(r"<strong>\1</strong>", escaped)
+    return _MD_CODE_RE.sub(r"<code>\1</code>", escaped)
+
+
 def html_table(headers, rows, numeric: tuple[int, ...] = ()) -> str:
     head = "".join(f'<th class="num">{_esc(h)}</th>' if i in numeric else f"<th>{_esc(h)}</th>"
                    for i, h in enumerate(headers))
@@ -966,11 +1099,12 @@ def _html_adrs(d: Dashboard) -> str:
            "docs/decisions/README.md keys the bar on Superseded / Deprecated only. The flag is a "
            "report; no file is moved.</p>",
            '<p class="card"><strong>Status mix:</strong> '
-           + _esc(" · ".join(f"{k} {v}" for k, v in sorted(counts.items()))) + "</p>"]
+           + _esc(" · ".join(f"{k} {v}" for k, v in sorted(counts.items()))) + "</p>",
+           '<p class="note">' + _md_to_text(_dialect_note(d.adrs)) + "</p>"]
     if flagged:
         rows = [(f"ADR-{r.number}", r.status, r.date, r.flag, r.title) for r in flagged]
         table = html_table(("ADR", "Status", "Date", "Flag", "Title"), rows)
-        for flag in (FLAG_ARCHIVABLE, FLAG_OFF_ENUM, FLAG_UNPARSED):
+        for flag in (FLAG_ARCHIVABLE, FLAG_OFF_ENUM, FLAG_UNPARSED, FLAG_OFF_GRAMMAR):
             table = table.replace(f"<td>{_esc(flag)}</td>",
                                   f'<td><span class="badge flag">{_esc(flag)}</span></td>')
         out.append(table)
@@ -978,9 +1112,10 @@ def _html_adrs(d: Dashboard) -> str:
         out.append('<p class="card"><span class="ok">No archival candidates and no off-enum or '
                    "unparsed status.</span></p>")
     rows = [(f"ADR-{r.number}", r.status, r.date, "archive/" if r.archived else "decisions/",
-             r.title) for r in d.adrs]
+             r.dialect, r.title) for r in d.adrs]
     out.append(f"<details><summary>Full ledger ({len(d.adrs)} ADRs)</summary>"
-               + html_table(("ADR", "Status", "Date", "Home", "Title"), rows) + "</details>")
+               + html_table(("ADR", "Status", "Date", "Home", "Read as", "Title"), rows)
+               + "</details>")
     return "\n".join(out)
 
 
