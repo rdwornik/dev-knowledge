@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "bbce7c2d7378ee6a1eaddf2886e60746aef0ef75d15a23eb8ee7236da390556b",
+  "generated_sha256": "41500e98dbb7f6a3b647338ed06b0878e7f134b0ed6b9505fb8b2705a61ba78e",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -220,6 +220,10 @@
     {
       "task": 499,
       "file": "499-promote-the-review-artifact-coverage-leg-from-ad.md"
+    },
+    {
+      "task": 560,
+      "file": "560-review-artifact-coverage-reads-only-the-first-br.md"
     },
     {
       "prose": ""
