@@ -19,6 +19,45 @@
 
 ---
 
+### 2026-08-19 (c) — CC (Opus 5, branch `docs/122-keep-close`): the seat arc's two open ends close — `[#122]` on the operator's KEEP word, and the fleet-audit blocker clears
+
+**Did:** Closed the two items the S-1 night-adjudication arc (entry (b) below) left open. `[#122]`
+reached its terminal state on the operator's one word — **KEEP-for-defence-in-depth** — and the
+`fleet_audit_replication` FAIL that had blocked every commit in the repo was cleared by the
+operator's push of `automation/fleet-audit` (`588fc11a..760da0f8`), recorded as an amendment to the
+seat packet rather than an edit to it.
+
+**Anchors:** `0bce3497` ([#122] KEEP close + the packet's §7 finding-1 amendment) — a commit this branch's own merge introduces.
+
+**Result:** `[#122]` is the **last of the eight L-5 rulings to reach a terminal state**. The
+architect's block had held it for the single call it could not make, and the operator made it: the
+PATH shim (`claude.cmd`) STAYS as a tripwire beside the native `settings.json` `env` route. The
+Done-when's second branch (*"or the item is closed as keep-for-defence-in-depth"*) is what
+discharges, so the no-delete invariant is never reached — nothing is deleted. Closed by
+retire-not-delete: node out of `tasks/manifest.json`, file kept with `status: closed`. The
+fleet-audit clearance was verified twice over rather than taken on report — the check's own
+predicate (`git rev-list --count origin/automation/fleet-audit..automation/fleet-audit`) returns
+**0**, and a confirming `audit.py health` reads **`health: OK` with ZERO FAILs** and
+`[OK] fleet_audit_replication ... (0 commits ahead)`. WARN count unmoved at **34**, so nothing
+shifted underneath it.
+
+**Changes:** `tasks/122-*` + `BACKLOG.md` (the close) · `docs/audits/2026-08-19-technical-s1-seat-arc-packet.md`
+(§7 finding-1 amendment) · `JOURNAL.md`.
+
+**Ledger:** banked closures **13 → 14**; live task nodes **208 → 207** (open 184 → 183, deferred 24
+unchanged); births unchanged at 6; window net **−5 → −6**. `validate_backlog` OK at 207 tasks.
+
+**Abandoned:** nothing. **`SKIP=audit-health` is retired** — acts 4d–8 of arc (b) ran under a
+declared skip against that FAIL, and this arc ran the full gate set with **no skip of any kind**,
+which is the proof those skips were temporary rather than a bypass.
+
+**Next:** the S-1 queue is empty. Both approved branch deletions follow this merge — the N4 lane
+branch `claude/n4-grooming-wave1-audit-ahltfa` (content verification PASSED, blob byte-identical on
+`origin/main`; ancestry is structurally unpassable under ruling b′ because b′ landed the file state
+rather than the branch, so the operator authorized the delete on the content proof) and the seat
+branch `docs/seat-s1-night-adjudication`. Standing rule recorded by the operator out of arc (b)'s
+HEAD contention: **no git ops in the primary checkout from helper tasks.**
+
 ### 2026-08-19 (b) — CC (Opus 5, branch `docs/seat-s1-night-adjudication`): the S-1 adjudication seat executes the night's queue — N4 lands audits-only, two unlocated rules get a locator, D8 clears its WARN, three births, seven closures
 
 **Did:** Executed the frozen S-1 seat contract
