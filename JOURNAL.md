@@ -19,6 +19,70 @@
 
 ---
 
+### 2026-08-19 (b) — CC (Opus 5, branch `docs/seat-s1-night-adjudication`): the S-1 adjudication seat executes the night's queue — N4 lands audits-only, two unlocated rules get a locator, D8 clears its WARN, three births, seven closures
+
+**Did:** Executed the frozen S-1 seat contract
+(`docs/audits/2026-08-19-technical-s1-seat-arc-contract.md`, committed FIRST per ADR-110) against
+the morning report's adjudication queue, on the primary checkout. Eight acts: N4 landed under
+ruling b′; the two rules that governed the night while existing only in a dispatch prompt recorded
+as `STANDING_RULINGS` §P; D8 taken as Route 2; the ledger re-derived live and three births released
+under its gate; nine of N5's ten LESSONS candidates promoted with candidate 7 split first; N4's
+6.9% locator-rot measurement attached to `[#534]`; and the architect's eight-ruling L-5 block —
+which arrived in-session during act 3 and was HELD until act 7, as the contract required —
+transcribed to its rows, closing seven of them.
+
+**Anchors:** `afbc45f7` (contract of record) · `d9d636f6` (N4 sheet, audits-only) · `0bbaaab7` (STANDING_RULINGS §P) · `db1e0238` (D8 Route 2) · `29ab7a1b` `8f428e21` `d85490d0` (births [#559] [#560] [#561]) · `f26f8a21` (intakes #38/#39 → ACCEPTED) · `bae19b0a` (LESSONS 278→287) · `b099f3ff` ([#534] corroboration) · `746fa410` (ADR-113, ADR-108 §B-4, intake README §5a) · `6c62fce4` (8 verdicts, 7 closures) · `292e6f40` (seat packet) — commits this arc's merge introduces.
+
+**Result:** **N4's sheet is on `main`** — the final file state alone, verified byte-identical to the
+branch tip (blob `14cebf7c5ba88cbb1be8157634783547c86fa4d8`, 56933 B), the lane's two journal
+entries discarded and the branch kept. **`STANDING_RULINGS` §P** gives both night-governing rules a
+locator for the first time: P-1 (a lane leaves `JOURNAL.md` alone; the integrator's single entry
+anchors a night) and P-2 (the anti-orphan rule — ACCEPTED carries a carrier row or a dated
+deferral). Both are phrased declaratively per that file's own editing note, and
+`silent_rule_detector` measured **440 before and 440 after**, against baseline 441. **D8 Route 2**
+cleared the only WARN the whole queue could clear: `fleet_parity` reads 0 warn-undeclared, the
+root-sweep line now PASS-declared, `review_date` 2026-09-18 set near `[#554]`'s expected close so
+the fleet-doctrine question returns with the D1/D2 evidence in hand. **Three births**, each landed
+verbatim from its pack's draft source: `[#559]` the kernel row (the fleet's oldest ACCEPTED-unfiled
+debt — intake #25's W-2, ACCEPTED 2026-08-05, zero carriers for fourteen days), `[#560]` the
+review-linkage reader fix, `[#561]` the CX re-base. **Seven closures** on the L-5 block, three of
+which needed a landing before they could close: ADR-113 ratifies the L0–L5 ladder as *vocabulary*
+(and rules a level is a maturity claim, never an authority — so `[#494]`'s constraint is made
+permanent rather than lifted), an ADR-108 §B-4 amendment records the fleet Python paradigm and
+naming stance, and intake README §5a writes up the partial-ratification convention.
+
+**Changes:** `docs/audits/` (+N4 sheet, +contract, +packet, index) · `protocols/STANDING_RULINGS.md`
+(§P) · `.methodology.yaml` (`.devcontainer`) · `tasks/` + `BACKLOG.md` (3 births, 7 closures, 1
+corroboration ref, 1 held verdict) · `docs/intake/` (#38/#39 flips, §5a, both manifests) ·
+`docs/decisions/` (+ADR-113, ADR-108 amendment, index, roster) · `LESSONS.md` (278→287).
+
+**Ledger:** banked closures 6→13, births 3→6, window net +3→−5; live task nodes 212→208 (open
+188→184, deferred 24 unchanged); disk 288→291 files, terminal 76→83; next free id **#562**. WARN
+findings 32→34: `fleet_parity` −1 as predicted, `backlog-row-length` +3 (`#559` 2860, `#561` 2243,
+`#534` 1640 against the 1320 ceiling) — all three mine and all three unavoidable, since the contract
+required the rows verbatim and `[#534]` had 9 characters of headroom.
+
+**Abandoned:** A linked worktree, tried as a workaround when a concurrent session swapped the
+primary checkout's HEAD off this branch twice mid-hook-run (reflog: 13:27:01 and 13:32:50, both
+failing at `fatal: cannot lock ref 'HEAD'`). It was abandoned because it distorts the gate it was
+meant to preserve — `membership_agreement` read state-dirs **0/9** inside it against 6/9 in the
+primary, the gitignored ecosystem state being absent — and removed with removal verified. Nothing
+was lost in either swap. Also NOT taken: N3 §6.5's deferral fallback (conditional on the kernel row
+not being born; it was born) and §7.5's zero-birth lever (drafted for a squeeze that did not happen).
+
+**Next:** **`[#122]` is the one thing outstanding from the L-5 block** and it awaits one operator
+word — remove the PATH shim, or close it as keep-for-defence-in-depth, which is what the architect
+recommends; the verdict is transcribed to the row and the row stays open. **`fleet_audit_replication`
+is FAILing and it is not this arc's**: `automation/fleet-audit` is 5 commits ahead of origin, so
+`audit.py health` reads DEGRADED and the `audit-health` pre-commit hook blocks every commit in the
+repo. Ownership was proved against this seat's own 12:35 baseline (`[OK] … 0 commits ahead`); the
+remedy is a push of that branch, which is outward-facing and the operator's, so acts 4d onward
+carry a **declared `SKIP=audit-health`** with the reason in each commit body — **no `--no-verify`
+anywhere in this arc.** Three drafted births stay HELD, not cut: intakes #35/#36/#37 are still
+DRAFT and ADR-111 §4 makes a ratified intake a precondition of birth, which means ruling their ADR
+fork — an authorization this arc did not have. The full carry-forward is
+`docs/audits/2026-08-19-technical-s1-seat-arc-packet.md` §7.
+
 ### 2026-08-19 (a) — CC (Opus 5, branch `docs/night-harvest-2026-08-19`): the N1-N5 night lands four of five, and N4 is refused at the docs-only gate
 
 **Did:** Morning consolidation of the 2026-08-19 night batch under the contract-of-record

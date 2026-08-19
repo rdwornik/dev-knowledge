@@ -31,7 +31,7 @@ fill-in skeleton is `templates/intake-template.md`.
 - [#22](2026-07-30-func-operator-decision-routing-and-standards.md) — Operator design input — decision routing, engineering standards, and lane timeline
 - [#23](2026-08-01-func-distillation-and-library-first.md) — Operator design input — distillation and library-first
 
-### DRAFT (9)
+### DRAFT (7)
 
 - [#24](2026-08-05-tech-currency-wave-1.md) — PART B — INTAKE DRAFT: tech-currency wave 1 — buy the commoditized walls
 - [#27](2026-08-06-tech-adoption-consolidation-intake.md) — INTAKE DRAFT — tech-adoption consolidation ledger (38 items, successor-facing)
@@ -40,14 +40,12 @@ fill-in skeleton is `templates/intake-template.md`.
 - [#35](2026-08-17-tech-agent-instruction-layers-and-distillation.md) — Portable agent-instruction layers, prompt distillation, and unattended runs
 - [#36](2026-08-17-tech-repository-autonomy-and-gate-liveness.md) — Repository autonomy, policy-as-code, and proving the gates are alive
 - [#37](2026-08-17-tech-machine-verifiable-done-when.md) — Machine-verifiable Done-when: making acceptance criteria executable
-- [#38](2026-08-17-tech-fleet-config-standardization.md) — Multi-repo config standardization and fleet conformance at N=8
-- [#39](2026-08-17-tech-off-machine-agent-substrate.md) — Off-machine agent fleet substrate — the re-priced, verified-August-2026 plan
 
 ### READY (1)
 
 - [#15](2026-07-16-satellite-onboarding-prompts.md) — Satellite onboarding prompts — ready to fire (four consumers)
 
-### ACCEPTED (14)
+### ACCEPTED (16)
 
 - [#12](2026-07-11-tech-ownership-manifest.md) — Fleet Ownership Manifest (SETTLED) + Nightly Hygiene Decision Tree
 - [#13](2026-07-11-tech-plan-of-record-fleet-hygiene.md) — Plan-of-record — Fleet Hygiene System build (post 2026-07-11 session)
@@ -63,6 +61,8 @@ fill-in skeleton is `templates/intake-template.md`.
 - [#30](2026-08-09-func-verification-organ-and-repeatable-execution.md) — The verification gap, repeatable execution, and the cost of parallelism
 - [#31](2026-08-09-func-code-style-doctrine.md) — Universal code-style doctrine for an LLM-written Python fleet
 - [#32](2026-08-09-tech-compute-placement-and-remote-execution.md) — INTAKE — compute placement and remote execution: fix local first, and make the cloud precondition a rule
+- [#38](2026-08-17-tech-fleet-config-standardization.md) — Multi-repo config standardization and fleet conformance at N=8
+- [#39](2026-08-17-tech-off-machine-agent-substrate.md) — Off-machine agent fleet substrate — the re-priced, verified-August-2026 plan
 <!-- INTAKE-INDEX:END -->
 
 ## 1. What this folder is
@@ -208,6 +208,49 @@ authority must stay visible live); live docs stay here. The move is MANUAL for n
 the status-coupled validator that would gate/automate it is wave work, not built.
 Archived docs drop out of the generated Contents index (depth-1 scan); their
 `intake-id` join keys stay valid at the archive path.
+
+## 5a. Partial ratification — promotion is the terminal path (the ADR-108 pattern)
+
+**Ruled 2026-08-19** (architect L-5 block, item `#450`): *"convention, not schema — promotion-to-ADR
+is the terminal path; write the ADR-108 pattern into the intake README as the convention."* Landed
+by the S-1 night-adjudication seat; `[#450]` closes on it.
+
+**The problem it settles.** `status:` is one token for a whole file (§3), so a doc that is ruled in
+part has no honest state of its own: flipping it to ACCEPTED over-claims the sections nobody ruled,
+and leaving it SEED under-claims the ones that were. §5's enum has no partial member and does not
+gain one — a section-level status field, with `gen_intake_index.py` rendering it, was the rejected
+alternative.
+
+**The convention, as ADR-108 exercised it live on 2026-07-31 with intake #22 §A + §B:**
+
+1. **The ruled sections are transcribed into an ADR**, verbatim where they are quotable, and the
+   ADR's title says which sections it ratifies — ADR-108's is literally *"(ratifies intake #22 §A +
+   §B)"*, so the scope is legible from the index without opening the file.
+2. **The ADR carries a scope boundary naming what it does NOT ratify**, section by section.
+   ADR-108's *"Scope boundary — what this ADR does NOT ratify"* lists §C–§H and marks them
+   non-citable as ruled doctrine. This is the load-bearing half: without it, an ADR that ratifies
+   part of a doc reads as ratifying the doc.
+3. **The intake keeps its pre-ratification status** — `SEED` or `DRAFT` — and gains a pointer note
+   to the ADR. It does not become ACCEPTED, because the unruled remainder is still unruled.
+4. **The remainder stays live in the intake**, available for a later promotion that repeats 1–3 for
+   the sections it rules.
+
+**Why promotion rather than a schema field.** The status token answers *"what may a reader rely on
+here"*, and after a partial ratification the answer is no longer a property of the intake at all —
+the ruled part is relied on **at the ADR**, which is a citable artifact with its own status, its own
+date and its own decided-by. A section-level status would put a ratification record in a doc whose
+genre is explicitly *not* a decision record (ADR-100 §4: *"Audit = evidence about state. Intake = a
+request to change state"*), and would need the index generator, the confirm-gate and the archive
+rule all taught about a half-live document.
+
+**Interaction with the anti-orphan rule** (`protocols/STANDING_RULINGS.md` P-2). Promotion is not an
+ACCEPTED flip, so it does not trigger the carrier requirement — the intake is still DRAFT/SEED and
+owes nothing. The rows the ratified sections need are born from the ADR, citing both the `intake-id`
+and the ADR-id, per ADR-98 §3.
+
+**Honest limit.** Nothing checks this. There is no gate that notices an ADR ratifying part of an
+intake without a scope boundary, or an intake flipped to ACCEPTED when only some of it was ruled;
+this is a convention with a worked precedent, and the precedent is the enforcement.
 
 ## 6. The confirm-gate
 
