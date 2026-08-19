@@ -149,3 +149,22 @@ sanctioned_divergences:
       own declared concern (one declaration never suppresses two; the sweep matches
       by exact entry name).
     review_date: 2026-10-13
+  - component: .devcontainer
+    reason: >-
+      D8, ruled 2026-08-19 (Route 2, on the N5 codification pack's recommendation at
+      docs/audits/2026-08-19-technical-n5-codification-pack.md ITEM 3). Lane C landed
+      .devcontainer/ and closed the ADR-101 hermetization surface for it but not the
+      fleet desired-state surface, leaving a root-sweep WARN-undeclared. Route 1
+      (a .devcontainer row in ecosystem/parity-surfaces.yaml) would promote it to
+      fleet doctrine while [#554]'s D1/D2 PROOF legs are still OPEN -- one lane green
+      on the Codespaces free tier, and the identical script via `devcontainer up` --
+      so it would enshrine an unproven substrate and invert try-then-generalise.
+      Route 1 stays available and loses nothing by waiting; the reverse is not true.
+      Population note, measured rather than assumed: parity-surfaces.yaml declares 9
+      members but 6 are pre-deploy and are not walked, so either route affects 2
+      repos today, not the 7 the dispatch framing implied.
+      SHORT review_date (+30d) is the point of the declaration, set near [#554]'s
+      expected close so the fleet-doctrine question returns to the calendar with the
+      D1/D2 evidence in hand rather than rotting behind a cleared WARN -- the same
+      shelf-life device the .vscode entry above uses to force its e1 revisit.
+    review_date: 2026-09-18
