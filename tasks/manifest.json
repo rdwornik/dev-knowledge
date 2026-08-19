@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "41500e98dbb7f6a3b647338ed06b0878e7f134b0ed6b9505fb8b2705a61ba78e",
+  "generated_sha256": "bff34cafcc5277176cb2e9bfa63df00b6d51709a1e1bb5e9ccf1e0ee0d736ed9",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -1042,6 +1042,10 @@
     {
       "task": 541,
       "file": "541-scale-out-substrate-decision-unowned-after-two-rep.md"
+    },
+    {
+      "task": 561,
+      "file": "561-re-base-the-compute-plan-onto-the-hetzner-cx-sha.md"
     },
     {
       "prose": "### [S20] Revive the nightly layer, load-gauge first (rent-rule discipline)"
