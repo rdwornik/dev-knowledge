@@ -26,8 +26,29 @@
 
   // Debian-based devcontainer image with git + a system Python floor. The `1-3.12-bookworm`
   // tag tracks the 3.12 line, matching pyproject's `requires-python = ">=3.12"`; the EXACT
-  // interpreter is provisioned by uv from `.python-version`.
-  "image": "mcr.microsoft.com/devcontainers/python:1-3.12-bookworm",
+  // interpreter is provisioned by uv from `.python-version`. The tag itself is unchanged and
+  // still the ONE version token this file carries — it moved into `Dockerfile`'s `BASE_IMAGE`
+  // arg, which is built here instead of used directly because that image's apt is broken
+  // upstream (unsigned yarn repo). `Dockerfile` carries the full measurement; without it no SSH
+  // server can be installed in the container and no feature can build.
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+
+  // THE REACHABILITY LEG — witnessed, not anticipated. The image above carries no
+  // openssh-server, and Codespaces injects one only when the devcontainer asks for it. Without
+  // this feature `gh codespace ssh` AND `gh codespace logs` both refuse with "failed to start
+  // SSH server", which means a codespace built from this file comes up perfectly and is then
+  // reachable ONLY from a browser — no CLI, no agent, no way to read the provisioning log that
+  // proves the four legs closed. An off-machine LANE substrate that no lane can be driven on is
+  // not a substrate, so this belongs with the four legs rather than in the customizations block.
+  // Costs nothing off-Codespaces: `devcontainer up` on a VPS installs the same sshd and the
+  // identical-script clause is preserved.
+  "features": {
+    "ghcr.io/devcontainers/features/sshd:1": {
+      "version": "latest"
+    }
+  },
 
   "containerEnv": {
     // THE ENV GATE ([#554] leg 4). `provision.sh` writes this stamp only after all four legs
