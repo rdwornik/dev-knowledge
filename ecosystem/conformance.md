@@ -6,7 +6,7 @@
 
 > **Generated, committed, read-only** (ADR-86 location + ADR-80 zone class). It answers four standing operator questions — what finished, where the telemetry is, whether the intakes passed their gate, and whether implemented ADRs are archived — and it **reports rather than repairs**: every VIOLATION and flag below is left exactly where it was found.
 
-- **As of:** 2026-08-19 · **HEAD:** `f506e1d93672` · **window:** 2026-08-12 → 2026-08-19 (7 days)
+- **As of:** 2026-08-19 · **HEAD:** `278211e3450b` · **window:** 2026-08-12 → 2026-08-19 (7 days)
 - **Regenerate:** `python scripts/gen_dashboard.py --write` · **verify:** `python scripts/gen_dashboard.py --check`
 - **Determinism:** derived from the tree, not the clock — the "as of" instant is HEAD's commit date, so two runs on one tree are byte-identical. After HEAD moves, `--check` reports drift; that is a regenerate-me signal and gates nothing.
 
