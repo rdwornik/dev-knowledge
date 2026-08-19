@@ -6,7 +6,7 @@
 
 > **Generated, committed, read-only** (ADR-86 location + ADR-80 zone class). It answers four standing operator questions — what finished, where the telemetry is, whether the intakes passed their gate, and whether implemented ADRs are archived — and it **reports rather than repairs**: every VIOLATION and flag below is left exactly where it was found.
 
-- **As of:** 2026-08-19 · **HEAD:** `94b37beabf62` · **window:** 2026-08-12 → 2026-08-19 (7 days)
+- **As of:** 2026-08-19 · **HEAD:** `d433fb5d48ec` · **window:** 2026-08-12 → 2026-08-19 (7 days)
 - **Regenerate:** `python scripts/gen_dashboard.py --write` · **verify:** `python scripts/gen_dashboard.py --check`
 - **Determinism:** derived from the tree, not the clock — the "as of" instant is HEAD's commit date, so two runs on one tree are byte-identical. After HEAD moves, `--check` reports drift; that is a regenerate-me signal and gates nothing.
 
@@ -17,6 +17,7 @@
 _Rows that left `BACKLOG.md` between 2026-08-12 and 2026-08-19, newest first. The gain line is the row's own `Done when:` clause — what the operator can now do that they could not before._
 
 - **Ladder ratification — L0–L5 promote-vs-leave is unruled, and prose already cites it as authority** [#494] → the ladder is ratified (or explicitly retired) by ADR, and any surface citing a level as authority either resolves to that ADR or drops the citation · closed 2026-08-19 · `7e793eca8e20`
+- **`desired_state_report.py` dies on a cp1252 console — U+21C4 in its own HONEST LIMITS text** [#486] → the U+21C4 is ASCII-swapped and a regression asserts every console-emitted line of `desired_state_report.py` is cp1252-encodable · closed 2026-08-19 · `d433fb5d48ec`
 - **Per-section intake ratification — the `status:` field is doc-level, so partial ratification needs promotion** [#450] → a ruling records either a section-level status schema (with the index generator updated) or promotion-as-intended with the ADR-108 pattern written up as the standing convention · closed 2026-08-19 · `7e793eca8e20`
 - **Assembled-paste byte budget — should `PASTE_THIS.md` gain a hard ceiling?** [#449] → a ruling records either a hard budget (with its number and gate) or an explicit accepted-with-reason hold, and the decision cites the fold as the elasticity argument · closed 2026-08-19 · `7e793eca8e20`
 - **Universal fleet Python style — functional-vs-OOP stance + uniform naming (the paradigm/naming half of parity)** [#407] → an architect ruling (ADR-108 §A; re-routed) records the functional-vs-OOP stance AND a uniform naming convention (classes/files/objects/variables) is documented as fleet doctrine, or recorded deferred-with-reason · closed 2026-08-19 · `7e793eca8e20`
@@ -51,13 +52,13 @@ _Rows that left `BACKLOG.md` between 2026-08-12 and 2026-08-19, newest first. Th
 | [E4] Decision management | 6 | 1 | 1 | M 2 · S 5 |
 | [E5] Canonical-file integrity | 12 | 1 | 7 | M 2 · S 11 |
 | [E6] Cross-repo universalization | 15 | 1 | 12 | L 3 · M 8 · S 5 |
-| [E7] Tooling & evaluation | 49 | 3 | 17 | L 2 · M 18 · S 32 |
+| [E7] Tooling & evaluation | 48 | 3 | 18 | L 2 · M 18 · S 31 |
 | [E8] ARC-5 execution | 17 | 0 | 7 | M 5 · S 12 |
 | [E9] Fleet Desired-State System (North Star) | 5 | 1 | 7 | L 1 · M 1 · S 4 |
 
-**Total live rows: 207** (+12 over 7 days; 195 at the window start).
+**Total live rows: 206** (+11 over 7 days; 195 at the window start).
 
-Closed this window (24): [#494] · [#450] · [#449] · [#407] · [#406] · [#323] · [#281] · [#122] · [#558] · [#557] · [#556] · [#536] · [#505] · [#502] · [#532] · [#527] · [#524] · [#364] · [#352] · [#525] · [#513] · [#508] · [#452] · [#360]
+Closed this window (25): [#494] · [#486] · [#450] · [#449] · [#407] · [#406] · [#323] · [#281] · [#122] · [#558] · [#557] · [#556] · [#536] · [#505] · [#502] · [#532] · [#527] · [#524] · [#364] · [#352] · [#525] · [#513] · [#508] · [#452] · [#360]
 
 ## Section 2 — Intake lifecycle gate
 

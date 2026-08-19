@@ -19,6 +19,36 @@
 
 ---
 
+### 2026-08-19 (g) — CC (Opus 5, branch `docs/dashboard-post-close`): the dashboard is regenerated onto the closed state — batch-2 wrap
+
+**Did:** Regenerated `ecosystem/conformance.{md,html}` after `[#486]` closed, so the operator-facing
+surface reflects the day's final state rather than the mid-batch one.
+
+**Anchors:** `a53b961b` (the regeneration) — the commit this branch's merge introduces.
+
+**Result:** Section 0's release-note window now carries `[#486]` with its closing sha. The previous
+generation was stamped at `94b37beabf62` — before lane L2 merged and before the close — so the
+surface built to answer *"what finished"* was answering it one merge and one closure out of date.
+
+**Regenerated under `PYTHONUTF8=1`, and that is a standing hazard, not a preference.**
+`scripts/gen_dashboard.py` reads its sources with no explicit encoding, so on a cp1252-default
+Windows console it decodes `BACKLOG.md`'s UTF-8 bytes as cp1252 and writes the mojibake into both
+outputs. It was caught earlier today only by diffing a fresh generation against lane K's committed
+copy — the generator exits 0 and the damage is invisible unless compared. Verified absent in both
+files here. **This is the same defect class as `[#486]`, which closed today**, now living in
+`[#171]`'s own generator; carried as a named pending item by operator instruction, with **no birth
+filed**.
+
+**Changes:** `ecosystem/conformance.{md,html}` (regenerated) · `JOURNAL.md`.
+
+**Ledger:** unchanged — a regeneration banks nothing. Live task nodes stay **206**.
+
+**Abandoned:** nothing. `worktree-lane-x-539-cloud-briefs` stays provisioned by instruction,
+pending the C-lanes — the one deliberate exception to no-leftovers this session.
+
+**Next:** END PACKET. Batch-2 is closed: five of five lanes merged, `[#486]` banked, two findings
+carried unfiled.
+
 ### 2026-08-19 (f) — CC (Opus 5, branch `docs/486-cp1252-close`): `[#486]` closes — the cp1252 crash the caches wave recorded but did not own
 
 **Did:** Closed `[#486]` on the evidence lane M landed in this batch (`104eacc9`, merged to main at
