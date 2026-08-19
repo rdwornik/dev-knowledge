@@ -1,7 +1,7 @@
 ---
 id: "[#486]"
 title: "`desired_state_report.py` dies on a cp1252 console — U+21C4 in its own HONEST LIMITS text"
-status: open
+status: closed
 priority: P3
 size: S
 theme: "[E7] Tooling & evaluation"
