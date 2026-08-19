@@ -2,7 +2,16 @@
 
 **Lane:** L2 · branch `worktree-lane-l-529-wiring` · contract-of-record `b2abedb8`
 **Contract body:** item 5 of `docs/audits/2026-08-19-technical-n1-529-530-wiring-spec.md`
-**Status:** written incrementally as the lane proceeds; frozen at STOP.
+**Status:** written incrementally as the lane proceeds; **frozen at STOP.**
+
+> **On immutability, stated rather than glossed.** `docs/audits/` is immutable under CLAUDE.md §5
+> rule 3, and this file was appended to across several commits rather than written once. That is
+> deliberate and declared here at its head: it is the lane's *in-flight working record*, the
+> artifact the contract's STEP 1 and STEP 9 both instruct the lane to write into as it goes, and
+> its growth is legible in git history rather than hidden by it. Nothing already written was
+> rewritten — every edit appended a new section. It is frozen at STOP; from that point the rule
+> applies to it normally. The alternative (one sealed file per step) would have scattered one
+> lane's reasoning across nine artifacts, which is worse for the reader the packet exists for.
 
 ---
 
@@ -271,3 +280,40 @@ DECLARED skip — never a silent bypass, and never a disposition of someone else
 **OWED TO THE INTEGRATOR:** push `automation/fleet-audit` to origin (5 commits) before the batch
 closes. Until then `audit-health` is RED for every lane on this machine, and the ADR-80 durable
 record genuinely does exist on one disk.
+
+---
+
+## STEP 8 — regenerate what the wiring moved, and only that
+
+The contract names two regenerations. **One was owed and done; the other was not owed at all,
+and U14 is why.**
+
+**`ecosystem/doc-counts.md` — OWED, DONE.** Adding two test files moves the collected count:
+
+```
+before: - tests: **3033 collected** (`pytest --collect-only`)
+after:  - tests: **3091 collected** (`pytest --collect-only`)
+```
+
++58, which is the 21 + 37 test functions this lane added once parametrization is expanded. The
+other two claims did **not** move, exactly as the spec predicted: `43 registered checks` (the
+wiring adds no check) and `19 pre-commit gates` (it adds no hook). Regenerated with
+`gen_doc_counts.py --write`, never hand-edited.
+
+**The codemap — NOT OWED, and the gate itself says so.** U14 corrected the spec's claim that the
+new `audit.py -> telemetry_emit` import edge changes the generated block. Run rather than argued:
+
+```
+$ python -m scripts.codemap.cli check . --source-root scripts
+warning: orphan modules (no edges): codemap, toc
+rc=0
+```
+
+Green with the wiring in place. The block records PACKAGES (`scripts/codemap/`, `scripts/toc/`)
+and its Dependencies section is literally `- (none)`; two top-level modules cannot become nodes,
+so no edge between them can appear. **This is the part that mattered:** `ARCHITECTURE.md` is in
+`audit.py`'s `_FRESHNESS_FILES`, so an unnecessary regen would have bumped its commit date past
+`last_reviewed: 2026-08-14` and RED-ed `canonical_freshness` A2 on the next commit — STEP 8 would
+have wedged the lane on a re-stamp nobody had earned. The `codemap-freshness` pre-commit hook
+still FIRES on every commit here (its `files` pattern matches `^scripts/.*\.py$`) and passes,
+which is the difference between "the gate did not run" and "the gate ran and found nothing".
