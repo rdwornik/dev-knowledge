@@ -19,6 +19,54 @@
 
 ---
 
+### 2026-08-19 (h) — CC (Opus 5, branch `docs/c-lanes-harvest`): the five cloud C-lanes are harvested — 5 merged, 0 refused, 0 pending, and one consolidated digest
+
+**Did:** Fetched and surveyed `origin/claude/*`; all five 2026-08-19 cloud C-lanes (C1 seeded-defect
+pack, C2 review profiles, C3 grooming wave 2, C4 ruling pre-work, C6 telemetry read-path) had pushed,
+so nothing was PENDING. Verified each lane's artifact on its own branch tip and quoted its receipt
+before merging anything. Ran the queue serially, `--no-ff`, re-checking the N4 docs-only rule against
+each branch immediately before its merge rather than once at the start. Regenerated
+`docs/audits/README.md` ONCE after the queue closed. Assembled one consolidated digest quoting each
+lane's asks, LEAN lines, bars and violation counts verbatim.
+
+**Result:** **5 merged / 0 refused / 0 pending.** Every branch was a pure ADD of exactly its own two
+`docs/audits/2026-08-19-technical-c*` files — no lane touched `JOURNAL.md`, `docs/audits/README.md`,
+`BACKLOG.md`, `tasks/` or `scripts/`, so the docs-only gate held for all five and the N4 refusal rule
+never fired. Artifacts total 4462 lines (C3 1653 · C6 1034 · C1 869 · C2 503 · C4 403) plus 223 lines
+of dispatch contracts. Index 612 -> 623 documents (11 new files). Full gates on the digest commit, no
+`SKIP=`, no `--no-verify`.
+
+**The queue ran on an integration branch, deliberately.** `check_journal_spine_anchor` scans
+`--first-parent main`, and the ADR-110 declared-integration-arc exemption covers a `worktree-lane-*`
+merge under an open manifest — it does **not** cover `claude/*`. Merging five cloud lanes straight onto
+main would therefore have left five unanchored spine entries and wedged the very commit carrying the
+digest that explains them. Running the queue on `docs/c-lanes-harvest` keeps each lane's own `--no-ff`
+merge commit and its identity, and puts one anchored entry on main's spine instead of five unanchored
+ones. No bypass was used anywhere in the arc.
+
+**Two lane-declared facts the integrator did not smooth over:** C1 recorded that both its commits used
+`git commit --no-verify`, because its contract's no-index-regeneration rule and the hub's
+`audit-index-freshness` gate are in direct conflict for any lane that adds an audit artifact; C2
+recorded that the cloud containers had no gates armed at all, so this merge is the first time hub gates
+ran on any of this material. Both are quoted in the digest §0. This is a standing structural conflict,
+not a lane defect, and it recurs on every cloud lane that adds an audit artifact until it is ruled.
+
+**Changes:** `docs/audits/2026-08-19-technical-c-lanes-consolidated.md` (new, 302 lines) ·
+`docs/audits/README.md` (regenerated once) · the ten lane files the five merges bring in.
+
+**Abandoned:** Nothing. No ruling was made — the digest assembles evidence and the architect rules from
+it. The C6 `run_id` BLOCKER, C6's static-HTML LEAN, C1's three-gate A/B bar, C2's R1–R6, C4's `[#488]`
+axis LEAN and C3's six free AWAITING-RULING rows are all carried to the architect unruled.
+
+**Next:** Operator GO gates the push of `main`. Then teardown of the five merged `claude/*` branches on
+origin, and of `origin/worktree-lane-x-539-cloud-briefs` whose pending-teardown condition is met once
+all five have landed.
+
+**Anchors:** `cfc27fa` (the digest + index commit this entry names), and the five lane merges
+`28a2e2cc` (C1) · `a4812424` (C2) · `0ac71ea8` (C3) · `772755bf` (C4) · `52a8fe84` (C6), which bring in
+lane commits `dea7f549` `0dcaae4e` `518a1d06` `916e314f` `962a2d3a` `9e81bf59` `b65186e3` `229787c9`
+`43f36595` `5d7c4869`.
+
 ### 2026-08-19 (g) — CC (Opus 5, branch `docs/dashboard-post-close`): the dashboard is regenerated onto the closed state — batch-2 wrap
 
 **Did:** Regenerated `ecosystem/conformance.{md,html}` after `[#486]` closed, so the operator-facing
