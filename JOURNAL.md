@@ -25,8 +25,10 @@
 `696a68cd`). Closure surfaced by the integrator, approved by the operator; the lane itself was
 commit-and-STOP and correctly did not close its own row.
 
-**Anchors:** `104eacc9` (lane M's merge, which carries the fix and the regression) — already on
-main; this branch's own close commit is named in the merge below.
+**Anchors:** `585ee6f8` (the close itself — node dropped, `status: closed`, `BACKLOG.md`
+regenerated), the commit this branch's merge introduces. The evidence it closes on is
+`104eacc9` (lane M's merge, carrying the fix and the regression), already on main from
+entry (d)'s batch.
 
 **Result:** The row's Done-when is met **on both legs, verified literally rather than assumed**:
 
