@@ -400,3 +400,154 @@ $ git check-ignore -v logs/TELEMETRY.db
 
 A live emitting gate leaves the working tree clean. That is the whole of leg 2, proven
 end-to-end rather than by reading the pattern.
+
+---
+
+## FINAL — the contract's targeted set, `-n 0`
+
+```
+$ .venv/Scripts/python -m pytest \
+    tests/test_telemetry_wiring.py tests/test_hook_telemetry.py \
+    tests/test_audit_parallel.py tests/test_ship_gate.py \
+    tests/test_block_ff_push.py tests/test_block_commit_on_main.py \
+    tests/test_adr85_integration_enforcement.py tests/test_telemetry_emit.py \
+    tests/test_writer_integrity.py -n 0 -q
+
+210 passed in 725.91s (0:12:05)
+```
+
+All nine files the contract's FINAL names, green together. `tests/test_audit_parallel.py` and
+`tests/test_telemetry_emit.py` are green **unedited**; `tests/test_audit.py` was never touched.
+
+**One suite outside the FINAL set was also run, and it is reported rather than hidden.**
+`tests/test_audit.py` (untouched by this lane) plus `tests/test_writer_integrity.py`:
+**226 passed, 2 failed in 776.69s.** Both failures are pre-existing and environmental, and
+neither reads anything this lane changed:
+
+| Failure | Why it is not this lane's |
+|---|---|
+| `test_fleet_parity_green_on_live_repo` | asserts the live fleet is parity-green; fails on a `.dev-knowledge root-sweep WARN` in a worktree checkout — the known worktree-lane RED |
+| `test_routine_consumers_live_backlog_governs_exactly_one_row` | reads the LIVE `BACKLOG.md` and pins *"1 declared routine row"*; the file currently declares 3. This lane never edited `BACKLOG.md` |
+
+Reported, not dispositioned — that is the operator's call, not a lane's.
+
+---
+
+## STOP PACKET
+
+```
+LANE     L2 -- [#529]/[#530] wiring · branch worktree-lane-l-529-wiring
+         10 commits, STEPS 0-9, one per step, contract-of-record first.
+         NO merge. NO push. Primary checkout untouched.
+
+DONE-WHEN, verified literally -- NEITHER ROW CLOSES
+
+[#529]  "the three stage-1 events emit from live gate runs into a WAL-mode SQLite store
+        via structlog with a test per event type, each constraint carries a test, and a
+        recorded gate run reads back without re-measurement"
+          three stage-1 events emit from live gate runs ......... YES (check_run at the
+              audit.run_checks funnel; hook_run + blocker_fired at all three gate organs)
+          into a WAL-mode SQLite store .......................... YES (telemetry_emit.connect's
+              WAL pragmas, unchanged; 43 rows read back)
+          VIA STRUCTLOG ......................................... **NO** -- structlog is absent
+              from [dependency-groups] and uv.lock; logger_backend() reports "stdlib-logging".
+              The contract forbids new dependencies, so leg 3 stays open BY INSTRUCTION.
+          a test per event type ................................. YES (check_run, hook_run and
+              blocker_fired each have dedicated cases)
+          each constraint carries a test ........................ pre-existing, unchanged --
+              the three [#529] constraints are the LIBRARY's, and tests/test_telemetry_emit.py
+              already covers them; this lane changed no library code
+          a recorded gate run reads back without re-measurement . YES (STEP 9)
+        VERDICT: legs 1 and 2 CLOSED; leg 3 (structlog) OPEN by instruction; the row's
+        Done-when is NOT literally met, on the "via structlog" clause. [#529] STAYS OPEN.
+
+[#530]  Done-when was ALREADY MET at merge 50daad05 and is unchanged by this lane. Its two
+        open defect legs are NOT taken: (a) the ABA race in release() and (b) the rev-parse
+        conflation. Wiring release onto an unfixed (a) is on the contract's own refusal list.
+        VERDICT: call sites wired (claim + inspect). [#530] STAYS OPEN on legs (a)/(b).
+
+        The wrapper's "Closes: [#529] + [#530]" carries its own instruction -- "verify each
+        Done-when literally before claiming it" -- and that verification says neither closes.
+
+UNVERIFIED -> VERDICT (amendment 3): 17 rows re-verified on the real toolchain.
+        16 CONFIRMED, 1 CORRECTED. No CORRECTED row changed the contract's shape, so no
+        STOP-report was owed. Full table above.
+        U14 is the load-bearing one: the spec said a codemap regen was owed for the new
+        import edge. It was not -- the block records packages, not modules -- and an
+        unnecessary regen would have bumped ARCHITECTURE.md's commit date past its
+        last_reviewed and RED-ed canonical_freshness A2 on the next commit. Verified by
+        running the gate itself: codemap check -> rc=0.
+
+BLOCKER FIXES (amendment 2), both measured before and after
+  (a) audit.py:283 basicConfig -> 43 telemetry stderr lines per gate run.
+      BEFORE: reproduced through the real modules --
+        STDERR: 'telemetry: {"context_json": "{}", "duration_ms": 12, ...}'
+      AFTER : a full 43-check `audit.py health --telemetry` run -> grep -c 'telemetry: ' = 0.
+      Fixed CALLER-SIDE (one setLevel line adjacent to the basicConfig that causes it),
+      because the library provably does not have the defect: a process importing only
+      telemetry_emit configures no handler, so lastResort (WARNING) already keeps hook
+      stderr byte-clean. Measured both directions.
+  (b) telemetry_emit._REPO_ROOT independence -> the sandbox seam did not reach the store.
+      BEFORE: test_ship_gate_is_readonly patched audit._REPO_ROOT and compared an rglob
+      snapshot of the tmp tree, but the only write a wired gate could make landed OUTSIDE
+      that tree. The assertion could not have failed.
+      AFTER : every site derives the store from its own caller's repo root
+      (audit._telemetry_db_path() / each hook's _repo_root()). The test is REPAIRED, not
+      edited around: it forces DEV_KNOWLEDGE_TELEMETRY=1 and asserts the gate STILL writes
+      nothing, plus an explicit `not (repo / "logs").exists()`. Its teeth are proven by
+      test_the_store_lands_under_the_callers_repo_root_not_the_librarys, which shows a write
+      under a patched _REPO_ROOT really is observable.
+      cmd_ship_gate deliberately does NOT consult the switch -- "read-only, Layer-2" is its
+      contract, and a gate that quietly gained a side-effect would be a different organ.
+
+DECISIONS RECORDED
+  outcome mapping  fail->block; pass/warn/n-a/unavailable->pass; a raising check->error.
+                   ONE event per check per run; collapsed detail on context. Fork NOT taken,
+                   with the reason. Pinned by a test, not a comment.
+  context extra    finding_names -- the event name is the check FUNCTION's __name__ (the only
+                   name a zero-finding check has), but the register keys on Finding.check_name.
+                   Carrying both gives the reader the join.
+  [#530] arm       claim + inspect; release DEFERRED on unfixed leg (a).
+  switch sharing   the two PUSH organs share ONE object (identity asserted by a test);
+                   block_commit_on_main carries its own 4-line copy by design (it imports no
+                   sibling -- reaching block_ff_push would drag validate_no_ff into the
+                   per-commit path), pinned by a test asserting both copies agree.
+  hook_run names   the pre-commit hook ids, so a row joins the roster with no translation table.
+  exit 2           hook_run(outcome="error") and NO blocker_fired -- refused by a crash, not a
+                   policy. Conflating them would inflate every refusal count with the gate's
+                   own bugs.
+
+FILES TOUCHED (nothing outside the contract's scope line)
+  scripts/audit.py · scripts/block_ff_push.py · scripts/block_unanchored_push.py ·
+  scripts/block_commit_on_main.py · .gitignore ·
+  .claude/commands/{lane-boot,lane-integrate}.md · tests/test_ship_gate.py (the repair
+  amendment 2b requires) · NEW tests/test_telemetry_wiring.py · NEW tests/test_hook_telemetry.py
+  Generated fragments regenerated because their sources changed: ecosystem/doc-counts.md ·
+  .claude/generated/commands-repo.md · docs/audits/README.md
+  NOT touched: tests/test_audit.py · tests/test_audit_parallel.py · scripts/telemetry_emit.py ·
+  scripts/single_flight.py · BACKLOG.md · JOURNAL.md · any dependency file
+
+FINAL   210 passed in 725.91s -- the nine suites the contract names, -n 0, together.
+
+RESIDUALS AND WHAT IS OWED
+  1. [#529] leg 3 (structlog) OPEN by instruction -- and it is what keeps the row open.
+  2. [#530] legs (a)/(b) OPEN; release stays unwired until (a) lands a generation token.
+  3. OWED: `git push origin automation/fleet-audit` (5 commits). Until then
+     fleet_audit_replication FAILs and audit-health is RED for EVERY lane on this machine.
+     STEPS 7-9 carry a declared, scoped SKIP=audit-health for exactly this; never
+     --no-verify, and every other gate ran and passed on every commit.
+  4. OWED: protocols/PLAYBOOK.md:1862 still says a batch closes when all FIVE
+     refuse-to-finish items hold. It is six now. Out of this lane's scope and inside
+     silent_rule_ratchet's scope root; the sixth needs a rides-as-a-recorded-addition
+     sentence from whoever owns the Ch8 doctrine.
+  5. REPORTED, not dispositioned: tests/test_audit.py carries 2 pre-existing failures
+     (fleet parity in a worktree; the live BACKLOG's routine-row count reading 3 against a
+     pinned 1). Neither reads anything this lane changed.
+  6. Correction to the wrapper's FINAL line: it says "19 cases across its 2 NEW test files".
+     Cases 18-19 live in a THIRD, conditional file the contract's own scope excludes. The
+     2 NEW files carry cases 1-17, written as 21 + 37 test functions.
+
+NOT DONE, deliberately: no merge · no push · no primary-checkout edit · no new dependency ·
+  no new EVENT_TYPES/OUTCOMES · no Finding field · no new YAML config (no ADR-101 Rule A/C
+  event occurred anywhere in this lane) · no hook-default flip · no --no-verify · no git add -A.
+```
