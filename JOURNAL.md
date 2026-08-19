@@ -19,6 +19,62 @@
 
 ---
 
+### 2026-08-19 (a) — CC (Opus 5, branch `docs/night-harvest-2026-08-19`): the N1-N5 night lands four of five, and N4 is refused at the docs-only gate
+
+**Did:** Morning consolidation of the 2026-08-19 night batch under the contract-of-record
+`docs/audits/2026-08-19-technical-morning-consolidation-contract.md` (committed FIRST, per
+ADR-110). Census against a LIVE `git ls-remote --heads origin`: all five lanes are **LANDED** —
+every one committed its dispatch stamp first and produced its deliverable, so no lane needed the
+STAMPED-BUT-DIED or NEVER-DISPATCHED classification the contract provisioned for. Four were
+merged; **N4 was refused by the contract's own docs-only pre-merge check** and is reported, not
+merged.
+
+**Anchors:** `08122dae` (contract of record) · `12cc4c68` `49ce9e48` (N1 wiring spec) · `2ab24046` `7c8349c3` `bc4f45c4` `c5fc9266` (N2 seam worksheet) · `e4b7f126` `32408a57` (N3 ratification pack) · `17b0a852` `285cae1d` `918fbb28` (N5 codification pack) — commits this arc's merges introduce.
+
+**Result:** ~3,900 lines of night research landed across four artifacts, every contracted item
+carrying its CLEAR/BLOCKED verdict. **N1** (5/5 CLEAR) names 7 wiring call sites with `file:line`
+and surfaces two MEASURED blockers — `audit.py:283` `basicConfig` would push 43 telemetry lines
+per run to stderr on a per-commit gate, and `telemetry_emit._REPO_ROOT` is independent of
+`audit._REPO_ROOT` so the test sandbox seam does not reach the store. **N2** (5/5 CLEAR) censuses
+the 25 monkeypatch pins into 4 mechanism classes and, in a second amendment, *retracts its own §0*
+after `pip install --user uv==0.11.19` made the gates available: `_is_hub` is read by **21** facade
+checks, not the registry docstring's 19, confirmed by a third independent method, and the §5.2
+parity proofs P1/P2 are corrected to baseline-relative because the container carries 32
+pre-existing environmental failures. **N3** (5/5 CLEAR) drafts three ADRs and five carrier rows
+against a live-measured ledger — 212 live task nodes, next free id `#559`, five births landing
+exactly on the ~5 headroom ceiling. **N5** (5/5 CLEAR) returns three decision memos with named
+recommendations.
+
+**The refusal is the load-bearing outcome.** N4's branch mutates `JOURNAL.md` (two lane-authored
+entries) alongside its audits, and the contract's pre-merge check admits only `docs/audits/**`.
+The rule caught exactly what it exists to catch: a night lane is contracted read-only+drafts, and
+a lane journaling on its own behalf both exceeds that posture and collides with the integrator's
+single night entry — this one. The artifact itself is complete and was read in full for the
+report (reading is not merging): 72 rows, 9 of 9 themes, **57 LIVE · 14 AWAITING-RULING · 1
+DEAD-CANDIDATE · 0 MALFORMED**. Its own headline is that git silence predicted almost nothing.
+Disposition is the architect's; this seat does not cherry-pick around a stop condition.
+
+**Deviation, stated because it changes main's spine shape:** the four merges were walked serially
+`--no-ff` in N1→N5 order onto this integration branch rather than onto `main` one at a time, then
+landed as one `--no-ff` merge. Direct serial-to-main is structurally impossible here without a
+bypass the contract forbids: every lane merge conflicts on the generated `docs/audits/README.md`,
+a conflicted merge runs the full `pre-commit`, and `audit-health` then FAILs on the *previous*
+merge for want of a JOURNAL anchor — which cannot exist until this entry does. Per-lane merge
+commits and messages are preserved one level down; the queue order and the `--no-ff` shape are
+unchanged. Every index conflict was resolved by `gen_audit_index.py --write`, never by picking a
+side.
+
+**Changes:** four night artifacts + their four dispatch stamps under `docs/audits/`, the
+regenerated `docs/audits/README.md`, and this entry. No `scripts/`, no `BACKLOG.md`, no `tasks/`,
+no status flips, no closures, no ADR files — this seat lands and verifies the night and rules
+nothing.
+
+**Abandoned:** the direct-to-main merge queue, for the anchoring reason above. N4's merge, held at
+the contract's stop condition.
+
+**Next:** the architect's adjudication pass from `MORNING-REPORT-2026-08-19.md` — the N4
+disposition is item 1, and the five-birth N3 ledger decision is the one with a stated ceiling.
+
 ### 2026-08-18 (f) — CC (Opus 5, branch `docs/batch1-packet-amendment`): the batch-1 packet gets its measured close-out
 
 **Did:** Appended an in-file AMENDMENT to
