@@ -19,6 +19,42 @@
 
 ---
 
+### 2026-08-19 (i) — CC (Opus 5, branch `docs/539-briefs-integration`): the five cloud dispatch briefs land on main, so the harvest and its provenance sit in one tree
+
+**Did:** On the operator's ruling, merged `worktree-lane-x-539-cloud-briefs` before teardown rather
+than deleting it. The branch was NOT an ancestor of `main` and carried five files that existed nowhere
+else — the dispatch briefs for the very C-lanes harvested in entry (h). Deleting it on the stated
+pending-teardown condition (all five lanes merged) would have dropped the only remote copy of the
+contracts of record.
+
+**Result:** Docs-only CLEAR — `docs/audits/` only, five pure ADDs plus the generated index. Merged
+`--no-ff` on an integration branch so the arc lands as one anchored spine entry, the same pattern
+entry (h) used and for the same reason: the ADR-110 integration-arc exemption never covers a lane
+whose merge would otherwise sit unanchored on main's first-parent spine. Audit index 623 -> 628
+documents. Full gates on the merge commit, no `SKIP=`, no `--no-verify`.
+
+**The one conflict was resolved by regeneration, not by hand.** `docs/audits/README.md` conflicted
+because both sides had regenerated it — entry (h)'s queue added eleven rows and this branch's own
+work added five. A generated file has no meaningful hand-merge: the resolution was to take one side,
+re-run `gen_audit_index.py --write` against the merged tree and let the generator produce the union.
+`--check` then exits 0 and the row count reconciles exactly (623 + 5 = 628), which is the property a
+hand-merge could have satisfied by accident and this one satisfies by construction.
+
+**Standing order recorded.** The operator accepted push-before-delete as the rule for every future
+harvest: a merged branch is deleted on origin only AFTER the merge is pushed, so no window exists in
+which integrated work lives solely in a local clone.
+
+**Changes:** five `docs/audits/2026-08-19-technical-cloud-c{1,2,3,4,6}-brief.md` land on main ·
+`docs/audits/README.md` regenerated onto the merged tree.
+
+**Abandoned:** Nothing. No ruling made; the briefs are provenance, not decisions.
+
+**Next:** Push `main`, then teardown in the corrected order — the five merged `claude/*` branches and
+`worktree-lane-x-539-cloud-briefs` on origin, plus the local worktree binding.
+
+**Anchors:** `697300eb` (this arc's merge of the brief branch), which introduces `2a373eab` and
+`5ef7aad9`.
+
 ### 2026-08-19 (h) — CC (Opus 5, branch `docs/c-lanes-harvest`): the five cloud C-lanes are harvested — 5 merged, 0 refused, 0 pending, and one consolidated digest
 
 **Did:** Fetched and surveyed `origin/claude/*`; all five 2026-08-19 cloud C-lanes (C1 seeded-defect
