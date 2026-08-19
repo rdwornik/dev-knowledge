@@ -20,6 +20,7 @@ mirroring tests/test_gen_intake_index.py) so no package import is implied.
 """
 
 import importlib.util
+import re
 import sys
 from pathlib import Path
 
@@ -60,8 +61,10 @@ def _task_file(task_id: int, status: str, theme: str) -> str:
 
 
 def _intake(intake_id: str, status: str, **fields: str) -> str:
+    # Values are QUOTED, matching the live docs: an unquoted `trigger: #328 build` is a YAML
+    # comment, not a value, and the doc would silently read as an undated defer.
     lines = ["---", f"intake-id: {intake_id}", f"status: {status}", "origin: test"]
-    lines += [f"{k.replace('_', '-')}: {v}" for k, v in fields.items()]
+    lines += [f"{k.replace('_', '-')}: \"{v}\"" for k, v in fields.items()]
     lines += ["---", "", f"# Intake {intake_id}", "", "body", ""]
     return "\n".join(lines)
 
@@ -101,6 +104,12 @@ class _FakeGit:
         self.calls.append(("file_at", rev, relpath))
         return self._old
 
+    def log_pairs(self, relpath: str, since_rev: str) -> list[tuple[str, str, str]]:
+        # No per-commit history in the fake: build() falls back to the snapshot diff, which is
+        # exactly the degraded path a shallow or fresh checkout takes.
+        self.calls.append(("log_pairs", relpath, since_rev))
+        return []
+
 
 # --------------------------------------------------------------------------- section 0
 
@@ -135,9 +144,11 @@ def test_parse_done_when_absent_returns_empty_string():
 
 
 def test_release_notes_render_newest_first_one_line_per_row():
+    """Newest-first is by CLOSING DATE, not by id — ids are monotonic by filing, not by closing."""
     rows = [
-        gd.ClosedRow(id=10, title="Alpha", gain="the alpha ships", theme="[E1] X"),
-        gd.ClosedRow(id=11, title="Beta", gain="", theme=None),
+        gd.ClosedRow(id=11, title="Beta", gain="", theme=None, closed_on="2026-08-14"),
+        gd.ClosedRow(id=10, title="Alpha", gain="the alpha ships", theme="[E1] X",
+                     closed_on="2026-08-18"),
     ]
     out = gd.render_release_notes(rows, window_days=7, since="2026-08-12", until="2026-08-19")
     body = [ln for ln in out.splitlines() if ln.startswith("- ")]
@@ -340,13 +351,19 @@ def test_telemetry_present_store_is_reported_as_present(tmp_path):
     assert gd.TELEMETRY_PENDING_NOTE not in gd.render_telemetry(state)
 
 
-def test_module_never_imports_telemetry_code():
-    """Lane L2 owns the emit path; this generator must not import or call it (brief §4)."""
+def test_module_only_loads_the_three_declared_parsers():
+    """Lane L2 owns the emit path; this generator must not import or call it (brief §4).
+
+    Checked on the CODE, not on prose: the module names its forbidden neighbours in its own
+    docstring on purpose, so a bare substring scan would be a false positive.
+    """
     source = _P.read_text(encoding="utf-8")
-    for forbidden in ("import telemetry_emit", "from telemetry_emit", "single_flight",
-                      "spec_from_file_location(\"telemetry_emit\""):
-        assert forbidden not in source
-    assert "telemetry_emit" not in sys.modules
+    loaded = set(re.findall(r"_load\(\"([a-z_]+)\"\)", source))
+    assert loaded == {"gen_task_tree", "gen_intake_index", "gen_claude_rosters"}
+    for forbidden in ("telemetry_emit", "single_flight", "audit"):
+        assert f"import {forbidden}" not in source
+        assert f"from {forbidden}" not in source
+        assert f'spec_from_file_location("{forbidden}"' not in source
 
 
 # --------------------------------------------------------------------------- section 5
@@ -373,7 +390,7 @@ def test_gate_health_parses_the_warn_composition_block(tmp_path):
     gh = gd.gate_health(d / "audits")
     assert gh.columns == ("before", "after", "delta")
     assert dict(gh.rows)["doc_rot"] == (34, 6, -28)
-    assert gh.current_total == 26  # 6 + 18 + 0 under the 'after' column
+    assert gh.current_total == 24  # 6 + 18 + 0 under the 'after' column
 
 
 def test_gate_health_prefers_the_newest_audit_that_carries_a_block(tmp_path):
