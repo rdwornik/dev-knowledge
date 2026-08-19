@@ -58,6 +58,7 @@ from __future__ import annotations
 
 import os
 import sys
+import time
 from pathlib import Path
 
 _SCRIPTS_DIR = Path(__file__).resolve().parent
@@ -78,11 +79,26 @@ try:
 except ImportError:
     from scripts import validate_no_ff as _vnf
 
+# [#529] Stage-1 telemetry EMIT. Same bare-import-first shape and the same reason: one module
+# object per invocation mode. This module is ALSO where the two pre-push organs share the
+# telemetry switch — `block_unanchored_push` imports `telemetry_enabled` from here as the SAME
+# object, exactly as it already imports the push-range resolver, so the two cannot drift into
+# two ideas of what "telemetry is on" means.
+try:
+    import telemetry_emit as _te
+except ImportError:
+    from scripts import telemetry_emit as _te
+
 _git = _vnf._git              # used by _repo_root
 format_one = _vnf.format_one  # used to render a refused violation
 BASELINE_DATE = _vnf.BASELINE_DATE
 
 PROTECTED_REF = "refs/heads/main"
+
+#: The organ's name in the [#529] store. The PRE-COMMIT HOOK ID, not the module name: that is
+#: what `.pre-commit-config.yaml`, `CLAUDE.md` §9 and `ecosystem/organ-index.md` all call this
+#: organ, so a telemetry row joins to the roster without a translation table.
+HOOK_NAME = "block-ff-push"
 
 
 def _is_zero(sha: str) -> bool:
@@ -157,6 +173,69 @@ def _repo_root() -> Path:
     return Path.cwd()
 
 
+# --- [#529] telemetry: the switch and the destination, shared by the two pre-push organs ----
+#
+# DEFAULT OFF. These organs have no CLI, so an env var is the only switch available to them —
+# the hook-context half of the architect's config-surface ruling (named constant + click option
+# where there is a CLI + env switch where there is not). Flipping the default is a separate
+# ruling, the same posture `audit.py` takes for `--telemetry`.
+TELEMETRY_ENV = "DEV_KNOWLEDGE_TELEMETRY"
+
+#: What counts as "on". Enumerated, not tested for truthiness: `bool("0")` is True, and a switch
+#: that reads `DEV_KNOWLEDGE_TELEMETRY=0` as ON is a switch that looks wired and is not.
+_TELEMETRY_ON_VALUES = frozenset({"1", "true", "yes", "on"})
+
+
+def telemetry_enabled() -> bool:
+    """Is [#529] emission on for this hook run? Off unless the env switch says otherwise."""
+    return os.environ.get(TELEMETRY_ENV, "").strip().lower() in _TELEMETRY_ON_VALUES
+
+
+def telemetry_db(repo: Path) -> Path:
+    """The [#529] store for THIS hook's repo — never `telemetry_emit.default_db_path()`.
+
+    That function resolves the library's own `_REPO_ROOT` (the `scripts/` sibling of the file
+    it lives in), which in a linked worktree names the WORKTREE and in a test names the real
+    repo. A hook that leaned on it would write outside the tree a sandbox is watching, which is
+    how a seam detaches without anything going red. `repo` here is the hook's own
+    `_repo_root()` — the tree actually being pushed.
+
+    `DEV_KNOWLEDGE_TELEMETRY_DB` stays the operator/sandbox override and is honoured first; it
+    is how a hook subprocess in a test gets pointed at a tmp store.
+    """
+    override = os.environ.get(_te.DB_PATH_ENV)
+    if override:
+        return Path(override)
+    return repo / _te.DEFAULT_DB_RELPATH
+
+
+def _emit_verdict(name: str, repo: Path | None, code: int, started: float,
+                  reason: str | None) -> None:
+    """Record one hook run, and — on a REFUSAL only — the reason it refused.
+
+    `safe_emit` throughout: a locked store or a read-only disk must never turn into a failed
+    push. This function is called after the verdict is computed and cannot change it.
+
+    outcome: 0 -> `pass` · 1 -> `block` · 2 -> `error`. Exit 2 is the fail-CLOSED path, so the
+    push IS refused — but by a crash, not by a policy, and it therefore emits NO
+    `blocker_fired`. Conflating the two would inflate every "what did this gate refuse" count
+    with the gate's own bugs, and `block_commit_on_main`'s documented fail-OPEN hole is exactly
+    the case where telling them apart is the point.
+
+    NOTE for a reader summing outcomes: a refusal emits BOTH `hook_run(outcome="block")` and a
+    `blocker_fired` (whose outcome is hard-fixed to `block` by the emitter). They are separate
+    event types for separate questions; summing `block` across event types double-counts.
+    """
+    if not telemetry_enabled():
+        return
+    db = telemetry_db(repo if repo is not None else Path.cwd())
+    duration = int((time.perf_counter() - started) * 1000)
+    outcome = {0: "pass", 1: "block"}.get(code, "error")
+    _te.safe_emit(_te.emit_hook_run, name, outcome, duration, db_path=db)
+    if code == 1 and reason:
+        _te.safe_emit(_te.emit_blocker_fired, name, reason, db_path=db)
+
+
 def _under_precommit(env) -> bool:
     """True when pre-commit is driving the hook — it exports PRE_COMMIT_* vars AND has
     already consumed the native pre-push stdin (so our own stdin is empty). The signal
@@ -225,10 +304,26 @@ def main(argv=None) -> int:
     Exit codes: 0 = clean scan, allow · 1 = violation detected, refuse · 2 = internal
     error, refuse. Fail **CLOSED** on error per the ADR-85 amendment 2026-08-03 §A6 —
     the escape hatch is the explicit `git push --no-verify`, so an error need never
-    brick work and must never be a silent allow."""
+    brick work and must never be a silent allow.
+
+    This is a THIN wrapper over `_verdict`, added by the [#529] wiring so the organ's decision
+    stays in one place and the telemetry sits strictly after it. `_emit_verdict` cannot change
+    the code it is handed, and is skipped entirely when the switch is off — so with telemetry
+    off this function is `_verdict` and nothing else."""
+    started = time.perf_counter()
+    verdict: dict = {}
+    code = _verdict(argv, verdict)
+    _emit_verdict(HOOK_NAME, verdict.get("repo"), code, started, verdict.get("reason"))
+    return code
+
+
+def _verdict(argv, verdict: dict) -> int:
+    """The organ's actual decision. `verdict` collects what the emitter needs (the repo, and
+    the refusal reason) without changing what this returns."""
     reconstructed = False
     try:
         repo = _repo_root()
+        verdict["repo"] = repo
         lines = parse_stdin_lines(_read_stdin())
         rng = resolve_push_range(lines, os.environ)
         # pre-commit consumed the native stdin (lines empty) and re-exposes only ONE ref
@@ -252,9 +347,12 @@ def main(argv=None) -> int:
               "never a silent allow. Fix the hook, or bypass explicitly with "
               "`git push --no-verify` (the audit WARN still flags it post-hoc).",
               file=sys.stderr)
+        verdict["reason"] = f"internal error: {type(exc).__name__}"
         return 2
     if not violations:
         return 0
+    verdict["reason"] = (f"{len(violations)} non-merge commit(s) on main's first-parent spine "
+                         "(core-invariant #5)")
     print(f"block_ff_push: REFUSED — {len(violations)} non-merge commit(s) would land "
           "on main's first-parent spine (core-invariant #5 wants a `--no-ff` merge, "
           "not a direct/FF commit):", file=sys.stderr)

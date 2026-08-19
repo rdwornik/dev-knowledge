@@ -116,15 +116,35 @@ def test_ship_gate_passes_dispositioned_77_warn(monkeypatch, tmp_path):
 # --- criterion 4: read-only --------------------------------------------------
 
 def test_ship_gate_is_readonly(monkeypatch, tmp_path):
+    """The gate writes nothing into the repo — asserted with the [#529] emission switch ON.
+
+    BEFORE the telemetry wiring this test passed for the WRONG reason, and it could not have
+    failed. The only write a wired gate could make is the telemetry store, and its path came
+    from `telemetry_emit._REPO_ROOT` — an independent module-level value that nothing here
+    patches. The store would have landed in the REAL `logs/`, outside the tmp tree these two
+    `rglob` snapshots compare, so the assertion watched a directory the write could never reach.
+
+    AFTER the wiring, `audit._telemetry_db_path()` derives the store from `audit._REPO_ROOT`,
+    which IS patched above — so a telemetry write now lands inside `repo` and this comparison
+    would catch it. `tests/test_telemetry_wiring.py::
+    test_the_store_lands_under_the_callers_repo_root_not_the_librarys` is the case that proves
+    the instrument works, i.e. that a write under a patched `_REPO_ROOT` really is observable.
+
+    Forcing the ambient switch ON is what makes the assertion mean something: the ship-gate is
+    documented read-only and must emit nothing even while the rest of the gate mesh is emitting.
+    """
     repo = tmp_path / "repo"
     repo.mkdir()
     (repo / "sentinel.txt").write_text("x\n", encoding="utf-8")
     monkeypatch.setattr(aud, "_REPO_ROOT", str(repo))
+    monkeypatch.setenv(aud.TELEMETRY_ENV, "1")
+    monkeypatch.delenv("DEV_KNOWLEDGE_TELEMETRY_DB", raising=False)
     before = {p.name: p.read_bytes() for p in repo.rglob("*") if p.is_file()}
     _run(monkeypatch, [_check_returning(aud.Finding("x", "pass", "ok"))],
          register_text=_EMPTY_REGISTER, tmp_path=tmp_path)
     after = {p.name: p.read_bytes() for p in repo.rglob("*") if p.is_file()}
     assert before == after  # the gate wrote nothing into the repo
+    assert not (repo / "logs").exists()  # ... and specifically no telemetry store
 
 
 # --- criterion 5: real CLI path ---------------------------------------------

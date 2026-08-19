@@ -48,6 +48,7 @@ from __future__ import annotations
 
 import os
 import sys
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -56,6 +57,17 @@ import block_ff_push as _bfp        # noqa: E402  -- shared range resolver
 import journal_anchor as _ja        # noqa: E402  -- shared anchoring predicate
 
 PROTECTED_REF = _bfp.PROTECTED_REF  # single source: refs/heads/main
+
+#: The organ's name in the [#529] store -- the pre-commit hook id, as in the sibling.
+HOOK_NAME = "block-unanchored-push"
+
+# [#529] telemetry: the SAME objects the sibling defines, never a second copy. This organ
+# already single-sources its range resolver and its anchoring predicate for exactly this
+# reason -- two pre-push organs that disagreed about whether telemetry is on would be two
+# organs, not one mesh. Reuse-integrity is asserted by tests/test_hook_telemetry.py.
+telemetry_enabled = _bfp.telemetry_enabled
+telemetry_db = _bfp.telemetry_db
+_emit_verdict = _bfp._emit_verdict
 
 
 def _local_tip(stdin_lines, env, protected: str = PROTECTED_REF) -> str | None:
@@ -77,8 +89,22 @@ def _local_tip(stdin_lines, env, protected: str = PROTECTED_REF) -> str | None:
 
 # rule: seal-journal-spine-anchor
 def main(argv=None) -> int:
+    """Refuse (1) a push putting unanchored spine entries on main; allow (0); refuse (2) on error.
+
+    A THIN wrapper over `_verdict`, added by the [#529] wiring: the decision stays in one place
+    and the telemetry sits strictly after it, unable to change the code it is handed. With the
+    switch off `_emit_verdict` returns immediately, so this is `_verdict` and nothing else."""
+    started = time.perf_counter()
+    verdict: dict = {}
+    code = _verdict(argv, verdict)
+    _emit_verdict(HOOK_NAME, verdict.get("repo"), code, started, verdict.get("reason"))
+    return code
+
+
+def _verdict(argv, verdict: dict) -> int:
     try:
         repo = _bfp._repo_root()
+        verdict["repo"] = repo
         lines = _bfp.parse_stdin_lines(_bfp._read_stdin())
         rng = _bfp.resolve_push_range(lines, os.environ)
         reconstructed = False
@@ -107,9 +133,12 @@ def main(argv=None) -> int:
               "An unknown anchoring state is not a clean one (ADR-85 §A6). Fix the hook, "
               "or bypass explicitly with `git push --no-verify` — the audit backstop will "
               "keep reporting the gap until a JOURNAL anchor lands.", file=sys.stderr)
+        verdict["reason"] = f"internal error: {type(exc).__name__}"
         return 2
     if anchored:
         return 0
+    verdict["reason"] = (f"{len(entries)} first-parent spine entry(ies) with no JOURNAL anchor "
+                         "(ADR-85 amendment 2026-08-03 §A5)")
     print(f"block_unanchored_push: REFUSED — {len(entries)} first-parent spine entry(ies) "
           "would land on main with no JOURNAL anchor (ADR-85 amendment 2026-08-03 §A5):",
           file=sys.stderr)

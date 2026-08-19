@@ -1,6 +1,6 @@
 ---
 name: lane-integrate
-description: Walk a batch's merge queue serially from the primary checkout, then run the five-item refuse-to-finish checklist mechanically — the batch does not close while an item is open.
+description: Walk a batch's merge queue serially from the primary checkout, then run the six-item refuse-to-finish checklist mechanically — the batch does not close while an item is open.
 ---
 
 # /lane-integrate — serial integrator for one batch
@@ -50,7 +50,7 @@ git branch -d worktree-lane-<letter>-<id>-<slug>
 
 ## 3. The refuse-to-finish checklist
 
-Run all five. The batch stays open while any one of them is open — this checklist is the
+Run all six. The batch stays open while any one of them is open — this checklist is the
 mechanical form of the close-out, so an item is checked because its command was run, not because
 it seemed fine.
 
@@ -61,6 +61,7 @@ it seemed fine.
 | 3 | `git worktree list` == primary only | run it; one line of output |
 | 4 | Manifest/packet archived | the lane manifest and end-of-batch packet are committed in the tree |
 | 5 | `git stash list` is empty | run it; empty output. An entry that stays gets a recorded disposition — never a silent pass, and never a blind `drop` |
+| 6 | No `refs/locks/*` left held for this batch's contracts | `uv run --locked python scripts/single_flight.py inspect <contract-path>` per lane; each must print `FREE`. A `HELD` line names the holder and its `release:` command — hand it to the operator, do NOT run a release from here (see below) |
 
 **Why item 5 is not covered by items 1–3 (batch-1 F4).** Those read branches and worktrees.
 `refs/stash` is neither: it lives in the **common** git dir, so a stash pushed inside a lane
@@ -70,6 +71,22 @@ list` also records no worktree of origin, which is why a surviving entry is disp
 than dropped: the integrator cannot tell a lane's forgotten stash from the operator's deliberate
 one by reading it. Backstop: `audit.py::check_stale_worktrees` carries a stash WARN leg — after
 the fact, like the rest of that organ.
+
+**Why item 6 exists, and why it INSPECTS rather than RELEASES ([#530]).** Item 5's own reasoning
+applies verbatim to a `refs/locks/<id>` claimed at `/lane-boot` §1: the ref lives in the **common**
+git dir, so it outlives `worktree remove`, `prune` and the branch delete, and it sails through
+items 1–4 exactly as a stash does. A batch can close green with a contract still marked in flight,
+and the next honest dispatch of that contract is then refused by a lock nobody holds.
+
+The verb is `inspect`, not `release`, and that is a recorded deferral rather than an oversight.
+`[#530]` carries an open leg (a): `release` reads the local holder and then deletes the REMOTE
+ref, so after a manual lock clear and a re-claim by a *different* lane, lane A's cleanup deletes
+lane B's **live** lock — and because racers share HEAD, the sha guard on the local delete cannot
+tell them apart. Wiring `release` into an automatic close-out is precisely what converts that
+documented-latent bug into a live one. Until leg (a) lands a generation-unique token, the
+checklist SURFACES the held lock and the operator clears it deliberately, with the holder in
+front of them. A stale lock refuses a dispatch; a wrongly-deleted one lets two run at once, and
+the second failure is the one this whole guard exists to prevent.
 
 Then push, and confirm the tree is clean:
 
