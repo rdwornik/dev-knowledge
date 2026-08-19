@@ -18,6 +18,8 @@ docs/audits/2026-07-31-codex-382-w4-report.md, 6 High — all accepted):
 
 from __future__ import annotations
 
+import contextlib
+import io
 import os
 
 import pytest
@@ -202,6 +204,33 @@ def test_render_carries_honest_limits_and_staleness(model):
 def test_render_carries_summary_counts(model):
     out = _r().render_report(model)
     assert "declared:" in out and "diverge:" in out and "conform:" in out
+
+
+# --- console encodability ([#486]) ------------------------------------------------------
+# The tool is Windows-operator-facing and `main()` prints `render_report` to the console.
+# A Windows console defaults to cp1252, so ANY emitted char outside cp1252 raises
+# UnicodeEncodeError and the tool dies on the operator's own terminal (reproduced live by
+# the 2026-08-03 caches wave: "'charmap' codec can't encode character '⇄'").
+# Same defect CLASS as [#470] (audit.py checks, U+2192) but a different script and glyph.
+# These two legs are the [#486] Done-when regression; cp1252-encodable is the bar, not
+# ASCII-only — the em dash and mid-dot the render-layer rule already uses do encode.
+
+def test_every_console_emitted_line_is_cp1252_encodable(model):
+    for n, line in enumerate(_r().render_report(model).splitlines(), 1):
+        try:
+            line.encode("cp1252")
+        except UnicodeEncodeError as exc:
+            bad = line[exc.start:exc.end]
+            pytest.fail(f"emitted line {n} is not cp1252-encodable "
+                        f"(U+{ord(bad[0]):04X} {bad!r}): {line!r}")
+
+
+def test_printing_the_report_to_a_cp1252_console_does_not_crash(model):
+    """The crash path itself: print() to a cp1252-encoded stdout, as on a Windows console."""
+    stream = io.TextIOWrapper(io.BytesIO(), encoding="cp1252", newline="")
+    with contextlib.redirect_stdout(stream):
+        print(_r().render_report(model))
+    stream.flush()
 
 
 # --- read-only (terra H6: whole-tree, incl. no NEW files) -------------------------------

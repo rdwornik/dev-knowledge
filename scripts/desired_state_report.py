@@ -173,7 +173,12 @@ def render_report(model: FleetModel) -> str:
         "- hub-side declarations only: consumer actuals are limited to what hub-side",
         "  records hold; consumer .methodology.yaml registers are unreadable from here.",
         "- 'conform' = no divergence DECLARED for the cell — the declaration layer.",
-        "  No observational join is claimed (surface⇄finding joins await the G9",
+        # ASCII arrow ([#486]): this block is printed by main()'s print(), which dies with
+        # UnicodeEncodeError on a Windows cp1252 console for chars outside cp1252 — U+21C4
+        # here, the same defect class as [#470]'s U+2192 in audit.py. cp1252-encodable is
+        # the bar (the em dash and mid-dot above do encode), asserted per-line by
+        # tests/test_desired_state_report.py::test_every_console_emitted_line_is_cp1252_encodable.
+        "  No observational join is claimed (surface<->finding joins await the G9",
         "  crosswalk population), and probe execution stays fleet_parity's.",
         f"- the observed rollup (index.yaml) is dated {stamp} and is rendered as-is,",
         "  never regenerated here (C8).",
