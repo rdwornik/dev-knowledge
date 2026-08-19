@@ -31,7 +31,7 @@ fill-in skeleton is `templates/intake-template.md`.
 - [#22](2026-07-30-func-operator-decision-routing-and-standards.md) — Operator design input — decision routing, engineering standards, and lane timeline
 - [#23](2026-08-01-func-distillation-and-library-first.md) — Operator design input — distillation and library-first
 
-### DRAFT (9)
+### DRAFT (7)
 
 - [#24](2026-08-05-tech-currency-wave-1.md) — PART B — INTAKE DRAFT: tech-currency wave 1 — buy the commoditized walls
 - [#27](2026-08-06-tech-adoption-consolidation-intake.md) — INTAKE DRAFT — tech-adoption consolidation ledger (38 items, successor-facing)
@@ -40,14 +40,12 @@ fill-in skeleton is `templates/intake-template.md`.
 - [#35](2026-08-17-tech-agent-instruction-layers-and-distillation.md) — Portable agent-instruction layers, prompt distillation, and unattended runs
 - [#36](2026-08-17-tech-repository-autonomy-and-gate-liveness.md) — Repository autonomy, policy-as-code, and proving the gates are alive
 - [#37](2026-08-17-tech-machine-verifiable-done-when.md) — Machine-verifiable Done-when: making acceptance criteria executable
-- [#38](2026-08-17-tech-fleet-config-standardization.md) — Multi-repo config standardization and fleet conformance at N=8
-- [#39](2026-08-17-tech-off-machine-agent-substrate.md) — Off-machine agent fleet substrate — the re-priced, verified-August-2026 plan
 
 ### READY (1)
 
 - [#15](2026-07-16-satellite-onboarding-prompts.md) — Satellite onboarding prompts — ready to fire (four consumers)
 
-### ACCEPTED (14)
+### ACCEPTED (16)
 
 - [#12](2026-07-11-tech-ownership-manifest.md) — Fleet Ownership Manifest (SETTLED) + Nightly Hygiene Decision Tree
 - [#13](2026-07-11-tech-plan-of-record-fleet-hygiene.md) — Plan-of-record — Fleet Hygiene System build (post 2026-07-11 session)
@@ -63,6 +61,8 @@ fill-in skeleton is `templates/intake-template.md`.
 - [#30](2026-08-09-func-verification-organ-and-repeatable-execution.md) — The verification gap, repeatable execution, and the cost of parallelism
 - [#31](2026-08-09-func-code-style-doctrine.md) — Universal code-style doctrine for an LLM-written Python fleet
 - [#32](2026-08-09-tech-compute-placement-and-remote-execution.md) — INTAKE — compute placement and remote execution: fix local first, and make the cloud precondition a rule
+- [#38](2026-08-17-tech-fleet-config-standardization.md) — Multi-repo config standardization and fleet conformance at N=8
+- [#39](2026-08-17-tech-off-machine-agent-substrate.md) — Off-machine agent fleet substrate — the re-priced, verified-August-2026 plan
 <!-- INTAKE-INDEX:END -->
 
 ## 1. What this folder is
