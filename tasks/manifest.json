@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "e99cdedd233733d1fbf4ad5b0cd48767673830ede98c9aa9ec2b226826811bc7",
+  "generated_sha256": "23ed988da8475f29cf4937c7e30b7d40b83daaf902b10a5001b103101842d33e",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -851,10 +851,6 @@
     {
       "task": 102,
       "file": "102-machine-readable-repo-index-for-agent-consumptio.md"
-    },
-    {
-      "task": 122,
-      "file": "122-retire-the-path-shim.md"
     },
     {
       "task": 127,

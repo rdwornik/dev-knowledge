@@ -188,6 +188,19 @@ open.
    reported, not performed.** Acts 4d onward carry a declared `SKIP=audit-health` with the reason in
    the commit body; **no `--no-verify` was used anywhere in this arc**, and every other hook ran on
    every commit.
+
+   > **RESOLVED 2026-08-19, after this packet was first written.** The operator pushed
+   > `automation/fleet-audit` (`588fc11a..760da0f8`), and the FAIL is cleared — re-measured
+   > directly, `git rev-list --count origin/automation/fleet-audit..automation/fleet-audit` returns
+   > **0**, and a confirming `python scripts/audit.py health` reads **`health: OK`, zero FAILs**,
+   > with `[OK] fleet_audit_replication: automation/fleet-audit is replicated to origin (0 commits
+   > ahead)`. WARN count is unmoved at 34, so nothing else shifted underneath it. **`SKIP=audit-health`
+   > was needed for acts 4d–8 and is needed no longer**; the `[#122]` closure arc that follows this
+   > amendment ran every gate with no skip of any kind, which is the proof the earlier skips were
+   > temporary rather than a bypass. Recorded as an amendment beneath the finding rather than by
+   > editing it, since audits are immutable (`CLAUDE.md` §5 rule 3) and a resolved blocker that
+   > leaves no trace of having been one is worse evidence than a blocker with its resolution
+   > attached.
 2. **A concurrent session contended for the primary checkout's HEAD and killed two commits.** The
    reflog records `checkout: moving from docs/seat-s1-night-adjudication to main` at **13:27:01**
    and **13:32:50**, both inside a hook run, failing the commit at the ref-update step
