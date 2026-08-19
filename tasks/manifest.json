@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "23ed988da8475f29cf4937c7e30b7d40b83daaf902b10a5001b103101842d33e",
+  "generated_sha256": "2901df8d1f06c1ec0762810cebb2da9975527c89ae4cbab77d6f89ad456da1ac",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -923,10 +923,6 @@
     {
       "task": 487,
       "file": "487-closure-proposal-consumption-arc-139-parked-prop.md"
-    },
-    {
-      "task": 486,
-      "file": "486-desired-state-report-py-dies-on-a-cp1252-console.md"
     },
     {
       "task": 509,

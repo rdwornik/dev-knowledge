@@ -19,6 +19,55 @@
 
 ---
 
+### 2026-08-19 (f) — CC (Opus 5, branch `docs/486-cp1252-close`): `[#486]` closes — the cp1252 crash the caches wave recorded but did not own
+
+**Did:** Closed `[#486]` on the evidence lane M landed in this batch (`104eacc9`, merged to main at
+`696a68cd`). Closure surfaced by the integrator, approved by the operator; the lane itself was
+commit-and-STOP and correctly did not close its own row.
+
+**Anchors:** `585ee6f8` (the close itself — node dropped, `status: closed`, `BACKLOG.md`
+regenerated), the commit this branch's merge introduces. The evidence it closes on is
+`104eacc9` (lane M's merge, carrying the fix and the regression), already on main from
+entry (d)'s batch.
+
+**Result:** The row's Done-when is met **on both legs, verified literally rather than assumed**:
+
+- *"the U+21C4 is ASCII-swapped"* — `scripts/desired_state_report.py`, landed by lane M.
+- *"a regression asserts every console-emitted line ... is cp1252-encodable"* —
+  `tests/test_desired_state_report.py:218` `test_every_console_emitted_line_is_cp1252_encodable`
+  and `:228` `test_printing_the_report_to_a_cp1252_console_does_not_crash`, the second exercising
+  the crash path itself through a real cp1252-encoded `TextIOWrapper`.
+
+The test file names the row at `:215` and states the bar correctly — **cp1252-encodable, not
+ASCII-only** — which is the distinction the two competing precedents in this class turn on: the em
+dash and mid-dot the render-layer rule already uses *do* encode, so an ASCII-only bar would have
+been stricter than the defect requires.
+
+Closed by **retire-not-delete** (ADR-107 §6.3): node out of `tasks/manifest.json` (481 → 480),
+file kept with `status: closed`, then `--emit-source`. **`--prune` was not used.** Ordering
+mattered and is recorded because it silently reverts otherwise: `--emit-source` re-derives
+frontmatter from the manifest, so flipping the file's status *before* dropping the node undoes the
+flip and leaves a clean `git status` that looks like success. Both edits land together, then
+regenerate.
+
+`gen_task_tree --check` **ok**; `validate_backlog` **OK (9 themes, 26 stories, 206 tasks)**. Its
+one warning — `[S24]` user story with no tasks — is **pre-existing, not caused by this close**:
+measured on bare `main` before the change and present there identically, and `[#486]` belongs to
+`[S18]`, a different story.
+
+**Changes:** `BACKLOG.md` (regenerated) · `tasks/486-*.md` (`status: closed`) ·
+`tasks/manifest.json` (node dropped, sha re-pinned) · `JOURNAL.md`.
+
+**Ledger:** banked closures **14 → 15**; live task nodes **207 → 206**. `[#470]` stays open and
+uncovered by this — it owns `audit.py cmd_checks`, a different script and a different glyph, which
+is what the row's own kill-candidates line says.
+
+**Abandoned:** nothing.
+
+**Next:** END PACKET. Two findings carried as named pending items, **no births** by instruction:
+`gen_dashboard.py`'s missing explicit encoding (same class as this row, now in `[#171]`'s
+generator) and `protocols/PLAYBOOK.md:1862`'s five-item → six-item refuse-to-finish correction.
+
 ### 2026-08-19 (e) — CC (Opus 5, branch `docs/l2-integration`): lane L2 merges after all — the refuse-rule was mis-addressed, and the operator reversed it
 
 **Did:** Merged lane **L2** (`worktree-lane-l-529-wiring` @ `17e400e6`), which entry (d) had
