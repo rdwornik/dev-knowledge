@@ -19,6 +19,62 @@
 
 ---
 
+### 2026-08-19 (d) — CC (Opus 5, branch `docs/batch-2-integration`): batch-2 serial merge queue — four lanes land, lane L2 REFUSED on its own Done-when verification
+
+**Did:** Ran the batch-2 merge queue as integrator from the primary checkout, in the dispatched
+dependency order: **M → K → N → J**, each a `--no-ff` merge carrying its lane id. Adjudicated
+lane **L2** under the operator's special rule and **refused it**. Regenerated the lane-K
+conformance dashboard and every index once on the merged result, then ran the full suite once.
+
+**Anchors:** `104eacc9` (lane M), `8725654a` (lane K), `fb549466` (lane N), `94b37bea` (lane J),
+`ee601894` (dashboard regen) — commits this branch's own merge introduces.
+
+**Result:** Four lanes merged, **zero `--no-verify`, zero `SKIP=` of any kind** — the full gate set
+ran and passed on every one. The queue was moved off `main` onto this integration branch before
+merge 1: four unanchored lane merges landing directly on `main`'s first-parent spine is the
+recorded `journal_spine_anchor` deadlock, and an integration branch is the recorded way past it.
+Every merge collided on the generated `docs/audits/README.md`; each was resolved **by regeneration**
+(`gen_audit_index.py --write`), never by hand.
+
+**Lane L2 REFUSED, on its own evidence.** The operator's rule was: merge only if the frozen contract
+is verifiably satisfied, and *"if Done-when for [#529]/[#530] is unfulfilled, DO NOT merge."* The
+lane's own STOP packet answers that literally at
+`docs/audits/2026-08-19-technical-l2-wiring-lane-packet.md:443` — **"DONE-WHEN, verified literally
+-- NEITHER ROW CLOSES"**. `[#529]` fails the *"via structlog"* clause (`:452`, `:461-462`);
+structlog is absent from `pyproject.toml`/`uv.lock` and `scripts/telemetry_emit.py:322-331`
+reports `stdlib-logging`. `[#530]` stays open on legs (a) `scripts/single_flight.py:279-283` and
+(b) `:206-208` (`:467`). **The tension is recorded rather than resolved by me:** the lane's frozen
+contract *instructed* it not to close either row (`...-l2-wiring-lane-contract.md:74`, `:79`), so
+the contract is satisfied *and* the Done-when is not. The rule keys on Done-when, so the refusal
+stands and the call to override it is the operator's. Branch left intact for a follow-up lane.
+
+**Full suite (once, on the merged result):** **3077 passed, 3 failed, 4 skipped, 1 xfailed** in
+24:22. Re-measured serially: **two were load artifacts** (`test_reverse_dep_oracle`'s two pyright
+cases — `assert 3 >= 50` under 34 concurrent xdist workers) and **pass clean at `-n 0`**. The one
+real RED is `test_routine_consumers_live_backlog_governs_exactly_one_row`, and it is **pre-existing
+and batch-independent** — proven, not asserted: `git diff --name-only main..HEAD` contains no
+`BACKLOG.md`, and the live routine-row count is identical on `main`. Lane L2's packet reported the
+same failure independently.
+
+**Finding, reported not patched:** `scripts/gen_dashboard.py` reads its sources with no explicit
+encoding, so regenerating on a cp1252-default console double-encodes every non-ASCII character in
+`BACKLOG.md` into both generated outputs. Caught by comparing against lane K's committed copy;
+regenerated under `PYTHONUTF8=1` and clean. This is the [#486] class lane M just fixed elsewhere,
+now visible in [#171]'s generator — filed for the operator, not patched here, since the generator
+is lane K's surface and an integrator's diff stays minimal.
+
+**Changes:** four lane merges · `ecosystem/conformance.{md,html}` (regenerated) ·
+`docs/audits/README.md` + `ecosystem/doc-counts.md` (regenerated at each collision) · `JOURNAL.md`.
+
+**Ledger:** **unchanged — this batch banks no closure.** No lane touched `BACKLOG.md`; live rows
+stay **207**. The four lanes land audits, a generator, a devcontainer fix and tests, not closures.
+
+**Abandoned:** lane L2's merge (refused, above). The `worktree-lane-x-539-cloud-briefs` teardown is
+**deliberately deferred** — it is kept until the C-lanes land, per the dispatch.
+
+**Next:** operator's GO gates the push of `main`. Then: a follow-up lane for [#529] leg 3 /
+[#530] legs (a)(b), and the briefs-branch teardown once the C-lanes are in.
+
 ### 2026-08-19 (c) — CC (Opus 5, branch `docs/122-keep-close`): the seat arc's two open ends close — `[#122]` on the operator's KEEP word, and the fleet-audit blocker clears
 
 **Did:** Closed the two items the S-1 night-adjudication arc (entry (b) below) left open. `[#122]`
