@@ -620,3 +620,91 @@ worktree** — only this artifact and the contract were committed.
    the intake → ADR → archive gate**, in Backlog.md or in either secondary candidate — that part
    is not "not rocket science, there must be a library"; it is our own governance model, and
    nothing surveyed expresses it.
+
+---
+
+## AMENDMENT A1 — 2026-08-19, same lane, before merge
+
+> **In-file amendment marker per `CLAUDE.md` §5 rule 3** (audits are immutable; correct by
+> amendment marker, never by in-place edit). Four accuracy corrections found by re-checking my
+> own claims against the tree after the artifact was committed at `dcd5321c`. Nothing above is
+> rewritten. **None of these changes the verdict**; two of them make a finding *sharper*, and one
+> is me withdrawing evidence I did not actually gather.
+
+**A1.1 — the longest live task title is 160 characters, not 161 (§1.1b).** The original figure
+came from an `awk` measurement that counted the `title: "` prefix as 8 characters when it is 9.
+Correct measurement:
+
+```
+grep -h '^title: ' tasks/*.md | sed 's/^title: "//; s/"$//' \
+  | awk '{ if (length($0) > m) m = length($0) } END { print m }'
+160
+```
+
+So the headroom below the last known-good length (170) is **ten characters, not nine**. The
+finding is unchanged in kind.
+
+**A1.2 — the project root was 74 characters, not 73, and the arithmetic now closes exactly
+(§1.1b).** `C:\Users\1028120\AppData\Local\Temp\backlogmd-trial\sandbox\backlog\tasks\` is 74
+characters. Backlog.md's filename is `task-<N> - <title>.md`, so the full path is
+`74 + 12 + len(title)`:
+
+| title | full path | vs Windows `MAX_PATH` (260) | observed |
+|---|---|---|---|
+| 170 | 256 | under | **OK** |
+| 175 | 261 | over | **FAIL — `ENAMETOOLONG`** |
+
+The measured cliff and `MAX_PATH` agree to the character. This is plain `MAX_PATH`, not a
+Backlog.md quirk — but Backlog.md is the thing that walks into it, because it derives the
+filename from the untruncated title.
+
+**A1.3 — DERIVED, NOT MEASURED: in a lane worktree the cliff lands below our longest real
+title.** Our lane worktrees sit at
+`C:\Users\1028120\Documents\Dev\.dev-knowledge\.claude\worktrees\lane-n-171-backlogmd-trial\`,
+which with `backlog\tasks\` is **105 characters** against the sandbox's 74 — 31 characters less
+headroom, so the cliff moves from ~170 to **~139-character titles**. Our 160-character title
+would therefore **fail** if the CLI were ever used as a write path inside a lane worktree. I am
+labelling this **derived arithmetic, not a measurement** — the sandbox was deleted before I
+thought to test it there, and I am not re-installing to close a gap that only strengthens a
+recommendation the artifact already makes (§5.4 item 5: do not use the CLI as a write path).
+
+**A1.4 — I cited `--ready` as measured evidence and did not run it. Withdrawing that.** `--ready`
+("only show unblocked tasks with all dependencies completed") appears at §0, §3.1, §3.3, §7 and
+§9. It is real — it is in `backlog task list --help` and in the command's own input schema — but
+**I only read its documentation; I never executed it.** What I *did* measure is
+`overview`'s "Blocked Tasks" section, which correctly named all four of our `depends-on` rows
+(`TASK-112`, `TASK-169`, `TASK-385`, `TASK-389`). That is genuine evidence that dependencies are
+consumed live, and it carries the §7 "epics/stories" claim on its own. Every `--ready` mention
+above should be read as **documented, not exercised**.
+
+**A1.5 — attribution fix: which organ reads which clause (§3.2, §6.2).** The artifact says
+`check_backlog_filing.py` parses `kill-candidates:` and that "the batch pre-dispatch matrix"
+parses `serialize-group:`. More precisely:
+
+| clause | actually parsed by |
+|---|---|
+| `kill-candidates:` **in the commit message** | `scripts/check_backlog_filing.py:35` (`_KILL_RE`) — the commit-msg gate |
+| `kill-candidates:` **in the task row** | `scripts/audit.py:3039` (`check_preflight_backlog_ids`, advisory leg, `[#483]` R3) and `scripts/preflight_contract.py` |
+| `serialize-group:` **in the task row** | `scripts/validate_backlog.py:82` (`_SERIALIZE_CLAUSE_RE`, a delimiter-anchored typed regex), `scripts/gen_task_tree.py`, `scripts/gen_handoff.py` |
+
+The pre-dispatch matrix is the *doctrinal* consumer (PLAYBOOK, HANDOFF_PROCESS,
+STANDING_RULINGS); the *mechanical* consumers are those three scripts. **This strengthens §3.2
+rather than weakening it** — the clause is not merely convention, it is compiled into a typed
+regex in a hook-armed validator, which is exactly the typing Backlog.md's untyped labels would
+not preserve.
+
+**A1.6 — the tier label. The H1 above says "Tier-S sandbox trial"; that is wrong and §0 is
+right.** ADR-112 defines a **two-tier** bar and states the boundary as a definition, not a
+restriction: *"Tier S never touches gates, hooks that block, or `scripts/` — anything that would,
+is Tier L."* Adopting Backlog.md as a store would touch `scripts/`, three audit checks and three
+git hooks (§6.2), so this was **Tier L from the start**. The *method* was sandboxed and cheap,
+which is what "Tier-S" was reaching for, but the tier attaches to the adoption decision, not to
+how the trial was run. **Read the H1's tier claim as void; §0's framing governs.** The commit
+message of `dcd5321c` carries the same wrong label and is left standing — a commit message is
+history, and this amendment is the correction of record.
+
+Separately: **the lane contract's own header labels the trial "Tier-M", which has no referent in
+ADR-112's two-value enum.** Recorded rather than silently normalized, on the same principle that
+keeps `CLAUDE.md` §4's branch-prefix enum checkable — an off-enum value in a frozen contract
+should be visible, not smoothed over. It is a prompt-authoring slip with no consequence for the
+work; the architect may want to fix the template.
