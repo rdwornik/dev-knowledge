@@ -25,6 +25,34 @@ Verify the name against the enum before creating anything:
 uv run --locked python scripts/validate_branch_naming.py --lane lane-<letter>-<id>-<slug>
 ```
 
+Then **claim the contract** ([#530]). This is the last moment before a worktree exists, so it is
+the first moment a duplicate dispatch is refusable at zero cost — and §1 already runs from the
+primary checkout, where the remote arbiter is reachable:
+
+```bash
+uv run --locked python scripts/single_flight.py claim <contract-path>
+```
+
+`<contract-path>` is `/lane-boot`'s own fourth argument — nothing new is configured. Use the
+PATH, not the bare `<id>`: two different contracts can govern one backlog row, and the thing that
+must not run twice is the contract.
+
+Read the **exit code**, not the prose:
+
+| exit | meaning | what you do |
+|---|---|---|
+| `0` | claimed — `refs/locks/<contract-path>` is now yours | provision (§2) |
+| `3` | **already in flight** | **STOP. Do not provision.** Report which clone holds it (`single_flight.py inspect <contract-path>` prints the holder) and ask the operator. This is the witnessed failure — three live executions of ONE contract, two of them independently allocating the same four ids |
+| `2` | internal error | STOP and report. The guard fails CLOSED; an unknown flight state is not a free one |
+
+The guard needs the network for its arbitration leg (`--force-with-lease` against `origin`), which
+is why the ruled precondition is that step 0 has network. `--local-only` degrades it to same-clone
+protection and **does not refuse a second clone** — use it only when the operator says to, and say
+you did.
+
+**Releasing the lock is `/lane-integrate`'s job, not this command's** — see its §3 item 6, and the
+deferral note there about which verb is wired.
+
 ## 2. Provision
 
 A batch lane is a native CC worktree, dispatched `--bg` so it shows up in Agent View
