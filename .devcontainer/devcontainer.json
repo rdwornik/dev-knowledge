@@ -29,6 +29,21 @@
   // interpreter is provisioned by uv from `.python-version`.
   "image": "mcr.microsoft.com/devcontainers/python:1-3.12-bookworm",
 
+  // THE REACHABILITY LEG — witnessed, not anticipated. The image above carries no
+  // openssh-server, and Codespaces injects one only when the devcontainer asks for it. Without
+  // this feature `gh codespace ssh` AND `gh codespace logs` both refuse with "failed to start
+  // SSH server", which means a codespace built from this file comes up perfectly and is then
+  // reachable ONLY from a browser — no CLI, no agent, no way to read the provisioning log that
+  // proves the four legs closed. An off-machine LANE substrate that no lane can be driven on is
+  // not a substrate, so this belongs with the four legs rather than in the customizations block.
+  // Costs nothing off-Codespaces: `devcontainer up` on a VPS installs the same sshd and the
+  // identical-script clause is preserved.
+  "features": {
+    "ghcr.io/devcontainers/features/sshd:1": {
+      "version": "latest"
+    }
+  },
+
   "containerEnv": {
     // THE ENV GATE ([#554] leg 4). `provision.sh` writes this stamp only after all four legs
     // assert clean, and `--gate` (wired to postStartCommand below) refuses to let a container
