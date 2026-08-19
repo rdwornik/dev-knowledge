@@ -37,6 +37,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import time
 from collections import Counter
 from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -113,6 +114,14 @@ try:
     from scripts import verify_handoff_probes as _vhp
 except ImportError:
     import verify_handoff_probes as _vhp
+
+# [#529] Stage-1 telemetry EMIT — same module-import + thin-adapter shape as _vgb/_vdc/_vnf.
+# The runner is the only consumer here (see `run_checks`); nothing in this module reads the
+# library's `default_db_path()`, deliberately — see `_telemetry_db_path`.
+try:
+    from scripts import telemetry_emit as _te
+except ImportError:
+    import telemetry_emit as _te
 
 # [#533] the assemble_paste dual-import moved to audit_checks/check_boot_byte_budget.py,
 # its only user; _assemble_paste is re-exported from there.
@@ -282,6 +291,21 @@ _GATE_MODE = False
 
 logging.basicConfig(format="%(name)s: %(message)s", level=logging.INFO)
 logger = logging.getLogger("audit")
+
+# [#529] MEASURED, and this line is the whole fix. `basicConfig` above routes INFO to STDERR,
+# and `telemetry_emit._log_event` mirrors every event onto logger "telemetry" at INFO — so a
+# wired `audit.py health` would add ONE `telemetry: {...}` stderr line per check, 43 per run, on
+# the gate that fires on every commit. The counter-measure sits adjacent to the line that causes
+# it because the pair is only readable together.
+#
+# CALLER-SIDE ON PURPOSE. `telemetry_emit` does not have this defect: a hook that imports it
+# configures no handler at all, so `logging.lastResort` (WARNING) already keeps hook stderr
+# byte-clean — measured, both directions. Fixing it in the library would touch
+# `test_emit_survives_an_unusable_log_side_channel` and
+# `test_logger_backend_reports_which_side_channel_is_live` for a defect the library does not
+# have. The durable record is the SQLite row either way; this suppresses the side channel, not
+# the event. A caller that wants the side channel back sets the level back.
+logging.getLogger("telemetry").setLevel(logging.WARNING)
 
 ECOSYSTEM_DIR = Path(_REPO_ROOT) / "ecosystem"
 AUDITS_DIR = Path(_REPO_ROOT) / "docs" / "audits"
@@ -3540,6 +3564,104 @@ def classify_inert_checks(by_check: "dict[str, dict[str, list[Finding]]]",
 _PARALLEL_MAX_WORKERS = 8
 
 
+# --- [#529] telemetry wiring: the switch, the destination, and the projection --------------
+#
+# DEFAULT OFF, and NAMED rather than inlined, for the reason `_PARALLEL_MAX_WORKERS` is named
+# one line above: the switch is configuration a reader can find and an operator can argue with,
+# not a literal buried in a call. This is also the architect's config-surface ruling for the
+# [#529] wiring lane, verbatim — a named module constant plus a click option plus an env switch
+# for the contexts with no click layer, and explicitly NOT a new runtime-knobs YAML file (that
+# would be an ADR-101 Rule A/C question, i.e. an operator ruling rather than a lane's call).
+#
+# Flipping this default — turning emission on for the `audit-health` hook — is a SEPARATE
+# ruling, exactly as flipping `--parallel` is. The flag exists so emission can be measured and
+# opted into.
+_TELEMETRY_DEFAULT = False
+
+#: Env switch for contexts that have no click layer. `audit-health` runs as a pre-commit hook
+#: and cannot be handed a flag; the three gate organs have no CLI at all. An explicit
+#: `--telemetry/--no-telemetry` still WINS over this, so an operator can turn one run off
+#: without editing their environment.
+TELEMETRY_ENV = "DEV_KNOWLEDGE_TELEMETRY"
+
+#: What counts as "on". Enumerated rather than tested for truthiness: `bool("0")` is True, and a
+#: switch that reads `DEV_KNOWLEDGE_TELEMETRY=0` as ON is a switch that looks wired and is not.
+_TELEMETRY_ON_VALUES = frozenset({"1", "true", "yes", "on"})
+
+
+def telemetry_enabled(explicit: bool | None = None) -> bool:
+    """Is [#529] emission on? `explicit` (a `--telemetry/--no-telemetry` flag) wins if given."""
+    if explicit is not None:
+        return explicit
+    return os.environ.get(TELEMETRY_ENV, "").strip().lower() in _TELEMETRY_ON_VALUES
+
+
+def _telemetry_db_path() -> Path:
+    """The [#529] store, derived from THIS module's `_REPO_ROOT`, read AT CALL TIME.
+
+    NEVER `telemetry_emit.default_db_path()`, and the reason is a live seam defect rather than a
+    style preference. That function reads `telemetry_emit._REPO_ROOT`, an independent
+    module-level value that nothing in `tests/` patches; `audit._REPO_ROOT` is one of the 25
+    names the suite DOES patch. A runner that leaned on the library default would write into the
+    REAL `logs/` on every suite run while every sandbox assertion — including
+    `tests/test_ship_gate.py::test_ship_gate_is_readonly`, which compares an `rglob` snapshot of
+    the tmp tree — kept passing. That is the seam-detaches-silently failure class
+    `audit_checks/registry.py` documents: the check still passes while testing nothing.
+
+    Reading `_REPO_ROOT` per call (not binding it at import) is the same discipline `run_checks`
+    applies to `ALL_CHECKS`, and for the same reason.
+
+    `DEV_KNOWLEDGE_TELEMETRY_DB` stays the operator/sandbox override — it is how a hook
+    subprocess in a test gets pointed at a tmp store — so it is honoured first. What is NOT
+    inherited is the library's *fallback root*.
+    """
+    override = os.environ.get(_te.DB_PATH_ENV)
+    if override:
+        return Path(override)
+    return Path(_REPO_ROOT) / _te.DEFAULT_DB_RELPATH
+
+
+def _elapsed_ms(start: float) -> int:
+    """Milliseconds since `start`, as an int — `emit_event` refuses a non-int `duration_ms`.
+
+    `perf_counter` and not `time.time()`: this is a duration, and a wall clock that steps
+    (NTP, a DST boundary) can make a duration negative.
+    """
+    return int((time.perf_counter() - start) * 1000)
+
+
+def _check_outcome(findings: Sequence[Finding]) -> str:
+    """Project `Finding.status` (5 values) onto `telemetry_emit.OUTCOMES` (3). Lane L2 STEP 1.
+
+    `fail` -> `block`, because `fail` is the only status that stops a commit at `audit-health`
+    or a ship at `ship-gate`. Everything else -> `pass`: a `warn` informs, an `n/a`/`unavailable`
+    did not evaluate, and none of them refuses an action. A check that RAISED is neither, and is
+    emitted as `error` by the caller — that is what `OUTCOMES`' third value is for.
+
+    The projection is a function with a test rather than an inline expression because
+    `emit_event` RAISES `TelemetryError` on an unknown outcome and `safe_emit` deliberately does
+    not swallow that class: a drifting mapping would crash the audit, not degrade quietly.
+    """
+    return "block" if any(f.status == "fail" for f in findings) else "pass"
+
+
+def _check_context(findings: Sequence[Finding]) -> dict:
+    """What the 5-to-3 collapse would otherwise lose, carried so the read side loses nothing.
+
+    `finding_names` is here for a specific join: the event's `name` is the check FUNCTION's
+    `__name__` (`check_doc_claims`), because that is the only name a check emitting ZERO findings
+    has — and a check that found nothing still ran, which is exactly the memo's
+    "fires>0/blocks=0, retire it" question. But `ecosystem/disposition-register.yaml` and the
+    ship-gate key on `Finding.check_name` (`doc_claims`), a different string. Carrying both lets
+    a reader join a `check_run` row to the register without re-deriving the relationship.
+    """
+    return {
+        "statuses": dict(sorted(Counter(f.status for f in findings).items())),
+        "findings": len(findings),
+        "finding_names": sorted({f.check_name for f in findings}),
+    }
+
+
 def _parallel_workers(n_checks: int) -> int:
     """Default width for `n_checks` checks: the configured cap, but never wider than the work.
 
@@ -3551,7 +3673,9 @@ def _parallel_workers(n_checks: int) -> int:
 
 
 def run_checks(repo_path: Path, checks: Sequence[Callable] | None = None,
-               parallel: bool = False, workers: int | None = None) -> list[Finding]:
+               parallel: bool = False, workers: int | None = None,
+               telemetry: bool = _TELEMETRY_DEFAULT,
+               telemetry_db: str | os.PathLike | None = None) -> list[Finding]:
     """Run `checks` against `repo_path` and return their findings IN REGISTRY ORDER.
 
     ORDER IS THE CONTRACT, not a side effect. `CHECK_ORDER` is the order findings are emitted
@@ -3577,20 +3701,63 @@ def run_checks(repo_path: Path, checks: Sequence[Callable] | None = None,
     An exception in a worker PROPAGATES -- `future.result()` re-raises it on this thread. A
     runner that swallowed it would turn a loud failure into a silently short report, which is
     the worst outcome available to an audit.
+
+    TELEMETRY ([#529] leg 1) IS AN OBSERVER AND NOTHING ELSE, default OFF. When `telemetry` is
+    true this emits one `check_run` event per check — name, outcome, `duration_ms` — and the
+    findings it returns are field-by-field what it returns with emission off, in both modes.
+    Three properties are load-bearing enough to be tests rather than comments
+    (`tests/test_telemetry_wiring.py`):
+
+      * emission happens AFTER the slot flatten, walking slots in registry order, so emitted
+        event order == `CHECK_ORDER` == finding order. Emitting inside a worker would interleave
+        by completion order — the same thing the slots exist to prevent for the findings;
+      * `duration_ms` is timed INSIDE the worker, around `check(repo_path)`, never around
+        `future.result()`. The latter bills every check for its queue wait and reports a
+        fabricated number that looks plausible;
+      * a store failure NEVER reaches the caller. `safe_emit` swallows `sqlite3.Error`/`OSError`,
+        so a locked database cannot turn a green gate into a failed commit. It does NOT swallow
+        `TelemetryError` — that class is a wiring defect, and hiding it would ship a gate that
+        silently records nothing.
+
+    A check that RAISES emits `outcome="error"` at the point of failure (there is no flatten to
+    walk on that path) and then propagates unchanged.
     """
     active = list(ALL_CHECKS if checks is None else checks)
-    if not parallel:
-        out: list[Finding] = []
-        for check in active:
-            out.extend(check(repo_path))
+    db = None
+    if telemetry:
+        db = Path(telemetry_db) if telemetry_db is not None else _telemetry_db_path()
+
+    durations: list[int | None] = [None] * len(active)
+
+    def _run_one(index: int, check: Callable) -> list[Finding]:
+        """Run ONE check, recording its own elapsed time. Never swallows, never reorders."""
+        start = time.perf_counter()
+        try:
+            out = list(check(repo_path))
+        except BaseException as exc:
+            if db is not None:
+                _te.safe_emit(_te.emit_check_run, getattr(check, "__name__", repr(check)),
+                              "error", _elapsed_ms(start), db_path=db,
+                              context={"error": type(exc).__name__})
+            raise
+        durations[index] = _elapsed_ms(start)
         return out
 
-    width = workers if workers is not None else _parallel_workers(len(active))
-    slots: list[list[Finding]] = [[] for _ in active]
-    with ThreadPoolExecutor(max_workers=max(1, width)) as pool:
-        futures = {pool.submit(check, repo_path): i for i, check in enumerate(active)}
-        for future in as_completed(futures):
-            slots[futures[future]] = list(future.result())
+    if not parallel:
+        slots = [_run_one(i, check) for i, check in enumerate(active)]
+    else:
+        width = workers if workers is not None else _parallel_workers(len(active))
+        slots = [[] for _ in active]
+        with ThreadPoolExecutor(max_workers=max(1, width)) as pool:
+            futures = {pool.submit(_run_one, i, check): i for i, check in enumerate(active)}
+            for future in as_completed(futures):
+                slots[futures[future]] = list(future.result())
+
+    if db is not None:
+        for index, (check, slot) in enumerate(zip(active, slots)):
+            _te.safe_emit(_te.emit_check_run, getattr(check, "__name__", repr(check)),
+                          _check_outcome(slot), durations[index], db_path=db,
+                          context=_check_context(slot))
     return [f for slot in slots for f in slot]
 
 
@@ -4124,7 +4291,13 @@ def cmd_registry(action: str) -> None:
 @click.option("--workers", type=click.IntRange(min=1), default=None,
               help=f"Worker threads when --parallel (default: min({_PARALLEL_MAX_WORKERS}, "
                    "number of checks)). Ignored when serial.")
-def cmd_health(parallel: bool, workers: int | None) -> None:
+@click.option("--telemetry/--no-telemetry", "telemetry", default=None,
+              help="Emit one [#529] check_run event per check into the SQLite store. "
+                   f"DEFAULT OFF (${TELEMETRY_ENV}=1 turns it on where there is no flag to "
+                   "pass, e.g. the audit-health pre-commit hook; an explicit flag beats the "
+                   "env var). This flag exists so emission can be measured and opted into; "
+                   "flipping the audit-health hook's default is a separate ruling.")
+def cmd_health(parallel: bool, workers: int | None, telemetry: bool | None) -> None:
     """Quick TTY status: operational deps + .dev-knowledge self-conformance. No file writes.
 
     Two parts: (1) operational preflight — click/pyyaml importable, ecosystem/ exists,
@@ -4171,7 +4344,11 @@ def cmd_health(parallel: bool, workers: int | None) -> None:
     self_findings: list[Finding] = []
     _GATE_MODE = True
     try:
-        self_findings = run_checks(Path(_REPO_ROOT), parallel=parallel, workers=workers)
+        # Emission sits INSIDE the try/finally, never around it: `tests/test_audit.py`'s
+        # `_GATE_MODE` set/restore tests constrain this, and a wiring that emitted outside would
+        # leave the flag set when a check raised.
+        self_findings = run_checks(Path(_REPO_ROOT), parallel=parallel, workers=workers,
+                                   telemetry=telemetry_enabled(telemetry))
     finally:
         _GATE_MODE = False
     self_fail = any(f.status == "fail" for f in self_findings)
@@ -4270,6 +4447,12 @@ def cmd_ship_gate() -> None:
     findings: list[Finding] = []
     _GATE_MODE = False  # ship-time = full verification (run the expensive claim-3)
     try:
+        # [#529]: this gate emits NO telemetry, and that is a decision rather than an omission.
+        # "No file writes (read-only, Layer-2)" above is the ship-gate's contract, and a gate
+        # that quietly gained a side-effect would be a different organ. It therefore does NOT
+        # consult `telemetry_enabled()` — the ambient env switch turns the audit-health mesh on
+        # without turning this one on, and `tests/test_ship_gate.py::test_ship_gate_is_readonly`
+        # asserts exactly that with the switch forced ON.
         findings = run_checks(Path(_REPO_ROOT))
     finally:
         _GATE_MODE = False

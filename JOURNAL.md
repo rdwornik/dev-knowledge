@@ -19,6 +19,57 @@
 
 ---
 
+### 2026-08-19 (e) — CC (Opus 5, branch `docs/l2-integration`): lane L2 merges after all — the refuse-rule was mis-addressed, and the operator reversed it
+
+**Did:** Merged lane **L2** (`worktree-lane-l-529-wiring` @ `17e400e6`), which entry (d) had
+refused hours earlier, on an explicit operator reversal. Ran the lane's own targeted suite on the
+merged result.
+
+**Anchors:** `e64e07e4` (the L2 lane merge) — a commit this branch's own merge introduces.
+
+**Result:** **278 passed, 0 failed** in 10:35 (`-n 0`) across the nine files L2's contract names
+plus lane K's and lane M's new test files, which the batch-2 merges had landed underneath it. The
+merge collided on two generated files (`docs/audits/README.md`, `ecosystem/doc-counts.md`); both
+resolved by regeneration. Collected count moves **3091 → 3143** — L2's own +58 plus lane K's
+`test_gen_dashboard.py`, which is why L2's committed number was already stale on arrival. Full gate
+set passed, **no `--no-verify`, no `SKIP=`**.
+
+**Why the refusal was wrong, recorded so it is not re-litigated.** The dispatch rule read *"if
+Done-when for [#529]/[#530] is unfulfilled, DO NOT merge"*, and entry (d) applied it literally: the
+lane's own packet says **NEITHER ROW CLOSES** (`...-l2-wiring-lane-packet.md:443`). But those
+Done-when clauses belong to the **rows**, not to the lane, and the lane's **frozen contract
+explicitly forbade closing either one** (`...-l2-wiring-lane-contract.md:74`, `:79`) — `[#529]`'s
+"via structlog" leg needs a dependency the contract bans, and `[#530]`'s open legs were out of
+scope by name. So the contract was executed *faithfully*, and the rule was addressed at the wrong
+object: it tested the rows' state to decide the lane's fate. The operator ruled the refusal
+mis-addressed and reversed it. Entry (d)'s text stands unedited — it is an accurate record of the
+call made at the time, and amending it would be the edit-the-record move STANDING_RULINGS B6
+refuses.
+
+**What actually landed:** the three stage-1 telemetry events wired at their call sites —
+`check_run` at the `audit.run_checks` funnel, `hook_run` + `blocker_fired` at all three gate organs
+— into the WAL-mode SQLite store, **default OFF**. Both measured blockers fixed caller-side with
+before/after evidence (the `audit.py:283` `basicConfig` stderr leak: 43 lines → **0**; the
+`_REPO_ROOT` sandbox seam, with `test_ship_gate_is_readonly` repaired rather than edited around).
+`[#530]` wires `claim` + `inspect`; `release` stays **deliberately unwired** on its unfixed ABA leg.
+
+**Changes:** `scripts/audit.py` · `scripts/block_{ff_push,unanchored_push,commit_on_main}.py` ·
+`.gitignore` · `.claude/commands/{lane-boot,lane-integrate}.md` · NEW
+`tests/test_{telemetry_wiring,hook_telemetry}.py` · `tests/test_ship_gate.py` · generated
+fragments regenerated · `JOURNAL.md`.
+
+**Ledger:** unchanged by this merge — **`[#529]` and `[#530]` stay OPEN**, by the operator's
+explicit instruction, with their remaining legs named: `[#529]` leg 3, the "via structlog" clause,
+**pending an architect ruling** (structlog is absent from `[dependency-groups]`/`uv.lock`);
+`[#530]` legs **(a)** the ABA race in `release()` and **(b)** the `rev-parse` conflation.
+
+**Abandoned:** nothing.
+
+**Next:** `[#486]`'s close follows on its own branch. Two findings stay open and unfiled by
+instruction (no births): `gen_dashboard.py`'s missing explicit encoding, and
+`protocols/PLAYBOOK.md:1862`'s five-item → six-item refuse-to-finish correction that L2's own
+packet owes.
+
 ### 2026-08-19 (d) — CC (Opus 5, branch `docs/batch-2-integration`): batch-2 serial merge queue — four lanes land, lane L2 REFUSED on its own Done-when verification
 
 **Did:** Ran the batch-2 merge queue as integrator from the primary checkout, in the dispatched

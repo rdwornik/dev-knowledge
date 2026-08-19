@@ -55,11 +55,49 @@ Exit codes: 0 allow · 1 refuse (a direct commit on main) · 2 internal error, r
 
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+import telemetry_emit as _te        # noqa: E402  -- [#529] Stage-1 emit
+
 PROTECTED_BRANCH = "main"
+
+#: The organ's name in the [#529] store -- the pre-commit hook id, as in the two push organs.
+HOOK_NAME = "block-commit-on-main"
+
+# --- [#529] telemetry: switch + destination -------------------------------------------------
+#
+# DELIBERATELY A SECOND COPY of the four lines `block_ff_push` also carries, and the duplication
+# is the cheaper of two costs. This organ imports NO sibling by design: it runs at pre-commit,
+# on every commit, and reaching `block_ff_push` for a truthiness predicate would drag
+# `validate_no_ff` and its transitive imports into that path. The predicate is four lines and
+# pinned by a test that asserts BOTH copies agree
+# (`tests/test_hook_telemetry.py::test_the_env_switch_predicate_is_explicit_about_what_counts_as_on`),
+# so a drift between them reddens rather than hides. The two PUSH organs do share one object,
+# because they already share a range resolver and an anchoring predicate.
+TELEMETRY_ENV = "DEV_KNOWLEDGE_TELEMETRY"
+
+#: Enumerated, not truthiness: `bool("0")` is True, and `DEV_KNOWLEDGE_TELEMETRY=0` means OFF.
+_TELEMETRY_ON_VALUES = frozenset({"1", "true", "yes", "on"})
+
+
+def telemetry_enabled() -> bool:
+    """Is [#529] emission on for this hook run? Off unless the env switch says otherwise."""
+    return os.environ.get(TELEMETRY_ENV, "").strip().lower() in _TELEMETRY_ON_VALUES
+
+
+def telemetry_db(repo: Path) -> Path:
+    """The store for THIS hook's repo — never `telemetry_emit.default_db_path()`, which resolves
+    the library's own root and would write outside the tree a sandbox is watching."""
+    override = os.environ.get(_te.DB_PATH_ENV)
+    if override:
+        return Path(override)
+    return repo / _te.DEFAULT_DB_RELPATH
 
 
 def _git(repo: Path, *args: str) -> subprocess.CompletedProcess:
@@ -131,16 +169,44 @@ def _repo_root() -> Path:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Refuse (1) a non-merge commit on main; allow (0) otherwise; refuse (2) on error."""
+    """Refuse (1) a non-merge commit on main; allow (0) otherwise; refuse (2) on error.
+
+    A THIN wrapper over `_verdict` since the [#529] wiring: the decision stays in one place and
+    the telemetry sits strictly after it, unable to change the code it is handed. With the switch
+    off nothing below the verdict runs at all.
+
+    Exit 2 emits `hook_run(outcome="error")` and NO `blocker_fired`. That distinction is the
+    point for THIS organ specifically: `current_branch()` returns `None` on any git failure, a
+    documented fail-OPEN hole that has until now been a silent allow. It stays an allow — the
+    behaviour is not this lane's to change — but a run that hits it is now countable."""
+    started = time.perf_counter()
+    verdict: dict = {}
+    code = _verdict(argv, verdict)
+    if telemetry_enabled():
+        repo = verdict.get("repo") or Path.cwd()
+        db = telemetry_db(repo)
+        duration = int((time.perf_counter() - started) * 1000)
+        _te.safe_emit(_te.emit_hook_run, HOOK_NAME, {0: "pass", 1: "block"}.get(code, "error"),
+                      duration, db_path=db)
+        if code == 1 and verdict.get("reason"):
+            _te.safe_emit(_te.emit_blocker_fired, HOOK_NAME, verdict["reason"], db_path=db)
+    return code
+
+
+def _verdict(argv: list[str] | None, verdict: dict) -> int:
+    """The organ's actual decision. `verdict` collects what the emitter needs."""
     try:
         repo = _repo_root()
+        verdict["repo"] = repo
         if not refuses(repo):
             return 0
     except Exception as exc:  # noqa: BLE001 — fail CLOSED, per ADR-85 amendment §A6
         print(f"block_commit_on_main: INTERNAL ERROR ({exc!r}) — refusing the commit; an "
               "error is never a silent pass. Fix the hook, or bypass explicitly with "
               "`git commit --no-verify`.", file=sys.stderr)
+        verdict["reason"] = f"internal error: {type(exc).__name__}"
         return 2
+    verdict["reason"] = f"non-merge commit on '{PROTECTED_BRANCH}' (core-invariant #5)"
     print(f"block_commit_on_main: REFUSED — a non-merge commit on '{PROTECTED_BRANCH}'. "
           "Core-invariant #5 wants branch -> `--no-ff` merge, never a direct commit "
           "(the 2026-08-13 incident cost a commit-tree re-land to unwind).",
