@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "931c867591c59b46b0f24a48d1f4972aa765eafdb4ae9b26512b245b5a48686e",
+  "generated_sha256": "e99cdedd233733d1fbf4ad5b0cd48767673830ede98c9aa9ec2b226826811bc7",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -110,10 +110,6 @@
       "file": "422-reflow-framing-s-cold-filled-flip-is-partial-by.md"
     },
     {
-      "task": 449,
-      "file": "449-assembled-paste-byte-budget.md"
-    },
-    {
       "task": 547,
       "file": "547-split-brain-prevention-has-no-referent-under-v6.md"
     },
@@ -200,10 +196,6 @@
     {
       "task": 401,
       "file": "401-ai-council-routing-still-armed-at-the-deleted-hu.md"
-    },
-    {
-      "task": 406,
-      "file": "406-commit-time-doc-rot-surfacing-an-over-threshold.md"
     },
     {
       "task": 424,
@@ -503,10 +495,6 @@
       "file": "308-decide-the-verify-skill-s-canonical-home.md"
     },
     {
-      "task": 323,
-      "file": "323-design-question.md"
-    },
-    {
       "task": 324,
       "file": "324-phase-6-axis-2-carrier.md"
     },
@@ -611,10 +599,6 @@
     {
       "task": 23,
       "file": "23-validate-adr-frontmatter-relation-fields.md"
-    },
-    {
-      "task": 450,
-      "file": "450-per-section-intake-ratification.md"
     },
     {
       "task": 456,
@@ -767,10 +751,6 @@
       "file": "231-consumer-hub-feedback-report.md"
     },
     {
-      "task": 281,
-      "file": "281-re-peg-the-ai-council-adr-66-story-map-convergen.md"
-    },
-    {
       "task": 327,
       "file": "327-protocols-as-interface-genre-ruling.md"
     },
@@ -805,10 +785,6 @@
     {
       "task": 559,
       "file": "559-kernel-lab-check-tiering-dev-knowledge-kernel-as.md"
-    },
-    {
-      "task": 407,
-      "file": "407-universal-fleet-python-style-functional-vs-oop-s.md"
     },
     {
       "task": 430,
@@ -1015,10 +991,6 @@
     {
       "task": 523,
       "file": "523-executive-index-render-leg-on-generated-backlog.md"
-    },
-    {
-      "task": 494,
-      "file": "494-ladder-ratification-l0-l5-promote-vs-leave-is-un.md"
     },
     {
       "task": 492,
