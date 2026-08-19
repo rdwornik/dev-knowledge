@@ -1768,6 +1768,70 @@ the 196-row live set has not been re-graded row-by-row since 2026-08-10, so rows
 or newly filed by OTHER lanes since then (outside the W4a–d conversions and this window's own three)
 are not individually re-verified here.
 
+## P. The 2026-08-19 night-adjudication window (seat S-1)
+
+Two rules that governed the N1–N5 night while having **no in-repo locator**. Both reached their
+lanes through a dispatch prompt alone. Recorded here because two separate lanes depended on
+unlocated rules in one night — the morning report names that as the pattern, not the two
+instances. Adjudication source: this seat's frozen contract
+`docs/audits/2026-08-19-technical-s1-seat-arc-contract.md` (committed first per ADR-110) acts
+2(a) and 2(b), against queue items 2 and 4 of `MORNING-REPORT-2026-08-19.md` §6; operator GO
+issued at this seat's dispatch.
+
+### P-1 · `JOURNAL.md` is the integrator's surface; a lane records its work in its artifact
+
+> A lane leaves `JOURNAL.md` alone. One entry per batch or night, written by the integrating
+> seat, anchors the whole set; a lane's deliverable is its own artifact plus its commits.
+
+- **Provenance.** House practice, made explicit at this window. Queue item 2 of the morning
+  report asks for exactly this ratification and records that the rule "is house practice but,
+  like the anti-orphan rule, is not obviously written down where a cloud lane can read it"
+  (`MORNING-REPORT-2026-08-19.md` §6 item 2). Ratified by the operator at this seat's GO, in the
+  same breath as the b′ disposition for the lane that breached it.
+- **The breach that produced it.** N4 (`claude/n4-grooming-wave1-audit-ahltfa`) committed two
+  lane-authored `JOURNAL.md` entries — 2026-08-18 (g) and (h), commit `d331b6cf` plus part of
+  `dfc8802f` — beside its audits. The night contract's pre-merge check admits `docs/audits/**`
+  and nothing else, so the whole branch was refused at the gate and a complete artifact missed
+  `main` on the night it was produced (morning report §1).
+- **Applied instance.** Ruling b′, executed by this seat: the sheet's final file state landed
+  alone via `git checkout dfc8802f -- docs/audits/2026-08-19-technical-n4-grooming-wave1.md`
+  (commit `d9d636f6`; blob `14cebf7c5ba88cbb1be8157634783547c86fa4d8` verified byte-identical on
+  both sides), the lane's two journal entries were discarded, and the branch was kept unmerged
+  rather than deleted so they stay recoverable.
+- **Why this is a register entry and not just a contract line.** The rule is invisible from where
+  a cloud lane stands: the lane reads its dispatch and this repo, and until now the rule was in
+  neither. A lane that anchors its own work also collides with the integrator's single night
+  entry, so a breach is paid for twice — once at the docs-only gate, once against
+  `journal_day_letters`.
+- **Declared durable home:** `protocols/PLAYBOOK.md` (session-boundaries §) and the night/batch
+  lane contract shape — **not landed yet**; this register is the application surface meanwhile.
+
+### P-2 · Anti-orphan ratification — `ACCEPTED` carries a carrier row or a dated deferral
+
+> An intake flipped to `ACCEPTED` carries at least one live carrier row, or a
+> `disposition: deferred` naming a live, DATED trigger. `ACCEPTED` with zero carriers and no
+> dated deferral is not a lawful terminal state.
+
+- **Provenance.** Reached the N3 lane through its dispatch as *ruled and reviewer-approved*, and
+  governed all five of that lane's ratifications
+  (`docs/audits/2026-08-19-technical-n3-ratification-pack.md`; digest at
+  `MORNING-REPORT-2026-08-19.md` §3, whose per-intake table carries an "Anti-orphan discharge"
+  column for each of #35–#39). Operator-ratified for the record at this seat's GO, per queue
+  item 4 — "Record the anti-orphan rule in `protocols/STANDING_RULINGS.md`".
+- **The gap this closes, in N3's own words.** "the **anti-orphan rule has no in-repo locator**.
+  It reached the lane through the dispatch as *ruled and reviewer-approved*, and grep finds it
+  nowhere in `docs/` or `protocols/`. It governs all five ratifications and lives only in a
+  prompt." (morning report §3).
+- **Why the deferral branch exists.** Zero-carrier `ACCEPTED` is how a ratified ask goes quiet.
+  The fleet's oldest instance is intake #25's W-2, ACCEPTED 2026-08-05 and still at zero carriers
+  14 days later; N3 re-ran the carrier test precisely — 0 hits across `tasks/*.md`, and the four
+  tree-wide hits are prose records rather than carriers. A dated deferral keeps the ask visible
+  and expiring, which is the shape §A2 already asks of every disposition.
+- **Applied instance.** This seat's act-4 status flips: an intake reaches `ACCEPTED` in the same
+  commit as its carrier row or its dated deferral, and not before.
+- **Declared durable home:** the ADR-98 intake spine (`docs/intake/README.md` plus the intake
+  status enum) — **not landed yet.**
+
 ## Editing note (read before adding an entry)
 
 This file sits inside the silent-rule ratchet corpus (`protocols/*.md`; detector
