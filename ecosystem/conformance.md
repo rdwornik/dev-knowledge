@@ -6,7 +6,7 @@
 
 > **Generated, committed, read-only** (ADR-86 location + ADR-80 zone class). It answers four standing operator questions — what finished, where the telemetry is, whether the intakes passed their gate, and whether implemented ADRs are archived — and it **reports rather than repairs**: every VIOLATION and flag below is left exactly where it was found.
 
-- **As of:** 2026-08-19 · **HEAD:** `278211e3450b` · **window:** 2026-08-12 → 2026-08-19 (7 days)
+- **As of:** 2026-08-19 · **HEAD:** `94b37beabf62` · **window:** 2026-08-12 → 2026-08-19 (7 days)
 - **Regenerate:** `python scripts/gen_dashboard.py --write` · **verify:** `python scripts/gen_dashboard.py --check`
 - **Determinism:** derived from the tree, not the clock — the "as of" instant is HEAD's commit date, so two runs on one tree are byte-identical. After HEAD moves, `--check` reports drift; that is a regenerate-me signal and gates nothing.
 
@@ -16,6 +16,14 @@
 
 _Rows that left `BACKLOG.md` between 2026-08-12 and 2026-08-19, newest first. The gain line is the row's own `Done when:` clause — what the operator can now do that they could not before._
 
+- **Ladder ratification — L0–L5 promote-vs-leave is unruled, and prose already cites it as authority** [#494] → the ladder is ratified (or explicitly retired) by ADR, and any surface citing a level as authority either resolves to that ADR or drops the citation · closed 2026-08-19 · `7e793eca8e20`
+- **Per-section intake ratification — the `status:` field is doc-level, so partial ratification needs promotion** [#450] → a ruling records either a section-level status schema (with the index generator updated) or promotion-as-intended with the ADR-108 pattern written up as the standing convention · closed 2026-08-19 · `7e793eca8e20`
+- **Assembled-paste byte budget — should `PASTE_THIS.md` gain a hard ceiling?** [#449] → a ruling records either a hard budget (with its number and gate) or an explicit accepted-with-reason hold, and the decision cites the fold as the elasticity argument · closed 2026-08-19 · `7e793eca8e20`
+- **Universal fleet Python style — functional-vs-OOP stance + uniform naming (the paradigm/naming half of parity)** [#407] → an architect ruling (ADR-108 §A; re-routed) records the functional-vs-OOP stance AND a uniform naming convention (classes/files/objects/variables) is documented as fleet doctrine, or recorded deferred-with-reason · closed 2026-08-19 · `7e793eca8e20`
+- **Commit-time doc_rot surfacing — an over-threshold BACKLOG task commits clean, reds only the NEXT ship-gate** [#406] → an architect ruling (ADR-108 §A; re-routed 2026-07-31) picks the enforcement point (or records accept-as-is) and, if a hook is chosen, it flags an over-threshold BACKLOG task in the staged diff with a test · closed 2026-08-19 · `7e793eca8e20`
+- **Design question** [#323] → the carry-vs-freshness-only question for `codemap-generate`/`toc-generate` in `hub_hooks` is decided and recorded · closed 2026-08-19 · `7e793eca8e20`
+- **Re-peg the ai-council ADR-66 story-map convergence** [#281] → the convergence is re-pegged to the Wave-1 onboarding arc (or Track-X accepted as durable, recorded) · closed 2026-08-19 · `7e793eca8e20`
+- **Retire the PATH shim** [#122] → the operator approves and the shim is removed (or the item is closed as keep-for-defence-in-depth) · closed 2026-08-19 · `4541155b49e5`
 - **`VISION.md` still describes `scripts/` as read-only validators — the third site of a correction that landed twice** [#558] → `VISION.md`'s `## Vision` no longer claims `scripts/` holds only read-only validators, converging on the `CLAUDE.md` §5 rule 4 wording, and a fleet-wide re-measurement of the claim covers files beyond `CLAUDE.md`; `last_reviewed` is re-stamped only if the file was genuinely re-read · closed 2026-08-18 · `44d658bdb832`
 - **Three `[stale]` dispositions match no live WARN — the ADR-75 decoration-rule review** [#557] → `audit.py ship-gate` prints zero `[stale]` disposition lines, with each of the three either removed or re-pointed and the reason recorded in the register entry itself · closed 2026-08-18 · `44d658bdb832`
 - **`[#505]` is closed-but-present — the ADR-65 done-items-leave grooming close** [#556] → `validate_git_backlog` reports zero closed-but-present items, `tasks/505-*` carries a terminal `status:` rather than `open`, and `[#505]` is referenced by id wherever the shipped work is recorded · closed 2026-08-18 · `44d658bdb832`
@@ -37,25 +45,25 @@ _Rows that left `BACKLOG.md` between 2026-08-12 and 2026-08-19, newest first. Th
 
 | Theme | Open | Deferred | Closed | Size mix (live rows) |
 |---|---:|---:|---:|---|
-| [E1] Handoff continuity | 12 | 1 | 4 | M 4 · S 9 |
-| [E2] Enforced governance | 63 | 14 | 22 | L 1 · M 32 · S 44 |
+| [E1] Handoff continuity | 11 | 1 | 5 | M 4 · S 8 |
+| [E2] Enforced governance | 62 | 14 | 24 | L 1 · M 32 · S 43 |
 | [E3] Lessons feedback loop | 6 | 2 | 4 | M 4 · S 4 |
-| [E4] Decision management | 7 | 1 | 0 | M 2 · S 6 |
+| [E4] Decision management | 6 | 1 | 1 | M 2 · S 5 |
 | [E5] Canonical-file integrity | 12 | 1 | 7 | M 2 · S 11 |
-| [E6] Cross-repo universalization | 16 | 1 | 10 | L 2 · M 9 · S 6 |
-| [E7] Tooling & evaluation | 50 | 3 | 15 | L 2 · M 18 · S 33 |
+| [E6] Cross-repo universalization | 15 | 1 | 12 | L 3 · M 8 · S 5 |
+| [E7] Tooling & evaluation | 49 | 3 | 17 | L 2 · M 18 · S 32 |
 | [E8] ARC-5 execution | 17 | 0 | 7 | M 5 · S 12 |
 | [E9] Fleet Desired-State System (North Star) | 5 | 1 | 7 | L 1 · M 1 · S 4 |
 
-**Total live rows: 212** (+17 over 7 days; 195 at the window start).
+**Total live rows: 207** (+12 over 7 days; 195 at the window start).
 
-Closed this window (16): [#558] · [#557] · [#556] · [#536] · [#505] · [#502] · [#532] · [#527] · [#524] · [#364] · [#352] · [#525] · [#513] · [#508] · [#452] · [#360]
+Closed this window (24): [#494] · [#450] · [#449] · [#407] · [#406] · [#323] · [#281] · [#122] · [#558] · [#557] · [#556] · [#536] · [#505] · [#502] · [#532] · [#527] · [#524] · [#364] · [#352] · [#525] · [#513] · [#508] · [#452] · [#360]
 
 ## Section 2 — Intake lifecycle gate
 
 _Anti-orphan check, ACCEPTED docs only: an accepted intake must be carried by a live BACKLOG row, or be explicitly parked with a trigger / review date. Neither is a **VIOLATION** — reported here, repaired elsewhere._
 
-> **6 VIOLATION(s)**: #18 `2026-07-27-tech-handoff-process-v6-proposal.md` · #26 `2026-08-06-func-parallel-execution-system.md` · #28 `2026-08-08-func-skills-tier-adoption-and-hub-finish-line.md` · #30 `2026-08-09-func-verification-organ-and-repeatable-execution.md` · #31 `2026-08-09-func-code-style-doctrine.md` · #32 `2026-08-09-tech-compute-placement-and-remote-execution.md`
+> **5 VIOLATION(s)**: #18 `2026-07-27-tech-handoff-process-v6-proposal.md` · #26 `2026-08-06-func-parallel-execution-system.md` · #28 `2026-08-08-func-skills-tier-adoption-and-hub-finish-line.md` · #30 `2026-08-09-func-verification-organ-and-repeatable-execution.md` · #31 `2026-08-09-func-code-style-doctrine.md`
 
 | Intake | Status | Doc | Anti-orphan | Detail | Archived |
 |---|---|---|---|---|---|
@@ -76,8 +84,6 @@ _Anti-orphan check, ACCEPTED docs only: an accepted intake must be carried by a 
 | #35 | DRAFT | `2026-08-17-tech-agent-instruction-layers-and-distillation.md` | — | — | — |
 | #36 | DRAFT | `2026-08-17-tech-repository-autonomy-and-gate-liveness.md` | — | — | — |
 | #37 | DRAFT | `2026-08-17-tech-machine-verifiable-done-when.md` | — | — | — |
-| #38 | DRAFT | `2026-08-17-tech-fleet-config-standardization.md` | — | — | — |
-| #39 | DRAFT | `2026-08-17-tech-off-machine-agent-substrate.md` | — | — | — |
 | #15 | READY | `2026-07-16-satellite-onboarding-prompts.md` | — | — | — |
 | #12 | ACCEPTED | `2026-07-11-tech-ownership-manifest.md` | carried | [#548] | — |
 | #13 | ACCEPTED | `2026-07-11-tech-plan-of-record-fleet-hygiene.md` | carried | [#549] · [#332] | — |
@@ -86,13 +92,15 @@ _Anti-orphan check, ACCEPTED docs only: an accepted intake must be carried by a 
 | #17 | ACCEPTED | `2026-07-25-tech-consolidation-decision.md` | carried | [#431] · [#403] | — |
 | #18 | ACCEPTED | `2026-07-27-tech-handoff-process-v6-proposal.md` | VIOLATION (no carrier) | — | — |
 | #20 | ACCEPTED | `2026-07-28-north-star-delta-review.md` | carried | [#443] · [#388] | — |
-| #25 | ACCEPTED | `2026-08-05-func-simplification-distribution-wave.md` | carried | [#294] · [#308] | — |
+| #25 | ACCEPTED | `2026-08-05-func-simplification-distribution-wave.md` | carried | [#294] · [#308] · [#559] · [#561] | — |
 | #26 | ACCEPTED | `2026-08-06-func-parallel-execution-system.md` | VIOLATION (no carrier) | — | — |
 | #28 | ACCEPTED | `2026-08-08-func-skills-tier-adoption-and-hub-finish-line.md` | VIOLATION (no carrier) | — | — |
 | #29 | ACCEPTED | `2026-08-08-func-multi-model-execution-and-distillation.md` | carried | [#529] | — |
 | #30 | ACCEPTED | `2026-08-09-func-verification-organ-and-repeatable-execution.md` | VIOLATION (no carrier) | — | — |
 | #31 | ACCEPTED | `2026-08-09-func-code-style-doctrine.md` | VIOLATION (no carrier) | — | — |
-| #32 | ACCEPTED | `2026-08-09-tech-compute-placement-and-remote-execution.md` | VIOLATION (no carrier) | — | — |
+| #32 | ACCEPTED | `2026-08-09-tech-compute-placement-and-remote-execution.md` | carried | [#561] | — |
+| #38 | ACCEPTED | `2026-08-17-tech-fleet-config-standardization.md` | carried | [#559] | — |
+| #39 | ACCEPTED | `2026-08-17-tech-off-machine-agent-substrate.md` | carried | [#554] · [#561] | — |
 | #1 | CONSUMED | `2026-07-06-functional-architect-nightly-loop.md` | — | — | yes |
 | #2 | CONSUMED | `2026-07-06-platform-feature-scan.md` | — | — | yes |
 | #3 | CONSUMED | `2026-07-07-test-suite-hygiene.md` | — | — | yes |
@@ -107,9 +115,9 @@ _Terminal docs (CONSUMED / SUPERSEDED / REJECTED) belong in `docs/intake/archive
 
 _Status per ADR, plus the archival candidates. In this repo **Accepted is not an archive trigger** — `docs/decisions/README.md` keys the bar on `Superseded` / `Deprecated` only, so an implemented-and-still-binding ADR correctly stays put. The flag below is a report; no file is moved._
 
-**Status mix:** (unparsed) 1 · Accepted 80 · Deprecated 1 · Explored, not adopted 1 · Partially superseded 2 · Superseded 1 · open | in-progress | blocked | done 1
+**Status mix:** (unparsed) 1 · Accepted 81 · Deprecated 1 · Explored, not adopted 1 · Partially superseded 2 · Superseded 1 · open | in-progress | blocked | done 1
 
-**Header coverage:** 52 rows read with the shared parser (`gen_claude_rosters.collect_recent_adrs`); 34 needed the pre-2026-05 dialect fallback for at least one header field (bare `Status:` / `Date:` + `# ADR-NN — Title`), which the shared parser does not cover — it reads only the last five ADRs, so the dialect has never been in its field of view; 1 sit outside its filename grammar entirely and are INVISIBLE to it (`ADR-43_cross_project_transcript_routing.md`) — not `(unparsed)`, absent. Reported, not repaired.
+**Header coverage:** 53 rows read with the shared parser (`gen_claude_rosters.collect_recent_adrs`); 34 needed the pre-2026-05 dialect fallback for at least one header field (bare `Status:` / `Date:` + `# ADR-NN — Title`), which the shared parser does not cover — it reads only the last five ADRs, so the dialect has never been in its field of view; 1 sit outside its filename grammar entirely and are INVISIBLE to it (`ADR-43_cross_project_transcript_routing.md`) — not `(unparsed)`, absent. Reported, not repaired.
 
 | ADR | Status | Date | Flag | Title |
 |---|---|---|---|---|
@@ -117,7 +125,7 @@ _Status per ADR, plus the archival candidates. In this repo **Accepted is not an
 | ADR-43 | Accepted | (unparsed) | **OFF-GRAMMAR-FILENAME** | Cross-project transcript routing |
 | ADR-61 | (unparsed) | (unparsed) | **UNPARSED** | Git Worktree Pattern for Parallel Claude Code Sessions |
 
-<details><summary>Full ledger (87 ADRs)</summary>
+<details><summary>Full ledger (88 ADRs)</summary>
 
 | ADR | Status | Date | Home | Read as | Title |
 |---|---|---|---|---|---|
@@ -208,6 +216,7 @@ _Status per ADR, plus the archival candidates. In this repo **Accepted is not an
 | ADR-110 | Accepted | 2026-08-06 | decisions/ | shared | Parallel multi-agent execution — batch protocol as versioned artifacts |
 | ADR-111 | Accepted | 2026-08-09 | decisions/ | shared | The finding pipeline — every audit finding is triaged into exactly one of four outcomes |
 | ADR-112 | Accepted | 2026-08-12 | decisions/ | shared | Two-tier adoption bar — Tier L evaluates, Tier S tries and keeps or deletes |
+| ADR-113 | Accepted | 2026-08-19 | decisions/ | shared | The L0–L5 maturity ladder is ratified vocabulary — and it is one of three "L" namespaces, not the only one |
 
 </details>
 
