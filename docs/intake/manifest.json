@@ -3,12 +3,12 @@
   "direction": "derived-from",
   "source": "docs/intake/README.md",
   "generator": "scripts/gen_intake_tree.py",
-  "source_sha256": "7a07e0d489f300f6be316c917c8322385b37f0af3bd8569aa29f0a2553fae777",
+  "source_sha256": "41f02269c8258c9c900e13a59b73472e28994b7b9ebb504cb6fe55179c4d1627",
   "honest_limit": {
     "statement": "ADR-109 section 4 is discharged by a byte-exact round-trip plus a residue manifest, NOT by a derivation ratio. This surface's ratio is INVERTED relative to surface 1 (BACKLOG.md <-> tasks/), where task lines were the majority and residue the minority. Recorded so the generality claim is honest about what was shown.",
     "item_derived_lines": 34,
-    "residue_lines": 238,
-    "total_lines": 272,
+    "residue_lines": 281,
+    "total_lines": 315,
     "surface_1_comparison": "inverted -- surface 1 was majority item-derived"
   },
   "not_captured": {
@@ -179,6 +179,8 @@
       ],
       "2026-08-17-tech-fleet-config-standardization.md": [
         "consumers",
+        "decided-by",
+        "disposition",
         "note",
         "origin"
       ],
@@ -189,6 +191,8 @@
       ],
       "2026-08-17-tech-off-machine-agent-substrate.md": [
         "consumers",
+        "decided-by",
+        "disposition",
         "note",
         "origin"
       ],
@@ -345,7 +349,7 @@
     },
     {
       "t": "line",
-      "v": "### DRAFT (9)"
+      "v": "### DRAFT (7)"
     },
     {
       "t": "line",
@@ -387,16 +391,6 @@
       "status": "DRAFT"
     },
     {
-      "t": "item",
-      "file": "2026-08-17-tech-fleet-config-standardization.md",
-      "status": "DRAFT"
-    },
-    {
-      "t": "item",
-      "file": "2026-08-17-tech-off-machine-agent-substrate.md",
-      "status": "DRAFT"
-    },
-    {
       "t": "line",
       "v": ""
     },
@@ -419,7 +413,7 @@
     },
     {
       "t": "line",
-      "v": "### ACCEPTED (14)"
+      "v": "### ACCEPTED (16)"
     },
     {
       "t": "line",
@@ -493,6 +487,16 @@
     {
       "t": "item",
       "file": "2026-08-09-tech-compute-placement-and-remote-execution.md",
+      "status": "ACCEPTED"
+    },
+    {
+      "t": "item",
+      "file": "2026-08-17-tech-fleet-config-standardization.md",
+      "status": "ACCEPTED"
+    },
+    {
+      "t": "item",
+      "file": "2026-08-17-tech-off-machine-agent-substrate.md",
       "status": "ACCEPTED"
     },
     {
@@ -1074,6 +1078,178 @@
     {
       "t": "line",
       "v": "`intake-id` join keys stay valid at the archive path."
+    },
+    {
+      "t": "line",
+      "v": ""
+    },
+    {
+      "t": "line",
+      "v": "## 5a. Partial ratification \u2014 promotion is the terminal path (the ADR-108 pattern)"
+    },
+    {
+      "t": "line",
+      "v": ""
+    },
+    {
+      "t": "line",
+      "v": "**Ruled 2026-08-19** (architect L-5 block, item `#450`): *\"convention, not schema \u2014 promotion-to-ADR"
+    },
+    {
+      "t": "line",
+      "v": "is the terminal path; write the ADR-108 pattern into the intake README as the convention.\"* Landed"
+    },
+    {
+      "t": "line",
+      "v": "by the S-1 night-adjudication seat; `[#450]` closes on it."
+    },
+    {
+      "t": "line",
+      "v": ""
+    },
+    {
+      "t": "line",
+      "v": "**The problem it settles.** `status:` is one token for a whole file (\u00a73), so a doc that is ruled in"
+    },
+    {
+      "t": "line",
+      "v": "part has no honest state of its own: flipping it to ACCEPTED over-claims the sections nobody ruled,"
+    },
+    {
+      "t": "line",
+      "v": "and leaving it SEED under-claims the ones that were. \u00a75's enum has no partial member and does not"
+    },
+    {
+      "t": "line",
+      "v": "gain one \u2014 a section-level status field, with `gen_intake_index.py` rendering it, was the rejected"
+    },
+    {
+      "t": "line",
+      "v": "alternative."
+    },
+    {
+      "t": "line",
+      "v": ""
+    },
+    {
+      "t": "line",
+      "v": "**The convention, as ADR-108 exercised it live on 2026-07-31 with intake #22 \u00a7A + \u00a7B:**"
+    },
+    {
+      "t": "line",
+      "v": ""
+    },
+    {
+      "t": "line",
+      "v": "1. **The ruled sections are transcribed into an ADR**, verbatim where they are quotable, and the"
+    },
+    {
+      "t": "line",
+      "v": "   ADR's title says which sections it ratifies \u2014 ADR-108's is literally *\"(ratifies intake #22 \u00a7A +"
+    },
+    {
+      "t": "line",
+      "v": "   \u00a7B)\"*, so the scope is legible from the index without opening the file."
+    },
+    {
+      "t": "line",
+      "v": "2. **The ADR carries a scope boundary naming what it does NOT ratify**, section by section."
+    },
+    {
+      "t": "line",
+      "v": "   ADR-108's *\"Scope boundary \u2014 what this ADR does NOT ratify\"* lists \u00a7C\u2013\u00a7H and marks them"
+    },
+    {
+      "t": "line",
+      "v": "   non-citable as ruled doctrine. This is the load-bearing half: without it, an ADR that ratifies"
+    },
+    {
+      "t": "line",
+      "v": "   part of a doc reads as ratifying the doc."
+    },
+    {
+      "t": "line",
+      "v": "3. **The intake keeps its pre-ratification status** \u2014 `SEED` or `DRAFT` \u2014 and gains a pointer note"
+    },
+    {
+      "t": "line",
+      "v": "   to the ADR. It does not become ACCEPTED, because the unruled remainder is still unruled."
+    },
+    {
+      "t": "line",
+      "v": "4. **The remainder stays live in the intake**, available for a later promotion that repeats 1\u20133 for"
+    },
+    {
+      "t": "line",
+      "v": "   the sections it rules."
+    },
+    {
+      "t": "line",
+      "v": ""
+    },
+    {
+      "t": "line",
+      "v": "**Why promotion rather than a schema field.** The status token answers *\"what may a reader rely on"
+    },
+    {
+      "t": "line",
+      "v": "here\"*, and after a partial ratification the answer is no longer a property of the intake at all \u2014"
+    },
+    {
+      "t": "line",
+      "v": "the ruled part is relied on **at the ADR**, which is a citable artifact with its own status, its own"
+    },
+    {
+      "t": "line",
+      "v": "date and its own decided-by. A section-level status would put a ratification record in a doc whose"
+    },
+    {
+      "t": "line",
+      "v": "genre is explicitly *not* a decision record (ADR-100 \u00a74: *\"Audit = evidence about state. Intake = a"
+    },
+    {
+      "t": "line",
+      "v": "request to change state\"*), and would need the index generator, the confirm-gate and the archive"
+    },
+    {
+      "t": "line",
+      "v": "rule all taught about a half-live document."
+    },
+    {
+      "t": "line",
+      "v": ""
+    },
+    {
+      "t": "line",
+      "v": "**Interaction with the anti-orphan rule** (`protocols/STANDING_RULINGS.md` P-2). Promotion is not an"
+    },
+    {
+      "t": "line",
+      "v": "ACCEPTED flip, so it does not trigger the carrier requirement \u2014 the intake is still DRAFT/SEED and"
+    },
+    {
+      "t": "line",
+      "v": "owes nothing. The rows the ratified sections need are born from the ADR, citing both the `intake-id`"
+    },
+    {
+      "t": "line",
+      "v": "and the ADR-id, per ADR-98 \u00a73."
+    },
+    {
+      "t": "line",
+      "v": ""
+    },
+    {
+      "t": "line",
+      "v": "**Honest limit.** Nothing checks this. There is no gate that notices an ADR ratifying part of an"
+    },
+    {
+      "t": "line",
+      "v": "intake without a scope boundary, or an intake flipped to ACCEPTED when only some of it was ruled;"
+    },
+    {
+      "t": "line",
+      "v": "this is a convention with a worked precedent, and the precedent is the enforcement."
     },
     {
       "t": "line",

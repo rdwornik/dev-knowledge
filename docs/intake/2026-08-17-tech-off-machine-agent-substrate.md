@@ -1,9 +1,11 @@
 ---
 intake-id: 39
-status: DRAFT
+status: ACCEPTED
 origin: browser research artifact wf-fe444def, commissioned + landed 2026-08-17; converted to intake by lane R (unrostered, running alongside batch 7a)
+decided-by: "operator GO on the 2026-08-19 S-1 night-adjudication seat arc (docs/audits/2026-08-19-technical-s1-seat-arc-contract.md act 4), ratifying the N3 ratification pack's CLEAR verdict"
+disposition: active
 note: Sections A-D are required by the lane-R contract of record (docs/audits/2026-08-17-technical-research-intake-lane-contract.md section 1). All eight ADR-98 template sections are present and carry them; Section C is the one added top-level section, because a doctrine-delta is neither a requirement nor an open question.
-consumers: the technical-architect triage; no ADR and no backlog row has been born from this doc
+consumers: "carrier [#561] re-base the compute plan onto the Hetzner CX shared line, plus the existing open [#554] (ADR-111 outcome (a) OWNED); no ADR — rows only, per the N3 pack §7.2"
 ---
 
 # Off-machine agent fleet substrate — the re-priced, verified-August-2026 plan
