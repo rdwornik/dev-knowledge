@@ -86,3 +86,42 @@ introducing it.
 **The per-section ratification gap is real and recurs.** Any future intake that is partially
 ruled hits the same doc-level-status limitation and needs the same promotion workaround.
 Filed as a candidate row rather than fixed here.
+
+---
+
+## AMENDMENT — 2026-08-19 · §B gains the fleet Python paradigm + naming stance (discharges `[#407]`)
+
+> **In-file amendment marker.** ADR bodies are immutable (`CLAUDE.md` §5 rule 3); nothing above is
+> edited and no clause above changes meaning. This section ADDS a standing standard to §B, which is
+> where `[#407]` was re-routed when it was filed — the row's own Done-when names *"an architect
+> ruling (ADR-108 §A; re-routed)"* as its home. Landed by the S-1 night-adjudication seat under
+> `docs/audits/2026-08-19-technical-s1-seat-arc-contract.md` act 7.
+
+**Decided-by:** architect ruling **2026-08-19**, item `#407` of the eight-ruling L-5 block:
+*"fleet Python doctrine = functional-first + dataclasses; classes only for stateful lifecycles;
+naming = PEP 8. File as an ADR-108 amendment (its re-routed home), then CLOSE."*
+
+### §B-4 — Python paradigm and naming (fleet-wide, standing)
+
+- **Functional-first, with dataclasses for structured data.** The default unit of code is a
+  function over explicit inputs; the default unit of *data* is a `dataclass`, not an ad-hoc dict
+  and not a class that exists only to hold fields.
+- **Classes only for stateful lifecycles.** A class earns its existence when an object owns state
+  across calls and has a lifecycle to manage. A class used as a namespace for functions, or as a
+  container for values a `dataclass` would carry, is the shape this stance rules out.
+- **Naming is PEP 8**, without a fleet-local dialect: `snake_case` for modules, files, functions
+  and variables; `CapWords` for classes; `UPPER_SNAKE` for module constants. The point of naming
+  the standard rather than inventing one is that PEP 8 is already what every tool in the stack
+  assumes, so the fleet inherits its tooling instead of teaching it.
+
+### What this settles, and what it does not
+
+- **Settles `[#407]`.** Its Done-when asked that a ruling record the functional-vs-OOP stance
+  **and** that a uniform naming convention be documented as fleet doctrine. Both are above; the
+  row closes on this amendment. The 2026-07-19 ruff/pytest parity arc covered TOOLING only — this
+  is the paradigm-and-naming half it left unfiled, which is exactly how `[#407]` described itself.
+- **Arms no gate.** `ruff` is configured for lint, not for paradigm; nothing mechanically refuses a
+  class that should have been a function. This is a standing expectation of the kind §B already
+  carries, and it is stated as such rather than implied to be enforced.
+- **Prospective, not a refactor mandate.** No existing module is out of compliance by this
+  amendment, and nothing here schedules a conversion pass. It binds what gets written next.
