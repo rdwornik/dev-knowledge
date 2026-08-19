@@ -80,6 +80,20 @@ logs/OVERRIDES.md
 # audit check + the eventual version bump in git history.
 logs/COHERENCE-NUDGE.log
 
+# [#529] leg 2 — the Stage-1 telemetry store. Machine-local measurement of the gate mesh; the
+# durable signal is what a reader derives from it, not the file.
+#
+# THE GLOB, NOT THE BARE NAME, and this is measured rather than defensive. The store is opened
+# in WAL mode (memo line 52, telemetry_emit.WAL_PRAGMAS), and WAL keeps two sidecars alive for
+# as long as a connection is open:
+#     files while a connection is OPEN: TELEMETRY.db  TELEMETRY.db-shm  TELEMETRY.db-wal
+#     files after a clean close:        TELEMETRY.db
+# They vanish on a clean close and SURVIVE a crashed writer or a concurrent reader — which is
+# precisely the state WAL exists to support here, since the point is concurrent hook and lane
+# writers. A bare `logs/TELEMETRY.db` would leave a stray `-wal` dirtying `git status` and
+# tripping session-end backpressure: the exact failure this leg was filed to prevent.
+logs/TELEMETRY.db*
+
 # Vendored Pyright langserver for the reverse-dep oracle (#193, ADR-89). The version is
 # pinned in package.json + package-lock.json (committed); the heavy node_modules tree is
 # rebuilt per-checkout via `npm install` (bootstrap documented in scripts/reverse_dep_oracle.py).
