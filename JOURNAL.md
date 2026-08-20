@@ -19,6 +19,54 @@
 
 ---
 
+### 2026-08-20 (j) — CC (Opus 5, handoff seat, branch `docs/handoff-2026-08-20-architect-2`): the second architect bundle of the day, cut against an inverted carry
+
+**Did:** Generated `docs/handoffs/2026-08-20-dev-knowledge-architect-2/` with
+`scripts/gen_handoff.py --mode architect --allow-suffix` — today's unsuffixed slug was already taken
+by the morning bundle, folded at `a085dc10`, so the generator's own sibling-suffix path was used
+rather than a hand-chosen name. Hand-authored the seven FILL-IN regions (boot Purpose + the three
+`Destination` prose fields; residual drift-flags, shipped-map, frontier), then re-ran
+`scripts/assemble_paste.py` so `PASTE_THIS.md` carries the filled text.
+
+**Result:** The carry INVERTED between the two bundles of the same day, and the residual says so as its
+first line. The morning bundle handed over an *unruled queue* — ten assembled asks from the 2026-08-19
+cloud harvest that no seat had decided. The transcription arc drained it: the rulings are
+`STANDING_RULINGS.md` section Q, their verdicts reached `[#491]` `[#561]` `[#539]`, and eight births
+`[#562]`–`[#569]` released against the re-measured ledger. What the window hands forward instead is
+**eight rows with no dispatch plan**, against a net-negative closing bar the same arc moved closer to
+its limit. So the frontier is ordered by cost-of-deferral, not by topic: the `doc_rot` row-length
+ceiling (three windows deferred, worse with every birth), `[#539]`'s dispatch (the Q2/Q10 deferral is
+dated 2026-09-19 and rides on it, so it ages rather than fails), what the C1 refusal items actually
+measure (the incumbent scored 0/2 on them), closing-vs-telemetry sequencing, the seven `DRAFT` intakes,
+and an explicit do-not-reopen list.
+
+**`SUPPLEMENT.md` is committed EMPTY** — the defined cold-handoff disposition, not a missing
+deliverable. The assembler printed its `ANSWERS empty … not folded` note and folded nothing, so the
+incoming §13(d) operator-context beat fires FULL. If the operator fills it from the outgoing chat, the
+fold and re-assembly are a second act.
+
+**FINDING, surfaced by deriving the day-letter rather than assuming it: section Q's Q3 cites a JOURNAL entry that does not exist.** `protocols/STANDING_RULINGS.md`:1866 states the harvest-order rule is *"Recorded as a standing order in `JOURNAL.md` 2026-08-20 (i)"* — but the newest entry before this one is **(h)**, and no **(i)** was ever written. Act-group 2's own `Next:` line planned a merge/END-PACKET entry, which is almost certainly the slot the citation was written against; the arc closed before it was authored, so the locator is a forward reference to nothing. **This entry therefore takes (j), not the next free letter (i), deliberately** — `check_journal_day_letters` enforces uniqueness per day, not contiguity, so the gap is legal, and leaving (i) open keeps Q3's citation resolvable by the seat that writes the harvest-order standing order. Taking (i) here would have made Q3 resolve to a handoff entry containing no harvest order, which is worse than a locator that visibly does not resolve yet. **Owed:** either that entry is written as (i), or Q3 is amended to point at wherever the standing order actually lands. Not repaired by this seat — Q3 is a landed register line and repointing it is a separate act with its own reason.
+
+**Two mechanical notes worth carrying.** The scripted FILL-IN writes landed CRLF on this workstation and
+were normalized to LF before staging, so the bundle's line endings match generator output rather than
+the editing tool's default. And P0c's name-match was checked against the live enumeration before the
+Purpose was frozen — it names `[E7] Tooling & evaluation`, which is a live `[E#]` theme and owns
+`[#539]`/`[#563]` under `[S18]` and `[#555]` under `[S20]`.
+
+**Changes:** `docs/handoffs/2026-08-20-dev-knowledge-architect-2/` (new — `HANDOFF_BOOT.md`,
+`RESIDUAL.md`, `PROBES.md`, `SUPPLEMENT.md`, `PASTE_THIS.md`) at `13a61eef`, `JOURNAL.md`.
+
+**Abandoned:** No merge, no push, no branch deletion — all three are operator-gated and none was taken.
+`docs/handoffs/README.md` was left untouched (it is freshness-gated and this bundle needs no change
+there). The morning bundle was not superseded, edited, or deleted; handoffs are immutable and both now
+stand as the day's record.
+
+**Next:** Operator pastes `PASTE_THIS.md` into a fresh chat; optionally fills the supplement from the
+outgoing architect chat and says `supplement filled`. Merge of this branch to `main` and the push are
+mine to run on the operator's OK.
+
+---
+
 ### 2026-08-20 (h) — CC (Opus 5, transcription seat, branch `docs/transcription-ag2-2026-08-20`): the verdicts reach the rows, and the ledger releases eight births
 
 **Did:** Act-group 2. `20a51638` transcribed the window's verdicts into three row bodies —
