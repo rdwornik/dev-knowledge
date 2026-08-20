@@ -6,7 +6,7 @@
 
 > **Generated, committed, read-only** (ADR-86 location + ADR-80 zone class). It answers four standing operator questions — what finished, where the telemetry is, whether the intakes passed their gate, and whether implemented ADRs are archived — and it **reports rather than repairs**: every VIOLATION and flag below is left exactly where it was found.
 
-- **As of:** 2026-08-19 · **HEAD:** `d433fb5d48ec` · **window:** 2026-08-12 → 2026-08-19 (7 days)
+- **As of:** 2026-08-20 · **HEAD:** `d436d64fff86` · **window:** 2026-08-13 → 2026-08-20 (7 days)
 - **Regenerate:** `python scripts/gen_dashboard.py --write` · **verify:** `python scripts/gen_dashboard.py --check`
 - **Determinism:** derived from the tree, not the clock — the "as of" instant is HEAD's commit date, so two runs on one tree are byte-identical. After HEAD moves, `--check` reports drift; that is a regenerate-me signal and gates nothing.
 
@@ -14,7 +14,7 @@
 
 ## Section 0 — Release notes (last 7 days)
 
-_Rows that left `BACKLOG.md` between 2026-08-12 and 2026-08-19, newest first. The gain line is the row's own `Done when:` clause — what the operator can now do that they could not before._
+_Rows that left `BACKLOG.md` between 2026-08-13 and 2026-08-20, newest first. The gain line is the row's own `Done when:` clause — what the operator can now do that they could not before._
 
 - **Ladder ratification — L0–L5 promote-vs-leave is unruled, and prose already cites it as authority** [#494] → the ladder is ratified (or explicitly retired) by ADR, and any surface citing a level as authority either resolves to that ADR or drops the citation · closed 2026-08-19 · `7e793eca8e20`
 - **`desired_state_report.py` dies on a cp1252 console — U+21C4 in its own HONEST LIMITS text** [#486] → the U+21C4 is ASCII-swapped and a regression asserts every console-emitted line of `desired_state_report.py` is cp1252-encodable · closed 2026-08-19 · `d433fb5d48ec`
@@ -38,9 +38,6 @@ _Rows that left `BACKLOG.md` between 2026-08-12 and 2026-08-19, newest first. Th
 - **Versioned `.vscode` region decoration** [#352] → versioned `.vscode` region-decoration config (grey/navy) covers the owner=hub/repo regions of ≥1 governed file AND carries no hand-maintained ownership state · closed 2026-08-15 · `d62796adcd3f`
 - **ARCHITECTURE.md Ch2/Ch6 organ rows for the load-gauge digest section — owed since W2, integrator-collected** [#525] → Ch2's organ table (`ARCHITECTURE.md` §"Organ map") carries a row for the `[load]` digest section / `OPERATOR-LOAD.csv` writer with a live locator, AND Ch6's verification-mesh table (§"Verification mesh and decision flow") reflects the load-gauge as a nightly/funnel-layer signal, each claim declarative and locator-backed, `silent_rule_ratchet` unmoved (<= 441) · closed 2026-08-14 · `d581c60f965c`
 - **Propagation completeness — a ruled adoption that landed at some sites and not others.** [#513] → **(a)** a check registered in `audit.py::ALL_CHECKS` reads every entry in `protocols/STANDING_RULINGS.md` declaring a `landed:` predicate and FAILs when that predicate resolves at ≥1 site and fails to resolve at ≥1 other site; **(b)** the check is ARMED — an `ALL_CHECKS` member, so it runs in the `audit-health` pre-commit gate, evidenced by `audit.py health` exiting non-zero on a seeded violation; **(c)** a test seeds a half-landed adoption, asserts the check goes RED, and asserts GREEN once the seed is conformed or exempted; **(d)** the three named instances each pass the check or carry a dated exemption in `ecosystem/disposition-register.yaml` · closed 2026-08-13 · `387b794a1166`
-- **Couple the lane-prefix enum's cardinality to its prose, or record it deliberately-unmechanized** [#508] → a check FAILs when cardinality and in-repo prose disagree (pinned by a test that flips one), or a ruling records it deliberately unmechanized with its reason · closed 2026-08-13 · `09bce1941c10`
-- **`[#433]`→`[#382]` pilot-precedes-contract dependency is prose-only — no `depends-on` clause exists** [#452] → the pair is either expressed as a parseable `depends-on` clause or recorded as intentionally prose-carried, and [#424]'s scope note distinguishes absent clauses from unparsable ones · closed 2026-08-12 · `d5d746121333`
-- **`protocols/DEFINITION_OF_DONE.md` `## Scope-freeze` expired in place** [#360] → the `## Scope-freeze` clause is lifted, renewed with a new window, or recorded expired-with-reason · closed 2026-08-12 · `d5d746121333`
 
 ## Section 1 — Backlog at a glance
 
@@ -58,7 +55,7 @@ _Rows that left `BACKLOG.md` between 2026-08-12 and 2026-08-19, newest first. Th
 
 **Total live rows: 206** (+11 over 7 days; 195 at the window start).
 
-Closed this window (25): [#494] · [#486] · [#450] · [#449] · [#407] · [#406] · [#323] · [#281] · [#122] · [#558] · [#557] · [#556] · [#536] · [#505] · [#502] · [#532] · [#527] · [#524] · [#364] · [#352] · [#525] · [#513] · [#508] · [#452] · [#360]
+Closed this window (22): [#494] · [#486] · [#450] · [#449] · [#407] · [#406] · [#323] · [#281] · [#122] · [#558] · [#557] · [#556] · [#536] · [#505] · [#502] · [#532] · [#527] · [#524] · [#364] · [#352] · [#525] · [#513]
 
 ## Section 2 — Intake lifecycle gate
 

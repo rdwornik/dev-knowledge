@@ -19,6 +19,40 @@
 
 ---
 
+### 2026-08-20 (d) — CC (Opus 5, branch `docs/codespaces-audit-2026-08-20`): the Codespaces ruling lands, the dashboard is regenerated over every landing of the day
+
+**Did:** Landed `docs/audits/2026-08-20-technical-codespaces-audit.md` at `d436d64f` with its accepted RULING
+block intact, then regenerated the dashboard once (`gen_dashboard.py --write`, `PYTHONUTF8=1`) so Section 0 and
+the theme boards reflect every landing of the day rather than the state before the merge queue ran. Closes the
+window-close arc opened in entry (c).
+
+**Result:** Targeted suite on the merged result: **2 failed, 3093 passed, 3 skipped, 1 xfailed** (1297.81 s,
+`-m "not slow" -n auto`). Both REDs are **pre-existing, measured rather than argued**: they reproduce identically
+on bare `main` at `1def12f6` in a throwaway worktree, and this arc's only non-documentation change is the single
+`audit-health` line gaining `--parallel`, which neither test reads. They are
+`test_routine_consumers_live_backlog_governs_exactly_one_row` (a stale pin — the test expects 1 declared routine
+row, the audit reports 3 and passes) and
+`test_anchor_gate_probe_distinguishes_installed_from_absent` (the pre-push organ refuses an anchored push in the
+synthetic consumer too, so the probe does not discriminate). Neither is dispositioned here; both are reported.
+
+`audit.py health --parallel` on the merged tree: **health: OK, 0 FAIL**, check ledger **40/78 pass** — identical
+to the baseline the `--parallel` bar report recorded at `1def12f6`.
+
+**Teardown was complete and needed no force.** All five lane worktrees removed and pruned (`git worktree list`
+shows the primary only, `.git/worktrees/` is gone); eight merged local branches deleted with `-d`. The contract's
+force-delete allowance for the two named dead remnants went **unused** — `worktree-ab-grok46` and
+`worktree-night-ab-gemini` both sat at `1def12f6`, fully merged, so there were no unmerged commits to log.
+
+**Changes:** `docs/audits/2026-08-20-technical-codespaces-audit.md` (new), `docs/audits/README.md`,
+`ecosystem/conformance.md` + `ecosystem/conformance.html` regenerated.
+
+**Abandoned:** `docs/night-ab-gemini-2026-08-20` (Gemini slot 1, `e7d72903`, 2 commits) is **deliberately not
+deleted and not merged**: its two artifact paths collide byte-for-byte in name with slot 2's, which are now on
+main with different content, so landing it needs a rename decision that is not the integrator's.
+
+**Next:** Operator GO, then push and the origin-side deletions. The architect rules A/B admission from the END
+PACKET.
+
 ### 2026-08-20 (c) — CC (Opus 5, branch `docs/final-integrator-2026-08-20`): window-close consolidation — three lanes land, the Codespaces ruling comes into the tree
 
 **Did:** Executed the frozen FINAL INTEGRATOR contract (`docs/audits/2026-08-20-technical-final-integrator-contract.md`,
