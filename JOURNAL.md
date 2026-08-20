@@ -156,6 +156,10 @@ intact. No existing entry was edited or moved to make room.
 order this rule requires. The branch had never been pushed to `origin`, so the origin leg was a
 no-op rather than a deletion; that is recorded as what it was, not dressed up as a demonstration.
 
+**Anchors:** `71d89d3a` — this entry's own landing commit, named so the merge that carries
+it onto the spine is discharged against the ADR-85 anchor gate. A single-commit branch
+cannot anchor its own merge; this is the second commit that makes it discharge-able.
+
 **Changes:** `JOURNAL.md` (this entry only).
 
 **Abandoned:** **Q3 was not edited, and no section-Q line was touched** — the operator's
