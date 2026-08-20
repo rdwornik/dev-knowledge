@@ -119,6 +119,57 @@ mine to run on the operator's OK.
 
 ---
 
+### 2026-08-20 (i) — CC (Opus 5, handoff seat, `main`): the push-before-delete standing order takes the slot that cites it
+
+**Did:** Recorded, as a standing order, the harvest rule ruled in the 2026-08-19/20 architect
+window: **push before delete, on every harvest** — a merged branch is deleted on `origin` only
+after the merge has been pushed, so **no window exists in which integrated work lives solely in a
+local clone**. Operator-authorized append, executed on `main` after the handoff merge `03aca460`.
+
+**Why this entry exists, stated plainly rather than implied.** `protocols/STANDING_RULINGS.md`
+Q3 already carries the rule and closes with *"Recorded as a standing order in `JOURNAL.md`
+2026-08-20 (i)"* — a citation written **forward**, against an entry that had not been authored.
+The 2026-08-20 transcription arc's own `Next:` line planned a merge/END-PACKET entry, which is
+almost certainly the slot Q3 was written against; that arc closed before writing it. The
+2026-08-20 architect-2 handoff seat found the dangling locator while deriving its day-letter from
+disk instead of assuming it, took `(j)` and `(k)`, and **left `(i)` deliberately unclaimed** so
+this order could land in the slot its own citation names. This is that landing. Q3 now resolves.
+
+**Provenance, cited rather than claimed as an in-repo ruling act.** The rule was ruled in the
+2026-08-19/20 architect chat window — the same off-repo ratifying act section Q's preamble records
+for its whole block, on the section-I precedent for `RULING-CHECKLIST-2026-08-10.md`. This entry
+**transcribes an already-issued answer into the durable slot that references it**; it decides
+nothing new. The rule's declared durable home for a *reader* is `protocols/PLAYBOOK.md` Ch8, which
+does not yet carry it — the 2026-08-20 playbook-status census reads Q3 as its **G9** and finds it
+ABSENT, and `[#539]`'s codification lane is the carrier. That gap is unchanged by this entry: a
+JOURNAL standing order is the provenance record, not the chapter pointer.
+
+**Ordering is disclosed, not disguised.** This entry was authored on the evening of 2026-08-20,
+**after** `(j)` and `(k)` were written and after `03aca460` was pushed. It occupies letter `(i)`
+because that slot was reserved for it, **not** because it predates its siblings.
+`check_journal_day_letters` enforces uniqueness per day rather than contiguity or ordering, so the
+slot is legal; it is placed between `(j)` and `(h)` to keep the file's newest-first letter order
+intact. No existing entry was edited or moved to make room.
+
+**One verified application, and only one is claimed.** This session pushed `main` to `origin`
+(`4acce74f..03aca460`, both pre-push gates passing) **before** retiring its handoff branch — the
+order this rule requires. The branch had never been pushed to `origin`, so the origin leg was a
+no-op rather than a deletion; that is recorded as what it was, not dressed up as a demonstration.
+
+**Changes:** `JOURNAL.md` (this entry only).
+
+**Abandoned:** **Q3 was not edited, and no section-Q line was touched** — the operator's
+instruction was an additive append and `STANDING_RULINGS.md` is unchanged by this act. No PLAYBOOK
+Ch8 pointer was written: that is `[#539]`'s lane and writing it here would silently widen a scoped
+act. No backlog row moved. The supplement's §7 item 3 — which asserted this entry already existed —
+is **not** amended: it sits in an immutable, verbatim-committed handoff artifact, and the honest
+repair is to make the claim true here rather than to edit the record that was wrong when written.
+
+**Next:** The Q2/Q10 deferral (trigger `[#539]` Ch8 landing or 2026-09-19) is untouched by this and
+still stands. Ch8 remains owed the reader-facing pointer for Q3.
+
+---
+
 ### 2026-08-20 (h) — CC (Opus 5, transcription seat, branch `docs/transcription-ag2-2026-08-20`): the verdicts reach the rows, and the ledger releases eight births
 
 **Did:** Act-group 2. `20a51638` transcribed the window's verdicts into three row bodies —
