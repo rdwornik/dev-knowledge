@@ -19,6 +19,33 @@
 
 ---
 
+### 2026-08-20 (e) — CC (Opus 5, integrator seat, `main`): the playbook-status cloud lane joins the window on an operator INSPECT-THEN-MERGE
+
+**Did:** Inspected `origin/claude/playbook-status-census-2026-08-20` under the operator's docs-only N4 rule and
+merged it `--no-ff`, bringing in `c4024f9d` (dispatch stamp) and `f8667c3b` (the PLAYBOOK dispatch-coverage status
++ hygiene census for the `[#539]`/Ch8 codification). The anchor rides in this merge rather than ahead of it
+because the ADR-110 batch exemption never covers a `claude/*` lane and the tips must be journalled with zero
+bypasses.
+
+**Result:** The branch is a **pure ADD of exactly its own two audit documents** —
+`docs/audits/2026-08-20-technical-playbook-status.md` and its `-lane-contract.md`. It touches no `JOURNAL.md`,
+no `BACKLOG.md`, nothing under `tasks/` and nothing under `scripts/`, so it passes the N4 rule without
+qualification. It did **not** update the generated `docs/audits/README.md`, so the index is regenerated in this
+same merge commit rather than left to red the next commit's `audit-index-freshness` gate.
+
+**This closes the step-1 premise gap recorded in entry (c).** The contract asked me to confirm a
+`hygiene-docrot` artifact and a `playbook-status` artifact on `origin/main`. There is no `hygiene-docrot`
+artifact in any ref — the hygiene census is folded into the playbook-status file, so the two names denote one
+document — and playbook-status was not on `main` at all. It is now, and the END PACKET can cite it by path.
+
+**Changes:** `docs/audits/2026-08-20-technical-playbook-status.md` (new),
+`docs/audits/2026-08-20-technical-playbook-status-lane-contract.md` (new), `docs/audits/README.md` regenerated.
+
+**Abandoned:** No ruling. The census's own asks stay the architect's.
+
+**Next:** Push, then delete this now-merged `claude/*` lane from origin under the push-before-delete standing
+order. `docs/night-ab-gemini-2026-08-20` stays put — unmerged, name-colliding, and its disposition is a ruling.
+
 ### 2026-08-20 (d) — CC (Opus 5, branch `docs/codespaces-audit-2026-08-20`): the Codespaces ruling lands, the dashboard is regenerated over every landing of the day
 
 **Did:** Landed `docs/audits/2026-08-20-technical-codespaces-audit.md` at `d436d64f` with its accepted RULING
