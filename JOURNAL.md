@@ -19,6 +19,51 @@
 
 ---
 
+### 2026-08-20 (b) — CC (Opus 5, branch `docs/handoff-2026-08-20-supplement-fold`): the supplement folds, and it overturns the residual's own lead framing
+
+**Did:** The operator filled `SUPPLEMENT.md` from the outgoing 2026-08-17 architect window. Ran
+`assemble_paste.py`, which folded the ANSWERS region into `PASTE_THIS.md` (38265 → 57208 bytes) and
+flipped the cold framing to FILLED in `HANDOFF_BOOT.md`, `RESIDUAL.md` and `PROBES.md`. Swept the whole
+bundle afterwards rather than trusting the reflow — the known failure mode is that the reflow covers
+generator sites only — and confirmed no stale cold-handoff claim survives anywhere in the four files.
+
+**Result:** The fold **supersedes the residual's §4 on both of its lead items**, and that is the
+supplement working as designed rather than a defect in either artifact. §4 named the cloud-lane contract
+versus `audit-index-freshness` conflict as the ask to rule first, and the C6 `run_id` emit contract as
+the second. Answer 7's ratified-in-chat register records both as **already ruled off-repo**: item 1
+*"integrator is gate-of-record for index freshness on lane material; declared single-hook bypass on lane
+branches is sanctioned"* (ruling 9), and item 2, the nine C-digest rulings of the 2026-08-19 night
+including `run_id` birth-before-read-path. Both readings were right about what they could see — those
+asks were unruled **in the repo**, which is all the digest and the residual can observe. **The owed act
+is transcription, not adjudication**, and the register names eight such items with their durable homes.
+
+**`RESIDUAL.md`'s §4 body was deliberately NOT rewritten.** Handoffs are immutable (§5 rule 3) and the
+fold is the designed channel for exactly this correction, so the next session reads both framings in one
+paste instead of one framing that has been quietly edited to agree with the other.
+
+**What the supplement carried that the repo did not contain at all:** the operator↔architect paste
+channel is broken in that chat client — inline copy-paste arrives EMPTY, so outputs must travel as
+uploaded `.md` files, and the next architect is to state this up front and never claim to have read an
+inline paste without verifying content. Also recorded: the cloud-CLI transport verdicts (ARG, STDIN and
+BRIEF-ON-BRANCH all measured dead 2026-08-19; the API create path is the working one), the EMU
+no-Codespaces-entitlement measurement behind the substrate choice, and a genuinely still-owed ruling —
+`[#529]`'s Done-when says "via structlog" while the lane shipped stdlib-logging.
+
+**`assemble_paste` flagged 7 ruling-bearing lines as promotion debt** (intake #18 A8), which agrees with
+the register's own account rather than adding a new finding: the homes are named, the promotion act is
+still unowned.
+
+**Changes:** `docs/handoffs/2026-08-20-dev-knowledge-architect/` — `SUPPLEMENT.md` filled, `PASTE_THIS.md`
+re-assembled with the folded ANSWERS, cold→FILLED reflow in `HANDOFF_BOOT.md` / `RESIDUAL.md` / `PROBES.md`.
+
+**Abandoned:** Nothing. No ruling was made here either — the fold transmits the outgoing window's rulings;
+transcribing them into their named homes is the next seat's first act, as the register itself states.
+
+**Next:** Operator pastes `PASTE_THIS.md` into a fresh chat and asks CC for `/handoff-verify`. Push of
+`main` and deletion of the two merged handoff branches are operator-gated.
+
+**Anchors:** `a085dc10` (the fold commit this entry names) — the commit this branch's merge introduces.
+
 ### 2026-08-20 (a) — CC (Opus 5, branch `docs/handoff-2026-08-20-architect`): the architect handoff is cut, and the window's real carry is a ruling debt rather than a drift
 
 **Did:** Ran the architect-mode handoff by the book — session-start checks, both read-only drift-checks,
