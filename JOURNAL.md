@@ -19,6 +19,38 @@
 
 ---
 
+### 2026-08-20 (c) — CC (Opus 5, branch `docs/final-integrator-2026-08-20`): window-close consolidation — three lanes land, the Codespaces ruling comes into the tree
+
+**Did:** Executed the frozen FINAL INTEGRATOR contract (`docs/audits/2026-08-20-technical-final-integrator-contract.md`,
+committed first per ADR-110 at `e9da1100`) from the primary checkout, serial, one pass. Merged the day's three
+worktree lanes `--no-ff` after inspecting each against its own contract of record: the `--parallel` audit-hook flip
+(`94fac6a0`, `a532afae`), the Gemini 3.7 Flash A/B slot 2 (`2f619f0c`, `f6a3d37b`), and the Grok 4.6 A/B
+(`d2dc2fa6`, `1c533bc4`). Landed the Codespaces performance/cost audit with its accepted RULING block. Regenerated
+the audits index and the dashboard once over the merged result, ran the targeted suite, and tore the worktrees down.
+
+**Result:** All three lanes MERGED — none refused. Both A/B lanes delivered computed G2/G3 with G1 left
+ARCHITECT-PENDING and no admit/refuse verdict asserted, which is what their contracts required. The Gemini lane
+carries a **declared deviation** (§4 of its artifact): it ran past a literal STOP because the STOP's factual premise
+— that `agy` does not serve `gemini-3.7-flash` — is false; both its prohibitions (no substitute model, no API key)
+were preserved, and the artifact states how to void §8–§10 at zero cost. The Grok lane's candidate read the pack's
+own answer key on two of fourteen items (its §6), self-reported. Neither is an integrator ruling; both ride into the
+architect's packet verbatim.
+
+**Two premises of the contract failed origin verification and are recorded rather than repaired:** there is no
+`hygiene-docrot` artifact anywhere in the tree — the hygiene census is folded into the playbook-status file — and
+that file is **not on `origin/main`**; it exists only on the unmerged cloud lane
+`origin/claude/playbook-status-census-2026-08-20` (`f8667c3b`, 2 ahead). No merge of that lane was in the enumerated
+queue, so none was performed.
+
+**Changes:** `docs/audits/` — the integrator contract, the Codespaces audit, the three lanes' contracts and results,
+regenerated `README.md` index; `.pre-commit-config.yaml` — `audit.py health --parallel`; the regenerated dashboard.
+
+**Abandoned:** No rulings, no births, no closures. The playbook-status cloud lane is left unmerged and surfaced to
+the operator as a decision.
+
+**Next:** The architect rules admission for both A/B lanes from the END PACKET. Pending with owners: Ch8
+codification, the provider-config lane, the step-0 free-ceiling test, the ssh BOM.
+
 ### 2026-08-20 (b) — CC (Opus 5, branch `docs/handoff-2026-08-20-supplement-fold`): the supplement folds, and it overturns the residual's own lead framing
 
 **Did:** The operator filled `SUPPLEMENT.md` from the outgoing 2026-08-17 architect window. Ran
