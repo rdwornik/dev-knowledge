@@ -19,6 +19,52 @@
 
 ---
 
+### 2026-08-20 (h) — CC (Opus 5, transcription seat, branch `docs/transcription-ag2-2026-08-20`): the verdicts reach the rows, and the ledger releases eight births
+
+**Did:** Act-group 2. `20a51638` transcribed the window's verdicts into three row bodies —
+`[#491]`, `[#561]`, `[#539]`. `b6e2044b` released eight births — `[#562]`–`[#569]` — covering
+ACT 2.5(a,b), ACT 3's four, and ACT 4's grouped hygiene row. `873c6e59` recorded section Q's
+anti-orphan discharge back into the register.
+
+**The ledger was re-measured from the store, not carried from the contract.** The contract asserts
+*"banked closures ≥ 15, births so far 3"*; walking `tasks/` status transitions reproduces both
+exactly — 6 closures on 08-18 plus 9 on 08-19 = **15 banked**, and **3 window births** (`[#559]`,
+`[#560]`, `[#561]`). House rule per `d85490d0` is *banked > window births*; releasing 8 takes the
+window to 11, and **15 > 11** holds with 4 of headroom. The number is stated here because the rule
+halts a release the moment it stops holding, and the next seat needs the figure it starts from.
+
+**ACT 2.6's verification FAILED and is reported rather than quietly repaired.** The addendum asked
+me to *verify* `[#539]`'s body already points at its gap table and Ch8 brief. It did not — the row's
+only source pointer was the 2026-08-16 equilibrium audit, and the 2026-08-20 playbook-status census
+appeared nowhere in it. The pointer is **added** by `20a51638`, naming the 14-row G1–G14 table, the
+3-new-plus-4-amended Ch8 shape, and the cross-repo win-tooling home of the runbook being codified.
+
+**The anti-orphan sweep found two, and neither got a manufactured carrier.** 18 of 20 transcribed
+ratifications end this arc carried by a live open row. **Q2** (primary is seat-arc-only) and **Q10**
+(a lane PAUSEs on a refuted premise) are `deferred`, trigger dated **2026-09-19**: both are fully
+landed in their declared home — this register — and neither describes a thing to build, so neither
+has a lawful carrier row. What is outstanding is a one-line Ch8 pointer each, and the census routes
+Q2 (its G11) to the register *"primarily"* while the drafted `[#539]` brief **excludes G11 on
+purpose**, so the pointer is owed by neither lane. **The sweep's result landed in the register, not
+only in the packet** — a sweep whose output lives in a packet is the orphan class P-2 exists to close.
+
+**Two disclosures.** Eight new rows add `backlog-row-length` `doc_rot` WARNs (bodies 1530–2477 chars
+against the 1320 ceiling), landed as drafted rather than trimmed on the `[#559]`/`[#561]` precedent.
+And the ratchet was re-measured against staged blobs at every register edit: **440, unchanged**,
+baseline 441.
+
+**Changes:** `tasks/{491,539,561}` (annotated), `tasks/56{2,3,4,5,6,7,8,9}-*.md` (new),
+`tasks/manifest.json`, `BACKLOG.md` (regenerated, 214 tasks), `protocols/STANDING_RULINGS.md`
+(+anti-orphan discharge), `JOURNAL.md`.
+
+**Abandoned:** No admission reversals, no supplement edits, no Ch8 writing — all three are the
+contract's explicit NOTs and all three held. No security-related item was filed anywhere.
+
+**Next:** Merge act-group 2, run the full gates with no `SKIP=`, push, and emit the END PACKET with
+the lifecycle census.
+
+---
+
 ### 2026-08-20 (g) — CC (Opus 5, transcription seat, branch `docs/transcription-ag1-2026-08-20`): the repo takes the window's rulings into a file agents read
 
 **Did:** Executed act-group 1 of the frozen window-close transcription contract, landed first at
