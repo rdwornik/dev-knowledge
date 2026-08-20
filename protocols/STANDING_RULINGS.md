@@ -1886,6 +1886,28 @@ already-issued answer, and the arc that landed them carries its contract at
   deviation-with-disclosure is not a license. The disclosure discharges the reporting duty; it
   does not authorise the deviation.
 
+### Q · Anti-orphan discharge (per P-2, applied to this block)
+
+Every ruling above ends its transcription arc with a live carrier row or a dated deferral. The
+sweep was run mechanically against `tasks/*.md` at the close of the 2026-08-20 transcription arc,
+and its result is recorded here rather than only in the arc's packet, because a sweep whose output
+lives in a packet is exactly the orphan class P-2 exists to close.
+
+- **Carried by a live row:** Q1, Q3, Q4, Q5, Q6 → `[#539]` (the Ch8 codification lane, whose body
+  now names the gap table that maps them as G10/G9/G14/G3/G13) · Q7, Q8 → `[#491]`, `[#562]` ·
+  Q9 → `[#562]`, `[#568]`.
+- **`disposition: deferred`, trigger dated 2026-09-19 — Q2 and Q10.** Both are fully landed in
+  their declared durable home, which is **this register**: they are rules an agent applies at read
+  time, and neither describes a thing to build, so neither has a lawful carrier row today. What is
+  genuinely outstanding for each is a **one-line pointer from `protocols/PLAYBOOK.md` Ch8**, so a
+  reader arriving at the dispatch chapter meets them there — Q2 beside *"Integrate from the
+  primary"*, Q10 beside the lane-contract requirements list. The
+  `docs/audits/2026-08-20-technical-playbook-status.md` gap table routes Q2 (its G11) to this
+  register *"primarily"* and its drafted `[#539]` brief **excludes G11 on purpose** to keep that
+  lane to one file, so the pointer is owed by neither lane and is dated instead of assumed.
+  **Trigger:** `[#539]`'s Ch8 codification lane landing, or **2026-09-19**, whichever comes first —
+  at which point the pointer is written or the deferral is re-dated with a reason.
+
 ## Editing note (read before adding an entry)
 
 This file sits inside the silent-rule ratchet corpus (`protocols/*.md`; detector
