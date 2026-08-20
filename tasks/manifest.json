@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "08c01860ec348cc47b957bcc3894d42e8a7aed87951241d75dd35f9dac49558a",
+  "generated_sha256": "9d4b2248aca75053869b5b83b35c497ed67cc7bb710b7075bf7adc083da312ae",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -621,6 +621,10 @@
       "file": "550-intake-14-ruled-siem-requirements-half-dispositioned.md"
     },
     {
+      "task": 564,
+      "file": "564-lifecycle-archival-implemented-adrs-and-decided-int.md"
+    },
+    {
       "prose": ""
     },
     {
@@ -680,6 +684,10 @@
     {
       "task": 526,
       "file": "526-root-hygiene-audit-which-root-files-must-be-root.md"
+    },
+    {
+      "task": 569,
+      "file": "569-grouped-hygiene-two-standing-suite-reds-and-the-19-.md"
     },
     {
       "prose": ""
@@ -937,6 +945,10 @@
       "file": "529-telemetry-v1-emit-stage-1-events-from-the-gate-m.md"
     },
     {
+      "task": 565,
+      "file": "565-run-id-in-telemetry-emit-before-the-read-path-lane.md"
+    },
+    {
       "prose": ""
     },
     {
@@ -950,6 +962,14 @@
     {
       "file": "554-devcontainer-provisioning-script-nb4-g-stage-1.md",
       "task": 554
+    },
+    {
+      "task": 563,
+      "file": "563-backlog-md-as-a-read-only-view-layer-the-one-way-ex.md"
+    },
+    {
+      "task": 568,
+      "file": "568-provider-config-as-code-dev-knowledge-as-source-of-.md"
     },
     {
       "prose": "### [S19] Decide the undecided artifact/tool models"
@@ -989,12 +1009,20 @@
       "file": "492-grok-review-lane-acceptance-gated-2026-08-07-mea.md"
     },
     {
+      "task": 562,
+      "file": "562-grok-4-6-guarded-rerun-a-no-pack-sandbox-before-th.md"
+    },
+    {
       "task": 491,
       "file": "491-gemini-scanning-lane-ruling-r-g-plus-an-acceptan.md"
     },
     {
       "task": 488,
       "file": "488-priority-axis-the-backlog-has-no-ranking-functio.md"
+    },
+    {
+      "task": 566,
+      "file": "566-constraint-contention-tiebreak-implement-the-accept.md"
     },
     {
       "prose": ""
@@ -1010,6 +1038,10 @@
     {
       "task": 561,
       "file": "561-re-base-the-compute-plan-onto-the-hetzner-cx-sha.md"
+    },
+    {
+      "task": 567,
+      "file": "567-cx53-daily-driver-substrate-lane-the-every-prompt-r.md"
     },
     {
       "prose": "### [S20] Revive the nightly layer, load-gauge first (rent-rule discipline)"

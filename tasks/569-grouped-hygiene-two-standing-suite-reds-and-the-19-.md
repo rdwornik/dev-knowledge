@@ -1,0 +1,13 @@
+---
+id: "[#569]"
+title: "Grouped hygiene — two standing suite REDs and the 19-finding PLAYBOOK census"
+status: open
+priority: P2
+size: M
+theme: "[E5] Canonical-file integrity"
+story: "[S13] Keep canonical files accurate"
+serialize-group: playbook
+generates: BACKLOG.md
+---
+
+- [#569] [P2][M] **Grouped hygiene — two standing suite REDs and the 19-finding PLAYBOOK census** — One row for the window's hygiene backlog, filed grouped rather than as six, because each item is cheap and individually unfileable. **(A) Two pre-existing suite REDs**, measured on merged `main` and reproduced identically on bare `main` at `1def12f6` in a throwaway worktree, so neither is this window's work: `test_routine_consumers_live_backlog_governs_exactly_one_row` is a **stale pin** — it expects 1 declared routine row while the audit reports 3 and passes — and `test_anchor_gate_probe_distinguishes_installed_from_absent` **does not discriminate**, because the pre-push organ refuses an anchored push in the synthetic consumer too. **(B) The 19-finding PLAYBOOK census** (2 HIGH, 10 MED, 7 low-or-mechanical). The two HIGHs first: **H14** — `/override` is described as live and as *the gate's only escape* at `:2770`, while ADR-85's 2026-08-03 amendment retired it and its own command file reads `RETIRED`, so doctrine points a reader at a dead organ; and **H13** — an **11-site `HANDOFF_PROCESS v5` cluster** in a file whose frontmatter declares `reconciled_with: handoff-process@6.2.0`, the declared-edge stamp current while the prose it governs is a version behind. Then **H1/H2** (two integers: `ALL_CHECKS` reads 41, live 43; refuse-to-finish reads five, live six — the doctrine surface is behind its own command), **H3-H5** (self-contradictions), **H6-H12** (**6 of 7 file:line locators wrong, and H8/H9 teach as LIVE two defects already FIXED**, which is worse than a stale line number), **H16-H18**, and **H19a/H19b** (a mis-pointed undone TBD, and a TBD a ratified ADR already answers). **H13 is explicitly NOT a find-and-replace** — several v5 sites are legitimately historical, so it is a `check-against-spec` re-stamp arc. · Done when: both suite tests are green or retired with a recorded reason, H14 and H1/H2/H19b are corrected, and H13 is discharged through the `check-against-spec` re-stamp flow with each of the 11 sites individually verdicted stale-or-historical · refs docs/audits/2026-08-20-technical-playbook-status.md, protocols/PLAYBOOK.md, .claude/commands/override.md, protocols/HANDOFF_PROCESS.md, ADR-85, #285, #542 · kill-candidates: none — `[#285]` extends freshness GATING to PLAYBOOK (a mechanism) and `[#542]` owns one ARCHITECTURE claim; this row owns the measured content defects and neither absorbs them · serialize-group: playbook
