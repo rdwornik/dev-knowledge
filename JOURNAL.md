@@ -19,6 +19,56 @@
 
 ---
 
+### 2026-08-20 (g) — CC (Opus 5, transcription seat, branch `docs/transcription-ag1-2026-08-20`): the repo takes the window's rulings into a file agents read
+
+**Did:** Executed act-group 1 of the frozen window-close transcription contract, landed first at
+`fbd4d9df` as `docs/audits/2026-08-20-technical-transcription-seat-contract.md` per ADR-110 — the prompt
+as issued, with the operator's binding addendum appended under its own heading rather than folded in.
+Then `2c24f638` transcribed the window's ten rulings into `protocols/STANDING_RULINGS.md` as a new
+lettered section Q, and `a8512017` recorded the acceptance window's systemic finding in `LESSONS.md`
+plus `ERRATUM E1` appended to the Codespaces audit.
+
+**Result:** Ten rulings that existed only in the architect chat now have an in-repo locator an agent
+applies silently. Section Q follows section I's one-line-per-ruling DEFAULT BLOCK rather than inventing
+a shape. Six of the ten (Q1, Q3–Q6) name PLAYBOOK Ch8 as their declared durable home and are
+independently corroborated by the 2026-08-20 playbook-status census, which reads exactly those as
+G10/G9/G14/G3/G13 and finds every one of them ABSENT from `PLAYBOOK.md` today — so the register and
+the gap table are cross-cited and cannot drift apart. `[#539]`'s lane carries them across.
+
+**The ratchet was measured, not assumed.** `silent_rule_detector` reports **440 before and 440 after**
+against a baseline of 441 — section Q adds zero `must|shall|never` occurrences. Ruling 4 arrived as
+*"never touch foreign dirty files"* and is transcribed as *"leaves foreign dirty files untouched"*: the
+same rule, declaratively phrased, per this file's own Editing note. No other wording was softened, and
+the softening is disclosed here rather than left for a reader to notice.
+
+**The systemic finding is a correction to an easy misreading.** Both A/B candidates failed the role
+gate, and the tempting conclusion is that they lack role discipline. Re-reading the A/B record before
+writing shows the **incumbent scored 0/2 on the same two items** — on `C1-N2` Haiku 4.5 produced all
+eight requested ADR-111 labels instead of declining. Role discipline is a property of architect
+routing, not of a model, and a bar that admits nobody after two runs is reporting a result.
+
+**`ERRATUM E1` is appended, not edited** — audits are immutable and an in-file amendment marker is the
+sanctioned form. The §5 `ruff` workstation figure of 1682 ms did not reproduce (~0.33 s quiet,
+`--no-cache` ruled out), so it and the 14.7× ratio built on it are withdrawn. The erratum states its
+blast radius as a table: the codespace-side 114 ms, the pytest 4.9×, and the 205.9 s → ~19 s
+`audit.py health` result that IS the 207 s commit tax all STAND, and the accepted LEAN v2 is unaffected.
+
+**STEP 0 was discharged before any work started:** two polls 75 s apart (19:35:08, 19:36:23) both showed
+a clean tree, `HEAD` stable at `217c68cb`, `main == origin/main`. No foreign file was touched.
+
+**Changes:** `docs/audits/2026-08-20-technical-transcription-seat-contract.md` (new),
+`docs/audits/README.md` (regenerated), `protocols/STANDING_RULINGS.md` (+section Q), `LESSONS.md`
+(one prepended entry), `docs/audits/2026-08-20-technical-codespaces-audit.md` (+ERRATUM E1), `JOURNAL.md`.
+
+**Abandoned:** Nothing. Admission *outcomes* are deliberately not in section Q — Q7/Q8/Q9 record the
+acceptance instrument only, and the per-model verdicts land as row bodies in act-group 2. No supplement
+file is touched; the architect owns that file.
+
+**Next:** Act-group 2 — the row-body transcriptions, the anti-orphan sweep, and the birth release the
+ledger permits (banked closures 15, window births 3 before this arc).
+
+---
+
 ### 2026-08-20 (f) — CC (Opus 5, integrator seat, `main`): the slot-1 Gemini A/B record lands renamed, and its branch is retired
 
 **Did:** Took the two audit artifacts from `origin/docs/night-ab-gemini-2026-08-20` (`7ce4aedc` contract,
