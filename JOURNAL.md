@@ -19,6 +19,58 @@
 
 ---
 
+### 2026-08-20 (k) — CC (Opus 5, handoff seat, branch `docs/handoff-2026-08-20-architect-2`): the supplement folds, and it hands forward one claim the repo refutes
+
+**Did:** The operator filled `SUPPLEMENT.md` from the outgoing architect chat and said `supplement
+filled`. Committed the file **verbatim** at `da8f43a3` — no rewording, reordering, trimming or
+summarizing, and no CC-authored answer anywhere in it — then re-ran `scripts/assemble_paste.py` at
+`57a5d15f`, which folds the ANSWERS region into `PASTE_THIS.md` and flips the five empty-vs-filled
+banners across `HANDOFF_BOOT` / `PROBES` / `RESIDUAL`. The three banner diffs were read line-by-line
+before committing and are banner-only; no content drifted. The incoming §13(d) operator-context beat
+therefore **NARROWS** to *"anything changed since the supplement was written?"* rather than firing full.
+
+**Result: the repo-verifiable claims were checked before the fold, not left for the incoming gate.**
+Per HANDOFF_PROCESS §B(b) only answers asserting repo-verifiable facts are checkable at all — the
+supplement's actual payload (intent, tensions, options rejected) has no live repo source by
+construction and stays advisory. Two of the checkable ones were run live:
+
+- **CONFIRMED** — §10's *"ADRs 88 = 86 live + 2 archived"* measures exactly right.
+- **CONTRADICTED** — §7 item 3 asserts *"'Push-before-delete on every harvest' — JOURNAL entry (i)
+  exists."* It does not, and never did. **This is the same defect entry (j) recorded from the other
+  side:** `protocols/STANDING_RULINGS.md`:1866 (Q3) cites the same non-existent entry. So the register
+  line and the supplement are **one origin, not two independent errors** — the outgoing architect
+  believed the entry existed and the transcription seat carried the belief into the register without
+  checking it. **Left standing in the file**, because the supplement is committed verbatim by ruling
+  and its answers are advisory; the incoming `/handoff-verify` `Inherited claims` row is the organ that
+  FAILs a contradicted claim, and pre-empting it by editing the artifact would remove the evidence.
+
+**One supplement item is already discharged and would otherwise be re-worked.** §9 lists the Gemini
+slot-1 branch as pending KEEP-and-rename; that landed at `f2c1ed84` and the branch is gone from local
+and `origin` (JOURNAL 2026-08-20 (f)). Recorded here because a "pending, with owners" list is read as
+work to do.
+
+**The paste byte warn is disclosed with its measured cause, not waved through.** The assembler warned
+at 65,454 bytes against its 65,000 threshold. The cause is arithmetic, not judgement: this supplement
+carries 16,708 bytes of answers against the morning bundle's 8,542, and that 8,166-byte delta more than
+accounts for the paste's 8,245-byte growth over that bundle's 57,209. So it is **supplement volume, not
+the re-narration creep the warn text asks a reader to look for**. Not trimmed — verbatim binds, and the
+paste ceiling is warn-only under the accepted-with-reason HOLD the supplement's own §3 records (`#449`).
+The FAIL-class organ is the boot budget, and `protocols/HANDOFF_BOOT.md` sits at 16,493 of 18,000.
+
+**Changes:** `docs/handoffs/2026-08-20-dev-knowledge-architect-2/SUPPLEMENT.md` (filled, verbatim) at
+`da8f43a3`; `PASTE_THIS.md` + the three banner files at `57a5d15f`; `JOURNAL.md`.
+
+**Abandoned:** No merge, no push, no branch deletion — all three stay operator-gated and none was taken.
+No supplement answer was composed, tidied or completed by CC. Q3 was **not** repointed: it is a landed
+register line and amending it is a separate act needing its own stated reason, not a drive-by inside a
+handoff arc. `(i)` remains deliberately unclaimed so the push-before-delete standing order can still
+land there and make both citations resolve.
+
+**Next:** Operator pastes `PASTE_THIS.md` into a fresh chat. Merge of this branch to `main` and the push
+are mine to run on the operator's OK.
+
+---
+
 ### 2026-08-20 (j) — CC (Opus 5, handoff seat, branch `docs/handoff-2026-08-20-architect-2`): the second architect bundle of the day, cut against an inverted carry
 
 **Did:** Generated `docs/handoffs/2026-08-20-dev-knowledge-architect-2/` with
