@@ -19,6 +19,56 @@
 
 ---
 
+### 2026-08-20 (a) — CC (Opus 5, branch `docs/handoff-2026-08-20-architect`): the architect handoff is cut, and the window's real carry is a ruling debt rather than a drift
+
+**Did:** Ran the architect-mode handoff by the book — session-start checks, both read-only drift-checks,
+`audit.py health`, then `gen_handoff.py --mode architect` and the seven hand-authored FILL-IN regions.
+Verified the bundle's seal identity with `gen_handoff.verify_seal_identity` (reused, not reimplemented)
+before committing, and confirmed the P0c precondition live rather than by assumption: the Purpose names
+`[E7] Tooling & evaluation`, which is a live theme heading at `BACKLOG.md:233`, so the authority-match
+leg will bind rather than FAIL at the gate.
+
+**Result:** Bundle `docs/handoffs/2026-08-20-dev-knowledge-architect/` — five files, 819 insertions,
+generated answer-free. Every gate ran on the commit and passed; no `SKIP=`, no `--no-verify`. The repo
+state the bundle was cut from is clean on both drift axes — `validate_doc_claims` matched all four
+claims and `validate_git_backlog` reported no closed-but-present drift — which is *why* the residual's
+headline is not a drift-flag.
+
+**The window closed evidence-rich and ruling-poor, and that is the finding.** The five cloud C-lanes
+deposited 4462 lines of artifact and `docs/audits/2026-08-19-technical-c-lanes-consolidated.md` §6
+assembles ten asks while deliberately ruling none — correctly, since the harvesting seat should not rule
+from inside the harvest. The consequence is that the ruling debt is now the largest single carry, and
+§4 of the residual orders it rather than listing it. It leads with the only ask that *recurs*: the
+cloud-lane no-index-regeneration contract versus the `audit-index-freshness` gate, which C1 paid for
+with two `--no-verify` commits and which fires again on every cloud lane that adds an artifact.
+
+**Two asks expired unruled, and one of the two deadlines was mis-derived — worth separating.** C6 routed
+`run_id` in the emit contract as due "TODAY" with its window closing at the L2 merge, and L2 merged
+2026-08-19 (entry (e)). But `[#529]` is still LIBRARY ONLY with zero call sites, so the contract stays
+cheap to amend right up until the wiring lands: the *ask* is live, only the *deadline* was wrong. C1's
+three-gate ADMIT/REFUSE bar was scoped to a slot that has passed. The durable question the pair raises —
+whether a lane-declared deadline the integrator has no way to meet binds at all — is carried unruled.
+
+**Two honesty notes were carried rather than smoothed over.** The residual tags §2 `recall`, because this
+seat did not participate in the sessions that produced the window's work and a map of the record is not a
+report of lived experience. And `[#560]` establishes that `review_artifact_coverage` reads only the first
+branch/HEAD triple plus one title literal, so that WARN family is **not evidence** until its reader is
+fixed — which also gates `[#499]`'s hard flip, making the two a sequence rather than two independent
+tidy-ups. The bundle states no verdict, count or sha anywhere; P3/P4/P6/P7/P9 re-derive each live.
+
+**Changes:** `docs/handoffs/2026-08-20-dev-knowledge-architect/` (new — `HANDOFF_BOOT` · `RESIDUAL` ·
+`PROBES` · `SUPPLEMENT` · `PASTE_THIS`).
+
+**Abandoned:** Nothing. No ruling was made — the bundle assembles the queue and the next architect seat
+rules from it. `SUPPLEMENT.md` is committed **empty**, which is the defined cold-handoff disposition and
+not a defect: there is no outgoing architect chat in this session to ask, so the incoming §13(d)
+operator-context beat fires full.
+
+**Next:** Operator pastes `PASTE_THIS.md` into a fresh chat and asks CC for `/handoff-verify`. Push of
+`main` is operator-gated.
+
+**Anchors:** `f011945f` (the bundle commit this entry names) — the commit this branch's merge introduces.
+
 ### 2026-08-19 (i) — CC (Opus 5, branch `docs/539-briefs-integration`): the five cloud dispatch briefs land on main, so the harvest and its provenance sit in one tree
 
 **Did:** On the operator's ruling, merged `worktree-lane-x-539-cloud-briefs` before teardown rather
