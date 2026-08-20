@@ -916,3 +916,35 @@ changes.
 - The operator's `~/.ssh/config` was **not modified**; a BOM-free copy and a throwaway keypair were created in
   the job's temp directory only.
 - Nothing installed, no plan changed, no repo setting changed.
+
+---
+
+## ERRATUM E1 — 2026-08-20, appended by the window-close transcription seat
+
+**Appended, not edited.** Audits are immutable (`CLAUDE.md` §5 rule 3); an in-file amendment marker
+is the sanctioned form, and it is the form intake #25's own `ERRATUM 2026-08-09` / `ERRATUM E-2
+2026-08-11` precedents already use. Nothing above this line is altered.
+
+**The finding.** The §5 `ruff check .` **workstation** baseline of **1 682 ms** did not reproduce on
+re-measurement. A quiet re-run on the same corpus measures **~0.33 s**. `--no-cache` was tested and
+ruled out as the explanation, so the gap is not a warm-cache artifact of the second run — it is a
+**measurement-method artifact of the first**, most plausibly a contended workstation during the
+original sweep (the audit's §5.3 run happened alongside other live work; §5.4 already flags exactly
+this confound for the `audit.py health` leg and explicitly exempts pytest and ruff from it, which
+this erratum now narrows to pytest alone).
+
+**Blast radius, stated precisely so the erratum is not read as wider than it is.**
+
+| Figure | Status after this erratum |
+|---|---|
+| `ruff check .` local **1 682 ms** (§5.3 table, §5.4 ratio line) | **WITHDRAWN.** Quiet re-measurement: ~0.33 s. |
+| `ruff` **14.7× / 14.75×** local→4-core ratio (§Executive summary, §5.4) | **WITHDRAWN** — it is a ratio over the withdrawn numerator. Against 0.33 s the ratio falls to ~2.9×. |
+| `ruff check .` **114 ms** on the 4-core codespace (§5.3, §6.3 re-test step) | **STANDS** — measured on the codespace, untouched by a workstation confound. |
+| `pytest` **4.9×** local→4-core | **STANDS.** Independent measurement, different instrument. |
+| `audit.py health` **205.9 s → ~19–20 s**, and the **207 s commit tax** resolving almost entirely to that one check | **STANDS.** This is the load-bearing number and it is unaffected. |
+| The **LEAN v2** and its acceptance (the RULING block above) | **UNAFFECTED.** The LEAN rests on the pytest and `audit.py health` figures and on the 30 h / ~37 h cost thresholds, none of which touch ruff. |
+
+**Why it is recorded rather than quietly dropped.** A withdrawn 14.7× is the audit's most eye-catching
+single ratio, and it is the kind of figure that gets quoted onward into a decision it was never
+load-bearing for. Recording the withdrawal here means a later reader who finds the ratio cited
+elsewhere can trace it to a retraction instead of to this artifact.

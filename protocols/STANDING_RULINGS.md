@@ -1832,6 +1832,60 @@ issued at this seat's dispatch.
 - **Declared durable home:** the ADR-98 intake spine (`docs/intake/README.md` plus the intake
   status enum) — **not landed yet.**
 
+## Q. The 2026-08-19/20 window-close rulings (transcription seat)
+
+The operator's and architect's rulings from the 2026-08-19/20 dispatch window, landed the day
+after they were given. Nothing here is a fresh decision — each line is the landing of one
+already-issued answer, and the arc that landed them carries its contract at
+`docs/audits/2026-08-20-technical-transcription-seat-contract.md` (ADR-110, committed first).
+
+- **Source of record:** the 2026-08-19/20 architect chat window, cited rather than claimed as an
+  in-repo locator — the same off-repo-ratifying-act precedent section I records for
+  `RULING-CHECKLIST-2026-08-10.md`. Corroborating in-repo carriers, where one exists, are named
+  per line. The dispatch-mechanics half of this block (Q1, Q2, Q3, Q4, Q5, Q6) is independently
+  mapped as G10, G11, G9, G14, G3, G13 of the gap table in
+  `docs/audits/2026-08-20-technical-playbook-status.md`, which reads each of them as ABSENT from
+  `protocols/PLAYBOOK.md` today. **This register is the application surface; Ch8 is the declared
+  durable home for Q1 and Q3–Q6, and `[#539]`'s codification lane carries them there.**
+- **Scope, stated so the gaps read as deliberate.** Admission *outcomes* are not re-ruled here —
+  Q7, Q8 and Q9 record the acceptance *instrument*, and the per-model verdicts land as row bodies
+  under `[#491]` and `[#562]` instead. No supplement file is edited by this arc.
+
+### Q · The window-close block, one line per ruling
+
+- **Q1 · index freshness on lane material** — the integrator is gate-of-record, and a declared
+  single-hook bypass on a lane branch is sanctioned, with the declaration carried in the commit
+  body. Live practice with no written home until now: the playbook-status lane ran under exactly
+  this rule (`SKIP=audit-index-freshness` on its two commits) and its integrator regenerated the
+  index once at the merge, per `JOURNAL.md` 2026-08-20 (e).
+- **Q2 · primary checkout is seat-arc-only** — a helper task runs zero git operations in the
+  primary checkout. Two witnessed HEAD-swap incidents are the evidence; the STEP-0 poll this arc
+  opened with is the same rule applied from the other side.
+- **Q3 · harvest order** — push-before-delete, on every harvest: a merged branch is deleted on
+  `origin` only after the merge is pushed, so no window exists in which integrated work lives
+  solely in a local clone. Recorded as a standing order in `JOURNAL.md` 2026-08-20 (i).
+- **Q4 · cloud lane hygiene** — a cloud lane branches fresh off `origin/main` and leaves foreign
+  dirty files untouched.
+- **Q5 · receipt gate** — every cloud dispatch carries one: the git source resolves non-empty AND
+  the first assistant text is echoed back. A dispatch without both is not a dispatch that ran.
+- **Q6 · contract-as-file without exception** — the frozen contract is a committed repo artifact
+  at dispatch time; inline-with-a-dummy-filename is a forbidden dispatch form. This is the
+  unconditional reading of I-D3, and it retires the "repair path, for batch 3" scoping that
+  `protocols/PLAYBOOK.md` :2045–2086 still carries.
+- **Q7 · fabrication scope for a model-acceptance run** — Φ is trajectory-inclusive: a fabricated
+  source anywhere in the trajectory counts as a fabrication, including when the final response is
+  empty. Applied 2026-08-20 to the Gemini 3.7 Flash A/B, which is why an empty-response leg still
+  scores a G2 failure.
+- **Q8 · canonical effort tier for fan-out candidacy** — medium.
+- **Q9 · new-model admission** — ADMIT holds exactly when G1 ∧ G2 ∧ G3 hold on the seeded-defect
+  pack (`docs/audits/2026-08-19-technical-c1-seeded-defect-pack.md`); refusal items are
+  architect-hand-scored rather than machine-graded; and a version/substitution probe is a hard
+  precondition, carried as a P-item, so a client that silently substitutes a sibling model stops
+  the run before any gate is computed.
+- **Q10 · a lane that discovers a refuted premise PAUSEs with the fact** —
+  deviation-with-disclosure is not a license. The disclosure discharges the reporting duty; it
+  does not authorise the deviation.
+
 ## Editing note (read before adding an entry)
 
 This file sits inside the silent-rule ratchet corpus (`protocols/*.md`; detector
