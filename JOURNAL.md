@@ -19,6 +19,41 @@
 
 ---
 
+### 2026-08-20 (f) — CC (Opus 5, integrator seat, `main`): the slot-1 Gemini A/B record lands renamed, and its branch is retired
+
+**Did:** Took the two audit artifacts from `origin/docs/night-ab-gemini-2026-08-20` (`7ce4aedc` contract,
+`e7d72903` results) and landed them on a fresh branch off `main` as `f2c1ed84`, renamed with a `-slot1` suffix
+before the extension. Both original paths are already occupied on `main` by slot 2's files, so a straight merge
+of that branch would have collided — and the slot-1 report is the sole record of the honest-wall run, in which
+the A/B **stopped at precondition P1 because the client cannot select the model**. Merged `--no-ff` into `main`,
+then deleted the source branch locally and on `origin`.
+
+**Result:** Two new audit documents on `main`, `docs/audits/2026-08-20-technical-gemini-ab-lane-contract-slot1.md`
+and `docs/audits/2026-08-20-technical-gemini-ab-results-slot1.md`, with the generated `docs/audits/README.md`
+regenerated in the same commit rather than left to red the next `audit-index-freshness` firing (639 documents).
+Both slot-1 and slot-2 records now coexist and are distinguishable by path. Every gate passed with **no `SKIP=`
+and no `--no-verify`**.
+
+**One locator was repointed, and it is the only content change:** the results file's `Contract of record` row
+named the un-suffixed contract path, which after the rename resolves to *slot 2's* contract on `main` — a
+materially wrong citation in the record that exists to be cited. It now names the `-slot1` path. The contract
+file itself is untouched: its two path mentions are the prompt **as issued**, landed verbatim per ADR-110, and
+editing an as-issued prompt to fit a later rename is the worse defect. The results file's `Slug:` field likewise
+still reads `gemini-ab-results` — the `-slot1` suffix is a landing-time collision disambiguator, not the lane's
+own slug.
+
+**Changes:** `docs/audits/2026-08-20-technical-gemini-ab-{lane-contract,results}-slot1.md` (new),
+`docs/audits/README.md` (regenerated), `JOURNAL.md`.
+
+**Abandoned:** Nothing. The source branch's other diffs against `main` (`.pre-commit-config.yaml`, `JOURNAL.md`,
+`ecosystem/conformance.*`, and seven audit deletions) were **base-lag artifacts** of a branch cut before the
+day's later merges — not lane work — which is precisely why the two files were transplanted rather than merged.
+
+**Next:** Slot 1 and slot 2 both stand as records; the admission verdict on Gemini 3.7 Flash remains the
+architect's and is unaffected by this landing.
+
+---
+
 ### 2026-08-20 (e) — CC (Opus 5, integrator seat, `main`): the playbook-status cloud lane joins the window on an operator INSPECT-THEN-MERGE
 
 **Did:** Inspected `origin/claude/playbook-status-census-2026-08-20` under the operator's docs-only N4 rule and
