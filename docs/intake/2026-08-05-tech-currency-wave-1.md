@@ -1,6 +1,10 @@
 ---
 intake-id: 24
-status: DRAFT
+status: ACCEPTED
+decided-by: batch-1 lane D ratification, 2026-08-21 — frozen contract LANE-RAT-intakes.md (ruled split R5, per outgoing-architect Q4); an off-repo contract, cited per the off-repo-ratifying-act precedent (protocols/STANDING_RULINGS.md section I)
+disposition: deferred
+trigger: intake #27's W-wave batch — #27 is the successor ledger for this doc's adoption-status view and carries its items as §A rows; this doc un-parks when that batch runs
+review-date: 2026-09-20
 origin: outgoing 2026-08-02→04 seat, operator-directed consolidation 2026-08-05; landed verbatim by the sealing architect's instruction
 ---
 
@@ -124,7 +128,18 @@ and the origin date.
 
 ## Status
 
-**DRAFT** — landed verbatim 2026-08-05; prepped for ratification 2026-08-21 by batch-1 lane D.
-Zero rows born by this filing. The adoption-status view of this doc is tracked forward by
-intake **#27** (the tech-adoption consolidation ledger), which names itself its successor for
-that view.
+**ACCEPTED** (`decided-by` + `disposition: deferred`) — batch-1 lane D, 2026-08-21. Landed
+verbatim 2026-08-05; prepped and transitioned in the same lane. Zero rows born by this filing,
+and ratification births none: the candidate list is accepted as a requirements authority, not
+as an adoption decision — the doc's own library-first bar still requires a MEASURED divergence
+run on this repo before any candidate is adopted.
+
+**Deferred, not parked silently.** `trigger:` names intake **#27**'s W-wave batch and
+`review-date:` dates the un-park at **2026-09-20**, which is what
+`protocols/STANDING_RULINGS.md` **P-2** requires of a zero-carrier ACCEPTED doc. The deferral
+branch is the honest one here rather than a carrier row: #27 is this doc's successor ledger for
+the adoption-status view and already carries these candidates as §A rows, so a second carrier
+against #24 would duplicate #27's. Verified at prep time: zero rows in `tasks/` cite intake
+#24. **Un-park coupling worth stating:** P1 (GitHub Actions as the second wall) sits on the
+same server-side-enforcement axis as intakes #35–#37, which are held for the architect's R7
+ADR-fork ruling; ratification here settles the requirement, not that fork.

@@ -31,9 +31,8 @@ fill-in skeleton is `templates/intake-template.md`.
 - [#22](2026-07-30-func-operator-decision-routing-and-standards.md) — Operator design input — decision routing, engineering standards, and lane timeline
 - [#23](2026-08-01-func-distillation-and-library-first.md) — Operator design input — distillation and library-first
 
-### DRAFT (5)
+### DRAFT (4)
 
-- [#24](2026-08-05-tech-currency-wave-1.md) — PART B — INTAKE DRAFT: tech-currency wave 1 — buy the commoditized walls
 - [#34](2026-08-16-code-architecture-enforcement.md) — Fleet code-architecture enforcement doctrine
 - [#35](2026-08-17-tech-agent-instruction-layers-and-distillation.md) — Portable agent-instruction layers, prompt distillation, and unattended runs
 - [#36](2026-08-17-tech-repository-autonomy-and-gate-liveness.md) — Repository autonomy, policy-as-code, and proving the gates are alive
@@ -43,7 +42,7 @@ fill-in skeleton is `templates/intake-template.md`.
 
 - [#15](2026-07-16-satellite-onboarding-prompts.md) — Satellite onboarding prompts — ready to fire (four consumers)
 
-### ACCEPTED (18)
+### ACCEPTED (19)
 
 - [#12](2026-07-11-tech-ownership-manifest.md) — Fleet Ownership Manifest (SETTLED) + Nightly Hygiene Decision Tree
 - [#13](2026-07-11-tech-plan-of-record-fleet-hygiene.md) — Plan-of-record — Fleet Hygiene System build (post 2026-07-11 session)
@@ -52,6 +51,7 @@ fill-in skeleton is `templates/intake-template.md`.
 - [#17](2026-07-25-tech-consolidation-decision.md) — CONSOLIDATION DECISION v2 — final form
 - [#18](2026-07-27-tech-handoff-process-v6-proposal.md) — HANDOFF_PROCESS v6 — amendment proposal pack (ACCEPTED 2026-07-30)
 - [#20](2026-07-28-north-star-delta-review.md) — North Star delta review — local 2026-07-21 doc vs in-repo intake #16
+- [#24](2026-08-05-tech-currency-wave-1.md) — PART B — INTAKE DRAFT: tech-currency wave 1 — buy the commoditized walls
 - [#25](2026-08-05-func-simplification-distribution-wave.md) — INTAKE — simplification & distribution wave: adopt the commoditized layers, keep the edge (ACCEPTED 2026-08-09)
 - [#26](2026-08-06-func-parallel-execution-system.md) — Parallel multi-agent execution system — batch protocol as versioned repo artifacts
 - [#27](2026-08-06-tech-adoption-consolidation-intake.md) — INTAKE DRAFT — tech-adoption consolidation ledger (38 items, successor-facing)

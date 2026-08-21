@@ -3,7 +3,7 @@
   "direction": "derived-from",
   "source": "docs/intake/README.md",
   "generator": "scripts/gen_intake_tree.py",
-  "source_sha256": "d47c4d7892ecdb8e2473e2889654f33901be65920c909039aa5484a149698ec2",
+  "source_sha256": "d8aac79da62e4f81c14fbb2b4ff066a92cc3381baf1f5c5d86a6f1c643ac3476",
   "honest_limit": {
     "statement": "ADR-109 section 4 is discharged by a byte-exact round-trip plus a residue manifest, NOT by a derivation ratio. This surface's ratio is INVERTED relative to surface 1 (BACKLOG.md <-> tasks/), where task lines were the majority and residue the minority. Recorded so the generality claim is honest about what was shown.",
     "item_derived_lines": 34,
@@ -121,7 +121,11 @@
         "origin"
       ],
       "2026-08-05-tech-currency-wave-1.md": [
-        "origin"
+        "decided-by",
+        "disposition",
+        "origin",
+        "review-date",
+        "trigger"
       ],
       "2026-08-06-func-parallel-execution-system.md": [
         "decided-by",
@@ -351,16 +355,11 @@
     },
     {
       "t": "line",
-      "v": "### DRAFT (5)"
+      "v": "### DRAFT (4)"
     },
     {
       "t": "line",
       "v": ""
-    },
-    {
-      "t": "item",
-      "file": "2026-08-05-tech-currency-wave-1.md",
-      "status": "DRAFT"
     },
     {
       "t": "item",
@@ -405,7 +404,7 @@
     },
     {
       "t": "line",
-      "v": "### ACCEPTED (18)"
+      "v": "### ACCEPTED (19)"
     },
     {
       "t": "line",
@@ -444,6 +443,11 @@
     {
       "t": "item",
       "file": "2026-07-28-north-star-delta-review.md",
+      "status": "ACCEPTED"
+    },
+    {
+      "t": "item",
+      "file": "2026-08-05-tech-currency-wave-1.md",
       "status": "ACCEPTED"
     },
     {
