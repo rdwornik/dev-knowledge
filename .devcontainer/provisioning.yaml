@@ -9,7 +9,7 @@
 #
 # HONEST LIMIT, stated once rather than per-section. This file DECLARES; it does not enforce
 # anything by existing. `scripts/cloud_provisioning.py history --repair` acts on the `history`
-# block, and `... prebuild --check` reports drift on the `prebuild` block — but the prebuild
+# block, and `... prebuild` reports drift on the `prebuild` block — but the prebuild
 # configuration itself is server-side GitHub state with no public API (see the `prebuild`
 # block), so the only thing a checker can do there is compare a declaration with what the API
 # reports back and say so.
@@ -75,15 +75,19 @@ ecosystem:
 # introspection returns zero types and zero mutations matching `prebuild`, and `gh codespace`
 # has no prebuild subcommand. The configuration is operator UI state
 # (Settings -> Codespaces -> Set up prebuild), so this block is the repo-side DECLARATION of
-# what that UI state is supposed to be, and `cloud_provisioning.py prebuild --check` compares
+# what that UI state is supposed to be, and `cloud_provisioning.py prebuild` compares
 # it against the one field the API does expose: `prebuild_availability` on the machines
 # endpoint.
 #
 # Every value below is the substrate audit's accepted LEAN v2 ruling
 # (`docs/audits/2026-08-20-technical-codespaces-audit.md` §3.2, §4.5 step 3), not a preference.
 prebuild:
-  # Expected live state. `false` while the operator has not landed the configuration; the
-  # checker reports agreement or drift either way rather than assuming.
+  # Expected live state. `false` while the operator has not landed the configuration.
+  # EXACTLY ONE COMBINATION IS FALSIFIABLE, because `prebuild_availability` answers a question
+  # about AVAILABILITY and not about configuration: a `ready`/`in_progress` prebuild alongside
+  # `configured: false` is observed drift (exit 1), and every other reading is indeterminate
+  # (exit 2) — `none` is produced by an unrun or expired prebuild just as much as by no
+  # configuration at all. The checker says which, and never reports a verification it cannot make.
   configured: false
 
   # "On configuration change", NOT the "Every push" default. Load-bearing, not tidy: the same

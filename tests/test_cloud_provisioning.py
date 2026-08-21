@@ -1300,6 +1300,29 @@ def _guard_invocations() -> list[list[str]]:
     return calls
 
 
+def test_every_invocation_the_declaration_documents_parses() -> None:
+    """The YAML's comments name commands a reader will type (terra MEDIUM round 12, 2026-08-21).
+
+    Two of them said `prebuild --check`, and there is no such option — following the file's own
+    documentation produced an argparse error. Same class as the `--quiet` placement bug the
+    sibling test below exists for, in the other file that describes this CLI.
+    """
+    text = (cp.REPO_ROOT / ".devcontainer" / "provisioning.yaml").read_text(encoding="utf-8")
+    parser = cp.build_parser()
+    found = 0
+    for line in text.splitlines():
+        _, sep, tail = line.partition("cloud_provisioning.py ")
+        if not sep:
+            continue
+        argv = [tok.strip("`.,") for tok in tail.split("`", 1)[0].split()]
+        argv = [tok for tok in argv if tok]
+        if not argv:
+            continue
+        parser.parse_args(argv)          # SystemExit here IS the failure
+        found += 1
+    assert found >= 2, text
+
+
 def test_every_guard_invocation_in_provision_sh_parses() -> None:
     """WITNESSED 2026-08-21, in the container: the gate called `... history --quiet`, argparse
     put `--quiet` on the PARENT parser, and the gate died with `unrecognized arguments: --quiet`
