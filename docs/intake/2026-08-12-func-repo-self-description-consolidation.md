@@ -1,6 +1,8 @@
 ---
 intake-id: 33
-status: DRAFT
+status: ACCEPTED
+decided-by: batch-1 lane D ratification, 2026-08-21 — frozen contract LANE-RAT-intakes.md (ruled split R5, per outgoing-architect Q4); an off-repo contract, cited per the off-repo-ratifying-act precedent (protocols/STANDING_RULINGS.md section I)
+disposition: active
 origin: operator strategy dump at the close of the 2026-08-10/11 window, consolidated by the outgoing seat as docs/audits/2026-08-11-technical-batch-4-brief-next-architect.md §2; filed 2026-08-12 at the adjudication hour under BLOCK-4's packaging ruling
 consumers: "the next window's batch — Section A produces the definition a backlog row then cites; Sections B and C produce their own ADR-or-carrier decisions"
 ---
@@ -232,8 +234,20 @@ produces, not from this filing.
 
 ## Status
 
-**DRAFT** — filed 2026-08-12 at the adjudication hour under BLOCK-4's packaging ruling; prepped
-for ratification 2026-08-21 by batch-1 lane D. Zero rows born at filing (A4 / Births above).
+**ACCEPTED** (`decided-by` + `disposition: active`) — batch-1 lane D, 2026-08-21. Filed
+2026-08-12 at the adjudication hour under BLOCK-4's packaging ruling; prepped and transitioned
+in the same lane. Ratification accepts this document as the requirements authority for
+GAP-1/2/3; it does **not** pre-answer Q2 or Q3, and A4's zero-new-top-level-directory
+constraint binds every consumer of it.
+
+**PENDING-CARRIER at the time of writing.** Per `protocols/STANDING_RULINGS.md` **P-2**, an
+intake at ACCEPTED carries at least one live carrier row or a dated deferral. `tasks/` is
+SEAT-owned this batch, so this lane emitted a **generator-ready carrier-row spec** in
+`ARTIFACT-lane-rat.md` (worktree root) for A1's single Section-A row instead of landing it;
+the seat lands the row and the integrator sequences this lane's merge **after** the seat's, so
+no orphan window exists on `main`. Verified at prep time: zero rows in `tasks/` cite intake
+#33. Sections B and C stay carrier-or-ADR decisions per A2/A3 and birth nothing here — the
+Births section's capacity law is unchanged by ratification.
 
 ## Template conformance (prep pass, 2026-08-21 — batch-1 lane D)
 
