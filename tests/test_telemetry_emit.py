@@ -204,6 +204,56 @@ def test_default_db_path_follows_the_env_override(tmp_path: Path, monkeypatch: p
 
 
 # ---------------------------------------------------------------------------
+# [#529] leg 4 / ruling R6(c) -- the repo root is resolved at CALL time, from the CALLER
+# ---------------------------------------------------------------------------
+
+@pytest.mark.skipif(not _HAS_GIT, reason="needs git")
+def test_repo_root_answers_about_the_caller_not_about_the_library(tmp_path: Path) -> None:
+    """The whole point of R6(c): ask where the CALLER is, not where this file lives.
+
+    A seeded repo in `tmp_path` shares no ancestry with the library's own directory, so a
+    resolver still keyed on `Path(__file__)` returns this repository and fails here.
+    """
+    seeded = _seed_repo(tmp_path / "elsewhere")
+    resolved = te.repo_root(seeded)
+    assert resolved is not None
+    assert resolved.resolve() == seeded.resolve()
+    assert Path(__file__).resolve().parent.parent not in resolved.resolve().parents
+
+
+@pytest.mark.skipif(not _HAS_GIT, reason="needs git")
+def test_the_derived_store_follows_the_resolved_root(tmp_path: Path,
+                                                     monkeypatch: pytest.MonkeyPatch) -> None:
+    """`default_db_path()` under a CWD inside another repository lands in THAT repository."""
+    seeded = _seed_repo(tmp_path / "elsewhere")
+    monkeypatch.delenv(te.DB_PATH_ENV, raising=False)
+    monkeypatch.chdir(seeded)
+    assert te.default_db_path() == seeded.resolve() / te.DEFAULT_DB_RELPATH
+
+
+def test_a_root_that_cannot_be_resolved_refuses_rather_than_guessing(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """No override and no repository is a WIRING defect, and it stops loudly.
+
+    The two silent alternatives are both the bug R6(c) closes: the library's own directory (the
+    original defect) or the CWD (a `logs/` store scattered wherever a process started).
+    """
+    monkeypatch.delenv(te.DB_PATH_ENV, raising=False)
+    monkeypatch.setattr(te, "repo_root", lambda *a, **k: None)
+    with pytest.raises(te.TelemetryError, match="cannot resolve the telemetry store"):
+        te.default_db_path()
+
+
+def test_repo_root_is_none_outside_a_repository(tmp_path: Path,
+                                                monkeypatch: pytest.MonkeyPatch) -> None:
+    """Tri-state, like `is_shallow_repository`: "could not ask" is not an answer to invent."""
+    outside = tmp_path / "not-a-repo"
+    outside.mkdir()
+    monkeypatch.setenv("GIT_CEILING_DIRECTORIES", str(tmp_path))
+    assert te.repo_root(outside) is None
+
+
+# ---------------------------------------------------------------------------
 # Constraint 1 -- git-derived metrics refuse on a shallow (or unverifiable) clone
 # ---------------------------------------------------------------------------
 
@@ -382,6 +432,49 @@ def test_logger_backend_reports_which_side_channel_is_live() -> None:
     """structlog is preferred and optional; the backend is reported, never assumed. The event
     itself is durable either way -- the SQLite row is the record, the log line is a mirror."""
     assert te.logger_backend() in {"structlog", "stdlib-logging"}
+
+
+# ---------------------------------------------------------------------------
+# [#529] leg 3 / ruling R6(a) -- the backend is resolved ONCE, not per event
+# ---------------------------------------------------------------------------
+
+def test_the_backend_is_resolved_once_and_cached(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The measured defect: a FAILED `import structlog` is not cached by `sys.modules`, so the
+    per-call probe re-walked `sys.path` on every single event (471 us of a 481 us side-channel).
+
+    Counting the probe is the only way to see it -- the old shape and the new one return the
+    same string, so an assertion on the value alone cannot tell them apart.
+    """
+    monkeypatch.setattr(te, "_LOGGER_BACKEND", None)
+    calls = []
+    real = te.importlib.util.find_spec
+
+    def counting(name, *a, **k):
+        if name == "structlog":
+            calls.append(name)
+        return real(name, *a, **k)
+
+    monkeypatch.setattr(te.importlib.util, "find_spec", counting)
+    first = te.logger_backend()
+    for _ in range(50):
+        te.logger_backend()
+    assert te.logger_backend() == first
+    assert len(calls) == 1, f"the backend was probed {len(calls)} times, not once"
+
+
+def test_emitting_many_events_probes_the_backend_once(tmp_path: Path,
+                                                      monkeypatch: pytest.MonkeyPatch) -> None:
+    """The property that actually costs time: N events must not mean N probes."""
+    monkeypatch.setattr(te, "_LOGGER_BACKEND", None)
+    calls = []
+    real = te.importlib.util.find_spec
+    monkeypatch.setattr(te.importlib.util, "find_spec",
+                        lambda name, *a, **k: (calls.append(name) if name == "structlog" else None,
+                                               real(name, *a, **k))[1])
+    db = tmp_path / "t.db"
+    for i in range(20):
+        te.emit_check_run(f"c{i}", "pass", i, db_path=db)
+    assert len(calls) == 1, f"20 events probed for structlog {len(calls)} times"
 
 
 def test_emit_survives_an_unusable_log_side_channel(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

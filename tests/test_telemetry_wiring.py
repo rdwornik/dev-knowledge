@@ -340,12 +340,16 @@ def test_the_quieting_is_caller_side_and_leaves_the_library_untouched():
 def test_the_store_lands_under_the_callers_repo_root_not_the_librarys(tmp_path, monkeypatch):
     """The regression test for the seam finding.
 
-    `telemetry_emit.default_db_path()` reads `telemetry_emit._REPO_ROOT`, which no test patches;
-    `audit._REPO_ROOT` is a different value and is one of the 25 names the suite DOES patch. A
-    wiring that leaned on the default would write into the real repo on every suite run while
-    every sandbox assertion kept passing. The derived path must follow the caller's root.
+    `telemetry_emit.default_db_path()` resolves the repository the SUITE is running in, which no
+    test patches; `audit._REPO_ROOT` is a different value and is one of the 25 names the suite
+    DOES patch. A wiring that leaned on the default would write into the real repo on every suite
+    run while every sandbox assertion kept passing. The derived path must follow the caller's root.
+
+    (`te._REPO_ROOT` was the library's frozen import-time location until `[#529]` leg 4 / R6(c)
+    replaced it with `te.repo_root()`, resolved per call. The property under test is unchanged --
+    only the name of the thing the caller must NOT be inheriting.)
     """
-    real_store = Path(te._REPO_ROOT) / te.DEFAULT_DB_RELPATH
+    real_store = Path(te.repo_root()) / te.DEFAULT_DB_RELPATH
     real_existed = real_store.exists()
     real_before = real_store.stat().st_mtime_ns if real_existed else None
 
