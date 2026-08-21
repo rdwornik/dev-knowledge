@@ -11,10 +11,20 @@
 #   L3  all THREE git hook types are armed                 (the witnessed relic-hooksPath class)
 #   L4  a half-provisioned environment refuses to start    (`--gate`, wired to postStartCommand)
 #
-# plus the two obligations the lane contract adds on top of the row:
+# plus the two obligations the first lane contract added on top of the row:
 #   C1  idempotent — a second run is a no-op AND SAYS SO
 #   C2  a gate-liveness smoke — run one cheap REAL gate and assert exit 0. Provisioning that
 #       cannot prove its gates execute is precisely the failure shape above.
+#
+# plus two more the 2026-08-21 lane added, both of them things the 2026-08-19 proof lane MEASURED
+# rather than anticipated (`docs/audits/2026-08-19-technical-554-proof.md`):
+#   L2b the clone has the REFS a spine walker reads, not merely the DEPTH L2 restores. The proof
+#       lane's container had 5329 commits and no local `main`, and every first-parent-spine
+#       instrument then errored out. This is contract amendment B1, and it runs before hooks are
+#       armed. Declared, not hardcoded: `.devcontainer/provisioning.yaml`.
+#   L5  at least one repo is registered under `ecosystem/`. `audit.py health` counts
+#       `ecosystem/*/state.yaml`, that glob is gitignored, and so no clone has ever carried one —
+#       which is the single remaining `[!!]` between this substrate and the row's D1a Done-when.
 #
 # SINGLE SOURCE OF PINS. Nothing below hardcodes a version that already has a home in the repo:
 #   uv          <- pyproject.toml [tool.uv] required-version   (read, and required to be `==`)
@@ -54,10 +64,27 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 cd "${REPO_ROOT}"
 
-# The env gate's own knob (declared in devcontainer.json containerEnv so a VPS host can relocate
-# it). The stamp is written ONLY after every assert below passes.
+# The env gate's own knob. NOT declared in devcontainer.json any more — see the long comment
+# there: `containerEnv` cannot reference `containerEnv`, so the declaration arrived here
+# UNEXPANDED and `mkdir -p "$(dirname ...)"` created a directory literally named
+# `${containerEnv:HOME}` inside the working tree on every container start (measured,
+# `docs/audits/2026-08-19-technical-554-proof.md` §2.1). A VPS host that wants the stamp
+# somewhere else exports the variable itself; everyone else gets the $HOME default the old
+# declaration only claimed to produce. The stamp is written ONLY after every assert below passes.
 STAMP="${DEV_KNOWLEDGE_PROVISION_STAMP:-${HOME}/.dev-knowledge-provision-stamp}"
 STAMP_SCHEMA="dev-knowledge-provision/1"
+
+# Close the CLASS, not just the instance. Any host — Codespaces, a VPS, a future spec revision —
+# can hand this script a path whose `${...}` never expanded. Creating a directory with that name
+# is silent corruption of the tree the lane is about to work in, so it is refused here instead.
+case "${STAMP}" in
+  *'${'*)
+    printf '[provision] REFUSED: DEV_KNOWLEDGE_PROVISION_STAMP is %s — an UNEXPANDED ${...} path.\n' "${STAMP}" >&2
+    printf '[provision]           Creating it would put a junk directory inside the working tree.\n' >&2
+    printf '[provision]           Unset the variable to use the ${HOME} default, or export a literal path.\n' >&2
+    exit 1
+    ;;
+esac
 
 UV_BIN_DIR="${HOME}/.local/bin"
 export PATH="${UV_BIN_DIR}:${PATH}"
@@ -164,6 +191,13 @@ sync_environment() {
   local py_want py_have
   py_want="$(read_python_pin)"
 
+  # C1 accounting for the environment itself. Both steps below are idempotent and therefore
+  # silent when there is nothing to do, so neither could bump CHANGED — a container that
+  # rebuilt a missing `.venv` still printed "idempotent: nothing changed" (terra HIGH round 2,
+  # 2026-08-21). ASK FIRST, in the same read-only form the gate uses.
+  uv python find "${py_want}" >/dev/null 2>&1 || CHANGED=$((CHANGED + 1))
+  uv sync --locked --group analytics --check >/dev/null 2>&1 || CHANGED=$((CHANGED + 1))
+
   # uv provisions the EXACT interpreter, so the base image's own Python never decides what the
   # gates run on. Idempotent by uv's own design (a present version is reported, not re-downloaded).
   uv python install "${py_want}" >/dev/null 2>&1 \
@@ -176,10 +210,51 @@ sync_environment() {
   uv sync --locked --group analytics >/dev/null \
     || die "'uv sync --locked --group analytics' failed — the lockfile and pyproject.toml disagree, or a dependency is unavailable"
 
-  py_have="$(uv run --locked python -c 'import platform; print(platform.python_version())')"
+  py_have="$(uv run --no-sync python -c 'import platform; print(platform.python_version())')"
   [ "${py_have}" = "${py_want}" ] \
     || die "interpreter is ${py_have}, .python-version pins ${py_want}"
   say "environment OK — Python ${py_have} (.python-version), deps from uv.lock via --locked"
+}
+
+# --- L2b: history SUFFICIENCY, not merely depth (contract amendment B1) --------------------------
+
+leg2b_history() {
+  # L2 above proves the clone is not shallow. That is necessary and NOT sufficient: the proof
+  # lane's codespace had 5329 commits and no local `main`, and every instrument that walks main's
+  # first-parent spine then ERRORED ("fatal: Not a valid object name main") instead of passing
+  # vacuously. This runs the repair — and it runs HERE, before hooks are armed and before any
+  # lane work, which is what "before any spine-walking instrument in a cloud lane" means in
+  # practice. Which refs are required, and which instruments walk a spine, are declared in
+  # .devcontainer/provisioning.yaml, never hardcoded.
+  # C1 accounting: ask FIRST whether anything needs doing, so a run that repairs is not reported
+  # as "nothing changed". Witnessed 2026-08-21 — the first live run seeded a state.yaml and still
+  # printed the idempotent no-op line, which is the one thing C1 exists to make impossible.
+  local rc=0
+  uv run --no-sync python scripts/cloud_provisioning.py --quiet history || CHANGED=$((CHANGED + 1))
+  uv run --no-sync python scripts/cloud_provisioning.py history --repair || rc=$?
+  case "${rc}" in
+    0) say "B1 OK — the refs every spine-walking instrument reads resolve, and the walk succeeds" ;;
+    1) die "B1 the clone cannot satisfy a spine-walking instrument (see the errors above) — a cloud lane here would run gates that ERROR rather than gates that pass" ;;
+    *) die "B1 the history guard could not look (exit ${rc}) — an unknown history state is not a clean one" ;;
+  esac
+}
+
+# --- L5: the ecosystem registration a fresh clone cannot inherit ---------------------------------
+
+leg5_ecosystem() {
+  # `audit.py health` counts `ecosystem/*/state.yaml`, that glob is gitignored, and so no clone
+  # has ever carried one — which is why a container reports `repos registered (none)` and health
+  # exits non-zero. On the workstation `scripts/worktree_seed.py` copies these from the primary
+  # checkout; a container has no primary, so it audits the one repo it has. Not a named row leg:
+  # it is the last thing standing between this substrate and [#554]'s D1a Done-when.
+  local rc=0
+  uv run --no-sync python scripts/cloud_provisioning.py --quiet ecosystem || CHANGED=$((CHANGED + 1))
+  uv run --no-sync python scripts/cloud_provisioning.py ecosystem --repair || rc=$?
+  case "${rc}" in
+    0) say "L5 OK — at least one repo is registered; audit.py health's operational block can pass here" ;;
+    1) die "L5 nothing is registered and the seed did not land — audit.py health will report 'repos registered (none)' and exit 1" ;;
+    *) die "L5 the ecosystem guard could not look (exit ${rc})" ;;
+  esac
 }
 
 # --- L3: all three hook types armed, asserted ----------------------------------------------------
@@ -190,7 +265,7 @@ assert_hooks_armed() {
   # how the witnessed relic silently disarmed the gates) and treats a shim bound to a stale
   # interpreter as unarmed. Duplicating that logic here would give the repo two answers to one
   # question; calling it gives one.
-  uv run --locked python - <<'PY'
+  uv run --no-sync python - <<'PY'
 import pathlib
 import sys
 
@@ -225,7 +300,7 @@ leg3_hooks() {
     # arm_hooks.py is fail-SOFT by design — it must never block a session at SessionStart. That is
     # the wrong posture at provision time, so the install is delegated to it and the REFUSAL is
     # ours: [#554] leg 3 says deterministic, and intake #39 §D(3) says "fails if not armed".
-    uv run --locked python scripts/arm_hooks.py || true
+    uv run --no-sync python scripts/arm_hooks.py || true
     CHANGED=$((CHANGED + 1))
   fi
 
@@ -242,7 +317,7 @@ smoke_gate_liveness() {
   # command line the hook will run — not a lookalike. Exit 0 is asserted; its stdout is kept
   # because a passing gate that printed nothing would be indistinguishable from one that no-oped.
   local out
-  out="$(uv run --locked python scripts/validate_backlog.py 2>&1)" \
+  out="$(uv run --no-sync python scripts/validate_backlog.py 2>&1)" \
     || { printf '%s\n' "${out}" >&2; die "C2 gate-liveness smoke FAILED — validate_backlog did not exit 0, so this environment cannot run the gate mesh"; }
   printf '[provision] C2 smoke: %s\n' "$(printf '%s\n' "${out}" | head -n 1)"
   say "C2 OK — a real gate executed here and returned 0"
@@ -296,16 +371,35 @@ gate() {
   have_uv="$(installed_uv_version || true)"
   [ "${have_uv}" = "${want_uv}" ] || die "L4 uv is '${have_uv:-none}', pinned '${want_uv}'"
   [ "$(git rev-parse --is-shallow-repository)" = "false" ] || die "L4 repository is shallow"
+
+  # THE GATE MUST NOT REPAIR WHAT IT IS ASSERTING (terra HIGH round 2, 2026-08-21). Every Python
+  # call below goes through `uv run`, and `uv run` SYNCS by default — it will create or update a
+  # missing `.venv` and then happily run in it. That turns the assert-only gate into a silent
+  # repair, and worse, the environment it silently builds need not carry the `analytics` group
+  # provisioning installs. So the environment is asserted read-only FIRST, and every later call
+  # runs with `--no-sync`.
+  uv sync --locked --group analytics --check >/dev/null 2>&1 \
+    || die "L4 the virtualenv does not match uv.lock (or is absent) — this container is half-provisioned; re-provision (bash .devcontainer/provision.sh)"
+
   assert_hooks_armed || die "L4 git hooks are not armed"
 
-  say "gate OK — uv ${have_uv}, full history, three hook types armed, stamp current"
+  # The two conditions a RESUMED container can lose without any pin moving: a repo re-cloned or
+  # re-fetched into a branch-only shape, and a gitignored ecosystem/ wiped by a rebuild. Both are
+  # asserted, never repaired — `--gate` refuses; provisioning is what fixes.
+  uv run --no-sync python scripts/cloud_provisioning.py --quiet history \
+    || die "L4 the refs a spine-walking instrument reads do not resolve, or their currency cannot be checked — re-provision (bash .devcontainer/provision.sh)"
+  uv run --no-sync python scripts/cloud_provisioning.py --quiet ecosystem \
+    || die "L4 no repo is registered under ecosystem/ — audit.py health cannot pass here; re-provision"
+
+  say "gate OK — uv ${have_uv}, full history + spine refs, ecosystem registered, three hook types armed, stamp current"
 }
 
 usage() {
   cat <<'USAGE'
 Usage: bash .devcontainer/provision.sh [--gate|--help]
 
-  (no args)  Provision this container and ASSERT all four [#554] legs, run the
+  (no args)  Provision this container and ASSERT all four [#554] legs plus the
+             history-sufficiency (B1) and ecosystem-registration (L5) legs, run the
              gate-liveness smoke, then write the stamp. Idempotent: a second run
              changes nothing and says so. Wired to postCreateCommand.
   --gate     Assert only — refuse (exit 1) if the environment is half-provisioned
@@ -322,10 +416,15 @@ main() {
     *) usage >&2; die "unknown argument: $1" ;;
   esac
 
+  # ORDER IS LOAD-BEARING. leg2b/leg5 need the venv, so they follow sync_environment; both
+  # precede leg3_hooks, so nothing that walks a spine or reads ecosystem/ can be reached by a
+  # hook before its precondition has been repaired.
   say "provisioning ${REPO_ROOT}"
   leg1_uv
   leg2_unshallow
   sync_environment
+  leg2b_history
+  leg5_ecosystem
   leg3_hooks
   smoke_gate_liveness
   write_stamp
