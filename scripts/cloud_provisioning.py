@@ -200,20 +200,40 @@ def remote_ref(root: Path, ref: str, remote: str = "origin") -> str | None:
     return r.stdout.strip() if r.returncode == 0 else None
 
 
-def is_behind(root: Path, ref: str, remote_sha: str) -> bool:
-    """True when the local branch is missing commits the remote-tracking ref already has.
+#: Local-vs-remote states for a required ref. The four are kept apart because they get three
+#: DIFFERENT treatments, and collapsing them is how a repair becomes data loss.
+REF_CURRENT = "current"     # equal, or local ahead — nothing missing from the spine walk
+REF_BEHIND = "behind"       # local is an ANCESTOR of remote: fast-forwardable, safe to update
+REF_DIVERGED = "diverged"   # neither is an ancestor: updating would DISCARD local commits
 
-    "Behind" is the only divergence that matters to a spine walker: entries the instruments
-    would never see. Being AHEAD is normal on a workstation (a lane's own commits) and is not
-    reported. An unanswerable ancestry query is raised, never guessed.
-    """
-    r = _git(root, "merge-base", "--is-ancestor", remote_sha, f"refs/heads/{ref}")
-    if r.returncode == 0:
-        return False
-    if r.returncode == 1:
-        return True
+
+def _is_ancestor(root: Path, ancestor: str, descendant: str) -> bool:
+    r = _git(root, "merge-base", "--is-ancestor", ancestor, descendant)
+    if r.returncode in (0, 1):
+        return r.returncode == 0
     raise ProvisioningError(
-        f"git merge-base --is-ancestor could not answer for {ref!r}: {r.stderr.strip()}")
+        f"git merge-base --is-ancestor could not answer ({ancestor} -> {descendant}): "
+        f"{r.stderr.strip()}")
+
+
+def ref_status(root: Path, ref: str, remote_sha: str) -> str:
+    """Classify the local branch against its remote-tracking ref.
+
+    THE DISTINCTION IS LOAD-BEARING (terra CRITICAL, 2026-08-21). An earlier version asked only
+    "is the remote an ancestor of local?" and treated every `no` as behind — which lumps a
+    DIVERGED branch in with a fast-forwardable one. The repair then force-fetched over it, so a
+    VPS clone carrying an unpushed commit on local `main` would have lost the only reference to
+    it the moment `origin/main` also advanced. Divergence is now refused, never overwritten.
+
+    Being AHEAD is normal on a workstation (a lane's own commits) and reads as current: nothing
+    is missing from the walk.
+    """
+    local = f"refs/heads/{ref}"
+    if _is_ancestor(root, remote_sha, local):
+        return REF_CURRENT
+    if _is_ancestor(root, local, remote_sha):
+        return REF_BEHIND
+    return REF_DIVERGED
 
 
 def spine_length(root: Path, ref: str) -> int | None:
@@ -299,10 +319,17 @@ def assess_history(root: Path, cfg: HistoryConfig) -> HistoryReport:
         remote_sha = remote_ref(root, ref)
         if remote_sha is None:
             report.uncompared.append(ref)
-        elif is_behind(root, ref, remote_sha):
+            continue
+        status = ref_status(root, ref, remote_sha)
+        if status == REF_BEHIND:
             report.violations.append(
                 f"ref {ref!r} is BEHIND origin/{ref} ({remote_sha[:9]}) - the spine walk would "
                 f"miss every entry in between and still report clean")
+        elif status == REF_DIVERGED:
+            report.violations.append(
+                f"ref {ref!r} has DIVERGED from origin/{ref} ({remote_sha[:9]}) - it carries "
+                f"commits the remote does not. This guard REFUSES to repair it: a forced update "
+                f"would discard them. Resolve the divergence by hand.")
     return report
 
 
@@ -314,7 +341,7 @@ def repair_history(root: Path, cfg: HistoryConfig) -> HistoryReport:
     Idempotent — a second run performs no action and says so.
     """
     report = assess_history(root, cfg)
-    if report.ok:
+    if report.ok and not report.uncompared:
         return report
 
     # An environment this guard cannot ACT in is a could-not-look, not a violation: the 0/1/2
@@ -335,6 +362,20 @@ def repair_history(root: Path, cfg: HistoryConfig) -> HistoryReport:
     # describe the clone BEFORE acting and are re-derived by the final assessment.
     repair_notes: list[str] = []
     checked_out = current_branch(root)
+
+    # Refresh the REMOTE-TRACKING refs first, so currency becomes checkable at all. A
+    # `--single-branch` clone carries no `origin/main`, and without this the repair would fetch
+    # the branch, leave currency permanently UNCOMPARED, and the check would then have to answer
+    # "could not look" forever (terra HIGH round 2, 2026-08-21). Failures here are not fatal:
+    # a clone whose origin lacks the ref is handled by the branch fetch below, which reports it.
+    for ref in cfg.required_refs:
+        if remote_ref(root, ref) is None:
+            r = _git(root, "fetch", "origin",
+                     f"+refs/heads/{ref}:refs/remotes/origin/{ref}", "--quiet")
+            if r.returncode == 0:
+                report.actions.append(
+                    f"git fetch origin +refs/heads/{ref}:refs/remotes/origin/{ref}")
+
     for ref in cfg.required_refs:
         if ref == checked_out:
             # A checked-out branch always resolves, and git refuses a fetch into the ref HEAD
@@ -342,8 +383,17 @@ def repair_history(root: Path, cfg: HistoryConfig) -> HistoryReport:
             continue
         remote_sha = remote_ref(root, ref)
         present = ref_resolves(root, ref)
-        if present and (remote_sha is None or not is_behind(root, ref, remote_sha)):
-            continue
+        if present and remote_sha is not None:
+            status = ref_status(root, ref, remote_sha)
+            if status == REF_CURRENT:
+                continue
+            if status == REF_DIVERGED:
+                # REFUSE, do not repair. assess_history below reports it as a violation.
+                LOG.error("history: ref %r has DIVERGED from origin/%s - refusing to force-update "
+                          "it, because that would discard local commits", ref, ref)
+                continue
+        elif present:
+            continue                      # present, and nothing to compare against — leave it
         LOG.info("history: ref %r is %s - fetching it from origin", ref,
                  "absent" if not present else "behind origin")
         # `+` forces the update, which is what makes this repair a STALE-ref fix and not only a
@@ -484,17 +534,23 @@ def cmd_history(args: argparse.Namespace) -> int:
     for ref, length in report.refs.items():
         if length is not None:
             LOG.info("history: %s walks %d first-parent spine entries", ref, length)
-    for ref in report.uncompared:
-        LOG.warning("history: %s has no origin/%s to compare against - its CURRENCY is "
-                    "unchecked, not confirmed", ref, ref)
     for violation in report.violations:
         LOG.error("history: %s", violation)
 
-    if report.ok:
-        LOG.info("history: OK - full history, %d required ref(s) resolve, spine walks succeed",
-                 len(cfg.required_refs))
-        return EXIT_OK
-    return EXIT_VIOLATION
+    if not report.ok:
+        return EXIT_VIOLATION
+    if report.uncompared:
+        # Present and walkable, but its CURRENCY could not be checked — a stale local branch
+        # would look exactly like this. Exit 2, not 0: reporting "clean" from a reading that
+        # cannot support it is the false-resolve the 1/2 split exists to prevent (terra HIGH
+        # round 2, 2026-08-21).
+        for ref in report.uncompared:
+            LOG.warning("history: %s has no origin/%s to compare against - its currency is "
+                        "UNCHECKED, not confirmed", ref, ref)
+        return EXIT_UNAVAILABLE
+    LOG.info("history: OK - full history, %d required ref(s) resolve and are current with "
+             "origin, spine walks succeed", len(cfg.required_refs))
+    return EXIT_OK
 
 
 def cmd_ecosystem(args: argparse.Namespace) -> int:
@@ -534,14 +590,17 @@ def cmd_prebuild(args: argparse.Namespace) -> int:
 
     The three-way outcome is deliberate and follows from what the endpoint means:
 
-      declared configured, nothing available  -> EXIT_VIOLATION. Positively observed drift: a
-        prebuild is claimed and the region/branch it is claimed for has none.
       declared configured, available          -> EXIT_OK. The claim is corroborated (the
         trigger/region/history settings remain unverifiable, and the log says so).
-      declared NOT configured                 -> EXIT_UNAVAILABLE. Absence of availability is
-        NOT evidence of absence of configuration, so there is nothing here to confirm. Exiting 0
-        would report "verified, no prebuild" from a reading that cannot support it — the exact
-        false-resolve the 1/2 split exists to prevent.
+      declared configured, nothing available  -> EXIT_VIOLATION. Positively observed drift: a
+        prebuild is claimed and the region/branch it is claimed for has none.
+      declared NOT configured, available      -> EXIT_VIOLATION. Also positively observed, and
+        the quadrant the first pass missed (terra HIGH round 2): availability PROVES a prebuild
+        exists, so a declaration denying one is drift, not an unanswerable question.
+      declared NOT configured, none available -> EXIT_UNAVAILABLE. Absence of availability is
+        NOT evidence of absence of configuration (an unrun or expired prebuild reads null too),
+        so there is nothing here to confirm. Exiting 0 would report "verified, no prebuild" from
+        a reading that cannot support it — the false-resolve the 1/2 split exists to prevent.
     """
     cfg = load_config(args.config).prebuild
     if not cfg.repository:
@@ -561,17 +620,24 @@ def cmd_prebuild(args: argparse.Namespace) -> int:
     LOG.info("prebuild: live - prebuild_availability for %s @ %s in %s is %s",
              cfg.repository, ref, location, "PRESENT" if available else "null")
 
-    if not cfg.configured:
-        LOG.warning("prebuild: INDETERMINATE - the declaration says no prebuild is configured, "
-                    "and a null availability cannot confirm that (an unrun or expired prebuild "
-                    "reads null too). Configuration state is verifiable only in the GitHub UI.")
-        return EXIT_UNAVAILABLE
+    # Availability is checked FIRST, because a non-null reading is positive evidence either way
+    # and never leaves an open question.
     if available:
-        LOG.info("prebuild: OK - a prebuild IS available for the declared branch and region")
-        return EXIT_OK
-    LOG.error("prebuild: DRIFT - the declaration says a prebuild is configured, but none is "
-              "available for %s @ %s in %s", cfg.repository, ref, location)
-    return EXIT_VIOLATION
+        if cfg.configured:
+            LOG.info("prebuild: OK - a prebuild IS available for the declared branch and region")
+            return EXIT_OK
+        LOG.error("prebuild: DRIFT - the declaration says NO prebuild is configured, but one is "
+                  "available for %s @ %s in %s, which proves a configuration exists",
+                  cfg.repository, ref, location)
+        return EXIT_VIOLATION
+    if cfg.configured:
+        LOG.error("prebuild: DRIFT - the declaration says a prebuild is configured, but none is "
+                  "available for %s @ %s in %s", cfg.repository, ref, location)
+        return EXIT_VIOLATION
+    LOG.warning("prebuild: INDETERMINATE - the declaration says no prebuild is configured, and a "
+                "null availability cannot confirm that (an unrun or expired prebuild reads null "
+                "too). Configuration state is verifiable only in the GitHub UI.")
+    return EXIT_UNAVAILABLE
 
 
 def build_parser() -> argparse.ArgumentParser:

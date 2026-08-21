@@ -8,6 +8,7 @@ guard's verdict on it.
 """
 from __future__ import annotations
 
+import json
 import os
 import shutil
 import subprocess
@@ -267,11 +268,70 @@ def test_currency_is_reported_as_UNCOMPARED_when_there_is_no_remote_tracking_ref
     clone = tmp_path / "local-only"
     _git(tmp_path, "clone", "-q", str(origin), str(clone))
     _git(clone, "remote", "remove", "origin")
-    cfg = cp.load_config(_config(tmp_path)).history
+    path = _config(tmp_path)
 
-    report = cp.assess_history(clone, cfg)
+    report = cp.assess_history(clone, cp.load_config(path).history)
     assert report.ok                      # present and walkable — no violation is claimed
     assert report.uncompared == ["main"]  # ... and the limit of the check is stated
+    # ... and the CLI says "could not look", not "clean" (terra HIGH round 2, 2026-08-21):
+    # a stale local branch is indistinguishable from a current one when there is no remote.
+    assert cp.main(["--root", str(clone), "--config", str(path),
+                    "history"]) == cp.EXIT_UNAVAILABLE
+
+
+def test_repair_fetches_the_remote_tracking_ref_so_currency_becomes_checkable(
+        tmp_path: Path, origin: Path) -> None:
+    """A `--single-branch` clone carries no `origin/main`; without this the repair would fetch
+    the branch and leave currency permanently UNCOMPARED, so the check could never say clean."""
+    clone = tmp_path / "single"
+    _git(tmp_path, "clone", "-q", "--single-branch", "--branch", "worktree-lane-probe",
+         str(origin), str(clone))
+    path = _config(tmp_path)
+
+    report = cp.repair_history(clone, cp.load_config(path).history)
+    assert report.ok, report.violations
+    assert report.uncompared == []
+    assert cp.remote_ref(clone, "main") is not None
+    assert cp.main(["--root", str(clone), "--config", str(path), "history"]) == cp.EXIT_OK
+
+
+def test_a_DIVERGED_local_main_is_refused_and_never_force_updated(
+        tmp_path: Path, origin: Path) -> None:
+    """THE data-loss guard (terra CRITICAL, 2026-08-21).
+
+    An earlier version asked only "is the remote an ancestor of local?" and treated every no as
+    BEHIND, then force-fetched over it. A clone carrying an unpushed commit on local `main` would
+    have lost the only reference to it the moment `origin/main` also advanced.
+    """
+    clone = tmp_path / "diverged"
+    _git(tmp_path, "clone", "-q", str(origin), str(clone))
+    _git(clone, "checkout", "-q", "-b", "worktree-lane-probe")
+    _git(clone, "checkout", "-q", "main")
+    _commit(clone, "local-only-work")                 # an unpushed commit on local main
+    local_tip = _git(clone, "rev-parse", "refs/heads/main").stdout.strip()
+    _git(clone, "checkout", "-q", "worktree-lane-probe")
+    _commit(origin, "upstream-work")                  # and the upstream advances too
+    _git(clone, "fetch", "-q", "origin")
+    cfg = cp.load_config(_config(tmp_path)).history
+
+    assert cp.ref_status(clone, "main", cp.remote_ref(clone, "main")) == cp.REF_DIVERGED
+    report = cp.repair_history(clone, cfg)
+    assert not report.ok
+    assert any("DIVERGED" in v for v in report.violations)
+    # The commit is still reachable: the repair refused rather than clobbering the ref.
+    assert _git(clone, "rev-parse", "refs/heads/main").stdout.strip() == local_tip
+
+
+def test_a_local_main_AHEAD_of_origin_is_current_not_a_violation(
+        tmp_path: Path, origin: Path) -> None:
+    """Ahead is the normal workstation state and hides nothing from a spine walk."""
+    clone = tmp_path / "ahead"
+    _git(tmp_path, "clone", "-q", str(origin), str(clone))
+    _commit(clone, "extra")
+    cfg = cp.load_config(_config(tmp_path)).history
+
+    assert cp.ref_status(clone, "main", cp.remote_ref(clone, "main")) == cp.REF_CURRENT
+    assert cp.assess_history(clone, cfg).ok
 
 
 # --- history: the exclusion disposition ---------------------------------------------------
@@ -454,6 +514,16 @@ def test_prebuild_declared_configured_and_available_is_clean(
     assert cp.main(["--config", str(path), "prebuild"]) == cp.EXIT_OK
 
 
+def test_prebuild_declared_NOT_configured_but_available_is_drift(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The quadrant round 1 missed: availability PROVES a configuration exists, so a declaration
+    denying one is observed drift (exit 1), not an unanswerable question (exit 2)."""
+    monkeypatch.setattr(cp, "_gh_machines", lambda repo, ref, loc: [
+        {"name": "basicLinux32gb", "prebuild_availability": "blob"}])
+    path = _declare_configured(_config(tmp_path), False)
+    assert cp.main(["--config", str(path), "prebuild"]) == cp.EXIT_VIOLATION
+
+
 def test_prebuild_declared_configured_but_unavailable_is_drift(
         tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """The one direction the API CAN falsify: a claimed prebuild with nothing available."""
@@ -506,6 +576,34 @@ def _uncommented(text: str, marker: str) -> str:
     lines is what makes these assertions about the code rather than about the commentary.
     """
     return "\n".join(ln for ln in text.splitlines() if not ln.lstrip().startswith(marker))
+
+
+def _devcontainer() -> dict:
+    """The shipped `devcontainer.json`, parsed. JSONC: whole-line `//` comments are stripped.
+
+    Parsing rather than grepping is the point — a structurally invalid file is a container that
+    never builds, and no string search notices that.
+    """
+    text = (cp.REPO_ROOT / ".devcontainer" / "devcontainer.json").read_text(encoding="utf-8")
+    return json.loads(_uncommented(text, "//"))
+
+
+def test_devcontainer_json_is_valid_and_wires_every_lifecycle_stage() -> None:
+    """The execution surface, pinned (terra HIGH round 2, 2026-08-21).
+
+    The only devcontainer assertion before this one checked that a RETIRED declaration was
+    absent — so deleting every lifecycle hook, or breaking the JSONC, left the suite green while
+    a fresh Codespace and `devcontainer up` both provisioned nothing at all.
+    """
+    d = _devcontainer()
+    # onCreateCommand is the half a prebuild bakes; postCreateCommand is the half it never does.
+    assert d["onCreateCommand"] == "bash .devcontainer/provision.sh"
+    assert d["postCreateCommand"] == "bash .devcontainer/provision.sh"
+    # The refusal runs on EVERY start, and `waitFor` is what stops a session attaching before it.
+    assert d["postStartCommand"] == "bash .devcontainer/provision.sh --gate"
+    assert d["waitFor"] == "postStartCommand"
+    # The reachability leg: without sshd, `gh codespace ssh` and `logs` both refuse.
+    assert "ghcr.io/devcontainers/features/sshd:1" in d["features"]
 
 
 def test_devcontainer_json_no_longer_declares_the_unexpandable_stamp() -> None:
@@ -579,6 +677,32 @@ def test_every_guard_invocation_in_provision_sh_parses() -> None:
     parser = cp.build_parser()
     for argv in calls:
         parser.parse_args(argv)          # SystemExit here IS the failure
+
+
+def test_the_gate_never_syncs_the_environment_it_is_asserting() -> None:
+    """`uv run` SYNCS by default, so the assert-only gate would silently build the very venv it
+    exists to refuse — and the venv it built need not carry the `analytics` group (terra HIGH
+    round 2, 2026-08-21). Every `uv run` in the file must therefore be `--no-sync`, and the gate
+    must assert the environment read-only with `uv sync --check` first.
+    """
+    code = _uncommented(
+        (cp.REPO_ROOT / ".devcontainer" / "provision.sh").read_text(encoding="utf-8"), "#")
+    assert "uv run --locked" not in code
+    assert code.count("uv run ") == code.count("uv run --no-sync ")
+    gate_body = code.split("gate() {", 1)[1]
+    assert "uv sync --locked --group analytics --check" in gate_body
+    assert gate_body.index("uv sync --locked --group analytics --check") < \
+           gate_body.index("uv run --no-sync")
+
+
+def test_environment_repairs_are_counted_by_c1() -> None:
+    """A container that rebuilt a missing `.venv` still printed "nothing changed"."""
+    code = _uncommented(
+        (cp.REPO_ROOT / ".devcontainer" / "provision.sh").read_text(encoding="utf-8"), "#")
+    body = code.split("sync_environment() {", 1)[1]
+    assert "uv python find" in body
+    assert "uv sync --locked --group analytics --check" in body
+    assert body.count("CHANGED=$((CHANGED + 1))") >= 2
 
 
 def test_provision_sh_asks_before_repairing_so_c1_accounting_stays_honest() -> None:

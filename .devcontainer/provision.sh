@@ -191,6 +191,13 @@ sync_environment() {
   local py_want py_have
   py_want="$(read_python_pin)"
 
+  # C1 accounting for the environment itself. Both steps below are idempotent and therefore
+  # silent when there is nothing to do, so neither could bump CHANGED — a container that
+  # rebuilt a missing `.venv` still printed "idempotent: nothing changed" (terra HIGH round 2,
+  # 2026-08-21). ASK FIRST, in the same read-only form the gate uses.
+  uv python find "${py_want}" >/dev/null 2>&1 || CHANGED=$((CHANGED + 1))
+  uv sync --locked --group analytics --check >/dev/null 2>&1 || CHANGED=$((CHANGED + 1))
+
   # uv provisions the EXACT interpreter, so the base image's own Python never decides what the
   # gates run on. Idempotent by uv's own design (a present version is reported, not re-downloaded).
   uv python install "${py_want}" >/dev/null 2>&1 \
@@ -203,7 +210,7 @@ sync_environment() {
   uv sync --locked --group analytics >/dev/null \
     || die "'uv sync --locked --group analytics' failed — the lockfile and pyproject.toml disagree, or a dependency is unavailable"
 
-  py_have="$(uv run --locked python -c 'import platform; print(platform.python_version())')"
+  py_have="$(uv run --no-sync python -c 'import platform; print(platform.python_version())')"
   [ "${py_have}" = "${py_want}" ] \
     || die "interpreter is ${py_have}, .python-version pins ${py_want}"
   say "environment OK — Python ${py_have} (.python-version), deps from uv.lock via --locked"
@@ -223,8 +230,8 @@ leg2b_history() {
   # as "nothing changed". Witnessed 2026-08-21 — the first live run seeded a state.yaml and still
   # printed the idempotent no-op line, which is the one thing C1 exists to make impossible.
   local rc=0
-  uv run --locked python scripts/cloud_provisioning.py --quiet history || CHANGED=$((CHANGED + 1))
-  uv run --locked python scripts/cloud_provisioning.py history --repair || rc=$?
+  uv run --no-sync python scripts/cloud_provisioning.py --quiet history || CHANGED=$((CHANGED + 1))
+  uv run --no-sync python scripts/cloud_provisioning.py history --repair || rc=$?
   case "${rc}" in
     0) say "B1 OK — the refs every spine-walking instrument reads resolve, and the walk succeeds" ;;
     1) die "B1 the clone cannot satisfy a spine-walking instrument (see the errors above) — a cloud lane here would run gates that ERROR rather than gates that pass" ;;
@@ -241,8 +248,8 @@ leg5_ecosystem() {
   # checkout; a container has no primary, so it audits the one repo it has. Not a named row leg:
   # it is the last thing standing between this substrate and [#554]'s D1a Done-when.
   local rc=0
-  uv run --locked python scripts/cloud_provisioning.py --quiet ecosystem || CHANGED=$((CHANGED + 1))
-  uv run --locked python scripts/cloud_provisioning.py ecosystem --repair || rc=$?
+  uv run --no-sync python scripts/cloud_provisioning.py --quiet ecosystem || CHANGED=$((CHANGED + 1))
+  uv run --no-sync python scripts/cloud_provisioning.py ecosystem --repair || rc=$?
   case "${rc}" in
     0) say "L5 OK — at least one repo is registered; audit.py health's operational block can pass here" ;;
     1) die "L5 nothing is registered and the seed did not land — audit.py health will report 'repos registered (none)' and exit 1" ;;
@@ -258,7 +265,7 @@ assert_hooks_armed() {
   # how the witnessed relic silently disarmed the gates) and treats a shim bound to a stale
   # interpreter as unarmed. Duplicating that logic here would give the repo two answers to one
   # question; calling it gives one.
-  uv run --locked python - <<'PY'
+  uv run --no-sync python - <<'PY'
 import pathlib
 import sys
 
@@ -293,7 +300,7 @@ leg3_hooks() {
     # arm_hooks.py is fail-SOFT by design — it must never block a session at SessionStart. That is
     # the wrong posture at provision time, so the install is delegated to it and the REFUSAL is
     # ours: [#554] leg 3 says deterministic, and intake #39 §D(3) says "fails if not armed".
-    uv run --locked python scripts/arm_hooks.py || true
+    uv run --no-sync python scripts/arm_hooks.py || true
     CHANGED=$((CHANGED + 1))
   fi
 
@@ -310,7 +317,7 @@ smoke_gate_liveness() {
   # command line the hook will run — not a lookalike. Exit 0 is asserted; its stdout is kept
   # because a passing gate that printed nothing would be indistinguishable from one that no-oped.
   local out
-  out="$(uv run --locked python scripts/validate_backlog.py 2>&1)" \
+  out="$(uv run --no-sync python scripts/validate_backlog.py 2>&1)" \
     || { printf '%s\n' "${out}" >&2; die "C2 gate-liveness smoke FAILED — validate_backlog did not exit 0, so this environment cannot run the gate mesh"; }
   printf '[provision] C2 smoke: %s\n' "$(printf '%s\n' "${out}" | head -n 1)"
   say "C2 OK — a real gate executed here and returned 0"
@@ -364,14 +371,24 @@ gate() {
   have_uv="$(installed_uv_version || true)"
   [ "${have_uv}" = "${want_uv}" ] || die "L4 uv is '${have_uv:-none}', pinned '${want_uv}'"
   [ "$(git rev-parse --is-shallow-repository)" = "false" ] || die "L4 repository is shallow"
+
+  # THE GATE MUST NOT REPAIR WHAT IT IS ASSERTING (terra HIGH round 2, 2026-08-21). Every Python
+  # call below goes through `uv run`, and `uv run` SYNCS by default — it will create or update a
+  # missing `.venv` and then happily run in it. That turns the assert-only gate into a silent
+  # repair, and worse, the environment it silently builds need not carry the `analytics` group
+  # provisioning installs. So the environment is asserted read-only FIRST, and every later call
+  # runs with `--no-sync`.
+  uv sync --locked --group analytics --check >/dev/null 2>&1 \
+    || die "L4 the virtualenv does not match uv.lock (or is absent) — this container is half-provisioned; re-provision (bash .devcontainer/provision.sh)"
+
   assert_hooks_armed || die "L4 git hooks are not armed"
 
   # The two conditions a RESUMED container can lose without any pin moving: a repo re-cloned or
   # re-fetched into a branch-only shape, and a gitignored ecosystem/ wiped by a rebuild. Both are
   # asserted, never repaired — `--gate` refuses; provisioning is what fixes.
-  uv run --locked python scripts/cloud_provisioning.py --quiet history \
-    || die "L4 the refs a spine-walking instrument reads do not resolve — re-provision (bash .devcontainer/provision.sh)"
-  uv run --locked python scripts/cloud_provisioning.py --quiet ecosystem \
+  uv run --no-sync python scripts/cloud_provisioning.py --quiet history \
+    || die "L4 the refs a spine-walking instrument reads do not resolve, or their currency cannot be checked — re-provision (bash .devcontainer/provision.sh)"
+  uv run --no-sync python scripts/cloud_provisioning.py --quiet ecosystem \
     || die "L4 no repo is registered under ecosystem/ — audit.py health cannot pass here; re-provision"
 
   say "gate OK — uv ${have_uv}, full history + spine refs, ecosystem registered, three hook types armed, stamp current"
