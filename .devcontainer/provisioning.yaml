@@ -1,0 +1,103 @@
+# .devcontainer/provisioning.yaml — [#554] the cloud-lane provisioning declaration.
+#
+# WHY THIS FILE EXISTS. `provision.sh` and `devcontainer.json` between them already carry the
+# four legs, but two of the lane contract's obligations are POLICY rather than code: which refs
+# a cloud lane's clone must carry before a spine-walking gate may run (B1), and what the
+# Codespaces prebuild configuration is supposed to be (A3). Both are settings, not logic, so
+# they live here and `scripts/cloud_provisioning.py` reads them — nothing below is duplicated
+# into a Python constant or a bash literal.
+#
+# HONEST LIMIT, stated once rather than per-section. This file DECLARES; it does not enforce
+# anything by existing. `scripts/cloud_provisioning.py history --repair` acts on the `history`
+# block, and `... prebuild --check` reports drift on the `prebuild` block — but the prebuild
+# configuration itself is server-side GitHub state with no public API (see the `prebuild`
+# block), so the only thing a checker can do there is compare a declaration with what the API
+# reports back and say so.
+
+schema: dev-knowledge-cloud-provisioning/1
+
+# --- B1: history sufficiency ---------------------------------------------------------------
+#
+# The measured failure: `[#554]` leg 2 unshallows, so a cloud clone has DEPTH. It does not
+# necessarily have REFS. `docs/audits/2026-08-19-technical-554-proof.md` §3 recorded a codespace
+# whose clone carried 5329 commits and no local `main`, and every instrument that walks main's
+# first-parent spine then errored rather than passing vacuously:
+#
+#   journal_spine_anchor: AnchorError(... 'fatal: Not a valid object name main')
+#
+# So "not shallow" is a necessary and INSUFFICIENT precondition, and this block states the
+# sufficient one.
+history:
+
+  # `repair` — provisioning restores the refs below before any spine-walking instrument runs.
+  # `exclude` — the instruments named below are declared out of scope for cloud lanes and the
+  #   guard reports them as excluded instead of repairing.
+  # The lane took `repair`; the reasoning is in ARTIFACT-lane-554.md section B1.
+  disposition: repair
+
+  # Refs a spine-walking instrument resolves by NAME. A cloud clone created from a non-default
+  # branch has none of these locally even after `--unshallow`.
+  required_refs:
+    - main
+
+  # The instruments that walk a first-parent spine, enumerated so `disposition: exclude` would
+  # have a checkable subject if it were ever taken, and so a new spine walker has an obvious
+  # place to register. Verified by `git grep -l -- --first-parent scripts/`.
+  spine_walking_instruments:
+    - scripts/validate_git_backlog.py
+    - scripts/validate_no_ff.py
+    - scripts/journal_anchor.py
+    - scripts/block_ff_push.py
+    - scripts/block_unanchored_push.py
+
+# --- L5: the ecosystem registration a single-repo container cannot inherit -------------------
+#
+# `audit.py health` reports `repos registered (none)` in a fresh container and therefore exits
+# non-zero, which is the LAST thing standing between this substrate and `[#554]`'s D1a
+# Done-when (`docs/audits/2026-08-20-technical-codespaces-audit.md` §5.6).
+#
+# It is not structural. `discover_repos()` counts directories under `ecosystem/` carrying a
+# `state.yaml`, and `ecosystem/*/state.yaml` is GITIGNORED (`.gitignore` line 69) — so no clone
+# has ever carried one. On the workstation `scripts/worktree_seed.py` copies them from the
+# primary checkout, and its own manifest comment names this exact symptom. A container has no
+# primary to copy from, so it audits the one repo it does have and saves the result.
+ecosystem:
+  # Register the hub itself when nothing is registered. The name matches the directory that
+  # `ecosystem/.dev-knowledge/history/` already occupies in the tree, so this seeds an existing
+  # member rather than inventing one.
+  self_register: true
+  self_name: .dev-knowledge
+
+# --- A3: the Codespaces prebuild declaration -------------------------------------------------
+#
+# NO PUBLIC API EXISTS for prebuild configurations. Probed 2026-08-21 against the live repo:
+# `GET /repos/rdwornik/dev-knowledge/codespaces/prebuilds` returns 404, GraphQL schema
+# introspection returns zero types and zero mutations matching `prebuild`, and `gh codespace`
+# has no prebuild subcommand. The configuration is operator UI state
+# (Settings -> Codespaces -> Set up prebuild), so this block is the repo-side DECLARATION of
+# what that UI state is supposed to be, and `cloud_provisioning.py prebuild --check` compares
+# it against the one field the API does expose: `prebuild_availability` on the machines
+# endpoint.
+#
+# Every value below is the substrate audit's accepted LEAN v2 ruling
+# (`docs/audits/2026-08-20-technical-codespaces-audit.md` §3.2, §4.5 step 3), not a preference.
+prebuild:
+  # Expected live state. `false` while the operator has not landed the configuration; the
+  # checker reports agreement or drift either way rather than assuming.
+  configured: false
+
+  # "On configuration change", NOT the "Every push" default. Load-bearing, not tidy: the same
+  # audit measured 601 of 2000 included Actions minutes already spent this month (30%), and
+  # prebuilds run on Actions.
+  trigger: on_configuration_change
+
+  # EuropeWest only. The default is ALL regions x 2 retained versions — up to 8 multi-GB
+  # prebuild images, which is the one thing that can exhaust the 15 GB-month free allowance.
+  regions:
+    - EuropeWest
+
+  # Retain ONE prebuild version, against the default of 2.
+  template_history: 1
+
+  # The repository this configuration belongs to, so the checker needs no argument to find it.
+  repository: rdwornik/dev-knowledge
