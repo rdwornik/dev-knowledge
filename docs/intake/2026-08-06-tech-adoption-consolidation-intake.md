@@ -170,7 +170,7 @@ two-tier pricing.
 **PENDING-CARRIER at the time of writing.** Per `protocols/STANDING_RULINGS.md` **P-2**, an
 intake at ACCEPTED carries at least one live carrier row or a dated deferral. `tasks/` is
 SEAT-owned this batch, so this lane emitted a **generator-ready carrier-row spec** in
-`ARTIFACT-lane-rat.md` (worktree root) instead of landing the row itself; the seat lands it and
+`docs/audits/2026-08-21-technical-lane-rat-intake-ratification.md` instead of landing the row itself; the seat lands it and
 the integrator sequences this lane's merge **after** the seat's, so no orphan window exists on
 `main`. Verified at prep time: zero rows in `tasks/` cite intake #27.
 

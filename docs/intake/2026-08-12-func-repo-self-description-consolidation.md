@@ -243,7 +243,7 @@ constraint binds every consumer of it.
 **PENDING-CARRIER at the time of writing.** Per `protocols/STANDING_RULINGS.md` **P-2**, an
 intake at ACCEPTED carries at least one live carrier row or a dated deferral. `tasks/` is
 SEAT-owned this batch, so this lane emitted a **generator-ready carrier-row spec** in
-`ARTIFACT-lane-rat.md` (worktree root) for A1's single Section-A row instead of landing it;
+`docs/audits/2026-08-21-technical-lane-rat-intake-ratification.md` for A1's single Section-A row instead of landing it;
 the seat lands the row and the integrator sequences this lane's merge **after** the seat's, so
 no orphan window exists on `main`. Verified at prep time: zero rows in `tasks/` cite intake
 #33. Sections B and C stay carrier-or-ADR decisions per A2/A3 and birth nothing here — the

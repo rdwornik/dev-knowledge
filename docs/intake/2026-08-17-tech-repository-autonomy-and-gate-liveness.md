@@ -245,4 +245,4 @@ untouched:** this is the doc that carries the server-side-enforcement fork prope
 `--no-verify` / `SKIP=` outright, against ADR-85 amendment 2026-08-03 §A2's *make bypass
 non-silent* answer), and it is held for the architect's R7 ADR-fork ruling. The fork options
 and their consequences are laid out for that ruling in the lane artifact
-`ARTIFACT-lane-rat.md`.
+`docs/audits/2026-08-21-technical-lane-rat-intake-ratification.md`.

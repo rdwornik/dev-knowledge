@@ -232,4 +232,4 @@ out of its status; naming conformant (`tech` infix, origin date). **Status delib
 untouched:** this doc is one of the three carrying an unruled doctrine fork (here, R1 —
 AGENTS.md against `CLAUDE.md` §10 and ADR-53) and is held for the architect's R7 ADR-fork
 ruling. The fork options and their consequences are laid out for that ruling in the lane
-artifact `ARTIFACT-lane-rat.md`.
+artifact `docs/audits/2026-08-21-technical-lane-rat-intake-ratification.md`.
