@@ -120,7 +120,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-_REPO_ROOT = Path(__file__).resolve().parent.parent
+# NO MODULE-LEVEL `_REPO_ROOT` -- see `repo_root()`. `[#529]` leg 4 / ruling R6(c).
 
 # The [#355] git-env scrub, single-sourced in the LEAF module `scripts/gitenv.py` ([#396]).
 # Loaded BY PATH, never by name: `import gitenv` and `from scripts import gitenv` each have a
@@ -224,6 +224,48 @@ class ShallowRepositoryRefusal(TelemetryError):
     number -- the memo's "wrong numbers worse than none" in enforceable form."""
 
 
+def repo_root(start: str | os.PathLike[str] | None = None) -> Path | None:
+    """The repository `start` (default: the CWD) is in -- `git rev-parse --show-toplevel`, asked
+    at CALL time. `None` when the question cannot be answered (git absent, not a repository).
+
+    `[#529]` leg 4, ruling R6(c). What this replaces is a module-level
+    `_REPO_ROOT = Path(__file__).resolve().parent.parent` -- the LIBRARY's own location, frozen
+    at import. That value answers "where does this file live", and every caller wanted "which
+    repository is being gated". The two diverge whenever the library is imported from somewhere
+    other than the tree under test: a linked worktree, a shared hooks dir, a deployed copy, a
+    test sandbox. The store then lands outside the tree anything is watching, and NOTHING goes
+    red -- the seam detaches silently, which is why all three live call sites
+    (`audit._telemetry_db_path`, `block_ff_push.telemetry_db`,
+    `block_commit_on_main.telemetry_db`) each hand-rolled their own root rather than trust the
+    library. This makes the library's own answer correct; those three keep their explicit paths.
+
+    HONEST LIMIT, stated because the ruling's own wording invites the question:
+    `--show-toplevel` in a LINKED WORKTREE returns THAT WORKTREE, not the primary checkout. So
+    two lanes running in two worktrees of one repo write two stores, one per tree, rather than
+    sharing one. That is the ruled shape (R6(c) names `--show-toplevel` specifically); the
+    alternative resolver, `--git-common-dir` as used by `fleet_analytics._git_common_dir`, would
+    merge them into a single store. Nothing here quietly substitutes it. Correlating across the
+    two trees is `run_id`'s job ([#565]), not the path's.
+
+    The git-env scrub applies for the same reason it applies to the shallow probe: an inherited
+    `GIT_DIR` overrides both cwd and `-C`, so without it this would answer about the PARENT
+    repository while the caller believed it had asked about its own.
+    """
+    where = Path(start) if start is not None else Path.cwd()
+    try:
+        proc = subprocess.run(
+            ["git", "-C", str(where), "rev-parse", "--show-toplevel"],
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
+            env=_gitenv.scrubbed_git_env(),
+        )
+    except OSError:
+        return None
+    if proc.returncode != 0:
+        return None
+    answer = proc.stdout.strip()
+    return Path(answer) if answer else None
+
+
 def new_run_id() -> str:
     """A fresh correlation id: `uuid.uuid4().hex`.
 
@@ -274,7 +316,7 @@ def is_shallow_repository(repo_path: str | os.PathLike[str] | None = None) -> bo
     must not read "could not ask" as "answered no", which is how an unverified provenance
     claim becomes a verified-looking one.
     """
-    root = Path(repo_path) if repo_path is not None else _REPO_ROOT
+    root = Path(repo_path) if repo_path is not None else Path.cwd()
     try:
         proc = subprocess.run(
             ["git", "-C", str(root), "rev-parse", "--is-shallow-repository"],
@@ -341,15 +383,30 @@ def coverage_value(resolved: int | None) -> int | str:
 
 
 def default_db_path() -> Path:
-    """The store location: `$DEV_KNOWLEDGE_TELEMETRY_DB` if set, else `<repo>/logs/TELEMETRY.db`.
+    """The store location: `$DEV_KNOWLEDGE_TELEMETRY_DB` if set, else `<repo>/logs/TELEMETRY.db`
+    where `<repo>` is `repo_root()` -- the CALLER's repository, resolved at call time.
 
     Resolved per call, never cached at import, so a test or a sandbox can set the env var
     after this module is already imported.
+
+    REFUSES (rather than guessing) when neither the override nor a repository answers. The
+    alternatives are both worse than a loud stop: falling back to the library's own directory
+    is the R6(c) defect this function was just fixed for, and falling back to the CWD scatters
+    a `logs/TELEMETRY.db` into whatever directory a process happened to start in. A gate always
+    runs inside a repository, so this path is a wiring defect, and `TelemetryError` is the class
+    `safe_emit` deliberately does not swallow for exactly that reason.
     """
     override = os.environ.get(DB_PATH_ENV)
     if override:
         return Path(override)
-    return _REPO_ROOT / DEFAULT_DB_RELPATH
+    root = repo_root()
+    if root is None:
+        raise TelemetryError(
+            f"cannot resolve the telemetry store: `git rev-parse --show-toplevel` did not answer "
+            f"from {Path.cwd()}. Set ${DB_PATH_ENV} to an explicit path, pass `db_path=`, or run "
+            f"inside a repository"
+        )
+    return root / DEFAULT_DB_RELPATH
 
 
 def _migrate(conn: sqlite3.Connection) -> None:
