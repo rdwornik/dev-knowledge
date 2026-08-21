@@ -60,6 +60,18 @@ Every emitter returns the new row id (`int`). Every emitter accepts:
                    disambiguation field (line 38).
   * `db_path`   -- override the store location. Defaults to `default_db_path()`.
   * `ts`        -- override the timestamp (tests and replay only; defaults to now, UTC).
+  * `run_id`    -- override the correlation id. Defaults to `current_run_id()`.
+
+CORRELATION -- `run_id` ([#565]). Every event carries one, and it is the field that makes the
+store readable at all: `check_run` rows from two concurrent gate runs in two worktrees land
+interleaved in ONE store, and without a correlation column a reader either re-derives the
+grouping from timestamps (wrong the moment two runs overlap, which is this repo's normal state)
+or gets rebuilt. `current_run_id()` resolves it once per process and EXPORTS it, so a runner and
+everything it spawns share one id while two independent runners do not. Its honest limit --
+siblings under one `pre-commit` do not share an id -- is stated on that function, and it bounds
+what a read path is allowed to claim a run_id means. Scope here is the field and its plumbing
+only; no consumer, no query, no dashboard (the row is explicit that those are the read-path
+lane's, and that lane's row is filed after this one).
 
 Programming errors raise (`TelemetryError` and its subclasses). A wiring site that must never
 break its host gate wraps the call in `safe_emit()`, which swallows store/IO failures and
@@ -101,6 +113,7 @@ import os
 import shutil
 import sqlite3
 import subprocess
+import uuid
 from collections.abc import Callable, Mapping
 from contextlib import contextmanager
 from datetime import datetime, timezone
@@ -127,6 +140,11 @@ DB_PATH_ENV = "DEV_KNOWLEDGE_TELEMETRY_DB"
 #: (CLAUDE.md section 9); the `.db` extension stays honest to the format, as that ruling asks.
 DEFAULT_DB_RELPATH = Path("logs") / "TELEMETRY.db"
 
+#: Env var carrying the [#565] correlation id across a gate invocation's PROCESS TREE. Set by
+#: `current_run_id()` on first use so children inherit it; an outer wrapper may set it FIRST to
+#: widen the correlation window (see `current_run_id`'s honest limit).
+RUN_ID_ENV = "DEV_KNOWLEDGE_TELEMETRY_RUN_ID"
+
 #: The three Stage-1 event types. Memo lines 82-84; `[#529]` Done-when names exactly these.
 EVENT_TYPES: frozenset[str] = frozenset({"check_run", "hook_run", "blocker_fired"})
 
@@ -144,8 +162,9 @@ WAL_PRAGMAS: tuple[tuple[str, str], ...] = (
 )
 
 #: Memo line 79: "Single table events(id, ts, event_type, name, outcome, duration_ms,
-#: context_json)". Append-only by discipline -- there is no UPDATE or DELETE path in this
-#: module (retention pruning is the memo's separate maintenance check, line 93).
+#: context_json)", plus the `[#565]` correlation column. Append-only by discipline -- there is
+#: no UPDATE or DELETE path in this module (retention pruning is the memo's separate
+#: maintenance check, line 93).
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS events (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -154,9 +173,20 @@ CREATE TABLE IF NOT EXISTS events (
     name         TEXT    NOT NULL,
     outcome      TEXT,
     duration_ms  INTEGER,
-    context_json TEXT    NOT NULL DEFAULT '{}'
+    context_json TEXT    NOT NULL DEFAULT '{}',
+    run_id       TEXT    NOT NULL DEFAULT ''
 )
 """
+
+#: `[#565]`'s migration. A store written before the column existed is REAL -- the library has
+#: been importable since `4ad2025d` -- so `connect()` adds the column rather than assuming a
+#: fresh file. `ALTER TABLE ADD COLUMN` is O(1) in SQLite and its `NOT NULL DEFAULT ''` backfills
+#: existing rows with the empty string, which reads as "emitted before correlation existed" and
+#: is deliberately NOT a synthesized id: inventing a run_id for rows that never had one would
+#: make two uncorrelated events look like one run, the exact confusion this column closes.
+_MIGRATIONS: tuple[tuple[str, str], ...] = (
+    ("run_id", "ALTER TABLE events ADD COLUMN run_id TEXT NOT NULL DEFAULT ''"),
+)
 
 
 #: Constraint 2's sentinel. A coverage signal whose only evidence is a non-call reference is
@@ -178,6 +208,11 @@ _SKIP_KEYS = frozenset({"skipped", "skips", "skip_count", "skipped_count"})
 _UNSET: Any = object()
 
 
+#: `[#565]`'s per-process cache. Resolved once and reused, so every event a runner emits
+#: carries one id; `None` until the first `current_run_id()` call.
+_RUN_ID: str | None = None
+
+
 class TelemetryError(Exception):
     """Base for every refusal this module raises. Callers that must not break their host
     catch this (or use `safe_emit`); callers that want the defect loud let it propagate."""
@@ -187,6 +222,48 @@ class ShallowRepositoryRefusal(TelemetryError):
     """Constraint 1: a git-history-derived metric was asked for on a shallow (or
     unverifiable) clone, so nothing was emitted. Raised INSTEAD of writing a truncated
     number -- the memo's "wrong numbers worse than none" in enforceable form."""
+
+
+def new_run_id() -> str:
+    """A fresh correlation id: `uuid.uuid4().hex`.
+
+    uuid4 and not a counter, a pid or a timestamp, because `[#565]`'s distinctness requirement
+    is across processes that share neither memory nor clock: two lanes in two worktrees start
+    within the same millisecond often enough that a timestamp collides, and pids recycle.
+    """
+    return uuid.uuid4().hex
+
+
+def current_run_id() -> str:
+    """The id correlating every event emitted by ONE gate invocation. `[#565]`.
+
+    Resolution order, and each step is load-bearing:
+
+      1. `$DEV_KNOWLEDGE_TELEMETRY_RUN_ID` when set and non-blank -- an INHERITED id. This is
+         how one runner's id reaches the processes it spawns, and how an outer wrapper widens
+         the correlation window over a whole gate mesh.
+      2. otherwise a fresh `new_run_id()`, cached for this process AND exported into
+         `os.environ` so anything this process spawns inherits it.
+
+    THE EXPORT IS THE MECHANISM, not a side effect, so it is stated rather than hidden: the
+    gate mesh is multi-process (a runner spawns git, a hook spawns a validator), and an id that
+    stopped at the process boundary would correlate one process rather than one invocation.
+
+    HONEST LIMIT, and it bounds what a read path may claim. The export reaches this process's
+    DESCENDANTS. It does NOT reach its SIBLINGS: `pre-commit` spawns each hook as its own child,
+    so hook A setting the variable in its own environment cannot be seen by hook B. One
+    `git commit` therefore yields one run_id per emitting hook, not one for the commit --
+    unless something outside sets `RUN_ID_ENV` before pre-commit starts, which is exactly the
+    seam step 1 leaves open. A reader grouping by run_id is grouping RUNNER INVOCATIONS.
+    """
+    global _RUN_ID
+    inherited = os.environ.get(RUN_ID_ENV, "").strip()
+    if inherited:
+        return inherited
+    if _RUN_ID is None:
+        _RUN_ID = new_run_id()
+    os.environ[RUN_ID_ENV] = _RUN_ID
+    return _RUN_ID
 
 
 def is_shallow_repository(repo_path: str | os.PathLike[str] | None = None) -> bool | None:
@@ -275,6 +352,21 @@ def default_db_path() -> Path:
     return _REPO_ROOT / DEFAULT_DB_RELPATH
 
 
+def _migrate(conn: sqlite3.Connection) -> None:
+    """Add any column `_MIGRATIONS` declares and the live table lacks. Idempotent.
+
+    `CREATE TABLE IF NOT EXISTS` is a no-op against a store that already exists, so a schema
+    that GREW cannot reach an older file through it -- the file keeps its original columns and
+    the first insert fails on the missing one. Asking `PRAGMA table_info` and adding what is
+    absent is the smallest thing that makes an existing store correct, and it never rewrites a
+    row: the column arrives with its default and the append-only discipline is intact.
+    """
+    have = {row[1] for row in conn.execute("PRAGMA table_info(events)")}
+    for column, ddl in _MIGRATIONS:
+        if column not in have:
+            conn.execute(ddl)
+
+
 @contextmanager
 def connect(db_path: str | os.PathLike[str] | None = None):
     """Open the store with the memo's three pragmas applied and the schema ensured.
@@ -289,6 +381,7 @@ def connect(db_path: str | os.PathLike[str] | None = None):
         for pragma, value in WAL_PRAGMAS:
             conn.execute(f"PRAGMA {pragma}={value}")
         conn.execute(SCHEMA)
+        _migrate(conn)
         yield conn
         conn.commit()
     except BaseException:
@@ -344,6 +437,7 @@ def emit_event(
     coverage: int | None = _UNSET,
     skipped: int | None = None,
     repo_path: str | os.PathLike[str] | None = None,
+    run_id: str | None = None,
 ) -> int:
     """Append one event and return its row id.
 
@@ -362,6 +456,12 @@ def emit_event(
         `0` stores a measured zero. A raw `coverage` key in `context` is refused.
       * `skipped=<int>` -- stores the count AND `context["capabilities"]`, the live host
         vector. A raw skip key in `context` is refused.
+
+    `run_id` ([#565]) defaults to `current_run_id()` -- one id for every event this invocation
+    emits. Passing it explicitly is for a caller that owns a wider unit than this process (or a
+    test staging two runs); an empty or blank string is REFUSED rather than stored, because a
+    blank id is what a pre-`[#565]` row carries and a new event must not be indistinguishable
+    from one written before correlation existed.
     """
     if event_type not in EVENT_TYPES:
         raise TelemetryError(f"unknown event_type {event_type!r}; expected one of {sorted(EVENT_TYPES)}")
@@ -371,6 +471,11 @@ def emit_event(
         raise TelemetryError("name is required -- an unnamed organ cannot be counted")
     if duration_ms is not None and (not isinstance(duration_ms, int) or isinstance(duration_ms, bool)):
         raise TelemetryError(f"duration_ms must be an int or None, got {type(duration_ms).__name__}")
+    if run_id is not None and not str(run_id).strip():
+        raise TelemetryError(
+            "run_id must be a non-empty string -- a blank id is what rows written before [#565] "
+            "carry, and a new event must not be indistinguishable from an uncorrelated one"
+        )
 
     payload = dict(context or {})
 
@@ -415,11 +520,12 @@ def emit_event(
         "outcome": outcome,
         "duration_ms": duration_ms,
         "context_json": context_json,
+        "run_id": str(run_id) if run_id is not None else current_run_id(),
     }
     with connect(db_path) as conn:
         cur = conn.execute(
-            "INSERT INTO events (ts, event_type, name, outcome, duration_ms, context_json)"
-            " VALUES (:ts, :event_type, :name, :outcome, :duration_ms, :context_json)",
+            "INSERT INTO events (ts, event_type, name, outcome, duration_ms, context_json, run_id)"
+            " VALUES (:ts, :event_type, :name, :outcome, :duration_ms, :context_json, :run_id)",
             row,
         )
         row_id = int(cur.lastrowid)
