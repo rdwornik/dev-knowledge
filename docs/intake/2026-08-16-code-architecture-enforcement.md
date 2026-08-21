@@ -2,7 +2,6 @@
 intake-id: 34
 status: DRAFT
 origin: operator-held compass research artifact ("Enforcing a Universal Code-Style Doctrine Across an LLM-Written Python Fleet"), routed into intake by architect ruling of 2026-08-16 (phase-2 Stage-7 wrap addition iv); the source artifact itself is NOT yet in-repo and lands with the ratification
-consumed-by:
 ---
 
 # Fleet code-architecture enforcement doctrine
@@ -73,3 +72,54 @@ Listed so the DRAFT is actionable rather than merely filed:
    that enforcement organs are **not** homogeneous across the fleet by construction.
 5. Price the adoption per ADR-112's two-tier bar (Tier L evaluates; Tier S tries and keeps or
    deletes).
+
+## Template conformance (prep pass, 2026-08-21 — batch-1 lane D)
+
+Completeness pass against the protocol that governs intakes — `docs/intake/README.md` §2
+(doc format), §3 (frontmatter schema), §4 (naming), §5 (lifecycle) — plus the fill-in
+skeleton `templates/intake-template.md`. Section A is a **verbatim** quotation of an
+operator-held artifact and is untouched; nothing above this heading changed.
+
+- **Problem / motivation** — **ABSENT as a section**; carried by the `DRAFT BINDS NOTHING`
+  preamble plus `## Provenance, stated exactly` and Section A's TL;DR.
+- **Scenarios (+1 view)** — **ABSENT.** No operator walkthrough exists; this doc records a
+  routed research input, not an elicitation. Not back-filled — §2 calls scenarios
+  load-bearing and inventing them would manufacture authority the doc explicitly disclaims.
+- **Functional requirements** — carried by `## Section B — the enforcement families the ruling
+  names`, which is explicitly "the candidate scope, not a plan" (no must/should/could split).
+- **Acceptance criteria (ex-ante)** — **ABSENT.** `## What ratification would have to settle`
+  is the nearest section and is a **precondition list**, not measurable ex-ante criteria.
+  This is the one absence that is load-bearing rather than cosmetic — see the blocker below.
+- **Non-goals** — carried by `## Section C — scoping` ("not scoped to batch 6 and not to
+  batch 7 by this file"; "no row is birthed here and none is proposed").
+- **Impact sketch (4+1 lite)** — **ABSENT** in all four views.
+- **Open questions** — **ABSENT as a section**; items 2–5 of "What ratification would have to
+  settle" are open questions in substance.
+- **Status** — added below.
+
+**Frontmatter fix landed by this pass:** the empty `consumed-by:` key was removed — README §3
+makes it CONSUMED-only and says to leave companion fields absent at any other status. (Same
+template↔README conflict reported for intake #24: `templates/intake-template.md` seeds
+`consumed-by:` with "leave blank until status: CONSUMED".)
+
+**Naming (§4) — RECORDED DEVIATION, not repaired.** `2026-08-16-code-architecture-enforcement.md`
+carries **no `{func|tech}` genre infix**, and §4's convention binds docs created after its
+2026-07-08 ratification. Its own HTML comment declares `class: tech`, so the intended infix is
+`tech`. Not renamed by this lane: a rename moves a file the intake generators are contracted
+never to move, invalidates the path any other artifact cites, and is a structural act outside a
+prep pass. Reported for the architect.
+
+**Ratification blocker — why this doc was NOT transitioned by batch-1 lane D.** Item 1 of
+"What ratification would have to settle" is *"Land the source artifact in-repo (it is the
+evidence base and is currently operator-held)"*, and the frontmatter `origin:` says the
+artifact *"lands with the ratification"*. That artifact is operator-held and not in this
+repo, so a lane cannot satisfy the precondition; ratifying anyway would produce an ACCEPTED
+standing authority whose own stated evidence base is absent. Item 5 (price the adoption per
+ADR-112's two-tier bar) is likewise unpriced. Under the lane contract's "ambiguity →
+prep-only + report" budget this doc is **prepped and left at DRAFT**.
+
+## Status
+
+**DRAFT** — routed into intake 2026-08-16 by architect ruling; prepped 2026-08-21 by batch-1
+lane D and **deliberately not transitioned** (see the ratification blocker above). DRAFT BINDS
+NOTHING; zero rows born, none proposed.
