@@ -69,8 +69,31 @@
   // REFUSES a stamp path that still carries an unexpanded `${`, so this whole class fails
   // loudly at the next host that tries it instead of being rediscovered by measurement.
 
+  // THE PREBUILD LEG (lane contract A3), in the only form a repo file can carry it.
+  //
+  // A Codespaces prebuild executes `onCreateCommand` and `updateContentCommand` and bakes their
+  // result into the prebuilt image; `postCreateCommand` is NEVER prebuilt — it runs at codespace
+  // creation, every time. So with provisioning wired only to `postCreateCommand`, enabling a
+  // prebuild would cache the ~85 s container build and leave the whole provisioning run on the
+  // create path. Naming the same script here moves it inside the cacheable half.
+  //
+  // Running it twice on a NON-prebuilt create is deliberate and costs almost nothing: C1 makes
+  // the script idempotent, and a fully-provisioned re-run measured **7 s** in a live container
+  // on 2026-08-21 (against ~28 s for the cold run it follows). Paying 7 s on every cold create to
+  // save ~28 s on every prebuilt one is the trade, and it is stated here rather than assumed.
+  //
+  // The three prebuild SETTINGS the contract names — trigger "on configuration change", region
+  // EuropeWest, template history 1 — are NOT expressible in this file. They are server-side
+  // operator UI state with no public API (probed 2026-08-21: REST 404, GraphQL introspection
+  // empty, no `gh codespace` subcommand). They are declared in `.devcontainer/provisioning.yaml`
+  // and `scripts/cloud_provisioning.py prebuild` reports declaration-vs-live drift.
+  "onCreateCommand": "bash .devcontainer/provision.sh",
+
   // Provision once per container creation: install pinned uv, unshallow, sync, arm hooks,
-  // assert all four legs, run the gate-liveness smoke, then stamp.
+  // assert all four legs, run the gate-liveness smoke, then stamp. Kept alongside
+  // `onCreateCommand` above rather than replaced by it: a prebuilt image is built from the
+  // DEFAULT branch, so a codespace created later — or from a different branch — can carry pins
+  // the prebuild never saw. This is the run that re-asserts against the tree actually checked out.
   "postCreateCommand": "bash .devcontainer/provision.sh",
 
   // Re-assert on EVERY start. A container resumed from a stale image, or one whose repo has

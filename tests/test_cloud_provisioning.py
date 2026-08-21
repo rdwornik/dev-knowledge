@@ -350,6 +350,34 @@ def test_provision_sh_refuses_an_unexpanded_stamp_path() -> None:
     assert "*'${'*" in text
 
 
+def _guard_invocations() -> list[list[str]]:
+    """Every `cloud_provisioning.py ...` argument list `provision.sh` actually runs."""
+    text = (cp.REPO_ROOT / ".devcontainer" / "provision.sh").read_text(encoding="utf-8")
+    calls = []
+    for line in _uncommented(text, "#").splitlines():
+        _, sep, tail = line.partition("scripts/cloud_provisioning.py")
+        if not sep:
+            continue
+        # Cut the shell's own tail: `|| CHANGED=...`, `|| rc=$?`, a line-continuation backslash.
+        tail = tail.split("||", 1)[0].rstrip().removesuffix("\\")
+        calls.append(tail.split())
+    return calls
+
+
+def test_every_guard_invocation_in_provision_sh_parses() -> None:
+    """WITNESSED 2026-08-21, in the container: the gate called `... history --quiet`, argparse
+    put `--quiet` on the PARENT parser, and the gate died with `unrecognized arguments: --quiet`
+    and REFUSED a perfectly good container. A gate that fails closed on its own typo is worse
+    than no gate, and no unit test caught it because every test called `main()` with a hand-written
+    argument list. This one reads the argument lists the shell actually uses.
+    """
+    calls = _guard_invocations()
+    assert len(calls) >= 4, calls
+    parser = cp.build_parser()
+    for argv in calls:
+        parser.parse_args(argv)          # SystemExit here IS the failure
+
+
 def test_provision_sh_asks_before_repairing_so_c1_accounting_stays_honest() -> None:
     """A run that repairs must not report itself idempotent.
 
@@ -360,8 +388,8 @@ def test_provision_sh_asks_before_repairing_so_c1_accounting_stays_honest() -> N
     text = (cp.REPO_ROOT / ".devcontainer" / "provision.sh").read_text(encoding="utf-8")
     code = _uncommented(text, "#")
     for subcommand in ("history", "ecosystem"):
-        assert f"cloud_provisioning.py {subcommand} --quiet || CHANGED=" in code
-        assert code.index(f"cloud_provisioning.py {subcommand} --quiet") < \
+        assert f"cloud_provisioning.py --quiet {subcommand} || CHANGED=" in code
+        assert code.index(f"cloud_provisioning.py --quiet {subcommand}") < \
                code.index(f"cloud_provisioning.py {subcommand} --repair")
 
 

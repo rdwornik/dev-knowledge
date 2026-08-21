@@ -223,7 +223,7 @@ leg2b_history() {
   # as "nothing changed". Witnessed 2026-08-21 — the first live run seeded a state.yaml and still
   # printed the idempotent no-op line, which is the one thing C1 exists to make impossible.
   local rc=0
-  uv run --locked python scripts/cloud_provisioning.py history --quiet || CHANGED=$((CHANGED + 1))
+  uv run --locked python scripts/cloud_provisioning.py --quiet history || CHANGED=$((CHANGED + 1))
   uv run --locked python scripts/cloud_provisioning.py history --repair || rc=$?
   case "${rc}" in
     0) say "B1 OK — the refs every spine-walking instrument reads resolve, and the walk succeeds" ;;
@@ -241,7 +241,7 @@ leg5_ecosystem() {
   # checkout; a container has no primary, so it audits the one repo it has. Not a named row leg:
   # it is the last thing standing between this substrate and [#554]'s D1a Done-when.
   local rc=0
-  uv run --locked python scripts/cloud_provisioning.py ecosystem --quiet || CHANGED=$((CHANGED + 1))
+  uv run --locked python scripts/cloud_provisioning.py --quiet ecosystem || CHANGED=$((CHANGED + 1))
   uv run --locked python scripts/cloud_provisioning.py ecosystem --repair || rc=$?
   case "${rc}" in
     0) say "L5 OK — at least one repo is registered; audit.py health's operational block can pass here" ;;
@@ -369,9 +369,9 @@ gate() {
   # The two conditions a RESUMED container can lose without any pin moving: a repo re-cloned or
   # re-fetched into a branch-only shape, and a gitignored ecosystem/ wiped by a rebuild. Both are
   # asserted, never repaired — `--gate` refuses; provisioning is what fixes.
-  uv run --locked python scripts/cloud_provisioning.py history --quiet \
+  uv run --locked python scripts/cloud_provisioning.py --quiet history \
     || die "L4 the refs a spine-walking instrument reads do not resolve — re-provision (bash .devcontainer/provision.sh)"
-  uv run --locked python scripts/cloud_provisioning.py ecosystem --quiet \
+  uv run --locked python scripts/cloud_provisioning.py --quiet ecosystem \
     || die "L4 no repo is registered under ecosystem/ — audit.py health cannot pass here; re-provision"
 
   say "gate OK — uv ${have_uv}, full history + spine refs, ecosystem registered, three hook types armed, stamp current"
