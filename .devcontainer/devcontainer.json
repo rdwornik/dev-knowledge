@@ -50,13 +50,24 @@
     }
   },
 
-  "containerEnv": {
-    // THE ENV GATE ([#554] leg 4). `provision.sh` writes this stamp only after all four legs
-    // assert clean, and `--gate` (wired to postStartCommand below) refuses to let a container
-    // come up when the stamp is missing or records a pin that no longer matches the repo.
-    // Declared here rather than hardcoded in the script so a VPS host can relocate it.
-    "DEV_KNOWLEDGE_PROVISION_STAMP": "${containerEnv:HOME}/.dev-knowledge-provision-stamp"
-  },
+  // THE ENV GATE ([#554] leg 4) IS NOT DECLARED HERE, AND THE ABSENCE IS THE FIX.
+  //
+  // This file previously carried
+  //   "containerEnv": { "DEV_KNOWLEDGE_PROVISION_STAMP": "${containerEnv:HOME}/..." }
+  // on the reasoning that a VPS host might want to relocate the stamp. Measured on
+  // 2026-08-19 (`docs/audits/2026-08-19-technical-554-proof.md` §2.1): `containerEnv` cannot
+  // reference `containerEnv` — a variable cannot reference the block being defined — so the
+  // literal string `${containerEnv:HOME}/.dev-knowledge-provision-stamp` reached
+  // `provision.sh`, whose `mkdir -p "$(dirname ...)"` then created a directory *named*
+  // `${containerEnv:HOME}` inside the working tree on every single container start.
+  //
+  // The relocation capability is NOT lost: `provision.sh` still honours an exported
+  // `DEV_KNOWLEDGE_PROVISION_STAMP` and falls back to `${HOME}/.dev-knowledge-provision-stamp`,
+  // which is what the comment above always claimed the value was. A VPS host that genuinely
+  // wants it elsewhere exports the variable; a host that does not says nothing and gets a
+  // stamp in `$HOME` rather than a junk directory in the repo. The script additionally
+  // REFUSES a stamp path that still carries an unexpanded `${`, so this whole class fails
+  // loudly at the next host that tries it instead of being rediscovered by measurement.
 
   // Provision once per container creation: install pinned uv, unshallow, sync, arm hooks,
   // assert all four legs, run the gate-liveness smoke, then stamp.
