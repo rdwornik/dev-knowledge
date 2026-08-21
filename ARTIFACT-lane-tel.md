@@ -222,7 +222,30 @@ was named for.**
 
 ## 6. Verification
 
-- `pytest` green — see §7 for the final full-suite figure.
+**Full suite: 3163 passed, 9 skipped, 1 xfailed, 5 failed** (761 s, `-n auto`). Every failure was
+classified against this lane's diff rather than waved through. The lane touched exactly 8 files
+(`git diff --name-only 78267fdb..HEAD`); **none of the four not-mine failures reference
+`telemetry_emit`, `single_flight` or `run_id` anywhere in their test files** (grep: 0 occurrences
+across all three).
+
+| failing test | mine? | why |
+|---|---|---|
+| `test_check_fleet_parity_green_on_live_repo` | no | live sibling-repo state |
+| `test_routine_consumers_live_backlog_governs_exactly_one_row` | no | live `BACKLOG.md` (3 declared rows vs 1); this lane makes no BACKLOG edit |
+| `test_anchor_gate_probe_distinguishes_installed_from_absent` | no | hook-arming state of this worktree |
+| `test_linked_worktrees_reader_excludes_the_primary` | no | asserts the repo root is not a linked worktree — it *is* one; the documented lane-worktree RED |
+| `test_the_migration_tolerates_losing_the_race` | **YES** | **FIXED** — see below |
+
+The one that was mine is worth recording rather than just fixing. My migration-race test drove
+four real concurrent SQLite writers, and under the full suite (16 xdist workers already loading the
+machine) it failed with `database is locked` — **the exact store-contention limit this lane
+measured and reported in §5**. A lock-ordering property tested by a lock-sensitive test proves the
+wrong thing on a bad day and nothing on a good one. Rewritten to force the losing branch
+deterministically by stubbing the column probe, plus a new case asserting that a NON-duplicate DDL
+error still propagates, so the `except` cannot quietly widen into swallowing real corruption.
+Re-run: 16 passed.
+
+- `pytest` targeted suites green throughout: telemetry 51, single-flight 46.
 - `ruff check` clean across `scripts/` and `tests/` at every commit; the `ruff` pre-commit gate
   passed on each.
 - Config: no new hardcoded knobs. Every switch this lane touches uses the config surface the

@@ -227,13 +227,20 @@ def test_a_pre_run_id_store_is_migrated_and_keeps_its_rows(tmp_path):
     assert rows[1]["run_id"] == "new-run"
 
 
-def test_concurrent_first_opens_of_a_pre_run_id_store_all_land(tmp_path):
+def test_the_migration_tolerates_losing_the_race(tmp_path):
     """Terra P1, 2026-08-21: the migration must tolerate LOSING the race, not just winning it.
 
     Two hooks opening the same pre-`[#565]` store at the same moment both read the column as
     absent before either alters. The loser hits `duplicate column name`, which is a
     `sqlite3.Error`, which `safe_emit` swallows -- so its event would vanish with no error
     anywhere. The post-condition is "the column exists", not "I added it".
+
+    DRIVEN BY FORCING THE LOSING BRANCH rather than by racing real threads, and that is a
+    correction: the thread version of this case was flaky under the FULL suite, failing with
+    `database is locked` when 16 xdist workers already loaded the machine. Not a surprise -- it
+    is the store-contention limit this lane measured and reported (artifact section 5). Testing a
+    lock-ordering property with a test that is itself lock-sensitive proves the wrong thing on a
+    bad day and nothing at all on a good one.
     """
     db = tmp_path / "old.db"
     conn = sqlite3.connect(str(db))
@@ -246,25 +253,54 @@ def test_concurrent_first_opens_of_a_pre_run_id_store_all_land(tmp_path):
     conn.commit()
     conn.close()
 
-    errors: list[BaseException] = []
-    barrier = threading.Barrier(4)
+    te.emit_check_run("first", "pass", db_path=db, run_id="r1")      # migrates for real
 
-    def writer(i: int) -> None:
-        try:
-            barrier.wait(timeout=10)
-            te.emit_check_run(f"racer_{i}", "pass", i, db_path=db, run_id=f"run-{i}")
-        except BaseException as exc:  # noqa: BLE001 -- the assertion is that there are none
-            errors.append(exc)
+    # Replay a connection whose column snapshot PREDATES that migration -- exactly what the loser
+    # of the race holds -- and require `_migrate` to treat the duplicate as success.
+    class _StaleSnapshot:
+        """Reports the PRE-migration columns, then delegates everything else to a real handle."""
 
-    threads = [threading.Thread(target=writer, args=(i,)) for i in range(4)]
-    for t in threads:
-        t.start()
-    for t in threads:
-        t.join(timeout=30)
+        def __init__(self, real):
+            self._real = real
 
-    assert not errors, f"a racing writer failed: {errors!r}"
-    names = sorted(r["name"] for r in _rows(db))
-    assert names == [f"racer_{i}" for i in range(4)], "every racing writer's event must land"
+        def execute(self, sql, *a, **kw):
+            if "table_info" in sql:
+                return [(0, name, "TEXT", 0, None, 0) for name in
+                        ("id", "ts", "event_type", "name", "outcome", "duration_ms",
+                         "context_json")]
+            return self._real.execute(sql, *a, **kw)
+
+    real = sqlite3.connect(str(db))
+    try:
+        te._migrate(_StaleSnapshot(real))    # must NOT raise: the column already exists
+    finally:
+        real.close()
+
+    te.emit_check_run("second", "pass", db_path=db, run_id="r2")     # the loser's event lands
+    assert [(r["name"], r["run_id"]) for r in _rows(db)] == [("first", "r1"), ("second", "r2")]
+
+
+def test_the_migration_reraises_an_unrelated_operational_error(tmp_path):
+    """The other side of that except-branch: ONLY `duplicate column` is success. A real DDL
+    failure must still propagate, or the migration would swallow genuine corruption."""
+    db = tmp_path / "t.db"
+    te.emit_check_run("seed", "pass", db_path=db, run_id="r")
+
+    class _BrokenAlter:
+        def __init__(self, real):
+            self._real = real
+
+        def execute(self, sql, *a, **kw):
+            if "table_info" in sql:
+                return [(0, "id", "INTEGER", 0, None, 1)]     # pretend run_id is missing
+            raise sqlite3.OperationalError("disk I/O error")
+
+    real = sqlite3.connect(str(db))
+    try:
+        with pytest.raises(sqlite3.OperationalError, match="disk I/O error"):
+            te._migrate(_BrokenAlter(real))
+    finally:
+        real.close()
 
 
 def test_concurrent_first_emitters_share_one_run_id(tmp_path, monkeypatch):
