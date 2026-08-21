@@ -295,5 +295,11 @@ forbids `docs/audits/` writes, which is where the sanctioned home would otherwis
 f1132a83  perf(telemetry): [#529] leg 3 — structlog RULED OUT on measurement; backend resolved once
 472eca5a  test(single-flight): [#530] reproduce both open races — RED, before either fix
 251c34e0  fix(single-flight): [#530] close both races — CAS the delete on a run_id-bearing lock object
-<terra>   fix(single-flight,telemetry): terra P1 sweep — 12 findings closed
+a38edf01  fix(single-flight,telemetry): terra P1 sweep — 12 findings closed across 11 review passes
+1692ff6c  test(telemetry): de-flake the migration-race case; record the full-suite classification
 ```
+
+Branch `worktree-lane-tel-run-id`, 7 commits + this one on base `78267fdb`. **Not pushed and not
+merged**, deliberately: a lane never journals, so a push would meet `block-unanchored-push` with no
+JOURNAL anchor to discharge it, and the anchor is the integrator's to write. The branch lives in the
+shared git dir, so the commits survive this worktree's teardown.
