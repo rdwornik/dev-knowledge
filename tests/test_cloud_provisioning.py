@@ -95,6 +95,40 @@ def test_load_config_refuses_an_off_enum_disposition(tmp_path: Path) -> None:
         cp.load_config(path)
 
 
+@pytest.mark.parametrize(("block", "key"), [
+    ("ecosystem", "self_register"),
+    ("prebuild", "configured"),
+])
+@pytest.mark.parametrize("bad", ["false", "no", "0", 0, 1, None])
+def test_load_config_refuses_a_non_boolean_where_a_boolean_is_meant(
+        tmp_path: Path, block: str, key: str, bad: object) -> None:
+    """`bool("false")` is True (terra HIGH round 4, 2026-08-21).
+
+    A declaration written `configured: "false"` — quoted by hand, or by a generator that
+    stringifies — silently meant the opposite. On `self_register` that authorises a tree
+    mutation; on `configured` it inverts the prebuild verdict. Refusing to read the file is the
+    lesser harm, and it is a could-not-look, so it raises.
+    """
+    path = _config(tmp_path)
+    body = yaml.safe_load(path.read_text(encoding="utf-8"))
+    body[block][key] = bad
+    path.write_text(yaml.safe_dump(body), encoding="utf-8")
+    with pytest.raises(cp.ProvisioningError, match=key):
+        cp.load_config(path)
+
+
+def test_load_config_accepts_real_yaml_booleans(tmp_path: Path) -> None:
+    """The discrimination, not just the refusal: genuine booleans still load."""
+    path = _config(tmp_path)
+    body = yaml.safe_load(path.read_text(encoding="utf-8"))
+    body["ecosystem"]["self_register"] = False
+    body["prebuild"]["configured"] = True
+    path.write_text(yaml.safe_dump(body), encoding="utf-8")
+    cfg = cp.load_config(path)
+    assert cfg.ecosystem.self_register is False
+    assert cfg.prebuild.configured is True
+
+
 def test_load_config_refuses_a_missing_file(tmp_path: Path) -> None:
     with pytest.raises(cp.ProvisioningError, match="not found"):
         cp.load_config(tmp_path / "absent.yaml")
@@ -291,6 +325,8 @@ def test_repair_fetches_the_remote_tracking_ref_so_currency_becomes_checkable(
     report = cp.repair_history(clone, cp.load_config(path).history)
     assert report.ok, report.violations
     assert report.uncompared == []
+    # The tracking ref is refreshed as a convenience for the lane; the guard's own currency
+    # answer comes from `ls-remote`, which is why the check below can succeed either way.
     assert cp.remote_ref(clone, "main") is not None
     assert cp.main(["--root", str(clone), "--config", str(path), "history"]) == cp.EXIT_OK
 
@@ -322,13 +358,15 @@ def test_a_DIVERGED_local_main_is_refused_and_never_force_updated(
     assert _git(clone, "rev-parse", "refs/heads/main").stdout.strip() == local_tip
 
 
-def test_repair_refreshes_a_STALE_remote_tracking_ref_before_judging_currency(
+def test_the_READ_ONLY_check_detects_a_stale_clone_without_fetching_anything(
         tmp_path: Path, origin: Path) -> None:
-    """Upstream advances, the clone never fetches — both cached refs still agree at the OLD tip.
+    """THE gate's soundness (terra HIGH round 4, 2026-08-21).
 
-    The round-2 refresh only ran when `origin/main` was ABSENT, so this clone compared two
-    equally stale refs, found them equal, and reported clean while the spine walkers missed
-    every new entry (terra HIGH round 3, 2026-08-21).
+    Upstream advances; the clone never fetches, so its local `main` AND its cached
+    `origin/main` are stale together — comparing the two finds them equal and reports clean.
+    `--gate` runs exactly this read-only path on every container start, so a cache-based
+    currency check meant a resumed container could pass while the spine walkers missed every
+    commit added since. The comparison now asks the remote itself.
     """
     clone = tmp_path / "cached-stale"
     _git(tmp_path, "clone", "-q", str(origin), str(clone))
@@ -336,14 +374,21 @@ def test_repair_refreshes_a_STALE_remote_tracking_ref_before_judging_currency(
     _commit(origin, "d")
     _commit(origin, "e")
 
-    # Nothing has been fetched, so the clone still believes main is at 3 commits ...
+    # The clone has fetched nothing: both of its refs still say three commits.
     assert cp.spine_length(clone, "main") == 3
-    cfg = cp.load_config(_config(tmp_path)).history
-    assert cp.assess_history(clone, cfg).ok           # ... and a read-only assessment agrees
+    assert cp.remote_ref(clone, "main") == _git(clone, "rev-parse", "refs/heads/main").stdout.strip()
 
-    report = cp.repair_history(clone, cfg)            # the repair fetches first, then judges
-    assert report.ok, report.violations
-    assert report.refs["main"] == 5
+    path = _config(tmp_path)
+    cfg = cp.load_config(path).history
+    report = cp.assess_history(clone, cfg)            # read-only, and it still catches it
+    assert not report.ok
+    assert any("BEHIND" in v for v in report.violations)
+    assert cp.main(["--root", str(clone), "--config", str(path),
+                    "history"]) == cp.EXIT_VIOLATION
+
+    repaired = cp.repair_history(clone, cfg)
+    assert repaired.ok, repaired.violations
+    assert repaired.refs["main"] == 5
 
 
 def test_an_unreachable_origin_is_exit_2_not_a_missing_branch(
@@ -723,6 +768,58 @@ def test_provision_sh_actually_refuses_an_unexpanded_stamp_path(tmp_path: Path) 
     assert "UNEXPANDED" in r.stderr
     # The whole point: the poisoned path is refused BEFORE anything is created from it.
     assert not list(tmp_path.iterdir()), sorted(p.name for p in tmp_path.iterdir())
+
+
+def _run_provision(tmp_path: Path, *args: str, stamp: str | None = None) -> subprocess.CompletedProcess:
+    bash = _usable_bash()
+    if bash is None:
+        pytest.skip("no usable bash on PATH")
+    env = {**os.environ, "HOME": str(tmp_path)}
+    env.pop("DEV_KNOWLEDGE_PROVISION_STAMP", None)
+    if stamp is not None:
+        env["DEV_KNOWLEDGE_PROVISION_STAMP"] = stamp
+    return subprocess.run(
+        [bash, str(cp.REPO_ROOT / ".devcontainer" / "provision.sh"), *args],
+        cwd=cp.REPO_ROOT, env=env, capture_output=True, text=True, timeout=300,
+    )
+
+
+def test_the_gate_EXECUTES_and_refuses_a_container_with_no_stamp(tmp_path: Path) -> None:
+    """`--gate`'s first refusal, run rather than described (terra HIGH round 4, 2026-08-21).
+
+    This is the shape a RESUMED container takes when the image predates provisioning, and it is
+    the one that fired for real in a Codespace on 2026-08-21 after a full rebuild wiped `$HOME`.
+    It reaches no `uv` call, so it needs no shims.
+    """
+    r = _run_provision(tmp_path, "--gate")
+    assert r.returncode == 1, r.stdout + r.stderr
+    assert "no provisioning stamp" in r.stderr
+
+
+def test_the_gate_EXECUTES_and_refuses_a_stamp_from_a_foreign_schema(tmp_path: Path) -> None:
+    (tmp_path / ".dev-knowledge-provision-stamp").write_text(
+        "schema=some-other-tool/9\nuv_pin=0.0.0\npython_pin=0.0\n", encoding="utf-8")
+    r = _run_provision(tmp_path, "--gate")
+    assert r.returncode == 1, r.stdout + r.stderr
+    assert "stamp schema" in r.stderr
+
+
+def test_the_gate_EXECUTES_and_refuses_a_stamp_whose_pin_has_moved(tmp_path: Path) -> None:
+    """THE staleness leg: the repo's uv pin moved and this container still runs the old one."""
+    (tmp_path / ".dev-knowledge-provision-stamp").write_text(
+        "schema=dev-knowledge-provision/1\nuv_pin=0.0.1-not-the-pin\npython_pin=3.12.10\n",
+        encoding="utf-8")
+    r = _run_provision(tmp_path, "--gate")
+    assert r.returncode == 1, r.stdout + r.stderr
+    assert "the pin moved" in r.stderr
+
+
+# NOT COVERED HERE, and stated rather than left for a reader to discover: no test executes a
+# SUCCESSFUL end-to-end provisioning run. Doing so needs shims for `uv` (five subcommands),
+# `curl` and a whole fake repo, and a harness that elaborate is more likely to test itself than
+# the script. What stands in for it is live evidence, not an assumption: ARTIFACT-lane-554.md
+# records three real Codespace runs, including a full rebuild in which `onCreateCommand`,
+# `postCreateCommand` and `postStartCommand` each fired and each leg printed its own OK line.
 
 
 def test_provision_sh_help_still_works_so_the_refusal_is_not_a_blanket_abort(tmp_path: Path) -> None:

@@ -111,6 +111,25 @@ class Config:
     prebuild: PrebuildConfig
 
 
+def _strict_bool(block: dict, key: str, *, default: bool) -> bool:
+    """A YAML value that must BE a boolean, not merely coerce to one.
+
+    `bool("false")` is `True`, so a declaration written `configured: "false"` — quoted by hand,
+    or by a generator that stringifies — silently flipped to the opposite meaning. Here that
+    authorises ecosystem mutation or inverts a prebuild verdict, which is worse than refusing to
+    read the file (terra HIGH round 4, 2026-08-21). A missing key still takes the default; a
+    present key of the wrong type is a could-not-look.
+    """
+    if key not in block:
+        return default
+    value = block[key]
+    if isinstance(value, bool):
+        return value
+    raise ProvisioningError(
+        f"{key!r} is {value!r} ({type(value).__name__}), which is not a YAML boolean - write "
+        f"`{key}: true` or `{key}: false`, unquoted")
+
+
 def load_config(path: Path = CONFIG_PATH) -> Config:
     """Read `.devcontainer/provisioning.yaml`, or raise ProvisioningError."""
     try:
@@ -145,11 +164,11 @@ def load_config(path: Path = CONFIG_PATH) -> Config:
             spine_walking_instruments=tuple(hist.get("spine_walking_instruments") or ()),
         ),
         ecosystem=EcosystemConfig(
-            self_register=bool(eco.get("self_register", False)),
+            self_register=_strict_bool(eco, "self_register", default=False),
             self_name=str(eco.get("self_name") or ".dev-knowledge"),
         ),
         prebuild=PrebuildConfig(
-            configured=bool(pre.get("configured", False)),
+            configured=_strict_bool(pre, "configured", default=False),
             trigger=str(pre.get("trigger") or ""),
             regions=tuple(pre.get("regions") or ()),
             template_history=int(pre.get("template_history") or 0),
@@ -194,10 +213,39 @@ def ref_resolves(root: Path, ref: str) -> bool:
 
 
 def remote_ref(root: Path, ref: str, remote: str = "origin") -> str | None:
-    """The SHA of `refs/remotes/<remote>/<ref>`, or None when this clone has no such ref."""
+    """The SHA of the CACHED `refs/remotes/<remote>/<ref>`, or None when this clone has none.
+
+    Cached, and therefore only as fresh as the last fetch. `live_remote_sha` is what the
+    currency check uses; this remains for callers that genuinely want the local cache.
+    """
     r = _git(root, "rev-parse", "--verify", "--quiet",
              f"refs/remotes/{remote}/{ref}^{{commit}}")
     return r.stdout.strip() if r.returncode == 0 else None
+
+
+def live_remote_sha(root: Path, ref: str, remote: str = "origin") -> str | None:
+    """The tip of `refs/heads/<ref>` ON THE REMOTE, asked of the remote. None if it has no such
+    branch; raises on a transport failure.
+
+    THE CURRENCY CHECK MUST NOT READ A CACHE (terra HIGH round 4, 2026-08-21). Comparing a local
+    branch with `refs/remotes/origin/<ref>` compares two things that went stale together: a clone
+    that has not fetched since upstream advanced finds them equal, reports clean, and the spine
+    walkers then miss every commit added since. `ls-remote` is read-only and answers about the
+    remote as it is now, which is the only reading that can support a currency claim.
+    """
+    r = _git(root, "ls-remote", "--exit-code", "--heads", remote, f"refs/heads/{ref}")
+    if r.returncode == 0:
+        first = r.stdout.split(maxsplit=1)
+        if not first:
+            raise ProvisioningError(
+                f"`git ls-remote {remote} refs/heads/{ref}` succeeded with no output")
+        return first[0]
+    if r.returncode == 2:
+        return None
+    raise ProvisioningError(
+        f"`git ls-remote {remote} refs/heads/{ref}` failed (exit {r.returncode}): "
+        f"{r.stderr.strip()} - cannot tell whether the branch exists or the remote is "
+        f"unreachable")
 
 
 #: Local-vs-remote states for a required ref. The four are kept apart because they get three
@@ -205,6 +253,14 @@ def remote_ref(root: Path, ref: str, remote: str = "origin") -> str | None:
 REF_CURRENT = "current"     # equal, or local ahead — nothing missing from the spine walk
 REF_BEHIND = "behind"       # local is an ANCESTOR of remote: fast-forwardable, safe to update
 REF_DIVERGED = "diverged"   # neither is an ancestor: updating would DISCARD local commits
+#: The remote tip is not an object in this clone at all — which happens precisely when the clone
+#: has never fetched it. Not current (the walk is provably missing that commit), and not
+#: classifiable further without fetching, so it is never treated as fast-forwardable.
+REF_TIP_ABSENT = "tip-absent"
+
+
+def object_exists(root: Path, sha: str) -> bool:
+    return _git(root, "cat-file", "-e", f"{sha}^{{commit}}").returncode == 0
 
 
 def _is_ancestor(root: Path, ancestor: str, descendant: str) -> bool:
@@ -229,6 +285,10 @@ def ref_status(root: Path, ref: str, remote_sha: str) -> str:
     is missing from the walk.
     """
     local = f"refs/heads/{ref}"
+    if not object_exists(root, remote_sha):
+        # The remote tip has never been fetched, so no ancestry question can be answered here.
+        # What IS known: the local branch cannot contain a commit this clone does not have.
+        return REF_TIP_ABSENT
     if _is_ancestor(root, remote_sha, local):
         return REF_CURRENT
     if _is_ancestor(root, local, remote_sha):
@@ -256,21 +316,13 @@ def has_remote(root: Path, name: str = "origin") -> bool:
 def remote_has_branch(root: Path, ref: str, remote: str = "origin") -> bool:
     """Whether `remote` carries `refs/heads/<ref>`, asked of the REMOTE itself.
 
-    `--exit-code` is what makes this three-valued rather than two: 0 the branch exists, 2 it
-    verifiably does not, anything else a transport failure. Before this, ANY failed fetch was
-    reported as "origin has no such branch" — so an auth failure, a DNS failure or an unreachable
-    host all became a positively-observed configuration violation (exit 1) when the honest answer
-    was could-not-look (exit 2). Terra HIGH round 3, 2026-08-21.
+    Three-valued underneath: the branch exists, it verifiably does not, or the remote could not
+    be reached (which raises). Before this, ANY failed fetch was reported as "origin has no such
+    branch" — so an auth failure, a DNS failure or an unreachable host all became a
+    positively-observed configuration violation (exit 1) when the honest answer was
+    could-not-look (exit 2). Terra HIGH round 3, 2026-08-21.
     """
-    r = _git(root, "ls-remote", "--exit-code", "--heads", remote, f"refs/heads/{ref}")
-    if r.returncode == 0:
-        return True
-    if r.returncode == 2:
-        return False
-    raise ProvisioningError(
-        f"`git ls-remote {remote} refs/heads/{ref}` failed (exit {r.returncode}): "
-        f"{r.stderr.strip()} - cannot tell whether the branch exists or the remote is "
-        f"unreachable")
+    return live_remote_sha(root, ref, remote) is not None
 
 
 def current_branch(root: Path) -> str | None:
@@ -332,16 +384,17 @@ def assess_history(root: Path, cfg: HistoryConfig) -> HistoryReport:
                 f"ref {ref!r} walks to an EMPTY first-parent spine - the instruments would "
                 f"pass on nothing, which is the vacuous-gate failure shape leg 2 exists to close")
             continue
-        # Present, walkable — and possibly STALE. A local branch left behind its
-        # remote-tracking ref hides every spine entry in between, so the instruments run over a
-        # short history and report clean. Reported only when the remote-tracking ref exists;
-        # a clone with nothing to compare against is not silently declared current.
-        remote_sha = remote_ref(root, ref)
+        # Present, walkable — and possibly STALE. A local branch left behind the remote hides
+        # every spine entry in between, so the instruments run over a short history and report
+        # clean. The comparison is against the LIVE remote (`ls-remote`, read-only), never the
+        # cached remote-tracking ref: a clone that has not fetched has a cache that went stale
+        # alongside its branch, and comparing the two finds them equal (terra HIGH round 4).
+        remote_sha = live_remote_sha(root, ref) if has_remote(root) else None
         if remote_sha is None:
             report.uncompared.append(ref)
             continue
         status = ref_status(root, ref, remote_sha)
-        if status == REF_BEHIND:
+        if status in (REF_BEHIND, REF_TIP_ABSENT):
             report.violations.append(
                 f"ref {ref!r} is BEHIND origin/{ref} ({remote_sha[:9]}) - the spine walk would "
                 f"miss every entry in between and still report clean")
@@ -370,12 +423,11 @@ def repair_history(root: Path, cfg: HistoryConfig) -> HistoryReport:
         raise ProvisioningError(
             "no `origin` remote - a clone missing history cannot be repaired here")
 
-    # REFRESH THE REMOTE-TRACKING REFS BEFORE ASSESSING ANYTHING (terra HIGH round 3,
-    # 2026-08-21). The round-2 version only fetched them when they were ABSENT, so a clone whose
-    # cached `origin/main` had gone stale compared two equally old refs, found them equal, and
-    # reported clean while the spine walkers missed every entry upstream had added since. This
-    # runs unconditionally and is deliberately NOT recorded in `actions`: it is a read-refresh,
-    # not a repair, and counting it would make every run look like it changed something (C1).
+    # Keep the remote-tracking refs usable for the LANE (a `git log origin/main` in the container
+    # should not lie). Explicitly NOT load-bearing for anything this guard decides: the currency
+    # check reads `ls-remote`, so a failure here cannot make a stale clone look current. Its
+    # return code is therefore ignored on purpose, and it is not recorded in `actions` — it is a
+    # convenience refresh, and counting it would make every run look like it changed something.
     for ref in cfg.required_refs:
         _git(root, "fetch", "origin", f"+refs/heads/{ref}:refs/remotes/origin/{ref}", "--quiet")
 
@@ -400,11 +452,19 @@ def repair_history(root: Path, cfg: HistoryConfig) -> HistoryReport:
             # A checked-out branch always resolves, and git refuses a fetch into the ref HEAD
             # points at. Stated rather than left implicit.
             continue
-        remote_sha = remote_ref(root, ref)
+        remote_sha = live_remote_sha(root, ref)
         present = ref_resolves(root, ref)
         if present and remote_sha is not None:
             status = ref_status(root, ref, remote_sha)
             if status == REF_CURRENT:
+                continue
+            if status == REF_TIP_ABSENT:
+                # The convenience refresh above should have brought the tip in. If it did not,
+                # the clone still cannot be classified, and forcing an update on an unclassified
+                # ref is exactly the divergence hazard the CRITICAL fix closed — so refuse.
+                LOG.error("history: ref %r cannot be classified against origin/%s - the remote "
+                          "tip is not present locally even after a refresh; refusing to force it",
+                          ref, ref)
                 continue
             if status == REF_DIVERGED:
                 # REFUSE, do not repair. assess_history below reports it as a violation.
