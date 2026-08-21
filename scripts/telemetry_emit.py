@@ -32,12 +32,37 @@ writers and a writer does not block readers."
 STRUCTLOG IS OPTIONAL HERE, DELIBERATELY. The memo (line 54) and the `[#529]` row both name
 structlog for the emit helper, and it stays the preferred backend -- but it is NOT a declared
 dependency of this repo (absent from `pyproject.toml` `[dependency-groups]` and from
-`uv.lock`), and this module's owned-files manifest does not include `pyproject.toml`. So the
-structured-log side-channel binds structlog WHEN IMPORTABLE and otherwise falls back to the
-option the memo itself names as the least-deps fallback on the same line: stdlib `logging`
-emitting one JSON object per event. `logger_backend()` reports which is live, so a caller
-never has to guess. Adding structlog as a real dependency remains an open, separate decision;
-the durable record is the SQLite row either way, and no event is lost by the fallback.
+`uv.lock`). So the structured-log side-channel binds structlog WHEN IMPORTABLE and otherwise
+falls back to the option the memo itself names as the least-deps fallback on the same line:
+stdlib `logging` emitting one JSON object per event. `logger_backend()` reports which is live,
+so a caller never has to guess. The durable record is the SQLite row either way, and no event
+is lost by the fallback.
+
+  RULED AND MEASURED -- `[#529]` leg 3, ruling R6(a) ("stdlib logging unless a MEASURED gap on
+  this repo demands structlog; record the measurement or its absence either way"). Measured
+  here 2026-08-21, Windows 11, CPython 3.12, per event, N=5000 for the side-channel legs and
+  N=300 for the store leg:
+
+      store leg (connect + insert + commit)   16364.92 us   98.5% of one emit
+      side-channel `_log_event`                 480.60 us    2.9%
+        - of which: failed `import structlog`  ~471    us
+        - of which: `json.dumps(row)`             8.85 us
+        - of which: `logger.info(...)`            0.37 us
+
+  THE DECISION IS STDLIB, and the measurement is the reason rather than a shrug: the gap it
+  found does not favour structlog, it favours not ASKING for structlog per event. A failed
+  import is not cached (`sys.modules` records successes only), so the old per-call `try: import
+  structlog` re-walked `sys.path` on every event and cost 50x the logging it guarded. Resolving
+  the backend once removes that without adding a dependency -- which is what "library-first"
+  buys here. Re-measured after the change, same host, same script: `_log_event` 480.60 us ->
+  **9.79 us**, a 49x drop landing where the components predict (8.32 + 0.38). structlog is
+  therefore NOT declared: no measured gap demands it, and P0 "no new deps without confirmation"
+  is not spent on a side-channel that now costs 9.79 us against a 16.4 ms store write.
+
+  REPORTED, NOT FIXED, because it is outside this row's four legs: that 16.4 ms store leg is
+  98.5% of an emit, and `audit.py health` emits one `check_run` per check. A connection opened
+  and torn down per event is the cause. Left to the operator as a candidate rather than
+  redesigned here.
 
 NO INDEX ON (event_type, ts) -- also deliberate. The memo puts that index behind an explicit
 threshold (line 141: "If the event log exceeds millions of rows or query latency degrades ->
@@ -211,6 +236,10 @@ _UNSET: Any = object()
 #: `[#565]`'s per-process cache. Resolved once and reused, so every event a runner emits
 #: carries one id; `None` until the first `current_run_id()` call.
 _RUN_ID: str | None = None
+
+#: `logger_backend()`'s per-process cache -- which packages are installed does not change under
+#: a running process. `None` until first asked; a test that needs it re-asked resets it.
+_LOGGER_BACKEND: str | None = None
 
 
 class TelemetryError(Exception):
@@ -457,14 +486,21 @@ def _log_event(row: Mapping[str, Any]) -> None:
 
     Never raises: the durable record is the SQLite row, and a logging misconfiguration in a
     host process is not a reason to lose an event.
+
+    The backend is asked ONCE per process (`logger_backend()`), not once per event. The previous
+    shape put `try: import structlog` inside this function, and a FAILED import is not cached --
+    `sys.modules` records successes only -- so on a host without structlog every single event
+    re-walked `sys.path` looking for a module that was not there. Measured on this host
+    (2026-08-21, `[#529]` leg 3 / R6(a)): 481 us per event, against 8.85 us for the JSON encode
+    and 0.37 us for the stdlib log call it was wrapping. The absence detection cost 50x the work
+    it was guarding.
     """
     try:
-        try:
-            import structlog
-        except ModuleNotFoundError:
-            logging.getLogger("telemetry").info(json.dumps(dict(row), sort_keys=True, default=str))
-        else:
+        if logger_backend() == "structlog":
+            import structlog  # cached in sys.modules after the first successful import
             structlog.get_logger("telemetry").info(row["event_type"], **dict(row))
+        else:
+            logging.getLogger("telemetry").info(json.dumps(dict(row), sort_keys=True, default=str))
     except Exception:  # side-channel only -- the SQLite row is the durable record
         pass
 
@@ -473,13 +509,19 @@ def logger_backend() -> str:
     """`"structlog"` when structlog is importable here, else `"stdlib-logging"`.
 
     Exposed so a wiring site (or an operator) reads which backend is live instead of assuming
-    the preferred one is installed.
+    the preferred one is installed. Resolved once and cached: what is being asked is which
+    packages are installed, and that does not change under a running process. A test that needs
+    the question asked again sets `telemetry_emit._LOGGER_BACKEND = None`.
+
+    `find_spec` rather than a `try: import`: it answers the same question without executing the
+    module, and it is the same probe `capability_vector()` already uses for pandas.
     """
-    try:
-        import structlog  # noqa: F401
-    except ModuleNotFoundError:
-        return "stdlib-logging"
-    return "structlog"
+    global _LOGGER_BACKEND
+    if _LOGGER_BACKEND is None:
+        _LOGGER_BACKEND = (
+            "structlog" if importlib.util.find_spec("structlog") is not None else "stdlib-logging"
+        )
+    return _LOGGER_BACKEND
 
 
 def emit_event(

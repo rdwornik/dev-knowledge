@@ -434,6 +434,49 @@ def test_logger_backend_reports_which_side_channel_is_live() -> None:
     assert te.logger_backend() in {"structlog", "stdlib-logging"}
 
 
+# ---------------------------------------------------------------------------
+# [#529] leg 3 / ruling R6(a) -- the backend is resolved ONCE, not per event
+# ---------------------------------------------------------------------------
+
+def test_the_backend_is_resolved_once_and_cached(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The measured defect: a FAILED `import structlog` is not cached by `sys.modules`, so the
+    per-call probe re-walked `sys.path` on every single event (471 us of a 481 us side-channel).
+
+    Counting the probe is the only way to see it -- the old shape and the new one return the
+    same string, so an assertion on the value alone cannot tell them apart.
+    """
+    monkeypatch.setattr(te, "_LOGGER_BACKEND", None)
+    calls = []
+    real = te.importlib.util.find_spec
+
+    def counting(name, *a, **k):
+        if name == "structlog":
+            calls.append(name)
+        return real(name, *a, **k)
+
+    monkeypatch.setattr(te.importlib.util, "find_spec", counting)
+    first = te.logger_backend()
+    for _ in range(50):
+        te.logger_backend()
+    assert te.logger_backend() == first
+    assert len(calls) == 1, f"the backend was probed {len(calls)} times, not once"
+
+
+def test_emitting_many_events_probes_the_backend_once(tmp_path: Path,
+                                                      monkeypatch: pytest.MonkeyPatch) -> None:
+    """The property that actually costs time: N events must not mean N probes."""
+    monkeypatch.setattr(te, "_LOGGER_BACKEND", None)
+    calls = []
+    real = te.importlib.util.find_spec
+    monkeypatch.setattr(te.importlib.util, "find_spec",
+                        lambda name, *a, **k: (calls.append(name) if name == "structlog" else None,
+                                               real(name, *a, **k))[1])
+    db = tmp_path / "t.db"
+    for i in range(20):
+        te.emit_check_run(f"c{i}", "pass", i, db_path=db)
+    assert len(calls) == 1, f"20 events probed for structlog {len(calls)} times"
+
+
 def test_emit_survives_an_unusable_log_side_channel(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """A logging misconfiguration in a host process must not cost an event.
 
