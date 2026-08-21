@@ -101,6 +101,7 @@ class PrebuildConfig:
     regions: tuple[str, ...]
     template_history: int
     repository: str
+    ref: str = "main"
 
 
 @dataclass(frozen=True)
@@ -153,6 +154,7 @@ def load_config(path: Path = CONFIG_PATH) -> Config:
             regions=tuple(pre.get("regions") or ()),
             template_history=int(pre.get("template_history") or 0),
             repository=str(pre.get("repository") or ""),
+            ref=str(pre.get("ref") or "main"),
         ),
     )
 
@@ -178,8 +180,40 @@ def is_shallow(root: Path) -> bool:
 
 
 def ref_resolves(root: Path, ref: str) -> bool:
-    """True when `ref` names a commit in THIS clone. `--verify` refuses an ambiguous name."""
-    return _git(root, "rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}").returncode == 0
+    """True when `refs/heads/<ref>` names a commit in THIS clone.
+
+    Resolution is pinned to the `refs/heads/` NAMESPACE, not to the bare name. A bare
+    `git rev-parse main` also resolves a TAG called `main`, a remote-tracking ref, or anything
+    else git's disambiguation rules reach — and every instrument in
+    `history.spine_walking_instruments` means the local BRANCH. Accepting a look-alike here
+    would let a spine walk run over unrelated history and report clean, which is the vacuous-gate
+    class this whole module exists to close (terra HIGH, 2026-08-21).
+    """
+    return _git(root, "rev-parse", "--verify", "--quiet",
+                f"refs/heads/{ref}^{{commit}}").returncode == 0
+
+
+def remote_ref(root: Path, ref: str, remote: str = "origin") -> str | None:
+    """The SHA of `refs/remotes/<remote>/<ref>`, or None when this clone has no such ref."""
+    r = _git(root, "rev-parse", "--verify", "--quiet",
+             f"refs/remotes/{remote}/{ref}^{{commit}}")
+    return r.stdout.strip() if r.returncode == 0 else None
+
+
+def is_behind(root: Path, ref: str, remote_sha: str) -> bool:
+    """True when the local branch is missing commits the remote-tracking ref already has.
+
+    "Behind" is the only divergence that matters to a spine walker: entries the instruments
+    would never see. Being AHEAD is normal on a workstation (a lane's own commits) and is not
+    reported. An unanswerable ancestry query is raised, never guessed.
+    """
+    r = _git(root, "merge-base", "--is-ancestor", remote_sha, f"refs/heads/{ref}")
+    if r.returncode == 0:
+        return False
+    if r.returncode == 1:
+        return True
+    raise ProvisioningError(
+        f"git merge-base --is-ancestor could not answer for {ref!r}: {r.stderr.strip()}")
 
 
 def spine_length(root: Path, ref: str) -> int | None:
@@ -223,6 +257,9 @@ class HistoryReport:
     refs: dict[str, int | None] = field(default_factory=dict)
     violations: list[str] = field(default_factory=list)
     actions: list[str] = field(default_factory=list)
+    #: Refs present and walkable whose currency could NOT be checked (no remote-tracking ref).
+    #: Surfaced rather than folded into `ok`: not-compared is not the same fact as compared-clean.
+    uncompared: list[str] = field(default_factory=list)
 
     @property
     def ok(self) -> bool:
@@ -249,10 +286,23 @@ def assess_history(root: Path, cfg: HistoryConfig) -> HistoryReport:
             report.violations.append(
                 f"ref {ref!r} resolves but `git log --first-parent {ref}` failed - the walk "
                 f"the instruments perform does not work here")
-        elif length == 0:
+            continue
+        if length == 0:
             report.violations.append(
                 f"ref {ref!r} walks to an EMPTY first-parent spine - the instruments would "
                 f"pass on nothing, which is the vacuous-gate failure shape leg 2 exists to close")
+            continue
+        # Present, walkable — and possibly STALE. A local branch left behind its
+        # remote-tracking ref hides every spine entry in between, so the instruments run over a
+        # short history and report clean. Reported only when the remote-tracking ref exists;
+        # a clone with nothing to compare against is not silently declared current.
+        remote_sha = remote_ref(root, ref)
+        if remote_sha is None:
+            report.uncompared.append(ref)
+        elif is_behind(root, ref, remote_sha):
+            report.violations.append(
+                f"ref {ref!r} is BEHIND origin/{ref} ({remote_sha[:9]}) - the spine walk would "
+                f"miss every entry in between and still report clean")
     return report
 
 
@@ -267,36 +317,59 @@ def repair_history(root: Path, cfg: HistoryConfig) -> HistoryReport:
     if report.ok:
         return report
 
+    # An environment this guard cannot ACT in is a could-not-look, not a violation: the 0/1/2
+    # contract says so, and returning 1 here would tell a caller "the clone is wrong" when the
+    # honest answer is "there is nothing here to repair it from" (terra HIGH, 2026-08-21).
     if not has_remote(root):
-        report.violations.append(
+        raise ProvisioningError(
             "no `origin` remote - a clone missing history cannot be repaired here")
-        return report
 
     if report.shallow:
         LOG.info("history: clone is shallow - fetching full history (git fetch --unshallow)")
         r = _git(root, "fetch", "--unshallow", "--quiet")
         if r.returncode != 0:
-            report.violations.append(f"`git fetch --unshallow` failed: {r.stderr.strip()}")
-            return report
+            raise ProvisioningError(f"`git fetch --unshallow` failed: {r.stderr.strip()}")
         report.actions.append("git fetch --unshallow")
 
+    # Violations only the REPAIR ATTEMPT can learn, kept apart from `report.violations` — those
+    # describe the clone BEFORE acting and are re-derived by the final assessment.
+    repair_notes: list[str] = []
     checked_out = current_branch(root)
     for ref in cfg.required_refs:
-        if ref_resolves(root, ref):
-            continue
         if ref == checked_out:
-            # Unreachable in practice (a checked-out branch resolves), and stated rather than
-            # left implicit: fetching into the ref HEAD points at is refused by git.
+            # A checked-out branch always resolves, and git refuses a fetch into the ref HEAD
+            # points at. Stated rather than left implicit.
             continue
-        LOG.info("history: ref %r is absent - fetching it from origin", ref)
+        remote_sha = remote_ref(root, ref)
+        present = ref_resolves(root, ref)
+        if present and (remote_sha is None or not is_behind(root, ref, remote_sha)):
+            continue
+        LOG.info("history: ref %r is %s - fetching it from origin", ref,
+                 "absent" if not present else "behind origin")
+        # `+` forces the update, which is what makes this repair a STALE-ref fix and not only a
+        # missing-ref fix. Safe here by construction: the ref is not the checked-out branch.
         r = _git(root, "fetch", "origin", f"+refs/heads/{ref}:refs/heads/{ref}", "--quiet")
-        if r.returncode != 0:
-            LOG.warning("history: could not fetch %r from origin: %s", ref, r.stderr.strip())
+        if r.returncode == 0:
+            report.actions.append(f"git fetch origin +refs/heads/{ref}:refs/heads/{ref}")
             continue
-        report.actions.append(f"git fetch origin +refs/heads/{ref}:refs/heads/{ref}")
+        # The two failures are different facts and get different exits. A ref that is absent
+        # here AND unfetchable from origin is a positively observed violation: the declaration
+        # names something no reachable clone has. A ref that is merely STALE and then fails to
+        # update is an action this guard could not perform.
+        if present:
+            raise ProvisioningError(
+                f"`git fetch origin +refs/heads/{ref}:refs/heads/{ref}` failed while updating a "
+                f"stale ref: {r.stderr.strip()}")
+        repair_notes.append(
+            f"required ref {ref!r} is absent locally and origin has no such branch "
+            f"({r.stderr.strip()}) - the declaration names a ref no reachable clone carries")
 
     final = assess_history(root, cfg)
     final.actions = report.actions
+    # Carry forward what only the REPAIR attempt could learn (e.g. "origin has no such branch").
+    # A re-assessment sees the ref is missing; it cannot see that fetching it was tried and why
+    # it failed, and dropping that would make the report less true after acting than before.
+    final.violations.extend(n for n in repair_notes if n not in final.violations)
     return final
 
 
@@ -339,13 +412,20 @@ def seed_self_registration(root: Path, name: str) -> str:
 # --- prebuild: declaration vs the one field the API exposes --------------------------------
 
 
-def _gh_machines(repository: str) -> list[dict]:
-    """`GET /repos/<repository>/codespaces/machines` via gh, or raise ProvisioningError."""
+def _gh_machines(repository: str, ref: str, location: str) -> list[dict]:
+    """`GET /repos/<repository>/codespaces/machines` via gh, or raise ProvisioningError.
+
+    `ref` and `location` are sent because the endpoint's `prebuild_availability` is answered
+    IN THEIR CONTEXT — it reports whether a prebuild is available for that branch in that
+    region, not whether a configuration exists. Omitting them (the first version of this
+    function did) asks a different question from the one the caller means.
+    """
     if shutil.which("gh") is None:
         raise ProvisioningError("`gh` is not on PATH - cannot read the live prebuild state")
     try:
         r = subprocess.run(
-            ["gh", "api", f"/repos/{repository}/codespaces/machines"],
+            ["gh", "api",
+             f"/repos/{repository}/codespaces/machines?ref={ref}&location={location}"],
             capture_output=True, text=True, timeout=_GH_TIMEOUT,
         )
     except (OSError, subprocess.SubprocessError) as exc:
@@ -362,15 +442,21 @@ def _gh_machines(repository: str) -> list[dict]:
     return machines
 
 
-def prebuild_live_configured(repository: str) -> bool:
-    """True when ANY machine type reports a non-null `prebuild_availability`.
+def prebuild_available(repository: str, ref: str, location: str) -> bool:
+    """True when ANY machine type reports a non-null `prebuild_availability` for `ref`/`location`.
 
-    This is the whole of what the public API exposes about prebuilds. The trigger, the region
-    set and the template-history depth are NOT readable — they are operator UI state — so this
-    answers "is a prebuild configured at all" and nothing finer. Stated here rather than left
-    to be discovered by a reader who expects the checker to verify all three settings.
+    THIS IS AN AVAILABILITY READING, NOT A CONFIGURATION READING, and the distinction decides
+    what the caller may conclude (terra HIGH, 2026-08-21). GitHub answers this endpoint for a
+    given branch and region: a non-null value proves a usable prebuild EXISTS there, which
+    implies a configuration; a null value proves only that none is available for that
+    branch/region right now — a configuration whose prebuild has not yet run, or has expired,
+    also reads null. So a `true` reading is evidence and a `false` reading is not.
+
+    The trigger, the region set and the template-history depth are not readable at all: they are
+    operator UI state with no public API.
     """
-    return any(m.get("prebuild_availability") is not None for m in _gh_machines(repository))
+    return any(m.get("prebuild_availability") is not None
+               for m in _gh_machines(repository, ref, location))
 
 
 # --- commands ------------------------------------------------------------------------------
@@ -398,6 +484,9 @@ def cmd_history(args: argparse.Namespace) -> int:
     for ref, length in report.refs.items():
         if length is not None:
             LOG.info("history: %s walks %d first-parent spine entries", ref, length)
+    for ref in report.uncompared:
+        LOG.warning("history: %s has no origin/%s to compare against - its CURRENCY is "
+                    "unchecked, not confirmed", ref, ref)
     for violation in report.violations:
         LOG.error("history: %s", violation)
 
@@ -441,23 +530,47 @@ def cmd_ecosystem(args: argparse.Namespace) -> int:
 
 
 def cmd_prebuild(args: argparse.Namespace) -> int:
+    """Report the prebuild declaration against the ONE thing the API can answer.
+
+    The three-way outcome is deliberate and follows from what the endpoint means:
+
+      declared configured, nothing available  -> EXIT_VIOLATION. Positively observed drift: a
+        prebuild is claimed and the region/branch it is claimed for has none.
+      declared configured, available          -> EXIT_OK. The claim is corroborated (the
+        trigger/region/history settings remain unverifiable, and the log says so).
+      declared NOT configured                 -> EXIT_UNAVAILABLE. Absence of availability is
+        NOT evidence of absence of configuration, so there is nothing here to confirm. Exiting 0
+        would report "verified, no prebuild" from a reading that cannot support it — the exact
+        false-resolve the 1/2 split exists to prevent.
+    """
     cfg = load_config(args.config).prebuild
     if not cfg.repository:
         raise ProvisioningError("prebuild.repository is empty - nothing to query")
+    if not cfg.regions:
+        raise ProvisioningError("prebuild.regions is empty - the availability query needs one")
 
+    ref = cfg.ref or "main"
+    location = cfg.regions[0]
     LOG.info("prebuild: declared - trigger=%s regions=%s template_history=%d configured=%s",
              cfg.trigger, ",".join(cfg.regions), cfg.template_history, cfg.configured)
-    live = prebuild_live_configured(cfg.repository)
-    LOG.info("prebuild: live - a prebuild is %sconfigured for %s "
-             "(read from `prebuild_availability`; the trigger, regions and template history "
-             "are operator UI state with no public API and are NOT verifiable here)",
-             "" if live else "NOT ", cfg.repository)
+    LOG.info("prebuild: NOT verifiable by any API - trigger, region set and template history are "
+             "operator UI state (probed 2026-08-21: REST 404, GraphQL introspection empty, no "
+             "`gh codespace` subcommand). Only availability is readable.")
 
-    if live == cfg.configured:
-        LOG.info("prebuild: OK - the declaration agrees with the live state")
+    available = prebuild_available(cfg.repository, ref, location)
+    LOG.info("prebuild: live - prebuild_availability for %s @ %s in %s is %s",
+             cfg.repository, ref, location, "PRESENT" if available else "null")
+
+    if not cfg.configured:
+        LOG.warning("prebuild: INDETERMINATE - the declaration says no prebuild is configured, "
+                    "and a null availability cannot confirm that (an unrun or expired prebuild "
+                    "reads null too). Configuration state is verifiable only in the GitHub UI.")
+        return EXIT_UNAVAILABLE
+    if available:
+        LOG.info("prebuild: OK - a prebuild IS available for the declared branch and region")
         return EXIT_OK
-    LOG.error("prebuild: DRIFT - declaration says configured=%s, the API reports %s",
-              cfg.configured, live)
+    LOG.error("prebuild: DRIFT - the declaration says a prebuild is configured, but none is "
+              "available for %s @ %s in %s", cfg.repository, ref, location)
     return EXIT_VIOLATION
 
 

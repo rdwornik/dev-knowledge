@@ -101,3 +101,8 @@ prebuild:
 
   # The repository this configuration belongs to, so the checker needs no argument to find it.
   repository: rdwornik/dev-knowledge
+
+  # The branch the availability query is asked about. `prebuild_availability` is answered IN THE
+  # CONTEXT of a ref and a region, so both are sent; asking without them asks a different
+  # question. The default branch is the one a prebuild is built from.
+  ref: main

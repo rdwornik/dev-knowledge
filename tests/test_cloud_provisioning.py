@@ -8,8 +8,11 @@ guard's verdict on it.
 """
 from __future__ import annotations
 
+import os
+import shutil
 import subprocess
 import sys
+import types
 from pathlib import Path
 
 import pytest
@@ -184,27 +187,91 @@ def test_repair_of_a_shallow_clone_deepens_it(tmp_path: Path, origin: Path) -> N
     assert report.refs["main"] == 3
 
 
-def test_a_clone_with_no_remote_reports_that_it_cannot_be_repaired(tmp_path: Path, origin: Path) -> None:
+def test_a_clone_with_no_remote_cannot_be_repaired_and_that_is_exit_2(
+        tmp_path: Path, origin: Path) -> None:
+    """"Nothing to repair from" is could-not-look, not drift (terra HIGH, 2026-08-21).
+
+    The first version appended a violation here, so the CLI answered 1 — telling a caller the
+    clone is wrong when the honest answer is that this environment gave the guard nothing to
+    work with. The 1/2 split exists precisely to keep those apart.
+    """
     clone = tmp_path / "orphan"
     _git(tmp_path, "clone", "-q", "--single-branch", "--branch", "worktree-lane-probe",
          str(origin), str(clone))
     _git(clone, "remote", "remove", "origin")
-    cfg = cp.load_config(_config(tmp_path)).history
+    path = _config(tmp_path)
 
-    report = cp.repair_history(clone, cfg)
-    assert not report.ok
-    assert any("no `origin` remote" in v for v in report.violations)
+    with pytest.raises(cp.ProvisioningError, match="origin"):
+        cp.repair_history(clone, cp.load_config(path).history)
+    assert cp.main(["--root", str(clone), "--config", str(path),
+                    "history", "--repair"]) == cp.EXIT_UNAVAILABLE
 
 
 def test_an_unknown_required_ref_is_a_violation_not_a_crash(tmp_path: Path, origin: Path) -> None:
+    """A ref no reachable clone carries IS positively observed — exit 1, not 2."""
     clone = tmp_path / "unknown-ref"
     _git(tmp_path, "clone", "-q", str(origin), str(clone))
-    cfg = cp.load_config(_config(tmp_path, required_refs=["main", "no-such-branch"])).history
+    path = _config(tmp_path, required_refs=["main", "no-such-branch"])
 
-    report = cp.repair_history(clone, cfg)
+    report = cp.repair_history(clone, cp.load_config(path).history)
     assert not report.ok
     assert any("no-such-branch" in v for v in report.violations)
     assert report.refs["main"] == 3          # the ref that IS present still reports its length
+    assert cp.main(["--root", str(clone), "--config", str(path),
+                    "history", "--repair"]) == cp.EXIT_VIOLATION
+
+
+# --- history: the look-alike and the stale ref ---------------------------------------------
+
+
+def test_a_tag_named_main_does_not_satisfy_the_required_ref(tmp_path: Path, origin: Path) -> None:
+    """`git rev-parse main` resolves a TAG called `main`; the instruments mean the BRANCH.
+
+    Accepting the look-alike would run a spine walk over whatever that tag points at and report
+    clean — the vacuous-gate class this module exists to close (terra HIGH, 2026-08-21).
+    """
+    clone = tmp_path / "tagged"
+    _git(tmp_path, "clone", "-q", "--single-branch", "--branch", "worktree-lane-probe",
+         str(origin), str(clone))
+    _git(clone, "tag", "main", "HEAD")
+    cfg = cp.load_config(_config(tmp_path)).history
+
+    report = cp.assess_history(clone, cfg)
+    assert not report.ok
+    assert any("does not resolve" in v for v in report.violations)
+
+
+def test_a_stale_local_main_is_a_violation_and_repair_fast_forwards_it(
+        tmp_path: Path, origin: Path) -> None:
+    """A branch left behind its remote hides every spine entry in between."""
+    clone = tmp_path / "stale"
+    _git(tmp_path, "clone", "-q", str(origin), str(clone))
+    _git(clone, "checkout", "-q", "-b", "worktree-lane-probe")
+    _git(clone, "update-ref", "refs/heads/main", "HEAD~2")     # rewind the local branch only
+    _commit(origin, "d")                                       # and move the upstream on
+    _git(clone, "fetch", "-q", "origin")
+    cfg = cp.load_config(_config(tmp_path)).history
+
+    report = cp.assess_history(clone, cfg)
+    assert not report.ok
+    assert any("BEHIND" in v for v in report.violations)
+
+    repaired = cp.repair_history(clone, cfg)
+    assert repaired.ok, repaired.violations
+    assert repaired.refs["main"] == 4                           # a, b, c and the new d
+
+
+def test_currency_is_reported_as_UNCOMPARED_when_there_is_no_remote_tracking_ref(
+        tmp_path: Path, origin: Path) -> None:
+    """No remote-tracking ref means not-compared, which is not the same fact as compared-clean."""
+    clone = tmp_path / "local-only"
+    _git(tmp_path, "clone", "-q", str(origin), str(clone))
+    _git(clone, "remote", "remove", "origin")
+    cfg = cp.load_config(_config(tmp_path)).history
+
+    report = cp.assess_history(clone, cfg)
+    assert report.ok                      # present and walkable — no violation is claimed
+    assert report.uncompared == ["main"]  # ... and the limit of the check is stated
 
 
 # --- history: the exclusion disposition ---------------------------------------------------
@@ -278,6 +345,74 @@ def test_ecosystem_check_passes_when_something_is_registered(tmp_path: Path) -> 
     assert cp.main(["--root", str(tmp_path), "--config", str(path), "ecosystem"]) == cp.EXIT_OK
 
 
+def test_ecosystem_repair_success_path_registers_and_is_idempotent(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The path that ACTUALLY fixes a fresh container, exercised end to end (terra HIGH).
+
+    Previously only detection, already-registered and self_register:false were covered, so
+    deleting the code that writes `ecosystem/<name>/state.yaml` would have left the suite green
+    while every fresh Codespace still failed provisioning. The seeder is stubbed to keep the test
+    off a full `audit_repo` run; what it stands in for is pinned by the test below.
+    """
+    (tmp_path / "ecosystem").mkdir()
+    seeded: list[Path] = []
+
+    def _fake_seed(root: Path, name: str) -> str:
+        target = root / "ecosystem" / name / "state.yaml"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(f"name: {name}\n", encoding="utf-8")
+        seeded.append(target)
+        return str(target)
+
+    monkeypatch.setattr(cp, "seed_self_registration", _fake_seed)
+    path = _config(tmp_path)
+
+    assert cp.main(["--root", str(tmp_path), "--config", str(path),
+                    "ecosystem", "--repair"]) == cp.EXIT_OK
+    assert (tmp_path / "ecosystem" / ".dev-knowledge" / "state.yaml").exists()
+    assert cp.registered_repos(tmp_path) == [".dev-knowledge"]
+
+    # Second run: already registered, so the seeder is not called again.
+    assert cp.main(["--root", str(tmp_path), "--config", str(path),
+                    "ecosystem", "--repair"]) == cp.EXIT_OK
+    assert len(seeded) == 1
+
+
+def test_ecosystem_repair_reports_a_seed_that_did_not_land(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A seeder that returns a path but writes nothing must not be reported as success."""
+    (tmp_path / "ecosystem").mkdir()
+    monkeypatch.setattr(cp, "seed_self_registration", lambda root, name: "nowhere/state.yaml")
+    assert cp.main(["--root", str(tmp_path), "--config", str(_config(tmp_path)),
+                    "ecosystem", "--repair"]) == cp.EXIT_VIOLATION
+
+
+def test_seed_self_registration_uses_audit_repo_and_save_state_only(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Pins the REUSE claim: `audit_repo` + `save_state`, and none of `audit.py repo`'s extras.
+
+    `audit.py repo` also appends history, writes a dated report under `docs/audits/` and commits
+    its outputs — three things a provisioning step must never do to a container's tree. The
+    module docstring says so; this asserts it.
+    """
+    calls: list[str] = []
+    fake_state = object()
+
+    stub = types.ModuleType("audit")
+    stub.audit_repo = lambda name, path, run_date: (calls.append("audit_repo"), fake_state)[1]
+    stub.save_state = lambda state: calls.append("save_state")
+    for forbidden in ("append_history", "generate_report", "write_report",
+                      "_commit_routine_outputs"):
+        stub.__dict__[forbidden] = lambda *a, **k: calls.append(forbidden)
+    monkeypatch.setitem(sys.modules, "audit", stub)
+
+    (tmp_path / "scripts").mkdir()
+    written = cp.seed_self_registration(tmp_path, ".dev-knowledge")
+
+    assert calls == ["audit_repo", "save_state"]
+    assert written.endswith("state.yaml")
+
+
 def test_ecosystem_repair_refuses_when_self_register_is_off(tmp_path: Path) -> None:
     (tmp_path / "ecosystem").mkdir()
     path = _config(tmp_path)
@@ -291,33 +426,73 @@ def test_ecosystem_repair_refuses_when_self_register_is_off(tmp_path: Path) -> N
 # --- prebuild -------------------------------------------------------------------------------
 
 
-def test_prebuild_agreement_is_clean(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(cp, "_gh_machines",
-                        lambda repo: [{"name": "basicLinux32gb", "prebuild_availability": None}])
-    assert cp.main(["--config", str(_config(tmp_path)), "prebuild"]) == cp.EXIT_OK
+def _declare_configured(path: Path, value: bool) -> Path:
+    body = yaml.safe_load(path.read_text(encoding="utf-8"))
+    body["prebuild"]["configured"] = value
+    path.write_text(yaml.safe_dump(body), encoding="utf-8")
+    return path
 
 
-def test_prebuild_drift_is_a_violation(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """The declaration says not-configured; the API reports a prebuild. That is drift, not noise."""
-    monkeypatch.setattr(cp, "_gh_machines",
-                        lambda repo: [{"name": "basicLinux32gb", "prebuild_availability": "ready"}])
-    assert cp.main(["--config", str(_config(tmp_path)), "prebuild"]) == cp.EXIT_VIOLATION
+def test_prebuild_not_configured_is_INDETERMINATE_not_clean(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A null availability cannot confirm "no prebuild is configured" (terra HIGH, 2026-08-21).
+
+    The endpoint answers availability for a branch and region; an unrun or expired prebuild
+    reads null too. Exiting 0 here would report a verification the reading cannot support.
+    """
+    monkeypatch.setattr(cp, "_gh_machines", lambda repo, ref, loc: [
+        {"name": "basicLinux32gb", "prebuild_availability": None}])
+    path = _declare_configured(_config(tmp_path), False)
+    assert cp.main(["--config", str(path), "prebuild"]) == cp.EXIT_UNAVAILABLE
+
+
+def test_prebuild_declared_configured_and_available_is_clean(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(cp, "_gh_machines", lambda repo, ref, loc: [
+        {"name": "basicLinux32gb", "prebuild_availability": "blob"}])
+    path = _declare_configured(_config(tmp_path), True)
+    assert cp.main(["--config", str(path), "prebuild"]) == cp.EXIT_OK
+
+
+def test_prebuild_declared_configured_but_unavailable_is_drift(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The one direction the API CAN falsify: a claimed prebuild with nothing available."""
+    monkeypatch.setattr(cp, "_gh_machines", lambda repo, ref, loc: [
+        {"name": "basicLinux32gb", "prebuild_availability": None}])
+    path = _declare_configured(_config(tmp_path), True)
+    assert cp.main(["--config", str(path), "prebuild"]) == cp.EXIT_VIOLATION
+
+
+def test_prebuild_query_carries_the_declared_ref_and_region(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """`prebuild_availability` is answered in the context of a ref and a location; asking
+    without them asks a different question, so the declared values must reach the call."""
+    seen: dict[str, str] = {}
+
+    def _spy(repo: str, ref: str, loc: str) -> list[dict]:
+        seen.update(repo=repo, ref=ref, loc=loc)
+        return [{"prebuild_availability": "blob"}]
+
+    monkeypatch.setattr(cp, "_gh_machines", _spy)
+    cp.main(["--config", str(_declare_configured(_config(tmp_path), True)), "prebuild"])
+    assert seen == {"repo": "o/r", "ref": "main", "loc": "EuropeWest"}
 
 
 def test_prebuild_cannot_look_exits_2(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    def _boom(repo: str) -> list[dict]:
+    def _boom(repo: str, ref: str, loc: str) -> list[dict]:
         raise cp.ProvisioningError("`gh` is not on PATH")
 
     monkeypatch.setattr(cp, "_gh_machines", _boom)
-    assert cp.main(["--config", str(_config(tmp_path)), "prebuild"]) == cp.EXIT_UNAVAILABLE
+    path = _declare_configured(_config(tmp_path), True)
+    assert cp.main(["--config", str(path), "prebuild"]) == cp.EXIT_UNAVAILABLE
 
 
-def test_prebuild_live_configured_reads_any_machine(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(cp, "_gh_machines", lambda repo: [
+def test_prebuild_available_reads_any_machine(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(cp, "_gh_machines", lambda repo, ref, loc: [
         {"name": "basicLinux32gb", "prebuild_availability": None},
         {"name": "standardLinux32gb", "prebuild_availability": "blob"},
     ])
-    assert cp.prebuild_live_configured("o/r") is True
+    assert cp.prebuild_available("o/r", "main", "EuropeWest") is True
 
 
 # --- the shipped devcontainer surface ------------------------------------------------------
@@ -343,11 +518,39 @@ def test_devcontainer_json_no_longer_declares_the_unexpandable_stamp() -> None:
     assert "DEV_KNOWLEDGE_PROVISION_STAMP" not in code
 
 
-def test_provision_sh_refuses_an_unexpanded_stamp_path() -> None:
-    """The class, not the instance: any host handing over an unexpanded `${...}` is refused."""
-    text = (cp.REPO_ROOT / ".devcontainer" / "provision.sh").read_text(encoding="utf-8")
-    assert "UNEXPANDED" in text
-    assert "*'${'*" in text
+@pytest.mark.skipif(shutil.which("bash") is None, reason="no bash on PATH")
+def test_provision_sh_actually_refuses_an_unexpanded_stamp_path(tmp_path: Path) -> None:
+    """EXECUTES the refusal instead of grepping for it (terra HIGH, 2026-08-21).
+
+    The first version of this test searched `provision.sh` for two strings, so deleting the
+    `exit 1` from the case branch left it green while the script happily created the junk
+    directory again. This runs the script with the poisoned variable and asserts the two things
+    that actually matter: a non-zero exit, and NOTHING created on disk.
+    """
+    stamp = "${containerEnv:HOME}/.dev-knowledge-provision-stamp"
+    env = {**os.environ, "DEV_KNOWLEDGE_PROVISION_STAMP": stamp, "HOME": str(tmp_path)}
+    r = subprocess.run(
+        ["bash", str(cp.REPO_ROOT / ".devcontainer" / "provision.sh")],
+        cwd=tmp_path, env=env, capture_output=True, text=True, timeout=120,
+    )
+    assert r.returncode != 0, r.stdout
+    assert "UNEXPANDED" in r.stderr
+    # The whole point: the poisoned path is refused BEFORE anything is created from it.
+    assert not list(tmp_path.iterdir()), sorted(p.name for p in tmp_path.iterdir())
+
+
+def test_provision_sh_help_still_works_so_the_refusal_is_not_a_blanket_abort(tmp_path: Path) -> None:
+    """The guard must refuse a poisoned path, not every invocation. Pins the discrimination."""
+    if shutil.which("bash") is None:
+        pytest.skip("no bash on PATH")
+    env = {**os.environ, "HOME": str(tmp_path)}
+    env.pop("DEV_KNOWLEDGE_PROVISION_STAMP", None)
+    r = subprocess.run(
+        ["bash", str(cp.REPO_ROOT / ".devcontainer" / "provision.sh"), "--help"],
+        cwd=cp.REPO_ROOT, env=env, capture_output=True, text=True, timeout=120,
+    )
+    assert r.returncode == 0, r.stderr
+    assert "--gate" in r.stdout
 
 
 def _guard_invocations() -> list[list[str]]:
