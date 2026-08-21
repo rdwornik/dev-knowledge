@@ -253,6 +253,26 @@ def has_remote(root: Path, name: str = "origin") -> bool:
     return r.returncode == 0 and name in r.stdout.split()
 
 
+def remote_has_branch(root: Path, ref: str, remote: str = "origin") -> bool:
+    """Whether `remote` carries `refs/heads/<ref>`, asked of the REMOTE itself.
+
+    `--exit-code` is what makes this three-valued rather than two: 0 the branch exists, 2 it
+    verifiably does not, anything else a transport failure. Before this, ANY failed fetch was
+    reported as "origin has no such branch" — so an auth failure, a DNS failure or an unreachable
+    host all became a positively-observed configuration violation (exit 1) when the honest answer
+    was could-not-look (exit 2). Terra HIGH round 3, 2026-08-21.
+    """
+    r = _git(root, "ls-remote", "--exit-code", "--heads", remote, f"refs/heads/{ref}")
+    if r.returncode == 0:
+        return True
+    if r.returncode == 2:
+        return False
+    raise ProvisioningError(
+        f"`git ls-remote {remote} refs/heads/{ref}` failed (exit {r.returncode}): "
+        f"{r.stderr.strip()} - cannot tell whether the branch exists or the remote is "
+        f"unreachable")
+
+
 def current_branch(root: Path) -> str | None:
     """The checked-out branch name, or None on a detached HEAD.
 
@@ -340,16 +360,28 @@ def repair_history(root: Path, cfg: HistoryConfig) -> HistoryReport:
     already checked out is an error too, so each action runs only when its precondition holds.
     Idempotent — a second run performs no action and says so.
     """
-    report = assess_history(root, cfg)
-    if report.ok and not report.uncompared:
-        return report
-
     # An environment this guard cannot ACT in is a could-not-look, not a violation: the 0/1/2
     # contract says so, and returning 1 here would tell a caller "the clone is wrong" when the
     # honest answer is "there is nothing here to repair it from" (terra HIGH, 2026-08-21).
     if not has_remote(root):
+        report = assess_history(root, cfg)
+        if report.ok and not report.uncompared:
+            return report
         raise ProvisioningError(
             "no `origin` remote - a clone missing history cannot be repaired here")
+
+    # REFRESH THE REMOTE-TRACKING REFS BEFORE ASSESSING ANYTHING (terra HIGH round 3,
+    # 2026-08-21). The round-2 version only fetched them when they were ABSENT, so a clone whose
+    # cached `origin/main` had gone stale compared two equally old refs, found them equal, and
+    # reported clean while the spine walkers missed every entry upstream had added since. This
+    # runs unconditionally and is deliberately NOT recorded in `actions`: it is a read-refresh,
+    # not a repair, and counting it would make every run look like it changed something (C1).
+    for ref in cfg.required_refs:
+        _git(root, "fetch", "origin", f"+refs/heads/{ref}:refs/remotes/origin/{ref}", "--quiet")
+
+    report = assess_history(root, cfg)
+    if report.ok and not report.uncompared:
+        return report
 
     if report.shallow:
         LOG.info("history: clone is shallow - fetching full history (git fetch --unshallow)")
@@ -362,19 +394,6 @@ def repair_history(root: Path, cfg: HistoryConfig) -> HistoryReport:
     # describe the clone BEFORE acting and are re-derived by the final assessment.
     repair_notes: list[str] = []
     checked_out = current_branch(root)
-
-    # Refresh the REMOTE-TRACKING refs first, so currency becomes checkable at all. A
-    # `--single-branch` clone carries no `origin/main`, and without this the repair would fetch
-    # the branch, leave currency permanently UNCOMPARED, and the check would then have to answer
-    # "could not look" forever (terra HIGH round 2, 2026-08-21). Failures here are not fatal:
-    # a clone whose origin lacks the ref is handled by the branch fetch below, which reports it.
-    for ref in cfg.required_refs:
-        if remote_ref(root, ref) is None:
-            r = _git(root, "fetch", "origin",
-                     f"+refs/heads/{ref}:refs/remotes/origin/{ref}", "--quiet")
-            if r.returncode == 0:
-                report.actions.append(
-                    f"git fetch origin +refs/heads/{ref}:refs/remotes/origin/{ref}")
 
     for ref in cfg.required_refs:
         if ref == checked_out:
@@ -394,6 +413,14 @@ def repair_history(root: Path, cfg: HistoryConfig) -> HistoryReport:
                 continue
         elif present:
             continue                      # present, and nothing to compare against — leave it
+        if not present and not remote_has_branch(root, ref):
+            # ASKED OF THE REMOTE, not inferred from a failed fetch. `ls-remote --exit-code`
+            # separates "the branch verifiably does not exist" (a real violation) from a
+            # transport failure (which raises inside `remote_has_branch` and exits 2).
+            repair_notes.append(
+                f"required ref {ref!r} is absent locally and origin has no branch of that name "
+                f"- the declaration names a ref no reachable clone carries")
+            continue
         LOG.info("history: ref %r is %s - fetching it from origin", ref,
                  "absent" if not present else "behind origin")
         # `+` forces the update, which is what makes this repair a STALE-ref fix and not only a
@@ -402,17 +429,11 @@ def repair_history(root: Path, cfg: HistoryConfig) -> HistoryReport:
         if r.returncode == 0:
             report.actions.append(f"git fetch origin +refs/heads/{ref}:refs/heads/{ref}")
             continue
-        # The two failures are different facts and get different exits. A ref that is absent
-        # here AND unfetchable from origin is a positively observed violation: the declaration
-        # names something no reachable clone has. A ref that is merely STALE and then fails to
-        # update is an action this guard could not perform.
-        if present:
-            raise ProvisioningError(
-                f"`git fetch origin +refs/heads/{ref}:refs/heads/{ref}` failed while updating a "
-                f"stale ref: {r.stderr.strip()}")
-        repair_notes.append(
-            f"required ref {ref!r} is absent locally and origin has no such branch "
-            f"({r.stderr.strip()}) - the declaration names a ref no reachable clone carries")
+        # Reaching here means `ls-remote` said the branch EXISTS and the fetch still failed, so
+        # this is an action the guard could not perform — never a statement about the branch.
+        raise ProvisioningError(
+            f"`git fetch origin +refs/heads/{ref}:refs/heads/{ref}` failed even though origin "
+            f"reports the branch exists: {r.stderr.strip()}")
 
     final = assess_history(root, cfg)
     final.actions = report.actions
@@ -492,21 +513,40 @@ def _gh_machines(repository: str, ref: str, location: str) -> list[dict]:
     return machines
 
 
-def prebuild_available(repository: str, ref: str, location: str) -> bool:
-    """True when ANY machine type reports a non-null `prebuild_availability` for `ref`/`location`.
+#: What a `prebuild_availability` reading lets the caller conclude. Three states, because the
+#: API's own enum has three meanings and collapsing them produces wrong verdicts in two
+#: quadrants at once (terra HIGH round 3, 2026-08-21).
+PREBUILD_CONFIRMED = "confirmed"    # `ready` / `in_progress` — a configuration demonstrably exists
+PREBUILD_NONE = "none"              # every machine says `none` — no prebuild for this ref/region
+PREBUILD_UNKNOWN = "unknown"        # `null` or an unrecognised value — could not determine
+
+#: GitHub's documented values. `none` means UNAVAILABLE and is emphatically not "no answer";
+#: reading it as truthy (which "any non-null value" does) turns the clearest possible negative
+#: into a false positive.
+_PREBUILD_CONFIRMING = frozenset({"ready", "in_progress"})
+_PREBUILD_NEGATIVE = frozenset({"none"})
+
+
+def prebuild_state(repository: str, ref: str, location: str) -> str:
+    """Classify `prebuild_availability` across the machine types for `ref` in `location`.
 
     THIS IS AN AVAILABILITY READING, NOT A CONFIGURATION READING, and the distinction decides
-    what the caller may conclude (terra HIGH, 2026-08-21). GitHub answers this endpoint for a
-    given branch and region: a non-null value proves a usable prebuild EXISTS there, which
-    implies a configuration; a null value proves only that none is available for that
-    branch/region right now — a configuration whose prebuild has not yet run, or has expired,
-    also reads null. So a `true` reading is evidence and a `false` reading is not.
+    what the caller may conclude. GitHub answers this endpoint for a given branch and region:
+    `ready`/`in_progress` prove a prebuild exists there, so a configuration exists; `none` proves
+    only that nothing is available for that branch and region, which a configuration whose
+    prebuild has not run or has expired also produces; `null` (and anything unrecognised) is not
+    an answer at all.
 
-    The trigger, the region set and the template-history depth are not readable at all: they are
-    operator UI state with no public API.
+    The trigger, the region set and the template-history depth are not readable by any API: they
+    are operator UI state.
     """
-    return any(m.get("prebuild_availability") is not None
-               for m in _gh_machines(repository, ref, location))
+    values = [m.get("prebuild_availability")
+              for m in _gh_machines(repository, ref, location)]
+    if any(v in _PREBUILD_CONFIRMING for v in values):
+        return PREBUILD_CONFIRMED
+    if values and all(v in _PREBUILD_NEGATIVE for v in values):
+        return PREBUILD_NONE
+    return PREBUILD_UNKNOWN
 
 
 # --- commands ------------------------------------------------------------------------------
@@ -590,17 +630,16 @@ def cmd_prebuild(args: argparse.Namespace) -> int:
 
     The three-way outcome is deliberate and follows from what the endpoint means:
 
-      declared configured, available          -> EXIT_OK. The claim is corroborated (the
-        trigger/region/history settings remain unverifiable, and the log says so).
-      declared configured, nothing available  -> EXIT_VIOLATION. Positively observed drift: a
-        prebuild is claimed and the region/branch it is claimed for has none.
-      declared NOT configured, available      -> EXIT_VIOLATION. Also positively observed, and
-        the quadrant the first pass missed (terra HIGH round 2): availability PROVES a prebuild
-        exists, so a declaration denying one is drift, not an unanswerable question.
-      declared NOT configured, none available -> EXIT_UNAVAILABLE. Absence of availability is
-        NOT evidence of absence of configuration (an unrun or expired prebuild reads null too),
-        so there is nothing here to confirm. Exiting 0 would report "verified, no prebuild" from
-        a reading that cannot support it — the false-resolve the 1/2 split exists to prevent.
+      declared configured  + CONFIRMED -> EXIT_OK. Corroborated (the trigger/region/history
+        settings remain unverifiable, and the log says so).
+      declared configured  + NONE      -> EXIT_VIOLATION. Positively observed drift: a prebuild
+        is claimed and the branch/region it is claimed for reports `none`.
+      declared NOT config. + CONFIRMED -> EXIT_VIOLATION. Also positively observed: a `ready` or
+        `in_progress` prebuild PROVES a configuration exists, so denying one is drift.
+      declared NOT config. + NONE      -> EXIT_UNAVAILABLE. `none` means nothing is available
+        here; it is not evidence that no CONFIGURATION exists (an unrun or expired prebuild
+        reads the same). Exiting 0 would report a verification the reading cannot support.
+      anything             + UNKNOWN   -> EXIT_UNAVAILABLE. `null` is not an answer.
     """
     cfg = load_config(args.config).prebuild
     if not cfg.repository:
@@ -616,27 +655,31 @@ def cmd_prebuild(args: argparse.Namespace) -> int:
              "operator UI state (probed 2026-08-21: REST 404, GraphQL introspection empty, no "
              "`gh codespace` subcommand). Only availability is readable.")
 
-    available = prebuild_available(cfg.repository, ref, location)
-    LOG.info("prebuild: live - prebuild_availability for %s @ %s in %s is %s",
-             cfg.repository, ref, location, "PRESENT" if available else "null")
+    state = prebuild_state(cfg.repository, ref, location)
+    LOG.info("prebuild: live - prebuild_availability for %s @ %s in %s reads %s",
+             cfg.repository, ref, location, state.upper())
 
-    # Availability is checked FIRST, because a non-null reading is positive evidence either way
-    # and never leaves an open question.
-    if available:
+    if state == PREBUILD_UNKNOWN:
+        LOG.warning("prebuild: INDETERMINATE - the API returned `null` (or a value this tool does "
+                    "not recognise), which is not an answer either way.")
+        return EXIT_UNAVAILABLE
+    # A CONFIRMED reading is positive evidence in both directions and never leaves a question.
+    if state == PREBUILD_CONFIRMED:
         if cfg.configured:
-            LOG.info("prebuild: OK - a prebuild IS available for the declared branch and region")
+            LOG.info("prebuild: OK - a prebuild exists for the declared branch and region")
             return EXIT_OK
         LOG.error("prebuild: DRIFT - the declaration says NO prebuild is configured, but one is "
-                  "available for %s @ %s in %s, which proves a configuration exists",
+                  "ready or building for %s @ %s in %s, which proves a configuration exists",
                   cfg.repository, ref, location)
         return EXIT_VIOLATION
     if cfg.configured:
-        LOG.error("prebuild: DRIFT - the declaration says a prebuild is configured, but none is "
-                  "available for %s @ %s in %s", cfg.repository, ref, location)
+        LOG.error("prebuild: DRIFT - the declaration says a prebuild is configured, but every "
+                  "machine type reports `none` for %s @ %s in %s",
+                  cfg.repository, ref, location)
         return EXIT_VIOLATION
     LOG.warning("prebuild: INDETERMINATE - the declaration says no prebuild is configured, and a "
-                "null availability cannot confirm that (an unrun or expired prebuild reads null "
-                "too). Configuration state is verifiable only in the GitHub UI.")
+                "`none` availability cannot confirm that (an unrun or expired prebuild reads the "
+                "same). Configuration state is verifiable only in the GitHub UI.")
     return EXIT_UNAVAILABLE
 
 

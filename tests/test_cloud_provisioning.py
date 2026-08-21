@@ -322,6 +322,50 @@ def test_a_DIVERGED_local_main_is_refused_and_never_force_updated(
     assert _git(clone, "rev-parse", "refs/heads/main").stdout.strip() == local_tip
 
 
+def test_repair_refreshes_a_STALE_remote_tracking_ref_before_judging_currency(
+        tmp_path: Path, origin: Path) -> None:
+    """Upstream advances, the clone never fetches — both cached refs still agree at the OLD tip.
+
+    The round-2 refresh only ran when `origin/main` was ABSENT, so this clone compared two
+    equally stale refs, found them equal, and reported clean while the spine walkers missed
+    every new entry (terra HIGH round 3, 2026-08-21).
+    """
+    clone = tmp_path / "cached-stale"
+    _git(tmp_path, "clone", "-q", str(origin), str(clone))
+    _git(clone, "checkout", "-q", "-b", "worktree-lane-probe")
+    _commit(origin, "d")
+    _commit(origin, "e")
+
+    # Nothing has been fetched, so the clone still believes main is at 3 commits ...
+    assert cp.spine_length(clone, "main") == 3
+    cfg = cp.load_config(_config(tmp_path)).history
+    assert cp.assess_history(clone, cfg).ok           # ... and a read-only assessment agrees
+
+    report = cp.repair_history(clone, cfg)            # the repair fetches first, then judges
+    assert report.ok, report.violations
+    assert report.refs["main"] == 5
+
+
+def test_an_unreachable_origin_is_exit_2_not_a_missing_branch(
+        tmp_path: Path, origin: Path) -> None:
+    """A transport failure is could-not-look; only `ls-remote` saying so means "no such branch".
+
+    Before round 3 ANY failed fetch was reported as "origin has no such branch", so an auth
+    failure, a DNS failure or an unreachable host all became exit 1 — a positively observed
+    configuration violation asserted from a network error.
+    """
+    clone = tmp_path / "unreachable"
+    _git(tmp_path, "clone", "-q", "--single-branch", "--branch", "worktree-lane-probe",
+         str(origin), str(clone))
+    _git(clone, "remote", "set-url", "origin", str(tmp_path / "does-not-exist"))
+    path = _config(tmp_path)
+
+    with pytest.raises(cp.ProvisioningError):
+        cp.repair_history(clone, cp.load_config(path).history)
+    assert cp.main(["--root", str(clone), "--config", str(path),
+                    "history", "--repair"]) == cp.EXIT_UNAVAILABLE
+
+
 def test_a_local_main_AHEAD_of_origin_is_current_not_a_violation(
         tmp_path: Path, origin: Path) -> None:
     """Ahead is the normal workstation state and hides nothing from a spine walk."""
@@ -501,7 +545,7 @@ def test_prebuild_not_configured_is_INDETERMINATE_not_clean(
     reads null too. Exiting 0 here would report a verification the reading cannot support.
     """
     monkeypatch.setattr(cp, "_gh_machines", lambda repo, ref, loc: [
-        {"name": "basicLinux32gb", "prebuild_availability": None}])
+        {"name": "basicLinux32gb", "prebuild_availability": "none"}])
     path = _declare_configured(_config(tmp_path), False)
     assert cp.main(["--config", str(path), "prebuild"]) == cp.EXIT_UNAVAILABLE
 
@@ -509,7 +553,7 @@ def test_prebuild_not_configured_is_INDETERMINATE_not_clean(
 def test_prebuild_declared_configured_and_available_is_clean(
         tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(cp, "_gh_machines", lambda repo, ref, loc: [
-        {"name": "basicLinux32gb", "prebuild_availability": "blob"}])
+        {"name": "basicLinux32gb", "prebuild_availability": "ready"}])
     path = _declare_configured(_config(tmp_path), True)
     assert cp.main(["--config", str(path), "prebuild"]) == cp.EXIT_OK
 
@@ -519,7 +563,7 @@ def test_prebuild_declared_NOT_configured_but_available_is_drift(
     """The quadrant round 1 missed: availability PROVES a configuration exists, so a declaration
     denying one is observed drift (exit 1), not an unanswerable question (exit 2)."""
     monkeypatch.setattr(cp, "_gh_machines", lambda repo, ref, loc: [
-        {"name": "basicLinux32gb", "prebuild_availability": "blob"}])
+        {"name": "basicLinux32gb", "prebuild_availability": "ready"}])
     path = _declare_configured(_config(tmp_path), False)
     assert cp.main(["--config", str(path), "prebuild"]) == cp.EXIT_VIOLATION
 
@@ -528,7 +572,7 @@ def test_prebuild_declared_configured_but_unavailable_is_drift(
         tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """The one direction the API CAN falsify: a claimed prebuild with nothing available."""
     monkeypatch.setattr(cp, "_gh_machines", lambda repo, ref, loc: [
-        {"name": "basicLinux32gb", "prebuild_availability": None}])
+        {"name": "basicLinux32gb", "prebuild_availability": "none"}])
     path = _declare_configured(_config(tmp_path), True)
     assert cp.main(["--config", str(path), "prebuild"]) == cp.EXIT_VIOLATION
 
@@ -541,7 +585,7 @@ def test_prebuild_query_carries_the_declared_ref_and_region(
 
     def _spy(repo: str, ref: str, loc: str) -> list[dict]:
         seen.update(repo=repo, ref=ref, loc=loc)
-        return [{"prebuild_availability": "blob"}]
+        return [{"prebuild_availability": "ready"}]
 
     monkeypatch.setattr(cp, "_gh_machines", _spy)
     cp.main(["--config", str(_declare_configured(_config(tmp_path), True)), "prebuild"])
@@ -557,12 +601,36 @@ def test_prebuild_cannot_look_exits_2(tmp_path: Path, monkeypatch: pytest.Monkey
     assert cp.main(["--config", str(path), "prebuild"]) == cp.EXIT_UNAVAILABLE
 
 
-def test_prebuild_available_reads_any_machine(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(cp, "_gh_machines", lambda repo, ref, loc: [
-        {"name": "basicLinux32gb", "prebuild_availability": None},
-        {"name": "standardLinux32gb", "prebuild_availability": "blob"},
-    ])
-    assert cp.prebuild_available("o/r", "main", "EuropeWest") is True
+@pytest.mark.parametrize(("values", "expected"), [
+    (["ready", "none"], cp.PREBUILD_CONFIRMED),        # any confirming machine settles it
+    (["in_progress"], cp.PREBUILD_CONFIRMED),          # building IS a configuration
+    (["none", "none"], cp.PREBUILD_NONE),              # every machine says unavailable
+    ([None, "none"], cp.PREBUILD_UNKNOWN),             # `null` is not an answer
+    ([None], cp.PREBUILD_UNKNOWN),
+    (["something-new"], cp.PREBUILD_UNKNOWN),          # an unrecognised value is not evidence
+    ([], cp.PREBUILD_UNKNOWN),                         # no machines: nothing was read
+])
+def test_prebuild_state_parses_the_documented_enum(
+        values: list, expected: str, monkeypatch: pytest.MonkeyPatch) -> None:
+    """GitHub's enum is `none` / `ready` / `in_progress` / null (terra HIGH round 3, 2026-08-21).
+
+    The first version treated ANY non-null value as available, so `none` — the clearest possible
+    negative — read as a prebuild being present. Earlier tests used the fictional value `"blob"`,
+    which is exactly why they could not catch it.
+    """
+    monkeypatch.setattr(cp, "_gh_machines",
+                        lambda repo, ref, loc: [{"prebuild_availability": v} for v in values])
+    assert cp.prebuild_state("o/r", "main", "EuropeWest") == expected
+
+
+def test_prebuild_null_availability_is_indeterminate_whatever_is_declared(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """`null` must not become drift: configured + null was exiting 1 before round 3."""
+    monkeypatch.setattr(cp, "_gh_machines",
+                        lambda repo, ref, loc: [{"prebuild_availability": None}])
+    for declared in (True, False):
+        path = _declare_configured(_config(tmp_path), declared)
+        assert cp.main(["--config", str(path), "prebuild"]) == cp.EXIT_UNAVAILABLE
 
 
 # --- the shipped devcontainer surface ------------------------------------------------------
@@ -616,7 +684,24 @@ def test_devcontainer_json_no_longer_declares_the_unexpandable_stamp() -> None:
     assert "DEV_KNOWLEDGE_PROVISION_STAMP" not in code
 
 
-@pytest.mark.skipif(shutil.which("bash") is None, reason="no bash on PATH")
+def _usable_bash() -> str | None:
+    """A bash that actually RUNS, not merely one that resolves.
+
+    `shutil.which("bash")` on Windows happily returns the WindowsApps app-execution alias, which
+    exists as a file and then fails (or opens the Store) when invoked — so a which-only skipif
+    turned a host-configuration quirk into a red suite (terra HIGH round 3, 2026-08-21). This
+    probes once and caches nothing: the cost is one process.
+    """
+    found = shutil.which("bash")
+    if found is None:
+        return None
+    try:
+        r = subprocess.run([found, "-c", "exit 0"], capture_output=True, timeout=30)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return found if r.returncode == 0 else None
+
+
 def test_provision_sh_actually_refuses_an_unexpanded_stamp_path(tmp_path: Path) -> None:
     """EXECUTES the refusal instead of grepping for it (terra HIGH, 2026-08-21).
 
@@ -625,10 +710,13 @@ def test_provision_sh_actually_refuses_an_unexpanded_stamp_path(tmp_path: Path) 
     directory again. This runs the script with the poisoned variable and asserts the two things
     that actually matter: a non-zero exit, and NOTHING created on disk.
     """
+    bash = _usable_bash()
+    if bash is None:
+        pytest.skip("no usable bash on PATH")
     stamp = "${containerEnv:HOME}/.dev-knowledge-provision-stamp"
     env = {**os.environ, "DEV_KNOWLEDGE_PROVISION_STAMP": stamp, "HOME": str(tmp_path)}
     r = subprocess.run(
-        ["bash", str(cp.REPO_ROOT / ".devcontainer" / "provision.sh")],
+        [bash, str(cp.REPO_ROOT / ".devcontainer" / "provision.sh")],
         cwd=tmp_path, env=env, capture_output=True, text=True, timeout=120,
     )
     assert r.returncode != 0, r.stdout
@@ -639,12 +727,13 @@ def test_provision_sh_actually_refuses_an_unexpanded_stamp_path(tmp_path: Path) 
 
 def test_provision_sh_help_still_works_so_the_refusal_is_not_a_blanket_abort(tmp_path: Path) -> None:
     """The guard must refuse a poisoned path, not every invocation. Pins the discrimination."""
-    if shutil.which("bash") is None:
-        pytest.skip("no bash on PATH")
+    bash = _usable_bash()
+    if bash is None:
+        pytest.skip("no usable bash on PATH")
     env = {**os.environ, "HOME": str(tmp_path)}
     env.pop("DEV_KNOWLEDGE_PROVISION_STAMP", None)
     r = subprocess.run(
-        ["bash", str(cp.REPO_ROOT / ".devcontainer" / "provision.sh"), "--help"],
+        [bash, str(cp.REPO_ROOT / ".devcontainer" / "provision.sh"), "--help"],
         cwd=cp.REPO_ROOT, env=env, capture_output=True, text=True, timeout=120,
     )
     assert r.returncode == 0, r.stderr
@@ -726,6 +815,14 @@ def test_provision_sh_runs_the_history_repair_before_arming_hooks() -> None:
     body = _uncommented(text.split("main() {", 1)[1], "#")
     calls = [ln.strip() for ln in body.splitlines() if ln.strip().startswith("leg")
              or ln.strip() in ("sync_environment", "smoke_gate_liveness", "write_stamp")]
-    assert calls.index("leg2b_history") < calls.index("leg3_hooks")
-    assert calls.index("leg5_ecosystem") < calls.index("smoke_gate_liveness")
-    assert calls.index("sync_environment") < calls.index("leg2b_history")
+    # The FULL sequence, not just the two new legs (terra HIGH round 3, 2026-08-21): the earlier
+    # version asserted only relative order, so deleting `leg1_uv`, `leg2_unshallow` or
+    # `write_stamp` from main() left the suite green while a fresh container provisioned nothing.
+    assert calls == [
+        "leg1_uv", "leg2_unshallow", "sync_environment", "leg2b_history", "leg5_ecosystem",
+        "leg3_hooks", "smoke_gate_liveness", "write_stamp",
+    ]
+    # Honest limit, stated so nobody reads more into this than it does: this asserts the CALL
+    # LIST, not the behaviour of each leg. Executing the whole script needs git, curl and uv
+    # shims; what stands in for that here is the live container evidence in ARTIFACT-lane-554.md,
+    # where every one of these legs is shown firing in a real Codespace lifecycle.
