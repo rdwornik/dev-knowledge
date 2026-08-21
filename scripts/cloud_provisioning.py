@@ -257,10 +257,28 @@ REF_DIVERGED = "diverged"   # neither is an ancestor: updating would DISCARD loc
 #: has never fetched it. Not current (the walk is provably missing that commit), and not
 #: classifiable further without fetching, so it is never treated as fast-forwardable.
 REF_TIP_ABSENT = "tip-absent"
+#: The remote tip IS reachable from the local ref, but not along its first-parent chain — so
+#: `git log --first-parent` never traverses it and the instruments would miss that history while
+#: generic ancestry reported everything fine. Refused rather than repaired: forcing the ref would
+#: discard whatever the local branch reached it through.
+REF_OFF_SPINE = "off-spine"
 
 
 def object_exists(root: Path, sha: str) -> bool:
     return _git(root, "cat-file", "-e", f"{sha}^{{commit}}").returncode == 0
+
+
+def _on_first_parent_chain(root: Path, rev: str, sha: str) -> bool:
+    """Whether `sha` sits on `rev`'s FIRST-PARENT chain — the exact walk the instruments perform.
+
+    `git merge-base --is-ancestor` answers reachability through ANY parent. This answers the
+    narrower question the spine walkers actually ask.
+    """
+    r = _git(root, "rev-list", "--first-parent", "--format=%H", rev)
+    if r.returncode != 0:
+        raise ProvisioningError(
+            f"`git rev-list --first-parent {rev}` failed: {r.stderr.strip()}")
+    return sha in {line.strip() for line in r.stdout.splitlines()}
 
 
 def _is_ancestor(root: Path, ancestor: str, descendant: str) -> bool:
@@ -290,7 +308,11 @@ def ref_status(root: Path, ref: str, remote_sha: str) -> str:
         # What IS known: the local branch cannot contain a commit this clone does not have.
         return REF_TIP_ABSENT
     if _is_ancestor(root, remote_sha, local):
-        return REF_CURRENT
+        # ANCESTRY IS NOT ENOUGH (terra HIGH round 5, 2026-08-21). Every instrument in
+        # `spine_walking_instruments` walks `--first-parent`, so a remote tip reachable only
+        # through a SECOND parent is history the walk never traverses — generic ancestry would
+        # report that clean, which is the vacuous-gate condition this module exists to prevent.
+        return REF_CURRENT if _on_first_parent_chain(root, local, remote_sha) else REF_OFF_SPINE
     if _is_ancestor(root, local, remote_sha):
         return REF_BEHIND
     return REF_DIVERGED
@@ -403,6 +425,12 @@ def assess_history(root: Path, cfg: HistoryConfig) -> HistoryReport:
                 f"ref {ref!r} has DIVERGED from origin/{ref} ({remote_sha[:9]}) - it carries "
                 f"commits the remote does not. This guard REFUSES to repair it: a forced update "
                 f"would discard them. Resolve the divergence by hand.")
+        elif status == REF_OFF_SPINE:
+            report.violations.append(
+                f"ref {ref!r} reaches origin/{ref} ({remote_sha[:9]}) only through a SECOND "
+                f"parent, so `git log --first-parent` never traverses it - the instruments would "
+                f"miss that history while ordinary ancestry looked fine. Refused, not repaired: "
+                f"a forced update would discard whatever the local branch reached it through.")
     return report
 
 
@@ -459,12 +487,18 @@ def repair_history(root: Path, cfg: HistoryConfig) -> HistoryReport:
             if status == REF_CURRENT:
                 continue
             if status == REF_TIP_ABSENT:
-                # The convenience refresh above should have brought the tip in. If it did not,
-                # the clone still cannot be classified, and forcing an update on an unclassified
-                # ref is exactly the divergence hazard the CRITICAL fix closed — so refuse.
-                LOG.error("history: ref %r cannot be classified against origin/%s - the remote "
-                          "tip is not present locally even after a refresh; refusing to force it",
-                          ref, ref)
+                # The refresh above should have brought the tip in. That it did not means the
+                # fetch could not act — a write failure, a disk error, a broken object store.
+                # That is a COULD-NOT-LOOK, and returning a violation instead would assert
+                # observed drift from an inability to fetch (terra HIGH round 5, 2026-08-21).
+                raise ProvisioningError(
+                    f"the tip of origin/{ref} ({remote_sha[:9]}) is still not present locally "
+                    f"after a refresh - this clone cannot be classified or repaired here")
+            if status == REF_OFF_SPINE:
+                # Refuse, do not repair: forcing the ref would discard whatever path the local
+                # branch reached the remote tip through. assess_history reports the violation.
+                LOG.error("history: ref %r reaches origin/%s only through a second parent - "
+                          "refusing to force-update it", ref, ref)
                 continue
             if status == REF_DIVERGED:
                 # REFUSE, do not repair. assess_history below reports it as a violation.
@@ -526,6 +560,16 @@ def seed_self_registration(root: Path, name: str) -> str:
     Writes exactly one gitignored file. Deliberately not `audit.py repo`, which additionally
     appends history, writes a dated report under `docs/audits/` and COMMITS its outputs — three
     things a provisioning step must never do to a container's tree.
+
+    THE DESTINATION IS FORCED TO `root` (terra CRITICAL round 5, 2026-08-21). `audit.save_state`
+    resolves its path through the module-level `audit.ECOSYSTEM_DIR`, which is derived from
+    `audit.py`'s OWN location — and `import audit` returns whatever is already in `sys.modules`,
+    so with `--root <another clone>` this would have audited that clone and written the result
+    over THIS checkout's `state.yaml`. The earlier version merely returned a root-relative path
+    string, which claimed a destination it had not set. `ECOSYSTEM_DIR` is therefore pointed at
+    `root` for the call and restored afterwards, and the file is verified to exist where it was
+    supposed to land — a return value is a claim, and this row exists because claims looked like
+    proof.
     """
     scripts_dir = str(root / "scripts")
     if scripts_dir not in sys.path:
@@ -535,9 +579,21 @@ def seed_self_registration(root: Path, name: str) -> str:
     except ImportError as exc:
         raise ProvisioningError(f"could not import scripts/audit.py: {exc}") from exc
 
-    state = audit.audit_repo(name, root, date.today())
-    audit.save_state(state)
-    return str(root / "ecosystem" / name / "state.yaml")
+    expected = root / "ecosystem" / name / "state.yaml"
+    original = getattr(audit, "ECOSYSTEM_DIR", None)
+    try:
+        audit.ECOSYSTEM_DIR = root / "ecosystem"
+        state = audit.audit_repo(name, root, date.today())
+        audit.save_state(state)
+    finally:
+        if original is not None:
+            audit.ECOSYSTEM_DIR = original
+
+    if not expected.exists():
+        raise ProvisioningError(
+            f"the audit state did not land at {expected} - `audit.save_state` wrote somewhere "
+            f"else, so this container is not registered and nothing should claim it is")
+    return str(expected)
 
 
 # --- prebuild: declaration vs the one field the API exposes --------------------------------
@@ -690,15 +746,18 @@ def cmd_prebuild(args: argparse.Namespace) -> int:
 
     The three-way outcome is deliberate and follows from what the endpoint means:
 
+    EXACTLY ONE QUADRANT IS FALSIFIABLE, and pretending otherwise was a real defect. `none` is
+    a statement about AVAILABILITY, and the module says so itself: a configured prebuild that
+    has not yet run, or whose template expired, reads `none` too. So `none` can never refute a
+    configuration claim, in either direction (terra HIGH round 5, 2026-08-21).
+
       declared configured  + CONFIRMED -> EXIT_OK. Corroborated (the trigger/region/history
         settings remain unverifiable, and the log says so).
-      declared configured  + NONE      -> EXIT_VIOLATION. Positively observed drift: a prebuild
-        is claimed and the branch/region it is claimed for reports `none`.
-      declared NOT config. + CONFIRMED -> EXIT_VIOLATION. Also positively observed: a `ready` or
-        `in_progress` prebuild PROVES a configuration exists, so denying one is drift.
-      declared NOT config. + NONE      -> EXIT_UNAVAILABLE. `none` means nothing is available
-        here; it is not evidence that no CONFIGURATION exists (an unrun or expired prebuild
-        reads the same). Exiting 0 would report a verification the reading cannot support.
+      declared NOT config. + CONFIRMED -> EXIT_VIOLATION. THE falsifiable quadrant: a `ready` or
+        `in_progress` prebuild PROVES a configuration exists, so denying one is observed drift.
+      declared configured  + NONE      -> EXIT_UNAVAILABLE. Nothing is available for this
+        branch/region, which does not establish that no configuration exists.
+      declared NOT config. + NONE      -> EXIT_UNAVAILABLE. Same reading, same limit.
       anything             + UNKNOWN   -> EXIT_UNAVAILABLE. `null` is not an answer.
     """
     cfg = load_config(args.config).prebuild
@@ -732,14 +791,12 @@ def cmd_prebuild(args: argparse.Namespace) -> int:
                   "ready or building for %s @ %s in %s, which proves a configuration exists",
                   cfg.repository, ref, location)
         return EXIT_VIOLATION
-    if cfg.configured:
-        LOG.error("prebuild: DRIFT - the declaration says a prebuild is configured, but every "
-                  "machine type reports `none` for %s @ %s in %s",
-                  cfg.repository, ref, location)
-        return EXIT_VIOLATION
-    LOG.warning("prebuild: INDETERMINATE - the declaration says no prebuild is configured, and a "
-                "`none` availability cannot confirm that (an unrun or expired prebuild reads the "
-                "same). Configuration state is verifiable only in the GitHub UI.")
+    LOG.warning("prebuild: INDETERMINATE - every machine type reports `none`, which is a "
+                "statement about AVAILABILITY for %s @ %s in %s and cannot establish whether a "
+                "CONFIGURATION exists (an unrun or expired prebuild reads `none` too). The "
+                "declaration says configured=%s and this reading can neither confirm nor refute "
+                "it; configuration state is verifiable only in the GitHub UI.",
+                cfg.repository, ref, location, cfg.configured)
     return EXIT_UNAVAILABLE
 
 

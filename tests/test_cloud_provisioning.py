@@ -411,6 +411,39 @@ def test_an_unreachable_origin_is_exit_2_not_a_missing_branch(
                     "history", "--repair"]) == cp.EXIT_UNAVAILABLE
 
 
+def test_a_remote_tip_reachable_only_via_a_SECOND_parent_is_refused_not_called_current(
+        tmp_path: Path, origin: Path) -> None:
+    """Generic ancestry is not first-parent coverage (terra HIGH round 5, 2026-08-21).
+
+    Local `main` MERGES the upstream tip as a second parent, so `merge-base --is-ancestor` says
+    it is contained — while `git log --first-parent main`, which is what every instrument in
+    `spine_walking_instruments` runs, never traverses it. Reporting that clean is precisely the
+    vacuous-gate condition this module exists to prevent.
+    """
+    clone = tmp_path / "second-parent"
+    _git(tmp_path, "clone", "-q", str(origin), str(clone))
+    _git(clone, "checkout", "-q", "-b", "side")
+    _commit(clone, "side-work")
+    _commit(origin, "upstream-work")
+    _git(clone, "fetch", "-q", "origin")
+    upstream_tip = _git(clone, "rev-parse", "refs/remotes/origin/main").stdout.strip()
+    # Rebuild local main as: side-work, then a merge whose SECOND parent is the upstream tip.
+    _git(clone, "branch", "-f", "main", "side")
+    _git(clone, "checkout", "-q", "main")
+    _git(clone, "-c", "user.name=t", "-c", "user.email=t@t",
+         "merge", "--no-ff", "-q", "-m", "merge upstream", upstream_tip)
+    _git(clone, "checkout", "-q", "side")
+
+    assert cp._is_ancestor(clone, upstream_tip, "refs/heads/main")          # contained ...
+    assert not cp._on_first_parent_chain(clone, "refs/heads/main", upstream_tip)  # ... off-spine
+    assert cp.ref_status(clone, "main", upstream_tip) == cp.REF_OFF_SPINE
+
+    cfg = cp.load_config(_config(tmp_path)).history
+    report = cp.assess_history(clone, cfg)
+    assert not report.ok
+    assert any("SECOND parent" in v for v in report.violations)
+
+
 def test_a_local_main_AHEAD_of_origin_is_current_not_a_violation(
         tmp_path: Path, origin: Path) -> None:
     """Ahead is the normal workstation state and hides nothing from a spine walk."""
@@ -536,6 +569,50 @@ def test_ecosystem_repair_reports_a_seed_that_did_not_land(
                     "ecosystem", "--repair"]) == cp.EXIT_VIOLATION
 
 
+def test_seed_self_registration_writes_under_the_REQUESTED_root(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The destination is forced, not assumed (terra CRITICAL round 5, 2026-08-21).
+
+    `audit.save_state` resolves through the module-level `audit.ECOSYSTEM_DIR`, derived from
+    `audit.py`'s own location — and `import audit` returns whatever `sys.modules` already holds.
+    So `--root <another clone>` would have written that clone's audit state over THIS checkout's
+    `state.yaml`, while the function returned a root-relative path claiming otherwise.
+
+    `save_state` is deliberately NOT stubbed here: stubbing the writer would test the claim
+    rather than the write.
+    """
+    sys.path.insert(0, str(cp.REPO_ROOT / "scripts"))
+    import audit  # noqa: PLC0415
+
+    root = tmp_path / "other-clone"
+    (root / "scripts").mkdir(parents=True)
+    monkeypatch.setattr(
+        audit, "audit_repo",
+        lambda name, path, run_date: audit.RepoState(
+            name=name, path=str(path), last_audit=run_date.isoformat(), findings=[]))
+    hub_state = audit.ECOSYSTEM_DIR
+
+    written = cp.seed_self_registration(root, ".dev-knowledge")
+
+    assert Path(written) == root / "ecosystem" / ".dev-knowledge" / "state.yaml"
+    assert (root / "ecosystem" / ".dev-knowledge" / "state.yaml").exists()
+    assert audit.ECOSYSTEM_DIR == hub_state          # restored, not left pointing elsewhere
+
+
+def test_seed_self_registration_refuses_when_the_state_did_not_land(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A return value is a claim; the file's existence is the proof."""
+    stub = types.ModuleType("audit")
+    stub.ECOSYSTEM_DIR = tmp_path / "ecosystem"
+    stub.audit_repo = lambda name, path, run_date: object()
+    stub.save_state = lambda state: None             # writes nothing at all
+    monkeypatch.setitem(sys.modules, "audit", stub)
+    (tmp_path / "scripts").mkdir()
+
+    with pytest.raises(cp.ProvisioningError, match="did not land"):
+        cp.seed_self_registration(tmp_path, ".dev-knowledge")
+
+
 def test_seed_self_registration_uses_audit_repo_and_save_state_only(
         tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Pins the REUSE claim: `audit_repo` + `save_state`, and none of `audit.py repo`'s extras.
@@ -547,9 +624,16 @@ def test_seed_self_registration_uses_audit_repo_and_save_state_only(
     calls: list[str] = []
     fake_state = object()
 
+    def _save(state: object) -> None:
+        calls.append("save_state")
+        target = stub.ECOSYSTEM_DIR / ".dev-knowledge" / "state.yaml"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("name: .dev-knowledge\n", encoding="utf-8")
+
     stub = types.ModuleType("audit")
+    stub.ECOSYSTEM_DIR = tmp_path / "ecosystem"
     stub.audit_repo = lambda name, path, run_date: (calls.append("audit_repo"), fake_state)[1]
-    stub.save_state = lambda state: calls.append("save_state")
+    stub.save_state = _save
     for forbidden in ("append_history", "generate_report", "write_report",
                       "_commit_routine_outputs"):
         stub.__dict__[forbidden] = lambda *a, **k: calls.append(forbidden)
@@ -580,6 +664,25 @@ def _declare_configured(path: Path, value: bool) -> Path:
     body["prebuild"]["configured"] = value
     path.write_text(yaml.safe_dump(body), encoding="utf-8")
     return path
+
+
+def test_prebuild_has_exactly_one_falsifiable_quadrant(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The whole verdict table, asserted as a table so the asymmetry cannot drift back."""
+    cases = [
+        # (declared configured, availability values, expected exit)
+        (True,  ["ready"], cp.EXIT_OK),
+        (False, ["ready"], cp.EXIT_VIOLATION),      # the ONLY exit-1 quadrant
+        (True,  ["none"], cp.EXIT_UNAVAILABLE),
+        (False, ["none"], cp.EXIT_UNAVAILABLE),
+        (True,  [None], cp.EXIT_UNAVAILABLE),
+        (False, [None], cp.EXIT_UNAVAILABLE),
+    ]
+    for declared, values, expected in cases:
+        monkeypatch.setattr(cp, "_gh_machines", lambda repo, ref, loc, v=values: [
+            {"prebuild_availability": item} for item in v])
+        path = _declare_configured(_config(tmp_path), declared)
+        assert cp.main(["--config", str(path), "prebuild"]) == expected, (declared, values)
 
 
 def test_prebuild_not_configured_is_INDETERMINATE_not_clean(
@@ -613,13 +716,19 @@ def test_prebuild_declared_NOT_configured_but_available_is_drift(
     assert cp.main(["--config", str(path), "prebuild"]) == cp.EXIT_VIOLATION
 
 
-def test_prebuild_declared_configured_but_unavailable_is_drift(
+def test_prebuild_none_availability_can_never_refute_a_configuration_claim(
         tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """The one direction the API CAN falsify: a claimed prebuild with nothing available."""
+    """`none` is about AVAILABILITY, so it refutes nothing (terra HIGH round 5, 2026-08-21).
+
+    An earlier version returned exit 1 for declared-configured + `none` — asserting observed
+    drift from a reading the module's own docstring says cannot support it, since a configured
+    prebuild that has not run or has expired reads `none` too.
+    """
     monkeypatch.setattr(cp, "_gh_machines", lambda repo, ref, loc: [
         {"name": "basicLinux32gb", "prebuild_availability": "none"}])
-    path = _declare_configured(_config(tmp_path), True)
-    assert cp.main(["--config", str(path), "prebuild"]) == cp.EXIT_VIOLATION
+    for declared in (True, False):
+        path = _declare_configured(_config(tmp_path), declared)
+        assert cp.main(["--config", str(path), "prebuild"]) == cp.EXIT_UNAVAILABLE
 
 
 def test_prebuild_query_carries_the_declared_ref_and_region(
