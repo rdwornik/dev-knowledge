@@ -655,10 +655,21 @@ def _state_is_usable(path: Path) -> bool:
     Structure only — a mapping carrying `name` and `path`. NOT identity: a worktree carries the
     PRIMARY checkout's state.yaml by design (`scripts/worktree_seed.py` copies it), so requiring
     `path` to equal this root would declare every worktree unregistered and reseed it.
+
+    Three-valued underneath, not two: a file that could not be READ raises. Folding an
+    unreadable file into "malformed" would report exit 1 for a permission error, and would let
+    `--repair` overwrite a perfectly valid state file that happened to be locked at that instant
+    (terra HIGH round 10, 2026-08-21). False means read successfully AND wrong.
     """
     try:
-        body = yaml.safe_load(path.read_text(encoding="utf-8"))
-    except (OSError, yaml.YAMLError):
+        text = path.read_text(encoding="utf-8")
+    except OSError as exc:
+        raise ProvisioningError(
+            f"could not read {path}: {exc} - unreadable is not the same as malformed, and this "
+            f"guard will not overwrite a state file it was unable to look at") from exc
+    try:
+        body = yaml.safe_load(text)
+    except yaml.YAMLError:
         return False
     return isinstance(body, dict) and bool(body.get("name")) and bool(body.get("path"))
 
@@ -695,6 +706,21 @@ def seed_self_registration(root: Path, name: str) -> str:
     supposed to land — a return value is a claim, and this row exists because claims looked like
     proof.
     """
+    # THE NAME IS A DIRECTORY COMPONENT, NOT A PATH (terra HIGH round 10, 2026-08-21). It comes
+    # from a declaration file, and an absolute value or one carrying `..` would resolve the
+    # destination outside `root/ecosystem/` — so an automatic provisioning step could create or
+    # overwrite a state.yaml anywhere reachable. Checked as a NAME first, then re-checked on the
+    # RESOLVED path, because the two catch different things (`..` vs a symlinked ecosystem dir).
+    if name in ("", ".", "..") or Path(name).name != name or Path(name).is_absolute():
+        raise ProvisioningError(
+            f"ecosystem.self_name is {name!r}, which is not a single directory component - a "
+            f"registration name may not carry a path")
+    eco_dir = (root / "ecosystem").resolve()
+    destination = (eco_dir / name / "state.yaml").resolve()
+    if eco_dir not in destination.parents:
+        raise ProvisioningError(
+            f"{destination} resolves outside {eco_dir} - refusing to write there")
+
     scripts_dir = str(root / "scripts")
     if scripts_dir not in sys.path:
         sys.path.insert(0, scripts_dir)

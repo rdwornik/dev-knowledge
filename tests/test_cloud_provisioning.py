@@ -858,6 +858,52 @@ def test_seed_self_registration_writes_under_the_REQUESTED_root(
     assert audit.ECOSYSTEM_DIR == hub_state          # restored, not left pointing elsewhere
 
 
+@pytest.mark.parametrize("name", ["../escape", "a/b", "..", ".", "", "/abs/path"])
+def test_seed_self_registration_refuses_a_name_that_is_not_a_directory_component(
+        tmp_path: Path, name: str) -> None:
+    """A registration name may not carry a path (terra HIGH round 10, 2026-08-21).
+
+    `self_name` comes from a declaration file, and an absolute value or one carrying `..` would
+    resolve the destination outside `root/ecosystem/` — letting an automatic provisioning step
+    create or overwrite a `state.yaml` anywhere reachable.
+    """
+    (tmp_path / "scripts").mkdir()
+    with pytest.raises(cp.ProvisioningError):
+        cp.seed_self_registration(tmp_path, name)
+    # Nothing was created anywhere on the way to the refusal.
+    assert not (tmp_path / "ecosystem").exists()
+    assert not (tmp_path.parent / "escape").exists()
+
+
+def test_an_unreadable_state_file_is_exit_2_and_is_never_overwritten(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Unreadable is not malformed (terra HIGH round 10, 2026-08-21).
+
+    Folding a read failure into "malformed" reported exit 1 for a permission error AND let
+    `--repair` overwrite a perfectly valid state file that happened to be locked at that instant.
+    """
+    eco = tmp_path / "ecosystem" / ".dev-knowledge"
+    eco.mkdir(parents=True)
+    state = eco / "state.yaml"
+    state.write_text("name: .dev-knowledge\npath: /x\n", encoding="utf-8")
+
+    real_read = Path.read_text
+
+    def _locked(self: Path, *a: object, **k: object) -> str:
+        if self == state:
+            raise PermissionError("locked by another process")
+        return real_read(self, *a, **k)
+
+    monkeypatch.setattr(Path, "read_text", _locked)
+    seeded: list[str] = []
+    monkeypatch.setattr(cp, "seed_self_registration",
+                        lambda root, name: seeded.append(name) or "x")
+
+    assert cp.main(["--root", str(tmp_path), "--config", str(_config(tmp_path)),
+                    "ecosystem", "--repair"]) == cp.EXIT_UNAVAILABLE
+    assert seeded == []
+
+
 def test_seed_self_registration_refuses_when_the_state_did_not_land(
         tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """A return value is a claim; the file's existence is the proof."""
