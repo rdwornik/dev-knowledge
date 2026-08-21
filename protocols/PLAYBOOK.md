@@ -84,9 +84,11 @@ reconciled_with: handoff-process@6.2.0
   - [Parallel sessions & worktree discipline (per ADR-61)](#parallel-sessions--worktree-discipline-per-adr-61)
   - [Tree orchestration — architect-root + epic-chat lanes (ADR-97)](#tree-orchestration--architect-root--epic-chat-lanes-adr-97)
   - [The batch protocol — ONE plan → N lanes → ONE integrator (ADR-110)](#the-batch-protocol--one-plan--n-lanes--one-integrator-adr-110)
+  - [The lane lifecycle — five legs, and where each one is ruled](#the-lane-lifecycle--five-legs-and-where-each-one-is-ruled)
   - [Dispatch visibility — Agent View shows DISPATCHED sessions only (STANDING_RULINGS B7)](#dispatch-visibility--agent-view-shows-dispatched-sessions-only-standing_rulings-b7)
   - [Dispatch prompts and the contract of record — two locations, one of them in the tree](#dispatch-prompts-and-the-contract-of-record--two-locations-one-of-them-in-the-tree)
   - [The dispatch surface is `dispatch <file>` — the contract file is the source ([#509] v2)](#the-dispatch-surface-is-dispatch-file--the-contract-file-is-the-source-509-v2)
+  - [Cloud lanes — the receipt gate and the fresh-branch rule](#cloud-lanes--the-receipt-gate-and-the-fresh-branch-rule)
   - [Model + effort are stated at dispatch — the routing matrix](#model--effort-are-stated-at-dispatch--the-routing-matrix)
   - [Handoff prep for the next architect — an index, not a restatement](#handoff-prep-for-the-next-architect--an-index-not-a-restatement)
 - [Ch9. Tier-1 closure loop — usage](#ch9-tier-1-closure-loop--usage)
@@ -1989,6 +1991,75 @@ all. Nothing here blocks a batch that skips a step: a lane that self-merges, a b
 with an open lane branch, and a mid-batch seal all remain mechanically possible. The refusal in
 "refuse-to-finish" is carried by the integrator command's checklist, not by a gate.
 
+### The lane lifecycle — five legs, and where each one is ruled
+<!-- scope: meta -->
+
+The batch protocol above states the *shape* — one plan, N file-disjoint lanes, one integrator.
+This subsection states the *sequence* a single lane travels end to end, because that sequence is
+currently something a reader assembles out of five subsections that do not name each other in
+order. It is an index in the sense this chapter's closing subsection uses the word: four of the
+five legs are pointers to text that already exists, and only the fourth carries doctrine of its
+own, having had no home until now.
+
+1. **Dispatch.** The operator runs `dispatch <contract.md>` from a terminal; the contract's own
+   `## Dispatch` block carries the literal line, and model + effort ride on it. Where the contract
+   file lives and why the authoritative copy is a committed repo artifact — "Dispatch prompts and
+   the contract of record" below. The surface itself — "The dispatch surface is `dispatch <file>`"
+   below. The routing — "Model + effort are stated at dispatch" below. Visibility — "Dispatch
+   visibility" below, whose consequence is that a lane is dispatched by the operator rather than
+   spawned from a session, a spawned session having no Agent View row of its own.
+2. **Execute under the frozen contract.** The five per-lane requirements are the batch protocol's,
+   directly above: a frozen contract, a V-2 decision budget, `uv run --locked` on every test
+   invocation, commit-and-STOP with an empty `git stash list`, and a worktree name paired 1:1 with
+   its contract file.
+3. **Commit-and-STOP.** The lane hands back a branch and stops. It does not merge, and it does not
+   write the JOURNAL entry — that is the integrator's surface
+   (`protocols/STANDING_RULINGS.md` P-1). The law that makes the ordering structural rather than
+   stylistic is "JOURNAL-rides-the-branch", directly above.
+4. **Harvest.** The leg below — the only one of the five with no prior home in this chapter.
+5. **Teardown.** The three-command round-trip plus the no-leftovers verification, at "4 —
+   Integration & ephemeral teardown" above; its batch-scale form is `git worktree list` == primary
+   only, in the refuse-to-finish checklist directly above.
+
+**Harvest — the return leg, and its two rules.**
+
+**Push before delete, on every harvest** (`protocols/STANDING_RULINGS.md` Q3; recorded as a
+standing order in `JOURNAL.md` 2026-08-20 (i)). A merged branch is deleted on `origin` only after
+the merge itself is pushed, so no window opens in which integrated work lives solely in one local
+clone. The ordering is the whole content of the rule: delete-then-push inverts it, and between
+those two commands the only copy of that lane's work is a local ref on one machine. Read together
+with MERGE IS ATOMIC above, which makes merge + push + delete **one** operation — this line fixes
+the *order* of that operation's three parts and leaves its atomicity untouched.
+
+**Index freshness on lane material: the integrator is gate-of-record**
+(`protocols/STANDING_RULINGS.md` Q1). A generated index — the audits index, the intake index, the
+organ index — is regenerated **once, by the integrator, at the merge**. A lane that adds
+index-governed material carries a **declared single-hook bypass on its own branch**, with the
+declaration written into the commit body: which hook, and why. Two properties make that the
+sanctioned shape rather than a concession. A generator reads the *tracked* working tree, so a lane
+regenerating an index inside a tree another lane is also writing emits bytes that depend on
+in-flight files — the determinism defect `scripts/gen_audit_index.py`'s own header records, and
+the reason the 2026-08-12 night-1 lane declared the bypass instead of committing a wrong index.
+And N lanes each regenerating one shared index produce N conflicting versions of a single
+generated file, which is exactly the collision file-disjointness exists to prevent.
+
+*Live practice, and it predates this text.* The 2026-08-20 playbook-status lane ran under exactly
+this rule — `SKIP=audit-index-freshness` declared on both of its commits — and its integrator
+regenerated the index once at the merge (`JOURNAL.md` 2026-08-20 (e)).
+
+*Scope, stated so the sanction does not read wider than it is.* One hook, named in the commit body,
+on a lane branch, for index-freshness material. It is not a general license against the gate mesh:
+a bypass outside that scope is an operator decision, and `git push --no-verify` remains the sole
+escape for the ADR-85 pre-push hard leg (amendment 2026-08-03 §A5), backstopped by the
+`journal_spine_anchor` audit check.
+
+**Honest limits, for both.** Prose, held by the integrator's checklist rather than by machinery.
+No organ reads the ordering of a push against a remote-branch delete after the fact — MERGE IS
+ATOMIC carries the same posture, its mechanical backstop being a proposal rather than a build. And
+no organ reads a commit body for the bypass declaration: `SKIP=` leaves no artifact beyond the
+message an author chose to write, so an undeclared bypass and a declared one are
+indistinguishable to the tree.
+
 ### Dispatch visibility — Agent View shows DISPATCHED sessions only (STANDING_RULINGS B7)
 <!-- scope: meta -->
 
@@ -2062,12 +2133,21 @@ in the tree — the manifest committed at dispatch, which was the batch-2 advanc
 *contracts* were not, so the integrator reconstructed the merge queue from the ref store and from
 **session transcripts**, which are repo artifacts in no sense at all.
 
-**The repair path, for batch 3: at dispatch, the batch manifest links or embeds each frozen lane
-contract as a committed repo artifact.** Dispatch convenience stays in the prompts dir; the
+**Contract-as-file, without exception (`protocols/STANDING_RULINGS.md` Q6, ruled 2026-08-19/20)
+— at dispatch, the batch manifest links or embeds each frozen lane contract as a committed repo
+artifact.** Dispatch convenience stays in the prompts dir; the
 authoritative copy lands with the manifest — embedded in it, or committed beside it under a name
 derived from the ADR-101 class enum — and the manifest's lane rows point at it. That leaves the
 prompts dir as a *delivery channel* rather than a storage location, which is what a
 `<PROMPTS_DIR>` reference already implies.
+
+**Inline-with-a-dummy-filename is a forbidden dispatch form.** A dispatch line naming a file that
+was pasted rather than committed records a locator that resolves to nothing, which is the whole of
+what this rule closes. Q6 is the **unconditional** reading of `protocols/STANDING_RULINGS.md`
+I-D3, and it **retires the "repair path, for batch 3" scoping this paragraph carried until
+2026-08-21**: the rule is not staged to a batch and carries no conditional form. The two
+consequences below are unchanged — they are read as the standing shape rather than as one
+batch's repair.
 
 Two consequences, both drawn from batch-2 evidence rather than from design taste:
 
@@ -2169,6 +2249,52 @@ composed. The routing decisions that line carries (model, effort, and the dispat
 the subject of the section directly below; this section covers only how the line gets from the
 contract to a running session.
 
+### Cloud lanes — the receipt gate and the fresh-branch rule
+<!-- scope: meta -->
+
+A cloud lane is a dispatch that runs off this machine, on a branch under the `claude/<slug>` lane
+prefix. Everything above about contracts, decision budgets, commit-and-STOP and serial integration
+applies to it unchanged. Two rules apply *additionally*, and both exist for one reason: a remote
+lane's state is knowable only through what it reports back.
+
+**The receipt gate — a dispatch missing either half is not a dispatch that ran**
+(`protocols/STANDING_RULINGS.md` Q5). Every cloud dispatch carries a receipt with two parts,
+checked as a conjunction:
+
+- **the git source resolves non-empty** — the lane is attached to a real branch carrying real
+  content, rather than to a repo reference that quietly resolved to nothing; and
+- **the first assistant text is echoed back** — the session produced output, rather than accepting
+  a dispatch and dying before its first turn.
+
+Both parts, or the lane is treated as not having started and is re-dispatched. The conjunction is
+load-bearing because each half alone has a failure mode only the other catches: a non-empty source
+with no first text is a session that booted against real code and then died; a first text with an
+empty source is a session talking about nothing. Either half read alone reports a success the
+other refutes. The receipt is a **precondition** for treating a lane as live, checked at dispatch
+time — not a report written afterwards about a lane already assumed to be running.
+
+**Cloud lane hygiene — fresh off `origin/main`, foreign dirty files left as found**
+(`protocols/STANDING_RULINGS.md` Q4). A cloud lane branches from `origin/main` rather than from
+whatever state a container happened to inherit, so its base is a ref a successor can name and
+re-resolve. Files the lane did not author and its contract did not name are left exactly as found:
+a remote container can arrive carrying another actor's uncommitted work, and a lane that sweeps
+those into its own commit hands the integrator a diff whose authorship the tree no longer records.
+This is the batch protocol's file-disjointness rule, applied to a tree the lane did not provision.
+
+**Which substrate, stated so the choice is made rather than inherited.** A lane routes **local**
+when it wants the local gate mesh: a `last_reviewed`-stamped canonical file behind the freshness
+and TOC gates, a hook stack that has to fire, an interactive credential, or timing the operator is
+watching. A lane routes **cloud** when its footprint is read-only analysis, or a docs-only
+artifact no local-only gate governs. `.devcontainer/` ([#554]) is the provisioning half of the
+off-machine substrate; this paragraph is the routing half.
+
+**Honest limits, all three.** The receipt gate and the hygiene rule are prose, checked by the seat
+that dispatches and by nothing else. The ADR-110 exemption that grants an open batch its
+declared-integration-arc relief keys on a committed manifest and does **not** extend to a
+`claude/*` lane — a cloud lane's branch tips are anchored before the merge queue opens, rather
+than bypassed. And the transport a cloud dispatch travels on is recorded outside this repo, in
+`win-tooling`; this chapter states the gate a dispatch passes, not the client that carries it.
+
 ### Model + effort are stated at dispatch — the routing matrix
 <!-- scope: hybrid -->
 
@@ -2259,7 +2385,12 @@ with the matrix.
 **3 · How a batch is run.** "The batch protocol — ONE plan → N lanes → ONE integrator (ADR-110)"
 above: the five per-lane requirements, the integrator's refuse-to-finish checklist,
 JOURNAL-rides-the-branch as the anchoring law, the ≥2-commit integrator-branch shape, and the
-process-lane cap. `/lane-boot` boots one lane against it; `/lane-integrate` walks the close-out.
+process-lane cap. `/lane-boot` boots one lane against it; `/lane-integrate` walks the close-out. The sequence one
+lane travels — dispatch, execute, commit-and-STOP, harvest, teardown — is indexed at "The lane
+lifecycle — five legs, and where each one is ruled" above, which is also where the harvest leg's
+two rules live (push-before-delete; the integrator as gate-of-record for index freshness on lane
+material). A lane running off this machine adds two more — "Cloud lanes — the receipt gate and
+the fresh-branch rule" above.
 
 **4 · How completion is managed.** Four items, each at its own home:
 
