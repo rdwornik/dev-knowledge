@@ -244,3 +244,14 @@ fork to rule on, not a supersession.
 `docs/intake/README.md` §6 confirm-gate has not been cleared. Zero rows born; six proposed, one
 of which (R17) is deliberately the same build as [#36] R7 and must not be born twice. R12 is
 blocked on a ruling about `CLAUDE.md` §5 rule 7.
+
+**Prep pass, 2026-08-21 (batch-1 lane D).** Completeness pass run against
+`docs/intake/README.md` §2–§5 and `templates/intake-template.md`: **conformant, no fixes
+required.** All eight template sections present (Section C is the one added top-level
+section, per the lane-R contract of record); frontmatter on-schema — `note:` and `consumers:`
+are optional descriptive keys ratified at the [#398] deploy, and no companion field appears
+out of its status; naming conformant (`tech` infix, origin date). **Status deliberately
+untouched:** this doc carries an unruled fork of the same family (R12 — a `done_when.verify`
+predicate stored in `tasks/` here, against `CLAUDE.md` §5 rule 7's *no executable rules in
+this repo*), and it is held for the architect's R7 ADR-fork ruling. The fork options and their
+consequences are laid out for that ruling in the lane artifact `ARTIFACT-lane-rat.md`.
