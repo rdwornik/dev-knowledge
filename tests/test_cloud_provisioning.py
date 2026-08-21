@@ -211,6 +211,55 @@ def test_repair_is_idempotent_and_says_so(tmp_path: Path, origin: Path) -> None:
     assert second.actions == []
 
 
+def test_a_repair_on_an_already_sufficient_clone_touches_NOTHING(
+        tmp_path: Path, origin: Path) -> None:
+    """A reported no-op must actually be one (terra HIGH round 6, 2026-08-21).
+
+    An earlier version force-refreshed the remote-tracking refs on every repair run and
+    deliberately left that out of `actions` — so a clean second run wrote `FETCH_HEAD` and could
+    move `origin/<ref>` while reporting "no-op", which is a mutation hidden behind the very
+    idempotency claim C1 exists to make checkable. The currency check reads `ls-remote`, so an
+    accurate assessment needs no fetch at all.
+    """
+    clone = tmp_path / "already-fine"
+    _git(tmp_path, "clone", "-q", str(origin), str(clone))
+    _git(clone, "checkout", "-q", "-b", "worktree-lane-probe")
+    fetch_head = clone / ".git" / "FETCH_HEAD"
+    if fetch_head.exists():
+        fetch_head.unlink()
+    cfg = cp.load_config(_config(tmp_path)).history
+
+    report = cp.repair_history(clone, cfg)
+    assert report.ok, report.violations
+    assert report.actions == []
+    assert not fetch_head.exists(), "the 'no-op' repair fetched"
+
+
+def test_repair_updates_a_stale_ref_by_compare_and_swap_not_by_force_fetch(
+        tmp_path: Path, origin: Path) -> None:
+    """THE race guard (terra CRITICAL round 6, 2026-08-21).
+
+    A `+refs/heads/<ref>:refs/heads/<ref>` refspec writes whatever the remote holds AT FETCH TIME
+    straight over the local branch, so a force-push landing between the classification and the
+    fetch could discard local commits despite the divergence guard having just approved. The
+    repair now fetches into the tracking ref and moves the local one with
+    `git update-ref <ref> <new> <old>`, which refuses if the local ref changed underneath it.
+    """
+    clone = tmp_path / "cas"
+    _git(tmp_path, "clone", "-q", str(origin), str(clone))
+    _git(clone, "checkout", "-q", "-b", "worktree-lane-probe")
+    _git(clone, "update-ref", "refs/heads/main", "HEAD~2")
+    _commit(origin, "d")
+    cfg = cp.load_config(_config(tmp_path)).history
+
+    report = cp.repair_history(clone, cfg)
+    assert report.ok, report.violations
+    assert any(a.startswith("git update-ref refs/heads/main") for a in report.actions), \
+        report.actions
+    assert not any("+refs/heads/main:refs/heads/main" in a for a in report.actions)
+    assert report.refs["main"] == 4
+
+
 def test_repair_of_a_shallow_clone_deepens_it(tmp_path: Path, origin: Path) -> None:
     clone = tmp_path / "deepen"
     _git(tmp_path, "clone", "-q", "--depth", "1", "file://" + str(origin).replace("\\", "/"), str(clone))
@@ -790,6 +839,19 @@ def test_prebuild_null_availability_is_indeterminate_whatever_is_declared(
 # --- the shipped devcontainer surface ------------------------------------------------------
 
 
+def _bash_function(text: str, name: str) -> str:
+    """The body of one bash function, bounded at its closing brace.
+
+    Splitting on `f"{name}() {{"` and taking the tail reaches the END OF THE FILE, so an
+    assertion about one function was silently satisfiable by any later one — the C1 test counted
+    `CHANGED` increments from functions it was not looking at (terra HIGH round 6, 2026-08-21).
+    Bash formatting here is uniform: a top-level function closes with `}` at column 0.
+    """
+    after = text.split(f"{name}() {{", 1)[1]
+    end = after.index("\n}")
+    return after[:end]
+
+
 def _uncommented(text: str, marker: str) -> str:
     """`text` with whole-line comments dropped.
 
@@ -984,7 +1046,7 @@ def test_the_gate_never_syncs_the_environment_it_is_asserting() -> None:
         (cp.REPO_ROOT / ".devcontainer" / "provision.sh").read_text(encoding="utf-8"), "#")
     assert "uv run --locked" not in code
     assert code.count("uv run ") == code.count("uv run --no-sync ")
-    gate_body = code.split("gate() {", 1)[1]
+    gate_body = _bash_function(code, "gate")
     assert "uv sync --locked --group analytics --check" in gate_body
     assert gate_body.index("uv sync --locked --group analytics --check") < \
            gate_body.index("uv run --no-sync")
@@ -994,10 +1056,10 @@ def test_environment_repairs_are_counted_by_c1() -> None:
     """A container that rebuilt a missing `.venv` still printed "nothing changed"."""
     code = _uncommented(
         (cp.REPO_ROOT / ".devcontainer" / "provision.sh").read_text(encoding="utf-8"), "#")
-    body = code.split("sync_environment() {", 1)[1]
+    body = _bash_function(code, "sync_environment")
     assert "uv python find" in body
     assert "uv sync --locked --group analytics --check" in body
-    assert body.count("CHANGED=$((CHANGED + 1))") >= 2
+    assert body.count("CHANGED=$((CHANGED + 1))") == 2
 
 
 def test_provision_sh_asks_before_repairing_so_c1_accounting_stays_honest() -> None:
@@ -1018,7 +1080,7 @@ def test_provision_sh_asks_before_repairing_so_c1_accounting_stays_honest() -> N
 def test_provision_sh_runs_the_history_repair_before_arming_hooks() -> None:
     """B1's ordering claim is checkable, so it is checked rather than asserted in prose."""
     text = (cp.REPO_ROOT / ".devcontainer" / "provision.sh").read_text(encoding="utf-8")
-    body = _uncommented(text.split("main() {", 1)[1], "#")
+    body = _uncommented(_bash_function(text, "main"), "#")
     calls = [ln.strip() for ln in body.splitlines() if ln.strip().startswith("leg")
              or ln.strip() in ("sync_environment", "smoke_gate_liveness", "write_stamp")]
     # The FULL sequence, not just the two new legs (terra HIGH round 3, 2026-08-21): the earlier

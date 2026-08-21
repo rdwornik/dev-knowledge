@@ -451,14 +451,11 @@ def repair_history(root: Path, cfg: HistoryConfig) -> HistoryReport:
         raise ProvisioningError(
             "no `origin` remote - a clone missing history cannot be repaired here")
 
-    # Keep the remote-tracking refs usable for the LANE (a `git log origin/main` in the container
-    # should not lie). Explicitly NOT load-bearing for anything this guard decides: the currency
-    # check reads `ls-remote`, so a failure here cannot make a stale clone look current. Its
-    # return code is therefore ignored on purpose, and it is not recorded in `actions` — it is a
-    # convenience refresh, and counting it would make every run look like it changed something.
-    for ref in cfg.required_refs:
-        _git(root, "fetch", "origin", f"+refs/heads/{ref}:refs/remotes/origin/{ref}", "--quiet")
-
+    # ASSESS BEFORE TOUCHING ANYTHING. The currency check reads `ls-remote`, so the assessment is
+    # accurate with no fetch at all — which means a clean clone can be answered without mutating
+    # git metadata. An earlier version refreshed the tracking refs unconditionally and then
+    # reported "no-op", which is a mutation hidden behind an idempotency claim (terra HIGH round
+    # 6, 2026-08-21). Nothing below this line runs on a clone that is already sufficient.
     report = assess_history(root, cfg)
     if report.ok and not report.uncompared:
         return report
@@ -487,13 +484,22 @@ def repair_history(root: Path, cfg: HistoryConfig) -> HistoryReport:
             if status == REF_CURRENT:
                 continue
             if status == REF_TIP_ABSENT:
-                # The refresh above should have brought the tip in. That it did not means the
-                # fetch could not act — a write failure, a disk error, a broken object store.
-                # That is a COULD-NOT-LOOK, and returning a violation instead would assert
-                # observed drift from an inability to fetch (terra HIGH round 5, 2026-08-21).
-                raise ProvisioningError(
-                    f"the tip of origin/{ref} ({remote_sha[:9]}) is still not present locally "
-                    f"after a refresh - this clone cannot be classified or repaired here")
+                # Bring the tip into the object store, then let the code below reclassify against
+                # what actually arrived. Only a fetch that CANNOT act is a could-not-look, and
+                # returning a violation for one would assert observed drift from an inability to
+                # fetch (terra HIGH round 5, 2026-08-21).
+                fr = _git(root, "fetch", "origin",
+                          f"+refs/heads/{ref}:refs/remotes/origin/{ref}", "--quiet")
+                if fr.returncode != 0 or not object_exists(root, remote_sha):
+                    raise ProvisioningError(
+                        f"the tip of origin/{ref} ({remote_sha[:9]}) could not be fetched into "
+                        f"this clone ({fr.stderr.strip() or 'object still absent'}) - it cannot "
+                        f"be classified or repaired here")
+                report.actions.append(
+                    f"git fetch origin +refs/heads/{ref}:refs/remotes/origin/{ref}")
+                status = ref_status(root, ref, remote_sha)
+                if status == REF_CURRENT:
+                    continue
             if status == REF_OFF_SPINE:
                 # Refuse, do not repair: forcing the ref would discard whatever path the local
                 # branch reached the remote tip through. assess_history reports the violation.
@@ -517,17 +523,40 @@ def repair_history(root: Path, cfg: HistoryConfig) -> HistoryReport:
             continue
         LOG.info("history: ref %r is %s - fetching it from origin", ref,
                  "absent" if not present else "behind origin")
-        # `+` forces the update, which is what makes this repair a STALE-ref fix and not only a
-        # missing-ref fix. Safe here by construction: the ref is not the checked-out branch.
-        r = _git(root, "fetch", "origin", f"+refs/heads/{ref}:refs/heads/{ref}", "--quiet")
-        if r.returncode == 0:
-            report.actions.append(f"git fetch origin +refs/heads/{ref}:refs/heads/{ref}")
+        # FETCH INTO THE TRACKING REF, THEN COMPARE-AND-SWAP THE LOCAL ONE (terra CRITICAL round
+        # 6, 2026-08-21). A `+refs/heads/<ref>:refs/heads/<ref>` refspec writes whatever the
+        # remote holds AT FETCH TIME straight over the local branch — so a force-push landing
+        # between the classification above and the fetch could discard local commits despite the
+        # divergence guard having just approved the update. Splitting the two lets the arriving
+        # commit be re-classified before anything local moves, and `git update-ref <ref> <new>
+        # <old>` then refuses if the local ref changed underneath us.
+        before = _git(root, "rev-parse", "--verify", "--quiet", f"refs/heads/{ref}")
+        old_sha = before.stdout.strip() if before.returncode == 0 else ""
+        fr = _git(root, "fetch", "origin",
+                  f"+refs/heads/{ref}:refs/remotes/origin/{ref}", "--quiet")
+        if fr.returncode != 0:
+            # `ls-remote` said the branch exists and the fetch still failed: an action the guard
+            # could not perform, never a statement about the branch.
+            raise ProvisioningError(
+                f"`git fetch origin refs/heads/{ref}` failed even though origin reports the "
+                f"branch exists: {fr.stderr.strip()}")
+        arrived = remote_ref(root, ref)
+        if arrived is None:
+            raise ProvisioningError(
+                f"fetched origin/{ref} but the tracking ref did not materialise - cannot repair")
+        # Re-classify against WHAT ARRIVED, not against what `ls-remote` reported earlier.
+        if old_sha and ref_status(root, ref, arrived) not in (REF_BEHIND, REF_CURRENT):
+            LOG.error("history: origin/%s moved to %s between the check and the fetch, and the "
+                      "local ref is no longer safely fast-forwardable - refusing to update it",
+                      ref, arrived[:9])
             continue
-        # Reaching here means `ls-remote` said the branch EXISTS and the fetch still failed, so
-        # this is an action the guard could not perform — never a statement about the branch.
-        raise ProvisioningError(
-            f"`git fetch origin +refs/heads/{ref}:refs/heads/{ref}` failed even though origin "
-            f"reports the branch exists: {r.stderr.strip()}")
+        ur = _git(root, "update-ref", f"refs/heads/{ref}", arrived, old_sha)
+        if ur.returncode != 0:
+            raise ProvisioningError(
+                f"`git update-ref refs/heads/{ref} {arrived[:9]} {old_sha[:9] or '(create)'}` "
+                f"failed - the local ref changed underneath this repair: {ur.stderr.strip()}")
+        report.actions.append(
+            f"git update-ref refs/heads/{ref} {arrived[:9]} (was {old_sha[:9] or 'absent'})")
 
     final = assess_history(root, cfg)
     final.actions = report.actions
