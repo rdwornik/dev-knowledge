@@ -580,6 +580,37 @@ def test_a_git_failure_is_never_reported_as_a_missing_ref_or_a_short_spine(
         cp._git = real_git
 
 
+def test_a_fatal_object_store_error_is_exit_2_and_mutates_nothing(
+        tmp_path: Path, origin: Path) -> None:
+    """A corrupt object store is not "the tip was never fetched" (terra HIGH round 9).
+
+    `object_exists` folded every non-zero `cat-file` into False, so a fatal failure read as a
+    missing remote tip — reported as drift on the read-only path, and ACTED ON with a fetch on
+    the repair path. Only exit 1 (explicitly absent) may answer False.
+    """
+    clone = tmp_path / "bad-objects"
+    _git(tmp_path, "clone", "-q", str(origin), str(clone))
+    _git(clone, "checkout", "-q", "-b", "worktree-lane-probe")
+    path = _config(tmp_path)
+    real_git = cp._git
+    seen: list[tuple[str, ...]] = []
+
+    def _fatal_cat_file(root: Path, *args: str) -> subprocess.CompletedProcess:
+        seen.append(args)
+        if args[:2] == ("cat-file", "-e"):
+            return subprocess.CompletedProcess(args, 128, "", "fatal: unable to read object")
+        return real_git(root, *args)
+
+    cp._git = _fatal_cat_file
+    try:
+        assert cp.main(["--root", str(clone), "--config", str(path),
+                        "history", "--repair"]) == cp.EXIT_UNAVAILABLE
+    finally:
+        cp._git = real_git
+
+    assert not any(a and a[0] in ("fetch", "update-ref") for a in seen), seen
+
+
 def test_an_unreachable_origin_is_exit_2_not_a_missing_branch(
         tmp_path: Path, origin: Path) -> None:
     """A transport failure is could-not-look; only `ls-remote` saying so means "no such branch".

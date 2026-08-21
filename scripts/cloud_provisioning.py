@@ -297,7 +297,33 @@ REF_OFF_SPINE = "off-spine"
 
 
 def object_exists(root: Path, sha: str) -> bool:
-    return _git(root, "cat-file", "-e", f"{sha}^{{commit}}").returncode == 0
+    """Whether `sha` is a commit in this clone's object store.
+
+    Only an explicitly ABSENT object answers False. The round-8 fix reached `ref_resolves` and
+    `spine_length` but not here, so a corrupt or unreadable object store still read as "the
+    remote tip was never fetched" — which the read-only path reports as drift (exit 1) and the
+    repair path acts on by fetching (terra HIGH round 9, 2026-08-21).
+    """
+    # The BARE sha, not `<sha>^{commit}`. Measured 2026-08-21: the peeled form exits 128 for a
+    # missing object AND for a wrong-type one, collapsing "absent" into the same code as a fatal
+    # error — which is the very distinction this function has to make. The bare form is cleanly
+    # two-valued: 0 present, 1 absent.
+    r = _git(root, "cat-file", "-e", sha)
+    if r.returncode == 1:
+        return False
+    if r.returncode != 0:
+        raise ProvisioningError(
+            f"`git cat-file -e {sha[:9]}` failed (exit {r.returncode}): {r.stderr.strip()} - the "
+            f"object store could not answer, which is not the same as the object being absent")
+    kind = _git(root, "cat-file", "-t", sha)
+    if kind.returncode != 0:
+        raise ProvisioningError(
+            f"`git cat-file -t {sha[:9]}` failed: {kind.stderr.strip()}")
+    if kind.stdout.strip() != "commit":
+        raise ProvisioningError(
+            f"origin's tip {sha[:9]} is a {kind.stdout.strip()}, not a commit - no ancestry "
+            f"question can be asked of it")
+    return True
 
 
 def _on_first_parent_chain(root: Path, rev: str, sha: str) -> bool:
