@@ -19,6 +19,162 @@
 
 ---
 
+### 2026-08-21 (f) — CC (Opus 5, integrator, branch `docs/batch1-integration-2026-08-21`): the library-first research memo lands with its dispatch-stamped contract
+
+**Did:** Merged `docs/library-first-research-2026-08-21` into main at `--no-ff`. The branch carries
+two commits: `700e6776` dispatch-stamps the lane contract, and `99aef326` lands the research itself
+across the four scaling surfaces. Both files land under `docs/audits/` already conformant to the
+ADR-101 Rule-B name grammar, so this arc owed the integrator no relocation.
+
+**Result:** The contract was committed *at dispatch* rather than reconstructed afterwards — this is
+the only lane in batch 1 that satisfied Ch8's Q6 on its own, and it did so without being asked to.
+`docs/audits/2026-08-21-technical-library-first-research-lane-contract.md` is the worked example the
+other five lanes are measured against below.
+
+**Changes:** `docs/audits/2026-08-21-technical-library-first-research.md` (820 lines, new);
+`docs/audits/2026-08-21-technical-library-first-research-lane-contract.md` (103 lines, new).
+
+**Abandoned:** Nothing.
+
+**Next:** The research feeds the felt-speed mandate; no row is born by this entry.
+
+---
+
+### 2026-08-21 (e) — CC (Opus 5, integrator, branch `docs/batch1-integration-2026-08-21`): the North Star position report lands, with its own two corrections
+
+**Did:** Merged `worktree-north-star-position-2026-08-21` into main at `--no-ff`. Two commits:
+`30f09e7e` lands the position report — measured ladder, artifact inventory, intake funnel — and
+`2c65012b` corrects two claims the report made about itself. The branch also carries the only
+`docs/audits/README.md` index edit in this batch that arrived pre-made rather than regenerated.
+
+**Result:** The report is the measured baseline the batch is read against. Recording the second
+commit matters more than the first: the lane found two of its own claims wrong and fixed them in the
+tree rather than in a footnote, which is the behaviour the position report is itself arguing for.
+
+**Changes:** `docs/audits/2026-08-21-technical-north-star-position.md` (511 lines, new);
+`docs/audits/README.md` (index row).
+
+**Abandoned:** Nothing.
+
+**Next:** Feeds the A4 report's status-vs-three-demands section.
+
+---
+
+### 2026-08-21 (d) — CC (Opus 5, integrator, branch `docs/batch1-integration-2026-08-21`): LANE-TEL lands the telemetry chain, and hands two P1s forward rather than burying them
+
+**Did:** Merged `worktree-lane-tel-run-id` into main at `--no-ff`, eight commits:
+`9bf6f7fd` (`[#565]` run_id correlates every stage-1 event of one gate invocation), `8e22babf` and
+`f1132a83` (`[#529]` legs 3-4 — structlog RULED OUT on measurement, repo root resolved at call
+time per R6(c)), `472eca5a` and `251c34e0` (`[#530]` both races reproduced RED test-first, then
+closed by CAS-ing the delete on a run_id-bearing lock object), `a38edf01` (terra P1 sweep, 12
+findings closed across 11 review passes), `1692ff6c` (de-flake the migration-race case), `79fc8077`
+(artifact commit list filled with real SHAs).
+
+**Result: 15 terra P1s — 12 FIXED, 2 REPORTED, 1 ESCALATED, and the split was put to the operator at
+the merge gate rather than resolved silently by the lane.** The two carried forward are named here
+so they cannot be discovered later. (1) The lane workflow does not transport the claim token:
+`/lane-boot` discards `claim`'s stdout, so the guarded release is unavailable to that flow and the
+operator's remaining path is the raw delete. Mitigated as far as the module can reach — `inspect`
+now prints the guarded release first and labels the raw delete an ESCAPE — but editing the command
+files is dispatcher-surface work this lane's contract forbids. (2) **ESCALATED, needs the
+architect:** R6(c) names `git rev-parse --show-toplevel`, which in a linked worktree returns *that
+worktree*, so each lane writes its own `logs/TELEMETRY.db` and teardown deletes it. Terra argued
+twice that this preserves a data-loss defect and is factually right; the lane implemented what R6(c)
+rules and did **not** silently substitute `--git-common-dir`, on the stated grounds that
+re-interpreting a ruling on a reviewer's say-so is how a ruling stops being checkable.
+
+**Changes:** `scripts/single_flight.py`, `scripts/telemetry_emit.py`;
+`tests/test_single_flight_races.py`, `tests/test_telemetry_run_id.py` (new, 928 lines);
+`tests/test_single_flight.py`, `tests/test_telemetry_emit.py`, `tests/test_telemetry_wiring.py`.
+
+**Abandoned:** `structlog` — ruled out on measurement, not on taste (`f1132a83`).
+
+**Next:** Item (2) goes to the architect in part C. Item (1), and item (3) — the store leg is 98.5%
+of an emit at 16.4 ms/event, and 8 concurrent writers hit `database is locked` which `safe_emit`
+swallows **silently** — are PENDING-FILING in the A4 report, not filed by this seat.
+
+---
+
+### 2026-08-21 (c) — CC (Opus 5, integrator, branch `docs/batch1-integration-2026-08-21`): LANE-ARCH reports zero eligible ADRs and STOPS the audits leg on governance
+
+**Did:** Merged `worktree-lane-arch-adr-audits` into main at `--no-ff`. Two commits: `99f80e88`
+lands the lifecycle-archival report, and `6f383f10` makes the inbound-scan evidence reproducible
+without the scratch script that produced it.
+
+**Result: the headline is a negative, and the negative is the finding.** 0 of 86 ADRs are eligible
+for archival on either half of the bar — none carries a terminal status, and none has zero inbound
+references. The audits leg was **STOPPED rather than executed**: the class has a convention
+(ADR-100 §1) whose content is *do not move*, so a `PROPOSED-PATH` for `docs/audits/archive/` is
+recorded as **BLOCKED**, unblockable except via §3's two preconditions. The lane declined to grade
+eligibility it had no authority to act on. `6f383f10` is the more durable of the two commits:
+evidence that only reproduces under a since-deleted scratch script is not evidence.
+
+**Changes:** `ARTIFACT-lane-arch.md` (395 lines, new — relocated to
+`docs/audits/2026-08-21-technical-lane-arch-lifecycle-archival.md` in this same arc).
+
+**Abandoned:** The audits archival leg, deliberately and with the governing convention quoted.
+
+**Next:** The archival demand's status is *ruled-blocked*, which is what the A4 report states.
+
+---
+
+### 2026-08-21 (b) — CC (Opus 5, integrator, branch `docs/batch1-integration-2026-08-21`): LANE-554 lands the cloud provisioning guard after twelve terra rounds
+
+**Did:** Merged `worktree-lane-554-cloud-provisioning` into main at `--no-ff`, nineteen commits:
+`c12d94ae` (artifact stub, written before any leg ran), `37bcfb5d`, `ebd96b6d`, `b6ffccaf`,
+`ac71136d`, `4fbeccc1` (the guard itself — history sufficiency B1, ecosystem registration L5,
+prebuild drift A3), then twelve terra rounds `6c936929`, `5b1c2fb1`, `fdb2eadc`, `0e4c665c`,
+`40701b08`, `b325c663`, `ee7c96ab`, `10f28ba6`, `78d1b988`, `46cb8c04`, `da7d01aa`, `19e7565a`,
+closing with `87b27a29` (the final artifact — legs, measurements, tally, honest limits).
+
+**Result: 39 findings, 39 fixed — 4 Critical and 34 High — and round 12 was the first clean pass.**
+Three of the four Criticals were in code this lane wrote, which is the part worth recording: the
+guard that exists to refuse a bad provision was itself repeatedly getting provisioning wrong. The
+lane stopped when terra stopped finding new defects, not at a round count.
+
+**Changes:** `scripts/cloud_provisioning.py` (1010 lines, new);
+`tests/test_cloud_provisioning.py` (1397 lines, new); `.devcontainer/provisioning.yaml` (new);
+`.devcontainer/devcontainer.json`, `.devcontainer/provision.sh`.
+
+**Abandoned:** Nothing — no leg was dropped; A3's prebuild half is operator-owned by construction.
+
+**Next:** **§4.1 names one step this lane cannot take: enabling the prebuild is an operator UI
+action.** The warm-start measurements in §2.1 feed the felt-speed line of the A4 report.
+
+---
+
+### 2026-08-21 (a) — CC (Opus 5, integrator, branch `docs/batch1-integration-2026-08-21`): LANE-539 puts the dispatch system in Ch8, and the generator is the guarantee
+
+**Did:** Merged `worktree-lane-539-ch8-codification` into main at `--no-ff`, five commits:
+`d14ef21a` (UNDERSTAND artifact — the gap measured rather than inherited), `4d974f0b` (the five §Q
+rulings land in Ch8), `3396da75` (`scripts/gen_lane_contract.py` — the generator as the guarantee,
+70 tests), `7a3c10e5` (terra review, 9 findings, all 9 fixed), `88e944d6` (end-of-lane packet).
+
+**Result: Q6 is now unconditional — the frozen lane contract is a committed repo artifact at
+dispatch time, with no staged-to-a-batch reading left.** The generator exists so the rule is
+*checkable* rather than merely stated: it delegates lane-name grammar to
+`validate_branch_naming.validate_lane_worktree_name` rather than re-implementing it, so it cannot
+disagree with `/lane-boot` about what a lane name is. Terra: Critical 0, High 7, Medium 2, all 9
+fixed.
+
+**The lane recorded that its own dispatch did not satisfy the rule it was landing** — `[#539]`'s
+frozen contract lived in `~/Downloads`, uncommitted. That is honest reporting of exactly the failure
+Q6 closes, and this integration arc is where it gets repaired: the batch-1 contracts of record are
+committed in this same branch.
+
+**Changes:** `protocols/PLAYBOOK.md` (Ch8); `scripts/gen_lane_contract.py` (576 lines, new);
+`tests/test_gen_lane_contract.py` (343 lines, new); `ARTIFACT-lane-539.md` (relocated to
+`docs/audits/2026-08-21-technical-ch8-dispatch-codification.md` in this arc).
+
+**Abandoned:** The proposed `lane-contract-check` pre-commit entry was NOT applied by the lane —
+its contract reserves `.pre-commit-config.yaml` to the integrator. It is applied in this arc.
+
+**Next:** Two declared divergences go to the architect: the effort enum has two live definitions
+(`max` in the contract vs the closed four in Ch8 + `Invoke-Dispatch.ps1`), and Q2/Q10 are each owed
+a one-line Ch8 pointer whose deferral trigger was *this lane landing*.
+
+---
+
 ### 2026-08-20 (k) — CC (Opus 5, handoff seat, branch `docs/handoff-2026-08-20-architect-2`): the supplement folds, and it hands forward one claim the repo refutes
 
 **Did:** The operator filled `SUPPLEMENT.md` from the outgoing architect chat and said `supplement
