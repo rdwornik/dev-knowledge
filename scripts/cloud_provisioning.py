@@ -715,11 +715,20 @@ def seed_self_registration(root: Path, name: str) -> str:
         raise ProvisioningError(
             f"ecosystem.self_name is {name!r}, which is not a single directory component - a "
             f"registration name may not carry a path")
+    # The boundary is anchored to the RESOLVED ROOT, not to the resolved `ecosystem` directory
+    # (terra HIGH round 11, 2026-08-21). Resolving `root/ecosystem` first would make a symlink's
+    # external target the trusted boundary — the check then passes while the write lands outside
+    # the checkout entirely, which is exactly what the round-10 fix was for.
+    expected_eco = root.resolve() / "ecosystem"
     eco_dir = (root / "ecosystem").resolve()
-    destination = (eco_dir / name / "state.yaml").resolve()
-    if eco_dir not in destination.parents:
+    if eco_dir != expected_eco:
         raise ProvisioningError(
-            f"{destination} resolves outside {eco_dir} - refusing to write there")
+            f"{root / 'ecosystem'} resolves to {eco_dir}, outside the checkout at "
+            f"{root.resolve()} - refusing to write through it")
+    destination = (eco_dir / name / "state.yaml")
+    if expected_eco not in destination.resolve().parents:
+        raise ProvisioningError(
+            f"{destination} resolves outside {expected_eco} - refusing to write there")
 
     scripts_dir = str(root / "scripts")
     if scripts_dir not in sys.path:

@@ -875,6 +875,28 @@ def test_seed_self_registration_refuses_a_name_that_is_not_a_directory_component
     assert not (tmp_path.parent / "escape").exists()
 
 
+def test_a_symlinked_ecosystem_directory_does_not_move_the_write_boundary(
+        tmp_path: Path) -> None:
+    """The boundary is the resolved ROOT, not the resolved ecosystem dir (terra HIGH round 11).
+
+    Resolving `root/ecosystem` first makes a symlink's external target the trusted boundary, so
+    the containment check passes while the write lands outside the checkout entirely — the round
+    -10 traversal fix, defeated by one symlink.
+    """
+    root = tmp_path / "checkout"
+    (root / "scripts").mkdir(parents=True)
+    outside = tmp_path / "somewhere-else"
+    outside.mkdir()
+    try:
+        (root / "ecosystem").symlink_to(outside, target_is_directory=True)
+    except (OSError, NotImplementedError):
+        pytest.skip("this platform/user cannot create symlinks")
+
+    with pytest.raises(cp.ProvisioningError, match="outside the checkout"):
+        cp.seed_self_registration(root, ".dev-knowledge")
+    assert not any(outside.iterdir()), sorted(p.name for p in outside.iterdir())
+
+
 def test_an_unreadable_state_file_is_exit_2_and_is_never_overwritten(
         tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Unreadable is not malformed (terra HIGH round 10, 2026-08-21).
