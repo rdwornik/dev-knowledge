@@ -19,6 +19,54 @@
 
 ---
 
+### 2026-08-21 (g) — CC (Opus 5, integrator, branch `docs/batch1-integration-2026-08-21`): batch 1 consolidates, and the contracts of record stop living in Downloads
+
+**Did:** The relocation+consolidation pass after the six-merge queue, three commits: `e00a6dcf`
+(the six anchor entries (a)–(f) above), `26dd32a1` (relocation + the cloud four + the contracts of
+record + one index regeneration), `1f0067fb` (`lane-contract-check` wired, plus the Ch8 cutover
+line). The commit order was forced rather than chosen: `audit-health` runs `journal_spine_anchor`
+at pre-commit, so until the anchors landed no other commit in this pass could pass the gate.
+
+**Result: the batch-1 contracts of record are in the tree, which is what Q6 asks for and what
+batch 1 itself did not do.** Ten frozen contracts moved out of the operator's `~/Downloads` to the
+home Ch8 names — *"the authoritative copy lands with the manifest … or committed beside it under a
+name derived from the ADR-101 class enum"*. Four root `ARTIFACT-*.md` files that had ridden in
+under declared `SKIP=validate-hermetization` bypasses now have Rule-B conformant homes, so the
+refusal class disappears rather than being suppressed. The four cloud artifacts landed too: R1 and
+R4 were already conformant, R2 and R3 took class `fresh-eyes` to match R1, since R3's own title
+word *conformance* is not in the ADR-101 enum and so could not name itself.
+
+**A gate found a real fork, and the architect ruled it the same session.** Wiring `[#539]`'s
+proposed `lane-contract-check` at the contract-of-record home was tested before being applied and
+**refused all eleven live contracts** — including `library-first-research-lane-contract.md`, the
+one contract in the batch that satisfied Q6 at dispatch without being asked. The generator was not
+at fault: an emitted probe checks `rc=0` with six sections. The hand-authored corpus is simply a
+different object — one heading and prose. The ruling: the generator's six-section shape is
+authoritative from batch 2 onward; the eleven batch-1 contracts are **never** retro-fitted, because
+editing a contract after its batch executed would falsify the record of what was actually
+dispatched; the hook is scoped to the generator's emitted name shape `LANE-<slug>.md` so it gates
+the future and ignores the record. Zero tracked files match the glob, so the gate **arms clean
+rather than arming red**.
+
+**Changes:** `JOURNAL.md` (seven entries); `docs/audits/` (+14 files, 4 renames, index regenerated
+once); `.pre-commit-config.yaml` (`lane-contract-check`); `protocols/PLAYBOOK.md` (Ch8 cutover);
+`ecosystem/organ-index.md` (the new organ registered — the freshness gate refused the first commit
+attempt until it was, which is the gate working).
+
+**Abandoned:** Three of the four proposed diffs the integrator brief anticipated. 554 and tel each
+state *"none owed"* in their artifacts, and tel verified the `.gitignore` WAL entry had already
+landed at `6a873e7a` as a glob covering `-wal`/`-shm`. Inventing the other three would have been
+work with no source.
+
+**Next:** **PENDING-FILING, not filed by this seat** — batch 1 dispatched with **no committed batch
+manifest**, so this integrator reconstructed the merge queue from the operator's brief rather than
+from a repo artifact. That is precisely the failure Q6 and the batch-manifest rule exist to close,
+and it recurred in the batch that landed the rule. It is a row-birth, so it goes to the architect's
+ledger check rather than being filed here. Also pending: tel's carried items (1) and (3), and the
+`[#539]` effort-enum divergence.
+
+---
+
 ### 2026-08-21 (f) — CC (Opus 5, integrator, branch `docs/batch1-integration-2026-08-21`): the library-first research memo lands with its dispatch-stamped contract
 
 **Did:** Merged `docs/library-first-research-2026-08-21` into main at `--no-ff`. The branch carries
