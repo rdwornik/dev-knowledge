@@ -218,7 +218,7 @@ vacuous** — but the grep is shown rather than asserted, because the reference 
 measurement the ADR leg turns on:
 
 ```
-$ python temp/inbound_scan.py        # read-only; counts ADR-NN mentions corpus-wide
+$ python temp/inbound_scan.py        # read-only; transient scratch, REMOVED per CLAUDE.md §5 rule 9
 live ADR files scanned: 86
 ZERO-INBOUND: 0
 LOW-INBOUND (<=5 mentions): 0
@@ -231,6 +231,11 @@ $ grep -rn "audits/archive" --include=*.md --include=*.py --include=*.yaml .
 
 No index was regenerated (`docs/audits/README.md` is the integrator's, once — per contract).
 `docs/decisions/README.md` was not edited: its ledger annotates *archived* rows, and no row changed class.
+
+**The scan is reproducible without the deleted script**, which is why its predicate is stated rather than
+only its output: for each of the 86 `docs/decisions/ADR-*.md`, count `re.findall(r"ADR[-_ ]0*<N>")`
+across every `.md/.py/.yaml/.yml/.json/.toml/.txt/.html/.ps1` file in the tree (excluding `.git/`, venvs,
+caches, `temp/`), skipping the ADR's own file. Zero-inbound ⇒ 0; minimum observed ⇒ 6.
 
 ---
 
