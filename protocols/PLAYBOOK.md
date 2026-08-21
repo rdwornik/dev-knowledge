@@ -2008,14 +2008,12 @@ own, having had no home until now.
    below. The routing — "Model + effort are stated at dispatch" below. Visibility — "Dispatch
    visibility" below, whose consequence is that a lane is dispatched by the operator rather than
    spawned from a session, a spawned session having no Agent View row of its own.
-2. **Execute under the frozen contract.** The five per-lane requirements are the batch protocol's,
-   directly above: a frozen contract, a V-2 decision budget, `uv run --locked` on every test
-   invocation, commit-and-STOP with an empty `git stash list`, and a worktree name paired 1:1 with
-   its contract file.
-3. **Commit-and-STOP.** The lane hands back a branch and stops. It does not merge, and it does not
-   write the JOURNAL entry — that is the integrator's surface
-   (`protocols/STANDING_RULINGS.md` P-1). The law that makes the ordering structural rather than
-   stylistic is "JOURNAL-rides-the-branch", directly above.
+2. **Execute under the frozen contract.** Under the batch protocol's five per-lane
+   requirements, enumerated directly above and not re-listed here.
+3. **Commit-and-STOP.** The lane hands back a branch and stops — requirement 4 above, and the
+   integrator's own two surfaces: "Integrate from the primary" and "JOURNAL-rides-the-branch",
+   the second of which is why a lane's arc leaves the JOURNAL to the integrator
+   (`protocols/STANDING_RULINGS.md` P-1).
 4. **Harvest.** The leg below — the only one of the five with no prior home in this chapter.
 5. **Teardown.** The three-command round-trip plus the no-leftovers verification, at "4 —
    Integration & ephemeral teardown" above; its batch-scale form is `git worktree list` == primary
@@ -2159,10 +2157,13 @@ Two consequences, both drawn from batch-2 evidence rather than from design taste
   the contract itself. `validate-hermetization` sees it, rather than a lane discovering the
   refusal after boot.
 
-**Honest limit, stated so this is not read as done.** This is a documented path, not a mechanism:
-nothing checks that a manifest's lane rows resolve to committed contracts, and [#505] clause 1
-stays falsified until a batch actually runs that way. The batch-3 manifest is the first artifact
-that can satisfy it.
+**Honest limit, stated so this is not read as done.** This is a documented path, not a
+mechanism: nothing checks that a manifest's lane rows resolve to committed contracts, so the
+property [#505] clause 1 names — a fresh seat running a full batch from repo artifacts alone — is
+carried by the authoring seat rather than by a gate, and is re-established or lost batch by batch.
+The sentence that used to stand here pointed at the batch-3 manifest as "the first artifact that
+can satisfy it"; it is removed with the batch-3 scoping the amendment above retires, since a rule
+with no conditional form has no first batch either.
 
 ### The dispatch surface is `dispatch <file>` — the contract file is the source ([#509] v2)
 <!-- scope: hybrid -->
@@ -2254,39 +2255,49 @@ contract to a running session.
 
 A cloud lane is a dispatch that runs off this machine, on a branch under the `claude/<slug>` lane
 prefix. Everything above about contracts, decision budgets, commit-and-STOP and serial integration
-applies to it unchanged. Two rules apply *additionally*, and both exist for one reason: a remote
-lane's state is knowable only through what it reports back.
+applies to it unchanged. Two *rules* apply additionally — the two below — and both exist for one
+reason: a remote lane's state is knowable only through what it reports back. A third question,
+which lanes are cloud lanes at all, is recorded at the end of this section as owed rather than
+answered.
 
-**The receipt gate — a dispatch missing either half is not a dispatch that ran**
-(`protocols/STANDING_RULINGS.md` Q5). Every cloud dispatch carries a receipt with two parts,
-checked as a conjunction:
+**The receipt gate — two parts, checked as a conjunction**
+(`protocols/STANDING_RULINGS.md` Q5). Every cloud dispatch carries one:
 
 - **the git source resolves non-empty** — the lane is attached to a real branch carrying real
   content, rather than to a repo reference that quietly resolved to nothing; and
 - **the first assistant text is echoed back** — the session produced output, rather than accepting
   a dispatch and dying before its first turn.
 
-Both parts, or the lane is treated as not having started and is re-dispatched. The conjunction is
-load-bearing because each half alone has a failure mode only the other catches: a non-empty source
-with no first text is a session that booted against real code and then died; a first text with an
-empty source is a session talking about nothing. Either half read alone reports a success the
-other refutes. The receipt is a **precondition** for treating a lane as live, checked at dispatch
-time — not a report written afterwards about a lane already assumed to be running.
+**A dispatch without both is not a dispatch that ran** — Q5's own consequence, in its own
+words. What follows from that is the dispatching seat's, and the register leaves it there rather
+than prescribing it.
+
+*Why the conjunction, and this is reading rather than ruling.* Each half alone has a failure mode
+only the other catches: a non-empty source with no first text is a session that booted against
+real code and then died; a first text with an empty source is a session talking about nothing.
+Either half read alone reports a success the other refutes.
 
 **Cloud lane hygiene — fresh off `origin/main`, foreign dirty files left as found**
 (`protocols/STANDING_RULINGS.md` Q4). A cloud lane branches from `origin/main` rather than from
 whatever state a container happened to inherit, so its base is a ref a successor can name and
-re-resolve. Files the lane did not author and its contract did not name are left exactly as found:
-a remote container can arrive carrying another actor's uncommitted work, and a lane that sweeps
-those into its own commit hands the integrator a diff whose authorship the tree no longer records.
-This is the batch protocol's file-disjointness rule, applied to a tree the lane did not provision.
+re-resolve. Foreign dirty files are left untouched: a remote container can arrive carrying
+another actor's uncommitted work, and a lane that sweeps those into its own commit hands the
+integrator a diff whose authorship the tree no longer records. Q4 admits no carve-out for a file
+the lane's own contract happens to name — a file the contract names and the lane then edits is the
+lane's own work, not a foreign dirty file, so the two cases do not overlap and the rule needs no
+exception to state. This is the batch protocol's file-disjointness rule, applied to a tree the
+lane did not provision.
 
-**Which substrate, stated so the choice is made rather than inherited.** A lane routes **local**
-when it wants the local gate mesh: a `last_reviewed`-stamped canonical file behind the freshness
-and TOC gates, a hook stack that has to fire, an interactive credential, or timing the operator is
-watching. A lane routes **cloud** when its footprint is read-only analysis, or a docs-only
-artifact no local-only gate governs. `.devcontainer/` ([#554]) is the provisioning half of the
-off-machine substrate; this paragraph is the routing half.
+**Which substrate — RECORDED AS OWED, not ruled here.** A section about cloud lanes is hard to
+apply without a test for which lanes are one, and this chapter carries none today. The working
+distinction in live practice: a lane routes **local** when it wants the local gate mesh — a
+`last_reviewed`-stamped canonical file behind the freshness and TOC gates, a hook stack that has
+to fire, an interactive credential, or timing the operator is watching — and **cloud** when its
+footprint is read-only analysis or a docs-only artifact no local-only gate governs.
+`.devcontainer/` ([#554]) is the provisioning half of the off-machine substrate; the routing half
+is unruled. It is written down here as a **description of practice**, deliberately outside the two
+rules above, because the gap is real and an undescribed gap is the harder one to close;
+`docs/audits/2026-08-20-technical-playbook-status.md` carries it as G1.
 
 **Honest limits, all three.** The receipt gate and the hygiene rule are prose, checked by the seat
 that dispatches and by nothing else. The ADR-110 exemption that grants an open batch its

@@ -166,6 +166,69 @@ def test_a_doubled_prefix_in_the_pairing_line_is_reported(local_contract):
     assert any("exactly once" in p for p in problems), problems
 
 
+# --- the four terra findings of 2026-08-21, each with its own regression test ---------------
+
+def test_a_contract_whose_whole_body_is_inside_a_code_fence_is_refused(local_contract):
+    """terra finding 1: every heading and ask-class 'present' as example text."""
+    quoted = "# LANE lane-a-539-x — quoted\n\n```\n" + local_contract + "\n```\n"
+    problems = glc.parse_contract(quoted).problems
+    assert problems, "a file whose entire body is an example block is not a contract"
+    assert any("missing mandatory section" in p for p in problems), problems
+
+
+def test_a_fenced_dispatch_line_is_still_found(local_contract):
+    # The complement of the test above: the dispatch line legitimately lives in a fence, so
+    # de-fencing is applied to the STRUCTURE scan only.
+    assert "```" in local_contract
+    assert glc.parse_contract(local_contract).slug == "lane-a-539-ch8-codification"
+
+
+def test_a_self_consistent_contract_on_an_off_grammar_slug_is_refused(local_contract):
+    """terra finding 2: `bad_slug` + `LANE-bad_slug.md` + `worktree-bad_slug` all agreed."""
+    mangled = (local_contract
+               .replace("lane-a-539-ch8-codification", "bad_slug")
+               .replace("LANE-a-539-ch8-codification.md", "LANE-bad_slug.md"))
+    problems = glc.parse_contract(mangled).problems
+    assert any("invalid lane slug" in p for p in problems), problems
+
+
+def test_a_dispatch_line_with_no_effort_tier_is_refused(local_contract):
+    """terra finding 3: `-Effort` is optional in the grammar, so its absence read as OK."""
+    mangled = local_contract.replace(" -Effort high", "", 1)
+    problems = glc.parse_contract(mangled).problems
+    assert any("states no `-Effort" in p for p in problems), problems
+
+
+@pytest.mark.parametrize("row, needle", [
+    ("| gpt | execute | high |", "model 'gpt'"),
+    ("| opus | arbitrary | high |", "mode 'arbitrary'"),
+    ("| opus | execute | ultra |", "effort 'ultra'"),
+    ("| opus | execute | low |", "dispatch line states"),
+])
+def test_an_edited_routing_row_is_refused(local_contract, row, needle):
+    """terra finding 4: the Model/Mode/Effort table was emitted and never read back."""
+    mangled = local_contract.replace("| opus | execute | high |", row, 1)
+    problems = glc.parse_contract(mangled).problems
+    assert any(needle in p for p in problems), (needle, problems)
+
+
+def test_a_contract_with_no_routing_row_is_refused(local_contract):
+    mangled = local_contract.replace("| opus | execute | high |", "", 1)
+    problems = glc.parse_contract(mangled).problems
+    assert any("routing row" in p for p in problems), problems
+
+
+def test_the_parser_recovers_the_model_and_mode(local_contract):
+    parsed = glc.parse_contract(local_contract)
+    assert (parsed.model, parsed.mode) == ("opus", "execute")
+
+
+def test_strip_fenced_blocks_preserves_line_count():
+    text = "a\n```\nb\nc\n```\nd\n"
+    assert glc.strip_fenced_blocks(text).count("\n") == text.count("\n")
+    assert "b" not in glc.strip_fenced_blocks(text)
+
+
 # --- 3. invalid effort names are refused ---------------------------------------------------
 
 @pytest.mark.parametrize("bad", ["", "  ", "HIGH", "ultra", "maximum", "xxhigh",

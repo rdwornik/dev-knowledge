@@ -114,6 +114,31 @@ _DISPATCH_LINE_RE = re.compile(
 _PAIRING_RE = re.compile(
     r"slug\s+`(?P<slug>[^`]+)`\s*->\s*branch\s+`(?P<branch>[^`]+)`\s*->\s*contract\s+`(?P<file>[^`]+)`"
 )
+#: The routing table's BODY row, anchored on its own `| Model | Mode | Effort |` header and
+#: separator. Anchoring on the header is what keeps the header itself, and any other
+#: three-column table in the file, from being read as the routing row.
+_ROUTING_ROW_RE = re.compile(
+    r"^\|[ \t]*Model[ \t]*\|[ \t]*Mode[ \t]*\|[ \t]*Effort[ \t]*\|[ \t]*\r?\n"
+    r"^\|[-: \t|]+\|[ \t]*\r?\n"
+    r"^\|[ \t]*(?P<model>[^|\n]*?)[ \t]*\|[ \t]*(?P<mode>[^|\n]*?)[ \t]*\|"
+    r"[ \t]*(?P<effort>[^|\n]*?)[ \t]*\|[ \t]*$",
+    re.MULTILINE,
+)
+#: A fenced code block, either ``` or ~~~ delimited.
+_FENCE_RE = re.compile(r"^(?P<fence>```+|~~~+).*?^(?P=fence)\s*$", re.MULTILINE | re.DOTALL)
+
+
+def strip_fenced_blocks(text: str) -> str:
+    """Blank out fenced code blocks, keeping line count and offsets stable.
+
+    A contract's *prose* is what carries its headings and its decision budget; a fenced block
+    carries the dispatch line and nothing structural. Scanning raw text for both let a file
+    whose entire body sat inside one fence report OK — every heading and every ask-class was
+    "present", as example text (terra 2026-08-21, finding 1). Headings and ask-classes are
+    therefore read from the de-fenced text; the dispatch line, which legitimately lives inside
+    a fence, is still read from the whole file.
+    """
+    return _FENCE_RE.sub(lambda m: "\n" * m.group(0).count("\n"), text)
 
 
 class LaneContractError(ValueError):
@@ -330,6 +355,8 @@ class ParsedContract:
     contract_file: Optional[str] = None
     branch: Optional[str] = None
     effort: Optional[str] = None
+    model: Optional[str] = None
+    mode: Optional[str] = None
     receipt_fields: tuple[str, ...] = ()
     problems: tuple[str, ...] = field(default=())
 
@@ -345,7 +372,10 @@ def parse_contract(text: str, *, expect_cloud: Optional[bool] = None) -> ParsedC
     section, so a caller checking an unknown file does not have to know in advance.
     """
     problems: list[str] = []
-    sections = tuple(m.group("title") for m in _HEADING_RE.finditer(text))
+    # Structure is read from the DE-FENCED text: a heading or an ask-class quoted inside an
+    # example block is a mention, not a section (terra 2026-08-21, finding 1).
+    prose = strip_fenced_blocks(text)
+    sections = tuple(m.group("title") for m in _HEADING_RE.finditer(prose))
 
     # Matched by PREFIX, not equality: a heading may carry a trailing qualifier the emitter
     # writes and a reader relies on ("## Done-contract (immutable)"), and refusing that would
@@ -355,7 +385,7 @@ def parse_contract(text: str, *, expect_cloud: Optional[bool] = None) -> ParsedC
             problems.append(f"missing mandatory section: '## {required}'")
 
     slug = contract_file = effort = None
-    dispatch = _DISPATCH_LINE_RE.search(text)
+    dispatch = _DISPATCH_LINE_RE.search(text)  # deliberately the FULL text — it lives in a fence
     if dispatch is None:
         problems.append(
             "no `Dispatch-Lane <slug> <file> [-Effort <tier>]` line found — the `## Dispatch` "
@@ -364,17 +394,58 @@ def parse_contract(text: str, *, expect_cloud: Optional[bool] = None) -> ParsedC
         slug = dispatch.group("slug")
         contract_file = dispatch.group("file")
         effort = dispatch.group("effort")
-        if effort is not None and effort not in EFFORT_ENUM:
+        # `-Effort` is optional in the dispatch GRAMMAR (the surface defaults it), but a frozen
+        # contract states its own routing — an omitted tier is a contract that does not say what
+        # it boots at, so it is reported rather than accepted (terra 2026-08-21, finding 3).
+        if effort is None:
+            problems.append(
+                "dispatch line states no `-Effort <tier>` — a frozen contract carries its own "
+                f"routing; enum {{{' | '.join(EFFORT_ENUM)}}}")
+        elif effort not in EFFORT_ENUM:
             problems.append(
                 f"dispatch line carries effort {effort!r}, outside "
                 f"{{{' | '.join(EFFORT_ENUM)}}}")
+        # The slug the dispatch line carries is validated, not merely echoed: a self-consistent
+        # pair built on an off-grammar slug used to pass (terra 2026-08-21, finding 2). The bar
+        # is hyphen-only kebab rather than the strict batch-lane grammar, because a non-batch
+        # worktree lane's bare purpose slug is a legal name for this chapter.
+        try:
+            validate_slug(slug, strict=False)
+        except LaneContractError as exc:
+            problems.append(f"dispatch line carries an invalid lane slug: {exc}")
         if contract_file != contract_filename(slug):
             problems.append(
                 f"dispatch line pairs slug {slug!r} with file {contract_file!r}; the 1:1 "
                 f"pairing wants {contract_filename(slug)!r}")
 
+    # The routing table is READ, not just emitted: an edited `| gpt | arbitrary | high |` row
+    # used to pass unchallenged (terra 2026-08-21, finding 4).
+    model = mode = None
+    routing = _ROUTING_ROW_RE.search(prose)
+    if routing is None:
+        problems.append(
+            "no `| model | mode | effort |` routing row found — the contract states the tier "
+            "its lane boots at")
+    else:
+        model, mode = routing.group("model"), routing.group("mode")
+        if model not in MODEL_ENUM:
+            problems.append(
+                f"routing row carries model {model!r}, outside {{{' | '.join(MODEL_ENUM)}}}")
+        if mode not in MODE_ENUM:
+            problems.append(
+                f"routing row carries mode {mode!r}, outside {{{' | '.join(MODE_ENUM)}}}")
+        row_effort = routing.group("effort")
+        if row_effort not in EFFORT_ENUM:
+            problems.append(
+                f"routing row carries effort {row_effort!r}, outside "
+                f"{{{' | '.join(EFFORT_ENUM)}}}")
+        elif effort is not None and row_effort != effort:
+            problems.append(
+                f"routing row states effort {row_effort!r} but the dispatch line states "
+                f"{effort!r} — two sources free to disagree is the class this generator removes")
+
     branch = None
-    pairing = _PAIRING_RE.search(text)
+    pairing = _PAIRING_RE.search(prose)
     if pairing is None:
         problems.append(
             "no worktree-pairing line found (slug -> branch -> contract)")
@@ -394,7 +465,7 @@ def parse_contract(text: str, *, expect_cloud: Optional[bool] = None) -> ParsedC
                 f"line names {contract_file!r}")
 
     is_cloud = CLOUD_SECTION in sections
-    found_receipt = tuple(f for f in RECEIPT_FIELDS if f in text)
+    found_receipt = tuple(f for f in RECEIPT_FIELDS if f in prose)
     if expect_cloud is True and not is_cloud:
         problems.append(f"cloud lane expected, but no '## {CLOUD_SECTION}' section is present")
     if is_cloud:
@@ -405,12 +476,13 @@ def parse_contract(text: str, *, expect_cloud: Optional[bool] = None) -> ParsedC
             "local lane carries receipt fields — the receipt gate is a cloud-lane rule (Q5)")
 
     for ask_class in ("(a)", "(b)", "(c)"):
-        if ask_class not in text:
+        if ask_class not in prose:
             problems.append(f"decision budget is missing ask-class {ask_class}")
 
     return ParsedContract(
         sections=sections, slug=slug, contract_file=contract_file, branch=branch,
-        effort=effort, receipt_fields=found_receipt, problems=tuple(problems))
+        effort=effort, model=model, mode=mode, receipt_fields=found_receipt,
+        problems=tuple(problems))
 
 
 # --- CLI --------------------------------------------------------------------------------------
