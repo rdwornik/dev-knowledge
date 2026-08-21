@@ -114,3 +114,49 @@ seat that took it.
   was ratified at the batch-3 GO and now carries a register entry at
   `protocols/STANDING_RULINGS.md` **G1**. The paragraph itself is left as written (appended-to,
   not folded); the reasoning and evidence citation it carries are unchanged.
+
+## Template conformance (prep pass, 2026-08-21 — batch-1 lane D)
+
+Completeness pass against the protocol that governs intakes — `docs/intake/README.md` §2
+(doc format), §3 (frontmatter schema), §4 (naming), §5 (lifecycle) — plus the fill-in
+skeleton `templates/intake-template.md`. This doc **landed verbatim by operator instruction**
+(frontmatter `note:`), so the body is NOT restructured: the eight template sections are
+**mapped** to where the body already carries them, and absences are **recorded** rather than
+filled with invented content. Appended below the body; nothing above this heading changed,
+and no §A row, status, priority class or item text was touched by this pass.
+
+- **Problem / motivation** — carried by `## WHY — what this intake is and is not`.
+- **Scenarios (+1 view)** — **ABSENT.** This doc's genre is a *ledger*: it tracks the adoption
+  status of 38 named items rather than eliciting a requirement from operator walkthroughs.
+  Not back-filled — §2 calls scenarios load-bearing, and a ledger row's justification is its
+  evidence column, not a scenario.
+- **Functional requirements** — carried by `## §A — Ledger` (the item-level asks) together
+  with `## §C — Priority classes` (the must/should/could ordering, explicitly a
+  recommendation the operator ratifies).
+- **Acceptance criteria (ex-ante)** — **ABSENT as a section.** Per-item acceptance is carried
+  inside each §A row's status vocabulary (`EVAL-RUN(result)` / `DEFERRED(trigger)` / …) and,
+  since ADR-112, by the two-tier adoption bar. No document-level ex-ante criteria exist.
+- **Non-goals** — carried by `## §B — Do-not-relitigate carried`.
+- **Impact sketch (4+1 lite)** — **ABSENT.** `## §F — capacity honesty` carries the process
+  view; logical / development / physical are unwritten.
+- **Open questions** — **ABSENT as a section**; open items are recorded inline as row
+  annotations and in the three dated errata in the frontmatter `note:` (2026-08-06,
+  2026-08-08, 2026-08-09), including the explicitly-unanswered `mise` counter-argument.
+- **Status** — added below.
+
+**Frontmatter (§3):** conformant. `note:` is an optional descriptive key ratified at the
+[#398] deploy; no off-schema key and no companion field present out of its status.
+
+**Naming (§4):** conformant — `2026-08-06-tech-adoption-consolidation-intake.md` carries the
+`tech` infix and the origin date.
+
+**Editability note carried forward.** The frontmatter's 2026-08-08 erratum relies on
+`status: DRAFT` for in-place ledger-truth edits. Ratification ends that standing: once this
+doc is ACCEPTED, a ledger-truth correction is an appended amendment, not an in-place edit —
+the shape the 2026-08-08 ratification amendment already uses.
+
+## Status
+
+**DRAFT** — landed verbatim 2026-08-06; three dated errata since; prepped for ratification
+2026-08-21 by batch-1 lane D. Zero rows born by this filing. This doc is the successor ledger
+for the adoption-status view of intake **#24** and intake **#25**.
