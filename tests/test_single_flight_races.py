@@ -27,6 +27,7 @@ These tests are committed RED, before either fix, per the lane contract.
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -71,6 +72,19 @@ def _cli_env(repo, env, *args):
     return subprocess.run([sys.executable, str(_SCRIPT), *args, "--repo", str(repo)],
                           capture_output=True, text=True, encoding="utf-8", errors="replace",
                           env=env)
+
+
+def _claim(repo, remote="origin", **kw) -> str:
+    """Claim and hand back the minted token, asserting the claim was WON.
+
+    `claim_token` and not `claim`: the ownership token is minted per claim and cannot be pinned by
+    a caller (a reusable capability is not a capability), so a test that needs to release later
+    must capture what the module minted -- exactly as an operator reads it off claim's stdout.
+    """
+    code, token = single_flight.claim_token(CONTRACT, repo=repo, remote=remote, **kw)
+    assert code == single_flight.CLAIMED
+    assert token
+    return token
 
 
 def _remote_sha(repo, remote, ref) -> str:
@@ -130,7 +144,7 @@ def test_release_after_a_manual_clear_must_not_delete_another_runs_live_lock(tri
     THROUGH the guard rather than around it.
     """
     _bare, a, b = trio
-    assert single_flight.claim(CONTRACT, repo=a, remote="origin") == single_flight.CLAIMED
+    tok_A = _claim(a)
 
     _git(a, "push", "origin", f":{LOCK}")  # the operator's manual clear
     assert _remote_sha(a, "origin", LOCK) == ""
@@ -139,7 +153,7 @@ def test_release_after_a_manual_clear_must_not_delete_another_runs_live_lock(tri
     b_holds = _remote_sha(b, "origin", LOCK)
     assert b_holds, "B must hold the lock before A cleans up"
 
-    single_flight.release(CONTRACT, repo=a, remote="origin")
+    single_flight.release(CONTRACT, repo=a, remote="origin", token=tok_A)
 
     assert _remote_sha(a, "origin", LOCK) == b_holds, (
         "A's cleanup deleted B's LIVE lock -- the contract is now claimable twice over"
@@ -177,7 +191,7 @@ def test_release_local_only_refuses_when_the_repo_cannot_be_read(tmp_path):
     nowhere = tmp_path / "not-a-repo"
     nowhere.mkdir()
     with pytest.raises(single_flight.SingleFlightError):
-        single_flight.release(CONTRACT, repo=nowhere, local_only=True)
+        single_flight.release(CONTRACT, repo=nowhere, local_only=True, token="r")
 
 
 @requires_git
@@ -203,59 +217,312 @@ def test_the_cli_fails_closed_on_an_unreadable_repo(tmp_path):
 # --- what proves ownership: the local ref, NOT run_id equality ------------------------------
 
 @requires_git
-def test_claim_and_release_from_separate_processes_with_no_propagated_id(trio):
-    """The regression test for a fix that was briefly WRONG here.
+def test_release_without_a_token_refuses_rather_than_guessing(trio):
+    """TERRA P1, 2026-08-21 -- and the correction of a fix that was briefly wrong here.
 
-    Requiring the releasing process's run_id to EQUAL the lock's is the obvious stronger rule and
-    it breaks the only way the CLI is actually used: `claim` and `release` are separate
-    invocations, hence separate processes, hence different ids unless something propagates one. A
-    guard that cannot be released from the command line is an outage, not a guard.
+    The first version of this fix treated the LOCAL REF as proof of ownership, reasoning that
+    `update-ref create` is exclusive within a clone. It is not proof, and it fails in precisely
+    this repo's shape: refs live in the COMMON git dir, so every worktree of one clone shares
+    them. Stale run A resolves the ref that run B created after a manual clear, deletes it, and
+    hands B's OWN sha to the remote lease as its expectation -- which matches, so the lease waves
+    it through and B's live lock dies. The ABA, reproduced THROUGH the fix meant to close it.
 
-    The child environment is SCRUBBED of the run-id variable on purpose. The equality version of
-    this fix passed the existing CLI test only because an earlier test in the same session had
-    exported the variable into the pytest process, so both children inherited one id -- it passed
-    for the wrong reason, and this case removes that accident.
+    So a release carrying no token refuses before touching anything. The child environment is
+    scrubbed of the run-id variable, because the earlier version passed the pre-existing CLI test
+    only by inheriting an id an earlier test had exported into the pytest process.
     """
     _bare, a, _b = trio
     env = {k: v for k, v in os.environ.items() if k != "DEV_KNOWLEDGE_TELEMETRY_RUN_ID"}
 
     claimed = _cli_env(a, env, "claim", CONTRACT)
     assert claimed.returncode == single_flight.CLAIMED, claimed.stdout + claimed.stderr
+    held = _remote_sha(a, "origin", LOCK)
+
     released = _cli_env(a, env, "release", CONTRACT)
-    assert released.returncode == single_flight.CLAIMED, released.stdout + released.stderr
-    assert _remote_sha(a, "origin", LOCK) == "", "the holder's own release must free the lock"
+    assert released.returncode == single_flight.NOT_OURS, released.stdout + released.stderr
+    assert "no ownership token was supplied" in released.stderr
+    assert _remote_sha(a, "origin", LOCK) == held, "an unproven release must touch nothing"
 
 
 @requires_git
-def test_a_propagated_run_id_refuses_another_runs_lock(trio):
-    """The stronger check a caller opts into by propagating an id, and the hole it closes.
+def test_claim_emits_the_run_id_machine_readably(trio):
+    """TERRA P1 (sixth pass), 2026-08-21: `claim` runs as a SHORT-LIVED SUBPROCESS in the live
+    dispatch flow and the lane is launched afterwards by a separate command, so exporting the id
+    inside the claim process reaches nothing. Unless the dispatcher can read the id back (or hand
+    one in), the lock records one id and the lane's telemetry mints another.
 
-    With no propagated id, `--local-only` has only the local ref to go on and two runs in one
-    clone share it. Passing `run_id=` makes ownership explicit, so a lock taken by a different
-    run is refused (exit 4) and LEFT STANDING rather than deleted on the way past.
+    What this module owns is EMITTING it parseably; making the launcher consume it is the
+    dispatcher's, and this module launches nothing. Both halves are asserted here.
     """
     _bare, a, _b = trio
-    assert single_flight.claim(CONTRACT, repo=a, remote="origin", run_id="run-one") == \
-        single_flight.CLAIMED
-    held = _remote_sha(a, "origin", LOCK)
+    env = {k: v for k, v in os.environ.items() if k != "DEV_KNOWLEDGE_TELEMETRY_RUN_ID"}
+    claimed = _cli_env(a, env, "claim", CONTRACT)
 
-    assert single_flight.release(CONTRACT, repo=a, remote="origin", run_id="run-two") == \
-        single_flight.NOT_OURS
-    assert _remote_sha(a, "origin", LOCK) == held, "the other run's lock must be left standing"
+    emitted = next(ln.split("=", 1)[1].strip() for ln in claimed.stdout.splitlines()
+                   if ln.startswith("single_flight: run_id="))
+    assert emitted, "the run_id must be readable back by the dispatcher"
+    assert single_flight._lock_run_id(a, _remote_sha(a, "origin", LOCK)) == emitted, (
+        "what claim prints must be what the lock records, or propagating it is useless"
+    )
 
-    assert single_flight.release(CONTRACT, repo=a, remote="origin", run_id="run-one") == \
+    # ...and the hand-it-in direction, which is the other supported way to make them agree.
+    _git(a, "push", "origin", f":{LOCK}")
+    _git(a, "update-ref", "-d", LOCK)
+    handed = _cli_env(a, env, "claim", CONTRACT, "--run-id", "dispatcher-owned-id")
+    assert handed.returncode == single_flight.CLAIMED
+    assert single_flight._lock_run_id(a, _remote_sha(a, "origin", LOCK)) == "dispatcher-owned-id"
+
+
+@requires_git
+def test_the_printed_release_command_keeps_the_claims_scope(trio):
+    """TERRA P1 (ninth pass), 2026-08-21: a handoff command that is wrong for the claim it came
+    from is worse than none.
+
+    `_cli` always passes `--repo`, so a bare printed command would target the CURRENT repository's
+    `origin` -- a different lock, or none, while the real one stays held. The printed command is
+    run verbatim here rather than inspected, which is the only way to prove it works.
+    """
+    _bare, a, _b = trio
+    env = {k: v for k, v in os.environ.items() if k != "DEV_KNOWLEDGE_TELEMETRY_RUN_ID"}
+    claimed = _cli_env(a, env, "claim", CONTRACT)
+    line = next(ln for ln in claimed.stdout.splitlines()
+                if ln.startswith("single_flight: release it with: "))
+    printed = line.split("release it with: ", 1)[1]
+
+    assert f'--repo "{a}"' in printed, f"the claim's scope is missing from: {printed}"
+    argv = [p.strip('"') for p in re.findall(r'"[^"]*"|\S+', printed)]
+    released = subprocess.run([sys.executable, str(_SCRIPT), *argv],
+                              capture_output=True, text=True, encoding="utf-8",
+                              errors="replace", env=env)
+    assert released.returncode == single_flight.CLAIMED, released.stdout + released.stderr
+    assert _remote_sha(a, "origin", LOCK) == ""
+
+
+@requires_git
+def test_claim_prints_the_token_its_release_requires(trio):
+    """The contract that keeps the refusal above workable: the token is handed over IN FULL, and
+    with the command that uses it, so a caller is never left guessing."""
+    _bare, a, _b = trio
+    env = {k: v for k, v in os.environ.items() if k != "DEV_KNOWLEDGE_TELEMETRY_RUN_ID"}
+    claimed = _cli_env(a, env, "claim", CONTRACT)
+
+    token = next(ln.split("=", 1)[1].strip() for ln in claimed.stdout.splitlines()
+                 if ln.startswith("single_flight: token="))
+    assert len(token) >= 8 and f"--token {token}" in claimed.stdout
+
+    released = _cli_env(a, env, "release", CONTRACT, "--token", token)
+    assert released.returncode == single_flight.CLAIMED, released.stdout + released.stderr
+    assert _remote_sha(a, "origin", LOCK) == ""
+
+
+@requires_git
+def test_an_exported_run_id_correlates_but_does_not_authorise(trio):
+    """The dispatcher's path, and the line between the two identifiers.
+
+    An exported `$DEV_KNOWLEDGE_TELEMETRY_RUN_ID` is inherited by the claim and recorded in the
+    lock, which is what makes the lock and that run's telemetry events join up. It does NOT
+    authorise the release -- every sibling inherits the same value, so treating it as a capability
+    would be treating a broadcast as a secret. The per-claim token still does that job.
+    """
+    _bare, a, _b = trio
+    env = {**os.environ, "DEV_KNOWLEDGE_TELEMETRY_RUN_ID": "dispatch-run-77"}
+
+    claimed = _cli_env(a, env, "claim", CONTRACT)
+    assert claimed.returncode == single_flight.CLAIMED
+    assert single_flight._lock_run_id(a, _remote_sha(a, "origin", LOCK)) == "dispatch-run-77"
+
+    assert _cli_env(a, env, "release", CONTRACT).returncode == single_flight.NOT_OURS
+
+    token = next(ln.split("=", 1)[1].strip() for ln in claimed.stdout.splitlines()
+                 if ln.startswith("single_flight: token="))
+    assert token != "dispatch-run-77", "the capability must not be the broadcast id"
+    assert _cli_env(a, env, "release", CONTRACT, "--token", token).returncode == \
         single_flight.CLAIMED
     assert _remote_sha(a, "origin", LOCK) == ""
 
 
 @requires_git
-def test_the_lock_object_carries_the_run_that_took_it(trio):
-    """R6(d)'s token, readable from the artifact itself -- which is what lets the refusal message
-    say WHOSE lock it is rather than only that it refused."""
+def test_a_release_retried_after_a_failed_remote_leg_still_succeeds(trio):
+    """TERRA P1 (second pass), 2026-08-21: a partial release must not strand its own owner.
+
+    The first version deleted the local ref BEFORE pushing. A transient network or auth failure
+    then left the remote lock standing and the local evidence gone, and the retry -- with the same
+    valid token -- read the remote lock as somebody else's and refused forever. The contract would
+    be permanently blocked for the run that legitimately owned it.
+
+    The local ref is removed here to stage exactly that aftermath, and the retry must complete.
+    """
     _bare, a, _b = trio
-    single_flight.claim(CONTRACT, repo=a, remote="origin", run_id="deadbeefcafe")
+    tok_A = _claim(a)
+    _git(a, "update-ref", "-d", LOCK)          # the aftermath of a push that failed mid-release
+    assert _remote_sha(a, "origin", LOCK), "the remote lock is still standing"
+
+    assert single_flight.release(CONTRACT, repo=a, remote="origin", token=tok_A) == \
+        single_flight.CLAIMED
+    assert _remote_sha(a, "origin", LOCK) == "", "the owner must be able to finish its cleanup"
+
+
+@requires_git
+def test_a_lost_acknowledgement_retry_does_not_wedge_the_clone(trio):
+    """TERRA P1 (fourth pass), 2026-08-21: the OTHER lost-message shape, and it is the dangerous one.
+
+    The server accepts the remote delete and the client never sees the acknowledgement, so the
+    local ref survives for a retry. VERIFIED against git rather than assumed: deleting an absent
+    remote ref while carrying a non-empty lease expectation reports
+    `! (delete) [rejected] (stale info)` -- not "remote ref does not exist" -- so the retry looks
+    exactly like contention. Classifying it as contention returns without clearing the local ref,
+    and every later claim in this clone then reports IN_FLIGHT against a lock nobody holds: the
+    clone wedged by its own cleanup, with no lock anywhere to explain it.
+    """
+    _bare, a, _b = trio
+    tok_A = _claim(a)
+    _git(a, "push", "origin", f":{LOCK}")      # the delete the server accepted
+    assert _remote_sha(a, "origin", LOCK) == ""
+    assert _git(a, "rev-parse", "--verify", "--quiet", LOCK, check=False).returncode == 0, \
+        "the local ref must survive, which is what makes this a retry"
+
+    assert single_flight.release(CONTRACT, repo=a, remote="origin", token=tok_A) == \
+        single_flight.CLAIMED
+    assert _git(a, "rev-parse", "--verify", "--quiet", LOCK, check=False).returncode != 0, \
+        "the stale local ref must be cleared, or the clone is wedged"
+    _claim(a)     # a later claim in this clone must not be refused by a ghost lock
+
+
+@requires_git
+def test_a_retry_still_refuses_a_lock_that_is_not_ours(trio):
+    """The other half: recovering from a partial release must not become a way to delete anyone's
+    lock. With no local ref, ownership is proven from the REMOTE object's run_id, not assumed."""
+    _bare, a, b = trio
+    _claim(b)
+    b_holds = _remote_sha(b, "origin", LOCK)
+
+    assert single_flight.release(CONTRACT, repo=a, remote="origin",
+                                 token="a-token-this-lock-never-carried") == \
+        single_flight.NOT_OURS
+    assert _remote_sha(a, "origin", LOCK) == b_holds
+
+
+@requires_git
+def test_the_shared_worktree_aba_is_refused(trio):
+    """TERRA P1 driven through the exact geometry it named: ONE clone, refs shared.
+
+    A claims; the operator clears the lock locally AND remotely (both commands the refusal prints);
+    B re-claims in the same clone; A releases with its own token. A must not delete B's lock, and
+    the local-ref shortcut is what would have let it.
+    """
+    _bare, a, _b = trio
+    tok_A = _claim(a)
+
+    _git(a, "push", "origin", f":{LOCK}")          # operator clears the remote
+    _git(a, "update-ref", "-d", LOCK)              # ...and the local ref, in the same clone
+
+    _claim(a)                                     # the sibling's claim, in the SAME clone
+    b_holds = _remote_sha(a, "origin", LOCK)
+
+    assert single_flight.release(CONTRACT, repo=a, remote="origin", token=tok_A) == \
+        single_flight.NOT_OURS
+    assert _remote_sha(a, "origin", LOCK) == b_holds, (
+        "run A released run B's live lock from a SHARED local ref -- the terra P1 exactly"
+    )
+
+
+@requires_git
+def test_a_lock_taken_under_another_token_is_refused(trio):
+    """Ownership is the per-claim token, and a mismatch is refused (exit 4) with the lock LEFT
+    STANDING rather than deleted on the way past."""
+    _bare, a, _b = trio
+    tok_one = _claim(a)
+    held = _remote_sha(a, "origin", LOCK)
+
+    assert single_flight.release(CONTRACT, repo=a, remote="origin",
+                                 token="a-different-token") == \
+        single_flight.NOT_OURS
+    assert _remote_sha(a, "origin", LOCK) == held, "the other run's lock must be left standing"
+
+    assert single_flight.release(CONTRACT, repo=a, remote="origin", token=tok_one) == \
+        single_flight.CLAIMED
+    assert _remote_sha(a, "origin", LOCK) == ""
+
+
+@requires_git
+def test_the_lock_object_carries_both_the_run_and_the_claim(trio):
+    """Two identifiers, two jobs. `run_id` correlates the lock with `[#565]`'s telemetry; `token`
+    proves ownership. Conflating them was the defect terra found: a dispatcher exporting one
+    run_id around a batch gives every sibling the same value.
+    """
+    _bare, a, _b = trio
+    tok_x = _claim(a, run_id="deadbeefcafe")
     held = _remote_sha(a, "origin", LOCK)
     assert single_flight._lock_run_id(a, held) == "deadbeefcafe"
+    assert single_flight._lock_token(a, held) == tok_x
+
+
+@requires_git
+def test_siblings_sharing_one_run_id_still_cannot_release_each_other(trio):
+    """TERRA P1 (third pass): the case a run_id-based ownership check cannot see.
+
+    One dispatcher, one exported run_id, two claims of the same contract separated by a manual
+    clear -- the ABA between SIBLINGS. Their run_ids are identical by construction, so only the
+    per-claim token tells them apart.
+    """
+    _bare, a, _b = trio
+    shared = "one-dispatch-run"
+    claim_1 = _claim(a, run_id=shared)
+    _git(a, "push", "origin", f":{LOCK}")
+    _git(a, "update-ref", "-d", LOCK)
+    _claim(a, run_id=shared)                      # the sibling claim, under the SAME run_id
+    live = _remote_sha(a, "origin", LOCK)
+
+    assert single_flight._lock_run_id(a, live) == shared, "the siblings do share a run_id"
+    assert single_flight.release(CONTRACT, repo=a, remote="origin", token=claim_1) == \
+        single_flight.NOT_OURS
+    assert _remote_sha(a, "origin", LOCK) == live, "claim 1 released claim 2's live lock"
+
+
+@requires_git
+def test_an_explicit_run_id_becomes_the_ambient_one(trio, monkeypatch):
+    """TERRA P1 (third pass), the correlation half: `claim(run_id=X)` must EXPORT X, or telemetry
+    emitted afterwards carries a different id and the lock-to-telemetry join the field exists for
+    is silently broken for the callers who were most explicit about it.
+
+    `monkeypatch` scopes the environment mutation to this case -- `claim` writes a process global
+    by design, and leaking it would pin later cases to one id.
+    """
+    _bare, a, _b = trio
+    monkeypatch.setattr(single_flight._te, "_RUN_ID", None)
+    monkeypatch.delenv("DEV_KNOWLEDGE_TELEMETRY_RUN_ID", raising=False)
+
+    single_flight.claim(CONTRACT, repo=a, remote="origin", run_id="explicit-corr-id")
+    assert os.environ.get("DEV_KNOWLEDGE_TELEMETRY_RUN_ID") == "explicit-corr-id"
+    assert single_flight._te.current_run_id() == "explicit-corr-id"
+
+
+@requires_git
+@pytest.mark.parametrize("hostile", [
+    "x\ntoken: injected",          # forge a token field ABOVE the real one
+    "x\nrun_id: forged",
+    "has space",
+    "has:colon",
+])
+def test_a_run_id_that_could_forge_a_lock_field_is_refused(trio, hostile):
+    """TERRA P1 (eighth pass), 2026-08-21: field injection into the lock object.
+
+    The lock message is line-oriented `key: value`, and `run_id` arrives from an environment
+    variable and a CLI flag. A value of `x\\ntoken: injected` writes a `token:` line above the
+    real one; `_lock_token` reads the first match, returns `injected`, and the legitimate token
+    `claim` printed is refused at release -- the contract stays locked until somebody clears it
+    by hand. Refused at the source rather than escaped: these are identifiers, and an identifier
+    containing a newline is a defect where it was produced.
+    """
+    _bare, a, _b = trio
+    before = os.environ.get("DEV_KNOWLEDGE_TELEMETRY_RUN_ID")
+    with pytest.raises(single_flight.SingleFlightError, match="unsafe run_id"):
+        single_flight.claim(CONTRACT, repo=a, remote="origin", run_id=hostile)
+    assert _remote_sha(a, "origin", LOCK) == "", "a refused claim must leave no lock"
+    assert os.environ.get("DEV_KNOWLEDGE_TELEMETRY_RUN_ID") == before, (
+        "a REJECTED run_id must not be exported -- the next claim would inherit it and fail on "
+        "somebody else's bad input (this is how the tokenless-release case got poisoned)"
+    )
 
 
 @requires_git
@@ -268,9 +535,31 @@ def test_a_lock_carrying_no_run_id_is_refused_not_deleted(trio):
     _bare, a, _b = trio
     _git(a, "push", "origin", f"HEAD:{LOCK}")      # a hand-taken lock: no lock object, no run_id
     _git(a, "fetch", "-q", "origin", f"{LOCK}:{LOCK}")
-    assert single_flight.release(CONTRACT, repo=a, remote="origin", run_id="mine") == \
+    assert single_flight.release(CONTRACT, repo=a, remote="origin", token="mine") == \
         single_flight.NOT_OURS
     assert _remote_sha(a, "origin", LOCK), "an unidentified lock must be left standing"
+
+
+@requires_git
+def test_a_tokenless_release_of_an_already_free_lock_succeeds(trio):
+    """TERRA P1 (tenth pass), 2026-08-21: the token authorises a DELETION, so requiring one when
+    there is nothing to delete turns "already clean" into "cleanup failed".
+
+    That regressed both the documented idempotency and the plain `release <id>` path an operator
+    reaches for after the fact. The token stays mandatory wherever a real lock exists -- asserted
+    in the same case so the relaxation cannot quietly widen.
+    """
+    _bare, a, _b = trio
+    env = {k: v for k, v in os.environ.items() if k != "DEV_KNOWLEDGE_TELEMETRY_RUN_ID"}
+
+    free = _cli_env(a, env, "release", CONTRACT)
+    assert free.returncode == single_flight.CLAIMED, free.stdout + free.stderr
+    assert "already free" in free.stdout
+
+    _claim(a)                                     # now a real lock exists
+    held = _cli_env(a, env, "release", CONTRACT)
+    assert held.returncode == single_flight.NOT_OURS, "a HELD lock still requires the token"
+    assert _remote_sha(a, "origin", LOCK), "and it is left standing"
 
 
 @requires_git
@@ -279,4 +568,5 @@ def test_a_genuinely_free_lock_still_reads_as_free(trio):
     ref, FREE is the correct answer and release stays idempotent."""
     _bare, a, _b = trio
     assert single_flight.inspect(CONTRACT, repo=a, local_only=True) == single_flight.CLAIMED
-    assert single_flight.release(CONTRACT, repo=a, local_only=True) == single_flight.CLAIMED
+    assert single_flight.release(CONTRACT, repo=a, local_only=True,
+                                 token="r") == single_flight.CLAIMED

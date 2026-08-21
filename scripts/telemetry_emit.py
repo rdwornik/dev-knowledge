@@ -138,6 +138,7 @@ import os
 import shutil
 import sqlite3
 import subprocess
+import threading
 import uuid
 from collections.abc import Callable, Mapping
 from contextlib import contextmanager
@@ -237,6 +238,10 @@ _UNSET: Any = object()
 #: carries one id; `None` until the first `current_run_id()` call.
 _RUN_ID: str | None = None
 
+#: Guards the FIRST mint of `_RUN_ID`. `audit.run_checks` emits from worker THREADS on its error
+#: path, so an unguarded read-then-mint lets one gate invocation produce two ids.
+_RUN_ID_LOCK = threading.Lock()
+
 #: `logger_backend()`'s per-process cache -- which packages are installed does not change under
 #: a running process. `None` until first asked; a test that needs it re-asked resets it.
 _LOGGER_BACKEND: str | None = None
@@ -332,7 +337,15 @@ def current_run_id() -> str:
     if inherited:
         return inherited
     if _RUN_ID is None:
-        _RUN_ID = new_run_id()
+        # LOCKED, double-checked. Terra P1, 2026-08-21: two threads reaching an unset `_RUN_ID`
+        # together each mint a uuid and each overwrite the cache, so ONE gate invocation emits
+        # events under TWO ids -- the exact thing this field exists to prevent. Not hypothetical:
+        # `audit.run_checks` runs checks in a ThreadPoolExecutor and its error path emits from
+        # inside the worker, so a fresh process whose first two emits are concurrent failures hits
+        # precisely this window.
+        with _RUN_ID_LOCK:
+            if _RUN_ID is None:
+                _RUN_ID = new_run_id()
     os.environ[RUN_ID_ENV] = _RUN_ID
     return _RUN_ID
 
@@ -449,8 +462,20 @@ def _migrate(conn: sqlite3.Connection) -> None:
     """
     have = {row[1] for row in conn.execute("PRAGMA table_info(events)")}
     for column, ddl in _MIGRATIONS:
-        if column not in have:
+        if column in have:
+            continue
+        try:
             conn.execute(ddl)
+        except sqlite3.OperationalError as exc:
+            # ANOTHER CONNECTION WON THE RACE, and that is success rather than failure. This store
+            # is built for concurrent writers (WAL, parallel lanes, one shared hooks dir), so two
+            # hooks opening a pre-run_id store at the same moment BOTH read the column as absent
+            # before either alters. Whoever loses the write lock then hits `duplicate column
+            # name`, which propagates as a `sqlite3.Error`, which `safe_emit` swallows -- so the
+            # loser's event would be dropped SILENTLY. The post-condition here is "the column
+            # exists", not "I am the one who added it".
+            if "duplicate column" not in str(exc).lower():
+                raise
 
 
 @contextmanager

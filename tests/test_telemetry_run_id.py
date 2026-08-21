@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import json
 import os
+import threading
 import sqlite3
 import subprocess
 import sys
@@ -224,6 +225,85 @@ def test_a_pre_run_id_store_is_migrated_and_keeps_its_rows(tmp_path):
     assert [r["name"] for r in rows] == ["ancient", "modern"], "the old row must survive"
     assert rows[0]["run_id"] == "", "a pre-[#565] row is uncorrelated, not retro-fitted"
     assert rows[1]["run_id"] == "new-run"
+
+
+def test_concurrent_first_opens_of_a_pre_run_id_store_all_land(tmp_path):
+    """Terra P1, 2026-08-21: the migration must tolerate LOSING the race, not just winning it.
+
+    Two hooks opening the same pre-`[#565]` store at the same moment both read the column as
+    absent before either alters. The loser hits `duplicate column name`, which is a
+    `sqlite3.Error`, which `safe_emit` swallows -- so its event would vanish with no error
+    anywhere. The post-condition is "the column exists", not "I added it".
+    """
+    db = tmp_path / "old.db"
+    conn = sqlite3.connect(str(db))
+    conn.execute("""
+        CREATE TABLE events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, ts TEXT NOT NULL, event_type TEXT NOT NULL,
+            name TEXT NOT NULL, outcome TEXT, duration_ms INTEGER,
+            context_json TEXT NOT NULL DEFAULT '{}')
+    """)
+    conn.commit()
+    conn.close()
+
+    errors: list[BaseException] = []
+    barrier = threading.Barrier(4)
+
+    def writer(i: int) -> None:
+        try:
+            barrier.wait(timeout=10)
+            te.emit_check_run(f"racer_{i}", "pass", i, db_path=db, run_id=f"run-{i}")
+        except BaseException as exc:  # noqa: BLE001 -- the assertion is that there are none
+            errors.append(exc)
+
+    threads = [threading.Thread(target=writer, args=(i,)) for i in range(4)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join(timeout=30)
+
+    assert not errors, f"a racing writer failed: {errors!r}"
+    names = sorted(r["name"] for r in _rows(db))
+    assert names == [f"racer_{i}" for i in range(4)], "every racing writer's event must land"
+
+
+def test_concurrent_first_emitters_share_one_run_id(tmp_path, monkeypatch):
+    """TERRA P1, 2026-08-21: the first mint must be atomic, or one invocation gets two ids.
+
+    `audit.run_checks` runs checks in a ThreadPoolExecutor and its ERROR path emits from inside
+    the worker, so a fresh process whose first emits are concurrent failures hits exactly this
+    window: each thread reads `_RUN_ID` as unset, each mints its own uuid, and the events of ONE
+    gate invocation come back under several ids -- the correlation the column exists for, lost.
+
+    The barrier makes the race deterministic rather than hoping for an unlucky interleaving, and
+    the racing function is called DIRECTLY rather than through `emit_*`: driving it through the
+    store instead put 16 writers on one fresh SQLite file, which produces `database is locked`
+    (recorded as a separate observation) and would have made this case fail for a reason that has
+    nothing to do with the id it is testing.
+    """
+    monkeypatch.delenv(te.RUN_ID_ENV, raising=False)
+    monkeypatch.setattr(te, "_RUN_ID", None)
+
+    workers = 16
+    barrier = threading.Barrier(workers)
+    seen: list[str] = []
+    lock = threading.Lock()
+
+    def resolver() -> None:
+        barrier.wait(timeout=10)
+        value = te.current_run_id()
+        with lock:
+            seen.append(value)
+
+    threads = [threading.Thread(target=resolver) for _ in range(workers)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join(timeout=30)
+
+    assert len(seen) == workers, "every thread must have resolved an id"
+    assert len(set(seen)) == 1, f"one invocation resolved {len(set(seen))} run ids: {set(seen)}"
+    assert os.environ.get(te.RUN_ID_ENV) == seen[0], "the exported id must be the agreed one"
 
 
 def test_the_migration_is_idempotent(tmp_path):

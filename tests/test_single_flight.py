@@ -281,8 +281,10 @@ def test_t4_the_guard_refuses_the_same_commit_racer(trio):
 @requires_git
 def test_t5_release_then_reclaim(trio):
     _, a, b = trio
-    single_flight.claim(CONTRACT, repo=a, remote="origin")
-    assert single_flight.release(CONTRACT, repo=a, remote="origin") == single_flight.CLAIMED
+    code, token = single_flight.claim_token(CONTRACT, repo=a, remote="origin")
+    assert code == single_flight.CLAIMED
+    assert single_flight.release(CONTRACT, repo=a, remote="origin",
+                                 token=token) == single_flight.CLAIMED
     assert not _remote_has(a, "origin", LOCK)
     assert not _ref_exists(a, LOCK)
     # The lock is genuinely free again -- for the OTHER clone, which is the point of releasing.
@@ -291,9 +293,14 @@ def test_t5_release_then_reclaim(trio):
 
 @requires_git
 def test_t5_release_is_idempotent(trio):
-    """Releasing a lock nobody holds is a success, so a re-run after a partial failure is safe."""
+    """Releasing a lock nobody holds is a success, so a re-run after a partial failure is safe.
+
+    The token is still REQUIRED here (a release cannot prove ownership without one); what
+    idempotency means is that a valid token against an absent lock succeeds rather than erroring.
+    """
     _, a, _b = trio
-    assert single_flight.release(CONTRACT, repo=a, remote="origin") == single_flight.CLAIMED
+    assert single_flight.release(CONTRACT, repo=a, remote="origin",
+                                 token="t5-token") == single_flight.CLAIMED
 
 
 # --- T6 / T7: the local fast leg, across worktrees of ONE clone ---------------
@@ -377,9 +384,19 @@ def test_an_unreachable_remote_is_an_internal_error_not_a_claim(trio):
 @requires_git
 def test_the_cli_claims_and_releases_end_to_end(trio):
     """The operator-facing path, exercised as a process: 0 on claim, 3 on the racer, 0 after
-    release."""
+    release.
+
+    UPDATED 2026-08-21 by `[#530]` race (a) + the terra P1 on this lane: `release` now requires
+    the per-claim token `claim` prints, because worktrees of one clone SHARE refs and the local ref
+    therefore cannot prove which run took the lock. The token is read from claim's own output
+    here, which is exactly the handover an operator or a step-0 gate performs.
+    """
     _, a, b = trio
-    assert _cli(a, "claim", CONTRACT).returncode == single_flight.CLAIMED
+    claimed = _cli(a, "claim", CONTRACT)
+    assert claimed.returncode == single_flight.CLAIMED
+    token = next(ln.split("=", 1)[1].strip() for ln in claimed.stdout.splitlines()
+                 if ln.startswith("single_flight: token="))
+
     assert _cli(b, "claim", CONTRACT).returncode == single_flight.IN_FLIGHT
-    assert _cli(a, "release", CONTRACT).returncode == single_flight.CLAIMED
+    assert _cli(a, "release", CONTRACT, "--token", token).returncode == single_flight.CLAIMED
     assert _cli(b, "claim", CONTRACT).returncode == single_flight.CLAIMED
