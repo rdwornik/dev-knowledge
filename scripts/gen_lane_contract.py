@@ -561,7 +561,10 @@ def cmd_check(path: Path, expect_cloud: Optional[bool]) -> None:
 def cmd_enums() -> None:
     """Print the baked-in enums — the checkable surface a contract author reads."""
     click.echo(f"effort (this generator): {' | '.join(EFFORT_ENUM)}")
-    click.echo(f"effort (dispatch-routed): {' | '.join(sorted(DISPATCH_ROUTED_EFFORT))}")
+    # Enum order, not alphabetical: these are a ladder, and printing them sorted reads as
+    # `high | low | medium | xhigh`, which invites the wrong mental model.
+    routed = " | ".join(e for e in EFFORT_ENUM if e in DISPATCH_ROUTED_EFFORT)
+    click.echo(f"effort (dispatch-routed): {routed}")
     click.echo(f"model: {' | '.join(MODEL_ENUM)}   default: {DEFAULT_MODEL}")
     click.echo(f"mode: {' | '.join(MODE_ENUM)}   default: {DEFAULT_MODE}")
     click.echo(f"mandatory sections: {', '.join(MANDATORY_SECTIONS)}")
