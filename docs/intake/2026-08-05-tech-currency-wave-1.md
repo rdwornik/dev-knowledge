@@ -2,7 +2,6 @@
 intake-id: 24
 status: DRAFT
 origin: outgoing 2026-08-02→04 seat, operator-directed consolidation 2026-08-05; landed verbatim by the sealing architect's instruction
-consumed-by:
 ---
 
 > **Intake note:** Landed **verbatim** from PART B of the outgoing seat's two-part package.
@@ -86,3 +85,46 @@ consumption (FR-8a class) — sequence accordingly, never file-without-close-cap
 Renovate (rejected at current scale — L4 lane owns the revisit trigger) · PyDriller (L5a runs on
 own frames) · Backlog.md as engine (pattern donor only) · public repos for free CI minutes
 (employer material — repos stay private).
+
+## Template conformance (prep pass, 2026-08-21 — batch-1 lane D)
+
+Completeness pass against the protocol that governs intakes — `docs/intake/README.md` §2
+(doc format), §3 (frontmatter schema), §4 (naming), §5 (lifecycle) — plus the fill-in
+skeleton `templates/intake-template.md`. This doc **landed verbatim** (intake note above),
+so the body is NOT restructured: the eight template sections are **mapped** to where the
+verbatim body already carries them, and absences are **recorded** rather than filled with
+invented content. Appended below the body; nothing above this heading changed.
+
+- **Problem / motivation** — carried by `## WHY (the objective gap this intake closes)`.
+- **Scenarios (+1 view)** — **ABSENT.** The doc argues from measured fleet evidence (zero CI,
+  4× `--no-verify`, the 10+ day silent baseline task), not from operator walkthroughs. Not
+  back-filled: §2 calls scenarios load-bearing, and inventing them after the fact would
+  manufacture the very authority the doc's own library-first bar refuses.
+- **Functional requirements** — carried by `## WHAT — candidates, priority-ordered by value`;
+  the P1–P6 ordering is this doc's must/should/could.
+- **Acceptance criteria (ex-ante)** — **ABSENT as a section.** Per-candidate acceptance is
+  deferred by the doc's own subtitle to a MEASURED divergence run on this repo; the only
+  ex-ante item written down is P1's "Open verification item" (GitHub plan limits for
+  required-checks on private repos).
+- **Non-goals** — carried by `## Do-not-relitigate carried into this intake`.
+- **Impact sketch (4+1 lite)** — **ABSENT.** `## Sequencing note` carries the process view
+  (~5–6 rows, close-capacity law) and nothing carries logical / development / physical.
+- **Open questions** — **ABSENT as a section**; recorded inline (P1's verification item).
+- **Status** — added below.
+
+**Frontmatter fix landed by this pass:** the empty `consumed-by:` key was removed. README §3
+requires the companion fields "at their status" and says to "leave absent at any other
+status"; `consumed-by` is CONSUMED-only, so an empty key at DRAFT is off-schema. (The
+skeleton at `templates/intake-template.md` seeds `consumed-by:` with "leave blank until
+status: CONSUMED", which is where these empty keys come from — a template↔README conflict
+reported by this lane, not resolved by it.)
+
+**Naming (§4):** conformant — `2026-08-05-tech-currency-wave-1.md` carries the `tech` infix
+and the origin date.
+
+## Status
+
+**DRAFT** — landed verbatim 2026-08-05; prepped for ratification 2026-08-21 by batch-1 lane D.
+Zero rows born by this filing. The adoption-status view of this doc is tracked forward by
+intake **#27** (the tech-adoption consolidation ledger), which names itself its successor for
+that view.
