@@ -26,6 +26,7 @@ These tests are committed RED, before either fix, per the lane contract.
 """
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 import sys
@@ -62,6 +63,14 @@ def _identify(repo):
 def _cli(repo, *args):
     return subprocess.run([sys.executable, str(_SCRIPT), *args, "--repo", str(repo)],
                           capture_output=True, text=True, encoding="utf-8", errors="replace")
+
+
+def _cli_env(repo, env, *args):
+    """`_cli` with an EXPLICIT environment -- so a test can prove a property holds without the
+    run-id variable, rather than inheriting whatever an earlier test exported."""
+    return subprocess.run([sys.executable, str(_SCRIPT), *args, "--repo", str(repo)],
+                          capture_output=True, text=True, encoding="utf-8", errors="replace",
+                          env=env)
 
 
 def _remote_sha(repo, remote, ref) -> str:
@@ -189,6 +198,79 @@ def test_the_cli_fails_closed_on_an_unreadable_repo(tmp_path):
     result = _cli(nowhere, "inspect", CONTRACT, "--local-only")
     assert result.returncode == single_flight.INTERNAL_ERROR, result.stdout + result.stderr
     assert "FREE" not in result.stdout
+
+
+# --- what proves ownership: the local ref, NOT run_id equality ------------------------------
+
+@requires_git
+def test_claim_and_release_from_separate_processes_with_no_propagated_id(trio):
+    """The regression test for a fix that was briefly WRONG here.
+
+    Requiring the releasing process's run_id to EQUAL the lock's is the obvious stronger rule and
+    it breaks the only way the CLI is actually used: `claim` and `release` are separate
+    invocations, hence separate processes, hence different ids unless something propagates one. A
+    guard that cannot be released from the command line is an outage, not a guard.
+
+    The child environment is SCRUBBED of the run-id variable on purpose. The equality version of
+    this fix passed the existing CLI test only because an earlier test in the same session had
+    exported the variable into the pytest process, so both children inherited one id -- it passed
+    for the wrong reason, and this case removes that accident.
+    """
+    _bare, a, _b = trio
+    env = {k: v for k, v in os.environ.items() if k != "DEV_KNOWLEDGE_TELEMETRY_RUN_ID"}
+
+    claimed = _cli_env(a, env, "claim", CONTRACT)
+    assert claimed.returncode == single_flight.CLAIMED, claimed.stdout + claimed.stderr
+    released = _cli_env(a, env, "release", CONTRACT)
+    assert released.returncode == single_flight.CLAIMED, released.stdout + released.stderr
+    assert _remote_sha(a, "origin", LOCK) == "", "the holder's own release must free the lock"
+
+
+@requires_git
+def test_a_propagated_run_id_refuses_another_runs_lock(trio):
+    """The stronger check a caller opts into by propagating an id, and the hole it closes.
+
+    With no propagated id, `--local-only` has only the local ref to go on and two runs in one
+    clone share it. Passing `run_id=` makes ownership explicit, so a lock taken by a different
+    run is refused (exit 4) and LEFT STANDING rather than deleted on the way past.
+    """
+    _bare, a, _b = trio
+    assert single_flight.claim(CONTRACT, repo=a, remote="origin", run_id="run-one") == \
+        single_flight.CLAIMED
+    held = _remote_sha(a, "origin", LOCK)
+
+    assert single_flight.release(CONTRACT, repo=a, remote="origin", run_id="run-two") == \
+        single_flight.NOT_OURS
+    assert _remote_sha(a, "origin", LOCK) == held, "the other run's lock must be left standing"
+
+    assert single_flight.release(CONTRACT, repo=a, remote="origin", run_id="run-one") == \
+        single_flight.CLAIMED
+    assert _remote_sha(a, "origin", LOCK) == ""
+
+
+@requires_git
+def test_the_lock_object_carries_the_run_that_took_it(trio):
+    """R6(d)'s token, readable from the artifact itself -- which is what lets the refusal message
+    say WHOSE lock it is rather than only that it refused."""
+    _bare, a, _b = trio
+    single_flight.claim(CONTRACT, repo=a, remote="origin", run_id="deadbeefcafe")
+    held = _remote_sha(a, "origin", LOCK)
+    assert single_flight._lock_run_id(a, held) == "deadbeefcafe"
+
+
+@requires_git
+def test_a_lock_carrying_no_run_id_is_refused_not_deleted(trio):
+    """A ref taken by hand, or by the pre-fix shape, cannot be proven ours.
+
+    Fail-closed: refuse and print how to clear it, rather than delete something unidentified on
+    the way past. This is the case that keeps the stale-lock residual an OPERATOR action.
+    """
+    _bare, a, _b = trio
+    _git(a, "push", "origin", f"HEAD:{LOCK}")      # a hand-taken lock: no lock object, no run_id
+    _git(a, "fetch", "-q", "origin", f"{LOCK}:{LOCK}")
+    assert single_flight.release(CONTRACT, repo=a, remote="origin", run_id="mine") == \
+        single_flight.NOT_OURS
+    assert _remote_sha(a, "origin", LOCK), "an unidentified lock must be left standing"
 
 
 @requires_git

@@ -121,12 +121,25 @@ def test_t1_claim_new_lock_succeeds(trio):
 
 
 @requires_git
-def test_t1_the_lock_ref_points_at_the_claimant_head(trio):
-    """`git show <lock>` names the holder -- which under I-D3 is the contract-of-record commit."""
+def test_t1_the_lock_ref_names_the_claimant_head_and_the_run(trio):
+    """`git show <lock>` names the holder -- which under I-D3 is the contract-of-record commit.
+
+    UPDATED 2026-08-21 by `[#530]` race (a) / ruling R6(d): the ref no longer IS HEAD, it is a
+    lock object PARENTED on HEAD and carrying the run's `[#565]` id. The old shape -- ref == HEAD
+    -- is exactly what made the ABA unfixable, because racers share HEAD and two locks were
+    therefore the same value. The self-documenting property this test was written for is intact
+    and wider: the contract-of-record commit is still reachable, and the run is now named too.
+    """
     _, a, _b = trio
     single_flight.claim(CONTRACT, repo=a, remote="origin")
     head = _git(a, "rev-parse", "HEAD").stdout.strip()
-    assert _git(a, "ls-remote", "origin", LOCK).stdout.split()[0] == head
+    lock_sha = _git(a, "ls-remote", "origin", LOCK).stdout.split()[0]
+
+    assert lock_sha != head, "a lock that IS HEAD cannot identify which run holds it"
+    assert _git(a, "rev-parse", f"{lock_sha}^").stdout.strip() == head, (
+        "the lock object must be parented on the contract-of-record commit")
+    body = _git(a, "cat-file", "commit", lock_sha).stdout
+    assert CONTRACT in body and "run_id: " in body
 
 
 # --- T2: the racer that never fetched is still refused -----------------------
@@ -157,9 +170,16 @@ def test_t2_the_lease_alone_does_not_refuse_a_same_value_racer(trio):
 
     So the guard reads the `--porcelain` status FLAG, not the exit code. This test pins the raw
     behaviour that makes that necessary; if a future git starts rejecting here, this fails and the
-    guard can be simplified deliberately rather than by accident."""
+    guard can be simplified deliberately rather than by accident.
+
+    SETUP CHANGED 2026-08-21, and only the setup: A's side is now a RAW push of HEAD onto the lock
+    ref rather than a `single_flight.claim`. Since race (a) / R6(d), a claim points the ref at a
+    run_id-bearing object, so two claims no longer produce the same value and the module can no
+    longer stage this scenario. What is under test here is GIT's behaviour, not the module's, so
+    the setup is git's too -- and it must stay reachable: the porcelain-flag discrimination in the
+    guard is only justified while this remains true of git."""
     _, a, b = trio
-    single_flight.claim(CONTRACT, repo=a, remote="origin")
+    _git(a, "push", "origin", f"HEAD:{LOCK}")     # raw, so the held value IS a HEAD both share
     assert _git(a, "rev-parse", "HEAD").stdout == _git(b, "rev-parse", "HEAD").stdout
 
     raw = _git(b, "push", "--porcelain", f"--force-with-lease={LOCK}:", "origin", f"HEAD:{LOCK}",
@@ -234,9 +254,13 @@ def test_t4_the_trap_plain_push_of_the_same_commit_returns_zero(trio):
     """THE TRAP. Both clones sit at one commit -- the normal batch-dispatch state -- and a plain
     push onto the held lock ref reports success. If this test ever fails, git changed; if the
     guard is ever rewritten to use a plain push, this is the evidence that it greenlights the
-    race."""
+    race.
+
+    SETUP CHANGED 2026-08-21 for the reason given on the T2 same-value case above: A's side is a
+    RAW push, because since race (a) / R6(d) a claim no longer puts a shared HEAD on the ref. The
+    trap itself is untouched and still witnessed."""
     _, a, b = trio
-    single_flight.claim(CONTRACT, repo=a, remote="origin")
+    _git(a, "push", "origin", f"HEAD:{LOCK}")     # raw, so the held value IS a HEAD both share
     assert _git(a, "rev-parse", "HEAD").stdout == _git(b, "rev-parse", "HEAD").stdout
 
     raw = _git(b, "push", "origin", f"HEAD:{LOCK}", check=False)

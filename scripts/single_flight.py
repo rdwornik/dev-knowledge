@@ -50,7 +50,17 @@ pre-check. Do NOT reach for `refs/worktree/…`: evidence T9 proves that namespa
 and invisible to the primary — the exact opposite of what a lock needs.
 
 EXIT CODES (`claim`): **0** claimed · **3** already in flight · **2** internal error.
-`release` and `inspect` answer 0 / 2 only; neither reports contention, because neither contends.
+`release`: **0** free · **4** held by a DIFFERENT run, left standing · **2** internal error.
+`inspect` answers 0 / 2 only — it does not contend, and the answer is the printed line.
+
+THE LOCK REF POINTS AT A run_id-BEARING OBJECT, NOT AT HEAD ([#530] race (a), ruling R6(d)). It
+pointed at HEAD until 2026-08-21, and that was the defect: the racers this guard exists for SHARE
+HEAD, so two claims produced the same ref value and no compare-and-swap could tell them apart.
+`claim` now builds a commit carrying `[#565]`'s `run_id` (parented on HEAD, so `git show <ref>`
+still names the contract-of-record commit AND now the run that took the lock), and `release`
+compares-and-swaps on it — locally via `update-ref -d <ref> <sha>`, remotely via
+`--force-with-lease=<ref>:<sha>` on the DELETE. A lock that cannot be proven ours is refused and
+left standing rather than deleted on the way past.
 
 FAIL **CLOSED** — an internal error exits 2 and the caller must not proceed. Same posture as
 `block_ff_push` since the ADR-85 amendment 2026-08-03 §A6, and for the same recorded reason: a
@@ -79,16 +89,44 @@ HONEST LIMITS (per state-honest-enforcement-limits):
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import os
 import subprocess
 import sys
 from pathlib import Path
 
+# `[#565]`'s run_id is the generation-unique token race (a) needs, and reusing it rather than
+# minting a second one is what makes a lock and the telemetry events of the run that took it
+# correlate. Loaded BY PATH for the reason `telemetry_emit` states about `gitenv.py`: `import
+# telemetry_emit` and `from scripts import telemetry_emit` each have a shadow hole, and ordering
+# them only moves it. Unconditional at import, like that precedent -- the two modules ship
+# together in `scripts/`, telemetry_emit has no third-party dependency, and a guard that silently
+# minted its own id would put two id namespaces in one store.
+_te_spec = importlib.util.spec_from_file_location(
+    "dev_knowledge_telemetry_emit", Path(__file__).resolve().with_name("telemetry_emit.py"))
+_te = importlib.util.module_from_spec(_te_spec)
+_te_spec.loader.exec_module(_te)
+
 CLAIMED = 0
 INTERNAL_ERROR = 2
 IN_FLIGHT = 3
+#: `release` refused: the lock is held by a DIFFERENT run. Distinct from 2 on purpose -- this is a
+#: policy refusal, not a crash, and this module already argues (see `block_ff_push._emit_verdict`)
+#: that conflating the two inflates every "what did this gate refuse" count with the gate's own
+#: bugs. `[#530]` race (a).
+NOT_OURS = 4
 
 LOCK_NAMESPACE = "refs/locks/"
+
+#: The `[#565]` correlation id, embedded in the lock object and CAS'd on at release. Read back
+#: with `_lock_run_id`; the prefix is matched at the start of a line in the commit body.
+_RUN_ID_FIELD = "run_id: "
+
+#: Identity for the lock OBJECT. Fixed, so a lock is a machine artifact rather than a record of
+#: whoever happened to hold it: `commit-tree` fails outright where `user.email` is unset (a hook
+#: on a fresh CI checkout), and a lock that cannot be taken because git has no name for you is a
+#: guard that refuses honest work.
+_LOCK_IDENTITY = ("-c", "user.name=single-flight", "-c", "user.email=single-flight@localhost")
 
 # `git push --porcelain` prints one `<flag>\t<from>:<to>\t<summary>` line per ref. The flag is a
 # single untranslated character, which is why the verdict is read from it and not from the exit
@@ -183,6 +221,29 @@ def _refusal(ref: str, holder: str, remote: str | None) -> None:
           f"   two lines above name the holder and clear it.)", file=sys.stderr)
 
 
+def _not_ours(ref: str, holder: str, owner: str | None, remote: str | None) -> None:
+    """`release` refusing to delete a lock this run does not hold. `[#530]` race (a).
+
+    Prints WHY it is not ours -- a different run_id, or none at all -- because "refused" without
+    that is indistinguishable from the guard being broken, and an operator who cannot tell the
+    two apart clears the lock by hand and reopens the race.
+    """
+    if owner is None:
+        whose = "it carries no run_id (taken by hand, or before this guard tokenised locks)"
+    else:
+        whose = f"it belongs to run {owner[:8]}"
+    if remote is None:
+        inspect_cmd, release_cmd = f"git show {ref}", f"git update-ref -d {ref}"
+    else:
+        inspect_cmd = f"git fetch {remote} {ref} && git show FETCH_HEAD"
+        release_cmd = f"git push {remote} :{ref}"
+    print(f"SINGLE-FLIGHT REFUSAL: not releasing {ref} at {holder[:8]} — {whose}, not this run.\n"
+          f"  The lock is LEFT STANDING. Deleting another run's lock would put two executions of\n"
+          f"  one contract in flight, which is what this guard exists to refuse.\n"
+          f"  inspect: {inspect_cmd}\n"
+          f"  release: {release_cmd}   (only if you have established it is dead)", file=sys.stderr)
+
+
 def _push_status(stdout: str, ref: str) -> tuple[str, str]:
     """The `--porcelain` status flag and summary for `ref`, or ('', '') if git reported none.
 
@@ -203,9 +264,87 @@ def _head_sha(repo: Path) -> str:
     return r.stdout.strip()
 
 
-def _local_holder(repo: Path, ref: str) -> str:
+def lock_object(repo: Path, contract_id: str, run_id: str) -> str:
+    """Build the object the lock ref points at: a commit carrying `run_id`, parented on HEAD.
+
+    `[#530]` race (a), ruling R6(d) -- "release compares-and-swaps on run_id, never on branch
+    tip". THE REF USED TO POINT AT HEAD, and that is the whole defect: the racers this guard
+    exists for share HEAD (N lanes forking from one commit is the normal batch-dispatch state,
+    and this module's own docstring says so), so the ref value could not identify WHO held the
+    lock. Two claims produced the same value and no compare-and-swap could tell them apart.
+
+    A commit whose message carries the run_id is generation-unique -- different run_id, different
+    message, different sha (verified 2026-08-21) -- so the ref value BECOMES the identity, and
+    `--force-with-lease` can then guard the delete as well as the create.
+
+    The self-documenting property the old shape had is kept and widened rather than traded away:
+    the lock commit is parented on HEAD, so `git show <ref>` still names the contract-of-record
+    commit, its message and its time, and now also names the run that took the lock.
+    """
+    head = _head_sha(repo)
+    message = f"single-flight lock: {contract_id}\n\n{_RUN_ID_FIELD}{run_id}\n"
+    r = _git(repo, *_LOCK_IDENTITY, "commit-tree", f"{head}^{{tree}}", "-p", head, "-m", message)
+    if r.returncode != 0:
+        raise SingleFlightError(f"cannot build the lock object: {r.stderr.strip()}")
+    sha = r.stdout.strip()
+    if not sha:
+        raise SingleFlightError("git commit-tree returned no object")
+    return sha
+
+
+def _lock_run_id(repo: Path, sha: str) -> str | None:
+    """The `run_id` recorded in the lock object at `sha`, or `None` if it carries none.
+
+    `None` is NOT read as "mine" anywhere. A ref pointing at something this module did not write
+    -- a lock taken by the pre-`[#530]`-fix shape, or by hand -- cannot be proven ours, and the
+    fail-closed answer is to refuse and let the operator clear it with the two commands the
+    refusal message prints.
+    """
+    r = _git(repo, "cat-file", "commit", sha)
+    if r.returncode != 0:
+        return None
+    for line in r.stdout.splitlines():
+        if line.startswith(_RUN_ID_FIELD):
+            return line[len(_RUN_ID_FIELD):].strip() or None
+    return None
+
+
+def resolve_ref_once(repo: Path, ref: str) -> str | None:
+    """Resolve `ref` to a sha, ONCE, as a TRI-STATE. `[#530]` race (b), ruling R6(d).
+
+    `<sha>` -> held. `None` -> genuinely absent. Anything else RAISES, and that third branch is
+    the entire point: the previous `_local_holder` mapped every non-zero exit onto "absent", so a
+    repository git could not read at all was reported as a FREE lock. `inspect --local-only`
+    printed FREE and `release --local-only` reported success, neither having read any state --
+    a guard whose failure mode is indistinguishable from its clean state, which is the fail-OPEN
+    shape this module rejects everywhere else.
+
+    R6(d) rules that resolve-once is SEPARATED from `rev-parse`, and this function is that
+    separation: the git call is an implementation detail behind a three-valued answer, and every
+    caller resolves ONCE and passes the value down rather than re-asking.
+
+    WHY `rev-parse --verify --quiet` AND NOT `show-ref --verify`, measured 2026-08-21 on git
+    2.55.0.windows.3 rather than assumed -- the obvious alternative re-introduces the bug:
+
+        rev-parse --verify --quiet  existing -> 0   missing -> 1     unreadable -> 128
+        show-ref  --verify          existing -> 0   missing -> 128   unreadable -> 128
+
+    `show-ref` answers "missing" and "unreadable" with the SAME code, so a tri-state built on it
+    would collapse right back into the conflation it was written to fix.
+    """
     r = _git(repo, "rev-parse", "--verify", "--quiet", ref)
-    return r.stdout.strip() if r.returncode == 0 else ""
+    if r.returncode == 0:
+        sha = r.stdout.strip()
+        if not sha:
+            raise SingleFlightError(f"git reported {ref} as resolvable but returned no sha")
+        return sha
+    if r.returncode == 1:
+        return None
+    raise SingleFlightError(
+        f"cannot resolve {ref} in {repo}: git exited {r.returncode} "
+        f"({r.stderr.strip() or 'no stderr'}). Refusing to report a lock state that was never "
+        f"read -- 'could not ask' is not 'nothing was there'"
+    )
 
 
 def _remote_holder(repo: Path, remote: str, ref: str) -> str:
@@ -217,16 +356,24 @@ def _remote_holder(repo: Path, remote: str, ref: str) -> str:
 
 
 def claim(contract_id: str, repo: Path | str = ".", remote: str = "origin",
-          local_only: bool = False) -> int:
-    """Claim the contract. 0 = claimed · 3 = already in flight · raises on internal failure."""
+          local_only: bool = False, run_id: str | None = None) -> int:
+    """Claim the contract. 0 = claimed · 3 = already in flight · raises on internal failure.
+
+    `run_id` pins the token this claim is taken under; it defaults to `[#565]`'s
+    `current_run_id()`, which inherits `$DEV_KNOWLEDGE_TELEMETRY_RUN_ID` when a dispatcher has
+    exported one. Pass it (or export it) around a claim/release pair to get `release`'s stronger
+    ownership check, and to make the lock and that run's telemetry events correlate.
+    """
     repo = Path(repo)
     ref = lock_ref(contract_id, repo)
-    sha = _head_sha(repo)
+    # The token, and the object that carries it. NOT HEAD — see `lock_object`.
+    run_id = run_id or _te.current_run_id()
+    sha = lock_object(repo, contract_id, run_id)
 
     # Leg 1 — local, network-free, cross-worktree within this clone (T6/T7).
     local = _git(repo, "update-ref", "--stdin", stdin=f"create {ref} {sha}\n")
     if local.returncode == _LOCAL_HELD_EXIT and _LOCAL_HELD_MARKER in local.stderr.lower():
-        _refusal(ref, _local_holder(repo, ref), remote=None)
+        _refusal(ref, resolve_ref_once(repo, ref) or "", remote=None)
         return IN_FLIGHT
     if local.returncode != 0:
         # 128 is also git's generic fatal, so the MARKER decides, not the code. Reading 128 alone
@@ -234,17 +381,17 @@ def claim(contract_id: str, repo: Path | str = ".", remote: str = "origin",
         # the guard reported a lock that no one held.
         raise SingleFlightError(f"local claim failed: {local.stderr.strip()}")
     if local_only:
-        print(f"single_flight: claimed {ref} at {sha[:8]} (LOCAL ONLY — this clone, no remote "
-              f"arbitration; a second clone is not refused)")
+        print(f"single_flight: claimed {ref} at {sha[:8]} (run {run_id[:8]}) (LOCAL ONLY — this "
+              f"clone, no remote arbitration; a second clone is not refused)")
         return CLAIMED
 
     # Leg 2 — the remote compare-and-swap. The empty expect after `=<ref>:` means "must not exist".
     # The claim is won ONLY on the porcelain flag `*`: exit 0 also covers `= [up to date]`, which is
     # the same-HEAD race arriving as a success (measured, see the module docstring).
-    push = _git(repo, "push", "--porcelain", f"--force-with-lease={ref}:", remote, f"HEAD:{ref}")
+    push = _git(repo, "push", "--porcelain", f"--force-with-lease={ref}:", remote, f"{sha}:{ref}")
     flag, summary = _push_status(push.stdout, ref)
     if push.returncode == 0 and flag == _PUSH_NEW:
-        print(f"single_flight: claimed {ref} at {sha[:8]} on {remote}")
+        print(f"single_flight: claimed {ref} at {sha[:8]} (run {run_id[:8]}) on {remote}")
         return CLAIMED
 
     # Refused or broken — either way this clone does not hold the lock, so undo leg 1. The old-value
@@ -263,24 +410,101 @@ def claim(contract_id: str, repo: Path | str = ".", remote: str = "origin",
 
 
 def release(contract_id: str, repo: Path | str = ".", remote: str = "origin",
-            local_only: bool = False) -> int:
-    """Delete the lock ref, locally and (unless local_only) on the remote. IDEMPOTENT: releasing a
-    lock that is not held is a success, so a re-run after a partial failure is safe."""
+            local_only: bool = False, run_id: str | None = None) -> int:
+    """Release the lock THIS RUN holds. 0 = free · 4 = held by a different run · raises on error.
+
+    IDEMPOTENT where it should be: releasing a lock nobody holds is still a success, so a re-run
+    after a partial failure is safe. What is no longer a success is deleting SOMEBODY ELSE'S
+    lock, which is `[#530]` race (a).
+
+    THE ABA, and why a value guard alone never closed it. The witnessed order is: A claims; the
+    lock looks stale so an operator clears it BY HAND (the escape this module's own refusal
+    message prints, so a supported action); B legitimately re-claims; A finishes and cleans up.
+    A's cleanup was a bare `git push <remote> :<ref>` — an unguarded delete that carries no
+    expectation and therefore always wins — so it deleted B's LIVE lock and put two executions of
+    one contract in flight THROUGH the guard rather than around it. Guarding on the ref's value
+    would not have helped either, because while the ref pointed at HEAD both locks HAD the same
+    value: the racers share HEAD by construction.
+
+    THE FIX, per R6(d): the ref points at a run_id-bearing object (`lock_object`), so the ref
+    VALUE is the run's identity, and the delete compares-and-swaps on it:
+
+      * remote — `push --force-with-lease=<ref>:<sha> <remote> :<ref>`, where `<sha>` is the lock
+        object THIS clone put there. Verified 2026-08-21 that the lease guards a DELETE and not
+        only a create: a wrong expectation yields `! [rejected] (stale info)` with the remote ref
+        INTACT, the right one yields `- [deleted]`. This is the leg that closes the ABA — after
+        the manual clear the remote holds B's object, our expectation names A's, and git refuses;
+      * local — `update-ref -d <ref> <sha>`, value-guarded, so only the ref this clone created is
+        removed.
+
+    WHAT PROVES OWNERSHIP, stated precisely because the obvious stronger rule is WRONG. Ownership
+    is the LOCAL REF, not run_id equality: `update-ref create` is exclusive within a clone, so a
+    local ref at a lock object is proof that this clone took it. Requiring the releasing process's
+    run_id to EQUAL the lock's would break the only way the CLI is actually used — `claim` and
+    `release` are separate invocations, hence separate processes, hence different ids unless
+    something propagates one — and a guard that cannot be released from the command line is not a
+    guard, it is an outage. (That mistake was made and caught here: the CLI end-to-end test passed
+    only because an earlier test in the same session had exported the variable into the pytest
+    process, so both children inherited one id. It passed for the wrong reason.)
+
+    A caller that DOES propagate an id gets the stronger check for free: pass `run_id=` or export
+    `$DEV_KNOWLEDGE_TELEMETRY_RUN_ID` around the whole dispatch, and a lock belonging to a
+    different run is refused even when the local ref would have vouched for it.
+
+    HONEST LIMIT: with no propagated id, `--local-only` has only the local ref to go on, and two
+    runs in ONE clone share it — so a sibling's local lock can be released. The remote leg has no
+    such hole (the lease arbitrates), which is why `--local-only` is documented as degraded
+    protection. Propagating the run_id closes it.
+
+    A lock this module cannot prove is ours is REFUSED and left standing (exit 4), never deleted
+    on the way past. The stale-lock residual is unchanged and still the ruled option (a): git has
+    no TTL, so a genuinely dead lock is cleared by a visible operator action, and the refusal
+    prints the two commands that do it.
+    """
     repo = Path(repo)
     ref = lock_ref(contract_id, repo)
-    held = _local_holder(repo, ref)
-    if held:
+    # A DECLARED id only -- never a freshly minted one. `current_run_id()` would invent an
+    # identity here and then measure ownership against it, which is how the CLI got broken above.
+    declared = run_id if run_id is not None else (
+        os.environ.get(_te.RUN_ID_ENV, "").strip() or None)
+
+    held = resolve_ref_once(repo, ref)       # tri-state: raises rather than guessing (race (b))
+    if held is not None:
+        owner = _lock_run_id(repo, held)
+        if declared is not None and owner != declared:
+            _not_ours(ref, held, owner, None if local_only else remote)
+            return NOT_OURS
         local = _git(repo, "update-ref", "-d", ref, held)
         if local.returncode != 0:
             raise SingleFlightError(f"local release failed: {local.stderr.strip()}")
     if local_only:
         print(f"single_flight: {ref} is now free locally")
         return CLAIMED
-    push = _git(repo, "push", remote, f":{ref}")
+
+    if held is None:
+        # No local ref, so no token to swap against. Ask the remote before touching it: absent is
+        # the idempotent success, and anything present belongs to a run that is not this one --
+        # this process never wrote a lock it cannot see locally.
+        remote_sha = _remote_holder(repo, remote, ref)
+        if not remote_sha:
+            print(f"single_flight: {ref} is now free on {remote}")
+            return CLAIMED
+        _not_ours(ref, remote_sha, None, remote)
+        return NOT_OURS
+
+    push = _git(repo, "push", "--porcelain", f"--force-with-lease={ref}:{held}", remote, f":{ref}")
     if push.returncode != 0:
         blob = f"{push.stderr}\n{push.stdout}".lower()
-        if "remote ref does not exist" not in blob:
-            raise SingleFlightError(f"remote release failed: {push.stderr.strip()}")
+        if "remote ref does not exist" in blob:
+            print(f"single_flight: {ref} is now free on {remote}")
+            return CLAIMED
+        if any(m in blob for m in _CONTENTION_MARKERS):
+            # The lease refused: the remote moved under us, which is the ABA arriving. OUR lock is
+            # already gone (the local leg cleared it); somebody else's is standing and stays that
+            # way. Said loudly rather than reported as a clean release.
+            _not_ours(ref, _remote_holder(repo, remote, ref), None, remote)
+            return NOT_OURS
+        raise SingleFlightError(f"remote release failed: {push.stderr.strip()}")
     # "is now free", not "released": a delete of a ref that was never held reports `- [deleted]`
     # and exit 0 against GitHub (measured 2026-08-15), so the outcome is knowable and the action
     # is not. The freed state is what the caller acts on, so that is what gets claimed.
@@ -295,7 +519,7 @@ def inspect(contract_id: str, repo: Path | str = ".", remote: str = "origin",
     repo = Path(repo)
     ref = lock_ref(contract_id, repo)
     if local_only:
-        holder = _local_holder(repo, ref)
+        holder = resolve_ref_once(repo, ref) or ""
         scope, show_cmd, release_cmd = "locally", f"git show {ref}", f"git update-ref -d {ref}"
     else:
         holder = _remote_holder(repo, remote, ref)
@@ -323,10 +547,17 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--remote", default="origin", help="remote acting as arbiter (default: origin)")
     parser.add_argument("--local-only", action="store_true",
                         help="skip the remote leg — same-clone protection only, no network")
+    parser.add_argument("--run-id", default=None,
+                        help="the [#565] run token this claim/release is made under (default: "
+                             "$DEV_KNOWLEDGE_TELEMETRY_RUN_ID, else a fresh one per invocation). "
+                             "Pass or export the SAME value across a claim/release pair to get "
+                             "release's stronger ownership check")
     args = parser.parse_args(argv)
+    kwargs = {"repo": args.repo, "remote": args.remote, "local_only": args.local_only}
+    if args.verb in ("claim", "release"):
+        kwargs["run_id"] = args.run_id
     try:
-        return _VERBS[args.verb](args.contract_id, repo=args.repo, remote=args.remote,
-                                 local_only=args.local_only)
+        return _VERBS[args.verb](args.contract_id, **kwargs)
     except SingleFlightError as exc:
         print(f"single_flight: internal error — {exc}", file=sys.stderr)
         return INTERNAL_ERROR
