@@ -1,6 +1,8 @@
 ---
 intake-id: 27
-status: DRAFT
+status: ACCEPTED
+decided-by: batch-1 lane D ratification, 2026-08-21 — frozen contract LANE-RAT-intakes.md (ruled split R5, per outgoing-architect Q4); an off-repo contract, cited per the off-repo-ratifying-act precedent (protocols/STANDING_RULINGS.md section I)
+disposition: active
 origin: "2026-08-06 operator-directed retrospective + tech-adoption audit, browser seat of the sealed 2026-08-05/06 window; consolidates and SUPERSEDES-as-ledger the adoption-status view of intake #24 (tech-currency wave 1) and intake #25 (simplification & distribution wave); landed verbatim by operator instruction"
 note: "Parents: intake #24 · intake #25 · ADR (parallel-execution way-of-working, successor Phase 2). Landed VERBATIM by operator instruction (ARC-2 S-batch contract 1) — body unedited. The source frontmatter carried an off-schema `parents:` key (README §3 schema); its value is preserved here as prose rather than dropped. ERRATUM 2026-08-06 (architect-ruled, batch-1 night audit): the verbatim body carried two references to a section §D that this document does not contain — its sections are §A/§B/§C/§F. Both pointed at the four NEW EVAL candidates, which live in §A as items 33–36 (`pytest-xdist`, `jsonc-parser`, `check-jsonschema`, `mise`) and which §F already names by that number range. Repaired in place to `§A items 33–36` (WHY line) and `§A item 35` (row 18, check-jsonschema reshaping W-6) — a locator repair only; no status, priority class, evidence or item text changed, and no §D/§E section was created. This is the ONLY departure from verbatim. ERRATUM 2026-08-08 (morning integrate-and-cut arc, operator-directed): while `status: DRAFT` this ledger is editable — the same standing the 2026-08-06 §D repair above relied on — and four ledger-truth edits landed. (1) SPENT PEG: rows 13/14/15/16/21/24 all read `DEFERRED(batch 2 …)`, but batch 2 ran and closed with ZERO W-items, so those six statuses were locators pointing at a finished event; re-pegged to `DEFERRED(W-wave batch — after intake #25 acceptance + births)`, each row's own recorded collision/hazard qualifier preserved verbatim. (2) §9 of `docs/audits/2026-08-08-technical-library-research.md` applied — two ADDITIONS as new §A rows 37 (`Closes:` git trailer) and 40 (`sys.path` substrate / pytest `pythonpath`), and two AMENDMENTS landing in the shapes the memo proposed rather than as rows: item 38 folded into §A item 35, item 39 into the Sequencing note as an explicitly unratified proposal. (3) ANNOTATIONS: item 34 carries a maintenance flag (jsonc-parser cold since v3.3.1, 2024-06, plus the npm-runtime cost) and item 36 carries the recurrence evidence (THREE organs silenced by the uv pin, the third an unbidden fail-open Stop hook) with the memo's divergence question quoted. NO status, priority class or item text was changed except as listed; ZERO BACKLOG rows born, zero closed, no §A row removed, and the 38/39 numbering gap is documented in §A rather than left silent. ERRATUM 2026-08-09 (ARC-1 consolidation hygiene): two §A rows had gone FALSE against live state and were amended on measurement, under the same `status: DRAFT` editability the two errata above relied on. (1) ROW 33 (`pytest-xdist`) read `NEW EVAL candidate` targeting `410s` while the tool is ADOPTED AND HOLDING — `addopts = \"-n auto\"` landed at d11dda35, authorized in ADR-110's decision table, eval record STANDING_RULINGS E1; both of the cell's premises were dead, since the measured serial baseline is 1785.61s (never 410s) and the suite is 2716 passing (never 2362). Amended to ADOPTED with the adoption measurement (serial 1785.61s vs -n auto 358.77s/330.15s, ~5.2x) and the live wall clock (539.12s) cited inline; the class column is marked P-B SPENT because an adopted tool cannot be the P-B item a gap-week consumes. The as-landed cell text is quoted inside the amended cell rather than deleted. (2) ROW 36 (`mise`) carried a P-B gap-week class while the uv-pin class recurred a FOURTH time, fleet-wide: on 2026-08-09 all five night lanes ran with NO executable gate mesh (uv 0.8.17 against the ADR-106 ==0.11.19 pin; .git/hooks/ samples only), which is why those five reports had to be re-verified locally after the fact. The class change (gap-week eval -> cloud-channel precondition) is recorded as PROPOSED, NOT RULED — no operator ruling covers it — and the row's own honest counter (mise would not have fixed that night, because the missing thing was a specific uv version) is explicitly preserved as unanswered. NO other row, status, priority class or item text changed; ZERO BACKLOG rows born, zero closed, no row removed. Sec C's P-B enumeration is left standing as the as-landed record with a dated parenthetical noting 33 is spent and 36 is proposed-only — the same shape the WHY paragraph's counts use."
 ---
@@ -157,6 +159,20 @@ the shape the 2026-08-08 ratification amendment already uses.
 
 ## Status
 
-**DRAFT** — landed verbatim 2026-08-06; three dated errata since; prepped for ratification
-2026-08-21 by batch-1 lane D. Zero rows born by this filing. This doc is the successor ledger
-for the adoption-status view of intake **#24** and intake **#25**.
+**ACCEPTED** (`decided-by` + `disposition: active`) — batch-1 lane D, 2026-08-21. Landed
+verbatim 2026-08-06 with three dated errata since; prepped and transitioned in the same lane.
+This doc is the successor ledger for the adoption-status view of intake **#24** and intake
+**#25**, and it is ACCEPTED as a standing authority in the README §5 sense: the ledger is the
+record of what the fleet has adopted, evaluated, deferred or refused. It is **not** an
+authorisation to adopt — every §A item still owes its measured-divergence run and its ADR-112
+two-tier pricing.
+
+**PENDING-CARRIER at the time of writing.** Per `protocols/STANDING_RULINGS.md` **P-2**, an
+intake at ACCEPTED carries at least one live carrier row or a dated deferral. `tasks/` is
+SEAT-owned this batch, so this lane emitted a **generator-ready carrier-row spec** in
+`ARTIFACT-lane-rat.md` (worktree root) instead of landing the row itself; the seat lands it and
+the integrator sequences this lane's merge **after** the seat's, so no orphan window exists on
+`main`. Verified at prep time: zero rows in `tasks/` cite intake #27.
+
+**Editability has ended.** The DRAFT standing the three errata relied on is spent — a
+ledger-truth correction is now an appended amendment, not an in-place edit.
