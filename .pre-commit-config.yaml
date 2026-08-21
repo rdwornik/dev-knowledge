@@ -164,6 +164,25 @@ repos:
         language: system
         files: '^BACKLOG\.md$'
         pass_filenames: false
+      - id: lane-contract-check
+        name: Lane-contract shape gate ([#539]; HUB-ONLY)
+        # A generator-emitted lane contract (Q6) is checkable at commit time: every
+        # mandatory section present, the dispatch line and the routing row agreeing on
+        # the tier, and the worktree<->file pairing self-consistent with the `worktree-`
+        # prefix applied exactly once. Honest limit: it checks SHAPE, never whether the
+        # contract's footprint claims are true.
+        #
+        # SCOPE, per the architect ruling of 2026-08-21: the `files:` pattern matches the
+        # GENERATOR'S OWN EMITTED NAME SHAPE (`LANE-<slug>.md`), not the contract-of-record
+        # home. The eleven batch-1 contracts committed at
+        # `docs/audits/2026-08-21-*-lane-contract.md` predate `gen_lane_contract.py`, carry
+        # a title-plus-prose shape, and fail this check 11-for-11. They are records of an
+        # already-executed batch, not templates: retro-fitting them would falsify what was
+        # actually dispatched, so they are grandfathered as immutable historical evidence
+        # and deliberately left OUTSIDE this glob. The gate governs batch 2 onward.
+        entry: uv run --locked python scripts/gen_lane_contract.py check
+        language: system
+        files: '(^|/)LANE-[^/]*\.md$'
       - id: audit-health
         name: Audit self-conformance gate (FAIL blocks the commit; WARN only informs)
         # `audit.py health` exits 1 only on a FAIL finding (structural integrity,

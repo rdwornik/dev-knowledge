@@ -2139,6 +2139,16 @@ derived from the ADR-101 class enum — and the manifest's lane rows point at it
 prompts dir as a *delivery channel* rather than a storage location, which is what a
 `<PROMPTS_DIR>` reference already implies.
 
+**The cutover, dated (architect ruling 2026-08-21).** Batch-1 contracts predate
+`gen_lane_contract` and are **records, not templates**; every later contract is
+generator-emitted and hook-checked. The eleven committed at
+`docs/audits/2026-08-21-*-lane-contract.md` carry a title-plus-prose shape that fails
+`gen_lane_contract check` 11-for-11, and they are grandfathered rather than retro-fitted:
+editing a contract after its batch executed would falsify the record of what was actually
+dispatched. The `lane-contract-check` pre-commit gate is therefore scoped to the
+generator's own emitted name shape (`LANE-<slug>.md`), so it governs batch 2 onward and
+ignores the record.
+
 **Inline-with-a-dummy-filename is a forbidden dispatch form.** A dispatch line naming a file that
 was pasted rather than committed records a locator that resolves to nothing, which is the whole of
 what this rule closes. Q6 is the **unconditional** reading of `protocols/STANDING_RULINGS.md`
