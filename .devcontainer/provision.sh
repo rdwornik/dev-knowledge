@@ -11,10 +11,20 @@
 #   L3  all THREE git hook types are armed                 (the witnessed relic-hooksPath class)
 #   L4  a half-provisioned environment refuses to start    (`--gate`, wired to postStartCommand)
 #
-# plus the two obligations the lane contract adds on top of the row:
+# plus the two obligations the first lane contract added on top of the row:
 #   C1  idempotent — a second run is a no-op AND SAYS SO
 #   C2  a gate-liveness smoke — run one cheap REAL gate and assert exit 0. Provisioning that
 #       cannot prove its gates execute is precisely the failure shape above.
+#
+# plus two more the 2026-08-21 lane added, both of them things the 2026-08-19 proof lane MEASURED
+# rather than anticipated (`docs/audits/2026-08-19-technical-554-proof.md`):
+#   L2b the clone has the REFS a spine walker reads, not merely the DEPTH L2 restores. The proof
+#       lane's container had 5329 commits and no local `main`, and every first-parent-spine
+#       instrument then errored out. This is contract amendment B1, and it runs before hooks are
+#       armed. Declared, not hardcoded: `.devcontainer/provisioning.yaml`.
+#   L5  at least one repo is registered under `ecosystem/`. `audit.py health` counts
+#       `ecosystem/*/state.yaml`, that glob is gitignored, and so no clone has ever carried one —
+#       which is the single remaining `[!!]` between this substrate and the row's D1a Done-when.
 #
 # SINGLE SOURCE OF PINS. Nothing below hardcodes a version that already has a home in the repo:
 #   uv          <- pyproject.toml [tool.uv] required-version   (read, and required to be `==`)
@@ -54,10 +64,27 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 cd "${REPO_ROOT}"
 
-# The env gate's own knob (declared in devcontainer.json containerEnv so a VPS host can relocate
-# it). The stamp is written ONLY after every assert below passes.
+# The env gate's own knob. NOT declared in devcontainer.json any more — see the long comment
+# there: `containerEnv` cannot reference `containerEnv`, so the declaration arrived here
+# UNEXPANDED and `mkdir -p "$(dirname ...)"` created a directory literally named
+# `${containerEnv:HOME}` inside the working tree on every container start (measured,
+# `docs/audits/2026-08-19-technical-554-proof.md` §2.1). A VPS host that wants the stamp
+# somewhere else exports the variable itself; everyone else gets the $HOME default the old
+# declaration only claimed to produce. The stamp is written ONLY after every assert below passes.
 STAMP="${DEV_KNOWLEDGE_PROVISION_STAMP:-${HOME}/.dev-knowledge-provision-stamp}"
 STAMP_SCHEMA="dev-knowledge-provision/1"
+
+# Close the CLASS, not just the instance. Any host — Codespaces, a VPS, a future spec revision —
+# can hand this script a path whose `${...}` never expanded. Creating a directory with that name
+# is silent corruption of the tree the lane is about to work in, so it is refused here instead.
+case "${STAMP}" in
+  *'${'*)
+    printf '[provision] REFUSED: DEV_KNOWLEDGE_PROVISION_STAMP is %s — an UNEXPANDED ${...} path.\n' "${STAMP}" >&2
+    printf '[provision]           Creating it would put a junk directory inside the working tree.\n' >&2
+    printf '[provision]           Unset the variable to use the ${HOME} default, or export a literal path.\n' >&2
+    exit 1
+    ;;
+esac
 
 UV_BIN_DIR="${HOME}/.local/bin"
 export PATH="${UV_BIN_DIR}:${PATH}"
@@ -182,6 +209,42 @@ sync_environment() {
   say "environment OK — Python ${py_have} (.python-version), deps from uv.lock via --locked"
 }
 
+# --- L2b: history SUFFICIENCY, not merely depth (contract amendment B1) --------------------------
+
+leg2b_history() {
+  # L2 above proves the clone is not shallow. That is necessary and NOT sufficient: the proof
+  # lane's codespace had 5329 commits and no local `main`, and every instrument that walks main's
+  # first-parent spine then ERRORED ("fatal: Not a valid object name main") instead of passing
+  # vacuously. This runs the repair — and it runs HERE, before hooks are armed and before any
+  # lane work, which is what "before any spine-walking instrument in a cloud lane" means in
+  # practice. Which refs are required, and which instruments walk a spine, are declared in
+  # .devcontainer/provisioning.yaml, never hardcoded.
+  local rc=0
+  uv run --locked python scripts/cloud_provisioning.py history --repair || rc=$?
+  case "${rc}" in
+    0) say "B1 OK — the refs every spine-walking instrument reads resolve, and the walk succeeds" ;;
+    1) die "B1 the clone cannot satisfy a spine-walking instrument (see the errors above) — a cloud lane here would run gates that ERROR rather than gates that pass" ;;
+    *) die "B1 the history guard could not look (exit ${rc}) — an unknown history state is not a clean one" ;;
+  esac
+}
+
+# --- L5: the ecosystem registration a fresh clone cannot inherit ---------------------------------
+
+leg5_ecosystem() {
+  # `audit.py health` counts `ecosystem/*/state.yaml`, that glob is gitignored, and so no clone
+  # has ever carried one — which is why a container reports `repos registered (none)` and health
+  # exits non-zero. On the workstation `scripts/worktree_seed.py` copies these from the primary
+  # checkout; a container has no primary, so it audits the one repo it has. Not a named row leg:
+  # it is the last thing standing between this substrate and [#554]'s D1a Done-when.
+  local rc=0
+  uv run --locked python scripts/cloud_provisioning.py ecosystem --repair || rc=$?
+  case "${rc}" in
+    0) say "L5 OK — at least one repo is registered; audit.py health's operational block can pass here" ;;
+    1) die "L5 nothing is registered and the seed did not land — audit.py health will report 'repos registered (none)' and exit 1" ;;
+    *) die "L5 the ecosystem guard could not look (exit ${rc})" ;;
+  esac
+}
+
 # --- L3: all three hook types armed, asserted ----------------------------------------------------
 
 assert_hooks_armed() {
@@ -298,14 +361,23 @@ gate() {
   [ "$(git rev-parse --is-shallow-repository)" = "false" ] || die "L4 repository is shallow"
   assert_hooks_armed || die "L4 git hooks are not armed"
 
-  say "gate OK — uv ${have_uv}, full history, three hook types armed, stamp current"
+  # The two conditions a RESUMED container can lose without any pin moving: a repo re-cloned or
+  # re-fetched into a branch-only shape, and a gitignored ecosystem/ wiped by a rebuild. Both are
+  # asserted, never repaired — `--gate` refuses; provisioning is what fixes.
+  uv run --locked python scripts/cloud_provisioning.py history --quiet \
+    || die "L4 the refs a spine-walking instrument reads do not resolve — re-provision (bash .devcontainer/provision.sh)"
+  uv run --locked python scripts/cloud_provisioning.py ecosystem --quiet \
+    || die "L4 no repo is registered under ecosystem/ — audit.py health cannot pass here; re-provision"
+
+  say "gate OK — uv ${have_uv}, full history + spine refs, ecosystem registered, three hook types armed, stamp current"
 }
 
 usage() {
   cat <<'USAGE'
 Usage: bash .devcontainer/provision.sh [--gate|--help]
 
-  (no args)  Provision this container and ASSERT all four [#554] legs, run the
+  (no args)  Provision this container and ASSERT all four [#554] legs plus the
+             history-sufficiency (B1) and ecosystem-registration (L5) legs, run the
              gate-liveness smoke, then write the stamp. Idempotent: a second run
              changes nothing and says so. Wired to postCreateCommand.
   --gate     Assert only — refuse (exit 1) if the environment is half-provisioned
@@ -322,10 +394,15 @@ main() {
     *) usage >&2; die "unknown argument: $1" ;;
   esac
 
+  # ORDER IS LOAD-BEARING. leg2b/leg5 need the venv, so they follow sync_environment; both
+  # precede leg3_hooks, so nothing that walks a spine or reads ecosystem/ can be reached by a
+  # hook before its precondition has been repaired.
   say "provisioning ${REPO_ROOT}"
   leg1_uv
   leg2_unshallow
   sync_environment
+  leg2b_history
+  leg5_ecosystem
   leg3_hooks
   smoke_gate_liveness
   write_stamp
