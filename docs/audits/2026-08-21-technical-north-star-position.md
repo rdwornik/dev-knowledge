@@ -364,9 +364,9 @@ own anti-orphan rule and has done so continuously; the count has not moved. The 
 **the intake that defines "when is the hub done" has no row that tracks getting there.**
 
 **Stall 3 — and this is the real answer to the operator's question — the stall is NOT in the
-intake pipeline at all. It is at closure.** The intake funnel is producing: 5 intakes were filed in
-the last 17 days and 5 of the last 8 status flips were promotions. What is not moving is the
-backlog:
+intake pipeline at all. It is at closure.** The intake funnel is producing: **16 intake docs carry
+a filename date of 2026-08-05 or later** (2+2+2+3+1+1+5 across seven filing days), and **9 of the
+16 live `ACCEPTED` docs date from that same 17-day window**. What is not moving is the backlog:
 
 | | 7 days | 30 days |
 |---|---:|---:|
@@ -455,8 +455,11 @@ carries its evidence pointer. Measured on `main` @ `78267fdb`, 2026-08-21.*
   between the closing batch `[#555]` and the telemetry chain `[#565]` → `[#529]`/`[#530]`.**
 - **Telemetry v1** — `telemetry_emit.py` + `single_flight.py` exist; `logs/TELEMETRY.db` does not.
   `[#565]` (P1) is sequenced before the read path. *Evidence:* file absent on disk; `[#529]`,`[#530]`.
-- **Five lane worktrees are provisioned and idle** — all at `78267fdb`, zero commits ahead.
-  *Evidence:* `git worktree list`.
+- **Five lane worktrees are provisioned and in use, with no landed work yet** — all five sit at
+  `78267fdb`, zero commits ahead; and at least two of them (`lane-rat-intakes`,
+  `lane-arch-adr-audits`) were observed running `scripts/audit.py health` concurrently during this
+  session. Provisioned and active, but nothing has reached the spine from them.
+  *Evidence:* `git worktree list`; live process table, 2026-08-21 11:44–11:47.
 - **Seven DRAFT intakes have never been dispatched a lane.** *Evidence:* §5.1; the handoff Purpose
   line names this as an open question.
 
