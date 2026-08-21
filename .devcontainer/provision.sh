@@ -219,7 +219,11 @@ leg2b_history() {
   # lane work, which is what "before any spine-walking instrument in a cloud lane" means in
   # practice. Which refs are required, and which instruments walk a spine, are declared in
   # .devcontainer/provisioning.yaml, never hardcoded.
+  # C1 accounting: ask FIRST whether anything needs doing, so a run that repairs is not reported
+  # as "nothing changed". Witnessed 2026-08-21 — the first live run seeded a state.yaml and still
+  # printed the idempotent no-op line, which is the one thing C1 exists to make impossible.
   local rc=0
+  uv run --locked python scripts/cloud_provisioning.py history --quiet || CHANGED=$((CHANGED + 1))
   uv run --locked python scripts/cloud_provisioning.py history --repair || rc=$?
   case "${rc}" in
     0) say "B1 OK — the refs every spine-walking instrument reads resolve, and the walk succeeds" ;;
@@ -237,6 +241,7 @@ leg5_ecosystem() {
   # checkout; a container has no primary, so it audits the one repo it has. Not a named row leg:
   # it is the last thing standing between this substrate and [#554]'s D1a Done-when.
   local rc=0
+  uv run --locked python scripts/cloud_provisioning.py ecosystem --quiet || CHANGED=$((CHANGED + 1))
   uv run --locked python scripts/cloud_provisioning.py ecosystem --repair || rc=$?
   case "${rc}" in
     0) say "L5 OK — at least one repo is registered; audit.py health's operational block can pass here" ;;

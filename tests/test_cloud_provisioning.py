@@ -350,6 +350,21 @@ def test_provision_sh_refuses_an_unexpanded_stamp_path() -> None:
     assert "*'${'*" in text
 
 
+def test_provision_sh_asks_before_repairing_so_c1_accounting_stays_honest() -> None:
+    """A run that repairs must not report itself idempotent.
+
+    Witnessed 2026-08-21: the first live container run seeded a state.yaml and still printed
+    "DONE — idempotent: nothing changed". Each new leg now runs the read-only check first and
+    bumps CHANGED on its verdict.
+    """
+    text = (cp.REPO_ROOT / ".devcontainer" / "provision.sh").read_text(encoding="utf-8")
+    code = _uncommented(text, "#")
+    for subcommand in ("history", "ecosystem"):
+        assert f"cloud_provisioning.py {subcommand} --quiet || CHANGED=" in code
+        assert code.index(f"cloud_provisioning.py {subcommand} --quiet") < \
+               code.index(f"cloud_provisioning.py {subcommand} --repair")
+
+
 def test_provision_sh_runs_the_history_repair_before_arming_hooks() -> None:
     """B1's ordering claim is checkable, so it is checked rather than asserted in prose."""
     text = (cp.REPO_ROOT / ".devcontainer" / "provision.sh").read_text(encoding="utf-8")
