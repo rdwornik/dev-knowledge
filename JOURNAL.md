@@ -19,6 +19,55 @@
 
 ---
 
+### 2026-08-21 (h) — CC (Opus 5, integrator, branch `docs/claude-md-v263-roster-row`): the step-5 WARN sweep, and the only two WARNs the batch actually produced
+
+**Did:** Ran the post-integration verification the integrator contract asks for — `uv sync --locked
+--group analytics`, then the full suite, then `audit.py health` — and classified every finding by
+ownership rather than by convenience. `5492909d` is the repair: CLAUDE.md v2.63 adds the owed
+`lane-contract-check` §9 roster row and `ecosystem/doc-counts.md` is regenerated.
+
+**Result: 3365 passed, 2 failed, and both failures are the two pre-existing main REDs, named in
+advance.** `test_routine_consumers_live_backlog_governs_exactly_one_row` (pins 1 declared routine
+row against 3 live) and `test_anchor_gate_probe_distinguishes_installed_from_absent` (hook-arming
+state of this checkout). Neither is batch-produced — this batch never edited `BACKLOG.md` at all,
+which is the check the ownership claim rests on rather than an assertion. Reported, not patched,
+per the contract.
+
+**`audit.py health` exits 0 — `health: OK` — with 47 WARNs, of which exactly ONE was this batch's.**
+The ownership split, since "batch-produced → FIX, inherited → list" is only meaningful if the line
+is drawn on evidence:
+
+- **BATCH-PRODUCED, FIXED:** `doc_claims`, 2 drifted claims, both consequences of wiring the new
+  hook — `precommit_hook_count@ecosystem/doc-counts.md` (19 ≠ 20) and
+  `precommit_hook_roster@CLAUDE.md` (missing `lane-contract-check`). Both clear at `5492909d`;
+  `doc_claims` now reads **[OK] 3 doc self-claim(s) match repo state**.
+- **INHERITED, LISTED:** `doc_rot` ×20 — all `backlog-row-length`, and `BACKLOG.md` is byte-untouched
+  by this batch. `undeclared_edges` ×19 — zero cite a 2026-08-21 file. `no_ff_merges` ×3 — the known
+  legacy June commits, never to be rewritten. `reconciled_versions` ×1 —
+  `templates/CONTRIBUTING-md-template.md` malformed. `review_artifact_coverage` ×2.
+- **The honest one:** `journal_spine_anchor`'s hard predicate is **[OK]** — *every* first-parent
+  spine entry above the ADR-85 floor is anchored, including all seven merges this session. Its WARN
+  is stylistic — "anchored by mention, not by record" — and names my five SHAs **plus 529 others**.
+  It is a house-wide pattern, not a batch defect, and JOURNAL is append-only, so it is listed rather
+  than restyled.
+- **Partly mine, and stated as such rather than filed under inherited:**
+  `review_artifact_coverage` flags 16 code-impact merges since 2026-08-05 with no *linked* review
+  artifact, and 4 of the 16 are this batch's. The terra evidence exists and is now in the tree — the
+  539/554/tel tallies live in their relocated artifacts — but it is not linked in the form the check
+  wants. The check is advisory by the `[#480]` P3 ruling with its hard leg deferred, and inventing
+  the linking convention would be a ruling, so it goes to the architect rather than being smoothed
+  over here.
+
+**Changes:** `CLAUDE.md` (v2.63 — roster row, `last_reviewed` 2026-08-21 on a genuine end-to-end
+re-read, footer date corrected, three oldest history bullets condensed to hold the 200-line budget
+at 198); `ecosystem/doc-counts.md` (regenerated).
+
+**Abandoned:** Nothing. No WARN was dispositioned.
+
+**Next:** Teardown per the push-before-delete standing order, then the A4 report.
+
+---
+
 ### 2026-08-21 (g) — CC (Opus 5, integrator, branch `docs/batch1-integration-2026-08-21`): batch 1 consolidates, and the contracts of record stop living in Downloads
 
 **Did:** The relocation+consolidation pass after the six-merge queue, three commits: `e00a6dcf`
