@@ -130,6 +130,34 @@ def _strict_bool(block: dict, key: str, *, default: bool) -> bool:
         f"`{key}: true` or `{key}: false`, unquoted")
 
 
+def _strict_str_list(block: dict, key: str, *, required: bool) -> tuple[str, ...]:
+    """A YAML value that must BE a sequence of non-empty strings.
+
+    `tuple("main")` is `("m", "a", "i", "n")`, so a declaration written `required_refs: main`
+    instead of a list produced four one-character ref names and four false exit-1 violations —
+    a malformed configuration reported as observed drift (terra HIGH round 7, 2026-08-21). A
+    string is refused explicitly rather than iterated.
+    """
+    value = block.get(key)
+    if value is None:
+        if required:
+            raise ProvisioningError(f"{key!r} is missing - nothing to assert")
+        return ()
+    if isinstance(value, str) or not isinstance(value, (list, tuple)):
+        raise ProvisioningError(
+            f"{key!r} is {value!r} ({type(value).__name__}), which is not a YAML list - write it "
+            f"as a sequence, one entry per line")
+    items = []
+    for item in value:
+        if not isinstance(item, str) or not item.strip():
+            raise ProvisioningError(
+                f"{key!r} contains {item!r}, which is not a non-empty string")
+        items.append(item)
+    if required and not items:
+        raise ProvisioningError(f"{key!r} is empty - nothing to assert")
+    return tuple(items)
+
+
 def load_config(path: Path = CONFIG_PATH) -> Config:
     """Read `.devcontainer/provisioning.yaml`, or raise ProvisioningError."""
     try:
@@ -151,9 +179,7 @@ def load_config(path: Path = CONFIG_PATH) -> Config:
     if disposition not in DISPOSITIONS:
         raise ProvisioningError(
             f"history.disposition is {disposition!r}, expected one of {list(DISPOSITIONS)}")
-    refs = tuple(hist.get("required_refs") or ())
-    if not refs:
-        raise ProvisioningError("history.required_refs is empty - nothing to assert")
+    refs = _strict_str_list(hist, "required_refs", required=True)
 
     eco = raw.get("ecosystem") or {}
     pre = raw.get("prebuild") or {}
@@ -161,7 +187,7 @@ def load_config(path: Path = CONFIG_PATH) -> Config:
         history=HistoryConfig(
             disposition=disposition,
             required_refs=refs,
-            spine_walking_instruments=tuple(hist.get("spine_walking_instruments") or ()),
+            spine_walking_instruments=_strict_str_list(hist, "spine_walking_instruments", required=False),
         ),
         ecosystem=EcosystemConfig(
             self_register=_strict_bool(eco, "self_register", default=False),
@@ -170,7 +196,7 @@ def load_config(path: Path = CONFIG_PATH) -> Config:
         prebuild=PrebuildConfig(
             configured=_strict_bool(pre, "configured", default=False),
             trigger=str(pre.get("trigger") or ""),
-            regions=tuple(pre.get("regions") or ()),
+            regions=_strict_str_list(pre, "regions", required=False),
             template_history=int(pre.get("template_history") or 0),
             repository=str(pre.get("repository") or ""),
             ref=str(pre.get("ref") or "main"),
@@ -540,16 +566,28 @@ def repair_history(root: Path, cfg: HistoryConfig) -> HistoryReport:
             raise ProvisioningError(
                 f"`git fetch origin refs/heads/{ref}` failed even though origin reports the "
                 f"branch exists: {fr.stderr.strip()}")
+        report.actions.append(
+            f"git fetch origin +refs/heads/{ref}:refs/remotes/origin/{ref}")
         arrived = remote_ref(root, ref)
         if arrived is None:
             raise ProvisioningError(
                 f"fetched origin/{ref} but the tracking ref did not materialise - cannot repair")
-        # Re-classify against WHAT ARRIVED, not against what `ls-remote` reported earlier.
-        if old_sha and ref_status(root, ref, arrived) not in (REF_BEHIND, REF_CURRENT):
-            LOG.error("history: origin/%s moved to %s between the check and the fetch, and the "
-                      "local ref is no longer safely fast-forwardable - refusing to update it",
-                      ref, arrived[:9])
-            continue
+        # Re-classify against WHAT ARRIVED, not against what `ls-remote` reported earlier — and
+        # accept ONLY `behind` (terra CRITICAL round 7, 2026-08-21). Compare-and-swap protects
+        # against the LOCAL ref moving; it says nothing about the remote. A force-push to an
+        # ancestor between `ls-remote` and the fetch makes the arriving tip `current` — at which
+        # point the CAS succeeds and REWINDS the local branch, discarding its newer commits. The
+        # only safe update is one that moves the ref FORWARD.
+        if old_sha:
+            arrived_status = ref_status(root, ref, arrived)
+            if arrived_status == REF_CURRENT:
+                LOG.info("history: origin/%s is already contained in the local ref after the "
+                         "fetch - nothing to update", ref)
+                continue
+            if arrived_status != REF_BEHIND:
+                LOG.error("history: origin/%s moved to %s between the check and the fetch (%s) - "
+                          "refusing to update the local ref", ref, arrived[:9], arrived_status)
+                continue
         ur = _git(root, "update-ref", f"refs/heads/{ref}", arrived, old_sha)
         if ur.returncode != 0:
             raise ProvisioningError(

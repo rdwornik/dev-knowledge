@@ -129,6 +129,28 @@ def test_load_config_accepts_real_yaml_booleans(tmp_path: Path) -> None:
     assert cfg.prebuild.configured is True
 
 
+@pytest.mark.parametrize(("block", "key"), [
+    ("history", "required_refs"),
+    ("history", "spine_walking_instruments"),
+    ("prebuild", "regions"),
+])
+@pytest.mark.parametrize("bad", ["main", 42, {"a": 1}, ["", "main"], [None]])
+def test_load_config_refuses_a_scalar_where_a_list_is_meant(
+        tmp_path: Path, block: str, key: str, bad: object) -> None:
+    """`tuple("main")` is `("m","a","i","n")` (terra HIGH round 7, 2026-08-21).
+
+    A declaration written `required_refs: main` instead of a list produced four one-character
+    ref names and four false exit-1 violations — a malformed configuration reported as
+    positively observed drift, which is the exact confusion the 1/2 split exists to prevent.
+    """
+    path = _config(tmp_path)
+    body = yaml.safe_load(path.read_text(encoding="utf-8"))
+    body[block][key] = bad
+    path.write_text(yaml.safe_dump(body), encoding="utf-8")
+    with pytest.raises(cp.ProvisioningError, match=key):
+        cp.load_config(path)
+
+
 def test_load_config_refuses_a_missing_file(tmp_path: Path) -> None:
     with pytest.raises(cp.ProvisioningError, match="not found"):
         cp.load_config(tmp_path / "absent.yaml")
@@ -252,12 +274,71 @@ def test_repair_updates_a_stale_ref_by_compare_and_swap_not_by_force_fetch(
     _commit(origin, "d")
     cfg = cp.load_config(_config(tmp_path)).history
 
-    report = cp.repair_history(clone, cfg)
+    # Observe the git commands ACTUALLY RUN, not what the report says was run: an earlier version
+    # of this test searched `report.actions`, which a force-fetch omitted from that list would
+    # have passed straight through, leaving the CRITICAL regression unprotected (terra HIGH round
+    # 7, 2026-08-21).
+    seen: list[tuple[str, ...]] = []
+    real_git = cp._git
+
+    def _spy(root: Path, *args: str) -> subprocess.CompletedProcess:
+        seen.append(args)
+        return real_git(root, *args)
+
+    cp._git = _spy
+    try:
+        report = cp.repair_history(clone, cfg)
+    finally:
+        cp._git = real_git
+
     assert report.ok, report.violations
+    assert report.refs["main"] == 4
+    fetches = [a for a in seen if a and a[0] == "fetch"]
+    assert fetches, seen
+    # No fetch may name a LOCAL branch as its destination — that is the force-write this replaced.
+    for args in fetches:
+        for token in args:
+            assert not token.endswith(":refs/heads/main"), args
+    assert any(a and a[0] == "update-ref" for a in seen), seen
     assert any(a.startswith("git update-ref refs/heads/main") for a in report.actions), \
         report.actions
-    assert not any("+refs/heads/main:refs/heads/main" in a for a in report.actions)
-    assert report.refs["main"] == 4
+
+
+def test_a_remote_rewound_between_the_check_and_the_fetch_never_moves_the_local_ref(
+        tmp_path: Path, origin: Path) -> None:
+    """CAS protects the LOCAL ref; it says nothing about the remote (terra CRITICAL round 7).
+
+    A force-push to an ANCESTOR between `ls-remote` and the fetch makes the arriving tip
+    `current` — at which point compare-and-swap succeeds, because the local SHA is exactly what
+    was observed, and the update rewinds the branch and discards its newer commits. Only a
+    `behind` classification may move the ref.
+    """
+    clone = tmp_path / "rewound"
+    _git(tmp_path, "clone", "-q", str(origin), str(clone))
+    _git(clone, "checkout", "-q", "-b", "worktree-lane-probe")
+    _git(clone, "update-ref", "refs/heads/main", "HEAD~1")     # local main is legitimately behind
+    _commit(origin, "d")
+    cfg = cp.load_config(_config(tmp_path)).history
+
+    # The check sees origin at `d`; the fetch then finds the remote rewound BELOW local main.
+    real_live = cp.live_remote_sha
+    ahead_sha = _git(origin, "rev-parse", "refs/heads/main").stdout.strip()
+
+    def _then_rewind(root: Path, ref: str, remote: str = "origin") -> str | None:
+        sha = real_live(root, ref, remote)
+        if sha == ahead_sha:
+            _git(origin, "update-ref", "refs/heads/main", "HEAD~3")   # force-push to an ancestor
+        return sha
+
+    local_before = _git(clone, "rev-parse", "refs/heads/main").stdout.strip()
+    cp.live_remote_sha = _then_rewind
+    try:
+        cp.repair_history(clone, cfg)
+    finally:
+        cp.live_remote_sha = real_live
+
+    after = _git(clone, "rev-parse", "refs/heads/main").stdout.strip()
+    assert after == local_before, "the local ref was rewound onto a force-pushed ancestor"
 
 
 def test_repair_of_a_shallow_clone_deepens_it(tmp_path: Path, origin: Path) -> None:
