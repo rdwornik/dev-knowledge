@@ -234,8 +234,14 @@ def ref_resolves(root: Path, ref: str) -> bool:
     would let a spine walk run over unrelated history and report clean, which is the vacuous-gate
     class this whole module exists to close (terra HIGH, 2026-08-21).
     """
-    return _git(root, "rev-parse", "--verify", "--quiet",
-                f"refs/heads/{ref}^{{commit}}").returncode == 0
+    r = _git(root, "rev-parse", "--verify", "--quiet", f"refs/heads/{ref}^{{commit}}")
+    if r.returncode in (0, 1):
+        return r.returncode == 0
+    # Not "the ref is absent" — git could not answer. A corrupt ref store or an unreadable object
+    # is a could-not-look, and reporting it as a missing ref would turn it into observed drift
+    # (terra HIGH round 8, 2026-08-21).
+    raise ProvisioningError(
+        f"`git rev-parse refs/heads/{ref}` failed (exit {r.returncode}): {r.stderr.strip()}")
 
 
 def remote_ref(root: Path, ref: str, remote: str = "origin") -> str | None:
@@ -344,15 +350,22 @@ def ref_status(root: Path, ref: str, remote_sha: str) -> str:
     return REF_DIVERGED
 
 
-def spine_length(root: Path, ref: str) -> int | None:
-    """First-parent spine entries reachable from `ref`, or None when the walk itself fails.
+def spine_length(root: Path, ref: str) -> int:
+    """First-parent spine entries reachable from `ref`. Raises when the walk itself fails.
 
     This is the exact shape every instrument in `history.spine_walking_instruments` performs,
     so a walk that works here is the precondition they need — not a proxy for it.
+
+    Callers reach this only after `ref_resolves` said the ref is present, so a failure here is
+    not "the ref is missing" — it is git being unable to walk, which is a could-not-look. An
+    earlier version returned None and the caller recorded a violation, converting a corrupt
+    object store into observed drift (terra HIGH round 8, 2026-08-21).
     """
-    r = _git(root, "log", "--first-parent", "--format=%H", ref)
+    r = _git(root, "log", "--first-parent", "--format=%H", f"refs/heads/{ref}")
     if r.returncode != 0:
-        return None
+        raise ProvisioningError(
+            f"`git log --first-parent refs/heads/{ref}` failed (exit {r.returncode}): "
+            f"{r.stderr.strip()} - the walk the instruments perform does not work in this clone")
     return len([line for line in r.stdout.splitlines() if line.strip()])
 
 
@@ -422,11 +435,6 @@ def assess_history(root: Path, cfg: HistoryConfig) -> HistoryReport:
             continue
         length = spine_length(root, ref)
         report.refs[ref] = length
-        if length is None:
-            report.violations.append(
-                f"ref {ref!r} resolves but `git log --first-parent {ref}` failed - the walk "
-                f"the instruments perform does not work here")
-            continue
         if length == 0:
             report.violations.append(
                 f"ref {ref!r} walks to an EMPTY first-parent spine - the instruments would "
@@ -608,8 +616,29 @@ def repair_history(root: Path, cfg: HistoryConfig) -> HistoryReport:
 # --- ecosystem: the registration a fresh clone cannot inherit ------------------------------
 
 
+def _state_is_usable(path: Path) -> bool:
+    """Whether a `state.yaml` is a real registration rather than a file that merely exists.
+
+    `audit.discover_repos` counts EXISTENCE, and so did `registered_repos` — which meant a
+    truncated, empty or half-written state.yaml permanently short-circuited the repair and let
+    provisioning stamp a broken environment as registered (terra HIGH round 8, 2026-08-21).
+    Deliberately STRICTER than the audit predicate and never looser: a file this rejects gets
+    re-seeded, and the re-seed writes a good one, so the audit's own check ends up satisfied
+    either way.
+
+    Structure only — a mapping carrying `name` and `path`. NOT identity: a worktree carries the
+    PRIMARY checkout's state.yaml by design (`scripts/worktree_seed.py` copies it), so requiring
+    `path` to equal this root would declare every worktree unregistered and reseed it.
+    """
+    try:
+        body = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError):
+        return False
+    return isinstance(body, dict) and bool(body.get("name")) and bool(body.get("path"))
+
+
 def registered_repos(root: Path) -> list[str]:
-    """Directories under `ecosystem/` carrying a state.yaml - `audit.discover_repos`'s predicate.
+    """Directories under `ecosystem/` carrying a USABLE state.yaml.
 
     Re-expressed against an arbitrary root rather than imported, because `audit.discover_repos`
     closes over the module-level `ECOSYSTEM_DIR` of the checkout it was imported from and this
@@ -618,7 +647,9 @@ def registered_repos(root: Path) -> list[str]:
     eco = root / "ecosystem"
     if not eco.exists():
         return []
-    return sorted(d.name for d in eco.iterdir() if d.is_dir() and (d / "state.yaml").exists())
+    return sorted(d.name for d in eco.iterdir()
+                  if d.is_dir() and (d / "state.yaml").exists()
+                  and _state_is_usable(d / "state.yaml"))
 
 
 def seed_self_registration(root: Path, name: str) -> str:

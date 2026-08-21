@@ -316,27 +316,41 @@ def test_a_remote_rewound_between_the_check_and_the_fetch_never_moves_the_local_
     clone = tmp_path / "rewound"
     _git(tmp_path, "clone", "-q", str(origin), str(clone))
     _git(clone, "checkout", "-q", "-b", "worktree-lane-probe")
-    _git(clone, "update-ref", "refs/heads/main", "HEAD~1")     # local main is legitimately behind
     _commit(origin, "d")
+    # Fetch first so the upstream tip is already an object here: the classification must reach
+    # `behind`, which is the only state that authorises an update and therefore the only one from
+    # which a rewind can do damage.
+    _git(clone, "fetch", "-q", "origin")
+    _git(clone, "update-ref", "refs/heads/main", "HEAD~1")     # local main is legitimately behind
     cfg = cp.load_config(_config(tmp_path)).history
 
-    # The check sees origin at `d`; the fetch then finds the remote rewound BELOW local main.
-    real_live = cp.live_remote_sha
-    ahead_sha = _git(origin, "rev-parse", "refs/heads/main").stdout.strip()
+    # THE WINDOW IS BETWEEN THE CLASSIFICATION AND THE FETCH, so the rewind has to land there —
+    # not during the earlier read-only assessment, which would merely make the repair see the
+    # rewound tip and classify it correctly (terra HIGH round 8, 2026-08-21: an earlier version
+    # of this test rewound on the FIRST `live_remote_sha` call and so never entered the window
+    # it claimed to cover).
+    real_git = cp._git
+    seen: list[tuple[str, ...]] = []
+    rewound: list[bool] = []
 
-    def _then_rewind(root: Path, ref: str, remote: str = "origin") -> str | None:
-        sha = real_live(root, ref, remote)
-        if sha == ahead_sha:
+    def _rewind_just_before_the_fetch(root: Path, *args: str) -> subprocess.CompletedProcess:
+        if args and args[0] == "fetch" and not rewound:
             _git(origin, "update-ref", "refs/heads/main", "HEAD~3")   # force-push to an ancestor
-        return sha
+            rewound.append(True)
+        seen.append(args)
+        return real_git(root, *args)
 
     local_before = _git(clone, "rev-parse", "refs/heads/main").stdout.strip()
-    cp.live_remote_sha = _then_rewind
+    cp._git = _rewind_just_before_the_fetch
     try:
         cp.repair_history(clone, cfg)
     finally:
-        cp.live_remote_sha = real_live
+        cp._git = real_git
 
+    assert rewound, "the rewind never fired — the race window was not entered"
+    assert any(a and a[0] == "fetch" for a in seen), seen
+    assert not any(a and a[0] == "update-ref" for a in seen), \
+        "the local ref was updated from a tip that is not ahead of it"
     after = _git(clone, "rev-parse", "refs/heads/main").stdout.strip()
     assert after == local_before, "the local ref was rewound onto a force-pushed ancestor"
 
@@ -521,6 +535,51 @@ def test_the_READ_ONLY_check_detects_a_stale_clone_without_fetching_anything(
     assert repaired.refs["main"] == 5
 
 
+def test_a_git_failure_is_never_reported_as_a_missing_ref_or_a_short_spine(
+        tmp_path: Path, origin: Path) -> None:
+    """Fatal git errors are could-not-look, not observed drift (terra HIGH round 8, 2026-08-21).
+
+    `ref_resolves` treated every non-zero exit as "absent" and `spine_length` turned every failed
+    walk into a violation — so a corrupt ref store or an unreadable object exited 1, telling the
+    caller the clone is wrong when git simply could not answer.
+    """
+    clone = tmp_path / "corrupt"
+    _git(tmp_path, "clone", "-q", str(origin), str(clone))
+    real_git = cp._git
+
+    def _fatal(root: Path, *args: str) -> subprocess.CompletedProcess:
+        if args[:2] == ("rev-parse", "--verify"):
+            return subprocess.CompletedProcess(args, 128, "", "fatal: bad object")
+        return real_git(root, *args)
+
+    cp._git = _fatal
+    try:
+        with pytest.raises(cp.ProvisioningError, match="rev-parse"):
+            cp.assess_history(clone, cp.load_config(_config(tmp_path)).history)
+    finally:
+        cp._git = real_git
+
+    def _fatal_walk(root: Path, *args: str) -> subprocess.CompletedProcess:
+        if args[:2] == ("log", "--first-parent"):
+            return subprocess.CompletedProcess(args, 128, "", "fatal: unreadable object")
+        return real_git(root, *args)
+
+    cp._git = _fatal_walk
+    try:
+        with pytest.raises(cp.ProvisioningError, match="first-parent"):
+            cp.assess_history(clone, cp.load_config(_config(tmp_path)).history)
+    finally:
+        cp._git = real_git
+
+    path = _config(tmp_path)
+    cp._git = _fatal
+    try:
+        assert cp.main(["--root", str(clone), "--config", str(path),
+                        "history"]) == cp.EXIT_UNAVAILABLE
+    finally:
+        cp._git = real_git
+
+
 def test_an_unreachable_origin_is_exit_2_not_a_missing_branch(
         tmp_path: Path, origin: Path) -> None:
     """A transport failure is could-not-look; only `ls-remote` saying so means "no such branch".
@@ -631,7 +690,7 @@ def test_history_check_exits_0_on_this_repo() -> None:
 def test_registered_repos_counts_state_yaml_directories(tmp_path: Path) -> None:
     eco = tmp_path / "ecosystem"
     (eco / "alpha").mkdir(parents=True)
-    (eco / "alpha" / "state.yaml").write_text("name: alpha\n", encoding="utf-8")
+    (eco / "alpha" / "state.yaml").write_text("name: alpha\npath: /x\n", encoding="utf-8")
     (eco / "beta").mkdir()                       # a directory with no state.yaml does not count
     (eco / "schema").mkdir()
     assert cp.registered_repos(tmp_path) == ["alpha"]
@@ -639,6 +698,45 @@ def test_registered_repos_counts_state_yaml_directories(tmp_path: Path) -> None:
 
 def test_registered_repos_on_a_tree_with_no_ecosystem_dir(tmp_path: Path) -> None:
     assert cp.registered_repos(tmp_path) == []
+
+
+@pytest.mark.parametrize("content", [
+    "",                                  # truncated to nothing
+    "name: alpha\n",                     # half-written: no path
+    "path: /somewhere\n",                # half-written: no name
+    "- not\n- a\n- mapping\n",
+    "name: alpha\npath: [unclosed\n",    # not valid YAML
+])
+def test_a_broken_state_yaml_does_not_count_as_a_registration(
+        tmp_path: Path, content: str) -> None:
+    """Existence is not registration (terra HIGH round 8, 2026-08-21).
+
+    `audit.discover_repos` counts existence, and so did this — so a truncated or half-written
+    state.yaml permanently short-circuited the repair and let provisioning stamp a broken
+    environment as registered. Being STRICTER than the audit predicate is safe in one direction
+    only, and this is that direction: a file rejected here is re-seeded with a good one.
+    """
+    eco = tmp_path / "ecosystem" / "alpha"
+    eco.mkdir(parents=True)
+    (eco / "state.yaml").write_text(content, encoding="utf-8")
+    assert cp.registered_repos(tmp_path) == []
+
+
+def test_a_broken_state_yaml_is_reseeded_rather_than_accepted(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    eco = tmp_path / "ecosystem" / ".dev-knowledge"
+    eco.mkdir(parents=True)
+    (eco / "state.yaml").write_text("", encoding="utf-8")
+
+    def _fake_seed(root: Path, name: str) -> str:
+        target = root / "ecosystem" / name / "state.yaml"
+        target.write_text(f"name: {name}\npath: {root}\n", encoding="utf-8")
+        return str(target)
+
+    monkeypatch.setattr(cp, "seed_self_registration", _fake_seed)
+    assert cp.main(["--root", str(tmp_path), "--config", str(_config(tmp_path)),
+                    "ecosystem", "--repair"]) == cp.EXIT_OK
+    assert cp.registered_repos(tmp_path) == [".dev-knowledge"]
 
 
 def test_ecosystem_check_reports_the_containers_symptom(tmp_path: Path) -> None:
@@ -652,7 +750,7 @@ def test_ecosystem_check_reports_the_containers_symptom(tmp_path: Path) -> None:
 def test_ecosystem_check_passes_when_something_is_registered(tmp_path: Path) -> None:
     eco = tmp_path / "ecosystem" / ".dev-knowledge"
     eco.mkdir(parents=True)
-    (eco / "state.yaml").write_text("name: .dev-knowledge\n", encoding="utf-8")
+    (eco / "state.yaml").write_text("name: .dev-knowledge\npath: /x\n", encoding="utf-8")
     path = _config(tmp_path)
     assert cp.main(["--root", str(tmp_path), "--config", str(path), "ecosystem"]) == cp.EXIT_OK
 
@@ -672,7 +770,7 @@ def test_ecosystem_repair_success_path_registers_and_is_idempotent(
     def _fake_seed(root: Path, name: str) -> str:
         target = root / "ecosystem" / name / "state.yaml"
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(f"name: {name}\n", encoding="utf-8")
+        target.write_text(f"name: {name}\npath: {root}\n", encoding="utf-8")
         seeded.append(target)
         return str(target)
 
@@ -758,7 +856,7 @@ def test_seed_self_registration_uses_audit_repo_and_save_state_only(
         calls.append("save_state")
         target = stub.ECOSYSTEM_DIR / ".dev-knowledge" / "state.yaml"
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text("name: .dev-knowledge\n", encoding="utf-8")
+        target.write_text("name: .dev-knowledge\npath: /x\n", encoding="utf-8")
 
     stub = types.ModuleType("audit")
     stub.ECOSYSTEM_DIR = tmp_path / "ecosystem"
