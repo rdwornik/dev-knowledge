@@ -190,6 +190,22 @@ def test_a_drifted_prose_pin_is_caught(tree):
     assert any(f.startswith("S17 ") for f in findings), findings
 
 
+def test_a_deleted_prose_binding_is_caught_rather_than_passing_quietly(tree):
+    """The seam gate's other failure mode: the sentence goes away entirely. A check anchored on
+    a bare backtick would go green here, which is the silence R2 §3.3 named."""
+    _break(tree, _PLAYBOOK, "tier is Sonnet 5 (`claude-sonnet-5`)", "tier is the platform default")
+    findings = cpr.run(tree)
+    assert any(f.startswith("S17 ") and "was not found" in f for f in findings), findings
+
+
+def test_a_body_level_model_line_is_not_mistaken_for_the_frontmatter_pin(tree):
+    """The S9 check reads the `---`-delimited block, not the first `model:` anywhere in the
+    file — so prose below the frontmatter cannot satisfy or break the pin."""
+    p = tree / _ARTIFACT_READER
+    p.write_text(p.read_text(encoding="utf-8") + "\nmodel: claude-haiku-4-5\n", encoding="utf-8")
+    assert cpr.run(tree) == []
+
+
 def test_a_drifted_marketplace_path_is_caught(tree):
     _break(tree, _SETTINGS, "Documents", "Documenten")
     findings = cpr.run(tree)

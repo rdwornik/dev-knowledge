@@ -63,10 +63,24 @@ _PYPROJECT = "pyproject.toml"
 
 _FRONTMATTER_MODEL_RE = re.compile(r"^model:\s*(\S+)\s*$", re.MULTILINE)
 _JS_MODEL_RE = re.compile(r"model:\s*'([^']+)'")
+# S17's prose seam is a tier BINDING, not a loose mention: "…tier is Sonnet 5 (`claude-sonnet-5`)".
+# Anchored on the binding so the check reads the sentence that matters rather than any backtick
+# in a 4,500-line file. A reworded sentence fails LOUD ("binding sentence not found") instead of
+# passing quietly on an unrelated occurrence — the right direction to be wrong in for a seam gate.
+_PROSE_TIER_RE = re.compile(r"tier is [^`\n]*\(`([^`]+)`\)")
 
 
 def _read(root: Path, rel: str) -> str:
     return (root / rel).read_text(encoding="utf-8")
+
+
+def _frontmatter(text: str) -> str:
+    """The leading `---`-delimited block, or "" — so a `model:` line in the BODY cannot be
+    mistaken for the frontmatter pin."""
+    if not text.startswith("---"):
+        return ""
+    parts = text.split("---", 2)
+    return parts[1] if len(parts) >= 3 else ""
 
 
 def _sole_role_model(role: str) -> str:
@@ -106,7 +120,7 @@ def check_s9_artifact_reader(root: Path) -> list[str]:
     out: list[str] = []
     want = _sole_role_model(_SUBAGENT_DEFAULT_ROLE)
     text = _read(root, _ARTIFACT_READER)
-    m = _FRONTMATTER_MODEL_RE.search(text)
+    m = _FRONTMATTER_MODEL_RE.search(_frontmatter(text))
     if not m:
         out.append(f"S9 {_ARTIFACT_READER}: no `model:` frontmatter key found")
     elif m.group(1) != want:
@@ -134,9 +148,13 @@ def check_s10_conformance_hub(root: Path) -> list[str]:
 def check_s17_playbook(root: Path) -> list[str]:
     """The `.md` prose format — the sentence that binds a tier to an exact model string."""
     want = _sole_role_model(_SUBAGENT_DEFAULT_ROLE)
-    text = _read(root, _PLAYBOOK)
-    if f"`{want}`" not in text:
-        return [f"S17 {_PLAYBOOK}: the tier-binding sentence does not carry the registry's `{want}`"]
+    m = _PROSE_TIER_RE.search(_read(root, _PLAYBOOK))
+    if not m:
+        return [f"S17 {_PLAYBOOK}: the tier-binding sentence (\"…tier is X (`model-id`)\") was not "
+                f"found; the registry pins `{want}` here"]
+    if m.group(1) != want:
+        return [f"S17 {_PLAYBOOK}: the tier-binding sentence says `{m.group(1)}`, "
+                f"registry says `{want}`"]
     return []
 
 
@@ -197,7 +215,12 @@ def check_registry_shape() -> list[str]:
 
 
 def run(root: Path | None = None) -> list[str]:
-    """Every violation across every seam, in seam order. Empty list == clean."""
+    """Every violation across every seam, in seam order. Empty list == clean.
+
+    `root` selects the TREE being checked; the registry is always read from THIS repo. That is
+    deliberate and is what makes the tmp-tree teeth tests possible — a checked-out copy is
+    measured against the one source of truth, not against a copy of it.
+    """
     r = Path(root) if root is not None else _REPO_ROOT
     findings: list[str] = []
     findings += check_registry_shape()
