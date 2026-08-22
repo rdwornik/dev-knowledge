@@ -190,3 +190,66 @@ Worth stating because it is a live claim about an armed organ: the evidence line
 6. **A measured answer on CI**, not an opinion: reusable workflows would cost **2,322 min/month
    against 1,400 remaining**, and required checks — the thing that would make them gates at all —
    are unavailable on this plan.
+
+---
+
+## Amendment A1 — 2026-08-22: the batched ruling, and what it disposed
+
+> **In-file amendment marker (`CLAUDE.md` §5 rule 3).** Nothing above is edited; this section
+> records the architect/operator ruling returned over the table and the disposition of every
+> line. The table above is the input the ruling was given; this is its output.
+
+The pause at §4 was answered with **one batched ruling** covering all five ADR lines, the intake
+block, the three rejections and the closure proposals. Dispositions:
+
+| line | ruling | executed as |
+|---|---|---|
+| **A1** ADR-114 rename | **PARKED** (operator) — revisit only if A2's `AGENTS.md` track fails the universal-entry purpose | Decision recorded in `ADR-114`; Status `Proposed → PARKED`; the three priced options retained; `docs/decisions/README.md` reconciled on all three surfaces |
+| **A2** `AGENTS.md` | **ADMITTED** — the size objection is dead (16.9 KiB headroom) and ADR-53 forbids two content-carrying files, not the name | `protocols/STANDING_RULINGS.md` **R-1**; execution filed as the bounded lane `[#577]` |
+| **A3** L0 boundary | **RULED (b)** — declare it; *"the finding is right that silence is not a boundary — the declaration is the boundary"* | `ARCHITECTURE.md` Ch3 + register **R-2**, landing predicate resolving TRUE on both sites |
+| **A4** `[#562]` admission | **MOOT-IN-MOTION** — the operator re-dispatched `cloud-1-retry`; the verdict is HELD until it returns. A second absence VOIDS the rerun attempt and converts the row's next step into a **transport investigation citing both absences** | status line in this artifact's close report; no verdict inferred |
+| **A5** cycle gate | **APPROVED as scoped by R-A** — SQL keeps reachability/orphans/degree; the library **earns** cycles/SCC | rides intake **#40**; no direct row, exactly as ADR-111 §2 forced |
+| **I3** live-harm line | **YES, out-of-band NOW** — *"a doc that steers the operator into deleting a LIVE sibling session's lock is live-harm"* | fixed at `a7391b56`'s successor commit, mutation-checked; the other three stay COVERED-closed |
+| **I5** roster line | file it **WITH consolidation** — *"do not shave under the cap"* | hook armed + roster row landed; the v2.60–v2.62 arc **merged** as one overlapping entry; headroom 3, not 0 |
+| **REJECTS** ×3 | **ACCEPTED as recorded**, including R1's re-rejection on the **new** grounds | recorded below |
+| **closures** | **OPERATOR GO** — execute all three | `[#563]` `[#566]` `[#488]` closed; ledger 214 → 211; `banked_D = 3` |
+
+**On R1, recorded because the ruling asked for it explicitly.** The **old ground was correctly
+withdrawn** — zero outside collaborators is verified live, and that is no longer why reusable
+workflows fail. The rejection **stands on the new grounds**: required checks do not exist on
+Free + private, so the gate class itself is absent; and the cost is **2,322 min/month against
+1,400 remaining**. A rejection that quietly kept its disproven reason would be worth less than no
+rejection at all, which is why the withdrawal is recorded beside the grounds that replaced it.
+
+**D5 births: 1 of 3 taken.** `[#577]` (the `AGENTS.md` execution lane) is birth priority (1).
+Priority (2) — intake #40's carrier — is deliberately **unborn**, because the ruling conditions
+it on ratification and **P-2** binds only at `ACCEPTED`; filing it now would invert the
+ratification order. Priority (3) was an act rather than a row, and is executed.
+
+**The named queue — the remainder, carried rather than dropped** (funnel lines that the cap or
+the ruling left unexecuted, listed so the next window inherits them by name):
+
+- **I4** — the machine-specific absolute path at `.claude/settings.json:63`, mirrored in the
+  provider registry. Pre-existing, owned by no row.
+- **I6** — the canonical-doc token detector R2 §1.5(c) recommends: 1,956 references, 0 of them
+  links, nothing able to detect a stale one.
+- **I7 / I8** — now **live** rather than contingent, since A2 admitted the track: the byte-based
+  R5 guard, and the unpriced third precedence layer at `codex/AGENTS.md` where the reviewer role
+  wins by position rather than by intent. Both are written into `[#577]`'s Done-when.
+- **I9** — the two-copiers lesson (`deploy/carrier_mesh.py` and a test fixture both copy a script
+  out of `scripts/` beside a partial sibling set, and neither is discoverable from the module
+  being edited). Home unruled: `LESSONS.md` or an intake.
+- **I10** — shipping `report-only-wall.yml` to consumers through the existing `carrier_docs`
+  manifest, the constructive alternative R1's rejection leaves standing.
+- **The three remaining orphaned findings** of §5 — the `single_flight` token-vs-`run_id` Medium
+  and the two `[#539]`-owned Mediums. COVERED-closed per the ruling; they need a live home if
+  they are ever to be fixed.
+- **`[#569]` item (A) is now half-discharged** — its `routine_consumers` half was fixed by the
+  part-C arc today; the anchor-probe half remains, and it is the wave's one standing suite RED.
+
+**D6 discharged:** `protocols/PLAYBOOK.md` Ch8 gains *"The wave close — every dispatched wave ends
+D0–D5, and the funnel table is mandatory"*, including the line this window's own incident
+produced: **one integrator at a time is enforced by mechanism (a lock or a branch guard), not by
+convention — its build rides the queued Q2-enforcement item.** The discipline held here because
+one operator was watching, and a discipline that holds only while someone is watching is not a
+mechanism.
