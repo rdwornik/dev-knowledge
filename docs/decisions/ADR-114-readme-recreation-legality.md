@@ -1,8 +1,8 @@
 # ADR-114: May a root `README.md` be recreated — and what does substituting a canonical living-doc filename actually cost?
 
-- **Status:** **Proposed** — *the Decision section is deliberately blank. This ADR is a priced decision input, not a decision.*
+- **Status:** **PARKED** — ruled by the operator 2026-08-22. *The priced options below are retained unchanged as the input the ruling selected against; the Decision section, authored blank for exactly this moment, now carries the ruling.*
 - **Date:** 2026-08-22
-- **Decision tier:** Architecture — **awaiting an architect/operator ruling.** Authored by the CLOUD-4 v2 mutation lane, which is not competent to make it.
+- **Decision tier:** Architecture — **RULED (parked) by the operator 2026-08-22.** Authored by the CLOUD-4 v2 mutation lane, which was not competent to make it and correctly did not.
 - **Amends (if accepted):** ADR-101 §1 — the closed Tier-1 file enum in `SANCTIONED_TIER1_FILES` would gain `README.md`
 - **Supersedes (if accepted):** ADR-38 amendment A5, in the single respect that A5 deprecated the root `README.md` and `CLAUDE.md` §5 rule 5 hardened that into *"do not recreate it"*
 - **Related:** ADR-33 (VISION.md frontmatter), ADR-51 (canonical-doc structure), ADR-53 (single instruction file), ADR-104 (fleet repository shape — the nine members), ADR-85 amendment 2026-08-03 §A5 (why the Stop hook is advisory), ADR-98 (intake → ADR traceability)
@@ -105,10 +105,20 @@ VISION_EXTRACT_MISSING = (
 
 ## Decision
 
-> **DELIBERATELY BLANK — for the operator/architect.**
+**Decision: PARKED** — *revisit only if A2's `AGENTS.md` track fails the universal-entry
+purpose.* Priced: fleet parity ×9, 104/114 immutable bundles, 69 `PROBES`, and the
+`## Vision` H2 spine as a second migration axis (unpriced by R2, priced here).
+
+> **Operator ruling, 2026-08-22**, given as part of the batched ruling over the cloud-wave
+> funnel table (`docs/audits/2026-08-22-technical-cloud-wave-close-funnel.md` line A1). The
+> ruling is a **selection, not a refusal**: option (A) is not adopted and the question is not
+> closed — it is parked behind a named, checkable condition. **The condition is A2's outcome,
+> not the calendar**, which is why no date-trigger is recorded here: `AGENTS.md` was ADMITTED
+> in the same ruling and is the cheaper route to the same universal-entry goal, so this
+> question only becomes live again if that route fails to serve it.
 >
-> This lane's competence ends at the price. The three options, stated so a ruling can be a
-> selection rather than an essay:
+> The three priced options are retained verbatim below, because a parked decision that
+> discards its own inputs has to be re-priced from scratch when it is revisited:
 >
 > - **(A) REFUSE.** Hold ADR-38 A5 and `CLAUDE.md` §5 rule 5. Root `README.md` stays prohibited;
 >   `VISION.md` stays the canonical name. Cost: the repo keeps a canonical filename that no
