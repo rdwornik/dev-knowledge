@@ -596,6 +596,36 @@ def _is_contained(resolved: Path, root: Path) -> bool:
     return resolved != root and root in resolved.parents
 
 
+def read_metadata_file(sandbox_path: Path, relpath: str) -> str | None:
+    """Read one of the sandbox's own metadata files, or None if it is not genuinely one.
+
+    `_meta_dir` refuses to WRITE through a symlink; this is the reading half, and it was
+    missing. A directory that was never provisioned can have `.git/nopack/manifest.json`
+    be a symlink to any JSON file on the host, and `_load` opened it BEFORE proving
+    anything - so the control path itself read outside the clone. Every component is
+    checked, the final target is resolved, and it has to still be inside the sandbox.
+    """
+    sandbox_path = Path(sandbox_path)
+    current = sandbox_path
+    for part in PurePosixPath(relpath).parts:
+        current = current / part
+        if current.is_symlink():
+            return None
+    if not current.is_file():
+        return None
+    try:
+        resolved = current.resolve()
+        root = sandbox_path.resolve()
+    except OSError:
+        return None
+    if not _is_contained(resolved, root):
+        return None
+    try:
+        return current.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return None
+
+
 def read_marker(sandbox_path: Path) -> dict[str, object] | None:
     """Return the provisioning marker at `sandbox_path`, or None if it is absent/invalid.
 
@@ -604,12 +634,12 @@ def read_marker(sandbox_path: Path) -> dict[str, object] | None:
     That last check is what keeps a marker from being laundered - copying one out of a real
     sandbox into an unrelated tree does not make that tree deletable.
     """
-    marker_file = Path(sandbox_path) / MARKER_RELPATH
-    if not marker_file.is_file():
+    raw = read_metadata_file(sandbox_path, MARKER_RELPATH)
+    if raw is None:
         return None
     try:
-        data = json.loads(marker_file.read_text(encoding="utf-8"))
-    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        data = json.loads(raw)
+    except json.JSONDecodeError:
         return None
     if not isinstance(data, dict) or data.get("marker") != MARKER_KIND:
         return None
@@ -2348,12 +2378,14 @@ def _load(sandbox_path: str, manifest_path: str | None, sandbox_root: str | None
             f"refused: {candidate} is not {path}'s own manifest; the manifest is read from "
             f"inside the sandbox ({MANIFEST_RELPATH}), never from a path handed in"
         )
-    if not candidate.is_file():
+    raw = read_metadata_file(path, MANIFEST_RELPATH)
+    if raw is None:
         raise RuntimeError(
-            f"refused: {path} carries no run manifest ({MANIFEST_RELPATH}); it was not "
-            f"provisioned by this tool, so it is not a sandbox to run commands in"
+            f"refused: {path} carries no run manifest ({MANIFEST_RELPATH}) that is genuinely "
+            f"its own; it was not provisioned by this tool, so it is not a sandbox to run "
+            f"commands in"
         )
-    data = json.loads(candidate.read_text(encoding="utf-8"))
+    data = json.loads(raw)
     recorded_root = data.get("sandbox_root")
     root = _resolve(sandbox_root) if sandbox_root else None
     if root is None:

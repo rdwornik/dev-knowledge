@@ -1214,6 +1214,33 @@ def test_the_manifest_is_read_from_inside_the_sandbox_only(sandbox: ns.Sandbox, 
     assert ns._load(str(sandbox.path), str(sandbox.path / ns.MANIFEST_RELPATH)).nonce == sandbox.nonce
 
 
+def test_a_symlinked_metadata_file_is_not_read(tmp_path: Path):
+    """`_meta_dir` refused to WRITE through a symlink. This is the reading half.
+
+    An unprovisioned directory can make its own `.git/nopack/manifest.json` a symlink to
+    any JSON on the host, and `_load` opened it BEFORE proving anything - so the control
+    path itself read outside the clone.
+    """
+    host = tmp_path / "host.json"
+    host.write_text(json.dumps({"source": ".", "head": "x", "strip_commit": "y",
+                                "removed": [], "redacted": {},
+                                "postcondition_clean": True}), encoding="utf-8")
+    box = tmp_path / "fake-box"
+    (box / ns.SANDBOX_META_DIR).mkdir(parents=True)
+    try:
+        (box / ns.MANIFEST_RELPATH).symlink_to(host)
+    except (OSError, NotImplementedError) as exc:
+        pytest.skip(f"symlink creation unavailable: {exc}")
+
+    assert ns.read_metadata_file(box, ns.MANIFEST_RELPATH) is None
+    with pytest.raises(RuntimeError, match="genuinely"):
+        ns._load(str(box), None, str(tmp_path))
+
+    # the same protection covers the marker
+    (box / ns.MARKER_RELPATH).symlink_to(host)
+    assert ns.read_marker(box) is None
+
+
 def test_a_live_registry_lock_is_not_stolen(tmp_path: Path):
     """An earlier draft broke the lock on the waiter's OWN timeout, so two could hold it."""
     lock = (tmp_path / ns.REGISTRY_NAME).with_suffix(".lock")
