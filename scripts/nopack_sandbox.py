@@ -47,11 +47,15 @@ NOT guaranteed - stated here because a guard whose limits are unstated is a wors
 
 USAGE (the seam the candidate transport calls)
 ----------------------------------------------
-    export NOPACK_SANDBOX_ROOT=/tmp/nopack-sandboxes      # or pass --sandbox-root
+    export NOPACK_SANDBOX_ROOT=/tmp/nopack-sandboxes      # every subcommand reads this
     python3 scripts/nopack_sandbox.py provision --dest "$NOPACK_SANDBOX_ROOT/ab"
     python3 scripts/nopack_sandbox.py probe    --sandbox "$NOPACK_SANDBOX_ROOT/ab"
     python3 scripts/nopack_sandbox.py exec     --sandbox "$NOPACK_SANDBOX_ROOT/ab" -- 'git log --oneline -3'
     python3 scripts/nopack_sandbox.py teardown --sandbox "$NOPACK_SANDBOX_ROOT/ab"
+
+Every subcommand - not just provision and teardown - takes `--sandbox-root`, because the
+root is the boundary each of them checks the given path against BEFORE reading anything
+there. Set the environment variable once and none of them needs the flag.
 
 `exec` is the whole integration surface: whatever transport runs the candidate (direct API
 with a `run` tool, or a CLI lane) calls it, so both lanes are guarded by one mechanism and
@@ -749,7 +753,11 @@ def _registry_lock(sandbox_root: Path, timeout: float = 10.0):
             os.close(handle)
             held = True
             break
-        except FileExistsError:
+        except (FileExistsError, PermissionError):
+            # PermissionError, not just FileExistsError: on Windows an exclusive create
+            # against a file another process is in the middle of unlinking raises errno 13
+            # rather than EEXIST. Treating that as a hard failure made a lock RELEASE look
+            # like a lock error to whoever was waiting for it.
             if time.monotonic() > deadline:
                 if not _break_stale_lock(lock):
                     raise RuntimeError(
@@ -2013,7 +2021,7 @@ def _resolve_executable(name: str, env: dict[str, str], sandbox_root: Path) -> s
     return str(resolved)
 
 
-def _require_provisioned(sandbox: Sandbox | Path, cwd: Path) -> Path:
+def _require_provisioned(sandbox: Sandbox | Path, cwd: Path, sandbox_root: Path | None = None) -> Path:
     """Prove the cwd is a real sandbox before ANY guarded command runs.
 
     Hardening `_load` hardened the CLI. It did nothing for a direct caller, and
@@ -2023,23 +2031,14 @@ def _require_provisioned(sandbox: Sandbox | Path, cwd: Path) -> Path:
     the routes into it.
     """
     resolved = _resolve(cwd)
-    root: Path | None = sandbox.sandbox_root if isinstance(sandbox, Sandbox) else None
     nonce = sandbox.nonce if isinstance(sandbox, Sandbox) else ""
-    if root is None:
-        # No recorded root (a bare Path, or a hand-built Sandbox): take it from the
-        # marker, which cannot be trusted about its own legitimacy but can be read for
-        # WHERE to check - and `verify_provenance` then has to agree with the registry
-        # there, which is the leg a fabricated marker cannot satisfy.
-        marker = read_marker(resolved)
-        if marker is None:
-            raise RuntimeError(
-                f"refused: {resolved} carries no provisioning marker; guarded commands run "
-                f"with the sandbox as their working directory, so an unprovisioned tree is "
-                f"not a degraded guard, it is no guard"
-            )
-        recorded = marker.get("sandbox_root")
-        root = _resolve(str(recorded)) if isinstance(recorded, str) else _resolve(default_sandbox_root())
-    root = _resolve(root)
+    # The root comes from the caller, or from a Sandbox that `provision`/`_load` already
+    # verified, or from the configured default - never from metadata inside the tree being
+    # judged, which would be the boundary asking the suspect where the boundary is.
+    root = sandbox_root
+    if root is None and isinstance(sandbox, Sandbox) and sandbox.sandbox_root is not None:
+        root = sandbox.sandbox_root
+    root = _resolve(root) if root is not None else _resolve(default_sandbox_root())
     verify_provenance(resolved, root, expected_nonce=nonce or None)
     return root
 
@@ -2049,6 +2048,7 @@ def run_guarded(
     sandbox: Sandbox | Path,
     *,
     denied_names: set[str] | None = None,
+    sandbox_root: Path | str | None = None,
     timeout: int = 120,
     max_output_bytes: int = 100_000,
 ) -> GuardedResult:
@@ -2065,10 +2065,15 @@ def run_guarded(
     # proceed with nothing.
     if not isinstance(sandbox, Sandbox) or not (sandbox.denied or sandbox.removed):
         target = sandbox.path if isinstance(sandbox, Sandbox) else Path(sandbox)
-        sandbox = _load(str(target), None)
+        known_root = sandbox_root
+        if known_root is None and isinstance(sandbox, Sandbox):
+            known_root = sandbox.sandbox_root
+        sandbox = _load(str(target), None, str(known_root) if known_root else None)
     cwd = sandbox.path
     names = denied_names if denied_names is not None else sandbox.denied_names()
-    sandbox_root = _require_provisioned(sandbox, cwd)
+    verified_root = _require_provisioned(
+        sandbox, cwd, Path(sandbox_root) if sandbox_root else None
+    )
 
     trip, stages = screen_pipeline(command, names)
     if trip is not None:
@@ -2099,7 +2104,7 @@ def run_guarded(
         argv = list(stage.argv)
         # Resolve the program HERE, from the trusted PATH, and hand the OS an absolute
         # path so it searches nothing - the sandbox least of all.
-        program = _resolve_executable(argv[0], env, sandbox_root)
+        program = _resolve_executable(argv[0], env, verified_root)
         if program is None:
             return GuardedResult(
                 command, 127, "", f"sandbox guard: command not found: {argv[0]}", refused=False
@@ -2367,6 +2372,20 @@ def _load(sandbox_path: str, manifest_path: str | None, sandbox_root: str | None
     stripped. A warning is not a substitute for the check it warns about.
     """
     path = Path(sandbox_path)
+    # The boundary is established BEFORE anything is read, and it is NOT taken from the
+    # manifest: inferring the containment root from the file whose legitimacy is in
+    # question is circular, and it let `_load` open a regular manifest sitting in any
+    # directory `--sandbox` happened to name. The root comes from the caller, the
+    # environment, or the default - the three places that are not under the tree's control.
+    root = _resolve(sandbox_root) if sandbox_root else _resolve(default_sandbox_root())
+    resolved = _resolve(path)
+    if path.is_symlink():
+        raise RuntimeError(f"refused: {path} is a symlink, not a sandbox directory")
+    if not _is_contained(resolved, root):
+        raise RuntimeError(
+            f"refused: {resolved} is outside the configured sandbox root {root}; nothing "
+            f"there is read, including its metadata"
+        )
     expected = _resolve(path / MANIFEST_RELPATH)
     candidate = Path(manifest_path) if manifest_path else path / MANIFEST_RELPATH
     if manifest_path is not None and _resolve(candidate) != expected:
@@ -2386,10 +2405,6 @@ def _load(sandbox_path: str, manifest_path: str | None, sandbox_root: str | None
             f"commands in"
         )
     data = json.loads(raw)
-    recorded_root = data.get("sandbox_root")
-    root = _resolve(sandbox_root) if sandbox_root else None
-    if root is None:
-        root = _resolve(recorded_root) if recorded_root else _resolve(default_sandbox_root())
     sandbox = Sandbox(
         path=path,
         source=Path(data["source"]),
@@ -2403,7 +2418,7 @@ def _load(sandbox_path: str, manifest_path: str | None, sandbox_root: str | None
         sandbox_root=root,
         nonce=str(data.get("nonce", "")),
     )
-    verify_provenance(_resolve(path), root, expected_nonce=sandbox.nonce or None)
+    verify_provenance(resolved, root, expected_nonce=sandbox.nonce or None)
     if not sandbox.postcondition_clean:
         raise RuntimeError(
             f"refused: {path} did not pass provisioning's own postcondition, so its tree is "

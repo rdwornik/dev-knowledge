@@ -1148,12 +1148,17 @@ def test_run_guarded_refuses_a_directory_that_was_never_provisioned(tmp_path: Pa
     outside.mkdir()
     (outside / "secret.txt").write_text("host content", encoding="utf-8")
 
-    with pytest.raises(RuntimeError, match="no run manifest|no provisioning marker"):
+    # with no root declared it is not even inside the configured boundary...
+    with pytest.raises(RuntimeError, match="outside the configured sandbox root"):
         ns.run_guarded("cat secret.txt", outside)
 
+    # ...and declaring the boundary it sits in does not make it a sandbox
+    with pytest.raises(RuntimeError, match="no run manifest"):
+        ns.run_guarded("cat secret.txt", outside, sandbox_root=tmp_path)
+
     hand_built = ns.Sandbox(path=outside, source=outside, head="x", strip_commit="y")
-    with pytest.raises(RuntimeError, match="no run manifest|no provisioning marker"):
-        ns.run_guarded("cat secret.txt", hand_built)
+    with pytest.raises(RuntimeError, match="no run manifest"):
+        ns.run_guarded("cat secret.txt", hand_built, sandbox_root=tmp_path)
 
 
 def test_dereferencing_list_and_diff_modes_are_refused():
@@ -1194,7 +1199,7 @@ def test_a_bare_path_still_gets_the_sandbox_denylist(sandbox: ns.Sandbox):
     `git log --stat -1` names no stripped artifact and carries no canary; the ONLY thing
     that refuses it is the denied-names list, which a bare `Path` used to arrive without.
     """
-    res = ns.run_guarded("git log --stat -1", sandbox.path)
+    res = ns.run_guarded("git log --stat -1", sandbox.path, sandbox_root=sandbox.sandbox_root)
     assert res.refused is True
     assert res.trip.layer == "B"
     assert res.stdout == ""
@@ -1207,11 +1212,13 @@ def test_the_manifest_is_read_from_inside_the_sandbox_only(sandbox: ns.Sandbox, 
                                    "removed": [], "redacted": {},
                                    "postcondition_clean": True}), encoding="utf-8")
 
+    root = str(sandbox.sandbox_root)
     with pytest.raises(RuntimeError, match="is not .*own manifest"):
-        ns._load(str(sandbox.path), str(planted))
+        ns._load(str(sandbox.path), str(planted), root)
 
     # naming the real one explicitly is still fine
-    assert ns._load(str(sandbox.path), str(sandbox.path / ns.MANIFEST_RELPATH)).nonce == sandbox.nonce
+    real = str(sandbox.path / ns.MANIFEST_RELPATH)
+    assert ns._load(str(sandbox.path), real, root).nonce == sandbox.nonce
 
 
 def test_a_symlinked_metadata_file_is_not_read(tmp_path: Path):
