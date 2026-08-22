@@ -19,6 +19,56 @@
 
 ---
 
+### 2026-08-22 (e) — CC (Opus 5, part-C integrator, branch `docs/part-c-b3c-and-defer-acts-2026-08-22`): a standing RED turns green on a real fix, and every deferred row gets its narrowing act
+
+**Did:** `353149ab` — B3c's executable half plus the six A-DEFER narrowing acts. Caught while
+reading the final suite result rather than assumed done: the ruling assigns part C an act for each
+deferred row, and the S6/S7 commits had not carried them.
+
+**Result: `test_routine_consumers_live_backlog_governs_exactly_one_row` is GREEN, and it is a fix
+rather than a re-pin.** The test's own docstring set the condition — *"If this number moves, the
+ADR, the docstring and `[#426]` must move with it"* — so all three surfaces moved in one commit.
+`ADR-105` takes an **appended amendment marker**, never an in-place edit of §4, because ADRs are
+immutable and `CLAUDE.md` §5 rule 3 sanctions exactly that form. The live assertion goes 1 → 3;
+`[#426]`'s body, which carried the same "governs exactly ONE backlog row" claim, now names all
+three (`[#348]`, `[#552]`, `[#426]`).
+
+**One test was deliberately left failing-shaped and is worth recording as a near-miss.**
+`test_routine_consumers_marked_row_with_both_fields_passes` also asserts `"1 declared routine row"`,
+but it seeds a `tmp_path` fixture containing exactly one marked row — **1 is correct there**. A
+blanket find-and-replace across the file would have "fixed" it into a test that no longer tests
+anything. It is untouched, and both tests pass.
+
+**The count moved because rows were DECLARED, not because the rule widened.** ADR-105's enumeration
+of 30 live routines, and its finding that **none of them is a BACKLOG row**, both stand unchanged —
+the amendment says so explicitly so a later reader does not mistake this for scope creep.
+
+**anchor_gate_probe is NOT touched, by ruling.** B3c says no guess-green, and the evidence is
+genuinely ambiguous: the organ **refused an anchored push in the fixture** (`exit 1`, does not
+discriminate) while the same organ **passed a real anchored push to `main`** twice this session.
+That points at the fixture, but "points at" is not a diagnosis. It is queued as **f8** with that
+evidence attached.
+
+**Every deferred row now carries its narrowing act rather than an undated intention:** `[#549]`
+re-pegged to `[#572]` as a live dated trigger (its old peg was spent); `[#420]`'s premise corrected
+**9 → 22 files**, measured — a destination-per-file ruling written against 9 would have been wrong
+for 13 of them; `[#541]` partially discharged by transcribing the standing substrate decision with
+a do-not-reopen pointer and flagging the **crossover rule** as the one open half; `[#491]` and
+`[#344]` recorded as blocked **together** on a single unmade policy (whether new
+`STANDING_RULINGS.md` sections may be written post-ratchet); `[#348]` re-pegged to **2026-09-22 or
+the grooming arc's completion**, so its live claim is no longer undated.
+
+**Changes:** `docs/decisions/ADR-105-routine-consumer-declaration.md` (amendment), `tests/test_audit.py`,
+`tasks/{426,549,420,541,491,344,348}-*.md` + regenerated `BACKLOG.md`.
+
+**Abandoned:** No row was closed or born by this commit — the ledger is untouched at 214.
+
+**Honest residue:** six of the narrowed rows grow past the 1320 ceiling, because the narrowing text
+*is* the ruled content. That is the same content-vs-annotation boundary the annotation ledger
+records: pointer-ization can reclaim an annotation, never a ruling.
+
+---
+
 ### 2026-08-22 (d) — CC (Opus 5, part-C integrator, branch `docs/part-c-filing-queue-2026-08-22`): the doc discharges, and a deferral that came due rather than being re-dated
 
 **Did:** Step S7, at `4c062d49`, on the branch whose S6 filing landed at `92caed40`. Four governance
