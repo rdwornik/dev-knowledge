@@ -255,3 +255,89 @@ All were reverted; `git status` is clean of them.
    `protocols/STANDING_RULINGS.md` N-2 (should land — it keeps the predicate honest), and
    `ecosystem/doc-counts.md` (regenerate at integration, do not hand-apply).
 3. **No `[#563]` closure is proposed here.** This lane builds; the Tier-1 closure loop rules.
+
+---
+
+## Amendment A1 — 2026-08-22, post-commit: the gate evidence, re-measured for real
+
+> **In-file amendment marker (Critical Rule #3).** §7 above is NOT edited in place; this
+> section corrects it. Written after `72aedb0` was committed, when the container's uv was
+> brought into line with the repo's own pin and the real gate set could finally run.
+
+**What changed in the container, and why it is not a repo change.** The `Stop` hook kept
+refusing with the uv-pin error §7 declares. `uv 0.11.19` — the exact version
+`pyproject.toml` already pins — was installed into the container from PyPI, replacing the
+`0.8.17` binary on PATH (the previous binary is kept as a backup). This makes the ENVIRONMENT
+conform to the repo's declaration; it is **not** the `pyproject.toml` pin bump ADR-106 rules
+must be its own gated change, and no repo file was touched. Every `uv run --locked` entry then
+worked, so the gates below ran through their real configured entrypoints rather than by hand.
+
+### A1.1 CORRECTION — `audit.py health` exits **1**, not 0
+
+§7's table records `audit.py health` as `rc=0, DEGRADED`. **That rc was wrong, and the error
+was in the measurement, not the tool:** the command was piped to `tail` before `$?` was read,
+so the captured status was `tail`'s, not `audit.py`'s. Re-measured without the pipe, the exit
+code is **1**, with and without `--parallel`. The pre-commit hook `audit-health` therefore
+reports **Failed**, and would BLOCK this commit in an environment with hooks armed.
+
+The `DEGRADED` verdict and the "pre-existing" characterisation in §7 were correct; only the
+exit code was misreported.
+
+### A1.2 The four FAILs are pre-existing — measured against `main`, not assumed
+
+`audit.py health --parallel` was run at this lane's HEAD (`72aedb0`) and again at its parent
+(`0360d6d`, the `main` this lane branched from) by checking the parent out. **Both exit 1 with
+an identical FAIL set:**
+
+```
+[!!] canonical_freshness      6 canonical docs edited 2026-08-16 whose last_reviewed predates
+                              the edit (ARCHITECTURE, CONTRIBUTING, docs/handoffs/README,
+                              ESSENTIALS, AI_COUNCIL_PROCESS, DEFINITION_OF_DONE)
+[!!] hooks_armed              no git hooks installed in this container
+[!!] journal_spine_anchor     shallow clone — the disposition floor is not a valid object
+[!!] repos registered (none)  no sibling fleet repos present
+```
+
+**Zero of the four is attributable to this lane**, and this commit touches none of the six
+files `canonical_freshness` names. Three are artifacts of the cloud container (no hooks, no
+siblings, shallow history). **The fourth is not:** `canonical_freshness` is genuine
+pre-existing drift in the repo's own state, and it would fail on the operator's machine too.
+It is reported rather than repaired — those are canonical/`protocols/` files this lane is
+scoped away from, and a freshness stamp must never be bumped without a genuine re-read.
+
+**The integrator should expect `audit-health` to block on this commit** and should know the
+block is inherited from `main`, not introduced here.
+
+### A1.3 The real pre-commit set, per hook
+
+`uv run --locked pre-commit run --from-ref HEAD~1 --to-ref HEAD`:
+
+```
+block-commit-on-main .......................... Passed
+normalize-dated-headers ....................... Passed
+codemap-freshness ............................. Passed
+audit-index-freshness ......................... Passed
+validate-hermetization ........................ Passed
+audit-health .................................. Failed  (A1.1 / A1.2 — inherited from main)
+ruff .......................................... Passed
+toc-freshness-playbook, roster-freshness, claude-rosters-freshness,
+organ-index-freshness, intake-index-freshness, check-seal-identity,
+validate-backlog, lane-contract-check, coherence-nudge ......... Skipped (no files to check)
+```
+
+Two §7 rows are upgraded from inference to measurement by this run: `validate-hermetization`
+was recorded there as *"n/a by inspection"* and is now confirmed **Passed** by the gate itself,
+and `audit-index-freshness` — hand-run in §7 with the same pipe-before-`$?` flaw — is likewise
+confirmed **Passed**.
+
+### A1.4 The `Stop` hook, through its configured entrypoint
+
+`uv run --locked python scripts/session_end_backpressure.py` → **rc=0**, silent: the all-clear
+path. Both pre-push organs were also run against the exact stdin shape this lane's real push
+presented (`refs/heads/claude/cloud-2-563-view-layer`): `block_ff_push` **rc=0**,
+`block_unanchored_push` **rc=0**. Neither had teeth to apply — the push targeted a session
+branch, not `main`, and this lane never merges.
+
+**Nothing in this amendment changes the shipped code, the tests, or the §6 finding tally.**
+The full suite result in §7 (37 failed / 3361 passed, a failure set identical to the measured
+baseline) was captured with `$?` read directly and stands as recorded.
