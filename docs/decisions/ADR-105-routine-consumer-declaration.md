@@ -100,3 +100,21 @@ Operator ruling in-thread, 2026-07-26, across three review rounds of the session
 activation-vs-filing distinction was the operator's correction to an earlier filing-gate
 formulation, made after the four candidate rows proved non-homogeneous: one runs, three are
 proposals.
+
+---
+
+## Amendment — 2026-08-22 · the coverage boundary moves from one row to three
+
+**In-file amendment marker, not an in-place edit of §4** — ADRs are immutable per `CLAUDE.md` §5
+rule 3, which sanctions exactly this form.
+
+§4 records that **at acceptance** this rule governed **one row** (`[#348]`). It now governs
+**three**: `[#348]` (backlog grooming), `[#552]` (window-close disposition + archival routine) and
+`[#426]` (the `consumer`/`consumption_path` retrofit that §4 names as carrying the enumeration).
+The count moved because rows were *declared*, not because the rule widened — the enumeration of 30
+live routines and the finding that **none of them is a BACKLOG row** both stand unchanged.
+
+Ruled 2026-08-22 (architect, B3c) as **maintenance, not a patch**: the ADR text, the pinning test's
+docstring and assertion, and `[#426]` move **together**, which is what §4's own "if this number
+moves" instruction requires. `tests/test_audit.py::test_routine_consumers_live_backlog_governs_exactly_one_row`
+pins the live number and is updated in the same commit.

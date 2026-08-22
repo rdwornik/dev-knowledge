@@ -2433,11 +2433,17 @@ def test_routine_consumers_lookalike_delimiter_does_not_fail_open(tmp_path: Path
 
 def test_routine_consumers_live_backlog_governs_exactly_one_row(tmp_path: Path) -> None:
     """Pins the stated coverage boundary against the real file (ADR-105 §4). If this
-    number moves, the ADR, the docstring and [#426] must move with it."""
+    number moves, the ADR, the docstring and [#426] must move with it.
+
+    Moved 1 -> 3 on 2026-08-22 (architect ruling B3c, executed as maintenance): rows
+    [#348], [#552] and [#426] now declare routines. All three surfaces moved in the
+    same commit -- the ADR carries an amendment marker, [#426]'s body is restated, and
+    this assertion follows. The count moved because rows were DECLARED, not because
+    the rule widened."""
     root = Path(__file__).resolve().parents[1]
     f = aud.check_routine_consumers(root)[0]
     assert f.status == "pass"
-    assert "1 declared routine row" in f.evidence
+    assert "3 declared routine row" in f.evidence
 
 
 # --- second adversarial cohort (sol re-review, 2026-07-26) -----------------------
