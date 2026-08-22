@@ -19,6 +19,52 @@
 
 ---
 
+### 2026-08-22 (k) - CC (Opus 5, cloud-wave integrator, branch `docs/cloud1-terra-hold-2026-08-22`): the fifth lane returns, and the review it asked for holds it
+
+**Did:** ran the owed `gpt-5.6-terra` pass on the returned `[#562]` lane and recorded the result.
+
+**Result: cloud-1 is HELD and NOT merged - 2 Critical, 2 High, both Criticals confirmed against
+source.** A4's verdict-hold resolves, and not the way its trigger anticipated: the lane **returned**
+with a real deliverable (a no-pack sandbox guard, 940 LOC, 539 LOC of tests, the R3-amended item
+set), but **leg 3 - the actual A/B rerun - is BLOCKED** on credentials and network. No keys, no
+CLIs, `api.x.ai` and the Gemini endpoint both 403 from the agent proxy. It stopped at its
+contract's hard precondition P0 rather than improvising a one-sided run, which is correct and is
+evidenced rather than asserted. **So the VOID trigger does not fire** - it did not come back
+absent, it came back with a measured reason for having no scores. There is still no admission
+verdict, and this session neither scored nor inferred one.
+
+**The review is precisely what the lane asked for, and it is why running it mattered.** Its
+artifact declares terra unreachable, names its substitute an in-lane pass that *"shares the
+author's blind spots"*, and asks that its **0-Critical tally be treated as a floor**. It was a
+floor. Two Criticals, and the first is the serious one: `teardown()` is `shutil.rmtree(path)`
+guarded only by `path.exists()`, reached straight from the CLI - no marker, no manifest check, no
+sandbox-root containment - so `teardown --sandbox <any path>` recursively deletes it. **That is the
+hazard class the operator's own P0 rules exist for**, whose recorded history is cleanup scripts
+deleting personal files alongside their intended targets. The second: provisioning unconditionally
+overwrites a manifest path outside the sandbox. Both Highs are real too - a failed provision leaves
+the **unstripped** clone on disk (a leak of the very answer-key content the guard strips), and the
+allowlist screens top-level shell segments while execution is `shell=True`, so `cat $(touch file)`
+bypasses it.
+
+**I did not fix these.** Two Criticals in a 940-LOC security-guard module are not the judgment-free
+class the MECHANICAL lane covers, and a guard whose containment model needs redesigning is not an
+integrator's drive-by. The review lands on `main` as the record of **why** the hold is reasoned;
+the branch stays alive with its work intact.
+
+**Changes:** `docs/audits/2026-08-22-codex-562-nopack-sandbox-terra.md` (new, tally 2/2/0/0 with the
+HELD disposition), regenerated `docs/audits/README.md`.
+
+**Abandoned:** nothing closed or born. cloud-1 contributes no closure and no birth this wave.
+
+**Next:** the wave close report. cloud-1 needs an operator/architect decision - the four findings
+are its own to fix on its branch, or the guard's containment model is re-scoped before a rerun slot
+is spent on it.
+
+**Anchors:** `28540e82`, the terra-evidence commit this entry names and the commit this branch's
+merge introduces.
+
+---
+
 ### 2026-08-22 (j) - CC (Opus 5, cloud-wave integrator, branch `fix/n2-note-token-2026-08-22`): the note recording the conflict re-created it
 
 **Did:** finished the (i) repair, which was incomplete.
