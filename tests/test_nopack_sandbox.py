@@ -1148,11 +1148,11 @@ def test_run_guarded_refuses_a_directory_that_was_never_provisioned(tmp_path: Pa
     outside.mkdir()
     (outside / "secret.txt").write_text("host content", encoding="utf-8")
 
-    with pytest.raises(RuntimeError, match="no provisioning marker"):
+    with pytest.raises(RuntimeError, match="no run manifest|no provisioning marker"):
         ns.run_guarded("cat secret.txt", outside)
 
     hand_built = ns.Sandbox(path=outside, source=outside, head="x", strip_commit="y")
-    with pytest.raises(RuntimeError, match="no provisioning marker"):
+    with pytest.raises(RuntimeError, match="no run manifest|no provisioning marker"):
         ns.run_guarded("cat secret.txt", hand_built)
 
 
@@ -1186,6 +1186,32 @@ def test_a_binary_dropped_in_the_sandbox_cannot_shadow_an_allowlisted_command(
     assert res.refused is False
     assert "pwned" not in res.stdout
     assert "# CLAUDE" in res.stdout
+
+
+def test_a_bare_path_still_gets_the_sandbox_denylist(sandbox: ns.Sandbox):
+    """An empty denylist is not a milder guard - it turns Layer A and Layer B off.
+
+    `git log --stat -1` names no stripped artifact and carries no canary; the ONLY thing
+    that refuses it is the denied-names list, which a bare `Path` used to arrive without.
+    """
+    res = ns.run_guarded("git log --stat -1", sandbox.path)
+    assert res.refused is True
+    assert res.trip.layer == "B"
+    assert res.stdout == ""
+
+
+def test_the_manifest_is_read_from_inside_the_sandbox_only(sandbox: ns.Sandbox, tmp_path: Path):
+    """`--manifest` was a way to read any host file through `exec`'s own control path."""
+    planted = tmp_path / "host-manifest.json"
+    planted.write_text(json.dumps({"source": ".", "head": "x", "strip_commit": "y",
+                                   "removed": [], "redacted": {},
+                                   "postcondition_clean": True}), encoding="utf-8")
+
+    with pytest.raises(RuntimeError, match="is not .*own manifest"):
+        ns._load(str(sandbox.path), str(planted))
+
+    # naming the real one explicitly is still fine
+    assert ns._load(str(sandbox.path), str(sandbox.path / ns.MANIFEST_RELPATH)).nonce == sandbox.nonce
 
 
 def test_a_live_registry_lock_is_not_stolen(tmp_path: Path):

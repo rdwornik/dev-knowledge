@@ -2027,12 +2027,17 @@ def run_guarded(
     Every stage is executed with `shell=False` from an argv list that was itself screened,
     so nothing between the check and the exec can reinterpret the string.
     """
-    if isinstance(sandbox, Sandbox):
-        cwd = sandbox.path
-        names = denied_names if denied_names is not None else sandbox.denied_names()
-    else:
-        cwd = Path(sandbox)
-        names = denied_names or set()
+    # A bare `Path` - or a Sandbox someone built by hand - carries no denylist, and an
+    # empty denylist is not a milder guard: Layer A stops refusing commands that NAME a
+    # stripped artifact and Layer B stops refusing output that DISCLOSES one, so
+    # `git log --stat -1` hands back the pack's path. The manifest is on disk inside the
+    # sandbox and `_load` verifies it, so the fix is to go and read it rather than to
+    # proceed with nothing.
+    if not isinstance(sandbox, Sandbox) or not (sandbox.denied or sandbox.removed):
+        target = sandbox.path if isinstance(sandbox, Sandbox) else Path(sandbox)
+        sandbox = _load(str(target), None)
+    cwd = sandbox.path
+    names = denied_names if denied_names is not None else sandbox.denied_names()
     sandbox_root = _require_provisioned(sandbox, cwd)
 
     trip, stages = screen_pipeline(command, names)
@@ -2332,7 +2337,17 @@ def _load(sandbox_path: str, manifest_path: str | None, sandbox_root: str | None
     stripped. A warning is not a substitute for the check it warns about.
     """
     path = Path(sandbox_path)
+    expected = _resolve(path / MANIFEST_RELPATH)
     candidate = Path(manifest_path) if manifest_path else path / MANIFEST_RELPATH
+    if manifest_path is not None and _resolve(candidate) != expected:
+        # `--manifest` was a way to read any file on the host through `exec`'s own control
+        # path: `_load` opened it before anything had been proven about it. A manifest that
+        # is not THIS sandbox's manifest is not a manifest, so the option can only ever
+        # name the in-tree one - and now it has to.
+        raise RuntimeError(
+            f"refused: {candidate} is not {path}'s own manifest; the manifest is read from "
+            f"inside the sandbox ({MANIFEST_RELPATH}), never from a path handed in"
+        )
     if not candidate.is_file():
         raise RuntimeError(
             f"refused: {path} carries no run manifest ({MANIFEST_RELPATH}); it was not "
