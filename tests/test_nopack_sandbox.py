@@ -15,9 +15,11 @@ from __future__ import annotations
 
 import ast
 import json
+import os
 import shutil
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -843,7 +845,7 @@ def test_git_pre_command_options_cannot_relocate_or_reconfigure_git():
     assert ns.screen_command("git --work-tree=/ status").kind == "git-relocated"
     assert ns.screen_command("git --wat log").kind == "git-relocated"
     # valueless pre-command options are stepped over, not refused
-    assert ns.screen_command("git -p log --oneline") is None
+    assert ns.screen_command("git --no-pager log --oneline") is None
 
 
 def test_git_is_an_allowlist_so_an_unlisted_subcommand_is_refused():
@@ -888,6 +890,117 @@ def test_sed_scripts_that_write_or_execute_are_refused():
         "sed 's/a/b/g' CLAUDE.md",
     ):
         assert ns.screen_command(command) is None, command
+
+
+def test_literal_path_operands_cannot_reach_outside_the_clone():
+    """`cwd=<sandbox>` is a starting point, not a boundary. Globs were confined; these were not."""
+    for command in (
+        "cat ../secret",
+        "ls /",
+        "find ..",
+        "sed -n '1p' /etc/passwd",
+        "cat docs/../CLAUDE.md",
+        "diff CLAUDE.md /etc/hosts",
+    ):
+        assert ns.screen_command(command).kind == "path-outside-sandbox", command
+
+
+def test_path_confinement_does_not_refuse_patterns_or_revision_ranges():
+    """The `git branch -a` lesson: a containment rule that eats real reads is a bad rule."""
+    assert ns.screen_command("grep -rn '/usr' .") is None, "a pattern starting with / is data"
+    assert ns.screen_command("grep -e /etc/passwd CLAUDE.md") is None, "-e's value is the pattern"
+    assert ns.screen_command("echo /usr/bin/passwd") is None, "echo opens nothing"
+    assert ns.screen_command("git log main..HEAD --oneline") is None, "`..` here is a range"
+    assert ns.screen_command("git log origin/main..HEAD") is None
+    assert ns.screen_command("git show HEAD~1:docs/audits/README.md") is None
+    # ...but a real file operand is still checked even for the pattern tools
+    assert ns.screen_command("grep -n pattern /etc/passwd").kind == "path-outside-sandbox"
+
+
+def test_compact_sed_option_forms_are_parsed_not_skipped():
+    """`sed -e'1w /tmp/out' file` looked like a flag bundle, so no script was validated."""
+    assert ns.screen_command("sed -e'1w /tmp/out' CLAUDE.md").kind == "sed-script-not-read-only"
+    assert ns.screen_command("sed -e'1e rm -rf /' CLAUDE.md").kind == "sed-script-not-read-only"
+    assert ns.screen_command("sed -ni 's/a/b/' CLAUDE.md").kind == "forbidden-argument"
+    assert ns.screen_command("sed -i'' 's/a/b/' CLAUDE.md").kind == "forbidden-argument"
+    # the compact read forms still work
+    assert ns.screen_command("sed -ne'1p' CLAUDE.md") is None
+    assert ns.screen_command("sed -n -e '1,3p' CLAUDE.md") is None
+
+
+def test_git_may_not_hand_its_work_to_another_program():
+    """A pager, a browser, an external diff driver: `-exec` wearing git's clothes."""
+    for command in (
+        "git -p log --oneline",
+        "git help --web",
+        "git diff --ext-diff",
+        "git log --textconv",
+    ):
+        assert ns.screen_command(command).kind in {"git-helper", "git-write"}, command
+    assert ns.screen_command("git help").kind == "git-write", "help launches a viewer"
+    assert ns.screen_command("git --no-pager log --oneline") is None
+    assert ns.screen_command("git diff HEAD~1") is None
+
+
+def test_p_before_the_subcommand_is_a_pager_and_after_it_is_not():
+    """Refusing `-p` everywhere made the probe's Layer B blob vector a vacuous Layer A pass."""
+    assert ns.screen_command("git -p log").kind == "git-helper"
+    assert ns.screen_command("git log -p") is None, "here -p is a patch"
+    assert ns.screen_command("git cat-file -p abc123") is None, "here -p is a pretty-print"
+
+
+def test_the_raw_blob_vector_still_reaches_layer_b(sandbox: ns.Sandbox):
+    """V5b is the only probe vector that tests Layer B's CONTENT leg on a nameless blob."""
+    pack = "docs/audits/2026-08-19-technical-c1-seeded-defect-pack.md"
+    blob = _run(sandbox.path, "rev-parse", f"HEAD~1:{pack}").strip()
+    res = ns.run_guarded(f"git cat-file -p {blob}", sandbox)
+    assert res.refused is True
+    assert res.trip.layer == "B", "a Layer A refusal here would test nothing"
+
+
+def test_guarded_commands_run_with_a_scrubbed_environment(sandbox: ns.Sandbox, monkeypatch):
+    """git reads the HOST's global config, so a configured pager or alias would run here."""
+    seen: dict[str, str] = {}
+    real = subprocess.run
+
+    def spy(args, **kwargs):
+        seen.update(kwargs.get("env") or {})
+        return real(args, **kwargs)
+
+    monkeypatch.setenv("GIT_CONFIG_GLOBAL", "C:/somewhere/host.gitconfig")
+    monkeypatch.setenv("SECRET_TOKEN", "must-not-propagate")
+    monkeypatch.setattr(ns.subprocess, "run", spy)
+    ns.run_guarded("git log --oneline -1", sandbox)
+
+    assert seen["GIT_CONFIG_GLOBAL"] != "C:/somewhere/host.gitconfig"
+    assert seen["GIT_CONFIG_NOSYSTEM"] == "1"
+    assert "SECRET_TOKEN" not in seen
+    assert "PATH" in seen, "a scrubbed environment still has to be a usable one"
+
+
+def test_a_live_registry_lock_is_not_stolen(tmp_path: Path):
+    """An earlier draft broke the lock on the waiter's OWN timeout, so two could hold it."""
+    lock = (tmp_path / ns.REGISTRY_NAME).with_suffix(".lock")
+    lock.parent.mkdir(parents=True, exist_ok=True)
+    lock.write_text("999999 held-by-someone-else", encoding="utf-8")
+
+    with pytest.raises(RuntimeError, match="held by another process"):
+        with ns._registry_lock(tmp_path, timeout=0.05):
+            pass
+    assert lock.exists(), "a lock this caller does not hold must survive its refusal"
+
+
+def test_a_provably_ancient_lock_is_broken(tmp_path: Path):
+    """...but a crashed holder must not wedge the root forever."""
+    lock = (tmp_path / ns.REGISTRY_NAME).with_suffix(".lock")
+    lock.parent.mkdir(parents=True, exist_ok=True)
+    lock.write_text("1 long-dead", encoding="utf-8")
+    ancient = time.time() - (ns.STALE_LOCK_SECONDS + 60)
+    os.utime(lock, (ancient, ancient))
+
+    with ns._registry_lock(tmp_path, timeout=0.05):
+        pass
+    assert not lock.exists()
 
 
 def test_the_registry_survives_concurrent_updates(tmp_path: Path):

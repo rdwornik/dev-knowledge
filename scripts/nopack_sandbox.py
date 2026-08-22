@@ -289,10 +289,11 @@ _GIT_READ_SUBCOMMANDS: frozenset[str] = frozenset(
     {
         "annotate", "blame", "cat-file", "check-attr", "check-ignore", "cherry",
         "count-objects", "describe", "diff", "diff-index", "diff-tree", "for-each-ref",
-        "grep", "help", "log", "ls-files", "ls-tree", "merge-base", "name-rev",
+        "grep", "log", "ls-files", "ls-tree", "merge-base", "name-rev",
         "range-diff", "rev-list", "rev-parse", "shortlog", "show", "show-branch",
         "show-ref", "status", "symbolic-ref", "verify-commit", "verify-tag",
         "whatchanged",
+        # `help` is NOT here: it launches a browser or a man viewer.
     }
 )
 
@@ -323,11 +324,26 @@ _GIT_RELOCATING_OPTIONS: frozenset[str] = frozenset(
 # Valueless pre-command options, safe to step over while looking for the subcommand.
 _GIT_BARE_OPTIONS: frozenset[str] = frozenset(
     {
-        "-p", "--paginate", "-P", "--no-pager", "--bare", "--literal-pathspecs",
+        "-P", "--no-pager", "--bare", "--literal-pathspecs",
         "--glob-pathspecs", "--noglob-pathspecs", "--icase-pathspecs",
         "--no-replace-objects", "--no-optional-locks", "--no-lazy-fetch",
-        "--version", "--help", "--html-path", "--man-path", "--info-path",
+        "--version", "--html-path", "--man-path", "--info-path",
     }
+)
+
+# Options that hand git's work to ANOTHER program - a pager, a browser, an external diff
+# driver, a textconv filter. Each is `-exec` wearing git's clothes, and none is needed to
+# read a repository. `--paginate` is here rather than in the bare set for the same reason:
+# output is captured, so forcing a pager can only ever mean launching one.
+# Split by POSITION, and the split is load-bearing. `-p` before the subcommand is
+# `--paginate`; after it, it belongs to the subcommand and means something else entirely -
+# `git log -p` is a patch, `git cat-file -p` is a pretty-print. Refusing `-p` everywhere
+# turned the probe's own V5b vector (`git cat-file -p <blob>`, the ONLY vector that tests
+# Layer B's content leg on a raw blob) into a Layer A refusal: still a PASS, but a vacuous
+# one, testing nothing. Caught by watching which layer the probe reported.
+_GIT_PRE_HELPER_OPTIONS: frozenset[str] = frozenset({"-p", "--paginate", "--pager", "--exec"})
+_GIT_ANY_HELPER_OPTIONS: frozenset[str] = frozenset(
+    {"--ext-diff", "--textconv", "--open-files-in-pager", "--web", "--gui", "--tool", "--extcmd"}
 )
 
 # `git config` reads only with one of these, and never with more than one operand (the
@@ -652,37 +668,72 @@ def _write_registry(sandbox_root: Path, entries: dict[str, str]) -> None:
     os.replace(temp, path)
 
 
+# A waiter may not break a lock merely because IT got bored. An earlier draft unlinked the
+# lock after its own 10-second timeout, which lets a slow holder resume and overwrite a
+# newer registry - and lets two waiters each think they hold it. Breaking requires the lock
+# to be provably ancient, and the break itself is a rename, so exactly one waiter wins it.
+STALE_LOCK_SECONDS = 300.0
+
+
 @contextmanager
 def _registry_lock(sandbox_root: Path, timeout: float = 10.0):
     """Serialise read-modify-write on one root's registry.
 
-    An exclusive-create lock file, because it is the one primitive that behaves the same
-    on Windows and POSIX. A stale lock older than the timeout is broken rather than
-    deadlocked on - a crashed provision must not make the root permanently unusable.
+    An exclusive-create lock file, because it is the one primitive that behaves the same on
+    Windows and POSIX. On timeout this RAISES rather than stealing: a lost registry entry
+    is a sandbox that can never be torn down, which is the leftover this organ exists to
+    prevent, so refusing loudly is the better failure.
     """
     Path(sandbox_root).mkdir(parents=True, exist_ok=True)
     lock = _registry_path(sandbox_root).with_suffix(".lock")
     deadline = time.monotonic() + timeout
+    held = False
     while True:
         try:
             handle = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            os.write(handle, f"{os.getpid()} {time.time()}".encode())
             os.close(handle)
+            held = True
             break
         except FileExistsError:
             if time.monotonic() > deadline:
-                try:  # stale: the holder died without releasing
-                    lock.unlink()
-                except OSError:
-                    pass
+                if not _break_stale_lock(lock):
+                    raise RuntimeError(
+                        f"registry lock held by another process: {lock}. Nothing was "
+                        f"changed; retry, or remove the lock if you know it is orphaned."
+                    )
                 deadline = time.monotonic() + timeout
             time.sleep(0.02)
     try:
         yield
     finally:
-        try:
-            lock.unlink()
-        except OSError:  # pragma: no cover - the lock was broken by another waiter
-            pass
+        if held:
+            try:
+                lock.unlink()
+            except OSError:  # pragma: no cover - already broken as stale
+                pass
+
+
+def _break_stale_lock(lock: Path) -> bool:
+    """Break a lock ONLY if it is provably ancient. Returns True when this caller broke it."""
+    try:
+        age = time.time() - lock.stat().st_mtime
+    except OSError:
+        return True  # it vanished: the holder released it, so the retry will win normally
+    if age < STALE_LOCK_SECONDS:
+        return False
+    claim = lock.with_name(f"{lock.name}.stale.{os.getpid()}.{secrets.token_hex(4)}")
+    try:
+        # A rename is atomic, so of N waiters that agree the lock is ancient exactly one
+        # gets the file; the losers see FileNotFoundError and go back to waiting.
+        os.replace(lock, claim)
+    except OSError:
+        return False
+    try:
+        claim.unlink()
+    except OSError:  # pragma: no cover
+        pass
+    return True
 
 
 def register_sandbox(sandbox_root: Path, sandbox_path: Path, nonce: str) -> None:
@@ -1327,6 +1378,35 @@ def parse_pipeline(command: str) -> list[Stage]:
     return stages
 
 
+# The environment a guarded command inherits is part of its attack surface: git reads the
+# host's global and system config, so a pager, an alias or a textconv filter configured on
+# the machine would run inside the sandbox without ever appearing in the command. Every
+# stage gets a scrubbed environment instead of the session's.
+_ENV_KEEP: tuple[str, ...] = (
+    "PATH", "PATHEXT", "SYSTEMROOT", "SystemRoot", "COMSPEC", "WINDIR", "TEMP", "TMP",
+    "HOME", "USERPROFILE", "LANG", "LC_ALL", "TZ",
+)
+
+
+def _child_env() -> dict[str, str]:
+    env = {key: os.environ[key] for key in _ENV_KEEP if key in os.environ}
+    env.update(
+        {
+            "GIT_CONFIG_GLOBAL": os.devnull,
+            "GIT_CONFIG_SYSTEM": os.devnull,
+            "GIT_CONFIG_NOSYSTEM": "1",
+            "GIT_ATTR_NOSYSTEM": "1",
+            "GIT_TERMINAL_PROMPT": "0",
+            "GIT_OPTIONAL_LOCKS": "0",
+            "GIT_EXTERNAL_DIFF": "",
+            "GIT_ASKPASS": "",
+            "GIT_PAGER": "cat",
+            "PAGER": "cat",
+        }
+    )
+    return env
+
+
 def _screen_words(text: str, denied_names: set[str]) -> Trip | None:
     """The two content checks, applied to a command string or to expanded argv."""
     for name in sorted(denied_names, key=len, reverse=True):
@@ -1395,16 +1475,86 @@ def screen_stages(stages: list[Stage]) -> Trip | None:
 
         if name == "git":
             trip = _screen_git(stage)
-            if trip is not None:
-                return trip
         elif name == "sed":
-            for script in _sed_scripts(stage.argv):
-                if not _sed_script_is_read_only(script):
-                    return Trip(
-                        "A",
-                        "sed-script-not-read-only",
-                        "only address/print/substitute sed scripts are available here",
-                    )
+            trip = _screen_sed(stage)
+        else:
+            trip = None
+        if trip is not None:
+            return trip
+
+        trip = _screen_paths(stage)
+        if trip is not None:
+            return trip
+    return None
+
+
+# An argument that is an absolute path, or that climbs out with `..`, reaches the HOST
+# filesystem. `cwd=<sandbox>` is a starting point, not a boundary: `cat ../secret`,
+# `ls /` and `sed -n '1p' /etc/passwd` all read outside a clone the guard is supposed to
+# confine reads to. Globs were already confined; literal operands were not.
+_ABSOLUTE_PATH = re.compile(r"^(?:[/\\]|[A-Za-z]:[/\\])")
+
+# Tools whose arguments are DATA, never paths to open. Exempting them keeps the rule from
+# refusing `echo /usr/bin` - which reads nothing - for looking like a path.
+_NON_READING_COMMANDS: frozenset[str] = frozenset({"echo", "printf"})
+
+# Where a tool's FIRST operand is a pattern rather than a file. `grep '/usr' file` searches
+# for a string that starts with a slash; refusing it would be the `git branch -a` false
+# positive all over again.
+_PATTERN_FIRST: frozenset[str] = frozenset({"grep", "rg"})
+
+# ...unless the pattern arrived through a flag, in which case every operand IS a file.
+_PATTERN_FLAGS: frozenset[str] = frozenset({"-e", "--regexp", "-f", "--file"})
+
+
+def _escapes_sandbox(token: str) -> bool:
+    """True when `token` names somewhere the sandbox does not contain.
+
+    `..` is checked as a path COMPONENT, so git's revision ranges (`main..HEAD`,
+    `origin/main..HEAD`) are untouched - the `..` there is not a directory.
+    """
+    value = token
+    if token.startswith("-"):
+        if "=" not in token:
+            return False  # a bare flag names nothing
+        value = token.split("=", 1)[1]
+    if not value:
+        return False
+    return bool(_ABSOLUTE_PATH.match(value)) or ".." in re.split(r"[\\/]", value)
+
+
+def _screen_paths(stage: Stage) -> Trip | None:
+    """Refuse any argument that reaches outside the sandbox clone."""
+    name = stage.argv[0]
+    if name in _NON_READING_COMMANDS:
+        return None
+    # Which argument positions hold a PATTERN rather than a path. `-e`'s value is one, and
+    # so is the first bare operand when no `-e` supplied the pattern already.
+    exempt: set[int] = set()
+    if name in _PATTERN_FIRST:
+        via_flag = False
+        for index, token in enumerate(stage.argv[1:], start=1):
+            if token in ("-e", "--regexp"):
+                exempt.add(index + 1)
+                via_flag = True
+            elif token.startswith("--regexp="):
+                via_flag = True
+        if not via_flag:
+            for index, token in enumerate(stage.argv[1:], start=1):
+                if not token.startswith("-"):
+                    exempt.add(index)
+                    break
+    for index, token in enumerate(stage.argv[1:], start=1):
+        if index in exempt:
+            continue
+        if name == "sed" and token in _sed_scripts(stage.argv):
+            continue  # the script is a program, and it has its own grammar check
+        if _escapes_sandbox(token):
+            return Trip(
+                "A",
+                "path-outside-sandbox",
+                f"'{token}' names a path outside the sandbox",
+            )
     return None
 
 
@@ -1416,12 +1566,18 @@ def _screen_git(stage: Stage) -> Trip | None:
     OPERAND of `-C`, not a subcommand - and then ran a global config write. Options and
     their operands have to be told apart before anything about the subcommand is true.
     """
+    for token in stage.argv[1:]:
+        if token.split("=", 1)[0] in _GIT_ANY_HELPER_OPTIONS:
+            return Trip("A", "git-helper", f"'{token}' hands git's work to another program")
+
     index = 1
     while index < len(stage.argv):
         token = stage.argv[index]
         if not token.startswith("-"):
             break
         head = token.split("=", 1)[0]
+        if head in _GIT_PRE_HELPER_OPTIONS:
+            return Trip("A", "git-helper", f"'{token}' hands git's work to another program")
         if head in _GIT_RELOCATING_OPTIONS:
             return Trip("A", "git-relocated", f"'{head}' moves or reconfigures git itself")
         if token in _GIT_BARE_OPTIONS:
@@ -1470,31 +1626,77 @@ _SED_SUBST = re.compile(
 )
 
 
+# sed short options that consume a value, either attached to the letter or as the next
+# argument. `-e` is the one that carries a PROGRAM, and it is the one an earlier draft of
+# this parser missed in its attached form: `sed -e'1w /tmp/out' file` looks like a flag
+# bundle, so no script was extracted and the grammar check ran over nothing.
+_SED_VALUE_LETTERS = "eflis"
+_SED_FORBIDDEN_LETTERS = "fi"
+
+
 def _sed_scripts(argv: tuple[str, ...]) -> list[str]:
-    """Every argument sed will treat as a script: each `-e` value, else the first operand."""
+    """Every argument sed will treat as a program, in every form sed accepts."""
+    scripts, _forbidden = _parse_sed(argv)
+    return scripts
+
+
+def _parse_sed(argv: tuple[str, ...]) -> tuple[list[str], str | None]:
+    """Return (scripts, first forbidden short option). Handles attached and bundled forms."""
     scripts: list[str] = []
-    expecting = False
-    seen_operand = False
+    expecting: str | None = None
+    have_bare_script = False
     for token in argv[1:]:
-        if expecting:
-            scripts.append(token)
-            expecting = False
+        if expecting is not None:
+            if expecting == "e":
+                scripts.append(token)
+            expecting = None
             continue
-        if token == "-e" or token == "--expression":
-            expecting = True
+        if token == "--":
             continue
-        if token.startswith("--expression="):
-            scripts.append(token.split("=", 1)[1])
+        if token.startswith("--"):
+            head, sep, value = token.partition("=")
+            if head == "--expression":
+                if sep:
+                    scripts.append(value)
+                else:
+                    expecting = "e"
+                continue
+            if head in ("--file", "--in-place"):
+                return scripts, head
             continue
         if token.startswith("-") and len(token) > 1:
-            # a bundle like `-ne` ends with the script-taking flag
-            if not token.startswith("--") and token.endswith("e"):
-                expecting = True
+            rest = token[1:]
+            while rest:
+                letter, rest = rest[0], rest[1:]
+                if letter in _SED_FORBIDDEN_LETTERS:
+                    return scripts, f"-{letter}"
+                if letter in _SED_VALUE_LETTERS:
+                    if rest:  # attached value: `-e1w /tmp/out`
+                        if letter == "e":
+                            scripts.append(rest)
+                        rest = ""
+                    else:  # detached value: `-e` then the next argument
+                        expecting = letter
+                    break
             continue
-        if not seen_operand and not scripts:
-            scripts.append(token)  # the bare script form: `sed -n '1,3p' FILE`
-        seen_operand = True
-    return scripts
+        if not have_bare_script and not scripts:
+            scripts.append(token)  # the bare form: `sed -n '1,3p' FILE`
+            have_bare_script = True
+    return scripts, None
+
+
+def _screen_sed(stage: Stage) -> Trip | None:
+    scripts, forbidden = _parse_sed(stage.argv)
+    if forbidden is not None:
+        return Trip("A", "forbidden-argument", f"'{forbidden}' gives sed an exec or write mode")
+    for script in scripts:
+        if not _sed_script_is_read_only(script):
+            return Trip(
+                "A",
+                "sed-script-not-read-only",
+                "only address/print/substitute sed scripts are available here",
+            )
+    return None
 
 
 def _sed_script_is_read_only(script: str) -> bool:
@@ -1633,6 +1835,7 @@ def run_guarded(
                 argv,
                 shell=False,
                 cwd=str(cwd),
+                env=_child_env(),
                 input=piped,
                 capture_output=True,
                 text=True,
