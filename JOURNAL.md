@@ -19,6 +19,66 @@
 
 ---
 
+### 2026-08-22 (f) - CC (Opus 5, cloud-wave integrator, branch `fix/terra-cloud-wave-2026-08-22`): four cloud lanes land, a fifth never existed, and the owed second-reader pass finds a Critical before it ships
+
+**Did:** Part D of the cloud-consolidation wave. Enumerated the five dispatched lanes, read every
+artifact and terra tally, ran the merge queue serially, and - the part that changed the outcome -
+ran the two terra reviews both lanes recorded as OWED rather than filing them as residuals.
+
+**Result: the wave is four lanes, not five.** `cloud-1-562-admission-rerun` produced **no branch and
+no artifact**. That is reported, not inferred: `claude/*`, `docs/*`, `feat/*` and every local and
+remote ref were searched, and every ref's tree was scanned for a 562/admission file. The only hit is
+`tasks/562-*.md`, the BACKLOG row itself, present on every branch. **The #562 admission verdict is
+therefore unscoreable this wave** - there are no candidate scores to put against the floor - and it
+goes to the funnel table as an architect line rather than being quietly dropped.
+
+**The owed terra pass was the load-bearing act of this session.** cloud-2 and cloud-4v2 both shipped
+with the second-reader leg unrun and both said so plainly, naming a pre-merge run on a wrapper-carrying
+host as the discharge. This host carries it. Run against both diffs, `gpt-5.6-terra` returned
+**1 Critical + 1 High** on cloud-2 and **2 High** on cloud-4v2 - findings that would otherwise have
+merged. Three confirmed against source and fixed as MECHANICAL (ADR-111 section 4); the fourth
+**refuted as stated** and carried to the funnel table.
+
+**What the Critical actually was, because it is the kind that survives a green suite:** cloud-2's
+no-leftovers test cleaned up with `ignore_errors=True` and never asserted removal, so a *failed*
+cleanup passed green while leaving the export behind - the exact leftover the test exists to rule
+out. Its sibling High is sharper still: the exporter emitted `default_status` alone while the two
+lines directly below it dual-spell `check_active_branches`/`remote_operations` **precisely because
+the live Backlog.md file uses camelCase**. The lane's own stated design, not applied to its own line.
+
+**cloud-4v2's confirmed High is the same defect class that lane self-caught and named.** Its artifact
+records defect 4 as *"a prose check that could not fail usefully"*. `check_s10` is that again:
+it returned clean whenever the pins it *found* agreed, so deleting two of the three Stage-1 `model:`
+pins passed - while the artifact claims S10 asserts *"all three"*. Now asserted as a COUNT, with a
+deletion regression test that was **mutation-checked**: with the assertion reverted `cpr.run()`
+returns `[]` and the test REDs.
+
+**One terra finding is REFUTED and recorded as refuted.** It reports the provider registry as
+*introducing* a machine-specific absolute path. It does not - that string is already committed on
+`main` at `.claude/settings.json:63`, and the registry's own comment says exactly that. The
+portability defect is real but **pre-existing and owned by no row**, so charging it to cloud-4v2
+would have been wrong in both directions: it would blame a lane that only mirrored existing state,
+and it would let the actual defect keep its current owner of nobody.
+
+**Changes:** merges of the four lanes; `scripts/{export_backlog_view,check_provider_registry}.py`,
+`tests/{test_export_backlog_view,test_provider_registry}.py` (the three fixes + one regression test);
+the two terra artifacts landed in `docs/audits/` with tallies stamped and integrator dispositions;
+regenerated `docs/audits/README.md`, `.claude/generated/*`, `ecosystem/doc-counts.md` (3411 -> 3459).
+
+**Abandoned:** No row closed or born by this entry - closures (D3) and filing (D5) follow the funnel
+table, per the same banked-cap arithmetic part C used. `audit-health` was skipped on the in-flight
+merge commits only, on the known merge-queue deadlock (a merge cannot anchor itself); this entry is
+the discharge, and the gate runs unskipped from here.
+
+**Next:** D3 closure sweep, then the D4 funnel table - the wave-close deliverable - then the
+architect's single batched ruling over it, then D5 filing and D6 codification in PLAYBOOK Ch8.
+
+**Anchors:** `a7391b56` (the terra-fix commit this entry names) and `e0d0e361` (the terra evidence
+commit), plus the four lane merges `94821cba` (cloud-3) - `73d66819` (cloud-2) - `bb056fe1` (cloud-4v2)
+- `c584a39c` (cloud-graph), which bring in lane commits `59dedfdd` `b02871c8` `7b16f258` `178d6106`.
+
+---
+
 ### 2026-08-22 (e) — CC (Opus 5, part-C integrator, branch `docs/part-c-b3c-and-defer-acts-2026-08-22`): a standing RED turns green on a real fix, and every deferred row gets its narrowing act
 
 **Did:** `353149ab` — B3c's executable half plus the six A-DEFER narrowing acts. Caught while
