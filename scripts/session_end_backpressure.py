@@ -122,9 +122,27 @@ def _resolve_repo_root() -> Path:
 
 
 _REPO_ROOT = _resolve_repo_root()
-_JOURNAL = "JOURNAL.md"
-_BACKLOG = "BACKLOG.md"
-_CANON = ("VISION.md", "ARCHITECTURE.md", "CLAUDE.md", "CONTRIBUTING.md")
+# CLOUD-4 v2 (R2 §1.5 GO-b): canonical filenames come from `scripts/canonical_docs.py`.
+# GUARDED import with a real literal fallback — this file is written into consumer repos as a
+# standalone single file by `deploy/carrier_mesh.py` (the mesh's `session_end_backpressure`
+# component), where no sibling registry exists. `tests/test_canonical_docs.py` asserts the
+# fallback equals the registry so the two cannot drift apart at the hub.
+try:  # hub: read the registry
+    from scripts import canonical_docs as _cdocs
+except ImportError:
+    try:
+        import canonical_docs as _cdocs
+    except ImportError:  # consumer: standalone copy, no registry alongside it
+        _cdocs = None
+
+if _cdocs is not None:
+    _JOURNAL = _cdocs.JOURNAL
+    _BACKLOG = _cdocs.BACKLOG
+    _CANON = tuple(_cdocs.BACKPRESSURE_CANON)
+else:
+    _JOURNAL = "JOURNAL.md"
+    _BACKLOG = "BACKLOG.md"
+    _CANON = ("VISION.md", "ARCHITECTURE.md", "CLAUDE.md", "CONTRIBUTING.md")
 # Gitignored, HEAD-bound override signal written by `/override` (ADR-85 §4). The hook only
 # READS it (stays a read-only validator per the scripts-are-read-only invariant).
 _TOKEN_PATH = _REPO_ROOT / "logs" / ".session-override-token"

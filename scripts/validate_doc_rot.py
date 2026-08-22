@@ -56,6 +56,15 @@ from datetime import date
 from pathlib import Path
 from typing import Optional
 
+# CLOUD-4 v2 (R2 §1.5 GO-b) — canonical filenames come from the one registry. Dual-import
+# mirrors this module's existing `scripts.toc` / `toc` shape: run as `python
+# scripts/validate_doc_rot.py` the sibling is importable bare, imported as `scripts.*` it is
+# not.
+try:
+    from scripts import canonical_docs as _cdocs
+except ImportError:  # pragma: no cover - exercised by the scripts/-on-sys.path entrypoint
+    import canonical_docs as _cdocs
+
 _SCRIPTS_DIR = Path(__file__).resolve().parent
 _REPO_ROOT = _SCRIPTS_DIR.parent
 
@@ -109,15 +118,12 @@ _BACKLOG_ROW_CEILING = 1320      # longer than this -> over the DECLARED row cei
 # prose of the form `2026-08-10-to-08-12` would be under-counted; none exists today, and
 # losing recall is the cheap direction to be wrong in on a class with zero live members.
 _SECTION_HISTORY_MAX_ENTRIES = 12  # >= this many entries in a Section-history block
-_FILE_SIZE_BUDGETS = {"CLAUDE.md": 200}  # file -> self-declared line budget (ADR-53)
+_FILE_SIZE_BUDGETS = {_cdocs.CLAUDE: 200}  # file -> self-declared line budget (ADR-53)
 _GROOMING_CADENCE_DAYS = 21      # BACKLOG grooming-log most-recent date older than this
 
 # Living docs scanned for Section-history / changelog accretion (hub-relative).
-_SECTION_HISTORY_DOCS = [
-    "CLAUDE.md", "ARCHITECTURE.md", "VISION.md", "CONTRIBUTING.md",
-    "protocols/PLAYBOOK.md", "protocols/HANDOFF_PROCESS.md",
-    "protocols/AI_COUNCIL_PROCESS.md", "protocols/ESSENTIALS.md",
-]
+# CLOUD-4 v2 (R2 §1.5 GO-b): membership unchanged, names from the one canonical registry.
+_SECTION_HISTORY_DOCS = list(_cdocs.SECTION_HISTORY_DOCS)
 
 _DATE_RE = re.compile(r"\d{4}-\d{2}-\d{2}")
 # A date inside a `YYYY-MM-DD-slug` ARTIFACT IDENTIFIER is a NAME, not an inline history

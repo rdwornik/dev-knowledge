@@ -11,6 +11,12 @@ from pathlib import Path
 
 from ._common import Finding
 
+# CLOUD-4 v2 (R2 §1.5 GO-b) — canonical filenames come from the one registry.
+try:
+    from scripts import canonical_docs
+except ImportError:  # pragma: no cover - exercised by the scripts/-on-sys.path entrypoints
+    import canonical_docs
+
 
 # ADR-38 A6 (2026-06-02): the universal [U] heading spine each canonical file must
 # carry. Presence-only (not strict order) — child-repo-safe; the [R]/[C] sections
@@ -20,17 +26,9 @@ from ._common import Finding
 # .dev-knowledge's own canonical files, so the self-only health gate passes by
 # construction. BACKLOG.md hierarchy beyond "## Big picture" is covered by
 # validate_backlog.py, not duplicated here.
-_CANONICAL_SPINE = {
-    "VISION.md": ["## Vision", "## Scope", "## Values", "## Lifecycle", "## References"],
-    "ARCHITECTURE.md": ["## Purpose", "## Codemap", "## Layer Boundaries & Invariants",
-                        "## Key conventions", "## Authority and governance",
-                        "## Validators and enforcement"],
-    "CLAUDE.md": ["## 1. First read", "## 5. Critical rules", "## 6. Session start protocol"],
-    "BACKLOG.md": ["## Big picture"],
-    "CONTRIBUTING.md": ["## Branch naming", "## Commit style", "## Handoff process"],
-    "JOURNAL.md": ["# Journal"],
-    "LESSONS.md": ["# Lessons Learned"],
-}
+# The spine bodies are unchanged; only their KEYS now come from the registry, so a
+# canonical-filename decision moves the key together with the value it addresses.
+_CANONICAL_SPINE = {name: list(spine) for name, spine in canonical_docs.CANONICAL_SPINE.items()}
 
 
 def _heading_present(lines: list[str], heading: str) -> bool:

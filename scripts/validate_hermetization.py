@@ -54,6 +54,12 @@ import subprocess
 import sys
 from typing import Optional
 
+# CLOUD-4 v2 (R2 §1.5 GO-b) — the canonical living-doc names come from the one registry.
+try:
+    from scripts import canonical_docs as _cdocs
+except ImportError:  # pragma: no cover - exercised by the scripts/-on-sys.path entrypoint
+    import canonical_docs as _cdocs
+
 # --- ADR-101 section 1 sanctioned sets (CLOSED; grow only by ADR-101 amendment) -------
 
 # Tier-1 -- sanctioned top-level directories.
@@ -80,9 +86,12 @@ SANCTIONED_TIER1_DIRS: frozenset[str] = frozenset({
 
 # Tier-1 -- sanctioned top-level FILES (the closed class members, ADR-101 section 1).
 SANCTIONED_TIER1_FILES: frozenset[str] = frozenset({
-    # living docs (UPPERCASE.md, the closed set)
-    "VISION.md", "ARCHITECTURE.md", "CLAUDE.md", "CONTRIBUTING.md",
-    "JOURNAL.md", "LESSONS.md", "BACKLOG.md",
+    # living docs (UPPERCASE.md, the closed set) — CLOUD-4 v2 (R2 §1.5 GO-b): the seven names
+    # come from `scripts/canonical_docs.py` rather than being retyped here. Membership is
+    # unchanged, and the frozenset is still built at import time, so Rule A's cost is the
+    # same. What changes is that ADR-101 §1's file enum and the ADR-38 canonical set now
+    # provably name the same seven strings.
+    *_cdocs.CANONICAL_MANDATORY,
     # dotfile / tool config
     ".gitignore", ".gitattributes", ".pre-commit-config.yaml",
     ".pre-commit-hooks.yaml", ".ruff.toml", ".worktreeinclude",

@@ -29,8 +29,25 @@ from typing import Optional
 
 import yaml
 
-DEFAULT_FRESHNESS_FILES = ["VISION.md", "ARCHITECTURE.md", "CLAUDE.md", "CONTRIBUTING.md",
-                           "docs/handoffs/README.md", "protocols/ESSENTIALS.md"]
+# CLOUD-4 v2 (R2 §1.5 GO-b): the canonical filenames come from `scripts/canonical_docs.py`.
+# The import is GUARDED and the literal below is a real fallback, not decoration — this file
+# is BYTE-COPIED into consumer repos as a standalone single file by `deploy/carrier_mesh.py`
+# (`FRESHNESS_GATE_REL`), where no sibling registry exists. `tests/test_canonical_docs.py`
+# asserts the fallback equals the registry, so drift is caught at the hub — the place the
+# file is authored — instead of going silent at a consumer.
+try:  # hub: read the registry
+    from scripts import canonical_docs as _cdocs
+except ImportError:
+    try:
+        import canonical_docs as _cdocs
+    except ImportError:  # consumer: standalone copy, no registry alongside it
+        _cdocs = None
+
+if _cdocs is not None:
+    DEFAULT_FRESHNESS_FILES = list(_cdocs.FRESHNESS_FILES)
+else:
+    DEFAULT_FRESHNESS_FILES = ["VISION.md", "ARCHITECTURE.md", "CLAUDE.md", "CONTRIBUTING.md",
+                               "docs/handoffs/README.md", "protocols/ESSENTIALS.md"]
 # Calendar-age backstop (A1): WARN — not FAIL — past this many days even if unchanged. The
 # load-bearing signal is A2 (edited-since-review), which is the FAIL.
 FRESHNESS_CADENCE_DAYS = 30

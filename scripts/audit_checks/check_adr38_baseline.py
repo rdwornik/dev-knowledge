@@ -10,6 +10,12 @@ from pathlib import Path
 
 from ._common import Finding
 
+# CLOUD-4 v2 (R2 §1.5 GO-b) — canonical filenames come from the one registry.
+try:
+    from scripts import canonical_docs
+except ImportError:  # pragma: no cover - exercised by the scripts/-on-sys.path entrypoints
+    import canonical_docs
+
 
 def check_adr38_baseline(repo_path: Path) -> list[Finding]:
     """ADR-38 (amendments A5 2026-05-23, A6 2026-06-02) universal governance baseline.
@@ -26,8 +32,9 @@ def check_adr38_baseline(repo_path: Path) -> list[Finding]:
     to the mandatory seven-file canonical set — superseding the A5 "JOURNAL/LESSONS
     remain repo-specific" line.
     """
-    required_files = ["VISION.md", "ARCHITECTURE.md", "BACKLOG.md",
-                      "CONTRIBUTING.md", "JOURNAL.md", "LESSONS.md"]
+    # CLOUD-4 v2 (R2 §1.5 GO-b): the mandatory seven minus CLAUDE.md, derived from the one
+    # canonical-doc-name registry rather than retyped. Membership and order are unchanged.
+    required_files = list(canonical_docs.ADR38_BASELINE_REQUIRED)
 
     missing_files = [f for f in required_files if not (repo_path / f).exists()]
 

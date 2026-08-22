@@ -11,20 +11,23 @@ from pathlib import Path
 
 from ._common import Finding
 
+# CLOUD-4 v2 (R2 §1.5 GO-b) — canonical filenames come from the one registry.
+try:
+    from scripts import canonical_docs
+except ImportError:  # pragma: no cover - exercised by the scripts/-on-sys.path entrypoints
+    import canonical_docs
+
 # Canonical files universally mandatory at repo root (ADR-38 A5 / ADR-51).
 # ADR-38 A6 (2026-06-02): the seven-file canonical set is mandatory for every repo.
 # CONTRIBUTING/JOURNAL/LESSONS were promoted from optional (A5) to mandatory here so
 # cross-repo navigation is identical (the same seven anchors in every repo).
-_CANONICAL_MANDATORY = [
-    "VISION.md", "ARCHITECTURE.md", "CLAUDE.md", "BACKLOG.md",
-    "CONTRIBUTING.md", "JOURNAL.md", "LESSONS.md",
-]
+# Kept a LIST, not a tuple: `tests/test_audit.py` reads it as `aud._CANONICAL_MANDATORY`
+# and the re-export contract is a name, a value and a type.
+_CANONICAL_MANDATORY = list(canonical_docs.CANONICAL_MANDATORY)
 
 # All canonical names whose casing is checked when present (mandatory + optional
 # + .dev-knowledge-only). Presence is required only for _CANONICAL_MANDATORY.
-_CANONICAL_ALL = _CANONICAL_MANDATORY + [
-    "ENVIRONMENT.md", "ESSENTIALS.md", "PLAYBOOK.md", "TOKEN-LOG.md", "README.md",
-]
+_CANONICAL_ALL = list(canonical_docs.CANONICAL_ALL)
 
 
 def check_canonical_md_visibility(repo_path: Path) -> list[Finding]:

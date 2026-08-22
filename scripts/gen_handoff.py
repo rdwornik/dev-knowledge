@@ -45,6 +45,15 @@ from pathlib import Path
 
 import click
 
+# CLOUD-4 v2 (R2 §1.5 GO-b) — the canonical filename and the `_vision_extract` degrade string
+# come from the one registry. R2 §1.4 R2 is why they live TOGETHER there: this generator does
+# not crash on a missing section, it stamps a placeholder into a bundle that is immutable the
+# moment it is committed, so the name and its degrade contract cannot be allowed to move apart.
+try:
+    from scripts import canonical_docs as _cdocs
+except ImportError:  # pragma: no cover - exercised by the scripts/-on-sys.path entrypoint
+    import canonical_docs as _cdocs
+
 _SCRIPTS = Path(__file__).resolve().parent
 _REPO_ROOT = _SCRIPTS.parent
 _TMPL_DIR = _REPO_ROOT / "templates" / "handoff" / "v5"
@@ -509,13 +518,14 @@ def _vision_extract(repo_root: Path) -> str:
     generator that cannot compute this must never guess it — on a missing file or a
     missing `## Vision` section, return a literal, unmistakably-a-placeholder string
     rather than inventing prose."""
-    vision = repo_root / "VISION.md"
+    vision = repo_root / _cdocs.VISION
     if not vision.exists():
-        return "(VISION.md `## Vision` section not found — fix VISION.md before using this boot)"
+        return _cdocs.VISION_EXTRACT_MISSING
     text = vision.read_text(encoding="utf-8")
-    m = re.search(r"^## Vision\s*\n(.*?)(?=^## |\Z)", text, re.DOTALL | re.MULTILINE)
+    m = re.search(rf"^{re.escape(_cdocs.VISION_EXTRACT_HEADING)}\s*\n(.*?)(?=^## |\Z)",
+                  text, re.DOTALL | re.MULTILINE)
     if not m:
-        return "(VISION.md `## Vision` section not found — fix VISION.md before using this boot)"
+        return _cdocs.VISION_EXTRACT_MISSING
     return m.group(1).strip()
 
 

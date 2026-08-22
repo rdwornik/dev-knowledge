@@ -28,10 +28,25 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent
 _STATE = _REPO_ROOT / "ecosystem" / "tool-versions.yaml"
 
 # tool key in tool-versions.yaml -> argv that prints its version (local, no network)
-_TOOLS = {
-    "claude-code": ["claude", "--version"],
-    "codex": ["codex", "--version"],
-}
+#
+# CLOUD-4 v2 (R2 §3.3, seam S7): DERIVED from `ecosystem/provider-registry.yaml` rather than
+# typed here, so a provider's CLI name lives in exactly one place. The fallback is the hook's
+# fail-soft contract in the two-line form, not a second source of truth: this module's whole
+# posture is "any error -> emit nothing, exit 0", and a sentinel that crashed session-start
+# because a registry moved would be a worse organ than one that goes quiet. The registry is
+# the source; this is the silence.
+try:
+    from scripts import provider_registry as _preg
+except ImportError:  # pragma: no cover - exercised by the scripts/-on-sys.path entrypoint
+    try:
+        import provider_registry as _preg
+    except ImportError:
+        _preg = None
+
+try:
+    _TOOLS = _preg.version_commands() if _preg is not None else {}
+except Exception:
+    _TOOLS = {}
 
 # first dotted-numeric token, e.g. "2.1.168" from "2.1.168 (Claude Code)" or
 # "0.136.0" from "codex-cli 0.136.0"
