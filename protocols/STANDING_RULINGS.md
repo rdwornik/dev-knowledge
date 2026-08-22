@@ -1693,6 +1693,7 @@ mirroring `gen_intake_index._parse_frontmatter`'s exact shape.
 ```landed
 site: scripts/gen_intake_index.py | pattern: yaml\.safe_load
 site: scripts/gen_claude_rosters.py | pattern: yaml\.safe_load
+site: scripts/export_backlog_view.py | pattern: yaml\.safe_load
 ```
 
 - **Expiry:** open-ended — the same reasoning as N-1's.

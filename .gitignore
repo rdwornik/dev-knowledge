@@ -105,3 +105,10 @@ node_modules/
 
 # Personal scratch / temp work (unrelated to repo content)
 temp/
+
+# [#563] one-way Backlog.md view layer -- disposable, regenerated per read, never
+# committed. BELT-AND-BRACES ONLY: scripts/export_backlog_view.py writes a .gitignore
+# containing * at the export root as the FIRST file of every export, so the tree is
+# already self-ignoring with or without this entry (and so is a sibling export dir
+# outside the repo). Landed because the row's literal wording names it.
+.backlog-view/

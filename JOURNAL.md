@@ -19,6 +19,49 @@
 
 ---
 
+### 2026-08-22 (g) - CC (Opus 5, cloud-wave integrator, branch `docs/wave-close-owed-diffs-2026-08-22`): the funnel table lands, and the one suite RED is proved inherited rather than asserted to be
+
+**Did:** the second act of the wave close, after the full suite returned. Landed the two owed fenced
+diffs cloud-2 could not apply itself, and the D4 funnel table - the wave-close deliverable.
+
+**Result: the suite is 1 failed / 3453 passed / 4 skipped / 1 xfailed in 13m50s, and the single
+failure is inherited.** It was **proved** rather than characterised: the same test was re-run at
+`23d72d51` - bare `main` before any of this wave's merges - and **fails identically there**. The wave
+introduces zero new failures. `uv sync` was run **with `--group analytics`**, because a plain
+`uv sync --locked` drops pandas and manufactures 17 false REDs that would have muddied exactly this
+judgement.
+
+**The RED has a live owner, and finding it narrowed that owner.** `[#569]` names the test verbatim -
+*"does not discriminate, because the pre-push organ refuses an anchored push in the synthetic
+consumer too"*. Its **sibling half is now discharged**: the same row's
+`test_routine_consumers_live_backlog_governs_exactly_one_row` was fixed by the part-C arc earlier
+today in `353149ab`, so `[#569]` item (A) is half-done. Worth stating plainly because it is a live
+claim about an armed organ: what is unproven is not that the ADR-85 pre-push leg refuses, but that it
+refuses **selectively**.
+
+**The funnel table's three non-obvious lines**, recorded here because they are the reasons the table
+is not a restatement of the five artifacts: the four out-of-lane findings cloud-3 correctly carried
+name owner rows that are **all closed** - and closed by this same day's part-C arc, while the lanes
+were in flight, which is how a correctly-filed finding goes invisible; the graph lane's request for a
+direct `[P3][M]` row is **not lawful as written** under ADR-111 §2 and is re-routed through intake
+with its shape carried verbatim; and terra's absolute-path finding is **refuted as stated** while the
+defect underneath it survives as its own unowned line.
+
+**Changes:** `.gitignore` + `protocols/STANDING_RULINGS.md` (the two owed fenced diffs),
+`docs/audits/2026-08-22-technical-cloud-wave-close-funnel.md` (new), regenerated
+`docs/audits/README.md`.
+
+**Abandoned:** nothing closed or born. banked_D = 3 PROPOSED (`[#563]`, `[#566]`, `[#488]`), 0
+executed - ADR-70 Tier-1 reserves execution to operator-approved closures.
+
+**Next:** the architect's single batched ruling over the funnel table, then D5 filing (births capped
+at banked_D) and D6 codification in PLAYBOOK Ch8.
+
+**Anchors:** `c61f3afc` (the owed-fenced-diffs commit this entry names) and `d139957b` (the funnel
+table), the two commits this branch's merge introduces.
+
+---
+
 ### 2026-08-22 (f) - CC (Opus 5, cloud-wave integrator, branch `fix/terra-cloud-wave-2026-08-22`): four cloud lanes land, a fifth never existed, and the owed second-reader pass finds a Critical before it ships
 
 **Did:** Part D of the cloud-consolidation wave. Enumerated the five dispatched lanes, read every
