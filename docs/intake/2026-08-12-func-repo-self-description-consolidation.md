@@ -1,6 +1,8 @@
 ---
 intake-id: 33
-status: DRAFT
+status: ACCEPTED
+decided-by: batch-1 lane D ratification, 2026-08-21 — frozen contract LANE-RAT-intakes.md (ruled split R5, per outgoing-architect Q4); an off-repo contract, cited per the off-repo-ratifying-act precedent (protocols/STANDING_RULINGS.md section I)
+disposition: active
 origin: operator strategy dump at the close of the 2026-08-10/11 window, consolidated by the outgoing seat as docs/audits/2026-08-11-technical-batch-4-brief-next-architect.md §2; filed 2026-08-12 at the adjudication hour under BLOCK-4's packaging ruling
 consumers: "the next window's batch — Section A produces the definition a backlog row then cites; Sections B and C produce their own ADR-or-carrier decisions"
 ---
@@ -160,6 +162,33 @@ It is not a freeze on all directory work until GAP-2 concludes. Two consequences
 `SANCTIONED_TIER1_DIRS` already containing `codex` means **Section C may need no new folder at
 all**, and this document **creates none** (see A4 below).
 
+## Functional requirements
+
+<!-- Added by the prep pass, 2026-08-21 (batch-1 lane D). DERIVED from Sections A/B/C and the
+     A1-A4 acceptance criteria already in this document — not new asks. Nothing below states a
+     requirement the sections above do not already carry. -->
+
+- **Must:**
+  - **(A)** Produce a written definition of *"architecture-described surface"* that a grep can
+    evaluate, and the architecture-freshness check Section A specifies — flagging a commit that
+    touches such a surface when `ARCHITECTURE.md` carries no matching delta and no explicit
+    no-impact note. Zero new organ families (A1).
+  - **(B)** Repair the belief at the three sites that wrongly assert no `docs/archive/` clause
+    exists, cross-referencing `[#420]` as owner and proposing **no** move, promotion or
+    deletion while `[#420]` is open (A2 i).
+  - **(C)** State, **before any file is authored**, whether Section C resolves as a carrier
+    decision or as an ADR — and answer the `AGENTS.md` collision either way (A3).
+  - Add **zero** new top-level directories on this document's own authority (A4).
+- **Should:**
+  - **(B)** For the genuinely-open folder question only, author one ADR at the fork it
+    surfaces, with every relocated path carrying a redirect and every breaking
+    immutable-artifact locator enumerated **before** any move (A2 ii).
+  - **(A)** Discharge the three routed obligations the definition inherits — the `N1-D11`/G-7
+    consumer, the `N2-E1-1` W-wave referent, and the `N2-R2-07` re-peg decision (A1).
+- **Could:**
+  - **(A)** Run the Section A check advisory-only in v1 — deliberately left open as **Q3**
+    rather than asserted here.
+
 ## Acceptance criteria (ex-ante)
 
 - **A1.** Section A produces a written definition of *"architecture-described surface"* that a grep
@@ -202,3 +231,30 @@ deploy manifest (C). **Physical:** none.
 
 **ZERO at filing** (capacity law). Section A's single row is born from the definition this intake
 produces, not from this filing.
+
+## Status
+
+**ACCEPTED** (`decided-by` + `disposition: active`) — batch-1 lane D, 2026-08-21. Filed
+2026-08-12 at the adjudication hour under BLOCK-4's packaging ruling; prepped and transitioned
+in the same lane. Ratification accepts this document as the requirements authority for
+GAP-1/2/3; it does **not** pre-answer Q2 or Q3, and A4's zero-new-top-level-directory
+constraint binds every consumer of it.
+
+**PENDING-CARRIER at the time of writing.** Per `protocols/STANDING_RULINGS.md` **P-2**, an
+intake at ACCEPTED carries at least one live carrier row or a dated deferral. `tasks/` is
+SEAT-owned this batch, so this lane emitted a **generator-ready carrier-row spec** in
+`docs/audits/2026-08-21-technical-lane-rat-intake-ratification.md` for A1's single Section-A row instead of landing it;
+the seat lands the row and the integrator sequences this lane's merge **after** the seat's, so
+no orphan window exists on `main`. Verified at prep time: zero rows in `tasks/` cite intake
+#33. Sections B and C stay carrier-or-ADR decisions per A2/A3 and birth nothing here — the
+Births section's capacity law is unchanged by ratification.
+
+## Template conformance (prep pass, 2026-08-21 — batch-1 lane D)
+
+Completeness pass against `docs/intake/README.md` §2–§5 and `templates/intake-template.md`.
+Two of the eight template sections were missing and are now present: **Functional
+requirements** (added above the acceptance criteria, derived from Sections A/B/C and A1–A4 —
+no new ask) and **Status** (added above). The other six were already present and conformant.
+Frontmatter (§3) conformant — `consumers:` is an optional descriptive key ratified at the
+[#398] deploy and is forward-looking, distinct from `consumed-by:`. Naming (§4) conformant:
+`func` infix, origin date.

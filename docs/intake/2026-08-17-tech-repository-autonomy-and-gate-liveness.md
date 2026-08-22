@@ -234,3 +234,15 @@ PROPOSED ROW R11 - Backlog arrival-rate vs closure-rate instrument
 **DRAFT** — landed 2026-08-17 by lane R, unratified. Not operator-approved; the
 `docs/intake/README.md` §6 confirm-gate has not been cleared. Zero rows born; six proposed,
 one of which (R9) may be correctly resolved by a recorded refusal rather than a build.
+
+**Prep pass, 2026-08-21 (batch-1 lane D).** Completeness pass run against
+`docs/intake/README.md` §2–§5 and `templates/intake-template.md`: **conformant, no fixes
+required.** All eight template sections present (Section C is the one added top-level
+section, per the lane-R contract of record); frontmatter on-schema — `note:` and `consumers:`
+are optional descriptive keys ratified at the [#398] deploy, and no companion field appears
+out of its status; naming conformant (`tech` infix, origin date). **Status deliberately
+untouched:** this is the doc that carries the server-side-enforcement fork proper (R9 — block
+`--no-verify` / `SKIP=` outright, against ADR-85 amendment 2026-08-03 §A2's *make bypass
+non-silent* answer), and it is held for the architect's R7 ADR-fork ruling. The fork options
+and their consequences are laid out for that ruling in the lane artifact
+`docs/audits/2026-08-21-technical-lane-rat-intake-ratification.md`.
