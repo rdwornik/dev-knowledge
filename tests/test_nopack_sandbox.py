@@ -1248,6 +1248,45 @@ def test_a_symlinked_metadata_file_is_not_read(tmp_path: Path):
     assert ns.read_marker(box) is None
 
 
+def test_filename_stream_modes_are_refused(sandbox: ns.Sandbox, tmp_path: Path):
+    """These take their file list from STDIN, so argv screening sees no path at all."""
+    for command in (
+        "file -f -",
+        "wc --files0-from=-",
+        "md5sum -c -",
+        "sha256sum --check -",
+        "find . -files0-from -",
+        "sort --files0-from=- CLAUDE.md",
+    ):
+        assert ns.screen_command(command).kind == "forbidden-argument", command
+
+    # and end to end: `printf` is allowlisted, so the producer half is trivial
+    res = ns.run_guarded("printf '/etc/passwd\\n' | file -f -", sandbox)
+    assert res.refused is True
+    assert res.trip.kind == "forbidden-argument"
+
+
+def test_git_symbolic_ref_reads_with_one_operand_and_writes_with_two():
+    """`git symbolic-ref HEAD refs/heads/main` re-attaches a deliberately detached clone."""
+    assert ns.screen_command("git symbolic-ref HEAD") is None
+    assert ns.screen_command("git symbolic-ref HEAD refs/heads/main").kind == "git-write"
+    assert ns.screen_command("git symbolic-ref -d HEAD").kind == "git-write"
+    assert "symbolic-ref" not in ns._GIT_READ_SUBCOMMANDS
+
+
+def test_listing_subcommands_have_a_flag_allowlist_not_just_an_operand_rule():
+    """`git branch --edit-description` has no operand and opens the host's EDITOR."""
+    assert ns.screen_command("git branch --edit-description").kind == "git-write"
+    assert ns.screen_command("git tag --sign").kind == "git-write"
+    assert ns.screen_command("git remote --mirror").kind == "git-write"
+    # the measured read forms all survive
+    assert ns.screen_command("git branch -a") is None
+    assert ns.screen_command("git branch --show-current") is None
+    assert ns.screen_command("git tag -l") is None
+    assert ns.screen_command("git config --list") is None
+    assert ns.screen_command("git remote -v") is None
+
+
 def test_a_live_registry_lock_is_not_stolen(tmp_path: Path):
     """An earlier draft broke the lock on the waiter's OWN timeout, so two could hold it."""
     lock = (tmp_path / ns.REGISTRY_NAME).with_suffix(".lock")

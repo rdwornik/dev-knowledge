@@ -270,7 +270,7 @@ ALLOWED_ARGV0: frozenset[str] = frozenset(
 # a write INSIDE it harms nothing, Layer B screens every byte on the way out, and teardown
 # refuses anything it cannot prove it made. This table closes the paths by which a
 # read-only surface would otherwise reach OUTSIDE the sandbox.
-_FORBIDDEN_ARGS: dict[str, frozenset[str]] = {
+_FORBIDDEN_ARGS: dict[str, frozenset[str]] = {  # noqa: RUF012
     # `find` is kept because it is a genuine read tool; its ACTION primaries are what run
     # or delete things.
     # Action primaries run or delete things. `-L`/`-H`/`-follow` DEREFERENCE symlinks
@@ -303,7 +303,20 @@ _FORBIDDEN_ARGS: dict[str, frozenset[str]] = {
     # diff DEREFERENCES by default (`--no-dereference` is the opt-out), so recursing it
     # over the tree walks out through any symlink the same way.
     "diff": frozenset({"-r", "--recursive"}),
+    # --- filename STREAMS ---------------------------------------------------------
+    # These modes take their file list from stdin or from another file rather than from
+    # argv, so `_screen_paths` - which reads argv - sees nothing at all:
+    # `printf '/etc/passwd\n' | file -f -` reads a host file with no path in any argument.
+    # A pipeline makes the producer trivial, since `printf` is allowlisted.
+    "file": frozenset({"-f", "--files-from"}),
+    "wc": frozenset({"--files0-from"}),
+    "md5sum": frozenset({"-c", "--check", "--strict"}),
+    "sha256sum": frozenset({"-c", "--check", "--strict"}),
 }
+
+# ...and the same class on tools that already have a row above.
+_FORBIDDEN_ARGS["find"] |= frozenset({"-files0-from"})
+_FORBIDDEN_ARGS["sort"] |= frozenset({"--files0-from"})
 
 # git is an ALLOWLIST, not a denylist. A denylist of write subcommands lets every
 # subcommand nobody thought of through, and git has a lot of them.
@@ -313,7 +326,7 @@ _GIT_READ_SUBCOMMANDS: frozenset[str] = frozenset(
         "count-objects", "describe", "diff", "diff-index", "diff-tree", "for-each-ref",
         "grep", "log", "ls-files", "ls-tree", "merge-base", "name-rev",
         "range-diff", "rev-list", "rev-parse", "shortlog", "show", "show-branch",
-        "show-ref", "status", "symbolic-ref", "whatchanged",
+        "show-ref", "status", "whatchanged",
         # `help` is NOT here: it launches a browser or a man viewer. Neither are
         # `verify-commit` / `verify-tag`: they shell out to GPG, which reads the host's
         # own configuration and can launch a pinentry helper of its choosing.
@@ -379,6 +392,41 @@ _GIT_ANY_HELPER_OPTIONS: frozenset[str] = frozenset(
 _GIT_CONFIG_READ_FLAGS: frozenset[str] = frozenset(
     {"--list", "-l", "--get", "--get-all", "--get-regexp", "--get-urlmatch", "--get-color"}
 )
+
+# `git symbolic-ref HEAD` READS where HEAD points; `git symbolic-ref HEAD refs/heads/main`
+# WRITES it, re-attaching a sandbox that provisioning deliberately detached. One operand
+# is the read, two is the write, and `-d` is a delete - so it cannot be a plain read
+# subcommand and it is not a no-operand listing either.
+_GIT_ONE_OPERAND_READS: frozenset[str] = frozenset({"symbolic-ref"})
+
+# Per-subcommand flag allowlists for the listing forms. "No operand" is not sufficient on
+# its own: `git branch --edit-description` has no operand and opens the host's EDITOR,
+# which is a program outside the guarded argv surface entirely. A flag that takes a
+# detached value shows up as an operand and is refused by the operand rule; the `--opt=v`
+# spelling is the way to pass one.
+_GIT_LISTING_READ_FLAGS: dict[str, frozenset[str]] = {  # noqa: RUF012
+    "branch": frozenset(
+        {"-a", "--all", "-r", "--remotes", "-l", "--list", "-v", "-vv", "--verbose",
+         "-q", "--quiet", "--show-current", "--color", "--no-color", "--column",
+         "--no-column", "--sort", "--format", "--contains", "--no-contains", "--merged",
+         "--no-merged", "--points-at", "-i", "--ignore-case", "--omit-empty"}
+    ),
+    "tag": frozenset(
+        {"-l", "--list", "-n", "--contains", "--no-contains", "--merged", "--no-merged",
+         "--points-at", "--sort", "--format", "--color", "--no-color", "-i",
+         "--ignore-case", "--omit-empty"}
+    ),
+    "config": frozenset(
+        _GIT_CONFIG_READ_FLAGS
+        | {"--local", "--global", "--system", "--worktree", "--file", "--blob", "--null",
+           "-z", "--name-only", "--show-origin", "--show-scope", "--type", "--includes",
+           "--no-includes", "--default"}
+    ),
+    "remote": frozenset({"-v", "--verbose"}),
+    "notes": frozenset(),
+    "reflog": frozenset(),
+    "worktree": frozenset(),
+}
 
 # A markdown line that OPENS a block. Redaction stops at these, so a canary inside one
 # list item never eats its neighbours - measured: extending to every contiguous non-blank
@@ -1802,11 +1850,25 @@ def _screen_git(stage: Stage) -> Trip | None:
     rest = stage.argv[index + 1 :]
     if subcommand in _GIT_READ_SUBCOMMANDS:
         return None
-    if subcommand not in _GIT_LISTING_WHEN_BARE:
-        return Trip("A", "git-write", f"git {subcommand} is not in the read-only surface")
 
     operands = [token for token in rest if not token.startswith("-")]
     flags = [token.split("=", 1)[0] for token in rest if token.startswith("-")]
+
+    if subcommand in _GIT_ONE_OPERAND_READS:
+        if len(operands) > 1:
+            return Trip("A", "git-write", f"git {subcommand} with two operands writes")
+        if flags:
+            return Trip("A", "git-write", f"git {subcommand} takes no flags in its read form")
+        return None
+
+    if subcommand not in _GIT_LISTING_WHEN_BARE:
+        return Trip("A", "git-write", f"git {subcommand} is not in the read-only surface")
+
+    allowed_flags = _GIT_LISTING_READ_FLAGS.get(subcommand, frozenset())
+    unknown = [flag for flag in flags if flag not in allowed_flags]
+    if unknown:
+        return Trip("A", "git-write", f"git {subcommand} {unknown[0]} is not a read form")
+
     if subcommand == "config":
         # `git config --list` reads; `git config --global user.name x` writes. The read
         # forms all carry a get/list flag and name at most the key.
