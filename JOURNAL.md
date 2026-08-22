@@ -19,6 +19,107 @@
 
 ---
 
+### 2026-08-22 (d) — CC (Opus 5, part-C integrator, branch `docs/part-c-filing-queue-2026-08-22`): the doc discharges, and a deferral that came due rather than being re-dated
+
+**Did:** Step S7, at `4c062d49`, on the branch whose S6 filing landed at `92caed40`. Four governance
+surfaces, no build.
+
+**Result: Q2 and Q10 finally have their Ch8 pointers, and the reason is that their own trigger
+fired.** §Q's anti-orphan block dated the deferral *"2026-09-19 **or** the Ch8 codification lane
+landing, whichever comes first"*. That lane landed at `01adf895` earlier in this batch, so the
+deferral came **due**; it is discharged rather than re-dated with a fresh excuse. Q2 sits beside
+*"Integrate from the primary"* and states the primary checkout is seat-arc-only on the evidence of
+two witnessed HEAD-swap incidents; Q10 sits beside the contract-of-record requirements and states
+that deviation-with-disclosure is not a license. **`protocols/STANDING_RULINGS.md` itself was not
+opened** — the pointers live in Ch8, which is where §Q said they were owed.
+
+**The effort enum now says one thing in the two places the hub owns.** `{low | medium | high |
+xhigh | max}` — the CLI-validated five is canonical by ruling, and `protocols/PLAYBOOK.md` Ch8 plus
+`templates/prompt-template.md` (the point-of-use card) both follow it. `[#539]` found this
+divergence and deliberately did **not** resolve it, which was correct: its contract named five while
+Ch8 and the routing matrix named four, and a generator is not where an enum gets ruled. The
+converged text keeps the real distinction rather than flattening it — `max` is a valid effort for a
+**contract**, while whether the *routing matrix* accepts it is the separate question the following
+paragraph already answered.
+
+**Two memo dispositions are recorded as APPENDED amendments, because both intakes are ratified** and
+intake #27's own post-ratification rule ended the in-place editability the earlier errata relied on.
+Intake **#16 §3**: the graph library is **not adopted as filed**, superseded by R-A — at 11,684
+edges stdlib `sqlite3` answers reachability, orphan and degree in 1–4 ms; a library wins on
+cycles/SCC only, and **no consumer for that query exists**, so ADR-105 §2 bars activation regardless
+of the benchmark. If one is ever named it is `rustworkx`. Intake **#25**: copier is **promoted** as
+the deployment transport (~3,500 of 7,460 LOC, ~47%, and the count stops scaling with N), sequenced
+greenfield → ai-council → **corp-monorepo last**, with ADR-102 `gate_rev_ahead` and the removed
+`codemap-freshness` hook recorded as the **open** migration question — which is the reason
+corp-monorepo goes last rather than an afterthought. `cruft` rejected on maintenance signal (last
+release 2024-12-25, 20 months stale, in the distribution path). R-B recorded: reusable workflows
+partially reversed on the access ground, survivor scope fleet-CI gates only, priced against Actions
+minutes rather than adopted on shape.
+
+**Changes:** `protocols/PLAYBOOK.md` (Ch8 — two pointers, one enum), `templates/prompt-template.md`
+(card enum), `docs/intake/2026-07-21-func-fleet-north-star.md` and
+`docs/intake/2026-08-05-func-simplification-distribution-wave.md` (appended amendments).
+
+**Abandoned:** Nothing. No intake status moved, so no index moved; both intake generators re-checked
+clean.
+
+**Next:** S8 — ledger re-measure against R2's denominator, the final report, and seat/rat teardown
+under Q3's push-before-delete.
+
+---
+
+### 2026-08-22 (c) — CC (Opus 5, part-C integrator, branch `docs/part-c-filing-queue-2026-08-22`): the rat lane lands behind its carriers, and the filing queue stops exactly at the banked limit
+
+**Did:** Steps S5 and S6. Merged `worktree-lane-rat-intakes` at `7107c930`, which introduces
+`0a445396` `de418e44` `61e0a0fb` `d5cee408` `c75b72fa` `ef956cb5` `9be8c4d8` `5c29a3cb` `226d8c66`
+`513a190a` `2b8e779c` — the seven DRAFT-intake preps and the four non-fork transitions. Then filed
+five rows, `[#572]`–`[#576]`.
+
+**Result: the merge order was a correctness constraint, not a preference, and it was honoured.**
+LANE-RAT's own §7 states that if its branch merges *before* the carrier rows, `main` carries two
+P-2 violations for the length of the gap — an ACCEPTED intake with no live carrier is not a lawful
+terminal state. `[#570]` and `[#571]` were on `main` at `2a95b99c` before this merge ran, so no
+commit on the spine ever showed that state.
+
+**One conflict, resolved mechanically and named rather than absorbed:** `docs/audits/README.md` is
+a *generated* index and both sides added artifacts to it. It was resolved by re-running
+`gen_audit_index.py --write`, not by choosing hunks; verified afterwards that rat's own artifact and
+this window's annotation ledger are both present, zero markers remain, 663 rows.
+
+**The intake-archival leg is a verified no-op, which is a result rather than a skipped step.** The
+terminal set is CONSUMED | SUPERSEDED | REJECTED — ACCEPTED is deliberately excluded because "a
+standing authority must stay visible live". Measured across `docs/intake/*.md`: SEED 10, ACCEPTED
+19, READY 1, DRAFT 4, and **zero terminal docs sitting live**. Nothing to move; the seven already in
+`docs/intake/archive/` are correct. Both intake generators re-run clean. The four remaining DRAFTs
+are exactly `#34`–`#37`, matching LANE-RAT's account.
+
+**The filing cap binds exactly, and that is the whole point of doing S2 before S6.** banked 7, minus
+the two S4 carriers, leaves five slots. Five filed — f1 `[#572]` intake-funnel completion (R5's
+residual, which has **no carrier by construction**: both candidates were already closed), f2
+`[#573]` the lychee zero-baseline link gate, f3 `[#574]` the batch manifest Q6's own failure class
+demands, f4 `[#575]` the telemetry store's 16.4 ms/event and its **silent** drops at 8 concurrent
+writers, f5 `[#576]` the read-path lane `[#565]` was sequenced before. **f6, f7 and f8 are NOT
+filed** and are recorded as the named next-window queue: the claim-token transport through
+`/lane-boot`, the dashboard stage-2 carrier, and the `anchor_gate_probe` investigation.
+
+**I re-authored all five to fit under the 1320 ceiling before filing them.** The first drafts ran
+1549–1966 chars — filing those would have created, at birth, precisely the content-bloat R1 and B2
+exist to fight, in the same window that ruled on it. Final: 1196 / 1293 / 1315 / 1275 / 1221. The
+evidence lives in committed audit docs, so each row carries the binding gist plus a pointer — the
+B3a/B5 pattern applied at filing time rather than retroactively. **`[#570]` and `[#571]` were
+deliberately NOT trimmed** (1439 / 1602): the architect approved those two verbatim, so their length
+is a consequence of approved text and not mine to edit.
+
+**Changes:** merge `7107c930` (rat); `tasks/` +5 rows and regenerated `BACKLOG.md` +
+`tasks/manifest.json`; `docs/audits/README.md` regenerated at the merge.
+
+**Abandoned:** f6–f8, deliberately and by name. No intake was moved, because none qualified.
+
+**Next:** S7 doc discharges (Q2/Q10 Ch8 pointers, effort-enum convergence, the memo dispositions),
+then S8's ledger re-measure and the final report.
+
+---
+
 ### 2026-08-22 (b) — CC (Opus 5, part-C integrator, branch `docs/part-c-closure-sweep-2026-08-22`): the closure sweep banks seven, the ledger gets its own home, and the carriers land
 
 **Did:** Steps S2–S4 of the architect's part-C sequence, in the binding order: `7464578b` (closure

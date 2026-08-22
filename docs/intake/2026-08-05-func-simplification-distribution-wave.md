@@ -141,3 +141,29 @@ reason to stop.**
 Coding Agents on One Repository"*. External evidence — advisory until ratified. The memo file is not
 landed in the repo: no governance clause defines a home for external research artefacts, and ADR-101
 seals the tree against inventing one.
+
+---
+
+## Amendment — 2026-08-22 · copier PROMOTED, with one gap recorded open
+
+**Appended, not edited in place:** this doc is ratified, so amendments are appended.
+
+**copier is PROMOTED as the deployment transport** (ruling, 2026-08-22), on the library-first
+measurement: it removes **~3,500 of 7,460 LOC (~47%)**, and the line count stops scaling with N.
+
+**Sequence is part of the ruling, not an implementation detail:** (a) template plus a **greenfield**
+consumer first; (b) **ai-council** retrofit at `_commit: v1.3.1`; (c) **corp-monorepo LAST.**
+
+**The open migration question, recorded rather than assumed away:** ADR-102 `gate_rev_ahead` and the
+removed `codemap-freshness` hook have **no copier representation**, and that is the migration's
+single biggest risk — which is precisely why corp-monorepo goes last. Verify halves stay ours:
+`lived_sandbox/` (1,905), `carrier_plugin` (390), `carrier_globalconfig` (213). Operational cost
+noted: `--trust` is required on every copy and update, forever, or the floor never renders.
+
+**cruft is REJECTED on its maintenance signal** — last release **2024-12-25**, 20 months stale, and
+it would sit in the fleet's distribution path.
+
+**R-B — reusable GitHub Actions workflows are PARTIALLY REVERSED, on the access ground.** Private-repo
+access policy leaks indirect access and the form breaks offline; structurally it cannot carry the
+floor or the mesh. **Survivor scope = fleet-CI gates only**, and that survivor is priced against
+Actions minutes (630 of 2,000 consumed in August, measured 2026-08-21) rather than adopted on shape.

@@ -145,3 +145,19 @@ The recon (2026-07-21, read-only) re-prices the bet. Facts, none of which is a d
 ---
 
 *This document is the seed artifact. Step 2 consumes §4; step 3 consumes §1–§3 and §5. It is deliberately not an ADR — it evolves; ADRs it spawns do not.*
+
+---
+
+## Amendment — 2026-08-22 · §3 graph library, DISPOSITION
+
+**Appended, not edited in place:** this doc is ratified, so amendments are appended.
+
+**§3's graph library is NOT ADOPTED as filed — superseded by ruling R-A.** The disposition rests on
+measurement rather than assertion (`docs/audits/2026-08-21-technical-library-first-research.md`): at
+**11,684 edges**, stdlib `sqlite3` answers reachability, orphan and degree in **1–4 ms**. A graph
+library wins on **cycles/SCC only** (~1,600×, a correctness gap rather than a speed one) — and **no
+consumer for a cycle/SCC query exists**, so ADR-105 §2 bars activation regardless of the benchmark.
+
+**If a consumer is ever named, the library is `rustworkx`, not `networkx`** (R-A; consumer =
+dependency management). Recorded so the question is closed with evidence and is not re-researched.
+No row is born by this disposition.

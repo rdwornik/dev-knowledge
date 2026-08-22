@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "d20d83a66fef8ceb6f9e02fc4945bb47cf454a1eff12b2868f86e670a4444698",
+  "generated_sha256": "4fbbb345260e51a7a3ae714a79d58a6d8ed0cc87b36bfa9522a65b40caea3cb7",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -216,6 +216,10 @@
     {
       "task": 560,
       "file": "560-review-artifact-coverage-reads-only-the-first-br.md"
+    },
+    {
+      "task": 573,
+      "file": "573-lychee-zero-baseline-md-link-gate.md"
     },
     {
       "prose": ""
@@ -617,6 +621,10 @@
       "file": "564-lifecycle-archival-implemented-adrs-and-decided-int.md"
     },
     {
+      "task": 572,
+      "file": "572-intake-funnel-completion-carrier.md"
+    },
+    {
       "prose": ""
     },
     {
@@ -931,6 +939,18 @@
     {
       "task": 528,
       "file": "528-lane-latency-full-suite-multiplied-across-a-batch.md"
+    },
+    {
+      "task": 576,
+      "file": "576-telemetry-read-path-lane.md"
+    },
+    {
+      "task": 575,
+      "file": "575-telemetry-store-performance-and-silent-drops.md"
+    },
+    {
+      "task": 574,
+      "file": "574-batch-manifest-emitted-by-gen-lane-contract.md"
     },
     {
       "prose": ""

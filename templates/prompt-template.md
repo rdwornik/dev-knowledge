@@ -65,7 +65,7 @@ Updated: 2026-08-08
 
 | Model  | `<opus | sonnet>` — see the routing matrix below; `opus` is the `.dev-knowledge` default |
 | Mode   | `<execution (default) | plan-then-auto (M/L repo-derivation only) | auto-accept>` |
-| Effort | `<low | medium | high | xhigh>` |
+| Effort | `<low | medium | high | xhigh | max>` |
 
 **This table is M/L-only (ruled 2026-08-07).** The **dispatch line is authoritative for model and
 effort**, so an **S-class contract omits the whole table** — the line that launched the session
@@ -123,7 +123,7 @@ description of a dispatch — it **is** the dispatch, and the contract is its si
 exactly that reason: swap the model, effort, board label and filename, and leave the shape alone.
 Add `--worktree <name>` when the lane wants its own tree; the three dispatch constants
 (`--bg`, `--permission-mode bypassPermissions`, the board label) ride every such line. Effort is a
-CLOSED enum — `{low | medium | high | xhigh}` — and a value outside it is refused at the surface
+CLOSED enum — `{low | medium | high | xhigh | max}` — and a value outside it is refused at the surface
 with the enum named, rather than guessed. Mechanics, the table-fallback path for a contract with no
 block, the execution gate and the non-default raw-composition form: `protocols/PLAYBOOK.md` Ch8
 "The dispatch surface is `dispatch <file>`".

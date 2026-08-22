@@ -1657,6 +1657,8 @@ directory — re-check `.claude/worktrees/` and clear any empty husk once the ID
 - **Integrate from the primary:** from the primary on `main`, `git merge --no-ff worktree-<name>`
   then `git push` (repo `--no-ff` norm). Don't try to rebase/linearize a branch that is checked
   out in another worktree — git blocks it.
+  *Q2 (`protocols/STANDING_RULINGS.md`): the primary checkout is **seat-arc-only** — a helper
+  task runs zero git operations in it, on the evidence of two witnessed HEAD-swap incidents.*
 - **Merge serialization — why two concurrent merges to `main` can't tangle (#200).** Not a
   lock/mutex: the concurrent-merge race is already serialized by **git itself**, plus the FF-block:
   - **`index.lock`** — two simultaneous `git merge` commands can't both proceed; the second
@@ -2149,6 +2151,10 @@ dispatched. The `lane-contract-check` pre-commit gate is therefore scoped to the
 generator's own emitted name shape (`LANE-<slug>.md`), so it governs batch 2 onward and
 ignores the record.
 
+*Q10 (`protocols/STANDING_RULINGS.md`): a lane that discovers a refuted premise **PAUSEs with
+the fact** — deviation-with-disclosure is not a license; the disclosure discharges the
+reporting duty, it does not authorise the deviation.*
+
 **Inline-with-a-dummy-filename is a forbidden dispatch form.** A dispatch line naming a file that
 was pasted rather than committed records a locator that resolves to nothing, which is the whole of
 what this rule closes. Q6 is the **unconditional** reading of `protocols/STANDING_RULINGS.md`
@@ -2229,8 +2235,12 @@ dispatch constants `--bg --permission-mode bypassPermissions` are appended. This
 older contract still dispatches; a contract written today carries the block and takes the first
 path.
 
-**Effort is a CLOSED enum — `{low | medium | high | xhigh}` — and a miss is a refusal, not a
-guess.** An effort value outside the enum stops the dispatch with a message naming the enum, so a
+**Effort is a CLOSED enum — `{low | medium | high | xhigh | max}` — and a miss is a refusal, not
+a guess.** *(Converged 2026-08-22 by architect ruling: the **CLI-validated** enum is canonical and
+this surface follows it. `[#539]` reported the divergence — its contract named five values while
+this text and the routing matrix named four — and a generator is not where that gets decided.
+`max` is a valid effort for a **contract**; whether the routing matrix accepts it is the separate
+question the paragraph below answers.)* An effort value outside the enum stops the dispatch with a message naming the enum, so a
 typo surfaces at the operator's terminal rather than booting a session at an effort nobody chose.
 This is the same posture the routing matrix below takes on `max`: an unroutable value is refused at
 the surface instead of being silently rounded to a neighbour.
