@@ -184,6 +184,25 @@ def test_a_drifted_js_pin_is_caught(tree):
     assert any(f.startswith("S10 ") for f in findings), findings
 
 
+def test_a_DELETED_js_pin_is_caught(tree):
+    """A pin that is REMOVED, not mistyped -- the case a findall-and-compare leg misses.
+
+    Deleting one of the three Stage-1 `model:` pins leaves two that still AGREE with the
+    registry, so a checker that only compares the pins it finds returns clean while that
+    stage silently falls back to the harness default. Found by gpt-5.6-terra against the
+    lane diff, 2026-08-22; the artifact's claim that S10 asserts "all three" was not true
+    of the code as built.
+    """
+    _break(tree, _CONFORMANCE_HUB, ", model: 'claude-sonnet-5' }", " }")
+    remaining = cpr._JS_MODEL_RE.findall((tree / _CONFORMANCE_HUB).read_text(encoding='utf-8'))
+    assert len(remaining) == cpr._CONFORMANCE_HUB_PIN_COUNT - 1, remaining
+    assert all(p == 'claude-sonnet-5' for p in remaining), (
+        'fixture precondition: every SURVIVING pin must still agree, '
+        'or this test would pass for the old reason')
+    findings = cpr.run(tree)
+    assert any(f.startswith('S10 ') for f in findings), findings
+
+
 def test_a_drifted_prose_pin_is_caught(tree):
     _break(tree, _PLAYBOOK, "`claude-sonnet-5`", "`claude-sonnet-4-6`")
     findings = cpr.run(tree)

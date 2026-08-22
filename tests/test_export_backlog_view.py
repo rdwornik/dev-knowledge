@@ -468,7 +468,12 @@ def test_nothing_under_the_export_path_is_tracked():
         assert status.stdout.strip() == "", f"the export dirties the tree: {status.stdout}"
     finally:
         if not pre_existing:
-            shutil.rmtree(ebv.DEFAULT_EXPORT_DIR, ignore_errors=True)
+            # Critical Rule #9: a scratch-creating process removes AND VERIFIES
+            # removal. ignore_errors=True let a failed cleanup pass green while
+            # leaving the export behind -- the exact leftover this test rules out.
+            shutil.rmtree(ebv.DEFAULT_EXPORT_DIR)
+            assert not ebv.DEFAULT_EXPORT_DIR.exists(), (
+                "cleanup left %s behind" % ebv.DEFAULT_EXPORT_DIR)
 
 
 #: The enforcement surface: everything that could re-point governance at the view. `docs/`
