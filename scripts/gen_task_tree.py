@@ -34,6 +34,12 @@ CLI verbs, by direction:
                   and that every task file's frontmatter matches its own body.
                   Read-only; armed as an audit.py ship-gate leg ([#433] C1).
   --roundtrip     in-memory lossless proof over the generated text.
+  --rank          READ-ONLY report ([#566], building the accepted [#488] axis LEAN):
+                  ranks the OPEN queue by the hand-set [P1..P3], breaking ties within
+                  a tier on CONSTRAINT CONTENTION over `serialize-group`, and what
+                  remains on id as a monotonic age proxy. Derives every input from
+                  task bodies already parsed here — no new authored field — and
+                  writes nothing, in particular not a reordering of BACKLOG.md.
   --write         BACKLOG.md -> tree. THE IMPORT/RECOVERY DIRECTION, deliberately
                   kept (it is how the tree was bootstrapped and how it would be
                   rebuilt), but post-flip it OVERWRITES SOURCE FROM A DERIVED
@@ -1133,6 +1139,140 @@ def refresh_task_frontmatter(out_dir: Path) -> list[str]:
     return [path.name for path, _ in plan]
 
 
+# --- [#566] the ranking axis ------------------------------------------------------
+# The [#488] axis LEAN, accepted by the architect 2026-08-20 and measured in
+# docs/audits/2026-08-19-technical-c4-ruling-prework.md §2.5: rank by CONSTRAINT
+# CONTENTION over `serialize-group`, layered as a TIEBREAK UNDER the hand-set
+# [P1..P3] rather than replacing it, with `P-enum + age` (the monotonic,
+# ledger-backed id as a free age proxy) as the zero-cost floor beneath both.
+#
+# The whole axis is DERIVED. It authors no field: priority, serialize-group and id
+# are all already parsed out of a task's own body line, so ranking adds nothing to
+# maintain and cannot rot independently of the queue it ranks. That is the property
+# the LEAN was chosen for -- WSJF would have needed 732 new estimates across 183
+# open rows, and the row's own graph-centrality candidate is inert on a 3-edge
+# population.
+#
+# Nothing here writes. Ranking is a REPORT over the source tree, deliberately not a
+# reordering of BACKLOG.md: document order is carried by tasks/manifest.json and is
+# the operator's narrative structure (themes, stories, prose), which the byte-exact
+# reassembly contract depends on. A rank materialised into frontmatter would also be
+# a field whose value changes when a DIFFERENT row is filed or closed, churning every
+# task file in a group on every edit.
+_PRIORITY_RANK = {"P1": 0, "P2": 1, "P3": 2}
+_UNPRIORITIZED_RANK = len(_PRIORITY_RANK)  # a row with no [P#] sorts after every P3
+
+
+@dataclass(frozen=True)
+class RankedTask:
+    """One row's place in the ranking, plus the three inputs that put it there."""
+
+    rank: int
+    id: int
+    priority: str | None
+    serialize_group: str | None
+    contention: int
+    title: str
+
+
+def open_task_rows(rows: list[TaskRow]) -> list[TaskRow]:
+    """The ranked population: rows whose own line does not carry the DEFER marker.
+
+    A deferred row is out of the queue by the operator's own decision, so ranking it
+    would put a row nobody may pick up in front of one they may.
+    """
+    return [task for task in rows if derive_status(task.raw) == "open"]
+
+
+def contention_scores(rows: list[TaskRow]) -> dict[int, int]:
+    """id -> how many OTHER rows in the same `serialize-group`; 0 when ungrouped.
+
+    `serialize-group` exists precisely because a shared file serializes lanes, so the
+    count is a standing measure of how much parallel work the group is holding.
+
+    HONEST LIMIT, stated where the number is produced: this ranks THROUGHPUT, not
+    value. `(group size - 1)` is what the group CONTENDS over, which equals what a
+    completion frees only for the row that dissolves or shrinks the group; a row that
+    merely shares the file scores the same. It is a strong secondary key and a poor
+    sole one, which is why [P1..P3] stays primary.
+    """
+    sizes: dict[str, int] = {}
+    groups: dict[int, str | None] = {}
+    for task in rows:
+        group = derive_serialize_group(task.raw)
+        groups[task.id] = group
+        if group is not None:
+            sizes[group] = sizes.get(group, 0) + 1
+    return {task_id: (sizes[group] - 1 if group is not None else 0)
+            for task_id, group in groups.items()}
+
+
+def rank_key(task: TaskRow, contention: int) -> tuple[int, int, int]:
+    """The total order, primary key first: P-enum, then contention DESC, then id ASC.
+
+    Total by construction -- ids are unique -- so the ordering is deterministic and a
+    regen cannot shuffle equal rows.
+    """
+    return (_PRIORITY_RANK.get(derive_priority(task.raw), _UNPRIORITIZED_RANK),
+            -contention, task.id)
+
+
+def rank_tasks(rows: list[TaskRow]) -> list[RankedTask]:
+    """Rank the open rows of `rows`. Pure; deferred rows are filtered out here.
+
+    Contention is counted over the SAME filtered population, so a group whose members
+    are mostly deferred is scored on what actually contends today.
+    """
+    live = open_task_rows(rows)
+    scores = contention_scores(live)
+    ordered = sorted(live, key=lambda task: rank_key(task, scores[task.id]))
+    return [RankedTask(rank=position, id=task.id, priority=derive_priority(task.raw),
+                       serialize_group=derive_serialize_group(task.raw),
+                       contention=scores[task.id], title=derive_title(task.raw))
+            for position, task in enumerate(ordered, start=1)]
+
+
+def render_ranking(ranked: list[RankedTask], top: int | None = None) -> str:
+    """Flat, un-padded report text (no column padding, per the output-formatting rule)."""
+    shown = ranked if top is None else ranked[:top]
+    lines = [
+        f"gen_task_tree: {len(ranked)} open task(s) ranked — key: [P1..P3] primary · "
+        f"constraint-contention over serialize-group as the tiebreak within a tier · "
+        f"id (age proxy) as the floor",
+        "gen_task_tree: contention measures THROUGHPUT, not value — it orders a tie "
+        "block, it never overrides a hand-set P.",
+    ]
+    for row in shown:
+        lines.append(
+            f"{row.rank}. [#{row.id}] {row.priority or 'P?'} · contention "
+            f"{row.contention} · group {row.serialize_group or 'none'} · {row.title}")
+    if top is not None and len(ranked) > len(shown):
+        lines.append(f"… {len(ranked) - len(shown)} more not shown "
+                     f"(omit --rank-top to list every open row)")
+    return "\n".join(lines)
+
+
+def _cmd_rank(out_dir: Path, top: int | None = None) -> int:
+    """READ-ONLY: rank the open queue from the SOURCE tree, print, write nothing.
+
+    Reads `tasks/`, not `BACKLOG.md`: post-flip the tree is the source of truth, and
+    ranking the derived file would rank a copy that `--check` might already be calling
+    stale. Any structural problem is reported as a controlled failure -- a rank is a
+    report, so it must not traceback on a tree `--check` would red.
+    """
+    try:
+        rows = _task_rows(parse_backlog(reassemble_from_tree(out_dir)))
+    except (OSError, ValueError, KeyError, AssertionError, UnicodeDecodeError) as exc:
+        print(f"gen_task_tree: rank FAIL (nothing written): {exc}", file=sys.stderr)
+        return 1
+    ranked = rank_tasks(rows)
+    deferred = len(rows) - len(ranked)
+    print(render_ranking(ranked, top=top))
+    if deferred:
+        print(f"gen_task_tree: {deferred} deferred row(s) excluded (· DEFER)")
+    return 0
+
+
 def _cmd_check(source_path: Path, out_dir: Path) -> int:
     """Thin CLI printer over `find_incoherences` — behaviour and exit codes unchanged."""
     problems = find_incoherences(source_path, out_dir)
@@ -1169,6 +1309,12 @@ def main(argv: list[str] | None = None) -> int:
                         help="verify BACKLOG.md matches what tasks/ generates, and that every "
                              "task file's frontmatter matches its own body")
     parser.add_argument("--roundtrip", action="store_true", help="verify in-memory lossless reassembly")
+    parser.add_argument("--rank", action="store_true",
+                        help="READ-ONLY report ([#566]/[#488] LEAN): rank the OPEN queue by "
+                             "[P1..P3], breaking ties on constraint-contention over "
+                             "serialize-group, then on id as an age proxy. Writes nothing")
+    parser.add_argument("--rank-top", type=int, default=None, dest="rank_top", metavar="N",
+                        help="with --rank only: show the top N rows instead of every open row")
     parser.add_argument("--write", action="store_true",
                         help="IMPORT/RECOVERY: rebuild the tasks/ tree from BACKLOG.md. Post-flip "
                              "this overwrites the source of truth from a generated file; against "
@@ -1186,6 +1332,10 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.force and not args.write:
         parser.error("--force is only meaningful with --write ([#474])")
+    if args.rank_top is not None and not args.rank:
+        parser.error("--rank-top is only meaningful with --rank ([#566])")
+    if args.rank_top is not None and args.rank_top < 1:
+        parser.error("--rank-top must be >= 1 (omit it to list every open row)")
 
     source_path = args.source if args.source is not None else _DEFAULT_SOURCE
     out_dir = args.out if args.out is not None else _DEFAULT_OUT
@@ -1204,6 +1354,8 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_check(source_path, out_dir)
     if args.roundtrip:
         return _cmd_roundtrip(source_path)
+    if args.rank:
+        return _cmd_rank(out_dir, top=args.rank_top)
     if args.write:
         return _cmd_write(source_path, out_dir, force=args.force)
 

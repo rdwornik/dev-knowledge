@@ -964,3 +964,150 @@ def test_check_cli_contract_on_committed_state():
     if not (TREE / "manifest.json").exists():
         pytest.skip("tasks/ not yet generated")
     assert gtt.main(["--check"]) == 0
+
+
+# --- [#566] the ranking axis (the accepted [#488] LEAN) ---------------------------
+
+def _rank_line(task_id, priority, group=None, title=None, defer=False):
+    """One synthetic task line in the shape the live tree uses."""
+    tail = f" · serialize-group: {group}" if group else ""
+    tail += " · DEFER — peg: x" if defer else ""
+    return f"- [#{task_id}] [{priority}][S] **{title or f'Task {task_id}'}** — body{tail}"
+
+
+def _rank_doc(lines):
+    return "# T\n\n## [E1] One\n\n### [S1] Story\n" + "\n".join(lines) + "\n"
+
+
+def _ranked_ids(lines):
+    model = gtt.parse_backlog(_rank_doc(lines))
+    rows = [row for kind, row in model.nodes if kind == "task"]
+    return [r.id for r in gtt.rank_tasks(rows)]
+
+
+def test_rank_pins_the_ordering_of_a_seeded_tie_block():
+    """THE done-clause acceptance test ([#566]): a seeded tie block comes out in ONE
+    pinned order, and each of the three keys is the thing that decides a step of it.
+
+    Seeded so every key is exercised and none is redundant:
+      * #10 is P1 with zero contention — the P key outranks a 3-contention P2.
+      * #21/#22/#23 all tie at P2 and are separated ONLY by contention (3 > 1 > 0).
+      * #30/#31 tie at P2 AND at contention 1 — the id/age floor breaks what remains.
+    """
+    lines = [
+        _rank_line(31, "P2", group="beta"),
+        _rank_line(23, "P2"),
+        _rank_line(21, "P2", group="alpha"),
+        _rank_line(30, "P2", group="beta"),
+        _rank_line(22, "P2", group="gamma"),
+        _rank_line(10, "P1"),
+        _rank_line(24, "P2", group="alpha"),
+        _rank_line(25, "P2", group="alpha"),
+        _rank_line(26, "P2", group="alpha"),
+        _rank_line(27, "P2", group="gamma"),
+        _rank_line(40, "P3", group="alpha"),
+    ]
+    # alpha holds 5 open rows (contention 4), gamma 2 (contention 1), beta 2 (1).
+    assert _ranked_ids(lines) == [10, 21, 24, 25, 26, 22, 27, 30, 31, 23, 40]
+
+
+def test_rank_priority_stays_the_primary_key():
+    """The LEAN layers contention UNDER [P1..P3]; a huge group never lifts a P3."""
+    big = [_rank_line(100 + n, "P3", group="huge") for n in range(40)]
+    assert _ranked_ids([*big, _rank_line(999, "P1")])[0] == 999
+
+
+def test_contention_is_group_size_minus_one_and_zero_when_ungrouped():
+    """The prework's worked-example shape: the largest group's members score
+    (size - 1) — 41 for the live 42-member `audit-py` — and an ungrouped row scores 0."""
+    lines = [_rank_line(n, "P2", group="audit-py") for n in range(1, 43)]
+    lines.append(_rank_line(500, "P2"))
+    model = gtt.parse_backlog(_rank_doc(lines))
+    rows = [row for kind, row in model.nodes if kind == "task"]
+    scores = gtt.contention_scores(rows)
+    assert scores[1] == 41
+    assert scores[500] == 0
+
+
+def test_rank_excludes_deferred_rows_and_scores_contention_over_the_open_ones():
+    """A deferred row is out of the queue by operator decision, so it is neither ranked
+    nor counted as contending — otherwise a mostly-deferred group inflates its members."""
+    lines = [
+        _rank_line(1, "P2", group="g"),
+        _rank_line(2, "P2", group="g", defer=True),
+        _rank_line(3, "P2", group="g", defer=True),
+        _rank_line(4, "P2", group="g"),
+    ]
+    model = gtt.parse_backlog(_rank_doc(lines))
+    rows = [row for kind, row in model.nodes if kind == "task"]
+    ranked = gtt.rank_tasks(rows)
+    assert [r.id for r in ranked] == [1, 4]
+    assert [r.contention for r in ranked] == [1, 1], "2 open members, not 4"
+
+
+def test_rank_sorts_an_unprioritized_row_after_every_p3():
+    """A row with no [P#] must not sort into P1 by accident."""
+    assert _ranked_ids([
+        "- [#7] **No priority field** — body",
+        _rank_line(8, "P3"),
+    ]) == [8, 7]
+
+
+def test_rank_cli_reads_the_source_tree_and_writes_nothing(tmp_path, capsys):
+    """The verb is a REPORT: exit 0, ranking on stdout, zero bytes changed anywhere."""
+    source, out_dir = _seed(tmp_path, _TWO_THEMES)
+    before_tree, before_source = _files_snapshot(out_dir), source.read_bytes()
+
+    rc = gtt.main(["--rank", "--source", str(source), "--out", str(out_dir)])
+    out = capsys.readouterr().out
+
+    assert rc == 0
+    assert "2 open task(s) ranked" in out
+    assert "1. [#1]" in out and "2. [#2]" in out  # P1 before P2
+    assert _files_snapshot(out_dir) == before_tree
+    assert source.read_bytes() == before_source
+
+
+def test_rank_top_truncates_and_says_how_many_it_hid():
+    """A truncated report must never read as the whole queue."""
+    ranked = gtt.rank_tasks([
+        gtt.TaskRow(id=n, raw=_rank_line(n, "P2"), theme=None, story=None)
+        for n in range(1, 6)])
+    text = gtt.render_ranking(ranked, top=2)
+    assert "1. [#1]" in text and "2. [#2]" in text
+    assert "[#3]" not in text
+    assert "3 more not shown" in text
+    assert "5 open task(s) ranked" in text
+
+
+def test_rank_top_is_guarded_by_the_cli():
+    """--rank-top is meaningless alone and meaningless at zero; both must error loudly."""
+    for argv in (["--rank-top", "5"], ["--rank", "--rank-top", "0"]):
+        with pytest.raises(SystemExit) as exc:
+            gtt.main(argv)
+        assert exc.value.code == 2
+
+
+def test_rank_reports_rather_than_crashes_on_a_broken_tree(tmp_path, capsys):
+    """A report must not traceback on a tree `--check` would simply RED."""
+    source, out_dir = _seed(tmp_path, _TWO_THEMES)
+    (out_dir / "manifest.json").write_text("{ not json", encoding="utf-8", newline="\n")
+
+    rc = gtt.main(["--rank", "--source", str(source), "--out", str(out_dir)])
+    err = capsys.readouterr().err
+
+    assert rc == 1
+    assert "rank FAIL" in err and "nothing written" in err
+
+
+def test_rank_reports_the_live_queue():
+    """The committed tree ranks without error, and the report is honest about scope."""
+    if not (TREE / "manifest.json").exists():
+        pytest.skip("tasks/ not yet generated")
+    rows = [row for kind, row in gtt.parse_backlog(BACKLOG.read_bytes().decode("utf-8")).nodes
+            if kind == "task"]
+    ranked = gtt.rank_tasks(rows)
+    assert 0 < len(ranked) <= len(rows)
+    assert [r.rank for r in ranked] == list(range(1, len(ranked) + 1))
+    priorities = [gtt._PRIORITY_RANK.get(r.priority, gtt._UNPRIORITIZED_RANK) for r in ranked]
+    assert priorities == sorted(priorities), "the P key must never be violated"
