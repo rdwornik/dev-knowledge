@@ -1,0 +1,128 @@
+# provider-registry.yaml — the declared source of truth for every provider, CLI and model
+# string the repo's LIVE surface names.
+#
+# Cut from `docs/audits/2026-08-21-fresh-eyes-cloud-r2-universalization.md` §3.3, which found
+# `claude-sonnet-5` hardcoded in THREE different file formats (`.md` frontmatter, a `.js`
+# object literal, `.md` prose) with nothing asserting they agree. This file is that
+# assertion's data.
+#
+# SHAPE — mirrors `ecosystem/tool-versions.yaml`, deliberately (library-first: the repo
+# already has a two-key `<collection>: <id>: <fields>` ecosystem-state shape and this does not
+# invent a second one). Two collections:
+#   providers:  a vendor, the CLI that reaches it, and the host-side config that pins it
+#   models:     every model string the repo names, with the role and the sites that pin it
+#
+# HOW IT IS READ:
+#   - sites that CAN read YAML at runtime read it via `scripts/provider_registry.py`
+#     (today: `scripts/changelog_sentinel.py`);
+#   - sites that CANNOT (frontmatter, a JS object literal, committed prose, a JSON config)
+#     are held in agreement with it by `scripts/check_provider_registry.py`, exercised by
+#     `tests/test_provider_registry.py`.
+# A checker is the honest mechanism for the second class: repointing a `.md` frontmatter key
+# at a YAML file is not possible, so the registry becomes the value's home and the checker
+# becomes the coupling.
+#
+# SCOPE, stated so this file is not read as more than it is. It covers the NINE table-edit
+# seams R2 §3.2 enumerates — S7, S8, S9, S10, S11, S17, S26, S29, S30. The TWELVE doctrine
+# seams (S1, S12, S15, S16, S18, S19, S20, S21, S22, S23, S28, S17-partial) and the TEN code
+# seams (S2, S3, S4, S5, S13, S14, S24, S25, S27, S6-for-a-third-provider) are out of scope by
+# construction: the first are ADR / recorded-ruling surfaces, the second are real ports.
+#
+# ROUTING IS NOT HERE. R2 §3.3 records that the canonical model-routing table is
+# `~/.claude/ROUTING.md` — at L0, outside this repository — as are the reviewer pin
+# (`~/.claude/bin/codex-review.ps1`) and the Codex config (`~/.codex/config.toml`). That
+# boundary is an open operator decision, restated in
+# `docs/audits/2026-08-22-fresh-eyes-cloud-4v2.md`. This registry records model IDENTITY, not
+# which model gets routed to which job.
+#
+# S11 is a canonical-DOC seam, not a model seam: the verifier scan list in
+# `.claude/workflows/conformance-hub.js` names VISION.md/ARCHITECTURE.md/CLAUDE.md/
+# CONTRIBUTING.md/protocols/ESSENTIALS.md. It is repointed at the sibling canonical-doc-name
+# registry (`scripts/canonical_docs.py`) and asserted by `tests/test_canonical_docs.py`.
+
+providers:
+  anthropic:
+    display_name: Anthropic
+    cli: claude
+    # Local, no-network version probe. Read by scripts/changelog_sentinel.py (S7).
+    version_command: ["claude", "--version"]
+    # S8 — the key this provider's CLI carries in ecosystem/tool-versions.yaml, and the
+    # changelog source that file records. tool-versions.yaml stays the DURABLE
+    # last-reviewed record (ADR-80 §3); this is the identity half of it, held in agreement
+    # by the checker rather than duplicated by hand.
+    changelog_tool_key: claude-code
+    changelog_source_url: "https://raw.githubusercontent.com/anthropics/claude-code/main/CHANGELOG.md"
+    # S26 — the absolute host path `.claude/settings.json` `extraKnownMarketplaces` pins.
+    # A HOST seam, not a provider seam (R2 flags it as such); recorded here because it is a
+    # hardcoded absolute path in committed agent config, and the registry is where a string
+    # like that gets one home and one checker.
+    marketplace_id: dev-knowledge-methodology
+    marketplace_source_path: 'C:\Users\1028120\Documents\Dev\.dev-knowledge'
+
+  openai:
+    display_name: OpenAI
+    cli: codex
+    version_command: ["codex", "--version"]
+    changelog_tool_key: codex
+    changelog_source_url: "https://github.com/openai/codex/releases"
+
+  xai:
+    display_name: xAI
+    # No CLI on this repo's surface — present because a model string attributed to this
+    # provider appears in committed prose (S30), and the registry is the closed vocabulary
+    # the checker matches those attributions against.
+    cli: null
+    version_command: null
+
+models:
+  claude-sonnet-5:
+    provider: anthropic
+    # The M rung of the ADR-70 t-shirt pins. Held here as a STRING only: the tier pins
+    # themselves are doctrine seams (S15/S16) and stay where they are ruled.
+    tier: M
+    roles: [subagent-default, workflow-verifier]
+    # The three formats R2 §3.3 names. `format` is what the checker has to parse.
+    pinned_at:
+      - path: .claude/agents/artifact-reader.md
+        seam: S9
+        format: md-frontmatter
+      - path: .claude/workflows/conformance-hub.js
+        seam: S10
+        format: js-object-literal
+      - path: protocols/PLAYBOOK.md
+        seam: S17
+        format: md-prose
+
+  claude-opus-4-8:
+    provider: anthropic
+    tier: L
+    # Named in the artifact-reader model note as the documented escalation target.
+    roles: [upgrade-path]
+    pinned_at: []
+
+  gpt-5.6-terra:
+    provider: openai
+    # The doctrinal review lane (PLAYBOOK). The PIN lives at L0
+    # (`~/.claude/bin/codex-review.ps1`, S19) and is therefore NOT asserted from this repo —
+    # the id is registered so a provenance attribution naming it resolves.
+    roles: [reviewer]
+    pinned_at: []
+
+  gpt-5.6-sol:
+    provider: openai
+    roles: [provenance]
+    attribution_token: "gpt-5.6-sol"
+    pinned_at:
+      - path: ecosystem/satellite-onboarding-rulings.yaml
+        seam: S29
+        format: yaml-provenance
+
+  grok-l5:
+    provider: xai
+    roles: [provenance]
+    # The on-disk attribution is the prose form `grok L5`, not the id.
+    attribution_token: "grok L5"
+    pinned_at:
+      - path: pyproject.toml
+        seam: S30
+        format: comment-provenance

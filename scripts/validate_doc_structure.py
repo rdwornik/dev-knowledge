@@ -68,11 +68,13 @@ _SCRIPTS_DIR = Path(__file__).resolve().parent
 _REPO_ROOT = _SCRIPTS_DIR.parent
 
 # Living docs scanned for structural shape (hub-relative; mirrors validate_doc_rot's set).
-_STRUCTURE_DOCS = [
-    "CLAUDE.md", "ARCHITECTURE.md", "VISION.md", "CONTRIBUTING.md",
-    "protocols/PLAYBOOK.md", "protocols/ESSENTIALS.md",
-    "protocols/HANDOFF_PROCESS.md", "protocols/AI_COUNCIL_PROCESS.md",
-]
+# CLOUD-4 v2 (R2 §1.5 GO-b): membership and order unchanged, names from the one registry.
+try:
+    from scripts import canonical_docs as _cdocs
+except ImportError:  # pragma: no cover - exercised by the scripts/-on-sys.path entrypoint
+    import canonical_docs as _cdocs
+
+_STRUCTURE_DOCS = list(_cdocs.STRUCTURE_DOCS)
 
 # A numbered section header text, e.g. "12. BACKLOG Grooming Workflow" -> 12.
 _NUMBERED_RE = re.compile(r"^(\d+)\.\s+\S")

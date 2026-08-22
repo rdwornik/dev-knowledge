@@ -89,6 +89,12 @@ def _make_bundle(
     # assemble_paste.py resolves `from gen_handoff import reflow_framing` at runtime via
     # sys.path[0] = its own dir, so its sibling must sit beside it in the temp scripts/ dir.
     shutil.copy(SCRIPT.parent / "gen_handoff.py", scripts_dir / "gen_handoff.py")
+    # ...and gen_handoff itself now reads the canonical-doc-name registry (CLOUD-4 v2, R2
+    # §1.5 GO-b), so the sibling set is two deep. Copied rather than papered over with a
+    # fallback import in gen_handoff: that module is precisely the site R2 §1.4 R2 prices as
+    # the silent-failure one — a miss stamps a placeholder into a bundle that is immutable on
+    # commit — so its filename and degrade string are deliberately allowed exactly one home.
+    shutil.copy(SCRIPT.parent / "canonical_docs.py", scripts_dir / "canonical_docs.py")
 
     return bundle, script_copy
 
