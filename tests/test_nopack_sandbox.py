@@ -700,6 +700,154 @@ def test_unbalanced_quoting_is_refused_not_guessed():
     assert ns.screen_command("cat 'CLAUDE.md").kind == "unparseable"
 
 
+# ------------------------------------- second-pass findings: no shell BY ANOTHER NAME
+#
+# Killing `shell=True` does not finish the job if an allowlisted program is itself an
+# execution engine, or if expansion can change the argv after it was screened.
+
+
+def test_general_purpose_interpreters_are_off_the_read_surface():
+    """`shell=False` buys nothing if the allowlist admits something that spawns shells."""
+    for command in (
+        "python3 -c 'import os; os.system(\"sh\")'",
+        "python -c 'print(1)'",
+        "awk 'BEGIN{system(\"sh\")}'",
+        "xargs sh",
+    ):
+        assert ns.screen_command(command).kind == "argv0-not-allowed", command
+    for name in ("python", "python3", "awk", "xargs"):
+        assert name not in ns.ALLOWED_ARGV0
+
+
+def test_exec_and_write_modes_of_the_survivors_are_refused():
+    assert ns.screen_command("find . -delete").kind == "forbidden-argument"
+    assert ns.screen_command("find . -name x -exec rm {} +").kind == "forbidden-argument"
+    assert ns.screen_command("find . -fprintf /tmp/out %p").kind == "forbidden-argument"
+    assert ns.screen_command("sed -i s/a/b/ CLAUDE.md").kind == "forbidden-argument"
+    assert ns.screen_command("rg --pre=/bin/sh pattern").kind == "forbidden-argument"
+    # ...and the ordinary read forms of the same tools stay available
+    assert ns.screen_command("find . -name '*.md'") is None
+    assert ns.screen_command("sed -n '1,3p' CLAUDE.md") is None
+
+
+def test_the_command_must_be_a_bare_name_not_a_path():
+    """Allowlisting a basename would otherwise admit any binary that shares the name."""
+    assert ns.screen_command("bin/cat CLAUDE.md").kind == "argv0-not-allowed"
+    assert ns.screen_command("/usr/bin/cat CLAUDE.md").kind == "argv0-not-allowed"
+
+
+def test_a_glob_may_not_choose_the_program_or_the_git_subcommand():
+    assert ns.screen_command("*/cat CLAUDE.md").kind == "glob-in-command-position"
+    assert ns.screen_command("git c*mmit -m x").kind == "glob-in-command-position"
+    # a glob anywhere else on a git command line is an ordinary pathspec
+    assert ns.screen_command("git log --oneline -- 'docs/*.md'") is None
+    assert ns.screen_command("git log --oneline -- docs/*.md") is None
+
+
+def test_the_expanded_argv_is_screened_not_just_the_typed_one(sandbox: ns.Sandbox):
+    """A pattern that names nothing forbidden can still MATCH something forbidden."""
+    typed = "ls *.md"
+    assert ns.screen_command(typed, {"CLAUDE.md"}) is None, "the typed command is clean"
+
+    res = ns.run_guarded(typed, sandbox, denied_names={"CLAUDE.md"})
+    assert res.refused is True
+    assert res.trip.kind == "stripped-artifact-path"
+    assert res.stdout == ""
+
+
+def test_globs_do_not_reach_outside_the_sandbox(sandbox: ns.Sandbox):
+    """An absolute or `..` pattern is passed through literally, never enumerated."""
+    outside = ns.parse_pipeline("ls ../*")[0]
+    assert ns._expand_globs(outside, sandbox.path).argv == ("ls", "../*")
+    absolute = ns.parse_pipeline("ls /etc/*")[0]
+    assert ns._expand_globs(absolute, sandbox.path).argv == ("ls", "/etc/*")
+
+
+# ------------------------------ second-pass findings: provenance that is not forgeable
+
+
+def test_a_fabricated_marker_alone_does_not_confer_ownership(source_repo: Path, tmp_path: Path):
+    """The registry leg: a marker is a file INSIDE the tree being deleted, so it is a claim.
+
+    Copying one is already refused because it names another directory. This is the harder
+    case - a marker fabricated to name its own directory, which is well-formed by every
+    check the marker itself can carry.
+    """
+    forged = tmp_path / "forged"
+    (forged / ns.SANDBOX_META_DIR).mkdir(parents=True)
+    (forged / ns.MARKER_RELPATH).write_text(
+        json.dumps(
+            {
+                "marker": ns.MARKER_KIND,
+                "nonce": "0" * 32,
+                "sandbox": str(forged.resolve()),
+                "sandbox_root": str(tmp_path.resolve()),
+            }
+        ),
+        encoding="utf-8",
+    )
+    (forged / "work.txt").write_text("still not ours", encoding="utf-8")
+    assert ns.read_marker(forged) is not None, "the marker itself is well-formed - that is the point"
+
+    with pytest.raises(ns.TeardownRefused, match="not in the sandbox registry"):
+        ns.teardown(forged, sandbox_root=tmp_path)
+    assert (forged / "work.txt").exists()
+
+
+def test_the_registry_tracks_provision_and_teardown(source_repo: Path, tmp_path: Path):
+    box = ns.provision(source_repo, tmp_path / "tracked", allow_shallow=True, sandbox_root=tmp_path)
+    registry = ns.read_registry(tmp_path)
+    assert registry[str(box.path.resolve())] == box.nonce
+
+    assert ns.teardown(box) is True
+    assert str(box.path.resolve()) not in ns.read_registry(tmp_path)
+
+
+def test_a_registry_entry_that_disagrees_with_the_marker_refuses(source_repo: Path, tmp_path: Path):
+    box = ns.provision(source_repo, tmp_path / "tampered", allow_shallow=True, sandbox_root=tmp_path)
+    ns.register_sandbox(tmp_path, box.path, "f" * 32)
+    with pytest.raises(ns.TeardownRefused, match="disagrees with the registry"):
+        ns.teardown(box.path, sandbox_root=tmp_path)
+    assert box.path.exists()
+
+    ns.register_sandbox(tmp_path, box.path, box.nonce)
+    assert ns.teardown(box) is True
+
+
+def test_metadata_is_never_written_through_a_symlink(tmp_path: Path):
+    """`mkdir(exist_ok=True)` and `open(..., 'x')` both follow parent symlinks."""
+    box = tmp_path / "box"
+    (box / ".git").mkdir(parents=True)
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    try:
+        (box / ".git" / "nopack").symlink_to(elsewhere, target_is_directory=True)
+    except (OSError, NotImplementedError) as exc:  # Windows without developer mode
+        pytest.skip(f"symlink creation unavailable: {exc}")
+
+    with pytest.raises(RuntimeError, match="symlink"):
+        ns.write_marker(box, "a" * 32, tmp_path)
+    assert not (elsewhere / "marker.json").exists()
+
+
+def test_a_vanished_destination_is_reported_as_an_anomaly_not_a_clean_abort(
+    source_repo: Path, tmp_path: Path, monkeypatch, capsys
+):
+    """`teardown` is idempotent, so a moved clone would otherwise read as tidy success."""
+    dest = tmp_path / "moved-away"
+
+    def move_it_then_fail(*_args, **_kwargs):
+        shutil.move(str(dest), str(tmp_path / "somewhere-else"))
+        raise RuntimeError("detonated after the clone was moved")
+
+    monkeypatch.setattr(ns, "scan_tree", move_it_then_fail)
+    with pytest.raises(RuntimeError, match="detonated"):
+        ns.provision(source_repo, dest, allow_shallow=True, sandbox_root=tmp_path)
+
+    assert "ANOMALY" in capsys.readouterr().err
+    assert (tmp_path / "somewhere-else").exists(), "the unstripped clone really did survive"
+
+
 def test_layer_a_separates_a_bare_listing_from_a_mutation():
     """Regression: `git branch -a` is a listing and was being refused as a write."""
     assert ns.screen_command("git branch -a") is None

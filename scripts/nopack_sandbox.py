@@ -33,6 +33,17 @@ NOT guaranteed - stated here because a guard whose limits are unstated is a wors
     existence signal cannot be removed.
   * Layer A/B do not stop a model from reasoning correctly about the repo. They are not a
     difficulty knob; every item stays answerable from the substrate the pack intends.
+  * The command allowlist screens argv0 and a table of known exec/write flags. It is not a
+    proof that no allowlisted tool has another write mode (`sed`'s `w` command is one it
+    cannot see). What contains that is the sandbox being a disposable clone: a write inside
+    it survives nothing, and every byte leaving it goes through Layer B.
+  * `teardown`'s provenance is checked immediately before deletion, but a check and an
+    `rmtree` are two syscalls. Closing that gap needs no-follow traversal from a directory
+    descriptor, which Windows does not offer portably, so what is closed is the failure on
+    record - a wrong path sitting there statically - not a live attacker winning a race.
+  * The marker and the root registry are both files. Someone who can write to the sandbox
+    root can forge both. They raise forgery from "create one file" to "tamper with this
+    tool's own records", which is the honest size of the claim.
 
 USAGE (the seam the candidate transport calls)
 ----------------------------------------------
@@ -86,7 +97,7 @@ import sys
 import tempfile
 import time
 from dataclasses import dataclass, field
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 # --------------------------------------------------------------------------------------
 # Canaries - the content that must never reach a candidate model
@@ -231,13 +242,43 @@ REFUSAL_EXIT = 126
 # comparable). Secondary to the contamination guard, and deliberately modest.
 # --------------------------------------------------------------------------------------
 
+# Removing `shell=True` does not by itself make the surface read-only: an allowlisted
+# program can be an execution engine in its own right. `python3 -c ...`, `awk 'BEGIN{system(
+# "sh")}'` and `xargs sh` each spawn whatever they are told to, and no argv0 check sees it.
+# So the general-purpose interpreters are OUT of the allowlist entirely - there is no
+# read-only mode of "run this program" to carve out - and the survivors that have a write
+# or exec MODE are constrained by flag below.
 ALLOWED_ARGV0: frozenset[str] = frozenset(
     {
-        "awk", "basename", "cat", "comm", "cut", "diff", "dirname", "echo", "file", "find",
-        "git", "grep", "head", "ls", "md5sum", "nl", "printf", "python", "python3", "rg",
-        "sed", "sha256sum", "sort", "stat", "tail", "test", "tr", "uniq", "wc", "xargs",
+        "basename", "cat", "comm", "cut", "diff", "dirname", "echo", "file", "find",
+        "git", "grep", "head", "ls", "md5sum", "nl", "printf", "rg",
+        "sed", "sha256sum", "sort", "stat", "tail", "test", "tr", "uniq", "wc",
     }
 )
+
+# Flags that turn an allowlisted reader into a writer or a launcher. Matched against the
+# whole argument and against its `=`-prefix, so `--exec=rm` is caught as well as `-exec`.
+#
+# HONEST LIMIT, stated because an overstated guard is worse than a modest one: this is a
+# table of the KNOWN execution and write modes of these tools, not a proof that no other
+# exists. The load-bearing containment is elsewhere - the sandbox is a disposable clone and
+# a write INSIDE it harms nothing, Layer B screens every byte on the way out, and teardown
+# refuses anything it cannot prove it made. This table closes the paths by which a
+# read-only surface would otherwise reach OUTSIDE the sandbox.
+_FORBIDDEN_ARGS: dict[str, frozenset[str]] = {
+    # `find` is kept because it is a genuine read tool; its ACTION primaries are what run
+    # or delete things.
+    "find": frozenset(
+        {"-exec", "-execdir", "-ok", "-okdir", "-delete", "-fprintf", "-fls", "-fprint",
+         "-fprint0"}
+    ),
+    # In-place edit is the write mode. sed's `w` command and GNU `e` command are NOT
+    # detectable by flag - see the limit above; they write and run relative to the
+    # sandbox, which is the disposable clone.
+    "sed": frozenset({"-i", "--in-place"}),
+    # ripgrep can run a preprocessor per file, which is `-exec` by another name.
+    "rg": frozenset({"--pre", "--hostname-bin", "--search-zip", "-z"}),
+}
 
 _GIT_WRITE_SUBCOMMANDS: frozenset[str] = frozenset(
     {
@@ -427,6 +468,18 @@ _NONCE_RE = re.compile(r"\A[0-9a-f]{32}\Z")
 
 ENV_SANDBOX_ROOT = "NOPACK_SANDBOX_ROOT"
 
+# The registry lives in the ROOT, beside the sandboxes rather than inside one, and teardown
+# never deletes it. It is what makes the marker PROOF rather than a claim: a marker is a
+# file inside the tree being deleted, so anything that can write there can fabricate one.
+# Requiring the registry to agree means a forger has to reach outside the tree it is trying
+# to get deleted, into a file this tool owns.
+#
+# Its honest limit: a writer with access to the whole root can still edit both. The
+# registry raises the bar from "drop one file in" to "tamper with the tool's own records",
+# and the boundary that actually stops the recorded failure - a typo, a stale path - is
+# containment plus this pair.
+REGISTRY_NAME = ".nopack-registry.json"
+
 
 class TeardownRefused(RuntimeError):
     """`teardown` was handed a path it could not prove it provisioned."""
@@ -483,10 +536,30 @@ def read_marker(sandbox_path: Path) -> dict[str, object] | None:
     return data
 
 
+def _meta_dir(sandbox_path: Path) -> Path:
+    """The sandbox's metadata directory, created with no symlinked component.
+
+    `mkdir(exist_ok=True)` and `open(..., "x")` both follow parent symlinks, so a
+    substituted `.git/nopack` would silently redirect the marker and the manifest outside
+    the sandbox. Each component is created and then checked, and the finished directory is
+    re-resolved and required to still be inside the sandbox.
+    """
+    sandbox_path = Path(sandbox_path)
+    current = sandbox_path
+    for part in PurePosixPath(SANDBOX_META_DIR).parts:
+        current = current / part
+        if current.is_symlink():
+            raise RuntimeError(f"refusing to write metadata through a symlink: {current}")
+        current.mkdir(exist_ok=True)
+    resolved_root = _resolve(sandbox_path)
+    if not _is_contained(_resolve(current), resolved_root):
+        raise RuntimeError(f"sandbox metadata directory escapes the sandbox: {current}")
+    return current
+
+
 def write_marker(sandbox_path: Path, nonce: str, sandbox_root: Path) -> Path:
     """Write the provisioning marker. Exclusive creation - never clobbers."""
-    marker_file = Path(sandbox_path) / MARKER_RELPATH
-    marker_file.parent.mkdir(parents=True, exist_ok=True)
+    marker_file = _meta_dir(sandbox_path) / Path(MARKER_RELPATH).name
     payload = {
         "marker": MARKER_KIND,
         "nonce": nonce,
@@ -496,6 +569,44 @@ def write_marker(sandbox_path: Path, nonce: str, sandbox_root: Path) -> Path:
     with open(marker_file, "x", encoding="utf-8", newline="\n") as handle:
         json.dump(payload, handle, indent=2)
     return marker_file
+
+
+def _registry_path(sandbox_root: Path) -> Path:
+    return Path(sandbox_root) / REGISTRY_NAME
+
+
+def read_registry(sandbox_root: Path) -> dict[str, str]:
+    """Map resolved-sandbox-path -> nonce. A missing or corrupt registry reads as empty."""
+    path = _registry_path(sandbox_root)
+    if not path.is_file() or path.is_symlink():
+        return {}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        return {}
+    if not isinstance(data, dict):
+        return {}
+    return {str(k): str(v) for k, v in data.items() if isinstance(v, str)}
+
+
+def _write_registry(sandbox_root: Path, entries: dict[str, str]) -> None:
+    path = _registry_path(sandbox_root)
+    if path.is_symlink():
+        raise RuntimeError(f"refusing to write the registry through a symlink: {path}")
+    Path(sandbox_root).mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(entries, indent=2, sort_keys=True), encoding="utf-8", newline="\n")
+
+
+def register_sandbox(sandbox_root: Path, sandbox_path: Path, nonce: str) -> None:
+    entries = read_registry(sandbox_root)
+    entries[str(_resolve(sandbox_path))] = nonce
+    _write_registry(sandbox_root, entries)
+
+
+def unregister_sandbox(sandbox_root: Path, sandbox_path: Path) -> None:
+    entries = read_registry(sandbox_root)
+    if entries.pop(str(_resolve(sandbox_path)), None) is not None:
+        _write_registry(sandbox_root, entries)
 
 
 def _force_writable(func, path, _exc) -> None:
@@ -666,6 +777,7 @@ def provision(
     nonce = secrets.token_hex(_NONCE_BYTES)
     try:
         write_marker(dest, nonce, root)
+        register_sandbox(root, dest, nonce)
         return _strip_and_seal(source, dest, head, root, nonce, class_a_globs)
     except BaseException:
         _abort_provision(resolved_dest, root, nonce)
@@ -681,7 +793,21 @@ def _abort_provision(resolved_dest: Path, root: Path, nonce: str) -> None:
     no marker to check - and it is safe there for reasons this function can actually
     verify: `provision` established that `resolved_dest` did not exist before this call and
     that it is a strict descendant of `root`, so the tree can only be the one we just made.
+
+    A destination that has VANISHED is an anomaly here, not a success: the clone WAS
+    created, so if its path is now empty something moved it, and the unstripped tree is
+    still on disk under a name this function does not know. Saying so is the whole job of a
+    no-leftovers organ; `teardown`'s own idempotent "already absent, nothing to do" would
+    have reported that as a clean abort.
     """
+    if not resolved_dest.exists():
+        print(
+            f"nopack_sandbox: ANOMALY - {resolved_dest} disappeared during an aborted "
+            f"provision; the clone it held may survive elsewhere and is UNSTRIPPED",
+            file=sys.stderr,
+        )
+        unregister_sandbox(root, resolved_dest)
+        return
     try:
         teardown(resolved_dest, sandbox_root=root, expected_nonce=nonce)
         return
@@ -692,6 +818,7 @@ def _abort_provision(resolved_dest: Path, root: Path, nonce: str) -> None:
             _rmtree_force(resolved_dest)
         except OSError as exc:  # never silent: an unremoved clone is the leftover
             print(f"nopack_sandbox: FAILED to remove {resolved_dest}: {exc}", file=sys.stderr)
+    unregister_sandbox(root, resolved_dest)
     if resolved_dest.exists():
         print(
             f"nopack_sandbox: LEFTOVER - {resolved_dest} survived an aborted provision "
@@ -834,8 +961,7 @@ def write_manifest(sandbox_path: Path, manifest: dict[str, object]) -> Path:
     already be using. Exclusively, because "inside" is an argument about what SHOULD be
     there and `x` mode is the assertion that checks it.
     """
-    target = Path(sandbox_path) / MANIFEST_RELPATH
-    target.parent.mkdir(parents=True, exist_ok=True)
+    target = _meta_dir(sandbox_path) / Path(MANIFEST_RELPATH).name
     with open(target, "x", encoding="utf-8", newline="\n") as handle:
         json.dump(manifest, handle, indent=2)
     return target
@@ -886,13 +1012,43 @@ def teardown(
             f"refused: {resolved} carries no valid provisioning marker ({MARKER_RELPATH}); "
             f"this tool did not provision it"
         )
+    registered = read_registry(root).get(str(resolved))
+    if registered is None:
+        raise TeardownRefused(
+            f"refused: {resolved} is not in the sandbox registry ({REGISTRY_NAME}); a marker "
+            f"inside a tree is a claim, not a provenance"
+        )
+    if registered != marker.get("nonce"):
+        raise TeardownRefused(f"refused: {resolved} disagrees with the registry (nonce mismatch)")
     if expected_nonce is not None and marker.get("nonce") != expected_nonce:
         raise TeardownRefused(
             f"refused: {resolved} was provisioned by a different run (nonce mismatch)"
         )
 
+    # Re-verify immediately before deleting, and pin the directory's identity across the
+    # gap. HONEST LIMIT, because this narrows the check-to-delete race rather than closing
+    # it: closing it needs no-follow traversal from a directory descriptor, which Windows -
+    # the platform this runs on - does not offer portably. What remains is a race an
+    # attacker with write access to the root must win against microseconds; what is closed
+    # is the failure actually on record, which is a wrong path sitting there statically.
+    identity = _dir_identity(resolved)
+    if read_marker(resolved) != marker or _dir_identity(resolved) != identity:
+        raise TeardownRefused(f"refused: {resolved} changed underneath the provenance check")
+
     _rmtree_force(resolved)
-    return not resolved.exists()
+    removed = not resolved.exists()
+    if removed:
+        unregister_sandbox(root, resolved)
+    return removed
+
+
+def _dir_identity(path: Path) -> tuple[int, int] | None:
+    """(st_dev, st_ino) when the platform supplies them, else None. Best-effort by design."""
+    try:
+        info = path.stat()
+    except OSError:
+        return None
+    return (info.st_dev, info.st_ino) if info.st_ino else None
 
 
 # --------------------------------------------------------------------------------------
@@ -1112,20 +1268,55 @@ def screen_pipeline(
     except UnsupportedShell as exc:
         return Trip("A", exc.kind, exc.detail), []
 
+    trip = screen_stages(stages)
+    return (trip, []) if trip is not None else (None, stages)
+
+
+def screen_stages(stages: list[Stage]) -> Trip | None:
+    """The structural policy. Runs over parsed argv AND again over expanded argv.
+
+    Running it twice is the point. Expansion changes argv - that is what expansion IS - so
+    validating only the pre-expansion form leaves the executed command unvalidated, which
+    is the same class of gap as screening a string and then handing it to a shell.
+    """
     for stage in stages:
-        argv0 = stage.argv[0].rsplit("/", 1)[-1].rsplit("\\", 1)[-1]
-        if argv0 in _SHELL_KEYWORDS:
-            return (
-                Trip("A", "shell-construct", f"'{argv0}' is a shell construct, not a command"),
-                [],
-            )
-        if argv0 not in ALLOWED_ARGV0:
-            return Trip("A", "argv0-not-allowed", f"'{argv0}' is not in the read-only allowlist"), []
-        if argv0 == "git":
+        argv0 = stage.argv[0]
+        # A glob may not choose the program or the subcommand. `git *` expanding to `git
+        # commit`, or `*/python3` selecting an unscreened binary, is exactly the
+        # screened-one-thing-ran-another defect in a new costume.
+        if stage.globbable and stage.globbable[0]:
+            return Trip("A", "glob-in-command-position", "the command name may not be a glob")
+
+        name = argv0.rsplit("/", 1)[-1].rsplit("\\", 1)[-1]
+        if name in _SHELL_KEYWORDS:
+            return Trip("A", "shell-construct", f"'{name}' is a shell construct, not a command")
+        if name not in ALLOWED_ARGV0:
+            return Trip("A", "argv0-not-allowed", f"'{name}' is not in the read-only allowlist")
+        if argv0 != name:
+            # `bin/cat` resolves by path, so allowlisting the basename would let any
+            # binary named `cat` anywhere on disk through.
+            return Trip("A", "argv0-not-allowed", "the command must be a bare name, not a path")
+
+        forbidden = _FORBIDDEN_ARGS.get(name, frozenset())
+        for token in stage.argv[1:]:
+            head = token.split("=", 1)[0]
+            if token in forbidden or head in forbidden:
+                return Trip("A", "forbidden-argument", f"'{token}' gives {name} an exec or write mode")
+
+        if name == "git":
             # Real argv now, not a regex over a segment: `git commit` is refused because
             # `commit` IS the first non-flag argument, not because a pattern happened to
             # match it somewhere in the string.
-            tokens = [t for t in stage.argv[1:] if not t.startswith("-")]
+            pairs = [
+                (token, globbable)
+                for token, globbable in zip(stage.argv[1:], stage.globbable[1:])
+                if not token.startswith("-")
+            ]
+            if pairs and pairs[0][1]:
+                # A glob in git's SUBCOMMAND slot could expand to `commit`. Elsewhere in a
+                # git command line a glob is an ordinary pathspec and stays allowed.
+                return Trip("A", "glob-in-command-position", "the git subcommand may not be a glob")
+            tokens = [token for token, _globbable in pairs]
             if tokens and tokens[0] in _GIT_WRITE_SUBCOMMANDS:
                 # `git branch -a`, `git tag`, `git config --list` and `git stash` with no
                 # operand are LISTING commands. Refusing them was a measured false
@@ -1133,8 +1324,8 @@ def screen_pipeline(
                 # always takes one) is what makes them writes.
                 if tokens[0] in _GIT_LISTING_WHEN_BARE and len(tokens) == 1:
                     continue
-                return Trip("A", "git-write", f"git {tokens[0]} mutates state"), []
-    return None, stages
+                return Trip("A", "git-write", f"git {tokens[0]} mutates state")
+    return None
 
 
 def screen_command(command: str, denied_names: set[str] | None = None) -> Trip | None:
@@ -1142,20 +1333,32 @@ def screen_command(command: str, denied_names: set[str] | None = None) -> Trip |
     return screen_pipeline(command, denied_names)[0]
 
 
-def _expand_globs(stage: Stage, cwd: Path) -> list[str]:
-    """Expand unquoted globs against the sandbox. No shell, so this is ours to do.
+def _expand_globs(stage: Stage, cwd: Path) -> Stage:
+    """Expand unquoted globs against the sandbox, returning a fully-literal Stage.
 
     Unmatched patterns are passed through literally, which is bash's default (nullglob off)
-    and is what keeps `git show <sha> -- 'docs/**'` working when nothing matches.
+    and is what keeps `git show <sha> -- 'docs/**'` working when nothing matches. The result
+    is re-screened by the caller, so expansion cannot smuggle anything past the policy.
     """
     expanded: list[str] = []
     for word, globbable in zip(stage.argv, stage.globbable):
         if not globbable:
             expanded.append(word)
             continue
+        # A pattern may only reach INTO the sandbox. An absolute or `..`-bearing pattern
+        # would otherwise enumerate the host filesystem from a command that named nothing
+        # outside the tree, which is a disclosure the caller never asked to authorise.
+        if Path(word).is_absolute() or ".." in Path(word).parts:
+            expanded.append(word)
+            continue
         matches = sorted(glob.glob(word, root_dir=str(cwd)))
         expanded.extend(matches if matches else [word])
-    return expanded
+    return Stage(
+        tuple(expanded),
+        (False,) * len(expanded),
+        stage.drop_stdout,
+        stage.drop_stderr,
+    )
 
 
 # --------------------------------------------------------------------------------------
@@ -1224,10 +1427,13 @@ def run_guarded(
     if trip is not None:
         return GuardedResult(command, REFUSAL_EXIT, "", REFUSAL_TEXT, refused=True, trip=trip)
 
-    # Globs expand to real paths, so the expansion is screened too: a pattern that names
-    # nothing forbidden can still MATCH something forbidden.
+    # Expansion changes argv, so the WHOLE policy runs again over the result - the content
+    # check (a pattern that names nothing forbidden can still MATCH something forbidden)
+    # and the structural one (a glob must not have chosen the program or the subcommand).
     expanded = [_expand_globs(stage, cwd) for stage in stages]
-    trip = _screen_words(" ".join(word for argv in expanded for word in argv), names)
+    trip = _screen_words(" ".join(word for stage in expanded for word in stage.argv), names)
+    if trip is None:
+        trip = screen_stages(expanded)
     if trip is not None:
         return GuardedResult(command, REFUSAL_EXIT, "", REFUSAL_TEXT, refused=True, trip=trip)
 
@@ -1240,7 +1446,8 @@ def run_guarded(
     stderr_parts: list[str] = []
     returncode = 0
     remaining = float(timeout)
-    for stage, argv in zip(stages, expanded):
+    for stage in expanded:
+        argv = list(stage.argv)
         started = time.monotonic()
         try:
             proc = subprocess.run(
