@@ -10,4 +10,4 @@
 - ADR-111 (Accepted, 2026-08-09): The finding pipeline — every audit finding is triaged into exactly one of four outcomes
 - ADR-112 (Accepted, 2026-08-12): Two-tier adoption bar — Tier L evaluates, Tier S tries and keeps or deletes
 - ADR-113 (Accepted, 2026-08-19): The L0–L5 maturity ladder is ratified vocabulary — and it is one of three "L" namespaces, not the only one
-- ADR-114 (**Proposed**, 2026-08-22): May a root `README.md` be recreated — and what does substituting a canonical living-doc filename actually cost?
+- ADR-114 (**PARKED**, 2026-08-22): May a root `README.md` be recreated — and what does substituting a canonical living-doc filename actually cost?

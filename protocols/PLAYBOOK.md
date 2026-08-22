@@ -85,6 +85,7 @@ reconciled_with: handoff-process@6.2.0
   - [Tree orchestration — architect-root + epic-chat lanes (ADR-97)](#tree-orchestration--architect-root--epic-chat-lanes-adr-97)
   - [The batch protocol — ONE plan → N lanes → ONE integrator (ADR-110)](#the-batch-protocol--one-plan--n-lanes--one-integrator-adr-110)
   - [The lane lifecycle — five legs, and where each one is ruled](#the-lane-lifecycle--five-legs-and-where-each-one-is-ruled)
+  - [The wave close — every dispatched wave ends D0–D5, and the funnel table is mandatory](#the-wave-close--every-dispatched-wave-ends-d0d5-and-the-funnel-table-is-mandatory)
   - [Dispatch visibility — Agent View shows DISPATCHED sessions only (STANDING_RULINGS B7)](#dispatch-visibility--agent-view-shows-dispatched-sessions-only-standing_rulings-b7)
   - [Dispatch prompts and the contract of record — two locations, one of them in the tree](#dispatch-prompts-and-the-contract-of-record--two-locations-one-of-them-in-the-tree)
   - [The dispatch surface is `dispatch <file>` — the contract file is the source ([#509] v2)](#the-dispatch-surface-is-dispatch-file--the-contract-file-is-the-source-509-v2)
@@ -2059,6 +2060,72 @@ ATOMIC carries the same posture, its mechanical backstop being a proposal rather
 no organ reads a commit body for the bypass declaration: `SKIP=` leaves no artifact beyond the
 message an author chose to write, so an undeclared bypass and a declared one are
 indistinguishable to the tree.
+
+### The wave close — every dispatched wave ends D0–D5, and the funnel table is mandatory
+<!-- scope: meta -->
+
+The batch protocol above governs how a wave is *dispatched* and how its lanes *merge*. It says
+nothing about what happens to the **findings** those lanes produce, and that gap is where waves
+have historically leaked: a lane records a finding correctly, the merge queue runs, the branches
+are torn down, and the finding goes unclassified. **ADR-111 §4 and the decision tree already
+exist** — the register's **P-2** anti-orphan rule and **Q6** contract-as-file sit beside it — but
+nothing made *running* the tree a condition of closing a wave. This subsection does: it is the
+mechanization of a tree that was already ruled, not a new tree.
+
+**Every dispatched wave ends with the same six steps, in this order.**
+
+| Step | What | Why the order is load-bearing |
+|---|---|---|
+| **D0** | **Enumerate, don't trust.** `git fetch --prune`, then find each dispatched lane's branch *by title*, across `claude/*`, `docs/*` and `feat/*`. | A missing lane is **reported, not assumed failed**. Both prefixes occur; a lane that produced nothing is a fact about the dispatch, and inferring failure from absence throws away the only evidence there is. |
+| **D1** | **Read before merging.** Per lane: the artifact and its terra tally. **Unfixed Critical/High ⇒ that lane is HELD.** Confirm the environment caveat was declared wherever gates were hand-run. | Reading after merging means discovering a Critical on `main`. An undeclared hand-run is a *finding*, not a blocker — it is recorded, and the wave continues. |
+| **D2** | **Merge queue, serial, operator GO each.** `--no-ff`. **Generated-file conflicts resolve by regeneration rather than by hand.** Then: relocations, ONE index regen, JOURNAL anchors per arc, the suite, WARN ownership, teardown push-before-delete. | Hand-resolving a generated file produces a result no generator would emit, and the next regen silently reverts it. Teardown follows the merge of the content; it does not precede it. |
+| **D3** | **Closure sweep on the wave's own results**, before any filing. Record **`banked_D`**. | Closures before filing is the R2 arithmetic: births are capped by demonstrated close capacity, so the cap has to be *known* before it is spent. |
+| **D4** | **THE FUNNEL TABLE.** Every finding, recommendation and residual from every artifact, classified into **exactly one** lawful next step, **each line citing its clause**. Then **PAUSE** — the architect returns one batched ruling over the whole table. | One batched ruling instead of N interruptions is the point. A table that classifies nothing is not a wave close. |
+| **D5** | **Execute the ruling** — mechanical fixes, ADR drafts as PROPOSED, intakes filed, rejections recorded. **Births ≤ `banked_D`**; the remainder is a **named queue**, not a silent drop. | An unnamed remainder is indistinguishable from work that was forgotten. |
+
+**The five classifications, and the clause each answers to** (ADR-111 §1's four outcomes, plus the
+executed case):
+
+- **MECHANICAL** — §1(b) DISCHARGED. The fix is judgment-free, so the integrator may execute it in
+  the session. **List these first**, and a discharge is only a discharge **with a locator that
+  resolves** — "we already do that" without one is not a discharge.
+- **ADR** — §1(c) CANDIDATE where ADR-98 §3's fork test is met (a reasonable person could choose
+  otherwise **and** reversal is costly). Draft it **PROPOSED with the Decision blank**, or attach
+  it to an existing draft. A lane prices a decision; it does not make one.
+- **INTAKE** — §1(c) CANDIDATE otherwise. **A finding may not become a backlog row directly**
+  (§2): the only path runs finding → intake → ratification. Its carrier row waits for `ACCEPTED`
+  plus the ledger, per **P-2**.
+- **REJECT** — §1(d), **with the reason recorded where the finding lives**. A rejection is a
+  recorded decision rather than a silent drop, and it is **not relitigated**.
+- **COVERED** — §1(a) OWNED. Cite the id and **add nothing**.
+
+**Four checks that make the table honest rather than decorative:**
+
+1. **A COVERED cite resolves to a LIVE row, or it is not COVERED.** Check it. A sibling arc closing a row *while the
+   lanes are in flight* is not hypothetical — it happened in the 2026-08-22 cloud wave, where four
+   correctly-carried findings all named owner rows closed that same day, and classifying them
+   COVERED would have pointed every one at a closed row. **That is how a correctly-filed finding
+   dies quietly.**
+2. **A lane's own recommendation is not automatically lawful.** Lanes ask for backlog rows because
+   a row is the shape they think in; §2 forbids it. Re-route it through intake and carry the
+   lane's specified shape verbatim, so ratification loses nothing by the detour.
+3. **A finding may be refuted, and the refutation is recorded too** — including which half. A
+   reviewer's *reason* can be wrong while the underlying defect is real; charging it to the wrong
+   owner blames a lane that only mirrored existing state **and** leaves the real defect owned by
+   nobody.
+4. **A residual the lane names as OWED is discharged if this host can discharge it.** A second-
+   reader pass a cloud container could not run is not a residual on a host that carries the
+   wrapper — it is a step. Running it pre-merge is what keeps a Critical off `main`.
+
+**The funnel table is a mandatory artifact section for every future integrator.** A wave whose
+artifacts carry findings and whose close carries no table is **unfinished**, in exactly the sense
+ADR-111 means when it says an audit whose findings are untriaged is an incomplete deliverable.
+
+**One integrator at a time is enforced by mechanism (a lock or a branch guard), not by
+convention** — its build rides the queued Q2-enforcement item. This line is born of the incident
+that produced this subsection: the discipline held because one operator was watching, and a
+discipline that holds only while someone is watching is not a mechanism. Until that item lands,
+the serial-integrator rule in D2 is prose, and it should be read as prose.
 
 ### Dispatch visibility — Agent View shows DISPATCHED sessions only (STANDING_RULINGS B7)
 <!-- scope: meta -->

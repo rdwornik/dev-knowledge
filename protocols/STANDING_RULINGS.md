@@ -1909,6 +1909,63 @@ lives in a packet is exactly the orphan class P-2 exists to close.
   **Trigger:** `[#539]`'s Ch8 codification lane landing, or **2026-09-19**, whichever comes first —
   at which point the pointer is written or the deferral is re-dated with a reason.
 
+## R. The 2026-08-22 cloud-wave close ruling (batched, over the funnel table)
+
+Source of record: `docs/audits/2026-08-22-technical-cloud-wave-close-funnel.md`, whose
+amendment A1 carries the ruling verbatim and its per-line dispositions. Recorded here because
+two of its lines reinterpret ratified doctrine, and a reinterpretation that lives only in an
+audit is the drift this register exists to end.
+
+### R-1 · `AGENTS.md` is ADMITTED, on the substance reading of ADR-53
+
+> ADR-53 Decision 2 forbids **two files that both carry content**, not the filename
+> `AGENTS.md`. A root `AGENTS.md` carrying the portable layer, paired with a `CLAUDE.md` that
+> keeps the Claude-runtime-specific remainder and points at it, satisfies the substance ADR-53
+> protects — one place where doctrine lives — and is admitted on that reading.
+
+- **Why it was ruled out loud rather than assumed.** The intake's own open question framed the
+  two readings and declined to pick; a *silent* reinterpretation of a ruling is precisely the
+  drift ADR-53 was written to end, so the reading is recorded as a ruling rather than inferred
+  by whoever writes the first file.
+- **The size objection is unavailable, and that is a measurement rather than an opinion.**
+  `docs/audits/2026-08-22-technical-intake-r1-decision-packet.md` measures the proposed shape at
+  **15,439 B = 47.1%** of the Codex 32 KiB `project_doc_max_bytes` cap, leaving 16.9 KiB of
+  headroom, so R2 §2.5's refusal conditional does not fire. A refusal, had one been ruled, would
+  have rested on doctrine alone.
+- **Bounds carried by the ruling:** `AGENTS.md` at ≤120 lines; portability rather than quality
+  per the recorded caveat; the `~/.codex` precedence collision resolved **by scope stated in the
+  file header** — the repo file governs in-repo work, the L0 reviewer pin governs the reviewer
+  role; and the guard expressed in **bytes**, since this corpus averages ~117 B/line and a line
+  ceiling does not bound what the cap measures.
+- **Not admitted:** `.gemini/settings.json`. It would be a new top-level directory that
+  `validate_hermetization.py` Rule A refuses absent an ADR-101 §1 amendment, and ADR-53 records
+  the active toolset as Claude Code + Codex. A third provider is a cost with no present consumer.
+- **Execution** is the bounded lane `[#577]`, which also owns the correction of `CLAUDE.md`
+  §10's now-false anti-pattern (*"AGENTS.md is retired"*) in the same commit as the file it
+  describes.
+- **Expiry:** open-ended — it is a reading of a ratified ADR, live for as long as ADR-53 is.
+
+### R-2 · Routing and the reviewer pin are L0 surfaces, outside repo-universalization scope
+
+> `~/.claude/ROUTING.md`, `~/.claude/bin/codex-review.ps1` and `~/.codex/config.toml` sit at L0.
+> Their absence from this repository is a placement, not a gap, and `ARCHITECTURE.md` Ch3 states
+> it so a reader cannot mistake one for the other.
+
+- **Option (b) of the two the finding offered** — declare the boundary — was selected over (a),
+  bringing a copy in-repo behind a drift gate. Option (a) stays available; taking it later
+  involves reversing #158 Decision B for a stated reason.
+- **The downstream consequence is recorded rather than left to surface at closure:** `[#82]` is
+  partly unverifiable from this repo by construction while the reviewer pin lives at L0.
+- **L0 here is the distribution layer** of the Ch2 organ map's Layer column, a different
+  namespace from the ADR-113 L0–L5 maturity ladder that shares the letter.
+
+```landed
+site: ARCHITECTURE.md | pattern: L0 surfaces, and they are OUT of this repo's
+site: CLAUDE.md | pattern: provider-registry-agreement
+```
+
+- **Expiry:** open-ended.
+
 ## Editing note (read before adding an entry)
 
 This file sits inside the silent-rule ratchet corpus (`protocols/*.md`; detector

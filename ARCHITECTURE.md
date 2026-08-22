@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-08-14
+last_reviewed: 2026-08-22
 reconciled_with: handoff-process@6.2.0
 status: active
 owner: Rob
@@ -14,7 +14,25 @@ owner: Rob
 > class this repo exists to kill). Fix the map when reality moves; fix the *source*
 > when the doctrine moves.
 >
-> Last updated: `2026-08-14` — **packet-close drift repair: the flagged ADR-112 gap is closed.**
+> Last updated: `2026-08-22` — **A3 ruled: Ch3 declares the L0 boundary, and the re-read closed two
+> drifts it found.** Ch3's automation axes gain the ruled declaration that the routing table
+> (`~/.claude/ROUTING.md`), the reviewer pin and the Codex config are **L0 surfaces, out of this
+> repo's universalization scope** — architect ruling 2026-08-22 over the cloud-wave funnel table
+> (line A3), taken because *silence is not a boundary*: an absent table reads as a gap rather than a
+> placement. The declaration names `[#82]`'s inherited limit explicitly so it is not discovered at
+> closure. **Drift found by this re-read and fixed here:** (1) the Governing ADRs list did not carry
+> **ADR-113** (Accepted 2026-08-19) — load-bearing for this very edit, since it is the ruling that
+> separates the three "L" namespaces the new paragraph depends on; (2) Ch3's model-routing
+> parenthetical named `Opus 4.8` as the inherited main-session model while sessions run Opus 5 — it
+> is now **repointed at the live session rather than restating a value**, the same fix this file
+> applied to its counts in the 2026-08-10 pass, because restating a volatile value is what put it on
+> the wrong side of its own stamp. **Drift found and NOT fixed:** the Governing ADRs tail is out of
+> numeric order (110, 111, 109, 112, 113) — cosmetic, left rather than reflowed to keep this diff
+> reviewable. **Stamp semantics, stated:** `last_reviewed` moves because this pass re-read the file
+> **end-to-end from disk, all six chapters plus Governing ADRs**, and mechanically checked the ADR
+> roster against `.claude/generated/recent-adrs.md`. **Honest limit, unchanged from prior passes:**
+> it did not re-derive doctrinal correctness against the full text of every cited ADR. Prior:
+> `2026-08-14` — **packet-close drift repair: the flagged ADR-112 gap is closed.**
 > The Governing ADRs list gains its ADR-112 bullet (Two-tier adoption bar, Accepted 2026-08-12) —
 > exactly the gap the immediately-prior pass below flagged and explicitly left unfixed. Pure
 > drift-repair, not a fresh re-read: `last_reviewed` stays `2026-08-14` (already stamped by that
@@ -669,9 +687,34 @@ the scheduled fleet baseline is *deterministic* **and** *Tier 2*.
 
 **Model routing (t-shirt).** Pin every fan-out stage by size: **S = Haiku · M = Sonnet
 · L/judgment = Opus** (PLAYBOOK Appendix B; ADR-70). **Unpinned fan-out is a bug** — an unpinned
-subagent inherits the *main session model* (Opus 4.8), silently running the costliest
+subagent inherits the *main session model* (whatever the session is running — read it off
+the live session, not off this sentence; it read `Opus 4.8` while sessions ran Opus 5), silently running the costliest
 tier. **No `fallbackModel` on a pinned stage** — a silent swap breaks evidence
 comparability across runs (ADR-80 §5).
+
+**The routing table and the reviewer pin are L0 surfaces, and they are OUT of this repo's
+universalization scope (RULED, architect 2026-08-22).** The canonical model-routing table is
+`~/.claude/ROUTING.md`; the reviewer pin is `~/.claude/bin/codex-review.ps1`; the Codex config is
+`~/.codex/config.toml`. **None of the three is in this repository**, and that is a decision, not an
+oversight — PLAYBOOK Appendix B killed the resident routing copy deliberately (#158 Decision B) to
+prevent drift. This paragraph exists because *silence is not a boundary*: a reader who found the
+table absent could not tell a deliberate L0 placement from a gap, and a table-driven provider swap
+would then look blocked on a missing file rather than correctly out of scope. **L0 here is the
+distribution layer of Ch2's Layer column (global `~/.claude`, fleet-wide) — not a rung of the
+ADR-113 L0–L5 maturity ladder**, which is a different namespace on the same letter and is the
+confusion that ruling exists to end.
+
+**The consequence, stated rather than left to be discovered at closure:** anything requiring the
+reviewer pin to live *at its stated home in this repo* is unverifiable from here **by
+construction** — `[#82]` (per-repository agentic-review profiles) inherits exactly that limit, and
+it belongs in the row rather than surfacing as a surprise when the row is closed. The CLOUD-4 v2
+lane lived the finding rather than merely restating it: `/codex-review` could not run in its
+container because all three surfaces are L0, outside the clone.
+
+→ The alternative that was NOT taken: bringing a copy in-repo behind a regen-and-diff drift gate
+(the mechanism exists here seven times over). It remains available if the boundary is ever
+revisited; revisiting requires reversing #158 Decision B for a stated reason.
+(`docs/audits/2026-08-22-technical-cloud-wave-close-funnel.md` line A3; ADR-113 for the namespace.)
 
 **Spec-orchestration.** The native `Workflow` launcher is not enabled in cloud
 (re-probed 2026-06-05); a cloud Routine **falls back** to reading
@@ -1014,6 +1057,10 @@ live in the ADRs; git history retains; the ADR-77 guard stays armed, Ch2).
   consuming a gap-week slot. Tier S (skills/plugins/commands) is install → 30-minute sandbox try →
   KEEP or DELETE → one ledger line — no evaluation ceremony, **no births**, keeping trials out of
   the open-set BACKLOG arithmetic — Accepted 2026-08-12.
+- **ADR-113** — the **L0–L5 maturity ladder is ratified vocabulary**, and it is **one of three "L"
+  namespaces, not the only one**: the maturity rung, the ADR-28 architecture layer (L1/L2/L3), and
+  the distribution layer of Ch2's Layer column (L0 = global `~/.claude`) are distinct axes that
+  share a letter. Ch3's L0-boundary declaration turns on that distinction — Accepted 2026-08-19.
 
 ---
 

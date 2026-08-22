@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "d30be9f1fee5a2c324d8198c6473a13ef284f0872251e20d4668df6d5eefc991",
+  "generated_sha256": "012478603485f86a73c864849502805d40f0086e73b3c0b1bc2dda207327fbc3",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -824,6 +824,10 @@
       "file": "276-d2-per-consumer-waiver-honoring.md"
     },
     {
+      "task": 577,
+      "file": "577-adopt-agents-md-as-the-portable-instruction-layer.md"
+    },
+    {
       "prose": ""
     },
     {
@@ -964,10 +968,6 @@
       "task": 554
     },
     {
-      "task": 563,
-      "file": "563-backlog-md-as-a-read-only-view-layer-the-one-way-ex.md"
-    },
-    {
       "task": 568,
       "file": "568-provider-config-as-code-dev-knowledge-as-source-of-.md"
     },
@@ -1011,14 +1011,6 @@
     {
       "task": 491,
       "file": "491-gemini-scanning-lane-ruling-r-g-plus-an-acceptan.md"
-    },
-    {
-      "task": 488,
-      "file": "488-priority-axis-the-backlog-has-no-ranking-functio.md"
-    },
-    {
-      "task": 566,
-      "file": "566-constraint-contention-tiebreak-implement-the-accept.md"
     },
     {
       "prose": ""

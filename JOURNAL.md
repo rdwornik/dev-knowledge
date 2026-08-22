@@ -19,6 +19,91 @@
 
 ---
 
+### 2026-08-22 (h) - CC (Opus 5, cloud-wave integrator, branch `docs/d5-d6-ruling-execution-2026-08-22`): the batched ruling executes, and the decision tree stops being optional
+
+**Did:** D5 and D6 of the wave close, against the architect/operator batched ruling returned over
+the funnel table. Nine acts across five commits plus one out-of-band fix arc.
+
+**Result: the ruling is executed at every home it touches, and the tree it runs is now mandatory
+rather than available.** D6 is the point of the window - ADR-111 §4, P-2 and Q6 already ruled the
+decision tree, and nothing made *running* it a condition of closing a wave. `PLAYBOOK.md` Ch8 now
+carries "The wave close - every dispatched wave ends D0-D5, and the funnel table is mandatory",
+with the four honesty checks each born of something this window actually hit.
+
+**The out-of-band fix is the one that mattered most and it is worth stating plainly.** Ruling I3:
+*"a doc that steers the operator into deleting a LIVE sibling session's lock is live-harm"*. The
+lease-rejected branch of `single_flight.release` passed `owner=None`, so the refusal printed *"it
+carries no run_id"* about a live, tokenised lock it had never read - false, reading as "nobody owns
+this", which makes the `git push <remote> :<ref>` escape printed directly underneath look safe.
+Following it deletes the sibling's lock. **The fix qualified as MECHANICAL for a specific reason:**
+the sibling call site ~25 lines above in the same function already resolved the owner correctly, so
+the change is "make this branch do what its twin does", not a design decision. Mutation-checked.
+
+**A1 PARKED, and a park is recorded as a selection rather than a refusal.** ADR-114's Decision
+section - authored deliberately blank for exactly this moment - now carries it, the Status line
+moves under the ADR-94 exception, and the three priced options are RETAINED, because a parked
+decision that discards its inputs has to be re-priced from scratch when revisited.
+
+**A3 forced a genuine re-read, and the re-read paid for itself.** `ARCHITECTURE.md` is
+freshness-gated, so the one-paragraph L0-boundary declaration obliged an end-to-end re-read before
+`last_reviewed` could move. It found **ADR-113 missing from the Governing ADRs list - load-bearing
+for the very edit being made**, since ADR-113 is the ruling that separates the three "L" namespaces
+the new paragraph turns on. It also found Ch3 naming `Opus 4.8` as the inherited main-session model
+while sessions run Opus 5; that was fixed by **repointing at the live session rather than restating
+a new value**, the same fix this file applied to its counts on 2026-08-10.
+
+**Two traps this window walked into and out of, both worth the record.** (1) The next-free-id
+history scan returns **777** - a *synthetic* id inside `[#574]`'s own body, and `[#574]` exists
+precisely to warn that the scan is defeated by that surface. Real next id was 577. (2) The D6 draft
+raised the silent-rule count **440 -> 445** against a baseline of 441 that may be lowered or held
+but **not raised without an operator ruling** - which the batched ruling did not give. Five
+phrasings were rewritten declaratively (the register's own documented discipline) rather than
+asking for headroom. The rule is unchanged in force; only the grammar moved.
+
+**I5 was executed as the ruling worded it, not as the minimum.** *"Do not shave under the cap -
+merge overlapping entries."* So rather than condensing the oldest `CLAUDE.md` §12 bullets
+chronologically, the v2.60/v2.61/v2.62 arc - three entries that are **one continuous story** about
+§5 rule 4 and its §3 duplicate - was merged into a single bullet. 197/200 counted lines *with* the
+new roster row and the new v2.64 bullet both added: headroom 3, real. The `provider-registry-agreement`
+gate **arms green**, verified live rather than assumed.
+
+**A4 resolved after the ruling was written, and the distinction matters.** `cloud-1-562-admission-rerun`
+**returned** - guard built (940 LOC), tested (539 LOC), item set specified per R3 - but **leg 3, the
+actual A/B rerun, is BLOCKED**: no API keys, no CLIs, `api.x.ai` and the Gemini endpoint both 403
+from the agent proxy. The lane stopped at its contract's hard precondition P0 rather than
+improvising a one-sided run. **So A4's VOID trigger does NOT fire** - the lane did not come back
+absent, it came back with a measured, documented reason for having no scores. There is still no
+admission verdict to rule on, but the cause is diagnosed rather than mysterious.
+
+**Changes:** `docs/decisions/ADR-114*` + `README.md` (A1); `ARCHITECTURE.md` Ch3 + Governing ADRs +
+re-stamp (A3); `scripts/single_flight.py` + `tests/test_single_flight_races.py` (I3);
+`tasks/` + `BACKLOG.md` (closures, ledger 214 -> 211 -> 212); `docs/intake/2026-08-22-tech-document-
+dependency-graph-organ.md` + both intake generators (#40); `tasks/577-*` (birth 1 of 3);
+`.pre-commit-config.yaml` + `CLAUDE.md` §9/§12 + `ecosystem/{organ-index,doc-counts}.md` (I5);
+`protocols/PLAYBOOK.md` Ch8 + `protocols/STANDING_RULINGS.md` block R + the funnel artifact's
+amendment A1 (D6 + the ruling recorded at three homes).
+
+**Abandoned:** births 2 and 3 of the cap. Priority (2) - intake #40's carrier - is deliberately
+UNBORN: the ruling conditions it on ratification and P-2 binds only at `ACCEPTED`, so filing it now
+would invert the order the intake exists to respect. The named queue (I4, I6, I7/I8, I9, I10, the
+three remaining orphaned findings) is carried in the funnel artifact's amendment by name.
+
+**Honest residue, filed rather than smoothed:** `CLAUDE.md` §10's first anti-pattern still reads
+*"AGENTS.md is retired (ADR-53)"*, which ruling A2 made false doctrine the same day. It is left
+standing because `[#577]`'s Done-when explicitly owns that correction *"in the same commit"* as the
+`AGENTS.md` file itself - inverting it now would leave an anti-pattern pointing at a file that does
+not exist.
+
+**Next:** terra on the returned cloud-1 lane (this host carries the wrapper its container lacked),
+then a GO decision on merging it - the operator's GO enumerated four lanes and this is the fifth,
+arriving after the ruling.
+
+**Anchors:** `2af03f3b` (the D6 + rulings commit this entry names), `66a2786e` (I5), `9fd6a4e6`
+(the D5 filing), `5de708f1` (the closure sweep) and `9debc348` (A1/A3) - the commits this branch's
+merge introduces - plus `280e7f88`, the I3 out-of-band fix brought in by merge `e3f25716`.
+
+---
+
 ### 2026-08-22 (g) - CC (Opus 5, cloud-wave integrator, branch `docs/wave-close-owed-diffs-2026-08-22`): the funnel table lands, and the one suite RED is proved inherited rather than asserted to be
 
 **Did:** the second act of the wave close, after the full suite returned. Landed the two owed fenced
