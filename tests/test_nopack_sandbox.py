@@ -14,6 +14,7 @@ Two tests are deliberately coupled to real state and say so:
 from __future__ import annotations
 
 import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -97,7 +98,7 @@ def source_repo(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def sandbox(source_repo: Path, tmp_path: Path) -> ns.Sandbox:
-    box = ns.provision(source_repo, tmp_path / "sandbox", allow_shallow=True)
+    box = ns.provision(source_repo, tmp_path / "sandbox", allow_shallow=True, sandbox_root=tmp_path)
     yield box
     ns.teardown(box)
 
@@ -200,7 +201,7 @@ def test_provision_leaves_nothing_behind_when_its_postcondition_fails(
     monkeypatch.setattr(ns, "redact", lambda text, **_kw: (text, 1))
     dest = tmp_path / "sandbox-doomed"
     with pytest.raises(RuntimeError, match="postcondition FAILED"):
-        ns.provision(source_repo, dest, allow_shallow=True)
+        ns.provision(source_repo, dest, allow_shallow=True, sandbox_root=tmp_path)
     assert not dest.exists()
 
 
@@ -217,7 +218,7 @@ def test_spine_files_are_redacted_never_removed(source_repo: Path, tmp_path: Pat
     _run(
         source_repo, "-c", "user.name=t", "-c", "user.email=t@invalid", "commit", "--quiet", "-m", "dense"
     )
-    box = ns.provision(source_repo, tmp_path / "sandbox5", allow_shallow=True)
+    box = ns.provision(source_repo, tmp_path / "sandbox5", allow_shallow=True, sandbox_root=tmp_path)
     try:
         assert "BACKLOG.md" not in box.removed
         assert (box.path / "BACKLOG.md").exists()
@@ -242,7 +243,7 @@ def test_provision_escalates_a_dense_uncurated_file_to_removal(source_repo: Path
         "-m",
         "rogue",
     )
-    box = ns.provision(source_repo, tmp_path / "sandbox2", allow_shallow=True)
+    box = ns.provision(source_repo, tmp_path / "sandbox2", allow_shallow=True, sandbox_root=tmp_path)
     try:
         assert "docs/audits/9999-01-01-technical-unforeseen.md" in box.removed
         assert box.postcondition_clean is True
@@ -260,7 +261,7 @@ def test_structured_files_are_removed_never_line_redacted(source_repo: Path, tmp
     _run(
         source_repo, "-c", "user.name=t", "-c", "user.email=t@invalid", "commit", "--quiet", "-m", "json"
     )
-    box = ns.provision(source_repo, tmp_path / "sandbox6", allow_shallow=True)
+    box = ns.provision(source_repo, tmp_path / "sandbox6", allow_shallow=True, sandbox_root=tmp_path)
     try:
         assert "leaky.json" in box.removed
         assert (box.path / "clean.json").exists()
@@ -283,7 +284,7 @@ def test_reference_sweep_closes_a_dangling_pointer_to_a_stripped_artifact(
     _run(
         source_repo, "-c", "user.name=t", "-c", "user.email=t@invalid", "commit", "--quiet", "-m", "idx"
     )
-    box = ns.provision(source_repo, tmp_path / "sandbox7", allow_shallow=True)
+    box = ns.provision(source_repo, tmp_path / "sandbox7", allow_shallow=True, sandbox_root=tmp_path)
     try:
         index = (box.path / "docs/audits/README.md").read_text(encoding="utf-8")
         assert "c1-seeded-defect-pack" not in index
@@ -304,7 +305,7 @@ def test_non_prose_reference_residual_is_recorded_not_silently_passed(
     _run(
         source_repo, "-c", "user.name=t", "-c", "user.email=t@invalid", "commit", "--quiet", "-m", "mf"
     )
-    box = ns.provision(source_repo, tmp_path / "sandbox8", allow_shallow=True)
+    box = ns.provision(source_repo, tmp_path / "sandbox8", allow_shallow=True, sandbox_root=tmp_path)
     try:
         assert "manifest.json" in box.reference_residual
         assert box.postcondition_clean is True, "a reference is not answer-key content"
@@ -317,14 +318,14 @@ def test_non_prose_reference_residual_is_recorded_not_silently_passed(
 def test_provision_refuses_a_shallow_source(source_repo: Path, tmp_path: Path, monkeypatch):
     monkeypatch.setattr(ns, "is_shallow", lambda _repo: True)
     with pytest.raises(RuntimeError, match="shallow"):
-        ns.provision(source_repo, tmp_path / "sandbox3")
+        ns.provision(source_repo, tmp_path / "sandbox3", sandbox_root=tmp_path)
 
 
 def test_provision_refuses_an_existing_destination(source_repo: Path, tmp_path: Path):
     dest = tmp_path / "taken"
     dest.mkdir()
     with pytest.raises(RuntimeError, match="already exists"):
-        ns.provision(source_repo, dest, allow_shallow=True)
+        ns.provision(source_repo, dest, allow_shallow=True, sandbox_root=tmp_path)
 
 
 def test_sandbox_tree_is_clean_after_the_strip_commit(sandbox: ns.Sandbox):
@@ -333,10 +334,160 @@ def test_sandbox_tree_is_clean_after_the_strip_commit(sandbox: ns.Sandbox):
 
 
 def test_teardown_verifies_removal(source_repo: Path, tmp_path: Path):
-    box = ns.provision(source_repo, tmp_path / "sandbox4", allow_shallow=True)
+    box = ns.provision(source_repo, tmp_path / "sandbox4", allow_shallow=True, sandbox_root=tmp_path)
     assert box.path.exists()
     assert ns.teardown(box) is True
     assert not box.path.exists()
+
+
+# ------------------------------------------------------- teardown provenance (Critical 1)
+#
+# The defect these cover: `teardown` was `shutil.rmtree(path)` guarded only by
+# `path.exists()`, reachable straight from the CLI's `--sandbox`. Every test below is a
+# path that reached that `rmtree` and now must not.
+
+
+def test_teardown_refuses_an_arbitrary_path(tmp_path: Path):
+    """The headline case: a path this tool never provisioned is not deletable by it."""
+    victim = tmp_path / "not-a-sandbox" / "precious"
+    victim.mkdir(parents=True)
+    (victim / "work.txt").write_text("a real checkout's contents", encoding="utf-8")
+
+    with pytest.raises(ns.TeardownRefused, match="outside the configured sandbox root"):
+        ns.teardown(victim, sandbox_root=tmp_path / "roots")
+
+    assert (victim / "work.txt").read_text(encoding="utf-8") == "a real checkout's contents"
+
+
+def test_teardown_refuses_a_markerless_directory_inside_the_root(source_repo: Path, tmp_path: Path):
+    """Containment alone is not enough - which is why both checks are required, not either.
+
+    `source_repo` is a REAL git repo that happens to live inside the configured root, i.e.
+    exactly the "typo pointed it at a real checkout" case. It passes containment and must
+    still be refused, because it carries no marker.
+    """
+    assert ns._is_contained(ns._resolve(source_repo), ns._resolve(tmp_path))
+
+    with pytest.raises(ns.TeardownRefused, match="no valid provisioning marker"):
+        ns.teardown(source_repo, sandbox_root=tmp_path)
+
+    assert (source_repo / "CLAUDE.md").exists()
+
+
+def test_teardown_succeeds_on_a_provisioned_sandbox(source_repo: Path, tmp_path: Path):
+    box = ns.provision(source_repo, tmp_path / "provisioned", allow_shallow=True, sandbox_root=tmp_path)
+    marker = ns.read_marker(box.path)
+    assert marker is not None and marker["nonce"] == box.nonce
+    assert ns.teardown(box) is True
+    assert not box.path.exists()
+
+
+def test_teardown_does_not_escape_the_root_through_a_symlink(source_repo: Path, tmp_path: Path):
+    """Resolve BEFORE the compare. Unresolved, `<root>/escape` looks perfectly contained."""
+    outside = tmp_path.parent / f"{tmp_path.name}-outside"
+    outside.mkdir()
+    (outside / "work.txt").write_text("not ours", encoding="utf-8")
+    root = tmp_path / "roots"
+    root.mkdir()
+    link = root / "escape"
+    try:
+        link.symlink_to(outside, target_is_directory=True)
+    except (OSError, NotImplementedError) as exc:  # Windows without developer mode
+        pytest.skip(f"symlink creation unavailable: {exc}")
+
+    assert link.exists(), "the un-resolved path is inside the root, which is the trap"
+    with pytest.raises(ns.TeardownRefused, match="outside the configured sandbox root"):
+        ns.teardown(link, sandbox_root=root)
+
+    assert (outside / "work.txt").exists()
+
+
+def test_teardown_refuses_a_marker_laundered_from_another_sandbox(source_repo: Path, tmp_path: Path):
+    """A marker is bound to its own directory, so copying one does not confer ownership."""
+    box = ns.provision(source_repo, tmp_path / "real", allow_shallow=True, sandbox_root=tmp_path)
+    impostor = tmp_path / "impostor"
+    (impostor / ns.SANDBOX_META_DIR).mkdir(parents=True)
+    shutil.copy2(box.path / ns.MARKER_RELPATH, impostor / ns.MARKER_RELPATH)
+    (impostor / "work.txt").write_text("not ours either", encoding="utf-8")
+
+    with pytest.raises(ns.TeardownRefused, match="no valid provisioning marker"):
+        ns.teardown(impostor, sandbox_root=tmp_path)
+    assert (impostor / "work.txt").exists()
+    ns.teardown(box)
+
+
+def test_teardown_refuses_a_sandbox_from_a_different_run(source_repo: Path, tmp_path: Path):
+    """The nonce leg: a caller holding run A's manifest cannot tear down run B's sandbox."""
+    box_a = ns.provision(source_repo, tmp_path / "run-a", allow_shallow=True, sandbox_root=tmp_path)
+    box_b = ns.provision(source_repo, tmp_path / "run-b", allow_shallow=True, sandbox_root=tmp_path)
+    assert box_a.nonce != box_b.nonce
+
+    with pytest.raises(ns.TeardownRefused, match="different run"):
+        ns.teardown(box_b.path, sandbox_root=tmp_path, expected_nonce=box_a.nonce)
+
+    assert box_b.path.exists()
+    assert ns.teardown(box_a) is True
+    assert ns.teardown(box_b) is True
+
+
+def test_provision_refuses_a_destination_outside_the_sandbox_root(source_repo: Path, tmp_path: Path):
+    """One boundary, both directions: what cannot be provisioned cannot be presented later."""
+    with pytest.raises(RuntimeError, match="outside the configured sandbox root"):
+        ns.provision(
+            source_repo,
+            tmp_path.parent / f"{tmp_path.name}-elsewhere",
+            allow_shallow=True,
+            sandbox_root=tmp_path / "roots",
+        )
+
+
+def test_default_sandbox_root_is_configurable_and_never_the_cwd(monkeypatch, tmp_path: Path):
+    monkeypatch.delenv(ns.ENV_SANDBOX_ROOT, raising=False)
+    assert ns.default_sandbox_root().name == "nopack-sandboxes"
+    monkeypatch.setenv(ns.ENV_SANDBOX_ROOT, str(tmp_path / "configured"))
+    assert ns.default_sandbox_root() == tmp_path / "configured"
+
+
+# ---------------------------------------------------- manifest placement (Critical 2)
+
+
+def test_manifest_lives_inside_the_sandbox_and_clobbers_nothing(source_repo: Path, tmp_path: Path):
+    """Regression: the first draft wrote `<dest parent>/sandbox-manifest.json` blindly."""
+    bystander = tmp_path / "sandbox-manifest.json"
+    bystander.write_text('{"someone else": true}', encoding="utf-8")
+
+    box = ns.provision(source_repo, tmp_path / "manifested", allow_shallow=True, sandbox_root=tmp_path)
+    try:
+        assert json.loads(bystander.read_text(encoding="utf-8")) == {"someone else": True}
+        inside = box.path / ns.MANIFEST_RELPATH
+        assert inside.is_file()
+        assert json.loads(inside.read_text(encoding="utf-8"))["nonce"] == box.nonce
+        # ...and it is invisible to the lane: the strip commit's tree stays clean.
+        assert _run(box.path, "status", "--short").strip() == ""
+    finally:
+        ns.teardown(box)
+
+
+def test_write_manifest_refuses_to_overwrite(source_repo: Path, tmp_path: Path):
+    box = ns.provision(source_repo, tmp_path / "exclusive", allow_shallow=True, sandbox_root=tmp_path)
+    try:
+        with pytest.raises(FileExistsError):
+            ns.write_manifest(box.path, {"second": "write"})
+    finally:
+        ns.teardown(box)
+
+
+def test_a_failed_provision_leaves_no_unstripped_clone(source_repo: Path, tmp_path: Path, monkeypatch):
+    """H1: a post-clone failure used to leave the FULL clone - the answer key - on disk."""
+    monkeypatch.setattr(ns, "scan_tree", _boom)
+    dest = tmp_path / "aborted"
+    with pytest.raises(RuntimeError, match="detonated"):
+        ns.provision(source_repo, dest, allow_shallow=True, sandbox_root=tmp_path)
+    assert not dest.exists()
+
+
+def _boom(*_args, **_kwargs):
+    raise RuntimeError("detonated mid-provision")
 
 
 # ---------------------------------------------------------------- Layer A

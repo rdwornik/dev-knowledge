@@ -36,14 +36,29 @@ NOT guaranteed - stated here because a guard whose limits are unstated is a wors
 
 USAGE (the seam the candidate transport calls)
 ----------------------------------------------
-    python3 scripts/nopack_sandbox.py provision --dest /tmp/ab-sandbox
-    python3 scripts/nopack_sandbox.py probe --sandbox /tmp/ab-sandbox
-    python3 scripts/nopack_sandbox.py exec --sandbox /tmp/ab-sandbox -- 'git log --oneline -3'
-    python3 scripts/nopack_sandbox.py teardown --sandbox /tmp/ab-sandbox
+    export NOPACK_SANDBOX_ROOT=/tmp/nopack-sandboxes      # or pass --sandbox-root
+    python3 scripts/nopack_sandbox.py provision --dest "$NOPACK_SANDBOX_ROOT/ab"
+    python3 scripts/nopack_sandbox.py probe    --sandbox "$NOPACK_SANDBOX_ROOT/ab"
+    python3 scripts/nopack_sandbox.py exec     --sandbox "$NOPACK_SANDBOX_ROOT/ab" -- 'git log --oneline -3'
+    python3 scripts/nopack_sandbox.py teardown --sandbox "$NOPACK_SANDBOX_ROOT/ab"
 
 `exec` is the whole integration surface: whatever transport runs the candidate (direct API
-with a `run` tool, or a CLI lane) shells out to it, so both lanes are guarded by one
-mechanism and neither lane's guard can drift from the other's.
+with a `run` tool, or a CLI lane) calls it, so both lanes are guarded by one mechanism and
+neither lane's guard can drift from the other's.
+
+DESTRUCTION POSTURE (see the "Provenance" section)
+--------------------------------------------------
+`teardown` deletes a tree, so it is the one operation here that can destroy work that is
+not its own. It refuses unless BOTH hold, never either:
+
+  1. the RESOLVED path (symlinks followed first) is a strict descendant of the configured
+     sandbox root - `--sandbox-root`, else `$NOPACK_SANDBOX_ROOT`, else
+     `<tempdir>/nopack-sandboxes`; and
+  2. that path carries a provisioning MARKER (`.git/nopack/marker.json`) whose per-run
+     nonce is well formed and whose recorded `sandbox` field names that same resolved
+     path - so a marker copied out of a real sandbox does not launder an unrelated
+     directory, and a real checkout that lands inside the root by typo has no marker at
+     all.
 """
 
 from __future__ import annotations
@@ -51,10 +66,14 @@ from __future__ import annotations
 import argparse
 import fnmatch
 import json
+import os
 import re
+import secrets
 import shutil
+import stat
 import subprocess
 import sys
+import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -345,6 +364,132 @@ def is_dense(text: str) -> bool:
 
 
 # --------------------------------------------------------------------------------------
+# Provenance - what makes a directory provably OURS before anything deletes it
+#
+# The first draft of this file reached `shutil.rmtree(path)` from the CLI guarded only by
+# `path.exists()`. A typo in `--sandbox`, or a path pointing at a real checkout or a synced
+# directory, destroyed it. That is the hazard class this fleet's own P0 exclusion rules
+# exist for - the recorded history is cleanup scripts that deleted personal files alongside
+# their intended targets - so the repair is a positive proof of ownership, not a blocklist.
+# --------------------------------------------------------------------------------------
+
+# Both live under `.git/` on purpose. That directory is created by our own `git clone`, so
+# nothing of anyone else's can already be sitting there; `scan_tree` skips it, so the
+# manifest's list of stripped paths cannot fail provisioning's own postcondition; and
+# `git status` / `git ls-files` never surface it, so the sandbox working tree stays clean
+# (run-protocol P4). Storing the manifest OUTSIDE the sandbox - the first draft wrote
+# `<dest parent>/sandbox-manifest.json` unconditionally - silently destroyed whatever
+# unrelated file happened to hold that name.
+SANDBOX_META_DIR = ".git/nopack"
+MARKER_RELPATH = f"{SANDBOX_META_DIR}/marker.json"
+MANIFEST_RELPATH = f"{SANDBOX_META_DIR}/manifest.json"
+
+# The marker's self-identifying kind string. A JSON file that happens to exist at the
+# marker path but does not carry this is not a marker.
+MARKER_KIND = "nopack-sandbox"
+
+# 128 bits of per-run nonce. Its job is not secrecy - anyone who can read the sandbox can
+# read it - but IDENTITY: it lets a caller that holds a Sandbox (or its manifest) assert
+# that the directory in front of it is the one THIS run provisioned, and not a different
+# sandbox that happens to sit in the same root.
+_NONCE_BYTES = 16
+_NONCE_RE = re.compile(r"\A[0-9a-f]{32}\Z")
+
+ENV_SANDBOX_ROOT = "NOPACK_SANDBOX_ROOT"
+
+
+class TeardownRefused(RuntimeError):
+    """`teardown` was handed a path it could not prove it provisioned."""
+
+
+def default_sandbox_root() -> Path:
+    """The configured sandbox root: `$NOPACK_SANDBOX_ROOT`, else `<tempdir>/nopack-sandboxes`.
+
+    Deliberately NOT the repo, the cwd, or a caller-supplied parent: the root is the outer
+    containment boundary, and a boundary that moves with the caller is not one.
+    """
+    env = os.environ.get(ENV_SANDBOX_ROOT, "").strip()
+    return Path(env) if env else Path(tempfile.gettempdir()) / "nopack-sandboxes"
+
+
+def _resolve(path: Path | str) -> Path:
+    """Fully resolve a path - symlinks INCLUDED - so every comparison is on real targets.
+
+    This is the leg that stops a symlink escape: `<root>/link -> /real/checkout` resolves
+    to `/real/checkout`, which is not inside the root, so containment refuses it. Comparing
+    the un-resolved string would have compared `<root>/link` and passed.
+    """
+    return Path(path).expanduser().resolve()
+
+
+def _is_contained(resolved: Path, root: Path) -> bool:
+    """True when `resolved` is a STRICT descendant of `root`. The root itself is not."""
+    return resolved != root and root in resolved.parents
+
+
+def read_marker(sandbox_path: Path) -> dict[str, object] | None:
+    """Return the provisioning marker at `sandbox_path`, or None if it is absent/invalid.
+
+    "Invalid" is anything that is not a marker this tool wrote FOR THIS DIRECTORY: wrong
+    kind, malformed nonce, unparseable JSON, or a `sandbox` field naming somewhere else.
+    That last check is what keeps a marker from being laundered - copying one out of a real
+    sandbox into an unrelated tree does not make that tree deletable.
+    """
+    marker_file = Path(sandbox_path) / MARKER_RELPATH
+    if not marker_file.is_file():
+        return None
+    try:
+        data = json.loads(marker_file.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        return None
+    if not isinstance(data, dict) or data.get("marker") != MARKER_KIND:
+        return None
+    nonce = data.get("nonce")
+    if not isinstance(nonce, str) or not _NONCE_RE.fullmatch(nonce):
+        return None
+    claimed = data.get("sandbox")
+    if not isinstance(claimed, str) or _resolve(claimed) != _resolve(sandbox_path):
+        return None
+    return data
+
+
+def write_marker(sandbox_path: Path, nonce: str, sandbox_root: Path) -> Path:
+    """Write the provisioning marker. Exclusive creation - never clobbers."""
+    marker_file = Path(sandbox_path) / MARKER_RELPATH
+    marker_file.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "marker": MARKER_KIND,
+        "nonce": nonce,
+        "sandbox": str(_resolve(sandbox_path)),
+        "sandbox_root": str(_resolve(sandbox_root)),
+    }
+    with open(marker_file, "x", encoding="utf-8", newline="\n") as handle:
+        json.dump(payload, handle, indent=2)
+    return marker_file
+
+
+def _force_writable(func, path, _exc) -> None:
+    """rmtree error hook: clear the read-only bit and retry once.
+
+    Git marks the files under `.git/objects` read-only. On Windows `shutil.rmtree` cannot
+    unlink a read-only file, so teardown raised `PermissionError` on every sandbox it had
+    itself provisioned - a no-leftovers organ that could not remove its own leftovers.
+    """
+    try:
+        os.chmod(path, stat.S_IWRITE)
+    except OSError:
+        raise
+    func(path)
+
+
+def _rmtree_force(path: Path) -> None:
+    if sys.version_info >= (3, 12):
+        shutil.rmtree(path, onexc=_force_writable)
+    else:  # pragma: no cover - the fleet floor is 3.12
+        shutil.rmtree(path, onerror=_force_writable)
+
+
+# --------------------------------------------------------------------------------------
 # Provisioning
 # --------------------------------------------------------------------------------------
 
@@ -363,6 +508,12 @@ class Sandbox:
     residual: dict[str, list[str]] = field(default_factory=dict)
     denied: list[str] = field(default_factory=list)
     reference_residual: list[str] = field(default_factory=list)
+    # Provenance. `nonce` is empty on a Sandbox rehydrated without a manifest, and
+    # `teardown` treats that as "no expectation to check", NOT as "check passed" - the
+    # marker and containment legs still both have to hold.
+    sandbox_root: Path | None = None
+    nonce: str = ""
+    marker: str = MARKER_RELPATH
 
     def denied_names(self) -> set[str]:
         """Every string a command may not mention. Computed at provision time (see `_denied`)."""
@@ -380,6 +531,9 @@ class Sandbox:
             "residual": self.residual,
             "denied": self.denied,
             "reference_residual": self.reference_residual,
+            "sandbox_root": None if self.sandbox_root is None else str(self.sandbox_root),
+            "nonce": self.nonce,
+            "marker": self.marker,
         }
 
 
@@ -431,16 +585,33 @@ def provision(
     *,
     allow_shallow: bool = False,
     class_a_globs: tuple[str, ...] = CLASS_A_GLOBS,
+    sandbox_root: Path | str | None = None,
 ) -> Sandbox:
     """Clone `source` at `head` into `dest` and strip every answer-key byte from the tree.
 
+    `dest` must be a strict descendant of the configured sandbox root (see
+    `default_sandbox_root`): provisioning and teardown share one containment boundary, so
+    a sandbox that could not have been provisioned cannot later be presented for deletion.
+
     Raises RuntimeError if the postcondition (zero canaries in the working tree) does not
     hold, so a broken guard fails loudly at provisioning rather than silently at run time.
+    Every failure path after the clone removes the sandbox and verifies the removal - a
+    half-provisioned tree is the full unstripped clone, i.e. the answer key on disk, which
+    is both a no-leftovers violation (CLAUDE.md section 5 rule 9) and the exact disclosure
+    this guard exists to prevent.
     """
     source = source.resolve()
+    root = _resolve(sandbox_root) if sandbox_root is not None else _resolve(default_sandbox_root())
     dest = Path(dest)
     if dest.exists():
         raise RuntimeError(f"sandbox destination already exists: {dest}")
+    resolved_dest = _resolve(dest)
+    if not _is_contained(resolved_dest, root):
+        raise RuntimeError(
+            f"sandbox destination is outside the configured sandbox root: {resolved_dest} "
+            f"is not a strict descendant of {root}. Set {ENV_SANDBOX_ROOT} or pass "
+            f"sandbox_root= to move the boundary deliberately."
+        )
     if not allow_shallow and is_shallow(source):
         raise RuntimeError(
             "source repository is shallow; the pack's items cite commits outside a shallow "
@@ -456,7 +627,58 @@ def provision(
         check=False,
     )
     if proc.returncode != 0:
+        # Nothing to clean: a failed clone that never created `dest` leaves nothing, and
+        # one that did is removed by git itself.
+        if dest.exists():
+            _rmtree_force(resolved_dest)
         raise RuntimeError(f"clone failed: {proc.stderr.strip()}")
+
+    nonce = secrets.token_hex(_NONCE_BYTES)
+    try:
+        write_marker(dest, nonce, root)
+        return _strip_and_seal(source, dest, head, root, nonce, class_a_globs)
+    except BaseException:
+        _abort_provision(resolved_dest, root, nonce)
+        raise
+
+
+def _abort_provision(resolved_dest: Path, root: Path, nonce: str) -> None:
+    """Remove a partially provisioned sandbox, announcing any failure to do so.
+
+    Provenance teardown is tried FIRST, so the ordinary abort path exercises the same
+    proof every other caller has to satisfy. The direct fallback exists for one narrow
+    window - the marker is written immediately after the clone, so an abort in between has
+    no marker to check - and it is safe there for reasons this function can actually
+    verify: `provision` established that `resolved_dest` did not exist before this call and
+    that it is a strict descendant of `root`, so the tree can only be the one we just made.
+    """
+    try:
+        teardown(resolved_dest, sandbox_root=root, expected_nonce=nonce)
+        return
+    except TeardownRefused:
+        pass
+    if _is_contained(resolved_dest, root) and resolved_dest.is_dir():
+        try:
+            _rmtree_force(resolved_dest)
+        except OSError as exc:  # never silent: an unremoved clone is the leftover
+            print(f"nopack_sandbox: FAILED to remove {resolved_dest}: {exc}", file=sys.stderr)
+    if resolved_dest.exists():
+        print(
+            f"nopack_sandbox: LEFTOVER - {resolved_dest} survived an aborted provision "
+            f"and may contain unstripped content; remove it by hand",
+            file=sys.stderr,
+        )
+
+
+def _strip_and_seal(
+    source: Path,
+    dest: Path,
+    head: str,
+    root: Path,
+    nonce: str,
+    class_a_globs: tuple[str, ...],
+) -> Sandbox:
+    """The stripping passes. Split out of `provision` so every exit here is cleaned up."""
     resolved_head = _git(source, "rev-parse", head).strip()
     _git(dest, "checkout", "--quiet", "--detach", resolved_head)
 
@@ -558,25 +780,89 @@ def provision(
         residual=residual,
         denied=list(denied),
         reference_residual=reference_residual,
+        sandbox_root=root,
+        nonce=nonce,
     )
     if not clean:
         # No leftovers, even on abort (CLAUDE.md section 5 rule 9): a sandbox that failed
         # its own postcondition is not evidence worth keeping, and leaving it behind leaves
-        # an unguarded checkout on disk. The residual list travels in the exception instead.
-        teardown(sandbox)
+        # an unguarded checkout on disk. `provision`'s except clause does the removal; the
+        # residual list travels in the exception instead.
         raise RuntimeError(
             f"provisioning postcondition FAILED and the sandbox was removed: "
             f"{len(residual)} file(s) still carried canaries: {sorted(residual)[:5]}"
         )
+    write_manifest(dest, sandbox.manifest())
     return sandbox
 
 
-def teardown(sandbox: Sandbox | Path) -> bool:
-    """Remove a sandbox and VERIFY the removal (CLAUDE.md section 5 rule 9, no leftovers)."""
-    path = sandbox.path if isinstance(sandbox, Sandbox) else Path(sandbox)
-    if path.exists():
-        shutil.rmtree(path)
-    return not path.exists()
+def write_manifest(sandbox_path: Path, manifest: dict[str, object]) -> Path:
+    """Persist the run manifest INSIDE the sandbox, by exclusive creation.
+
+    Both legs matter and neither is sufficient alone. Inside, because the first draft wrote
+    `<dest parent>/sandbox-manifest.json` - a path the caller does not own and may well
+    already be using. Exclusively, because "inside" is an argument about what SHOULD be
+    there and `x` mode is the assertion that checks it.
+    """
+    target = Path(sandbox_path) / MANIFEST_RELPATH
+    target.parent.mkdir(parents=True, exist_ok=True)
+    with open(target, "x", encoding="utf-8", newline="\n") as handle:
+        json.dump(manifest, handle, indent=2)
+    return target
+
+
+def teardown(
+    sandbox: Sandbox | Path,
+    *,
+    sandbox_root: Path | str | None = None,
+    expected_nonce: str | None = None,
+) -> bool:
+    """Remove a sandbox we can PROVE we provisioned, and verify the removal.
+
+    Both checks are required, never either (Done-contract item 1):
+      * containment - the resolved path is a strict descendant of the sandbox root; and
+      * provenance  - it carries a valid marker for itself, and, when the caller holds one,
+        the marker's nonce is the one that run recorded.
+
+    Raises `TeardownRefused` when either fails. Returns True when the tree is gone and that
+    absence has been re-checked on disk (CLAUDE.md section 5 rule 9, no leftovers).
+    """
+    if isinstance(sandbox, Sandbox):
+        path: Path = sandbox.path
+        if sandbox_root is None:
+            sandbox_root = sandbox.sandbox_root
+        if expected_nonce is None and sandbox.nonce:
+            expected_nonce = sandbox.nonce
+    else:
+        path = Path(sandbox)
+
+    root = _resolve(sandbox_root) if sandbox_root is not None else _resolve(default_sandbox_root())
+    # Resolve BEFORE every comparison. `<root>/link -> /real/checkout` is the escape this
+    # closes: unresolved it looks contained, resolved it is plainly outside.
+    resolved = _resolve(path)
+
+    if not resolved.exists():
+        return True  # idempotent: nothing to remove, and nothing was removed
+
+    if not resolved.is_dir():
+        raise TeardownRefused(f"refused: not a directory: {resolved}")
+    if not _is_contained(resolved, root):
+        raise TeardownRefused(
+            f"refused: {resolved} is outside the configured sandbox root {root}"
+        )
+    marker = read_marker(resolved)
+    if marker is None:
+        raise TeardownRefused(
+            f"refused: {resolved} carries no valid provisioning marker ({MARKER_RELPATH}); "
+            f"this tool did not provision it"
+        )
+    if expected_nonce is not None and marker.get("nonce") != expected_nonce:
+        raise TeardownRefused(
+            f"refused: {resolved} was provisioned by a different run (nonce mismatch)"
+        )
+
+    _rmtree_force(resolved)
+    return not resolved.exists()
 
 
 # --------------------------------------------------------------------------------------
@@ -847,6 +1133,12 @@ def main(argv: list[str] | None = None) -> int:
     p_prov.add_argument("--source", default=None)
     p_prov.add_argument("--head", default="HEAD")
     p_prov.add_argument("--allow-shallow", action="store_true")
+    p_prov.add_argument(
+        "--sandbox-root",
+        default=None,
+        help=f"containment boundary for provision and teardown (default: ${ENV_SANDBOX_ROOT}, "
+        f"else {default_sandbox_root()})",
+    )
 
     p_probe = sub.add_parser("probe", help="prove the pack is unreadable")
     p_probe.add_argument("--sandbox", required=True)
@@ -863,17 +1155,27 @@ def main(argv: list[str] | None = None) -> int:
 
     p_down = sub.add_parser("teardown", help="remove a sandbox and verify removal")
     p_down.add_argument("--sandbox", required=True)
+    p_down.add_argument(
+        "--sandbox-root",
+        default=None,
+        help=f"containment boundary (default: ${ENV_SANDBOX_ROOT}, else {default_sandbox_root()})",
+    )
 
     args = parser.parse_args(argv)
 
     if args.cmd == "provision":
         source = Path(args.source) if args.source else _repo_root()
-        sandbox = provision(source, Path(args.dest), args.head, allow_shallow=args.allow_shallow)
-        manifest = sandbox.manifest()
-        (Path(args.dest).parent / "sandbox-manifest.json").write_text(
-            json.dumps(manifest, indent=2), encoding="utf-8", newline="\n"
+        sandbox = provision(
+            source,
+            Path(args.dest),
+            args.head,
+            allow_shallow=args.allow_shallow,
+            sandbox_root=args.sandbox_root,
         )
-        print(json.dumps(manifest, indent=2))
+        # The manifest is already persisted INSIDE the sandbox by `provision`; printing it
+        # is for the caller's transcript, and writing it anywhere else is not this tool's
+        # to decide.
+        print(json.dumps(sandbox.manifest(), indent=2))
         return 0
 
     if args.cmd == "probe":
@@ -906,7 +1208,14 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.cmd == "teardown":
-        ok = teardown(Path(args.sandbox))
+        try:
+            ok = teardown(Path(args.sandbox), sandbox_root=args.sandbox_root)
+        except TeardownRefused as exc:
+            # The one refusal in this tool that is NOT deliberately neutral: nothing was
+            # deleted and the operator needs to know exactly why, because the alternative
+            # to a legible refusal is an operator reaching for `rm -rf` by hand.
+            print(f"sandbox guard: teardown {exc}", file=sys.stderr)
+            return REFUSAL_EXIT
         print("removed and verified" if ok else "REMOVAL FAILED")
         return 0 if ok else 1
 
@@ -916,9 +1225,10 @@ def main(argv: list[str] | None = None) -> int:
 def _load(sandbox_path: str, manifest_path: str | None) -> Sandbox:
     """Rehydrate a Sandbox from disk, so `exec`/`probe` work across process boundaries."""
     path = Path(sandbox_path)
-    candidate = Path(manifest_path) if manifest_path else path.parent / "sandbox-manifest.json"
+    candidate = Path(manifest_path) if manifest_path else path / MANIFEST_RELPATH
     if candidate.exists():
         data = json.loads(candidate.read_text(encoding="utf-8"))
+        recorded_root = data.get("sandbox_root")
         return Sandbox(
             path=path,
             source=Path(data["source"]),
@@ -929,6 +1239,8 @@ def _load(sandbox_path: str, manifest_path: str | None) -> Sandbox:
             postcondition_clean=bool(data["postcondition_clean"]),
             residual=dict(data.get("residual", {})),
             denied=list(data.get("denied", [])),
+            sandbox_root=Path(recorded_root) if recorded_root else None,
+            nonce=str(data.get("nonce", "")),
         )
     # No manifest: the content layer still holds; only the path layer is degraded, and
     # that degradation is announced rather than silent.
