@@ -180,7 +180,14 @@ python3 scripts/gen_audit_index.py --check                ->  green after the re
 ```
 python3 -m scripts.codemap.cli check . --source-root scripts  ->  clean (orphan-module warning only)
 python3 scripts/validate_hermetization.py                     ->  rc 0 on the staged add (ADR-101 R3 name grammar)
+echo '{"stop_hook_active": false}' | python3 scripts/session_end_backpressure.py  ->  rc 0, silent (all-clear)
 ```
+
+The Stop hook is in that list because it **fired and refused on the uv pin** at session end (`uv run --locked …`),
+which is the caveat above reaching the session boundary rather than a separate failure. Re-run by hand as `python3`
+it returns the silent all-clear: no JOURNAL SHA-anchor is owed, because this lane's commit is not on `main`'s
+first-parent spine — it sits on `claude/cloud-3-566-axis-lean`, and nothing was pushed to `main`. The anchor
+obligation lands with whoever merges.
 
 `-o addopts=""` is required because `addopts = "-n auto"` needs `pytest-xdist`, absent here. Spine-walking
 instruments (`validate_git_backlog` and kin) were **skipped by the brief's shallow guard** — this clone is shallow.
