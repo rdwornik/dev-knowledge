@@ -63,6 +63,12 @@ _PYPROJECT = "pyproject.toml"
 
 _FRONTMATTER_MODEL_RE = re.compile(r"^model:\s*(\S+)\s*$", re.MULTILINE)
 _JS_MODEL_RE = re.compile(r"model:\s*'([^']+)'")
+#: The number of per-stage `model:` pins `.claude/workflows/conformance-hub.js` must
+#: carry (its three Stage-1 verifiers). Checked as a COUNT, not only as a value: a
+#: findall-and-compare leg passes clean when a pin is DELETED, because the pins it
+#: still finds all agree -- so a stage silently falls back to the harness default and
+#: the registry coupling this gate exists to hold is gone with nothing saying so.
+_CONFORMANCE_HUB_PIN_COUNT = 3
 # S17's prose seam is a tier BINDING, not a loose mention: "…tier is Sonnet 5 (`claude-sonnet-5`)".
 # Anchored on the binding so the check reads the sentence that matters rather than any backtick
 # in a 4,500-line file. A reworded sentence fails LOUD ("binding sentence not found") instead of
@@ -141,8 +147,15 @@ def check_s10_conformance_hub(root: Path) -> list[str]:
     found = _JS_MODEL_RE.findall(_read(root, _CONFORMANCE_HUB))
     if not found:
         return [f"S10 {_CONFORMANCE_HUB}: no `model: '...'` pin found"]
-    return [f"S10 {_CONFORMANCE_HUB}: pin `{got}` disagrees with the registry's `{want}`"
-            for got in found if got != want]
+    out = []
+    if len(found) != _CONFORMANCE_HUB_PIN_COUNT:
+        out.append(
+            f"S10 {_CONFORMANCE_HUB}: found {len(found)} `model:` pin(s), expected "
+            f"{_CONFORMANCE_HUB_PIN_COUNT} -- a deleted pin lets that stage fall back "
+            f"to the harness default, which is the coupling this gate exists to hold")
+    out.extend(f"S10 {_CONFORMANCE_HUB}: pin `{got}` disagrees with the registry's `{want}`"
+               for got in found if got != want)
+    return out
 
 
 def check_s17_playbook(root: Path) -> list[str]:

@@ -399,6 +399,7 @@ def render_config() -> str:
         f"statuses: {_flow_seq(STATUSES)}\n"
         f"priorities: {_flow_seq(PRIORITIES)}\n"
         "default_status: 'open'\n"
+        "defaultStatus: 'open'\n"
         "check_active_branches: false\n"
         "remote_operations: false\n"
         "checkActiveBranches: false\n"
