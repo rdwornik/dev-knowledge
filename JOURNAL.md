@@ -19,6 +19,32 @@
 
 ---
 
+### 2026-08-22 (j) - CC (Opus 5, cloud-wave integrator, branch `fix/n2-note-token-2026-08-22`): the note recording the conflict re-created it
+
+**Did:** finished the (i) repair, which was incomplete.
+
+**Result: the first fix removed the machine-read `site:` line but left prose that SPELLED the
+module name, so the test stayed red for exactly the same reason.** `[#563]`'s binding condition 3
+greps `protocols/` for the export's own names; it does not distinguish a `site:` declaration from
+human prose *explaining why the site is absent*. **The note recording the conflict re-created the
+conflict** - which is a sharper statement of the constraint than the first draft managed, and it is
+now written into the bullet: **condition 3's reach is the FILE, not the mechanism.**
+
+The bullet now DESCRIBES the module rather than spelling it, and points at where naming it is
+permitted - the wave's named queue under `docs/`, which the test excludes deliberately, because an
+audit artifact *naming* the export is not a gate *reading* it. The test's own comment says so.
+
+**Changes:** `protocols/STANDING_RULINGS.md` (N-2 bullet rewritten token-free).
+
+**Abandoned:** nothing.
+
+**Next:** push, then the owed terra pass on the returned `cloud-1` lane.
+
+**Anchors:** `f15aa703` (the N-2 token-free rewrite), the commit this branch's merge
+introduces.
+
+---
+
 ### 2026-08-22 (i) - CC (Opus 5, cloud-wave integrator, branch `fix/n2-site-vs-563-condition3-2026-08-22`): the suite catches a conflict inside one lane's own delivery
 
 **Did:** ran the full suite after D5/D6 and repaired the one NEW failure it surfaced.
