@@ -1693,8 +1693,9 @@ mirroring `gen_intake_index._parse_frontmatter`'s exact shape.
 ```landed
 site: scripts/gen_intake_index.py | pattern: yaml\.safe_load
 site: scripts/gen_claude_rosters.py | pattern: yaml\.safe_load
-site: scripts/export_backlog_view.py | pattern: yaml\.safe_load
 ```
+
+- **`scripts/export_backlog_view.py` conforms to N-2 but is deliberately NOT declared as a site, and the reason is a conflict rather than an oversight.** The exporter was migrated to `yaml.safe_load` by the `[#563]` lane, which proposed adding it here as a third site. Landing that proposal **breaks `[#563]`'s own ratified binding condition 3** — *governance stays bespoke* — whose test greps `protocols/` (among other enforcement roots) for the export's own names, the module name included, and a `site:` line contains that name by construction. The two artifacts shipped from one lane and are mutually incompatible; the lane did not see it, because its contract reserved this file so it could only propose the diff, not run it beside its own test. **A ratified binding condition outranks an optional predicate declaration**, so condition 3 stands and this site stays out. Recorded here rather than in a commit message because here is where a future reader would otherwise re-add it. Witnessed and reverted 2026-08-22 (cloud-wave close); the residual — that N-2's predicate under-reports a conforming site — is carried in the wave's named queue.
 
 - **Expiry:** open-ended — the same reasoning as N-1's.
 

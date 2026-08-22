@@ -244,6 +244,7 @@ the ruling left unexecuted, listed so the next window inherits them by name):
 - **The three remaining orphaned findings** of §5 — the `single_flight` token-vs-`run_id` Medium
   and the two `[#539]`-owned Mediums. COVERED-closed per the ruling; they need a live home if
   they are ever to be fixed.
+- **N-2's landed predicate under-reports a conforming site**, and the cause is a conflict inside one lane's own delivery. `scripts/export_backlog_view.py` uses `yaml.safe_load` and the `[#563]` lane proposed declaring it as N-2's third site (its §5.2 fenced diff). Landing it **breaks that same lane's §5 test** for `[#563]`'s ratified binding condition 3 (*governance stays bespoke*), which greps `protocols/` for the export's module name — and a `site:` line contains that name by construction. Caught by the full suite at wave close, **after** the diff had been landed; the binding condition outranks the optional declaration, so the site was reverted and the reason recorded at N-2 itself, where a future reader would otherwise re-add it. The lane never saw the clash because its contract reserved the register, so it could propose the diff but not run it beside its own test — a shape worth watching for wherever a lane ships a fenced diff AND a test that constrains the same surface.
 - **`[#569]` item (A) is now half-discharged** — its `routine_consumers` half was fixed by the
   part-C arc today; the anchor-probe half remains, and it is the wave's one standing suite RED.
 

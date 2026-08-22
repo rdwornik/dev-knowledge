@@ -19,6 +19,48 @@
 
 ---
 
+### 2026-08-22 (i) - CC (Opus 5, cloud-wave integrator, branch `fix/n2-site-vs-563-condition3-2026-08-22`): the suite catches a conflict inside one lane's own delivery
+
+**Did:** ran the full suite after D5/D6 and repaired the one NEW failure it surfaced.
+
+**Result: 2 failed / 3453 passed, and one of the two was mine.** The other is the standing
+`test_anchor_gate_probe_distinguishes_installed_from_absent` RED that `[#569]` owns and that this
+wave already proved pre-existing at bare `main`.
+
+**The new one is a conflict INSIDE cloud-2's own delivery, and neither half is wrong on its own.**
+That lane shipped (a) a §5.2 fenced diff adding `scripts/export_backlog_view.py` as a third landed
+site for standing ruling N-2, and (b) a §5 test enforcing `[#563]`'s ratified binding condition 3 -
+*governance stays bespoke* - which greps the enforcement roots, `protocols/` among them, for the
+export's own names **including the module name**. A `site:` line contains that module name by
+construction, so (a) makes (b) fail. **The lane could not have caught it: its contract RESERVED
+`protocols/STANDING_RULINGS.md`, so it could propose the diff but never run it beside its own
+test.** I landed the diff earlier in this wave as an owed fenced diff and inherited the clash.
+
+**The resolution is an ordering, not a preference.** Condition 3 is a **ratified binding condition**
+of `[#563]`; the N-2 site line is the lane's own optional *"should land"*. The binding condition
+outranks the optional declaration, so the site comes out and condition 3 stands. The `.gitignore`
+half of the same fenced-diff set is untouched - it conflicts with nothing.
+
+**Recorded in two places, because a commit message is not where anyone looks before re-adding a
+line:** at **N-2 itself**, stating that the exporter *conforms* and is deliberately not declared,
+so the gap is not "fixed" by re-adding the site and re-breaking condition 3; and in the wave's
+**named queue**, because the residual is real - N-2's predicate now under-reports a conforming
+site. The generalizable shape is carried with it: **watch for a lane shipping a fenced diff AND a
+test that constrains the same surface**, because the reservation that forces the diff is exactly
+what prevents the lane from testing the two together.
+
+**Changes:** `protocols/STANDING_RULINGS.md` (site reverted, reason recorded at N-2), the funnel
+artifact's named queue.
+
+**Abandoned:** nothing closed or born.
+
+**Next:** push, then the owed terra pass on the returned `cloud-1` lane.
+
+**Anchors:** `28561a61`, the revert-and-record commit this entry names and the commit this branch's
+merge introduces.
+
+---
+
 ### 2026-08-22 (h) - CC (Opus 5, cloud-wave integrator, branch `docs/d5-d6-ruling-execution-2026-08-22`): the batched ruling executes, and the decision tree stops being optional
 
 **Did:** D5 and D6 of the wave close, against the architect/operator batched ruling returned over
