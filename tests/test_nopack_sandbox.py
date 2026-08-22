@@ -13,6 +13,7 @@ Two tests are deliberately coupled to real state and say so:
 
 from __future__ import annotations
 
+import ast
 import json
 import shutil
 import subprocess
@@ -539,20 +540,164 @@ def test_layer_a_refuses_writes_and_odd_binaries():
     assert ns.screen_command("cat CLAUDE.md > /tmp/leak").kind == "redirect"
 
 
-def test_layer_a_allows_the_shell_loops_the_pack_itself_uses():
-    """Regression: C1-K2 and C1-K3 adjudicate with `for s in ...; do ...; done`.
+def test_shell_loops_are_refused_not_interpreted():
+    """The declared capability trade of killing the shell, asserted so it cannot drift.
 
-    The first allowlist refused those at `for`, which would have handicapped a lane on two
-    scored ranking items. Found by running all fourteen adjudicating commands guarded.
+    C1-K2 and C1-K3 adjudicate with `for s in ...; do ...; done`, and an earlier revision
+    of this file asserted those were ALLOWED. They are not, and cannot be: interpreting a
+    loop requires a shell, and a shell is what made the allowlist bypassable (`cat $(touch
+    f)` ran `touch` past a screen that had only ever seen `cat`). The shapes stay available
+    to a lane one `exec` call at a time - `exec` runs exactly one command - so what is lost
+    is the convenience of batching, not the reachability of any item.
     """
     k2 = "for s in d0d58549 79788902 c358d95c; do git log -1 --format='%h %ad' --date=short $s; done | sort -k2"
     k3 = "for s in 98d973d0 e44d9737; do printf '%s ' $s; git show --stat --format='' $s | tail -1; done"
-    assert ns.screen_command(k2) is None
-    assert ns.screen_command(k3) is None
+    assert ns.screen_command(k2).kind == "shell-construct"
+    assert ns.screen_command(k3).kind == "shell-construct"
+
+    # ...and the unbatched form of the same read is untouched.
+    assert ns.screen_command("git log -1 --format='%h %ad' --date=short d0d58549") is None
+    assert ns.screen_command("git show --stat --format='' 98d973d0 | tail -1") is None
 
 
-def test_layer_a_still_refuses_a_write_hidden_in_a_loop_body():
-    assert ns.screen_command("for f in a b; do git commit -m $f; done").kind == "git-write"
+def test_a_write_hidden_in_a_loop_body_is_still_refused():
+    """Same refusal, earlier reason: the chain never survives to be screened as a write."""
+    assert ns.screen_command("for f in a b; do git commit -m $f; done").kind == "shell-construct"
+    assert ns.screen_command("cat CLAUDE.md; git commit -m x").kind == "shell-construct"
+    assert ns.screen_command("cat CLAUDE.md && git commit -m x").kind == "shell-construct"
+    # and the write itself, unhidden, is refused as a write
+    assert ns.screen_command("git commit -m x").kind == "git-write"
+
+
+# ------------------------------------------------- no shell at all (Critical 2)
+#
+# The defect: the allowlist screened top-level shell SEGMENTS while execution was
+# `shell=True`, so `cat $(touch file)` ran an unapproved command the screen never saw.
+
+
+def test_the_source_spawns_no_shell():
+    """No `shell=True` survives anywhere in the module, asserted over the AST.
+
+    Over the AST and not over a grep, because the module's own prose has to be able to
+    NAME the defect it fixed - a grep for the string matches the explanation as readily as
+    a relapse, and a test that cannot tell those apart trains you to delete the
+    explanation.
+    """
+    source = (REPO_ROOT / "scripts" / "nopack_sandbox.py").read_text(encoding="utf-8")
+    shell_kwargs = [
+        keyword
+        for node in ast.walk(ast.parse(source))
+        if isinstance(node, ast.Call)
+        for keyword in node.keywords
+        if keyword.arg == "shell"
+    ]
+    assert shell_kwargs, "the execution posture must be stated, not inherited from a default"
+    for keyword in shell_kwargs:
+        assert isinstance(keyword.value, ast.Constant) and keyword.value.value is False
+
+
+def test_command_substitution_arrives_as_literal_argv(sandbox: ns.Sandbox):
+    """The named case: `cat $(touch file)` must create nothing."""
+    victim = sandbox.path / "pwned"
+    res = ns.run_guarded("cat $(touch pwned)", sandbox)
+
+    assert res.refused is False, "it is inert, not screened - that is the whole claim"
+    assert not victim.exists(), "command substitution must not have run"
+    assert res.returncode != 0, "cat was handed two filenames that do not exist"
+
+    stages = ns.parse_pipeline("cat $(touch pwned)")
+    assert [list(s.argv) for s in stages] == [["cat", "$(touch", "pwned)"]]
+
+
+def test_backticks_and_variables_are_literal_too(sandbox: ns.Sandbox):
+    res = ns.run_guarded("cat `touch backticked`", sandbox)
+    assert res.refused is False
+    assert not (sandbox.path / "backticked").exists()
+
+    assert ns.parse_pipeline("echo $HOME")[0].argv == ("echo", "$HOME")
+    assert ns.parse_pipeline("echo ${HOME}")[0].argv == ("echo", "${HOME}")
+
+
+def test_run_guarded_never_passes_a_string_to_subprocess(sandbox: ns.Sandbox, monkeypatch):
+    """Behavioural sibling of the grep: whatever is executed is a LIST, with shell=False."""
+    seen: list[tuple[object, object]] = []
+    real = subprocess.run
+
+    def spy(args, **kwargs):
+        seen.append((args, kwargs.get("shell")))
+        return real(args, **kwargs)
+
+    monkeypatch.setattr(ns.subprocess, "run", spy)
+    ns.run_guarded("git log --oneline -1 | wc -l", sandbox)
+
+    assert seen, "the command must actually have been executed"
+    for args, shell in seen:
+        assert isinstance(args, list), args
+        assert shell is False, args
+
+
+def test_chained_commands_are_refused_rather_than_silently_mangled():
+    """`cat a; rm -rf b` lexes `a;` as one word - inert, but it must not read as success."""
+    for command in ("cat a; rm -rf b", "cat a && rm -rf b", "cat a || rm -rf b", "cat a & rm b"):
+        assert ns.screen_command(command).kind == "shell-construct", command
+
+
+def test_pipelines_still_run_end_to_end(sandbox: ns.Sandbox):
+    res = ns.run_guarded("git log --oneline | wc -l", sandbox)
+    assert res.refused is False
+    assert res.returncode == 0
+    assert res.stdout.strip().isdigit()
+
+
+def test_unquoted_globs_expand_and_quoted_ones_do_not(sandbox: ns.Sandbox):
+    (sandbox.path / "docs" / "audits").mkdir(parents=True, exist_ok=True)
+    res = ns.run_guarded("ls docs/audits/*.md", sandbox)
+    assert res.refused is False
+    assert "substrate-inventory" in res.stdout
+
+    stage = ns.parse_pipeline("git show abc -- 'docs/audits/*.md'")[0]
+    assert stage.argv[-1] == "docs/audits/*.md"
+    assert stage.globbable[-1] is False, "a quoted glob is a pathspec, not ours to expand"
+    assert ns.parse_pipeline("ls docs/audits/*.md")[0].globbable[-1] is True
+
+
+def test_a_redirect_target_is_data_when_it_is_quoted():
+    """Regression against over-refusal: `grep '>' file` reads a file, it does not write one."""
+    stage = ns.parse_pipeline("grep -n '>' pyproject.toml")[0]
+    assert stage.argv == ("grep", "-n", ">", "pyproject.toml")
+    assert ns.screen_command("grep -n '>' pyproject.toml") is None
+
+
+def test_devnull_is_the_only_permitted_redirect():
+    assert ns.parse_pipeline("git show abc 2>/dev/null")[0].drop_stderr is True
+    assert ns.parse_pipeline("ls > /dev/null")[0].drop_stdout is True
+    assert ns.screen_command("cat CLAUDE.md > /tmp/leak").kind == "redirect"
+    assert ns.screen_command("cat CLAUDE.md >> notes.txt").kind == "redirect"
+    assert ns.screen_command("cat < CLAUDE.md").kind == "redirect"
+
+
+def test_dropped_streams_are_actually_dropped(sandbox: ns.Sandbox):
+    noisy = ns.run_guarded("git rev-parse --verify nope-no-such-ref", sandbox)
+    assert noisy.stderr != ""
+    quiet = ns.run_guarded("git rev-parse --verify nope-no-such-ref 2>/dev/null", sandbox)
+    assert quiet.stderr == ""
+
+
+def test_an_unrunnable_command_reports_itself(sandbox: ns.Sandbox, monkeypatch):
+    """With no shell there is nothing to say 'command not found', so the guard says it."""
+
+    def missing(*_args, **_kwargs):
+        raise FileNotFoundError(2, "No such file or directory")
+
+    monkeypatch.setattr(ns.subprocess, "run", missing)
+    res = ns.run_guarded("cat CLAUDE.md", sandbox)
+    assert res.refused is False
+    assert res.returncode == 127
+    assert "not found" in res.stderr
+
+
+def test_unbalanced_quoting_is_refused_not_guessed():
+    assert ns.screen_command("cat 'CLAUDE.md").kind == "unparseable"
 
 
 def test_layer_a_separates_a_bare_listing_from_a_mutation():

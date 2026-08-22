@@ -46,6 +46,15 @@ USAGE (the seam the candidate transport calls)
 with a `run` tool, or a CLI lane) calls it, so both lanes are guarded by one mechanism and
 neither lane's guard can drift from the other's.
 
+EXECUTION POSTURE (see `parse_pipeline`)
+----------------------------------------
+`exec` never spawns a shell. A command is lexed into literal argv, split into pipeline
+stages on `|`, and each stage is run with `shell=False`. Command substitution, backticks
+and variable expansion therefore have no meaning rather than being screened for: `cat
+$(touch f)` hands `cat` two filenames and creates nothing. The cost is stated where it is
+incurred - shell loops, conditionals and `;`/`&&` chains are refused, not interpreted, so
+a multi-command shape is issued one `exec` call at a time.
+
 DESTRUCTION POSTURE (see the "Provenance" section)
 --------------------------------------------------
 `teardown` deletes a tree, so it is the one operation here that can destroy work that is
@@ -65,6 +74,7 @@ from __future__ import annotations
 
 import argparse
 import fnmatch
+import glob
 import json
 import os
 import re
@@ -74,6 +84,7 @@ import stat
 import subprocess
 import sys
 import tempfile
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -246,8 +257,27 @@ _GIT_LISTING_WHEN_BARE: frozenset[str] = frozenset({"branch", "tag", "config", "
 
 _FENCE_LINE = re.compile(r"^\s{0,3}(?:```|~~~)")
 
-_SEGMENT_SPLIT = re.compile(r"\|\||&&|[|;\n]")
-_REDIRECT = re.compile(r"(?<![0-9<>])>>?\s*(?P<target>[^\s;|&]+)")
+DEVNULL = "/dev/null"
+
+# Characters that make a token a glob. Expansion is done in-process against the sandbox
+# (see `_expand_globs`) because there is no shell left to do it.
+_GLOB_CHARS = frozenset("*?[")
+
+# Tokens that would ask a shell to run a SECOND command. There is no shell, so rather than
+# hand them to a program as literal arguments - which reads as success and silently does
+# the wrong thing - they are refused.
+_SEPARATOR_TOKENS = frozenset({";", "&", "&&", "||", ";;", "|&"})
+_SEPARATOR_CHARS = frozenset(";&|")
+
+# Shell keywords. Checked at argv0 only: `cat do` is a file called `do`, and refusing that
+# would be a false positive of exactly the kind the first allowlist was measured for.
+_SHELL_KEYWORDS = frozenset(
+    {
+        "for", "while", "until", "if", "then", "else", "elif", "fi", "do", "done", "case",
+        "esac", "select", "function", "time", "coproc", "{", "}", "(", ")", "((", "[[",
+        "!", ".", "source", "eval", "exec", "export", "alias", "set", "unset", "trap",
+    }
+)
 
 
 # --------------------------------------------------------------------------------------
@@ -877,60 +907,225 @@ class Trip:
     detail: str
 
 
-def _segments(command: str) -> list[str]:
-    return [seg.strip() for seg in _SEGMENT_SPLIT.split(command) if seg.strip()]
+class UnsupportedShell(Exception):
+    """A command asked for a shell feature this sandbox does not have."""
+
+    def __init__(self, kind: str, detail: str) -> None:
+        super().__init__(detail)
+        self.kind = kind
+        self.detail = detail
 
 
-# Shell control words carry no command of their own. Without this, `for s in <shas>; do git
-# log -1 $s; done` is refused at `for` - and that is the exact shape of C1-K2's and C1-K3's
-# OWN adjudicating commands, so the naive allowlist handicapped the candidate on two scored
-# ranking items. Found by running all 14 items' adjudicating commands through the guard.
-_CONSTRUCT_HEADS = frozenset({"for", "while", "until", "if", "case", "select", "done", "fi", "esac", "}", "{"})
-_CONSTRUCT_PREFIXES = frozenset({"do", "then", "else", "elif"})
+@dataclass(frozen=True)
+class Stage:
+    """One pipeline stage: literal argv, plus which streams the command sent to /dev/null.
+
+    `globbable` runs parallel to `argv` and marks the words whose glob characters arrived
+    UNQUOTED. A quoted glob is a literal - `git show <sha> -- '*.md'` hands git a pathspec
+    it expands itself - while an unquoted one is ours to expand. Both shapes are the
+    instrument's own commands, so conflating them breaks one of them either way.
+    """
+
+    argv: tuple[str, ...]
+    globbable: tuple[bool, ...]
+    drop_stdout: bool = False
+    drop_stderr: bool = False
 
 
-def _command_tokens(segment: str) -> list[str]:
-    """Strip assignments and shell control words, returning the actual command's tokens."""
-    parts = segment.split()
-    while parts:
-        head = parts[0]
-        if "=" in head and not head.startswith("-"):
-            parts = parts[1:]  # leading VAR=value assignment
+def _lex(command: str) -> list[tuple[str, str]]:
+    """Split `command` into (value, unquoted-part) words. Quote-aware, expansion-free.
+
+    `shlex` cannot answer the question this parser actually has, which is not "what are the
+    words" but "which characters were quoted". Its POSIX mode strips quotes and forgets;
+    its non-POSIX mode keeps them but tokenizes differently, so pairing the two streams
+    desynchronises on the ordinary `--format='%h %ad'` shape. So the second element here is
+    the word with quoted spans REMOVED, and every structural test - pipe, separator,
+    redirect, glob - reads that rather than the value. `grep -n '>' file` is the case that
+    forces it: the `>` is data, and a parser that cannot tell refuses a legitimate read.
+    """
+    words: list[tuple[str, str]] = []
+    value: list[str] = []
+    bare: list[str] = []
+    started = False
+    quote: str | None = None
+    index = 0
+    while index < len(command):
+        char = command[index]
+        if quote is not None:
+            if char == quote:
+                quote = None
+            elif quote == '"' and char == "\\" and index + 1 < len(command):
+                index += 1
+                value.append(command[index])
+            else:
+                value.append(char)
+            index += 1
             continue
-        if head in _CONSTRUCT_PREFIXES:
-            parts = parts[1:]  # `do <cmd>` - the command is what follows
+        if char.isspace():
+            if started:
+                words.append(("".join(value), "".join(bare)))
+                value, bare, started = [], [], False
+            index += 1
             continue
-        if head in _CONSTRUCT_HEADS:
-            return []  # a loop or conditional header runs nothing itself
-        return parts
-    return []
+        started = True
+        if char in ("'", '"'):
+            quote = char
+        elif char == "\\" and index + 1 < len(command):
+            index += 1
+            value.append(command[index])  # escaped: literal, and NOT structural
+        else:
+            value.append(char)
+            bare.append(char)
+        index += 1
+    if quote is not None:
+        raise UnsupportedShell("unparseable", "unbalanced quote")
+    if started:
+        words.append(("".join(value), "".join(bare)))
+    return words
 
 
-def _argv0(segment: str) -> str:
-    tokens = _command_tokens(segment)
-    return tokens[0].rsplit("/", 1)[-1] if tokens else ""
+def _redirect_split(word: str) -> tuple[str, str] | None:
+    """Return (operator, inline target) if `word` begins a redirect, else None."""
+    for op in ("2>>", "1>>", "&>>", "2>", "1>", "&>", ">>", ">", "<<", "<"):
+        if word.startswith(op):
+            return op, word[len(op) :]
+    return None
 
 
-def screen_command(command: str, denied_names: set[str] | None = None) -> Trip | None:
-    """Refuse a command before it runs. Returns None when the command may proceed."""
+def parse_pipeline(command: str) -> list[Stage]:
+    """Lex `command` into pipeline stages of LITERAL argv. No shell is involved, ever.
+
+    WHAT IS SUPPORTED, and it is deliberately the read surface and nothing else: quoting,
+    `|` pipelines, unquoted globs, and `>/dev/null` / `2>/dev/null` (which only ever mean
+    "discard this stream", never "write a file").
+
+    WHAT IS NOT, stated because a silent capability loss is worse than a loud one:
+
+      * Command substitution, backticks and variable expansion are not INTERPRETED and not
+        refused - they have no meaning without a shell, so `cat $(touch f)` hands `cat` two
+        filenames, `$(touch` and `f)`, and creates nothing. That inertness is the point of
+        the whole change, and it is what the allowlist could never deliver: the previous
+        implementation screened top-level shell SEGMENTS and then executed with
+        `shell=True`, so a substitution ran a command the allowlist had never seen.
+      * Loops, conditionals and `;`/`&&`/`||` chains are REFUSED. This is a real capability
+        reduction and it is not hypothetical: the guard's own comments record that C1-K2
+        and C1-K3 adjudicate with `for s in <shas>; do git log -1 $s; done`. Those shapes
+        must now be issued as one `exec` call per command, which the transport already
+        supports because `exec` runs exactly one command at a time. The alternative was to
+        keep a shell and screen it, which is the defect.
+      * Redirects to anything but `/dev/null` are refused, as they were before. Output is
+        captured and returned, so a file redirect could only ever be a write.
+
+    Raises `UnsupportedShell`; callers turn that into a Layer A refusal.
+    """
+    if "\n" in command or "\r" in command:
+        raise UnsupportedShell("shell-construct", "multi-line commands are not available here")
+    words = _lex(command)
+    if not words:
+        raise UnsupportedShell("unparseable", "empty command")
+
+    stages: list[Stage] = []
+    argv: list[str] = []
+    globbable: list[bool] = []
+    drop_stdout = False
+    drop_stderr = False
+
+    def flush() -> None:
+        nonlocal argv, globbable, drop_stdout, drop_stderr
+        if not argv:
+            raise UnsupportedShell("shell-construct", "empty pipeline stage")
+        stages.append(Stage(tuple(argv), tuple(globbable), drop_stdout, drop_stderr))
+        argv, globbable = [], []
+        drop_stdout = drop_stderr = False
+
+    index = 0
+    while index < len(words):
+        value, bare = words[index]
+        index += 1
+
+        if bare == "|" and value == "|":
+            flush()
+            continue
+        if bare in _SEPARATOR_TOKENS or _SEPARATOR_CHARS.intersection(bare):
+            # Includes the embedded case: `cat a; rm -rf b` lexes `a;` as one word. With no
+            # shell the second command could never run, but handing `a;` to `cat` as a
+            # filename reads as success while doing something else entirely.
+            raise UnsupportedShell(
+                "shell-construct",
+                f"'{value}' chains commands; issue one command per call",
+            )
+
+        redirect = _redirect_split(bare)
+        if redirect is not None:
+            operator, inline = redirect
+            target = inline
+            if not target:
+                if index >= len(words):
+                    raise UnsupportedShell("redirect", "redirect with no target")
+                target = words[index][0]
+                index += 1
+            if operator.startswith("<") or target != DEVNULL:
+                raise UnsupportedShell("redirect", f"redirect to {target} is not permitted")
+            if operator.startswith("2"):
+                drop_stderr = True
+            elif operator.startswith("&"):
+                drop_stdout = drop_stderr = True
+            else:
+                drop_stdout = True
+            continue
+
+        argv.append(value)
+        globbable.append(bool(_GLOB_CHARS.intersection(bare)))
+
+    flush()
+    return stages
+
+
+def _screen_words(text: str, denied_names: set[str]) -> Trip | None:
+    """The two content checks, applied to a command string or to expanded argv."""
+    for name in sorted(denied_names, key=len, reverse=True):
+        if name and name in text:
+            return Trip("A", "stripped-artifact-path", f"command names a stripped artifact ({name})")
+    for cid, pattern, _why in CANARIES:
+        if pattern.search(text):
+            return Trip("A", "canary-in-command", f"command carries canary '{cid}'")
+    return None
+
+
+def screen_pipeline(
+    command: str, denied_names: set[str] | None = None
+) -> tuple[Trip | None, list[Stage]]:
+    """Screen a command and, when it may proceed, hand back the parsed stages.
+
+    One parse, one screen: `run_guarded` executes exactly the stages that were screened,
+    so there is no window in which the string that was checked and the string that runs can
+    differ. Under `shell=True` that window was the whole defect.
+    """
     denied_names = denied_names or set()
 
-    for name in sorted(denied_names, key=len, reverse=True):
-        if name and name in command:
-            return Trip("A", "stripped-artifact-path", f"command names a stripped artifact ({name})")
+    trip = _screen_words(command, denied_names)
+    if trip is not None:
+        return trip, []
 
-    for cid, pattern, _why in CANARIES:
-        if pattern.search(command):
-            return Trip("A", "canary-in-command", f"command carries canary '{cid}'")
+    try:
+        stages = parse_pipeline(command)
+    except UnsupportedShell as exc:
+        return Trip("A", exc.kind, exc.detail), []
 
-    for segment in _segments(command):
-        argv0 = _argv0(segment)
-        if argv0 and argv0 not in ALLOWED_ARGV0:
-            return Trip("A", "argv0-not-allowed", f"'{argv0}' is not in the read-only allowlist")
+    for stage in stages:
+        argv0 = stage.argv[0].rsplit("/", 1)[-1].rsplit("\\", 1)[-1]
+        if argv0 in _SHELL_KEYWORDS:
+            return (
+                Trip("A", "shell-construct", f"'{argv0}' is a shell construct, not a command"),
+                [],
+            )
+        if argv0 not in ALLOWED_ARGV0:
+            return Trip("A", "argv0-not-allowed", f"'{argv0}' is not in the read-only allowlist"), []
         if argv0 == "git":
-            # tokens after the `git` itself, with the control words already stripped - a
-            # write hidden in a loop body (`do git commit ...`) must still be refused.
-            tokens = [t for t in _command_tokens(segment)[1:] if not t.startswith("-")]
+            # Real argv now, not a regex over a segment: `git commit` is refused because
+            # `commit` IS the first non-flag argument, not because a pattern happened to
+            # match it somewhere in the string.
+            tokens = [t for t in stage.argv[1:] if not t.startswith("-")]
             if tokens and tokens[0] in _GIT_WRITE_SUBCOMMANDS:
                 # `git branch -a`, `git tag`, `git config --list` and `git stash` with no
                 # operand are LISTING commands. Refusing them was a measured false
@@ -938,12 +1133,29 @@ def screen_command(command: str, denied_names: set[str] | None = None) -> Trip |
                 # always takes one) is what makes them writes.
                 if tokens[0] in _GIT_LISTING_WHEN_BARE and len(tokens) == 1:
                     continue
-                return Trip("A", "git-write", f"git {tokens[0]} mutates state")
-        for match in _REDIRECT.finditer(segment):
-            target = match.group("target")
-            if target != "/dev/null":
-                return Trip("A", "redirect", f"redirect to {target} is not permitted")
-    return None
+                return Trip("A", "git-write", f"git {tokens[0]} mutates state"), []
+    return None, stages
+
+
+def screen_command(command: str, denied_names: set[str] | None = None) -> Trip | None:
+    """Refuse a command before it runs. Returns None when the command may proceed."""
+    return screen_pipeline(command, denied_names)[0]
+
+
+def _expand_globs(stage: Stage, cwd: Path) -> list[str]:
+    """Expand unquoted globs against the sandbox. No shell, so this is ours to do.
+
+    Unmatched patterns are passed through literally, which is bash's default (nullglob off)
+    and is what keeps `git show <sha> -- 'docs/**'` working when nothing matches.
+    """
+    expanded: list[str] = []
+    for word, globbable in zip(stage.argv, stage.globbable):
+        if not globbable:
+            expanded.append(word)
+            continue
+        matches = sorted(glob.glob(word, root_dir=str(cwd)))
+        expanded.extend(matches if matches else [word])
+    return expanded
 
 
 # --------------------------------------------------------------------------------------
@@ -996,7 +1208,11 @@ def run_guarded(
     timeout: int = 120,
     max_output_bytes: int = 100_000,
 ) -> GuardedResult:
-    """Run one shell command inside the sandbox with both guard layers applied."""
+    """Run one command inside the sandbox, with both guard layers applied and NO shell.
+
+    Every stage is executed with `shell=False` from an argv list that was itself screened,
+    so nothing between the check and the exec can reinterpret the string.
+    """
     if isinstance(sandbox, Sandbox):
         cwd = sandbox.path
         names = denied_names if denied_names is not None else sandbox.denied_names()
@@ -1004,33 +1220,69 @@ def run_guarded(
         cwd = Path(sandbox)
         names = denied_names or set()
 
-    trip = screen_command(command, names)
+    trip, stages = screen_pipeline(command, names)
     if trip is not None:
         return GuardedResult(command, REFUSAL_EXIT, "", REFUSAL_TEXT, refused=True, trip=trip)
 
-    try:
-        proc = subprocess.run(
-            command,
-            shell=True,
-            cwd=str(cwd),
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-            check=False,
-        )
-    except subprocess.TimeoutExpired:
-        return GuardedResult(command, 124, "", "sandbox guard: command timed out.", refused=False)
+    # Globs expand to real paths, so the expansion is screened too: a pattern that names
+    # nothing forbidden can still MATCH something forbidden.
+    expanded = [_expand_globs(stage, cwd) for stage in stages]
+    trip = _screen_words(" ".join(word for argv in expanded for word in argv), names)
+    if trip is not None:
+        return GuardedResult(command, REFUSAL_EXIT, "", REFUSAL_TEXT, refused=True, trip=trip)
 
-    combined = f"{proc.stdout}\n{proc.stderr}"
+    # Stages run in sequence, each fed the previous stage's stdout, rather than as
+    # concurrently-piped processes: with every stream captured, concurrent pipes deadlock
+    # on a full buffer, and the read surface here is small and bounded by `timeout`. The
+    # visible difference from a real pipeline is that `head -5` does not terminate its
+    # upstream early - it truncates instead.
+    piped = ""
+    stderr_parts: list[str] = []
+    returncode = 0
+    remaining = float(timeout)
+    for stage, argv in zip(stages, expanded):
+        started = time.monotonic()
+        try:
+            proc = subprocess.run(
+                argv,
+                shell=False,
+                cwd=str(cwd),
+                input=piped,
+                capture_output=True,
+                text=True,
+                errors="replace",
+                timeout=max(remaining, 0.1),
+                check=False,
+            )
+        except subprocess.TimeoutExpired:
+            return GuardedResult(command, 124, "", "sandbox guard: command timed out.", refused=False)
+        except (FileNotFoundError, NotADirectoryError):
+            # There is no shell to say "command not found", so the guard says it - with the
+            # conventional exit code, and without pretending the command succeeded.
+            return GuardedResult(
+                command, 127, "", f"sandbox guard: command not found: {argv[0]}", refused=False
+            )
+        except OSError as exc:
+            return GuardedResult(
+                command, 126, "", f"sandbox guard: could not run {argv[0]}: {exc}", refused=False
+            )
+        remaining -= time.monotonic() - started
+        returncode = proc.returncode
+        piped = "" if stage.drop_stdout else proc.stdout
+        if proc.stderr and not stage.drop_stderr:
+            stderr_parts.append(proc.stderr)
+
+    stderr = "".join(stderr_parts)
+    combined = f"{piped}\n{stderr}"
     trip = screen_output(combined, names)
     if trip is not None:
         return GuardedResult(command, REFUSAL_EXIT, "", REFUSAL_TEXT, refused=True, trip=trip)
 
-    stdout = proc.stdout
+    stdout = piped
     if len(stdout.encode("utf-8")) > max_output_bytes:
         stdout = stdout.encode("utf-8")[:max_output_bytes].decode("utf-8", errors="ignore")
         stdout += "\n[output truncated by sandbox guard]"
-    return GuardedResult(command, proc.returncode, stdout, proc.stderr, refused=False)
+    return GuardedResult(command, returncode, stdout, stderr, refused=False)
 
 
 # --------------------------------------------------------------------------------------
