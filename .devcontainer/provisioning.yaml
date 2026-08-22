@@ -88,7 +88,7 @@ prebuild:
   # `configured: false` is observed drift (exit 1), and every other reading is indeterminate
   # (exit 2) — `none` is produced by an unrun or expired prebuild just as much as by no
   # configuration at all. The checker says which, and never reports a verification it cannot make.
-  configured: false
+  configured: true
 
   # "On configuration change", NOT the "Every push" default. Load-bearing, not tidy: the same
   # audit measured 601 of 2000 included Actions minutes already spent this month (30%), and

@@ -19,6 +19,64 @@
 
 ---
 
+### 2026-08-22 (a) — CC (Opus 5, seat arc, branch `docs/seat-act0-act1-2026-08-21`): the architect's ruled batch lands in the row bodies, and R5 lands here because it has no row to land in
+
+**Did:** Phase 1 of the seat contract. Five of the six rulings landed **verbatim** into their named
+row bodies — `c64165a9` R2→`[#555]`, `8ef212fb` R1→`[#559]`, `96b0d0b5` R3→`[#562]`, `124d8859`
+R4→`[#539]`, `799a3ce4` R6→`[#565]` — each via `tasks/` plus `gen_task_tree.py --emit-source`, never
+a direct `BACKLOG.md` edit. `4b788f67` is a separate act recorded below. **214 tasks before and
+after: zero births, zero closures.** `gen_task_tree --check` passes.
+
+**Result: R5 has no live target row, and the architect ruled that this entry is where it goes rather
+than a new row.** The seat contract names "the ratification carrier row"; the two candidates in the
+tree, `[#450]` (per-section intake ratification) and `[#435]` (steward intake #18 to a ratification
+decision), are **both `status: closed`**. Creating a row to receive the ruling would be a birth, and
+births are charged against banked closures under R2. The ruling text is therefore recorded here in
+full, and a Table B line asks the architect to assign the carrier among the part-C filings:
+
+> **R5 — RULED 2026-08-20:** dedicated ratification lane, batch 2, split per review Q4 — preps all 7
+> DRAFTs, transitions the 4 non-fork; #35–#37 hold on the architect's R7 ADR-fork ruling (never the
+> lane's). BOTH intake generators on every transition.
+
+**R4 was written "status/body", and only the body half is landed — stated, not left to inference.**
+The `tasks/` status enum is `{open, closed, deferred, retired, superseded}`; there is no
+`dispatched` value, and the only status expressing the ruling is `closed`, which is a **ledger
+closure**. This seat is authorized to close exactly one row (`[#348]`, Phase 2 item 2) and `[#539]`
+is not it. `[#539]`'s work has in fact landed — `gen_lane_contract.py` and the Ch8 codification
+merged at `01adf895` — so it is a live closure candidate for part C's re-measure, not an open
+question about whether the work is done. Carried to Table B.
+
+**One act outside Phase 1, recorded because it is an operator fact rather than a seat decision:**
+`4b788f67` sets `.devcontainer/provisioning.yaml` `prebuild.configured: true`. The operator
+completed the GitHub UI setup (Settings → Codespaces → prebuild on `main`; trigger *On
+configuration change*, region *EuropeWest* only, template history 1) and confirmed it. I had
+reverted the flag as an unexplained working-tree mutation before that confirmation arrived, and was
+wrong to; it is restored. **The flag cannot be machine-corroborated either way** —
+`cloud_provisioning.py prebuild` reports INDETERMINATE because trigger, region set and template
+history are operator UI state no API exposes (probed: REST 404, GraphQL introspection empty, no `gh
+codespace` subcommand); only availability is readable, and it reads UNKNOWN. Operator confirmation
+is the only authority the flag can have, which is what the flag is for. This closes the last
+operator-owned leg of the felt-speed demand.
+
+**A tension the landings created, reported rather than resolved:** landing R1–R6 verbatim pushed
+four row bodies past the 1320-char `doc_rot` ceiling that R1 itself re-affirms — `[#555]` 1313→1952,
+`[#559]` 2860→3222, `[#562]` 2027→2443, `[#565]` 1529→2085. R1's remedy for annotation-driven
+overage is pointer-ization, but a **ruling** is not an annotation: moving it to a referenced doc
+would undo "land verbatim in the row body", which is the instruction that produced the overage. The
+two instructions cannot both be satisfied for the same characters. Table B.
+
+**Changes:** `tasks/{555,559,562,539,565}-*.md` + regenerated `BACKLOG.md` and `tasks/manifest.json`
+(five commits); `.devcontainer/provisioning.yaml`.
+
+**Abandoned:** Nothing. No row was born, none closed, no `tasks/` file touched outside the
+generator, and `protocols/STANDING_RULINGS.md` was not opened.
+
+**Next:** Phase 2 — pointer-ize the annotation-driven over-length rows, verify `[#348]` against live
+evidence, triage the two standing suite REDs. Then Phase 3's tables to `~/Downloads/TABLE-AB.md`,
+then PAUSE for the architect.
+
+---
+
 ### 2026-08-21 (h) — CC (Opus 5, integrator, branch `docs/claude-md-v263-roster-row`): the step-5 WARN sweep, and the only two WARNs the batch actually produced
 
 **Did:** Ran the post-integration verification the integrator contract asks for — `uv sync --locked
