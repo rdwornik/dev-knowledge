@@ -1107,6 +1107,55 @@ def test_an_attached_option_value_cannot_hide_a_symlink(sandbox: ns.Sandbox, tmp
     assert res.trip.kind == "path-outside-sandbox"
 
 
+def test_short_attached_values_are_not_guessed_at(sandbox: ns.Sandbox, tmp_path: Path):
+    """`-fescape` is `-f escape`; an earlier draft read it as one long option name."""
+    assert ns.screen_command(r"grep -f'C:\host\secrets' CLAUDE.md").kind == "path-outside-sandbox"
+    assert ns.screen_command("grep -f/etc/passwd CLAUDE.md").kind == "path-outside-sandbox"
+    assert ns.screen_command("grep -f../outside CLAUDE.md").kind == "path-outside-sandbox"
+    assert ns.screen_command("grep -rn pattern .") is None, "a flag bundle is not a path"
+
+    # An UNQUOTED windows path cannot name that file in the first place: `\` is the escape
+    # character, so `C:\host\secrets` lexes to `C:hostsecrets`. Asserted rather than left
+    # implicit, because "it was refused" and "it could never have worked" are different
+    # facts and only one of them is a guarantee.
+    assert ns.parse_pipeline(r"grep -fC:\host\secrets CLAUDE.md")[0].argv[1] == "-fC:hostsecrets"
+
+    secret = tmp_path / "host-patterns2.txt"
+    secret.write_text("root", encoding="utf-8")
+    try:
+        (sandbox.path / "escape2").symlink_to(secret)
+    except (OSError, NotImplementedError) as exc:
+        pytest.skip(f"symlink creation unavailable: {exc}")
+    res = ns.run_guarded("grep -fescape2 CLAUDE.md", sandbox)
+    assert res.refused is True
+    assert res.trip.kind == "path-outside-sandbox"
+
+
+def test_symlink_following_traversal_modes_are_refused():
+    """Every operand inside the tree, and the walk still leaves it. Only the flag shows."""
+    assert ns.screen_command("find -L .").kind == "forbidden-argument"
+    assert ns.screen_command("find . -follow").kind == "forbidden-argument"
+    assert ns.screen_command("grep -R pattern .").kind == "forbidden-argument"
+    assert ns.screen_command("rg --follow pattern .").kind == "forbidden-argument"
+    # the non-following recursive forms stay available
+    assert ns.screen_command("grep -r pattern .") is None
+    assert ns.screen_command("find . -name '*.md'") is None
+
+
+def test_run_guarded_refuses_a_directory_that_was_never_provisioned(tmp_path: Path):
+    """Hardening the CLI did nothing for a direct caller; the check belongs at execution."""
+    outside = tmp_path / "plain-directory"
+    outside.mkdir()
+    (outside / "secret.txt").write_text("host content", encoding="utf-8")
+
+    with pytest.raises(RuntimeError, match="no provisioning marker"):
+        ns.run_guarded("cat secret.txt", outside)
+
+    hand_built = ns.Sandbox(path=outside, source=outside, head="x", strip_commit="y")
+    with pytest.raises(RuntimeError, match="no provisioning marker"):
+        ns.run_guarded("cat secret.txt", hand_built)
+
+
 def test_a_live_registry_lock_is_not_stolen(tmp_path: Path):
     """An earlier draft broke the lock on the waiter's OWN timeout, so two could hold it."""
     lock = (tmp_path / ns.REGISTRY_NAME).with_suffix(".lock")

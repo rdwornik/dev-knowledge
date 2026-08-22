@@ -269,9 +269,12 @@ ALLOWED_ARGV0: frozenset[str] = frozenset(
 _FORBIDDEN_ARGS: dict[str, frozenset[str]] = {
     # `find` is kept because it is a genuine read tool; its ACTION primaries are what run
     # or delete things.
+    # Action primaries run or delete things. `-L`/`-H`/`-follow` DEREFERENCE symlinks
+    # during traversal, which is how a command whose every operand is inside the sandbox
+    # still reads outside it - the operand check can only see what was written down.
     "find": frozenset(
         {"-exec", "-execdir", "-ok", "-okdir", "-delete", "-fprintf", "-fls", "-fprint",
-         "-fprint0"}
+         "-fprint0", "-L", "-H", "-follow", "--dereference"}
     ),
     # In-place edit is the write mode. sed's `w` command and GNU `e` command are NOT
     # detectable by flag - see the limit above; they write and run relative to the
@@ -279,8 +282,12 @@ _FORBIDDEN_ARGS: dict[str, frozenset[str]] = {
     # `-i` is the obvious write mode; `-f` loads a script from a file, which cannot be
     # screened, so the script must arrive inline where `_sed_script_is_read_only` sees it.
     "sed": frozenset({"-i", "--in-place", "-f", "--file"}),
-    # ripgrep can run a preprocessor per file, which is `-exec` by another name.
-    "rg": frozenset({"--pre", "--hostname-bin", "--search-zip", "-z"}),
+    # `-R` is the recursive mode that FOLLOWS symlinks (`-r` does not), so it walks out of
+    # the tree without any operand saying so. `--dereference-recursive` is its long form.
+    "grep": frozenset({"-R", "--dereference-recursive", "-r--dereference"}),
+    # ripgrep can run a preprocessor per file, which is `-exec` by another name; `--follow`
+    # is grep's `-R`.
+    "rg": frozenset({"--pre", "--hostname-bin", "--search-zip", "-z", "-L", "--follow"}),
     # `sort -o FILE` writes wherever it is pointed and `--compress-program` runs a program.
     # `-T` relocates its temporary files. All three are outside a read surface.
     "sort": frozenset({"-o", "--output", "--compress-program", "-T", "--temporary-directory",
@@ -1536,6 +1543,26 @@ _PATTERN_VALUE_FLAGS: frozenset[str] = frozenset({"-e", "--regexp"})
 _PATTERN_FILE_FLAGS: frozenset[str] = frozenset({"-f", "--file"})
 
 
+# Short options of grep/rg that CONSUME a value. Needed in order, because in a bundle the
+# first value-taking letter owns everything after it: `-fescape` is `-f escape`, and `-rn`
+# is two booleans. `_option_forms` deliberately over-generates (safe for a refusal table,
+# where more matches means more refusals) and must NOT be used to decide what a value MEANS
+# - it reports `-e` for `-fescape`, which is how `-fescape` was once read as a pattern.
+_GREP_VALUE_LETTERS = "efmABCD"
+
+
+def _short_option_value(token: str) -> tuple[str, str]:
+    """(value-taking letter, attached value) for a short-option token, else ("", "")."""
+    if token.startswith("--") or not token.startswith("-"):
+        return "", ""
+    for position, letter in enumerate(token[1:], start=1):
+        if letter in _GREP_VALUE_LETTERS:
+            return letter, token[position + 1 :]
+        if not letter.isalnum():
+            break
+    return "", ""
+
+
 def _pattern_positions(stage: Stage) -> set[int]:
     """Indexes whose contents are a PATTERN (data), not a path this tool will open."""
     exempt: set[int] = set()
@@ -1543,16 +1570,24 @@ def _pattern_positions(stage: Stage) -> set[int]:
     index = 1
     while index < len(stage.argv):
         token = stage.argv[index]
-        forms = set(_option_forms(token))
-        if forms & (_PATTERN_VALUE_FLAGS | _PATTERN_FILE_FLAGS):
+        long_head = token.split("=", 1)[0] if token.startswith("--") else ""
+        letter, attached = _short_option_value(token)
+        is_pattern = long_head in _PATTERN_VALUE_FLAGS or letter == "e"
+        is_file = long_head in _PATTERN_FILE_FLAGS or letter == "f"
+        if is_pattern or is_file:
             supplied = True
-            attached = _attached_value(token)
-            if not attached:  # the value is the NEXT argument
-                if forms & _PATTERN_VALUE_FLAGS:
+            if attached or (token.startswith("--") and "=" in token):
+                if is_pattern:
+                    exempt.add(index)  # `-epattern` / `--regexp=pattern`: the token is data
+            else:  # the value is the NEXT argument
+                if is_pattern:
                     exempt.add(index + 1)
                 index += 1  # ...and either way it is not a positional
-            elif forms & _PATTERN_VALUE_FLAGS:
-                exempt.add(index)  # `-epattern`: the whole token is data
+        elif letter:
+            # some other value-taking option (`-m5`, `-A 3`): its value is not a path,
+            # and a detached one must not be mistaken for the positional pattern
+            if not attached:
+                index += 1
         index += 1
     if not supplied:
         for index, token in enumerate(stage.argv[1:], start=1):
@@ -1582,10 +1617,33 @@ def _option_forms(token: str) -> list[str]:
     return forms
 
 
+def _attached_values(token: str) -> list[str]:
+    """Every value a flag token could be carrying.
+
+    Short options take attached values with no separator and no way, without per-tool
+    arity, to know where the option letters stop and the value starts: `-fescape` is `-f
+    escape`, and `-rn` is two flags with no value at all. An earlier draft guessed by
+    matching alphanumerics greedily, which read `-fescape` as one long option name and
+    missed the path entirely - and read `-fC:\\host\\secrets` as the option `-fC`.
+
+    So it does not guess. It returns EVERY suffix, and the callers are both safe under
+    over-generation: the lexical check only fires on something shaped like an escaping
+    path, and the resolved check only fires on something that actually exists in the tree.
+    """
+    if token.startswith("--"):
+        head, sep, value = token.partition("=")
+        return [value] if sep and value else []
+    body = token[1:]
+    values = [body[index:] for index in range(1, len(body))]
+    if "=" in token:
+        values.append(token.split("=", 1)[1])
+    return [value for value in values if value]
+
+
 def _attached_value(token: str) -> str:
-    """The value carried inside a flag token, in either the `--x=v` or the `-xv` form."""
-    match = _OPTION_SPLIT.match(token)
-    return match.group("rest") if match else ""
+    """The most likely single attached value - the whole remainder after the first letter."""
+    values = _attached_values(token)
+    return values[0] if values else ""
 
 
 def _escapes_sandbox(token: str) -> bool:
@@ -1596,7 +1654,7 @@ def _escapes_sandbox(token: str) -> bool:
     checked through their ATTACHED value as well as their `=` value, because `-o../out`
     and `--output=../out` are the same instruction written two ways.
     """
-    values = [token] if not token.startswith("-") else [_attached_value(token)]
+    values = [token] if not token.startswith("-") else _attached_values(token)
     for value in values:
         if not value:
             continue
@@ -1639,20 +1697,26 @@ def _resolves_outside(token: str, cwd: Path) -> bool:
     otherwise. This runs where `cwd` is known - at execution - so `screen_command` alone
     stays lexical, and `run_guarded` is where the resolved leg applies.
     """
-    # A flag's ATTACHED value is a path too: `grep --file=escape` opens `escape`. Checking
-    # only bare operands left every `--opt=path` and `-opath` form uncovered.
-    value = _attached_value(token) if token.startswith("-") else token
-    if not value:
-        return False
-    candidate = cwd / value
-    if not os.path.lexists(candidate):
-        return False  # not a path in this tree, so it is data, not an operand
+    # A flag's ATTACHED value is a path too: `grep --file=escape` and `grep -fescape` both
+    # open `escape`. Checking only bare operands left every attached form uncovered.
+    values = _attached_values(token) if token.startswith("-") else [token]
     try:
-        resolved = candidate.resolve()
         root = cwd.resolve()
-    except OSError:  # pragma: no cover - a resolve that fails is not a proof of safety
+    except OSError:  # pragma: no cover
         return True
-    return resolved != root and root not in resolved.parents
+    for value in values:
+        if not value:
+            continue
+        candidate = cwd / value
+        if not os.path.lexists(candidate):
+            continue  # not a path in this tree, so it is data, not an operand
+        try:
+            resolved = candidate.resolve()
+        except OSError:  # pragma: no cover - a resolve that fails is not proof of safety
+            return True
+        if resolved != root and root not in resolved.parents:
+            return True
+    return False
 
 
 def _screen_git(stage: Stage) -> Trip | None:
@@ -1891,6 +1955,35 @@ class GuardedResult:
         }
 
 
+def _require_provisioned(sandbox: Sandbox | Path, cwd: Path) -> None:
+    """Prove the cwd is a real sandbox before ANY guarded command runs.
+
+    Hardening `_load` hardened the CLI. It did nothing for a direct caller, and
+    `run_guarded` accepts a bare `Path` - so `run_guarded(cmd, Path("/somewhere"))` ran the
+    command with that as `cwd` and read the host through relative operands. The check
+    belongs at the execution boundary, where every route passes through it, not at one of
+    the routes into it.
+    """
+    resolved = _resolve(cwd)
+    root: Path | None = sandbox.sandbox_root if isinstance(sandbox, Sandbox) else None
+    nonce = sandbox.nonce if isinstance(sandbox, Sandbox) else ""
+    if root is None:
+        # No recorded root (a bare Path, or a hand-built Sandbox): take it from the
+        # marker, which cannot be trusted about its own legitimacy but can be read for
+        # WHERE to check - and `verify_provenance` then has to agree with the registry
+        # there, which is the leg a fabricated marker cannot satisfy.
+        marker = read_marker(resolved)
+        if marker is None:
+            raise RuntimeError(
+                f"refused: {resolved} carries no provisioning marker; guarded commands run "
+                f"with the sandbox as their working directory, so an unprovisioned tree is "
+                f"not a degraded guard, it is no guard"
+            )
+        recorded = marker.get("sandbox_root")
+        root = _resolve(str(recorded)) if isinstance(recorded, str) else _resolve(default_sandbox_root())
+    verify_provenance(resolved, _resolve(root), expected_nonce=nonce or None)
+
+
 def run_guarded(
     command: str,
     sandbox: Sandbox | Path,
@@ -1910,6 +2003,7 @@ def run_guarded(
     else:
         cwd = Path(sandbox)
         names = denied_names or set()
+    _require_provisioned(sandbox, cwd)
 
     trip, stages = screen_pipeline(command, names)
     if trip is not None:
