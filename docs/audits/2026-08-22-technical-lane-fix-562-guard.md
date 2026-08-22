@@ -338,3 +338,47 @@ branch.
 
 The held branch `claude/cloud-1-562-admission-rerun` is **not deleted**. It retires only
 after this branch supersedes it at merge, push-before-delete.
+
+---
+
+## AMENDMENT — 2026-08-22, full-suite result and one pre-existing RED
+
+§6 above reported the **guard** suite (111 passed, 0 failed), which was the run available
+when this file was written. The **full** suite finished afterwards. Recorded here as an
+amendment rather than edited into §6, per CLAUDE.md §5 rule 3.
+
+```
+py -m pytest -q -x --tb=short
+1 failed, 1561 passed, 2 skipped, 1 xfailed in 741.79s (12:21)
+```
+
+The single failure is **`tests/test_enforcement_coverage.py::
+test_anchor_gate_probe_distinguishes_installed_from_absent`**, and it is **not this
+lane's**. Evidence, in the order it was established:
+
+1. **The lane touches none of its inputs.** `git diff --name-only main...HEAD` is
+   `docs/audits/*`, `scripts/nopack_sandbox.py`, `tests/test_nopack_sandbox.py`. The test
+   reads `tests/test_enforcement_coverage.py`, `scripts/enforcement_coverage.py`,
+   `scripts/block_unanchored_push.py`, `scripts/journal_anchor.py` and the pre-commit
+   config — none of them changed here.
+2. **It does not probe the live repo.** `_anchor_organ_consumer` builds a synthetic
+   consumer in `tmp_path`, so this lane's 15 unanchored commits cannot reach it. That
+   matters because the ADR-85 organ is exactly the kind a lane's own spine state normally
+   *does* perturb, and here it does not.
+3. **It fails identically at bare `main`.** Run at `d9073b71` — the merge base, before the
+   first commit of this lane — in a throwaway detached worktree: same test, same
+   assertion, same evidence string, 1 failed in 7.79s. The worktree was removed and its
+   removal verified (`git worktree list` back to two entries).
+
+Its evidence line: *"pre-push organ REFUSED an anchored push too (exit 1) — it does not
+discriminate; a constant refusal enforces nothing"*. So the probe's ANCHORED control is
+being refused as well, which collapses the organ's verdict to `absent`. `uv run --locked`
+works in this worktree (checked), so it is not the lane's environment; the refusal is
+inside the synthetic consumer the probe builds.
+
+**This is filed, not fixed.** It is a defect in the ADR-85 enforcement-coverage probe,
+which is outside this lane's contract (`no guard feature growth`, and the contract's scope
+is `scripts/nopack_sandbox.py`). It is stated here so the integrator sees a RED that
+predates the merge and is not caused by it — and because the failure is itself an instance
+of this lane's own recurring theme: **a probe whose control has stopped discriminating
+measures nothing**, which is precisely what that test was written to catch.
