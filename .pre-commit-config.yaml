@@ -164,6 +164,25 @@ repos:
         language: system
         files: '^BACKLOG\.md$'
         pass_filenames: false
+      - id: provider-registry-agreement
+        name: Provider/model registry agreement gate (CLOUD-4 v2; HUB-ONLY)
+        # ecosystem/provider-registry.yaml is the declared home for every provider, CLI
+        # and model string on the live surface (R2 section 3.3). Sites that can read YAML
+        # read it; the rest -- .md frontmatter, a .js object literal, a JSON config,
+        # committed prose -- are held in agreement by this checker. Fires only when one of
+        # the checked files (or the registry itself) is staged, so it costs nothing on an
+        # unrelated commit. Exit: 0 clean, 1 violation, 2 internal error (an error BLOCKS,
+        # never silently passes). HUB-ONLY. Bypass: --no-verify.
+        #
+        # HONEST LIMIT, the checker's own: it asserts that the sites AGREE with the
+        # registry. It cannot make frontmatter or a JS literal READ the registry, and it
+        # says nothing about whether the pinned model is the RIGHT one -- routing is ruled
+        # doctrine and its canonical table (~/.claude/ROUTING.md) is L0, outside this repo
+        # (ARCHITECTURE Ch3, ruled 2026-08-22).
+        entry: uv run --locked python scripts/check_provider_registry.py
+        language: system
+        files: '^(ecosystem/(provider-registry|tool-versions|satellite-onboarding-rulings)\.yaml|\.claude/(settings\.json|agents/artifact-reader\.md|workflows/conformance-hub\.js)|protocols/PLAYBOOK\.md|pyproject\.toml)$'
+        pass_filenames: false
       - id: lane-contract-check
         name: Lane-contract shape gate ([#539]; HUB-ONLY)
         # A generator-emitted lane contract (Q6) is checkable at commit time: every
