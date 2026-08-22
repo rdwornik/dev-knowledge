@@ -161,6 +161,49 @@ def test_release_after_a_manual_clear_must_not_delete_another_runs_live_lock(tri
 
 
 @requires_git
+def test_contention_refusal_names_the_live_holder_instead_of_denying_it_has_one(trio, capsys):
+    """The refusal must not tell the operator a LIVE, tokenised lock "carries no run_id".
+
+    Same trajectory as the ABA test above -- A claims, the lock is cleared by hand, B
+    legitimately re-claims, A cleans up -- but this pins what A's refusal SAYS rather than
+    only that B's lock survives.
+
+    A's push carries `--force-with-lease` against its own stale expectation, so the lease is
+    rejected and the contention branch runs. That branch used to pass `owner=None` to
+    `_not_ours`, which prints "it carries no run_id (taken by hand, or before this guard
+    tokenised locks)" -- false about B's lock, and it reads as "nobody owns this", which
+    makes the `release: git push <remote> :<ref>` escape printed directly underneath look
+    safe. Following it deletes B's LIVE lock. The guard's own message steering an operator
+    into the race the guard exists to refuse is worse than no message.
+
+    gpt-5.6-terra HIGH, carried out-of-lane by CLOUD-3 2026-08-22 and ruled out-of-band as
+    live harm. The sibling call site in the same function already resolved the owner; this
+    pins that the two now agree.
+    """
+    _bare, a, b = trio
+    tok_A = _claim(a)
+
+    _git(a, "push", "origin", f":{LOCK}")          # the operator's manual clear
+    assert single_flight.claim(CONTRACT, repo=b, remote="origin") == single_flight.CLAIMED
+    b_holds = _remote_sha(b, "origin", LOCK)
+    assert b_holds, "B must hold the lock before A cleans up"
+
+    capsys.readouterr()
+    rc = single_flight.release(CONTRACT, repo=a, remote="origin", token=tok_A)
+    err = capsys.readouterr().err
+
+    assert rc == single_flight.NOT_OURS, err
+    assert _remote_sha(a, "origin", LOCK) == b_holds, "B's live lock was deleted"
+    # The fixture precondition that makes the assertion below mean something: B's lock IS
+    # tokenised, so 'carries no run_id' is a false statement about it and not a fair report.
+    assert single_flight._remote_lock_token(a, "origin", LOCK, b_holds) is not None, (
+        "fixture precondition: B's lock must carry a token, or this test proves nothing")
+    assert "carries no run_id" not in err, (
+        "the refusal denies the live lock has an owner, which makes the printed release "
+        "escape look safe: " + err)
+
+
+@requires_git
 def test_two_claims_of_one_contract_are_distinguishable(trio):
     """The token that makes (a) fixable: two claims must not be the same value.
 

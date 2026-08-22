@@ -728,7 +728,18 @@ def release(contract_id: str, repo: Path | str = ".", remote: str = "origin",
             if still_held:
                 # Genuine contention: somebody else's lock is standing and stays that way, and
                 # ours is left alone too -- said loudly rather than reported as a clean release.
-                _not_ours(ref, still_held, None, remote)
+                #
+                # The owner is RESOLVED, not passed as None. Passing None made `_not_ours`
+                # print "it carries no run_id (taken by hand, or before this guard tokenised
+                # locks)" about a live, tokenised lock this branch never read -- a false
+                # statement that reads as "nobody owns this" and so makes the `release:`
+                # escape printed underneath look safe. Following it deletes a LIVE sibling's
+                # lock: the guard's own message steering the operator into the exact race the
+                # guard exists to refuse. The sibling call site ~25 lines above already
+                # resolves the owner with these same arguments; this one now matches it.
+                # gpt-5.6-terra, carried by CLOUD-3 2026-08-22; ruled out-of-band as live harm.
+                _not_ours(ref, still_held, _remote_lock_token(repo, remote, ref, still_held),
+                          remote)
                 return NOT_OURS
             # Absent: the goal state is reached however it got there. Fall through and clear the
             # local ref, which is the half that would otherwise strand.
