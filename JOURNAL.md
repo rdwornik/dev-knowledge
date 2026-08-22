@@ -19,6 +19,55 @@
 
 ---
 
+### 2026-08-22 (d) — CC (Opus 5, part-C integrator, branch `docs/part-c-filing-queue-2026-08-22`): the doc discharges, and a deferral that came due rather than being re-dated
+
+**Did:** Step S7, at `4c062d49`, on the branch whose S6 filing landed at `92caed40`. Four governance
+surfaces, no build.
+
+**Result: Q2 and Q10 finally have their Ch8 pointers, and the reason is that their own trigger
+fired.** §Q's anti-orphan block dated the deferral *"2026-09-19 **or** the Ch8 codification lane
+landing, whichever comes first"*. That lane landed at `01adf895` earlier in this batch, so the
+deferral came **due**; it is discharged rather than re-dated with a fresh excuse. Q2 sits beside
+*"Integrate from the primary"* and states the primary checkout is seat-arc-only on the evidence of
+two witnessed HEAD-swap incidents; Q10 sits beside the contract-of-record requirements and states
+that deviation-with-disclosure is not a license. **`protocols/STANDING_RULINGS.md` itself was not
+opened** — the pointers live in Ch8, which is where §Q said they were owed.
+
+**The effort enum now says one thing in the two places the hub owns.** `{low | medium | high |
+xhigh | max}` — the CLI-validated five is canonical by ruling, and `protocols/PLAYBOOK.md` Ch8 plus
+`templates/prompt-template.md` (the point-of-use card) both follow it. `[#539]` found this
+divergence and deliberately did **not** resolve it, which was correct: its contract named five while
+Ch8 and the routing matrix named four, and a generator is not where an enum gets ruled. The
+converged text keeps the real distinction rather than flattening it — `max` is a valid effort for a
+**contract**, while whether the *routing matrix* accepts it is the separate question the following
+paragraph already answered.
+
+**Two memo dispositions are recorded as APPENDED amendments, because both intakes are ratified** and
+intake #27's own post-ratification rule ended the in-place editability the earlier errata relied on.
+Intake **#16 §3**: the graph library is **not adopted as filed**, superseded by R-A — at 11,684
+edges stdlib `sqlite3` answers reachability, orphan and degree in 1–4 ms; a library wins on
+cycles/SCC only, and **no consumer for that query exists**, so ADR-105 §2 bars activation regardless
+of the benchmark. If one is ever named it is `rustworkx`. Intake **#25**: copier is **promoted** as
+the deployment transport (~3,500 of 7,460 LOC, ~47%, and the count stops scaling with N), sequenced
+greenfield → ai-council → **corp-monorepo last**, with ADR-102 `gate_rev_ahead` and the removed
+`codemap-freshness` hook recorded as the **open** migration question — which is the reason
+corp-monorepo goes last rather than an afterthought. `cruft` rejected on maintenance signal (last
+release 2024-12-25, 20 months stale, in the distribution path). R-B recorded: reusable workflows
+partially reversed on the access ground, survivor scope fleet-CI gates only, priced against Actions
+minutes rather than adopted on shape.
+
+**Changes:** `protocols/PLAYBOOK.md` (Ch8 — two pointers, one enum), `templates/prompt-template.md`
+(card enum), `docs/intake/2026-07-21-func-fleet-north-star.md` and
+`docs/intake/2026-08-05-func-simplification-distribution-wave.md` (appended amendments).
+
+**Abandoned:** Nothing. No intake status moved, so no index moved; both intake generators re-checked
+clean.
+
+**Next:** S8 — ledger re-measure against R2's denominator, the final report, and seat/rat teardown
+under Q3's push-before-delete.
+
+---
+
 ### 2026-08-22 (c) — CC (Opus 5, part-C integrator, branch `docs/part-c-filing-queue-2026-08-22`): the rat lane lands behind its carriers, and the filing queue stops exactly at the banked limit
 
 **Did:** Steps S5 and S6. Merged `worktree-lane-rat-intakes` at `7107c930`, which introduces
