@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "8f1e90c6baed278df804b80adad4e69a2cad6508ac229cdda82290a41517f640",
+  "generated_sha256": "f4776fb5ca3c07ed13379299665cfd88590e20383cc2e2c29dca32f459fc2773",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -221,20 +221,12 @@
       "prose": ""
     },
     {
-      "task": 507,
-      "file": "507-report-only-wall-fourth-leg-precommit-run-all-files.md"
-    },
-    {
       "task": 510,
       "file": "510-scope-r1-exemption-to-enumerated-lanes.md"
     },
     {
       "task": 514,
       "file": "514-two-rival-lane-branch-re-constants-reconcile-them.md"
-    },
-    {
-      "task": 530,
-      "file": "530-single-flight-dispatch-guard-one-contract-execut.md"
     },
     {
       "task": 531,
@@ -913,10 +905,6 @@
       "file": "403-extend-doc-claims-to-architecture-s-machine-deri.md"
     },
     {
-      "task": 397,
-      "file": "397-scripts-target-structure-rule-on-the-mapped-grou.md"
-    },
-    {
       "task": 412,
       "file": "412-subagent-workflow-routing-configured-fan-out-onl.md"
     },
@@ -941,19 +929,7 @@
       "file": "528-lane-latency-full-suite-multiplied-across-a-batch.md"
     },
     {
-      "task": 529,
-      "file": "529-telemetry-v1-emit-stage-1-events-from-the-gate-m.md"
-    },
-    {
-      "task": 565,
-      "file": "565-run-id-in-telemetry-emit-before-the-read-path-lane.md"
-    },
-    {
       "prose": ""
-    },
-    {
-      "task": 539,
-      "file": "539-gen-lane-contract-py-assembly-not-generation-with.md"
     },
     {
       "task": 540,
@@ -976,10 +952,6 @@
     },
     {
       "prose": "So that cadence-less artifacts and unevaluated tools don't rot or get adopted blind."
-    },
-    {
-      "task": 126,
-      "file": "126-backpressure-loop-pattern-evaluation.md"
     },
     {
       "prose": ""

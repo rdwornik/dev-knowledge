@@ -1,7 +1,7 @@
 ---
 id: "[#530]"
 title: "Single-flight dispatch guard — one contract execution at a time"
-status: open
+status: closed
 priority: P2
 size: S
 theme: "[E2] Enforced governance"

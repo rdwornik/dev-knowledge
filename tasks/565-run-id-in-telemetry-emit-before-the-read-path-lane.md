@@ -1,7 +1,7 @@
 ---
 id: "[#565]"
 title: "`run_id` in telemetry emit — sequenced before the read-path build lane"
-status: open
+status: closed
 priority: P1
 size: S
 theme: "[E7] Tooling & evaluation"

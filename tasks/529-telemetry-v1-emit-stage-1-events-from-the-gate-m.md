@@ -1,7 +1,7 @@
 ---
 id: "[#529]"
 title: "Telemetry v1 EMIT — stage-1 events from the gate mesh"
-status: open
+status: closed
 priority: P1
 size: M
 theme: "[E7] Tooling & evaluation"
