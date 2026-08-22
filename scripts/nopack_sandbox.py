@@ -281,6 +281,10 @@ _FORBIDDEN_ARGS: dict[str, frozenset[str]] = {
     "sed": frozenset({"-i", "--in-place", "-f", "--file"}),
     # ripgrep can run a preprocessor per file, which is `-exec` by another name.
     "rg": frozenset({"--pre", "--hostname-bin", "--search-zip", "-z"}),
+    # `sort -o FILE` writes wherever it is pointed and `--compress-program` runs a program.
+    # `-T` relocates its temporary files. All three are outside a read surface.
+    "sort": frozenset({"-o", "--output", "--compress-program", "-T", "--temporary-directory",
+                       "--files0-from"}),
 }
 
 # git is an ALLOWLIST, not a denylist. A denylist of write subcommands lets every
@@ -291,9 +295,10 @@ _GIT_READ_SUBCOMMANDS: frozenset[str] = frozenset(
         "count-objects", "describe", "diff", "diff-index", "diff-tree", "for-each-ref",
         "grep", "log", "ls-files", "ls-tree", "merge-base", "name-rev",
         "range-diff", "rev-list", "rev-parse", "shortlog", "show", "show-branch",
-        "show-ref", "status", "symbolic-ref", "verify-commit", "verify-tag",
-        "whatchanged",
-        # `help` is NOT here: it launches a browser or a man viewer.
+        "show-ref", "status", "symbolic-ref", "whatchanged",
+        # `help` is NOT here: it launches a browser or a man viewer. Neither are
+        # `verify-commit` / `verify-tag`: they shell out to GPG, which reads the host's
+        # own configuration and can launch a pinentry helper of its choosing.
     }
 )
 
@@ -343,7 +348,12 @@ _GIT_BARE_OPTIONS: frozenset[str] = frozenset(
 # one, testing nothing. Caught by watching which layer the probe reported.
 _GIT_PRE_HELPER_OPTIONS: frozenset[str] = frozenset({"-p", "--paginate", "--pager", "--exec"})
 _GIT_ANY_HELPER_OPTIONS: frozenset[str] = frozenset(
-    {"--ext-diff", "--textconv", "--open-files-in-pager", "--web", "--gui", "--tool", "--extcmd"}
+    {
+        "--ext-diff", "--textconv", "--open-files-in-pager", "--web", "--gui", "--tool",
+        "--extcmd",
+        # signature verification is GPG, i.e. another program with its own config
+        "--show-signature", "--gpg-sign", "--signing-key",
+    }
 )
 
 # `git config` reads only with one of these, and never with more than one operand (the
@@ -1442,7 +1452,7 @@ def screen_pipeline(
     return (trip, []) if trip is not None else (None, stages)
 
 
-def screen_stages(stages: list[Stage]) -> Trip | None:
+def screen_stages(stages: list[Stage], cwd: Path | None = None) -> Trip | None:
     """The structural policy. Runs over parsed argv AND again over expanded argv.
 
     Running it twice is the point. Expansion changes argv - that is what expansion IS - so
@@ -1469,9 +1479,9 @@ def screen_stages(stages: list[Stage]) -> Trip | None:
 
         forbidden = _FORBIDDEN_ARGS.get(name, frozenset())
         for token in stage.argv[1:]:
-            head = token.split("=", 1)[0]
-            if token in forbidden or head in forbidden:
-                return Trip("A", "forbidden-argument", f"'{token}' gives {name} an exec or write mode")
+            hit = next((option for option in _option_forms(token) if option in forbidden), None)
+            if hit is not None:
+                return Trip("A", "forbidden-argument", f"'{hit}' gives {name} an exec or write mode")
 
         if name == "git":
             trip = _screen_git(stage)
@@ -1482,7 +1492,7 @@ def screen_stages(stages: list[Stage]) -> Trip | None:
         if trip is not None:
             return trip
 
-        trip = _screen_paths(stage)
+        trip = _screen_paths(stage, cwd)
         if trip is not None:
             return trip
     return None
@@ -1503,47 +1513,90 @@ _NON_READING_COMMANDS: frozenset[str] = frozenset({"echo", "printf"})
 # positive all over again.
 _PATTERN_FIRST: frozenset[str] = frozenset({"grep", "rg"})
 
-# ...unless the pattern arrived through a flag, in which case every operand IS a file.
-_PATTERN_FLAGS: frozenset[str] = frozenset({"-e", "--regexp", "-f", "--file"})
+# Options that supply the pattern. `-e`'s value IS the pattern, so it is exempt from the
+# path rule; `-f`'s value is a FILE the tool opens, so it is emphatically not - and either
+# one means the first bare operand is a file rather than the pattern. An earlier draft
+# lumped them together, which let `grep -f /etc/passwd CLAUDE.md` through: `-f` suppressed
+# nothing, so `/etc/passwd` was exempted as "the pattern" and then opened as a file.
+_PATTERN_VALUE_FLAGS: frozenset[str] = frozenset({"-e", "--regexp"})
+_PATTERN_FILE_FLAGS: frozenset[str] = frozenset({"-f", "--file"})
+
+
+def _pattern_positions(stage: Stage) -> set[int]:
+    """Indexes whose contents are a PATTERN (data), not a path this tool will open."""
+    exempt: set[int] = set()
+    supplied = False
+    index = 1
+    while index < len(stage.argv):
+        token = stage.argv[index]
+        forms = set(_option_forms(token))
+        if forms & (_PATTERN_VALUE_FLAGS | _PATTERN_FILE_FLAGS):
+            supplied = True
+            attached = _attached_value(token)
+            if not attached:  # the value is the NEXT argument
+                if forms & _PATTERN_VALUE_FLAGS:
+                    exempt.add(index + 1)
+                index += 1  # ...and either way it is not a positional
+            elif forms & _PATTERN_VALUE_FLAGS:
+                exempt.add(index)  # `-epattern`: the whole token is data
+        index += 1
+    if not supplied:
+        for index, token in enumerate(stage.argv[1:], start=1):
+            if not token.startswith("-"):
+                exempt.add(index)  # the bare form: the first operand is the pattern
+                break
+    return exempt
+
+
+# Splits a flag token into its option part and whatever is attached to it. Short options
+# take attached values with no separator - `sort -o../outside` is `-o` plus `../outside` -
+# so a check that only understood `--opt=value` never saw the path at all.
+_OPTION_SPLIT = re.compile(r"^(?P<dashes>-{1,2})(?P<name>[A-Za-z0-9][A-Za-z0-9-]*)?=?(?P<rest>.*)$")
+
+
+def _option_forms(token: str) -> list[str]:
+    """Every option name a token could be naming. `-ni` is `-n` AND `-i`; `--x=1` is `--x`."""
+    if not token.startswith("-") or token == "-" or token == "--":
+        return []
+    if token.startswith("--"):
+        return [token.split("=", 1)[0]]
+    forms = [token.split("=", 1)[0]]
+    for letter in token[1:]:
+        if not letter.isalnum():
+            break  # an attached value has begun; the letters before it are the options
+        forms.append(f"-{letter}")
+    return forms
+
+
+def _attached_value(token: str) -> str:
+    """The value carried inside a flag token, in either the `--x=v` or the `-xv` form."""
+    match = _OPTION_SPLIT.match(token)
+    return match.group("rest") if match else ""
 
 
 def _escapes_sandbox(token: str) -> bool:
     """True when `token` names somewhere the sandbox does not contain.
 
     `..` is checked as a path COMPONENT, so git's revision ranges (`main..HEAD`,
-    `origin/main..HEAD`) are untouched - the `..` there is not a directory.
+    `origin/main..HEAD`) are untouched - the `..` there is not a directory. Flags are
+    checked through their ATTACHED value as well as their `=` value, because `-o../out`
+    and `--output=../out` are the same instruction written two ways.
     """
-    value = token
-    if token.startswith("-"):
-        if "=" not in token:
-            return False  # a bare flag names nothing
-        value = token.split("=", 1)[1]
-    if not value:
-        return False
-    return bool(_ABSOLUTE_PATH.match(value)) or ".." in re.split(r"[\\/]", value)
+    values = [token] if not token.startswith("-") else [_attached_value(token)]
+    for value in values:
+        if not value:
+            continue
+        if _ABSOLUTE_PATH.match(value) or ".." in re.split(r"[\\/]", value):
+            return True
+    return False
 
 
-def _screen_paths(stage: Stage) -> Trip | None:
+def _screen_paths(stage: Stage, cwd: Path | None = None) -> Trip | None:
     """Refuse any argument that reaches outside the sandbox clone."""
     name = stage.argv[0]
     if name in _NON_READING_COMMANDS:
         return None
-    # Which argument positions hold a PATTERN rather than a path. `-e`'s value is one, and
-    # so is the first bare operand when no `-e` supplied the pattern already.
-    exempt: set[int] = set()
-    if name in _PATTERN_FIRST:
-        via_flag = False
-        for index, token in enumerate(stage.argv[1:], start=1):
-            if token in ("-e", "--regexp"):
-                exempt.add(index + 1)
-                via_flag = True
-            elif token.startswith("--regexp="):
-                via_flag = True
-        if not via_flag:
-            for index, token in enumerate(stage.argv[1:], start=1):
-                if not token.startswith("-"):
-                    exempt.add(index)
-                    break
+    exempt = _pattern_positions(stage) if name in _PATTERN_FIRST else set()
     for index, token in enumerate(stage.argv[1:], start=1):
         if index in exempt:
             continue
@@ -1555,7 +1608,34 @@ def _screen_paths(stage: Stage) -> Trip | None:
                 "path-outside-sandbox",
                 f"'{token}' names a path outside the sandbox",
             )
+        if cwd is not None and _resolves_outside(token, cwd):
+            return Trip(
+                "A",
+                "path-outside-sandbox",
+                f"'{token}' resolves to a path outside the sandbox",
+            )
     return None
+
+
+def _resolves_outside(token: str, cwd: Path) -> bool:
+    """True when an operand that EXISTS in the sandbox actually points out of it.
+
+    The lexical check catches `../secret` and `/etc/passwd`. It cannot catch a symlink:
+    `escape -> /host/secret` is a plain relative name, and only resolving it says
+    otherwise. This runs where `cwd` is known - at execution - so `screen_command` alone
+    stays lexical, and `run_guarded` is where the resolved leg applies.
+    """
+    if not token or token.startswith("-"):
+        return False
+    candidate = cwd / token
+    if not os.path.lexists(candidate):
+        return False
+    try:
+        resolved = candidate.resolve()
+        root = cwd.resolve()
+    except OSError:  # pragma: no cover - a resolve that fails is not a proof of safety
+        return True
+    return resolved != root and root not in resolved.parents
 
 
 def _screen_git(stage: Stage) -> Trip | None:
@@ -1814,7 +1894,7 @@ def run_guarded(
     expanded = [_expand_globs(stage, cwd) for stage in stages]
     trip = _screen_words(" ".join(word for stage in expanded for word in stage.argv), names)
     if trip is None:
-        trip = screen_stages(expanded)
+        trip = screen_stages(expanded, cwd)
     if trip is not None:
         return GuardedResult(command, REFUSAL_EXIT, "", REFUSAL_TEXT, refused=True, trip=trip)
 
@@ -1938,11 +2018,20 @@ def probe(
         res = run_guarded(command, sandbox)
         outcome = "refused" if res.refused else "allowed"
         detail = ""
+        passed = outcome == expect
         if res.trip is not None:
             detail = f"layer {res.trip.layer}: {res.trip.kind}"
         elif expect == "allowed":
+            # A positive control that is merely NOT REFUSED proves nothing: a missing file,
+            # a sha that is not in this clone, or a pipeline whose first stage failed all
+            # produce "allowed" with no output. The control exists to show the instrument
+            # still works, so it has to have worked.
             detail = f"rc={res.returncode}, {len(res.stdout)} bytes"
-        results.append(ProbeVector(name, command, expect, outcome, outcome == expect, detail))
+            if res.returncode != 0:
+                passed, detail = False, f"{detail} - non-zero exit"
+            elif not res.stdout.strip():
+                passed, detail = False, f"{detail} - no output, so it demonstrated nothing"
+        results.append(ProbeVector(name, command, expect, outcome, passed, detail))
     return results
 
 

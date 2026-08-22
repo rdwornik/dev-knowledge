@@ -978,6 +978,71 @@ def test_guarded_commands_run_with_a_scrubbed_environment(sandbox: ns.Sandbox, m
     assert "PATH" in seen, "a scrubbed environment still has to be a usable one"
 
 
+def test_a_symlink_inside_the_tree_does_not_read_outside_it(sandbox: ns.Sandbox, tmp_path: Path):
+    """The lexical rule catches `../secret`; only resolving catches `escape -> /host/secret`."""
+    secret = tmp_path / "host-secret.txt"
+    secret.write_text("not for the lane", encoding="utf-8")
+    try:
+        (sandbox.path / "escape").symlink_to(secret)
+    except (OSError, NotImplementedError) as exc:  # Windows without developer mode
+        pytest.skip(f"symlink creation unavailable: {exc}")
+
+    assert ns.screen_command("cat escape") is None, "lexically it is an ordinary name"
+    res = ns.run_guarded("cat escape", sandbox)
+    assert res.refused is True
+    assert res.trip.kind == "path-outside-sandbox"
+    assert "not for the lane" not in res.stdout
+
+
+def test_a_pattern_FILE_operand_is_a_path_not_a_pattern():
+    """`-f` supplies the pattern from a FILE, so its value is opened - it is not data."""
+    assert ns.screen_command("grep -f /etc/passwd CLAUDE.md").kind == "path-outside-sandbox"
+    assert ns.screen_command("grep --file=../outside CLAUDE.md").kind == "path-outside-sandbox"
+    assert ns.screen_command("grep -f patterns.txt CLAUDE.md") is None
+    # ...while `-e` really does supply data, in both of its forms
+    assert ns.screen_command("grep -e /etc/passwd CLAUDE.md") is None
+    assert ns.screen_command("grep -e/etc/passwd CLAUDE.md") is None
+
+
+def test_attached_short_option_values_are_not_a_blind_spot():
+    """`sort -o../outside` is `-o` plus a path, written without a separator."""
+    assert ns.screen_command("sort -o../outside CLAUDE.md").kind == "forbidden-argument"
+    assert ns.screen_command("sort --output=/tmp/x CLAUDE.md").kind == "forbidden-argument"
+    assert ns.screen_command("sort --compress-program=/bin/sh CLAUDE.md").kind == "forbidden-argument"
+    assert ns.screen_command("sort CLAUDE.md") is None
+    assert ns._escapes_sandbox("-o../outside") is True
+    assert ns._escapes_sandbox("-n") is False
+
+
+def test_git_signature_verification_is_out_of_the_read_surface():
+    """`verify-commit` and `--show-signature` shell out to GPG, with the host's config."""
+    assert ns.screen_command("git verify-commit HEAD").kind == "git-write"
+    assert ns.screen_command("git verify-tag v1").kind == "git-write"
+    assert ns.screen_command("git log --show-signature").kind == "git-helper"
+    assert ns.screen_command("git log --oneline") is None
+
+
+def test_a_positive_control_that_produced_nothing_does_not_pass(sandbox: ns.Sandbox):
+    """A control is there to show the instrument still works, so it has to have worked.
+
+    Merely NOT being refused is not that: a missing file, a sha this clone does not carry,
+    or a pipeline whose first stage failed all come back "allowed" with nothing in hand.
+    """
+    vectors = ns.probe(
+        sandbox,
+        controls=(
+            ("control that reads nothing", "cat no-such-file.md"),
+            ("control that outputs nothing", "grep -c zzz-not-present CLAUDE.md"),
+            ("control that genuinely works", "sed -n '1,3p' CLAUDE.md"),
+        ),
+    )
+    by_name = {vector.name: vector for vector in vectors}
+    assert by_name["control that reads nothing"].passed is False
+    assert "non-zero exit" in by_name["control that reads nothing"].detail
+    assert by_name["control that outputs nothing"].passed is False
+    assert by_name["control that genuinely works"].passed is True
+
+
 def test_a_live_registry_lock_is_not_stolen(tmp_path: Path):
     """An earlier draft broke the lock on the waiter's OWN timeout, so two could hold it."""
     lock = (tmp_path / ns.REGISTRY_NAME).with_suffix(".lock")
