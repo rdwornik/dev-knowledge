@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "d62d1cff75f24f2a2539d0c5693bf2dd101308bdd128c2c00b9764c0a40e341d",
+  "generated_sha256": "012478603485f86a73c864849502805d40f0086e73b3c0b1bc2dda207327fbc3",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -822,6 +822,10 @@
     {
       "task": 276,
       "file": "276-d2-per-consumer-waiver-honoring.md"
+    },
+    {
+      "task": 577,
+      "file": "577-adopt-agents-md-as-the-portable-instruction-layer.md"
     },
     {
       "prose": ""
