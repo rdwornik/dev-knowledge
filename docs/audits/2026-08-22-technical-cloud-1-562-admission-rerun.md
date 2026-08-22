@@ -236,7 +236,25 @@ every item's own adjudicating command, extracted from the pack and run guarded
 
 Both numbers started worse and were fixed rather than reported: see the review table at §8.
 
-### 4.4 Reproducing it
+### 4.4 Re-verified at the committed head, after this artifact landed
+
+The §4.1/§4.2 figures were measured at `23d72d51`, before this lane's own files existed. Re-run at the
+commit that contains them:
+
+```
+head under test      d2224762   postcondition CLEAN   probe 11/11
+files removed        31 (was 28)   files redacted 32 / 368 lines
+stripped, newly:     this artifact, scripts/nopack_sandbox.py, tests/test_nopack_sandbox.py
+```
+
+**The guard removes its own source from the tree under test, and that is correct rather than
+surprising.** `scripts/nopack_sandbox.py` names the item-id namespace, the pack's path and every canary
+literal — it is answer-key-adjacent by construction, and pass 2's density rule caught it without any
+glob naming it. It is the mechanical sweep demonstrating exactly what it is for, on a file its author
+did not think to curate. Nothing breaks: the guard runs from the primary checkout and only the sandbox
+is stripped.
+
+### 4.5 Reproducing it
 
 ```
 python3 scripts/nopack_sandbox.py provision --dest /tmp/ab-sandbox
