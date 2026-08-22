@@ -1,7 +1,7 @@
 ---
 id: "[#566]"
 title: "Constraint-contention tiebreak — implement the accepted `[#488]` LEAN"
-status: open
+status: closed
 priority: P2
 size: M
 theme: "[E7] Tooling & evaluation"

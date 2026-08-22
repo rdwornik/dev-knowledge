@@ -1,7 +1,7 @@
 ---
 id: "[#488]"
 title: "Priority axis — the backlog has no ranking function beyond a hand-set [P1..P3]"
-status: open
+status: closed
 priority: P2
 size: M
 theme: "[E7] Tooling & evaluation"

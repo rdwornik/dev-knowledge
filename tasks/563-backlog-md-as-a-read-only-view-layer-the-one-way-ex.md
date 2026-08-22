@@ -1,7 +1,7 @@
 ---
 id: "[#563]"
 title: "`Backlog.md` as a read-only view layer — the one-way exporter"
-status: open
+status: closed
 priority: P2
 size: M
 theme: "[E7] Tooling & evaluation"
