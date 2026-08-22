@@ -36,7 +36,9 @@ The **12 doctrine seams** and the **10 code seams** of R2 §3.2, in full (§3 li
 
 ## 1. What landed
 
-Four commits on `feat/cloud-4v2-universalization`. Two mechanisms, two decision documents.
+Three commits on `feat/cloud-4v2-universalization`. Two mechanisms, two decision documents.
+
+*Commit hygiene, recorded rather than tidied away: the four self-review fixes of §5 items 3 and 4 (the frontmatter scoping and the S17 anchor) were made after the first commit and landed inside the second, whose message is otherwise about the decision documents. The diff is right; the commit boundary is not, and saying so costs less than rewriting the branch.*
 
 ### 1.1 Provider/model registry — R2 §3.3 GO (item 1)
 
@@ -178,17 +180,26 @@ The brief reserves `.pre-commit-config.yaml`; this ships as a proposal for the i
 | `python scripts/changelog_sentinel.py` | exit 0, nudge emitted, `_TOOLS` derived from the registry (verified live) |
 | `ruff check` on every touched file | **All checks passed** |
 | `pytest tests/test_provider_registry.py tests/test_canonical_docs.py` | **39 passed** |
+| `python scripts/silent_rule_detector.py` | **440** vs baseline **441** — no raise (the new `ecosystem/*.yaml` carries zero `must/shall/never` tokens by construction) |
+| `gen_audit_index --check` · `gen_claude_rosters --check` | exit **0** after regeneration |
+| `ecosystem/doc-counts.md` | regenerated — tests 3,372 → **3,411** (+39); audit checks 43 and pre-commit gates 20 both unchanged, this lane arms neither |
 | Full `pytest` suite | see §4.1 |
 
 ### 4.1 The full suite, and the environmental baseline
 
-**The baseline is not green in this container, and it was not green before this lane touched anything.** Measured on the pristine tree at entry (`0360d6d`): **44 failed / 3,288 passed / 39 skipped / 1 xfailed**. The failures are environmental, not defects — no consumer repos are cloned (`expected >=1 registered consumer`), pre-commit hooks are not armed (`hooks-armed WARN-undeclared`), `pandas` and the language server are absent, and the shallow clone's commit dates make `canonical_freshness` A2 fire on four canonical docs that have not in fact been edited since review.
+**The baseline is not green in this container, and it was not green before this lane touched anything.** Measured on the pristine tree at entry (`0360d6d`):
 
-Each was verified as pre-existing by `git stash`-ing this lane's diff and re-running the same test — including `test_routine_consumers_live_backlog_governs_exactly_one_row`, which fails identically on the untouched tree.
+```
+BEFORE   44 failed · 3,288 passed · 39 skipped · 1 xfailed   (3,372 collected)
+AFTER    44 failed · 3,327 passed · 39 skipped · 1 xfailed   (3,411 collected)
+                     +39 = exactly this lane's new tests
+```
 
-**After this lane's changes the same suite reports the same failures and no new one.** The pass count rises by this lane's new tests. The `git stash` comparison, not the raw counts, is the evidence: a container whose baseline is red cannot be argued from totals alone.
+The 44 are environmental, not defects — no consumer repos are cloned (`expected >=1 registered consumer`), pre-commit hooks are not armed (`hooks-armed WARN-undeclared`), `pandas` and the language server are absent, `.git/shallow` breaks the history probes, and the shallow clone's commit dates make `canonical_freshness` A2 fire on four canonical docs nobody has edited since review. Individually spot-checked as pre-existing by `git stash`-ing this lane's diff and re-running the same test — including `test_routine_consumers_live_backlog_governs_exactly_one_row`, which fails identically on the untouched tree.
 
-**Consequence for the reader, stated rather than buried:** *"pytest green"* is **not** claimable in this container in the absolute sense. What is claimable, and what was verified, is **no regression** — the failure *set* is unchanged.
+**The arithmetic is the load-bearing evidence, and it is what caught the regression.** An intermediate run reported **60 failed / 3,311 passed**: +16 failures against +23 passes, summing to exactly the 39 tests added. That +16 was not noise — it was the `test_assemble_paste` breakage of §5, and the totals are what made it undeniable in a container whose baseline is already red. It was fixed, and the counts above are the post-fix run.
+
+**Consequence for the reader, stated rather than buried:** *"pytest green"* is **not** claimable in this container in the absolute sense, and this artifact does not claim it. What is claimed, and verified twice, is **no regression** — same failure count, same failure set, +39 passes.
 
 ---
 
@@ -200,6 +211,10 @@ Each was verified as pre-existing by `git stash`-ing this lane's diff and re-run
 2. **A vacuous fallback test.** The first fallback test compared the *live attribute* to the registry — but at the hub the guarded import succeeds, so it compared the registry to itself and would have passed against any fallback whatsoever. Fixed by parsing the `else:` branch out of the module source with `ast`, and pinned by a test that proves the parser itself has teeth.
 3. **An over-broad frontmatter regex.** `^model:\s*(\S+)$` was applied to the whole of `artifact-reader.md`, so a `model:` line anywhere in the body could have satisfied or broken the pin. Scoped to the leading `---` block; a regression test adds a body-level `model:` line and requires the checker to stay clean.
 4. **A prose check that could not fail usefully.** S17 originally asserted only that the backticked id appeared *somewhere* in a 4,500-line PLAYBOOK. Deleting the tier-binding sentence entirely would have passed. Re-anchored on the binding itself, with a test that deletes the sentence and requires a `was not found` finding.
+
+**A fifth defect was caught by the SUITE, not by the review — and that is the honest ordering.** `tests/test_assemble_paste.py` copies `scripts/gen_handoff.py` into a tmp `scripts/` dir and runs it as a subprocess; its own fixture comment already said *"its sibling must sit beside it"*. `gen_handoff`'s new registry import made the sibling set two deep, and **16 tests went red** — the same defect class as item 1 (a module copied out of `scripts/` and run standalone), at a site the carrier read did not cover because the copier here is a test, not `deploy/`. Fixed by copying `canonical_docs.py` alongside, **not** by giving `gen_handoff` a fallback: that module is precisely the site R2 §1.4 R2 prices as the silent-failure one, so its filename and degrade string are deliberately allowed exactly one home.
+
+**The lesson, stated because it generalises past this lane:** the repo has **two** independent mechanisms that copy a script out of `scripts/` and run it beside a partial sibling set — `deploy/carrier_mesh.py` and this test fixture — and neither is discoverable from the module being edited. Any future "read it from one table" repoint has to check both. The review caught the first; only the suite caught the second.
 
 **This is not a substitute for the second-reader leg and is not offered as one.** It is one author re-reading their own work, which is exactly the sycophantic-convergence failure mode `[#82]`'s own design input names. **The `/codex-review` pass remains OWED before merge.**
 
