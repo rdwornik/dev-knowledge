@@ -96,6 +96,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 
@@ -275,18 +276,64 @@ _FORBIDDEN_ARGS: dict[str, frozenset[str]] = {
     # In-place edit is the write mode. sed's `w` command and GNU `e` command are NOT
     # detectable by flag - see the limit above; they write and run relative to the
     # sandbox, which is the disposable clone.
-    "sed": frozenset({"-i", "--in-place"}),
+    # `-i` is the obvious write mode; `-f` loads a script from a file, which cannot be
+    # screened, so the script must arrive inline where `_sed_script_is_read_only` sees it.
+    "sed": frozenset({"-i", "--in-place", "-f", "--file"}),
     # ripgrep can run a preprocessor per file, which is `-exec` by another name.
     "rg": frozenset({"--pre", "--hostname-bin", "--search-zip", "-z"}),
 }
 
-_GIT_WRITE_SUBCOMMANDS: frozenset[str] = frozenset(
+# git is an ALLOWLIST, not a denylist. A denylist of write subcommands lets every
+# subcommand nobody thought of through, and git has a lot of them.
+_GIT_READ_SUBCOMMANDS: frozenset[str] = frozenset(
     {
-        "add", "am", "apply", "branch", "checkout", "cherry-pick", "clean", "clone", "commit",
-        "config", "fetch", "filter-branch", "gc", "init", "merge", "mv", "notes", "prune",
-        "pull", "push", "rebase", "reset", "restore", "revert", "rm", "stash", "switch",
-        "tag", "update-ref", "worktree",
+        "annotate", "blame", "cat-file", "check-attr", "check-ignore", "cherry",
+        "count-objects", "describe", "diff", "diff-index", "diff-tree", "for-each-ref",
+        "grep", "help", "log", "ls-files", "ls-tree", "merge-base", "name-rev",
+        "range-diff", "rev-list", "rev-parse", "shortlog", "show", "show-branch",
+        "show-ref", "status", "symbolic-ref", "verify-commit", "verify-tag",
+        "whatchanged",
     }
+)
+
+# These have a read form and a write form, told apart by whether they carry an operand.
+# Refusing `git branch -a` outright was a measured false positive; an operand (or a
+# mutating flag, which always takes one) is what makes them writes.
+#
+# `stash` is NOT here, though the first draft listed it as a bare listing: modern `git
+# stash` with no arguments is `git stash push`, so the bare form is the write. Found while
+# hand-checking this table against real git behaviour rather than against its own comment.
+_GIT_LISTING_WHEN_BARE: frozenset[str] = frozenset(
+    {"branch", "config", "notes", "reflog", "remote", "tag", "worktree"}
+)
+
+# git's PRE-command options, which is where the real bypass lived: the screen skipped
+# option tokens but not their operands, so `git -C . config --global user.name x` read `.`
+# as the subcommand and sailed through. These options do not merely take a value - they
+# RELOCATE git (`-C`, `--git-dir`, `--work-tree`) or inject configuration into it (`-c`,
+# `--config-env`), and `-c alias.x=!sh` is a shell by another road. All refused outright:
+# nothing a lane needs to read requires moving git off the sandbox it was pointed at.
+_GIT_RELOCATING_OPTIONS: frozenset[str] = frozenset(
+    {
+        "-C", "-c", "--exec-path", "--git-dir", "--work-tree", "--namespace",
+        "--config-env", "--super-prefix", "--attr-source",
+    }
+)
+
+# Valueless pre-command options, safe to step over while looking for the subcommand.
+_GIT_BARE_OPTIONS: frozenset[str] = frozenset(
+    {
+        "-p", "--paginate", "-P", "--no-pager", "--bare", "--literal-pathspecs",
+        "--glob-pathspecs", "--noglob-pathspecs", "--icase-pathspecs",
+        "--no-replace-objects", "--no-optional-locks", "--no-lazy-fetch",
+        "--version", "--help", "--html-path", "--man-path", "--info-path",
+    }
+)
+
+# `git config` reads only with one of these, and never with more than one operand (the
+# key). `git config --global user.name x` carries two, which is what makes it a write.
+_GIT_CONFIG_READ_FLAGS: frozenset[str] = frozenset(
+    {"--list", "-l", "--get", "--get-all", "--get-regexp", "--get-urlmatch", "--get-color"}
 )
 
 # A markdown line that OPENS a block. Redaction stops at these, so a canary inside one
@@ -294,7 +341,6 @@ _GIT_WRITE_SUBCOMMANDS: frozenset[str] = frozenset(
 # line took 318 lines out of `docs/audits/README.md`, which is one long list.
 _BLOCK_START = re.compile(r"^\s{0,3}(?:[-*+]\s|\d+[.)]\s|#{1,6}\s|>|\||```|~~~)")
 
-_GIT_LISTING_WHEN_BARE: frozenset[str] = frozenset({"branch", "tag", "config", "stash", "worktree"})
 
 _FENCE_LINE = re.compile(r"^\s{0,3}(?:```|~~~)")
 
@@ -590,23 +636,67 @@ def read_registry(sandbox_root: Path) -> dict[str, str]:
 
 
 def _write_registry(sandbox_root: Path, entries: dict[str, str]) -> None:
+    """Replace the registry ATOMICALLY. Never truncate the live file.
+
+    Writing in place means a crash or a concurrent read lands on a half-written registry,
+    and an unreadable registry makes every teardown refuse - which turns a write race into
+    permanently undeletable sandboxes, i.e. leftovers.
+    """
     path = _registry_path(sandbox_root)
     if path.is_symlink():
         raise RuntimeError(f"refusing to write the registry through a symlink: {path}")
     Path(sandbox_root).mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(entries, indent=2, sort_keys=True), encoding="utf-8", newline="\n")
+    payload = json.dumps(entries, indent=2, sort_keys=True)
+    temp = path.with_name(f"{path.name}.{os.getpid()}.{secrets.token_hex(4)}.tmp")
+    temp.write_text(payload, encoding="utf-8", newline="\n")
+    os.replace(temp, path)
+
+
+@contextmanager
+def _registry_lock(sandbox_root: Path, timeout: float = 10.0):
+    """Serialise read-modify-write on one root's registry.
+
+    An exclusive-create lock file, because it is the one primitive that behaves the same
+    on Windows and POSIX. A stale lock older than the timeout is broken rather than
+    deadlocked on - a crashed provision must not make the root permanently unusable.
+    """
+    Path(sandbox_root).mkdir(parents=True, exist_ok=True)
+    lock = _registry_path(sandbox_root).with_suffix(".lock")
+    deadline = time.monotonic() + timeout
+    while True:
+        try:
+            handle = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            os.close(handle)
+            break
+        except FileExistsError:
+            if time.monotonic() > deadline:
+                try:  # stale: the holder died without releasing
+                    lock.unlink()
+                except OSError:
+                    pass
+                deadline = time.monotonic() + timeout
+            time.sleep(0.02)
+    try:
+        yield
+    finally:
+        try:
+            lock.unlink()
+        except OSError:  # pragma: no cover - the lock was broken by another waiter
+            pass
 
 
 def register_sandbox(sandbox_root: Path, sandbox_path: Path, nonce: str) -> None:
-    entries = read_registry(sandbox_root)
-    entries[str(_resolve(sandbox_path))] = nonce
-    _write_registry(sandbox_root, entries)
+    with _registry_lock(sandbox_root):
+        entries = read_registry(sandbox_root)
+        entries[str(_resolve(sandbox_path))] = nonce
+        _write_registry(sandbox_root, entries)
 
 
 def unregister_sandbox(sandbox_root: Path, sandbox_path: Path) -> None:
-    entries = read_registry(sandbox_root)
-    if entries.pop(str(_resolve(sandbox_path)), None) is not None:
-        _write_registry(sandbox_root, entries)
+    with _registry_lock(sandbox_root):
+        entries = read_registry(sandbox_root)
+        if entries.pop(str(_resolve(sandbox_path)), None) is not None:
+            _write_registry(sandbox_root, entries)
 
 
 def _force_writable(func, path, _exc) -> None:
@@ -1304,28 +1394,117 @@ def screen_stages(stages: list[Stage]) -> Trip | None:
                 return Trip("A", "forbidden-argument", f"'{token}' gives {name} an exec or write mode")
 
         if name == "git":
-            # Real argv now, not a regex over a segment: `git commit` is refused because
-            # `commit` IS the first non-flag argument, not because a pattern happened to
-            # match it somewhere in the string.
-            pairs = [
-                (token, globbable)
-                for token, globbable in zip(stage.argv[1:], stage.globbable[1:])
-                if not token.startswith("-")
-            ]
-            if pairs and pairs[0][1]:
-                # A glob in git's SUBCOMMAND slot could expand to `commit`. Elsewhere in a
-                # git command line a glob is an ordinary pathspec and stays allowed.
-                return Trip("A", "glob-in-command-position", "the git subcommand may not be a glob")
-            tokens = [token for token, _globbable in pairs]
-            if tokens and tokens[0] in _GIT_WRITE_SUBCOMMANDS:
-                # `git branch -a`, `git tag`, `git config --list` and `git stash` with no
-                # operand are LISTING commands. Refusing them was a measured false
-                # positive on `git branch -a`; an operand (or a mutating flag, which
-                # always takes one) is what makes them writes.
-                if tokens[0] in _GIT_LISTING_WHEN_BARE and len(tokens) == 1:
-                    continue
-                return Trip("A", "git-write", f"git {tokens[0]} mutates state")
+            trip = _screen_git(stage)
+            if trip is not None:
+                return trip
+        elif name == "sed":
+            for script in _sed_scripts(stage.argv):
+                if not _sed_script_is_read_only(script):
+                    return Trip(
+                        "A",
+                        "sed-script-not-read-only",
+                        "only address/print/substitute sed scripts are available here",
+                    )
     return None
+
+
+def _screen_git(stage: Stage) -> Trip | None:
+    """Parse a git command line properly, then allow only read subcommands.
+
+    The bypass this replaces: the old screen took the first argument not starting with `-`
+    as the subcommand, so `git -C . config --global user.name x` offered it `.` - an
+    OPERAND of `-C`, not a subcommand - and then ran a global config write. Options and
+    their operands have to be told apart before anything about the subcommand is true.
+    """
+    index = 1
+    while index < len(stage.argv):
+        token = stage.argv[index]
+        if not token.startswith("-"):
+            break
+        head = token.split("=", 1)[0]
+        if head in _GIT_RELOCATING_OPTIONS:
+            return Trip("A", "git-relocated", f"'{head}' moves or reconfigures git itself")
+        if token in _GIT_BARE_OPTIONS:
+            index += 1
+            continue
+        return Trip("A", "git-relocated", f"'{token}' is not a recognised git pre-command option")
+    if index >= len(stage.argv):
+        return None  # bare `git`, or `git --version`: prints usage, changes nothing
+
+    if stage.globbable[index]:
+        # A glob in git's SUBCOMMAND slot could expand to `commit`. Elsewhere on a git
+        # command line a glob is an ordinary pathspec and stays allowed.
+        return Trip("A", "glob-in-command-position", "the git subcommand may not be a glob")
+
+    subcommand = stage.argv[index]
+    rest = stage.argv[index + 1 :]
+    if subcommand in _GIT_READ_SUBCOMMANDS:
+        return None
+    if subcommand not in _GIT_LISTING_WHEN_BARE:
+        return Trip("A", "git-write", f"git {subcommand} is not in the read-only surface")
+
+    operands = [token for token in rest if not token.startswith("-")]
+    flags = [token.split("=", 1)[0] for token in rest if token.startswith("-")]
+    if subcommand == "config":
+        # `git config --list` reads; `git config --global user.name x` writes. The read
+        # forms all carry a get/list flag and name at most the key.
+        if not set(flags) & _GIT_CONFIG_READ_FLAGS or len(operands) > 1:
+            return Trip("A", "git-write", "git config is available only in its read forms")
+        return None
+    if operands:
+        return Trip("A", "git-write", f"git {subcommand} with an operand mutates state")
+    return None
+
+
+# sed's script is a small language, and two of its commands leave the sandbox: `w`
+# writes a file at any path, and GNU's `e` executes a command. Neither is a flag, so the
+# `-i` refusal never saw them. Rather than blocklisting letters inside a language that can
+# quote them, the script must MATCH a read-only grammar: optional address or range, then
+# print/delete/quit/line-number, or a substitution whose flags carry no `w` and no `e`.
+_SED_ADDR = r"(?:\d+|\$|/(?:\\.|[^/\\])*/)"
+_SED_RANGE = rf"{_SED_ADDR}(?:\s*,\s*{_SED_ADDR})?"
+_SED_PRINT = re.compile(rf"^\s*(?:{_SED_RANGE}\s*)?!?\s*[pdq=]?\s*$")
+_SED_SUBST = re.compile(
+    rf"^\s*(?:{_SED_RANGE}\s*)?!?\s*s(?P<d>[^\w\s])"
+    r"(?:\\.|(?!(?P=d)).)*(?P=d)(?:\\.|(?!(?P=d)).)*(?P=d)[gpiImM0-9]*\s*$"
+)
+
+
+def _sed_scripts(argv: tuple[str, ...]) -> list[str]:
+    """Every argument sed will treat as a script: each `-e` value, else the first operand."""
+    scripts: list[str] = []
+    expecting = False
+    seen_operand = False
+    for token in argv[1:]:
+        if expecting:
+            scripts.append(token)
+            expecting = False
+            continue
+        if token == "-e" or token == "--expression":
+            expecting = True
+            continue
+        if token.startswith("--expression="):
+            scripts.append(token.split("=", 1)[1])
+            continue
+        if token.startswith("-") and len(token) > 1:
+            # a bundle like `-ne` ends with the script-taking flag
+            if not token.startswith("--") and token.endswith("e"):
+                expecting = True
+            continue
+        if not seen_operand and not scripts:
+            scripts.append(token)  # the bare script form: `sed -n '1,3p' FILE`
+        seen_operand = True
+    return scripts
+
+
+def _sed_script_is_read_only(script: str) -> bool:
+    """True when every `;`-separated command matches the read-only grammar.
+
+    The split is naive, so a substitution whose pattern contains `;` is refused rather than
+    admitted. That is the correct direction for a guard to be wrong in.
+    """
+    parts = [part for part in script.split(";")]
+    return all(_SED_PRINT.match(part) or _SED_SUBST.match(part) for part in parts)
 
 
 def screen_command(command: str, denied_names: set[str] | None = None) -> Trip | None:

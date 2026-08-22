@@ -830,6 +830,86 @@ def test_metadata_is_never_written_through_a_symlink(tmp_path: Path):
     assert not (elsewhere / "marker.json").exists()
 
 
+def test_git_pre_command_options_cannot_relocate_or_reconfigure_git():
+    """The bypass: the old screen skipped option TOKENS but not their OPERANDS.
+
+    `git -C . config --global user.name x` offered `.` as the subcommand - it is an operand
+    of `-C` - and the global config write ran. `-c alias.x=!sh` is the same door with a
+    shell behind it.
+    """
+    assert ns.screen_command("git -C . config --global user.name x").kind == "git-relocated"
+    assert ns.screen_command("git -c alias.x='!sh' log").kind == "git-relocated"
+    assert ns.screen_command("git --git-dir=/tmp/elsewhere log").kind == "git-relocated"
+    assert ns.screen_command("git --work-tree=/ status").kind == "git-relocated"
+    assert ns.screen_command("git --wat log").kind == "git-relocated"
+    # valueless pre-command options are stepped over, not refused
+    assert ns.screen_command("git -p log --oneline") is None
+
+
+def test_git_is_an_allowlist_so_an_unlisted_subcommand_is_refused():
+    """A denylist admits every subcommand nobody thought of, and git has many."""
+    assert ns.screen_command("git bisect start").kind == "git-write"
+    assert ns.screen_command("git submodule update --init").kind == "git-write"
+    assert ns.screen_command("git log --oneline -5") is None
+    assert ns.screen_command("git rev-parse --verify HEAD") is None
+
+
+def test_git_config_is_available_only_in_its_read_forms():
+    assert ns.screen_command("git config --list") is None
+    assert ns.screen_command("git config --get user.name") is None
+    assert ns.screen_command("git config --global user.name x").kind == "git-write"
+    assert ns.screen_command("git config user.name x").kind == "git-write"
+
+
+def test_bare_git_stash_is_a_write_not_a_listing():
+    """Modern `git stash` with no arguments IS `git stash push`."""
+    assert ns.screen_command("git stash").kind == "git-write"
+    assert "stash" not in ns._GIT_LISTING_WHEN_BARE
+
+
+def test_sed_scripts_that_write_or_execute_are_refused():
+    """`-i` was never the only write mode: `w` writes any path and GNU `e` executes."""
+    for command in (
+        "sed '1w /etc/passwd' CLAUDE.md",
+        "sed '1e rm -rf /' CLAUDE.md",
+        "sed 's/a/b/w /tmp/out' CLAUDE.md",
+        "sed -e '1p' -e '2w out' CLAUDE.md",
+    ):
+        assert ns.screen_command(command).kind == "sed-script-not-read-only", command
+    assert ns.screen_command("sed -f script.sed CLAUDE.md").kind == "forbidden-argument"
+
+    # ...and every read form this repo's own commands use stays available
+    for command in (
+        "sed -n '1,3p' CLAUDE.md",
+        "sed -n '151,153p' scripts/block_ff_push.py",
+        "sed -n '1p;3p' CLAUDE.md",
+        "sed '$p' CLAUDE.md",
+        "sed '/foo/p' CLAUDE.md",
+        "sed 's/a/b/g' CLAUDE.md",
+    ):
+        assert ns.screen_command(command) is None, command
+
+
+def test_the_registry_survives_concurrent_updates(tmp_path: Path):
+    """A lost entry or a half-written registry makes later teardowns refuse - i.e. leftovers."""
+    import threading
+
+    def add(index: int) -> None:
+        ns.register_sandbox(tmp_path, tmp_path / f"box{index}", f"{index:032x}")
+
+    threads = [threading.Thread(target=add, args=(i,)) for i in range(12)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+
+    registry = ns.read_registry(tmp_path)
+    assert len(registry) == 12, registry
+    for index in range(12):
+        assert registry[str((tmp_path / f"box{index}").resolve())] == f"{index:032x}"
+    assert not list(tmp_path.glob(f"{ns.REGISTRY_NAME}*.tmp")), "atomic replace leaves no temp files"
+
+
 def test_a_vanished_destination_is_reported_as_an_anomaly_not_a_clean_abort(
     source_repo: Path, tmp_path: Path, monkeypatch, capsys
 ):
