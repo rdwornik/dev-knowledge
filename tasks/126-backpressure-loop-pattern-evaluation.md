@@ -1,7 +1,7 @@
 ---
 id: "[#126]"
 title: "Backpressure-loop pattern evaluation"
-status: open
+status: retired
 priority: P2
 size: M
 theme: "[E7] Tooling & evaluation"

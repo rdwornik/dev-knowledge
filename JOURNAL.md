@@ -19,6 +19,60 @@
 
 ---
 
+### 2026-08-22 (b) — CC (Opus 5, part-C integrator, branch `docs/part-c-closure-sweep-2026-08-22`): the closure sweep banks seven, the ledger gets its own home, and the carriers land
+
+**Did:** Steps S2–S4 of the architect's part-C sequence, in the binding order: `7464578b` (closure
+sweep), `25102406` (the annotation-and-rulings ledger + five rows pointer-ized), `80af6da8` (the two
+intake carrier rows). Ledger moved **214 → 207 → 209**.
+
+**Result: banked 7, births 2, and the arithmetic is the point of doing them in this order.** Six
+rows closed on the Tier-1 gate's own `close` verdict — `[#530]` `[#539]` `[#565]` `[#529]` `[#507]`
+`[#397]` — executed as done-items-leave on a flipped host: the manifest node is dropped, the task
+file is **retained** as its allocation record with a terminal `status:`, per ADR-107 §6.3.
+
+**`[#507]` closed on the FIRST branch of its two-branch rule, and the evidence is better than the
+fallback.** CI run `32505792503` (report-only wall, commit `0360d6d0` — this session's own part-A
+push) recorded server-side both a `FAILED` test and `health: DEGRADED`, while the *same push's*
+local `audit.py health` reported **OK**. That is a violation no local bypass reached, which is the
+wall's entire stated purpose — firing observed, so "leg landed" is the accurate branch rather than
+"accepted-with-reason hold". **The local-OK vs CI-DEGRADED divergence is itself worth someone's
+attention** and is recorded here rather than filed as noise.
+
+**`[#126]` is retired, NOT closed, and the distinction is deliberate.** The gate SKIPPED it —
+*"not a proposed candidate (refusing to close un-proposed id)"* — correctly, because it carries no
+evidence commit. The operator's explicit DROP is a disposition, which `[#126]`'s own Done-when names
+as terminal. It is recorded `status: retired` so the record never claims a verification the gate
+declined to make.
+
+**The ledger doc cures a fork rather than papering over it.** `docs/audits/2026-08-22-technical-annotation-and-rulings-ledger.md`
+now carries, verbatim, five dated annotation blocks across four rows plus the five ruling texts plus
+R5. The seat had measured that the cited audit docs did **not** already contain these blocks (0/8
+normalized windows, on a matcher whose positive control passes), so deleting them from rows would
+have destroyed information; a *new* doc is the destination, which keeps audits immutable. `[#530]`
+`[#529]` `[#539]` `[#565]` closed in the same window, so their blocks were transcribed from their
+retained task files — closure does not take the record with it.
+
+**A ruled outcome did not hold, and it is recorded as a measurement rather than quietly missed.**
+B3a/B5 says the covered rows *"drop back under 1320 in the same commit"*. None does: `#533`
+4210→2239, `#559` 3222→3073, `#562` 2443→2233, `#561` 3169→2386, `#555` 1952→1508. Every one was
+already over the ceiling **before** any ruling or annotation landed on it, so reclaiming a block's
+share cannot get it under — the base content is independently over. `[#555]` is the sharp case: 1313
+with seven characters of headroom against a pointer costing ~148. The residue is content-bloat,
+which ruling B2 already governs.
+
+**Changes:** `tasks/` (7 retired/closed, 2 born, 5 pointer-ized) + regenerated `BACKLOG.md` and
+`tasks/manifest.json`; `docs/audits/2026-08-22-technical-annotation-and-rulings-ledger.md` (new);
+`docs/audits/README.md` (index regenerated).
+
+**Abandoned:** No row was trimmed beyond removing the blocks the ruling named; no WARN was
+dispositioned; no id was re-issued.
+
+**Next:** S5 — merge the rat branch (operator GO) under its own hard ordering constraint (carriers
+before the lane, or `main` carries two P-2 violations for the length of the gap), then the
+intake-archival leg. Then the S6 filing queue, capped at **5 remaining births**.
+
+---
+
 ### 2026-08-22 (a) — CC (Opus 5, seat arc, branch `docs/seat-act0-act1-2026-08-21`): the architect's ruled batch lands in the row bodies, and R5 lands here because it has no row to land in
 
 **Did:** Phase 1 of the seat contract. Five of the six rulings landed **verbatim** into their named

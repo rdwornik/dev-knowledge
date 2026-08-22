@@ -1,7 +1,7 @@
 ---
 id: "[#507]"
 title: "Report-only wall — decide the fourth recorded leg (`pre-commit run --all-files`)"
-status: open
+status: closed
 priority: P3
 size: S
 theme: "[E2] Enforced governance"

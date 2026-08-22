@@ -1,7 +1,7 @@
 ---
 id: "[#397]"
 title: "scripts/ target structure — rule on the mapped grouping, then (maybe) move"
-status: open
+status: closed
 priority: P3
 size: M
 theme: "[E7] Tooling & evaluation"

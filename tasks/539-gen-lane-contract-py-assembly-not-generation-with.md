@@ -1,7 +1,7 @@
 ---
 id: "[#539]"
 title: "`gen_lane_contract.py` — assembly-not-generation, with a `--check` leg that arms two bypassed organs"
-status: open
+status: closed
 priority: P2
 size: M
 theme: "[E7] Tooling & evaluation"
