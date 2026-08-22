@@ -503,9 +503,31 @@ anything.
 ## 10. Declarations
 
 **Gates were run by hand, and this is the uv-pin caveat, exactly as R4's precedent.** `uv sync
---frozen` refuses in this container: `Required uv version ==0.11.19 does not match the running version
-0.8.17`. Dependencies were installed with `pip --break-system-packages` instead, and every gate below
-was invoked directly rather than through `uv run`.
+--frozen` refused in this container: `Required uv version ==0.11.19 does not match the running version
+0.8.17`. Dependencies were installed with `pip --break-system-packages` instead, and every gate in the
+first block below was invoked directly rather than through `uv run`.
+
+**The pin was then RESOLVED rather than only worked around, and the gates were re-run properly.**
+`uv self update 0.11.19` fails (the release is not offered to this channel), but `pip install
+uv==0.11.19` lands the pinned binary at `/usr/local/bin/uv`; `/root/.local/bin` precedes it on PATH and
+held 0.8.17, so bare `uv` still resolved to the wrong one. Repointing that entry (old binary kept as
+`uv-0.8.17.bak`) makes `uv run --locked` work, which pulls the repo's own CPython 3.12.10 and its
+locked dependency set — so the second block is the authoritative one, and the Python-floor caveat above
+applies only to the first. `.venv/` is gitignored, so nothing dirties the tree. Re-run under it:
+
+```
+uv run --locked python -m pytest tests/test_nopack_sandbox.py tests/test_generator_newlines.py
+                                          49 passed
+uv run --locked python -m pytest (full)   35 failed, 3371 passed, 7 skipped, 1 xfailed
+  ...of which in this lane's files        0
+  ...set vs the pip-deps run below        a strict SUBSET -- no failure is new
+uv run --locked ruff check scripts/... tests/...          All checks passed
+uv run --locked python -m scripts.codemap.cli check .     exit 0 (as pre-commit invokes it)
+uv run --locked python scripts/session_end_backpressure.py    exit 0, no backpressure
+```
+
+The 17-failure `tests/test_fleet_analytics.py` cluster persists under the lock because `pandas` sits in
+the separate `analytics` dependency group, which `--locked` does not install.
 
 **A second environment caveat, found by running the suite rather than by reading anything.** The
 container's default `python3` is **3.11.15** while `pyproject.toml` declares `requires-python =
