@@ -1156,6 +1156,38 @@ def test_run_guarded_refuses_a_directory_that_was_never_provisioned(tmp_path: Pa
         ns.run_guarded("cat secret.txt", hand_built)
 
 
+def test_dereferencing_list_and_diff_modes_are_refused():
+    """`ls -LR .` walks the host through a symlink while its only operand is `.`."""
+    assert ns.screen_command("ls -LR .").kind == "forbidden-argument"
+    assert ns.screen_command("ls --dereference .").kind == "forbidden-argument"
+    assert ns.screen_command("diff -r . docs").kind == "forbidden-argument"
+    assert ns.screen_command("ls -la") is None
+    assert ns.screen_command("diff CLAUDE.md BACKLOG.md") is None
+
+
+def test_a_binary_dropped_in_the_sandbox_cannot_shadow_an_allowlisted_command(
+    sandbox: ns.Sandbox,
+):
+    """On Windows `CreateProcess` searches the CURRENT DIRECTORY first - i.e. the sandbox.
+
+    A candidate can write inside the tree it is allowed to write in, so a `cat.exe` there
+    would BE cat. Resolving to an absolute path from the trusted PATH means the OS searches
+    nothing; refusing a resolution that lands inside the root closes the same door on PATH.
+    """
+    root = sandbox.sandbox_root
+    assert ns._resolve_executable("cat", ns._child_env(), root) is not None
+
+    planted = sandbox.path / "cat"
+    planted.write_text("#!/bin/sh\necho pwned\n", encoding="utf-8")
+    resolved = ns._resolve_executable("cat", {"PATH": str(sandbox.path)}, root)
+    assert resolved is None, "a program reachable only from inside the sandbox is not a program"
+
+    res = ns.run_guarded("cat CLAUDE.md", sandbox)
+    assert res.refused is False
+    assert "pwned" not in res.stdout
+    assert "# CLAUDE" in res.stdout
+
+
 def test_a_live_registry_lock_is_not_stolen(tmp_path: Path):
     """An earlier draft broke the lock on the waiter's OWN timeout, so two could hold it."""
     lock = (tmp_path / ns.REGISTRY_NAME).with_suffix(".lock")

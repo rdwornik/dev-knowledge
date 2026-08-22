@@ -292,6 +292,13 @@ _FORBIDDEN_ARGS: dict[str, frozenset[str]] = {
     # `-T` relocates its temporary files. All three are outside a read surface.
     "sort": frozenset({"-o", "--output", "--compress-program", "-T", "--temporary-directory",
                        "--files0-from"}),
+    # `ls -L` dereferences, and with `-R` it walks the host through any symlink in the
+    # tree while the only operand it was given is `.`.
+    "ls": frozenset({"-L", "--dereference", "-H", "--dereference-command-line",
+                     "--dereference-command-line-symlink-to-dir"}),
+    # diff DEREFERENCES by default (`--no-dereference` is the opt-out), so recursing it
+    # over the tree walks out through any symlink the same way.
+    "diff": frozenset({"-r", "--recursive"}),
 }
 
 # git is an ALLOWLIST, not a denylist. A denylist of write subcommands lets every
@@ -1955,7 +1962,28 @@ class GuardedResult:
         }
 
 
-def _require_provisioned(sandbox: Sandbox | Path, cwd: Path) -> None:
+def _resolve_executable(name: str, env: dict[str, str], sandbox_root: Path) -> str | None:
+    """Find `name` on the trusted PATH and refuse anything reachable from the sandbox.
+
+    Bare names are resolved by the OS at exec time, and on Windows `CreateProcess` searches
+    the CURRENT DIRECTORY first - which is the sandbox. A candidate that writes `git.exe`
+    into the tree it is allowed to write in would then BE git. Resolving to an absolute
+    path here means the OS searches nothing, and refusing a resolution that lands inside
+    the sandbox root closes the same door on PATH.
+
+    The honest limit: this trusts the PATH the session was started with. If that is already
+    hostile, so is everything else on the machine, and no guard inside one process fixes it.
+    """
+    found = shutil.which(name, path=env.get("PATH"))
+    if found is None:
+        return None
+    resolved = _resolve(Path(found))
+    if _is_contained(resolved, sandbox_root) or resolved == sandbox_root:
+        return None
+    return str(resolved)
+
+
+def _require_provisioned(sandbox: Sandbox | Path, cwd: Path) -> Path:
     """Prove the cwd is a real sandbox before ANY guarded command runs.
 
     Hardening `_load` hardened the CLI. It did nothing for a direct caller, and
@@ -1981,7 +2009,9 @@ def _require_provisioned(sandbox: Sandbox | Path, cwd: Path) -> None:
             )
         recorded = marker.get("sandbox_root")
         root = _resolve(str(recorded)) if isinstance(recorded, str) else _resolve(default_sandbox_root())
-    verify_provenance(resolved, _resolve(root), expected_nonce=nonce or None)
+    root = _resolve(root)
+    verify_provenance(resolved, root, expected_nonce=nonce or None)
+    return root
 
 
 def run_guarded(
@@ -2003,7 +2033,7 @@ def run_guarded(
     else:
         cwd = Path(sandbox)
         names = denied_names or set()
-    _require_provisioned(sandbox, cwd)
+    sandbox_root = _require_provisioned(sandbox, cwd)
 
     trip, stages = screen_pipeline(command, names)
     if trip is not None:
@@ -2029,15 +2059,24 @@ def run_guarded(
     stage_codes: list[int] = []
     returncode = 0
     remaining = float(timeout)
+    env = _child_env()
     for stage in expanded:
         argv = list(stage.argv)
+        # Resolve the program HERE, from the trusted PATH, and hand the OS an absolute
+        # path so it searches nothing - the sandbox least of all.
+        program = _resolve_executable(argv[0], env, sandbox_root)
+        if program is None:
+            return GuardedResult(
+                command, 127, "", f"sandbox guard: command not found: {argv[0]}", refused=False
+            )
+        argv[0] = program
         started = time.monotonic()
         try:
             proc = subprocess.run(
                 argv,
                 shell=False,
                 cwd=str(cwd),
-                env=_child_env(),
+                env=env,
                 input=piped,
                 capture_output=True,
                 text=True,
