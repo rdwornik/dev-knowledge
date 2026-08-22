@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "cefefd4dbc11fbb2bcf8d615ccec887a2d7285f2cac2029f64d1519168ec5a3c",
+  "generated_sha256": "d20d83a66fef8ceb6f9e02fc4945bb47cf454a1eff12b2868f86e670a4444698",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -685,6 +685,10 @@
       "prose": ""
     },
     {
+      "task": 571,
+      "file": "571-define-architecture-described-surface.md"
+    },
+    {
       "task": 542,
       "file": "542-architecture-md-still-claims-four-doc-rot-sub-dete.md"
     },
@@ -998,6 +1002,10 @@
     },
     {
       "prose": ""
+    },
+    {
+      "task": 570,
+      "file": "570-consume-the-tech-adoption-ledger-w-wave.md"
     },
     {
       "task": 535,
