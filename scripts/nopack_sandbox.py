@@ -1151,30 +1151,7 @@ def teardown(
     if not resolved.exists():
         return True  # idempotent: nothing to remove, and nothing was removed
 
-    if not resolved.is_dir():
-        raise TeardownRefused(f"refused: not a directory: {resolved}")
-    if not _is_contained(resolved, root):
-        raise TeardownRefused(
-            f"refused: {resolved} is outside the configured sandbox root {root}"
-        )
-    marker = read_marker(resolved)
-    if marker is None:
-        raise TeardownRefused(
-            f"refused: {resolved} carries no valid provisioning marker ({MARKER_RELPATH}); "
-            f"this tool did not provision it"
-        )
-    registered = read_registry(root).get(str(resolved))
-    if registered is None:
-        raise TeardownRefused(
-            f"refused: {resolved} is not in the sandbox registry ({REGISTRY_NAME}); a marker "
-            f"inside a tree is a claim, not a provenance"
-        )
-    if registered != marker.get("nonce"):
-        raise TeardownRefused(f"refused: {resolved} disagrees with the registry (nonce mismatch)")
-    if expected_nonce is not None and marker.get("nonce") != expected_nonce:
-        raise TeardownRefused(
-            f"refused: {resolved} was provisioned by a different run (nonce mismatch)"
-        )
+    marker = verify_provenance(resolved, root, expected_nonce=expected_nonce, error=TeardownRefused)
 
     # Re-verify immediately before deleting, and pin the directory's identity across the
     # gap. HONEST LIMIT, because this narrows the check-to-delete race rather than closing
@@ -1191,6 +1168,43 @@ def teardown(
     if removed:
         unregister_sandbox(root, resolved)
     return removed
+
+
+def verify_provenance(
+    resolved: Path,
+    root: Path,
+    *,
+    expected_nonce: str | None = None,
+    error: type[Exception] = RuntimeError,
+) -> dict[str, object]:
+    """Prove `resolved` is a sandbox THIS tool provisioned, or raise. Returns its marker.
+
+    Shared by `teardown` and `_load` on purpose. `exec` pointed at an arbitrary directory
+    runs commands with that directory as `cwd`, so every relative operand reads from it -
+    which makes "is this really a sandbox" exactly as load-bearing before running a command
+    as it is before deleting a tree. One function, so the two answers cannot drift.
+    """
+    if not resolved.is_dir():
+        raise error(f"refused: not a directory: {resolved}")
+    if not _is_contained(resolved, root):
+        raise error(f"refused: {resolved} is outside the configured sandbox root {root}")
+    marker = read_marker(resolved)
+    if marker is None:
+        raise error(
+            f"refused: {resolved} carries no valid provisioning marker ({MARKER_RELPATH}); "
+            f"this tool did not provision it"
+        )
+    registered = read_registry(root).get(str(resolved))
+    if registered is None:
+        raise error(
+            f"refused: {resolved} is not in the sandbox registry ({REGISTRY_NAME}); a marker "
+            f"inside a tree is a claim, not a provenance"
+        )
+    if registered != marker.get("nonce"):
+        raise error(f"refused: {resolved} disagrees with the registry (nonce mismatch)")
+    if expected_nonce is not None and marker.get("nonce") != expected_nonce:
+        raise error(f"refused: {resolved} was provisioned by a different run (nonce mismatch)")
+    return marker
 
 
 def _dir_identity(path: Path) -> tuple[int, int] | None:
@@ -1625,11 +1639,14 @@ def _resolves_outside(token: str, cwd: Path) -> bool:
     otherwise. This runs where `cwd` is known - at execution - so `screen_command` alone
     stays lexical, and `run_guarded` is where the resolved leg applies.
     """
-    if not token or token.startswith("-"):
+    # A flag's ATTACHED value is a path too: `grep --file=escape` opens `escape`. Checking
+    # only bare operands left every `--opt=path` and `-opath` form uncovered.
+    value = _attached_value(token) if token.startswith("-") else token
+    if not value:
         return False
-    candidate = cwd / token
+    candidate = cwd / value
     if not os.path.lexists(candidate):
-        return False
+        return False  # not a path in this tree, so it is data, not an operand
     try:
         resolved = candidate.resolve()
         root = cwd.resolve()
@@ -1852,11 +1869,21 @@ class GuardedResult:
     stderr: str
     refused: bool
     trip: Trip | None = None
+    # Every stage's exit code, not just the last. A pipeline reports its FINAL status, so
+    # `cat missing | wc -l` succeeds with "0" while the read it was doing failed - which is
+    # how a positive control passes having demonstrated nothing.
+    stage_returncodes: tuple[int, ...] = ()
+
+    @property
+    def pipeline_failed(self) -> bool:
+        """True when ANY stage exited non-zero, including one whose failure was swallowed."""
+        return any(code != 0 for code in self.stage_returncodes)
 
     def as_dict(self) -> dict[str, object]:
         return {
             "command": self.command,
             "returncode": self.returncode,
+            "stage_returncodes": list(self.stage_returncodes),
             "refused": self.refused,
             "trip": None if self.trip is None else {"layer": self.trip.layer, "kind": self.trip.kind},
             "stdout": self.stdout,
@@ -1905,6 +1932,7 @@ def run_guarded(
     # upstream early - it truncates instead.
     piped = ""
     stderr_parts: list[str] = []
+    stage_codes: list[int] = []
     returncode = 0
     remaining = float(timeout)
     for stage in expanded:
@@ -1937,6 +1965,7 @@ def run_guarded(
             )
         remaining -= time.monotonic() - started
         returncode = proc.returncode
+        stage_codes.append(proc.returncode)
         piped = "" if stage.drop_stdout else proc.stdout
         if proc.stderr and not stage.drop_stderr:
             stderr_parts.append(proc.stderr)
@@ -1951,7 +1980,9 @@ def run_guarded(
     if len(stdout.encode("utf-8")) > max_output_bytes:
         stdout = stdout.encode("utf-8")[:max_output_bytes].decode("utf-8", errors="ignore")
         stdout += "\n[output truncated by sandbox guard]"
-    return GuardedResult(command, returncode, stdout, stderr, refused=False)
+    return GuardedResult(
+        command, returncode, stdout, stderr, refused=False, stage_returncodes=tuple(stage_codes)
+    )
 
 
 # --------------------------------------------------------------------------------------
@@ -2027,8 +2058,12 @@ def probe(
             # produce "allowed" with no output. The control exists to show the instrument
             # still works, so it has to have worked.
             detail = f"rc={res.returncode}, {len(res.stdout)} bytes"
-            if res.returncode != 0:
-                passed, detail = False, f"{detail} - non-zero exit"
+            if res.pipeline_failed:
+                # EVERY stage, not just the last. `cat missing | wc -l` exits 0 with "0",
+                # so a final-status check calls it a pass while the read it existed to
+                # demonstrate never happened - and the default V8 control is a pipeline.
+                codes = ",".join(str(code) for code in res.stage_returncodes)
+                passed, detail = False, f"{detail} - a stage failed (rc per stage: {codes})"
             elif not res.stdout.strip():
                 passed, detail = False, f"{detail} - no output, so it demonstrated nothing"
         results.append(ProbeVector(name, command, expect, outcome, passed, detail))
@@ -2073,10 +2108,12 @@ def main(argv: list[str] | None = None) -> int:
     p_probe = sub.add_parser("probe", help="prove the pack is unreadable")
     p_probe.add_argument("--sandbox", required=True)
     p_probe.add_argument("--manifest", default=None)
+    p_probe.add_argument("--sandbox-root", default=None)
 
     p_exec = sub.add_parser("exec", help="run one guarded command in a sandbox")
     p_exec.add_argument("--sandbox", required=True)
     p_exec.add_argument("--manifest", default=None)
+    p_exec.add_argument("--sandbox-root", default=None)
     p_exec.add_argument("--json", action="store_true")
     p_exec.add_argument("command", nargs=argparse.REMAINDER)
 
@@ -2109,7 +2146,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.cmd == "probe":
-        sandbox = _load(args.sandbox, args.manifest)
+        sandbox = _load(args.sandbox, args.manifest, args.sandbox_root)
         vectors = probe(sandbox)
         for vec in vectors:
             flag = "PASS" if vec.passed else "FAIL"
@@ -2119,7 +2156,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1 if failed else 0
 
     if args.cmd == "exec":
-        sandbox = _load(args.sandbox, args.manifest)
+        sandbox = _load(args.sandbox, args.manifest, args.sandbox_root)
         command = " ".join(a for a in args.command if a != "--")
         res = run_guarded(command, sandbox)
         if args.json:
@@ -2152,30 +2189,47 @@ def main(argv: list[str] | None = None) -> int:
     return 2
 
 
-def _load(sandbox_path: str, manifest_path: str | None) -> Sandbox:
-    """Rehydrate a Sandbox from disk, so `exec`/`probe` work across process boundaries."""
+def _load(sandbox_path: str, manifest_path: str | None, sandbox_root: str | None = None) -> Sandbox:
+    """Rehydrate a Sandbox from disk, PROVING first that it is one.
+
+    There is deliberately no degraded mode. An earlier draft accepted any directory,
+    printed "Layer A path screening is degraded", and carried on - but `exec` runs its
+    command with that directory as `cwd`, so pointing it at an unprovisioned tree does not
+    degrade the guard, it removes it: every relative operand then reads a directory nobody
+    stripped. A warning is not a substitute for the check it warns about.
+    """
     path = Path(sandbox_path)
     candidate = Path(manifest_path) if manifest_path else path / MANIFEST_RELPATH
-    if candidate.exists():
-        data = json.loads(candidate.read_text(encoding="utf-8"))
-        recorded_root = data.get("sandbox_root")
-        return Sandbox(
-            path=path,
-            source=Path(data["source"]),
-            head=data["head"],
-            strip_commit=data["strip_commit"],
-            removed=list(data["removed"]),
-            redacted=dict(data["redacted"]),
-            postcondition_clean=bool(data["postcondition_clean"]),
-            residual=dict(data.get("residual", {})),
-            denied=list(data.get("denied", [])),
-            sandbox_root=Path(recorded_root) if recorded_root else None,
-            nonce=str(data.get("nonce", "")),
+    if not candidate.is_file():
+        raise RuntimeError(
+            f"refused: {path} carries no run manifest ({MANIFEST_RELPATH}); it was not "
+            f"provisioned by this tool, so it is not a sandbox to run commands in"
         )
-    # No manifest: the content layer still holds; only the path layer is degraded, and
-    # that degradation is announced rather than silent.
-    print("nopack_sandbox: no manifest found - Layer A path screening is degraded", file=sys.stderr)
-    return Sandbox(path=path, source=path, head="unknown", strip_commit="unknown")
+    data = json.loads(candidate.read_text(encoding="utf-8"))
+    recorded_root = data.get("sandbox_root")
+    root = _resolve(sandbox_root) if sandbox_root else None
+    if root is None:
+        root = _resolve(recorded_root) if recorded_root else _resolve(default_sandbox_root())
+    sandbox = Sandbox(
+        path=path,
+        source=Path(data["source"]),
+        head=data["head"],
+        strip_commit=data["strip_commit"],
+        removed=list(data["removed"]),
+        redacted=dict(data["redacted"]),
+        postcondition_clean=bool(data["postcondition_clean"]),
+        residual=dict(data.get("residual", {})),
+        denied=list(data.get("denied", [])),
+        sandbox_root=root,
+        nonce=str(data.get("nonce", "")),
+    )
+    verify_provenance(_resolve(path), root, expected_nonce=sandbox.nonce or None)
+    if not sandbox.postcondition_clean:
+        raise RuntimeError(
+            f"refused: {path} did not pass provisioning's own postcondition, so its tree is "
+            f"not known to be free of answer-key content"
+        )
+    return sandbox
 
 
 if __name__ == "__main__":

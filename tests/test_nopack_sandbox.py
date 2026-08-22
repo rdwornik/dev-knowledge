@@ -1038,9 +1038,73 @@ def test_a_positive_control_that_produced_nothing_does_not_pass(sandbox: ns.Sand
     )
     by_name = {vector.name: vector for vector in vectors}
     assert by_name["control that reads nothing"].passed is False
-    assert "non-zero exit" in by_name["control that reads nothing"].detail
+    assert "a stage failed" in by_name["control that reads nothing"].detail
     assert by_name["control that outputs nothing"].passed is False
     assert by_name["control that genuinely works"].passed is True
+
+
+def test_a_control_whose_UPSTREAM_stage_failed_does_not_pass(sandbox: ns.Sandbox):
+    """`cat missing | wc -l` exits 0 with "0". The final status is not the pipeline's."""
+    res = ns.run_guarded("cat no-such-file.md | wc -l", sandbox)
+    assert res.returncode == 0, "the LAST stage really did succeed"
+    assert res.stdout.strip(), "and it really did produce output"
+    assert res.pipeline_failed is True, "but the read it was doing failed"
+
+    vectors = ns.probe(sandbox, controls=(("piped control", "cat no-such-file.md | wc -l"),))
+    piped = next(vector for vector in vectors if vector.name == "piped control")
+    assert piped.passed is False
+    assert "a stage failed" in piped.detail
+
+
+def test_exec_refuses_a_directory_that_was_never_provisioned(source_repo: Path, tmp_path: Path):
+    """`exec` runs with the sandbox as `cwd`, so an unprovisioned tree removes the guard.
+
+    An earlier draft printed "Layer A path screening is degraded" and carried on. It is not
+    a degradation: every relative operand then reads a directory nobody stripped.
+    """
+    outside = tmp_path / "not-a-sandbox"
+    outside.mkdir()
+    (outside / "secret.txt").write_text("host content", encoding="utf-8")
+
+    with pytest.raises(RuntimeError, match="no run manifest"):
+        ns._load(str(outside), None, str(tmp_path))
+
+    # ...and a directory carrying a COPIED manifest is refused on provenance, not shape
+    box = ns.provision(source_repo, tmp_path / "genuine", allow_shallow=True, sandbox_root=tmp_path)
+    try:
+        (outside / ns.SANDBOX_META_DIR).mkdir(parents=True)
+        shutil.copy2(box.path / ns.MANIFEST_RELPATH, outside / ns.MANIFEST_RELPATH)
+        with pytest.raises(RuntimeError, match="no valid provisioning marker"):
+            ns._load(str(outside), None, str(tmp_path))
+    finally:
+        ns.teardown(box)
+
+
+def test_exec_refuses_a_sandbox_that_failed_its_own_postcondition(source_repo: Path, tmp_path: Path):
+    box = ns.provision(source_repo, tmp_path / "dirty", allow_shallow=True, sandbox_root=tmp_path)
+    try:
+        manifest = box.path / ns.MANIFEST_RELPATH
+        data = json.loads(manifest.read_text(encoding="utf-8"))
+        data["postcondition_clean"] = False
+        manifest.write_text(json.dumps(data), encoding="utf-8")
+        with pytest.raises(RuntimeError, match="postcondition"):
+            ns._load(str(box.path), None, str(tmp_path))
+    finally:
+        ns.teardown(box)
+
+
+def test_an_attached_option_value_cannot_hide_a_symlink(sandbox: ns.Sandbox, tmp_path: Path):
+    """`grep --file=escape` opens `escape`; checking only bare operands missed every flag."""
+    secret = tmp_path / "host-patterns.txt"
+    secret.write_text("root", encoding="utf-8")
+    try:
+        (sandbox.path / "escape").symlink_to(secret)
+    except (OSError, NotImplementedError) as exc:
+        pytest.skip(f"symlink creation unavailable: {exc}")
+
+    res = ns.run_guarded("grep --file=escape CLAUDE.md", sandbox)
+    assert res.refused is True
+    assert res.trip.kind == "path-outside-sandbox"
 
 
 def test_a_live_registry_lock_is_not_stolen(tmp_path: Path):
