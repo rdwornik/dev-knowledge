@@ -21,6 +21,7 @@ mirroring tests/test_gen_intake_index.py) so no package import is implied.
 
 import importlib.util
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -642,6 +643,83 @@ def test_the_module_docstring_no_longer_claims_a_self_committing_writer():
     Phase-0 packet quoted as the ROOT, addressed to the next reader of the code."""
     assert "commits its own output" not in gd.__doc__
     assert "human or integrator commit satisfies" in gd.__doc__
+
+
+# --------------------------------------------------- the commit path is explicit AND observable
+# ADR-86 amended 2026-08-23: a human or integrator commits. `[#171]` leg 1's failure was that the
+# mechanism existed only as prose — so these pin BOTH halves: the path is real, derived and
+# printed; and the generator still does not run it.
+
+
+def test_commit_pathspec_is_derived_from_the_write_targets():
+    """Not a re-typed literal: the pathspec IS the write targets, so it cannot drift from what
+    `--write` actually wrote."""
+    assert gd.commit_pathspec() == [gd.MD_RELPATH, gd.HTML_RELPATH]
+    assert gd.commit_pathspec() == [relpath for relpath, _ in gd._TARGETS]
+
+
+def test_commit_path_is_pathspec_bounded():
+    """ADR-80 Rider 1 survives the amendment — what changed is WHO runs the commit, not what it
+    is bounded to. An operator's unrelated dirty files must be untouchable by this path."""
+    add, commit = gd.commit_path_commands()
+    assert add[:3] == ["git", "add", "--"], "the `--` separator is load-bearing"
+    assert add[3:] == [gd.MD_RELPATH, gd.HTML_RELPATH]
+    assert "-A" not in add and "--all" not in add and "." not in add
+    assert commit[:2] == ["git", "commit"]
+
+
+def test_write_prints_the_commit_path_it_did_not_run(tmp_path, capsys):
+    repo = _fixture_repo(tmp_path)
+    gd.write_outputs(repo, _FakeGit(head_date="2026-08-19", old_backlog=None))
+    out = capsys.readouterr().out
+    assert "NOT committed" in out
+    assert "git add -- ecosystem/conformance.md ecosystem/conformance.html" in out
+    assert "git commit" in out
+
+
+def test_write_leaves_its_outputs_uncommitted_in_a_real_repo(tmp_path):
+    """THE TEETH OF THE NEGATIVE HALF, and the ADR-81 leg (e) functional proof for it. ADR-86 as
+    amended says this module does not commit — a header can claim that and be wrong, which is the
+    entire defect this lane exists to fix. So the claim is asserted behaviourally against a REAL
+    git repo: after `--write`, HEAD has not moved and both outputs are sitting dirty, waiting for
+    the human. (Asserted this way rather than by monkeypatching `subprocess.run`, which would
+    patch the stdlib module object for the whole xdist worker.)"""
+    repo = _fixture_repo(tmp_path)
+    for args in (("init", "-q", "-b", "main"), ("config", "user.email", "t@t.t"),
+                 ("config", "user.name", "t"), ("add", "-A"),
+                 ("commit", "-q", "--no-verify", "-m", "fixture")):
+        subprocess.run(["git", "-C", str(repo), *args], capture_output=True, text=True)
+    head_before = subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"],
+                                 capture_output=True, text=True).stdout.strip()
+    assert head_before, "fixture repo did not produce a commit"
+
+    assert gd.write_outputs(repo, gd._reader(repo)) == 0
+
+    head_after = subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"],
+                                capture_output=True, text=True).stdout.strip()
+    assert head_after == head_before, "gen_dashboard committed — it must not (ADR-86 amd. 2026-08-23)"
+    porcelain = subprocess.run(["git", "-C", str(repo), "status", "--porcelain"],
+                               capture_output=True, text=True).stdout
+    assert gd.MD_RELPATH in porcelain and gd.HTML_RELPATH in porcelain, (
+        "the outputs should be left dirty for the human to commit")
+
+
+def test_commit_path_verb_prints_the_commands_and_exits_zero(capsys):
+    """`--commit-path` answers the question without touching the tree or needing git at all."""
+    assert gd.main(["--commit-path"]) == 0
+    out = capsys.readouterr().out
+    assert "git add -- ecosystem/conformance.md ecosystem/conformance.html" in out
+    assert "git commit" in out
+
+
+@pytest.mark.parametrize("renderer", ["render_markdown", "render_html"])
+def test_both_faces_carry_the_commit_path_pathspec(renderer, tmp_path):
+    """The header names the mechanism; this pins that it names the SAME pathspec the code uses."""
+    repo = _fixture_repo(tmp_path)
+    out = getattr(gd, renderer)(gd.build(repo, _FakeGit(head_date="2026-08-19",
+                                                        old_backlog=None)))
+    assert " ".join(gd.commit_pathspec()) in out
+    assert "--commit-path" in out
 
 
 @pytest.mark.parametrize("verb", ["--write", "--check"])

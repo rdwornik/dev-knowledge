@@ -6,8 +6,9 @@
 
 > **Generated, human-committed, read-only** (ADR-86 location + ADR-80 zone class; ADR-86 **amended 2026-08-23** — a human or integrator commit satisfies "committed"). `python scripts/gen_dashboard.py --write` writes this file and **commits nothing**; the person or integrator who ran it commits both faces, pathspec-bounded, in the same branch → `--no-ff` merge as any other change. **This copy is therefore exactly as current as its own last commit, never fresher.** It answers four standing operator questions — what finished, where the telemetry is, whether the intakes passed their gate, and whether implemented ADRs are archived — and it **reports rather than repairs**: every VIOLATION and flag below is left exactly where it was found.
 
-- **As of:** 2026-08-24 · **HEAD:** `8c028f0d9fa1` · **window:** 2026-08-17 → 2026-08-24 (7 days)
+- **As of:** 2026-08-24 · **HEAD:** `7edd76d30fb0` · **window:** 2026-08-17 → 2026-08-24 (7 days)
 - **Regenerate:** `python scripts/gen_dashboard.py --write` · **verify:** `python scripts/gen_dashboard.py --check`
+- **Commit path:** the person who regenerated it commits, pathspec-bounded to `ecosystem/conformance.md ecosystem/conformance.html` — `python scripts/gen_dashboard.py --commit-path` prints the exact commands, and `--write` prints them too. The generator itself commits nothing.
 - **Determinism:** derived from the tree, not the clock — the "as of" instant is HEAD's commit date, so two runs on one tree are byte-identical. After HEAD moves, `--check` reports drift; that is a regenerate-me signal and gates nothing.
 
 ---
