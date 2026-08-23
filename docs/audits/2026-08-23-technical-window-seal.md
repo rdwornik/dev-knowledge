@@ -113,3 +113,90 @@ intakes                   41 filed today (guard refusal surface); #34-#37 remain
 gates that. It does not touch the three governance files. And it does not score the
 docs-governance lane, which was still running when this was written: scoring a lane from outside
 while it works is how a close invents a result.
+
+---
+
+## 5. AMENDMENT — the docs-governance lane landed after this seal was written
+
+**Appended, not rewritten** (`CLAUDE.md` §5 rule 3 in-file amendment marker; architect ruling of
+2026-08-23). Everything above stands exactly as written; §4's *"lane-docs-governance, LIVE"* line was
+true at the seal and is superseded here rather than edited.
+
+`lane-docs-governance` stopped at its sixth commit (`e4d24601`, the artifact) and was merged by the
+integrator. Its record: `docs/audits/2026-08-23-technical-lane-docs-governance.md`.
+
+### 5.1 The ledger line is UNCHANGED, and that is a measurement rather than an assumption
+
+```
+births from this lane      0   (no tasks/ or BACKLOG.md edit -- the lane's contract forbade both)
+closures from this lane    0   (see 5.2 -- [#171] was NOT closed)
+open rows after the merge  212   validate_backlog on main, re-measured post-merge
+```
+
+The §1 arithmetic (214 - 11 + 9 = 212) therefore stands untouched, and `banked_D` still has **2** of
+its 3 births unspent.
+
+### 5.2 `[#171]` was NOT closed — the lane refused, and the integrator re-verified the refusal
+
+The contract anticipated a flip and the lane declined it, on a fact neither the contract nor this
+seal's author had checked. `[#171]`'s Done-when has two legs:
+
+> *"`ecosystem/conformance.md` is generated **+ committed** by a read-only validator (Layer-2-safe)
+> **and** ARCHITECTURE Ch2 carries the pointer"*
+
+- **Leg 2 is discharged** by this lane: Ch2 now carries the pointer, naming what the dashboard
+  answers against what the organ index answers.
+- **Leg 1 is NOT discharged, and no code path performs it.** `scripts/gen_dashboard.py::write_outputs`
+  writes two files and returns `0`; there is no commit path, and the module's only `subprocess` site
+  is the read-only `GitReader`. **The integrator re-ran this check independently rather than
+  accepting the lane's word for it, and it holds.**
+
+**Worth recording as a method point, because it nearly went the other way.** The integrator's first
+pass judged leg 1 *met* by reading the dashboard's own header — *"Generated, committed, read-only"* —
+which is the artifact's self-description, not its mechanism. The lane read the generator. A document
+asserting a property about itself is not evidence that the property holds, and closing `[#171]` on
+that header would have closed a row on the strength of the very sentence the finding says is false.
+
+The disposition is an architect choice and is not taken here: **(a)** implement the ADR-80 writer
+policy so the generator commits its own output, or **(b)** rule that human-committed satisfies
+"committed" and amend ADR-86 §2 plus the two artifact strings. The lane's source finding (R3 **F3**)
+says *"do not leave (c)"* — and leaving the row closed-on-a-false-header would have been (c).
+
+### 5.3 One deliberate deviation, and it is reversible in one hunk
+
+Contract item 5 named *"add `block-commit-on-main`"* to ARCHITECTURE Ch2's pre-commit enumeration.
+The lane took the **second** option its source finding offered — delete the enumeration, keep the
+pointer — because the list said 18 where live is 21, so adding one id would have landed 19-of-21:
+still false, and the fourth recurrence of a defect the sentence's own parenthetical already records
+three times. The same lane was landing *"never restate a count or roster in prose"* into `CLAUDE.md`
+§4 in the same pass. Recorded here because the contract's gloss named only the first option, so the
+deviation is the integrator's to surface rather than the lane's to bury — and the lane surfaced it
+anyway, in its §1 item 5, before anyone asked.
+
+### 5.4 The next-window queue gains the lane's reported-not-acted-on set
+
+§3's eight entries stand. These are additional, each named rather than swept, none filed as a row
+(no birth was ruled and `banked_D` is deliberately left at 2):
+
+| Handle | What | Status |
+|---|---|---|
+| **F3 — `[#171]` leg 1** | The generator claims to commit its own output and has no commit path | **P1; blocks `[#171]`; needs the architect's (a)/(b)** |
+| **F5 / F4** | The dashboard's `--check` is armed nowhere — the lone ungated committed-generated surface — and the committed artifact is stale against HEAD | P2; `.pre-commit-config.yaml` was on the lane's never-touch list |
+| **M1 universalization** | M1 landed in `CLAUDE.md` §4, not §10 as contracted: §10 is a hub-single-sourced byte-parity region, so a §10-only edit breaks fleet parity and never reaches a consumer | Owed as a lockstep one-commit follow-up editing §10 **and** `templates/claude-regions/antipatterns-universal.md` together |
+| **R1 A17** | Ch6's *"15 open GitHub Issues, newest 2026-06-25"* is still unverified — the lane exercised no `gh` reach and **deliberately did not restate it at a guessed value** | Needs a lane that can reach Issues |
+| **R1 V4 / V5 / V6** | VISION missing-coverage: ADR-109 registry authority, four absent References, the mixed `docs/archive/` genre | Outside a top-10-scoped contract; all three still valid |
+| **R1 C3 / C5 / C6** | CLAUDE.md missing-coverage: no agent/workflow class, `tasks/` + `ecosystem/` absent from Critical paths, no off-machine session-start variant | Affordable — headroom is now 5 counted lines, C5 costs 0 and C3 costs 1 |
+| **ADR-101 `.devcontainer/` under-count** | The amendment prose says two files; four are tracked | Harmless (Rule C admits them); ADR immutable, `scripts/` was off-list |
+
+### 5.5 State at the amendment
+
+```
+main                sealed, then advanced by this lane's merge; origin/main == main
+branches (origin)   main + automation/fleet-audit (protected) -- unchanged
+worktrees           NONE. lane-docs-governance torn down; the tree is at a clean boundary
+open rows           212, validate_backlog OK
+CLAUDE.md budget    195 counted lines against the declared 200 -- headroom 5, measured by
+                    validate_doc_rot.scan_file_budget during the lane's own gate run
+freshness           ARCHITECTURE / CLAUDE / VISION all re-stamped 2026-08-23 on genuine
+                    end-to-end re-reads; canonical_freshness green
+```

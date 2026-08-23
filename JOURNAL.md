@@ -19,6 +19,70 @@
 
 ---
 
+### 2026-08-23 (f) - CC (Opus 5, integrator, branch `docs/journal-docs-governance-2026-08-23`): the governance lane lands, and the row it was expected to close stays open on a fact nobody had checked
+
+**Did:** merged `worktree-lane-docs-governance` after reading its artifact, amended the window seal,
+and tore the lane down. `[#171]` was NOT closed.
+
+**Result: the three governance files are discharged against the R1 drift audit, and the lane
+corrected its own inputs on the way.** `ARCHITECTURE.md`, `CLAUDE.md` and `VISION.md` - the
+freshness-gated collision set, which is why one lane owned all three - across six commits, every one
+through the full gate stack with no `SKIP=` and no `--no-verify`. `[#558]`'s fifth site is gone:
+`VISION.md` now says `audit.py` is **read-only on siblings** rather than read-only, which is the
+ADR-36 invariant and the checkable one, against a tool that pushes to `origin` and commits Routine
+output. Ch2 gained the `[#171]` conformance pointer and Ch8's daily-working-mode pointer; `CLAUDE.md`
+gained M1 (resolve a locator before acting on it) and M2 (never restate a count in prose), and came
+in at **195 counted lines against its declared 200** - headroom 5, measured by
+`validate_doc_rot.scan_file_budget` in the lane's own gate run rather than asserted.
+
+**`[#171]` STAYS OPEN, and this is the finding of the arc.** Its Done-when has two legs: the Ch2
+pointer, and *"`ecosystem/conformance.md` is generated **+ committed** by a read-only validator"*.
+Leg 2 landed today. **Leg 1 has no implementation at all** - `gen_dashboard.py::write_outputs` writes
+two files and returns `0`, there is no commit path, and the module's only `subprocess` site is a
+read-only `GitReader`. The lane refused the flip its contract anticipated; I re-verified the refusal
+against the source rather than accepting it, and it holds.
+
+**I had it wrong first, and the way I had it wrong is the reusable part.** My pre-merge pass judged
+leg 1 *met* by reading the dashboard's own header - *"Generated, committed, read-only"*. That is the
+artifact's self-description, not its mechanism. Closing the row on that sentence would have closed it
+on the strength of the very claim the finding says is false. A document asserting a property about
+itself is not evidence that the property holds. The disposition - implement the ADR-80 writer policy,
+or rule that human-committed satisfies "committed" and amend ADR-86 plus the two artifact strings -
+is the architect's, and is not taken here.
+
+**One deliberate deviation, surfaced by the lane before anyone asked.** Contract item 5 said add
+`block-commit-on-main` to Ch2's pre-commit enumeration; the lane deleted the enumeration instead -
+the second option its source finding offered in writing. The list said 18 where live is 21, so the
+literal fix lands 19-of-21: still false, and the fourth recurrence of a defect that sentence's own
+parenthetical already records three times. The same lane was landing *"never restate a count in
+prose"* into `CLAUDE.md` §4 in the same pass. Reversible in one hunk.
+
+**The seal was amended, never rewritten.** The ledger is unchanged and re-measured rather than
+assumed: 0 births and 0 closures from this lane, so 214 - 11 + 9 = 212 stands and `banked_D` keeps 2
+of its 3. The lane's seven reported-not-acted-on items joined the next-window queue without any
+becoming a row - including the P1 that blocks `[#171]`, and the owed M1 lockstep act (M1 landed in
+`CLAUDE.md` §4 rather than the contracted §10, because §10 is a hub-single-sourced byte-parity region
+where a lone edit breaks fleet parity and never reaches a consumer).
+
+**Worth recording about the lane's own blocker.** `audit-health` refused its commits for ~50 minutes
+on `journal_spine_anchor`, for merges THIS session was landing on `main`. Waiting could not have
+worked: the check walks `main`'s first-parent spine but reads JOURNAL from the **working tree**, so a
+worktree pinned at its base evaluates an advancing spine against a frozen JOURNAL. The lane resolved
+it with `git merge --ff-only main` after checking it had zero commits and that `main` had touched
+none of its three files - no `SKIP=`, no `--no-verify`, and no JOURNAL entry written on this arc's
+behalf.
+
+**Changes:** merged 6 lane commits - `ARCHITECTURE.md` (+185/-…), `CLAUDE.md` (v2.64 -> v2.65),
+`VISION.md`, the lane artifact and the regenerated audit index - plus the window-seal amendment §5.
+Tore down the `lane-docs-governance` worktree and both halves of its branch pair.
+
+**Abandoned:** closing `[#171]`. Deliberately, on evidence, against the contract's expectation.
+
+**Anchors:** `e4d24601` (the lane artifact) and `55184497` (the window-seal amendment) - both commits
+this merge introduces.
+
+**Next:** the handoff bundle - now cuttable, because the tree finally has no linked worktree.
+
 ### 2026-08-23 (e) - CC (Opus 5, integrator, branch `docs/window-seal-2026-08-23`): the window seals, and two of the three demands are scored against the operator rather than for him
 
 **Did:** wrote the window seal for 2026-08-20 -> 2026-08-23 - the final ledger line, the A4 release

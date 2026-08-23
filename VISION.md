@@ -1,7 +1,7 @@
 ---
 version: 1.0
 owner: rob
-last_reviewed: 2026-08-18
+last_reviewed: 2026-08-23
 status: active
 ---
 
@@ -157,7 +157,10 @@ artifacts to detect drift:
 
 **Audit support:** verification mechanism implemented via `.dev-knowledge`
 auditor (`scripts/audit.py` per ADR-36 — `health`/`repo`/`run`/`registry`/
-`ship-gate`/`checks` commands, read-only). The cross-repo `run`/`repo` are
+`ship-gate`/`checks` commands). It is **read-only on siblings** — the ADR-36
+invariant, and the checkable one — **not read-only on this repo**: it writes
+findings, pushes to `origin` (`audit.py:3967`) and commits durable Routine
+output to `automation/fleet-audit`. The cross-repo `run`/`repo` are
 manually invoked; the self-audit `health` (all registered `ALL_CHECKS` — count via `scripts/audit.py checks`) runs as this repo's pre-commit gate ([#69]).
 Manual session-close verification per HANDOFF_PROCESS.md complements the tool.
 
