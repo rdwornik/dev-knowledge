@@ -19,6 +19,81 @@
 
 ---
 
+### 2026-08-23 (k) - CC (Opus 5, LANE-L5 cloud lane, branch `docs/l5-docs-actual-state`): the hand-maintained half of the docs is reconciled to actual state, and the file that forbids restating a roster was restating one three lines below the rule
+
+**Did:** ran LANE-L5 (M6) end to end in a cloud container against `main` at `aeec0fd`. Censused
+every checkable claim in `CLAUDE.md`, `protocols/**` (Ch8 carved out for L7) and the essentials
+set; verified each against live state; condensed `CLAUDE.md` and spent the reclaimed budget on the
+four mandated process topics; corrected the STALE set at both the hub file and the protocols
+family. Commits `57bcc05` `245298a` `461ef40` `bf5820d` `af570e7` `96a48bf` `eccdf31` `83fea9c`.
+One artifact: `docs/audits/2026-08-23-technical-lane-docs-actual-state.md`.
+
+**Result: 57 claims, 18 STALE, 18 corrected.** The drift split exactly where the brief predicted —
+the generated surfaces are clean and the hand-maintained prose is not. The largest single class is
+**invocation form**: 17 in-family sites still say bare `python`/`pytest`/`ruff`/`py` a month after
+ADR-106 §4 moved the gate set onto `uv run --locked`, and this is not cosmetic —
+`python3 scripts/audit.py checks` **fails outright** on a clean checkout with
+`ModuleNotFoundError: click`, so four of `CLAUDE.md`'s own computing-surface pointers named a
+command that does not run, and `REPO_ONBOARDING.md` is a runbook copy-pasted verbatim at 11 sites.
+**`CLAUDE.md` §4's Freshness-cadence line restated a 5-file set against a live 9** — an M2
+violation sitting one line above M2 itself; it is now a pointer at
+`canonical_docs.FRESHNESS_FILES` + `audit.py::_HUB_ONLY_FRESHNESS_FILES`, and the M2 bullet records
+it as its second witness. Three Council records in `ENVIRONMENT.md` were contradicted by live
+state and are **annotated, never deleted**: *"No Codex CLI"* sits on the **Active** list while
+`/codex-review` wraps `codex exec` and `codex/AGENTS.md` is in-tree; *"Mandatory TDD (council
+rejected)"* was narrowed rather than reversed by ADR-108 §B, so both facts now stand at their own
+scopes; `config/requirements-dev.txt` is superseded by `pyproject.toml` + `uv.lock` +
+`.python-version`. `SESSION_SETUP.md` called the live protocol **v5** twice while saying v6.2.0
+twice elsewhere. `DEFINITION_OF_DONE.md`'s scope-freeze **lapsed 2026-07-14** and read as live for
+40 days, and its *"the only exit is `/override`"* instruction sat **seven lines above** the banner
+retiring it. `protocols/README.md` omitted `STANDING_RULINGS.md` — which cites that README as its
+own hub-pointer authority.
+
+**Two things this lane refused to do, both recorded so they are not re-litigated.** §9's
+pre-commit roster was **not** converted to a pointer despite M2: it *is* the surface
+`validate_doc_claims`'s `precommit_hook_roster` leg checks against `.pre-commit-config.yaml`, one
+line per hook by construction, so collapsing it would have disarmed the gate and registered as a
+silent `anchor-missing` WARN. And when the new prose tripped the silent-rule ratchet
+(**441 → 446** against a committed baseline of **441**, zero slack), the fix was five rewordings
+into the indicative — **not** a baseline bump. A ratchet-up is a recorded decision, not a lane's
+convenience.
+
+**Budget:** opened **195/200**, reclaimed **6** (the v2.64 §12 bullet into the git pointer per
+ADR-49/65; two §8 parentheticals merged; §7's usage-protocol parenthetical folded up), spent **6**
+(four process bullets + the v2.66 entry). Closes **195/200, headroom 5** — bought, not shaved. No
+shortfall, so the ceiling escalation the brief reserved was not needed. **All 8 `owner=hub`
+regions stay byte-identical to `templates/claude-regions/*.md`**, verified live.
+
+**Changes:** `CLAUDE.md` (v2.65→2.66) · `protocols/{ESSENTIALS,ENVIRONMENT,SESSION_SETUP,DEFINITION_OF_DONE,README,REPO_ONBOARDING,AGENT_FRAMEWORK}.md` · `docs/audits/` (+1 artifact, index regenerated) · `JOURNAL.md`. No `tasks/`, no `BACKLOG.md`, no PLAYBOOK.
+
+**Abandoned:** a prose census of `PLAYBOOK.md`/`STANDING_RULINGS.md`/`HANDOFF_PROCESS.md`/
+`HANDOFF_BOOT.md`/`AI_COUNCIL_PROCESS.md` at full fidelity — **8,399 lines**, scoped out and named
+in the artifact rather than silently omitted; the mechanical claim classes were swept across them
+and came back clean. No PLAYBOOK edit at all: it is a `provider-registry-agreement` seam, Ch8 is
+carved out mid-file, and a TOC-freshness gate sits on its headings — three ways to break something
+for a benefit the census did not find.
+
+**Next:** (1) **L7 owes the Ch8 invocation-form sweep** — the bare-`python` class is repo-wide and
+this lane could not read Ch8 closely enough to fix it without breaching A8. (2) **Two stale claims
+sit inside `owner=hub` regions** and need a lockstep `CLAUDE.md` + template edit: §6 step 5's bare
+`pytest --collect-only`, and §10's `AGENTS.md` anti-pattern (already `[#577]`'s, still knowingly
+left). (3) A queued proposal, filed nowhere per A3: `ENVIRONMENT.md`'s model roster is **ungated
+prose** while nine sibling seams are gated — make it a tenth `provider-registry.yaml` seam, or rule
+it deliberately exempt. (4) `CONTRIBUTING.md` and `docs/handoffs/README.md` remain
+`canonical_freshness` FAILs, pre-existing at `aeec0fd` and out of this lane's families.
+
+**Container caveat, stated because every number above inherits it:** the pinned `uv==0.11.19` is
+**not obtainable** in the cloud container (`uv self update` reports the version does not exist), so
+the whole `uv run --locked` gate mesh and all 21 pre-commit hooks were **inert**; `.git/hooks/` was
+empty besides samples. Every gate was hand-run on a fallback venv pinned to the repo's own
+CPython **3.12.10**. The suite reads **36 failed / 3526 passed / 10 skipped / 1 xfailed = 3573** —
+total matches the A2 baseline exactly, split does not. That divergence was **proven, not asserted**:
+the failing set was re-run at `aeec0fd` in the same container and reproduced 36 of 38; the 2 that
+did not were this lane's ratchet REDs, now fixed, and `comm` against base is empty. 17 of the 36
+are `No module named 'pandas'` (the optional `analytics` group).
+
+---
+
 ### 2026-08-23 (j) - CC (Opus 5, Phase-0 seat, branch `chore/phase0-preconditions-2026-08-23`): the five-lane batch's preconditions are measured, and four of the six premises it was built on do not survive contact with the repo
 
 **Did:** ran SESSION 00 end to end in the primary tree with `main` frozen to this seat - landed the
