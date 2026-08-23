@@ -604,6 +604,46 @@ def test_window_start_is_derived_from_head_date_not_the_wall_clock(tmp_path):
     assert ("rev_before", "2026-08-12") in git.calls
 
 
+# ------------------------------------------------- the header states the mechanism that exists
+# `[#171]` leg 1 / R3 F3. Both faces asserted "Generated, committed, read-only" while no code
+# path committed anything — and an integrator review pass judged the "committed" leg MET by
+# reading that header. These pin the corrected claim so the false one cannot come back silently.
+
+_SELF_COMMIT_CLAIM = "Generated, committed, read-only"
+
+
+@pytest.mark.parametrize("renderer,relpath", [("render_markdown", "MD_RELPATH"),
+                                              ("render_html", "HTML_RELPATH")])
+def test_neither_face_claims_the_generator_commits_itself(renderer, relpath, tmp_path):
+    repo = _fixture_repo(tmp_path)
+    out = getattr(gd, renderer)(gd.build(repo, _FakeGit(head_date="2026-08-19",
+                                                        old_backlog=None)))
+    assert _SELF_COMMIT_CLAIM not in out, (
+        f"{relpath} re-asserts a self-committing writer that does not exist (ADR-86 amended "
+        "2026-08-23 withdrew that clause)")
+    assert "human-committed" in out
+    assert "commits nothing" in out
+
+
+@pytest.mark.parametrize("renderer", ["render_markdown", "render_html"])
+def test_both_faces_name_who_commits_and_when(renderer, tmp_path):
+    """The contract's stated risk: making the header true by making it vague. 'Generated' alone
+    would pass the negative test above and still tell the reader nothing."""
+    repo = _fixture_repo(tmp_path)
+    out = getattr(gd, renderer)(gd.build(repo, _FakeGit(head_date="2026-08-19",
+                                                        old_backlog=None)))
+    assert "person or integrator who ran it" in out, "the header must name WHO commits"
+    assert "as current as its own last commit" in out, "the header must say WHEN it is current to"
+    assert "amended 2026-08-23" in out, "the header must cite the ruling it now describes"
+
+
+def test_the_module_docstring_no_longer_claims_a_self_committing_writer():
+    """The third site of the same false claim: not an artifact string, but the sentence the
+    Phase-0 packet quoted as the ROOT, addressed to the next reader of the code."""
+    assert "commits its own output" not in gd.__doc__
+    assert "human or integrator commit satisfies" in gd.__doc__
+
+
 @pytest.mark.parametrize("verb", ["--write", "--check"])
 def test_main_accepts_both_verbs(verb, tmp_path, monkeypatch):
     repo = _fixture_repo(tmp_path)
