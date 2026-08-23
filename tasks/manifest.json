@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "012478603485f86a73c864849502805d40f0086e73b3c0b1bc2dda207327fbc3",
+  "generated_sha256": "e61118e8ada57dfcf0b57e3a89feca1e5c735ebf0910593d69f06eb630fccb86",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -1003,10 +1003,6 @@
     {
       "task": 492,
       "file": "492-grok-review-lane-acceptance-gated-2026-08-07-mea.md"
-    },
-    {
-      "task": 562,
-      "file": "562-grok-4-6-guarded-rerun-a-no-pack-sandbox-before-th.md"
     },
     {
       "task": 491,
