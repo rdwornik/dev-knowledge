@@ -134,3 +134,15 @@ fix the pointer or regenerate `PASTE_THIS.md`.
 > regenerated `BACKLOG.md`. `scripts/nopack_sandbox.py` remains OUT of scope — intake 41
 > rules on the instrument before the instrument is touched. Any path not derivable from a
 > quoted governance source is PROPOSED, never created.
+
+> **AMENDMENT A2 (architect, 2026-08-23) — path correction to AMENDMENT A1.** In A1 above, the
+> write-scope path **`docs/adr/`** is an error: that directory does not exist in this repo. It
+> **reads `docs/decisions/`**, which is the live ADR home (87 ADRs). A1's text above is left
+> exactly as it stands — this is an appended correction, not an in-place edit (`CLAUDE.md` §5
+> rule 3; `protocols/STANDING_RULINGS.md` J-3), and the wrong path stays visible because it is
+> the evidence for the recorded architect error **E1** (an inferred path, third occurrence of
+> that class). Source: `RULINGS-and-AMENDMENTS-2026-08-23.md` Part 1 E1 and Part 3 A1, landed
+> verbatim in `docs/audits/2026-08-23-technical-phase0-preconditions.md` under
+> *"AMENDMENT — architect rulings and contract amendments"*. The general rule carried with it:
+> any path in any contract in this batch that a lane cannot resolve against live state —
+> **stop, report, do not create it, and do not guess a neighbour.**
