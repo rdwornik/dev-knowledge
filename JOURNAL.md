@@ -19,6 +19,53 @@
 
 ---
 
+### 2026-08-23 (i) - CC (Opus 5, architect seat, branch `docs/supplement-answers-2026-08-23`): the incoming window's binding mandate stops being an uncommitted working-tree change
+
+**Did:** booted the `2026-08-23-dev-knowledge-architect` bundle as the incoming architect seat, and
+committed the operator-pasted SUPPLEMENT answers (`c05aa37a`) that were sitting uncommitted across
+the window boundary.
+
+**Result: the mandate for this window is now in the record rather than in the working tree.** The
+bundle was cut with `SUPPLEMENT.md` generated EMPTY, which is the v6 default - the assembler folds
+nothing and the incoming §13(d) beat fires FULL. The outgoing seat answered all seven questions and
+added an eighth; the operator pasted them below the `PASTE CHAT ANSWERS` marker and the file stayed
+dirty. A stash was the wrong repair: `pre-commit`'s stash can drop unstaged content silently, and
+this is the only copy of a seven-item ratified-in-chat register.
+
+**This is a fill, not an edit, and the distinction is the reason it is lawful.** CLAUDE.md §5 rule 3
+makes handoffs immutable, but `SUPPLEMENT.md` ships with an explicit paste region and filling it is
+the designed v6 path - not an in-place amendment of landed decision content. The `check-seal-identity`
+gate ([#475]) passed on the staged bundle file, which is the mechanical confirmation that the fill
+did not disturb the bundle's slug identity.
+
+**Two answers bind the next window, and they are recorded here because they are way-of-working, not
+preference.** Answer 1: OPERATOR-VISIBLE VALUE FIRST - every batch must land at least one thing the
+operator can open, click or read that did not exist before, and the report must SHOW it. The outgoing
+seat names the bias that produced the problem: the closing-first/implementation-first hybrid selected
+FOR machinery and AGAINST visible features. Answer 8: EXECUTION OVER META and BOUNDED WINDOWS - one
+batched ruling per arc rather than dripped decisions, and scope cut at the START when the budget
+will not reach a visible landing. Answers 3 and 5 are the explicit do-not-relitigate set.
+
+**What the boot did NOT re-run, stated rather than implied.** The v6 gate was not re-executed. Its
+one FAIL at cut time was P3 - the boot header declares destination `main` while the bundle sat on
+`docs/handoff-2026-08-23-architect` - and that merge landed at `eecd1555`, so the single probe that
+could have failed is cleared by a fact `git log` already carries. Re-running 17 probes to re-derive
+that would have been exactly the meta-over-execution answer 8 forbids on its first page.
+
+**Open and owed to the operator:** intake `#34` cannot flip. Its frontmatter and its "what
+ratification would have to settle" section agree that the source artifact - *"Enforcing a Universal
+Code-Style Doctrine Across an LLM-Written Python Fleet"* - lands WITH the ratification, and it is
+operator-held with its location recorded as unknown. Section A carries only its TL;DR verbatim.
+Asked for in message one, per the outgoing seat's answer 6.
+
+**Changes:** `docs/handoffs/2026-08-23-dev-knowledge-architect/SUPPLEMENT.md` (answers filled) and
+this entry.
+
+**Next:** the visible-value queue from answer 1, in value order - `[#577]` AGENTS.md execution
+(ADMITTED, carrier filed, unexecuted), the ADR marker-sweep + `[#242]`/`[#362]` build, f7 dashboard
+freshness, demonstrating `export_backlog_view`, DeepSeek admission intake, and the ADR-114 rename
+decision re-presented with full price for a real PARK-or-GO.
+
 ### 2026-08-23 (h) - CC (Opus 5, integrator, branch `docs/handoff-2026-08-23-architect`): the bundle is cut and gated, and this entry is what makes the operator's merge pushable
 
 **Did:** cut the architect handoff bundle, authored the CC-owned residual, ran the whole v6 gate in
