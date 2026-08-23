@@ -412,3 +412,366 @@ embedding the measurement in `match`.** A `match` of `backlog-row-length BACKLOG
 is still a whole-Finding substring match, still satisfies the register's stated disposition
 contract, and cannot be invalidated by an edit that does not change which row is over budget.
 That would retire shape (b) rather than detect it.
+
+---
+
+## 4. Premise verification (Step 4 — closes PK5)
+
+**Rule applied literally: no verdict without a quoted primary source.** Where a premise is
+partly right, it is split rather than rounded to the nearest verdict.
+
+| # | Premise | Verdict |
+|---|---|---|
+| **A** | `[#171]` leg 1 is **already ruled as option (b)** — an execution item, not a fork | **REFUTED** |
+| **B** | f7 conformance-freshness and `[#171]` leg 1 are the **same root defect** | **CONFIRMED** |
+| **C** | `review_artifact_coverage` exists / registered / owned by `[#560]` / known defect; funnel taxonomy codified in PLAYBOOK Ch8 | **CONFIRMED** (both halves) |
+| **D** | Intake §5 makes CONSUMED/SUPERSEDED/REJECTED terminal-and-archived, ACCEPTED deliberately not; "0 archived" is not a defect | **CONFIRMED** — and the underlying "0 intakes archived" claim is **factually false** |
+| **E** | `[#577]` is the provider-configuration carrier (mandate) vs the AGENTS.md lane (architect) | **ARCHITECT CORRECT; mandate REFUTED** |
+| **F** | `[#563]` and `[#566]` are closed with outputs wired to no consumer | **CONFIRMED as fact**; "merged but never in effect" **REFUTED as characterization** |
+
+### Premise A — REFUTED. It is a live fork, not a ruled execution item.
+
+Three negative searches and one positive quote.
+
+1. **`[#171]` appears NOWHERE in `protocols/STANDING_RULINGS.md`** (`grep -n "#171"` → no output). No
+   ruling under an alias either: `conformance dashboard`, `gen_dashboard`, `ADR-80`, `writer policy`
+   and `committed-generated` all return **zero** hits in that file.
+2. **`[#171]` appears in NO 2026-08-22 artifact.** All 23 `docs/audits/2026-08-22-*.md` were
+   grepped; not one names it. The "2026-08-22 batch-ruling artifact" the mandate cites as a source
+   for this ruling does not discuss the row.
+3. **The named artifact says the opposite, in the present tense.**
+   `docs/audits/2026-08-23-technical-lane-docs-governance.md`, Item 6:
+
+> Leg 2 is discharged by this commit. **Leg 1 is not, and no code path performs it** — verified
+> live, not carried from R3: `gen_dashboard.py::write_outputs` (`:1193-1200`) writes two files and
+> returns `0`; `main` has no commit path; the sole `subprocess` site is `GitReader` (`:236-250`),
+> which reads. Both artifact faces nonetheless assert *"Generated, committed, read-only"*. That is
+> R3 **F3**, a P1 whose disposition is **an architect choice between (a) implement the ADR-80
+> writer policy or (b) rule that human-committed satisfies "committed"** and amend ADR-86 §2 plus
+> the two artifact strings. R3 says *"Do not leave (c)."* Closing the row today would be leaving (c).
+
+and again in its §4 *Found, reported, NOT acted on*:
+
+> **R3 F3 — `[#171]` leg 1** (P1): the generator claims to commit its own output and has
+> no commit path. Blocks the row's close. **Needs the architect's (a)/(b) choice.**
+
+**What went wrong in the premise.** The mandate reads *"amendments owed to ADR-86 §2 and two
+artifact strings"* as the **consequence of a decision already taken**. In the source those words are
+the **description of option (b)** — the cost of a choice nobody has made. The fork is open. This is
+material rather than pedantic: the mandate would have sent a lane to *execute* a ruling that does
+not exist, and `[#171]` leg 1's disposition is a **decision the architect still owes**.
+
+### Premise B — CONFIRMED. One root defect, two filings.
+
+The root is quoted from the generator's own module docstring (`scripts/gen_dashboard.py:9-11`):
+
+> LOCATION + ZONE CLASS are ruled, not chosen here: ADR-86 puts the dashboard at
+> `ecosystem/conformance.md` as an ADR-80 **committed-generated** zone -- a read-only validator
+> generates it and **commits its own output**.
+
+**No such commit path exists.** `write_outputs` in full:
+
+```python
+def write_outputs(repo_root: Path, git) -> int:
+    dashboard = build(repo_root, git)
+    for relpath, renderer in _TARGETS:
+        path = repo_root / relpath
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(renderer(dashboard), encoding="utf-8", newline="\n")
+        print(f"gen_dashboard: wrote {relpath}")
+    return 0
+```
+
+It writes and returns. The only `subprocess` site is `GitReader`, whose own docstring reads *"The
+only place a subprocess is spawned. Injectable so every renderer stays pure."* — and it reads.
+
+Both artifact faces carry the false claim:
+
+```
+ecosystem/conformance.md:7    > **Generated, committed, read-only** (ADR-86 location + ADR-80 zone class)...
+ecosystem/conformance.html:45 <p class="note">Generated, committed, read-only (ADR-86 location + ADR-80 zone class)...
+```
+
+**Measured live this session, which is what makes B more than a code-read:**
+
+```
+gen_dashboard.py --check   ->  STALE ecosystem/conformance.md
+                               STALE ecosystem/conformance.html
+--check armed anywhere?    ->  NO  (no reference in .pre-commit-config.yaml or .claude/settings.json)
+last 5 commits to the artifact:
+  5e776542 2026-08-20 rdwornik    docs(dashboard): regenerate over every landing of the day...
+  a53b961b 2026-08-19 rdwornik    chore(dashboard): [#171] regenerate so Section 0 carries...
+  ee601894 2026-08-19 rdwornik    chore(dashboard): [#171] regenerate the conformance dashboard...
+  7f2f4096 2026-08-19 robdwornik  chore: [#171] refresh the dashboard onto the tree that carries it
+  278211e3 2026-08-19 robdwornik  feat: [#171] land ecosystem/conformance.{md,html}...
+```
+
+**Every commit that has ever updated the artifact was made by a human**, and the newest is
+2026-08-20 against a `main` that has advanced well past it. So the same single absence — no writer
+in the generator — produces *both* filings: the **"committed" leg of `[#171]`'s Done-when** is
+undischarged, and the artifact **goes stale** because nothing but operator memory refreshes it.
+Same root, two symptoms. **CONFIRMED.**
+
+**One boundary the architect should not let a lane blur.** The adjacent finding *R3 F5 — `--check`
+is armed nowhere* is a **different** defect: a gating gap, not a writer gap. Implementing the ADR-80
+writer policy would fix B and leave F5 exactly as it is (an unarmed check is unarmed whoever
+commits). They travel together in the same lane; they are not one item.
+
+### Premise C — CONFIRMED, both halves.
+
+**Half 1 — the organ.**
+
+```
+scripts/audit.py:3184   def check_review_artifact_coverage(repo_path: Path) -> list[Finding]:
+scripts/audit.py:3443       check_review_artifact_coverage,   # [#480] P3 — ADVISORY (WARN-tier by ruling);
+ALL_CHECKS members: 43   |   review_artifact_coverage present: True
+```
+
+Owned by **`[#560]`, status `open`**, and the "known defect" is not inferred — it is the row's
+own **title**:
+
+> `review_artifact_coverage` reads only the FIRST branch/HEAD triple per file, and one title
+> literal, so a real review can be invisible to it
+
+with the mechanism in the body: *"lane E was reviewed but sits in the SECOND triple of a
+two-branch artifact and `.search` takes the first"*, and *"Artifacts are IMMUTABLE (§5 rule 3), so
+the repair is reader-side."* The organ is **advisory by ruling**, which the live WARN restates:
+*"advisory per the [#480] P3 ruling; the hard pre-push leg is deferred pending 0 false positives
+over two consecutive windows."*
+
+*Minor, flagged under M1 rather than swept:* `[#560]`'s `refs` cite `scripts/audit.py:3117-3320`;
+the function now begins at **3184**. The range still contains it, so the locator resolves, but its
+start has drifted — worth re-pointing when the row is next touched.
+
+**Half 2 — the taxonomy.** `protocols/PLAYBOOK.md` Ch8, *"The wave close — every dispatched wave
+ends D0–D5, and the funnel table is mandatory"*, carries it verbatim:
+
+> **The five classifications, and the clause each answers to** (ADR-111 §1's four outcomes, plus the
+> executed case):
+> - **MECHANICAL** — §1(b) DISCHARGED. The fix is judgment-free, so the integrator may execute it in
+>   the session. **List these first**, and a discharge is only a discharge **with a locator that
+>   resolves**...
+> - **ADR** — §1(c) CANDIDATE where ADR-98 §3's fork test is met... **PROPOSED with the Decision blank**...
+> - **INTAKE** — §1(c) CANDIDATE otherwise. **A finding may not become a backlog row directly** (§2)...
+> - **REJECT** — §1(d), **with the reason recorded where the finding lives**...
+> - **COVERED** — §1(a) OWNED. Cite the id and **add nothing**.
+
+The five-vs-four question the ADR-111 title raises is answered in the source itself — *"ADR-111
+§1's four outcomes, **plus the executed case**"*. Nothing to build; **D4** already makes the table
+mandatory (*"A table that classifies nothing is not a wave close"*).
+
+### Premise D — CONFIRMED on doctrine, and the "0 archived" claim is factually FALSE.
+
+The doctrine is quoted exactly as the premise states it — `docs/intake/README.md` §5:
+
+> Terminal docs (CONSUMED | SUPERSEDED | REJECTED) relocate byte-identical to
+> `docs/intake/archive/` (operator ruling 2026-07-22, archive-inside-each-folder; terminal set per
+> the [#398] deploy — **ACCEPTED is deliberately NOT in it, a standing authority must stay visible
+> live**); live docs stay here.
+
+and on the ACCEPTED status itself:
+
+> **ACCEPTED (decided-by + disposition)** — ruled standing authority... **Not archival** — an
+> ACCEPTED doc stays live and visible.
+
+So the premise's reasoning is right. **But its factual predicate is wrong**, and the correction is
+worth more than the confirmation. Measured by parsing YAML frontmatter (not grep — two prose lines
+in doc bodies contain a literal status token and would have corrupted a naive count):
+
+```
+LIVE  docs/intake/*.md          36 files   SEED 10 · DRAFT 6 · READY 1 · ACCEPTED 19
+ARCHIVE docs/intake/archive/*.md 7 files   CONSUMED 5 · SUPERSEDED 1 · REJECTED 1
+
+METRIC A   ACCEPTED-docs-in-archive   = 0    <- the metric the mandate asked for. It is ZERO.
+METRIC B   terminal-docs-still-LIVE   = 0    <- the inverse metric; also ZERO
+METRIC C   total archived             = 7    <- so "0 intakes archived" is simply not true
+```
+
+The live counts reproduce the generated Contents index (SEED 10 / DRAFT 6 / READY 1 / ACCEPTED 19)
+exactly. **Metric A = 0** is the answer to the question asked. **Metric B = 0** is the stronger
+result and was not asked for: not one terminal doc is sitting un-relocated. The archival rule —
+which §5 notes is *"MANUAL for now — the status-coupled validator that would gate/automate it is
+wave work, not built"* — is being executed **7-for-7 by hand, with zero violations in either
+direction**. There is no defect here to file, and the ungated-but-perfectly-observed state is the
+finding.
+
+### Premise E — the ARCHITECT is right; the mandate is wrong. And the lane already handles it.
+
+**`[#577]` is the AGENTS.md lane.** Its frontmatter and title:
+
+```yaml
+id: "[#577]"
+title: "Adopt `AGENTS.md` as the portable instruction layer — the bounded execution lane"
+status: open
+priority: P2
+size: M
+theme: "[E6] Cross-repo universalization"
+serialize-group: claude-md
+```
+
+and its body opens *"**RULED ADMITTED (architect, 2026-08-22); this row is the execution, not the
+decision.**"* — with four binding bounds, all about `AGENTS.md` (≤120 lines, portability-not-quality,
+the `~/.codex` precedence collision, a guard stated **in bytes** because the Codex
+`project_doc_max_bytes` cap measures bytes). **Nothing in the row concerns
+`ecosystem/provider-registry.yaml`.**
+
+**`ecosystem/provider-registry.yaml` EXISTS** — 5,889 bytes, added 2026-08-22. What it holds:
+
+```
+providers:  3   anthropic (cli: claude) · openai (cli: codex) · xai (cli: null)
+models:     5   claude-sonnet-5 · claude-opus-4-8 · gpt-5.6-terra · gpt-5.6-sol · grok-l5
+```
+
+**Seams — three different numbers, and conflating them is how this gets misread:**
+
+```
+9  DECLARED in scope by the file's own header (R2 §3.2 table-edit seams):
+     S7, S8, S9, S10, S11, S17, S26, S29, S30
+7  ASSERTED by the pre-commit gate scripts/check_provider_registry.py:
+     check_s8_tool_versions · check_s9_artifact_reader · check_s10_conformance_hub
+     check_s17_playbook · check_s26_settings · check_provenance_pins (S29+S30)
+     (+ check_registry_shape, which validates the registry itself, not a seam)
+5  PINNED sites actually listed in the registry pinned_at blocks:
+     .claude/agents/artifact-reader.md (S9) · .claude/workflows/conformance-hub.js (S10)
+     protocols/PLAYBOOK.md (S17) · ecosystem/satellite-onboarding-rulings.yaml (S29)
+     pyproject.toml (S30)
+```
+
+The remainder resolve honestly: **S7** is read at *runtime* by `scripts/changelog_sentinel.py`
+via `scripts/provider_registry.py`, and **S11** is explicitly **not a model seam** — the header
+says *"S11 is a canonical-DOC seam... It is repointed at the sibling canonical-doc-name registry
+(`scripts/canonical_docs.py`)"*. Mechanical consumers, whole set: `scripts/provider_registry.py`
+(reader), `scripts/check_provider_registry.py` (checker), `scripts/changelog_sentinel.py`
+(runtime), `tests/test_provider_registry.py`, `.pre-commit-config.yaml` (gate wiring).
+
+The header also pre-empts a scope error the batch could easily make:
+
+> **ROUTING IS NOT HERE.** R2 §3.3 records that the canonical model-routing table is
+> `~/.claude/ROUTING.md` — at L0, outside this repository... This registry records model
+> IDENTITY, not which model gets routed to which job.
+
+**Where the mandate's confusion came from — and why it costs nothing.** The provider-config work is
+**lane L1**, and `LANE-L1-provider-config.md` does name `[#577]` — as the *only* row id in the file.
+But it names it **as the thing to check, with both branches pre-written**, and it is gated on this
+very packet:
+
+> **Dispatch gate:** Phase 0's packet has landed and premise **E** is answered — whether
+> `ecosystem/provider-registry.yaml` already exists, what it holds, how many seams consume it,
+> and what `[#577]` actually carries. **Do not dispatch before that.**
+
+> **2. Carrier row.** **If premise E confirms `[#577]` is the AGENTS.md carrier, do not extend
+> it** — subjects do not share rows. Write the specification for a new carrier row into your
+> artifact; do **not** create the task file.
+
+**So the operative answer to L1 is: `[#577]` IS the AGENTS.md carrier. L1 must NOT extend it, and
+must instead specify a new carrier row in its artifact without creating the task file.** The
+contract is sound; only the mandate's prose was wrong.
+
+### Premise F — CONFIRMED as fact; the characterization is REFUTED for `[#563]`.
+
+**Both are closed.** `tasks/563-*.md` and `tasks/566-*.md` both carry `status: closed`, closed
+together on operator GO at `5de708f1` and merged at **`ad3e10d9`** *"D5+D6: the ruling executed;
+closes [#563] [#566] [#488]"*.
+
+**Neither output is wired to a consumer — but for opposite reasons.**
+
+- **`[#566]`** shipped `gen_task_tree.py --rank`. Every non-doc reference to `--rank` in the repo is
+  **its own definition** (`gen_task_tree.py:37, 1251, 1312, 1316, 1336`); the rest are artifacts
+  *describing* it. No hook, command, gate, test-runner or `.claude/` config invokes it. Its own
+  artifact states this is intended: *"gates a permanent diff. `--rank` computes it on demand
+  instead."* An on-demand operator report, unwired **by design**.
+- **`[#563]`** shipped `scripts/export_backlog_view.py` (23,909 B, present). Non-wiring here is not
+  an oversight — it is **binding condition 3, ratified**:
+
+> **Three binding conditions, all three load-bearing:** (1) **one-way export only** — `tasks/`
+> stays the single source of truth; (2) a **disposable, gitignored export dir**, regenerated per
+> read; (3) **governance stays bespoke** — **no gate, hook or script is re-pointed at the export**.
+
+Verified live: a repo-wide search for `export_backlog_view` across `*.yaml` / `*.json` / `*.py`
+(excluding the script and its tests) returns **nothing**, and `.gitignore:114` carries
+`.backlog-view/`. **Condition 3 is being honoured exactly.**
+
+So the premise's *facts* hold — both closed, neither wired. Its *reading* — "merged but never in
+effect" — is wrong for `[#563]`: wiring it to a consumer would **violate its ratified terms**. A
+lane told to "wire up the unwired outputs" would break a binding condition. The honest statement is
+**unwired by ruling**, not stranded.
+
+### 4.1 `codex/` — mechanical inventory (no recommendation; M2 is the architect's to rule)
+
+```
+path              codex/
+contents          exactly ONE file: codex/AGENTS.md
+size              3,891 bytes (directory total 4.0 KB)
+tracked           1 file (git ls-files codex/ -> codex/AGENTS.md)
+last COMMIT       fcd4eb64  2026-05-19  "feat: add codex/AGENTS.md — canonical global Codex
+                                          reviewer config"     (96 days ago; the only commit)
+working mtime     2026-08-02 19:31 (checkout artifact — git content unchanged since 2026-05-19)
+```
+
+Its own first lines declare its role:
+
+> # AGENTS.md — Global Codex Reviewer Configuration
+> > **Canonical source** for `~/.codex/AGENTS.md`. Owned by `.dev-knowledge`. Deploy by copying to
+> > `~/.codex/AGENTS.md`.
+
+**Every inbound reference from a tracked file** (JOURNAL prose mentions excluded as narrative):
+
+| Referencing file | Line | What it says |
+|---|---|---|
+| `.methodology.yaml` | 134 | `codex/ holds the canonical source of the global Codex reviewer config` |
+| `deploy/carrier_globalconfig.py` | 18 | `source_path: codex/AGENTS.md  # hub canonical source, relative to the hub root` |
+| `deploy/carrier_globalconfig.py` | 53 | `DEFAULT_SOURCE_REL = "codex/AGENTS.md"  # hub canonical source (ADR-54)` |
+| `deploy/manifest-v1.0.0.yaml` | 33, 45, 48 | declared payload + `source_path` |
+| `deploy/manifest-v1.1.0.yaml` | 77, 230 | `source_path` + `source` |
+| `deploy/manifest-v1.2.0.yaml` | 82, 299 | `source_path` + `source` |
+| `deploy/manifest-v1.3.0.yaml` | 97, 317 | `source_path` + `source` |
+| `deploy/manifest-v1.3.1.yaml` | 106, 326 | `source_path` + `source` |
+| `deploy/manifest-v1.4.0.yaml` | 118, 458 | `source_path` + `source` — **the live manifest** |
+
+**Stated flatly, no recommendation attached:** `codex/` is not orphaned. It is the hub-canonical
+source of a **deployed L0 carrier under ADR-54**, named by `deploy/carrier_globalconfig.py` and by
+**all six** deploy manifests including the in-flight `v1.4.0`. Removing or relocating it breaks the
+carrier's `source_path`. Its content has not changed in 96 days, which is a fact about its
+stability, not evidence either way about its value.
+
+**One live interaction the architect should hold alongside M2**, quoted from `[#577]`'s own row —
+because it makes `codex/` and the AGENTS.md lane the same conversation:
+
+> the precedence chain has an **unpriced third layer** — `codex/AGENTS.md` sits at an intermediate
+> directory *inside this repo*, so a cwd at or below `codex/` yields `role → doctrine → role` and
+> the role wins by position rather than by intent.
+
+### 4.2 Dispatch readiness — both resolve, and the five prompts are already staged
+
+```
+Dispatch-Lane            RESOLVES  -> Alias -> DispatchHelpers\Start-DispatchLane
+dispatch                 RESOLVES  -> ExternalScript -> C:\Users\1028120\.dev-terminals\bin\dispatch.ps1
+                                      (the PATH command PLAYBOOK Ch8 specifies, not a dot-sourced
+                                       alias; -DryRun is supported)
+$env:CLAUDE_PROMPTS_DIR  = C:\Users\1028120\Downloads   EXISTS: yes   (347 .md files)
+```
+
+The directory holds this session's own contract (`SESSION-00-phase0-preconditions.md`, 12,541 B),
+which is direct proof the channel works end-to-end.
+
+**More usefully: all five lane prompts are ALREADY PRESENT**, so the batch is not waiting on
+authoring:
+
+| Prompt file | Bytes | Lane title | Mode / Effort | Row(s) named |
+|---|---|---|---|---|
+| `LANE-L1-provider-config.md` | 8,120 | Provider configuration (M1) | auto / high | `[#577]` (as a *check*, both branches written) |
+| `LANE-L2-funnel-coverage.md` | 9,548 | Audit funnel coverage checker (M3) | **plan** / **xhigh** | `[#560]` |
+| `LANE-L3-status-grammar.md` | 8,021 | Status-grammar validator + ADR marker sweep (M5) | auto / high | `[#242]`, `[#362]` |
+| `LANE-L4-dashboard-commit-path.md` | 8,213 | Generated-output commit path (M8 + `[#171]` leg 1) | auto / **medium** | `[#171]` |
+| `LANE-L5-docs-actual-state.md` | 8,454 | Functional docs to ACTUAL state, claim by claim (M6) | auto / high | none (unfiled sweep) |
+
+Each declares a `worktree-<slug>` name conforming to the `CLAUDE.md` §4 lane-prefix enum, and each
+names terra as a mandatory pre-merge reviewer (L2 adds an adversarial `sol` pass on the
+gate-severity question).
+
+**Two sequencing facts the architect should read together.** L1 is explicitly **gated on this
+packet** (§Premise E). And **L4 carries `[#171]` leg 1 at effort `medium`** — but Premise A found
+leg 1 is an **unruled (a)/(b) fork**, not an execution item. L4 cannot execute a ruling that does
+not exist; either the architect rules the fork before L4 is dispatched, or L4's contract must be
+re-scoped to price the fork rather than implement it. **This is the single highest-value
+consequence of the premise pass**, and it is exactly the failure the mandate set out to prevent.
