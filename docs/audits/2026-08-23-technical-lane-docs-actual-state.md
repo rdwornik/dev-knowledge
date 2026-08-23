@@ -580,3 +580,34 @@ tenth seam in `ecosystem/provider-registry.yaml`, or record a ruling that a huma
 environment snapshot is deliberately ungated. **Done-when:** either `pins_by_path()` includes the
 file, or `STANDING_RULINGS.md` carries the exemption. This is a specification in this artifact,
 **not** a `tasks/` filing.
+
+---
+
+## 9. Lane seal
+
+**Branch:** `docs/l5-docs-actual-state` · **Merge base:** `aeec0fd` · **Commits, in order:**
+
+```
+57bcc05  docs(audits): L5 claim census
+245298a  docs(audits): L5 claim verification against live state
+461ef40  docs: condense CLAUDE.md restatements into computing-surface pointers
+bf5820d  docs: CLAUDE.md covers TDD, spec-driven development, dependencies and the decision funnel
+af570e7  docs(protocols): claim corrections to actual state
+96a48bf  docs(essentials): claim corrections to actual state
+eccdf31  docs(protocols): keep the silent-rule ratchet green -- indicative mood, same claims
+83fea9c  docs(audits): L5 post-change claim verification
+46c3b3d  docs(journal): LANE-L5 docs-actual-state session entry
+         docs(audits): L5 lane artifact -- L5-FINAL          (this commit)
+```
+
+**Not self-merged.** The lane commits and STOPs; the operator is the serial gate.
+
+**Files touched, and nothing else:** `CLAUDE.md` · `protocols/{ESSENTIALS, ENVIRONMENT,
+SESSION_SETUP, DEFINITION_OF_DONE, README, REPO_ONBOARDING, AGENT_FRAMEWORK}.md` ·
+`docs/audits/2026-08-23-technical-lane-docs-actual-state.md` + the regenerated
+`docs/audits/README.md` index · `JOURNAL.md`. **No `tasks/`** (A3), **no `BACKLOG.md`**, **no
+`PLAYBOOK.md`** (§2.8 P-05), **no `docs/adr/`** (A1 — it does not exist and was not created),
+**no hub-single-sourced `CLAUDE.md` region**, **no `templates/`**, **no
+`ecosystem/silent-rule-baseline.yaml`**, and nothing deleted.
+
+**L5-FINAL**
