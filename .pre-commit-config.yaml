@@ -181,7 +181,12 @@ repos:
         # (ARCHITECTURE Ch3, ruled 2026-08-22).
         entry: uv run --locked python scripts/check_provider_registry.py
         language: system
-        files: '^(ecosystem/(provider-registry|tool-versions|satellite-onboarding-rulings)\.yaml|\.claude/(settings\.json|agents/artifact-reader\.md|workflows/conformance-hub\.js)|protocols/PLAYBOOK\.md|pyproject\.toml)$'
+        # `protocols/AI_COUNCIL_PROCESS.md` joined the pattern with S31 (LANE L1,
+        # 2026-08-23): the council provider roster is a checked site, so an edit to it has
+        # to fire the gate that holds it in agreement with the registry's `council_alias`
+        # vocabulary. A checked site absent from this pattern is a gate that only fires
+        # from the other end of the coupling.
+        files: '^(ecosystem/(provider-registry|tool-versions|satellite-onboarding-rulings)\.yaml|\.claude/(settings\.json|agents/artifact-reader\.md|workflows/conformance-hub\.js)|protocols/(PLAYBOOK|AI_COUNCIL_PROCESS)\.md|pyproject\.toml)$'
         pass_filenames: false
       - id: lane-contract-check
         name: Lane-contract shape gate ([#539]; HUB-ONLY)

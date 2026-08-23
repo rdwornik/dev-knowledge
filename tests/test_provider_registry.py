@@ -166,7 +166,14 @@ def tree(tmp_path):
     live tree."""
     root = tmp_path / "repo"
     for rel in (_ARTIFACT_READER, _CONFORMANCE_HUB, _PLAYBOOK, _SETTINGS, _TOOL_VERSIONS,
-                "pyproject.toml", "ecosystem/satellite-onboarding-rulings.yaml"):
+                "pyproject.toml", "ecosystem/satellite-onboarding-rulings.yaml",
+                # S31's roster site, and every artifact a live `role_admission` verdict
+                # cites — both joined the copied surface with LANE L1 (2026-08-23). The
+                # evidence set is DERIVED from the registry rather than typed, so a new
+                # verdict cannot silently leave this fixture behind.
+                "protocols/AI_COUNCIL_PROCESS.md",
+                *sorted({str(r["evidence"]) for r in preg.role_admissions().values()
+                         if r.get("evidence")})):
         dest = root / rel
         dest.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(_REPO_ROOT / rel, dest)
@@ -267,3 +274,58 @@ def test_an_internal_error_blocks_rather_than_passing(tmp_path, capsys):
     """Exit 2, not 0 — the house posture. An empty directory is not a clean repo."""
     assert cpr.main([str(tmp_path)]) == 2
     assert "INTERNAL ERROR" in capsys.readouterr().err
+
+
+# --- S31: the council roster reads the rows LANE L1 added ----------------------------------
+
+@pytest.mark.live_repo
+def test_every_council_provider_resolves_to_a_registry_entry():
+    """The live assertion, and the one the lane exists to make true.
+
+    Before 2026-08-23 the roster named five providers and the registry declared three; this
+    passing is the measurement that `gemini` and `deepseek` now resolve.
+    """
+    assert cpr.check_s31_council_panel(_REPO_ROOT) == []
+    aliases = preg.council_aliases()
+    assert aliases == {"claude": "anthropic", "gemini": "google", "openai": "openai",
+                       "deepseek": "deepseek", "grok": "xai"}
+
+
+def test_a_council_provider_absent_from_the_registry_is_caught(tree):
+    """roster -> registry: the direction that was FAILING before this lane ran."""
+    _break(tree, "protocols/AI_COUNCIL_PROCESS.md",
+           "`claude,gemini,openai,deepseek,grok`", "`claude,gemini,openai,deepseek,grok,mistral`")
+    findings = cpr.run(tree)
+    assert any(f.startswith("S31 ") and "mistral" in f for f in findings), findings
+
+
+def test_a_registry_alias_the_roster_no_longer_names_is_caught(tree):
+    """registry -> roster: a stale registry claim, whose fix is `council_alias: null`."""
+    _break(tree, "protocols/AI_COUNCIL_PROCESS.md",
+           "`claude,gemini,openai,deepseek,grok`", "`claude,openai,grok`")
+    findings = cpr.run(tree)
+    assert any(f.startswith("S31 ") and "deepseek" in f for f in findings), findings
+    assert any(f.startswith("S31 ") and "gemini" in f for f in findings), findings
+
+
+def test_a_reworded_roster_row_fails_loud_rather_than_passing_quietly(tree):
+    """The anchored-regex posture: a seam that cannot find its site says so."""
+    _break(tree, "protocols/AI_COUNCIL_PROCESS.md", "| `models`", "| `panel-members`")
+    findings = cpr.run(tree)
+    assert any("roster row" in f and f.startswith("S31 ") for f in findings), findings
+
+
+# --- role_admission evidence resolves -------------------------------------------------------
+
+@pytest.mark.live_repo
+def test_every_recorded_admission_verdict_cites_an_artifact_that_exists():
+    assert cpr.check_role_admission_evidence(_REPO_ROOT) == []
+    admissions = preg.role_admissions()
+    assert admissions, "precondition: the registry carries at least one verdict to check"
+
+
+def test_a_verdict_citing_a_missing_artifact_is_caught(tree):
+    for rel in {str(r["evidence"]) for r in preg.role_admissions().values() if r.get("evidence")}:
+        (tree / rel).unlink()
+    findings = cpr.run(tree)
+    assert any(f.startswith("role_admission ") for f in findings), findings

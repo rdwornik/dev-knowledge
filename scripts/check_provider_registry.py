@@ -24,6 +24,17 @@ Covers the table-edit seams R2 §3.2 enumerates:
     S26 .claude/settings.json                the marketplace id + absolute host source path
     S29 ecosystem/satellite-onboarding-rulings.yaml   the `gpt-5.6-sol` provenance token
     S30 pyproject.toml                       the `grok L5` provenance attribution
+    S31 protocols/AI_COUNCIL_PROCESS.md      the council provider roster vs `council_alias`
+
+S31 was added by LANE L1 (2026-08-23) and is the seam that reads the rows that lane added.
+It is not a new seam class — it is the R2 §3.3 finding applied to the surface where it was
+still true: a closed provider vocabulary living in committed prose with nothing asserting it
+agrees with the registry. At the time it was written the roster named five providers and the
+registry declared three, and neither surface could say so.
+
+Beside the seams, one referential check with no seam number, because it is about the registry
+rather than about a site: `check_role_admission_evidence` requires every recorded admission
+verdict to cite an artifact that exists.
 
 S11 is a canonical-DOC seam, not a model seam, and is checked by `tests/test_canonical_docs.py`
 against `scripts/canonical_docs.CONFORMANCE_V2_SCAN`.
@@ -60,6 +71,7 @@ _PLAYBOOK = "protocols/PLAYBOOK.md"
 _SETTINGS = ".claude/settings.json"
 _TOOL_VERSIONS = "ecosystem/tool-versions.yaml"
 _PYPROJECT = "pyproject.toml"
+_AI_COUNCIL = "protocols/AI_COUNCIL_PROCESS.md"
 
 _FRONTMATTER_MODEL_RE = re.compile(r"^model:\s*(\S+)\s*$", re.MULTILINE)
 _JS_MODEL_RE = re.compile(r"model:\s*'([^']+)'")
@@ -74,6 +86,12 @@ _CONFORMANCE_HUB_PIN_COUNT = 3
 # in a 4,500-line file. A reworded sentence fails LOUD ("binding sentence not found") instead of
 # passing quietly on an unrelated occurrence — the right direction to be wrong in for a seam gate.
 _PROSE_TIER_RE = re.compile(r"tier is [^`\n]*\(`([^`]+)`\)")
+# S31's roster seam is the `models` row of AI_COUNCIL_PROCESS's frontmatter-key table:
+#   | `models` | `claude,gemini,openai,deepseek,grok` | All 5 by default. ... |
+# Anchored on the row rather than on any backticked comma-list, for the same reason
+# _PROSE_TIER_RE is anchored on its sentence: a reworded table fails LOUD ("roster row not
+# found") instead of passing quietly on an unrelated match elsewhere in a 3,600-line file.
+_COUNCIL_ROSTER_RE = re.compile(r"^\|\s*`models`\s*\|\s*`([^`]+)`\s*\|", re.MULTILINE)
 
 
 def _read(root: Path, rel: str) -> str:
@@ -216,8 +234,77 @@ def check_provenance_pins(root: Path) -> list[str]:
     return out
 
 
+def check_s31_council_panel(root: Path) -> list[str]:
+    """S31 — the council's provider roster and the registry's alias vocabulary agree.
+
+    `protocols/AI_COUNCIL_PROCESS.md` declares the default panel as a closed comma-separated
+    token set. Those tokens are PROVIDER ALIASES, and for two of five they differ from the
+    registry key (`claude`/`anthropic`, `grok`/`xai`) — which is why the mapping is data
+    (`providers.<id>.council_alias`) rather than a dict in this module.
+
+    Checked in BOTH directions, because each catches a different rot:
+
+    * roster -> registry: a provider the council panels that the registry has never heard of.
+      This is the same failure class `check_provenance_pins` guards — a provider entering the
+      corpus without entering the vocabulary — and it is how the registry came to carry three
+      of five aliases while the roster carried five.
+    * registry -> roster: an alias the registry claims that the roster no longer names, i.e.
+      a stale registry assertion. `council_alias: null` is the correct declaration for a
+      provider the council does not panel, so this direction has an unambiguous fix.
+    """
+    text = _read(root, _AI_COUNCIL)
+    m = _COUNCIL_ROSTER_RE.search(text)
+    if not m:
+        return [f"S31 {_AI_COUNCIL}: the council roster row (\"| `models` | `a,b,c` |\") was not "
+                f"found; the registry declares aliases {sorted(_preg.council_aliases())}"]
+    roster = [tok.strip() for tok in m.group(1).split(",") if tok.strip()]
+    aliases = _preg.council_aliases()
+    out: list[str] = []
+    out.extend(
+        f"S31 {_AI_COUNCIL}: council roster names provider `{tok}`, which no registry entry "
+        f"declares as its `council_alias`"
+        for tok in roster if tok not in aliases
+    )
+    out.extend(
+        f"S31 {_AI_COUNCIL}: registry provider `{pid}` claims council alias `{alias}`, which "
+        f"the roster does not name (use `council_alias: null` if it is not panelled)"
+        for alias, pid in sorted(aliases.items()) if alias not in roster
+    )
+    return out
+
+
+def check_role_admission_evidence(root: Path) -> list[str]:
+    """Every recorded admission verdict points at an artifact that exists.
+
+    The schema already refuses a decided verdict with no `evidence:` string
+    (`ecosystem/schema/provider_registry.py`), but a schema is a models-only module and
+    cannot touch the filesystem. This is the other half: the string has to RESOLVE. A verdict
+    citing a renamed or deleted artifact is how a refusal decays into an unfalsifiable claim
+    — and the registry is the surface a future lane will read to find out why a role is not
+    held, so a dead locator there is worse than none.
+    """
+    out: list[str] = []
+    for (mid, role), record in sorted(_preg.role_admissions().items()):
+        rel = record.get("evidence")
+        if not rel:                                  # legitimate only for `unevaluated`
+            continue
+        if not (root / str(rel)).exists():
+            out.append(
+                f"role_admission {mid}/{role}: evidence `{rel}` does not exist — a verdict "
+                f"citing a missing artifact is an assertion, not a record")
+    return out
+
+
 def check_registry_shape() -> list[str]:
-    """Cheap internal consistency: every model names a registered provider."""
+    """Cheap internal consistency, kept as a seam-level report.
+
+    The rule itself now also lives in `ecosystem/schema/provider_registry.py`, which
+    `provider_registry.load_registry()` enforces on every load — so in practice a violation
+    raises `RegistryError` before this function is reached. It is retained deliberately
+    rather than deleted: `run()`'s contract is that every finding is a returned STRING, and a
+    caller that catches `RegistryError` at the boundary would otherwise lose the per-model
+    detail. Belt and braces, with the braces load-bearing for the message.
+    """
     out: list[str] = []
     known = set(_preg.providers())
     for mid, fields in _preg.models().items():
@@ -242,7 +329,9 @@ def run(root: Path | None = None) -> list[str]:
     findings += check_s10_conformance_hub(r)
     findings += check_s17_playbook(r)
     findings += check_s26_settings(r)
+    findings += check_s31_council_panel(r)
     findings += check_provenance_pins(r)
+    findings += check_role_admission_evidence(r)
     return findings
 
 

@@ -407,6 +407,120 @@ lowered or held but not raised without an operator ruling, and this lane holds n
 `ecosystem/schema/provider_registry.py` and this artifact are both outside the scope globs, so
 neither contributes to the pool — worth stating, because a lane that drained the wrong file
 would have shipped a green gate and a lost sentence.
+
+**One mechanism note, because it cost a measurement.** The detector reads **staged blobs**,
+not the working tree: after the two rewordings the standalone run still printed `443`, and only
+`git add` brought it to `441`. Re-measuring before staging reads the pre-edit file and says the
+fix did not work.
+
+---
+
+## 4. Proving consumption — S31, and why the bar is the added rows
+
+The contract's closure item 2 is deliberately strict:
+
+> The registry is **actually consumed** by at least one existing seam — not merely present.
+> Name the seam and show the consumption. Present-but-unread is the failure mode this repo
+> already carries in four unwired modules; do not add a fifth.
+
+§1.4 established that the registry *file* was already consumed at the merge base. That makes
+the honest bar harder, not easier: the question is whether the rows **this lane added** are
+read by anything, or whether five new providers and two new models are five-and-two pieces of
+inert data. Two mechanisms answer it, and the second has teeth.
+
+### 4.1 Mechanism 1 — schema validation, at every existing consumer
+
+`load_registry()` validates through `ProviderRegistry` (§3.2). Since all three live consumers
+reach the file through it, the added rows are parsed and validated by:
+
+| Existing seam | When it runs | What it now does with the new rows |
+|---|---|---|
+| `scripts/changelog_sentinel.py` (S7) | every SessionStart | parses all 5 providers; a malformed one raises `RegistryError` |
+| `provider-registry-agreement` hook | every commit touching a checked site | same, and an error **exits 2 / BLOCKS** |
+| `tests/test_provider_registry*.py` | every suite run | 51 tests |
+
+Honest about what this is: **validation, not use.** It stops a bad row, it does not read a good
+one. On its own it would be a weak answer, which is why there is a second mechanism.
+
+### 4.2 Mechanism 2 — S31, a new seam leg on the existing checker
+
+**The seam, named:** `protocols/AI_COUNCIL_PROCESS.md`'s council provider roster, held in
+agreement with the registry's `council_alias` vocabulary by
+`scripts/check_provider_registry.py::check_s31_council_panel`, registered in `run()` and
+therefore live in the **existing** `provider-registry-agreement` pre-commit hook. This is
+wiring a leg onto a consumer that already exists — the contract's permitted act — rather than
+building a new consumer from nothing, which it forbids.
+
+**This is not a new seam class.** It is R2 §3.3's own finding applied to the one surface where
+it was still true: a closed provider vocabulary living in committed prose, with nothing
+asserting it agrees with the registry.
+
+**Checked in both directions, each catching a different rot:**
+
+- *roster → registry* — the council panels a provider the registry has never heard of. Same
+  class as `check_provenance_pins` ("a provider quietly enters the corpus without entering the
+  vocabulary"), and it is how the roster came to name five while the registry declared three.
+- *registry → roster* — the registry claims an alias the roster no longer names, i.e. a stale
+  assertion. `council_alias: null` is the unambiguous fix, and the schema permits it.
+
+**The measurement that shows it is not vacuous** — `check_s31_council_panel` run against the
+**merge-base** registry (`git show aeec0fd1:ecosystem/provider-registry.yaml`) versus now:
+
+```
+merge base aeec0fd1   council_alias vocabulary: {}                 roster tokens unresolved: 5/5
+                      providers with no entry of any kind:         gemini, deepseek  (2/5)
+after this lane       {claude: anthropic, gemini: google, openai: openai,
+                       deepseek: deepseek, grok: xai}              roster tokens unresolved: 0/5
+```
+
+Both numbers are reported because they measure different things. **5/5** is unresolved under
+the new field's semantics — `council_alias` did not exist, so nothing resolved. **2/5** is the
+substantive gap: `gemini` and `deepseek` had no provider entry at all, by any name. The seam
+would have failed at the merge base under either reading, which is the point of running it
+there.
+
+**Teeth, asserted rather than claimed** — three mutation tests over a tmp-tree copy: a roster
+token with no registry entry is caught; a registry alias the roster dropped is caught; and a
+**reworded roster row fails LOUD** (*"roster row not found"*) instead of passing quietly, the
+same anchored-regex posture `_PROSE_TIER_RE` already uses for S17.
+
+### 4.3 A second, smaller consumer — admission evidence resolves
+
+`check_role_admission_evidence` requires every recorded verdict to cite an artifact that
+**exists**. The schema refuses a decided verdict with no `evidence:` string, but a models-only
+module cannot touch a filesystem; this is the other half. A verdict citing a renamed artifact
+decays into an unfalsifiable claim, and the registry is exactly the surface a future lane reads
+to find out *why* a role is not held — a dead locator there is worse than none. Mutation-tested
+by deleting the cited artifacts from the tmp tree.
+
+### 4.4 The hook's `files:` pattern was extended — flagged as a likely conflict site
+
+`.pre-commit-config.yaml` gained `AI_COUNCIL_PROCESS` to its existing `protocols/PLAYBOOK\.md`
+alternation, so an edit to the roster fires the gate. Without it the coupling would only fire
+from the registry end — half-wired, which is the present-but-unread failure in a new costume.
+
+**Stated for the integrator rather than left to be discovered:** this lane's contract does not
+reserve `.pre-commit-config.yaml`, so the edit was made rather than shipped as a fenced diff
+(the CLOUD-4 v2 precedent recorded at `CLAUDE.md` v2.64 applies to a lane whose contract *did*
+reserve it). Seven lanes were live in this batch and this file is a classic collision surface.
+The change is one regex alternation plus its comment — textual, surgical, and trivially
+reconcilable if another lane also adds a hook.
+
+### 4.5 What is honestly NOT proven
+
+**No seam routes to these providers, and none can from this repo.** Standing ruling R-2 places
+the routing table at L0. So "consumption" here means *the rows are read, validated and held in
+agreement with a live committed surface* — it does not mean anything dispatches to Gemini or
+DeepSeek on the strength of them. Claiming otherwise would be the overstatement this lane's own
+§2.3 finding penalises `[#568]` for.
+
+### 4.6 Suite delta from this step
+
+Six new tests in `tests/test_provider_registry.py` (three S31 teeth, one live S31 assertion,
+one live evidence assertion, one evidence teeth). The `tree` fixture gained
+`protocols/AI_COUNCIL_PROCESS.md` and — **derived from the registry rather than typed** — every
+artifact a live verdict cites, so a future verdict cannot silently leave the fixture behind.
+Combined: **51 passed, 0 failed.**
 - **No effort enum on any model.** §2.1 records why: no live in-repo surface binds a *model* to
   an effort value, and the canonical enum's home is doctrine, not this file.
 - **No routing.** The registry header and standing ruling **R-2** both place it at L0.
