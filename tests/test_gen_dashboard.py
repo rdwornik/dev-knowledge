@@ -722,6 +722,21 @@ def test_both_faces_carry_the_commit_path_pathspec(renderer, tmp_path):
     assert "--commit-path" in out
 
 
+def test_declared_input_set_is_the_paths_build_reads(tmp_path):
+    """`INPUT_RELPATHS` is what the ADR-86 staleness leg measures against. If `build()` grows a
+    reader for a new path and this tuple is not extended, the relation silently stops covering
+    it — so the membership is pinned here, at the declaration, and the leg's own test asserts the
+    two agree."""
+    assert gd.INPUT_RELPATHS == (gd.BACKLOG_RELPATH, gd.TASKS_RELDIR, gd.INTAKE_RELDIR,
+                                 gd.DECISIONS_RELDIR, gd.AUDITS_RELDIR)
+    assert gd.INTAKE_ARCHIVE_RELDIR.startswith(gd.INTAKE_RELDIR), (
+        "the archive is covered only because it sits inside the intake dir")
+    assert gd.TELEMETRY_STORE_RELPATH not in gd.INPUT_RELPATHS, (
+        "gitignored — it carries no commit date; declared as untracked_inputs instead")
+    assert gd.MD_RELPATH not in gd.INPUT_RELPATHS and gd.HTML_RELPATH not in gd.INPUT_RELPATHS, (
+        "an output is not its own input — that would make the artifact permanently fresh")
+
+
 @pytest.mark.parametrize("verb", ["--write", "--check"])
 def test_main_accepts_both_verbs(verb, tmp_path, monkeypatch):
     repo = _fixture_repo(tmp_path)

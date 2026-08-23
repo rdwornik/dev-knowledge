@@ -82,6 +82,20 @@ INTAKE_ARCHIVE_RELDIR = "docs/intake/archive"
 DECISIONS_RELDIR = "docs/decisions"
 AUDITS_RELDIR = "docs/audits"
 
+#: Every TRACKED path `build()` reads -- this artifact's DECLARED input set, exported so the
+#: ADR-86 staleness leg (`scripts/generated_artifact_freshness.py`) reads a declaration made here
+#: rather than re-deriving one of its own. `INTAKE_ARCHIVE_RELDIR` needs no entry: it is inside
+#: `INTAKE_RELDIR`. Two things `build()` reads are deliberately NOT here, and both exclusions are
+#: load-bearing rather than oversights:
+#:   * `TELEMETRY_STORE_RELPATH` -- gitignored (`.gitignore:95`), so it carries no commit date and
+#:     cannot take part in a git-date relation at all. Declared instead as the leg's
+#:     `untracked_inputs`, so the carve-out is visible rather than silently missing.
+#:   * HEAD -- `head_sha()`/`head_date()` are inputs to the RENDERING, not to the content. Keying
+#:     a freshness relation on HEAD would make it fire after every commit in the repo, which is
+#:     exactly why `--check` reports drift once HEAD moves (see the docstring above). The content
+#:     input set is the one that can carry a meaningful staleness baseline.
+INPUT_RELPATHS = (BACKLOG_RELPATH, TASKS_RELDIR, INTAKE_RELDIR, DECISIONS_RELDIR, AUDITS_RELDIR)
+
 #: Release-notes / trend window. The operator asked for "the last 7 days".
 WINDOW_DAYS = 7
 
