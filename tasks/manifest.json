@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "e61118e8ada57dfcf0b57e3a89feca1e5c735ebf0910593d69f06eb630fccb86",
+  "generated_sha256": "0ff1e3c2c2dcc15248b4ff5a434a3e1e22c5ed475825950cffd7aef7eec11edf",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -1007,6 +1007,10 @@
     {
       "task": 491,
       "file": "491-gemini-scanning-lane-ruling-r-g-plus-an-acceptan.md"
+    },
+    {
+      "task": 578,
+      "file": "578-the-earned-mitigated-rerun-one-slot-role-reminder.md"
     },
     {
       "prose": ""
