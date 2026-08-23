@@ -19,6 +19,47 @@
 
 ---
 
+### 2026-08-23 (g) - CC (Opus 5, integrator, branch `docs/lane-tail-2026-08-23`): the lane had a seventh commit, and the integrator's stop-detection was the thing that was wrong
+
+**Did:** merged `worktree-lane-docs-governance`'s remaining commit `3b3d79b2`, which entry (f)'s
+merge missed.
+
+**Result: the lane's record is now complete on `main`, and the miss was mine.** I treated the
+artifact commit `e4d24601` as the lane's last, because the contract's final item is *"artifact ...
+COMMIT, then STOP"*. The lane then made a seventh commit at **14:19:26** - before my merge at
+~14:27, and after I had already branched at `e4d24601`. So the merge landed six of seven and the
+teardown would have destroyed the branch holding the difference. The teardown is what caught it:
+`git merge-base --is-ancestor worktree-lane-docs-governance origin/main` answered **NO**, which is
+the check existing precisely so that "I think the lane is done" never becomes "the lane is deleted".
+
+**What the seventh commit is, and why it is not an immutability violation.** It corrects a restated
+count *inside the artifact that documents landing the never-restate-a-count rule*: the locator note
+said main had *"moved four times"* since R1's base, against a live 30. The lane fixed it the way the
+rule prescribes - the sentence now points at
+`git log --first-parent --oneline 78267fd..main` rather than naming a number, **and it records the
+miss inline** rather than quietly swapping 4 for 30. Three things make merging it lawful rather than
+an edit to a landed immutable record: it was **authored before the artifact ever reached `main`**
+(14:19:26 against a ~14:27 merge) and its own message says so; the in-place text **carries its own
+amendment marker**, which is what `CLAUDE.md` §5 rule 3 asks for; and the only reason the question
+arises at all is that I integrated while the lane was still running.
+
+**The lesson is about the stop signal, not about the lane.** A lane's contract naming a final
+COMMIT does not make that commit observable as the last one - a lane can still self-correct
+afterwards, and this one did, catching a defect of exactly the class it had just landed a rule
+against. The signal that actually held was **transcript silence plus an unchanged branch tip over a
+7-minute window**: I re-armed on that after the miss, and it fired twice more before going quiet
+(the lane resumed writing at 338s of idle, which would have caught a second premature call).
+
+**Changes:** merged `3b3d79b2` (4 lines in the lane's own artifact). No other file moved.
+
+**Abandoned:** nothing. The teardown that entry (f) implied was **not** performed then, deliberately,
+and follows this merge.
+
+**Anchors:** `3b3d79b2` (the lane's correction, the commit this merge introduces).
+
+**Next:** teardown - worktree remove, prune, and both halves of the branch pair - then the handoff
+bundle.
+
 ### 2026-08-23 (f) - CC (Opus 5, integrator, branch `docs/journal-docs-governance-2026-08-23`): the governance lane lands, and the row it was expected to close stays open on a fact nobody had checked
 
 **Did:** merged `worktree-lane-docs-governance` after reading its artifact, amended the window seal,
