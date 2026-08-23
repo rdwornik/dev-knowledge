@@ -438,4 +438,145 @@ to `templates/claude-regions/<id>.md`, which is outside this contract (§1.1):
 
 ## 7. Post-change verification
 
-*(filled by the Step-6 / Final commits — see the sections appended below)*
+All on the §0 fallback interpreter. Every line reported, not a summary.
+
+### 7.1 `validate_doc_claims` — the closure-contract item 4 gate
+
+```
+$ python scripts/validate_doc_claims.py
+validate_doc_claims: OK — 4 claim(s) checked, no prose drift
+         skipped  audit_check_count (doc - / actual <ground truth unavailable>)
+           match  precommit_hook_count (doc 21 / actual 21)
+           match  precommit_hook_roster (doc {audit-health, audit-index-freshness,
+                  backlog-filing-backpressure, backlog-id-on-close, block-commit-on-main,
+                  block-ff-push, block-unanchored-push, check-seal-identity,
+                  claude-rosters-freshness, codemap-freshness, coherence-nudge,
+                  intake-index-freshness, lane-contract-check, normalize-dated-headers,
+                  organ-index-freshness, provider-registry-agreement, roster-freshness, ruff,
+                  toc-freshness-playbook, validate-backlog, validate-hermetization}
+                  / actual {identical 21-id set})
+           match  pytest_collected (doc 3573 / actual 3573)
+EXIT=0
+```
+
+**No prose drift across the touched set.** The `skipped` line is structural, not a pass and not
+a failure — see §2.9 sweep 3: that leg's ground truth is injected by `audit.py`, never
+re-derived, so a standalone invocation cannot evaluate it. Reported rather than counted.
+
+### 7.2 The rest of the gates that could run
+
+```
+validate_doc_rot.py                 exit 0   (CLAUDE.md file-budget clean; the
+                                              backlog-row-length + grooming-cadence findings
+                                              are pre-existing and out of family)
+validate_doc_structure.py           exit 0   "no structural rot (numbering / headers / ToC)"
+validate_hermetization.py           exit 0   (the new audit artifact's name + home pass ADR-101
+                                              Rules A/B/C)
+boundary_headers.py --check         exit 0   "all generated headers match their markers"
+boundary_headers.py --coverage      exit 0   "CLAUDE.md: 15 region(s)" / "1/1 governed files
+                                              headed (100%)"
+gen_claude_rosters.py --check       exit 0
+gen_audit_index.py --check          exit 0   (after regenerating: 692 -> 693 documents)
+canonical_freshness_gate.py         exit 1   -- 2 FAILs, BOTH pre-existing at merge base
+                                              aeec0fd and both OUT of this lane's families:
+                                              CONTRIBUTING.md and docs/handoffs/README.md.
+                                              The third FAIL standing at base
+                                              (protocols/ESSENTIALS.md) was CLEARED by this
+                                              lane's genuine re-read + stamp bump.
+```
+
+### 7.3 `CLAUDE.md` re-count against its ceiling
+
+```
+counted (validate_doc_rot, comment-only lines excluded)   195
+declared budget (_FILE_SIZE_BUDGETS)                      200
+scan_file_budget finding                                  []   (clean)
+headroom at lane close                                    5
+```
+
+Opened at 195/5, closes at 195/5. **The ceiling was not touched** and no mandated topic was
+dropped to fit.
+
+### 7.4 The suite — measured against the A2 baseline, and the divergence proven
+
+```
+$ python -m pytest -q            (UNPIPED; the exit code below is pytest's own)
+36 failed, 3526 passed, 10 skipped, 1 xfailed in 355.92s
+EXIT=1
+                                                  total = 3573
+```
+
+**The A2 baseline is `1 failed, 3567 passed, 4 skipped, 1 xfailed = 3573`.** The **total matches
+exactly (3573)**; the **split does not**, and this artifact does not pretend otherwise.
+
+**Why, and how it was proven rather than asserted.** A2's split is a *locked-environment* number.
+This container cannot produce it (§0): the pinned `uv` is unobtainable, so the suite ran on the
+fallback venv, which has the `dev` group but deliberately **not** the optional `analytics` group,
+no armed git hooks, no `~/.claude/` tree and no fleet siblings. To separate that from lane-caused
+RED, the **exact 38-test failing set from the first branch run was re-run at the merge base
+`aeec0fd`, in this same container, on this same interpreter**:
+
+```
+at aeec0fd:   36 failed, 2 passed
+branch-only failures (comm -23 branch base):
+    tests/test_silent_rule_ratchet.py::test_check_registered_and_green_on_live_repo
+    tests/test_silent_rule_ratchet.py::test_committed_baseline_matches_live_measurement
+```
+
+**Those two were this lane's, and are named rather than explained away.** The step-5 prose raised
+`silent_rule_detector`'s normative-keyword count **441 → 446** against a committed baseline of
+**441** — zero slack, so any addition trips it. Five `must`/`never` occurrences in `ENVIRONMENT.md`
+(2) and `ESSENTIALS.md` (3). **Fixed at the source**, by rewording those five into the indicative:
+the added text *describes* what ADR-81's amendment, ADR-106 and ADR-111 already rule, and the ADR
+stays the normative home, so the imperative mood was borrowed authority the prose did not need. No
+quoted text was altered — every reworded clause was paraphrase, not quotation. **Raising
+`ecosystem/silent-rule-baseline.yaml` was rejected**: a ratchet-up is a recorded decision, not a
+lane's convenience. `tests/test_silent_rule_ratchet.py` is now **51 passed**.
+
+Final state, after that fix:
+
+```
+comm -23 <final-failures> <base-failures>   ->   EMPTY
+```
+
+**Zero branch-only failures.** Every one of the 36 reproduces identically at the merge base.
+Composition of the 36, so "environmental" is not a hand-wave: **17** are
+`ModuleNotFoundError: No module named 'pandas'` (`tests/test_fleet_analytics.py` — the
+`analytics` dependency group, deliberately not installed and deliberately absent from
+`ecosystem/dependency-baseline.yaml`); the rest are `audit.py health` legs asserting against an
+un-armed, sibling-less container, the `reverse_dep_oracle` langserver-absent path, and
+`tests/test_merge_serialization.py`. **`test_anchor_gate_probe_distinguishes_installed_from_absent`
+— the single RED A2 names as pre-existing — is present in the set**, consistent with A2's account
+of it (`tmp_path` fixture, organ passes live) and additionally consistent with `.git/hooks/` being
+empty here.
+
+**Stated plainly: this lane cannot report the A2 split as reproduced, and does not.** What it can
+and does report is that its own diff introduced exactly two REDs, that both were found, that both
+were fixed at the source, and that the branch is now failure-identical to its merge base under an
+identical container and interpreter.
+
+---
+
+## 8. Decision-budget questions raised — none blocking
+
+The brief's decision budget covers (a) curated-baseline touches, (b) rule-vs-ruling conflicts,
+(c) forks with no standing ruling. Two arose; **neither required stopping**, and both are recorded
+here as the brief directs.
+
+1. **(b) — M2 vs the gated roster.** "Never restate a count or roster" (`CLAUDE.md` §4) versus
+   `validate_doc_claims`'s `precommit_hook_roster` leg, which *requires* §9 to restate the roster
+   in order to check it. **Resolved without escalation** on the rule's own stated rationale ("a
+   number typed into a doc is stale at the next commit") — a roster a gate verifies cannot go
+   stale silently, so it is outside what M2 targets. Recorded at §1.2 and in the §12 v2.66 entry
+   so it is not re-litigated. **If the architect disagrees, the fix is one line in §9 plus
+   retiring claim 2b — not a silent conversion.**
+2. **(a) — the silent-rule baseline.** `ecosystem/silent-rule-baseline.yaml` is a curated
+   baseline this lane's prose tripped. **Not touched.** Resolved at the prose instead (§7.4).
+
+**A queued proposal, filed nowhere (A3, `banked = 0`).** `protocols/ENVIRONMENT.md` carries a
+model roster that no gate checks (§2.3 N-06), while nine other provider/model seams are gated by
+`provider-registry-agreement`. *Proposed row:* add `protocols/ENVIRONMENT.md`'s model list as a
+tenth seam in `ecosystem/provider-registry.yaml`, or record a ruling that a human-facing
+environment snapshot is deliberately ungated. **Done-when:** either `pins_by_path()` includes the
+file, or `STANDING_RULINGS.md` carries the exemption. This is a specification in this artifact,
+**not** a `tasks/` filing.
