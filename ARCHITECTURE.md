@@ -14,9 +14,20 @@ owner: Rob
 > class this repo exists to kill). Fix the map when reality moves; fix the *source*
 > when the doctrine moves.
 >
-> Last updated: `2026-08-23` — **governance-drift discharge, part 1 of 2 (lane
-> `lane-docs-governance`): the 2026-08-21 CLOUD-R1 audit's SAFE-MECHANICAL ARCHITECTURE findings
-> are executed, and the end-to-end re-read found three more the audit missed.** From R1's verdict
+> Last updated: `2026-08-23` — **governance-drift discharge (lane `lane-docs-governance`): the
+> 2026-08-21 CLOUD-R1 audit's ARCHITECTURE findings are executed, and the end-to-end re-read found
+> three more the audit missed.** Landed in two commits — the SAFE-MECHANICAL set, then the three
+> architect-ruled items. **Ruled items (R1 top-10 8 and 9):** Ch2's *"every enforcement/awareness
+> organ"* **completeness claim is retired** in favour of the pointer its own note already licensed —
+> the hand table carried **35 rows** against a generated index of **eight classes**, omitting the
+> `agent`, `rule` and `plugin` classes whole — while **keeping the failure-posture column**, which
+> `ecosystem/organ-index.md` states in its own header that it cannot carry; and the map finally
+> points at **PLAYBOOK Ch8 "Session boundaries"** for the repo's dominant working mode (parallel
+> worktree lanes, dispatch, the ADR-110 batch protocol), which it referenced **nowhere** despite a
+> JOURNAL that is overwhelmingly lane work. **Ch4 gains an execution-substrates block** —
+> `.devcontainer/` and `deploy/lived_sandbox/` — deliberately NOT a sixth channel row: nothing is
+> *carried* through either, they are *venues*, and they are what makes Ch4's existing "inert by
+> design in a fresh clone" bullet concrete. **From R1's verdict
 > table: **A2** the "read-only validators" claim re-scoped (Purpose + §Validators) — the prohibition
 > is on driving a CHILD repo's state, which is invariant 2's already-checkable form; **A3** the Ch2
 > pre-commit id enumeration **retired in favour of the pointer the sentence already carried** —
@@ -166,6 +177,12 @@ owner: Rob
 >   **Ch4** (what is distributed where, what is still hub-only).
 > - **Deep dives leave this map** — every section points to its ADR/protocol. Read
 >   the source, not a copy here.
+> - **The daily working mode is NOT in this map.** Parallel worktree lanes, lane dispatch, the
+>   ADR-110 batch protocol and session boundaries live in **`protocols/PLAYBOOK.md` Ch8
+>   "Session boundaries"** — the single deep-dive this file had never pointed at, though the
+>   JOURNAL is overwhelmingly `worktree-lane-*` / `batch-N` work. Ch2 rows the organs that
+>   police it (`stale_worktrees`, `no_sibling_orphans`, `/lane-boot`, `/lane-integrate`);
+>   **Ch8 holds the procedure**, and ADR-110 the contract.
 
 ## Purpose [CORE]
 
@@ -302,8 +319,9 @@ standard (`~/.codex/AGENTS.md`, canonical source `codex/AGENTS.md`; ADR-54).
 
 ## Organ map
 
-**Chapter 2 — Organ map.** The behavioural inventory: every enforcement/awareness
-organ, what fires it, the layer it lives in, and how it fails.
+**Chapter 2 — Organ map.** A **curated** behavioural map: what fires an organ, the layer it
+lives in, and — the column nothing else carries — **how it fails**. It is deliberately NOT
+the inventory; `ecosystem/organ-index.md` is (see below).
 
 > **Map, not prose.** This table is hand-maintained. The generated
 > `ecosystem/organ-index.md` (**#132**) **is** its **verified source** — it shipped
@@ -331,11 +349,21 @@ organ, what fires it, the layer it lives in, and how it fails.
 > closed by this pointer**: its Done-when also requires "generated + *committed* by a read-only
 > validator", which no code path performs.
 
-Every enforcement/awareness organ, with its trigger, the layer it lives in, and its
-**failure posture** (fail-closed = blocks the action; propose-only = writes a
-proposal, never mutates; fail-soft = logs/exits 0, never blocks; report-only = runs the
-checks and records the outcome, judges nothing, and has no gate to arm even in
-principle). "Layer" notes
+**This table does not claim completeness, and the claim it used to make was false.** It read
+*"Every enforcement/awareness organ, with its trigger…"* while carrying **35 rows** against the
+generated index's **eight classes** — omitting the `agent`, `rule` and `plugin` classes whole.
+The note above already licensed the fix (*"may be replaced by a pointer to it"*), so: **for
+*what exists and what fires it*, read `ecosystem/organ-index.md`** — it is generated from the
+organ sources, gated by `organ-index-freshness`, and cannot silently trail them the way a hand
+table does. Do not read a count off this table, and do not restate the index's count here.
+
+What this table keeps is the column the index **states it cannot carry**: **failure posture**
+(fail-closed = blocks the action; propose-only = writes a proposal, never mutates; fail-soft =
+logs/exits 0, never blocks; report-only = runs the checks and records the outcome, judges
+nothing, and has no gate to arm even in principle) — a judgement about an organ's code,
+derivable from no frontmatter block or hook id. The rows below are the organs whose posture
+this map is the source for; a row's absence means *posture not yet recorded here*, never
+*organ does not exist*. "Layer" notes
 whether the organ travels: **L0** = global `~/.claude` (fleet-wide), **hub** =
 this repo's `.claude/`, **plugin** = `tier1-lifecycle` (repo-class), **pre-commit** =
 local git gate, **server** = GitHub Actions, off-host, after the push has already landed.
@@ -822,6 +850,17 @@ different scope and freshness model (a distinct set from the deploy tool's
   (`implemented: false`, v1.4.0). The tool is **not itself a carrier** — it is *how* the
   five are delivered as one gated release; the `floor` carrier also arms the floor under model A
   (ADR-93). Runbook PLAYBOOK §20; proven end-to-end on run #1 (ai-council → v1.0.0).
+
+**Execution substrates (where a session RUNS — not a sixth channel).** The five rows above are
+*carriage*: what travels to a consumer. These two are *venue*: where a Claude Code session executes
+when it is not this workstation's primary checkout. Neither carries methodology, so neither joins
+the channel table — but a map silent on them cannot explain the two contexts in which the channels
+above are **inert by design** (the bullet above says so without saying where).
+
+| Substrate | What it is | Why the map needs it | Ref |
+|---|---|---|---|
+| `.devcontainer/` | the off-machine lane substrate — a container spec plus an idempotent provisioning script, read by a container runtime (Codespaces, or `devcontainer up` on any host) and by **nothing in this repo's gate mesh**. It carries no organ, judges nothing, fires on no git event | it is where the "inert in a fresh clone" bullet above becomes concrete: a fresh off-machine clone starts **shallow, hooks unarmed, `uv` pin unsatisfiable**, so every spine-walking instrument (`validate_no_ff`, `block_ff_push`, `journal_anchor`, `validate_git_backlog`) is unrunnable until provisioning asserts otherwise. The provisioning script exists to close exactly those traps | **ADR-101 amendment 2026-08-18** (the sole directory that amendment admits); `[#554]`; cost/perf memo `docs/audits/2026-08-20-technical-codespaces-audit.md` |
+| `deploy/lived_sandbox/` | an operator-invoked deterministic **observer** that spawns a headless `claude -p` session under an isolated `CLAUDE_CONFIG_DIR`, inside a `mkdtemp` clone, and verdicts **enforcement-in-effect** from transcript events + hook stdout + git state — never from the session's narration | it is the only organ that measures whether the carried methodology actually *engages* in a consumer-shaped session, rather than whether it is *present*. Ch3's axis table has no cell for its shape — deterministic observer over an LLM stimulus — which is the honest gap, recorded rather than smoothed | Fable architecture review 2026-07-04 §6 (Slice A isolation proof); `[#252]` (Slice B acceptance instrument); Layer-2-safe — every mutation lands under a `_rmtree_guarded` temp root, no live sibling is touched |
 
 **The transfer matrix is the canonical gap map.** Who carries the method, in which of
 seven contexts (hub/child CC, hub/child browser, cloud, local, new-repo) — full
