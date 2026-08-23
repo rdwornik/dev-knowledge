@@ -71,6 +71,14 @@ adjudication is serial and stays with the architect.
 **Next:** architect answers C1's post-ratchet `STANDING_RULINGS.md` policy question, then walks the
 five cohorts in the sheet's order. A peg census over C2 is the cheapest second pass.
 
+**Anchors:** `151fcb0b` (the prep sheet, its index regen and this entry), the commit the merge of
+this lane introduces. Recorded by hand because the container could not run the organ that normally
+prompts for it: the `Stop` backpressure hook aborted at its `uv run --locked` launcher on the
+`==0.11.19` pin divergence declared above, never reaching the script. Run directly under `python3`
+the hook exits 0, and `journal_anchor.range_is_anchored(aeec0fd1..151fcb0b)` returned **False** -
+so the anchor was genuinely owed, not merely unprompted, and the hard pre-push leg would have
+refused this range at `main`.
+
 ---
 
 ### 2026-08-23 (j) - CC (Opus 5, Phase-0 seat, branch `chore/phase0-preconditions-2026-08-23`): the five-lane batch's preconditions are measured, and four of the six premises it was built on do not survive contact with the repo
