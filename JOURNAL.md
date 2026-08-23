@@ -19,6 +19,57 @@
 
 ---
 
+### 2026-08-23 (a) - CC (Opus 5, integrator, branch `docs/journal-562-guard-integration-2026-08-23`): the held lane's own fixes clear it, and the hold lifts by merge rather than by ruling
+
+**Did:** merged `worktree-lane-fix-562-guard` to `main` as a single-merge integration act, and
+retired the branch it supersedes.
+
+**Result: `[#562]`'s no-pack sandbox guard is on `main`, and the 2026-08-22 (k) HOLD is
+discharged by the work, not waived.** Yesterday's entry held cloud-1 with two confirmed Criticals
+and declined to fix them, on the reasoning that two Criticals in a 940-LOC security-guard module
+are not an integrator's drive-by. That reasoning stands and this merge does not contradict it:
+the fixes were made **on the lane**, across fifteen commits, and were graded by twelve rounds of
+`gpt-5.6-terra` to a clean pass. The integrator merged a reviewed result; it did not become the
+author of the thing it was reviewing.
+
+**The supersession was verified, not assumed.** The held branch `claude/cloud-1-562-admission-rerun`
+travels INSIDE this branch by a real merge (`f25f8a69`), so its three commits arrive intact with
+their history rather than as replayed patches. Both directions were checked before the merge:
+`git cherry` reports nothing on cloud-1 that is absent from the guard branch, and
+`merge-base --is-ancestor` confirms full containment. That containment is what makes the delete in
+step 3 a retirement rather than a discard - the recorded trap is that a cherry-pick never makes a
+branch `-d`-safe, and this was not one.
+
+**What the terra arc actually closed.** Critical 1 was the hazard the operator's own P0 rules
+exist for: `teardown()` was `shutil.rmtree(path)` guarded only by `path.exists()`, so
+`teardown --sandbox <any path>` recursively deleted it. It now deletes only what it can PROVE it
+provisioned (`0b6f4943`). Critical 2's `shell=True` allowlist bypass is gone end to end - argument-list
+exec replaces the shell (`4b63b4f0`). The remaining thirteen commits are the terra loop doing what
+the loop is for: each round found what the previous round had graded clean - short-option arity,
+attached option values, symlink-following traversal, a library-level bypass, git argv parsing,
+per-subcommand flag allowlists - down to a clean twelfth round.
+
+**One RED is reported, and it is not this lane's.** The full-suite run carries a pre-existing
+failure in the anchor-gate probe test, RED on `main` since 2026-08-22 and rooted in a `tmp_path`
+fixture. The lane artifact was amended to record the suite result and that RED together rather
+than reporting a green it did not have.
+
+**Changes:** merged 17 files - `scripts/nopack_sandbox.py` (the guard) and
+`tests/test_nopack_sandbox.py` (its suite), 12 `gpt-5.6-terra` round artifacts, 2 technical audits
+(the cloud-1 admission rerun and the lane artifact), regenerated `docs/audits/README.md`.
+Retired `origin/claude/cloud-1-562-admission-rerun`; tore down the `lane-fix-562-guard` worktree.
+
+**Abandoned:** the A/B admission rerun itself is still not run - it remains BLOCKED on credentials
+and network exactly as 2026-08-22 (k) recorded, and this merge lands the guard, not a verdict.
+No admission scores exist and none were inferred here.
+
+**Anchors:** `ce09f686` (the lane-artifact amendment recording the full-suite result) and
+`0b6f4943` (the Critical-1 teardown fix) - both commits the merge `f0418741` introduces - plus
+`__J1__`, this entry's own landing commit, named so the merge that carries it is anchored too.
+
+**Next:** `[#562]`'s admission rerun still needs a slot with real credentials and network reach.
+The guard being on `main` changes what that rerun would exercise, not whether it is blocked.
+
 ### 2026-08-22 (k) - CC (Opus 5, cloud-wave integrator, branch `docs/cloud1-terra-hold-2026-08-22`): the fifth lane returns, and the review it asked for holds it
 
 **Did:** ran the owed `gpt-5.6-terra` pass on the returned `[#562]` lane and recorded the result.
