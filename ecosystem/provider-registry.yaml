@@ -40,9 +40,22 @@
 # CONTRIBUTING.md/protocols/ESSENTIALS.md. It is repointed at the sibling canonical-doc-name
 # registry (`scripts/canonical_docs.py`) and asserted by `tests/test_canonical_docs.py`.
 
+# SCHEMA — declared, as of LANE L1 (2026-08-23), in `ecosystem/schema/provider_registry.py`
+# (pydantic; the sibling of `ecosystem/schema/desired_state.py`). `scripts/provider_registry.py`
+# validates through it on every load, so the sentinel, the checker and the suite all parse this
+# file against one contract instead of against whichever accessor happens to read a key.
+# `extra="forbid"`: a key not in that module is a BLOCKED commit, not inert data.
+#
+# CONFIGURATION IS NOT GATED ON ADMISSION. A provider that failed an admission floor is still
+# configured here, still addressable, still in the closed vocabulary — it simply holds no role.
+# `role_admission:` records WHY a role is not held; it is optional, and a row carrying none is
+# exactly as valid as one that does. The governing record, with the ADR-98 section 3 test, is
+# `docs/audits/2026-08-23-technical-lane-provider-config.md` section 6.
+
 providers:
   anthropic:
     display_name: Anthropic
+    council_alias: claude
     cli: claude
     # Local, no-network version probe. Read by scripts/changelog_sentinel.py (S7).
     version_command: ["claude", "--version"]
@@ -61,6 +74,7 @@ providers:
 
   openai:
     display_name: OpenAI
+    council_alias: openai
     cli: codex
     version_command: ["codex", "--version"]
     changelog_tool_key: codex
@@ -68,9 +82,45 @@ providers:
 
   xai:
     display_name: xAI
+    council_alias: grok
     # No CLI on this repo's surface — present because a model string attributed to this
     # provider appears in committed prose (S30), and the registry is the closed vocabulary
-    # the checker matches those attributions against.
+    # the checker matches those attributions against. Re-verified 2026-08-23: `grok` is not
+    # on PATH, and the 2026-08-20/23 A/B runs reached xAI over raw HTTPS rather than a CLI.
+    cli: null
+    version_command: null
+
+  google:
+    display_name: Google
+    council_alias: gemini
+    # The CLI is live on this surface and was verified rather than assumed: `gemini` resolves
+    # on PATH and `gemini --version` prints `0.56.0`.
+    #
+    # NO `changelog_tool_key` / `changelog_source_url`, deliberately and with the discharge
+    # path named. Those two keys are the S8 half of `ecosystem/tool-versions.yaml`, whose rows
+    # carry `last_reviewed_version` + `reviewed_date` — an ADR-80 DURABLE record of a review
+    # the OPERATOR performed. Writing a row here would either fabricate that act or seed a row
+    # the sentinel is structurally silent on (`parse_version("") -> None -> is_newer False`).
+    # Discharge: run `/changelog-review` against the gemini CLI once; the tool-versions row and
+    # these two keys then land together, and the S8 check begins asserting on the same commit.
+    cli: gemini
+    version_command: ["gemini", "--version"]
+
+  deepseek:
+    display_name: DeepSeek
+    council_alias: deepseek
+    # No CLI on this surface (`deepseek` is not on PATH) and no API client in this repo —
+    # DeepSeek reaches the fleet only as an `ai-council` panel member, whose model string
+    # lives in that child repo's config and is therefore not this repo's to declare — the
+    # Layer-2 boundary at `CLAUDE.md` section 5 rule 4, quoted in the lane artifact.
+    #
+    # NO MODEL ROW, and the absence is the honest state rather than an oversight: no model id
+    # for this provider is verified anywhere on this repo's live surface. The ids that appear
+    # in `docs/decisions/ADR-31` / `ADR-68` (`deepseek-v4-pro`) are 2026-04/06 council-panel
+    # records, unverified since, and registering a stale id is worse than registering none.
+    # The operator's 2026-08-23 ask — DeepSeek through the admission pipeline — is the act
+    # that produces a served, probe-verified id (standing ruling Q9 makes the substitution
+    # probe a hard precondition), and the id lands with it.
     cli: null
     version_command: null
 
@@ -126,3 +176,42 @@ models:
       - path: pyproject.toml
         seam: S30
         format: comment-provenance
+
+  # --- the two 2026-08-23 admission candidates -------------------------------------------
+  # Both are REFUSED for the fan-out role and both are CONFIGURED here anyway. That is the
+  # point, not an oversight: the refusal governs role eligibility and nothing else. Each id
+  # below is the string the provider ACTUALLY SERVED, re-recorded on every scored round of the
+  # local run — standing ruling Q9 makes that substitution probe a hard precondition, after a
+  # client quietly serving `grok-4.5` cost a window ([#492]).
+
+  grok-4.6:
+    provider: xai
+    # Holds no role: the fan-out candidacy it was run for was refused. The row exists so the
+    # id is addressable, resolvable and in the vocabulary regardless.
+    roles: []
+    role_admission:
+      fan-out:
+        verdict: refused
+        decided_by: architect
+        decided_on: "2026-08-23"
+        # `G1 v2 = (a) AND (b) AND (c)  ...  grok FAIL` (evidence section 7.1), and G2 fails
+        # separately — the mitigated-rerun analysis records "G2 still fails on grok".
+        floors: ["G1", "G2"]
+        evidence: docs/audits/2026-08-23-technical-lane-562-local-admission.md
+        rerun_carrier: "[#578]"
+    pinned_at: []
+
+  gemini-3.7-flash:
+    provider: google
+    roles: []
+    role_admission:
+      fan-out:
+        verdict: refused
+        decided_by: architect
+        decided_on: "2026-08-23"
+        # `G1 v2 = (a) AND (b) AND (c)  gemini FAIL` (evidence section 7.1). G2 was not the
+        # leg it failed on, so it is not claimed here.
+        floors: ["G1"]
+        evidence: docs/audits/2026-08-23-technical-lane-562-local-admission.md
+        rerun_carrier: "[#578]"
+    pinned_at: []

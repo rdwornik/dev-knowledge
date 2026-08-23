@@ -77,12 +77,24 @@ def test_changelog_sentinel_tools_are_derived_from_the_registry():
 
 
 def test_version_commands_omits_a_provider_with_no_cli(tmp_path):
-    """`cli: null` means no probe; an entry with no probe is not a probe."""
+    """`cli: null` means no probe; an entry with no probe is not a probe.
+
+    The fixture gained `display_name`, an explicit `cli:` and the `changelog_source_url`
+    half of the S8 pair when LANE L1 declared the schema (2026-08-23). The assertion is
+    untouched — what changed is that the old fixture was not a LEGAL registry: it carried a
+    `version_command` with no `cli`, and a `changelog_tool_key` with no source url. Both are
+    now refused by `ecosystem/schema/provider_registry.py`, so this edit is the schema
+    demonstrating itself rather than the test being relaxed to fit.
+    """
     p = tmp_path / "r.yaml"
     p.write_text(yaml.safe_dump({
         "providers": {
-            "with": {"version_command": ["x", "--version"], "changelog_tool_key": "x"},
-            "without": {"cli": None, "version_command": None},
+            "with": {
+                "display_name": "With", "cli": "x", "version_command": ["x", "--version"],
+                "changelog_tool_key": "x",
+                "changelog_source_url": "https://example.invalid/x",
+            },
+            "without": {"display_name": "Without", "cli": None, "version_command": None},
         },
         "models": {},
     }), encoding="utf-8")
