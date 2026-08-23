@@ -1084,3 +1084,279 @@ inherited since 2026-08-22, unfiled, owned by queue handle **f8-harness**. **Zer
 attributable to this session.** Every lane in the coming batch will inherit this same failure, and
 a lane that reports "suite green" is reporting something false — it should report **1 known
 inherited RED** and name it, or the f8-harness investigation should land before the batch.
+
+---
+
+## AMENDMENT — architect rulings and contract amendments (2026-08-23, appended after seal)
+
+> **Appended, not edited.** This packet is immutable (`CLAUDE.md` §5 rule 3; standing ruling
+> *amendment marker, never in-place, even for true corrections*). Nothing above this heading
+> changed. Added by lane `rulings-landing` on 2026-08-23 after the packet was sealed.
+>
+> **Source:** `RULINGS-and-AMENDMENTS-2026-08-23.md` (v2 reissue), Layer-1 architect, answering
+> this packet's §7 in full — Q1 → R1 · Q2 → A1 · Q3 → R2 · Q4 → R5 · Q5 → R6. Parts 1, 2 and 3
+> are reproduced **verbatim** below; Part 4 (landing sequence) is procedural and is not carried.
+
+## Part 1 — Architect errors, recorded so the next seat does not re-derive them
+
+**E1 — `docs/adr/` does not exist; the ADR home is `docs/decisions/` (87 ADRs).** Emitted into
+LANE-L1, L3, L4 and into the Destination write-scope landed at Phase 0 Step 1. An inferred path,
+which the standing zero-invented-paths rule forbids — **third occurrence of that class.** Phase 0
+was right to refuse to correct an operator amendment unilaterally; that is the escalation
+working. Corrected at A1.
+
+**E2 — premise A was wrong and load-bearing.** The architect carried *"`[#171]` leg 1 is already
+ruled as (b)"* from a prior window and shaped LANE-L4's default path and effort on it. The repo:
+absent from `STANDING_RULINGS.md` and from all 23 artifacts of 2026-08-22; the cited source reads
+*"Needs the architect's (a)/(b) choice."* The mandate and the architect both read **the
+description of option (b)** as a decision taken — the same shape this window is chasing
+elsewhere. Flagged as a premise-to-verify rather than asserted, which is why it was caught before
+dispatch and not after.
+
+**E3 — "pytest green" was an unverified premise in all five contracts.** The live suite carries one
+known RED. Corrected at A2.
+
+**E4 — the `ALL_CHECKS` fenced-diff design was right in shape and incomplete in fact.** It missed
+six exact-equality count pins whose correct value is N-dependent and therefore uncomputable by any
+lane. Phase 0's amended model is adopted at A6. **Recorded because the architect proposed it and
+the executor corrected it** — that direction is the review relationship working, and burying it
+would make the register read as if the architect had it right the first time.
+
+**E5 — R5 v1 named one orphan shape; there are two, and the second is the more serious.**
+Corrected below.
+
+**E6 — R6 v1 ordered a flip that three independent constraints forbid.** Corrected below.
+
+---
+
+## Part 2 — Rulings
+
+### R1 — `[#171]` leg 1 (packet Q1): option (b), plus a freshness gate that is not a writer
+
+**Ruled: (b).** A human or integrator commit satisfies "committed". ADR-86 §2 takes an appended
+amendment saying so; both artifact strings are corrected to describe the mechanism that exists.
+
+*Reasoning.* This repo already generates-then-human-commits — `BACKLOG.md` works exactly that way.
+Option (a) adds a second writer with its own failure surface (commit loops, authorship, hooks
+firing on generated commits) to solve a problem convention has already solved. Machinery needs a
+buyer. R3's *"do not leave (c)"* is honoured: this is a choice, not a deferral.
+
+**Second half, because (a) and (b) answer different questions.** (b) answers *is the header true?*
+It does not answer *is the output fresh?*, and an honest header on a stale trust surface is still
+a stale trust surface. So: **arm a staleness leg on the ship-gate** — the committed artifact fails
+when it is older than its inputs. Prior art is probe **P5** (`last_reviewed` vs last git touch).
+**Ship-gate, not pre-commit**, because freshness matters at ship time and a pre-commit leg would
+tax every commit touching an input. **WARN at a measured baseline**, not RED.
+
+Not a third option: (b) for the claim, M8's own gate for the freshness, in the lane where both
+were already consolidated.
+
+### R2 — Birth budget (packet Q3): zero, and no grant
+
+`banked = 0`, measured across three sweeps. **No task row is born this batch.**
+
+Phase 0's finding is stronger than "the sweep found nothing": *every remaining row carries a
+judgment component* — the ledger is already groomed past the point where a mechanical shortcut
+exists. Forcing closures to make room would optimize the proxy against the metric, and right now
+it is specifically unsafe: `CLOSES_RE` matches a verb-adjacent token, so the detector
+over-reports, and banking a false closure would corrupt the one number OF2 is scored on.
+
+**Therefore, per the mandate's own option (b): every mandate item ends as a filed intake with its
+ADR fork named, or attaches to an existing open row.** Existing rows first — `[#242]`/`[#362]` for
+M5, `[#171]` for M8, `[#560]` for M3. Every row specification a lane produces is a **queued
+proposal awaiting an explicit architect grant**, not a filing. Intakes are the funnel's front door
+and are not ledger-charged: this is the mandate satisfied, not dodged.
+
+### R3 — M4: the archival premise is retired; ADR-100 reaffirmed as index-only
+
+7 intakes archived, ACCEPTED-in-archive = 0, terminal-still-live = 0. **Both directions clean**,
+so there is no new rule to author.
+
+**M4 (i):** record `docs/intake/README.md` §5 as ratified in place, and arm those two invariants
+as a check if cheap — converting a convention that happens to work into a guarantee that it keeps
+working. **M4 (ii): ADR-100 reaffirmed index-only**, with the reason recorded. An unrecorded
+"we looked and decided not to" gets re-asked every third window, and this one already has been.
+
+### R4 — M7: demonstrate, do not wire
+
+`[#563]` is unwired **by its own ratified binding condition 3**. Wiring it would break a ruling, so
+nobody wires it. M7 discharges by running view and rank and showing the operator the output. No
+row, no build. **Record that the unwired state is designed, not neglected** — otherwise the next
+seat files it as a deploy gap, which is exactly how the architect read it this window.
+
+### R5 — CORRECTED. The 25 WARNs (packet Q4): retire the class, do not detect it, do not sweep it
+
+**v1 said "closure orphans its disposition." That is one of two shapes and it is the smaller one.**
+
+| Shape | Cases | What happened |
+|---|---|---|
+| **(a) closed subject row** | `#529`, `#530` | Row left the ledger. v1's hypothesis holds. |
+| **(b) drifted evidence** | `#533` | Row is **OPEN**, merely *edited*. Its `match` pins `4210 chars`; the row is now `2239`. The substring stops matching, so the entry orphans as `[stale]` **and** its WARN silently re-enters the blocking set. |
+
+**Shape (b) is the serious one and it is a class defect.** All **6** `doc_rot` row-length
+dispositions embed a volatile character count in `match`; the other **24** register entries are
+count-free. **3 of the 6 have already orphaned — 50% failure in the class**, and the surviving
+three orphan on their rows' next edit. Row-length WARNs are **20 of the 25** keeping the gate RED,
+so this one design choice is the **dominant cause of the current verdict**.
+
+Note what the current design punishes: `#533` orphaned because someone **shortened the row from
+4210 to 2239** — an improvement. A register that RED-flags improvement is inverted.
+
+**Ruled, in priority order:**
+
+1. **De-volatilize the six.** Strip `(NNNN chars` from `match`, leaving
+   `backlog-row-length BACKLOG#<id>`. Still a whole-Finding substring match, still satisfies the
+   register's stated disposition contract, and **retires shape (b) rather than detecting it.**
+   Cheapest structural fix in the packet and it addresses the dominant RED cause.
+2. **Register-design rule, durable:** *a disposition's `match` keys on **identity**, never on a
+   measured value.* Fork named — standing ruling vs ADR under ADR-98 §3; the architect applies the
+   test, not a lane. Honest trade-off: stripping the count loses a weak re-review trigger. If one
+   is wanted it belongs in the register schema as an explicit `review-after` field, **not smuggled
+   into `match`.**
+3. **Shape (a) detection** is deterministic and worth a leg, but it is the smaller half — and note
+   `[#532]/A9`, the ruling all six row-length dispositions cite, is **CLOSED**. Register rule P-2
+   (a closed row cannot carry an obligation) is currently violated twenty times over. That is the
+   structural statement, and it is what "re-file or re-disposition" actually means here.
+4. **The 4 non-row-length WARNs get real triage** — `grooming-cadence` (24d against a 21d ADR-41
+   cadence), two `undeclared_edges`, and `review_artifact_coverage` (22 code-impact merges since
+   2026-08-05 with no linked review artifact). That last one is a live indictment of the reviewer
+   discipline this batch depends on; it is not decoration.
+5. **`fleet_audit_replication` is a one-command clear.** `automation/fleet-audit` is 2 commits
+   ahead of origin at `e3fecaf5`. Pushing it removes one of the 25. Phase 0 correctly refused —
+   outside its write-scope even as amended. **Operator or a scoped chore.**
+
+**Sequencing (the actual Q4).** Phase 0 proved a RED ship-gate blocks `/ship` and **not** a push:
+two pre-push hooks exist, neither runs it, and `audit-health` is FAIL-only so all 25 pass every
+commit. **Therefore: not a precondition for dispatch. It is a precondition for the first `/ship`,
+and it lands at the integrator, not at the lanes.** Sequenced there.
+
+### R6 — CORRECTED. Intake `#34` (packet Q5): the flip is NOT taken
+
+**v1 ruled "`decided-by` = architect, flip it." That was wrong**, and Phase 0 gave three
+independently sufficient reasons. v1 conflated *the blocker is discharged* with *ratification is
+ready*. They are different, and supplying a `decided-by` does not settle what ratification must
+settle.
+
+**Standing:** item 1 of the ratification checklist — land the source artifact — **is discharged**,
+proven three ways: the archive file's H1 matches the quoted title character-for-character, intake
+§A reproduces its TL;DR verbatim down to the em-dashes, and it was git-added 2026-08-10, **six
+days before the intake claiming to be blocked on it was written.**
+
+**But items 2–5 are open judgment**: sequencing against `[#533]`, ratchet-versus-flag-day for ruff
+enablement, the hub-versus-consumer ownership boundary, and ADR-112 two-tier pricing. Item 1 is
+what blocked *a lane*; it was never the whole of ratification. And today's seal states plainly
+that no lane owns `#34` and none should take it.
+
+**Ruled:**
+
+- **Do not flip.** `#34` changes characterization, not status: from *"blocked, precondition
+  unsatisfiable by any lane"* to **"unblocked, awaiting an operator ratification decision on items
+  2–5."** The operator has been carrying a phantom obligation for a week.
+- **Item 3 (ratchet vs flag-day) is ruled now on standing precedent: RATCHET.** Same shape ruled
+  twice today (R1's freshness leg, L2's coverage gate) and the repo's established zero-baseline
+  pattern. That leaves three items, not four.
+- **Correct the false provenance sentence by appending, and leave the original visible.** Phase 0
+  was right that correcting it is a claim about the evidence base — but the claim is carried by
+  three independent identity checks. **Do not delete the original sentence**: it is the evidence
+  for the funnel finding below, and a silent fix destroys the finding.
+- **Funnel the finding:** an intake was authored declaring a blocker that was **already false at
+  authoring time**. That is a claim-at-authoring defect, same family as E2 — not a workflow delay.
+
+### R7 — M2: `codex/` stays. And M2 was asking the wrong question
+
+**`codex/` is not orphaned.** One file, `codex/AGENTS.md`, and it is the hub-canonical source of a
+**deployed L0 carrier under ADR-54** — named by `deploy/carrier_globalconfig.py` at two sites and
+by **all six** deploy manifests including the live `v1.4.0`. Removing or relocating it breaks the
+carrier's `source_path` in six places for no benefit on offer. Ninety-six days unchanged is a
+fact about a config that works, not evidence of staleness.
+
+**Ruled: keep in place. No relocation, no deletion. M2 closed with the reason recorded** so the
+question is not re-asked.
+
+**What is actually underneath M2** — and this is worth more than the folder disposition:
+`codex/AGENTS.md` sits at an intermediate directory *inside this repo*, so a cwd at or below
+`codex/` yields `role → doctrine → role` and **the role wins by position rather than by intent.**
+That is an unpriced third layer in the precedence chain, named in `[#577]`'s own row. It is a real
+defect and it belongs with the AGENTS.md work on `[#577]`, not with a folder-disposition question.
+**Routed there as a named sub-item.**
+
+---
+
+## Part 3 — Contract amendments (apply to every lane in this batch)
+
+### A1 — Path correction (packet Q2)
+
+Every occurrence of **`docs/adr/`** reads **`docs/decisions/`**. Applies to LANE-L1, L3, L4 and to
+the Destination write-scope landed at Phase 0 Step 1, which receives a short appended correcting
+amendment; its original text is not edited.
+
+**General rule:** any path in any contract in this batch that a lane cannot resolve against live
+state — **stop, report, do not create it, and do not guess a neighbour.** Phase 0 did exactly this
+and it is the behaviour wanted.
+
+### A2 — Suite baseline replaces "pytest green"
+
+Live suite: **1 failed / 3567 passed / 4 skipped / 1 xfailed = 3573**, matching the count pinned in
+`doc-counts.md`. The RED is `test_anchor_gate_probe_distinguishes_installed_from_absent`, named in
+this window's seal and rooted in its `tmp_path` fixture while the organ passes live. In every
+contract, *"`pytest` green"* now reads:
+
+> Run `pytest` **unpiped** — piping reports the pipe's exit code and hides the real one. The
+> result must match the baseline exactly: **1 failed
+> (`test_anchor_gate_probe_distinguishes_installed_from_absent`), 3567 passed, 4 skipped, 1
+> xfailed.** Any additional RED is yours — name it and prove it against your merge base. **A lane
+> reporting "suite green" is reporting something false** and will be sent back.
+
+### A3 — No lane writes to `tasks/` at all
+
+Not the manifest, and **not even its own task file.** Phase 0 refuted the one-file-per-task
+premise: `tasks/manifest.json` (66 KB) is the membership-and-ordering authority, a `.md` with no
+manifest node renders into **nothing**, and `generated_sha256` changes on every edit — so two
+lanes filing one row each collide **with certainty**, in a way git cannot auto-merge. Frontmatter
+is also DERIVED and re-templated from the body on every emit, so even a lane's "own" file is not
+lane-authored.
+
+A lane needing a row writes a **row specification into its own `docs/audits/` artifact**
+(lane-private, no collision). The integrator alone creates task files, inserts manifest nodes at
+the position that derives the intended theme/story, and runs `gen_task_tree.py --emit-source`
+once. Per R2 those specifications are **queued proposals**, not filings.
+
+### A4 — LANE-L4 is superseded
+
+Replaced in full by the reissued `LANE-L4-dashboard-commit-path.md`. R1 collapses its two branches
+into one path; effort **medium → high** because the freshness leg is now in scope. Discard the
+earlier file.
+
+### A5 — A citation without a quote is not a citation
+
+Phase 0 demonstrated that a confidently written description reads as a decision. Where a lane
+cites a governing clause, it quotes it or marks it UNCONFIRMED.
+
+### A6 — `ALL_CHECKS`: registration is two surfaces, and no lane may touch a count pin
+
+Phase 0's amended model is **adopted verbatim**. The fenced-diff shape was right; what it missed
+is that `len(ALL_CHECKS)` is pinned by **exact equality in six places** whose correct value is
+**N-dependent** — three lanes each authoring `43 → 44` would all be wrong, the answer being 46.
+No lane is in a position to compute it.
+
+**Each lane ships:** its check module (new file), its tests (new file), a fenced diff of its
+`ALL_CHECKS` registration line, a fenced diff of its `registry.py` entries **if** it extracts a
+module (`CHECK_ORDER` + `EXTRACTED_CHECKS`), and its `coverage_scope` annotation — without which
+`check_doc_code_coverage_drift` turns from OK to drift. **A lane states a preferred position in
+`CHECK_ORDER` and does not assume it**; order is byte-contract-load-bearing and is the
+integrator's call. **No lane edits a count pin.**
+
+**The integrator, in one commit:** applies every registration diff, counts once, updates pins 1–5
+(`tests/test_audit.py` ×2, `tests/test_doc_code_edge.py` ×2, `tests/test_writer_integrity.py`) to
+`43 + N`, and runs `python scripts/gen_doc_counts.py --write` for pin 6 — which is **generated and
+must never be hand-edited**. `gen_handoff.py:505` emits the count into the bundle manifest, so the
+handoff surface moves on the same act.
+
+Also carried forward: `registry.py` records that a check may be extracted **only** if nothing in
+its dependency closure is monkeypatched onto the `audit` module by a test — otherwise the seam
+detaches silently, which is worse than a failure. A lane proposing extraction proves that first.
+
+### A7 — Ship-gate is not a dispatch precondition
+
+Per R5. Lanes branch, commit and push against a RED gate. `/ship` is where it bites, and that is
+the integrator's problem, not a lane's. No lane disposition-sweeps.
