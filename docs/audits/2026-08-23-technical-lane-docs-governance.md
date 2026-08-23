@@ -14,7 +14,10 @@ pointer). Architect rulings carried in: top-10 items **8, 9, 10 = YES as written
 `[#171]` leg 2 = the ARCHITECTURE Ch2 pointer to `ecosystem/conformance.md` (reading R-A).
 
 > **Locator note, and it is not a formality.** Every `:NNN` in R1 was measured against
-> `78267fd` on 2026-08-21. Main has moved four times since. **Every site below was
+> `78267fd` on 2026-08-21. Main has advanced substantially since — read the distance off
+> `git log --first-parent --oneline 78267fd..main`, not off this sentence (an earlier draft
+> of this line said "four times" against a live 30, which is **M2 caught inside the artifact
+> that lands M2** — corrected here rather than quietly). **Every site below was
 > re-resolved by anchor text against the live tree before it was edited** — which is M1,
 > the audit's own top finding, applied to the audit. It changed the work twice (items 4
 > and 6) and corrected the audit once (A6).
