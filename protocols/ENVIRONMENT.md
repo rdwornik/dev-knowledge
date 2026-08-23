@@ -11,7 +11,7 @@
 > deeper live re-audit is a separate pass if wanted.
 >
 > **Annotation pass 2026-08-23 (LANE-L5, claim-truth only).** Three claims contradicted by live
-> state were annotated in place — never deleted, since a Council record is not erased: the
+> state were annotated in place — not deleted, since a Council record is not erased: the
 > "No Codex CLI" Active decision (reversed), the "Mandatory TDD" Rejected entry (narrowed by
 > ADR-108 §B), and the `config/requirements-dev.txt` dependency declaration (superseded by
 > ADR-106's `pyproject.toml` + `uv.lock` + `.python-version`). **NOT re-verified this pass, and
@@ -285,7 +285,7 @@ CRITICAL: Audit Gemini API tier (AI Studio vs Vertex) before batch extraction on
 - Mandatory TDD (council rejected) — note: **ADR-108 §B (Accepted 2026-07-31) later made TDD a
   standing standard for every *build arc*** ("RED-first witnesses, failing tests before build code,
   frozen after freeze"), with the ex-ante frozen acceptance contract per the ADR-81 amendment
-  2026-06-24. That is narrower than the blanket mandate rejected here, which was never reinstated —
+  2026-06-24. That is narrower than the blanket mandate rejected here, which no later decision reinstated —
   **both facts hold; cite the one that matches the scope you are in** (annotated 2026-08-23,
   LANE-L5)
 - Git worktrees as a *daily-driver* workflow (council rejected) — note: ADR-61 (2026-05-28) later adopted `git worktree` for the narrow case of **parallel same-repo Claude Code sessions**; that is not the rejected daily-default workflow
