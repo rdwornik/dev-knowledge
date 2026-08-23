@@ -163,3 +163,112 @@ Per **A2**, *"pytest green"* is retired in favour of an exact baseline:
 > 4 skipped, 1 xfailed.**
 
 Measured at the Final step, unpiped, and reported in §8 with every delta attributed.
+
+---
+
+## 2. Carrier row — one attachment, one queued proposal, one collision reported
+
+The contract instructs: *"If premise E confirms `[#577]` is the AGENTS.md carrier, **do not
+extend it** — subjects do not share rows."* §1.5 confirms it does. But the batch amendment **R2**
+overrides the assumption that a *new* row is the answer, and it is quoted rather than paraphrased:
+
+> **Therefore, per the mandate's own option (b): every mandate item ends as a filed intake with
+> its ADR fork named, or attaches to an existing open row. Existing rows first** — `[#242]`/
+> `[#362]` for M5, `[#171]` for M8, `[#560]` for M3. Every row specification a lane produces is a
+> **queued proposal awaiting an explicit architect grant**, not a filing.
+
+So the honest act is to look for the existing owner **before** specifying a new row. There is one.
+
+### 2.1 `[#568]` already owns provider configuration — and says so itself
+
+`tasks/568-provider-config-as-code-dev-knowledge-as-source-of-.md`, `status: open`, `[P2][M]`,
+theme `[E7] Tooling & evaluation`, story `[S18] Cut session friction with better tooling`. Its
+own kill-candidates line makes the ownership claim explicit:
+
+> `kill-candidates: none — no open row owns provider configuration`
+
+and its Done-when carries the clause this lane partially executes:
+
+> "one model registry file carries **every model id with its effort enum and admission status**"
+
+**Verdict: attach, do not duplicate.** Two of that clause's three components are landed by this
+lane (§3: every model id; admission status as data). One is not — the **effort enum** (the
+canonical set `{low, medium, high, xhigh, max}` from the outgoing architect's ratified-in-chat
+register), not landed here because no live surface in this repo binds a *model* to an effort
+value, and inventing that binding is the fabrication class this lane exists to guard against.
+
+**Attachment text, for the integrator to append to `[#568]`'s body — a queued proposal under R2,
+not a filing:**
+
+```text
+PARTIAL EXECUTION, LANE L1 (2026-08-23, docs/audits/2026-08-23-technical-lane-provider-config.md):
+the "one model registry" half of this row's Done-when is now two-thirds landed in
+`ecosystem/provider-registry.yaml` — every provider on the live surface carries a row (5 of 5
+council aliases resolve), and admission status rides as per-role DATA (`role_admission:`) rather
+than as prose in an audit. STILL OPEN on this row: (a) the per-model EFFORT ENUM, unlanded
+because no in-repo surface binds a model to an effort value; (b) the junction topology, untouched;
+(c) Done-when clause 3, "the routing table derives from it rather than restating it", which
+COLLIDES with standing ruling R-2 — see the lane artifact section 2.3.
+```
+
+### 2.2 The queued row proposal — provider discoverability, the one subject with no owner
+
+The residual that neither `[#568]` (config-as-code / junctions / routing derivation) nor `[#577]`
+(`AGENTS.md`) nor any other open row covers is the **discoverability surface** §5 proposes: a
+generated, gated, human-facing provider index. It is specified here and **not filed** — R2 sets
+the birth budget at zero and **A3** forbids a lane writing to `tasks/` at all:
+
+> **A3 — No lane writes to `tasks/` at all.** Not the manifest, and **not even its own task
+> file.** ... A lane needing a row writes a **row specification into its own `docs/audits/`
+> artifact** (lane-private, no collision).
+
+```text
+- [#<integrator-assigned>] [P3][S] **Provider discoverability surface — one generated index, gated
+  like the other seven** — `ecosystem/provider-registry.yaml` is machine-readable and machine-read,
+  and that is the whole of its reach. Measured at `aeec0fd1` across the tracked `.md` corpus: the
+  registry's PATH appears in exactly ONE canonical living doc — `CLAUDE.md:176`, inside a
+  pre-commit-hook roster row, described as the thing a gate checks; `ARCHITECTURE.md:714` names the
+  hook and not the file; `VISION.md`, `CONTRIBUTING.md`, `protocols/PLAYBOOK.md` and
+  `protocols/ESSENTIALS.md` carry ZERO mentions; and repo-wide there is **not one markdown link**
+  to it (`grep -rcE '\]\(\.?/?(ecosystem/)?provider-registry\.yaml' --include=*.md` returns
+  nothing). A human asking "which providers does this repo know about?" has no surface to read.
+  The operator asked for exactly this — "all major LLM providers visible at root with
+  dynamic links" (outgoing-architect supplement, answer 6, 2026-08-23) — and the ROOT half of that
+  ask is barred until ADR-114 is ruled, so this row builds the lawful half now: a generated
+  `ecosystem/providers.md` in the shape `ecosystem/registry.md` already established (human surface
+  beside machine surface), regenerated from the registry and drift-gated by regen-and-diff exactly
+  as `audit-index-freshness` / `organ-index-freshness` / `intake-index-freshness` already are — the
+  repo runs that organ shape seven times over and would not be inventing one. · Done when:
+  `scripts/gen_provider_index.py --write` emits `ecosystem/providers.md` from the registry alone, a
+  `provider-index-freshness` pre-commit hook runs `--check` and BLOCKS on drift, every link in the
+  emitted file resolves (asserted by a test, not by eye), and one line in an existing canonical doc
+  points at it · refs docs/audits/2026-08-23-technical-lane-provider-config.md section 5, ADR-114
+  (PARKED — the root file stays barred), ADR-101 section 1, `ecosystem/registry.md` (the precedent
+  shape), #568 · kill-candidates: none — `[#568]` owns config-as-code and the junction topology and
+  explicitly scopes itself to "config and registry only"; this is the READ surface over that
+  registry, which no open row owns
+```
+
+**Position is a stated preference, not an assumption** — the A6 discipline applied to a row rather
+than to `CHECK_ORDER`: theme `[E7] Tooling & evaluation`, story `[S18] Cut session friction with
+better tooling`, immediately after `[#568]` at `BACKLOG.md:268`. The integrator derives the real
+position from the manifest node.
+
+**Next-free id at this merge base is `[#579]`, and the obvious measurement is wrong.** A history
+scan for the maximum bracketed id returns **777** — which is *synthetic*, appearing only inside
+`[#574]`'s own body as the example of this exact trap (*"the next-free-id history scan is defeated
+by synthetic `[#777]` — a surface that looks authoritative and is not"*). The live maximum from
+`tasks/` is **578**. Reported rather than used: **the integrator assigns the id**, per A3.
+
+### 2.3 Reported, not fixed — `[#568]`'s Done-when clause 3 collides with standing ruling R-2
+
+`[#568]` requires *"the routing table derives from it rather than restating it; and a test FAILs
+on a routed model absent from the registry."* Standing ruling **R-2** (2026-08-22, later than the
+row) places that table outside the repo:
+
+> `~/.claude/ROUTING.md`, `~/.claude/bin/codex-review.ps1` and `~/.codex/config.toml` sit at L0.
+> Their absence from this repository is a placement, not a gap.
+
+A hub-local test cannot assert over an L0 file without reversing that placement, so the clause is
+**unexecutable as written** while R-2 stands. Surfaced, not resolved: rewording a live row's
+Done-when is not a lane's act, and per **A3** this lane does not touch `tasks/` at all.
