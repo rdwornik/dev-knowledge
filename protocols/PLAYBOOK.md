@@ -87,6 +87,7 @@ reconciled_with: handoff-process@6.2.0
   - [The lane lifecycle — five legs, and where each one is ruled](#the-lane-lifecycle--five-legs-and-where-each-one-is-ruled)
   - [The wave close — every dispatched wave ends D0–D5, and the funnel table is mandatory](#the-wave-close--every-dispatched-wave-ends-d0d5-and-the-funnel-table-is-mandatory)
   - [Dispatch visibility — Agent View shows DISPATCHED sessions only (STANDING_RULINGS B7)](#dispatch-visibility--agent-view-shows-dispatched-sessions-only-standing_rulings-b7)
+  - [Dispatching a session — the boundary, the three shapes, and the standing rules](#dispatching-a-session--the-boundary-the-three-shapes-and-the-standing-rules)
   - [Dispatch prompts and the contract of record — two locations, one of them in the tree](#dispatch-prompts-and-the-contract-of-record--two-locations-one-of-them-in-the-tree)
   - [The dispatch surface is `dispatch <file>` — the contract file is the source ([#509] v2)](#the-dispatch-surface-is-dispatch-file--the-contract-file-is-the-source-509-v2)
   - [Cloud lanes — the receipt gate and the fresh-branch rule](#cloud-lanes--the-receipt-gate-and-the-fresh-branch-rule)
@@ -2180,6 +2181,115 @@ and travel on the lane's own dispatch line ("Model + effort are stated at dispat
 matrix" below). Ad-hoc read-only work is what the input is for; a lane goes through
 `dispatch <contract>` instead.
 
+### Dispatching a session — the boundary, the three shapes, and the standing rules
+<!-- scope: hybrid -->
+
+**A session handed to the operator without its command does not get started.** That is the
+failure this subsection closes, and the chapter's other dispatch sections assumed it away: they
+rule on the conditions a dispatch satisfies — a receipt, a committed contract, a stated tier —
+and stop short of *what the operator types*. Everything below is directly actionable. A seat writing a
+handover **copies** a line from here rather than composing one, and
+`scripts/gen_lane_contract.py` emits the same line mechanically with every contract it generates,
+selecting the shape from the contract's own declared type — so the prose and the generator cannot
+drift, and a contract emitted with no command line is a generator bug with a test asserting it.
+
+**Where the commands live.** `Dispatch-Lane` and `Dispatch-CloudV2` are PowerShell aliases
+exported by `win-tooling` `config/dispatch-helpers/DispatchHelpers.psm1`, deployed SHA-256-compared
+and auto-loading by that repo's `scripts/dispatch-helpers/Apply-DispatchHelpers.ps1`. That module
+is the source of truth for their *behaviour*; this chapter states which one to reach for, and why.
+A third alias, `Dispatch-CloudBrief`, is **superseded** — it prints its own supersession notice —
+and is named here only so a seat that meets it in an old artifact knows not to use it.
+
+#### The boundary — LOCAL or CLOUD, and the rule that gets forgotten
+
+- **LOCAL** if the work needs the operator's **disk**: provider keys and vendor CLIs (any
+  model-admission run), unpushed local branches, files in the prompts dir, anything that reads his
+  machine.
+- **CLOUD** if all inputs are **in the repo on `origin/main`**. *"Cloud" here means a **dispatched
+  cloud lane** — a session someone launched against a brief. It is a different population from
+  Ch11's **scheduled cloud Routine**, which fires on a cron and answers to that chapter; the two
+  share a word and nothing else.* A cloud session clones from origin
+  and **cannot see unpushed branches or local files**. That is a physical limit of the transport,
+  not a caution — a cloud lane pointed at unpushed work does not run slowly, it runs against
+  content that is not there.
+- **Integration is always LOCAL *and* INTERACTIVE.** Merges need operator GO per merge, and a
+  background lane can neither merge to `main` nor ask a question. An integrator dispatched `--bg`
+  is a contradiction in terms, not an aggressive schedule.
+
+This is the routing test the "Cloud lanes" subsection below records as **owed** — it is answered
+here, and that subsection's gate-mesh heuristic (local when a local-only gate governs the
+footprint) refines it rather than competing with it. Where the two would disagree, the disk test
+above decides: a footprint no local gate governs still routes LOCAL if it needs the operator's
+disk to read its inputs.
+
+#### The three shapes, and the exact command for each
+
+**1 — Local background lane.** Produces code or docs, commit-and-STOP, own worktree. The prompt
+file goes to `<PROMPTS_DIR>` (`$env:CLAUDE_PROMPTS_DIR`, `~\Downloads` by default). Run **from the
+target repo root**:
+
+```
+Dispatch-Lane <slug> <FILE.md> -Effort high
+```
+
+An optional **third positional argument** is an extra instruction appended to the contract, which
+is how an amendment reaches a lane without reissuing its frozen contract:
+
+```
+Dispatch-Lane <slug> <FILE.md> "AMENDMENT: ..." -Effort high
+```
+
+Facts a seat needs and should not have to read the module for: `-Effort` takes
+`{low | medium | high | xhigh | max}`, and the helper additionally maps the single-letter forms
+`l`/`m`/`h`/`x` — worth knowing because the raw CLI does **not**: `claude --effort m` is silently
+ignored and the session runs at default effort, which is why the mapping lives in the helper;
+model defaults to `opus` and permission mode to `bypassPermissions`; it creates branch
+`worktree-<slug>` and **refuses if that branch already exists**, so re-running the same line is a
+no-op rather than a collision; it polls up to 120 s for the branch and reports a **timeout as a
+WARNING, not an error** — the lane may still be coming up, and it will not claim a failure it has
+not established. **It is cwd-BOUND**: dispatch from the repo you mean, or the worktree lands in
+the wrong repo. That has happened here.
+
+**2 — Cloud lane.** Repo-bound, off-machine, receipt-gated:
+
+```
+Dispatch-CloudV2 <FILE.md> -Title '<slug>'
+```
+
+The **whole file is the brief** — it travels in a JSON body, so **one file = one lane, never a
+multi-lane bundle**. It binds Revision `main`. Its three gates are G1 *created* (HTTP 200, an id
+prefixed `session_`), G2 *bound* (the session reads back with `config.sources[0].type ==
+git_repository`; an **empty `sources` array is the bundle-mode defect by name**, a hard fail), and
+G3 *receipt* (the first assistant text, **soft on timeout** for the same reason the branch wait
+above is). G1 and G2 are hard: fail either and nothing ran. Sessions are watchable at
+`claude.ai/code`. One container-level hazard worth pre-empting in the brief: the image may carry
+the wrong `uv`, so instruct the lane to hand-run gates as `python3` and to **declare** that it did.
+
+**3 — Interactive session.** Integration, seat acts, anything needing operator GO. Start `claude`,
+then send as the first message:
+
+```
+Read <PROMPTS_DIR>\<FILE>.md and execute it exactly.
+```
+
+`<PROMPTS_DIR>` is the prompts dir — the operator resolves it by eye here, because a chat message
+is not a shell and nothing expands the variable for him. This is the only shape where that is
+true; shapes 1 and 2 take a **bare filename** and resolve it against the same directory
+themselves.
+
+#### Standing operator-interface rules
+
+- **Every prompt file reaches the operator via the prompts dir (`~\Downloads`), never the
+  Desktop.**
+- **Inline paste arrives empty in his client — always a `.md` upload.** A brief pasted into the
+  message body is not a brief that was delivered.
+- **No session ships without its command.** A handover that names a contract and not the line
+  that launches it is incomplete, whoever wrote it.
+- **Lane artifacts land in `docs/audits/`, never the repo root** — `validate-hermetization`
+  Rule A refuses a new top-level file class, so a root artifact is a refusal discovered after the
+  work is done.
+- **Teardown is sequenced *after* a session STOPs**, never alongside a ruling that keeps it alive.
+
 ### Dispatch prompts and the contract of record — two locations, one of them in the tree
 <!-- scope: meta -->
 
@@ -2251,8 +2361,18 @@ with no conditional form has no first batch either.
 ### The dispatch surface is `dispatch <file>` — the contract file is the source ([#509] v2)
 <!-- scope: hybrid -->
 
-**The operator's whole dispatch surface is one typed line: `dispatch <contract.md>`.** It is not a
-convenience wrapper over a line the operator still has to know — it is the line's *only* author.
+**SCOPE, amended 2026-08-23 (M10).** This section's claim below — *"the operator's whole dispatch
+surface is one typed line"* — was written when a local contract was the only dispatch this chapter
+described, and read alone it is now false: it is true of **shape 1 of three**. `dispatch` /
+`Invoke-Dispatch.ps1` carries a **local** contract to a background lane; it is not the cloud
+transport and not the interactive form. A seat holding a cloud brief takes `Dispatch-CloudV2` from
+"Dispatching a session — the boundary, the three shapes" above. Everything else in this section —
+contract mode, the doubled-prefix incident, the effort enum, the execution gate — stands
+unchanged, scoped to that one shape.
+
+**The operator's dispatch surface for a local lane is one typed line: `dispatch <contract.md>`.**
+It is not a convenience wrapper over a line the operator still has to know — it is the line's
+*only* author.
 The class this retires is dispatch-line composition by hand: an operator (or a browser seat writing
 one for an operator) assembling `--bg`, `--model`, `--effort`, `--worktree`, `--permission-mode`
 and a board label from memory, where a dropped constant is invisible until the session boots wrong.
@@ -2375,16 +2495,20 @@ lane's own work, not a foreign dirty file, so the two cases do not overlap and t
 exception to state. This is the batch protocol's file-disjointness rule, applied to a tree the
 lane did not provision.
 
-**Which substrate — RECORDED AS OWED, not ruled here.** A section about cloud lanes is hard to
-apply without a test for which lanes are one, and this chapter carries none today. The working
+**Which substrate — ANSWERED 2026-08-23 (M10), above.** This paragraph recorded the gap as owed
+because the chapter carried no test for which lanes are cloud lanes. "Dispatching a session — the
+boundary, the three shapes" now states one: **the operator's disk vs `origin/main`**. What
+follows stays as the *refinement* it always was — a second, footprint-shaped read that agrees with
+the disk test in the ordinary case and yields to it where they diverge. The working
 distinction in live practice: a lane routes **local** when it wants the local gate mesh — a
 `last_reviewed`-stamped canonical file behind the freshness and TOC gates, a hook stack that has
 to fire, an interactive credential, or timing the operator is watching — and **cloud** when its
 footprint is read-only analysis or a docs-only artifact no local-only gate governs.
 `.devcontainer/` ([#554]) is the provisioning half of the off-machine substrate; the routing half
-is unruled. It is written down here as a **description of practice**, deliberately outside the two
-rules above, because the gap is real and an undescribed gap is the harder one to close;
-`docs/audits/2026-08-20-technical-playbook-status.md` carries it as G1.
+is the boundary above. This paragraph stays a **description of practice**, deliberately outside
+the two rules of this section, and `docs/audits/2026-08-20-technical-playbook-status.md` G1 —
+which read the routing half as an open gap — is **discharged by the boundary subsection**, not by
+this text.
 
 **Honest limits, all three.** The receipt gate and the hygiene rule are prose, checked by the seat
 that dispatches and by nothing else. The ADR-110 exemption that grants an open batch its
