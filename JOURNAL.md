@@ -65,7 +65,7 @@ No admission scores exist and none were inferred here.
 
 **Anchors:** `ce09f686` (the lane-artifact amendment recording the full-suite result) and
 `0b6f4943` (the Critical-1 teardown fix) - both commits the merge `f0418741` introduces - plus
-`__J1__`, this entry's own landing commit, named so the merge that carries it is anchored too.
+`1d2f128f`, this entry's own landing commit, named so the merge that carries it is anchored too.
 
 **Next:** `[#562]`'s admission rerun still needs a slot with real credentials and network reach.
 The guard being on `main` changes what that rerun would exercise, not whether it is blocked.
