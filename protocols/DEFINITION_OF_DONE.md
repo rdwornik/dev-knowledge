@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-08-06
+last_reviewed: 2026-08-23
 status: active
 owner: Rob
 ---
@@ -46,7 +46,10 @@ when this session shipped work it has not yet journaled. Per-commit detection us
   session's trailing run (work ahead of the last journal-wrap, with no session SHA in the
   `JOURNAL.md` additions for that run).
 - **Effect:** the Stop-hook **blocks turn-end** (`decision: block`). The only exit is
-  `/override [reason]`.
+  `/override [reason]`. — **BOTH CLAUSES ARE SUPERSEDED; do not act on this line.** Since the
+  ADR-85 amendment 2026-08-03 the Stop hook blocks nothing (§A5) and `/override` discharges
+  nothing (§A2). The banner below states it, but it stated it *after* the instruction, so the
+  correction is repeated here at the claim (2026-08-23, LANE-L5).
 - **Supersedes** the older advisory journal-*presence* check — the SHA anchor strictly
   subsumes it (presence without a SHA no longer passes).
 
@@ -165,10 +168,18 @@ beats policy." Honouring that last constraint is precisely what the Stop hook co
 the host began force-ending turns after N consecutive blocks, which is why the teeth moved to
 pre-push (§A5).
 
-## Scope-freeze
+## Scope-freeze — **LAPSED 2026-07-14**
 **No docs are added to this gate for 4 weeks** from ADR-85 (i.e. until ~2026-07-14) —
 gather reliability and override-rate data first. If overrides exceed ~10% of sessions, the
 *rules* need tuning, not the human reinstated as trigger.
+
+> **Status as of 2026-08-23 (LANE-L5):** the window **expired 2026-07-14** and the text above is
+> retained as the record of why it existed, not as a live constraint — it read as live for 40 days.
+> No doc was added to the gate during or since the freeze; the gate's scope is still exactly the
+> two docs named above. What *did* change is that **this file itself** joined the freshness-gated
+> set on 2026-08-06 (`audit.py::_HUB_ONLY_FRESHNESS_FILES`, `[#503]`) — a different gate, not this
+> one. The override-rate data the freeze was meant to gather was overtaken by the ADR-85 amendment
+> 2026-08-03, which moved the teeth to pre-push and retired `/override` outright.
 
 ## Build/arc acceptance contracts — a different scope (pointer, NOT a gate here)
 For a **deterministic build task**, "done" also requires that it met an **executable acceptance

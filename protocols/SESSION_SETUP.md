@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-08-16
+last_reviewed: 2026-08-23
 status: active
 owner: Rob
 reconciled_with: handoff-process@6.2.0
@@ -121,7 +121,7 @@ Pomóż mi:
 ## Step 4: Handoff — When the Chat Gets Heavy
 <!-- scope: llm -->
 
-> **Which handoff is this?** This is the **browser→browser** auto-handoff (`wygeneruj handoff`) for carrying context between web-chat sessions. It is a *different layer* from the "Handoff workflow trigger" section below, which is the HANDOFF_PROCESS v5 **Claude-Code** protocol. Two mechanisms, two layers — not competing instructions for the same act.
+> **Which handoff is this?** This is the **browser→browser** auto-handoff (`wygeneruj handoff`) for carrying context between web-chat sessions. It is a *different layer* from the "Handoff workflow trigger" section below, which is the HANDOFF_PROCESS v6 **Claude-Code** protocol. Two mechanisms, two layers — not competing instructions for the same act.
 
 **Same process for both chat types.** Claude auto-adapts the content.
 
@@ -187,7 +187,7 @@ If nothing was learned — skip this step. Not every chat produces lessons.
 ## Handoff workflow trigger
 <!-- scope: hybrid -->
 
-> **Which handoff is this?** This is the HANDOFF_PROCESS v5 **Claude-Code** protocol — *distinct* from the browser→browser auto-handoff in Step 4 above.
+> **Which handoff is this?** This is the HANDOFF_PROCESS v6 **Claude-Code** protocol — *distinct* from the browser→browser auto-handoff in Step 4 above.
 
 When Rob says one of these phrases, follow HANDOFF_PROCESS **v6.2.0** per
 `protocols/HANDOFF_PROCESS.md` (the single live source of truth for handoff
@@ -215,5 +215,5 @@ When starting any new Claude Code session in `.dev-knowledge` (per ADR-41):
 3. After session, file new items (a `tasks/` add on the hub, since `BACKLOG.md` is generated there) or close via the Tier-1 closure loop — per-handoff grooming (PLAYBOOK §10). Done items **leave** the queue: there is no `done` marker to set in it (ADR-65); a hub retirement instead sets a terminal `status:` on the retained `tasks/` record
 
 When starting a browser-2 session that consumes a handoff:
-- `05_NOW.md` references BACKLOG entry IDs for in-progress / deferred items
+- The v6 bundle's `HANDOFF_BOOT.md` / `RESIDUAL.md` reference BACKLOG entry IDs for in-progress / deferred items (the v4-era `05_NOW.md` is gone; `HANDOFF_PROCESS.md` §"Task-state re-narrated in `05_NOW`" keeps it only as a named anti-pattern — the fix is a pointer to BACKLOG plus drift-flags)
 - Do NOT duplicate BACKLOG content into the session — cite the entry, don't copy it

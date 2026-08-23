@@ -71,7 +71,7 @@ guard + a `CLAUDE.md` `@`-include, dropped by the **floor carrier** during the c
 
 ```bash
 # verify: floor bytes hash to the corpus + F5 self-containment (hub-runnable, per consumer)
-python scripts/audit.py repo <name> --repo-path <consumer>   # -> floor_integrity OK
+uv run --locked python scripts/audit.py repo <name> --repo-path <consumer>   # -> floor_integrity OK
 # verify: the consumer-side guard (run INSIDE the consumer; travels with the clone)
 python .claude/check_floor_hash.py --require-present          # -> PASS
 ```
@@ -83,8 +83,8 @@ and **global-config** (Layer 4). "Carrier" = one deployment vector's detect/appl
 reconciler; the ordered set lives in the manifest `carriers:` block.
 
 ```bash
-python scripts/audit.py health                               # -> hooks/organs healthy
-python scripts/enforcement_coverage.py --consumer <name> --fire --run-date <YYYY-MM-DD>   # -> organs FIRE
+uv run --locked python scripts/audit.py health                               # -> hooks/organs healthy
+uv run --locked python scripts/enforcement_coverage.py --consumer <name> --fire --run-date <YYYY-MM-DD>   # -> organs FIRE
 ```
 
 ### 3. Lifecycle command (tier1-lifecycle plugin, ADR-70)
@@ -120,10 +120,10 @@ registry `state.yaml`; the deploy converge writes the durable version record; th
 is hand-added.
 
 ```bash
-python scripts/audit.py repo <name> --repo-path <consumer>   # seeds ecosystem/<name>/state.yaml (gitignored)
+uv run --locked python scripts/audit.py repo <name> --repo-path <consumer>   # seeds ecosystem/<name>/state.yaml (gitignored)
 # add a row to ecosystem/registry.md: | <name> | <path> | <purpose> | registered · onboarded v1.2.0 |
 # ecosystem/deployed-versions.yaml gets the deployed-corpus version (written by the converge)
-python scripts/fleet_health.py                               # -> the repo appears in the roll-up
+uv run --locked python scripts/fleet_health.py                               # -> the repo appears in the roll-up
 ```
 
 ### 6. Re-anchor mechanic (SessionStart self-arm)
@@ -136,7 +136,7 @@ with a clone, so every fresh checkout must arm them once.
 python -m pre_commit install -t pre-commit -t commit-msg -t pre-push
 # verify: all three managed stages are installed + pre-commit-managed
 ls .git/hooks/pre-commit .git/hooks/commit-msg .git/hooks/pre-push
-python scripts/audit.py health                               # -> hooks_armed OK
+uv run --locked python scripts/audit.py health                               # -> hooks_armed OK
 # verify (#299 fix): run the arm command through the hook's OWN runtime interpreter -- the
 # INSTALL_PYTHON baked into the installed shim, which git execs at commit time, NOT a bare
 # ambient python. A stale/foreign interpreter that cannot import pre_commit fails HERE; the
@@ -155,13 +155,13 @@ Each row is **run X → expect Y**, naming a command. "Configured ≠ armed ≠ 
 is not enforcement, so the last three rows exercise the organs actually firing.
 
 ```bash
-python scripts/audit.py repo <name> --repo-path <consumer>   # [hub-runnable]
+uv run --locked python scripts/audit.py repo <name> --repo-path <consumer>   # [hub-runnable]
 #   -> floor_integrity OK (floor bytes hash to corpus; F5 self-contained; no orphaned root floor)
-python scripts/audit.py health                               # [hub-runnable]
+uv run --locked python scripts/audit.py health                               # [hub-runnable]
 #   -> hooks_armed OK + reconciled_versions OK; exit 0
 python .claude/check_floor_hash.py --require-present   # [consumer-only] — run inside the consumer
 #   -> PASS (fails LOUD on a deleted-but-tracked floor)
-python scripts/enforcement_coverage.py --consumer <name> --fire --run-date <YYYY-MM-DD>   # [hub-runnable]
+uv run --locked python scripts/enforcement_coverage.py --consumer <name> --fire --run-date <YYYY-MM-DD>   # [hub-runnable]
 #   note: --fire requires --run-date (the fire_test needs a run date to stamp the synthetic arc)
 #   -> the deployed mesh organs FIRE on a real branch->edit->commit arc (Informant fire_test)
 PYTHONPATH=deploy python -m lived_sandbox.cli observe-arc --consumer <consumer>   # [hub-runnable]
@@ -169,7 +169,7 @@ PYTHONPATH=deploy python -m lived_sandbox.cli observe-arc --consumer <consumer> 
 python deploy/floor_conformance.py --consumer <consumer>   # [hub-runnable]
 #   -> the armed loop FUNCTIONS end-to-end (guard fails loud both legs; git hook auto-arms;
 #      a real task flows through the gate) — not merely files-present
-python scripts/fleet_health.py                               # [hub-runnable]
+uv run --locked python scripts/fleet_health.py                               # [hub-runnable]
 #   -> the consumer is registered and reachable in the fleet roll-up
 ```
 
@@ -210,7 +210,7 @@ Three failure modes the pilots surfaced. Each is mandatory, with its command/edi
    `.claude/` only, so a stray floor at repo-root is an invisible **vacuous PASS**:
    ```bash
    git rm CLAUDE-FLOOR.md CLAUDE-FLOOR.md.sha256 2>/dev/null   # if present at root
-   python scripts/audit.py repo <name> --repo-path <consumer>  # re-verify floor_integrity
+   uv run --locked python scripts/audit.py repo <name> --repo-path <consumer>  # re-verify floor_integrity
    ```
 
 ---
@@ -221,7 +221,7 @@ Three failure modes the pilots surfaced. Each is mandatory, with its command/edi
   story-map. Decide at onboarding: carry the ADR-66 story-map + `validate_backlog` convergence
   (Track-X → story-map, ADR-99 clause A), or accept Track-X as durable — record either.
   ```bash
-  python scripts/validate_backlog.py    # after converging, the story-map schema passes
+  uv run --locked python scripts/validate_backlog.py    # after converging, the story-map schema passes
   ```
 - **#282 — `.gitattributes` EOL-normalization parity.** Four consumers lack `.gitattributes`
   (ai-council, corp-ops, corp-sca-time-automation, demo-prep). Add the target shape and
