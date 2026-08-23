@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-08-22
+last_reviewed: 2026-08-23
 reconciled_with: handoff-process@6.2.0
 status: active
 owner: Rob
@@ -62,7 +62,7 @@ See `ARCHITECTURE.md` for the structural model; read it before structural change
 - **Testing:** `pytest -x --tb=short`
 - **Linting:** `ruff check --fix` (manual / via `/save`); `ruff check` is also enforced as a pre-commit gate (see §9) — violations block commits
 - **Scope tags:** `<!-- scope: X -->` (`dev|llm|hybrid|runtime|meta`) — informal only; not enforced (ADR-27; enforcement withdrawn per ADR-48)
-- **File lifecycle:** Append-only: `LESSONS.md` (never edit; a contiguous older block MAY relocate byte-identical to `LESSONS-legacy-<span>.md` — ADR-29 2026-07-17 chronological-archival exception), `logs/TOKEN-LOG.md` (never edit), `JOURNAL.md` (newest-first prepend). Immutable: ADRs, transcripts, handoffs, audits (supersede with new file; an ADR *status line* is editable in place on ratification per §5 item 3 / ADR-94). Living: `VISION.md`, `ARCHITECTURE.md`, `CLAUDE.md`, `protocols/*.md`, `BACKLOG.md` (update in place).
+- **File lifecycle:** Append-only: `LESSONS.md` (never edit; a contiguous older block MAY relocate byte-identical to `LESSONS-legacy-<span>.md` — ADR-29 2026-07-17 chronological-archival exception), `logs/TOKEN-LOG.md` (never edit), `JOURNAL.md` (newest-first prepend). Immutable: ADRs, transcripts, handoffs, audits (supersede with new file; an ADR *status line* is editable in place on ratification per §5 item 3 / ADR-94). Living (update in place): `VISION.md`, `ARCHITECTURE.md`, `CLAUDE.md`, `protocols/*.md`. **Generated: `BACKLOG.md`** — **never hand-edit it**; edit `tasks/`, then run `python scripts/gen_task_tree.py --emit-source` (source-of-truth flip ADR-107 §7.2, [#439], 2026-07-28; `audit.py::check_task_tree_coherence` gates it).
 - **Freshness cadence:** the living docs `VISION/ARCHITECTURE/CLAUDE/CONTRIBUTING/ESSENTIALS` carry a `last_reviewed` frontmatter stamp meaning *re-read end-to-end and confirmed accurate (or drift filed)* — **not** merely "touched". `audit.py` check #10 fails when a stamp predates the file's last edit (edited-but-not-re-reviewed) and warns past a 30-day backstop. Bump `last_reviewed` only after a genuine review. See PLAYBOOK "Canonical-file freshness cadence".
 
 **Out of scope for this repo:**
