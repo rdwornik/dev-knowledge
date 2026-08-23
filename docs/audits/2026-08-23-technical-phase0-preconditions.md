@@ -920,3 +920,78 @@ So the amended rule is:
 correction is the same one, and it points the same way — **the shared, count-or-order-bearing
 surface belongs to the integrator, and the lane's deliverable against it is a specification or a
 fenced diff, never an edit.**
+
+---
+
+## 6. Intake `#34` (Step 6) — the blocker IS discharged; the flip is NOT taken
+
+**Intake #34** = `docs/intake/2026-08-16-code-architecture-enforcement.md`, *"Fleet
+code-architecture enforcement doctrine"*, `status: DRAFT`.
+
+### 6.1 The source artifact HAS landed — and landed before the intake was written
+
+The intake's `origin:` field names its source as an *"operator-held compass research artifact
+(**"Enforcing a Universal Code-Style Doctrine Across an LLM-Written Python Fleet"**)"* and asserts
+*"the source artifact itself is **NOT yet in-repo** and lands with the ratification"*. Its
+Provenance section repeats it: *"It is **not in the repo today**, by ruling."*
+
+**That is false, and has been since before this intake existed.** The artifact is in the repo at:
+
+```
+docs/archive/2026-08-09-research-code-style-doctrine-wf-8a83eb70.md
+  H1:        "# Enforcing a Universal Code-Style Doctrine Across an LLM-Written Python Fleet"
+  git ADDED: f571ac3c  2026-08-10  "docs(archive): land the six 2026-08-09 research memos
+                                    byte-identical + index them"
+```
+
+Three independent identity checks, all positive:
+
+1. **Title** — the archive file's H1 is character-for-character the title the `origin:` field
+   quotes.
+2. **Content** — intake §A, *"the source artifact's TL;DR, quoted VERBATIM"*, reproduces the
+   archive file's `## TL;DR` **exactly, all three bullets**, down to the em-dashes and the
+   `"silent_rule_ratchet"` quoting.
+3. **Chronology** — the artifact was git-added **2026-08-10**, **six days before** the intake was
+   routed (2026-08-16). The claim "not in the repo today" was already untrue when authored.
+
+This is consistent with the standing position that `docs/archive/` **is** the external-research
+home; the landing commit is a batch of six research memos placed there byte-identical.
+
+### 6.2 Therefore the stated ratification blocker is discharged
+
+The intake's own blocker section reads:
+
+> **Ratification blocker — why this doc was NOT transitioned by batch-1 lane D.** Item 1 of
+> "What ratification would have to settle" is *"Land the source artifact in-repo (it is the
+> evidence base and is currently operator-held)"*... That artifact is operator-held and not in
+> this repo, so **a lane cannot satisfy the precondition**; ratifying anyway would produce an
+> ACCEPTED [doc without its evidence base].
+
+**Item 1 is satisfied.** The precondition a lane could not satisfy has, in fact, been satisfied
+since 2026-08-10 — by a different arc, unnoticed by this one.
+
+### 6.3 The flip is NOT performed — three reasons, and each is independently sufficient
+
+The mandate's Step 6 says *"its own checklist names landing the artifact as the sole blocker"*.
+**Read against the file, that is not quite what it says**, and the difference decides the act.
+
+1. **ACCEPTED requires a ruling this session is forbidden to make.** `docs/intake/README.md` §5
+   defines the target status as *"**ACCEPTED (decided-by + disposition)** — ruled standing
+   authority"*. The flip is not a status edit; it needs a `decided-by`. The mandate's own
+   *What NOT to do* opens with **"Do not rule anything."**
+2. **Items 2–5 are unsettled, and they are judgment.** The checklist names artifact-landing as
+   item **1 of five**: sequencing against `[#533]`, ratchet-versus-flag-day for ruff enablement,
+   the hub-versus-consumer ownership boundary, and ADR-112 two-tier pricing all remain open. Item
+   1 is what blocked *a lane*; it was never the whole of what ratification must settle.
+3. **Today's seal says explicitly that no lane may take it.**
+   `docs/audits/2026-08-23-technical-window-seal.md` §3, the next-window queue:
+
+> **#34 still operator-held** — Intake #34 remains a DRAFT the operator holds; **no lane owns it
+> and none should take it**
+
+**Recorded as still owed — but owed by the OPERATOR, not blocked on a missing file.** That is the
+change this step produces: `#34` moves from *"blocked, precondition unsatisfiable by any lane"* to
+*"unblocked, awaiting an operator ratification decision on items 2–5"*. Nothing in the intake was
+edited, no status was flipped, and the stale provenance sentence was left in place rather than
+quietly corrected — it is reported here for the operator to rule on alongside the ratification,
+since correcting it is itself a claim about what the evidence base is.
