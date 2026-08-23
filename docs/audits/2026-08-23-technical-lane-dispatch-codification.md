@@ -166,3 +166,334 @@ Reused rather than rebuilt, itemised:
 The one thing deliberately **not** reused: `MODE_ENUM`. It was the tempting hook — already a
 declared enum on the spec — and it is the wrong one. Mode is *how a lane thinks*; shape is *where
 it runs*. Overloading it would have made `plan` imply a substrate.
+
+---
+
+## 2. What landed
+
+### 2.1 PLAYBOOK Ch8 — the codification half (`959b80a1`)
+
+One new subsection, **"Dispatching a session — the boundary, the three shapes, and the standing
+rules"**, placed at the head of Ch8's dispatch cluster so a seat meets it before the sections that
+rule on a dispatch's *conditions*. It carries:
+
+- **The boundary** — LOCAL if the work needs the operator's disk (provider keys and vendor CLIs,
+  unpushed branches, files in the prompts dir); CLOUD if every input is on `origin/main`;
+  **integration always LOCAL *and* INTERACTIVE**, because a background lane can neither merge to
+  `main` nor ask a question, so an integrator dispatched `--bg` is a contradiction in terms.
+- **The three shapes with their literal commands** — `Dispatch-Lane <slug> <FILE.md> -Effort high`
+  (plus the optional third positional as the amendment channel), `Dispatch-CloudV2 <FILE.md>
+  -Title '<slug>'`, and `claude` plus its `Read <PROMPTS_DIR>\<FILE>.md and execute it exactly.`
+  first message — each with the facts a seat would otherwise have to read the PowerShell module
+  for: the effort enum, the branch-exists refusal, the 120 s branch wait whose **timeout is a
+  WARNING rather than an error**, cwd-binding, one-file-one-lane, Revision `main`, and G1/G2 hard
+  vs G3 soft-on-timeout.
+- **The five standing operator-interface rules** — prompts dir not Desktop; `.md` upload because
+  inline paste arrives empty; no session ships without its command; artifacts to `docs/audits/`;
+  teardown sequenced after a STOP.
+
+**Two neighbouring Ch8 claims were reconciled rather than left to contradict the new one.** This
+is the half a "just add a section" reading would have skipped, and it is where the drift lives:
+
+| Site | Was | Now |
+|---|---|---|
+| "The dispatch surface is `dispatch <file>`" | *"the operator's **whole** dispatch surface is one typed line"* | scoped by a dated amendment to **shape 1 of 3**; the rest of the section stands unchanged |
+| "Cloud lanes" — *"Which substrate — RECORDED AS OWED, not ruled here"* | recorded the routing test as absent, filed as **G1** of `docs/audits/2026-08-20-technical-playbook-status.md` | marked **ANSWERED**, pointing at the boundary above; the gate-mesh heuristic is kept as the refinement it always was, and G1 is stated as discharged **by the boundary subsection, not by that paragraph** |
+
+Two further census rows are discharged in passing, and are named rather than left to be
+rediscovered: **G6** (`Dispatch-Lane`'s name, its one-block shape and skip-if-branch-exists — the
+row explicitly asks for an amendment here) and **G7** (short effort forms). G7 is landed with a
+**correction to the row's own premise**: it reads *"`--effort` takes full names only; short forms
+are silently ignored"*, and that is true of the **raw CLI** but false of the helper, whose
+`$effortMap` maps `l`/`m`/`med`/`h`/`x`. Ch8 now states both halves, because the helper's docstring
+says it maps them *precisely because* `claude --effort m` does not.
+
+**The Ch11 collision the census warned about is handled.** `docs/audits/2026-08-20-technical-
+playbook-status.md` closes its gap table with one authoring constraint — PLAYBOOK's cloud
+vocabulary is already taken by Ch11's **scheduled Routines**, and a G1/G2 write that does not name
+the distinction silently merges two populations. The boundary's CLOUD bullet opens by naming it: a
+*dispatched cloud lane* is not a *scheduled cloud Routine*, and they share a word and nothing else.
+
+### 2.2 `gen_lane_contract` — the mechanization half (`df9ce8a8` tests, `74cfa2f0` code)
+
+Full rationale is in the two commit bodies. In short: `SHAPE_ENUM = (local, cloud, interactive)`
+becomes the substrate the contract declares; `dispatch_command()` is the **single source** for the
+literal line, read by the emitter, by the `emit` log line and — through `_COMMAND_RES` — by the
+parser, so the three cannot drift into emitting a form the checker rejects; every contract carries
+a `**Shape:**` line so the command can be checked against *something*; `branch_name(slug, shape)`
+derives `worktree-` / `claude/` / none; and `parse_contract` refuses a contract with no command,
+with two commands, with an off-enum shape, or with a command that disagrees with its own declared
+shape.
+
+---
+
+## 3. Emitted-command evidence — all three shapes, actual output
+
+Not a description. This is the terminal output of `.l7_proof.py`, which emits one contract per
+shape into a scratch directory and then runs **the same entry point the `lane-contract-check`
+pre-commit hook runs** (`gen_lane_contract.py check <path>`) over each — so the round trip is
+proven through the live gate rather than through an import. It also asserts the WRONG shape
+against each file, because a checker that accepts everything proves nothing.
+
+```
+=== local ===
+emit rc=0
+  LOG gen-lane-contract: wrote ...\LANE-a-777-widget.md
+  LOG gen-lane-contract: dispatch with: Dispatch-Lane lane-a-777-widget LANE-a-777-widget.md -Effort high
+  EMITTED COMMAND LINE(S):
+    Dispatch-Lane lane-a-777-widget LANE-a-777-widget.md -Effort high
+  check --expect-shape local: rc=0
+    gen-lane-contract: ...\LANE-a-777-widget.md: OK - 6 sections, shape local, slug lane-a-777-widget, branch worktree-lane-a-777-widget, command 'Dispatch-Lane lane-a-777-widget LANE-a-777-widget.md -Effort high'
+  check --expect-shape cloud: rc=1 -> REFUSED (correct)
+=== cloud ===
+emit rc=0
+  LOG gen-lane-contract: wrote ...\LANE-b-778-audit.md
+  LOG gen-lane-contract: dispatch with: Dispatch-CloudV2 LANE-b-778-audit.md -Title 'lane-b-778-audit'
+  EMITTED COMMAND LINE(S):
+    Dispatch-CloudV2 LANE-b-778-audit.md -Title 'lane-b-778-audit'
+  check --expect-shape cloud: rc=0
+    gen-lane-contract: ...\LANE-b-778-audit.md: OK - 7 sections, shape cloud, slug lane-b-778-audit, branch claude/lane-b-778-audit, command "Dispatch-CloudV2 LANE-b-778-audit.md -Title 'lane-b-778-audit'"
+  check --expect-shape local: rc=1 -> REFUSED (correct)
+=== interactive ===
+emit rc=0
+  LOG gen-lane-contract: wrote ...\LANE-c-779-integrate.md
+  LOG gen-lane-contract: dispatch with: start `claude`, then send: Read <PROMPTS_DIR>\LANE-c-779-integrate.md and execute it exactly.
+  EMITTED COMMAND LINE(S):
+    claude
+    Read <PROMPTS_DIR>\LANE-c-779-integrate.md and execute it exactly.
+  check --expect-shape interactive: rc=0
+    gen-lane-contract: ...\LANE-c-779-integrate.md: OK - 6 sections, shape interactive, slug lane-c-779-integrate, branch (none - interactive), command 'Read <PROMPTS_DIR>\\LANE-c-779-integrate.md and execute it exactly.'
+  check --expect-shape cloud: rc=1 -> REFUSED (correct)
+scratch removed: True
+```
+
+**Read the three `EMITTED COMMAND LINE(S)` blocks against each other — that is the whole
+deliverable.** Before this lane all three read `Dispatch-Lane …`, because `spec.cloud` never
+reached the emission. The `branch` field in the three `check` lines is the same story in the
+pairing: `worktree-lane-a-777-widget` · `claude/lane-b-778-audit` · `(none — interactive)`, where
+all three previously read `worktree-<slug>`.
+
+**Two honest limits of this evidence, stated rather than left to be assumed away:**
+
+1. `--expect-shape` is a **flag a caller passes**, and the `lane-contract-check` hook passes no
+   flags — at commit time nothing outside a file says what shape it was *meant* to be. The
+   protection the hook actually gets is the **internal** one: declared `**Shape:**` vs emitted
+   command, which is checked with no flag at all and is what the mutation pass below exercises.
+2. The scratch contracts were emitted to a temp directory and removed (`scratch removed: True`).
+   Nothing named `LANE-*.md` was left in the tree, so this lane adds no file to the hook's glob.
+
+---
+
+## 4. terra review — tally in the body, as the contract requires
+
+**Reviewer:** terra, run directly on the diff rather than through the review skill. The skill
+writes into `docs/audits/`, which this lane also writes; the contract names that trap explicitly
+("that trap has fired here before"), so the direct route was taken.
+
+### 4.1 Tally
+
+```
+Critical: 0
+High:     0
+Medium:   2  (both fixed in-lane, before this commit — see 4.3)
+Low:      1  (fixed in-lane)
+Info:     2  (recorded, not actioned — see 4.4)
+```
+
+**Zero Critical / zero High.** The three Medium/Low findings were found by the mutation pass and
+by the file's own test suite while the work was in flight, and each was fixed rather than
+dispositioned.
+
+### 4.2 Mutation evidence — 8 mutants, 8 killed
+
+The claim "there is a test asserting exactly that" is only worth what a mutation pass says it is.
+`.l7_mutate.py` applies each mutation to `scripts/gen_lane_contract.py`, runs the suite, restores
+the file and asserts the restore was byte-identical:
+
+```
+[KILLED] M1 dispatch_command always emits the LOCAL form (the pre-lane defect)   7 failed, 98 passed
+[KILLED] M2 the declared **Shape:** line is not emitted                         14 failed, 91 passed
+[KILLED] M3 branch_name ignores the shape (always worktree-)                     2 failed, 103 passed
+[KILLED] M4 the missing-command-line refusal is dropped                          1 failed, 104 passed
+[KILLED] M5 the shape/command disagreement refusal is dropped                    2 failed, 103 passed
+[KILLED] M6 the interactive first message loses its `claude` start line          1 failed, 104 passed
+[KILLED] M7 the emit log line hard-codes the local command                       1 failed, 104 passed
+[KILLED] M8 the receipt gate is emitted for every shape                          9 failed, 96 passed
+source restored byte-identical
+```
+
+**M1 is the contract's own stated failure mode, reproduced and killed** — it reverts the generator
+to emitting `Dispatch-Lane` for every shape, which is exactly what it did on 2026-08-22. **M4 is
+the contract's Done-item 2**, and it kills exactly one test, which is the right number: the
+missing-command-line refusal has one dedicated regression rather than being incidentally covered.
+
+Note `mutmut` was **not** used and could not be: `[tool.mutmut]` in `pyproject.toml` records that
+it requires `fork()` and is CI-only, so a Windows host cannot run it. This is a hand-authored
+mutation pass, which is the same shape the 2026-08-22 `check_s10` deletion test used.
+
+### 4.3 Findings fixed in-lane
+
+**M-1 (Medium) — a pre-existing test silently stopped testing.**
+`test_a_doubled_prefix_in_the_pairing_line_is_reported` mutated the substring
+``branch `worktree-lane-a-539-ch8-codification` `` with `count=1`. The new dispatch prose *also*
+names the branch and sits **above** the pairing line, so the replace hit the prose instead: the
+pairing line was never mangled, `parse_contract` correctly reported no problems, and the assertion
+failed. The failure was loud here by luck — had the prose been added *below* the pairing line the
+test would have kept passing while checking nothing. Fixed by anchoring the mutation on the whole
+pairing line plus a guard assertion that fails if that line moves. **This is the more valuable
+finding of the two**, because the class (an unanchored `replace` in a mutation test) is live in
+several other tests in this file.
+
+**M-2 (Medium) — CRLF laundering through the mutation harness.** `.l7_mutate.py` restored the
+source with `Path.write_text`, which applies platform newline translation on Windows: the restore
+assertion passed (`read_text` translates back) while all 892 line endings on disk had become CRLF.
+Caught by `git add`'s own warning, not by any gate. Normalized back to LF before staging, and the
+committed blob was verified LF.
+
+**L-1 (Low) — `SyntaxWarning: invalid escape sequence '\<'`.** The new module docstring contains
+the literal interactive command `Read <PROMPTS_DIR>\<file> …`; in a non-raw docstring `\<` is an
+invalid escape. Python currently warns and will eventually error. Fixed by escaping to `\\<file>`
+rather than by making the whole docstring raw, which would have silently changed every other
+escape in it.
+
+### 4.4 Findings recorded, not actioned
+
+**I-1 (Info) — `## Worktree pairing` is now a slightly wrong heading for one shape.** An
+interactive contract has no worktree, and its body says so in its first words. The heading is kept
+because `MANDATORY_SECTIONS` is the checkable surface the hook reads, and renaming it for one
+shape would either fork the mandatory-section list by shape or rename it for all three. Neither is
+worth a heading. Recorded so it is a known compromise rather than an oversight.
+
+**I-2 (Info) — `contract_filename` still emits `LANE-<stem>.md` for a cloud brief.** Live cloud
+briefs in this repo are named `CLOUD-C1-….md`. Keeping `LANE-` is deliberate: it is what the
+`lane-contract-check` hook's glob (`(^|/)LANE-[^/]*\.md$`) matches, so a cloud contract emitted
+under a `CLOUD-` name would leave the gate's coverage entirely. Changing the glob is not in this
+lane's footprint.
+
+---
+
+## 5. Suite
+
+Run unpiped against the A2 baseline. See §7.
+
+---
+
+## 6. Residuals, and the one operator decision this lane owes
+
+### R0 — OPERATOR RULING OWED: raise `ecosystem/silent-rule-baseline.yaml` 441 → 445
+
+**This is a decision-budget class (a) item — a curated-baseline touch — and this lane does not
+take it.** The baseline file's own header rules that raising is an operator act and that *"there
+is no code path that raises it"*, which is why this is queued with attribution rather than done.
+
+**The measurement, not an estimate.** `check_silent_rule_ratchet` FAILed the first attempt at the
+Ch8 commit. Counting `\b(?:must|shall|never)\b` case-insensitively, exactly as the detector does:
+
+| Blob | Occurrences |
+|---|---|
+| `aeec0fd1:protocols/PLAYBOOK.md` (the merge base) | **210** |
+| this branch's `protocols/PLAYBOOK.md` | **214** |
+| live corpus total (`silent_rule_detector.py`, 59 files) | **445** |
+| committed baseline (`detector_id: silent-rule-v4`) | **441** |
+
+**main sits EXACTLY at the baseline with zero headroom**, so *any* codification of normative
+doctrine into a `protocols/` file trips this gate by construction. That is a property of the
+current baseline, not of this lane.
+
+**Six occurrences were added on the first pass; two were drained and four were kept, and the split
+is the part worth reviewing.** The two drained were **descriptive, not normative** — "the other
+sections rule on what a dispatch *must* satisfy … and *never* state what the operator types" is a
+sentence *about* rules, and the detector's own docstring admits it "cannot distinguish a rule from
+a mention of one in an example". Removing a false positive improves the measurement.
+
+The four kept are the standing rules this lane was dispatched to codify, line by line:
+
+| # | Line, as it stands in Ch8 | Why it is not drained |
+|---|---|---|
+| 1 | "the **whole file is the brief** … so **one file = one lane, never a multi-lane bundle**" | the bundle-mode defect is the named G2 hard-fail condition |
+| 2 | "Every prompt file reaches the operator via the prompts dir (`~\Downloads`), **never** the Desktop" | a standing operator-interface rule, verbatim from the cheat-sheet |
+| 3 | "**Lane artifacts land in `docs/audits/`, never the repo root**" | `validate-hermetization` Rule A refuses the alternative |
+| 4 | "**Teardown is sequenced *after* a session STOPs**, **never** alongside a ruling that keeps it alive" | a standing operator-interface rule, verbatim from the cheat-sheet |
+
+Swapping "never" for "not" in these four would lower the metric **without removing a rule** — the
+exact inverse of the v1→v2 occurrence-counting correction the detector contract records, and a
+form of gaming this repo has already ruled against once. They are left intact and the raise is
+put to the operator instead.
+
+**Precedent, in the baseline's own provenance block:** RAISE 428 → 441, operator-ruled 2026-07-30
+for the intake-#18 ratification arc, with line-by-line attribution in
+`docs/audits/2026-07-30-technical-intake18-ratification-record.md`, and the note that *"until that
+arc merges, the branch-side check reads raise-rejected vs origin/main — expected, self-healing at
+merge."* This lane is in that same window.
+
+**Proposed replacement provenance text**, for the operator to accept, amend or refuse:
+
+```yaml
+baseline: 445
+measured_at: 2026-08-23
+provenance: |
+  RAISE 441 -> 445, operator-RULED 2026-08-23 (M10 dispatch codification, lane L7): the
+  Ch8 subsection "Dispatching a session" adds exactly +4 normative-token occurrences over
+  the pre-lane live 441 (base blob 210 -> 214 in protocols/PLAYBOOK.md; every other file
+  unchanged). Six were added and two drained as descriptive false positives; the four kept
+  are enumerated with their lines in
+  docs/audits/2026-08-23-technical-lane-dispatch-codification.md section R0.
+  Prior baseline: 441 @ 2026-07-30 (sha 3cd4417a).
+```
+
+**Until that ruling lands, every commit on this branch carries a declared
+`SKIP=audit-health` with the reason in its body** (PLAYBOOK Ch8 Q1 — a lane declares its
+single-hook bypass in the commit body). No `--no-verify` was used anywhere in this lane, and no
+other hook was skipped: the bypass is one hook, on a lane branch, for one named and measured
+cause. **The integrator cannot merge this branch to `main` without the ruling** — main would then
+sit above its own baseline and every subsequent commit in the repo would red.
+
+### R1 — `templates/prompt-template.md` is now owed an update, and its predecessor said so
+
+The v1.14 card still shows the hand-composed form
+`claude --bg --model opus --effort high --permission-mode bypassPermissions "[…] Read and execute
+the frozen contract at $env:CLAUDE_PROMPTS_DIR\<FILE>.md"`. The predecessor lane
+(`docs/audits/2026-08-21-technical-ch8-dispatch-codification.md`, open items) named the trigger
+precisely: *"If `Dispatch-Lane` becomes the stated surface, the card is the point-of-use copy that
+would follow — not this lane's file."* **This lane is that trigger.** It is outside this lane's
+footprint (Ch8 + the generator), so it is filed rather than swept — and note that
+`templates/**` is **inside** the silent-rule detector's scope roots, so whoever takes it inherits
+R0's arithmetic.
+
+### R2 — carrier row specification (A3: `banked = 0`, so a spec, not a file)
+
+No file was written to `tasks/`. The row this work would carry, for the architect to queue:
+
+```
+id:        <next free>
+title:     Dispatch codification — Ch8 states the three shapes; gen_lane_contract emits them
+theme:     Methodology / session boundaries
+size:      S
+status:    done-pending-ruling
+evidence:  959b80a1 (Ch8) · df9ce8a8 (tests) · 74cfa2f0 (generator)
+blocked-by: the R0 operator ruling on ecosystem/silent-rule-baseline.yaml 441 -> 445
+notes:     closes G1/G6/G7 of docs/audits/2026-08-20-technical-playbook-status.md;
+           G7 lands with a correction to that row's own premise (short effort forms ARE
+           mapped by the helper, and are ignored only by the raw CLI).
+```
+
+### R3 — `--expect-shape` is reachable but unwired
+
+The `check` command grew `--expect-shape`, and the `lane-contract-check` hook does not pass it —
+correctly, since at commit time nothing outside a contract states its intended shape. It is there
+for a caller that *does* know: a batch manifest that declares each lane's substrate could assert
+it per row. No such caller exists today, and none was invented here.
+
+### R4 — decided per contract defaults, reported rather than asked
+
+- **`--cloud/--local` was replaced by `--shape`, not kept beside it.** Two flags meaning the same
+  thing is the second-source-free-to-disagree class this generator exists to remove. Verified by
+  grep that the only caller was this module's own test file.
+- **`**Shape:**` is a mandatory field**, so a contract that does not declare its shape is refused.
+  Verified safe first: `git ls-files` matches **zero** files against the hook's `LANE-*.md` glob,
+  so nothing committed is affected, and every contract emitted from now on carries it.
+- **The interactive shape cites `<PROMPTS_DIR>`, not a literal `C:\Users\…\Downloads`**, following
+  Ch8's existing rule that a dispatch line stays portable and keeps one operator's directory
+  layout out of an artifact other people read. The operator's cheat-sheet showed the absolute
+  path; the ruled form won, and the emitted prose says plainly that he resolves the token by eye
+  because a chat message is not a shell.
