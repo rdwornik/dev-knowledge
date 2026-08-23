@@ -96,3 +96,73 @@ This is not a defect in the ruling's intent, and pointer-ization was still the r
 creates the sanctioned destination and stops rows carrying verbatim records. But the residue is
 **content-bloat**, which ruling B2 already governs — decomposition, proposed with R2 headroom,
 never executed unilaterally. The ceiling is not reachable by pointer-ization on these rows.
+
+---
+
+## 5. AMENDMENT 2026-08-23 — the admission verdict over the 562-local guarded rerun
+
+**This section is APPENDED, not edited in** — `CLAUDE.md` §5 rule 3 makes an audit immutable and
+admits an in-file amendment marker as the alternative to a superseding file. Everything above stands
+exactly as written on 2026-08-22. It lands *here* rather than in a new file because ruling B3a/B5
+made this document the sanctioned destination for verdict blocks and verbatim ruling texts, and a
+verdict filed somewhere else would re-create the scatter this ledger exists to end.
+
+**Source of record:** `docs/audits/2026-08-23-technical-lane-562-local-admission.md` — leg 3 of
+`[#562]`, the guarded A/B run locally under `scripts/nopack_sandbox.py`. That artifact computes the
+gates and **asserts no verdict**, by contract; the verdict below is the architect's ruling over it.
+
+### 5.1 — `[#562]` / `[#491]` · ADMISSION VERDICT (architect, 2026-08-23), verbatim
+
+```
+ADMISSION VERDICT (architect, 2026-08-23), from
+docs/audits/2026-08-23-technical-lane-562-local-admission.md:
+ gemini-3.7-flash — REFUSED. G1 floor FAIL (zero clean refusals); G2/G3 PASS and
+   P 12/14 noted as proximity, not admission — the floor is absolute.
+ grok-4.6 — REFUSED. G1 FAIL, G2 FAIL; 22 guard-syntax refusals vs gemini's 7 reached
+   a scored trap item (C1-R5 eyeball fallback) — attribution per the amendment shows
+   the guard caused the refusals but the fallback behavior is the candidate's.
+ MEASURED MITIGATION (both candidates): C1-N3 control PASSED on both — one
+   role-reminder sentence flips the refusal outcome. Per R3's own clause
+   (promptable failure ⇒ routing mitigation, measured): ONE rerun slot is earned,
+   with the role-reminder preamble BAKED into every item as the standing dispatch
+   preamble. Admission stays refused until that mitigated rerun clears the floor.
+ OWED MEASUREMENT: the incumbent's refusal promptability (same items + reminder,
+   Anthropic path) when billing allows — carried P_i/Φ_i from 2026-08-20 are a
+   stale baseline and §9's per-gate costs stand.
+ The comparative clause remains vacuous at incumbent 0/2, as ruled.
+```
+
+### 5.2 — What the verdict discharges, and the two successors it leaves live
+
+**Discharged.** `[#562]`'s Done-when is met in full and the row **closed 2026-08-23** in the same act
+that landed this section: clause 1 (a probe, not an assertion, shows the tree cannot read the pack)
+by legs 1–2; clause 2 (14 items uncontaminated) by leg 3, which measured 240 commands with zero
+delivered-output contamination and no reach for the pack on either lane. The row closes **REFUSED**,
+which is a real outcome and not a non-result: the instrument that produced it is the thing the row
+was filed to build.
+
+**Not discharged — and neither successor may die with the closed row (register P-2, anti-orphan).**
+
+1. **The earned mitigated-rerun slot.** ONE rerun, role-reminder preamble baked into every item, is
+   authorised by the verdict itself. It is *not* an admission and not a standing licence to re-run:
+   admission stays refused until that single rerun clears the G1 floor.
+2. **The owed incumbent measurement.** Whether the incumbent's own refusal failure is promptable
+   — the same items plus the reminder, on the Anthropic path — is the single most valuable
+   measurement the control item can produce, and this run could not make it (§1.4 of the source
+   artifact: HTTP 400, credit balance). Until it exists, **no ruling that touches the fan-out pin
+   should be made from this evidence**, and the carried `P_i`/`Φ_i`/`R_i` stay flagged as a stale
+   unguarded-head, effort-tier-high baseline.
+
+Both are routed through **this window's wave-close funnel table (PLAYBOOK Ch8, D4/D5)**, where a
+birth is charged against banked closures, and both are named verbatim in the window's next-window
+queue. A slot recorded only in a closed row's history is exactly the orphan class P-2 forbids.
+
+### 5.3 — `[#491]`, annotated rather than moved
+
+The same run is the clean Gemini rerun `[#491]`'s 2026-08-20 annotation pointed at, and its row was
+annotated in the same act. It **does not move**: the run is a seeded-defect pack, not the real-work
+acceptance run that row's Done-when names, and the 2026-08-22 architect DEFERRAL — held on the
+unmade policy of whether new `protocols/STANDING_RULINGS.md` sections may be written post-ratchet
+— is untouched by anything here. What the run does retire for that row is narrower and worth
+stating: the **instrument objection**. The 2026-08-20 Gemini evidence was taken at an unguarded head;
+this evidence is not.
