@@ -248,6 +248,55 @@ prose, which is scoped out and named here rather than silently omitted.
 | P-04 | All remaining cross-repo (`ai-council/…`, `corp-monorepo/…`) and sibling-relative (`.dev-knowledge/…`) paths | not resolvable from a single-repo clone by construction | MISSING-COVERAGE (structural) |
 | P-05 | `PLAYBOOK.md` is one of the five **provider-registry seams** (`pins_by_path()`) | confirmed | CURRENT — **and the reason this lane made no PLAYBOOK edit**: a prose lane editing a gated seam, with Ch8 carved out mid-file and a TOC-freshness gate on its headings, is three ways to break something for a benefit the census did not find |
 
+### 2.9 The mechanical sweeps behind §2 — reproducible, and their limits
+
+Three sweeps, each run over **all 13 files** of the family (`CLAUDE.md` + `protocols/*.md`), on
+the §0 fallback interpreter. Every verdict in §2 traces to one of them or to a quoted primary
+source.
+
+**Sweep 1 — path resolution.** Every backticked repo-relative path token
+(`` `…/….{md,py,yaml,yml,json,ps1,js,txt,toml,jsonl,log}` ``) resolved against the working tree.
+**43 unresolved tokens** in 9 files. Triaged: 0 are live broken pointers. Breakdown —
+cross-repo (`ai-council/…`, `corp-monorepo/…`) **8**; sibling-relative from `Dev/`
+(`.dev-knowledge/…`, `Dev/…`) **6**; grammar templates (`ADR-NN-topic.md`,
+`council-out-YYYYMMDD-HHMMSS-topic.md`, `scripts/newpkg/mod.py`) **5**; consumer-side files absent
+in the hub by design (`.claude/CLAUDE-FLOOR.md`, `.claude/check_floor_hash.py`) **3**;
+explicitly-retired-and-said-so (P-01) **1**; created-on-demand sinks (`logs/COHERENCE-NUDGE.log`,
+`logs/OVERRIDES.md`) **2**; historical citations in immutable-record prose **18**.
+**Limit:** the sweep sees only backticked tokens containing `/`; a bare filename in prose is
+ambiguous and was skipped.
+
+**Sweep 2 — invocation form.** Every `` `python …` ``, `` `py …` ``, `` `pytest …` ``,
+`` `ruff …` `` occurrence, checked against ADR-106 §4. **17 stale invocations** in 4 in-family
+files (C-01..C-04, C-13, C-16, C-19, E-01, O-01 ×11, O-02) plus 2 out-of-family (§5.3).
+Ground truth for "stale": `.pre-commit-config.yaml` — **20 of 20** local hook entries read
+`entry: uv run --locked python scripts/…`; `CONTRIBUTING.md` uses `uv run python scripts/…`
+throughout; and the failure is demonstrated, not inferred:
+
+```
+$ python3 scripts/audit.py checks
+ModuleNotFoundError: No module named 'click'
+```
+
+**Limit:** the sweep does not judge whether a given doc *should* carry an invocation at all.
+
+**Sweep 3 — count and roster claims.** `scripts/validate_doc_claims.py` (the armed mechanism),
+plus a hand check of every numeral in the family that names a repo quantity.
+`audit_check_count` reports `skipped … <ground truth unavailable>` in **every** run of the
+standalone CLI — by design: the count is **injected by the caller** (`audit.py`), never
+re-derived, and `audit.py` could not run its full path here. So **one of four claim legs is
+structurally unverifiable from a standalone invocation** — stated rather than reported as a pass.
+The live count claims themselves live in `ecosystem/doc-counts.md`, which is generated
+(`gen_doc_counts.py`) and out of `_FRESHNESS_FILES`; no in-family file restates them.
+**Limit:** `validate_doc_claims` is precision-over-recall by charter — *"only a bounded claim-set
+that is mechanically checkable with ZERO false positives, NOT all prose"* — so a clean run is
+**not** evidence that the family's prose is accurate. §2.1–§2.7 are the recall half, done by hand.
+
+**What none of the three sweeps covers,** stated so the census is not read as exhaustive: the
+judgement-level prose of `PLAYBOOK.md` (Ch8 excluded), `STANDING_RULINGS.md`,
+`HANDOFF_PROCESS.md`, `HANDOFF_BOOT.md` and `AI_COUNCIL_PROCESS.md` — **8,399 lines** — is
+scoped out (§2.8), not silently omitted.
+
 ---
 
 ## 3. What the reclaimed budget was spent on — the four mandated topics
