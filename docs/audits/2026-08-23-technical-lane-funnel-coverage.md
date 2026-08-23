@@ -279,3 +279,173 @@ the contract anticipated**, and two contract branches close without being taken:
 - *"If prior art wins, the rest of this lane is a fix-and-extend"* — **half true, and reported as
   half.** No code is extended; the ruled vocabulary and the on-disk ledger are consumed unchanged.
   The build is the reader they never got.
+
+---
+
+## 2. The measured baseline — Step 2
+
+**Nothing here is dispositioned.** This is measurement, and the contract's `What NOT to do` list
+is honoured exactly: the 613 uncovered artifacts are counted and enumerated, not routed.
+
+### 2.1 Method, and how it was validated
+
+`scripts/funnel_coverage.py` walks `docs/audits/*.md`, parses **every** ledger table in **every**
+file, and classifies the corpus. A ledger table is one whose header carries a file-ish column, a
+`disposition` column **and** an `evidence locator` column — the exact columns the 2026-08-17
+lane-a contract specified at `:87-92`. Reproduce with:
+
+```
+python scripts/funnel_coverage.py --report
+python scripts/funnel_coverage.py --list-uncovered
+```
+
+**The validation that makes the number trustworthy is a reconciliation, not an assertion.** The
+2026-08-17 ledger states its own result in its §0 packet line:
+
+```
+audits 80 · ACTIONED 49 · FILED 25 · REJECTED 2 · SUPERSEDED 2 · PENDING 2
+```
+
+The parser was never given those figures. It independently produced **ACTIONED 49 · FILED 25 ·
+REJECTED 2 · SUPERSEDED 2 · PENDING 2 = 80**. An exact five-way match against a number the ledger
+computed by a different method, six days earlier, is what separates *"the check ran"* from
+*"the check read what it claims to read"* — which is the contract's named failure mode.
+
+**It did not match on the first run, and the way it failed is worth recording.** The first pass
+reported ACTIONED **47** and two "malformed" rows carrying the terms `SHALL\` and `\`. The ledger's
+`final metric line` column quotes each artifact verbatim, and those quotes contain escaped pipes
+(`\|`); a naive `split("|")` shredded two real rows. **The undercount looked exactly like a clean
+parse** — 0 errors, a plausible total — and only the reconciliation against the ledger's own
+self-report caught it. The cell splitter now honours the escape, and a test pins it.
+
+### 2.2 The baseline
+
+```
+detector      funnel-coverage/v1
+corpus N      693   (docs/audits/*.md, excluding the generated README.md)
+ledgers        1    2026-08-17-technical-audit-disposition-ledger.md
+dispositioned X = 78    ACTIONED 49 · FILED 25 · REJECTED 2 · SUPERSEDED 2
+pending        2    recorded open question, neither coverage nor absence
+uncovered  N-X = 613
+malformed      0
+dangling       0    (no ledger row names an artifact absent from disk)
+```
+
+`78 + 2 + 613 = 693`. **Coverage is 11.3%**, or 11.5% counting PENDING as looked-at.
+
+`README.md` is excluded because it is generated and cites every artifact by construction — the
+same exclusion the 2026-08-17 ledger applied, on its own stated reasoning, rather than a fresh
+judgement call here.
+
+**The uncovered set is enumerated by name in `ecosystem/audit-funnel-baseline.json`** (613
+entries, `artifacts:`). It is not restated in prose here: CLAUDE.md §4 forbids restating a roster
+instead of citing the surface that computes it, and that file *is* the surface — it is what the
+check reads.
+
+### 2.3 What the 613 are, because a bare number invites the wrong conclusion
+
+| dimension | shape |
+|---|---|
+| **by month** | 2026-03 **1/1** · 2026-04 **17/17** · 2026-05 **65/65** · 2026-06 **92/92** · 2026-07 **170/170** · 2026-08 **268/348** |
+| **by class** | technical 259 · codex 140 · *(no ADR-101 class)* 137 · conformance-nightly-digest 19 · ecosystem-audit 17 · verification 14 · census 11 · fresh-eyes 8 · changelog-review 6 · qa 2 |
+
+**Every artifact dated before 2026-08 is uncovered — 345 of them, without exception.** That is not
+a defect the ledger introduced; it is the ledger's own declared scope. Its §1 says so plainly: it
+ledgered *"the newest 80"* against a measured candidate set of 129, and named the remaining **49
+as a follow-on list rather than a row** — *"a mechanical second pass, not an arc."* This check
+counts those 49 as uncovered, correctly: a name in a prose list is not a disposition with a
+locator, and the whole point of the instrument is that the distinction is now machine-visible
+instead of resting on a reader remembering §4 exists.
+
+**The 137 `(no ADR-101 class)` files are a second, independent finding.** They predate the closed
+11-class enum and are grandfathered by `validate_hermetization`'s prospective-only Rule B, so
+their filenames carry no class token at all. Reported, not acted on — renaming them would edit
+immutable artifacts.
+
+### 2.4 The number that justifies arming now rather than later
+
+The 2026-08-17 ledger measured **567** tracked artifacts in `docs/audits/`. Six days later the
+corpus is **693**.
+
+```
+2026-08-17   567 tracked   80 ledgered  (14.1%)
+2026-08-23   693 tracked   78 covered   (11.3%)
+             +126 artifacts in 6 days   ~21/day, and every one of them undispositioned
+```
+
+**Coverage fell while the ledger's work stood still**, because the corpus outran it. That is the
+argument for a ratchet in one line: a one-off ledger pass is a snapshot that decays at ~21
+artifacts per day, and nothing noticed. A ratchet does not fix the 613 — it makes 614 visible.
+
+### 2.5 Two things the measurement surfaced that are NOT this lane's to fix
+
+1. **The 2 PENDING artifacts are honest, and both are blocked on the operator, not on work.**
+   `2026-08-14-qa-night2-quality.md` (*"do the seven LOW findings get an owner, or are they
+   recorded accepted-with-reason?"*) and `2026-08-16-census-nb6-archive-sweep.md` (*"does the
+   operator GO the 3 intake status transitions…"*). Both carry the exact question the ruling asks
+   for. They are reported as PENDING and are deliberately **not** counted as coverage.
+2. **The register orphan shape the contract predicted is live in this data too.** The contract
+   flagged it in `ecosystem/disposition-register.yaml`'s `[stale]` entries; the same shape exists
+   here as a **FILED row whose owning id later closes** — P-2 (a closed row cannot carry an
+   obligation) means the disposition orphans while the ledger row still reads FILED. **Detected
+   cheaply? No — and that is a finding, not a silence.** Resolving it needs a row-liveness join
+   against `tasks/*.md` frontmatter, which is a second corpus and a second failure mode inside a
+   pre-commit-reachable gate. §7 reports it with its cost; the contract's *"do not extend scope to
+   fix it in this lane"* is honoured.
+
+### 2.6 A measured false positive in a sibling organ, found by arming this one
+
+The baseline was first written as `ecosystem/audit-funnel-baseline.yaml` — the obvious home,
+alongside `ecosystem/silent-rule-baseline.yaml`. **The commit was refused by `audit-health`:**
+
+```
+[!!] silent_rule_ratchet: silent-rule pool GREW: live 444 > baseline 441 (+3) under
+     detector silent-rule-v4 across 60 file(s) — drain the additions or record an
+     operator ruling; the baseline does not rise on a commit
+```
+
+`silent_rule_detector`'s governed corpus includes `ecosystem/*.yaml`, and it counts occurrences
+of `\b(?:must|shall|never)\b`. Of the +3: **two were my own header prose** (removable, and
+removed — that reasoning belongs in the module docstring, not in a machine-read data file), and
+**one is a filename**:
+
+```
+ecosystem/audit-funnel-baseline.yaml:240   - 2026-07-06-arc5-must-verification.md
+```
+
+**An audit whose slug happens to contain the word `must` scores as rule accretion.** That is not
+a defect this lane introduced and not one it can drain — it is `silent_rule_detector`'s own
+stated residual limit reaching a new class: *"occurrences in examples, quotations and
+already-enforced rules still count… This is a proxy."* A **data enumeration** is the third case,
+and it is the one that bites hardest, because a coverage baseline is a list of filenames by
+construction. Enumerate the corpus and you move a rule-accretion metric.
+
+**The lawful fix is the exclusion class the detector already applies twice** — to
+`ecosystem/silent-rule-baseline.yaml` (*"would otherwise count its own provenance prose, making
+the metric self-referential"* — that file carries **6** such tokens today and is exempt for
+exactly this reason) and to `ecosystem/parity-surfaces.yaml` (*"enum values… enforced by
+construction… would make the ratchet fire when someone ADDS ENFORCEMENT — precisely backwards"*).
+A ratchet's baseline is data, not doctrine, and this is a second ratchet's baseline in the same
+directory.
+
+**That fix was NOT taken, and the reason is a boundary rather than a preference.**
+`silent_rule_detector`'s docstring requires *"Bump this string whenever ANY clause of the
+detector contract above changes"*; a fourth `EXCLUDED_RELPATHS` member is such a clause. The bump
+forces a re-measure and re-stamp of **another ratchet's curated baseline** — and
+`_ratchet_findings` turns a detector migration into a WARN demanding explicit operator review,
+by design. That is a curated-baseline touch and an operator act, taken while five sibling lanes
+are in flight. **A lane does not re-stamp another organ's baseline to make its own commit pass.**
+
+**What was done instead, and it is the reversible half of the fork.** The baseline is
+`ecosystem/audit-funnel-baseline.json`. JSON is outside `silent_rule_detector`'s ruled
+denominator (`ecosystem/*.yaml`), so no exclusion is needed and no contract is touched — and it
+is independently the honest shape for this file: machine-generated, machine-read, carrying no
+doctrine and needing no comments. It also keeps the detector **stdlib end-to-end**, since the
+facade no longer needs `yaml.safe_load`.
+
+**Stated plainly, because a reviewer should not have to ask:** the format choice is *partly* to
+stay outside another organ's measurement corpus. That is recorded here rather than presented as
+a neutral preference. It is reversible in one constant and one regeneration, which is why it was
+decided rather than escalated. **§7 carries it as the architect's call**, with the finding —
+*a coverage baseline cannot live in `ecosystem/*.yaml` without either an exclusion or a
+false-positive* — as the durable part.
