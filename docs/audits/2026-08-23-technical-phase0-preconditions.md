@@ -191,3 +191,224 @@ and unassisted by this step**, which is the honest result.
 instead of..."** has **no tasks**. An empty story is a story-map defect (it renders a heading with
 nothing under it). This is left untouched — the mandate forbids filing rows and this session
 rules nothing.
+
+---
+
+## 3. Ship-gate (Step 3 — closes PK3)
+
+Run in **git-bash**, not PowerShell, per the known PowerShell false-RED on `handoff_probes`.
+
+### 3.1 Verdict and arithmetic
+
+```
+$ python scripts/audit.py ship-gate       # git-bash, PYTHONUTF8=1
+ship-gate: RED — not shipped-ready (25 new/undispositioned WARN(s))
+real exit code: 1
+
+findings                95
+  fail                   0      <- no hard-fail organ; the RED is WARN-driven only
+  warn                  52
+    dispositioned       27
+    UNDISPOSITIONED     25      <- the whole reason the gate is RED
+register entries        30
+  [stale] (matched no live WARN)  3
+```
+
+Note the exit code was captured **unpiped**. Piping the run through `tail` reports the
+*pipe's* exit code (0) and hides the gate's 1 — the same masking trap the repo has recorded for
+`pytest`.
+
+### 3.2 The three `[stale]` lines, verbatim
+
+```
+[stale] disposition warn-row-length-533-audit-decomposition matched no live WARN — review/remove (ADR-75 decoration rule)
+[stale] disposition warn-row-length-529-telemetry-emit      matched no live WARN — review/remove (ADR-75 decoration rule)
+[stale] disposition warn-row-length-530-single-flight       matched no live WARN — review/remove (ADR-75 decoration rule)
+```
+
+### 3.3 Enumerating the undispositioned 25 — and why the mandate was right that no mode does it
+
+**No mode enumerates them.** This is not a search failure; it is visible in the source.
+`cmd_ship_gate` computes the list and then never prints it:
+
+```python
+for f in findings:
+    click.echo(f"  {_marker.get(f.status, '[??]')} {f.check_name}: {f.evidence}")
+for f, e in dispositioned:
+    click.echo(f"  [disp] {f.check_name}: WARN dispositioned by {e.get('id')} ...")
+for d in stale:
+    click.echo(f"  [stale] disposition {d.get('id')} matched no live WARN ...")
+```
+
+The first loop prints **all 52** WARNs under one undifferentiated `[~~]` marker — dispositioned
+and undispositioned alike. The `[disp]` loop then prints the *register entry* that matched, not
+the WARN evidence it matched. So the operator is given 52 warnings, 27 disposition ids, and a
+count of 25, with **no rendered mapping between them**. The `undispositioned` list is a live
+local variable that only ever reaches `len()`.
+
+**Closest existing surface:** the `[~~]` block of `ship-gate`, set-differenced by hand against the
+`[disp]` block. That is the honest answer to "which surface gives me this today".
+
+**The list itself** was derived by importing `audit.py` and reusing its own
+`ALL_CHECKS` + `_load_dispositions()` + `_match_disposition()` — not by reimplementing the
+matcher, so the derivation cannot drift from the gate. It reproduces the gate exactly
+(95 findings / 52 warn / 27 disp / **25 undisp** / 0 fail).
+
+| # | Organ | Count | Owner row | Owner status |
+|---|---|---|---|---|
+| 1 | `doc_rot` — `backlog-row-length` | **20** | `[#532]`/A9 (the ruling all six row-length dispositions cite) | **CLOSED** |
+| 2 | `doc_rot` — `grooming-cadence` | 1 | `[#348]` Backlog grooming as a standing routine | open |
+| 3 | `undeclared_edges` | 2 | `[#241]` Undeclared-edge groom | open |
+| 4 | `fleet_audit_replication` | 1 | `[#460]` | **CLOSED** |
+| 5 | `review_artifact_coverage` | 1 | `[#560]` | open |
+
+The 20 row-length WARNs, verbatim (`chars (declared ceiling 1320)`):
+
+```
+#344 1485   #533 2239   #534 1640   #549 1491   #564 1826
+#569 2476   #571 1602   #420 1370   #559 3073   #577 3193
+#568 1671   #491 3164   #578 2711   #570 1439   #541 1758
+#561 2386   #567 1746   #348 1360   #426 1370   #555 1508
+```
+
+and the fifth doc_rot WARN:
+
+```
+history-accretion bloat: grooming-cadence BACKLOG#grooming-cadence
+  (last groom 2026-07-30, 24d ago (> 21d cadence, ADR-41))
+```
+
+the two edges:
+
+```
+undeclared prose edge (ADR-88 FC2): docs/intake/2026-08-22-tech-document-dependency-graph-organ.md -> handoff-process (tier 1)
+undeclared prose edge (ADR-88 FC2): ecosystem/conformance.md -> handoff-process (tier 2)
+```
+
+and the two singletons:
+
+```
+fleet_audit_replication: automation/fleet-audit is 2 commit(s) ahead of origin -- a recent push
+  likely failed; ADR-80's durable record is behind
+review_artifact_coverage: 22 code-impact merge(s) since 2026-08-05 carry no linked review artifact
+```
+
+**`fleet_audit_replication` is the one WARN with a mechanical, non-judgment fix**: the branch is
+literally 2 commits ahead (`git rev-list --count origin/automation/fleet-audit..automation/fleet-audit` = 2,
+tip `e3fecaf5 chore(routine/fleet-audit): record 2026-08-23 baseline`). Pushing that branch clears
+it. It was **not** pushed here — the mandate freezes this session to its own branch and forbids
+unplanned mutation, and pushing a sibling automation branch is outside the write-scope even as
+amended. **Flagged for the operator as a one-command clear.**
+
+**Two of the five owner rows are CLOSED**, so **21 of the 25** blocking WARNs (the 20 row-length
+plus `fleet_audit_replication`) currently have **no open row that owns them**. A WARN whose owner
+is closed cannot be worked off through the ledger; it can only be re-dispositioned or re-filed.
+
+### 3.4 Does a RED ship-gate block the ADR-85 pre-push leg on `main`? — **NO**
+
+**Answer: only the anchor leg (and the FF leg) block a push. A RED ship-gate does not.**
+Dispositioning is therefore **housekeeping with respect to pushing**, and a **hard precondition
+with respect to `/ship`**. This is settled mechanically, not by reasoning:
+
+**(1) There are exactly two pre-push hooks, and neither is ship-gate.** Parsed from
+`.pre-commit-config.yaml`:
+
+```
+id=block-ff-push          stages=['pre-push']  entry=uv run --locked python scripts/block_ff_push.py
+id=block-unanchored-push  stages=['pre-push']  entry=uv run --locked python scripts/block_unanchored_push.py
+```
+
+No hook in the config has `ship-gate` or `ship_gate` in its entry, and neither pre-push script
+mentions either token (`grep` over both files returns nothing).
+
+**(2) `ship-gate`'s own docstring names its moment, and it is `/ship`, not push:**
+
+> Pre-ship verification-organ gate (#147): make "Definition of shipped" point
+> (6) enforceable at **/ship time**. No file writes (read-only, Layer-2).
+
+and it states the seam against the *commit* gate explicitly:
+
+> - `audit-health` gates each COMMIT: FAIL-only (WARNs pass), gate-mode SKIPS the
+>   expensive claim-3 (pytest --collect-only) to stay fast.
+> - `ship-gate` gates the feature ARC at /ship: FAIL **and** new/undispositioned WARN
+
+Note what this pairing implies and the mandate should hear plainly: because `audit-health` is
+**FAIL-only**, all 25 undispositioned WARNs pass every commit — which is why every commit in this
+session went green against a RED ship-gate. There is no contradiction; they are different postures.
+
+**(3) The only consumer that blocks on it is the `/ship` command**, which owns the arc-merge:
+
+> `python scripts/audit.py ship-gate`. If it exits non-zero, stop:
+> `Pre-flight FAILED: ship-gate red — verification organs not green for this arc (see the gate
+> output; fix a FAIL or disposition/clear a new WARN in ecosystem/disposition-register.yaml — do
+> NOT disposition a real drift).`
+
+`/handoff-verify` also *reads* the gate, but as a read-back row in an evidence table — it reports,
+it does not gate.
+
+**Consequence for the window.** The five lanes can branch, commit and push all day with the gate
+RED. What they cannot do is `/ship`. So dispositioning is **not** a precondition for opening the
+batch — it **is** a precondition for closing any arc through `/ship`, and it will surface at the
+integrator, not at the lanes. Sequencing it before dispatch is optional; sequencing it before the
+first `/ship` is not.
+
+### 3.5 The three `[stale]` dispositions — the mandate's hypothesis is HALF right
+
+The mandate proposed one shape: *"they orphaned when their rows closed or were pointer-ized"*.
+Measured, **there are two distinct shapes, and the second is the more serious**:
+
+| Disposition | Subject row | Row status | Live WARN? | Why it orphaned |
+|---|---|---|---|---|
+| `warn-row-length-529-telemetry-emit` | `[#529]` | **closed** | no | Row left the ledger — hypothesis holds |
+| `warn-row-length-530-single-flight` | `[#530]` | **closed** | no | Row left the ledger — hypothesis holds |
+| `warn-row-length-533-audit-decomposition` | `[#533]` | **OPEN** | **YES** | The row was *edited*, not closed |
+
+`[#533]` is the interesting one. Its row is open, over budget, and **emitting a live WARN right
+now** — it is item 2 in the undispositioned list above at `2239 chars`. Its disposition reads:
+
+```yaml
+id:    warn-row-length-533-audit-decomposition
+organ: doc_rot
+match: 'backlog-row-length BACKLOG#533 (4210 chars'
+ref:   '[#532]/A9'
+```
+
+The `match` pins **`4210 chars`**. The row has since been shortened to **2239**. The substring no
+longer matches, so the entry orphans as `[stale]` **and** its WARN silently re-enters the blocking
+set. One edit produced both a false `[stale]` line and a new RED contributor.
+
+**This is a class defect, and it is measurable.** All **6** `doc_rot` row-length dispositions in
+the register embed a volatile character count in `match`; the other **24** entries are count-free:
+
+```
+volatile (embeds "(NNNN chars"):  6 of 30   — every row-length disposition
+  546 (2227)  547 (2099)  552 (3576)  533 (4210)  529 (2001)  530 (1871)
+count-free:                      24 of 30   — no_ff, undeclared_edges, reconciled_versions,
+                                              review_artifact_coverage, journal_spine_anchor
+```
+
+**3 of those 6 have already orphaned — a 50% failure rate in the class.** The surviving three
+(`#546`, `#547`, `#552`) are dispositioned only because nobody has edited those rows yet; each
+will orphan on its next edit. Since `doc_rot` row-length WARNs are **20 of the 25** things keeping
+the gate RED, this one design choice is the dominant cause of the current verdict.
+
+### 3.6 Is the stale shape mechanically detectable? — **YES, both shapes, separately**
+
+Reporting only, per the mandate; nothing was built.
+
+- **Shape (a), closed subject row.** Deterministic. `match` carries the id in a fixed literal
+  (`backlog-row-length BACKLOG#(\d+)`); resolve `tasks/<id>-*.md` and read its `status:`
+  frontmatter. Terminal status (`closed` / `retired` / `superseded`) + no live WARN = provably
+  orphaned. No judgment. Both `#529` and `#530` are caught by this with certainty.
+- **Shape (b), drifted evidence.** Also deterministic, but a *different* predicate: key the
+  register entry by its **id-prefix** (`backlog-row-length BACKLOG#533 (`) rather than the full
+  string, and compare against the live WARN set. A live WARN sharing the prefix but not the full
+  `match` is a **drifted** disposition, distinguishable from a genuinely-cleared one. `#533` is
+  caught only by this leg, and it is exactly the case a shape-(a)-only detector would mislabel as
+  "row still open, so the disposition must be fine".
+
+The cheaper structural fix — noted, not proposed as work — is upstream of detection: **stop
+embedding the measurement in `match`.** A `match` of `backlog-row-length BACKLOG#533` (no count)
+is still a whole-Finding substring match, still satisfies the register's stated disposition
+contract, and cannot be invalidated by an edit that does not change which row is over budget.
+That would retire shape (b) rather than detect it.
