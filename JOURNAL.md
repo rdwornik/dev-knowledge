@@ -19,6 +19,61 @@
 
 ---
 
+### 2026-08-24 (a) - CC (Opus 5, lane `rulings-landing`, branch `worktree-rulings-landing`): the architect's rulings are in the repo as appends, and the suite does not match the baseline it was contracted against
+
+**Did:** executed the frozen LANE-L6 contract - three governance corrections landed in-repo so the
+next seat inherits them instead of re-deriving them. All three are **appends**; none is an in-place
+edit (`CLAUDE.md` §5 rule 3, `STANDING_RULINGS.md` J-3). (1) Parts 1-3 of
+`RULINGS-and-AMENDMENTS-2026-08-23.md` (v2 reissue, operator disk - which is why this lane is LOCAL
+and not cloud) appended **verbatim** to the Phase 0 packet under a dated architect-amendment heading
+(`4b19c375`). (2) `AMENDMENT A2` appended beneath A1 in the architect bundle's `HANDOFF_BOOT.md` -
+`docs/adr/` reads `docs/decisions/`, A1's text untouched (`a634e00e`). (3) A provenance correction
+appended to intake `#34` (`41cb9ccd`). Report: `docs/audits/2026-08-24-verification-l6-rulings-landing.md`.
+
+**Verbatim was proven, not asserted.** The landed block was extracted back out of the packet and
+diffed against source lines 20-282: no output. Part 4 (landing sequence) is procedural and was
+deliberately not carried - stated in the appended header rather than silently omitted.
+
+**`#34` changed characterization, not status.** Ratification item 1 is **discharged** - the source
+artifact is in-repo at `docs/archive/2026-08-09-research-code-style-doctrine-wf-8a83eb70.md`, on
+three identity checks re-verified live (H1 matches the quoted title character-for-character; §A
+reproduces the archive TL;DR exactly; git-added `f571ac3c` **2026-08-10, six days before** the
+intake claiming to be blocked on it was routed). Item 3 records as ruled RATCHET; items 2, 4 and 5
+stay the operator's. `status: DRAFT` is **unchanged**, no `decided-by` added, and the **false
+provenance sentence is left visible** - it is the evidence for R6's funnel finding that an intake
+was authored declaring a blocker already false at authoring time, and a silent fix destroys the
+finding. Same reason A1's wrong path stays: it is the evidence for error E1.
+
+**The A2 baseline is NOT matched, and that is the honest result rather than a rounded one.** Run
+unpiped: `2 failed, 3561 passed, 9 skipped, 1 xfailed`, `PYTEST_EXIT=1` - against a contracted
+baseline of 1/3567/4/1. The arithmetic still reconciles: `2+3561+9+1 = 3573`, the count pinned in
+`doc-counts.md`, so no test was lost. RED 1 is the known inherited `anchor_gate_probe`. **RED 2 is
+`test_stale_worktrees.py::test_linked_worktrees_reader_excludes_the_primary`, and it is proven not
+this branch's**: `git diff main...HEAD -- tests/ scripts/ .pre-commit-config.yaml .claude/` is
+empty (three markdown files, nothing else), and detaching to bare `main` `aeec0fd1` **in this same
+worktree** reproduces it in 1.36s. It fails because the suite is running *from inside a linked
+worktree* - `aud._REPO_ROOT` resolves to the worktree, which is in the linked list by construction.
+Same class as the baseline RED: a test that reads live tree state and cannot tell "wrong" from
+"measured somewhere else". Any lane running the full suite from a worktree inherits it.
+
+**Reported, not explained:** six tests that pass in the primary become one RED plus **five skips**
+here. The five identities were not enumerated - `-q` prints no skip reasons and naming them costs a
+second ~24-minute run that changes nothing about this branch. Left as a stated loose end rather
+than allowed to read as a clean baseline.
+
+**Changes:** `docs/audits/2026-08-23-technical-phase0-preconditions.md` (+276, appended),
+`docs/handoffs/2026-08-23-dev-knowledge-architect/HANDOFF_BOOT.md` (+12, appended),
+`docs/intake/2026-08-16-code-architecture-enforcement.md` (+56, appended),
+`docs/audits/2026-08-24-verification-l6-rulings-landing.md` (new), this entry.
+
+**Abandoned:** nothing. No push, no merge, no self-merge - Part 4 item 5 makes the merge the
+operator's serial gate, and the five-lane batch dispatches only after it.
+
+**Next:** operator merges this branch; then the batch dispatches. Carried to the integrator by the
+ruling sheet and NOT by this lane: the R5 de-volatilization of the six `doc_rot` `match` strings,
+the `automation/fleet-audit` push, the four non-row-length WARNs, and the empty story `[S24]`.
+
+
 ### 2026-08-23 (j) - CC (Opus 5, Phase-0 seat, branch `chore/phase0-preconditions-2026-08-23`): the five-lane batch's preconditions are measured, and four of the six premises it was built on do not survive contact with the repo
 
 **Did:** ran SESSION 00 end to end in the primary tree with `main` frozen to this seat - landed the
