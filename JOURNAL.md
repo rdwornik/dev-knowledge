@@ -19,6 +19,75 @@
 
 ---
 
+### 2026-08-23 (d) - CC (Opus 5, integrator, branch `fix/562-guard-decode-2026-08-23`): the tree goes down to main-plus-protected, and four reported defects stop being reported
+
+**Did:** the branch and worktree hygiene sweep, then the Ch8 wave close over the 562-local run -
+one MECHANICAL fix executed, one intake filed, one carrier row born, five lines rejected with
+reasons.
+
+**Result: `origin` now carries `main` and `automation/fleet-audit` and nothing else.** Seventeen
+remote branches retired, every one verified before deletion rather than after: thirteen were
+strict ancestors of `origin/main`, and the four kept cloud artifact branches were checked
+**blob-by-blob** - `cloud-r1` and `cloud-r4` are byte-identical at the same path on `main`, and
+`cloud-r2`/`cloud-r3` are byte-identical at their relocated `docs/audits/` paths, the root
+`ARTIFACT-*.md` names having been refused by ADR-101. Push-before-delete throughout (Q3). Locally:
+`main`, the protected `automation/fleet-audit`, and `worktree-lane-docs-governance`, which is a
+LIVE lane and was left alone deliberately.
+
+**One leftover, and it is named rather than swept.** The `lane-562-local` worktree is deregistered
+and its contents are gone, but the empty directory survives: the lane's own `claude` process (pid
+36348, idle since 12:46) still holds it as its working directory, so Windows refuses the rmdir. The
+git-side state is clean - `git worktree list` no longer shows it and the branch is deleted - and
+the directory disappears when the operator closes that window. Reporting it beats forcing it.
+
+**The funnel table is the wave close's mandatory artifact, and it classifies more than the four.**
+`docs/audits/2026-08-23-technical-wave-close-funnel.md` carries D0-D5: the four reported instrument
+defects, the verdict's two successors, section 9's six limitations and section 7.4's indeterminacy -
+each with the ADR-111 clause it answers to. No line was a genuine fork, so no PAUSE was taken.
+
+**F1 was executed, not deferred, and it was the sharpest of the four.** `subprocess.run(text=True)`
+with no `encoding=` decodes with the platform codepage, so on this host the guard handed each lane
+mojibake for every non-ASCII byte - while `C1-X1` scores em dashes **verbatim** and tells the lane
+not to correct anything. Both lanes passed that item by silently correcting a corrupted source,
+which is luck aligned with the answer key rather than an instrument working. **All three decode
+sites are pinned, not just the one the run hit**, with `errors="replace"` added where it was
+missing so the pin cannot introduce a new raise path. Two tests, and the fix is **mutation-checked**:
+reverting it fails both, one at the em dash and one naming the offending line by number. 113 passed,
+was 111.
+
+**F2 and F3 went to intake rather than to a row, and that is a rule not a preference.** ADR-111 §2:
+a finding may not become a backlog row directly. Intake 41 carries the real question both defects
+are two views of - the guard's refusal surface is part of what the A/B measures. 29 of 38 refusals
+were shell-construct, split 22 to 7 between the two candidate lanes, and it reached a scored item:
+two refused attempts to DERIVE the `C1-R5` count, then an eyeball, then 86 against a true 87. The
+fabrication stays the candidate's; the instrument's contribution is what the intake asks about.
+
+**F4 is REJECTED with its reason recorded.** A guard that refuses is information the moment it
+refuses; the only undetectable instrument is one that never intervenes. The limit was declared
+before the run and no answer-key content leaked, so what happened is a declared limit behaving as
+declared.
+
+**The birth is funded, and the arithmetic ran before the filing rather than after.** Window baseline
+214 open rows, 11 closures against 8 births, so 3 of headroom; this table spends exactly 1 on
+`[#578]`, the carrier for the earned mitigated-rerun slot and the owed incumbent measurement. That
+row exists because register P-2 will not let a ruling end in a closed row's history.
+
+**Changes:** `scripts/nopack_sandbox.py` (three decode sites), `tests/test_nopack_sandbox.py` (+2
+tests), `ecosystem/doc-counts.md` regenerated twice (once for the inherited 111-test drift, once for
+these two); the funnel artifact + regenerated `docs/audits/README.md`; intake 41 + both intake
+generators; `tasks/578-*` + `tasks/manifest.json` + regenerated `BACKLOG.md` (211 -> 212).
+
+**Abandoned:** forcing the empty `lane-562-local` directory out from under a live process. And
+fixing F2/F3 in-session - widening a security guard's allowlist is a threat-model judgement, which
+is exactly what MECHANICAL excludes.
+
+**Anchors:** `8c9fe372` (the decode fix) and `b45e4146` (the funnel table and its filings) - both
+commits this merge introduces.
+
+**Next:** the window seal - final ledger line, the A4 release-notes over the window's three operator
+demands, the next-window queue, and the handoff bundle cut on its own branch for the operator to
+gate.
+
 ### 2026-08-23 (c) - CC (Opus 5, integrator, branch `docs/562-closure-verdict-2026-08-23`): the verdict lands, the row closes REFUSED, and the two successors are named rather than buried with it
 
 **Did:** landed the architect's admission verdict over the 562-local run, closed `[#562]` through
