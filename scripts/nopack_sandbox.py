@@ -959,6 +959,8 @@ def _git(repo: Path, *args: str, check: bool = True) -> str:
         ["git", "-C", str(repo), *args],
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         check=False,
     )
     if check and proc.returncode != 0:
@@ -1016,6 +1018,8 @@ def provision(
         ["git", "clone", "--local", "--quiet", str(source), str(dest)],
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         check=False,
     )
     if proc.returncode != 0:
@@ -2182,6 +2186,10 @@ def run_guarded(
                 input=piped,
                 capture_output=True,
                 text=True,
+                # The child speaks UTF-8; without this the decode falls back to the
+                # platform codepage (cp1252 here) and delivers mojibake for every
+                # non-ASCII byte -- on an item set that scores em dashes verbatim.
+                encoding="utf-8",
                 errors="replace",
                 timeout=max(remaining, 0.1),
                 check=False,

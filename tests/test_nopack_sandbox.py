@@ -678,6 +678,52 @@ def test_devnull_is_the_only_permitted_redirect():
     assert ns.screen_command("cat < CLAUDE.md").kind == "redirect"
 
 
+def test_delivered_output_is_decoded_as_utf8_not_the_platform_codepage(sandbox: ns.Sandbox):
+    """Regression for the 2026-08-23 run's defect 1.
+
+    `subprocess.run(text=True)` with no `encoding=` decodes with the platform codepage.
+    On the operator host that is cp1252, so a UTF-8 em dash in the tree reached the lane
+    as `â` while the file on disk held `—`. The A/B item set scores
+    em dashes verbatim and tells the lane not to correct anything, so a corrupted copy of
+    the exact bytes an item demands is an instrument defect, not a cosmetic one.
+    """
+    (sandbox.path / "em-dash.txt").write_text("before — after\n", encoding="utf-8")
+
+    res = ns.run_guarded("cat em-dash.txt", sandbox)
+
+    assert res.refused is False
+    assert res.returncode == 0
+    assert "—" in res.stdout, "the em dash must survive the guard's own decode"
+    assert "â" not in res.stdout, "UTF-8 bytes decoded as cp1252"
+
+
+def test_every_subprocess_decode_site_pins_its_encoding():
+    """The sibling sites, so fixing one instance does not leave the class alive."""
+    source = ast.parse(
+        (REPO_ROOT / "scripts" / "nopack_sandbox.py").read_text(encoding="utf-8")
+    )
+    calls = [
+        node
+        for node in ast.walk(source)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "run"
+        and isinstance(node.func.value, ast.Name)
+        and node.func.value.id == "subprocess"
+    ]
+    assert calls, "the guard must still shell out somewhere, or this test is vacuous"
+    for call in calls:
+        keywords = {kw.arg for kw in call.keywords}
+        if "text" not in keywords and "universal_newlines" not in keywords:
+            continue  # a bytes-mode call decodes nothing
+        assert "encoding" in keywords, (
+            f"subprocess.run at line {call.lineno} decodes with the platform codepage"
+        )
+        assert "errors" in keywords, (
+            f"subprocess.run at line {call.lineno} would raise on undecodable bytes"
+        )
+
+
 def test_dropped_streams_are_actually_dropped(sandbox: ns.Sandbox):
     noisy = ns.run_guarded("git rev-parse --verify nope-no-such-ref", sandbox)
     assert noisy.stderr != ""
