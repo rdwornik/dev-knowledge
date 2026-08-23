@@ -19,6 +19,83 @@
 
 ---
 
+### 2026-08-23 (j) - CC (Opus 5, Phase-0 seat, branch `chore/phase0-preconditions-2026-08-23`): the five-lane batch's preconditions are measured, and four of the six premises it was built on do not survive contact with the repo
+
+**Did:** ran SESSION 00 end to end in the primary tree with `main` frozen to this seat - landed the
+operator's write-scope amendment, measured the ledger, enumerated the ship-gate, verified six
+architect premises against quoted sources, modelled the two collision points, and resolved intake
+`#34`'s blocker. One packet: `docs/audits/2026-08-23-technical-phase0-preconditions.md`.
+
+**Result: `banked = 0`, and that is a finding rather than a shortfall.** Three independent sweeps
+found no mechanically-provable dead row in the 212. The ADR-70 STRONG tier proposed two and both
+failed verification - `#430`'s evidence closes *"half (a)"* only, and `#554`'s subject reads
+*"five HIGH findings closed [#554]"* while the same commit's trailer says *"review fixes inside the
+open row"*. That is a defect in the detector, not two unlucky rows: `CLOSES_RE` matches a
+verb-adjacent token rather than a declaration, so a past participle reads as a directive. The other
+179 proposals are WEAK inferences the file itself forbids bulk-approving. Births therefore stay
+unaffordable on evidence, and grooming 212 remains an arc.
+
+**Four premises did not survive, and one of them changes a lane's shape.** `[#171]` leg 1 is
+**NOT** ruled as option (b) - it appears nowhere in `STANDING_RULINGS.md` and in none of the 23
+2026-08-22 artifacts, and the artifact the mandate cites says the opposite in the present tense:
+*"Needs the architect's (a)/(b) choice."* The mandate had read the **description of option (b)** as
+the consequence of a decision already taken. This matters because `LANE-L4` carries leg 1 as an
+*execution* item at effort `medium`; it cannot execute a ruling that does not exist. `[#577]` is the
+**AGENTS.md** lane, not a provider-configuration carrier - the architect was right and the mandate
+wrong, and `LANE-L1` already pre-branches on exactly this answer, so the operative instruction is
+*do not extend `[#577]`; specify a new carrier row*. "0 intakes archived" is simply false - seven
+are archived, ACCEPTED-in-archive is 0 and terminal-still-live is 0, so a manual rule is being
+observed 7-for-7. And `[#563]` is unwired **by its own ratified binding condition 3**, so a lane
+told to wire it up would break a ruling.
+
+**The ship-gate is RED on 25 undispositioned WARNs, and no mode lists them.** `cmd_ship_gate`
+computes the list and only ever calls `len()` on it, printing all 52 WARNs under one
+undifferentiated marker. The 25 were derived by reusing `audit.py`'s own `ALL_CHECKS` +
+`_match_disposition` rather than reimplementing the matcher, and reproduce the gate exactly. **A RED
+ship-gate does not block a push** - there are exactly two pre-push hooks and neither runs it, so
+dispositioning gates `/ship`, not the batch. Two of five owner rows are CLOSED, so 21 of the 25 have
+no open owner. The three `[stale]` dispositions do **not** share one shape: two orphaned because
+their rows closed, but `#533`'s row is open and over budget - its `match` pins `(4210 chars` and the
+row is now 2239, so **editing a dispositioned row silently orphans its disposition and re-arms its
+WARN**. All six row-length dispositions embed a volatile count; three have already failed.
+
+**Both collision-point designs are the right shape and both need the same correction.** `ALL_CHECKS`
+is a list literal, but `len()` is pinned by exact equality in **six** places whose correct value is
+N-dependent - no lane can author `43 -> 44` when three lanes are landing. And `tasks/` is not
+one-file-per-task: `manifest.json` is a single 66 KB file whose 486 nodes are the membership and
+ordering authority, so a task `.md` with no node renders into nothing. In both cases the shared,
+count-or-order-bearing surface belongs to the integrator and the lane's deliverable is a
+specification or a fenced diff, never an edit - which is what the batch contracts already say.
+
+**Intake `#34`'s blocker is discharged, and the flip was still not taken.** Entry (i) recorded the
+source artifact as operator-held *"with its location recorded as unknown"*. It is in the repo, at
+`docs/archive/2026-08-09-research-code-style-doctrine-wf-8a83eb70.md`, git-added `f571ac3c` on
+**2026-08-10 - six days before the intake was written**. Identity confirmed three ways: exact H1
+title match, a byte-verbatim TL;DR match against Section A, and the chronology. The flip was not
+performed because ACCEPTED requires a `decided-by`, items 2-5 remain open judgment, and today's seal
+says no lane may take it. `#34` moves from blocked-and-unsatisfiable to
+unblocked-and-awaiting-an-operator-decision.
+
+**Suite: 1 failed, 3567 passed, 4 skipped, 1 xfailed** - totalling exactly the 3573 pinned in
+`doc-counts.md`. The single RED is `test_anchor_gate_probe_distinguishes_installed_from_absent`,
+inherited since 2026-08-22 and named as the live known RED in today's own window seal. This branch
+is markdown-only (three `.md` files), so nothing here could have caused it.
+
+**Abandoned:** nothing. No row filed, nothing ruled, `tasks/` and `BACKLOG.md` untouched.
+
+**Next:** five decisions are batched at packet §7 - `[#171]` leg 1's (a)/(b) fork (blocks L4),
+whether A1's `docs/adr/` means `docs/decisions/` (that path does not exist), the birth budget given
+`banked = 0`, when the 25 WARNs get dispositioned, and intake `#34` items 2-5. **NOT merged** - the
+operator is the serial gate.
+
+**Anchors:** `b97bca5b` (the write-scope amendment) and `e4b5c412` (the premise verification pack) -
+both commits this merge introduces.
+
+**Changes:** `docs/audits/2026-08-23-technical-phase0-preconditions.md` (new, the packet),
+`docs/handoffs/2026-08-23-dev-knowledge-architect/HANDOFF_BOOT.md` (AMENDMENT A1 appended),
+`docs/audits/README.md` (regenerated), and this entry.
+
+
 ### 2026-08-23 (i) - CC (Opus 5, architect seat, branch `docs/supplement-answers-2026-08-23`): the incoming window's binding mandate stops being an uncommitted working-tree change
 
 **Did:** booted the `2026-08-23-dev-knowledge-architect` bundle as the incoming architect seat, and
