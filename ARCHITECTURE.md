@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-08-22
+last_reviewed: 2026-08-23
 reconciled_with: handoff-process@6.2.0
 status: active
 owner: Rob
@@ -14,7 +14,35 @@ owner: Rob
 > class this repo exists to kill). Fix the map when reality moves; fix the *source*
 > when the doctrine moves.
 >
-> Last updated: `2026-08-22` — **A3 ruled: Ch3 declares the L0 boundary, and the re-read closed two
+> Last updated: `2026-08-23` — **governance-drift discharge, part 1 of 2 (lane
+> `lane-docs-governance`): the 2026-08-21 CLOUD-R1 audit's SAFE-MECHANICAL ARCHITECTURE findings
+> are executed, and the end-to-end re-read found three more the audit missed.** From R1's verdict
+> table: **A2** the "read-only validators" claim re-scoped (Purpose + §Validators) — the prohibition
+> is on driving a CHILD repo's state, which is invariant 2's already-checkable form; **A3** the Ch2
+> pre-commit id enumeration **retired in favour of the pointer the sentence already carried** —
+> R1's *second* written option, taken because its first (add `block-commit-on-main`) would have
+> landed eighteen-of-a-live-**twenty-one**, a fourth recurrence of the defect that sentence's own
+> parenthetical already records three times; `block-commit-on-main` is instead named where it is
+> load-bearing, in the `always_run` paragraph below it; **A5/A6** two locator repairs
+> (`fleet_health.py:82`→`:156`; `validate_doc_claims.py:225-236`→**`:224-239`** — R1's own proposed
+> `:224-240` was itself off by one against live source, which is M1 catching M1); **A7** the ADR-86
+> §3 Ch2 pointer to `ecosystem/conformance.md`. **Drift this re-read found that R1 did not, and
+> fixed here:** (1) the Enforcement-model bullet and (2) the `audit.py` §Validators bullet each
+> carried the *same* "read-only" falsity — sites **six and seven** of the `[#558]` claim, in a file
+> R1 reported as holding two; and (3) Ch5's file-lifecycle table still listed `BACKLOG` as **Living /
+> update in place**, contradicting Ch5's own source-zone prose twenty lines below and falsifying
+> R1's *"CLAUDE.md is the only one of the three"*. That triple is **M3's lesson landing on M3's own
+> audit: a sweep scoped to the sites a prior sweep named will keep reporting zero.** **Found and NOT
+> fixed, with reasons:** the Governing ADRs tail stays out of numeric order (cosmetic; reflowing
+> would bury this diff); Ch6's *"currently 15 open, newest 2026-06-25"* Issues count (R1 **A17**)
+> stays unverified — this lane exercised no `gh` reach, and restating it at a guessed value is the
+> very failure it already is; **`[#171]` is NOT closed** — its Done-when's "generated + *committed*
+> by a read-only validator" leg is unimplemented (the Ch2 dashboard note states it). **Stamp
+> semantics, stated:** this pass re-read the file **end-to-end from disk, all six chapters plus
+> Governing ADRs**, and mechanically re-derived every claim it touched against live source
+> (`.pre-commit-config.yaml` ids, `_CLAIMS` bounds, the `fleet_health` throttle line,
+> `gen_dashboard`'s write path). **Honest limit, unchanged from prior passes:** it did not re-derive
+> doctrinal correctness against the full text of every cited ADR. Prior: `2026-08-22` — **A3 ruled: Ch3 declares the L0 boundary, and the re-read closed two
 > drifts it found.** Ch3's automation axes gain the ruled declaration that the routing table
 > (`~/.claude/ROUTING.md`), the reviewer pin and the Codex config are **L0 surfaces, out of this
 > repo's universalization scope** — architect ruling 2026-08-22 over the cloud-wave funnel table
@@ -145,7 +173,9 @@ owner: Rob
 framework for all `Dev/` projects. It is **Layer 2** of the ADR-28 three-layer
 ecosystem model — passive storage and governance authority, not an execution
 engine. It holds operational protocols, ADRs, intake docs, handoffs, templates, and
-read-only validators; it prescribes conventions that child repos must follow. **A fleet count
+hub-local validators, generators and gates; it prescribes conventions that child repos
+must follow. **What Layer 2 may not do is drive a CHILD repo's state** — the prohibition is
+on siblings, not on this repo's own tree (invariant 2 below is the checkable form). **A fleet count
 is meaningless without its surface — three nest, and each is authoritative for its own
 question** (machine-registered ⊂ human-registered ⊂ all git repos):
 
@@ -255,7 +285,7 @@ out-of-band and read-only.
   *constraints, priority, scope* — not technical correctness; cross-repo review
   authority is asymmetric (ADR-63). The architect surfaces trade-offs; the operator
   picks (ESSENTIALS "Architect routing for technical proposals").
-- **Enforcement model.** Centralized, read-only `scripts/audit.py` (self-audit
+- **Enforcement model.** Centralized `scripts/audit.py` — read-only **on siblings** (self-audit
   `health` + cross-repo `run`; live registry via `python scripts/audit.py checks`).
   The cross-repo `run` is **manual, no downstream commit-gating**; the self-audit
   `health` runs as a **local pre-commit gate** here (Ch2 / ADR-31, ADR-36, ADR-69).
@@ -283,6 +313,23 @@ organ, what fires it, the layer it lives in, and how it fails.
 > `docs/ORGAN-INDEX.md` to `ecosystem/organ-index.md` on 2026-08-12 by operator ruling A
 > of 2026-08-11 (register `protocols/STANDING_RULINGS.md` K-1): it is generated ecosystem
 > state, not a `docs/<genre>/` artifact.
+
+> **Conformance dashboard → `ecosystem/conformance.md`** (+ its HTML sibling
+> `ecosystem/conformance.html`, operator addendum 2026-08-19), generated by
+> `scripts/gen_dashboard.py`. This is the **claims-vs-state** surface — where the ADR-85 R2 /
+> [#169] ungated-doc staleness signal lands, and where anti-orphan violations, the ADR ledger
+> and the commit-tax figures are rendered. The organ index above answers *what exists and what
+> fires it*; this table answers *what happens when it says no*; the dashboard answers *does the
+> repo currently match what it claims about itself*. Required by **ADR-86 §3** (the G7
+> coverage-matrix gap), which specifies the pointer "lands with the build, not before" — the
+> build shipped, so it lands here. **Honest limits, both live as of 2026-08-23:** the dashboard
+> is HEAD-pinned and regenerates only on demand — nothing gates it (`--check` exists in
+> `gen_dashboard.py` and is armed nowhere, the lone ungated committed-generated surface in this
+> repo) — and the generator **does not commit its own output** despite both artifact faces
+> claiming it does (`write_outputs` writes two files and returns; the sole subprocess is a
+> read-only `GitReader`). Those two are R3 findings F5 and F3 and are why **[#171] is not
+> closed by this pointer**: its Done-when also requires "generated + *committed* by a read-only
+> validator", which no code path performs.
 
 Every enforcement/awareness organ, with its trigger, the layer it lives in, and its
 **failure posture** (fail-closed = blocks the action; propose-only = writes a
@@ -315,7 +362,7 @@ An organ can be ARMED and still tell you nothing. Read the qualifier before trus
 |---|---|---|---|---|---|
 | `block-onedrive.ps1` (PreToolUse) | every Bash/PowerShell/Edit/Write/NotebookEdit call (command + file_path/notebook_path) | L0 | **fail-closed** (P0) | ARMED | ADR-75, global CLAUDE.md §P0 |
 | `block_immutable_edits.py` (PreToolUse) | Claude **mutating tools only** (Edit/MultiEdit/Write/NotebookEdit) on `docs/decisions/transcripts/**` — that zone was **deleted at `b4435fad` (2026-07-23), per the operator ruling of 2026-07-22**, so the guard currently matches nothing; a Bash/PowerShell write is **not** caught | hub | fail-closed in-zone, fail-open out-of-zone | **ARMED (no-op zone)** — kept armed deliberately as the standing refusal that re-creating the zone does not silently re-open in-place editing | ADR-77 (#105); **`.methodology.yaml` `adr77-transcript-guard`** (RULED 2026-07-25, re-read at `review_date: 2026-10-25`) |
-| `fleet_health.py` (SessionStart) | session start, throttled to **once per calendar day** (`fleet_health.py:82`, `d != date.today()` — a date comparison, not a rolling 24h window: two sessions either side of midnight both run) | hub · Tier-2 | fail-soft | ARMED | ADR-69/70/76 |
+| `fleet_health.py` (SessionStart) | session start, throttled to **once per calendar day** (`fleet_health.py:156`, `d != date.today()` — a date comparison, not a rolling 24h window: two sessions either side of midnight both run) | hub · Tier-2 | fail-soft | ARMED | ADR-69/70/76 |
 | `fleet_health.py` `[load]` operator-load gauge — `collect_load` reads triage/closures/dispositions/review-pending/backlog, `load_line` renders the one-line digest, `append_load_row` writes the trend row | rides the same once-per-day SessionStart throttle as the row above | hub · Tier-2 | fail-soft per producer (an unreadable `BACKLOG.md` yields `n/a`, never a false zero) | ARMED | [#270]; `scripts/fleet_health.py:610` (`collect_load`), `:642` (`load_line`), `:689` (`append_load_row`); trend sink `logs/OPERATOR-LOAD.csv` (gitignored) |
 | `surface_triage.ps1` (SessionStart) | session start | hub | fail-soft | **ARMED (stale input)** | nightly outcome loop (Ch6) |
 | `billing_leak_sentinel.ps1` (SessionStart) | session start | hub | fail-soft (WARN) | ARMED | #101 |
@@ -387,8 +434,10 @@ in reality by the cloud Routine (Ch6 supersession note).
 
 ## Validators and enforcement (executable, here) [CORE]
 
-Per the ADR-28 invariant, Layer 2 hosts **read-only** validators (it does not
-orchestrate, but it may verify itself). These are the *executable* organs the map
+Per the ADR-28 invariant, Layer 2 hosts **hub-local validators, generators and gates** —
+read-only **on siblings** (invariant 2), never read-only on its own tree, where many of these
+scripts write and `audit.py` pushes to `origin` (`audit.py:3967`). It does not orchestrate a child repo, but it
+verifies, generates and gates itself. These are the *executable* organs the map
 above references — the **named deterministic-trigger organs**, curated to what the map
 references, **not an exhaustive inventory** of every script in `scripts/`:
 
@@ -408,8 +457,10 @@ references, **not an exhaustive inventory** of every script in `scripts/`:
   prose-reference set). A register entry matching no live WARN is surfaced as stale and is
   **removed**, not kept as decoration (ADR-75) — which is where the former
   `warn-77-voided-closure` entry went once #77 was KILL-removed from BACKLOG; the register's own
-  comment block keeps that record. Read-only; hub-only organs no-op on children (the `/ship` wiring is
-  hub-guarded).
+  comment block keeps that record. Read-only **on siblings**, not on this tree — `health`/`ship-gate`
+  write findings, `_replicate_automation_branch` pushes to `origin` (`audit.py:3967`) and
+  `_commit_routine_outputs` commits to `automation/fleet-audit`; hub-only organs no-op on children
+  (the `/ship` wiring is hub-guarded).
 - `scripts/normalize_headers.py` — dated-log header normalization (pre-commit).
 - `scripts/validate_backlog.py` — BACKLOG story-map schema (ADR-66; pre-commit).
 - `scripts/validate_git_backlog.py` — git↔backlog drift, direction (a) STRONG: a
@@ -432,7 +483,7 @@ references, **not an exhaustive inventory** of every script in `scripts/`:
   `no_ff_merges` audit WARN stays the post-hoc backstop; bypass-proof server-side teeth
   deferred under #153 (#153; ADR-84; core-invariants #5).
 - `scripts/validate_doc_claims.py` — prose-vs-state: a living doc's count/list CLAIMS
-  vs ground truth. Four claims (`_CLAIMS`, `validate_doc_claims.py:225-236`): the audit
+  vs ground truth. Four claims (`_CLAIMS`, `validate_doc_claims.py:224-239`): the audit
   check-count (vs `len(ALL_CHECKS)`), the pre-commit gate-count and the pytest collected-count
   (vs `pytest --collect-only`, off-gate) all read the committed-generated
   **`ecosystem/doc-counts.md`** — #222 moved them off ARCHITECTURE.md, and **this file no longer
@@ -615,34 +666,36 @@ remainder stays curated).
 
 - `tests/` — pytest unit tests for the validators (collected count in `ecosystem/doc-counts.md`; `pytest -x --tb=short`).
 
-**Pre-commit gates** (`.pre-commit-config.yaml`): `normalize-dated-headers`,
-`codemap-freshness`, `toc-freshness-playbook`
-(PLAYBOOK.md), `roster-freshness` (methodology-roster vs manifest, #244 P3),
-`claude-rosters-freshness` (CLAUDE.md `.claude/generated/*` fragments vs disk, #258 phase-2),
-`audit-index-freshness` (`docs/audits/README.md` index vs `docs/audits/*`, census A-2),
-`organ-index-freshness` (`ecosystem/organ-index.md` vs the organ sources, [#132]),
-`validate-hermetization` (ADR-101 tree-seal refusal gate, #306),
-`intake-index-freshness` (`docs/intake/README.md` Contents block vs frontmatter, #307),
-`check-seal-identity` (handoff-bundle seal-identity at commit time, [#475]),
-`validate-backlog`, `audit-health`, `ruff` (≥0.15.5),
-`coherence-nudge` (non-blocking forgotten-version-bump nudge — exits 0 always),
-`backlog-id-on-close` + `backlog-filing-backpressure` (commit-msg — the remove-side and
-add-side backlog gates), and the two **pre-push** gates `block-ff-push` (#153 prevent half) +
-`block-unanchored-push` (the ADR-85 hard leg, amendment 2026-08-03 §A5) — activate both once
-via `pre-commit install --hook-type pre-push`. **The id set and its count live in
-`.pre-commit-config.yaml` and `ecosystem/doc-counts.md`**, with CLAUDE.md §9 carrying the
-annotated roster; `validate_doc_claims` claim 2b holds §9 and the config in step, which is why
-the roster is not re-counted here (this list named sixteen of seventeen from 2026-08-03 to
-2026-08-10, missing `block-unanchored-push`; it then named seventeen of eighteen from
-2026-08-11 to 2026-08-12, missing `organ-index-freshness`, which landed with batch-4 W5 —
-the same defect twice, and the reason the count itself is read off
-`ecosystem/doc-counts.md` rather than restated in this sentence).
+**Pre-commit gates.** **The id set and its count are not enumerated here** — they live in
+`.pre-commit-config.yaml` (the source), `ecosystem/doc-counts.md` (the computed count), and
+CLAUDE.md §9 (the annotated roster, held against the config by `validate_doc_claims` claim 2b,
+the one enumeration of this class a gate protects). Read those three; this map points, and the
+pointer cannot rot. What they do not carry, and this map does: the gates run at **three git
+stages** — pre-commit, commit-msg (`backlog-id-on-close` + `backlog-filing-backpressure`, the
+remove-side and add-side backlog gates), and **pre-push** (`block-ff-push`, the #153 prevent
+half, + `block-unanchored-push`, the ADR-85 hard leg per amendment 2026-08-03 §A5). The
+pre-push pair needs a one-time `pre-commit install --hook-type pre-push`; `default_install_hook_types`
+wires it only on a fresh install.
 
-Editing **this file** fires every `always_run: true` hook — `validate-hermetization` and
-`audit-health` at pre-commit, `backlog-id-on-close` and `backlog-filing-backpressure` at
-commit-msg — plus the two whose `files:`/`types:` match it: `normalize-dated-headers`
-(markdown) and `codemap-freshness` (its regex names `ARCHITECTURE.md`). The two pre-push gates
-are `always_run` too, but fire at push, not at the edit.
+*Why the enumeration is gone rather than corrected.* It rotted three times, each time by the
+same mechanism — a sibling surface gained a gate and this sentence was not re-typed: sixteen of
+seventeen from 2026-08-03 to 2026-08-10 (missing `block-unanchored-push`), seventeen of
+eighteen from 2026-08-11 to 2026-08-12 (missing `organ-index-freshness`), and — found by the
+2026-08-21 governance-drift audit and confirmed live on 2026-08-23 — **eighteen against a live
+twenty-one**, missing `block-commit-on-main`, `lane-contract-check` and
+`provider-registry-agreement`. The sentence had already claimed *"the roster is not re-counted
+here"* while re-counting it. Restating a roster in prose is CLAUDE.md §4's named
+anti-pattern and #222's reason for moving counts off this file; the fix is the pointer, not a
+fourth re-typing.
+
+Editing **this file** fires every `always_run: true` hook — `block-commit-on-main`,
+`validate-hermetization` and `audit-health` at pre-commit, `backlog-id-on-close` and
+`backlog-filing-backpressure` at commit-msg — plus the two whose `files:`/`types:` match it:
+`normalize-dated-headers` (markdown) and `codemap-freshness` (its regex names
+`ARCHITECTURE.md`). `block-commit-on-main` is the PREVENT half of core-invariant #5 at commit
+time (`block-ff-push`'s pre-commit sibling): it refuses a direct non-merge commit while `HEAD`
+is on `main`, so editing this file on `main` is refused *before* the push gate ever sees it.
+The two pre-push gates are `always_run` too, but fire at push, not at the edit.
 
 ---
 
@@ -797,7 +850,8 @@ and the zones where edits are blocked outright.
 | Append-only | `LESSONS.md`, `logs/TOKEN-LOG.md` | only append; never edit old entries (LESSONS.md may relocate an older block byte-identical to `LESSONS-legacy-<span>.md` — ADR-29 amend. 2026-07-17; TOKEN-LOG strict) |
 | Append-only (newest-first) | `JOURNAL.md` | prepend at session/day close |
 | Immutable | ADRs, transcripts, handoffs, audits, research | supersede via new file / in-file marker; never edit in place |
-| Living | `VISION`, `ARCHITECTURE`, `CLAUDE.md`, `PLAYBOOK`, `ESSENTIALS`, `BACKLOG` | update in place when reality shifts |
+| Living | `VISION`, `ARCHITECTURE`, `CLAUDE.md`, `PLAYBOOK`, `ESSENTIALS` | update in place when reality shifts |
+| Generated | `BACKLOG.md` | **never hand-edit** — edit `tasks/`, then `scripts/gen_task_tree.py --emit-source` (ADR-107 §7.2 flip, [#439], 2026-07-28; source zone below) |
 
 **Filenames.** `ADR-NN-topic.md` (ADR-34); `council-out-YYYYMMDD-HHMMSS-topic.md`
 (Council CLI); `YYYY-MM-DD-slug.md` for dated artifacts; ALL-CAPS for top-level
