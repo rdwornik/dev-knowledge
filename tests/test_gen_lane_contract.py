@@ -172,8 +172,15 @@ def test_a_cloud_lane_missing_a_receipt_field_is_reported(cloud_contract):
 
 
 def test_a_doubled_prefix_in_the_pairing_line_is_reported(local_contract):
-    mangled = local_contract.replace("branch `worktree-lane-a-539-ch8-codification`",
-                                     "branch `worktree-worktree-lane-a-539-ch8-codification`", 1)
+    # Anchored on the PAIRING LINE (slug -> branch), not on the bare `branch `worktree-…``
+    # substring: the dispatch prose also names the branch, so an unanchored replace could
+    # mangle the prose instead and the test would pass while checking nothing. That silent
+    # miss actually happened while this file was being extended (L7, 2026-08-23).
+    target = ("slug `lane-a-539-ch8-codification` -> "
+              "branch `worktree-lane-a-539-ch8-codification`")
+    assert target in local_contract, "the pairing line moved; re-anchor this test"
+    mangled = local_contract.replace(
+        target, target.replace("branch `worktree-", "branch `worktree-worktree-"), 1)
     problems = glc.parse_contract(mangled).problems
     assert any("exactly once" in p for p in problems), problems
 
@@ -552,6 +559,25 @@ def test_the_emit_log_line_names_the_command_for_the_shape_it_wrote(tmp_path, ca
     logged = " ".join(r.getMessage() for r in caplog.records)
     assert "Dispatch-CloudV2" in logged
     assert "Dispatch-Lane" not in logged
+
+
+def test_the_emit_log_line_for_an_interactive_contract_says_to_start_claude_first(
+        tmp_path, caplog):
+    """The interactive line is a MESSAGE, so the log has to say what to do with it.
+
+    Added after a mutation survived: flipping the interactive branch of the emit log to the
+    generic form left every test green, because the only log assertion covered the cloud
+    shape. Logging `Read <PROMPTS_DIR>\\… ` with no instruction reads like a shell command,
+    which is exactly the confusion this shape invites.
+    """
+    with caplog.at_level("INFO", logger="gen-lane-contract"):
+        result = CliRunner().invoke(glc.cli, [
+            "emit", "--slug", "lane-b-101-widget", "--purpose", "x", "--shape",
+            "interactive", "--out-dir", str(tmp_path)])
+    assert result.exit_code == 0, result.output
+    logged = " ".join(r.getMessage() for r in caplog.records)
+    assert "start `claude`" in logged
+    assert "and execute it exactly." in logged
 
 
 def test_the_enums_command_prints_the_shape_surface():
