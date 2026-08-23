@@ -19,6 +19,60 @@
 
 ---
 
+### 2026-08-23 (l) - CC (Opus 5, CLOUD lane `C2`, branch `claude/ruling-provenance-audit`): the mesh was reachable the whole time, and the audit had to apply its own standard to itself
+
+**Did:** armed the pinned `uv` mesh in-container and re-ran every load-bearing measurement of entry
+(k)'s artifact under it, including the `audit.py health` gate that artifact said could not run.
+Appended §6 to `docs/audits/2026-08-23-technical-ruling-provenance-audit.md` as an in-file
+amendment marker (`CLAUDE.md` §5 rule 3; the rulings-ledger §5 and window-seal §5 precedents) - the
+first five sections are untouched.
+
+**Result: the artifact's §0 made the exact mistake the artifact is about, and it was mine.** §0
+recorded that the mesh *"refuses in this container"* and routed everything to a hand-run `python3`
+3.11.15. The refusal was real; the inference that the pin was unreachable was never tested. `uv self
+update 0.11.19` fails here with *"version 0.11.19 was not found for the app uv in workspace uv"* -
+a fact about how this container manages `uv`, not about whether the version exists. It exists:
+`pip download uv==0.11.19` pulls a 24.9 MB wheel, and installed to the session scratchpad with
+`PATH` prepended it gives **uv 0.11.19** running **Python 3.12.10** - the repo's declared pins
+exactly. Container-local only: no `pyproject.toml`/`uv.lock` edit, nothing committed from it.
+**A tool refusing is evidence about the invocation, not about the world** - the same shape as the
+audit's own §2.3 finding that a claimed ruling is not a ruling.
+
+**Zero divergence on re-run, and the gate corroborates three claims independently.** Ratchet
+`441` vs baseline `441`; Rule A's BLOCK on root `AGENTS.md`; `codex/AGENTS.md` clean; backpressure
+exit 0 under the configured `uv run --locked` invocation - all identical to the hand-run. Then
+`audit.py health` (**DEGRADED**) added what a hand-run could not: `[OK] silent_rule_ratchet: live
+441 <= baseline 441` confirms the artifact's §4(5) from the gate's own mouth; `check_landing_
+predicate` emits **exactly the five** ids §1.3 counted by grep (F2, N-1, N-2, N-3, R-2); and
+`[~~] fleet_parity: hooks-armed WARN-undeclared ... stage(s) NOT armed: commit-msg, pre-commit,
+pre-push` confirms from the mesh, not just from me, that entry (k)'s two commits passed no gate -
+**nothing bypassed, because nothing was armed to bypass**.
+
+**The one `[!!]` is this container's clone, not this lane's content.** `journal_spine_anchor`
+could not complete - *"disposition floor 24882f8cc is not an ancestor of main"* - because local
+`refs/heads/main` here is stale at `4541155b` against `origin/main` at `aeec0fd1`; HEAD was detached
+at boot and this lane touched neither ref. Against the real base the range is anchored:
+`range_is_anchored(origin/main..HEAD)` -> **True**, entry (k) naming `3894da55`. Range-level
+discharge, per register B6 - a JOURNAL commit cannot name its own hash.
+
+**What did NOT move:** no conclusion in the artifact's §1-§5. The census counts stay **floors** -
+arming a toolchain does not make ten off-repo ruling packs readable, does not make a chat-only
+ruling detectable, and does not widen the regex's recall. §5.2 items 1-4, 6, 7 stand unchanged;
+only item 5 is discharged, and only for the claims re-run.
+
+**Changes:** §6 appended to the audit artifact; the regenerated `docs/audits/README.md`; this entry.
+Entry (k) is left exactly as written - append-only, and its "passed no gate" statement remains true
+of the two commits it describes.
+
+**Abandoned:** nothing. Still no write to `STANDING_RULINGS.md`, no root `AGENTS.md`, no proposed
+mechanism, no self-merge.
+
+**Anchors:** `acad6de8` (the C2-FINAL commit carrying §1-§5), which this branch introduces.
+
+**Next:** unchanged from (k) - the operator merges the branch; the two architect-owned questions
+are whether ADR-53 Decision 2 is superseded or R-1 re-grounded, and whether `[#577]` gets its
+ADR-101 §1 amendment before a lane is dispatched at a Done-when the gate refuses.
+
 ### 2026-08-23 (k) - CC (Opus 5, CLOUD lane `C2`, branch `claude/ruling-provenance-audit`): 24 of 39 ruling sets are absent from the register, 4 landed nowhere at all, and the AGENTS.md admission is real while the reason given for it is not
 
 **Did:** ran the read-only ruling-provenance census - the register in full, all 693 files of

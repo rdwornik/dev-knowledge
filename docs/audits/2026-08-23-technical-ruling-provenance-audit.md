@@ -614,3 +614,93 @@ expiry — is the class most often left in a closed batch's immutable manifest.*
 - **Did not** propose a mechanism (§4 closing paragraph).
 - **Did not** touch `tasks/`, `BACKLOG.md`, or `docs/adr/`.
 - **Did not** self-merge.
+
+---
+
+## 6. AMENDMENT 2026-08-23 — the mesh was armed after all, and every claim above was re-run under it
+
+**This section is APPENDED, not edited in** (`CLAUDE.md` §5 rule 3 admits an in-file amendment
+marker as the alternative to a superseding file; the 2026-08-22 rulings ledger §5 and the
+2026-08-23 window seal §5 are the precedents). Everything in §0–§5 stands exactly as written. What
+changes is the **strength of the evidence**, and one stated limitation is now discharged.
+
+### 6.1 What §0 got wrong, and it was mine
+
+§0 recorded that the `uv` mesh *"refuses in this container"* and routed every measurement to a
+hand-run `python3` 3.11.15. The refusal was real. **The inference that the pin was unreachable was
+not tested, and it was wrong.** `uv self update 0.11.19` fails here — but with
+*"version 0.11.19 was not found for the app uv in workspace uv"*, which is a fact about how this
+container manages `uv`, **not** about whether the version exists. It does:
+
+```
+python3 -m pip download "uv==0.11.19"   -> uv-0.11.19-py3-none-manylinux_2_17_x86_64.whl (24.9 MB), OK
+python3 -m pip install --target ./uvpin "uv==0.11.19"   -> ./uvpin/bin/uv
+PATH=./uvpin/bin:$PATH ; uv --version   -> uv 0.11.19 (x86_64-unknown-linux-gnu)
+uv run --locked python --version        -> Python 3.12.10      (27 packages installed in 16ms)
+```
+
+**The mesh runs at exactly the declared pins** — `required-version = "==0.11.19"`, `.python-version`
+3.12.10. The install is **container-local**: a wheel unpacked into the session scratchpad and
+prepended to `PATH`. No repo file was touched by it, no `pyproject.toml`/`uv.lock` edit, nothing
+committed from it. D1's *"the exact `uv` pin is load-bearing"* is upheld rather than routed around.
+
+**The lesson is the one this audit is about.** A tool refusing is evidence about the invocation, not
+about the world. §0 turned one failed command into a declared environmental limit and then built six
+sections on the weaker footing — the same shape as §2.3's finding that a claimed ruling is not a
+ruling. Recorded because an audit that would not apply its own standard to itself is worth less.
+
+### 6.2 Every load-bearing measurement, re-run under the pinned mesh
+
+| Claim | §-ref | Hand-run (3.11.15) | Pinned mesh (0.11.19 / 3.12.10) |
+|---|---|---|---|
+| Silent-rule ratchet at zero headroom | §4(5) | `count: 441` vs `baseline: 441` | **identical** — and `audit.py health` renders it `[OK] silent_rule_ratchet: live 441 <= baseline 441 under detector silent-rule-v4 (59 file(s) in scope)` |
+| Rule A blocks root `AGENTS.md` | §3.4 | BLOCK message | **identical**, verbatim |
+| `codex/AGENTS.md` classifies clean | §3.4 | `None` | **identical** |
+| `AGENTS.md` not in the sanctioned set | §3.4 | `False` | **identical** |
+| Session-end backpressure | §5.2(5) | exit 0 | **exit 0** under `uv run --locked`, the configured invocation |
+
+**Zero divergence.** No conclusion in §1–§5 moves.
+
+### 6.3 What the gate adds that the hand-run could not
+
+`uv run --locked python scripts/audit.py health` → **`health: DEGRADED`**. Three results bear
+directly on this artifact:
+
+1. **§1.3's "5 of 83 entries carry the one machine-checked field" is confirmed by the checker
+   itself.** `check_landing_predicate` emits exactly five findings — `F2`, `N-1`, `N-2`, `N-3`,
+   `R-2` — all `[OK]`. The count was derived by grep in §1.3; the gate independently returns the
+   same five ids.
+2. **The unarmed hook stack is confirmed by the mesh, not just by me.**
+   `[~~] fleet_parity: .dev-knowledge hooks-armed WARN-undeclared: pre-commit config present but
+   stage(s) NOT armed: commit-msg, pre-commit, pre-push` — *"a carried config with dead hooks is the
+   relic-hooksPath silence class."* The two commits carrying §1–§5 genuinely passed no gate;
+   **nothing was bypassed, because there was nothing armed to bypass** (no `--no-verify`, no `SKIP=`).
+3. **One `[!!]`, and it is this container's stale clone rather than this lane's content.**
+   `journal_spine_anchor: backstop could not complete (AnchorError('disposition floor 24882f8cc is
+   not an ancestor of main: … Not a valid object name'))`. Local `refs/heads/main` in this container
+   is stale at `4541155b`, far behind `origin/main` at `aeec0fd1` — HEAD was detached from
+   `refs/heads/main` at boot and this lane never touched either ref. Measured against the **real**
+   base, the range is anchored:
+
+```
+git log --oneline origin/main..HEAD        -> acad6de, 3894da5   (2 commits, no others)
+journal_anchor.spine_entries               -> ['acad6de8…', '3894da55…']
+journal_anchor.unanchored_in_range         -> ['acad6de8…']      (the JOURNAL commit itself)
+journal_anchor.range_is_anchored           -> True
+```
+
+`True` is the correct result: discharge is **range-level**, and JOURNAL 2026-08-23 (k) names
+`3894da55`, a commit the range introduces. A JOURNAL commit cannot name its own hash — the exact
+case register B6 and the ADR-85 §A5 predicate are built around. `block-unanchored-push` would have
+passed had it been armed.
+
+### 6.4 The limitation this amendment discharges, and the ones it does not
+
+**Discharged:** §5.2 item 5 (*"No gate, test suite or `audit.py` check was run"*) — for the claims
+in §6.2 and §6.3. Those now rest on the pinned mesh and, for three of them, on the gate's own output.
+
+**Not discharged, unchanged:** §5.2 items 1, 2, 3, 4, 6 and 7. Arming the toolchain does not make
+the ten off-repo ruling packs readable, does not make a chat-only ruling detectable, does not widen
+the regex's recall, and does not walk deleted history. **The census counts in §2 are still floors**,
+for exactly the reasons given there. `pytest` was not run — the audit changes no code, and the
+suite's verdict bears on nothing claimed here.
