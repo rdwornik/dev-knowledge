@@ -19,6 +19,61 @@
 
 ---
 
+### 2026-08-23 (b) - CC (Opus 5, integrator, branch `docs/journal-562-local-2026-08-23`): the guarded A/B actually runs, and the instrument holds where the last run leaked
+
+**Did:** landed leg 3 of `[#562]` - the local guarded A/B run artifact produced by
+`worktree-lane-562-local` - as a single integration act, with this entry riding the lane tip so the
+merge anchors on one spine entry rather than two.
+
+**Result: the rerun the last three entries kept recording as BLOCKED is run, and it is clean.** Both
+candidates executed all 14 pack items plus R3's control `C1-N3`, one invocation per item, fresh
+context, temperature 0, effort tier medium per Q8, every tool call routed through
+`scripts/nopack_sandbox.py exec`. 240 commands across the two lanes, **zero delivered-output
+contamination**, and stronger than the Done-when asked for - neither lane ever reached for the pack
+at all: not one command was refused as `stripped-artifact-path` or `canary-in-command`, so every
+Layer A refusal was a syntax refusal. Probe 11/11 at the head under test, postcondition CLEAN, and
+`C1-K1`'s ground truth verified still readable, so the guard is shown not to have broken the
+instrument in the opposite direction either.
+
+**The lane computed gates and refused to rule, which is the contract.** `gemini-3.7-flash` P 12/14,
+Phi 0, G1 FAIL (floor), G2 PASS, G3 PASS. `grok-4.6` P 10/14, Phi 1, G1 FAIL (floor), G2 FAIL, G3
+PASS. `ADMIT`/`REFUSE` appears nowhere in the artifact as a finding - the verdict is the architect's
+under Q9 and lands in the next act, not this one.
+
+**The substantive finding is the control item.** Both candidates failed `C1-N1` and both passed
+`C1-N3` - the same prompt bytes plus one sentence of role reminder - which is the item set's
+pre-specified PROMPTABLE FAILURE row, measured on both lanes rather than argued. The reminder
+belongs in the dispatch text; it is not a gate discharge, and the artifact says so at both sites.
+
+**Why the incumbent is missing, and what that costs.** The Anthropic path is billing-blocked on this
+host (HTTP 400, credit balance), and the only remaining path drives unrestricted Bash that bypasses
+Layer B - the git-history leg the guard exists for - so re-running it would have reintroduced the
+asymmetry the guard was built to remove. `P_i`/`Phi_i`/`R_i` are carried from 2026-08-20 at an
+unguarded head and at effort tier high, which weakens G3 and G2's comparative leg and weakens G1
+not at all, because R3 already ruled the comparative clause vacuous at `R_i == 0`. The single most
+valuable measurement the control could produce - whether the incumbent's own refusal failure is
+promptable - is still owed.
+
+**One deviation, stated rather than left to be noticed.** The lane commit and this entry ride one
+branch, so `main` gains ONE spine entry for the pair and the entry names `8c725668`, a commit its
+own merge introduces. The alternative - merge the lane, then a two-commit journal branch to anchor
+it - costs a second spine entry and a second full gate cycle to record the same fact.
+
+**Changes:** `docs/audits/2026-08-23-technical-lane-562-local-admission.md` (1734 lines: per-item
+scores, computed gates, verbatim transcripts, guard-assertion evidence, four reported instrument
+defects), regenerated `docs/audits/README.md` (687 -> 688), this entry.
+
+**Abandoned:** nothing this act. The four instrument defects the run reported (`exec` mojibake on
+non-ASCII under Windows, `pwd` over-refusal, the non-lane-neutral shell-construct rule, guard
+detectability from inside) are REPORTED lines per the lane contract and are funnel-table work, not
+repairs made here.
+
+**Anchors:** `8c725668` (the run artifact, the commit this merge introduces).
+
+**Next:** the architect's admission verdict lands in `[#562]`'s closure record and the rulings
+ledger, `[#491]` takes its annotation from the same run, and the four reported defects go through
+the wave-close funnel.
+
 ### 2026-08-23 (a) - CC (Opus 5, integrator, branch `docs/journal-562-guard-integration-2026-08-23`): the held lane's own fixes clear it, and the hold lifts by merge rather than by ruling
 
 **Did:** merged `worktree-lane-fix-562-guard` to `main` as a single-merge integration act, and
