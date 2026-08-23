@@ -19,6 +19,54 @@
 
 ---
 
+### 2026-08-23 (h) - CC (Opus 5, integrator, branch `docs/handoff-2026-08-23-architect`): the bundle is cut and gated, and this entry is what makes the operator's merge pushable
+
+**Did:** cut the architect handoff bundle, authored the CC-owned residual, ran the whole v6 gate in
+one pass, and left the branch unmerged for the operator.
+
+**Result: 16 PASS / 1 FAIL / 0 degraded - ONBOARDING BLOCKED on P3 alone, which is the operator gate
+itself.** P3 compares the live branch against the boot header's `Destination` row: the row declares
+`main` ex-ante, the bundle sits on `docs/handoff-2026-08-23-architect`, so the mismatch is real and
+is reported as a FAIL rather than explained away. It clears on the merge and nothing else changes.
+The structural pre-check bound 14/14 rows before any probe ran, so the gate was not toothless.
+
+**The residual is authored, not left as placeholders.** The generator emits the shape; CC owns the
+content (HANDOFF_PROCESS v6 §2). Filled: the drift-flags with STANDING separated from NEW - the
+`anchor_gate_probe` RED inherited since 2026-08-22 and the expected `[S24]` WARN on one side, the
+`[#171]` leg-1 finding and intake 41 on the other, and those two deliberately NOT dispositioned
+because a disposition would record a decision nobody has made; the shipped map by `#id`; and four
+frontier questions ordered by what unblocks what. `PASTE_THIS.md` was re-assembled by
+`assemble_paste.py` from the filled sources, never hand-edited.
+
+**The Purpose names `[E7] Tooling & evaluation`, and that is load-bearing rather than decorative.**
+P0c FAILs unless the Purpose names an authority the live P0a/P0b enumeration actually contains, so
+the name was chosen after running both probes, not before.
+
+**One thing the gate surfaced that is not mine to fix here.** The ship-gate is **RED** with 25
+undispositioned WARNs - `ship-gate` does not enumerate them in that mode, so the number is reported
+without a per-WARN owner rather than guessed at. What IS attributable: three `[stale]` dispositions
+(`warn-row-length-533-audit-decomposition`, `-529-telemetry-emit`, `-530-single-flight`), orphaned
+when those rows closed or were pointer-ized on 2026-08-22. That is the known closing-a-row-orphans-
+its-disposition pattern and its house fix is a `chore(register)` cleanup, left as a queue item
+rather than widening this arc.
+
+**Why this entry exists at all, stated because the miss nearly shipped.** The session-end hook
+caught `0216eb3f` unanchored. That is not cosmetic: the entry has to ride THIS branch, because
+without it the operator's `--no-ff` merge puts an unanchored commit on main's first-parent spine and
+**`block-unanchored-push` refuses the push**. `gen_handoff.py` prints a JOURNAL generation-entry
+draft for exactly this reason at every cut, and I skipped it.
+
+**Changes:** `docs/handoffs/2026-08-23-dev-knowledge-architect/` - five files, bundle cut from
+committed state - and this entry.
+
+**Abandoned:** merging the bundle. Operator-gated, per process, and the F6 instruction said STOP
+before it.
+
+**Anchors:** `0216eb3f` (the bundle commit), which the operator's merge of this branch introduces.
+
+**Next:** the operator merges this branch and pastes `PASTE_THIS.md` into a fresh architect chat.
+The two rulings the session opens with are intake 41 and `[#171]` leg 1.
+
 ### 2026-08-23 (g) - CC (Opus 5, integrator, branch `docs/lane-tail-2026-08-23`): the lane had a seventh commit, and the integrator's stop-detection was the thing that was wrong
 
 **Did:** merged `worktree-lane-docs-governance`'s remaining commit `3b3d79b2`, which entry (f)'s
