@@ -19,6 +19,54 @@
 
 ---
 
+### 2026-08-23 (e) - CC (Opus 5, integrator, branch `docs/window-seal-2026-08-23`): the window seals, and two of the three demands are scored against the operator rather than for him
+
+**Did:** wrote the window seal for 2026-08-20 -> 2026-08-23 - the final ledger line, the A4 release
+note with the three operator demands scored, and the next-window queue - as
+`docs/audits/2026-08-23-technical-window-seal.md`.
+
+**Result: the ledger and the instrument agree, which is the only version of that claim worth
+making.** 214 baseline, 11 closures, 9 births, so 212 - and `validate_backlog` on `main` measures
+212. **Three of the eleven closures were born and closed inside the same window** (`#563`, `#565`,
+`#566`), so a reader reconciling by set-difference alone comes up three short; the seal says so
+rather than leaving the discrepancy to be discovered. R2's cap bound at every filing: the
+2026-08-22 queue stopped at exactly five with `f6`-`f8` named rather than dropped, and this close
+spent 1 of 3.
+
+**The A4 scores two of three demands against us, on evidence.** *Felt speed* is **MET-partially** -
+49x on the telemetry logging side-channel and run_id correlation are real, but the store leg is
+16.4 ms/event, 98.5% of an emit, with silent drops at 8 concurrent writers, and the read path the
+operator would actually feel is `[#576]` and unbuilt. *Archival EXECUTED* is **NOT MET**: zero
+`git mv` operations, because the lane measured what was archivable and the repo returned nothing
+lawful to move - ADR-100 §1 forbids moving audit files at all, and no ADR is both implemented and
+superseded. That is an answer rather than a delivery, and `[#564]` stays open carrying it.
+*Library-first* is **MET as research** with adoption deliberately not taken, and its own §0 limit is
+repeated in the seal because it bounds every number in it: nothing was trialled under our pinned
+`uv`, and nothing was trialled on Windows, on a repo that is Windows-developed.
+
+**The queue is eight entries and every one has a handle.** `f6` the claim-token transport, `f7-dash`
+the dashboard stage-2 carrier, `f8-harness` the `anchor_gate_probe` RED that is still diagnosed only
+as far as *"points at the fixture"*, `Q2-mechanism` the one-integrator-at-a-time lock that Ch8
+itself admits is prose until it lands, the `#331`/`#153`/`#541` crossover nobody has priced,
+incumbent promptability and the mitigated-rerun slot (both now on `[#578]` rather than in a closed
+row's history), and intake `#34`, which stays operator-held and which no lane should take.
+
+**What this entry deliberately does not do.** It does not touch `ARCHITECTURE.md`, `CLAUDE.md` or
+`VISION.md` - `lane-docs-governance` owns all three exclusively and was still running while this was
+written - and for the same reason it does not score that lane. Scoring a lane from outside while it
+works is how a close invents a result.
+
+**Changes:** `docs/audits/2026-08-23-technical-window-seal.md` (the ledger line, the A4 note, the
+three-demand scoring table, the eight-entry queue, and the state-at-seal block), regenerated
+`docs/audits/README.md`.
+
+**Abandoned:** nothing this act.
+
+**Anchors:** `1f2d68fb` (the window-seal artifact, the commit this merge introduces).
+
+**Next:** the handoff bundle, cut on its own branch with its gate run and its ONBOARDING verdict
+reported - and left unmerged, because the operator gates that.
+
 ### 2026-08-23 (d) - CC (Opus 5, integrator, branch `fix/562-guard-decode-2026-08-23`): the tree goes down to main-plus-protected, and four reported defects stop being reported
 
 **Did:** the branch and worktree hygiene sweep, then the Ch8 wave close over the 562-local run -
