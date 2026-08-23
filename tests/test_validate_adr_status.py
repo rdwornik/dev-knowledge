@@ -283,6 +283,67 @@ def test_shipped_corpus_coherence_divergences_are_the_three_measured():
     assert diverged == {"ADR-45", "ADR-46", "ADR-47"}
 
 
+# --- the audit-check adapter ---------------------------------------------------
+
+from audit_checks.check_adr_status_grammar import (  # noqa: E402
+    check_adr_status_grammar,
+)
+
+
+def test_check_returns_warn_with_the_measured_baseline_on_the_hub():
+    """The arming level the lane contract requires: WARN against a recorded baseline,
+    never a day-one RED block."""
+    findings = check_adr_status_grammar(vas._REPO_ROOT)
+    assert len(findings) == 1
+    f = findings[0]
+    assert f.check_name == "adr_status_grammar"
+    assert f.status == "warn"
+    assert "grammar=47" in f.evidence
+    assert "coherence=3" in f.evidence
+
+
+def test_check_is_child_repo_safe(tmp_path):
+    """A repo with no docs/decisions/ is n/a subject-absent, never a FAIL."""
+    findings = check_adr_status_grammar(tmp_path)
+    assert findings[0].status == "n/a"
+    assert "SUBJECT-ABSENT" in findings[0].evidence
+
+
+def test_check_FAILS_on_an_off_enum_value(tmp_path):
+    """The FAIL-armed leg has teeth: seed an off-enum status, get a blocking finding."""
+    d = tmp_path / "docs" / "decisions"
+    d.mkdir(parents=True)
+    (d / "ADR-11-x.md").write_text(
+        "# ADR-11 — x\n\n- **Status:** Ratified\n", encoding="utf-8")
+    findings = check_adr_status_grammar(tmp_path)
+    assert findings[0].status == "fail"
+    assert "enum" in findings[0].evidence
+
+
+def test_check_PASSES_on_a_fully_conforming_corpus(tmp_path):
+    """Proof the check is not warn-by-construction — a clean corpus really does pass."""
+    d = tmp_path / "docs" / "decisions"
+    d.mkdir(parents=True)
+    (d / "ADR-11-x.md").write_text(
+        "# ADR-11 — x\n\n- **Status:** Accepted\n", encoding="utf-8")
+    (d / "README.md").write_text(
+        "| ADR | Date | Title |\n|--|--|--|\n| ADR-11 | 2026-01-01 | x |\n",
+        encoding="utf-8")
+    findings = check_adr_status_grammar(tmp_path)
+    assert findings[0].status == "pass", findings[0].evidence
+
+
+def test_check_carries_the_rule_annotation_for_the_doc_code_edge():
+    """`_markers_for_check` walks back from the def through the contiguous comment block;
+    losing `# rule: governance-adr-status` silently drops the doc->code edge."""
+    src = (vas._REPO_ROOT / "scripts" / "audit_checks"
+           / "check_adr_status_grammar.py").read_text(encoding="utf-8")
+    lines = src.splitlines()
+    def_idx = next(i for i, ln in enumerate(lines)
+                   if ln.startswith("def check_adr_status_grammar("))
+    assert lines[def_idx - 1].strip() == "# rule: governance-adr-status"
+
+
 # --- the CLI exit contract -----------------------------------------------------
 
 def test_cli_exit_0_on_a_clean_synthetic_corpus(tmp_path):

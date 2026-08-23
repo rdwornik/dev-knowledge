@@ -298,3 +298,433 @@ Two registered rulings bear on the sweep. Both were found by reading
 The tension the contract asked this lane to surface is therefore **narrower than the contract
 supposed, and already ruled at its centre** — see Step 5, where the question is put precisely
 rather than answered.
+
+---
+
+## Step 3 — The validator
+
+**Landed** (this lane's own files, no shared surface touched):
+
+- `scripts/validate_adr_status.py` — the parser + rules. Read-only, `click` CLI, exit
+  **0** clean / **1** defects / **2** corpus-unusable.
+- `scripts/audit_checks/check_adr_status_grammar.py` — the thin `ALL_CHECKS` adapter,
+  **written but deliberately not registered** (Step 4).
+- `tests/test_validate_adr_status.py` — 48 tests.
+
+### Six rules, and what each measures on the live corpus
+
+| Rule | Meaning | Live count | Armed |
+|---|---|---|---|
+| `enum` | value outside the declared domain | **0** | **FAIL** |
+| `single-field` | a file must carry exactly one status field | **0** | **FAIL** |
+| `grammar` | not the canonical G1 | **47** | WARN (baseline) |
+| `coherence` | header status != README-index effective status | **3** | WARN (baseline) |
+| `wrapped-value` | value continues onto the next physical line | **1** | WARN (baseline) |
+| `duplicate-id` | two files claim one ADR number | **2** | WARN (baseline) |
+| `unindexed` | ADR carries no README-index row | **0** | WARN (baseline) |
+
+Live verdict: `warn` — `coherence=3, duplicate-id=2, grammar=47, wrapped-value=1`, with the two
+FAIL-armed legs at zero.
+
+**The three `coherence` hits are real defects, not parser noise** — this is `[#242]`'s
+Done-when leg finding actual divergence on its first run:
+
+```
+ADR-45  header "Explored, not adopted"  !=  index "Superseded"      (different CLAIMS, not
+                                                                     different spellings)
+ADR-46  header "Partially superseded"   !=  index "Accepted"        (index states no status)
+ADR-47  header "Partially superseded"   !=  index "Accepted"        (index states no status)
+```
+
+### Proof it rejects — the contract's named failure mode, tested
+
+The contract warns against *"a validator that passes because it accepts every grammar it
+finds."* Two independent proofs:
+
+1. **One rejection test per divergent grammar measured in Step 1** (G2, G3, G4, G5), each
+   asserting a `grammar` defect is *raised*, not that the run completed. Plus a rejection test
+   per off-enum value, and an acceptance test per declared enum member.
+2. **A mutation run — 8 mutations, 8 killed, 0 survivors.** Each mutation disables one rule and
+   the suite must go RED:
+
+```
+KILLED  M1: accept every grammar (the contract's named failure mode)   5 failed
+KILLED  M2: enum check always passes                                   5 failed
+KILLED  M3: normalize_value accepts anything as Accepted               5 failed
+KILLED  M4: wrap detection disabled                                    1 failed
+KILLED  M5: duplicate-id detection returns nothing                     2 failed
+KILLED  M6: index marker scan disabled                                 4 failed
+KILLED  M7: coherence comparison never fires                           2 failed
+KILLED  M8: single-field rule never fires                              2 failed
+```
+
+**A first mutation run reported M5 as a survivor and it was a false alarm in the harness, not
+a hole in the suite** — the mutation was written `return [] or [...]`, which evaluates to the
+original list. Recorded because a mutation harness that mutates nothing reports a green suite
+as rigorous, which is worse than not running one.
+
+### A defect this lane found in its own validator
+
+The first implementation keyed the coherence map with `headers.setdefault(adr_number(...))`,
+so the two duplicate-numbered files collapsed into their parents — which meant `R_UNINDEXED`
+could **never fire** for the only two files it applies to, while the module docstring claimed
+the collision was "reported rather than resolved". The code picked a winner silently. Fixed by
+a separate `duplicate_id_defects` leg (rule `duplicate-id`, 2 live hits) and the honest limit
+rewritten to describe what the code does. Recorded because it is exactly the vacuous-pass class
+the gate exists to prevent, found in the gate itself.
+
+---
+
+## Step 4 — Registration (fenced diff — NOT applied by this lane)
+
+`ALL_CHECKS` and its registry are shared with two sibling lanes in this batch, so per the
+contract the registration ships as a diff for the integrator, not as an edit.
+
+### Arming decision, and why it is not FAIL
+
+The contract says: *"arm at the level the corpus can actually pass today — if the corpus fails,
+arm WARN with a measured baseline and say so; do not arm a gate that RED-blocks every commit on
+day one."*
+
+**The corpus cannot pass a FAIL-armed grammar leg: 47 of 87 live ADRs use a non-canonical
+grammar.** Arming it would RED `audit-health`, which is a **pre-commit** gate, and wedge every
+commit in the repo on day one. So the legs are split rather than blanket-WARNed:
+
+- `enum` + `single-field` arm **FAIL** — both measure 0, so they gate real regressions from
+  today without blocking anything, and they are the legs that actually protect the declared
+  domain.
+- `grammar`, `coherence`, `wrapped-value`, `duplicate-id`, `unindexed` arm **WARN** against the
+  baseline recorded above.
+
+**Stated plainly: a WARN with a recorded baseline is a measurement, not a gate.** Nothing stops
+the grammar count drifting from 47 to 48. Promoting it needs either a normalization pass (which
+needs the Step-5 ruling) or a ratchet on the `silent_rule_ratchet` model. Neither is claimed
+here, and the WARN should not be read as one.
+
+### The diff
+
+```diff
+--- a/scripts/audit_checks/registry.py
++++ b/scripts/audit_checks/registry.py
+@@ from .check_adr38_baseline import check_adr38_baseline
+ from .check_adr38_baseline import check_adr38_baseline
++from .check_adr_status_grammar import check_adr_status_grammar
+ from .check_amendment_coherence import (
+
+@@ CHECK_ORDER — append at the END (order is the emission contract; appending
+@@ perturbs no existing position)
+     "check_review_artifact_coverage",     # facade — _is_hub/_REPO_ROOT seam
+     "check_landing_predicate",            # facade — DISPOSITION_REGISTER/_is_hub seams
++    "check_adr_status_grammar",           # [#242] ADR status grammar/enum + README coherence
+ )
+
+@@ EXTRACTED_CHECKS — append at the end (kept CHECK_ORDER-relative)
+     check_boot_byte_budget,
++    check_adr_status_grammar,
+ )
+
+@@ __all__ — sorted position is between check_adr38_baseline and check_amendment_coherence
+     "check_adr38_baseline",
++    "check_adr_status_grammar",
+     "check_amendment_coherence",
+```
+
+```diff
+--- a/scripts/audit.py
++++ b/scripts/audit.py
+@@ the _registry re-export block (~line 233)
+ check_adr38_baseline = _registry.check_adr38_baseline
++check_adr_status_grammar = _registry.check_adr_status_grammar
+ check_claude_md = _registry.check_claude_md
+
+@@ ALL_CHECKS — append at the END, matching CHECK_ORDER
+     check_landing_predicate,   # [#513] propagation-completeness — GATING (FAIL-capable), one
+                                # Finding per declared ruling in STANDING_RULINGS.md
++    check_adr_status_grammar,   # [#242] — ADR Status grammar/enum + header↔README coherence.
++                                # enum/single-field FAIL-armed (both measure 0); grammar(47)/
++                                # coherence(3)/wrapped(1)/duplicate-id(2) WARN against the
++                                # baseline in docs/audits/2026-08-23-technical-lane-status-grammar.md
+ ]
+```
+
+```diff
+--- a/ecosystem/doc-code-edge.yaml
++++ b/ecosystem/doc-code-edge.yaml
+@@ declaration_docs — the enum is DECLARED in the decisions README; see the note below
+   - protocols/HANDOFF_PROCESS.md     # handoff-probes-bind (§5 probe-gate, ADR-82)
++  - docs/decisions/README.md         # governance-adr-status (§"Status enum", declared 2026-08-12)
+
+@@ coverage_scope
+   - seal-journal-spine-anchor  # DONE 2-site (ADR-85 amend. 2026-08-03) -- ...
++  - governance-adr-status      # DONE 2-site ([#242]) -- docs/decisions/README.md §"Status enum"
++                               #   -> validate_adr_status.py + audit.py::check_adr_status_grammar
+
+@@ multi_site
+   handoff-probes-bind: 2         # audit.py::check_handoff_probes (adapter) + ...
++  governance-adr-status: 2       # validate_adr_status.py (logic) + audit.py::check_adr_status_grammar (adapter)
+```
+
+```diff
+--- a/docs/decisions/README.md
++++ b/docs/decisions/README.md
+@@ immediately above the "## Status enum" heading — the doc-side rule token
++<!-- rule: governance-adr-status -->
+ ## Status enum
+```
+
+### Everything else the registration drags with it — named, because it is not obvious
+
+The integrator applying the above must also move these, or `audit-health` REDs:
+
+| Site | Change | Why |
+|---|---|---|
+| `tests/test_audit.py:2207` | `== 43` → `== 44` | ALL_CHECKS count pin |
+| `tests/test_audit.py:2223` | `== 43` → `== 44` | second pin in the same file |
+| `tests/test_doc_code_edge.py:248` | `== 43` → `== 44` | third pin |
+| `tests/test_writer_integrity.py:185` | `== 43` → `== 44` | fourth pin (`test_all_checks_count_is_pinned`) |
+| `tests/test_audit_parallel.py:188` | no edit — asserts `ALL_CHECKS == CHECK_ORDER` | passes iff both diffs above are applied together |
+
+**Two judgement calls the integrator should make consciously rather than inherit:**
+
+1. **`declaration_docs` gains a fourth entry.** The three current entries are all
+   `protocols/*`. The alternative is to declare the rule in `protocols/PLAYBOOK.md` instead —
+   but the enum is genuinely declared in `docs/decisions/README.md`, and restating it in
+   PLAYBOOK would create exactly the duplication CLAUDE.md §5 rule 6 names as the drift failure
+   mode. Recommended as diffed; flagged because it widens a curated list.
+2. **`ARCHITECTURE.md` Ch2 does *not* need a row.** Its pre-commit gate enumeration was retired
+   in favour of a pointer on 2026-08-23 (CLAUDE.md §4 M2, after the list proved wrong three
+   times). No count lives there to bump. Verified, not assumed.
+
+### Registration is NOT applied here — the honest state
+
+`check_adr_status_grammar` is imported by nothing but its tests until the integrator applies
+the diff. Until then **the gate does not run at any level**, WARN included. The validator is
+runnable standalone (`py scripts/validate_adr_status.py`) and the tests pin its verdict, so the
+measurement is live and regression-protected; the *gate* is not.
+
+---
+
+## Step 5 — Marker sweep: narrow execution, wide proposal
+
+### Executed: NOTHING. Here is the proof that this is the ruled outcome, not an omission.
+
+ADR-94's in-place exception has exactly one trigger: **a ratification event.** Its own words —
+*"MAY be edited in place **on ratification** (e.g. `Proposed → Accepted`)"*.
+
+**There is no ratification event anywhere in the live corpus to attach a correction to.** The
+Step-1 measurement is the evidence: head tokens are `Accepted` (82), `Partially superseded` (2),
+`PARKED` (1), `Explored, not adopted` (1), `Accepted 2026-05-28` (1). **`Proposed`: zero.**
+`docs/decisions/README.md` independently states the same — *"the `Proposed` row is empty
+again"*. Nothing is awaiting ratification, so ADR-94's trigger is not merely unmet, it is
+**unmeetable** for every file in the corpus as it stands.
+
+Standing ruling **L-11** (2026-08-12) closes the remaining gap, and it is directly on point
+because it ruled on `ADR-61` — the single worst-formed status line in the corpus, the exact case
+a sweep would reach for first:
+
+> *"reshaping a status line for a parser's convenience is not a ratification, so the edit that
+> would fix this has no authorizing event yet. An appended marker was available and is
+> **declined as disproportionate**."*
+
+So every correction below is a **proposal**. The execution set is empty, and it is empty under
+**both** readings of how far L-11 reaches — see the escalation at the end of this step.
+
+### The per-ADR sweep plan
+
+**Class A — grammar normalization (47 ADRs).** Current: G2 (34), G3 (12), G4 (1). Proposed: G1.
+Governing basis: **none available.** This is textbook "reshaping for a parser's convenience";
+L-11 refuses it and ADR-94 offers no other trigger. **PROPOSED, BLOCKED.**
+
+```
+G2 -> G1 (34)  ADR 27,28,29,30,31,32,33,64,65,66,67,68,69,70b,71,72,84,85,86,87,
+               88,89,90,91,92,93,102,103,105,106,107,108,109,110
+G3 -> G1 (12)  ADR 34,35,36,37,38,39,41,42,43,45,46,47
+G4 -> G1  (1)  ADR 61  -- ALREADY RULED, see Class E. Not re-proposed.
+```
+
+**Class B — the three header↔index divergences.** These are the defects `[#242]` was filed to
+surface, and the correction is on the **index** side in all three, which means they are edits to
+`docs/decisions/README.md` — a file this lane does not own and that `[#553]` already holds.
+
+| ADR | Header | Index | Proposed correction | Basis |
+|---|---|---|---|---|
+| ADR-45 | `Explored, not adopted` | `Superseded` (via `~~title~~ Superseded by …`) | **Fix the index.** A decision that was never taken cannot be *superseded* — nothing replaced it. The header is right. | The ADR body: *"Explored, not adopted; ADR-42 v3.2 remains canonical authority"* |
+| ADR-46 | `Partially superseded` | *(no marker ⇒ Accepted)* | **Fix the index** — its row states the fact (*"retained as convention, NOT audit-enforced"*) without ever using the enum token, so a machine reads it as Accepted | Enum declared 2026-08-12; the value is live on the header |
+| ADR-47 | `Partially superseded` | *(no marker ⇒ Accepted)* | as ADR-46 | as ADR-46 |
+
+**PROPOSED, not executed** — and note this is the *good* case for the ruling: had the lane
+"normalized" these by editing the three headers to match the index, it would have written
+`Superseded` onto ADR-45 and erased a real distinction.
+
+**Class C — ADR-67's wrapped status value.** Reflowing lines 5–6 into one physical line changes
+no character of content. It is still a status-line edit with no ratification event.
+**PROPOSED, BLOCKED.**
+
+**Class D — ADR-40 (archive) carries two status fields.** A `> **Status: DEPRECATED …**`
+blockquote banner *and* a `Status: Deprecated (was: Accepted)` plain field, at two casings. The
+only intra-file status disagreement in the corpus. Both say Deprecated, so nothing is factually
+wrong; the file is simply unparseable by a single-field reader. **PROPOSED, BLOCKED** — and it
+is in the archive, where ADR-100's keep-all ruling means nothing is chasing it.
+
+**Class E — ADR-61. Already ruled; deliberately NOT re-proposed.** L-11 ruled on 2026-08-12 that
+the repair rides ADR-61's next genuine ratification event, and declined a marker as
+disproportionate. **This lane records that the ruling still holds and stops.** Re-proposing a
+settled question as though it were open is how a register rots.
+
+**Class F — the declared enum omits a live value.** `docs/decisions/README.md` §"Status enum"
+lists six values; its own 2026-08-22 update paragraph declares `PARKED` live (ADR-114) and the
+table was never updated. **PROPOSED:** add the `PARKED` row. The validator accepts seven values
+today and says so in its source, so nothing is silently absorbed. Adjacent to `[#553]`, which
+already holds that section's accuracy.
+
+**Class G — supersession lineage: recorded here, and NOT written to any status line.**
+
+The contract invites this explicitly — *"recording supersession is not changing a decision."*
+The lineage is real, well-evidenced, and **entirely absent from the status lines it concerns**:
+
+- `ADR-62`'s own `Related` field states **ADR-42 is "superseded by v4"** and **ADR-55/56/57/58
+  are "superseded by v4"**. All five of those ADRs carry a bare `Accepted` status line.
+- `ADR-82`'s `Related` field states **ADR-62 is "superseded by v5 *at promotion to canonical*"**
+  and **ADR-79**'s heavy-bundle delivery likewise. ADR-82 is `Accepted` and **canonical since
+  2026-06-11**, so the stated condition has been **met**. Neither ADR-62 nor ADR-79 records it.
+
+So the corpus knows about at least seven supersessions that no status line carries. This is the
+mechanism behind `[#552]`'s "structurally unreachable" finding, seen from the other end: the
+archival bar keys on `Superseded`, and nothing ever writes `Superseded`.
+
+**Writing it is nevertheless REFUSED here, and the refusal is `[#362]`'s, not this lane's
+caution.** ADR-42/55/56/57/58 are five of the seven handoff-cluster ADRs `[#362]` covers, and
+that row's finding is that **49 MUST-rules were dropped at the v4→v5 transition with no
+successor**, warning in terms that *"a status-only retirement silently discards these."* Flipping
+those five to `Superseded` is precisely the silent discard. `[#362]` further binds *"`[#242]`
+does not reach a terminal status before this row does."*
+
+ADR-62 and ADR-79 are **not** in `[#362]`'s named seven, so their conditional supersessions are
+the two nearest to actionable — but both are handoff-process ADRs sitting in the same v4→v5
+transition `[#362]` is auditing, so this lane treats them as inside the blast radius and
+proposes rather than acts. **Recorded, not written.**
+
+### The escalation — named precisely, and NOT resolved
+
+The contract requires this question be handed up rather than answered.
+
+**The question:** *Does L-11's reasoning bind the whole ADR corpus, or only ADR-61?*
+
+L-11 ruled on one file. Its **reasoning** — "reshaping a status line for a parser's convenience
+is not a ratification" — is general and, taken generally, permanently blocks Class A: 47 ADRs
+would each wait for a ratification event that, for a long-Accepted ADR, will never come. The
+grammar leg would then be a WARN forever by construction, not by deferral.
+
+Taken narrowly, L-11 settles ADR-61 only, and Classes A/C/D fall to **ADR-94 clause 2**, which
+calls retro-normalization *"a separate operator-gated task"* — available, but requiring an
+operator act this lane does not hold.
+
+**What is NOT in question, and why this lane completed anyway:** the execution set is **empty
+under both readings** — narrow or broad, nothing authorizes *this lane* to touch a status line.
+The fork does not gate this lane's work; it gates whichever act comes next. That is why the
+question is handed up rather than blocked on.
+
+**A precision worth keeping:** standing ruling **J-3** (the amendment-marker ruling the contract
+names as the live conflict) is reasoned *from `docs/audits/` immutability* — *"`docs/audits/` is
+immutable, so a disclosed marker is the route"*. On its face it governs the audit genre, not ADR
+status lines, and **L-11 already declined the marker route for an ADR status line specifically**,
+as disproportionate. So the J-3-vs-ADR-94 conflict the contract anticipated is, for this subject
+matter, **narrower than supposed and already adjudicated at its centre**. The open fork is the
+scope of L-11, not the collision of J-3 with ADR-94.
+
+---
+
+## Step 6 — Archival-eligibility state after the gate
+
+This is the answer the archival demand has been waiting on, and it is not the expected one.
+
+### The bar has two conditions, not one
+
+Standing ruling **H3**: *"A terminal-status ADR (`Superseded` / `Deprecated`) moves to
+`docs/decisions/archive/` when its inbound reference count is zero. A live prose reference
+elsewhere in the corpus holds it in place."*
+
+- **Condition 1 — terminal status.** Carried by **zero** live ADRs (Step 1). Nothing is
+  eligible on the status axis.
+- **Condition 2 — zero inbound references.** Measured below. Fails for every candidate,
+  independently and by a wide margin.
+
+### Archival-eligible today: ZERO ADRs. And fixing every status line would not change that.
+
+Inbound reference counts for the twelve archival candidates, measured across 1,860 files
+(`docs/`, `protocols/`, `templates/`, `.claude/`, `ecosystem/`, `scripts/`, `deploy/`, plus the
+root living docs) at merge base `aeec0fd1`. Self-references excluded. Two readings, because H3
+says *"live prose"* and the corpus contains a great deal of immutable historical record:
+
+| ADR | All refs | **Live-prose refs** (audits / handoffs / JOURNAL / archives excluded) |
+|---|---|---|
+| ADR-32 | 191 | **45** |
+| ADR-37 | 177 | **49** |
+| ADR-42 | 372 | **54** |
+| ADR-55 | 62 | **15** |
+| ADR-56 | 36 | **10** |
+| ADR-57 | 42 | **8** |
+| ADR-58 | 46 | **8** |
+| ADR-62 | 69 | **11** |
+| ADR-79 | 35 | **15** |
+| ADR-45 | 237 | **21** |
+| ADR-46 | 173 | **12** |
+| ADR-47 | 204 | **22** |
+
+**Under the strictest reading available to it, every candidate fails H3's second condition.**
+The narrow reading was constructed deliberately to give archival its best case — excluding
+audits, handoffs, JOURNAL, `protocols/archive/`, `templates/archive/`, intake and ecosystem
+history — and the minimum is still **8**.
+
+### So the binding constraint was never the status grammar
+
+This lane was dispatched on the premise that unparseable status is *why* archival is blocked.
+**That premise is half right and the more important half is wrong.** The status axis was
+genuinely unmeasurable before this gate, and now it is measurable. But the reference axis is
+what actually holds every candidate in place, and it is untouched by anything this lane could
+have done. Had the sweep normalized all 47 grammars and written `Superseded` onto all seven
+handoff-cluster ADRs, **zero files would have become archival-eligible.**
+
+### A structural finding H3 should probably absorb
+
+Most live-prose references to these ADRs come from **other ADRs** — ADR-42 is held by ADR-45
+(22) and ADR-39 (8); ADR-37 by ADR-36 (11) and ADR-41 (10); ADR-32 by ADR-39 and ADR-41 (7
+each). A decision record citing its predecessor is what an ADR corpus *is*.
+
+Read literally, then, H3's zero-inbound bar makes the ADR corpus **permanently unarchivable**:
+the citation that holds a file in place is the same citation that makes it a decision trace.
+H3's own expiry clause says it *"retires when a mechanism computes the inbound count at archival
+time"* — and this measurement is a preview of what that mechanism would return: **non-zero, for
+everything, forever**, unless the bar is refined to exclude sibling-ADR citation. Recorded, not
+proposed as a change; H3 is a standing ruling and re-scoping it is not this lane's act.
+
+### What is blocked, on what, and who owns it
+
+| Blocked | On what | Owner |
+|---|---|---|
+| All 47 grammar normalizations | No authorizing event (ADR-94 needs a ratification; L-11 refuses parser-convenience reshaping) | Operator — the L-11 scope question in Step 5 |
+| Writing `Superseded` on ADR-42/55/56/57/58 | `[#362]` — 49 dropped MUST-rules with no successor; a status-only retirement discards them | `[#362]` |
+| `[#242]` reaching a terminal status | `[#362]`'s Done-when binds it explicitly | `[#362]` |
+| The three index corrections (ADR-45/46/47) | `docs/decisions/README.md` is not this lane's file | `[#553]` |
+| Adding `PARKED` to the enum table | same file | `[#553]` |
+| **Archival of anything** | **H3 condition 2 — 8–54 live refs per candidate** | Operator / an H3 refinement |
+
+### What this lane actually unblocked
+
+Narrower than the dispatch supposed, and real:
+
+1. **The status axis is measurable for the first time.** `docs/decisions/README.md` declared an
+   enum on 2026-08-12 and said in terms that nothing checked it. Now something does.
+2. **Three genuine header↔index divergences surfaced** (ADR-45/46/47) — `[#242]`'s Done-when
+   finding real defects on its first run, not a synthetic seed.
+3. **The moment any ADR does become terminal, the gate says so** — and the `enum` +
+   `single-field` legs are FAIL-armed, so a regression cannot land silently.
+4. **The archival question is answered with evidence instead of deferred again.** The answer is
+   "zero, and the blocker is H3's reference bar, not the grammar."
+
+**`[#242]` is NOT closed by this lane** — `[#362]` forbids it, and leg (b) of ADR-94's ask
+(Pattern-B go-forward enforcement) is only partly served: the gate detects a non-canonical
+grammar, but it cannot detect that a *flip* used Pattern A rather than Pattern B, because a
+correctly-executed Pattern-B flip and a file that was always `Accepted` are byte-identical.
+That distinction needs commit history, which this check does not read. Stated rather than
+claimed as done.
