@@ -775,3 +775,148 @@ leg 1 is an **unruled (a)/(b) fork**, not an execution item. L4 cannot execute a
 not exist; either the architect rules the fork before L4 is dispatched, or L4's contract must be
 re-scoped to price the fork rather than implement it. **This is the single highest-value
 consequence of the premise pass**, and it is exactly the failure the mandate set out to prevent.
+
+---
+
+## 5. Ownership model for the two collision points (Step 5 — closes PK7)
+
+### 5.1 `ALL_CHECKS` — how a check actually registers
+
+**It is an explicit list literal**, not a decorator and not auto-discovery.
+`scripts/audit.py` (4,524 lines) ends with:
+
+```python
+ALL_CHECKS = [
+    check_vision_md,
+    check_adr38_baseline,
+    ...
+    check_landing_predicate,   # [#513] propagation-completeness — GATING (FAIL-capable), one
+                               # Finding per declared ruling in STANDING_RULINGS.md
+]
+```
+
+**But registration is a TWO-surface act, not one line.** `scripts/audit_checks/` is a real package
+(16 extracted check modules + `_common.py` + `registry.py`), and `registry.py` holds a second
+authority:
+
+> `CHECK_ORDER` is the canonical order of `audit.ALL_CHECKS` — **order is load-bearing**: it is
+> the order findings are emitted in, and therefore part of the byte-identical output contract the
+> git hooks depend on. `EXTRACTED_CHECKS` is the subset that now lives in its own module...
+
+So **27 of the 43 checks are still defined in the `audit.py` facade** and 16 live in their own
+modules. A new check is one line in `ALL_CHECKS` if it stays in the facade, and additionally an
+entry in `CHECK_ORDER` + `EXTRACTED_CHECKS` if it ships as its own module. `registry.py` also
+records a hard constraint on which checks *may* be extracted at all — a check may move only if
+nothing in its dependency closure is monkeypatched onto the `audit` module by a test, because
+otherwise *"the seam detaches SILENTLY, which is worse than a failure"*.
+
+### 5.2 The part the proposed design misses: SIX exact-equality count pins
+
+Adding a check does not only touch the registration site. `len(ALL_CHECKS)` is pinned by
+**exact equality in six places**, all of which go RED the moment a member is added:
+
+| # | Site | Form |
+|---|---|---|
+| 1 | `tests/test_audit.py:2207` | `assert len(aud.ALL_CHECKS) == 43` |
+| 2 | `tests/test_audit.py:2223` | `assert len(aud.ALL_CHECKS) == 43` |
+| 3 | `tests/test_doc_code_edge.py:248` | `assert len(aud.ALL_CHECKS) == 43` |
+| 4 | `tests/test_doc_code_edge.py:713` | `assert len(aud.ALL_CHECKS) == 43` |
+| 5 | `tests/test_writer_integrity.py:185` | `assert len(aud.ALL_CHECKS) == 43` |
+| 6 | `ecosystem/doc-counts.md:14` | `- audit: **43 registered checks**` — asserted by `check_doc_claims` (claim 1), **generated** by `scripts/gen_doc_counts.py` |
+
+Two further couplings fire on the same act:
+
+- **`check_doc_code_coverage_drift`** currently reports *"all 43 ALL_CHECKS members covered
+  (coverage_scope-annotated or exempt); none escape coverage_scope"*. A new member with no
+  `coverage_scope` annotation turns that OK into drift.
+- **`gen_handoff.py:505`** emits `len(ALL_CHECKS)` plus the last member's name into the handoff
+  probe manifest, so the bundle surface moves too.
+
+### 5.3 Verdict on the proposed `ALL_CHECKS` design: **works, but is insufficient as stated**
+
+The fenced-diff idea is right and the live structure supports it — a list literal is the easiest
+possible thing to hand-apply, and each lane's *module* and *tests* are new files that cannot
+conflict. **What it misses is that the count pins cannot be authored per-lane at all.**
+
+Their correct value is **N-dependent**: if three lanes each add a check, every one of them would
+author `43 -> 44`, and all three would be wrong — the answer is 46. A lane cannot know the final
+value, because it depends on how many *sibling* lanes land. This is not a merge conflict that
+careful diffing avoids; it is a value no lane is in a position to compute.
+
+**Amended model — confirm the shape, move one responsibility:**
+
+1. **Each lane ships:** its check module (new file), its tests (new file), a **fenced diff** of its
+   `ALL_CHECKS` registration line, a fenced diff of its `registry.py` entries *if* it extracts a
+   module, and its `coverage_scope` annotation. **No lane edits a count pin.**
+2. **The integrator, in ONE commit:** applies every registration diff, counts the result **once**,
+   updates pins 1–5 to `43 + N`, and runs `python scripts/gen_doc_counts.py --write` for pin 6
+   (which is generated — it must never be hand-edited).
+3. **Order is the integrator's call**, since `CHECK_ORDER` is byte-contract-load-bearing; lanes
+   should state a *preferred* position and not assume it.
+
+With that one change the design holds. Without it, the batch lands three lanes that each pass
+their own tests and collectively RED the suite six times over.
+
+### 5.4 `tasks/` and `BACKLOG.md` — "one file per task" is only HALF true
+
+**Measured:**
+
+```
+tasks/*.md            309 files, one per task   (tasks/<id>-<slug>.md)
+tasks/manifest.json     1 file, 66,280 bytes    <- the half the premise omits
+  schema: 2 · role: source-of-truth · generates: BACKLOG.md
+  generated_sha256: 0ff1e3c2...          <- changes on EVERY edit
+  nodes: 486 total  =  274 prose  +  212 task
+                                        ^^^ exactly the 212 open rows
+  task node shape:  {"task": 162, "file": "162-vocab-decision.md"}
+```
+
+**The manifest is the membership-and-ordering authority, not an index.**
+`gen_task_tree.py:480` iterates `manifest["nodes"]` to assemble `BACKLOG.md`, and the 274 prose
+nodes interleave with the task nodes — **a row's position in that array is what puts it under a
+given theme/story heading**. Consequences, both load-bearing:
+
+- **A task `.md` file with no manifest node is INVISIBLE** — it renders into nothing. Creating the
+  file is not creating the row.
+- The reverse is already recorded as a live defect in `[#519]`: *"a close is a terminal `status:` in
+  `tasks/<id>-*.md` AND removal of its node from `tasks/manifest.json`; **the second is the
+  load-bearing half**"*, and *"Frontmatter is DERIVED (`emit_task_file_text` re-templates it from
+  the body every emit), so a status-only close is silently REVERTED by the next `--emit-source`"*.
+
+That second clause matters for lane ownership beyond the manifest: **even a lane's "own" task file
+is not fully lane-authored**, because its frontmatter is re-templated from the body on every emit.
+
+### 5.5 Verdict on the proposed `tasks/` design: **REFUTED as stated; the contracts already have it right**
+
+> *Proposed: lanes write only their own task files; only the integrator regenerates `BACKLOG.md`, once.*
+
+**The second half is correct and should be kept verbatim** — `BACKLOG.md` is generated, one
+regeneration by one seat is exactly right, and `check_task_tree_coherence` gates the result.
+
+**The first half does not survive contact with the manifest.** A *birth* is not a one-file act:
+it is a new `.md` **plus** a node inserted at a meaning-bearing position in a single shared 66 KB
+JSON **plus** a changed `generated_sha256`. Two lanes filing one row each collide on that file
+**with certainty** — and not in a way git can auto-merge cleanly, because the hash line changes
+under both of them regardless of how far apart their node insertions sit.
+
+**The correct model is the one the batch's own contracts already state.**
+`LANE-L1-provider-config.md` step 2:
+
+> Write the specification for a new carrier row into your artifact; do **not** create the task
+> file. **`tasks/` is integrator-owned this batch and births are ledger-charged.**
+
+So the amended rule is:
+
+1. **No lane writes to `tasks/` at all** — not its own file, not the manifest. A lane that needs a
+   row writes a **row specification into its own `docs/audits/` artifact** (lane-private, no
+   collision).
+2. **The integrator alone** creates every task file, inserts every manifest node at the position
+   that derives the intended theme/story, and runs `gen_task_tree.py --emit-source` **once**.
+3. **Births stay ledger-charged.** Per §2, `banked = 0` — so under the R2 arithmetic the batch has
+   **no** birth budget from this session's sweep, and every specified row is a **queued
+   proposal awaiting an explicit architect grant**, not a filing a lane may assume.
+
+**Net for both collision points:** the proposed designs are the right *shape*; in both cases the
+correction is the same one, and it points the same way — **the shared, count-or-order-bearing
+surface belongs to the integrator, and the lane's deliverable against it is a specification or a
+fenced diff, never an edit.**
