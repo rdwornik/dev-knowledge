@@ -112,6 +112,27 @@ STATUS_ENUM: tuple[str, ...] = (
     "PARKED",
 )
 
+#: One alternation of the declared enum in STATUS_ENUM order, i.e. LONGEST-FIRST. Regex
+#: alternation is leftmost-first, so this ordering is what stops `Partially superseded` being
+#: read as `Superseded`; reordering STATUS_ENUM silently breaks that.
+_ENUM_ALT = "|".join(re.escape(m) for m in STATUS_ENUM)
+
+#: An enum token at the start of a value, optionally wrapped in BALANCED, SAME-KIND emphasis,
+#: and followed by a real boundary.
+#:
+#: The wrapper is MATCHED, never stripped, so inline markup inside a word (`Acce*pted`) cannot
+#: be laundered into a valid token. `(?(w)(?P=w))` is a conditional backreference: a wrapper
+#: that opened must close with the identical marker, so `**Accepted` and `*Accepted\`` are
+#: rejected rather than leniently accepted. The trailing class forbids `*` and a backtick as
+#: well as word characters, because with NO wrapper an emphasis run immediately after the
+#: token means the token was never the whole value — `Accepted**ness` (terra R3-HIGH-1).
+#: `\*+` rather than `\*{1,3}`: nested emphasis (`****Accepted****`) is valid markdown, and
+#: rejecting it produced a FALSE `enum` FAIL — the worst failure mode available to a
+#: FAIL-armed leg (terra R4-HIGH-2). The backreference still forces the identical run to
+#: close, so arbitrary length costs no strictness.
+_ENUM_AT_START_RE = re.compile(
+    rf"^(?P<w>\*+|`+)?(?P<s>{_ENUM_ALT})(?(w)(?P=w))(?![\w\-*`])")
+
 #: Terminal statuses -- archival-eligible at H3's zero-inbound bar. Carried by ZERO live
 #: ADRs at merge base `aeec0fd1`, which is `[#552]`'s "structurally unreachable" observation
 #: and is independently re-measured in this lane's Step 1.
@@ -160,9 +181,41 @@ class Defect:
 # --- parsing ------------------------------------------------------------------
 
 _ADR_NUM_RE = re.compile(r"^(ADR-\d+)")
-_MARKUP_RE = re.compile(r"[*~_`]+")
-#: A line that opens a new field/heading/list item, i.e. NOT a value continuation.
-_NEW_BLOCK_RE = re.compile(r"^\s*(?:[-*>#|]|\w[\w ]*:)")
+#: A struck-through span is REMOVED, content and all — never unwrapped. `~~Accepted~~
+#: Superseded by ADR-53` (ADR-52) means "no longer Accepted, now Superseded"; stripping the
+#: tildes and keeping the word yields `Accepted`, which INVERTS the status of the one genuinely
+#: superseded ADR in the corpus. Pinned by `test_strikethrough_is_removed_not_unwrapped`.
+_STRIKE_SPAN_RE = re.compile(r"~~.*?~~")
+#: Fence opener — ``` or ~~~ (3+), up to 3 spaces of indent, with an optional info string.
+#: An info string may contain spaces (` ```md example `); a BACKTICK fence's info string may
+#: not contain a backtick (CommonMark), a tilde fence's may.
+_FENCE_OPEN_RE = re.compile(r"^ {0,3}(?P<f>`{3,}|~{3,})(?P<info>[^`]*)$")
+#: Fence closer — same character, AT LEAST the opener's length, nothing but whitespace after.
+#: Length matters: a 4-char opener is NOT closed by 3 (terra R2-HIGH-2).
+_FENCE_CLOSE_RE = re.compile(r"^ {0,3}(?P<f>`{3,}|~{3,})\s*$")
+#: A line that opens a new block — i.e. NOT a lazy continuation of the value above it.
+#: List and heading markers require their FOLLOWING WHITESPACE, per CommonMark: without it,
+#: `*continued rationale*` (emphasis) was misread as a bullet and a genuine wrapped value went
+#: undetected (terra R2-MEDIUM-1). The `**Key:**` alternative is listed explicitly because the
+#: bare `\w[\w ]*:` form cannot match a bolded field name, and 34 live ADRs use exactly that.
+_NEW_BLOCK_RE = re.compile(
+    r"""^\s*(?:
+          [-*+]\s              # bullet list item
+        | \d+[.)]\s            # ordered list item
+        | \#{1,6}\s            # ATX heading
+        | >                    # blockquote
+        | \|                   # table row
+        | `{3,} | ~{3,}        # code fence
+        | <!--                 # HTML comment
+        | \*\*[^*]+:\*\*       # **Key:** field — the key may contain punctuation, e.g.
+                               # ADR-72's `**Amends (does not edit):**`. A `[\w ]+` key
+                               # class misses that and misreads the line as a continuation,
+                               # inventing a second wrapped-value defect out of a
+                               # perfectly well-formed file. The required `:` before the
+                               # closing `**` is what keeps a bare `**Accepted**` emphasis
+                               # line classified as a continuation (terra R2-MEDIUM-1).
+        | \w[\w ]*:            # Key: field
+    )""", re.VERBOSE)
 
 
 def adr_number(path: Path) -> str:
@@ -174,36 +227,68 @@ def adr_number(path: Path) -> str:
 def normalize_value(raw: str) -> str:
     """The enum member `raw` starts with, or `""`.
 
-    Markup is stripped first so `**PARKED**` (ADR-114) and `~~Accepted~~` (ADR-52) match the
-    same members their unmarked spellings do -- bold/strikethrough changes the rendering, not
-    the decision. Matching is longest-first and CASE-SENSITIVE: `accepted` is not `Accepted`,
-    because a status is a declared token rather than a free word.
+    Two markup passes, in this order and NOT interchangeable:
+
+      1. **Struck-through spans are DELETED, content included.** `~~X~~ Y` asserts "not X, now
+         Y", so the struck word is the OLD status and must not be matched. Unwrapping it
+         instead — the obvious `[*~_`]+` strip — turns ADR-52's `~~Accepted~~ Superseded by
+         ADR-53` into `Accepted`, inverting the status of the only genuinely superseded ADR in
+         the corpus and hiding it from the archival bar that exists to find it.
+      2. **Remaining emphasis markers are stripped**, so `**PARKED**` (ADR-114) matches the
+         same member its unmarked spelling does — bold changes rendering, not meaning.
+
+    Matching is longest-first (the alternation is built in `STATUS_ENUM` order, so
+    `Partially superseded` can never be read as `Superseded`), CASE-SENSITIVE (`accepted` is
+    not `Accepted` — a status is a declared token, not a free word), and BOUNDARY-CHECKED
+    (`Acceptedness` and `Accepted-ish` are not `Accepted`).
+
+    Emphasis is matched as a BALANCED WRAPPER around the token, never stripped in place.
+    A blanket `[*`]+` strip let `Acce*pted` and ``Acce`pted`` normalize to `Accepted` and
+    bypass the FAIL-armed enum rule (terra R2-HIGH-1).
     """
-    cleaned = _MARKUP_RE.sub("", raw).strip()
-    for member in STATUS_ENUM:
-        if cleaned.startswith(member):
-            return member
-    return ""
+    m = _ENUM_AT_START_RE.match(_STRIKE_SPAN_RE.sub("", raw).strip())
+    return m.group("s") if m else ""
 
 
 def parse_status_fields(text: str, path: Path) -> list[StatusField]:
-    """Every status field in `text`'s header window, in document order."""
-    lines = text.splitlines()
+    """Every status field in `text`'s header window, in document order.
+
+    Lines inside a fenced code block are SKIPPED. An ADR quoting a status form in an example
+    block — e.g. showing the pre-enum spelling it no longer uses — would otherwise parse as a
+    real second field and fire BOTH FAIL-armed legs (`single-field` on the count, `enum` on the
+    quoted value), REDDING the pre-commit gate on a legitimate file. A false positive on a
+    FAIL-armed leg is the worst failure this validator can have, so the fence state is tracked
+    rather than assumed absent.
+    """
+    # A UTF-8 BOM makes line 1 start with ﻿, so `^-\s+\*\*Status:` never matches and the
+    # field goes INVISIBLE — a silent miss, not a loud one (terra HIGH-1).
+    lines = text.lstrip("﻿").splitlines()
     out: list[StatusField] = []
+    fence: tuple[str, int] | None = None   # (fence char, opener length)
     for idx, line in enumerate(lines[:HEADER_WINDOW]):
+        if fence is None:
+            fo = _FENCE_OPEN_RE.match(line)
+            if fo and (fo.group("f")[0] == "~" or "`" not in fo.group("info")):
+                fence = (fo.group("f")[0], len(fo.group("f")))
+                continue
+        else:
+            fc = _FENCE_CLOSE_RE.match(line)
+            if (fc and fc.group("f")[0] == fence[0]
+                    and len(fc.group("f")) >= fence[1]):
+                fence = None
+            continue
         for grammar, rx in GRAMMARS:
             m = rx.match(line)
             if not m:
                 continue
             raw = m.group("v").strip()
-            # G5's value sits inside the bold; anything after the close is prose, not value.
+            # A value continues onto the next line exactly when that line is a markdown LAZY
+            # CONTINUATION: non-blank, and not the start of a new block. The terminal-
+            # punctuation test this replaced was wrong in both directions (terra HIGH-3) —
+            # it missed `**Accepted**\ncontinued rationale` because the value ends in `*`,
+            # and it depended on punctuation that carries no block-structure meaning.
             nxt = lines[idx + 1] if idx + 1 < len(lines) else ""
-            wrapped = bool(
-                raw
-                and not raw.endswith((".", ")", "]", "*"))
-                and nxt.strip()
-                and not _NEW_BLOCK_RE.match(nxt)
-            )
+            wrapped = bool(raw and nxt.strip() and not _NEW_BLOCK_RE.match(nxt))
             out.append(StatusField(
                 path=path, grammar=grammar, lineno=idx + 1, raw=raw,
                 value=normalize_value(raw), wrapped=wrapped))
@@ -300,21 +385,46 @@ def corpus_defects(fields: list[StatusField], missing: list[str],
 
 # --- the README-index side ----------------------------------------------------
 
-_INDEX_ROW_RE = re.compile(r"^\|\s*(ADR-\d+)\s*\|\s*([^|]*?)\s*\|\s*(.*?)\s*\|\s*$")
 _DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}")
 
-#: Status markers in MARKER POSITION only. An incidental mention -- ADR-98's row reads
-#: "superseded-in-part by intake brief #1" -- must NOT be read as a status, which is why
-#: none of these matches a bare mid-sentence word.
+
+def _split_cells(row: str) -> list[str]:
+    """Split a markdown table row on UNESCAPED pipes.
+
+    A pipe is escaped only after an ODD-length backslash run: in `a \\\\| b` the two
+    backslashes are themselves escaped, so the pipe IS a delimiter. A `(?<!\\\\)\\|` lookbehind
+    gets this wrong and folds a four-cell row into three, which lets a malformed row invent an
+    index status (terra R3-HIGH-2). Scanned rather than regexed because a lookbehind cannot
+    count a variable-length run.
+    """
+    cells: list[str] = []
+    buf: list[str] = []
+    backslashes = 0
+    for ch in row:
+        if ch == "|" and backslashes % 2 == 0:
+            cells.append("".join(buf))
+            buf = []
+        else:
+            buf.append(ch)
+        backslashes = backslashes + 1 if ch == "\\" else 0
+    cells.append("".join(buf))
+    return cells
+
+#: Status markers in MARKER POSITION only, each matching a COMPLETE enum token with a trailing
+#: boundary. An incidental mention must NOT be read as a status — ADR-98's row reads
+#: "superseded-in-part by intake brief #1", and `Pre-Deprecated API migration` must not resolve
+#: to Deprecated (terra HIGH-4).
 _INDEX_MARKERS: tuple[tuple[str, re.Pattern[str]], ...] = (
-    # leading bold:     **PARKED (operator ruling 2026-08-22) - ...**
-    ("lead-bold", re.compile(r"^\*\*(?P<s>[A-Z][A-Za-z, ]*?)[\s(*]")),
-    # strikethrough:    ~~Old title~~ Superseded by ADR-53
-    ("strike", re.compile(r"^~~.*?~~\s*(?P<s>[A-Z][a-z]+)\b")),
-    # trailing dash:    ... - Deprecated 2026-05-23; relocated byte-identical
-    ("dash", re.compile(
-        r"[—-]\s*(?P<s>Deprecated|Superseded|Partially superseded|"
-        r"Explored, not adopted|PARKED|Proposed)\b")),
+    # leading bold:  **PARKED (operator ruling 2026-08-22) — ...**
+    # Anchored, complete token, and the next char must not continue a word — so
+    # `**Explored option**` does NOT resolve to `Explored, not adopted`.
+    ("lead-bold", re.compile(rf"^\*\*(?P<s>{_ENUM_ALT})(?![\w-])")),
+    # strikethrough:  ~~Old title~~ Superseded by ADR-53
+    ("strike", re.compile(rf"^~~.*?~~\s*(?P<s>{_ENUM_ALT})(?![\w-])")),
+    # trailing dash:  ... — Deprecated 2026-05-23; relocated byte-identical
+    # The dash must be preceded by whitespace or start-of-cell, so the hyphen inside
+    # `Pre-Deprecated` cannot serve as the marker's separator.
+    ("dash", re.compile(rf"(?:^|(?<=\s))[—–-]\s*(?P<s>{_ENUM_ALT})(?![\w-])")),
 )
 
 #: The index's own convention: a status prefix appears only for a NON-Accepted ADR, so a row
@@ -325,29 +435,38 @@ INDEX_DEFAULT_STATUS = "Accepted"
 def index_effective_status(readme_text: str) -> dict[str, str]:
     """`{ADR-NN: effective status}` read out of the ADR index's Title column.
 
-    Only rows whose second cell is a `YYYY-MM-DD` date are index rows; that filter is what
-    keeps the file's other pipe tables (e.g. the Council-transcript table, which repeats ADR
-    ids) from being read as status. First row per id wins.
+    Cells are split on UNESCAPED pipes, and the row must have exactly three content cells —
+    a four-cell row previously folded its fourth cell into the Title and could take its status
+    from there (terra HIGH-4). Only rows whose second cell is a `YYYY-MM-DD` date are index
+    rows; that filter keeps the file's other pipe tables (e.g. the Council-transcript table,
+    which repeats ADR ids) from being read as status. First row per id wins.
+
+    A marker must match a COMPLETE enum token in marker position; the value is taken verbatim
+    from that match, never inferred from a prefix of it.
     """
     out: dict[str, str] = {}
     for line in readme_text.splitlines():
-        m = _INDEX_ROW_RE.match(line)
-        if not m:
+        stripped = line.strip()
+        if not stripped.startswith("|") or not stripped.endswith("|"):
             continue
-        adr, date, title = m.group(1), m.group(2), m.group(3)
-        if not _DATE_RE.match(date) or adr in out:
+        parts = _split_cells(stripped)
+        # The outer parts must be EMPTY, i.e. the row really did open and close on UNESCAPED
+        # delimiters. `endswith("|")` alone is satisfied by a trailing ESCAPED pipe, and the
+        # `[1:-1]` slice would then discard a real content cell and admit a malformed
+        # four-cell row as a valid three-cell one (terra R4-HIGH-1).
+        if len(parts) < 2 or parts[0].strip() or parts[-1].strip():
+            continue
+        cells = [c.strip() for c in parts[1:-1]]
+        if len(cells) != 3:
+            continue
+        adr, date, title = cells
+        if not _ADR_NUM_RE.fullmatch(adr) or not _DATE_RE.match(date) or adr in out:
             continue
         status = INDEX_DEFAULT_STATUS
         for _kind, rx in _INDEX_MARKERS:
             mm = rx.search(title)
-            if not mm:
-                continue
-            token = _MARKUP_RE.sub("", mm.group("s")).strip()
-            member = next(
-                (e for e in STATUS_ENUM
-                 if token.lower().startswith(e.split(",")[0].lower())), "")
-            if member:
-                status = member
+            if mm:
+                status = mm.group("s")
                 break
         out[adr] = status
     return out
@@ -361,17 +480,48 @@ def duplicate_id_defects(fields: list[StatusField]) -> list[Defect]:
     second file's status entirely, and `R_UNINDEXED` can then never fire for it. Reported,
     never resolved -- picking which file "is" ADR-51 is not this validator's call.
     """
-    by_num: dict[str, list[str]] = {}
+    # Keyed on FILENAME, not on field: a file carrying two status fields (ADR-40 in the
+    # archive does) would otherwise be reported as colliding with ITSELF -- "2 files claim
+    # this number: ADR-40-....md, ADR-40-....md". That is a false collision, and it appears
+    # only on the --include-archive path, which is why a field-keyed count survived the live
+    # corpus unnoticed.
+    by_num: dict[str, set[str]] = {}
     for f in fields:
         num = adr_number(f.path)
         if num:
-            by_num.setdefault(num, []).append(f.path.name)
+            by_num.setdefault(num, set()).add(f.path.name)
     return [
         Defect(R_DUPLICATE, num,
                f"{len(names)} files claim this number: {', '.join(sorted(names))} -- "
                "index coherence is ambiguous for all of them")
         for num, names in sorted(by_num.items()) if len(names) > 1
     ]
+
+
+def header_status_map(fields: list[StatusField]) -> dict[str, str]:
+    """`{ADR-NN: header status}`, with duplicate-numbered ADRs EXCLUDED.
+
+    A first-wins dict over a collision picks a winner by filename order and then reports a
+    coherence verdict derived from it — so with `ADR-11-a.md: Proposed` and
+    `ADR-11-b.md: Accepted`, whichever sorts first decides, and reversing the two hides the
+    other disagreement (terra R2-MEDIUM-2). A collision contributes NO coherence verdict,
+    because no honest one exists; it is reported by `duplicate_id_defects` instead.
+
+    The exclusion is keyed on the FIELD count, not the filename count, so it also covers ONE
+    file carrying two status fields — `archive/ADR-40` does, at two casings. Keying on
+    filenames alone left that case picking the first field arbitrarily (terra R3-MEDIUM-1);
+    its `single-field` defect is still raised either way.
+    """
+    by_num: dict[str, list[StatusField]] = {}
+    for f in fields:
+        num = adr_number(f.path)
+        if num:
+            by_num.setdefault(num, []).append(f)
+    return {
+        num: fs[0].value or fs[0].raw[:40]
+        for num, fs in by_num.items()
+        if len(fs) == 1
+    }
 
 
 def coherence_defects(header_status: dict[str, str],
@@ -435,15 +585,19 @@ def main(root: str, include_archive: bool) -> None:
 
     defects += duplicate_id_defects(fields)
 
+    # The index is HALF the subject. Exiting 0 with the coherence leg silently skipped is the
+    # same vacuous pass the adapter was fixed for; the CLI must not disagree with it
+    # (terra R2-HIGH-3).
     readme = live_dir / "README.md"
-    if readme.is_file():
-        headers: dict[str, str] = {}
-        for f in fields:
-            num = adr_number(f.path)
-            if num:
-                headers.setdefault(num, f.value or f.raw[:40])
+    try:
         defects += coherence_defects(
-            headers, index_effective_status(readme.read_text(encoding="utf-8")))
+            header_status_map(fields),
+            index_effective_status(readme.read_text(encoding="utf-8", errors="replace")))
+    except OSError as exc:
+        click.echo(f"adr-status: ADR index unreadable ({exc}) -- the header-vs-index "
+                   f"coherence leg DID NOT RUN", err=True)
+        defects.append(Defect(R_UNINDEXED, str(readme),
+                              f"index unreadable ({exc}); coherence leg did not run"))
 
     if defects:
         click.echo("adr-status: DEFECT(S)")

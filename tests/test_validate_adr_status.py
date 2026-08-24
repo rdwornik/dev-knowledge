@@ -180,6 +180,230 @@ def test_file_with_two_status_fields_is_a_defect():
     assert vas.R_SINGLE in {d.rule for d in vas.field_defects(fields)}
 
 
+# --- layer 2c: terra round-1 findings (regression tests, one per failing input) --
+#
+# Every case below is a concrete input terra returned as a HIGH against the round-1 code.
+# They are pinned here so a future edit cannot quietly reintroduce any of them.
+
+def test_strikethrough_is_removed_not_unwrapped():
+    """terra HIGH-2 / self-found. `~~X~~ Y` means "not X, now Y".
+
+    Stripping the tildes and keeping the word turns ADR-52's real status into `Accepted` —
+    inverting the ONE genuinely superseded ADR in the corpus and hiding it from the archival
+    bar that exists to find it.
+    """
+    assert vas.normalize_value("~~Accepted~~ Superseded by ADR-53 (2026-05-19)") == "Superseded"
+
+
+@pytest.mark.parametrize("value", ["A_ccepted", "Acceptedness", "Accepted-ish", "AcceptedX"])
+def test_enum_match_requires_a_token_boundary(value):
+    """terra HIGH-2: an unrestricted startswith (plus `_` stripping) let any word with an
+    enum prefix pass the FAIL-armed enum rule."""
+    assert vas.normalize_value(value) == ""
+
+
+@pytest.mark.parametrize("value,expected", [
+    ("Accepted", "Accepted"),
+    ("Accepted - 2026-06-06", "Accepted"),
+    ("Accepted — 2026-06-06", "Accepted"),
+    ("Accepted (ratified by merge)", "Accepted"),
+    ("Accepted, via Council", "Accepted"),
+    ("Accepted 2026-05-28", "Accepted"),
+])
+def test_legitimate_qualifier_separators_still_match(value, expected):
+    """The boundary check must not break the qualifier forms the live corpus actually uses."""
+    assert vas.normalize_value(value) == expected
+
+
+def test_status_line_inside_a_code_fence_is_not_a_field():
+    """terra HIGH-1 / self-found. A quoted example would fire BOTH FAIL-armed legs
+    (`single-field` on the count, `enum` on the quoted value), REDDING the pre-commit gate
+    on a legitimate file. A false positive on a FAIL-armed leg is the worst case here."""
+    body = (
+        "# ADR-99 — x\n\n"
+        "- **Status:** Accepted\n\n"
+        "The pre-enum spelling we no longer use:\n\n"
+        "```md\n"
+        "- **Status:** Ratified\n"
+        "```\n"
+    )
+    fields = _fields(body)
+    assert len(fields) == 1
+    assert fields[0].value == "Accepted"
+    assert vas.field_defects(fields) == []
+
+
+def test_tilde_fence_is_also_honoured():
+    body = "# ADR-99 — x\n\n- **Status:** Accepted\n\n~~~\nStatus: Ratified\n~~~\n"
+    assert len(_fields(body)) == 1
+
+
+def test_utf8_bom_does_not_hide_the_status_field():
+    """terra HIGH-1: a BOM makes `^-\\s+\\*\\*Status:` fail, so the field goes INVISIBLE —
+    a silent miss rather than a loud one."""
+    fields = _fields("﻿- **Status:** Accepted\n")
+    assert len(fields) == 1
+    assert fields[0].grammar == "G1"
+
+
+def test_wrap_detection_does_not_depend_on_terminal_punctuation():
+    """terra HIGH-3: the old heuristic missed this because the value ends in `*`."""
+    body = "# ADR-99 — x\n\n- **Status:** **Accepted**\ncontinued rationale here\n"
+    assert _fields(body)[0].wrapped is True
+
+
+@pytest.mark.parametrize("nxt", [
+    "- **Date:** 2026-01-01",
+    "**Date:** 2026-01-01",
+    "**Amends (does not edit):** ADR-71 §x",   # live: ADR-72:6, key contains punctuation
+    "Date: 2026-01-01",
+    "## Context",
+    "> a blockquote",
+    "| a | table |",
+    "```",
+    "<!-- a comment -->",
+    "1. an ordered item",
+])
+def test_a_new_block_after_the_value_is_not_a_continuation(nxt):
+    body = f"# ADR-99 — x\n\n- **Status:** Accepted\n{nxt}\n"
+    assert _fields(body)[0].wrapped is False, nxt
+
+
+# --- layer 2d: terra round-2 findings (regression tests) ------------------------
+
+@pytest.mark.parametrize("value", ["Acce*pted", "Acce`pted", "Accep**ted", "Ac`cepted"])
+def test_inline_markup_cannot_launder_a_bad_value(value):
+    """terra R2-HIGH-1: a blanket `[*`]+` strip let inline markup inside a word normalize to
+    a valid token and bypass the FAIL-armed enum rule."""
+    assert vas.normalize_value(value) == ""
+
+
+@pytest.mark.parametrize("value,expected", [
+    ("**Accepted**", "Accepted"),
+    ("*Accepted*", "Accepted"),
+    ("`Accepted`", "Accepted"),
+    ("**PARKED** — ruled by the operator", "PARKED"),
+    ("Accepted", "Accepted"),
+])
+def test_balanced_emphasis_wrappers_still_match(value, expected):
+    assert vas.normalize_value(value) == expected
+
+
+def test_fence_info_string_with_spaces_is_a_valid_opener():
+    """terra R2-HIGH-2: ```` ```md example ```` was not recognised, so the block's contents
+    were parsed as header content."""
+    body = ("# ADR-99 — x\n\n- **Status:** Accepted\n\n"
+            "```md example title\n- **Status:** Ratified\n```\n")
+    assert len(_fields(body)) == 1
+
+
+def test_a_four_char_fence_is_not_closed_by_three():
+    """terra R2-HIGH-2: closing on char-class alone reopened the document early."""
+    body = ("# ADR-99 — x\n\n- **Status:** Accepted\n\n"
+            "````\n```\n- **Status:** Ratified\n````\n")
+    fields = _fields(body)
+    assert len(fields) == 1, [f.raw for f in fields]
+
+
+def test_emphasis_line_is_a_continuation_not_a_bullet():
+    """terra R2-MEDIUM-1: `*text*` has no space after `*`, so it is emphasis, not a list
+    item — a genuine wrapped value was going undetected."""
+    body = "# ADR-99 — x\n\n- **Status:** Accepted\n*continued rationale*\n"
+    assert _fields(body)[0].wrapped is True
+
+
+def test_duplicate_numbered_adrs_contribute_no_coherence_verdict():
+    """terra R2-MEDIUM-2: `setdefault` picked a winner by filename order, so the verdict
+    depended on sort order and the other file's disagreement was hidden."""
+    fields = [
+        vas.StatusField(Path("ADR-11-a.md"), "G1", 3, "Proposed", "Proposed", False),
+        vas.StatusField(Path("ADR-11-b.md"), "G1", 3, "Accepted", "Accepted", False),
+        vas.StatusField(Path("ADR-12-solo.md"), "G1", 3, "Accepted", "Accepted", False),
+    ]
+    mapped = vas.header_status_map(fields)
+    assert "ADR-11" not in mapped        # ambiguous -> no verdict
+    assert mapped["ADR-12"] == "Accepted"
+    # ...and the collision is still REPORTED, not just dropped.
+    assert [d.rule for d in vas.duplicate_id_defects(fields)] == [vas.R_DUPLICATE]
+
+
+def test_cli_does_not_exit_green_when_the_index_is_absent(tmp_path):
+    """terra R2-HIGH-3: the CLI exited 0 with the coherence leg skipped, disagreeing with
+    the adapter, which WARNs for the same condition."""
+    _write(tmp_path, "ADR-11-x.md", "# ADR-11 — x\n\n- **Status:** Accepted\n")
+    # no README.md written
+    res = CliRunner().invoke(vas.main, ["--root", str(tmp_path)])
+    assert res.exit_code == 1, res.output
+
+
+# --- layer 2e: terra round-3 findings (regression tests) ------------------------
+
+@pytest.mark.parametrize("value", [
+    "**Accepted",       # opened, never closed
+    "Accepted**",       # closed, never opened
+    "*Accepted`",       # mixed markers
+    "Accepted**ness",   # emphasis run immediately after an unwrapped token
+    "`Accepted*",
+])
+def test_emphasis_wrappers_must_be_balanced_and_same_kind(value):
+    """terra R3-HIGH-1: independent optional open/close groups accepted malformed markup,
+    so a value that is not cleanly an enum token still passed the FAIL-armed rule."""
+    assert vas.normalize_value(value) == ""
+
+
+def test_even_backslash_run_is_not_an_escaped_pipe():
+    """terra R3-HIGH-2: `\\\\|` is an escaped BACKSLASH followed by a real delimiter, so this
+    row has four cells and must be refused — not folded into three and mined for a status."""
+    idx = ("| ADR | Date | Title |\n|--|--|--|\n"
+           "| ADR-9 | 2026-01-01 | title \\\\| — Deprecated |\n")
+    assert "ADR-9" not in vas.index_effective_status(idx)
+
+
+def test_odd_backslash_run_is_a_genuinely_escaped_pipe():
+    idx = ("| ADR | Date | Title |\n|--|--|--|\n"
+           "| ADR-9 | 2026-01-01 | title \\| more — Deprecated 2026-01-01 |\n")
+    assert vas.index_effective_status(idx)["ADR-9"] == "Deprecated"
+
+
+def test_one_file_with_two_status_fields_contributes_no_coherence_verdict():
+    """terra R3-MEDIUM-1: excluding on FILENAME count alone still let a single file with two
+    fields pick its first field arbitrarily. Live on `--include-archive` via ADR-40."""
+    fields = [
+        vas.StatusField(Path("ADR-9-x.md"), "G1", 3, "Accepted", "Accepted", False),
+        vas.StatusField(Path("ADR-9-x.md"), "G3", 9, "Proposed", "Proposed", False),
+    ]
+    assert "ADR-9" not in vas.header_status_map(fields)
+    # ...and the structural defect is still raised.
+    assert vas.R_SINGLE in {d.rule for d in vas.field_defects(fields)}
+
+
+# --- layer 2f: terra round-4 findings (regression tests) ------------------------
+
+def test_row_ending_in_an_ESCAPED_pipe_is_refused():
+    """terra R4-HIGH-1: `endswith("|")` is satisfied by a trailing ESCAPED pipe, so the
+    `[1:-1]` slice dropped a real content cell and admitted a four-cell row as three."""
+    idx = ("| ADR | Date | Title |\n|--|--|--|\n"
+           "| ADR-9 | 2026-01-01 | — Deprecated | \\|\n")
+    assert "ADR-9" not in vas.index_effective_status(idx)
+
+
+@pytest.mark.parametrize("value,expected", [
+    ("****Accepted****", "Accepted"),     # nested strong — valid markdown
+    ("***Accepted***", "Accepted"),
+    ("``Accepted``", "Accepted"),
+])
+def test_nested_emphasis_is_not_a_false_enum_failure(value, expected):
+    """terra R4-HIGH-2: `\\*{1,3}` rejected valid nested emphasis, producing a FALSE `enum`
+    FAIL — the worst failure available to a FAIL-armed leg."""
+    assert vas.normalize_value(value) == expected
+
+
+@pytest.mark.parametrize("value", ["****Accepted**", "**Accepted****"])
+def test_mismatched_run_lengths_are_still_rejected(value):
+    """Widening to `\\*+` must not cost strictness: the backreference still binds."""
+    assert vas.normalize_value(value) == ""
+
+
 # --- layer 2b: header <-> README index coherence (`[#242]` Done-when leg) -------
 
 _INDEX = (
@@ -235,9 +459,51 @@ def test_duplicate_adr_number_is_reported_not_collapsed():
     assert "ADR-51-amendment-2026-07-05-llm-first.md" in defects[0].detail
 
 
+def test_a_file_with_two_status_fields_does_not_collide_with_itself():
+    """Self-found on the --include-archive path: ADR-40 carries two status fields, and a
+    field-keyed count reported it as "2 files claim this number: ADR-40..., ADR-40..." —
+    a false collision invisible on the live corpus, where no file has two fields."""
+    fields = [
+        vas.StatusField(Path("ADR-40-scale-tier.md"), "G5", 5, "Deprecated", "Deprecated", False),
+        vas.StatusField(Path("ADR-40-scale-tier.md"), "G3", 10, "Deprecated", "Deprecated", False),
+    ]
+    assert vas.duplicate_id_defects(fields) == []
+
+
 def test_shipped_corpus_duplicate_ids_are_the_two_measured():
     fields, _, _ = vas.scan_zone(vas.LIVE_DIR)
     assert {d.subject for d in vas.duplicate_id_defects(fields)} == {"ADR-51", "ADR-70"}
+
+
+@pytest.mark.parametrize("title,expected", [
+    # terra HIGH-4, one case per failing input it supplied.
+    ("Pre-Deprecated API migration", "Accepted"),          # hyphen must not be the separator
+    ("**Explored option** for a thing", "Accepted"),        # prefix-of-a-word is not the token
+    ("~~Old~~ Partially superseded by ADR-1", "Partially superseded"),  # was truncated to
+                                                                       # "Partially" -> default
+    # ...and the real markers must still resolve.
+    ("~~Old title~~ Superseded by ADR-53", "Superseded"),
+    ("A thing — Deprecated 2026-05-23; relocated", "Deprecated"),
+    ("**PARKED (operator ruling 2026-08-22)** — revisit", "PARKED"),
+    ("A perfectly ordinary title", "Accepted"),
+])
+def test_index_markers_match_complete_tokens_only(title, expected):
+    idx = ("| ADR | Date | Title |\n|--|--|--|\n"
+           f"| ADR-9 | 2026-01-01 | {title} |\n")
+    assert vas.index_effective_status(idx)["ADR-9"] == expected
+
+
+def test_index_row_with_a_fourth_cell_is_refused():
+    """terra HIGH-4: a 4-cell row folded its extra cell into Title and took a status from it."""
+    idx = ("| ADR | Date | Title |\n|--|--|--|\n"
+           "| ADR-9 | 2026-01-01 | Title | — Deprecated |\n")
+    assert "ADR-9" not in vas.index_effective_status(idx)
+
+
+def test_index_cell_split_honours_escaped_pipes():
+    idx = ("| ADR | Date | Title |\n|--|--|--|\n"
+           "| ADR-9 | 2026-01-01 | A \\| B — Deprecated 2026-01-01 |\n")
+    assert vas.index_effective_status(idx)["ADR-9"] == "Deprecated"
 
 
 def test_incidental_superseded_mention_is_not_a_marker():
@@ -331,6 +597,33 @@ def test_check_PASSES_on_a_fully_conforming_corpus(tmp_path):
         encoding="utf-8")
     findings = check_adr_status_grammar(tmp_path)
     assert findings[0].status == "pass", findings[0].evidence
+
+
+def test_check_WARNS_when_the_index_is_missing_instead_of_passing(tmp_path):
+    """terra HIGH-5: the index is HALF this check's subject. Returning `pass` while the
+    coherence leg silently did not run is the vacuous pass the gate exists to prevent."""
+    d = tmp_path / "docs" / "decisions"
+    d.mkdir(parents=True)
+    (d / "ADR-11-x.md").write_text(
+        "# ADR-11 — x\n\n- **Status:** Accepted\n", encoding="utf-8")
+    # no README.md written
+    findings = check_adr_status_grammar(tmp_path)
+    assert findings[0].status == "warn"
+    assert "DID NOT RUN" in findings[0].evidence
+
+
+def test_a_missing_index_does_not_MASK_a_real_enum_failure(tmp_path):
+    """Self-found while fixing terra HIGH-5: the first fix early-returned the index WARN,
+    which suppressed a genuine FAIL. "Do not silently pass" must not become "swallow real
+    failures" — the FAIL-armed legs are evaluated first, unconditionally."""
+    d = tmp_path / "docs" / "decisions"
+    d.mkdir(parents=True)
+    (d / "ADR-11-x.md").write_text(
+        "# ADR-11 — x\n\n- **Status:** Ratified\n", encoding="utf-8")
+    # no README.md
+    findings = check_adr_status_grammar(tmp_path)
+    assert findings[0].status == "fail"
+    assert "enum" in findings[0].evidence
 
 
 def test_check_carries_the_rule_annotation_for_the_doc_code_edge():

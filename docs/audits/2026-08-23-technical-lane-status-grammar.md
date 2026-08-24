@@ -309,7 +309,7 @@ rather than answered.
   **0** clean / **1** defects / **2** corpus-unusable.
 - `scripts/audit_checks/check_adr_status_grammar.py` — the thin `ALL_CHECKS` adapter,
   **written but deliberately not registered** (Step 4).
-- `tests/test_validate_adr_status.py` — 48 tests.
+- `tests/test_validate_adr_status.py` — 99 tests.
 
 ### Six rules, and what each measures on the live corpus
 
@@ -344,24 +344,14 @@ finds."* Two independent proofs:
 1. **One rejection test per divergent grammar measured in Step 1** (G2, G3, G4, G5), each
    asserting a `grammar` defect is *raised*, not that the run completed. Plus a rejection test
    per off-enum value, and an acceptance test per declared enum member.
-2. **A mutation run — 8 mutations, 8 killed, 0 survivors.** Each mutation disables one rule and
-   the suite must go RED:
+2. **A mutation run — 18 mutations, 18 killed, 0 survivors** (final set, after the terra
+   rounds below; see Step 7 for the full roster). Each mutation disables exactly one rule and
+   the suite must go RED.
 
-```
-KILLED  M1: accept every grammar (the contract's named failure mode)   5 failed
-KILLED  M2: enum check always passes                                   5 failed
-KILLED  M3: normalize_value accepts anything as Accepted               5 failed
-KILLED  M4: wrap detection disabled                                    1 failed
-KILLED  M5: duplicate-id detection returns nothing                     2 failed
-KILLED  M6: index marker scan disabled                                 4 failed
-KILLED  M7: coherence comparison never fires                           2 failed
-KILLED  M8: single-field rule never fires                              2 failed
-```
-
-**A first mutation run reported M5 as a survivor and it was a false alarm in the harness, not
-a hole in the suite** — the mutation was written `return [] or [...]`, which evaluates to the
-original list. Recorded because a mutation harness that mutates nothing reports a green suite
-as rigorous, which is worse than not running one.
+**A first mutation run reported a survivor and it was a false alarm in the harness, not a hole
+in the suite** — the mutation was written `return [] or [...]`, which evaluates to the original
+list, so it mutated nothing. Recorded because a mutation harness that silently fails to mutate
+reports a green suite as rigorous, which is worse than not running one at all.
 
 ### A defect this lane found in its own validator
 

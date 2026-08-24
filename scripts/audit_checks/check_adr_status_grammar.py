@@ -80,16 +80,20 @@ def check_adr_status_grammar(repo_path: Path) -> list[Finding]:
     defects = _vas.corpus_defects(fields, missing, extra)
     defects += _vas.duplicate_id_defects(fields)
 
+    # The index is HALF this check's subject ([#242]'s Done-when leg). An absent or unreadable
+    # README must therefore be loud: returning `pass` while the coherence leg silently did not
+    # run is the vacuous pass this gate exists to prevent (terra HIGH-5). The read is inside
+    # the guarded path so a race between `is_file()` and `read_text` cannot escape as an
+    # unhandled OSError either.
     readme = decisions / "README.md"
-    if readme.is_file():
-        headers: dict[str, str] = {}
-        for f in fields:
-            num = _vas.adr_number(f.path)
-            if num:
-                headers.setdefault(num, f.value or f.raw[:40])
-        defects += _vas.coherence_defects(
-            headers,
-            _vas.index_effective_status(readme.read_text(encoding="utf-8", errors="replace")))
+    index_error = ""
+    try:
+        index = _vas.index_effective_status(readme.read_text(encoding="utf-8", errors="replace"))
+    except OSError as exc:
+        index, index_error = {}, f"ADR index unreadable ({exc}) — coherence leg DID NOT RUN"
+
+    if not index_error:
+        defects += _vas.coherence_defects(_vas.header_status_map(fields), index)
 
     fails = [d for d in defects if d.rule in _vas.FAIL_RULES]
     warns = [d for d in defects if d.rule not in _vas.FAIL_RULES]
@@ -101,13 +105,15 @@ def check_adr_status_grammar(repo_path: Path) -> list[Finding]:
             ev += f" (+{len(fails) - 8} more)"
         return [Finding("adr_status_grammar", "fail", ev.replace("|", "/"))]
 
-    if warns:
+    if warns or index_error:
         counts: dict[str, int] = {}
         for d in warns:
             counts[d.rule] = counts.get(d.rule, 0) + 1
         ev = (f"{len(fields)} ADR status field(s); 0 enum/single-field defects; "
               f"baseline WARNs: "
-              + ", ".join(f"{k}={v}" for k, v in sorted(counts.items())))
+              + (", ".join(f"{k}={v}" for k, v in sorted(counts.items())) or "none"))
+        if index_error:
+            ev += f" | {index_error}"
         return [Finding("adr_status_grammar", "warn", ev.replace("|", "/"))]
 
     return [Finding("adr_status_grammar", "pass",
