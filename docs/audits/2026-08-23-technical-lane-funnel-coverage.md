@@ -593,3 +593,193 @@ re-verified byte-identical:
 
 M6 and M7 are the two that matter most: M6 is the identity-vs-count property the whole baseline
 shape exists for, and M7 is the fail-open a missing baseline would otherwise produce.
+
+---
+
+## 4. Arming — Step 4
+
+**Armed as WARN against a zero-baseline ratchet at the measured baseline of 613**, per the
+architect's ruling. Not RED. The ruling was not re-litigated and the derivation did not refute
+it — §2.4's growth number (~21 undispositioned artifacts/day) is if anything a stronger argument
+for it, since a RED would have blocked every audit-producing commit in the repo on day one for a
+debt none of those authors created.
+
+### 4.1 Where the WARN actually bites, stated so nobody is surprised
+
+`ALL_CHECKS` membership makes this a **ship-gate leg by construction**, and the two gates treat
+it differently:
+
+| gate | posture | effect of this leg's WARN |
+|---|---|---|
+| `audit-health` (pre-commit, every commit) | **FAIL-only** | none — a WARN informs and the commit proceeds |
+| `ship-gate` (at `/ship`, per arc) | FAIL **and** new/undispositioned WARN block | **blocks the arc** until the artifact is ledgered or the WARN is dispositioned in `ecosystem/disposition-register.yaml` |
+
+So the practical contract is: *you may commit an undispositioned audit; you may not ship an arc
+that leaves one.* That is the pressure the mandate asks for, applied at the boundary where a
+human is already reading — and it is why WARN rather than RED is not a weak arming.
+
+### 4.2 The registration — FENCED DIFF, not applied
+
+`scripts/audit.py` is shared with two sibling lanes, so **nothing below is applied by this
+lane.** The integrator applies all three lanes' registrations in one commit.
+
+**(a) the detector import**, alongside the existing `_srd` / `_gtt` adapters (`scripts/audit.py`,
+after the `silent_rule_detector` block at ~`:161`):
+
+```diff
+ try:
+     from scripts import silent_rule_detector as _srd
+ except ImportError:
+     import silent_rule_detector as _srd
+ 
++# M3 audit funnel-coverage detector — the PINNED definition of the disposition predicate
++# (ledger table shape + the ruled closed set + detector id). Same module-import + thin-adapter
++# shape as _srd above; the check is an adapter so the detector contract stays independently
++# testable (tests/test_funnel_coverage.py).
++try:
++    from scripts import funnel_coverage as _fc
++except ImportError:
++    import funnel_coverage as _fc
++
+ # [#433]/C1 derived-tree coherence gate — the `tasks/` emitter, imported so the check can
+```
+
+**(b) the check**, immediately after `check_landing_predicate` and before the `ALL_CHECKS`
+literal (`scripts/audit.py`, ~`:3425`):
+
+```diff
++def check_funnel_coverage(repo_path: Path) -> list[Finding]:
++    """M3 — ADVISORY leg: an audit artifact in docs/audits/ carrying no disposition record.
++
++    THE GAP, in ADR-111's own words: "No organ checks that an audit's findings are triaged,
++    and none is built here." The architect standing ruling of 2026-08-17 then closed the
++    artifact-level set — ACTIONED / FILED / REJECTED / SUPERSEDED, "an undisposed audit is a
++    defect, not a document" — and a ledger applied it to 80 artifacts. Nothing read it.
++
++    WARN-TIER BY RULING, never a hard verdict: arming RED against an unmeasured corpus turns
++    the gate off on day one, because everyone routes around a gate that blocks work for a debt
++    they did not create. The flip to RED is a later act with its own ruling. The property is
++    asserted structurally by the test suite (no hard-verdict literal appears in
++    funnel_coverage.ratchet_findings), because an observational check only proves such a path
++    was not REACHED — which is exactly what a latent one looks like.
++
++    ZERO-BASELINE RATCHET, keyed on IDENTITY rather than a count. The committed baseline
++    (ecosystem/audit-funnel-baseline.json) names the 613 artifacts uncovered at arm time; the
++    leg reports `live - baseline` BY NAME. A count-based ratchet is satisfied by draining one
++    old artifact while adding one new undispositioned one — net zero, debt unchanged, gate
++    silent — and with the corpus growing ~21 artifacts/day that swap is the default outcome of
++    ordinary work, not a contrived evasion.
++
++    ONE FINDING PER CONCERN. The #147 register suppresses an ENTIRE Finding on a substring
++    match, so a bundled Finding would let one dispositioned artifact wave through every other
++    regression beside it. [#560] records "bundled Finding" as a live structural rider in
++    check_review_artifact_coverage; it is not repeated here.
++
++    HUB-ONLY by repo identity: the disposition-ledger convention is a hub practice (one ledger
++    here, none in a consumer), so scanning consumers would manufacture a fleet gap — the
++    enforcement-organs-are-not-homogeneous class. Read-only (Layer-2); no git, no writes.
++
++    HONEST LIMIT: this verifies a disposition was RECORDED, not that it is TRUE. A row reading
++    `ACTIONED | deadbeef` passes without `deadbeef` being a real commit, and nothing here
++    resolves the locator. It converts an unfalsifiable claim into a checkable one; it does not
++    make it a true one. It also does not verify that a FILED row's owner was born through
++    intake (ADR-111 §2), nor detect the P-2 orphan when that owner later closes.
++    """
++    name = _fc.CHECK_NAME
++    if not _is_hub(repo_path):
++        return [_na(name, _NA_NOT_APPLICABLE,
++                    "hub-only -- the audit-disposition ledger is a hub practice")]
++    try:
++        root = Path(repo_path)
++        m = _fc.measure(root)
++        baseline = _fc.load_baseline(root)
++    except Exception as exc:  # noqa: BLE001 -- advisory leg: never wedge a gate on its own input
++        return [Finding(name, "warn", f"could not scan: {exc!r}".replace("|", "/"))]
++    return [Finding(name, status, evidence.replace("|", "/"))
++            for status, evidence in _fc.ratchet_findings(m, baseline)]
++
++
+ ALL_CHECKS = [
+     check_vision_md,
+```
+
+**(c) the `ALL_CHECKS` entry** — appended last, which is where every recent addition went and
+which leaves the existing emission order (a byte-identical output contract the git hooks depend
+on) untouched:
+
+```diff
+     check_landing_predicate,   # [#513] propagation-completeness — GATING (FAIL-capable), one
+                                # Finding per declared ruling in STANDING_RULINGS.md
++    check_funnel_coverage,   # M3 — ADVISORY (WARN-tier by ruling); zero-baseline ratchet over
++                             # docs/audits/ disposition coverage, keyed on artifact identity
+ ]
+```
+
+**(d) `scripts/audit_checks/registry.py`** — `CHECK_ORDER` must stay in agreement with
+`ALL_CHECKS` (its own docstring records that nothing asserts this yet, so it is maintained by
+hand):
+
+```diff
+-# The canonical order of `audit.ALL_CHECKS`, by function name. 43 entries; the count is pinned
++# The canonical order of `audit.ALL_CHECKS`, by function name. 44 entries; the count is pinned
+ # in ARCHITECTURE.md, .claude/commands/{handoff-verify,preflight}.md, deploy/release_lint.py and
+@@
+     "check_landing_predicate",            # facade — DISPOSITION_REGISTER/_is_hub seams
++    "check_funnel_coverage",              # facade — _is_hub seam; detector in funnel_coverage.py
+ )
+```
+
+**(e) `ecosystem/doc-code-edge.yaml`** — a new `ALL_CHECKS` member must be `coverage_scope`-
+annotated or exempt, or `check_doc_code_coverage_drift` reds. **A `# rule:` marker is wrong
+here** and would register as a `code_orphan`: the rule this leg embodies lives in a lane
+contract and a ledger, **not in a living doc** (see the registration gap in §1(b)). Same posture
+as `review_artifact_coverage`, and temporary for the same reason:
+
+```diff
+   - review_artifact_coverage
++  # M3 audit funnel-coverage leg. **TEMPORARY** — expires when the 2026-08-17 audit-disposition
++  # ruling is written into a living doc and registered in protocols/STANDING_RULINGS.md. You
++  # cannot hard-gate an unwritten rule, and today this one is carried only by
++  # docs/audits/2026-08-17-technical-batch-7a-lane-a-contract.md:22-27 plus the ledger that
++  # applied it — locatable, but not where a `# rule:` marker could point. When it lands, this
++  # entry converts to coverage_scope and the marker is added. Same shape as the
++  # review_artifact_coverage row directly above.
++  - funnel_coverage
+```
+
+**(f) the count pins.** `43 → 44` at each site the registry docstring names, all verified to
+resolve:
+
+```
+tests/test_audit.py:2207              assert len(aud.ALL_CHECKS) == 43
+tests/test_audit.py:2223              assert len(aud.ALL_CHECKS) == 43
+tests/test_doc_code_edge.py:248       assert len(aud.ALL_CHECKS) == 43
+tests/test_doc_code_edge.py:713       assert len(aud.ALL_CHECKS) == 43
+tests/test_writer_integrity.py:185    assert len(aud.ALL_CHECKS) == 43
+scripts/audit_checks/registry.py:119  "43 entries" (comment, per (d) above)
+```
+
+Each carries a running "N -> N+1: <check> added (<reason>, <date>)" history comment; the
+convention is to append, e.g. `43 -> 44: check_funnel_coverage added (M3 — ADVISORY leg,
+WARN-tier by ruling; zero-baseline identity ratchet over docs/audits/ disposition coverage,
+2026-08-23)`.
+
+**(g) `ecosystem/doc-counts.md`** — regenerate after applying, `python scripts/gen_doc_counts.py
+--write`. This lane regenerated it for its own +32 tests; **applying (c) moves the check count
+43 → 44 and it must be regenerated again.** It is deliberately outside `_FRESHNESS_FILES`
+(decoupled by `#222`), so this does not force a `last_reviewed` re-stamp.
+
+### 4.3 The diff was executed, not just written
+
+A fenced diff nobody ran is a claim.
+`test_the_shipped_wrapper_maps_pairs_to_findings_and_is_hub_gated` defines the wrapper body of
+(b) **verbatim** and exercises it against the real `audit.Finding`, `audit._is_hub`,
+`audit._na` and the live corpus, asserting: the hub gate returns exactly one classified `n/a`;
+the hub path returns real `Finding` objects named `funnel_coverage` with advisory statuses only;
+every evidence string is free of the literal `|` the locked coherence-spine contract forbids;
+and an unreadable corpus degrades to a WARN rather than raising.
+
+**Its honest weakness, stated rather than implied:** it is a *copy* of the shipped body, not an
+import of it, because the real thing cannot exist until the integrator applies (b). Two copies
+in one artifact is visible to a reviewer; it is still weaker than executing the merged code, and
+the integrator should re-run the suite after applying.
