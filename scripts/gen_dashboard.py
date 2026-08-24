@@ -7,8 +7,18 @@ archived*. Stage 1 is ONE regenerable document that answers all four at a glance
 notes header saying what the last seven days actually bought.
 
 LOCATION + ZONE CLASS are ruled, not chosen here: ADR-86 puts the dashboard at
-`ecosystem/conformance.md` as an ADR-80 **committed-generated** zone -- a read-only validator
-generates it and commits its own output. A self-contained HTML sibling
+`ecosystem/conformance.md` as an ADR-80 **committed-generated** zone. WHO COMMITS IT is ruled
+too, and it is NOT this module: ADR-86 as AMENDED 2026-08-23 (architect ruling R1) withdraws its
+original self-committing-writer clause -- no such code path ever existed here, and no GENERATOR in
+this repo implements ADR-80 §3's writer policy. (The one place that policy IS implemented is
+`audit.py::_commit_routine_outputs`, an unattended nightly routine that commits to the orphan
+`automation/fleet-audit` branch via `commit-tree` plumbing -- the ADR-84 isolation case, which
+this is not.)
+**A human or integrator commit satisfies "committed".**
+This module writes and returns; `write_outputs` then prints the exact pathspec-bounded commit
+path it did NOT run, so the mechanism is observable at the point of use rather than asserted in
+prose (`commit_path_commands` is that path in code, and `--commit-path` prints it on its own).
+A self-contained HTML sibling
 (`ecosystem/conformance.html`) is emitted alongside it by operator addendum (2026-08-19), for the
 same reason ADR-86 rejected generate-on-demand: the artifact must be openable without running
 anything.
@@ -74,6 +84,23 @@ INTAKE_RELDIR = "docs/intake"
 INTAKE_ARCHIVE_RELDIR = "docs/intake/archive"
 DECISIONS_RELDIR = "docs/decisions"
 AUDITS_RELDIR = "docs/audits"
+
+#: The DATA half of this artifact's declared input set -- every tracked data path `build()` reads.
+#: The CODE half (this module and the parsers it borrows) is `CODE_INPUT_RELPATHS`, below; the two
+#: are joined into `INPUT_RELPATHS`, which is what the ADR-86 staleness leg
+#: (`scripts/generated_artifact_freshness.py`) reads, so the leg consumes a declaration made here
+#: rather than re-deriving one of its own. `INTAKE_ARCHIVE_RELDIR` needs no entry: it is inside
+#: `INTAKE_RELDIR`. Two things `build()` reads are deliberately NOT here, and both exclusions are
+#: load-bearing rather than oversights:
+#:   * `TELEMETRY_STORE_RELPATH` -- gitignored (`.gitignore:95`), so it carries no commit date and
+#:     cannot take part in a git-date relation at all. Declared instead as the leg's
+#:     `untracked_inputs`, so the carve-out is visible rather than silently missing.
+#:   * HEAD -- `head_sha()`/`head_date()` are inputs to the RENDERING, not to the content. Keying
+#:     a freshness relation on HEAD would make it fire after every commit in the repo, which is
+#:     exactly why `--check` reports drift once HEAD moves (see the docstring above). The content
+#:     input set is the one that can carry a meaningful staleness baseline.
+DATA_INPUT_RELPATHS = (BACKLOG_RELPATH, TASKS_RELDIR, INTAKE_RELDIR, DECISIONS_RELDIR,
+                       AUDITS_RELDIR)
 
 #: Release-notes / trend window. The operator asked for "the last 7 days".
 WINDOW_DAYS = 7
@@ -147,9 +174,24 @@ def _load(name: str):
     return module
 
 
-_gtt = _load("gen_task_tree")
-_gii = _load("gen_intake_index")
-_gcr = _load("gen_claude_rosters")
+#: The loose `scripts/` modules whose parsers this one borrows. Named ONCE, here, because the
+#: names are needed twice: to load them, and to declare them as freshness inputs (`INPUT_RELPATHS`
+#: below). A change to any of these changes what `build()` renders, so they are content inputs in
+#: exactly the sense the ADR-86 staleness leg means — found by terra, 2026-08-23, against a first
+#: version of `INPUT_RELPATHS` that listed only the DATA it reads and would therefore have called
+#: the artifact "fresh" forever across a parser rewrite.
+PARSER_MODULES = ("gen_task_tree", "gen_intake_index", "gen_claude_rosters")
+
+_gtt, _gii, _gcr = (_load(name) for name in PARSER_MODULES)
+
+#: This module's own repo-relative path, and its borrowed parsers' — the CODE half of the input
+#: set. Derived from `PARSER_MODULES` rather than re-typed.
+SELF_RELPATH = "scripts/gen_dashboard.py"
+CODE_INPUT_RELPATHS = (SELF_RELPATH,) + tuple(f"scripts/{name}.py" for name in PARSER_MODULES)
+
+#: The artifact's full declared input set: what it is rendered FROM (data) plus what renders it
+#: (code). The ADR-86 staleness leg measures against exactly this.
+INPUT_RELPATHS = DATA_INPUT_RELPATHS + CODE_INPUT_RELPATHS
 
 
 # --------------------------------------------------------------------------- row model
@@ -928,7 +970,13 @@ def _preamble(d: Dashboard) -> str:
         "",
         _GENERATED_NOTE,
         "",
-        "> **Generated, committed, read-only** (ADR-86 location + ADR-80 zone class). It answers "
+        "> **Generated, human-committed, read-only** (ADR-86 location + ADR-80 zone class; "
+        "ADR-86 **amended 2026-08-23** — a human or integrator commit satisfies \"committed\"). "
+        "`python scripts/gen_dashboard.py --write` writes this file and **commits nothing**; the "
+        "person or integrator who ran it commits both faces, pathspec-bounded, in the same "
+        "branch → `--no-ff` merge as any other change. **Nothing refreshes this file "
+        "automatically: it shows the tree as of the last time somebody ran `--write`, and it "
+        "reaches the repo only when they commit it.** It answers "
         "four standing operator questions — what finished, where the telemetry is, whether the "
         "intakes passed their gate, and whether implemented ADRs are archived — and it **reports "
         "rather than repairs**: every VIOLATION and flag below is left exactly where it was found.",
@@ -937,6 +985,10 @@ def _preamble(d: Dashboard) -> str:
         f"**window:** {d.since or '(unknown)'} → {d.as_of or '(unknown)'} ({WINDOW_DAYS} days)",
         "- **Regenerate:** `python scripts/gen_dashboard.py --write` · "
         "**verify:** `python scripts/gen_dashboard.py --check`",
+        f"- **Commit path:** the person who regenerated it commits, pathspec-bounded to "
+        f"`{' '.join(commit_pathspec())}` — "
+        "`python scripts/gen_dashboard.py --commit-path` prints the exact commands, and "
+        "`--write` prints them too. The generator itself commits nothing.",
         "- **Determinism:** derived from the tree, not the clock — the \"as of\" instant is "
         "HEAD's commit date, so two runs on one tree are byte-identical. After HEAD moves, "
         "`--check` reports drift; that is a regenerate-me signal and gates nothing.",
@@ -1172,7 +1224,16 @@ def render_html(d: Dashboard) -> str:
         f'{_esc(d.as_of or "?")} ({WINDOW_DAYS} days)</p>',
         '<p class="meta">Generated by <code>scripts/gen_dashboard.py</code> — do not edit by '
         "hand. Regenerate: <code>python scripts/gen_dashboard.py --write</code></p>",
-        '<p class="note">Generated, committed, read-only (ADR-86 location + ADR-80 zone class). '
+        f'<p class="meta">Commit path: the person who regenerated it commits, pathspec-bounded '
+        f'to <code>{_esc(" ".join(commit_pathspec()))}</code> — '
+        "<code>python scripts/gen_dashboard.py --commit-path</code> prints the exact commands. "
+        "The generator itself commits nothing.</p>",
+        '<p class="note">Generated, human-committed, read-only (ADR-86 location + ADR-80 zone '
+        "class; ADR-86 amended 2026-08-23 — a human or integrator commit satisfies "
+        "&quot;committed&quot;). <code>python scripts/gen_dashboard.py --write</code> writes this "
+        "file and commits nothing; the person or integrator who ran it commits both faces, "
+        "pathspec-bounded. Nothing refreshes this file automatically: it shows the tree as of "
+        "the last time somebody ran --write, and it reaches the repo only when they commit it. "
         "It reports rather than repairs: every VIOLATION and flag below is left exactly where it "
         "was found.</p>",
         _html_release(d), _html_backlog(d), _html_intake(d), _html_adrs(d),
@@ -1189,6 +1250,60 @@ def render_html(d: Dashboard) -> str:
 
 _TARGETS = ((MD_RELPATH, render_markdown), (HTML_RELPATH, render_html))
 
+# --------------------------------------------------------------------------- the commit path
+# ADR-86 as amended 2026-08-23: a HUMAN or INTEGRATOR commit satisfies "committed", and this
+# module is not the writer. `[#171]` leg 1's actual failure was that the mechanism existed only
+# as PROSE -- both artifact faces asserted a commit path, an integrator review pass judged the
+# leg met by reading that assertion, and no code path performed it. So the path is built HERE,
+# in code, derived from the write targets, and printed at every `--write`. What is deliberately
+# absent is any code path that RUNS it: ADR-80 §3's writer policy stays unimplemented for this
+# artifact BY RULING, not by omission, and `tests/test_gen_dashboard.py` asserts against a real
+# git repo that `--write` leaves HEAD where it found it.
+
+#: The commit message a routine regeneration carries. Not enforced -- a default, not a gate.
+DEFAULT_COMMIT_MESSAGE = "docs(dashboard): regenerate ecosystem/conformance.{md,html}"
+
+
+def commit_pathspec() -> list[str]:
+    """The exact paths a commit of this artifact must be bounded to.
+
+    DERIVED from `_TARGETS` rather than re-typed, so it cannot drift from what `--write` actually
+    wrote. ADR-80 **Rider 1** ("stages exactly its own declared output paths -- never
+    `git add -A`") survives the 2026-08-23 amendment unchanged: what (b) altered is WHO runs the
+    commit, not what it is bounded to. An operator's unrelated dirty files stay untouchable.
+    """
+    return [relpath for relpath, _ in _TARGETS]
+
+
+def commit_path_commands(message: str = DEFAULT_COMMIT_MESSAGE) -> list[list[str]]:
+    """The human/integrator commit path as argv lists. Nothing in this module executes them.
+
+    THE PATHSPEC IS ON THE `commit`, NOT ONLY ON THE `add`, and that is the whole point. A bare
+    `git commit -m ...` commits everything ALREADY STAGED, so bounding only the `add` leaves an
+    operator with unrelated staged work committing it by accident -- while both artifact faces
+    tell them the commit is pathspec-bounded. That gap was found by terra (2026-08-23) and it is
+    the same class of defect as the header this lane exists to fix: a true-sounding claim about a
+    mechanism that does not hold. With the trailing pathspec, `git commit` takes the working-tree
+    content of exactly these paths and ignores the rest of the index.
+
+    Consequence, stated rather than discovered later: a path-limited commit is a PARTIAL commit,
+    so `pre-commit` stashes unstaged changes for the duration of its hooks. That is normal for
+    this repo (any partial commit does it) but it is not nothing, which is why it is written here
+    next to the command it applies to.
+    """
+    paths = commit_pathspec()
+    return [["git", "add", "--", *paths], ["git", "commit", "-m", message, "--", *paths]]
+
+
+def render_commit_path(message: str = DEFAULT_COMMIT_MESSAGE) -> str:
+    """The same commands as copy-pasteable shell, one per line."""
+    return "\n".join(" ".join(_quote(part) for part in argv)
+                     for argv in commit_path_commands(message))
+
+
+def _quote(part: str) -> str:
+    return f'"{part}"' if " " in part else part
+
 
 def write_outputs(repo_root: Path, git) -> int:
     dashboard = build(repo_root, git)
@@ -1197,6 +1312,12 @@ def write_outputs(repo_root: Path, git) -> int:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(renderer(dashboard), encoding="utf-8", newline="\n")
         print(f"gen_dashboard: wrote {relpath}")
+    # The commit path is printed, never run -- see the block comment above.
+    print("gen_dashboard: NOT committed. This generator has no writer of its own; a human or "
+          "integrator commit satisfies \"committed\" (ADR-86 amended 2026-08-23).")
+    print("gen_dashboard: commit path, pathspec-bounded to exactly the files just written:")
+    for line in render_commit_path().splitlines():
+        print(f"    {line}")
     return 0
 
 
@@ -1225,7 +1346,15 @@ def main(argv: list[str] | None = None) -> int:
     group.add_argument("--check", action="store_true", help="regen-and-diff; 1 on drift")
     group.add_argument("--print", dest="to_stdout", action="store_true",
                        help="render the markdown to stdout without writing")
+    group.add_argument("--commit-path", dest="commit_path", action="store_true",
+                       help="print the pathspec-bounded commit path a human runs after --write "
+                            "(this generator never runs it; ADR-86 amended 2026-08-23)")
     args = parser.parse_args(argv)
+    if args.commit_path:
+        # Answered without git and without touching the tree, so a runbook or an integrator can
+        # ask the generator what its commit path IS without regenerating anything.
+        print(render_commit_path())
+        return 0
     git = _reader(_REPO_ROOT)
     if args.write:
         return write_outputs(_REPO_ROOT, git)

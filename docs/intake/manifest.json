@@ -3,12 +3,12 @@
   "direction": "derived-from",
   "source": "docs/intake/README.md",
   "generator": "scripts/gen_intake_tree.py",
-  "source_sha256": "bf47f23aff3d4bf323f4819980bb8555aa6d4cd08ced7a73d047a318e92a7a5a",
+  "source_sha256": "51b1aa08120f0646dc06fbfe99279b18d0d9cf946636e6a703ba200d868c3f90",
   "honest_limit": {
     "statement": "ADR-109 section 4 is discharged by a byte-exact round-trip plus a residue manifest, NOT by a derivation ratio. This surface's ratio is INVERTED relative to surface 1 (BACKLOG.md <-> tasks/), where task lines were the majority and residue the minority. Recorded so the generality claim is honest about what was shown.",
-    "item_derived_lines": 42,
+    "item_derived_lines": 43,
     "residue_lines": 281,
-    "total_lines": 323,
+    "total_lines": 324,
     "surface_1_comparison": "inverted -- surface 1 was majority item-derived"
   },
   "not_captured": {
@@ -212,6 +212,10 @@
         "note",
         "origin"
       ],
+      "2026-08-23-tech-generated-artifact-currency.md": [
+        "consumed-by",
+        "origin"
+      ],
       "2026-08-23-tech-nopack-guard-refusal-surface.md": [
         "consumers",
         "note",
@@ -313,7 +317,7 @@
     },
     {
       "t": "line",
-      "v": "**42 intake documents.**"
+      "v": "**43 intake documents.**"
     },
     {
       "t": "line",
@@ -383,7 +387,7 @@
     },
     {
       "t": "line",
-      "v": "### DRAFT (6)"
+      "v": "### DRAFT (7)"
     },
     {
       "t": "line",
@@ -417,6 +421,11 @@
     {
       "t": "item",
       "file": "2026-08-23-tech-nopack-guard-refusal-surface.md",
+      "status": "DRAFT"
+    },
+    {
+      "t": "item",
+      "file": "2026-08-23-tech-generated-artifact-currency.md",
       "status": "DRAFT"
     },
     {

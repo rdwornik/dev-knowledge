@@ -56,7 +56,9 @@ to a **measured** value, then the suite. The push to `main` is the operator's ac
 **Anchors:** L2's seven - `5fcc9338`, `8c54f003`, `2c6587d5`, `77355632`, `617ed84f`, `065872b8`,
 `52950fa9` - the commits merge `459083a9` introduces; L4's eight - `3dcf1198`, `46337a98`,
 `83023bbc`, `278c26c6`, `4cda6b26`, `7edd76d3`, `8c028f0d`, `fabb80af`; and the probe's
-`c559392a`.
+`c559392a`. Also `f06701d9` - this entry's own commit, named here so that the merge which
+introduced it (`0da5fa69`) is anchored too; an entry cannot name the commit that carries it,
+which is the single-commit-branch trap the predicate makes unavoidable.
 
 ### 2026-08-24 (h) - CC (Opus 5, integrator, branch `docs/warn-triage-teardown-2026-08-24`): the window's residue is zero, and the two things left standing are older than the batch
 
