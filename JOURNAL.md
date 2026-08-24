@@ -19,6 +19,49 @@
 
 ---
 
+### 2026-08-24 (h) - CC (Opus 5, integrator, branch `docs/warn-triage-teardown-2026-08-24`): the window's residue is zero, and the two things left standing are older than the batch
+
+**Did:** the contract's Step 10 teardown and the Step 7 triage leg the close-out packet did not
+carry. **Four lanes torn down** - L6, L1, L3, L7 - each proven superseded by an **EMPTY**
+`git cherry main` rather than by "looks merged", each worktree verified **0-dirty** first, and each
+branch confirmed mirrored to `origin` at an identical SHA before deletion. Order was
+`worktree remove` -> `prune` -> `branch -d`; **`-d` only, `-D` never**.
+
+**Result:** `stale_worktrees` **OK** at 3 registered, down from 7; `git stash list` empty; working
+tree clean. **This batch's own residue is zero.** L2 and L4 are untouched, and the hold is now
+corroborated by measurement rather than by the contract's word: they carry **2** and **8**
+uncommitted entries.
+
+**Two things survive that this seat did NOT delete, because deleting without asking is forbidden.**
+(1) `.claude/worktrees/lane-docs-governance/` **exists on disk but is not a registered worktree** -
+absent from `git worktree list`, and it survived `git worktree prune`. It is a leftover from a
+previous window and a standing breach of `CLAUDE.md` §5 rule 9. (2) A **seventh** worktree,
+`probe-substrate` (`c559392a`, locked), predates this batch entirely. Both are named so the next
+seat does not mistake either for this batch's residue.
+
+**The triage, and three of the contract's four figures did not reproduce.** `grooming-cadence` is
+**25d**, not 24. `undeclared_edges` is **20 undispositioned** (plus 18 already dispositioned), not
+"two" - and all 20 are one defect class, a doc naming a spec without declaring `reconciled_with`.
+`review_artifact_coverage` is **27**, not 22 - **and the increase is this batch's own eleven
+merges**, so the batch asked to triage the metric is the largest single contributor to its current
+value. That is worth stating plainly rather than reporting the contract's number.
+
+**Nothing was suppressed to make a number look better.** The 20 edges are left undeclared on the
+recorded ground that a stale `reconciled_with` is worse than none, and
+`review_artifact_coverage` is left standing because `[#480]`'s deferral waits on exactly the
+evidence a disposition would destroy.
+
+**Changes:** `docs/audits/2026-08-24-technical-warn-triage-and-teardown.md` (new),
+`docs/audits/README.md` (regenerated), `JOURNAL.md`.
+
+**Abandoned:** nothing.
+
+**Next:** the window stops here. **The push to `main` is the operator's act** - and it is also what
+clears the single remaining ship-gate FAIL, the `silent-rule-v4`/`v5` split between `origin/main`
+and `main`.
+
+**Anchors:** `6bfda8d0` (the triage + teardown record, the commit this branch's merge introduces).
+
 ### 2026-08-24 (g) - CC (Opus 5, integrator, branch `fix/step8-verification-pins-2026-08-24`): the suite runs once on the merged result, and three of its seven REDs turn out to be this window's own
 
 **Did:** the contract's Step 8 - **one** full-suite run on the merged result rather than per lane,
