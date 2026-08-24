@@ -123,3 +123,59 @@ prep-only + report" budget this doc is **prepped and left at DRAFT**.
 **DRAFT** — routed into intake 2026-08-16 by architect ruling; prepped 2026-08-21 by batch-1
 lane D and **deliberately not transitioned** (see the ratification blocker above). DRAFT BINDS
 NOTHING; zero rows born, none proposed.
+
+## Provenance correction — APPENDED 2026-08-23 (architect ruling R6). Status unchanged.
+
+> **Appended, not edited.** Nothing above this heading changed. The frontmatter `origin:` field
+> and the `## Provenance, stated exactly` section both assert that the source artifact is **not
+> in the repo** and *"lands with the ratification"*. **That is false, and it was false when this
+> intake was written.** The original sentences are deliberately **left visible**: they are the
+> evidence for the funnel finding recorded below, and a silent fix would destroy the finding.
+> Source: `RULINGS-and-AMENDMENTS-2026-08-23.md` **R6**, landed verbatim in
+> `docs/audits/2026-08-23-technical-phase0-preconditions.md`; the identity evidence is that
+> packet's **§6.1**.
+
+**The source artifact IS in-repo.** Location:
+
+```
+docs/archive/2026-08-09-research-code-style-doctrine-wf-8a83eb70.md
+```
+
+**Three independent identity checks, each established by the Phase 0 packet §6.1:**
+
+1. **Title.** The archive file's H1 —
+   *"Enforcing a Universal Code-Style Doctrine Across an LLM-Written Python Fleet"* — matches the
+   title quoted in this intake's `origin:` field **character-for-character**.
+2. **Content.** Section A above reproduces that file's `## TL;DR` **exactly** — all three
+   bullets, down to the em-dashes.
+3. **Chronology.** The file was git-added at **`f571ac3c`, 2026-08-10** (*"docs(archive): land the
+   six 2026-08-09 research memos byte-identical + index them"*) — **six days before this intake
+   was routed** on 2026-08-16.
+
+### Effect on the ratification checklist
+
+- **Item 1 — "Land the source artifact in-repo" — DISCHARGED.** It was already discharged when
+  this file was authored. The **"Ratification blocker"** recorded by the 2026-08-21 prep pass is
+  therefore **void**: no lane was ever blocked on an unsatisfiable precondition.
+- **Item 3 — "ratchet or flag day for ruff family enablement" — RULED: RATCHET.** Ruled by the
+  architect on 2026-08-23 on standing precedent (the same shape ruled twice that day — R1's
+  freshness leg and L2's coverage gate — plus the repo's established zero-baseline ratchet
+  pattern, which this intake's own Section B already names via `silent_rule_ratchet`).
+- **Items 2, 4 and 5 remain OPEN and are the operator's** — sequencing against `[#533]`, the
+  hub-versus-consumer ownership boundary, and ADR-112 two-tier pricing. Three items remain, not
+  four.
+
+### Status: unchanged, and deliberately so
+
+**`status:` stays `DRAFT`. No `decided-by` is added.** Discharging item 1 changes this intake's
+**characterization**, not its status: from *"blocked, precondition unsatisfiable by any lane"* to
+**"unblocked, awaiting an operator ratification decision on items 2, 4 and 5."** *The blocker is
+discharged* and *ratification is ready* are different claims, and only the first is made here.
+No lane owns `#34` and none should take it.
+
+### Funnel finding (recorded, not fixed here)
+
+An intake was authored **declaring a blocker that was already false at authoring time** — a
+claim-at-authoring defect, the same family as the recorded architect error **E2**, and **not** a
+workflow delay. Routed to the funnel per ADR-111; this appended block records it, and files
+nothing.
