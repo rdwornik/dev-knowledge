@@ -50,6 +50,7 @@ from ._common import (
     Finding,
 )
 from .check_adr38_baseline import check_adr38_baseline
+from .check_adr_status_grammar import check_adr_status_grammar
 from .check_amendment_coherence import (
     _COUPLED_VERSION_SETS,
     _norm_version,
@@ -116,7 +117,7 @@ from .check_workspace_settings import (
     check_workspace_settings,
 )
 
-# The canonical order of `audit.ALL_CHECKS`, by function name. 43 entries; the count is pinned
+# The canonical order of `audit.ALL_CHECKS`, by function name. 44 entries; the count is pinned
 # in ARCHITECTURE.md, .claude/commands/{handoff-verify,preflight}.md, deploy/release_lint.py and
 # the test suite, so it does not move without those moving too. The inline notes are carried
 # over from the ALL_CHECKS literal they came from.
@@ -165,6 +166,7 @@ CHECK_ORDER: tuple[str, ...] = (
     "check_preflight_backlog_ids",        # facade — _is_hub/_REPO_ROOT seam
     "check_review_artifact_coverage",     # facade — _is_hub/_REPO_ROOT seam
     "check_landing_predicate",            # facade — DISPOSITION_REGISTER/_is_hub seams
+    "check_adr_status_grammar",           # [#242] ADR status grammar/enum + README coherence
 )
 
 # The extracted subset, in CHECK_ORDER-relative order.
@@ -185,6 +187,7 @@ EXTRACTED_CHECKS = (
     check_residual_completeness,
     check_routine_consumers,
     check_boot_byte_budget,
+    check_adr_status_grammar,
 )
 
 # The flat surface `audit.py` re-exports. Names beyond the check functions appear here because a
@@ -240,6 +243,7 @@ __all__ = [
     "_vr",
     "_vrc",
     "check_adr38_baseline",
+    "check_adr_status_grammar",
     "check_amendment_coherence",
     "check_boot_byte_budget",
     "check_canonical_md_visibility",
