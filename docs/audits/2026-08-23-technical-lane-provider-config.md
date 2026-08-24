@@ -380,6 +380,25 @@ a one-off."*
   `ADR-68` as a 2026-04/06 council-panel record, unverified since; registering a stale id is
   worse than registering none. The operator's 2026-08-23 ask — DeepSeek through the admission
   pipeline — is the act that produces a probe-verified served id, and the id lands with it.
+- **No effort enum on any model.** §2.1 records why: no live in-repo surface binds a *model* to
+  an effort value, and the canonical enum's home is doctrine, not this file.
+- **No routing.** The registry header and standing ruling **R-2** both place it at L0.
+
+### 3.6 One existing test fixture changed — stated because a changed test is a claim
+
+`tests/test_provider_registry.py::test_version_commands_omits_a_provider_with_no_cli` built its
+tmp-path registry as `{"with": {"version_command": [...], "changelog_tool_key": "x"}, ...}` —
+a provider with a **probe and no CLI**, and **half an S8 pair**. Both are now refused by the
+schema. The fixture gained `display_name`, an explicit `cli:` and the missing
+`changelog_source_url`; **the assertion is byte-identical**. This is the schema catching an
+illegal shape that had been sitting in the suite, not a test relaxed to fit a change.
+
+### 3.7 Suite delta from this step
+
+`tests/test_provider_registry_schema.py` — **22 new tests**, every one a **mutation check**:
+a legal registry is built, exactly one field is broken, and the schema is required to refuse
+it. A schema test that only proves the live file passes would still pass with every validator
+deleted. Combined with the 23 pre-existing: **45 passed, 0 failed.**
 
 ### 3.8 One gate fired on this step, and the fix is a rewording rather than a bypass
 
@@ -615,22 +634,135 @@ No root file was created. `ecosystem/providers.md` was **not** created either �
 zero birth budget. `ARCHITECTURE.md` was not edited. The lane's whole answer to closure item 3
 is this section: the exact path, the quoted clause admitting it, the generation mechanism, and
 the four quoted grounds barring the root.
-- **No effort enum on any model.** §2.1 records why: no live in-repo surface binds a *model* to
-  an effort value, and the canonical enum's home is doctrine, not this file.
-- **No routing.** The registry header and standing ruling **R-2** both place it at L0.
 
-### 3.6 One existing test fixture changed — stated because a changed test is a claim
+---
 
-`tests/test_provider_registry.py::test_version_commands_omits_a_provider_with_no_cli` built its
-tmp-path registry as `{"with": {"version_command": [...], "changelog_tool_key": "x"}, ...}` —
-a provider with a **probe and no CLI**, and **half an S8 pair**. Both are now refused by the
-schema. The fixture gained `display_name`, an explicit `cli:` and the missing
-`changelog_source_url`; **the assertion is byte-identical**. This is the schema catching an
-illegal shape that had been sitting in the suite, not a test relaxed to fit a change.
+## 6. The separation record — the fork test says STANDING RULING, not ADR
 
-### 3.7 Suite delta from this step
+The contract routes this deliberately: *"Apply ADR-98 §3's fork test and state the outcome. If
+it is an ADR, land it as **PROPOSED**... If the test says a standing ruling, draft the ruling
+text instead."*
 
-`tests/test_provider_registry_schema.py` — **22 new tests**, every one a **mutation check**:
-a legal registry is built, exactly one field is broken, and the schema is required to refuse
-it. A schema test that only proves the live file passes would still pass with every validator
-deleted. Combined with the 23 pre-existing: **45 passed, 0 failed.**
+### 6.1 The test, quoted, then applied prong by prong
+
+> **ADR = the DECISION at a genuine fork** — authored **only** when a reasonable person could
+> choose otherwise **and** reversal is costly.
+
+It is a conjunction. Both prongs, or it is not an ADR.
+
+**Prong 1 — could a reasonable person choose otherwise? YES, and the counter-position is not
+hypothetical.** The opposite rule — *configuration is gated on admission* — is the status quo
+this lane changes, and it was applied by the architect **one day earlier**. Standing ruling R-1
+refused `.gemini/settings.json` partly on this ground:
+
+> **Not admitted:** `.gemini/settings.json`. ... ADR-53 records the active toolset as Claude
+> Code + Codex. **A third provider is a cost with no present consumer.**
+
+*"A cost with no present consumer"* is an **admission-shaped reason applied to a
+configuration-shaped act**. There is also a straightforward safety reading of (a): do not
+configure what was refused, so nothing can reach it by accident. Prong 1 is met comfortably.
+
+**Prong 2 — is reversal costly? NO, and this is a measurement rather than an intuition.**
+Reversing this lane's separation means deleting two model rows, one optional schema field with
+its two validators, and one check leg. **One revert commit.** Nothing else moves —
+
+- no `ecosystem/parity-surfaces.yaml` row is touched, so no fleet member goes RED (contrast
+  ADR-114 measurement 1: *"Renaming in the hub alone turns `fleet_parity` RED for **all nine
+  members at once**"*);
+- no immutable artifact carries it (contrast ADR-114 measurement 2: *"104 of the 114 committed
+  bundles reference `VISION.md`; 69 distinct `PROBES`-named files"*);
+- **no consumer depends on the rows behaviourally** — §4.5 records that nothing routes on them,
+  and nothing can while R-2 stands. Deleting them breaks a gate, not a behaviour.
+
+**Verdict: the conjunction FAILS on prong 2. This is not an ADR.** It is a *reading* that
+resolves how two already-ratified organs relate — standing ruling Q9's admission arithmetic and
+the registry's own *"records model IDENTITY"* scope — which is the genre
+`protocols/STANDING_RULINGS.md` exists for. R-1 and R-2 are the live precedent: both are
+readings of ratified doctrine, recorded as rulings *"because a reinterpretation that lives only
+in an audit is the drift this register exists to end."*
+
+**A side effect, recorded rather than used as the reason:** this outcome moots architect
+question **Q2** for this lane. No ADR is authored, so `docs/adr/` vs `docs/decisions/` (**A1**)
+never arises here. The test was applied first and the convenience noticed second.
+
+### 6.2 The fork, named
+
+> **FORK:** when a model or provider fails an admission floor, does the refusal remove it from
+> the repo's *configuration* surface, or only from the *roles* it was evaluated for?
+>
+> - **(a) Configuration is gated on admission.** A refused provider is not configured. Simpler
+>   to state, and safe by construction — nothing can reach what is not written down.
+> - **(b) Configuration is decoupled from admission.** Every provider on the surface is
+>   configured and addressable; the verdict rides as data on the *role*, not on the row.
+>
+> **This lane implements (b).** The ruling below is the record of that choice, drafted for
+> ratification — it is not ratified by this lane.
+
+### 6.3 The drafted ruling text
+
+**Not landed, and there are two independent reasons, each sufficient.** First, ratification is
+the architect's act and never a lane's. Second, the register cannot presently take a new
+section at all: the outgoing architect's supplement (answer 4, OPEN QUESTIONS) lists, verbatim
+across its own line wrap at `SUPPLEMENT.md:77–78`, *"post-ratchet / STANDING_RULINGS
+section-writing policy (blocks #491 + #344)"* — so how a new section enters this file after the
+ratchet is itself unresolved, and this ruling would need one.
+
+**Phrased declaratively on purpose**, per the register's own editing note: the file is inside
+the silent-rule ratchet corpus, live measurement equals the committed baseline exactly
+(441 = 441, re-verified this session), and *"adding a normative keyword to this file therefore
+raises the count and FAILs the `silent_rule_ratchet` check, which blocks the commit through the
+`audit-health` hook."* The draft below carries no `must` / `shall` / `never`. §3.8 records what
+happens to a lane that forgets.
+
+````text
+### S-1 · Provider configuration is decoupled from role admission
+
+> An admission verdict governs ROLE ELIGIBILITY. A provider or model that failed an admission
+> floor stays configured in `ecosystem/provider-registry.yaml`, stays addressable, and stays
+> inside the closed vocabulary the seam checkers match against. What the refusal removes is the
+> role, recorded as `role_admission.<role>.verdict: refused` beside the evidence that decided
+> it — with `roles:` carrying only the roles the model actually holds.
+
+- **The fork, and why it was ruled rather than assumed.** (a) configuration gated on admission,
+  or (b) configuration decoupled from it. Reading (a) was the standing shape and has a coherent
+  case: a refused provider that is not written down cannot be reached by accident. It is set
+  aside because it conflates two questions and loses information — under (a) the only home for a
+  refusal is prose in an audit, and the ABSENCE of an admission field is what makes "present in
+  the registry" read as "admitted".
+- **Not an ADR, by the ADR-98 section 3 test applied in full.** Prong 1 (a reasonable person
+  could choose otherwise) holds — R-1's "a third provider is a cost with no present consumer" is
+  that position, applied 2026-08-22. Prong 2 (reversal is costly) fails on measurement: reversal
+  is two model rows, one optional schema field and one check leg — one revert commit, no parity
+  surface, no immutable artifact, no behavioural consumer. The test is a conjunction, so the
+  outcome is a ruling.
+- **Landed as data, not only as prose.** `ecosystem/schema/provider_registry.py` encodes both
+  halves: `role_admission` is OPTIONAL with an empty default, so a row's existence is
+  unconditional; and a role recorded as `refused` is refused entry to `roles:`, so the two
+  surfaces agree by construction rather than by attention.
+- **Scope, stated so the ruling is not read wider than it is.** It concerns the CONFIGURATION
+  surface. It grants no role, reverses no verdict, and touches no routing — the routing table is
+  L0 per R-2. Both 2026-08-23 verdicts stand exactly as ruled; `[#578]` carries the one earned
+  rerun.
+- **Anti-orphan (P-2):** landed by `ecosystem/provider-registry.yaml` +
+  `ecosystem/schema/provider_registry.py` at the ratifying commit's parent, so no carrier row is
+  owed. The predicate block below is the checkable form.
+- **Expiry:** open-ended — it is a reading of ratified doctrine, live for as long as Q9 and the
+  registry's identity scope are.
+
+```landed
+site: ecosystem/provider-registry.yaml | pattern: CONFIGURATION IS NOT GATED ON ADMISSION
+site: ecosystem/schema/provider_registry.py | pattern: role_admission
+```
+````
+
+**On the `landed:` block.** `scripts/validate_landing_predicate.py` reads
+`protocols/STANDING_RULINGS.md` and nothing else (`_DEFAULT_REGISTER`), so the fenced block
+above is inert while it sits in this artifact — it becomes checkable the moment the ruling is
+pasted into the register. Both patterns were verified against the live files at this commit.
+
+### 6.4 What this section does not claim
+
+It does not claim the two refused candidates should be re-run, re-scored or admitted. It does
+not weaken standing ruling **Q9**'s `G1 ∧ G2 ∧ G3` arithmetic. It says only that a refusal and a
+configuration are different acts on different objects, and that the repo now has one place where
+that distinction is data rather than inference.
