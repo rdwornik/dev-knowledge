@@ -19,6 +19,53 @@
 
 ---
 
+### 2026-08-24 (g) - CC (Opus 5, integrator, branch `fix/step8-verification-pins-2026-08-24`): the suite runs once on the merged result, and three of its seven REDs turn out to be this window's own
+
+**Did:** the contract's Step 8 - **one** full-suite run on the merged result rather than per lane,
+unpiped (redirected to a file; a pipe reports the pipe's exit code and hides the real one) - plus
+`ship-gate` in git-bash and the four validators. Then wrote the verification artifact and the
+close-out packet.
+
+**Result:** `7 failed, 3819 passed, 4 skipped, 1 xfailed in 2048.54s`. Collected moved **3573 ->
+3831**. Every RED attributed: **three pre-existing**, proven by re-running them individually at bare
+`main` `aeec0fd1` - which also shows the contract's stated baseline of *"1 failed"* was
+**incomplete**, since two `test_audit.py` health tests fail there too. **One measurement artifact**
+(`reverse_dep_oracle`, `assert 3 >= 50`) on three independent checks: its sibling asserting the same
+floor passed, the arc touches **zero** `.py` files, and both passed in **9.74 s** on a quiet re-run
+of the identical tree. **Three were mine** - a `15 doc` edge-count pin my own registration moved to
+16, and two silent-rule tests that met the R12 migration.
+
+**The most interesting of the three, because the test was wrong before I touched it:**
+`test_target_state_on_live_repo_is_a_known_state` asserted the live state is one of **four** values
+and its docstring claimed *"no silent fifth state"* - while `_ratchet_findings` has **always**
+modelled five, carrying an explicit `mixed` branch. The omission sat latent until R12's `v4 -> v5`
+migration produced `mixed` on the live repo. Corrected with the reason recorded.
+
+**`ship-gate` against the Phase 0 baseline: four of six metrics land EXACTLY on it** - WARN 52,
+dispositioned 27, undispositioned 25, `[stale]` 3 - after nine merges. `findings` 95 -> 93, and
+`FAIL` 0 -> **1**. That one FAIL is the detector migration and **only the operator can clear it**:
+the numbers agree (`live 443, committed 443`); it is `origin/main` (v4/441) and `main` (v5/443) that
+disagree, because pushing `main` is the operator's act. The baseline file's own provenance
+records the identical pattern for the previous raise - *"expected, self-healing at merge."*
+
+**Validators, each in full:** `validate_doc_claims` OK (`pytest_collected` **3831/3831**),
+`validate_backlog` OK (212 tasks, 1 warning), `validate_git_backlog` OK, `gen_task_tree --check` ok.
+The single warning - story `[S24]` has no tasks - is **reported, not fixed**, with its cause:
+`[S24]` is **COMPLETED 2026-08-01** and its rows correctly left `BACKLOG.md` per ADR-65.
+
+**Changes:** `tests/test_doc_code_edge.py`, `tests/test_silent_rule_ratchet.py`,
+`docs/audits/2026-08-24-verification-integrator-merged-result.md` (new),
+`docs/audits/2026-08-24-technical-batch-close.md` (new), `docs/audits/README.md` (regenerated),
+`JOURNAL.md`.
+
+**Abandoned:** nothing.
+
+**Next:** teardown of the merged lanes only - L2 and L4 excluded - then the window stops. **The
+push to `main` is the operator's act, and it is also what clears the one remaining FAIL.**
+
+**Anchors:** `4a476e89` (the three test fixes), `86e6cd28` (the verification artifact) and
+`c9ca6fe5` (the close-out packet) - the commits this branch's merge introduces.
+
 ### 2026-08-24 (f) - CC (Opus 5, integrator, branch `feat/integrator-batch-close-2026-08-24`): every N-dependent number is measured rather than inherited, and the one instruction that would have damaged a gate is refused with its evidence
 
 **Did:** the integrator's own acts behind the nine-branch queue. **Step 4** registered lane L3's
