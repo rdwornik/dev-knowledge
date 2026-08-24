@@ -449,3 +449,147 @@ a neutral preference. It is reversible in one constant and one regeneration, whi
 decided rather than escalated. **§7 carries it as the architect's call**, with the finding —
 *a coverage baseline cannot live in `ecosystem/*.yaml` without either an exclusion or a
 false-positive* — as the durable part.
+
+---
+
+## 3. The instrument — Step 3
+
+`scripts/funnel_coverage.py`. Stdlib only, read-only, no git. Two layers, deliberately split:
+a **detector** (`measure`) that classifies the corpus, and a **pure ratchet** (`ratchet_findings`)
+that turns a measurement plus a baseline into `(status, evidence)` pairs. The split is what lets
+the four ratchet contract cases be pinned without standing up a repo — the same reason
+`_ratchet_findings` exists as a separate testable core in `[#436]`.
+
+### 3.1 What it admits, and what it refuses
+
+A file is **covered** when some ledger row names it with a term from the ruled closed set **and**
+a non-empty evidence locator. A **ledger** is a markdown table whose header carries a file-ish
+column, a `disposition` column **and** an `evidence locator` column — the columns the 2026-08-17
+lane-a contract specified at `:87-92`.
+
+| the check counts as coverage | the check refuses, and a test pins each refusal |
+|---|---|
+| `ACTIONED` / `FILED` / `REJECTED` / `SUPERSEDED` with a locator | a term outside the ruled set (`WILL FIX`) → **malformed**, not coverage |
+| a ledger row in **any** artifact, including one dispositioning itself | a ruled term with an **empty** locator → **malformed**, not coverage |
+| a row in the **second** table of a file, or the **80th** row of a table | a table lacking the `evidence locator` column → **not a ledger at all** |
+| — | `PENDING` → its own third state: neither coverage nor absence |
+| — | a row naming an artifact not on disk → **dangling**, reported, never coverage |
+| — | `docs/audits/README.md` → outside the corpus (generated, cites everything) |
+
+**Requiring the locator column is a measured decision, not a taste.**
+`docs/audits/2026-05-24-dev-knowledge-self-audit.md` carries a table literally headed
+**"## Disposition ledger"** with `File` and `Disposition` columns. It predates the ruling, cites
+nothing, and grades in `WILL FIX`. **The predicate admits 0 of its 16 rows.** That is the
+false-admit number, produced the same way `review_artifact_coverage` produced its
+0-of-13 — by measuring the nearest miss on the real corpus rather than reasoning about it. A
+predicate that admitted that table would have reported 16 artifacts as dispositioned in a
+vocabulary nobody ruled.
+
+### 3.2 Three defects the tests were written to catch, all of which were real
+
+1. **Escaped pipes.** Covered in §2.1. Found by reconciliation, not by a test — the test came
+   after, which is the honest order and is recorded as such.
+2. **First-table-only reading — the `[#560]` class, avoided by adopting its lesson rather than
+   inheriting its bug.** `test_scan_reads_every_table_not_just_the_first` builds a document whose
+   *first* table is unrelated and whose *second* carries the only disposition. A
+   `.search`-shaped scanner returns nothing and the artifact reads as waste. This is precisely
+   what `[#560]` records: *"lane E was reviewed but sits in the SECOND triple of a two-branch
+   artifact and `.search` takes the first."*
+3. **A bundled Finding.** `[#560]` lists *"bundled Finding"* as a live structural rider in
+   `review_artifact_coverage`. It matters because the `#147` register suppresses an **entire**
+   Finding on a substring match, so one bundled line lets a single dispositioned artifact wave
+   through every other regression beside it. This leg emits **one Finding per regressed
+   artifact**, and `test_ratchet_emits_one_finding_per_regression_never_a_bundle` asserts each
+   Finding names exactly one.
+
+### 3.3 The ratchet is identity-based, and that is the design's load-bearing choice
+
+`[#436]`'s ratchet compares integers, because a normative-keyword occurrence count has no
+attribution to compare. Here the unit is a filename, so a stronger form is available for free:
+
+```
+regressions = live_uncovered - baseline_set      # WARN, one Finding each, named
+drained     = baseline_set   - live_uncovered    # pass, "ratchet-down available"
+stale       = baseline_set   - corpus            # WARN: baseline names an artifact that is gone
+```
+
+**`test_ratchet_REFUSES_THE_SWAP_that_a_count_would_wave_through` is the test that earns the
+design.** Drain one arm-time artifact, add one new undispositioned one: the total is unchanged,
+so an integer ratchet (`live <= baseline`) passes clean while the corpus silently trades old debt
+for new. The identity form still surfaces it, by name. Given a corpus growing ~21 artifacts/day,
+that swap is not a theoretical evasion — it is the default outcome of ordinary work.
+
+### 3.4 WARN-tier, proven at the source
+
+The architect's ruling is *"do not arm RED. WARN with a ratchet."*
+`test_ratchet_is_structurally_incapable_of_failing` reads `inspect.getsource(ratchet_findings)`
+and asserts no `"fail"` literal appears, exactly as
+`tests/test_review_artifact_coverage.py::test_leg_is_structurally_incapable_of_failing` does —
+because an observational test only proves a fail path was not **reached**, which is what a latent
+one looks like. `test_no_fixture_produces_a_non_advisory_status` is its observational companion.
+
+### 3.5 Honest limits — what a green here does NOT mean
+
+Stated in the module docstring and repeated here, because the contract's failure mode is a check
+that passes while testing nothing:
+
+- **It verifies a disposition was RECORDED, not that it is TRUE.** A ledger row reading
+  `ACTIONED | deadbeef` passes without `deadbeef` being a real commit, and nothing here resolves
+  the locator. This converts an unfalsifiable claim into a checkable one; it does not make it a
+  true one — the same limit `review_artifact_coverage` states about a fabricated tally.
+- **It does not verify the row's provenance.** `FILED` records that a row owns the artifact; it
+  is silent on whether that row was born through intake as ADR-111 §2 requires. Checking that is
+  a different edge with a different corpus.
+- **It does not detect the P-2 orphan.** When a `FILED` row's owning id later closes, the
+  disposition orphans while the ledger still reads FILED. Detecting it needs a liveness join
+  against `tasks/*.md` frontmatter — a second corpus inside a pre-commit-reachable gate. Reported
+  in §7 with its cost; the contract's *"do not extend scope to fix it in this lane"* is honoured.
+- **It reads the working tree, not `git ls-files`.** An untracked draft in `docs/audits/`
+  therefore counts as uncovered. That is deliberate — the artifact is about to be committed — but
+  it is the opposite of `silent_rule_detector`'s choice, which reads the index precisely so an
+  untracked draft cannot move its metric. The divergence is named rather than left for a reader
+  to trip over.
+- **It sees one ledger today.** The predicate admits any conforming table anywhere in
+  `docs/audits/`, so the surface is general — but the *measured* evidence is a single ledger, and
+  a second one has never been parsed by this code in anger.
+
+### 3.6 Test inventory
+
+`tests/test_funnel_coverage.py` — **33 tests, all passing** (13.6s):
+
+| group | n | what it holds |
+|---|---|---|
+| cell splitting | 3 | including the escaped-pipe regression |
+| ledger admission — what counts | 4 | every table, every row |
+| ledger admission — what it **refuses** | 7 | the false-admit twins for each admission rule |
+| the ratchet | 10 | the four contract cases plus the swap, INERT, migration, WARN-tier |
+| baseline I/O | 3 | malformed JSON and a non-string list both refuse rather than coerce |
+| live corpus | 5 | invariants and monotone bounds, no pinned totals |
+| the shipped facade wrapper | 1 | §4.3 |
+
+**No live totals are pinned.** This repo has already been bitten by `ALL_CHECKS` count pins
+living in six places; these assert **invariants** (`corpus == dispositioned + pending +
+uncovered`) and **monotone bounds** (`dispositioned >= 78`, since dispositions only ever
+accrue), so adding an audit does not red the suite while a genuine parser regression still does.
+
+### 3.7 Mutation check — 10/10 caught
+
+A passing test proves nothing until it can fail. Each mutation below was applied to
+`scripts/funnel_coverage.py` in isolation, the named test run alone, and the source restored and
+re-verified byte-identical:
+
+| # | mutation | guarding test | verdict |
+|---|---|---|---|
+| M1 | escaped-pipe handling removed | `..._honours_escaped_pipes` | **CAUGHT** |
+| M2 | stop after the FIRST table (the `[#560]` class) | `..._reads_every_table_not_just_the_first` | **CAUGHT** |
+| M3 | `evidence locator` column no longer required | `..._without_an_evidence_locator_column_is_not_a_ledger` | **CAUGHT** |
+| M4 | empty locator accepted as coverage | `..._with_an_EMPTY_locator_is_not_coverage` | **CAUGHT** |
+| M5 | off-vocabulary term accepted as coverage | `..._outside_the_ruled_set_is_not_coverage` | **CAUGHT** |
+| M6 | ratchet made COUNT-based instead of identity-based | `..._REFUSES_THE_SWAP...` | **CAUGHT** |
+| M7 | missing baseline silently treated as empty (fail-open) | `..._is_INERT_and_says_so...` | **CAUGHT** |
+| M8 | a hard-verdict literal introduced | `..._is_structurally_incapable_of_failing` | **CAUGHT** |
+| M9 | PENDING collapsed into coverage | `..._is_neither_coverage_nor_absence` | **CAUGHT** |
+| M10 | README no longer excluded from the corpus | `..._is_excluded_from_the_corpus` | **CAUGHT** |
+
+M6 and M7 are the two that matter most: M6 is the identity-vs-count property the whole baseline
+shape exists for, and M7 is the fail-open a missing baseline would otherwise produce.

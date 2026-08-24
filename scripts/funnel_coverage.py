@@ -345,6 +345,94 @@ def load_baseline(repo_root: Path) -> dict | None:
     return data
 
 
+CHECK_NAME = "funnel_coverage"
+
+
+def ratchet_findings(m: Measurement, baseline: dict | None) -> list[tuple[str, str]]:
+    """The ratchet verdict as `(status, evidence)` pairs. PURE -- no filesystem, no git.
+
+    Returns tuples rather than `Finding` objects so this module imports nothing from
+    `audit`; the facade wrapper maps them. That keeps the four contract cases
+    (pass-at-baseline, warn-on-regression, ratchet-down accepted, identity-swap refused)
+    pinned without standing up a repo, and keeps the detector standalone.
+
+    WARN-TIER BY RULING, and there is deliberately NO code path to a hard verdict here.
+    The architect's ruling on this lane is explicit: arm as WARN against a zero-baseline
+    ratchet, because arming RED against an unmeasured corpus turns the gate off on day one
+    -- everyone routes around a gate that blocks work for a debt they did not create. The
+    flip to RED is a later act with its own ruling. `tests/test_funnel_coverage.py`
+    asserts the absence of a hard-verdict literal AT SOURCE LEVEL, because an
+    observational test only proves such a path was not REACHED, which is exactly what a
+    latent one looks like.
+
+    ONE FINDING PER CONCERN, never a bundle. The #147 register suppresses an ENTIRE
+    Finding on a substring match, so a bundled Finding lets one dispositioned artifact
+    wave through every other regression sharing the line. `git_backlog_drift` emits one
+    per drifted id for this reason, and `[#560]` records "bundled Finding" as a live
+    structural rider in `review_artifact_coverage`. Not repeated here.
+    """
+    if baseline is None:
+        return [("warn",
+                 f"no readable {BASELINE_RELPATH} -- ratchet INERT (live uncovered "
+                 f"{len(m.uncovered)} of {len(m.corpus)}); the gate is not measuring "
+                 f"anything")]
+
+    stamped = baseline.get("detector_id")
+    if stamped != m.detector_id:
+        return [("warn",
+                 f"detector mismatch: baseline stamped {stamped!r} but live measurement "
+                 f"produced by {m.detector_id!r} -- the two are not commensurable; "
+                 f"re-measure and re-stamp rather than comparing them")]
+
+    baseline_set = set(baseline["artifacts"])
+    live_set = set(m.uncovered)
+    corpus_set = set(m.corpus)
+
+    # THE IDENTITY LEG, and the reason this ratchet is not a counter. `live - baseline`
+    # names artifacts that are uncovered NOW and were not part of the arm-time debt. A
+    # count-based ratchet is satisfied by draining one old artifact while adding one new
+    # undispositioned one: total unchanged, debt unchanged, gate silent. Here that swap
+    # still surfaces, by name.
+    regressions = sorted(live_set - baseline_set)
+    drained = sorted(baseline_set - live_set)
+    stale = sorted(baseline_set - corpus_set)
+
+    out: list[tuple[str, str]] = []
+    for name in regressions:
+        out.append(("warn",
+                    f"{name} carries no disposition and is not in the arm-time baseline -- "
+                    f"record one of {'/'.join(DISPOSITION_TERMS)} with an evidence locator "
+                    f"in a ledger row (architect ruling 2026-08-17), or {PENDING_TERM} with "
+                    f"the exact question it needs"))
+    for row in m.malformed:
+        out.append(("warn",
+                    f"{row.ledger} carries a ledger row for {row.audit} whose disposition "
+                    f"{row.term!r} is outside the ruled set or whose evidence locator is "
+                    f"empty -- a term with nothing to resolve is not a disposition"))
+    for row in m.dangling:
+        out.append(("warn",
+                    f"{row.ledger} carries a ledger row naming {row.audit}, which is not "
+                    f"present in {AUDITS_RELPATH}/ -- a relocated or mistyped locator, not "
+                    f"coverage"))
+    for name in stale:
+        out.append(("warn",
+                    f"the baseline names {name}, which is no longer present in "
+                    f"{AUDITS_RELPATH}/ -- drain the entry rather than carrying a debt for "
+                    f"an artifact that does not exist"))
+    if out:
+        return out
+
+    headroom = len(baseline_set) - len(live_set)
+    drain_note = (f"; {headroom} drained since arm time "
+                  f"({', '.join(drained[:3])}{'...' if len(drained) > 3 else ''}) -- "
+                  f"ratchet-down available" if drained else "")
+    return [("pass",
+             f"{len(m.dispositioned)} of {len(m.corpus)} artifact(s) in {AUDITS_RELPATH}/ "
+             f"carry a ruled disposition with a locator, {len(m.pending)} are "
+             f"{PENDING_TERM}, and no undispositioned artifact is outside the arm-time "
+             f"baseline of {len(baseline_set)}{drain_note}")]
+
+
 def render_report(m: Measurement) -> str:
     """Human-readable census. Used by `--report` and quoted into the lane artifact."""
     lines = [
