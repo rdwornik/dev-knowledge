@@ -161,6 +161,15 @@ try:
 except ImportError:
     import silent_rule_detector as _srd
 
+# M3 audit funnel-coverage detector -- the PINNED definition of the disposition predicate
+# (ledger table shape + the ruled closed set + detector id). Same module-import + thin-adapter
+# shape as _srd above; the check is an adapter so the detector contract stays independently
+# testable (tests/test_funnel_coverage.py).
+try:
+    from scripts import funnel_coverage as _fc
+except ImportError:
+    import funnel_coverage as _fc
+
 # [#433]/C1 derived-tree coherence gate — the `tasks/` emitter, imported so the check can
 # invoke its `--check` semantics in-process rather than shelling out. Same shape.
 try:
@@ -196,6 +205,15 @@ try:
     from scripts import canonical_freshness_gate as _cfg
 except ImportError:
     import canonical_freshness_gate as _cfg
+
+# Generated-artifact staleness leg (ADR-86 as amended 2026-08-23; `[#171]` leg 1 / f7). Exactly
+# the relationship this module already has with `_cfg` above: the relation lives in ONE module,
+# and the leg below only wraps its verdict in the Finding envelope. Dual-mode import for the
+# same reason (`python scripts/audit.py` vs `python -m scripts.audit`).
+try:
+    from scripts import generated_artifact_freshness as _gaf
+except ImportError:
+    import generated_artifact_freshness as _gaf
 
 # [#533] The decomposed check package. Every symbol moved out of this module is RE-EXPORTED
 # below under its original name, so `audit.Finding`, `audit.check_vision_md`, `audit._strip_jsonc`
@@ -545,6 +563,9 @@ def discover_repos() -> list[str]:
 # passes these names into `_cfg.evaluate`, so a monkeypatch at the audit level still applies).
 _parse_last_reviewed = _cfg.parse_last_reviewed
 _git_last_commit_date = _cfg.git_last_commit_date
+# Audit-level alias for the same reason the two above exist: it keeps a monkeypatch seam, so a
+# test that rewrites the name on the `audit` module still reaches the leg.
+_gaf_git_last_commit_date = _gaf.git_last_commit_date
 
 
 # rule: canonical-freshness
@@ -590,6 +611,52 @@ def check_canonical_freshness(repo_path: Path) -> list[Finding]:
     return [Finding("canonical_freshness", "pass",
                     f"{len(_FRESHNESS_FILES)} canonical living files fresh "
                     f"(last_reviewed not before last edit; within {_FRESHNESS_CADENCE_DAYS}d)")]
+
+
+def check_generated_artifact_freshness(repo_path: Path) -> list[Finding]:
+    """Committed-generated staleness -- is a committed generated artifact older than its inputs?
+
+    ADR-86 as AMENDED 2026-08-23 rules that a human or integrator commit satisfies "committed".
+    That makes the dashboard's header honest; it does nothing to keep the output CURRENT. An
+    honest header on a stale trust surface is still a stale trust surface, so this leg is the
+    other half of the same ruling: WARN when the committed artifact has fallen further behind
+    its declared inputs than the baseline measured when the leg was armed (dashboard: 4 days, at
+    `aeec0fd1`). The baseline is a RATCHET, not an allowance.
+
+    WARN-CLASS BY RULING. `cmd_health` (the pre-commit gate) exits 1 only on a `fail`, while
+    `cmd_ship_gate` REDs on any undispositioned `warn` -- so the TEETH are at ship time.
+
+    AND THE WORK IS SKIPPED AT COMMIT TIME, not merely the blocking. `cmd_health` runs the whole
+    of ALL_CHECKS, so a WARN-class check still SPENDS its cost on every commit -- measured at 11
+    `git log` calls for the dashboard. `_GATE_MODE` is this module's existing answer to exactly
+    that. At commit time the leg is an honest `n/a`; at ship time it measures.
+
+    ONE Finding PER ARTIFACT so the #147 ship-gate dispositions each independently. Logic
+    single-sourced in `scripts/generated_artifact_freshness.py`; this leg only wraps it, passing
+    the audit-level git-date alias so a monkeypatch at the audit level still applies.
+
+    THE STATUS MAPPING IS A TABLE LOOKUP, NOT AN `if/else`, and that is deliberate. Written as
+    `if stale: warn / else: pass`, this leg reported every verdict added AFTERWARDS as a silent
+    `pass`. `STATUS_FOR_VERDICT` lives in the module beside the verdicts it maps, so an unknown
+    verdict raises `KeyError` here instead of passing quietly.
+    """
+    name = "generated_artifact_freshness"
+    if _GATE_MODE:
+        return [_na(name, "NOT-APPLICABLE",
+                    "ship-gate-only leg -- skipped at the audit-health commit gate "
+                    "(ADR-86 amd. 2026-08-23: freshness matters when you ship)")]
+    findings: list[Finding] = []
+    for artifact in _gaf.REGISTRY:
+        m = _gaf.measure(repo_path, artifact, git_date_fn=_gaf_git_last_commit_date)
+        status = _gaf.STATUS_FOR_VERDICT[m.verdict]   # KeyError on an unmapped verdict: loud
+        if status == "unavailable" and m.subject_absent:
+            findings.append(_na(name, "SUBJECT-ABSENT", m.detail))
+            continue
+        evidence = m.detail
+        if status == "warn":
+            evidence = f"{evidence}; regenerate + commit: {artifact.regen_command}"
+        findings.append(Finding(name, status, evidence.replace("|", "/")))
+    return findings
 
 
 def _git_registered_worktrees(repo_path: Path) -> Optional[set[str]]:
@@ -3396,6 +3463,49 @@ def check_landing_predicate(repo_path: Path) -> list[Finding]:
     return out
 
 
+def check_funnel_coverage(repo_path: Path) -> list[Finding]:
+    """M3 -- ADVISORY leg: an audit artifact in docs/audits/ carrying no disposition record.
+
+    THE GAP, in ADR-111's own words: "No organ checks that an audit's findings are triaged, and
+    none is built here." The architect standing ruling of 2026-08-17 then closed the
+    artifact-level set -- ACTIONED / FILED / REJECTED / SUPERSEDED, "an undisposed audit is a
+    defect, not a document" -- and a ledger applied it to 80 artifacts. Nothing read it.
+
+    WARN-TIER BY RULING, never a hard verdict: arming RED against an unmeasured corpus turns the
+    gate off on day one. The property is asserted structurally by the test suite (no hard-verdict
+    literal appears in funnel_coverage.ratchet_findings), because an observational check only
+    proves such a path was not REACHED -- which is exactly what a latent one looks like.
+
+    ZERO-BASELINE RATCHET, keyed on IDENTITY rather than a count. The committed baseline
+    (ecosystem/audit-funnel-baseline.json) names the artifacts uncovered at arm time; the leg
+    reports `live - baseline` BY NAME. A count-based ratchet is satisfied by draining one old
+    artifact while adding one new undispositioned one -- net zero, debt unchanged, gate silent.
+
+    ONE FINDING PER CONCERN. The #147 register suppresses an ENTIRE Finding on a substring match,
+    so a bundled Finding would let one dispositioned artifact wave through every other regression
+    beside it.
+
+    HUB-ONLY by repo identity: the disposition-ledger convention is a hub practice. Read-only
+    (Layer-2); no git, no writes.
+
+    HONEST LIMIT: this verifies a disposition was RECORDED, not that it is TRUE. A row reading
+    `ACTIONED | deadbeef` passes without `deadbeef` being a real commit. It converts an
+    unfalsifiable claim into a checkable one; it does not make it a true one.
+    """
+    name = _fc.CHECK_NAME
+    if not _is_hub(repo_path):
+        return [_na(name, _NA_NOT_APPLICABLE,
+                    "hub-only -- the audit-disposition ledger is a hub practice")]
+    try:
+        root = Path(repo_path)
+        m = _fc.measure(root)
+        baseline = _fc.load_baseline(root)
+    except Exception as exc:  # noqa: BLE001 -- advisory leg: never wedge a gate on its own input
+        return [Finding(name, "warn", f"could not scan: {exc!r}".replace("|", "/"))]
+    return [Finding(name, status, evidence.replace("|", "/"))
+            for status, evidence in _fc.ratchet_findings(m, baseline)]
+
+
 ALL_CHECKS = [
     check_vision_md,
     check_adr38_baseline,
@@ -3406,6 +3516,8 @@ ALL_CHECKS = [
     # check_mermaid_theme_directive retired 2026-07-05 (ADR-51 amendment — LLM-first)
     check_handoff_bundle_structure,
     check_canonical_freshness,
+    check_generated_artifact_freshness,   # ADR-86 amd. 2026-08-23 / `[#171]` leg 1 — WARN-tier
+                                          # by ruling; RED is a later act with its own ruling
     check_no_sibling_orphans,
     check_stale_worktrees,   # [#505] batch hygiene — WARN-tier by ruling (ADR-110 §1 item 4)
     check_canonical_structure,
@@ -3450,6 +3562,8 @@ ALL_CHECKS = [
                                # enum/single-field FAIL-armed (both measure 0); grammar(47)/
                                # coherence(3)/wrapped(1)/duplicate-id(2) WARN against the
                                # baseline in docs/audits/2026-08-23-technical-lane-status-grammar.md
+    check_funnel_coverage,     # M3 — ADVISORY (WARN-tier by ruling); zero-baseline ratchet over
+                               # docs/audits/ disposition coverage, keyed on artifact identity
 ]
 
 

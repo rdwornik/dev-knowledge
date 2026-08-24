@@ -146,6 +146,24 @@ exempt:
   # the ARC-5 precedent below is the same shape: enforcement ahead of its written rule runs
   # only under a named, expiring exemption).
   - review_artifact_coverage
+  # ADR-86 amd. 2026-08-23 generated-artifact staleness leg. **TEMPORARY**, on the
+  # `review_artifact_coverage` precedent directly above and for the same reason: enforcement
+  # ahead of its written rule runs only under a NAMED, EXPIRING exemption. The rule this leg
+  # embodies -- committed generated output staying within its measured staleness baseline, as
+  # ruled by ADR-86 as amended 2026-08-23 -- is written only in an ADR amendment, an immutable
+  # decision record, not a living doc a `# rule:` marker can bind to. When that rule lands in
+  # PLAYBOOK this entry converts to `coverage_scope` and the marker is added. Carried by intake
+  # #42; the row is specified in
+  # docs/audits/2026-08-23-technical-lane-dashboard-commit-path.md section 7.4 and NOT filed.
+  - generated_artifact_freshness
+  # M3 audit funnel-coverage leg. **TEMPORARY** -- expires when the 2026-08-17 audit-disposition
+  # ruling is written into a living doc and registered in protocols/STANDING_RULINGS.md. You
+  # cannot hard-gate an unwritten rule, and today this one is carried only by
+  # docs/audits/2026-08-17-technical-batch-7a-lane-a-contract.md:22-27 plus the ledger that
+  # applied it -- locatable, but not where a `# rule:` marker could point. When it lands, this
+  # entry converts to coverage_scope and the marker is added. Same shape as the
+  # review_artifact_coverage row directly above.
+  - funnel_coverage
   # ARC-5 residual-completeness gate. TEMPORARY exemption, distinct from the permanent rows
   # above, and BOUND TO [#365] -- an undeclared temporary exemption is exactly the silent
   # category ARC-5 exists to eliminate, so it carries a ticket rather than a hope.
