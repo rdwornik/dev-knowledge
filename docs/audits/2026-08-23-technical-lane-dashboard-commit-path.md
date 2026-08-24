@@ -127,10 +127,31 @@ The contract asks for the generator that already commits its own output, to foll
 | `scripts/single_flight.py:419` | `git cat-file commit` — a **read**. |
 | `scripts/cloud_provisioning.py:322` | Compares `cat-file -t` output to the string `"commit"` — a **read**. |
 
-**No generator in this repo commits its own output. `ADR-80 §3`'s writer policy has zero
-implementations here.** Per the contract, that absence is itself a finding, and it is the single
-strongest piece of evidence for R1 option (b): the ruling does not decline a working convention in
-favour of prose — it ratifies the **only** convention this repo has ever actually run.
+**No generator in this repo commits its own output.** Per the contract, that absence is itself a
+finding, and it is the strongest single piece of evidence for R1 option (b): the ruling does not
+decline a working convention in favour of prose — it ratifies the **only** convention the repo's
+generators have ever actually run.
+
+> **CORRECTION — this census was wrong once, and the wider claim it originally carried is
+> withdrawn.** Step 1 as first written said *"ADR-80 §3's writer policy has zero implementations
+> here."* **That is false.** `scripts/audit.py::_commit_routine_outputs` (`:3991`) is a complete
+> ADR-80 §3 writer: it commits its own durable audit outputs, pathspec-bounded (Rider 1) and
+> fail-soft (Rider 2). The sweep above could not see it because it commits via `commit-tree`
+> plumbing against a separate `GIT_INDEX_FILE` — not `git add` / `git commit` — so a search keyed
+> on those two verbs was structurally blind to it. **Found by the terra reviewer (round 2,
+> 2026-08-23), corrected in the ADR-86 amendment, this artifact, and the generator docstring.**
+>
+> The narrow claim survives and is what the ruling actually rests on: **no *generator* commits its
+> own output.** And the correction *strengthens* (b) rather than weakening it — the repo's one
+> ADR-80 §3 writer exists for an **unattended nightly routine**, and writes to the orphan
+> `automation/fleet-audit` branch precisely so `main` is never touched. That is the ADR-84
+> isolation pattern applied to the case ADR-84 is for. The dashboard is the opposite case: a
+> person regenerates it, on `main`, as a navigable surface. So the single existing implementation
+> is evidence about *which* jobs need a self-committing writer, and this is not one of them.
+>
+> Recorded as a correction rather than silently rewritten, because a lane whose subject is *"the
+> artifact's self-description is not its mechanism"* does not get to quietly fix its own false
+> claim about the mechanism.
 
 The shape every generator does follow, verified across `gen_task_tree`, `gen_audit_index`,
 `gen_intake_index`, `gen_doc_counts`, `gen_methodology_roster`, `gen_claude_rosters`,
@@ -149,9 +170,11 @@ Steps 3–5 make it honest about the third and give it the freshness half of the
 **R1, executed not evaluated.** The contract names one condition under which this lane may stop
 and ask — a genuine rule-vs-ruling conflict, of which "implement (a) instead of (b)" is the named
 instance. **No such conflict arose.** The derivation ran the other way: the library-first sweep
-(§1.5) found that ADR-80 §3's writer policy has **zero implementations** anywhere in this repo, so
-(b) is not a concession to convenience — it ratifies the only convention that has ever actually
-run here, and (a) would have introduced this repo's first self-committing writer.
+(§1.5) found that **no generator** in this repo commits its own output, so (b) is not a concession
+to convenience — it ratifies the only convention this repo's generators have ever actually run.
+The repo's single ADR-80 §3 writer (`audit.py::_commit_routine_outputs`, found by terra and
+recorded in §1.5's correction) is an unattended nightly routine writing to an isolated
+`automation/*` branch — the ADR-84 case, not this one.
 
 **Form.** `docs/decisions/ADR-86-conformance-dashboard-location.md` gains an **appended
 `## Amendment — 2026-08-23`** marker at the file end. §2's original decision text is
@@ -199,8 +222,17 @@ contract's literal wording.
 an honest replacement for a false "generated and committed."* Both faces now state the mechanism
 in full — **who** commits (the person or integrator who ran `--write`), **that** the generator
 commits nothing, **what the commit is bounded to** (pathspec-bounded, both faces), **when the copy
-is current to** ("exactly as current as its own last commit, never fresher"), and **which ruling**
+is current to** ("nothing refreshes this file automatically: it shows the tree as of the last time
+somebody ran `--write`, and it reaches the repo only when they commit it"), and **which ruling**
 they describe (ADR-86 amended 2026-08-23).
+
+> **The first wording of that currency clause was itself false, and terra caught it (round 5).**
+> It read *"this copy is exactly as current as its own last commit, never fresher"* — which is
+> wrong for the copy a reader is most likely to be looking at. `--write` deliberately leaves a
+> **newer, uncommitted** working-tree copy; "never fresher" is exactly the state the intended
+> workflow produces. A precise-sounding sentence, describing a state the mechanism does not have,
+> inside the commit that exists to remove one. The replacement is true of both copies and still
+> names the mechanism rather than retreating into vagueness.
 
 **Both committed faces were regenerated**, so the correction is live on the surface a reader
 actually opens — not merely in the generator that could produce it. Correcting the emitter and
@@ -227,7 +259,14 @@ what `[#171]` leg 1 already had, and it is what fooled an integrator review pass
   actually written. ADR-80 **Rider 1** ("stages exactly its own declared output paths — never
   `git add -A`") survives the amendment intact: what (b) changes is **who runs** the commit, not
   what it is bounded to.
-- **`commit_path_commands()`** — the two-command path as **argv lists**, built in code.
+- **`commit_path_commands()`** — the two-command path as **argv lists**, built in code. The
+  pathspec is on the **`commit`**, not only on the `add`: a bare `git commit -m …` sweeps up
+  whatever is already staged, so bounding only the `add` would leave an operator with unrelated
+  staged work committing it by accident *while both faces tell them the commit is bounded*. That
+  is terra's finding (2026-08-23) and it is the same defect class as the header this lane exists
+  to fix — a true-sounding claim about a mechanism that does not hold.
+  `test_advertised_commit_path_leaves_unrelated_staged_work_alone` runs the advertised commands
+  in a real repo with an unrelated file staged, and asserts it survives uncommitted.
 - **`render_commit_path()`** — the same commands as copy-pasteable shell.
 - **`--commit-path`** — a CLI verb printing exactly those commands. It needs no git and touches no
   file, so an integrator or a runbook can ask the generator what its commit path *is* without
@@ -244,7 +283,7 @@ gen_dashboard: wrote ecosystem/conformance.html
 gen_dashboard: NOT committed. This generator has no writer of its own; a human or integrator commit satisfies "committed" (ADR-86 amended 2026-08-23).
 gen_dashboard: commit path, pathspec-bounded to exactly the files just written:
     git add -- ecosystem/conformance.md ecosystem/conformance.html
-    git commit -m "docs(dashboard): regenerate ecosystem/conformance.{md,html}"
+    git commit -m "docs(dashboard): regenerate ecosystem/conformance.{md,html}" -- ecosystem/conformance.md ecosystem/conformance.html
 ```
 
 **And the negative half is asserted where it cannot lie.** A header that says "commits nothing"
@@ -265,8 +304,10 @@ stdlib module object for the whole xdist worker.)*
 The contract's hardest constraint: *define "older than its inputs" concretely; name the input set;
 if it is not derivable, report the gap rather than inventing a proxy.*
 
-It is derivable, and from the generator's own constants rather than from judgment.
-`gen_dashboard.build()` reads exactly these tracked paths:
+It is derivable, and from the generator's own constants rather than from judgment. The set has
+**two halves** — what the artifact is rendered *from*, and what *renders* it.
+
+**Data half — `gen_dashboard.DATA_INPUT_RELPATHS`:**
 
 | Input | Read by | Generator constant |
 |---|---|---|
@@ -276,7 +317,19 @@ It is derivable, and from the generator's own constants rather than from judgmen
 | `docs/decisions/` | `adr_rows` | `DECISIONS_RELDIR` |
 | `docs/audits/` | `gate_health` | `AUDITS_RELDIR` |
 
-These are now exported as **`gen_dashboard.INPUT_RELPATHS`** — a declaration in the generator, not
+**Code half — `gen_dashboard.CODE_INPUT_RELPATHS`:** `scripts/gen_dashboard.py` itself plus the
+three parsers it borrows at module scope (`gen_task_tree`, `gen_intake_index`,
+`gen_claude_rosters`), derived from the `PARSER_MODULES` tuple the loads themselves iterate — one
+list, used twice, rather than two lists that can drift.
+
+**The code half was missing from the first version of this leg, and terra found it (2026-08-23).**
+It is not a completeness nicety: a parser rewrite changes what `build()` renders while no data
+path moves, so a data-only input set would have reported the artifact **fresh forever** across
+exactly the change most likely to invalidate it. That single omission would have made the leg
+decorative. `test_live_a_generator_source_change_alone_makes_the_artifact_stale` is the regression
+proof — nothing in the data moves in that test, and the verdict is `stale`.
+
+The union is exported as **`gen_dashboard.INPUT_RELPATHS`** — a declaration in the generator, not
 a re-derivation in the gate.
 
 **Two inputs are deliberately excluded, and both exclusions are stated rather than silent:**
@@ -307,10 +360,25 @@ WARN  iff  staleness_days > baseline_days
 - **`min` over the outputs** — the two faces are written by one run and normally share a commit,
   but if one ever lagged, the pair is only as fresh as its stalest half.
 - **`max` over the inputs** — any single input moving forward is what makes the artifact stale.
-- **Author date (`%as`), not committer date** — the same choice
-  `canonical_freshness_gate.git_last_commit_date` makes, and for the same reason: author date
-  survives rebase / cherry-pick / amend, so the relation keys off when content was actually edited
-  rather than when history was rewritten.
+- **Committer date (`%cs`), on both sides** — the one place the leg deliberately diverges from its
+  sibling, and terra forced the divergence over two rounds (2026-08-23). `canonical_freshness_gate`
+  uses **author** date, and for *its* subject that is right: it compares a git date against a
+  `last_reviewed` stamp a human wrote, so its question is *when was the content edited*, and author
+  date survives rebase / cherry-pick / amend. This leg compares **two git dates against each
+  other**, and its question is *did any input land in this history after the artifact landed* — an
+  ordering question about **this** history, which is what committer date records.
+
+  Author date is wrong here in **both** directions, and terra demonstrated each separately: a
+  cherry-picked **input** keeps its original author date and hides behind it (reported `fresh`
+  while the checked-out input is genuinely newer); a rebased **output** keeps its old author date
+  and produces a spurious `stale`. An intermediate version took `max(author, committer)` on inputs
+  and `min` on outputs to be conservative in both directions — which closed the first hole, left
+  the second open, and gave the module no single stated relation at all. Committer date on both
+  sides is **one semantic that answers the actual question**; a whole-branch rebase rewrites every
+  committer date uniformly, so relative order — the only thing this relation reads — is preserved.
+  Both directions are pinned live:
+  `test_live_a_cherry_picked_input_cannot_hide_behind_its_author_date` and
+  `test_live_a_rebased_output_is_not_spuriously_stale`.
 - **Repo-location env vars are scrubbed** via `gitenv` (loaded by path, per that module's
   terra-hardened contract): an inherited `GIT_DIR` overrides both `cwd=` and `git -C`, which is how
   a validator comes to read the parent repo while labelling the answer with the target's id
@@ -346,12 +414,25 @@ gates' own source, not assumed:
   and exits 1 only on that. **A `warn` does not block a commit.**
 - `cmd_ship_gate`'s contract: *"any `warn` NOT dispositioned by the register → RED, exit 1."*
 
-So a WARN-class Finding lands at **ship time** and taxes no ordinary commit — exactly the placement
-the contract specifies (*ship-gate, not pre-commit*), bought by choosing a **status class** rather
-than by adding a hook. The leg also emits **one Finding per artifact**, which the ship-gate's
-disposition contract requires (a matched token suppresses a whole Finding, so aggregate organs must
-split). `evaluate` returns `fails == []` **unconditionally, by construction**, with the reason
-written on the function: promotion to FAIL is a later act with its own ruling, and one line.
+So a WARN-class Finding's **teeth** are at ship time. The leg also emits **one Finding per
+artifact**, which the ship-gate's disposition contract requires (a matched token suppresses a whole
+Finding, so aggregate organs must split). `evaluate` returns `fails == []` **unconditionally, by
+construction**, with the reason written on the function: promotion to FAIL is a later act with its
+own ruling, and one line.
+
+**But the status class alone was not enough, and terra caught the gap between the verdict and the
+work.** `cmd_health` runs *all* of `ALL_CHECKS`, so a WARN-class check still **spends its cost** on
+every commit even though it cannot block one — an earlier draft of this section claimed it "taxes
+no ordinary commit", which was true of the blocking and false of the runtime. Measured: **11
+`git log` calls** for the dashboard, ~3.0s wall clock under this window's heavy contention (an
+earlier version spent **20**, querying every input twice — also terra's finding). So the
+registration uses **`_GATE_MODE`**, which is `audit.py`'s own existing answer to exactly this
+problem — `check_doc_claims` already runs its expensive leg as `run_expensive=not _GATE_MODE`. At
+the commit gate the leg returns an honest `n/a` NOT-APPLICABLE **without measuring anything**; at
+ship time it measures. That is what makes *"ship-gate, not pre-commit"* true of the **work** and not
+only of the verdict — and it reuses an idiom rather than inventing a second one.
+`test_generated_artifact_freshness_is_skipped_at_the_commit_gate` proves it by making the date
+function raise: if the leg measures under `_GATE_MODE`, the test fails.
 
 ### 5.4 It was observed to fire
 
@@ -438,10 +519,17 @@ assumption: `CHECK_ORDER` is byte-contract-load-bearing and the order is the int
 +
 +    WARN-CLASS BY RULING, and the class is load-bearing rather than timid. `cmd_health` (the
 +    pre-commit gate) exits 1 only on a `fail`, while `cmd_ship_gate` REDs on any undispositioned
-+    `warn` — so this signal lands at ship time and does NOT tax every commit that touches an
-+    input. A gate that taxes ordinary work gets routed around. RED here is a later act with its
-+    own ruling, and when it comes it is a one-line change in
-+    `generated_artifact_freshness.evaluate`.
++    `warn` — so the TEETH are at ship time. RED here is a later act with its own ruling, and when
++    it comes it is a one-line change in `generated_artifact_freshness.evaluate`.
++
++    AND THE WORK IS SKIPPED AT COMMIT TIME, not merely the blocking. Status class alone was not
++    enough: `cmd_health` runs the whole of ALL_CHECKS, so a WARN-class check still SPENDS its
++    cost on every commit — measured at 11 `git log` calls for the dashboard (terra, 2026-08-23,
++    against an earlier version that spent 20 by querying each input twice). `_GATE_MODE` is this
++    module's existing answer to exactly that — `check_doc_claims` already runs its expensive leg
++    as `run_expensive=not _GATE_MODE` — so the same guard is used here rather than a new idiom.
++    At commit time the leg is an honest `n/a` NOT-APPLICABLE; at ship time it measures. That is
++    what makes "ship-gate, not pre-commit" true of the WORK and not only of the verdict.
 +
 +    DISTINCT FROM `gen_dashboard.py --check`, deliberately: the Phase-0 packet is explicit that
 +    the two must not be blurred. `--check` asks whether the committed bytes match a regeneration;
@@ -456,21 +544,29 @@ assumption: `CHECK_ORDER` is byte-contract-load-bearing and the order is the int
 +    git-date alias so a monkeypatch at the audit level still applies. Read-only; degrades rather
 +    than inventing a verdict — an absent artifact is `n/a` SUBJECT-ABSENT (a consumer repo with
 +    no dashboard), an unreadable history is `unavailable`.
++
++    THE STATUS MAPPING IS A TABLE LOOKUP, NOT AN `if/else`, and that is deliberate. Written as
++    `if stale: warn / else: pass`, this leg reported every verdict added AFTERWARDS as a silent
++    `pass` — terra hit that twice in one review cycle (2026-08-23). `STATUS_FOR_VERDICT` lives in
++    the module beside the verdicts it maps, so an unknown verdict raises `KeyError` here instead
++    of passing quietly, and a verdict cannot be added without deciding what it reports as.
 +    """
 +    name = "generated_artifact_freshness"
++    if _GATE_MODE:
++        return [_na(name, "NOT-APPLICABLE",
++                    "ship-gate-only leg — skipped at the audit-health commit gate "
++                    "(ADR-86 amd. 2026-08-23: freshness matters when you ship)")]
 +    findings: list[Finding] = []
 +    for artifact in _gaf.REGISTRY:
 +        m = _gaf.measure(repo_path, artifact, git_date_fn=_gaf_git_last_commit_date)
-+        if m.verdict == "unmeasurable":
-+            findings.append(
-+                _na(name, "SUBJECT-ABSENT", m.detail) if m.subject_absent
-+                else Finding(name, "unavailable", m.detail.replace("|", "/")))
-+        elif m.verdict == "stale":
-+            findings.append(Finding(name, "warn",
-+                                    f"{m.detail}; regenerate + commit: "
-+                                    f"{artifact.regen_command}".replace("|", "/")))
-+        else:
-+            findings.append(Finding(name, "pass", m.detail.replace("|", "/")))
++        status = _gaf.STATUS_FOR_VERDICT[m.verdict]   # KeyError on an unmapped verdict: loud
++        if status == "unavailable" and m.subject_absent:
++            findings.append(_na(name, "SUBJECT-ABSENT", m.detail))
++            continue
++        evidence = m.detail
++        if status == "warn":
++            evidence = f"{evidence}; regenerate + commit: {artifact.regen_command}"
++        findings.append(Finding(name, status, evidence.replace("|", "/")))
 +    return findings
 +
 ```
@@ -513,13 +609,151 @@ assumption: `CHECK_ORDER` is byte-contract-load-bearing and the order is the int
 +  - generated_artifact_freshness
 ```
 
+**The registration's own tests travel with it.** terra's third High (2026-08-23): the module's
+tests prove the *relation*, and prove nothing about the audit **envelope** — the status mapping,
+the `n/a`-vs-`unavailable` split, the monkeypatch seam, `ALL_CHECKS` membership. Those must be
+asserted in `tests/test_audit.py`, which is itself a shared-collision file this batch (it holds
+two of the six count pins), so they ship as a diff rather than as an edit.
+
+```diff
+--- a/tests/test_audit.py
++++ b/tests/test_audit.py
+@@ context: after the canonical_freshness cluster (~:960) @@
++
++# ---------------------------------------------------------------------------
++# generated_artifact_freshness (ADR-86 amd. 2026-08-23; `[#171]` leg 1 / f7)
++# The MODULE's own relation is covered by tests/test_generated_artifact_freshness.py.
++# What is covered HERE is the audit ENVELOPE the module cannot test: status mapping,
++# the n/a-vs-unavailable split, the monkeypatch seam, and ALL_CHECKS membership.
++# ---------------------------------------------------------------------------
++
++def _gaf_dates(mapping):
++    return lambda _rp, pathspec: mapping.get(pathspec)
++
++
++def _gaf_all(outputs_on, inputs_on):
++    """Dates for EVERY declared output and input.
++
++    All of them, not a convenient subset: `measure` returns `unverifiable` if any DECLARED input
++    has no history, so a fixture that names only `BACKLOG.md` tests that rule instead of the one
++    it meant to. `DASHBOARD.inputs` has nine entries and is read from the module so this cannot
++    drift when the input set changes.
++    """
++    from scripts import generated_artifact_freshness as gaf
++    return _gaf_dates({**{p: outputs_on for p in gaf.DASHBOARD.outputs},
++                       **{p: inputs_on for p in gaf.DASHBOARD.inputs}})
++
++
++def _gaf_tree(tmp_path: Path) -> Path:
++    """A tree where the dashboard's output faces EXIST. `measure` checks presence before it asks
++    git — a fixture that skips this gets the `deleted` verdict, not the one it meant to test."""
++    from scripts import generated_artifact_freshness as gaf
++    for rel in gaf.DASHBOARD.outputs:
++        (tmp_path / rel).parent.mkdir(parents=True, exist_ok=True)
++        (tmp_path / rel).write_text("x", encoding="utf-8")
++    return tmp_path
++
++
++def test_generated_artifact_freshness_passes_when_current(
++        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
++    monkeypatch.setattr(aud, "_gaf_git_last_commit_date",
++                        _gaf_all(date(2026, 8, 24), date(2026, 8, 24)))
++    findings = aud.check_generated_artifact_freshness(_gaf_tree(tmp_path))
++    assert len(findings) == 1, "one Finding PER ARTIFACT — the ship-gate dispositions each"
++    assert findings[0].status == "pass", findings[0].evidence
++    assert findings[0].check_name == "generated_artifact_freshness"
++
++
++def test_generated_artifact_freshness_warns_past_the_baseline(
++        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
++    """WARN, never FAIL: cmd_health exits 1 only on `fail`, so this must not tax a commit;
++    cmd_ship_gate REDs on an undispositioned `warn`, which is where the teeth are. The evidence
++    is asserted to name STALENESS specifically — a bare `status == "warn"` would also be
++    satisfied by `unverifiable`, and would then pass even if the date relation regressed."""
++    monkeypatch.setattr(aud, "_gaf_git_last_commit_date",
++                        _gaf_all(date(2026, 8, 1), date(2026, 8, 23)))
++    f = aud.check_generated_artifact_freshness(_gaf_tree(tmp_path))[0]
++    assert f.status == "warn", f.evidence
++    assert "22d stale (baseline 3d)" in f.evidence, f.evidence
++    assert "regenerate + commit" in f.evidence, "a WARN must carry its own discharge"
++
++
++def test_generated_artifact_freshness_deleted_artifact_warns(
++        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
++    """Has git history, gone from the tree -> WARN, never `pass`. An `if stale / else pass` leg
++    made this silently green, which is why the status mapping is a table lookup."""
++    monkeypatch.setattr(aud, "_gaf_git_last_commit_date",
++                        _gaf_all(date(2026, 8, 24), date(2026, 8, 1)))
++    f = aud.check_generated_artifact_freshness(tmp_path)[0]   # tree NOT materialized
++    assert f.status == "warn", f.evidence
++    assert "MISSING from the tree" in f.evidence
++
++
++def test_generated_artifact_freshness_uncommitted_artifact_warns(
++        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
++    """Present in the tree, never committed. `--check` does not catch it (it reports MISSING only
++    for an ABSENT file), and "committed-generated" is the zone class's own claim — so it is a
++    WARN, not a quiet `unavailable` the ship-gate ignores."""
++    monkeypatch.setattr(aud, "_gaf_git_last_commit_date", _gaf_dates({}))
++    f = aud.check_generated_artifact_freshness(_gaf_tree(tmp_path))[0]
++    assert f.status == "warn", f.evidence
++    assert "never committed" in f.evidence
++
++
++def test_generated_artifact_freshness_absent_artifact_is_na_subject_absent(
++        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
++    """A consumer repo with no dashboard is SUBJECT-ABSENT, not a silent pass."""
++    monkeypatch.setattr(aud, "_gaf_git_last_commit_date", _gaf_dates({}))
++    f = aud.check_generated_artifact_freshness(tmp_path)[0]
++    assert f.status == "n/a"
++    assert aud._na_reason(f) == "SUBJECT-ABSENT"
++
++
++def test_generated_artifact_freshness_is_skipped_at_the_commit_gate(
++        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
++    """"Ship-gate, not pre-commit" must be true of the WORK, not only of the verdict class.
++    `cmd_health` runs all of ALL_CHECKS, so without this the leg would spend 11 `git log` calls
++    on every commit. Asserted by making the date fn explode: if it is called under _GATE_MODE,
++    the leg is doing commit-time work it promised not to do."""
++    def _explode(*_a, **_k):
++        raise AssertionError("freshness measured under _GATE_MODE — it must be skipped there")
++
++    monkeypatch.setattr(aud, "_gaf_git_last_commit_date", _explode)
++    monkeypatch.setattr(aud, "_GATE_MODE", True)
++    f = aud.check_generated_artifact_freshness(tmp_path)[0]
++    assert f.status == "n/a"
++    assert aud._na_reason(f) == "NOT-APPLICABLE"
++
++
++def test_generated_artifact_freshness_every_verdict_has_a_mapped_status() -> None:
++    """The leg is a table lookup precisely so an unmapped verdict RAISES rather than passing;
++    this asserts the table covers everything, so that safety net is never actually hit."""
++    from scripts import generated_artifact_freshness as gaf
++    assert set(gaf.WARN_VERDICTS) <= set(gaf.STATUS_FOR_VERDICT)
++    assert set(gaf.STATUS_FOR_VERDICT.values()) <= {"pass", "warn", "unavailable"}
++
++
++def test_generated_artifact_freshness_is_registered() -> None:
++    assert aud.check_generated_artifact_freshness in aud.ALL_CHECKS
++    from scripts.audit_checks.registry import CHECK_ORDER
++    assert "check_generated_artifact_freshness" in CHECK_ORDER
++    assert len(CHECK_ORDER) == len(aud.ALL_CHECKS)
+```
+
+That last assertion — `len(CHECK_ORDER) == len(aud.ALL_CHECKS)` — closes a gap `registry.py`'s own
+docstring names ("nothing currently asserts that `CHECK_ORDER` still agrees with
+`audit.ALL_CHECKS`"), and this batch is precisely the situation it exists for: several lanes
+appending to both lists. It is a free-standing improvement and may be dropped without affecting
+this leg. **These eight tests add eight to the collected-test count**, which is part of the same
+one-shot arithmetic as the count pins.
+
 **Integrator checklist for this diff** (the lane's own, offered rather than assumed):
 
 1. Apply the six hunks above.
 2. Count `ALL_CHECKS` **once**, across every sibling lane that added one, and set pins 1–5 to the
    resulting number.
 3. Run `python scripts/gen_doc_counts.py --write` for pin 6 — it is generated and must never be
-   hand-edited.
+   hand-edited. It also absorbs the eight added `tests/test_audit.py` cases.
 4. `python scripts/audit.py checks` should list the new member; `python scripts/audit.py health`
    should show it `pass` on a current tree.
 
@@ -533,7 +767,8 @@ assumption: `CHECK_ORDER` is byte-contract-load-bearing and the order is the int
 3. **It cannot see an untracked input.** The telemetry store could change hourly and the relation
    would not move. Stated in §5.1, declared in code.
 4. **Day granularity.** Two commits on the same day are indistinguishable — inherited from P5 and
-   from `%as`, and deliberately not "improved" into a second idiom.
+   from git's short-date formats, and deliberately not "improved" into a second idiom. It is why
+   the lane-tip measurement below reads `0d` rather than resolving to hours.
 5. **No rename following.** `git log -- <path>` is used without `--follow`; if an input path is
    renamed, its pre-rename history stops counting until the declaration is updated. The
    declaration lives in `gen_dashboard.INPUT_RELPATHS`, next to the code that would be renaming it.

@@ -429,8 +429,13 @@ def test_module_only_loads_the_three_declared_parsers():
     docstring on purpose, so a bare substring scan would be a false positive.
     """
     source = _P.read_text(encoding="utf-8")
-    loaded = set(re.findall(r"_load\(\"([a-z_]+)\"\)", source))
-    assert loaded == {"gen_task_tree", "gen_intake_index", "gen_claude_rosters"}
+    # The three names moved into `PARSER_MODULES` (2026-08-23): they are needed twice — to load
+    # them, and to declare them as freshness inputs — and one list is the point. Same guarantee,
+    # read off the declaration plus a pin that no literal `_load("...")` bypasses it.
+    assert gd.PARSER_MODULES == ("gen_task_tree", "gen_intake_index", "gen_claude_rosters")
+    literal_loads = set(re.findall(r"_load\(\"([a-z_]+)\"\)", source))
+    assert not literal_loads, f"literal _load() bypassing PARSER_MODULES: {literal_loads}"
+    assert "(_load(name) for name in PARSER_MODULES)" in source
     for forbidden in ("telemetry_emit", "single_flight", "audit"):
         assert f"import {forbidden}" not in source
         assert f"from {forbidden}" not in source
@@ -634,7 +639,12 @@ def test_both_faces_name_who_commits_and_when(renderer, tmp_path):
     out = getattr(gd, renderer)(gd.build(repo, _FakeGit(head_date="2026-08-19",
                                                         old_backlog=None)))
     assert "person or integrator who ran it" in out, "the header must name WHO commits"
-    assert "as current as its own last commit" in out, "the header must say WHEN it is current to"
+    assert "Nothing refreshes this file automatically" in out, (
+        "the header must say WHEN the file is current to")
+    assert "last time somebody ran" in out
+    assert "as current as its own last commit" not in out, (
+        "retired 2026-08-23 (terra): false for a working-tree copy, which `--write` deliberately "
+        "leaves NEWER than its last commit — the lane's own defect class, in the lane's own fix")
     assert "amended 2026-08-23" in out, "the header must cite the ruling it now describes"
 
 
@@ -666,6 +676,36 @@ def test_commit_path_is_pathspec_bounded():
     assert add[3:] == [gd.MD_RELPATH, gd.HTML_RELPATH]
     assert "-A" not in add and "--all" not in add and "." not in add
     assert commit[:2] == ["git", "commit"]
+    assert commit[-3:] == ["--", gd.MD_RELPATH, gd.HTML_RELPATH], (
+        "the pathspec must be on the COMMIT too — a bare `git commit -m` sweeps up whatever is "
+        "already staged, which contradicts the pathspec-bounded claim both faces make")
+
+
+def test_advertised_commit_path_leaves_unrelated_staged_work_alone(tmp_path):
+    """terra, 2026-08-23. The claim is 'pathspec-bounded'; this RUNS the advertised commands in a
+    real repo with an unrelated file already staged, and asserts that file did not get committed.
+    Bounding only the `add` would fail here — which is exactly how the defect was found."""
+    repo = _git_fixture_repo(tmp_path)
+    (repo / "UNRELATED.md").write_text("operator's in-progress work", encoding="utf-8")
+    _git(repo, "add", "--", "UNRELATED.md")
+    gd.write_outputs(repo, gd._reader(repo))
+
+    for argv in gd.commit_path_commands("test: regenerate the dashboard"):
+        rest = list(argv[1:])
+        if rest[0] == "commit":
+            # Right after the verb, never after the `--`: a flag past the pathspec separator is
+            # read as a path. And `--no-verify` because a global `core.hooksPath` would otherwise
+            # run the operator's hooks inside this throwaway repo.
+            rest.insert(1, "--no-verify")
+        r = _git(repo, *rest)
+        assert r.returncode == 0, r.stdout + r.stderr
+
+    committed = subprocess.run(
+        ["git", "-C", str(repo), "show", "--name-only", "--format=", "HEAD"],
+        capture_output=True, text=True).stdout.split()
+    assert sorted(committed) == sorted([gd.MD_RELPATH, gd.HTML_RELPATH]), committed
+    assert "UNRELATED.md" not in committed, (
+        "the operator's unrelated staged work was swept into the dashboard commit")
 
 
 def test_write_prints_the_commit_path_it_did_not_run(tmp_path, capsys):
@@ -677,31 +717,61 @@ def test_write_prints_the_commit_path_it_did_not_run(tmp_path, capsys):
     assert "git commit" in out
 
 
-def test_write_leaves_its_outputs_uncommitted_in_a_real_repo(tmp_path):
+def _git(repo, *args) -> subprocess.CompletedProcess:
+    return subprocess.run(["git", "-C", str(repo), *args], capture_output=True, text=True)
+
+
+def _git_fixture_repo(tmp_path):
+    """The dashboard fixture tree, committed once into a real throwaway repo."""
+    repo = _fixture_repo(tmp_path)
+    _git(repo, "init", "-q", "-b", "main")
+    _git(repo, "config", "user.email", "t@t.t")
+    _git(repo, "config", "user.name", "t")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "--no-verify", "-m", "fixture")
+    assert _git(repo, "rev-parse", "HEAD").stdout.strip(), "fixture repo produced no commit"
+    return repo
+
+
+@pytest.mark.parametrize("invoke", ["write_outputs", "main"])
+def test_write_leaves_its_outputs_uncommitted_in_a_real_repo(invoke, tmp_path, monkeypatch):
     """THE TEETH OF THE NEGATIVE HALF, and the ADR-81 leg (e) functional proof for it. ADR-86 as
     amended says this module does not commit — a header can claim that and be wrong, which is the
     entire defect this lane exists to fix. So the claim is asserted behaviourally against a REAL
-    git repo: after `--write`, HEAD has not moved and both outputs are sitting dirty, waiting for
+    git repo: after a write, HEAD has not moved and both outputs are sitting dirty, waiting for
     the human. (Asserted this way rather than by monkeypatching `subprocess.run`, which would
-    patch the stdlib module object for the whole xdist worker.)"""
-    repo = _fixture_repo(tmp_path)
-    for args in (("init", "-q", "-b", "main"), ("config", "user.email", "t@t.t"),
-                 ("config", "user.name", "t"), ("add", "-A"),
-                 ("commit", "-q", "--no-verify", "-m", "fixture")):
-        subprocess.run(["git", "-C", str(repo), *args], capture_output=True, text=True)
-    head_before = subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"],
-                                 capture_output=True, text=True).stdout.strip()
-    assert head_before, "fixture repo did not produce a commit"
+    patch the stdlib module object for the whole xdist worker.)
 
-    assert gd.write_outputs(repo, gd._reader(repo)) == 0
+    Parametrized over BOTH entry points on terra's finding (2026-08-23): asserting only against
+    `write_outputs` would stay green if a commit were ever added to `main` around it, so the CLI
+    the operator actually types is covered too."""
+    repo = _git_fixture_repo(tmp_path)
+    head_before = _git(repo, "rev-parse", "HEAD").stdout.strip()
 
-    head_after = subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"],
-                                capture_output=True, text=True).stdout.strip()
-    assert head_after == head_before, "gen_dashboard committed — it must not (ADR-86 amd. 2026-08-23)"
-    porcelain = subprocess.run(["git", "-C", str(repo), "status", "--porcelain"],
-                               capture_output=True, text=True).stdout
-    assert gd.MD_RELPATH in porcelain and gd.HTML_RELPATH in porcelain, (
-        "the outputs should be left dirty for the human to commit")
+    if invoke == "write_outputs":
+        assert gd.write_outputs(repo, gd._reader(repo)) == 0
+    else:
+        monkeypatch.setattr(gd, "_REPO_ROOT", repo)
+        assert gd.main(["--write"]) == 0
+
+    assert _git(repo, "rev-parse", "HEAD").stdout.strip() == head_before, (
+        "gen_dashboard committed — it must not (ADR-86 amd. 2026-08-23)")
+
+    # THE INDEX IS CHECKED, NOT JUST HEAD (terra, 2026-08-23). Asserting only "HEAD did not move,
+    # and the outputs appear in porcelain" would still pass if the generator ran `git add`: a
+    # staged path appears in porcelain too. Porcelain's FIRST column is the index and the second
+    # is the worktree, so " M" — leading space — is precisely "modified, nothing staged", and it
+    # is what distinguishes no-write from a silent `git add`.
+    porcelain = _git(repo, "status", "--porcelain").stdout.splitlines()
+    seen = {line[3:].strip('"'): line[:2] for line in porcelain}
+    for rel in (gd.MD_RELPATH, gd.HTML_RELPATH):
+        assert rel in seen, f"{rel} should be left dirty for the human to commit: {porcelain}"
+        # Column 1 is the INDEX. `?` (untracked) and ` ` (unstaged change) both mean nothing was
+        # staged; `A`/`M` there would mean the generator ran `git add`.
+        assert seen[rel][0] in (" ", "?"), (
+            f"{rel} is staged ({seen[rel]!r}) — gen_dashboard ran `git add`; it must not")
+    assert not _git(repo, "diff", "--cached", "--name-only").stdout.strip(), (
+        "the index was mutated; gen_dashboard must touch neither HEAD nor the index")
 
 
 def test_commit_path_verb_prints_the_commands_and_exits_zero(capsys):
@@ -710,6 +780,24 @@ def test_commit_path_verb_prints_the_commands_and_exits_zero(capsys):
     out = capsys.readouterr().out
     assert "git add -- ecosystem/conformance.md ecosystem/conformance.html" in out
     assert "git commit" in out
+
+
+def test_commit_path_verb_touches_nothing(tmp_path, monkeypatch, capsys):
+    """terra, 2026-08-23: the non-mutation claim was asserted only on the return code and the
+    printed strings, so a regression that wrote files or ran git from this branch would still
+    pass. Asserted behaviourally now — against a real repo, HEAD and `git status` must both be
+    byte-identical afterwards."""
+    repo = _git_fixture_repo(tmp_path)
+    monkeypatch.setattr(gd, "_REPO_ROOT", repo)
+    head_before = _git(repo, "rev-parse", "HEAD").stdout
+    status_before = _git(repo, "status", "--porcelain", "--untracked-files=all").stdout
+
+    assert gd.main(["--commit-path"]) == 0
+    capsys.readouterr()
+
+    assert _git(repo, "rev-parse", "HEAD").stdout == head_before
+    assert _git(repo, "status", "--porcelain", "--untracked-files=all").stdout == status_before, (
+        "--commit-path modified the tree; it must only print")
 
 
 @pytest.mark.parametrize("renderer", ["render_markdown", "render_html"])
@@ -727,14 +815,29 @@ def test_declared_input_set_is_the_paths_build_reads(tmp_path):
     reader for a new path and this tuple is not extended, the relation silently stops covering
     it — so the membership is pinned here, at the declaration, and the leg's own test asserts the
     two agree."""
-    assert gd.INPUT_RELPATHS == (gd.BACKLOG_RELPATH, gd.TASKS_RELDIR, gd.INTAKE_RELDIR,
-                                 gd.DECISIONS_RELDIR, gd.AUDITS_RELDIR)
+    assert gd.DATA_INPUT_RELPATHS == (gd.BACKLOG_RELPATH, gd.TASKS_RELDIR, gd.INTAKE_RELDIR,
+                                      gd.DECISIONS_RELDIR, gd.AUDITS_RELDIR)
+    assert gd.INPUT_RELPATHS == gd.DATA_INPUT_RELPATHS + gd.CODE_INPUT_RELPATHS
     assert gd.INTAKE_ARCHIVE_RELDIR.startswith(gd.INTAKE_RELDIR), (
         "the archive is covered only because it sits inside the intake dir")
     assert gd.TELEMETRY_STORE_RELPATH not in gd.INPUT_RELPATHS, (
         "gitignored — it carries no commit date; declared as untracked_inputs instead")
     assert gd.MD_RELPATH not in gd.INPUT_RELPATHS and gd.HTML_RELPATH not in gd.INPUT_RELPATHS, (
         "an output is not its own input — that would make the artifact permanently fresh")
+
+
+def test_the_code_that_renders_is_an_input_too():
+    """terra, 2026-08-23. A change to the generator or to any parser it borrows changes what is
+    rendered, so the CODE is a content input. A data-only input set would report the artifact
+    fresh forever across a parser rewrite — the one defect that would have made the leg
+    decorative. Derived from `PARSER_MODULES`, so the load list and the input list are one list."""
+    assert gd.CODE_INPUT_RELPATHS == (
+        "scripts/gen_dashboard.py", "scripts/gen_task_tree.py",
+        "scripts/gen_intake_index.py", "scripts/gen_claude_rosters.py")
+    assert gd.PARSER_MODULES == ("gen_task_tree", "gen_intake_index", "gen_claude_rosters")
+    for name in gd.PARSER_MODULES:
+        assert f"scripts/{name}.py" in gd.CODE_INPUT_RELPATHS
+    assert (Path(gd._REPO_ROOT) / gd.SELF_RELPATH).is_file()
 
 
 @pytest.mark.parametrize("verb", ["--write", "--check"])

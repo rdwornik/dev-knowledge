@@ -47,8 +47,9 @@ between the literal and the generator's own `INPUT_RELPATHS` is caught by
 afford the import -- the same fallback-literal-plus-agreement-test pattern
 `canonical_freshness_gate.py` uses for `canonical_docs`.
 
-Read-only (Layer-2, ADR-28/36): spawns `git log` and nothing else, writes nothing, arms no hook.
-Degrades to `unmeasurable` without git rather than inventing a verdict.
+Read-only (Layer-2, ADR-28/36): spawns only read-only git commands -- `git log` here, plus the
+`git rev-parse` that `gitenv` and the CLI's root resolution each run -- writes nothing, and arms
+no hook. Degrades to `unmeasurable` without git rather than inventing a verdict.
 
 CLI: `python scripts/generated_artifact_freshness.py` prints one line per registered artifact and
 **always exits 0** -- it is a measurement, and this leg is not a commit gate by ruling.
@@ -66,11 +67,19 @@ from typing import Optional
 # each have a shadow hole (terra HIGH x3, 2026-08-08 -- see that module's docstring), and both
 # holes end with the scrub silently becoming the EMPTY set. `spec_from_file_location` against a
 # sibling path is the spelling no `sys.path` entry can intercept.
+#
+# THERE IS NO FALLBACK, DELIBERATELY. An earlier version returned None on a load failure and
+# every date lookup then became `unmeasurable` -- which the audit leg renders `unavailable`, and
+# the ship-gate does not block on `unavailable`. A broken loader would therefore have converted a
+# STALE artifact into a quietly passing one: the gate disarming itself in the one situation where
+# it should be loudest (terra, 2026-08-23). `gitenv.py` is a stdlib-only leaf sitting in this very
+# directory, so a failure here means the `scripts/` tree is broken, and the right response is to
+# fail LOUDLY at import -- `audit.py` will not import, `audit-health` errors, and somebody looks.
 def _load_sibling(name: str):
     path = Path(__file__).resolve().with_name(f"{name}.py")
     spec = importlib.util.spec_from_file_location(f"_gaf_{name}", path)
     if spec is None or spec.loader is None:  # pragma: no cover -- defensive
-        return None
+        raise ImportError(f"cannot load sibling module {path}")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -100,10 +109,17 @@ class GeneratedArtifact:
 #: `[#171]` stage 1, ADR-86. `inputs` mirrors `gen_dashboard.INPUT_RELPATHS`; see the module
 #: docstring for why it is a literal, and the agreement test that keeps it honest.
 #: `docs/intake/archive` is inside `docs/intake` and needs no separate entry.
+#: The input set is DATA + CODE. The code half is not decoration: a change to the generator or to
+#: any parser it borrows changes what is rendered, so an artifact left uncommitted across a parser
+#: rewrite is stale in exactly the sense this leg means. A first version of this list carried only
+#: the data half and would have reported "fresh" forever across such a rewrite -- found by terra,
+#: 2026-08-23, and it is the one defect in this module that could have made it decorative.
 DASHBOARD = GeneratedArtifact(
     name="conformance-dashboard",
     outputs=("ecosystem/conformance.md", "ecosystem/conformance.html"),
-    inputs=("BACKLOG.md", "tasks", "docs/intake", "docs/decisions", "docs/audits"),
+    inputs=("BACKLOG.md", "tasks", "docs/intake", "docs/decisions", "docs/audits",
+            "scripts/gen_dashboard.py", "scripts/gen_task_tree.py",
+            "scripts/gen_intake_index.py", "scripts/gen_claude_rosters.py"),
     baseline_days=3,
     regen_command="python scripts/gen_dashboard.py --write",
     # Gitignored (`.gitignore:95`) and absent as of 2026-08-23; the generator existence-probes it
@@ -114,33 +130,72 @@ DASHBOARD = GeneratedArtifact(
 
 REGISTRY: tuple[GeneratedArtifact, ...] = (DASHBOARD,)
 
+#: verdict -> the audit `Finding.status` it must be reported as. THE MAPPING LIVES HERE, not in
+#: the audit leg, and that is a structural answer to a defect terra found twice (2026-08-23): a
+#: leg written as `if stale: warn / else: pass` silently reported every verdict added afterwards
+#: as a PASS. With the table here, the leg is a lookup, an unknown verdict raises `KeyError`
+#: instead of passing quietly, and a verdict cannot be added without deciding what it means.
+#: `unmeasurable` maps to `unavailable`; the audit leg overrides it to `n/a` SUBJECT-ABSENT when
+#: `Measurement.subject_absent` is set (a consumer repo that simply has no such artifact).
+STATUS_FOR_VERDICT: dict[str, str] = {
+    "fresh": "pass",
+    "stale": "warn",          # older than its inputs by more than the measured baseline
+    "deleted": "warn",        # has git history, gone from the tree
+    "uncommitted": "warn",    # present in the tree, never committed -- "committed-generated" is
+                              # the zone class's own claim, so this violates its premise
+    "unverifiable": "warn",   # a DECLARED input could not be measured, so the relation over the
+                              # rest cannot be presented as a freshness verdict
+    "unmeasurable": "unavailable",
+}
+
+#: The verdicts that must produce a WARN. Derived, so it cannot drift from the table above.
+WARN_VERDICTS: tuple[str, ...] = tuple(
+    v for v, status in STATUS_FOR_VERDICT.items() if status == "warn")
+
 
 def git_last_commit_date(repo_path: Path, pathspec: str) -> Optional[date]:
-    """Author date (short ISO) of the newest commit touching `pathspec`, or None.
+    """COMMITTER date (`%cs`) of the newest commit touching `pathspec`, or None.
 
-    Author date (`%as`), not committer date -- the same choice
-    `canonical_freshness_gate.git_last_commit_date` makes and for the same reason: author date
-    survives rebase / cherry-pick / amend, so the relation keys off when content was actually
-    edited rather than when history was rewritten.
+    ONE DATE SEMANTIC, ON BOTH SIDES, and it is deliberately NOT the sibling's. This is the one
+    place the leg diverges from `canonical_freshness_gate`, and the divergence is forced by the
+    question, not by taste:
+
+      * The sibling compares a git date against a `last_reviewed` STAMP A HUMAN WROTE, so its
+        question is *when was the content edited* -- and author date is right, because it survives
+        rebase / cherry-pick / amend.
+      * This leg compares two git dates AGAINST EACH OTHER. Its question is *did any input land in
+        this history after the artifact landed* -- an ordering question about THIS history, which
+        is exactly what committer date records.
+
+    Author date is wrong here in both directions, and terra demonstrated both (2026-08-23): a
+    cherry-picked INPUT keeps its original author date and hides behind it, reporting `fresh`
+    while the checked-out input is genuinely newer; and a rebased OUTPUT keeps its old author date
+    and reports a spurious `stale`. An earlier version took `max(author, committer)` on inputs and
+    `min` on outputs to be conservative in both directions -- which fixed the first hole, kept the
+    second, and left the module with no single stated relation. Committer date on both sides is
+    one semantic that answers the actual question; a whole-branch rebase rewrites every committer
+    date uniformly, so relative order -- the only thing this relation reads -- is preserved.
+
+    `--first-parent`, AND IT IS LOAD-BEARING IN THIS REPO SPECIFICALLY. Core-invariant #5 makes
+    every change arrive by `--no-ff` merge, so a plain `git log -1 -- <path>` follows the path
+    into the SIDE BRANCH and answers with the feature commit rather than the merge that put the
+    path on this branch. A lane whose commits are three weeks old but which merges today would
+    then measure as three weeks OLD -- reported `fresh` indefinitely, in the exact workflow this
+    repo mandates (terra, 2026-08-23). Walking the first-parent spine answers *when did this land
+    HERE*, which is the question. It is also the repo's own idiom for landing-order: `block_ff_push`
+    and `validate_no_ff` scan `--first-parent` for the same reason.
 
     The repo-location env vars are SCRUBBED via `gitenv`: an inherited `GIT_DIR` overrides both
     `cwd=` and `git -C`, which is how a validator comes to read the parent repo while labelling
     the answer with the target's id ([#355]). Returns None when git is absent, the path is not a
-    repo, or the pathspec has no history -- callers then report `unmeasurable`.
-
-    IF `gitenv` COULD NOT BE LOADED, THIS REFUSES TO ANSWER rather than answering unscrubbed.
-    Falling back to `env=None` would inherit any ambient `GIT_DIR` and read a DIFFERENT repo
-    while labelling the answer with this one's paths -- a wrong verdict, silently, which is
-    strictly worse than no verdict. `gitenv` is a leaf sibling file in this very directory, so
-    this branch means the tree is broken, and `unmeasurable` is the honest report.
+    repo, or the pathspec has no history on this branch's spine.
     """
-    if _gitenv is None:  # pragma: no cover -- only reachable with a broken scripts/ tree
-        return None
-    env = _gitenv.scrubbed_git_env()
     try:
         result = subprocess.run(
-            ["git", "-C", str(repo_path), "log", "-1", "--format=%as", "--", pathspec],
-            capture_output=True, text=True, encoding="utf-8", errors="replace", env=env,
+            ["git", "-C", str(repo_path), "log", "-1", "--first-parent", "--format=%cs",
+             "--", pathspec],
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
+            env=_gitenv.scrubbed_git_env(),
         )
     except OSError:
         return None
@@ -153,12 +208,28 @@ def git_last_commit_date(repo_path: Path, pathspec: str) -> Optional[date]:
         return None
 
 
+def _git_available(repo_path: Path) -> bool:
+    """Is `repo_path` inside a git repo this process can read? One cheap `rev-parse`.
+
+    Exists so "git could not answer" is distinguishable from "this path has no history". They
+    look identical from a single `git log` call, and collapsing them makes a non-git checkout
+    report a committed artifact as never-committed.
+    """
+    try:
+        r = subprocess.run(["git", "-C", str(repo_path), "rev-parse", "--git-dir"],
+                           capture_output=True, text=True, encoding="utf-8", errors="replace",
+                           env=_gitenv.scrubbed_git_env())
+    except OSError:
+        return False
+    return r.returncode == 0
+
+
 @dataclass(frozen=True)
 class Measurement:
     """The P5-shaped relation for one artifact, plus the evidence that produced it."""
 
     artifact: str
-    verdict: str                      # "fresh" | "stale" | "unmeasurable"
+    verdict: str                      # a key of STATUS_FOR_VERDICT
     #: Only meaningful when `verdict == "unmeasurable"`. True when an output FILE is absent from
     #: disk (a consumer repo that simply has no dashboard -> the audit leg renders `n/a`
     #: SUBJECT-ABSENT); False when the file is there but git could not answer (-> `unavailable`).
@@ -183,34 +254,102 @@ def measure(repo_path: Path, artifact: GeneratedArtifact = DASHBOARD, *,
     `input_date` is the **maximum** across the inputs: any one input moving forward is what makes
     the artifact out of date.
 
-    An output with no git history means the artifact is not committed at all -- a different
-    defect, and one `gen_dashboard.py --check` already reports as MISSING -- so this returns
-    `unmeasurable` rather than inventing a staleness number for a file that was never there.
+    SIX VERDICTS, because a shorter list kept collapsing a defect into a pass -- each one is a
+    distinct real state with a distinct operator action, and `STATUS_FOR_VERDICT` says what each
+    reports as:
+
+      fresh         within the baseline
+      stale         older than its inputs by more than the baseline
+      deleted       has git history, gone from the tree
+      uncommitted   present in the tree, never committed (the zone class claims otherwise)
+      unverifiable  a DECLARED input (or one face of a multi-face artifact) cannot be measured --
+                    the relation over what remains is not a verdict and must not be shown as one
+      unmeasurable  nothing here to govern (with `subject_absent`, a repo that has no such
+                    artifact at all)
     """
     def _unmeasurable(detail: str, *, subject_absent: bool = False) -> Measurement:
         return Measurement(artifact.name, "unmeasurable", subject_absent, None,
                            artifact.baseline_days, None, None, None, None, detail)
 
-    out_dates: list[tuple[str, date]] = []
-    for rel in artifact.outputs:
-        d = git_date_fn(repo_path, rel)
-        if d is None:
-            # Disk presence is consulted ONLY to explain a failure to measure, never to produce
-            # one: a consumer repo with no dashboard at all is SUBJECT-ABSENT (`n/a`), while a
-            # file that exists but whose history git could not read is `unavailable`.
-            absent = not (Path(repo_path) / rel).is_file()
-            return _unmeasurable(
-                f"output {rel} is not present in this repo" if absent
-                else f"no git history for output {rel}", subject_absent=absent)
-        out_dates.append((rel, d))
-    if not out_dates:
+    # GIT-ABSENT IS ITS OWN ANSWER, and it has to be checked before anything else. Without this,
+    # a non-git checkout makes every date lookup return None, the outputs are present, and the
+    # loop below concludes `uncommitted` -- WARNING that a committed artifact "was never
+    # committed" purely because nothing could be asked. One probe, once, per measurement.
+    if git_date_fn is git_last_commit_date and not _git_available(repo_path):
+        return _unmeasurable("git is unavailable here — freshness cannot be measured")
+
+    if not artifact.outputs:
         return _unmeasurable("artifact declares no outputs")
 
-    in_dates = [(rel, d) for rel in artifact.inputs
-                if (d := git_date_fn(repo_path, rel)) is not None]
-    if not in_dates:
-        return _unmeasurable("no git history for any declared input "
-                             f"({', '.join(artifact.inputs)})")
+    # EVERY PATH IS QUERIED EXACTLY ONCE. An earlier version asked each input twice -- once to
+    # test measurability, once to read the date -- doubling the subprocess cost of a check that
+    # `cmd_health` runs on every commit (terra, 2026-08-23). One `git log` per declared path is
+    # the floor, because the per-path date is what names the offender in the evidence.
+    dates = {rel: git_date_fn(repo_path, rel)
+             for rel in (*artifact.outputs, *artifact.inputs)}
+
+    # ALL OUTPUT FACES ARE CLASSIFIED BEFORE ANY VERDICT IS RETURNED. Returning on the first face
+    # let a two-face artifact with one never-present face short-circuit to `n/a` while the OTHER
+    # face was stale -- an absence swallowing a defect (terra, 2026-08-23). Presence is read
+    # first for each face, because `git log -1 -- <deleted-path>` answers with the DELETION
+    # commit's recent date, and a date-first reading would call a deleted artifact `fresh`.
+    absent_no_history, deleted, uncommitted = [], [], []
+    out_dates: list[tuple[str, date]] = []
+    for rel in artifact.outputs:
+        present, d = (Path(repo_path) / rel).is_file(), dates[rel]
+        if not present and d is None:
+            absent_no_history.append(rel)      # never existed here
+        elif not present:
+            deleted.append((rel, d))           # has history, gone from the tree
+        elif d is None:
+            uncommitted.append(rel)            # in the tree, never committed
+        else:
+            out_dates.append((rel, d))
+
+    # Ordered worst-first: a real defect on ANY face outranks absence on another.
+    if deleted:
+        rel, d = deleted[0]
+        return Measurement(
+            artifact.name, "deleted", False, None, artifact.baseline_days, None, rel, None, None,
+            f"{artifact.name}: output {rel} is MISSING from the tree but has git history "
+            f"(last touched {d.isoformat()}) — the committed generated artifact was deleted")
+    if uncommitted:
+        # `--check` does NOT catch this: it reports MISSING only for an ABSENT file, so a
+        # present-but-untracked face passes it. And "committed-generated" is the zone class's own
+        # claim, so this violates the leg's premise -- WARN, never a quiet `unavailable`.
+        return Measurement(
+            artifact.name, "uncommitted", False, None, artifact.baseline_days,
+            None, uncommitted[0], None, None,
+            f"{artifact.name}: output(s) present but with NO git history — "
+            f"{', '.join(uncommitted)}; a committed-generated artifact that was never committed")
+    if absent_no_history and out_dates:
+        # Partial artifact: one face governed, another simply not here. Not "nothing to govern".
+        return Measurement(
+            artifact.name, "unverifiable", False, None, artifact.baseline_days,
+            None, None, None, None,
+            f"{artifact.name}: declared output(s) absent with no history — "
+            f"{', '.join(absent_no_history)} — while {len(out_dates)} other face(s) exist; "
+            f"a partial artifact cannot be given a freshness verdict")
+    if not out_dates:
+        # Every face absent and unhistoried: a repo that simply has no such artifact.
+        return _unmeasurable(
+            f"output(s) not present in this repo — {', '.join(absent_no_history)}",
+            subject_absent=True)
+
+    # EVERY DECLARED INPUT MUST BE MEASURABLE. An earlier version dropped unmeasurable inputs and
+    # reported freshness from whatever remained -- so if the input that had actually moved was the
+    # unreadable one, the artifact was called `fresh` on the strength of the others. That is the
+    # gate quietly excusing itself, and terra named it (2026-08-23). A declared input that cannot
+    # be measured is a defect in the DECLARATION (or a broken/shallow tree); either way the
+    # relation over the survivors is not a freshness verdict and must not be presented as one.
+    unmeasured = [rel for rel in artifact.inputs if dates[rel] is None]
+    if unmeasured:
+        return Measurement(
+            artifact.name, "unverifiable", False, None, artifact.baseline_days,
+            None, None, None, None,
+            f"{artifact.name}: declared input(s) with no git history — "
+            f"{', '.join(unmeasured)}; freshness cannot be verified over a partial input set")
+    in_dates = [(rel, dates[rel]) for rel in artifact.inputs]
 
     stalest_output, output_date = min(out_dates, key=lambda pair: pair[1])
     newest_input, input_date = max(in_dates, key=lambda pair: pair[1])
@@ -219,6 +358,22 @@ def measure(repo_path: Path, artifact: GeneratedArtifact = DASHBOARD, *,
     detail = (f"{artifact.name}: {staleness}d stale (baseline {artifact.baseline_days}d) — "
               f"{stalest_output} committed {output_date.isoformat()}, newest input "
               f"{newest_input} committed {input_date.isoformat()}")
+    # THE BLIND SPOT RIDES ON THE FINDING, not only in this file's comments. An untracked input
+    # has no commit date, so nothing it does can ever move the relation -- the artifact can be
+    # reported fresh while a section rendered from that input is stale, indefinitely. Declaring
+    # it in `untracked_inputs` documents the gap for a reader of the code; saying so in the
+    # evidence puts it in front of whoever is reading the ship-gate (terra, 2026-08-23).
+    #
+    # A NOTE AND NOT A WARN, deliberately: the dashboard's telemetry section is a function of the
+    # store's existence and SIZE, so once `[#529]`'s store lands, a WARN keyed on it would fire on
+    # every emit. A gate that fires constantly gets routed around -- the same reasoning that put
+    # this leg on the ship-gate rather than pre-commit. It is surfaced only when the untracked
+    # input actually EXISTS, because an absent one contributes nothing to the render but "absent".
+    live_untracked = [rel for rel in artifact.untracked_inputs
+                      if (Path(repo_path) / rel).exists()]
+    if live_untracked:
+        detail += (f" [not covered: {', '.join(live_untracked)} — untracked, so changes to it "
+                   f"cannot move this verdict]")
     return Measurement(artifact.name, verdict, False, staleness, artifact.baseline_days,
                        output_date, stalest_output, input_date, newest_input, detail)
 
@@ -238,7 +393,7 @@ def evaluate(repo_path: Path, artifacts: Optional[tuple[GeneratedArtifact, ...]]
     warns: list[str] = []
     for artifact in (REGISTRY if artifacts is None else artifacts):
         m = measure(repo_path, artifact, git_date_fn=git_date_fn)
-        if m.verdict == "stale":
+        if m.verdict in WARN_VERDICTS:
             warns.append(f"{m.detail}; regenerate + commit: {artifact.regen_command}")
     return [], warns
 
