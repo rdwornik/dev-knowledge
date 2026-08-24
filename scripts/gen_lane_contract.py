@@ -12,15 +12,30 @@ about it: the mechanical regions of a contract are BAKED IN here, so a contract 
 emitted missing its decision budget, missing its worktree-file pairing line, or naming an
 effort tier the dispatch surface refuses.
 
+THE COMMAND LINE IS THE DELIVERABLE, AND SO IS ITS SHAPE (M10, lane L7, 2026-08-23).
+`protocols/PLAYBOOK.md` Ch8 "Dispatching a session" names THREE dispatch shapes with three
+different commands, and this generator selects between them from the contract's own declared
+`shape`. Before that lane it emitted `Dispatch-Lane` UNCONDITIONALLY — `cloud` added a
+receipt section and changed nothing else — so `emit --cloud` produced a cloud contract
+carrying the LOCAL command, and `parse_contract` would have REFUSED the correct one. A lane
+handed the wrong command is worse than a lane handed none, because a wrong command looks
+authoritative; presence is therefore necessary and not sufficient, and the tests assert the
+SELECTION rather than the presence.
+
 WHAT IS BAKED IN, and each is asserted by a test rather than trusted:
-  * the `## Dispatch` block, in the `Dispatch-Lane <slug> <file> [-Effort <tier>]` form,
+  * the `## Dispatch` block: a declared `**Shape:**` line plus the ONE command line that
+    shape takes — `Dispatch-Lane <slug> <file> -Effort <tier>` (local),
+    `Dispatch-CloudV2 <file> -Title '<slug>'` (cloud), or `claude` plus its
+    `Read <PROMPTS_DIR>\\<file> and execute it exactly.` first message (interactive) —
     with the dispatch constants STATED (`--permission-mode bypassPermissions`, `--bg`)
     and `opus` as the model default;
   * the worktree <-> file pairing line (slug -> branch -> contract file), the 1:1 property
-    ADR-110's fifth per-lane requirement asks for;
+    ADR-110's fifth per-lane requirement asks for — with the branch DERIVED FROM THE SHAPE
+    (`worktree-<slug>` local, `claude/<slug>` cloud per Ch8's cloud-lane section, and none
+    at all for an interactive session, which runs in the primary checkout);
   * the V-2 decision budget, with its three ask-classes (a)/(b)/(c);
   * the receipt-gate fields for a cloud lane (STANDING_RULINGS Q5), emitted only for
-    `--cloud`, since a local lane has no receipt to carry.
+    `--shape cloud`, since neither of the on-machine shapes has a receipt to carry.
 
 LIBRARY-FIRST, stated rather than claimed. The lane-name grammar is NOT re-implemented
 here: `validate_branch_naming.validate_lane_worktree_name` is the repo's existing checker
@@ -82,12 +97,37 @@ DEFAULT_MODEL = "opus"
 MODE_ENUM: tuple[str, ...] = ("execute", "plan-then-auto", "plan")
 DEFAULT_MODE = "execute"
 
+#: The three dispatch shapes `protocols/PLAYBOOK.md` Ch8 "Dispatching a session" names.
+#: A shape is the SUBSTRATE a session runs on — deliberately NOT `MODE_ENUM`, which is how a
+#: lane *thinks*. `MODE_ENUM` was the tempting hook here (it is already a declared enum on
+#: the spec) and it is the wrong one: overloading it would make `plan` imply a substrate.
+SHAPE_ENUM: tuple[str, ...] = ("local", "cloud", "interactive")
+DEFAULT_SHAPE = "local"
+
+#: One-line gloss per shape, emitted beside the declared `**Shape:**` value so the contract
+#: says what the label means without the reader going to Ch8 for it.
+SHAPE_GLOSS: dict[str, str] = {
+    "local": "a background lane on the operator's machine, own worktree, commit-and-STOP",
+    "cloud": "an off-machine lane, repo-bound and receipt-gated, on the `claude/` prefix",
+    "interactive": "an operator-attended session — integration and seat acts live here",
+}
+
 #: Dispatch constants that ride every dispatch without being re-decided (Ch8).
 PERMISSION_MODE = "--permission-mode bypassPermissions"
 BACKGROUND_FLAG = "--bg"
 
+#: The prompts-dir placeholder a dispatch line cites instead of a hard-coded absolute path
+#: (Ch8, "Dispatch prompts and the contract of record"). Only the INTERACTIVE shape needs it:
+#: the other two take a bare filename and resolve it against that directory themselves, while
+#: an interactive first message is a chat message, so nothing expands a variable in it.
+PROMPTS_DIR_TOKEN = "<PROMPTS_DIR>"
+
 #: The branch a worktree name produces, via `claude --worktree <name>`.
 BRANCH_PREFIX = "worktree-"
+
+#: The branch prefix a CLOUD lane runs on (Ch8, "Cloud lanes"; CLAUDE.md §4's branch enum).
+#: Emitting `worktree-` for a cloud lane declared a branch its own transport never creates.
+CLOUD_BRANCH_PREFIX = "claude/"
 
 #: Mandatory headings every emitted contract carries. `--check` reads for exactly these.
 MANDATORY_SECTIONS: tuple[str, ...] = (
@@ -111,8 +151,40 @@ _DISPATCH_LINE_RE = re.compile(
     r"^Dispatch-Lane\s+(?P<slug>\S+)\s+(?P<file>\S+)(?:\s+-Effort\s+(?P<effort>\S+))?\s*$",
     re.MULTILINE,
 )
+#: The CLOUD command. `Dispatch-CloudV2` takes the brief as its first positional and the
+#: session title as `-Title`; it has NO `-Effort` parameter, which is why the effort check
+#: below is scoped to the local shape rather than dropped.
+_CLOUD_DISPATCH_LINE_RE = re.compile(
+    r"^Dispatch-CloudV2\s+(?P<file>\S+)\s+-Title\s+'(?P<slug>[^']+)'\s*$",
+    re.MULTILINE,
+)
+#: The INTERACTIVE first message. Not a shell line — the operator sends it into a running
+#: `claude` session — so it is matched as the sentence it is.
+_INTERACTIVE_LINE_RE = re.compile(
+    r"^Read\s+" + re.escape(PROMPTS_DIR_TOKEN) + r"\\(?P<file>\S+)\s+"
+    r"and execute it exactly\.\s*$",
+    re.MULTILINE,
+)
+#: The declared shape. Without it a checker cannot tell a correct command from a wrong one,
+#: which is the whole property this generator exists to hold.
+_SHAPE_LINE_RE = re.compile(r"^\*\*Shape:\*\*\s+`(?P<shape>[a-z]+)`", re.MULTILINE)
+
+#: The command line for each shape, keyed so `find_command_line` and `parse_contract` read
+#: ONE table rather than each carrying its own if-chain that could drift from the other.
+_COMMAND_RES: dict[str, re.Pattern[str]] = {
+    "local": _DISPATCH_LINE_RE,
+    "cloud": _CLOUD_DISPATCH_LINE_RE,
+    "interactive": _INTERACTIVE_LINE_RE,
+}
+
 _PAIRING_RE = re.compile(
     r"slug\s+`(?P<slug>[^`]+)`\s*->\s*branch\s+`(?P<branch>[^`]+)`\s*->\s*contract\s+`(?P<file>[^`]+)`"
+)
+#: The interactive pairing: no lane branch exists to name, so naming one would be a claim the
+#: tree never makes true. Cannot collide with `_PAIRING_RE` — that one requires `-> branch`
+#: immediately after the slug, this one requires `-> contract`.
+_PAIRING_NO_BRANCH_RE = re.compile(
+    r"slug\s+`(?P<slug>[^`]+)`\s*->\s*contract\s+`(?P<file>[^`]+)`"
 )
 #: The routing table's BODY row, anchored on its own `| Model | Mode | Effort |` header and
 #: separator. Anchoring on the header is what keeps the header itself, and any other
@@ -176,6 +248,22 @@ def validate_model(model: str) -> str:
     return raw
 
 
+def validate_shape(shape: str) -> str:
+    """Return the dispatch shape, or raise `LaneContractError` naming the enum.
+
+    Same refusal posture as `validate_effort`: a miss names the enum and is never rounded to
+    a neighbour. It matters more here than anywhere else in this module — rounding `remote`
+    to `cloud`, or `worktree` to `local`, would emit a *confidently wrong* command, and that
+    is strictly worse than emitting none.
+    """
+    raw = (shape or "").strip()
+    if raw not in SHAPE_ENUM:
+        raise LaneContractError(
+            f"dispatch shape {shape!r} is outside the enum {{{' | '.join(SHAPE_ENUM)}}} — "
+            f"a miss is refused, never rounded to a neighbour")
+    return raw
+
+
 def validate_mode(mode: str) -> str:
     """Return the lane mode, or raise `LaneContractError` naming the enum."""
     raw = (mode or "").strip()
@@ -220,10 +308,58 @@ def contract_filename(slug: str) -> str:
     return f"LANE-{stem}.md"
 
 
-def branch_name(slug: str) -> str:
-    """The branch `claude --worktree <slug>` produces. Prefixed exactly ONCE — the batch-6
-    doubled-prefix class this generator exists partly to remove."""
+def branch_name(slug: str, shape: str = DEFAULT_SHAPE) -> Optional[str]:
+    """The branch a lane of this `shape` runs on, or `None` when it has no lane branch.
+
+    * `local` — `worktree-<slug>`, what `claude --worktree <slug>` produces. Prefixed exactly
+      ONCE: the batch-6 doubled-prefix class this generator exists partly to remove.
+    * `cloud` — `claude/<slug>`, the prefix Ch8's cloud-lane section and CLAUDE.md §4's branch
+      enum both give a cloud session. Emitting `worktree-` here declared a branch the cloud
+      transport never creates.
+    * `interactive` — `None`. An operator-attended session runs in the primary checkout on an
+      author-chosen branch, so there is nothing for the contract to declare, and inventing a
+      name would be a claim the tree never makes true.
+
+    The one-argument form keeps its old meaning (local), so every existing caller and the
+    doubled-prefix regression test read exactly as they did.
+    """
+    shape = validate_shape(shape)
+    if shape == "cloud":
+        return f"{CLOUD_BRANCH_PREFIX}{slug}"
+    if shape == "interactive":
+        return None
     return f"{BRANCH_PREFIX}{slug}"
+
+
+def dispatch_command(slug: str, contract_file: str, effort: str, shape: str) -> str:
+    """The literal command line for one shape — the single source both halves of this module
+    read, so the emitter cannot write a form the parser will not accept.
+
+    Returned WITHOUT a surrounding fence. For `interactive` the returned text is the first
+    message only; `render_contract` emits the `claude` invocation above it, because the
+    session has to exist before a message can reach it.
+    """
+    shape = validate_shape(shape)
+    if shape == "cloud":
+        return f"Dispatch-CloudV2 {contract_file} -Title '{slug}'"
+    if shape == "interactive":
+        return f"Read {PROMPTS_DIR_TOKEN}\\{contract_file} and execute it exactly."
+    return f"Dispatch-Lane {slug} {contract_file} -Effort {effort}"
+
+
+def find_command_line(text: str) -> Optional[str]:
+    """The dispatch command line a contract carries, or `None` when it carries none.
+
+    Tries each shape's pattern and returns the first hit's matched text. Order does not
+    matter: the three forms are disjoint by their opening token, so at most one can match a
+    given line. `None` is the case M10 exists to close — a contract handed over with no
+    command does not get started — and `parse_contract` turns it into a refusal.
+    """
+    for pattern in _COMMAND_RES.values():
+        match = pattern.search(text)
+        if match is not None:
+            return match.group(0).strip()
+    return None
 
 
 # --- the emitted contract ------------------------------------------------------------------
@@ -238,8 +374,19 @@ class LaneSpec:
     model: str = DEFAULT_MODEL
     mode: str = DEFAULT_MODE
     effort: str = "high"
-    cloud: bool = False
+    shape: str = DEFAULT_SHAPE
     strict_slug: bool = True
+
+    @property
+    def cloud(self) -> bool:
+        """Kept as a DERIVED read, not a second stored field.
+
+        `cloud` used to be the stored flag, and it was the whole substrate model — which is
+        why a cloud contract carried a local command. It survives as a property so the
+        receipt-gate condition still reads in English, but there is exactly one source now
+        and the two cannot disagree.
+        """
+        return self.shape == "cloud"
 
     def validated(self) -> "LaneSpec":
         """Return a copy with every enum-bearing field checked. Raises `LaneContractError`."""
@@ -251,7 +398,7 @@ class LaneSpec:
             model=validate_model(self.model),
             mode=validate_mode(self.mode),
             effort=validate_effort(self.effort),
-            cloud=self.cloud,
+            shape=validate_shape(self.shape),
             strict_slug=self.strict_slug,
         )
 
@@ -265,7 +412,7 @@ def render_contract(spec: LaneSpec) -> str:
     """Render one frozen lane contract. Pure — same spec in, byte-identical markdown out."""
     spec = spec.validated()
     fname = contract_filename(spec.slug)
-    branch = branch_name(spec.slug)
+    branch = branch_name(spec.slug, spec.shape)
     ident = f"[#{spec.task_id}]" if spec.task_id else f"`{spec.slug}`"
 
     parts: list[str] = []
@@ -274,26 +421,72 @@ def render_contract(spec: LaneSpec) -> str:
     parts.append("|---|---|---|")
     parts.append(f"| {spec.model} | {spec.mode} | {spec.effort} |\n")
 
+    command = dispatch_command(spec.slug, fname, spec.effort, spec.shape)
+
     parts.append("## Dispatch\n")
+    parts.append(f"**Shape:** `{spec.shape}` — {SHAPE_GLOSS[spec.shape]}.\n")
     parts.append("```")
-    parts.append(f"Dispatch-Lane {spec.slug} {fname} -Effort {spec.effort}")
+    if spec.shape == "interactive":
+        # The session has to exist before a message can reach it, so both halves are
+        # emitted. Handing over the message alone is the M10 failure in miniature.
+        parts.append("claude")
+    parts.append(command)
     parts.append("```\n")
-    parts.append(
-        f"The operator runs the line above verbatim. Dispatch constants ride it without being\n"
-        f"re-decided: `{PERMISSION_MODE}`, `{BACKGROUND_FLAG}`, and the board label\n"
-        f"`{spec.board_label}`. Model defaults to `{DEFAULT_MODEL}` — the `.dev-knowledge`\n"
-        f"default per the Ch8 routing matrix — and this lane dispatches at `{spec.model}`.\n"
-        f"Effort is a closed enum: {{{' | '.join(EFFORT_ENUM)}}}; a value outside it is refused\n"
-        f"at the surface with the enum named, rather than guessed.\n")
+
+    if spec.shape == "local":
+        parts.append(
+            f"The operator runs the line above verbatim, **from the target repo root** — the\n"
+            f"helper is cwd-bound, and dispatching from the wrong repo lands the worktree in\n"
+            f"it. Dispatch constants ride the line without being re-decided:\n"
+            f"`{PERMISSION_MODE}`, `{BACKGROUND_FLAG}`, and the board label\n"
+            f"`{spec.board_label}`. Model defaults to `{DEFAULT_MODEL}` — the `.dev-knowledge`\n"
+            f"default per the Ch8 routing matrix — and this lane dispatches at `{spec.model}`.\n"
+            f"Effort is a closed enum: {{{' | '.join(EFFORT_ENUM)}}}; a value outside it is refused\n"
+            f"at the surface with the enum named, rather than guessed. The helper refuses\n"
+            f"outright when `{branch}` already exists, so re-running the line is a no-op\n"
+            f"rather than a collision.\n")
+    elif spec.shape == "cloud":
+        parts.append(
+            f"The operator runs the line above verbatim. The **whole file is the brief** — it\n"
+            f"travels in a JSON body, so one file is one lane and never a multi-lane bundle —\n"
+            f"and the dispatch binds Revision `main`. `Dispatch-CloudV2` carries no `-Effort`\n"
+            f"parameter, so this lane's tier is on the record in the routing table above\n"
+            f"(`{spec.model}` / `{spec.effort}`) rather than on the command line. Permission\n"
+            f"mode is `{PERMISSION_MODE.split()[-1]}`, as it is for an on-machine lane.\n"
+            f"A cloud session clones from `origin`, so every input this contract names is\n"
+            f"pushed before dispatch: it cannot see an unpushed branch or a local file.\n")
+    else:
+        parts.append(
+            f"`claude` starts the session; the second line is its **first message**, not a\n"
+            f"shell command. `{PROMPTS_DIR_TOKEN}` is the prompts directory\n"
+            f"(`$env:CLAUDE_PROMPTS_DIR`, `~\\Downloads` by default) — the operator resolves it\n"
+            f"by eye here, because a chat message is not a shell and nothing expands the\n"
+            f"variable for him. This shape exists for the acts a background lane cannot\n"
+            f"perform: integration needs an operator GO per merge, and a `{BACKGROUND_FLAG}`\n"
+            f"session can neither merge to `main` nor ask a question. Tier on the record above\n"
+            f"(`{spec.model}` / `{spec.effort}`); board label `{spec.board_label}`.\n")
 
     parts.append("## Worktree pairing\n")
-    parts.append(
-        f"slug `{spec.slug}` -> branch `{branch}` -> contract `{fname}`\n")
-    parts.append(
-        "One lane = one contract file = one worktree = one branch, so an open worktree resolves\n"
-        "to the contract that created it and an orphan is attributable at a glance (ADR-110,\n"
-        "fifth per-lane requirement). The `worktree-` prefix is applied exactly ONCE — the flag\n"
-        "takes the bare lane name.\n")
+    if branch is None:
+        parts.append(f"slug `{spec.slug}` -> contract `{fname}`\n")
+        parts.append(
+            "**No lane branch.** An interactive session runs in the primary checkout on an\n"
+            "author-chosen branch, so there is no `worktree-` or `claude/` name for this\n"
+            "contract to declare — and declaring one would be a claim the tree never makes\n"
+            "true. The 1:1 property ADR-110's fifth per-lane requirement asks for still holds\n"
+            "on the pair that exists: one contract file, one session.\n")
+    else:
+        parts.append(
+            f"slug `{spec.slug}` -> branch `{branch}` -> contract `{fname}`\n")
+        prefix_note = (
+            "The `worktree-` prefix is applied exactly ONCE — the flag takes the bare lane\n"
+            "name.\n" if spec.shape == "local" else
+            "A cloud lane runs on the `claude/` prefix, not `worktree-`: the branch is created\n"
+            "by the cloud transport, not by a local worktree provisioner.\n")
+        parts.append(
+            "One lane = one contract file = one branch, so an open lane resolves to the\n"
+            "contract that created it and an orphan is attributable at a glance (ADR-110,\n"
+            f"fifth per-lane requirement). {prefix_note}")
 
     if spec.cloud:
         parts.append(f"## {CLOUD_SECTION}\n")
@@ -354,6 +547,8 @@ class ParsedContract:
     slug: Optional[str] = None
     contract_file: Optional[str] = None
     branch: Optional[str] = None
+    shape: Optional[str] = None
+    command: Optional[str] = None
     effort: Optional[str] = None
     model: Optional[str] = None
     mode: Optional[str] = None
@@ -365,11 +560,13 @@ class ParsedContract:
         return not self.problems
 
 
-def parse_contract(text: str, *, expect_cloud: Optional[bool] = None) -> ParsedContract:
+def parse_contract(text: str, *, expect_shape: Optional[str] = None) -> ParsedContract:
     """Parse a lane contract and report every problem found, rather than the first.
 
-    `expect_cloud=None` (the default) infers cloud-ness from the presence of the receipt
-    section, so a caller checking an unknown file does not have to know in advance.
+    `expect_shape=None` (the default) takes the shape from the contract's own `**Shape:**`
+    line, so a caller checking an unknown file does not have to know in advance. Passing one
+    asserts the substrate — the check the `lane-contract-check` hook does not make, because
+    at commit time nothing outside the file says what shape it was meant to be.
     """
     problems: list[str] = []
     # Structure is read from the DE-FENCED text: a heading or an ask-class quoted inside an
@@ -384,13 +581,60 @@ def parse_contract(text: str, *, expect_cloud: Optional[bool] = None) -> ParsedC
         if not any(s == required or s.startswith(required + " ") for s in sections):
             problems.append(f"missing mandatory section: '## {required}'")
 
-    slug = contract_file = effort = None
-    dispatch = _DISPATCH_LINE_RE.search(text)  # deliberately the FULL text — it lives in a fence
-    if dispatch is None:
+    # --- the declared shape, and the command line it selects -------------------------------
+    # Read the shape FIRST: without it a checker can see that a command line is present but
+    # not that it is the right one, and a lane handed the wrong command is worse than a lane
+    # handed none, because a wrong command looks authoritative (M10, lane L7).
+    shape = None
+    shape_match = _SHAPE_LINE_RE.search(prose)
+    if shape_match is None:
         problems.append(
-            "no `Dispatch-Lane <slug> <file> [-Effort <tier>]` line found — the `## Dispatch` "
-            "block carries the literal line, and the contract is its single source")
+            "no `**Shape:** `<shape>`` line found in the `## Dispatch` block — a contract "
+            f"that does not declare its shape ({' | '.join(SHAPE_ENUM)}) cannot have its "
+            "command line checked against anything")
     else:
+        shape = shape_match.group("shape")
+        if shape not in SHAPE_ENUM:
+            problems.append(
+                f"declared shape {shape!r} is outside {{{' | '.join(SHAPE_ENUM)}}}")
+            shape = None
+    if expect_shape is not None and shape is not None and shape != expect_shape:
+        problems.append(
+            f"contract declares shape {shape!r} but {expect_shape!r} was expected")
+
+    # Which forms are actually present. Read from the FULL text — a command line legitimately
+    # lives inside a fence.
+    found = {name: pattern.search(text) for name, pattern in _COMMAND_RES.items()}
+    present = [name for name, match in found.items() if match is not None]
+    command = None
+
+    slug = contract_file = effort = None
+    if not present:
+        problems.append(
+            "no dispatch command line found — every contract carries the literal line that "
+            "launches it, in the `## Dispatch` block, in exactly one of the three forms "
+            "(`Dispatch-Lane` | `Dispatch-CloudV2` | `Read <PROMPTS_DIR>\\<file> and execute "
+            "it exactly.`); a contract handed over without one does not get started")
+    elif len(present) > 1:
+        problems.append(
+            f"contract carries {len(present)} dispatch command lines ({', '.join(present)}) "
+            "— one contract dispatches one way, and two forms free to disagree is the class "
+            "this generator removes")
+    elif shape is not None and present[0] != shape:
+        problems.append(
+            f"declared shape {shape!r} but the command line is the {present[0]!r} form — a "
+            "lane handed another shape's command is worse than one handed none, because a "
+            "wrong command looks authoritative")
+
+    matched_shape = present[0] if len(present) == 1 else None
+    if matched_shape is not None:
+        command = found[matched_shape].group(0).strip()
+
+    # The local form is the only one carrying a slug AND an effort on the line itself; the
+    # cloud form carries file + title; the interactive form carries the file alone. Each is
+    # read for exactly what it holds rather than for a shape it never had.
+    dispatch = found["local"] if matched_shape == "local" else None
+    if matched_shape == "local":
         slug = dispatch.group("slug")
         contract_file = dispatch.group("file")
         effort = dispatch.group("effort")
@@ -417,6 +661,27 @@ def parse_contract(text: str, *, expect_cloud: Optional[bool] = None) -> ParsedC
             problems.append(
                 f"dispatch line pairs slug {slug!r} with file {contract_file!r}; the 1:1 "
                 f"pairing wants {contract_filename(slug)!r}")
+    elif matched_shape == "cloud":
+        # `-Title` is the cloud transport's name for the lane, so it is read as the slug and
+        # held to the SAME grammar and the same 1:1 pairing as the local form's. Nothing
+        # about running off-machine relaxes what a lane may be called.
+        cloud_match = found["cloud"]
+        slug = cloud_match.group("slug")
+        contract_file = cloud_match.group("file")
+        try:
+            validate_slug(slug, strict=False)
+        except LaneContractError as exc:
+            problems.append(f"dispatch line carries an invalid lane slug: {exc}")
+        if contract_file != contract_filename(slug):
+            problems.append(
+                f"dispatch line pairs slug {slug!r} with file {contract_file!r}; the 1:1 "
+                f"pairing wants {contract_filename(slug)!r}")
+    elif matched_shape == "interactive":
+        # The first message names the contract file and nothing else — there is no slug and
+        # no tier on it to check. Both are still on the record: the slug on the pairing line
+        # below, the tier in the routing row. Demanding an `-Effort` here would be demanding
+        # a parameter the shape has no place to carry.
+        contract_file = found["interactive"].group("file")
 
     # The routing table is READ, not just emitted: an edited `| gpt | arbitrary | high |` row
     # used to pass unchallenged (terra 2026-08-21, finding 4).
@@ -444,36 +709,71 @@ def parse_contract(text: str, *, expect_cloud: Optional[bool] = None) -> ParsedC
                 f"routing row states effort {row_effort!r} but the dispatch line states "
                 f"{effort!r} — two sources free to disagree is the class this generator removes")
 
+    # The pairing line's SHAPE follows the lane's: an interactive session has no lane branch,
+    # so it pairs slug -> contract and the branch-derivation check has nothing to check. The
+    # two patterns cannot both match — `_PAIRING_RE` requires `-> branch` where the other
+    # requires `-> contract` — so this is a genuine either/or rather than a precedence rule.
     branch = None
-    pairing = _PAIRING_RE.search(prose)
-    if pairing is None:
-        problems.append(
-            "no worktree-pairing line found (slug -> branch -> contract)")
+    if shape == "interactive":
+        pairing = _PAIRING_NO_BRANCH_RE.search(prose)
+        if pairing is None:
+            problems.append(
+                "no pairing line found (slug -> contract) — an interactive contract pairs its "
+                "slug with its file and declares no branch")
+        else:
+            p_slug = pairing.group("slug")
+            if slug is None:
+                slug = p_slug            # the only place an interactive contract names it
+            elif p_slug != slug:
+                problems.append(
+                    f"pairing line names slug {p_slug!r} but the dispatch line names {slug!r}")
+            if contract_file is not None and pairing.group("file") != contract_file:
+                problems.append(
+                    f"pairing line names contract {pairing.group('file')!r} but the dispatch "
+                    f"line names {contract_file!r}")
     else:
-        branch = pairing.group("branch")
-        p_slug = pairing.group("slug")
-        if branch != branch_name(p_slug):
+        pairing = _PAIRING_RE.search(prose)
+        if pairing is None:
             problems.append(
-                f"pairing line derives branch {branch!r} from slug {p_slug!r}; "
-                f"expected {branch_name(p_slug)!r} — the prefix is applied exactly once")
-        if slug is not None and p_slug != slug:
-            problems.append(
-                f"pairing line names slug {p_slug!r} but the dispatch line names {slug!r}")
-        if contract_file is not None and pairing.group("file") != contract_file:
-            problems.append(
-                f"pairing line names contract {pairing.group('file')!r} but the dispatch "
-                f"line names {contract_file!r}")
+                "no worktree-pairing line found (slug -> branch -> contract)")
+        else:
+            branch = pairing.group("branch")
+            p_slug = pairing.group("slug")
+            # Derived under the DECLARED shape: a cloud lane runs on `claude/<slug>`, and
+            # checking it against `worktree-<slug>` would refuse the correct branch. An
+            # undeclared shape falls back to local, which is the historical reading.
+            expected = branch_name(p_slug, shape or DEFAULT_SHAPE)
+            if branch != expected:
+                problems.append(
+                    f"pairing line derives branch {branch!r} from slug {p_slug!r}; "
+                    f"expected {expected!r} — the prefix is applied exactly once")
+            if slug is not None and p_slug != slug:
+                problems.append(
+                    f"pairing line names slug {p_slug!r} but the dispatch line names {slug!r}")
+            if contract_file is not None and pairing.group("file") != contract_file:
+                problems.append(
+                    f"pairing line names contract {pairing.group('file')!r} but the dispatch "
+                    f"line names {contract_file!r}")
 
+    # The receipt gate keys on the CLOUD shape, which is now declared rather than inferred
+    # from the section's own presence — a contract that dropped the section used to read as
+    # "not a cloud lane" instead of "a cloud lane missing its gate".
     is_cloud = CLOUD_SECTION in sections
     found_receipt = tuple(f for f in RECEIPT_FIELDS if f in prose)
-    if expect_cloud is True and not is_cloud:
-        problems.append(f"cloud lane expected, but no '## {CLOUD_SECTION}' section is present")
+    if shape == "cloud" and not is_cloud:
+        problems.append(
+            f"contract declares shape 'cloud' but carries no '## {CLOUD_SECTION}' section — "
+            f"every cloud dispatch carries one (STANDING_RULINGS Q5)")
     if is_cloud:
+        if shape is not None and shape != "cloud":
+            problems.append(
+                f"contract declares shape {shape!r} but carries a '## {CLOUD_SECTION}' "
+                f"section — the receipt gate is a cloud-lane rule (Q5)")
         for missing in (f for f in RECEIPT_FIELDS if f not in found_receipt):
             problems.append(f"cloud lane is missing the receipt field: {missing}")
-    elif expect_cloud is False and found_receipt:
+    elif shape is not None and shape != "cloud" and found_receipt:
         problems.append(
-            "local lane carries receipt fields — the receipt gate is a cloud-lane rule (Q5)")
+            f"{shape} lane carries receipt fields — the receipt gate is a cloud-lane rule (Q5)")
 
     for ask_class in ("(a)", "(b)", "(c)"):
         if ask_class not in prose:
@@ -481,8 +781,8 @@ def parse_contract(text: str, *, expect_cloud: Optional[bool] = None) -> ParsedC
 
     return ParsedContract(
         sections=sections, slug=slug, contract_file=contract_file, branch=branch,
-        effort=effort, model=model, mode=mode, receipt_fields=found_receipt,
-        problems=tuple(problems))
+        shape=shape, command=command, effort=effort, model=model, mode=mode,
+        receipt_fields=found_receipt, problems=tuple(problems))
 
 
 # --- CLI --------------------------------------------------------------------------------------
@@ -505,8 +805,9 @@ def cli() -> None:
 @click.option("--model", type=click.Choice(MODEL_ENUM), default=DEFAULT_MODEL, show_default=True)
 @click.option("--mode", type=click.Choice(MODE_ENUM), default=DEFAULT_MODE, show_default=True)
 @click.option("--effort", type=click.Choice(EFFORT_ENUM), default="high", show_default=True)
-@click.option("--cloud/--local", default=False, show_default=True,
-              help="a cloud lane carries the Q5 receipt-gate fields")
+@click.option("--shape", type=click.Choice(SHAPE_ENUM), default=DEFAULT_SHAPE,
+              show_default=True,
+              help="dispatch substrate — selects the command line the contract carries")
 @click.option("--loose-slug", is_flag=True, default=False,
               help="relax the batch-lane grammar to bare hyphen-only kebab")
 @click.option("--out-dir", type=click.Path(file_okay=False, path_type=Path), default=None,
@@ -515,11 +816,11 @@ def cli() -> None:
               help="render to stdout instead of writing a file")
 @click.option("--force", is_flag=True, default=False, help="overwrite an existing contract")
 def cmd_emit(slug: str, purpose: str, repo: str, task_id: Optional[str], model: str, mode: str,
-             effort: str, cloud: bool, loose_slug: bool, out_dir: Optional[Path],
+             effort: str, shape: str, loose_slug: bool, out_dir: Optional[Path],
              to_stdout: bool, force: bool) -> None:
     """Emit one frozen lane contract."""
     spec = LaneSpec(slug=slug, purpose=purpose, repo=repo, task_id=task_id, model=model,
-                    mode=mode, effort=effort, cloud=cloud, strict_slug=not loose_slug)
+                    mode=mode, effort=effort, shape=shape, strict_slug=not loose_slug)
     try:
         text = render_contract(spec)
     except LaneContractError as exc:
@@ -537,20 +838,28 @@ def cmd_emit(slug: str, purpose: str, repo: str, task_id: Optional[str], model: 
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(text, encoding="utf-8", newline="\n")
     logger.info("wrote %s", target)
-    logger.info("dispatch with: Dispatch-Lane %s %s -Effort %s",
-                spec.validated().slug, target.name, spec.validated().effort)
+    # The operator reads this off the terminal, so it is a dispatch surface too — and it is
+    # built from the SAME `dispatch_command` the file carries, rather than a second literal
+    # that could drift from it.
+    checked = spec.validated()
+    line = dispatch_command(checked.slug, target.name, checked.effort, checked.shape)
+    if checked.shape == "interactive":
+        logger.info("dispatch with: start `claude`, then send: %s", line)
+    else:
+        logger.info("dispatch with: %s", line)
 
 
 @cli.command("check")
 @click.argument("path", type=click.Path(exists=True, dir_okay=False, path_type=Path))
-@click.option("--cloud/--local", "expect_cloud", default=None,
-              help="assert the lane's substrate; omitted, it is inferred from the file")
-def cmd_check(path: Path, expect_cloud: Optional[bool]) -> None:
+@click.option("--expect-shape", "expect_shape", type=click.Choice(SHAPE_ENUM), default=None,
+              help="assert the lane's substrate; omitted, it is read from the contract")
+def cmd_check(path: Path, expect_shape: Optional[str]) -> None:
     """Check an existing contract: every mandatory field present and internally consistent."""
-    parsed = parse_contract(path.read_text(encoding="utf-8"), expect_cloud=expect_cloud)
+    parsed = parse_contract(path.read_text(encoding="utf-8"), expect_shape=expect_shape)
     if parsed.ok:
-        logger.info("%s: OK — %d sections, slug %s, branch %s",
-                    path, len(parsed.sections), parsed.slug, parsed.branch)
+        logger.info("%s: OK — %d sections, shape %s, slug %s, branch %s, command %r",
+                    path, len(parsed.sections), parsed.shape, parsed.slug,
+                    parsed.branch or "(none — interactive)", parsed.command)
         return
     for problem in parsed.problems:
         logger.error("%s: %s", path, problem)
@@ -567,6 +876,13 @@ def cmd_enums() -> None:
     click.echo(f"effort (dispatch-routed): {routed}")
     click.echo(f"model: {' | '.join(MODEL_ENUM)}   default: {DEFAULT_MODEL}")
     click.echo(f"mode: {' | '.join(MODE_ENUM)}   default: {DEFAULT_MODE}")
+    click.echo(f"shape: {' | '.join(SHAPE_ENUM)}   default: {DEFAULT_SHAPE}")
+    # The command each shape actually emits, shown against a placeholder lane — the surface a
+    # contract author most often wants and would otherwise guess at.
+    for shape in SHAPE_ENUM:
+        line = dispatch_command("lane-a-000-example", "LANE-a-000-example.md", "high", shape)
+        prefix = "claude, then: " if shape == "interactive" else ""
+        click.echo(f"  {shape}: {prefix}{line}")
     click.echo(f"mandatory sections: {', '.join(MANDATORY_SECTIONS)}")
     click.echo(f"cloud-only section: {CLOUD_SECTION} ({', '.join(RECEIPT_FIELDS)})")
     click.echo(f"generated: {_dt.date.today().isoformat()}")

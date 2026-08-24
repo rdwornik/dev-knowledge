@@ -221,6 +221,76 @@ ruling sheet and NOT by this lane: the R5 de-volatilization of the six `doc_rot`
 the `automation/fleet-audit` push, the four non-row-length WARNs, and the empty story `[S24]`.
 
 
+### 2026-08-23 (k) - CC (Opus 5, lane L7 `dispatch-codification`, branch `worktree-dispatch-codification`): Ch8 states the three dispatch shapes, and the generator now emits the RIGHT one - which it was not doing
+
+> **Day-letter and P-1, both flagged for the integrator rather than assumed.** `(k)` is derived
+> against `(j)` at authoring time; six sibling lanes were live, so **re-derive it at merge**. And
+> `protocols/STANDING_RULINGS.md` P-1 says a batch lane never journals - this entry exists because
+> the frozen contract's Final step 3 says *"`JOURNAL.md` entry on this branch"* in as many words.
+> The contract is the operative instruction for this lane and the conflict is surfaced, not
+> resolved: **drop this entry at merge if the integrator prefers P-1.**
+
+**Did:** M10, both halves. Codified the operator's dispatch cheat-sheet into `PLAYBOOK.md` Ch8 as
+a new subsection - the LOCAL/CLOUD boundary, the three command shapes with their literal lines,
+the five standing operator-interface rules - then made `scripts/gen_lane_contract.py` emit the
+command line for the contract's own declared shape, tests first.
+
+**Result: the prose half was the smaller finding.** Reading the generator before writing showed it
+**already** emitted a command line - and emitted `Dispatch-Lane` **unconditionally**. `spec.cloud`
+was honoured in exactly one place (it added the receipt section) and nowhere else, so
+`emit --cloud` produced a cloud contract carrying the LOCAL command and declared branch
+`worktree-<slug>` where Ch8 puts a cloud lane on `claude/<slug>`. `parse_contract` mirrored it:
+the live `lane-contract-check` hook would have **REFUSED the correct cloud command** as "no
+dispatch line found". So the deliverable was never "add a missing emission" - it was make the
+emission shape-selective and make the checker able to verify the selection. **A lane handed the
+wrong command is worse than one handed none, because a wrong command looks authoritative.** 8
+mutants, 8 killed; M7 survived the first pass (the emit log line's interactive branch was
+unasserted) and that gap was closed with a test rather than noted.
+
+**Ch8 drift closed as well as added.** Two neighbouring claims were reconciled rather than left to
+contradict the new section: *"the operator's **whole** dispatch surface is one typed line"* is
+scoped by amendment to shape 1 of 3, and the cloud-lane section's *"Which substrate - RECORDED AS
+OWED, not ruled here"* is marked answered. That discharges **G1** of
+`docs/audits/2026-08-20-technical-playbook-status.md`, plus **G6** and **G7** - and G7 lands as a
+**correction to its own premise**: short effort forms are *not* silently ignored, the helper's
+`$effortMap` maps `l`/`m`/`med`/`h`/`x`; only the raw CLI ignores them.
+
+**ONE OPERATOR RULING OWED, and the branch cannot merge without it.** `check_silent_rule_ratchet`
+FAILs: base blob 210 -> 214 `must|shall|never` occurrences in `PLAYBOOK.md`, live **445 > baseline
+441**. `main` sits **exactly at its own baseline with zero headroom**, so any codification of
+normative doctrine into a `protocols/` file trips this gate by construction. Six occurrences were
+added, **two drained as descriptive false positives** and four kept - they are the standing rules
+this lane was dispatched to write, and swapping "never" for "not" would lower the metric without
+removing a rule, which is the inverse of the v1->v2 occurrence-counting correction. Proposed raise
+**441 -> 445** with line-by-line attribution and replacement provenance text is in the artifact at
+R0, on the intake-#18 precedent the baseline's own provenance block records. Every commit on this
+branch therefore carries a **declared `SKIP=audit-health`** with the reason in its body (Ch8 Q1) -
+one hook, one named cause, no `--no-verify` anywhere.
+
+**Suite - NOT green, and not "matching baseline" either.** 6 failed / 3592 passed / 9 skipped / 1
+xfailed = 3608 against A2's 1 / 3567 / 4 / 1 = 3573. The +35 is this lane's own tests, proven by
+collection: the base `tests/test_gen_lane_contract.py` collects 70, HEAD collects 105, and
+105-70 = 35 = 3608-3573 exactly. Of the five additional REDs, **four are the one ratchet cause
+above** (they go green on the ruling, no code change) and **one is environmental** -
+`test_stale_worktrees::test_linked_worktrees_reader_excludes_the_primary` fails by construction
+when the suite runs from inside a worktree, and its own message names three sibling lanes as the
+worktrees it found. **Zero REDs from this lane's logic.**
+
+**Changes:** `protocols/PLAYBOOK.md` (Ch8 +1 subsection, 2 amendments, TOC), `scripts/gen_lane_contract.py`, `tests/test_gen_lane_contract.py` (+35 tests), `docs/audits/2026-08-23-technical-lane-dispatch-codification.md`, `docs/audits/README.md`.
+
+**Abandoned:** nothing. Deliberately not taken: the baseline raise (operator's, class (a));
+`templates/prompt-template.md` v1.14, which the predecessor `[#539]` lane explicitly named as owed
+"if `Dispatch-Lane` becomes the stated surface" - this lane is that trigger, but the card is
+outside its footprint, so it is filed as R1 rather than swept; and no `tasks/` file was written
+under A3's `banked = 0` - the carrier row is specified in the artifact at R2.
+
+**Next:** operator rules R0 (441 -> 445) **before** the integrator merges this branch; integrator
+re-runs `test_stale_worktrees` from the primary checkout to confirm it is environmental; R1 lands
+the point-of-use card, inheriting R0's arithmetic since `templates/**` is inside the detector's
+scope roots.
+
+**Anchors:** e6f9e47b, 959b80a1, df9ce8a8, 74cfa2f0, 2d2645a3
+
 ### 2026-08-23 (j) - CC (Opus 5, Phase-0 seat, branch `chore/phase0-preconditions-2026-08-23`): the five-lane batch's preconditions are measured, and four of the six premises it was built on do not survive contact with the repo
 
 **Did:** ran SESSION 00 end to end in the primary tree with `main` frozen to this seat - landed the
