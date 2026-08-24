@@ -418,6 +418,7 @@ def scan_zone(directory: Path) -> tuple[list[StatusField], list[str], list[str]]
 
 # --- the rules ----------------------------------------------------------------
 
+# rule: governance-adr-status
 def field_defects(fields: list[StatusField]) -> list[Defect]:
     """Grammar / enum / single-field / wrap defects for one file's parsed fields.
 
