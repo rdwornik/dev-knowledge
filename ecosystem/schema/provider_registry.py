@@ -33,6 +33,8 @@ is `docs/audits/2026-08-23-technical-lane-provider-config.md` section 6.
 from __future__ import annotations
 
 import datetime
+import re
+from pathlib import PurePosixPath
 from typing import Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, StrictStr, model_validator
@@ -55,6 +57,47 @@ class _Contract(BaseModel):
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
+
+    @model_validator(mode="after")
+    def _no_blank_or_untrimmed_strings(self) -> "_Contract":
+        """No field is a blank, whitespace-only, or untrimmed string. Applies to EVERY model
+        here, which is why it lives on the base rather than being repeated per field.
+
+        terra CRITICAL + HIGH, round 6 (2026-08-23), and the failure was silent in both
+        directions. `changelog_tool_key: ""` paired with `changelog_source_url: ""` satisfied
+        the both-or-neither rule, then `version_commands()` and `changelog_source_urls()` —
+        which guard with `if key and url` — dropped that provider from the SessionStart probe
+        and from the S8 comparison, with nothing saying so. And ` codex ` is neither blank nor
+        equal to `codex`, so it defeated the uniqueness rule while naming the same tool.
+
+        A registry value is an identifier or a path. Neither has a legitimate blank form, and
+        neither has a legitimate leading or trailing space.
+        """
+        for name, value in self:
+            if isinstance(value, str):
+                items = ((name, value),)
+            elif isinstance(value, tuple) and all(isinstance(v, str) for v in value):
+                items = tuple((f"{name}[{i}]", v) for i, v in enumerate(value))
+            elif isinstance(value, dict):
+                # Mapping KEYS are identifiers too — provider ids, model ids, role names —
+                # and they were the hole this validator left after round 6 (terra HIGH,
+                # round 7). A padded `role_admission` key does not intersect the matching
+                # `roles` entry, so `" fan-out "` recorded as refused left `fan-out` held.
+                items = tuple((f"{name}[{k!r}]", k) for k in value if isinstance(k, str))
+            else:
+                continue
+            for label, v in items:
+                if not v.strip():
+                    raise ValueError(
+                        f"`{label}` is blank — an absent value is expressed by omitting the "
+                        f"key or setting it null, never by an empty string, which reads as "
+                        f"present to a shape check and as absent to every consumer")
+                if v != v.strip():
+                    raise ValueError(
+                        f"`{label}` has leading or trailing whitespace ({v!r}) — an "
+                        f"identifier that differs from its neighbour only by padding is a "
+                        f"duplicate that every equality check misses")
+        return self
 
 
 class Pin(_Contract):
@@ -90,6 +133,9 @@ class RoleAdmission(_Contract):
     def _a_decided_verdict_carries_its_provenance(self) -> "RoleAdmission":
         if self.verdict == "unevaluated":
             return self
+        # BLANK counts as missing, not as present (terra HIGH, 2026-08-23). Testing `is None`
+        # alone let `evidence: ""` satisfy this rule and then skip the checker's existence
+        # test, which is a verdict with provenance-shaped nothing behind it.
         missing = [
             name
             for name, value in (
@@ -97,13 +143,30 @@ class RoleAdmission(_Contract):
                 ("decided_on", self.decided_on),
                 ("evidence", self.evidence),
             )
-            if value is None
+            if value is None or (isinstance(value, str) and not value.strip())
         ]
         if missing:
             raise ValueError(
                 f"verdict `{self.verdict}` is missing its provenance: {', '.join(missing)} "
                 f"— a verdict without a decider, a date and an evidence artifact is an "
                 f"assertion, not a record"
+            )
+        return self
+
+    @model_validator(mode="after")
+    def _evidence_is_a_repo_relative_path(self) -> "RoleAdmission":
+        """Shape only — existence is `check_role_admission_evidence`'s job, not a schema's.
+
+        An absolute path, or one climbing out of the tree with `..`, can EXIST while proving
+        nothing about this repository, which defeats the existence test downstream.
+        """
+        if self.evidence is None:
+            return self
+        p = PurePosixPath(self.evidence.replace("\\", "/"))
+        if p.is_absolute() or ".." in p.parts or re.match(r"^[A-Za-z]:", self.evidence):
+            raise ValueError(
+                f"evidence `{self.evidence}` is not a repo-relative path — an absolute or "
+                f"climbing path can resolve outside the tree the checker verifies"
             )
         return self
 
@@ -146,6 +209,14 @@ class Provider(_Contract):
         return self
 
     @model_validator(mode="after")
+    def _lookup_keys_are_lowercase(self) -> "Provider":
+        for label, value in (("council_alias", self.council_alias),
+                             ("changelog_tool_key", self.changelog_tool_key)):
+            if value is not None:
+                _require_lowercase(label, value)
+        return self
+
+    @model_validator(mode="after")
     def _changelog_identity_is_a_pair(self) -> "Provider":
         if (self.changelog_tool_key is None) != (self.changelog_source_url is None):
             raise ValueError(
@@ -154,6 +225,34 @@ class Provider(_Contract):
                 "second, so half a pair is a seam that silently checks nothing"
             )
         return self
+
+
+def _require_lowercase(label: str, value: str) -> None:
+    """Refuse a non-lowercase LOOKUP KEY.
+
+    terra MEDIUM, round 8 (2026-08-23), and it was a coherence defect this schema introduced:
+    rounds 6-7 compared `council_alias` / `changelog_tool_key` / role names CASEFOLDED for
+    collision detection, while every consumer looks them up RAW — `council_aliases()` keyed by
+    the literal, `_sole_role_model("subagent-default")`, the sentinel's `tool-versions.yaml`
+    lookup. So `council_alias: Claude` would validate, collide correctly, and resolve nowhere.
+
+    This rule replaced that casefolding rather than joining it. Because it runs on each
+    `Provider` / `Model` before `ProviderRegistry`'s cross-collection validators, a case
+    variant never reaches a comparison, so all three uniqueness checks are now EXACT — the
+    casefolded branches were removed rather than left as unreachable decoration.
+
+    Canonicalizing by REFUSAL rather than by silent normalization is the deliberate half: a
+    registry that quietly rewrote `Claude` to `claude` would make the file disagree with
+    itself on disk, and this repo's posture is that the committed value is the value. Scope is
+    lookup keys only — `display_name` (`OpenAI`, `xAI`), `attribution_token` (`grok L5`),
+    model ids and paths keep their real casing.
+    """
+    if value != value.lower():
+        raise ValueError(
+            f"`{label}` is `{value}` — this is a lookup key, matched raw by every consumer "
+            f"and compared exactly for collisions, so it is required lowercase rather than "
+            f"silently rewritten"
+        )
 
 
 class Model(_Contract):
@@ -171,6 +270,14 @@ class Model(_Contract):
 
     @model_validator(mode="after")
     def _a_refused_role_is_not_also_held(self) -> "Model":
+        # Lowercase FIRST, then compare exactly. Round 6/7 casefolded the intersection so a
+        # refused `Fan-Out` could not sit beside a held `fan-out`; round 8's lowercase
+        # requirement makes that case unreachable, so the comparison is exact and the rule
+        # that does the work is the one that raises.
+        for i, r in enumerate(self.roles):
+            _require_lowercase(f"roles[{i}]", r)
+        for r in self.role_admission:
+            _require_lowercase(f"role_admission[{r!r}]", r)
         refused = {r for r, a in self.role_admission.items() if a.verdict == "refused"}
         held = refused & set(self.roles)
         if held:
@@ -199,7 +306,39 @@ class ProviderRegistry(_Contract):
         return self
 
     @model_validator(mode="after")
+    def _a_changelog_tool_key_resolves_to_one_provider(self) -> "ProviderRegistry":
+        """terra HIGH round 5, 2026-08-23 — a SILENT overwrite, which is why it needs a rule.
+
+        `provider_registry.version_commands()` and `changelog_source_urls()` both build a
+        dict keyed by `changelog_tool_key`, so two providers sharing a key means the second
+        silently replaces the first: the SessionStart sentinel would probe the wrong CLI for
+        that tool while `check_s8_tool_versions` passed clean, because the key it looks up
+        still exists.
+        """
+        # Compared EXACTLY, and that is sufficient rather than lax: `_lookup_keys_are_lowercase`
+        # runs on each Provider before this cross-provider validator, so `CODEX` never reaches
+        # here. Round 6 casefolded this comparison to catch `codex`/`CODEX`; round 8 replaced
+        # that with the stronger lowercase requirement, which makes a casefold provably a
+        # no-op. A no-op branch that looks like a rule is the vacuous-gate class this repo
+        # refuses, so it is removed rather than kept as decoration.
+        seen: dict[str, str] = {}
+        for pid, p in self.providers.items():
+            key = p.changelog_tool_key
+            if key is None:
+                continue
+            if key in seen:
+                raise ValueError(
+                    f"changelog tool key `{key}` is claimed by both `{seen[key]}` and "
+                    f"`{pid}` — the key indexes a dict, so a repeat silently drops one "
+                    f"provider's version probe and changelog source"
+                )
+            seen[key] = pid
+        return self
+
+    @model_validator(mode="after")
     def _a_council_alias_resolves_to_one_provider(self) -> "ProviderRegistry":
+        # Exact, for the same reason as the changelog key above: the lowercase requirement
+        # runs first, so case variants cannot reach this comparison.
         seen: dict[str, str] = {}
         for pid, p in self.providers.items():
             if p.council_alias is None:
@@ -207,7 +346,7 @@ class ProviderRegistry(_Contract):
             if p.council_alias in seen:
                 raise ValueError(
                     f"council alias `{p.council_alias}` is claimed by both "
-                    f"`{seen[p.council_alias]}` and `{pid}` — an alias must resolve to one "
+                    f"`{seen[p.council_alias]}` and `{pid}` — an alias resolves to one "
                     f"provider or the roster check cannot say which"
                 )
             seen[p.council_alias] = pid

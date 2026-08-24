@@ -58,6 +58,24 @@ try:
 except ImportError:  # pragma: no cover - exercised by the scripts/-on-sys.path entrypoint
     import provider_registry as _preg
 
+# The CommonMark fence instrument standing ruling N-1 ADOPTED (`markdown_it`, 2026-08-03) and
+# that `scripts/validate_doc_structure.py` already reuses through this same dual import. S31
+# needs it because a roster-shaped row inside a fenced EXAMPLE is not the live roster, and a
+# hand-rolled ``` toggle is blind to `~~~` fences and inverts on a 3-backtick line nested in a
+# 4-backtick outer fence — the two failure modes N-1 exists to stop being re-introduced.
+#
+# `_EOL_RE` rides along with it deliberately. `str.splitlines()` also breaks on Unicode line
+# separators CommonMark does NOT treat as line boundaries (\x0b \x0c \x1c-\x1e \x85 U+2028
+# U+2029), so a fence following one of those desyncs from markdown_it's `.map` indices and
+# leaks its contents back into the live scan — the defect terra raised as HIGH on 2026-08-13
+# against `audit.py` (`docs/audits/2026-08-13-codex-w3-landing-predicate.md`), which is the
+# same defect terra raised here on 2026-08-23. Splitting with the generator's own predicate is
+# how the site stops re-inventing it.
+try:
+    from scripts.toc.generator import _EOL_RE, _code_line_indices
+except ImportError:  # pragma: no cover - the scripts/-on-sys.path entrypoint
+    from toc.generator import _EOL_RE, _code_line_indices
+
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 
 # The registry role each checked site is pinned by. Roles, not literals: the site is asserted
@@ -253,11 +271,36 @@ def check_s31_council_panel(root: Path) -> list[str]:
       provider the council does not panel, so this direction has an unambiguous fix.
     """
     text = _read(root, _AI_COUNCIL)
-    m = _COUNCIL_ROSTER_RE.search(text)
-    if not m:
+    # Fenced EXAMPLES are not the live roster (terra HIGH round 2, 2026-08-23): the file's own
+    # decision-mode example carries a `models:` line, and a fenced table row would otherwise be
+    # read as authoritative while the real row drifted. Blanked line-count-preserving so the
+    # ambiguity count below still means "rows in live prose".
+    lines = _EOL_RE.split(text)
+    code = _code_line_indices(text)
+    text = "\n".join("" if i in code else ln for i, ln in enumerate(lines))
+    matches = _COUNCIL_ROSTER_RE.findall(text)
+    if not matches:
         return [f"S31 {_AI_COUNCIL}: the council roster row (\"| `models` | `a,b,c` |\") was not "
                 f"found; the registry declares aliases {sorted(_preg.council_aliases())}"]
-    roster = [tok.strip() for tok in m.group(1).split(",") if tok.strip()]
+    # More than one matching row and the checker cannot say which is authoritative, so it says
+    # THAT rather than silently taking the first (terra HIGH, 2026-08-23): a `search()` that
+    # takes match #1 is defeated by a decoy row added above the real one, and the gate then
+    # validates the decoy while the live roster drifts.
+    if len(matches) > 1:
+        return [f"S31 {_AI_COUNCIL}: {len(matches)} rows match the council roster shape "
+                f"({matches}); the seam is ambiguous and is reported rather than guessed"]
+    raw = [tok.strip() for tok in matches[0].split(",")]
+    # Empty and duplicate tokens are REPORTED, not dropped. Silently filtering them is how
+    # `claude,,gemini` and `grok,grok` both passed clean (terra HIGH, 2026-08-23) — a roster
+    # this checker had to repair before reading is a roster nobody has looked at.
+    if any(not tok for tok in raw):
+        return [f"S31 {_AI_COUNCIL}: the roster carries an empty token ({matches[0]!r}); a "
+                f"malformed list is reported rather than silently repaired"]
+    dupes = sorted({tok for tok in raw if raw.count(tok) > 1})
+    if dupes:
+        return [f"S31 {_AI_COUNCIL}: the roster names {dupes} more than once ({matches[0]!r}); "
+                f"a provider set with a repeat is malformed"]
+    roster = raw
     aliases = _preg.council_aliases()
     out: list[str] = []
     out.extend(
@@ -284,14 +327,35 @@ def check_role_admission_evidence(root: Path) -> list[str]:
     held, so a dead locator there is worse than none.
     """
     out: list[str] = []
+    tree = Path(root).resolve()
     for (mid, role), record in sorted(_preg.role_admissions().items()):
         rel = record.get("evidence")
-        if not rel:                                  # legitimate only for `unevaluated`
+        if rel is None:                              # legitimate only for `unevaluated`
             continue
-        if not (root / str(rel)).exists():
+        rel = str(rel)
+        # An ABSOLUTE path, or one that climbs out of the checked tree, resolves to a file
+        # this repo does not own — so it can "exist" while proving nothing about this tree
+        # (terra HIGH, 2026-08-23). Refused on shape, before the existence test, because the
+        # existence test is exactly what such a path defeats.
+        candidate = Path(rel)
+        if candidate.is_absolute() or ".." in candidate.parts:
             out.append(
-                f"role_admission {mid}/{role}: evidence `{rel}` does not exist — a verdict "
-                f"citing a missing artifact is an assertion, not a record")
+                f"role_admission {mid}/{role}: evidence `{rel}` is not a repo-relative path "
+                f"inside the checked tree")
+            continue
+        resolved = (tree / candidate).resolve()
+        if not resolved.is_relative_to(tree):
+            out.append(
+                f"role_admission {mid}/{role}: evidence `{rel}` resolves outside the checked "
+                f"tree ({resolved})")
+            continue
+        # `is_file`, not `exists` (terra HIGH round 2, 2026-08-23): `evidence: "."` resolves
+        # inside the tree and exists, while citing no measurement at all. Evidence is an
+        # artifact, so the test is that it IS one.
+        if not resolved.is_file():
+            out.append(
+                f"role_admission {mid}/{role}: evidence `{rel}` is not a file in the checked "
+                f"tree — a verdict citing a missing artifact is an assertion, not a record")
     return out
 
 

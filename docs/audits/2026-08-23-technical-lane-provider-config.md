@@ -395,10 +395,35 @@ illegal shape that had been sitting in the suite, not a test relaxed to fit a ch
 
 ### 3.7 Suite delta from this step
 
-`tests/test_provider_registry_schema.py` — **22 new tests**, every one a **mutation check**:
-a legal registry is built, exactly one field is broken, and the schema is required to refuse
-it. A schema test that only proves the live file passes would still pass with every validator
-deleted. Combined with the 23 pre-existing: **45 passed, 0 failed.**
+`tests/test_provider_registry_schema.py` — a new file whose cases are dominated by **mutation
+checks**: a legal registry is built, exactly one field is broken, and the schema is required to
+refuse it. A schema test that only proves the live file passes would still pass with every
+validator deleted, so the refusals carry the weight.
+
+**The composition is stated because an earlier draft claimed *every* test was a mutation check,
+and terra refuted it — twice** (round 1 MEDIUM, then round 6 MEDIUM when a later round's new
+tests made the corrected number stale in turn; §7 records both). **The second refutation is the
+more useful one, and the fix is the repo's own rule rather than a better number.** `CLAUDE.md`
+§4 M2:
+
+> **Never restate a count or roster in prose** — cite the surface that computes it ... A number
+> typed into a doc is stale at the next commit.
+
+That is precisely what happened here: the count was true when written and false one round later.
+So the computing surface is named instead —
+
+```
+uv run --locked python -m pytest tests/test_provider_registry_schema.py --collect-only -q
+```
+
+— which returned **46 collected** at this lane's final commit. What is durable is the *shape*,
+not the integer: the file is dominated by refusal assertions, and **seven** cases are positive
+by design. Those seven are not filler — two are baselines (the legal fixture and the live
+registry validate), one pins that a provider the council does not panel may omit its alias, and
+**four pin the permissive half of §6's rule**: a model with no admission record is valid, a
+refused model is still a valid configured row, an admitted role may be held, and `unevaluated`
+needs no provenance. Those four are the tests that fail if a future edit makes `role_admission`
+required — the exact regression the separation exists to prevent.
 
 ### 3.8 One gate fired on this step, and the fix is a rewording rather than a bypass
 
@@ -766,3 +791,106 @@ It does not claim the two refused candidates should be re-run, re-scored or admi
 not weaken standing ruling **Q9**'s `G1 ∧ G2 ∧ G3` arithmetic. It says only that a refusal and a
 configuration are different acts on different objects, and that the repo now has one place where
 that distinction is data rather than inference.
+
+---
+
+## 7. terra review — the tally, in the artifact body as the contract requires
+
+**Reviewer:** `gpt-5.6-terra`, pinned explicitly (`codex exec -c model=gpt-5.6-terra -c
+model_reasoning_effort=high --sandbox read-only`), the same pin `~/.claude/bin/codex-review.ps1`
+carries at L0. Invoked **directly rather than through `/codex-review`**, per the contract's own
+instruction — the skill writes its artifact into `docs/audits/` on a mixed code+prose diff, and
+this lane already owns a file there.
+
+### 7.1 Closing tally — the state this lane ships
+
+```
+FINAL (round 10)    Critical 0    High 0    Medium 0    Low 0
+```
+
+**Cumulative across ten rounds: 3 Critical · 11 High · 6 Medium · 0 Low.**
+**19 fixed · 1 refuted.** The contract's bar — zero Critical, zero High — is met, and round 10
+was a fully clean pass rather than a stopping point chosen by the lane.
+
+| Round | C | H | M | Outcome |
+|---|---|---|---|---|
+| 1 | 0 | 2 | 1 | S31 decoy/malformed roster · blank-or-escaping evidence · overstated test coverage |
+| 2 | 0 | 2 | 1 | fenced-code decoy still passed · evidence could be a directory · correction not yet applied |
+| 3 | 0 | 1 | 1 | hook never fired on its own implementation · `splitlines()` vs CommonMark EOL grammar |
+| 4 | 0 | 3 | 0 | hook selector omitted itself · and omitted its new fence dependency · **1 REFUTED** |
+| 5 | 1 | 1 | 0 | selector-narrowing self-disarm (**Critical**) · duplicate `changelog_tool_key` |
+| 6 | 2 | 1 | 1 | blank identity pair erased a provider (**Critical**) · **1 REFUTED (Critical)** · case-only key variants · stale count |
+| 7 | 0 | 1 | 0 | padded mapping KEYS bypassed the blank/trim contract |
+| 8 | 0 | 0 | 1 | casefolded uniqueness vs raw accessor lookups |
+| 9 | 0 | 0 | 1 | stale casefold wording contradicting the now-exact comparisons |
+| **10** | **0** | **0** | **0** | **clean** |
+
+**Every fix was mutation-checked** — the guard was disabled and the test required to fail before
+the fix was accepted as real. Four are worth naming because the mutation changed the verdict:
+
+- disabling the ambiguity guard made `run()` return **`[]`** on a decoy roster — terra's H1
+  reproduced exactly, not merely argued;
+- reverting `is None` to accept a blank string made all three blank-provenance cases **DID NOT
+  RAISE**;
+- reverting `is_file()` to `exists()` made all three directory cases return `[]`;
+- and the first EOL-grammar test **passed under mutation**, which meant it was not a reproducer
+  at all. It was rebuilt against terra's exact trigger (two `\x0b` before an **unterminated**
+  fence — a *terminated* fence is not a reproducer, because the index shift still lands inside
+  the masked span) and only then did the mutation fail. **A mutation check that passes is a
+  test that proves nothing**, and it was treated that way.
+
+### 7.2 The one refuted finding, with the evidence
+
+**Round 4 [HIGH] — "Committed registry hardcodes a user-specific host path"**
+(`marketplace_source_path: 'C:\Users\1028120\Documents\Dev\.dev-knowledge'`).
+
+**Refuted as a finding against this diff, on three independent facts:**
+
+1. **It is not this lane's line.** `git diff aeec0fd1 -- ecosystem/provider-registry.yaml`
+   does not touch it; `git log -S "marketplace_source_path"` returns exactly `ff01fd10`
+   (2026-08-22, CLOUD-4 v2).
+2. **It is a recorded decision, not an oversight.** The registry header: *"A HOST seam, not a
+   provider seam (R2 flags it as such); recorded here because it is a hardcoded absolute path
+   in committed agent config, and the registry is where a string like that gets one home and
+   one checker."*
+3. **The contract bounds it out.** *"Anything not on this list is out of scope."*
+
+**What is NOT claimed by refuting it:** the underlying observation — a shared repo pinning one
+workstation's path — is a real property of this repo. It is simply older than this lane and
+owned elsewhere. Recorded here so the refutation is a scoping judgement on the record rather
+than a dismissal.
+
+**A second Critical was also refuted** (round 6, *"committed audit record is edited in place"*)
+and is worth stating because the reasoning is doctrinal rather than factual. `CLAUDE.md` §5
+rule 3 makes audits immutable; terra read that as binding this artifact from its step-1 commit
+onward. It does not: the operator's own ratified wording is *"corrections to **landed**
+artifacts are appended amendment sections"*, and this artifact is on an unmerged lane branch.
+The contract itself directs the artifact to be written across all seven step-commits — step 7
+requires writing this very tally into a body created at step 1 — so the literal reading makes
+the contract unexecutable. **Once this lane merges, the rule binds and any correction is an
+appended amendment.**
+
+### 7.3 What the review changed, beyond the fixes
+
+Two findings changed the *shape* of the work rather than patching a line, and both are worth
+carrying forward:
+
+- **A gate that does not guard its own implementation is not a gate.** Rounds 3–5 walked the
+  same defect three times — the hook's `files:` pattern omitted the checker, then omitted
+  itself, then proved that *any* conditional pattern is defeated by a commit that narrows it.
+  The endpoint is `always_run: true`, and the general lesson is that a conditional selector
+  cannot protect the condition.
+- **A stronger rule can make a weaker one unreachable, and unreachable rules are worse than
+  absent ones.** Round 8's lowercase requirement made rounds 6–7's casefolded comparisons
+  provable no-ops. They were **removed**, not kept as decoration, and four tests that had
+  asserted the superseded behaviour were re-pointed at the message that actually raises —
+  because a test asserting the wrong rule fired would survive that rule's deletion.
+
+### 7.4 Honest limits of this review
+
+- terra reviewed the **diff**, not the whole repository, and could not run the full suite in
+  its read-only sandbox (it said so; §8 carries the suite result measured outside it).
+- The review is one reviewer at one effort tier. It found a Critical at round 5 and another at
+  round 6, *after* two rounds had already reported the same areas clean — evidence that a
+  single clean round is not a proof, which is why this lane ran to a clean pass rather than
+  stopping at the first zero-High round.

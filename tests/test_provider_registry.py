@@ -18,6 +18,7 @@ Two classes of test here, and the split is the whole design:
 from __future__ import annotations
 
 import json
+import re
 import shutil
 from pathlib import Path
 
@@ -322,6 +323,110 @@ def test_every_recorded_admission_verdict_cites_an_artifact_that_exists():
     assert cpr.check_role_admission_evidence(_REPO_ROOT) == []
     admissions = preg.role_admissions()
     assert admissions, "precondition: the registry carries at least one verdict to check"
+
+
+def test_a_decoy_roster_row_is_reported_rather_than_silently_preferred(tree):
+    """terra HIGH, 2026-08-23: `search()` takes match #1, so a decoy row above the real one
+    would be validated while the live roster drifts. Two matches is now ambiguity, reported."""
+    p = tree / "protocols/AI_COUNCIL_PROCESS.md"
+    text = p.read_text(encoding="utf-8")
+    decoy = "| `models`         | `claude,gemini,openai,deepseek,grok`     | decoy |\n"
+    p.write_text(decoy + text.replace("`claude,gemini,openai,deepseek,grok`",
+                                      "`claude,gemini,openai,deepseek,mistral`", 1),
+                 encoding="utf-8")
+    findings = cpr.run(tree)
+    assert any(f.startswith("S31 ") and "ambiguous" in f for f in findings), findings
+
+
+def test_an_empty_roster_token_is_reported_rather_than_dropped(tree):
+    _break(tree, "protocols/AI_COUNCIL_PROCESS.md",
+           "`claude,gemini,openai,deepseek,grok`", "`claude,,gemini,openai,deepseek,grok`")
+    findings = cpr.run(tree)
+    assert any(f.startswith("S31 ") and "empty token" in f for f in findings), findings
+
+
+def test_a_duplicated_roster_token_is_reported(tree):
+    _break(tree, "protocols/AI_COUNCIL_PROCESS.md",
+           "`claude,gemini,openai,deepseek,grok`", "`claude,gemini,openai,deepseek,grok,grok`")
+    findings = cpr.run(tree)
+    assert any(f.startswith("S31 ") and "more than once" in f for f in findings), findings
+
+
+def test_a_roster_row_inside_a_fenced_block_is_not_the_live_roster(tree):
+    """terra HIGH round 2, 2026-08-23: a fenced EXAMPLE row would otherwise be read as
+    authoritative while the real row drifted. Uses the N-1 CommonMark fence instrument."""
+    p = tree / "protocols/AI_COUNCIL_PROCESS.md"
+    text = p.read_text(encoding="utf-8")
+    fenced = ("```\n| `models`         | `claude,gemini,openai,deepseek,grok`     | ex |\n```\n")
+    p.write_text(fenced + text.replace("`claude,gemini,openai,deepseek,grok`",
+                                       "`claude,gemini,openai,deepseek,mistral`", 1),
+                 encoding="utf-8")
+    findings = cpr.run(tree)
+    # The fenced row is ignored, so the LIVE row is the one read — and it names `mistral`.
+    assert any(f.startswith("S31 ") and "mistral" in f for f in findings), findings
+    assert not any("ambiguous" in f for f in findings), findings
+
+
+def test_a_vertical_tab_cannot_desync_the_fence_mask(tree):
+    """terra MEDIUM round 3, 2026-08-23 — and the same defect class terra raised as HIGH
+    against `audit.py` on 2026-08-13. `str.splitlines()` breaks on \\x0b, which CommonMark
+    does not treat as a line boundary, so every index after it shifts and a fenced roster row
+    escapes the mask. Splitting with the generator's own `_EOL_RE` is what keeps them aligned."""
+    p = tree / "protocols/AI_COUNCIL_PROCESS.md"
+    drifted = p.read_text(encoding="utf-8").replace(
+        "`claude,gemini,openai,deepseek,grok`", "`claude,gemini,openai,deepseek,mistral`", 1)
+    # The trigger is specific and was verified before being asserted: TWO \x0b before an
+    # UNTERMINATED trailing fence. A terminated fence is NOT a reproducer — the off-by-two
+    # still lands inside a 3-line masked span, so the leak does not surface.
+    poison = ("\n\x0b\x0b\n```\n"
+              "| `models`         | `claude,gemini,openai,deepseek,grok`     | ex |\n")
+    p.write_text(drifted + poison, encoding="utf-8")
+    findings = cpr.run(tree)
+    # Aligned: the fenced row stays masked, so the LIVE (drifted) row is the one S31 reads.
+    # Desynced: the fenced row leaks, S31 sees TWO rows and reports ambiguity instead.
+    assert any(f.startswith("S31 ") and "mistral" in f for f in findings), findings
+    assert not any("ambiguous" in f for f in findings), findings
+
+
+def test_the_agreement_hook_fires_on_its_own_implementation(tree):
+    """terra HIGH round 3, 2026-08-23: a gate whose `files:` pattern excludes its own source
+    can be disarmed by a commit that touches nothing else. Asserted against the committed
+    pattern rather than against prose."""
+    cfg = yaml.safe_load((_REPO_ROOT / ".pre-commit-config.yaml").read_text(encoding="utf-8"))
+    hooks = [h for repo in cfg["repos"] for h in repo.get("hooks", [])
+             if h.get("id") == "provider-registry-agreement"]
+    assert len(hooks) == 1, hooks
+    pattern = re.compile(hooks[0]["files"])
+    for rel in ("scripts/check_provider_registry.py", "scripts/provider_registry.py",
+                "ecosystem/schema/provider_registry.py",
+                # terra round 4: the selector itself, and the fence instrument S31 imports.
+                # Narrowing the selector, or neutering `_code_line_indices`, each disarms the
+                # gate in a commit the gate would otherwise never see.
+                ".pre-commit-config.yaml", "scripts/toc/generator.py",
+                "ecosystem/provider-registry.yaml", "protocols/AI_COUNCIL_PROCESS.md"):
+        assert pattern.search(rel), f"hook would not fire on {rel}"
+    # ...and it stays a selector, not a catch-all.
+    for rel in ("README.md", "scripts/audit.py", "docs/audits/x.md", "tests/test_audit.py"):
+        assert not pattern.search(rel), f"hook over-matches {rel}"
+    # terra CRITICAL round 5: the pattern DOCUMENTS the coupled surface; `always_run` is what
+    # guarantees the hook runs, because a commit narrowing this selector is evaluated against
+    # the narrowed selector and would otherwise skip the gate that should have refused it.
+    assert hooks[0].get("always_run") is True, hooks[0]
+    assert hooks[0].get("pass_filenames") is False, hooks[0]
+
+
+@pytest.mark.parametrize("target", [".", "docs", "docs/audits"])
+def test_evidence_naming_a_directory_is_caught(tree, monkeypatch, target):
+    """terra HIGH round 2, 2026-08-23: a directory resolves in-tree and `.exists()`, while
+    citing no measurement at all. The registry is read from THIS repo by contract, so the
+    record is injected at the accessor rather than by writing a second registry file."""
+    (tree / "docs" / "audits").mkdir(parents=True, exist_ok=True)
+    monkeypatch.setattr(cpr._preg, "role_admissions", lambda *a, **k: {
+        ("m", "fan-out"): {"verdict": "refused", "decided_by": "architect",
+                           "decided_on": "2026-08-23", "evidence": target},
+    })
+    findings = cpr.check_role_admission_evidence(tree)
+    assert any("is not a file" in f for f in findings), findings
 
 
 def test_a_verdict_citing_a_missing_artifact_is_caught(tree):

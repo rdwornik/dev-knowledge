@@ -152,6 +152,71 @@ def test_two_providers_claiming_one_council_alias_is_refused():
         _validate(d)
 
 
+@pytest.mark.parametrize("field", ["display_name", "cli", "council_alias",
+                                   "changelog_tool_key", "changelog_source_url"])
+@pytest.mark.parametrize("bad", ["", "   "])
+def test_a_blank_string_field_is_refused(field, bad):
+    """terra CRITICAL round 6: `changelog_tool_key: ""` paired with `changelog_source_url: ""`
+    satisfied the both-or-neither rule, then every consumer's `if key and url` guard dropped
+    that provider from the sentinel probe and the S8 comparison — silently, both ways."""
+    d = _mutate()
+    d["providers"]["acme"][field] = bad
+    with pytest.raises(ValidationError, match="blank"):
+        _validate(d)
+
+
+@pytest.mark.parametrize("bad", [" codex", "codex ", "\tcodex"])
+def test_an_untrimmed_string_field_is_refused(bad):
+    d = _mutate()
+    d["providers"]["acme"]["changelog_tool_key"] = bad
+    with pytest.raises(ValidationError, match="whitespace"):
+        _validate(d)
+
+
+@pytest.mark.parametrize("variant", ["ACME-CLI", "Acme-Cli"])
+def test_a_case_variant_changelog_key_never_reaches_the_uniqueness_check(variant):
+    """terra HIGH round 6 asked for casefolded uniqueness so `codex`/`CODEX` could not both
+    validate. Round 8's lowercase requirement is STRONGER and fires first, so the case variant
+    is refused before uniqueness is consulted — asserted on the message that actually raises,
+    because a test claiming the wrong rule fired is a test that would survive that rule's
+    removal."""
+    d = _mutate()
+    d["providers"]["nocli"].update({
+        "changelog_tool_key": variant,
+        "changelog_source_url": "https://example.invalid/other",
+    })
+    with pytest.raises(ValidationError, match="lookup key"):
+        _validate(d)
+
+
+def test_a_case_variant_council_alias_never_reaches_the_uniqueness_check():
+    d = _mutate()
+    d["providers"]["nocli"]["council_alias"] = "ACME"
+    with pytest.raises(ValidationError, match="lookup key"):
+        _validate(d)
+
+
+def test_two_providers_claiming_one_council_alias_is_refused_exactly():
+    """The uniqueness rule itself, exercised with two LOWERCASE aliases so it is the rule
+    under test rather than the casing rule."""
+    d = _mutate()
+    d["providers"]["nocli"]["council_alias"] = "acme"
+    with pytest.raises(ValidationError, match="claimed by both"):
+        _validate(d)
+
+
+def test_two_providers_claiming_one_changelog_tool_key_is_refused():
+    """terra HIGH round 5: a repeat silently drops one provider's probe, because both
+    `version_commands()` and `changelog_source_urls()` key a dict on it."""
+    d = _mutate()
+    d["providers"]["nocli"].update({
+        "changelog_tool_key": "acme-cli",
+        "changelog_source_url": "https://example.invalid/other",
+    })
+    with pytest.raises(ValidationError, match="claimed by both"):
+        _validate(d)
+
+
 def test_a_provider_the_council_does_not_panel_may_omit_its_alias():
     d = _mutate()
     d["providers"]["nocli"].pop("council_alias")
@@ -184,6 +249,86 @@ def test_a_refused_model_is_still_a_valid_configured_row():
         }
     }
     assert _validate(d) is not None
+
+
+@pytest.mark.parametrize("collection,key", [
+    ("providers", " acme "), ("providers", "  "), ("models", " acme-1 "), ("models", ""),
+])
+def test_a_blank_or_padded_mapping_key_is_refused(collection, key):
+    """terra HIGH round 7: mapping KEYS are identifiers too, and the round-6 validator saw
+    only field values."""
+    d = _mutate()
+    original = next(iter(d[collection]))
+    d[collection][key] = d[collection].pop(original)
+    if collection == "providers":
+        d["models"]["acme-1"]["provider"] = key
+    with pytest.raises(ValidationError, match="blank|whitespace"):
+        _validate(d)
+
+
+def test_a_padded_admission_key_cannot_hide_a_refused_role():
+    """The invariant the padded key defeated: `" fan-out "` refused, `fan-out` still held."""
+    d = _mutate()
+    d["models"]["acme-1"]["roles"] = ["fan-out"]
+    d["models"]["acme-1"]["role_admission"] = {
+        " fan-out ": {"verdict": "refused", "decided_by": "architect",
+                      "decided_on": "2026-08-23", "evidence": "docs/audits/x.md"},
+    }
+    with pytest.raises(ValidationError, match="whitespace"):
+        _validate(d)
+
+
+@pytest.mark.parametrize("field,value", [
+    ("council_alias", "Acme"), ("changelog_tool_key", "ACME-CLI"),
+])
+def test_a_non_lowercase_provider_lookup_key_is_refused(field, value):
+    """terra MEDIUM round 8: rounds 6-7 compared these casefolded for collisions while every
+    consumer looks them up RAW (`council_aliases()` keyed by the literal, the sentinel's
+    `tool-versions.yaml` lookup), so `Claude` would validate, collide correctly, and resolve
+    nowhere. Requiring lowercase replaced that casefolding; the comparisons are now exact."""
+    d = _mutate()
+    d["providers"]["acme"][field] = value
+    with pytest.raises(ValidationError, match="lookup key"):
+        _validate(d)
+
+
+def test_a_non_lowercase_role_name_is_refused():
+    """`_sole_role_model("subagent-default")` is an exact-match lookup."""
+    d = _mutate()
+    d["models"]["acme-1"]["roles"] = ["Reviewer"]
+    with pytest.raises(ValidationError, match="lookup key"):
+        _validate(d)
+
+
+def test_a_non_lowercase_admission_role_key_is_refused():
+    d = _mutate()
+    d["models"]["acme-1"]["roles"] = []
+    d["models"]["acme-1"]["role_admission"] = {
+        "Fan-Out": {"verdict": "unevaluated"},
+    }
+    with pytest.raises(ValidationError, match="lookup key"):
+        _validate(d)
+
+
+def test_display_name_and_attribution_token_keep_their_real_casing():
+    """The scope boundary: `OpenAI`, `xAI` and `grok L5` are values, not lookup keys."""
+    d = _mutate()
+    d["providers"]["acme"]["display_name"] = "AcmeAI"
+    d["models"]["acme-1"]["attribution_token"] = "Acme L5"
+    assert _validate(d) is not None
+
+
+def test_a_case_variant_admission_key_cannot_hide_a_refused_role():
+    """Same supersession as the two above: round 6/7 casefolded the intersection, round 8's
+    lowercase rule refuses the variant outright and is what raises."""
+    d = _mutate()
+    d["models"]["acme-1"]["roles"] = ["fan-out"]
+    d["models"]["acme-1"]["role_admission"] = {
+        "Fan-Out": {"verdict": "refused", "decided_by": "architect",
+                    "decided_on": "2026-08-23", "evidence": "docs/audits/x.md"},
+    }
+    with pytest.raises(ValidationError, match="lookup key"):
+        _validate(d)
 
 
 def test_a_refused_role_may_not_also_be_a_held_role():
@@ -229,6 +374,43 @@ def test_a_decided_verdict_missing_any_provenance_field_is_refused(dropped):
     d["models"]["acme-1"]["roles"] = []
     d["models"]["acme-1"]["role_admission"] = {"fan-out": record}
     with pytest.raises(ValidationError, match=dropped):
+        _validate(d)
+
+
+@pytest.mark.parametrize("blank", ["", "   ", "\t"])
+def test_a_blank_provenance_string_counts_as_missing_not_as_present(blank):
+    """terra HIGH, 2026-08-23: `is None` alone let `evidence: ""` satisfy the rule and then
+    skip the checker's existence test — a verdict with provenance-shaped nothing behind it."""
+    d = _mutate()
+    d["models"]["acme-1"]["roles"] = []
+    d["models"]["acme-1"]["role_admission"] = {
+        "fan-out": {
+            "verdict": "refused",
+            "decided_by": "architect",
+            "decided_on": "2026-08-23",
+            "evidence": blank,
+        }
+    }
+    with pytest.raises(ValidationError, match="evidence"):
+        _validate(d)
+
+
+@pytest.mark.parametrize("bad", ["/etc/passwd", "../outside/artifact.md",
+                                 "docs/../../outside.md", r"C:\outside\artifact.md"])
+def test_evidence_that_escapes_the_tree_is_refused_on_shape(bad):
+    """terra HIGH, 2026-08-23: such a path can EXIST while proving nothing about this repo,
+    which is exactly what the downstream existence test relies on."""
+    d = _mutate()
+    d["models"]["acme-1"]["roles"] = []
+    d["models"]["acme-1"]["role_admission"] = {
+        "fan-out": {
+            "verdict": "refused",
+            "decided_by": "architect",
+            "decided_on": "2026-08-23",
+            "evidence": bad,
+        }
+    }
+    with pytest.raises(ValidationError, match="repo-relative"):
         _validate(d)
 
 

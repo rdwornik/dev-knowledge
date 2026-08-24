@@ -186,7 +186,30 @@ repos:
         # to fire the gate that holds it in agreement with the registry's `council_alias`
         # vocabulary. A checked site absent from this pattern is a gate that only fires
         # from the other end of the coupling.
-        files: '^(ecosystem/(provider-registry|tool-versions|satellite-onboarding-rulings)\.yaml|\.claude/(settings\.json|agents/artifact-reader\.md|workflows/conformance-hub\.js)|protocols/(PLAYBOOK|AI_COUNCIL_PROCESS)\.md|pyproject\.toml)$'
+        #
+        # The gate's OWN IMPLEMENTATION is in the pattern too, and that is the more
+        # important half (terra HIGH, 2026-08-23). Without it, a commit whose whole content
+        # is `def check_s31_council_panel(root): return []` matches nothing here, the hook
+        # never runs, and the gate is silently disarmed by the one change that should most
+        # obviously have triggered it. The suite still catches it -- but the suite is not
+        # what runs at commit time, and this hook is.
+        #
+        # Two more paths follow from the same argument, and terra had to say so twice before
+        # the pattern was drawn wide enough (round 4): THIS FILE, because a commit whose only
+        # content is a narrowed `files:` selector is evaluated against the NEW selector and so
+        # disarms the hook cleanly; and `scripts/toc/generator.py`, the CommonMark fence
+        # instrument S31 now depends on -- neutering `_code_line_indices` there would make
+        # fenced example rows read as the live roster, with this gate never running.
+        #
+        # `always_run: true` is what actually GUARANTEES the run, and it is here because
+        # widening `files:` was not enough (terra CRITICAL, round 5): a commit that narrows
+        # this very selector is evaluated against the NEW selector, so listing this file
+        # inside a conditional pattern cannot protect it. The pattern below is retained as
+        # the documented statement of which surfaces are coupled -- it no longer decides
+        # whether the gate runs. Cost is one fast read-only checker per commit (the live
+        # `--all-files` run returns in well under a second).
+        always_run: true
+        files: '^(ecosystem/(provider-registry|tool-versions|satellite-onboarding-rulings)\.yaml|ecosystem/schema/provider_registry\.py|scripts/(check_)?provider_registry\.py|scripts/toc/generator\.py|\.pre-commit-config\.yaml|\.claude/(settings\.json|agents/artifact-reader\.md|workflows/conformance-hub\.js)|protocols/(PLAYBOOK|AI_COUNCIL_PROCESS)\.md|pyproject\.toml)$'
         pass_filenames: false
       - id: lane-contract-check
         name: Lane-contract shape gate ([#539]; HUB-ONLY)
