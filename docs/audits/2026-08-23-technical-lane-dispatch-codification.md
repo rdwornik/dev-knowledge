@@ -374,7 +374,7 @@ lane's footprint.
 
 ## 5. Suite
 
-Run unpiped against the A2 baseline. See §7.
+Measured against the A2 baseline in section 7 below, with every additional RED attributed.
 
 ---
 
@@ -497,3 +497,62 @@ it per row. No such caller exists today, and none was invented here.
   layout out of an artifact other people read. The operator's cheat-sheet showed the absolute
   path; the ruled form won, and the emitted prose says plainly that he resolves the token by eye
   because a chat message is not a shell.
+
+---
+
+## 7. Suite — measured against the A2 baseline, and NOT reported green
+
+`uv run --locked --group analytics python -m pytest`, unpiped, 36m34s wall on a workstation
+carrying six concurrent lanes.
+
+```
+A2 baseline (contract):   1 failed, 3567 passed,  4 skipped, 1 xfailed  = 3573
+this branch:              6 failed, 3592 passed,  9 skipped, 1 xfailed  = 3608
+delta:                   +5 failed,   +25 passed, +5 skipped            =  +35
+```
+
+**"Suite green" would be false, and so would "suite matches baseline".** Both are stated
+plainly rather than rounded, and every one of the five additional REDs is named and attributed
+below.
+
+### 7.1 The +35 test delta is this lane's own tests, proven rather than asserted
+
+`tests/test_gen_lane_contract.py` is the only test file this lane touched. Collected at the merge
+base and at HEAD:
+
+```
+git show aeec0fd1:tests/test_gen_lane_contract.py -> 70 tests collected
+HEAD tests/test_gen_lane_contract.py             -> 105 tests collected
+```
+
+**105 − 70 = 35 = 3608 − 3573.** The arithmetic closes exactly, so no other test moved.
+
+### 7.2 All six REDs, attributed
+
+| # | Test | Attribution |
+|---|---|---|
+| 1 | `test_enforcement_coverage.py::test_anchor_gate_probe_distinguishes_installed_from_absent` | **The A2 baseline failure.** Pre-existing on `main` since 2026-08-22; the contract names it by name. |
+| 2 | `test_silent_rule_ratchet.py::test_committed_baseline_matches_live_measurement` | **MINE — R0.** `live 445 exceeds committed baseline 441`. |
+| 3 | `test_silent_rule_ratchet.py::test_check_registered_and_green_on_live_repo` | **MINE — R0**, same cause: `assert 'fail' == 'pass'`. |
+| 4 | `test_audit.py::test_health_ok_with_registered_repo` | **MINE — R0**, same cause. `audit.py health` exits 1; the blocking finding in its own captured output is `[!!] silent_rule_ratchet: silent-rule pool GREW: live 445 > baseline 441 (+4)`, and it is the only `[!!]` present. |
+| 5 | `test_audit.py::test_health_stays_ok_with_na_status` | **MINE — R0**, same cause, same captured finding. |
+| 6 | `test_stale_worktrees.py::test_linked_worktrees_reader_excludes_the_primary` | **ENVIRONMENTAL — running the suite from inside a worktree.** Not this lane's diff. |
+
+**Four of the five additional REDs are ONE cause.** #2–#5 are the silent-rule ratchet reporting
+`+4` — the same measurement §R0 documents, reached through four different assertions. They go
+green the moment the operator rules the raise 441 → 445, with no code change. This is the
+mechanical consequence of the lane being told to codify normative doctrine into a `protocols/`
+file while `main` sits exactly at its own baseline.
+
+**#6 is environmental and provable from its own assertion message.** The test asserts
+`aud._REPO_ROOT` is not among `_git_linked_worktrees(...)`; run from a worktree, `_REPO_ROOT`
+**is** a linked worktree, so it fails by construction. Its message names the neighbours it found —
+`dashboard-commit-path`, `rulings-landing`, `status-grammar` — which are sibling lanes of this
+batch, not anything this lane created. The `+5 skipped` has the same origin: worktree-guarded
+tests skip when the suite is not run from the primary checkout. **The integrator should re-run
+this test from the primary checkout before treating it as a finding** — this lane cannot, because
+it is commit-and-STOP inside the worktree that causes it.
+
+**Net, after attribution:** this lane introduces **zero** REDs of its own logic. Four are one
+queued operator ruling, one is the declared baseline failure, one is the measurement environment.
+`tests/test_gen_lane_contract.py` is 105/105 green in isolation, and 8/8 mutants die against it.
