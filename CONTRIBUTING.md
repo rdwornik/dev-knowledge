@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-08-08
+last_reviewed: 2026-08-24
 reconciled_with: handoff-process@6.2.0
 status: active
 owner: Rob
@@ -9,7 +9,52 @@ owner: Rob
 
 <!-- scope: meta -->
 
-Sole contributor: Rob Dwornik. Audience: future Rob + AI agents (Claude Code, Codex) reading for orientation.
+Sole contributor: Rob Dwornik. Audience: future Rob + AI agents reading for orientation — see **Provider discoverability** below for which vendors this repo is worked by and where their declared configuration lives.
+
+## Provider discoverability
+
+<!-- scope: meta -->
+
+More than one vendor's agent works in this repo, and the file a cross-vendor agent would
+conventionally read at the repo root — `AGENTS.md` — **cannot exist here.** ADR-101 section 1
+closes the Tier-1 top-level file class, and `scripts/validate_hermetization.py` refuses the add
+(*"unsanctioned new top-level file … a genuinely new class is an ADR-101 amendment, not a
+drive-by add"*). This section performs that file's job from inside a sanctioned one.
+
+**The declared source of truth is `ecosystem/provider-registry.yaml`** — every provider, the CLI
+that reaches it, and every model string this repo's live surface names. Read it; do not restate it
+(CLAUDE.md section 4). Enumerate the live state rather than trusting the table below:
+
+```
+python -c "import sys; sys.path.insert(0,'scripts'); import provider_registry as p; print(sorted(p.providers()))"
+python -c "import sys; sys.path.insert(0,'scripts'); import provider_registry as p; print(sorted(p.model_ids()))"
+```
+
+**Orientation only — the registry is authoritative:**
+
+| Provider | `council_alias` | CLI on this surface |
+|---|---|---|
+| Anthropic | `claude` | `claude` |
+| OpenAI | `openai` | `codex` |
+| Google | `gemini` | `gemini` |
+| xAI | `grok` | none — reached over raw HTTPS, not a CLI |
+| DeepSeek | `deepseek` | none — `ai-council` panel member only |
+
+**Model ids are deliberately absent from that table.** They are the volatile half. The registry
+plus `scripts/check_provider_registry.py` is what holds them in agreement across the seams that
+*cannot* read YAML (`.md` frontmatter, a `.js` object literal, committed prose, a JSON config). A
+model id typed into prose here would become one more such seam with no checker behind it — the
+exact drift the registry was cut to end.
+
+**Configuration is not admission.** A provider stays configured here whether or not it holds a
+role; the optional `role_admission:` key records why a role is not held, and a row carrying none is
+exactly as valid as one that does. Two providers currently carry no CLI on this surface, and
+DeepSeek deliberately carries **no model row at all** — no id for it is verified on this repo's
+live surface, and registering a stale id is worse than registering none.
+
+**Routing is not here.** The canonical model-routing table is `~/.claude/ROUTING.md` — at L0,
+outside this repository (ruled 2026-08-22; ARCHITECTURE Ch3). This registry records model
+*identity*, never which model gets routed to which job.
 
 ## Branch naming
 
