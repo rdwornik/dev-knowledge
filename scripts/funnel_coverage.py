@@ -110,7 +110,35 @@ AUDITS_RELPATH = "docs/audits"
 CORPUS_EXCLUDE: frozenset[str] = frozenset({"README.md"})
 
 # A dated audit filename, with or without a `docs/audits/` prefix and with or without backticks.
-_AUDIT_NAME_RE = re.compile(r"(\d{4}-\d{2}-\d{2}-[A-Za-z0-9._-]+?\.md)")
+# The trailing negative lookahead is load-bearing (terra HIGH, round 1): without it the
+# non-greedy body matches a PREFIX, so a File cell reading `2026-08-01-technical-a.md.bak`
+# binds to `2026-08-01-technical-a.md` and a backup reference or a typo silently becomes
+# coverage. `.md` must be the end of the token, not a substring of a longer one.
+_AUDIT_NAME_RE = re.compile(r"(\d{4}-\d{2}-\d{2}-[A-Za-z0-9._-]+?\.md)(?![A-Za-z0-9._-])")
+
+# A fenced code region opener/closer. Fence tracking is not decoration (sol route 8; terra
+# HIGH, round 1): a document that DOCUMENTS the ledger shape would otherwise have its worked
+# examples read as evidence, so an artifact showing an example could disposition itself -- or
+# another artifact -- by accident. Fence-awareness is established practice here; the
+# `markdown_it` fence-region ADOPT is a `landing_predicate`-tracked ruling with four sites.
+_FENCE_RE = re.compile(r"^\s{0,3}(?:`{3,}|~{3,})")
+
+# Per-term locator SHAPES. The ruling makes the citation part of the disposition -- ACTIONED
+# "cite the commit", FILED "cite the id", SUPERSEDED "cite it" -- so a term whose locator
+# carries no reference of the right kind is a claim, not a disposition (sol route 7: "any
+# one-character locator passes"). MEASURED ACROSS ALL 78 LIVE ROWS BEFORE ARMING: 0 mismatches
+# for all three, and both SUPERSEDED targets resolve to artifacts that exist.
+#
+# REJECTED is deliberately absent, and that is measured rather than lazy: a ruling has no
+# uniform locator form, and both live REJECTED locators are prose sentences (144 and 253
+# characters). Any shape rule strong enough to matter would have false-positived 2 of 2, and a
+# false WARN corrupts the very evidence a later hard-flip would rest on. Consequence accepted
+# and named: REJECTED-with-prose is the cheapest fabricated route this leg admits.
+_LOCATOR_SHAPES: dict[str, re.Pattern[str]] = {
+    "ACTIONED": re.compile(r"\b[0-9a-f]{7,40}\b"),
+    "FILED": re.compile(r"\[#\d+\]"),
+    "SUPERSEDED": _AUDIT_NAME_RE,
+}
 
 # Header cells that identify the artifact column. `file` is the ruled spelling; the other two
 # are admitted so a future ledger that says `artifact` is not silently unread.
@@ -202,7 +230,7 @@ def scan_ledger(text: str, source: str) -> list[LedgerRow]:
     the citation part of the disposition -- a term with nothing to resolve is not one.
     """
     rows: list[LedgerRow] = []
-    lines = text.splitlines()
+    lines = _blank_fenced_regions(text.splitlines())
     i = 0
     while i < len(lines):
         header = split_cells(lines[i])
@@ -220,23 +248,82 @@ def scan_ledger(text: str, source: str) -> list[LedgerRow]:
         loc_idx = lowered.index(_LOCATOR_HEADER)
         widest = max(file_idx, disp_idx, loc_idx)
 
+        # The separator row is REQUIRED (sol route 6; terra HIGH, round 1). While it was
+        # optional, any two consecutive pipe-prefixed prose lines were a ledger -- so the
+        # entry price for a fabricated disposition was two lines that are not even a table.
+        # A real markdown table always carries it; the live ledger does.
         j = i + 1
         sep = split_cells(lines[j]) if j < len(lines) else None
-        if sep is not None and _is_separator(sep):
-            j += 1
+        if sep is None or not _is_separator(sep):
+            i += 1
+            continue
+        j += 1
         while j < len(lines):
             body = split_cells(lines[j])
-            if body is None or len(body) <= widest:
-                break
-            match = _AUDIT_NAME_RE.search(body[file_idx])
-            if match:
-                rows.append(LedgerRow(audit=match.group(1),
-                                      term=_normalise_term(body[disp_idx]),
-                                      locator=body[loc_idx].strip(),
-                                      ledger=source))
+            if body is None:
+                break                     # the table itself ended
+            # A SHORT row is a malformed row, NOT the end of the table (terra HIGH, round 1).
+            # Breaking here meant one `| note |` line between two ledger rows silently
+            # discarded every row after it -- the same stop-early class as [#560], reached by
+            # a different route, and it would have reported dispositioned artifacts as newly
+            # uncovered.
+            if len(body) > widest:
+                match = _AUDIT_NAME_RE.search(body[file_idx])
+                if match:
+                    rows.append(LedgerRow(audit=match.group(1),
+                                          term=_normalise_term(body[disp_idx]),
+                                          locator=body[loc_idx].strip(),
+                                          ledger=source))
             j += 1
         i = j
     return rows
+
+
+def locator_resolves(row: LedgerRow, corpus: set[str]) -> bool:
+    """Does this row's locator carry a reference of the kind its term promises?
+
+    NOT a resolution of the reference -- except for SUPERSEDED, where the successor must
+    actually be in the corpus, because that one costs nothing to check and a successor that
+    does not exist is not evidence of anything. For ACTIONED and FILED this is SHAPE only: a
+    sha-shaped token, an id-shaped token. See `_LOCATOR_SHAPES` for the measurement behind
+    each pattern and for why REJECTED is deliberately unshaped.
+
+    HONEST LIMIT, and it is the residual sol named: a well-shaped FABRICATION passes.
+    `ACTIONED | deadbeef1` is admitted without `deadbeef1` being a real commit. Closing that
+    needs a batched `git cat-file` for shas and a `tasks/` liveness join for ids -- the second
+    of which is the P-2 orphan work this lane is scoped out of.
+    """
+    if not row.locator:
+        return False
+    shape = _LOCATOR_SHAPES.get(row.term)
+    if shape is None:
+        return True                        # REJECTED: non-empty prose is the ruled form
+    found = shape.search(row.locator)
+    if found is None:
+        return False
+    if row.term == "SUPERSEDED":
+        return found.group(1) in corpus
+    return True
+
+
+def _blank_fenced_regions(lines: list[str]) -> list[str]:
+    """Blank out fenced code regions, PRESERVING line indices so the scanner is unaffected.
+
+    See `_FENCE_RE` for why this exists. Honest limit: this tracks ``` / ~~~ fences opened at
+    up to three columns of indentation, which is CommonMark's rule; it does not model
+    indented code blocks or fences nested inside list items at deeper indentation. Those
+    would read as ordinary text, which is the same failure the un-fenced scanner had -- so
+    this narrows the hole rather than closing it, and says so.
+    """
+    out: list[str] = []
+    in_fence = False
+    for line in lines:
+        if _FENCE_RE.match(line):
+            in_fence = not in_fence
+            out.append("")
+            continue
+        out.append("" if in_fence else line)
+    return out
 
 
 def measure(repo_root: Path) -> Measurement:
@@ -273,14 +360,21 @@ def measure(repo_root: Path) -> Measurement:
                 # ledger rotting rather than the corpus being covered.
                 m.dangling.append(row)
                 continue
-            if row.term in DISPOSITION_TERMS and row.locator:
+            if row.term in DISPOSITION_TERMS and locator_resolves(row, corpus_set):
                 m.dispositioned.setdefault(row.audit, row)
-            elif row.term == PENDING_TERM:
+            elif row.term == PENDING_TERM and row.locator:
+                # PENDING REQUIRES its question. The ruling admits the undecidable case as
+                # "PENDING with the exact question it needs", so a blank PENDING is not the
+                # ruling's PENDING -- it was a two-line way to clear an artifact while
+                # recording nothing (sol route 6). Both live PENDING rows carry a `Q: ...`
+                # locator, so requiring it cost 0 false positives.
                 m.pending.setdefault(row.audit, row)
             else:
-                # An off-vocabulary term, or a ruled term with an empty locator. Both are
-                # NOT coverage -- and both are surfaced, because a malformed row is a
-                # ledger defect and looks nothing like an unledgered file.
+                # An off-vocabulary term, a ruled term whose locator is empty or the wrong
+                # shape, or a blank PENDING. None is coverage -- and all are surfaced,
+                # because a malformed row is a LEDGER DEFECT and looks nothing like an
+                # unledgered file. Collapsing the two would hide a rotting ledger inside a
+                # backlog number.
                 m.malformed.append(row)
 
     m.ledgers.sort()
@@ -342,6 +436,13 @@ def load_baseline(repo_root: Path) -> dict | None:
         return None
     if not all(isinstance(a, str) for a in data["artifacts"]):
         return None
+    # The declared count must agree with the list it counts. This refuses sol's laziest raise
+    # -- append one filename, leave the numbers alone -- so excusing an artifact by hand takes
+    # a deliberate edit to the very number it contradicts rather than a single appended line.
+    declared = data.get("uncovered")
+    if isinstance(declared, int) and not isinstance(declared, bool):
+        if declared != len(data["artifacts"]):
+            return None
     return data
 
 
@@ -466,6 +567,8 @@ def _main(argv: list[str] | None = None) -> int:
     ap.add_argument("--measured-at-sha", default="", help="sha stamp for --write-baseline")
     ap.add_argument("--provenance-file", default="",
                     help="path to a text file whose contents become the provenance block")
+    ap.add_argument("--allow-raise", action="store_true",
+                    help="permit --write-baseline to ADD names (a curated-baseline touch)")
     args = ap.parse_args(argv)
     try:
         m = measure(Path(args.repo_root))
@@ -477,6 +580,24 @@ def _main(argv: list[str] | None = None) -> int:
             print(name)
         return 0
     if args.write_baseline:
+        # THE TOOL WILL NOT SILENTLY BLESS NEW DEBT (sol route 5). Re-running --write-baseline
+        # was a one-command way to excuse every currently-uncovered artifact, which made the
+        # cheapest evasion cheaper than the honest act. A DRAIN still needs no flag -- making
+        # the right thing harder than doing nothing would be worse than no tool at all -- but
+        # a RAISE is refused, names every artifact it would have excused, and requires an
+        # explicit --allow-raise, which is a curated-baseline touch and therefore operator work.
+        existing = load_baseline(Path(args.repo_root))
+        if existing is not None and not args.allow_raise:
+            added = sorted(set(m.uncovered) - set(existing["artifacts"]))
+            if added:
+                print(f"funnel_coverage: REFUSING to raise the baseline -- {len(added)} "
+                      f"artifact(s) would be ADDED, i.e. excused without a disposition:",
+                      file=sys.stderr)
+                for name in added:
+                    print(f"  + {name}", file=sys.stderr)
+                print("Disposition them in a ledger, or pass --allow-raise deliberately.",
+                      file=sys.stderr)
+                return 2
         provenance = (Path(args.provenance_file).read_text(encoding="utf-8")
                       if args.provenance_file else "")
         target = Path(args.repo_root) / BASELINE_RELPATH

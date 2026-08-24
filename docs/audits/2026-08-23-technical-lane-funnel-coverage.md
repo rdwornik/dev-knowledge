@@ -747,8 +747,10 @@ as `review_artifact_coverage`, and temporary for the same reason:
 +  - funnel_coverage
 ```
 
-**(f) the count pins.** `43 → 44` at each site the registry docstring names, all verified to
-resolve:
+**(f) the count pins.** `43 → 44`. **Do not trust the roster in `registry.py`'s own
+docstring — three of the five sites it names carry no pin at all, and a fourth's count
+moved to another file in `#222`; see §7.6.** These are the sites that actually resolve,
+each verified individually:
 
 ```
 tests/test_audit.py:2207              assert len(aud.ALL_CHECKS) == 43
@@ -783,3 +785,172 @@ and an unreadable corpus degrades to a WARN rather than raising.
 import of it, because the real thing cannot exist until the integrator applies (b). Two copies
 in one artifact is visible to a reviewer; it is still weaker than executing the merged code, and
 the integrator should re-run the suite after applying.
+
+---
+
+## 5. sol adversarial pass — Step 5
+
+**Model:** `gpt-5.6-sol`, `codex exec --sandbox read-only`, `model_reasoning_effort=high`.
+**Question asked, and the only one asked:** *what is the cheapest way for a real author — not an
+attacker, an ordinary person under deadline pressure — to make this check pass without actually
+dispositioning anything?*
+
+**sol's verdict, quoted rather than paraphrased:**
+
+> **The check is theatre as a disposition control:** the author controls both the asserted
+> artifact and the exemption set, and the implementation explicitly refuses nothing when that
+> exemption set rises.
+
+**That verdict is accepted.** It was correct at the time it was given, and five of its eight
+routes were holes this lane had not found. **Every reading sol gave was verified against the
+source before being acted on** — the separator really was optional, `PENDING` really did accept
+an empty locator, there really was no fence tracking. Four routes are now closed and the
+residual is recorded honestly rather than argued away.
+
+### 5.1 The eight routes, and what each one is now
+
+| # | route sol found | cost then | status now |
+|---|---|---|---|
+| 1 | delete the artifact | 0 lines | **vacuous** — sol's own note: "no artifact survives". A *baseline* artifact vanishing is already reported as a stale entry. |
+| 2 | escape the shallow glob (`docs/audits/sub/x.md`, or `.markdown`) | 0 lines | **bounded, not closed** — see §5.3 |
+| 3 | add the basename to `CORPUS_EXCLUDE` | 1 line | **out of class** — see §5.3 |
+| 4 | add the filename to the baseline JSON | 1 line | **cost raised**; residual remains — §5.2 |
+| 5 | re-run `--write-baseline` | 1 command | **CLOSED** — the tool now refuses to raise |
+| 6 | a blank `PENDING` self-row, no locator, no question | 2 lines | **CLOSED** — a real defect against the ruling |
+| 7 | a fabricated closed-set self-row, any 1-character locator | 2–3 lines | **cost raised** — per-term locator shape |
+| 8 | a pseudo-ledger inside a fenced code example | 2–4 lines | **CLOSED** — fenced regions are skipped |
+
+### 5.2 The five fixes taken, each measured against the live corpus before arming
+
+**S1 — `PENDING` now requires a non-empty locator.** This was not merely an evasion; it was a
+**defect against the governing ruling**, which says an undecidable artifact is *"PENDING with
+the exact question it needs"*. A `PENDING` with no question is not the ruling's PENDING. Both
+live PENDING rows carry a `Q: …` locator, so **0 false positives**.
+
+**S2 — fenced code regions are skipped.** sol's sharpest finding, because **it bites this very
+artifact**: a document that *documents* the ledger shape would otherwise have its examples read
+as evidence, and a lane artifact showing a worked example could disposition itself by accident.
+Fence-awareness is established practice here — the `markdown_it` fence-region ADOPT is a
+`landing_predicate`-tracked ruling with four named sites. Measured: the live ledger is not
+fenced, so **coverage is unchanged at 78**.
+
+**S3 — the header separator row is now required.** It removes sol's "2 parser lines" minimum by
+making a real markdown table the entry price. The live ledger carries `|---|---|---|---|`, so
+**0 false positives**.
+
+**S4 — the locator must carry a reference SHAPED for its term.** `ACTIONED` → a ≥7-hex sha;
+`FILED` → a `[#id]`; `SUPERSEDED` → a dated `.md` **that exists in the corpus**. This is what
+turns sol's *"any one-character locator passes"* into "a correctly-shaped, and for SUPERSEDED a
+resolving, reference". **Measured across all 78 live rows before arming: 0 mismatches for all
+three terms, and both SUPERSEDED targets resolve to artifacts that exist.**
+
+**`REJECTED` is deliberately left unshaped, and the reason is measured, not lazy.** A ruling has
+no uniform locator form; both live REJECTED locators are prose sentences (144 and 253
+characters). Any shape rule strong enough to matter would have false-positived 2 of 2. **So
+REJECTED-with-prose is now the cheapest fabricated route, and that is stated rather than hidden.**
+
+**S5 — `--write-baseline` refuses to raise.** The tool that produced the baseline will no longer
+silently bless new debt: adding names requires an explicit `--allow-raise`, and the refusal
+prints every name it would have added. This closes sol's route 5 (a one-command rebaseline) and
+makes route 4 a deliberate, self-describing act. `load_baseline` additionally refuses a baseline
+whose `uncovered` count disagrees with `len(artifacts)`, so the laziest hand-edit — one line
+added, counts untouched — is refused outright.
+
+### 5.3 Two routes deliberately NOT closed, with the reasoning
+
+**Route 3 — editing `CORPUS_EXCLUDE`.** This is *"edit the checker to disable the check"*, which
+is available against every organ in this repo and is not a property of this one. Closing it
+inside the check is impossible by construction. It is a code review concern, and it is one line
+in a diff.
+
+**Route 2 — the corpus boundary.** The corpus is `docs/audits/*.md`, which is the **ruled**
+corpus: the 2026-08-17 ledger measured exactly that set. A **nested** file is already refused by
+a live gate — ADR-101 Rule C allowlists the home `docs/audits` and not `docs/audits/*`, so
+`validate-hermetization` blocks the added path. A **differently-suffixed** file (`.markdown`) is
+outside the corpus *by definition* rather than by oversight — but nothing detects one, and that
+is the honest half of this row.
+
+### 5.4 The residual, stated plainly
+
+**A fabricated but well-shaped locator still passes.** `ACTIONED | deadbeef1` is admitted
+without `deadbeef1` being a real commit. Closing this means resolving locators: a batched
+`git cat-file --batch-check` for shas, a `tasks/` liveness join for ids. **Not taken** — the
+`tasks/` half is the P-2 orphan work the contract explicitly scoped out (§7.4), and the git half
+adds a dependency to a leg reachable from a pre-commit gate, which is the 236s lesson
+`review_artifact_coverage`'s docstring exists to record.
+
+**A baseline raise is still possible** by an author who passes `--allow-raise`, or who edits the
+name list and the count together. **sol's recommended hardening — compare the baseline against
+the merge base and refuse additions — is the right fix and is OWED, not done.** sol prices it at
+*"roughly 30–50 LOC plus 4–6 tests, a git dependency in the gate, and deliberate operator
+friction during legitimate detector migrations"*, and it is the exact mechanism
+`silent_rule_ratchet` already has (`_target_baseline_state`) and this one does not. **On that
+axis this ratchet is measurably weaker than its sibling, and the gap is named rather than
+implied.**
+
+### 5.5 Three more defects, from a terra round run in parallel
+
+A terra pass was run against the same code while the Step-4 commit was in flight, so its
+findings could fold into **this** edit rather than into a second round of churn. It returned
+**0 Critical / 4 High / 1 Medium**. Two of its four HIGHs were sol's fence and separator routes,
+independently found. **Three findings were nobody else's, and two are outright bugs rather than
+evasions:**
+
+**T1 (HIGH) — a short row terminated the whole table scan.** `if body is None or len(body) <=
+widest: break`. One `| a bare note |` line between two ledger rows silently discarded **every
+row after it**. This is the `[#560]` stop-early class arrived at by a different route, and its
+consequence is the worst kind this leg can have: **correctly dispositioned artifacts reported as
+newly UNCOVERED** — a false WARN, which is exactly what corrupts the zero-false-positive
+evidence a later hard flip would rest on. Fixed: a malformed row is skipped; only a non-row ends
+the table.
+
+**T2 (HIGH) — a filename prefix bound to the wrong artifact.** `_AUDIT_NAME_RE` is non-greedy up
+to `.md`, so a File cell reading `2026-08-01-technical-a.md.bak` matched
+`2026-08-01-technical-a.md` — a backup reference or a typo silently becoming coverage and
+suppressing the WARN. Fixed with a trailing token-boundary lookahead; three live decorations
+(backticked, path-prefixed, bare) are pinned so the fix cannot over-tighten.
+
+**T3 (MEDIUM) — the wrapper test proves a copy, not the registration.** terra is right, and
+**half of it is unfixable in this lane**: the real function cannot exist until the integrator
+edits `scripts/audit.py`. §4.3 already stated that weakness rather than implying it. **The other
+half was fixable and is fixed** — the two copies could silently *diverge*, shipping one wrapper
+in the artifact while the test proved a different one.
+`test_the_fenced_registration_diff_and_the_wrapper_test_cannot_DRIFT` now extracts the shipped
+body **from the artifact's own fenced diff** and asserts every executable line appears in the
+test. It earned its place immediately: it failed on first run, on a real difference between the
+two copies.
+
+**Neither T1 nor T2 was reachable by the corpus as it stands** — the live ledger has no short
+rows and no `.md.bak` cells, which is why the measurement was correct before and after. They
+were latent, and a latent false-WARN generator inside an evidence-gathering leg is worth more
+than its severity suggests.
+
+### 5.6 Re-measured after every fix, because a tightening that changes the number is a bug
+
+```
+before hardening:  corpus 693 · dispositioned 78 · pending 2 · uncovered 613 · malformed 0
+after  hardening:  corpus 693 · dispositioned 78 · pending 2 · uncovered 613 · malformed 0
+```
+
+**Identical.** Four tightenings of the admission predicate (fences, separator, locator shape,
+PENDING) plus two parser fixes changed **nothing** about the live corpus — which is the evidence
+that they closed evasion routes rather than manufacturing false WARNs. Each was measured against
+all 78 live rows before it was armed, and `REJECTED` was left unshaped precisely because that
+measurement said a shape rule would have false-positived 2 of 2.
+
+**Suite after this step: 47 tests** (was 33 at Step 3), **19/19 mutations caught** across both
+rounds — the 10 of §3.7 plus 9 more pinning the hardening: fence blanking, separator
+requirement, short-row handling, filename boundary, locator shape, SUPERSEDED resolution, blank
+PENDING, baseline count agreement, and the `--write-baseline` raise guard. These figures
+supersede §3.6/§3.7, which were accurate at Step 3.
+
+### 5.7 What the check is, after the pass
+
+Not theatre, and not a guarantee. **It converts silence into a signed, attributable claim.**
+Before it, an audit whose findings nobody routed simply joined the pile and no surface knew.
+After it, passing requires writing a term from a ruled closed set with a correctly-shaped
+locator into a real markdown table, or deliberately raising a curated baseline that names the
+excused file in the diff. That is the same honest ceiling `review_artifact_coverage` states
+about its own tally — *"a fabricated header passes… it converts an unfalsifiable claim into a
+checkable one; it does not make it a true one"* — and claiming more would be exactly the
+overclaim this pass exists to catch.
