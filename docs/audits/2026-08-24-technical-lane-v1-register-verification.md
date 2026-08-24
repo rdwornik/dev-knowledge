@@ -158,5 +158,10 @@ a `STANDING_RULINGS.md` entry.
 
 - Writes: this file only. No `tasks/`, `BACKLOG.md`, `protocols/`, `docs/decisions/` edit; no JOURNAL
   entry (P-1); no merge.
-- The generated audits index (`docs/audits/README.md`) is regenerated **only if** the
-  `audit-index-freshness` pre-commit hook demands it at commit time.
+- The generated audits index (`docs/audits/README.md`) **was regenerated**, by
+  `gen_audit_index.py --write`, never by hand. Recorded precisely because it is a second write:
+  **no hook demanded it** — `.git/hooks/pre-commit` is **NOT-ARMED** in this container, which is
+  the cloud-session gap the register's own C30/A1 correction names ("no armed hooks"). The gate's
+  own checker was run read-only instead (`gen_audit_index.py --check` → "docs/audits/README.md is
+  stale vs docs/audits/") and it is this lane's added file that made it stale, so leaving it would
+  hand the integrator a failing gate on an armed checkout. Regenerated, not hand-picked.
