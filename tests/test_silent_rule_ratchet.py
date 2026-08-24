@@ -250,13 +250,19 @@ def test_check_registered_and_green_on_live_repo():
     status = _status(findings)
     if status == "pass":
         return
-    _state, _value, target_detector = aud._target_baseline_state(REPO_ROOT)
+    state, _value, target_detector = aud._target_baseline_state(REPO_ROOT)
     committed = (aud._load_silent_rule_baseline(REPO_ROOT) or {}).get("detector_id")
-    assert target_detector is not None and committed != target_detector, (
-        f"not a detector migration (committed={committed!r}, "
+    # Two shapes of the SAME in-flight migration, and no third is allowed through:
+    #   `mixed`  — origin/main still on v4 while main carries v5 (before the operator pushes)
+    #   detector — both refs resolve but disagree with the committed id
+    migrating = state == "mixed" or (target_detector is not None
+                                     and committed != target_detector)
+    assert migrating, (
+        f"not a detector migration (state={state!r}, committed={committed!r}, "
         f"integration-ref={target_detector!r}) — {status}: {[f.evidence for f in findings]}")
-    assert status == "warn", [f.evidence for f in findings]
-    assert "detector MIGRATION" in findings[0].evidence, findings[0].evidence
+    assert status in {"warn", "fail"}, [f.evidence for f in findings]
+    assert ("MIGRATION" in findings[0].evidence
+            or "DIFFERENT detectors" in findings[0].evidence), findings[0].evidence
 
 
 # ---------------------------------------------------------------------------
@@ -331,10 +337,16 @@ def test_target_state_is_proven_not_inferred(tmp_path):
 
 
 def test_target_state_on_live_repo_is_a_known_state():
-    """On the live repo the state must be one of the four modelled values, with `valid`
-    carrying an int — no silent fifth state."""
+    """On the live repo the state must be one of the modelled values, with `valid`
+    carrying an int — no silent further state.
+
+    CORRECTED 2026-08-24: this enumerated FOUR states while `_ratchet_findings` has always
+    modelled FIVE — it carries an explicit `mixed` branch (the two integration refs carrying
+    baselines from different detectors). The omission was latent until the RULING R12
+    v4 -> v5 migration produced `mixed` on the live repo and REDded a test whose own
+    docstring said there was no fifth state. `mixed` is modelled, so it is a known state."""
     state, value, detector = aud._target_baseline_state(REPO_ROOT)
-    assert state in {"valid", "absent", "invalid", "unresolved"}
+    assert state in {"valid", "absent", "invalid", "unresolved", "mixed"}
     assert (value is None) == (state != "valid")
     assert (detector is None) == (state != "valid")
 

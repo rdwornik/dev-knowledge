@@ -250,7 +250,9 @@ def test_edge_check_registered_and_resolves_starter_set():
     assert all(f.status != "fail" for f in findings)        # advisory: never FAIL
     assert len(findings) == 1
     assert findings[0].status == "pass"
-    assert "15 doc" in findings[0].evidence                 # 5 cohort-1 + trio + Tier-3 quartet + governance-backlog-story-id (#286) + handoff-boot-budget ([#446] R4) + seal-journal-spine-anchor (ADR-85 amend. 2026-08-03, 2-site)
+    assert "16 doc" in findings[0].evidence                 # 15 -> 16: governance-adr-status
+                                                           # ([#242] lane L3, 2-site, registered
+                                                           # 2026-08-24). 5 cohort-1 + trio + Tier-3 quartet + governance-backlog-story-id (#286) + handoff-boot-budget ([#446] R4) + seal-journal-spine-anchor (ADR-85 amend. 2026-08-03, 2-site)
     assert "resolved" in findings[0].evidence
 
 
