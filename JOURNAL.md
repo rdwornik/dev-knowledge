@@ -19,6 +19,60 @@
 
 ---
 
+### 2026-08-24 (f) - CC (Opus 5, integrator, branch `feat/integrator-batch-close-2026-08-24`): every N-dependent number is measured rather than inherited, and the one instruction that would have damaged a gate is refused with its evidence
+
+**Did:** the integrator's own acts behind the nine-branch queue. **Step 4** registered lane L3's
+`check_adr_status_grammar` - `ALL_CHECKS` **43 -> 44**, not 46 (L2's and L4's registrations ship as
+unapplied fenced diffs on unmerged branches). `CHECK_ORDER` position was the integrator's call and
+went to the END, per L3's own recommendation, because order is the emission contract and appending
+perturbs no existing position. **Step 5** applied RULING R12: `protocols/STANDING_RULINGS.md` left
+the silent-rule detector's scope, and because the excluded set is a **contract clause**, `DETECTOR_ID`
+bumped `silent-rule-v4 -> v5` with it. **Step 6** filed six intakes, `#42`-`#47`, each with its fork
+named and **zero task rows** - `banked = 0`.
+
+**Result - four contract premises did not survive measurement, and all four are recorded rather than
+quietly corrected.** (1) `JOURNAL.md` is touched by **eight** branches, not six, and the day-letter
+collision was **six branches on `2026-08-23 (k)`**, not one 2-way. (2) R8's note predicted L5's
+rewording moves the silent-rule count **down by 5**; measured **net ZERO** - the entire +4 is L7's
+PLAYBOOK Ch8, verified blob 210 -> 214. (3) L3's own pin roster lists FOUR test pins and omits
+`tests/test_doc_code_edge.py:713`, which existed and read 43; working from it would have RED the
+suite. (4) The register's `[#532]/A9` is cited by **six** entries, not twenty, while **18** cite the
+still-open `#241`. The arithmetic that survived: **441 +4 (L7) +0 (L5) = 445, -2 (R12) = 443**, and
+443 is what the baseline now reads - not 441, not 445, not 446.
+
+**The refusal, because it is the most consequential act of the window.** Step 7 ordered the six
+row-length dispositions de-volatilized by stripping their `(NNNN chars` values. **Its own
+precondition forbade it:** all six come from `fce8b5b0`, whose message states *"A9 route (ii) ...
+keyed on row id AND measured length"*, and the register's own header mandates keying on the
+specific signature *"NOT a bare id"* - which is exactly what stripping produces. Stopped and
+reported. **The opposing evidence is now measured and is sharper than the contract's:** `#533`'s
+disposition reads `(4210 chars` and decorates `[stale]` while a live undispositioned WARN reads
+`#533 (2239 chars` - the row was **trimmed, i.e. improved**, and that broke its own suppression so
+the WARN returned looking new. `#529`/`#530` merely dropped below the ceiling and are legitimately
+stale. **One proven silent break, not three.** Both readings now have hard evidence, which is why it
+is an architect decision; intake `#44` carries it.
+
+**Also refused:** writing C1's ruled funnel classes into `ecosystem/disposition-register.yaml`. That
+register suppresses ship-gate WARNs and keys every entry on a live `Finding.check_name`; a funnel
+classification of an audit **file** has no organ and no WARN, so no lawful shape exists there. C1
+itself ran READ-ONLY and records the register as *"not written"*. The surface mismatch is reported,
+not silently resolved.
+
+**Changes:** `scripts/audit.py`, `scripts/audit_checks/registry.py`,
+`scripts/silent_rule_detector.py`, `scripts/validate_adr_status.py`,
+`ecosystem/silent-rule-baseline.yaml`, `ecosystem/doc-code-edge.yaml`, `ecosystem/doc-counts.md`
+(regenerated), `docs/decisions/README.md`, four test files, six new `docs/intake/` docs plus both
+intake generators' output, `JOURNAL.md`.
+
+**Abandoned:** the Step 7 strip (refused, with evidence) and the funnel write (no lawful shape).
+
+**Next:** one full-suite verification on the merged result, teardown of the merged lanes only, and
+the close-out packet. The push to `main` is the operator's act.
+
+**Anchors:** `807685c6` (the registration + detector-scope + measured-numbers commit),
+`1925d708` (the six intakes) and `948c6a3c` (the `governance-adr-status` logic-half marker) - all
+three commits this branch's merge introduces.
+
 ### 2026-08-24 (e) - CC (Opus 5, integrator, branch `feat/integrator-batch-close-2026-08-24`): the correction note - one contract error that is mine, two day-letter facts, and the two merges no lane could have anchored
 
 **Did:** the batch's single correction note, filed as an append. Four things, none of them a
