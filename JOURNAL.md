@@ -19,6 +19,113 @@
 
 ---
 
+### 2026-08-24 (f) - CC (Opus 5, integrator, branch `feat/integrator-batch-close-2026-08-24`): every N-dependent number is measured rather than inherited, and the one instruction that would have damaged a gate is refused with its evidence
+
+**Did:** the integrator's own acts behind the nine-branch queue. **Step 4** registered lane L3's
+`check_adr_status_grammar` - `ALL_CHECKS` **43 -> 44**, not 46 (L2's and L4's registrations ship as
+unapplied fenced diffs on unmerged branches). `CHECK_ORDER` position was the integrator's call and
+went to the END, per L3's own recommendation, because order is the emission contract and appending
+perturbs no existing position. **Step 5** applied RULING R12: `protocols/STANDING_RULINGS.md` left
+the silent-rule detector's scope, and because the excluded set is a **contract clause**, `DETECTOR_ID`
+bumped `silent-rule-v4 -> v5` with it. **Step 6** filed six intakes, `#42`-`#47`, each with its fork
+named and **zero task rows** - `banked = 0`.
+
+**Result - four contract premises did not survive measurement, and all four are recorded rather than
+quietly corrected.** (1) `JOURNAL.md` is touched by **eight** branches, not six, and the day-letter
+collision was **six branches on `2026-08-23 (k)`**, not one 2-way. (2) R8's note predicted L5's
+rewording moves the silent-rule count **down by 5**; measured **net ZERO** - the entire +4 is L7's
+PLAYBOOK Ch8, verified blob 210 -> 214. (3) L3's own pin roster lists FOUR test pins and omits
+`tests/test_doc_code_edge.py:713`, which existed and read 43; working from it would have RED the
+suite. (4) The register's `[#532]/A9` is cited by **six** entries, not twenty, while **18** cite the
+still-open `#241`. The arithmetic that survived: **441 +4 (L7) +0 (L5) = 445, -2 (R12) = 443**, and
+443 is what the baseline now reads - not 441, not 445, not 446.
+
+**The refusal, because it is the most consequential act of the window.** Step 7 ordered the six
+row-length dispositions de-volatilized by stripping their `(NNNN chars` values. **Its own
+precondition forbade it:** all six come from `fce8b5b0`, whose message states *"A9 route (ii) ...
+keyed on row id AND measured length"*, and the register's own header mandates keying on the
+specific signature *"NOT a bare id"* - which is exactly what stripping produces. Stopped and
+reported. **The opposing evidence is now measured and is sharper than the contract's:** `#533`'s
+disposition reads `(4210 chars` and decorates `[stale]` while a live undispositioned WARN reads
+`#533 (2239 chars` - the row was **trimmed, i.e. improved**, and that broke its own suppression so
+the WARN returned looking new. `#529`/`#530` merely dropped below the ceiling and are legitimately
+stale. **One proven silent break, not three.** Both readings now have hard evidence, which is why it
+is an architect decision; intake `#44` carries it.
+
+**Also refused:** writing C1's ruled funnel classes into `ecosystem/disposition-register.yaml`. That
+register suppresses ship-gate WARNs and keys every entry on a live `Finding.check_name`; a funnel
+classification of an audit **file** has no organ and no WARN, so no lawful shape exists there. C1
+itself ran READ-ONLY and records the register as *"not written"*. The surface mismatch is reported,
+not silently resolved.
+
+**Changes:** `scripts/audit.py`, `scripts/audit_checks/registry.py`,
+`scripts/silent_rule_detector.py`, `scripts/validate_adr_status.py`,
+`ecosystem/silent-rule-baseline.yaml`, `ecosystem/doc-code-edge.yaml`, `ecosystem/doc-counts.md`
+(regenerated), `docs/decisions/README.md`, four test files, six new `docs/intake/` docs plus both
+intake generators' output, `JOURNAL.md`.
+
+**Abandoned:** the Step 7 strip (refused, with evidence) and the funnel write (no lawful shape).
+
+**Next:** one full-suite verification on the merged result, teardown of the merged lanes only, and
+the close-out packet. The push to `main` is the operator's act.
+
+**Anchors:** `807685c6` (the registration + detector-scope + measured-numbers commit),
+`1925d708` (the six intakes) and `948c6a3c` (the `governance-adr-status` logic-half marker) - all
+three commits this branch's merge introduces.
+
+### 2026-08-24 (e) - CC (Opus 5, integrator, branch `feat/integrator-batch-close-2026-08-24`): the correction note - one contract error that is mine, two day-letter facts, and the two merges no lane could have anchored
+
+**Did:** the batch's single correction note, filed as an append. Four things, none of them a
+lane's fault.
+
+**1 - The P-1 contract error, and it is the architect's, not the lanes'.** The Final's step 3
+told batch lanes to write JOURNAL entries. **It should not have.** A batch lane never journals -
+the integrator does, because day letters are assigned once, at integration
+(`check_journal_day_letters`'s own docstring says so, and PLAYBOOK Ch8 rules it). Eight of the
+nine queue branches carried an entry because they were instructed to, and the instruction was
+wrong. **The lanes executed a defective contract correctly.** Recorded so the next batch's
+contract does not repeat it, and so no lane's record is read as a discipline failure.
+
+**2 - The day-letter re-derivation, which was four times larger than the contract predicted.**
+The contract named ONE collision, L3 vs L6 on `2026-08-24 (a)`. Measured at merge, the real
+surface was: **six branches all claiming `2026-08-23 (k)`** - L7, L5, C2, C1, C3, M9 - plus C2's
+second entry at `(l)`, plus the named 2-way. The contract also said six branches touch
+`JOURNAL.md`; **eight** do, all but L1. Re-derived at each merge from the live file, never from
+the contract's letter: L6 kept `2026-08-24 (a)`, **L3 -> (d)**; L7 kept `2026-08-23 (k)`, **L5 ->
+(l)**, **C2 -> (m) and (n)** (relative order preserved), **C1 -> (o)**, **C3 -> (p)**, **M9 ->
+(q)**. Every re-letter touched the **header only**; bodies were asserted byte-identical in code
+before writing, and each entry was placed newest-at-top-of-its-day. **Nothing was deleted** -
+`JOURNAL.md` is append-only, and L6 was RIGHT to refuse to fix its own line in place.
+
+**3 - L6's `Changes:` line is incomplete, and this note is the correction.** It names
+`2026-08-23-technical-phase0-preconditions.md`, the architect bundle's `HANDOFF_BOOT.md`,
+`2026-08-16-code-architecture-enforcement.md`, `2026-08-24-verification-l6-rulings-landing.md`
+and "this entry" - but **omits `docs/audits/README.md`**, which the L6 merge does modify (+3/-1;
+verified with `git show --stat 723618da`). The entry is immutable, so the omission is corrected
+here rather than edited there.
+
+**4 - Two merges that NO lane could have anchored, and the reason is structural.** `journal_spine_anchor`
+refused this window's integrator commit over `3661d6e1` (C1) and `236da477` (M9). Both are
+**single-commit branches**: the discharge predicate needs an entry naming a SHA the merge
+*introduced*, and a one-commit branch's only introduced commit is the one carrying the entry, which
+cannot name itself. Neither lane did anything wrong and neither could have fixed it. That is the
+integrator's job, and the anchors below are it.
+
+**Result:** the note is filed and the two merges are anchored. The wider lesson for the next
+batch contract: a lane brief that says "write a JOURNAL entry" is defective twice over - it
+collides day letters at integration, and on a single-commit lane it produces an entry that
+cannot anchor its own merge.
+
+**Changes:** `JOURNAL.md`.
+
+**Abandoned:** nothing.
+
+**Next:** the count reconciliation and detector-scope commit rides behind this note, then the
+intakes, the register work, the one full-suite verification, teardown and the close-out packet.
+
+**Anchors:** `c3b0f45b` (C1's lane artifact, the commit merge `3661d6e1` introduces) and
+`7afd37c3` (M9's lane artifact, the commit merge `236da477` introduces).
+
 ### 2026-08-24 (d) - CC (Opus 5, batch lane L3 `worktree-status-grammar`): the ADR status enum finally has a gate, the sweep executed nothing on purpose, and archival turns out never to have been blocked on the grammar at all
 
 **Did:** built `[#242]` per the frozen contract `LANE-L3-status-grammar.md` - measured the live

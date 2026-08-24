@@ -7,6 +7,7 @@ Architecture decisions for `.dev-knowledge` in Michael Nygard ADR format. The fo
 (operator ruling — decisions live in the ADRs; git history retains the transcripts).
 `archive/` holds terminal (Superseded/Deprecated) ADRs, relocated byte-identical.
 
+<!-- rule: governance-adr-status -->
 ## Status enum
 
 <!-- scope: meta -->

@@ -17,13 +17,45 @@
 # The detector id is load-bearing. Counts from two different detector contracts are not
 # commensurable; the check refuses to compare them rather than silently reporting drift.
 
-detector_id: silent-rule-v4
-baseline: 441
-measured_at: 2026-07-30
-measured_at_sha: 3cd4417a
-measured_files: 56
+detector_id: silent-rule-v5
+baseline: 443
+measured_at: 2026-08-24
+measured_at_sha: 236da477
+measured_files: 58
 
 provenance: |
+  RAISE 441 -> 443 and DETECTOR v4 -> v5, set by the integrator 2026-08-24 at the close of
+  the nine-branch batch. TWO independent changes land together; both are named because the
+  net (+2) hides them:
+
+    441  committed baseline @ 2026-07-30 (sha 3cd4417a), detector v4
+    +4   RULING R8 (operator, 2026-08-23) -- lane L7's PLAYBOOK Ch8 dispatch subsection.
+         Attribution VERIFIED by the integrator rather than inherited: protocols/PLAYBOOK.md
+         blob 210 -> 214, every other in-scope file unchanged. Matches L7 section R0 exactly.
+    +0   lane L5's seven protocols/ files. R8's note predicted its mood rewording moves the
+         number DOWN by 5. MEASURED: net ZERO. The prediction does not survive measurement
+         and is recorded as wrong rather than quietly dropped.
+    =445 live after the last merge, detector v4
+    -2   RULING R12 (2026-08-24) -- protocols/STANDING_RULINGS.md left the scope. See the
+         Excluded clause in scripts/silent_rule_detector.py for why. The excluded set is a
+         CONTRACT CLAUSE, so DETECTOR_ID bumps v4 -> v5 with it; a scope edit that kept the
+         id would let the metric be silently rebased.
+    =443 live under v5 across 58 files (56 at the v4 baseline; 59 on L7's branch alone
+         before R12 removed one).
+
+  R8 ruled the raise APPROVED ON THE MERITS and explicitly directed the integrator to
+  re-measure after the LAST merge rather than pin its own 445 -- which is why this reads 443
+  and not 445, 441 or 446. The raise is an operator act (this file's own header rules that
+  raising is a ruling, not a commit); R8 is that ruling, recorded at
+  docs/audits/2026-08-23-technical-lane-dispatch-codification.md section R0/R0a.
+
+  MIGRATION NOTE: because the detector id moved, the ratchet reads this transition as
+  non-commensurable against main's v4 baseline and emits a WARN until this commit is on the
+  integration ref. That WARN is the check's own designed migration path -- an operator
+  reviews one re-measurement deliberately instead of a version bump waving it through --
+  not a defect and not a bypass.
+  Prior baseline: 441 @ 2026-07-30 (sha 3cd4417a), detector v4.
+
   RAISE 428 -> 441, operator-RULED 2026-07-30 (the intake #18 ratification arc, [#435]):
   the ruled-verbatim adopted texts (A4 checklist, A2/A9/A6/A10 staged paragraphs, U3
   statement, A3 template extract) add exactly +14 normative-token occurrences over the
@@ -54,7 +86,10 @@ provenance: |
 #             a walk inherits the host's case semantics, so the same commit could
 #             measure differently per platform (v2->v3, terra HIGH 2026-07-27)
 #   scope     protocols/*.md - templates/**/*.{md,tmpl} - ecosystem/*.yaml
-#   excluded  **/archive/** - this file - ecosystem/parity-surfaces.yaml (its MUST tokens
+#   excluded  **/archive/** - this file - protocols/STANDING_RULINGS.md (RULING R12: a
+#             standing ruling is normative BY DEFINITION and the register is the mechanism
+#             of record, so counting it as *silent* is a category error)
+#             - ecosystem/parity-surfaces.yaml (its MUST tokens
 #             are tier: enum values read by fleet_parity, i.e. enforced by construction;
 #             in scope they were 120 of 148 candidate lines and would have made the
 #             ratchet fire when someone ADDED enforcement)

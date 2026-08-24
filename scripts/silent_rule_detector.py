@@ -19,7 +19,7 @@ rules. Its absolute value is meaningless in isolation; only its movement
 against a baseline measured by *this same detector* is load-bearing. Do not compare it to
 176, nor to the census's 812 Pass-1 figure.
 
-DETECTOR CONTRACT (`silent-rule-v4`) -- change any clause and you MUST bump DETECTOR_ID
+DETECTOR CONTRACT (`silent-rule-v5`) -- change any clause and you MUST bump DETECTOR_ID
 --------------------------------------------------------------------------------------
   Corpus source   git's TRACKED-file inventory (`git ls-files`) for the PATHS **and**
                   git's object store (`git cat-file`) for the CONTENT -- never the working
@@ -48,6 +48,21 @@ DETECTOR CONTRACT (`silent-rule-v4`) -- change any clause and you MUST bump DETE
       candidate lines (81% of the whole metric), which would make the ratchet fire when
       someone ADDS ENFORCEMENT -- precisely backwards. The arm-time measurement excluded
       these same rows for the same reason ("counting them would have inflated the delta").
+    * `protocols/STANDING_RULINGS.md` -- RULING R12, 2026-08-24. The register of standing
+      operator/architect rulings. A standing ruling is NORMATIVE BY DEFINITION and is
+      recorded in the one place the repo designates for recording it, so counting it as a
+      *silent* rule is a category error: the register is the mechanism of record, i.e. the
+      exact opposite of silent. Left in scope the metric punished the act it exists to
+      encourage -- writing a ruling down where it can be found raised the number, so the
+      register stopped absorbing rulings on 2026-08-15 (measured by lane C2 from ruling
+      provenance) while 38 open backlog rows -- 18% of the whole open set -- carry a
+      Done-when whose only branch is "...or STANDING_RULINGS.md carries a section naming
+      [#nnn]" (measured by lane C3 from the backlog). Two lanes, opposite directions,
+      neither able to see the other. Same shape as the `parity-surfaces.yaml` exclusion
+      directly above: both fire when someone ADDS enforcement, which is backwards.
+      Honest limit, stated so this is not read as more than it is: this exclusion removes
+      only 2 token occurrences at the 2026-08-24 measurement. It is a CORRECTNESS fix to
+      what the metric means, not a headroom fix -- the headroom came from the R8 raise.
   Token           `\\b(?:must|shall|never)\\b`, CASE-INSENSITIVE. Chosen empirically, not
                   by taste: the three silent rules the arm-time probe adjudicated are
                   written "**Never** branch...", "**must** precede", "**must use**" --
@@ -94,7 +109,12 @@ from pathlib import Path
 # check refuses to compare a live count against a baseline stamped with a different id --
 # two detectors' numbers are not commensurable, and silently comparing them is the failure
 # mode this whole module exists to prevent.
-DETECTOR_ID = "silent-rule-v4"
+# v4 -> v5 (2026-08-24, RULING R12): `protocols/STANDING_RULINGS.md` left the scope. The
+# excluded set is a contract clause, so the id bumps with it -- a count produced under a
+# changed corpus is not commensurable with one produced before it, and comparing them
+# numerically would let a scope edit silently rebase the metric. The bump forces the
+# deliberate re-measure-and-re-stamp the check already implements as the migration path.
+DETECTOR_ID = "silent-rule-v5"
 
 BASELINE_RELPATH = "ecosystem/silent-rule-baseline.yaml"
 
@@ -118,7 +138,8 @@ SCOPE_GLOBS = ("protocols/*.md", "templates/**/*.md",
                "templates/**/*.tmpl", "ecosystem/*.yaml")
 
 # Machine-read manifests whose normative tokens are enum values, not prose rules.
-EXCLUDED_RELPATHS = frozenset({BASELINE_RELPATH, "ecosystem/parity-surfaces.yaml"})
+EXCLUDED_RELPATHS = frozenset({BASELINE_RELPATH, "ecosystem/parity-surfaces.yaml",
+                               "protocols/STANDING_RULINGS.md"})
 
 _ARCHIVE_SEGMENT = "archive"
 

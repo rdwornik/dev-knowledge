@@ -173,6 +173,24 @@ def test_detector_catches_the_three_adjudicated_silent_rules():
         assert srd.TOKEN_RE.search(line), f"detector blind to a known silent rule: {line}"
 
 
+def test_standing_rulings_register_excluded_from_scope():
+    """RULING R12 (2026-08-24): a standing ruling is NORMATIVE BY DEFINITION and lives in
+    the register precisely so it is findable, so counting it as a *silent* rule inverts
+    the metric — the register is the mechanism of record, the opposite of silent.
+
+    The measured consequence is why this is pinned rather than left to taste: the register
+    stopped absorbing rulings on 2026-08-15 (lane C2, from ruling provenance) while 38 open
+    backlog rows carry a Done-when whose only branch is a STANDING_RULINGS.md section
+    (lane C3, from the backlog). Same shape as the parity-surfaces exclusion above — both
+    fired when someone ADDED enforcement."""
+    scoped = {rel for rel, _sha in srd.iter_scoped_files(REPO_ROOT)}
+    assert "protocols/STANDING_RULINGS.md" not in scoped
+    # and it is genuinely in the corpus git would otherwise hand the detector — i.e. the
+    # exclusion is doing work, not passing because the file is absent or untracked.
+    assert Path(REPO_ROOT / "protocols" / "STANDING_RULINGS.md").exists()
+    assert srd._in_scope("protocols/STANDING_RULINGS.md")
+
+
 def test_parity_surfaces_excluded_from_scope():
     """parity-surfaces.yaml rows are `tier:` ENUM VALUES read by fleet_parity — enforced
     by construction. In scope they were 120 of 148 candidate lines (81%), so the ratchet
@@ -218,10 +236,27 @@ def test_committed_baseline_matches_live_measurement():
 
 def test_check_registered_and_green_on_live_repo():
     """The check is in ALL_CHECKS (so it is a ship-gate leg by construction) and passes
-    against the live hub."""
+    against the live hub.
+
+    NARROWED 2026-08-24 (RULING R12) for the detector migration, and narrowed rather than
+    relaxed. A v4 -> v5 bump makes this arc's baseline non-commensurable with the one on the
+    integration ref, so the check emits its designed MIGRATION warn until the new baseline
+    lands there. That state is permitted here and NOTHING else is: any other warn, and every
+    fail, still REDs this test. The allowance is also self-closing — it is gated on the
+    committed detector id actually differing from the integration ref's, so once this commit
+    is on `main` the branch is dead and the assertion is `pass` again."""
     assert aud.check_silent_rule_ratchet in aud.ALL_CHECKS
     findings = aud.check_silent_rule_ratchet(REPO_ROOT)
-    assert _status(findings) == "pass"
+    status = _status(findings)
+    if status == "pass":
+        return
+    _state, _value, target_detector = aud._target_baseline_state(REPO_ROOT)
+    committed = (aud._load_silent_rule_baseline(REPO_ROOT) or {}).get("detector_id")
+    assert target_detector is not None and committed != target_detector, (
+        f"not a detector migration (committed={committed!r}, "
+        f"integration-ref={target_detector!r}) — {status}: {[f.evidence for f in findings]}")
+    assert status == "warn", [f.evidence for f in findings]
+    assert "detector MIGRATION" in findings[0].evidence, findings[0].evidence
 
 
 # ---------------------------------------------------------------------------
@@ -379,8 +414,10 @@ def test_detector_id_bumped_for_each_contract_change():
     """The contract says ANY clause change bumps the id, so two incompatible metrics can
     never share a name. v1 counted lines; v2 counted occurrences; v3 took its corpus from
     git's tracked inventory instead of a filesystem walk; v4 reads CONTENT from the object
-    store too."""
-    assert srd.DETECTOR_ID == "silent-rule-v4"
+    store too; v5 dropped protocols/STANDING_RULINGS.md from the excluded-set clause
+    (RULING R12, 2026-08-24) — the excluded set IS a contract clause, so a scope edit that
+    did not bump the id would let the metric be silently rebased."""
+    assert srd.DETECTOR_ID == "silent-rule-v5"
 
 
 def test_enumeration_is_case_insensitive_on_extensions(tmp_path):

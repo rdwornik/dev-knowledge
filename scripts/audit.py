@@ -231,6 +231,7 @@ _BUNDLE_EXCLUDE_DIRS = _registry._BUNDLE_EXCLUDE_DIRS
 
 check_vision_md = _registry.check_vision_md
 check_adr38_baseline = _registry.check_adr38_baseline
+check_adr_status_grammar = _registry.check_adr_status_grammar
 check_claude_md = _registry.check_claude_md
 check_dot_prefix_discipline = _registry.check_dot_prefix_discipline
 check_canonical_md_visibility = _registry.check_canonical_md_visibility
@@ -3445,6 +3446,10 @@ ALL_CHECKS = [
                                      # two-window zero-false-positive evidence bar
     check_landing_predicate,   # [#513] propagation-completeness — GATING (FAIL-capable), one
                                # Finding per declared ruling in STANDING_RULINGS.md
+    check_adr_status_grammar,  # [#242] — ADR Status grammar/enum + header<->README coherence.
+                               # enum/single-field FAIL-armed (both measure 0); grammar(47)/
+                               # coherence(3)/wrapped(1)/duplicate-id(2) WARN against the
+                               # baseline in docs/audits/2026-08-23-technical-lane-status-grammar.md
 ]
 
 
