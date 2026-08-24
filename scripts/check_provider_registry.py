@@ -24,6 +24,17 @@ Covers the table-edit seams R2 §3.2 enumerates:
     S26 .claude/settings.json                the marketplace id + absolute host source path
     S29 ecosystem/satellite-onboarding-rulings.yaml   the `gpt-5.6-sol` provenance token
     S30 pyproject.toml                       the `grok L5` provenance attribution
+    S31 protocols/AI_COUNCIL_PROCESS.md      the council provider roster vs `council_alias`
+
+S31 was added by LANE L1 (2026-08-23) and is the seam that reads the rows that lane added.
+It is not a new seam class — it is the R2 §3.3 finding applied to the surface where it was
+still true: a closed provider vocabulary living in committed prose with nothing asserting it
+agrees with the registry. At the time it was written the roster named five providers and the
+registry declared three, and neither surface could say so.
+
+Beside the seams, one referential check with no seam number, because it is about the registry
+rather than about a site: `check_role_admission_evidence` requires every recorded admission
+verdict to cite an artifact that exists.
 
 S11 is a canonical-DOC seam, not a model seam, and is checked by `tests/test_canonical_docs.py`
 against `scripts/canonical_docs.CONFORMANCE_V2_SCAN`.
@@ -47,6 +58,24 @@ try:
 except ImportError:  # pragma: no cover - exercised by the scripts/-on-sys.path entrypoint
     import provider_registry as _preg
 
+# The CommonMark fence instrument standing ruling N-1 ADOPTED (`markdown_it`, 2026-08-03) and
+# that `scripts/validate_doc_structure.py` already reuses through this same dual import. S31
+# needs it because a roster-shaped row inside a fenced EXAMPLE is not the live roster, and a
+# hand-rolled ``` toggle is blind to `~~~` fences and inverts on a 3-backtick line nested in a
+# 4-backtick outer fence — the two failure modes N-1 exists to stop being re-introduced.
+#
+# `_EOL_RE` rides along with it deliberately. `str.splitlines()` also breaks on Unicode line
+# separators CommonMark does NOT treat as line boundaries (\x0b \x0c \x1c-\x1e \x85 U+2028
+# U+2029), so a fence following one of those desyncs from markdown_it's `.map` indices and
+# leaks its contents back into the live scan — the defect terra raised as HIGH on 2026-08-13
+# against `audit.py` (`docs/audits/2026-08-13-codex-w3-landing-predicate.md`), which is the
+# same defect terra raised here on 2026-08-23. Splitting with the generator's own predicate is
+# how the site stops re-inventing it.
+try:
+    from scripts.toc.generator import _EOL_RE, _code_line_indices
+except ImportError:  # pragma: no cover - the scripts/-on-sys.path entrypoint
+    from toc.generator import _EOL_RE, _code_line_indices
+
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 
 # The registry role each checked site is pinned by. Roles, not literals: the site is asserted
@@ -60,6 +89,7 @@ _PLAYBOOK = "protocols/PLAYBOOK.md"
 _SETTINGS = ".claude/settings.json"
 _TOOL_VERSIONS = "ecosystem/tool-versions.yaml"
 _PYPROJECT = "pyproject.toml"
+_AI_COUNCIL = "protocols/AI_COUNCIL_PROCESS.md"
 
 _FRONTMATTER_MODEL_RE = re.compile(r"^model:\s*(\S+)\s*$", re.MULTILINE)
 _JS_MODEL_RE = re.compile(r"model:\s*'([^']+)'")
@@ -74,6 +104,12 @@ _CONFORMANCE_HUB_PIN_COUNT = 3
 # in a 4,500-line file. A reworded sentence fails LOUD ("binding sentence not found") instead of
 # passing quietly on an unrelated occurrence — the right direction to be wrong in for a seam gate.
 _PROSE_TIER_RE = re.compile(r"tier is [^`\n]*\(`([^`]+)`\)")
+# S31's roster seam is the `models` row of AI_COUNCIL_PROCESS's frontmatter-key table:
+#   | `models` | `claude,gemini,openai,deepseek,grok` | All 5 by default. ... |
+# Anchored on the row rather than on any backticked comma-list, for the same reason
+# _PROSE_TIER_RE is anchored on its sentence: a reworded table fails LOUD ("roster row not
+# found") instead of passing quietly on an unrelated match elsewhere in a 3,600-line file.
+_COUNCIL_ROSTER_RE = re.compile(r"^\|\s*`models`\s*\|\s*`([^`]+)`\s*\|", re.MULTILINE)
 
 
 def _read(root: Path, rel: str) -> str:
@@ -216,8 +252,123 @@ def check_provenance_pins(root: Path) -> list[str]:
     return out
 
 
+def check_s31_council_panel(root: Path) -> list[str]:
+    """S31 — the council's provider roster and the registry's alias vocabulary agree.
+
+    `protocols/AI_COUNCIL_PROCESS.md` declares the default panel as a closed comma-separated
+    token set. Those tokens are PROVIDER ALIASES, and for two of five they differ from the
+    registry key (`claude`/`anthropic`, `grok`/`xai`) — which is why the mapping is data
+    (`providers.<id>.council_alias`) rather than a dict in this module.
+
+    Checked in BOTH directions, because each catches a different rot:
+
+    * roster -> registry: a provider the council panels that the registry has never heard of.
+      This is the same failure class `check_provenance_pins` guards — a provider entering the
+      corpus without entering the vocabulary — and it is how the registry came to carry three
+      of five aliases while the roster carried five.
+    * registry -> roster: an alias the registry claims that the roster no longer names, i.e.
+      a stale registry assertion. `council_alias: null` is the correct declaration for a
+      provider the council does not panel, so this direction has an unambiguous fix.
+    """
+    text = _read(root, _AI_COUNCIL)
+    # Fenced EXAMPLES are not the live roster (terra HIGH round 2, 2026-08-23): the file's own
+    # decision-mode example carries a `models:` line, and a fenced table row would otherwise be
+    # read as authoritative while the real row drifted. Blanked line-count-preserving so the
+    # ambiguity count below still means "rows in live prose".
+    lines = _EOL_RE.split(text)
+    code = _code_line_indices(text)
+    text = "\n".join("" if i in code else ln for i, ln in enumerate(lines))
+    matches = _COUNCIL_ROSTER_RE.findall(text)
+    if not matches:
+        return [f"S31 {_AI_COUNCIL}: the council roster row (\"| `models` | `a,b,c` |\") was not "
+                f"found; the registry declares aliases {sorted(_preg.council_aliases())}"]
+    # More than one matching row and the checker cannot say which is authoritative, so it says
+    # THAT rather than silently taking the first (terra HIGH, 2026-08-23): a `search()` that
+    # takes match #1 is defeated by a decoy row added above the real one, and the gate then
+    # validates the decoy while the live roster drifts.
+    if len(matches) > 1:
+        return [f"S31 {_AI_COUNCIL}: {len(matches)} rows match the council roster shape "
+                f"({matches}); the seam is ambiguous and is reported rather than guessed"]
+    raw = [tok.strip() for tok in matches[0].split(",")]
+    # Empty and duplicate tokens are REPORTED, not dropped. Silently filtering them is how
+    # `claude,,gemini` and `grok,grok` both passed clean (terra HIGH, 2026-08-23) — a roster
+    # this checker had to repair before reading is a roster nobody has looked at.
+    if any(not tok for tok in raw):
+        return [f"S31 {_AI_COUNCIL}: the roster carries an empty token ({matches[0]!r}); a "
+                f"malformed list is reported rather than silently repaired"]
+    dupes = sorted({tok for tok in raw if raw.count(tok) > 1})
+    if dupes:
+        return [f"S31 {_AI_COUNCIL}: the roster names {dupes} more than once ({matches[0]!r}); "
+                f"a provider set with a repeat is malformed"]
+    roster = raw
+    aliases = _preg.council_aliases()
+    out: list[str] = []
+    out.extend(
+        f"S31 {_AI_COUNCIL}: council roster names provider `{tok}`, which no registry entry "
+        f"declares as its `council_alias`"
+        for tok in roster if tok not in aliases
+    )
+    out.extend(
+        f"S31 {_AI_COUNCIL}: registry provider `{pid}` claims council alias `{alias}`, which "
+        f"the roster does not name (use `council_alias: null` if it is not panelled)"
+        for alias, pid in sorted(aliases.items()) if alias not in roster
+    )
+    return out
+
+
+def check_role_admission_evidence(root: Path) -> list[str]:
+    """Every recorded admission verdict points at an artifact that exists.
+
+    The schema already refuses a decided verdict with no `evidence:` string
+    (`ecosystem/schema/provider_registry.py`), but a schema is a models-only module and
+    cannot touch the filesystem. This is the other half: the string has to RESOLVE. A verdict
+    citing a renamed or deleted artifact is how a refusal decays into an unfalsifiable claim
+    — and the registry is the surface a future lane will read to find out why a role is not
+    held, so a dead locator there is worse than none.
+    """
+    out: list[str] = []
+    tree = Path(root).resolve()
+    for (mid, role), record in sorted(_preg.role_admissions().items()):
+        rel = record.get("evidence")
+        if rel is None:                              # legitimate only for `unevaluated`
+            continue
+        rel = str(rel)
+        # An ABSOLUTE path, or one that climbs out of the checked tree, resolves to a file
+        # this repo does not own — so it can "exist" while proving nothing about this tree
+        # (terra HIGH, 2026-08-23). Refused on shape, before the existence test, because the
+        # existence test is exactly what such a path defeats.
+        candidate = Path(rel)
+        if candidate.is_absolute() or ".." in candidate.parts:
+            out.append(
+                f"role_admission {mid}/{role}: evidence `{rel}` is not a repo-relative path "
+                f"inside the checked tree")
+            continue
+        resolved = (tree / candidate).resolve()
+        if not resolved.is_relative_to(tree):
+            out.append(
+                f"role_admission {mid}/{role}: evidence `{rel}` resolves outside the checked "
+                f"tree ({resolved})")
+            continue
+        # `is_file`, not `exists` (terra HIGH round 2, 2026-08-23): `evidence: "."` resolves
+        # inside the tree and exists, while citing no measurement at all. Evidence is an
+        # artifact, so the test is that it IS one.
+        if not resolved.is_file():
+            out.append(
+                f"role_admission {mid}/{role}: evidence `{rel}` is not a file in the checked "
+                f"tree — a verdict citing a missing artifact is an assertion, not a record")
+    return out
+
+
 def check_registry_shape() -> list[str]:
-    """Cheap internal consistency: every model names a registered provider."""
+    """Cheap internal consistency, kept as a seam-level report.
+
+    The rule itself now also lives in `ecosystem/schema/provider_registry.py`, which
+    `provider_registry.load_registry()` enforces on every load — so in practice a violation
+    raises `RegistryError` before this function is reached. It is retained deliberately
+    rather than deleted: `run()`'s contract is that every finding is a returned STRING, and a
+    caller that catches `RegistryError` at the boundary would otherwise lose the per-model
+    detail. Belt and braces, with the braces load-bearing for the message.
+    """
     out: list[str] = []
     known = set(_preg.providers())
     for mid, fields in _preg.models().items():
@@ -242,7 +393,9 @@ def run(root: Path | None = None) -> list[str]:
     findings += check_s10_conformance_hub(r)
     findings += check_s17_playbook(r)
     findings += check_s26_settings(r)
+    findings += check_s31_council_panel(r)
     findings += check_provenance_pins(r)
+    findings += check_role_admission_evidence(r)
     return findings
 
 

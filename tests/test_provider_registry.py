@@ -18,6 +18,7 @@ Two classes of test here, and the split is the whole design:
 from __future__ import annotations
 
 import json
+import re
 import shutil
 from pathlib import Path
 
@@ -77,12 +78,24 @@ def test_changelog_sentinel_tools_are_derived_from_the_registry():
 
 
 def test_version_commands_omits_a_provider_with_no_cli(tmp_path):
-    """`cli: null` means no probe; an entry with no probe is not a probe."""
+    """`cli: null` means no probe; an entry with no probe is not a probe.
+
+    The fixture gained `display_name`, an explicit `cli:` and the `changelog_source_url`
+    half of the S8 pair when LANE L1 declared the schema (2026-08-23). The assertion is
+    untouched — what changed is that the old fixture was not a LEGAL registry: it carried a
+    `version_command` with no `cli`, and a `changelog_tool_key` with no source url. Both are
+    now refused by `ecosystem/schema/provider_registry.py`, so this edit is the schema
+    demonstrating itself rather than the test being relaxed to fit.
+    """
     p = tmp_path / "r.yaml"
     p.write_text(yaml.safe_dump({
         "providers": {
-            "with": {"version_command": ["x", "--version"], "changelog_tool_key": "x"},
-            "without": {"cli": None, "version_command": None},
+            "with": {
+                "display_name": "With", "cli": "x", "version_command": ["x", "--version"],
+                "changelog_tool_key": "x",
+                "changelog_source_url": "https://example.invalid/x",
+            },
+            "without": {"display_name": "Without", "cli": None, "version_command": None},
         },
         "models": {},
     }), encoding="utf-8")
@@ -154,7 +167,14 @@ def tree(tmp_path):
     live tree."""
     root = tmp_path / "repo"
     for rel in (_ARTIFACT_READER, _CONFORMANCE_HUB, _PLAYBOOK, _SETTINGS, _TOOL_VERSIONS,
-                "pyproject.toml", "ecosystem/satellite-onboarding-rulings.yaml"):
+                "pyproject.toml", "ecosystem/satellite-onboarding-rulings.yaml",
+                # S31's roster site, and every artifact a live `role_admission` verdict
+                # cites — both joined the copied surface with LANE L1 (2026-08-23). The
+                # evidence set is DERIVED from the registry rather than typed, so a new
+                # verdict cannot silently leave this fixture behind.
+                "protocols/AI_COUNCIL_PROCESS.md",
+                *sorted({str(r["evidence"]) for r in preg.role_admissions().values()
+                         if r.get("evidence")})):
         dest = root / rel
         dest.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(_REPO_ROOT / rel, dest)
@@ -255,3 +275,162 @@ def test_an_internal_error_blocks_rather_than_passing(tmp_path, capsys):
     """Exit 2, not 0 — the house posture. An empty directory is not a clean repo."""
     assert cpr.main([str(tmp_path)]) == 2
     assert "INTERNAL ERROR" in capsys.readouterr().err
+
+
+# --- S31: the council roster reads the rows LANE L1 added ----------------------------------
+
+@pytest.mark.live_repo
+def test_every_council_provider_resolves_to_a_registry_entry():
+    """The live assertion, and the one the lane exists to make true.
+
+    Before 2026-08-23 the roster named five providers and the registry declared three; this
+    passing is the measurement that `gemini` and `deepseek` now resolve.
+    """
+    assert cpr.check_s31_council_panel(_REPO_ROOT) == []
+    aliases = preg.council_aliases()
+    assert aliases == {"claude": "anthropic", "gemini": "google", "openai": "openai",
+                       "deepseek": "deepseek", "grok": "xai"}
+
+
+def test_a_council_provider_absent_from_the_registry_is_caught(tree):
+    """roster -> registry: the direction that was FAILING before this lane ran."""
+    _break(tree, "protocols/AI_COUNCIL_PROCESS.md",
+           "`claude,gemini,openai,deepseek,grok`", "`claude,gemini,openai,deepseek,grok,mistral`")
+    findings = cpr.run(tree)
+    assert any(f.startswith("S31 ") and "mistral" in f for f in findings), findings
+
+
+def test_a_registry_alias_the_roster_no_longer_names_is_caught(tree):
+    """registry -> roster: a stale registry claim, whose fix is `council_alias: null`."""
+    _break(tree, "protocols/AI_COUNCIL_PROCESS.md",
+           "`claude,gemini,openai,deepseek,grok`", "`claude,openai,grok`")
+    findings = cpr.run(tree)
+    assert any(f.startswith("S31 ") and "deepseek" in f for f in findings), findings
+    assert any(f.startswith("S31 ") and "gemini" in f for f in findings), findings
+
+
+def test_a_reworded_roster_row_fails_loud_rather_than_passing_quietly(tree):
+    """The anchored-regex posture: a seam that cannot find its site says so."""
+    _break(tree, "protocols/AI_COUNCIL_PROCESS.md", "| `models`", "| `panel-members`")
+    findings = cpr.run(tree)
+    assert any("roster row" in f and f.startswith("S31 ") for f in findings), findings
+
+
+# --- role_admission evidence resolves -------------------------------------------------------
+
+@pytest.mark.live_repo
+def test_every_recorded_admission_verdict_cites_an_artifact_that_exists():
+    assert cpr.check_role_admission_evidence(_REPO_ROOT) == []
+    admissions = preg.role_admissions()
+    assert admissions, "precondition: the registry carries at least one verdict to check"
+
+
+def test_a_decoy_roster_row_is_reported_rather_than_silently_preferred(tree):
+    """terra HIGH, 2026-08-23: `search()` takes match #1, so a decoy row above the real one
+    would be validated while the live roster drifts. Two matches is now ambiguity, reported."""
+    p = tree / "protocols/AI_COUNCIL_PROCESS.md"
+    text = p.read_text(encoding="utf-8")
+    decoy = "| `models`         | `claude,gemini,openai,deepseek,grok`     | decoy |\n"
+    p.write_text(decoy + text.replace("`claude,gemini,openai,deepseek,grok`",
+                                      "`claude,gemini,openai,deepseek,mistral`", 1),
+                 encoding="utf-8")
+    findings = cpr.run(tree)
+    assert any(f.startswith("S31 ") and "ambiguous" in f for f in findings), findings
+
+
+def test_an_empty_roster_token_is_reported_rather_than_dropped(tree):
+    _break(tree, "protocols/AI_COUNCIL_PROCESS.md",
+           "`claude,gemini,openai,deepseek,grok`", "`claude,,gemini,openai,deepseek,grok`")
+    findings = cpr.run(tree)
+    assert any(f.startswith("S31 ") and "empty token" in f for f in findings), findings
+
+
+def test_a_duplicated_roster_token_is_reported(tree):
+    _break(tree, "protocols/AI_COUNCIL_PROCESS.md",
+           "`claude,gemini,openai,deepseek,grok`", "`claude,gemini,openai,deepseek,grok,grok`")
+    findings = cpr.run(tree)
+    assert any(f.startswith("S31 ") and "more than once" in f for f in findings), findings
+
+
+def test_a_roster_row_inside_a_fenced_block_is_not_the_live_roster(tree):
+    """terra HIGH round 2, 2026-08-23: a fenced EXAMPLE row would otherwise be read as
+    authoritative while the real row drifted. Uses the N-1 CommonMark fence instrument."""
+    p = tree / "protocols/AI_COUNCIL_PROCESS.md"
+    text = p.read_text(encoding="utf-8")
+    fenced = ("```\n| `models`         | `claude,gemini,openai,deepseek,grok`     | ex |\n```\n")
+    p.write_text(fenced + text.replace("`claude,gemini,openai,deepseek,grok`",
+                                       "`claude,gemini,openai,deepseek,mistral`", 1),
+                 encoding="utf-8")
+    findings = cpr.run(tree)
+    # The fenced row is ignored, so the LIVE row is the one read — and it names `mistral`.
+    assert any(f.startswith("S31 ") and "mistral" in f for f in findings), findings
+    assert not any("ambiguous" in f for f in findings), findings
+
+
+def test_a_vertical_tab_cannot_desync_the_fence_mask(tree):
+    """terra MEDIUM round 3, 2026-08-23 — and the same defect class terra raised as HIGH
+    against `audit.py` on 2026-08-13. `str.splitlines()` breaks on \\x0b, which CommonMark
+    does not treat as a line boundary, so every index after it shifts and a fenced roster row
+    escapes the mask. Splitting with the generator's own `_EOL_RE` is what keeps them aligned."""
+    p = tree / "protocols/AI_COUNCIL_PROCESS.md"
+    drifted = p.read_text(encoding="utf-8").replace(
+        "`claude,gemini,openai,deepseek,grok`", "`claude,gemini,openai,deepseek,mistral`", 1)
+    # The trigger is specific and was verified before being asserted: TWO \x0b before an
+    # UNTERMINATED trailing fence. A terminated fence is NOT a reproducer — the off-by-two
+    # still lands inside a 3-line masked span, so the leak does not surface.
+    poison = ("\n\x0b\x0b\n```\n"
+              "| `models`         | `claude,gemini,openai,deepseek,grok`     | ex |\n")
+    p.write_text(drifted + poison, encoding="utf-8")
+    findings = cpr.run(tree)
+    # Aligned: the fenced row stays masked, so the LIVE (drifted) row is the one S31 reads.
+    # Desynced: the fenced row leaks, S31 sees TWO rows and reports ambiguity instead.
+    assert any(f.startswith("S31 ") and "mistral" in f for f in findings), findings
+    assert not any("ambiguous" in f for f in findings), findings
+
+
+def test_the_agreement_hook_fires_on_its_own_implementation(tree):
+    """terra HIGH round 3, 2026-08-23: a gate whose `files:` pattern excludes its own source
+    can be disarmed by a commit that touches nothing else. Asserted against the committed
+    pattern rather than against prose."""
+    cfg = yaml.safe_load((_REPO_ROOT / ".pre-commit-config.yaml").read_text(encoding="utf-8"))
+    hooks = [h for repo in cfg["repos"] for h in repo.get("hooks", [])
+             if h.get("id") == "provider-registry-agreement"]
+    assert len(hooks) == 1, hooks
+    pattern = re.compile(hooks[0]["files"])
+    for rel in ("scripts/check_provider_registry.py", "scripts/provider_registry.py",
+                "ecosystem/schema/provider_registry.py",
+                # terra round 4: the selector itself, and the fence instrument S31 imports.
+                # Narrowing the selector, or neutering `_code_line_indices`, each disarms the
+                # gate in a commit the gate would otherwise never see.
+                ".pre-commit-config.yaml", "scripts/toc/generator.py",
+                "ecosystem/provider-registry.yaml", "protocols/AI_COUNCIL_PROCESS.md"):
+        assert pattern.search(rel), f"hook would not fire on {rel}"
+    # ...and it stays a selector, not a catch-all.
+    for rel in ("README.md", "scripts/audit.py", "docs/audits/x.md", "tests/test_audit.py"):
+        assert not pattern.search(rel), f"hook over-matches {rel}"
+    # terra CRITICAL round 5: the pattern DOCUMENTS the coupled surface; `always_run` is what
+    # guarantees the hook runs, because a commit narrowing this selector is evaluated against
+    # the narrowed selector and would otherwise skip the gate that should have refused it.
+    assert hooks[0].get("always_run") is True, hooks[0]
+    assert hooks[0].get("pass_filenames") is False, hooks[0]
+
+
+@pytest.mark.parametrize("target", [".", "docs", "docs/audits"])
+def test_evidence_naming_a_directory_is_caught(tree, monkeypatch, target):
+    """terra HIGH round 2, 2026-08-23: a directory resolves in-tree and `.exists()`, while
+    citing no measurement at all. The registry is read from THIS repo by contract, so the
+    record is injected at the accessor rather than by writing a second registry file."""
+    (tree / "docs" / "audits").mkdir(parents=True, exist_ok=True)
+    monkeypatch.setattr(cpr._preg, "role_admissions", lambda *a, **k: {
+        ("m", "fan-out"): {"verdict": "refused", "decided_by": "architect",
+                           "decided_on": "2026-08-23", "evidence": target},
+    })
+    findings = cpr.check_role_admission_evidence(tree)
+    assert any("is not a file" in f for f in findings), findings
+
+
+def test_a_verdict_citing_a_missing_artifact_is_caught(tree):
+    for rel in {str(r["evidence"]) for r in preg.role_admissions().values() if r.get("evidence")}:
+        (tree / rel).unlink()
+    findings = cpr.run(tree)
+    assert any(f.startswith("role_admission ") for f in findings), findings

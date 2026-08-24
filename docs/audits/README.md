@@ -17,6 +17,7 @@
 - [2026-08-23](2026-08-23-technical-window-seal.md) — WINDOW SEAL — 2026-08-20 → 2026-08-23
 - [2026-08-23](2026-08-23-technical-wave-close-funnel.md) — WAVE CLOSE — the funnel table over the 562-local guarded A/B run
 - [2026-08-23](2026-08-23-technical-phase0-preconditions.md) — PHASE-0 PRECONDITION PACKET — 2026-08-23
+- [2026-08-23](2026-08-23-technical-lane-provider-config.md) — LANE L1 — Provider configuration (M1)
 - [2026-08-23](2026-08-23-technical-lane-docs-governance.md) — LANE-DOCS — governance-drift discharge: ARCHITECTURE.md · CLAUDE.md · VISION.md
 - [2026-08-23](2026-08-23-technical-lane-562-local-admission.md) — The guarded A/B, run — leg 3 of `[#562]`, executed locally under the no-pack sandbox
 - [2026-08-22](2026-08-22-technical-lane-fix-562-guard.md) — LANE-FIX-562-GUARD — the two confirmed Criticals on the held cloud-1 branch, repaired
