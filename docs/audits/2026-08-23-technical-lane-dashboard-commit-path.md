@@ -814,3 +814,383 @@ one-shot arithmetic as the count pins.
 6. **It does not close R3 F5.** `gen_dashboard.py --check` is still armed nowhere. Different
    defect, different act — the Phase-0 packet draws that boundary explicitly.
 
+
+---
+
+## 6. terra review (Step 6)
+
+The contract makes terra **mandatory, pre-merge**, at *"zero Critical / zero High, mutation-checked,
+tally written into the artifact body."* This section is that tally. It is written here and not only
+in commit messages because `review_artifact_coverage` parses a `**Tally:**` line out of the linked
+artifact — an audit organ in this repo already treats a review whose numbers live only in a commit
+message as an unparseable one.
+
+**Tally:** 0/0/0/0 — Critical/High/Medium/Low, final pass (round 9, CLEAN)
+
+The slash form is not a style choice: `audit.py::_REVIEW_TALLY_RE` is
+`^\*\*Tally:\*\*[ 	]*(\d+)/(\d+)/(\d+)/(\d+)`, and a `Critical=0 High=0` line — which is
+the shape terra itself emits — parses as **no tally at all**. `review_artifact_coverage`
+already names one linked artifact in this repo that carries an unparseable tally; authoring
+from the parser rather than from the reviewer's output format is what keeps this one off
+that list.
+
+**That is the FINAL pass, not the loop total.** Nine passes ran; the loop total was 26 findings.
+Reporting only the last pass would make a nine-round argument look like a one-round formality, so
+both numbers are given.
+
+### 6.1 The loop, pass by pass
+
+`codex exec review -m gpt-5.6-terra` over this lane's diff against merge base `aeec0fd1`. One pass
+is not a review: each re-run reads the diff the previous fix produced, and passes 2–8 each raised
+something the pass before had graded clean.
+
+| Pass | C | H | M | L | What it caught |
+|---|---|---|---|---|---|
+| 1 | 0 | 3 | 1 | 0 | input set excluded the generator + its parsers; commit path bounded only the `add`; the fenced audit adapter had no envelope tests |
+| 2 | 0 | 1 | 1 | 0 | a **deleted** output measured normally and could report `fresh`; ADR-86's "ADR-80 §3 has zero implementations" was false |
+| 3 | 0 | 3 | 1 | 1 | author dates hid a cherry-picked input; fenced envelope mapped `deleted` → `pass`; fenced stale-test created no output files; `gitenv` fallback silently weakened the gate; "read-only, spawns `git log` and nothing else" was false |
+| 4 | 0 | 2 | 2 | 0 | unmeasurable declared inputs were silently dropped from the relation; an **uncommitted** output greened the gate; the artifact documented `%as` while the code read `%as %cs`; `--commit-path`'s non-mutation claim was untested |
+| 5 | 0 | 6 | 0 | 0 | fenced envelope fixtures supplied 3 of 9 declared inputs (×2 tests); the `unavailable` test contradicted the implementation; `logs/TELEMETRY.db` was an unmeasurable blind spot; **both** artifact strings claimed a currency the code does not provide right after `--write` |
+| 6 | 0 | 2 | 1 | 0 | a missing first output face short-circuited to `n/a` while another face was stale; the leg spent 20 `git log` calls on **every pre-commit** |
+| 7 | 0 | 1 | 0 | 0 | `git log -1 -- <path>` follows a `--no-ff` merge into the side branch, so an input that landed today measures as weeks old — `fresh` indefinitely, in the exact workflow this repo mandates |
+| 8 | 0 | 1 | 0 | 0 | `baseline_days = 3` had been measured by a relation the code no longer performs (§6.2) |
+| **9** | **0** | **0** | **0** | **0** | **CLEAN** |
+
+**Round 9's verdict, verbatim, because a clean pass is evidence only if it is quoted rather than
+summarised:**
+
+> No real defects found in the scoped diff. The remaining limitations — untracked telemetry input,
+> day-level measurement, rename history, and the intentionally unarmed `--check` gate — are
+> explicitly documented accepted design limits rather than contradictions with the implemented
+> freshness relation.
+
+That is the stopping condition, and it is the right one: the four things it names are §5.6's honest
+limits 3, 4, 5 and 6 — the reviewer independently re-derived this lane's own list of accepted
+limits and agreed they are limits rather than defects. Each pass from 8 onward carried an explicit
+*"classify as (a) a real defect I will fix, or (b) a design tension I will record"* instruction, so
+"nothing found" is a classification the reviewer made, not a silence it fell into.
+
+**Honest limit on the tally itself.** Passes 1–7 ran in an earlier session and their per-finding
+dispositions were not recorded at the time — the per-round severities above are read back from
+those runs' own `TALLY:` lines, which survive in the `codex` rollout logs, and the fixes that
+actually landed are enumerated in `83023bbc`'s commit message. Passes 1–7 were **not** re-adjudicated
+in this session; what was verified here is that the current tree passes round 9 clean. A loop that
+records only its final pass is what made this note necessary, and it is why the table exists.
+
+### 6.2 The one finding this session had to fix, and how it was proved
+
+Round 8, classified by terra as *"(a) real defect"*:
+
+> At `aeec0fd1`, this module's own `--first-parent` query reports `docs/audits` (a declared input)
+> last touched on 2026-08-24, while both dashboard outputs were last touched on 2026-08-20, so the
+> measured relation is 4 days, not 3.
+
+It is the lane's own subject reproduced inside the lane's own code. `baseline_days = 3` was a
+genuine measurement — of a relation that had since been replaced twice underneath it (round 3
+swapped author date for committer date; round 7 added `--first-parent`; round 1 added the CODE half
+of the input set). `docs/audits` reads `2026-08-23` by author date and `2026-08-24` by committer
+date. The constant outlived its measurement, and a "measured baseline" that no longer describes any
+measurement the code performs is exactly a true-sounding claim about a mechanism that moved.
+
+**Mutation-checked, both directions**, because a pinned constant is only pinned if its test fails
+when it is wrong:
+
+```
+baseline_days=4  ->  27 passed
+baseline_days=3  ->  FAILED test_dashboard_baseline_is_the_measured_value - assert 3 == 4
+baseline_days=5  ->  FAILED test_dashboard_baseline_is_the_measured_value - assert 5 == 4
+```
+
+Corrected at every site that carried it: the module docstring, `DASHBOARD.baseline_days`, the
+pinning test, §1.4's ground-truth table, §5.3's derivation block, §5.4's re-run evidence, the §5.5
+fenced audit docstring, the §5.5 fenced envelope-test assertion, the ADR-86 amendment, and intake
+#42. Ten sites for one number is itself the argument for the CLAUDE.md §4 rule about restating
+computed values in prose.
+
+**The fenced diffs were executed, not just re-read.** Terra found the fenced envelope tests broken
+twice (rounds 3 and 5), which is a failure mode a lane cannot see by inspection because the code
+does not run from inside a markdown fence. So the `tests/test_audit.py` hunk was **extracted from
+this artifact programmatically** and run against a shim of the fenced adapter: **7 passed,
+1 skipped.** The skip is `test_generated_artifact_freshness_is_registered`, which asserts
+`ALL_CHECKS` / `CHECK_ORDER` membership and can only become true once the integrator applies the
+registration hunks — it is skipped rather than faked green, and that is the one assertion in the
+diff this lane genuinely cannot prove from here.
+
+### 6.3 The declared bypass, and why the standing remedy was withheld
+
+Both commits in this session carry `SKIP=audit-health` — one hook, declared, never `--no-verify`
+(which would drop the whole mesh including `validate-hermetization` and the commit-msg gates).
+Stated here and not only in the commit messages, because an undeclared bypass is what the doctrine
+actually refuses.
+
+`audit.py health` has exactly **one** `[!!]` FAIL on this tree: `journal_spine_anchor`, naming 13
+first-parent spine entries above the disposition floor `24882f8cc`. **All 13 are foreign**, proved
+on two independent legs rather than asserted:
+
+- `git merge-base --is-ancestor <sha> HEAD` returns **false for all 13** — not one is reachable
+  from this branch.
+- `journal_anchor.unanchored_on_spine` run against **main's own `JOURNAL.md`** returns **zero**.
+
+So this is lane tree-lag, not a real gap: the check walks `main`'s spine from the shared ref store
+(a worktree sees main's newest commits instantly) but reads `JOURNAL.md` from the local working
+tree, which predates the integrator's entry. Main is already anchored; this worktree just cannot
+see it. The batch merged to `main` after this lane was cut.
+
+**The standing remedy is a sync-merge of `main` into the lane, and it is deliberately not used
+here.** It was withheld under an explicit operator instruction for this lane — *do not rebase, do
+not merge main in; commit, seal, stop; the integrator resolves the drift.* Recorded as a
+**deviation from the standing remedy**, not as a discovery: the remedy would have cleared the FAIL
+without a bypass, and the reason it was not taken is an instruction, not a technical obstacle. The
+integrator inherits a lane whose merge base is `aeec0fd1` and which has never seen the batch.
+
+A lane also **does not write `JOURNAL.md`** — `/lane-integrate` writes the anchor once, from the
+primary, after every lane has stopped. Writing one here would contend with every sibling lane for
+one file and would itself become the next unanchored commit. So the contract's "JOURNAL.md entry on
+this branch" item is **declined with its reason**, not silently skipped.
+
+### 6.4 What this review could not check
+
+1. **It reviewed a diff, not a merge.** Every finding above was raised against
+   `aeec0fd1...HEAD`. `main` has moved since — the batch landed — and this lane has deliberately
+   not merged it (§6.3). Nothing here says the lane is conflict-free against current `main`; that
+   is the integrator's act.
+2. **The registration is still unapplied.** §5.6 limit 1 stands: until the fenced diffs land, the
+   leg is an ADR-81 (d) documented deferral, not a live gate. Terra reviewed the diff's *content*
+   and the extracted tests' *behaviour*; neither proves the hunks apply cleanly against a tree that
+   several sibling lanes have also edited.
+3. **No count pin was authored, so no count pin was reviewed.** `len(ALL_CHECKS)` is pinned in six
+   places and its correct value is N-dependent across the batch (§5.5). The integrator's checklist
+   in §5.5 is the surface that closes this; a reviewer looking only at this lane cannot.
+
+---
+
+## 7. The BACKLOG row this lane did **not** file
+
+Two committed surfaces promise this section by name, and until now both pointed at nothing:
+
+- `docs/intake/2026-08-23-tech-generated-artifact-currency.md` (intake **#42**), Status block —
+  *"The BACKLOG row this work would need is specified in
+  `docs/audits/2026-08-23-technical-lane-dashboard-commit-path.md` §7."*
+- the `ecosystem/doc-code-edge.yaml` hunk of the §5.5 fenced diff, inside the comment that
+  justifies the exemption — *"the row is specified in
+  `docs/audits/2026-08-23-technical-lane-dashboard-commit-path.md` §7.4 and NOT filed."*
+
+Both were **claims without evidence**: neither section existed. That is precisely the defect class
+this lane was dispatched to fix — a true-sounding sentence about something that is not there — and
+it had reproduced itself in the lane's own paperwork. It is fixed the way the rest of the lane
+fixed it: by making the claim true, not by softening the wording.
+
+### 7.1 Why the row is specified here rather than filed
+
+Ruling **R2** sets `banked = 0` for the 2026-08-23 batch: **no task rows are born**. The frozen
+contract restates it — *"File no task row. Ruling R2: `banked = 0`, so no births this batch. Write
+the row specification into your artifact and file an intake if the work needs a carrier."*
+
+The lane did both halves and neither more. It filed the **intake** (#42, DRAFT) as the carrier, and
+it writes the **specification** at §7.4. Nothing under `tasks/` was created, `BACKLOG.md` was not
+regenerated, and **no `[#id]` was consumed** — which is also why §7.4 does not pin one (note 1
+there).
+
+### 7.2 The debt the row exists to discharge
+
+The §5.5 fenced diff adds `generated_artifact_freshness` to `ecosystem/doc-code-edge.yaml`'s
+**`exempt:`** list. That is a real cost, and the file states it in its own header: `exempt:` is for
+`ALL_CHECKS` members that owe **no** `# rule:` annotation because they are structural, presence, or
+self-referential checks *"with no behavioral doc→code rule"*.
+
+This leg is not one of those. It embodies a behavioural rule —
+
+> a committed generated artifact must not fall further behind its declared inputs than its
+> measured baseline
+
+— and a rule that exists cannot honestly be filed under *there is no rule here*. The exemption is
+therefore **TEMPORARY**, in the exact shape of the `review_artifact_coverage` entry immediately
+above it in the same file, which the diff names as its precedent. That entry states the general
+principle: enforcement ahead of its written rule runs only under a **named, expiring** exemption
+(ADR-81 (d)), *"bound to a row rather than to memory"*. `[#499]` is that row for
+`review_artifact_coverage`, and it carries the expiry as an explicit rider — *"this row owns the
+exemption's expiry so it cannot outlive its reason."*
+
+§7.4 is the same instrument for this leg. Without it, the word **TEMPORARY** in a YAML comment is
+the only thing standing between this exemption and permanence — and a comment is not a mechanism.
+That is the whole argument of this lane, applied to its own paperwork.
+
+### 7.3 What the row must **not** be, and what it must decide first
+
+Four constraints, because a row filed without them would be filed wrong.
+
+1. **It is not a promotion to RED.** R1 armed this leg as a **WARN against a measured baseline**,
+   and said RED *"is a later act with its own ruling."* The row below discharges a **coverage**
+   debt and nothing else. It must not smuggle in a severity change; that needs its own ruling, and
+   this lane has none to cite.
+2. **It cannot be sized until intake #42's open questions are answered.** #42 asks three, and two
+   of them move the row's scope by more than a size band: *is HEAD-pinning itself the defect* — if
+   the dashboard stopped rendering HEAD's sha into its own text, `--check` would become usable as a
+   gate and this leg could be **deleted** rather than promoted — and *should the registry cover
+   artifacts that already have a `--check` gate*. A row written before those are answered pins a
+   scope the architect has not chosen. §7.4 therefore states the **fixed** part (the coverage debt,
+   owed whatever the answers are) and names the variable part as a deferral peg rather than
+   guessing it.
+3. **The rule's home is not a free choice.** #42's third open question — PLAYBOOK, ARCHITECTURE
+   Ch2, or an ADR — is constrained by the mechanism: `doc_code_edge` resolves `<!-- rule: ID -->`
+   markers **only** in the three files under `declaration_docs:` (`protocols/PLAYBOOK.md`,
+   `protocols/DEFINITION_OF_DONE.md`, `protocols/HANDOFF_PROCESS.md`). An ADR home would leave the
+   edge unresolvable and the exemption permanent **by construction** — which is the position
+   `routine_consumers` is already stuck in, per its own comment in the same file. §7.4 says
+   PLAYBOOK for that mechanical reason, and flags that choosing otherwise means also amending
+   `declaration_docs:`, which is a separate ruling and not a side effect.
+4. **It is a two-site edge, and saying so is load-bearing.** The strict resolver returns
+   `ambiguous` for more than one code site, so a rule enforced in two organs that is *not* declared
+   in `multi_site:` can never resolve — it would freeze `test_coverage_all_in_scope_rules_resolve`
+   below 100% permanently. This leg is `audit.py::check_generated_artifact_freshness` (adapter) +
+   `scripts/generated_artifact_freshness.py` (logic), which is exactly the shape already declared
+   for `coherence-doc-claims`, `coherence-doc-rot` and `coherence-doc-structure`. The row states
+   the count so a filer cannot discover it at the gate.
+
+**Related drift this lane surfaced and did not touch.**
+`tasks/171-build-the-conformance-dashboard-at-ecosystem-con.md` still reads *"a read-only validator
+generates it and commits its own output (ADR-80 committed-generated-zone writer policy)"*, with
+`Done when: … generated + committed by a read-only validator`. **R1 withdrew exactly that clause.**
+The row's own text now describes the option the architect declined, and its `Done when` names a
+mechanism this lane has established does not and will not exist. A lane does not edit `tasks/` this
+batch (§7.1), and `[#171]` is not this lane's row to rewrite — **reported, not filed**, for the
+integrator's ruling batch.
+
+### 7.4 The row specification
+
+Ready to file verbatim as `tasks/<id>-<slug>.md` once R2's `banked = 0` lifts. Frontmatter first,
+then the `BACKLOG.md` line `gen_task_tree.py` emits from it.
+
+```yaml
+---
+id: "[#<next>]"
+title: "Write the generated-artifact currency rule and expire its doc→code exemption"
+status: deferred
+priority: P3
+size: M
+theme: "[E2] Enforced governance"
+story: "[S5] Catch spec/dependent drift mechanically, not by memory"
+depends-on: "#171"
+generates: BACKLOG.md
+---
+```
+
+```text
+- [#<next>] [P3][M] **Write the generated-artifact currency rule and expire its doc→code exemption** — the ADR-86 amd. 2026-08-23 staleness leg (`audit.check_generated_artifact_freshness` + `scripts/generated_artifact_freshness.py`) shipped under a **TEMPORARY** `ecosystem/doc-code-edge.yaml` `exempt:` entry, on the `review_artifact_coverage` / `[#499]` precedent: enforcement ahead of its written rule runs only under a named, expiring exemption (ADR-81 (d)). This row owns that expiry so it cannot outlive its reason. The rule is *"a committed generated artifact must not fall further behind its declared inputs than its measured baseline"*; it currently exists only inside an ADR amendment, which is an immutable decision record, not a living doc a `# rule:` marker can bind to. · Done when: the rule is written in `protocols/PLAYBOOK.md` carrying `<!-- rule: coherence-generated-artifact-currency -->`, **AND** `scripts/audit.py::check_generated_artifact_freshness` and `scripts/generated_artifact_freshness.py` each carry the matching `# rule:` marker with `multi_site: coherence-generated-artifact-currency: 2` declared (adapter + logic — the `coherence-doc-claims` / `coherence-doc-rot` / `coherence-doc-structure` shape, not a 1:1 edge), **AND** `generated_artifact_freshness` moves from `exempt:` to `coverage_scope:`, **AND** `tests/test_doc_code_edge.py::test_coverage_all_in_scope_rules_resolve` resolves it, **AND** `python scripts/audit.py health` still reports the leg `pass` on a current tree · refs docs/decisions/ADR-86-conformance-dashboard-location.md (amd. 2026-08-23), docs/audits/2026-08-23-technical-lane-dashboard-commit-path.md §5.5 + §7, docs/intake/2026-08-23-tech-generated-artifact-currency.md (#42), ecosystem/doc-code-edge.yaml, scripts/generated_artifact_freshness.py, #499, #171 · kill-candidates: none — no open row owns generated-artifact currency; the nearest neighbour `[#169]` scopes the four ADR-85-**ungated living docs**, not generated artifacts, and would be wrong to close for this · DEFER — peg: intake #42's three open questions answered (HEAD-pinning, registry breadth, rule home)
+```
+
+**Six notes on the fields, because each one was a decision rather than a default:**
+
+1. **`id` is deliberately unpinned.** The next-free id is `max(bracketed id across history) + 1` —
+   computed, not remembered, and invalidated by any sibling lane's filing. Pinning it here would
+   restate a count in prose, which is the CLAUDE.md §4 rule this repo learned the hard way, and it
+   would be stale before the row was ever filed. Resolve it at filing time.
+2. **`status: deferred` with a named peg, not `open`.** Per §7.3 item 2 the scope is not knowable
+   until #42 is answered, and this repo's own convention (`[#169]`, `[#499]`) is that an
+   unanswerable row **defers against a named peg** rather than sitting open and rotting.
+3. **`size: M`, matching `[#499]`** — the same act (write the PLAYBOOK rule, annotate both organs,
+   flip the exemption, prove the edge resolves) at the same shape. **Honest limit:** if #42's
+   HEAD-pinning question resolves toward *drop the HEAD stamp*, this leg may be **deleted** instead
+   of promoted and M is then an overestimate. That is an argument for the deferral, not for sizing
+   it smaller now.
+4. **`story: [S5]`, not `[S3]`.** `[S3]` is *"turn advisory guards into enforced gates"*, which this
+   row explicitly is **not** — §7.3 item 1, the leg stays WARN. `[S5]` is *"catch spec/dependent
+   drift mechanically, not by memory"*, which is the rule almost verbatim, and it is where `[#171]`
+   and `[#169]` already sit.
+5. **`depends-on: #171`.** The leg does not exist in the tree until the §5.5 fenced diff is applied,
+   and that application is `[#171]` leg 1's merge. Filing this row before that merge would create a
+   dependency on code that is not there.
+6. **`kill-candidates: none — <reason>`, and the reason is the point.** The
+   `backlog-filing-backpressure` commit-msg gate **BLOCKS** a commit that adds a task id without
+   that line, and `preflight_backlog_ids` checks that any row it names is actually open. `[#169]`
+   is the row a hurried filer would reach for; the specification says why it is the wrong one
+   instead of leaving that to be discovered at the gate.
+
+---
+
+## 8. Suite state at hand-back
+
+Run unpiped, whole suite, at branch tip: **`6 failed, 3601 passed, 9 skipped, 1 xfailed in
+1657.54s`**. Not "green" — the contract forbids reporting that, and it would be false.
+
+Six is not two, so every failure is dispositioned below, and **the disposition is a measurement,
+not a judgement.** A detached worktree was created at the merge base `aeec0fd1` — a tree containing
+**none** of this lane's files (`scripts/generated_artifact_freshness.py` and
+`tests/test_generated_artifact_freshness.py` are absent there; `git worktree add --detach` shares
+the ref store but not the content) — and the four non-baseline failures were re-run inside it.
+Result: **3 failed, 1 passed in 433.62s**. The worktree was then removed and its removal verified
+(`git worktree remove --force` + `prune`; `git worktree list` shows three entries, none of them the
+probe) — §5 rule 9, no leftovers.
+
+| Test | Verdict | Proof |
+|---|---|---|
+| `test_enforcement_coverage.py::test_anchor_gate_probe_distinguishes_installed_from_absent` | **inherited** | Named in the contract's own baseline as pre-existing and rooted in its `tmp_path` fixture |
+| `test_stale_worktrees.py::test_linked_worktrees_reader_excludes_the_primary` | **environmental** | It asserts `aud._REPO_ROOT` is not among the linked worktrees; inside a worktree it *is* one. Structural to running the suite from a lane |
+| `test_audit.py::test_health_ok_with_registered_repo` | **foreign** | FAILS at `aeec0fd1` with none of this lane's content present |
+| `test_audit.py::test_health_stays_ok_with_na_status` | **foreign** | FAILS at `aeec0fd1` with none of this lane's content present |
+| `test_silent_rule_ratchet.py::test_check_registered_and_green_on_live_repo` | **foreign** | FAILS at `aeec0fd1`; and independently, the detector's scan scope is `protocols/*.md`, `templates/**`, `ecosystem/*.yaml`, and this lane's diff touches **none** of those |
+| `test_export_backlog_view.py::test_no_gate_hook_or_script_reads_the_export` | **THIS LANE'S** | **PASSES** at `aeec0fd1`; fails at tip |
+
+**The three "foreign" rows are one cause with three names, and none of the names says so.** All
+three assert `audit.py health` / the ratchet green **on the live repo**, so they read main's moved
+spine through the shared ref store — the same `journal_spine_anchor` lane-lag proved on two legs in
+§6.3, plus a detector-migration WARN (`silent-rule-v5` baseline vs a `silent-rule-v4` detector) that
+is likewise nothing this lane can move. The widely-quoted worktree baseline is **2**; under a
+foreign spine gap the honest baseline is **5**, and a lane that quotes 2 will read three inherited
+failures as its own regressions.
+
+### 8.1 The one failure that is this lane's
+
+```
+tests/test_export_backlog_view.py:521: in test_no_gate_hook_or_script_reads_the_export
+    assert not offenders, "the export is read by governance: " + "; ".join(offenders)
+E   AssertionError: the export is read by governance:
+E     ecosystem/conformance.html references 'export_backlog_view';
+E     ecosystem/conformance.md references 'export_backlog_view'
+```
+
+**Mechanism, measured rather than guessed.** At `aeec0fd1` both dashboard faces contain **0**
+occurrences of `export_backlog_view`; at tip they contain **1** each. The dashboard's committed copy
+was generated on **2026-08-20** over the window `2026-08-13 → 2026-08-20`. This lane had to
+regenerate it — Step 3 corrects a string that lives in the rendered output — and the regenerated
+copy is *"As of 2026-08-24, window 2026-08-17 → 2026-08-24"*. `[#563]` (the `Backlog.md`
+read-only-view-layer row) left `BACKLOG.md` inside that newer window, so Section 0 now quotes its
+row text, and that row text names `scripts/export_backlog_view.py`.
+
+**It is a false positive, and the test already knows the distinction it is missing.** Its own
+comment excludes `docs/` with the reason *"an audit artifact NAMES the export, which is not reading
+it."* `ecosystem/conformance.md` is a **generated report that quotes BACKLOG prose verbatim** — it
+names the export in exactly the sense the `docs/` carve-out was written for, and it reads nothing.
+But `ecosystem` is in `_ENFORCEMENT_ROOTS`, so the carve-out does not reach it.
+
+**It is this lane's by trigger, and latent by nature.** The trigger is this regeneration; the
+condition is *any* regeneration while `[#563]` sits in the 7-day window. The next person to run
+`python scripts/gen_dashboard.py --write` reds the same test, with no involvement from this lane —
+which makes it a defect in the sweep's scope, not in the dashboard.
+
+**Not fixed here, deliberately.** `tests/test_export_backlog_view.py` belongs to `[#563]`'s
+exporter, not to this lane, and the correct shape of the carve-out is that organ's call: extend the
+`docs/`-style exclusion to generated artifacts, add `ecosystem/conformance.*` to `_SKIPPED_DIRS`,
+or strip quoted BACKLOG prose before matching. The minimal change that would clear it —
+
+```python
+# tests/test_export_backlog_view.py, beside the existing docs/ carve-out
+_SKIPPED_FILES = {"ecosystem/conformance.md", "ecosystem/conformance.html"}
+# generated REPORTS that quote BACKLOG row prose verbatim: same reason docs/ is
+# excluded — an artifact that NAMES the export is not one that reads it.
+```
+
+— is offered rather than applied, and is **reported, not filed** (R2 `banked = 0`; §7.1). Flagged
+for the integrator because it will red their post-merge suite run too.
+
+### 8.2 Hand-back
+
+- **Branch:** `worktree-dashboard-commit-path`, merge base `aeec0fd1`, never merged, never pushed.
+- **`main` has moved** — the 2026-08-23 batch landed — and this lane has deliberately **not**
+  synced (§6.3). The drift is the integrator's to resolve.
+- **The registration is a fenced diff** (§5.5) with its own integrator checklist; the six
+  `len(ALL_CHECKS)` count pins are N-dependent across the batch and are **not** authored here.
+- **`ecosystem/doc-counts.md`** carries an in-lane edit that will be superseded at integration: it
+  is generated and N-dependent, and is regenerated once, at the end, by `gen_doc_counts.py --write`.
+- The branch tip sha is reported in the hand-back rather than written here — a commit cannot name
+  its own hash, which is the same rule that makes a merge unable to anchor itself.
