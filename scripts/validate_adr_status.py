@@ -85,7 +85,12 @@ GRAMMARS: tuple[tuple[str, re.Pattern[str]], ...] = (
     # `(?:>\s*)+` — a NESTED blockquote (`> > **Status: X**`) is still a real G5 field. A
     # single `>` made it invisible, which on a file whose only field is nested produced a
     # FALSE `single-field` FAIL (terra R7-HIGH-1).
-    ("G5", re.compile(r"^(?:>\s*)+\*\*Status:\s*(?P<v>.*?)\*\*\s*(?P<tail>.*)$")),
+    # `^ {0,3}` — CommonMark permits up to three leading spaces before a blockquote marker,
+    # and requiring column zero made an indented field invisible (terra R8-HIGH-1).
+    # `(?:> ?)+` — at most ONE space may follow a blockquote marker before the next marker or
+    # the content. `\s*` allowed `>     > **Status: X**`, which CommonMark renders as an
+    # INDENTED CODE BLOCK inside a blockquote, not a field (terra R9-HIGH-3).
+    ("G5", re.compile(r"^ {0,3}(?:> ?)+\*\*Status:\s*(?P<v>.*?)\*\*\s*(?P<tail>.*)$")),
     ("G1", re.compile(r"^-\s+\*\*Status:\*\*\s*(?P<v>.*)$")),
     ("G2", re.compile(r"^\*\*Status:\*\*\s*(?P<v>.*)$")),
     ("G3", re.compile(r"^Status:\s*(?P<v>.*)$")),
@@ -230,6 +235,36 @@ _NEW_BLOCK_RE = re.compile(
     )""", re.VERBOSE)
 
 
+def _strip_comments(line: str, in_comment: bool) -> tuple[str, bool]:
+    """Remove HTML-comment spans from `line`, returning `(visible, still_in_comment)`.
+
+    Lexes the delimiters IN ORDER rather than testing the line for their presence, so:
+      * a trailing comment keeps the text before it (`- **Status:** X <!-- note`);
+      * several comments on one line end in the right state (`<!-- a --> <!-- b`);
+      * a `-->` with no opener is left alone as ordinary text.
+    Callers must handle fenced content BEFORE calling this — inside a fence the delimiters
+    are literal code, not comment syntax.
+    """
+    out: list[str] = []
+    i = 0
+    while i < len(line):
+        if in_comment:
+            end = line.find("-->", i)
+            if end == -1:
+                return "".join(out), True
+            i = end + 3
+            in_comment = False
+        else:
+            start = line.find("<!--", i)
+            if start == -1:
+                out.append(line[i:])
+                return "".join(out), False
+            out.append(line[i:start])
+            i = start + 4
+            in_comment = True
+    return "".join(out), in_comment
+
+
 def adr_number(path: Path) -> str:
     """`ADR-94` from `ADR-94-adr-status-line-....md`. Empty string if unparseable."""
     m = _ADR_NUM_RE.match(path.name)
@@ -277,7 +312,34 @@ def parse_status_fields(text: str, path: Path) -> list[StatusField]:
     lines = text.lstrip("﻿").splitlines()
     out: list[StatusField] = []
     fence: tuple[str, int, int] | None = None   # (fence char, opener length, bq depth)
-    for idx, line in enumerate(lines[:HEADER_WINDOW]):
+    in_comment = False
+    for idx, raw_line in enumerate(lines[:HEADER_WINDOW]):
+        # ORDER IS LOAD-BEARING: fence FIRST, then comments.
+        #
+        # Inside a fenced block `<!--` is literal code content, so comment state must not be
+        # touched there — a fenced example containing HTML-comment syntax otherwise put the
+        # parser into comment state and swallowed the closing fence (terra R9-HIGH-1).
+        if fence is not None:
+            bqm = _BQ_PREFIX_RE.match(raw_line)
+            depth = raw_line.count(">", 0, bqm.end()) if bqm else 0
+            bare = raw_line[bqm.end():] if bqm else raw_line
+            fc = _FENCE_CLOSE_RE.match(bare)
+            if (fc and fc.group("f")[0] == fence[0]
+                    and len(fc.group("f")) >= fence[1]
+                    and depth == fence[2]):
+                fence = None
+            continue
+
+        # Comments are LEXED, not line-matched: the visible residue of a line is kept, so a
+        # trailing `- **Status:** Accepted <!-- note` still yields its field, and several
+        # comments on one line (`<!-- a --> <!-- b`) leave the right end state. A line-level
+        # tracker discarded the visible half outright (terra R9-HIGH-2).
+        was_in_comment = in_comment
+        line, in_comment = _strip_comments(raw_line, in_comment)
+        opened_comment_here = in_comment and not was_in_comment
+        if not line.strip():
+            continue
+
         # Fence state is tracked on the line with any blockquote container prefix removed,
         # and the opener's container DEPTH travels with it: a fence opened inside a
         # blockquote is not closed by an unquoted `~~~`, because that line ends the
@@ -285,19 +347,19 @@ def parse_status_fields(text: str, path: Path) -> list[StatusField]:
         bqm = _BQ_PREFIX_RE.match(line)
         depth = line.count(">", 0, bqm.end()) if bqm else 0
         bare = line[bqm.end():] if bqm else line
-        if fence is None:
-            fo = _FENCE_OPEN_RE.match(bare)
-            if fo:
-                marker = fo.group("b") or fo.group("t")
-                fence = (marker[0], len(marker), depth)
-                continue
-        else:
-            fc = _FENCE_CLOSE_RE.match(bare)
-            if (fc and fc.group("f")[0] == fence[0]
-                    and len(fc.group("f")) >= fence[1]
-                    and depth == fence[2]):
-                fence = None
+        fo = _FENCE_OPEN_RE.match(bare)
+        if fo:
+            marker = fo.group("b") or fo.group("t")
+            fence = (marker[0], len(marker), depth)
+            # A `<!--` in this line's INFO STRING is fenced content, not a comment opener, so
+            # the comment state this line's lexing turned on is discarded. Left set, it
+            # survived the whole fenced block and then swallowed real content after the close
+            # (terra R10). Comment state entered on an EARLIER line is not affected — that
+            # comment genuinely encloses this line.
+            if opened_comment_here:
+                in_comment = False
             continue
+
         for grammar, rx in GRAMMARS:
             m = rx.match(line)
             if not m:
@@ -308,7 +370,13 @@ def parse_status_fields(text: str, path: Path) -> list[StatusField]:
             # punctuation test this replaced was wrong in both directions (terra HIGH-3) —
             # it missed `**Accepted**\ncontinued rationale` because the value ends in `*`,
             # and it depended on punctuation that carries no block-structure meaning.
-            nxt = lines[idx + 1] if idx + 1 < len(lines) else ""
+            # The lookahead is lexed too, carrying the comment state as of the END of THIS
+            # line. Reading the RAW next line made a standalone `-->` closer look like lazy
+            # continuation text, so `- **Status:** Accepted <!-- note` / `-->` reported a
+            # false `wrapped-value` (terra R12). This was the last place the comment rules
+            # were applied to the current line but not to the line being compared against it.
+            nxt_raw = lines[idx + 1] if idx + 1 < len(lines) else ""
+            nxt, _ = _strip_comments(nxt_raw, in_comment)
             wrapped = bool(raw and nxt.strip() and not _NEW_BLOCK_RE.match(nxt))
             out.append(StatusField(
                 path=path, grammar=grammar, lineno=idx + 1, raw=raw,
@@ -469,7 +537,45 @@ def index_effective_status(readme_text: str) -> dict[str, str]:
     from that match, never inferred from a prefix of it.
     """
     out: dict[str, str] = {}
-    for line in readme_text.splitlines():
+    fence: tuple[str, int] | None = None
+    in_comment = False
+    for raw_line in readme_text.splitlines():
+        # Same two exclusions as the ADR parser, and for the same reason: a commented-out or
+        # fenced EXAMPLE row would beat the real one under first-row-wins (terra R8-MEDIUM-1
+        # for fences, R9-MEDIUM-1 for comments). Fence first — inside a fence `<!--` is
+        # literal.
+        opened_comment_here = False
+        if fence is None:
+            was_in_comment = in_comment
+            line, in_comment = _strip_comments(raw_line, in_comment)
+            opened_comment_here = in_comment and not was_in_comment
+            if not line.strip():
+                continue
+        else:
+            line = raw_line
+        # A table row inside a fenced EXAMPLE is documentation, not the index. With
+        # first-row-wins, a fenced example row would beat the real one and manufacture a
+        # coherence divergence (terra R8-MEDIUM-1). A README documenting its own table
+        # format is entirely realistic.
+        if fence is None:
+            fo = _FENCE_OPEN_RE.match(line)
+            if fo:
+                marker = fo.group("b") or fo.group("t")
+                fence = (marker[0], len(marker))
+                # Same R10 rule as the ADR parser: a `<!--` in THIS line's fence-opener info
+                # string is fenced content, not a comment opener. Left set, it survived the
+                # block and then swallowed the real index rows after the close, emptying the
+                # index entirely (terra R11). The two scanners must agree here — this leg was
+                # fixed in the ADR parser and not mirrored, which is exactly how they drifted.
+                if opened_comment_here:
+                    in_comment = False
+                continue
+        else:
+            fc = _FENCE_CLOSE_RE.match(line)
+            if fc and fc.group("f")[0] == fence[0] and len(fc.group("f")) >= fence[1]:
+                fence = None
+            continue
+
         stripped = line.strip()
         if not stripped.startswith("|") or not stripped.endswith("|"):
             continue

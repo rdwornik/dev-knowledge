@@ -738,11 +738,27 @@ lane's diff is mixed code+docs, which is the recorded failure mode for it.
 | 4 | 0 | 2 | 0 | 0 |
 | 5 | 0 | 2 | 3 | 0 |
 | 6 | 0 | 2 | 1 | 0 |
-| **7 (final)** | *(pending — filled from the round-7 artifact)* | | | |
+| 7 | 0 | 3 | 0 | 0 |
+| 8 | 0 | 2 | 1 | 0 |
+| 9 | 0 | 3 | 1 | 0 |
+| 10 | 0 | 1 | 0 | 0 |
+| 11 | 0 | 1 | 0 | 0 |
+| 12 | 0 | 1 | 0 | 0 |
+| **13 (final)** | **0** | **0** | — | — |
 
-**Running total after 6 rounds: 0 Critical, 16 High, 7 Medium — every one fixed, each with a
-regression test naming the round and the concrete failing input.** Counts are taken from the
-artifact files, not from any console tally.
+**Total across 13 rounds: 0 Critical, 28 High, 9 Medium — every one fixed, each with a
+regression test naming the round and carrying the reviewer's own concrete failing input.**
+Counts are taken from the artifact files, not from any console tally.
+
+**The contract's bar — zero Critical / zero High — is MET.** Round 13 returned *"No HIGH
+defects found"* and the explicit judgement:
+
+> *"yes — the parser is fit for gating the stated 87-file ADR corpus; its encoded
+> live/archive baselines agree with the supplied ground truth."*
+
+Honest note on that row: round 13's message stated the High verdict and the fitness judgement,
+and did not separately enumerate Medium/Low, so those cells are recorded as "—" rather than as
+a zero the reviewer did not write. Critical was zero in every round.
 
 ### What the rounds actually found — a summary, because the pattern matters
 
@@ -772,10 +788,11 @@ The one time a count did move — `wrapped-value` briefly 1 → 2 — it was a *
 introduced by a fix** (ADR-72), caught by re-measuring after every change, and reverted to 1
 by tightening the rule rather than by accepting the new number.
 
-### Mutation check — 26/26 killed, 0 survivors
+### Mutation check — 34/34 killed, 0 survivors
 
-Each mutation disables exactly one rule; the suite must go RED. The final run applies all 26
-cleanly and kills all 26.
+Each mutation disables exactly one rule; the suite must go RED. The final run applies all 34
+cleanly and kills all 34 — including one mutation per fix from every review round, so a
+regression that reintroduces any of the 27 defects fails loudly.
 
 **Two honest notes about the mutation runs themselves**, because a mutation harness that
 silently fails to mutate reports a green suite as rigorous:
@@ -787,8 +804,96 @@ silently fails to mutate reports a green suite as rigorous:
    `test_cli_include_archive_folds_archive_missing_into_duplicate_detection`, and the mutation
    now dies. **The mutation run found a gap the review had not.**
 
+### How the loop converged — and what the shape of it shows
+
+```
+round     1   2   3   4   5   6   7   8   9  10  11  12  13
+High      5   3   2   2   2   2   3   2   3   1   1   1   0
+```
+
+The subject matter migrated, and the migration is the interesting part. Rounds 1–4 found
+defects in **the status logic itself** — the strikethrough inversion, the enum bypasses, the
+vacuous passes. Rounds 5–9 found **CommonMark corners in the surrounding scanner** — fence info
+strings, blockquote container depth, HTML-comment lexing, indented code inside a quote.
+
+**Rounds 10, 11 and 12 each found exactly one defect, and all three were the same defect
+wearing different clothes:** a rule applied in one place and not mirrored in its sibling.
+R10 was the fence-opener comment reset missing in the ADR parser; R11 was that same reset
+missing in the index scanner; R12 was the comment lexer applied to the current line but not to
+the lookahead it was compared against.
+
+That is what finally ended the loop — **not** fixing the twelfth member of a class, but
+recognising the class and closing it by construction: `grep` for every remaining raw-line read
+in the module returned exactly one (`lines[idx + 1]`), it was fixed, and round 13 came back
+clean. Whack-a-mole ends when you go and find the moles.
+
+**Three measured facts bound what the whole exercise cost and bought:**
+
+1. **The live verdict never moved.** Across all 13 rounds and 28 fixes the corpus measurement
+   was byte-identical every time: `87 fields; coherence=3, duplicate-id=2, grammar=47,
+   wrapped-value=1`. Not one finding changed what the gate says about the real corpus — which
+   is exactly what you want from a review: correctness improved, measurement stable.
+2. **The FAIL-armed legs are the narrow ones.** Only `enum` and `single-field` can block a
+   commit, both measure zero, and most of rounds 8–12 were removing *false positives* on
+   them — the failure mode that would have wedged the pre-commit gate on a legitimate ADR.
+3. **The mutation run found what the review did not.** Reverting the round-6 archive fix
+   survived a 26-mutation run because no test covered that path. Review and mutation testing
+   caught different things; neither alone was sufficient.
+
+**A candidate recorded, not filed:** parsing the header with `markdown-it-py` — already in the
+curated baseline, and named in this lane's own library-first check — would retire the whole
+CommonMark-corner class structurally rather than member by member. It was correctly out of
+scope here (the contract asked for the existing `validate_*.py` shape, and every sibling
+validator is regex-based). Filing it is the operator's call, not this lane's.
+
 ### Review-driven test growth
 
-48 tests at first green → **123** at final. The additions are almost entirely regression tests
-carrying the reviewer's own failing inputs, so a future edit reintroducing any of the 23
+48 tests at first green → **149** at lane close. The additions are almost entirely regression
+tests carrying the reviewer's own failing inputs, so a future edit reintroducing any of the 28
 defects fails loudly rather than silently.
+
+---
+
+## Final — pytest, survivor REDs, and what each one is
+
+**Full suite: `3 failed, 3707 passed, 9 skipped, 1 xfailed` in 17m10s.** All three failures are
+accounted for; none is a defect in this lane's logic.
+
+| RED | Provenance | Evidence |
+|---|---|---|
+| `test_stale_worktrees::test_linked_worktrees_reader_excludes_the_primary` | **Environmental — running inside a worktree.** The test asserts `_REPO_ROOT` is not among the linked worktrees; it is, because this lane *is* one. | The assertion message names `worktrees/status-grammar` alongside the four sibling lanes. Recorded fleet-wide as a known worktree-run RED. |
+| `test_enforcement_coverage::test_anchor_gate_probe_distinguishes_installed_from_absent` | **Pre-existing on `main` since 2026-08-22.** Uses a `tmp_path` fixture, so it is unrelated to this branch's commits. | Recorded fleet-wide; unchanged by anything in this lane. |
+| `test_doc_code_edge::test_edge_check_registered_and_resolves_starter_set` | **THIS LANE'S, and it is the fenced diff's other half.** | Proved by experiment, below. |
+
+### The third RED, proved rather than asserted
+
+`check_doc_code_edge` reports `governance-adr-status: code_orphan (code sites=1, no
+declaration)` — a `# rule:` annotation whose doc-side declaration does not exist yet. Removing
+the annotation and re-running the check returns `pass` with `15 doc->code edge(s) resolved`:
+
+```
+WITH my annotation : warn | governance-adr-status: code_orphan (code sites=1, no declaration)
+WITHOUT annotation : pass | 15 doc->code edge(s) resolved; none broken/ambiguous/orphaned
+```
+
+(The probe restored the file byte-identically; asserted, not assumed.)
+
+**This is the contract working as designed, not a defect.** `governance-adr-status` is a
+**two-site rule**: the code half is the `# rule:` annotation in
+`check_adr_status_grammar.py` (this lane's own file, correctly annotated — the sibling
+`check_amendment_coherence` docstring is explicit that losing that line silently drops the
+edge), and the doc half is the `<!-- rule: governance-adr-status -->` token plus the
+`coverage_scope` / `multi_site` entries — all three of which are **in the Step-4 fenced diff**,
+because the contract says *"Do not edit `ALL_CHECKS` directly. Fenced diff."*
+
+**It clears the moment the integrator applies that diff.** The check is advisory (WARN, never
+FAIL), so it blocks nothing meanwhile; only this one test, which asserts the stricter `pass`,
+goes RED. **Deliberately not worked around** — dropping the annotation to make the suite green
+would hand the integrator a check that silently carries no doc→code edge, which is the exact
+failure `check_doc_code_coverage_drift` exists to catch. The annotation stays; the RED is
+disclosed.
+
+**Integrator note:** apply the Step-4 diff in one commit — the `ALL_CHECKS`/registry wiring,
+the four `43 → 44` count pins, AND the `declaration_docs` / `coverage_scope` / `multi_site`
+entries plus the README rule token. Applying the wiring without the doc-side entries leaves
+this RED in place.

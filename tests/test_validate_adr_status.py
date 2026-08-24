@@ -480,6 +480,181 @@ def test_live_and_archive_files_with_the_SAME_basename_are_distinct_claimants():
     assert "ADR-9" not in vas.header_status_map(fields)
 
 
+@pytest.mark.parametrize("line", [
+    "  > **Status: Accepted**",
+    "   > > **Status: Accepted**",
+])
+def test_indented_blockquote_g5_field_is_still_a_field(line):
+    """terra R8-HIGH-1: CommonMark permits up to 3 leading spaces before `>`; requiring
+    column zero made the field invisible and produced a FALSE `single-field` FAIL."""
+    fields = _fields(f"# ADR-99 — x\n\n{line}\n")
+    assert len(fields) == 1, line
+    assert fields[0].value == "Accepted"
+
+
+def test_status_inside_a_multiline_html_comment_is_not_a_field():
+    """terra R8-HIGH-2: these ADRs really do carry `<!-- ... -->` blocks in their headers
+    (`<!-- scope: meta -->`, ADR-82's `<!-- Decommission: ... -->`), so a commented-out
+    historical status is a realistic shape. Untracked it fired BOTH FAIL-armed legs."""
+    body = (
+        "# ADR-99 — x\n\n"
+        "- **Status:** Accepted\n"
+        "<!-- historic example:\n"
+        "> **Status: Ratified**\n"
+        "-->\n"
+    )
+    fields = _fields(body)
+    assert len(fields) == 1, [f.raw for f in fields]
+    assert vas.field_defects(fields) == []
+
+
+def test_single_line_html_comment_does_not_swallow_the_rest_of_the_header():
+    """The common case — `<!-- scope: meta -->` — opens and closes on one line and must not
+    put the parser into comment state."""
+    body = "# ADR-99 — x\n\n<!-- scope: meta -->\n\n- **Status:** Accepted\n"
+    fields = _fields(body)
+    assert len(fields) == 1 and fields[0].value == "Accepted"
+
+
+def test_index_row_inside_a_fenced_example_does_not_win():
+    """terra R8-MEDIUM-1: with first-row-wins, a fenced documentation example beat the real
+    index row and manufactured a coherence divergence."""
+    idx = (
+        "Example of the row format:\n\n"
+        "```md\n"
+        "| ADR-11 | 2026-01-01 | — Deprecated |\n"
+        "```\n\n"
+        "| ADR | Date | Title |\n|--|--|--|\n"
+        "| ADR-11 | 2026-01-01 | The actual accepted title |\n"
+    )
+    assert vas.index_effective_status(idx)["ADR-11"] == "Accepted"
+
+
+# --- layer 2h: terra round-9 findings — regressions from the round-8 comment fix ----
+
+def test_html_comment_syntax_inside_a_fence_is_literal():
+    """terra R9-HIGH-1: inside a fence `<!--` is code content. The round-8 line-level tracker
+    entered comment state there and then swallowed the closing fence, so the real field that
+    followed went missing. Fence state must be resolved BEFORE comment state."""
+    body = (
+        "# ADR-99 — x\n\n"
+        "```\n"
+        "<!--\n"
+        "```\n"
+        "- **Status:** Accepted\n"
+    )
+    fields = _fields(body)
+    assert len(fields) == 1, [f.raw for f in fields]
+    assert fields[0].value == "Accepted"
+
+
+def test_trailing_inline_comment_does_not_discard_the_field():
+    """terra R9-HIGH-2: a line-level tracker threw away the visible half of the line."""
+    body = "# ADR-99 — x\n\n- **Status:** Accepted <!-- historical note\n-->\n"
+    fields = _fields(body)
+    assert len(fields) == 1, [f.raw for f in fields]
+    assert fields[0].value == "Accepted"
+
+
+@pytest.mark.parametrize("line,visible,state", [
+    ("<!-- closed --> <!-- opens", " ", True),
+    ("plain text", "plain text", False),
+    ("a <!-- b --> c", "a  c", False),
+    ("no opener --> here", "no opener --> here", False),
+])
+def test_comment_lexer_handles_sequential_and_partial_spans(line, visible, state):
+    assert vas._strip_comments(line, False) == (visible, state)
+
+
+def test_comment_lexer_resumes_mid_line_after_a_close():
+    """A comment opened on a previous line ends mid-line; the remainder is visible."""
+    assert vas._strip_comments("--> - **Status:** Accepted", True) == (
+        " - **Status:** Accepted", False)
+
+
+def test_quoted_indented_code_is_not_a_nested_g5_field():
+    """terra R9-HIGH-3: `>     > **Status: X**` is an INDENTED CODE BLOCK inside a
+    blockquote, not a field. `(?:>\\s*)+` parsed it as G5 and fired two FAIL-armed legs."""
+    body = "# ADR-99 — x\n\n- **Status:** Accepted\n>     > **Status: Ratified**\n"
+    fields = _fields(body)
+    assert len(fields) == 1, [f.raw for f in fields]
+    assert fields[0].value == "Accepted"
+
+
+def test_comment_opener_in_a_fence_info_string_does_not_leak_past_the_fence():
+    """terra R10: a `<!--` in a fence opener's INFO STRING is fenced content, not a comment.
+    Left set, that comment state survived the whole block and then swallowed the real field
+    after the closing fence."""
+    body = (
+        "# ADR-99 — x\n\n"
+        "```html <!--\n"
+        "some quoted markup\n"
+        "```\n"
+        "- **Status:** Accepted\n"
+    )
+    fields = _fields(body)
+    assert len(fields) == 1, [f.raw for f in fields]
+    assert fields[0].value == "Accepted"
+
+
+def test_a_comment_opened_on_an_EARLIER_line_still_encloses_a_fence_marker():
+    """The other side: a genuine multi-line comment really does swallow a fence marker."""
+    body = (
+        "# ADR-99 — x\n\n"
+        "- **Status:** Accepted\n"
+        "<!-- commented block:\n"
+        "```\n"
+        "> **Status: Ratified**\n"
+        "```\n"
+        "-->\n"
+    )
+    fields = _fields(body)
+    assert len(fields) == 1, [f.raw for f in fields]
+    assert fields[0].value == "Accepted"
+
+
+def test_comment_closer_line_is_not_a_wrapped_value():
+    """terra R12: the wrap lookahead read the RAW next line, so a standalone `-->` closer
+    looked like lazy continuation text and produced a false `wrapped-value`."""
+    body = (
+        "# ADR-99 — x\n\n"
+        "- **Status:** Accepted <!-- historical note\n"
+        "-->\n"
+        "- **Date:** 2026-01-01\n"
+    )
+    fields = _fields(body)
+    assert len(fields) == 1
+    assert fields[0].value == "Accepted"
+    assert fields[0].wrapped is False
+    assert [d for d in vas.field_defects(fields) if d.rule == vas.R_WRAP] == []
+
+
+def test_index_fence_opener_comment_does_not_swallow_the_whole_index():
+    """terra R11: the R10 fence-opener rule was fixed in the ADR parser and NOT mirrored in
+    the index scanner, so a README documenting a fenced example with an inline annotation
+    lost its ENTIRE index — every ADR then reads as `unindexed`."""
+    idx = (
+        "```html <!--\n"
+        "example\n"
+        "```\n"
+        "| ADR | Date | Title |\n|--|--|--|\n"
+        "| ADR-11 | 2026-01-01 | Decision |\n"
+    )
+    assert vas.index_effective_status(idx) == {"ADR-11": "Accepted"}
+
+
+def test_index_row_inside_an_html_comment_does_not_win():
+    """terra R9-MEDIUM-1: the index scan gained fence-skipping but not comment-skipping."""
+    idx = (
+        "<!-- historical example:\n"
+        "| ADR-11 | 2026-01-01 | — Deprecated |\n"
+        "-->\n"
+        "| ADR | Date | Title |\n|--|--|--|\n"
+        "| ADR-11 | 2026-01-01 | The actual accepted title |\n"
+    )
+    assert vas.index_effective_status(idx)["ADR-11"] == "Accepted"
+
+
 def test_duplicate_id_fires_when_the_OTHER_file_has_no_status_field():
     """terra R5-HIGH-2: only `single-field` fired, `duplicate-id` did not, and the surviving
     file was then treated as unambiguous and given a coherence verdict."""
