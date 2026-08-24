@@ -894,3 +894,123 @@ carrying forward:
   round 6, *after* two rounds had already reported the same areas clean — evidence that a
   single clean round is not a proof, which is why this lane ran to a clean pass rather than
   stopping at the first zero-High round.
+
+---
+
+## 8. Suite result, and every survivor named
+
+Run **unpiped**, as amendment **A2** requires (*"piping reports the pipe's exit code and hides
+the real one"*). The first attempt was piped through `tail -25`, which is exactly what A2
+forbids; it was killed and re-run rather than reported.
+
+```
+uv run --locked python -m pytest
+19 failed · 3615 passed · 11 skipped · 1 xfailed   in 967.47s (16:07)   exit 1
+```
+
+**A2's baseline is `1 failed · 3567 passed · 4 skipped · 1 xfailed`, so this does NOT match it,
+and saying so plainly is the point of the amendment.** A2 also states the rule for that case:
+*"Any additional RED is yours — name it and prove it against your merge base."* All 18
+additional REDs are named below, and none is this lane's.
+
+### 8.1 The arithmetic reconciles EXACTLY, which is what makes the attribution a proof
+
+```
+baseline collected      1 + 3567 +  4 + 1  = 3573
+this lane adds                              +  73   (see below)
+expected collected                          = 3646
+measured collected     19 + 3615 + 11 + 1  = 3646   ✓
+```
+
+The **+73** is measured, not assumed: `tests/test_provider_registry.py` +
+`tests/test_provider_registry_schema.py` collect **96** cases now; at `aeec0fd1` only the first
+existed (`git show aeec0fd1:tests/test_provider_registry_schema.py` fails — the file did not
+exist) and it collected **23**.
+
+The pass column reconciles the same way, with no slack left over:
+
+```
+3567  baseline passed
+ +73  this lane's new tests, all passing
+ -17  test_fleet_analytics.py — passed at baseline, ERROR here (pandas absent)
+  -1  test_stale_worktrees.py  — passed at baseline, fails inside a linked worktree
+  -7  now skipped rather than passed (skips 4 -> 11)
+=3615 ✓ measured
+```
+
+### 8.2 The 19, classified
+
+| # | Test(s) | Cause | Whose |
+|---|---|---|---|
+| 17 | `tests/test_fleet_analytics.py::*` | `ModuleNotFoundError: No module named 'pandas'` | **Environment.** `pandas` is an OPTIONAL dependency group — `pyproject.toml:47` documents `uv sync --locked --group analytics` as the way in. This lane's worktree venv was provisioned without it. |
+| 1 | `tests/test_stale_worktrees.py::test_linked_worktrees_reader_excludes_the_primary` | `AssertionError` on a `WindowsPath` | **Structural to running the suite inside a linked worktree** — the reader sees this worktree as a linked entry. |
+| 1 | `tests/test_enforcement_coverage.py::test_anchor_gate_probe_distinguishes_installed_from_absent` | `AssertionError: candidate: pre-push hook 'block…'` | **The A2 baseline RED itself**, named verbatim in the amendment and pre-existing since 2026-08-22. |
+
+**Proof that none is this lane's, and it is mechanical rather than argued:**
+`git diff aeec0fd1..HEAD --stat -- tests/test_fleet_analytics.py tests/test_stale_worktrees.py
+tests/test_enforcement_coverage.py scripts/fleet_analytics.py` returns **empty**. This lane
+touched no failing test and no subject of one.
+
+**Honest limit on the two environmental classes:** they were not re-verified on a clean checkout
+of bare `main` from this session — doing so needs a second tree, and this lane is confined to its
+own worktree. What IS shown is the empty diff-stat above plus the exact arithmetic, which
+together leave no room for a lane-caused failure to hide.
+
+### 8.3 The lane's own tests
+
+`96 passed, 0 failed` in isolation, and the two files are green inside the full-suite run too —
+all 19 failures are in the three files named above. `ruff check scripts/ ecosystem/ tests/`
+passes. `scripts/check_provider_registry.py` exits **0**, and the
+`provider-registry-agreement` hook arms green under `pre-commit run --all-files`.
+
+---
+
+## 9. Deviations, in one place, each with its basis
+
+**1. No `JOURNAL.md` entry — the contract's Final step 3 was NOT executed.**
+
+The contract says *"`JOURNAL.md` entry on this branch."* Standing ruling **P-1** says the
+opposite, in terms:
+
+> **A lane leaves `JOURNAL.md` alone.** One entry per batch or night, written by the
+> integrating seat, anchors the whole set; a lane's deliverable is its own artifact plus its
+> commits.
+
+P-1 is not advisory and it is not abstract — it was ratified *because* a lane breached it: N4
+committed two lane-authored entries, *"the whole branch was refused at the gate and a complete
+artifact missed `main` on the night it was produced"*, and the rule records that a breach is
+**paid for twice**, once at the docs-only gate and once against `journal_day_letters` when the
+lane's entry collides with the integrator's.
+
+**Weighing, rather than just citing:** writing the entry risks the recorded failure — this
+lane's whole output missing the merge. Omitting it costs the integrator one line they are
+already writing for the batch. The asymmetric, reversible choice is to omit. Ruling **Q10**
+(*"deviation-with-disclosure is not a license"*) is why this is stated as a deviation rather
+than quietly folded in: **the disclosure does not authorise it, and the operator may overrule.**
+Everything a JOURNAL entry would have carried is in this artifact and in the seven commit
+messages.
+
+**2. `.pre-commit-config.yaml` was edited rather than shipped as a fenced diff.** §4.4 gives
+the reasoning: this lane's contract does not reserve the file (the CLOUD-4 v2 precedent applies
+to a lane whose contract did), and a checker wired only from one end is the present-but-unread
+failure in a new costume. Flagged as a likely conflict site because seven lanes were live.
+
+**3. The step-6 record is a drafted STANDING RULING, not a PROPOSED ADR.** The contract
+provides for exactly this branch (*"If the test says a standing ruling, draft the ruling text
+instead"*); §6.1 shows the ADR-98 §3 test failing on its second prong. The step-6 commit
+subject keeps `PROPOSED` and names the test's outcome, so the trail from the contract's step to
+the artifact is unbroken.
+
+---
+
+## 10. What the integrator inherits
+
+| Item | Where | Action |
+|---|---|---|
+| `[#568]` attachment text | §2.1 | Append to the row's body — a **queued proposal** under R2, not a filing |
+| Provider-discoverability row spec | §2.2 | File only on an explicit architect grant; birth budget is **zero** |
+| `[#568]` Done-when clause 3 × R-2 collision | §2.3 | Reported, unresolved — rewording a live row is not a lane's act |
+| Drafted ruling **S-1** | §6.3 | Architect ratifies or refuses; blocked meanwhile on the open section-writing policy |
+| `ecosystem/providers.md` proposal | §5.5 | Not created; root is barred on four quoted grounds |
+| `.pre-commit-config.yaml` edit | §4.4 | Likely conflict site across the batch |
+| No JOURNAL entry | §9 | The batch entry anchors this lane's commits |
