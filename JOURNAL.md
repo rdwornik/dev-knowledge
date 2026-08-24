@@ -19,6 +19,76 @@
 
 ---
 
+### 2026-08-24 (d) - CC (Opus 5, batch lane L3 `worktree-status-grammar`): the ADR status enum finally has a gate, the sweep executed nothing on purpose, and archival turns out never to have been blocked on the grammar at all
+
+**Did:** built `[#242]` per the frozen contract `LANE-L3-status-grammar.md` - measured the live
+`Status:` divergence across the ADR corpus, built the validator + its `ALL_CHECKS` adapter,
+shipped the registration as a fenced diff, produced the per-ADR sweep plan, and answered the
+archival-eligibility question with measurements instead of another deferral. Artifact:
+`docs/audits/2026-08-23-technical-lane-status-grammar.md`. Lane commits `9b37cacb` -> this one.
+
+**Result - the measurement.** 87 live ADRs, 87 status fields, a clean 1:1. **Four** syntactic
+grammars live (G1 list-bold 40 / G2 bare-bold 34 / G3 plain 12 / G4 YAML 1) and a **fifth**
+(G5 blockquote) in `archive/` - the contract's "four" was right for the zone it measured. The
+value vocabulary diverges independently: `Accepted` 82, `Partially superseded` 2, `PARKED` 1,
+`Explored, not adopted` 1, plus ADR-61's date-fused `Accepted 2026-05-28`. Neither `Superseded`
+nor `Deprecated` appears on ANY live ADR, which re-measures `[#552]`'s "structurally
+unreachable" finding from the other end.
+
+**Result - the sweep executed NOTHING, and that is the ruled outcome rather than an omission.**
+ADR-94's in-place exception triggers only on ratification; the corpus carries **zero** `Proposed`
+ADRs, so the trigger is not merely unmet but unmeetable. Standing ruling **L-11** (2026-08-12)
+closes the rest: *"reshaping a status line for a parser's convenience is not a ratification"*.
+Every correction is tabled as a proposal (classes A-G). **The L-11 SCOPE question - does it bind
+the corpus or only ADR-61 - is handed up, not answered**; the execution set is empty under both
+readings, so the lane was never blocked on it. The contract's anticipated J-3-vs-ADR-94 conflict
+turned out narrower than supposed: J-3 is reasoned from `docs/audits/` immutability, and L-11 had
+already declined the marker route for an ADR status line specifically.
+
+**Result - archival: ZERO eligible, and the grammar was never the binding constraint.** H3 has
+two conditions. Terminal status: carried by zero live ADRs. Zero inbound references: measured
+across 1,860 files, every one of twelve candidates holds **8-54 LIVE-prose refs** under a
+reading deliberately constructed to favour archival (audits, handoffs, JOURNAL and archives all
+excluded). Normalizing all 47 grammars and writing `Superseded` on all seven handoff-cluster
+ADRs would have made **zero** files eligible. Most holders are *other ADRs*, so H3 read
+literally makes the corpus permanently unarchivable - recorded, not proposed as a change.
+
+**Result - `[#242]` is NOT closed and this lane does not claim it.** `[#362]` binds *"[#242]
+does not reach a terminal status before this row does"*, and that constraint is substantively
+right: ADR-42/55/56/57/58 are five of its seven handoff-cluster ADRs, whose 49 dropped MUST-rules
+a status-only retirement would silently discard. ADR-94's leg (b) is also only partly served -
+the gate cannot tell a Pattern-A flip from a file that was always `Accepted`, because the two are
+byte-identical without commit history.
+
+**Review: 13 terra rounds, 0 Critical / 28 High / 9 Medium, all fixed, ending clean.** Round 13
+returned "No HIGH defects found" plus *"the parser is fit for gating the stated 87-file ADR
+corpus"*. **What ended the loop is worth keeping:** rounds 10, 11 and 12 each found exactly one
+defect and all three were the same defect wearing different clothes - a rule applied in one
+place and not mirrored in its sibling. The loop closed not by fixing the twelfth member but by
+recognising the class and grepping for every remaining raw-line read in the module (exactly one
+left). **The mutation run also found a hole the review had not** - reverting the round-6 archive
+fix survived a 26-mutation run because nothing covered that path. Final: 149 tests, 37/37
+mutations killed. **The live verdict was byte-identical across all 13 rounds** - correctness
+improved, measurement stable, which is the point.
+
+**Changes:** NEW `scripts/validate_adr_status.py` (parser + 7 rules, read-only, exit 0/1/2),
+NEW `scripts/audit_checks/check_adr_status_grammar.py` (thin adapter, **deliberately
+unregistered** - `audit.py` / `registry.py` / `doc-code-edge.yaml` are shared with two sibling
+lanes, so registration is a fenced diff naming all four `ALL_CHECKS` count pins), NEW
+`tests/test_validate_adr_status.py`, plus the artifact and the regenerated `docs/audits/README.md`.
+
+**Abandoned:** nothing silently. Contract steps 4/5/6 landed as ONE commit rather than three -
+both intermediate background `git commit` invocations were interrupted after their pre-commit
+gates passed and before the commit landed, and the artifact is a single cumulative file, so the
+three section-states could not be reconstructed as three honest commits. Disclosed in that
+commit body rather than faked.
+
+**Next:** the operator answers the L-11 scope question; the integrator applies the Step-4 fenced
+diff **in one commit** - wiring, the four `43 -> 44` pins, AND the doc-side rule token, because
+applying the wiring alone leaves the `governance-adr-status: code_orphan` RED in place;
+`[#553]` owns the three index corrections and the missing `PARKED` enum row; `[#362]` stays
+ahead of `[#242]`.
+
 ### 2026-08-24 (c) - CC (Opus 5, integrator, branch `docs/provider-discoverability-2026-08-24`): the checkpoint runs the exporter instead of describing it, and the backlog turns out to be navigable rather than enormous
 
 **Did:** the contract's Step 3 operator checkpoint, both halves, after queue positions 1-2.
