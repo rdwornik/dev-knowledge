@@ -521,6 +521,100 @@ one live evidence assertion, one evidence teeth). The `tree` fixture gained
 `protocols/AI_COUNCIL_PROCESS.md` and — **derived from the registry rather than typed** — every
 artifact a live verdict cites, so a future verdict cannot silently leave the fixture behind.
 Combined: **51 passed, 0 failed.**
+
+---
+
+## 5. Root visibility — the derivation says BARRED, so this proposes the nearest lawful home
+
+The contract's instruction and its escape clause are both explicit:
+
+> **5. Root visibility — PROPOSE, do not create.** Derive the taxonomy-correct home from
+> primary sources, quote them, and write the proposal into your artifact: the exact path, the
+> governance clause permitting it, and the generation mechanism for the links. **If the
+> derivation says the root is barred, say so and propose the nearest lawful home.** Do not
+> create a root file on the strength of the mandate's wording alone.
+
+**The derivation says barred, on four independent grounds. None of them is a judgement call.**
+
+### 5.1 Ground 1 — the tree seal refuses it mechanically
+
+`scripts/validate_hermetization.py` Rule A gates every added top-level file against a closed
+enum. Measured live, `SANCTIONED_TIER1_FILES` holds **20 members**:
+
+```
+.dev-knowledge.code-workspace  .gitattributes  .gitignore  .methodology.yaml
+.pre-commit-config.yaml  .pre-commit-hooks.yaml  .python-version  .ruff.toml
+.worktreeinclude  ARCHITECTURE.md  BACKLOG.md  CLAUDE.md  CONTRIBUTING.md  JOURNAL.md
+LESSONS.md  VISION.md  package-lock.json  package.json  pyproject.toml  uv.lock
+```
+
+`PROVIDERS.md` → **not a member**. `providers.md` → **not a member**. A root provider file is a
+pre-commit **BLOCK**, and the enum is closed by ADR-101 §1 — widening it is an ADR amendment,
+which is an architect act.
+
+### 5.2 Ground 2 — the identical question is already PARKED, and citing it is forbidden
+
+ADR-114 is the live decision on whether a root file may be added, and its ruling closes with:
+
+> **Until it is ruled, nothing in this repo may cite ADR-114 as authority**, and the
+> `README.md` prohibition stands unchanged.
+
+Its **option (B)** is precisely the shape a root `PROVIDERS.md` would need — *"Amend ADR-101 §1
+to sanction a root `README.md` as an **additional** Tier-1 file"* — and that option is unruled.
+So there is no authority to cite, and the ADR itself forbids citing it as one.
+
+### 5.3 Ground 3 — the operator's own ask routes it to a decision, not to an execution
+
+The outgoing architect's supplement (`docs/handoffs/2026-08-23-dev-knowledge-architect/
+SUPPLEMENT.md`, answer 7) records the ask and its home in the same line:
+
+> - **"provider-visibility ask"** · operator wants major providers visible at repo root with
+>   dynamic links · home: **re-opened discussion under ADR-114 (PARKED status re-presented
+>   with price), NOT a silent execution.**
+
+A lane creating the root file would be performing exactly the *"silent execution"* the record
+names and refuses. **This is the ground that would still bar it even if grounds 1 and 2 did
+not**, and it is why the contract's *"on the strength of the mandate's wording alone"* clause
+is pointed rather than decorative.
+
+### 5.4 Ground 4 — the adjacent precedent, one day old
+
+Standing ruling **R-1** refused `.gemini/settings.json` on this exact mechanism: *"It would be
+a new top-level directory that `validate_hermetization.py` Rule A refuses absent an ADR-101 §1
+amendment."* Same gate, same amendment requirement, same week.
+
+### 5.5 The proposal — `ecosystem/providers.md`, generated and gated
+
+| | |
+|---|---|
+| **Exact path** | `ecosystem/providers.md` |
+| **Governance clause permitting it** | `ecosystem` is a `SANCTIONED_TIER1_DIRS` member **and** a Rule C allowlisted home — verified live: `validate_hermetization.is_allowed_home("ecosystem")` → `True`. Adding a file there triggers **no** ADR-101 amendment, no new top-level entry, no new `docs/<genre>/` folder. |
+| **Precedent shape** | `ecosystem/registry.md`, whose header states the split this proposal copies: *"The registry is two surfaces, split by audience: **`ecosystem/registry.md` (this file) = the human registry** ... **`ecosystem/<repo>/` + `ecosystem/index.yaml` = the machine registry**"*. Human surface beside machine surface, same directory, already ratified once by the 2026-07-08 census ruling C-10. |
+| **Generation mechanism** | `scripts/gen_provider_index.py --write` emits the file from `ecosystem/provider-registry.yaml` **alone**; `--check` is a regen-and-diff comparison. Wired as a `provider-index-freshness` pre-commit hook with `files:` covering the registry, the schema and the generator. |
+| **Why regen-and-diff and not a hand-maintained page** | ADR-114's own consequence analysis for its option (B): *"a front door that goes stale is worse than none, so (B) should carry a generated-and-gated shape — the repo already runs regen-and-diff seven times over and would not be inventing an organ."* The seven: `codemap-freshness`, `toc-freshness-playbook`, `roster-freshness`, `claude-rosters-freshness`, `audit-index-freshness`, `organ-index-freshness`, `intake-index-freshness`. |
+| **Links, and that they resolve** | Emitted links: the registry itself; each provider's `changelog_source_url` where present; each `role_admission.evidence` artifact; each `rerun_carrier` row. All are already validated data — `check_role_admission_evidence` (§4.3) proves the evidence paths exist today — so the generator emits from a source that is checked rather than from prose. The proposed row's Done-when requires a test asserting every emitted link resolves. |
+| **Root-discoverability** | One line from an existing canonical doc. **`ARCHITECTURE.md` Ch3 "Automation axes"** is the taxonomy-correct anchor: `CLAUDE.md` §3 already routes model routing and the t-shirt tiers there, and Ch3 is where standing ruling R-2's L0 boundary is recorded. |
+
+**The cost of that one line, stated rather than hidden.** `ARCHITECTURE.md` carries a
+`last_reviewed` stamp, and `CLAUDE.md` §4's freshness cadence defines what editing it obliges:
+
+> the living docs `VISION/ARCHITECTURE/CLAUDE/CONTRIBUTING/ESSENTIALS` carry a `last_reviewed`
+> frontmatter stamp meaning *re-read end-to-end and confirmed accurate (or drift filed)* —
+> **not** merely "touched". `audit.py` check #10 fails when a stamp predates the file's last
+> edit.
+
+So the pointer line is not free: it obliges a genuine end-to-end re-read of `ARCHITECTURE.md`
+in the same commit. That is a reason to spend it deliberately in the proposed row — not a
+reason to skip it, since a generated index nothing points at is the discoverability problem
+one directory deeper.
+
+### 5.6 What this lane did NOT do, so the boundary is unambiguous
+
+No root file was created. `ecosystem/providers.md` was **not** created either — it is the
+*proposal*, and the row that would build it is the queued proposal at §2.2, unfiled under R2's
+zero birth budget. `ARCHITECTURE.md` was not edited. The lane's whole answer to closure item 3
+is this section: the exact path, the quoted clause admitting it, the generation mechanism, and
+the four quoted grounds barring the root.
 - **No effort enum on any model.** §2.1 records why: no live in-repo surface binds a *model* to
   an effort value, and the canonical enum's home is doctrine, not this file.
 - **No routing.** The registry header and standing ruling **R-2** both place it at L0.
