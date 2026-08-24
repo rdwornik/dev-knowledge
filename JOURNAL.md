@@ -221,6 +221,144 @@ ruling sheet and NOT by this lane: the R5 de-volatilization of the six `doc_rot`
 the `automation/fleet-audit` push, the four non-row-length WARNs, and the empty story `[S24]`.
 
 
+### 2026-08-23 (n) - CC (Opus 5, CLOUD lane `C2`, branch `claude/ruling-provenance-audit`): the mesh was reachable the whole time, and the audit had to apply its own standard to itself
+
+**Did:** armed the pinned `uv` mesh in-container and re-ran every load-bearing measurement of entry
+(k)'s artifact under it, including the `audit.py health` gate that artifact said could not run.
+Appended §6 to `docs/audits/2026-08-23-technical-ruling-provenance-audit.md` as an in-file
+amendment marker (`CLAUDE.md` §5 rule 3; the rulings-ledger §5 and window-seal §5 precedents) - the
+first five sections are untouched.
+
+**Result: the artifact's §0 made the exact mistake the artifact is about, and it was mine.** §0
+recorded that the mesh *"refuses in this container"* and routed everything to a hand-run `python3`
+3.11.15. The refusal was real; the inference that the pin was unreachable was never tested. `uv self
+update 0.11.19` fails here with *"version 0.11.19 was not found for the app uv in workspace uv"* -
+a fact about how this container manages `uv`, not about whether the version exists. It exists:
+`pip download uv==0.11.19` pulls a 24.9 MB wheel, and installed to the session scratchpad with
+`PATH` prepended it gives **uv 0.11.19** running **Python 3.12.10** - the repo's declared pins
+exactly. Container-local only: no `pyproject.toml`/`uv.lock` edit, nothing committed from it.
+**A tool refusing is evidence about the invocation, not about the world** - the same shape as the
+audit's own §2.3 finding that a claimed ruling is not a ruling.
+
+**Zero divergence on re-run, and the gate corroborates three claims independently.** Ratchet
+`441` vs baseline `441`; Rule A's BLOCK on root `AGENTS.md`; `codex/AGENTS.md` clean; backpressure
+exit 0 under the configured `uv run --locked` invocation - all identical to the hand-run. Then
+`audit.py health` (**DEGRADED**) added what a hand-run could not: `[OK] silent_rule_ratchet: live
+441 <= baseline 441` confirms the artifact's §4(5) from the gate's own mouth; `check_landing_
+predicate` emits **exactly the five** ids §1.3 counted by grep (F2, N-1, N-2, N-3, R-2); and
+`[~~] fleet_parity: hooks-armed WARN-undeclared ... stage(s) NOT armed: commit-msg, pre-commit,
+pre-push` confirms from the mesh, not just from me, that entry (k)'s two commits passed no gate -
+**nothing bypassed, because nothing was armed to bypass**.
+
+**The one `[!!]` is this container's clone, not this lane's content.** `journal_spine_anchor`
+could not complete - *"disposition floor 24882f8cc is not an ancestor of main"* - because local
+`refs/heads/main` here is stale at `4541155b` against `origin/main` at `aeec0fd1`; HEAD was detached
+at boot and this lane touched neither ref. Against the real base the range is anchored:
+`range_is_anchored(origin/main..HEAD)` -> **True**, entry (k) naming `3894da55`. Range-level
+discharge, per register B6 - a JOURNAL commit cannot name its own hash.
+
+**What did NOT move:** no conclusion in the artifact's §1-§5. The census counts stay **floors** -
+arming a toolchain does not make ten off-repo ruling packs readable, does not make a chat-only
+ruling detectable, and does not widen the regex's recall. §5.2 items 1-4, 6, 7 stand unchanged;
+only item 5 is discharged, and only for the claims re-run.
+
+**Changes:** §6 appended to the audit artifact; the regenerated `docs/audits/README.md`; this entry.
+Entry (k) is left exactly as written - append-only, and its "passed no gate" statement remains true
+of the two commits it describes.
+
+**Abandoned:** nothing. Still no write to `STANDING_RULINGS.md`, no root `AGENTS.md`, no proposed
+mechanism, no self-merge.
+
+**Anchors:** `acad6de8` (the C2-FINAL commit carrying §1-§5), which this branch introduces.
+
+**Next:** unchanged from (k) - the operator merges the branch; the two architect-owned questions
+are whether ADR-53 Decision 2 is superseded or R-1 re-grounded, and whether `[#577]` gets its
+ADR-101 §1 amendment before a lane is dispatched at a Done-when the gate refuses.
+
+### 2026-08-23 (m) - CC (Opus 5, CLOUD lane `C2`, branch `claude/ruling-provenance-audit`): 24 of 39 ruling sets are absent from the register, 4 landed nowhere at all, and the AGENTS.md admission is real while the reason given for it is not
+
+**Did:** ran the read-only ruling-provenance census - the register in full, all 693 files of
+`docs/audits/` under an 8-pattern ruling-marker sweep, and the Step-3 `AGENTS.md` question against
+ADR-53, ADR-101 and the live hermetization classifier. One artifact:
+`docs/audits/2026-08-23-technical-ruling-provenance-audit.md`. Nothing else was written -
+`STANDING_RULINGS.md` untouched, no root `AGENTS.md` created, `tasks/`/`BACKLOG.md` untouched.
+
+**Result: the register carries 131 enumerated ruling units and has no schema at all.** No id
+grammar (18 live id shapes), no required date or mechanism field, and the one machine-checked field
+- the `landed:` predicate `check_landing_predicate` reads - is opt-in and present on **5 of 83**
+heading entries. No pre-commit hook targets the file. It also does not conform to its own A2 rule:
+**24 of 83** entries carry the `Expiry` line A2 requires of every disposition.
+
+**The census: 39 ruling sets in the register's live period (2026-08-05 -> 2026-08-23), 15 carried,
+24 absent, and only 4 of those 24 are actually lost.** The distinction is the register's own scope
+line - it holds rulings *"that have no other landed home yet"* - so a ruling living in a packet, a
+manifest or a row body is correctly absent. The four with no in-repo carrier at all: `[#171]` leg 1
+(the calibration case), 7 of the 10 phase-2 `§A1-§A10` rulings of 2026-08-16, 6 of the 10 morning-
+adjudication `D1.x`/`D5.x` rulings of 2026-08-15, and the night-3 `D1-D14` picks. Every count is a
+**floor**: a ruling that reached no artifact is undetectable from inside the repo.
+
+**The calibration case confirmed, and the method that found it was not the one the brief specified.**
+`[#171]` leg 1 carries no ruling-marker line anywhere in `docs/audits/` - an audits-only sweep
+returns a clean sheet on it. It surfaced only from the active handoff bundle, where
+`SUPPLEMENT.md:75` asserts *"[#171] leg 1 execution under my standing (b) ruling ... ruled,
+unexecuted"* while `RESIDUAL.md:62` and `PASTE_THIS.md:344` in the same bundle put the (a)/(b) fork
+to the next session as open. The bundle calls it ruled and files it under OPEN QUESTIONS six lines
+apart, and `2026-08-23-technical-phase0-preconditions.md:425` had already REFUTED it.
+
+**Step 3 splits three ways, and the half that fails is not the half the brief expected.** The
+admission ruling is **real and properly landed** - register `R-1`, funnel disposition line `A2`, and
+`[#577]`'s row body, all quotable, landed in `2af03f3` which is an ancestor of `origin/main`. What
+does not survive checking is its stated ground: **ADR-53 nowhere says "two content-carrying files"**.
+Decision 2 names the file (*"AGENTS.md as a separate per-repo file is retired"*), and the shape R-1
+admits is materially the alternative ADR-53 explicitly rejected at its `:47` (*"Keep AGENTS.md
+alongside CLAUDE.md, with CLAUDE.md as a thin pointer - rejected"*). The funnel's own routing note
+said so before the ruling was made: *"ADR-53 Decision 2 would need explicit supersession."* It
+stands un-superseded, `Accepted`, today.
+
+**And the ruling admits a file its own cited gate refuses.** Executed, not inferred:
+`validate_hermetization.classify('AGENTS.md')` returns *"unsanctioned new top-level file 'AGENTS.md'
+-- Tier-1 files are a closed class (ADR-101 section 1)"*. `AGENTS.md` is not in
+`SANCTIONED_TIER1_FILES`, no ADR-101 §1 amendment admits it, and R-1/`[#577]` invoke **that same
+Rule A** in the sentence where they refuse `.gemini/settings.json`. So `[#577]`'s Done-when (*"a
+root `AGENTS.md` ... exists"*) has exactly two paths through the armed gate - `--no-verify`, or an
+ADR-101 amendment. Incidentally `codex/AGENTS.md` already exists and classifies clean: what ADR-101
+refuses is the root placement, not the name.
+
+**The shape, named without proposing the mechanism.** Register coverage is contiguous 08-05 -> 08-14
+and episodic after: **zero** entries dated 08-15, 08-17, 08-18, 08-21 or 08-23. Rulings land when a
+close-arc *transcription seat* runs (sections A, I, L/M, Q, R all cite off-repo sources and landed
+anyway); they do not land when issued **mid-arc** into an off-repo pack that a manifest merely
+cites. The selection is inverted relative to the register's purpose - expired batch rulings are
+documented at length while standing doctrine (the 2026-08-17 audit-to-row conversion authority, the
+B3a/B5 destination ruling) sits in a closed batch's immutable manifest. And the mechanical cause is
+measurable: `silent_rule_detector` reads **441** against a baseline of **441**, headroom zero, with
+`silent_rule_ratchet` FAIL-class behind `audit-health` - while the handoff supplement lists
+*"post-ratchet STANDING_RULINGS section-writing policy (blocks #491 + #344)"* as an open question.
+The register stopped absorbing rulings on 08-15 and has had a recorded, unresolved policy question
+about whether it may absorb any more since 08-22.
+
+**Two environment facts, declared rather than glossed.** (1) The `uv` mesh **refuses** in this
+container - `uv 0.8.17` against `pyproject.toml`'s `required-version = "==0.11.19"` - so everything
+was hand-run under `python3` **3.11.15**, itself below the repo's own `.python-version` floor of
+3.12.10. (2) **The pre-commit stack is not armed in this container** (`.git/hooks/pre-commit` does
+not exist), so these two commits passed no gate. Nothing was bypassed - no `--no-verify`, no `SKIP=`
+- there was simply nothing to bypass, and arming a stack that cannot run its pinned tools would have
+produced a green worth less than an honest red. Every mechanical claim in the artifact rests on a
+direct function call under an unpinned interpreter and is labelled as such at each use.
+
+**Changes:** `docs/audits/2026-08-23-technical-ruling-provenance-audit.md` (new), the regenerated
+`docs/audits/README.md` index, and this entry.
+
+**Abandoned:** nothing in the contract. Deliberately not done, per the brief: no write to
+`STANDING_RULINGS.md`, no root `AGENTS.md`, no proposed mechanism, no self-merge.
+
+**Anchors:** `3894da55` (the artifact + regenerated index), the commit this branch introduces.
+
+**Next:** the operator reviews and merges `claude/ruling-provenance-audit`. Two things the artifact
+surfaces that are the architect's and not this lane's: whether ADR-53 Decision 2 is superseded or
+R-1 is re-grounded, and whether `[#577]` gets its ADR-101 §1 amendment before a lane is dispatched
+against a Done-when the gate refuses.
+
 ### 2026-08-23 (l) - CC (Opus 5, LANE-L5 cloud lane, branch `docs/l5-docs-actual-state`): the hand-maintained half of the docs is reconciled to actual state, and the file that forbids restating a roster was restating one three lines below the rule
 
 **Did:** ran LANE-L5 (M6) end to end in a cloud container against `main` at `aeec0fd`. Censused
