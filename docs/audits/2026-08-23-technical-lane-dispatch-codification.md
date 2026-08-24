@@ -426,20 +426,104 @@ for the intake-#18 ratification arc, with line-by-line attribution in
 arc merges, the branch-side check reads raise-rejected vs origin/main — expected, self-healing at
 merge."* This lane is in that same window.
 
-**Proposed replacement provenance text**, for the operator to accept, amend or refuse:
+#### R0a — RULING R8: APPROVED on the merits. The raise is SHIPPED HERE, not applied.
 
-```yaml
-baseline: 445
-measured_at: 2026-08-23
-provenance: |
-  RAISE 441 -> 445, operator-RULED 2026-08-23 (M10 dispatch codification, lane L7): the
-  Ch8 subsection "Dispatching a session" adds exactly +4 normative-token occurrences over
-  the pre-lane live 441 (base blob 210 -> 214 in protocols/PLAYBOOK.md; every other file
-  unchanged). Six were added and two drained as descriptive false positives; the four kept
-  are enumerated with their lines in
-  docs/audits/2026-08-23-technical-lane-dispatch-codification.md section R0.
-  Prior baseline: 441 @ 2026-07-30 (sha 3cd4417a).
+**Operator ruling, 2026-08-23 (R8).** The raise 441 -> 445 stands on the attribution above.
+The order is explicit and is followed to the letter: **ship the raise, do not apply it.**
+`ecosystem/silent-rule-baseline.yaml` is **not written by this lane** — it still reads
+`baseline: 441` at this branch's tip, verified with `git status --porcelain` after the diff
+below was generated.
+
+**Why it is shipped rather than applied, in the operator's own reasoning: 445 is
+N-dependent.** It was measured against **this branch alone**. `protocols/` is inside the
+detector's scope roots and sibling lanes of this batch sweep it, so the live number moves
+again as each one merges. **A value pinned before the last merge is pinned to a pre-merge
+measurement.** This is the same class as the `ALL_CHECKS` count pins under binding amendment
+A6, and it gets the same handling: **the integrator counts once, at the end, and sets it.**
+
+**The change, as a diff ready to apply.** Generated mechanically — the proposed content was
+written to a scratch path and diffed against the real file with `git diff --no-index`, so the
+hunk header is git's own rather than hand-counted, and it was proven with
+`git apply --check` (dry run, nothing written):
+
+```diff
+diff --git a/ecosystem/silent-rule-baseline.yaml b/ecosystem/silent-rule-baseline.yaml
+index 606592c0..2143c434 100644
+--- a/ecosystem/silent-rule-baseline.yaml
++++ b/ecosystem/silent-rule-baseline.yaml
+@@ -18,20 +18,28 @@
+ # commensurable; the check refuses to compare them rather than silently reporting drift.
+ 
+ detector_id: silent-rule-v4
+-baseline: 441
+-measured_at: 2026-07-30
+-measured_at_sha: 3cd4417a
+-measured_files: 56
++baseline: 445
++measured_at: 2026-08-23
++measured_at_sha: <INTEGRATOR-SETS-THIS>
++measured_files: 59
+ 
+ provenance: |
+-  RAISE 428 -> 441, operator-RULED 2026-07-30 (the intake #18 ratification arc, [#435]):
+-  the ruled-verbatim adopted texts (A4 checklist, A2/A9/A6/A10 staged paragraphs, U3
+-  statement, A3 template extract) add exactly +14 normative-token occurrences over the
+-  pre-arc live 427; line-by-line attribution + the ruling's four conditions:
+-  docs/audits/2026-07-30-technical-intake18-ratification-record.md ("Silent-rule ratchet"
+-  section). Until that arc merges, the branch-side check reads raise-rejected vs
+-  origin/main (428) -- expected, self-healing at merge.
+-  Prior baseline: 428 @ 2026-07-27 (sha 527958fbf89311610bd3be65fbfcb77df1f5fe29).
++  RAISE 441 -> 445, operator-RULED 2026-08-23 (RULING R8; M10 dispatch codification,
++  lane L7). The Ch8 subsection "Dispatching a session -- the boundary, the three shapes,
++  and the standing rules" adds exactly +4 normative-token occurrences over the pre-lane
++  live 441: protocols/PLAYBOOK.md blob 210 -> 214, every other file in scope unchanged.
++  Six were added; TWO were drained as descriptive false positives (sentences ABOUT rules,
++  which the detector cannot tell from rules), and the FOUR kept are the standing
++  operator-interface rules the lane was dispatched to write. They are enumerated with
++  their lines in
++  docs/audits/2026-08-23-technical-lane-dispatch-codification.md section R0.
++  N-DEPENDENT -- READ BEFORE PINNING. 445 was measured against lane L7's branch ALONE.
++  protocols/ is inside the detector's scope roots and sibling lanes of the same batch
++  sweep it, so the live number moves again as each one merges. The INTEGRATOR re-measures
++  after the LAST merge (`python scripts/silent_rule_detector.py`) and sets baseline,
++  measured_at_sha and measured_files from that run. Same handling as the ALL_CHECKS count
++  pins: a value pinned before the last merge is pinned to a pre-merge measurement.
++  Prior baseline: 441 @ 2026-07-30 (sha 3cd4417a).
+   Baseline semantics: detector-measured at arm time. Architect-proposed 2026-07-27,
+   operator-adopted (D4), subject to revision after live testing. Historical ruling
+   reference: 176 @ 2026-07-26; floor >= 179 per
 ```
+
+**`git apply --check` on this diff: CLEAN.** The scratch file was removed; the real baseline
+file was read and never written.
+
+**What the integrator MUST re-derive after the LAST merge of this batch, not before:**
+
+| Field | In the diff | Why it moves |
+|---|---|---|
+| `baseline` | `445` | L7's branch alone. Re-run `python scripts/silent_rule_detector.py` after the final merge. |
+| `measured_files` | `59` | 56 at the 2026-07-30 baseline, 59 on this branch; sibling lanes may add or archive in-scope files. |
+| `measured_at_sha` | `<INTEGRATOR-SETS-THIS>` | Deliberately a placeholder, not the stale `3cd4417a`. Leaving the July sha beside `445` would claim the new number was measured at the old commit. **Inert to the gate** — `check_silent_rule_ratchet` reads only `detector_id` and `baseline` — so it cannot cause a silent wrong pass, and it is unmissable on sight. |
+
+**My arithmetic, so the integrator can show its own against it.** Both numbers are reproducible
+from the tree:
+
+```
+git show aeec0fd1:protocols/PLAYBOOK.md | grep -oiE '\b(must|shall|never)\b' | wc -l   -> 210
+git show HEAD:protocols/PLAYBOOK.md     | grep -oiE '\b(must|shall|never)\b' | wc -l   -> 214
+python scripts/silent_rule_detector.py                       -> detector silent-rule-v4, 59 files, 445
+```
+
+All three re-run clean at this branch's tip. **447** was the *first* reading, before the two
+descriptive false positives were drained; **445** is the figure after that drain and is what the
+branch carries now — so the pre-drain number is recorded here as history and is deliberately not
+the one in the command block, which has to reproduce. The `+4` in the gate's own FAIL message
+(`live 445 > baseline 441 (+4)`) is the independent confirmation of the same arithmetic.
+
+**Operator's finding, recorded because it is a ruling on conduct and not just on a number:**
+the `never` -> `not` swap was available and was declined, because it lowers the metric without
+removing a rule — the inverse of the detector's own v1->v2 occurrence-counting correction.
+R8 rules that declining it was correct at the exact point where gaming was available.
 
 **Until that ruling lands, every commit on this branch carries a declared
 `SKIP=audit-health` with the reason in its body** (PLAYBOOK Ch8 Q1 — a lane declares its
@@ -556,3 +640,66 @@ it is commit-and-STOP inside the worktree that causes it.
 **Net, after attribution:** this lane introduces **zero** REDs of its own logic. Four are one
 queued operator ruling, one is the declared baseline failure, one is the measurement environment.
 `tests/test_gen_lane_contract.py` is 105/105 green in isolation, and 8/8 mutants die against it.
+
+---
+
+## 8. Operator rulings received after the lane's first STOP (2026-08-23)
+
+Recorded here because they change what a later reader should believe about sections 5–7, and
+because two of them correct **the contract and the baseline**, not this lane's work.
+
+### R8 — the baseline raise: APPROVED on the merits, SHIPPED not applied
+
+Full treatment at §R0a above, including the ready-to-apply fenced diff. In one line: the raise
+441 → 445 is approved, `ecosystem/silent-rule-baseline.yaml` is **not written by this lane**, and
+the integrator re-measures after the last merge because **445 is N-dependent** — sibling lanes are
+sweeping `protocols/`, which is inside the detector's scope roots.
+
+### R9 — the JOURNAL entry: P-1 governs, and the contract's Final step 3 was wrong
+
+**The conflict flagged in the JOURNAL entry's opening block is resolved by the operator against
+the contract.** `protocols/STANDING_RULINGS.md` P-1 — *a batch lane never journals; the integrator
+does* — governs. The frozen contract's Final step 3 (*"`JOURNAL.md` entry on this branch"*) was an
+authoring error.
+
+**Nothing is deleted.** `JOURNAL.md` is append-only (CLAUDE.md §5 rule 2), so the entry **stays as
+written**, conflict flag and all, and the **integrator appends one correction note**. That is the
+whole remedy; this lane takes no action on it.
+
+Worth recording as the reason the flag was written rather than the flag being noise: the entry
+opened by naming the P-1 conflict instead of silently obeying the contract, and the operator's
+ruling says that flag is what surfaced the error. **A lane that had quietly complied would have
+buried it** — the entry would have looked correct and P-1 would have been breached without a
+trace. This is the Q10 posture applied to an instruction rather than a premise: comply, disclose,
+let the ruling come back.
+
+### R10 — the suite report accepted in full, and the A2 baseline itself corrected
+
+The operator accepts §7 as written and **corrects the contract's own A2 baseline**: it was
+measured in the **primary tree** and was therefore wrong for worktree lanes.
+
+```
+A2 as written in the contract:   1 failed  (primary-tree measurement)
+A2 as corrected by R10:          2 failed  (correct for a lane running from a linked worktree)
+```
+
+`test_stale_worktrees.py::test_linked_worktrees_reader_excludes_the_primary` **fails by
+construction** from inside a linked worktree — independently reproduced by **LANE-L6**, which
+detached to bare `main` inside its own worktree and saw the same thing. So it was never a finding
+against any lane's diff; it was a property of where the suite runs.
+
+**Restated against the corrected baseline, this lane's numbers close even more cleanly:**
+
+| | corrected A2 | this branch | delta |
+|---|---|---|---|
+| failed | 2 | 6 | **+4 — all one cause (the R8 ratchet), zero from this lane's logic** |
+| passed | 3567 | 3592 | +25 |
+| skipped | 4 | 9 | +5 (worktree-guarded tests) |
+| total | 3573 | 3608 | **+35 = 105 − 70, this lane's own tests** |
+
+The operator additionally names the `105 − 70 = 35 = 3608 − 3573` collection proof as the
+standard expected from every lane. It is cheap to reproduce and is recorded at §7.1 with the two
+commands that produce it.
+
+**Net after R10:** the five "additional REDs" of §7 are more precisely **four**, and all four are
+the single queued ratchet cause that goes green when R8's diff is applied by the integrator.
