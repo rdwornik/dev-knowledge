@@ -78,7 +78,7 @@ def check_adr_status_grammar(repo_path: Path) -> list[Finding]:
                         f"corpus unusable: {exc}".replace("|", "/"))]
 
     defects = _vas.corpus_defects(fields, missing, extra)
-    defects += _vas.duplicate_id_defects(fields)
+    defects += _vas.duplicate_id_defects(fields, missing)
 
     # The index is HALF this check's subject ([#242]'s Done-when leg). An absent or unreadable
     # README must therefore be loud: returning `pass` while the coherence leg silently did not
@@ -93,25 +93,34 @@ def check_adr_status_grammar(repo_path: Path) -> list[Finding]:
         index, index_error = {}, f"ADR index unreadable ({exc}) — coherence leg DID NOT RUN"
 
     if not index_error:
-        defects += _vas.coherence_defects(_vas.header_status_map(fields), index)
+        defects += _vas.coherence_defects(_vas.header_status_map(fields, missing), index)
 
     fails = [d for d in defects if d.rule in _vas.FAIL_RULES]
     warns = [d for d in defects if d.rule not in _vas.FAIL_RULES]
 
+    def _tally(defects_: list) -> str:
+        counts: dict[str, int] = {}
+        for d in defects_:
+            counts[d.rule] = counts.get(d.rule, 0) + 1
+        return ", ".join(f"{k}={v}" for k, v in sorted(counts.items())) or "none"
+
     if fails:
+        # The FAIL evidence carries the WARN tally and any index error TOO. Reporting only the
+        # blocking defects silently discarded every other governance defect the run had
+        # already computed, so a FAIL made the rest invisible (terra R7-HIGH-3). The Finding
+        # STATUS stays `fail` — this widens the evidence, not the verdict.
         ev = f"{len(fails)} blocking defect(s): " + "; ".join(
             f"{d.rule} {d.subject} — {d.detail}" for d in fails[:8])
         if len(fails) > 8:
             ev += f" (+{len(fails) - 8} more)"
+        ev += f" || also detected: {_tally(warns)}"
+        if index_error:
+            ev += f" || {index_error}"
         return [Finding("adr_status_grammar", "fail", ev.replace("|", "/"))]
 
     if warns or index_error:
-        counts: dict[str, int] = {}
-        for d in warns:
-            counts[d.rule] = counts.get(d.rule, 0) + 1
         ev = (f"{len(fields)} ADR status field(s); 0 enum/single-field defects; "
-              f"baseline WARNs: "
-              + (", ".join(f"{k}={v}" for k, v in sorted(counts.items())) or "none"))
+              f"baseline WARNs: " + _tally(warns))
         if index_error:
             ev += f" | {index_error}"
         return [Finding("adr_status_grammar", "warn", ev.replace("|", "/"))]

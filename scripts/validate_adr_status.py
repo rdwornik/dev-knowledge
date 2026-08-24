@@ -57,6 +57,7 @@ from __future__ import annotations
 
 import re
 import sys
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -81,7 +82,10 @@ HEADER_WINDOW = 30
 # status field -- a false positive that was live in this lane's own first measurement pass
 # and is pinned by `test_status_update_marker_is_NOT_a_status_field`.
 GRAMMARS: tuple[tuple[str, re.Pattern[str]], ...] = (
-    ("G5", re.compile(r"^>\s*\*\*Status:\s*(?P<v>.*?)\*\*\s*(?P<tail>.*)$")),
+    # `(?:>\s*)+` — a NESTED blockquote (`> > **Status: X**`) is still a real G5 field. A
+    # single `>` made it invisible, which on a file whose only field is nested produced a
+    # FALSE `single-field` FAIL (terra R7-HIGH-1).
+    ("G5", re.compile(r"^(?:>\s*)+\*\*Status:\s*(?P<v>.*?)\*\*\s*(?P<tail>.*)$")),
     ("G1", re.compile(r"^-\s+\*\*Status:\*\*\s*(?P<v>.*)$")),
     ("G2", re.compile(r"^\*\*Status:\*\*\s*(?P<v>.*)$")),
     ("G3", re.compile(r"^Status:\s*(?P<v>.*)$")),
@@ -186,13 +190,18 @@ _ADR_NUM_RE = re.compile(r"^(ADR-\d+)")
 #: tildes and keeping the word yields `Accepted`, which INVERTS the status of the one genuinely
 #: superseded ADR in the corpus. Pinned by `test_strikethrough_is_removed_not_unwrapped`.
 _STRIKE_SPAN_RE = re.compile(r"~~.*?~~")
-#: Fence opener — ``` or ~~~ (3+), up to 3 spaces of indent, with an optional info string.
-#: An info string may contain spaces (` ```md example `); a BACKTICK fence's info string may
-#: not contain a backtick (CommonMark), a tilde fence's may.
-_FENCE_OPEN_RE = re.compile(r"^ {0,3}(?P<f>`{3,}|~{3,})(?P<info>[^`]*)$")
+#: Fence opener. The info-string constraint is FENCE-CHARACTER-SPECIFIC, per CommonMark: a
+#: BACKTICK fence's info string may not contain a backtick, a TILDE fence's may contain
+#: anything. A single `[^`]*` for both wrongly rejected ` ~~~python `example` ` and let the
+#: block's contents parse as real header fields (terra R5-HIGH-1).
+_FENCE_OPEN_RE = re.compile(r"^ {0,3}(?:(?P<b>`{3,})(?P<binfo>[^`]*)|(?P<t>~{3,})(?P<tinfo>.*))$")
 #: Fence closer — same character, AT LEAST the opener's length, nothing but whitespace after.
 #: Length matters: a 4-char opener is NOT closed by 3 (terra R2-HIGH-2).
 _FENCE_CLOSE_RE = re.compile(r"^ {0,3}(?P<f>`{3,}|~{3,})\s*$")
+#: A blockquote container prefix (`> `, `>> `, …). Stripped before fence detection ONLY, so a
+#: fence written inside a blockquote is tracked — otherwise a quoted example containing
+#: `> **Status: Ratified**` parses as a real G5 field (terra R5-HIGH-1, second case).
+_BQ_PREFIX_RE = re.compile(r"^ {0,3}(?:>\s?)+")
 #: A line that opens a new block — i.e. NOT a lazy continuation of the value above it.
 #: List and heading markers require their FOLLOWING WHITESPACE, per CommonMark: without it,
 #: `*continued rationale*` (emphasis) was misread as a bullet and a genuine wrapped value went
@@ -202,6 +211,9 @@ _NEW_BLOCK_RE = re.compile(
     r"""^\s*(?:
           [-*+]\s              # bullet list item
         | \d+[.)]\s            # ordered list item
+        | (?:[-*_][ \t]*){3,}$ # thematic break / YAML frontmatter fence (`---`) — NOT a
+                               # bullet (no following space), so without this alternative it
+                               # read as a lazy continuation (terra R5-MEDIUM-1)
         | \#{1,6}\s            # ATX heading
         | >                    # blockquote
         | \|                   # table row
@@ -264,17 +276,26 @@ def parse_status_fields(text: str, path: Path) -> list[StatusField]:
     # field goes INVISIBLE — a silent miss, not a loud one (terra HIGH-1).
     lines = text.lstrip("﻿").splitlines()
     out: list[StatusField] = []
-    fence: tuple[str, int] | None = None   # (fence char, opener length)
+    fence: tuple[str, int, int] | None = None   # (fence char, opener length, bq depth)
     for idx, line in enumerate(lines[:HEADER_WINDOW]):
+        # Fence state is tracked on the line with any blockquote container prefix removed,
+        # and the opener's container DEPTH travels with it: a fence opened inside a
+        # blockquote is not closed by an unquoted `~~~`, because that line ends the
+        # blockquote rather than closing the fence (terra R6-HIGH-1).
+        bqm = _BQ_PREFIX_RE.match(line)
+        depth = line.count(">", 0, bqm.end()) if bqm else 0
+        bare = line[bqm.end():] if bqm else line
         if fence is None:
-            fo = _FENCE_OPEN_RE.match(line)
-            if fo and (fo.group("f")[0] == "~" or "`" not in fo.group("info")):
-                fence = (fo.group("f")[0], len(fo.group("f")))
+            fo = _FENCE_OPEN_RE.match(bare)
+            if fo:
+                marker = fo.group("b") or fo.group("t")
+                fence = (marker[0], len(marker), depth)
                 continue
         else:
-            fc = _FENCE_CLOSE_RE.match(line)
+            fc = _FENCE_CLOSE_RE.match(bare)
             if (fc and fc.group("f")[0] == fence[0]
-                    and len(fc.group("f")) >= fence[1]):
+                    and len(fc.group("f")) >= fence[1]
+                    and depth == fence[2]):
                 fence = None
             continue
         for grammar, rx in GRAMMARS:
@@ -385,7 +406,10 @@ def corpus_defects(fields: list[StatusField], missing: list[str],
 
 # --- the README-index side ----------------------------------------------------
 
-_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}")
+#: The Date cell must BE a date, not merely start with one. A prefix match let
+#: `2026-01-01 not-a-date` qualify a row, so an unrelated table could manufacture a coherence
+#: verdict (terra R5-MEDIUM-2). Verified against the live index: no row is lost by this.
+_DATE_RE = re.compile(r"\d{4}-\d{2}-\d{2}")
 
 
 def _split_cells(row: str) -> list[str]:
@@ -460,7 +484,7 @@ def index_effective_status(readme_text: str) -> dict[str, str]:
         if len(cells) != 3:
             continue
         adr, date, title = cells
-        if not _ADR_NUM_RE.fullmatch(adr) or not _DATE_RE.match(date) or adr in out:
+        if not _ADR_NUM_RE.fullmatch(adr) or not _DATE_RE.fullmatch(date) or adr in out:
             continue
         status = INDEX_DEFAULT_STATUS
         for _kind, rx in _INDEX_MARKERS:
@@ -472,7 +496,44 @@ def index_effective_status(readme_text: str) -> dict[str, str]:
     return out
 
 
-def duplicate_id_defects(fields: list[StatusField]) -> list[Defect]:
+def _file_identity(path: Path) -> str:
+    """A ZONE-QUALIFIED file identity — `archive/ADR-9-x.md` vs `ADR-9-x.md`.
+
+    A bare `Path.name` collapses `docs/decisions/ADR-9-x.md` and
+    `docs/decisions/archive/ADR-9-x.md` into ONE claimant, so a live/archive collision with
+    identical basenames produced no `duplicate-id` on `--include-archive` (terra R7-HIGH-2).
+    Only the `archive/` component is kept: a full path would make every message absolute and
+    machine-specific for the overwhelmingly common single-zone case.
+    """
+    return f"archive/{path.name}" if path.parent.name == "archive" else path.name
+
+
+def _numbers_by_file(fields: list[StatusField],
+                     extra_names: Sequence[str] = ()) -> dict[str, set[str]]:
+    """`{ADR-NN: {filenames claiming it}}`.
+
+    Keyed on FILENAME, not on field: a file carrying two status fields (`archive/ADR-40`
+    does) must not be reported as colliding with ITSELF.
+
+    `extra_names` carries ADR files that produced NO status field — `scan_zone`'s `missing`
+    list. Without them a collision between a file WITH a status and a file WITHOUT one is
+    invisible: only `single-field` fires, `duplicate-id` does not, and the surviving file is
+    then treated as unambiguous and given a coherence verdict (terra R5-HIGH-2).
+    """
+    by_num: dict[str, set[str]] = {}
+    for f in fields:
+        num = adr_number(f.path)
+        if num:
+            by_num.setdefault(num, set()).add(_file_identity(f.path))
+    for name in extra_names:
+        num = adr_number(Path(name))
+        if num:
+            by_num.setdefault(num, set()).add(_file_identity(Path(name)))
+    return by_num
+
+
+def duplicate_id_defects(fields: list[StatusField],
+                         extra_names: Sequence[str] = ()) -> list[Defect]:
     """One defect per ADR number claimed by more than one file.
 
     This exists because collapsing a collision into a single key is exactly the silent pass
@@ -480,25 +541,17 @@ def duplicate_id_defects(fields: list[StatusField]) -> list[Defect]:
     second file's status entirely, and `R_UNINDEXED` can then never fire for it. Reported,
     never resolved -- picking which file "is" ADR-51 is not this validator's call.
     """
-    # Keyed on FILENAME, not on field: a file carrying two status fields (ADR-40 in the
-    # archive does) would otherwise be reported as colliding with ITSELF -- "2 files claim
-    # this number: ADR-40-....md, ADR-40-....md". That is a false collision, and it appears
-    # only on the --include-archive path, which is why a field-keyed count survived the live
-    # corpus unnoticed.
-    by_num: dict[str, set[str]] = {}
-    for f in fields:
-        num = adr_number(f.path)
-        if num:
-            by_num.setdefault(num, set()).add(f.path.name)
     return [
         Defect(R_DUPLICATE, num,
                f"{len(names)} files claim this number: {', '.join(sorted(names))} -- "
                "index coherence is ambiguous for all of them")
-        for num, names in sorted(by_num.items()) if len(names) > 1
+        for num, names in sorted(_numbers_by_file(fields, extra_names).items())
+        if len(names) > 1
     ]
 
 
-def header_status_map(fields: list[StatusField]) -> dict[str, str]:
+def header_status_map(fields: list[StatusField],
+                      extra_names: Sequence[str] = ()) -> dict[str, str]:
     """`{ADR-NN: header status}`, with duplicate-numbered ADRs EXCLUDED.
 
     A first-wins dict over a collision picks a winner by filename order and then reports a
@@ -512,6 +565,8 @@ def header_status_map(fields: list[StatusField]) -> dict[str, str]:
     filenames alone left that case picking the first field arbitrarily (terra R3-MEDIUM-1);
     its `single-field` defect is still raised either way.
     """
+    colliding = {num for num, names in _numbers_by_file(fields, extra_names).items()
+                 if len(names) > 1}
     by_num: dict[str, list[StatusField]] = {}
     for f in fields:
         num = adr_number(f.path)
@@ -520,7 +575,7 @@ def header_status_map(fields: list[StatusField]) -> dict[str, str]:
     return {
         num: fs[0].value or fs[0].raw[:40]
         for num, fs in by_num.items()
-        if len(fs) == 1
+        if len(fs) == 1 and num not in colliding
     }
 
 
@@ -581,9 +636,13 @@ def main(root: str, include_archive: bool) -> None:
             click.echo(f"adr-status: archive UNUSABLE -- {exc}", err=True)
             sys.exit(2)
         fields += a_fields
+        # The archive's own status-less files must join `missing`, or a live/archive number
+        # collision goes unreported and the live file is then treated as unambiguous
+        # (terra R6-HIGH-2).
+        missing = missing + [f"archive/{n}" for n in a_missing]
         defects += corpus_defects(a_fields, a_missing, a_extra)
 
-    defects += duplicate_id_defects(fields)
+    defects += duplicate_id_defects(fields, missing)
 
     # The index is HALF the subject. Exiting 0 with the coherence leg silently skipped is the
     # same vacuous pass the adapter was fixed for; the CLI must not disagree with it
@@ -591,7 +650,7 @@ def main(root: str, include_archive: bool) -> None:
     readme = live_dir / "README.md"
     try:
         defects += coherence_defects(
-            header_status_map(fields),
+            header_status_map(fields, missing),
             index_effective_status(readme.read_text(encoding="utf-8", errors="replace")))
     except OSError as exc:
         click.echo(f"adr-status: ADR index unreadable ({exc}) -- the header-vs-index "

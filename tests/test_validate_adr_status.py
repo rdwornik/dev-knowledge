@@ -404,6 +404,107 @@ def test_mismatched_run_lengths_are_still_rejected(value):
     assert vas.normalize_value(value) == ""
 
 
+# --- layer 2g: terra round-5 findings (regression tests) ------------------------
+
+def test_tilde_fence_info_string_may_contain_backticks():
+    """terra R5-HIGH-1: the info-string constraint is fence-character-specific. A single
+    `[^`]*` for both wrongly rejected a tilde opener and let the block's contents parse."""
+    body = ("# ADR-99 — x\n\n- **Status:** Accepted\n\n"
+            "~~~python `example`\n- **Status:** Ratified\n~~~\n")
+    fields = _fields(body)
+    assert len(fields) == 1, [f.raw for f in fields]
+
+
+def test_backtick_fence_info_string_may_NOT_contain_a_backtick():
+    """The other half of the same rule — widening must not lose CommonMark's constraint."""
+    body = "# ADR-99 — x\n\n```md `oops`\n- **Status:** Ratified\n```\n"
+    # The opener is invalid, so the line below it IS header content and parses.
+    assert len(_fields(body)) == 1
+
+
+def test_fence_inside_a_blockquote_is_tracked():
+    """terra R5-HIGH-1 (second case): a quoted example containing `> **Status: Ratified**`
+    otherwise parses as a real G5 field."""
+    body = ("# ADR-99 — x\n\n- **Status:** Accepted\n\n"
+            "> ~~~\n> **Status: Ratified**\n> ~~~\n")
+    fields = _fields(body)
+    assert len(fields) == 1, [f.raw for f in fields]
+
+
+@pytest.mark.parametrize("open_line,close_line", [
+    ("> ~~~", "~~~"),      # quoted open, plain close
+    ("~~~", "> ~~~"),      # plain open, quoted close
+])
+def test_fence_does_not_close_across_a_blockquote_boundary(open_line, close_line):
+    """terra R6-HIGH-1: a fence opened inside a blockquote is NOT closed by an unquoted
+    marker — that line ends the blockquote instead. Either transition leaves the fence OPEN,
+    so the trailing status line is code content and must not parse."""
+    body = (f"# ADR-99 — x\n\n{open_line}\nquoted example\n{close_line}\n"
+            "- **Status:** Accepted\n")
+    assert _fields(body) == [], [f.raw for f in _fields(body)]
+
+
+def test_fence_opened_and_closed_in_the_same_container_does_close():
+    """The other side of R6-HIGH-1: matched containers must still close normally."""
+    body = ("# ADR-99 — x\n\n> ~~~\n> quoted example\n> ~~~\n\n- **Status:** Accepted\n")
+    fields = _fields(body)
+    assert len(fields) == 1 and fields[0].value == "Accepted"
+
+
+@pytest.mark.parametrize("line", [
+    "> **Status: Accepted**",
+    "> > **Status: Accepted**",
+    ">> **Status: Accepted**",
+])
+def test_nested_blockquote_g5_field_is_still_a_field(line):
+    """terra R7-HIGH-1: G5 accepted only ONE `>`, so a nested field was invisible — and a
+    file whose only field is nested then took a FALSE `single-field` FAIL."""
+    fields = _fields(f"# ADR-99 — x\n\n{line}\n")
+    assert len(fields) == 1, line
+    assert fields[0].grammar == "G5"
+    assert fields[0].value == "Accepted"
+
+
+def test_live_and_archive_files_with_the_SAME_basename_are_distinct_claimants():
+    """terra R7-HIGH-2: identity was `Path.name`, so `ADR-9-x.md` and `archive/ADR-9-x.md`
+    collapsed into one claimant and the collision went unreported."""
+    fields = [
+        vas.StatusField(Path("docs/decisions/ADR-9-x.md"), "G1", 3,
+                        "Accepted", "Accepted", False),
+        vas.StatusField(Path("docs/decisions/archive/ADR-9-x.md"), "G1", 3,
+                        "Accepted", "Accepted", False),
+    ]
+    defects = vas.duplicate_id_defects(fields)
+    assert [d.rule for d in defects] == [vas.R_DUPLICATE]
+    assert "archive/ADR-9-x.md" in defects[0].detail
+    assert "ADR-9" not in vas.header_status_map(fields)
+
+
+def test_duplicate_id_fires_when_the_OTHER_file_has_no_status_field():
+    """terra R5-HIGH-2: only `single-field` fired, `duplicate-id` did not, and the surviving
+    file was then treated as unambiguous and given a coherence verdict."""
+    fields = [vas.StatusField(Path("ADR-9-a.md"), "G1", 3, "Accepted", "Accepted", False)]
+    missing = ["ADR-9-b.md"]
+    assert [d.rule for d in vas.duplicate_id_defects(fields, missing)] == [vas.R_DUPLICATE]
+    assert "ADR-9" not in vas.header_status_map(fields, missing)
+    # ...and without the collision the verdict is still produced.
+    assert vas.header_status_map(fields) == {"ADR-9": "Accepted"}
+
+
+def test_thematic_break_is_not_a_lazy_continuation():
+    """terra R5-MEDIUM-1: `---` has no space after `-`, so the bullet alternative missed it."""
+    for nxt in ("---", "***", "- - -", "___"):
+        body = f"# ADR-99 — x\n\n- **Status:** Accepted\n{nxt}\n"
+        assert _fields(body)[0].wrapped is False, nxt
+
+
+def test_date_cell_must_BE_a_date_not_merely_start_with_one():
+    """terra R5-MEDIUM-2: a prefix match let an unrelated table manufacture a verdict."""
+    idx = ("| ADR | Date | Title |\n|--|--|--|\n"
+           "| ADR-9 | 2026-01-01 not-a-date | — Deprecated |\n")
+    assert "ADR-9" not in vas.index_effective_status(idx)
+
+
 # --- layer 2b: header <-> README index coherence (`[#242]` Done-when leg) -------
 
 _INDEX = (
@@ -540,13 +641,36 @@ def test_shipped_corpus_has_zero_enum_violations():
 
 
 def test_shipped_corpus_coherence_divergences_are_the_three_measured():
-    fields, _, _ = vas.scan_zone(vas.LIVE_DIR)
-    headers = {vas.adr_number(f.path): f.value for f in fields}
+    """Goes through `header_status_map` — the real call path — and asserts the FULL per-rule
+    distribution, not just the coherence subset.
+
+    terra R5-MEDIUM-3: the earlier version built its own header dict, bypassing
+    `header_status_map`, and asserted only the coherence divergences. An
+    `index_effective_status` regression that dropped a non-divergent row would raise
+    `unindexed` while leaving ADR-45/46/47 unchanged — and this test still passed.
+    """
+    fields, missing, extra = vas.scan_zone(vas.LIVE_DIR)
     eff = vas.index_effective_status(
         (vas.LIVE_DIR / "README.md").read_text(encoding="utf-8"))
-    diverged = {d.subject for d in vas.coherence_defects(headers, eff)
-                if d.rule == vas.R_COHERENCE}
-    assert diverged == {"ADR-45", "ADR-46", "ADR-47"}
+    defects = (vas.corpus_defects(fields, missing, extra)
+               + vas.duplicate_id_defects(fields, missing)
+               + vas.coherence_defects(
+                   vas.header_status_map(fields, missing), eff))
+    counts: dict[str, int] = {}
+    for d in defects:
+        counts[d.rule] = counts.get(d.rule, 0) + 1
+    assert counts == {
+        vas.R_GRAMMAR: 47,
+        vas.R_COHERENCE: 3,
+        vas.R_WRAP: 1,
+        vas.R_DUPLICATE: 2,
+    }, counts
+    # enum / single-field / unindexed are the legs measured at ZERO — assert their absence
+    # explicitly rather than leaving it implied by the dict above.
+    for rule in (vas.R_ENUM, vas.R_SINGLE, vas.R_UNINDEXED):
+        assert counts.get(rule, 0) == 0
+    assert {d.subject for d in defects if d.rule == vas.R_COHERENCE} == {
+        "ADR-45", "ADR-46", "ADR-47"}
 
 
 # --- the audit-check adapter ---------------------------------------------------
@@ -626,6 +750,45 @@ def test_a_missing_index_does_not_MASK_a_real_enum_failure(tmp_path):
     assert "enum" in findings[0].evidence
 
 
+def test_FAIL_evidence_still_reports_the_warn_defects_it_computed(tmp_path):
+    """terra R7-HIGH-3: when any FAIL-rule defect existed, the adapter returned evidence
+    listing ONLY the blocking defects — silently discarding every grammar/coherence/duplicate
+    defect the same run had already found. A FAIL must not make the rest invisible."""
+    d = tmp_path / "docs" / "decisions"
+    d.mkdir(parents=True)
+    (d / "ADR-11-x.md").write_text(          # G3 -> a grammar WARN
+        "# ADR-11 — x\n\nStatus: Accepted\n", encoding="utf-8")
+    (d / "ADR-12-y.md").write_text(          # no status -> a single-field FAIL
+        "# ADR-12 — y\n\n(nothing)\n", encoding="utf-8")
+    (d / "README.md").write_text(
+        "| ADR | Date | Title |\n|--|--|--|\n"
+        "| ADR-11 | 2026-01-01 | x |\n| ADR-12 | 2026-01-02 | y |\n", encoding="utf-8")
+
+    f = check_adr_status_grammar(tmp_path)[0]
+    assert f.status == "fail"
+    assert "single-field" in f.evidence          # the blocking one
+    assert "grammar=1" in f.evidence, f.evidence  # ...and the one it used to drop
+
+
+@pytest.mark.parametrize("seed,expect", [
+    ("Status: Accepted\n", "warn"),      # G3 -> grammar WARN only
+    ("(nothing)\n", "fail"),             # no field -> single-field FAIL
+    ("- **Status:** Accepted\n", "pass"),
+])
+def test_evidence_never_contains_a_literal_pipe(tmp_path, seed, expect):
+    """`Finding.evidence` is markdown-table-safe by contract (`_common.Finding` docstring):
+    emitters replace `|` with `/`. The R7-HIGH-3 fix introduced `||` separators, so the
+    sanitation has to cover them — on every branch, not just the one that was edited."""
+    d = tmp_path / "docs" / "decisions"
+    d.mkdir(parents=True)
+    (d / "ADR-11-x.md").write_text(f"# ADR-11 — x\n\n{seed}", encoding="utf-8")
+    (d / "README.md").write_text(
+        "| ADR | Date | Title |\n|--|--|--|\n| ADR-11 | 2026-01-01 | x |\n", encoding="utf-8")
+    f = check_adr_status_grammar(tmp_path)[0]
+    assert f.status == expect, f.evidence
+    assert "|" not in f.evidence, f.evidence
+
+
 def test_check_carries_the_rule_annotation_for_the_doc_code_edge():
     """`_markers_for_check` walks back from the def through the contiguous comment block;
     losing `# rule: governance-adr-status` silently drops the doc->code edge."""
@@ -656,6 +819,26 @@ def test_cli_exit_1_on_a_divergent_corpus(tmp_path):
     res = CliRunner().invoke(vas.main, ["--root", str(tmp_path)])
     assert res.exit_code == 1, res.output
     assert "G3" in res.output
+
+
+def test_cli_include_archive_folds_archive_missing_into_duplicate_detection(tmp_path):
+    """terra R6-HIGH-2, and a genuine TEST HOLE the mutation run found: fixing the CLI to
+    combine `a_missing` into `missing` was not covered by anything, so a mutation reverting
+    it survived. A live ADR and a status-less ARCHIVE file sharing a number must produce
+    `duplicate-id`, and the live file must NOT then receive a coherence verdict."""
+    d = tmp_path / "docs" / "decisions"
+    (d / "archive").mkdir(parents=True)
+    (d / "ADR-9-main.md").write_text(
+        "# ADR-9 — x\n\n- **Status:** Accepted\n", encoding="utf-8")
+    (d / "archive" / "ADR-9-amendment.md").write_text(
+        "# ADR-9 — amendment\n\n(no status field)\n", encoding="utf-8")
+    (d / "README.md").write_text(
+        "| ADR | Date | Title |\n|--|--|--|\n| ADR-9 | 2026-01-01 | x |\n", encoding="utf-8")
+
+    res = CliRunner().invoke(vas.main, ["--root", str(tmp_path), "--include-archive"])
+    assert res.exit_code == 1, res.output
+    assert "duplicate-id: ADR-9" in res.output, res.output
+    assert "coherence: ADR-9" not in res.output, res.output
 
 
 def test_cli_exit_2_when_the_corpus_dir_is_absent(tmp_path):

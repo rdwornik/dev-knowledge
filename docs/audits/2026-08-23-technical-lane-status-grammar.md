@@ -718,3 +718,77 @@ grammar, but it cannot detect that a *flip* used Pattern A rather than Pattern B
 correctly-executed Pattern-B flip and a file that was always `Accepted` are byte-identical.
 That distinction needs commit history, which this check does not read. Stated rather than
 claimed as done.
+
+---
+
+## Step 7 — terra review
+
+**Reviewer:** `gpt-5.6-terra` via `codex exec --sandbox read-only`, reasoning effort `high`,
+model pinned exactly as `~/.claude/bin/codex-review.ps1` pins it (S19). Invoked directly rather
+than through `/codex-review`: that command writes its artifact into `docs/audits/` and this
+lane's diff is mixed code+docs, which is the recorded failure mode for it.
+
+### Tally
+
+| Round | Critical | High | Medium | Low |
+|---|---|---|---|---|
+| 1 | 0 | 5 | 0 | 0 |
+| 2 | 0 | 3 | 2 | 0 |
+| 3 | 0 | 2 | 1 | 0 |
+| 4 | 0 | 2 | 0 | 0 |
+| 5 | 0 | 2 | 3 | 0 |
+| 6 | 0 | 2 | 1 | 0 |
+| **7 (final)** | *(pending — filled from the round-7 artifact)* | | | |
+
+**Running total after 6 rounds: 0 Critical, 16 High, 7 Medium — every one fixed, each with a
+regression test naming the round and the concrete failing input.** Counts are taken from the
+artifact files, not from any console tally.
+
+### What the rounds actually found — a summary, because the pattern matters
+
+Every High was a **false verdict**, in one of two directions, and both directions are serious
+for a gate armed at FAIL:
+
+- **False PASS (a bad value laundered into a good one):** `~~Accepted~~ Superseded by ADR-53`
+  normalizing to `Accepted` — inverting the only genuinely superseded ADR in the corpus;
+  `A_ccepted`, `Acceptedness`, `Acce*pted`, `**Accepted` all reaching `Accepted`; a missing
+  README silently returning `pass` with the coherence leg unrun; duplicate ADR numbers
+  collapsing so one file's status was never compared.
+- **False FAIL (a good file blocked):** a `Status:` line quoted inside a code fence firing BOTH
+  FAIL-armed legs and REDDING the pre-commit gate on a legitimate ADR; `****Accepted****`
+  (valid nested emphasis) rejected as off-enum; ADR-72's `**Amends (does not edit):**` line
+  misread as a wrapped value.
+
+### The measurement never moved
+
+The strongest evidence the fixes were correctness-only rather than baseline-shifting: across
+every round and all 23 fixes, the live corpus verdict was byte-identical every time —
+
+```
+87 status field(s); coherence=3, duplicate-id=2, grammar=47, wrapped-value=1
+```
+
+The one time a count did move — `wrapped-value` briefly 1 → 2 — it was a **false positive
+introduced by a fix** (ADR-72), caught by re-measuring after every change, and reverted to 1
+by tightening the rule rather than by accepting the new number.
+
+### Mutation check — 26/26 killed, 0 survivors
+
+Each mutation disables exactly one rule; the suite must go RED. The final run applies all 26
+cleanly and kills all 26.
+
+**Two honest notes about the mutation runs themselves**, because a mutation harness that
+silently fails to mutate reports a green suite as rigorous:
+
+1. An early run reported a survivor that was **a harness bug, not a test hole** — the mutation
+   was written `return [] or [...]`, which evaluates to the original list.
+2. A later run found a **genuine test hole**: reverting the round-6 archive fix survived,
+   because nothing covered the `--include-archive` duplicate path. That hole is closed by
+   `test_cli_include_archive_folds_archive_missing_into_duplicate_detection`, and the mutation
+   now dies. **The mutation run found a gap the review had not.**
+
+### Review-driven test growth
+
+48 tests at first green → **123** at final. The additions are almost entirely regression tests
+carrying the reviewer's own failing inputs, so a future edit reintroducing any of the 23
+defects fails loudly rather than silently.
