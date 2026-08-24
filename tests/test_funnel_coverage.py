@@ -19,8 +19,10 @@ what a latent one looks like.
 """
 from __future__ import annotations
 
+import ast
 import inspect
 import json
+import textwrap
 from pathlib import Path
 
 import pytest
@@ -287,6 +289,28 @@ def test_ratchet_is_structurally_incapable_of_failing():
         "the funnel-coverage leg must contain NO fail status literal — the ruling arms it "
         "as WARN against a zero-baseline ratchet; the flip to RED is a separate act")
 
+    # AST, not a substring search (terra MEDIUM, rounds 4 and 5 — it pressed twice, correctly).
+    # A substring check is beaten by `("f" + "ail", ...)`, and a reviewer who only ever greps
+    # would never see it. This walks every `return` in the function, takes the FIRST element of
+    # every tuple it returns (and of every element of a returned list), and requires each to be
+    # a string CONSTANT drawn from the advisory set. A computed status is not a constant, so it
+    # reds here regardless of how it is spelled.
+    tree = ast.parse(textwrap.dedent(src))
+    statuses: list[ast.expr] = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Return) or node.value is None:
+            continue
+        items = (node.value.elts if isinstance(node.value, (ast.List, ast.Tuple))
+                 else [node.value])
+        for item in items:
+            if isinstance(item, ast.Tuple) and item.elts:
+                statuses.append(item.elts[0])
+    assert statuses, "no returned status expressions found — the AST walk is testing nothing"
+    for expr in statuses:
+        assert isinstance(expr, ast.Constant) and expr.value in ("pass", "warn"), (
+            f"a returned status must be a literal 'pass' or 'warn'; found "
+            f"{ast.dump(expr)} — a computed status could carry a hard verdict")
+
 
 def test_no_fixture_produces_a_non_advisory_status():
     """The observational companion to the source-level proof above."""
@@ -371,6 +395,15 @@ def test_committed_baseline_agrees_with_a_live_measurement():
     known = set(m.corpus)
     unknown = sorted(set(baseline["artifacts"]) - known)
     assert unknown == [], f"baseline names artifacts absent from the live corpus: {unknown}"
+
+    # THE LIVE DIRECTION, which the stale-name check alone does not cover (terra MEDIUM,
+    # round 4): deleting a currently-uncovered name from the committed baseline leaves
+    # `unknown` empty while the audit would emit a regression WARN for an artifact that was
+    # supposed to be arm-time debt. Running the real verdict catches it.
+    verdicts = fc.ratchet_findings(m, baseline)
+    assert [s for s, _ in verdicts] == ["pass"], (
+        "the committed baseline must produce a clean verdict on the tree it was measured "
+        f"from: {verdicts}")
 
 
 # --- the facade wrapper shipped as a fenced diff -----------------------------------
@@ -669,13 +702,348 @@ def test_the_fenced_registration_diff_and_the_wrapper_test_cannot_DRIFT():
         it claimed would be the exact defect this file exists to catch."""
         return " ".join(line.split("  #")[0].split())
 
-    mine = inspect.getsource(test_the_shipped_wrapper_maps_pairs_to_findings_and_is_hub_gated)
-    normalised = {_code_only(ln) for ln in mine.splitlines()}
-    for line in code:
-        wanted = _code_only(
+    def _as_test_spelling(line: str) -> str:
+        return _code_only(
             line.replace("_fc.", "fc.").replace("_is_hub", "aud._is_hub")
                 .replace("_na(", "aud._na(").replace("Finding(", "aud.Finding(")
                 .replace("_NA_NOT_APPLICABLE", "aud._NA_NOT_APPLICABLE"))
-        assert wanted in normalised, (
-            f"the fenced registration diff and the wrapper test have DRIFTED.\n"
-            f"  shipped: {line}\n  expected in test: {wanted}")
+
+    # BIDIRECTIONAL, and the one-directional version was a real hole (terra MEDIUM, round 3):
+    # a containment check passes when the SHIPPED side loses a line, so deleting
+    # `baseline = _fc.load_baseline(root)` from the fenced diff left this test green while the
+    # shipped wrapper would raise UnboundLocalError and degrade every run to one generic WARN.
+    # Comparing the two executable bodies as ORDERED SEQUENCES catches a deletion, an
+    # insertion, and a reordering on either side.
+    mine = inspect.getsource(test_the_shipped_wrapper_maps_pairs_to_findings_and_is_hub_gated)
+    body = mine[mine.index("def check_funnel_coverage(repo_path):"):]
+    local: list[str] = []
+    for raw in body.splitlines():
+        stripped = raw.strip()
+        if stripped.startswith("# (1)"):
+            break                                  # the wrapper copy ends, assertions begin
+        if not stripped or stripped.startswith("#"):
+            continue
+        local.append(_code_only(raw))
+    expected = [_as_test_spelling(ln) for ln in code]
+    # the local copy carries the `def` line the diff also carries; align by dropping neither
+    assert local == ["def check_funnel_coverage(repo_path):"] + expected, (
+        "the fenced registration diff and the wrapper test have DRIFTED.\n"
+        f"  shipped ({len(expected)} lines): {expected}\n"
+        f"  test    ({len(local)} lines): {local}")
+
+
+# --- terra round 2: five HIGHs and two MEDIUMs, on the round-1 hardening -----------
+# The terra loop's own lesson, recorded in this repo: each round finds what the last graded
+# clean. Round 2 attacked the round-1 fixes themselves -- the fence tracker, the boundary
+# lookahead, the separator requirement -- which is exactly where new code is weakest.
+
+def test_an_EMBEDDED_filename_does_not_bind_to_the_real_artifact(tmp_path):
+    """terra HIGH, round 2 — round 1 added a RIGHT boundary and left the LEFT one open, so
+    `typo2026-08-01-technical-a.md` still dispositioned `2026-08-01-technical-a.md`. A fix
+    that closes one end of a boundary and not the other is the more dangerous kind: it reads
+    as solved."""
+    m = _measure_with(tmp_path, {
+        "2026-08-01-technical-a.md": "",
+        "led.md": _ledger("| `typo2026-08-01-technical-a.md` | m | **ACTIONED** | `deadbee` |"),
+    })
+    assert "2026-08-01-technical-a.md" in m.uncovered
+    assert m.dispositioned == {}
+
+
+def test_a_separator_whose_COLUMN_COUNT_disagrees_with_the_header_is_not_a_table():
+    """terra HIGH, round 2. A real markdown table's separator always has the same column count
+    as its header, so requiring the match refuses a fabricated pseudo-table without refusing
+    any well-formed one.
+
+    A minimum HYPHEN count was deliberately NOT adopted, though terra proposed one: a single
+    hyphen is valid markdown, so a three-hyphen floor would false-WARN a genuinely
+    well-formed ledger — and a false WARN is the one failure this leg cannot afford."""
+    text = "\n".join([
+        _HEADER,
+        "|---|---|",
+        "| `2026-08-01-technical-a.md` | m | **ACTIONED** | `deadbee` |",
+    ])
+    assert fc.scan_ledger(text, "led.md") == []
+
+    ok = "\n".join([_HEADER, "|-|-|-|-|",
+                    "| `2026-08-01-technical-a.md` | m | **ACTIONED** | `deadbee` |"])
+    assert len(fc.scan_ledger(ok, "led.md")) == 1, "one hyphen is valid markdown"
+
+
+def test_presentation_marked_headers_are_still_recognised():
+    """terra HIGH, round 2 — and it is a FALSE-WARN bug, not an evasion. Disposition cells were
+    normalised for bold but header cells were matched raw, so a perfectly valid table headed
+    `| **file** | … |` was invisible and every artifact it dispositioned would have been
+    reported uncovered."""
+    text = "\n".join([
+        "| **File** | note | **Disposition** | `Evidence locator` |",
+        "|---|---|---|---|",
+        "| `2026-08-01-technical-a.md` | m | **ACTIONED** | `deadbee` |",
+    ])
+    assert [r.audit for r in fc.scan_ledger(text, "led.md")] == ["2026-08-01-technical-a.md"]
+
+
+def test_a_nested_SHORTER_fence_does_not_reopen_scanning(tmp_path):
+    """terra HIGH, round 2, attacking round 1's own fix. The fence tracker toggled on ANY
+    fence, so a ``` example inside a ```` block closed the outer fence and a ledger later in
+    that same code example became live evidence — the exact hole the fence tracker was added
+    to close, reintroduced one level down."""
+    body = "\n".join([
+        "````markdown",
+        "```",
+        "an inner example fence",
+        "```",
+        _ledger("| `2026-08-01-technical-a.md` | m | **ACTIONED** | `deadbee` |"),
+        "````",
+    ])
+    m = _measure_with(tmp_path, {"2026-08-01-technical-a.md": "", "led.md": body})
+    assert m.ledgers == []
+    assert "2026-08-01-technical-a.md" in m.uncovered
+
+
+def test_load_baseline_REQUIRES_the_declared_count(tmp_path):
+    """terra MEDIUM, round 2. The count-vs-identity integrity check only fired when
+    `uncovered` was present, so omitting it entirely skipped the check that a hand-edit was
+    supposed to trip. An absent field silently disabled the guard."""
+    (tmp_path / "ecosystem").mkdir()
+    (tmp_path / fc.BASELINE_RELPATH).write_text(
+        json.dumps({"detector_id": fc.DETECTOR_ID, "artifacts": ["a.md"]}), encoding="utf-8")
+    assert fc.load_baseline(tmp_path) is None
+
+
+def test_malformed_and_dangling_rows_also_stay_advisory():
+    """terra MEDIUM, round 2, and the criticism is fair: the source-literal test can be beaten
+    by a dynamically built status (`"f" + "ail"`), and the observational companion never
+    supplied a measurement carrying malformed or dangling rows — so those two branches of
+    `ratchet_findings` were never executed by the WARN-only proof at all.
+
+    Both checks are kept. The source test catches the honest mistake; this catches the clever
+    one."""
+    m = fc.Measurement(corpus=["a.md"])
+    m.dispositioned["a.md"] = fc.LedgerRow("a.md", "ACTIONED", "`deadbee`", "led.md")
+    m.malformed.append(fc.LedgerRow("a.md", "WILL FIX", "x", "led.md"))
+    m.dangling.append(fc.LedgerRow("gone.md", "ACTIONED", "`deadbee`", "led.md"))
+    out = fc.ratchet_findings(m, {"detector_id": fc.DETECTOR_ID, "artifacts": []})
+    assert len(out) == 2, "one Finding per concern: the malformed row and the dangling row"
+    for status, _ in out:
+        assert status in ("pass", "warn"), f"advisory leg must never FAIL: {status}"
+
+
+# --- terra round 3: two HIGHs and three MEDIUMs, on the round-2 fixes --------------
+
+def test_an_INVALID_fence_closer_does_not_reopen_scanning(tmp_path):
+    """terra HIGH, round 3 — the THIRD variant of one hole, after "any fence closes" (round 1)
+    and "a shorter fence closes" (round 2).
+
+    A CommonMark closing fence carries only whitespace after its marker, so ```` ```python ````
+    inside a block is an opener-shaped line, not a closer. Treating it as one let a ledger
+    further down the SAME code block become live evidence. Three rounds on one predicate is
+    the honest measure of how hard "skip the examples" actually is."""
+    body = "\n".join([
+        "```",
+        "an example block",
+        "```python",
+        _ledger("| `2026-08-01-technical-a.md` | m | **ACTIONED** | `deadbee` |"),
+        "```",
+    ])
+    m = _measure_with(tmp_path, {"2026-08-01-technical-a.md": "", "led.md": body})
+    assert m.ledgers == []
+    assert "2026-08-01-technical-a.md" in m.uncovered
+
+
+def test_an_UPPERCASE_commit_locator_is_valid(tmp_path):
+    """terra MEDIUM, round 3, and it is a FALSE-WARN class rather than an evasion: a git object
+    name is hexadecimal and case-insensitive, so `DEADBEEF` names a commit exactly as well as
+    `deadbeef`. The ruling asks for a commit, not for lowercase formatting."""
+    m = _measure_with(tmp_path, {
+        "2026-08-01-technical-a.md": "",
+        "led.md": _ledger("| `2026-08-01-technical-a.md` | m | **ACTIONED** | `DEADBEEF` |"),
+    })
+    assert "2026-08-01-technical-a.md" in m.dispositioned
+
+
+def test_a_row_missing_only_its_TRAILING_pipe_is_still_a_row():
+    """Pins a DECISION, not an accident (terra MEDIUM, round 3). The docstring formerly claimed
+    "outer pipes are required" while the code only ever enforced the LEADING one — terra caught
+    the documentation, which was the half that was wrong. A leading pipe is what discriminates
+    a table row from prose; a trailing pipe is optional in GFM, so requiring it would false-WARN
+    a well-formed ledger. The claim was corrected; the behaviour was kept."""
+    text = "\n".join([
+        "| file | note | disposition | evidence locator",
+        "|---|---|---|---",
+        "| `2026-08-01-technical-a.md` | m | **ACTIONED** | `deadbee`",
+    ])
+    assert [r.audit for r in fc.scan_ledger(text, "led.md")] == ["2026-08-01-technical-a.md"]
+
+
+def test_write_baseline_refuses_a_CORRUPT_baseline_but_allows_a_first_arm(tmp_path):
+    """terra HIGH, round 3 — bootstrap and corruption are not the same state.
+
+    `load_baseline` returns None for both, so keying the raise guard on it alone meant DELETING
+    or corrupting the committed baseline silently blessed every regression: a one-command,
+    attacker-free defeat of the identity ratchet. A genuinely absent file is a first arm; a
+    present-but-unreadable one is indeterminate, and an indeterminate baseline must not be
+    replaced without the operator saying so."""
+    audits = tmp_path / "docs" / "audits"
+    audits.mkdir(parents=True)
+    (audits / "2026-08-01-technical-a.md").write_text("", encoding="utf-8")
+    (tmp_path / "ecosystem").mkdir()
+
+    # (1) genuinely absent -> a first arm is allowed, no flag needed
+    assert fc._main(["--repo-root", str(tmp_path), "--write-baseline"]) == 0
+
+    # (2) present but unreadable -> refused, because a raise cannot be ruled out
+    (tmp_path / fc.BASELINE_RELPATH).write_text("{corrupt", encoding="utf-8")
+    assert fc._main(["--repo-root", str(tmp_path), "--write-baseline"]) == 2
+    assert (tmp_path / fc.BASELINE_RELPATH).read_text(encoding="utf-8") == "{corrupt", (
+        "a refused write must not have written")
+
+    # (3) ...and the operator can still override deliberately — but with the flag that NAMES
+    # the act. Round 3 accepted `--allow-raise` here; round 5 split the two, because adding
+    # names to a valid baseline and destroying a damaged one are different decisions. See
+    # `test_recovering_a_corrupt_baseline_is_its_own_act_not_a_raise`.
+    assert fc._main(["--repo-root", str(tmp_path), "--write-baseline",
+                     "--recover-corrupt-baseline"]) == 0
+
+
+# --- terra round 4: three HIGHs and two MEDIUMs -----------------------------------
+
+def test_an_INDENTED_code_block_ledger_is_not_read(tmp_path):
+    """terra HIGH, round 4 — the same "documentation becomes evidence" class as the fence
+    tracker, reached without a fence. CommonMark makes a 4-space-indented line a code block,
+    and `split_cells` used to strip the indentation away before looking."""
+    body = "\n".join([
+        "An indented example:",
+        "",
+        "    | file | note | disposition | evidence locator |",
+        "    |---|---|---|---|",
+        "    | `2026-08-01-technical-a.md` | m | **ACTIONED** | `deadbee` |",
+    ])
+    m = _measure_with(tmp_path, {"2026-08-01-technical-a.md": "", "led.md": body})
+    assert m.ledgers == []
+    assert "2026-08-01-technical-a.md" in m.uncovered
+
+
+def test_a_ledger_inside_an_HTML_COMMENT_is_not_read(tmp_path):
+    """terra HIGH, round 4. The other way a document carries an example it does not mean."""
+    body = "\n".join([
+        "<!--",
+        _ledger("| `2026-08-01-technical-a.md` | m | **ACTIONED** | `deadbee` |"),
+        "-->",
+    ])
+    m = _measure_with(tmp_path, {"2026-08-01-technical-a.md": "", "led.md": body})
+    assert m.ledgers == []
+    assert "2026-08-01-technical-a.md" in m.uncovered
+
+
+def test_a_TOKEN_is_not_a_rejection_reason(tmp_path):
+    """terra HIGH, round 4. `REJECTED | x` reached the success path because no SHAPE rule is
+    possible for a ruling citation — but a single character is plainly not "a ruling declined
+    it, cite it" either. A SUBSTANCE floor is the only rule this corpus supports, and it is the
+    weakest in the module: it separates a recorded reason from a token and nothing more.
+    Measured: the two live REJECTED locators are 144 and 253 characters."""
+    m = _measure_with(tmp_path, {
+        "2026-08-01-technical-a.md": "",
+        "led.md": _ledger("| `2026-08-01-technical-a.md` | m | **REJECTED** | x |"),
+    })
+    assert "2026-08-01-technical-a.md" in m.uncovered
+    assert len(m.malformed) == 1
+
+
+def test_a_PENDING_locator_must_actually_ASK_something(tmp_path):
+    """terra HIGH, round 4, and the fix comes straight from the ruling's own words: PENDING
+    carries *"the exact question it needs"*, and a question is punctuated. Arbitrary text
+    cleared an artifact while recording nothing askable. Both live PENDING rows open with `Q:`
+    and contain `?`, so requiring the mark cost 0 false positives."""
+    m = _measure_with(tmp_path, {
+        "2026-08-01-technical-a.md": "",
+        "led.md": _ledger("| `2026-08-01-technical-a.md` | m | **PENDING** | later maybe |"),
+    })
+    assert "2026-08-01-technical-a.md" not in m.pending
+    assert "2026-08-01-technical-a.md" in m.uncovered
+
+    ok = _measure_with(tmp_path / "b", {
+        "2026-08-01-technical-a.md": "",
+        "led.md": _ledger("| `2026-08-01-technical-a.md` | m | **PENDING** | Q: who owns it? |"),
+    })
+    assert "2026-08-01-technical-a.md" in ok.pending
+
+
+def test_write_baseline_refuses_to_rebaseline_ACROSS_A_DETECTOR_CHANGE(tmp_path):
+    """terra HIGH, round 4. `--write-baseline` compared artifact SETS and never the detector
+    id, so a predicate revision that happened to LOWER the count read as a drain, quietly wrote
+    the new detector id, and the mismatch WARN never fired again — silently rebasing a
+    measurement nobody reviewed. That is exactly the failure `[#436]`'s detector-id discipline
+    exists to prevent, reproduced in a sibling."""
+    audits = tmp_path / "docs" / "audits"
+    audits.mkdir(parents=True)
+    (tmp_path / "ecosystem").mkdir()
+    (tmp_path / fc.BASELINE_RELPATH).write_text(json.dumps({
+        "detector_id": "funnel-coverage/v0", "uncovered": 0, "artifacts": [],
+    }), encoding="utf-8")
+
+    assert fc._main(["--repo-root", str(tmp_path), "--write-baseline"]) == 2
+    assert json.loads(
+        (tmp_path / fc.BASELINE_RELPATH).read_text(encoding="utf-8"))["detector_id"] == \
+        "funnel-coverage/v0", "a refused write must not have written"
+    assert fc._main(["--repo-root", str(tmp_path), "--write-baseline", "--allow-raise"]) == 0
+
+
+# --- terra round 5: three HIGHs and two MEDIUMs -----------------------------------
+
+def test_a_CODE_SPAN_or_underscore_term_is_still_the_ruled_term():
+    """terra HIGH, round 5, and a FALSE-WARN class: term cells stripped only `*` while header
+    cells already stripped backticks, so a valid `` `ACTIONED` `` read as malformed and left a
+    genuinely dispositioned artifact uncovered. Two normalisers, one corpus, different rules."""
+    for cell in ("**ACTIONED**", "`ACTIONED`", "__ACTIONED__", " actioned ", "*ACTIONED*"):
+        rows = fc.scan_ledger(
+            _ledger(f"| `2026-08-01-technical-a.md` | m | {cell} | `deadbee` |"), "led.md")
+        assert rows and rows[0].term == "ACTIONED", cell
+
+
+def test_invalid_utf8_RAISES_rather_than_degrading_the_measurement(tmp_path):
+    """terra HIGH, round 5 — and this repo has the lesson already written down.
+
+    `silent_rule_detector`'s own contract records that its arm-time probe used a platform
+    default encoding and "SILENTLY ZEROED several files before erroring -- a silent decode
+    failure is the exact measurement-error class this metric must not reproduce".
+    `errors="replace"` reproduced it here: an unreadable byte anywhere in the corpus left the
+    ratchet passing on a read that had partly failed. Measured: all 693 live artifacts are
+    valid UTF-8, so strict decoding costs nothing today and refuses loudly the day it doesn't."""
+    audits = tmp_path / "docs" / "audits"
+    audits.mkdir(parents=True)
+    (audits / "2026-08-01-technical-a.md").write_bytes(b"fine")
+    (audits / "2026-08-02-technical-b.md").write_bytes(b"\xff\xfe not utf-8 at all")
+    with pytest.raises(fc.FunnelCoverageError) as exc:
+        fc.measure(tmp_path)
+    assert "not valid UTF-8" in str(exc.value)
+
+
+def test_load_baseline_refuses_DUPLICATE_names(tmp_path):
+    """terra MEDIUM, round 5. The ratchet compares SETS, so a duplicated name satisfied the
+    count-vs-list check and then collapsed to one identity — the declared count agreed with the
+    LIST while disagreeing with the identity set the ratchet actually uses."""
+    (tmp_path / "ecosystem").mkdir()
+    (tmp_path / fc.BASELINE_RELPATH).write_text(json.dumps({
+        "detector_id": fc.DETECTOR_ID, "uncovered": 2, "artifacts": ["a.md", "a.md"],
+    }), encoding="utf-8")
+    assert fc.load_baseline(tmp_path) is None
+
+
+def test_recovering_a_corrupt_baseline_is_its_own_act_not_a_raise(tmp_path):
+    """terra HIGH, round 5. `--allow-raise` says "I accept adding these named artifacts to the
+    debt". Overwriting an unreadable baseline says "I accept destroying the only evidence that
+    the baseline was damaged". One flag was doing both."""
+    audits = tmp_path / "docs" / "audits"
+    audits.mkdir(parents=True)
+    (tmp_path / "ecosystem").mkdir()
+    (tmp_path / fc.BASELINE_RELPATH).write_text("{corrupt", encoding="utf-8")
+
+    assert fc._main(["--repo-root", str(tmp_path), "--write-baseline"]) == 2
+    assert fc._main(["--repo-root", str(tmp_path), "--write-baseline", "--allow-raise"]) == 2, (
+        "--allow-raise must NOT double as corruption recovery")
+    assert (tmp_path / fc.BASELINE_RELPATH).read_text(encoding="utf-8") == "{corrupt"
+
+    assert fc._main(["--repo-root", str(tmp_path), "--write-baseline",
+                     "--recover-corrupt-baseline"]) == 0
+    assert fc.load_baseline(tmp_path) is not None
