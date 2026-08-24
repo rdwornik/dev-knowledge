@@ -21,7 +21,7 @@ pre-commit hook that refuses a stale copy — `codemap-freshness`, `toc-freshnes
 `ARCHITECTURE.md` Ch2 already names it "the lone ungated committed-generated surface in this
 repo"; it is R3 finding **F5**.
 
-The consequence was measured on 2026-08-23: the dashboard was **3 days** stale, sitting behind 42
+The consequence was measured at `aeec0fd1`: the dashboard was **4 days** stale, sitting behind 42
 first-parent landings, while asserting in its own header that it was current-by-construction.
 Lane L4 corrected the header (ADR-86 amendment, 2026-08-23) and armed a ship-gate staleness WARN
 against that measured baseline. **Neither act gives the class a rule.** The next

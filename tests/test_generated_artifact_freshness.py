@@ -207,10 +207,15 @@ def test_evaluate_is_quiet_only_when_there_is_nothing_to_govern(tmp_path):
 # --------------------------------------------------------------- the registered subject
 
 def test_dashboard_baseline_is_the_measured_value():
-    """PINNED. 3 days is what the dashboard's staleness actually WAS at `aeec0fd1` on
-    2026-08-23 (committed 2026-08-20, newest input 2026-08-23). Raising it silently rebases the
-    metric the leg exists to hold, which is why the number is asserted and not merely commented."""
-    assert gaf.DASHBOARD.baseline_days == 3
+    """PINNED. 4 days is what the dashboard's staleness actually WAS at `aeec0fd1`, measured
+    WITH THIS MODULE'S OWN RELATION (committer date, `--first-parent`): outputs committed
+    2026-08-20, newest input `docs/audits` committed 2026-08-24. Raising it silently rebases the
+    metric the leg exists to hold, which is why the number is asserted and not merely commented.
+
+    It read 3 until 2026-08-24 -- measured by the module's FIRST relation (author date, no
+    `--first-parent`) and never re-derived when that relation was replaced. The constant outlived
+    its measurement. This assertion is what makes the next such drift fail loudly."""
+    assert gaf.DASHBOARD.baseline_days == 4
 
 
 def test_dashboard_outputs_are_both_committed_faces():

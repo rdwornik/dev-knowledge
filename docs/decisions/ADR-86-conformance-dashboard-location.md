@@ -93,7 +93,7 @@ and this ADR no longer claims it is.
 **The gap (b) does not close, and what was done about it.** (b) answers *is the header true?* It
 does not answer *is the output current?* — an honest header on a stale trust surface is still a
 stale trust surface. So this amendment ships with a **staleness leg on the ship-gate**: WARN, armed
-at the measured 2026-08-23 baseline of **3 days** between the artifact's commit date and the newest
+at the measured `aeec0fd1` baseline of **4 days** between the artifact's commit date and the newest
 commit date across its declared input set, forbidding it from getting worse. WARN, not FAIL: RED is
 a later act with its own ruling. The leg is implemented in
 `scripts/generated_artifact_freshness.py`; its `ALL_CHECKS` registration ships as a fenced diff in

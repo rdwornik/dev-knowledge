@@ -91,27 +91,44 @@ Artifact's last commit — both faces, one commit:
 docs(dashboard): regenerate over every landing of the day, and anchor the Codespaces landing
 ```
 
-Newest commit date per declared input path (§5.1 derives the set):
+Newest commit date per declared input path (§5.1 derives the set), by the relation the leg
+finally shipped with — **committer date, `--first-parent`** (§5.2 says why both halves matter):
 
 ```
 2026-08-23  BACKLOG.md
 2026-08-23  tasks/
 2026-08-23  docs/intake/
 2026-08-22  docs/decisions/
-2026-08-23  docs/audits/
+2026-08-24  docs/audits/            <- newest
+2026-08-19  scripts/gen_dashboard.py
+2026-08-22  scripts/gen_task_tree.py
+2026-08-03  scripts/gen_intake_index.py
+2026-08-13  scripts/gen_claude_rosters.py
 ```
 
 | Metric | Value at `aeec0fd1` |
 |---|---|
-| **Staleness, in days** (newest input commit date − artifact commit date) | **3** (2026-08-23 − 2026-08-20) |
+| **Staleness, in days** (newest input commit date − artifact commit date) | **4** (2026-08-24 − 2026-08-20) |
 | Commits on `HEAD` since the artifact was committed | **213** |
 | …of those, on the first-parent spine | **42** |
 | …of those, touching the declared input set | **78** |
 | `gen_dashboard.py --check` | **rc=1** — `STALE ecosystem/conformance.md`, `STALE ecosystem/conformance.html` |
 
-The day-delta (**3**) is the metric the §5 leg uses, because it is the metric probe **P5** uses for
-the same question. The commit counts are recorded as context: they are what makes "3 days" concrete
+The day-delta (**4**) is the metric the §5 leg uses, because it is the metric probe **P5** uses for
+the same question. The commit counts are recorded as context: they are what makes "4 days" concrete
 — **42 first-parent landings** happened against a dashboard that claims to describe the repo.
+
+**This number read 3 until 2026-08-24, and the correction is worth more than the digit.** The first
+measurement here was taken with the leg's FIRST relation — author date, no `--first-parent`, and
+listing only the DATA half of the input set. Both halves of that relation were later replaced
+(§5.2: committer date on both sides; §5.1: DATA + CODE inputs), and **nobody re-derived the number
+they had produced**. `docs/audits` reads `2026-08-23` by author date and `2026-08-24` by committer
+date, so the ground-truth metric — and the `baseline_days` constant taken from it — sat one day
+wrong, describing a measurement the code no longer performed. Found by terra at **round 8**, after
+seven rounds had graded it clean. It is the lane's own defect class, one level up: a true-sounding
+number about a mechanism that had moved underneath it. Corrected in place here, in
+`generated_artifact_freshness.DASHBOARD`, in the pinning test, in §5.3, in the ADR-86 amendment and
+in intake #42 — every site that carried it.
 
 ### 1.5 Library-first check — the internal move, and the absence it found
 
@@ -392,20 +409,29 @@ drift into two shapes.
 
 ### 5.3 The baseline is measured, and it is a ratchet
 
-Re-derived at merge base `aeec0fd1` with the leg's own relation, before any edit in this lane:
+Re-derived at merge base `aeec0fd1` **with the relation the module actually ships** — committer
+date, first-parent spine (§5.2), over the full DATA + CODE input set (§5.1):
 
 ```
-$ git log -1 --format=%as aeec0fd1 -- ecosystem/conformance.md   ->  2026-08-20
-$ git log -1 --format=%as aeec0fd1 -- docs/audits                ->  2026-08-23   (newest input)
-                                                        staleness =  3 days
+$ git log -1 --first-parent --format=%cs aeec0fd1 -- ecosystem/conformance.md   ->  2026-08-20
+$ git log -1 --first-parent --format=%cs aeec0fd1 -- ecosystem/conformance.html ->  2026-08-20
+$ git log -1 --first-parent --format=%cs aeec0fd1 -- docs/audits                ->  2026-08-24  (newest input)
+                                                                    staleness =  4 days
 ```
 
-**`baseline_days = 3`**, and a test pins the number rather than leaving it a comment — silently
+**`baseline_days = 4`**, and a test pins the number rather than leaving it a comment — silently
 raising a baseline rebases the metric the gate exists to hold, a failure mode this repo has already
 caught once at terra HIGH (`audit.py:2288`).
 
-**The honest reading of "3" is not "three days of drift is acceptable."** It is *this repo
-tolerated three days of drift once, and the leg forbids worse.* Tightening it is a later act.
+**It read 3 until terra's round 8, and that pin is exactly why the correction is cheap.** The 3 was
+measured with the module's first relation (author date, no `--first-parent`) and never re-derived
+when §5.2 replaced it; `docs/audits` differs by one day between the two date semantics. A constant
+that outlives its measurement is the same defect as a header that outlives its mechanism — this
+lane's whole subject. `test_dashboard_baseline_is_the_measured_value` was mutation-checked in both
+directions (3 and 5 each RED it) so the number cannot drift back silently.
+
+**The honest reading of "4" is not "four days of drift is acceptable."** It is *this repo
+tolerated four days of drift once, and the leg forbids worse.* Tightening it is a later act.
 
 **WARN, never FAIL — and the class is load-bearing rather than timid.** Verified against the two
 gates' own source, not assumed:
@@ -436,19 +462,31 @@ function raise: if the leg measures under `_GATE_MODE`, the test fails.
 
 ### 5.4 It was observed to fire
 
-ADR-81 leg **(e)**: presence is not proof. The leg's body — the exact code in the fenced diff
-below — was run against three trees:
+ADR-81 leg **(e)**: presence is not proof. The leg's body — the exact code in the §5.5 fenced
+diff, executed verbatim rather than paraphrased — was run against **five** trees. Re-run
+2026-08-24 after the baseline correction, so the transcript below is of the code as it stands:
 
 ```
 --- live repo ---
-          pass  generated_artifact_freshness: conformance-dashboard: 0d stale (baseline 3d) — ecosystem/conformance.md committed 2026-08-24, newest input docs/decisions committed 2026-08-24
---- a tree with no dashboard ---
-           n/a  generated_artifact_freshness: [n/a-reason:SUBJECT-ABSENT] output ecosystem/conformance.md is not present in this repo
+          pass  generated_artifact_freshness: conformance-dashboard: 0d stale (baseline 4d) — ecosystem/conformance.md committed 2026-08-24, newest input docs/intake committed 2026-08-24
+--- a real repo with no dashboard ---
+           n/a  generated_artifact_freshness: [n/a-reason:SUBJECT-ABSENT] output(s) not present in this repo — ecosystem/conformance.md, ecosystem/conformance.html
+--- a tree that is not a repo at all ---
+   unavailable  generated_artifact_freshness: git is unavailable here — freshness cannot be measured
 --- a genuinely stale tree ---
-          warn  generated_artifact_freshness: conformance-dashboard: 22d stale (baseline 3d) — ecosystem/conformance.md committed 2026-08-01, newest input BACKLOG.md committed 2026-08-23; regenerate + commit: python scripts/gen_dashboard.py --write
+          warn  generated_artifact_freshness: conformance-dashboard: 22d stale (baseline 4d) — ecosystem/conformance.md committed 2026-08-01, newest input BACKLOG.md committed 2026-08-23; regenerate + commit: python scripts/gen_dashboard.py --write
+--- the commit gate (_GATE_MODE) ---
+           n/a  generated_artifact_freshness: [n/a-reason:NOT-APPLICABLE] ship-gate-only leg — skipped at the audit-health commit gate (ADR-86 amd. 2026-08-23: freshness matters when you ship)
 ```
 
-`tests/test_generated_artifact_freshness.py` (20 tests) pins the same behaviour, half against
+**The middle two rows are the ones worth reading, and the earlier three-tree version of this
+transcript collapsed them.** A repo that HAS git and simply has no dashboard is `n/a`
+SUBJECT-ABSENT — a consumer repo, correctly silent. A directory that is not a repo at all is
+`unavailable` — the leg could not measure, and says so instead of inventing a verdict. They are
+different answers to different questions and the module spends a `rev-parse` to keep them apart
+(`_git_available`); an evidence block that shows only one of them cannot demonstrate that.
+
+`tests/test_generated_artifact_freshness.py` (**27 tests**) pins the same behaviour, half against
 injected dates for the boundary arithmetic and half against real throwaway git repos.
 
 ### 5.5 Registration — the fenced diff, and what this lane may NOT author
@@ -513,9 +551,10 @@ assumption: `CHECK_ORDER` is byte-contract-load-bearing and the order is the int
 +    That makes the dashboard's header honest; it does nothing to keep the output CURRENT. An
 +    honest header on a stale trust surface is still a stale trust surface, so this leg is the
 +    other half of the same ruling: WARN when the committed artifact has fallen further behind its
-+    declared inputs than the baseline measured when the leg was armed (dashboard: 3 days, at
-+    `aeec0fd1` on 2026-08-23). The baseline is a RATCHET, not an allowance — it records that this
-+    repo tolerated three days of drift once, and forbids worse.
++    declared inputs than the baseline measured when the leg was armed (dashboard: 4 days, at
++    `aeec0fd1`, by this leg's own committer-date/first-parent relation). The baseline is a
++    RATCHET, not an allowance — it records that this repo tolerated four days of drift once, and
++    forbids worse.
 +
 +    WARN-CLASS BY RULING, and the class is load-bearing rather than timid. `cmd_health` (the
 +    pre-commit gate) exits 1 only on a `fail`, while `cmd_ship_gate` REDs on any undispositioned
@@ -674,7 +713,7 @@ two of the six count pins), so they ship as a diff rather than as an edit.
 +                        _gaf_all(date(2026, 8, 1), date(2026, 8, 23)))
 +    f = aud.check_generated_artifact_freshness(_gaf_tree(tmp_path))[0]
 +    assert f.status == "warn", f.evidence
-+    assert "22d stale (baseline 3d)" in f.evidence, f.evidence
++    assert "22d stale (baseline 4d)" in f.evidence, f.evidence
 +    assert "regenerate + commit" in f.evidence, "a WARN must carry its own discharge"
 +
 +

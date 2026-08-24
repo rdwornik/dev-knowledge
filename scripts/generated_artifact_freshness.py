@@ -30,11 +30,20 @@ here, with the ruling cited on the line. A leg that quietly turned RED on a wall
 nobody ratified is the failure mode this note exists to prevent.
 
 THE BASELINE IS MEASURED, NOT CHOSEN. `baseline_days` is what the artifact's staleness actually
-WAS when the leg was written (dashboard: **3 days**, measured at `aeec0fd1` on 2026-08-23 --
-artifact committed 2026-08-20, newest input commit 2026-08-23). The leg therefore starts quiet and
-fires only when staleness gets WORSE than the state that motivated it. It is a ratchet, not an
-allowance: the honest reading of "3" is *this repo tolerated three days of drift once*, not *three
-days of drift is fine*.
+WAS when the leg was written (dashboard: **4 days**, measured at `aeec0fd1` WITH THIS
+MODULE'S OWN RELATION -- artifact committed 2026-08-20, newest input `docs/audits` committed
+2026-08-24). The leg therefore starts quiet and fires only when staleness gets WORSE than the state
+that motivated it. It is a ratchet, not an allowance: the honest reading of "4" is *this repo
+tolerated four days of drift once*, not *four days of drift is fine*.
+
+The number was **3** until 2026-08-24 and that was a real defect, not a typo: it had been measured
+with the module's FIRST relation (author date, no `--first-parent`), and when that relation was
+replaced (committer date on both sides, first-parent spine) nobody re-derived the constant it had
+produced. `docs/audits` reads 2026-08-23 by author date and 2026-08-24 by committer date, so the
+baseline moved 3 -> 4 under a measurement it no longer described. Found by terra, round 8. A
+"measured baseline" that was measured by a relation the code no longer uses is exactly the
+false-claim-about-a-mechanism defect this whole lane exists to fix, so it is corrected here rather
+than rounded away.
 
 THE INPUT SET IS DECLARED, NOT INFERRED -- and it is a LITERAL here on purpose. `gen_dashboard`
 loads three sibling generators at module scope (`_gtt`/`_gii`/`_gcr`, `:150-152`), so importing it
@@ -120,7 +129,7 @@ DASHBOARD = GeneratedArtifact(
     inputs=("BACKLOG.md", "tasks", "docs/intake", "docs/decisions", "docs/audits",
             "scripts/gen_dashboard.py", "scripts/gen_task_tree.py",
             "scripts/gen_intake_index.py", "scripts/gen_claude_rosters.py"),
-    baseline_days=3,
+    baseline_days=4,
     regen_command="python scripts/gen_dashboard.py --write",
     # Gitignored (`.gitignore:95`) and absent as of 2026-08-23; the generator existence-probes it
     # and reads its size. It has no git history, so it cannot carry a commit date and cannot
