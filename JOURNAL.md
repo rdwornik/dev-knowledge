@@ -221,6 +221,53 @@ ruling sheet and NOT by this lane: the R5 de-volatilization of the six `doc_rot`
 the `automation/fleet-audit` push, the four non-row-length WARNs, and the empty story `[S24]`.
 
 
+### 2026-08-23 (o) - CC (Opus 5, CLOUD lane C1, branch `claude/funnel-retro-classification`): all 693 files in `docs/audits/` carry a measured disposition state, 306 carry a proposed classification, and the corpus turns out to already hold a second architect-ruled disposition vocabulary
+
+**Did:** M3 leg ii. Enumerated every file in `docs/audits/` (N=693 — 692 artifacts plus the
+generated `README.md` index, none skipped), resolved each one's **current** disposition state
+against the live tree, and proposed **one** funnel classification per file where a predicate over
+the tree decides it. Read-only throughout: one new artifact plus this entry, `scripts/` untouched,
+`ecosystem/disposition-register.yaml` not written. Base `main` @ `aeec0fd`.
+
+**Result: 306 proposed / 387 UNSURE / 0 not reached — and two findings that outrank the table.**
+(1) A **second, architect-ruled disposition vocabulary already exists in the corpus**:
+`docs/audits/2026-08-17-technical-audit-disposition-ledger.md` carries a 2026-08-17 standing ruling
+with the terms ACTIONED / FILED / REJECTED / SUPERSEDED (+PENDING as used), and it dispositioned 80
+audits under them and named 49 more as an explicit follow-on. **SUPERSEDED and PENDING have no
+counterpart in PLAYBOOK Ch8's five terms** — reported as mismatches M1/M2 rather than reconciled
+unilaterally. (2) The corpus splits hard at ADR-111's 2026-08-10 ratification: **318 of the 387
+UNSURE rows are pre-ratification**, so one class ruling (fork F1) disposes of them and leaves a
+bounded 69-row residue. Two further mismatches recorded: M3 — the mandate's "→ backlog row" term is
+unlawful under ADR-111 §2, so it can only mean COVERED (this table proposes **zero** births); M4 —
+the funnel triages *findings* while this mandate triages *files*, so every row is a rollup.
+
+**Both known stale-disposition shapes found, and nothing fixed.** Shape B (a `match` embedding a
+measured value): 6 of the register's 30 entries embed a char count; measured live via the repo's own
+`validate_doc_rot.scan_backlog_accretion` — 3 agree, `#533` drifted 4210→**2239** so its WARN is now
+undispositioned, and `#529`/`#530` have no live WARN at all. Independently reproduces the phase-0
+packet's §3.5 by a different route. Shape A (subject row closed): **8** register entries cite only
+closed rows, **11** L17 FILED cells name rows closed in the six days since, and **14** audits have a
+closed row as their only carrier — 25 corpus instances of exactly the PLAYBOOK D4 check-1 failure
+*"that is how a correctly-filed finding dies quietly."*
+
+**Container: probed, not assumed — and it failed twice.** `uv 0.8.17` against `pyproject.toml:25`'s
+pinned `==0.11.19`, **and** no `click`, so `scripts/audit.py`'s CLI (hence `ship-gate`) cannot run
+here at all. Everything was hand-run under `python3` = CPython 3.11.15, declared in the artifact §1.
+
+**Changes:** `docs/audits/2026-08-23-technical-funnel-retro-classification.md` (new, 1268 lines —
+clause block, reconciliation, 693-row funnel table, five forks, coverage statement) + this entry.
+
+**Abandoned:** nothing classified without a quoted clause, and no UNSURE rounded up to a verdict.
+Five forks (F1–F5) are named and left to the architect. The generated `docs/audits/README.md` index
+is now stale by construction and was **not** regenerated — `audit-index-freshness` owns it and the
+integrator regenerates once, per the brief.
+
+**Next:** architect rules F1 (does the retro-classification bind the 458 pre-2026-08-10 files?) and
+F2 (which vocabulary governs, and where do SUPERSEDED/PENDING go?). F1 alone converts 318 UNSURE
+rows in one pass; the residue is 69 post-ratification artifacts needing a read — one bounded lane.
+
+---
+
 ### 2026-08-23 (n) - CC (Opus 5, CLOUD lane `C2`, branch `claude/ruling-provenance-audit`): the mesh was reachable the whole time, and the audit had to apply its own standard to itself
 
 **Did:** armed the pinned `uv` mesh in-container and re-ran every load-bearing measurement of entry
