@@ -4,6 +4,8 @@
 **Branch:** `worktree-funnel-coverage`
 **Merge base:** `aeec0fd1`
 **Mode:** plan → execute. Effort xhigh.
+**Adversarial review:** `gpt-5.6-sol` (1 pass, 8 routes, ungraded — §5.1) + `terra` (5 rounds, graded)
+**Tally:** 0/17/10/0 (C/H/M/L) — the terra loop's graded findings across all five rounds; sol's eight routes are ungraded by construction and tabulated in §5.1.
 
 > **Intent, restated so the artifact reads without the contract.** Make *"no audit is wasted"*
 > verifiable instead of promised: every artifact in `docs/audits/` should carry a disposition from
@@ -555,7 +557,10 @@ that passes while testing nothing:
 
 ### 3.6 Test inventory
 
-`tests/test_funnel_coverage.py` — **33 tests, all passing** (13.6s):
+`tests/test_funnel_coverage.py` — **33 tests, all passing** (13.6s) at Step 3.
+**Superseded: the suite is 66 tests after Step 5 — see §5.6 for the current figures and
+for the extent of mutation coverage, which does NOT span all 66.**
+
 
 | group | n | what it holds |
 |---|---|---|
@@ -788,7 +793,7 @@ the integrator should re-run the suite after applying.
 
 ---
 
-## 5. sol adversarial pass — Step 5
+## 5. Adversarial passes — Step 5 (sol, then five terra rounds)
 
 **Model:** `gpt-5.6-sol`, `codex exec --sandbox read-only`, `model_reasoning_effort=high`.
 **Question asked, and the only one asked:** *what is the cheapest way for a real author — not an
@@ -888,13 +893,49 @@ friction during legitimate detector migrations"*, and it is the exact mechanism
 axis this ratchet is measurably weaker than its sibling, and the gap is named rather than
 implied.**
 
-### 5.5 Three more defects, from a terra round run in parallel
+### 5.5 The terra loop — five rounds, not one
 
-A terra pass was run against the same code while the Step-4 commit was in flight, so its
-findings could fold into **this** edit rather than into a second round of churn. It returned
-**0 Critical / 4 High / 1 Medium**. Two of its four HIGHs were sol's fence and separator routes,
-independently found. **Three findings were nobody else's, and two are outright bugs rather than
-evasions:**
+A terra pass was run against the same code while the Step-4 commit was in flight, so its findings
+could fold into **this** edit rather than into a second round of churn. **It did not stop at one
+round.** The loop's own lesson, already recorded in this repo, is that *each round finds what the
+last graded clean* — and that is precisely what happened here. Rounds 2, 3 and 5 each landed HIGHs
+**on the fixes the previous round had just made**, and a single predicate — *"do not read the
+examples"* — took **three separate rounds** to get right.
+
+**Five rounds: 0 Critical / 17 High / 10 Medium across 27 findings, 23 regression tests.**
+
+| round | reported | tests | what it attacked | the finding that mattered most |
+|---|---|---|---|---|
+| 1 | 0C / 4H / 1M | 4 | the Step-3/Step-4 code | T1 — a short row terminated the whole table scan |
+| 2 | 0C / 5H / 2M | 6 | **round 1's own fixes** | a one-sided token boundary that *read as solved* |
+| 3 | 0C / 2H / 3M | 4 | **round 2's own fixes** | corruption silently treated as bootstrap |
+| 4 | 0C / 3H / 2M | 5 | the remaining admission surface | a detector change rebaselined without review |
+| 5 | 0C / 3H / 2M | 4 | normalisation and I/O | `errors="replace"` reproducing a known silent-zeroing class |
+
+**The severities are counted honestly rather than flatteringly.** The per-round figures above are
+terra's own report; the inline attribution on each fix is my classification of the *fix*, and the
+two do not agree everywhere — round 4's five fixes are each annotated HIGH in source while terra
+reported 3H/2M. Where they disagree the table follows terra, and the discrepancy is stated rather
+than reconciled by picking the more impressive number.
+
+**The class terra kept finding, and sol did not, was the FALSE WARN.** That inverts the framing
+Step 5 started with: sol was asked how an author *evades* the check; terra kept finding ways the
+check would **wrongly accuse** an author who had done the work. **Four landed defects were of that
+kind** — round 1's short-row scan abort, round 2's invisible presentation-marked header, round 3's
+rejected uppercase commit locator, and round 5's mismatched term normaliser. Each would have
+reported a **correctly dispositioned artifact as UNCOVERED**. A further **three proposed
+tightenings were declined for the same reason**, each against a measurement rather than a hunch:
+terra's minimum-hyphen floor (a single hyphen is valid markdown), a required trailing pipe
+(optional in GFM), and a shape rule for `REJECTED` (it would have false-positived 2 of the 2 live
+rows). For a leg whose entire value is gathering zero-false-positive evidence toward a later hard
+flip, this is the more dangerous half — and it is the half a purely adversarial pass did not
+surface.
+
+#### Round 1 — three defects nobody else found
+
+It returned **0 Critical / 4 High / 1 Medium**. Two of its four HIGHs were sol's fence and
+separator routes, independently found. **Three findings were nobody else's, and two are outright
+bugs rather than evasions:**
 
 **T1 (HIGH) — a short row terminated the whole table scan.** `if body is None or len(body) <=
 widest: break`. One `| a bare note |` line between two ledger rows silently discarded **every
@@ -925,24 +966,125 @@ rows and no `.md.bak` cells, which is why the measurement was correct before and
 were latent, and a latent false-WARN generator inside an evidence-gathering leg is worth more
 than its severity suggests.
 
+#### Round 2 — five HIGHs, on round 1's own hardening
+
+Round 2 attacked the round-1 fixes themselves — the fence tracker, the boundary lookahead, the
+separator requirement — which is exactly where new code is weakest.
+
+- **A one-sided boundary (HIGH).** Round 1's T2 fix added a **right** boundary and left the left
+  one open, so `typo2026-08-01-technical-a.md` still dispositioned the real artifact. **A fix
+  that closes one end of a boundary and not the other is the more dangerous kind: it reads as
+  solved.** Both sides are now required.
+- **A nested *shorter* fence reopened scanning (HIGH).** The tracker toggled on **any** fence, so
+  a three-backtick example inside a four-backtick block closed the outer fence — the exact hole
+  the tracker was added to close, reintroduced one level down.
+- **Presentation-marked headers were invisible (HIGH, and a FALSE WARN).** Disposition cells were
+  normalised for bold; header cells were matched raw. A valid table headed `| **File** | … |`
+  was not seen at all, and **every artifact it dispositioned would have been reported uncovered.**
+- **Separator column count must match the header (HIGH).** A real table's separator always does,
+  so requiring it refuses a fabricated pseudo-table without refusing a well-formed one. **terra's
+  proposed minimum-hyphen floor was deliberately NOT adopted:** a single hyphen is valid markdown,
+  so a three-hyphen floor would false-WARN a genuinely well-formed ledger.
+- **An absent `uncovered` field disabled its own guard (MEDIUM).** The count-vs-identity integrity
+  check only fired when the field was *present*, so omitting it skipped the check a hand-edit was
+  supposed to trip. The field is now required.
+- **The WARN-only proof never executed two of its branches (MEDIUM).** The source-literal test is
+  beatable by a dynamically built status, and no fixture had ever supplied a measurement carrying
+  malformed or dangling rows. Both tests are kept: the source test catches the honest mistake,
+  the observational one catches the clever one.
+
+#### Round 3 — the third variant of one hole
+
+- **An invalid fence *closer* reopened scanning (HIGH).** After "any fence closes" (round 1) and
+  "a shorter fence closes" (round 2), this is the **third** variant of the same predicate: a
+  CommonMark closing fence carries only whitespace after its marker, so a fence marker followed
+  by an info string inside a block is an opener-shaped line, not a closer. **Three rounds on one
+  predicate is the honest measure of how hard "skip the examples" actually is.**
+- **Corruption silently treated as bootstrap (HIGH).** `load_baseline` returns `None` for both an
+  absent and an unreadable baseline, so keying the raise guard on it alone meant **deleting or
+  corrupting the committed baseline silently blessed every regression** — a one-command,
+  attacker-free defeat of the identity ratchet. A genuinely absent file is a first arm; a
+  present-but-unreadable one is indeterminate, and an indeterminate baseline is not replaced
+  without the operator saying so.
+- **An uppercase commit locator was rejected (MEDIUM, FALSE WARN).** A git object name is
+  hexadecimal and case-insensitive; `DEADBEEF` names a commit exactly as well as `deadbeef`. The
+  ruling asks for a commit, not for lowercase formatting.
+- **A documentation claim was the half that was wrong (MEDIUM).** The docstring claimed outer
+  pipes were required while the code only ever enforced the leading one. A leading pipe is what
+  discriminates a row from prose; a trailing pipe is optional in GFM, and requiring it would
+  false-WARN a well-formed ledger. **The claim was corrected; the behaviour was kept.**
+
+#### Round 4 — the remaining admission surface
+
+- **An indented code block is a code block (HIGH).** CommonMark makes a 4-space-indented line a
+  code block, and `split_cells` stripped the indentation away before looking — the same
+  "documentation becomes evidence" class as the fence tracker, reached without a fence.
+- **An HTML comment is the other way a document carries an example it does not mean (HIGH).**
+- **A bare token is not a rejection reason (HIGH).** `REJECTED | x` reached the success path
+  because no *shape* rule is possible for a ruling citation. A **substance** floor is the only
+  rule this corpus supports, and it is **the weakest predicate in the module**: it separates a
+  recorded reason from a token and nothing more. Measured: the two live REJECTED locators are
+  144 and 253 characters.
+- **A PENDING locator must actually ask something (HIGH).** Straight from the ruling's own words —
+  PENDING carries *"the exact question it needs"*, and a question is punctuated. Both live PENDING
+  rows open with `Q:` and contain `?`, so requiring the mark cost **0 false positives**.
+- **A detector change rebaselined without review (HIGH).** `--write-baseline` compared artifact
+  sets and never the detector id, so a predicate revision that happened to *lower* the count read
+  as a drain, quietly wrote the new id, and the mismatch WARN never fired again. That is exactly
+  the failure `[#436]`'s detector-id discipline exists to prevent, reproduced in a sibling.
+
+#### Round 5 — normalisation and I/O
+
+- **Two normalisers, one corpus, different rules (HIGH, FALSE WARN).** Term cells stripped only
+  `*` while header cells already stripped backticks, so a valid backticked `ACTIONED` read as
+  malformed and left a genuinely dispositioned artifact uncovered.
+- **`errors="replace"` reproduced a known silent-zeroing class (HIGH).** `silent_rule_detector`'s
+  own contract records that its arm-time probe used a platform default encoding and *"SILENTLY
+  ZEROED several files before erroring — a silent decode failure is the exact measurement-error
+  class this metric must not reproduce"*. An unreadable byte anywhere in the corpus left the
+  ratchet passing on a read that had **partly failed**. Decoding is now strict and a failure
+  RAISES. Measured: all 693 live artifacts are valid UTF-8, so strict decoding costs nothing today
+  and refuses loudly the day it doesn't.
+- **Recovering a corrupt baseline is its own act, not a raise (HIGH).** Round 3 accepted
+  `--allow-raise` for this; round 5 split the two, because *adding names to a valid baseline* and
+  *destroying a damaged one* are different decisions. `--recover-corrupt-baseline` now names the
+  second.
+- **Duplicate baseline names (MEDIUM).** The ratchet compares **sets**, so a duplicated name
+  satisfied the count-vs-list check and then collapsed to one identity — the declared count
+  agreeing with the *list* while disagreeing with the *identity set the ratchet actually uses*.
+
 ### 5.6 Re-measured after every fix, because a tightening that changes the number is a bug
 
 ```
-before hardening:  corpus 693 · dispositioned 78 · pending 2 · uncovered 613 · malformed 0
-after  hardening:  corpus 693 · dispositioned 78 · pending 2 · uncovered 613 · malformed 0
+before hardening      :  corpus 693 · dispositioned 78 · pending 2 · uncovered 613 · malformed 0 · dangling 0
+after sol + round 1   :  corpus 693 · dispositioned 78 · pending 2 · uncovered 613 · malformed 0 · dangling 0
+after rounds 2-5      :  corpus 693 · dispositioned 78 · pending 2 · uncovered 613 · malformed 0 · dangling 0
 ```
 
-**Identical.** Four tightenings of the admission predicate (fences, separator, locator shape,
-PENDING) plus two parser fixes changed **nothing** about the live corpus — which is the evidence
-that they closed evasion routes rather than manufacturing false WARNs. Each was measured against
-all 78 live rows before it was armed, and `REJECTED` was left unshaped precisely because that
-measurement said a shape rule would have false-positived 2 of 2.
+**Identical, three times.** Across sol's four tightenings of the admission predicate (fences,
+separator, locator shape, PENDING) and five terra rounds — a further eleven predicate changes
+including strict UTF-8 decoding, indented-code and HTML-comment blanking, both-sided filename
+boundaries, separator width matching, a REJECTED substance floor and a PENDING interrogative
+requirement — the live corpus never moved. **That is the evidence the tightenings closed evasion
+routes rather than manufacturing false WARNs**, and it is worth more here than anywhere else,
+because four of terra's landed findings were themselves false-WARN bugs (§5.5). Each change was measured
+against all 78 live rows before it was armed; `REJECTED` was left shape-free precisely because
+that measurement said a shape rule would have false-positived 2 of 2.
 
-**Suite after this step: 47 tests** (was 33 at Step 3), **19/19 mutations caught** across both
-rounds — the 10 of §3.7 plus 9 more pinning the hardening: fence blanking, separator
-requirement, short-row handling, filename boundary, locator shape, SUPERSEDED resolution, blank
-PENDING, baseline count agreement, and the `--write-baseline` raise guard. These figures
-supersede §3.6/§3.7, which were accurate at Step 3.
+**Suite after the whole pass: 66 tests, all green in 7.9s** — 33 at Step 3, 47 after sol + terra
+round 1, 66 after terra rounds 2–5. The 19 tests added by rounds 2–5 are named regressions, one
+per finding that admitted a dedicated fixture; the rounds' remaining findings are pinned by
+inline attribution at the fix site in `scripts/funnel_coverage.py`. These figures supersede
+§3.6/§3.7, which were accurate at Step 3.
+
+**Mutation coverage is stated at its real extent, not extrapolated.** **19/19 mutations caught**
+covers the Step-3 and round-1 surface — the 10 of §3.7 plus 9 pinning sol's hardening (fence
+blanking, separator requirement, short-row handling, filename boundary, locator shape, SUPERSEDED
+resolution, blank PENDING, baseline count agreement, the `--write-baseline` raise guard). **The
+19 regressions from rounds 2–5 were NOT mutation-checked.** Each was written against a
+reproducing failure and observed to fail before its fix, which is weaker evidence than a mutation
+sweep and is not the same claim. Extending the sweep to the full 66 is owed, not done — it is the
+one piece of this lane's own evidence standard that the lane did not hold itself to.
 
 ### 5.7 What the check is, after the pass
 
