@@ -117,7 +117,7 @@ from .check_workspace_settings import (
     check_workspace_settings,
 )
 
-# The canonical order of `audit.ALL_CHECKS`, by function name. 44 entries; the count is pinned
+# The canonical order of `audit.ALL_CHECKS`, by function name. 46 entries; the count is pinned
 # in ARCHITECTURE.md, .claude/commands/{handoff-verify,preflight}.md, deploy/release_lint.py and
 # the test suite, so it does not move without those moving too. The inline notes are carried
 # over from the ALL_CHECKS literal they came from.
@@ -131,6 +131,7 @@ CHECK_ORDER: tuple[str, ...] = (
     # check_mermaid_theme_directive retired 2026-07-05 (ADR-51 amendment — LLM-first)
     "check_handoff_bundle_structure",
     "check_canonical_freshness",          # facade — _git_last_commit_date seam
+    "check_generated_artifact_freshness",  # facade — _gaf_git_last_commit_date seam
     "check_no_sibling_orphans",           # facade — _git_registered_worktrees seam
     "check_stale_worktrees",              # facade — _git_linked_worktrees/_git_stash_entries seams
     "check_canonical_structure",
@@ -167,6 +168,7 @@ CHECK_ORDER: tuple[str, ...] = (
     "check_review_artifact_coverage",     # facade — _is_hub/_REPO_ROOT seam
     "check_landing_predicate",            # facade — DISPOSITION_REGISTER/_is_hub seams
     "check_adr_status_grammar",           # [#242] ADR status grammar/enum + README coherence
+    "check_funnel_coverage",              # facade — _is_hub seam; detector in funnel_coverage.py
 )
 
 # The extracted subset, in CHECK_ORDER-relative order.

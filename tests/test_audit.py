@@ -1025,6 +1025,125 @@ def test_freshness_includes_hub_only_protocol_docs() -> None:
     assert "protocols/PLAYBOOK.md" not in aud._FRESHNESS_FILES  # deferred, not yet stamped
 
 
+# ---------------------------------------------------------------------------
+# generated_artifact_freshness (ADR-86 amd. 2026-08-23; `[#171]` leg 1 / f7)
+# The MODULE's own relation is covered by tests/test_generated_artifact_freshness.py.
+# What is covered HERE is the audit ENVELOPE the module cannot test: status mapping,
+# the n/a-vs-unavailable split, the monkeypatch seam, and ALL_CHECKS membership.
+# ---------------------------------------------------------------------------
+
+def _gaf_dates(mapping):
+    return lambda _rp, pathspec: mapping.get(pathspec)
+
+
+def _gaf_all(outputs_on, inputs_on):
+    """Dates for EVERY declared output and input.
+
+    All of them, not a convenient subset: `measure` returns `unverifiable` if any DECLARED input
+    has no history, so a fixture that names only `BACKLOG.md` tests that rule instead of the one
+    it meant to. `DASHBOARD.inputs` is read from the module so this cannot drift.
+    """
+    from scripts import generated_artifact_freshness as gaf
+    return _gaf_dates({**{p: outputs_on for p in gaf.DASHBOARD.outputs},
+                       **{p: inputs_on for p in gaf.DASHBOARD.inputs}})
+
+
+def _gaf_tree(tmp_path: Path) -> Path:
+    """A tree where the dashboard's output faces EXIST. `measure` checks presence before it asks
+    git -- a fixture that skips this gets the `deleted` verdict, not the one it meant to test."""
+    from scripts import generated_artifact_freshness as gaf
+    for rel in gaf.DASHBOARD.outputs:
+        (tmp_path / rel).parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / rel).write_text("x", encoding="utf-8")
+    return tmp_path
+
+
+def test_generated_artifact_freshness_passes_when_current(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(aud, "_gaf_git_last_commit_date",
+                        _gaf_all(date(2026, 8, 24), date(2026, 8, 24)))
+    findings = aud.check_generated_artifact_freshness(_gaf_tree(tmp_path))
+    assert len(findings) == 1, "one Finding PER ARTIFACT -- the ship-gate dispositions each"
+    assert findings[0].status == "pass", findings[0].evidence
+    assert findings[0].check_name == "generated_artifact_freshness"
+
+
+def test_generated_artifact_freshness_warns_past_the_baseline(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """WARN, never FAIL: cmd_health exits 1 only on `fail`, so this must not tax a commit;
+    cmd_ship_gate REDs on an undispositioned `warn`, which is where the teeth are. The evidence
+    is asserted to name STALENESS specifically -- a bare `status == "warn"` would also be
+    satisfied by `unverifiable`, and would then pass even if the date relation regressed."""
+    monkeypatch.setattr(aud, "_gaf_git_last_commit_date",
+                        _gaf_all(date(2026, 8, 1), date(2026, 8, 23)))
+    f = aud.check_generated_artifact_freshness(_gaf_tree(tmp_path))[0]
+    assert f.status == "warn", f.evidence
+    assert "22d stale (baseline 4d)" in f.evidence, f.evidence
+    assert "regenerate + commit" in f.evidence, "a WARN must carry its own discharge"
+
+
+def test_generated_artifact_freshness_deleted_artifact_warns(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Has git history, gone from the tree -> WARN, never `pass`. An `if stale / else pass` leg
+    made this silently green, which is why the status mapping is a table lookup."""
+    monkeypatch.setattr(aud, "_gaf_git_last_commit_date",
+                        _gaf_all(date(2026, 8, 24), date(2026, 8, 1)))
+    f = aud.check_generated_artifact_freshness(tmp_path)[0]   # tree NOT materialized
+    assert f.status == "warn", f.evidence
+    assert "MISSING from the tree" in f.evidence
+
+
+def test_generated_artifact_freshness_uncommitted_artifact_warns(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Present in the tree, never committed. `--check` does not catch it (it reports MISSING only
+    for an ABSENT file), and "committed-generated" is the zone class's own claim -- so it is a
+    WARN, not a quiet `unavailable` the ship-gate ignores."""
+    monkeypatch.setattr(aud, "_gaf_git_last_commit_date", _gaf_dates({}))
+    f = aud.check_generated_artifact_freshness(_gaf_tree(tmp_path))[0]
+    assert f.status == "warn", f.evidence
+    assert "never committed" in f.evidence
+
+
+def test_generated_artifact_freshness_absent_artifact_is_na_subject_absent(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A consumer repo with no dashboard is SUBJECT-ABSENT, not a silent pass."""
+    monkeypatch.setattr(aud, "_gaf_git_last_commit_date", _gaf_dates({}))
+    f = aud.check_generated_artifact_freshness(tmp_path)[0]
+    assert f.status == "n/a"
+    assert aud._na_reason(f) == "SUBJECT-ABSENT"
+
+
+def test_generated_artifact_freshness_is_skipped_at_the_commit_gate(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """"Ship-gate, not pre-commit" must be true of the WORK, not only of the verdict class.
+    `cmd_health` runs all of ALL_CHECKS, so without this the leg would spend 11 `git log` calls
+    on every commit. Asserted by making the date fn explode: if it is called under _GATE_MODE,
+    the leg is doing commit-time work it promised not to do."""
+    def _explode(*_a, **_k):
+        raise AssertionError("freshness measured under _GATE_MODE -- it must be skipped there")
+
+    monkeypatch.setattr(aud, "_gaf_git_last_commit_date", _explode)
+    monkeypatch.setattr(aud, "_GATE_MODE", True)
+    f = aud.check_generated_artifact_freshness(tmp_path)[0]
+    assert f.status == "n/a"
+    assert aud._na_reason(f) == "NOT-APPLICABLE"
+
+
+def test_generated_artifact_freshness_every_verdict_has_a_mapped_status() -> None:
+    """The leg is a table lookup precisely so an unmapped verdict RAISES rather than passing;
+    this asserts the table covers everything, so that safety net is never actually hit."""
+    from scripts import generated_artifact_freshness as gaf
+    assert set(gaf.WARN_VERDICTS) <= set(gaf.STATUS_FOR_VERDICT)
+    assert set(gaf.STATUS_FOR_VERDICT.values()) <= {"pass", "warn", "unavailable"}
+
+
+def test_generated_artifact_freshness_is_registered() -> None:
+    assert aud.check_generated_artifact_freshness in aud.ALL_CHECKS
+    from scripts.audit_checks.registry import CHECK_ORDER
+    assert "check_generated_artifact_freshness" in CHECK_ORDER
+    assert len(CHECK_ORDER) == len(aud.ALL_CHECKS)
+
+
 @pytest.mark.skipif(not _HAS_GIT, reason="git not available")
 def test_git_last_commit_date_no_history_returns_none(tmp_path: Path) -> None:
     """REAL git: an untracked (never-committed) file has no commit date → None (A2 skipped)."""
@@ -2204,7 +2323,7 @@ def test_import_edges_live_repo_passes_and_is_registered() -> None:
     f = aud.check_import_edges(Path(aud._REPO_ROOT))[0]
     assert f.status == "pass", f.evidence
     assert aud.check_import_edges in aud.ALL_CHECKS
-    assert len(aud.ALL_CHECKS) == 44  # 30 -> 31: check_residual_completeness added (ARC-5 residual gate, 2026-07-19); 29 -> 30: check_fleet_parity added ([#337], 2026-07-18); 31 -> 32: check_routine_consumers added ([#419]/ADR-105 activation gate, 2026-07-26); 32 -> 34: check_silent_rule_ratchet ([#436] D4 ratchet) + check_task_tree_coherence ([#433] C1 gate-arm) added, 2026-07-27; 34 -> 35: check_boot_byte_budget added ([#446] A10 item 2 / R4 boot byte budget, 2026-07-31); 35 -> 36: check_intake_tree_coherence added ([#383] wave 1 — ADR-109 §4 generality proof, 2026-07-31); 36 -> 37: check_fleet_audit_replication added ([#460] — ADR-80 durable-record replication alarm, 2026-08-01); 37 -> 38: check_membership_agreement added ([#462] — ADR-104 declaration vs every repo-keyed machine surface, 2026-08-01); 38 -> 39: check_journal_spine_anchor added (ADR-85 amendment 2026-08-03 §A8/FR4 — pre-push backstop, 2026-08-03); 39 -> 38: check_handoff_tag_canonicity RETIRED ([#465] leg 4 — its subject (§3.1 four-tag section) has not existed since the v5 flip; the inert-check detector found it, 2026-08-04); 38 -> 39: check_preflight_backlog_ids added ([#483] R3 -- ADVISORY leg, WARN-tier; hard-gating deferred pending 0 false positives over two windows, 2026-08-04); 39 -> 40: check_review_artifact_coverage added ([#480] P3 -- ADVISORY leg, WARN-tier; the hard pre-push leg is deferred pending 0 false positives over two consecutive windows, 2026-08-05); 40 -> 41: check_stale_worktrees added ([#505] batch hygiene -- WARN-tier by ruling, ADR-110 §1 item 4 / intake #26 Track 1 item 4, 2026-08-06); 41 -> 42: check_landing_predicate added ([#513] propagation completeness / landing-predicate scanner, 2026-08-13); 42 -> 43: check_journal_day_letters added ([#524] leg a — whole-file JOURNAL day-letter uniqueness since 2026-07-30, 2026-08-14); 43 -> 44: check_adr_status_grammar added ([#242] lane L3 — ADR Status grammar/enum + header<->README coherence; enum/single-field FAIL-armed, five legs WARN against a recorded baseline, 2026-08-24)
+    assert len(aud.ALL_CHECKS) == 46  # 30 -> 31: check_residual_completeness added (ARC-5 residual gate, 2026-07-19); 29 -> 30: check_fleet_parity added ([#337], 2026-07-18); 31 -> 32: check_routine_consumers added ([#419]/ADR-105 activation gate, 2026-07-26); 32 -> 34: check_silent_rule_ratchet ([#436] D4 ratchet) + check_task_tree_coherence ([#433] C1 gate-arm) added, 2026-07-27; 34 -> 35: check_boot_byte_budget added ([#446] A10 item 2 / R4 boot byte budget, 2026-07-31); 35 -> 36: check_intake_tree_coherence added ([#383] wave 1 — ADR-109 §4 generality proof, 2026-07-31); 36 -> 37: check_fleet_audit_replication added ([#460] — ADR-80 durable-record replication alarm, 2026-08-01); 37 -> 38: check_membership_agreement added ([#462] — ADR-104 declaration vs every repo-keyed machine surface, 2026-08-01); 38 -> 39: check_journal_spine_anchor added (ADR-85 amendment 2026-08-03 §A8/FR4 — pre-push backstop, 2026-08-03); 39 -> 38: check_handoff_tag_canonicity RETIRED ([#465] leg 4 — its subject (§3.1 four-tag section) has not existed since the v5 flip; the inert-check detector found it, 2026-08-04); 38 -> 39: check_preflight_backlog_ids added ([#483] R3 -- ADVISORY leg, WARN-tier; hard-gating deferred pending 0 false positives over two windows, 2026-08-04); 39 -> 40: check_review_artifact_coverage added ([#480] P3 -- ADVISORY leg, WARN-tier; the hard pre-push leg is deferred pending 0 false positives over two consecutive windows, 2026-08-05); 40 -> 41: check_stale_worktrees added ([#505] batch hygiene -- WARN-tier by ruling, ADR-110 §1 item 4 / intake #26 Track 1 item 4, 2026-08-06); 41 -> 42: check_landing_predicate added ([#513] propagation completeness / landing-predicate scanner, 2026-08-13); 42 -> 43: check_journal_day_letters added ([#524] leg a — whole-file JOURNAL day-letter uniqueness since 2026-07-30, 2026-08-14); 43 -> 44: check_adr_status_grammar added ([#242] lane L3 — ADR Status grammar/enum + header<->README coherence; enum/single-field FAIL-armed, five legs WARN against a recorded baseline, 2026-08-24); 44 -> 46: check_generated_artifact_freshness (ADR-86 amd. 2026-08-23 / [#171] leg 1, WARN-tier by ruling) and check_funnel_coverage (M3 ADVISORY leg, WARN-tier by ruling; zero-baseline identity ratchet over docs/audits/ disposition coverage) added together by the mini-integration, 2026-08-24
 
 
 def test_import_edges_wired_into_audit_repo(tmp_path: Path) -> None:
@@ -2220,7 +2339,7 @@ def test_import_edges_wired_into_audit_repo(tmp_path: Path) -> None:
 
 def test_fleet_parity_registered_in_all_checks():
     assert "check_fleet_parity" in [c.__name__ for c in aud.ALL_CHECKS]
-    assert len(aud.ALL_CHECKS) == 44  # ... 41 -> 42: check_landing_predicate added ([#513], 2026-08-13); 42 -> 43: check_journal_day_letters added ([#524] leg a, 2026-08-14). Full history: see test_all_checks_count_is_pinned (tests/test_writer_integrity.py).
+    assert len(aud.ALL_CHECKS) == 46  # ... 41 -> 42: check_landing_predicate added ([#513], 2026-08-13); 42 -> 43: check_journal_day_letters added ([#524] leg a, 2026-08-14). Full history: see test_all_checks_count_is_pinned (tests/test_writer_integrity.py).; 44 -> 46: check_generated_artifact_freshness (ADR-86 amd. 2026-08-23 / [#171] leg 1, WARN-tier by ruling) and check_funnel_coverage (M3 ADVISORY leg, WARN-tier by ruling; zero-baseline identity ratchet over docs/audits/ disposition coverage) added together by the mini-integration, 2026-08-24
 
 
 def test_fleet_parity_findings_maps_blocking_verdicts():
