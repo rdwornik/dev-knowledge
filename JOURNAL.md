@@ -19,6 +19,43 @@
 
 ---
 
+### 2026-08-24 (c) - CC (Opus 5, integrator, branch `docs/provider-discoverability-2026-08-24`): the checkpoint runs the exporter instead of describing it, and the backlog turns out to be navigable rather than enormous
+
+**Did:** the contract's Step 3 operator checkpoint, both halves, after queue positions 1-2.
+**(a)** The provider-discoverability surface landed as a **section in `CONTRIBUTING.md`**, not as root
+`AGENTS.md`. The refusal was re-verified here rather than taken on trust:
+`validate_hermetization.classify('AGENTS.md')` returns *"unsanctioned new top-level file … a
+genuinely new class is an ADR-101 amendment, not a drive-by add"*. `CONTRIBUTING.md` was chosen over
+`CLAUDE.md` (5 lines of budget headroom, and L5 edits it at queue position 5) and over
+`ARCHITECTURE.md` (1,160 lines to re-read for an honest `last_reviewed` bump); its own audience line
+already named exactly two vendors as if the set were closed, which is the staleness the section
+fixes. **(b)** Ran `[#563]`'s exporter - never wired it, per its own ratified binding condition 3.
+
+**Result:** `scripts/export_backlog_view.py` **exported 308 rows in 1.07s (3.5 ms/row)** into the
+gitignored `.backlog-view/`; `git status` shows zero tracked files under it. All three binding
+conditions hold as ratified: one-way export, disposable gitignored dir, no gate/hook/script
+repointed at it. The rank the operator asked for, measured from `tasks/` rather than restated:
+**212 open rows** - and that figure independently reproduces the population C3 evidenced from the
+other direction. Of those, **5 open P1**, 74 P2, 45 P3, and **39 open P2 rows sized S** - the
+cheapest real wins, which is the answer to "unchanged and enormous": the set is 212, but the
+actionable near-term face of it is about 44 rows.
+
+**One finding the rank surfaced that nothing had asked for:** **88 of the 212 open rows parse
+no priority/size band at all** - they carry an `id:` and a `status:` but their body line does not
+match the `- [#id] [P?][S|M|L] **title**` shape the other 124 use. That is 41% of the open set
+invisible to any priority sort, and it is filed as an observation here rather than fixed, because
+`banked = 0` for this window.
+
+**Changes:** `JOURNAL.md`. (The section, the `last_reviewed` bump and the regenerated audits index
+rode `a3bfad8f`.)
+
+**Abandoned:** nothing.
+
+**Next:** queue positions 3-9.
+
+**Anchors:** `a3bfad8f` (the provider-discoverability section + `2026-08-24 (b)`, the commit this
+branch's merge introduces).
+
 ### 2026-08-24 (b) - CC (Opus 5, integrator, branch `docs/provider-discoverability-2026-08-24`): the batch integration opens, and the anchor has to be written before the work rather than after it
 
 **Did:** opened the integrator seat for the nine-branch 2026-08-23/24 batch. Step 0 first, before
