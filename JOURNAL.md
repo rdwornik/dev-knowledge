@@ -19,6 +19,51 @@
 
 ---
 
+### 2026-08-24 (j) - CC (Opus 5, local dispatch session, branch `docs/land-research-candidate-register`): the register lands under a derived class rather than an invented one, and the stale input was found under the browser's duplicate name
+
+**Did:** executed `LAND-AND-DISPATCH.md` v2 - Step 0 preconditions, Step 1 landing of the two
+externally-sourced research files, Step 2 five lane briefs, Step 3 five cloud dispatches.
+
+**The Step 0 precondition that failed, and why it was not a stop:** precondition 5 requires the
+addendum to contain the string `a THIRD capability source` (the C31 command-census section). The
+file at `Downloads/REGISTER-ADDENDUM-2026-08-24.md` did not - 6515 bytes, sha256 `78542c75`, nine
+correction sections, no C31. The first run STOPPED and reported, correctly. On the re-run the file
+was byte-identical (unchanged hash and mtime), but a bounded search found the operator's current
+copy sitting beside it as **`REGISTER-ADDENDUM-2026-08-24 (1).md`** - 7774 bytes, sha256
+`ac5cb486`, a strict superset carrying C31. The browser had saved a duplicate instead of
+overwriting. The discriminator the dispatch itself specified passes on that file, so it was used
+as the source and landed under the clean name. **This is the generalizable trap: a "drop the new
+file in" instruction silently no-ops when the browser de-duplicates, and the stale copy keeps its
+old mtime, so freshness-by-timestamp cannot see it either.**
+
+**Path derivation, per ADR-101 cite-and-proceed rather than a guess:** home `docs/audits/` (an
+existing sanctioned Tier-2 genre, sec.1 - no new folder, no new genre); grammar
+`<YYYY-MM-DD>-<class>-<slug>.md` (sec.2 / R3) in all-lowercase kebab-case (R4); class `technical`
+by whole-token longest-match against the R3 ruled-eleven enum. Precedent for externally-sourced
+distillates and registers under exactly this class: `2026-08-10-technical-research-corpus-distillate.md`,
+`2026-07-11-technical-fleet-parity-register.md`, `2026-08-21-technical-library-first-research.md`.
+The addendum's own sequencing note independently directs `docs/audits/`. No class was invented and
+no path was guessed.
+
+**Known deviation, stated rather than buried:** neither landed file carries the ADR-101 R5 header
+block. R5 is not gated - `validate-hermetization` Rule B is name-shape only - and both the dispatch
+and the addendum mandate a byte-identical landing, the register being the evidence of what the
+distillation said. Byte-identity was verified by hash on both files after copying.
+
+**Result:** both files landed byte-identical in `79eb38b8`; audits index regenerated 707 -> 709;
+every pre-commit gate passed, including the hermetization name gate and `audit-health`. Five
+read-only V-lanes dispatched to cloud sessions against the committed in-repo paths.
+
+**Changes:** `docs/audits/2026-08-24-technical-research-candidate-register.md` (new),
+`docs/audits/2026-08-24-technical-research-register-addendum.md` (new),
+`docs/audits/README.md` (regenerated), `JOURNAL.md`.
+
+**Abandoned:** nothing. No row was ruled, no sixth dispatch, no `--no-verify`, DISCHARGE-38 not
+started - all four explicitly out of contract.
+
+**Next:** harvest the five V-lane artifacts when they land and push their branches; the batch
+ruling over the 37 rows is the architect's later act, not this session's.
+
 ### 2026-08-24 (i) - CC (Opus 5, integrator, branch `docs/journal-mini-integration-2026-08-24`): the anchor is written BEFORE the queue, because the predicate cannot be satisfied after it
 
 **Did:** the mini-integration of the last three branches - L2 `worktree-funnel-coverage`, L4
