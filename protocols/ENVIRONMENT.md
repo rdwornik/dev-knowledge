@@ -9,6 +9,16 @@
 > (CLI version · model family · `~/.claude/` command set · settings keys). Facts NOT re-verified
 > this pass (VS Code / ccusage exact versions, hardware) are carried forward as last-known — a
 > deeper live re-audit is a separate pass if wanted.
+>
+> **Annotation pass 2026-08-23 (LANE-L5, claim-truth only).** Three claims contradicted by live
+> state were annotated in place — not deleted, since a Council record is not erased: the
+> "No Codex CLI" Active decision (reversed), the "Mandatory TDD" Rejected entry (narrowed by
+> ADR-108 §B), and the `config/requirements-dev.txt` dependency declaration (superseded by
+> ADR-106's `pyproject.toml` + `uv.lock` + `.python-version`). **NOT re-verified this pass, and
+> therefore still last-known:** the CLI/ccusage/VS Code versions, the hardware block, the model
+> roster, and everything under `~/.claude/` — that tree is L0 and unreachable from the cloud
+> container this pass ran in. Note the model roster here is **ungated prose**: it is not one of
+> the `provider-registry-agreement` seams, so nothing checks it.
 
 ---
 
@@ -179,8 +189,14 @@ protocols/
   ENVIRONMENT.md                ← This file
 logs/
   TOKEN-LOG.md                  ← Append-only token usage snapshots
+pyproject.toml                  ← Python dep declaration ([dependency-groups]) + the exact uv pin
+uv.lock                         ← the full resolved graph (`uv sync --locked` rebuilds it)
+.python-version                 ← interpreter pin (CPython 3.12.10)
 config/
-  requirements-dev.txt          ← Python dev dependencies
+  requirements-dev.txt          ← SUPERSEDED by the three files above (ADR-106 §4: `uv sync
+                                   --locked` + `uv run pre-commit install` "replaces
+                                   `pip install -r config/requirements-dev.txt`"). Still on disk;
+                                   no longer the dependency declaration
 ```
 
 (README.md deleted 2026-05-23 per ADR-38 amendment A5; CHANGELOG.md retired
@@ -247,7 +263,13 @@ CRITICAL: Audit Gemini API tier (AI Studio vs Vertex) before batch extraction on
 - Zero Obsidian plugins
 - Vault = pre-sales only, .dev-knowledge = dev methodology (#23)
 - No GMKtec local inference
-- No Codex CLI, no Gemini CLI
+- ~~No Codex CLI~~, no Gemini CLI — **the Codex half was REVERSED and is no longer binding**
+  (annotated 2026-08-23, LANE-L5, on the same pattern as the worktree entry below). Codex CLI is
+  live and load-bearing: `/codex-review <topic>` wraps `codex exec --output-last-message`
+  (PLAYBOOK §16 "Option B — Codex CLI"), it is the final leg of the two-stage code review
+  (ESSENTIALS "Ending a Session" step 3), the hub carries `codex/AGENTS.md`, and
+  `STANDING_RULINGS.md` names "the active toolset as Claude Code + Codex". **The Gemini-CLI half
+  stands** — Gemini remains an API-only Council synthesizer, not a CLI.
 
 ### Pending
 <!-- scope: meta -->
@@ -260,7 +282,12 @@ CRITICAL: Audit Gemini API tier (AI Studio vs Vertex) before batch extraction on
 
 - GMKtec local inference ($2,500 ADHD trap, 38-month ROI)
 - Codex CLI (no advantage over Haiku subagents)
-- Mandatory TDD (council rejected)
+- Mandatory TDD (council rejected) — note: **ADR-108 §B (Accepted 2026-07-31) later made TDD a
+  standing standard for every *build arc*** ("RED-first witnesses, failing tests before build code,
+  frozen after freeze"), with the ex-ante frozen acceptance contract per the ADR-81 amendment
+  2026-06-24. That is narrower than the blanket mandate rejected here, which no later decision reinstated —
+  **both facts hold; cite the one that matches the scope you are in** (annotated 2026-08-23,
+  LANE-L5)
 - Git worktrees as a *daily-driver* workflow (council rejected) — note: ADR-61 (2026-05-28) later adopted `git worktree` for the narrow case of **parallel same-repo Claude Code sessions**; that is not the rejected daily-default workflow
 - Confidence scoring in council debates (LLMs poorly self-calibrate)
 

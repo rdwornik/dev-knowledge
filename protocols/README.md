@@ -20,7 +20,8 @@ consumer):
 - `HANDOFF_BOOT.md` — the thin browser-chat boot entry
 - `SESSION_SETUP.md` — session bootstrap / environment wiring
 - `ENVIRONMENT.md` — the `~/.claude/` runtime + machine environment contract
-- `DEFINITION_OF_DONE.md` — the session-close definition-of-done (ADR-85, Stop-gated)
+- `DEFINITION_OF_DONE.md` — the session-close definition-of-done (ADR-85; teeth at pre-push since the amendment 2026-08-03, not Stop-gated)
+- `STANDING_RULINGS.md` — the ratified-in-chat rulings agents apply silently, with no other landed home yet
 
 **Consumers hub-pointer here.** Child repos do NOT copy these files; their `CLAUDE.md` §1
 reads them at this hub `protocols/` path by design. A consumer's own `protocols/` holds
