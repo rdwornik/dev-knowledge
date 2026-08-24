@@ -19,6 +19,46 @@
 
 ---
 
+### 2026-08-24 (b) - CC (Opus 5, integrator, branch `docs/provider-discoverability-2026-08-24`): the batch integration opens, and the anchor has to be written before the work rather than after it
+
+**Did:** opened the integrator seat for the nine-branch 2026-08-23/24 batch. Step 0 first, before
+touching anything: pushed the four sealed lane branches (`worktree-rulings-landing`,
+`worktree-provider-config`, `worktree-status-grammar`, `worktree-dispatch-codification`) and
+`automation/fleet-audit` to `origin` - all five reported `Everything up-to-date`, so the single-copy
+risk the contract named (1,478 lines living only inside `.claude/worktrees/`, a directory whose
+purpose is to be pruned) was already discharged. No hook refused either push; no `--no-verify`. Then
+merged queue positions 1 and 2 `--no-ff`, each after asserting the tip IS its sentinel commit:
+**L6** `worktree-rulings-landing` (`a85179bd`, `L6-FINAL`) and **L1** `worktree-provider-config`
+(`3cdf1126`, `L1-FINAL`).
+
+**Result:** the L1 merge blocked the first integrator commit, and the block is correct. **L1 is the
+only branch in the nine-branch queue that touches no `JOURNAL.md`**, so its merge cannot self-anchor
+the way the other eight do, and `journal_spine_anchor` refused at `audit-health` (FAIL-tier, a
+pre-commit gate). The contract forbids `--no-verify` outright, so this entry is written **first** and
+the Step 3 work commits behind it - the "entry FIRST" ordering, arrived at by being stopped rather
+than by remembering.
+
+**Two of the contract's stated premises did not survive measurement, both on `JOURNAL.md`:**
+(1) it says *six* branches touch the file; **eight** do - every queue member except L1. (2) It names
+one day-letter collision, L3 vs L6 on `2026-08-24 (a)`. The real collision surface is far larger:
+**six branches all claim `2026-08-23 (k)`** (L7, L5, C2, C1, C3, M9), plus C2's second entry at
+`(l)`, plus the 2-way on `2026-08-24 (a)` the contract did name. `check_journal_day_letters` is
+FAIL-tier on a duplicate, so every one of those is re-derived at its own merge per the standing
+practice - header only, body byte-identical, newest-at-top-of-day.
+
+**Changes:** `CONTRIBUTING.md` (provider-discoverability section; `last_reviewed` 2026-08-08 ->
+2026-08-24 on a genuine full-file re-read), `docs/audits/README.md` (regenerated - it went stale at
+the L1 merge), `JOURNAL.md`.
+
+**Abandoned:** nothing.
+
+**Next:** queue positions 3-9, with the cloud lanes' gate results re-run locally before each merge
+(C2 exempt - it re-ran its own measurements under the pinned mesh); then the count-pin
+reconciliation, the R12 detector-scope fix, the intakes, and the close-out packet.
+
+**Anchors:** `3cdf1126` (`L1-FINAL`, the lane-artifact commit the L1 merge introduces) and
+`a85179bd` (`L6-FINAL`, the same for L6).
+
 ### 2026-08-24 (a) - CC (Opus 5, lane `rulings-landing`, branch `worktree-rulings-landing`): the architect's rulings are in the repo as appends, and the suite does not match the baseline it was contracted against
 
 **Did:** executed the frozen LANE-L6 contract - three governance corrections landed in-repo so the
