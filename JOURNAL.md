@@ -19,6 +19,45 @@
 
 ---
 
+### 2026-08-24 (i) - CC (Opus 5, integrator, branch `docs/journal-mini-integration-2026-08-24`): the anchor is written BEFORE the queue, because the predicate cannot be satisfied after it
+
+**Did:** the mini-integration of the last three branches - L2 `worktree-funnel-coverage`, L4
+`worktree-dashboard-commit-path`, and `worktree-probe-substrate`. Every tip was verified against
+the brief's stated SHA **and** its sentinel before any merge: `5fcc9338` carrying `L2-FINAL`,
+`3dcf1198` carrying `L4-FINAL`, `c559392a` the probe artifact. All three worktrees were `0-dirty`
+and no live session held them.
+
+**This entry is written ahead of merges 2 and 3, and that ordering is forced rather than chosen.**
+Every lane regenerated `docs/audits/README.md`, so every lane merge conflicts on it; a conflicted
+merge needs a manual `git commit`, which runs the full `pre-commit`, and `audit-health` then FAILs
+on the *previous* merge for want of a JOURNAL anchor. The predicate
+(`scripts/journal_anchor.py`) is *"a spine entry is anchored when JOURNAL names >= 1 SHA it
+INTRODUCED - never its own SHA"*, so a merge can never anchor itself and the anchor always lags by
+one commit. `check_journal_spine_anchor` reads `JOURNAL.md` from the **working tree** while walking
+`main`'s spine, which is exactly why writing the entry first works and why waiting cannot.
+`SKIP=audit-health` was NOT used and is not available here: the RED is this arc's own, and the
+ADR-110 declared-integration-arc exemption needs a `worktree-lane-<letter>-<id>-<slug>` branch name,
+which none of these three carry.
+
+**Result:** merge 1 landed as `459083a9` with every gate Passed and no bypass of any kind. Its two
+generated-file conflicts (`docs/audits/README.md`, `ecosystem/doc-counts.md`) were resolved by
+`git add` + regeneration, never by picking hunks. The regeneration measured **3897** collected
+tests where `main` claimed 3831 and the L2 branch claimed 3620 - both stale, from opposite
+directions.
+
+**Changes:** `JOURNAL.md`. The merges, the `ALL_CHECKS` registrations and the count reconciliation
+ride their own commits.
+
+**Abandoned:** nothing.
+
+**Next:** merges 2 and 3, then the two fenced `ALL_CHECKS` registrations with every count pin set
+to a **measured** value, then the suite. The push to `main` is the operator's act.
+
+**Anchors:** L2's seven - `5fcc9338`, `8c54f003`, `2c6587d5`, `77355632`, `617ed84f`, `065872b8`,
+`52950fa9` - the commits merge `459083a9` introduces; L4's eight - `3dcf1198`, `46337a98`,
+`83023bbc`, `278c26c6`, `4cda6b26`, `7edd76d3`, `8c028f0d`, `fabb80af`; and the probe's
+`c559392a`.
+
 ### 2026-08-24 (h) - CC (Opus 5, integrator, branch `docs/warn-triage-teardown-2026-08-24`): the window's residue is zero, and the two things left standing are older than the batch
 
 **Did:** the contract's Step 10 teardown and the Step 7 triage leg the close-out packet did not
