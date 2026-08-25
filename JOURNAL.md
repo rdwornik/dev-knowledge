@@ -66,6 +66,61 @@ introduces. And `fa556048` - this entry's own first commit, named here in a foll
 that the merge which introduces it is anchored too - an entry cannot name the commit that carries
 it, which is the single-commit-branch trap the predicate makes unavoidable.
 
+**Addendum, written at the end of the session it describes.** The queue closed. All five lanes
+merged sentinel-first and serial, none skipped: `9704ad31` (V1), `71b4dfe4` (V2), `40d0e66a` (V3),
+`7d3b2425` (V4), `257e745d` (V5), on top of `fac96321` (workspace) and `bc89d42a` (this entry).
+Four of the five conflicted on `docs/audits/README.md` and every one was resolved by
+`gen_audit_index.py --write`, never by picking a hunk - the four lanes each claimed **710**, and
+the truth was re-derived at each step rather than chosen: 712 -> 713 -> (V3 clean, no index
+touch) -> 715 -> **716 audit documents**. V3 conflicted with nothing, exactly as the contract
+predicted, and its artifact was swept into the index by the V4 resolution. The final regeneration
+the contract asks for after the last merge IS the V5 resolution: `gen_audit_index.py --check` and
+`gen_doc_counts.py --check` both exit 0 against the merged tree, so no separate regen commit was
+owed and none was invented. `ecosystem/doc-counts.md` was not touched - it pins checks, hooks and
+collected tests, none of which an audits artifact moves.
+
+**Teardown.** All five remote lanes deleted, each behind a proof taken BEFORE the delete:
+`git merge-base --is-ancestor origin/<branch> main` exited 0 for all five. `git ls-remote --heads
+origin 'refs/heads/claude/*'` now returns empty; there were no local copies to `-d`; `git worktree
+list` is primary-only. **One ordering risk, stated rather than buried:** the contract sequences the
+deletions BEFORE the operator's push, so between now and that push these five artifacts exist on
+`origin` only inside this unpushed `main`. That is the contract's order, not a deviation, but if
+the push is abandoned the branches are gone from the remote and would need restoring from this
+local repo.
+
+**Verification (Step 4; the full suite is NOT owed - the five branches added only `docs/audits`
+artifacts, and `git diff --stat 788098b3..HEAD` confirms it: the workspace file, `JOURNAL.md`,
+five new artifacts and the regenerated index, nothing else).** `audit.py health`: **OK**.
+`audit.py checks`: **46** registered. `validate_doc_claims --all`: OK, 4 claims, no prose drift.
+`validate_backlog`: OK (9 themes, 26 stories, 183 tasks, 1 pre-existing WARN on story `[S24]`,
+untouched here). `gen_task_tree --check`: ok. `journal_spine_anchor`: every first-parent spine
+entry above floor `24882f8cc` is anchored.
+
+**ship-gate: RED - 48 new/undispositioned WARN(s) - and the RED is measured, not waved through.**
+Zero `[!!]` FAILs; the gate is WARN-tier throughout. Of the 48, exactly **5** are this arc's - the
+`funnel_coverage` rows for the five landed artifacts - and the contract's own stop-list forbids
+dispositioning them ("no ruling of register rows - the packet owns that"). The other **43** are
+baseline and provably not this arc's: 23 `doc_rot` backlog-row-length WARNs against a `BACKLOG.md`
+this arc never opened, 21 `undeclared_edges` against an `ecosystem/` it never opened, plus
+`adr_status_grammar` against untouched ADRs. Three `[stale]` dispositions
+(`warn-row-length-533/529/530`) also predate this session. So ship-gate was already RED before the
+first merge and is RED after it, by 5 rows that are the expected cost of landing five audit
+artifacts. Zero new REDs against the 3-failed suite baseline: the suite was not re-run, because
+nothing outside `docs/audits` moved.
+
+**A cp1252 trap worth the line:** `audit.py checks` crashes with `UnicodeEncodeError` on `→`
+under the default Windows console encoding, and that crash silently degrades
+`validate_doc_claims`'s `audit_check_count` leg to `skipped (ground truth unavailable)` rather than
+to a failure. `PYTHONUTF8=1` fixes both. A gate that reports "skipped" when its subprocess died is
+the same defect class the ADR-85 amendment removed from the push leg.
+
+**Anchors:** `a6698ca6`, `ca555c0c`, `0d9fef86`, `65ce67c0`, `2252abc2`, `9b851a68`, `fa556048` -
+each the commit its own merge introduces, restated here on a record line because the predicate's
+`^\*{0,2}Anchors?\b` only credits SHAs on the line that starts the record, and in the entry above
+two of them sat on a continuation line and scored as "anchored by mention". And `55e0b665` - the
+commit carrying this addendum, named in the follow-up commit on this branch so the merge that
+lands it is anchored too.
+
 ### 2026-08-25 (a) - CC (Opus 5, local seat session, branch `docs/land-research-2`): the two research reports land byte-identical, and the intake's decision criterion is answered by measurement rather than by lean
 
 **Did:** executed `LAND-RESEARCH-2.md`. Step 0 refused on its first run and that refusal is the
