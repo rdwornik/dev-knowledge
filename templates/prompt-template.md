@@ -63,9 +63,18 @@ Updated: 2026-08-08
 
 ---
 
-| Model  | `<opus | sonnet>` — see the routing matrix below; `opus` is the `.dev-knowledge` default |
+| Model  | `<opus | sonnet | haiku>` |
 | Mode   | `<execution (default) | plan-then-auto (M/L repo-derivation only) | auto-accept>` |
 | Effort | `<low | medium | high | xhigh | max>` |
+
+**THE `Model` CELL CARRIES A MACHINE TOKEN — one of `opus | sonnet | haiku` and nothing else
+(ruled 2026-08-25).** Human gloss belongs outside the table, as the routing paragraph below
+carries it. This is not a formatting preference: `dispatch` parses this cell, and a cell reading
+`Opus (opusplan default)` is REFUSED with *"routing row carries model … outside
+{opus | sonnet | haiku}"*. The 2026-08-25 batch's four contracts each wrote exactly that and each
+had to launch through the manual fallback instead of the ruled verb. `Mode` and `Effort` are
+closed enums on the same terms. Which model to pick is the routing paragraph directly below;
+what the cell may CONTAIN is this rule.
 
 **This table is M/L-only (ruled 2026-08-07).** The **dispatch line is authoritative for model and
 effort**, so an **S-class contract omits the whole table** — the line that launched the session
@@ -110,8 +119,20 @@ shape of one field inside it.
 <!-- scope: meta -->
 
 ```
-claude --bg --model opus --effort high --permission-mode bypassPermissions "[<repo> · #<id>-or-slug · <verb-object>] Read and execute the frozen contract at $env:CLAUDE_PROMPTS_DIR\<THIS-CONTRACT-FILENAME>.md"
+dispatch <THIS-CONTRACT-FILENAME>.md
 ```
+
+**POINTER — the literal launch command for every substrate lives in ONE place:
+`protocols/PLAYBOOK.md` Ch8, "The dispatch table — the SOLE literal-command site".** This card
+used to carry a raw `claude --bg --model … --effort … --permission-mode …` line, and that line
+was one of the four rival forms the 2026-08-25 measurement identified as the root cause of ~30
+consecutive failed lane launches. It is removed rather than restated. Copy the row for your
+substrate out of that table; the raw form stays documented there once, labelled FALLBACK.
+
+The line above is the LOCAL shape, which is the shape this card's own arcs use. `dispatch` is
+**local-only** — it derives model, effort, worktree and board label from this contract, which is
+why the contract and the command cannot disagree, and it does not read a `Substrate` field or
+route. A cloud or codespace contract carries its substrate's own verb from the Ch8 table instead.
 
 **A dispatched contract opens with this block, and the block carries the literal line.** The
 operator runs `dispatch <this-file>.md`; the helper reads the `## Dispatch` heading and the fenced

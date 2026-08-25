@@ -101,6 +101,7 @@ live evidence the browser needs. Required rows, per HANDOFF_PROCESS §5:
 | Inherited claims | every inherited claim that asserts a **repo-verifiable fact** (count / sha / file state / "X landed"), verified CC-side. A supplement's *why* — intent, tensions, rejected options, off-repo context — has no live source by construction: it is advisory and is **never** failed for being unverifiable. |
 | P0a / P0b / P0c | the standing-topic legs (epic-theme preambles + `gen_task_tree --check` currency; ACCEPTED intakes; Purpose-vs-authority). **v6 bundles only** — `n/a` on a pre-v6 bundle. |
 | P3 destination | live `git branch --show-current` vs the boot header's `Destination` row branch field. **v6 bundles only** — `n/a` on a pre-v6 bundle. |
+| **Dispatch table** | `protocols/PLAYBOOK.md` Ch8 **"The dispatch table — the SOLE literal-command site"** is PRESENT, and its literal commands RESOLVE. Present: grep the heading live. Resolve: for each verb the table names (`dispatch`, `Dispatch-Local`, `Dispatch-Cloud`, `Dispatch-Codespace`), run `Get-Command <verb>` on this host and report which resolved. A seat that cannot see this table composes a launch line from memory, which is the defect that cost ~30 consecutive seats their lane (`STANDING_RULINGS.md` section V). **Degrade, do not fail, on a non-Windows or PowerShell-less host** — the verbs are a PowerShell module, so their absence there is a property of the host and not drift; report `degraded — Get-Command unavailable` and say so in the RESULT line. A MISSING heading is a FAIL on any host. |
 
 Shape:
 
@@ -109,6 +110,7 @@ Shape:
 HANDOFF-VERIFY — <bundle-slug> — <YYYY-MM-DD HH:MM>
 id    | source locator            | check                        | verdict | live evidence
 P0a   | BACKLOG.md [E#] preambles | quoted live + tree currency  | PASS    | <quote>; gen_task_tree --check ok
+DISP  | PLAYBOOK.md Ch8            | table present + verbs resolve| PASS    | heading @L<n>; dispatch/Dispatch-Local/Dispatch-Cloud/Dispatch-Codespace <k>/4 resolve
 ...
 RESULT: <n> PASS / <n> FAIL / <n> degraded [/ <n> n/a pre-v6] — ONBOARDING <CLEARED|BLOCKED>
 ```
