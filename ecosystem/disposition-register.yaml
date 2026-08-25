@@ -1176,3 +1176,39 @@ dispositions:
       disposition-ledger row with an evidence locator, at which point this entry decorates
       stale (ADR-75) and is removed.
     auto_clearable_by: "a docs/audits/ disposition-ledger row naming 2026-08-25-technical-dispatch-brief-to-architect.md with an evidence locator"
+
+  # ---- prose edges from the FROZEN, byte-identical contract copies (lane RL, 2026-08-25) ----
+  # `prompts/<date>/` carries operator contracts copied in byte-identical; that byte-identity is
+  # the whole value of the home, so the organ's own suggested fix -- adding a `reconciled_with:`
+  # frontmatter key -- is unavailable here by construction: it would edit the artifact whose
+  # unedited state is the evidence. These two are therefore dispositioned rather than declared,
+  # which is precisely the case the register exists for: a real, correctly-detected edge that
+  # cannot be closed by editing the file it fires against. The edges are real (both contracts
+  # reference `protocols/HANDOFF_BOOT.md` in their own prose) and nothing here claims otherwise.
+  # Keyed on the full source-to-target signature, so a DIFFERENT undeclared edge from the same
+  # file re-surfaces and blocks.
+
+
+  - id: warn-edge-lane-rl-registry-filings-v2
+    organ: undeclared_edges
+    match: "prompts/2026-08-25/LANE-RL-registry-filings-v2.md -> handoff-process"
+    ref: "operator path-approval 2026-08-25 (lane RL); prompts/<date> is a frozen-copy home"
+    reason: >-
+      FROZEN COPY -- unfixable by editing, and that is the point. The file is a byte-identical
+      copy of an operator contract; adding the `reconciled_with` frontmatter the organ suggests
+      would destroy the byte-identity the home exists to preserve. The edge itself is correctly
+      detected: the contract's prose does reference `protocols/HANDOFF_BOOT.md`. Review with the
+      `prompts` sanctioned-divergence entry in `.methodology.yaml` (review_date 2026-09-24) --
+      if the frozen-copy convention is retired or changed, this disposition is re-examined with it.
+
+  - id: warn-edge-lane-rl-registry-filings
+    organ: undeclared_edges
+    match: "prompts/2026-08-25/LANE-RL-registry-filings.md -> handoff-process"
+    ref: "operator path-approval 2026-08-25 (lane RL); prompts/<date> is a frozen-copy home"
+    reason: >-
+      FROZEN COPY -- unfixable by editing, and that is the point. The file is a byte-identical
+      copy of an operator contract; adding the `reconciled_with` frontmatter the organ suggests
+      would destroy the byte-identity the home exists to preserve. The edge itself is correctly
+      detected: the contract's prose does reference `protocols/HANDOFF_BOOT.md`. Review with the
+      `prompts` sanctioned-divergence entry in `.methodology.yaml` (review_date 2026-09-24) --
+      if the frozen-copy convention is retired or changed, this disposition is re-examined with it.
