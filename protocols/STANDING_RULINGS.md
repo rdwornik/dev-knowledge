@@ -2694,6 +2694,68 @@ member, `[#537]`, carries no ruling branch at all and was mis-cohorted.
   named consumer of the closures this packet banks.
 - **Expiry:** open-ended.
 
+## U. Batch ruling 2026-08-25 — candidate-register adjudication
+
+**The act.** The architect's ruling packet over the 37-row candidate register is landed in-repo at
+`docs/audits/2026-08-25-technical-register-ruling-packet.md`. That artifact — not this section —
+is the BINDING adjudication of all 37 rows: ten arcs (A code doctrine & FDD · B state-as-data ·
+C operator visibility · D substrate router · E gate integrity · F rulings as records ·
+G progressive disclosure & skills · H register & lifecycle hygiene · I model governance ·
+J distribution & portability), the REJECTs each carrying its reason (C06 on the row's own escape
+clause, C07's `pyreverse→Mermaid` half against the landed ADR-51 amendment, C16-as-written with
+V3's corrected reason, C34-as-written against ruling R3), the CONTRA adjudications
+(CONTRA-1/6/9/10/12 plus U-1/A-5), and four errors owned as the architect's own, E13–E16.
+This section POINTS; the artifact CARRIES. Resolve a row against the artifact, never against this
+summary.
+
+**Provenance landed in the same commit, so the citations resolve:**
+- `docs/audits/2026-08-25-technical-harvest-v-consolidation.md` — the five-lane verified register
+  report (37/37 coverage, verdicts verbatim) that is the packet's stated input.
+- `docs/audits/2026-08-25-technical-probe-providers-report.md` — the provider probe the ARC-I
+  rulings and the poisoned-name rule are measured against.
+- `docs/audits/2026-08-25-technical-probe-dsh-report.md` — the DSH probe consumed by C36.
+- `docs/audits/2026-08-24-technical-discharge-38-ruling-packet.md` — the DISCHARGE-38 packet that
+  is the provenance for the 37 register sections of T above, each of which cites it.
+
+**Three cross-cutting rules, restated one line each so they are citable without opening the artifact:**
+
+- **(a) The bare CLI name `agent` is poisoned** — it never appears in contracts, docs, or the
+  provider registry; on this host `agent.exe` is byte-identical to `grok.exe` (same SHA256, proof
+  in the probe report), so Cursor's own `agent --version` install check false-positives to another
+  vendor and PATH order would shadow a correct install.
+- **(b) Execution-substrate routing follows the ARC-D mandate** — batches shrink to 4–6 lanes,
+  GitHub compute is the DEFAULT substrate, provider-agnosticism is a ruled criterion alongside
+  speed, and lanes route by table rather than from memory; sequential-local as a default is
+  retired, local being reserved for operator-gated acts and vendor-CLI-on-disk work.
+- **(c) The simplification north-star is a one-command S-tier instantiation of the framework in a
+  foreign repo** — document dieting serves that test; it is not that test.
+
+**Row births are deliberately DEFERRED to wave 1.** This act births no `tasks/` row, edits no
+`BACKLOG.md` and touches no registry yaml. The ADOPT arcs spend the 29 closures DISCHARGE-38
+banked, and this section is the pointer the wave-1 seat starts from.
+
+**Operator direction (2026-08-25).** Documentation splits by audience: `PLAYBOOK.md` and
+`ESSENTIALS.md` are human-facing functional documentation of the methodology; code and generated
+surfaces are the machine layer. ARC-G (the doc diet) executes under this direction.
+
+**Defect noted (2026-08-25, measured this session, fail-loud fix owed by wave 1).**
+`uv run --locked python scripts/audit.py checks` raises `UnicodeEncodeError` under the default
+Windows console encoding (cp1252): `scripts/audit.py:4639` writes a `→` separator through
+`click.echo`. `PYTHONUTF8=1` is the measured workaround, under which the command lists all 46
+checks. The consequence is that the roster command `ecosystem/doc-counts.md` itself cites as the
+derivation of its "46 registered checks" claim does not run in the default shell, while the
+`audit_check_count` leg of `validate_doc_claims` reports `skipped — <ground truth unavailable>`
+and the run still prints `OK — no prose drift`: green by skip rather than a failure.
+**Measured precision, recorded because a defect note that misstates its own mechanism is worse
+than none:** the `skipped` status is not caused by the crash — it is the GAP-1 cycle-break
+design, where the standalone CLI passes `None` for the injected `len(ALL_CHECKS)` and only
+`audit health` / `audit run` supply it. The two compound rather than cause one another, and the
+net is the same: no surface fails when that number drifts. Latent, not active at the time of
+writing — `ecosystem/doc-counts.md:14` and live `len(audit.ALL_CHECKS)` both read 46. `audit.py
+health` is NOT affected (the `→` is confined to `cmd_checks`), so the pre-commit gate is intact.
+
+**Expiry:** open-ended.
+
 ## Editing note (read before adding an entry)
 
 This file sits inside the silent-rule ratchet corpus (`protocols/*.md`; detector
