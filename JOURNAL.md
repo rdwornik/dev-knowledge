@@ -117,7 +117,9 @@ the same defect class the ADR-85 amendment removed from the push leg.
 **Anchors:** `a6698ca6`, `ca555c0c`, `0d9fef86`, `65ce67c0`, `2252abc2`, `9b851a68`, `fa556048` -
 each the commit its own merge introduces, restated here on a record line because the predicate's
 `^\*{0,2}Anchors?\b` only credits SHAs on the line that starts the record, and in the entry above
-two of them sat on a continuation line and scored as "anchored by mention".
+two of them sat on a continuation line and scored as "anchored by mention". And `55e0b665` - the
+commit carrying this addendum, named in the follow-up commit on this branch so the merge that
+lands it is anchored too.
 
 ### 2026-08-25 (a) - CC (Opus 5, local seat session, branch `docs/land-research-2`): the two research reports land byte-identical, and the intake's decision criterion is answered by measurement rather than by lean
 
