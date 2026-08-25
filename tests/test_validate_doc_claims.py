@@ -11,6 +11,7 @@ owns HANDOFF version stamps; #140 owns cross-file fidelity / duplication / bloat
 """
 from __future__ import annotations
 
+import dataclasses
 import re
 import types
 from pathlib import Path
@@ -393,3 +394,102 @@ def test_registered_check_never_fails_on_live_repo():
     # WARN-only contract holds in production: the live hub run must never return FAIL.
     findings = aud.check_doc_claims(Path(aud._REPO_ROOT))
     assert findings[0].status in {"pass", "warn"}
+
+
+# --- green-by-skip: a claim that cannot compute its ground truth must FAIL ----
+# STANDING_RULINGS section U (2026-08-25). The defect: `audit_check_count` reported
+# `skipped — <ground truth unavailable>` while the CLI printed `OK — no prose drift`,
+# so the surface that exists to catch count drift read GREEN exactly when it was blind.
+# Third paid instance of the shape (pre-push degraded-allow, ADR-85 §A6;
+# block_commit_on_main silent-allow). The two legs below are its regression.
+#
+# Both legs SIMULATE drift rather than observe it: ecosystem/doc-counts.md and live
+# len(ALL_CHECKS) both read 46, so the defect is LATENT on the live repo and a test that
+# merely ran the real thing would pass with the bug present.
+
+
+def _claims_with_stub_pytest(deriver):
+    """`_CLAIMS` with claim 3's deriver swapped, via the supported `claims=` hook.
+
+    NOT monkeypatch.setattr(vdc, "_derive_pytest_collected", ...): the registry captured
+    the function object at import time, so rebinding the module attribute leaves the row
+    pointing at the real one, which then shells out to pytest against a tmp repo (slow,
+    and it returns 0 -> a mismatch that looks like a genuine failure).
+    """
+    return [dataclasses.replace(c, deriver=deriver) if c.name == "pytest_collected" else c
+            for c in vdc._CLAIMS]
+
+def test_unavailable_ground_truth_fails_and_is_not_a_skip(tmp_path):
+    # Leg 1 (the fix): injected count is None -> the claim cannot be computed at all.
+    # It must NOT come back 'skipped' (which callers render as green) and must carry a
+    # reason naming the paths that DO compute it.
+    repo = _init_doc_repo(tmp_path, checks=15, gates=8)
+    by = _by_name(vdc.reconcile(repo, audit_check_count=None, run_expensive=False))
+    assert by["audit_check_count"].status == "not-computed"
+    assert by["audit_check_count"].status != "skipped"     # the teeth: not a vacuous skip
+    assert by["audit_check_count"].status != "match"
+    reason = by["audit_check_count"].actual
+    assert "audit health" in reason and "audit run" in reason
+    # the OTHER claims still evaluate — one un-computable claim must not blind the rest
+    assert by["precommit_hook_count"].status == "match"
+    assert by["precommit_hook_roster"].status == "match"
+
+
+def test_cli_reports_fail_and_exits_nonzero_when_a_claim_is_unavailable(tmp_path, monkeypatch, capsys):
+    # Leg 2 (the reported defect verbatim): the CLI must not print `OK` over a claim it
+    # never checked, and must not exit 0. This is the exact string pairing section U
+    # measured — `skipped — <ground truth unavailable>` under `OK — no prose drift`.
+    repo = _init_doc_repo(tmp_path, checks=15, gates=8)
+    monkeypatch.setattr(vdc, "_REPO_ROOT", repo)
+    # keep it fast + hermetic: claim 3 would otherwise shell out to pytest against the
+    # tmp repo. Patched on the REGISTRY (see _claims_with_stub_pytest) because main()
+    # reads _CLAIMS, which holds the original function object.
+    monkeypatch.setattr(vdc, "_CLAIMS", _claims_with_stub_pytest(lambda root, n: 0))
+    rc = vdc.main()
+    out = capsys.readouterr().out
+    assert rc == 1                                        # was 0 unconditionally
+    assert "FAIL" in out
+    assert "OK" not in out                                # the green headline is gone
+    assert "audit_check_count" in out
+
+
+def test_simulated_drift_still_mismatches_when_the_count_is_available(tmp_path):
+    # Discriminator: the fail-closed leg must not swallow ordinary drift. With a count
+    # actually injected, a doc/live disagreement is still a MISMATCH, not 'unavailable'.
+    repo = _init_doc_repo(tmp_path, checks=46, gates=8)   # doc claims 46
+    by = _by_name(vdc.reconcile(repo, audit_check_count=47, run_expensive=False))
+    assert by["audit_check_count"].status == "mismatch"
+    assert (by["audit_check_count"].claimed, by["audit_check_count"].actual) == ("46", "47")
+
+
+def test_pytest_collected_keeps_its_documented_fail_soft_skip(tmp_path):
+    # The scope boundary, asserted so a later edit cannot widen fail-closed semantics by
+    # accident: claim 3's deriver SHELLS OUT, so None there means an infra hiccup, and
+    # flapping a WARN on a failed subprocess launch is the documented wrong answer.
+    # It stays 'skipped' while audit_check_count goes 'not-computed' in the SAME run.
+    #
+    # The deriver is swapped through the `claims=` extension point, not monkeypatched on
+    # the module: `_CLAIMS` captured the function OBJECT at import, so rebinding the
+    # module attribute does not reach the registry row (it silently ran the real pytest
+    # subprocess against the tmp repo and returned 0 -> mismatch).
+    repo = _init_doc_repo(tmp_path, checks=15, gates=8)
+    by = _by_name(vdc.reconcile(repo, audit_check_count=None, run_expensive=True,
+                                claims=_claims_with_stub_pytest(lambda root, n: None)))
+    assert by["pytest_collected"].status == "skipped"
+    assert by["audit_check_count"].status == "not-computed"
+
+
+def test_adapter_surfaces_unavailable_rather_than_passing(tmp_path, monkeypatch):
+    # The audit-adapter leg: an 'unavailable' claim must reach the operator as a named
+    # WARN, never be counted as a pass. WARN (not FAIL) is deliberate — check_doc_claims'
+    # never-block-the-commit-gate posture is a separate ruling, not widened here.
+    repo = _init_doc_repo(tmp_path, checks=15, gates=8)
+    monkeypatch.setattr(aud, "_REPO_ROOT", str(repo))
+    monkeypatch.setattr(aud, "_GATE_MODE", True)
+    monkeypatch.setattr(aud._vdc, "reconcile",
+                        lambda *a, **k: [vdc.ClaimResult("audit_check_count", "not-computed",
+                                                         "", "<NOT COMPUTED>", "d.md")])
+    findings = aud.check_doc_claims(repo)
+    assert findings[0].status == "warn"
+    assert "NOT CHECKED" in findings[0].evidence
+    assert "audit_check_count" in findings[0].evidence
