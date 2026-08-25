@@ -1130,3 +1130,49 @@ dispositions:
       a disposition-ledger row with an evidence locator, at which point this entry decorates
       stale (ADR-75) and is removed.
     auto_clearable_by: "a docs/audits/ disposition-ledger row naming 2026-08-25-technical-research-delivery-telemetry-attribution.md with an evidence locator (wave 1)"
+
+  # ---- lane RL's OWN landing cost (2026-08-25) — the same class, declared separately ----
+  # These three are NOT part of D3. D3 dispositioned the WARNs this window's EARLIER arcs
+  # produced; the three below are the ones THIS lane produced by landing the dispatch
+  # measurement corpus into `docs/audits/` under the operator's scope extension of
+  # 2026-08-25. They are kept in their own block rather than folded into the D3 list so the
+  # count above stays a true statement about D3, and so a reader can tell which act each
+  # entry is the cost of. Same shape, same exit: a disposition-ledger row clears the WARN and
+  # decorates the entry stale (ADR-75).
+
+
+  - id: warn-funnel-technical-dispatch-surface-measured
+    organ: funnel_coverage
+    match: "2026-08-25-technical-dispatch-surface-measured.md carries no disposition"
+    ref: "operator scope extension 2026-08-25 (lane RL)"
+    reason: >-
+      LANE RL'S OWN LANDING COST — expected. Landed byte-identical from the operator's prompts
+      dir by explicit scope extension; it is the 2083-line probed measurement report that is the sole sanctioned source for Ch8's literal commands. Suppresses the ship-gate WARN only. The
+      substantive ACTIONED/FILED/REJECTED/SUPERSEDED ruling is a later act and lands as a
+      disposition-ledger row with an evidence locator, at which point this entry decorates
+      stale (ADR-75) and is removed.
+    auto_clearable_by: "a docs/audits/ disposition-ledger row naming 2026-08-25-technical-dispatch-surface-measured.md with an evidence locator"
+
+  - id: warn-funnel-technical-dispatch-consolidation-plan
+    organ: funnel_coverage
+    match: "2026-08-25-technical-dispatch-consolidation-plan.md carries no disposition"
+    ref: "operator scope extension 2026-08-25 (lane RL)"
+    reason: >-
+      LANE RL'S OWN LANDING COST — expected. Landed byte-identical from the operator's prompts
+      dir by explicit scope extension; it is the systemic consolidation plan the Ch8 rewrite executes. Suppresses the ship-gate WARN only. The
+      substantive ACTIONED/FILED/REJECTED/SUPERSEDED ruling is a later act and lands as a
+      disposition-ledger row with an evidence locator, at which point this entry decorates
+      stale (ADR-75) and is removed.
+    auto_clearable_by: "a docs/audits/ disposition-ledger row naming 2026-08-25-technical-dispatch-consolidation-plan.md with an evidence locator"
+
+  - id: warn-funnel-technical-dispatch-brief-to-architect
+    organ: funnel_coverage
+    match: "2026-08-25-technical-dispatch-brief-to-architect.md carries no disposition"
+    ref: "operator scope extension 2026-08-25 (lane RL)"
+    reason: >-
+      LANE RL'S OWN LANDING COST — expected. Landed byte-identical from the operator's prompts
+      dir by explicit scope extension; it is the binding architect brief carrying the ratified rulings and the Q1-Q4 substrate decision table. Suppresses the ship-gate WARN only. The
+      substantive ACTIONED/FILED/REJECTED/SUPERSEDED ruling is a later act and lands as a
+      disposition-ledger row with an evidence locator, at which point this entry decorates
+      stale (ADR-75) and is removed.
+    auto_clearable_by: "a docs/audits/ disposition-ledger row naming 2026-08-25-technical-dispatch-brief-to-architect.md with an evidence locator"
