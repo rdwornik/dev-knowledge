@@ -168,10 +168,14 @@ so a later reader does not "fix" it.
 |---|---|---|---|---|
 | 33 | `routine_consumers` | `scripts/audit_checks/check_routine_consumers.py:117` | `unavailable` when BACKLOG.md exists but is unreadable | **FIXED** |
 | 38 | `fleet_audit_replication` | `scripts/audit.py:2693` | `unavailable` when `git rev-list` fails | **FIXED** |
-| 31 | `import_edges` | `scripts/audit.py:2139-2140` | silent `continue`, then **`pass`** | **DEFERRED — F-1** |
-| 10 | `no_sibling_orphans` | `scripts/audit.py:785` | `unavailable` on an unreadable parent dir | **DEFERRED — F-2** |
+| 31 | `import_edges` | `scripts/audit.py:2139-2141` | silent `continue`, then **`pass`** | **DEFERRED — F-1** |
+| 10 | `no_sibling_orphans` | `scripts/audit.py:786-787` | `unavailable` on an unreadable parent dir | **DEFERRED — F-2** |
 
-*(Line numbers are pre-fix positions, as measured during the sweep.)*
+**Locators.** The two FIXED rows cite their **pre-fix** positions (that is where the defect
+was). The two DEFERRED rows cite **current** positions on this branch, re-resolved after
+this lane's own edits shifted `audit.py` — a deferred finding is acted on by someone else,
+so its locator has to resolve. Stated because the governance-drift audit's own replacement
+locator was off by one, and the rule binds the auditor too.
 
 ---
 
@@ -200,7 +204,7 @@ Neither of these is; both need a shape change, not a status word.
 
 ### F-1 · `import_edges` — the most severe instance in the registry
 
-`scripts/audit.py:2139-2140`:
+`scripts/audit.py:2139-2141`:
 
 ```python
 try:
@@ -227,20 +231,20 @@ names, and refuse `pass` while the list is non-empty.
 
 ### F-2 · `no_sibling_orphans` — one of its two `unavailable` exits
 
-`scripts/audit.py:785` returns `unavailable` when the parent directory is unreadable. That is
-a failed computation (the siblings exist; they could not be listed) and it ships green.
+`scripts/audit.py:786-787` returns `unavailable` when the parent directory is unreadable. That
+is a failed computation (the siblings exist; they could not be listed) and it ships green.
 
-Its *other* exit, `:777` (`git unavailable or not a repo`), is a genuine precondition and is
+Its *other* exit, `:778-779` (`git unavailable or not a repo`), is a genuine precondition and is
 correctly inapplicable — but it spells that **`unavailable`** where the adjacent
 `stale_worktrees` spells the **identical** condition **`n/a`**. Both render as "N/A", so
 nothing is mis-gated today, but the two words mean different things in this codebase
 (`audit.py:3920`: *"`unavailable` = path-absent / couldn't run; `n/a` = ran but not
-applicable here"*). Splitting `:785` → `fail` and `:777` → `n/a` is the coherent fix; two
+applicable here"*). Splitting `:786` → `fail` and `:778` → `n/a` is the coherent fix; two
 decisions, not a one-liner.
 
 ### C-1 · caveat, not a violation · `hooks_armed`
 
-`audit.py:1106` maps *any* non-zero `git rev-parse --git-path hooks` to
+`audit.py:1109` maps *any* non-zero `git rev-parse --git-path hooks` to
 `n/a "not a standard git checkout"`, conflating "this is not a git repo" (inapplicable) with
 "git failed" (uncomputable). Low severity — in the hub the command does not fail — but it is
 the same conflation F-2 names.
@@ -377,7 +381,54 @@ until regenerated.
 
 ## 7. terra review
 
-See §8.
+`codex exec` (gpt-5.6-sol, read-only sandbox) over the lane's full diff `436e7375..HEAD`,
+with the status semantics of §0 supplied as context so the reviewer could judge "ships
+green" correctly.
+
+**Severity tally: 0 CRITICAL · 1 HIGH · 0 MEDIUM · 0 LOW.** Counted from the artifact body,
+not a console tally line.
+
+### HIGH — ACCEPTED and FIXED · `_write_error_marker` still created a `PROPOSALS-*` husk
+
+> *"When no same-day proposal exists, `_write_error_marker()` writes the error marker to
+> `PROPOSALS-<date>.md` … `review_closures.latest_proposals()` selects the newest
+> `PROPOSALS-*`, so a failed first run today can shadow yesterday's genuine pending
+> proposals with an empty error marker."*
+
+**Verified before accepting** — `scripts/review_closures.py:198-200` is exactly
+`sorted(logs_dir.glob("PROPOSALS-*.md"))` → `files[-1]`. The finding stands.
+
+The step-2 fix protected only a **same-day** proposals file, so it closed the
+overwrite hole and left the shadowing one open. Three defects were actually live, and the
+third is worse than the one terra named — it is this module's **own documented contract**,
+`scripts/propose_closures.py:19-21`:
+
+> *"ALWAYS writes `logs/PROPOSALS-YYYY-MM-DD.md` … The file's presence proves the detector
+> ran; its **ABSENCE is the loud failure signal**."*
+
+A husk written at that path makes the file **present while the detector did not run** —
+the precise inversion of the signal the module promises. Terra found the shadowing; the
+signal inversion surfaced when its fix direction was checked against the module docstring,
+and it is the stronger reason.
+
+**Fix:** the marker no longer occupies the `PROPOSALS-*` namespace at all — every failure
+writes `DETECTOR-ERROR-<date>.md`. This closes all three at once and *restores* the
+absence-signal: on failure, today's `PROPOSALS` file is absent (so the signal fires) and a
+named diagnosis sits beside it. Applied to both copies. Tests rewritten to assert each hole
+separately, including a dedicated regression for the yesterday-shadowing case terra named.
+
+### Also corrected in the same pass (not terra findings)
+
+* **Two deferred-finding locators were off**, because this lane's own `audit.py` edits
+  shifted the file after the sweep measured it: F-1 `2139-2140` → **`2139-2141`**, F-2
+  `:785` / `:777` → **`:786-787`** / **`:778-779`**, C-1 `:1106` → **`:1109`**. Re-resolved
+  against the branch. A deferred finding is acted on by someone else, so its locator has to
+  resolve — and the governance-drift audit's own replacement locator was itself off by one,
+  which is precisely why this was re-checked rather than trusted.
+* **The `len(ALL_CHECKS) == 46` tripwire was removed** — see J-8.
+
+**Not executed by terra:** the checkout was read-only, so terra ran no tests. Every claim it
+made was re-verified against the source here before being accepted.
 
 ## 8. Lane close
 

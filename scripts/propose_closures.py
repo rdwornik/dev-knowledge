@@ -420,15 +420,30 @@ def _describe_precondition_failure() -> str:
 
 
 def _write_error_marker(reason: str) -> Path:
-    """Record a detector failure WITHOUT destroying a real same-day proposals file.
+    """Record a detector failure at `DETECTOR-ERROR-<date>.md` -- NEVER as a PROPOSALS file.
 
-    `_write_artifact` overwrites `PROPOSALS-<date>.md` unconditionally, so the error path
-    used to clobber the morning's genuine proposals with a husk -- losing the very output
-    the closure loop funds births from, at exactly the moment the detector was known to be
-    broken. A real artifact is therefore never overwritten; the marker diverts to a
-    sibling name (UPPERCASE-KEBAB stem per the logs/ naming ruling 2026-07-22, and
-    deliberately NOT matching the `PROPOSALS-*.md` glob, so a diverted marker cannot be
-    parsed back as a proposals file and reset the commit window to a cold start).
+    The marker does not occupy the `PROPOSALS-*` namespace AT ALL. Writing it there (what
+    the original error path did unconditionally) breaks this module's own contract in three
+    ways -- the first two found by terra review 2026-08-25, the third stated in the module
+    docstring above:
+
+      1. It SHADOWS real pending proposals. `review_closures.latest_proposals()` is
+         `sorted(logs_dir.glob("PROPOSALS-*.md"))[-1]`, so a failed run TODAY hides
+         YESTERDAY's genuine unreviewed proposals behind an empty marker. Preserving only
+         the same-DAY file (this lane's first attempt) does not reach that.
+      2. It CORRUPTS the window. `resolve_window` globs the same pattern, and a file
+         carrying no `head_commit:` collapses the baseline to a cold start -- whole-history
+         rescan with WEAK suppressed.
+      3. It INVERTS the loud-failure signal. This module promises "ALWAYS writes
+         logs/PROPOSALS-YYYY-MM-DD.md ... its ABSENCE is the loud failure signal". A husk
+         at that path makes the file PRESENT while the detector did not run, which is
+         precisely backwards. Keeping the namespace clean RESTORES the signal: on failure
+         today's PROPOSALS file is absent (so the signal fires) and a named diagnosis sits
+         beside it.
+
+    UPPERCASE-KEBAB stem per the logs/ naming ruling 2026-07-22, deliberately outside the
+    `PROPOSALS-*.md` glob. Rewriting the same path on a second failure is intended: two
+    broken runs in one day leave one marker, not an accumulating pile.
     """
     _LOGS_DIR.mkdir(exist_ok=True)
     body = (f"{_ERROR_HEADING} ({date.today().isoformat()})\n\n"
@@ -436,18 +451,9 @@ def _write_error_marker(reason: str) -> Path:
             f"BACKLOG was not touched, and NO closure proposals were produced -- this\n"
             f"file is the absence of a result, not a result. Investigate\n"
             f"propose_closures.py.\n")
-    primary = _LOGS_DIR / f"PROPOSALS-{date.today().isoformat()}.md"
-    if primary.exists():
-        try:
-            existing = primary.read_text(encoding="utf-8", errors="replace")
-        except OSError:
-            existing = ""
-        if not existing.lstrip().startswith(_ERROR_HEADING):
-            out = _LOGS_DIR / f"DETECTOR-ERROR-{date.today().isoformat()}.md"
-            out.write_text(body, encoding="utf-8", newline="\n")
-            return out
-    primary.write_text(body, encoding="utf-8", newline="\n")
-    return primary
+    out = _LOGS_DIR / f"DETECTOR-ERROR-{date.today().isoformat()}.md"
+    out.write_text(body, encoding="utf-8", newline="\n")
+    return out
 
 
 def main() -> int:

@@ -86,17 +86,13 @@ def test_no_registered_check_reports_pass_from_an_error_handler():
     assert not offenders, f"check(s) report `pass` from an except handler: {offenders}"
 
 
-def test_registry_size_is_the_swept_size():
-    """The sweep covered a registry of this size; a change means a check went unswept.
-
-    Not a doc claim (that is `audit_check_count`'s job) -- this pins the SWEEP's coverage.
-    A new check is fine; it just has to be classified against the rule before this number
-    moves, which is the whole point of the tripwire.
-    """
-    assert len(aud.ALL_CHECKS) == 46, (
-        "ALL_CHECKS changed since the 2026-08-25 green-by-skip sweep -- classify the new "
-        "check against 'cannot compute its ground truth => FAIL, never skip' and update "
-        "docs/audits/2026-08-25-green-by-skip-sweep.md before moving this number")
+# DELIBERATELY NOT ADDED: a `len(ALL_CHECKS) == 46` tripwire for the sweep's coverage.
+# Five such pins already exist (test_audit.py:2326, :2342; test_doc_code_edge.py:248, :715;
+# test_writer_integrity.py:185) plus an order pin in test_audit_parallel.py, so adding a
+# sixth would cost every future check another edit site while buying nothing the existing
+# five do not already force. The substantive guard is behavioural, not numeric: the AST
+# test above fails for ANY newly added check that reports `pass` from an error handler,
+# with no roster to keep current.
 
 
 @pytest.mark.live_repo

@@ -62,6 +62,10 @@ def _today_proposals(root: Path) -> Path:
     return root / "logs" / f"PROPOSALS-{date.today().isoformat()}.md"
 
 
+def _today_marker(root: Path) -> Path:
+    return root / "logs" / f"DETECTOR-ERROR-{date.today().isoformat()}.md"
+
+
 # --- leg 1: the failure is named, not an anonymous errno --------------------
 
 def test_missing_backlog_is_reported_by_name_not_as_a_bare_errno(copy, tmp_path, capsys):
@@ -75,7 +79,7 @@ def test_missing_backlog_is_reported_by_name_not_as_a_bare_errno(copy, tmp_path,
     # the defect: repr(FileNotFoundError) leaked as the whole diagnosis
     assert "FileNotFoundError(2," not in err
 
-    marker = _today_proposals(tmp_path)
+    marker = _today_marker(tmp_path)
     assert marker.exists()
     body = marker.read_text(encoding="utf-8")
     assert "DETECTOR ERROR" in body
@@ -87,12 +91,57 @@ def test_detector_error_marker_is_not_mistakable_for_a_result(copy, tmp_path):
     # The husk read "BACKLOG was not touched" and stopped, which reads like a clean run
     # that found nothing. It must say the run did not happen at all.
     copy.main()
-    body = _today_proposals(tmp_path).read_text(encoding="utf-8")
+    body = _today_marker(tmp_path).read_text(encoding="utf-8")
     assert "did not run" in body
     assert "is the absence of a result, not a result" in body
 
 
-# --- leg 2: a real proposals file is never destroyed ------------------------
+# --- leg 2: the marker NEVER enters the PROPOSALS namespace ------------------
+# Tightened after terra review 2026-08-25. The first fix only protected a same-DAY
+# proposals file, which left two holes and inverted a third property; all three are
+# asserted below.
+
+def test_failure_never_creates_a_proposals_file_at_all(copy, tmp_path):
+    """Hole 3 (the module's own contract): ABSENCE of today's PROPOSALS file IS the signal.
+
+    propose_closures promises "ALWAYS writes logs/PROPOSALS-YYYY-MM-DD.md ... its ABSENCE
+    is the loud failure signal". Writing a husk there makes the file PRESENT while the
+    detector did not run -- precisely backwards. So a failed run must leave the PROPOSALS
+    namespace untouched and put its diagnosis somewhere else.
+    """
+    logs = tmp_path / "logs"
+    logs.mkdir()
+
+    copy.main()
+
+    assert list(logs.glob("PROPOSALS-*.md")) == [], (
+        "a failed run must not fabricate a PROPOSALS artifact -- absence is the signal")
+    assert _today_marker(tmp_path).exists()
+
+
+def test_failure_does_not_shadow_an_earlier_days_pending_proposals(copy, tmp_path):
+    """Hole 1 (terra HIGH): the husk hid YESTERDAY's unreviewed proposals.
+
+    `review_closures.latest_proposals()` is `sorted(glob("PROPOSALS-*.md"))[-1]`, so a
+    marker written under today's date sorts last and becomes what the operator is shown --
+    an empty error file in place of real pending work. Protecting only the same-day file
+    does not reach this, which is why it is asserted on its own.
+    """
+    logs = tmp_path / "logs"
+    logs.mkdir()
+    yesterday = logs / "PROPOSALS-2026-08-24.md"
+    yesterday_body = ("# Closure proposals (2026-08-24)\n\nhead_commit: abc1234\n\n"
+                      "- [ ] **#5** - a real, still-unreviewed proposal\n")
+    yesterday.write_text(yesterday_body, encoding="utf-8")
+
+    copy.main()
+
+    assert yesterday.read_text(encoding="utf-8") == yesterday_body        # untouched
+    newest = sorted(logs.glob("PROPOSALS-*.md"))[-1]
+    assert newest == yesterday, (
+        "the failure marker outsorted a real proposals file -- latest_proposals() would "
+        "surface the husk instead of the pending work")
+
 
 def test_error_marker_never_overwrites_a_real_proposals_file(copy, tmp_path):
     # A good morning run wrote real proposals; the detector then breaks. The genuine
@@ -107,15 +156,14 @@ def test_error_marker_never_overwrites_a_real_proposals_file(copy, tmp_path):
     copy.main()
 
     assert real.read_text(encoding="utf-8") == real_body      # untouched
-    diverted = logs / f"DETECTOR-ERROR-{date.today().isoformat()}.md"
-    assert diverted.exists(), "the failure must still be recorded somewhere"
-    assert "DETECTOR ERROR" in diverted.read_text(encoding="utf-8")
+    assert _today_marker(tmp_path).exists(), "the failure must still be recorded"
+    assert "DETECTOR ERROR" in _today_marker(tmp_path).read_text(encoding="utf-8")
 
 
-def test_diverted_marker_cannot_be_parsed_back_as_a_proposals_file(copy, tmp_path):
-    # Why the diverted name does not match `PROPOSALS-*.md`: resolve_window globs that
-    # pattern, and a file carrying no `head_commit:` collapses the window to a cold start
-    # (whole-history rescan, WEAK suppressed). A marker must not silently do that.
+def test_marker_cannot_be_parsed_back_as_a_proposals_file(copy, tmp_path):
+    """Hole 2: `resolve_window` globs `PROPOSALS-*.md`, and a file carrying no
+    `head_commit:` collapses the baseline to a cold start (whole-history rescan, WEAK
+    suppressed). A marker must not silently do that to the commit window."""
     logs = tmp_path / "logs"
     logs.mkdir()
     _today_proposals(tmp_path).write_text(
@@ -127,17 +175,15 @@ def test_diverted_marker_cannot_be_parsed_back_as_a_proposals_file(copy, tmp_pat
     assert globbed == [f"PROPOSALS-{date.today().isoformat()}.md"]
 
 
-def test_a_previous_husk_is_replaced_rather_than_accumulated(copy, tmp_path):
-    # The diversion must not fire against a PRIOR husk -- two broken runs in one day
-    # should leave one marker, not a husk plus a sibling.
+def test_repeated_failures_leave_one_marker(copy, tmp_path):
+    # Two broken runs in one day leave ONE marker, not an accumulating pile.
     logs = tmp_path / "logs"
     logs.mkdir()
     copy.main()
     copy.main()
 
-    assert not (logs / f"DETECTOR-ERROR-{date.today().isoformat()}.md").exists()
     assert sorted(p.name for p in logs.iterdir()) == [
-        f"PROPOSALS-{date.today().isoformat()}.md"]
+        f"DETECTOR-ERROR-{date.today().isoformat()}.md"]
 
 
 # --- the precondition helper, directly -------------------------------------
