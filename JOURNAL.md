@@ -19,6 +19,53 @@
 
 ---
 
+### 2026-08-25 (b) - CC (Opus 5, local seat session, primary checkout, branch `docs/v-integrate-anchor`): the five verification lanes are integrated, and the anchor is written FIRST because the predicate makes a merge queue deadlock on itself
+
+**Did:** executing `V-INTEGRATE.md` (the merge contract only; the `PROBE-DSH` section below it
+runs elsewhere and was not touched). Step 0 found the tree clean except the operator-approved
+`.dev-knowledge.code-workspace` change - the six-root version naming `~/.claude`, `~/.codex`,
+`~/.gemini`, `~/.grok`, `~/.cursor`. The diff was read before committing and matches that
+description exactly (four added roots, nothing else). It could NOT be committed the way the
+contract phrases it - "own commit" on `main` - because `block-commit-on-main` ([#527]) refuses a
+direct non-merge commit there, so it rode its own branch `chore/workspace-provider-roots` and
+merged `--no-ff`, which is the same act the repo's core-invariant #5 already required.
+
+**The deadlock, recorded because it cost the first attempt:** the workspace merge `fac96321`
+became a first-parent spine entry with no JOURNAL anchor, and `journal_spine_anchor` is a
+**pre-commit** leg of `audit-health`, not only a push-time backstop. So the very next commit -
+the V1 merge's conflict resolution - was REFUSED, and every subsequent one would have been. A
+merge cannot name its own hash, so the queue cannot unblock itself from inside. This entry is
+therefore written before the merges it describes, on the 2026-08-24 batch precedent (entry
+`2026-08-24 (c)`, which anchored mid-queue and closed with an addendum). The five lane tip SHAs
+are named here up front - they already exist on `origin`, so naming them is a fact, not a
+forecast - and the merge SHAs land in this entry's addendum once they are real.
+
+**Sentinels, verified before any merge:** all five lane tips carry their `V*-FINAL` sentinel as
+the last line of the tip commit body - `ca555c0c` (V1), `0d9fef86` (V2), `65ce67c0` (V3),
+`2252abc2` (V4), `9b851a68` (V5). The contract's V4 SHA reads `2252acb2`; the live tip is
+`2252abc2` - a transposition in the report the contract itself warned about ("the sha here is
+from a report and may be mistyped; sentinel governs"). The sentinel governed; V4 was NOT skipped.
+Scope was checked the same way rather than trusted: `git diff --stat main...origin/<branch>` shows
+each lane touching only its own `docs/audits/2026-08-24-*.md` artifact plus, for four of the five,
+`docs/audits/README.md`. V3 regenerated no index, exactly as the contract predicted.
+
+**Changes:** `JOURNAL.md`, and `.dev-knowledge.code-workspace` on its own merged commit. The five
+lane merges, the index regeneration and the branch deletions ride their own commits.
+
+**Abandoned:** nothing. Explicitly NOT done, per the contract's own stop-list: no ruling of
+register rows, no edits to the five lane artifacts, no row births, no `BACKLOG.md` edits, no sixth
+merge, and no push - the push to `main` is the operator's act.
+
+**Next:** the five merges sentinel-first and serial, index conflicts resolved by REGENERATION
+rather than hunk-picking, one `gen_audit_index.py --write` at the end, then the branch deletions
+each behind an ancestor-of-`main` proof, then the Step 4 verification set.
+
+**Anchors:** `a6698ca6` - the workspace commit, which merge `fac96321` introduces. The five lane
+tips `ca555c0c`, `0d9fef86`, `65ce67c0`, `2252abc2` and `9b851a68`, each the commit its own merge
+introduces. And `fa556048` - this entry's own first commit, named here in a follow-up commit on this branch so
+that the merge which introduces it is anchored too - an entry cannot name the commit that carries
+it, which is the single-commit-branch trap the predicate makes unavoidable.
+
 ### 2026-08-25 (a) - CC (Opus 5, local seat session, branch `docs/land-research-2`): the two research reports land byte-identical, and the intake's decision criterion is answered by measurement rather than by lean
 
 **Did:** executed `LAND-RESEARCH-2.md`. Step 0 refused on its first run and that refusal is the
