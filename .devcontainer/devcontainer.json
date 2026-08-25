@@ -44,10 +44,51 @@
   // not a substrate, so this belongs with the four legs rather than in the customizations block.
   // Costs nothing off-Codespaces: `devcontainer up` on a VPS installs the same sshd and the
   // identical-script clause is preserved.
+  // THE RUNTIME LEG — the container answered this one in its own words. A codespace built from
+  // the file as it stood came up Available, reachable, fully provisioned, and then refused the
+  // only thing it exists to do: the `Dispatch-Codespace` runner guard exited 91 with
+  //   {"error":"claude is not installed in this devcontainer"}
+  // A substrate that provisions perfectly and carries no agent is not a lane substrate, so the
+  // runtime belongs beside sshd in the four-legs half of this file rather than in
+  // `customizations` — the same reasoning the reachability leg above already carries.
+  //
+  // WHY THE FEATURE AND NOT A `RUN` LINE. Derived from the current official doc, not chosen:
+  // code.claude.com/docs/en/devcontainer §"Add Claude Code to your dev container" states
+  // "Claude Code installs into any dev container through the Claude Code Dev Container Feature"
+  // and prints exactly the `features` entry below. The Dockerfile `RUN`/npm path IS documented,
+  // but only as the alternative for pinning the CLI ("To pin a specific Claude Code version for
+  // reproducible builds, install it from your Dockerfile with
+  // `npm install -g @anthropic-ai/claude-code@X.Y.Z` instead of using the feature, and set
+  // `DISABLE_AUTOUPDATER`"). The doc's devcontainer recommendation is the feature; this file
+  // takes the recommended path.
+  //
+  // WHAT THE `:1.0` TAG ACTUALLY PINS, stated because it is easy to over-read. The doc: "The
+  // version tag at the end, such as `:1.0`, pins the feature's install script, not the Claude
+  // Code release. The feature installs the latest Claude Code, and Claude Code auto-updates
+  // itself inside the container by default." So this pins the INSTALLER (live feature version
+  // 1.0.5 at the time of writing) and deliberately floats the CLI. That is the pinnable unit the
+  // doc offers on this path, and floating the CLI is right here for the same reason the base
+  // image is a floor and not a pin: a disposable container gets the agent the operator's
+  // subscription is entitled to, and no version token enters this file that does not have to.
+  // Pinning the CLI is a one-way door away from the feature — it costs the Dockerfile npm path
+  // plus `DISABLE_AUTOUPDATER` — and is taken only if a measured run needs reproducibility.
+  //
+  // NODE: NOT DECLARED, and the omission is derived rather than lucky. The doc says "The Claude
+  // Code feature installs Node.js itself when the base image doesn't provide it", and names the
+  // node feature only as the repair for a specific measured failure ("If that install fails and
+  // the build stops with `Failed to install Node.js and npm`, add
+  // `"ghcr.io/devcontainers/features/node:1": {}`"). This base image DOES provide it — the
+  // evidence is in `Dockerfile`'s own measurement, which exists solely because the image ships a
+  // yarn apt source, and yarn arrives with that image's Node. If a build ever prints that exact
+  // string, the doc's repair is the fix; declaring it pre-emptively would be inventing a
+  // dependency the doc conditions on a failure that has not happened.
+  //
+  // PORTABILITY is preserved, as with sshd: `devcontainer up` on a VPS installs the same feature.
   "features": {
     "ghcr.io/devcontainers/features/sshd:1": {
       "version": "latest"
-    }
+    },
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1.0": {}
   },
 
   // THE ENV GATE ([#554] leg 4) IS NOT DECLARED HERE, AND THE ABSENCE IS THE FIX.
