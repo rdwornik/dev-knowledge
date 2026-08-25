@@ -97,3 +97,48 @@ amendment or a bypass — and the repo forbids the bypass.
 ## Status
 
 READY — filed by the integrator at the 2026-08-24 batch close. Fork named, no row banked.
+
+## Evidence note — 2026-08-25: the required provider-consumption matrix has landed
+
+The measurement the C01 decision criterion was made conditional on is no longer owed. The
+R-L report landed byte-identical this session at
+`docs/audits/2026-08-25-technical-research-agents-md-standard.md` ("AGENTS.md and Native
+Instruction-File Support Across AI Coding Agents: An ADR Input Report", compiled 2026-08-25),
+and it carries the per-tool support matrix the criterion requires — one row per tool giving the
+instruction file(s) read, a native-AGENTS.md yes/no, the discovery/precedence rule, and a dated
+source.
+
+**The criterion is MET per that report.** C01 set it as *"≥2 admitted providers natively
+consume `AGENTS.md` and not `CLAUDE.md`"*. Read strictly against this fleet's six admitted
+providers, the matrix gives: **OpenAI Codex** — AGENTS.md natively, CLAUDE.md not at all; and
+**Cursor** — AGENTS.md natively (alongside `.cursor/rules/*.mdc`), CLAUDE.md not at all. That is
+the two, with no configuration step. **Gemini CLI** is a third on a one-line
+`context.fileName` setting (its default is `GEMINI.md`, never `CLAUDE.md`). The report's own
+TL;DR reaches the same verdict on a wider roster. Recorded for completeness, because it cuts the
+other way and the count should not be inflated: **Grok Build** reads the AGENTS.md family *and*
+auto-reads `CLAUDE.md`/`.claude/rules/`, so it does not satisfy the "and not CLAUDE.md" leg —
+nor do Copilot, Zed, opencode or Amp, each of which reads both. **Claude Code** is the lone
+major holdout in the other direction: `CLAUDE.md` at runtime, no AGENTS.md (its `/init` can
+*read* AGENTS.md to *generate* CLAUDE.md, which is not runtime consumption).
+
+**Corroborating prior art:** `docs/archive/2026-08-09-research-multi-provider-portability-wf-d68b2f7f.md`
+("Multi-Provider Portability for AI Coding Agents on One Repository", 2026-08-09) carries an
+independent, 16-days-earlier matrix — `| Tool | Reads AGENTS.md natively? | File(s) it reads /
+precedence | Nested/subdir? |` — covering Codex, Gemini CLI, Copilot, Cursor, Claude Code, Aider
+and Windsurf. It reaches the same structural finding from a separate research run: AGENTS.md
+ports natively across the fleet and Claude Code is the exception. Two independent measurements,
+16 days apart, agreeing.
+
+**One honest gap, flagged not papered over.** The landed report's **DeepSeek** row records *"no
+official first-party coding CLI/instruction convention"*. The operator correction of 2026-08-25
+(verified at deepseek.com/harness, carried in the register ruling packet) supersedes that:
+DeepSeek now ships DSH, a first-party developer-preview harness. DeepSeek's AGENTS.md
+consumption is therefore **unmeasured**, exactly as the packet anticipated ("R-L did not cover
+DSH"). This does not disturb the criterion — Codex and Cursor already satisfy it without
+DeepSeek — but the DSH probe remains owed.
+
+**What this note does NOT do.** It lands evidence only. The ADR act the criterion points toward
+— supersede ADR-53 Decision 2 with C01's thin-file spec, and amend the ADR-101 hermetization
+class in the same act so a root `AGENTS.md` is admissible — is **next window's ruling, not this
+session's**. Status stays `READY`; no row is banked here, and the ADR-53-vs-R-1 precedence
+question this intake exists to force is untouched and still open.

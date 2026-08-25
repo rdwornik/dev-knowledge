@@ -19,6 +19,53 @@
 
 ---
 
+### 2026-08-25 (a) - CC (Opus 5, local seat session, branch `docs/land-research-2`): the two research reports land byte-identical, and the intake's decision criterion is answered by measurement rather than by lean
+
+**Did:** executed `LAND-RESEARCH-2.md`. Step 0 refused on its first run and that refusal is the
+entry's first fact: the brief identifies its two inputs by CONTENT, not filename, and on the first
+pass `"Assisted-by:"` appeared in exactly one file on disk - the brief itself. Every plausible
+candidate in `Downloads/` (`wf-d68b2f7f`, `wf-50111a08`, `wf-02c940ef`) was already landed under
+`docs/archive/`, so "land the reports" would have meant re-landing prior art under a new date.
+Stopped and listed what was found instead of substituting the nearest match. The operator supplied
+both reports; the re-run found them unambiguous on the brief's own markers and landed them.
+
+**Result:** anchor `352685b7`. Two reports landed byte-identical into `docs/audits/` -
+sha256-verified against the `Downloads/` originals, both ends printed, not asserted:
+`9c56a75e…` (R-L, AGENTS.md native instruction-file support) and `f371d4fb…` (R-J, git-native
+delivery telemetry + `Assisted-by:` attribution). Home and names derive the same way the candidate
+register did on 2026-08-24 (entry `(j)`): ADR-101 technical class, `<date>-technical-<slug>`.
+`docs/audits/README.md` regenerated 709 -> 711 (staged BEFORE regenerating - the generator reads
+TRACKED files only). Every pre-commit gate Passed, including the ADR-101 hermetization refusal
+gate on the two new names; `--no-verify` was never used.
+
+**The criterion, answered:** intake #42 gains a dated evidence note. C01 made the AGENTS.md fork
+conditional on a measured matrix - *">=2 admitted providers natively consume `AGENTS.md` and not
+`CLAUDE.md`"* - and the landed R-L report carries it. Read strictly against this fleet's six
+admitted providers it is **MET**: Codex and Cursor both read AGENTS.md natively and CLAUDE.md not
+at all, with Gemini CLI a third on a one-line `context.fileName` setting. The count was
+deliberately NOT inflated to the report's wider roster: Grok, Copilot, Zed, opencode and Amp all
+read BOTH files, so none of them satisfies the "and not CLAUDE.md" leg, and the note says so. The
+2026-08-09 archive report `wf-d68b2f7f` is cited as corroborating prior art - an independent matrix
+reaching the same structural finding 16 days earlier. One gap is flagged rather than papered over:
+the report's DeepSeek row records "no first-party convention", which the 2026-08-25 DSH correction
+supersedes, so DeepSeek's consumption stays **unmeasured** - exactly the gap the ruling packet
+predicted ("R-L did not cover DSH").
+
+**Changes:** `docs/audits/2026-08-25-technical-research-agents-md-standard.md` (new),
+`docs/audits/2026-08-25-technical-research-delivery-telemetry-attribution.md` (new),
+`docs/audits/README.md` (regenerated), `docs/intake/2026-08-24-tech-agents-md-admission-vs-adr53.md`
+(evidence note appended; frontmatter `status: READY` untouched).
+
+**Abandoned:** nothing this session, but two things were declined on the brief's own stop-conditions.
+No rows filed and `BACKLOG.md` not touched - row births are next window's wave-1 act, so
+`window: 0 closed / 0 born / net 0`. No ADR drafted: the act the criterion points toward (supersede
+ADR-53 D2 + amend the ADR-101 hermetization class in ONE act) is next window's ruling, and this
+session lands evidence only. The ADR-53-vs-R-1 precedence question #42 exists to force is untouched.
+
+**Next:** the operator pushes; branch `docs/land-research-2` deletes at that push under MERGE IS
+ATOMIC. Next window: the #42 ruling, R-J's consumption into ARC-C v2 (`Assisted-by:`/`Model:`
+trailers + a `commit-msg` hook), and the bounded DSH probe that closes the one measured gap.
+
 ### 2026-08-24 (k) - CC (Opus 5, local seat session, branch `docs/discharge-38-c1-closures`): the ruling branch 38 rows were waiting on gets exercised, and the cohort turns out not to be one cohort
 
 **Did:** executed `DISCHARGE-38.md` end to end - Phase 1 drafted a ruling for each of the 38
