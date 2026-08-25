@@ -19,6 +19,53 @@
 
 ---
 
+### 2026-08-25 (c) - CC (Opus 5, local seat session, primary checkout, branch `docs/land-register-ruling-packet`): the ruling packet lands with the four artifacts its citations need, and the register section points rather than paraphrases
+
+**Did:** executed `LAND-PACKET.md` with the operator's three additions. Step 0 verified a clean
+tree, `main == origin/main` at `eab4a446`, a primary-only worktree, and the final-version marker
+("PROBE-PROVIDERS consumption") present in the input packet. Landed FIVE artifacts
+byte-identical rather than the contract's two - the operator added `PROBE-DSH-REPORT.md`,
+`VERIFIED-REGISTER-REPORT.md` (the five-lane verified register, landed as
+`2026-08-25-technical-harvest-v-consolidation.md`) and `DISCHARGE-38-RULING-PACKET.md`, the last
+carrying a 2026-08-24 date because it is the provenance for the 37 register sections of
+`STANDING_RULINGS.md` section T that cite it. Appended ONE section, "U. Batch ruling 2026-08-25 -
+candidate-register adjudication", carrying the operator's documentation-splits-by-audience
+direction and one dated defect note.
+
+**Result:** `7b4e960d` - 7 files, +1406/-1, every gate passed, no `--no-verify`. Byte-identity is
+proven rather than asserted: source sha256 == staged blob sha256 for all five. That check earned
+its place - `.gitattributes` pins `* text=auto eol=lf`, so a CRLF-terminated source would have
+been silently normalized and the landed artifact would NOT have matched what the architect wrote.
+A first `grep -c` pass suggested CRLF throughout and was a shell-quoting artifact; the byte-level
+count settled it at zero CRLF, and the blobs match. Audits index regenerated: +5 rows, 746 -> 751.
+
+**The defect note was measured, not transcribed.** The operator supplied it; it was reproduced
+before being written down, and the mechanism is more subtle than the framing. `audit.py checks`
+does raise `UnicodeEncodeError` under cp1252 - `scripts/audit.py:4639` sends an arrow separator
+through `click.echo` - and `PYTHONUTF8=1` is the working fix, under which all 46 checks list.
+But the `skipped` status of `validate_doc_claims`' `audit_check_count` leg is NOT caused by that
+crash: it is the GAP-1 cycle-break design, where the standalone CLI passes `None` for the
+injected `len(ALL_CHECKS)` and only `audit health` / `audit run` supply it. The two compound;
+neither causes the other. The net is what the operator described - no surface fails when that
+number drifts, and the run still prints "OK, no prose drift". Latent rather than active:
+`ecosystem/doc-counts.md:14` and live `len(audit.ALL_CHECKS)` both read 46. `audit.py health` is
+unaffected (the arrow is confined to `cmd_checks`), so the pre-commit gate is intact. Section U
+records the correction alongside the note rather than in place of it.
+
+**Changes:** `docs/audits/` +5 artifacts plus the regenerated index; `protocols/STANDING_RULINGS.md`
++62 lines (section U, inserted before the trailing Editing note per the section-T convention
+`e5dffda1`, leaving T byte-untouched).
+
+**Abandoned:** nothing. The contract's four refusals held exactly - no `tasks/` row births, no
+`BACKLOG.md` edit, no registry-yaml edit, no paraphrase of the packet (the section POINTS, the
+artifact CARRIES). Row births for the ADOPT arcs are deferred to wave 1, which spends the 29
+closures DISCHARGE-38 banked.
+
+**Next:** operator pushes; this seat does not. Wave 1 starts from section U: FIX-1 (the
+`/lane-boot` scope correction), FIX-2 (the last bare `python` at `handoff-verify.md:73`), the
+ARC-F register repairs, the C01 provider-consumption matrix, ARC-A ADR drafting - and the
+fail-loud fix for the cp1252 defect, which section U assigns to this wave.
+
 ### 2026-08-25 (b) - CC (Opus 5, local seat session, primary checkout, branch `docs/v-integrate-anchor`): the five verification lanes are integrated, and the anchor is written FIRST because the predicate makes a merge queue deadlock on itself
 
 **Did:** executing `V-INTEGRATE.md` (the merge contract only; the `PROBE-DSH` section below it
