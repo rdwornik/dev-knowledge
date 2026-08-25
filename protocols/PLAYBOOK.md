@@ -87,7 +87,7 @@ reconciled_with: handoff-process@6.2.0
   - [The lane lifecycle — five legs, and where each one is ruled](#the-lane-lifecycle--five-legs-and-where-each-one-is-ruled)
   - [The wave close — every dispatched wave ends D0–D5, and the funnel table is mandatory](#the-wave-close--every-dispatched-wave-ends-d0d5-and-the-funnel-table-is-mandatory)
   - [Dispatch visibility — Agent View shows DISPATCHED sessions only (STANDING_RULINGS B7)](#dispatch-visibility--agent-view-shows-dispatched-sessions-only-standing_rulings-b7)
-  - [Dispatching a session — the boundary, the three shapes, and the standing rules](#dispatching-a-session--the-boundary-the-three-shapes-and-the-standing-rules)
+  - [Dispatching a session — the boundary, the dispatch table, and the standing rules](#dispatching-a-session--the-boundary-the-dispatch-table-and-the-standing-rules)
   - [Dispatch prompts and the contract of record — two locations, one of them in the tree](#dispatch-prompts-and-the-contract-of-record--two-locations-one-of-them-in-the-tree)
   - [The dispatch surface is `dispatch <file>` — the contract file is the source ([#509] v2)](#the-dispatch-surface-is-dispatch-file--the-contract-file-is-the-source-509-v2)
   - [Cloud lanes — the receipt gate and the fresh-branch rule](#cloud-lanes--the-receipt-gate-and-the-fresh-branch-rule)
@@ -2183,7 +2183,7 @@ and travel on the lane's own dispatch line ("Model + effort are stated at dispat
 matrix" below). Ad-hoc read-only work is what the input is for; a lane goes through
 `dispatch <contract>` instead.
 
-### Dispatching a session — the boundary, the three shapes, and the standing rules
+### Dispatching a session — the boundary, the dispatch table, and the standing rules
 <!-- scope: hybrid -->
 
 **A session handed to the operator without its command does not get started.** That is the
@@ -2195,12 +2195,21 @@ handover **copies** a line from here rather than composing one, and
 selecting the shape from the contract's own declared type — so the prose and the generator cannot
 drift, and a contract emitted with no command line is a generator bug with a test asserting it.
 
-**Where the commands live.** `Dispatch-Lane` and `Dispatch-CloudV2` are PowerShell aliases
-exported by `win-tooling` `config/dispatch-helpers/DispatchHelpers.psm1`, deployed SHA-256-compared
-and auto-loading by that repo's `scripts/dispatch-helpers/Apply-DispatchHelpers.ps1`. That module
-is the source of truth for their *behaviour*; this chapter states which one to reach for, and why.
-A third alias, `Dispatch-CloudBrief`, is **superseded** — it prints its own supersession notice —
-and is named here only so a seat that meets it in an old artifact knows not to use it.
+**Where the commands live — OPERATOR-OWNED, at L0, and deliberately not reimplemented here.**
+`Dispatch-Local`, `Dispatch-Cloud` and `Dispatch-Codespace` (with their working version-named
+aliases `Dispatch-Lane`, `Dispatch-CloudV2`) are PowerShell aliases exported by `win-tooling`
+`config/dispatch-helpers/DispatchHelpers.psm1`, deployed SHA-256-compared and auto-loading by that
+repo's `scripts/dispatch-helpers/Apply-DispatchHelpers.ps1`; `dispatch` is a PATH command from that
+same repo's `scripts/dispatch/Invoke-Dispatch.ps1`. **That module is the source of truth for their
+BEHAVIOUR and this repo does not carry a copy of it** — what this chapter records is each verb's
+CONTRACT (argument shape, receipt, guards) so a seat can use it without reading PowerShell, and
+which one to reach for, and why. They are a versioned, tested, SHA-deployed module rather than
+profile cruft: they resolve identically in `pwsh -NoProfile`, profiled `pwsh`, and PS 5.1, and the
+profile is deliberately unused because it sits inside the corp OneDrive exclusion zone. A raw diff
+of the deployed copy against source shows all 1211 lines differing; that is CRLF vs LF and nothing
+else — the applier normalizes to LF before hashing, by design. Do not report it as drift.
+`Dispatch-CloudBrief` is **superseded** — it prints its own supersession notice — and is named
+here only so a seat meeting it in an old artifact knows not to use it.
 
 #### The boundary — LOCAL or CLOUD, and the rule that gets forgotten
 
@@ -2478,7 +2487,7 @@ surface is one typed line"* — was written when a local contract was the only d
 described, and read alone it is now false: it is true of **shape 1 of three**. `dispatch` /
 `Invoke-Dispatch.ps1` carries a **local** contract to a background lane; it is not the cloud
 transport and not the interactive form. A seat holding a cloud brief takes `Dispatch-CloudV2` from
-"Dispatching a session — the boundary, the three shapes" above. Everything else in this section —
+"Dispatching a session — the boundary, the dispatch table" above. Everything else in this section —
 contract mode, the doubled-prefix incident, the effort enum, the execution gate — stands
 unchanged, scoped to that one shape.
 
@@ -2615,7 +2624,7 @@ lane did not provision.
 
 **Which substrate — ANSWERED 2026-08-23 (M10), above.** This paragraph recorded the gap as owed
 because the chapter carried no test for which lanes are cloud lanes. "Dispatching a session — the
-boundary, the three shapes" now states one: **the operator's disk vs `origin/main`**. What
+boundary, the dispatch table" now states one: **the operator's disk vs `origin/main`**. What
 follows stays as the *refinement* it always was — a second, footprint-shaped read that agrees with
 the disk test in the ordinary case and yields to it where they diverge. The working
 distinction in live practice: a lane routes **local** when it wants the local gate mesh — a
