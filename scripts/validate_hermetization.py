@@ -82,6 +82,18 @@ SANCTIONED_TIER1_DIRS: frozenset[str] = frozenset({
     # never by this repo's gate mesh -- it carries no organ and judges nothing, which is
     # what distinguishes it from the `.github/` sanction above.
     ".devcontainer",
+    # Dispatch INPUTS, dated (operator path-approval 2026-08-25, granted with the lane-RL
+    # scope extension): the contract files a batch was actually launched from, copied in
+    # byte-identical as `prompts/<YYYY-MM-DD>/`. Contracts are authored in the operator's
+    # off-repo prompts dir, which is why every commit-time gate was structurally blind to
+    # them (`docs/audits/2026-08-25-technical-dispatch-consolidation-plan.md` section 5.3);
+    # this is the home that makes a batch's launch inputs committed evidence.
+    # ADR-101 AMENDMENT OWED. The `.devcontainer` precedent directly above requires the
+    # lockstep amendment in the SAME commit, and this entry does not have one: the lane
+    # authorising it is barred from `docs/decisions/`. The operator approval is real and
+    # recorded; the ADR act that closes the closed-set rule is outstanding and is named in
+    # this lane's packet rather than left to be discovered.
+    "prompts",
 })
 
 # Tier-1 -- sanctioned top-level FILES (the closed class members, ADR-101 section 1).
@@ -192,6 +204,13 @@ _HOME_PATTERNS: tuple[str, ...] = (
     "docs/decisions", "docs/decisions/archive",
     "docs/handoffs", "docs/handoffs/**",
     "docs/intake", "docs/intake/archive",
+    # `prompts/*` -- one home per DATED batch directory, and the `*` is the point: the tree
+    # is `prompts/<YYYY-MM-DD>/<CONTRACT>.md`, so the homes are the date directories and a
+    # deeper nesting stays a surfaced act. Same reasoning as `plugins/*` above, and the
+    # deliberate opposite of the bare `.devcontainer` literal, which is two files at one
+    # level. Without this pattern Rule C refuses every landed contract and
+    # `test_rule_c_admits_every_tracked_path_in_the_live_repo` reds the moment one is tracked.
+    "prompts/*",
 )
 
 
