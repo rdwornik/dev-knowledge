@@ -1,7 +1,7 @@
 ---
 id: "[#162]"
 title: "Vocab decision"
-status: open
+status: closed
 priority: P2
 size: M
 theme: "[E1] Handoff continuity"

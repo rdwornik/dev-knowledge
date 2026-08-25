@@ -1,7 +1,7 @@
 ---
 id: "[#399]"
 title: "`templates/handoff/v5/README.md.tmpl` — phantom source claim (the [#359] class)"
-status: open
+status: closed
 priority: P2
 size: S
 theme: "[E8] ARC-5 execution"

@@ -1,7 +1,7 @@
 ---
 id: "[#537]"
 title: "`disposition token` is a Done-when branch nothing defines"
-status: open
+status: closed
 priority: P3
 size: S
 theme: "[E7] Tooling & evaluation"

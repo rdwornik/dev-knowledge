@@ -1,7 +1,7 @@
 ---
 id: "[#356]"
 title: "RULING-W and the merge-delegation composite are LEGIBLE but have neither a mechanism nor a declaration"
-status: open
+status: closed
 priority: P2
 size: M
 theme: "[E8] ARC-5 execution"

@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "ae214fcf41d14b6b11d39f710b0f01a3782773be5cd90073c0acd568a4fd2548",
+  "generated_sha256": "78d38dd33c58c06aa76c3d460825afd5ce3004bf5d21cfd01d69d57889d5d0f2",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -57,10 +57,6 @@
       "prose": "So that an architecture session inherits the big picture + vision while an execution session inherits lean task-state — one process, two payloads."
     },
     {
-      "task": 162,
-      "file": "162-vocab-decision.md"
-    },
-    {
       "task": 511,
       "file": "511-handoff-cut-cost-is-session-authoring.md"
     },
@@ -84,14 +80,6 @@
     {
       "task": 301,
       "file": "301-session-plan-artifact-class.md"
-    },
-    {
-      "task": 344,
-      "file": "344-session-close-gate-for-handoff-generation-consum.md"
-    },
-    {
-      "task": 350,
-      "file": "350-handoff-process-refinements.md"
     },
     {
       "task": 390,
@@ -158,10 +146,6 @@
       "file": "345-externalize-the-adr-101-frozensets-machine-reada.md"
     },
     {
-      "task": 346,
-      "file": "346-persist-the-two-tier-new-path-executor-rule-into.md"
-    },
-    {
       "task": 185,
       "file": "185-gap-2-deterministic-gotcha-injection-guard.md"
     },
@@ -170,24 +154,12 @@
       "file": "188-deny-rule-hook-completeness-audit.md"
     },
     {
-      "task": 349,
-      "file": "349-mechanize-session-discipline-inheritance.md"
-    },
-    {
-      "task": 353,
-      "file": "353-session-boot-contract-hardening.md"
-    },
-    {
       "task": 485,
       "file": "485-lf-enforcing-write-helper-replaces-a-gotcha.md"
     },
     {
       "task": 518,
       "file": "518-audit-py-git-runs-unscrubbed-and-undecoded-at-one.md"
-    },
-    {
-      "task": 484,
-      "file": "484-adr106-system-python-divergence-deferral.md"
     },
     {
       "task": 389,
@@ -200,10 +172,6 @@
     {
       "task": 424,
       "file": "424-backlog-depends-on-gates-are-inert-depid-re-requ.md"
-    },
-    {
-      "task": 425,
-      "file": "425-the-suite-is-green-on-a-format-the-file-does-not.md"
     },
     {
       "task": 451,
@@ -320,10 +288,6 @@
       "file": "335-exempt-templates-from-the-reconciled-versions-ch.md"
     },
     {
-      "task": 408,
-      "file": "408-auto-coupled-doc-updates-closing-a-backlog-item.md"
-    },
-    {
       "task": 457,
       "file": "457-inherited-live-repo-test-failures.md"
     },
@@ -390,16 +354,8 @@
       "file": "418-automation-fleet-audit-records-0-10-baselines-a.md"
     },
     {
-      "task": 417,
-      "file": "417-check-dirty-tree-runs-with-no-pathspec-so-the-st.md"
-    },
-    {
       "task": 414,
       "file": "414-self-acting-on-main-incident-family-a-session-ch.md"
-    },
-    {
-      "task": 423,
-      "file": "423-the-integration-sequence-runs-on-prose-every-tim.md"
     },
     {
       "task": 442,
@@ -453,10 +409,6 @@
     },
     {
       "prose": ""
-    },
-    {
-      "task": 239,
-      "file": "239-follow-up.md"
     },
     {
       "task": 240,
@@ -561,10 +513,6 @@
       "file": "438-codify-gate-class-posture-terra-design-review-be.md"
     },
     {
-      "task": 443,
-      "file": "443-planning-artifacts-outside-the-three-enforced-cl.md"
-    },
-    {
       "prose": ""
     },
     {
@@ -595,10 +543,6 @@
     {
       "task": 23,
       "file": "23-validate-adr-frontmatter-relation-fields.md"
-    },
-    {
-      "task": 456,
-      "file": "456-ruling-blocked-cohort-sweep-adr-108-re-route.md"
     },
     {
       "task": 546,
@@ -664,10 +608,6 @@
     {
       "task": 71,
       "file": "71-reconcile-environment-md-s-claude-directory-tree.md"
-    },
-    {
-      "task": 263,
-      "file": "263-protocols-edge-map-reconciliation-residuals.md"
     },
     {
       "task": 285,
@@ -893,10 +833,6 @@
       "file": "322-fleet-dashboard.md"
     },
     {
-      "task": 338,
-      "file": "338-codex-review-drift-consolidation.md"
-    },
-    {
       "task": 340,
       "file": "340-ship-pre-flight-validator-honors-the-consumer-re.md"
     },
@@ -919,18 +855,6 @@
     {
       "task": 403,
       "file": "403-extend-doc-claims-to-architecture-s-machine-deri.md"
-    },
-    {
-      "task": 412,
-      "file": "412-subagent-workflow-routing-configured-fan-out-onl.md"
-    },
-    {
-      "task": 415,
-      "file": "415-tests-must-bind-fixtures-not-live-mutable-repo-c.md"
-    },
-    {
-      "task": 453,
-      "file": "453-cloud-night-run-runbook-container-gaps.md"
     },
     {
       "task": 487,
@@ -1058,26 +982,6 @@
       "file": "419-we-run-routines-whose-output-nobody-consumes.md"
     },
     {
-      "task": 463,
-      "file": "463-win-tooling-onboarding-debt-unchanged-since-admi.md"
-    },
-    {
-      "task": 464,
-      "file": "464-corp-consumer-governance-drift-live-weeks-unacti.md"
-    },
-    {
-      "task": 409,
-      "file": "409-standing-night-batch-code-review-formalize-as-ro.md"
-    },
-    {
-      "task": 410,
-      "file": "410-standing-night-batch-architecture-review-formali.md"
-    },
-    {
-      "task": 411,
-      "file": "411-standing-night-batch-creative-session-and-the-re.md"
-    },
-    {
       "task": 426,
       "file": "426-declare-consumer-consumption-path-for-every-live.md"
     },
@@ -1097,10 +1001,6 @@
     },
     {
       "prose": ""
-    },
-    {
-      "task": 537,
-      "file": "537-disposition-token-is-a-done-when-branch-nothing-de.md"
     },
     {
       "file": "555-closing-campaign-batch-1-kill-candidates-instrum.md",
@@ -1471,10 +1371,6 @@
       "file": "354-w6-seed-1-recurrence-half.md"
     },
     {
-      "task": 356,
-      "file": "356-ruling-w-and-the-merge-delegation-composite-are.md"
-    },
-    {
       "prose": ""
     },
     {
@@ -1491,20 +1387,12 @@
       "file": "357-silent-rule-census-run-2.md"
     },
     {
-      "task": 358,
-      "file": "358-ecosystem-parity-surfaces-yaml-misdescribes-its.md"
-    },
-    {
       "task": 359,
       "file": "359-phantom-enforcement-protocols-handoff-process-md.md"
     },
     {
       "task": 402,
       "file": "402-intake-naming-clause-deploy-the-yyyy-mm-dd-class.md"
-    },
-    {
-      "task": 399,
-      "file": "399-templates-handoff-v5-readme-md-tmpl-phantom-sour.md"
     },
     {
       "task": 361,
@@ -1523,10 +1411,6 @@
     },
     {
       "prose": ""
-    },
-    {
-      "task": 366,
-      "file": "366-residual-completeness-scans-the-working-tree-not.md"
     },
     {
       "prose": ""

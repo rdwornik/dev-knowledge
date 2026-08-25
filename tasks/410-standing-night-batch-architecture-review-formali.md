@@ -1,7 +1,7 @@
 ---
 id: "[#410]"
 title: "Standing night batch — ARCHITECTURE review (formalize as routine)"
-status: open
+status: closed
 priority: P3
 size: S
 theme: "[E7] Tooling & evaluation"

@@ -1,7 +1,7 @@
 ---
 id: "[#408]"
 title: "Auto-coupled doc updates — closing a backlog item must mechanically PULL its ARCHITECTURE + JOURNAL updates"
-status: open
+status: closed
 priority: P2
 size: M
 theme: "[E2] Enforced governance"

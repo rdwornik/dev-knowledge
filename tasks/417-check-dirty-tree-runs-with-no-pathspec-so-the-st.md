@@ -1,7 +1,7 @@
 ---
 id: "[#417]"
 title: "`check_dirty_tree` runs with no pathspec, so the Stop gate fires every session on non-work"
-status: open
+status: closed
 priority: P3
 size: S
 theme: "[E2] Enforced governance"

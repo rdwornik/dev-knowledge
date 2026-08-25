@@ -1,7 +1,7 @@
 ---
 id: "[#456]"
 title: "Ruling-blocked cohort sweep — re-route the remaining Done-when clauses per ADR-108 §A"
-status: open
+status: closed
 priority: P2
 size: M
 theme: "[E4] Decision management"

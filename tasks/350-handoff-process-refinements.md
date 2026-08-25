@@ -1,7 +1,7 @@
 ---
 id: "[#350]"
 title: "Handoff-process refinements"
-status: open
+status: closed
 priority: P3
 size: S
 theme: "[E1] Handoff continuity"

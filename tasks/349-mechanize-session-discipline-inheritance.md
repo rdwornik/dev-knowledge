@@ -1,7 +1,7 @@
 ---
 id: "[#349]"
 title: "Mechanize session-discipline inheritance"
-status: open
+status: closed
 priority: P2
 size: M
 theme: "[E2] Enforced governance"

@@ -1,7 +1,7 @@
 ---
 id: "[#346]"
 title: "Persist the two-tier new-path executor rule into `~/.claude`"
-status: open
+status: closed
 priority: P2
 size: S
 theme: "[E2] Enforced governance"

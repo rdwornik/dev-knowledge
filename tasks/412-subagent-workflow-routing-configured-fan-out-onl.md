@@ -1,7 +1,7 @@
 ---
 id: "[#412]"
 title: "Subagent / workflow routing + configured fan-out + online research into Anthropic's published commands/skills"
-status: open
+status: closed
 priority: P3
 size: M
 theme: "[E7] Tooling & evaluation"

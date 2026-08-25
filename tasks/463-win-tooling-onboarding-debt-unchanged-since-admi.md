@@ -1,7 +1,7 @@
 ---
 id: "[#463]"
 title: "win-tooling onboarding debt — 2 FAILs + 2 WARNs unchanged since admission"
-status: open
+status: closed
 priority: P2
 size: S
 theme: "[E7] Tooling & evaluation"

@@ -1,7 +1,7 @@
 ---
 id: "[#366]"
 title: "`residual_completeness` scans the WORKING TREE, not the staged blob"
-status: open
+status: closed
 priority: P2
 size: S
 theme: "[E8] ARC-5 execution"

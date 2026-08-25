@@ -1,7 +1,7 @@
 ---
 id: "[#423]"
 title: "The integration sequence runs on prose every time, never mechanized"
-status: open
+status: closed
 priority: P2
 size: M
 theme: "[E2] Enforced governance"
