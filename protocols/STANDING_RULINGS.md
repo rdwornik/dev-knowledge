@@ -2771,30 +2771,30 @@ Ch8 itself labels a fallback, silently dropping `--model` and `--effort`. Roughl
 consecutive browser seats failed to launch a lane. They were not uninformed; they were informed
 by four sources that disagreed, and picking one is an operator decision, not a refactor.
 
-**V-1 · `dispatch <contract.md>` is THE sole operator verb for a LOCAL lane — and it is
+**V1 · `dispatch <contract.md>` is THE sole operator verb for a LOCAL lane — and it is
 local-only.** It does not read a contract's `Substrate` field and cannot route. The substrate is
 chosen today by **which verb the operator types** (`Dispatch-Local` / `Dispatch-Cloud` /
 `Dispatch-Codespace`), and a contract's `Substrate:` line is **documentation only** until the
-Layer-3 router of V-7 lands. The verb is preferred because it derives model, effort, worktree and
+Layer-3 router of V7 lands. The verb is preferred because it derives model, effort, worktree and
 board label from the contract itself, so the contract and the launch cannot disagree.
 
-**V-2 · `Dispatch-Local` (née `Dispatch-Lane`) is the documented manual fallback.** It stays fully
+**V2 · `Dispatch-Local` (née `Dispatch-Lane`) is the documented manual fallback.** It stays fully
 working and is the correct reach when a contract does not carry a parseable routing block.
 
-**V-3 · Substrate-named verbs are canonical; version-named ones are aliases.** Canonical:
+**V3 · Substrate-named verbs are canonical; version-named ones are aliases.** Canonical:
 `Dispatch-Local` (this workstation) · `Dispatch-Cloud` (Anthropic-hosted) · `Dispatch-Codespace`
 (the repo's own devcontainer). Aliases, deprecated but fully working and not shims:
 `Dispatch-Lane`, `Dispatch-CloudV2`, `Dispatch-CloudBrief`, `Archive-CloudSession`. Function names
 are unchanged — they are the approved-verb layer the test suite calls, and no operator types them.
 
-**V-4 · The raw `claude --bg` / `--worktree` form is FALLBACK-ONLY.** It does not appear in a
+**V4 · The raw `claude --bg` / `--worktree` form is FALLBACK-ONLY.** It does not appear in a
 command file or a template. It stays documented exactly once, in Ch8, labelled as the fallback.
 
-**V-5 · Interactive and primary-checkout seats keep the interactive shape** — start `claude`, then
+**V5 · Interactive and primary-checkout seats keep the interactive shape** — start `claude`, then
 `Read <PROMPTS_DIR>\<FILE>.md and execute it exactly.` as the first message, with the path
 expanded by eye. This is the one shape of the four that the measurement found no conflict in.
 
-**V-6 · STANDING RULE — every dispatch verb runs Claude with bypass permissions.** No permission
+**V6 · STANDING RULE — every dispatch verb runs Claude with bypass permissions.** No permission
 prompt blocks a lane, on any substrate. Inside a codespace this is sanctioned rather than merely
 tolerated: the blast radius is a disposable isolated machine holding a fresh clone and nothing of
 the operator's, deleted by its retention period. The rule exists because verification caught the
@@ -2803,10 +2803,10 @@ a working Claude would have stalled headless on a machine billing per minute. No
 the same defect shipped with `Dispatch-Local` and was fixed 2026-08-20, then reappeared on a new
 substrate because the flag moved somewhere the old tests do not look.
 
-**V-7 · PLANNED — the Layer-3 router.** `dispatch` is to read the contract's `Substrate` field and
+**V7 · PLANNED — the Layer-3 router.** `dispatch` is to read the contract's `Substrate` field and
 delegate to that substrate's verb, refusing a contract with a missing field or one naming a
 substrate with no live verb. The build is **win-tooling-owned (operator)**; hub adoption is
-tracked by its own backlog row. Recorded as PLANNED and not as ruled-live: until it lands, V-1's
+tracked by its own backlog row. Recorded as PLANNED and not as ruled-live: until it lands, V1's
 local-only limitation is the operative state, and a seat reading a `Substrate:` line as routing is
 reading it wrong.
 
