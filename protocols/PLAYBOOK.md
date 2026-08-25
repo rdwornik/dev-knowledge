@@ -123,6 +123,7 @@ reconciled_with: handoff-process@6.2.0
   - [Stage 5: Implementation (only for "Adopt")](#stage-5-implementation-only-for-adopt)
   - [Stage 6: Review (on-trigger)](#stage-6-review-on-trigger)
   - [Where evaluations are recorded](#where-evaluations-are-recorded)
+  - [The window mandate — what a window owes, and what it is allowed to carry](#the-window-mandate--what-a-window-owes-and-what-it-is-allowed-to-carry)
 - [Ch14. Claude Code internals](#ch14-claude-code-internals)
   - [Quick disambiguation](#quick-disambiguation)
   - [Usage protocol: which command / hook, when](#usage-protocol-which-command--hook-when)
@@ -2917,6 +2918,42 @@ If 4+ criteria met → proceed to Evaluation (majority-of-6 threshold; ≤3 = no
 ### Stage 3: Evaluation
 <!-- scope: meta -->
 
+#### Step 0 — the ownership check, run BEFORE any research is commissioned
+<!-- scope: meta -->
+
+**Filed 2026-08-25 (lane RL) from a measured failure, and deliberately a checklist rather than a
+principle.** Three separate instances in one window commissioned research into a question the repo
+already answered. The prose form of this rule ("check whether we already own it") was present and
+did not fire, because a principle is something a seat agrees with and a checklist is something a
+seat executes. So this is the executable form: run these four, paste the output into the intake or
+the brief, and only then pick an evaluation mode below. A commissioning that cannot show this
+output is not yet a commissioning.
+
+```
+# 1. Does a decision already exist? (ADRs, including rejected and parked)
+uv run --locked python -c "import pathlib,re;[print(p.name) for p in sorted(pathlib.Path('docs/decisions').glob('ADR-*.md')) if re.search(r'<TERM>', p.read_text(encoding='utf-8'), re.I)]"
+
+# 2. Does a ruling already exist? (the register is the ruled-but-not-ADR surface)
+grep -n -i "<TERM>" protocols/STANDING_RULINGS.md
+
+# 3. Does an open row already own it? (tasks/ is the source of truth, not BACKLOG.md)
+grep -rn -i "<TERM>" tasks/
+
+# 4. Has it already been evaluated and rejected? (the Rejected list is a real surface)
+grep -n -i -A3 "<TERM>" protocols/ENVIRONMENT.md
+```
+
+**Reading the output.** A hit in (1), (2) or (4) means the question is answered — the honest next
+act is to cite it, not to re-open it, and re-opening requires new evidence stated as such. A hit
+in (3) means an owner exists and the work is attaching evidence to that row rather than birthing
+a second one (ADR-111's OWNED outcome). Four clean misses is the only state in which
+commissioning research is the cheapest way to learn the answer.
+
+**Why this is Step 0 and not advice.** The cost asymmetry is measured, not assumed: the four
+commands above run in seconds, and the research they can pre-empt is a Scale-L Council debate or a
+half-window of a lane. Research-as-procrastination is the failure this closes — see `LESSONS.md`
+2026-08-25.
+
 Three evaluation modes — pick by stakes:
 
 **Quick check (Scale S decision):**
@@ -2988,6 +3025,40 @@ Cross-link the ADR to its implementation commits; the JOURNAL entry records the 
 **Mechanism-class-before-more-fixes.** Four consecutive repairs of the dispatch helper each addressed a symptom inside a mechanism class — a profile-sourced shell alias — that was wrong for the machine it ran on. The recurrence ended when the **class** changed, to a PATH command with `-Check` guarding, rather than when a better fix landed inside the old class. The recognition signal is the third repair in the same family: at that point the cheaper question is which class the mechanism belongs to, not which detail is broken. Not mechanizable as stated — a checkable proxy would need a register of repair-attempts-per-mechanism that does not exist — so it is a diagnosis posture rather than a gate.
 
 **A literal is not a site.** A pattern occurrence inside *generated source for a subprocess* is data, not an instance of the thing being swept, and a mechanical sweep that treats the two alike breaks what it was tidying. Witnessed on the `sys.path.insert` sweep: `tests/test_batch_manifest.py` carries three occurrences and only two are sites — the third lives inside the `_SHADOW_PROBE` string literal that generates source for a subprocess carrying no pytest `pythonpath`, so sweeping it would have broken the probe. Same class as the residual exempted at `tests/test_enforcement_coverage.py:389`. A sweep step therefore reports occurrences inside string literals separately from occurrences at statement level — a contract-time check, not an organ.
+
+### The window mandate — what a window owes, and what it is allowed to carry
+<!-- scope: meta -->
+
+**Filed 2026-08-25 (lane RL).** Two rules about the shape of a window, landed together because
+they are the same measurement read twice: a window that spends itself entirely on its own
+machinery produces no consumer-visible change, and an intake surface with no cap absorbs that
+pressure silently instead of surfacing it. Each carries its own status, and the statuses differ —
+stating them as one ratified block would be the overclaim this file exists to avoid.
+
+**(1) Governance/product parity — STATUS: PROPOSED (not ruled).** The proposal is that every
+window carries **at least one consumer-facing arc** alongside its governance work — an arc whose
+output a fleet consumer can observe, as distinct from an arc that improves how the hub governs
+itself. The evidence it rests on is the 2026-08 window record: governance arcs outnumber
+consumer-facing arcs there by a wide margin, and no organ notices. It is recorded here as
+PROPOSED rather than adopted because the ratio a window *should* hold is an operator question
+about what the fleet is for, and this file does not get to answer that by writing it down. A seat
+citing this as binding is citing it wrong; until it is ruled it informs planning and gates
+nothing.
+
+**(2) C12 icebox cap + one-in-one-out — STATUS: RULED-ADOPTED (operator, 2026-08-25).** The icebox
+carries a **cap**, and past the cap admission is **one-in-one-out**: landing a new icebox item
+requires naming the item it displaces. This is the same filing-backpressure doctrine the
+`backlog-filing-backpressure` commit-msg hook already enforces for BACKLOG task ids
+(`kill-candidates:` on every add), applied to the surface that had no such pressure. Its purpose
+is not tidiness — it is that an uncapped icebox lets a window defer decisions at zero cost, which
+is indistinguishable from making them and produces a queue nobody ever reads.
+
+**Honest limit, stated because the pair reads stronger than it is.** Neither half has an organ
+today. (1) is unruled and so has nothing to enforce; (2) is ruled but its cap is not yet a number
+this file names, and no check counts icebox members or refuses an uncapped add. Mechanizing (2)
+is the natural sibling of `scripts/check_backlog_filing.py` and is owed; until it lands, the rule
+binds the seat and not the tree, and saying otherwise would be the paper-enforcement class
+recorded elsewhere in this chapter.
 
 ---
 
