@@ -139,7 +139,9 @@ GATE_AHEAD_DECLARED = "gate-ahead-declared"  # ADR-102: proven gate-ahead (at-pa
 
 SEV_INFO = "info"
 SEV_WARN = "warn"
-SEV_ERROR = "error"  # REPORT label (intake #12 MUST/INVERSE class); never blocks in v1
+SEV_ERROR = "error"  # REPORT label (intake #12 MUST/INVERSE class); the standalone walk
+                     # still exits 0, but audit.py::check_fleet_parity BLOCKS since [#337]
+                     # ([#358] correction, 2026-08-24)
 
 TIERS = frozenset({"MUST", "SHOULD", "LOCAL", "IGNORE", "INVERSE", "TOMBSTONE"})
 
@@ -895,7 +897,8 @@ def _parse_version(v: str) -> Version | None:
 
 def _satisfies(installed: str | None, recommended: str) -> bool:
     """PEP 440 comparison: supports '>=X', '==X', bare 'X' (as a minimum). Honest
-    floor semantics for a WARN-only reporter. An unparseable version on either side
+    floor semantics for a reporter whose own exit is WARN-only (the audit wrapper blocks
+    since [#337] -- [#358]). An unparseable version on either side
     REFUSES (False) rather than raising — one junk pin must never crash the fleet
     walk, and refusing surfaces a WARN rather than asserting a comparison it cannot
     make."""
@@ -1983,8 +1986,9 @@ def main(run_date: str, manifest_path: str, baseline_path: str, registry_path: s
          ecosystem_dir: str, only_repos: tuple, repo_roots: tuple, hub_root_opt,
          write: bool, events: bool, events_path: str, max_events_bytes: int,
          mode: str, deploy_manifest_path) -> None:
-    """Deterministic read-only fleet-parity walk (#328). WARN-only: a completed run
-    exits 0 whatever it finds; exit 2 only when the parity manifest is unusable (and
+    """Deterministic read-only fleet-parity walk (#328). WARN-only AT THIS LAYER: a
+    completed run exits 0 whatever it finds -- but audit.py::check_fleet_parity, which
+    consumes this walk, is a BLOCKING ALL_CHECKS member since [#337] ([#358]); exit 2 only when the parity manifest is unusable (and
     then no digest is written -- never silently green)."""
     hub_root = Path(hub_root_opt) if hub_root_opt else _REPO_ROOT
     # exact YYYY-MM-DD shape THEN calendar validity: fromisoformat alone also accepts

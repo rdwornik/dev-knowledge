@@ -3,8 +3,15 @@
 # ONE machine-readable contract: surfaces x role-tiers x one probe each, consuming the
 # A0-SETTLED template (docs/intake/2026-07-11-tech-ownership-manifest.md, intake #12,
 # SETTLED 2026-07-12 incl. the section-9a ruling: the hub is a fleet MEMBER, not an
-# implicit exception). Consumed by scripts/fleet_parity.py (read-only, WARN-only v1,
-# zero blocking gates -- section 9b / ADR-85 hardening pattern).
+# implicit exception). Consumed by scripts/fleet_parity.py (read-only; the standalone
+# walk is WARN-only and exits 0 whatever it finds -- section 9b / ADR-85 hardening pattern).
+#
+# ENFORCEMENT POSTURE -- corrected [#358], 2026-08-24. The header said "WARN-only v1, zero
+# blocking gates", which described the PRE-[#337] state and was false at HEAD: [#337]
+# registered scripts/audit.py::check_fleet_parity as a BLOCKING ALL_CHECKS member
+# (audit.py:3543, "blocking #328 fleet-parity gate (was informational)"), and
+# ARCHITECTURE.md records it fail-closed. So the SCRIPT does not block and the AUDIT
+# WRAPPER does: a MUST-row failure costs a blocked gate, not just a report line.
 #
 # Version line below is nudge-parseable (validate_reconciliation._VERSION_LINE_RE,
 # IGNORECASE): bump it when surface semantics change.

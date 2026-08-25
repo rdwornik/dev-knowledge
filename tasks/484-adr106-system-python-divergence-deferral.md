@@ -1,7 +1,7 @@
 ---
 id: "[#484]"
 title: "ADR-106 system-Python divergence — named deferral, not an open build"
-status: open
+status: closed
 priority: P3
 size: M
 theme: "[E2] Enforced governance"

@@ -1,7 +1,7 @@
 ---
 id: "[#443]"
 title: "Planning artifacts outside the three enforced classes carry no rent rule"
-status: open
+status: closed
 priority: P3
 size: S
 theme: "[E3] Lessons feedback loop"

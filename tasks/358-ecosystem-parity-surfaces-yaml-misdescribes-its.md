@@ -1,7 +1,7 @@
 ---
 id: "[#358]"
 title: "`ecosystem/parity-surfaces.yaml` misdescribes its own enforcement posture at HEAD"
-status: open
+status: closed
 priority: P2
 size: S
 theme: "[E8] ARC-5 execution"

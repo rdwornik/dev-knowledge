@@ -1,7 +1,7 @@
 ---
 id: "[#415]"
 title: "Tests must bind fixtures, not live mutable repo content (heuristic-behaviour tests)"
-status: open
+status: closed
 priority: P2
 size: S
 theme: "[E7] Tooling & evaluation"

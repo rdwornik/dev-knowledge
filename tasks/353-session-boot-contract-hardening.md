@@ -1,7 +1,7 @@
 ---
 id: "[#353]"
 title: "Session-boot contract hardening"
-status: open
+status: closed
 priority: P2
 size: M
 theme: "[E2] Enforced governance"

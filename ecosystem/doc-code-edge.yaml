@@ -59,7 +59,7 @@ declaration_docs:
 #     handoff-probes-bind     (2): audit.py::check_handoff_probes + verify_handoff_probes.py::verify
 # EXEMPT -- structural/presence infra, not a declared behavioral rule (no edge): the baseline
 #   checks (vision_md, claude_md, adr38_baseline, canonical_md_visibility, canonical_structure,
-#   dot_prefix, mermaid_theme, workspace_settings, handoff_bundle/tag/version_stamp,
+#   dot_prefix, workspace_settings, handoff_bundle/tag/version_stamp,
 #   no_sibling_orphans) + check_doc_code_edge itself (self-referential).
 coverage_scope:
   - seal-journal-anchor        # DONE    -- DEFINITION_OF_DONE.md -> session_end_backpressure.py
@@ -115,7 +115,6 @@ exempt:
   - dot_prefix_discipline
   - canonical_md_visibility
   - workspace_settings
-  - mermaid_theme_directive
   - handoff_bundle_structure
   - no_sibling_orphans
   # [#505] batch hygiene. PERMANENT, on the no_sibling_orphans precedent directly above: both

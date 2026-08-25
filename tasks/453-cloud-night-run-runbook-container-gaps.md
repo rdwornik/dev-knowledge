@@ -1,7 +1,7 @@
 ---
 id: "[#453]"
 title: "Cloud night-run runbook — the container gaps that silently degrade an unattended session"
-status: open
+status: closed
 priority: P2
 size: M
 theme: "[E7] Tooling & evaluation"

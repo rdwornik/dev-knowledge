@@ -1,7 +1,7 @@
 ---
 id: "[#239]"
 title: "Follow-up"
-status: open
+status: closed
 priority: P3
 size: M
 theme: "[E2] Enforced governance"

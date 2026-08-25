@@ -1967,6 +1967,733 @@ site: CLAUDE.md | pattern: provider-registry-agreement
 
 - **Expiry:** open-ended.
 
+## S. RULING R12 — the register left the silent-rule detector's scope (2026-08-24)
+
+### S-1 · R12 · `protocols/STANDING_RULINGS.md` is excluded from the silent-rule corpus
+
+> A standing ruling is normative by definition and is recorded in the one place the repo
+> designates for recording it, so counting this file as a *silent* rule is a category error:
+> the register is the mechanism of record, i.e. the exact opposite of silent.
+
+- **Why it was ruled.** Left in scope the metric punished the act it exists to encourage —
+  writing a ruling down where it can be found raised the number — so the register stopped
+  absorbing rulings on 2026-08-15 (lane C2, from ruling provenance) while 38 open backlog rows,
+  18% of the whole open set, carried a Done-when whose only branch was a section here (lane C3,
+  from the backlog). Two lanes, opposite directions, neither able to see the other.
+- **Same shape as the `ecosystem/parity-surfaces.yaml` exclusion** directly above it in the
+  detector's Excluded clause: both fired when someone ADDED enforcement, which is backwards.
+- **Honest limit, carried from the ruling itself:** the exclusion removes only 2 token
+  occurrences at the 2026-08-24 measurement. It is a correctness fix to what the metric MEANS,
+  not a headroom fix — the headroom came from the R8 raise.
+- **Where it landed:** `scripts/silent_rule_detector.py:51-66` (the Excluded clause) and its
+  `EXCLUDED_RELPATHS` at `:142`; `DETECTOR_ID` bumped `silent-rule-v4` → `silent-rule-v5`
+  because the excluded set is a contract clause and a count produced under a changed corpus is
+  not commensurable with one produced before it; pinned by
+  `tests/test_silent_rule_ratchet.py::test_standing_rulings_register_excluded_from_scope`,
+  which also asserts the exclusion is doing work rather than passing vacuously; baseline
+  `ecosystem/silent-rule-baseline.yaml` re-stamped 443 @ `236da477`.
+- **Recorded here because it was not.** Until this entry, the ruling that unblocked this
+  register lived only in detector code, one test and a baseline provenance block — the register
+  of standing rulings did not carry the ruling about itself.
+- **Expiry:** open-ended.
+
+## T. DISCHARGE-38 — the cohort-C1 ruling packet (architect, 2026-08-24)
+
+Source of record: the Phase-2 packet of the DISCHARGE-38 session, ruling the 38 open rows that
+cohort C1 of `docs/audits/2026-08-23-technical-backlog-adjudication-prep.md` identified as
+carrying a `protocols/STANDING_RULINGS.md` OR-branch in their Done-when. Drafted by CC against
+each row's task file and the live tree, ruled by the architect row by row, landed here.
+
+Two structural findings the packet recorded before ruling anything, because they bound what the
+cohort could deliver: 21 of the 38 Done-whens are **disjunctive** (the ruling IS the discharge)
+while 16 are **conjunctive** (the ruling discharges one leg and the row stays open); and one
+member, `[#537]`, carries no ruling branch at all and was mis-cohorted.
+
+### T-1 · `[#344]` Session-close gate for handoff generation + consumer hub-write guard
+
+> Ask 1 is refused as specified; Ask 2 is the live half and is placed with the operator, not
+> built here.
+
+- **Ask 1** names a retired organ in one of its three preconditions: the "operator
+  close-readiness token (`/override`-shaped, HEAD-bound)" cannot gate anything after the ADR-85
+  amendment of 2026-08-03 §A2 stripped `/override` of all discharge power. Its other two
+  preconditions are already asserted at commit time by `audit.py ship-gate` and
+  `canonical_freshness` A2.
+- **Ask 2** is not built for a placement reason rather than a difficulty one: a consumer-side
+  `PreToolUse` guard edits `~/.claude`, which R-2 (2026-08-22) places at L0 outside
+  repo-universalization scope, and core-invariant #6 makes it operator-owned. A hub row does not
+  discharge an L0 write.
+- **Evidence:** `CLAUDE.md` §7 (`/override` RETIRED); `.claude/commands/override.md`; R-2 above.
+- **Row status:** CLOSED by this section.
+- **Expiry:** open-ended.
+
+### T-2 · `[#350]` Handoff-process refinements
+
+> Deferred on priority, not difficulty, and the deferral is recorded so it stops reading as a gap.
+
+- The operator placed this LAST of the priority program on 2026-07-18 and nothing since raised it.
+- **Leg (b) has partial cover already:** `check_seal_identity` refuses a bundle whose internal
+  slug names a different directory, and `check_handoff_probes` resolves every probe locator at
+  gate time. What neither catches is the class this row names — a bundle citing a file that
+  MOVED — accepted with that limit stated.
+- **Leg (a)**, a non-CC browser trigger, is an L0/runtime path; no hub mechanism gates it.
+- **Evidence:** `CLAUDE.md` §9 `check-seal-identity`; `scripts/audit.py:1518`.
+- **Row status:** CLOSED by this section.
+- **Expiry:** open-ended.
+
+### T-3 · `[#346]` Persist the two-tier new-path executor rule into `~/.claude`
+
+> It stays hub-side by placement.
+
+- The BEHAVIOUR is already in force under the ADR-101 two-tier amendment and is explicitly not
+  gated on this row; what the row asks for is a durability copy into `~/.claude/rules/`.
+- R-2 places `~/.claude` at L0 outside repo-universalization scope and core-invariant #6 makes
+  the edit operator-owned global infra, so the copy is not owed here. The ADR-101 amendment
+  remains the authority a session inherits.
+- **Routing note (per ADR-108 §A, recorded by `[#456]`):** this is the one C1 member that is
+  operator-owned rather than architect-owned, and for the reason the sweep predicted — deletion
+  and global-infra authority, not functional-vs-technical.
+- **Evidence:** ADR-101 §3; `CLAUDE.md` §5 rule 7; R-2 above.
+- **Row status:** CLOSED by this section.
+- **Expiry:** open-ended.
+
+### T-4 · `[#353]` Session-boot contract hardening
+
+> Not built, because the refusal it asks for now exists in a stronger place than a boot-time
+> declaration check.
+
+- `block-commit-on-main` refuses a direct non-merge commit on `main` at commit time and
+  `block-unanchored-push` fails CLOSED at pre-push. Both bind whatever a mid-session prompt
+  declares; a boot contract binds only a session that reads it.
+- The residual — an externally-authored order acting on a dirty tree without naming a worktree —
+  is carried by the background-job isolation guard, which refuses edits in a shared checkout.
+- **Honest limit, recorded rather than smoothed:** `block_commit_on_main.current_branch()`
+  returns `None` on any non-zero `git symbolic-ref` and therefore ALLOWS the commit on a genuine
+  git failure. The organ is a prevent, not a proof, and that fail-open-on-error is queued as a
+  candidate one-guard-clause fix rather than left implied.
+- **Evidence:** `CLAUDE.md` §9 both hook rows; `scripts/block_commit_on_main.py`.
+- **Row status:** CLOSED by this section.
+- **Expiry:** open-ended.
+
+### T-5 · `[#484]` ADR-106 system-Python divergence
+
+> The interpreter half is closed on this machine by measurement rather than deferred; the cp1252
+> console class is declared out of scope with its workaround.
+
+- **Measured in the primary checkout, 2026-08-24:** `uv 0.11.19` against the `pyproject.toml`
+  pin `required-version = "==0.11.19"`, and `Python 3.12.10` against `requires-python = ">=3.12"`.
+  Both conformant — there is no system-vs-locked divergence here to defer.
+- What lane C3 measured (uv 0.8.17, Python 3.11.15) was a CLOUD CONTAINER, which is `[#453]`'s
+  subject; this row was filed on a conflation of the two.
+- **Measured on the sole operator machine in scope; if a second machine enters service, the
+  per-machine measurement is owed there before "on each" is claimed.**
+- **cp1252, out of scope with its stated workaround:** `PYTHONUTF8=1` in the invoking shell. It
+  is a property of the Windows console the interpreter is launched into, not a defect in
+  `scripts/`; a per-script encoding posture would treat the symptom at 60-odd sites instead of
+  the cause at one.
+- **Evidence:** `pyproject.toml:15,25`; `uv --version` / `python --version` as run above.
+- **Row status:** CLOSED by this section.
+- **Expiry:** open-ended, subject to the second-machine clause above.
+
+### T-6 · `[#425]` The suite is green on a format the file does not use
+
+> The class is real; the remedy the Done-when asks for is refused as disproportionate, and a
+> narrower standing rule replaces it.
+
+- "A fixture corpus samples the format its author intended, not the format the file contains" is
+  a true and generalizable defect — witnessed once, in `[#424]`'s four inert clauses.
+- What the row asks for is an enumeration of EVERY parser-facing corpus against every input form
+  its parser accepts: an open-ended sweep of `tests/` with a measured finding rate of one.
+- **Standing rule instead, binding where the risk is created:** a change that widens or narrows a
+  parser's accepted input forms carries a negative-form fixture in the same commit.
+- **Evidence:** `tests/test_validate_backlog.py:196-242`; `[#424]`.
+- **Row status:** CLOSED by this section.
+- **Expiry:** open-ended.
+
+### T-7 · `[#408]` Auto-coupled doc updates
+
+> Not built, and the design draft states the blocker itself.
+
+- The per-section granularity values are an OPERATOR decision the draft deliberately left
+  unsettled, so a build would first have to invent the thing that gates it.
+- **The JOURNAL half of the coupling is already mechanical and fails closed:**
+  `block-unanchored-push` refuses a push whose spine entries carry no JOURNAL anchor, with
+  `journal_spine_anchor` as a FAIL-level audit backstop. The row's premise that closing couples
+  to nothing is half false at HEAD.
+- **The ARCHITECTURE half stays uncoupled deliberately:** it is governed by cadence
+  (`canonical_freshness` A2 plus the 30-day backstop), and a per-close trigger would stamp
+  currency that no re-read produced — the defect the freshness stamp exists to prevent.
+- **Evidence:** `docs/audits/2026-08-06-technical-night-408-coupling-manifest-design.md`.
+- **Row status:** CLOSED by this section.
+- **Expiry:** open-ended.
+
+### T-8 · `[#417]` `check_dirty_tree` runs with no pathspec
+
+> The extraction is rejected as premature de-duplication of two scopes that are deliberately
+> different.
+
+- `_commit_routine_outputs` needs the wider branch-commit-helper scope spanning `docs/audits/`;
+  `check_dirty_tree` wants only the lane-owned dailies. A shared constant would force one caller
+  to carry the other's paths — and the narrowing the row itself asks for ("not the wider
+  `docs/audits/`-spanning scope") is exactly what sharing prevents.
+- **The behavioural half already landed 2026-08-16:** `check_dirty_tree` filters through
+  `_is_lane_owned_daily`, tested both directions. What remains is refactor taste, not a live gap.
+- **Evidence:** `scripts/audit.py:4130-4139` (`history_specs` / `pathspecs`) — the row's cited
+  `scripts/audit.py:4751-4760` is a stale locator, corrected here;
+  `scripts/session_end_backpressure.py:420`.
+- **Row status:** CLOSED by this section.
+- **Expiry:** open-ended.
+
+### T-9 · `[#423]` The integration sequence runs on prose every time
+
+> Four of the eight steps are mechanized; the four that stay prose are named, and the row's
+> premise is corrected first.
+
+- **The premise is false at HEAD.** `/ship` does not "check NO precondition":
+  `plugins/tier1-lifecycle/commands/ship.md:12-51` carries a five-item Pre-flight refusing on a
+  linked worktree, on `main`, a dirty tree, red validators (diff-shaped) and a red
+  `audit.py ship-gate`.
+- **The four that stay prose:** (1) live-session enumeration across all `~/.claude/projects`
+  dirs; (2) the merge-subject scan (bracket `[#id]`, closes-set difference, `^kill-candidates:`,
+  no close-verb by an open id); (3) the JOURNAL anchor riding its own branch; (4) reading exit
+  codes directly rather than through a pipe.
+- **Why those four:** (1) and (2) are judgements about state OUTSIDE the shipping branch — other
+  sessions, and a commit message not yet written — and (3)/(4) are properties of how the operator
+  drives the shell, which a command file cannot observe from inside its own run.
+- **Evidence:** `plugins/tier1-lifecycle/commands/ship.md:12-51`.
+- **Row status:** CLOSED by this section.
+- **Expiry:** open-ended.
+
+### T-10 · `[#239]` Informant Organ Tier-2 beyond the four deploy carriers
+
+> Deferred per element, one reason each.
+
+- **Skills and commands:** no `detect()` is owed, because their deployed identity is already
+  gated by regen-and-diff — `roster-freshness` against `deploy/manifest-v*.yaml` and
+  `claude-rosters-freshness` against the two `@`-imported fragments. Both FAIL on exactly the
+  drift a `detect()` would report; a second detector would be a duplicate authority over one fact.
+- **Review-closure tooling:** it ships as the `tier1-lifecycle` PLUGIN, whose versioned
+  target-state lives in its own marketplace manifest. A second target-state in
+  `enforcement_coverage.py` would put the plugin's version in two places — the drift class this
+  row was filed to close.
+- **Evidence:** `CLAUDE.md` §9 (`roster-freshness`, `claude-rosters-freshness`);
+  `scripts/enforcement_coverage.py`; `plugins/tier1-lifecycle/`.
+- **Row status:** CLOSED by this section.
+- **Expiry:** open-ended.
+
+### T-11 · `[#443]` Planning artifacts outside the three enforced classes
+
+> Handoff bundles, session plans and audit docs are recorded as deliberately-not-a-rule, with one
+> reason covering all three.
+
+- Rent is enforced where an artifact CLAIMS a consumer it might not have (routines, under
+  ADR-105's activation gate) or where it closes a session (the DoD journal leg).
+- All three unenforced classes are produced FOR a named reader in the act of being produced: the
+  bundle for the next session, the session plan for its own lane, the audit doc for the brief
+  that commissioned it. A rent rule over them would restate their reason for existing rather than
+  constrain it — and an unread audit doc is already visible as an unconsumed finding, which is
+  `[#460]`'s subject, not a missing rule here.
+- "Meta serves object" stays recorded context, not a fourth rule, exactly as LESSONS 2026-07-28
+  filed it.
+- **Evidence:** ADR-105:52 ("retired, not activated"); `docs/intake/README.md` §7;
+  `protocols/DEFINITION_OF_DONE.md` journal leg.
+- **Row status:** CLOSED by this section.
+- **Expiry:** open-ended.
+
+### T-12 · `[#338]` codex-review drift consolidation, legs (b)–(e)
+
+> Ruled per item.
+
+- **(b)** Accepted with reason: bare `gpt-5.6` returning 400 on ChatGPT auth is a PROVIDER naming
+  property (codename-suffixed ids only), not repo drift. The pin it would protect is already
+  asserted by the `provider-registry-agreement` pre-commit gate against
+  `ecosystem/provider-registry.yaml`.
+- **(c)** Refused on placement: `~/.claude/bin/codex-review.ps1` and the `/codex-review` command
+  are L0 surfaces under R-2. Bringing them under a deploy carrier reverses a standing ruling and
+  needs its own act.
+- **(d)** The stale `codex-review.README.md` is superseded in practice by the live command file,
+  which is the surface a session actually reads; refreshing a second description re-creates the
+  drift it would document.
+- **(e)** Accepted as the recorded working path: `codex exec review -m <model> --base <ref>` has
+  no `pytest --collect-only` pre-check and so does not halt in a read-only sandbox. The `.ps1`
+  path is the one that fails, and (c) places it out of scope.
+- **Evidence:** `CLAUDE.md` §9 `provider-registry-agreement`; `[#469]`; R-2 above.
+- **Row status:** CLOSED by this section.
+- **Expiry:** open-ended.
+
+### T-13 · `[#412]` Subagent / workflow routing, fan-out, published-organ research
+
+> Deferred because its two halves have owners that are not this row.
+
+- **The routing-doctrine half is an L0 question:** routing's canonical table is
+  `~/.claude/ROUTING.md`, which R-2 places outside this repo and `ARCHITECTURE.md` Ch3 states as
+  a placement rather than a gap. A routing doctrine authored into `protocols/PLAYBOOK.md` would
+  become a third authority over a table the hub does not hold — the restated-surface failure
+  `CLAUDE.md` §4 M2 exists to refuse.
+- **The configured-fan-out half** is night-batch configuration, owned by `[#409]`/`[#410]`/
+  `[#411]`, which this same packet rules out at the activation gate. Deferring here keeps one
+  owner per question.
+- **Evidence:** `ARCHITECTURE.md` Ch3; `CLAUDE.md` §4 M2; R-2 above.
+- **Row status:** CLOSED by this section.
+- **Expiry:** open-ended.
+
+### T-14 · `[#415]` Tests bind fixtures, not live mutable repo content
+
+> Accepted with a blanket reason: the coupling is deliberate for most of the corpus and defective
+> only for one narrow class.
+
+- `live_repo` appears 97 times across `tests/` and is the marker that SELECTS live-tree
+  assertions — the tier `/ship` depends on for a docs-only arc. Those tests exist precisely to
+  fail when the live tree drifts; re-pointing them to fixtures would delete the check.
+- **The defective class is narrower:** a test asserting a HEURISTIC's specificity against live
+  content, which drifts with ordinary filing — witnessed once, when the ruled
+  `[#409]`/`[#410]`/`[#411]` triple turned the dedup guard red.
+- **Standing rule:** a test asserting a heuristic's SPECIFICITY binds a committed fixture; a test
+  asserting repo VALIDITY may bind the live tree. The witnessed instance was already re-pointed
+  to `test_dedup_specificity_holds_on_a_distinct_fixture`.
+- **Evidence:** 97 `live_repo` occurrences across `tests/*.py`;
+  `tests/test_validate_backlog.py:361`.
+- **Row status:** CLOSED by this section.
+- **Expiry:** open-ended.
+
+### T-15 · `[#453]` Cloud night-run runbook — the three container gaps
+
+> All three legs stay MANUAL, named with the reason each.
+
+- **(1) Unshallow** is manual, because a preflight running `git fetch --unshallow`
+  unconditionally pays a full-history fetch on every cloud boot to fix a condition that appears
+  on some. The rule is diagnostic instead: a `canonical_freshness` FAIL in a cloud container is
+  presumed a graft artifact until the clone depth is checked — a freshness organ that LIES on a
+  shallow checkout is the trap, not the FAIL.
+- **(2) The `uv` pin** is manual, because the container ships what it ships and `uv self update`
+  demonstrably cannot reach the pinned version. A preflight could only report a mismatch the
+  ADR-106 declaration already predicts.
+- **(3) `audit-health` on `repos registered (none)`** is manual, because sibling absence is
+  benign in a cloud clone. **The sanctioned lever is a declared `SKIP=audit-health` carrying the
+  measured reason in the commit body** (PLAYBOOK Ch8 Q1) — the lever every lane and the
+  integrator used this window. `--no-verify` is not the precedent here and is not available:
+  it is banned in this repo without exception, and a register section does not enshrine a banned
+  lever.
+- `protocols/SESSION_SETUP.md` carries none of this at HEAD, which is why the reasons are
+  recorded here rather than assumed.
+- **Evidence:** the C3 artifact §1 interpreter declaration; PLAYBOOK Ch8 Q1.
+- **Row status:** CLOSED by this section.
+- **Expiry:** open-ended.
+
+### T-16 · `[#463]` win-tooling onboarding debt
+
+> Accepted per item as consumer-repo debt the hub may surface but not close. ADR-41 makes it
+> queue-only here.
+
+- **`dot_prefix_discipline`** (`config.yaml` not dot-prefixed) and **`canonical_freshness`**
+  (VISION + ARCHITECTURE edited the day after review) are consumer edits in a consumer tree; a
+  hub fix would need a RULING-W consumer worktree arc that nothing has scheduled.
+- **`workspace_settings`** and **`deployed_methodology_version`** are onboarding steps a consumer
+  takes for itself — absence is a not-yet-adopted state, not drift.
+- **Recorded honestly:** the row's own evidence gap — 51 baseline commits unpushed and unread —
+  means the hub cannot confirm these four are still live. This section accepts a REASON, not a
+  measurement.
+- **Evidence:** `ecosystem/win-tooling/history/`; ADR-41.
+- **Row status:** CLOSED by this section.
+- **Expiry:** open-ended.
+
+### T-17 · `[#464]` corp-* / ai-council governance drift, five findings
+
+> Accepted per finding, with one addition so closing does not discard the signal.
+
+- All five are consumer-repo canonical-doc drift — corp-sca-time-automation's never-re-reviewed
+  CLAUDE.md plus three past-cadence docs, corp-ops' four past-cadence docs, corp-monorepo's
+  past-cadence VISION and malformed `reconciled_with`, ai-council's `unknown-spec` CONTRIBUTING
+  edge. ADR-41 makes every one queue-only at the hub, and none is fixable from here without a
+  scheduled RULING-W arc.
+- **The addition:** their persistence is `[#460]`'s triage-gap evidence. Closing this row
+  relocates the finding to the row that owns the gap; it does not retire it.
+- **Same honest limit as `[#463]`:** confirmed only to the 2026-07-16 cutoff, 51 later baselines
+  unread.
+- **Evidence:** `ecosystem/*/history/`; ADR-41; `[#460]`.
+- **Row status:** CLOSED by this section.
+- **Expiry:** open-ended.
+
+### T-18 · `[#409]` Standing night batch — CODE review
+
+> Ruled out as an ADR-105 routine, which is a statement about ACTIVATION and not about worth.
+
+- ADR-105 makes `consumer` and `consumption_path` necessary to activate. The code-review night
+  batch has neither at HEAD: its output is a `docs/audits/` artifact read by whoever next opens
+  the batch. That is a reader, not a declared consumer, and a `routine:` block filled
+  speculatively to pass `routine_consumers` is exactly the "retired, not activated" shape ADR-105
+  exists to refuse.
+- **The batch keeps RUNNING ad hoc** — the pattern ran twice this arc, including an armed Stop
+  that correctly held a bad merge. What is refused is the declaration, not the practice.
+- **Evidence:** ADR-105:52; the `routine_consumers` check.
+- **Row status:** CLOSED by this section.
+- **Expiry:** open-ended — revisit if a declared consumer appears.
+
+### T-19 · `[#410]` Standing night batch — ARCHITECTURE review
+
+> Ruled out for the reason `[#409]` carries, with one addition specific to this member.
+
+- This is the batch whose `consumption_path` looks obvious — `ARCHITECTURE.md` itself — and that
+  is precisely why it may not be declared speculatively: a routine naming `ARCHITECTURE.md` as
+  its consumption path while nothing consumes its output would report structural currency that no
+  re-read produced. That is the defect `canonical_freshness` treats as a FAIL when a stamp
+  predates an edit.
+- The batch stays ad hoc, on the same twice-run precedent as its sibling.
+- **Evidence:** ADR-105:52; `CLAUDE.md` §4 freshness-cadence line.
+- **Row status:** CLOSED by this section.
+- **Expiry:** open-ended — revisit if a declared consumer appears.
+
+### T-20 · `[#411]` Standing night batch — creative session and the recurring Q&A cadence
+
+> Ruled out, and for this member the reason is stronger than for its two siblings.
+
+- A creative session and a recurring Q&A cadence produce no artifact class at all, so
+  `consumption_path` has nothing to name. ADR-105's activation gate cannot be satisfied by an
+  organ whose output is a conversation, and forcing one would mean inventing an artifact purely
+  to fill a field.
+- The cadence stays operator-dictated and unformalized, which is what it has been in practice
+  since 2026-07-25.
+- **Evidence:** ADR-105:52; the row's folded `[#348]` half (c).
+- **Row status:** CLOSED by this section.
+- **Expiry:** open-ended.
+
+### T-21 · `[#366]` `residual_completeness` scans the working tree, not the staged blob
+
+> The limit is ACCEPTED and stated rather than fixed.
+
+- Reading staged blobs would close the stage-then-fill hole, but taking that hole requires a
+  deliberate three-step act — stage an unfilled bundle, fill it without re-staging, then commit —
+  whereas the gate exists to catch the ACCIDENT of a placeholder reaching a commit, which the
+  working-tree read does catch.
+- **The accepted limit, stated so no reader over-reads the guarantee:**
+  `validate_residual_completeness` asserts that the bundle ON DISK is filled at commit time, not
+  that the bundle IN THE INDEX is.
+- It is already carried as an `*Honest limit:*` clause in the protocol rule; this section
+  ratifies that wording rather than widening the claim.
+- **Evidence:** `scripts/validate_residual_completeness.py:41` ("reads the working tree"), `:120`
+  (`path.read_text`).
+- **Row status:** CLOSED by this section.
+- **Expiry:** open-ended.
+
+### T-22 · `[#162]` Vocab decision — "architect" as actor vs mode
+
+> Both senses are FORMALLY SCOPED rather than renamed — the second of the two options the row
+> allowed.
+
+- **The scoping:** the bare noun "the architect" names the Layer-1 ACTOR (ADR-28, the
+  browser-chat role) and nothing else. The handoff MODE is never written bare — it is `architect`
+  **mode**, always with the noun, in the enum `architect|execution`.
+- **Why not a rename:** the mode enum is machine-read — `gen_handoff` and the boot ack both parse
+  it — so renaming is a code-and-template change to fix a prose collision that a word resolves.
+- **Evidence:** `protocols/HANDOFF_PROCESS.md` §13 enum; `protocols/HANDOFF_BOOT.md` ack line
+  ("Layer-1 browser", shipped 2026-06-11).
+- **Row status:** CLOSED. The conformance sweep (E1) checked every non-`architectur*` use of the
+  word in all three files: `ARCHITECTURE.md` Ch1 and `protocols/HANDOFF_BOOT.md` are wholly ACTOR
+  uses (bare is correct under this ruling); in `HANDOFF_PROCESS.md` §13 every mode use is already
+  governed by an explicit "mode"/"Modes" noun or is an enum declaration (`:408`, `:413`, `:417`,
+  `:584`, `:681`). One adjectival site was conformed — `:433` "architect-only" →
+  "architect-mode-only", matching the existing "Architect-mode-additive" convention at `:566`.
+  The ruling largely ratifies existing practice rather than requiring a rewrite.
+- **Expiry:** open-ended.
+
+### T-23 · `[#349]` Mechanize session-discipline inheritance
+
+> Folded into `[#344]`, with the consequence stated rather than left to surface later.
+
+- The fold is correct on the merits: `[#349]` is the transmission half of the same gate `[#344]`
+  Ask 1 specifies, and the row itself records that the two overlap and must be reconciled when
+  built. Two rows for one mechanism is the duplicate-owner shape the funnel exists to prevent.
+- **`[#344]` closes in this same packet, so the fold is recorded with its consequence:** *"The
+  test-then-close inheritance discipline is retired as a hub obligation, not orphaned: its only
+  buildable form is a consumer-side `~/.claude` guard, which R-2 places with the operator."*
+- **Evidence:** the row body ("Overlaps #344 Ask 1 … this is the inheritance/transmission half");
+  `scripts/session_end_backpressure.py`, advisory in full since the ADR-85 amendment 2026-08-03
+  §A5, so no Stop-gate carries the discipline today.
+- **Row status:** CLOSED by this section, eyes open.
+- **Expiry:** open-ended.
+
+### T-24 · `[#389]` Prompt-lint — R6 disposition
+
+> R6 — hard probe vs soft check — is disposed SOFT, on a boundary fact rather than a preference.
+
+- An off-repo prompt pasted into a browser is not reachable by any repo hook, so a "hard probe"
+  over prompt authoring cannot exist where the prompts are actually written.
+- The five ADR-87 §5 fields are therefore gated where a prompt BECOMES a repo artifact — the lane
+  contract — not where it is authored. `gen_lane_contract check` already refuses a contract
+  missing its mandatory sections, and extending that check is the enforcement surface with teeth.
+- **Evidence:** `CLAUDE.md` §9 `lane-contract-check` (`[#539]`); ADR-87 §5.
+- **Row status:** OPEN. This section discharges the R6 conjunct only; the per-field refusal/WARN
+  with one test per field remains the row's open leg.
+- **Expiry:** open-ended.
+
+### T-25 · `[#210]` Journal-wrap no-ff WARNs — the standing shape
+
+> Shape **(b)** is ruled — the wrap moves behind a `--no-ff` arc — and shape (a), a path-scoped
+> exemption in `no_ff_merges`, is refused.
+
+- **(a) has been overtaken.** `block-commit-on-main` (`[#527]`) now refuses a direct non-merge
+  commit on `main` at commit time, so writing a JOURNAL-only exemption would deliberately re-open
+  the path a live gate closed, and would weaken core-invariant #5 at the one place it is now
+  prevented rather than merely WARNed.
+- **The class is eliminated, not exempted** — which is what the row's own alternative (b)
+  proposed, and what the live gate has since made true.
+- **Evidence:** `CLAUDE.md` §9 `block-commit-on-main`; `scripts/validate_no_ff.py`;
+  `ecosystem/disposition-register.yaml`.
+- **Row status:** OPEN, and the third conjunct is why. E2 authorised removing the three
+  journal-wrap per-instance entries from `ecosystem/disposition-register.yaml` only if each
+  matched no live WARN. **Measured 2026-08-24: all three still match live WARNs** — ship-gate
+  prints `[disp] no_ff_merges: WARN dispositioned by warn-no-ff-{533109f,3a894eeb5,d0f9ead67}`
+  and `validate_no_ff.find_violations` returns exactly those three shas. They are immutable June
+  2026 history whose WARN cannot be cleared by a fix, only by a forbidden rewrite, so removing
+  the dispositions would un-disposition a live WARN rather than tidy a stale one. **The three
+  `[stale]` dispositions flagged elsewhere are different entries** (`warn-row-length-533`,
+  `-529`, `-530`). The conjunct is unsatisfiable until shape (b) actually replaces per-instance
+  dispositions with the path-scoped rule — which is the build this row still owns.
+- **Expiry:** open-ended.
+
+### T-26 · `[#418]` `automation/fleet-audit` records 0–10 baselines a day
+
+> The multiplicity is acceptable BECAUSE it is structural, and the structure is identified rather
+> than suspected.
+
+- `fleet_health.py` throttles on `logs/FLEET-HEALTH.md`, which is gitignored at `.gitignore:30`
+  and therefore exists PER WORKING TREE. Every worktree and clone independently reads a missing
+  or stale digest and re-runs the baseline; with parallel lanes routine, 0–10 commits a day is
+  the arithmetic of that design, not a fault in the writer branch.
+- **What is accepted is the multiplicity, not the throttle.** Keying a per-repo record on a
+  per-tree file is the defect, and the shape any future fix should take is recorded here: key the
+  throttle on the writer branch's last commit date.
+- **Evidence:** `.gitignore:30`; `scripts/fleet_health.py:4-5,151-156`.
+- **Row status:** OPEN. The reproduction artifact with observed per-day counts is unconditional
+  in the Done-when and was deliberately not manufactured here.
+- **Expiry:** open-ended.
+
+### T-27 · `[#414]` Self-acting-on-main incident family — the organ choice
+
+> Organ **(b)** is ruled — a gate on the ACTION reaching `main` — and (a) and (c) are refused
+> with reasons.
+
+- **(a) refused:** tightening ADR-85 so the anchor must be the actual wrap/HEAD SHA is
+  unsatisfiable for the ordinary merge case — the anchoring predicate is range-level by design,
+  because a merge commit cannot name its own hash, so an entry names a commit the range
+  INTRODUCES.
+- **(c) refused:** a concurrent-HEAD-swap detector is unbuildable from inside the session it must
+  police — the swap happens in another process's checkout.
+- **Partly landed since filing:** `block-commit-on-main` and `block-unanchored-push` (fails
+  CLOSED) together refuse the unanchored-change leg at both commit and push time.
+- **Evidence:** `scripts/journal_anchor.py`; `CLAUDE.md` §9 both hook rows.
+- **Row status:** OPEN. The recorded-operator-GO mechanism has no organ and no test at HEAD.
+- **Expiry:** open-ended.
+
+### T-28 · `[#456]` Ruling-blocked cohort sweep — the enumeration and its routing
+
+> The cohort is enumerated, measured rather than estimated, and routed per ADR-108 §A.
+
+- **The 38 members:** `[#162]` `[#344]` `[#350]` `[#346]` `[#349]` `[#353]` `[#484]` `[#389]`
+  `[#425]` `[#210]` `[#408]` `[#418]` `[#417]` `[#414]` `[#423]` `[#239]` `[#443]` `[#456]`
+  `[#263]` `[#351]` `[#338]` `[#341]` `[#412]` `[#415]` `[#453]` `[#347]` `[#491]` `[#463]`
+  `[#464]` `[#409]` `[#410]` `[#411]` `[#537]` `[#356]` `[#358]` `[#399]` `[#362]` `[#366]`.
+  The row's own estimate of "33 rows (18%)" is superseded by a measured 38.
+- **Routing:** all are TECHNICAL (architect-ruled) except `[#346]`, operator-owned under
+  core-invariant #6 — the class the row itself predicted would be operator-owned for a reason
+  other than being functional.
+- **One member is mis-cohorted:** `[#537]` carries no `STANDING_RULINGS.md` OR-branch and is not
+  dischargeable by this route; it is closed on its own withdrawal branch instead (T-33).
+- **Where the enumeration lives, and why here.** The Done-when said "in this row", and a row file
+  is retired at closure, so the row is the one place the list cannot durably live. Ruled lawful:
+  this section plus the closing commit message, both durable and findable, satisfy the intent.
+- **Evidence:** cohort C1 of
+  `docs/audits/2026-08-23-technical-backlog-adjudication-prep.md`, re-derived from `tasks/*.md`.
+- **Row status:** CLOSED by this section.
+- **Expiry:** open-ended.
+
+### T-29 · `[#263]` Protocols / edge-map reconciliation residuals
+
+> The two stale ESSENTIALS references are recorded as accepted-by-relocation rather than
+> corrected.
+
+- `protocols/PLAYBOOK.md:649` cites "ESSENTIALS line 25" for the English-only prompt rule, and
+  `protocols/AI_COUNCIL_PROCESS.md:325,413` cite an "ESSENTIALS § Repo artifacts" heading. In
+  both cases the DOCTRINE is live and the LOCATOR has drifted — a line number and a heading that
+  moved.
+- Recording them is the honest disposition for a pointer whose target still exists under another
+  name; re-pointing by line number would only re-create the same rot.
+- **Evidence (verified live at HEAD):** `protocols/PLAYBOOK.md:649`;
+  `protocols/AI_COUNCIL_PROCESS.md:325,413`; `ecosystem/doc-code-edge.yaml:118` + `:62`.
+- **Row status:** CLOSED. E3 removed the `mermaid_theme_directive` exempt entry and the stale
+  `mermaid_theme` comment word; re-run clean — `doc_code_coverage_drift: all 46 ALL_CHECKS
+  members covered (coverage_scope-annotated or exempt); none escape coverage_scope` and
+  `doc_code_edge: 16 doc->code edge(s) resolved; none broken/ambiguous/orphaned`. The exemption
+  was genuinely stale, not load-bearing.
+- **Expiry:** open-ended.
+
+### T-30 · `[#351]` Fleet-Python-upgrade ticket
+
+> The coordinated fleet lift stays DEFERRED, with a ratified next-review date.
+
+- RULING-PY set the ruff baseline at py311 and ticketed "always newest Python" as a direction,
+  not a due bump. Nothing since has made the lift urgent, and the hub itself measures Python
+  3.12.10 against a `>=3.12` floor — the hub is not the laggard the row anticipated.
+- **The reason to defer is coupling, not effort:** the upgrade moves `ruff target-version` and
+  the `pyproject.toml` floor together across all nine `adr104-fleet-members` in ONE arc, and a
+  partial lift produces exactly the per-repo drift RULING-PY forbade.
+- **Next review: 2026-11-24** (ratified by the architect in the DISCHARGE-38 packet).
+- **Evidence:** `scripts/audit.py:2719` `_DECL_ANCHOR_ID = "adr104-fleet-members"`;
+  `pyproject.toml:15,175`.
+- **Row status:** OPEN. The coordinated-path artifact across the nine members is unconditional
+  in the Done-when and unbuilt.
+- **Expiry:** 2026-11-24.
+
+### T-31 · `[#341]` Codex producer-lane activation mechanism, legs (i)–(iv)
+
+> Ruled per leg.
+
+- **(i)** Nested-`AGENTS.md` precedence stays OPEN pending intake #42; Codex activation must not
+  assume a root `AGENTS.md` exists. This leg deliberately does NOT rest on R-1: R-1's basis is
+  refuted by measurement — the phrase it cites appears nowhere in ADR-53, ADR-53 Decision 2
+  stands `Accepted`, and `validate_hermetization` refuses the file on two machines — and intake
+  #42 (2026-08-24) carries the fork, architect leaning retire-R-1.
+- **(ii)** Activation without global-infra edits: the per-run flag path is the ruled shape
+  (`codex exec` with an explicit model/profile argument), since a repo-local override collides
+  with the very precedence question (i) leaves open.
+- **(iii)** The producer guardrails are standing operator sanction and are recorded, not
+  re-decided: isolated branch · bounded prompt · no-commit · CC verifies · terra review pre-merge
+  · Windows danger-full-access is operator-owned risk.
+- **(iv)** The PLAYBOOK §16 reconciliation is owed and unbuilt.
+- **Evidence:** intake #42 (2026-08-24); `protocols/PLAYBOOK.md` §16.
+- **Row status:** OPEN. A recorded activation run and a §16 describing a SHIPPED mechanism are
+  both unconditional and absent.
+- **Expiry:** revisit with intake #42.
+
+### T-32 · `[#491]` Gemini scanning lane — RULING R-G
+
+> **R-G: the Gemini lane is admitted for RETRIEVAL only.** It may enumerate, locate and quote; it
+> may not classify a finding against a doctrine clause.
+
+- **This is a measured boundary, not a preference:** a fan-out leg fabricated an ADR count, and a
+  lane that invents a number while classifying is outside its competence by ruling.
+- Every Gemini dispatch carries the role-reminder preamble, on evidence: `C1-N3` PASSED with it,
+  so the refusal failure is promptable rather than intrinsic.
+- **Gemini 3.7 Flash is NOT ADMITTED** — architect refusal 2026-08-23 on a clean instrument
+  (P 12/14, Φ 0, **G1 FAIL** on the zero-clean-refusals floor). Effort tier for any future run:
+  medium, per Q8.
+- **Standing instruction:** the next genuine retrieval task in any lane routes to the Gemini lane
+  and doubles as the acceptance run this row still owes.
+- **Evidence:** `docs/audits/2026-08-23-technical-lane-562-local-admission.md`;
+  `docs/audits/2026-08-22-technical-annotation-and-rulings-ledger.md` §5.1.
+- **Row status:** OPEN. The Done-when is conjunctive — this ruling AND an acceptance run over
+  real work, which the row's own annotation states the seeded-defect rerun is not.
+- **Expiry:** open-ended.
+
+### T-33 · `[#537]` `disposition token` — the branch is WITHDRAWN
+
+> The branch is withdrawn rather than defined, on the row's own alternative ("or the branch is
+> withdrawn").
+
+- **The vocabulary has no user.** Verified live: "disposition token" occurs only inside
+  `[#409]`/`[#410]`/`[#411]`, inside `[#537]` itself, and in the generated read-only
+  renderings of those same rows. Defining a token set now would create vocabulary to
+  rescue a predicate nothing else uses.
+- **The near-miss is confirmed exactly as the row read it:** the L-8 line that names `[#409]`
+  declines a **fold** — "Fold set A (`[#409]`/`[#410]`/`[#411]`) … NIE, both" — not the row. A
+  careful reader resolves that correctly; a mechanical predicate would not, which is the whole
+  complaint.
+- **The test conjunct is discharged by MOOTNESS:** a test pinning that line against a branch that
+  no longer exists has no subject. `[#409]`/`[#410]`/`[#411]` close in this same packet on the
+  `###`-heading branch (T-18/T-19/T-20), so the disposition-token branch is spent in the only
+  three rows that ever carried it.
+- **Recorded as a cohort correction:** `[#537]` carried no ruling branch and was mis-cohorted
+  into C1; it closes on withdrawal, not on a ruling.
+- **Row status:** CLOSED — branch withdrawn in `tasks/537-*.md` (E7), mootness recorded here.
+- **Expiry:** open-ended.
+
+### T-34 · `[#356]` RULING-W and the merge-delegation composite
+
+> Both are declared UNENFORCED and legible, with **owner: operator** and **next review:
+> 2026-11-24**.
+
+- RULING-W is live prose at `protocols/ESSENTIALS.md:86` and `protocols/PLAYBOOK.md:1388`
+  (hub→consumer writes: consumer worktree/branch → report, never a direct push into a live
+  consumer checkout). The merge-delegation composite is live only as JOURNAL narrative.
+- **Neither is proposed for a mechanism:** RULING-W governs an act performed in ANOTHER repo's
+  tree, which no hub gate observes.
+- The finding the row exists to name is ratified rather than repaired: *recorded ≠ enforced ≠
+  legible*, and these two are legible-only.
+- **A defect in this row's own Done-when, repaired transparently rather than quietly.** The
+  original alternative read: *"or an entry in ecosystem/silent-rule-baseline.yaml with `owner:`
+  and `review_date:` fields"*. That shape is **structurally impossible**: the file carries no
+  per-rule entries anywhere in its 100 lines, and its documented data model is "a NUMBER plus the
+  DETECTOR ID … never a parse of the silent-rule ledger". A Done-when naming an impossible shape
+  cannot be satisfied by any amount of work. Replaced, by architect ruling in the DISCHARGE-38
+  packet, with: *"or `protocols/STANDING_RULINGS.md` carries a section naming `[#356]` recording
+  each item's owner and next review date."* Both wordings are preserved above so the goalpost
+  move is auditable.
+- **Evidence:** `protocols/ESSENTIALS.md:86`; `protocols/PLAYBOOK.md:1388`;
+  `ecosystem/silent-rule-baseline.yaml` (100 lines, no `owner:`/`review_date:` field).
+- **Row status:** CLOSED by this section under the repaired Done-when (E4).
+- **Expiry:** 2026-11-24.
+
+### T-35 · `[#399]` `templates/handoff/v5/README.md.tmpl` — the phantom source claim
+
+> The template's existing first line satisfies the status conjunct; the false claim is CORRECTED
+> at its source rather than registered as distrusted.
+
+- **No script reads the template.** A grep of `scripts/seed_runbook.py` for the template filename
+  returns nothing; the seeder generalizes from the already-RENDERED hub README.
+- **The misleading site is the SPEC, not the template:** `protocols/HANDOFF_PROCESS.md:723`
+  claimed `docs/handoffs/README.md` is rendered "idempotently from one source
+  (`templates/handoff/v5/README.md.tmpl`…)". Corrected in this packet (E6) to describe the
+  deferred design and name the seeder's actual source. Fixing a false protocol claim beats
+  registering distrust of it.
+- **The status conjunct is ruled satisfied as it stands:** the template's first line reads
+  `<!-- HANDOFF v5 — runbook source template (DEFERRED STUB).` and continues "v5 bundles no
+  longer carry a per-bundle README" — which states the status with more precision than either
+  enum word the Done-when offered.
+- **Evidence:** `protocols/HANDOFF_PROCESS.md:723` — the row's cited `:481` is a stale locator,
+  corrected here; `templates/handoff/v5/README.md.tmpl:1`.
+- **Row status:** CLOSED.
+- **Expiry:** open-ended.
+
+### T-36 · `[#362]` `[#242]` carries a substantive guard loss
+
+> The six rules the row names by locator are dispositioned as a set, and the one that matters
+> most is recorded rather than accepted.
+
+- **The named risk set:** ADR-56:49-50 (dual-maintenance anti-drift), ADR-55:50-52 (operator
+  audit trace), ADR-57:36-37 (`mixed-uncertain` fail-safe), ADR-58:47 (confident-claim trigger),
+  ADR-57:67-68 and :81-82 (no-free-form guards).
+- **The finding that justifies this section on its own:** ADR-57's `mixed-uncertain` fail-safe
+  INVERTS in v5, which defaults to `execution` — a safety default replaced by a permissive one.
+  That is a substantive loss, not status hygiene, and this is where it stops being invisible.
+- **The 49-rule enumeration was deliberately not attempted.** It is a seven-ADR re-read; claiming
+  it without performing it is the defect this register exists to prevent. Queued as a bounded
+  future lane.
+- **The ordering clause stands:** `[#242]` does not reach a terminal status before this row does.
+  `[#242]` is not in cohort C1 and is closed nowhere in this packet.
+- **Evidence:** the row body's census over ADRs 32/37/42/55/56/57/58; ADR-32 "Superseded by: none".
+- **Row status:** OPEN.
+- **Expiry:** open-ended.
+
+### T-37 · `[#347]` Engineering loop/harness + the safe-deletion pattern
+
+> The safe-deletion pattern stays unruled, and the reason is that the ruling it would extend is
+> narrower than the pattern needs.
+
+- The proof-then-delete ruling on `[#122]` licenses deleting a SPECIFIC artifact once its content
+  is proven recoverable. Generalising that into a standing "sanctioned safe-deletion path" would
+  license deletion by pattern-match, which is how the junkyard effect has previously been
+  inverted into data loss elsewhere in this fleet.
+- **The operator's standing pain is acknowledged, not dismissed:** files being frozen or
+  tombstoned instead of deleted is real. It stays a design question with no ruling rather than
+  acquiring a weak one.
+- **Parse ruled (architect, DISCHARGE-38 packet):** the Done-when's "or" attaches to the
+  safe-deletion clause only — both alternatives it joins are about documenting the pattern, and
+  reading it wider would let a deferral sentence discharge a decomposition mandate.
+- **Evidence:** the `[#122]` proof-then-delete ruling; ADR-70; ADR-98.
+- **Row status:** OPEN. The decomposition into filed `tasks/*.md` rows stays required, and is a
+  named consumer of the closures this packet banks.
+- **Expiry:** open-ended.
+
 ## Editing note (read before adding an entry)
 
 This file sits inside the silent-rule ratchet corpus (`protocols/*.md`; detector
@@ -1999,3 +2726,7 @@ space. `re.search` runs `re.MULTILINE` (a leading `^`/trailing `$` anchor to any
 does not itself join wrapped words — a literal space in `pattern:` still fails across a wrap.
 Picking a shorter phrase that stays within one source line side-steps the issue entirely; a
 pattern that spans a wrap needs `\s+` in place of the space.
+
+(2026-08-24, post-R12: this file is excluded from the silent-rule detector's scope; the
+declarative-phrasing constraint above no longer applies — write rulings in whatever mood is
+clearest.)

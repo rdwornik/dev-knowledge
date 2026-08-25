@@ -430,7 +430,7 @@ v5 exactly as specified in §§1–12 — the mode label on the current behaviou
 ### Architect mode
 
 For a session that *defines or reshapes the way of working*. Same residual machinery (§2),
-re-profiled, with two architect-only in-session layers added — orientation, then the
+re-profiled, with two architect-mode-only in-session layers added — orientation, then the
 operator-context beat:
 
 - **(a) Residual scoped to the planning session** — the planning "why": which design tensions
@@ -720,8 +720,11 @@ bundle's **session-specific header** (slug · one-line purpose · mode) lives in
 `HANDOFF_BOOT.md`, which points back at the runbook; the bundle `HANDOFF_BOOT.md` carries that
 header + the paste-pointer and does **not** repeat the walkthrough. The runbook is generic across
 repos of the same handoff version: the #164 generator seeds/updates each repo's
-`docs/handoffs/README.md` idempotently from one source (`templates/handoff/v5/README.md.tmpl`, a
-deferred stub until #164 lands) and emits the four-file bundle — never a per-bundle README.
+`docs/handoffs/README.md` idempotently and emits the four-file bundle — never a per-bundle README.
+**Source — as built vs as designed ([#399], 2026-08-24):** the render-from-one-template shape is the
+DEFERRED design, not the built one. No script reads `templates/handoff/v5/README.md.tmpl` (it stays a
+deferred stub until #164 lands); `scripts/seed_runbook.py` generalizes from the already-rendered hub
+`docs/handoffs/README.md`.
 
 **PLAN.md, the D3 four-state artifact (intake #18 A9).** An architect bundle MAY carry `PLAN.md` —
 the session plan, CC-authored, never pasted. Its lifecycle is **DRAFT → REVIEWED → APPROVED →

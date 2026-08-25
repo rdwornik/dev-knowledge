@@ -1,7 +1,7 @@
 ---
 id: "[#464]"
 title: "corp-*/ai-council governance drift — five findings live 15–46 days, surfaced daily, zero consumption"
-status: open
+status: closed
 priority: P2
 size: S
 theme: "[E7] Tooling & evaluation"

@@ -1,7 +1,7 @@
 ---
 id: "[#344]"
 title: "Session-close gate for handoff generation + consumer hub-write guard"
-status: deferred
+status: closed
 priority: P2
 size: M
 theme: "[E1] Handoff continuity"

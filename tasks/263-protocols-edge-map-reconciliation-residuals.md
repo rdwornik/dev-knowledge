@@ -1,7 +1,7 @@
 ---
 id: "[#263]"
 title: "Protocols/edge-map reconciliation residuals"
-status: open
+status: closed
 priority: P3
 size: S
 theme: "[E5] Canonical-file integrity"

@@ -1,7 +1,7 @@
 ---
 id: "[#338]"
 title: "codex-review drift consolidation"
-status: open
+status: closed
 priority: P2
 size: S
 theme: "[E7] Tooling & evaluation"

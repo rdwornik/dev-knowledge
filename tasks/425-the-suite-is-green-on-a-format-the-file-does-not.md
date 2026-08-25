@@ -1,7 +1,7 @@
 ---
 id: "[#425]"
 title: "The suite is green on a format the file does not use"
-status: open
+status: closed
 priority: P2
 size: S
 theme: "[E2] Enforced governance"

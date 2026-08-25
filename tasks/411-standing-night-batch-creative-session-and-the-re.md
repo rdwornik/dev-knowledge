@@ -1,7 +1,7 @@
 ---
 id: "[#411]"
 title: "Standing night batch — creative session, and the recurring Q&A cadence"
-status: open
+status: closed
 priority: P3
 size: S
 theme: "[E7] Tooling & evaluation"
