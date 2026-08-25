@@ -2387,8 +2387,13 @@ member, `[#537]`, carries no ruling branch at all and was mis-cohorted.
   it — so renaming is a code-and-template change to fix a prose collision that a word resolves.
 - **Evidence:** `protocols/HANDOFF_PROCESS.md` §13 enum; `protocols/HANDOFF_BOOT.md` ack line
   ("Layer-1 browser", shipped 2026-06-11).
-- **Row status:** CLOSED — the conformance sweep across the three named files (E1) landed with
-  this section; see the closing commit for the sites touched.
+- **Row status:** CLOSED. The conformance sweep (E1) checked every non-`architectur*` use of the
+  word in all three files: `ARCHITECTURE.md` Ch1 and `protocols/HANDOFF_BOOT.md` are wholly ACTOR
+  uses (bare is correct under this ruling); in `HANDOFF_PROCESS.md` §13 every mode use is already
+  governed by an explicit "mode"/"Modes" noun or is an enum declaration (`:408`, `:413`, `:417`,
+  `:584`, `:681`). One adjectival site was conformed — `:433` "architect-only" →
+  "architect-mode-only", matching the existing "Architect-mode-additive" convention at `:566`.
+  The ruling largely ratifies existing practice rather than requiring a rewrite.
 - **Expiry:** open-ended.
 
 ### T-23 · `[#349]` Mechanize session-discipline inheritance
@@ -2434,8 +2439,16 @@ member, `[#537]`, carries no ruling branch at all and was mis-cohorted.
   proposed, and what the live gate has since made true.
 - **Evidence:** `CLAUDE.md` §9 `block-commit-on-main`; `scripts/validate_no_ff.py`;
   `ecosystem/disposition-register.yaml`.
-- **Row status:** see the closing commit — this section is mandatory for the row either way, and
-  closure additionally required the three journal-wrap per-instance entries to be dead (E2).
+- **Row status:** OPEN, and the third conjunct is why. E2 authorised removing the three
+  journal-wrap per-instance entries from `ecosystem/disposition-register.yaml` only if each
+  matched no live WARN. **Measured 2026-08-24: all three still match live WARNs** — ship-gate
+  prints `[disp] no_ff_merges: WARN dispositioned by warn-no-ff-{533109f,3a894eeb5,d0f9ead67}`
+  and `validate_no_ff.find_violations` returns exactly those three shas. They are immutable June
+  2026 history whose WARN cannot be cleared by a fix, only by a forbidden rewrite, so removing
+  the dispositions would un-disposition a live WARN rather than tidy a stale one. **The three
+  `[stale]` dispositions flagged elsewhere are different entries** (`warn-row-length-533`,
+  `-529`, `-530`). The conjunct is unsatisfiable until shape (b) actually replaces per-instance
+  dispositions with the path-scoped rule — which is the build this row still owns.
 - **Expiry:** open-ended.
 
 ### T-26 · `[#418]` `automation/fleet-audit` records 0–10 baselines a day
@@ -2507,8 +2520,11 @@ member, `[#537]`, carries no ruling branch at all and was mis-cohorted.
   name; re-pointing by line number would only re-create the same rot.
 - **Evidence (verified live at HEAD):** `protocols/PLAYBOOK.md:649`;
   `protocols/AI_COUNCIL_PROCESS.md:325,413`; `ecosystem/doc-code-edge.yaml:118` + `:62`.
-- **Row status:** see the closing commit — closure additionally required the
-  `mermaid_theme_directive` exempt-entry removal (E3) to land without surfacing a RED.
+- **Row status:** CLOSED. E3 removed the `mermaid_theme_directive` exempt entry and the stale
+  `mermaid_theme` comment word; re-run clean — `doc_code_coverage_drift: all 46 ALL_CHECKS
+  members covered (coverage_scope-annotated or exempt); none escape coverage_scope` and
+  `doc_code_edge: 16 doc->code edge(s) resolved; none broken/ambiguous/orphaned`. The exemption
+  was genuinely stale, not load-bearing.
 - **Expiry:** open-ended.
 
 ### T-30 · `[#351]` Fleet-Python-upgrade ticket
