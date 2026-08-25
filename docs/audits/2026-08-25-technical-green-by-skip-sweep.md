@@ -270,6 +270,8 @@ a substrate baseline.
 | lane session start | `2026-08-25T18:19:45Z` | worktree already provisioned |
 | codespace provision-to-ready | **not measured** | no codespace — leg not discharged |
 | first full `pytest` | **abandoned** | started `18:24:22Z`, killed ~25 min in, unfinished: self-contended (a second suite was launched against the same tree) and then invalidated by mid-flight edits. Recorded as abandoned rather than reported as a number. |
+| **final full `pytest`, lane branch** | **1722.9 s** (28 m 43 s) | 3976 tests; clean single run |
+| **full `pytest`, pristine `main` baseline** | **1923.6 s** (32 m 04 s) | same interpreter, detached worktree at `436e7375` |
 | `audit.py health` (standalone, whole tree) | **625.6 s** (~10 m 26 s) | this IS the pre-commit commit tax |
 | commit 1 (hook-inclusive) | ~6 min | landed `21:50:59+02:00`; start not stopwatch-precise |
 | **commit 2 (hook-inclusive)** | **296.0 s** (~4 m 56 s) | stopwatch-measured |
@@ -359,7 +361,7 @@ lane with no roster to keep current.
 | targeted: detector-error + doc-claims + closures + twin-parity | **88 passed** |
 | `test_fleet_audit_replication.py` | **14 passed** |
 | `test_green_by_skip_sweep.py` + siblings | **passed** |
-| full suite | see §8 |
+| full suite | **33 failed / 3922 passed** — every failure also fails on pristine `main` (39 there); zero introduced by this lane. Measured, §8 |
 
 **One pre-existing RED, proven not this lane's.** `test_audit.py::test_health_stays_ok_with_na_status`
 fails on `funnel_coverage` WARNs over undispositioned `2026-08-24` / `2026-08-25` audit
@@ -430,6 +432,51 @@ separately, including a dedicated regression for the yesterday-shadowing case te
 **Not executed by terra:** the checkout was read-only, so terra ran no tests. Every claim it
 made was re-verified against the source here before being accepted.
 
-## 8. Lane close
+## 8. Lane close — the full suite, measured against a controlled baseline
 
-Appended at lane close.
+The suite is **not green**, and it is not green on `main` either. What matters is the
+delta, so it was measured rather than asserted: the same interpreter (this lane's `.venv`)
+was run against a **detached worktree at pristine `436e7375`** and against the lane branch,
+and the two failure sets compared name-by-name.
+
+| run | result | wall-time |
+|---|---|---|
+| lane branch `0263feed` | **33 failed · 3922 passed · 21 skipped · 1 xfailed** | 1722.9 s (28 m 43 s) |
+| pristine `main` 436e7375 | **39 failed · 3888 passed · 21 skipped · 1 xfailed** | 1923.6 s (32 m 04 s) |
+
+**Every one of the lane's 33 failures also fails on pristine `main`. The lane introduces
+zero new failures**, and `main` carries six *more* that the lane branch does not.
+
+The 33, by file, with why each is not this lane's:
+
+| n | file | cause |
+|---|---|---|
+| 17 | `test_fleet_analytics.py` | `ModuleNotFoundError: No module named 'pandas'` — the lane venv lacks the `analytics` dependency group. Environmental; identical count on both sides. |
+| 9 | `test_nopack_sandbox.py` | `rc=127`, absent sandbox tooling on this host. Environmental. |
+| 2 | `test_verify_handoff_probes.py` | `tool absent: sed` — not on PATH in this shell. Environmental. |
+| 1 | `test_stale_worktrees.py` | the known worktree-hostile reader test: running the suite *from* a linked worktree REDs it. |
+| 1 | `test_enforcement_coverage.py` | the anchor-gate probe test, RED on `main` since 2026-08-22. |
+| 1 | `test_validate_doc_rot.py` | live-corpus accretion findings — pre-existing corpus state. |
+| 1 | `test_funnel_coverage.py` | `test_committed_baseline_agrees_with_a_live_measurement` — see below. |
+| 1 | `test_audit.py` | `test_health_stays_ok_with_na_status` — separately proven pre-existing on a detached run at `436e7375`. |
+
+**The six `main`-only failures** — `test_telemetry_wiring.py` (3), `test_export_backlog_view.py`,
+`test_boundary_report.py`, `test_audit_parallel.py` — are in files this lane never touched.
+The two runs used different test orderings (the lane run random, the baseline
+`-p no:randomly`), which is the honest explanation for an order-sensitive difference; it is
+recorded rather than claimed as an improvement this lane made.
+
+**`test_funnel_coverage.py::test_committed_baseline_agrees_with_a_live_measurement` deserves
+its own note, because this lane adds a `docs/audits/` file and that is exactly what the
+check watches.** It fails on pristine `main` too: `audit.py health` already reports ~15
+artifacts dated 2026-08-24/25 as *"carries no disposition and is not in the arm-time
+baseline"*, so the committed `ecosystem/audit-funnel-baseline.json` was already out of step
+with the corpus before this lane existed. This artifact adds one more name to a set that was
+already non-empty — it does not create the failure. **Re-arming that baseline, or writing
+disposition rows for the 2026-08-24/25 batch, is a governance act this lane is contracted
+not to perform** (`ecosystem/` registries and the disposition ledger are both on the
+do-not-touch list). **OWED at integration**, alongside the `doc-counts.md` regeneration
+noted in §6.
+
+`audit.py health` — **OK** on the final branch state, so the pre-commit gate the fleet
+actually runs on is green; the five lane commits each passed it at commit time.
