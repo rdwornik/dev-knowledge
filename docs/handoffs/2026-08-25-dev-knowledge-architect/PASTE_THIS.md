@@ -450,9 +450,11 @@ lacks. **ADR-114** stays PARKED — reopening it is an operator act, not this se
 **Two standing cautions for whoever picks this up.** (1) Row births are the *first* act of wave 1
 and every prior contract in this window explicitly forbade them — if you find yourself editing
 `BACKLOG.md` directly, stop: it is **generated** since the ADR-107 §7.2 flip, edit `tasks/` and
-regenerate. (2) The unpushed-`main` ordering risk recorded in 2026-08-25 (b) resolves only at the
-operator's push; until then the five torn-down lane branches exist on `origin` solely inside that
-unpushed `main`.
+regenerate. (2) The unpushed-`main` ordering risk recorded in 2026-08-25 (b) is
+**DISCHARGED** — verified at this bundle's cut, `main` is level with `origin/main`, so the five
+torn-down lane branches are durably on the remote and the restore-from-local contingency that
+entry describes no longer applies. Re-derive rather than trust this line: it is a generation-time
+observation, and P-tier probes do not cover it.
 <!-- FILL-IN:frontier END -->
 
 ---
@@ -572,4 +574,4 @@ This bundle's supplement is **generated EMPTY**, so the beat fires **FULL** — 
 
 ---
 
-=== END OF PASTE — 4 sections · 50589 bytes ===
+=== END OF PASTE — 4 sections · 50794 bytes ===
