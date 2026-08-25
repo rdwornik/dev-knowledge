@@ -62,7 +62,7 @@ each behind an ancestor-of-`main` proof, then the Step 4 verification set.
 
 **Anchors:** `a6698ca6` - the workspace commit, which merge `fac96321` introduces. The five lane
 tips `ca555c0c`, `0d9fef86`, `65ce67c0`, `2252abc2` and `9b851a68`, each the commit its own merge
-introduces. And this entry's own first commit, named in the follow-up commit on this branch so
+introduces. And `fa556048` - this entry's own first commit, named here in a follow-up commit on this branch so
 that the merge which introduces it is anchored too - an entry cannot name the commit that carries
 it, which is the single-commit-branch trap the predicate makes unavoidable.
 
