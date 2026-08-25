@@ -83,18 +83,49 @@ providers:
   xai:
     display_name: xAI
     council_alias: grok
-    # No CLI on this repo's surface — present because a model string attributed to this
-    # provider appears in committed prose (S30), and the registry is the closed vocabulary
-    # the checker matches those attributions against. Re-verified 2026-08-23: `grok` is not
-    # on PATH, and the 2026-08-20/23 A/B runs reached xAI over raw HTTPS rather than a CLI.
-    cli: null
-    version_command: null
+    # PRESENCE REPAIRED 2026-08-25 (lane RL, presence-only truth-up). The 2026-08-23 note
+    # this replaces recorded `cli: null` on the basis that `grok` was "not on PATH"; that is
+    # no longer the state of this host, and the entry contradicted it.
+    #   BASIS, re-measured on this host 2026-08-25 rather than transcribed:
+    #     Get-Command grok  ->  Application  C:\Users\1028120\.grok\bin\grok.exe
+    #     grok --version    ->  `grok 1.0.5 (5115b46bc9) [stable]`  (exit 0)
+    # PRESENCE ONLY. This repairs what the registry says is INSTALLED. It grants no role,
+    # revisits no admission verdict, and says nothing about which route the 2026-08-20/23
+    # A/B runs actually used (those reached xAI over raw HTTPS) — roles are R3's.
+    #
+    # POISONED NAME — `agent` is an un-pinnable token, and this is the entry recording why.
+    # `C:\Users\1028120\.grok\bin\agent.exe` is BYTE-IDENTICAL to `grok.exe`:
+    #     SHA256(grok.exe) == SHA256(agent.exe)
+    #       == 4B924DAA801663EA20E96382408B1F2B5BA39EFAD62C14D20D88618A9EB0BE64
+    #   (Get-FileHash over both files, this host, 2026-08-25.)
+    # A registry row, probe or doc naming the bare token `agent` therefore names a binary
+    # whose identity is indistinguishable from grok's by name alone. Only unambiguous names
+    # are pinned here; `agent` is recorded as un-pinnable rather than left to be rediscovered.
+    cli: grok
+    version_command: ["grok", "--version"]
 
   google:
     display_name: Google
     council_alias: gemini
-    # The CLI is live on this surface and was verified rather than assumed: `gemini` resolves
-    # on PATH and `gemini --version` prints `0.56.0`.
+    # STATUS CORRECTED 2026-08-25 (lane RL). The note this replaces said "the CLI is live on
+    # this surface". That conflated two different facts, and the registry asserted the
+    # stronger one. Both halves, each re-measured on this host today:
+    #   BINARY PRESENT — `gemini` resolves on PATH
+    #     (C:\Users\1028120\AppData\Roaming\npm\gemini.ps1) and `gemini --version` prints
+    #     `0.56.0` at exit 0. This is why `cli:` below stays `gemini`: the probe the
+    #     SessionStart sentinel runs is a local version read, and it still works.
+    #   SERVED ROUTE DEAD on this tier — a real model call refuses before any token is
+    #     spent. Measured 2026-08-25 with `GEMINI_API_KEY` stripped:
+    #       gemini -p "say ok"
+    #       -> Error authenticating: IneligibleTierError: This client is no longer
+    #          supported for Gemini Code Assist for individuals ... migrate to the
+    #          Antigravity suite   (reasonCode: UNSUPPORTED_CLIENT, tierId: free-tier)
+    #     This is a SERVER refusal of the client, not an expired token, so re-authenticating
+    #     does not clear it. The only documented way past it is an API key, which the
+    #     standing auth ruling forbids.
+    # PRESENCE/BASIS/DATE ONLY — this records what the host does, grants no role and
+    # revisits no admission verdict. The live route to this vendor's models is the separate
+    # `antigravity` provider below; whether that route may be USED is not this file's call.
     #
     # NO `changelog_tool_key` / `changelog_source_url`, deliberately and with the discharge
     # path named. Those two keys are the S8 half of `ecosystem/tool-versions.yaml`, whose rows
@@ -105,6 +136,48 @@ providers:
     # these two keys then land together, and the S8 check begins asserting on the same commit.
     cli: gemini
     version_command: ["gemini", "--version"]
+
+  antigravity:
+    display_name: Antigravity (Google)
+    # NOT PANELLED — `protocols/AI_COUNCIL_PROCESS.md` names no Antigravity seat, and
+    # `council_alias: null` is the declaration for that (check_s31_council_panel).
+    council_alias: null
+    # REGISTERED PRESENT 2026-08-25 (lane RL) — a live, authenticated, first-on-PATH runtime
+    # that was entirely unregistered while the registry described the host. Every fact below
+    # was re-derived on this host today with the command shown; none is transcribed.
+    #   PRESENT   Get-Command agy -> Application
+    #             C:\Users\1028120\AppData\Local\agy\bin\agy.exe
+    #   VERSION   agy --version -> `1.1.20` (exit 0)
+    #   AUTH      `agy models` exits 0 having FETCHED the roster from the server. That
+    #             round-trip is the auth evidence, and it is deliberately the only auth
+    #             claim made here: agy's own status/envelope `status` field is known to
+    #             report ERROR while carrying a complete answer, so it is not evidence.
+    #   PATH      entry 19 of 39 — AHEAD of C:\Users\1028120\.grok\bin (20),
+    #             AppData\Roaming\npm (28, gemini + codex) and .local\bin (29).
+    #             First on PATH among the vendor agent CLIs on this host.
+    #   SERVED    families returned by `agy models`, 2026-08-25:
+    #             gemini-3.7-flash-{high,medium,low} · gemini-3.6-flash-{high,medium,low} ·
+    #             gemini-3.5-flash-{high,medium,low} · gemini-3.1-pro-{high,low} ·
+    #             claude-sonnet-4-6 · claude-opus-4-6-thinking · gpt-oss-120b-medium
+    #
+    # NO ROLE, AND THE CONSEQUENCE IS NAMED RATHER THAN ACTED ON. Admitting `agy` would give
+    # the REFUSED `gemini-3.7-flash` family a SECOND route to this fleet — the served list
+    # above carries it directly. That is a `[#578]` RERUN QUESTION, not a registry act: this
+    # row records that the route exists and stops there. R3 owns roles; nothing here admits,
+    # refuses, or re-opens an admission verdict.
+    #
+    # NO `changelog_tool_key` / `changelog_source_url`, for the reason the `google` row above
+    # states in full: those are the S8 half of `ecosystem/tool-versions.yaml`, whose rows
+    # record an OPERATOR review that has not happened for this CLI. Discharge is one
+    # `/changelog-review` run, after which both land together.
+    cli: agy
+    version_command: ["agy", "--version"]
+
+  # CURSOR — ABSENT, recorded as an absence rather than left unstated (lane RL, 2026-08-25).
+  # There is no `cursor:` row below and there is no `cursor` on this host: `Get-Command cursor`
+  # and `command -v cursor` both return nothing, on PATH or otherwise. An absence that is
+  # merely unrecorded is indistinguishable from an oversight, which is the failure this
+  # comment closes; it declares no provider and adds no key.
 
   deepseek:
     display_name: DeepSeek
