@@ -7,6 +7,22 @@
 		{
 			"name": "⚙️ ~/.claude (config)",
 			"path": "C:\\Users\\1028120\\.claude"
+		},
+		{
+			"name": "🤖 ~/.codex (OpenAI)",
+			"path": "C:\\Users\\1028120\\.codex"
+		},
+		{
+			"name": "💎 ~/.gemini (Google)",
+			"path": "C:\\Users\\1028120\\.gemini"
+		},
+		{
+			"name": "🚀 ~/.grok (xAI)",
+			"path": "C:\\Users\\1028120\\.grok"
+		},
+		{
+			"name": "🖱️ ~/.cursor (Cursor)",
+			"path": "C:\\Users\\1028120\\.cursor"
 		}
 	],
 	"settings": {
