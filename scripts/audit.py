@@ -2691,8 +2691,17 @@ def check_fleet_audit_replication(repo_path: Path) -> list[Finding]:
 
     count = _run(["rev-list", "--count", f"{remote_ref}..refs/heads/{_AUTOMATION_BRANCH}"])
     if count is None or not count.isdigit():
-        return [Finding("fleet_audit_replication", "unavailable",
-                        "git rev-list failed -- replication lag not measurable here")]
+        # FAIL, not "unavailable" (green-by-skip sweep, 2026-08-25). `unavailable` renders
+        # as N/A and `_check_outcome` projects it onto `pass`, so this shipped green having
+        # measured nothing -- the same trap the no-remote-ref branch above already refused
+        # ("Returning `n/a` here would disable the backstop in exactly the never-replicated
+        # case it exists for", codex HIGH 2026-08-01), and the one check_silent_rule_ratchet
+        # names at terra HIGH 2026-07-27. Both refs are verified before this line, so git
+        # works and the repo is intact: rev-list failing here is a real defect, not an
+        # inapplicable context.
+        return [Finding("fleet_audit_replication", "fail",
+                        "git rev-list failed -- replication lag NOT measurable here, so this "
+                        "run proves nothing about ADR-80's durable record")]
 
     status, evidence = classify_replication_lag(int(count))
     return [Finding("fleet_audit_replication", status, evidence.replace("|", "/"))]

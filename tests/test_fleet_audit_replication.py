@@ -221,3 +221,34 @@ def test_writer_calls_the_push_leg(monkeypatch):
         "_commit_routine_outputs does not call the push leg -- replication is once again a "
         "separate organ that can die on its own, which is [#460]'s root cause"
     )
+
+
+# --- green-by-skip sweep (2026-08-25, STANDING_RULINGS section U) ------------
+# The alarm's own docstring calls this class "silent success theater". One rung of it
+# survived inside the alarm itself: when `git rev-list` failed, the check reported status
+# "unavailable" -- which renders as N/A and which `_check_outcome` projects onto `pass`,
+# so ship-gate waved through a run that had measured NOTHING. The branch immediately
+# above it in the same function had already refused exactly this reasoning for the
+# no-remote-ref case ("Returning n/a here would disable the backstop in exactly the
+# never-replicated case it exists for", codex HIGH 2026-08-01); this leg had not caught up.
+
+def test_unmeasurable_replication_lag_fails_rather_than_shipping_green(repo_with_remote,
+                                                                      monkeypatch):
+    work = repo_with_remote
+    monkeypatch.setattr(a, "_REPO_ROOT", work)     # the check is hub-only (see :100)
+    # Both refs resolve (so we are past the NOT-APPLICABLE and never-replicated branches);
+    # only the COUNT fails -- the state where the lag is genuinely not computable.
+    real_run = subprocess.run
+
+    def fake_run(cmd, *args, **kwargs):
+        if isinstance(cmd, list) and "rev-list" in cmd:
+            return subprocess.CompletedProcess(cmd, 1, "", "fatal: bad revision")
+        return real_run(cmd, *args, **kwargs)
+
+    monkeypatch.setattr(a.subprocess, "run", fake_run)
+    findings = a.check_fleet_audit_replication(work)
+
+    assert findings[0].status == "fail", (
+        "an unmeasurable replication lag must BLOCK, not ship as N/A")
+    assert findings[0].status != "unavailable"          # the defect being closed
+    assert "NOT measurable" in findings[0].evidence
