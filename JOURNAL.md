@@ -19,6 +19,81 @@
 
 ---
 
+### 2026-08-24 (k) - CC (Opus 5, local seat session, branch `docs/discharge-38-c1-closures`): the ruling branch 38 rows were waiting on gets exercised, and the cohort turns out not to be one cohort
+
+**Did:** executed `DISCHARGE-38.md` end to end - Phase 1 drafted a ruling for each of the 38
+cohort-C1 rows against its task file and the live tree (`Downloads/DISCHARGE-38-DRAFTS.md`, zero
+repo writes), the architect ruled row by row out of band, Phase 3 landed the packet: 37 register
+sections, seven bounded edit authorizations, 29 closures. Anchors `e5dffda1` (register), `86d9903f`
+(bounded edits), `5e3629db` (closures).
+
+**Result — ledger, falsifiable:** `window: 29 closed / 0 born / net -29`. Open count
+`212 -> 183`, both read from `validate_backlog` (9 themes, 26 stories, 183 tasks), not from the
+generator's own success line. **Banked: 29** - the closures fund the queued row specifications,
+and `[#347]`'s decomposition is the named consumer. Silent-rule `443 -> 443`, and that zero is the
+point: R12 took `protocols/STANDING_RULINGS.md` out of the detector's scope, so 715 added register
+lines move the metric by nothing. The brief predicted a "register-only rise"; post-R12 that is
+arithmetically impossible, and it was corrected before landing rather than discovered after.
+
+**Suite:** `3 failed, 3941 passed, 4 skipped, 1 xfailed` in 16:52 - the same three the brief names
+as baseline (`funnel_coverage` baseline identity, `anchor_gate_probe` inherited,
+`export_backlog_view` L4 residual). **Zero new REDs.** One near-miss caught and repaired: my first
+T-33 text quoted a literal export token, which added a THIRD offender to the already-red
+`test_no_gate_hook_or_script_reads_the_export` - `protocols/` is inside that test's enforcement
+sweep. Rephrased; the offender list is back to its pre-existing two, so this session's contribution
+to that RED is zero rather than "only one more".
+
+**The finding that shaped the session:** the 38 rows are not one cohort. 21 Done-whens are
+disjunctive ("...**or** the register carries a section naming `[#nnn]`") and there the ruling IS the
+discharge; 16 are conjunctive ("X **and** (Y or a section)") and a ruling discharges one leg while
+the row stays open; and `[#537]` carries no ruling branch at all - its Done-when is "the accepted
+tokens are enumerated ... and a test asserts ...". C3's own lean said `LIKELY-LIVE` and the cohort
+header generalised past it. Drafting around that split would have produced exactly the
+claim-without-substance defect the brief warned about, so 17 went back as NEEDS-JUDGMENT with the
+fork named in one line each.
+
+**Where a draft moved a ruling rather than just recording one:**
+- `[#484]` closes on MEASUREMENT, not deferral - this machine runs `uv 0.11.19` against the
+  `==0.11.19` pin and Python 3.12.10 against `>=3.12`. What C3 measured was a cloud container,
+  which is `[#453]`'s subject; the row was filed on a conflation of the two.
+- `[#356]`'s acceptance clause named a structurally impossible shape (a per-rule entry with
+  `owner:`/`review_date:` in a file whose documented data model is "a NUMBER plus the DETECTOR ID
+  ... never a parse of the ledger"). Repaired in the open, both wordings preserved.
+- `[#358]` got NO drafted ruling on purpose: its branch needed a reason the doc-vs-code divergence
+  stands, and there is none. Confirmed by the architect; closed by correcting the three sites.
+- `[#423]`'s premise was stale - `/ship` does carry a five-item Pre-flight. Four of the eight steps
+  genuinely stay prose and are now named.
+
+**E2 refused on its own stop-condition, which is the honest half of the ledger.** The packet
+authorised deleting the three journal-wrap dispositions only if each matched no live WARN. All
+three still match - ship-gate prints `[disp] no_ff_merges: WARN dispositioned by
+warn-no-ff-{533109f,3a894eeb5,d0f9ead67}` and `validate_no_ff.find_violations` returns exactly
+those shas. They are immutable June-2026 history; removing them would un-disposition a LIVE warn.
+The `[stale]` trio flagged earlier is a different set (`warn-row-length-533/-529/-530`), so the
+packet's hypothesis that they were the same is disproved. `[#210]` stays open.
+
+**Two stale locators found by resolving before acting:** `[#417]` cites `audit.py:4751-4760` (live
+`:4130-4139`); `[#399]` cites `HANDOFF_PROCESS.md:481` (live `:723`). Corrected in their sections
+rather than copied forward.
+
+**Changes:** `protocols/STANDING_RULINGS.md` (+715; S-1 records R12 itself, T-1..T-37 the cohort,
+plus the post-R12 editing-note line and three status lines made definitive); `tasks/` 29 rows to
+terminal status with their nodes out of `manifest.json` in one edit, `[#491]` deferred -> open,
+`[#356]`/`[#537]` clause edits; `BACKLOG.md` regenerated; `ecosystem/doc-code-edge.yaml`,
+`ecosystem/parity-surfaces.yaml`, `scripts/fleet_parity.py`, `protocols/HANDOFF_PROCESS.md`
+corrected.
+
+**Abandoned:** nothing silently. E2 refused with its measurement. The `[#362]` 49-rule enumeration
+was deliberately not attempted - a seven-ADR re-read, and claiming it without doing it is the
+defect the register exists to prevent. The conformance dashboard was deliberately not regenerated
+(known false-positive class, and the brief did not ask for it).
+
+**Next:** the 9 cohort-C1 rows that kept a conjunct - `#389 #210 #418 #414 #351 #341 #491 #362
+#347` - each now has a landed section and a single named outstanding leg. Queued from this session:
+the `block_commit_on_main.current_branch()` fail-open-on-git-error guard clause (architect asked it
+be surfaced, not built here), and `[#418]`'s reproduction, which is one
+`git log --format=%cd --date=short automation/fleet-audit | sort | uniq -c` away.
+
 ### 2026-08-24 (j) - CC (Opus 5, local dispatch session, branch `docs/land-research-candidate-register`): the register lands under a derived class rather than an invented one, and the stale input was found under the browser's duplicate name
 
 **Did:** executed `LAND-AND-DISPATCH.md` v2 - Step 0 preconditions, Step 1 landing of the two

@@ -2591,8 +2591,8 @@ member, `[#537]`, carries no ruling branch at all and was mis-cohorted.
 > withdrawn").
 
 - **The vocabulary has no user.** Verified live: "disposition token" occurs only inside
-  `[#409]`/`[#410]`/`[#411]`, inside `[#537]` itself, and in the rendered `BACKLOG.md` /
-  `.backlog-view` copies of those same rows. Defining a token set now would create vocabulary to
+  `[#409]`/`[#410]`/`[#411]`, inside `[#537]` itself, and in the generated read-only
+  renderings of those same rows. Defining a token set now would create vocabulary to
   rescue a predicate nothing else uses.
 - **The near-miss is confirmed exactly as the row read it:** the L-8 line that names `[#409]`
   declines a **fold** — "Fold set A (`[#409]`/`[#410]`/`[#411]`) … NIE, both" — not the row. A
