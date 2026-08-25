@@ -19,6 +19,63 @@
 
 ---
 
+### 2026-08-25 (d) - CC (Opus 5, background job, primary checkout, branch `docs/handoff-2026-08-25-architect`): the architect bundle for wave 1 is cut, and the seat is pointed at section U rather than re-told the window
+
+**Did:** generated the v6 architect handoff `docs/handoffs/2026-08-25-dev-knowledge-architect/` with
+`gen_handoff.py --mode architect`, then hand-authored its six FILL-IN regions. Stayed in the primary
+checkout deliberately: `gen_handoff` refuses to cut over any linked worktree, so the usual
+background-job worktree isolation would have blocked the act it was there to protect. Boot header
+declares Destination `none (primary tree)` on `main` - a legal boot destination under section
+13(c"), which is a boot target and not a work-branch claim - with write-scope naming the two edits
+that are refusals rather than preferences: no hand-edit of the generated `BACKLOG.md`, and no edit
+to a hub-single-sourced `CLAUDE.md` region without its lockstep template act.
+
+**Result:** `c5539713` - 5 files, +1021, every gate passed, no `--no-verify`. Purpose names `[E4]`
+Decision management and the ACCEPTED intake `2026-08-05-func-simplification-distribution-wave.md`,
+both live in the P0a/P0b enumeration, so P0c resolves rather than FAILing on a Purpose that names
+no authority. Residual carries six framed frontier decisions instead of a recap - F1 how ten ruled
+ADOPT arcs become rows without bypassing the ADR-111 funnel (section U birthed zero on purpose, and
+nothing in the corpus says whether a landed adjudication satisfies the funnel upstream or still
+owes ten intakes); F2 the cost boundary of the documentation-splits-by-audience direction where
+ARC-G meets byte-identical region templates and a 195/200 line budget; F3 the AGENTS.md precedence
+ruling, now evidence-complete, as a single supersede-plus-amend act; F4 green-by-skip as a failure
+class owed a sweep rather than one more point fix; F5 the ARC-D 4-6-lane GitHub-default mandate
+against the settled Codespaces free-tier ruling; F6 the items re-pegged rather than ruled.
+Drift-flags stay strictly by-reference - no verdict, count, `[stale]` status or sha - which is the
+anti-bluff contract, not caution.
+
+**One correction, made because a handoff that ships a false state claim is the failure the whole
+probe apparatus exists to prevent.** The first draft carried forward session (b)'s unpushed-`main`
+ordering risk as still standing. It is not: `git rev-list --left-right --count origin/main...main`
+reads 0/0, so the operator's push landed and the five torn-down lane branches are durably on
+`origin`. Corrected to DISCHARGED at `cf3e4b02`, and flagged in place as a generation-time
+observation that no probe re-derives - the honest limit, since P-tier covers the bundle's locators
+and not this.
+
+**Changes:** `docs/handoffs/2026-08-25-dev-knowledge-architect/` (new bundle, 5 files);
+`JOURNAL.md`. `SUPPLEMENT.md` commits EMPTY - this is a cold handoff, so the assembler folds
+nothing and the incoming section 13(d) operator-context beat fires full rather than narrowed.
+
+**Verification:** `validate_residual_completeness` OK (no unfilled region across the changed bundle
+files), `check_seal_identity` exit 0, assembler raised no boot-byte-budget warning. Bundle files
+normalized to LF after the splice helper's `write_text` laundered them to CRLF - caught at
+`git add`, fixed before the commit rather than left for `.gitattributes` to paper over. The full
+suite is NOT owed: the diff is one new `docs/handoffs/` bundle plus this entry, and no script,
+test, gate or generated surface moved.
+
+**Abandoned:** nothing. Not done, deliberately: no merge and no push - both are the operator's acts
+under MERGE IS ATOMIC and this job's own standing bar on merging to `main`; no row births, no
+`BACKLOG.md` edit, no ruling of any F1-F6 question. The bundle FRAMES those decisions; it does not
+take them.
+
+**Next:** operator merges `docs/handoff-2026-08-25-architect` `--no-ff` and pushes, then pastes
+`PASTE_THIS.md` into a fresh chat. Optionally fills `SUPPLEMENT.md` first and says `supplement
+filled`, which folds the ANSWERS region into a re-assembled `PASTE_THIS`. The day-letter `(d)` is
+derived at write time - re-derive it at merge if another session lands first.
+
+**Anchors:** `c5539713`, `cf3e4b02` - the bundle commit and its correction, each a commit the merge
+of this branch introduces (an entry cannot name the commit that carries it).
+
 ### 2026-08-25 (c) - CC (Opus 5, local seat session, primary checkout, branch `docs/land-register-ruling-packet`): the ruling packet lands with the four artifacts its citations need, and the register section points rather than paraphrases
 
 **Did:** executed `LAND-PACKET.md` with the operator's three additions. Step 0 verified a clean
