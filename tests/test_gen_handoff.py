@@ -885,3 +885,104 @@ def test_linked_worktrees_excludes_the_primary(tmp_path):
     ok, out = gh._git_status(repo, "worktree", "list", "--porcelain")
     assert ok and out.count("worktree ") == 1      # the primary, and only the primary
     assert gh._linked_worktrees(repo) == []
+
+
+# --- R2: the generated Standing-vs-NEW attribution frame --------------------
+#
+# 47/86 bundles hand-authored this paragraph, averaging 1,847 B, saying the same thing in
+# different words every window (2026-08-26 handoff census, item R2/b1). What is generated here
+# is the ATTRIBUTION, never a value — the anti-bluff dogfood above still governs, and these
+# tests exist so the block cannot quietly acquire one.
+
+# The banned shapes: a ship-gate verdict, a WARN/disposition count, a `[stale]` line, a sha, or
+# a backlog id. A frame that starts carrying one of these has become an answer.
+_ANSWER_SHAPES = (
+    re.compile(r"\bGREEN\b|\bRED\b"),
+    re.compile(r"\[stale\]"),
+    re.compile(r"\b[0-9a-f]{7,}\b"),
+    re.compile(r"#\d+"),
+    re.compile(r"\b\d+\s+(?:WARN|warn|dispositioned|organs?|entries)\b"),
+)
+
+
+def test_standing_vs_new_bindings_name_live_all_checks_members():
+    """The manifest is CURATED, so this is the guard that keeps it from rotting into naming a
+    retired organ — the failure mode the block's own scope note would otherwise hide.
+
+    Reads `audit_checks.registry.CHECK_ORDER` rather than `audit.ALL_CHECKS` deliberately:
+    `gen_handoff.collect_hints` inserts the STUB repo's `scripts/` at `sys.path[0]` and imports
+    `audit` from there, so by the time this test runs `sys.modules["audit"]` is a one-line stub
+    whose ALL_CHECKS is empty — and a test that read it would pass vacuously against nothing.
+    CHECK_ORDER is the same registry as a list of names, and test_audit_parallel.py pins the
+    two in agreement."""
+    from audit_checks.registry import CHECK_ORDER
+    live = {name.removeprefix("check_") for name in CHECK_ORDER}
+    named = {organ for organ, _b, _w in gh._DRIFT_ORGAN_BINDINGS}
+    assert named <= live, f"binding manifest names non-ALL_CHECKS organ(s): {named - live}"
+
+
+def test_standing_vs_new_carries_no_answer_value():
+    """THE contract for R2, run against the LIVE repo so it is evidence about the real block
+    and not about a fixture: three lists of names, and not one value among them."""
+    block = gh.standing_vs_new(_REPO)
+    hits = [rx.pattern for rx in _ANSWER_SHAPES if rx.search(block)]
+    assert hits == [], f"the generated frame carries answer-shaped text: {hits}"
+
+
+def test_standing_vs_new_partitions_every_manifest_organ_exactly_once():
+    block = gh.standing_vs_new(_REPO)
+    for organ, _b, _w in gh._DRIFT_ORGAN_BINDINGS:
+        assert block.count(f"`{organ}`") == 1, f"{organ} listed {block.count(organ)} times"
+    for heading in ("Dispositioned by the register", "Dispositioned by absence",
+                    "NEW-and-undispositioned", "Window"):
+        assert heading in block
+
+
+def test_standing_vs_new_degrades_loudly_when_the_window_is_unresolvable(tmp_path):
+    """A generator that cannot compute the window says so. It never guesses a range, and it
+    never falls through to a frame computed against nothing — which would file every organ as
+    NEW and read as an alarm."""
+    block = gh.standing_vs_new(_stub_repo(tmp_path))     # no git history at all
+    assert "Window unresolved" in block
+    assert "NEW-and-undispositioned" not in block
+
+
+def test_standing_vs_new_degrades_when_the_register_is_unreadable(tmp_path, monkeypatch):
+    """An empty register would silently reclassify every dispositioned organ as NEW — worse
+    than no frame, so the frame is withheld instead."""
+    monkeypatch.setattr(gh, "_window", lambda root: ("2026-01-01-prev", ["scripts/audit.py"]))
+    block = gh.standing_vs_new(_stub_repo(tmp_path) / "nonexistent")
+    assert "register unreadable" in block
+
+
+def test_touched_treats_git_history_bindings_as_always_in_a_non_empty_window():
+    """no_ff_merges and journal_spine_anchor fire against the spine, not a file. Fail toward
+    NEW: put the organ in front of the seat rather than quietly filing it as standing."""
+    assert gh._touched((gh._HISTORY_BINDING,), ["any/file.md"]) is True
+    assert gh._touched((gh._HISTORY_BINDING,), []) is False
+
+
+def test_touched_matches_dir_prefixes_and_exact_paths():
+    assert gh._touched(("scripts/",), ["scripts/audit.py"]) is True
+    assert gh._touched(("scripts/",), ["scriptsfoo/audit.py"]) is False
+    assert gh._touched(("BACKLOG.md",), ["BACKLOG.md"]) is True
+    assert gh._touched(("BACKLOG.md",), ["docs/BACKLOG.md"]) is False
+
+
+def test_generated_residual_carries_the_frame_and_the_narrowed_fill_in(tmp_path):
+    """End-to-end: the block reaches RESIDUAL.md §1, and the hand region below it now asks for
+    ONE judgment — which NEW flag is a decision rather than a defect."""
+    residual = (_gen(tmp_path).bundle_dir / "RESIDUAL.md").read_text(encoding="utf-8")
+    assert "{{STANDING_VS_NEW}}" not in residual        # the token was substituted
+    assert "Standing vs NEW" in residual
+    assert "DECISION rather than a defect" in residual
+
+
+def test_generated_residual_fill_in_regions_stay_recognised_as_unfilled(tmp_path):
+    """residual_completeness stays green: the narrowed placeholder keeps the `_(fill: …)_`
+    shape its scanner recognises, so a cold bundle still reports its regions as unfilled
+    instead of a reworded placeholder passing as authored prose."""
+    import validate_residual_completeness as vrc
+    residual = _gen(tmp_path).bundle_dir / "RESIDUAL.md"
+    regions = {u.region for u in vrc.scan_file(residual, "RESIDUAL.md")}
+    assert "driftflags" in regions
