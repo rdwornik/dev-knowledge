@@ -3,12 +3,12 @@
   "direction": "derived-from",
   "source": "docs/intake/README.md",
   "generator": "scripts/gen_intake_tree.py",
-  "source_sha256": "60b30b9921ce119b58125437b74024c486dfd4912e9c74683e2fae2a140970cd",
+  "source_sha256": "366bc8cb50f4c2fa37cb173f1b405a881170089b4e02a331ef78aba397e07fcb",
   "honest_limit": {
     "statement": "ADR-109 section 4 is discharged by a byte-exact round-trip plus a residue manifest, NOT by a derivation ratio. This surface's ratio is INVERTED relative to surface 1 (BACKLOG.md <-> tasks/), where task lines were the majority and residue the minority. Recorded so the generality claim is honest about what was shown.",
-    "item_derived_lines": 49,
-    "residue_lines": 281,
-    "total_lines": 330,
+    "item_derived_lines": 51,
+    "residue_lines": 284,
+    "total_lines": 335,
     "surface_1_comparison": "inverted -- surface 1 was majority item-derived"
   },
   "not_captured": {
@@ -251,6 +251,10 @@
         "consumers",
         "origin"
       ],
+      "2026-08-26-tech-handoff-mechanization.md": [
+        "consumers",
+        "origin"
+      ],
       "2026-08-26-tech-handoff-operator-interface.md": [
         "consumers",
         "origin"
@@ -341,7 +345,7 @@
     },
     {
       "t": "line",
-      "v": "**49 intake documents.**"
+      "v": "**51 intake documents.**"
     },
     {
       "t": "line",
@@ -458,7 +462,7 @@
     },
     {
       "t": "line",
-      "v": "### READY (13)"
+      "v": "### READY (14)"
     },
     {
       "t": "line",
@@ -527,6 +531,11 @@
     {
       "t": "item",
       "file": "2026-08-26-tech-loop-tax-and-gate-performance.md",
+      "status": "READY"
+    },
+    {
+      "t": "item",
+      "file": "2026-08-26-tech-handoff-mechanization.md",
       "status": "READY"
     },
     {
@@ -635,6 +644,23 @@
       "t": "item",
       "file": "2026-08-17-tech-off-machine-agent-substrate.md",
       "status": "ACCEPTED"
+    },
+    {
+      "t": "line",
+      "v": ""
+    },
+    {
+      "t": "line",
+      "v": "### OTHER (1)"
+    },
+    {
+      "t": "line",
+      "v": ""
+    },
+    {
+      "t": "item",
+      "file": "2026-08-26-tech-wave3-wintooling.md",
+      "status": ""
     },
     {
       "t": "line",
