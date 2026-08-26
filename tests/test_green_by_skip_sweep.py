@@ -48,7 +48,12 @@ def test_unreadable_backlog_fails_routine_consumers(tmp_path, monkeypatch):
     def boom(self, *args, **kwargs):
         raise OSError("permission denied")
 
-    monkeypatch.setattr(Path, "read_text", boom)
+    # `read_bytes`, not `read_text`, since [#589] — and the swap is the point, not bookkeeping.
+    # `backlog_source.canonical_text` decodes strictly (`read_bytes().decode()`), so patching
+    # `read_text` no longer intercepts anything: this test PASSED-as-green against an
+    # unpatched read, which is the exact green-by-skip shape the file is named for. Patch what
+    # the code under test actually calls.
+    monkeypatch.setattr(Path, "read_bytes", boom)
     findings = aud.check_routine_consumers(tmp_path)
     assert findings[0].status == "fail"
     assert findings[0].status != "unavailable"          # the defect being closed

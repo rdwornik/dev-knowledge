@@ -149,6 +149,12 @@ _TOKEN_PATH = _REPO_ROOT / "logs" / ".session-override-token"
 # Structural-marker delta the BACKLOG advisory looks for: an issue-id, a status keyword, or
 # a checkbox. Matched against ADDED diff lines only.
 _BACKLOG_MARKER_RE = re.compile(r"\[#\d+\]|status:|\[[ xX]\]")
+# [#589] — the SOURCE half of the queue. `BACKLOG.md` is a projection now, so it moves only
+# when a row's title/band/status/placement does; the body edit that reflects most work lands
+# here. Scanned alongside the view so the advisory nudges for a missing edit rather than for
+# an edit it cannot see. (A consumer repo has no such directory; an absent pathspec simply
+# contributes nothing to the diff.)
+_TASKS_DIR = "tasks"
 
 
 def _git(*args):
@@ -198,10 +204,16 @@ def _session_shas() -> list[str]:
     return [ln.strip() for ln in r.stdout.splitlines() if ln.strip()]
 
 
-def _added_lines(path: str) -> str:
-    """ADDED ('+', not '+++') diff lines for `path` across the arc base..HEAD, joined."""
+def _added_lines(*paths: str) -> str:
+    """ADDED ('+', not '+++') diff lines for `paths` across the arc base..HEAD, joined.
+
+    Variadic since [#589]: the backlog advisory needs TWO pathspecs. `BACKLOG.md` became a
+    one-line projection, so a session that edits a task BODY — the normal way work is
+    reflected — changes nothing in it unless the title or band moved, and the advisory would
+    nudge for an edit that was already made. `tasks/` is where that edit lands.
+    """
     base = _base_ref()
-    diff = _git("log", f"{base}..HEAD", "-p", "--format=", "--", path)
+    diff = _git("log", f"{base}..HEAD", "-p", "--format=", "--", *paths)
     if diff.returncode != 0:
         return ""
     return "\n".join(
@@ -367,7 +379,7 @@ def check_backlog_marker():
     shas = _session_shas()
     if not shas:
         return None
-    if _BACKLOG_MARKER_RE.search(_added_lines(_BACKLOG)):
+    if _BACKLOG_MARKER_RE.search(_added_lines(_BACKLOG, _TASKS_DIR)):
         return None
     return (f"BACKLOG (advisory): {len(shas)} commit(s) ahead of {_base_ref()} with no "
             f"structural-marker change in {_BACKLOG} -> if this session advanced or closed a "

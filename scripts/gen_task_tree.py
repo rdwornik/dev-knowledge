@@ -175,20 +175,31 @@ _VIEW_ROW_BYTE_CEILING = 400
 _VIEW_BYTE_CEILING = 100_000
 # The projection's own pointer prefix -- one place, so the renderer and any reader agree.
 _VIEW_POINTER_DIR = "tasks/"
-# How `--write` tells the generated VIEW from a real full-body import source, using TWO
-# independent signals that must BOTH hold (see `_looks_like_view`). One alone is not safe:
-#   * `Done when:` absent from every row. ADR-66 requires the clause and `validate_backlog`
-#     hard-fails a row without it, so the hub's real backlog always has it -- but a CONSUMER
-#     repo's hand-authored backlog, and this suite's own minimal fixtures, legitimately do
-#     not, and `--write` is precisely the bootstrap path those need. Alone this leg refuses
-#     the import it exists to serve.
-#   * every row ENDS with the projection's own ` · tasks/<file>.md` pointer. That is the
-#     renderer's signature, emitted by `project_row` on every row by construction. Alone it
-#     is a shape a body could imitate by citing a task file last.
-# Requiring both means a false REFUSAL needs a backlog whose every row cites a tasks/ file
-# in final position and none of which states a done-when.
-_FULL_BODY_MARKER_RE = re.compile(r"Done when:", re.IGNORECASE)
-_VIEW_POINTER_TAIL_RE = re.compile(r" · tasks/[^/\\]+\.md$")
+# THE PROJECTION'S GRAMMAR, in one place, because two different jobs must agree on it:
+# `view_problems` (is the committed view still a view?) and `_looks_like_view` (would
+# importing this file destroy the corpus?). They were separate heuristics for one commit and
+# that was already one too many -- the terra review of 2026-08-26 found a bypass in the
+# second and a gap in the first, and both trace to the same thing: neither asserted the SHAPE
+# `project_row` actually emits.
+#
+# END-ANCHORED, and that anchor carries the weight. A projected row ends with its
+# ` · tasks/<file>.md` pointer, so body material appended to a row breaks the match rather
+# than merely making it longer. What the anchor cannot catch is body material spliced BEFORE
+# the pointer; that is what `_VIEW_ROW_BYTE_CEILING` bounds, and the two together are what
+# make re-inflation a FAIL instead of a slow drift (see `view_problems` for the arithmetic).
+_VIEW_ROW_RE = re.compile(
+    r"^- \[#\d+\] (?:\[P\d\](?:\[[SML]\])?\s)?.*? · tasks/[^/\\]+\.md$")
+# NO ROW-TEXT SIGNAL SURVIVES IN EITHER PREDICATE, and that is the whole lesson of terra
+# round 1. `Done when:` looks like a perfect body marker -- ADR-66 requires it on every real
+# row and a projected row has no body -- but a row's TITLE can contain the words, and a title
+# rides into the projection verbatim. Used in the import refusal it was a CRITICAL bypass (one
+# such row and `--write --force` overwrote every body); used in the gate it was a false FAIL
+# that REFUSED `--emit-source` on a legitimate row, i.e. the generator could not emit the very
+# view the gate was demanding. Both were caught by the suite, one by a test written for this
+# arc and one by a fixture that predates it.
+#
+# What is left is STRUCTURE, which the renderer owns and a title cannot forge: the
+# end-anchored grammar plus the per-row budget.
 
 
 def frontmatter_status(file_text: str) -> str | None:
@@ -624,12 +635,59 @@ def render_view(tree_dir: Path) -> str:
     return "\n".join(parts)
 
 
-def view_size_problems(text: str, where: str) -> list[str]:
-    """[#589] size assertions over a rendered view. Empty list = within budget.
+def task_row_lines(text: str) -> list[str]:
+    """Every task-shaped line OUTSIDE a fenced block, in order.
+
+    FENCE AWARENESS IS NOT OPTIONAL and this helper exists because omitting it was a live
+    defect for one commit. `parse_backlog` has always skipped fenced blocks -- a task-shaped
+    line inside a ``` block is an EXAMPLE, and `BACKLOG.md` contains such examples -- so a
+    naive `_TASK_RE` scan over the raw text reported the repo's own documentation as a
+    malformed row. Caught by `test_fenced_task_shaped_prose_is_still_legitimate`, which
+    predates this arc. Shared so the gate and the parser cannot disagree about what a row is.
+    """
+    rows: list[str] = []
+    in_fence = False
+    for line in text.split("\n"):
+        if line.startswith("```"):
+            in_fence = not in_fence
+            continue
+        if not in_fence and _TASK_RE.match(line):
+            rows.append(line)
+    return rows
+
+
+def is_projected_row(line: str) -> bool:
+    """True when `line` has the SHAPE `project_row` emits (grammar + per-row budget).
+
+    The one predicate both [#589] jobs share -- see `_VIEW_ROW_RE` for why it is end-anchored
+    and why row TEXT (a `Done when:` mention) is deliberately not part of it.
+    """
+    return (bool(_VIEW_ROW_RE.match(line))
+            and len(line.encode("utf-8")) <= _VIEW_ROW_BYTE_CEILING)
+
+
+def view_problems(text: str, where: str) -> list[str]:
+    """[#589] — every way a rendered view has stopped being a view. Empty list = healthy.
 
     `where` names which artifact is being measured so a FAIL says whether the GENERATOR
     regressed or the COMMITTED FILE was inflated -- the two have different remedies and a
     shared message would send the reader to the wrong one.
+
+    THREE legs, and the SHAPE leg is why the byte ceilings are not the whole contract (terra
+    HIGH, 2026-08-26). Ceilings alone bound how MUCH can come back; they say nothing about
+    WHAT, so a renderer could append body material to every row and stay under them. With the
+    end-anchored grammar, appended material breaks the match outright, and only material
+    spliced BEFORE the pointer is left for the ceilings to bound.
+
+    NO `Done when:` LEG, deliberately -- see the constants block. It reads as the obvious body
+    marker and it is a false FAIL on a legitimate title, which here means REFUSING the regen
+    of a view the gate itself demands.
+
+    THE RESIDUAL, stated rather than implied: a view can still pass at
+    `_VIEW_BYTE_CEILING` total, which over today's 202 rows and 37,972 B of scaffolding is a
+    ~307 B/row mean -- 2.2x the live 141 B, and still a quarter of the 1,198 B/row a
+    full-body render costs. Re-inflation to BODY length cannot pass; a 2x drift can, and the
+    total ceiling is what eventually catches it.
     """
     problems: list[str] = []
     total = len(text.encode("utf-8"))
@@ -638,39 +696,61 @@ def view_size_problems(text: str, where: str) -> list[str]:
             f"{where} is {total:,} bytes, over the {_VIEW_BYTE_CEILING:,}-byte view ceiling "
             f"([#589]) — the view must stay one line per row; groom the queue, or raise "
             f"_VIEW_BYTE_CEILING deliberately")
-    over = [(line, len(line.encode("utf-8"))) for line in text.split("\n")
-            if _TASK_RE.match(line) and len(line.encode("utf-8")) > _VIEW_ROW_BYTE_CEILING]
+    rows = task_row_lines(text)
+    over = [(line, len(line.encode("utf-8"))) for line in rows
+            if len(line.encode("utf-8")) > _VIEW_ROW_BYTE_CEILING]
     if over:
         worst = max(over, key=lambda pair: pair[1])
         problems.append(
             f"{where} carries {len(over)} row(s) over the {_VIEW_ROW_BYTE_CEILING}-byte "
             f"per-row ceiling ([#589]), worst {worst[1]} bytes: "
             f"{worst[0][:80]}… — a row body belongs in tasks/, not in the view")
+    misshapen = [line for line in rows if not _VIEW_ROW_RE.match(line)]
+    if misshapen:
+        problems.append(
+            f"{where} carries {len(misshapen)} row(s) that are not the [#589] projection "
+            f"shape `- [#id] [P][size] title[ · DEFER] · tasks/<file>.md`, first: "
+            f"{misshapen[0][:80]}… — a row that does not END at its pointer is carrying body")
     return problems
 
 
-def _looks_like_view(source_path: Path) -> bool:
+def _looks_like_view(source_path: Path, out_dir: Path | None = None) -> bool:
     """True when `source_path` is a [#589] PROJECTION rather than a full-body backlog.
 
-    TWO signals, both required, both read off the ROWS -- see `_VIEW_POINTER_TAIL_RE` for
-    why neither alone is safe. Reading the rows rather than a header sentinel is deliberate:
-    a marker comment lives in the manifest prose, where an operator retitling the header
-    could strip it and quietly re-enable the destructive import. The rows are what the
-    renderer controls.
+    THE ANSWER GATES A DATA-DESTROYING IMPORT, so it is asked twice, strongest first:
 
-    Conservative by construction -- a file with NO task rows, or one that cannot be read,
-    is NOT called a view (returns False), because the answer here gates a REFUSAL and a
-    false positive would block the legitimate bootstrap path this command exists for.
+      1. EXACT -- is this byte-for-byte what the tree currently projects? When `out_dir`
+         carries a manifest this is not a heuristic at all, and it cannot be defeated by any
+         row's text.
+      2. STRUCTURAL -- failing that (a stale view, a view of a different tree, no tree at
+         all), does EVERY row have the projection's shape (`is_projected_row`: the
+         end-anchored grammar plus the per-row budget)?
+
+    WHAT CHANGED, AND WHY IT WAS A CRITICAL (terra, 2026-08-26). The first version also
+    required that NO row carried `Done when:`, as a conjunct. A row whose bold TITLE contains
+    those words survives into the projection, so one such row made the whole conjunction
+    False, `--write --force` proceeded, and all 202 authoritative bodies were overwritten by
+    their own one-line titles -- through the guard that this module's own message calls "NOT
+    overridable". A refusal predicate must not be defeatable by the content of the thing it
+    is protecting, so the text signal is gone from here entirely. It survives in
+    `view_problems`, where a false FAIL is a loud gate message rather than silent data loss.
+
+    Conservative on the OTHER side -- a file with NO task rows, or one that cannot be read,
+    is NOT called a view (returns False), because a false positive would block the legitimate
+    bootstrap path this command exists for.
     """
     try:
         text = source_path.read_bytes().decode("utf-8", errors="replace")
     except OSError:
         return False
-    rows = [line for line in text.split("\n") if _TASK_RE.match(line)]
-    if not rows:
-        return False
-    return (not any(_FULL_BODY_MARKER_RE.search(line) for line in rows)
-            and all(_VIEW_POINTER_TAIL_RE.search(line) for line in rows))
+    if out_dir is not None and (out_dir / "manifest.json").is_file():
+        try:
+            if text == render_view(out_dir):
+                return True
+        except (OSError, ValueError, KeyError, UnicodeDecodeError):
+            pass          # an unreadable tree cannot answer leg 1; leg 2 still can
+    rows = task_row_lines(text)
+    return bool(rows) and all(is_projected_row(line) for line in rows)
 
 
 def write_warnings(out_dir: Path) -> list[str]:
@@ -714,7 +794,7 @@ def _cmd_write(source_path: Path, out_dir: Path, force: bool = False) -> int:
     # bodies are the source of truth, so there is no state in which it is the right act.
     # A --force that could reach it would make the guard advisory, which is what the
     # pre-[#474] warn-then-destroy shape already proved is not a guard.
-    if _looks_like_view(source_path):
+    if _looks_like_view(source_path, out_dir):
         print(f"gen_task_tree: --write REFUSED (nothing written) — {source_path.name} is the "
               f"[#589] one-line VIEW, not a full-body backlog.\n"
               f"  No row in it carries 'Done when:', which ADR-66 requires of every real row, "
@@ -800,7 +880,7 @@ def _cmd_emit_source(source_path: Path, out_dir: Path) -> int:
     # REFUSE rather than write an over-budget view (same posture as the identity refusal
     # above): writing it and letting a LATER --check report what this command had already
     # committed is the failure mode the plan-before-write discipline exists to prevent.
-    oversize = view_size_problems(generated, "the generated view")
+    oversize = view_problems(generated, "the generated view")
     if oversize:
         print("gen_task_tree: emit-source REFUSED (nothing written) — the projection is "
               "over its declared size budget ([#589]):", file=sys.stderr)
@@ -969,8 +1049,8 @@ def find_incoherences(source_path: Path, out_dir: Path) -> list[str]:
     # renderer (someone re-points --emit-source at the reassembler); the ON-DISK bytes
     # catch an inflated committed file directly, so the failure names the view even in the
     # runs where leg 3 has already reported a mismatch for its own reason.
-    problems += view_size_problems(generated, "the generated view")
-    problems += view_size_problems(on_disk, f"{source_path.name} on disk")
+    problems += view_problems(generated, "the generated view")
+    problems += view_problems(on_disk, f"{source_path.name} on disk")
 
     # --- leg 6: the LOSSLESS invariant still holds -------------------------------
     # The projection is safe to be lossy ONLY because the tree still round-trips to the

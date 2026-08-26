@@ -1172,10 +1172,13 @@ def test_the_view_is_one_line_per_row_and_carries_no_bodies():
     rows = [line for line in BACKLOG.read_text(encoding="utf-8").split("\n")
             if gtt._TASK_RE.match(line)]
     assert rows, "the live view must carry rows"
+    # No `Done when:` in the LIVE view is a fact about today's corpus, asserted here because
+    # it is worth knowing if it changes — but deliberately NOT a gate (a title may legitimately
+    # contain the words; `view_problems` carries no such leg, see its docstring).
     assert not any("Done when:" in line for line in rows), \
-        "a Done-when clause in the view means a body leaked back into it"
-    assert all(gtt._VIEW_POINTER_TAIL_RE.search(line) for line in rows), \
-        "every row must end with a resolvable tasks/ pointer"
+        "a Done-when clause in the live view is worth a look — is it a title, or a leaked body?"
+    assert all(gtt.is_projected_row(line) for line in rows), \
+        "every row must have the projection shape and end at a resolvable pointer"
     for line in rows:
         pointer = line.rsplit(" \u00b7 ", 1)[1]
         assert (REPO_ROOT / pointer).is_file(), f"unresolvable pointer: {pointer}"
@@ -1217,9 +1220,9 @@ def test_check_fails_on_a_deliberately_inflated_view(tmp_path):
 def test_the_size_assertion_measures_the_generated_bytes_too():
     """Both faces, so a renderer regression is caught even where the file agrees with it."""
     long_row = "- [#1] [P1][S] **One** \u2014 " + "x" * 900 + " \u00b7 Done when: done"
-    over = gtt.view_size_problems(long_row + "\n", "the generated view")
+    over = gtt.view_problems(long_row + "\n", "the generated view")
     assert any("per-row ceiling" in p and "the generated view" in p for p in over)
-    assert gtt.view_size_problems("- [#1] [P1][S] Short \u00b7 tasks/1-short.md\n", "x") == []
+    assert gtt.view_problems("- [#1] [P1][S] Short \u00b7 tasks/1-short.md\n", "x") == []
 
 
 def test_emit_source_refuses_to_write_an_over_budget_view(tmp_path, monkeypatch):
@@ -1270,3 +1273,74 @@ def test_check_fails_when_the_tree_stops_reassembling_losslessly(tmp_path):
                                                    "—\r".encode("utf-8")))
     problems = gtt.find_incoherences(source, out_dir)
     assert any("lossless" in p for p in problems), problems
+
+
+# --- [#589] terra round 1 (2026-08-26): the refusal predicate and the shape leg ----
+
+def test_a_title_containing_done_when_cannot_smuggle_the_view_past_the_refusal(tmp_path, capsys):
+    """terra CRITICAL — the bypass, pinned so it cannot come back.
+
+    `_looks_like_view` used to require that NO row carried `Done when:`. A row whose bold
+    TITLE contains those words keeps them through `derive_title` and into the projection, so
+    ONE such row made the conjunction False, `--write --force` proceeded, and every
+    authoritative body was overwritten by its own one-line title — through the guard whose own
+    message says "NOT overridable with --force". A refusal predicate must not be defeatable by
+    the content of the thing it protects.
+    """
+    text = ("# T\n\n## [E1] Theme\n\n### [S1] Story\n"
+            "- [#1] [P1][S] **Say Done when: in the title** \u2014 body \u00b7 Done when: it is done\n")
+    source, out_dir = _seed(tmp_path, text)
+    projected = source.read_text(encoding="utf-8")
+    assert "Done when:" in projected, "the fixture must reproduce the bypass shape"
+
+    before = _files_snapshot(out_dir)
+    assert gtt._looks_like_view(source, out_dir) is True
+    assert gtt.main(["--write", "--force", "--source", str(source), "--out", str(out_dir)]) == 2
+    assert "one-line VIEW" in capsys.readouterr().err
+    assert _files_snapshot(out_dir) == before, "the bodies must be untouched"
+
+
+def test_the_refusal_asks_the_tree_first_and_that_answer_is_exact(tmp_path):
+    """Leg 1: byte-equality with what the tree projects is not a heuristic and cannot be
+    defeated by any row's text. Leg 2 (shape) is the fallback for a stale or foreign view."""
+    source, out_dir = _seed(tmp_path, _TWO_THEMES)
+    assert source.read_text(encoding="utf-8") == gtt.render_view(out_dir)
+    assert gtt._looks_like_view(source, out_dir) is True
+    # Same bytes, no tree handed over -> leg 2 must still recognise the shape.
+    assert gtt._looks_like_view(source) is True
+
+
+def test_view_problems_fires_on_body_appended_after_the_pointer(tmp_path):
+    """terra HIGH — the ceilings bound HOW MUCH comes back, the grammar bounds WHAT.
+
+    A row is end-anchored at its `tasks/<file>.md` pointer, so body material appended to it
+    breaks the match outright rather than merely making the row longer.
+    """
+    row = "- [#1] [P1][S] Title \u00b7 tasks/1-title.md \u00b7 Done when: it is done"
+    problems = gtt.view_problems(row + "\n", "x")
+    assert any("not the [#589] projection shape" in p for p in problems), problems
+    assert gtt.view_problems("- [#1] [P1][S] Title \u00b7 tasks/1-title.md\n", "x") == []
+    # The GRAMMAR is what fires, not the words: an identical row whose TITLE happens to say
+    # "Done when:" is legitimate and must pass, or the gate refuses the regen it demands.
+    assert gtt.view_problems(
+        "- [#1] [P1][S] Say Done when: in the title \u00b7 tasks/1-t.md\n", "x") == []
+
+
+def test_view_problems_ignores_task_shaped_prose_inside_a_fence():
+    """Fence awareness, shared with `parse_backlog`. `BACKLOG.md` documents its own row
+    grammar inside a ``` block; a naive scan reported that documentation as a malformed row
+    and REFUSED `--emit-source`. Found by a fixture that predates this arc."""
+    text = ("- [#1] [P1][S] Real \u00b7 tasks/1-real.md\n"
+            "```\n"
+            "- [#id] [P1][M] <action> \u00b7 Done when: <criterion> \u00b7 refs <ADR/file>\n"
+            "```\n")
+    assert gtt.view_problems(text, "x") == []
+    assert gtt.task_row_lines(text) == ["- [#1] [P1][S] Real \u00b7 tasks/1-real.md"]
+
+
+def test_the_live_view_satisfies_the_projection_grammar_row_by_row():
+    """The grammar leg, asserted against the committed file rather than the renderer."""
+    text = BACKLOG.read_text(encoding="utf-8")
+    assert gtt.view_problems(text, "BACKLOG.md") == []
+    rows = [ln for ln in text.split("\n") if gtt._TASK_RE.match(ln)]
+    assert rows and all(gtt.is_projected_row(ln) for ln in rows)

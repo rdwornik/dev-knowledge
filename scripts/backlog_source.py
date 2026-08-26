@@ -81,13 +81,31 @@ def canonical_text(repo_root: Path | None = None) -> Optional[str]:
     LOUD failure at the caller, not a silent fall-through to the projection -- falling back
     to `BACKLOG.md` here would hand a body-reading gate the very one-line view this module
     exists to keep it away from, and it would pass.
+
+    THE CONSUMER FALLBACK DECODES STRICTLY, and that is the same rule stated once more
+    rather than an inconsistency (terra HIGH, 2026-08-26). The first version passed
+    `errors="replace"`, which silently substitutes U+FFFD for undecodable bytes: a corrupted
+    `BACKLOG.md` would come back as text with body markers erased or altered, every
+    body-reading gate would scan the damaged text, find nothing, and report CLEAN. The
+    reassembly path already decodes strictly (`read_bytes().decode("utf-8")`), and
+    `routine_consumers` already declares a `UnicodeDecodeError` -> FAIL arm that a lenient
+    decode here made unreachable. A source that cannot be decoded is unreadable, which is a
+    failed computation of an available ground truth -- the callers' job to report, not this
+    module's to paper over.
     """
     root = Path(repo_root) if repo_root is not None else _REPO_ROOT
     if has_task_tree(root):
         return _gen_task_tree().reassemble_from_tree(root / "tasks")
     backlog = root / "BACKLOG.md"
     if backlog.is_file():
-        return backlog.read_text(encoding="utf-8", errors="replace")
+        # Strict decode, then normalize line endings. The normalization is not cosmetic and
+        # not new behaviour: `Path.read_text` (what this replaced) applies universal newlines,
+        # so a consumer repo whose `BACKLOG.md` is checked out CRLF has always reached these
+        # scanners as LF. Decoding strictly WITHOUT normalizing would have fixed the leniency
+        # defect and introduced a CRLF one in the same line — `parse_backlog` refuses CRLF
+        # outright, so a Windows consumer checkout would have started failing where it used to
+        # pass. The reassembly branch above needs none of this: `tasks/` is pure LF by contract.
+        return backlog.read_bytes().decode("utf-8").replace("\r\n", "\n")
     return None
 
 

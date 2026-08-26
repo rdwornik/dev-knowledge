@@ -113,6 +113,25 @@ class GeneratedArtifact:
     #: Read by the generator but NOT git-trackable -- recorded so the carve-out is visible
     #: rather than a silent omission from `inputs`.
     untracked_inputs: tuple[str, ...] = ()
+    #: OPTIONAL exact verifier: `(repo_path) -> True (current) | False (drifted) | None
+    #: (cannot tell)`. When an artifact has one, it is asked FIRST and its answer OUTRANKS the
+    #: date relation, because it answers the same question exactly.
+    #:
+    #: THIS FIELD EXISTS BECAUSE THE DATE RELATION HAS A FLOOR OF ONE DAY, and for one
+    #: artifact that floor swallowed the whole guarantee (terra HIGH, 2026-08-26). `%cs` is a
+    #: calendar DATE: an audit committed and an index regenerated on the same day are `0d
+    #: stale`, i.e. `fresh`, no matter which happened first -- and audits land ~10/day, so the
+    #: `audits-index` leg would have reported clean on essentially every real staleness it was
+    #: registered to catch. Day granularity is right for the dashboard (a multi-input artifact
+    #: with no cheap exact check, where the question really is "has an input moved since?");
+    #: it is simply not an answer for an artifact whose generator can regenerate-and-diff in
+    #: milliseconds. So the relation is kept as the general fallback and exactness is opt-in.
+    #:
+    #: A verifier is a CALLABLE, not a shell command, on purpose: no subprocess, no PATH, no
+    #: quoting, and it stays trivially injectable in tests. It must be read-only and must not
+    #: raise -- `_exact_verdict` treats any exception as `None` (cannot tell) rather than
+    #: letting a verifier wedge the leg that calls it.
+    content_check: object | None = None
 
 
 #: `[#171]` stage 1, ADR-86. `inputs` mirrors `gen_dashboard.INPUT_RELPATHS`; see the module
@@ -138,30 +157,55 @@ DASHBOARD = GeneratedArtifact(
     untracked_inputs=("logs/TELEMETRY.db",),
 )
 
+#: `inputs` is DATA + CODE, the same rule the dashboard's set follows. Note the index EXCLUDES
+#: itself from its own scan (`gen_audit_index.collect_audits` skips README.md), so listing the
+#: directory here cannot make the artifact its own input.
+def _audit_index_matches(repo_path: Path) -> Optional[bool]:
+    """Regen-and-diff the audits index IN `repo_path`. True current / False drifted / None n-a.
+
+    The SAME comparison `gen_audit_index --check` makes, called in-process rather than shelled
+    out, so the gate and the CLI cannot disagree about what current means. Repo-parameterized
+    through the generator's own `audits_dir` / `tracked` arguments, so it answers about the
+    repo it is handed rather than about the module's pinned globals.
+
+    IT INHERITS THE GENERATOR'S DETERMINISM BOUNDARY, including its fail-open edge: outside a
+    git work tree `tracked_files` returns None and filtering is DISABLED, so an untracked
+    scratch audit would then read as drift. Inside a checkout — the only place this leg runs —
+    an untracked file is correctly not drift, which is what keeps the verdict a function of
+    COMMITTED state rather than of one machine's private files.
+    """
+    try:
+        from scripts import gen_audit_index as _gai
+    except ImportError:  # pragma: no cover - the scripts/-on-sys.path entrypoint
+        import gen_audit_index as _gai
+    audits = Path(repo_path) / "docs" / "audits"
+    target = audits / "README.md"
+    if not target.is_file():
+        return None          # absence is the date leg's verdict to give, not this one's
+    return target.read_text(encoding="utf-8") == _gai.render_index(
+        audits, _gai.tracked_files(Path(repo_path)), Path(repo_path))
+
+
 #: `[#590]` — the audits index, registered here on 2026-08-26 as the OTHER HALF of taking
 #: `docs/audits/README.md` out of the merge path. Its `audit-index-freshness` pre-commit hook
 #: was narrowed to the index itself the same day, so a lane writing an audit no longer has to
 #: regenerate and commit it — which is exactly what had put this file in 6 of the last 7
 #: conflicted merges. Removing that obligation without replacing the guarantee would leave the
 #: index free to rot silently, so the guarantee moved to SHIP time, where the index is
-#: actually read: this leg WARNs once the index is older than the directory it indexes, and
+#: actually read: this leg refuses an index that does not match what its generator emits, and
 #: `cmd_ship_gate` REDs on an undispositioned WARN. The integrator discharges it by running
 #: the regen command below and committing the result.
 #:
-#: `baseline_days=0` is a MEASUREMENT, not an aspiration: at arm time (2026-08-26) the index
-#: and `docs/audits/` shared a commit date, so zero is the honest ratchet. Audits land at ~10
-#: files/day, so this leg speaks on essentially every batch — which is the intended pressure,
-#: not noise, because the discharge is one command.
-#:
-#: `inputs` is DATA + CODE, the same rule the dashboard's set follows. Note the index EXCLUDES
-#: itself from its own scan (`gen_audit_index.collect_audits` skips README.md), so listing the
-#: directory here cannot make the artifact its own input.
+#: `content_check` is what makes that guarantee REAL rather than nominal — see the field's own
+#: docstring for the one-day floor that made the date relation blind here. `baseline_days=0`
+#: remains as the fallback relation for the case where the exact check cannot answer.
 AUDIT_INDEX = GeneratedArtifact(
     name="audits-index",
     outputs=("docs/audits/README.md",),
     inputs=("docs/audits", "scripts/gen_audit_index.py"),
     baseline_days=0,
     regen_command="uv run --locked python scripts/gen_audit_index.py --write",
+    content_check=_audit_index_matches,
 )
 
 REGISTRY: tuple[GeneratedArtifact, ...] = (DASHBOARD, AUDIT_INDEX)
@@ -181,6 +225,11 @@ STATUS_FOR_VERDICT: dict[str, str] = {
                               # the zone class's own claim, so this violates its premise
     "unverifiable": "warn",   # a DECLARED input could not be measured, so the relation over the
                               # rest cannot be presented as a freshness verdict
+    "content-stale": "warn",  # [#590] — the EXACT verdict: the artifact does not match what
+                              # its generator emits. Distinct from `stale`, which is a
+                              # DATE relation and can only ever say "an input moved since";
+                              # this one says "regenerating would change these bytes", which
+                              # is the claim the reader of a generated index actually needs.
     "unmeasurable": "unavailable",
 }
 
@@ -279,6 +328,23 @@ class Measurement:
     input_date: Optional[date]
     newest_input: Optional[str]
     detail: str
+
+
+def _exact_verdict(repo_path: Path, artifact: GeneratedArtifact) -> Optional[bool]:
+    """Run `artifact.content_check`, or None when it has none / cannot answer.
+
+    NEVER RAISES, and that is the contract the field's docstring promises. A verifier is
+    generator code called from inside a gate leg; letting it propagate would let a bug in a
+    generator wedge the audit that reports on it. Any exception reads as "cannot tell", which
+    falls back to the date relation — the behaviour before any verifier existed.
+    """
+    check = artifact.content_check
+    if check is None:
+        return None
+    try:
+        return check(repo_path)
+    except Exception:  # noqa: BLE001 — see the docstring: a verifier must not wedge the leg
+        return None
 
 
 def measure(repo_path: Path, artifact: GeneratedArtifact = DASHBOARD, *,
@@ -394,6 +460,28 @@ def measure(repo_path: Path, artifact: GeneratedArtifact = DASHBOARD, *,
     detail = (f"{artifact.name}: {staleness}d stale (baseline {artifact.baseline_days}d) — "
               f"{stalest_output} committed {output_date.isoformat()}, newest input "
               f"{newest_input} committed {input_date.isoformat()}")
+
+    # THE EXACT ANSWER OUTRANKS THE DATE RELATION ([#590]; terra HIGH 2026-08-26). Placed HERE
+    # and not earlier on purpose: the classification above resolves absence, deletion and the
+    # never-committed case, which are states the content check has no opinion about and which
+    # would be mis-reported as "drifted" if it spoke first. Reaching this point means every
+    # output face exists and is committed, so "do these bytes match a regeneration" is exactly
+    # the right question — and where the answer is yes, it is also strictly better news than a
+    # `0d stale` computed from calendar dates that cannot order two commits made today.
+    exact = _exact_verdict(repo_path, artifact)
+    if exact is False:
+        verdict = "content-stale"
+        detail = (f"{artifact.name}: does NOT match what its generator emits — regenerating "
+                  f"would change {stalest_output}. ({staleness}d by commit date, which cannot "
+                  f"see a same-day drift)")
+    elif exact is True and verdict == "stale":
+        # Dates say stale, bytes say identical. The bytes win, and the reason is named rather
+        # than silently swallowed: an input can be touched by a commit that changes nothing
+        # the generator renders (a comment, a reordering), and WARNing then is a false
+        # positive that trains the reader to disposition this leg by reflex.
+        verdict, detail = "fresh", (
+            f"{artifact.name}: matches its generator exactly, despite {staleness}d by commit "
+            f"date — an input moved without changing what is rendered")
     # THE BLIND SPOT RIDES ON THE FINDING, not only in this file's comments. An untracked input
     # has no commit date, so nothing it does can ever move the relation -- the artifact can be
     # reported fresh while a section rendered from that input is stale, indefinitely. Declaring

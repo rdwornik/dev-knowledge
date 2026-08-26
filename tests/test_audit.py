@@ -2875,3 +2875,98 @@ def test_checks_listing_survives_a_cp1252_console() -> None:
             first = (check.__doc__ or "").strip().splitlines()
             print(f"  {i:>2}. {name} — {first[0].strip() if first else ''}")
     stream.flush()
+
+
+# --- [#590] terra round 1: the EXACT content verdict ------------------------
+
+def test_content_check_outranks_a_same_day_fresh_verdict(tmp_path, monkeypatch):
+    """terra HIGH — the defect this field exists for.
+
+    `%cs` is a calendar DATE, so an audit committed and an index regenerated on the SAME DAY
+    are `0d stale` = `fresh` regardless of order. Audits land ~10/day, so the date relation
+    would have reported clean on essentially every real staleness `audits-index` was
+    registered to catch. The exact check must override it.
+    """
+    from scripts import generated_artifact_freshness as gaf
+    art = gaf.GeneratedArtifact(
+        name="x", outputs=("out.md",), inputs=("in.md",), baseline_days=0,
+        regen_command="regen", content_check=lambda _root: False)
+    (tmp_path / "out.md").write_text("x", encoding="utf-8")
+    same_day = date(2026, 8, 26)
+    m = gaf.measure(tmp_path, art, git_date_fn=lambda _r, _p: same_day)
+    assert m.verdict == "content-stale", m.detail
+    assert gaf.STATUS_FOR_VERDICT[m.verdict] == "warn"
+    assert "does NOT match what its generator emits" in m.detail
+    assert "same-day" in m.detail
+
+
+def test_content_check_clears_a_date_stale_verdict_when_the_bytes_match(tmp_path):
+    """The other direction: an input touched without changing what is rendered is a FALSE
+    positive, and a WARN nobody can act on trains the reader to disposition by reflex."""
+    from scripts import generated_artifact_freshness as gaf
+    art = gaf.GeneratedArtifact(
+        name="x", outputs=("out.md",), inputs=("in.md",), baseline_days=0,
+        regen_command="regen", content_check=lambda _root: True)
+    (tmp_path / "out.md").write_text("x", encoding="utf-8")
+    dates = {"out.md": date(2026, 8, 20), "in.md": date(2026, 8, 26)}
+    m = gaf.measure(tmp_path, art, git_date_fn=lambda _r, p: dates[p])
+    assert m.verdict == "fresh", m.detail
+    assert "without changing what is rendered" in m.detail
+
+
+def test_a_raising_content_check_falls_back_to_the_date_relation(tmp_path):
+    """A verifier is generator code called from inside a gate leg; a bug in it must not wedge
+    the audit that reports on it."""
+    from scripts import generated_artifact_freshness as gaf
+
+    def boom(_root):
+        raise RuntimeError("generator exploded")
+
+    art = gaf.GeneratedArtifact(
+        name="x", outputs=("out.md",), inputs=("in.md",), baseline_days=0,
+        regen_command="regen", content_check=boom)
+    (tmp_path / "out.md").write_text("x", encoding="utf-8")
+    dates = {"out.md": date(2026, 8, 20), "in.md": date(2026, 8, 26)}
+    m = gaf.measure(tmp_path, art, git_date_fn=lambda _r, p: dates[p])
+    assert m.verdict == "stale", m.detail
+
+
+def test_the_audits_index_verifier_sees_an_untracked_file_as_no_drift(tmp_path):
+    """The verifier reuses the generator's own tracked-files filter, so a lane's UNCOMMITTED
+    scratch audit cannot make the committed index look stale on one machine only — the
+    determinism boundary `gen_audit_index` already documents.
+
+    A REAL git repo, deliberately: outside a work tree that filter is DISABLED by design
+    (returning nothing would be a worse failure than the one prevented), so a `tmp_path` that
+    is not a repo tests the fail-open path and would assert the opposite of the rule.
+    """
+    from scripts import generated_artifact_freshness as gaf
+    try:
+        from scripts import gen_audit_index as gai
+    except ImportError:
+        import gen_audit_index as gai
+
+    def git(*a):
+        subprocess.run(["git", *a], cwd=tmp_path, check=True, capture_output=True, text=True)
+
+    git("init", "-q")
+    git("config", "user.email", "t@example.invalid")
+    git("config", "user.name", "t")
+    audits = tmp_path / "docs" / "audits"
+    audits.mkdir(parents=True)
+    (audits / "2026-08-01-technical-base.md").write_text("# B\n", encoding="utf-8", newline="\n")
+    git("add", "-A")
+    git("commit", "-qm", "base")
+    (audits / "README.md").write_text(gai.render_index(audits, gai.tracked_files(tmp_path)),
+                                      encoding="utf-8", newline="\n")
+    git("add", "-A")
+    git("commit", "-qm", "index")
+    assert gaf._audit_index_matches(tmp_path) is True
+
+    (audits / "2026-08-26-technical-scratch.md").write_text("# S\n", encoding="utf-8",
+                                                            newline="\n")
+    assert gaf._audit_index_matches(tmp_path) is True, "an untracked file is not drift"
+
+    git("add", "docs/audits/2026-08-26-technical-scratch.md")
+    assert gaf._audit_index_matches(tmp_path) is False, \
+        "a TRACKED audit the index does not list IS drift — the [#590] case"

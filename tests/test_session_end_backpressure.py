@@ -271,8 +271,16 @@ def test_base_ref_falls_back_to_main(monkeypatch):
 # --- backlog marker (ADVISORY, ADR-85 R1) -----------------------------------
 
 def _backlog_log(added):
+    """Fake `git log -p` for the backlog advisory's pathspec set.
+
+    [#589] widened that set from `BACKLOG.md` alone to `BACKLOG.md` + `tasks/`, so matching
+    on `args[-1] == sb._BACKLOG` stopped matching at all — and a fake that silently returns
+    "" turns every one of these tests into a vacuous pass on the advisory's fire path. Keyed
+    on MEMBERSHIP so it survives the next pathspec added, and asserts the set is non-empty so
+    it cannot go vacuous the same way twice.
+    """
     def log(args):
-        if "-p" in args and args[-1] == sb._BACKLOG:
+        if "-p" in args and (set(args) & {sb._BACKLOG, sb._TASKS_DIR}):
             return _R(added)
         return _R("")
     return log
@@ -295,6 +303,25 @@ def test_backlog_marker_passes_with_issue_id(monkeypatch):
         "rev-parse": _R("", 1),
         "rev-list": _R(_SHA + "\n"),
         "log": _backlog_log("+- [#168] [P2][S] new follow-up task\n"),
+    }))
+    assert sb.check_backlog_marker() is None
+
+
+def test_backlog_marker_accepts_a_tasks_only_edit(monkeypatch):
+    """[#589] — the behaviour change, not just the fixture. `BACKLOG.md` is a projection now:
+    editing a task BODY (the normal way work is reflected) moves nothing in the view unless
+    the title or band changed. Scanning only the view would nudge for an edit already made."""
+    def log(args):
+        # BACKLOG.md contributes nothing; the marker arrives via tasks/ alone.
+        if "-p" in args and sb._TASKS_DIR in args:
+            return _R("+- [#168] [P2][S] new follow-up task\n")
+        return _R("")
+
+    monkeypatch.setattr(sb, "_git", _fake_git({
+        "status": _R(""),
+        "rev-parse": _R("", 1),
+        "rev-list": _R(_SHA + "\n"),
+        "log": log,
     }))
     assert sb.check_backlog_marker() is None
 

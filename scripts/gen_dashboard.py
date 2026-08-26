@@ -354,6 +354,37 @@ def _closed_row(task) -> ClosedRow:
                      gain=parse_done_when(task.raw), theme=task.theme)
 
 
+def _gain_from_task_file(git, rev: str, task) -> str:
+    """The row's `Done when:` clause read from its `tasks/` file at `rev` ([#589]).
+
+    WHY THIS EXISTS (terra HIGH, 2026-08-26). The release notes' whole point is the gain
+    line, and it comes from `parse_done_when` over the ROW. Since [#589] the row in
+    `BACKLOG.md` is a projection with no body, so every closure recorded after the flip
+    would render the "row carried no `Done when:` clause" fallback -- silently degrading the
+    section into a list of titles, on a report whose own preamble promises the gain.
+
+    The body did not disappear, it moved: the projected row ENDS with a pointer to the file
+    that holds it, so the gain is recoverable at the same revision the row was last seen.
+    Read at `rev` -- the parent of the closing commit, where the row and its file both still
+    exist -- never at HEAD, which would resolve a retired row's slug against a tree that may
+    have re-slugged it.
+
+    Returns "" on any failure, which is exactly the pre-existing fallback: a missing gain
+    line is a degraded row, never a crashed dashboard. Historical revisions from BEFORE the
+    flip still carry their bodies inline and never reach here.
+    """
+    tail = task.raw.rsplit(" · ", 1)
+    if len(tail) != 2 or not tail[1].startswith("tasks/") or not tail[1].endswith(".md"):
+        return ""
+    text = git.file_at(rev, tail[1])
+    if not text:
+        return ""
+    try:
+        return parse_done_when(_gtt.extract_body(text))
+    except (ValueError, KeyError):
+        return ""
+
+
 def closed_rows_between(old_text: str, new_text: str) -> list[ClosedRow]:
     """Task rows present in `old_text` and absent from `new_text` -- "done items leave" (ADR-65)."""
     old = _rows_by_id(old_text)
@@ -383,7 +414,8 @@ def closed_rows_from_history(git, relpath: str, since_rev: str) -> list[ClosedRo
             if row.id in seen:
                 continue
             seen.add(row.id)
-            rows.append(ClosedRow(id=row.id, title=row.title, gain=row.gain, theme=row.theme,
+            gain = row.gain or _gain_from_task_file(git, parent, _rows_by_id(before)[row.id])
+            rows.append(ClosedRow(id=row.id, title=row.title, gain=gain, theme=row.theme,
                                   closed_on=when, sha=sha[:12]))
     return rows
 

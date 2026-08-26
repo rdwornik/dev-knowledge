@@ -169,7 +169,11 @@ def test_every_warn_verdict_is_derived_from_the_status_table():
     assert set(gaf.WARN_VERDICTS) == {
         v for v, s in gaf.STATUS_FOR_VERDICT.items() if s == "warn"}
     assert gaf.STATUS_FOR_VERDICT["fresh"] == "pass"
-    assert set(gaf.WARN_VERDICTS) == {"stale", "deleted", "uncommitted", "unverifiable"}
+    # `content-stale` joined the set with [#590]: the EXACT verdict, distinct from `stale`
+    # because that one is a DATE relation and can only say "an input moved since", while this
+    # says "regenerating would change these bytes".
+    assert set(gaf.WARN_VERDICTS) == {"stale", "deleted", "uncommitted", "unverifiable",
+                                      "content-stale"}
     assert gaf.STATUS_FOR_VERDICT["unmeasurable"] == "unavailable"
 
 
