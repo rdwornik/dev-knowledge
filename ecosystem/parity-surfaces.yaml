@@ -133,7 +133,7 @@ fleet:
   terminal-setup: {role: pre-deploy,
     reason: "registered 2026-08-01 ([#462]), unonboarded; no VISION.md, no CLAUDE.md, no deploy record (ecosystem/registry.md)"}
   win-tooling: {role: pre-deploy,
-    reason: "registered, unonboarded (ecosystem/registry.md); not listed in deployed-versions.yaml (ADR-91)"}
+    reason: "registered, unonboarded (ecosystem/registry.md); admitted to deployed-versions.yaml 2026-08-26 with all fields null — the registry key is a deploy PRECONDITION, and the role flips to consumer only when a deploy actually lands (ADR-91)"}
 
 surfaces:
   # ---- Tier-1: the 7 canonical docs (every fleet repo) --------------------------------

@@ -47,3 +47,14 @@ repos:
     deployed_methodology_version: null
     deployed_date: null
     source_tag: null
+  win-tooling:
+    # ADMITTED pre-deploy, 2026-08-26 — the registry key is a PRECONDITION, not a claim that
+    # anything was deployed. `deploy/tool.py:253` refuses an unregistered repo before it reads
+    # a manifest, so wave 3 cannot even run assess against win-tooling without this key. All
+    # three fields stay null (the corp-ops / corp-sca shape) until a real deploy writes them.
+    # Evidence: docs/audits/2026-08-26-technical-w3prep-recon.md (blocker B2, step 2). It does
+    # NOT flip the parity role — `ecosystem/parity-surfaces.yaml` declares `role:` as
+    # hand-maintained data and win-tooling stays `pre-deploy` until a deploy actually lands.
+    deployed_methodology_version: null
+    deployed_date: null
+    source_tag: null

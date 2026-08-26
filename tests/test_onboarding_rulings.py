@@ -29,16 +29,32 @@ def test_shipped_register_is_well_formed():
     assert vor.schema_defects(_shipped()) == []
 
 
-def test_shipped_register_encodes_the_four_rulings():
+# The 2026-07-16 operator batch. Pinned as a SUBSET rather than the whole register since
+# 2026-08-26: the register is a live decision log, so a later ruling by a different party on
+# a different date is growth, not drift, and an equality pin would make every admission a
+# test edit. What must not drift is that these four still say exactly what the operator ruled.
+_OPERATOR_BATCH_2026_07_16 = frozenset({
+    "corp-ops", "corp-sca-time-automation", "life-architect", "demo-prep"})
+
+
+def test_shipped_register_encodes_the_four_operator_rulings():
     rulings = _shipped()["rulings"]
-    assert set(rulings) == {
-        "corp-ops", "corp-sca-time-automation", "life-architect", "demo-prep"}
+    assert _OPERATOR_BATCH_2026_07_16 <= set(rulings)
     # operator ruled ALL FOUR full (life-architect overriding the census floor-only).
-    assert all(e["profile"] == "full" for e in rulings.values())
-    for e in rulings.values():
+    for name in _OPERATOR_BATCH_2026_07_16:
+        e = rulings[name]
+        assert e["profile"] == "full"
         assert e["ruled_by"] == "operator"
         assert e["ruled_date"] == "2026-07-16"
         assert e["census_ref"]
+
+
+def test_every_ruling_names_a_profile_a_ruler_and_its_proposing_surface():
+    """The invariant that outlives any one batch — every entry, not just the first four."""
+    for name, e in _shipped()["rulings"].items():
+        assert e["profile"] in {"full", "floor-only"}, name
+        assert e["ruled_by"], name
+        assert e["census_ref"], name
 
 
 def test_life_architect_override_names_both_sides():
@@ -54,7 +70,11 @@ def test_shipped_register_cli_is_green():
     res = CliRunner().invoke(vor.main, [])     # default path = the shipped register
     assert res.exit_code == 0
     assert "[onboarding-rulings]" in res.output
-    assert "4 full" in res.output
+    # Every shipped ruling to date is `full`, so the digest's full-count IS the entry count —
+    # asserted against the live register rather than a literal, which would pin the surface
+    # line to one moment in the register's life (it read "4 full" until win-tooling joined).
+    n = len(_shipped()["rulings"])
+    assert f"{n} satellite(s) ruled: {n} full, 0 floor-only" in res.output
     assert "life-architect" in res.output      # the override is surfaced
 
 
