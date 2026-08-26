@@ -19,6 +19,74 @@
 
 ---
 
+### 2026-08-26 (c) - CC (Opus 5, local seat session, primary checkout, branch `docs/anchor-prompts-revocation`): the anchor merge `ac677b6e` could not carry - root `prompts/` is REVOKED, and the ADR-101 closed set contracts for the first time
+
+**Did:** wrote the JOURNAL anchor for merge `ac677b6e` (`worktree-prompts-revocation`), which was
+already on local `main` and unpushed. `block-unanchored-push` refused the push, correctly: the
+merge's two commits are the whole record of an operator ruling and nothing in `JOURNAL.md` named
+either. This entry is that record. **No work was re-executed and nothing was re-decided here** -
+the arc landed in a prior session; this session read it and wrote it down.
+
+**What the arc did, from its own commits rather than from a brief.** Operator ruling 2026-08-26,
+verbatim: *"root is sacred, the docs disease is cured by the consumer gate, not by a sibling
+folder."* The root `prompts/` folder - landed only the day before, 2026-08-25, by operator
+path-approval under lane RL - is **REVOKED**, and the batch launch-contract convention it carried
+relocates under the genre tree to `docs/audits/<date>-technical-<batch>-launch-contracts/`, where
+the batch close packet is the consumer `[#595]`'s consumer-at-landing rule asks a landed
+`docs/audits/` artifact to declare. The pair is deliberately two commits and the lockstep is
+**branch-level, not commit-level**, which the second commit states rather than glosses: the move
+is refused by ADR-101 Rule C until a home pattern exists, so `_HOME_PATTERNS` had to gain
+`docs/audits/*` in the same commit as the move, one commit before the ADR act that sanctions it.
+Nothing reached `main` unrecorded because the branch merges as one `--no-ff` unit.
+
+**Result:** `23409c9c` is the MOVE - all five batch-1 contracts relocated **byte-identical**,
+verified R100 by `git diff --cached -M --raw` rather than inferred from a successful copy, plus
+the `_HOME_PATTERNS` addition and the two `undeclared_edges` disposition rows repointed (they are
+keyed on the full source-to-target signature, so leaving them would have let the suppressed WARNs
+return). `d7ce675c` is the RECORD - **ADR-101 amendment 2026-08-26 (b)**, appended per the file's
+own immutability rule, the superseded 2026-08-26 amendment left intact with a forward-pointing
+in-file marker. **This is the closed set's first CONTRACTION:** six prior amendments grew it, none
+had ever shrunk it, and the ADR names the direction because the direction is the precedent.
+`.methodology.yaml`'s `prompts` sanctioned-divergence is removed 29 days inside its 2026-09-24
+expiry - both jobs that `review_date` carried are discharged, since the ADR act it was the
+shelf-life on has landed and the fleet-doctrine question is moot once the convention proposes no
+root directory to anyone. Both code removals are left as explanatory comments rather than silent
+deletions, so a reader who finds `prompts/` in the git history can see why it is gone.
+
+**Three honest limits the arc recorded about itself, carried here so they are not lost with the
+commit messages.** (1) The `<date>-technical-<batch>-launch-contracts` name shape is **checked by
+nobody** - ADR-101's `_HOME_PATTERNS` grammar is three tokens wide and can only say
+`docs/audits/*`, so any immediate child of `docs/audits/` is admitted and the convention rests on
+PLAYBOOK prose. (2) The generated `docs/audits/README.md` index globs `*.md` at **one** level, so
+the launch-contracts directory does not appear in it - the index regenerated to NO DIFF, which is
+a fact about the glob and not a non-event. (3) The two repointed disposition rows are now
+**INERT**: the new home sits inside `scan_undeclared_edges._IMMUTABLE_PREFIXES`, so the scanner
+skips the tree and the entries suppress nothing - kept as belt-and-braces, and explicitly not to
+be cited as evidence that a WARN was closed. `23409c9c` also carries a **declared**
+`SKIP=lane-contract-check`, on the precedent the five contracts already had: they are
+hand-authored records of an already-executed batch, predate `gen_lane_contract.py`, and
+retro-fitting them would falsify what was actually dispatched.
+
+**Changes:** `JOURNAL.md` only. The arc being anchored moved the five batch-1 contracts into
+`docs/audits/2026-08-25-technical-batch1-launch-contracts/` (R100), `docs/decisions/ADR-101-hermetization.md` (append),
+`scripts/validate_hermetization.py` + `tests/test_validate_hermetization.py`, `.methodology.yaml`,
+`ecosystem/disposition-register.yaml` and `protocols/PLAYBOOK.md` Ch8 - all on its own commits.
+
+**Abandoned:** nothing, and one thing is **owed rather than done**. The worktree
+`.claude/worktrees/prompts-revocation` and its branch `worktree-prompts-revocation` are still
+present and locked at `d7ce675c` although the merge has landed - the WORKTREE TEARDOWN IS TWO
+BRANCHES standing order is unpaid for this lane. Not taken here: this session's scope is the
+anchor and the push, teardown is a separate destructive-shaped act, and three further lane worktrees
+(`w2a-perf-core`, `w2b-surfaces`, `w2c-codespace-repair`) are live and untouched. No suite was run
+this session and none is claimed; the arc's own gates ran at its commits.
+
+**Next:** tear down `worktree-prompts-revocation` (worktree + branch) once the operator confirms
+the lane is finished; the three wave-2 lane worktrees continue independently.
+
+**Anchors:** `23409c9c` (the byte-identical move + `_HOME_PATTERNS`) and `d7ce675c` (the ADR-101
+amendment + the enum removal) - the two commits merge `ac677b6e` introduces, which is what makes
+that merge anchored.
+
 ### 2026-08-26 (b) - CC (Opus 5, background job, primary checkout, `docs/endgame-2026-08-26`): the endgame governance session - the window's output goes through the funnel
 
 **Did:** executed the nine-act ENDGAME brief plus one mid-session architect amendment (act 2b),
