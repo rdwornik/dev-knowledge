@@ -114,7 +114,14 @@ def check_routine_consumers(repo_path: Path) -> list[Finding]:
     try:
         text = backlog.read_text(encoding="utf-8", errors="replace")
     except OSError as exc:
-        return [Finding(name, "unavailable", f"cannot read BACKLOG.md: {exc}")]
+        # FAIL, not "unavailable" (green-by-skip sweep, 2026-08-25; same call
+        # check_silent_rule_ratchet made at terra HIGH 2026-07-27). `unavailable` renders
+        # as N/A and `_check_outcome` projects it onto `pass`, so ship-gate waves it
+        # through -- a check that measured NOTHING would ship green. The absent-file case
+        # is already NOT-APPLICABLE above, so reaching here means the file EXISTS and
+        # could not be read: a failed computation of an available ground truth, not an
+        # inapplicable context.
+        return [Finding(name, "fail", f"cannot read BACKLOG.md: {exc}")]
     bad: list[str] = []
     declared = 0
     fence: tuple[str, int] | None = None      # (char, run-length) of the OPEN fence

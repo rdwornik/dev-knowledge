@@ -28,6 +28,13 @@ Anchor-not-found policy (the precision lever): a claim whose anchor no longer ma
 (doc reworded) → status 'anchor-missing', a low-key WARN, NEVER a synthesized mismatch.
 A reworded doc nudges a re-anchor; it does not raise a false alarm.
 
+Could-not-compute policy (2026-08-25, STANDING_RULINGS section U): a claim marked
+`fail_closed` whose ground truth cannot be computed → status 'not-computed', which the CLI
+reports as FAIL and exits 1 on. It is NEVER folded into 'skipped' under an `OK` headline
+— a check that cannot compute its ground truth must fail, not report green. The
+non-fail_closed claims keep their documented fail-soft skip (claim 3's subprocess hiccup);
+the semantics are per-claim and deliberately not widened past the audited class.
+
 Scope boundary (do NOT duplicate): check #10 owns last_reviewed staleness; check #13
 (`handoff_version_stamp`) owns HANDOFF_PROCESS version stamps; #140 owns cross-file
 summary-fidelity drift, intra-file duplication, file bloat, and changelog accumulation.
@@ -57,9 +64,9 @@ _REPO_ROOT = _SCRIPTS_DIR.parent
 @dataclass(frozen=True)
 class ClaimResult:
     name: str       # registry key, e.g. "audit_check_count"
-    status: str     # 'match' | 'mismatch' | 'anchor-missing' | 'skipped'
+    status: str     # 'match' | 'mismatch' | 'anchor-missing' | 'skipped' | 'not-computed'
     claimed: str    # value parsed from prose, or "" when anchor/claim not locatable
-    actual: str     # ground truth (stringified)
+    actual: str     # ground truth (stringified), or the named reason when 'not-computed'
     doc: str        # the doc the claim lives in (repo-relative)
 
 
@@ -71,6 +78,7 @@ class Claim:
     kind: str                                    # "count" | "set"
     deriver: Callable[[Path, int], object]       # ground truth; 2nd arg = injected check count
     expensive: bool = False                      # True -> only when run_expensive
+    fail_closed: bool = False                    # True -> uncomputable ground truth FAILS (below)
 
 
 # --- extractors (pure, unit-tested in isolation) ----------------------------
@@ -151,6 +159,15 @@ def _derive_pytest_collected(repo_root: Path, _check_count: int) -> Optional[int
 
 # --- reconcile (pure orchestration) -----------------------------------------
 
+# The named reason a fail_closed claim carries when its ground truth is unavailable.
+# It names the COMPUTING PATHS, so the message is actionable rather than a bare status:
+# the GAP-1 cycle-break is preserved (this leaf still never imports audit), and the
+# standalone CLI still cannot compute the count -- it now says so loudly instead of
+# reporting `skipped` beneath an `OK` headline.
+_UNAVAILABLE_REASON = ("<NOT COMPUTED - no caller injected the ground truth; "
+                       "run `audit health` or `audit run`, which do>")
+
+
 def _fmt_set(s) -> str:
     return "{" + ", ".join(sorted(s)) + "}"
 
@@ -181,9 +198,26 @@ def reconcile(repo_root: Path, audit_check_count: Optional[int],
             continue
         text = doc_path.read_text(encoding="utf-8")
         actual = c.deriver(repo_root, audit_check_count)
-        if actual is None:                       # ground truth unavailable (e.g. pytest failed)
-            results.append(ClaimResult(c.name, "skipped", "",
-                                       "<ground truth unavailable>", c.doc))
+        if actual is None:                       # ground truth unavailable
+            # A claim that cannot compute its ground truth must not report a status the
+            # caller renders as green. Which way it degrades is a PER-CLAIM property, not
+            # a blanket rule, because the two unavailable-paths in this registry are not
+            # the same kind of event:
+            #   fail_closed=True  (audit_check_count) -> 'not-computed', a FAILURE. The
+            #     count is INJECTED by the caller; None means nobody computed it, which is
+            #     a structural condition, never a transient one. Reporting it as 'skipped'
+            #     under an `OK - no prose drift` headline was the green-by-skip defect
+            #     (STANDING_RULINGS section U, 2026-08-25).
+            #   fail_closed=False (pytest_collected) -> 'skipped', fail-soft BY DESIGN.
+            #     Its deriver shells out, so None means an infra hiccup; flapping a WARN on
+            #     a failed subprocess launch is the documented wrong answer (see
+            #     _derive_pytest_collected). That contract is deliberately NOT widened.
+            if c.fail_closed:
+                results.append(ClaimResult(c.name, "not-computed", "",
+                                           _UNAVAILABLE_REASON, c.doc))
+            else:
+                results.append(ClaimResult(c.name, "skipped", "",
+                                           "<ground truth unavailable>", c.doc))
             continue
         if c.kind == "count":
             m = c.anchor.search(text)
@@ -224,7 +258,8 @@ def format_findings(results: list[ClaimResult]) -> str:
 _CLAIMS = [
     Claim("audit_check_count", "ecosystem/doc-counts.md",
           re.compile(r"\*\*(\d+)\s+registered checks\*\*"), "count",
-          lambda root, n: n),                                  # injected len(ALL_CHECKS)
+          lambda root, n: n,                                   # injected len(ALL_CHECKS)
+          fail_closed=True),                                   # None -> 'not-computed', not a skip
     Claim("precommit_hook_count", "ecosystem/doc-counts.md",
           re.compile(r"pre-commit gates \((\d+)\)"), "count",
           lambda root, n: len(extract_hook_ids(
@@ -240,18 +275,40 @@ _CLAIMS = [
 
 
 def main() -> int:
-    """Standalone CLI: evaluate every self-derivable claim (incl. expensive claim 3);
-    print; exit 0 always (awareness layer, never a gate).
+    """Standalone CLI: evaluate every self-derivable claim (incl. expensive claim 3); print.
 
-    The `audit_check_count` claim is NOT evaluated here: its ground truth is
+    The `audit_check_count` claim cannot be COMPUTED here: its ground truth is
     len(ALL_CHECKS), owned by audit.py (the aggregator that imports THIS leaf). A leaf
     reaching back up to audit was the sole import cycle in scripts/ (GAP-1, audit
     2026-06-25); the dependency is inverted — whoever drives reconcile() supplies the
     count (audit.check_doc_claims injects len(ALL_CHECKS); tests inject directly), and
-    standalone we pass None so that one claim reports `skipped` rather than recreate the
-    edge. Run `audit health` / `audit run` for the check-count reconciliation."""
+    standalone we pass None. The cycle-break is UNCHANGED; what changed is how the
+    un-computed claim is REPORTED.
+
+    Exit code (2026-08-25, STANDING_RULINGS section U): 0 when every claim was actually
+    evaluated, **1 when any claim could not compute its ground truth**. Previously this
+    returned 0 unconditionally and printed `OK — no prose drift` while a claim sat at
+    `skipped`, so the surface that exists to catch drift reported green precisely when it
+    was blind — green-by-skip, the third paid instance of the shape (after the pre-push
+    degraded-allow removed by ADR-85 §A6 and `block_commit_on_main`'s silent-allow).
+
+    This does NOT make the module a gate: it is wired into no hook, and
+    `verify_handoff_probes` is resolve-only and never executes probe commands, so no
+    gate's verdict moves. A real `mismatch` still exits 0 — that awareness-layer posture
+    is a recorded ruling (2026-06-10 consolidation audit F1) and is deliberately left
+    alone; only the it-did-not-run case is fail-loud. Run `audit health` / `audit run`
+    for the check-count reconciliation."""
     results = reconcile(_REPO_ROOT, None, run_expensive=True)
     mismatches = [r for r in results if r.status == "mismatch"]
+    not_computed = [r for r in results if r.status == "not-computed"]
+    if not_computed:
+        print(f"validate_doc_claims: FAIL — {len(not_computed)} claim(s) could NOT be checked "
+              f"(ground truth not computed); this run proves nothing about them:")
+        for r in results:
+            flag = ("NOT-RUN" if r.status == "not-computed"
+                    else "DRIFT  " if r.status == "mismatch" else "       ")
+            print(f"  {flag} {r.status:>14}  {r.name}@{r.doc}  doc={r.claimed or '-'}  actual={r.actual}")
+        return 1
     if not mismatches:
         print(f"validate_doc_claims: OK — {len(results)} claim(s) checked, no prose drift")
         for r in results:

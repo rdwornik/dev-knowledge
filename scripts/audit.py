@@ -1179,9 +1179,10 @@ def check_doc_claims(repo_path: Path) -> list[Finding]:
     staleness) and #13 (HANDOFF version stamps) cannot see; cross-file fidelity / rot
     is #140's, not this check's.
 
-    Awareness layer, not a gate: emits WARN on a mismatch or an anchor-not-found
-    (never FAIL → never blocks the audit-health commit gate). The expensive claim-3
-    (pytest --collect-only) runs only off the gate (run_expensive=not _GATE_MODE).
+    Awareness layer, not a gate: emits WARN on a mismatch, an anchor-not-found, or a
+    could-not-compute (never FAIL → never blocks the audit-health commit gate). The
+    expensive claim-3 (pytest --collect-only) runs only off the gate
+    (run_expensive=not _GATE_MODE).
     Fail-soft on any error. Read-only. Logic lives in scripts/validate_doc_claims.py.
     """
     if not _is_hub(repo_path):
@@ -1195,6 +1196,24 @@ def check_doc_claims(repo_path: Path) -> list[Finding]:
                         f"check degraded (read-only, non-blocking): {exc!r}".replace("|", "/"))]
     mismatches = [r for r in results if r.status == "mismatch"]
     missing = [r for r in results if r.status == "anchor-missing"]
+    # A fail_closed claim that could not compute its ground truth (STANDING_RULINGS
+    # section U). This adapter ALWAYS injects len(ALL_CHECKS), so the only claim that can
+    # reach 'not-computed' cannot do so here -- the branch exists so the status can never
+    # go SILENT if a future claim is marked fail_closed with a deriver that can return
+    # None. Reported ahead of mismatch (not-run outranks drift: a claim that did not run
+    # says nothing about drift either way) and still WARN, never FAIL: this check's
+    # never-block-the-commit-gate posture is a separate ruling and is not widened here.
+    #
+    # NOTE the ClaimResult status is 'not-computed', NOT 'unavailable'. `Finding.status`
+    # already has an "unavailable" value and it is GREEN -- it renders as N/A and
+    # `_check_outcome` projects it onto `pass`. `check_silent_rule_ratchet` records the
+    # same trap ("FAIL, not 'unavailable'", terra HIGH 2026-07-27). Reusing that word for
+    # a status that must NOT read as green would import exactly the wrong connotation.
+    not_computed = [r for r in results if r.status == "not-computed"]
+    if not_computed:
+        evidence = (f"{len(not_computed)} claim(s) NOT CHECKED (ground truth not computed): "
+                    + ", ".join(f"{u.name}@{u.doc}" for u in not_computed)).replace("|", "/")
+        return [Finding("doc_claims", "warn", evidence)]
     if mismatches:
         evidence = (f"{len(mismatches)} prose claim(s) drifted from repo state: "
                     + _vdc.format_findings(results)).replace("|", "/")
@@ -1708,7 +1727,7 @@ def _load_coverage_exempt(repo_path: Path) -> set[str]:
 
 
 def check_doc_code_edge(repo_path: Path) -> list[Finding]:
-    """#194 doc→code declared-edge integrity (advisory-first, ADR-89 OQ1).
+    """#194 doc->code declared-edge integrity (advisory-first, ADR-89 OQ1).
 
     Discovers every `<!-- rule: ID -->` annotation in the DECLARATION DOCS registered in
     `ecosystem/doc-code-edge.yaml` (`declaration_docs:`) and resolves each to its `# rule: ID`
@@ -2672,8 +2691,17 @@ def check_fleet_audit_replication(repo_path: Path) -> list[Finding]:
 
     count = _run(["rev-list", "--count", f"{remote_ref}..refs/heads/{_AUTOMATION_BRANCH}"])
     if count is None or not count.isdigit():
-        return [Finding("fleet_audit_replication", "unavailable",
-                        "git rev-list failed -- replication lag not measurable here")]
+        # FAIL, not "unavailable" (green-by-skip sweep, 2026-08-25). `unavailable` renders
+        # as N/A and `_check_outcome` projects it onto `pass`, so this shipped green having
+        # measured nothing -- the same trap the no-remote-ref branch above already refused
+        # ("Returning `n/a` here would disable the backstop in exactly the never-replicated
+        # case it exists for", codex HIGH 2026-08-01), and the one check_silent_rule_ratchet
+        # names at terra HIGH 2026-07-27. Both refs are verified before this line, so git
+        # works and the repo is intact: rev-list failing here is a real defect, not an
+        # inapplicable context.
+        return [Finding("fleet_audit_replication", "fail",
+                        "git rev-list failed -- replication lag NOT measurable here, so this "
+                        "run proves nothing about ADR-80's durable record")]
 
     status, evidence = classify_replication_lag(int(count))
     return [Finding("fleet_audit_replication", status, evidence.replace("|", "/"))]

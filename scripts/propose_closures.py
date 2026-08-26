@@ -384,7 +384,95 @@ def _write_artifact(content: str) -> Path:
     return out
 
 
+_ERROR_HEADING = "# Closure proposals - DETECTOR ERROR"
+
+
+def _describe_precondition_failure() -> str:
+    """Name WHICH input is missing, or "" when the inputs are all present.
+
+    The husk artifact this replaces read, in full:
+
+        The session-end detector raised: `FileNotFoundError(2, 'No such file or directory')`
+
+    -- which names no path, so it is undiagnosable: repr(FileNotFoundError) drops the
+    `filename` that Path.read_text set, and the reader cannot tell a missing BACKLOG.md
+    from a missing validate_backlog.py from a misresolved repo root. Checking the inputs
+    up front turns an anonymous errno into a sentence naming the file and the root it was
+    resolved against.
+
+    THIS copy resolves `_REPO_ROOT` from `__file__`, so its root is structurally correct
+    and only a genuinely absent input trips these branches. The exposed twin is the
+    PLUGIN copy (the live Stop-hook scanner), which resolves the host repo from
+    $CLAUDE_PROJECT_DIR and falls back to cwd -- so a run with that env unset points
+    BACKLOG at a tree that has none, which is how the recorded husk was produced. The
+    check is kept identical in both copies rather than only in the exposed one.
+    """
+    if not _REPO_ROOT.exists():
+        return f"resolved repo root does not exist: {_REPO_ROOT}"
+    if not _BACKLOG.is_file():
+        return (f"BACKLOG.md not found at {_BACKLOG} "
+                f"(repo root resolved to {_REPO_ROOT}) - the detector was pointed at a "
+                f"tree that is not the host repo")
+    vb = _SCRIPTS_DIR / "validate_backlog.py"
+    if not vb.is_file():
+        return f"validate_backlog.py not found at {vb} (the bundled parser is missing)"
+    return ""
+
+
+def _write_error_marker(reason: str) -> Path:
+    """Record a detector failure at `DETECTOR-ERROR-<date>.md` -- NEVER as a PROPOSALS file.
+
+    The marker does not occupy the `PROPOSALS-*` namespace AT ALL. Writing it there (what
+    the original error path did unconditionally) breaks this module's own contract in three
+    ways -- the first two found by terra review 2026-08-25, the third stated in the module
+    docstring above:
+
+      1. It SHADOWS real pending proposals. `review_closures.latest_proposals()` is
+         `sorted(logs_dir.glob("PROPOSALS-*.md"))[-1]`, so a failed run TODAY hides
+         YESTERDAY's genuine unreviewed proposals behind an empty marker. Preserving only
+         the same-DAY file (this lane's first attempt) does not reach that.
+      2. It CORRUPTS the window. `resolve_window` globs the same pattern, and a file
+         carrying no `head_commit:` collapses the baseline to a cold start -- whole-history
+         rescan with WEAK suppressed.
+      3. It INVERTS the loud-failure signal. This module promises "ALWAYS writes
+         logs/PROPOSALS-YYYY-MM-DD.md ... its ABSENCE is the loud failure signal". A husk
+         at that path makes the file PRESENT while the detector did not run, which is
+         precisely backwards. Keeping the namespace clean RESTORES the signal: on failure
+         today's PROPOSALS file is absent (so the signal fires) and a named diagnosis sits
+         beside it.
+
+    UPPERCASE-KEBAB stem per the logs/ naming ruling 2026-07-22, deliberately outside the
+    `PROPOSALS-*.md` glob. Rewriting the same path on a second failure is intended: two
+    broken runs in one day leave one marker, not an accumulating pile.
+    """
+    _LOGS_DIR.mkdir(exist_ok=True)
+    body = (f"{_ERROR_HEADING} ({date.today().isoformat()})\n\n"
+            f"The session-end detector did not run: {reason}\n\n"
+            f"BACKLOG was not touched, and NO closure proposals were produced -- this\n"
+            f"file is the absence of a result, not a result. Investigate\n"
+            f"propose_closures.py.\n")
+    out = _LOGS_DIR / f"DETECTOR-ERROR-{date.today().isoformat()}.md"
+    out.write_text(body, encoding="utf-8", newline="\n")
+    return out
+
+
 def main() -> int:
+    # Preconditions FIRST, named. The detector's inputs are checked before any work so a
+    # missing one is reported as a sentence naming the file, not as an anonymous errno
+    # surfacing from deep inside read_text (STANDING_RULINGS section U: the closure
+    # detector funds births -- its output must be trustworthy or fail loudly).
+    problem = _describe_precondition_failure()
+    if problem:
+        print(f"propose_closures: ERROR - detector did NOT run: {problem}", file=sys.stderr)
+        try:
+            marker = _write_error_marker(problem)
+            print(f"propose_closures: recorded the failure at {marker}", file=sys.stderr)
+        except OSError as exc:
+            print(f"propose_closures: could not record the failure: {exc!r}", file=sys.stderr)
+        # exit 0 is deliberate: this runs as the Stop hook, declared non-blocking in
+        # hooks.json, and must never wedge session-end. Loud + diagnosable +
+        # non-destructive, NOT a new gate.
+        return 0
     try:
         vb = _load_validate_backlog()
         open_tasks = open_tasks_from_backlog(
@@ -425,13 +513,16 @@ def main() -> int:
               + (" (weak suppressed: cold start)" if cold_start else ""))
         return 0
     except Exception as exc:  # never wedge session-end; fail loud, leave a marker
-        print(f"propose_closures: WARNING — detector failed: {exc!r}", file=sys.stderr)
+        # repr() alone is what made the husk undiagnosable (a bare
+        # `FileNotFoundError(2, 'No such file or directory')` names no path), so the
+        # OSError filename -- which repr drops -- is recovered explicitly here.
+        detail = f"{exc!r}"
+        fname = getattr(exc, "filename", None)
+        if fname:
+            detail += f" on {fname}"
+        print(f"propose_closures: WARNING - detector failed: {detail}", file=sys.stderr)
         try:
-            _write_artifact(
-                f"# Closure proposals — DETECTOR ERROR ({date.today().isoformat()})\n\n"
-                f"The session-end detector raised: `{exc!r}`\n\n"
-                f"BACKLOG was not touched. Investigate scripts/propose_closures.py.\n"
-            )
+            _write_error_marker(f"raised {detail}")
         except Exception:
             pass
         return 0

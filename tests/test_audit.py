@@ -2754,3 +2754,59 @@ def test_preflight_backlog_ids_reuses_the_preflight_role_predicates():
     # The leg must not re-derive the field/value grammar itself — that is how the two would drift.
     for restated in ("kill-candidates:", "_REASON_SEP", "_mask_ticks"):
         assert restated not in code, f"the leg restates {restated!r} instead of reusing the helper"
+
+
+# ---------------------------------------------------------------------------
+# `checks` console encodability ([#470]; STANDING_RULINGS section U 2026-08-25)
+# ---------------------------------------------------------------------------
+# `cmd_checks` echoes each check's FIRST docstring line via click.echo. A Windows
+# console defaults to cp1252, so ONE non-cp1252 char in that position kills the
+# listing mid-run: reproduced live as
+#   UnicodeEncodeError: 'charmap' codec can't encode character '→'
+# from the `→` in check_doc_code_edge's summary. The command is the derivation
+# ecosystem/doc-counts.md cites for its "46 registered checks" claim, so the roster
+# command did not run in the operator's own shell.
+#
+# cp1252-encodable is the bar, NOT ASCII-only — the em dash (U+2014) separator and the
+# `§` in several summaries DO encode, and an ASCII-only assertion would false-RED the
+# house render-layer style. Same shape as the [#486] regression in
+# test_desired_state_report.py; the fix is the ASCII swap (removes the class) rather
+# than a stdout.reconfigure (which only masks it).
+
+def test_every_check_summary_line_is_cp1252_encodable() -> None:
+    """The per-check line `cmd_checks` builds must encode on a cp1252 console.
+
+    Asserted over the WHOLE emitted line (index + name + separator + summary), not just
+    the docstring, so a future non-cp1252 char anywhere in the composed line is caught.
+    """
+    for i, check in enumerate(aud.ALL_CHECKS, start=1):
+        name = check.__name__.removeprefix("check_")
+        first = (check.__doc__ or "").strip().splitlines()
+        summary = first[0].strip() if first else ""
+        line = f"  {i:>2}. {name} — {summary}"
+        try:
+            line.encode("cp1252")
+        except UnicodeEncodeError as exc:
+            bad = line[exc.start:exc.end]
+            pytest.fail(f"check {name!r} summary is not cp1252-encodable "
+                        f"(U+{ord(bad[0]):04X} {bad!r}): {line!r}")
+
+
+def test_checks_listing_survives_a_cp1252_console() -> None:
+    """The crash path itself: render the full listing through a cp1252-encoded stream.
+
+    Exercises what the operator's shell does, so this fails if the landmine returns even
+    were the per-line assertion above ever loosened. Uses a real cp1252 TextIOWrapper
+    (not a monkeypatched sys.stdout) per the xdist-safe pattern.
+    """
+    import contextlib
+    import io
+
+    stream = io.TextIOWrapper(io.BytesIO(), encoding="cp1252", newline="")
+    with contextlib.redirect_stdout(stream):
+        print(f"{len(aud.ALL_CHECKS)} registered checks:")
+        for i, check in enumerate(aud.ALL_CHECKS, start=1):
+            name = check.__name__.removeprefix("check_")
+            first = (check.__doc__ or "").strip().splitlines()
+            print(f"  {i:>2}. {name} — {first[0].strip() if first else ''}")
+    stream.flush()
