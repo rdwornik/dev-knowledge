@@ -736,3 +736,479 @@ dispositions:
     reason: >-
       MECHANISM SPEC — accepted, ruled [#532]/A9. Same case as [#529]: contract-EXCLUDED from lane
       G, batch-2 work, and the length is the single-flight dispatch guard's own specification.
+
+  # ---- D3 (operator-ruled 2026-08-25): this window's own predicted funnel_coverage cost ----
+  # WHAT THESE ARE. `protocols/STANDING_RULINGS.md` section U landed the register-ruling packet
+  # and its provenance, and the five verification lanes were integrated in the same window. Each
+  # artifact those acts added is a `docs/audits/` file carrying no disposition ledger row yet, so
+  # `funnel_coverage` fires once per artifact. The 2026-08-25 architect RESIDUAL records the
+  # position verbatim: those rows "are the expected, predicted cost of landing them", the landing
+  # contract's own stop-list FORBADE dispositioning them at landing time, and "wave 1 is where
+  # they get ruled". D3 is the operator act that dispositions them here, one entry per WARN.
+  #
+  # COUNT CORRECTION, recorded rather than quietly absorbed. The D3 instruction predicted 14
+  # entries. The live measurement is 28, and the derivation is reproducible:
+  #     python -c "import sys;sys.path.insert(0,'scripts');import funnel_coverage as fc;
+  #                from pathlib import Path;r=Path('.').resolve();m=fc.measure(r);b=fc.load_baseline(r);
+  #                print(len(set(m.corpus)-set(m.dispositioned)-set(m.pending)-set(b['artifacts'])))"
+  # By landing date: 5 landed 2026-08-23, 16 landed 2026-08-24, 7 landed 2026-08-25. No subset of
+  # the corpus totals 14 under any derivation attempted (section U names 5 artifacts by name;
+  # the 2026-08-25 landings are 7). The predicted number was stale, not the class: every entry
+  # below is a funnel_coverage WARN on an artifact this window's own arcs added, which is exactly
+  # the class D3 names. The count is corrected in the open; the scope is unchanged.
+  #
+  # WHAT THIS DOES AND DOES NOT DO. Each entry suppresses ONE ship-gate WARN and keys on the
+  # artifact filename — the specific benign signature, since funnel_coverage emits one Finding per
+  # artifact, so a DIFFERENT future funnel drift re-surfaces and blocks (precision-over-recall,
+  # the register's own header contract). It records that the WARN is expected. It does NOT rule
+  # the artifact's findings: the substantive disposition is a ledger row (ACTIONED / FILED /
+  # REJECTED / SUPERSEDED with an evidence locator), and that act belongs to wave 1. When a
+  # ledger row lands for an artifact, its funnel WARN clears and the entry below decorates stale
+  # under the ADR-75 rule, which is the intended exit — these entries are designed to rot visibly.
+
+
+  - id: warn-funnel-technical-backlog-adjudication-prep
+    organ: funnel_coverage
+    match: "2026-08-23-technical-backlog-adjudication-prep.md carries no disposition"
+    ref: "protocols/STANDING_RULINGS.md section U"
+    reason: >-
+      PREDICTED LANDING COST — expected, adjudicating authority `protocols/STANDING_RULINGS.md`
+      section U (D3, operator-ruled 2026-08-25). Landed 2026-08-23; absent from the arm-time
+      funnel baseline because this window's own arcs added it. Suppresses the ship-gate WARN
+      only; the substantive ACTIONED/FILED/REJECTED/SUPERSEDED ruling is wave 1's, and lands as
+      a disposition-ledger row with an evidence locator, at which point this entry decorates
+      stale (ADR-75) and is removed.
+    auto_clearable_by: "a docs/audits/ disposition-ledger row naming 2026-08-23-technical-backlog-adjudication-prep.md with an evidence locator (wave 1)"
+
+  - id: warn-funnel-technical-funnel-retro-classification
+    organ: funnel_coverage
+    match: "2026-08-23-technical-funnel-retro-classification.md carries no disposition"
+    ref: "protocols/STANDING_RULINGS.md section U"
+    reason: >-
+      PREDICTED LANDING COST — expected, adjudicating authority `protocols/STANDING_RULINGS.md`
+      section U (D3, operator-ruled 2026-08-25). Landed 2026-08-23; absent from the arm-time
+      funnel baseline because this window's own arcs added it. Suppresses the ship-gate WARN
+      only; the substantive ACTIONED/FILED/REJECTED/SUPERSEDED ruling is wave 1's, and lands as
+      a disposition-ledger row with an evidence locator, at which point this entry decorates
+      stale (ADR-75) and is removed.
+    auto_clearable_by: "a docs/audits/ disposition-ledger row naming 2026-08-23-technical-funnel-retro-classification.md with an evidence locator (wave 1)"
+
+  - id: warn-funnel-technical-lane-dashboard-commit-path
+    organ: funnel_coverage
+    match: "2026-08-23-technical-lane-dashboard-commit-path.md carries no disposition"
+    ref: "protocols/STANDING_RULINGS.md section U"
+    reason: >-
+      PREDICTED LANDING COST — expected, adjudicating authority `protocols/STANDING_RULINGS.md`
+      section U (D3, operator-ruled 2026-08-25). Landed 2026-08-24; absent from the arm-time
+      funnel baseline because this window's own arcs added it. Suppresses the ship-gate WARN
+      only; the substantive ACTIONED/FILED/REJECTED/SUPERSEDED ruling is wave 1's, and lands as
+      a disposition-ledger row with an evidence locator, at which point this entry decorates
+      stale (ADR-75) and is removed.
+    auto_clearable_by: "a docs/audits/ disposition-ledger row naming 2026-08-23-technical-lane-dashboard-commit-path.md with an evidence locator (wave 1)"
+
+  - id: warn-funnel-technical-lane-dispatch-codification
+    organ: funnel_coverage
+    match: "2026-08-23-technical-lane-dispatch-codification.md carries no disposition"
+    ref: "protocols/STANDING_RULINGS.md section U"
+    reason: >-
+      PREDICTED LANDING COST — expected, adjudicating authority `protocols/STANDING_RULINGS.md`
+      section U (D3, operator-ruled 2026-08-25). Landed 2026-08-24; absent from the arm-time
+      funnel baseline because this window's own arcs added it. Suppresses the ship-gate WARN
+      only; the substantive ACTIONED/FILED/REJECTED/SUPERSEDED ruling is wave 1's, and lands as
+      a disposition-ledger row with an evidence locator, at which point this entry decorates
+      stale (ADR-75) and is removed.
+    auto_clearable_by: "a docs/audits/ disposition-ledger row naming 2026-08-23-technical-lane-dispatch-codification.md with an evidence locator (wave 1)"
+
+  - id: warn-funnel-technical-lane-docs-actual-state
+    organ: funnel_coverage
+    match: "2026-08-23-technical-lane-docs-actual-state.md carries no disposition"
+    ref: "protocols/STANDING_RULINGS.md section U"
+    reason: >-
+      PREDICTED LANDING COST — expected, adjudicating authority `protocols/STANDING_RULINGS.md`
+      section U (D3, operator-ruled 2026-08-25). Landed 2026-08-23; absent from the arm-time
+      funnel baseline because this window's own arcs added it. Suppresses the ship-gate WARN
+      only; the substantive ACTIONED/FILED/REJECTED/SUPERSEDED ruling is wave 1's, and lands as
+      a disposition-ledger row with an evidence locator, at which point this entry decorates
+      stale (ADR-75) and is removed.
+    auto_clearable_by: "a docs/audits/ disposition-ledger row naming 2026-08-23-technical-lane-docs-actual-state.md with an evidence locator (wave 1)"
+
+  - id: warn-funnel-technical-lane-provider-config
+    organ: funnel_coverage
+    match: "2026-08-23-technical-lane-provider-config.md carries no disposition"
+    ref: "protocols/STANDING_RULINGS.md section U"
+    reason: >-
+      PREDICTED LANDING COST — expected, adjudicating authority `protocols/STANDING_RULINGS.md`
+      section U (D3, operator-ruled 2026-08-25). Landed 2026-08-24; absent from the arm-time
+      funnel baseline because this window's own arcs added it. Suppresses the ship-gate WARN
+      only; the substantive ACTIONED/FILED/REJECTED/SUPERSEDED ruling is wave 1's, and lands as
+      a disposition-ledger row with an evidence locator, at which point this entry decorates
+      stale (ADR-75) and is removed.
+    auto_clearable_by: "a docs/audits/ disposition-ledger row naming 2026-08-23-technical-lane-provider-config.md with an evidence locator (wave 1)"
+
+  - id: warn-funnel-technical-lane-status-grammar
+    organ: funnel_coverage
+    match: "2026-08-23-technical-lane-status-grammar.md carries no disposition"
+    ref: "protocols/STANDING_RULINGS.md section U"
+    reason: >-
+      PREDICTED LANDING COST — expected, adjudicating authority `protocols/STANDING_RULINGS.md`
+      section U (D3, operator-ruled 2026-08-25). Landed 2026-08-24; absent from the arm-time
+      funnel baseline because this window's own arcs added it. Suppresses the ship-gate WARN
+      only; the substantive ACTIONED/FILED/REJECTED/SUPERSEDED ruling is wave 1's, and lands as
+      a disposition-ledger row with an evidence locator, at which point this entry decorates
+      stale (ADR-75) and is removed.
+    auto_clearable_by: "a docs/audits/ disposition-ledger row naming 2026-08-23-technical-lane-status-grammar.md with an evidence locator (wave 1)"
+
+  - id: warn-funnel-technical-research-model-bus
+    organ: funnel_coverage
+    match: "2026-08-23-technical-research-model-bus.md carries no disposition"
+    ref: "protocols/STANDING_RULINGS.md section U"
+    reason: >-
+      PREDICTED LANDING COST — expected, adjudicating authority `protocols/STANDING_RULINGS.md`
+      section U (D3, operator-ruled 2026-08-25). Landed 2026-08-23; absent from the arm-time
+      funnel baseline because this window's own arcs added it. Suppresses the ship-gate WARN
+      only; the substantive ACTIONED/FILED/REJECTED/SUPERSEDED ruling is wave 1's, and lands as
+      a disposition-ledger row with an evidence locator, at which point this entry decorates
+      stale (ADR-75) and is removed.
+    auto_clearable_by: "a docs/audits/ disposition-ledger row naming 2026-08-23-technical-research-model-bus.md with an evidence locator (wave 1)"
+
+  - id: warn-funnel-technical-ruling-provenance-audit
+    organ: funnel_coverage
+    match: "2026-08-23-technical-ruling-provenance-audit.md carries no disposition"
+    ref: "protocols/STANDING_RULINGS.md section U"
+    reason: >-
+      PREDICTED LANDING COST — expected, adjudicating authority `protocols/STANDING_RULINGS.md`
+      section U (D3, operator-ruled 2026-08-25). Landed 2026-08-23; absent from the arm-time
+      funnel baseline because this window's own arcs added it. Suppresses the ship-gate WARN
+      only; the substantive ACTIONED/FILED/REJECTED/SUPERSEDED ruling is wave 1's, and lands as
+      a disposition-ledger row with an evidence locator, at which point this entry decorates
+      stale (ADR-75) and is removed.
+    auto_clearable_by: "a docs/audits/ disposition-ledger row naming 2026-08-23-technical-ruling-provenance-audit.md with an evidence locator (wave 1)"
+
+  - id: warn-funnel-technical-batch-close
+    organ: funnel_coverage
+    match: "2026-08-24-technical-batch-close.md carries no disposition"
+    ref: "protocols/STANDING_RULINGS.md section U"
+    reason: >-
+      PREDICTED LANDING COST — expected, adjudicating authority `protocols/STANDING_RULINGS.md`
+      section U (D3, operator-ruled 2026-08-25). Landed 2026-08-24; absent from the arm-time
+      funnel baseline because this window's own arcs added it. Suppresses the ship-gate WARN
+      only; the substantive ACTIONED/FILED/REJECTED/SUPERSEDED ruling is wave 1's, and lands as
+      a disposition-ledger row with an evidence locator, at which point this entry decorates
+      stale (ADR-75) and is removed.
+    auto_clearable_by: "a docs/audits/ disposition-ledger row naming 2026-08-24-technical-batch-close.md with an evidence locator (wave 1)"
+
+  - id: warn-funnel-technical-discharge-38-ruling-packet
+    organ: funnel_coverage
+    match: "2026-08-24-technical-discharge-38-ruling-packet.md carries no disposition"
+    ref: "protocols/STANDING_RULINGS.md section U"
+    reason: >-
+      PREDICTED LANDING COST — expected, adjudicating authority `protocols/STANDING_RULINGS.md`
+      section U (D3, operator-ruled 2026-08-25). Landed 2026-08-25; absent from the arm-time
+      funnel baseline because this window's own arcs added it. Suppresses the ship-gate WARN
+      only; the substantive ACTIONED/FILED/REJECTED/SUPERSEDED ruling is wave 1's, and lands as
+      a disposition-ledger row with an evidence locator, at which point this entry decorates
+      stale (ADR-75) and is removed.
+    auto_clearable_by: "a docs/audits/ disposition-ledger row naming 2026-08-24-technical-discharge-38-ruling-packet.md with an evidence locator (wave 1)"
+
+  - id: warn-funnel-technical-lane-v1-register-verification
+    organ: funnel_coverage
+    match: "2026-08-24-technical-lane-v1-register-verification.md carries no disposition"
+    ref: "protocols/STANDING_RULINGS.md section U"
+    reason: >-
+      PREDICTED LANDING COST — expected, adjudicating authority `protocols/STANDING_RULINGS.md`
+      section U (D3, operator-ruled 2026-08-25). Landed 2026-08-24; absent from the arm-time
+      funnel baseline because this window's own arcs added it. Suppresses the ship-gate WARN
+      only; the substantive ACTIONED/FILED/REJECTED/SUPERSEDED ruling is wave 1's, and lands as
+      a disposition-ledger row with an evidence locator, at which point this entry decorates
+      stale (ADR-75) and is removed.
+    auto_clearable_by: "a docs/audits/ disposition-ledger row naming 2026-08-24-technical-lane-v1-register-verification.md with an evidence locator (wave 1)"
+
+  - id: warn-funnel-technical-lane-v3-gates-and-ci
+    organ: funnel_coverage
+    match: "2026-08-24-technical-lane-v3-gates-and-ci.md carries no disposition"
+    ref: "protocols/STANDING_RULINGS.md section U"
+    reason: >-
+      PREDICTED LANDING COST — expected, adjudicating authority `protocols/STANDING_RULINGS.md`
+      section U (D3, operator-ruled 2026-08-25). Landed 2026-08-24; absent from the arm-time
+      funnel baseline because this window's own arcs added it. Suppresses the ship-gate WARN
+      only; the substantive ACTIONED/FILED/REJECTED/SUPERSEDED ruling is wave 1's, and lands as
+      a disposition-ledger row with an evidence locator, at which point this entry decorates
+      stale (ADR-75) and is removed.
+    auto_clearable_by: "a docs/audits/ disposition-ledger row naming 2026-08-24-technical-lane-v3-gates-and-ci.md with an evidence locator (wave 1)"
+
+  - id: warn-funnel-technical-lane-v4-lifecycle-verification
+    organ: funnel_coverage
+    match: "2026-08-24-technical-lane-v4-lifecycle-verification.md carries no disposition"
+    ref: "protocols/STANDING_RULINGS.md section U"
+    reason: >-
+      PREDICTED LANDING COST — expected, adjudicating authority `protocols/STANDING_RULINGS.md`
+      section U (D3, operator-ruled 2026-08-25). Landed 2026-08-24; absent from the arm-time
+      funnel baseline because this window's own arcs added it. Suppresses the ship-gate WARN
+      only; the substantive ACTIONED/FILED/REJECTED/SUPERSEDED ruling is wave 1's, and lands as
+      a disposition-ledger row with an evidence locator, at which point this entry decorates
+      stale (ADR-75) and is removed.
+    auto_clearable_by: "a docs/audits/ disposition-ledger row naming 2026-08-24-technical-lane-v4-lifecycle-verification.md with an evidence locator (wave 1)"
+
+  - id: warn-funnel-technical-lane-v5-register-verification
+    organ: funnel_coverage
+    match: "2026-08-24-technical-lane-v5-register-verification.md carries no disposition"
+    ref: "protocols/STANDING_RULINGS.md section U"
+    reason: >-
+      PREDICTED LANDING COST — expected, adjudicating authority `protocols/STANDING_RULINGS.md`
+      section U (D3, operator-ruled 2026-08-25). Landed 2026-08-24; absent from the arm-time
+      funnel baseline because this window's own arcs added it. Suppresses the ship-gate WARN
+      only; the substantive ACTIONED/FILED/REJECTED/SUPERSEDED ruling is wave 1's, and lands as
+      a disposition-ledger row with an evidence locator, at which point this entry decorates
+      stale (ADR-75) and is removed.
+    auto_clearable_by: "a docs/audits/ disposition-ledger row naming 2026-08-24-technical-lane-v5-register-verification.md with an evidence locator (wave 1)"
+
+  - id: warn-funnel-technical-probe-substrate
+    organ: funnel_coverage
+    match: "2026-08-24-technical-probe-substrate.md carries no disposition"
+    ref: "protocols/STANDING_RULINGS.md section U"
+    reason: >-
+      PREDICTED LANDING COST — expected, adjudicating authority `protocols/STANDING_RULINGS.md`
+      section U (D3, operator-ruled 2026-08-25). Landed 2026-08-24; absent from the arm-time
+      funnel baseline because this window's own arcs added it. Suppresses the ship-gate WARN
+      only; the substantive ACTIONED/FILED/REJECTED/SUPERSEDED ruling is wave 1's, and lands as
+      a disposition-ledger row with an evidence locator, at which point this entry decorates
+      stale (ADR-75) and is removed.
+    auto_clearable_by: "a docs/audits/ disposition-ledger row naming 2026-08-24-technical-probe-substrate.md with an evidence locator (wave 1)"
+
+  - id: warn-funnel-technical-research-candidate-register
+    organ: funnel_coverage
+    match: "2026-08-24-technical-research-candidate-register.md carries no disposition"
+    ref: "protocols/STANDING_RULINGS.md section U"
+    reason: >-
+      PREDICTED LANDING COST — expected, adjudicating authority `protocols/STANDING_RULINGS.md`
+      section U (D3, operator-ruled 2026-08-25). Landed 2026-08-24; absent from the arm-time
+      funnel baseline because this window's own arcs added it. Suppresses the ship-gate WARN
+      only; the substantive ACTIONED/FILED/REJECTED/SUPERSEDED ruling is wave 1's, and lands as
+      a disposition-ledger row with an evidence locator, at which point this entry decorates
+      stale (ADR-75) and is removed.
+    auto_clearable_by: "a docs/audits/ disposition-ledger row naming 2026-08-24-technical-research-candidate-register.md with an evidence locator (wave 1)"
+
+  - id: warn-funnel-technical-research-register-addendum
+    organ: funnel_coverage
+    match: "2026-08-24-technical-research-register-addendum.md carries no disposition"
+    ref: "protocols/STANDING_RULINGS.md section U"
+    reason: >-
+      PREDICTED LANDING COST — expected, adjudicating authority `protocols/STANDING_RULINGS.md`
+      section U (D3, operator-ruled 2026-08-25). Landed 2026-08-24; absent from the arm-time
+      funnel baseline because this window's own arcs added it. Suppresses the ship-gate WARN
+      only; the substantive ACTIONED/FILED/REJECTED/SUPERSEDED ruling is wave 1's, and lands as
+      a disposition-ledger row with an evidence locator, at which point this entry decorates
+      stale (ADR-75) and is removed.
+    auto_clearable_by: "a docs/audits/ disposition-ledger row naming 2026-08-24-technical-research-register-addendum.md with an evidence locator (wave 1)"
+
+  - id: warn-funnel-technical-verify-register-v2
+    organ: funnel_coverage
+    match: "2026-08-24-technical-verify-register-v2.md carries no disposition"
+    ref: "protocols/STANDING_RULINGS.md section U"
+    reason: >-
+      PREDICTED LANDING COST — expected, adjudicating authority `protocols/STANDING_RULINGS.md`
+      section U (D3, operator-ruled 2026-08-25). Landed 2026-08-24; absent from the arm-time
+      funnel baseline because this window's own arcs added it. Suppresses the ship-gate WARN
+      only; the substantive ACTIONED/FILED/REJECTED/SUPERSEDED ruling is wave 1's, and lands as
+      a disposition-ledger row with an evidence locator, at which point this entry decorates
+      stale (ADR-75) and is removed.
+    auto_clearable_by: "a docs/audits/ disposition-ledger row naming 2026-08-24-technical-verify-register-v2.md with an evidence locator (wave 1)"
+
+  - id: warn-funnel-technical-warn-triage-and-teardown
+    organ: funnel_coverage
+    match: "2026-08-24-technical-warn-triage-and-teardown.md carries no disposition"
+    ref: "protocols/STANDING_RULINGS.md section U"
+    reason: >-
+      PREDICTED LANDING COST — expected, adjudicating authority `protocols/STANDING_RULINGS.md`
+      section U (D3, operator-ruled 2026-08-25). Landed 2026-08-24; absent from the arm-time
+      funnel baseline because this window's own arcs added it. Suppresses the ship-gate WARN
+      only; the substantive ACTIONED/FILED/REJECTED/SUPERSEDED ruling is wave 1's, and lands as
+      a disposition-ledger row with an evidence locator, at which point this entry decorates
+      stale (ADR-75) and is removed.
+    auto_clearable_by: "a docs/audits/ disposition-ledger row naming 2026-08-24-technical-warn-triage-and-teardown.md with an evidence locator (wave 1)"
+
+  - id: warn-funnel-verification-integrator-merged-result
+    organ: funnel_coverage
+    match: "2026-08-24-verification-integrator-merged-result.md carries no disposition"
+    ref: "protocols/STANDING_RULINGS.md section U"
+    reason: >-
+      PREDICTED LANDING COST — expected, adjudicating authority `protocols/STANDING_RULINGS.md`
+      section U (D3, operator-ruled 2026-08-25). Landed 2026-08-24; absent from the arm-time
+      funnel baseline because this window's own arcs added it. Suppresses the ship-gate WARN
+      only; the substantive ACTIONED/FILED/REJECTED/SUPERSEDED ruling is wave 1's, and lands as
+      a disposition-ledger row with an evidence locator, at which point this entry decorates
+      stale (ADR-75) and is removed.
+    auto_clearable_by: "a docs/audits/ disposition-ledger row naming 2026-08-24-verification-integrator-merged-result.md with an evidence locator (wave 1)"
+
+  - id: warn-funnel-verification-l6-rulings-landing
+    organ: funnel_coverage
+    match: "2026-08-24-verification-l6-rulings-landing.md carries no disposition"
+    ref: "protocols/STANDING_RULINGS.md section U"
+    reason: >-
+      PREDICTED LANDING COST — expected, adjudicating authority `protocols/STANDING_RULINGS.md`
+      section U (D3, operator-ruled 2026-08-25). Landed 2026-08-24; absent from the arm-time
+      funnel baseline because this window's own arcs added it. Suppresses the ship-gate WARN
+      only; the substantive ACTIONED/FILED/REJECTED/SUPERSEDED ruling is wave 1's, and lands as
+      a disposition-ledger row with an evidence locator, at which point this entry decorates
+      stale (ADR-75) and is removed.
+    auto_clearable_by: "a docs/audits/ disposition-ledger row naming 2026-08-24-verification-l6-rulings-landing.md with an evidence locator (wave 1)"
+
+  - id: warn-funnel-technical-harvest-v-consolidation
+    organ: funnel_coverage
+    match: "2026-08-25-technical-harvest-v-consolidation.md carries no disposition"
+    ref: "protocols/STANDING_RULINGS.md section U"
+    reason: >-
+      PREDICTED LANDING COST — expected, adjudicating authority `protocols/STANDING_RULINGS.md`
+      section U (D3, operator-ruled 2026-08-25). Landed 2026-08-25; absent from the arm-time
+      funnel baseline because this window's own arcs added it. Suppresses the ship-gate WARN
+      only; the substantive ACTIONED/FILED/REJECTED/SUPERSEDED ruling is wave 1's, and lands as
+      a disposition-ledger row with an evidence locator, at which point this entry decorates
+      stale (ADR-75) and is removed.
+    auto_clearable_by: "a docs/audits/ disposition-ledger row naming 2026-08-25-technical-harvest-v-consolidation.md with an evidence locator (wave 1)"
+
+  - id: warn-funnel-technical-probe-dsh-report
+    organ: funnel_coverage
+    match: "2026-08-25-technical-probe-dsh-report.md carries no disposition"
+    ref: "protocols/STANDING_RULINGS.md section U"
+    reason: >-
+      PREDICTED LANDING COST — expected, adjudicating authority `protocols/STANDING_RULINGS.md`
+      section U (D3, operator-ruled 2026-08-25). Landed 2026-08-25; absent from the arm-time
+      funnel baseline because this window's own arcs added it. Suppresses the ship-gate WARN
+      only; the substantive ACTIONED/FILED/REJECTED/SUPERSEDED ruling is wave 1's, and lands as
+      a disposition-ledger row with an evidence locator, at which point this entry decorates
+      stale (ADR-75) and is removed.
+    auto_clearable_by: "a docs/audits/ disposition-ledger row naming 2026-08-25-technical-probe-dsh-report.md with an evidence locator (wave 1)"
+
+  - id: warn-funnel-technical-probe-providers-report
+    organ: funnel_coverage
+    match: "2026-08-25-technical-probe-providers-report.md carries no disposition"
+    ref: "protocols/STANDING_RULINGS.md section U"
+    reason: >-
+      PREDICTED LANDING COST — expected, adjudicating authority `protocols/STANDING_RULINGS.md`
+      section U (D3, operator-ruled 2026-08-25). Landed 2026-08-25; absent from the arm-time
+      funnel baseline because this window's own arcs added it. Suppresses the ship-gate WARN
+      only; the substantive ACTIONED/FILED/REJECTED/SUPERSEDED ruling is wave 1's, and lands as
+      a disposition-ledger row with an evidence locator, at which point this entry decorates
+      stale (ADR-75) and is removed.
+    auto_clearable_by: "a docs/audits/ disposition-ledger row naming 2026-08-25-technical-probe-providers-report.md with an evidence locator (wave 1)"
+
+  - id: warn-funnel-technical-register-ruling-packet
+    organ: funnel_coverage
+    match: "2026-08-25-technical-register-ruling-packet.md carries no disposition"
+    ref: "protocols/STANDING_RULINGS.md section U"
+    reason: >-
+      PREDICTED LANDING COST — expected, adjudicating authority `protocols/STANDING_RULINGS.md`
+      section U (D3, operator-ruled 2026-08-25). Landed 2026-08-25; absent from the arm-time
+      funnel baseline because this window's own arcs added it. Suppresses the ship-gate WARN
+      only; the substantive ACTIONED/FILED/REJECTED/SUPERSEDED ruling is wave 1's, and lands as
+      a disposition-ledger row with an evidence locator, at which point this entry decorates
+      stale (ADR-75) and is removed.
+    auto_clearable_by: "a docs/audits/ disposition-ledger row naming 2026-08-25-technical-register-ruling-packet.md with an evidence locator (wave 1)"
+
+  - id: warn-funnel-technical-research-agents-md-standard
+    organ: funnel_coverage
+    match: "2026-08-25-technical-research-agents-md-standard.md carries no disposition"
+    ref: "protocols/STANDING_RULINGS.md section U"
+    reason: >-
+      PREDICTED LANDING COST — expected, adjudicating authority `protocols/STANDING_RULINGS.md`
+      section U (D3, operator-ruled 2026-08-25). Landed 2026-08-25; absent from the arm-time
+      funnel baseline because this window's own arcs added it. Suppresses the ship-gate WARN
+      only; the substantive ACTIONED/FILED/REJECTED/SUPERSEDED ruling is wave 1's, and lands as
+      a disposition-ledger row with an evidence locator, at which point this entry decorates
+      stale (ADR-75) and is removed.
+    auto_clearable_by: "a docs/audits/ disposition-ledger row naming 2026-08-25-technical-research-agents-md-standard.md with an evidence locator (wave 1)"
+
+  - id: warn-funnel-technical-research-delivery-telemetry-attribution
+    organ: funnel_coverage
+    match: "2026-08-25-technical-research-delivery-telemetry-attribution.md carries no disposition"
+    ref: "protocols/STANDING_RULINGS.md section U"
+    reason: >-
+      PREDICTED LANDING COST — expected, adjudicating authority `protocols/STANDING_RULINGS.md`
+      section U (D3, operator-ruled 2026-08-25). Landed 2026-08-25; absent from the arm-time
+      funnel baseline because this window's own arcs added it. Suppresses the ship-gate WARN
+      only; the substantive ACTIONED/FILED/REJECTED/SUPERSEDED ruling is wave 1's, and lands as
+      a disposition-ledger row with an evidence locator, at which point this entry decorates
+      stale (ADR-75) and is removed.
+    auto_clearable_by: "a docs/audits/ disposition-ledger row naming 2026-08-25-technical-research-delivery-telemetry-attribution.md with an evidence locator (wave 1)"
+
+  # ---- lane RL's OWN landing cost (2026-08-25) — the same class, declared separately ----
+  # These three are NOT part of D3. D3 dispositioned the WARNs this window's EARLIER arcs
+  # produced; the three below are the ones THIS lane produced by landing the dispatch
+  # measurement corpus into `docs/audits/` under the operator's scope extension of
+  # 2026-08-25. They are kept in their own block rather than folded into the D3 list so the
+  # count above stays a true statement about D3, and so a reader can tell which act each
+  # entry is the cost of. Same shape, same exit: a disposition-ledger row clears the WARN and
+  # decorates the entry stale (ADR-75).
+
+
+  - id: warn-funnel-technical-dispatch-surface-measured
+    organ: funnel_coverage
+    match: "2026-08-25-technical-dispatch-surface-measured.md carries no disposition"
+    ref: "operator scope extension 2026-08-25 (lane RL)"
+    reason: >-
+      LANE RL'S OWN LANDING COST — expected. Landed byte-identical from the operator's prompts
+      dir by explicit scope extension; it is the 2083-line probed measurement report that is the sole sanctioned source for Ch8's literal commands. Suppresses the ship-gate WARN only. The
+      substantive ACTIONED/FILED/REJECTED/SUPERSEDED ruling is a later act and lands as a
+      disposition-ledger row with an evidence locator, at which point this entry decorates
+      stale (ADR-75) and is removed.
+    auto_clearable_by: "a docs/audits/ disposition-ledger row naming 2026-08-25-technical-dispatch-surface-measured.md with an evidence locator"
+
+  - id: warn-funnel-technical-dispatch-consolidation-plan
+    organ: funnel_coverage
+    match: "2026-08-25-technical-dispatch-consolidation-plan.md carries no disposition"
+    ref: "operator scope extension 2026-08-25 (lane RL)"
+    reason: >-
+      LANE RL'S OWN LANDING COST — expected. Landed byte-identical from the operator's prompts
+      dir by explicit scope extension; it is the systemic consolidation plan the Ch8 rewrite executes. Suppresses the ship-gate WARN only. The
+      substantive ACTIONED/FILED/REJECTED/SUPERSEDED ruling is a later act and lands as a
+      disposition-ledger row with an evidence locator, at which point this entry decorates
+      stale (ADR-75) and is removed.
+    auto_clearable_by: "a docs/audits/ disposition-ledger row naming 2026-08-25-technical-dispatch-consolidation-plan.md with an evidence locator"
+
+  - id: warn-funnel-technical-dispatch-brief-to-architect
+    organ: funnel_coverage
+    match: "2026-08-25-technical-dispatch-brief-to-architect.md carries no disposition"
+    ref: "operator scope extension 2026-08-25 (lane RL)"
+    reason: >-
+      LANE RL'S OWN LANDING COST — expected. Landed byte-identical from the operator's prompts
+      dir by explicit scope extension; it is the binding architect brief carrying the ratified rulings and the Q1-Q4 substrate decision table. Suppresses the ship-gate WARN only. The
+      substantive ACTIONED/FILED/REJECTED/SUPERSEDED ruling is a later act and lands as a
+      disposition-ledger row with an evidence locator, at which point this entry decorates
+      stale (ADR-75) and is removed.
+    auto_clearable_by: "a docs/audits/ disposition-ledger row naming 2026-08-25-technical-dispatch-brief-to-architect.md with an evidence locator"
+
+  # ---- prose edges from the FROZEN, byte-identical contract copies (lane RL, 2026-08-25) ----
+  # `prompts/<date>/` carries operator contracts copied in byte-identical; that byte-identity is
+  # the whole value of the home, so the organ's own suggested fix -- adding a `reconciled_with:`
+  # frontmatter key -- is unavailable here by construction: it would edit the artifact whose
+  # unedited state is the evidence. These two are therefore dispositioned rather than declared,
+  # which is precisely the case the register exists for: a real, correctly-detected edge that
+  # cannot be closed by editing the file it fires against. The edges are real (both contracts
+  # reference `protocols/HANDOFF_BOOT.md` in their own prose) and nothing here claims otherwise.
+  # Keyed on the full source-to-target signature, so a DIFFERENT undeclared edge from the same
+  # file re-surfaces and blocks.
+
+
+  - id: warn-edge-lane-rl-registry-filings-v2
+    organ: undeclared_edges
+    match: "prompts/2026-08-25/LANE-RL-registry-filings-v2.md -> handoff-process"
+    ref: "operator path-approval 2026-08-25 (lane RL); prompts/<date> is a frozen-copy home"
+    reason: >-
+      FROZEN COPY -- unfixable by editing, and that is the point. The file is a byte-identical
+      copy of an operator contract; adding the `reconciled_with` frontmatter the organ suggests
+      would destroy the byte-identity the home exists to preserve. The edge itself is correctly
+      detected: the contract's prose does reference `protocols/HANDOFF_BOOT.md`. Review with the
+      `prompts` sanctioned-divergence entry in `.methodology.yaml` (review_date 2026-09-24) --
+      if the frozen-copy convention is retired or changed, this disposition is re-examined with it.
+
+  - id: warn-edge-lane-rl-registry-filings
+    organ: undeclared_edges
+    match: "prompts/2026-08-25/LANE-RL-registry-filings.md -> handoff-process"
+    ref: "operator path-approval 2026-08-25 (lane RL); prompts/<date> is a frozen-copy home"
+    reason: >-
+      FROZEN COPY -- unfixable by editing, and that is the point. The file is a byte-identical
+      copy of an operator contract; adding the `reconciled_with` frontmatter the organ suggests
+      would destroy the byte-identity the home exists to preserve. The edge itself is correctly
+      detected: the contract's prose does reference `protocols/HANDOFF_BOOT.md`. Review with the
+      `prompts` sanctioned-divergence entry in `.methodology.yaml` (review_date 2026-09-24) --
+      if the frozen-copy convention is retired or changed, this disposition is re-examined with it.

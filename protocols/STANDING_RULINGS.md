@@ -2756,6 +2756,83 @@ health` is NOT affected (the `→` is confined to `cmd_checks`), so the pre-comm
 
 **Expiry:** open-ended.
 
+## V. Dispatch — the sole operator verb, the substrate verbs, and the Codespaces credential (2026-08-25)
+
+**The act.** Ratified by the operator on 2026-08-25, on the measurement in
+`docs/audits/2026-08-25-technical-dispatch-surface-measured.md` (2083 lines, probed in three
+shells) and the plan in `docs/audits/2026-08-25-technical-dispatch-consolidation-plan.md`. The
+binding brief is `docs/audits/2026-08-25-technical-dispatch-brief-to-architect.md`. The literal
+commands live at `protocols/PLAYBOOK.md` Ch8, "The dispatch table — the SOLE literal-command
+site"; this section carries the RULINGS, that table carries the syntax.
+
+**Why a ruling rather than an implementation.** The hub documented FOUR rival launch commands for
+one act, and `.claude/commands/lane-boot.md` — the surface a seat invokes most — emitted the form
+Ch8 itself labels a fallback, silently dropping `--model` and `--effort`. Roughly thirty
+consecutive browser seats failed to launch a lane. They were not uninformed; they were informed
+by four sources that disagreed, and picking one is an operator decision, not a refactor.
+
+**V1 · `dispatch <contract.md>` is THE sole operator verb for a LOCAL lane — and it is
+local-only.** It does not read a contract's `Substrate` field and cannot route. The substrate is
+chosen today by **which verb the operator types** (`Dispatch-Local` / `Dispatch-Cloud` /
+`Dispatch-Codespace`), and a contract's `Substrate:` line is **documentation only** until the
+Layer-3 router of V7 lands. The verb is preferred because it derives model, effort, worktree and
+board label from the contract itself, so the contract and the launch cannot disagree.
+
+**V2 · `Dispatch-Local` (née `Dispatch-Lane`) is the documented manual fallback.** It stays fully
+working and is the correct reach when a contract does not carry a parseable routing block.
+
+**V3 · Substrate-named verbs are canonical; version-named ones are aliases.** Canonical:
+`Dispatch-Local` (this workstation) · `Dispatch-Cloud` (Anthropic-hosted) · `Dispatch-Codespace`
+(the repo's own devcontainer). Aliases, deprecated but fully working and not shims:
+`Dispatch-Lane`, `Dispatch-CloudV2`, `Dispatch-CloudBrief`, `Archive-CloudSession`. Function names
+are unchanged — they are the approved-verb layer the test suite calls, and no operator types them.
+
+**V4 · The raw `claude --bg` / `--worktree` form is FALLBACK-ONLY.** It does not appear in a
+command file or a template. It stays documented exactly once, in Ch8, labelled as the fallback.
+
+**V5 · Interactive and primary-checkout seats keep the interactive shape** — start `claude`, then
+`Read <PROMPTS_DIR>\<FILE>.md and execute it exactly.` as the first message, with the path
+expanded by eye. This is the one shape of the four that the measurement found no conflict in.
+
+**V6 · STANDING RULE — every dispatch verb runs Claude with bypass permissions.** No permission
+prompt blocks a lane, on any substrate. Inside a codespace this is sanctioned rather than merely
+tolerated: the blast radius is a disposable isolated machine holding a fresh clone and nothing of
+the operator's, deleted by its retention period. The rule exists because verification caught the
+Codespaces runner invoking `claude -p` with no `--permission-mode` at all — the first run reaching
+a working Claude would have stalled headless on a machine billing per minute. Note the pedigree:
+the same defect shipped with `Dispatch-Local` and was fixed 2026-08-20, then reappeared on a new
+substrate because the flag moved somewhere the old tests do not look.
+
+**V7 · PLANNED — the Layer-3 router.** `dispatch` is to read the contract's `Substrate` field and
+delegate to that substrate's verb, refusing a contract with a missing field or one naming a
+substrate with no live verb. The build is **win-tooling-owned (operator)**; hub adoption is
+tracked by its own backlog row. Recorded as PLANNED and not as ruled-live: until it lands, V1's
+local-only limitation is the operative state, and a seat reading a `Substrate:` line as routing is
+reading it wrong.
+
+**The Codespaces credential — `CLAUDE_CODE_OAUTH_TOKEN`, and its exposure.** The credential is the
+**subscription OAuth token**, not a Console API key: secret name `CLAUDE_CODE_OAUTH_TOKEN`,
+produced by `claude setup-token`, model-requests only, and its usage counts against the operator's
+plan rather than raising a separate API invoice. It is set as a user-level Codespaces secret scoped
+to this repo.
+
+- **Exposure, stated plainly:** the token grants the operator's subscription model access to any
+  lane running in that container. A container is disposable; the credential inside it is not.
+- **Rotation:** re-run `claude setup-token`. **Expiry:** approximately one year.
+- **`ANTHROPIC_API_KEY` is kept out of the image and out of its config.** When both are present the
+  API key takes precedence, which would silently flip billing off-subscription — a failure with no
+  symptom until an invoice arrives.
+- **Contingency, recorded so it is not improvised later:** if a headless `claude -p` inside the
+  container is found refusing the subscription token, the fallback is a spend-capped dedicated API
+  key — on that measured evidence, and not preemptively.
+
+**Honest limit.** Nothing in this section is enforced. The drift organ that would assert every
+literal command in Ch8 resolves via `Get-Command` on the operator's machine, and that
+`/lane-boot` names the ruled verb, is owed and unbuilt; until it exists these rulings bind the
+seat and not the tree.
+
+**Expiry:** open-ended.
+
 ## Editing note (read before adding an entry)
 
 This file sits inside the silent-rule ratchet corpus (`protocols/*.md`; detector

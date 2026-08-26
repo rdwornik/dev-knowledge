@@ -168,3 +168,27 @@ sanctioned_divergences:
       D1/D2 evidence in hand rather than rotting behind a cleared WARN -- the same
       shelf-life device the .vscode entry above uses to force its e1 revisit.
     review_date: 2026-09-18
+  - component: prompts
+    reason: >-
+      Landed 2026-08-25 by operator path-approval with the lane-RL scope extension:
+      prompts/<YYYY-MM-DD>/ carries, byte-identical, the contract files a batch was
+      actually launched from, so a batch's launch inputs are committed evidence rather
+      than off-repo state every commit-time gate is blind to
+      (docs/audits/2026-08-25-technical-dispatch-consolidation-plan.md section 5.3,
+      act 4's hub half). HUB-LOCAL, and declared here rather than in
+      ecosystem/parity-surfaces.yaml on the .devcontainer precedent directly above:
+      a parity-surfaces row would promote the convention to fleet doctrine on one
+      batch's evidence, and try-then-generalise runs the other way round. Route 1
+      stays available and loses nothing by waiting.
+      Honest scope: this declaration clears the root-sweep WARN and says nothing about
+      whether a consumer should carry the directory -- no consumer does, and none is
+      asked to.
+      SHORT review_date (+30d) is deliberate, and it is doing double duty: it returns
+      the fleet-doctrine question to the calendar once a second batch has used the
+      convention, AND it is the shelf-life on the ADR-101 amendment this path still
+      owes. The lane that landed prompts/ was barred from docs/decisions/, so the
+      SANCTIONED_TIER1_DIRS entry exists without the ADR act that ADR-101 section 1
+      requires for a closed-set growth. If that amendment has not landed by the review
+      date, this entry expires and the WARN returns -- which is the correct outcome,
+      not a nuisance.
+    review_date: 2026-09-24

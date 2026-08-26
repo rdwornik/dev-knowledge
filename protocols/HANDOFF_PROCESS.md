@@ -63,6 +63,20 @@ Re-narration is the v4 disease (it drifts from its source — the proven `/revie
 The residual is written to `docs/handoffs/<slug>/` as CC's handoff artifact (lean — the
 residual + the probe manifest + the drift-flag table, not an 8-file bundle).
 
+**DESIGN NOTE — a bundle SHRINKS as the mechanisms grow (filed 2026-08-25, lane RL).** The residual
+is defined by subtraction, so its size is a reading of how much the repo encodes mechanically, not
+a measure of how much the outgoing session had to say. Every organ that lands — a gate, a
+generator, a register section, a validator — moves a fact out of the bundle and into a surface the
+next seat can query. So a bundle growing over time is a signal worth reading rather than a sign of
+thoroughness: it says the fact surface the seat has to carry by hand got bigger.
+
+The measured instance this note is filed from: across the 2026-08 window, 16 of 16 errors an
+architect seat made were **asserted-not-measured** — facts stated from memory where a command
+existed that would have produced them. The correction is the same one this section already
+encodes, applied one level up: a contract, brief or bundle names the **command that derives the
+fact**, and not the fact. A fact copied into a bundle is stale from the commit that follows it; a
+command is not. See `LESSONS.md` 2026-08-25 (smaller-fact-surface-at-the-architect).
+
 ---
 
 ## 3. Methodology is enforced mechanically, referenced thinly
@@ -577,6 +591,18 @@ into the next session — the one failure this artifact has no way to detect dow
 fabricated answer reads exactly like a real one. An unanswered supplement is committed **empty**
 (the cold-handoff disposition below), which is the honest record and costs the next session only
 the fuller §13(d) beat.
+
+**THE SUPPLEMENT IS THE OUTGOING SEAT'S DUTY, AND IT IS PART OF WINDOW CLOSE (filed 2026-08-25,
+lane RL).** The lifecycle below is written as an async convenience — CC generates, the operator
+fills "when he can", the assembler folds it if answered — and in practice that reads as optional,
+which is how empty supplements became routine rather than exceptional. Stating the obligation
+where the lifecycle lives: answering the supplement belongs to the **outgoing** architect seat, as
+a **step of closing the window**, not as an errand handed to the operator afterwards. The reason
+is the one the authorship paragraph above already gives — Q1–Q7 ask for deliberation that exists
+only in that chat, so the outgoing seat is the sole actor able to discharge it, and a window that
+ends without it has destroyed something no later session can reconstruct. The cold-handoff
+disposition (commit it empty, honestly) stays exactly as it is: it is the correct record of a duty
+that went undischarged, not a sanctioned alternative to discharging it.
 
 **The lifecycle (CC generates the file; the operator fills it async; CC commits it; the assembler
 folds it if answered):**

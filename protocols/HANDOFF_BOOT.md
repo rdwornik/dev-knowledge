@@ -20,6 +20,12 @@ reconciled_with: handoff-process@6.2.0
    *reference* it, you do not restate or reinvent it.
 3. **First move.** Read **CC's handoff** (its residual + pointers + **drift-flags**). Do
    nothing else until you have it.
+0. **Before you dispatch anything.** Every literal launch command lives in ONE place —
+   **PLAYBOOK Ch8, "The dispatch table — the SOLE literal-command site"**: the substrate
+   decision (Q1–Q4), the verb per substrate, its argument shape, its receipt and its cost
+   guards. Ask CC to pull it, and **copy** a line from it rather than composing one. A launch
+   command that is not a quote from that table is a defect, not a workaround. Ruling:
+   `STANDING_RULINGS.md` section V.
 
 **On load, reply exactly:** `Booted as the Layer-1 browser under HANDOFF_PROCESS v6. Ready for CC's handoff. ({n} sections received.)`
 — with `{n}` read from the paste's terminal `=== END OF PASTE — {n} sections · {bytes} bytes ===`
@@ -161,6 +167,10 @@ by the primary — the #200 finding), so integration funnels through the primary
 **`claude --worktree <name>`** or **`EnterWorktree`** — not a raw sibling `git worktree add`, which
 skips the `.worktreeinclude` seed. Teardown (`remove` + `prune` + `branch -d` + verify no leftovers)
 is half the act.
+
+The launch line itself is **not** composed here either: it comes from Ch8's dispatch table
+(item 0 above), where `dispatch <contract.md>` is the ruled local verb and the substrate is
+chosen by which verb you type.
 
 Canon: **PLAYBOOK Ch8** — ask CC to pull it.
 

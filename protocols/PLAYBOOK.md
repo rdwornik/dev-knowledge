@@ -87,7 +87,7 @@ reconciled_with: handoff-process@6.2.0
   - [The lane lifecycle — five legs, and where each one is ruled](#the-lane-lifecycle--five-legs-and-where-each-one-is-ruled)
   - [The wave close — every dispatched wave ends D0–D5, and the funnel table is mandatory](#the-wave-close--every-dispatched-wave-ends-d0d5-and-the-funnel-table-is-mandatory)
   - [Dispatch visibility — Agent View shows DISPATCHED sessions only (STANDING_RULINGS B7)](#dispatch-visibility--agent-view-shows-dispatched-sessions-only-standing_rulings-b7)
-  - [Dispatching a session — the boundary, the three shapes, and the standing rules](#dispatching-a-session--the-boundary-the-three-shapes-and-the-standing-rules)
+  - [Dispatching a session — the boundary, the dispatch table, and the standing rules](#dispatching-a-session--the-boundary-the-dispatch-table-and-the-standing-rules)
   - [Dispatch prompts and the contract of record — two locations, one of them in the tree](#dispatch-prompts-and-the-contract-of-record--two-locations-one-of-them-in-the-tree)
   - [The dispatch surface is `dispatch <file>` — the contract file is the source ([#509] v2)](#the-dispatch-surface-is-dispatch-file--the-contract-file-is-the-source-509-v2)
   - [Cloud lanes — the receipt gate and the fresh-branch rule](#cloud-lanes--the-receipt-gate-and-the-fresh-branch-rule)
@@ -123,6 +123,7 @@ reconciled_with: handoff-process@6.2.0
   - [Stage 5: Implementation (only for "Adopt")](#stage-5-implementation-only-for-adopt)
   - [Stage 6: Review (on-trigger)](#stage-6-review-on-trigger)
   - [Where evaluations are recorded](#where-evaluations-are-recorded)
+  - [The window mandate — what a window owes, and what it is allowed to carry](#the-window-mandate--what-a-window-owes-and-what-it-is-allowed-to-carry)
 - [Ch14. Claude Code internals](#ch14-claude-code-internals)
   - [Quick disambiguation](#quick-disambiguation)
   - [Usage protocol: which command / hook, when](#usage-protocol-which-command--hook-when)
@@ -2141,11 +2142,12 @@ reserved for interactive sessions the operator is watching in real time. A batch
 protocol above) dispatches `--bg` in every case — one exception would put that lane outside the
 one place an operator scans for "what's running."
 
-**The dispatch shape.** A lane or hand-off dispatch reads:
-
-```
-claude --worktree --bg "<board label> <contract>"
-```
+**The dispatch shape — POINTER, not a command.** The literal launch line for every substrate
+lives in ONE place, "The dispatch table — the SOLE literal-command site" above. This subsection
+used to carry a raw `claude --worktree --bg …` line of its own; that line was one of the four
+rival forms the 2026-08-25 measurement identified as the root cause, and it is removed rather
+than restated here. What this subsection owns is the VISIBILITY property and the board label
+below — not the command.
 
 **The board label opens every dispatch prompt**, so a row in Agent View scans at a glance even at
 ten concurrent agents — the operator's attention goes to Needs-input rows, not to re-deriving what
@@ -2181,7 +2183,7 @@ and travel on the lane's own dispatch line ("Model + effort are stated at dispat
 matrix" below). Ad-hoc read-only work is what the input is for; a lane goes through
 `dispatch <contract>` instead.
 
-### Dispatching a session — the boundary, the three shapes, and the standing rules
+### Dispatching a session — the boundary, the dispatch table, and the standing rules
 <!-- scope: hybrid -->
 
 **A session handed to the operator without its command does not get started.** That is the
@@ -2193,12 +2195,21 @@ handover **copies** a line from here rather than composing one, and
 selecting the shape from the contract's own declared type — so the prose and the generator cannot
 drift, and a contract emitted with no command line is a generator bug with a test asserting it.
 
-**Where the commands live.** `Dispatch-Lane` and `Dispatch-CloudV2` are PowerShell aliases
-exported by `win-tooling` `config/dispatch-helpers/DispatchHelpers.psm1`, deployed SHA-256-compared
-and auto-loading by that repo's `scripts/dispatch-helpers/Apply-DispatchHelpers.ps1`. That module
-is the source of truth for their *behaviour*; this chapter states which one to reach for, and why.
-A third alias, `Dispatch-CloudBrief`, is **superseded** — it prints its own supersession notice —
-and is named here only so a seat that meets it in an old artifact knows not to use it.
+**Where the commands live — OPERATOR-OWNED, at L0, and deliberately not reimplemented here.**
+`Dispatch-Local`, `Dispatch-Cloud` and `Dispatch-Codespace` (with their working version-named
+aliases `Dispatch-Lane`, `Dispatch-CloudV2`) are PowerShell aliases exported by `win-tooling`
+`config/dispatch-helpers/DispatchHelpers.psm1`, deployed SHA-256-compared and auto-loading by that
+repo's `scripts/dispatch-helpers/Apply-DispatchHelpers.ps1`; `dispatch` is a PATH command from that
+same repo's `scripts/dispatch/Invoke-Dispatch.ps1`. **That module is the source of truth for their
+BEHAVIOUR and this repo does not carry a copy of it** — what this chapter records is each verb's
+CONTRACT (argument shape, receipt, guards) so a seat can use it without reading PowerShell, and
+which one to reach for, and why. They are a versioned, tested, SHA-deployed module rather than
+profile cruft: they resolve identically in `pwsh -NoProfile`, profiled `pwsh`, and PS 5.1, and the
+profile is deliberately unused because it sits inside the corp OneDrive exclusion zone. A raw diff
+of the deployed copy against source shows all 1211 lines differing; that is CRLF vs LF and nothing
+else — the applier normalizes to LF before hashing, by design. Do not report it as drift.
+`Dispatch-CloudBrief` is **superseded** — it prints its own supersession notice — and is named
+here only so a seat meeting it in an old artifact knows not to use it.
 
 #### The boundary — LOCAL or CLOUD, and the rule that gets forgotten
 
@@ -2222,60 +2233,170 @@ footprint) refines it rather than competing with it. Where the two would disagre
 above decides: a footprint no local gate governs still routes LOCAL if it needs the operator's
 disk to read its inputs.
 
-#### The three shapes, and the exact command for each
+#### The dispatch table — the SOLE literal-command site
+<!-- scope: hybrid -->
 
-**1 — Local background lane.** Produces code or docs, commit-and-STOP, own worktree. The prompt
-file goes to `<PROMPTS_DIR>` (`$env:CLAUDE_PROMPTS_DIR`, `~\Downloads` by default). Run **from the
-target repo root**:
+**This table is the only place in the repository that carries a literal launch command.** Every
+other site — `templates/prompt-template.md`, `.claude/commands/lane-boot.md`, and the two other
+dispatch subsections in this chapter — points here. That is a correction, not a style preference:
+the hub documented FOUR rival commands for one act, `/lane-boot` emitted the form this chapter
+itself calls "the FALLBACK form, not the default" while silently dropping `--model` and
+`--effort`, and roughly thirty consecutive browser seats failed to launch a lane. They were not
+uninformed; they were informed by sources that disagreed. Full measurement, probed in three
+shells: `docs/audits/2026-08-25-technical-dispatch-surface-measured.md` (2083 lines).
+
+**THE RULING (operator, 2026-08-25).** `dispatch <contract.md>` is THE sole operator verb for a
+LOCAL lane — and it is **local-only**: it does not read a contract's `Substrate` field and cannot
+route, so today the substrate is chosen by **which verb the operator types**
+(`Dispatch-Local` / `Dispatch-Cloud` / `Dispatch-Codespace`) and a contract's `Substrate:` line is
+**documentation only** until the Layer-3 router lands. `Dispatch-Local` (née `Dispatch-Lane`) is
+the documented manual fallback. Substrate-named verbs are canonical; version-named ones
+(`Dispatch-CloudV2`) are working aliases. The raw `claude --bg` / `--worktree` form is
+**FALLBACK-ONLY** and does not appear in a command file or a template. Interactive and
+primary-checkout seats keep the shape in row 3 below.
+
+##### Layer 1 — which substrate, cut in this order, first match wins
+
+| | Question | Route |
+|---|---|---|
+| **Q1** | Does the result depend on a gate (suite / hooks / ship-gate)? | **NOT cloud** — measured: no hook armed there, unpinned `uv`, no `click`. Codespace or local. |
+| **Q2** | Does it need operator-disk state (contracts in the prompts dir, authenticated vendor CLIs, unpushed branches), or is it an operator-gated act (merge, push, integration)? | **LOCAL**, stop. |
+| **Q3** | Is it read-only / reconnaissance (censuses, verification, fan-out)? | **CLOUD** — own clones, cheap, unlimited parallelism. |
+| **Q4** | Everything else — repo-mutating, disk-independent | **CODESPACE** (the default once the devcontainer carries Claude Code and its credential). |
+
+**Concurrency ceilings and cost, per route.** LOCAL: one WRITER per checkout; parallelism only
+across worktrees. CODESPACE: 2–4 concurrent (2-core, ~60 s to Available, 120 free core-hours per
+month ≈ 60 h). CLOUD: effectively unlimited (own clones); not for gate-dependent work. **The batch
+ceiling stays 4–6 lanes on every substrate** — it is bounded by integration capacity, which is
+serial, not by how many independent work items exist (`STANDING_RULINGS.md` section U rule (b);
+evidence `LESSONS.md` 2026-08-25 coordination tax).
+
+##### Layer 2 — the commands, per substrate
+
+Every line below is **probed and current 2026-08-25**. A seat copies one; it does not compose one.
+All three verbs run Claude with **bypass permissions** as a standing rule — no permission prompt
+blocks a lane on any substrate.
+
+**1 — LOCAL background lane** (own worktree, commit-and-STOP). Run **from the target repo root**
+— the verb is cwd-bound, and dispatching from the wrong repo puts the worktree in the wrong repo.
 
 ```
-Dispatch-Lane <slug> <FILE.md> -Effort high
+dispatch <FILE.md>                  prompts [y/N], then fires
+dispatch <FILE.md> -DryRun          prints the resolved line, sends nothing
 ```
 
-An optional **third positional argument** is an extra instruction appended to the contract, which
-is how an amendment reaches a lane without reissuing its frozen contract:
+- **Argument shape:** a bare filename resolving against the prompts dir; a bare stem also resolves
+  (`FOO` finds `FOO.md`). An absolute path, or one that exists relative to the cwd, is used as given.
+- **Where the contract lives:** the prompts dir (below), copied into `prompts/<date>/` in-tree.
+- **Receipt:** the resolved `claude --bg …` line is printed before firing; the lane's own receipt
+  is its branch — `worktree-<slug>` — appearing in `git branch`.
+- **Guards:** model/effort/worktree/label are derived from the contract, so the contract and the
+  command cannot disagree. Effort is a closed enum `{low | medium | high | xhigh | max}` and a
+  miss is a refusal naming the enum. A live `claude` does not fire bare: with neither `-DryRun`
+  nor `-Run` the operator is asked to confirm, and anything but `y`/`yes` — including empty or
+  non-interactive input — refuses.
+- **Manual fallback, when the contract does not carry a parseable routing block:**
+  `Dispatch-Local <slug> <FILE.md> -Effort high` (alias `Dispatch-Lane`; a third positional
+  argument is an amendment appended without reissuing the contract). It creates
+  `worktree-<slug>`, **refuses if that branch exists** so a re-run is a no-op, and treats a
+  120 s branch-wait timeout as a WARNING rather than a failure. Feed it the slug
+  `lane-<letter>-<id>-<slug>` and it produces exactly the canonical batch-lane branch.
+
+**2 — CLOUD lane** (repo-bound, off-machine, receipt-gated):
 
 ```
-Dispatch-Lane <slug> <FILE.md> "AMENDMENT: ..." -Effort high
+Dispatch-Cloud <FILE.md> -Title '<slug>'
 ```
 
-Facts a seat needs and should not have to read the module for: `-Effort` takes
-`{low | medium | high | xhigh | max}`, and the helper additionally maps the single-letter forms
-`l`/`m`/`h`/`x` — worth knowing because the raw CLI does **not**: `claude --effort m` is silently
-ignored and the session runs at default effort, which is why the mapping lives in the helper;
-model defaults to `opus` and permission mode to `bypassPermissions`; it creates branch
-`worktree-<slug>` and **refuses if that branch already exists**, so re-running the same line is a
-no-op rather than a collision; it polls up to 120 s for the branch and reports a **timeout as a
-WARNING, not an error** — the lane may still be coming up, and it will not claim a failure it has
-not established. **It is cwd-BOUND**: dispatch from the repo you mean, or the worktree lands in
-the wrong repo. That has happened here.
+- **Argument shape:** the WHOLE file is the brief — it travels in a JSON body, so one file = one
+  lane, and a multi-lane bundle is not a thing this transport carries. Binds Revision `main`.
+- **Receipt:** three gates. G1 *created* (HTTP 200, id prefixed `session_`), G2 *bound*
+  (`config.sources[0].type == git_repository`; an **empty `sources` array is the bundle-mode
+  defect** by name), G3 *receipt* (first assistant text, soft on timeout). G1 and G2 are hard —
+  fail either and nothing ran. Watchable at `claude.ai/code`.
+- **ID TRAP:** create mints `session_<suffix>`; every read/manage endpoint wants `cse_<suffix>`.
+  Feeding the minted id to a read returns 404, which reads as "no such session".
+  Manage: `Get-CloudSession cse_01ABC` · `Archive-CloudSession cse_01ABC`.
+- **Guards:** a cloud session clones from origin and cannot see unpushed branches or local files —
+  a physical limit of the transport. Its image may carry the wrong `uv`, so a brief instructs the
+  lane to hand-run gates as `python3` and to declare that it did. `Dispatch-CloudV2` is the
+  working version-named alias; `Dispatch-CloudBrief` is superseded and prints its own notice.
 
-**2 — Cloud lane.** Repo-bound, off-machine, receipt-gated:
+**3 — INTERACTIVE** (integration, seat acts, anything needing operator GO). Start `claude`, then
+send as the FIRST message — expand the path by eye, because a chat is not a shell and nothing
+expands the variable for the operator:
 
 ```
-Dispatch-CloudV2 <FILE.md> -Title '<slug>'
+claude
 ```
-
-The **whole file is the brief** — it travels in a JSON body, so **one file = one lane, never a
-multi-lane bundle**. It binds Revision `main`. Its three gates are G1 *created* (HTTP 200, an id
-prefixed `session_`), G2 *bound* (the session reads back with `config.sources[0].type ==
-git_repository`; an **empty `sources` array is the bundle-mode defect by name**, a hard fail), and
-G3 *receipt* (the first assistant text, **soft on timeout** for the same reason the branch wait
-above is). G1 and G2 are hard: fail either and nothing ran. Sessions are watchable at
-`claude.ai/code`. One container-level hazard worth pre-empting in the brief: the image may carry
-the wrong `uv`, so instruct the lane to hand-run gates as `python3` and to **declare** that it did.
-
-**3 — Interactive session.** Integration, seat acts, anything needing operator GO. Start `claude`,
-then send as the first message:
-
 ```
 Read <PROMPTS_DIR>\<FILE>.md and execute it exactly.
 ```
 
-`<PROMPTS_DIR>` is the prompts dir — the operator resolves it by eye here, because a chat message
-is not a shell and nothing expands the variable for him. This is the only shape where that is
-true; shapes 1 and 2 take a **bare filename** and resolve it against the same directory
-themselves.
+- **Receipt:** the session answers. **Guards:** integration is always LOCAL *and* INTERACTIVE — a
+  background lane can neither merge to `main` nor ask a question, so an integrator dispatched
+  `--bg` is a contradiction rather than an aggressive schedule. Rows 1 and 2 take a bare filename;
+  this row is the one shape where the operator resolves the path himself.
+
+**4 — CODESPACE** (the repo's own devcontainer, off-machine, receipt-gated):
+
+```
+Dispatch-Codespace -Contract <FILE.md> [-Slug <name>] [-Repo <owner/repo>] [-Branch <b>]
+                   [-Machine basicLinux32gb] [-IdleTimeout 30m] [-Retention 24h] [-DryRun]
+```
+
+- **Argument shape:** the contract is shipped in **as a file**, and so is the runner — the only
+  thing on the ssh command line is `bash <path>`, one token, no quotes. A PowerShell string
+  reaching a bash login shell through gh's ssh transport is parsed twice, which is the failure
+  class this design exists to avoid.
+- **Receipt:** `receipt.json` is pulled back out, and success is reported only with it in hand.
+  **Read `Ok` and `RemoteExitCode` separately**: `Ok` means the transport succeeded,
+  `RemoteExitCode` is the work's own code parsed from gh's `shell closed: exit status N` text
+  (gh's own code is 1 regardless). A caller branching on `Ok` alone reads a failed lane as a success.
+- **Cost guards:** `--machine basicLinux32gb` is 2 cores / 8 GB — the smallest machine meeting the
+  floor `devcontainer.json` declares, so it is both correct and cheapest. `-IdleTimeout` and
+  `-Retention` bound the spend, and cost inputs print on **every** dispatch including `-DryRun`.
+  `Stop-DispatchCodespace` wraps `gh codespace stop`; **stopping is not deleting** — compute
+  billing ends, storage keeps counting until retention expires. `gh codespace delete` is
+  deliberately not wrapped: deletion stays an operator act.
+- **Measured wall-times (five runs, stable):** create returns 5.4–6.1 s · Available ~60 s · cp-in
+  ~74 s (blocks until the container is up) · in-container run 5.9 s · receipt out 6.2 s ·
+  **total ~95 s**.
+- **Credential — the SUBSCRIPTION OAuth token, not a Console API key.** Codespaces secret
+  `CLAUDE_CODE_OAUTH_TOKEN`, from `claude setup-token`; model-requests only, and usage counts
+  against the operator's plan rather than raising a separate API invoice. `ANTHROPIC_API_KEY` is
+  kept out of the image and its config: when both are present the API key takes precedence and
+  would silently flip billing off-subscription. Exposure and rotation:
+  `protocols/STANDING_RULINGS.md` section V.
+
+##### Where the contract file lives — two homes, one of them in the tree
+
+**The prompts dir** is the operator-side home: `$env:CLAUDE_PROMPTS_DIR`, defaulting to
+`~\Downloads`. A dispatch line cites `<PROMPTS_DIR>\<file>` rather than a hard-coded absolute
+path, which keeps the line portable across machines. All four verbs above resolve a bare filename
+against it.
+
+**`prompts/<YYYY-MM-DD>/` is the in-tree home** (landed 2026-08-25 by operator path-approval).
+The contracts a batch was ACTUALLY launched from are copied there byte-identical and committed
+with the batch, one dated directory per batch. Contracts are hand-authored off-repo, which is why
+every commit-time gate was structurally blind to them; this convention is what makes a batch's
+launch inputs committed evidence a later reader can open. It changes nothing about how the
+operator receives or edits a contract.
+
+##### Honest limits of this table, stated so it is not read as more than it is
+
+- **`dispatch` is local-only and does not route.** Repeated here because it is the single fact a
+  seat most often gets wrong: the substrate is the verb you type, and a `Substrate:` line in a
+  contract is documentation until the Layer-3 router lands (`STANDING_RULINGS.md` section V,
+  PLANNED).
+- **The lane-contract `Model` cell carries a machine token from `{opus | sonnet | haiku}` — prose
+  belongs in its own column or outside the table.** A cell reading `Opus (opusplan default)` is
+  refused by `dispatch`, which is why the 2026-08-25 batch launched through the manual fallback
+  rather than the ruled verb. `templates/prompt-template.md` carries the corrected shape.
+- **This table checks nothing.** It is prose that agrees with the machine today. The drift organ
+  that would assert every literal command here resolves via `Get-Command`, and that
+  `/lane-boot` names the ruled verb, is owed rather than landed.
+
 
 #### Standing operator-interface rules
 
@@ -2366,7 +2487,7 @@ surface is one typed line"* — was written when a local contract was the only d
 described, and read alone it is now false: it is true of **shape 1 of three**. `dispatch` /
 `Invoke-Dispatch.ps1` carries a **local** contract to a background lane; it is not the cloud
 transport and not the interactive form. A seat holding a cloud brief takes `Dispatch-CloudV2` from
-"Dispatching a session — the boundary, the three shapes" above. Everything else in this section —
+"Dispatching a session — the boundary, the dispatch table" above. Everything else in this section —
 contract mode, the doubled-prefix incident, the effort enum, the execution gate — stands
 unchanged, scoped to that one shape.
 
@@ -2442,6 +2563,12 @@ exposed (`win-tooling` JOURNAL 2026-08-08). *Honest limit, worth knowing before 
 `dispatch` alias exposes only `-DryRun`, so a live run **through the alias** always goes through
 the interactive confirm; `-Run` is reachable by invoking `Invoke-Dispatch.ps1` directly.
 
+**POINTER — the literal commands live in "The dispatch table — the SOLE literal-command site"
+above.** This section owns the MECHANICS of the contract-driven surface (contract mode, the
+table fallback, the effort enum, the execution gate, the doubled-prefix incident); it no longer
+competes with that table on what the operator types. Reach for the table first; read on here when
+you need to know why the surface behaves as it does.
+
 **Raw-line composition is the FALLBACK form, and it is not the default.** The helper keeps a legacy
 explicit-parts mode (`-Repo -IdOrSlug -VerbObject -Prompt [-Worktree] [-WorktreeName]
 [-PermissionMode]`) that composes the same board-label convention from arguments, and a
@@ -2497,7 +2624,7 @@ lane did not provision.
 
 **Which substrate — ANSWERED 2026-08-23 (M10), above.** This paragraph recorded the gap as owed
 because the chapter carried no test for which lanes are cloud lanes. "Dispatching a session — the
-boundary, the three shapes" now states one: **the operator's disk vs `origin/main`**. What
+boundary, the dispatch table" now states one: **the operator's disk vs `origin/main`**. What
 follows stays as the *refinement* it always was — a second, footprint-shaped read that agrees with
 the disk test in the ordinary case and yields to it where they diverge. The working
 distinction in live practice: a lane routes **local** when it wants the local gate mesh — a
@@ -2917,6 +3044,42 @@ If 4+ criteria met → proceed to Evaluation (majority-of-6 threshold; ≤3 = no
 ### Stage 3: Evaluation
 <!-- scope: meta -->
 
+#### Step 0 — the ownership check, run BEFORE any research is commissioned
+<!-- scope: meta -->
+
+**Filed 2026-08-25 (lane RL) from a measured failure, and deliberately a checklist rather than a
+principle.** Three separate instances in one window commissioned research into a question the repo
+already answered. The prose form of this rule ("check whether we already own it") was present and
+did not fire, because a principle is something a seat agrees with and a checklist is something a
+seat executes. So this is the executable form: run these four, paste the output into the intake or
+the brief, and only then pick an evaluation mode below. A commissioning that cannot show this
+output is not yet a commissioning.
+
+```
+# 1. Does a decision already exist? (ADRs, including rejected and parked)
+uv run --locked python -c "import pathlib,re;[print(p.name) for p in sorted(pathlib.Path('docs/decisions').glob('ADR-*.md')) if re.search(r'<TERM>', p.read_text(encoding='utf-8'), re.I)]"
+
+# 2. Does a ruling already exist? (the register is the ruled-but-not-ADR surface)
+grep -n -i "<TERM>" protocols/STANDING_RULINGS.md
+
+# 3. Does an open row already own it? (tasks/ is the source of truth, not BACKLOG.md)
+grep -rn -i "<TERM>" tasks/
+
+# 4. Has it already been evaluated and rejected? (the Rejected list is a real surface)
+grep -n -i -A3 "<TERM>" protocols/ENVIRONMENT.md
+```
+
+**Reading the output.** A hit in (1), (2) or (4) means the question is answered — the honest next
+act is to cite it, not to re-open it, and re-opening requires new evidence stated as such. A hit
+in (3) means an owner exists and the work is attaching evidence to that row rather than birthing
+a second one (ADR-111's OWNED outcome). Four clean misses is the only state in which
+commissioning research is the cheapest way to learn the answer.
+
+**Why this is Step 0 and not advice.** The cost asymmetry is measured, not assumed: the four
+commands above run in seconds, and the research they can pre-empt is a Scale-L Council debate or a
+half-window of a lane. Research-as-procrastination is the failure this closes — see `LESSONS.md`
+2026-08-25.
+
 Three evaluation modes — pick by stakes:
 
 **Quick check (Scale S decision):**
@@ -2988,6 +3151,40 @@ Cross-link the ADR to its implementation commits; the JOURNAL entry records the 
 **Mechanism-class-before-more-fixes.** Four consecutive repairs of the dispatch helper each addressed a symptom inside a mechanism class — a profile-sourced shell alias — that was wrong for the machine it ran on. The recurrence ended when the **class** changed, to a PATH command with `-Check` guarding, rather than when a better fix landed inside the old class. The recognition signal is the third repair in the same family: at that point the cheaper question is which class the mechanism belongs to, not which detail is broken. Not mechanizable as stated — a checkable proxy would need a register of repair-attempts-per-mechanism that does not exist — so it is a diagnosis posture rather than a gate.
 
 **A literal is not a site.** A pattern occurrence inside *generated source for a subprocess* is data, not an instance of the thing being swept, and a mechanical sweep that treats the two alike breaks what it was tidying. Witnessed on the `sys.path.insert` sweep: `tests/test_batch_manifest.py` carries three occurrences and only two are sites — the third lives inside the `_SHADOW_PROBE` string literal that generates source for a subprocess carrying no pytest `pythonpath`, so sweeping it would have broken the probe. Same class as the residual exempted at `tests/test_enforcement_coverage.py:389`. A sweep step therefore reports occurrences inside string literals separately from occurrences at statement level — a contract-time check, not an organ.
+
+### The window mandate — what a window owes, and what it is allowed to carry
+<!-- scope: meta -->
+
+**Filed 2026-08-25 (lane RL).** Two rules about the shape of a window, landed together because
+they are the same measurement read twice: a window that spends itself entirely on its own
+machinery produces no consumer-visible change, and an intake surface with no cap absorbs that
+pressure silently instead of surfacing it. Each carries its own status, and the statuses differ —
+stating them as one ratified block would be the overclaim this file exists to avoid.
+
+**(1) Governance/product parity — STATUS: PROPOSED (not ruled).** The proposal is that every
+window carries **at least one consumer-facing arc** alongside its governance work — an arc whose
+output a fleet consumer can observe, as distinct from an arc that improves how the hub governs
+itself. The evidence it rests on is the 2026-08 window record: governance arcs outnumber
+consumer-facing arcs there by a wide margin, and no organ notices. It is recorded here as
+PROPOSED rather than adopted because the ratio a window *should* hold is an operator question
+about what the fleet is for, and this file does not get to answer that by writing it down. A seat
+citing this as binding is citing it wrong; until it is ruled it informs planning and gates
+nothing.
+
+**(2) C12 icebox cap + one-in-one-out — STATUS: RULED-ADOPTED (operator, 2026-08-25).** The icebox
+carries a **cap**, and past the cap admission is **one-in-one-out**: landing a new icebox item
+requires naming the item it displaces. This is the same filing-backpressure doctrine the
+`backlog-filing-backpressure` commit-msg hook already enforces for BACKLOG task ids
+(`kill-candidates:` on every add), applied to the surface that had no such pressure. Its purpose
+is not tidiness — it is that an uncapped icebox lets a window defer decisions at zero cost, which
+is indistinguishable from making them and produces a queue nobody ever reads.
+
+**Honest limit, stated because the pair reads stronger than it is.** Neither half has an organ
+today. (1) is unruled and so has nothing to enforce; (2) is ruled but its cap is not yet a number
+this file names, and no check counts icebox members or refuses an uncapped add. Mechanizing (2)
+is the natural sibling of `scripts/check_backlog_filing.py` and is owed; until it lands, the rule
+binds the seat and not the tree, and saying otherwise would be the paper-enforcement class
+recorded elsewhere in this chapter.
 
 ---
 

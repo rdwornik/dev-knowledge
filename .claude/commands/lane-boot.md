@@ -56,16 +56,27 @@ deferral note there about which verb is wired.
 ## 2. Provision
 
 A batch lane is a native CC worktree, dispatched `--bg` so it shows up in Agent View
-(STANDING_RULINGS B7 — VISIBLE = DISPATCHED). From a **fresh terminal at the repo root**:
+(STANDING_RULINGS B7 — VISIBLE = DISPATCHED). From a **fresh terminal at the repo root**
+(the verb is cwd-bound — dispatch from the wrong repo and the worktree lands in the wrong repo):
 
 ```
-claude --worktree lane-<letter>-<id>-<slug> --bg "[<repo> · #<id>-or-slug · <verb-object>] <contract-path>"
+dispatch <contract-path>
 ```
 
-The board-label bracket opens the prompt so the row scans in Agent View without re-deriving what
-it is (PLAYBOOK Ch8 "Dispatch visibility") — this command wraps the label + `--bg` by
-construction, so a lane booted through it carries both without the operator holding either in
-memory. That lands the session in `.claude/worktrees/lane-<letter>-<id>-<slug>/` on branch
+**This is the ruled verb (operator, 2026-08-25; `protocols/STANDING_RULINGS.md` section V).**
+Until 2026-08-25 this line emitted a raw `claude --worktree … --bg …` form — the form
+PLAYBOOK Ch8 itself calls "the FALLBACK form, not the default", and which silently dropped
+`--model` and `--effort`, so a lane booted through the most-invoked surface in the repo ran at
+whatever routing the CLI defaulted to rather than at the routing its contract stated. `dispatch`
+derives model, effort, worktree name and board label **from the contract file**, which is what
+makes the contract and the launch unable to disagree.
+
+`dispatch` is **local-only** and does not read a `Substrate` field; a lane destined for cloud or
+a codespace takes its own substrate's verb from the Ch8 table. Manual fallback, when a contract
+does not carry a parseable routing block: `Dispatch-Local lane-<letter>-<id>-<slug> <contract-path> -Effort high`.
+
+**The literal commands live in ONE place** — `protocols/PLAYBOOK.md` Ch8, "The dispatch table
+— the SOLE literal-command site". Copy from there; do not compose a launch line here. That lands the session in `.claude/worktrees/lane-<letter>-<id>-<slug>/` on branch
 `worktree-lane-<letter>-<id>-<slug>`. Do not use a raw sibling `git worktree add ../…` — the
 sibling recipe is superseded (PLAYBOOK Ch8, "Parallel sessions & worktree discipline").
 
