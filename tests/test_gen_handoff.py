@@ -69,7 +69,10 @@ def test_dogfood_no_probe_row_carries_an_answer_value(tmp_path):
     # ANTI-BLUFF BY CONSTRUCTION: no generated probe ROW may print an `expected:` answer hint
     # (the exact RF-1 regression). Re-runs every generation, so the property cannot silently rot.
     rows = _rows(_gen(tmp_path).bundle_dir)
-    assert len(rows) == 14  # 11 -> 14: P0a/P0b/P0c standing-topic legs added (R2 / [#446], 2026-07-31); P1a/P1b + P2..P10 (P10 = BACKLOG grooming, operator ruling 2026-07-17)
+    assert len(rows) == 13  # 11 -> 14: P0a/P0b/P0c standing-topic legs added (R2 / [#446], 2026-07-31);
+    # 14 -> 13: P10 (BACKLOG grooming) REMOVED 2026-08-26 — it asked for unbounded judgment
+    # over an open set, which HANDOFF_PROCESS §5 cond. 4 rejects and names P10 as its origin.
+    # Now P0a/P0b/P0c + P1a/P1b + P2..P9.
     hits = [(r["id"], c) for r in rows for c in ("question", "source", "why", "command")
             if re.search(r"expected[ :]", r[c], re.IGNORECASE)]
     assert hits == [], f"generated probe rows carry answer hints: {hits}"
@@ -81,7 +84,10 @@ def test_dogfood_generated_bundle_has_no_failing_probe(tmp_path):
     # `fail`; a fail would mean a toothless/malformed/missing-source generated row.)
     res = _gen(tmp_path)
     results = vhp.verify(res.bundle_dir, repo_root=res.bundle_dir.parents[2])
-    assert len(results) == 14  # 11 -> 14: P0a/P0b/P0c standing-topic legs added (R2 / [#446], 2026-07-31); P1a/P1b + P2..P10 (P10 = BACKLOG grooming, operator ruling 2026-07-17)
+    assert len(results) == 13  # 11 -> 14: P0a/P0b/P0c standing-topic legs added (R2 / [#446], 2026-07-31);
+    # 14 -> 13: P10 (BACKLOG grooming) REMOVED 2026-08-26 — it asked for unbounded judgment
+    # over an open set, which HANDOFF_PROCESS §5 cond. 4 rejects and names P10 as its origin.
+    # Now P0a/P0b/P0c + P1a/P1b + P2..P9.
     fails = [(r.probe_id, r.detail) for r in results if r.status == "fail"]
     assert fails == [], f"generated bundle has failing probes: {fails}"
 

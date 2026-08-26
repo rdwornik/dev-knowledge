@@ -1258,3 +1258,110 @@ def test_locator_naming_the_verified_bundle_is_never_flagged(tmp_path):
     results = vhp.verify(b)
     assert [r.status for r in results] == ["pass"]
     assert not results[0].locator_rebased
+
+
+# --- §5 cond. 4: the bounded-deterministic rung (R3, census 2026-08-26) -----
+#
+# HANDOFF_PROCESS §5 condition 4 (ratified at intake #18) rejects a probe "whose honest
+# answer requires unbounded judgment over an open set" and names P10 as its origin. P10
+# then shipped in 35 bundles anyway, surviving the v6 cut that ratified the condition
+# rejecting it. These fixtures are P10's own two quantifiers, in shape.
+
+# The exact P10 disease: a question cell quantifying over EVERY OPEN item of a live,
+# arbitrarily-large set. Otherwise a well-formed, live-grounded probe -> the rung must FAIL
+# it regardless (it is an arc, not a probe).
+_UNBOUNDED_QUESTION = ("P10", "for **every OPEN item** in the backlog, is each still live",
+                       "`VISION.md` in live git", "an at-boot judgment over the open set",
+                       "`python scripts/audit.py checks`")
+# P10's second quantifier — "the successor grooms the whole open set at boot".
+_UNBOUNDED_WHOLE_SET = ("P11", "the successor grooms the **whole open set** at boot",
+                        "`VISION.md` in live git", "a stale snapshot cannot answer it",
+                        "`python scripts/audit.py checks`")
+# The Why cell carries it instead — the rung is column-blind, like the answer-hint rung.
+_UNBOUNDED_WHY = ("P12", "which ids are drifted", "`VISION.md` in live git",
+                  "each open item must be classified live / dead / awaiting-ruling",
+                  "`python scripts/audit.py checks`")
+# A bundle cut ON the era date (the day P10 left the shipped manifest) and one cut before it.
+_ERA_SLUG = "2026-08-26-b"
+_PRE_ERA_SLUG = "2026-08-25-b"
+
+
+def test_verify_fail_on_unbounded_open_set_question(tmp_path):
+    # §5 cond. 4: unbounded judgment over an open set is an arc, not a probe -> FAIL.
+    by = _by_id(vhp.verify(_init_bundle(tmp_path, [_UNBOUNDED_QUESTION], slug=_ERA_SLUG)))
+    assert by["P10"].status == "fail"
+    assert "unbounded" in by["P10"].detail.lower()
+
+
+def test_verify_fail_on_whole_open_set_form(tmp_path):
+    # The second P10 quantifier ("the whole open set") must FAIL on its own.
+    by = _by_id(vhp.verify(_init_bundle(tmp_path, [_UNBOUNDED_WHOLE_SET], slug=_ERA_SLUG)))
+    assert by["P11"].status == "fail"
+    assert "unbounded" in by["P11"].detail.lower()
+
+
+def test_verify_fail_on_unbounded_in_why_cell(tmp_path):
+    # Column-blind, exactly like the answer-hint rung: the Why cell is scanned too.
+    by = _by_id(vhp.verify(_init_bundle(tmp_path, [_UNBOUNDED_WHY], slug=_ERA_SLUG)))
+    assert by["P12"].status == "fail"
+    assert "unbounded" in by["P12"].detail.lower()
+
+
+def test_bounded_row_naming_backlog_still_passes(tmp_path):
+    # Negative control, and the one that matters: P4/P9 ask BACKLOG questions whose answer
+    # is whatever a validator prints — bounded and mechanical. The rung must not fire.
+    bounded = ("P4", "which backlog ids does the drift check flag right now",
+               "`VISION.md` in live git", "the drifted set is computed at answer-time",
+               "`python scripts/audit.py checks`")
+    by = _by_id(vhp.verify(_init_bundle(tmp_path, [bounded], slug=_ERA_SLUG)))
+    assert by["P4"].status == "pass"
+
+
+def test_boundedness_rung_ignores_open_set_prose_in_preamble(tmp_path):
+    # ROW-scoped: a preamble that DESCRIBES the condition — as this template's own contract
+    # prose now does — is never a table row and is never classified.
+    preamble = ("# Probe manifest\n<!-- scope: meta -->\n\n"
+                "> §5 cond. 4: a probe asking a seat to groom every open item — the whole "
+                "open set — is an arc, not a probe, and is rejected here.\n\n## Teeth\n\n")
+    md = _probes_md([_PASS_SYMBOL], preamble=preamble)
+    by = _by_id(vhp.verify(_init_bundle(tmp_path, [_PASS_SYMBOL],
+                                        slug=_ERA_SLUG, probes_md=md)))
+    assert by["P2"].status == "pass"
+
+
+def test_pre_era_bundle_is_judged_by_its_own_era(tmp_path):
+    # THE era clause, and the reason it is a date and not merely row-scoping: the 35
+    # P10-bearing bundles are immutable committed artifacts, and the newest of them is what
+    # check_handoff_probes reads on every commit. A rung that REDs an unfixable artifact is
+    # condemning the past for the present's rule.
+    by = _by_id(vhp.verify(_init_bundle(tmp_path, [_UNBOUNDED_QUESTION], slug=_PRE_ERA_SLUG)))
+    assert by["P10"].status == "pass"
+
+
+def test_undated_bundle_dir_is_judged_by_the_current_rule(tmp_path):
+    # Fail-CLOSED on an unparseable name: a non-dated directory is not a historical bundle,
+    # so it does not inherit an exemption by being unreadable.
+    by = _by_id(vhp.verify(_init_bundle(tmp_path, [_UNBOUNDED_QUESTION], slug="scratch-bundle")))
+    assert by["P10"].status == "fail"
+
+
+def test_check_fail_class_gates_on_unbounded_probe(tmp_path):
+    # The rung reaches the DEPLOYED gate with no audit.py edit: 'fail' -> the adapter maps it
+    # to a FAIL-class Finding that blocks audit-health + ship (same path as answer-hint).
+    repo = _repo_with_bundle(tmp_path, [_UNBOUNDED_QUESTION], slug=_ERA_SLUG)
+    findings = aud.check_handoff_probes(repo)
+    assert findings[0].status == "fail"
+    assert "unbounded" in findings[0].evidence.lower()
+    assert "|" not in findings[0].evidence
+
+
+def test_live_probe_template_carries_no_unbounded_row():
+    # The template IS the shipped manifest, so P10's removal is asserted against the live
+    # file: a re-introduction fails the suite rather than 35 more bundles.
+    tmpl_path = (Path(__file__).resolve().parents[1]
+                 / "templates" / "handoff" / "v5" / "PROBES.md.tmpl")
+    rows = vhp.parse_probes(tmpl_path.read_text(encoding="utf-8"))
+    assert rows, "the template must still parse as a probe manifest"
+    offenders = [r["id"] for r in rows
+                 if any(vhp._UNBOUNDED_SCOPE_RE.search(r[c]) for c in vhp._LOAD_BEARING)]
+    assert offenders == [], f"unbounded probe row(s) in the shipped template: {offenders}"
