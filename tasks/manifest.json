@@ -2,14 +2,14 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "abc5c25187283c63b76afb01a5fbc0a4c7061895b355bb04e00d4e9a75d85cef",
+  "generated_sha256": "d8a615d354ea491b369cc70f218353ed34a8acf8d08db5dc91e502beb19b8e2f",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
       "prose": "# .dev-knowledge BACKLOG"
     },
     {
-      "prose": "<!-- GENERATED VIEW — do not edit directly. ONE LINE PER ROW ([#589]): each row shows"
+      "prose": "<!-- Do not edit directly; the line above is this file's machine identity. Each row shows"
     },
     {
       "prose": "     id · [P][size] · title · DEFER-if-deferred · a pointer to its tasks/ file. The FULL"

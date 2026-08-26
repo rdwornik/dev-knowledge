@@ -21,8 +21,8 @@ carrying a second copy of 242 KB.
 ```
                  bytes      ~tokens (B/4)   rows   mean B/row   max B/row
 before         279,814          69,953       202       1,198        3,773
-after           66,526          16,631       202         141          222
-delta         -213,288         -53,322         0      -88.2%       -94.1%
+after           66,649          16,662       202         141          222
+delta         -213,165         -53,291         0      -88.2%       -94.1%
                  -76.2%          -76.2%
 ```
 
@@ -30,12 +30,12 @@ delta         -213,288         -53,322         0      -88.2%       -94.1%
 diagnostic measures the whole *contracted* boot read at ~30,000 tokens — this one file was
 costing more than twice the entire mandated read, and now costs about half of it.
 
-The `[#589]` done-when bar was "under 70,000 bytes on an unchanged `tasks/`": **66,526**.
+The `[#589]` done-when bar was "under 70,000 bytes on an unchanged `tasks/`": **66,649**.
 Nothing is lost — every field the old view rendered is either on the new line or reachable
 from the pointer it ends with, asserted per row by
 `test_every_projected_row_is_derivable_back_to_its_body`.
 
-The remaining 66 KB is now **57% scaffolding** (37,972 B of theme/story prose) against 28,554 B
+The remaining 66 KB is now **57% scaffolding** (38,095 B of theme/story prose) against 28,554 B
 of rows. If the file is ever squeezed again, that is where the weight is — the diagnostic §7
 Q1 said the same, and it is still true.
 
@@ -93,15 +93,20 @@ obligation; and the replacement guarantee at ship time.
 
 ---
 
-## 3. terra review — tally 1 / 4 / 0 / 0, all fixed
+## 3. terra review — two rounds, 2 Critical + 8 High, all fixed
 
-`docs/audits/2026-08-26-codex-w2b-surfaces.md` (`gpt-5.6-terra`, `main...HEAD`).
-Counted from the artifact file, not the console tally. Contract says fix ≥ medium; the
-Critical and all four Highs are fixed in `HEAD`.
+Two rounds, because the round-1 fixes were themselves substantial unreviewed code — and the
+second round found a Critical in them. Both tallies are counted from the artifact FILE: the
+wrapper's console heuristic printed `0/0/0/0` for round 2 against five real findings.
+
+### Round 1 — tally 1 / 4 / 0 / 0, all fixed
+
+`docs/audits/2026-08-26-codex-w2b-surfaces.md` (`gpt-5.6-terra`, `main...HEAD`). The contract's
+bar is ≥ medium; there were no mediums or lows, so everything found is fixed in `HEAD`.
 
 | # | Severity | Finding | Disposition |
 |---|---|---|---|
-| 1 | **Critical** | `_looks_like_view` bypassable by a row whose **title** contains `Done when:` — `--write --force` would then import the projection and overwrite all 202 bodies, through a guard whose own message says "NOT overridable" | **FIXED.** The refusal is now asked twice, strongest first: byte-equality with `render_view(tasks/)` (exact, undefeatable by row text), then the end-anchored **grammar** + per-row budget. No row-TEXT signal survives in it. |
+| 1 | **Critical** | `_looks_like_view` bypassable by a row whose **title** contains `Done when:` — `--write --force` would then import the projection and overwrite all 202 bodies, through a guard whose own message says "NOT overridable" | **FIXED**, then fixed again: the round-1 replacement (byte-equality, else an end-anchored grammar + per-row budget) was itself Critical — see round 2, findings 1–2. The landed answer carries no shape heuristic at all. |
 | 2 | **High** | `audits-index` freshness compares calendar **dates** with a 0-day baseline, so a same-day stale index reads `fresh` — and audits land ~10/day, so the leg would have been blind to essentially every staleness it was registered to catch | **FIXED.** `GeneratedArtifact` gains an optional `content_check`; the audits index declares a regen-and-diff one whose answer **outranks** the date relation. Demonstrated live: the leg printed `CONTENT-STALE … (0d by commit date, which cannot see a same-day drift)`. |
 | 3 | **High** | `gen_dashboard` closure history reads historical `BACKLOG.md` revisions, so every post-flip closure would render the "no `Done when:`" fallback and silently degrade release notes to a list of titles | **FIXED.** `_gain_from_task_file` resolves the gain from the row's own `tasks/` file **at the parent revision** (never HEAD, which could resolve a retired slug against a re-slugged tree). Returns `""` on any failure — the pre-existing degraded-row fallback, never a crash. |
 | 4 | **High** | `backlog_source` fallback decoded with `errors="replace"` while promising "as-is" — corrupt bytes would become U+FFFD, body markers would vanish, and gates would scan damaged text and PASS | **FIXED.** Strict decode. `routine_consumers`' declared `UnicodeDecodeError` → FAIL arm is reachable again. Newlines are still normalized, or the fix would have introduced a CRLF regression on Windows consumers in the same line. |
@@ -114,6 +119,33 @@ quietly corrected.** The first version of the shape leg was **not fence-aware** 
 `Done when:` **text** leg in the gate was a false FAIL on a legitimate title, which meant
 `--emit-source` REFUSED to regenerate the very view the gate demanded. Both are gone; the
 constants block now records why no row-text signal belongs in either predicate.
+
+### Round 2 — tally 1 / 4 / 0 / 0, all fixed
+
+`docs/audits/2026-08-26-codex-w2b-surfaces-r2.md`, run over `be084c91..HEAD` — the fix diff
+itself, which round 1 could not have seen. It was worth running: **the round-1 fixes carried a
+Critical of their own**, and the console tally printed `0/0/0/0` against five findings, so the
+count is again read from the artifact.
+
+| # | Severity | Finding | Disposition |
+|---|---|---|---|
+| 1 | **Critical** | The replacement predicate folded the **per-row byte budget** into "is this a projection", so a view carrying one over-long row stopped being recognised as one — reopening the same `--write --force` import round 1 had just closed | **FIXED**, and structurally. |
+| 2 | **High** | …and the mirror: any full-body row under the budget that happened to cite its task file last **matched**, so `--write` refused a legitimate bootstrap input with no override | **FIXED** by the same change. |
+| 3 | **High** | A **raising** `content_check` was swallowed into the date relation — which for a same-day pair says `fresh`, so an index whose exact verification *crashed* would be reported clean | **FIXED.** A failed verifier is `unverifiable` (WARN), distinct from "no verifier declared". The green-by-skip state the field exists to prevent had been reintroduced by the field's own error handler. |
+| 4 | **High** | `gen_dashboard` trusted `row.gain` **before** checking for a projection pointer, so a title containing `· Done when: …` would publish title text as the gain | **FIXED.** The pointer is checked first; where a row points at a task file, that file is the authority. |
+| 5 | **High** | Normalizing only `\r\n` was **narrower** than the `read_text` it replaced — universal newlines also translates a lone `\r`, so a bare-CR consumer backlog would now be REFUSED where it used to be processed | **FIXED.** CRLF, then any remaining lone CR. |
+
+**Findings 1 and 2 are one defect seen from both sides, and that is the round's real lesson:**
+tightening a shape heuristic closes one hole while widening the other, so no amount of tuning
+converges. The refusal now asks only questions with exact answers — byte-equality with
+`render_view(tasks/)`, else a **generator-owned identity marker** (`_VIEW_MARKER`) emitted by
+`render_view` and by nothing else. Shape stays where a false positive is a loud gate message
+rather than silent data loss: in `view_problems`.
+
+The marker has one honest failure direction, stated at its definition: strip the line and
+`--write` stops refusing. That is strictly better than the shape predicate's, which failed in
+*both* directions — and the exact leg still catches the current tree's view regardless, so
+stripping it only reaches a view of some *other* tree.
 
 ---
 

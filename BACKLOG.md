@@ -1,5 +1,6 @@
 # .dev-knowledge BACKLOG
-<!-- GENERATED VIEW — do not edit directly. ONE LINE PER ROW ([#589]): each row shows
+<!-- [#589] GENERATED VIEW — one line per row. NOT an import source: `gen_task_tree.py --write` refuses this file. -->
+<!-- Do not edit directly; the line above is this file's machine identity. Each row shows
      id · [P][size] · title · DEFER-if-deferred · a pointer to its tasks/ file. The FULL
      body — Done-when, refs, kill-candidates, routine fields — lives in that file, which is
      the source of truth (ADR-107 §7.2, [#439]); theme and story are the enclosing headings.

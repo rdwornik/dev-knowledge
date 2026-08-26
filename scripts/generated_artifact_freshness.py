@@ -113,9 +113,10 @@ class GeneratedArtifact:
     #: Read by the generator but NOT git-trackable -- recorded so the carve-out is visible
     #: rather than a silent omission from `inputs`.
     untracked_inputs: tuple[str, ...] = ()
-    #: OPTIONAL exact verifier: `(repo_path) -> True (current) | False (drifted) | None
-    #: (cannot tell)`. When an artifact has one, it is asked FIRST and its answer OUTRANKS the
-    #: date relation, because it answers the same question exactly.
+    #: OPTIONAL exact verifier: `(repo_path) -> True (current) | False (drifted)`. When an
+    #: artifact has one, its answer OUTRANKS the date relation, because it answers the same
+    #: question exactly. A verifier that RAISES yields `unverifiable` (a WARN) rather than
+    #: falling back to dates — see `_exact_verdict` for why that distinction is load-bearing.
     #:
     #: THIS FIELD EXISTS BECAUSE THE DATE RELATION HAS A FLOOR OF ONE DAY, and for one
     #: artifact that floor swallowed the whole guarantee (terra HIGH, 2026-08-26). `%cs` is a
@@ -129,8 +130,8 @@ class GeneratedArtifact:
     #:
     #: A verifier is a CALLABLE, not a shell command, on purpose: no subprocess, no PATH, no
     #: quoting, and it stays trivially injectable in tests. It must be read-only and must not
-    #: raise -- `_exact_verdict` treats any exception as `None` (cannot tell) rather than
-    #: letting a verifier wedge the leg that calls it.
+    #: raise -- `_exact_verdict` converts any exception into `unverifiable` rather than
+    #: letting a verifier wedge the leg that calls it, or quietly excuse it.
     content_check: object | None = None
 
 
@@ -335,8 +336,19 @@ def _exact_verdict(repo_path: Path, artifact: GeneratedArtifact) -> Optional[boo
 
     NEVER RAISES, and that is the contract the field's docstring promises. A verifier is
     generator code called from inside a gate leg; letting it propagate would let a bug in a
-    generator wedge the audit that reports on it. Any exception reads as "cannot tell", which
-    falls back to the date relation — the behaviour before any verifier existed.
+    generator wedge the audit that reports on it.
+
+    BUT A FAILED VERIFIER IS NOT "NO VERIFIER" (terra HIGH, round 2). The first version
+    swallowed the exception and returned None, which falls back to the date relation — and
+    for the very artifact this field exists for, that relation returns `fresh` on a same-day
+    pair. So an index whose exact verification CRASHED would have been reported clean: the
+    green-by-skip state the whole field was added to prevent, reintroduced by its own error
+    handler. A configured-but-failing verifier is now `unverifiable` (a WARN), which is the
+    verdict this module already uses for "a declared input could not be measured, so the
+    relation over the rest is not a verdict".
+
+    Three answers, deliberately not two: `None` = no verifier declared (fall back to dates),
+    `"unverifiable"` = declared and could not answer, `True`/`False` = it answered.
     """
     check = artifact.content_check
     if check is None:
@@ -344,7 +356,7 @@ def _exact_verdict(repo_path: Path, artifact: GeneratedArtifact) -> Optional[boo
     try:
         return check(repo_path)
     except Exception:  # noqa: BLE001 — see the docstring: a verifier must not wedge the leg
-        return None
+        return "unverifiable"
 
 
 def measure(repo_path: Path, artifact: GeneratedArtifact = DASHBOARD, *,
@@ -469,6 +481,15 @@ def measure(repo_path: Path, artifact: GeneratedArtifact = DASHBOARD, *,
     # the right question — and where the answer is yes, it is also strictly better news than a
     # `0d stale` computed from calendar dates that cannot order two commits made today.
     exact = _exact_verdict(repo_path, artifact)
+    if exact == "unverifiable":
+        # A DECLARED verifier that could not answer. Reported, never swallowed into the date
+        # relation — see `_exact_verdict`. Same posture the declared-input leg above takes.
+        return Measurement(
+            artifact.name, "unverifiable", False, None, artifact.baseline_days,
+            None, None, None, None,
+            f"{artifact.name}: its declared content verifier RAISED, so exactness cannot be "
+            f"established; the {staleness}d commit-date relation is not a substitute — "
+            f"regenerate and compare by hand: {artifact.regen_command}")
     if exact is False:
         verdict = "content-stale"
         detail = (f"{artifact.name}: does NOT match what its generator emits — regenerating "

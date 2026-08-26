@@ -414,7 +414,13 @@ def closed_rows_from_history(git, relpath: str, since_rev: str) -> list[ClosedRo
             if row.id in seen:
                 continue
             seen.add(row.id)
-            gain = row.gain or _gain_from_task_file(git, parent, _rows_by_id(before)[row.id])
+            # THE POINTER IS CHECKED FIRST, not the parsed gain (terra HIGH, round 2). A
+            # projected row's TITLE can itself contain " · Done when: …", which
+            # `parse_done_when` happily returns — so trusting `row.gain` when it is non-empty
+            # would publish title text as the gain and never open the body that holds the real
+            # one. If the row points at a task file, that file IS the authority.
+            task = _rows_by_id(before)[row.id]
+            gain = _gain_from_task_file(git, parent, task) or row.gain
             rows.append(ClosedRow(id=row.id, title=row.title, gain=gain, theme=row.theme,
                                   closed_on=when, sha=sha[:12]))
     return rows

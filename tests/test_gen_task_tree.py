@@ -1302,12 +1302,61 @@ def test_a_title_containing_done_when_cannot_smuggle_the_view_past_the_refusal(t
 
 def test_the_refusal_asks_the_tree_first_and_that_answer_is_exact(tmp_path):
     """Leg 1: byte-equality with what the tree projects is not a heuristic and cannot be
-    defeated by any row's text. Leg 2 (shape) is the fallback for a stale or foreign view."""
+    defeated by any row's text. Leg 2 (the identity marker) is the fallback for a stale or
+    foreign view."""
     source, out_dir = _seed(tmp_path, _TWO_THEMES)
     assert source.read_text(encoding="utf-8") == gtt.render_view(out_dir)
     assert gtt._looks_like_view(source, out_dir) is True
-    # Same bytes, no tree handed over -> leg 2 must still recognise the shape.
+    # Same bytes, no tree handed over -> leg 2 must still recognise it.
     assert gtt._looks_like_view(source) is True
+
+
+def test_an_over_long_row_does_not_stop_a_view_from_being_recognised(tmp_path):
+    """terra CRITICAL, round 2 — the mirror of round 1's bypass.
+
+    The replacement predicate folded the per-row BYTE BUDGET into "is this a projection", so a
+    projection carrying one over-long row stopped being recognised as one and `--write --force`
+    would import it. Identity is not a size question: a view of a DIFFERENT tree (so leg 1
+    cannot answer) with a 900-byte row must still be refused.
+    """
+    source, out_dir = _seed(tmp_path, _TWO_THEMES)
+    view = source.read_text(encoding="utf-8")
+    bloated = view.replace("- [#1] [P1][S] A ", "- [#1] [P1][S] " + "A" * 900 + " ")
+    other = tmp_path / "OTHER.md"
+    other.write_text(bloated, encoding="utf-8", newline="\n")
+
+    assert not any(gtt.is_projected_row(ln) and len(ln.encode("utf-8")) > 400
+                   for ln in gtt.task_row_lines(view)), "fixture sanity"
+    assert bloated != gtt.render_view(out_dir), "leg 1 must NOT be what answers here"
+    assert gtt._looks_like_view(other, out_dir) is True
+    assert gtt.main(["--write", "--force", "--source", str(other), "--out", str(out_dir)]) == 2
+
+
+def test_a_full_body_row_that_cites_its_task_file_last_is_not_refused(tmp_path, capsys):
+    """terra HIGH, round 2 — the other side of the same coin.
+
+    Under the shape predicate, ANY full-body row under the byte budget that happened to end
+    with ` · tasks/<file>.md` matched, so `--write` refused a legitimate bootstrap input and
+    `--force` could not override it. Identity has no such false positive: the row carries real
+    body text, and the file carries no marker.
+    """
+    source = tmp_path / "BACKLOG.md"
+    source.write_text(
+        "# T\n\n## [E1] One\n\n### [S1] Story\n"
+        "- [#1] [P1][S] **A** \u2014 body \u00b7 Done when: done \u00b7 tasks/1-a.md\n",
+        encoding="utf-8", newline="\n")
+    assert gtt._looks_like_view(source) is False
+    assert gtt.main(["--write", "--source", str(source), "--out", str(tmp_path / "tasks")]) == 0
+
+
+def test_the_live_view_carries_the_generator_owned_identity_marker():
+    """The marker is what the destructive-import refusal reads, so its presence in the
+    committed file is the guarantee, not an ornament."""
+    assert gtt._VIEW_MARKER in BACKLOG.read_text(encoding="utf-8")
+    assert gtt._VIEW_MARKER in gtt.render_view(TREE)
+    # ...and it is NOT in the full-body canonical text, or the refusal would fire on the one
+    # artifact that legitimately IS an import source.
+    assert gtt._VIEW_MARKER not in canonical()
 
 
 def test_view_problems_fires_on_body_appended_after_the_pointer(tmp_path):

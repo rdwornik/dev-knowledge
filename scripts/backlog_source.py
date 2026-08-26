@@ -105,7 +105,13 @@ def canonical_text(repo_root: Path | None = None) -> Optional[str]:
         # defect and introduced a CRLF one in the same line — `parse_backlog` refuses CRLF
         # outright, so a Windows consumer checkout would have started failing where it used to
         # pass. The reassembly branch above needs none of this: `tasks/` is pure LF by contract.
-        return backlog.read_bytes().decode("utf-8").replace("\r\n", "\n")
+        # BOTH line-ending forms, CRLF then any REMAINING lone CR (terra HIGH, round 2). The
+        # first version normalized only `\r\n`, which is a narrower rule than the `read_text`
+        # it replaced: universal newlines also translates a bare `\r`, so an old-Mac-style
+        # consumer backlog would have reached `parse_backlog` with CRs and been REFUSED where
+        # it used to be processed. Order matters — collapsing CRLF first means the second pass
+        # only ever sees CRs that were genuinely alone.
+        return backlog.read_bytes().decode("utf-8").replace("\r\n", "\n").replace("\r", "\n")
     return None
 
 

@@ -69,3 +69,14 @@ def test_a_crlf_consumer_backlog_is_normalized_not_refused(tmp_path):
     text = bs.canonical_text(tmp_path)
     assert "\r" not in text
     assert text == "# B\n- [#1] [P1][S] x\n"
+
+
+def test_a_bare_cr_consumer_backlog_is_normalized_too(tmp_path):
+    """terra HIGH, round 2 — `read_text`'s universal newlines translate a LONE `\r` as well as
+    CRLF, so normalizing only CRLF was a narrower rule than the one it replaced: an
+    old-Mac-style consumer backlog would have reached `parse_backlog` with CRs and been
+    REFUSED where it used to be processed."""
+    (tmp_path / "BACKLOG.md").write_bytes(b"# B\r- [#1] [P1][S] x\r")
+    text = bs.canonical_text(tmp_path)
+    assert "\r" not in text
+    assert text == "# B\n- [#1] [P1][S] x\n"

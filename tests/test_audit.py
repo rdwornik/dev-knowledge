@@ -2914,9 +2914,18 @@ def test_content_check_clears_a_date_stale_verdict_when_the_bytes_match(tmp_path
     assert "without changing what is rendered" in m.detail
 
 
-def test_a_raising_content_check_falls_back_to_the_date_relation(tmp_path):
-    """A verifier is generator code called from inside a gate leg; a bug in it must not wedge
-    the audit that reports on it."""
+def test_a_raising_content_check_is_unverifiable_not_a_silent_date_fallback(tmp_path):
+    """terra HIGH, round 2 — a FAILED verifier is not the same as NO verifier.
+
+    The first version swallowed the exception and fell back to the date relation. For the very
+    artifact this field exists for, that relation returns `fresh` on a same-day pair — so an
+    index whose exact verification CRASHED would have been reported clean. The green-by-skip
+    state the field was added to prevent, reintroduced by its own error handler.
+
+    A verifier still must not WEDGE the leg (it is generator code called from inside a gate),
+    which is why the exception is caught at all — it is caught and REPORTED, not caught and
+    excused.
+    """
     from scripts import generated_artifact_freshness as gaf
 
     def boom(_root):
@@ -2925,6 +2934,23 @@ def test_a_raising_content_check_falls_back_to_the_date_relation(tmp_path):
     art = gaf.GeneratedArtifact(
         name="x", outputs=("out.md",), inputs=("in.md",), baseline_days=0,
         regen_command="regen", content_check=boom)
+    (tmp_path / "out.md").write_text("x", encoding="utf-8")
+    # SAME-DAY dates: the relation alone would say `fresh`, which is the trap.
+    same_day = date(2026, 8, 26)
+    m = gaf.measure(tmp_path, art, git_date_fn=lambda _r, _p: same_day)
+    assert m.verdict == "unverifiable", m.detail
+    assert gaf.STATUS_FOR_VERDICT[m.verdict] == "warn"
+    assert "RAISED" in m.detail and "not a substitute" in m.detail
+    assert "regen" in m.detail
+
+
+def test_no_content_check_at_all_still_uses_the_date_relation(tmp_path):
+    """The distinction the fix rests on: an artifact that declares no verifier is unaffected —
+    the dashboard has none, and its date relation must keep working exactly as before."""
+    from scripts import generated_artifact_freshness as gaf
+    art = gaf.GeneratedArtifact(
+        name="x", outputs=("out.md",), inputs=("in.md",), baseline_days=0,
+        regen_command="regen")
     (tmp_path / "out.md").write_text("x", encoding="utf-8")
     dates = {"out.md": date(2026, 8, 20), "in.md": date(2026, 8, 26)}
     m = gaf.measure(tmp_path, art, git_date_fn=lambda _r, p: dates[p])

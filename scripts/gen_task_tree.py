@@ -189,6 +189,30 @@ _VIEW_POINTER_DIR = "tasks/"
 # make re-inflation a FAIL instead of a slow drift (see `view_problems` for the arithmetic).
 _VIEW_ROW_RE = re.compile(
     r"^- \[#\d+\] (?:\[P\d\](?:\[[SML]\])?\s)?.*? · tasks/[^/\\]+\.md$")
+
+# THE VIEW'S IDENTITY, emitted by `render_view` itself and by nothing else. This is what the
+# destructive-import refusal reads; the grammar above is what the GATE reads. They were the
+# same predicate for one round and terra broke it from both sides at once:
+#   * a projection whose row exceeded the per-row budget stopped looking like a projection,
+#     so `--write --force` would import it and overwrite every body (CRITICAL); and
+#   * a legitimate full-body row under the budget that happened to cite its task file last
+#     matched the grammar, so `--write` refused a valid bootstrap input with no override
+#     (HIGH).
+# Those two cannot BOTH be fixed by tuning a shape heuristic -- tightening it widens one hole
+# while narrowing the other. Identity is not a heuristic: this line is in a file iff the
+# generator put it there.
+#
+# Emitted from HERE, not from the manifest's prose header, and that is the difference between
+# a marker and a decoration: manifest prose is source an operator may edit, so a sentinel
+# living there could be retitled away and silently re-enable the destructive import. This one
+# is a property of the RENDERER.
+#
+# HONEST FAILURE DIRECTION, since it has one: strip the line and `--write` stops refusing.
+# That is strictly better than the shape predicate's failure, which ran in BOTH directions --
+# and the exact leg (byte-equality with `render_view`) still catches the current tree's view
+# regardless, so stripping it only reaches a view of some OTHER tree.
+_VIEW_MARKER = ("<!-- [#589] GENERATED VIEW — one line per row. NOT an import source: "
+                "`gen_task_tree.py --write` refuses this file. -->")
 # NO ROW-TEXT SIGNAL SURVIVES IN EITHER PREDICATE, and that is the whole lesson of terra
 # round 1. `Done when:` looks like a perfect body marker -- ADR-66 requires it on every real
 # row and a projected row has no body -- but a row's TITLE can contain the words, and a title
@@ -632,6 +656,11 @@ def render_view(tree_dir: Path) -> str:
             parts.append(project_row(node["task"], extract_body(file_text), node["file"]))
         else:
             parts.append(node["prose"])
+    # The identity marker goes on line 2, under the document title, where a human opening the
+    # file reads it before anything else. INSERTED, not appended: the manifest's last prose
+    # node is the empty string that gives the file its trailing newline, and appending after
+    # it would strip that.
+    parts.insert(1 if parts else 0, _VIEW_MARKER)
     return "\n".join(parts)
 
 
@@ -657,13 +686,15 @@ def task_row_lines(text: str) -> list[str]:
 
 
 def is_projected_row(line: str) -> bool:
-    """True when `line` has the SHAPE `project_row` emits (grammar + per-row budget).
+    """True when `line` has the SHAPE `project_row` emits — GRAMMAR ONLY.
 
-    The one predicate both [#589] jobs share -- see `_VIEW_ROW_RE` for why it is end-anchored
-    and why row TEXT (a `Done when:` mention) is deliberately not part of it.
+    The per-row byte budget is deliberately NOT part of this. Conflating "is this the shape
+    the renderer emits" with "is it within budget" meant a projection carrying one over-long
+    row stopped being recognised as a projection at all — and terra found that as a CRITICAL,
+    because the destructive `--write --force` import was gated on the same predicate. Size is
+    a `view_problems` concern, identity is `_VIEW_MARKER`'s, and this is the shape.
     """
-    return (bool(_VIEW_ROW_RE.match(line))
-            and len(line.encode("utf-8")) <= _VIEW_ROW_BYTE_CEILING)
+    return bool(_VIEW_ROW_RE.match(line))
 
 
 def view_problems(text: str, where: str) -> list[str]:
@@ -717,27 +748,31 @@ def view_problems(text: str, where: str) -> list[str]:
 def _looks_like_view(source_path: Path, out_dir: Path | None = None) -> bool:
     """True when `source_path` is a [#589] PROJECTION rather than a full-body backlog.
 
-    THE ANSWER GATES A DATA-DESTROYING IMPORT, so it is asked twice, strongest first:
+    THE ANSWER GATES A DATA-DESTROYING IMPORT, so it asks only questions that have exact
+    answers. NO SHAPE HEURISTIC, and that is terra round 2's lesson in one line:
 
       1. EXACT -- is this byte-for-byte what the tree currently projects? When `out_dir`
-         carries a manifest this is not a heuristic at all, and it cannot be defeated by any
-         row's text.
-      2. STRUCTURAL -- failing that (a stale view, a view of a different tree, no tree at
-         all), does EVERY row have the projection's shape (`is_projected_row`: the
-         end-anchored grammar plus the per-row budget)?
+         carries a manifest, that is a comparison, not a guess.
+      2. IDENTITY -- failing that (a stale view, a view of a DIFFERENT tree, no tree handed
+         over), does it carry `_VIEW_MARKER`, which only `render_view` emits?
 
-    WHAT CHANGED, AND WHY IT WAS A CRITICAL (terra, 2026-08-26). The first version also
-    required that NO row carried `Done when:`, as a conjunct. A row whose bold TITLE contains
-    those words survives into the projection, so one such row made the whole conjunction
-    False, `--write --force` proceeded, and all 202 authoritative bodies were overwritten by
-    their own one-line titles -- through the guard that this module's own message calls "NOT
-    overridable". A refusal predicate must not be defeatable by the content of the thing it
-    is protecting, so the text signal is gone from here entirely. It survives in
-    `view_problems`, where a false FAIL is a loud gate message rather than silent data loss.
+    WHY NOT SHAPE. Two rounds of review broke the shape predicate from both sides at once,
+    and the second pair proved the class rather than the instance:
+      * round 1 (CRITICAL) -- it required that no row carry `Done when:`, and a row whose
+        bold TITLE contains those words defeated the conjunction, so `--write --force`
+        would import the view and overwrite all 202 bodies;
+      * round 2 (CRITICAL) -- the replacement folded the per-row byte budget into the
+        predicate, so a projection with one over-long row stopped looking like a projection
+        and the same import opened again;
+      * round 2 (HIGH) -- and the mirror: a legitimate full-body row under the budget that
+        happened to cite its task file last MATCHED, so `--write` refused a valid bootstrap
+        input with no override.
+    Tightening a shape heuristic closes one of those and widens the other. Identity closes
+    both, because a marker is in a file iff the generator put it there.
 
-    Conservative on the OTHER side -- a file with NO task rows, or one that cannot be read,
-    is NOT called a view (returns False), because a false positive would block the legitimate
-    bootstrap path this command exists for.
+    Conservative on the OTHER side -- an unreadable file is NOT called a view (returns
+    False), because a false positive would block the legitimate bootstrap path this command
+    exists for.
     """
     try:
         text = source_path.read_bytes().decode("utf-8", errors="replace")
@@ -749,8 +784,7 @@ def _looks_like_view(source_path: Path, out_dir: Path | None = None) -> bool:
                 return True
         except (OSError, ValueError, KeyError, UnicodeDecodeError):
             pass          # an unreadable tree cannot answer leg 1; leg 2 still can
-    rows = task_row_lines(text)
-    return bool(rows) and all(is_projected_row(line) for line in rows)
+    return _VIEW_MARKER in text
 
 
 def write_warnings(out_dir: Path) -> list[str]:
