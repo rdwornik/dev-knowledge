@@ -163,6 +163,21 @@ exempt:
   # entry converts to coverage_scope and the marker is added. Same shape as the
   # review_artifact_coverage row directly above.
   - funnel_coverage
+  # R4 supplement-fold leg (handoff census 2026-08-26 b6). **TEMPORARY**, on the
+  # `review_artifact_coverage` / `generated_artifact_freshness` precedent directly above and for
+  # the same reason: enforcement ahead of its written rule runs only under a NAMED, EXPIRING
+  # exemption. The rule this leg embodies -- a filled SUPPLEMENT ANSWERS region reaches the
+  # bundle's PASTE_THIS.md -- is proposed as delta D4 against HANDOFF_PROCESS v6.2.0 §13 and is
+  # NOT yet written there, so there is no doc site a `# rule:` marker could bind. When D4 lands
+  # in HANDOFF_PROCESS this entry converts to coverage_scope and the marker is added.
+  #
+  # CROSS-LANE NOTE, stated rather than left to be discovered: `ecosystem/` is lane-g2's surface
+  # in the 2026-08-26 batch and this lane was told to stay off it. This one line is the
+  # exception, and it is structural rather than a choice -- `check_doc_code_coverage_drift` is
+  # FAIL-class and names any ALL_CHECKS member that is neither annotated nor exempt, so the R4
+  # check cannot enter the registry at all without an entry here. Appended at the end of the
+  # list to conflict cleanly.
+  - supplement_folded
   # ARC-5 residual-completeness gate. TEMPORARY exemption, distinct from the permanent rows
   # above, and BOUND TO [#365] -- an undeclared temporary exemption is exactly the silent
   # category ARC-5 exists to eliminate, so it carries a ticket rather than a hope.

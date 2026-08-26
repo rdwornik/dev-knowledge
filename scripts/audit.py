@@ -1626,6 +1626,108 @@ def check_handoff_probes(repo_path: Path) -> list[Finding]:
                     f"{len(results)} probe(s) bind to live state ({latest.name})")]
 
 
+# The ERA `supplement_folded` binds from — the date the check landed. A bundle cut before it
+# is GRANDFATHERED: named in the evidence, never blocking. This is not leniency, it is the
+# only honest option. A sealed bundle's PASTE_THIS.md is an immutable artifact (Critical
+# Rule #3), and the loss it records already happened — the seat that needed the 2026-08-23
+# answers booted on 2026-08-25 without them. Re-assembling that paste now would edit an
+# immutable artifact to falsify what was actually delivered, and it would not un-lose
+# anything. Recorded as IMMUTABLE-AND-LOST instead, permanently visible in the gate's own
+# output. (A disposition-register entry could not carry this even if it were the right
+# answer: the register suppresses WARNs, and this check is FAIL-class.)
+# Compared as a STRING against the bundle DIR NAME, which opens with its ISO date, so the
+# ordering is the date ordering and no parsing is needed. Fail-CLOSED on an undated name (any
+# leading letter sorts after a digit), so an unreadable directory name earns no exemption.
+_SUPPLEMENT_FOLD_ERA = "2026-08-26"
+_SUPPLEMENT_SECTION_MARKER = "=== SUPPLEMENT.md ==="
+
+
+def supplement_fold_violations(repo_path: Path) -> list[tuple[str, str]]:
+    """Every bundle whose SUPPLEMENT ANSWERS are filled but whose PASTE_THIS.md never folded
+    them. Returns `(bundle_name, reason)` pairs sorted by name; [] when clean.
+
+    R4 of the 2026-08-26 handoff census (b6). The supplement is filled AFTER the paste is
+    assembled and no organ re-folded it: 63 bundles carry both a filled ANSWERS region and an
+    assembled paste, 62 folded, and the one that did not is the most recent architect handoff
+    before the census. Its 87 answer lines — rulings, rejections, off-repo context, the Q7
+    register — never reached the next seat, and the failure was silent.
+
+    The fill-state predicate is `assemble_paste._extract_answers`, REUSED rather than
+    reimplemented, so "filled" means here exactly what the assembler means by it (the same
+    reuse `gen_handoff.detect_fill_state` already makes). Two deliberate non-violations: a
+    COLD supplement (an honest record of a duty undischarged, and what the assembler declines
+    to fold), and a bundle with no PASTE_THIS.md at all (nothing was assembled, so no fold was
+    missed). Read-only; era-blind — the era gate lives in the adapter below, so this predicate
+    can be run against the real tree to reproduce the historical RED.
+    """
+    handoffs = Path(repo_path) / "docs" / "handoffs"
+    if not handoffs.is_dir():
+        return []
+    try:
+        from assemble_paste import _extract_answers  # noqa: PLC0415
+    except ImportError:
+        from scripts.assemble_paste import _extract_answers  # noqa: PLC0415
+    out: list[tuple[str, str]] = []
+    for bundle in sorted(handoffs.iterdir(), key=lambda d: d.name):
+        if not bundle.is_dir() or bundle.name in _BUNDLE_EXCLUDE_DIRS:
+            continue
+        supplement = bundle / "SUPPLEMENT.md"
+        paste = bundle / "PASTE_THIS.md"
+        if not supplement.is_file() or not paste.is_file():
+            continue
+        try:
+            answers = _extract_answers(supplement.read_text(encoding="utf-8"))
+            folded = _SUPPLEMENT_SECTION_MARKER in paste.read_text(encoding="utf-8")
+        except OSError:
+            continue        # unreadable bundle file — degrade, never synthesize a violation
+        if answers and not folded:
+            out.append((bundle.name,
+                        "SUPPLEMENT ANSWERS filled but PASTE_THIS.md carries no "
+                        f"{_SUPPLEMENT_SECTION_MARKER} section"))
+    return out
+
+
+def check_supplement_folded(repo_path: Path) -> list[Finding]:
+    """R4 (census 2026-08-26 b6): a filled SUPPLEMENT that never reached the paste is a
+    silent, irreplaceable loss of the outgoing architect's judgment. FAIL-class (gating,
+    like check_handoff_probes): a bundle cut in this era with filled ANSWERS and an unfolded
+    paste blocks audit-health and the ship-gate, so the fix happens while the bundle is
+    still live rather than being discovered by the seat that needed it.
+
+    ONE Finding PER offending bundle (the #147 disposition contract — an aggregate finding
+    would let one match wave through an unrelated bundle).
+
+    Pre-era bundles are grandfathered and NAMED in the pass evidence: see
+    `_SUPPLEMENT_FOLD_ERA` for why repairing them is not on the table. Read-only.
+
+    HONEST LIMIT: this asserts the paste carries a SUPPLEMENT section, not that the section
+    carries the CURRENT answers. A supplement edited after a fold still reads as folded.
+    Catching that needs a content comparison the assembler does not record, and the failure
+    class measured — a fold that never happened at all — is the one this refuses.
+    """
+    handoffs = Path(repo_path) / "docs" / "handoffs"
+    if not handoffs.is_dir():
+        return [_na("supplement_folded", "NOT-APPLICABLE",
+                    "no docs/handoffs/ — no bundle whose supplement could be unfolded")]
+    try:
+        violations = supplement_fold_violations(Path(repo_path))
+    except Exception as exc:  # never wedge the gate on an internal error
+        return [Finding("supplement_folded", "warn",
+                        f"check degraded (read-only, non-blocking): {exc!r}".replace("|", "/"))]
+    blocking = [(b, why) for b, why in violations if b >= _SUPPLEMENT_FOLD_ERA]
+    grandfathered = [b for b, _ in violations if b < _SUPPLEMENT_FOLD_ERA]
+    if blocking:
+        return [Finding("supplement_folded", "fail",
+                        f"{b}: {why} — the outgoing seat's answers never reached the next "
+                        "one; re-run scripts/assemble_paste.py on the bundle before it seals"
+                        .replace("|", "/"))
+                for b, why in blocking]
+    tail = (" — pre-era, immutable-and-lost (recorded, not repaired): "
+            + ", ".join(grandfathered)) if grandfathered else ""
+    return [Finding("supplement_folded", "pass",
+                    f"every filled SUPPLEMENT reached its paste{tail}".replace("|", "/"))]
+
+
 # [#533] moved to audit_checks/ — re-exported above.
 
 
@@ -3557,6 +3659,9 @@ ALL_CHECKS = [
     check_doc_claims,
     check_no_ff_merges,
     check_handoff_probes,
+    check_supplement_folded,   # R4 (census 2026-08-26 b6) — FAIL-class; a filled SUPPLEMENT
+                               # that never reached the paste is a silent loss of the
+                               # outgoing seat's judgment
     check_reconciled_versions,
     check_doc_rot,
     check_doc_structure,
