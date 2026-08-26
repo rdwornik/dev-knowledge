@@ -1728,6 +1728,61 @@ def check_supplement_folded(repo_path: Path) -> list[Finding]:
                     f"every filled SUPPLEMENT reached its paste{tail}".replace("|", "/"))]
 
 
+def check_dispatch_verb_agreement(repo_path: Path) -> list[Finding]:
+    """R5: the drift organ `protocols/STANDING_RULINGS.md` §V records as "owed and unbuilt".
+
+    §V ruled `dispatch <contract.md>` the sole operator verb for a LOCAL lane after measuring
+    what four rival launch commands cost: `/lane-boot` emitted the form Ch8 itself labels a
+    fallback, silently dropping `--model` and `--effort`, and roughly thirty consecutive browser
+    seats failed to launch a lane. The ruling landed and nothing asserted it — §V's own words:
+    "until it exists these rulings bind the seat and not the tree."
+
+    Asserts the two point-of-use surfaces (`.claude/commands/lane-boot.md`,
+    `templates/prompt-template.md`) name the verb Ch8's dispatch table rules, and carry no rival
+    literal launch form in a fenced block. The ruled verb is READ from Ch8 at check-time — this
+    check holds no copy of it, which is the same discipline it enforces.
+
+    FAIL-class (gating), one Finding per violation per the #147 disposition contract. Read-only.
+    Logic lives in scripts/dispatch_surface.py.
+
+    PRESENCE-based, not `_is_hub`-based (the check_handoff_probes precedent): a repo with no
+    `protocols/PLAYBOOK.md` carries no dispatch table to agree with, so it is a no-op n/a and
+    this no-ops on the fleet's child repos. A repo that HAS the table and cannot read the ruled
+    form out of it FAILs — a moved anchor is a finding, never a silent pass.
+
+    HONEST LIMIT, and it is stated in the module too: this is HALF the organ §V describes. The
+    other half — every literal command in Ch8 resolving via `Get-Command` on the operator's
+    machine — probes an L0 surface in another repo and would require executing, which Layer 2
+    does not do. A verb that agrees everywhere and resolves nowhere passes this gate.
+    """
+    try:
+        try:
+            from scripts import dispatch_surface as _ds_probe  # noqa: PLC0415
+        except ImportError:
+            import dispatch_surface as _ds_probe               # noqa: PLC0415
+        if not (Path(repo_path) / _ds_probe.PLAYBOOK_PATH).is_file():
+            return [_na("dispatch_verb_agreement", "NOT-APPLICABLE",
+                        "no protocols/PLAYBOOK.md — no dispatch table to agree with")]
+    except Exception as exc:  # noqa: BLE001 — a reader that cannot load is a WARN, not a FAIL
+        return [Finding("dispatch_verb_agreement", "warn",
+                        f"check degraded (read-only, non-blocking): {exc!r}".replace("|", "/"))]
+    try:
+        try:
+            from scripts import dispatch_surface as _ds  # noqa: PLC0415
+        except ImportError:
+            import dispatch_surface as _ds               # noqa: PLC0415
+        violations = _ds.agreement_findings(Path(repo_path))
+    except Exception as exc:  # never wedge the gate on an internal error
+        return [Finding("dispatch_verb_agreement", "warn",
+                        f"check degraded (read-only, non-blocking): {exc!r}".replace("|", "/"))]
+    if violations:
+        return [Finding("dispatch_verb_agreement", "fail", v.replace("|", "/"))
+                for v in violations]
+    return [Finding("dispatch_verb_agreement", "pass",
+                    "both point-of-use sites name the verb Ch8's dispatch table rules, and "
+                    "neither carries a rival literal launch form")]
+
+
 # [#533] moved to audit_checks/ — re-exported above.
 
 
@@ -3662,6 +3717,8 @@ ALL_CHECKS = [
     check_supplement_folded,   # R4 (census 2026-08-26 b6) — FAIL-class; a filled SUPPLEMENT
                                # that never reached the paste is a silent loss of the
                                # outgoing seat's judgment
+    check_dispatch_verb_agreement,   # R5 — the drift organ STANDING_RULINGS §V records as
+                                     # "owed and unbuilt"; FAIL-class, tree-side half only
     check_reconciled_versions,
     check_doc_rot,
     check_doc_structure,

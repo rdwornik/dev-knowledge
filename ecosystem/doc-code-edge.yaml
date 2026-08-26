@@ -178,6 +178,15 @@ exempt:
   # check cannot enter the registry at all without an entry here. Appended at the end of the
   # list to conflict cleanly.
   - supplement_folded
+  # R5 dispatch-verb agreement leg (handoff census 2026-08-26 b2). **PERMANENT**, and for a
+  # different reason than the temporary rows above: the rule IS written and ratified, at
+  # `protocols/STANDING_RULINGS.md` §V (V1-V4) — but the rulings register is an APPEND-ONLY
+  # ruling record, not a living doc a `# rule:` marker can point at, which is the same shape as
+  # the `preflight_backlog_ids` row's reasoning. The syntax it agrees against lives at
+  # `protocols/PLAYBOOK.md` Ch8's dispatch table, and that table is a COMMAND SURFACE rather
+  # than a behavioural doc->code rule declaration. Same cross-lane note as the row directly
+  # above: appended at the end so it conflicts cleanly.
+  - dispatch_verb_agreement
   # ARC-5 residual-completeness gate. TEMPORARY exemption, distinct from the permanent rows
   # above, and BOUND TO [#365] -- an undeclared temporary exemption is exactly the silent
   # category ARC-5 exists to eliminate, so it carries a ticket rather than a hope.

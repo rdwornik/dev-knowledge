@@ -736,6 +736,35 @@ def standing_vs_new(repo_root: Path) -> str:
     )
 
 
+# --- R5: the ruled dispatch verb, rendered rather than copied ---------------
+
+def dispatch_form(repo_root: Path) -> str:
+    """The forms card's dispatch line, READ from PLAYBOOK Ch8's dispatch table at generation.
+
+    The forms card exists because "a pointer works for prose a seat reads once, and fails for a
+    command a seat types" — but a copied command is what STANDING_RULINGS §V ruled on, after four
+    rival copies of this exact line cost roughly thirty consecutive seats a lane. Rendering
+    resolves the two: the seat gets the literal line, resident in its paste, and the tree still
+    has exactly one source for it.
+
+    DEGRADE TO A POINTER, never to a remembered command. If Ch8's table cannot be read the card
+    tells the seat to open it — a stale copy that renders confidently is the failure mode."""
+    try:
+        from scripts import dispatch_surface as _ds  # noqa: PLC0415
+    except ImportError:
+        try:
+            import dispatch_surface as _ds           # noqa: PLC0415
+        except ImportError:
+            _ds = None
+    lines = _ds.ruled_form(repo_root) if _ds is not None else None
+    if not lines:
+        return ("> **The literal line could not be rendered from Ch8** — read it live at "
+                "`protocols/PLAYBOOK.md` \"The dispatch table — the SOLE literal-command site\". "
+                "This card deliberately carries no copy of its own.")
+    body = "\n".join(lines)
+    return f"```\n{body}\n```"
+
+
 def detect_fill_state(bundle_dir: Path) -> bool:
     """True => FILLED framing, False => cold. Reuses assemble_paste._extract_answers so the
     framing flip matches EXACTLY what the assembler folds (one fill-state definition)."""
@@ -992,6 +1021,9 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
     # R2: the generated attribution frame for RESIDUAL §1. Computed from COMMITTED state (the
     # register + the window's diff) and carrying no answer value — see `standing_vs_new`.
     tokens["STANDING_VS_NEW"] = standing_vs_new(repo_root)
+    # R5: the forms card's dispatch line, RENDERED from Ch8's dispatch table rather than held as
+    # a second copy — the whole point of STANDING_RULINGS §V.
+    tokens["DISPATCH_FORM"] = dispatch_form(repo_root)
 
     _render("HANDOFF_BOOT.md.tmpl", tokens, bundle_dir, "HANDOFF_BOOT.md")
     _render("RESIDUAL.md.tmpl", tokens, bundle_dir, "RESIDUAL.md")

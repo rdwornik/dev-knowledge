@@ -182,7 +182,7 @@ def test_all_checks_count_is_pinned():
     Renamed from `..._post_retirement_38`: the count moved by an ADDITION, so a name asserting
     a post-retirement 38 would have described neither the number nor the reason.
     """
-    assert len(aud.ALL_CHECKS) == 47  # 44 -> 46: check_generated_artifact_freshness (ADR-86 amd. 2026-08-23 / [#171] leg 1, WARN-tier by ruling) and check_funnel_coverage (M3 ADVISORY leg, WARN-tier by ruling; zero-baseline identity ratchet over docs/audits/ disposition coverage) added together by the mini-integration, 2026-08-24; 46 -> 47: check_supplement_folded added (R4, handoff census 2026-08-26 b6 — FAIL-class; a filled SUPPLEMENT that never reached its PASTE_THIS.md is a silent loss of the outgoing seat's judgment, measured at 1 live instance)
+    assert len(aud.ALL_CHECKS) == 48  # 44 -> 46: check_generated_artifact_freshness (ADR-86 amd. 2026-08-23 / [#171] leg 1, WARN-tier by ruling) and check_funnel_coverage (M3 ADVISORY leg, WARN-tier by ruling; zero-baseline identity ratchet over docs/audits/ disposition coverage) added together by the mini-integration, 2026-08-24; 46 -> 47: check_supplement_folded added (R4, handoff census 2026-08-26 b6 — FAIL-class; a filled SUPPLEMENT that never reached its PASTE_THIS.md is a silent loss of the outgoing seat's judgment, measured at 1 live instance); 47 -> 48: check_dispatch_verb_agreement added (R5, handoff census 2026-08-26 b2 — FAIL-class; the drift organ STANDING_RULINGS §V records as "owed and unbuilt", tree-side half: lane-boot + prompt-template name the Ch8-ruled verb and no rival form)
 
 
 def test_no_surviving_docstring_describes_the_removed_skip_as_pass_behaviour():

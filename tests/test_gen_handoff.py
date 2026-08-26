@@ -986,3 +986,43 @@ def test_generated_residual_fill_in_regions_stay_recognised_as_unfilled(tmp_path
     residual = _gen(tmp_path).bundle_dir / "RESIDUAL.md"
     regions = {u.region for u in vrc.scan_file(residual, "RESIDUAL.md")}
     assert "driftflags" in regions
+
+
+# --- R5: the forms card renders the ruled verb, it does not copy it ---------
+
+def test_dispatch_form_renders_the_line_ch8_rules():
+    """The forms card carries a literal a seat TYPES, which a pointer cannot serve — but a
+    COPIED command is what STANDING_RULINGS §V ruled on. Rendering resolves both."""
+    import dispatch_surface as ds
+    block = gh.dispatch_form(_REPO)
+    assert block.startswith("```") and block.rstrip().endswith("```")
+    for line in ds.ruled_form(_REPO):
+        assert line in block
+
+
+def test_dispatch_form_degrades_to_a_pointer_not_a_remembered_command(tmp_path):
+    """A stale copy that renders confidently is the failure mode, so the degrade path names the
+    table instead of naming a command."""
+    block = gh.dispatch_form(tmp_path)
+    assert "could not be rendered" in block
+    assert "SOLE literal-command site" in block
+    assert "dispatch <" not in block
+
+
+def test_generated_boot_carries_the_rendered_dispatch_line(tmp_path):
+    """End-to-end through the stub repo, which has no PLAYBOOK — so this also proves the
+    DEGRADE path reaches the bundle intact rather than leaving a raw token behind."""
+    boot = (_gen(tmp_path).bundle_dir / "HANDOFF_BOOT.md").read_text(encoding="utf-8")
+    assert "{{DISPATCH_FORM}}" not in boot
+    assert "could not be rendered" in boot
+
+
+def test_template_holds_no_second_copy_of_the_dispatch_command():
+    """The R5 contract in one assertion: the forms card renders the verb, it never hardcodes
+    it. A fenced `dispatch …` line reappearing in the template is the regression."""
+    import dispatch_surface as ds
+    tmpl = (_REPO / "templates" / "handoff" / "v5" / "HANDOFF_BOOT.md.tmpl").read_text(
+        encoding="utf-8")
+    verb = ds.ruled_verb(_REPO)
+    assert "{{DISPATCH_FORM}}" in tmpl
+    assert not any(ln.split()[:1] == [verb] for ln in ds.fenced_lines(tmpl))

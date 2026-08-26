@@ -82,17 +82,19 @@ fetch is a form the seat composes from memory instead. So the four commands an o
 incoming seat actually types are resident here — in the bundle, in the paste — rather than one hop
 away. Rationale and mechanics for each stay at the homes named beside it; only the *form* is copied.
 
-**1 — Dispatch a contract.** The whole surface is one typed line, run from the repo:
+**1 — Dispatch a contract.** The whole surface is one typed line, run from the repo. **The line
+below is RENDERED at generation time out of `protocols/PLAYBOOK.md` Ch8 "The dispatch table — the
+SOLE literal-command site"** — this card holds no copy of its own, because four rival copies of
+this exact command cost roughly thirty consecutive seats a lane (`protocols/STANDING_RULINGS.md`
+§V, 2026-08-25):
 
-```
-dispatch <CONTRACT-FILE>.md
-```
+{{DISPATCH_FORM}}
 
 The contract's own `## Dispatch` block carries the line; the helper runs it verbatim, resolving the
 literal `$env:CLAUDE_PROMPTS_DIR` token and a bare filename against the prompts directory
-(`$env:CLAUDE_PROMPTS_DIR`, else `~/Downloads`). Add `-DryRun` to print the resolved line and stop.
-Home: `protocols/PLAYBOOK.md` Ch8 "The dispatch surface is `dispatch <file>`";
-`templates/prompt-template.md` is the block's point-of-use form.
+(`$env:CLAUDE_PROMPTS_DIR`, else `~/Downloads`). Home: `protocols/PLAYBOOK.md` Ch8 "The dispatch
+table — the SOLE literal-command site"; `templates/prompt-template.md` is the block's point-of-use
+form.
 
 **2 — Take a lane into its own tree.** Either form provisions the isolated checkout:
 
