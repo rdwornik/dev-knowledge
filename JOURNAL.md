@@ -85,7 +85,12 @@ the lane is finished; the three wave-2 lane worktrees continue independently.
 
 **Anchors:** `23409c9c` (the byte-identical move + `_HOME_PATTERNS`) and `d7ce675c` (the ADR-101
 amendment + the enum removal) - the two commits merge `ac677b6e` introduces, which is what makes
-that merge anchored.
+that merge anchored. Also `96463891` - this entry's own commit, named here by the follow-up
+commit on this branch so that the `--no-ff` merge which introduces it is anchored too. An
+entry cannot name the commit that carries it, which is the single-commit-branch trap the
+predicate makes unavoidable; JOURNAL 2026-08-24 (i) records the same shape and the same
+reason. This is an append to an entry that has NOT landed on `main`, so STANDING_RULINGS B6
+(never edit a LANDED entry) is not engaged.
 
 ### 2026-08-26 (b) - CC (Opus 5, background job, primary checkout, `docs/endgame-2026-08-26`): the endgame governance session - the window's output goes through the funnel
 
