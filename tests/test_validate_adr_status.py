@@ -798,7 +798,7 @@ def test_shipped_corpus_parses_one_status_field_per_live_adr():
     fields, missing, extra = vas.scan_zone(vas.LIVE_DIR)
     assert missing == [], f"live ADRs with no status field: {missing}"
     assert extra == [], f"live ADRs with >1 status field: {extra}"
-    assert len(fields) == 87, "live ADR count moved — re-measure the Step-1 baseline"
+    assert len(fields) == 88, "live ADR count moved — re-measure the Step-1 baseline"
 
 
 def test_shipped_corpus_grammar_distribution_matches_the_measured_baseline():
@@ -806,7 +806,7 @@ def test_shipped_corpus_grammar_distribution_matches_the_measured_baseline():
     counts: dict[str, int] = {}
     for f in fields:
         counts[f.grammar] = counts.get(f.grammar, 0) + 1
-    assert counts == {"G1": 40, "G2": 34, "G3": 12, "G4": 1}
+    assert counts == {"G1": 41, "G2": 34, "G3": 12, "G4": 1}
 
 
 def test_shipped_corpus_has_zero_enum_violations():
