@@ -520,6 +520,8 @@ live state §4.4 already settles.
 
 ### 5.2 Draft ADR — fork test and text
 
+> **INTEGRATION NOTE — added 2026-08-26 by the batch-1 integrator, architect-ruled; an attributed in-file amendment marker, not an edit to this pack's content.** ADR id **115** is now taken on disk by `docs/decisions/ADR-115-agents-md-portable-instruction-layer.md`, landed by lane G in this batch — **disk allocation wins**, and this held draft renumbers at landing. No ADR content is authored, amended or ratified here: the ADR-101 `prompts/` amendment and ADR-115 acceptance belong to a separate post-integration governance session.
+
 **Fork test (ADR-112), both legs stated:**
 
 - **Leg 1 — PASSES, on the intake's own words.** It offers the reconciliation *"as a reading and

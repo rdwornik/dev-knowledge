@@ -118,3 +118,84 @@ Tier-1 closure loop (ADR-70) works the close side. Whether this rule earns a gat
 question, per the repo's standing evidence discipline — **it should be measured on the next two
 audits before any gate is proposed.** Until then this is doctrine a reviewer can cite, not a
 refusal, and stating that is the honest limit.
+
+## Amendment — 2026-08-25 · a landed adjudication packet satisfies the §2 funnel, and direct births become lawful under two guards
+
+**In-file amendment marker, not an in-place edit of §2** — ADRs are immutable per `CLAUDE.md` §5
+rule 3, which sanctions exactly this form. **Status of this amendment: Accepted** — an architect
+ruling under ADR-108 §A (a technical question the architect rules; the standard is revertability,
+not certainty). ADR-111's own status line is untouched and still reads `Accepted`.
+
+### What §2 did not describe
+
+§2 names exactly one route from a finding to a row: **(c) CANDIDATE → intake → ratification**. The
+2026-08-25 window produced an act that route does not describe. `protocols/STANDING_RULINGS.md`
+section U points at `docs/audits/2026-08-25-technical-register-ruling-packet.md`, a **batch
+adjudication of 37 candidate rows** in which every row already carries its outcome *and its
+reason* — ADOPT to a named carrier, INTAKE to a named intake, REJECT with the reason recorded,
+COVERED with its locator. That is the §1 triage pass, performed in one recorded act by the
+architect, and the packet's own §4 sequences the births it authorises: *"every ADOPT above lands as
+a row spec against banked births or an existing carrier named here."*
+
+Read strictly, §2 made those births unlawful — they pass through no intake, because the
+adjudication an intake exists to produce has already happened and is landed. The register act was
+deliberately birthless for exactly that reason (section U: *"Row births are deliberately DEFERRED
+to wave 1"*). **The gap is this rule's, not that act's**, and this amendment closes it.
+
+### The ruling
+
+**An adjudication packet that is pointed at by `protocols/STANDING_RULINGS.md` and carries a
+per-row reason for every row it adjudicates SATISFIES the §2 funnel.** It is not an exception to
+CANDIDATE → intake → ratification; it is that funnel executed in one recorded act, the packet being
+simultaneously the §1 triage pass, the §3 ratifying decision, and the §4 record that makes each
+birth auditable — `decided-by` is discharged by the register entry naming the packet, exactly as it
+is by an operator ruling.
+
+**Direct births — a row filed without a separate intake doc — are lawful ONLY under such a packet.**
+Outside one, §2 stands unchanged and unweakened: a finding may not be filed as a row.
+
+### Two guards, both load-bearing
+
+**Guard (i) — every direct birth cites the packet row id it derives from, one-to-one traceable.** A
+row born this way names, *in its own body*, the identifier the packet uses for the adjudicated row
+it executes (`C22`, `C08`, `CONTRA-6`, `FIX-1`, …). The trace runs row → packet row → reason in one
+hop, without reading the packet end to end. A birth that cannot name its row is not covered by this
+amendment and falls back to §2. This is what keeps a packet a **funnel** rather than a bulk permit.
+
+**Guard (ii) — birth rights flow only from a LANDED, byte-identical packet.** The packet must be
+in-repo, immutable under §5 rule 3 (audits are immutable), and pointed at by a
+`STANDING_RULINGS.md` entry. **An unlanded or editable packet confers no birth rights at all** — not
+reduced ones. A packet sitting in an operator's `Downloads`, a draft on an unmerged branch, or an
+in-repo file still under revision is worth exactly nothing here, because the entire authority rests
+on the reason being *fixed before the row is born*. Section U states the same property from the
+other side: *"This section POINTS; the artifact CARRIES. Resolve a row against the artifact, never
+against this summary."*
+
+### Why these two guards, and why no gate
+
+The failure this amendment could create is **laundering** — writing a packet to retro-justify births
+already decided on. Guard (ii) prices it: a launderer must land an immutable, register-pointed
+artifact carrying a stated reason per row, which is the same cost as the intake it replaces. Guard
+(i) makes it *visible*: a row whose cited packet row says something else is a one-command
+refutation.
+
+**No organ checks either guard, and none is built here.** That is the same honest limit the parent
+Consequences section states, deliberately unchanged — and the n=2 discipline applies to the
+amendment too. Its first two uses are the evidence on which a gate would be argued; the first of
+those is the eight-row wave-1 birth this amendment was written to make lawful.
+
+### What does NOT change
+
+- §1's four outcomes, and the requirement that every finding carry exactly one.
+- §2's prohibition **outside** a packet.
+- §3: ratification remains the birth authority. A packet *is* a ratifying act, recorded — it
+  discharges the requirement, it does not remove it.
+- §4's departure from the ARC-2 contract text (birth requires a ratified intake, not an ADR).
+- §5: no quantitative bound on birth rate is ratified here either. **A packet authorises the births
+  it names, and no more.**
+
+**Register / provenance.** `protocols/STANDING_RULINGS.md` section U is the pointer this amendment
+operates on. The amendment is recorded here rather than as a new register section because it
+changes a ratified ADR, and that belongs in the ADR. Authored by the wave-1 governance lane,
+2026-08-25 (R-F1), against the landed packet
+`docs/audits/2026-08-25-technical-register-ruling-packet.md`.

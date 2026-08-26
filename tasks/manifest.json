@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "78d38dd33c58c06aa76c3d460825afd5ce3004bf5d21cfd01d69d57889d5d0f2",
+  "generated_sha256": "567956caaaca0cde3cf58e0c198ef6a528d030a5d165c12ed4b5a2370cc341cc",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -215,6 +215,14 @@
     {
       "task": 552,
       "file": "552-window-close-disposition-and-archival-routine.md"
+    },
+    {
+      "task": 579,
+      "file": "579-code-doctrine-fdd-one-adr-merging-intakes-31-and.md"
+    },
+    {
+      "task": 583,
+      "file": "583-green-by-skip-sweep-a-check-that-cannot-obtain-g.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
@@ -641,6 +649,10 @@
       "file": "542-architecture-md-still-claims-four-doc-rot-sub-dete.md"
     },
     {
+      "task": 585,
+      "file": "585-suite-red-test-anchor-gate-probe-distinguishes-i.md"
+    },
+    {
       "prose": "### [S14] Keep the day-to-day docs right-sized and current"
     },
     {
@@ -672,6 +684,10 @@
     {
       "task": 553,
       "file": "553-adr-census-in-decisions-readme-is-ungated-and-wrong.md"
+    },
+    {
+      "task": 584,
+      "file": "584-claude-md-10-in-lockstep-with-its-form-a-templat.md"
     },
     {
       "prose": "---"
@@ -896,6 +912,18 @@
       "file": "568-provider-config-as-code-dev-knowledge-as-source-of-.md"
     },
     {
+      "task": 581,
+      "file": "581-backlog-vitals-three-flow-instruments-a-committe.md"
+    },
+    {
+      "task": 582,
+      "file": "582-substrate-router-one-gated-enum-a-capability-key.md"
+    },
+    {
+      "task": 586,
+      "file": "586-suite-red-test-no-gate-hook-or-script-reads-the.md"
+    },
+    {
       "prose": "### [S19] Decide the undecided artifact/tool models"
     },
     {
@@ -958,6 +986,10 @@
     {
       "task": 567,
       "file": "567-cx53-daily-driver-substrate-lane-the-every-prompt-r.md"
+    },
+    {
+      "task": 580,
+      "file": "580-state-as-data-atomic-id-allocation-and-tasks-as.md"
     },
     {
       "prose": "### [S20] Revive the nightly layer, load-gauge first (rent-rule discipline)"
