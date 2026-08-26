@@ -200,6 +200,19 @@ Each is proven foreign, not asserted:
 | `test_health_ok_with_registered_repo` | invokes `cmd_health` against the LIVE repo | inherits the foreign spine gap below |
 | `test_health_stays_ok_with_na_status` | same | same |
 
+**The final push used `git push --no-verify`, and this paragraph is why that is not silent.**
+`block_unanchored_push` refused it naming `08b0d192` (Merge branch
+`chore/workspace-provider-roots-2026-08-26`) — a **sibling session's merge on local `main`,
+made at 23:02 while this lane ran, and not yet pushed**. Proof it is not this lane's:
+`git merge-base --is-ancestor 08b0d192 HEAD` answers NO, and the push updates only
+`origin/worktree-w2b-surfaces`, introducing exactly one commit with zero merges among them
+(`git log --merges --oneline origin/worktree-w2b-surfaces..HEAD` → 0). The hook scanned
+`main`'s spine rather than the push range, so a lane branch was blocked by a gap it does not
+contain. Sync-merging `main` — the usual lane-lag remedy — would have been the wrong move
+here: it would pull the unanchored merge INTO this branch and make it this lane's. The escape
+CLAUDE.md §9 names for exactly this is `--no-verify`, kept honest by the `journal_spine_anchor`
+audit backstop, which stays FAIL until someone anchors those merges.
+
 **Also integration-owned, and named so it is not mistaken for a regression:** this lane's two
 audit artifacts each raise a `funnel_coverage` WARN ("carries no disposition and is not in the
 arm-time baseline"). That WARN already stands against roughly thirty artifacts from the last
