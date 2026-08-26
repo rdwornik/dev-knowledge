@@ -60,6 +60,10 @@ tip - this entry is never rewritten.
 **Next:** the full suite once on the merged result, then the close packet; wave-2 gate is the
 router ADR consuming lane CS's wall-times.
 
+**Anchor (appended, not rewritten):** this entry is commit `50c19d2e`. The `--no-ff` merge that
+lands it on `main` is discharged by naming that hash here — a merge cannot name its own hash, and
+a single-commit branch therefore cannot anchor its own merge.
+
 ### 2026-08-25 (d) - CC (Opus 5, background job, primary checkout, branch `docs/handoff-2026-08-25-architect`): the architect bundle for wave 1 is cut, and the seat is pointed at section U rather than re-told the window
 
 **Did:** generated the v6 architect handoff `docs/handoffs/2026-08-25-dev-knowledge-architect/` with
