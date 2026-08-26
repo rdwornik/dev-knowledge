@@ -22,10 +22,27 @@ The source of truth is TWO artifacts, and both are load-bearing:
     what makes one-file->many-files reversible (ADR-107 §5 finding 6).
 
 `BACKLOG.md` is NOT decommissioned by the flip (ADR-107 "Decommission: none").
-It stays on disk, byte-identical, and every other gate that reads it -- doc_rot,
-validate_backlog, the commit-msg hooks, propose_closures -- keeps working
-unchanged against it. What changed is only which side of the pair is the
-expectation and which is the output.
+It stays on disk, and every other gate that reads it -- doc_rot, validate_backlog,
+the commit-msg hooks, propose_closures -- keeps working against it. What changed at
+the flip is only which side of the pair is the expectation and which is the output.
+
+WHAT [#589] CHANGED, ON TOP OF THAT FLIP, AND WHY IT IS NOT THE SAME KIND OF CHANGE.
+The generated `BACKLOG.md` is no longer the byte-identical reassembly; it is a
+ONE-LINE-PER-ROW PROJECTION (`render_view` / `project_row`). Measured: 279,814 B ->
+66,290 B, -76%, on an unchanged tree -- and it is 100% of the boot cost of a file
+every session reads. Nothing is lost, because the bodies were ALREADY in `tasks/`
+before this arc; what changed is that the view stopped carrying a second copy.
+
+Three consequences, each handled rather than assumed away:
+  * the reassembly is still computed and still asserted (`--check` leg 6,
+    `--roundtrip`) -- a lossy view is only safe while the lossless text it projects
+    from provably still reassembles;
+  * every gate that reads a row BODY (`· routine:`, `· kill-candidates:`,
+    `Done when:`, row length) now reads that reassembly through
+    `scripts/backlog_source.py::canonical_text`, because pointing such a gate at the
+    projection makes it measure an empty set and report a clean PASS;
+  * `--write` REFUSES a projection outright and `--force` cannot override it, since
+    importing one would overwrite 202 real bodies with their own titles.
 
 CLI verbs, by direction:
   --emit-source   tree -> BACKLOG.md. THE NORMAL POST-FLIP REGEN. Run it after
@@ -131,6 +148,47 @@ _PROVENANCE_LINE = f"{_PROVENANCE_KEY}: BACKLOG.md"
 _TERMINAL_STATUSES = ("closed", "retired", "superseded")
 _FM_STATUS_RE = re.compile(r"^status: (.+)$", re.MULTILINE)
 _FM_ID_RE = re.compile(r'^id: "\[#(\d+)\]"$', re.MULTILINE)
+
+# --- [#589] THE VIEW PROJECTION and its two size assertions -----------------------------
+#
+# `BACKLOG.md` is emitted as ONE LINE PER ROW (see `render_view`). These two ceilings are
+# what make that structural rather than a convention someone can quietly undo: both are
+# checked by `find_incoherences`, i.e. by the same `--check` the audit-health commit gate
+# and the ship gate already run, so a regression to full-body rendering FAILS rather than
+# lands. Measured on the live tree at the time of the flip (2026-08-26, 202 rows):
+# total 66,290 B, mean 141 B/row, max 222 B/row, against 279,814 B / 1,199 B-per-row before.
+#
+# TWO legs, because they refuse DIFFERENT things and one alone is not enough:
+#   * PER-ROW MAX is the anti-re-inflation leg and it is the one with teeth. It is
+#     GROWTH-PROOF -- adding rows never moves it -- so it holds forever without being
+#     re-baselined, and a single row rendered back at body length (mean 1,199 B) trips it
+#     on its own.
+#   * TOTAL BYTES records the [#589] done-when bar as an enforced fact rather than a
+#     claim in a closed row. It is NOT growth-proof and is not pretended to be: at 66,290 B
+#     today it holds ~230 further rows before it binds. When it does bind, that is the
+#     backlog outgrowing its declared budget -- groom, or raise this deliberately, the same
+#     way `validate_doc_rot._FILE_SIZE_BUDGETS` treats CLAUDE.md's 200-line budget. Set at
+#     100,000 rather than at the done-when's 70,000 so ordinary queue growth cannot wedge a
+#     PER-COMMIT gate; the 70,000 figure is asserted where a point-in-time measurement
+#     belongs, in `tests/test_gen_task_tree.py`.
+_VIEW_ROW_BYTE_CEILING = 400
+_VIEW_BYTE_CEILING = 100_000
+# The projection's own pointer prefix -- one place, so the renderer and any reader agree.
+_VIEW_POINTER_DIR = "tasks/"
+# How `--write` tells the generated VIEW from a real full-body import source, using TWO
+# independent signals that must BOTH hold (see `_looks_like_view`). One alone is not safe:
+#   * `Done when:` absent from every row. ADR-66 requires the clause and `validate_backlog`
+#     hard-fails a row without it, so the hub's real backlog always has it -- but a CONSUMER
+#     repo's hand-authored backlog, and this suite's own minimal fixtures, legitimately do
+#     not, and `--write` is precisely the bootstrap path those need. Alone this leg refuses
+#     the import it exists to serve.
+#   * every row ENDS with the projection's own ` · tasks/<file>.md` pointer. That is the
+#     renderer's signature, emitted by `project_row` on every row by construction. Alone it
+#     is a shape a body could imitate by citing a task file last.
+# Requiring both means a false REFUSAL needs a backlog whose every row cites a tasks/ file
+# in final position and none of which states a done-when.
+_FULL_BODY_MARKER_RE = re.compile(r"Done when:", re.IGNORECASE)
+_VIEW_POINTER_TAIL_RE = re.compile(r" · tasks/[^/\\]+\.md$")
 
 
 def frontmatter_status(file_text: str) -> str | None:
@@ -489,6 +547,132 @@ def reassemble_from_tree(tree_dir: Path) -> str:
     return "\n".join(parts)
 
 
+def project_row(task_id: int, body: str, filename: str) -> str:
+    """One row's projected line: `- [#id] [P][size] title[ · DEFER] · tasks/<file>`.
+
+    Every field the full body rendered is either ON this line or reachable from its
+    pointer, which is the [#589] done-when in one sentence:
+
+      * `[#id]`            -- verbatim, and FIRST, because `^- \\[#(\\d+)\\]` is the shape a
+                              dozen gates, two commit-msg hooks and `window_metrics` match.
+                              The projection is not free to move it.
+      * `[P][size]`        -- kept inline rather than pushed to the pointer: `fleet_health`,
+                              `preflight_contract._BACKLOG_ROW`, `check_backlog_filing`'s
+                              L-epic leg and `gen_dashboard`'s size mix all read the band off
+                              the LINE, and a `[P2][M]` costs 8 bytes.
+      * title              -- `derive_title` of the body, i.e. exactly the title the derived
+                              frontmatter already carries and `--check` already refuses to
+                              let drift from the body.
+      * `· DEFER`          -- emitted only for a deferred row. Deliberately the SAME marker
+                              the body uses, not a new `status:` field, so `derive_status`
+                              reads the projection unchanged and `gen_dashboard`'s
+                              open/deferred split keeps working with no code edit. `open` is
+                              the absence of the marker, so 176 of 202 rows pay nothing.
+      * theme / story      -- POSITIONAL. The projection keeps the manifest's `## [E..]` /
+                              `### [S..]` scaffolding verbatim, so a row's theme is its
+                              enclosing heading -- which is where `parse_backlog`,
+                              `gen_dashboard.theme_stats` and `validate_backlog` have always
+                              read it from. Repeating it inline would cost ~5.7 KB to say
+                              twice what the file already says once.
+      * everything else    -- Done-when, refs, kill-candidates, routine fields, the reason
+                              prose: reachable at `tasks/<file>`, which is the SOURCE, not a
+                              copy. The pointer is a real openable path, not a glob, because
+                              a locator you have to resolve by hand is the failure CLAUDE.md
+                              M1 names.
+
+    Pure and total: a body with no band, or no derivable title, still yields a line (the
+    band is simply omitted, the title falls back to `task`). A renderer that could refuse a
+    row would be a renderer that can silently shorten the queue.
+    """
+    priority = derive_priority(body)
+    size = derive_size(body)
+    if priority and size:
+        band = f"[{priority}][{size}] "
+    elif priority:
+        band = f"[{priority}] "
+    else:
+        band = ""
+    defer = f" {_DEFER_MARKER}" if derive_status(body) == "deferred" else ""
+    return f"- [#{task_id}] {band}{derive_title(body)}{defer} · {_VIEW_POINTER_DIR}{filename}"
+
+
+def render_view(tree_dir: Path) -> str:
+    """THE GENERATED `BACKLOG.md` ([#589]): manifest prose verbatim + one line per row.
+
+    Same walk as `reassemble_from_tree`, same node order, same prose -- the ONLY difference
+    is that a task node contributes `project_row(...)` instead of its whole body. Written as
+    a sibling rather than a flag on the reassembler on purpose: the two have opposite
+    contracts and collapsing them would put the lossless proof and the lossy projection
+    behind one boolean, where a caller could get the wrong one by omission.
+
+    `reassemble_from_tree` did NOT become dead code at the flip and must not be deleted --
+    it is still the lossless invariant `--roundtrip` proves, and it is now the FULL-BODY
+    canonical text every body-reading gate reads through `scripts/backlog_source.py`.
+    """
+    manifest = json.loads((tree_dir / "manifest.json").read_bytes().decode("utf-8"))
+    _require_well_formed_nodes(manifest)
+    parts: list[str] = []
+    for node in manifest["nodes"]:
+        if "task" in node:
+            unsafe = manifest_filename_problem(node.get("file"))
+            if unsafe:
+                raise ValueError(unsafe)
+            file_text = (tree_dir / node["file"]).read_bytes().decode("utf-8")
+            parts.append(project_row(node["task"], extract_body(file_text), node["file"]))
+        else:
+            parts.append(node["prose"])
+    return "\n".join(parts)
+
+
+def view_size_problems(text: str, where: str) -> list[str]:
+    """[#589] size assertions over a rendered view. Empty list = within budget.
+
+    `where` names which artifact is being measured so a FAIL says whether the GENERATOR
+    regressed or the COMMITTED FILE was inflated -- the two have different remedies and a
+    shared message would send the reader to the wrong one.
+    """
+    problems: list[str] = []
+    total = len(text.encode("utf-8"))
+    if total > _VIEW_BYTE_CEILING:
+        problems.append(
+            f"{where} is {total:,} bytes, over the {_VIEW_BYTE_CEILING:,}-byte view ceiling "
+            f"([#589]) — the view must stay one line per row; groom the queue, or raise "
+            f"_VIEW_BYTE_CEILING deliberately")
+    over = [(line, len(line.encode("utf-8"))) for line in text.split("\n")
+            if _TASK_RE.match(line) and len(line.encode("utf-8")) > _VIEW_ROW_BYTE_CEILING]
+    if over:
+        worst = max(over, key=lambda pair: pair[1])
+        problems.append(
+            f"{where} carries {len(over)} row(s) over the {_VIEW_ROW_BYTE_CEILING}-byte "
+            f"per-row ceiling ([#589]), worst {worst[1]} bytes: "
+            f"{worst[0][:80]}… — a row body belongs in tasks/, not in the view")
+    return problems
+
+
+def _looks_like_view(source_path: Path) -> bool:
+    """True when `source_path` is a [#589] PROJECTION rather than a full-body backlog.
+
+    TWO signals, both required, both read off the ROWS -- see `_VIEW_POINTER_TAIL_RE` for
+    why neither alone is safe. Reading the rows rather than a header sentinel is deliberate:
+    a marker comment lives in the manifest prose, where an operator retitling the header
+    could strip it and quietly re-enable the destructive import. The rows are what the
+    renderer controls.
+
+    Conservative by construction -- a file with NO task rows, or one that cannot be read,
+    is NOT called a view (returns False), because the answer here gates a REFUSAL and a
+    false positive would block the legitimate bootstrap path this command exists for.
+    """
+    try:
+        text = source_path.read_bytes().decode("utf-8", errors="replace")
+    except OSError:
+        return False
+    rows = [line for line in text.split("\n") if _TASK_RE.match(line)]
+    if not rows:
+        return False
+    return (not any(_FULL_BODY_MARKER_RE.search(line) for line in rows)
+            and all(_VIEW_POINTER_TAIL_RE.search(line) for line in rows))
+
+
 def write_warnings(out_dir: Path) -> list[str]:
     """[#474] — the conditions under which --write would DESTROY source-of-truth state.
 
@@ -523,6 +707,21 @@ def _cmd_write(source_path: Path, out_dir: Path, force: bool = False) -> int:
     is the explicit, loud escape hatch and names every condition it overrides. A clean
     state (no conditions -- the bootstrap/recovery case) behaves exactly as before.
     """
+    # [#589] — the ONE refusal --force cannot override, and the asymmetry is the point.
+    # Every OTHER --write refusal guards a state a determined operator might legitimately
+    # want to overwrite (that is what --force is for). Importing the PROJECTION is not in
+    # that class: it would rewrite all 202 bodies as their own one-line titles, and the
+    # bodies are the source of truth, so there is no state in which it is the right act.
+    # A --force that could reach it would make the guard advisory, which is what the
+    # pre-[#474] warn-then-destroy shape already proved is not a guard.
+    if _looks_like_view(source_path):
+        print(f"gen_task_tree: --write REFUSED (nothing written) — {source_path.name} is the "
+              f"[#589] one-line VIEW, not a full-body backlog.\n"
+              f"  No row in it carries 'Done when:', which ADR-66 requires of every real row, "
+              f"so importing it would replace every task body with its own title.\n"
+              f"  The bodies are already the source of truth under {out_dir}; there is nothing "
+              f"to import. This refusal is NOT overridable with --force.", file=sys.stderr)
+        return 2
     warned = write_warnings(out_dir)
     if warned and not force:
         print(f"gen_task_tree: --write REFUSED (nothing written) -- "
@@ -591,9 +790,22 @@ def _cmd_emit_source(source_path: Path, out_dir: Path) -> int:
         return 1
     try:
         plan = plan_frontmatter_refresh(out_dir)
-        generated = reassemble_from_tree(out_dir)
+        # [#589]: the OUTPUT is the projection, not the reassembly. `reassemble_from_tree`
+        # is still computed on the --check path (it is the lossless invariant), but what
+        # lands on disk -- and what `generated_sha256` pins -- is what `render_view` emits.
+        generated = render_view(out_dir)
     except (OSError, ValueError, KeyError, UnicodeDecodeError) as exc:
         print(f"gen_task_tree: emit-source FAIL (nothing written): {exc}", file=sys.stderr)
+        return 1
+    # REFUSE rather than write an over-budget view (same posture as the identity refusal
+    # above): writing it and letting a LATER --check report what this command had already
+    # committed is the failure mode the plan-before-write discipline exists to prevent.
+    oversize = view_size_problems(generated, "the generated view")
+    if oversize:
+        print("gen_task_tree: emit-source REFUSED (nothing written) — the projection is "
+              "over its declared size budget ([#589]):", file=sys.stderr)
+        for problem in oversize:
+            print(f"  - {problem}", file=sys.stderr)
         return 1
 
     # Roll back on a mid-loop I/O failure (terra P1, 6th pass). Planning first only
@@ -718,10 +930,12 @@ def find_incoherences(source_path: Path, out_dir: Path) -> list[str]:
         return problems
 
     # --- leg 3: output ----------------------------------------------------------
+    # [#589]: the expectation is the PROJECTION. The lossless reassembly is still computed
+    # (leg 5) because it is the invariant that makes the projection safe to be lossy.
     try:
-        generated = reassemble_from_tree(out_dir)
+        generated = render_view(out_dir)
     except (OSError, ValueError, KeyError, UnicodeDecodeError) as exc:
-        problems.append(f"reassemble_from_tree failed: {exc}")
+        problems.append(f"render_view failed: {exc}")
         return problems
     try:
         on_disk = source_path.read_bytes().decode("utf-8")
@@ -749,6 +963,27 @@ def find_incoherences(source_path: Path, out_dir: Path) -> list[str]:
     elif declared != actual_hash:
         problems.append("manifest.json generated_sha256 does not match what the tree "
                         "generates (regenerate with `gen_task_tree.py --emit-source`)")
+
+    # --- leg 5: the view stays a view ([#589]) -----------------------------------
+    # Measured on BOTH faces on purpose. The GENERATED bytes catch a regression in the
+    # renderer (someone re-points --emit-source at the reassembler); the ON-DISK bytes
+    # catch an inflated committed file directly, so the failure names the view even in the
+    # runs where leg 3 has already reported a mismatch for its own reason.
+    problems += view_size_problems(generated, "the generated view")
+    problems += view_size_problems(on_disk, f"{source_path.name} on disk")
+
+    # --- leg 6: the LOSSLESS invariant still holds -------------------------------
+    # The projection is safe to be lossy ONLY because the tree still round-trips to the
+    # full-body text every body-reading gate now reads (scripts/backlog_source.py). Before
+    # [#589] leg 3 proved that for free, by comparing the reassembly against disk. It no
+    # longer does, and dropping the proof silently is precisely how a lossy view stops
+    # being recoverable, so the reassembly is asserted here in its own right.
+    try:
+        canonical = reassemble_from_tree(out_dir)
+        parse_backlog(canonical)   # raises on CRLF / duplicate id / non-lossless model
+    except (OSError, ValueError, KeyError, UnicodeDecodeError, AssertionError) as exc:
+        problems.append(f"the tasks/ tree no longer reassembles to lossless full-body "
+                        f"text — the view's bodies are unrecoverable: {exc}")
 
     return problems
 
@@ -1284,8 +1519,20 @@ def _cmd_check(source_path: Path, out_dir: Path) -> int:
     return 0
 
 
-def _cmd_roundtrip(source_path: Path) -> int:
-    text = source_path.read_bytes().decode("utf-8")
+def _cmd_roundtrip(out_dir: Path) -> int:
+    """Lossless proof over the CANONICAL full-body text ([#589] re-pointed this).
+
+    It used to read `BACKLOG.md`, which was the same bytes. Post-[#589] that file is the
+    one-line projection, and round-tripping it would still print `roundtrip ok` while
+    proving something worthless -- the projection reassembles trivially because
+    `parse_backlog` preserves whatever lines it is given. The claim worth making is that
+    the SOURCE TREE reassembles losslessly, so that is what this reads.
+    """
+    try:
+        text = reassemble_from_tree(out_dir)
+    except (OSError, ValueError, KeyError, UnicodeDecodeError) as exc:
+        print(f"gen_task_tree: roundtrip FAIL: {exc}", file=sys.stderr)
+        return 1
     try:
         model = parse_backlog(text)
     except (ValueError, AssertionError) as exc:
@@ -1353,7 +1600,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.check:
         return _cmd_check(source_path, out_dir)
     if args.roundtrip:
-        return _cmd_roundtrip(source_path)
+        return _cmd_roundtrip(out_dir)
     if args.rank:
         return _cmd_rank(out_dir, top=args.rank_top)
     if args.write:

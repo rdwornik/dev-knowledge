@@ -160,9 +160,15 @@ repos:
         pass_filenames: true
       - id: validate-backlog
         name: Validate BACKLOG.md story-map (ADR-66)
+        # [#589]: fires on `tasks/` too, and that widening is a correctness fix rather than
+        # extra caution. The validator's rules are rules about a row BODY, and since the view
+        # became a one-line projection a body edit that leaves the title and band alone
+        # changes NOTHING in BACKLOG.md — so scoped to the old pathspec this gate would sit
+        # out exactly the commits that can introduce a schema violation. `manifest.json` is in
+        # scope because retiring/reordering a row is a manifest-only edit.
         entry: uv run --locked python scripts/validate_backlog.py
         language: system
-        files: '^BACKLOG\.md$'
+        files: '(^BACKLOG\.md$|^tasks/.*\.(md|json)$)'
         pass_filenames: false
       - id: provider-registry-agreement
         name: Provider/model registry agreement gate (CLOUD-4 v2; HUB-ONLY)

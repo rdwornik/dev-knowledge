@@ -26,6 +26,7 @@ from datetime import date
 
 import validate_doc_rot as vdr  # noqa: E402
 import audit as aud  # noqa: E402
+import backlog_source as _bs  # noqa: E402  — [#589]: the scanner's own backlog reader
 from pathlib import Path  # noqa: E402
 import pytest
 
@@ -405,7 +406,14 @@ def test_format_findings_no_pipe():
 @pytest.mark.live_repo
 def test_citation_regex_strips_only_real_dated_artifact_identifiers():
     root = Path(aud._REPO_ROOT)
-    backlog = (root / "BACKLOG.md").read_text(encoding="utf-8")
+    # [#589] — read what the SCANNER reads (the canonical full-body text), not the committed
+    # projection. This is not bookkeeping: pointed at the projection the test FAILS, and for
+    # a true reason. A projected row ends in `· tasks/<id>-<slug>.md`, and a slug derived
+    # from a title containing a date carries a date-shaped token — `[#492]` yields
+    # `2026-08-07-mea.md`, which `_ARTIFACT_DATE_RE`'s bare-bundle-name alternative strips
+    # and which is no bundle. It is a false strip that exists only in the view, and the
+    # reason `scan_backlog_accretion` must never be pointed there either.
+    backlog = _bs.canonical_text(root)
     stripped = set()
     for line in backlog.splitlines():
         if vdr._TASK_RE.match(line):

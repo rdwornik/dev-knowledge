@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 """commit-msg hook -- filing backpressure + #279 intake-id advisory (ADR-98 section 3).
 
-Two diff-scoped rules on a commit that ADDS a new `- [#id]` task to BACKLOG.md. A pure
-reword (the id appears on BOTH sides of the diff) triggers neither.
+Two diff-scoped rules on a commit that ADDS a new `- [#id]` task. A pure reword (the id
+appears on BOTH sides of the diff) triggers neither. The scanned diff spans BOTH
+`BACKLOG.md` and `tasks/` since [#589] -- the view carries only the projected line, so the
+full row body reaches Leg 3 through the task file (see `main` for why the order matters).
 
   Leg 1 (BLOCK): the commit message MUST carry a `kill-candidates:` line -- either
   naming >=1 existing `#id` proposed for removal, or `kill-candidates: none -- <reason>`.
@@ -89,11 +91,30 @@ def main():
         msg = open(sys.argv[1], encoding="utf-8").read()
     except OSError:
         return 0
+    # [#589] — the pathspec covers `tasks/` as well as `BACKLOG.md`, and NO regex changed to
+    # make that work. A task file's BODY *is* its BACKLOG line verbatim (ADR-107), so adding
+    # `tasks/601-x.md` puts `+- [#601] [P2][L] ... intake #52 ...` in the same diff, which is
+    # exactly the shape `_ADDED_LINE_RE` already matches.
+    #
+    # It is needed because Leg 3 reads the added LINE for `[P#][L]`, `intake` and the
+    # residual/bugfix exemption, and post-[#589] the BACKLOG line carries only the first of
+    # those three. Left on `BACKLOG.md` alone, Leg 3 would WARN on every new L-epic including
+    # the ones that DO cite an intake — and a false-positive advisory is worse than none,
+    # because it trains the reader to ignore the real ones.
+    #
+    # Ordering is load-bearing, so the two diffs are taken SEPARATELY and concatenated with
+    # `tasks/` LAST rather than left to git's path sort: where an id appears in both,
+    # `_ADDED_LINE_RE.findall`'s later entry wins the dict comprehension, and Leg 3 must read
+    # the FULL body rather than the projected line. Leg 1 is unaffected either way (it keys
+    # on the id SET, and a row added to `tasks/` and to the view is one id, not two).
     try:
-        diff = subprocess.run(
-            ["git", "diff", "--cached", "-U0", "--", "BACKLOG.md"],
-            capture_output=True, text=True, encoding="utf-8",
-        ).stdout
+        diff = "".join(
+            subprocess.run(
+                ["git", "diff", "--cached", "-U0", "--", pathspec],
+                capture_output=True, text=True, encoding="utf-8",
+            ).stdout or ""
+            for pathspec in ("BACKLOG.md", "tasks/")
+        )
     except OSError as exc:
         # Fail OPEN but LOUD: a hygiene gate, not a safety control -- bricking every commit
         # on a near-impossible git failure is worse than skipping one filing check.

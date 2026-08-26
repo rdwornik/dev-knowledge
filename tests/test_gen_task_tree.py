@@ -1,10 +1,25 @@
 """Coverage for scripts/gen_task_tree.py.
 
-[#433] STEP 1-2 (the verbatim split + byte-identity proofs) and [#439] STEP 3 (the
-source-of-truth flip: tasks/ is the source, BACKLOG.md is generated).
+[#433] STEP 1-2 (the verbatim split + byte-identity proofs), [#439] STEP 3 (the
+source-of-truth flip: tasks/ is the source, BACKLOG.md is generated), and [#589] (the
+generated file became a one-line-per-row PROJECTION of that source).
+
+READ THIS BEFORE EDITING A BYTE-IDENTITY TEST HERE. Two texts exist now and they are not
+interchangeable:
+
+  * `canonical()` -- `reassemble_from_tree(TREE)`, the FULL-BODY text. This is what every
+    byte-identity / losslessness proof in this file is about, and what `BACKLOG.md` held on
+    disk until [#589]. Those proofs did not weaken; their subject stopped being a file.
+  * `BACKLOG.md` -- the committed PROJECTION, one line per row. Byte-identity claims about
+    it are claims about `render_view`, never about losslessness.
+
+Pointing a losslessness test at `BACKLOG.md` post-[#589] still PASSES -- `parse_backlog`
+preserves whatever lines it is handed, so the projection round-trips trivially -- while
+proving nothing at all. That is the trap this note exists to name.
 """
 from __future__ import annotations
 
+import shutil
 from pathlib import Path
 
 import pytest
@@ -17,44 +32,61 @@ BACKLOG = REPO_ROOT / "BACKLOG.md"
 TREE = REPO_ROOT / "tasks"
 
 
-def test_roundtrip_live_backlog_byte_identity():
-    raw = BACKLOG.read_bytes()
-    text = raw.decode("utf-8")
+def canonical() -> str:
+    """The live tree's FULL-BODY text — what BACKLOG.md held before [#589]."""
+    return gtt.reassemble_from_tree(TREE)
+
+
+def test_roundtrip_live_canonical_byte_identity():
+    """[#589] re-pointed this from BACKLOG.md to the canonical text — see the module note."""
+    text = canonical()
     model = gtt.parse_backlog(text)
     assert gtt.reassemble_from_model(model) == text
-    assert gtt.reassemble_from_model(model).encode("utf-8") == raw
+    assert gtt.reassemble_from_model(model).encode("utf-8") == text.encode("utf-8")
 
 
 def test_disk_roundtrip_tmp_tree_byte_identity(tmp_path):
-    """THE core acceptance test: live BACKLOG.md -> tree on disk -> byte-identical text."""
-    raw = BACKLOG.read_bytes()
-    text = raw.decode("utf-8")
+    """THE core acceptance test: canonical text -> tree on disk -> byte-identical text."""
+    text = canonical()
     model = gtt.parse_backlog(text)
     out_dir = tmp_path / "tasks"
     gtt.write_tree(model, out_dir)
     result = gtt.reassemble_from_tree(out_dir)
     assert result == text
-    assert result.encode("utf-8") == raw
+    assert result.encode("utf-8") == text.encode("utf-8")
 
 
-def test_committed_tree_coherent_with_backlog():
+def test_committed_view_is_what_the_tree_projects():
+    """The post-[#589] coherence claim: BACKLOG.md on disk == `render_view(tasks/)`.
+
+    This is the byte-identity that still concerns a FILE. Its full-body counterpart is
+    `test_roundtrip_live_canonical_byte_identity` above.
+    """
     if not (TREE / "manifest.json").exists():
         pytest.skip("tasks/ not yet generated (module 3 commits it)")
-    text = BACKLOG.read_bytes().decode("utf-8")
-    assert gtt.reassemble_from_tree(TREE) == text
+    assert gtt.render_view(TREE) == BACKLOG.read_bytes().decode("utf-8")
 
 
 # --- [#439] the flip -------------------------------------------------------------
 
 def test_emit_source_regenerates_backlog_byte_identically(tmp_path):
     """THE post-flip acceptance test, and the inverse of the STEP 1-2 one above: the tree
-    is the source, so emitting must reproduce the live BACKLOG.md bytes exactly."""
-    raw = BACKLOG.read_bytes()
+    is the source, so emitting must reproduce the live BACKLOG.md bytes exactly.
+
+    [#589] changed BOTH halves of this test, and the second change is the interesting one.
+    What must come back out is now the PROJECTION — the committed file. And the tree can no
+    longer be rebuilt by importing the canonical text: `write_tree` re-derives each filename
+    from its title, so a title edited since the file was created yields a DIFFERENT slug, and
+    the projection carries that filename in every row's pointer. A re-imported tree therefore
+    projects real, correct rows with different pointers. Copying the live tree keeps the
+    filenames the live view actually cites, which is what makes this an end-to-end proof
+    rather than a proof about a tree nobody has.
+    """
     out_dir = tmp_path / "tasks"
-    gtt.write_tree(gtt.parse_backlog(raw.decode("utf-8")), out_dir)
+    shutil.copytree(TREE, out_dir)
     target = tmp_path / "BACKLOG.md"
     assert gtt.main(["--emit-source", "--source", str(target), "--out", str(out_dir)]) == 0
-    assert target.read_bytes() == raw
+    assert target.read_bytes() == BACKLOG.read_bytes()
 
 
 def test_emit_source_is_idempotent_and_leaves_a_current_file_alone(tmp_path):
@@ -82,9 +114,9 @@ def test_emit_source_refuses_when_the_source_tree_is_missing(tmp_path):
 def test_check_reds_when_backlog_diverges_from_the_tree(tmp_path):
     """The flipped direction: the TREE is the expectation now."""
     text = "# T\n\n## [E1] Theme\n\n### [S1] Story\n- [#1] [P1][S] **One** — b\n"
-    out_dir, source = tmp_path / "tasks", tmp_path / "BACKLOG.md"
-    source.write_bytes(text.encode("utf-8"))
-    gtt.write_tree(gtt.parse_backlog(text), out_dir)
+    # [#589]: the gate compares BACKLOG.md against `render_view`, so the clean baseline
+    # must be EMITTED, not hand-written as full-body text (`_seed` does exactly that).
+    source, out_dir = _seed(tmp_path, text)
     assert gtt.find_incoherences(source, out_dir) == []
 
     source.write_bytes((text + "a hand edit to the generated file\n").encode("utf-8"))
@@ -98,9 +130,9 @@ def test_check_reds_on_frontmatter_that_disagrees_with_its_body(tmp_path):
     source-of-truth file it is editable, inert, and — without this check — silently wrong.
     A hand-edited `status:` must RED rather than sit there looking authoritative."""
     text = "# T\n\n## [E1] Theme\n\n### [S1] Story\n- [#1] [P1][S] **One** — b\n"
-    out_dir, source = tmp_path / "tasks", tmp_path / "BACKLOG.md"
-    source.write_bytes(text.encode("utf-8"))
-    gtt.write_tree(gtt.parse_backlog(text), out_dir)
+    # [#589]: the gate compares BACKLOG.md against `render_view`, so the clean baseline
+    # must be EMITTED, not hand-written as full-body text (`_seed` does exactly that).
+    source, out_dir = _seed(tmp_path, text)
     assert gtt.find_incoherences(source, out_dir) == []
 
     task_file = next(p for p in out_dir.iterdir() if p.name.startswith("1-"))
@@ -832,6 +864,10 @@ def test_retirement_keeps_the_file_and_stays_silent(tmp_path, capsys):
     rec = out_dir / retired
     rec.write_text(rec.read_bytes().decode("utf-8").replace("status: open", "status: closed", 1),
                    encoding="utf-8", newline="\n")
+    # [#589]: the two DERIVED artifacts (the projection + the manifest hash pin) are stale
+    # after the direct `write_tree` above, and both are gate legs. Emitting once — the
+    # documented retirement route — brings them current without touching the record.
+    assert gtt.main(["--emit-source", "--source", str(source), "--out", str(out_dir)]) == 0
     assert gtt.find_incoherences(source, out_dir) == [], \
         "a properly-retired allocation record is legitimate and must not RED the gate"
 
@@ -840,11 +876,10 @@ def test_foreign_task_shaped_file_is_reported_not_silently_kept(tmp_path):
     """The flip side of the test above: silence is only for OUR retired records. A
     task-shaped file with no provenance marker is foreign and must still be surfaced,
     or 'retired' becomes a hiding place for anything."""
-    out_dir = tmp_path / "tasks"
-    source = tmp_path / "BACKLOG.md"
     text = "# T\n\n## [E1] Theme\n\n### [S1] Story\n- [#1] [P1][S] **One** — b\n"
-    source.write_bytes(text.encode("utf-8"))
-    gtt.write_tree(gtt.parse_backlog(text), out_dir)
+    # [#589]: the gate compares BACKLOG.md against `render_view`, so the clean baseline
+    # must be EMITTED, not hand-written as full-body text (`_seed` does exactly that).
+    source, out_dir = _seed(tmp_path, text)
     assert gtt.find_incoherences(source, out_dir) == []
 
     (out_dir / "7777-hand-authored.md").write_text("my own notes\n", encoding="utf-8", newline="\n")
@@ -892,6 +927,10 @@ def test_write_refuses_against_a_populated_tree(tmp_path, capsys):
     warning(s) printed, ZERO bytes changed on disk (the [#473] incident class: an
     accidental --write re-slugged 17 task filenames and orphaned the originals)."""
     source, out_dir = _seed(tmp_path, _TWO_THEMES)
+    # [#589]: `_seed` leaves the PROJECTION on disk, which trips the earlier, unoverridable
+    # view refusal. Restore a full-body source so this test still exercises the condition it
+    # is named for (the view refusal has its own test below).
+    source.write_bytes(_TWO_THEMES.encode("utf-8"))
     before_tree = _files_snapshot(out_dir)
     before_source = source.read_bytes()
 
@@ -1111,3 +1150,123 @@ def test_rank_reports_the_live_queue():
     assert [r.rank for r in ranked] == list(range(1, len(ranked) + 1))
     priorities = [gtt._PRIORITY_RANK.get(r.priority, gtt._UNPRIORITIZED_RANK) for r in ranked]
     assert priorities == sorted(priorities), "the P key must never be violated"
+
+
+# --- [#589] the view projection + its size assertions ----------------------------
+
+def test_the_live_view_is_under_the_589_done_when_byte_bar():
+    """[#589]'s measured claim, asserted rather than left in a closed row.
+
+    Measured at the flip (2026-08-26, 202 rows): 279,814 B -> 66,526 B, a 76% cut. The
+    done-when bar is 70,000, so this holds ~23 further rows at the live 141 B/row mean.
+    WHEN IT BINDS THAT IS THE POINT, not a broken test: the queue has outgrown the budget
+    the row declared, and the answer is to groom or to re-baseline deliberately. The
+    growth-proof half of the contract is `_VIEW_ROW_BYTE_CEILING`, which is what
+    `find_incoherences` enforces on every commit and which never needs re-baselining.
+    """
+    assert len(BACKLOG.read_bytes()) < 70_000
+
+
+def test_the_view_is_one_line_per_row_and_carries_no_bodies():
+    """The projection's shape, checked on the live file rather than on the renderer."""
+    rows = [line for line in BACKLOG.read_text(encoding="utf-8").split("\n")
+            if gtt._TASK_RE.match(line)]
+    assert rows, "the live view must carry rows"
+    assert not any("Done when:" in line for line in rows), \
+        "a Done-when clause in the view means a body leaked back into it"
+    assert all(gtt._VIEW_POINTER_TAIL_RE.search(line) for line in rows), \
+        "every row must end with a resolvable tasks/ pointer"
+    for line in rows:
+        pointer = line.rsplit(" \u00b7 ", 1)[1]
+        assert (REPO_ROOT / pointer).is_file(), f"unresolvable pointer: {pointer}"
+
+
+def test_every_projected_row_is_derivable_back_to_its_body():
+    """No information loss: id, band and status on the line agree with the body it points
+    at, and the body is reachable. This is the [#589] done-when's 'every field the old view
+    rendered is either in the new line or reachable from its pointer', checked per row."""
+    for kind, row in gtt.parse_backlog(BACKLOG.read_text(encoding="utf-8")).nodes:
+        if kind != "task":
+            continue
+        pointer = row.raw.rsplit(" \u00b7 ", 1)[1]
+        file_text = (REPO_ROOT / pointer).read_text(encoding="utf-8")
+        body = gtt.extract_body(file_text)
+        assert gtt.frontmatter_id(file_text) == row.id
+        assert gtt.derive_priority(row.raw) == gtt.derive_priority(body)
+        assert gtt.derive_size(row.raw) == gtt.derive_size(body)
+        assert gtt.derive_status(row.raw) == gtt.derive_status(body)
+
+
+def test_check_fails_on_a_deliberately_inflated_view(tmp_path):
+    """THE size assertion, planted: an inflated committed view must FAIL `--check`.
+
+    The plant is a real re-inflation -- the full body written back onto the row line, which
+    is exactly what a regression to `reassemble_from_tree` as the emit target would produce.
+    """
+    text = ("# T\n\n## [E1] Theme\n\n### [S1] Story\n"
+            "- [#1] [P1][S] **One** \u2014 " + "x" * 900 + " \u00b7 Done when: it is done\n")
+    source, out_dir = _seed(tmp_path, text)
+    assert gtt.find_incoherences(source, out_dir) == []
+
+    source.write_text(gtt.reassemble_from_tree(out_dir), encoding="utf-8", newline="\n")
+    problems = gtt.find_incoherences(source, out_dir)
+    assert any("per-row ceiling" in p and "on disk" in p for p in problems), problems
+    assert gtt.main(["--check", "--source", str(source), "--out", str(out_dir)]) == 1
+
+
+def test_the_size_assertion_measures_the_generated_bytes_too():
+    """Both faces, so a renderer regression is caught even where the file agrees with it."""
+    long_row = "- [#1] [P1][S] **One** \u2014 " + "x" * 900 + " \u00b7 Done when: done"
+    over = gtt.view_size_problems(long_row + "\n", "the generated view")
+    assert any("per-row ceiling" in p and "the generated view" in p for p in over)
+    assert gtt.view_size_problems("- [#1] [P1][S] Short \u00b7 tasks/1-short.md\n", "x") == []
+
+
+def test_emit_source_refuses_to_write_an_over_budget_view(tmp_path, monkeypatch):
+    """Refuse rather than write it and let a LATER --check report what was already emitted."""
+    source, out_dir = _seed(tmp_path, _TWO_THEMES)
+    before = source.read_bytes()
+    monkeypatch.setattr(gtt, "_VIEW_ROW_BYTE_CEILING", 5)
+    rc = gtt.main(["--emit-source", "--source", str(source), "--out", str(out_dir)])
+    assert rc == 1
+    assert source.read_bytes() == before, "a refused emit must change zero bytes"
+
+
+def test_write_refuses_the_projection_and_force_cannot_override_it(tmp_path, capsys):
+    """The one refusal `--force` cannot reach: importing the view would replace every task
+    body with its own title, and no state makes that the right act."""
+    source, out_dir = _seed(tmp_path, _TWO_THEMES)   # leaves the PROJECTION on disk
+    before_tree = _files_snapshot(out_dir)
+
+    for argv in (["--write"], ["--write", "--force"]):
+        assert gtt.main(argv + ["--source", str(source), "--out", str(out_dir)]) == 2
+        err = capsys.readouterr().err
+        assert "REFUSED" in err and "one-line VIEW" in err
+        assert "NOT overridable with --force" in err
+        assert _files_snapshot(out_dir) == before_tree, "a refused --write must change zero bytes"
+
+
+def test_a_full_body_backlog_without_done_when_is_not_mistaken_for_the_view(tmp_path):
+    """The guard's false-positive edge, and it is a real shape: a CONSUMER repo's
+    hand-authored backlog need not carry `Done when:` (that is a hub ADR-66 rule), and
+    `--write` bootstrap is exactly what such a repo needs. One signal alone would refuse it."""
+    source = tmp_path / "BACKLOG.md"
+    source.write_bytes(_TWO_THEMES.encode("utf-8"))   # no Done-when, no tasks/ pointers
+    assert gtt._looks_like_view(source) is False
+    assert gtt.main(["--write", "--source", str(source), "--out", str(tmp_path / "tasks")]) == 0
+
+
+def test_check_fails_when_the_tree_stops_reassembling_losslessly(tmp_path):
+    """Leg 6: the projection is only safe to be lossy while the full-body text it projects
+    from provably still reassembles. Before [#589] leg 3 proved that for free."""
+    source, out_dir = _seed(tmp_path, _TWO_THEMES)
+    assert gtt.find_incoherences(source, out_dir) == []
+
+    # Plant a stray CR inside the BODY only. Whole-file CRLF would break `extract_body`
+    # and abort at leg 1, which proves the wrong thing: the point is that leg 6 catches a
+    # tree that still PARSES and still PROJECTS but no longer reassembles losslessly.
+    victim = next(p for p in sorted(out_dir.glob("*.md")) if p.name[0].isdigit())
+    victim.write_bytes(victim.read_bytes().replace("—".encode("utf-8"),
+                                                   "—\r".encode("utf-8")))
+    problems = gtt.find_incoherences(source, out_dir)
+    assert any("lossless" in p for p in problems), problems

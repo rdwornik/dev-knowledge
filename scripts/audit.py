@@ -3194,11 +3194,28 @@ def check_preflight_backlog_ids(repo_path: Path) -> list[Finding]:
         except ImportError:
             import preflight_contract as _pf
 
+        # [#589] — the ASSERTIONS are read from the canonical full-body text, the OPEN-ID
+        # SET from the committed view, and the split is deliberate rather than an oversight.
+        # An assertion clause (the grammar `_pf.kill_candidate_value_spans` owns — never
+        # restated here, per [#483] AC4) lives in a row BODY, which the one-line projection
+        # does not carry: scanning the projection finds zero assertion spans and passes
+        # vacuously, which for a leg whose entire purpose is producing zero-false-positive
+        # EVIDENCE toward hard-gating ([#483] R3) would be worse than not running at all.
+        # Liveness, by contrast, is exactly what the view encodes -- a row is open iff it
+        # is a line in it -- and a closed row keeps its `tasks/` file as the id-allocation
+        # record (ADR-107 §6.3), so the tree cannot answer that question.
+        try:
+            from scripts import backlog_source as _bs
+        except ImportError:
+            import backlog_source as _bs
         backlog = Path(repo_path) / "BACKLOG.md"
         if not backlog.exists():
             return [Finding(name, "warn", "no BACKLOG.md — nothing to scan")]
-        text = backlog.read_text(encoding="utf-8", errors="replace")
-        open_ids = set(re.findall(r"(?m)^- \[#(\d+)\]", text))
+        open_ids = set(re.findall(r"(?m)^- \[#(\d+)\]",
+                                  backlog.read_text(encoding="utf-8", errors="replace")))
+        text = _bs.canonical_text(Path(repo_path))
+        if text is None:
+            return [Finding(name, "warn", "no backlog source — nothing to scan")]
         stale: list[str] = []
         for line in text.splitlines():
             if not _pf._BACKLOG_ROW.match(line):

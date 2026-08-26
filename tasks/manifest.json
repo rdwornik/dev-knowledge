@@ -2,17 +2,26 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "acdcd51700f57f72491adfd21ec16c6774859367b265713c5c5b2983f21da48d",
+  "generated_sha256": "abc5c25187283c63b76afb01a5fbc0a4c7061895b355bb04e00d4e9a75d85cef",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
       "prose": "# .dev-knowledge BACKLOG"
     },
     {
-      "prose": "<!-- GENERATED FILE — do not edit directly. Source of truth: tasks/ (per-task .md bodies + manifest.json)."
+      "prose": "<!-- GENERATED VIEW — do not edit directly. ONE LINE PER ROW ([#589]): each row shows"
     },
     {
-      "prose": "     Regenerate: python scripts/gen_task_tree.py --emit-source   ·   ADR-107 strangler step 3, [#439]. -->"
+      "prose": "     id · [P][size] · title · DEFER-if-deferred · a pointer to its tasks/ file. The FULL"
+    },
+    {
+      "prose": "     body — Done-when, refs, kill-candidates, routine fields — lives in that file, which is"
+    },
+    {
+      "prose": "     the source of truth (ADR-107 §7.2, [#439]); theme and story are the enclosing headings."
+    },
+    {
+      "prose": "     Regenerate: uv run --locked python scripts/gen_task_tree.py --emit-source -->"
     },
     {
       "prose": ""

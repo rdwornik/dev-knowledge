@@ -128,7 +128,8 @@ DASHBOARD = GeneratedArtifact(
     outputs=("ecosystem/conformance.md", "ecosystem/conformance.html"),
     inputs=("BACKLOG.md", "tasks", "docs/intake", "docs/decisions", "docs/audits",
             "scripts/gen_dashboard.py", "scripts/gen_task_tree.py",
-            "scripts/gen_intake_index.py", "scripts/gen_claude_rosters.py"),
+            "scripts/gen_intake_index.py", "scripts/gen_claude_rosters.py",
+            "scripts/backlog_source.py"),
     baseline_days=4,
     regen_command="python scripts/gen_dashboard.py --write",
     # Gitignored (`.gitignore:95`) and absent as of 2026-08-23; the generator existence-probes it
