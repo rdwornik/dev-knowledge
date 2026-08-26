@@ -2981,7 +2981,18 @@ citers before any `git rm`.**
 pending, and the diagnostic's separate finding that **`logs/` has no retention convention at all**
 is untouched by this ruling and remains unowned.
 
-**Expiry:** open-ended for W1, W2, W5 and W6. **W3's threshold** is revisited when the icebox execution
+**W7 · ADR-115 ratification is HELD by architect ruling, 2026-08-26.** The `gpt-5.6-sol`
+adversarial review is **SUSTAINED**: the C01 decision criterion **fails on the live registry**,
+which carries **one measured strict provider** (OpenAI Codex) where the criterion requires two —
+`ecosystem/provider-registry.yaml` declares no Cursor provider, and ADR-115 §2's count depends on
+it. **Unblock path, in order:** the **A5 remedy** (operator pins `cursor-agent`, or reorders PATH,
+resolving the poisoned-name collision that shadows the install) → **then measure Cursor as a second
+strict consumer** → **then ratify in ONE act**. Until that measurement exists the ADR stays
+`Proposed`; nothing in it is re-argued and no part of the acceptance act is taken piecemeal.
+Evidence: `docs/audits/2026-08-26-codex-adr115-acceptance-review.md`,
+`docs/audits/2026-08-26-technical-provider-surface-repair-summary.md` §3.
+
+**Expiry:** open-ended for W1, W2, W5, W6 and W7. **W3's threshold** is revisited when the icebox execution
 lands. **W4 expires the moment a devcontainer dispatch is demonstrated end-to-end** — its whole
 content is a NOT-YET, and it should not outlive the evidence that produced it.
 
