@@ -82,18 +82,15 @@ SANCTIONED_TIER1_DIRS: frozenset[str] = frozenset({
     # never by this repo's gate mesh -- it carries no organ and judges nothing, which is
     # what distinguishes it from the `.github/` sanction above.
     ".devcontainer",
-    # Dispatch INPUTS, dated (operator path-approval 2026-08-25, granted with the lane-RL
-    # scope extension): the contract files a batch was actually launched from, copied in
-    # byte-identical as `prompts/<YYYY-MM-DD>/`. Contracts are authored in the operator's
-    # off-repo prompts dir, which is why every commit-time gate was structurally blind to
-    # them (`docs/audits/2026-08-25-technical-dispatch-consolidation-plan.md` section 5.3);
-    # this is the home that makes a batch's launch inputs committed evidence.
-    # ADR-101 AMENDMENT OWED. The `.devcontainer` precedent directly above requires the
-    # lockstep amendment in the SAME commit, and this entry does not have one: the lane
-    # authorising it is barred from `docs/decisions/`. The operator approval is real and
-    # recorded; the ADR act that closes the closed-set rule is outstanding and is named in
-    # this lane's packet rather than left to be discovered.
-    "prompts",
+    # `prompts` WAS here (operator path-approval 2026-08-25, lane-RL scope extension) and
+    # is REVOKED by operator ruling 2026-08-26 -- root is sacred, and the docs disease is
+    # cured by the consumer gate ([#595]), not by a sibling folder at the root. Dispatch
+    # INPUTS keep their home and their byte-identity; the home moves under the genre tree
+    # to `docs/audits/<date>-technical-<batch>-launch-contracts/` (see `_HOME_PATTERNS`).
+    # The closed set therefore SHRINKS by one, which is the first contraction it has taken
+    # -- recorded as the ADR-101 amendment of 2026-08-26 (the second one, which revokes
+    # the first). Deliberately left as a comment rather than a silent deletion: a reader
+    # who finds `prompts/` in the git history must be able to see why it is gone.
 })
 
 # Tier-1 -- sanctioned top-level FILES (the closed class members, ADR-101 section 1).
@@ -200,17 +197,23 @@ _HOME_PATTERNS: tuple[str, ...] = (
     # docs: GENRE trees only. `docs` itself is absent BY DESIGN -- that absence is the
     # rule this leg exists to state, and it is why the relocation was owed.
     "docs/archive",
-    "docs/audits",
+    # `docs/audits/*` -- one home per BATCH LAUNCH-CONTRACT directory. Operator ruling
+    # 2026-08-26 (ADR-101 amendment below the `prompts/` one) revoked the root `prompts/`
+    # folder and relocated its convention under the genre tree as
+    # `docs/audits/<date>-technical-<batch>-launch-contracts/`. The `*` is the same shape
+    # the revoked `prompts/*` carried and for the same reason: the homes are the per-batch
+    # directories one level down, and a deeper nesting stays a surfaced act.
+    # HONEST LIMIT, stated rather than left to be found: the grammar has three tokens, so
+    # `*` is the narrowest pattern that can express "one dir per batch". It admits ANY
+    # immediate child directory of `docs/audits/`, not only the ruled name shape -- the
+    # narrower convention lives in ADR-101 and PLAYBOOK Ch8 and is checked by nobody.
+    "docs/audits", "docs/audits/*",
     "docs/decisions", "docs/decisions/archive",
     "docs/handoffs", "docs/handoffs/**",
     "docs/intake", "docs/intake/archive",
-    # `prompts/*` -- one home per DATED batch directory, and the `*` is the point: the tree
-    # is `prompts/<YYYY-MM-DD>/<CONTRACT>.md`, so the homes are the date directories and a
-    # deeper nesting stays a surfaced act. Same reasoning as `plugins/*` above, and the
-    # deliberate opposite of the bare `.devcontainer` literal, which is two files at one
-    # level. Without this pattern Rule C refuses every landed contract and
-    # `test_rule_c_admits_every_tracked_path_in_the_live_repo` reds the moment one is tracked.
-    "prompts/*",
+    # `prompts/*` WAS here and is REVOKED with its top-level entry above (operator ruling
+    # 2026-08-26). Its replacement is `docs/audits/*` in the docs block above -- same
+    # shape, same reasoning, inside the genre tree instead of at the root.
 )
 
 

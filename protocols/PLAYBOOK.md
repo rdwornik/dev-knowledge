@@ -2287,7 +2287,8 @@ dispatch <FILE.md> -DryRun          prints the resolved line, sends nothing
 
 - **Argument shape:** a bare filename resolving against the prompts dir; a bare stem also resolves
   (`FOO` finds `FOO.md`). An absolute path, or one that exists relative to the cwd, is used as given.
-- **Where the contract lives:** the prompts dir (below), copied into `prompts/<date>/` in-tree.
+- **Where the contract lives:** the prompts dir (below), copied in-tree into
+  `docs/audits/<date>-technical-<batch>-launch-contracts/`.
 - **Receipt:** the resolved `claude --bg …` line is printed before firing; the lane's own receipt
   is its branch — `worktree-<slug>` — appearing in `git branch`.
 - **Guards:** model/effort/worktree/label are derived from the contract, so the contract and the
@@ -2376,12 +2377,26 @@ Dispatch-Codespace -Contract <FILE.md> [-Slug <name>] [-Repo <owner/repo>] [-Bra
 path, which keeps the line portable across machines. All four verbs above resolve a bare filename
 against it.
 
-**`prompts/<YYYY-MM-DD>/` is the in-tree home** (landed 2026-08-25 by operator path-approval).
-The contracts a batch was ACTUALLY launched from are copied there byte-identical and committed
-with the batch, one dated directory per batch. Contracts are hand-authored off-repo, which is why
-every commit-time gate was structurally blind to them; this convention is what makes a batch's
-launch inputs committed evidence a later reader can open. It changes nothing about how the
-operator receives or edits a contract.
+**`docs/audits/<date>-technical-<batch>-launch-contracts/` is the in-tree home** (operator ruling
+2026-08-26; ADR-101 amendment 2026-08-26 (b)). The contracts a batch was ACTUALLY launched from
+are copied there byte-identical and committed with the batch, one directory per batch. Contracts
+are hand-authored off-repo, which is why every commit-time gate was structurally blind to them;
+this convention is what makes a batch's launch inputs committed evidence a later reader can open.
+It changes nothing about how the operator receives or edits a contract.
+
+**The root `prompts/` folder this convention briefly used (2026-08-25 → 2026-08-26) is REVOKED** —
+*"root is sacred, the docs disease is cured by the consumer gate, not by a sibling folder."* An
+accumulating artifact class earns a **consumer**, not a top-level home: these contracts are read
+by the **batch close packet**, which is the consumer `[#595]`'s consumer-at-landing rule asks a
+landed `docs/audits/` artifact to declare. Cite the new path in anything you write; `prompts/`
+resolves to nothing on the live tree, and Rule A refuses it if recreated.
+
+**Two honest limits, so this section is not read as more than it is.** (1) The name shape above is
+**checked by nobody** — ADR-101's `_HOME_PATTERNS` grammar is three tokens wide and can only say
+`docs/audits/*`, so any immediate child directory of `docs/audits/` is admitted and the convention
+rests on this text. (2) The generated `docs/audits/README.md` index globs `*.md` at **one** level,
+so a launch-contracts directory **does not appear in it** — the batch's close packet is what makes
+it findable.
 
 ##### Honest limits of this table, stated so it is not read as more than it is
 
