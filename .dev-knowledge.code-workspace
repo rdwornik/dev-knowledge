@@ -4,25 +4,89 @@
 			"name": "📓 .dev-knowledge",
 			"path": "C:\\Users\\1028120\\Documents\\Dev\\.dev-knowledge"
 		},
+
+		// PROVIDER CONFIG ROOTS -- one folder per WORKING agent surface, listed
+		// alphabetically so a missing surface is visible by inspection.
+		//
+		// EVERY PATH BELOW WAS MEASURED ON THIS HOST 2026-08-26, never inferred from the
+		// command name. The root is the directory the CLI actually WRITES its own config
+		// and state into; install/launcher directories are deliberately NOT listed.
+		//
+		// GEMINI'S ROOT WAS REMOVED, not renamed. The Gemini CLI is retired --
+		// IneligibleTierError / reasonCode UNSUPPORTED_CLIENT, a SERVER refusal that
+		// re-authenticating does not clear (ecosystem/provider-registry.yaml, `google`).
+		// `agy` succeeds it by operator ruling of 2026-08-26.
 		{
-			"name": "⚙️ ~/.claude (config)",
+			// agy -- RE-DERIVED 2026-08-26 after the 2026-08-25 probe's two paths were
+			// challenged. Both of those EXIST but neither is a config root:
+			//   %LOCALAPPDATA%\antigravity  = bin/rg_embedded-*.exe + an empty staging/.
+			//       An install dir holding one bundled ripgrep. No config of any kind.
+			//   %APPDATA%\antigravity      = 28 Electron entries (Cache, GPUCache, Crashpad,
+			//       Local State). That is the Antigravity IDE's userdata, not the CLI's,
+			//       and it was last written 2026-01-23 -- seven months stale.
+			// %LOCALAPPDATA%\agy\bin holds agy.exe alone, and ~/.agy does not exist.
+			//
+			// THE CLI WRITES HERE, and its log dir is the proof: ~/.gemini/antigravity-cli/
+			// log/cli-<date>_<time>.log -- five written 2026-08-26 18:54-19:34, the newest
+			// reporting `Language server version: 1.1.21`. settings.json, conversations/,
+			// brain/ and knowledge/ sit beside them, rewritten on every run.
+			//
+			// YES, THIS NESTS UNDER A RETIRED PROVIDER'S DIRECTORY -- the vendor's choice,
+			// not a mistake here. Antigravity also shares ~/.gemini/oauth_creds.json
+			// (refreshed 2026-08-26 12:06, while the Gemini CLI's own settings.json has been
+			// untouched since 2026-07-03). Only the RETIRED CLI's own root was removed; this
+			// subtree is agy's and stays. Sibling ~/.gemini/antigravity (no -cli) is the
+			// IDE's, stale since 2026-01-19, and is deliberately not listed.
+			"name": "🪐 agy (~/.gemini/antigravity-cli)",
+			"path": "C:\\Users\\1028120\\.gemini\\antigravity-cli"
+		},
+		{
+			"name": "⚙️ claude (~/.claude)",
 			"path": "C:\\Users\\1028120\\.claude"
 		},
 		{
-			"name": "🤖 ~/.codex (OpenAI)",
+			"name": "🤖 codex (~/.codex)",
 			"path": "C:\\Users\\1028120\\.codex"
 		},
 		{
-			"name": "💎 ~/.gemini (Google)",
-			"path": "C:\\Users\\1028120\\.gemini"
+			// %LOCALAPPDATA%\copilot is pkg/ + caches; config.json and the plugin and repo
+			// state are here.
+			"name": "🐙 copilot (~/.copilot)",
+			"path": "C:\\Users\\1028120\\.copilot"
 		},
 		{
-			"name": "🚀 ~/.grok (xAI)",
+			// The surface is `cursor-agent`, NEVER the bare `agent` -- that name belongs to
+			// xAI on this host (~/.grok/bin/agent.exe is byte-identical to grok.exe).
+			// %LOCALAPPDATA%\cursor-agent holds only the launchers + versions/; the CLI's
+			// cli-config.json and agent-cli-state.json are here.
+			"name": "🖱️ cursor-agent (~/.cursor)",
+			"path": "C:\\Users\\1028120\\.cursor"
+		},
+		{
+			// Typed as `dcode` (a wrapper alias), but the CLI names its own root .deepcode.
+			"name": "🐋 deepcode (~/.deepcode)",
+			"path": "C:\\Users\\1028120\\.deepcode"
+		},
+		{
+			"name": "🚀 grok (~/.grok)",
 			"path": "C:\\Users\\1028120\\.grok"
 		},
+
+		// CALL-SCOPED WRAPPERS -- a different class, so it sits outside the alphabet.
+		// glm, kimi and dsk are NOT installed programs and own NO config directory:
+		// none of ~/.glm, ~/.zai, ~/.z-ai, ~/.kimi, ~/.moonshot or ~/.deepseek exists on
+		// this host (all six checked 2026-08-26). They are ALIASES exported by the
+		// DispatchHelpers manifest (AliasesToExport: 'dsk','glm','kimi','dcode') onto
+		// Start-DeepSeekSession / Start-GlmSession / Start-KimiSession, which scope a
+		// credential into a `claude` call. Their config IS this module; their operator
+		// surface is a VS Code terminal profile (DeepSeek / GLM / Kimi -- all three
+		// present in the deployed %APPDATA%\Code\User\settings.json).
+		//
+		// dcode is the exception in that alias list: it IS an installed CLI and keeps its
+		// own root above; only the credential-scoping is shared.
 		{
-			"name": "🖱️ ~/.cursor (Cursor)",
-			"path": "C:\\Users\\1028120\\.cursor"
+			"name": "🧩 glm / kimi / dsk wrappers (~/.dispatch-helpers)",
+			"path": "C:\\Users\\1028120\\.dispatch-helpers\\Modules\\DispatchHelpers"
 		}
 	],
 	"settings": {
