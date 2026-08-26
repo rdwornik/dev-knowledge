@@ -1232,6 +1232,16 @@ dispositions:
   # reference `protocols/HANDOFF_BOOT.md` in their own prose) and nothing here claims otherwise.
   # Keyed on the full source-to-target signature, so a DIFFERENT undeclared edge from the same
   # file re-surfaces and blocks.
+  #
+  # INERT SINCE 2026-08-26, recorded rather than left to be discovered. The relocation put these
+  # two files under `docs/audits/`, which is one of `scan_undeclared_edges._IMMUTABLE_PREFIXES` --
+  # the scanner SKIPS that tree entirely, so the edges no longer fire and these entries now
+  # suppress nothing. Verified live: `audit.py ship-gate` lists neither contract among its
+  # `undeclared_edges` WARNs. They are kept, repointed to the new paths rather than deleted, for
+  # two reasons: the record of WHY a byte-identical frozen copy cannot be fixed by editing is
+  # worth keeping, and the entries become load-bearing again the moment the scanner's scope
+  # changes. Treat them as belt-and-braces, not as active suppressions, and do not cite them as
+  # evidence that a WARN was closed.
 
 
   - id: warn-edge-lane-rl-registry-filings-v2

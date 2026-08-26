@@ -365,6 +365,10 @@ def test_rule_c_admits_a_batch_launch_contract_dir_but_not_a_subdir():
     # Rule B is silent at this depth -- it applies ONLY to `docs/audits/<file>.md`, so a
     # `LANE-*.md` contract name is not measured against the audit filename grammar.
     assert vh.rule_b_violation(f"{d}/LANE-G-governance-spine.md") is None
+    # ...and the root `prompts/` tree the ruling REVOKED is refused by Rule A again --
+    # the closed set's first contraction, pinned so it cannot be quietly re-added.
+    assert "prompts" not in vh.SANCTIONED_TIER1_DIRS
+    assert vh.rule_a_violation("prompts/2026-08-25/LANE-G-governance-spine.md") is not None
 
 
 def test_rule_c_blocks_a_new_package_dir_under_an_allowlisted_parent():
