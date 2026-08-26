@@ -1066,6 +1066,36 @@ dispositions:
       stale (ADR-75) and is removed.
     auto_clearable_by: "a docs/audits/ disposition-ledger row naming 2026-08-25-technical-harvest-v-consolidation.md with an evidence locator (wave 1)"
 
+  - id: warn-funnel-technical-lane-g-governance-spine
+    organ: funnel_coverage
+    match: "2026-08-25-technical-lane-g-governance-spine.md carries no disposition"
+    ref: "protocols/STANDING_RULINGS.md section U"
+    reason: >-
+      PREDICTED LANDING COST — expected, adjudicating authority `protocols/STANDING_RULINGS.md`
+      section U (D3, operator-ruled 2026-08-25). Landed 2026-08-25 by lane G; absent from the
+      arm-time funnel baseline because this window's own arcs added it. ADDED AT INTEGRATION
+      2026-08-26, not by lane RL: the D3 register was authored before lanes G and X landed, so it
+      could not disposition their artifacts, and this is the same class D3 names rather than a new
+      ruling. Suppresses the ship-gate WARN only; the substantive
+      ACTIONED/FILED/REJECTED/SUPERSEDED ruling is wave 1's, and lands as a disposition-ledger row
+      with an evidence locator, at which point this entry decorates stale (ADR-75) and is removed.
+    auto_clearable_by: "a docs/audits/ disposition-ledger row naming 2026-08-25-technical-lane-g-governance-spine.md with an evidence locator (wave 1)"
+
+  - id: warn-funnel-technical-green-by-skip-sweep
+    organ: funnel_coverage
+    match: "2026-08-25-technical-green-by-skip-sweep.md carries no disposition"
+    ref: "protocols/STANDING_RULINGS.md section U"
+    reason: >-
+      PREDICTED LANDING COST — expected, adjudicating authority `protocols/STANDING_RULINGS.md`
+      section U (D3, operator-ruled 2026-08-25). Landed 2026-08-25 by lane X; absent from the
+      arm-time funnel baseline because this window's own arcs added it. ADDED AT INTEGRATION
+      2026-08-26, not by lane RL: the D3 register was authored before lanes G and X landed, so it
+      could not disposition their artifacts, and this is the same class D3 names rather than a new
+      ruling. Suppresses the ship-gate WARN only; the substantive
+      ACTIONED/FILED/REJECTED/SUPERSEDED ruling is wave 1's, and lands as a disposition-ledger row
+      with an evidence locator, at which point this entry decorates stale (ADR-75) and is removed.
+    auto_clearable_by: "a docs/audits/ disposition-ledger row naming 2026-08-25-technical-green-by-skip-sweep.md with an evidence locator (wave 1)"
+
   - id: warn-funnel-technical-probe-dsh-report
     organ: funnel_coverage
     match: "2026-08-25-technical-probe-dsh-report.md carries no disposition"
