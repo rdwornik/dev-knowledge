@@ -1096,6 +1096,20 @@ dispositions:
       with an evidence locator, at which point this entry decorates stale (ADR-75) and is removed.
     auto_clearable_by: "a docs/audits/ disposition-ledger row naming 2026-08-25-technical-green-by-skip-sweep.md with an evidence locator (wave 1)"
 
+  - id: warn-funnel-verification-batch-1-close-packet
+    organ: funnel_coverage
+    match: "2026-08-26-verification-batch-1-close-packet.md carries no disposition"
+    ref: "protocols/STANDING_RULINGS.md section U"
+    reason: >-
+      PREDICTED LANDING COST — expected, adjudicating authority `protocols/STANDING_RULINGS.md`
+      section U (D3, operator-ruled 2026-08-25). This is the batch-1 close packet itself, added at
+      integration 2026-08-26; an artifact cannot disposition itself in the ledger it is being
+      written into, and measuring around one's own output is how a baseline becomes a fiction.
+      Suppresses the ship-gate WARN only; the substantive ACTIONED/FILED/REJECTED/SUPERSEDED ruling
+      is wave 1's, and lands as a disposition-ledger row with an evidence locator, at which point
+      this entry decorates stale (ADR-75) and is removed.
+    auto_clearable_by: "a docs/audits/ disposition-ledger row naming 2026-08-26-verification-batch-1-close-packet.md with an evidence locator (wave 1)"
+
   - id: warn-funnel-technical-probe-dsh-report
     organ: funnel_coverage
     match: "2026-08-25-technical-probe-dsh-report.md carries no disposition"
