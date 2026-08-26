@@ -9,10 +9,13 @@ Holding zone for artifacts whose destination isn't yet decided. Reviewed periodi
 
 Not a dumping ground — a triage queue. If something sits here across two reviews with no decision, default to deletion.
 
+**Exemption class, added 2026-08-26 by operator ruling (register `protocols/STANDING_RULINGS.md` section W, ruling W6).** A file may be stamped `retention: exempt-permanent · next-review: none` when it is cited **only** by immutable or append-only surfaces — ADRs, audits, handoffs, `JOURNAL.md`, `LESSONS.md`. For such a file deletion is not a judgement call but a **structural impossibility**: the citing surfaces cannot be re-pointed, so deleting the target manufactures dead locators that no later act can repair. This is the same referential argument **ADR-100** ratified for `docs/audits/`. A stamped file has had its review — the rule FIRED and returned KEEP — and it does **not** re-enter the past-due queue. The stamp is a blockquote at the top of the file naming the reviewer, the date, the citation count and the ADRs among the citers.
+
 ## Current contents (newest first)
 
 Entered as 14 files from `research/` and `council-questions/` (2026-05-27 taxonomy-simplification).
 **First review: 2026-05-28** — 7 council-out transcripts promoted; 7 external-research / scoping / evidence files kept pending second review.
+**Second review: 2026-08-26 — FIRED, and the verdict is KEEP for all seven.** The operator acted as reviewer 2 in the endgame governance session. Measured before deciding, not asserted: the seven carry **45 citations between them (4–13 each), and every real citer is an immutable or append-only file** — including **ADR-32** (handoff-patterns-external-research) and **ADR-55/56/57/58** (handoff-failures-evidence), plus `JOURNAL.md`, `protocols/archive/HANDOFF_PROCESS_v3.4.md` and a handoff bundle manifest. All seven are stamped `exempt-permanent`. **This closes the drift recorded at `docs/audits/2026-08-26-technical-hub-diagnostic.md` §6.3** — the rule had never fired in 90 days; it has now fired, and it returned the branch the rule always had (*"either deleted … or promoted"*) rather than the deletion default.
 **2026-08-09 research corpus landed 2026-08-10** — 6 external research memos (below), first review pending; they are the evidence base the plan-v3 ratification batch rules from.
 **Usage-telemetry design landed 2026-08-14** — a 7th memo from the same 2026-08-09 commissioning wave, landed separately (see below); carries a 3-line provenance header, unlike the byte-identical six.
 
@@ -71,5 +74,6 @@ All 7 are AI Council debate outputs (identical structure to the council-out-* fi
 2. If actionable → `git mv` to the correct live folder (preserves history).
 3. If superseded / one-shot value already extracted → `git rm`.
 4. If still genuinely "don't know" after two passes → `git rm` (the periodic-review threshold).
+5. **Before any `git rm`, resolve the file's citers.** If every citer is immutable or append-only, the answer is not deletion — stamp it `exempt-permanent` per the exemption class above and record the count. Deleting a file cited from an ADR breaks that ADR permanently.
 
 The full archive lifecycle is in `protocols/PLAYBOOK.md` "docs/ folder taxonomy".

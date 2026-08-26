@@ -1,5 +1,15 @@
 # Handoff Methodology — Empirical Failure Evidence 2026-05-25
 
+> **RETENTION — REVIEWED 2026-08-26 · verdict KEEP · retention: `exempt-permanent` · next-review: `none`**
+> **Second review of the ADR-60 two-review rule, fired by the operator as reviewer 2** (endgame
+> governance session; register `protocols/STANDING_RULINGS.md` section W, ruling W6). This file is
+> cited by **13 file(s) including **ADR-55**, **ADR-56**, **ADR-57**, **ADR-58****, and **every citer is an immutable or append-only surface**
+> that can never be re-pointed. Deletion is therefore **structurally impossible**, not merely
+> undesirable — the same referential argument ADR-100 ratified for `docs/audits/`: *"the storage cost
+> is trivial; the referential cost of a move is permanent breakage."*
+> **This file does NOT re-enter the two-review past-due queue.** The rule has fired; the outcome is
+> KEEP, not a deferral.
+
 > **Type:** Research evidence — extracted chat history
 > **Purpose:** Document concrete behavioral failures observed during 2026-05-25 handoff attempts, to ground subsequent AI Council debate on handoff methodology
 > **Audience:** Claude Code (preparing Council questions); AI Council (consuming questions with evidence base)

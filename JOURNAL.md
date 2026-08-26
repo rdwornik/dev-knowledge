@@ -19,6 +19,76 @@
 
 ---
 
+### 2026-08-26 (b) - CC (Opus 5, background job, primary checkout, `docs/endgame-2026-08-26`): the endgame governance session - the window's output goes through the funnel
+
+**Did:** executed the nine-act ENDGAME brief plus one mid-session architect amendment (act 2b),
+converting everything the 2026-08-25/26 browser window produced into the funnel - artifacts landed,
+intakes filed, rulings recorded, debts paid, births made lawful - so wave 2 starts from a ruled
+state. One act per commit, serial, on one branch for the operator to merge.
+
+**Result:** eight of nine acts executed as written; **one act deliberately NOT completed and
+returned to the architect**, and one executed on a different branch of its own rule than the brief
+assumed. Filed 6 intakes (#49-#54) and broke a duplicate `intake-id: 42` collision (the later file
+-> #48, both citers updated). Landed 6 window artifacts byte-identical plus a REDACTED derived
+summary for the credential report (no org identity, no email, no credential-location map -
+verified by grep before commit), and recorded PERF-RECON as a **GAP**: it never reached Downloads,
+so the P-row names in the intake and the births cite the brief's own enumeration and the measured
+close-packet/diagnostic numbers, never an artifact this repo holds. Landed register section **W**
+(W1 global-env credential rule, W2 documentation-splits-by-audience + the D5 resolution, W3 the D2
+icebox ADOPTED at the measured 45d, W4 the Codespaces rung NOT available, W5 the [#569]
+adjudication, W6 the archive rule). Paid close-packet debts **D-1** (ADR-corpus baselines
+re-measured live 87->88 and G1 40->41; the 2 suite REDs cleared) and **D-2** (all 8 birth rows
+trimmed under the 1320-char ceiling; row-length findings 29 -> 21). Discharged the owed **ADR-101
+amendment for `prompts/`** 29 days inside its `.methodology.yaml` expiry. Born **12** wave-2 rows
+[#587]-[#598], each citing an act-2 intake so the funnel path is CANDIDATE -> intake -> row.
+
+**The act NOT taken, and why:** the brief's act 3 ordered `/codex-review` and then the ADR-115
+acceptance commit. The review it mandated returned *"Do not ratify ADR-115 in its present form"*
+(4 Critical / 4 High / 2 Medium), and its first Critical was **re-measured by this session before
+being acted on** and holds: ADR-115 §2 claims the C01 criterion (">=2 ADMITTED providers read
+`AGENTS.md` natively and NOT `CLAUDE.md`") is MET on a table whose two qualifying rows are OpenAI
+Codex and **Cursor** - but `ecosystem/provider-registry.yaml` has six `providers:` entries
+(anthropic, openai, xai, google, antigravity, deepseek) and Cursor appears only in a comment block
+ending *"This declares no provider and adds no key."* Strike it and the count is **1, not 2**, so
+the criterion FAILS - and C01's own fallback for that branch is *"Otherwise -> retire R-1"*, not
+"accept anyway". §2 also omits `antigravity`, which IS a registry provider and was never measured.
+**An accepted ADR is immutable**, so ratifying on a premise measured false would freeze the error.
+The acceptance is HELD and returned to the architect; D-1, which is independent of it, was paid.
+
+**The act taken on a different branch of its own rule:** act 8 asked for the 7 files 90d past due
+under `docs/archive/`'s two-review deletion rule, presented to the operator as reviewer 2. Measured
+first: all seven are cited - **45 citations, and every real citer is immutable or append-only**,
+including ADR-32 and ADR-55/56/57/58, plus `JOURNAL.md` and a handoff manifest. Deletion would
+manufacture dead locators nothing can repair - the ADR-100 argument exactly. The operator ruled in
+session: **stamp each `exempt-permanent`, verdict KEEP**, which FIRES the rule (closing diagnostic
+§6.3) instead of leaving the seven to re-enter the past-due queue forever. Nothing was deleted.
+
+**Changes:** `docs/audits/` (+8: the 6 landed artifacts, the redacted provider summary, the codex
+review, the birth-row-bodies overflow record, index regenerated) - `docs/intake/` (+6 new, 1
+renumbered, both generators re-run) - `LESSONS.md` (+12 entries: the Part VII harvest and architect
+errors #18/#19, pure insertion, 0 deletions) - `protocols/STANDING_RULINGS.md` (section W, 6
+rulings) - `docs/decisions/ADR-101-hermetization.md` (`prompts/` amendment, pure append) -
+`docs/decisions/ADR-115-*.md` (intake pointer #42->#48 only; status UNCHANGED at Proposed) -
+`tests/test_validate_adr_status.py` (2 baselines) - `tasks/` + `BACKLOG.md` (12 born, 8 trimmed,
+[#569] closed, [#585] kill-candidate corrected) - `docs/archive/` (7 files stamped, README rule).
+
+**Abandoned:** nothing silently. The ADR-115 acceptance is HELD with its evidence recorded in
+`docs/audits/2026-08-26-codex-adr115-acceptance-review.md`, not dropped. [#569]'s 19-finding
+PLAYBOOK census is **NOT** discharged by its closure and **no open row owns it** - recorded in W5
+and in the row's own closure note rather than smoothed. PERF-RECON stays a GAP. The `logs/`
+no-retention-convention finding (43 MB, ~1.7 MB/day, untracked) is untouched and unowned.
+
+**Next:** operator merges this branch (serial gate). Then: the architect rules on ADR-115 given the
+failed criterion; the icebox execution (49 rows at 45d) as a wave-2 act; and, if the census is to be
+executed, a new row for it. Ledger: **banked 21 -> 9** (21 - 12 births), still with no in-repo
+computing surface, which the close packet already recorded as its own small finding (D-7).
+
+**Anchors:** `eba8a7da` (artifact manifest), `1faee9b4` (six intakes + intake-id collision),
+`17eebc5b` (Part VII lesson harvest), `77879a3e` (D-1 paid, ADR-115 held), `80fc9ff1` (ADR-101
+`prompts/` amendment), `75d0e4d7` (register section W + [#569] closed), `9058308f` (D-2 paid),
+`dd2f78d9` (12 births), `df57f2e7` (archive rule fired).
+
+
 ### 2026-08-26 (a) - CC (Opus 5, background job, primary checkout, `main`): batch-1 serial integration - the four wave-1 lanes fold into main
 
 **Did:** ran the batch-1 INTEGRATE contract as the serial integrator from the primary checkout,

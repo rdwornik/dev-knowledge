@@ -1,0 +1,13 @@
+---
+id: "[#589]"
+title: "One line per row — the BACKLOG view projection, with a size assertion that cannot be silently undone"
+status: open
+priority: P1
+size: M
+theme: "[E5] Canonical-file integrity"
+story: "[S14] Keep the day-to-day docs right-sized and current"
+serialize-group: architecture
+generates: BACKLOG.md
+---
+
+- [#589] [P1][M] **One line per row — the BACKLOG view projection, with a size assertion that cannot be silently undone** — The view renders each row's FULL body: 191 rows carry 245,486 B at a mean 1,284 B/row against 37,533 B of scaffolding. A one-line projection of the same rows measures 22,127 B — 59,660 B total, a 79% cut and 91% off the row payload, with ZERO information loss because the bodies already live in `tasks/`. · Done when: the generated view emits one line per row (`id · theme · status · title · one-line · pointer to tasks/<id>.md`), `gen_task_tree.py --check` carries a size assertion that FAILS on a deliberately inflated view (a test plants one), every field the old view rendered is either in the new line or reachable from its pointer, and `BACKLOG.md` measures under 70,000 bytes on an unchanged `tasks/` · refs docs/intake/2026-08-26-tech-append-only-surfaces-and-views.md (intake #49), docs/audits/2026-08-26-technical-hub-diagnostic.md section 7 Q1, scripts/gen_task_tree.py, ADR-107, #563 · source: intake #49 (I1), the VIEW half · kill-candidates: none — `[#523]` renders an executive index OVER the generated file and would consume this projection rather than duplicate it · serialize-group: architecture
