@@ -19,6 +19,47 @@
 
 ---
 
+### 2026-08-26 (a) - CC (Opus 5, background job, primary checkout, `main`): batch-1 serial integration - the four wave-1 lanes fold into main
+
+**Did:** ran the batch-1 INTEGRATE contract as the serial integrator from the primary checkout,
+merging the four wave-1 lane branches into `main` in the operator-ruled dependency order
+G -> X -> CS -> RL. Measured a full-suite baseline on bare `main` BEFORE the first merge so any
+post-merge RED is attributable rather than guessed.
+
+**Result:** this entry records the batch's CONTENT only, by operator ruling of 2026-08-26 - the
+O1-O5 verdicts, the ship-gate RED split, wall-times, the banked-ledger decrement and the smoke-5
+receipt live in the close packet, which is their home. Written EARLY, and deliberately: the
+ADR-85 `journal_spine_anchor` backstop FAILs `audit-health` on an unanchored first-parent spine
+entry, so an integrator who defers the entry to the end deadlocks the merge queue at its own
+second commit. Entry-first is the documented way through. Naming the four lane tips below anchors
+each merge as it lands, because a merge is discharged by an entry naming a commit it INTRODUCES.
+
+**The four lanes, by tip:**
+- `6a65c0bf` **lane G (governance spine)** - 8 wave-1 row births `[#579]`-`[#586]` against the
+  2026-08-25 register ruling packet via `protocols/STANDING_RULINGS.md` section U; ADR-115
+  (Proposed) on `AGENTS.md` as the portable instruction layer; an ADR-111 amendment ruling that a
+  landed adjudication packet satisfies the section-2 funnel. Open rows 183 -> 191.
+- `f7c1dac4` **lane X (green-by-skip sweep)** - all 46 `ALL_CHECKS` members classified against one
+  rule (a check that cannot compute its ground truth must FAIL, never skip): 32 CONFORMS / 10 N-A /
+  4 VIOLATES, 2 fixed, 2 deferred as findings; `audit_check_count` fail-closed and the cp1252
+  landmine in `checks` defused; `propose_closures` no longer destroys the day's proposals on a
+  detector error.
+- `7485b38b` **lane CS (codespace transport)** - the devcontainer declares the Claude Code install
+  and the `CLAUDE_CODE_OAUTH_TOKEN` credential path.
+- `487f759e` **lane RL (registry filings + dispatch)** - the `prompts/<date>/` tree makes a batch's
+  launch inputs committed evidence; `ecosystem/disposition-register.yaml` lands; PLAYBOOK Ch8
+  collapses four rival launch commands onto one site; STANDING_RULINGS section V.
+
+**Changes:** `BACKLOG.md` + `tasks/` (regenerated, never hand-edited), `docs/decisions/`,
+`docs/audits/`, `scripts/`, `tests/`, `.devcontainer/`, `ecosystem/`, `protocols/`, `prompts/`.
+
+**Abandoned:** nothing dropped from the batch at the time of writing. Per the operator ruling of
+2026-08-26, an aborted later merge is recorded by APPENDING a correction line naming the dropped
+tip - this entry is never rewritten.
+
+**Next:** the full suite once on the merged result, then the close packet; wave-2 gate is the
+router ADR consuming lane CS's wall-times.
+
 ### 2026-08-25 (d) - CC (Opus 5, background job, primary checkout, branch `docs/handoff-2026-08-25-architect`): the architect bundle for wave 1 is cut, and the seat is pointed at section U rather than re-told the window
 
 **Did:** generated the v6 architect handoff `docs/handoffs/2026-08-25-dev-knowledge-architect/` with
