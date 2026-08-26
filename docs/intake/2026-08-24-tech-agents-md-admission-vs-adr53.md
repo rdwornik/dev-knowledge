@@ -1,5 +1,5 @@
 ---
-intake-id: 42
+intake-id: 48
 status: READY
 origin: integrator, 2026-08-24 batch close (nine-branch batch); surfaced by cloud lane C2's ruling-provenance audit
 ---
