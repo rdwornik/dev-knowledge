@@ -433,6 +433,11 @@ def _git(repo, *args):
                    capture_output=True, text=True)
 
 
+def _git_out(repo, *args):
+    return subprocess.run(["git", "-C", str(repo), *args], check=True,
+                          capture_output=True, text=True, encoding="utf-8").stdout
+
+
 @requires_git
 def test_memoized_introduced_matches_the_uncached_body_on_a_real_no_ff_merge(tmp_path):
     """Parity against a real DAG, which is the only oracle that proves the memo is honest.
@@ -956,3 +961,70 @@ def test_a_commit_made_after_the_map_was_built_is_still_answered_correctly(tmp_p
     assert ja.is_anchored(repo, merge_sha, f"### e\n\n**Anchors:** `{late_sha[:7]}`.\n") is True
     unrelated = ja.spine_entries(repo, "main")[2]
     assert ja.is_anchored(repo, merge_sha, f"### e\n\n**Anchors:** `{unrelated[:7]}`.\n") is False
+
+
+# --- the graph VIEW, and the direction a stale view fails in ------------------------------
+#
+# The 2026-08-26 terra review raised this as a CRITICAL: `_spine_map_for` rebuilds only on a
+# MISS, so a SHA already in the snapshot is answered from it for the life of the process, and
+# git's reported parentage is a VIEW that a shallow deepen (or a `replace` ref) can move. The
+# mechanism is real. The consequence the review stated -- "returns ANCHORED, allowing an
+# unanchored push through" -- is the WRONG DIRECTION, and these two tests are why that claim is
+# a measurement here rather than a rebuttal in prose.
+
+def _shallow_clone(src, dest, depth="3"):
+    subprocess.run(["git", "clone", "-q", "--depth", depth, "--no-local",
+                    f"file://{src.as_posix()}", str(dest)], check=True, capture_output=True)
+    return dest
+
+
+@requires_git
+def test_a_shallow_clone_does_not_make_the_map_disagree_with_git(tmp_path):
+    """Truncation is GIT's answer, not the map's — so the batch introduces no divergence.
+
+    Inside a shallow clone, `git rev-list firstparent..sha` is truncated at the same boundary
+    the parent map is. This is the test that would fail if a future change made the walk
+    reconstruct ancestry the local repository does not actually have.
+    """
+    src = _multi_merge_repo(tmp_path / "src")
+    shallow = _shallow_clone(src, tmp_path / "shallow")
+    assert _git_out(shallow, "rev-parse", "--is-shallow-repository").strip() == "true"
+
+    for sha in ja.spine_entries(shallow, "main"):
+        assert ja.introduced(shallow, sha) == ja._introduced_uncached(shallow, sha), sha
+
+
+@requires_git
+def test_a_view_that_moves_under_the_snapshot_fails_CLOSED(tmp_path):
+    """The direction claim, pinned: a stale snapshot UNDER-reports, so it BLOCKS.
+
+    Deepen a shallow clone after the map was built and ask again. The stale answer is a strict
+    SUBSET of the fresh one — never a superset. `is_anchored` is `any(...)` over that set, so a
+    subset can only turn TRUE into FALSE: the entry is reported UNANCHORED and the gate refuses.
+    Over-blocking is the safe failure for this module; a superset would be the dangerous one,
+    because it would report ANCHORED on the strength of a commit the entry did not introduce.
+    """
+    src = _multi_merge_repo(tmp_path / "src")
+    shallow = _shallow_clone(src, tmp_path / "shallow")
+
+    spine = ja.spine_entries(shallow, "main")
+    ja.introduced(shallow, spine[0])                 # builds the snapshot at shallow depth
+    target = spine[-1]                               # the deepest entry the snapshot holds
+    stale = ja.introduced(shallow, target)
+
+    _git(shallow, "fetch", "-q", "--unshallow")
+    assert _git_out(shallow, "rev-parse", "--is-shallow-repository").strip() == "false"
+
+    ja.introduced.cache_clear()                      # drop the per-SHA memo, KEEP the stale map
+    still_stale = ja.introduced(shallow, target)
+    fresh = ja._introduced_uncached(shallow, target)
+
+    assert still_stale == stale                      # the snapshot is indeed being reused
+    assert set(still_stale) < set(fresh), (
+        "a stale snapshot must UNDER-report; a superset would be a false-ANCHORED verdict")
+    assert not (set(still_stale) - set(fresh))       # never an invented commit
+    # And the consequence, stated as the predicate rather than as set algebra: a journal naming
+    # a commit the deepened view knows about is NOT accepted off the stale map. It blocks.
+    only_fresh = sorted(set(fresh) - set(still_stale))[0]
+    assert ja.is_anchored(shallow, target,
+                          f"### e\n\n**Anchors:** `{only_fresh[:7]}`.\n") is False

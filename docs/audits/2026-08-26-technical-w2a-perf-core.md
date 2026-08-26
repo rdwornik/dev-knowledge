@@ -188,7 +188,7 @@ the smaller number the batch makes true (2 -> 1 read for one SHA, 4 -> 1 for two
 two repos), which is a strengthening; the moving-ref refusal (2 reads EVERY time, never
 memoized) and the never-cache-an-exception assertions are untouched.
 
-Added, 19 test functions across the two arcs:
+Added, 21 test functions across the two arcs:
 
 - **[#587]** — window enumeration inside a long hex run (the tokenizer trap); the
   present/recorded split; byte-identity against an INDEPENDENTLY RESTATED pre-inversion body
@@ -199,6 +199,11 @@ Added, 19 test functions across the two arcs:
   fallback with its exact four-read sequence; the not-ancestry-closed deferral; whole-spine list
   equality against `_introduced_uncached` on a real multi-merge repo; and a commit made AFTER the
   map was built (the staleness hazard).
+- **Terra follow-up (§11)** — a static shallow clone produces zero map-vs-git divergence, and a
+  view that moves under the snapshot fails CLOSED (strict subset, and the predicate refuses).
+
+The per-file counts below are the pre-terra run; the two §11 tests were added after it and are
+counted in the post-review re-run recorded in that section.
 
 ```
 tests/test_journal_anchor.py                       71 passed
@@ -224,6 +229,11 @@ the targeted files covering its diff.
 - **The map is trusted for what it contains, and a rebuild only fires on a MISS.** If git's
   `--parents --timestamp --all` ever emitted an ancestry-open graph for a reachable SHA, the walk
   defers to git rather than answering — but it would do so silently, one SHA at a time.
+- **The snapshot is of git's reported VIEW, not of the object graph**, and a view moves under a
+  shallow deepen or a `replace`/graft ref. Measured (§11): a static shallow clone produces zero
+  divergence, and a mid-process deepen makes the stale snapshot UNDER-report, which fails CLOSED.
+  The residual is a graph-view mutation inside one gate process, which `_introduced_tuple`'s memo
+  has been exposed to since [#533] and which this row cannot close without undoing itself.
 - **The order reconstruction is validated, not proved.** It matches git on 1,499 live commits
   across 312 spine entries, on a synthetic all-ties repo, and on a multi-merge fixture. It is a
   reimplementation of a heuristic traversal, and the parity tests are what keeps it honest.
@@ -256,7 +266,53 @@ from the same shell and directory. Two `uv` binaries are on PATH — `~/.local/b
 transient here and a retry cleared it. Flagged, not fixed: a uv bump is its own gated change
 (CLAUDE.md §4), and this is outside the lane's frozen scope.
 
-## 10. Scope discipline
+## 11. Step 4 — terra review
+
+`gpt-5.6-terra` (pinned), code profile, diff `852e145c..HEAD`, high reasoning effort, focus
+hints on the false-clean direction, the two equivalence questions, cache staleness and the
+fail-closed posture. Artifact: `docs/audits/2026-08-26-codex-w2a-perf-core.md`.
+
+```
+tally (counted from the artifact's findings section, not the console tail)
+  Critical 1   High 0   Medium 0   Low 0
+```
+
+**The one finding: `journal_anchor.py:265`, "parent-map cache can return a stale Git graph".**
+MECHANISM CONFIRMED, CONSEQUENCE REFUTED — and the refutation is a measurement, not an opinion.
+
+The mechanism is right and was accepted: a rebuild fires on a MISS, so a SHA already in the
+snapshot is answered from it for the life of the process, and git reports a *view* that a
+shallow deepen or a `replace`/graft ref can move. The stated consequence — a too-large set
+returning ANCHORED and letting an unanchored push through — was tested and runs the other way:
+
+- **A static shallow clone produces ZERO divergence.** `git rev-list firstparent..sha` is
+  truncated at the same boundary the map is; truncation is git's answer, not the batch's.
+- **A deepen mid-process makes the stale snapshot UNDER-report** — 2 missing, 0 extra on the
+  fixture, a strict SUBSET. `is_anchored` is `any(...)` over that set, so a subset can only turn
+  TRUE into FALSE: the gate reports UNANCHORED and REFUSES. Fail-CLOSED, which is the direction
+  this module's whole posture demands.
+
+**Fix taken:** not in code, and the reason is that the code fix would undo the row — detecting a
+view mutation costs a git read PER CALL, which is the per-SHA spawn [#588] exists to remove.
+Instead: the limit is named at `_spine_map_for` with its measurement attached, and both halves
+of the measurement are now tests (`test_a_shallow_clone_does_not_make_the_map_disagree_with_git`,
+`test_a_view_that_moves_under_the_snapshot_fails_CLOSED`) so the direction claim is checkable
+rather than asserted. The residual — a `replace`/graft ref created inside the seconds-long
+lifetime of a gate process — is **not new**: `_introduced_tuple`'s memo has fixed answers for a
+whole process since [#533].
+
+Nothing at High/Medium/Low, so no other ≥medium fix was owed. Two comment-level improvements
+landed in the same commit because the review's focus surfaced them: the two cache ceilings now
+carry MEASURED sizes (index 5,278 + 457 keys, order 0.4 MB; parent map 5,995 commits / 7,329
+edges, order 1 MB) instead of adjectives, and `_MAP_GENERATION` now records that
+`audit.run_checks` reaches `introduced` from concurrent THREADS — where a lost update can cost
+an extra git process and never a wrong answer, because the map is only used after
+`sha in smap.parents` is re-checked on whichever map came back.
+
+Post-review re-run, same four files, `-n 0`: **163 passed, 1 skipped, 1 xfailed** (592.41 s),
+`ruff check` clean.
+
+## 12. Scope discipline
 
 Touched: `scripts/journal_anchor.py`, `tests/test_journal_anchor.py`, this report. Not touched:
 any other check, `scripts/validate_no_ff.py` (named in [#588]'s refs but outside the contract's

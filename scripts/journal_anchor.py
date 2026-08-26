@@ -214,9 +214,9 @@ _PARENT_MAP_ARGS = ("rev-list", "--parents", "--timestamp", "--all")
 #: the suite sees a tmp repo at a time, and a rebuild-on-miss makes a SECOND entry for the same
 #: repo, so the floor is 2 and 4 leaves headroom. Named for the `_ENTRIES_CACHE_MAXSIZE`
 #: reason -- the memory it commits should be a stated number, not a literal buried in a
-#: decorator. Each entry is one map row per commit reachable from any ref (~6.0k on this repo
-#: today): tuples of hex strings, megabytes rather than tens of megabytes, which is why this
-#: ceiling can be generous where `_ENTRIES_CACHE_MAXSIZE`'s multi-MiB values force it tight.
+#: decorator. Measured on this repo (2026-08-26): 5,995 commits and 7,329 parent edges, order
+#: 1 MB per entry. Megabytes rather than tens of megabytes, which is why this ceiling can be
+#: generous where `_ENTRIES_CACHE_MAXSIZE`'s multi-MiB values force it tight.
 _PARENT_MAP_CACHE_MAXSIZE = 4
 
 
@@ -231,6 +231,13 @@ class _SpineMap(NamedTuple):
 #: commit the snapshot predates rather than by a timer. Holds one small int per repo path
 #: string seen in the process -- the one unbounded structure here, and deliberately the
 #: cheapest thing to leave unbounded.
+#:
+#: THREADS, because this module runs inside one: `audit.run_checks` is a ThreadPoolExecutor and
+#: `check_journal_spine_anchor` and `check_review_artifact_coverage` reach `introduced`
+#: CONCURRENTLY in the same process. `lru_cache` is thread-safe, and the read-bump-read here is
+#: not atomic -- but the worst a lost update can do is build the map twice, because the answer
+#: is taken only after `sha in smap.parents` is re-checked against whichever map came back. An
+#: extra git process, never a wrong answer.
 _MAP_GENERATION: dict[str, int] = {}
 
 
@@ -261,7 +268,34 @@ def _parent_map(repo_key: str, generation: int) -> _SpineMap:
 
 def _spine_map_for(repo: Path, sha: str) -> _SpineMap | None:
     """The snapshot that contains `sha`, rebuilding ONCE on a miss -- or None if it is
-    unreachable from every ref even after a fresh read."""
+    unreachable from every ref even after a fresh read.
+
+    HONEST LIMIT, raised as a CRITICAL by the 2026-08-26 terra review and kept here with the
+    measurement that sized it. A rebuild fires on a MISS, so a SHA already in the snapshot is
+    answered from it for the life of the process. What a commit introduced is immutable in the
+    OBJECT graph, but git reports a VIEW of that graph, and two things move a view: a shallow
+    boundary being deepened, and `replace`/graft refs. So a view mutation INSIDE one process
+    can make the snapshot disagree with a fresh `git rev-list`.
+
+    Measured rather than argued, because the direction decides whether it matters
+    (`tests/test_journal_anchor.py::test_a_shallow_clone_*`):
+
+      * In a STATIC shallow clone the map and `_introduced_uncached` agree EXACTLY -- git's own
+        `rev-list firstparent..sha` is truncated at the same boundary. The batch introduces no
+        divergence; truncation is git's answer, not the map's.
+      * Under a deepen mid-process the stale snapshot yields a set that is a SUBSET of the
+        fresh one (2 missing, 0 extra on the fixture). `is_anchored` is `any(...)` over that
+        set, so a subset can only turn TRUE into FALSE -- it over-reports UNANCHORED and
+        BLOCKS. That is fail-CLOSED, the direction this module's whole posture demands, and
+        the opposite of the "returns ANCHORED, lets an unanchored push through" the review
+        described.
+
+    Not closed in code, and the reason is that closing it would undo [#588]: detecting a view
+    mutation needs a git read PER CALL, which is the per-SHA spawn the row exists to remove.
+    The residual is a `replace`/graft ref created inside the seconds-long lifetime of a gate
+    process -- and that window is not new: `_introduced_tuple`'s memo has fixed answers for a
+    whole process since [#533].
+    """
     key = str(repo)
     smap = _parent_map(key, _MAP_GENERATION.get(key, 0))
     if sha in smap.parents:
@@ -557,7 +591,10 @@ _SHORT_HEX_RE = re.compile(rf"^[0-9a-f]{{{_SHORT}}}$")
 
 #: Ceiling for `_anchor_index_tuple`, the same number and the same reasoning as
 #: `_ENTRIES_CACHE_MAXSIZE`: a live run holds at most two distinct journal texts (the working
-#: tree, plus a `rev` when the pre-push organ reads the tip it is pushing).
+#: tree, plus a `rev` when the pre-push organ reads the tip it is pushing). Measured on the live
+#: corpus (2,952,618 bytes of JOURNAL.md, 2026-08-26): 5,278 `present` keys and 457 `recorded`,
+#: order 0.4 MB -- an order of magnitude under the ~5 MiB `_entries` commits for the same text,
+#: because this holds 7-char windows and that holds the whole file twice over.
 _ANCHOR_INDEX_CACHE_MAXSIZE = 4
 
 
