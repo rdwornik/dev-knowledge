@@ -44,10 +44,51 @@
   // not a substrate, so this belongs with the four legs rather than in the customizations block.
   // Costs nothing off-Codespaces: `devcontainer up` on a VPS installs the same sshd and the
   // identical-script clause is preserved.
+  // THE RUNTIME LEG — the container answered this one in its own words. A codespace built from
+  // the file as it stood came up Available, reachable, fully provisioned, and then refused the
+  // only thing it exists to do: the `Dispatch-Codespace` runner guard exited 91 with
+  //   {"error":"claude is not installed in this devcontainer"}
+  // A substrate that provisions perfectly and carries no agent is not a lane substrate, so the
+  // runtime belongs beside sshd in the four-legs half of this file rather than in
+  // `customizations` — the same reasoning the reachability leg above already carries.
+  //
+  // WHY THE FEATURE AND NOT A `RUN` LINE. Derived from the current official doc, not chosen:
+  // code.claude.com/docs/en/devcontainer §"Add Claude Code to your dev container" states
+  // "Claude Code installs into any dev container through the Claude Code Dev Container Feature"
+  // and prints exactly the `features` entry below. The Dockerfile `RUN`/npm path IS documented,
+  // but only as the alternative for pinning the CLI ("To pin a specific Claude Code version for
+  // reproducible builds, install it from your Dockerfile with
+  // `npm install -g @anthropic-ai/claude-code@X.Y.Z` instead of using the feature, and set
+  // `DISABLE_AUTOUPDATER`"). The doc's devcontainer recommendation is the feature; this file
+  // takes the recommended path.
+  //
+  // WHAT THE `:1.0` TAG ACTUALLY PINS, stated because it is easy to over-read. The doc: "The
+  // version tag at the end, such as `:1.0`, pins the feature's install script, not the Claude
+  // Code release. The feature installs the latest Claude Code, and Claude Code auto-updates
+  // itself inside the container by default." So this pins the INSTALLER (live feature version
+  // 1.0.5 at the time of writing) and deliberately floats the CLI. That is the pinnable unit the
+  // doc offers on this path, and floating the CLI is right here for the same reason the base
+  // image is a floor and not a pin: a disposable container gets the agent the operator's
+  // subscription is entitled to, and no version token enters this file that does not have to.
+  // Pinning the CLI is a one-way door away from the feature — it costs the Dockerfile npm path
+  // plus `DISABLE_AUTOUPDATER` — and is taken only if a measured run needs reproducibility.
+  //
+  // NODE: NOT DECLARED, and the omission is derived rather than lucky. The doc says "The Claude
+  // Code feature installs Node.js itself when the base image doesn't provide it", and names the
+  // node feature only as the repair for a specific measured failure ("If that install fails and
+  // the build stops with `Failed to install Node.js and npm`, add
+  // `"ghcr.io/devcontainers/features/node:1": {}`"). This base image DOES provide it — the
+  // evidence is in `Dockerfile`'s own measurement, which exists solely because the image ships a
+  // yarn apt source, and yarn arrives with that image's Node. If a build ever prints that exact
+  // string, the doc's repair is the fix; declaring it pre-emptively would be inventing a
+  // dependency the doc conditions on a failure that has not happened.
+  //
+  // PORTABILITY is preserved, as with sshd: `devcontainer up` on a VPS installs the same feature.
   "features": {
     "ghcr.io/devcontainers/features/sshd:1": {
       "version": "latest"
-    }
+    },
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1.0": {}
   },
 
   // THE ENV GATE ([#554] leg 4) IS NOT DECLARED HERE, AND THE ABSENCE IS THE FIX.
@@ -68,6 +109,72 @@
   // stamp in `$HOME` rather than a junk directory in the repo. The script additionally
   // REFUSES a stamp path that still carries an unexpanded `${`, so this whole class fails
   // loudly at the next host that tries it instead of being rediscovered by measurement.
+
+  // THE CREDENTIAL LEG — and the first thing to understand is that this block does NOT perform
+  // the exposure. Stating that plainly, because a `secrets` key reads like a transport and is
+  // not one.
+  //
+  // HOW THE TOKEN ACTUALLY REACHES THE CONTAINER: by itself, from GitHub, with no repo-side
+  // wiring at all. docs.github.com, "Managing your account-specific secrets for GitHub
+  // Codespaces": "A development environment secret is exported as an environment variable into
+  // the user's terminal session." Scope and timing come from the same page — "You can choose
+  // which repositories should have access to each secret. Then, you can use the secret in any
+  // codespace you create for a repository that has access to the secret." and "Once you have
+  // created a secret, it will be available when you create a new codespace or restart the
+  // codespace." Anthropic's devcontainer page says the same thing from the other side: "To carry
+  // authentication across codespaces, store `ANTHROPIC_API_KEY` or a `CLAUDE_CODE_OAUTH_TOKEN`
+  // from `claude setup-token` as a Codespaces secret. Codespaces exposes secrets as environment
+  // variables inside the container automatically."
+  //
+  // The operator has already created `CLAUDE_CODE_OAUTH_TOKEN` as a user-level secret scoped to
+  // this repository. So the transport is closed, and it was closed by an act outside this file.
+  //
+  // WHAT THIS BLOCK IS THEN, AND WHY IT EARNS ITS PLACE: it is the repo-side DECLARATION, the
+  // only mechanism GitHub documents for a repository to state a user-provided secret it needs.
+  // docs.github.com, "Specifying recommended secrets for a repository": "If a project needs
+  // user-specific secrets to be set up, you can prompt people to do this when they create a
+  // codespace." — "Edit the `devcontainer.json` file, adding the `secrets` property at the top
+  // level of the file, within the enclosing JSON object." — "After you specify recommended
+  // secrets, if people have not already created those secrets in their personal settings for
+  // Codespaces, they will be prompted to do so when they use the advanced options method of
+  // creating a codespace." The doc's own rule for when to use it names this exact case: "You
+  // should use recommended secrets for development environment secrets that the user who creates
+  // the codespace, rather than the owner of the repository or organization, must provide."
+  //
+  // HONEST LIMIT, in the shape `provisioning.yaml` already uses: this DECLARES, it does not
+  // enforce. It cannot create the secret, cannot verify one exists, and a codespace created
+  // without it comes up fine and fails later at the agent rather than here. It converts an
+  // invisible prerequisite into a stated one and prompts a creator who has not set it — that is
+  // the whole of what the mechanism does, and claiming more of it would be the vacuous-gate
+  // failure this substrate's provisioning was built to refuse.
+  //
+  // WHY NOT `containerEnv` / `remoteEnv`: the exposure is already automatic, so a passthrough
+  // would add a second declaration of the same variable with nothing to gain — and `containerEnv`
+  // specifically is the block [#554] removed above, which stays removed.
+  //
+  // NO `ANTHROPIC_API_KEY`, ANYWHERE, DELIBERATELY. The credential is the SUBSCRIPTION OAuth
+  // token from `claude setup-token`: model-requests only, usage counted against the operator's
+  // plan, no separate API invoice. Two sources, kept distinct rather than blurred into one
+  // claim: Anthropic's setup page documents that the key PREEMPTS the account sign-in path —
+  // "If the `ANTHROPIC_API_KEY` environment variable is set, Claude Code prompts you once to
+  // approve the key instead of opening a browser" — and the BILLING consequence of that
+  // precedence, that a present key silently moves lane spend off-subscription, is the operator's
+  // standing ruling, not something the doc asserts. Naming only the OAuth token here is the
+  // enforcement actually available at this layer.
+  //
+  // PORTABILITY: `secrets` is Codespaces-specific and inert elsewhere; `devcontainer up` on a
+  // VPS ignores it, and that host supplies the same variable by its own means. The
+  // identical-script clause is untouched.
+  //
+  // Exposure and rotation are recorded in the standing register `protocols/STANDING_RULINGS.md`
+  // (landed by a sibling lane): the token grants the operator's subscription model access to any
+  // lane running in this container, rotation is a re-run of `claude setup-token`, expiry ~1 year.
+  "secrets": {
+    "CLAUDE_CODE_OAUTH_TOKEN": {
+      "description": "Subscription OAuth token from `claude setup-token` — the credential a lane's headless run authenticates with inside this container. Set it as a USER-level Codespaces secret scoped to this repository. Do NOT set ANTHROPIC_API_KEY: it takes precedence and would move lane spend off-subscription.",
+      "documentationUrl": "https://code.claude.com/docs/en/authentication#generate-a-long-lived-token"
+    }
+  },
 
   // THE PREBUILD LEG (lane contract A3), in the only form a repo file can carry it.
   //
