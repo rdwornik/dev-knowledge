@@ -1,5 +1,15 @@
 # Research Report
 
+> **RETENTION — REVIEWED 2026-08-26 · verdict KEEP · retention: `exempt-permanent` · next-review: `none`**
+> **Second review of the ADR-60 two-review rule, fired by the operator as reviewer 2** (endgame
+> governance session; register `protocols/STANDING_RULINGS.md` section W, ruling W6). This file is
+> cited by **8 file(s) including **ADR-32****, and **every citer is an immutable or append-only surface**
+> that can never be re-pointed. Deletion is therefore **structurally impossible**, not merely
+> undesirable — the same referential argument ADR-100 ratified for `docs/audits/`: *"the storage cost
+> is trivial; the referential cost of a move is permanent breakage."*
+> **This file does NOT re-enter the two-review past-due queue.** The rule has fired; the outcome is
+> KEEP, not a deferral.
+
 **Query:** ## Question: How do solo developers in 2025-2026 manage handoffs between a browser-based AI chat assistant (used for strategy and prompt drafting) and a terminal-based AI coding agent (used for filesystem operations and execution)?
 
 ### Current State

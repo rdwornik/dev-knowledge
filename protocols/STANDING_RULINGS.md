@@ -2944,7 +2944,44 @@ command file reads `RETIRED`, so doctrine points a reader at a dead organ — an
 `reconciled_with: handoff-process@6.2.0`. **If the census is to be executed it needs a new row**,
 and this entry is the record that no open row currently owns it.
 
-**Expiry:** open-ended for W1, W2 and W5. **W3's threshold** is revisited when the icebox execution
+**W6 · The `docs/archive/` two-review rule FIRES, and its verdict is KEEP — plus a new
+`exempt-permanent` retention class.** The rule (`docs/archive/README.md`, ADR-60 amendment
+2026-05-27) says a file sitting across two reviews with no decision **defaults to deletion**. Seven
+files have sat since the first review of 2026-05-28 — **90 days** — with no second review recorded,
+and the hub diagnostic §6.3 named this as *"the one place where the archive story is genuine drift
+rather than ratified policy."*
+
+**The operator acted as reviewer 2 on 2026-08-26. The rule has now fired. The verdict is KEEP for
+all seven, and they are stamped `retention: exempt-permanent · next-review: none`.**
+
+**Why deletion was not merely declined but ruled STRUCTURALLY IMPOSSIBLE.** Measured before the
+decision rather than after it: the seven carry **45 citations between them (4–13 each), and every
+real citer is an immutable or append-only surface** — among them **ADR-32**
+(`2026-04-27-handoff-patterns-external-research`) and **ADR-55, ADR-56, ADR-57 and ADR-58** (all
+citing `2026-05-25-handoff-failures-evidence`), plus `JOURNAL.md`,
+`protocols/archive/HANDOFF_PROCESS_v3.4.md` and a handoff bundle's `manifest.json`. Those surfaces
+**cannot be re-pointed**. Deleting the target therefore does not free anything — it manufactures
+dead locators that no later act can repair. **This is the identical argument ADR-100 ratified for
+`docs/audits/`:** *"the storage cost is trivial; the referential cost of a move is permanent
+breakage."* The rule's own text always carried the other branch — *"either deleted … or promoted"* —
+and this is that branch, taken on evidence.
+
+**The retention class, and why a bare decline would have been the wrong instrument.** A decline
+leaves the seven in the past-due queue to be re-proposed for deletion by every future reviewer, at
+which point the same 45-citation measurement must be redone or, worse, skipped. **A file whose
+deletion is structurally impossible should not re-enter a deletion queue at all.** So the ruling
+adds an exemption class to `docs/archive/README.md` — a file cited **only** by immutable or
+append-only surfaces may be stamped `exempt-permanent`, and a stamped file has **had** its review.
+Each of the seven now carries a blockquote stamp naming the reviewer, the date, its citation count
+and the ADRs among its citers, and the README's "How to review" gains a step 5: **resolve a file's
+citers before any `git rm`.**
+
+**Honest limit.** This closes the drift for these seven and creates the class; it does **not** sweep
+`docs/archive/`'s other contents. The 2026-08-09 research corpus's own first review is still
+pending, and the diagnostic's separate finding that **`logs/` has no retention convention at all**
+is untouched by this ruling and remains unowned.
+
+**Expiry:** open-ended for W1, W2, W5 and W6. **W3's threshold** is revisited when the icebox execution
 lands. **W4 expires the moment a devcontainer dispatch is demonstrated end-to-end** — its whole
 content is a NOT-YET, and it should not outlive the evidence that produced it.
 
