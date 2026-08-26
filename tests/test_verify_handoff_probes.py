@@ -1338,6 +1338,25 @@ def test_pre_era_bundle_is_judged_by_its_own_era(tmp_path):
     assert by["P10"].status == "pass"
 
 
+def test_era_boundary_parses_the_date_rather_than_comparing_the_whole_name():
+    """A bare string compare against the DIR NAME looks equivalent to a date compare and is not
+    — `2026-08-9-x` compares GREATER than `2026-08-26` on its 9th character, so a pre-era bundle
+    would be judged by a later era's rule, and `2026-08-2` would be waved through. Both
+    directions pinned; found by terra on this lane's own diff."""
+    era = "2026-08-26"
+    assert vhp.bundle_at_or_after("2026-08-26-x", era) is True      # ON the boundary
+    assert vhp.bundle_at_or_after("2026-09-01-x", era) is True
+    assert vhp.bundle_at_or_after("2026-08-25-x", era) is False
+    # malformed, both signs — neither may be ordered by raw string comparison
+    assert vhp.bundle_at_or_after("2026-08-9-x", era) is True       # not a strict ISO prefix
+    assert vhp.bundle_at_or_after("2026-08-2", era) is True         # short: not a date at all
+    assert vhp.bundle_at_or_after("scratch", era) is True           # fail-closed
+    # right SHAPE, not a real calendar day — it would otherwise compare as pre-era and exempt a
+    # malformed CURRENT bundle, which inverts the fail-closed rule (terra pass 5)
+    assert vhp.bundle_at_or_after("2026-02-31-manual", era) is True
+    assert vhp.bundle_at_or_after("2026-13-01-manual", era) is True
+
+
 def test_undated_bundle_dir_is_judged_by_the_current_rule(tmp_path):
     # Fail-CLOSED on an unparseable name: a non-dated directory is not a historical bundle,
     # so it does not inherit an exemption by being unreadable.

@@ -48,6 +48,7 @@ import re
 import shutil
 import sys
 from dataclasses import dataclass
+from datetime import date as _date
 from pathlib import Path
 
 _SCRIPTS_DIR = Path(__file__).resolve().parent
@@ -143,16 +144,38 @@ _UNBOUNDED_SCOPE_RE = re.compile(
 # Fail-CLOSED on an unparseable bundle name: a directory that does not open with `YYYY-MM-DD` is
 # not a dated historical bundle, so it is judged by the current rule rather than waved through.
 _BOUNDEDNESS_ERA = "2026-08-26"
-_BUNDLE_DATE_RE = re.compile(r"^(\d{4}-\d{2}-\d{2})")
+# STRICT, and the strictness is the point: exactly `YYYY-MM-DD`, zero-padded, at the start of the
+# name. A looser match (or a bare string compare against the whole name) mis-orders a malformed
+# directory — `2026-08-9-foo` compares GREATER than `2026-08-26` on its 9th character, so a
+# pre-era bundle would be judged by a later era's rule, while `2026-08-2` would be waved through.
+# Anything this regex does not match is not a dated historical bundle and is judged by the
+# CURRENT rule (fail-closed) — an unreadable name earns no exemption.
+_BUNDLE_DATE_RE = re.compile(r"^(\d{4}-\d{2}-\d{2})(?:$|[^\d])")
+
+
+def bundle_at_or_after(bundle: str, era: str) -> bool:
+    """True if bundle dir name `bundle` belongs to `era` (an ISO date) or later.
+
+    ONE definition, shared: `audit.py::check_supplement_folded` grandfathers pre-era bundles by
+    the same predicate, because two era gates written twice is how two era gates disagree. A name
+    with no strict leading `YYYY-MM-DD` is treated as IN-era — fail-closed, so a malformed or
+    scratch directory is judged by the current rule rather than inheriting an exemption from
+    being unparseable. A prefix of the right SHAPE that is not a real calendar day
+    (`2026-02-31-manual`) counts as unparseable for the same reason: it would otherwise compare
+    as pre-era and exempt a malformed CURRENT bundle, inverting the rule (terra pass 5)."""
+    m = _BUNDLE_DATE_RE.match(bundle)
+    if m is None:
+        return True
+    try:                                    # a shape is not a date: `2026-02-31` matches the
+        _date.fromisoformat(m.group(1))     # regex and is not a day that exists, so grandfathering
+    except ValueError:                      # it would exempt a malformed CURRENT bundle
+        return True
+    return m.group(1) >= era
 
 
 def _in_boundedness_era(bundle: str) -> bool:
-    """True if `bundle` (a bundle DIR NAME) is judged by the §5 cond. 4 boundedness rung.
-
-    ISO dates compare correctly as strings, so no date parsing is needed (and a malformed
-    date like `2026-13-99` still sorts late, i.e. into the current era — fail-closed)."""
-    m = _BUNDLE_DATE_RE.match(bundle)
-    return m is None or m.group(1) >= _BOUNDEDNESS_ERA
+    """True if `bundle` (a bundle DIR NAME) is judged by the §5 cond. 4 boundedness rung."""
+    return bundle_at_or_after(bundle, _BOUNDEDNESS_ERA)
 
 # Dirs excluded from the unique-basename fallback in _resolve_path: VCS internals,
 # nested CC worktree checkouts (`.claude/worktrees/<name>/…` are full duplicate trees),

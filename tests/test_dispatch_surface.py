@@ -49,6 +49,32 @@ def test_ruled_verb_is_the_lead_token():
     assert ds.ruled_verb(_REPO) == "dispatch"
 
 
+def test_local_row_search_is_bounded_to_the_dispatch_table(tmp_path):
+    """If the LOCAL row leaves the table but its marker survives later in the chapter as prose,
+    an unbounded search would render whatever fence followed THAT as the ruled command — the
+    exact drift this reader exists to detect, answered confidently and wrongly. (terra pass 4.)"""
+    root = tmp_path / "moved"
+    (root / "protocols").mkdir(parents=True)
+    (root / ds.PLAYBOOK_PATH).write_text(
+        f"# P\n\n{ds._TABLE_HEADING}\n\nthe table, with its LOCAL row removed\n\n"
+        "## A later chapter\n\n"
+        f"Historical note: {ds._LOCAL_ROW} used to read:\n\n```\nnot-the-ruled-verb X.md\n```\n",
+        encoding="utf-8")
+    assert ds.ruled_form(root) is None
+
+
+def test_local_row_is_still_found_inside_its_own_subsections(tmp_path):
+    """Negative control for the bound: the live table nests the row under a `#####` sub-heading,
+    so the section boundary has to admit deeper headings or the reader stops working entirely."""
+    root = tmp_path / "nested"
+    (root / "protocols").mkdir(parents=True)
+    (root / ds.PLAYBOOK_PATH).write_text(
+        f"# P\n\n{ds._TABLE_HEADING}\n\n##### Layer 2 — the commands\n\n"
+        f"{ds._LOCAL_ROW} (own worktree)\n\n```\ndispatch <FILE.md>\n```\n",
+        encoding="utf-8")
+    assert ds.ruled_form(root) == ["dispatch <FILE.md>"]
+
+
 def test_ruled_form_returns_none_rather_than_a_remembered_command(tmp_path):
     """A second copy of the line is the defect §V ruled on, so the degrade path is a POINTER,
     never a fallback string. None is the signal that produces one."""
@@ -148,6 +174,37 @@ def test_unreadable_ch8_is_reported_not_waved_through(tmp_path):
     """A gate whose anchor moved says so. It never passes because it could not look."""
     hits = ds.agreement_findings(tmp_path)
     assert len(hits) == 1 and "unreadable" in hits[0]
+
+
+def test_unreadable_playbook_is_not_reported_as_not_applicable(tmp_path, monkeypatch):
+    """"There is no dispatch table" and "the canonical command source could not be opened" are
+    different answers, and `Path.is_file()` collapses them into the first. Only genuine absence
+    is n/a. (terra pass 5.)"""
+    import os
+
+    import audit as aud_mod
+    root = _mirror(tmp_path)
+    real_stat, real_read = os.stat, Path.read_text
+
+    def _is_playbook(p) -> bool:
+        return str(p).replace("\\", "/").endswith(ds.PLAYBOOK_PATH)
+
+    def fake_stat(path, *a, **kw):
+        if _is_playbook(path):
+            raise PermissionError(13, "locked")
+        return real_stat(path, *a, **kw)
+
+    def fake_read(self, *a, **kw):
+        if _is_playbook(self):
+            raise PermissionError(13, "locked")
+        return real_read(self, *a, **kw)
+    monkeypatch.setattr(aud_mod.os, "stat", fake_stat)
+    monkeypatch.setattr(Path, "read_text", fake_read)
+    findings = aud_mod.check_dispatch_verb_agreement(root)
+    # The stat failure alone would have short-circuited to n/a before the predicate ever ran;
+    # it now falls through, and the predicate reports the canonical source as unreadable.
+    assert [f.status for f in findings] == ["fail"]
+    assert "unreadable" in findings[0].evidence
 
 
 def test_check_is_fail_class_on_a_seeded_rival(tmp_path):

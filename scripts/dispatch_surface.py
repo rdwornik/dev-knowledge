@@ -97,10 +97,19 @@ def ruled_form(repo_root: Path | None = None) -> list[str] | None:
     head = text.find(_TABLE_HEADING)
     if head == -1:
         return None
-    row = text.find(_LOCAL_ROW, head)
+    # BOUND the search to the table's own section. The LOCAL row's marker could plausibly appear
+    # again later in the chapter as explanatory prose, and an unbounded `find` would then select
+    # that occurrence and render whatever fence followed it as if it were the ruled command —
+    # so the very drift this reader exists to detect (the row leaving the table) would render a
+    # confident wrong answer instead of degrading. The section ends at the next heading of the
+    # table's own level or shallower; `#####` sub-rows inside it are deliberately included.
+    body = text[head + len(_TABLE_HEADING):]
+    end = re.search(r"^#{1,4} ", body, re.MULTILINE)
+    section = body[:end.start()] if end else body
+    row = section.find(_LOCAL_ROW)
     if row == -1:
         return None
-    m = re.search(r"^```[^\n]*\n(.*?)^```", text[row:], re.DOTALL | re.MULTILINE)
+    m = re.search(r"^```[^\n]*\n(.*?)^```", section[row:], re.DOTALL | re.MULTILINE)
     if m is None:
         return None
     lines = [ln.rstrip() for ln in m.group(1).splitlines() if ln.strip()]

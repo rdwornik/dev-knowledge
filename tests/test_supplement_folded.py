@@ -14,6 +14,7 @@ reproduced against the REAL bundle on disk, not only against a fixture.
 """
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import audit as aud  # noqa: E402
@@ -122,9 +123,134 @@ def test_check_grandfathers_a_pre_era_bundle_without_blocking(tmp_path):
     assert "immutable-and-lost" in findings[0].evidence
 
 
+def test_era_boundary_is_parsed_not_string_compared(tmp_path):
+    """A malformed, non-zero-padded PRE-era directory (`2026-08-9-…`) string-compares GREATER
+    than `2026-08-26` on its 9th character, so a raw compare would block a bundle it means to
+    grandfather. The gate reuses the boundedness rung's parsed predicate, so it is judged by the
+    current rule instead of by an accidental ordering. Found by terra on this lane's own diff."""
+    repo = _bundle(tmp_path, "2026-08-9-x",
+                   supplement=_FILLED_SUPPLEMENT, paste=_PASTE_WITHOUT)
+    findings = aud.check_supplement_folded(repo)
+    assert [f.status for f in findings] == ["fail"]
+
+
 def test_check_passes_cleanly_with_no_violations(tmp_path):
     repo = _bundle(tmp_path, "2026-09-01-x",
                    supplement=_FILLED_SUPPLEMENT, paste=_PASTE_WITH)
+    findings = aud.check_supplement_folded(repo)
+    assert [f.status for f in findings] == ["pass"]
+
+
+def _unreadable(monkeypatch, blocked_name):
+    """Make exactly one bundle file raise OSError on read (a share lock / permission change),
+    without needing real filesystem ACLs."""
+    real = Path.read_text
+
+    def fake(self, *a, **kw):
+        if self.name == blocked_name:
+            raise PermissionError(13, "locked")
+        return real(self, *a, **kw)
+    monkeypatch.setattr(Path, "read_text", fake)
+
+
+def test_unreadable_bundle_is_warned_not_silently_dropped(tmp_path, monkeypatch):
+    """DEGRADE LOUDLY. A bundle file that cannot be read is the moment this check could not
+    look, and dropping it would let the adapter report a clean pass about evidence it never
+    opened — the synthesized-pass class every validator here refuses. Found by terra pass 2."""
+    repo = _bundle(tmp_path, "2026-09-01-x",
+                   supplement=_FILLED_SUPPLEMENT, paste=_PASTE_WITHOUT)
+    _unreadable(monkeypatch, "PASTE_THIS.md")
+    findings = aud.check_supplement_folded(repo)
+    assert [f.status for f in findings] == ["warn"]
+    assert "unreadable" in findings[0].evidence
+    assert "2026-09-01-x" in findings[0].evidence
+
+
+def test_a_real_violation_still_fails_alongside_a_degraded_bundle(tmp_path, monkeypatch):
+    """The WARN is emitted BESIDE the FAIL, not instead of it — an unreadable bundle may not
+    downgrade a violation the check did manage to see. Exactly ONE bundle is made unreadable, so
+    this genuinely exercises the mixed path: an earlier version blocked every PASTE_THIS.md and
+    therefore observed two WARNs while never reaching the FAIL branch it claimed to test (terra
+    pass 4 — a test asserting less than it appeared to)."""
+    repo = _bundle(tmp_path, "2026-09-01-x",
+                   supplement=_FILLED_SUPPLEMENT, paste=_PASTE_WITHOUT)   # the real violation
+    b2 = repo / "docs" / "handoffs" / "2026-09-02-y"
+    b2.mkdir()
+    (b2 / "SUPPLEMENT.md").write_text(_FILLED_SUPPLEMENT, encoding="utf-8")
+    (b2 / "PASTE_THIS.md").write_text(_PASTE_WITHOUT, encoding="utf-8")
+    real = Path.read_text
+
+    def fake(self, *a, **kw):       # only the SECOND bundle degrades
+        if self.name == "PASTE_THIS.md" and self.parent.name == "2026-09-02-y":
+            raise PermissionError(13, "locked")
+        return real(self, *a, **kw)
+    monkeypatch.setattr(Path, "read_text", fake)
+    findings = aud.check_supplement_folded(repo)
+    by_status = {f.status for f in findings}
+    assert by_status == {"warn", "fail"}, [(f.status, f.evidence) for f in findings]
+    assert any(f.status == "fail" and "2026-09-01-x" in f.evidence for f in findings)
+    assert any(f.status == "warn" and "2026-09-02-y" in f.evidence for f in findings)
+
+
+def test_unstattable_bundle_directory_is_warned_not_omitted(tmp_path, monkeypatch):
+    """The same swallow one level up: `Path.is_dir()` returns False for an OSError, so a bundle
+    directory the process may not stat would vanish from the walk and the check could report a
+    clean pass about evidence it never opened. (terra pass 4.)"""
+    repo = _bundle(tmp_path, "2026-09-01-x",
+                   supplement=_FILLED_SUPPLEMENT, paste=_PASTE_WITH)
+    real = os.stat
+
+    def fake(path, *a, **kw):
+        if str(path).endswith("2026-09-01-x"):
+            raise PermissionError(13, "locked")
+        return real(path, *a, **kw)
+    monkeypatch.setattr(aud.os, "stat", fake)
+    findings = aud.check_supplement_folded(repo)
+    assert [f.status for f in findings] == ["warn"]
+    assert "2026-09-01-x" in findings[0].evidence
+
+
+def test_unreadable_handoffs_root_warns_rather_than_reporting_not_applicable(tmp_path, monkeypatch):
+    """"There is nothing here" and "this could not be looked at" are different answers, and
+    `Path.is_dir()` collapses them. An unreadable root is degraded coverage the ship-gate should
+    see, not a NOT-APPLICABLE. (terra pass 4.)"""
+    repo = _bundle(tmp_path, "2026-09-01-x",
+                   supplement=_FILLED_SUPPLEMENT, paste=_PASTE_WITH)
+    real = os.stat
+
+    def fake(path, *a, **kw):
+        if str(path).replace("\\", "/").endswith("docs/handoffs"):
+            raise PermissionError(13, "locked")
+        return real(path, *a, **kw)
+    monkeypatch.setattr(aud.os, "stat", fake)
+    findings = aud.check_supplement_folded(repo)
+    assert [f.status for f in findings] == ["warn"]
+    assert "bundle root" in findings[0].evidence
+
+
+def test_unstattable_bundle_is_warned_not_skipped_as_absent(tmp_path, monkeypatch):
+    """The stat-side half of the same hole. `Path.is_file()` SWALLOWS OSError and returns False,
+    so a file the process may not stat looks exactly like one that was never written — and
+    "never written" is a legitimate skip here. Found by terra pass 3, after pass 2's read-side
+    fix left this open."""
+    repo = _bundle(tmp_path, "2026-09-01-x",
+                   supplement=_FILLED_SUPPLEMENT, paste=_PASTE_WITH)
+    real = os.stat
+
+    def fake(path, *a, **kw):
+        if str(path).endswith("PASTE_THIS.md"):
+            raise PermissionError(13, "locked")
+        return real(path, *a, **kw)
+    monkeypatch.setattr(aud.os, "stat", fake)
+    findings = aud.check_supplement_folded(repo)
+    assert [f.status for f in findings] == ["warn"]
+    assert "unreadable" in findings[0].evidence
+
+
+def test_a_genuinely_absent_paste_is_still_a_clean_skip(tmp_path):
+    """The negative control for the test above: absence is NOT degradation. A bundle with no
+    PASTE_THIS.md never assembled anything, so there is no fold it could have missed."""
+    repo = _bundle(tmp_path, "2026-09-01-x", supplement=_FILLED_SUPPLEMENT)
     findings = aud.check_supplement_folded(repo)
     assert [f.status for f in findings] == ["pass"]
 
