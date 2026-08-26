@@ -256,6 +256,10 @@ Both code commits carry `SKIP=audit-health`, with ownership proved rather than c
 `SKIP` drops ONE hook; ruff, the ADR-101 hermetization gate, the provider-registry gate and both
 commit-msg gates ran on every commit. `--no-verify` was not used anywhere in this lane.
 
+**The bypass does not survive the lane** — see §12: once `main`'s own JOURNAL anchored the
+sibling merges, the remaining gap was lane tree-lag, a sync-merge cleared it, and the final
+commit runs the full mesh with nothing skipped.
+
 ## 9. Environment note for the integrator
 
 `uv` resolved to **0.12.6** on one invocation mid-lane and to the pinned **0.11.19** on the next,
@@ -312,7 +316,41 @@ an extra git process and never a wrong answer, because the map is only used afte
 Post-review re-run, same four files, `-n 0`: **163 passed, 1 skipped, 1 xfailed** (592.41 s),
 `ruff check` clean.
 
-## 12. Scope discipline
+## 12. Post-merge gate verification — the bypasses are retired, not carried
+
+`main` moved twice under this lane. The second move (`d8211b03`, the sibling's anchor commit)
+changed the diagnosis: `journal_spine_anchor` then reported TWO gaps against this worktree's
+`JOURNAL.md` and **ZERO** against `main`'s own — which is **lane tree-lag**, not a real
+unanchored spine, and whose recorded remedy is a sync-merge rather than a standing `SKIP`.
+
+So `git merge main` was taken into the lane (a plain sync-merge; the batch protocol's
+no-self-merge rule scopes lane -> main, and this is the other direction), and the gate was re-run
+with **no SKIP at all**:
+
+```
+DEV_KNOWLEDGE_TELEMETRY=1 PYTHONUTF8=1 uv run --locked python scripts/audit.py health --parallel
+  -> health: OK      exit 0      0 x [!!]
+  -> [OK] journal_spine_anchor: every first-parent spine entry above the ADR-85 disposition
+          floor 24882f8cc is JOURNAL-anchored
+run b65fadb1: wall 193,352 ms | sum 394,568 ms | journal_spine_anchor 7,881 ms (rank 8)
+                              | check_review_artifact_coverage 179,530 ms (rank 1)
+```
+
+The final commit in this lane therefore runs the full mesh with nothing skipped. The three
+earlier commits' `SKIP=audit-health` was a foreign FAIL each time, proved not-mine each time,
+and is now gone rather than inherited.
+
+Across the three post-fix runs `check_journal_spine_anchor` measured **11,973 / 7,086 /
+7,881 ms** against a **197,808 ms** baseline — the spread is host load, and the result is far
+outside it.
+
+**One WARN this lane creates and does NOT clear:** `funnel_coverage` flags
+`2026-08-26-technical-w2a-perf-core.md` (and the terra artifact) as carrying no disposition. That
+is the ADR-111 triage act on a new audit artifact and it lands in
+`ecosystem/disposition-register.yaml`, which is outside this lane's frozen scope. Advisory, not a
+FAIL; named here so it is owed rather than lost.
+
+## 13. Scope discipline
 
 Touched: `scripts/journal_anchor.py`, `tests/test_journal_anchor.py`, this report. Not touched:
 any other check, `scripts/validate_no_ff.py` (named in [#588]'s refs but outside the contract's
