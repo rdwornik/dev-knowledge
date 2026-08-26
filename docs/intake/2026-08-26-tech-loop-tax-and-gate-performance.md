@@ -32,13 +32,31 @@ lanes (WINDOW-RECORD Part VI.b). And the corpus keeps growing the surfaces the l
 (diagnostic §1 and §3.1). **Accumulation is a performance problem, so subtraction is a performance
 mechanism.**
 
-> **Provenance gap, stated rather than papered over.** The cloud lane's `PERF-RECON-2026-08-25`
-> report **did not reach the operator's Downloads** and is therefore **not landed in this repo**;
-> `LANE-P-perf-recon.md` is the lane *contract*, not the result. The row names `P-1`, `P-2`, `P-4`
-> and `P-6` used below and in the wave-2 rows come from the **endgame brief's own enumeration**
-> plus the close-packet and diagnostic measurements cited above — **not** from a PERF-RECON
-> artifact this repo holds. If that report is later recovered, this intake and those rows should
-> be reconciled against it.
+> **Provenance gap — now CLOSED (2026-08-26).** This block previously recorded that the cloud
+> lane's `PERF-RECON-2026-08-25` report had not reached Downloads and was not landed. **It has
+> since been recovered and landed byte-identical (sha256 verified) at
+> `docs/audits/2026-08-26-technical-perf-recon.md`** by architect addendum. The GAP is closed and
+> this intake now cites the landed artifact directly.
+>
+> **The reconciliation the gap asked for was performed, and the inferred names hold.** The row
+> names `P-1`, `P-2`, `P-4` and `P-6` — used below and in the wave-2 rows born before the
+> artifact arrived — match the recon's own proposed list: *P-1 invert the journal-anchor scan to
+> a single pass*, *P-2 batch the spine parent map into one git process*, *P-4 declare a
+> commit/ship tier per check* (gated on P-3), *P-6 arm the test tier so the per-merge cadence has
+> a selector*. **Nothing filed on the inference needs correcting.**
+>
+> **Open question 4 below is ANSWERED by the landed artifact: P-3 and P-5 do exist**, and the
+> numbering gaps were not accidental. **P-3** is the `[#529]` telemetry window that publishes the
+> per-check ranking — *ENABLING*, and it gates both P-4 and P-5. **P-5** is a shared corpus loader
+> with git-blob-sha caching, hub-owned and consumer-inherited, *"the only one that scales with
+> corpus size."* **Neither has a row**: the act-7 birth list was capped at 12 and named neither, so
+> **P-3 and P-5 are unowned** — recorded here rather than left to be rediscovered.
+>
+> **One honesty note the artifact carries about itself**, which changes how its numbers may be
+> used: the cloud lane ran on a SHALLOW clone with no venv and a `uv` mismatch, so **no gate was
+> run and no timing was produced**. Every figure in it is either a static count of the tree or a
+> number *the repo itself records*, cited at `file:line`. It is a static bottleneck map, **not a
+> profile** — which is precisely why P-3 must land before anything is retiered.
 
 ## Scenarios (+1 view)
 
@@ -118,6 +136,7 @@ mechanism.**
 
 READY — filed 2026-08-26 by the endgame governance session. Evidence:
 `docs/audits/2026-08-26-verification-batch-1-close-packet.md` §8 and §11,
-`docs/audits/2026-08-26-technical-hub-diagnostic.md` §1, §3.1, §5, §6.3, §7, and
-WINDOW-RECORD-AND-DIAGNOSTIC.md Part VI.b. **PERF-RECON itself is a recorded GAP** — see the
-provenance note above.
+`docs/audits/2026-08-26-technical-hub-diagnostic.md` §1, §3.1, §5, §6.3, §7,
+**`docs/audits/2026-08-26-technical-perf-recon.md` (the landed PERF-RECON — B1..B10 bottleneck map
+and the P-1..P-6 proposed rows)**, and WINDOW-RECORD-AND-DIAGNOSTIC.md Part VI.b. **The PERF-RECON
+GAP is CLOSED** — see the provenance note above.
