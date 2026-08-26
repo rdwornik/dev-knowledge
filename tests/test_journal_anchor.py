@@ -267,10 +267,23 @@ def _clear_introduced_memo():
     ja.introduced.cache_clear()
 
 
+#: The stub DAG, since [#588] made the batched map the fast path: `_SHA_A` is a `--no-ff`
+#: merge of `_PARENT` and `_SHA_B`, and `_SHA_B` sits on `_PARENT`. So `_PARENT.._SHA_A`
+#: brings in BOTH (the merge plus what it merged) while `_PARENT.._SHA_B` brings in one --
+#: the shape the two organs actually judge, rather than a pair of canned strings.
+#: Line shape is `<commit-date> <sha> <parent>...`, newest-first, as `--parents --timestamp`
+#: emits it.
+_STUB_PARENT_MAP = (f"300 {_SHA_A} {_PARENT} {_SHA_B}\n"
+                    f"200 {_SHA_B} {_PARENT}\n"
+                    f"100 {_PARENT}\n")
+
+
 def _counting_git(calls):
-    """A `_git` stand-in that records every invocation and answers the two rev-list forms."""
+    """A `_git` stand-in that records every invocation and answers the rev-list forms."""
     def _git(repo, *args):
         calls.append((str(repo), args))
+        if args == ja._PARENT_MAP_ARGS:
+            return _STUB_PARENT_MAP
         if args[:2] == ("rev-list", "--parents"):
             return f"{args[-1]} {_PARENT}\n"
         if args[0] == "rev-list":
@@ -279,20 +292,40 @@ def _counting_git(calls):
     return _git
 
 
+@pytest.fixture(autouse=True)
+def _clear_parent_map():
+    """[#588]'s map is process-global like the other two memos, so it is reset per test.
+
+    `_MAP_GENERATION` is cleared alongside the `lru_cache`: leaving a bumped generation behind
+    would make the NEXT test's first lookup a miss against an empty cache, so the two must be
+    reset together or the isolation is only apparent.
+    """
+    ja._parent_map.cache_clear()
+    ja._MAP_GENERATION.clear()
+    yield
+    ja._parent_map.cache_clear()
+    ja._MAP_GENERATION.clear()
+
+
 def test_introduced_memoizes_a_full_sha_and_stops_spawning_git(monkeypatch, tmp_path):
     """The whole point: the second identical call must cost ZERO subprocesses.
 
     Asserted on the git-call log rather than on a hit counter alone, because the saving that
     matters here is process spawns (~144 ms each on this platform), not cache bookkeeping.
+
+    ONE call, not two, since [#588]: the batched `rev-list --parents --all` answers what the
+    per-SHA `rev-list --parents -n 1` + `rev-list <range>` pair used to.
     """
     calls = []
     monkeypatch.setattr(ja, "_git", _counting_git(calls))
 
     first = ja.introduced(tmp_path, _SHA_A)
-    assert len(calls) == 2                     # rev-list --parents, then rev-list range
+    assert len(calls) == 1                     # the batched parent map, and nothing else
+    assert calls[0][1] == ja._PARENT_MAP_ARGS
     second = ja.introduced(tmp_path, _SHA_A)
-    assert len(calls) == 2                     # unchanged: served from the memo
+    assert len(calls) == 1                     # unchanged: served from the memo
     assert first == second
+    assert first == [_SHA_A, _SHA_B]           # the merge plus the commit it merged in
     assert ja.introduced.cache_info().hits == 1
 
 
@@ -329,17 +362,22 @@ def test_distinct_shas_do_not_share_a_cache_entry(monkeypatch, tmp_path):
     monkeypatch.setattr(ja, "_git", _counting_git(calls))
     a = ja.introduced(tmp_path, _SHA_A)
     b = ja.introduced(tmp_path, _SHA_B)
-    assert len(calls) == 4
+    assert len(calls) == 1                     # [#588]: ONE map answers both SHAs
+    assert a == [_SHA_A, _SHA_B] and b == [_SHA_B]
     assert a != b
 
 
 def test_distinct_repos_do_not_share_a_cache_entry(monkeypatch, tmp_path):
-    """Two checkouts can hold the same SHA; keying on the sha alone would be a real bug."""
+    """Two checkouts can hold the same SHA; keying on the sha alone would be a real bug.
+
+    True of the [#588] parent map as well as of the `introduced` memo -- a map is per repo, so
+    the count here is one read EACH, not one read total.
+    """
     calls = []
     monkeypatch.setattr(ja, "_git", _counting_git(calls))
     ja.introduced(tmp_path / "one", _SHA_A)
     ja.introduced(tmp_path / "two", _SHA_A)
-    assert len(calls) == 4
+    assert len(calls) == 2
     assert {c[0] for c in calls} == {str(tmp_path / "one"), str(tmp_path / "two")}
 
 
@@ -381,7 +419,7 @@ def test_the_introduced_cache_is_bounded():
 
 def test_a_root_commit_still_introduces_only_itself(monkeypatch, tmp_path):
     """The `len(parents) < 2` branch, preserved through the split into _introduced_uncached."""
-    monkeypatch.setattr(ja, "_git", lambda repo, *args: f"{_SHA_A}\n")
+    monkeypatch.setattr(ja, "_git", lambda repo, *args: f"100 {_SHA_A}\n")
     assert ja.introduced(tmp_path, _SHA_A) == [_SHA_A]
 
 
@@ -728,3 +766,193 @@ def test_index_agrees_with_the_raw_substring_test_on_the_live_journal():
             checked += 1
             assert run[i:i + 7] in index.present, f"index dropped {run[i:i + 7]!r}"
     assert checked > 100
+
+
+# ==========================================================================================
+# [#588] ONE GIT PROCESS FOR THE WHOLE SPINE.
+#
+# WHY THIS SECTION EXISTS. `introduced` used to spawn TWO `git rev-list` processes per unique
+# spine entry. This module's own docstring records the measurement that motivated the [#533]
+# memo -- 808 spawns, 116.8 s in one `audit.py health` run -- and the memo removed only the
+# duplicate half. The 2026-08-26 parity harness measured the remainder at 82.6 s for 312 spine
+# entries, i.e. essentially the whole residual cost of the #1 check in a PRE-COMMIT gate.
+#
+# WHAT THESE TESTS ARE FOR. A batched map trades subprocesses for a Python graph walk, and
+# introduces exactly two ways to be wrong that git could not be: (1) the SET can differ, and a
+# set that is too LARGE reports a spine entry ANCHORED that is not -- a false clean on a push
+# gate, the worst direction; (2) the ORDER can differ, and order is output here, because
+# `check_journal_spine_anchor` joins the FIRST FIVE mention-warnings into its evidence. So the
+# oracle is `_introduced_uncached` -- git's own answer -- and the assertions are on equality of
+# the LIST, never on membership. The third hazard is staleness: a map built before a commit
+# existed must not answer for it, which is `test_a_commit_made_after_the_map_was_built`.
+# ==========================================================================================
+
+
+def _chain_parent_map(n: int) -> str:
+    """`--parents --timestamp --all` output for a spine of `n` `--no-ff` merges.
+
+    `s{i}` merges `b{i}` onto `s{i+1}`; `s{n-1}` is the root. Newest-first, which is the order
+    git emits. Dates DESCEND with `i` and each merge is one second newer than the side commit
+    it brought in, so the expected order is [merge, side] and a regression that dropped the
+    date ordering would show up here rather than only on a real repo.
+    """
+    lines = []
+    for i in range(n - 1):
+        merge_ts, side_ts = 10_000 - 2 * i, 10_000 - 2 * i - 1
+        lines.append(f"{merge_ts} {i:040x} {i + 1:040x} {i + 1000:040x}")
+        lines.append(f"{side_ts} {i + 1000:040x} {i + 1:040x}")
+    lines.append(f"{10_000 - 2 * n} {n - 1:040x}")               # root: no parents
+    return "\n".join(lines) + "\n"
+
+
+def test_one_git_process_answers_the_whole_spine(monkeypatch, tmp_path):
+    """THE regression guard for [#588]: process count is O(1) in the length of the range.
+
+    200 spine entries answered by ONE `git rev-list`, where the pre-batch shape spawned 400.
+    Call-counting is the right instrument here (unlike `test_spine_date_lookup_stays_batched`,
+    which had to inspect source because it drives its leg through `audit.py`'s dual import):
+    this test calls `ja` directly, so the patched `_git` IS the one under test. And the saving
+    being claimed is process spawns, so counting them is measuring the thing rather than a
+    proxy for it.
+    """
+    calls = []
+
+    def _git(repo, *args):
+        calls.append(args)
+        if args == ja._PARENT_MAP_ARGS:
+            return _chain_parent_map(200)
+        raise AssertionError(f"per-SHA git read reintroduced: {args}")
+
+    monkeypatch.setattr(ja, "_git", _git)
+    for i in range(199):
+        assert ja.introduced(tmp_path, f"{i:040x}") == [f"{i:040x}", f"{i + 1000:040x}"]
+    assert ja.introduced(tmp_path, f"{199:040x}") == [f"{199:040x}"]      # the root
+    assert len(calls) == 1, f"{len(calls)} git processes for a 200-entry spine"
+
+
+def test_a_sha_the_map_cannot_reach_falls_back_to_git_rather_than_answering_wrong(
+        monkeypatch, tmp_path):
+    """A commit reachable from no ref is absent from `--all`. Absence is NOT an answer.
+
+    The map defers to `_introduced_uncached` -- git's definition -- because the alternative
+    (treating an unknown SHA as introducing only itself) would silently shrink an introduced
+    set, and a shrunk set turns an anchored spine entry into a reported GAP.
+    """
+    calls = []
+
+    def _git(repo, *args):
+        calls.append(args)
+        if args == ja._PARENT_MAP_ARGS:
+            return _STUB_PARENT_MAP
+        if args[:2] == ("rev-list", "--parents"):
+            return f"{args[-1]} {_PARENT}\n"
+        return f"{args[-1].split('..')[-1]}\n"
+
+    monkeypatch.setattr(ja, "_git", _git)
+    orphan = "d" * 40
+    assert ja.introduced(tmp_path, orphan) == [orphan]
+    # Exactly four reads, in this order: the map, ONE rebuild-on-miss (a miss can mean the
+    # snapshot is simply older than the commit), then the two-call `_introduced_uncached` body.
+    assert len(calls) == 4
+    assert calls[0] == ja._PARENT_MAP_ARGS
+    assert calls[1] == ja._PARENT_MAP_ARGS
+    assert calls[2] == ("rev-list", "--parents", "-n", "1", orphan)
+    assert calls[3] == ("rev-list", f"{_PARENT}..{orphan}")
+
+
+def test_a_map_that_is_not_ancestry_closed_defers_instead_of_over_reporting(
+        monkeypatch, tmp_path):
+    """A parent naming a commit the map does not carry means the map cannot be walked.
+
+    `--all` should never produce that shape. It is pinned anyway because the failure it would
+    cause is the dangerous direction: a truncated exclusion walk yields a TOO LARGE introduced
+    set, and a too-large set reports a spine entry ANCHORED that is not -- a false clean on the
+    ADR-85 hard leg.
+    """
+    truncated = f"300 {_SHA_A} {_PARENT} {_SHA_B}\n200 {_SHA_B} {_PARENT}\n"   # `_PARENT` absent
+    seen = []
+
+    def _git(repo, *args):
+        seen.append(args)
+        if args == ja._PARENT_MAP_ARGS:
+            return truncated
+        if args[:2] == ("rev-list", "--parents"):
+            return f"{_SHA_A} {_PARENT}\n"
+        return f"{_SHA_A}\n"
+
+    monkeypatch.setattr(ja, "_git", _git)
+    assert ja._introduced_from_map(tmp_path, _SHA_A) is None
+    assert ja.introduced(tmp_path, _SHA_A) == [_SHA_A]        # git's answer, via the fallback
+
+
+# --- real git: the batched map must not change the ANSWER ---------------------------------
+
+def _multi_merge_repo(path):
+    """root -> three `--no-ff` merges, one of them carrying two commits, plus a plain commit."""
+    path.mkdir()
+    _git(path, "init", "-q", "-b", "main")
+    _git(path, "config", "user.email", "t@t")
+    _git(path, "config", "user.name", "t")
+    (path / "f.txt").write_text("root\n", encoding="utf-8")
+    _git(path, "add", "f.txt")
+    _git(path, "commit", "-q", "-m", "root")
+    for n in (1, 2, 3):
+        _git(path, "checkout", "-q", "-b", f"side{n}")
+        for i in range(n):
+            (path / "f.txt").write_text(f"{n}-{i}\n", encoding="utf-8")
+            _git(path, "commit", "-q", "-am", f"side{n} commit {i}")
+        _git(path, "checkout", "-q", "main")
+        _git(path, "merge", "-q", "--no-ff", f"side{n}", "-m", f"merge side{n}")
+    (path / "g.txt").write_text("direct\n", encoding="utf-8")
+    _git(path, "add", "g.txt")
+    _git(path, "commit", "-q", "-m", "a plain non-merge spine entry")
+    return path
+
+
+@requires_git
+def test_the_batched_map_is_byte_identical_to_git_over_a_whole_spine(tmp_path):
+    """The done-when, at unit scale: EVERY spine entry, list equality, order included.
+
+    `_introduced_uncached` is the oracle because it IS git's answer -- the map is only ever an
+    optimisation of it. Compared as LISTS and not as sets, deliberately: order is output.
+    """
+    repo = _multi_merge_repo(tmp_path / "r")
+    spine = ja.spine_entries(repo, "main")
+    assert len(spine) == 5                     # root + 3 merges + 1 plain commit
+    for sha in spine:
+        assert ja.introduced(repo, sha) == ja._introduced_uncached(repo, sha), sha
+    # And the shapes are the ones the predicate depends on, stated rather than implied.
+    merges = [s for s in spine if len(ja.introduced(repo, s)) > 1]
+    assert sorted(len(ja.introduced(repo, s)) for s in merges) == [2, 3, 4]
+
+
+@requires_git
+def test_a_commit_made_after_the_map_was_built_is_still_answered_correctly(tmp_path):
+    """THE staleness hazard, end to end in ONE process -- the [#533] question re-asked of a
+    map instead of a split.
+
+    A stale anchor answer is worse than a slow one: it produces false push-gate verdicts. Here
+    the map is built, the repo then GROWS, and the new merge must be answered from a rebuilt
+    map rather than from the snapshot that predates it. The test asserts the OUTCOME (git's
+    answer) rather than the rebuild mechanism, so it survives a change of caching strategy.
+    """
+    repo = _multi_merge_repo(tmp_path / "r")
+    ja.introduced(repo, ja.spine_entries(repo, "main")[0])       # builds the snapshot
+
+    _git(repo, "checkout", "-q", "-b", "late")
+    (repo / "h.txt").write_text("late\n", encoding="utf-8")
+    _git(repo, "add", "h.txt")
+    _git(repo, "commit", "-q", "-m", "late work")
+    late_sha = ja.spine_entries(repo, "late")[0]
+    _git(repo, "checkout", "-q", "main")
+    _git(repo, "merge", "-q", "--no-ff", "late", "-m", "merge late")
+    merge_sha = ja.spine_entries(repo, "main")[0]
+
+    got = ja.introduced(repo, merge_sha)
+    assert got == ja._introduced_uncached(repo, merge_sha)
+    assert got == [merge_sha, late_sha]
+    # The point of the whole predicate: the merge is anchored by a JOURNAL naming what it
+    # BROUGHT IN, never its own hash -- and that must survive the map having been rebuilt.
+    assert ja.is_anchored(repo, merge_sha, f"### e\n\n**Anchors:** `{late_sha[:7]}`.\n") is True
+    unrelated = ja.spine_entries(repo, "main")[2]
+    assert ja.is_anchored(repo, merge_sha, f"### e\n\n**Anchors:** `{unrelated[:7]}`.\n") is False

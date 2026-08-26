@@ -35,6 +35,7 @@ FAIL-LOUD: every helper raises `AnchorError` on a git failure. Callers decide th
 from __future__ import annotations
 
 import functools
+import heapq
 import re
 import subprocess
 from pathlib import Path
@@ -141,13 +142,186 @@ def spine_entries(repo: Path, rev_range: str) -> list[str]:
 
 
 def _introduced_uncached(repo: Path, sha: str) -> list[str]:
-    """The uncached body of `introduced`. Two `git rev-list` reads, no memory."""
+    """The uncached body of `introduced`. Two `git rev-list` reads, no memory.
+
+    Kept as the FALLBACK and as the oracle after [#588] moved the fast path onto a batched
+    parent map: it is the definition of the answer -- git's own -- and `_introduced_from_map`
+    is only ever an optimisation of it, so anything the map cannot answer comes back here
+    rather than being guessed at, and the parity tests compare against this and not against a
+    restatement of the map.
+    """
     parents = _git(repo, "rev-list", "--parents", "-n", "1", sha).split()
     if len(parents) < 2:          # root commit: no first parent
         return [sha]
     first_parent = parents[1]
     out = _git(repo, "rev-list", f"{first_parent}..{sha}")
     brought = [ln.strip() for ln in out.splitlines() if ln.strip()]
+    return brought or [sha]
+
+
+# =========================================================================================
+# [#588] ONE GIT PROCESS FOR THE WHOLE SPINE.
+#
+# WHAT WAS WRONG, and this module recorded it against itself before the fix existed (see
+# `introduced`'s docstring): a single `audit.py health` run spawned 808 `git rev-list`
+# processes at ~144 ms each -- 116.8 s. The [#533] memo removed the duplicate half; the
+# per-unique-SHA pair remained, and the 2026-08-26 parity harness measured what was left at
+# 82.6 s for 312 spine entries, i.e. essentially all of the residual cost of the #1 check.
+# ~144 ms is a WINDOWS process-creation tax, which is why this dominates on the operator's
+# host and would not on a Linux runner.
+#
+# THE BATCH. `git rev-list --parents --all` returns the ENTIRE parent map in ONE process.
+# `firstparent..sha` is then a graph walk in Python: mark everything reachable from the first
+# parent, then walk from `sha` and keep what the mark did not cover. Process count per health
+# run goes from O(spine) to O(1).
+#
+# WHY `--all` AND NOT A REF. `introduced` takes a bare SHA and has no ref to walk from, and a
+# map built per query would be the per-SHA spawn again under a new name. `--all` is ancestry-
+# closed over every ref, so ONE map answers every SHA any caller in this repo can hand it.
+#
+# WHY THE MAP MAY BE TRUSTED ONCE BUILT -- the same immutability argument `introduced` already
+# rests on, one level down: what a commit introduced is fixed forever by the commit's own hash,
+# because its parents and their whole ancestry are part of what the hash commits to. So if
+# `sha` is IN the map, the derived answer cannot go stale. If it is NOT, the map is simply
+# older than the commit (a process that outlived a `git commit` -- a test, an operator
+# mid-session), which is a MISS and not an error: rebuild once, then believe it. A SHA still
+# absent after a fresh read is unreachable from every ref, and that falls back to git.
+#
+# ORDER IS OUTPUT, NOT AN IMPLEMENTATION DETAIL. `mention_not_record_warnings` emits one string
+# per introduced commit IN THIS ORDER, and `check_journal_spine_anchor` joins the FIRST FIVE
+# into its WARN evidence -- so reproducing git's order is part of the answer, not polish. The
+# walk below is therefore git's own traversal rather than any convenient one: a commit-date
+# priority queue seeded with `sha`, popping newest-first and breaking ties by insertion order,
+# which is `commit_list_insert_by_date`'s rule (it inserts AFTER equal dates).
+#
+# THE ORDERING WAS GOT WRONG ONCE HERE, and the wrong version is recorded because it looked
+# right: sorting the introduced set by each commit's index in the global `--all` output. That
+# reproduces git whenever commit dates are distinct and DIVERGES the moment they tie -- and
+# they tie constantly, because git stamps at one-second granularity and a scripted burst of
+# commits lands inside one second. Measured on a synthetic repo whose commits share a
+# timestamp: 3 of 5 spine entries came back in a different order, git putting the merge first
+# where the global index did not. Distinct dates are what a hand-made repo has and a machine-
+# made one does not, which is exactly the shape of bug that survives a green test suite.
+# =========================================================================================
+
+#: The ONE read. `--parents` puts the parents on each line and `--timestamp` prefixes the commit
+#: date, so a single process yields BOTH the graph and the ordering key; `--all` makes it closed
+#: over every ref, so a caller's SHA is present whenever it is reachable at all. Line shape:
+#: `<commit-date> <sha> <parent>...`.
+_PARENT_MAP_ARGS = ("rev-list", "--parents", "--timestamp", "--all")
+
+#: Ceiling for `_parent_map`. One live process sees one repo (the audit runner, a git hook);
+#: the suite sees a tmp repo at a time, and a rebuild-on-miss makes a SECOND entry for the same
+#: repo, so the floor is 2 and 4 leaves headroom. Named for the `_ENTRIES_CACHE_MAXSIZE`
+#: reason -- the memory it commits should be a stated number, not a literal buried in a
+#: decorator. Each entry is one map row per commit reachable from any ref (~6.0k on this repo
+#: today): tuples of hex strings, megabytes rather than tens of megabytes, which is why this
+#: ceiling can be generous where `_ENTRIES_CACHE_MAXSIZE`'s multi-MiB values force it tight.
+_PARENT_MAP_CACHE_MAXSIZE = 4
+
+
+class _SpineMap(NamedTuple):
+    """`parents`: commit -> its parents, first parent first. `stamp`: commit -> commit date,
+    which is the key git's own traversal orders by and therefore the key this one must."""
+    parents: dict[str, tuple[str, ...]]
+    stamp: dict[str, int]
+
+
+#: Per-repo snapshot counter. Bumped only when a lookup misses, so a rebuild is caused by a
+#: commit the snapshot predates rather than by a timer. Holds one small int per repo path
+#: string seen in the process -- the one unbounded structure here, and deliberately the
+#: cheapest thing to leave unbounded.
+_MAP_GENERATION: dict[str, int] = {}
+
+
+@functools.lru_cache(maxsize=_PARENT_MAP_CACHE_MAXSIZE)
+def _parent_map(repo_key: str, generation: int) -> _SpineMap:
+    """The batched read, memoized per (repo, snapshot). `generation` is the cache-buster:
+    it is not read inside, it exists so a rebuild is a different key.
+
+    `lru_cache` does not cache exceptions, so an unreadable history re-reads and re-raises --
+    the fail-CLOSED posture is untouched, exactly as for `_introduced_tuple`.
+    """
+    parents: dict[str, tuple[str, ...]] = {}
+    stamp: dict[str, int] = {}
+    for line in _git(Path(repo_key), *_PARENT_MAP_ARGS).splitlines():
+        ids = line.split()
+        if len(ids) < 2:          # blank line; `--timestamp` guarantees at least date + sha
+            continue
+        try:
+            stamp[ids[1]] = int(ids[0])
+        except ValueError as exc:
+            # FAIL-LOUD, per this module's posture: an unparseable graph is an UNKNOWN
+            # anchoring state, and an unknown state must never render as "anchored".
+            raise AnchorError(
+                f"unparseable `git {' '.join(_PARENT_MAP_ARGS)}` line: {line!r}") from exc
+        parents[ids[1]] = tuple(ids[2:])
+    return _SpineMap(parents, stamp)
+
+
+def _spine_map_for(repo: Path, sha: str) -> _SpineMap | None:
+    """The snapshot that contains `sha`, rebuilding ONCE on a miss -- or None if it is
+    unreachable from every ref even after a fresh read."""
+    key = str(repo)
+    smap = _parent_map(key, _MAP_GENERATION.get(key, 0))
+    if sha in smap.parents:
+        return smap
+    _MAP_GENERATION[key] = _MAP_GENERATION.get(key, 0) + 1
+    smap = _parent_map(key, _MAP_GENERATION[key])
+    return smap if sha in smap.parents else None
+
+
+def _introduced_from_map(repo: Path, sha: str) -> list[str] | None:
+    """`firstparent..sha` derived from the batched map -- or None, meaning "ask git".
+
+    None is returned for every case the map cannot answer with certainty: an unreachable SHA,
+    or a map that is not ancestry-closed where the walk needs it (a shape `--all` should not
+    produce, so it defers rather than silently returning a too-large set -- a too-large
+    introduced set would report a spine entry ANCHORED that is not).
+    """
+    smap = _spine_map_for(repo, sha)
+    if smap is None:
+        return None
+    parents = smap.parents[sha]
+    if not parents:               # root commit: no first parent, introduces only itself
+        return [sha]
+
+    excluded: set[str] = set()
+    stack = [parents[0]]
+    while stack:
+        commit = stack.pop()
+        if commit in excluded:
+            continue
+        known = smap.parents.get(commit)
+        if known is None:
+            return None           # not ancestry-closed here -- defer to git, never guess
+        excluded.add(commit)
+        stack.extend(known)
+
+    # git's traversal, not a convenient one: a commit-date priority queue seeded with `sha`,
+    # newest-first, ties broken by insertion order. `heapq` is a MIN-heap, so the key is
+    # `(-date, seq)` -- `-date` pops the newest, and a rising `seq` makes the earlier-queued of
+    # two equal-dated commits pop first, which is what `commit_list_insert_by_date` does by
+    # inserting after equals. `queued` is git's ADDED flag: a commit enters the queue once, at
+    # its first insertion, so a second child cannot re-order it.
+    brought: list[str] = []
+    queued: set[str] = {sha}
+    heap = [(-smap.stamp[sha], 0, sha)]
+    seq = 1
+    while heap:
+        _, _, commit = heapq.heappop(heap)
+        known = smap.parents.get(commit)
+        if known is None:
+            return None
+        brought.append(commit)
+        for parent in known:
+            if parent in excluded or parent in queued:
+                continue
+            if parent not in smap.stamp:
+                return None
+            queued.add(parent)
+            heapq.heappush(heap, (-smap.stamp[parent], seq, parent))
+            seq += 1
     return brought or [sha]
 
 
@@ -161,8 +335,16 @@ def _introduced_tuple(repo_key: str, sha: str) -> tuple[str, ...]:
 
     `lru_cache` does NOT cache exceptions, so an `AnchorError` from an unreadable history is
     re-raised from a real git read every time -- the fail-CLOSED posture is untouched.
+
+    Served from the [#588] batched parent map, falling back to the two-spawn `git` body for
+    anything the map cannot answer. The memo is kept ON TOP of the map rather than replaced by
+    it: the map removes the process spawns, the memo removes the graph walk.
     """
-    return tuple(_introduced_uncached(Path(repo_key), sha))
+    repo = Path(repo_key)
+    brought = _introduced_from_map(repo, sha)
+    if brought is None:
+        return tuple(_introduced_uncached(repo, sha))
+    return tuple(brought)
 
 
 def introduced(repo: Path, sha: str) -> list[str]:
