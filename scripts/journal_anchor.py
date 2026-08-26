@@ -38,6 +38,7 @@ import functools
 import re
 import subprocess
 from pathlib import Path
+from typing import NamedTuple
 
 _JOURNAL = "JOURNAL.md"
 _SHORT = 7
@@ -201,8 +202,20 @@ introduced.cache_clear = _introduced_tuple.cache_clear
 
 
 def is_anchored(repo: Path, sha: str, journal: str) -> bool:
-    """True iff `journal` names >= 1 SHA the spine entry `sha` introduced (§A7)."""
-    return any(c[:_SHORT] in journal for c in introduced(repo, sha))
+    """True iff `journal` names >= 1 SHA the spine entry `sha` introduced (§A7).
+
+    Answered from `_anchor_index` (defined below, with the WARN machinery that shares it) --
+    ONE pass over the journal per distinct text, memoized, instead of a fresh substring scan of
+    a ~2.9 MB string per introduced commit ([#587]). The index holds every 7-char lowercase-hex
+    substring the journal contains, so `short in index.present` is the SAME question
+    `short in journal` asked; a short that is not an object-name prefix is outside the index's
+    domain by construction and falls back to the original raw test, so the answer is identical
+    for every input rather than only for the inputs today's callers produce.
+    """
+    index = _anchor_index(journal)
+    return any((c[:_SHORT] in index.present) if _SHORT_HEX_RE.match(c[:_SHORT])
+               else (c[:_SHORT] in journal)
+               for c in introduced(repo, sha))
 
 
 def unanchored_in_range(repo: Path, rev_range: str, journal: str) -> list[str]:
@@ -316,24 +329,150 @@ _entries.cache_info = _entries_tuple.cache_info
 _entries.cache_clear = _entries_tuple.cache_clear
 
 
+# =========================================================================================
+# [#587] THE SINGLE-PASS ANCHOR INDEX -- the inversion, and the whole point of this section.
+#
+# WHAT WAS WRONG, measured rather than assumed (PERF-RECON 2026-08-26, B1/B3; telemetry run
+# f0caf15a, `check_journal_spine_anchor` = 197.8 s, rank 1 of 46 and 35% of the health loop):
+# both consumers below asked their question ONCE PER INTRODUCED COMMIT, and each asking
+# re-walked the whole journal. `mention_not_record_warnings` looped introduced-commit -> entry
+# -> `entry.splitlines()` -> substring test per line; `_entries` was memoized ([#533]) but
+# `.splitlines()` was NOT, so every outer iteration re-split and re-allocated 2.9 MB. Over this
+# repo's 312 spine entries above the floor and the ~5k commits they introduce, that is tens of
+# GB of line-splitting for one advisory list. `is_anchored` had the same shape one layer down:
+# a substring scan of the same 2.9 MB string per introduced commit.
+#
+# THE INVERSION. The journal does not change while a scan runs, so the direction is backwards:
+# read it ONCE and build {short -> (present, recorded)}, then answer every commit's question
+# with a set lookup. Cost goes from O(commits x journal) to O(journal) + O(commits).
+#
+# WHY IT IS SAFE, on exactly the [#533] argument this module already rests on: the index is
+# keyed on the journal TEXT. A journal that has grown is a DIFFERENT key, so a grown file
+# cannot register a hit against a stale index. There is nothing to invalidate, so there is no
+# invalidation to get wrong -- and a stale anchor answer is worse than a slow one, because it
+# produces false push-gate verdicts.
+#
+# WHY IT IS EQUIVALENT, and not merely similar. The keys are every 7-char LOWERCASE-HEX
+# substring of the journal, which is exactly the domain of the `short in <text>` test it
+# replaces: a 7-char lowercase-hex needle can only occur inside a maximal hex run of length
+# >= 7, so enumerating those runs' windows enumerates every possible match and nothing else.
+# Line-level classification is preserved because the index walks the same `_entries(journal)`
+# -> `entry.splitlines()` sequence the old inner loop walked, so the two see the SAME lines.
+# A needle that is not an object-name prefix is outside this domain: both consumers fall back
+# to their own pre-inversion scan for it rather than reporting a confident "absent".
+# =========================================================================================
+
+#: A maximal run of lowercase hex. `finditer` over the runs, then a sliding window inside each,
+#: enumerates every 7-char hex substring of a line -- including the ones that straddle no token
+#: boundary (`0badf00d` contains `0badf00` AND `badf00d`), which is what keeps this identical to
+#: a substring test rather than to a tokenizer. Prose can qualify (`defaced` is seven hex
+#: letters); that is correct, because the test being replaced would have matched it too.
+_HEX_RUN_RE = re.compile(rf"[0-9a-f]{{{_SHORT},}}")
+
+#: Is this needle inside the index's domain at all? Callers pass `c[:_SHORT]` where `c` came
+#: from `introduced` -- a git object name -- so the fast path is the one that runs.
+_SHORT_HEX_RE = re.compile(rf"^[0-9a-f]{{{_SHORT}}}$")
+
+#: Ceiling for `_anchor_index_tuple`, the same number and the same reasoning as
+#: `_ENTRIES_CACHE_MAXSIZE`: a live run holds at most two distinct journal texts (the working
+#: tree, plus a `rev` when the pre-push organ reads the tip it is pushing).
+_ANCHOR_INDEX_CACHE_MAXSIZE = 4
+
+
+class _AnchorIndex(NamedTuple):
+    """Every 7-char hex substring of a journal, split by the line class it was seen on.
+
+    `present` -- seen on ANY line. `recorded` -- seen on at least one explicit record line
+    (`_RECORD_LINE_RE`). The old code's third state, `mentioned` ("seen on at least one
+    NON-record line"), is not stored because it is not needed: the only question asked of it
+    is `mentioned and not recorded`, and `present - recorded` is exactly that set. A short in
+    `present` but not in `recorded` has every one of its occurrences on non-record lines, so it
+    was mentioned; a short that was mentioned is by definition present.
+
+    Frozensets, so the memoized object cannot be mutated by a caller -- the hazard `_entries`
+    answers by copying, answered here by immutability instead.
+    """
+    present: frozenset[str]
+    recorded: frozenset[str]
+
+
+def _hex_shorts(line: str) -> set[str]:
+    """Every 7-char lowercase-hex substring of `line` (empty set for the overwhelming majority
+    of lines, which contain no hex run that long)."""
+    shorts: set[str] = set()
+    for m in _HEX_RUN_RE.finditer(line):
+        run = m.group()
+        for i in range(len(run) - _SHORT + 1):
+            shorts.add(run[i:i + _SHORT])
+    return shorts
+
+
+@functools.lru_cache(maxsize=_ANCHOR_INDEX_CACHE_MAXSIZE)
+def _anchor_index_tuple(journal: str) -> _AnchorIndex:
+    """The memoized single pass. Keyed on the journal TEXT for the `_entries_tuple` reason."""
+    present: set[str] = set()
+    recorded: set[str] = set()
+    for entry in _entries(journal):
+        for line in entry.splitlines():
+            shorts = _hex_shorts(line)
+            if not shorts:
+                continue
+            present |= shorts
+            if _RECORD_LINE_RE.match(line.strip()):
+                recorded |= shorts
+    return _AnchorIndex(frozenset(present), frozenset(recorded))
+
+
+def _anchor_index(journal: str) -> _AnchorIndex:
+    """`_anchor_index_tuple` under the name callers use, mirroring `_entries`' shape.
+
+    No defensive copy, because there is nothing a caller could corrupt: the fields are
+    frozensets and the container is a NamedTuple.
+    """
+    return _anchor_index_tuple(journal)
+
+
+# The cache-management surface, forwarded for the same reason as `_entries`': a caller reasons
+# about the memo through the function it actually calls.
+_anchor_index.cache_info = _anchor_index_tuple.cache_info
+_anchor_index.cache_clear = _anchor_index_tuple.cache_clear
+
+
+def _scan_short_uncached(journal: str, short: str) -> tuple[bool, bool]:
+    """`(present, recorded)` for a needle OUTSIDE the index's hex domain -- the pre-inversion
+    inner loop, verbatim in behaviour, kept so the fallback is identical rather than merely
+    close. Unreachable from any caller in this repo (`introduced` yields git object names);
+    it exists so the equivalence claim above is total, not conditional."""
+    present = recorded = False
+    for entry in _entries(journal):
+        for line in entry.splitlines():
+            if short not in line:
+                continue
+            present = True
+            if _RECORD_LINE_RE.match(line.strip()):
+                recorded = True
+    return present, recorded
+
+
 def mention_not_record_warnings(repo: Path, sha: str, journal: str) -> list[str]:
     """Advisory strings, one per introduced commit of `sha` that is `is_anchored` (mentioned
     somewhere in `journal`) but never appears on an explicit record line (`_RECORD_LINE_RE`)
-    anywhere in `journal`. Never raises -- a scan of already-fetched text, not a git read."""
+    anywhere in `journal`. Never raises -- a scan of already-fetched text, not a git read.
+
+    Reads the [#587] single-pass index instead of re-walking the journal per commit. Order is
+    preserved (it follows `introduced`) and so are the strings, byte for byte: the check joins
+    the FIRST FIVE of these into its WARN evidence, so the order of this list is load-bearing
+    output, not an implementation detail.
+    """
+    index = _anchor_index(journal)
     warnings = []
     for c in introduced(repo, sha):
         short = c[:_SHORT]
-        recorded = False
-        mentioned = False
-        for entry in _entries(journal):
-            for line in entry.splitlines():
-                if short not in line:
-                    continue
-                if _RECORD_LINE_RE.match(line.strip()):
-                    recorded = True
-                else:
-                    mentioned = True
-        if mentioned and not recorded:
+        if _SHORT_HEX_RE.match(short):
+            present, recorded = short in index.present, short in index.recorded
+        else:
+            present, recorded = _scan_short_uncached(journal, short)
+        if present and not recorded:
             warnings.append(
                 f"anchored by mention, not by record: {short} appears outside an "
                 "explicit 'Anchors:' record line")

@@ -1,4 +1,9 @@
-"""Tests for `scripts/journal_anchor.py`'s entry-split memo ([#533] leg 2, STEP 2/3).
+"""Tests for `scripts/journal_anchor.py`: the entry-split memo ([#533] leg 2, STEP 2/3), the
+single-pass anchor index ([#587]) and the one-process spine parent map ([#588]).
+
+The three arcs answer the same question at three depths -- stop re-doing work whose input has
+not changed -- and they share one safety argument, so they share one test file. Sections 4 and
+5 carry their own why-this-exists headers; the [#533] narrative below is the original.
 
 WHY THIS FILE EXISTS. STEP-1 attribution measured `journal_anchor._entries` re-splitting the
 same immutable 2607 KiB `JOURNAL.md` **934 times in one process** — 2.47 GB of regex work for
@@ -25,6 +30,7 @@ which WOULD be mtime-sensitive and WOULD go stale.
 """
 from __future__ import annotations
 
+import pathlib
 import re
 import shutil
 import subprocess
@@ -448,3 +454,277 @@ def test_is_anchored_is_unchanged_by_the_memo_on_a_real_repo(tmp_path):
     for _ in range(2):
         assert ja.is_anchored(repo, merge_sha, naming) is True
         assert ja.is_anchored(repo, merge_sha, silent) is False
+
+
+# ==========================================================================================
+# [#587] THE SINGLE-PASS ANCHOR INDEX.
+#
+# WHY THIS SECTION EXISTS. The [#533] memo above stopped the journal being RE-SPLIT per call;
+# it did not stop the journal being RE-WALKED per introduced commit. Telemetry run f0caf15a
+# (2026-08-26, `DEV_KNOWLEDGE_TELEMETRY=1 audit.py health --parallel` on this host) measured
+# `check_journal_spine_anchor` at **197.8 s**, rank 1 of 46 checks and 35% of the whole health
+# loop -- on a PRE-COMMIT gate. The shape PERF-RECON named (B1/B3) was
+# `mention_not_record_warnings` looping introduced-commit -> entry -> `entry.splitlines()`,
+# re-splitting 2.9 MB on every outer iteration, and `is_anchored` substring-scanning the same
+# 2.9 MB per introduced commit.
+#
+# WHAT THESE TESTS ARE FOR. The inversion must change SPEED and nothing else, so the oracle is
+# an independent restatement of the pre-inversion body (`_reference_warnings` below) -- not the
+# module's own regexes, which would prove only that the implementation agrees with itself. The
+# risk the index introduces is a DOMAIN risk rather than a caching one: it answers a substring
+# question out of a set of 7-char hex windows, so the tests below pin the two ways that could
+# silently narrow -- overlapping windows inside a longer run, and a needle that is not hex.
+# ==========================================================================================
+
+_REFERENCE_RECORD_RE = re.compile(r"^\*{0,2}Anchors?\b", re.IGNORECASE)
+
+
+def _reference_warnings(shas, journal):
+    """The pre-inversion `mention_not_record_warnings` body, restated independently."""
+    entries = _reference_entries(journal)
+    out = []
+    for c in shas:
+        short = c[:7]
+        recorded = False
+        mentioned = False
+        for entry in entries:
+            for line in entry.splitlines():
+                if short not in line:
+                    continue
+                if _REFERENCE_RECORD_RE.match(line.strip()):
+                    recorded = True
+                else:
+                    mentioned = True
+        if mentioned and not recorded:
+            out.append(f"anchored by mention, not by record: {short} appears outside an "
+                       "explicit 'Anchors:' record line")
+    return out
+
+
+#: Deliberately awkward. `0badf00dcafe` is a TWELVE-char run, so `0badf00` and `badf00d` and
+#: four more windows all live inside one token -- the case a tokenizer would get wrong and a
+#: substring test gets right. `defaced` is seven hex letters occurring as an English word.
+#: `DEADBEE1` is uppercase, which the lowercase predicate must NOT match. `cafe002` appears on
+#: both a record line and a prose line, which is the `present AND recorded` case that must NOT
+#: warn.
+_INDEX_FIXTURE = """# JOURNAL
+
+Preamble naming 0badf00dcafe in prose.
+
+### 2026-08-18 (a) - first
+
+**Anchors:** `cafe0021`, `1234567`.
+Prose that also mentions cafe0021 in passing.
+
+### 2026-08-18 (b) - second
+
+The word defaced is seven hex letters. DEADBEE1 is uppercase.
+Confirmed `9998887` in prose only.
+
+### 2026-08-17 (a) - third
+
+Anchors this arc's own spine: `abcdef0`.
+"""
+
+
+@pytest.fixture(autouse=True)
+def _clear_anchor_index():
+    ja._anchor_index.cache_clear()
+    yield
+    ja._anchor_index.cache_clear()
+
+
+# --- (a) the window enumeration is a substring test, not a tokenizer --------------------
+
+def test_hex_shorts_enumerates_every_window_inside_a_long_run():
+    """`0badf00dcafe` is 12 chars, so it contains SIX distinct 7-char windows.
+
+    A tokenizing implementation would record only the first (or only the whole token) and would
+    then report `is_anchored` False for a commit whose short prefix sits mid-run -- a FALSE
+    UNANCHORED verdict on the gate that refuses pushes. This is the assertion that keeps the
+    index a substring index.
+    """
+    assert ja._hex_shorts("x 0badf00dcafe y") == {
+        "0badf00", "badf00d", "adf00dc", "df00dca", "f00dcaf", "00dcafe"}
+
+
+@pytest.mark.parametrize("line, expected", [
+    ("nothing here", set()),
+    ("short 123456 run", set()),                      # six chars: below the window
+    ("exactly 1234567 seven", {"1234567"}),
+    ("DEADBEE1 uppercase", set()),                    # the predicate is lowercase-only
+    ("defaced", {"defaced"}),                         # prose that IS hex -- and must count
+    ("`abcdef0`", {"abcdef0"}),                       # backticks are not hex, so they bound it
+])
+def test_hex_shorts_matches_the_substring_domain(line, expected):
+    assert ja._hex_shorts(line) == expected
+
+
+def test_every_index_key_really_occurs_in_the_text():
+    """The index may not INVENT a key: `short in index.present` must imply `short in journal`.
+
+    The converse direction (`short in journal` implies present, for a hex short) is covered by
+    `test_index_agrees_with_the_raw_substring_test_on_the_live_journal`.
+    """
+    index = ja._anchor_index(_INDEX_FIXTURE)
+    for short in index.present | index.recorded:
+        assert short in _INDEX_FIXTURE, f"index invented {short!r}"
+
+
+# --- (b) the classification: present / recorded -----------------------------------------
+
+def test_the_index_splits_record_lines_from_prose_lines():
+    index = ja._anchor_index(_INDEX_FIXTURE)
+    assert "cafe002" in index.present and "cafe002" in index.recorded   # both lines
+    assert "1234567" in index.recorded                                  # record line only
+    assert "9998887" in index.present and "9998887" not in index.recorded
+    assert "abcdef0" in index.recorded          # `Anchors this arc's own spine:` matches
+    assert "0badf00" in index.present and "0badf00" not in index.recorded
+
+
+def test_mention_not_record_warnings_is_byte_identical_to_the_pre_inversion_body(monkeypatch):
+    """The contract's own done-when, at unit scale: findings byte-identical, order included."""
+    shas = [s + "0" * 33 for s in ("9998887", "cafe002", "1234567", "0badf00", "abcdef0",
+                                   "eeeeeee")]
+    monkeypatch.setattr(ja, "introduced", lambda repo, sha: shas)
+    got = ja.mention_not_record_warnings(object(), "irrelevant", _INDEX_FIXTURE)
+    assert got == _reference_warnings(shas, _INDEX_FIXTURE)
+    # Stated positively too, so a reference that silently became vacuous could not pass this:
+    # only the prose-only short warns, and the ORDER follows `introduced`.
+    assert len(got) == 2
+    assert "9998887" in got[0] and "0badf00" in got[1]
+
+
+@pytest.mark.parametrize("text", [
+    _FIXTURE,
+    _FIXTURE + _NEW_ENTRY,
+    _INDEX_FIXTURE,
+    "",
+    "no headings at all, just prose\n",
+    "### only an entry, no preamble\n",
+    "   \n\n   \n",
+    "### a\nAnchors: `1234567`\n### b\n1234567 in prose\n",     # recorded THEN mentioned
+    "### a\n1234567 in prose\n### b\nAnchors: `1234567`\n",     # mentioned THEN recorded
+    "### a\n**anchor:** `1234567`\n",                            # lowercase, singular, bolded
+])
+def test_warnings_match_the_reference_across_journal_shapes(monkeypatch, text):
+    shas = [s + "0" * 33 for s in ("1234567", "cafe002", "deadbee", "0badf00", "abcdef1")]
+    monkeypatch.setattr(ja, "introduced", lambda repo, sha: shas)
+    expected = _reference_warnings(shas, text)
+    assert ja.mention_not_record_warnings(object(), "x", text) == expected
+    assert ja.mention_not_record_warnings(object(), "x", text) == expected   # cached path
+
+
+# --- (c) the inversion itself: ONE journal walk, not one per commit ----------------------
+
+def test_the_journal_is_walked_once_no_matter_how_many_commits(monkeypatch):
+    """THE regression guard for [#587] -- the assertion that makes the change worth committing.
+
+    Counting `_entries` calls is the honest proxy for "walks the journal": the pre-inversion
+    body called it once per introduced commit, and it is the single function both the old inner
+    loop and the new index builder go through. Asserted BEHAVIOURALLY rather than on wall-clock
+    (flaky under load, first thing muted) and rather than on source text (which would pass for a
+    rewrite that reintroduced the same shape under a different spelling).
+
+    Call-counting works here where `test_spine_date_lookup_stays_batched` had to fall back to
+    source inspection, and the difference is worth naming: that test drives the leg through
+    `audit.py`, where the dual-import idiom means a patched top-level `journal_anchor` may not
+    be the module object under test. This test calls `ja` directly, so there is one module.
+    """
+    calls = []
+    real = ja._entries
+    monkeypatch.setattr(ja, "_entries", lambda journal: (calls.append(1), real(journal))[1])
+    monkeypatch.setattr(ja, "introduced",
+                        lambda repo, sha: [f"{i:07x}" + "0" * 33 for i in range(200)])
+
+    ja.mention_not_record_warnings(object(), "x", _INDEX_FIXTURE)
+    assert len(calls) == 1, "the journal is being re-walked per introduced commit again"
+    ja.mention_not_record_warnings(object(), "x", _INDEX_FIXTURE)
+    assert len(calls) == 1, "the second scan re-walked the journal instead of hitting the memo"
+
+
+def test_the_index_is_a_cache_hit_on_the_second_call():
+    ja._anchor_index(_INDEX_FIXTURE)
+    assert ja._anchor_index.cache_info().hits == 0
+    ja._anchor_index(_INDEX_FIXTURE)
+    info = ja._anchor_index.cache_info()
+    assert info.hits == 1 and info.misses == 1
+
+
+def test_the_index_cache_is_bounded():
+    """Same leak argument as `_entries`': the audit runner holds ONE process across 46 checks."""
+    assert ja._anchor_index.cache_info().maxsize is not None
+
+
+def test_a_grown_journal_is_a_different_index(tmp_path):
+    """The [#533] hazard, re-asked of the new memo: a stale anchor index would produce false
+    push-gate verdicts, so a journal that GREW must not register a hit against the old one."""
+    (tmp_path / "JOURNAL.md").write_text(_FIXTURE, encoding="utf-8", newline="\n")
+    before = ja._anchor_index(ja.journal_text(tmp_path))
+    assert "abcdef1" not in before.present
+    with open(tmp_path / "JOURNAL.md", "a", encoding="utf-8", newline="\n") as fh:
+        fh.write(_NEW_ENTRY)
+    after = ja._anchor_index(ja.journal_text(tmp_path))
+    assert "abcdef1" in after.present and "abcdef1" in after.recorded
+
+
+def test_a_caller_cannot_mutate_the_cached_index():
+    index = ja._anchor_index(_INDEX_FIXTURE)
+    assert isinstance(index.present, frozenset) and isinstance(index.recorded, frozenset)
+
+
+# --- (d) `is_anchored` is the same predicate, answered from the index --------------------
+
+def test_is_anchored_agrees_with_the_raw_substring_test(monkeypatch):
+    """§A7 unchanged: anchored iff the journal NAMES a SHA the entry introduced."""
+    for short, expected in (("0badf00", True), ("badf00d", True), ("9998887", True),
+                            ("deadbee", False), ("eeeeeee", False)):
+        monkeypatch.setattr(ja, "introduced", lambda repo, sha, s=short: [s + "0" * 33])
+        assert ja.is_anchored(object(), "x", _INDEX_FIXTURE) is expected
+        assert (short in _INDEX_FIXTURE) is expected      # the test the index replaced
+
+
+def test_a_non_object_name_needle_falls_back_instead_of_reporting_absent(monkeypatch):
+    """The index's domain is 7-char lowercase hex. A needle outside it is NOT evidence of
+    absence, so both consumers fall back to their pre-inversion scan rather than answering
+    confidently from a set that could never have held it.
+
+    Unreachable from any caller in this repo -- `introduced` yields git object names -- which is
+    exactly why it is pinned: an unreachable narrowing is the kind that is discovered later, by
+    a caller that did not exist when the narrowing was made.
+    """
+    journal = "### a\n\nthe branch main-2 shipped\n"
+    monkeypatch.setattr(ja, "introduced", lambda repo, sha: ["main-2"])
+    assert ja.is_anchored(object(), "x", journal) is True
+    assert ja.mention_not_record_warnings(object(), "x", journal) == \
+        _reference_warnings(["main-2"], journal)
+
+
+# --- (e) the live corpus, which is the only oracle for scale ----------------------------
+
+_LIVE_JOURNAL = pathlib.Path(__file__).resolve().parents[1] / "JOURNAL.md"
+
+
+@pytest.mark.skipif(not _LIVE_JOURNAL.exists(), reason="live JOURNAL.md not present")
+def test_index_agrees_with_the_raw_substring_test_on_the_live_journal():
+    """Both directions, over the real 2.9 MB corpus -- no git, just the file.
+
+    Direction 1: every key the index holds occurs in the text (it invents nothing).
+    Direction 2: every 7-char hex short the RAW test finds is in the index (it drops nothing).
+    Direction 2 is the one that matters for the gate: a dropped key is a false UNANCHORED.
+    """
+    journal = _LIVE_JOURNAL.read_text(encoding="utf-8")
+    index = ja._anchor_index(journal)
+    assert len(index.present) > 100, "the live corpus should be rich in object names"
+    for short in index.present:
+        assert short in journal
+    # Direction 2, sampled deterministically across the whole corpus rather than exhaustively
+    # (2.9M windows is a minute of pure Python for a property one window in ten already pins).
+    hex_run = re.compile(r"[0-9a-f]{7,}")
+    checked = 0
+    for m in hex_run.finditer(journal):
+        run = m.group()
+        for i in range(0, len(run) - 6, 10):
+            checked += 1
+            assert run[i:i + 7] in index.present, f"index dropped {run[i:i + 7]!r}"
+    assert checked > 100
