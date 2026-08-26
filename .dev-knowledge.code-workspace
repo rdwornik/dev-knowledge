@@ -4,25 +4,58 @@
 			"name": "📓 .dev-knowledge",
 			"path": "C:\\Users\\1028120\\Documents\\Dev\\.dev-knowledge"
 		},
+
+		// PROVIDER CONFIG ROOTS -- one folder per WORKING agent surface, listed
+		// alphabetically so a missing surface is visible by inspection.
+		//
+		// EVERY PATH BELOW WAS MEASURED ON THIS HOST 2026-08-26, never inferred from the
+		// command name. The root is the directory the CLI actually WRITES its own config
+		// and state into; install/launcher directories are deliberately NOT listed.
+		//
+		// GEMINI'S ROOT WAS REMOVED, not renamed. The Gemini CLI is retired --
+		// IneligibleTierError / reasonCode UNSUPPORTED_CLIENT, a SERVER refusal that
+		// re-authenticating does not clear (ecosystem/provider-registry.yaml, `google`).
+		// `agy` succeeds it by operator ruling of 2026-08-26.
 		{
-			"name": "⚙️ ~/.claude (config)",
+			// agy -- NOT ~/.agy, which does not exist on this host, and NOT
+			// %LOCALAPPDATA%\agy\bin (agy.exe alone) or %LOCALAPPDATA%\antigravity
+			// (a bundled ripgrep + staging) -- all three are install dirs. The CLI's own
+			// settings.json / conversations / logs live here, rewritten on every run.
+			// Auth is the one thing NOT here: agy shares ~/.gemini/oauth_creds.json with
+			// the retired CLI, which is why the parent is gone but this subtree stays.
+			"name": "🪐 agy (~/.gemini/antigravity-cli)",
+			"path": "C:\\Users\\1028120\\.gemini\\antigravity-cli"
+		},
+		{
+			"name": "⚙️ claude (~/.claude)",
 			"path": "C:\\Users\\1028120\\.claude"
 		},
 		{
-			"name": "🤖 ~/.codex (OpenAI)",
+			"name": "🤖 codex (~/.codex)",
 			"path": "C:\\Users\\1028120\\.codex"
 		},
 		{
-			"name": "💎 ~/.gemini (Google)",
-			"path": "C:\\Users\\1028120\\.gemini"
+			// %LOCALAPPDATA%\copilot is pkg/ + caches; config.json and the plugin and repo
+			// state are here.
+			"name": "🐙 copilot (~/.copilot)",
+			"path": "C:\\Users\\1028120\\.copilot"
 		},
 		{
-			"name": "🚀 ~/.grok (xAI)",
-			"path": "C:\\Users\\1028120\\.grok"
-		},
-		{
-			"name": "🖱️ ~/.cursor (Cursor)",
+			// The surface is `cursor-agent`, NEVER the bare `agent` -- that name belongs to
+			// xAI on this host (~/.grok/bin/agent.exe is byte-identical to grok.exe).
+			// %LOCALAPPDATA%\cursor-agent holds only the launchers + versions/; the CLI's
+			// cli-config.json and agent-cli-state.json are here.
+			"name": "🖱️ cursor-agent (~/.cursor)",
 			"path": "C:\\Users\\1028120\\.cursor"
+		},
+		{
+			// Typed as `dcode` (a wrapper alias), but the CLI names its own root .deepcode.
+			"name": "🐋 deepcode (~/.deepcode)",
+			"path": "C:\\Users\\1028120\\.deepcode"
+		},
+		{
+			"name": "🚀 grok (~/.grok)",
+			"path": "C:\\Users\\1028120\\.grok"
 		}
 	],
 	"settings": {
