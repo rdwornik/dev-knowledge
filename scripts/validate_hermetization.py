@@ -200,7 +200,17 @@ _HOME_PATTERNS: tuple[str, ...] = (
     # docs: GENRE trees only. `docs` itself is absent BY DESIGN -- that absence is the
     # rule this leg exists to state, and it is why the relocation was owed.
     "docs/archive",
-    "docs/audits",
+    # `docs/audits/*` -- one home per BATCH LAUNCH-CONTRACT directory. Operator ruling
+    # 2026-08-26 (ADR-101 amendment below the `prompts/` one) revoked the root `prompts/`
+    # folder and relocated its convention under the genre tree as
+    # `docs/audits/<date>-technical-<batch>-launch-contracts/`. The `*` is the same shape
+    # the revoked `prompts/*` carried and for the same reason: the homes are the per-batch
+    # directories one level down, and a deeper nesting stays a surfaced act.
+    # HONEST LIMIT, stated rather than left to be found: the grammar has three tokens, so
+    # `*` is the narrowest pattern that can express "one dir per batch". It admits ANY
+    # immediate child directory of `docs/audits/`, not only the ruled name shape -- the
+    # narrower convention lives in ADR-101 and PLAYBOOK Ch8 and is checked by nobody.
+    "docs/audits", "docs/audits/*",
     "docs/decisions", "docs/decisions/archive",
     "docs/handoffs", "docs/handoffs/**",
     "docs/intake", "docs/intake/archive",

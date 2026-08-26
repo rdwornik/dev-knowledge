@@ -353,6 +353,20 @@ def test_rule_c_admits_the_devcontainer_home_but_not_a_subdir():
     assert vh.rule_c_violation(".devcontainer/scripts/extra.sh") is not None
 
 
+def test_rule_c_admits_a_batch_launch_contract_dir_but_not_a_subdir():
+    # Operator ruling 2026-08-26: the root `prompts/` folder is REVOKED and the batch
+    # launch-contract convention relocates under the genre tree as
+    # `docs/audits/<date>-technical-<batch>-launch-contracts/`. `docs/audits/*` admits the
+    # per-batch directory; a level deeper stays a surfaced act, same as `.devcontainer`.
+    d = "docs/audits/2026-08-25-technical-batch1-launch-contracts"
+    assert vh.rule_c_violation(f"{d}/LANE-G-governance-spine.md") is None
+    assert vh.classify(f"{d}/LANE-G-governance-spine.md") is None
+    assert vh.rule_c_violation(f"{d}/nested/LANE-G-governance-spine.md") is not None
+    # Rule B is silent at this depth -- it applies ONLY to `docs/audits/<file>.md`, so a
+    # `LANE-*.md` contract name is not measured against the audit filename grammar.
+    assert vh.rule_b_violation(f"{d}/LANE-G-governance-spine.md") is None
+
+
 def test_rule_c_blocks_a_new_package_dir_under_an_allowlisted_parent():
     # scripts/ is sanctioned and scripts/codemap|hooks|toc are known homes; a NEW package
     # dir is a deliberate act (it adds a codemap node), so it is surfaced rather than added.

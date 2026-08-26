@@ -1222,7 +1222,8 @@ dispositions:
     auto_clearable_by: "a docs/audits/ disposition-ledger row naming 2026-08-25-technical-dispatch-brief-to-architect.md with an evidence locator"
 
   # ---- prose edges from the FROZEN, byte-identical contract copies (lane RL, 2026-08-25) ----
-  # `prompts/<date>/` carries operator contracts copied in byte-identical; that byte-identity is
+  # `docs/audits/<date>-technical-<batch>-launch-contracts/` carries operator contracts copied in
+  # byte-identical (root `prompts/` REVOKED, operator ruling 2026-08-26); that byte-identity is
   # the whole value of the home, so the organ's own suggested fix -- adding a `reconciled_with:`
   # frontmatter key -- is unavailable here by construction: it would edit the artifact whose
   # unedited state is the evidence. These two are therefore dispositioned rather than declared,
@@ -1235,8 +1236,8 @@ dispositions:
 
   - id: warn-edge-lane-rl-registry-filings-v2
     organ: undeclared_edges
-    match: "prompts/2026-08-25/LANE-RL-registry-filings-v2.md -> handoff-process"
-    ref: "operator path-approval 2026-08-25 (lane RL); prompts/<date> is a frozen-copy home"
+    match: "docs/audits/2026-08-25-technical-batch1-launch-contracts/LANE-RL-registry-filings-v2.md -> handoff-process"
+    ref: "operator path-approval 2026-08-25 (lane RL); relocated 2026-08-26 to docs/audits/<date>-technical-<batch>-launch-contracts/, the frozen-copy home"
     reason: >-
       FROZEN COPY -- unfixable by editing, and that is the point. The file is a byte-identical
       copy of an operator contract; adding the `reconciled_with` frontmatter the organ suggests
@@ -1247,8 +1248,8 @@ dispositions:
 
   - id: warn-edge-lane-rl-registry-filings
     organ: undeclared_edges
-    match: "prompts/2026-08-25/LANE-RL-registry-filings.md -> handoff-process"
-    ref: "operator path-approval 2026-08-25 (lane RL); prompts/<date> is a frozen-copy home"
+    match: "docs/audits/2026-08-25-technical-batch1-launch-contracts/LANE-RL-registry-filings.md -> handoff-process"
+    ref: "operator path-approval 2026-08-25 (lane RL); relocated 2026-08-26 to docs/audits/<date>-technical-<batch>-launch-contracts/, the frozen-copy home"
     reason: >-
       FROZEN COPY -- unfixable by editing, and that is the point. The file is a byte-identical
       copy of an operator contract; adding the `reconciled_with` frontmatter the organ suggests
