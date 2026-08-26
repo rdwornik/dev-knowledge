@@ -2833,6 +2833,121 @@ seat and not the tree.
 
 **Expiry:** open-ended.
 
+## W. The 2026-08-26 endgame governance rulings (window close)
+
+**The act.** Ratified by the operator across the 2026-08-25/26 window and landed here by the
+endgame governance session of 2026-08-26. Authorities: the window record's Part IV rulings, the
+batch-1 close packet `docs/audits/2026-08-26-verification-batch-1-close-packet.md`, and the first
+measured picture of this repo's own surfaces, `docs/audits/2026-08-26-technical-hub-diagnostic.md`.
+Section U carries the candidate-register adjudication and section V the dispatch rulings; this
+section carries what the window produced after them.
+
+**W1 · `ANTHROPIC_BASE_URL` and `ANTHROPIC_AUTH_TOKEN` are NEVER set globally.** A global value
+silently routes **every** Claude Code session — hub lanes included — off the subscription and onto
+a metered path. This is not a style preference: it is the same defect class as the credential leak
+measured on 2026-08-26, where a profile-level export overrode the subscription in **every new
+terminal**, ran for hours, and was caught **by eye, on a banner** rather than by any mechanism. A
+provider reached through an Anthropic-compatible endpoint is therefore reachable **only through a
+scoped wrapper** that sets these names for a single child invocation and for nothing else.
+
+**One check covers this and the credential-leak class together** — they are one failure shape, not
+two, and the check is a **birth of this session's act 7**, not a claim that anything is enforced
+today. Until it lands this ruling binds the seat and not the tree. The design is already measured
+and must be carried over rather than re-derived: the check **launches a child shell** instead of
+reading its own environment (reading the current process is exactly the mistake that made a
+one-shell `Remove-Item` look like a fix), probes **both PowerShell editions**, scrubs the child's
+baseline so a hit proves the *profile chain* rather than the caller, **never reads or prints a
+value**, and reports `info` — never a silent pass — when it cannot judge.
+Evidence: `docs/audits/2026-08-26-technical-provider-surface-repair-summary.md` sections 1-2 (a
+redacted derived summary; the source is operator-side and deliberately not in this repo),
+`docs/audits/2026-08-26-technical-research-chinese-coding-models.md`, intake **#51**.
+
+**W2 · Documentation splits by AUDIENCE, and the D5 resolution follows from it.**
+`protocols/PLAYBOOK.md` and `protocols/ESSENTIALS.md` are **human-facing functional documentation
+of the methodology**; code and generated surfaces are the **machine layer**. The two are not
+competing descriptions of the same thing and must stop being edited as though they were.
+
+**D5 — the `ARCHITECTURE.md` prose half — is RESOLVED on that split:** the prose becomes a
+**functional document carrying a pointer**, rather than a restatement of what the machine layer
+already computes. ARC-G's diet executes **under this direction** and is not re-argued per file.
+This is the same rule `CLAUDE.md` section 4 already states as **M2** — never restate a count or
+roster, cite the surface that computes it — applied one level up, to whole documents rather than
+to individual numbers. **Honest limit:** this ruling sets the direction for ARC-G's execution; it
+does not itself diet any file, and **no ARC-G execution is taken by the session that lands it.**
+
+**W3 · The D2 icebox cap is ADOPTED, with the measured 45-day parameter.**
+Both seats recommended adoption and the diagnostic supplies the threshold. The parameter is
+**measured, not chosen**: at 90 days the icebox would be **empty** — no open row has a birth age
+at or above 90 d (the oldest is `[#23]` at 86 d) and none has a last-touch age above 29 d, so the
+90-day threshold is **longer than the lifetime of the id convention itself**. The distribution:
+
+| threshold (birth age) | rows iceboxed | open rows remaining |
+|---|---:|---:|
+| 90 d | 0 | 165 |
+| 75 d | 14 | 151 |
+| 60 d | 19 | 146 |
+| **45 d — ADOPTED** | **49** | **116** |
+| 30 d | 94 | 71 |
+
+**45 days is the meaningful cut: it moves 49 rows and leaves 116.** The machinery already exists —
+`status: deferred` is the icebox and holds 26 rows today — so this was a threshold question, never
+a build question. **Execution is a WAVE-2 act and is deliberately NOT taken here:** moving 49 rows
+is a large, reviewable change that should not ride a governance-landing commit.
+**Scope limit, stated because it is easy to misread:** the icebox reduces row **COUNT** and does
+**nothing** for `BACKLOG.md`'s size, whose cost is **per-row volume** — 191 rows carry 245,486
+bytes of body at a mean of 1,284 B/row. That is intake **#49**'s projection, a different fix.
+Evidence: `docs/audits/2026-08-26-technical-hub-diagnostic.md` section 7 Q2.
+
+**W4 · The Codespaces rung is NOT available, and must not be priced as available, until three
+measured defects close.** Smoke run 5 **FAILED the requirement**: `Ok=False`, and
+`RemoteExitCode` was **never set** because the run leg never executed. Reported as a failure rather
+than dressed up, because **the failure is the D1 evidence**. Three independent defects, each fatal
+on its own:
+
+1. **`gh codespace cp` is broken on this host** — scp receives a destination containing **literal
+   single quotes**. **Not a readiness race:** retried by hand after the codespace reached
+   `state=Available` and failed identically, with the target directory confirmed present.
+2. **`uv` is not installed in the container** — absent from PATH entirely. Every hub gate is
+   `uv run --locked` by ADR-106, so **no hub gate can execute on this substrate as provisioned.**
+3. **The clone is stale, and silently so** — in-container `HEAD` was a 2026-08-22 commit while
+   `git status -sb` reported no divergence, i.e. it never fetched. The machine came from a
+   prebuilt image. **Consequence: the very merge that declares the Claude Code install was not
+   present, and `claude` was NOT on PATH in the container meant to prove it.**
+
+**Combined with the close packet's section 7 — lane X never ran on the devcontainer either — this
+batch contains NO successful devcontainer execution at all.** The wave-2 router ADR must therefore
+not treat Q4 of the substrate decision tree as a live default. This is the "flag lost across
+substrates" family: a discipline proven on one transport, silently absent on the next, because the
+assertion examined an artifact three days stale.
+Evidence: `docs/audits/2026-08-26-verification-batch-1-close-packet.md` sections 7 and 11.
+
+**W5 · `[#569]` adjudication — `[#585]`'s narrowing is ACCEPTED and `[#569]` is CLOSED.**
+`[#585]` was born to own item (A) of `[#569]`'s grouped filing — the
+`test_anchor_gate_probe_distinguishes_installed_from_absent` RED — and named `[#569]` as its
+kill-candidate. The narrowing is sound and is accepted: item (A)'s **other** half
+(`test_routine_consumers_live_backlog_governs_exactly_one_row`) was already discharged 2026-08-22
+at `353149ab`, so `[#585]` absorbs everything of item (A) that is still live. **`[#569]` closes via
+the standard closure path, consuming `[#585]`'s kill-candidate.**
+
+**What the closure does NOT discharge, recorded here so it cannot be mistaken for done.**
+`[#569]`'s remaining weight was the **19-finding PLAYBOOK census** (2 HIGH, 10 MED, 7
+low-or-mechanical), and **closing the row does not correct those findings.** `[#585]`'s own
+kill-candidate line offered two branches — *"`[#569]` narrows to the PLAYBOOK census **or** closes
+once that census lands"* — and the census has **not** landed, so this closure takes the branch the
+row itself conditioned on an event that has not occurred. **The operator ruled it closed; the
+consequence is stated rather than smoothed.** The findings are not lost: they are recorded in
+`docs/audits/2026-08-20-technical-playbook-status.md`, which the closed row cites. The two HIGHs
+are the ones that will cost most if left: **H14** — `/override` is described in PLAYBOOK as live
+and as the gate's *only* escape, while the ADR-85 amendment of 2026-08-03 retired it and its own
+command file reads `RETIRED`, so doctrine points a reader at a dead organ — and **H13**, an
+**11-site `HANDOFF_PROCESS v5` cluster** in a file whose frontmatter declares
+`reconciled_with: handoff-process@6.2.0`. **If the census is to be executed it needs a new row**,
+and this entry is the record that no open row currently owns it.
+
+**Expiry:** open-ended for W1, W2 and W5. **W3's threshold** is revisited when the icebox execution
+lands. **W4 expires the moment a devcontainer dispatch is demonstrated end-to-end** — its whole
+content is a NOT-YET, and it should not outlive the evidence that produced it.
+
 ## Editing note (read before adding an entry)
 
 This file sits inside the silent-rule ratchet corpus (`protocols/*.md`; detector

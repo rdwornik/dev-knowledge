@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "cf92a6f3fce19e44949f7f7e72f9a9ff2510ca4c38178b4dd9197efdc3dda54c",
+  "generated_sha256": "740aa770b7e18ad3dafd057fb80b15a71859fb216721427f1ecb237881cff6a3",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -632,10 +632,6 @@
     {
       "task": 526,
       "file": "526-root-hygiene-audit-which-root-files-must-be-root.md"
-    },
-    {
-      "task": 569,
-      "file": "569-grouped-hygiene-two-standing-suite-reds-and-the-19-.md"
     },
     {
       "prose": ""
