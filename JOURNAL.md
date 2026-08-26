@@ -60,6 +60,11 @@ tip - this entry is never rewritten.
 **Next:** the full suite once on the merged result, then the close packet; wave-2 gate is the
 router ADR consuming lane CS's wall-times.
 
+**Anchor 3 (appended, not rewritten):** the batch-1 close packet is commit `219b62ce` —
+`docs/audits/2026-08-26-verification-batch-1-close-packet.md`, the artifact carrying the O1-O5
+verdicts, the ship-gate RED split, wall-times and the smoke-5 D1 finding. Named here so the merge
+that lands it is anchored.
+
 **Anchor 2 (appended, not rewritten):** the integration-owed commit is `dad228ef` — doc-counts
 regenerated on the merged result (pytest_collected 3949 -> 3977) and the batch's own two
 funnel_coverage WARNs dispositioned. Named here so the merge that lands it is anchored.
