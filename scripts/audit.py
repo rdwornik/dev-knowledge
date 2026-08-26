@@ -1119,12 +1119,36 @@ def check_hooks_armed(repo_path: Path) -> list[Finding]:
                 issues.append(f"{name} present but not pre-commit-managed (foreign hook)")
             elif f"--hook-type={name}" not in body:
                 issues.append(f"{name} wired for the wrong hook-type")
+        # [#590] — the same configured-but-unarmed class, one layer down. `.gitattributes`
+        # pins `docs/audits/README.md merge=ours`, but `ours` is not a built-in driver: git
+        # resolves it through `merge.ours.driver`, and without that key the pin is inert and
+        # the index conflicts on every parallel merge exactly as it did before. An inert pin
+        # is worse than no pin, because the file says the problem is solved. Reported here
+        # rather than as a new check because it is the same question this leg already asks —
+        # is this CHECKOUT armed for the gates the repo declares — and the remedy is the same
+        # SessionStart organ.
+        try:
+            from scripts import arm_hooks as _ah
+        except ImportError:
+            import arm_hooks as _ah
+        attrs = Path(repo_path) / ".gitattributes"
+        # Gated on the pin being DECLARED: a repo that never asks for `merge=ours` has
+        # nothing to arm, so an unset driver there is not a gap. The check is derived from
+        # the tree rather than hardcoded, so retiring the pin retires this leg with it.
+        pinned = attrs.is_file() and "merge=ours" in attrs.read_text(encoding="utf-8",
+                                                                    errors="replace")
+        if pinned and not _ah.merge_driver_armed(Path(repo_path)):
+            issues.append("merge.ours.driver unset — the .gitattributes `merge=ours` pin on "
+                          "docs/audits/README.md is inert ([#590]); run "
+                          "`git config --local merge.ours.driver true`")
         if issues:
             return [Finding("hooks_armed", "fail",
                             ("git hooks not armed (RF-2) — SessionStart self-arm should install "
                              "them: " + "; ".join(issues)).replace("|", "/"))]
         return [Finding("hooks_armed", "pass",
-                        "pre-commit / commit-msg / pre-push installed and pre-commit-managed")]
+                        "pre-commit / commit-msg / pre-push installed and pre-commit-managed"
+                        + ("; merge.ours.driver armed for the declared merge=ours pin"
+                           if pinned else "; no merge=ours pin declared"))]
     except Exception as exc:  # never wedge the audit-health gate
         return [Finding("hooks_armed", "warn",
                         f"check degraded (read-only, non-blocking): {exc!r}".replace("|", "/"))]

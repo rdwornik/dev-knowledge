@@ -1,6 +1,6 @@
 ---
 name: lane-integrate
-description: Walk a batch's merge queue serially from the primary checkout, then run the six-item refuse-to-finish checklist mechanically — the batch does not close while an item is open.
+description: Walk a batch's merge queue serially from the primary checkout, then run the refuse-to-finish checklist mechanically — the batch does not close while an item is open.
 ---
 
 # /lane-integrate — serial integrator for one batch
@@ -47,10 +47,24 @@ git branch -d worktree-lane-<letter>-<id>-<slug>
 - `git worktree remove` silently no-ops on a locked directory. Re-check rather than assume.
 - A lane that will not be merged is **explicitly abandoned**: record the disposition and the
   reason. Silence is not a disposition.
+- **The audits index is YOUR job now, once, at the end of the walk — not each lane's ([#590]).**
+  `docs/audits/README.md` is pinned `merge=ours` in `.gitattributes`, so a merge that touches
+  it keeps the receiving side rather than conflicting. That is what stopped one generated file
+  from causing 86% of this repo's manual merge resolution, and it means the index is **stale by
+  construction after every merge** — the incoming lane's artifact is missing from it. Regenerate
+  ONCE after the last merge and commit it with the batch:
+
+  ```bash
+  uv run --locked python scripts/gen_audit_index.py --write
+  git add docs/audits/README.md && git commit -m "docs(audits): regenerate the index for batch <n> [#590]"
+  ```
+
+  Skipping it does not fail quietly: `generated_artifact_freshness` (artifact `audits-index`)
+  WARNs at ship time and `cmd_ship_gate` REDs on an undispositioned WARN.
 
 ## 3. The refuse-to-finish checklist
 
-Run all six. The batch stays open while any one of them is open — this checklist is the
+Run every row. The batch stays open while any one of them is open — this checklist is the
 mechanical form of the close-out, so an item is checked because its command was run, not because
 it seemed fine.
 
@@ -60,6 +74,7 @@ it seemed fine.
 | 2 | Full suite run once on the merged result | `uv run --locked pytest -q --dist worksteal --max-worker-restart=0` on the final merged `main`, verdict quoted |
 | 3 | `git worktree list` == primary only | run it; one line of output |
 | 4 | Manifest/packet archived | the lane manifest and end-of-batch packet are committed in the tree |
+| 4b | Audits index regenerated once, after the last merge ([#590]) | `uv run --locked python scripts/gen_audit_index.py --check` exits 0 on the final merged `main`. It is `merge=ours`-pinned, so every merge leaves it stale by construction — this is the step that makes taking it out of the merge path safe rather than lossy |
 | 5 | `git stash list` is empty | run it; empty output. An entry that stays gets a recorded disposition — never a silent pass, and never a blind `drop` |
 | 6 | No `refs/locks/*` left held for this batch's contracts | `uv run --locked python scripts/single_flight.py inspect <contract-path>` per lane; each must print `FREE`. A `HELD` line names the holder and its `release:` command — hand it to the operator, do NOT run a release from here (see below) |
 

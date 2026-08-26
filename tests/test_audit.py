@@ -1062,10 +1062,18 @@ def test_generated_artifact_freshness_passes_when_current(
         tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(aud, "_gaf_git_last_commit_date",
                         _gaf_all(date(2026, 8, 24), date(2026, 8, 24)))
+    from scripts import generated_artifact_freshness as gaf
     findings = aud.check_generated_artifact_freshness(_gaf_tree(tmp_path))
-    assert len(findings) == 1, "one Finding PER ARTIFACT -- the ship-gate dispositions each"
-    assert findings[0].status == "pass", findings[0].evidence
-    assert findings[0].check_name == "generated_artifact_freshness"
+    # Derived from the REGISTRY, not pinned at 1 ([#590] added `audits-index`): the invariant
+    # is one Finding PER ARTIFACT so the #147 ship-gate dispositions each independently, and a
+    # literal count would have to be re-typed every time an artifact is registered — which is
+    # the drift a derived assertion cannot have.
+    assert len(findings) == len(gaf.REGISTRY), \
+        "one Finding PER ARTIFACT -- the ship-gate dispositions each"
+    dashboard = findings[0]   # `_gaf_tree` materializes only the dashboard's output faces
+    assert dashboard.status == "pass", dashboard.evidence
+    assert dashboard.check_name == "generated_artifact_freshness"
+    assert "conformance-dashboard" in dashboard.evidence
 
 
 def test_generated_artifact_freshness_warns_past_the_baseline(
@@ -2128,6 +2136,63 @@ def test_hooks_armed_pass(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setattr(aud, "_REPO_ROOT", str(tmp_path))
     f = aud.check_hooks_armed(tmp_path)[0]
     assert f.status == "pass", f.evidence
+
+
+# --- [#590] the merge-driver leg -------------------------------------------
+
+def test_hooks_armed_fails_when_the_declared_merge_ours_pin_is_unarmed(
+        tmp_path: Path, monkeypatch) -> None:
+    """A `.gitattributes` `merge=ours` pin with no `merge.ours.driver` is INERT — the merge
+    conflicts exactly as it did before, while the tracked file says the problem is solved.
+    That is the configured-but-unarmed window RF-2 exists to close, so it FAILs here."""
+    _arm_repo(tmp_path)
+    (tmp_path / ".gitattributes").write_text("docs/audits/README.md merge=ours\n",
+                                             encoding="utf-8")
+    monkeypatch.setattr(aud, "_REPO_ROOT", str(tmp_path))
+    f = aud.check_hooks_armed(tmp_path)[0]
+    assert f.status == "fail", f.evidence
+    assert "merge.ours.driver" in f.evidence
+    assert "git config --local merge.ours.driver true" in f.evidence
+
+
+def test_hooks_armed_passes_once_the_merge_driver_is_armed(tmp_path: Path, monkeypatch) -> None:
+    """...and arming it — which `arm_hooks.arm_merge_driver` does at SessionStart — clears it."""
+    _arm_repo(tmp_path)
+    (tmp_path / ".gitattributes").write_text("docs/audits/README.md merge=ours\n",
+                                             encoding="utf-8")
+    subprocess.run(["git", "config", "--local", "merge.ours.driver", "true"],
+                   cwd=tmp_path, check=True)
+    monkeypatch.setattr(aud, "_REPO_ROOT", str(tmp_path))
+    f = aud.check_hooks_armed(tmp_path)[0]
+    assert f.status == "pass", f.evidence
+    assert "merge.ours.driver armed" in f.evidence
+
+
+def test_hooks_armed_ignores_the_merge_driver_where_no_pin_is_declared(
+        tmp_path: Path, monkeypatch) -> None:
+    """The leg is derived from the TREE, not hardcoded: a repo that never asks for
+    `merge=ours` has nothing to arm, so an unset driver there is not a gap — and retiring the
+    pin would retire this leg with it rather than leaving a check with no subject."""
+    _arm_repo(tmp_path)
+    monkeypatch.setattr(aud, "_REPO_ROOT", str(tmp_path))
+    f = aud.check_hooks_armed(tmp_path)[0]
+    assert f.status == "pass", f.evidence
+    assert "no merge=ours pin declared" in f.evidence
+
+
+def test_arm_merge_driver_is_idempotent_and_reports_only_the_first_write(tmp_path, capsys):
+    """SessionStart runs on every session; a warm one must stay quiet."""
+    try:
+        from scripts import arm_hooks as ah
+    except ImportError:
+        import arm_hooks as ah
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    assert ah.merge_driver_armed(tmp_path) is False
+    assert ah.arm_merge_driver(tmp_path) is True
+    assert "merge.ours.driver=true" in capsys.readouterr().out
+    assert ah.merge_driver_armed(tmp_path) is True
+    assert ah.arm_merge_driver(tmp_path) is False, "a warm session must not rewrite the config"
+    assert capsys.readouterr().out == ""
 
 
 def test_hooks_armed_deleted_pre_push_fails(tmp_path: Path, monkeypatch) -> None:

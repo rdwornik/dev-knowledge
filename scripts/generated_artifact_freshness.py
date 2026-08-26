@@ -138,7 +138,33 @@ DASHBOARD = GeneratedArtifact(
     untracked_inputs=("logs/TELEMETRY.db",),
 )
 
-REGISTRY: tuple[GeneratedArtifact, ...] = (DASHBOARD,)
+#: `[#590]` — the audits index, registered here on 2026-08-26 as the OTHER HALF of taking
+#: `docs/audits/README.md` out of the merge path. Its `audit-index-freshness` pre-commit hook
+#: was narrowed to the index itself the same day, so a lane writing an audit no longer has to
+#: regenerate and commit it — which is exactly what had put this file in 6 of the last 7
+#: conflicted merges. Removing that obligation without replacing the guarantee would leave the
+#: index free to rot silently, so the guarantee moved to SHIP time, where the index is
+#: actually read: this leg WARNs once the index is older than the directory it indexes, and
+#: `cmd_ship_gate` REDs on an undispositioned WARN. The integrator discharges it by running
+#: the regen command below and committing the result.
+#:
+#: `baseline_days=0` is a MEASUREMENT, not an aspiration: at arm time (2026-08-26) the index
+#: and `docs/audits/` shared a commit date, so zero is the honest ratchet. Audits land at ~10
+#: files/day, so this leg speaks on essentially every batch — which is the intended pressure,
+#: not noise, because the discharge is one command.
+#:
+#: `inputs` is DATA + CODE, the same rule the dashboard's set follows. Note the index EXCLUDES
+#: itself from its own scan (`gen_audit_index.collect_audits` skips README.md), so listing the
+#: directory here cannot make the artifact its own input.
+AUDIT_INDEX = GeneratedArtifact(
+    name="audits-index",
+    outputs=("docs/audits/README.md",),
+    inputs=("docs/audits", "scripts/gen_audit_index.py"),
+    baseline_days=0,
+    regen_command="uv run --locked python scripts/gen_audit_index.py --write",
+)
+
+REGISTRY: tuple[GeneratedArtifact, ...] = (DASHBOARD, AUDIT_INDEX)
 
 #: verdict -> the audit `Finding.status` it must be reported as. THE MAPPING LIVES HERE, not in
 #: the audit leg, and that is a structural answer to a defect terra found twice (2026-08-23): a
