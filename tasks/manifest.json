@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "836dd3ce85588e21c71fc8b01e5fa744e1604f8b576f4a1b14c290fad91653ae",
+  "generated_sha256": "acdcd51700f57f72491adfd21ec16c6774859367b265713c5c5b2983f21da48d",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -223,6 +223,22 @@
     {
       "task": 583,
       "file": "583-green-by-skip-sweep-a-check-that-cannot-obtain-g.md"
+    },
+    {
+      "task": 591,
+      "file": "591-substrate-validator-layer-2-refuse-a-contract-wh.md"
+    },
+    {
+      "task": 592,
+      "file": "592-dispatch-drift-organ-every-literal-command-in-ch.md"
+    },
+    {
+      "task": 595,
+      "file": "595-consumer-at-landing-gate-for-docs-audits-the-sub.md"
+    },
+    {
+      "task": 596,
+      "file": "596-family-3-at-the-proof-layer-the-class-583-names.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
@@ -692,6 +708,14 @@
       "prose": ""
     },
     {
+      "task": 589,
+      "file": "589-one-line-per-row-the-backlog-view-projection-wit.md"
+    },
+    {
+      "task": 590,
+      "file": "590-the-audits-index-is-regenerated-on-read-never-me.md"
+    },
+    {
       "prose": "## [E6] Cross-repo universalization"
     },
     {
@@ -918,6 +942,30 @@
     {
       "task": 586,
       "file": "586-suite-red-test-no-gate-hook-or-script-reads-the.md"
+    },
+    {
+      "task": 587,
+      "file": "587-p-1-invert-the-journal-anchor-check-to-a-single.md"
+    },
+    {
+      "task": 588,
+      "file": "588-p-2-build-the-spine-parent-map-in-one-git-proces.md"
+    },
+    {
+      "task": 593,
+      "file": "593-codespaces-chain-repair-hub-half-uv-in-the-image.md"
+    },
+    {
+      "task": 594,
+      "file": "594-layer-3-router-the-hub-prerequisites-only-not-th.md"
+    },
+    {
+      "task": 597,
+      "file": "597-p-4-a-declared-tier-per-check-and-p-3-s-telemetr.md"
+    },
+    {
+      "task": 598,
+      "file": "598-p-6-a-slow-marker-selector-so-tiered-gating-has.md"
     },
     {
       "prose": "### [S19] Decide the undecided artifact/tool models"
