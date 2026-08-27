@@ -19,6 +19,57 @@
 
 ---
 
+### 2026-08-27 (d) - CC (Opus 5, background job, primary checkout, branch `docs/w2-close-packet`): batch W2 closes - the two headline numbers, and a smoke that failed twice over
+
+**Did:** landed the batch W2 close packet and regenerated the audits index the merges still owed.
+This is the closing record for the queue opened by `2026-08-27 (b)`; the packet carries the
+evidence, this entry carries the anchor.
+
+**The two headline numbers.** `audit.py health` **210,135 ms / 46 checks -> 200,000 ms / 48
+checks**, exit 0, `health: OK`, **zero FAILs**. Read honestly: `ALL_CHECKS` GREW by two across the
+batch, so main does more work in slightly less time; inside that, W2A's target check went
+197,808 ms -> ~7,000 ms (27.9x) and the bound moved to `check_review_artifact_coverage` (128.4 s),
+which `[#597]` owns and W2A's contract forbade chasing. W2A's `< 60 s` target was **NOT met**. Full
+suite: **2,484 s**, 4102 passed / 9 failed / 4 skipped / 1 xfailed, all nine attributed.
+
+**The premise correction.** The dispatch named the before-number as "625 s-class". **No 625 s figure
+exists on record** - the measured pre-W2A baseline is 210,135 ms (W2A report §5, run `f0caf15a`).
+Used that, said so, rather than quietly substituting a number that flattered the result.
+
+**Two findings worth more than the REDs they came from.** (1) **`[#590]` holds** - the audits index
+auto-merged clean in both G2 and lane-H, the same merges that conflicted on other files - **but
+merge-free is not regeneration-free**: after both clean merges the index was still STALE, which is
+what two of the nine suite REDs were. `[#590]` removed the collision, not the obligation to
+regenerate. (2) **The full suite is not isolated from live sibling worktrees**: `test_toc` failed
+reading a file inside the LIVE `lane-na-gates` tree and passes in isolation, as does the
+`reverse_dep_oracle` RED that `-n auto` fabricated. Both settled by re-running, not by argument.
+
+**The exemption that did not fit, and what it cost.** ADR-110's declared-integration-arc exemption
+exists to replace `SKIP=audit-health`, but the `[#514]`/`[#510]` narrowing scoped it to
+`LANE_BRANCH_RE` and **none of the five branches matches** - a manifest would have granted zero.
+Writing the anchor entry at queue-open instead kept `audit-health` armed on every conflicted merge:
+**zero SKIPs across a five-lane batch.** That the grammar does not fit the names batches are
+actually dispatched under is D3, and it is the architect's call.
+
+**Smoke 6 FAILED, twice over and independently.** The cp literal-quote transport bug killed the
+copy (`dest open "'/workspaces/...'"`), with the directory proven writable so it is neither absence
+nor permissions - recorded as the **win-tooling** half, hub NOT patched around it, per the
+dispatch. And the container served a **2026-08-26 image**: HEAD `6882ef74` against a pushed
+`ee4885de`, `refresh_source_tree` absent, `uv` absent - so **neither W2C repair was present to be
+tested** and the receipt-HEAD requirement would have failed regardless. **W2C stays UNPROVEN on
+live substrate.** The `every_push` revert is NOT implicated: the image predates it, and the trigger
+is server-side UI state no repo file controls.
+
+**Anchors (this batch's merges):** `dbd33400`, `066f6ecd`, `98f80c85`, `bf562619`, `d5a2e7d9`, `b8ebbd6a`, `df1ec97c`, `c287f11c`, `ee4885de`
+
+**Anchors (the close packet):** `0915d0c6` - the packet + the index regeneration, the commit this branch's merge introduces
+
+**Changes:** `docs/audits/2026-08-27-verification-batch-w2-close-packet.md` (new), `docs/audits/README.md` (regenerated), `JOURNAL.md`.
+
+**Abandoned:** deleting the smoke-6 codespace - it is STOPPED, not deleted; deletion is a deliberate operator act and retention reaps it at 24h.
+
+**Next:** the `na`/`nb` follow-up mini-merge once those lanes STOP - the only remaining merge work; a Smoke 6 re-run once D1 and D2 are addressed; dispositions for this batch's artifacts.
+
 ### 2026-08-27 (c) - CC (Opus 5, background job, primary checkout, branch `docs/anchor-integration-fix`): the integration-time fix needs its own anchor, and [#590] gets its first live proof
 
 **Did:** anchored merge `b8ebbd6a` (`fix/revert-prebuild-every-push`), the batch W2
