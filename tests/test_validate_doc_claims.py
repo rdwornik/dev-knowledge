@@ -396,7 +396,14 @@ def test_e2e_seeded_mismatch_fires_through_registered_check(tmp_path, monkeypatc
     # [#597] retired; the check is ship-tier now and always asks. What is under test here is the
     # count mismatch, not the collector, and a real `pytest --collect-only` in a tmp dir would
     # add seconds to every run of this test for nothing.
-    monkeypatch.setattr(vdc, "_derive_pytest_collected", lambda *_a, **_k: None)
+    #
+    # Patched on the REGISTRY, never `monkeypatch.setattr(vdc, "_derive_pytest_collected", ...)`:
+    # `_CLAIMS` captured the function object at import, so rebinding the module attribute leaves
+    # the row pointing at the real deriver and the stub is INERT. That is exactly what the first
+    # version of this line did (terra HIGH, 2026-08-27) — it shelled out to a real pytest and the
+    # test passed anyway, which is the seam-detaches-silently class this file's own
+    # `_claims_with_stub_pytest` docstring already warned about.
+    monkeypatch.setattr(vdc, "_CLAIMS", _claims_with_stub_pytest(lambda root, n: None))
     findings = aud.check_doc_claims(repo)
     assert findings[0].status == "warn"
     assert "audit_check_count" in findings[0].evidence

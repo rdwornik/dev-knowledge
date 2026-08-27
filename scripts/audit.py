@@ -372,8 +372,18 @@ def runs_at_tier(check, tier: str | None) -> bool:
     written as `tier_of(check) == tier` this would make `ship-gate` skip every commit-tier
     check — the exact inverse of what a ship gate is for, and it would pass a naive test that
     only ever exercised the commit path.
+
+    AN UNKNOWN RUNNER TIER RAISES (terra HIGH, 2026-08-27). This function used to treat any
+    string it did not recognise as the commit tier, so `run_checks(tier="shp")` would have
+    silently deferred all ten ship-tier checks and reported a GREEN, incomplete gate. That is
+    the same fail-loud contract `_tier` enforces on the declaration side, and it was
+    inconsistent for the runner side to be permissive about the identical typo.
     """
-    if tier is None or tier == TIER_SHIP:
+    if tier is None:
+        return True
+    if tier not in GATE_TIERS:
+        raise ValueError(f"unknown runner tier {tier!r} — expected None or one of {GATE_TIERS}")
+    if tier == TIER_SHIP:
         return True
     return tier_of(check) == TIER_COMMIT
 
@@ -4020,6 +4030,12 @@ def run_checks(repo_path: Path, checks: Sequence[Callable] | None = None,
     fabricated one.
     """
     active = list(ALL_CHECKS if checks is None else checks)
+    # Validated ONCE here, not only per-check: `runs_at_tier` raises on an unknown tier, but a
+    # per-check comprehension never reaches it on an EMPTY registry — and an empty registry is a
+    # legitimate call (`tests/` monkeypatches `ALL_CHECKS` down to nothing). Without this line a
+    # typo'd tier would return a clean, empty, GREEN result. (terra HIGH, 2026-08-27.)
+    if tier is not None and tier not in GATE_TIERS:
+        raise ValueError(f"unknown runner tier {tier!r} — expected None or one of {GATE_TIERS}")
     runs = [runs_at_tier(c, tier) for c in active]
     db = None
     if telemetry:

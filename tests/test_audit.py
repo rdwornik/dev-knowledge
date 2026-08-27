@@ -720,6 +720,47 @@ def test_a_deferred_check_emits_no_telemetry_row(tmp_path: Path) -> None:
     assert names == ["check_a"]
 
 
+@pytest.mark.parametrize("bad", ["shp", "SHIP", "push", "integration", ""])
+def test_an_unknown_runner_tier_raises_rather_than_deferring_silently(
+        tmp_path: Path, bad: str) -> None:
+    """terra HIGH, 2026-08-27. `runs_at_tier` used to treat any unrecognised string as the
+    commit tier, so `run_checks(tier="shp")` would silently defer all ten ship-tier checks and
+    report a GREEN, incomplete gate — the fail-loud contract `_tier` enforces on the declaration
+    side, absent on the runner side for the identical typo. `push` and `integration` are in the
+    list on purpose: [#597]'s row names both, and this module deliberately has neither."""
+    with pytest.raises(ValueError, match="unknown runner tier"):
+        aud.run_checks(tmp_path, checks=[_sentinel_check("a", aud.TIER_COMMIT, [])], tier=bad)
+
+
+def test_an_unknown_runner_tier_raises_even_on_an_empty_registry(tmp_path: Path) -> None:
+    """The validation lives at `run_checks` ENTRY, not only inside the per-check comprehension:
+    an empty registry is a legitimate call (tests monkeypatch `ALL_CHECKS` down to nothing), and
+    a comprehension over zero checks never reaches the raise — so a typo'd tier would return a
+    clean, empty, GREEN result."""
+    with pytest.raises(ValueError, match="unknown runner tier"):
+        aud.run_checks(tmp_path, checks=[], tier="shp")
+
+
+def test_cmd_ship_gate_runs_BOTH_tiers_end_to_end(monkeypatch: pytest.MonkeyPatch) -> None:
+    """terra HIGH, 2026-08-27 — the wiring, not the mechanism. Every other tier test proves
+    `run_checks(tier=None)` runs both tiers; none of them proved that `cmd_ship_gate` is the
+    caller that passes `None`. If it were ever changed to pass `TIER_COMMIT`, all of them would
+    stay green while ship-gate silently stopped running the ten checks it exists to run — the
+    whole claim of this arc ("tiering moves work to a LATER gate, never off the gate set")
+    rests on this one line of wiring, so it gets its own test."""
+    from click.testing import CliRunner
+
+    calls: list[str] = []
+    monkeypatch.setattr(aud, "ALL_CHECKS", [_sentinel_check("a", aud.TIER_COMMIT, calls),
+                                            _sentinel_check("b", aud.TIER_SHIP, calls)])
+    monkeypatch.setattr(aud, "_load_dispositions", lambda: [])
+    result = CliRunner().invoke(aud.cmd_ship_gate)
+
+    assert sorted(calls) == ["a", "b"], "ship-gate must run BOTH tiers"
+    assert "ship-tier" not in result.output, "no check may be deferred at ship-gate"
+    assert result.exit_code == 0, result.output
+
+
 def test_cmd_health_runs_the_commit_tier(monkeypatch: pytest.MonkeyPatch) -> None:
     """The wiring, not the mechanism: `cmd_health` IS the pre-commit gate, so it is the one
     caller that passes a tier. Observed through a ship-tier sentinel that must not run."""
