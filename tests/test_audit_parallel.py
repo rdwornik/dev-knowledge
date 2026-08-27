@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import threading
 import time
+from pathlib import Path
 
 import pytest
 from click.testing import CliRunner
@@ -261,30 +262,69 @@ def test_health_accepts_the_parallel_flags_and_defaults_to_serial(monkeypatch):
     assert sentinel.threads == [threading.main_thread().name]
 
 
-def test_health_keeps_gate_mode_set_during_the_loop_under_parallel(monkeypatch):
-    """`_GATE_MODE` is a process-global read by `check_doc_claims`; the parallel path must not
-    change when it is set or when it is cleared. Mirrors the property
-    `tests/test_audit.py` pins for the serial path -- asserted here rather than there, because
-    that file is read-only to this leg."""
-    seen = {}
-
-    def _sentinel(_repo):
-        seen["during"] = aud._GATE_MODE
-        return [aud.Finding("sentinel", "pass", "observed gate mode")]
-
-    monkeypatch.setattr(aud, "_GATE_MODE", False)
-    monkeypatch.setattr(aud, "ALL_CHECKS", [_sentinel])
-    CliRunner().invoke(aud.cmd_health, ["--parallel"])
-    assert seen["during"] is True
-    assert aud._GATE_MODE is False
+def _tiered_sentinel(name, tier, calls):
+    def _fn(_repo):
+        calls.append(name)
+        return [aud.Finding(name, "pass", "ran")]
+    _fn.__name__ = f"check_{name}"
+    return aud._tier(tier, _fn)
 
 
-def test_health_restores_gate_mode_when_a_parallel_check_raises(monkeypatch):
+def test_health_applies_the_commit_tier_under_parallel(monkeypatch):
+    """The [#597] successor to `test_health_keeps_gate_mode_set_during_the_loop_under_parallel`:
+    `_GATE_MODE` was a process-global read by `check_doc_claims`, and the tier replaces it. The
+    parallel path must select the SAME set as the serial one -- it builds `slots` differently
+    (pre-seeded deferrals + a sparse future map, rather than a comprehension), which is exactly
+    where a divergence would hide. Mirrors the property `tests/test_audit.py` pins for serial."""
+    calls = []
+    monkeypatch.setattr(aud, "ALL_CHECKS", [_tiered_sentinel("a", aud.TIER_COMMIT, calls),
+                                            _tiered_sentinel("b", aud.TIER_SHIP, calls)])
+    result = CliRunner().invoke(aud.cmd_health, ["--parallel"])
+    assert calls == ["a"]
+    assert "b: " in result.output          # deferred, still enumerated in registry order
+    assert "ship-tier" in result.output
+
+
+def test_health_needs_no_state_restored_when_a_parallel_check_raises(monkeypatch):
+    """The tier is an argument, so the raise cannot leave a global set -- there is none. What
+    still must hold is that the exception PROPAGATES rather than being swallowed into a
+    short report, and that a later run is unaffected."""
     def _boom(_repo):
         raise RuntimeError("check exploded")
 
-    monkeypatch.setattr(aud, "_GATE_MODE", False)
     monkeypatch.setattr(aud, "ALL_CHECKS", [_boom])
     result = CliRunner().invoke(aud.cmd_health, ["--parallel"])
     assert isinstance(result.exception, RuntimeError)
-    assert aud._GATE_MODE is False
+    assert not hasattr(aud, "_GATE_MODE")
+
+    calls = []
+    monkeypatch.setattr(aud, "ALL_CHECKS", [_tiered_sentinel("a", aud.TIER_COMMIT, calls),
+                                            _tiered_sentinel("b", aud.TIER_SHIP, calls)])
+    CliRunner().invoke(aud.cmd_health, ["--parallel"])
+    assert calls == ["a"]
+
+
+def test_parallel_worker_width_is_sized_to_the_checks_that_actually_run(monkeypatch):
+    """A pool sized to `len(active)` would open 46 threads to run 36 checks. Sized to the
+    RUNNING set instead -- and floored at 1, because `ThreadPoolExecutor(max_workers=0)` raises
+    and an all-deferred list is a legitimate call."""
+    seen = {}
+    real = aud.ThreadPoolExecutor
+
+    class _Spy(real):
+        def __init__(self, max_workers=None, **kw):
+            seen["width"] = max_workers
+            super().__init__(max_workers=max_workers, **kw)
+
+    monkeypatch.setattr(aud, "ThreadPoolExecutor", _Spy)
+    calls = []
+    checks = [_tiered_sentinel(f"s{i}", aud.TIER_SHIP, calls) for i in range(5)]
+    checks.append(_tiered_sentinel("c", aud.TIER_COMMIT, calls))
+    aud.run_checks(Path("."), checks=checks, parallel=True, tier=aud.TIER_COMMIT)
+    assert seen["width"] == 1          # one runnable check, not six
+    assert calls == ["c"]
+
+    calls.clear()
+    aud.run_checks(Path("."), checks=checks[:5], parallel=True, tier=aud.TIER_COMMIT)
+    assert seen["width"] == 1          # all deferred: floored at 1, never 0
+    assert calls == []

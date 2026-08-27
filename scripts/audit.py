@@ -308,10 +308,89 @@ _routine_code_spans = _registry._routine_code_spans
 _routine_in_code = _registry._routine_in_code
 _routine_value_is_named = _registry._routine_value_is_named
 
-# Gate-mode flag (#89): cmd_health sets this True around its self-audit loop so the
-# expensive claim-3 (pytest --collect-only) is SKIPPED on the per-commit gate and
-# evaluated only on the full-audit path (run/repo/CLI/SessionStart). Operator ruling.
-_GATE_MODE = False
+# ---------------------------------------------------------------------------
+# Per-check gate tiers ([#597]) — the generalization that RETIRES `_GATE_MODE`
+# ---------------------------------------------------------------------------
+#
+# `_GATE_MODE` was a module global that exactly TWO of 46 checks consulted (#89, and the
+# ADR-86 freshness leg), so the other 44 spent their full ship-time cost on every commit.
+# PERF-RECON B4 named it, and the module already said it about itself — `check_fleet_parity`
+# carried "the walk is ~8s and ALL_CHECKS also runs on the per-commit audit-health gate;
+# ship-gate-only scoping is a filed follow-up, not this arc". This is that follow-up.
+#
+# THE TIER IS A PROPERTY OF THE CHECK, not of the runner: declared inline in `ALL_CHECKS`,
+# stamped onto the function, read by `run_checks`. That is what lets it travel with the
+# deployed methodology corpus — a consumer repo inherits the tiers by taking the checks — where
+# a module global could only ever describe one repo's runner.
+#
+# TWO TIERS, AND THE LADDER IS NESTED: commit ⊂ ship. `audit-health` (the pre-commit gate) runs
+# the commit tier; `ship-gate`, `run` and `repo` run EVERYTHING. So no check is deleted from
+# any gate here — it is moved to a later one, and ship-gate's finding stream is unchanged byte
+# for byte. That is how [#597]'s own bar ("NO check is made faster by being made weaker") is met
+# by construction rather than by assertion.
+#
+# WHY THERE IS NO `push` TIER, which [#597]'s row names alongside commit and integration: there
+# is no push-stage ALL_CHECKS runner to put one in. The pre-push organs (`block_ff_push`,
+# `block_unanchored_push`) are separate scripts that never call this module, so a third enum
+# value would be inert on the day it landed — the exact class
+# `detect_unconditionally_inert_checks` exists to refuse. The value lands with its consumer or
+# not at all.
+TIER_COMMIT = "commit"
+TIER_SHIP = "ship"
+GATE_TIERS = (TIER_COMMIT, TIER_SHIP)
+
+
+def _tier(tier: str, check):
+    """Stamp `check` with the gate tier it runs at and return it, so `ALL_CHECKS` declares the
+    tier INLINE — one required positional argument per registry entry.
+
+    Stamping the function rather than keying a side table on `__name__`: 16 of the 46 checks are
+    defined in `scripts/audit_checks/`, and a name-keyed table would silently mis-tier a renamed
+    check — the seam-detaches-silently class `audit_checks/registry.py` documents. An unknown
+    tier RAISES at import, because a typo that degraded to a default would move a check off the
+    commit gate with nobody noticing.
+    """
+    if tier not in GATE_TIERS:
+        raise ValueError(f"unknown gate tier {tier!r} — expected one of {GATE_TIERS}")
+    check.gate_tier = tier
+    return check
+
+
+def tier_of(check) -> str:
+    """The tier `check` declared, defaulting to `TIER_COMMIT`.
+
+    THE DEFAULT IS THE STRICT DIRECTION: an undeclared check runs EVERYWHERE, so silence costs
+    wall time and never coverage. It is not a licence to omit the declaration —
+    `tests/test_audit.py::test_every_all_checks_member_declares_a_gate_tier` refuses an
+    undeclared `ALL_CHECKS` member, so a check added without a tier REDs the suite instead of
+    quietly joining the commit gate. The default exists for the OTHER caller: a test that
+    monkeypatches `ALL_CHECKS` down to a bare sentinel must not have to know about tiers.
+    """
+    declared = getattr(check, "gate_tier", TIER_COMMIT)
+    return declared if declared in GATE_TIERS else TIER_COMMIT
+
+
+def runs_at_tier(check, tier: str | None) -> bool:
+    """Does `check` run when the runner is invoked at `tier`? `None` means "run everything".
+
+    A SUBSET TEST, NEVER EQUALITY. The ladder is nested, so `ship` runs the commit tier too;
+    written as `tier_of(check) == tier` this would make `ship-gate` skip every commit-tier
+    check — the exact inverse of what a ship gate is for, and it would pass a naive test that
+    only ever exercised the commit path.
+
+    AN UNKNOWN RUNNER TIER RAISES (terra HIGH, 2026-08-27). This function used to treat any
+    string it did not recognise as the commit tier, so `run_checks(tier="shp")` would have
+    silently deferred all ten ship-tier checks and reported a GREEN, incomplete gate. That is
+    the same fail-loud contract `_tier` enforces on the declaration side, and it was
+    inconsistent for the runner side to be permissive about the identical typo.
+    """
+    if tier is None:
+        return True
+    if tier not in GATE_TIERS:
+        raise ValueError(f"unknown runner tier {tier!r} — expected None or one of {GATE_TIERS}")
+    if tier == TIER_SHIP:
+        return True
+    return tier_of(check) == TIER_COMMIT
 
 logging.basicConfig(format="%(name)s: %(message)s", level=logging.INFO)
 logger = logging.getLogger("audit")
@@ -631,10 +710,12 @@ def check_generated_artifact_freshness(repo_path: Path) -> list[Finding]:
     WARN-CLASS BY RULING. `cmd_health` (the pre-commit gate) exits 1 only on a `fail`, while
     `cmd_ship_gate` REDs on any undispositioned `warn` -- so the TEETH are at ship time.
 
-    AND THE WORK IS SKIPPED AT COMMIT TIME, not merely the blocking. `cmd_health` runs the whole
-    of ALL_CHECKS, so a WARN-class check still SPENDS its cost on every commit -- measured at 11
-    `git log` calls for the dashboard. `_GATE_MODE` is this module's existing answer to exactly
-    that. At commit time the leg is an honest `n/a`; at ship time it measures.
+    AND THE WORK IS SKIPPED AT COMMIT TIME, not merely the blocking. A WARN-class check that
+    still SPENDS its cost on every commit -- measured at 11 `git log` calls for the dashboard --
+    buys nothing there, because `cmd_health` exits 1 only on a `fail`. This leg hand-rolled that
+    skip with `_GATE_MODE`; since [#597] it is DECLARED (`_tier(TIER_SHIP, ...)` in ALL_CHECKS)
+    and the runner does the skipping, so the leg's body no longer has a commit-time branch at
+    all. At commit time the runner emits the honest `n/a` in its place; at ship time it measures.
 
     ONE Finding PER ARTIFACT so the #147 ship-gate dispositions each independently. Logic
     single-sourced in `scripts/generated_artifact_freshness.py`; this leg only wraps it, passing
@@ -646,10 +727,6 @@ def check_generated_artifact_freshness(repo_path: Path) -> list[Finding]:
     verdict raises `KeyError` here instead of passing quietly.
     """
     name = "generated_artifact_freshness"
-    if _GATE_MODE:
-        return [_na(name, "NOT-APPLICABLE",
-                    "ship-gate-only leg -- skipped at the audit-health commit gate "
-                    "(ADR-86 amd. 2026-08-23: freshness matters when you ship)")]
     findings: list[Finding] = []
     for artifact in _gaf.REGISTRY:
         m = _gaf.measure(repo_path, artifact, git_date_fn=_gaf_git_last_commit_date)
@@ -1209,9 +1286,18 @@ def check_doc_claims(repo_path: Path) -> list[Finding]:
     is #140's, not this check's.
 
     Awareness layer, not a gate: emits WARN on a mismatch, an anchor-not-found, or a
-    could-not-compute (never FAIL → never blocks the audit-health commit gate). The
-    expensive claim-3 (pytest --collect-only) runs only off the gate
-    (run_expensive=not _GATE_MODE).
+    could-not-compute (never FAIL → never blocks the audit-health commit gate).
+
+    SHIP-TIER SINCE [#597], and that is the second half of retiring `_GATE_MODE`. This check
+    used to run at commit in a degraded posture — everything but the expensive claim-3
+    (`pytest --collect-only`), suppressed by `run_expensive=not _GATE_MODE`. Declaring the whole
+    check ship-tier says the same thing without a global: it cannot block a commit (WARN-only,
+    and the live-repo contract is pinned by
+    `tests/test_validate_doc_claims.py::test_registered_check_never_fails_on_live_repo`), so its
+    teeth are at ship-gate, and claim-3 now always runs where the check runs. The cost this
+    trades away is the 78 ms degraded run the commit gate used to pay; the cost it stops paying
+    is the branch that made "which claims actually ran?" depend on a module global.
+
     Fail-soft on any error. Read-only. Logic lives in scripts/validate_doc_claims.py.
     """
     if not _is_hub(repo_path):
@@ -1219,7 +1305,7 @@ def check_doc_claims(repo_path: Path) -> list[Finding]:
                         "hub-only — prose-vs-state check skipped (not the hub repo)")]
     try:
         results = _vdc.reconcile(Path(repo_path), len(ALL_CHECKS),
-                                 run_expensive=not _GATE_MODE)
+                                 run_expensive=True)
     except Exception as exc:  # never wedge the audit-health gate
         return [Finding("doc_claims", "warn",
                         f"check degraded (read-only, non-blocking): {exc!r}".replace("|", "/"))]
@@ -2198,7 +2284,20 @@ def check_fleet_parity(repo_path: Path) -> list[Finding]:
     tracked-ephemera; stale-declaration + advisory-rewarn stay advisory-but-VISIBLE (surfaced in
     the summary, never RED from a date/corpus advance -- which is why the wall-clock run-date is
     safe). PERF ([#337] rider, 2026-07-18): the walk is ~8s and ALL_CHECKS also runs on the
-    per-commit audit-health gate; ship-gate-only scoping is a filed follow-up, not this arc.
+    per-commit audit-health gate; ship-gate-only scoping was a filed follow-up. **[#597]
+    DISCHARGES IT**: this check is declared `_tier(TIER_SHIP, ...)` in ALL_CHECKS and no longer
+    runs at the commit gate. Measured at 14,520 ms (4.80% of check time) in the reference run
+    `db4aeea2`, which is what the ~8s estimate had grown into.
+
+    AND THE REASON IS NOT ONLY COST — this is the one ship-tier member that CAN emit `fail`, so
+    it is the one that needs a risk argument beyond "it cannot block the commit anyway". The
+    argument is that the property is CROSS-REPO: parity drift is caused by what happens in the
+    other repos of the fleet, and a hub commit cannot create it. Gating each hub commit on the
+    state of five other working trees prices every commit at another repo's drift while doing
+    nothing to prevent the drift. The arc boundary is where a fleet-wide claim can honestly be
+    made, and ship-gate still FAILs on refused / must-absent / tombstone-violated exactly as
+    before. What is genuinely given up: a parity regression introduced elsewhere is now noticed
+    at ship rather than at the next hub commit — later, and stated rather than smoothed over.
     """
     if not _is_hub(repo_path):
         return [_na("fleet_parity", "NOT-APPLICABLE",
@@ -3830,83 +3929,137 @@ def check_funnel_coverage(repo_path: Path) -> list[Finding]:
             for status, evidence in _fc.ratchet_findings(m, baseline)]
 
 
+# THE REGISTRY DECLARES THE TIER ([#597]). Every entry is `_tier(<tier>, <check>)` — the tier is
+# a required positional argument, so an entry cannot be added without stating one, and
+# `tests/test_audit.py::test_every_all_checks_member_declares_a_gate_tier` refuses a bare
+# callable outright. Order is still the contract (`audit_checks/registry.py::CHECK_ORDER`); the
+# wrapper returns the function unchanged, so the list is a list of the same callables it was.
+#
+# THE ASSIGNMENT RULE, stated once here rather than re-argued per row. A check is `TIER_SHIP`
+# only when BOTH hold: (a) it cannot emit `fail`, so it has ZERO gating power at the commit gate
+# — `cmd_health` exits 1 on `fail` alone, so a WARN-only check's commit-time verdict is one line
+# among a hundred and blocks nothing; and (b) it costs ≥1 s of measured wall time. Everything
+# else stays `TIER_COMMIT`, INCLUDING the sub-second WARN-only checks (`doc_rot` 128 ms,
+# `no_ff_merges` 410 ms, `preflight_backlog_ids` 102 ms, `enforcement_coverage` 39 ms,
+# `deployed_methodology_version` 322 ms): moving them would buy nothing measurable and cost
+# their awareness line, and a tier decision with no payoff is not a decision.
+#
+# TWO ENTRIES ARE EXCEPTIONS TO THAT RULE AND SAY SO. `fleet_parity` is FAIL-capable and ship
+# anyway (cross-repo property; the argument is at its docstring, and it discharges the
+# follow-up filed there). `doc_claims` and `generated_artifact_freshness` are the two checks
+# `_GATE_MODE` hand-rolled a ship-only posture for; the declaration absorbs them, which is what
+# generalizing that global MEANS — `doc_claims` at 82 ms would not clear rule (b) on cost.
+#
+# The `ms` figures are a DATED MEASUREMENT, not a live claim: telemetry run `db4aeea2` (the
+# quietest of W2A's post-[#588] runs, `docs/audits/2026-08-26-technical-w2a-perf-core.md` §5),
+# 46 checks, 302,693 ms summed across an 8-wide pool. The full 46-row ranking and this lane's
+# own confirming run are in `docs/audits/2026-08-27-technical-lane-nb-tiering.md`.
 ALL_CHECKS = [
-    check_vision_md,
-    check_adr38_baseline,
-    check_claude_md,
-    check_dot_prefix_discipline,
-    check_canonical_md_visibility,
-    check_workspace_settings,
+    _tier(TIER_COMMIT, check_vision_md),
+    _tier(TIER_COMMIT, check_adr38_baseline),
+    _tier(TIER_COMMIT, check_claude_md),
+    _tier(TIER_COMMIT, check_dot_prefix_discipline),
+    _tier(TIER_COMMIT, check_canonical_md_visibility),
+    _tier(TIER_COMMIT, check_workspace_settings),
     # check_mermaid_theme_directive retired 2026-07-05 (ADR-51 amendment — LLM-first)
-    check_handoff_bundle_structure,
-    check_canonical_freshness,
-    check_generated_artifact_freshness,   # ADR-86 amd. 2026-08-23 / `[#171]` leg 1 — WARN-tier
-                                          # by ruling; RED is a later act with its own ruling
-    check_no_sibling_orphans,
-    check_stale_worktrees,   # [#505] batch hygiene — WARN-tier by ruling (ADR-110 §1 item 4)
-    check_canonical_structure,
-    check_handoff_version_stamp,
-    check_amendment_coherence,
-    check_floor_integrity,
-    check_hooks_armed,
-    check_git_backlog_drift,
-    check_doc_claims,
-    check_no_ff_merges,
-    check_handoff_probes,
-    check_supplement_folded,   # R4 (census 2026-08-26 b6) — FAIL-class; a filled SUPPLEMENT
-                               # that never reached the paste is a silent loss of the
-                               # outgoing seat's judgment
-    check_dispatch_verb_agreement,   # R5 — the drift organ STANDING_RULINGS §V records as
-                                     # "owed and unbuilt"; FAIL-class, tree-side half only
-    check_reconciled_versions,
-    check_doc_rot,
-    check_doc_structure,
-    check_doc_code_edge,
-    check_safe_removal,
-    check_residual_completeness,
-    check_deployed_methodology_version,
-    check_enforcement_coverage,
-    check_undeclared_edges,
-    check_doc_code_coverage_drift,
-    check_import_edges,
-    check_fleet_parity,   # [#337] blocking #328 fleet-parity gate (was informational)
-    check_routine_consumers,   # [#419]/ADR-105 activation gate; scope = marked rows only
-    check_silent_rule_ratchet,   # [#436] D4 ratchet — gates GROWTH of the silent-rule pool
-    check_task_tree_coherence,   # [#433] C1 — arms gen_task_tree --check as a gate
-    check_intake_tree_coherence,   # [#383] wave 1 — arms gen_intake_tree --check (ADR-109 §4)
-    check_boot_byte_budget,   # [#446] A10 item 2 / R4 — the gate half of the split enforcement
-    check_fleet_audit_replication,   # [#460] — ADR-80's durable record must exist off this disk
-    check_membership_agreement,   # [#462] — ADR-104's declaration vs every repo-keyed surface
-    check_journal_spine_anchor,   # ADR-85 amendment 2026-08-03 §A8/FR4 — backstop for the
-                                  # pre-push hard leg; makes `--no-verify` non-silent
-    check_journal_day_letters,   # [#524] leg a — day-letter uniqueness since 2026-07-30
-    check_preflight_backlog_ids,   # [#483] R3 — ADVISORY (WARN-tier by ruling); hard-gating is
-                                   # deferred pending 0 false positives over two windows
-    check_review_artifact_coverage,   # [#480] P3 — ADVISORY (WARN-tier by ruling);
-                                     # the hard pre-push leg is deferred behind a
-                                     # two-window zero-false-positive evidence bar
-    check_landing_predicate,   # [#513] propagation-completeness — GATING (FAIL-capable), one
-                               # Finding per declared ruling in STANDING_RULINGS.md
-    check_adr_status_grammar,  # [#242] — ADR Status grammar/enum + header<->README coherence.
-                               # enum/single-field FAIL-armed (both measure 0); grammar(47)/
-                               # coherence(3)/wrapped(1)/duplicate-id(2) WARN against the
-                               # baseline in docs/audits/2026-08-23-technical-lane-status-grammar.md
-    check_funnel_coverage,     # M3 — ADVISORY (WARN-tier by ruling); zero-baseline ratchet over
-                               # docs/audits/ disposition coverage, keyed on artifact identity
-    check_substrate_declaration,  # [#591] substrate validator layer 2 — REFUSE legs FAIL-armed
-                                  # against a post-2026-08-27 corpus measuring 0; the
-                                  # second-local-writer leg is WARN by the row's own words
-    check_dispatch_drift,      # [#592] — every literal command in PLAYBOOK Ch8's dispatch
-                               # table resolves via Get-Command, and /lane-boot names the
-                               # ruled verb. Machine-dependent BY DESIGN: a shell-less host
-                               # reports the tier as a WARN, never a green-rendering status
-    check_consumer_at_landing,  # [#595] — the subtraction mechanism. Leg 1 (a landing
-                                # declares its consumer) FAIL-armed against a post-2026-08-27
-                                # corpus measuring 0; leg 2 (the identity-keyed consumption
-                                # ratchet) WARN by the funnel_coverage ruling
-    check_proof_layer,         # [#596] — family 3 at the PROOF layer: a proof whose firing is
-                               # gated on the environment it polices. WARN-tier identity
-                               # ratchet; the class + predicate live in scripts/proof_layer.py
+    _tier(TIER_COMMIT, check_handoff_bundle_structure),
+    _tier(TIER_COMMIT, check_canonical_freshness),
+    _tier(TIER_SHIP, check_generated_artifact_freshness),   # ADR-86 amd. 2026-08-23 / `[#171]`
+                                          # leg 1 — WARN-tier by ruling; RED is a later act with
+                                          # its own ruling. SHIP: it hand-rolled this skip with
+                                          # `_GATE_MODE`, which is why it measures 0 ms today
+    _tier(TIER_COMMIT, check_no_sibling_orphans),
+    _tier(TIER_SHIP, check_stale_worktrees),   # [#505] batch hygiene — WARN-tier by ruling
+                             # (ADR-110 §1 item 4). SHIP: 2,420 ms, and a live sibling worktree
+                             # is a fact about the operator's disk, not about this commit
+    _tier(TIER_COMMIT, check_canonical_structure),
+    _tier(TIER_COMMIT, check_handoff_version_stamp),
+    _tier(TIER_COMMIT, check_amendment_coherence),
+    _tier(TIER_COMMIT, check_floor_integrity),
+    _tier(TIER_COMMIT, check_hooks_armed),
+    _tier(TIER_SHIP, check_git_backlog_drift),   # SHIP: 3,911 ms, WARN-only awareness organ
+                             # (#90a — it "exits 0 even on drift", cmd_ship_gate's own words)
+    _tier(TIER_SHIP, check_doc_claims),   # SHIP: `_GATE_MODE` consumer #2 — see its docstring
+    _tier(TIER_COMMIT, check_no_ff_merges),
+    _tier(TIER_COMMIT, check_handoff_probes),
+    _tier(TIER_COMMIT, check_supplement_folded),   # R4 (census 2026-08-26 b6) — FAIL-class;
+                               # a filled SUPPLEMENT that never reached the paste is a silent
+                               # loss of the outgoing seat's judgment. COMMIT by rule (a):
+                               # FAIL-capable, so cost never earns it a ship tier
+    _tier(TIER_COMMIT, check_dispatch_verb_agreement),   # R5 — the drift organ
+                               # STANDING_RULINGS §V records as "owed and unbuilt"; FAIL-class,
+                               # tree-side half only. COMMIT by rule (a)
+    _tier(TIER_COMMIT, check_reconciled_versions),
+    _tier(TIER_COMMIT, check_doc_rot),
+    _tier(TIER_SHIP, check_doc_structure),   # SHIP: 4,531 ms; "never FAIL -> never blocks the
+                             # audit-health commit gate" is this check's own docstring
+    _tier(TIER_SHIP, check_doc_code_edge),   # SHIP: 36,617 ms (12.10%); "NEVER FAILs this arc —
+                             # advisory-first; promotion to a gate is data-gated (ADR-89 OQ3)"
+    _tier(TIER_COMMIT, check_safe_removal),
+    _tier(TIER_COMMIT, check_residual_completeness),
+    _tier(TIER_COMMIT, check_deployed_methodology_version),
+    _tier(TIER_COMMIT, check_enforcement_coverage),
+    _tier(TIER_SHIP, check_undeclared_edges),   # SHIP: 22,530 ms (7.44%); #179 was "wired as a
+                             # ship-gate WARN leg" by the 2026-07-03 ruling — the tier now says
+                             # what the docstring already claimed
+    _tier(TIER_COMMIT, check_doc_code_coverage_drift),
+    _tier(TIER_COMMIT, check_import_edges),
+    _tier(TIER_SHIP, check_fleet_parity),   # [#337] blocking #328 fleet-parity gate (was
+                             # informational). SHIP: 14,520 ms; the FAIL-capable exception, and
+                             # the discharge of the follow-up filed in its docstring
+    _tier(TIER_COMMIT, check_routine_consumers),   # [#419]/ADR-105 activation gate; scope =
+                                                   # marked rows only
+    _tier(TIER_COMMIT, check_silent_rule_ratchet),   # [#436] D4 ratchet — gates GROWTH of the
+                                                     # silent-rule pool
+    _tier(TIER_COMMIT, check_task_tree_coherence),   # [#433] C1 — arms gen_task_tree --check
+    _tier(TIER_COMMIT, check_intake_tree_coherence),   # [#383] wave 1 — arms gen_intake_tree
+                                                       # --check (ADR-109 §4)
+    _tier(TIER_COMMIT, check_boot_byte_budget),   # [#446] A10 item 2 / R4 — the gate half of
+                                                  # the split enforcement
+    _tier(TIER_COMMIT, check_fleet_audit_replication),   # [#460] — ADR-80's durable record must
+                                                         # exist off this disk
+    _tier(TIER_COMMIT, check_membership_agreement),   # [#462] — ADR-104's declaration vs every
+                                                      # repo-keyed surface
+    _tier(TIER_COMMIT, check_journal_spine_anchor),   # ADR-85 amendment 2026-08-03 §A8/FR4 —
+                                  # backstop for the pre-push hard leg; makes `--no-verify`
+                                  # non-silent. FAIL-capable and stays at commit BY DESIGN
+    _tier(TIER_COMMIT, check_journal_day_letters),   # [#524] leg a — day-letter uniqueness
+    _tier(TIER_COMMIT, check_preflight_backlog_ids),   # [#483] R3 — ADVISORY (WARN-tier by
+                                   # ruling); hard-gating is deferred pending 0 false positives
+                                   # over two windows. 102 ms: fails rule (b), stays at commit
+    _tier(TIER_SHIP, check_review_artifact_coverage),   # [#480] P3 — ADVISORY (WARN-tier by
+                                     # ruling); the hard pre-push leg is deferred behind a
+                                     # two-window zero-false-positive evidence bar.
+                                     # SHIP: 128,428 ms — 42.43% of all check time, alone
+    _tier(TIER_COMMIT, check_landing_predicate),   # [#513] propagation-completeness — GATING
+                               # (FAIL-capable), one Finding per declared ruling
+    _tier(TIER_COMMIT, check_adr_status_grammar),  # [#242] — ADR Status grammar/enum +
+                               # header<->README coherence. enum/single-field FAIL-armed (both
+                               # measure 0); grammar(47)/coherence(3)/wrapped(1)/duplicate-id(2)
+                               # WARN against the baseline in
+                               # docs/audits/2026-08-23-technical-lane-status-grammar.md
+    _tier(TIER_SHIP, check_funnel_coverage),     # M3 — ADVISORY (WARN-tier by ruling);
+                               # zero-baseline ratchet over docs/audits/ disposition coverage,
+                               # keyed on artifact identity. SHIP: 6,219 ms
+    _tier(TIER_COMMIT, check_substrate_declaration),  # [#591] substrate validator layer 2 —
+                               # REFUSE legs FAIL-armed against a post-2026-08-27 corpus
+                               # measuring 0; the second-local-writer leg is WARN by the row's
+                               # own words. COMMIT by rule (a): FAIL-capable
+    _tier(TIER_COMMIT, check_dispatch_drift),      # [#592] — every literal command in
+                               # PLAYBOOK Ch8's dispatch table resolves via Get-Command, and
+                               # /lane-boot names the ruled verb. COMMIT by rule (a):
+                               # FAIL-capable on an unresolvable command
+    _tier(TIER_COMMIT, check_consumer_at_landing),  # [#595] — the subtraction mechanism.
+                               # Leg 1 (a landing declares its consumer) FAIL-armed against a
+                               # post-2026-08-27 corpus measuring 0; leg 2 (the identity-keyed
+                               # consumption ratchet) WARN. COMMIT by rule (a): FAIL-capable
+    _tier(TIER_COMMIT, check_proof_layer),         # [#596] — family 3 at the PROOF layer: a
+                               # proof whose firing is gated on the environment it polices.
+                               # WARN-tier identity ratchet, so it PASSES rule (a) — but rule
+                               # (b) needs >=1 s of MEASURED cost and no measurement for it
+                               # exists. Integration-time default is the strict direction;
+                               # ship-tier is a live candidate for [#597]'s author to rule on,
+                               # not an integrator's call to make silently
 ]
 
 
@@ -4137,7 +4290,8 @@ def _parallel_workers(n_checks: int) -> int:
 def run_checks(repo_path: Path, checks: Sequence[Callable] | None = None,
                parallel: bool = False, workers: int | None = None,
                telemetry: bool = _TELEMETRY_DEFAULT,
-               telemetry_db: str | os.PathLike | None = None) -> list[Finding]:
+               telemetry_db: str | os.PathLike | None = None,
+               tier: str | None = None) -> list[Finding]:
     """Run `checks` against `repo_path` and return their findings IN REGISTRY ORDER.
 
     ORDER IS THE CONTRACT, not a side effect. `CHECK_ORDER` is the order findings are emitted
@@ -4157,8 +4311,8 @@ def run_checks(repo_path: Path, checks: Sequence[Callable] | None = None,
     which is the exact failure class `audit_checks/registry.py` documents.
 
     THREADS, not processes: the checks are I/O-bound (git subprocesses, file reads), they share
-    process-global state a `ProcessPoolExecutor` could not (`_GATE_MODE`, the `journal_anchor`
-    memos), and several are closures over module state that would not pickle.
+    process-global state a `ProcessPoolExecutor` could not (the `journal_anchor` memos; before
+    [#597] also `_GATE_MODE`), and several are closures over module state that would not pickle.
 
     An exception in a worker PROPAGATES -- `future.result()` re-raises it on this thread. A
     runner that swallowed it would turn a loud failure into a silently short report, which is
@@ -4183,13 +4337,39 @@ def run_checks(repo_path: Path, checks: Sequence[Callable] | None = None,
 
     A check that RAISES emits `outcome="error"` at the point of failure (there is no flatten to
     walk on that path) and then propagates unchanged.
+
+    TIER ([#597]) IS THE ONLY THING THAT DECIDES WHETHER A CHECK RUNS, and `None` — the default —
+    runs everything, so no existing caller changes behaviour by this parameter existing. At
+    `TIER_COMMIT` a ship-tier check is NOT dropped from the output: its slot carries one `n/a`
+    Finding naming the tier it was deferred to, so the report still enumerates all 46 organs and
+    the operator can see at the commit gate what the commit gate did not do. Silence would make a
+    deferred check indistinguishable from a deleted one — the `handoff_tag_canonicity` failure
+    class this module already refuses in `detect_unconditionally_inert_checks`.
+
+    A DEFERRED CHECK EMITS NO TELEMETRY, deliberately. Its `duration_ms` would be ~0, and a run
+    of zeros would silently re-rank the very table the tier decisions are read from: the next
+    person to profile would conclude the ship-tier checks are free. No row is better than a
+    fabricated one.
     """
     active = list(ALL_CHECKS if checks is None else checks)
+    # Validated ONCE here, not only per-check: `runs_at_tier` raises on an unknown tier, but a
+    # per-check comprehension never reaches it on an EMPTY registry — and an empty registry is a
+    # legitimate call (`tests/` monkeypatches `ALL_CHECKS` down to nothing). Without this line a
+    # typo'd tier would return a clean, empty, GREEN result. (terra HIGH, 2026-08-27.)
+    if tier is not None and tier not in GATE_TIERS:
+        raise ValueError(f"unknown runner tier {tier!r} — expected None or one of {GATE_TIERS}")
+    runs = [runs_at_tier(c, tier) for c in active]
     db = None
     if telemetry:
         db = Path(telemetry_db) if telemetry_db is not None else _telemetry_db_path()
 
     durations: list[int | None] = [None] * len(active)
+
+    def _deferred(check) -> list[Finding]:
+        name = getattr(check, "__name__", repr(check)).removeprefix("check_")
+        return [_na(name, _NA_NOT_APPLICABLE,
+                    f"declared {tier_of(check)}-tier -- not run at the {tier} gate "
+                    "([#597] per-check tiering; ship-gate and `audit run` run it)")]
 
     def _run_one(index: int, check: Callable) -> list[Finding]:
         """Run ONE check, recording its own elapsed time. Never swallows, never reorders."""
@@ -4206,17 +4386,21 @@ def run_checks(repo_path: Path, checks: Sequence[Callable] | None = None,
         return out
 
     if not parallel:
-        slots = [_run_one(i, check) for i, check in enumerate(active)]
+        slots = [_run_one(i, check) if runs[i] else _deferred(check)
+                 for i, check in enumerate(active)]
     else:
-        width = workers if workers is not None else _parallel_workers(len(active))
-        slots = [[] for _ in active]
+        width = workers if workers is not None else _parallel_workers(sum(runs) or 1)
+        slots = [_deferred(c) if not runs[i] else [] for i, c in enumerate(active)]
         with ThreadPoolExecutor(max_workers=max(1, width)) as pool:
-            futures = {pool.submit(_run_one, i, check): i for i, check in enumerate(active)}
+            futures = {pool.submit(_run_one, i, check): i
+                       for i, check in enumerate(active) if runs[i]}
             for future in as_completed(futures):
                 slots[futures[future]] = list(future.result())
 
     if db is not None:
         for index, (check, slot) in enumerate(zip(active, slots)):
+            if not runs[index]:
+                continue
             _te.safe_emit(_te.emit_check_run, getattr(check, "__name__", repr(check)),
                           _check_outcome(slot), durations[index], db_path=db,
                           context=_check_context(slot))
@@ -4799,20 +4983,12 @@ def cmd_health(parallel: bool, workers: int | None, telemetry: bool | None) -> N
 
     operational_ok = all(ok for _, ok, _ in checks)
 
-    # Self-conformance: full check suite against .dev-knowledge. Gate mode (#89): the
-    # commit gate runs here, so flag it so check_doc_claims skips the expensive claim-3
-    # (pytest --collect-only) — that locus is evaluated only on the full-audit path.
-    global _GATE_MODE
-    self_findings: list[Finding] = []
-    _GATE_MODE = True
-    try:
-        # Emission sits INSIDE the try/finally, never around it: `tests/test_audit.py`'s
-        # `_GATE_MODE` set/restore tests constrain this, and a wiring that emitted outside would
-        # leave the flag set when a check raised.
-        self_findings = run_checks(Path(_REPO_ROOT), parallel=parallel, workers=workers,
-                                   telemetry=telemetry_enabled(telemetry))
-    finally:
-        _GATE_MODE = False
+    # Self-conformance against .dev-knowledge, AT THE COMMIT TIER ([#597]). This is the only
+    # caller that passes a tier: `ship-gate`, `run` and `repo` run every check. There is no
+    # try/finally here any more and that absence is the point — the tier is an argument, not a
+    # module global to set and restore, so there is no state a raising check could leave behind.
+    self_findings = run_checks(Path(_REPO_ROOT), parallel=parallel, workers=workers,
+                               telemetry=telemetry_enabled(telemetry), tier=TIER_COMMIT)
     self_fail = any(f.status == "fail" for f in self_findings)
 
     click.echo("operational:")
@@ -4894,10 +5070,13 @@ def cmd_ship_gate() -> None:
 
     Seam vs the pre-commit `audit-health` gate (they reuse ALL_CHECKS but do NOT
     double-run vacuously — different moment, different posture):
-      - `audit-health` gates each COMMIT: FAIL-only (WARNs pass), gate-mode SKIPS the
-        expensive claim-3 (pytest --collect-only) to stay fast.
+      - `audit-health` gates each COMMIT: FAIL-only (WARNs pass), and since [#597] it runs
+        only the COMMIT TIER (`run_checks(..., tier=TIER_COMMIT)`). A ship-tier check appears
+        in its report as an `n/a` naming the deferral, never as a silent omission.
       - `ship-gate` gates the feature ARC at /ship: FAIL **and** new/undispositioned WARN
-        block, and it runs claim-3 (full verification — _GATE_MODE stays False).
+        block, and it passes NO tier — every check runs, claim-3 included. This is where the
+        WARN-only organs the commit tier defers actually have teeth, which is the whole reason
+        deferring them costs no enforcement.
 
     Hub-only organs no-op on child repos; the /ship wiring is hub-guarded. Register:
     ecosystem/disposition-register.yaml (fail-soft if absent — stricter, never wedged).
@@ -4905,19 +5084,20 @@ def cmd_ship_gate() -> None:
     Example:
         python scripts/audit.py ship-gate
     """
-    global _GATE_MODE
     findings: list[Finding] = []
-    _GATE_MODE = False  # ship-time = full verification (run the expensive claim-3)
-    try:
-        # [#529]: this gate emits NO telemetry, and that is a decision rather than an omission.
-        # "No file writes (read-only, Layer-2)" above is the ship-gate's contract, and a gate
-        # that quietly gained a side-effect would be a different organ. It therefore does NOT
-        # consult `telemetry_enabled()` — the ambient env switch turns the audit-health mesh on
-        # without turning this one on, and `tests/test_ship_gate.py::test_ship_gate_is_readonly`
-        # asserts exactly that with the switch forced ON.
-        findings = run_checks(Path(_REPO_ROOT))
-    finally:
-        _GATE_MODE = False
+    # SHIP-TIME = FULL VERIFICATION. No `tier=` is passed, so every check runs — the [#597]
+    # tiering can only ever move work from the commit gate to HERE, never off the gate set, and
+    # this line is what makes that true. Passing `tier=TIER_SHIP` would be equivalent
+    # (`runs_at_tier` treats it as run-everything) but would read as a filter; the absence of an
+    # argument is the honest shape.
+    #
+    # [#529]: this gate emits NO telemetry, and that is a decision rather than an omission.
+    # "No file writes (read-only, Layer-2)" above is the ship-gate's contract, and a gate
+    # that quietly gained a side-effect would be a different organ. It therefore does NOT
+    # consult `telemetry_enabled()` — the ambient env switch turns the audit-health mesh on
+    # without turning this one on, and `tests/test_ship_gate.py::test_ship_gate_is_readonly`
+    # asserts exactly that with the switch forced ON.
+    findings = run_checks(Path(_REPO_ROOT))
 
     dispositions = _load_dispositions()
     fails = [f for f in findings if f.status == "fail"]

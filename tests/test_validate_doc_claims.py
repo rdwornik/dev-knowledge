@@ -360,8 +360,13 @@ def test_registry_extension_matches_when_doc_number_correct(tmp_path):
     assert by["extra_demo"].status == "match"
 
 
-def test_check_passes_run_expensive_false_in_gate_mode(monkeypatch):
-    # _GATE_MODE True (the pre-commit health path) -> adapter must pass run_expensive=False.
+def test_check_runs_every_claim_and_is_deferred_off_the_commit_gate(monkeypatch):
+    # [#597] replaced `test_check_passes_run_expensive_false_in_gate_mode`. The old contract
+    # was "at the commit gate the adapter passes run_expensive=False", carried by the
+    # `_GATE_MODE` global. The tier says the same thing one level up: the whole check is
+    # ship-tier, so wherever it runs it runs COMPLETE (claim 3 included) -- and the commit gate
+    # does not run it at all. Both halves are asserted, because either alone would pass while
+    # the expensive claim silently stopped running anywhere.
     hub = Path(aud._REPO_ROOT)
     seen = {}
 
@@ -370,9 +375,14 @@ def test_check_passes_run_expensive_false_in_gate_mode(monkeypatch):
         return [vdc.ClaimResult("audit_check_count", "match", "16", "16", "ARCHITECTURE.md")]
 
     monkeypatch.setattr(aud._vdc, "reconcile", _rec)
-    monkeypatch.setattr(aud, "_GATE_MODE", True)
     aud.check_doc_claims(hub)
-    assert seen["run_expensive"] is False
+    assert seen["run_expensive"] is True
+
+    seen.clear()
+    findings = aud.run_checks(hub, checks=[aud.check_doc_claims], tier=aud.TIER_COMMIT)
+    assert seen == {}                      # never called at the commit tier
+    assert findings[0].status == "n/a" and "ship-tier" in findings[0].evidence
+    assert aud.tier_of(aud.check_doc_claims) == aud.TIER_SHIP
 
 
 # --- end-to-end: seeded mismatch fires through the REGISTERED check ----------
@@ -382,7 +392,18 @@ def test_e2e_seeded_mismatch_fires_through_registered_check(tmp_path, monkeypatc
     # through the check registered in ALL_CHECKS — deployed, not merely written.
     repo = _init_doc_repo(tmp_path, checks=99, gates=8)   # ARCHITECTURE claims 99 checks
     monkeypatch.setattr(aud, "_REPO_ROOT", str(repo))     # make the temp repo look like the hub
-    monkeypatch.setattr(aud, "_GATE_MODE", True)          # gate path: claim 3 skipped, fast
+    # Claim 3 stubbed to its fail-soft answer. It used to be suppressed by `_GATE_MODE`, which
+    # [#597] retired; the check is ship-tier now and always asks. What is under test here is the
+    # count mismatch, not the collector, and a real `pytest --collect-only` in a tmp dir would
+    # add seconds to every run of this test for nothing.
+    #
+    # Patched on the REGISTRY, never `monkeypatch.setattr(vdc, "_derive_pytest_collected", ...)`:
+    # `_CLAIMS` captured the function object at import, so rebinding the module attribute leaves
+    # the row pointing at the real deriver and the stub is INERT. That is exactly what the first
+    # version of this line did (terra HIGH, 2026-08-27) — it shelled out to a real pytest and the
+    # test passed anyway, which is the seam-detaches-silently class this file's own
+    # `_claims_with_stub_pytest` docstring already warned about.
+    monkeypatch.setattr(vdc, "_CLAIMS", _claims_with_stub_pytest(lambda root, n: None))
     findings = aud.check_doc_claims(repo)
     assert findings[0].status == "warn"
     assert "audit_check_count" in findings[0].evidence
@@ -485,7 +506,8 @@ def test_adapter_surfaces_unavailable_rather_than_passing(tmp_path, monkeypatch)
     # never-block-the-commit-gate posture is a separate ruling, not widened here.
     repo = _init_doc_repo(tmp_path, checks=15, gates=8)
     monkeypatch.setattr(aud, "_REPO_ROOT", str(repo))
-    monkeypatch.setattr(aud, "_GATE_MODE", True)
+    # (the `_GATE_MODE` patch this test used to carry was already inert -- `reconcile` itself is
+    # replaced below, so nothing read the flag. [#597] retired it.)
     monkeypatch.setattr(aud._vdc, "reconcile",
                         lambda *a, **k: [vdc.ClaimResult("audit_check_count", "not-computed",
                                                          "", "<NOT COMPUTED>", "d.md")])

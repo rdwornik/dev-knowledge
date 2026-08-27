@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-08-23
+last_reviewed: 2026-08-27
 reconciled_with: handoff-process@6.2.0
 status: active
 owner: Rob
@@ -14,7 +14,26 @@ owner: Rob
 > class this repo exists to kill). Fix the map when reality moves; fix the *source*
 > when the doctrine moves.
 >
-> Last updated: `2026-08-23` — **governance-drift discharge (lane `lane-docs-governance`): the
+> Last updated: `2026-08-27` — **[#597] per-check gate tiers: four Ch2 trigger cells and the
+> §Validators seam are corrected by the change that falsified them, in the same commit.** `audit.py`
+> retired `_GATE_MODE` for a tier declared per check, so `health` now runs only the commit tier —
+> which makes four organ rows' *"`audit.py health` — pre-commit gate"* trigger claim false the moment
+> it lands (`git_backlog_drift`, `doc_claims`, `doc_structure`, `fleet_parity`). All four are
+> re-pointed, `fleet_parity`'s row records that **[#597] discharges the ship-gate-scoping follow-up
+> this map had carried since [#337]**, and §Validators gains the mechanism paragraph plus the
+> corrected seam sentence. **Stamp semantics, stated:** `last_reviewed` moves because this pass
+> re-read the file **end-to-end from disk** (Purpose, Codemap, all six chapters, Governing ADRs)
+> before editing, and mechanically re-derived every claim it touched against live source
+> (`ALL_CHECKS` tier stamps, the measured per-check durations, `fleet_health.py`'s runner). **Honest
+> limits, two, both narrower than prior passes' and both real:** (1) it did not re-derive doctrinal
+> correctness against the full text of every cited ADR — unchanged from every prior pass; (2) the
+> re-read found **one pre-existing imprecision it deliberately did NOT absorb**: the trigger cells
+> reading *"+ SessionStart `fleet_health`"* describe a route that goes through `audit.py **run**`,
+> not `health` (`fleet_health.py:900`), which was already loose before this lane and is not this
+> lane's to relitigate — it is recorded here rather than silently smoothed, and the
+> `git_backlog_drift` cell now names the actual command. **Found and NOT fixed, unchanged:** the
+> Governing ADRs tail stays out of numeric order; Ch6's *"currently 15 open, newest 2026-06-25"*
+> Issues count stays unverified (this lane exercised no `gh` reach). Prior: `2026-08-23` — **governance-drift discharge (lane `lane-docs-governance`): the
 > 2026-08-21 CLOUD-R1 audit's ARCHITECTURE findings are executed, and the end-to-end re-read found
 > three more the audit missed.** Landed in two commits — the SAFE-MECHANICAL set, then the three
 > architect-ruled items. **Ruled items (R1 top-10 8 and 9):** Ch2's *"every enforcement/awareness
@@ -406,14 +425,14 @@ An organ can be ARMED and still tell you nothing. Read the qualifier before trus
 | `/changelog-review`, `/codex-review` | operator (push) | hub / L0 | — | ARMED | #113 / ADR-54 |
 | `conformance-hub.js` (Workflow) | operator (`ultracode`) or cloud Routine | Tier-3 | read-only + skeptic + evidence-required | ARMED | ADR-70 (#81) |
 | `_commit_routine_outputs` → `automation/fleet-audit` (audit.py Routine writer) | Routine/nightly durable-output commit | hub | **fail-soft** (pathspec-bounded `commit-tree`; main tree untouched, never `git add -A`) | ARMED | ADR-84; #125; #254(a) |
-| `git_backlog_drift` (audit check) | `audit.py health` — pre-commit gate + SessionStart `fleet_health` | hub | fail-soft (WARN) | ARMED | #90; ADR-65 |
-| `doc_claims` (audit check) | `audit.py health` — pre-commit gate (counts/lists) + full sweep (test-count) | hub | fail-soft (WARN) | ARMED | #89 |
+| `git_backlog_drift` (audit check) | `ship-gate` + SessionStart `fleet_health` (which runs `audit.py run`, the full sweep) — **ship-tier since [#597]**, so it no longer fires at the pre-commit gate: WARN-only, and a WARN never blocked a commit | hub | fail-soft (WARN) | ARMED | #90; ADR-65 |
+| `doc_claims` (audit check) | `ship-gate` + full sweep — **ship-tier since [#597]**. The `_GATE_MODE` split that ran counts/lists at commit and the test-count only off-gate is retired; every claim now runs wherever the check runs | hub | fail-soft (WARN) | ARMED | #89 |
 | `no_ff_merges` (audit check) | `audit.py health` — pre-commit gate + SessionStart `fleet_health` | hub | fail-soft (WARN) | ARMED | #153; ADR-84; core-invariants #5 |
 | `handoff_probes` (audit check) | `audit.py health` — pre-commit gate + `ship-gate` | hub | **fail-closed** (FAIL on broken probe binding; WARN on anchor-missing/skipped) | ARMED | #163; HANDOFF_PROCESS §5/§10 |
 | `doc_rot` (audit check) | `audit.py health` — pre-commit gate + `ship-gate` (disposition baseline) | hub | fail-soft (WARN, one per locus) | ARMED | #140; ADR-88 FC4 (ADR-65/49/41) |
-| `doc_structure` (audit check) | `audit.py health` — pre-commit gate + `ship-gate` (disposition baseline) | hub | fail-soft (WARN, one per locus) | ARMED | #192; ADR-88 prose-shape |
+| `doc_structure` (audit check) | `ship-gate` (disposition baseline) — **ship-tier since [#597]**: WARN-only at 4,531 ms, so its cost at the commit gate bought no gating power | hub | fail-soft (WARN, one per locus) | ARMED | #192; ADR-88 prose-shape |
 | `hooks_armed` (audit check) | `audit.py health` — pre-commit gate + SessionStart `fleet_health` | hub | **fail-closed** (FAIL on a missing/foreign `.git/hooks` gate) | ARMED | RF-2 (Fable arch review 2026-07-04 §4); self-armed by the SessionStart `pre_commit install` |
-| `fleet_parity.py` → `check_fleet_parity` (audit check) | `audit.py health` (pre-commit) + `ship-gate` — blocking `ALL_CHECKS` member since [#337] ([#336] cleared the last WARN); the standalone CLI stays read-only | hub | **fail-closed** on a real divergence (FAIL: refused/must-absent/tombstone-violated; WARN→RED: undeclared/unavailable/tracked-ephemera; stale-declaration/advisory-rewarn stay advisory). The ~8s walk runs per-commit too — ship-gate-scoping is a filed follow-up | ARMED | #328/#332/#337; intake #12 + RULED #14; ADR-102/103; `ecosystem/parity-surfaces.yaml` + `dependency-baseline.yaml` |
+| `fleet_parity.py` → `check_fleet_parity` (audit check) | `ship-gate` — blocking `ALL_CHECKS` member since [#337] ([#336] cleared the last WARN); the standalone CLI stays read-only | hub | **fail-closed** on a real divergence (FAIL: refused/must-absent/tombstone-violated; WARN→RED: undeclared/unavailable/tracked-ephemera; stale-declaration/advisory-rewarn stay advisory). The walk measured **14,520 ms** and no longer runs per-commit: **[#597] discharged the filed ship-gate-scoping follow-up**. It is the one ship-tier member that CAN emit `fail`, so it carries a risk argument beyond cost — parity is a CROSS-REPO property that a hub commit cannot create, and the arc boundary is where a fleet-wide claim can honestly be made. Given up, stated: a parity regression introduced elsewhere now surfaces at ship rather than at the next hub commit | ARMED | #328/#332/#337; intake #12 + RULED #14; ADR-102/103; `ecosystem/parity-surfaces.yaml` + `dependency-baseline.yaml` |
 | `routine_consumers` (audit check) | `audit.py health` — pre-commit gate + `ship-gate` | hub | **fail-closed** on a declared routine whose `consumer`/`consumption_path` is missing, blank, placeholder, or duplicated. **COVERAGE BOUNDARY — green says almost nothing:** it checks ONLY BACKLOG rows carrying an ADR-105 `· routine:` marker (exactly **one** row at acceptance, [#348]). The ~30 live routines — session hooks, commit-time gates, scheduled jobs — are not BACKLOG rows, carry no marker, and are **NOT checked**; retrofit is [#426] | ARMED (scope = marked rows only) | [#419]/ADR-105 (gated at ACTIVATION, not at filing) |
 | `residual_completeness` (audit check) | `audit.py health` — pre-commit gate + `ship-gate` (changed handoff-bundle files) | hub | **fail-closed** (FAIL on a FILL-IN region still carrying its generator placeholder; degrades to WARN on internal error; scans the working tree — the staged-blob gap is #366) | ARMED | ARC-5 first enforcing mechanism; HANDOFF_PROCESS "Residual completeness"; #365/#366 |
 | `boundary_report.py` (reporter) | manual CLI | hub · read-only | fail-soft (writes `logs/BOUNDARY-DRIFT.md`; a reporter, NOT a gate — deliberately not in `ALL_CHECKS`) | **ARMED (manual)** | #312; CLAUDE.md Form-A regions |
@@ -477,7 +496,7 @@ references, **not an exhaustive inventory** of every script in `scripts/`:
   `run` = manual ecosystem sweep; `health` = pre-commit gate (FAIL blocks, WARN informs);
   `ship-gate` = the #147 pre-ship verification-organ gate (Definition-of-shipped point 6).
   **Seam `ship-gate` vs `health`:** both reuse `ALL_CHECKS`, but `health` gates each
-  *commit* (FAIL-only; WARNs pass; gate-mode skips the expensive claim-3), while `ship-gate`
+  *commit* (FAIL-only; WARNs pass) and — **since [#597]** — runs only the **commit tier**, while `ship-gate`
   gates the feature *arc* at `/ship` — it reads `Finding.status` not exit codes (the awareness
   organs exit 0 on drift), blocks on FAIL **and** any new/undispositioned WARN, runs claim-3
   (full verification), and dispositions expected WARNs via `ecosystem/disposition-register.yaml`
@@ -489,6 +508,19 @@ references, **not an exhaustive inventory** of every script in `scripts/`:
   write findings, `_replicate_automation_branch` pushes to `origin` (`audit.py:3967`) and
   `_commit_routine_outputs` commits to `automation/fleet-audit`; hub-only organs no-op on children
   (the `/ship` wiring is hub-guarded).
+  **Per-check gate tier ([#597]).** Every `ALL_CHECKS` member declares the tier it runs at —
+  `_tier(TIER_COMMIT, …)` / `_tier(TIER_SHIP, …)` in the registry itself, read by `run_checks`.
+  The ladder is **nested** (commit ⊂ ship): `health` runs the commit tier, `ship-gate`/`run`/`repo`
+  run everything, so the tier can only ever move a check to a LATER gate, never off the gate set —
+  ship-gate's finding stream is unchanged **byte for byte**, proved side-by-side rather than
+  asserted. A ship-tier check still appears in the `health` report, as an `n/a` naming the deferral,
+  because a silently-omitted check is indistinguishable from a deleted one. **A check is ship-tier
+  only when it BOTH cannot emit `fail`** — `health` exits 1 on `fail` alone, so a WARN-only check's
+  commit-time verdict blocks nothing — **and costs ≥1 s measured**; the sub-second WARN-only checks
+  stay at commit, because a tier decision with no measurable payoff is not a decision. This
+  generalizes and **retires `_GATE_MODE`**, the module global that two of forty-six checks consulted.
+  Read the assignment off the registry, not off a roster here; the measured basis is
+  `docs/audits/2026-08-27-technical-lane-nb-tiering.md`.
 - `scripts/normalize_headers.py` — dated-log header normalization (pre-commit).
 - `scripts/validate_backlog.py` — BACKLOG story-map schema (ADR-66; pre-commit).
 - `scripts/validate_git_backlog.py` — git↔backlog drift, direction (a) STRONG: a
@@ -513,7 +545,7 @@ references, **not an exhaustive inventory** of every script in `scripts/`:
 - `scripts/validate_doc_claims.py` — prose-vs-state: a living doc's count/list CLAIMS
   vs ground truth. Four claims (`_CLAIMS`, `validate_doc_claims.py:224-239`): the audit
   check-count (vs `len(ALL_CHECKS)`), the pre-commit gate-count and the pytest collected-count
-  (vs `pytest --collect-only`, off-gate) all read the committed-generated
+  (vs `pytest --collect-only`) all read the committed-generated
   **`ecosystem/doc-counts.md`** — #222 moved them off ARCHITECTURE.md, and **this file no longer
   carries them**; the roster set-claim reads **CLAUDE.md §9**'s named hook list against
   `.pre-commit-config.yaml` (order-independent). Read-only; surfaced via the `doc_claims` audit check (WARN). Single-doc
