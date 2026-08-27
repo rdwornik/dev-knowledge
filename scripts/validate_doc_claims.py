@@ -139,10 +139,19 @@ def _derive_pytest_collected(repo_root: Path, _check_count: int) -> Optional[int
 
     Read-only (Layer-2, ADR-28/36): `-p no:cacheprovider` suppresses `.pytest_cache/` and
     `PYTHONDONTWRITEBYTECODE=1` suppresses `__pycache__/`, so collection writes NOTHING.
+
+    `-o addopts=` (PERF-RECON B10, fixed [#598]): without it this nested pytest INHERITS the
+    repo's own `addopts = "-n auto"` and boots a full xdist worker pool to answer one collection
+    question. `scripts/worktree_import_proof.py` already passes the flag for exactly this reason
+    and says so; this call did not, which is the same defect class `pyproject.toml` documents for
+    mutmut. It is a strengthening as well as a speed-up: the collected COUNT is identical either
+    way (the repo's own 2026-08-06 evidence), but `--collect-only -q` under a worker pool is a
+    less deterministic thing to parse than the same command run in-process.
     """
     try:
         proc = subprocess.run(
-            [sys.executable, "-m", "pytest", "--collect-only", "-q", "-p", "no:cacheprovider"],
+            [sys.executable, "-m", "pytest", "--collect-only", "-q", "-p", "no:cacheprovider",
+             "-o", "addopts="],
             cwd=str(repo_root), capture_output=True, text=True, encoding="utf-8",
             timeout=180, env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
         )
