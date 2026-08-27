@@ -34,6 +34,7 @@ import inspect
 import logging
 import os
 import re
+import stat as _stat
 import subprocess
 import sys
 import tempfile
@@ -1648,6 +1649,256 @@ def check_handoff_probes(repo_path: Path) -> list[Finding]:
         return findings
     return [Finding("handoff_probes", "pass",
                     f"{len(results)} probe(s) bind to live state ({latest.name})")]
+
+
+# The ERA `supplement_folded` binds from — the date the check landed. A bundle cut before it
+# is GRANDFATHERED: named in the evidence, never blocking. This is not leniency, it is the
+# only honest option. A sealed bundle's PASTE_THIS.md is an immutable artifact (Critical
+# Rule #3), and the loss it records already happened — the seat that needed the 2026-08-23
+# answers booted on 2026-08-25 without them. Re-assembling that paste now would edit an
+# immutable artifact to falsify what was actually delivered, and it would not un-lose
+# anything. Recorded as IMMUTABLE-AND-LOST instead, permanently visible in the gate's own
+# output. (A disposition-register entry could not carry this even if it were the right
+# answer: the register suppresses WARNs, and this check is FAIL-class.)
+# The era boundary is applied by `_vhp.bundle_at_or_after` — the SAME predicate the §5 cond. 4
+# boundedness rung uses, reused rather than written a second time. A bare string compare against
+# the whole directory name looks equivalent and is not: `2026-08-9-foo` compares GREATER than
+# `2026-08-26` on its 9th character, so a pre-era bundle would be blocked by a later era's rule,
+# while `2026-08-2` would be waved through. Caught by terra pass 1 on this lane's own diff.
+_SUPPLEMENT_FOLD_ERA = "2026-08-26"
+_SUPPLEMENT_SECTION_MARKER = "=== SUPPLEMENT.md ==="
+# The reason-prefix marking "this bundle could not be READ", as distinct from "this bundle is
+# unfolded". Degraded coverage is reported, never counted as a pass (HANDOFF_PROCESS §5's own
+# words, and the ladder every validator here follows).
+_SUPPLEMENT_UNREADABLE = "unreadable"
+
+
+def _path_state(p: Path) -> str:
+    """`'file'` | `'dir'` | `'absent'` | `'unreadable'` for a path.
+
+    `Path.is_file()` / `Path.is_dir()` cannot carry this: BOTH swallow OSError and return False,
+    so a path the process may not stat (a Windows share lock, an ACL change) is indistinguishable
+    from one that was never created — and `supplement_folded` treats "never created" as a
+    legitimate skip. Every stat failure other than genuine absence is surfaced instead.
+
+    Found by terra across three passes on this lane's own diff, one level at a time: the READ of
+    a bundle file (pass 2), the STAT of a bundle file (pass 3), then the stat of the bundle
+    DIRECTORY and of `docs/handoffs/` itself (pass 4). One helper now covers all four, which is
+    why it is a state enum rather than a boolean."""
+    try:
+        st = os.stat(p)
+    except (FileNotFoundError, NotADirectoryError):
+        return "absent"
+    except OSError:
+        return "unreadable"
+    if _stat.S_ISREG(st.st_mode):
+        return "file"
+    return "dir" if _stat.S_ISDIR(st.st_mode) else "absent"
+
+
+def supplement_fold_violations(repo_path: Path) -> list[tuple[str, str]]:
+    """Every bundle whose SUPPLEMENT ANSWERS are filled but whose PASTE_THIS.md never folded
+    them. Returns `(bundle_name, reason)` pairs sorted by name; [] when clean.
+
+    R4 of the 2026-08-26 handoff census (b6). The supplement is filled AFTER the paste is
+    assembled and no organ re-folded it: 63 bundles carry both a filled ANSWERS region and an
+    assembled paste, 62 folded, and the one that did not is the most recent architect handoff
+    before the census. Its 87 answer lines — rulings, rejections, off-repo context, the Q7
+    register — never reached the next seat, and the failure was silent.
+
+    The fill-state predicate is `assemble_paste._extract_answers`, REUSED rather than
+    reimplemented, so "filled" means here exactly what the assembler means by it (the same
+    reuse `gen_handoff.detect_fill_state` already makes). Two deliberate non-violations: a
+    COLD supplement (an honest record of a duty undischarged, and what the assembler declines
+    to fold), and a bundle with no PASTE_THIS.md at all (nothing was assembled, so no fold was
+    missed). Read-only; era-blind — the era gate lives in the adapter below, so this predicate
+    can be run against the real tree to reproduce the historical RED.
+
+    A bundle file that cannot be READ is reported as its own outcome, its reason prefixed
+    `_SUPPLEMENT_UNREADABLE`, rather than dropped: dropping it would let the adapter return a
+    clean pass about evidence it never opened. The adapter maps that prefix to a WARN.
+    """
+    handoffs = Path(repo_path) / "docs" / "handoffs"
+    root_state = _path_state(handoffs)
+    if root_state == "unreadable":
+        return [("docs/handoffs", f"{_SUPPLEMENT_UNREADABLE}: the bundle root could not be "
+                                  "stat'ed — no bundle could be examined")]
+    if root_state != "dir":
+        return []
+    try:
+        from assemble_paste import _extract_answers  # noqa: PLC0415
+    except ImportError:
+        from scripts.assemble_paste import _extract_answers  # noqa: PLC0415
+    out: list[tuple[str, str]] = []
+    try:
+        entries = sorted(handoffs.iterdir(), key=lambda d: d.name)
+    except OSError as exc:
+        return [("docs/handoffs", f"{_SUPPLEMENT_UNREADABLE}: {exc.__class__.__name__} listing "
+                                  "the bundle root — no bundle could be examined")]
+    for bundle in entries:
+        if bundle.name in _BUNDLE_EXCLUDE_DIRS:
+            continue
+        bundle_state = _path_state(bundle)
+        if bundle_state == "unreadable":
+            # Same swallow one level up: `Path.is_dir()` returns False for an OSError, so a
+            # bundle directory the process may not stat would be omitted and the check could
+            # then report a clean pass about evidence it never opened. (terra pass 4.)
+            out.append((bundle.name, f"{_SUPPLEMENT_UNREADABLE}: the bundle directory could not "
+                                     "be stat'ed — its fold state was never examined"))
+            continue
+        if bundle_state != "dir":
+            continue
+        supplement = bundle / "SUPPLEMENT.md"
+        paste = bundle / "PASTE_THIS.md"
+        states = {_path_state(supplement), _path_state(paste)}
+        if "unreadable" in states:
+            out.append((bundle.name, f"{_SUPPLEMENT_UNREADABLE}: SUPPLEMENT.md / PASTE_THIS.md "
+                                     "could not be stat'ed — fold state could not be determined"))
+            continue
+        if "absent" in states:
+            continue        # nothing was assembled, or no supplement exists — no fold to miss
+        try:
+            answers = _extract_answers(supplement.read_text(encoding="utf-8"))
+            folded = _SUPPLEMENT_SECTION_MARKER in paste.read_text(encoding="utf-8")
+        except OSError as exc:
+            # DEGRADE LOUDLY. An unreadable bundle file (a Windows share lock, a permission
+            # change) is exactly the moment this check could not look — and dropping it from the
+            # result set would let the adapter return a clean `pass` about evidence it never
+            # read, which is the synthesized-pass class this repo's validators refuse
+            # everywhere else. Reported as its own outcome; the adapter maps it to a WARN.
+            # Found by terra pass 2 on this lane's own diff.
+            out.append((bundle.name, f"{_SUPPLEMENT_UNREADABLE}: {exc.__class__.__name__} "
+                                     "reading SUPPLEMENT.md / PASTE_THIS.md — fold state "
+                                     "could not be determined"))
+            continue
+        if answers and not folded:
+            out.append((bundle.name,
+                        "SUPPLEMENT ANSWERS filled but PASTE_THIS.md carries no "
+                        f"{_SUPPLEMENT_SECTION_MARKER} section"))
+    return out
+
+
+def check_supplement_folded(repo_path: Path) -> list[Finding]:
+    """R4 (census 2026-08-26 b6): a filled SUPPLEMENT that never reached the paste is a
+    silent, irreplaceable loss of the outgoing architect's judgment. FAIL-class (gating,
+    like check_handoff_probes): a bundle cut in this era with filled ANSWERS and an unfolded
+    paste blocks audit-health and the ship-gate, so the fix happens while the bundle is
+    still live rather than being discovered by the seat that needed it.
+
+    ONE Finding PER offending bundle (the #147 disposition contract — an aggregate finding
+    would let one match wave through an unrelated bundle).
+
+    Pre-era bundles are grandfathered and NAMED in the pass evidence: see
+    `_SUPPLEMENT_FOLD_ERA` for why repairing them is not on the table. A bundle whose files
+    could not be read is a WARN, emitted ALONGSIDE whatever else the run found and never
+    collapsed into a pass — degraded coverage is reported, never counted as a pass. Read-only.
+
+    HONEST LIMIT: this asserts the paste carries a SUPPLEMENT section, not that the section
+    carries the CURRENT answers. A supplement edited after a fold still reads as folded.
+    Catching that needs a content comparison the assembler does not record, and the failure
+    class measured — a fold that never happened at all — is the one this refuses.
+    """
+    handoffs = Path(repo_path) / "docs" / "handoffs"
+    # `Path.is_dir()` swallows OSError, so an unreadable handoffs root would report NOT-APPLICABLE
+    # — "there is nothing here" — when the truth is "this could not be looked at". Degraded
+    # coverage stays visible to the ship-gate instead. (terra pass 4.)
+    root_state = _path_state(handoffs)
+    if root_state == "unreadable":
+        return [Finding("supplement_folded", "warn",
+                        "docs/handoffs: the bundle root could not be stat'ed — no bundle was "
+                        "examined (degraded coverage, read-only)")]
+    if root_state != "dir":
+        return [_na("supplement_folded", "NOT-APPLICABLE",
+                    "no docs/handoffs/ — no bundle whose supplement could be unfolded")]
+    try:
+        violations = supplement_fold_violations(Path(repo_path))
+    except Exception as exc:  # never wedge the gate on an internal error
+        return [Finding("supplement_folded", "warn",
+                        f"check degraded (read-only, non-blocking): {exc!r}".replace("|", "/"))]
+    in_era = _vhp.bundle_at_or_after
+    unreadable = [(b, why) for b, why in violations
+                  if why.startswith(_SUPPLEMENT_UNREADABLE)]
+    readable = [(b, why) for b, why in violations
+                if not why.startswith(_SUPPLEMENT_UNREADABLE)]
+    blocking = [(b, why) for b, why in readable if in_era(b, _SUPPLEMENT_FOLD_ERA)]
+    grandfathered = [b for b, _ in readable if not in_era(b, _SUPPLEMENT_FOLD_ERA)]
+    # Degraded coverage is SURFACED whatever else the run found — reporting a clean pass about
+    # evidence that could not be read is the one outcome this check may not produce.
+    degraded = [Finding("supplement_folded", "warn",
+                        f"{b}: {why} (degraded coverage, read-only)".replace("|", "/"))
+                for b, why in unreadable]
+    if blocking:
+        return degraded + [
+            Finding("supplement_folded", "fail",
+                    f"{b}: {why} — the outgoing seat's answers never reached the next "
+                    "one; re-run scripts/assemble_paste.py on the bundle before it seals"
+                    .replace("|", "/"))
+            for b, why in blocking]
+    if degraded:
+        return degraded
+    tail = (" — pre-era, immutable-and-lost (recorded, not repaired): "
+            + ", ".join(grandfathered)) if grandfathered else ""
+    return [Finding("supplement_folded", "pass",
+                    f"every filled SUPPLEMENT reached its paste{tail}".replace("|", "/"))]
+
+
+def check_dispatch_verb_agreement(repo_path: Path) -> list[Finding]:
+    """R5: the drift organ `protocols/STANDING_RULINGS.md` §V records as "owed and unbuilt".
+
+    §V ruled `dispatch <contract.md>` the sole operator verb for a LOCAL lane after measuring
+    what four rival launch commands cost: `/lane-boot` emitted the form Ch8 itself labels a
+    fallback, silently dropping `--model` and `--effort`, and roughly thirty consecutive browser
+    seats failed to launch a lane. The ruling landed and nothing asserted it — §V's own words:
+    "until it exists these rulings bind the seat and not the tree."
+
+    Asserts the two point-of-use surfaces (`.claude/commands/lane-boot.md`,
+    `templates/prompt-template.md`) name the verb Ch8's dispatch table rules, and carry no rival
+    literal launch form in a fenced block. The ruled verb is READ from Ch8 at check-time — this
+    check holds no copy of it, which is the same discipline it enforces.
+
+    FAIL-class (gating), one Finding per violation per the #147 disposition contract. Read-only.
+    Logic lives in scripts/dispatch_surface.py.
+
+    PRESENCE-based, not `_is_hub`-based (the check_handoff_probes precedent): a repo with no
+    `protocols/PLAYBOOK.md` carries no dispatch table to agree with, so it is a no-op n/a and
+    this no-ops on the fleet's child repos. A repo that HAS the table and cannot read the ruled
+    form out of it FAILs — a moved anchor is a finding, never a silent pass.
+
+    HONEST LIMIT, and it is stated in the module too: this is HALF the organ §V describes. The
+    other half — every literal command in Ch8 resolving via `Get-Command` on the operator's
+    machine — probes an L0 surface in another repo and would require executing, which Layer 2
+    does not do. A verb that agrees everywhere and resolves nowhere passes this gate.
+    """
+    try:
+        try:
+            from scripts import dispatch_surface as _ds_probe  # noqa: PLC0415
+        except ImportError:
+            import dispatch_surface as _ds_probe               # noqa: PLC0415
+        # `Path.is_file()` swallows OSError, so an UNREADABLE PLAYBOOK would report
+        # NOT-APPLICABLE — "there is no dispatch table" — when the truth is that the canonical
+        # command source could not be opened. Only genuine absence is n/a; an unreadable one
+        # falls through to the predicate, which reports it as a violation. (terra pass 5.)
+        if _path_state(Path(repo_path) / _ds_probe.PLAYBOOK_PATH) == "absent":
+            return [_na("dispatch_verb_agreement", "NOT-APPLICABLE",
+                        "no protocols/PLAYBOOK.md — no dispatch table to agree with")]
+    except Exception as exc:  # noqa: BLE001 — a reader that cannot load is a WARN, not a FAIL
+        return [Finding("dispatch_verb_agreement", "warn",
+                        f"check degraded (read-only, non-blocking): {exc!r}".replace("|", "/"))]
+    try:
+        try:
+            from scripts import dispatch_surface as _ds  # noqa: PLC0415
+        except ImportError:
+            import dispatch_surface as _ds               # noqa: PLC0415
+        violations = _ds.agreement_findings(Path(repo_path))
+    except Exception as exc:  # never wedge the gate on an internal error
+        return [Finding("dispatch_verb_agreement", "warn",
+                        f"check degraded (read-only, non-blocking): {exc!r}".replace("|", "/"))]
+    if violations:
+        return [Finding("dispatch_verb_agreement", "fail", v.replace("|", "/"))
+                for v in violations]
+    return [Finding("dispatch_verb_agreement", "pass",
+                    "both point-of-use sites name the verb Ch8's dispatch table rules, and "
+                    "neither carries a rival literal launch form")]
 
 
 # [#533] moved to audit_checks/ — re-exported above.
@@ -3598,6 +3849,11 @@ ALL_CHECKS = [
     check_doc_claims,
     check_no_ff_merges,
     check_handoff_probes,
+    check_supplement_folded,   # R4 (census 2026-08-26 b6) — FAIL-class; a filled SUPPLEMENT
+                               # that never reached the paste is a silent loss of the
+                               # outgoing seat's judgment
+    check_dispatch_verb_agreement,   # R5 — the drift organ STANDING_RULINGS §V records as
+                                     # "owed and unbuilt"; FAIL-class, tree-side half only
     check_reconciled_versions,
     check_doc_rot,
     check_doc_structure,

@@ -143,6 +143,8 @@ CHECK_ORDER: tuple[str, ...] = (
     "check_doc_claims",                   # facade — ALL_CHECKS/_GATE_MODE/_is_hub seams
     "check_no_ff_merges",                 # facade — _is_hub/_REPO_ROOT seam
     "check_handoff_probes",               # facade — _gitenv path-load
+    "check_supplement_folded",            # facade — R4 (handoff census 2026-08-26 b6)
+    "check_dispatch_verb_agreement",      # facade — R5 (STANDING_RULINGS §V's owed organ)
     "check_reconciled_versions",
     "check_doc_rot",                      # facade — _is_hub/_REPO_ROOT seam
     "check_doc_structure",                # facade — _is_hub/_REPO_ROOT seam

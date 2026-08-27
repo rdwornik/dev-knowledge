@@ -2259,7 +2259,7 @@ primary-checkout seats keep the shape in row 3 below.
 
 | | Question | Route |
 |---|---|---|
-| **Q1** | Does the result depend on a gate (suite / hooks / ship-gate)? | **NOT cloud** — measured: no hook armed there, unpinned `uv`, no `click`. Codespace or local. |
+| **Q1** | Does the result depend on a gate (suite / hooks / ship-gate)? | **NOT cloud** — measured: no hook armed there, unpinned `uv`, no `click`. Codespace or local. **Measured again 2026-08-26: container `uv` is pinned-but-WRONG (0.8.17 against the repo's `==0.11.19`) and provisionable in one step, after which `uv run --locked` gates ran clean — an amendment candidate, routing unchanged pending a ruling (`docs/audits/2026-08-26-technical-handoff-census.md`, Appendix B).** |
 | **Q2** | Does it need operator-disk state (contracts in the prompts dir, authenticated vendor CLIs, unpushed branches), or is it an operator-gated act (merge, push, integration)? | **LOCAL**, stop. |
 | **Q3** | Is it read-only / reconnaissance (censuses, verification, fan-out)? | **CLOUD** — own clones, cheap, unlimited parallelism. |
 | **Q4** | Everything else — repo-mutating, disk-independent | **CODESPACE** (the default once the devcontainer carries Claude Code and its credential). |

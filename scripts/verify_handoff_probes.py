@@ -9,6 +9,8 @@ the command" as STRUCTURAL RESOLVABILITY of the command's targets.
 
 The §10 ladder it mechanizes (HANDOFF_PROCESS.md §10 — degrade loudly), per probe:
   - any load-bearing cell empty (question / source / why / command)   -> FAIL (malformed)
+  - a row printing its own answer as an `expected:` hint              -> FAIL (answer-hint)
+  - a row quantifying over an OPEN set (§5 cond. 4)                   -> FAIL (unbounded)
   - NO file/anchor token AND a trivial (value-less) command           -> FAIL (toothless)
   - a named source/command-target file does not exist (ANY span)      -> FAIL (missing source)
   - a named source file exists but its `#`-anchor is reworded/moved   -> WARN anchor-missing
@@ -46,6 +48,7 @@ import re
 import shutil
 import sys
 from dataclasses import dataclass
+from datetime import date as _date
 from pathlib import Path
 
 _SCRIPTS_DIR = Path(__file__).resolve().parent
@@ -103,6 +106,76 @@ _LOAD_BEARING = ("question", "source", "why", "command")
 # table rows, so `_classify` only ever sees a row's cells. The pattern is RF-1's specified
 # `/expected[ :]/`: a probe row has no honest reason to carry the word "expected" at all.
 _ANSWER_HINT_RE = re.compile(r"expected[ :]", re.IGNORECASE)
+
+# §5 condition 4 (bounded-deterministic, ratified at intake #18): "a probe whose honest answer
+# requires unbounded judgment over an open set is an arc, not a probe, and is rejected (origin:
+# P10)". The condition was ratified and then never enforced — P10 shipped in 35 bundles and
+# survived the v6 cut that ratified the condition rejecting it (measured, the 2026-08-26 handoff
+# census). This rung is that condition's teeth, and it is deliberately the SAME SHAPE as the
+# answer-hint rung directly above: matched on the parsed ROW CELLS only, so a PROBES preamble
+# that merely *describes* the condition is never classified, and so historical bundles stay
+# judged by their own era (the deployed `handoff_probes` check reads the ACTIVE bundle only).
+#
+# PRECISION OVER RECALL, and the pattern is P10's own two quantifiers rather than a general
+# theory of unboundedness: a universal quantifier over an OPEN set ("every / each / all OPEN
+# <thing>") and the set itself named whole ("the whole / entire / full open set"). Optional
+# `*`/`_` runs are absorbed because the live row writes it as `**every OPEN item**`.
+#
+# Measured false-positive rate over the whole corpus at authoring time (2026-08-26): ZERO — the
+# 36 matching PROBES.md files are all the P10/P7 BACKLOG-grooming row itself, and no other probe
+# row in 115 bundles or either live template matches. A row asking a BOUNDED question about the
+# backlog ("which #ids does the validator flag right now") does not match, which is the
+# discriminator that matters: P4 and P9 keep their teeth.
+_UNBOUNDED_SCOPE_RE = re.compile(
+    r"(?:every|each|all)\s*[*_]*\s*open\b"
+    r"|(?:whole|entire|full)\s*[*_]*\s*open\s*[*_]*\s*set\b",
+    re.IGNORECASE,
+)
+
+# The ERA the boundedness rung binds from — the date P10 left the shipped manifest
+# (`templates/handoff/v5/PROBES.md.tmpl`). Row-scoping alone is NOT enough to judge historical
+# bundles by their own era here, and that is the difference from the answer-hint rung: the
+# `expected:`-hint rung landed while the ACTIVE bundle was already clean, whereas the 35
+# P10-bearing bundles are IMMUTABLE committed artifacts and the newest of them is the bundle
+# `check_handoff_probes` reads on every commit. Without this gate the rung would RED the
+# audit-health gate against an artifact that cannot be fixed — condemning the past for the
+# present's rule, which is the one thing "judged by their own era" forbids.
+#
+# Fail-CLOSED on an unparseable bundle name: a directory that does not open with `YYYY-MM-DD` is
+# not a dated historical bundle, so it is judged by the current rule rather than waved through.
+_BOUNDEDNESS_ERA = "2026-08-26"
+# STRICT, and the strictness is the point: exactly `YYYY-MM-DD`, zero-padded, at the start of the
+# name. A looser match (or a bare string compare against the whole name) mis-orders a malformed
+# directory — `2026-08-9-foo` compares GREATER than `2026-08-26` on its 9th character, so a
+# pre-era bundle would be judged by a later era's rule, while `2026-08-2` would be waved through.
+# Anything this regex does not match is not a dated historical bundle and is judged by the
+# CURRENT rule (fail-closed) — an unreadable name earns no exemption.
+_BUNDLE_DATE_RE = re.compile(r"^(\d{4}-\d{2}-\d{2})(?:$|[^\d])")
+
+
+def bundle_at_or_after(bundle: str, era: str) -> bool:
+    """True if bundle dir name `bundle` belongs to `era` (an ISO date) or later.
+
+    ONE definition, shared: `audit.py::check_supplement_folded` grandfathers pre-era bundles by
+    the same predicate, because two era gates written twice is how two era gates disagree. A name
+    with no strict leading `YYYY-MM-DD` is treated as IN-era — fail-closed, so a malformed or
+    scratch directory is judged by the current rule rather than inheriting an exemption from
+    being unparseable. A prefix of the right SHAPE that is not a real calendar day
+    (`2026-02-31-manual`) counts as unparseable for the same reason: it would otherwise compare
+    as pre-era and exempt a malformed CURRENT bundle, inverting the rule (terra pass 5)."""
+    m = _BUNDLE_DATE_RE.match(bundle)
+    if m is None:
+        return True
+    try:                                    # a shape is not a date: `2026-02-31` matches the
+        _date.fromisoformat(m.group(1))     # regex and is not a day that exists, so grandfathering
+    except ValueError:                      # it would exempt a malformed CURRENT bundle
+        return True
+    return m.group(1) >= era
+
+
+def _in_boundedness_era(bundle: str) -> bool:
+    """True if `bundle` (a bundle DIR NAME) is judged by the §5 cond. 4 boundedness rung."""
+    return bundle_at_or_after(bundle, _BOUNDEDNESS_ERA)
 
 # Dirs excluded from the unique-basename fallback in _resolve_path: VCS internals,
 # nested CC worktree checkouts (`.claude/worktrees/<name>/…` are full duplicate trees),
@@ -525,6 +598,17 @@ def _classify(probe: dict, repo_root: Path, bundle: str, cross_repo: bool = Fals
                         f"answer-hint: {col} cell prints an 'expected:' answer value "
                         "(§5 anti-bluff — a probe that bakes its answer is bluffable, "
                         "rejected)")
+    # 1c. boundedness (§5 cond. 4) — a ROW whose verification quantifies over an OPEN set asks
+    #     for unbounded judgment at boot. That is an arc, not a probe, and is REJECTED. Same
+    #     row-scoping (and therefore the same era-judging) as 1b; emits `fail`, which the audit
+    #     adapter already maps to a gating Finding — no audit.py edit.
+    for col in _LOAD_BEARING if _in_boundedness_era(bundle) else ():
+        if _UNBOUNDED_SCOPE_RE.search(probe[col]):
+            return _res("fail",
+                        f"unbounded: {col} cell quantifies over an OPEN set (§5 cond. 4 "
+                        "bounded-deterministic — a probe whose honest answer requires "
+                        "unbounded judgment over an open set is an arc, not a probe, "
+                        "rejected; origin P10)")
     # 2. command must ship a runnable `backtick`-delimited command (else nothing binds).
     cmd = first_span(probe["command"])
     if not cmd:

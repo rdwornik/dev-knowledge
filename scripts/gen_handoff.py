@@ -574,6 +574,197 @@ def _intake_index(repo_root: Path) -> str:
     return "\n".join(lines)
 
 
+# --- R2: the generated Standing-vs-NEW attribution frame --------------------
+#
+# 47 of 86 bundles hand-authored a standing-WARN paragraph (avg 1,847 B) saying the same thing
+# in different words every window: which drift-flags are standing and which are this window's
+# (2026-08-26 handoff census, item R2/b1 — the largest single mechanizable class it measured).
+# The discriminator was already written down, in the 2026-08-25 driftflags region: "attribute a
+# WARN by asking whether the arc's diff touched the file it fires against, not by counting."
+# That is computable, so it is computed here and the hand region narrows to the one judgment a
+# generator cannot make — which NEW flag is a DECISION rather than a defect.
+#
+# WHAT THIS BLOCK DOES NOT DO, and the reason it is safe to put in a browser-visible file: it
+# never runs the audit. It carries no ship-gate verdict, no WARN count, no [stale] line, no sha,
+# no #id — nothing that is any probe's ANSWER. It is an ATTRIBUTION FRAME over two committed
+# inputs (the disposition register and the window's own diff), which is exactly what the hand
+# paragraph was, minus the seat having to re-derive it from memory. The values stay live and
+# stay P7/P4/P6/P9's to produce at check-time. `collect_hints` remains the only place that
+# touches answer values, and it still reaches only `journal_draft`.
+_HISTORY_BINDING = ":git-history:"
+
+# The standing-WARN family, bound to what each organ reads. CURATED, with a reason per row —
+# the "kept-as-manifest with a reason" form `ecosystem/disposition-register.yaml`'s own header
+# blesses — because there is no auto-enumerable organ->corpus map to derive it from.
+#
+# SCOPE IS DELIBERATE AND STATED IN THE RENDERED BLOCK: these are the organs bundles actually
+# narrate (census 1.2 — no_ff_merges 25, undeclared_edges 22, doc_rot 21, reconciled_versions
+# 15, fleet_parity 10, journal_spine_anchor 7, plus funnel_coverage, which carries 34 of the
+# register's entries). An organ outside the family is not silently attributed; it stays the
+# FILL-IN's business, and the block says so rather than reading as exhaustive.
+# tests/test_gen_handoff.py asserts every key is a live ALL_CHECKS registry name, so the
+# manifest cannot rot into naming a retired organ.
+_DRIFT_ORGAN_BINDINGS: tuple[tuple[str, tuple[str, ...], str], ...] = (
+    ("no_ff_merges", (_HISTORY_BINDING,),
+     "fires against main's first-parent spine, not against a file"),
+    ("journal_spine_anchor", (_HISTORY_BINDING, "JOURNAL.md"),
+     "fires against the spine ∩ JOURNAL anchors, not against a file alone"),
+    ("doc_rot", ("BACKLOG.md", "CLAUDE.md", "ARCHITECTURE.md", "VISION.md", "CONTRIBUTING.md",
+                 "protocols/", "docs/decisions/"),
+     "reads BACKLOG.md + the hub living docs"),
+    ("undeclared_edges", ("scripts/", "pyproject.toml", "ecosystem/dependency-baseline.yaml"),
+     "reads the code edge — scripts/ against the declared dependency surfaces"),
+    ("reconciled_versions", ("protocols/HANDOFF_PROCESS.md", "templates/prompt-template.md",
+                             "docs/handoffs/README.md", "CLAUDE.md"),
+     "reads the registered specs and the docs declaring a `reconciled_with:` edge"),
+    ("fleet_parity", ("ecosystem/", "deploy/", ".claude/", "templates/"),
+     "reads the parity-surface manifest and the surfaces it names"),
+    ("funnel_coverage", ("docs/audits/",),
+     "reads docs/audits/ disposition coverage"),
+)
+
+
+def _register_organs(repo_root: Path) -> list[str]:
+    """Distinct `organ:` names in `ecosystem/disposition-register.yaml`, sorted.
+
+    Parsed line-wise rather than via yaml so this stays a pure read with no import cost and
+    no failure mode of its own; the field is a flat scalar in every entry. Returns [] when the
+    register is absent or unreadable, and the caller degrades loudly rather than guessing."""
+    register = repo_root / "ecosystem" / "disposition-register.yaml"
+    try:
+        text = register.read_text(encoding="utf-8")
+    except OSError:
+        return []
+    return sorted({m.group(1) for m in re.finditer(r"^\s+organ:\s*(\S+)\s*$", text, re.M)})
+
+
+def _window(repo_root: Path) -> tuple[str, list[str]] | None:
+    """`(previous-bundle-slug, changed-paths)` for this handoff's window, or None.
+
+    The window is the diff since the PREVIOUS bundle was added — the same boundary the
+    residual's "shipped this window" map describes, resolved from git rather than from the
+    seat's memory of when the last handoff was. The bundle being generated now is untracked, so
+    the newest ADD of a `docs/handoffs/*/HANDOFF_BOOT.md` is the previous one by construction.
+
+    Returns None when git is unavailable or there is no prior bundle — a generator that cannot
+    compute the window says so; it never guesses a range."""
+    ok, sha = _git_status(repo_root, "log", "-1", "--format=%H", "--diff-filter=A",
+                          "--", "docs/handoffs/*/HANDOFF_BOOT.md")
+    if not ok or not sha:
+        return None
+    ok, paths = _git_status(repo_root, "show", "--name-only", "--format=", sha)
+    prev = ""
+    for rel in (paths.splitlines() if ok else []):
+        parts = rel.strip().split("/")
+        if len(parts) >= 3 and parts[0] == "docs" and parts[1] == "handoffs":
+            prev = parts[2]
+            break
+    ok, diff = _git_status(repo_root, "diff", "--name-only", f"{sha}..HEAD")
+    if not ok:
+        return None
+    return (prev or "the previous bundle",
+            [ln.strip() for ln in diff.splitlines() if ln.strip()])
+
+
+def _touched(bindings: tuple[str, ...], changed: list[str]) -> bool:
+    """True if the window's diff touched anything an organ with these bindings reads.
+
+    `_HISTORY_BINDING` means the organ fires against git history rather than a file, so ANY
+    non-empty window can have introduced its concern — fail-toward-NEW, which puts the organ in
+    front of the seat instead of quietly filing it as standing."""
+    for b in bindings:
+        if b == _HISTORY_BINDING:
+            if changed:
+                return True
+        elif b.endswith("/"):
+            if any(c.startswith(b) for c in changed):
+                return True
+        elif b in changed:
+            return True
+    return False
+
+
+def standing_vs_new(repo_root: Path) -> str:
+    """Render the generated `Standing vs NEW` block for RESIDUAL.md §1 (census R2).
+
+    Three lists of ORGAN NAMES and nothing else: dispositioned-by-register /
+    dispositioned-by-absence-from-the-window-diff / NEW-and-undispositioned. No verdict, no
+    count, no sha, no `#id` — the anti-bluff contract is untouched, and the block says so in
+    its own first line so a seat reading it cannot mistake a frame for an answer."""
+    header = ("> **Standing vs NEW — generated, names only.** Three lists computed from "
+              "`ecosystem/disposition-register.yaml` ∩ this window's own diff. **No verdict, "
+              "count, stale-disposition line, sha or backlog id appears here** — those are "
+              "P7/P4/P6/P9's live answers and the evidence block carries them. The frame covers the "
+              "standing-WARN family only; an organ outside it is the FILL-IN's business, not "
+              "silently filed as standing.\n")
+    win = _window(repo_root)
+    if win is None:
+        return (header + "\n_Window unresolved (git unavailable, or no prior bundle to measure "
+                "from) — the frame is not computed. Re-derive by hand: compare the window's "
+                "changed paths against what each organ reads._")
+    prev, changed = win
+    registered = set(_register_organs(repo_root))
+    if not registered:
+        return (header + "\n_Disposition register unreadable — the frame is not computed, "
+                "rather than computed against an empty register (which would file every organ "
+                "as NEW)._")
+    by_register, by_absence, new = [], [], []
+    for organ, bindings, why in _DRIFT_ORGAN_BINDINGS:
+        if organ in registered:
+            by_register.append(f"`{organ}`")
+        elif _touched(bindings, changed):
+            new.append(f"`{organ}` ({why})")
+        else:
+            by_absence.append(f"`{organ}` ({why})")
+
+    def _list(items: list[str]) -> str:
+        return "\n".join(f"- {i}" for i in items) if items else "- _(none)_"
+
+    return (
+        f"{header}\n"
+        f"**Window** — the diff since `docs/handoffs/{prev}/` was added.\n\n"
+        "**Dispositioned by the register.** The register already carries an entry for these "
+        "organs, so a WARN from one is standing unless its evidence signature is new:\n"
+        f"{_list(by_register)}\n\n"
+        "**Dispositioned by absence from the window diff.** This window touched nothing these "
+        "organs read, so a WARN from one is not this window's doing:\n"
+        f"{_list(by_absence)}\n\n"
+        "**NEW-and-undispositioned.** No register entry, and this window DID touch what they "
+        "read — so a WARN from one of these is this window's, and the note below says which is "
+        "a decision rather than a defect:\n"
+        f"{_list(new)}"
+    )
+
+
+# --- R5: the ruled dispatch verb, rendered rather than copied ---------------
+
+def dispatch_form(repo_root: Path) -> str:
+    """The forms card's dispatch line, READ from PLAYBOOK Ch8's dispatch table at generation.
+
+    The forms card exists because "a pointer works for prose a seat reads once, and fails for a
+    command a seat types" — but a copied command is what STANDING_RULINGS §V ruled on, after four
+    rival copies of this exact line cost roughly thirty consecutive seats a lane. Rendering
+    resolves the two: the seat gets the literal line, resident in its paste, and the tree still
+    has exactly one source for it.
+
+    DEGRADE TO A POINTER, never to a remembered command. If Ch8's table cannot be read the card
+    tells the seat to open it — a stale copy that renders confidently is the failure mode."""
+    try:
+        from scripts import dispatch_surface as _ds  # noqa: PLC0415
+    except ImportError:
+        try:
+            import dispatch_surface as _ds           # noqa: PLC0415
+        except ImportError:
+            _ds = None
+    lines = _ds.ruled_form(repo_root) if _ds is not None else None
+    if not lines:
+        return ("> **The literal line could not be rendered from Ch8** — read it live at "
+                "`protocols/PLAYBOOK.md` \"The dispatch table — the SOLE literal-command site\". "
+                "This card deliberately carries no copy of its own.")
+    body = "\n".join(lines)
+    return f"```\n{body}\n```"
+
+
 def detect_fill_state(bundle_dir: Path) -> bool:
     """True => FILLED framing, False => cold. Reuses assemble_paste._extract_answers so the
     framing flip matches EXACTLY what the assembler folds (one fill-state definition)."""
@@ -826,6 +1017,13 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
         sup = _strip_leading_comment(
             _substitute((_TMPL_DIR / "SUPPLEMENT.md.tmpl").read_text(encoding="utf-8"), tokens))
         (bundle_dir / "SUPPLEMENT.md").write_text(sup, encoding="utf-8", newline="\n")
+
+    # R2: the generated attribution frame for RESIDUAL §1. Computed from COMMITTED state (the
+    # register + the window's diff) and carrying no answer value — see `standing_vs_new`.
+    tokens["STANDING_VS_NEW"] = standing_vs_new(repo_root)
+    # R5: the forms card's dispatch line, RENDERED from Ch8's dispatch table rather than held as
+    # a second copy — the whole point of STANDING_RULINGS §V.
+    tokens["DISPATCH_FORM"] = dispatch_form(repo_root)
 
     _render("HANDOFF_BOOT.md.tmpl", tokens, bundle_dir, "HANDOFF_BOOT.md")
     _render("RESIDUAL.md.tmpl", tokens, bundle_dir, "RESIDUAL.md")

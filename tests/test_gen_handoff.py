@@ -69,7 +69,10 @@ def test_dogfood_no_probe_row_carries_an_answer_value(tmp_path):
     # ANTI-BLUFF BY CONSTRUCTION: no generated probe ROW may print an `expected:` answer hint
     # (the exact RF-1 regression). Re-runs every generation, so the property cannot silently rot.
     rows = _rows(_gen(tmp_path).bundle_dir)
-    assert len(rows) == 14  # 11 -> 14: P0a/P0b/P0c standing-topic legs added (R2 / [#446], 2026-07-31); P1a/P1b + P2..P10 (P10 = BACKLOG grooming, operator ruling 2026-07-17)
+    assert len(rows) == 13  # 11 -> 14: P0a/P0b/P0c standing-topic legs added (R2 / [#446], 2026-07-31);
+    # 14 -> 13: P10 (BACKLOG grooming) REMOVED 2026-08-26 — it asked for unbounded judgment
+    # over an open set, which HANDOFF_PROCESS §5 cond. 4 rejects and names P10 as its origin.
+    # Now P0a/P0b/P0c + P1a/P1b + P2..P9.
     hits = [(r["id"], c) for r in rows for c in ("question", "source", "why", "command")
             if re.search(r"expected[ :]", r[c], re.IGNORECASE)]
     assert hits == [], f"generated probe rows carry answer hints: {hits}"
@@ -81,7 +84,10 @@ def test_dogfood_generated_bundle_has_no_failing_probe(tmp_path):
     # `fail`; a fail would mean a toothless/malformed/missing-source generated row.)
     res = _gen(tmp_path)
     results = vhp.verify(res.bundle_dir, repo_root=res.bundle_dir.parents[2])
-    assert len(results) == 14  # 11 -> 14: P0a/P0b/P0c standing-topic legs added (R2 / [#446], 2026-07-31); P1a/P1b + P2..P10 (P10 = BACKLOG grooming, operator ruling 2026-07-17)
+    assert len(results) == 13  # 11 -> 14: P0a/P0b/P0c standing-topic legs added (R2 / [#446], 2026-07-31);
+    # 14 -> 13: P10 (BACKLOG grooming) REMOVED 2026-08-26 — it asked for unbounded judgment
+    # over an open set, which HANDOFF_PROCESS §5 cond. 4 rejects and names P10 as its origin.
+    # Now P0a/P0b/P0c + P1a/P1b + P2..P9.
     fails = [(r.probe_id, r.detail) for r in results if r.status == "fail"]
     assert fails == [], f"generated bundle has failing probes: {fails}"
 
@@ -879,3 +885,144 @@ def test_linked_worktrees_excludes_the_primary(tmp_path):
     ok, out = gh._git_status(repo, "worktree", "list", "--porcelain")
     assert ok and out.count("worktree ") == 1      # the primary, and only the primary
     assert gh._linked_worktrees(repo) == []
+
+
+# --- R2: the generated Standing-vs-NEW attribution frame --------------------
+#
+# 47/86 bundles hand-authored this paragraph, averaging 1,847 B, saying the same thing in
+# different words every window (2026-08-26 handoff census, item R2/b1). What is generated here
+# is the ATTRIBUTION, never a value — the anti-bluff dogfood above still governs, and these
+# tests exist so the block cannot quietly acquire one.
+
+# The banned shapes: a ship-gate verdict, a WARN/disposition count, a `[stale]` line, a sha, or
+# a backlog id. A frame that starts carrying one of these has become an answer.
+_ANSWER_SHAPES = (
+    re.compile(r"\bGREEN\b|\bRED\b"),
+    re.compile(r"\[stale\]"),
+    re.compile(r"\b[0-9a-f]{7,}\b"),
+    re.compile(r"#\d+"),
+    re.compile(r"\b\d+\s+(?:WARN|warn|dispositioned|organs?|entries)\b"),
+)
+
+
+def test_standing_vs_new_bindings_name_live_all_checks_members():
+    """The manifest is CURATED, so this is the guard that keeps it from rotting into naming a
+    retired organ — the failure mode the block's own scope note would otherwise hide.
+
+    Reads `audit_checks.registry.CHECK_ORDER` rather than `audit.ALL_CHECKS` deliberately:
+    `gen_handoff.collect_hints` inserts the STUB repo's `scripts/` at `sys.path[0]` and imports
+    `audit` from there, so by the time this test runs `sys.modules["audit"]` is a one-line stub
+    whose ALL_CHECKS is empty — and a test that read it would pass vacuously against nothing.
+    CHECK_ORDER is the same registry as a list of names, and test_audit_parallel.py pins the
+    two in agreement."""
+    from audit_checks.registry import CHECK_ORDER
+    live = {name.removeprefix("check_") for name in CHECK_ORDER}
+    named = {organ for organ, _b, _w in gh._DRIFT_ORGAN_BINDINGS}
+    assert named <= live, f"binding manifest names non-ALL_CHECKS organ(s): {named - live}"
+
+
+def test_standing_vs_new_carries_no_answer_value():
+    """THE contract for R2, run against the LIVE repo so it is evidence about the real block
+    and not about a fixture: three lists of names, and not one value among them."""
+    block = gh.standing_vs_new(_REPO)
+    hits = [rx.pattern for rx in _ANSWER_SHAPES if rx.search(block)]
+    assert hits == [], f"the generated frame carries answer-shaped text: {hits}"
+
+
+def test_standing_vs_new_partitions_every_manifest_organ_exactly_once():
+    block = gh.standing_vs_new(_REPO)
+    for organ, _b, _w in gh._DRIFT_ORGAN_BINDINGS:
+        assert block.count(f"`{organ}`") == 1, f"{organ} listed {block.count(organ)} times"
+    for heading in ("Dispositioned by the register", "Dispositioned by absence",
+                    "NEW-and-undispositioned", "Window"):
+        assert heading in block
+
+
+def test_standing_vs_new_degrades_loudly_when_the_window_is_unresolvable(tmp_path):
+    """A generator that cannot compute the window says so. It never guesses a range, and it
+    never falls through to a frame computed against nothing — which would file every organ as
+    NEW and read as an alarm."""
+    block = gh.standing_vs_new(_stub_repo(tmp_path))     # no git history at all
+    assert "Window unresolved" in block
+    assert "NEW-and-undispositioned" not in block
+
+
+def test_standing_vs_new_degrades_when_the_register_is_unreadable(tmp_path, monkeypatch):
+    """An empty register would silently reclassify every dispositioned organ as NEW — worse
+    than no frame, so the frame is withheld instead."""
+    monkeypatch.setattr(gh, "_window", lambda root: ("2026-01-01-prev", ["scripts/audit.py"]))
+    block = gh.standing_vs_new(_stub_repo(tmp_path) / "nonexistent")
+    assert "register unreadable" in block
+
+
+def test_touched_treats_git_history_bindings_as_always_in_a_non_empty_window():
+    """no_ff_merges and journal_spine_anchor fire against the spine, not a file. Fail toward
+    NEW: put the organ in front of the seat rather than quietly filing it as standing."""
+    assert gh._touched((gh._HISTORY_BINDING,), ["any/file.md"]) is True
+    assert gh._touched((gh._HISTORY_BINDING,), []) is False
+
+
+def test_touched_matches_dir_prefixes_and_exact_paths():
+    assert gh._touched(("scripts/",), ["scripts/audit.py"]) is True
+    assert gh._touched(("scripts/",), ["scriptsfoo/audit.py"]) is False
+    assert gh._touched(("BACKLOG.md",), ["BACKLOG.md"]) is True
+    assert gh._touched(("BACKLOG.md",), ["docs/BACKLOG.md"]) is False
+
+
+def test_generated_residual_carries_the_frame_and_the_narrowed_fill_in(tmp_path):
+    """End-to-end: the block reaches RESIDUAL.md §1, and the hand region below it now asks for
+    ONE judgment — which NEW flag is a decision rather than a defect."""
+    residual = (_gen(tmp_path).bundle_dir / "RESIDUAL.md").read_text(encoding="utf-8")
+    assert "{{STANDING_VS_NEW}}" not in residual        # the token was substituted
+    assert "Standing vs NEW" in residual
+    assert "DECISION rather than a defect" in residual
+
+
+def test_generated_residual_fill_in_regions_stay_recognised_as_unfilled(tmp_path):
+    """residual_completeness stays green: the narrowed placeholder keeps the `_(fill: …)_`
+    shape its scanner recognises, so a cold bundle still reports its regions as unfilled
+    instead of a reworded placeholder passing as authored prose."""
+    import validate_residual_completeness as vrc
+    residual = _gen(tmp_path).bundle_dir / "RESIDUAL.md"
+    regions = {u.region for u in vrc.scan_file(residual, "RESIDUAL.md")}
+    assert "driftflags" in regions
+
+
+# --- R5: the forms card renders the ruled verb, it does not copy it ---------
+
+def test_dispatch_form_renders_the_line_ch8_rules():
+    """The forms card carries a literal a seat TYPES, which a pointer cannot serve — but a
+    COPIED command is what STANDING_RULINGS §V ruled on. Rendering resolves both."""
+    import dispatch_surface as ds
+    block = gh.dispatch_form(_REPO)
+    assert block.startswith("```") and block.rstrip().endswith("```")
+    for line in ds.ruled_form(_REPO):
+        assert line in block
+
+
+def test_dispatch_form_degrades_to_a_pointer_not_a_remembered_command(tmp_path):
+    """A stale copy that renders confidently is the failure mode, so the degrade path names the
+    table instead of naming a command."""
+    block = gh.dispatch_form(tmp_path)
+    assert "could not be rendered" in block
+    assert "SOLE literal-command site" in block
+    assert "dispatch <" not in block
+
+
+def test_generated_boot_carries_the_rendered_dispatch_line(tmp_path):
+    """End-to-end through the stub repo, which has no PLAYBOOK — so this also proves the
+    DEGRADE path reaches the bundle intact rather than leaving a raw token behind."""
+    boot = (_gen(tmp_path).bundle_dir / "HANDOFF_BOOT.md").read_text(encoding="utf-8")
+    assert "{{DISPATCH_FORM}}" not in boot
+    assert "could not be rendered" in boot
+
+
+def test_template_holds_no_second_copy_of_the_dispatch_command():
+    """The R5 contract in one assertion: the forms card renders the verb, it never hardcodes
+    it. A fenced `dispatch …` line reappearing in the template is the regression."""
+    import dispatch_surface as ds
+    tmpl = (_REPO / "templates" / "handoff" / "v5" / "HANDOFF_BOOT.md.tmpl").read_text(
+        encoding="utf-8")
+    verb = ds.ruled_verb(_REPO)
+    assert "{{DISPATCH_FORM}}" in tmpl
+    assert not any(ln.split()[:1] == [verb] for ln in ds.fenced_lines(tmpl))
