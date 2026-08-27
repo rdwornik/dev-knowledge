@@ -19,6 +19,74 @@
 
 ---
 
+### 2026-08-27 (f) - CC (Opus 5, background job, primary checkout, branch `docs/night-lanes-close`): the na/nb mini-merge closes - tiering cuts the commit gate 4.6x on the merged tree, and ship-gate is proved byte-identical across 52 checks
+
+**Did:** integrated the two night lanes serially into `main` with tiered gating, discharged the
+integration obligations both packets named, and closed the queue opened by `2026-08-27 (e)`.
+
+**The two headline numbers, both measured on the merged tree rather than carried from a branch.**
+
+**(1) Commit-tier health: 203,147 ms -> 44,109 ms, -78.3%, a 4.6x cut.** Same tree, same 52-check
+set, tiering the only variable (`584fb1ed` untiered vs `dc45ea18` tiered); exit 0, `health: OK`,
+**zero FAILs**, 42 of 52 checks run at commit and the other 10 render as `[--] declared ship-tier`
+rather than vanishing. The `nb` lane measured only **-6.1%** on its own branch and said exactly why:
+it predated W2A's `journal_anchor` repair, so `check_journal_spine_anchor` cost 162 s and
+Amdahl-bounded the run. Its report predicted the win "becomes visible in the wall number the moment
+W2A merges". It has. Bare-main baseline for reference: 211,843 ms at 48 checks.
+
+**(2) Ship-gate is BYTE-IDENTICAL, re-proved on the merged tree by the lane's own method** - the
+pre- and post-tiering modules loaded side by side in ONE process against ONE working tree, the exact
+`run_checks(Path(_REPO_ROOT))` call `cmd_ship_gate` makes, compared as an ordered LIST because order
+is `CHECK_ORDER` and `CHECK_ORDER` is part of the contract the hooks read:
+`findings 184 == 184`, `distinct check_names 52 == 52`, `(name,status,evidence)` identical in order.
+**Stronger than the lane's own proof, which covered 46 checks: this one holds across all 52**,
+including the `na` lane's four. The harness asserted the pre module HAS no `tier_of` and the post has
+no `_GATE_MODE`, so a mis-loaded module would have failed loudly instead of matching vacuously.
+
+**The merge resolutions that took judgment, both settled by rule rather than by taste.** The five
+`ALL_CHECKS` count pins landed on **52, which NEITHER side said** - `na` measured 46->50 while `main`
+had grown to 48 underneath it, so the lane's four history entries were renumbered 48->52 and spliced
+onto main's. And the `ALL_CHECKS` tier collision: `nb` makes the tier a REQUIRED positional guarded
+by `test_every_all_checks_member_declares_a_gate_tier`, so the six checks it never saw (main's
+`supplement_folded` + `dispatch_verb_agreement`, the lane's four) each needed one. All six landed
+`TIER_COMMIT` **by the lane's own two-part rule** - ship requires *cannot-fail* AND >=1 s measured -
+and five are FAIL-capable outright. Ship set verified UNCHANGED at the lane's ten.
+
+**One failure, attributed and discharged, not dispositioned.** `na`'s gate REDed
+`test_the_live_corpus_measures_and_the_baseline_matches_it` on five artifacts - `w2b-surfaces` x3,
+`lane-h-handoff-mech`, `batch-w2-close-packet` - **every one of which came from `main`, none from the
+lane**. That is precisely the obligation the `na` packet section 8 item 4 handed the integrator.
+Discharged by ONE regeneration after the LAST merge (corpus 746->756, unconsumed 525->532), then
+**re-verified green rather than assumed**.
+
+**A regeneration deliberately NOT done, because the non-change is the finding.**
+`proof_layer.py --write-baseline` produced a **byte-identical guard set** (243 guards, 10
+self-policing) and changed only metadata - blanking a `measured_at`, a sha and a provenance line for
+zero substantive gain. Its tests were already green on the merged tree, so it was reverted:
+regenerating would have destroyed a record in order to record nothing.
+
+**Anchors (this branch):** `30c45391` - the index + baseline regeneration, the commit this branch's
+merge introduces.
+
+**Anchors (the queue, for the record rather than by mention):** `012c7d56` the anchor merge,
+`584fb1ed` the `na-gates` merge, `dc45ea18` the `nb-tiering` merge.
+
+**Changes:** `scripts/audit.py` (tier declarations for six checks), `ecosystem/doc-counts.md`,
+`ecosystem/doc-code-edge.yaml`, `ecosystem/audit-consumer-baseline.json`, `docs/audits/README.md`,
+the five count pins, plus both lanes' artifacts. `JOURNAL.md`.
+
+**Abandoned:** nothing this queue was asked to do. The `funnel_coverage` baseline stays stale by
+deliberate deferral (below), and `[#598]`'s marker sweep stays STOPPED by its own done-when.
+
+**Next / owed to the architect, none of it this queue's to rule:** (a) **ship-tier for
+`check_proof_layer`** - the ONE check of the six that passes `[#597]`'s cannot-fail leg, held at
+commit only because rule (b) needs a measured cost that does not exist; retiering another lane's
+check on a guess is not an integrator's call. (b) The **`funnel_coverage` curated baseline**, stale
+since arm time (live corpus 756 vs 693 pinned) - an operator decision by that module's own docstring,
+and `na` deliberately left it. (c) `[#598]`'s **21.42% long-pole verdict** for the governance session.
+(d) 653 spine entries are "anchored by mention, not by record" - pre-existing, corpus-wide, and it
+means the anchor record is weaker in FORM than a green `journal_spine_anchor` makes it look.
+
 ### 2026-08-27 (e) - CC (Opus 5, background job, primary checkout, branch `docs/anchor-night-lanes`): the na/nb mini-merge queue opens, and its anchor is written first because the backstop asks a per-entry question
 
 **Did:** opened the two-lane mini-integration queue for `worktree-lane-na-gates` (`cbceffdd`) and
