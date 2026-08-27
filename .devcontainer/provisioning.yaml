@@ -90,10 +90,39 @@ prebuild:
   # configuration at all. The checker says which, and never reports a verification it cannot make.
   configured: true
 
-  # "On configuration change", NOT the "Every push" default. Load-bearing, not tidy: the same
-  # audit measured 601 of 2000 included Actions minutes already spent this month (30%), and
-  # prebuilds run on Actions.
-  trigger: on_configuration_change
+  # "Every push", on the branch named by `ref:` below. CHANGED 2026-08-26 by the [#593] lane
+  # contract, and this REVERSES the accepted LEAN v2 ruling that stood here — recorded rather
+  # than quietly overwritten, because the reason the old value existed has not gone away.
+  #
+  # WHAT IT WAS AND WHY. `on_configuration_change` was chosen at
+  # `docs/audits/2026-08-20-technical-codespaces-audit.md` §3.2 to bound Actions spend: that audit
+  # measured 601 of 2000 included minutes already spent that month (30%), and prebuilds run on
+  # Actions. That arithmetic is untouched by this change — every push to `main` now runs a
+  # prebuild workflow, and the minute cost goes UP.
+  #
+  # WHAT IT BOUGHT, measured. Close packet §11 defect 3: a codespace created from the prebuilt
+  # image came up at a 2026-08-22 commit against a pushed tip of `6882ef74`, with `git status -sb`
+  # reporting no divergence because the clone had never fetched. Under
+  # `on_configuration_change` the image is refreshed only when `.devcontainer/devcontainer.json`
+  # or its Dockerfile changes — so a prebuild can serve an arbitrarily old source tree while
+  # remaining, by its own definition, perfectly current.
+  #
+  # THE DOC LINE, quoted rather than paraphrased. docs.github.com, "Configuring prebuilds": of
+  # "Every push (the default setting)" — "With this setting, prebuilds will be updated on every
+  # push made to the given branch" — and it is the setting that will "ensure that codespaces
+  # generated from a prebuild always contain the latest codespace configuration, including any
+  # recently added or updated dependencies". The same page says the converse for the alternative:
+  # with scheduled prebuilds "codespaces may be created that do not use the latest dev container
+  # configuration changes".
+  #
+  # HONEST LIMIT — this line DECLARES, it does not configure. Prebuild configuration is
+  # server-side operator UI state with no public API (probed 2026-08-21, recorded above), so
+  # landing this needs an operator edit at Settings -> Codespaces -> Set up prebuild, and
+  # `cloud_provisioning.py prebuild` can only report drift against the one field the API exposes.
+  # THE ENFORCEABLE HALF OF THE FRESHNESS REPAIR IS NOT HERE: it is `refresh_source_tree` in
+  # `provision.sh`, which fetches and fast-forwards the checkout at every creation and reports
+  # staleness at every start — that one runs, and it makes the image's own age irrelevant.
+  trigger: every_push
 
   # EuropeWest only. The default is ALL regions x 2 retained versions — up to 8 multi-GB
   # prebuild images, which is the one thing that can exhaust the 15 GB-month free allowance.

@@ -185,6 +185,122 @@ leg2_unshallow() {
   say "L2 OK — full history ($(git rev-list --count HEAD) commits reachable from HEAD)"
 }
 
+# --- [#593]: FRESHNESS — a prebuilt image is a snapshot, and it lies quietly ----------------------
+#
+# THE MEASURED DEFECT (close packet §11 defect 3, 2026-08-26). A codespace created from the
+# prebuilt image came up with in-container `HEAD` at `0360d6d0`, a 2026-08-22 commit, while the
+# pushed tip was `6882ef74` — and `git status -sb` printed `## main...origin/main` with NO
+# divergence, because the clone had never fetched. Nothing in the container was wrong; the whole
+# machine was three days old and said so nowhere. The consequence was not academic: lane CS's
+# merge — the very change that installs Claude Code — was absent, so `claude` was not on PATH in
+# the container built to prove it. This is the "flag lost across substrates" family: the assertion
+# looked at the old artifact.
+#
+# WHY THIS IS THE ENFORCEABLE HALF, and the prebuild trigger is not. `provisioning.yaml`'s
+# `prebuild.trigger` is server-side operator UI state with no public API — the repo can DECLARE it
+# and `cloud_provisioning.py prebuild` can report drift, and that is all. This function is the half
+# that runs, and it makes the image's own age irrelevant: whatever snapshot the container booted
+# from, provisioning brings the tree to the current default branch before any pin is read.
+#
+# WHERE IT RUNS, from the two docs rather than by preference. containers.dev's JSON reference:
+# "postCreateCommand: This command is the last of three that finalizes container setup when a dev
+# container is created", and "postStartCommand: A command to run each time the container is
+# successfully started". A Codespaces prebuild bakes `onCreateCommand` and `updateContentCommand`
+# and never `postCreateCommand` — so `postCreateCommand`, which this script is wired to, runs at
+# EVERY creation including a creation from a stale prebuilt image. That is exactly the path the
+# defect above travelled, and it is why the repair belongs in provisioning rather than in a new
+# lifecycle hook.
+#
+# WHAT IT WILL NOT DO, stated because the row's brief says "fetch+reset" and this deliberately is
+# not `reset --hard`. A container is also where a lane WORKS: it commits locally and pushes. A hard
+# reset would delete that work on the next start, and a codespace may legitimately be created from
+# a non-default branch. So the repair is narrowed to the one shape that cannot lose anything — on
+# the default branch, with a clean tree, STRICTLY BEHIND origin — where a fast-forward and a hard
+# reset produce a byte-identical result. Every other shape (dirty, diverged, or a different branch)
+# is REPORTED and left alone. A stale tree that says so is the defect closed; a destroyed tree
+# would be a worse one opened.
+#
+# HONEST LIMITS, three, none of them discovered later:
+#   * `--assert` mode REPORTS staleness, it does not refuse. Being behind a push made minutes ago
+#     is not the half-provisioned state `--gate` exists to refuse, and dying on it would make every
+#     container un-startable whenever anything lands on main. L4's pin/stamp refusals are untouched.
+#   * It runs AFTER `leg1_uv`, so a run whose fetch also moves the uv pin installs the OLD pin
+#     first. That is why a successful fast-forward RE-RUNS `leg1_uv` against what is now on disk —
+#     and if that still disagreed, `leg1_uv` dies loudly rather than stamping a lie.
+#   * It is not covered by the exact-call-list assertion in
+#     `tests/test_cloud_provisioning.py::test_provision_sh_runs_the_history_repair_before_arming_hooks`,
+#     which filters on the `leg` prefix. This lane's decision budget was `.devcontainer/` only, so
+#     it could not extend that test; deleting the call below therefore still leaves the suite
+#     green. Named as owed work in the lane report, not left to be found.
+
+default_branch() {
+  # The clone records its own default in `origin/HEAD`. Fall back to the ref
+  # `provisioning.yaml` names as the branch a prebuild is built from.
+  git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null | sed 's#^origin/##' \
+    || true
+}
+
+refresh_source_tree() {
+  local mode="${1:-repair}" def cur head_sha want_sha
+
+  git remote get-url origin >/dev/null 2>&1 \
+    || { noop "freshness: no origin remote — nothing to refresh against"; return 0; }
+
+  def="$(default_branch)"
+  [ -n "${def}" ] || def="main"
+
+  # A failed fetch is an OFFLINE host, not a broken one. Say that currency is unverified and
+  # carry on; refusing here would make a network blip indistinguishable from a real defect.
+  if ! git fetch --quiet --prune origin 2>/dev/null; then
+    say "freshness: WARNING — could not fetch origin; currency is UNVERIFIED this run"
+    return 0
+  fi
+  # Only `rev-parse --verify --quiet` distinguishes "missing" from "unreadable"; a single-branch
+  # refspec is the shape that leaves the default branch unfetched, so ask for it by name.
+  if ! git rev-parse --verify --quiet "origin/${def}" >/dev/null 2>&1; then
+    git fetch --quiet origin "+refs/heads/${def}:refs/remotes/origin/${def}" 2>/dev/null \
+      || { say "freshness: WARNING — origin/${def} does not resolve; currency is UNVERIFIED"; return 0; }
+  fi
+
+  cur="$(git rev-parse --abbrev-ref HEAD)"
+  head_sha="$(git rev-parse HEAD)"
+  want_sha="$(git rev-parse "origin/${def}")"
+
+  if [ "${head_sha}" = "${want_sha}" ]; then
+    noop "freshness: at origin/${def} ($(git rev-parse --short HEAD))"
+    return 0
+  fi
+  if [ "${cur}" != "${def}" ]; then
+    say "freshness: on '${cur}', not the default branch '${def}' — leaving it alone (origin/${def} is $(git rev-parse --short "origin/${def}"))"
+    return 0
+  fi
+  if ! git merge-base --is-ancestor HEAD "origin/${def}" 2>/dev/null; then
+    say "freshness: '${cur}' has DIVERGED from origin/${def} — local commits exist, so nothing is reset here"
+    return 0
+  fi
+  if [ -n "$(git status --porcelain)" ]; then
+    say "freshness: '${cur}' is behind origin/${def} but the tree is DIRTY — refusing to move it; commit or clean, then re-provision"
+    return 0
+  fi
+
+  say "freshness: '${cur}' is behind origin/${def} by $(git rev-list --count HEAD.."origin/${def}") commit(s) — $(git rev-parse --short HEAD) -> $(git rev-parse --short "origin/${def}")"
+  if [ "${mode}" = "--assert" ]; then
+    say "freshness: assert-only — this container is running a STALE tree; re-provision (bash .devcontainer/provision.sh)"
+    return 0
+  fi
+
+  # Strictly behind + clean: a fast-forward and a hard reset are the same bytes, and this one
+  # cannot eat anything.
+  git merge --ff-only --quiet "origin/${def}" \
+    || die "freshness: fast-forward to origin/${def} failed on a tree reported clean and strictly behind — refusing to guess"
+  CHANGED=$((CHANGED + 1))
+  say "freshness: OK — now at origin/${def} ($(git rev-parse --short HEAD))"
+
+  # The tree just moved, so every pin read before this point was read from the OLD tree. Re-assert
+  # the one that was already acted on; the rest are read after this function returns.
+  leg1_uv
+}
+
 # --- the environment itself: exact interpreter + locked deps -------------------------------------
 
 sync_environment() {
@@ -372,6 +488,12 @@ gate() {
   [ "${have_uv}" = "${want_uv}" ] || die "L4 uv is '${have_uv:-none}', pinned '${want_uv}'"
   [ "$(git rev-parse --is-shallow-repository)" = "false" ] || die "L4 repository is shallow"
 
+  # [#593] freshness, REPORT-ONLY here. `--assert` fetches and says whether this container is
+  # running a stale tree; it never moves it, so the gate keeps its "must not repair what it is
+  # asserting" contract. It does not die either — see the honest limit above the function: being
+  # behind a push made minutes ago is currency, not the half-provisioned state this gate refuses.
+  refresh_source_tree --assert
+
   # THE GATE MUST NOT REPAIR WHAT IT IS ASSERTING (terra HIGH round 2, 2026-08-21). Every Python
   # call below goes through `uv run`, and `uv run` SYNCS by default — it will create or update a
   # missing `.venv` and then happily run in it. That turns the assert-only gate into a silent
@@ -422,6 +544,10 @@ main() {
   say "provisioning ${REPO_ROOT}"
   leg1_uv
   leg2_unshallow
+  # [#593]: bring the tree to the current default branch BEFORE any dependency is resolved from it.
+  # It follows leg2_unshallow because `--is-ancestor` needs real history to answer, and precedes
+  # sync_environment so the lockfile that is synced is the one that is actually current.
+  refresh_source_tree
   sync_environment
   leg2b_history
   leg5_ecosystem
