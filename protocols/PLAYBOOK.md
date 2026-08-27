@@ -607,9 +607,9 @@ Canonical: **ADR-60** + its 2026-05-27 amendment (repo-type variants) + 2026-05-
 ### Secrets storage path
 <!-- scope: meta -->
 
-**[TBD — Stream C session 3, ADR-33]**
+**[UNRULED — no ADR claims this; carried as an open question by intake #57]**
 
-Standardize location of `.secrets/` (currently `C:\Users\1028120\Documents\.secrets\.env` per Rob's environment, not yet PLAYBOOK-documented as standard). Rule covers: path convention, what kinds of repos use this, whether per-repo `.env` is allowed, how the global PowerShell profile auto-loads relate.
+Standardize location of `.secrets/` (today: a single absolute path under the operator's home, outside any repo, loaded by the global PowerShell profile -- the path itself is deliberately NOT restated in a deploy-carried governance doc). Rule covers: path convention, what kinds of repos use this, whether per-repo `.env` is allowed, how the global PowerShell profile auto-loads relate.
 
 ### Capitalization conventions
 <!-- scope: meta -->
