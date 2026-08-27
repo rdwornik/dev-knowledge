@@ -610,43 +610,154 @@ def test_checks_count_matches_what_runs() -> None:
 
 
 # ---------------------------------------------------------------------------
-# cmd_health _GATE_MODE set/reset around the ALL_CHECKS loop (#89 / #141 Fix 3)
+# Per-check gate tiers ([#597]) — the mechanism that RETIRED `_GATE_MODE`
+#
+# These replace `test_cmd_health_gate_mode_set_during_loop_and_restored` and
+# `test_cmd_health_gate_mode_restored_on_exception` (#89 / #141 Fix 3). Both pinned a
+# module global that no longer exists; the properties they protected are re-pinned below
+# against the tier argument, and the second one becomes STRUCTURAL rather than behavioural
+# — there is no global to leak, so nothing needs restoring after a raise.
 # ---------------------------------------------------------------------------
 
-def test_cmd_health_gate_mode_set_during_loop_and_restored(monkeypatch: pytest.MonkeyPatch) -> None:
-    """cmd_health sets _GATE_MODE True around the self-audit loop (so claim-3 skips on the
-    gate) and restores it False after. Observe the flag DURING the loop via a sentinel check,
-    and assert restoration AFTER. Highest-risk global-mutation path (Codex HIGH)."""
+def _sentinel_check(name: str, tier: str, calls: list):
+    """A check that records that it ran. `__name__` is set because the deferral finding and
+    the telemetry row both derive their name from it."""
+    def _fn(_repo: Path):
+        calls.append(name)
+        return [aud.Finding(name, "pass", "ran")]
+    _fn.__name__ = f"check_{name}"
+    return aud._tier(tier, _fn)
+
+
+def test_every_all_checks_member_declares_a_gate_tier() -> None:
+    """THE REFUSAL THAT MAKES THE DECLARATION REAL. `tier_of` defaults to commit so a
+    monkeypatched sentinel needs no tier, and that default would otherwise let a check be
+    ADDED to the live registry with no tier and quietly join the commit gate. This is what
+    stops that: a member with no explicit `gate_tier` REDs the suite by name."""
+    undeclared = [c.__name__ for c in aud.ALL_CHECKS
+                  if getattr(c, "gate_tier", None) not in aud.GATE_TIERS]
+    assert undeclared == [], (
+        "ALL_CHECKS members with no declared gate tier — wrap each in "
+        f"_tier(TIER_COMMIT, ...) or _tier(TIER_SHIP, ...): {undeclared}")
+
+
+def test_tier_rejects_an_unknown_value() -> None:
+    """A typo'd tier must RAISE at import, not degrade to a default. A silent degrade would
+    move a check off the commit gate with nobody noticing — the failure this whole mechanism
+    exists to make impossible. `push` is the realistic typo: [#597]'s row names it, and this
+    module deliberately has no such tier."""
+    with pytest.raises(ValueError, match="unknown gate tier"):
+        aud._tier("push", lambda _repo: [])
+
+
+def test_tier_of_defaults_to_commit_for_an_undeclared_check() -> None:
+    """The default is the STRICT direction: an undeclared check runs everywhere, so silence
+    costs wall time and never coverage."""
+    assert aud.tier_of(lambda _repo: []) == aud.TIER_COMMIT
+
+
+def test_ship_tier_runs_the_commit_tier_too() -> None:
+    """THE LADDER IS NESTED, and this is the equality-bug guard. Written as
+    `tier_of(check) == tier`, `runs_at_tier` would make ship-gate SKIP every commit-tier
+    check — the exact inverse of what a ship gate is for, and invisible to any test that
+    only ever exercised the commit path."""
+    commit_only = _sentinel_check("c", aud.TIER_COMMIT, [])
+    ship_only = _sentinel_check("s", aud.TIER_SHIP, [])
+    assert aud.runs_at_tier(commit_only, aud.TIER_SHIP) is True
+    assert aud.runs_at_tier(ship_only, aud.TIER_SHIP) is True
+    assert aud.runs_at_tier(commit_only, aud.TIER_COMMIT) is True
+    assert aud.runs_at_tier(ship_only, aud.TIER_COMMIT) is False
+    assert aud.runs_at_tier(ship_only, None) is True      # no tier = run everything
+
+
+@pytest.mark.parametrize("parallel", [False, True])
+def test_commit_tier_defers_a_ship_check_without_dropping_it(tmp_path: Path, parallel: bool) -> None:
+    """A deferred check is NOT silently omitted: its slot carries one `n/a` finding naming
+    the tier, in registry order. Silence would make a deferred check indistinguishable from a
+    deleted one. Asserted in BOTH modes because the two paths build `slots` differently."""
+    calls: list[str] = []
+    checks = [_sentinel_check("a", aud.TIER_COMMIT, calls),
+              _sentinel_check("b", aud.TIER_SHIP, calls),
+              _sentinel_check("c", aud.TIER_COMMIT, calls)]
+
+    findings = aud.run_checks(tmp_path, checks=checks, parallel=parallel,
+                              tier=aud.TIER_COMMIT)
+
+    assert calls == ["a", "c"] or sorted(calls) == ["a", "c"]   # "b" never ran
+    assert [f.check_name for f in findings] == ["a", "b", "c"]  # order preserved
+    deferred = findings[1]
+    assert deferred.status == "n/a"
+    assert aud._na_reason(deferred) == aud._NA_NOT_APPLICABLE
+    assert "ship-tier" in deferred.evidence and "[#597]" in deferred.evidence
+
+
+@pytest.mark.parametrize("tier", [None, "ship"])
+def test_no_tier_and_ship_tier_both_run_every_check(tmp_path: Path, tier) -> None:
+    """`tier=None` is the default every existing caller uses, so this mechanism changes no
+    caller's behaviour by existing; `ship` is the same set by the nesting rule."""
+    calls: list[str] = []
+    checks = [_sentinel_check("a", aud.TIER_COMMIT, calls),
+              _sentinel_check("b", aud.TIER_SHIP, calls)]
+    findings = aud.run_checks(tmp_path, checks=checks, tier=tier)
+    assert sorted(calls) == ["a", "b"]
+    assert [f.status for f in findings] == ["pass", "pass"]
+
+
+def test_a_deferred_check_emits_no_telemetry_row(tmp_path: Path) -> None:
+    """A deferred check's `duration_ms` would be ~0, and a run of zeros would silently
+    re-rank the very table the tier decisions are read from — the next profiler would
+    conclude the ship-tier checks are free. No row beats a fabricated one."""
+    import sqlite3
+    calls: list[str] = []
+    db = tmp_path / "t.db"
+    aud.run_checks(tmp_path, checks=[_sentinel_check("a", aud.TIER_COMMIT, calls),
+                                     _sentinel_check("b", aud.TIER_SHIP, calls)],
+                   telemetry=True, telemetry_db=db, tier=aud.TIER_COMMIT)
+    con = sqlite3.connect(db)
+    names = [r[0] for r in con.execute(
+        "select name from events where event_type='check_run'")]
+    con.close()
+    assert names == ["check_a"]
+
+
+def test_cmd_health_runs_the_commit_tier(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The wiring, not the mechanism: `cmd_health` IS the pre-commit gate, so it is the one
+    caller that passes a tier. Observed through a ship-tier sentinel that must not run."""
     from click.testing import CliRunner
 
-    seen = {}
+    calls: list[str] = []
+    monkeypatch.setattr(aud, "ALL_CHECKS", [_sentinel_check("a", aud.TIER_COMMIT, calls),
+                                            _sentinel_check("b", aud.TIER_SHIP, calls)])
+    result = CliRunner().invoke(aud.cmd_health)
 
-    def _sentinel(_repo: Path):
-        seen["during"] = aud._GATE_MODE
-        return [aud.Finding("sentinel", "pass", "observed gate mode")]
-
-    monkeypatch.setattr(aud, "_GATE_MODE", False)        # hermetic baseline
-    monkeypatch.setattr(aud, "ALL_CHECKS", [_sentinel])
-    CliRunner().invoke(aud.cmd_health)
-
-    assert seen["during"] is True                        # set True inside the loop
-    assert aud._GATE_MODE is False                       # restored after the loop
+    assert calls == ["a"]
+    assert "b: " in result.output                    # deferred, still ENUMERATED
+    assert "ship-tier" in result.output
 
 
-def test_cmd_health_gate_mode_restored_on_exception(monkeypatch: pytest.MonkeyPatch) -> None:
-    """If a check raises mid-loop, the try/finally still resets _GATE_MODE to False — a
-    missing reset after failure would silently disable claim-3 on later full-audit runs."""
+def test_cmd_health_leaves_no_state_behind_when_a_check_raises(
+        monkeypatch: pytest.MonkeyPatch) -> None:
+    """The successor to `test_cmd_health_gate_mode_restored_on_exception`. That test guarded a
+    global whose reset a raise could skip; the tier is an ARGUMENT, so the property is now
+    structural — asserted by the absence of the global plus a live re-run that behaves
+    identically after the raise. Stated rather than deleted, because "the bug is impossible
+    now" is a claim that deserves a test."""
     from click.testing import CliRunner
+
+    assert not hasattr(aud, "_GATE_MODE")            # the global is gone, not merely unused
 
     def _boom(_repo: Path):
         raise RuntimeError("check exploded")
 
-    monkeypatch.setattr(aud, "_GATE_MODE", False)
+    calls: list[str] = []
     monkeypatch.setattr(aud, "ALL_CHECKS", [_boom])
-    result = CliRunner().invoke(aud.cmd_health)          # CliRunner captures the exception
+    result = CliRunner().invoke(aud.cmd_health)
+    assert isinstance(result.exception, RuntimeError)
 
-    assert isinstance(result.exception, RuntimeError)    # the raise propagated out
-    assert aud._GATE_MODE is False                       # ...yet finally still reset it
+    monkeypatch.setattr(aud, "ALL_CHECKS", [_sentinel_check("a", aud.TIER_COMMIT, calls),
+                                            _sentinel_check("b", aud.TIER_SHIP, calls)])
+    CliRunner().invoke(aud.cmd_health)
+    assert calls == ["a"]                            # unchanged by the earlier explosion
 
 
 # ---------------------------------------------------------------------------
@@ -1115,18 +1226,21 @@ def test_generated_artifact_freshness_absent_artifact_is_na_subject_absent(
 
 def test_generated_artifact_freshness_is_skipped_at_the_commit_gate(
         tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """"Ship-gate, not pre-commit" must be true of the WORK, not only of the verdict class.
-    `cmd_health` runs all of ALL_CHECKS, so without this the leg would spend 11 `git log` calls
-    on every commit. Asserted by making the date fn explode: if it is called under _GATE_MODE,
-    the leg is doing commit-time work it promised not to do."""
+    """"Ship-gate, not pre-commit" must be true of the WORK, not only of the verdict class:
+    without it the leg spends 11 `git log` calls on every commit. Since [#597] the skip is a
+    DECLARED tier rather than a `_GATE_MODE` branch in the leg's own body, so the assertion
+    moved with it — this now goes through `run_checks` at the commit tier and makes the date
+    fn explode. If the runner ever ran a ship-tier check at commit, this is what says so."""
     def _explode(*_a, **_k):
-        raise AssertionError("freshness measured under _GATE_MODE -- it must be skipped there")
+        raise AssertionError("freshness measured at the commit tier -- it must be deferred")
 
     monkeypatch.setattr(aud, "_gaf_git_last_commit_date", _explode)
-    monkeypatch.setattr(aud, "_GATE_MODE", True)
-    f = aud.check_generated_artifact_freshness(tmp_path)[0]
+    assert aud.tier_of(aud.check_generated_artifact_freshness) == aud.TIER_SHIP
+    f = aud.run_checks(tmp_path, checks=[aud.check_generated_artifact_freshness],
+                       tier=aud.TIER_COMMIT)[0]
     assert f.status == "n/a"
     assert aud._na_reason(f) == "NOT-APPLICABLE"
+    assert "ship-tier" in f.evidence
 
 
 def test_generated_artifact_freshness_every_verdict_has_a_mapped_status() -> None:
