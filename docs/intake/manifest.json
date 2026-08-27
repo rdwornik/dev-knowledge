@@ -3,12 +3,12 @@
   "direction": "derived-from",
   "source": "docs/intake/README.md",
   "generator": "scripts/gen_intake_tree.py",
-  "source_sha256": "366bc8cb50f4c2fa37cb173f1b405a881170089b4e02a331ef78aba397e07fcb",
+  "source_sha256": "788dc48be3cb5cb0906323b746c1041843a5f8847fcb8f5fe4334d8b8f8c32a9",
   "honest_limit": {
     "statement": "ADR-109 section 4 is discharged by a byte-exact round-trip plus a residue manifest, NOT by a derivation ratio. This surface's ratio is INVERTED relative to surface 1 (BACKLOG.md <-> tasks/), where task lines were the majority and residue the minority. Recorded so the generality claim is honest about what was shown.",
-    "item_derived_lines": 51,
+    "item_derived_lines": 55,
     "residue_lines": 284,
-    "total_lines": 335,
+    "total_lines": 339,
     "surface_1_comparison": "inverted -- surface 1 was majority item-derived"
   },
   "not_captured": {
@@ -345,7 +345,7 @@
     },
     {
       "t": "line",
-      "v": "**51 intake documents.**"
+      "v": "**55 intake documents.**"
     },
     {
       "t": "line",
@@ -651,7 +651,7 @@
     },
     {
       "t": "line",
-      "v": "### OTHER (1)"
+      "v": "### OTHER (5)"
     },
     {
       "t": "line",
@@ -660,6 +660,26 @@
     {
       "t": "item",
       "file": "2026-08-26-tech-wave3-wintooling.md",
+      "status": ""
+    },
+    {
+      "t": "item",
+      "file": "2026-08-27-tech-append-only-rotation-execution.md",
+      "status": ""
+    },
+    {
+      "t": "item",
+      "file": "2026-08-27-tech-documentation-diet-execution.md",
+      "status": ""
+    },
+    {
+      "t": "item",
+      "file": "2026-08-27-tech-night-batch-protocol.md",
+      "status": ""
+    },
+    {
+      "t": "item",
+      "file": "2026-08-27-tech-python-standard-executable-surface.md",
       "status": ""
     },
     {
