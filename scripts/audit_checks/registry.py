@@ -69,6 +69,8 @@ from .check_canonical_structure import (
     check_canonical_structure,
 )
 from .check_claude_md import check_claude_md
+from .check_consumer_at_landing import check_consumer_at_landing
+from .check_dispatch_drift import check_dispatch_drift
 from .check_dot_prefix_discipline import (
     _CONFIG_SUFFIXES,
     _DOT_PREFIX_EXCEPTIONS,
@@ -91,6 +93,7 @@ from .check_handoff_version_stamp import (
     _STAMP_RE,
     check_handoff_version_stamp,
 )
+from .check_proof_layer import check_proof_layer
 from .check_reconciled_versions import _vr, check_reconciled_versions
 from .check_residual_completeness import _vrc, check_residual_completeness
 from .check_routine_consumers import (
@@ -110,6 +113,7 @@ from .check_routine_consumers import (
     check_routine_consumers,
 )
 from .check_safe_removal import _sr, check_safe_removal
+from .check_substrate_declaration import check_substrate_declaration
 from .check_vision_md import check_vision_md
 from .check_workspace_settings import (
     _strip_jsonc,
@@ -171,6 +175,10 @@ CHECK_ORDER: tuple[str, ...] = (
     "check_landing_predicate",            # facade — DISPOSITION_REGISTER/_is_hub seams
     "check_adr_status_grammar",           # [#242] ADR status grammar/enum + README coherence
     "check_funnel_coverage",              # facade — _is_hub seam; detector in funnel_coverage.py
+    "check_substrate_declaration",        # [#591] substrate validator layer 2 — thin adapter
+    "check_dispatch_drift",               # [#592] Ch8 literal commands vs the machine
+    "check_consumer_at_landing",          # [#595] docs/audits consumer declaration + ratchet
+    "check_proof_layer",                  # [#596] family-3 environment-conditional guards
 )
 
 # The extracted subset, in CHECK_ORDER-relative order.
@@ -192,6 +200,10 @@ EXTRACTED_CHECKS = (
     check_routine_consumers,
     check_boot_byte_budget,
     check_adr_status_grammar,
+    check_substrate_declaration,
+    check_dispatch_drift,
+    check_consumer_at_landing,
+    check_proof_layer,
 )
 
 # The flat surface `audit.py` re-exports. Names beyond the check functions appear here because a
@@ -253,14 +265,18 @@ __all__ = [
     "check_canonical_md_visibility",
     "check_canonical_structure",
     "check_claude_md",
+    "check_consumer_at_landing",
+    "check_dispatch_drift",
     "check_dot_prefix_discipline",
     "check_floor_integrity",
     "check_handoff_bundle_structure",
     "check_handoff_version_stamp",
+    "check_proof_layer",
     "check_reconciled_versions",
     "check_residual_completeness",
     "check_routine_consumers",
     "check_safe_removal",
+    "check_substrate_declaration",
     "check_vision_md",
     "check_workspace_settings",
 ]

@@ -1,0 +1,90 @@
+# Substrate registry -- the ONE machine-readable source naming each dispatch substrate, its
+# verb, and the capability facts a validator or a router acts on. `[#591]` (intake #52 I4,
+# intake #45 M12).
+#
+# HOME, and why here rather than beside the generator. Intake #45's own open question names
+# the fork -- `ecosystem/` or `deploy/` -- and answers it in the same breath: "alongside
+# provider-registry.yaml and tool-versions.yaml, the established home for declared ecosystem
+# state". ADR-101 already sanctions the directory. `ecosystem/` also survives the Layer-3
+# router landing in win-tooling: a router outside this repo reads a declared-state file, not
+# a hub script's module constants.
+#
+# WHAT THIS FILE IS NOT. It carries no doctrine. The RULINGS live at
+# `protocols/STANDING_RULINGS.md` section V; the literal command syntax lives at
+# `protocols/PLAYBOOK.md` Ch8 "The dispatch table -- the SOLE literal-command site". This file
+# is the machine projection of those two, and the fields below cite which line each came from.
+#
+# `live:` is the V7 predicate. A substrate is live when its verb exists on the operator's
+# machine today. `false` marks a declared-but-unbacked substrate -- the case V7 asks the
+# router to refuse rather than round to a neighbour.
+#
+# Read-only (Layer 2). Consumers: `scripts/validate_substrate.py` and, once it lands, the
+# Layer-3 `dispatch` router (STANDING_RULINGS V7, win-tooling-owned).
+
+detector_id: substrate-registry/v1
+
+substrates:
+
+  local:
+    family: local
+    # STANDING_RULINGS V1: `dispatch <contract.md>` is THE sole operator verb for a LOCAL
+    # lane. V2: `Dispatch-Local` (nee `Dispatch-Lane`) is the documented manual fallback.
+    verbs: [dispatch, Dispatch-Local]
+    aliases: [Dispatch-Lane]
+    live: true
+    # Ch8 Layer-1 Q1: gate-dependent work routes to "Codespace or local".
+    admits_gate_dependent_work: true
+    # Ch8 Layer-1 Q2: the operator's disk is reachable -- prompts dir, vendor CLIs, unpushed
+    # branches.
+    operator_disk: true
+    # Ch8 concurrency ceilings: "LOCAL: one WRITER per checkout; parallelism only across
+    # worktrees." Each local lane gets its own worktree, so two local lanes contend only when
+    # they name the same one.
+    shared_checkout: false
+    branch_prefix: worktree-
+
+  interactive:
+    # A shape of the local substrate, not a fourth substrate: Ch8 row 3 and
+    # `gen_lane_contract.SHAPE_ENUM` both carry it, and STANDING_RULINGS V5 rules it
+    # unchanged. It is listed so the generator's enum and this registry cannot diverge.
+    family: local
+    verbs: [claude]
+    aliases: []
+    live: true
+    admits_gate_dependent_work: true
+    operator_disk: true
+    # An interactive session runs in the PRIMARY checkout on an author-chosen branch
+    # (`gen_lane_contract.branch_name` returns None for it), so every interactive lane
+    # contends for one and the same tree.
+    shared_checkout: true
+    branch_prefix: null
+
+  cloud:
+    family: cloud
+    verbs: [Dispatch-Cloud]
+    aliases: [Dispatch-CloudV2, Dispatch-CloudBrief]
+    live: true
+    # Ch8 Layer-1 Q1, measured: "NOT cloud -- measured: no hook armed there, unpinned `uv`,
+    # no `click`." Intake #45 records the same fact: no cloud lane's commits passed a gate.
+    admits_gate_dependent_work: false
+    # Ch8: "a cloud session clones from origin and cannot see unpushed branches or local
+    # files. That is a physical limit of the transport."
+    operator_disk: false
+    shared_checkout: false
+    branch_prefix: claude/
+
+  codespace:
+    family: codespace
+    verbs: [Dispatch-Codespace]
+    aliases: []
+    live: true
+    # Ch8 Layer-1 Q1 routes gate-dependent work to "Codespace or local", and Q4 makes it the
+    # default for repo-mutating disk-independent work. HONEST LIMIT, recorded because intake
+    # #52's acceptance criterion 4 states it: Q4 is not priced as available until the chain is
+    # proven -- the close packet's smoke run reached neither `Ok=True` nor `RemoteExitCode=0`.
+    admits_gate_dependent_work: true
+    # The container holds a fresh clone and nothing of the operator's.
+    operator_disk: false
+    # 2-4 concurrent codespaces, each its own machine (Ch8 concurrency ceilings).
+    shared_checkout: false
+    branch_prefix: null

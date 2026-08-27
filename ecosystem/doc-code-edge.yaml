@@ -187,6 +187,44 @@ exempt:
   # than a behavioural doc->code rule declaration. Same cross-lane note as the row directly
   # above: appended at the end so it conflicts cleanly.
   - dispatch_verb_agreement
+  # [#591] substrate-validator adapter (layer 2). **TEMPORARY**, on the funnel_coverage and
+  # review_artifact_coverage precedents directly above and for the same stated reason:
+  # enforcement ahead of its written rule runs only under a NAMED exemption. The rule this leg
+  # embodies -- a lane contract's declared substrate agreeing with what the contract then asks
+  # for -- is carried today by `protocols/STANDING_RULINGS.md` section V (an immutable ruling
+  # record) and by `docs/intake/2026-08-26-tech-dispatch-consolidation-remainder.md`, neither of
+  # which is a living doc a `<!-- rule: -->` marker can point at. PLAYBOOK Ch8 states the
+  # property in prose but declares no rule ID. When it lands as a declared rule this entry
+  # converts to coverage_scope and the `# rule:` marker is added to the adapter and to
+  # scripts/validate_substrate.py (a 2-site multi_site declaration, the check_adr_status_grammar
+  # shape). Bound to [#591], not to memory.
+  - substrate_declaration
+  # [#592] dispatch-drift adapter. **TEMPORARY**, same class as the two rows above. The
+  # property -- every literal command in PLAYBOOK Ch8's dispatch table resolving on the
+  # operator's machine, and `/lane-boot` naming the ruled verb -- is carried today by
+  # `protocols/STANDING_RULINGS.md` section V, an immutable ruling record whose own closing
+  # paragraph calls this organ "owed and unbuilt". Ch8 states the property in prose and
+  # declares no rule ID for a marker to bind. When one lands, this entry converts to
+  # coverage_scope and the marker is added to the adapter and to scripts/dispatch_drift.py
+  # (a 2-site multi_site declaration). Bound to [#592], not to memory.
+  - dispatch_drift
+  # [#595] consumer-at-landing leg. **TEMPORARY**, and the closest precedent is the
+  # funnel_coverage row above it -- same corpus, same posture, same reason. The rule this leg
+  # embodies (a landed docs/audits artifact declares the governance surface that consumes it)
+  # is carried today by `docs/intake/2026-08-26-tech-loop-tax-and-gate-performance.md` and by
+  # the diagnostic that measured the class -- locatable, but not where a marker could point.
+  # PLAYBOOK Ch8's "Where the contract file lives" states the consumer doctrine in prose and
+  # declares no rule ID. When it lands, this entry converts to coverage_scope and the marker
+  # is added to the adapter and to scripts/consumer_at_landing.py. Bound to [#595].
+  - consumer_at_landing
+  # [#596] family-3 proof-layer leg. **TEMPORARY**, same class as the three rows above. The
+  # class it enforces -- a proof whose firing is gated on the presence of the environment it
+  # polices -- is stated with its predicate in scripts/proof_layer.py and evidenced by
+  # docs/audits/2026-08-25-technical-green-by-skip-sweep.md section 9, an immutable audit
+  # artifact. No living doc declares it as a rule ID today. When one does, this entry converts
+  # to coverage_scope and the marker is added to the adapter and to scripts/proof_layer.py.
+  # Bound to [#596]; its SITE-layer sibling is [#583].
+  - proof_layer
   # ARC-5 residual-completeness gate. TEMPORARY exemption, distinct from the permanent rows
   # above, and BOUND TO [#365] -- an undeclared temporary exemption is exactly the silent
   # category ARC-5 exists to eliminate, so it carries a ticket rather than a hope.

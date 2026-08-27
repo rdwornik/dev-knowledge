@@ -260,6 +260,10 @@ check_canonical_structure = _registry.check_canonical_structure
 check_handoff_version_stamp = _registry.check_handoff_version_stamp
 check_amendment_coherence = _registry.check_amendment_coherence
 check_floor_integrity = _registry.check_floor_integrity
+check_substrate_declaration = _registry.check_substrate_declaration
+check_dispatch_drift = _registry.check_dispatch_drift
+check_consumer_at_landing = _registry.check_consumer_at_landing
+check_proof_layer = _registry.check_proof_layer
 
 _CONFIG_SUFFIXES = _registry._CONFIG_SUFFIXES
 _DOT_PREFIX_EXCEPTIONS = _registry._DOT_PREFIX_EXCEPTIONS
@@ -3889,6 +3893,20 @@ ALL_CHECKS = [
                                # baseline in docs/audits/2026-08-23-technical-lane-status-grammar.md
     check_funnel_coverage,     # M3 — ADVISORY (WARN-tier by ruling); zero-baseline ratchet over
                                # docs/audits/ disposition coverage, keyed on artifact identity
+    check_substrate_declaration,  # [#591] substrate validator layer 2 — REFUSE legs FAIL-armed
+                                  # against a post-2026-08-27 corpus measuring 0; the
+                                  # second-local-writer leg is WARN by the row's own words
+    check_dispatch_drift,      # [#592] — every literal command in PLAYBOOK Ch8's dispatch
+                               # table resolves via Get-Command, and /lane-boot names the
+                               # ruled verb. Machine-dependent BY DESIGN: a shell-less host
+                               # reports the tier as a WARN, never a green-rendering status
+    check_consumer_at_landing,  # [#595] — the subtraction mechanism. Leg 1 (a landing
+                                # declares its consumer) FAIL-armed against a post-2026-08-27
+                                # corpus measuring 0; leg 2 (the identity-keyed consumption
+                                # ratchet) WARN by the funnel_coverage ruling
+    check_proof_layer,         # [#596] — family 3 at the PROOF layer: a proof whose firing is
+                               # gated on the environment it polices. WARN-tier identity
+                               # ratchet; the class + predicate live in scripts/proof_layer.py
 ]
 
 
