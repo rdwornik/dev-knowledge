@@ -69,6 +69,7 @@ from .check_canonical_structure import (
     check_canonical_structure,
 )
 from .check_claude_md import check_claude_md
+from .check_consumer_at_landing import check_consumer_at_landing
 from .check_dispatch_drift import check_dispatch_drift
 from .check_dot_prefix_discipline import (
     _CONFIG_SUFFIXES,
@@ -173,6 +174,7 @@ CHECK_ORDER: tuple[str, ...] = (
     "check_funnel_coverage",              # facade — _is_hub seam; detector in funnel_coverage.py
     "check_substrate_declaration",        # [#591] substrate validator layer 2 — thin adapter
     "check_dispatch_drift",               # [#592] Ch8 literal commands vs the machine
+    "check_consumer_at_landing",          # [#595] docs/audits consumer declaration + ratchet
 )
 
 # The extracted subset, in CHECK_ORDER-relative order.
@@ -196,6 +198,7 @@ EXTRACTED_CHECKS = (
     check_adr_status_grammar,
     check_substrate_declaration,
     check_dispatch_drift,
+    check_consumer_at_landing,
 )
 
 # The flat surface `audit.py` re-exports. Names beyond the check functions appear here because a
@@ -257,6 +260,7 @@ __all__ = [
     "check_canonical_md_visibility",
     "check_canonical_structure",
     "check_claude_md",
+    "check_consumer_at_landing",
     "check_dispatch_drift",
     "check_dot_prefix_discipline",
     "check_floor_integrity",

@@ -184,6 +184,15 @@ exempt:
   # coverage_scope and the marker is added to the adapter and to scripts/dispatch_drift.py
   # (a 2-site multi_site declaration). Bound to [#592], not to memory.
   - dispatch_drift
+  # [#595] consumer-at-landing leg. **TEMPORARY**, and the closest precedent is the
+  # funnel_coverage row above it -- same corpus, same posture, same reason. The rule this leg
+  # embodies (a landed docs/audits artifact declares the governance surface that consumes it)
+  # is carried today by `docs/intake/2026-08-26-tech-loop-tax-and-gate-performance.md` and by
+  # the diagnostic that measured the class -- locatable, but not where a marker could point.
+  # PLAYBOOK Ch8's "Where the contract file lives" states the consumer doctrine in prose and
+  # declares no rule ID. When it lands, this entry converts to coverage_scope and the marker
+  # is added to the adapter and to scripts/consumer_at_landing.py. Bound to [#595].
+  - consumer_at_landing
   # ARC-5 residual-completeness gate. TEMPORARY exemption, distinct from the permanent rows
   # above, and BOUND TO [#365] -- an undeclared temporary exemption is exactly the silent
   # category ARC-5 exists to eliminate, so it carries a ticket rather than a hope.
