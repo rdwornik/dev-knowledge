@@ -19,6 +19,47 @@
 
 ---
 
+### 2026-08-27 (e) - CC (Opus 5, background job, primary checkout, branch `docs/anchor-night-lanes`): the na/nb mini-merge queue opens, and its anchor is written first because the backstop asks a per-entry question
+
+**Did:** opened the two-lane mini-integration queue for `worktree-lane-na-gates` (`cbceffdd`) and
+`worktree-lane-nb-tiering` (`fb387710`) - the follow-up `2026-08-27 (d)` named as its only
+remaining merge work. Written at queue-open, BEFORE the first merge; it carries no result. The
+close record is a separate entry.
+
+**Why the anchor is written first, stated once rather than rediscovered.** The two organs ask
+DIFFERENT questions and only one of them is range-level. `block_unanchored_push` discharges via
+`journal_anchor.range_is_anchored` - ">= 1 spine entry in the range is anchored" - but the audit
+backstop `check_journal_spine_anchor` runs `unanchored_on_spine`, which is **per entry** above the
+dated floor, and `audit-health` is a **pre-commit** gate. Both merges in this queue conflict
+(`ALL_CHECKS` and the generated count surfaces), and a conflicted merge DOES run `pre-commit`. So
+an unanchored merge would not fail at push - it would wedge the very next commit. Same reason
+`2026-08-27 (b)` gave, and the ADR-110 exemption still does not fit: `LANE_BRANCH_RE` does not
+match `worktree-lane-na-gates` or `worktree-lane-nb-tiering` either, so a manifest would grant
+zero here as it granted zero there. Writing the entry first keeps `audit-health` armed on both
+merges with **zero SKIPs**.
+
+**Baseline, measured on bare `b6a8d8db` before the queue opened,** so any post-merge failure is
+attributable rather than argued: `audit.py health` **exit 0, `health: OK`, 211,843 ms**; targeted
+suite over both lanes' touched paths **356 passed, exit 0, 441,940 ms**. The only WARN class is the
+known-stale `funnel_coverage` baseline (live corpus 745 vs the 693 pinned at arm time) that the
+`na` lane's own packet reports and leaves as an operator-owned curated-baseline touch.
+
+**Anchors (the queue's lane tips, each introduced by the merge that lands it):** `cbceffdd` - the
+`na-gates` tip, four gate mechanisms on rows `[#591]` `[#592]` `[#595]` `[#596]`; `fb387710` - the
+`nb-tiering` tip, per-check gate tiers `[#597]` and the stopped marker sweep `[#598]`.
+
+**Anchors (this branch):** `676223e5` - the anchor commit itself, the commit this branch's
+merge introduces. A merge cannot name its own hash (`journal_anchor` S A7), so the entry names
+the commit it brings in; without this line the anchor branch's OWN merge would be the one
+unanchored spine entry in the queue it exists to anchor.
+
+**Changes:** `JOURNAL.md`.
+
+**Next:** merge `na` then `nb`, serially, each gated on its own targeted suite plus `audit.py
+health`; regenerate the four generated surfaces the merges leave stale (audits index, `doc-counts`,
+and the `na` lane's two ratchet baselines, which `nb`'s new artifacts and tests both perturb); then
+teardown and the close entry.
+
 ### 2026-08-27 (d) - CC (Opus 5, background job, primary checkout, branch `docs/w2-close-packet`): batch W2 closes - the two headline numbers, and a smoke that failed twice over
 
 **Did:** landed the batch W2 close packet and regenerated the audits index the merges still owed.
