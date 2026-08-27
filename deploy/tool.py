@@ -1,19 +1,27 @@
-"""deploy/tool.py — the deploy orchestrator's ASSESS half (ADR-92, C2a).
+"""deploy/tool.py — the deploy orchestrator (ADR-92): ASSESS (C2a) **and** EXECUTE (C2b).
 
-**Strictly read-only.** This is the first half of the deploy orchestrator (the
-ADR-92 "assess" step): a ``deploy`` CLI that runs **preflight**, then **detects**
-every carrier's state against the target manifest and prints a **structured
-deployment-plan** of what each carrier *would* do — **without applying anything,
-writing the version record, or staging/committing.**
+**The default invocation is strictly read-only.** ``deploy <repo> --target <version>``
+runs **preflight**, then **detects** every carrier's state against the target manifest
+and prints a **structured deployment-plan** of what each carrier *would* do — **without
+applying anything, writing the version record, or staging/committing.**
 
-The apply + record half is **C2b**. Keeping the assess engine read-only makes it
-safe to run against the real (possibly drifted) fleet to surface drift: the only
-carrier side effect reachable here is ``detect()``, which for the plugin carrier
-runs ``claude plugin list --json`` (a read) — never ``install``.
+Keeping the assess engine read-only makes it safe to run against the real (possibly
+drifted) fleet to surface drift: the only carrier side effect reachable there is
+``detect()``, which for the plugin carrier runs ``claude plugin list --json`` (a read)
+— never ``install``.
+
+The apply + record half (**C2b**) **is implemented**: ``execute()`` below applies the
+carriers, writes the version record and stages the consumer, and the CLI dispatches to
+it under ``--execute``. This docstring — and the ``--execute`` note further down —
+claimed for months that C2b was *"scaffolded as an explicit guard here, never
+implemented"*, which was false at HEAD and is the first thing a lane planning wave-3
+work reads. Corrected 2026-08-26; measured and reported as blocker **B8** in
+``docs/audits/2026-08-26-technical-w3prep-recon.md``.
 
 CLI::
 
     deploy <repo> --target <version>        # assess: preflight + detect + print plan
+    deploy <repo> --target <version> --execute   # apply + write the version record + stage
 
 ``<repo>`` is the consumer's directory name (the ``ecosystem/deployed-versions.yaml``
 registry key, e.g. ``ai-council``); ``<version>`` is the methodology release (e.g.
@@ -25,8 +33,9 @@ Preflight (each a hard abort with a clear message):
 2. ``<repo>`` is a registered consumer in ``ecosystem/deployed-versions.yaml``;
 3. the consumer ``<repo>`` working tree is clean.
 
-The ``--execute`` path (apply + record write + consumer staging) is **C2b** — it
-is scaffolded as an explicit guard here, never implemented.
+The ``--execute`` path (apply + record write + consumer staging) is **C2b** — it is
+implemented (``execute()``) and wired into the CLI; it is off by default, so nothing
+here writes unless ``--execute`` is passed explicitly.
 """
 
 from __future__ import annotations

@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "d8a615d354ea491b369cc70f218353ed34a8acf8d08db5dc91e502beb19b8e2f",
+  "generated_sha256": "925435b50dff40f1a116de22bf5eb355eb2c9964491bca3d13a11303d1e3a9e5",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -109,6 +109,22 @@
     {
       "task": 547,
       "file": "547-split-brain-prevention-has-no-referent-under-v6.md"
+    },
+    {
+      "task": 599,
+      "file": "599-generated-standing-vs-new-drift-block-in-the-han.md"
+    },
+    {
+      "task": 600,
+      "file": "600-delete-p10-from-the-shipped-probe-manifest-and-g.md"
+    },
+    {
+      "task": 602,
+      "file": "602-land-the-ruled-dispatch-verb-in-the-bundle-s-for.md"
+    },
+    {
+      "task": 603,
+      "file": "603-an-operator-interface-capability-file-the-facts.md"
     },
     {
       "prose": ""
@@ -248,6 +264,10 @@
     {
       "task": 596,
       "file": "596-family-3-at-the-proof-layer-the-class-583-names.md"
+    },
+    {
+      "task": 601,
+      "file": "601-supplement-folded-audit-check-a-filled-supplemen.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
@@ -490,6 +510,10 @@
     {
       "task": 496,
       "file": "496-organ-to-component-attributes-the-pre-push-organ.md"
+    },
+    {
+      "task": 605,
+      "file": "605-de-hardcode-consumer-root-resolution-in-deploy-t.md"
     },
     {
       "prose": "---"
@@ -786,6 +810,14 @@
     {
       "task": 430,
       "file": "430-consumer-template-rejects-root-conftest-py-fleet.md"
+    },
+    {
+      "task": 604,
+      "file": "604-admit-win-tooling-and-terminal-setup-to-the-depl.md"
+    },
+    {
+      "task": 606,
+      "file": "606-the-win-tooling-first-slice-instantiation-arc-ru.md"
     },
     {
       "prose": ""

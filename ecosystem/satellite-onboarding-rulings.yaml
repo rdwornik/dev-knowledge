@@ -67,3 +67,25 @@ rulings:
     ruled_by: operator
     ruled_date: "2026-07-16"
     census_ref: docs/audits/2026-07-13-technical-satellite-onboarding-census.md
+
+  win-tooling:
+    profile: full
+    ruled_by: architect
+    ruled_date: "2026-08-26"
+    # NOT the 2026-07-13 satellite census — win-tooling was not in its scope. The proposing
+    # surface is the wave-3 recon, so that is what census_ref names; the schema field means
+    # "the surface that proposed this profile", and naming a census that never covered the
+    # repo would be the more misleading choice.
+    census_ref: docs/audits/2026-08-26-technical-w3prep-recon.md
+    rationale: >-
+      First-value target for wave 3 (recon section 2, FIRST SLICE): win-tooling has
+      zero enforcing organs today, so the full gate set is what makes the slice
+      worth running — floor, the pre-commit set, the enforcement mesh and the tier1
+      plugin arrive in ONE deploy act. Ruled full rather than floor-only because a
+      floor-only profile would leave the repo with the branch grammar and none of
+      the gates that make it hold.
+
+# terminal-setup is DELIBERATELY UNRULED, not overlooked: it is a declared fleet member with no
+# profile ruling, and [#604] owns closing that. Recording the absence here so the next reader
+# does not have to re-derive whether it was missed. Adding an entry without an operator/architect
+# ruling would be fabricating the decision this register exists to record.

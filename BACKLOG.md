@@ -31,6 +31,10 @@ So that the canonical v5 handoff is fully implemented (generator) and mechanical
 - [#447] [P3][S] Self-referential gate family — the committing act cannot satisfy the gate's own precondition · tasks/447-ratchet-raise-local-hook-bootstrap-deadlock.md
 - [#422] [P2][S] `reflow_framing`'s cold→FILLED flip is partial by design, and nothing detects the self-contradiction it leaves · tasks/422-reflow-framing-s-cold-filled-flip-is-partial-by.md
 - [#547] [P3][S] Split-brain prevention is instructed against a handoff section shape v6 does not produce · tasks/547-split-brain-prevention-has-no-referent-under-v6.md
+- [#599] [P2][M] Generated standing-vs-NEW drift block in the handoff residual · tasks/599-generated-standing-vs-new-drift-block-in-the-han.md
+- [#600] [P2][S] Delete P10 from the shipped probe manifest and gate the boundedness condition · tasks/600-delete-p10-from-the-shipped-probe-manifest-and-g.md
+- [#602] [P2][M] Land the ruled dispatch verb in the bundle's forms card, and extend the agreement gate to the bundle sites · tasks/602-land-the-ruled-dispatch-verb-in-the-bundle-s-for.md
+- [#603] [P3][S] An operator-interface capability file — the facts every seat re-derives about how the operator works · tasks/603-an-operator-interface-capability-file-the-facts.md
 
 ---
 
@@ -68,6 +72,7 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#592] [P2][S] Dispatch drift organ — every literal command in Ch8 must resolve on the machine · tasks/592-dispatch-drift-organ-every-literal-command-in-ch.md
 - [#595] [P2][M] Consumer-at-landing gate for `docs/audits/` — the subtraction mechanism · tasks/595-consumer-at-landing-gate-for-docs-audits-the-sub.md
 - [#596] [P3][S] Family-3 at the PROOF layer — the class `[#583]` names but does not prove · tasks/596-family-3-at-the-proof-layer-the-class-583-names.md
+- [#601] [P2][S] `supplement_folded` audit check — a filled supplement that never reached the paste · tasks/601-supplement-folded-audit-check-a-filled-supplemen.md
 ### [S4] Extend structural validation to more governance artifacts
 So that drift in transcripts, ADRs, and folders is caught cheaply, not by reviewer luck.
 - [#139] [P2][L] merged-arc→record verifier · DEFER · tasks/139-merged-arc-record-verifier.md
@@ -134,6 +139,7 @@ Backbone (dependency-ordered; done stages recorded here as the epic ledger — A
 - [#325] [P3][S] Carry `/save` to consumers via a manifest command-artifact carrier · DEFER · tasks/325-carry-save-to-consumers-via-a-manifest-command-a.md
 - [#497] [P3][S] Two stale claims on carrier/hook declarations · tasks/497-carrier-mesh-py-75-still-claims-the-informant-lo.md
 - [#496] [P3][S] `_ORGAN_TO_COMPONENT` attributes the pre-push organ to a component that does not carry it — the Tier-3 DRIFT rows it produces are misfiled · tasks/496-organ-to-component-attributes-the-pre-push-organ.md
+- [#605] [P2][M] De-hardcode consumer-root resolution in `deploy/tool.py` and `scripts/audit.py` · tasks/605-de-hardcode-consumer-root-resolution-in-deploy-t.md
 ---
 
 ## [E3] Lessons feedback loop
@@ -218,6 +224,8 @@ So that "open any repo, same layout/governance" actually holds.
 - [#351] [P3][M] Fleet-Python-upgrade ticket · tasks/351-fleet-python-upgrade-ticket.md
 - [#559] [P2][L] Kernel/lab check tiering + `dev-knowledge-kernel` as an installable package · tasks/559-kernel-lab-check-tiering-dev-knowledge-kernel-as.md
 - [#430] [P2][M] Consumer template rejects root `conftest.py`; `fleet_parity`'s verdict depends on state outside its subject · tasks/430-consumer-template-rejects-root-conftest-py-fleet.md
+- [#604] [P2][S] Admit win-tooling and terminal-setup to the deploy registry and rule their onboarding profiles · tasks/604-admit-win-tooling-and-terminal-setup-to-the-depl.md
+- [#606] [P2][L] The win-tooling first-slice instantiation arc, run in the RULING-W shape · tasks/606-the-win-tooling-first-slice-instantiation-arc-ru.md
 
 ### [S16] Manage the methodology as a living thing (essence lifecycle: transfer · sync · PRUNE)
 So that the consumer-facing live surface reflects CURRENT state — hub-deprecated elements get REMOVED from consumers, not accumulated (the append-only-live-surface bug; distinct from the append-only-BY-DESIGN audit trail).

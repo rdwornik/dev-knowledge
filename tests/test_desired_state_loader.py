@@ -387,8 +387,13 @@ def test_live_repo_loads_clean_and_writes_nothing():
     for p in seven:
         assert open(os.path.join(root, p), "rb").read() == bytes_before[p], p
     members = _loader().resolve_fleet_members(fm.desired)
+    # win-tooling joined 2026-08-26: admitted to ecosystem/deployed-versions.yaml with all
+    # fields null, because deploy/tool.py:253 refuses an unregistered repo before it reads a
+    # manifest (wave-3 recon blocker B2). Membership resolves toward deployed-versions.yaml,
+    # so the registry key IS the membership — this pin moves with that data by construction.
+    # Its parity role is still `pre-deploy`; admission is a precondition, not a deploy.
     assert set(members) == {".dev-knowledge", "ai-council", "corp-monorepo",
-                            "corp-ops", "corp-sca-time-automation"}
+                            "corp-ops", "corp-sca-time-automation", "win-tooling"}
     corp = next(r for r in fm.desired.repos if r.id == "corp-monorepo")
     assert corp.deployed.version == "1.2.0"
     assert any(d.kind == "gate-rev-ahead" and d.gate_tag_raw == "v1.3.1"
