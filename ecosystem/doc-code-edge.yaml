@@ -175,6 +175,15 @@ exempt:
   # scripts/validate_substrate.py (a 2-site multi_site declaration, the check_adr_status_grammar
   # shape). Bound to [#591], not to memory.
   - substrate_declaration
+  # [#592] dispatch-drift adapter. **TEMPORARY**, same class as the two rows above. The
+  # property -- every literal command in PLAYBOOK Ch8's dispatch table resolving on the
+  # operator's machine, and `/lane-boot` naming the ruled verb -- is carried today by
+  # `protocols/STANDING_RULINGS.md` section V, an immutable ruling record whose own closing
+  # paragraph calls this organ "owed and unbuilt". Ch8 states the property in prose and
+  # declares no rule ID for a marker to bind. When one lands, this entry converts to
+  # coverage_scope and the marker is added to the adapter and to scripts/dispatch_drift.py
+  # (a 2-site multi_site declaration). Bound to [#592], not to memory.
+  - dispatch_drift
   # ARC-5 residual-completeness gate. TEMPORARY exemption, distinct from the permanent rows
   # above, and BOUND TO [#365] -- an undeclared temporary exemption is exactly the silent
   # category ARC-5 exists to eliminate, so it carries a ticket rather than a hope.
