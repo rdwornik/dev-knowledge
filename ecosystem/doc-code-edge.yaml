@@ -163,6 +163,18 @@ exempt:
   # entry converts to coverage_scope and the marker is added. Same shape as the
   # review_artifact_coverage row directly above.
   - funnel_coverage
+  # [#591] substrate-validator adapter (layer 2). **TEMPORARY**, on the funnel_coverage and
+  # review_artifact_coverage precedents directly above and for the same stated reason:
+  # enforcement ahead of its written rule runs only under a NAMED exemption. The rule this leg
+  # embodies -- a lane contract's declared substrate agreeing with what the contract then asks
+  # for -- is carried today by `protocols/STANDING_RULINGS.md` section V (an immutable ruling
+  # record) and by `docs/intake/2026-08-26-tech-dispatch-consolidation-remainder.md`, neither of
+  # which is a living doc a `<!-- rule: -->` marker can point at. PLAYBOOK Ch8 states the
+  # property in prose but declares no rule ID. When it lands as a declared rule this entry
+  # converts to coverage_scope and the `# rule:` marker is added to the adapter and to
+  # scripts/validate_substrate.py (a 2-site multi_site declaration, the check_adr_status_grammar
+  # shape). Bound to [#591], not to memory.
+  - substrate_declaration
   # ARC-5 residual-completeness gate. TEMPORARY exemption, distinct from the permanent rows
   # above, and BOUND TO [#365] -- an undeclared temporary exemption is exactly the silent
   # category ARC-5 exists to eliminate, so it carries a ticket rather than a hope.

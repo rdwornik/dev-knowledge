@@ -182,7 +182,7 @@ def test_all_checks_count_is_pinned():
     Renamed from `..._post_retirement_38`: the count moved by an ADDITION, so a name asserting
     a post-retirement 38 would have described neither the number nor the reason.
     """
-    assert len(aud.ALL_CHECKS) == 46  # 44 -> 46: check_generated_artifact_freshness (ADR-86 amd. 2026-08-23 / [#171] leg 1, WARN-tier by ruling) and check_funnel_coverage (M3 ADVISORY leg, WARN-tier by ruling; zero-baseline identity ratchet over docs/audits/ disposition coverage) added together by the mini-integration, 2026-08-24
+    assert len(aud.ALL_CHECKS) == 47  # 44 -> 46: check_generated_artifact_freshness (ADR-86 amd. 2026-08-23 / [#171] leg 1, WARN-tier by ruling) and check_funnel_coverage (M3 ADVISORY leg, WARN-tier by ruling; zero-baseline identity ratchet over docs/audits/ disposition coverage) added together by the mini-integration, 2026-08-24; 46 -> 47: check_substrate_declaration added ([#591] substrate validator layer 2 — REFUSE legs FAIL-armed against a post-2026-08-27 corpus measuring 0, second-local-writer leg WARN by the row's own words, 2026-08-27)
 
 
 def test_no_surviving_docstring_describes_the_removed_skip_as_pass_behaviour():

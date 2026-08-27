@@ -110,6 +110,7 @@ from .check_routine_consumers import (
     check_routine_consumers,
 )
 from .check_safe_removal import _sr, check_safe_removal
+from .check_substrate_declaration import check_substrate_declaration
 from .check_vision_md import check_vision_md
 from .check_workspace_settings import (
     _strip_jsonc,
@@ -169,6 +170,7 @@ CHECK_ORDER: tuple[str, ...] = (
     "check_landing_predicate",            # facade — DISPOSITION_REGISTER/_is_hub seams
     "check_adr_status_grammar",           # [#242] ADR status grammar/enum + README coherence
     "check_funnel_coverage",              # facade — _is_hub seam; detector in funnel_coverage.py
+    "check_substrate_declaration",        # [#591] substrate validator layer 2 — thin adapter
 )
 
 # The extracted subset, in CHECK_ORDER-relative order.
@@ -190,6 +192,7 @@ EXTRACTED_CHECKS = (
     check_routine_consumers,
     check_boot_byte_budget,
     check_adr_status_grammar,
+    check_substrate_declaration,
 )
 
 # The flat surface `audit.py` re-exports. Names beyond the check functions appear here because a
@@ -259,6 +262,7 @@ __all__ = [
     "check_residual_completeness",
     "check_routine_consumers",
     "check_safe_removal",
+    "check_substrate_declaration",
     "check_vision_md",
     "check_workspace_settings",
 ]

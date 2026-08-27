@@ -259,6 +259,7 @@ check_canonical_structure = _registry.check_canonical_structure
 check_handoff_version_stamp = _registry.check_handoff_version_stamp
 check_amendment_coherence = _registry.check_amendment_coherence
 check_floor_integrity = _registry.check_floor_integrity
+check_substrate_declaration = _registry.check_substrate_declaration
 
 _CONFIG_SUFFIXES = _registry._CONFIG_SUFFIXES
 _DOT_PREFIX_EXCEPTIONS = _registry._DOT_PREFIX_EXCEPTIONS
@@ -3592,6 +3593,9 @@ ALL_CHECKS = [
                                # baseline in docs/audits/2026-08-23-technical-lane-status-grammar.md
     check_funnel_coverage,     # M3 — ADVISORY (WARN-tier by ruling); zero-baseline ratchet over
                                # docs/audits/ disposition coverage, keyed on artifact identity
+    check_substrate_declaration,  # [#591] substrate validator layer 2 — REFUSE legs FAIL-armed
+                                  # against a post-2026-08-27 corpus measuring 0; the
+                                  # second-local-writer leg is WARN by the row's own words
 ]
 
 
