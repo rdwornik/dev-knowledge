@@ -60,7 +60,11 @@ nominated as the proof could not supply one.
 
 **Anchors (the integration-time fix):** `54767890` - the revert commit, which merge `b8ebbd6a` introduced
 
-**Anchors (this entry's own commit):** filled by the follow-up commit on this branch
+**Anchors (this entry's own commit):** `cec56f2f` - named by the follow-up commit on
+this branch, so the `--no-ff` merge that introduces it is anchored too. Third use of the
+two-commit shape this session (`6cc34438`, `40ccd4c3`, this one); a one-commit branch is
+structurally unanchorable. Appended to an entry that has NOT landed on `main`, which is
+what STANDING_RULINGS B6 permits.
 
 **Changes:** `JOURNAL.md` (this entry).
 
