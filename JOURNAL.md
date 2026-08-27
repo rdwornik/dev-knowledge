@@ -57,6 +57,15 @@ file, `.dev-knowledge.code-workspace` (+71/-7), and both are provider-surface bo
 commits the push introduces. Discharge is range-level (ADR-85 §A7 / FR2), so this one entry
 carries the whole push.
 
+**Self-anchor (the two-commit pattern, per the `434f7e2c` precedent of 2026-08-26):** this
+branch carries TWO commits deliberately. The first, `2ce3c513`, is the anchor above; a
+single-commit branch cannot anchor its own `--no-ff` merge, because the merge introduces only
+that one commit and the entry naming it was authored before the merge existed. Naming
+`2ce3c513` here is what lets this branch’s merge satisfy the same predicate it exists to
+discharge — and keeps main’s spine fully anchored for the five lane merges that follow, which
+matters because a CONFLICTED merge runs the pre-commit `audit-health` gate and an unanchored
+spine entry would FAIL it.
+
 **Changes:** `JOURNAL.md` (this entry).
 
 **Abandoned:** nothing.
