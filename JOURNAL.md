@@ -19,6 +19,56 @@
 
 ---
 
+### 2026-08-27 (c) - CC (Opus 5, background job, primary checkout, branch `docs/anchor-integration-fix`): the integration-time fix needs its own anchor, and [#590] gets its first live proof
+
+**Did:** anchored merge `b8ebbd6a` (`fix/revert-prebuild-every-push`), the batch W2
+integration-time fix. The queue-open batch entry `2026-08-27 (b)` could not name it: that entry
+names the five LANE tips, and this branch did not exist when it was written - it was created
+during the queue, in response to what W2C's merge actually contained. So it is anchored here,
+by the same two-commit shape the rest of this session used.
+
+**The fix itself, in one line:** W2C's [#593] lane changed the prebuild trigger
+`on_configuration_change` -> `every_push`, which the lane's own comment block admits "REVERSES
+the accepted LEAN v2 ruling that stood here" and makes "the minute cost goes UP". The
+2026-08-20 operator ruling - stay on the Codespaces free 4-core tier, never buy overage -
+has not been revisited, and a lane does not get to reverse it in passing. Reverted at
+`54767890`. Nothing [#593] exists to fix is lost, on the lane's own testimony: "THE ENFORCEABLE
+HALF OF THE FRESHNESS REPAIR IS NOT HERE: it is `refresh_source_tree` in `provision.sh`" -
+which fetches and fast-forwards at every creation and reports staleness at every start, and is
+untouched. The reverted line only DECLARES; prebuild config is server-side operator UI state
+with no public API, so the revert costs no enforcement, only Actions minutes.
+
+**[#590] FIRST LIVE PROOF, which is what the batch contract asked to be watched for.** The
+claim is that the audits index stops being merge-resolvable. Measured across this queue, not
+asserted:
+
+- **W2B's own merge:** `docs/audits/README.md` **CONFLICTED**. Expected - W2B is the commit
+  that introduces the fix, so it is the last merge to predate it. Resolved by REGENERATION
+  (`gen_audit_index.py --write`), never by hunk-picking; `--check` then returned exit 0.
+- **W2C's merge:** no signal either way, and this is worth stating rather than counting as a
+  pass. W2C touches only `.devcontainer/` and never `docs/audits/README.md`, so it could not
+  have conflicted on that file whatever [#590] did. The batch contract expected W2C to be the
+  proof; it is not one.
+- **G2 and lane-H:** both modify `docs/audits/README.md`, and both **AUTO-MERGE it clean** -
+  `git merge-tree` reports "Auto-merging docs/audits/README.md" with no CONFLICT for either,
+  while still conflicting on OTHER files (`BACKLOG.md` + `tasks/manifest.json` for G2,
+  `ecosystem/doc-counts.md` for lane-H). That is the proof: the same merge that collides
+  elsewhere no longer collides on the index.
+
+So [#590] holds, on two independent lanes, with the honest caveat that the lane the contract
+nominated as the proof could not supply one.
+
+**Anchors (the integration-time fix):** `54767890` - the revert commit, which merge `b8ebbd6a` introduced
+
+**Anchors (this entry's own commit):** filled by the follow-up commit on this branch
+
+**Changes:** `JOURNAL.md` (this entry).
+
+**Abandoned:** nothing.
+
+**Next:** G2 and lane-H merges, both conflicting only on generated files - resolved by
+regeneration - then the end-of-batch measurements and the close packet.
+
 ### 2026-08-27 (b) - CC (Opus 5, background job, primary checkout, branch `docs/batch-w2-journal`): batch W2 serial integration - five lanes fold into main, and the anchor entry is written at queue-open because the designed exemption does not fit this batch's lane names
 
 **Did:** the W2 integration queue - `w2a-perf-core`, `w2b-surfaces`, `w2c-codespace-repair`,
