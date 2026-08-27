@@ -234,12 +234,57 @@ def test_an_unreadable_governance_pool_is_reported_not_passed(tree):
     out = cal.ratchet_findings(m, _baseline([]))
     assert out
     assert [s for s, _ in out] == ["warn"]
-    assert "cannot resolve citations" in out[0][1]
+    assert "citations cannot be resolved" in out[0][1]
 
 
 def test_a_resolvable_pool_is_marked_resolved(tree):
     _pool(tree, "tasks/1-x.md", "a row\n")
     assert cal.measure(tree).pool_resolved is True
+
+
+def test_one_unreadable_pool_file_makes_the_whole_pool_unresolved(tree):
+    """terra finding 1. A partially-read pool produced a CLEAN verdict — a check that could
+    not compute its ground truth reporting a non-failing status, inside the module that gates
+    for exactly that."""
+    _audit(tree, "2026-08-01-technical-x.md")
+    _pool(tree, "tasks/1-good.md", "a readable row\n")
+    (tree / "tasks" / "2-bad.md").write_bytes(b"\xff\xfe\x00not utf-8")
+    m = cal.measure(tree)
+    assert m.pool_unreadable == ["2-bad.md"]
+    assert m.pool_resolved is False
+    out = cal.ratchet_findings(m, _baseline([]))
+    assert [s for s, _ in out] == ["warn"]
+    assert "cannot be resolved" in out[0][1]
+    assert "2-bad.md" in out[0][1]
+
+
+# --- the corpus is recursive ------------------------------------------------
+
+def test_a_nested_artifact_is_in_the_corpus(tree):
+    """terra finding 2. A one-level glob left every artifact under a launch-contracts
+    directory outside BOTH legs — it could land undeclared and grow the unconsumed set while
+    the check passed."""
+    nested = tree / "docs" / "audits" / "2026-08-25-technical-b1-launch-contracts"
+    nested.mkdir(parents=True)
+    (nested / "LANE-a.md").write_text("Names nothing.\n", encoding="utf-8")
+    m = cal.measure(tree)
+    assert m.corpus == ["LANE-a.md"]
+    assert m.unconsumed == ["LANE-a.md"]
+
+
+def test_a_nested_landing_after_the_cutoff_owes_a_declaration(tree):
+    nested = tree / "docs" / "audits" / "2026-09-01-technical-b2-launch-contracts"
+    nested.mkdir(parents=True)
+    (nested / "2026-09-01-LANE-a.md").write_text("Names nothing.\n", encoding="utf-8")
+    assert [a.name for a in cal.undeclared(cal.measure(tree))] == ["2026-09-01-LANE-a.md"]
+
+
+def test_a_nested_generated_index_stays_out_of_the_corpus(tree):
+    """`CORPUS_EXCLUDE` matches by BASENAME, so an index at any depth is excluded."""
+    nested = tree / "docs" / "audits" / "2026-08-25-technical-b1-launch-contracts"
+    nested.mkdir(parents=True)
+    (nested / "README.md").write_text("an index\n", encoding="utf-8")
+    assert cal.measure(tree).corpus == []
 
 
 def test_an_undecodable_artifact_raises_rather_than_undercounting(tree):

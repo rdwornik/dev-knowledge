@@ -143,6 +143,84 @@ def test_a_skipif_on_a_non_environment_condition_is_not_family_three(tmp_path):
     assert pl.scan_guards(d) == []
 
 
+def test_a_named_marker_alias_is_resolved(tmp_path):
+    """terra finding 3. `requires_git = pytest.mark.skipif(...)` then `@requires_git` is the
+    DOMINANT form in this repo — 18+ modules — and missing it made the first live measurement
+    a 6x undercount (38 guards found against a true 239)."""
+    d = _tests_dir(tmp_path, test_x=textwrap.dedent('''\
+        import shutil
+        import pytest
+
+        requires_git = pytest.mark.skipif(shutil.which("git") is None,
+                                          reason="git not available")
+
+        @requires_git
+        def test_needs_git():
+            assert True
+
+        def test_plain():
+            assert True
+        '''))
+    guards = pl.scan_guards(d)
+    assert len(guards) == 1
+    assert guards[0].tool == "git"
+    assert guards[0].target == "test_needs_git"
+
+
+def test_a_named_alias_in_a_module_level_pytestmark_list_is_resolved(tmp_path):
+    d = _tests_dir(tmp_path, test_x=textwrap.dedent('''\
+        import shutil
+        import pytest
+
+        requires_git = pytest.mark.skipif(shutil.which("git") is None, reason="no git")
+        pytestmark = [pytest.mark.slow, requires_git]
+
+        def test_a():
+            assert True
+        '''))
+    guards = pl.scan_guards(d)
+    assert [g.scope for g in guards] == [pl.SCOPE_MODULE]
+    assert guards[0].tool == "git"
+
+
+def test_a_compound_condition_reports_the_enforcement_runner(tmp_path):
+    """A guard gated on "pre-commit absent OR git absent" is gated on the enforcement runner
+    among other things. Reporting the first match buried it in the 219-strong `git` cohort
+    instead of the sharpest one."""
+    d = _tests_dir(tmp_path, test_x=textwrap.dedent('''\
+        import importlib.util
+        import shutil
+        import pytest
+
+        _HAS_PRECOMMIT = importlib.util.find_spec("pre_commit") is not None
+        requires_precommit = pytest.mark.skipif(
+            not _HAS_PRECOMMIT or shutil.which("git") is None,
+            reason="pre-commit or git not available",
+        )
+
+        @requires_precommit
+        def test_hook_fires():
+            assert True
+        '''))
+    guard = pl.scan_guards(d)[0]
+    assert guard.tool == "pre_commit"
+    assert guard.self_policing is True
+
+
+def test_a_named_alias_that_is_not_a_skipif_is_ignored(tmp_path):
+    """The counter-rule for the alias path: a plain marker alias gates nothing."""
+    d = _tests_dir(tmp_path, test_x=textwrap.dedent('''\
+        import pytest
+
+        slow = pytest.mark.slow
+
+        @slow
+        def test_a():
+            assert True
+        '''))
+    assert pl.scan_guards(d) == []
+
+
 def test_an_unparseable_module_is_reported_not_skipped(tmp_path):
     """A module the scanner cannot parse is UNKNOWN, never assumed clean — assuming clean is
     the very move this whole class is about."""

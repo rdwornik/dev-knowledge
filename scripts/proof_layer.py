@@ -230,52 +230,103 @@ def _reason_of(node: ast.expr) -> str:
     return ""
 
 
-def _probed_tool(source: str) -> str | None:
-    """The tool a condition probes for, or None when it probes for no environment.
+def _probed_tools(source: str) -> list[str]:
+    """EVERY tool a condition probes for, in order of appearance; `[]` for none.
+
+    ALL of them, not the first. A compound condition is common and it changes the answer:
+    `requires_precommit = pytest.mark.skipif(not _HAS_PRECOMMIT or shutil.which("git") is
+    None, ...)` probes for BOTH, and returning only the first match classified it as `git`
+    and dropped it out of the self-policing cohort it belongs to. Measured on the live tree
+    while fixing the terra review's finding 3.
 
     The counter-rule is applied FIRST: a platform or language-version gate is refused before
     any probe is looked for, so `skipif(sys.version_info < (3, 12))` can never be family 3
     even if the same line also mentions a module name.
     """
     if any(p.search(source) for p in _COUNTER_RES):
-        return None
+        return []
+    found: list[str] = []
     for pattern in _PROBE_RES:
-        match = pattern.search(source)
-        if match:
-            return match.group("tool")
-    return None
+        for match in pattern.finditer(source):
+            tool = match.group("tool")
+            if tool not in found:
+                found.append(tool)
+    return found
 
 
-def _module_assignments(tree: ast.Module) -> dict[str, str]:
-    """`{NAME: source}` for module-level assignments, so an indirect probe resolves."""
-    out: dict[str, str] = {}
+def _module_assignment_nodes(tree: ast.Module) -> dict[str, ast.expr]:
+    """`{NAME: value node}` for every module-level assignment.
+
+    Two consumers, and both matter. An indirect PROBE resolves through it
+    (`_HAS_PRECOMMIT = importlib.util.find_spec("pre_commit") is not None`), and so does a
+    named MARKER ALIAS (`requires_git = pytest.mark.skipif(...)` used as `@requires_git`).
+    """
+    out: dict[str, ast.expr] = {}
     for node in tree.body:
         if isinstance(node, ast.Assign):
             for target in node.targets:
                 if isinstance(target, ast.Name):
-                    out[target.id] = ast.unparse(node.value)
+                    out[target.id] = node.value
     return out
 
 
-def _resolve_tool(condition: ast.expr, assignments: dict[str, str]) -> str | None:
-    """The probed tool, following ONE level of module-level indirection.
+def _module_assignments(tree: ast.Module) -> dict[str, str]:
+    """`{NAME: source}` for module-level assignments, so an indirect probe resolves."""
+    return {name: ast.unparse(node) for name, node in _module_assignment_nodes(tree).items()}
+
+
+def _resolve_marker(node: ast.expr, alias_nodes: dict[str, ast.expr]) -> ast.expr | None:
+    """The `pytest.mark.skipif(...)` call this decorator or `pytestmark` element denotes.
+
+    A decorator is EITHER the call itself (`@pytest.mark.skipif(...)`) OR a bare name bound to
+    one at module level (`requires_git = pytest.mark.skipif(...)`, used as `@requires_git`).
+
+    THE ALIAS FORM IS NOT AN EDGE CASE HERE — it is the DOMINANT form in this repo, and
+    missing it made the first measurement a large undercount: 38 guards found against 18+
+    modules using the alias, including two `requires_precommit` aliases (`test_block_ff_push`,
+    `test_carrier_hooks_source`) that gate on an enforcement RUNNER and so belong to the
+    sharpest cohort. Found by the terra review of this lane, verified by grep before fixing.
+    """
+    if isinstance(node, ast.Name) and node.id in alias_nodes:
+        node = alias_nodes[node.id]
+    return node if _skipif_condition(node) is not None else None
+
+
+def _resolve_tools(condition: ast.expr, assignments: dict[str, str]) -> list[str]:
+    """Every probed tool, following ONE level of module-level indirection.
 
     One level, not arbitrary: `_HAS_PRECOMMIT = importlib.util.find_spec("pre_commit") is not
     None` (§9.3) and `PWSH = shutil.which("pwsh") or ...` (§9.2) are both one hop, and both are
     live exemplars. Chasing further would trade a real gain for a guess.
+
+    Direct probes come first, then indirect ones, so `primary_tool`'s tie-break reads the
+    condition the way it is written.
     """
     source = ast.unparse(condition)
-    direct = _probed_tool(source)
-    if direct:
-        return direct
     if any(p.search(source) for p in _COUNTER_RES):
-        return None
+        return []
+    found = list(_probed_tools(source))
     for name in _INDIRECT_PROBE_RE.findall(source):
         if name in assignments:
-            found = _probed_tool(assignments[name])
-            if found:
-                return found
-    return None
+            for tool in _probed_tools(assignments[name]):
+                if tool not in found:
+                    found.append(tool)
+    return found
+
+
+def primary_tool(tools: list[str]) -> str | None:
+    """The tool a guard is REPORTED against.
+
+    An enforcement runner wins the tie. A guard gated on "pre-commit absent OR git absent" is
+    gated on the enforcement runner among other things, and reporting it as `git` buries it in
+    the 224-strong `git` cohort instead of the 5-strong sharpest one.
+    """
+    if not tools:
+        return None
+    for tool in tools:
+        if _is_self_policing(tool):
+            return tool
+    return tools[0]
 
 
 def _count_tests(tree: ast.Module) -> int:
@@ -325,7 +376,8 @@ def scan_guards(tests_dir: Path, *, report_unreadable: bool = False):
             unreadable.append(path.name)
             continue
 
-        assignments = _module_assignments(tree)
+        alias_nodes = _module_assignment_nodes(tree)
+        assignments = {n: ast.unparse(v) for n, v in alias_nodes.items()}
         total_tests = _count_tests(tree)
 
         for node in tree.body:
@@ -333,12 +385,15 @@ def scan_guards(tests_dir: Path, *, report_unreadable: bool = False):
                 continue
             if not any(isinstance(t, ast.Name) and t.id == "pytestmark" for t in node.targets):
                 continue
-            for candidate in (node.value.elts if isinstance(node.value, (ast.List, ast.Tuple))
-                              else [node.value]):
+            for element in (node.value.elts if isinstance(node.value, (ast.List, ast.Tuple))
+                            else [node.value]):
+                candidate = _resolve_marker(element, alias_nodes)
+                if candidate is None:
+                    continue
                 condition = _skipif_condition(candidate)
                 if condition is None:
                     continue
-                tool = _resolve_tool(condition, assignments)
+                tool = primary_tool(_resolve_tools(condition, assignments))
                 if tool is None:
                     continue
                 guards.append(Guard(
@@ -351,11 +406,14 @@ def scan_guards(tests_dir: Path, *, report_unreadable: bool = False):
                 continue
             if not node.name.startswith("test_"):
                 continue
-            for decorator in node.decorator_list:
+            for raw_decorator in node.decorator_list:
+                decorator = _resolve_marker(raw_decorator, alias_nodes)
+                if decorator is None:
+                    continue
                 condition = _skipif_condition(decorator)
                 if condition is None:
                     continue
-                tool = _resolve_tool(condition, assignments)
+                tool = primary_tool(_resolve_tools(condition, assignments))
                 if tool is None:
                     continue
                 guards.append(Guard(
