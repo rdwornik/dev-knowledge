@@ -35,9 +35,11 @@ FAIL-LOUD: every helper raises `AnchorError` on a git failure. Callers decide th
 from __future__ import annotations
 
 import functools
+import heapq
 import re
 import subprocess
 from pathlib import Path
+from typing import NamedTuple
 
 _JOURNAL = "JOURNAL.md"
 _SHORT = 7
@@ -140,13 +142,220 @@ def spine_entries(repo: Path, rev_range: str) -> list[str]:
 
 
 def _introduced_uncached(repo: Path, sha: str) -> list[str]:
-    """The uncached body of `introduced`. Two `git rev-list` reads, no memory."""
+    """The uncached body of `introduced`. Two `git rev-list` reads, no memory.
+
+    Kept as the FALLBACK and as the oracle after [#588] moved the fast path onto a batched
+    parent map: it is the definition of the answer -- git's own -- and `_introduced_from_map`
+    is only ever an optimisation of it, so anything the map cannot answer comes back here
+    rather than being guessed at, and the parity tests compare against this and not against a
+    restatement of the map.
+    """
     parents = _git(repo, "rev-list", "--parents", "-n", "1", sha).split()
     if len(parents) < 2:          # root commit: no first parent
         return [sha]
     first_parent = parents[1]
     out = _git(repo, "rev-list", f"{first_parent}..{sha}")
     brought = [ln.strip() for ln in out.splitlines() if ln.strip()]
+    return brought or [sha]
+
+
+# =========================================================================================
+# [#588] ONE GIT PROCESS FOR THE WHOLE SPINE.
+#
+# WHAT WAS WRONG, and this module recorded it against itself before the fix existed (see
+# `introduced`'s docstring): a single `audit.py health` run spawned 808 `git rev-list`
+# processes at ~144 ms each -- 116.8 s. The [#533] memo removed the duplicate half; the
+# per-unique-SHA pair remained, and the 2026-08-26 parity harness measured what was left at
+# 82.6 s for 312 spine entries, i.e. essentially all of the residual cost of the #1 check.
+# ~144 ms is a WINDOWS process-creation tax, which is why this dominates on the operator's
+# host and would not on a Linux runner.
+#
+# THE BATCH. `git rev-list --parents --all` returns the ENTIRE parent map in ONE process.
+# `firstparent..sha` is then a graph walk in Python: mark everything reachable from the first
+# parent, then walk from `sha` and keep what the mark did not cover. Process count per health
+# run goes from O(spine) to O(1).
+#
+# WHY `--all` AND NOT A REF. `introduced` takes a bare SHA and has no ref to walk from, and a
+# map built per query would be the per-SHA spawn again under a new name. `--all` is ancestry-
+# closed over every ref, so ONE map answers every SHA any caller in this repo can hand it.
+#
+# WHY THE MAP MAY BE TRUSTED ONCE BUILT -- the same immutability argument `introduced` already
+# rests on, one level down: what a commit introduced is fixed forever by the commit's own hash,
+# because its parents and their whole ancestry are part of what the hash commits to. So if
+# `sha` is IN the map, the derived answer cannot go stale. If it is NOT, the map is simply
+# older than the commit (a process that outlived a `git commit` -- a test, an operator
+# mid-session), which is a MISS and not an error: rebuild once, then believe it. A SHA still
+# absent after a fresh read is unreachable from every ref, and that falls back to git.
+#
+# ORDER IS OUTPUT, NOT AN IMPLEMENTATION DETAIL. `mention_not_record_warnings` emits one string
+# per introduced commit IN THIS ORDER, and `check_journal_spine_anchor` joins the FIRST FIVE
+# into its WARN evidence -- so reproducing git's order is part of the answer, not polish. The
+# walk below is therefore git's own traversal rather than any convenient one: a commit-date
+# priority queue seeded with `sha`, popping newest-first and breaking ties by insertion order,
+# which is `commit_list_insert_by_date`'s rule (it inserts AFTER equal dates).
+#
+# THE ORDERING WAS GOT WRONG ONCE HERE, and the wrong version is recorded because it looked
+# right: sorting the introduced set by each commit's index in the global `--all` output. That
+# reproduces git whenever commit dates are distinct and DIVERGES the moment they tie -- and
+# they tie constantly, because git stamps at one-second granularity and a scripted burst of
+# commits lands inside one second. Measured on a synthetic repo whose commits share a
+# timestamp: 3 of 5 spine entries came back in a different order, git putting the merge first
+# where the global index did not. Distinct dates are what a hand-made repo has and a machine-
+# made one does not, which is exactly the shape of bug that survives a green test suite.
+# =========================================================================================
+
+#: The ONE read. `--parents` puts the parents on each line and `--timestamp` prefixes the commit
+#: date, so a single process yields BOTH the graph and the ordering key; `--all` makes it closed
+#: over every ref, so a caller's SHA is present whenever it is reachable at all. Line shape:
+#: `<commit-date> <sha> <parent>...`.
+_PARENT_MAP_ARGS = ("rev-list", "--parents", "--timestamp", "--all")
+
+#: Ceiling for `_parent_map`. One live process sees one repo (the audit runner, a git hook);
+#: the suite sees a tmp repo at a time, and a rebuild-on-miss makes a SECOND entry for the same
+#: repo, so the floor is 2 and 4 leaves headroom. Named for the `_ENTRIES_CACHE_MAXSIZE`
+#: reason -- the memory it commits should be a stated number, not a literal buried in a
+#: decorator. Measured on this repo (2026-08-26): 5,995 commits and 7,329 parent edges, order
+#: 1 MB per entry. Megabytes rather than tens of megabytes, which is why this ceiling can be
+#: generous where `_ENTRIES_CACHE_MAXSIZE`'s multi-MiB values force it tight.
+_PARENT_MAP_CACHE_MAXSIZE = 4
+
+
+class _SpineMap(NamedTuple):
+    """`parents`: commit -> its parents, first parent first. `stamp`: commit -> commit date,
+    which is the key git's own traversal orders by and therefore the key this one must."""
+    parents: dict[str, tuple[str, ...]]
+    stamp: dict[str, int]
+
+
+#: Per-repo snapshot counter. Bumped only when a lookup misses, so a rebuild is caused by a
+#: commit the snapshot predates rather than by a timer. Holds one small int per repo path
+#: string seen in the process -- the one unbounded structure here, and deliberately the
+#: cheapest thing to leave unbounded.
+#:
+#: THREADS, because this module runs inside one: `audit.run_checks` is a ThreadPoolExecutor and
+#: `check_journal_spine_anchor` and `check_review_artifact_coverage` reach `introduced`
+#: CONCURRENTLY in the same process. `lru_cache` is thread-safe, and the read-bump-read here is
+#: not atomic -- but the worst a lost update can do is build the map twice, because the answer
+#: is taken only after `sha in smap.parents` is re-checked against whichever map came back. An
+#: extra git process, never a wrong answer.
+_MAP_GENERATION: dict[str, int] = {}
+
+
+@functools.lru_cache(maxsize=_PARENT_MAP_CACHE_MAXSIZE)
+def _parent_map(repo_key: str, generation: int) -> _SpineMap:
+    """The batched read, memoized per (repo, snapshot). `generation` is the cache-buster:
+    it is not read inside, it exists so a rebuild is a different key.
+
+    `lru_cache` does not cache exceptions, so an unreadable history re-reads and re-raises --
+    the fail-CLOSED posture is untouched, exactly as for `_introduced_tuple`.
+    """
+    parents: dict[str, tuple[str, ...]] = {}
+    stamp: dict[str, int] = {}
+    for line in _git(Path(repo_key), *_PARENT_MAP_ARGS).splitlines():
+        ids = line.split()
+        if len(ids) < 2:          # blank line; `--timestamp` guarantees at least date + sha
+            continue
+        try:
+            stamp[ids[1]] = int(ids[0])
+        except ValueError as exc:
+            # FAIL-LOUD, per this module's posture: an unparseable graph is an UNKNOWN
+            # anchoring state, and an unknown state must never render as "anchored".
+            raise AnchorError(
+                f"unparseable `git {' '.join(_PARENT_MAP_ARGS)}` line: {line!r}") from exc
+        parents[ids[1]] = tuple(ids[2:])
+    return _SpineMap(parents, stamp)
+
+
+def _spine_map_for(repo: Path, sha: str) -> _SpineMap | None:
+    """The snapshot that contains `sha`, rebuilding ONCE on a miss -- or None if it is
+    unreachable from every ref even after a fresh read.
+
+    HONEST LIMIT, raised as a CRITICAL by the 2026-08-26 terra review and kept here with the
+    measurement that sized it. A rebuild fires on a MISS, so a SHA already in the snapshot is
+    answered from it for the life of the process. What a commit introduced is immutable in the
+    OBJECT graph, but git reports a VIEW of that graph, and two things move a view: a shallow
+    boundary being deepened, and `replace`/graft refs. So a view mutation INSIDE one process
+    can make the snapshot disagree with a fresh `git rev-list`.
+
+    Measured rather than argued, because the direction decides whether it matters
+    (`tests/test_journal_anchor.py::test_a_shallow_clone_*`):
+
+      * In a STATIC shallow clone the map and `_introduced_uncached` agree EXACTLY -- git's own
+        `rev-list firstparent..sha` is truncated at the same boundary. The batch introduces no
+        divergence; truncation is git's answer, not the map's.
+      * Under a deepen mid-process the stale snapshot yields a set that is a SUBSET of the
+        fresh one (2 missing, 0 extra on the fixture). `is_anchored` is `any(...)` over that
+        set, so a subset can only turn TRUE into FALSE -- it over-reports UNANCHORED and
+        BLOCKS. That is fail-CLOSED, the direction this module's whole posture demands, and
+        the opposite of the "returns ANCHORED, lets an unanchored push through" the review
+        described.
+
+    Not closed in code, and the reason is that closing it would undo [#588]: detecting a view
+    mutation needs a git read PER CALL, which is the per-SHA spawn the row exists to remove.
+    The residual is a `replace`/graft ref created inside the seconds-long lifetime of a gate
+    process -- and that window is not new: `_introduced_tuple`'s memo has fixed answers for a
+    whole process since [#533].
+    """
+    key = str(repo)
+    smap = _parent_map(key, _MAP_GENERATION.get(key, 0))
+    if sha in smap.parents:
+        return smap
+    _MAP_GENERATION[key] = _MAP_GENERATION.get(key, 0) + 1
+    smap = _parent_map(key, _MAP_GENERATION[key])
+    return smap if sha in smap.parents else None
+
+
+def _introduced_from_map(repo: Path, sha: str) -> list[str] | None:
+    """`firstparent..sha` derived from the batched map -- or None, meaning "ask git".
+
+    None is returned for every case the map cannot answer with certainty: an unreachable SHA,
+    or a map that is not ancestry-closed where the walk needs it (a shape `--all` should not
+    produce, so it defers rather than silently returning a too-large set -- a too-large
+    introduced set would report a spine entry ANCHORED that is not).
+    """
+    smap = _spine_map_for(repo, sha)
+    if smap is None:
+        return None
+    parents = smap.parents[sha]
+    if not parents:               # root commit: no first parent, introduces only itself
+        return [sha]
+
+    excluded: set[str] = set()
+    stack = [parents[0]]
+    while stack:
+        commit = stack.pop()
+        if commit in excluded:
+            continue
+        known = smap.parents.get(commit)
+        if known is None:
+            return None           # not ancestry-closed here -- defer to git, never guess
+        excluded.add(commit)
+        stack.extend(known)
+
+    # git's traversal, not a convenient one: a commit-date priority queue seeded with `sha`,
+    # newest-first, ties broken by insertion order. `heapq` is a MIN-heap, so the key is
+    # `(-date, seq)` -- `-date` pops the newest, and a rising `seq` makes the earlier-queued of
+    # two equal-dated commits pop first, which is what `commit_list_insert_by_date` does by
+    # inserting after equals. `queued` is git's ADDED flag: a commit enters the queue once, at
+    # its first insertion, so a second child cannot re-order it.
+    brought: list[str] = []
+    queued: set[str] = {sha}
+    heap = [(-smap.stamp[sha], 0, sha)]
+    seq = 1
+    while heap:
+        _, _, commit = heapq.heappop(heap)
+        known = smap.parents.get(commit)
+        if known is None:
+            return None
+        brought.append(commit)
+        for parent in known:
+            if parent in excluded or parent in queued:
+                continue
+            if parent not in smap.stamp:
+                return None
+            queued.add(parent)
+            heapq.heappush(heap, (-smap.stamp[parent], seq, parent))
+            seq += 1
     return brought or [sha]
 
 
@@ -160,8 +369,16 @@ def _introduced_tuple(repo_key: str, sha: str) -> tuple[str, ...]:
 
     `lru_cache` does NOT cache exceptions, so an `AnchorError` from an unreadable history is
     re-raised from a real git read every time -- the fail-CLOSED posture is untouched.
+
+    Served from the [#588] batched parent map, falling back to the two-spawn `git` body for
+    anything the map cannot answer. The memo is kept ON TOP of the map rather than replaced by
+    it: the map removes the process spawns, the memo removes the graph walk.
     """
-    return tuple(_introduced_uncached(Path(repo_key), sha))
+    repo = Path(repo_key)
+    brought = _introduced_from_map(repo, sha)
+    if brought is None:
+        return tuple(_introduced_uncached(repo, sha))
+    return tuple(brought)
 
 
 def introduced(repo: Path, sha: str) -> list[str]:
@@ -201,8 +418,20 @@ introduced.cache_clear = _introduced_tuple.cache_clear
 
 
 def is_anchored(repo: Path, sha: str, journal: str) -> bool:
-    """True iff `journal` names >= 1 SHA the spine entry `sha` introduced (§A7)."""
-    return any(c[:_SHORT] in journal for c in introduced(repo, sha))
+    """True iff `journal` names >= 1 SHA the spine entry `sha` introduced (§A7).
+
+    Answered from `_anchor_index` (defined below, with the WARN machinery that shares it) --
+    ONE pass over the journal per distinct text, memoized, instead of a fresh substring scan of
+    a ~2.9 MB string per introduced commit ([#587]). The index holds every 7-char lowercase-hex
+    substring the journal contains, so `short in index.present` is the SAME question
+    `short in journal` asked; a short that is not an object-name prefix is outside the index's
+    domain by construction and falls back to the original raw test, so the answer is identical
+    for every input rather than only for the inputs today's callers produce.
+    """
+    index = _anchor_index(journal)
+    return any((c[:_SHORT] in index.present) if _SHORT_HEX_RE.match(c[:_SHORT])
+               else (c[:_SHORT] in journal)
+               for c in introduced(repo, sha))
 
 
 def unanchored_in_range(repo: Path, rev_range: str, journal: str) -> list[str]:
@@ -316,24 +545,153 @@ _entries.cache_info = _entries_tuple.cache_info
 _entries.cache_clear = _entries_tuple.cache_clear
 
 
+# =========================================================================================
+# [#587] THE SINGLE-PASS ANCHOR INDEX -- the inversion, and the whole point of this section.
+#
+# WHAT WAS WRONG, measured rather than assumed (PERF-RECON 2026-08-26, B1/B3; telemetry run
+# f0caf15a, `check_journal_spine_anchor` = 197.8 s, rank 1 of 46 and 35% of the health loop):
+# both consumers below asked their question ONCE PER INTRODUCED COMMIT, and each asking
+# re-walked the whole journal. `mention_not_record_warnings` looped introduced-commit -> entry
+# -> `entry.splitlines()` -> substring test per line; `_entries` was memoized ([#533]) but
+# `.splitlines()` was NOT, so every outer iteration re-split and re-allocated 2.9 MB. Over this
+# repo's 312 spine entries above the floor and the ~5k commits they introduce, that is tens of
+# GB of line-splitting for one advisory list. `is_anchored` had the same shape one layer down:
+# a substring scan of the same 2.9 MB string per introduced commit.
+#
+# THE INVERSION. The journal does not change while a scan runs, so the direction is backwards:
+# read it ONCE and build {short -> (present, recorded)}, then answer every commit's question
+# with a set lookup. Cost goes from O(commits x journal) to O(journal) + O(commits).
+#
+# WHY IT IS SAFE, on exactly the [#533] argument this module already rests on: the index is
+# keyed on the journal TEXT. A journal that has grown is a DIFFERENT key, so a grown file
+# cannot register a hit against a stale index. There is nothing to invalidate, so there is no
+# invalidation to get wrong -- and a stale anchor answer is worse than a slow one, because it
+# produces false push-gate verdicts.
+#
+# WHY IT IS EQUIVALENT, and not merely similar. The keys are every 7-char LOWERCASE-HEX
+# substring of the journal, which is exactly the domain of the `short in <text>` test it
+# replaces: a 7-char lowercase-hex needle can only occur inside a maximal hex run of length
+# >= 7, so enumerating those runs' windows enumerates every possible match and nothing else.
+# Line-level classification is preserved because the index walks the same `_entries(journal)`
+# -> `entry.splitlines()` sequence the old inner loop walked, so the two see the SAME lines.
+# A needle that is not an object-name prefix is outside this domain: both consumers fall back
+# to their own pre-inversion scan for it rather than reporting a confident "absent".
+# =========================================================================================
+
+#: A maximal run of lowercase hex. `finditer` over the runs, then a sliding window inside each,
+#: enumerates every 7-char hex substring of a line -- including the ones that straddle no token
+#: boundary (`0badf00d` contains `0badf00` AND `badf00d`), which is what keeps this identical to
+#: a substring test rather than to a tokenizer. Prose can qualify (`defaced` is seven hex
+#: letters); that is correct, because the test being replaced would have matched it too.
+_HEX_RUN_RE = re.compile(rf"[0-9a-f]{{{_SHORT},}}")
+
+#: Is this needle inside the index's domain at all? Callers pass `c[:_SHORT]` where `c` came
+#: from `introduced` -- a git object name -- so the fast path is the one that runs.
+_SHORT_HEX_RE = re.compile(rf"^[0-9a-f]{{{_SHORT}}}$")
+
+#: Ceiling for `_anchor_index_tuple`, the same number and the same reasoning as
+#: `_ENTRIES_CACHE_MAXSIZE`: a live run holds at most two distinct journal texts (the working
+#: tree, plus a `rev` when the pre-push organ reads the tip it is pushing). Measured on the live
+#: corpus (2,952,618 bytes of JOURNAL.md, 2026-08-26): 5,278 `present` keys and 457 `recorded`,
+#: order 0.4 MB -- an order of magnitude under the ~5 MiB `_entries` commits for the same text,
+#: because this holds 7-char windows and that holds the whole file twice over.
+_ANCHOR_INDEX_CACHE_MAXSIZE = 4
+
+
+class _AnchorIndex(NamedTuple):
+    """Every 7-char hex substring of a journal, split by the line class it was seen on.
+
+    `present` -- seen on ANY line. `recorded` -- seen on at least one explicit record line
+    (`_RECORD_LINE_RE`). The old code's third state, `mentioned` ("seen on at least one
+    NON-record line"), is not stored because it is not needed: the only question asked of it
+    is `mentioned and not recorded`, and `present - recorded` is exactly that set. A short in
+    `present` but not in `recorded` has every one of its occurrences on non-record lines, so it
+    was mentioned; a short that was mentioned is by definition present.
+
+    Frozensets, so the memoized object cannot be mutated by a caller -- the hazard `_entries`
+    answers by copying, answered here by immutability instead.
+    """
+    present: frozenset[str]
+    recorded: frozenset[str]
+
+
+def _hex_shorts(line: str) -> set[str]:
+    """Every 7-char lowercase-hex substring of `line` (empty set for the overwhelming majority
+    of lines, which contain no hex run that long)."""
+    shorts: set[str] = set()
+    for m in _HEX_RUN_RE.finditer(line):
+        run = m.group()
+        for i in range(len(run) - _SHORT + 1):
+            shorts.add(run[i:i + _SHORT])
+    return shorts
+
+
+@functools.lru_cache(maxsize=_ANCHOR_INDEX_CACHE_MAXSIZE)
+def _anchor_index_tuple(journal: str) -> _AnchorIndex:
+    """The memoized single pass. Keyed on the journal TEXT for the `_entries_tuple` reason."""
+    present: set[str] = set()
+    recorded: set[str] = set()
+    for entry in _entries(journal):
+        for line in entry.splitlines():
+            shorts = _hex_shorts(line)
+            if not shorts:
+                continue
+            present |= shorts
+            if _RECORD_LINE_RE.match(line.strip()):
+                recorded |= shorts
+    return _AnchorIndex(frozenset(present), frozenset(recorded))
+
+
+def _anchor_index(journal: str) -> _AnchorIndex:
+    """`_anchor_index_tuple` under the name callers use, mirroring `_entries`' shape.
+
+    No defensive copy, because there is nothing a caller could corrupt: the fields are
+    frozensets and the container is a NamedTuple.
+    """
+    return _anchor_index_tuple(journal)
+
+
+# The cache-management surface, forwarded for the same reason as `_entries`': a caller reasons
+# about the memo through the function it actually calls.
+_anchor_index.cache_info = _anchor_index_tuple.cache_info
+_anchor_index.cache_clear = _anchor_index_tuple.cache_clear
+
+
+def _scan_short_uncached(journal: str, short: str) -> tuple[bool, bool]:
+    """`(present, recorded)` for a needle OUTSIDE the index's hex domain -- the pre-inversion
+    inner loop, verbatim in behaviour, kept so the fallback is identical rather than merely
+    close. Unreachable from any caller in this repo (`introduced` yields git object names);
+    it exists so the equivalence claim above is total, not conditional."""
+    present = recorded = False
+    for entry in _entries(journal):
+        for line in entry.splitlines():
+            if short not in line:
+                continue
+            present = True
+            if _RECORD_LINE_RE.match(line.strip()):
+                recorded = True
+    return present, recorded
+
+
 def mention_not_record_warnings(repo: Path, sha: str, journal: str) -> list[str]:
     """Advisory strings, one per introduced commit of `sha` that is `is_anchored` (mentioned
     somewhere in `journal`) but never appears on an explicit record line (`_RECORD_LINE_RE`)
-    anywhere in `journal`. Never raises -- a scan of already-fetched text, not a git read."""
+    anywhere in `journal`. Never raises -- a scan of already-fetched text, not a git read.
+
+    Reads the [#587] single-pass index instead of re-walking the journal per commit. Order is
+    preserved (it follows `introduced`) and so are the strings, byte for byte: the check joins
+    the FIRST FIVE of these into its WARN evidence, so the order of this list is load-bearing
+    output, not an implementation detail.
+    """
+    index = _anchor_index(journal)
     warnings = []
     for c in introduced(repo, sha):
         short = c[:_SHORT]
-        recorded = False
-        mentioned = False
-        for entry in _entries(journal):
-            for line in entry.splitlines():
-                if short not in line:
-                    continue
-                if _RECORD_LINE_RE.match(line.strip()):
-                    recorded = True
-                else:
-                    mentioned = True
-        if mentioned and not recorded:
+        if _SHORT_HEX_RE.match(short):
+            present, recorded = short in index.present, short in index.recorded
+        else:
+            present, recorded = _scan_short_uncached(journal, short)
+        if present and not recorded:
             warnings.append(
                 f"anchored by mention, not by record: {short} appears outside an "
                 "explicit 'Anchors:' record line")
