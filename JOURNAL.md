@@ -85,6 +85,12 @@ line counts as a mention and not as a record. Authored from the parser rather th
 
 **Anchors (already landed this batch):** `dbd33400` the step-0 merge, `066f6ecd` the W2A merge
 
+**Anchors (this entry's own commit):** `5337e131` - named by the follow-up commit on this
+branch, so the `--no-ff` merge that introduces it is anchored too. A one-commit branch is
+structurally unanchorable; this is the same two-commit shape as `434f7e2c` (2026-08-26) and
+`6cc34438` (step 0 of this session). Appended to an entry that has NOT landed on `main`,
+which is what STANDING_RULINGS B6 permits - it forbids editing a LANDED entry.
+
 **Result:** the foreign anchor debt on `08b0d192` was discharged as step 0, before any merge,
 and both pre-push organs were proved clean against the range `d8211b03..dbd33400` -
 `block-ff-push` Passed and `block-unanchored-push` Passed through the real hook path, exit 0
