@@ -122,7 +122,26 @@ prebuild:
   # THE ENFORCEABLE HALF OF THE FRESHNESS REPAIR IS NOT HERE: it is `refresh_source_tree` in
   # `provision.sh`, which fetches and fast-forwards the checkout at every creation and reports
   # staleness at every start — that one runs, and it makes the image's own age irrelevant.
-  trigger: every_push
+  # ---- INTEGRATION-TIME REVERT (batch W2, 2026-08-27) --------------------------
+  # REVERTED to `on_configuration_change`. The block above is W2C's reasoning, kept
+  # verbatim as the record of what the lane argued; this note is the integrator's act
+  # on it, attributed rather than folded silently into the merge.
+  #
+  # WHY. The 2026-08-20 spend ruling stands: stay on the Codespaces free 4-core tier,
+  # never buy overage. The block above concedes the case against itself -- "the minute
+  # cost goes UP" -- against the same audit's measured 601 of 2000 included Actions
+  # minutes already spent that month (30%), and prebuilds run on Actions.
+  #
+  # WHAT IS NOT LOST, and this is why the revert is cheap. The freshness defect [#593]
+  # fixes stays fixed, because the block above says where the fix actually lives:
+  # "THE ENFORCEABLE HALF OF THE FRESHNESS REPAIR IS NOT HERE: it is
+  # `refresh_source_tree` in `provision.sh`" -- which fetches and fast-forwards at every
+  # creation and reports staleness at every start, and is untouched by this revert.
+  # This line only DECLARES (prebuild config is server-side operator UI state with no
+  # public API), so reverting it costs no enforcement -- only the Actions spend.
+  #
+  # Re-reversing this is an operator SPEND decision, not a lane decision.
+  trigger: on_configuration_change
 
   # EuropeWest only. The default is ALL regions x 2 retained versions — up to 8 multi-GB
   # prebuild images, which is the one thing that can exhaust the 15 GB-month free allowance.
