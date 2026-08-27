@@ -243,6 +243,39 @@ def test_parse_deps_is_clause_scoped():
     assert deps == ["3", "4"]
 
 
+# --- [#424]: `_DEPID_RE` required a `#`, so a BARE id in a depends-on clause parsed to
+# nothing and the edge was INERT -- present in the text, absent from the graph, gating
+# nothing. Live at the fix: 5 clauses, 3 parsed (`#171` `#23` `#604`), 2 inert (`383`
+# `390`). These pin the bare form AND the boundary that keeps it from over-reading.
+
+def test_parse_deps_accepts_bare_id():
+    # the [#424] defect proper: no `#`, still a dependency
+    assert vb._parse_deps("do x · depends-on: 383") == ["383"]
+    assert vb._parse_deps("do x · depends-on: 390 · refs y") == ["390"]
+
+
+def test_parse_deps_bare_and_hashed_mix():
+    assert vb._parse_deps("do x · depends-on: #3, 4, [#5] · note z") == ["3", "4", "5"]
+
+
+def test_parse_deps_bare_id_edge_is_live_end_to_end():
+    # not just the regex -- a bare edge must reach reference-existence and cycle detection,
+    # which is the whole point of the row (an edge that parses but never gates is the defect)
+    hard, _ = _run(_dep3(dep1=" · depends-on: 999"))
+    assert any("non-existent" in h and "999" in h for h in hard)
+    hard, _ = _run(_dep3(dep1=" · depends-on: 2", dep2=" · depends-on: 1"))
+    assert any("cycle" in h.lower() for h in hard)
+
+
+def test_parse_deps_bare_id_does_not_over_read():
+    # the widening must not turn embedded digits into phantom edges. A date, a version, and
+    # a digit glued to a word are NOT ids -- without the boundary, `2026-08-27` alone would
+    # manufacture three.
+    assert vb._parse_deps("do x · depends-on: #5 since 2026-08-27") == ["5"]
+    assert vb._parse_deps("do x · depends-on: #7 v1.4.0") == ["7"]
+    assert vb._parse_deps("do x · depends-on: #9 (blocked until W2)") == ["9"]
+
+
 def test_parse_serialize_groups():
     # single clause -> 1-list; works mid-line (trailing ·) and at end-of-line ($ anchor)
     assert vb._parse_serialize_groups("do x · serialize-group: audit-py · refs y") == ["audit-py"]

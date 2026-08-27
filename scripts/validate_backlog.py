@@ -80,7 +80,7 @@ _DEPENDS_CLAUSE_RE = re.compile(r"·\s*depends-on\s*:\s*([^·]*)")
 # ≥2 surfaces is fully encoded. ASCII-only labels also can't carry a non-cp1252 glyph into
 # the summary print (the crash that accompanied the self-trip).
 _SERIALIZE_CLAUSE_RE = re.compile(r"·\s*serialize-group\s*:\s*([A-Za-z0-9][A-Za-z0-9_-]*)\s*(?=·|$)")
-_DEPID_RE = re.compile(r"#(\d+)")
+_DEPID_RE = re.compile(r"(?<![\w./-])#?(\d+)(?![\w./-])")
 # N2-E4-03 (#524 leg b) — body-date scan. Narrowly scoped to the machine-shaped
 # `· review_date=YYYY-MM-DD` clause (the same field `· routine:` rows already carry, e.g.
 # BACKLOG.md #348/#426), never free ISO dates in prose (commit dates, refs, "DECOMPOSED
