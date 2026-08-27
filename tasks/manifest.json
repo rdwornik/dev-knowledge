@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "ae7804c5ac7edc1f7da868a1fa22dee9eccff451e559064b4defe460e926c913",
+  "generated_sha256": "d2b9dd93a140a6f39b7c7650d5fbd0dab55834fe5fc4fe109a4c165e8b586dcf",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -745,6 +745,10 @@
       "file": "590-the-audits-index-is-regenerated-on-read-never-me.md"
     },
     {
+      "task": 607,
+      "file": "607-playbook-census-discharge-the-mechanical-half-of.md"
+    },
+    {
       "prose": "## [E6] Cross-repo universalization"
     },
     {
@@ -987,6 +991,10 @@
     {
       "task": 588,
       "file": "588-p-2-build-the-spine-parent-map-in-one-git-proces.md"
+    },
+    {
+      "task": 608,
+      "file": "608-tiling-aware-journal-read-the-rotation-seam-befo.md"
     },
     {
       "task": 593,

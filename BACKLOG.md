@@ -206,6 +206,7 @@ So that the cheat-sheet and architecture stay scannable as conventions accrue.
 
 - [#589] [P1][M] One line per row — the BACKLOG view projection, with a size assertion that cannot be silently undone · tasks/589-one-line-per-row-the-backlog-view-projection-wit.md
 - [#590] [P2][S] The audits index is regenerated on read, never merge-resolved · tasks/590-the-audits-index-is-regenerated-on-read-never-me.md
+- [#607] [P2][S] PLAYBOOK census discharge — the mechanical half of the 19 findings · tasks/607-playbook-census-discharge-the-mechanical-half-of.md
 ## [E6] Cross-repo universalization
 > As the disseminator, I want every child repo to converge on the universal baseline.
 
@@ -272,6 +273,7 @@ So that cognitive overhead per session drops.
 - [#586] [P3][S] Suite RED — `test_no_gate_hook_or_script_reads_the_export` has no `ecosystem/` naming-vs-reading carve-out (packet ARC-G, C04) · tasks/586-suite-red-test-no-gate-hook-or-script-reads-the.md
 - [#587] [P1][M] P-1 — invert the journal-anchor check to a single pass · tasks/587-p-1-invert-the-journal-anchor-check-to-a-single.md
 - [#588] [P1][S] P-2 — build the spine parent-map in ONE git process · tasks/588-p-2-build-the-spine-parent-map-in-one-git-proces.md
+- [#608] [P1][S] Tiling-aware journal read — the rotation seam, before any split · tasks/608-tiling-aware-journal-read-the-rotation-seam-befo.md
 - [#593] [P2][M] Codespaces chain repair, hub half — uv in the image and a prebuild that actually refreshes · tasks/593-codespaces-chain-repair-hub-half-uv-in-the-image.md
 - [#594] [P3][M] Layer-3 router — the HUB prerequisites only, not the verb itself · tasks/594-layer-3-router-the-hub-prerequisites-only-not-th.md
 - [#597] [P2][M] P-4 — a declared tier per check, and P-3's telemetry window FIRST · tasks/597-p-4-a-declared-tier-per-check-and-p-3-s-telemetr.md
