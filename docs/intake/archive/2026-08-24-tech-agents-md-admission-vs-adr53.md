@@ -1,6 +1,7 @@
 ---
 intake-id: 48
-status: READY
+status: CONSUMED
+consumed-by: ADR-115
 origin: integrator, 2026-08-24 batch close (nine-branch batch); surfaced by cloud lane C2's ruling-provenance audit
 ---
 

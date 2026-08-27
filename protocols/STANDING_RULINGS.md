@@ -1919,6 +1919,8 @@ audit is the drift this register exists to end.
 
 ### R-1 · `AGENTS.md` is ADMITTED, on the substance reading of ADR-53
 
+> **RETIRED 2026-08-27 — superseded by ADR-115 (Accepted).** The reading this ruling made is now carried by a ratified ADR, which is the correct home for it. ADR-115 §6 rules the precedence question this case forced: the register is SUBORDINATE — a ratified ADR governs until an ADR changes it, and a ruling may interpret, apply or record, never contradict. R-1 therefore did not bind while ADR-53 D2 stood, which is exactly what `validate_hermetization` demonstrated by refusing the file: the gate and the ADR agreed and the ruling was the outlier. R-1's SUBSTANCE and its byte measurement are adopted in full by ADR-115; only its standing as an independent ruling is retired. Text kept below unedited — a retired ruling is a record, not a deletion.
+
 > ADR-53 Decision 2 forbids **two files that both carry content**, not the filename
 > `AGENTS.md`. A root `AGENTS.md` carrying the portable layer, paired with a `CLAUDE.md` that
 > keeps the Claude-runtime-specific remainder and points at it, satisfies the substance ADR-53

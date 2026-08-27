@@ -1,6 +1,6 @@
 # ADR-53: CLAUDE.md as Single Canonical Agent-Instruction File
 
-- **Status:** Accepted
+- **Status:** Partially superseded — Decision 2 superseded by ADR-115 (2026-08-25); the ADR-52 supersession stands
 - **Date:** 2026-05-19
 - **Amends:** —
 - **Related:** ADR-52 (superseded), ADR-51 (unaffected), ADR-38 (universal repo architecture baseline)

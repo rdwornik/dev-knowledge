@@ -1,6 +1,6 @@
 # ADR-115: `AGENTS.md` is the portable instruction layer — ADR-53 Decision 2 superseded and the ADR-101 Tier-1 file class amended in ONE act
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-08-25
 - **Decision tier:** Architecture (Path A — architect ruling under ADR-108 §A. The lane never self-accepts: the operator ratifies by merge, per ADR-94.)
 - **Supersedes:** **ADR-53 Decision 2** in full. Consequentially, the word *"single"* in ADR-53 Decisions 1 and 4 stops describing the live model — named at §5 rather than left to rot. ADR-53's supersession of ADR-52 is untouched and stands.
@@ -219,3 +219,68 @@ So ADR-53's new status line follows the enum and the live shape, and this questi
 - **Admit `AGENTS.md` by a further register ruling instead of an ADR** — rejected, and §6 is why: it is the precise move that produced the defect.
 - **Make `CLAUDE.md` a symlink to `AGENTS.md`** (C01's own second option) — rejected on measurement, not taste: on Windows checkouts git materialises symlinks as plain text under the `core.symlinks=false` default, so the link degrades silently per clone. The `@AGENTS.md` importer is the documented interop and behaves identically on every platform.
 - **Add `AGENTS.md` to `canonical_docs.CANONICAL_MANDATORY`** — the one-line version of §4.1, and it is a trap: it would enrol a portability payload in the freshness gate and in every consumer's canonical-set conformance check, changing what `AGENTS.md` *is* in order to save six lines of enum. Rejected; §4.2's test is the guard that makes the rejection stick.
+
+---
+
+## Amendment 2026-08-27 — acceptance, and the C01 criterion RE-TESTED on measurement
+
+*Appended, not woven in. ADR-94's in-place exception covers the **status line only**; the
+evidence below is therefore added as an amendment rather than edited into §2, whose text stands
+as authored on 2026-08-25.*
+
+**Act:** this ADR flips `Proposed` → `Accepted` and the §4 acceptance act executes in the same
+commit. Taken by the unattended night-harvest governance session of 2026-08-27 under the
+operator's standing pre-authorisation for that mission.
+
+### A. New evidence — probe #42, measured by EXECUTION
+
+`docs/audits/2026-08-26-technical-provider-surface-v2.md` settled instruction-file precedence by
+**running the CLIs against planted probe files** (`AGENTS-4711` / `CLAUDE-8822`) rather than by
+reading their documentation:
+
+- **`agy` (Antigravity) picks `AGENTS.md`** · **`deepcode` picks `AGENTS.md`**
+- **`grok` picks `CLAUDE.md`** · **`copilot` picks `CLAUDE.md`**
+
+§2's matrix was compiled from the R-L research — documentation, dated sources, vendor docs. This
+is the first time any part of it has been **observed**. It confirms §2 where the two overlap
+(Grok reads both and fails the second leg) and it adds two providers §2 never covered.
+
+### B. The C01 re-test, run STRICTLY against the live provider registry
+
+C01: *"If ≥2 admitted providers natively consume `AGENTS.md` and not `CLAUDE.md` → supersede."*
+"Admitted" is read here as **present in `ecosystem/provider-registry.yaml`**, which is the
+fleet's declared source of truth for which providers exist. Its six entries: `anthropic`,
+`openai`, `xai`, `google`, `antigravity`, `deepseek`.
+
+| registered provider | consumes `AGENTS.md` | and not `CLAUDE.md` | basis |
+|---|---|---|---|
+| `openai` (Codex) | yes | **yes** — not at all | R-L research (documentation) |
+| `antigravity` (`agy`) | **yes** | **yes** — picks it over a planted `CLAUDE.md` | **probe #42, by execution** |
+| `xai` (`grok`) | yes | no — picks `CLAUDE.md` | probe #42, by execution |
+| `google` (`gemini`) | on a setting | — | not counted; additionally **RETIRED** by operator ruling |
+| `anthropic` (Claude Code) | no | no | the holdout, unchanged |
+| `deepseek` | both | no — NEUTRAL | PROBE-DSH, shipped source only |
+
+**Count = 2 (`openai` + `antigravity`). The criterion is MET, and the flip proceeds.**
+
+### C. What changed under the criterion, stated because it is not a detail
+
+**The pair is not the pair §2 named.** §2 met C01 with **Codex + Cursor**. Read strictly against
+the registry, **Cursor is not an admitted provider at all** — it carries no entry, only a
+`BLOCKED-WITH-CAUSE` comment block — and as of 2026-08-26 it is additionally **plan-gated**: on
+the free plan every named model is refused, "Auto" is a selection mode rather than a model, and
+an undisclosed model is an unreproducible result. On §2's own pair, strictly read, the count
+today would be **1** and the criterion would FAIL.
+
+It is `agy` — measured, registered, and unknown to §2 — that carries the criterion. The
+conclusion is unchanged; its support is different and stronger, one leg now resting on execution
+rather than on documentation.
+
+**Honest limit, recorded rather than smoothed over.** Codex's second leg is *"reads `CLAUDE.md`
+not at all"*. `agy`'s is *precedence*: given both files it consumes `AGENTS.md`. Probe #42 did
+not establish that `agy` never reads `CLAUDE.md`. For the repo shape this ADR creates — one
+carrying both files — precedence is the operative property, and that is why the criterion is
+read as met. A future measurement showing `agy` also reading `CLAUDE.md` in some path would
+weaken this leg without touching Codex's, and would put the count back at 1.
+
+**DeepSeek is unchanged:** still NEUTRAL, still unmeasured at runtime, still not a blocker.

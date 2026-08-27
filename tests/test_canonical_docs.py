@@ -98,9 +98,15 @@ def test_validate_doc_structure_reads_the_registry():
 
 
 def test_validate_hermetization_seals_exactly_the_registry_living_docs():
-    """ADR-101 §1's file enum and the ADR-38 canonical set now provably name one set."""
+    """ADR-101 §1's Tier-1 `.md` set = the ADR-38 canonical set PLUS `AGENTS.md`.
+
+    ADR-115 admits `AGENTS.md` as a Tier-1 file WITHOUT making it a canonical living
+    doc: it is portable-instruction payload, not a freshness-stamped governance
+    surface. The `| {"AGENTS.md"}` is the ONE sanctioned divergence and is written as
+    an explicit exception so that a second one cannot slip in unnamed.
+    """
     md_members = {n for n in vh.SANCTIONED_TIER1_FILES if n.endswith(".md")}
-    assert md_members == set(cdocs.CANONICAL_MANDATORY)
+    assert md_members == set(cdocs.CANONICAL_MANDATORY) | {"AGENTS.md"}
 
 
 def test_gen_handoff_name_and_degrade_string_move_together():

@@ -113,6 +113,13 @@ SANCTIONED_TIER1_FILES: frozenset[str] = frozenset({
     # uv toolchain (ADR-101 amendment 2026-07-27, [#432]/ADR-106): the committed
     # dependency lockfile + interpreter pin -- same class as package-lock.json.
     "uv.lock", ".python-version",
+    # portable instruction layer (ADR-101 amendment 2026-08-25, ADR-115; execution
+    # [#577]). DELIBERATELY a literal and NOT a member of _cdocs.CANONICAL_MANDATORY:
+    # AGENTS.md is an UPPERCASE.md Tier-1 file but it is NOT an ADR-38 canonical
+    # living doc -- no `last_reviewed` stamp, absent from FRESHNESS_FILES, no section
+    # history. Adding it to CANONICAL_MANDATORY would silently enrol it in the
+    # freshness gate and in every consumer's canonical-set conformance check.
+    "AGENTS.md",
 })
 
 # Tier-2 -- sanctioned docs/<genre>/ folders. `runbooks` LEFT the set 2026-07-22
