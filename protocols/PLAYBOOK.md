@@ -316,7 +316,7 @@ Section 13 "Where Knowledge Lives" describes knowledge **domains** (what lives w
 ## Ch2. CLAUDE.md as agent-instruction contract
 <!-- scope: meta -->
 
-**Purpose:** Each repo (corp-monorepo, ai-council, .dev-knowledge, future projects) has a `CLAUDE.md` at root. Auto-read by Claude Code on session start. Auto-read by Codex via `project_doc_fallback_filenames = ["CLAUDE.md"]` in `~/.codex/config.toml`. **Substantive single canonical per-repo agent-instruction file (≤200 lines).** Per ADR-53.
+**Purpose:** Each repo (corp-monorepo, ai-council, .dev-knowledge, future projects) has a `CLAUDE.md` at root. Auto-read by Claude Code on session start. Auto-read by Codex via `project_doc_fallback_filenames = ["CLAUDE.md"]` in `~/.codex/config.toml`. **The per-repo agent-instruction layer is TWO files with one contract (ADR-115, 2026-08-25, superseding ADR-53 Decision 2):** `AGENTS.md` carries the portable half (≤120 lines, non-inferable facts) and `CLAUDE.md` the Claude-runtime half plus the `@AGENTS.md` importer, at ≤200 lines. No fact is duplicated — the importer is what preserves ADR-53's substance, one place where each fact lives. ADR-53's three authority levels stand unchanged.
 
 ### Authority hierarchy
 <!-- scope: meta -->
@@ -607,9 +607,9 @@ Canonical: **ADR-60** + its 2026-05-27 amendment (repo-type variants) + 2026-05-
 ### Secrets storage path
 <!-- scope: meta -->
 
-**[TBD — Stream C session 3, ADR-33]**
+**[UNRULED — no ADR claims this; carried as an open question by intake #57]**
 
-Standardize location of `.secrets/` (currently `C:\Users\1028120\Documents\.secrets\.env` per Rob's environment, not yet PLAYBOOK-documented as standard). Rule covers: path convention, what kinds of repos use this, whether per-repo `.env` is allowed, how the global PowerShell profile auto-loads relate.
+Standardize location of `.secrets/` (today: a single absolute path under the operator's home, outside any repo, loaded by the global PowerShell profile -- the path itself is deliberately NOT restated in a deploy-carried governance doc). Rule covers: path convention, what kinds of repos use this, whether per-repo `.env` is allowed, how the global PowerShell profile auto-loads relate.
 
 ### Capitalization conventions
 <!-- scope: meta -->
@@ -4372,7 +4372,7 @@ Does NOT:
 **Claude Code (executor)** — execution, file changes, commits, validations, testing.
 
 Does:
-- Reads CLAUDE.md on session start (auto). Codex reads CLAUDE.md via project_doc_fallback_filenames. CLAUDE.md is the single canonical agent-instruction contract; the handoff process does not narrate or manage it (ADR-53)
+- Reads CLAUDE.md on session start (auto). Codex reads CLAUDE.md via project_doc_fallback_filenames. the per-repo agent-instruction contract is `AGENTS.md` + `CLAUDE.md` with one importer (ADR-115 superseding ADR-53 D2); the handoff process does not narrate or manage either
 - Executes downloadable prompts from browser chat
 - Modifies files, runs tests, commits, branches
 - Reports session summary back to Rob

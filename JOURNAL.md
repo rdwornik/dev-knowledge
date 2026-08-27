@@ -19,6 +19,98 @@
 
 ---
 
+### 2026-08-28 (a) - CC (Opus 5, background job, primary checkout, branch `docs/night-harvest-consumption`): the night-harvest ledger executed end to end - and the kill algorithm, run faithfully, closed ZERO
+
+**Did:** executed `NIGHT-MISSION-2026-08-27` unattended in four phases - fleet hygiene, the
+governance ledger in its corrected B-before-C order, the ex-ante kill algorithm over the C4
+top-40, and integration. Ten commits on one branch.
+
+**Anchors:** `a1059da5` (the four intakes), `06909c50` (seven artifacts + register section X),
+`3acb0cc9` ([#424]), `9fedb07c` (icebox sweep + the real [#424] closure), `cd2bb466` (ADR-115
+Accepted), `914dc4aa` (births [#607] [#608]).
+
+**The headline is a negative result, and it is measured rather than judged. K1 closed ZERO of
+the top-40.** K1's predicate is "the census's counter-case column is empty/none AND age >45d AND
+not newly re-pegged". The column was parsed mechanically rather than read by eye: **all 40 rows
+carry a non-empty counter-case** - the shortest is 32 characters and is still a case - so the
+first conjunct is unsatisfiable across the whole table and the other two never come into play.
+32 of the 40 are older than 45 d and every one still holds. That is the algorithm working: a
+census built to surface kill candidates recorded, for every candidate, why it might not be one.
+
+**Both K2 conditionals resolved AGAINST the census's own lean, each on one cheap live read.**
+`[#269]` was called "the cheapest verdict on the list", settled by one look at
+`docs/audits/README.md`. That file's own generated header says the count-tiered shape "**is
+[#269] and is NOT built** - this index groups by month". One of two legs; HELD. `[#43]` was
+conditioned on re-anchoring intake #6 *if that is a pure pointer fix*. It is not: intake #6 is
+`status: SEED` with an empty `consumed-by:`, 50 days into "awaiting functional-architect
+elaboration", and **`tasks/43-decide.md` is its only citer in the entire corpus** - closing
+`[#43]` leaves it with zero carriers. HELD. `[#82]` HELD by standing instruction.
+
+**The census contradicted itself on the icebox list, and the sweep is 41 rather than 47.** C4 §3
+warns that killing a listed row without re-pegging orphans a deferred dependent - then publishes
+a *deferring* list containing five rows that are themselves peg-targets (`[#185]` `[#170]`
+`[#171]` `[#112]` `[#298]`, for `[#4]` `[#139]` `[#169]` `[#188]` `[#301]`). A deferred row
+pegged to a deferred row has a trigger that can never fire, because a parked row does no work.
+Same orphan, different route. `[#293]` is carved separately for a live gate:
+`preflight_backlog_ids` requires a `kill-candidates:` assertion to name an OPEN row, and
+`[#303]`'s names it.
+
+**Two gate refusals, both discharged by the gate's own fix text, neither weakened.** `[#595]`
+consumer-at-landing refused exactly two of the seven artifacts - precisely the two no intake
+cites - which proved the ledger's B-before-C sequencing correction was load-bearing rather than
+cosmetic; register section X names all seven and it went green (763 artifacts, no growth).
+`silent_rule_ratchet` refused the provider-registry commit at 445 > 443: my note carried "NEVER
+FAN-OUT" and "must be costed", two normative tokens into a corpus with zero headroom. Drained by
+re-phrasing declaratively - the register's own documented idiom - not by requesting headroom.
+
+**ADR-115 accepted, but the criterion is carried by a different pair than the ADR claims.** C01
+re-tested strictly against `ecosystem/provider-registry.yaml`: §2 met it with Codex + **Cursor**,
+and Cursor is **not a registered provider at all** (only a BLOCKED-WITH-CAUSE comment block) and
+is now additionally plan-gated. On §2's own pair the count today is **1** and the criterion
+FAILS. It is `agy` - registered, and measured by execution via probe #42 - that carries it:
+`openai` + `antigravity` = 2, MET. Recorded as an appended amendment, because ADR-94's in-place
+exception covers the status line only.
+
+**Two derivation traps, both self-inflicted and both worth the record.** My 41 DEFER clauses were
+written `· **DEFER — …**`; `_DEFER_MARKER` is the literal `· DEFER`, so the bolding broke the
+parser and all 41 rows stayed `open` through a full generator run. And `[#424]` was NOT closed by
+its own commit: frontmatter `status:` is DERIVED, `derive_status()` returns only open/deferred, so
+the generator silently reset it and `status: open` is what reached that commit. Real closure is
+removing the manifest node (ADR-107 §6.3). Both repaired; the commit that claimed the closure is
+corrected in the commit that actually made it. Author from the parser, not for the reader.
+
+**Result:** Phase 0 tore down five ancestor-proven-merged branches/worktrees and kept
+`automation/fleet-audit` (explicitly protected, lives outside `main` by design). Phase 1 filed
+intakes #57-#60, landed seven artifacts byte-identical with sha256 proof, registered section X's
+eight rulings plus section E's rejections and F's open questions, fixed the hard-coded secrets
+path in PLAYBOOK, landed `[#424]`, adopted the 17 edges (5 rows/5 edges -> **17 rows/21 parsed
+edges**; the census's "4 -> 21 rows" conflated edges with rows) and re-pegged nine deferred rows -
+of which only ONE ([#325]) actually had a spent peg on re-measurement. Phase 2 re-cut `[#171]` and
+`[#244]`, held everything else. Phase 3 integrated. Open 184 -> 143, deferred 26 -> 67.
+
+**Births are two, not four, and the arithmetic is the reason:** banked 1 + Phase-2 closures **0** +
+`[#424]` = **2**. `[#607]` (the unowned PLAYBOOK census, X7's named first act) and `[#608]`
+(P1, intake #49's missing rotation half; LESSONS.md sits at 303 against a ratified 300 trigger,
+tripped and unfired). Intake #58's free ruff ratchet and intake #60's night protocol are a **named
+queue**, not a silent drop - first call on the next banked closure.
+
+**Changes:** `docs/intake/` (+4 filed, #48 CONSUMED and archived), `docs/audits/` (+7),
+`protocols/STANDING_RULINGS.md` (section X, R-1 retired), `protocols/PLAYBOOK.md` (H19a + two
+ADR-115 sites), `docs/decisions/` (ADR-115 Accepted + amendment, ADR-53 partially superseded,
+README), `scripts/validate_backlog.py` + plugin twin (`_DEPID_RE`),
+`scripts/validate_hermetization.py` (enum 20->21), `tests/` (+4 [#424] regressions, canonical-docs
+widened), `ecosystem/provider-registry.yaml`, `tasks/` (41 deferred, 2 re-cut, 3 held, 1 closed,
+2 born).
+
+**Abandoned:** nothing silently. The two unborn intake items are queued by name above; the K4
+HOLD table (35 rows) is in the morning packet rather than written into 35 rows, because 35 row
+edits saying "no change" bury the two verdicts that did move.
+
+**Next:** operator adjudication of the 35 K4 holds; the owed `[#82]` hub-closability ruling; a
+re-size call on `[#171]`/`[#244]` after their re-cut (deliberately not taken by an executor);
+`automation/fleet-audit` is 2 commits ahead of origin and its push is owed by the routine, not
+by this session.
+
 ### 2026-08-27 (f) - CC (Opus 5, background job, primary checkout, branch `docs/night-lanes-close`): the na/nb mini-merge closes - tiering cuts the commit gate 4.6x on the merged tree, and ship-gate is proved byte-identical across 52 checks
 
 **Did:** integrated the two night lanes serially into `main` with tiered gating, discharged the

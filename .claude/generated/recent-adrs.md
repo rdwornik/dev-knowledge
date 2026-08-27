@@ -10,4 +10,4 @@
 - ADR-112 (Accepted, 2026-08-12): Two-tier adoption bar — Tier L evaluates, Tier S tries and keeps or deletes
 - ADR-113 (Accepted, 2026-08-19): The L0–L5 maturity ladder is ratified vocabulary — and it is one of three "L" namespaces, not the only one
 - ADR-114 (**PARKED**, 2026-08-22): May a root `README.md` be recreated — and what does substituting a canonical living-doc filename actually cost?
-- ADR-115 (Proposed, 2026-08-25): `AGENTS.md` is the portable instruction layer — ADR-53 Decision 2 superseded and the ADR-101 Tier-1 file class amended in ONE act
+- ADR-115 (Accepted, 2026-08-25): `AGENTS.md` is the portable instruction layer — ADR-53 Decision 2 superseded and the ADR-101 Tier-1 file class amended in ONE act

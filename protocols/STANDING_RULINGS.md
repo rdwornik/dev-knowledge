@@ -1919,6 +1919,8 @@ audit is the drift this register exists to end.
 
 ### R-1 · `AGENTS.md` is ADMITTED, on the substance reading of ADR-53
 
+> **RETIRED 2026-08-27 — superseded by ADR-115 (Accepted).** The reading this ruling made is now carried by a ratified ADR, which is the correct home for it. ADR-115 §6 rules the precedence question this case forced: the register is SUBORDINATE — a ratified ADR governs until an ADR changes it, and a ruling may interpret, apply or record, never contradict. R-1 therefore did not bind while ADR-53 D2 stood, which is exactly what `validate_hermetization` demonstrated by refusing the file: the gate and the ADR agreed and the ruling was the outlier. R-1's SUBSTANCE and its byte measurement are adopted in full by ADR-115; only its standing as an independent ruling is retired. Text kept below unedited — a retired ruling is a record, not a deletion.
+
 > ADR-53 Decision 2 forbids **two files that both carry content**, not the filename
 > `AGENTS.md`. A root `AGENTS.md` carrying the portable layer, paired with a `CLAUDE.md` that
 > keeps the Claude-runtime-specific remainder and points at it, satisfies the substance ADR-53
@@ -2995,6 +2997,69 @@ Evidence: `docs/audits/2026-08-26-codex-adr115-acceptance-review.md`,
 **Expiry:** open-ended for W1, W2, W5, W6 and W7. **W3's threshold** is revisited when the icebox execution
 lands. **W4 expires the moment a devcontainer dispatch is demonstrated end-to-end** — its whole
 content is a NOT-YET, and it should not outlive the evidence that produced it.
+
+## X. The 2026-08-27 night-harvest rulings (ADR-108 §A, technical, revertable)
+
+**The act.** Eight technical rulings taken by the architect on 2026-08-27 over the four cloud
+reports of the 2026-08-26 night batch, and executed by the unattended governance session of the
+same date. Authorities, all landed in this commit's arc and all cited here by name so the
+consumer-at-landing predicate resolves them:
+`docs/audits/2026-08-27-technical-doc-diet-plan.md` (C1) ·
+`docs/audits/2026-08-27-technical-python-kodeks-census.md` (C2) ·
+`docs/audits/2026-08-27-technical-journal-rotation-recon.md` (C3) ·
+`docs/audits/2026-08-27-technical-backlog-quality-census.md` (C4) ·
+`docs/audits/2026-08-27-technical-night-harvest-manifest.md` (the harvest manifest) ·
+`docs/audits/2026-08-27-technical-night-harvest-consumption-ledger.md` (the ledger these rulings
+are transcribed from, section A) · `docs/audits/2026-08-26-technical-provider-surface-v2.md` (the
+measured provider table consumed by X8's substrate half and by ADR-115's criterion C01).
+Companion intakes: #57 (I-DOC), #58 (I-KODEKS), #59 (I-ROTATE), #60 (I-NIGHT).
+
+**X1 · Backlog order of operations is fixed.** `[#424]` (inert `_DEPID_RE`) lands FIRST, then the
+17 inferred `depends-on` edges, then the re-peg of the 9 deferred rows whose pegs point into the
+kill list, and ONLY THEN closures and the icebox sweep. Any other order orphans deferred rows.
+*Source: C4 §3, §4.*
+
+**X2 · The 52-row active slice is adopted as a RANKING, not as a cap.** The census's own arithmetic
+shows a cap would admit rows born the same day while excluding five kill candidates older than
+45 d, and leaves 30 unblocked P2s with no disposition. Ranking yes, cap no. *Source: C4 §5.*
+
+**X3 · The Python standard splits on enforceability (Option C).** Ruff-decidable clauses become an
+executable rule set and a fifth MUST-uniform parity surface; the three ruff-unrepresentable clauses
+stay doc-level intent. **No new hub checker for them** — a hub-hardcoded standalone checker lands as
+`absent` on consumers by measurement. *Source: C2 §3, §4.*
+
+**X4 · The standard's three unrepresentable clauses are amended, not enforced.** Rich → operator-
+facing CLI output only (measured 1 of 135 files: the clause as written is fiction); Click → intent
+for NEW CLIs, no retrofit (13 of 78); dataclasses-over-dicts → intent (141 dict-returners).
+*Source: C2 §1–2.*
+
+**X5 · Rotation rotates the FILE, not the PREDICATE (option a′).**
+`journal_anchor.journal_text()` tiles `JOURNAL.md` with sorted `JOURNAL-legacy-*.md`; the gates'
+universe is unchanged by construction. The seam lands first, moving zero bytes, needing no
+governance act. *Source: C3 §5.*
+
+**X6 · Premise correction, recorded against the architect.** Rotation is NOT a performance fix.
+After W2A it buys ~0.1 s of gate time. Its real case is context (736k tokens), grep, and merge
+collisions (21% of commits prepend at the same offset). Any row written against a performance
+premise is mis-specified. *Source: C3.*
+
+**X7 · Doc diet sequencing.** The mechanical PLAYBOOK correction runs BEFORE any structural diet —
+it discharges 17 of the 19 `[#569]` census findings without moving a heading, and a structural pass
+run first would silently discard them. *Source: C1.*
+
+**X8 · The night protocol is doctrine.** Dispatch → sentinel → harvest → manifest → morning
+adjudication. Belongs in PLAYBOOK as a named protocol, with `Dispatch-After` and `Harvest-Cloud` as
+its two missing verbs (win-tooling, operator-owned). Harvest mechanics measured and working:
+`GET /v1/code/sessions/{id}/events`, paginated by `next_cursor`. *Source: the 2026-08-27 window.*
+
+**Rejected in the same act, recorded rather than dropped** (ledger section E): the 52-row cap as a
+hard cap (falsified by the census's own arithmetic, X2) · a new hub checker for
+Click/Rich/dataclasses (lands `absent` on consumers, X3) · rotation justified on performance (X6) ·
+a structural diet before the mechanical correction (X7).
+
+**Still owed and explicitly unruled** (ledger section F): which of the 30 unblocked P2s below the
+ranking cut need a second disposition · `[#82]`'s hub-closability ruling · whether `[#548]`/`[#559]`'s
+multi-edge dependencies imply a manifest-producer row that nobody owns.
 
 ## Editing note (read before adding an entry)
 

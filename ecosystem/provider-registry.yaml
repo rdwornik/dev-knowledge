@@ -101,6 +101,18 @@ providers:
     # A registry row, probe or doc naming the bare token `agent` therefore names a binary
     # whose identity is indistinguishable from grok's by name alone. Only unambiguous names
     # are pinned here; `agent` is recorded as un-pinnable rather than left to be rediscovered.
+    #
+    # COST REGIME — MEASURED, and it is the fact that governs how this provider may be
+    # used at all (2026-08-26, provider surface v2). `grok` is **PAY-PER-CALL, not a
+    # subscription**: one small test cost **$0.037**, with the credential proven by a
+    # server round-trip. Consequence, recorded because it is a shape constraint and not a
+    # preference: POINT-USE ONLY; fan-out is outside this route's envelope. A review lane or
+    # a judge panel multiplies a per-call price by its width, so a fan-out shape gets costed
+    # BEFORE dispatch, not after. This is a cost fact about the route; it grants no role.
+    # CLAUDE.md-NATIVE, measured by execution 2026-08-26 (probe #42): `grok` picks
+    # CLAUDE.md over a planted AGENTS.md — the opposite of `agy` and codex, which is why
+    # ADR-115's criterion is met on a SPLIT field rather than a uniform one.
+    # Evidence: docs/audits/2026-08-26-technical-provider-surface-v2.md
     cli: grok
     version_command: ["grok", "--version"]
 
@@ -123,6 +135,16 @@ providers:
     #     This is a SERVER refusal of the client, not an expired token, so re-authenticating
     #     does not clear it. The only documented way past it is an API key, which the
     #     standing auth ruling forbids.
+    # RETIRED BY OPERATOR RULING (2026-08-26, provider surface v2). The gemini CLI is
+    # retired for this fleet's use. The distinction that makes it a retirement rather than
+    # a wait: `UNSUPPORTED_CLIENT` is the SERVER refusing this CLIENT, not a tier refusing
+    # a request — so no amount of re-auth, quota or patience clears it, and the only
+    # documented way past it is an API key the standing auth ruling forbids. `agy` is the
+    # channel to Google models and it carries the operator's own subscription.
+    # The `cli:`/`version_command:` pair below STAYS: the SessionStart probe is a local
+    # version read and it still exits 0, and deleting a working probe to express a policy
+    # would make the sentinel blind rather than make the ruling true.
+    # Evidence: docs/audits/2026-08-26-technical-provider-surface-v2.md
     # PRESENCE/BASIS/DATE ONLY — this records what the host does, grants no role and
     # revisits no admission verdict. The live route to this vendor's models is the separate
     # `antigravity` provider below; whether that route may be USED is not this file's call.
@@ -148,6 +170,13 @@ providers:
     #   PRESENT   Get-Command agy -> Application
     #             C:\Users\1028120\AppData\Local\agy\bin\agy.exe
     #   VERSION   agy --version -> `1.1.20` (exit 0)
+    #   VERSION   1.1.21 as re-measured 2026-08-26 (provider surface v2). The 1.1.20
+    #             reading above is kept as the 2026-08-25 basis rather than overwritten.
+    #   AGENTS.md-NATIVE, measured by EXECUTION 2026-08-26 (intake #42, probe #42):
+    #             planted `AGENTS-4711` / `CLAUDE-8822` probe files settled instruction-
+    #             file precedence by running the CLI, not by reading its docs. `agy`
+    #             picks AGENTS.md. This is the measured half of ADR-115's criterion C01.
+    #             Evidence: docs/audits/2026-08-26-technical-provider-surface-v2.md
     #   AUTH      `agy models` exits 0 having FETCHED the roster from the server. That
     #             round-trip is the auth evidence, and it is deliberately the only auth
     #             claim made here: agy's own status/envelope `status` field is known to
@@ -184,6 +213,18 @@ providers:
   #
   # Remedy, named so the entry is actionable rather than merely accurate: PATH reordering, or
   # pinning `cursor-agent` only.
+  #
+  # SECOND, INDEPENDENT CAUSE — PLAN-GATED (measured 2026-08-26, provider surface v2).
+  # Even with the PATH collision resolved, `cursor-agent` answers but CANNOT carry a lane:
+  # on the free plan it refuses every named model (`Named models unavailable — Free plans
+  # can only use Auto`). "Auto" is a SELECTION MODE, not a model, and Cursor does not
+  # disclose what served a call — so an undisclosed model is an UNREPRODUCIBLE RESULT, and
+  # a lane whose result cannot be reproduced is not evidence. Also measured: `--model` is a
+  # PERSISTED SETTING, not a per-invocation flag — after a refused pin, later calls kept
+  # using the stored id while the error pointed elsewhere, which makes a mis-pinned run
+  # look like a correctly-pinned one. Plan-gated OUT of lane use until the plan is upgraded.
+  # The two causes are independent: fixing PATH does not clear this one.
+  # Evidence: docs/audits/2026-08-26-technical-provider-surface-v2.md
   #
   # Owner: OPERATOR. PATH is host-level state and is not the hub's to mutate; the hub tracks
   # the entry. This declares no provider and adds no key.

@@ -43,10 +43,10 @@ So that the canonical v5 handoff is fully implemented (generator) and mechanical
 
 ### [S3] Turn advisory guards into enforced gates
 So that a convention can't be skipped under load (the failure mode behind real aborts).
-- [#146] [P3][S] De-hardcode-first doctrine + sweep · tasks/146-de-hardcode-first-doctrine-sweep.md
+- [#146] [P3][S] De-hardcode-first doctrine + sweep · DEFER · tasks/146-de-hardcode-first-doctrine-sweep.md
 - [#112] [P2][M] adr_amend helper + ADR immutable-zone extension · tasks/112-adr-amend-helper-adr-immutable-zone-extension.md
 - [#242] [P2][M] ADR status-flip coherence check · tasks/242-adr-status-flip-coherence-check.md
-- [#153] [P2][M] Enforcement-completeness pass · tasks/153-enforcement-completeness-pass.md
+- [#153] [P2][M] Enforcement-completeness pass · DEFER · tasks/153-enforcement-completeness-pass.md
 - [#345] [P2][M] Externalize the ADR-101 frozensets → machine-readable path-pattern registry + generalize `validate_hermetization.py` · tasks/345-externalize-the-adr-101-frozensets-machine-reada.md
 - [#185] [P2][M] GAP-2 deterministic gotcha-injection guard · tasks/185-gap-2-deterministic-gotcha-injection-guard.md
 - [#188] [P3][M] Deny-rule + hook completeness audit · DEFER · tasks/188-deny-rule-hook-completeness-audit.md
@@ -54,7 +54,6 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#518] [P2][S] `scripts/audit.py::_git` — one call site, two REPRODUCED defects, filed as one row because they are one fix. · tasks/518-audit-py-git-runs-unscrubbed-and-undecoded-at-one.md
 - [#389] [P2][S] Prompt-lint — gate the five architect fields before a lane runs · tasks/389-prompt-lint-gate-the-five-architect-fields-befor.md
 - [#401] [P2][S] ai-council routing still ARMED at the deleted hub landing zone · tasks/401-ai-council-routing-still-armed-at-the-deleted-hu.md
-- [#424] [P2][S] Backlog `depends-on` gates are INERT — `_DEPID_RE` requires a `#`, the [E9] chain is written bare · tasks/424-backlog-depends-on-gates-are-inert-depid-re-requ.md
 - [#451] [P2][M] CA layer-edge check — port the ai-council layer-edge review as the missing Layer-2 organ · tasks/451-ca-layer-edge-check-ai-council-precedent.md
 - [#499] [P3][M] Promote the review-artifact coverage leg to a hard pre-push gate · DEFER · tasks/499-promote-the-review-artifact-coverage-leg-from-ad.md
 - [#560] [P2][S] `review_artifact_coverage` reads only the FIRST branch/HEAD triple per file, and one title literal, so a real review can be invisible to it · tasks/560-review-artifact-coverage-reads-only-the-first-br.md
@@ -76,12 +75,12 @@ So that a convention can't be skipped under load (the failure mode behind real a
 ### [S4] Extend structural validation to more governance artifacts
 So that drift in transcripts, ADRs, and folders is caught cheaply, not by reviewer luck.
 - [#139] [P2][L] merged-arc→record verifier · DEFER · tasks/139-merged-arc-record-verifier.md
-- [#99] [P3][S] FLEET-HEALTH digest names the failing check per red repo · tasks/99-fleet-health-digest-names-the-failing-check-per.md
+- [#99] [P3][S] FLEET-HEALTH digest names the failing check per red repo · DEFER · tasks/99-fleet-health-digest-names-the-failing-check-per.md
 - [#190] [P3][M] General intra-file duplication detector · DEFER · tasks/190-general-intra-file-duplication-detector.md
 - [#210] [P3][S] Convert journal-wrap no-ff WARNs from per-instance disposition to a standing rule · tasks/210-convert-journal-wrap-no-ff-warns-from-per-instan.md
-- [#234] [P3][S] Cross-repo probe validator · tasks/234-cross-repo-probe-validator.md
-- [#277] [P2][M] propose_closures signal repair · tasks/277-propose-closures-signal-repair.md
-- [#296] [P3][S] `audit.py repo <name> --repo-path` prints a report path that isn't there · tasks/296-audit-py-repo-name-repo-path-doesn-t-persist-its.md
+- [#234] [P3][S] Cross-repo probe validator · DEFER · tasks/234-cross-repo-probe-validator.md
+- [#277] [P2][M] propose_closures signal repair · DEFER · tasks/277-propose-closures-signal-repair.md
+- [#296] [P3][S] `audit.py repo <name> --repo-path` prints a report path that isn't there · DEFER · tasks/296-audit-py-repo-name-repo-path-doesn-t-persist-its.md
 
 ### [S5] Catch spec/dependent drift mechanically, not by memory
 So that "spec bumped, dependent partially updated, caught only because a human remembered" stops being the failure mode — machine-checkable coherence between a dependent doc and its spec.
@@ -89,8 +88,8 @@ So that "spec bumped, dependent partially updated, caught only because a human r
 - [#171] [P3][M] Build the conformance dashboard at `ecosystem/conformance.md` · tasks/171-build-the-conformance-dashboard-at-ecosystem-con.md
 - [#166] [P3][M] doctrine_enforcement_coherence check · DEFER · tasks/166-doctrine-enforcement-coherence-check.md
 - [#181] [P2][S] Coherence v2 nudge-response · DEFER · tasks/181-coherence-v2-nudge-response.md
-- [#220] [P2][M] MODIFY / semantic-drift axis · tasks/220-modify-semantic-drift-axis.md
-- [#241] [P2][S] Undeclared-edge groom · tasks/241-undeclared-edge-groom.md
+- [#220] [P2][M] MODIFY / semantic-drift axis · DEFER · tasks/220-modify-semantic-drift-axis.md
+- [#241] [P2][S] Undeclared-edge groom · DEFER · tasks/241-undeclared-edge-groom.md
 - [#335] [P3][S] Exempt `templates/` from the `reconciled_versions` check · tasks/335-exempt-templates-from-the-reconciled-versions-ch.md
 - [#457] [P2][S] Two live-repo tests fail on main against green gates — test-vs-organ mismatch · tasks/457-inherited-live-repo-test-failures.md
 - [#477] [P2][S] `deployed_methodology_version` keys the registry by repo-root BASENAME — a clone named `dev-knowledge` cannot find `.dev-knowledge` · tasks/477-deployed-version-check-keys-registry-by-basename.md
@@ -102,10 +101,10 @@ So that a symbol deletion can't silently break a dependent — the code analog o
 
 ### [S7] Wire up the lifecycle hooks the workflow relies on
 So that session-start/close automation actually runs instead of being wired-but-vacuous.
-- [#116] [P3][S] Hooks hygiene · tasks/116-hooks-hygiene.md
-- [#117] [P3][S] Evaluate prompt/agent-based hooks · tasks/117-evaluate-prompt-agent-based-hooks.md
+- [#116] [P3][S] Hooks hygiene · DEFER · tasks/116-hooks-hygiene.md
+- [#117] [P3][S] Evaluate prompt/agent-based hooks · DEFER · tasks/117-evaluate-prompt-agent-based-hooks.md
 - [#170] [P3][M] Design + land the traceability-spine ADR · tasks/170-design-land-the-traceability-spine-adr.md
-- [#189] [P3][S] Execute in ~/.claude · tasks/189-execute-in-claude.md
+- [#189] [P3][S] Execute in ~/.claude · DEFER · tasks/189-execute-in-claude.md
 - [#310] [P3][S] Define the cold-bundle annotation surface + annotate the 07-05 bundle as-cold · DEFER · tasks/310-define-the-cold-bundle-annotation-surface-annota.md
 - [#520] [P2][S] No sanctioned way to retire a committed bundle whose seal is wrong · tasks/520-no-sanctioned-way-to-retire-a-committed-bundle-w.md
 - [#405] [P2][S] Session-end leftover check — nothing verifies "no leftovers" · tasks/405-session-end-leftover-check-nothing-verifies-no-l.md
@@ -128,14 +127,14 @@ Backbone (dependency-ordered; done stages recorded here as the epic ledger — A
 - FLAG RESOLVED (architect, 2026-07-07): the arc-tracking / record-integrity fold is adjudicated — #168/#170 **co-sequence with #239/#240** (they harden the same `session_end_backpressure` organ the enforcement-transfer epic ports consumer-local in #237); #243 co-sequences there too (its #168-hard vs Fable-WARN conflict resolves at that mesh-consult). #139 **stays separate** (hub record-integrity, tangential — not folded).
 
 - [#240] [P3][S] Follow-up · DEFER · tasks/240-follow-up.md
-- [#267] [P2][S] Scope-exercising arc extension · tasks/267-scope-exercising-arc-extension.md
-- [#289] [P2][M] Hub-own the OneDrive-Blue-Yonder guard · tasks/289-hub-own-the-onedrive-blue-yonder-guard.md
+- [#267] [P2][S] Scope-exercising arc extension · DEFER · tasks/267-scope-exercising-arc-extension.md
+- [#289] [P2][M] Hub-own the OneDrive-Blue-Yonder guard · DEFER · tasks/289-hub-own-the-onedrive-blue-yonder-guard.md
 - [#294] [P3][M] `validate_backlog` deploy-carrier + `--path` de-hardcode · DEFER · tasks/294-validate-backlog-deploy-carrier-path-de-hardcode.md
-- [#297] [P3][S] Lightweight/dry `observe-arc` coverage mode · tasks/297-lightweight-dry-observe-arc-coverage-mode.md
-- [#303] [P2][S] Make seed_runbook.py child-class-aware · tasks/303-make-seed-runbook-py-child-class-aware.md
+- [#297] [P3][S] Lightweight/dry `observe-arc` coverage mode · DEFER · tasks/297-lightweight-dry-observe-arc-coverage-mode.md
+- [#303] [P2][S] Make seed_runbook.py child-class-aware · DEFER · tasks/303-make-seed-runbook-py-child-class-aware.md
 - [#305] [P3][S] Add a verify-only / already-onboarded re-run mode to the onboarding runbook · DEFER · tasks/305-add-a-verify-only-already-onboarded-re-run-mode.md
 - [#308] [P3][S] Decide the `verify` skill's canonical home · DEFER · tasks/308-decide-the-verify-skill-s-canonical-home.md
-- [#324] [P3][M] Phase-6 axis-2 carrier · tasks/324-phase-6-axis-2-carrier.md
+- [#324] [P3][M] Phase-6 axis-2 carrier · DEFER · tasks/324-phase-6-axis-2-carrier.md
 - [#325] [P3][S] Carry `/save` to consumers via a manifest command-artifact carrier · DEFER · tasks/325-carry-save-to-consumers-via-a-manifest-command-a.md
 - [#497] [P3][S] Two stale claims on carrier/hook declarations · tasks/497-carrier-mesh-py-75-still-claims-the-informant-lo.md
 - [#496] [P3][S] `_ORGAN_TO_COMPONENT` attributes the pre-push organ to a component that does not carry it — the Tier-3 DRIFT rows it produces are misfiled · tasks/496-organ-to-component-attributes-the-pre-push-organ.md
@@ -148,13 +147,13 @@ Backbone (dependency-ordered; done stages recorded here as the epic ledger — A
 ### [S9] Make lessons an active feedback loop, not a passive archive
 So that captured lessons reach runtime rules and stay enforceable.
 - [#4] [P2][M] Build lessons-index.json + SessionStart retrieval + CLI query · DEFER · tasks/4-build-lessons-index-json-sessionstart-retrieval.md
-- [#130] [P3][S] Memory-hygiene review · tasks/130-memory-hygiene-review.md
+- [#130] [P3][S] Memory-hygiene review · DEFER · tasks/130-memory-hygiene-review.md
 
 ### [S10] Codify recurring patterns into the methodology
 So that observed failure-modes become written guidance instead of recurring.
 - [#144] [P3][M] Feature DoD = end-to-end / user-flow test · DEFER · tasks/144-feature-dod-end-to-end-user-flow-test.md
-- [#145] [P3][M] Codification-completeness pass · tasks/145-codification-completeness-pass.md
-- [#266] [P3][S] Codify the test-scoped-grant language lesson · tasks/266-codify-the-test-scoped-grant-language-lesson.md
+- [#145] [P3][M] Codification-completeness pass · DEFER · tasks/145-codification-completeness-pass.md
+- [#266] [P3][S] Codify the test-scoped-grant language lesson · DEFER · tasks/266-codify-the-test-scoped-grant-language-lesson.md
 - [#438] [P3][S] Codify gate-class posture: terra design review BEFORE build for refusal-gate arcs · tasks/438-codify-gate-class-posture-terra-design-review-be.md
 
 ---
@@ -165,7 +164,7 @@ So that observed failure-modes become written guidance instead of recurring.
 
 ### [S11] Keep the decision corpus navigable and contradiction-aware
 So that growth past 65 ADRs doesn't bury or quietly contradict prior decisions.
-- [#23] [P3][S] Validate ADR frontmatter relation-fields · tasks/23-validate-adr-frontmatter-relation-fields.md
+- [#23] [P3][S] Validate ADR frontmatter relation-fields · DEFER · tasks/23-validate-adr-frontmatter-relation-fields.md
 - [#546] [P3][S] ADR-60's `docs/` taxonomy no longer describes the tree it governs · tasks/546-adr-60-docs-taxonomy-no-longer-describes-the-tree.md
 - [#548] [P2][S] Intake #12's SETTLED ownership manifest is parked on a departed id, and three live rows depend on it by name · tasks/548-intake-12-settled-ownership-manifest-has-no-carrier.md
 - [#549] [P2][S] The operator-approved Fleet-Hygiene plan-of-record (intake #13 v4) has no carrier · DEFER · tasks/549-fleet-hygiene-plan-of-record-has-no-carrier.md
@@ -184,8 +183,8 @@ So that the ADR web is internally consistent.
 
 ### [S13] Keep canonical files accurate
 So that stale ground truth stops silently misleading sessions (the repo's own VISION is "drift detected proactively").
-- [#71] [P3][S] Reconcile ENVIRONMENT.md's `~/.claude/` directory tree with live contents · tasks/71-reconcile-environment-md-s-claude-directory-tree.md
-- [#285] [P3][S] Extend hub freshness gating to PLAYBOOK · tasks/285-extend-hub-freshness-gating-to-playbook.md
+- [#71] [P3][S] Reconcile ENVIRONMENT.md's `~/.claude/` directory tree with live contents · DEFER · tasks/71-reconcile-environment-md-s-claude-directory-tree.md
+- [#285] [P3][S] Extend hub freshness gating to PLAYBOOK · DEFER · tasks/285-extend-hub-freshness-gating-to-playbook.md
 - [#300] [P1][M] Hermetization residual d.ii · DEFER · tasks/300-hermetization-residual-d-ii.md
 - [#388] [P3][S] The "10–20 repo" fleet-scale target is FABRICATED — correct it to the live 5–8+ wherever it is restated · tasks/388-the-10-20-repo-fleet-scale-target-is-fabricated.md
 - [#526] [P3][S] Root-hygiene audit — which root files MUST be root, which are movable · tasks/526-root-hygiene-audit-which-root-files-must-be-root.md
@@ -195,9 +194,9 @@ So that stale ground truth stops silently misleading sessions (the repo's own VI
 - [#585] [P2][S] Suite RED — `test_anchor_gate_probe_distinguishes_installed_from_absent` does not discriminate: repair it, retire it, or fix the organ · tasks/585-suite-red-test-anchor-gate-probe-distinguishes-i.md
 ### [S14] Keep the day-to-day docs right-sized and current
 So that the cheat-sheet and architecture stay scannable as conventions accrue.
-- [#269] [P3][S] Audit-index count-tiered shape + freshness hook · tasks/269-audit-index-count-tiered-shape-freshness-hook.md
+- [#269] [P3][S] Audit-index count-tiered shape + freshness hook · DEFER · tasks/269-audit-index-count-tiered-shape-freshness-hook.md
 - [#420] [P3][S] Does a TOP-LEVEL `docs/archive/` still make sense? · tasks/420-does-a-top-level-docs-archive-still-make-sense.md
-- [#227] [P3][S] Relocate AGENT_FRAMEWORK.md out of protocols/ · tasks/227-relocate-agent-framework-md-out-of-protocols.md
+- [#227] [P3][S] Relocate AGENT_FRAMEWORK.md out of protocols/ · DEFER · tasks/227-relocate-agent-framework-md-out-of-protocols.md
 
 - [#506] [P2][M] Whole-set P10 grooming arc — the open set is unreconciled · tasks/506-whole-set-p10-grooming-arc-full-open-set.md
 - [#551] [P2][S] Audit artifacts carry no `status:`, so a consumed audit is indistinguishable from a live one · tasks/551-audit-artifacts-carry-no-status-field.md
@@ -207,17 +206,18 @@ So that the cheat-sheet and architecture stay scannable as conventions accrue.
 
 - [#589] [P1][M] One line per row — the BACKLOG view projection, with a size assertion that cannot be silently undone · tasks/589-one-line-per-row-the-backlog-view-projection-wit.md
 - [#590] [P2][S] The audits index is regenerated on read, never merge-resolved · tasks/590-the-audits-index-is-regenerated-on-read-never-me.md
+- [#607] [P2][S] PLAYBOOK census discharge — the mechanical half of the 19 findings · tasks/607-playbook-census-discharge-the-mechanical-half-of.md
 ## [E6] Cross-repo universalization
 > As the disseminator, I want every child repo to converge on the universal baseline.
 
 ### [S15] Converge every child repo on the universal baseline
 So that "open any repo, same layout/governance" actually holds.
-- [#82] [P3][M] Define per-repository agentic-review profiles · tasks/82-define-per-repository-agentic-review-profiles.md
+- [#82] [P3][M] Define per-repository agentic-review profiles · DEFER · tasks/82-define-per-repository-agentic-review-profiles.md
 - [#231] [P3][M] Consumer → hub feedback report · DEFER · tasks/231-consumer-hub-feedback-report.md
-- [#327] [P2][M] Protocols-as-interface genre ruling · tasks/327-protocols-as-interface-genre-ruling.md
-- [#329] [P3][S] VS Code ownership visualization · tasks/329-vs-code-ownership-visualization.md
-- [#331] [P2][S] Consumer BACKLOG schema adoption ruling · tasks/331-consumer-backlog-schema-adoption-ruling.md
-- [#332] [P2][M] Fleet dependency-version parity · tasks/332-fleet-dependency-version-parity.md
+- [#327] [P2][M] Protocols-as-interface genre ruling · DEFER · tasks/327-protocols-as-interface-genre-ruling.md
+- [#329] [P3][S] VS Code ownership visualization · DEFER · tasks/329-vs-code-ownership-visualization.md
+- [#331] [P2][S] Consumer BACKLOG schema adoption ruling · DEFER · tasks/331-consumer-backlog-schema-adoption-ruling.md
+- [#332] [P2][M] Fleet dependency-version parity · DEFER · tasks/332-fleet-dependency-version-parity.md
 - [#334] [P3][S] Fleet-wide ruff hook id migration `ruff` → `ruff-check` · tasks/334-fleet-wide-ruff-hook-id-migration-ruff-ruff-chec.md
 - [#343] [P3][S] fleet_parity ship-gate-only scoping · tasks/343-fleet-parity-ship-gate-only-scoping.md
 - [#342] [P3][S] fleet_parity gate-ahead max-fidelity hardening · tasks/342-fleet-parity-gate-ahead-max-fidelity-hardening.md
@@ -229,14 +229,14 @@ So that "open any repo, same layout/governance" actually holds.
 
 ### [S16] Manage the methodology as a living thing (essence lifecycle: transfer · sync · PRUNE)
 So that the consumer-facing live surface reflects CURRENT state — hub-deprecated elements get REMOVED from consumers, not accumulated (the append-only-live-surface bug; distinct from the append-only-BY-DESIGN audit trail).
-- [#244] [P2][L] Essence-spec lifecycle epic · tasks/244-essence-spec-lifecycle-epic.md
-- [#245] [P2][M] Add-path status-awareness · tasks/245-add-path-status-awareness.md
-- [#276] [P2][M] D2 per-consumer waiver-honoring · tasks/276-d2-per-consumer-waiver-honoring.md
+- [#244] [P2][L] Essence-spec lifecycle epic · DEFER · tasks/244-essence-spec-lifecycle-epic.md
+- [#245] [P2][M] Add-path status-awareness · DEFER · tasks/245-add-path-status-awareness.md
+- [#276] [P2][M] D2 per-consumer waiver-honoring · DEFER · tasks/276-d2-per-consumer-waiver-honoring.md
 - [#577] [P2][M] Adopt `AGENTS.md` as the portable instruction layer — the bounded execution lane · tasks/577-adopt-agents-md-as-the-portable-instruction-layer.md
 
 ### [S17] Make new-repo scaffolding correct-by-default
 So that a new repo inherits the full baseline in one step, not by re-derivation.
-- [#43] [P3][L] Decide + · tasks/43-decide.md
+- [#43] [P3][L] Decide + · DEFER · tasks/43-decide.md
 
 ---
 
@@ -246,11 +246,11 @@ So that a new repo inherits the full baseline in one step, not by re-derivation.
 ### [S18] Cut session friction with better tooling
 So that cognitive overhead per session drops.
 - [#102] [P2][M] Machine-readable repo index for agent consumption · DEFER · tasks/102-machine-readable-repo-index-for-agent-consumptio.md
-- [#127] [P3][S] verify skill failure-output contract · tasks/127-verify-skill-failure-output-contract.md
-- [#273] [P3][S] Changelog-review staleness escalation · tasks/273-changelog-review-staleness-escalation.md
-- [#274] [P3][S] Dogfood-signal prior in the /changelog-review ADOPT rubric · tasks/274-dogfood-signal-prior-in-the-changelog-review-ado.md
-- [#278] [P2][M] Test-suite hygiene epic · tasks/278-test-suite-hygiene-epic.md
-- [#317] [P2][M] Default-parallel test invocation · tasks/317-default-parallel-test-invocation-slow-tier-marke.md
+- [#127] [P3][S] verify skill failure-output contract · DEFER · tasks/127-verify-skill-failure-output-contract.md
+- [#273] [P3][S] Changelog-review staleness escalation · DEFER · tasks/273-changelog-review-staleness-escalation.md
+- [#274] [P3][S] Dogfood-signal prior in the /changelog-review ADOPT rubric · DEFER · tasks/274-dogfood-signal-prior-in-the-changelog-review-ado.md
+- [#278] [P2][M] Test-suite hygiene epic · DEFER · tasks/278-test-suite-hygiene-epic.md
+- [#317] [P2][M] Default-parallel test invocation · DEFER · tasks/317-default-parallel-test-invocation-slow-tier-marke.md
 - [#322] [P2][M] Fleet dashboard · DEFER · tasks/322-fleet-dashboard.md
 - [#340] [P2][S] /ship pre-flight validator honors the consumer repo's canonical test gate · tasks/340-ship-pre-flight-validator-honors-the-consumer-re.md
 - [#341] [P2][S] Codex producer-lane activation mechanism · tasks/341-codex-producer-lane-activation-mechanism.md
@@ -273,6 +273,7 @@ So that cognitive overhead per session drops.
 - [#586] [P3][S] Suite RED — `test_no_gate_hook_or_script_reads_the_export` has no `ecosystem/` naming-vs-reading carve-out (packet ARC-G, C04) · tasks/586-suite-red-test-no-gate-hook-or-script-reads-the.md
 - [#587] [P1][M] P-1 — invert the journal-anchor check to a single pass · tasks/587-p-1-invert-the-journal-anchor-check-to-a-single.md
 - [#588] [P1][S] P-2 — build the spine parent-map in ONE git process · tasks/588-p-2-build-the-spine-parent-map-in-one-git-proces.md
+- [#608] [P1][S] Tiling-aware journal read — the rotation seam, before any split · tasks/608-tiling-aware-journal-read-the-rotation-seam-befo.md
 - [#593] [P2][M] Codespaces chain repair, hub half — uv in the image and a prebuild that actually refreshes · tasks/593-codespaces-chain-repair-hub-half-uv-in-the-image.md
 - [#594] [P3][M] Layer-3 router — the HUB prerequisites only, not the verb itself · tasks/594-layer-3-router-the-hub-prerequisites-only-not-th.md
 - [#597] [P2][M] P-4 — a declared tier per check, and P-3's telemetry window FIRST · tasks/597-p-4-a-declared-tier-per-check-and-p-3-s-telemetr.md
@@ -280,7 +281,7 @@ So that cognitive overhead per session drops.
 ### [S19] Decide the undecided artifact/tool models
 So that cadence-less artifacts and unevaluated tools don't rot or get adopted blind.
 
-- [#123] [P2][S] Routine observability convention + value review · tasks/123-routine-observability-convention-value-review.md
+- [#123] [P2][S] Routine observability convention + value review · DEFER · tasks/123-routine-observability-convention-value-review.md
 - [#347] [P2][M] Formalize the engineering loop/harness end-to-end + sanctioned safe-deletion pattern · tasks/347-formalize-the-engineering-loop-harness-end-to-en.md
 - [#387] [P2][S] Rewrite the buy-vs-build intake BEFORE anything ingests it · tasks/387-rewrite-the-buy-vs-build-intake-before-anything.md
 - [#440] [P2][S] Make the `tasks/` id ledger tamper-evident — a deleted retired record is undetectable · tasks/440-make-the-tasks-id-ledger-tamper-evident-a-delete.md
@@ -297,8 +298,8 @@ So that cadence-less artifacts and unevaluated tools don't rot or get adopted bl
 - [#580] [P1][M] State-as-data: atomic id allocation, and `tasks/` as the SOLE source (packet ARC-B) · tasks/580-state-as-data-atomic-id-allocation-and-tasks-as.md
 ### [S20] Revive the nightly layer, load-gauge first (rent-rule discipline)
 So that unattended routines run only with a named consumer, a survival metric, and a bounded operator load — never as rot generators (the fleet-audit lesson; sequencing per the standing operator ruling: the load-gauge lands before anything else in the Tier-2 nightly layer).
-- [#271] [P3][L] Nightly proposal loop · tasks/271-nightly-proposal-loop.md
-- [#288] [P3][S] Model-identity guard for unattended runs · tasks/288-model-identity-guard-for-unattended-runs.md
+- [#271] [P3][L] Nightly proposal loop · DEFER · tasks/271-nightly-proposal-loop.md
+- [#288] [P3][S] Model-identity guard for unattended runs · DEFER · tasks/288-model-identity-guard-for-unattended-runs.md
 - [#348] [P3][S] Backlog grooming as a standing routine, not ad-hoc · tasks/348-backlog-grooming-as-a-standing-routine-not-ad-ho.md
 - [#419] [P2][M] We run routines whose output nobody consumes · tasks/419-we-run-routines-whose-output-nobody-consumes.md
 - [#426] [P2][M] Declare `consumer` + `consumption_path` for every LIVE routine · tasks/426-declare-consumer-consumption-path-for-every-live.md

@@ -62,7 +62,7 @@ _INPLACE_RESOLVED_RE = re.compile(r"~~.+?~~|\*\*\s*(?:RESOLVED|DONE)\b")
 # (#206, GAP-2); de-dup into a single shared module remains the real fix. Do NOT add the parity
 # check INSIDE this validator (Layer-2: validators stay logic-only) — it lives in tests/.
 _DEPENDS_CLAUSE_RE = re.compile(r"·\s*depends-on\s*:\s*([^·]*)")
-_DEPID_RE = re.compile(r"#(\d+)")
+_DEPID_RE = re.compile(r"(?<![\w./-])#?(\d+)(?![\w./-])")
 
 
 def _parse_deps(rest):
