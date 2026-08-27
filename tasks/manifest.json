@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "925435b50dff40f1a116de22bf5eb355eb2c9964491bca3d13a11303d1e3a9e5",
+  "generated_sha256": "ae7804c5ac7edc1f7da868a1fa22dee9eccff451e559064b4defe460e926c913",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -193,10 +193,6 @@
     {
       "task": 401,
       "file": "401-ai-council-routing-still-armed-at-the-deleted-hu.md"
-    },
-    {
-      "task": 424,
-      "file": "424-backlog-depends-on-gates-are-inert-depid-re-requ.md"
     },
     {
       "task": 451,

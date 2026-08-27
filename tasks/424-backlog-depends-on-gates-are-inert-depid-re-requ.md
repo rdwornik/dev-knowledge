@@ -1,7 +1,7 @@
 ---
 id: "[#424]"
 title: "Backlog `depends-on` gates are INERT — `_DEPID_RE` requires a `#`, the [E9] chain is written bare"
-status: open
+status: closed
 priority: P2
 size: S
 theme: "[E2] Enforced governance"
