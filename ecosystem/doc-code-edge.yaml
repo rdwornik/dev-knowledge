@@ -193,6 +193,14 @@ exempt:
   # declares no rule ID. When it lands, this entry converts to coverage_scope and the marker
   # is added to the adapter and to scripts/consumer_at_landing.py. Bound to [#595].
   - consumer_at_landing
+  # [#596] family-3 proof-layer leg. **TEMPORARY**, same class as the three rows above. The
+  # class it enforces -- a proof whose firing is gated on the presence of the environment it
+  # polices -- is stated with its predicate in scripts/proof_layer.py and evidenced by
+  # docs/audits/2026-08-25-technical-green-by-skip-sweep.md section 9, an immutable audit
+  # artifact. No living doc declares it as a rule ID today. When one does, this entry converts
+  # to coverage_scope and the marker is added to the adapter and to scripts/proof_layer.py.
+  # Bound to [#596]; its SITE-layer sibling is [#583].
+  - proof_layer
   # ARC-5 residual-completeness gate. TEMPORARY exemption, distinct from the permanent rows
   # above, and BOUND TO [#365] -- an undeclared temporary exemption is exactly the silent
   # category ARC-5 exists to eliminate, so it carries a ticket rather than a hope.

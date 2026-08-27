@@ -93,6 +93,7 @@ from .check_handoff_version_stamp import (
     _STAMP_RE,
     check_handoff_version_stamp,
 )
+from .check_proof_layer import check_proof_layer
 from .check_reconciled_versions import _vr, check_reconciled_versions
 from .check_residual_completeness import _vrc, check_residual_completeness
 from .check_routine_consumers import (
@@ -175,6 +176,7 @@ CHECK_ORDER: tuple[str, ...] = (
     "check_substrate_declaration",        # [#591] substrate validator layer 2 — thin adapter
     "check_dispatch_drift",               # [#592] Ch8 literal commands vs the machine
     "check_consumer_at_landing",          # [#595] docs/audits consumer declaration + ratchet
+    "check_proof_layer",                  # [#596] family-3 environment-conditional guards
 )
 
 # The extracted subset, in CHECK_ORDER-relative order.
@@ -199,6 +201,7 @@ EXTRACTED_CHECKS = (
     check_substrate_declaration,
     check_dispatch_drift,
     check_consumer_at_landing,
+    check_proof_layer,
 )
 
 # The flat surface `audit.py` re-exports. Names beyond the check functions appear here because a
@@ -266,6 +269,7 @@ __all__ = [
     "check_floor_integrity",
     "check_handoff_bundle_structure",
     "check_handoff_version_stamp",
+    "check_proof_layer",
     "check_reconciled_versions",
     "check_residual_completeness",
     "check_routine_consumers",
