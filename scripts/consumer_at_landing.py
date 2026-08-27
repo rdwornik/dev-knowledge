@@ -203,7 +203,33 @@ def identifiers(name: str) -> set[str]:
     return out
 
 
-def read_artifact(name: str, text: str) -> Artifact:
+#: A launch-contracts directory carries the batch's date on the DIRECTORY, not on the files
+#: inside it (PLAYBOOK Ch8, "Where the contract file lives"). Same shape
+#: `check_substrate_declaration` reads.
+_DATED_DIR_RE = re.compile(r"^(?P<date>\d{4}-\d{2}-\d{2})-")
+
+
+def _fallback_date(rel_parents: tuple[str, ...]) -> _dt.date | None:
+    """The landing date carried by a containing directory, nearest first.
+
+    Found by dogfooding: making the corpus recursive (terra finding 2) pulled in five nested
+    launch contracts whose FILENAMES carry no date, so every one reported "no resolvable
+    landing date" -- five permanent WARNs for files whose date is plainly on the directory
+    holding them. Reported-rather-than-assumed was the right posture; having nothing else to
+    read was the defect.
+    """
+    for parent in rel_parents:
+        match = _DATED_DIR_RE.match(parent)
+        if match:
+            try:
+                return _dt.date.fromisoformat(match.group("date"))
+            except ValueError:
+                return None
+    return None
+
+
+def read_artifact(name: str, text: str,
+                  rel_parents: tuple[str, ...] = ()) -> Artifact:
     """Parse one artifact's own declaration."""
     citations = tuple(label for label, pattern in _CITATION_RES if pattern.search(text))
     reason = None
@@ -219,6 +245,8 @@ def read_artifact(name: str, text: str) -> Artifact:
             landed = _dt.date.fromisoformat(date_match.group("date"))
         except ValueError:
             landed = None
+    if landed is None:
+        landed = _fallback_date(rel_parents)
     return Artifact(name=name, landed=landed, citations=citations, no_consumer_reason=reason)
 
 
@@ -299,7 +327,9 @@ def measure(repo_root_path: Path) -> Measurement:
             raise ConsumerScanError(
                 f"{path.name} is not valid UTF-8 ({exc}); the corpus was not fully read, so "
                 f"no number from this run is trustworthy") from exc
-        artifact = read_artifact(path.name, text)
+        rel_parents = tuple(
+            q.name for q in path.parents if q != audits_dir and audits_dir in q.parents)
+        artifact = read_artifact(path.name, text, rel_parents)
         m.corpus.append(path.name)
         m.artifacts[path.name] = artifact
         if artifact.landed is None:
