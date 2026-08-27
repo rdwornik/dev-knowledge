@@ -19,6 +19,52 @@
 
 ---
 
+### 2026-08-27 (a) - CC (Opus 5, background job, primary checkout, branch `docs/anchor-w2-batch`): the workspace provider-roots merge `08b0d192` is anchored, before the W2 merge queue is allowed to open
+
+**Did:** wrote the JOURNAL anchor for merge `08b0d192` (`chore/workspace-provider-roots-2026-08-26`),
+which sat on local `main` unpushed and unanchored. This is the FIRST act of the W2 integration
+session, ahead of any merge, because the anchoring predicate is range-level: an unanchored entry
+already on `main` refuses the batch's own push at the end, after five merges are irreversibly
+stacked on top of it. Discharging it first is the batch-1 precedent (`2026-08-25 (b)`), applied
+before the queue opens rather than after it deadlocks.
+
+**No work was re-executed and nothing was re-decided here.** The arc landed in a prior session on
+the operator's own seat; this session read its two commits and wrote them down.
+
+**What the merge introduced,** from its commits rather than from a brief. Both touch exactly one
+file, `.dev-knowledge.code-workspace` (+71/-7), and both are provider-surface bookkeeping:
+
+- `0af8da17` — provider roots are re-cut to match the surface actually measured on 2026-08-26,
+  replacing roots that had drifted from the live install set.
+- `26cb1105` — two operator-review follow-ups on that commit. (1) agy's root was CHALLENGED and
+  **re-derived rather than assumed**: `%LOCALAPPDATA%\antigravity` holds one bundled ripgrep and
+  an empty staging dir, `%APPDATA%\antigravity` is the Antigravity IDE's Electron userdata, last
+  written 2026-01-23 and seven months stale — neither is a config root. The CLI writes to
+  `~/.gemini/antigravity-cli`, settled by five `log/cli-<date>_<time>.log` files written
+  2026-08-26 18:54–19:34, the newest reporting language-server 1.1.21 against a registry that
+  recorded agy 1.1.20 on 2026-08-25. The nesting under a RETIRED provider's directory is the
+  vendor's doing, not a bookkeeping error: `~/.gemini/oauth_creds.json` is shared and was
+  refreshed 2026-08-26 12:06 while the Gemini CLI's own `settings.json` has been untouched since
+  2026-07-03 — the shared tree is live because agy is, not because gemini is. (2) **ONE** root was
+  added for glm / kimi / dsk, deliberately not three: none of `~/.glm`, `~/.zai`, `~/.z-ai`,
+  `~/.kimi`, `~/.moonshot`, `~/.deepseek` exists on this host (all six checked). They are not
+  installed programs but ALIASES exported by the DispatchHelpers manifest, so their config IS the
+  module and the root is the deployed module directory. Fabricating three empty roots would have
+  invented directories that do not exist.
+
+**Result:** `block-unanchored-push` clears the range. The gate's own fix text is followed exactly
+— a merge cannot name its own hash, so this entry names `26cb1105` and `0af8da17`, the two
+commits the push introduces. Discharge is range-level (ADR-85 §A7 / FR2), so this one entry
+carries the whole push.
+
+**Changes:** `JOURNAL.md` (this entry).
+
+**Abandoned:** nothing.
+
+**Next:** the W2 merge queue — W2A → W2B → W2C → G2 → lane-H, serial, tiered gating, one batch
+entry naming all merged tips at the end. `lane-na-gates` and `lane-nb-tiering` are LIVE in their
+worktrees and are out of scope for this batch by operator instruction.
+
 ### 2026-08-26 (c) - CC (Opus 5, local seat session, primary checkout, branch `docs/anchor-prompts-revocation`): the anchor merge `ac677b6e` could not carry - root `prompts/` is REVOKED, and the ADR-101 closed set contracts for the first time
 
 **Did:** wrote the JOURNAL anchor for merge `ac677b6e` (`worktree-prompts-revocation`), which was
