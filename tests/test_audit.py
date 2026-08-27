@@ -1062,10 +1062,18 @@ def test_generated_artifact_freshness_passes_when_current(
         tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(aud, "_gaf_git_last_commit_date",
                         _gaf_all(date(2026, 8, 24), date(2026, 8, 24)))
+    from scripts import generated_artifact_freshness as gaf
     findings = aud.check_generated_artifact_freshness(_gaf_tree(tmp_path))
-    assert len(findings) == 1, "one Finding PER ARTIFACT -- the ship-gate dispositions each"
-    assert findings[0].status == "pass", findings[0].evidence
-    assert findings[0].check_name == "generated_artifact_freshness"
+    # Derived from the REGISTRY, not pinned at 1 ([#590] added `audits-index`): the invariant
+    # is one Finding PER ARTIFACT so the #147 ship-gate dispositions each independently, and a
+    # literal count would have to be re-typed every time an artifact is registered — which is
+    # the drift a derived assertion cannot have.
+    assert len(findings) == len(gaf.REGISTRY), \
+        "one Finding PER ARTIFACT -- the ship-gate dispositions each"
+    dashboard = findings[0]   # `_gaf_tree` materializes only the dashboard's output faces
+    assert dashboard.status == "pass", dashboard.evidence
+    assert dashboard.check_name == "generated_artifact_freshness"
+    assert "conformance-dashboard" in dashboard.evidence
 
 
 def test_generated_artifact_freshness_warns_past_the_baseline(
@@ -2130,6 +2138,63 @@ def test_hooks_armed_pass(tmp_path: Path, monkeypatch) -> None:
     assert f.status == "pass", f.evidence
 
 
+# --- [#590] the merge-driver leg -------------------------------------------
+
+def test_hooks_armed_fails_when_the_declared_merge_ours_pin_is_unarmed(
+        tmp_path: Path, monkeypatch) -> None:
+    """A `.gitattributes` `merge=ours` pin with no `merge.ours.driver` is INERT — the merge
+    conflicts exactly as it did before, while the tracked file says the problem is solved.
+    That is the configured-but-unarmed window RF-2 exists to close, so it FAILs here."""
+    _arm_repo(tmp_path)
+    (tmp_path / ".gitattributes").write_text("docs/audits/README.md merge=ours\n",
+                                             encoding="utf-8")
+    monkeypatch.setattr(aud, "_REPO_ROOT", str(tmp_path))
+    f = aud.check_hooks_armed(tmp_path)[0]
+    assert f.status == "fail", f.evidence
+    assert "merge.ours.driver" in f.evidence
+    assert "git config --local merge.ours.driver true" in f.evidence
+
+
+def test_hooks_armed_passes_once_the_merge_driver_is_armed(tmp_path: Path, monkeypatch) -> None:
+    """...and arming it — which `arm_hooks.arm_merge_driver` does at SessionStart — clears it."""
+    _arm_repo(tmp_path)
+    (tmp_path / ".gitattributes").write_text("docs/audits/README.md merge=ours\n",
+                                             encoding="utf-8")
+    subprocess.run(["git", "config", "--local", "merge.ours.driver", "true"],
+                   cwd=tmp_path, check=True)
+    monkeypatch.setattr(aud, "_REPO_ROOT", str(tmp_path))
+    f = aud.check_hooks_armed(tmp_path)[0]
+    assert f.status == "pass", f.evidence
+    assert "merge.ours.driver armed" in f.evidence
+
+
+def test_hooks_armed_ignores_the_merge_driver_where_no_pin_is_declared(
+        tmp_path: Path, monkeypatch) -> None:
+    """The leg is derived from the TREE, not hardcoded: a repo that never asks for
+    `merge=ours` has nothing to arm, so an unset driver there is not a gap — and retiring the
+    pin would retire this leg with it rather than leaving a check with no subject."""
+    _arm_repo(tmp_path)
+    monkeypatch.setattr(aud, "_REPO_ROOT", str(tmp_path))
+    f = aud.check_hooks_armed(tmp_path)[0]
+    assert f.status == "pass", f.evidence
+    assert "no merge=ours pin declared" in f.evidence
+
+
+def test_arm_merge_driver_is_idempotent_and_reports_only_the_first_write(tmp_path, capsys):
+    """SessionStart runs on every session; a warm one must stay quiet."""
+    try:
+        from scripts import arm_hooks as ah
+    except ImportError:
+        import arm_hooks as ah
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    assert ah.merge_driver_armed(tmp_path) is False
+    assert ah.arm_merge_driver(tmp_path) is True
+    assert "merge.ours.driver=true" in capsys.readouterr().out
+    assert ah.merge_driver_armed(tmp_path) is True
+    assert ah.arm_merge_driver(tmp_path) is False, "a warm session must not rewrite the config"
+    assert capsys.readouterr().out == ""
+
+
 def test_hooks_armed_deleted_pre_push_fails(tmp_path: Path, monkeypatch) -> None:
     """The RF-2 acceptance: deleting .git/hooks/pre-push turns the check non-green (FAIL),
     and the evidence names the missing hook."""
@@ -2810,3 +2875,124 @@ def test_checks_listing_survives_a_cp1252_console() -> None:
             first = (check.__doc__ or "").strip().splitlines()
             print(f"  {i:>2}. {name} — {first[0].strip() if first else ''}")
     stream.flush()
+
+
+# --- [#590] terra round 1: the EXACT content verdict ------------------------
+
+def test_content_check_outranks_a_same_day_fresh_verdict(tmp_path, monkeypatch):
+    """terra HIGH — the defect this field exists for.
+
+    `%cs` is a calendar DATE, so an audit committed and an index regenerated on the SAME DAY
+    are `0d stale` = `fresh` regardless of order. Audits land ~10/day, so the date relation
+    would have reported clean on essentially every real staleness `audits-index` was
+    registered to catch. The exact check must override it.
+    """
+    from scripts import generated_artifact_freshness as gaf
+    art = gaf.GeneratedArtifact(
+        name="x", outputs=("out.md",), inputs=("in.md",), baseline_days=0,
+        regen_command="regen", content_check=lambda _root: False)
+    (tmp_path / "out.md").write_text("x", encoding="utf-8")
+    same_day = date(2026, 8, 26)
+    m = gaf.measure(tmp_path, art, git_date_fn=lambda _r, _p: same_day)
+    assert m.verdict == "content-stale", m.detail
+    assert gaf.STATUS_FOR_VERDICT[m.verdict] == "warn"
+    assert "does NOT match what its generator emits" in m.detail
+    assert "same-day" in m.detail
+
+
+def test_content_check_clears_a_date_stale_verdict_when_the_bytes_match(tmp_path):
+    """The other direction: an input touched without changing what is rendered is a FALSE
+    positive, and a WARN nobody can act on trains the reader to disposition by reflex."""
+    from scripts import generated_artifact_freshness as gaf
+    art = gaf.GeneratedArtifact(
+        name="x", outputs=("out.md",), inputs=("in.md",), baseline_days=0,
+        regen_command="regen", content_check=lambda _root: True)
+    (tmp_path / "out.md").write_text("x", encoding="utf-8")
+    dates = {"out.md": date(2026, 8, 20), "in.md": date(2026, 8, 26)}
+    m = gaf.measure(tmp_path, art, git_date_fn=lambda _r, p: dates[p])
+    assert m.verdict == "fresh", m.detail
+    assert "without changing what is rendered" in m.detail
+
+
+def test_a_raising_content_check_is_unverifiable_not_a_silent_date_fallback(tmp_path):
+    """terra HIGH, round 2 — a FAILED verifier is not the same as NO verifier.
+
+    The first version swallowed the exception and fell back to the date relation. For the very
+    artifact this field exists for, that relation returns `fresh` on a same-day pair — so an
+    index whose exact verification CRASHED would have been reported clean. The green-by-skip
+    state the field was added to prevent, reintroduced by its own error handler.
+
+    A verifier still must not WEDGE the leg (it is generator code called from inside a gate),
+    which is why the exception is caught at all — it is caught and REPORTED, not caught and
+    excused.
+    """
+    from scripts import generated_artifact_freshness as gaf
+
+    def boom(_root):
+        raise RuntimeError("generator exploded")
+
+    art = gaf.GeneratedArtifact(
+        name="x", outputs=("out.md",), inputs=("in.md",), baseline_days=0,
+        regen_command="regen", content_check=boom)
+    (tmp_path / "out.md").write_text("x", encoding="utf-8")
+    # SAME-DAY dates: the relation alone would say `fresh`, which is the trap.
+    same_day = date(2026, 8, 26)
+    m = gaf.measure(tmp_path, art, git_date_fn=lambda _r, _p: same_day)
+    assert m.verdict == "unverifiable", m.detail
+    assert gaf.STATUS_FOR_VERDICT[m.verdict] == "warn"
+    assert "RAISED" in m.detail and "not a substitute" in m.detail
+    assert "regen" in m.detail
+
+
+def test_no_content_check_at_all_still_uses_the_date_relation(tmp_path):
+    """The distinction the fix rests on: an artifact that declares no verifier is unaffected —
+    the dashboard has none, and its date relation must keep working exactly as before."""
+    from scripts import generated_artifact_freshness as gaf
+    art = gaf.GeneratedArtifact(
+        name="x", outputs=("out.md",), inputs=("in.md",), baseline_days=0,
+        regen_command="regen")
+    (tmp_path / "out.md").write_text("x", encoding="utf-8")
+    dates = {"out.md": date(2026, 8, 20), "in.md": date(2026, 8, 26)}
+    m = gaf.measure(tmp_path, art, git_date_fn=lambda _r, p: dates[p])
+    assert m.verdict == "stale", m.detail
+
+
+def test_the_audits_index_verifier_sees_an_untracked_file_as_no_drift(tmp_path):
+    """The verifier reuses the generator's own tracked-files filter, so a lane's UNCOMMITTED
+    scratch audit cannot make the committed index look stale on one machine only — the
+    determinism boundary `gen_audit_index` already documents.
+
+    A REAL git repo, deliberately: outside a work tree that filter is DISABLED by design
+    (returning nothing would be a worse failure than the one prevented), so a `tmp_path` that
+    is not a repo tests the fail-open path and would assert the opposite of the rule.
+    """
+    from scripts import generated_artifact_freshness as gaf
+    try:
+        from scripts import gen_audit_index as gai
+    except ImportError:
+        import gen_audit_index as gai
+
+    def git(*a):
+        subprocess.run(["git", *a], cwd=tmp_path, check=True, capture_output=True, text=True)
+
+    git("init", "-q")
+    git("config", "user.email", "t@example.invalid")
+    git("config", "user.name", "t")
+    audits = tmp_path / "docs" / "audits"
+    audits.mkdir(parents=True)
+    (audits / "2026-08-01-technical-base.md").write_text("# B\n", encoding="utf-8", newline="\n")
+    git("add", "-A")
+    git("commit", "-qm", "base")
+    (audits / "README.md").write_text(gai.render_index(audits, gai.tracked_files(tmp_path)),
+                                      encoding="utf-8", newline="\n")
+    git("add", "-A")
+    git("commit", "-qm", "index")
+    assert gaf._audit_index_matches(tmp_path) is True
+
+    (audits / "2026-08-26-technical-scratch.md").write_text("# S\n", encoding="utf-8",
+                                                            newline="\n")
+    assert gaf._audit_index_matches(tmp_path) is True, "an untracked file is not drift"
+
+    git("add", "docs/audits/2026-08-26-technical-scratch.md")
+    assert gaf._audit_index_matches(tmp_path) is False, \
+        "a TRACKED audit the index does not list IS drift — the [#590] case"

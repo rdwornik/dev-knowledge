@@ -65,6 +65,12 @@ try:
 except ImportError:  # pragma: no cover - exercised by the scripts/-on-sys.path entrypoint
     import canonical_docs as _cdocs
 
+# [#589] — the ONE reader for the full-body backlog text (see scripts/backlog_source.py).
+try:
+    from scripts import backlog_source as _bs
+except ImportError:  # pragma: no cover - same dual-import shape as the sibling above
+    import backlog_source as _bs
+
 _SCRIPTS_DIR = Path(__file__).resolve().parent
 _REPO_ROOT = _SCRIPTS_DIR.parent
 
@@ -344,9 +350,14 @@ def scan(repo_root: Path, *, today: Optional[date] = None) -> list[RotFinding]:
     today = today or date.today()
     results: list[RotFinding] = []
 
-    backlog_path = repo_root / "BACKLOG.md"
-    if backlog_path.exists():
-        backlog_text = backlog_path.read_text(encoding="utf-8")
+    # [#589] — BOTH BACKLOG arms scan the canonical FULL-BODY text, not the committed file.
+    # `backlog-row-length` measures a row's characters and `backlog-accretion` counts the
+    # dated history blocks inside one; the one-line projection has neither, so pointed at
+    # `BACKLOG.md` these two arms would report a permanently clean corpus while the rot they
+    # detect sat untouched in `tasks/`. The rot did not move — only the surface that shows
+    # it did. The `BACKLOG#<id>` locus is unchanged, so every #147 disposition still matches.
+    backlog_text = _bs.canonical_text(repo_root)
+    if backlog_text is not None:
         results.extend(scan_backlog_accretion(backlog_text, today))
         results.extend(scan_grooming_cadence(backlog_text, today))
 

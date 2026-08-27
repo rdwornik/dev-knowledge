@@ -422,7 +422,7 @@ def test_telemetry_present_store_is_reported_as_present(tmp_path):
     assert gd.TELEMETRY_PENDING_NOTE not in gd.render_telemetry(state)
 
 
-def test_module_only_loads_the_three_declared_parsers():
+def test_module_only_loads_the_declared_parsers():
     """Lane L2 owns the emit path; this generator must not import or call it (brief §4).
 
     Checked on the CODE, not on prose: the module names its forbidden neighbours in its own
@@ -432,7 +432,10 @@ def test_module_only_loads_the_three_declared_parsers():
     # The three names moved into `PARSER_MODULES` (2026-08-23): they are needed twice — to load
     # them, and to declare them as freshness inputs — and one list is the point. Same guarantee,
     # read off the declaration plus a pin that no literal `_load("...")` bypasses it.
-    assert gd.PARSER_MODULES == ("gen_task_tree", "gen_intake_index", "gen_claude_rosters")
+    # `backlog_source` is the fourth since [#589]: `build()` resolves the FULL-BODY text
+    # through it to decide each intake's carried/not-carried verdict, so it renders too.
+    assert gd.PARSER_MODULES == ("gen_task_tree", "gen_intake_index", "gen_claude_rosters",
+                                 "backlog_source")
     literal_loads = set(re.findall(r"_load\(\"([a-z_]+)\"\)", source))
     assert not literal_loads, f"literal _load() bypassing PARSER_MODULES: {literal_loads}"
     assert "(_load(name) for name in PARSER_MODULES)" in source
@@ -833,8 +836,10 @@ def test_the_code_that_renders_is_an_input_too():
     decorative. Derived from `PARSER_MODULES`, so the load list and the input list are one list."""
     assert gd.CODE_INPUT_RELPATHS == (
         "scripts/gen_dashboard.py", "scripts/gen_task_tree.py",
-        "scripts/gen_intake_index.py", "scripts/gen_claude_rosters.py")
-    assert gd.PARSER_MODULES == ("gen_task_tree", "gen_intake_index", "gen_claude_rosters")
+        "scripts/gen_intake_index.py", "scripts/gen_claude_rosters.py",
+        "scripts/backlog_source.py")
+    assert gd.PARSER_MODULES == ("gen_task_tree", "gen_intake_index", "gen_claude_rosters",
+                                 "backlog_source")
     for name in gd.PARSER_MODULES:
         assert f"scripts/{name}.py" in gd.CODE_INPUT_RELPATHS
     assert (Path(gd._REPO_ROOT) / gd.SELF_RELPATH).is_file()

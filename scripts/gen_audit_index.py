@@ -114,6 +114,7 @@ def _title_of(path: Path) -> str:
 
 def collect_audits(audits_dir: Path | None = None,
                    tracked: frozenset[str] | None | object = _AUTO,
+                   root: Path | None = None,
                    ) -> list[tuple[str, str, str, str]]:
     """[(date, slug, filename, title), ...] for every TRACKED docs/audits/*.md except the index.
 
@@ -128,13 +129,21 @@ def collect_audits(audits_dir: Path | None = None,
     function of COMMITTED state -- see the module header for why that is the whole point.
     """
     audits_dir = audits_dir if audits_dir is not None else _AUDITS_DIR
+    # `root` is the repo the TRACKED SET is relative to, and it must be explicit. It was
+    # implicitly `_REPO_ROOT` at both call sites, which is right for every live invocation and
+    # silently wrong for any other repo: `_is_tracked` derives the repo-relative name against
+    # this root, so a caller handing in another repo's `audits_dir` + `tracked` got every path
+    # falling out of `relative_to` and being INCLUDED. The filter then did nothing while
+    # appearing to be applied. Found 2026-08-26 by the [#590] content verifier, which is
+    # exactly such a caller; the live behaviour is unchanged because the default is unchanged.
+    root = root if root is not None else _REPO_ROOT
     if tracked is _AUTO:
-        tracked = tracked_files(_REPO_ROOT)
+        tracked = tracked_files(root)
     rows: list[tuple[str, str, str, str]] = []
     for p in sorted(audits_dir.glob("*.md")):
         if p.name == "README.md":
             continue
-        if not _is_tracked(p, _REPO_ROOT, tracked):   # type: ignore[arg-type]
+        if not _is_tracked(p, root, tracked):   # type: ignore[arg-type]
             continue
         m = _DATE_RE.match(p.stem)
         date, slug = (m.group(1), m.group(2)) if m else ("", p.stem)
@@ -144,9 +153,10 @@ def collect_audits(audits_dir: Path | None = None,
 
 
 def render_index(audits_dir: Path | None = None,
-                 tracked: frozenset[str] | None | object = _AUTO) -> str:
-    # None -> collect_audits resolves _AUDITS_DIR / the tracked set at call time
-    rows = collect_audits(audits_dir, tracked)
+                 tracked: frozenset[str] | None | object = _AUTO,
+                 root: Path | None = None) -> str:
+    # None -> collect_audits resolves _AUDITS_DIR / _REPO_ROOT / the tracked set at call time
+    rows = collect_audits(audits_dir, tracked, root)
     out = [
         "# Audits index — generated navigation map of `docs/audits/`",
         "",

@@ -36,17 +36,28 @@ import audit as aud
 # --- fixed instance 1: routine_consumers ------------------------------------
 
 def test_unreadable_backlog_fails_routine_consumers(tmp_path, monkeypatch):
-    """BACKLOG.md EXISTS but cannot be read -> FAIL, not a green 'unavailable'."""
+    """A backlog source EXISTS but cannot be read -> FAIL, not a green 'unavailable'.
+
+    [#589] widened what "the source" means (the `tasks/` reassembly on the hub, the file on
+    a consumer) and the evidence string moved with it; the invariant under test — an
+    available ground truth that fails to compute is a FAIL, never an N/A that ship-gate
+    projects onto `pass` — is unchanged.
+    """
     (tmp_path / "BACKLOG.md").write_text("# backlog\n", encoding="utf-8")
 
     def boom(self, *args, **kwargs):
         raise OSError("permission denied")
 
-    monkeypatch.setattr(Path, "read_text", boom)
+    # `read_bytes`, not `read_text`, since [#589] — and the swap is the point, not bookkeeping.
+    # `backlog_source.canonical_text` decodes strictly (`read_bytes().decode()`), so patching
+    # `read_text` no longer intercepts anything: this test PASSED-as-green against an
+    # unpatched read, which is the exact green-by-skip shape the file is named for. Patch what
+    # the code under test actually calls.
+    monkeypatch.setattr(Path, "read_bytes", boom)
     findings = aud.check_routine_consumers(tmp_path)
     assert findings[0].status == "fail"
     assert findings[0].status != "unavailable"          # the defect being closed
-    assert "cannot read BACKLOG.md" in findings[0].evidence
+    assert "cannot read the backlog source" in findings[0].evidence
 
 
 def test_absent_backlog_stays_not_applicable_for_routine_consumers(tmp_path):

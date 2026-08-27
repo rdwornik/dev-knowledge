@@ -27,3 +27,25 @@ docs/handoffs/**/PASTE_THIS.md text eol=lf
 # never re-introduces the CRLF whole-file flip that blocked the first record
 # merge. Same phantom-churn fix as the generated files above; defense-in-depth.
 ecosystem/deployed-versions.yaml text eol=lf
+
+# [#590] — the audits index is REGENERATED, never merge-resolved.
+# `docs/audits/README.md` is a generated index over a directory every parallel lane writes
+# into. Measured over the last 20 first-parent merges (hub diagnostic 2026-08-26 s5.3): 7
+# needed manual resolution and this ONE file appears in 6 of them — 86% of all manual merge
+# resolution in this repo, caused by a file no human authors. Two lanes each add an audit,
+# each regenerates, and the inserted rows plus the `**N audit documents.**` count collide.
+#
+# `merge=ours` makes git keep the receiving side and stop diffing it. The result is
+# deliberately STALE — the incoming lane's audit is missing from it — which is why this
+# attribute is only ONE HALF of the mechanism. The other half is that the index is
+# regenerated at INTEGRATION and a ship-gate leg refuses a stale committed one
+# (`generated_artifact_freshness`, artifact `audits-index`). Retention is untouched: ADR-100
+# keep-all-accepted decides what the tree HOLDS; this decides how its INDEX is produced.
+#
+# ARMING IS LOCAL AND NOT DISTRIBUTED BY THIS FILE. `ours` is not a built-in driver — git
+# resolves it via `merge.ours.driver`, and WITHOUT that config the attribute silently does
+# NOTHING and the merge conflicts exactly as before (verified empirically, 2026-08-26).
+# `scripts/arm_hooks.py` sets it at SessionStart alongside the git hooks, and
+# `audit.py::check_hooks_armed` asserts it, so configured-but-unarmed fails loud rather than
+# looking armed. To arm by hand: `git config --local merge.ours.driver true`.
+docs/audits/README.md merge=ours

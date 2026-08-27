@@ -358,10 +358,29 @@ def validate(themes, stories, tasks, today=None):
 
 
 def main():
-    if not BACKLOG.exists():
-        print(f"validate_backlog: {BACKLOG} not found", file=sys.stderr)
+    # [#589] — READ THE CANONICAL FULL-BODY TEXT, NOT THE COMMITTED FILE, and this is the
+    # difference between a live gate and a decorative one. `BACKLOG.md` is now a one-line
+    # projection: no row in it carries `Done when:` or a `· depends-on:` clause, so
+    # validating it would hard-fail all 202 rows on day one and, once someone "fixed" that
+    # by relaxing the rules, would pass every malformed body in the corpus. Every rule in
+    # `validate()` is a rule about a task BODY, and bodies live in `tasks/`.
+    #
+    # `canonical_text` falls back to `BACKLOG.md` where there is no `tasks/` tree, which is
+    # the CONSUMER-repo shape this validator is also the floor twin of -- so the deployed
+    # child copy keeps reading the child's hand-authored file, unchanged.
+    #
+    # LINE NUMBERS now index that canonical text, not the committed projection. The `[#id]`
+    # in every message is the locator that survives both.
+    try:
+        from scripts import backlog_source as _bs
+    except ImportError:
+        import backlog_source as _bs
+    text = _bs.canonical_text(BACKLOG.parent)
+    if text is None:
+        print(f"validate_backlog: no backlog source found at {BACKLOG.parent} "
+              f"(neither tasks/manifest.json nor BACKLOG.md)", file=sys.stderr)
         return 1
-    themes, stories, tasks = parse(BACKLOG.read_text(encoding="utf-8"))
+    themes, stories, tasks = parse(text)
     hard, warn = validate(themes, stories, tasks)
     for w in warn:
         print(f"WARN  {w}")
@@ -372,7 +391,7 @@ def main():
         return 1
     n_themes = len([t for t in themes if t != BIG_PICTURE])
     print(f"validate_backlog: OK ({n_themes} themes, {len(stories)} stories, {len(tasks)} tasks, "
-          f"{len(warn)} warning(s))")
+          f"{len(warn)} warning(s)) — source: {_bs.canonical_source_label(BACKLOG.parent)}")
     groups = serialize_groups(tasks)
     if groups:
         summary = "; ".join(f"{g} ({', '.join('#' + i for i in members)})"

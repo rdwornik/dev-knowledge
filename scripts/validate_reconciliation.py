@@ -58,9 +58,24 @@ _REPO_ROOT = _SCRIPTS_DIR.parent
 # (full duplicate trees), vendored deps, and immutable/aborted/in-progress handoff
 # bundles. `archive` is matched by prefix. Mirrors the exclude sets in audit.py /
 # verify_handoff_probes.py so a duplicate copy of a dependent cannot double-report.
-# `tasks` ([#433], 2026-07-27): the DERIVED per-task tree carries byte-copies of
-# BACKLOG.md lines -- BACKLOG.md is the canonical edge-bearing surface, so scanning
-# the copies would double-report every prose edge once per derived file.
+# `tasks` ([#433], 2026-07-27; RE-JUSTIFIED at [#589], 2026-08-26). The ORIGINAL reason was
+# anti-double-reporting: the tree carried byte-copies of BACKLOG.md's lines and BACKLOG.md
+# was the canonical edge-bearing surface. [#589] inverted that -- the tree holds the ONLY
+# copy now and `BACKLOG.md` is a one-line projection -- so the original reason is spent and
+# is recorded here as spent rather than left reading true.
+#
+# The prune STAYS, for a stronger reason that was always the real one: a task file CANNOT
+# CARRY THE EDGE THIS SCAN PROPOSES. `gen_task_tree.emit_task_file_text` templates each
+# file's frontmatter fresh from its body on every `--emit-source`, with a fixed key order,
+# so a hand-added `reconciled_with:` is silently erased at the next regen. That is exactly
+# criterion 1 of `scan_undeclared_edges` ("such a doc cannot take a reconciled_with edge, so
+# it is noise, not a candidate", #199), reached by a different route.
+#
+# HONEST CONSEQUENCE, stated rather than discovered later: a registered spec referenced ONLY
+# inside a row body is now invisible to the undeclared-edge scan -- it left `BACKLOG.md` with
+# the projection and `tasks/` is pruned. The scan is an advisory awareness layer that gates
+# nothing, and the fix would be to name the spec somewhere that can hold the edge, which is
+# what a row citing a spec should do anyway.
 _EXCLUDE_DIRS = {".git", ".claude", "node_modules", "aborted", "in-progress", "tasks"}
 
 

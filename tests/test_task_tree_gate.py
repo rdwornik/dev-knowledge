@@ -68,13 +68,21 @@ def _edit_first_task_line(text: str, suffix: str) -> str:
 
 
 def _seed_tree(tmp_path: Path) -> tuple[Path, Path]:
-    """A minimal repo-shaped fixture: real BACKLOG.md + a freshly generated tasks/ tree."""
-    source = tmp_path / "BACKLOG.md"
-    shutil.copyfile(REPO_ROOT / "BACKLOG.md", source)
+    """A minimal repo-shaped fixture: the live `tasks/` tree + the BACKLOG.md it projects.
+
+    [#589] inverted how this is built, and the reason is worth stating because the obvious
+    construction is now wrong. It used to copy the live `BACKLOG.md` and IMPORT a tree from
+    it, which worked while the file was the full-body text. It no longer is: importing the
+    projection would produce 202 task files whose bodies are their own one-line titles.
+
+    So the TREE is copied (it is the source of truth) and the view is EMITTED from it — the
+    same direction `--emit-source` runs, which is what makes the fixture "coherent" mean the
+    same thing here as at the gate.
+    """
     out_dir = tmp_path / "tasks"
-    out_dir.mkdir()
-    text = source.read_bytes().decode("utf-8")
-    gtt.write_tree(gtt.parse_backlog(text), out_dir)
+    shutil.copytree(REPO_ROOT / "tasks", out_dir)
+    source = tmp_path / "BACKLOG.md"
+    source.write_text(gtt.render_view(out_dir), encoding="utf-8", newline="\n")
     return source, out_dir
 
 
@@ -97,13 +105,21 @@ def test_backlog_edit_without_regen_fails_the_leg(tmp_path):
 
 
 def test_regen_after_the_edit_restores_green(tmp_path):
-    """The failure is actionable, not sticky: regenerating clears it."""
+    """The failure is actionable, not sticky: regenerating clears it.
+
+    [#589] changed WHICH regen, and the old one is now the wrong act. This test used to
+    clear the drift with `write_tree` — the IMPORT direction — which was harmless while
+    BACKLOG.md held full bodies. Against a projection that same call would rebuild all 202
+    task bodies as their own one-line titles, i.e. it would "restore green" by destroying
+    the source. The regen the failure message actually names is `--emit-source`, and that is
+    what is exercised here: the tree is authoritative, so the hand edit is simply overwritten.
+    """
     source, out_dir = _seed_tree(tmp_path)
     text = source.read_bytes().decode("utf-8")
     source.write_bytes(_edit_first_task_line(text, " EDITED").encode("utf-8"))
     assert gtt.find_incoherences(source, out_dir)
 
-    gtt.write_tree(gtt.parse_backlog(source.read_bytes().decode("utf-8")), out_dir)
+    assert gtt.main(["--emit-source", "--source", str(source), "--out", str(out_dir)]) == 0
     assert gtt.find_incoherences(source, out_dir) == []
     assert _status(aud._task_tree_findings([])) == "pass"
 
@@ -267,11 +283,12 @@ def test_index_worktree_divergence_refuses_to_answer(tmp_path, monkeypatch):
     git("init", "-q", "-b", "main")
     git("config", "user.email", "t@example.invalid")
     git("config", "user.name", "t")
-    source = tmp_path / "BACKLOG.md"
-    shutil.copyfile(REPO_ROOT / "BACKLOG.md", source)
+    # [#589]: same inversion as `_seed_tree` — copy the TREE (the source of truth) and emit
+    # the view from it; importing a projection would rebuild every body as its own title.
     out_dir = tmp_path / "tasks"
-    out_dir.mkdir()
-    gtt.write_tree(gtt.parse_backlog(source.read_bytes().decode("utf-8")), out_dir)
+    shutil.copytree(REPO_ROOT / "tasks", out_dir)
+    source = tmp_path / "BACKLOG.md"
+    source.write_text(gtt.render_view(out_dir), encoding="utf-8", newline="\n")
     git("add", "-A")
     git("commit", "-qm", "coherent")
     assert _status(aud.check_task_tree_coherence(tmp_path)) == "pass"

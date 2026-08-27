@@ -108,20 +108,32 @@ def check_routine_consumers(repo_path: Path) -> list[Finding]:
     surfaced rather than failing open. Read-only.
     """
     name = "routine_consumers"
-    backlog = Path(repo_path) / "BACKLOG.md"
-    if not backlog.exists():
-        return [_na(name, "NOT-APPLICABLE", "no BACKLOG.md in this repo")]
+    # [#589] — READ THE CANONICAL FULL-BODY TEXT. `· routine:` markers and their
+    # `consumer=`/`consumption_path=` fields live in a row BODY, and the committed
+    # `BACKLOG.md` is now a one-line projection that carries none of them. Pointed at the
+    # projection this check finds zero markers, reports "no routines declared", and PASSES
+    # — measuring an empty set and calling it green, which is the precise silent-inertness
+    # class [#424]/[#425] were filed for and that the lookalike-delimiter leg above already
+    # exists to refuse. On a consumer repo (no `tasks/` tree) `canonical_text` returns the
+    # hand-authored `BACKLOG.md`, so the per-repo fleet scan is unchanged.
     try:
-        text = backlog.read_text(encoding="utf-8", errors="replace")
-    except OSError as exc:
+        from scripts import backlog_source as _bs
+    except ImportError:
+        import backlog_source as _bs
+    try:
+        text = _bs.canonical_text(Path(repo_path))
+    except (OSError, ValueError, KeyError, UnicodeDecodeError) as exc:
         # FAIL, not "unavailable" (green-by-skip sweep, 2026-08-25; same call
         # check_silent_rule_ratchet made at terra HIGH 2026-07-27). `unavailable` renders
         # as N/A and `_check_outcome` projects it onto `pass`, so ship-gate waves it
-        # through -- a check that measured NOTHING would ship green. The absent-file case
-        # is already NOT-APPLICABLE above, so reaching here means the file EXISTS and
-        # could not be read: a failed computation of an available ground truth, not an
-        # inapplicable context.
-        return [Finding(name, "fail", f"cannot read BACKLOG.md: {exc}")]
+        # through -- a check that measured NOTHING would ship green. The absent-source case
+        # is NOT-APPLICABLE below, so reaching here means a source EXISTS and could not be
+        # read or reassembled: a failed computation of an available ground truth, not an
+        # inapplicable context. The non-OSError arms are [#589]'s: a malformed manifest or
+        # an unreadable task file now fails HERE rather than in a file read.
+        return [Finding(name, "fail", f"cannot read the backlog source: {exc}")]
+    if text is None:
+        return [_na(name, "NOT-APPLICABLE", "no backlog source in this repo")]
     bad: list[str] = []
     declared = 0
     fence: tuple[str, int] | None = None      # (char, run-length) of the OPEN fence

@@ -97,14 +97,29 @@ repos:
       - id: audit-index-freshness
         name: Audits index freshness check (fleet-census A-2 ruling; #269 freshness-hook leg)
         # Fail-on-stale regen-and-diff, mirroring roster-freshness / claude-rosters-freshness:
-        # regenerate with `python scripts/gen_audit_index.py --write`. Guards the generated
-        # docs/audits/README.md against silent rot (the test_gen_audit_index red the 2026-07-08
-        # fleet census cleared at ca9ded0 can otherwise recur). Fires on ANY docs/audits/*.md
-        # (an add/edit/remove changes the index) OR the generator itself. The --check regen-and-diff
-        # is shape-agnostic, so it survives #269's later count-tiered reshape. HUB-ONLY.
+        # regenerate with `uv run --locked python scripts/gen_audit_index.py --write`. Guards the
+        # generated docs/audits/README.md against silent rot (the test_gen_audit_index red the
+        # 2026-07-08 fleet census cleared at ca9ded0 can otherwise recur). The --check
+        # regen-and-diff is shape-agnostic, so it survives #269's later count-tiered reshape.
+        # HUB-ONLY.
+        #
+        # [#590] NARROWED, 2026-08-26, and the narrowing IS the fix. `files:` used to match ANY
+        # docs/audits/*.md, which made regenerating the index mandatory for every lane that
+        # wrote an artifact — and under the ADR-110 batch protocol every lane writes one. That
+        # is what put this file in 6 of the last 7 conflicted merges (86% of all manual merge
+        # resolution in the repo): parallel lanes were REQUIRED to touch it. Scoped to the
+        # index and its generator, a lane no longer has to commit it for its artifact to be
+        # indexed, which is [#590]'s first done-when.
+        #
+        # WHAT STILL REFUSES A STALE COMMITTED INDEX, since this hook no longer can: the
+        # ship-gate-only `generated_artifact_freshness` leg, artifact `audits-index` — it WARNs
+        # when the index is older than docs/audits/, and cmd_ship_gate REDs on an
+        # undispositioned WARN. The guarantee moved from every-commit to at-ship, which is when
+        # the index is read; it did not lapse. What this hook still catches at commit time is a
+        # HAND-EDIT of the index, which is the other way it goes wrong.
         entry: uv run --locked python scripts/gen_audit_index.py --check
         language: system
-        files: '(^docs/audits/.*\.md$|^scripts/gen_audit_index\.py$)'
+        files: '(^docs/audits/README\.md$|^scripts/gen_audit_index\.py$)'
         pass_filenames: false
       - id: organ-index-freshness
         name: Organ index freshness check ([#132]; ecosystem/organ-index.md)
@@ -160,9 +175,15 @@ repos:
         pass_filenames: true
       - id: validate-backlog
         name: Validate BACKLOG.md story-map (ADR-66)
+        # [#589]: fires on `tasks/` too, and that widening is a correctness fix rather than
+        # extra caution. The validator's rules are rules about a row BODY, and since the view
+        # became a one-line projection a body edit that leaves the title and band alone
+        # changes NOTHING in BACKLOG.md — so scoped to the old pathspec this gate would sit
+        # out exactly the commits that can introduce a schema violation. `manifest.json` is in
+        # scope because retiring/reordering a row is a manifest-only edit.
         entry: uv run --locked python scripts/validate_backlog.py
         language: system
-        files: '^BACKLOG\.md$'
+        files: '(^BACKLOG\.md$|^tasks/.*\.(md|json)$)'
         pass_filenames: false
       - id: provider-registry-agreement
         name: Provider/model registry agreement gate (CLOUD-4 v2; HUB-ONLY)

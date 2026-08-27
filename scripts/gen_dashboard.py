@@ -180,9 +180,12 @@ def _load(name: str):
 #: exactly the sense the ADR-86 staleness leg means — found by terra, 2026-08-23, against a first
 #: version of `INPUT_RELPATHS` that listed only the DATA it reads and would therefore have called
 #: the artifact "fresh" forever across a parser rewrite.
-PARSER_MODULES = ("gen_task_tree", "gen_intake_index", "gen_claude_rosters")
+#: `backlog_source` joined the tuple with [#589]: `build()` renders the intake-conversion
+#: verdict from the FULL-BODY text it resolves, so a change to its fallback rule changes what
+#: this artifact says — the same argument the three parsers are here for.
+PARSER_MODULES = ("gen_task_tree", "gen_intake_index", "gen_claude_rosters", "backlog_source")
 
-_gtt, _gii, _gcr = (_load(name) for name in PARSER_MODULES)
+_gtt, _gii, _gcr, _bs = (_load(name) for name in PARSER_MODULES)
 
 #: This module's own repo-relative path, and its borrowed parsers' — the CODE half of the input
 #: set. Derived from `PARSER_MODULES` rather than re-typed.
@@ -351,6 +354,37 @@ def _closed_row(task) -> ClosedRow:
                      gain=parse_done_when(task.raw), theme=task.theme)
 
 
+def _gain_from_task_file(git, rev: str, task) -> str:
+    """The row's `Done when:` clause read from its `tasks/` file at `rev` ([#589]).
+
+    WHY THIS EXISTS (terra HIGH, 2026-08-26). The release notes' whole point is the gain
+    line, and it comes from `parse_done_when` over the ROW. Since [#589] the row in
+    `BACKLOG.md` is a projection with no body, so every closure recorded after the flip
+    would render the "row carried no `Done when:` clause" fallback -- silently degrading the
+    section into a list of titles, on a report whose own preamble promises the gain.
+
+    The body did not disappear, it moved: the projected row ENDS with a pointer to the file
+    that holds it, so the gain is recoverable at the same revision the row was last seen.
+    Read at `rev` -- the parent of the closing commit, where the row and its file both still
+    exist -- never at HEAD, which would resolve a retired row's slug against a tree that may
+    have re-slugged it.
+
+    Returns "" on any failure, which is exactly the pre-existing fallback: a missing gain
+    line is a degraded row, never a crashed dashboard. Historical revisions from BEFORE the
+    flip still carry their bodies inline and never reach here.
+    """
+    tail = task.raw.rsplit(" · ", 1)
+    if len(tail) != 2 or not tail[1].startswith("tasks/") or not tail[1].endswith(".md"):
+        return ""
+    text = git.file_at(rev, tail[1])
+    if not text:
+        return ""
+    try:
+        return parse_done_when(_gtt.extract_body(text))
+    except (ValueError, KeyError):
+        return ""
+
+
 def closed_rows_between(old_text: str, new_text: str) -> list[ClosedRow]:
     """Task rows present in `old_text` and absent from `new_text` -- "done items leave" (ADR-65)."""
     old = _rows_by_id(old_text)
@@ -380,7 +414,14 @@ def closed_rows_from_history(git, relpath: str, since_rev: str) -> list[ClosedRo
             if row.id in seen:
                 continue
             seen.add(row.id)
-            rows.append(ClosedRow(id=row.id, title=row.title, gain=row.gain, theme=row.theme,
+            # THE POINTER IS CHECKED FIRST, not the parsed gain (terra HIGH, round 2). A
+            # projected row's TITLE can itself contain " · Done when: …", which
+            # `parse_done_when` happily returns — so trusting `row.gain` when it is non-empty
+            # would publish title text as the gain and never open the body that holds the real
+            # one. If the row points at a task file, that file IS the authority.
+            task = _rows_by_id(before)[row.id]
+            gain = _gain_from_task_file(git, parent, task) or row.gain
+            rows.append(ClosedRow(id=row.id, title=row.title, gain=gain, theme=row.theme,
                                   closed_on=when, sha=sha[:12]))
     return rows
 
@@ -929,6 +970,16 @@ def _window_start(as_of: str, window_days: int) -> str:
 def build(repo_root: Path, git) -> Dashboard:
     """Collect every section. Pure with respect to the clock: `as_of` is HEAD's commit date."""
     backlog_text = (repo_root / BACKLOG_RELPATH).read_text(encoding="utf-8")
+    # [#589] — TWO texts, because this builder asks two different questions of the backlog.
+    #   * `backlog_text` is the COMMITTED VIEW and must stay so: the window sections diff it
+    #     against `git show <rev>:BACKLOG.md`, and a historical revision is only comparable
+    #     with the artifact at the same path. It carries id / band / theme / DEFER, which is
+    #     everything `theme_stats` and `_rows_by_id` read.
+    #   * `canonical` is the FULL-BODY text, needed by exactly one consumer: `intake_rows`
+    #     greps row bodies for `intake #N` / `intake-id N`. Against the one-line projection
+    #     that search matches nothing and every intake in the corpus renders NOT-CARRIED —
+    #     a wrong verdict on the dashboard's own intake-conversion section, printed as fact.
+    canonical = _bs.canonical_text(repo_root) or backlog_text
     as_of = git.head_date() or ""
     since = _window_start(as_of, WINDOW_DAYS) if as_of else ""
 
@@ -955,7 +1006,7 @@ def build(repo_root: Path, git) -> Dashboard:
         themes=themes, total_open=total_open, total_open_prior=total_prior,
         closed_in_window=closed,
         intake=intake_rows(repo_root / INTAKE_RELDIR, repo_root / INTAKE_ARCHIVE_RELDIR,
-                           backlog_text),
+                           canonical),
         adrs=adr_rows(repo_root / DECISIONS_RELDIR),
         telemetry=telemetry_state(repo_root),
         gate=gate_health(repo_root / AUDITS_RELDIR),
