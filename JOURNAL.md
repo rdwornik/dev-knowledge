@@ -48,6 +48,11 @@ known-stale `funnel_coverage` baseline (live corpus 745 vs the 693 pinned at arm
 `na-gates` tip, four gate mechanisms on rows `[#591]` `[#592]` `[#595]` `[#596]`; `fb387710` - the
 `nb-tiering` tip, per-check gate tiers `[#597]` and the stopped marker sweep `[#598]`.
 
+**Anchors (this branch):** `676223e5` - the anchor commit itself, the commit this branch's
+merge introduces. A merge cannot name its own hash (`journal_anchor` S A7), so the entry names
+the commit it brings in; without this line the anchor branch's OWN merge would be the one
+unanchored spine entry in the queue it exists to anchor.
+
 **Changes:** `JOURNAL.md`.
 
 **Next:** merge `na` then `nb`, serially, each gated on its own targeted suite plus `audit.py
