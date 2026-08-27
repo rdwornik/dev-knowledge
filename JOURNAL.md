@@ -19,6 +19,87 @@
 
 ---
 
+### 2026-08-27 (b) - CC (Opus 5, background job, primary checkout, branch `docs/batch-w2-journal`): batch W2 serial integration - five lanes fold into main, and the anchor entry is written at queue-open because the designed exemption does not fit this batch's lane names
+
+**Did:** the W2 integration queue - `w2a-perf-core`, `w2b-surfaces`, `w2c-codespace-repair`,
+`lane-g2-consume-recon`, `lane-h-handoff-mech`, merged serially into `main` with `--no-ff`,
+tiered gating per merge (targeted suites over the lane's touched paths + `audit.py health`),
+generated-file conflicts resolved by REGENERATION, one push at the end. `lane-na-gates` and
+`lane-nb-tiering` are LIVE mid-work in their worktrees and are deliberately untouched by this
+batch - no merge, no reads of their trees - and are recorded as pending a follow-up mini-merge
+after their STOP.
+
+**Why this entry is written at queue-open rather than after the last merge, which is the
+unusual part and is a finding rather than a shortcut.** The batch protocol's normal answer to
+"the JOURNAL names merge SHAs, so it cannot exist until after the merges" is the ADR-110
+declared-integration-arc exemption (`scripts/batch_manifest.py`): a committed batch manifest
+declares a batch open, and lane merges are then skipped by `check_journal_spine_anchor` until
+the closing packet lands. The module's own docstring says it exists precisely to replace
+`SKIP=audit-health`, "which disables EVERY check in the registry, not the one that cannot
+pass".
+
+**That exemption is unavailable to this batch, and the reason is a measurable mismatch, not a
+missing manifest.** The [#514]/[#510] W1 narrowing scoped the exemption to the ratified lane
+grammar `LANE_BRANCH_RE = ^worktree-lane-[a-z]-\d+-<slug>$`. All five of this batch's branches
+were tested against that imported regex and **none matches**:
+
+```
+no     worktree-w2a-perf-core
+no     worktree-w2b-surfaces
+no     worktree-w2c-codespace-repair
+no     worktree-lane-g2-consume-recon
+no     worktree-lane-h-handoff-mech
+```
+
+The first three carry no `lane-` segment at all; the last two use a letter+digit lane id
+(`g2`, `h`) where the grammar wants `<letter>-<digits>`. So a manifest committed for W2 would
+have granted **zero** exemptions - the module fails CLOSED by design, which is the safe
+direction but leaves the integrator with only two routes: a declared `SKIP=audit-health` on
+every conflicted merge (the anti-pattern ADR-110 was written to retire), or writing the batch
+anchor entry FIRST. The batch contract sanctions the second explicitly - "write early if the
+anchor gate demands it - per the batch-1 precedent" - so that is what this is. This is the
+`validate_branch_naming` honest limit landing in practice: the grammar is enforced NOWHERE at
+provisioning, so off-enum lane names are still creatable and simply get no exemption later.
+
+**Consequence, stated plainly:** this entry names the lane TIPS, not the merge SHAs. That is
+what the §A7 predicate actually requires - a spine entry is anchored when JOURNAL names >=1
+SHA the entry INTRODUCED, and each `--no-ff` lane merge introduces its lane's whole commit
+set. Naming the tips ahead of the merges anchors every one of them, keeps `audit-health`
+genuinely armed on each conflicted merge instead of switched off, and costs no accuracy: a tip
+is an ancestor of its merge whatever SHA the merge lands with. The measured results - the two
+headline wall-times, per-lane landings, the [#590] first-proof note and the named debt - live
+in the batch close packet under `docs/audits/`, which is where the batch contract puts them.
+
+One commit from each lane's introduced set is recorded below, so every `--no-ff` merge in the
+queue is anchored. The lines are split this way deliberately: `_RECORD_LINE_RE` is matched
+PER LINE (`^\*{0,2}Anchors?` against `line.strip()`), so a SHA sitting on a continuation
+line counts as a mention and not as a record. Authored from the parser rather than to taste.
+
+**Anchors (lane tips):** `c4d25fdf` W2A, `20b545db` W2B, `a45290ac` W2C at queue-open, `c47b80e5` G2
+
+**Anchors (lane-H's eight):** `b14306bc`, `b043b9e1`, `b75cff19`, `43d940cc`, `d75acb03`, `026be720`, `3d80436f`, `cce9010b`
+
+**Anchors (step 0, the workspace commits merge `08b0d192` introduced):** `26cb1105`, `0af8da17`
+
+**Anchors (step 0, the anchor branch's two commits, which merge `dbd33400` introduced):** `2ce3c513`, `6cc34438`
+
+**Anchors (already landed this batch):** `dbd33400` the step-0 merge, `066f6ecd` the W2A merge
+
+**Result:** the foreign anchor debt on `08b0d192` was discharged as step 0, before any merge,
+and both pre-push organs were proved clean against the range `d8211b03..dbd33400` -
+`block-ff-push` Passed and `block-unanchored-push` Passed through the real hook path, exit 0
+when invoked directly. W2A merged at `066f6ecd` with its targeted suite green (163 passed, 1
+skipped, 1 xfailed).
+
+**Changes:** `JOURNAL.md` (this entry); the five lane merges and the close packet artifact.
+
+**Abandoned:** the batch-manifest route, for the measured reason above - not from preference.
+
+**Next:** the close packet's two headline numbers; the `na`/`nb` follow-up mini-merge after
+those lanes STOP; and a decision the architect owns rather than the integrator - whether the
+lane grammar should widen to the names batches are actually dispatched under, or dispatch
+should conform to the grammar. Recorded as named debt, not fixed here.
+
 ### 2026-08-27 (a) - CC (Opus 5, background job, primary checkout, branch `docs/anchor-w2-batch`): the workspace provider-roots merge `08b0d192` is anchored, before the W2 merge queue is allowed to open
 
 **Did:** wrote the JOURNAL anchor for merge `08b0d192` (`chore/workspace-provider-roots-2026-08-26`),
