@@ -112,7 +112,19 @@ def assert_within_cap(*docs: Path, cap: int = CAP_BYTES) -> int:
 
 
 def test_tracked_payload_is_within_cap() -> None:
-    """The hermetic gate: root doc + tracked global stand-in, in bytes, under the cap."""
+    """The hermetic gate: root doc + tracked global stand-in, in bytes, under the cap.
+
+    The emptiness floor is not decoration. A cap assertion only ever fails UPWARDS, so a
+    stand-in that was truncated or blanked would shrink the measured payload and make this
+    gate greener, not redder -- the exact "looks armed, measures nothing" failure this module
+    exists to refuse. `assert_within_cap` already refuses a *missing* doc; this refuses a
+    *hollow* one.
+    """
+    for doc in (ROOT_DOC, TRACKED_GLOBAL_DOC):
+        assert doc.stat().st_size > 0, (
+            f"{doc} is empty -- a hollowed instruction doc makes the cap assertion pass by "
+            "measuring nothing. The gate would look armed and would not be."
+        )
     total = assert_within_cap(ROOT_DOC, TRACKED_GLOBAL_DOC)
     # Surfaced so a `-s` run reports the live figure rather than a remembered constant.
     print(f"\npayload {total:,} B = {total / CAP_BYTES:.2%} of {CAP_BYTES:,} B cap")
@@ -138,12 +150,24 @@ def test_tracked_stand_in_matches_the_live_global() -> None:
 
 
 def test_root_doc_is_not_a_wholesale_claude_md_copy() -> None:
-    """The trap `[#577]` names: copying `CLAUDE.md` wholesale lands 11.50 KiB OVER the cap."""
+    """`AGENTS.md` is not byte-identical to `CLAUDE.md` -- the trap `[#577]` names.
+
+    Scope, stated exactly: this asserts **byte-inequality only**. It does NOT assert that
+    `CLAUDE.md` exceeds the cap, and it would not catch a near-copy. Asserting `CLAUDE.md`
+    against the cap was considered and rejected: `CLAUDE.md` is deliberately NOT part of the
+    Codex payload, so pinning its size here would RED on a legitimate `CLAUDE.md` edit and
+    guard nothing Codex reads. The oversize figure below is **measured at run time**, not a
+    remembered constant, so the diagnostic cannot go stale even though the assertion is
+    narrow.
+    """
     claude_md = _REPO_ROOT / "CLAUDE.md"
     assert claude_md.is_file(), f"missing {claude_md}"
+    claude_size = claude_md.stat().st_size
+    over = claude_size - CAP_BYTES
+    verdict = f"{over:,} B OVER" if over > 0 else f"{-over:,} B under"
     assert ROOT_DOC.read_bytes() != claude_md.read_bytes(), (
-        "AGENTS.md is a byte-for-byte copy of CLAUDE.md -- which measures over the "
-        f"{CAP_BYTES:,} B cap on its own and truncates silently."
+        f"AGENTS.md is a byte-for-byte copy of CLAUDE.md, measured right now at "
+        f"{claude_size:,} B -- {verdict} the {CAP_BYTES:,} B cap. Codex truncates SILENTLY."
     )
 
 
