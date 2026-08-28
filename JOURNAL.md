@@ -19,6 +19,70 @@
 
 ---
 
+### 2026-08-29 (a) - CC (Opus 5, background job, primary checkout, branch `docs/batch-2-integration`): night-batch-2 integrated — 7 local lanes + 6 cloud reports, two wedges caught before dispatch, 77 doc-rot loci to 60
+
+**Did:** ran the operator-ratified `NIGHT-MISSION-2026-08-28.md` end to end with **zero operator
+contact** — froze the batch, dispatched 7 local worktree lanes + 6 read-only cloud lanes,
+harvested every cloud artifact, and integrated wave 1 in two queues. The cloud harvest, the
+harvest manifest and the consumption ledger landed at `692ed163`. Lane tips as measured when this
+entry was written — the merge queue re-reads them and proves containment with
+`git merge-base --is-ancestor` before any teardown: C `15daa11c` · D `c3b5f38a` · G `53dce46e` · A-hub `bf9110c0` · E `2a08e37d` · F `107374e5` · B `372883d5` · A-consumer `3ffabe0f`.
+
+**Result: 7/7 local lanes reached commit-and-STOP and 6/6 cloud reports were delivered — and the
+two things that would have wedged the whole night were caught before a single lane booted.**
+(1) The architect's frozen bundle names its lanes `N1..N8`; `validate_branch_naming --lane`
+requires `lane-<letter>-<id>-<slug>` and returns **BAD** for every `N<n>` form, so all seven would
+have merged **outside** `LANE_BRANCH_RE` and silently lost the ADR-110 exemption — the wedge that
+makes a batch structurally unintegrable. Names were derived from the validator, not the bundle
+(STANDING_RULINGS F2). (2) The first commit **REFUSED**:
+`check_substrate_declaration._corpus` parses **every** `*.md` in a `*launch-contracts/` directory
+as a lane contract, so copying the mission and the frozen bundles in beside the contracts FAILed
+`audit-health` — which blocks every commit in every lane. Fixed before dispatch: the directory
+holds only the 13 dispatchable contracts, each declaring `**Substrate:**` and a
+`**Worktree pairing:** slug X -> branch worktree-X` line (the shape `_checkout_key` actually
+reads); the three source documents moved to top-level `docs/audits/` **byte-identical**.
+
+**What the lanes bought, in numbers rather than adjectives.** `validate_doc_rot` **77 -> 60**,
+with backlog row-body chars **42,927 -> 28,078 (-34.6 %)** across 20 rows relocated
+byte-identically into `tasks/archive/` — nothing trimmed, nothing destroyed, an md5 per object.
+`[#577]`'s byte-cap gate exists at last, and the payload it measures is **9,430 B = 28.78 %** of
+Codex's 32 KiB cap — **not** the 9,161 B the contract restated. Four freeze-time contract
+predicates plus the C-F `**Shape:**` mis-parse fix land in `preflight_contract.py` /
+`validate_substrate.py`, and `check_substrate_declaration` goes from 2 findings to 1 on the live
+corpus. Consumer-root resolution is de-hardcoded in both modules with a non-sibling layout proven
+by test. The night-batch protocol becomes doctrine — 244 PLAYBOOK lines + 29 in HANDOFF_PROCESS —
+at a **ratchet delta of ZERO**, verified in the lane's own worktree at 443/61 against the
+primary's 443/61.
+
+**Two of the night's most valuable results are NEGATIVE, and they are recorded as discharges
+rather than dropped.** C4: **zero codex surfaces are removal-ready, zero bytes freed** — the
+630,460 B audit corpus is the *most* blocked, because 166 of 168 artifacts are enumerated **by
+filename** inside two machine baselines four live scripts read. FM-C: **CONSUMED-AND-ARCHIVABLE =
+0** across **951 objects, 100 % classified, UNCLASSIFIED = 0**, and the archival mechanism has
+**zero backlog and zero mis-filings in either direction**. The two cleanups this window kept
+proposing do not exist as work.
+
+**A lane refused to fake its own success metric.** Lane A's parity flip `pre-deploy -> consumer`
+is **NOT-MET**: as `consumer`, `test_check_fleet_parity_green_on_live_repo` REDs, and that test's
+docstring says *"promotion REDs nothing"* — so the RED is a true signal about that exact act. The
+flip was made, measured and **reverted**; the convenient explanation (*"it's on an unmerged
+branch"*) was **refuted** by walking parity against the deployed tree rather than assumed.
+win-tooling is held at pre-deploy with the reason in the tree. P5 was answered in passing: the
+deploy path does **not** require an annotated tag, so no step stopped.
+
+**Changes:** `docs/audits/` (+8 harvest artifacts, +7 lane packets) · `protocols/PLAYBOOK.md` +
+`protocols/HANDOFF_PROCESS.md` · `scripts/{validate_doc_rot,preflight_contract,validate_substrate,
+audit,validate_hermetization}.py` · `deploy/tool.py` · `tasks/` + new `tasks/archive/` ·
+`ecosystem/{deployed-versions,satellite-onboarding-rulings,parity-surfaces}.yaml` +
+`ecosystem/win-tooling/history/` · 4 new test modules.
+
+**Abandoned:** copying the frozen bundles into the launch-contracts directory (the gate refused
+it, correctly); the win-tooling parity role flip (measured unreachable, held rather than forced).
+
+
+
+---
+
 ### 2026-08-28 (o) - CC (Opus 5, background job, primary checkout, branch `docs/batch-2-dispatch`): night-batch-2 FROZEN and dispatched — manifest, 13 lane contracts, four premise defects caught at freeze
 
 **Did:** cut the operator-ratified `NIGHT-MISSION-2026-08-28.md` into a dispatchable batch —
