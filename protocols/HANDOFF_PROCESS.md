@@ -166,6 +166,35 @@ indistinguishable from one that ran it. It sits here rather than in the probe ma
 answer is a judgment the operator makes by looking, which fails the §5 bounded-deterministic
 condition a probe has to meet — an unbounded judgment is an arc, not a probe.
 
+**FORMS-CARD DELTA — two standing boundary lines the card carries (2026-08-28, `[#610]`).** The
+operator-facing forms card carries typed *forms* because a form fetched from elsewhere is a form
+the seat composes from memory. Two **standing boundary lines** now ride beside them, for the same
+reason and under the same test: each was answered once by an architect seat, each was in danger of
+living only in that seat's head, and each is consulted at the moment a bundle boots rather than
+read once.
+
+1. **The session boundary.** The architect does **not** propose session closure and does **not**
+   initiate the bundle; **the operator declares closure**. The window's rhythm is
+   *boot → plan → freeze → GO → integrate → audit → next batch* until the operator ends it.
+2. **Substrate routing.** The default substrate is **LOCAL**, conditionally — ruling **Z-G3**
+   makes U(b)'s "GitHub compute is the DEFAULT substrate" contingent on three measured defects
+   closing, and the container's `uv` is *unrunnable by default, runnable after a one-step
+   `pip install --target` provisioning*, a measurement Ch8's Q1 row holds as an amendment
+   candidate with the routing unchanged.
+
+Both are **rendered from their doctrine home**, exactly as form 1 renders the dispatch line out of
+Ch8's dispatch table: the home is `protocols/PLAYBOOK.md` Ch8 "The night batch — the batch
+protocol run unattended, in five phases", subsection "Two standing boundary rules the night
+inherits". The card holds no independent copy, so the two cannot drift apart the way four rival
+dispatch commands did (§V, ~30 seats).
+
+*Honest limit — this clause is the requirement, and the mechanism is owed.* The card itself is
+rendered from `templates/handoff/v5/HANDOFF_BOOT.md.tmpl`, which is outside the write-scope of the
+lane that landed this clause, so **no bundle carries the two lines until that template is
+extended**; and no probe or gate reads this clause today, exactly as the boot drill directly above
+records of itself. Until the template lands them, this states what a card is asked to carry rather
+than what a generated card does carry.
+
 ---
 
 ## 5. The teeth-y forced primary-source read (#148 a)
