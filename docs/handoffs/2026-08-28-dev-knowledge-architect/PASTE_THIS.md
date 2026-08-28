@@ -248,11 +248,11 @@ regenerate (`gen_task_tree.py --emit-source`); a direct edit is the ADR-107 §7.
 backpressure hook demands a `kill-candidates:` line per added id regardless of which way G1 is
 ruled, and the ids it names must be **open**. (3) This bundle's `SUPPLEMENT.md` is
 **FILLED** — its ANSWERS are folded into the paste, so the §13(d) beat **NARROWS** to *"anything
-changed since the supplement was written?"*. **Read the supplement before the G-list: its OPEN
-QUESTION 1 outranks everything here.** The v6.3.0 role-residency HOME is unproven — if the browser
-has no persistent instructions surface, the PIN has nothing to verify and every seat refuses to
-boot, and the ruled fallback is to revert to inlining and record D-R1 as measured-and-reversed.
-Settle that in the first minutes, before any design. The supplement also carries a **CC
+changed since the supplement was written?"*. **Read the supplement before the G-list.** Its OPEN
+QUESTION 1 — role residency — is **RESOLVED**: a Project is adopted, so **first boot verifies the
+PIN against the project knowledge file** (version check mandatory) rather than settling residency.
+The mechanism, its one-file constraint and the rejected alternative are stated once in the
+supplement — read them there, not restated here. The supplement also carries a **CC
 verification block** appended at fold time: of its three repo-verifiable claims, the
 `automation/fleet-audit` one is **refuted and discharged**, and the other two stand.
 <!-- FILL-IN:frontier END -->
@@ -513,6 +513,36 @@ Three repo-verifiable facts in **answer 6** were re-derived live at fold time:
 **Re-derive rather than trust these three lines** — they are fold-time observations and no P-tier
 probe covers them.
 
+- **Role residency architecture (D-R1 resolved)** — ONE fleet-wide claude.ai Project ("Dev —
+  Architect Seat") hosts every architect window across all repos; project knowledge holds
+  EXACTLY ONE file (HANDOFF_BOOT.md), because Projects fall back to RAG retrieval past the
+  context threshold and a chunked role breaks the PIN's verbatim guarantee (Anthropic RAG-for-
+  Projects doc); instructions field carries only the pointer + version-refusal rule; sha check
+  is best-effort, version check mandatory; no per-repo projects (N role copies = the measured
+  version-drift disease). HOME: protocols/OPERATOR-INTERFACE.md (mechanics) + HANDOFF_PROCESS
+  role clause (the residency+PIN mechanism) + PLAYBOOK's session-setup section (pointer).
+
+===================== CC VERIFICATION — SECOND PASS (not an operator answer) =====================
+
+
+The residency answer resolves **OPEN QUESTION 1** and supersedes it: the role file has a durable
+home, so the v6.3.0 PIN has something to verify and the revert-to-inlining fallback is **not**
+taken. Its three named HOMES were resolved on disk before being carried forward:
+
+- **`protocols/OPERATOR-INTERFACE.md` — RESOLVES.** Present.
+- **The HANDOFF_PROCESS role clause — RESOLVES.** The residency mechanism and the three-line ROLE
+  PIN are both live in `protocols/HANDOFF_PROCESS.md` (the `residency, refusal-guarded` clause and
+  the v6.3.0 changelog entry describing the PIN's version and `sha256` legs).
+- **"PLAYBOOK's session-setup section" — AMBIGUOUS, and flagged rather than guessed.** PLAYBOOK has
+  **no** heading by that name. Two candidates: `protocols/PLAYBOOK.md` **Ch8 "Session boundaries"**
+  (with its `Session resumption protocol` sub-head), and the **separate file**
+  `protocols/SESSION_SETUP.md`. These are different destinations and the answer does not
+  disambiguate. **Pick the home before landing the pointer** — do not let the ambiguity resolve
+  itself by whichever file the next seat opens first.
+
+**Re-derive rather than trust this block** — like the first pass, these are fold-time observations
+and no P-tier probe covers them.
+
 ---
 
-=== END OF PASTE — 5 sections · 45640 bytes ===
+=== END OF PASTE — 5 sections · 47761 bytes ===

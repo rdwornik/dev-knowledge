@@ -158,7 +158,9 @@ DO NOT re-derive dispatch: PLAYBOOK Ch8 is the SOLE literal-command site, one ve
   produced. HOME: LESSONS.
 
 ===================== CC VERIFICATION AT FOLD TIME (not an operator answer) =====================
-<!-- CC-authored 2026-08-28 at `supplement filled`. The operator's answers above are UNCHANGED.
+<!-- CC-authored 2026-08-28 at `supplement filled`. The operator's answers are UNCHANGED —
+     including the answer-7 item the operator appended BELOW this block in a later pass;
+     this block is dated to the FIRST fold and does not cover it. See SECOND PASS at the end.
      Per HANDOFF_PROCESS v6 §B(b) only answers asserting a repo-verifiable FACT are checkable;
      intent, tensions and rejected options are advisory by construction and are NOT checked. -->
 
@@ -176,3 +178,34 @@ Three repo-verifiable facts in **answer 6** were re-derived live at fold time:
 
 **Re-derive rather than trust these three lines** — they are fold-time observations and no P-tier
 probe covers them.
+
+- **Role residency architecture (D-R1 resolved)** — ONE fleet-wide claude.ai Project ("Dev —
+  Architect Seat") hosts every architect window across all repos; project knowledge holds
+  EXACTLY ONE file (HANDOFF_BOOT.md), because Projects fall back to RAG retrieval past the
+  context threshold and a chunked role breaks the PIN's verbatim guarantee (Anthropic RAG-for-
+  Projects doc); instructions field carries only the pointer + version-refusal rule; sha check
+  is best-effort, version check mandatory; no per-repo projects (N role copies = the measured
+  version-drift disease). HOME: protocols/OPERATOR-INTERFACE.md (mechanics) + HANDOFF_PROCESS
+  role clause (the residency+PIN mechanism) + PLAYBOOK's session-setup section (pointer).
+
+===================== CC VERIFICATION — SECOND PASS (not an operator answer) =====================
+<!-- CC-authored 2026-08-28 at the re-fold, after the operator appended the role-residency answer
+     immediately above. The operator's text is UNCHANGED; this block only resolves its locators. -->
+
+The residency answer resolves **OPEN QUESTION 1** and supersedes it: the role file has a durable
+home, so the v6.3.0 PIN has something to verify and the revert-to-inlining fallback is **not**
+taken. Its three named HOMES were resolved on disk before being carried forward:
+
+- **`protocols/OPERATOR-INTERFACE.md` — RESOLVES.** Present.
+- **The HANDOFF_PROCESS role clause — RESOLVES.** The residency mechanism and the three-line ROLE
+  PIN are both live in `protocols/HANDOFF_PROCESS.md` (the `residency, refusal-guarded` clause and
+  the v6.3.0 changelog entry describing the PIN's version and `sha256` legs).
+- **"PLAYBOOK's session-setup section" — AMBIGUOUS, and flagged rather than guessed.** PLAYBOOK has
+  **no** heading by that name. Two candidates: `protocols/PLAYBOOK.md` **Ch8 "Session boundaries"**
+  (with its `Session resumption protocol` sub-head), and the **separate file**
+  `protocols/SESSION_SETUP.md`. These are different destinations and the answer does not
+  disambiguate. **Pick the home before landing the pointer** — do not let the ambiguity resolve
+  itself by whichever file the next seat opens first.
+
+**Re-derive rather than trust this block** — like the first pass, these are fold-time observations
+and no P-tier probe covers them.
