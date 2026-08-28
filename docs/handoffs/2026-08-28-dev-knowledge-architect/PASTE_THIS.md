@@ -246,9 +246,15 @@ discoveries; each is written down somewhere and none has a carrier:
 regenerate (`gen_task_tree.py --emit-source`); a direct edit is the ADR-107 §7.2 failure and the
 `check_task_tree_coherence` gate will catch it after you have wasted the act. (2) The filing-
 backpressure hook demands a `kill-candidates:` line per added id regardless of which way G1 is
-ruled, and the ids it names must be **open**. (3) This bundle's `SUPPLEMENT.md` is **cold** — no
-answers were folded — so the §13(d) operator-context beat fires **FULL**, not narrowed: ask for
-off-repo context before designing.
+ruled, and the ids it names must be **open**. (3) This bundle's `SUPPLEMENT.md` is
+**FILLED** — its ANSWERS are folded into the paste, so the §13(d) beat **NARROWS** to *"anything
+changed since the supplement was written?"*. **Read the supplement before the G-list: its OPEN
+QUESTION 1 outranks everything here.** The v6.3.0 role-residency HOME is unproven — if the browser
+has no persistent instructions surface, the PIN has nothing to verify and every seat refuses to
+boot, and the ruled fallback is to revert to inlining and record D-R1 as measured-and-reversed.
+Settle that in the first minutes, before any design. The supplement also carries a **CC
+verification block** appended at fold time: of its three repo-verifiable claims, the
+`automation/fleet-audit` one is **refuted and discharged**, and the other two stand.
 <!-- FILL-IN:frontier END -->
 
 ---
@@ -509,4 +515,4 @@ probe covers them.
 
 ---
 
-=== END OF PASTE — 5 sections · 45044 bytes ===
+=== END OF PASTE — 5 sections · 45640 bytes ===
