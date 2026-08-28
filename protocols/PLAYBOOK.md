@@ -2247,11 +2247,11 @@ every clause below.
    (`GET /v1/code/sessions/{id}/events`, paginated by `next_cursor`), and one sentence on what
    was written where. An explicit statement that nothing was written to any repo is **part of the
    record**, not an omission.
-2. **`## Reports`** — one numbered block per dispatched session, each carrying four fields in this
-   order: the session's label, `file:` the landed artifact, `bytes:` its size, `first heading:`
-   the artifact's opening heading (with its line number whenever that is not line 1), and
-   `top recommendation:` one sentence of the report's own conclusion. A block missing a field is
-   incomplete rather than short.
+2. **`## Reports`** — one numbered block per dispatched session, each **opening with the
+   session's label** and carrying **four fields in this order**: `file:` the landed artifact,
+   `bytes:` its size, `first heading:` the artifact's opening heading (with its line number
+   whenever that is not line 1), and `top recommendation:` one sentence of the report's own
+   conclusion. A block missing a field is incomplete rather than short.
 3. **`## PENDING`** — the sessions that had not delivered at wake. **An empty PENDING section is
    written out** (`None.`, with the reason). Its absence and its emptiness are different facts,
    and only one of them is a statement.
@@ -2261,6 +2261,14 @@ every clause below.
 A manifest carrying those four, in that order, is the artifact the morning opens **first**, ahead
 of any report. That ordering is the point of the phase: one file answers what came back, what did
 not, and what deviated.
+
+*Refusal conditions.* A `## PENDING` section **absent** rather than empty — absence and
+emptiness are different facts, and only the written-out form is a statement. A `## Reports`
+block short a field, which reads as a session that reported less rather than as a manifest that
+recorded less. A `## Verification` section that **repairs** a deviation instead of recording it,
+which is the byte-identity rule in phase 3 read backwards. And a dispatch half that lands
+**after** the lanes boot: from that point it records the batch that ran rather than the batch
+that was planned, which is the one property it exists to hold.
 
 #### Phase 3 — Night run
 
