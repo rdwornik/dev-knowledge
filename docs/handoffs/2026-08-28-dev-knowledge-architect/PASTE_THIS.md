@@ -12,7 +12,7 @@
 | **Destination** | worktree <!-- FILL-IN:dest-worktree START (hand-authored — the worktree name, or `none (primary tree)`) -->none (primary tree)<!-- FILL-IN:dest-worktree END --> · branch `main` · write-scope <!-- FILL-IN:dest-scope START (hand-authored — what this lane may write; PROSE, deliberately outside P3) -->governance surfaces — `tasks/` (then regenerate `BACKLOG.md`, never hand-edit it), `docs/intake/`, `docs/decisions/`, `protocols/STANDING_RULINGS.md`, `JOURNAL.md`; gate/script edits only under a named row<!-- FILL-IN:dest-scope END --> · MODE **architect** — basis <!-- FILL-IN:dest-mode-basis START (hand-authored — WHY this mode, per ADR-87 item 5; PROSE, deliberately outside P3) -->the next act **defines the way of working** rather than advancing a named row — five open design questions, two of which (G1 the funnel-vs-births rule, G3 the substrate router) need a ruling before anything can honestly be filed against them (ADR-87 item 5)<!-- FILL-IN:dest-mode-basis END --> |
 | **Generated at** | Bundle cut by `scripts/gen_handoff.py` from **committed** repo state on branch `docs/handoff-2026-08-28`. This line names only which branch was checked out — it states **no** sha, count, or verdict. **Re-derive HEAD / tree-clean / branch / ahead-behind live** (`PROBES.md` P3). |
 
-> **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 > **The `Destination` row is declared ex-ante — a lane inherits none of it from a prior prompt.**
 > Only its **branch** field has a mechanical counterpart: `PROBES.md` **P3** compares it against
@@ -69,7 +69,7 @@ If your project instructions do not carry this contract at this version+sha, say
 > = reconstructed from the JOURNAL/git window, may have moved (the load-bearing ones are re-checkable
 > via `PROBES.md`); `unknown` = stated as such.
 
-> **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 ---
 
@@ -286,7 +286,7 @@ the whole task-state.
 > branch is checked out so CC knows which live value to compare — **re-derive HEAD / tree / branch /
 > ahead-behind live (P3); do not trust this line.**
 >
-> > **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> > **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 >
 > **Windows note:** `audit.py checks` (P2) can crash mid-listing on a bare cp1252 PowerShell console
 > (a non-ASCII glyph in a check docstring) — run with `PYTHONUTF8=1` (or `PYTHONIOENCODING=utf-8`); this
@@ -333,7 +333,7 @@ backlog navigates** (§13c), not this read.
 **Gate:** the architect may not proceed to design until it **holds both orienting lines** — read live
 by CC, substring-matched. **Then, before design, the operator-context beat fires (§13d):** the browser
 asks the operator for **off-repo** context.
-This bundle's supplement is **generated EMPTY**, so the beat fires **FULL** — *"what off-repo context: intent, priorities, findings not in the repo, changed decisions?"* — not a narrowed "anything changed since?". (If the operator runs `supplement filled`, its ANSWERS fold in and the beat narrows.)
+The operator has **filled** the supplement, so its ANSWERS are in the paste and the beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 ## Teeth probes (state fidelity — same contract; **answers deliberately withheld, §5**)
 
@@ -372,4 +372,141 @@ This bundle's supplement is **generated EMPTY**, so the beat fires **FULL** — 
 
 ---
 
-=== END OF PASTE — 4 sections · 35528 bytes ===
+=== SUPPLEMENT.md ===
+
+**1. Strategic intent.** The next TWO sessions move the hub from self-improvement to
+DEPLOYMENT. Way-of-working goal: the methodology proves itself by instantiating in a consumer
+repo, not by governing itself better. Concretely: next session = EXECUTION-ONLY against the
+seven filed intakes (no new research, no new census, no new measurement — the evidence is
+landed and current); the session after opens win-tooling. Operator mandate, verbatim in
+priority order: consolidate · universalize · library-first · backlog · methodology hygiene ·
+performance/efficiency · deployment to other repos. A window that ships no consumer-visible
+value is a failure by the operator's standard — that tolerance is exhausted.
+
+**2. Tensions weighed.**
+(a) Subtraction-only vs mechanisms-first: the outgoing seat and operator proposed a
+subtraction-only window; I ruled mechanisms first ([#589] view projection, [#590] index
+concurrency, [#595] consumer-at-landing) THEN subtraction. Vindicated: the aggregate-view
+defect was what made every merge conflict, so subtraction before it would have cost more than
+it saved.
+(b) Kill vs execute: the census produced 40 kill candidates, every one with a counter-case;
+the ex-ante kill algorithm closed ZERO, execution closed EIGHT. Landed rule: at this backlog's
+quality, subtraction comes from executing small rows and re-cutting shipped halves — the RE-CUT
+column is where the volume is, not the kill column.
+(c) Speed vs rigor: adopted tiered gating (targeted-per-merge + one full suite per batch) under
+time pressure; it is now doctrine, and NB's per-check tiers cut the commit gate 4.6x (203s ->
+44s). Its selector half ([#598] slow-marker) stopped on a measured long-pole verdict (21.42%).
+(d) Parallelism vs coordination tax: 11 lanes (previous window) exceeded the useful ratio; 3-5
+file-disjoint lanes plus read-only cloud fan-out worked. Cloud recon is nearly free and is
+under-used, not over-used.
+(e) Role residency vs paste integrity: chose residency (-16,228 B measured), accepting the
+sha-pin + standing refusal as the safety. SEE OPEN QUESTION 1 — the residency HOME is unproven.
+
+**3. Considered and rejected — do not relitigate.**
+- 52-row active cap: REJECTED as a cap, adopted as a ranking (X2; the census's own arithmetic
+  falsifies the cap — it admits same-day rows and excludes older kill candidates).
+- A new hub checker for Click / Rich / dataclasses-over-dicts: REJECTED (X3; a hub-hardcoded
+  standalone checker lands as `absent` on consumers, measured).
+- Rotation justified on performance: REJECTED as a premise (X6; ~0.1s after W2A — its real case
+  is context, grep and merge collisions).
+- Structural doc diet before the mechanical PLAYBOOK correction: REJECTED as sequencing (X7;
+  would silently discard 17 of the 19 [#569] census findings).
+- Subtraction-only window: REJECTED in favour of mechanisms-then-subtraction (see 2a).
+- Deferring [#267] part (ii) behind a P6 successor that does not exist: REJECTED, cut instead
+  (Y-1 — a peg must name a carrier that exists).
+- Gemini CLI as a fan-out surface: RETIRED by ruling (UNSUPPORTED_CLIENT, not a tier refusal).
+  grok as fan-out: REJECTED — pay-per-call, $0.037 for one trivial test; point-use only.
+- A root `prompts/` folder: REVOKED by operator ruling (root is sacred; the docs orphan disease
+  is cured by the consumer-at-landing gate, not by a sibling folder). ADR-101's first contraction.
+
+**4. Open questions.**
+1. **ROLE RESIDENCY HOME — settle in the first minutes.** D-R1 shipped the PIN, but whether the
+   operator's browser has a persistent instructions surface (a Project) is UNPROVEN. If it does
+   not, the PIN has nothing to verify and every seat refuses to boot; the correct act is then to
+   revert to inlining and record D-R1 as measured-and-reversed. Ask before assuming.
+2. G1 — two live birth paths (packet-born `source:` clauses vs register Y restating ADR-111's
+   orthodox CANDIDATE -> intake path), with no statement of which applies when.
+3. G3 — a CONTRADICTION, not a gap: ruling U(b) makes GitHub compute the default substrate;
+   W4, one day later, measured that rung unable to run a single hub gate. One of them must yield.
+4. G2 — CLAUDE.md §10's AGENTS.md anti-pattern is provably false since ADR-115 but sits in a
+   hub-single-sourced Form-A region; the fix is a fleet-parity act no row authorises ([#577]).
+5. G4/G5 — green-by-skip is owned at two layers with the rule still unwritten.
+6. R3 measured acceptance for agy / Kimi / GLM / DeepSeek. THE FLEET HAS ZERO WORKING FAN-OUT
+   SURFACE. All accounts are now funded (see 6), so this is executable, gated only on seeded-
+   defect acceptance vs the incumbent baseline — never on vibes.
+7. [#82]'s hub-closability ruling · the 30 unblocked P2s below the ranking cut · whether
+   [#548]/[#559]'s multi-edge dependencies imply a manifest-producer row nobody owns.
+8. D1 smoke-6 receipt: Codespaces Q4 stays unpriced until `Ok=True AND RemoteExitCode=0` with an
+   in-container check-count receipt. Two halves owed: hub image (landed) and the win-tooling
+   `gh codespace cp` literal-quote defect (operator-owned).
+9. [#611] v7 scope vs what remains of the census deltas (b4 probes-pin is the big one, ~12 KB).
+
+**5. Decomposition rationale — and what NOT to redo.**
+Shape: mechanisms (gates) -> measurement (diagnostic, census, recon) -> subtraction (closures,
+icebox, re-cuts) -> spec (v6.3.0). Each stage was a precondition of the next, and the order is
+the finding, not a preference.
+DO NOT REDO, all landed and current: the hub diagnostic (consumption census, 40% orphan
+audits) · the backlog quality census incl. its reconstructed age axis (validated 4/5 buckets
+exactly) · PERF-RECON's bottleneck map · the four night recons (doc diet, kodeks, rotation,
+backlog) · the 874-hit version-surface classification · the provider-surface measurement (8
+CLIs) and probe #42's instruction-file precedence · rulings sections U, V, W, X, Y · ADR-115's
+criterion (re-test ONLY if agy's AGENTS.md precedence is falsified — it is the load-bearing leg,
+not Cursor, which is plan-gated out and unregistered).
+DO NOT re-derive dispatch: PLAYBOOK Ch8 is the SOLE literal-command site, one verb per substrate.
+
+**6. Off-repo context — changed intent.**
+- Deployment to other repos must START within two sessions. This is the operator's headline
+  intent and it outranks further hub polish.
+- ALL provider accounts are now funded and verified by the operator (Kimi, GLM, DeepSeek
+  confirmed paid; agy authenticated via Google; grok pay-per-call). The chinese-models intake
+  is no longer blocked on money — only on R3.
+- The night protocol (dispatch -> sentinel -> harvest -> manifest -> morning adjudication) ran
+  end-to-end and is now the expected default rhythm, not an experiment. It is owned by [#610].
+- Three operator-owned one-liners gate hub work and are outstanding: tag `v1.4.0` (without it
+  `deploy` hard-aborts preflight, so win-tooling instantiation cannot start), `git push origin
+  automation/fleet-audit` (2 commits behind, ADR-80 record stale), and the win-tooling half:
+  `cp`-quote fix plus the two missing verbs `Dispatch-After` and `Harvest-Cloud`.
+- L0 finding the hub cannot fix: the global CLAUDE.md Self-Evolution Protocol reads
+  `~/.claude/memory/learned-rules.md`, which does not exist.
+
+**7. Ratified-in-chat register — not yet in the repo.**
+- **"measure the surface, never enumerate it"** — before any cross-cutting change, grep the repo
+  and classify every hit; an enumerated list is a fact carried from memory. Vindicated at 874
+  hits (six live false statements found in a file no list named). HOME: PLAYBOOK (versioning
+  chapter) + LESSONS.
+- **The three version classes** — LIVE-NORMATIVE (update) / STRUCTURAL-LEGAL (a folder name is
+  not a version claim) / HISTORICAL-IMMUTABLE (never touched; rewriting a v4.4 citation
+  fabricates history). HOME: PLAYBOOK, same chapter.
+- **"a transferred fact carries a locator or is derived on site"** — architect errors #18/#19
+  were both facts relayed between packets without verification. HOME: LESSONS (partially
+  landed; the rule line is owed).
+- **Tiered gating cadence** — targeted-per-merge plus ONE full suite per batch, full suite at
+  integration only. HOME: PLAYBOOK Ch5 (NB landed the tier mechanism; the cadence paragraph and
+  the [#598] selector remain owed).
+- **"closures fund births"** — the D3/D5 order: close BEFORE filing, because the cap must be
+  known before it is spent; the banked ledger IS the birth budget. Banked at close: 5.
+  HOME: PLAYBOOK backlog chapter.
+- **Execution beats adjudication for subtraction** (see 2b) — the empirical rule this window
+  produced. HOME: LESSONS.
+
+===================== CC VERIFICATION AT FOLD TIME (not an operator answer) =====================
+
+
+Three repo-verifiable facts in **answer 6** were re-derived live at fold time:
+
+- **`v1.4.0` is NOT tagged — CONFIRMED.** Newest tag is `v1.3.1`. The `deploy` preflight abort
+  stands, so win-tooling instantiation is still blocked on this one-liner. This is the operator
+  one-liner that gates the stated headline intent (deployment within two sessions).
+- **`automation/fleet-audit` is NOT 2 commits behind — REFUTED, and the claim is DISCHARGED.**
+  Local and `origin/automation/fleet-audit` are both at `1f8b6434`; the push has already happened.
+  Recorded here so the next seat does not chase a closed item, and so the `Inherited claims` row
+  does not FAIL the boot on a claim that merely went stale between filling and booting.
+- **`~/.claude/memory/learned-rules.md` does not exist — CONFIRMED.** It is L0, outside this repo,
+  so the hub still cannot fix it; the global CLAUDE.md Self-Evolution Protocol reads a missing file.
+
+**Re-derive rather than trust these three lines** — they are fold-time observations and no P-tier
+probe covers them.
+
+---
+
+=== END OF PASTE — 5 sections · 45044 bytes ===
