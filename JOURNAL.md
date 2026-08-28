@@ -19,6 +19,29 @@
 
 ---
 
+### 2026-08-28 (l) - CC (Opus 5, background job, primary checkout, branch `docs/batch-1-manifest-schema`): the same manifest, malformed a second way
+
+**Did:** fixed `batch:` in the batch-1 manifest from the descriptive `batch-1-2026-08-28` to
+the bare number `1`, and recorded the schema note in the file itself.
+
+**Result:** `tests/test_batch_manifest.py::test_the_live_repos_own_manifest_is_well_formed`
+asserts `b.batch.isdigit()` against the LIVE manifest -- so the manifest was malformed in a
+second, independent way from the path defect entry (j) records. Both defects have the same
+signature and it is worth naming: **a malformed manifest fails SILENTLY.** `open_batches()`
+simply returns fewer batches, the exemption quietly covers nothing, and the only symptom is a
+gate FAIL somewhere else entirely -- at a pre-commit hook in an unrelated lane. Two independent
+malformations in one manifest, neither of which announced itself, is the argument for that test
+existing rather than a criticism of it.
+
+**Changes:** `docs/audits/2026-08-28-technical-batch-1-manifest.md` (`batch:` value + a schema
+note so the next author does not repeat it); this entry.
+
+**Abandoned:** nothing.
+
+**Anchors:** b4e73ea (manifest schema fix).
+
+**Next:** resume lane L2's commit, then L3-L5.
+
 ### 2026-08-28 (k) - CC (Opus 5, background job, primary checkout, branch `docs/batch-1-manifest-fix`): the anchor commit entry (j) could not write for itself
 
 **Did:** appended this entry so the manifest-fix arc's merge is anchorable. Entry (j) and the
