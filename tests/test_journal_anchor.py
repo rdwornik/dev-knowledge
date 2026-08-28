@@ -1028,3 +1028,103 @@ def test_a_view_that_moves_under_the_snapshot_fails_CLOSED(tmp_path):
     only_fresh = sorted(set(fresh) - set(still_stale))[0]
     assert ja.is_anchored(shallow, target,
                           f"### e\n\n**Anchors:** `{only_fresh[:7]}`.\n") is False
+
+
+# --- [#608] rotation seam: journal_text tiles JOURNAL.md with JOURNAL-legacy-*.md ---------
+#
+# Ruling X5 settles the design question as "rotate the FILE, not the PREDICATE", so the tiling
+# lands at the single read both anchoring organs already share. These two tests pin the two
+# properties that make the seam safe to land BEFORE any content moves: it is inert on a tree
+# with no legacy files, and it does not change an anchor verdict when a tiling exists.
+
+
+def test_tiled_read_is_byte_identical_with_no_legacy_files(tmp_path):
+    """The seam moves ZERO bytes on today's tree -- the property that lets it land first.
+
+    With no `JOURNAL-legacy-*.md` present, `journal_text` must return the single-file read
+    byte for byte: no separator introduced, no newline normalised. If this drifts, every
+    anchoring verdict silently shifts under a change that was supposed to be inert.
+    """
+    (tmp_path / "JOURNAL.md").write_text(_FIXTURE, encoding="utf-8", newline="\n")
+    assert ja.journal_text(tmp_path) == (tmp_path / "JOURNAL.md").read_text(encoding="utf-8")
+
+
+def test_anchor_verdicts_are_unchanged_across_a_synthetic_two_file_tiling(tmp_path):
+    """A SHA that rotated into a legacy tile stays anchored -- the whole point of tiling.
+
+    Split the fixture: the active file keeps one entry, a legacy tile carries the other. The
+    anchoring universe is the union, so a SHA named only in the rotated half must still be
+    found. Without tiling this is exactly the regression rotation would cause -- an anchored
+    spine entry becoming a reported gap because its entry moved file.
+    """
+    entries = ja._entries(_FIXTURE)
+    assert len(entries) >= 2, "fixture must carry at least two entries to split"
+    rotated, active = entries[0], entries[-1]
+
+    (tmp_path / "JOURNAL.md").write_text(active, encoding="utf-8", newline="\n")
+    (tmp_path / "JOURNAL-legacy-2026-01.md").write_text(rotated, encoding="utf-8", newline="\n")
+
+    tiled = ja.journal_text(tmp_path)
+    assert active in tiled and rotated in tiled
+
+    # order is date order: legacy tiles follow the active file, sorted among themselves
+    (tmp_path / "JOURNAL-legacy-2025-12.md").write_text(
+        "### older tile 0000000\n", encoding="utf-8", newline="\n")
+    tiled2 = ja.journal_text(tmp_path)
+    assert tiled2.index("older tile") < tiled2.index(rotated[:40])
+
+    # and a file that is NOT a legacy tile is never swept in
+    (tmp_path / "JOURNAL-notes.md").write_text(
+        "### decoy 1111111\n", encoding="utf-8", newline="\n")
+    assert "decoy" not in ja.journal_text(tmp_path)
+
+
+def test_a_legacy_lookalike_without_an_iso_span_is_not_swept_in():
+    """`JOURNAL-legacy-notes.md` is NOT a tile -- terra HIGH, 2026-08-28.
+
+    The failure this prevents is a FALSE GREEN on the ADR-85 hard leg: a stray file swept
+    into the anchoring universe can carry a SHA and mark a spine entry anchored that nothing
+    actually anchors. The ISO prefix is the discriminator, and it is also what makes the
+    lexical sort equal date order, so this test pins both properties at once.
+    """
+    accepted = ja._legacy_names([
+        "JOURNAL-legacy-2026-01.md",
+        "JOURNAL-legacy-2025-12-31.md",
+        "JOURNAL-legacy-2024.md",
+        "JOURNAL-legacy-notes.md",      # no ISO span -- rejected
+        "JOURNAL-legacy-.md",           # degenerate -- rejected
+        "JOURNAL-notes.md",             # not a legacy name at all
+        "JOURNAL.md",
+    ])
+    assert accepted == [
+        "JOURNAL-legacy-2024.md",
+        "JOURNAL-legacy-2025-12-31.md",
+        "JOURNAL-legacy-2026-01.md",
+    ]
+    assert accepted == sorted(accepted), "lexical order must equal date order"
+
+
+def test_tiling_covers_the_rev_path_not_only_the_working_tree(tmp_path):
+    """Both organs must see the same universe -- and they read it differently.
+
+    `check_journal_spine_anchor` reads the working tree; `block_unanchored_push` reads at a
+    git rev. A tiling that covered only one of them would make the pre-push HARD leg and the
+    audit backstop disagree about what is anchored, which is the exact drift `journal_anchor`
+    exists to prevent.
+    """
+    repo = tmp_path
+    for args in (["init", "-q"], ["config", "user.email", "t@t"],
+                 ["config", "user.name", "t"]):
+        subprocess.run(["git", *args], cwd=repo, check=True, capture_output=True)
+    (repo / "JOURNAL.md").write_text("### active aaaaaaa\n", encoding="utf-8", newline="\n")
+    (repo / "JOURNAL-legacy-2026-01.md").write_text(
+        "### rotated bbbbbbb\n", encoding="utf-8", newline="\n")
+    subprocess.run(["git", "add", "-A"], cwd=repo, check=True,
+                   capture_output=True)
+    subprocess.run(["git", "commit", "-m", "tiled"], cwd=repo, check=True,
+                   capture_output=True)
+
+    at_rev = ja.journal_text(repo, "HEAD")
+    in_tree = ja.journal_text(repo)
+    assert "rotated bbbbbbb" in at_rev, "the rev path must include legacy tiles"
+    assert at_rev == in_tree, "rev and working-tree reads must agree"

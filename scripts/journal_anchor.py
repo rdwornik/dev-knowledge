@@ -42,6 +42,17 @@ from pathlib import Path
 from typing import NamedTuple
 
 _JOURNAL = "JOURNAL.md"
+#: Rotation tiling ([#608], ruling X5: rotate the FILE, not the PREDICATE). The
+#: anchoring universe is `JOURNAL.md` PLUS any `JOURNAL-legacy-*.md`, so a future
+#: split changes which file a byte lives in and changes nothing a gate can observe.
+#: No gate is re-taught a new concept -- that is the whole point of landing the seam
+#: before any content moves.
+#: A legacy tile is `JOURNAL-legacy-<ISO-span>.md`. The ISO prefix is REQUIRED, not
+#: decorative: it is what makes a plain lexical sort equal date order, and it is what
+#: keeps a stray `JOURNAL-legacy-notes.md` out of the anchoring universe. A file swept
+#: in by accident can mark a spine entry anchored that nothing actually anchors --
+#: a FALSE GREEN on the ADR-85 hard leg (terra HIGH, 2026-08-28).
+_LEGACY_RE = re.compile(r"^JOURNAL-legacy-\d{4}(?:-\d{2}){0,2}[A-Za-z0-9._-]*\.md$")
 _SHORT = 7
 
 # Only a FULL 40-hex object name is an immutable cache key. A ref (`main`, `HEAD`, a short
@@ -115,19 +126,68 @@ def floor_sha(repo: Path) -> str:
     return found[0]
 
 
-def journal_text(repo: Path, rev: str | None = None) -> str:
-    """JOURNAL.md content -- at `rev` when given, else the working tree.
+def _legacy_names(names: "list[str]") -> list[str]:
+    """`JOURNAL-legacy-*.md` names from `names`, sorted -- date order by construction.
 
-    The pre-push organ reads it at the LOCAL TIP being pushed (the anchor commit is inside
-    the range, so the working tree and the tip can differ); the audit backstop reads the
-    working tree, which is what a ship-gate run is judging.
+    The rotation convention is `JOURNAL-legacy-<span>.md` with an ISO-prefixed span, and the
+    prefix is ENFORCED (`_LEGACY_RE`) rather than assumed -- which is what earns the claim that
+    a plain lexical sort IS date order. Sorting explicitly (rather than trusting the order git
+    or the filesystem hands back) is what makes the tiled read deterministic across platforms
+    -- the same reasoning `silent_rule_detector` records for its own corpus ordering.
+
+    HONEST LIMIT (terra HIGH, 2026-08-28, accepted rather than papered over): this discovers
+    the tiles that ARE there. A tile that was rotated out and then DELETED is not detectable
+    here, because nothing declares which tiles ought to exist -- and the failure is the bad
+    direction, a SHRUNKEN anchoring universe reporting a false gap. Closing it needs a
+    declared tile manifest, which is a design act with a governance cost; `[#608]` is scoped
+    to a seam that moves zero bytes and takes no such act. Handed on as a candidate rather
+    than silently owned.
+    """
+    return sorted(n for n in names if _LEGACY_RE.match(n))
+
+
+def journal_text(repo: Path, rev: str | None = None) -> str:
+    """The JOURNAL universe -- `JOURNAL.md` tiled with sorted `JOURNAL-legacy-*.md`.
+
+    At `rev` when given, else the working tree. The pre-push organ reads it at the LOCAL TIP
+    being pushed (the anchor commit is inside the range, so the working tree and the tip can
+    differ); the audit backstop reads the working tree, which is what a ship-gate run is
+    judging.
+
+    TILING ([#608], ruling X5 -- rotate the FILE, not the PREDICATE). Both anchoring organs
+    ask one question: does the JOURNAL name this SHA? Rotation must not change the answer, so
+    the tiling happens HERE, at the single read both organs already share, rather than in a
+    predicate either of them would have to be re-taught.
+
+    ZERO BYTES MOVE when no legacy file exists, and that is a property rather than a
+    coincidence: with an empty legacy list the return value is the single-file read, byte for
+    byte -- no separator is introduced, no trailing newline is normalised. The seam is
+    therefore inert until a rotation actually happens, which is exactly why it can land ahead
+    of one. `test_tiled_read_is_byte_identical_with_no_legacy_files` pins that.
+
+    A legacy file that exists but cannot be read is an ERROR, never a silent omission: a
+    dropped tile silently SHRINKS the anchoring universe, which turns an anchored spine entry
+    into a reported gap. Same fail-loud posture as the rest of this module.
     """
     if rev is None:
         try:
-            return (repo / _JOURNAL).read_text(encoding="utf-8")
+            names = _legacy_names([p.name for p in repo.iterdir() if p.is_file()])
         except OSError as exc:
-            raise AnchorError(f"cannot read {_JOURNAL}: {exc!r}") from exc
-    return _git(repo, "show", f"{rev}:{_JOURNAL}")
+            raise AnchorError(f"cannot enumerate {repo} for legacy journals: {exc!r}") from exc
+        try:
+            parts = [(repo / _JOURNAL).read_text(encoding="utf-8")]
+            parts += [(repo / n).read_text(encoding="utf-8") for n in names]
+        except OSError as exc:
+            raise AnchorError(f"cannot read {_JOURNAL} (or a legacy tile): {exc!r}") from exc
+    else:
+        listing = _git(repo, "ls-tree", "--name-only", rev)
+        names = _legacy_names(listing.splitlines())
+        parts = [_git(repo, "show", f"{rev}:{_JOURNAL}")]
+        parts += [_git(repo, "show", f"{rev}:{n}") for n in names]
+
+    if len(parts) == 1:
+        return parts[0]          # byte-identical to the pre-tiling read
+    return "\n".join(parts)
 
 
 def spine_entries(repo: Path, rev_range: str) -> list[str]:
