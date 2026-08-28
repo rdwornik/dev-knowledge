@@ -47,14 +47,30 @@ repos:
     deployed_methodology_version: null
     deployed_date: null
     source_tag: null
-  win-tooling:
-    # ADMITTED pre-deploy, 2026-08-26 — the registry key is a PRECONDITION, not a claim that
-    # anything was deployed. `deploy/tool.py:253` refuses an unregistered repo before it reads
-    # a manifest, so wave 3 cannot even run assess against win-tooling without this key. All
-    # three fields stay null (the corp-ops / corp-sca shape) until a real deploy writes them.
-    # Evidence: docs/audits/2026-08-26-technical-w3prep-recon.md (blocker B2, step 2). It does
-    # NOT flip the parity role — `ecosystem/parity-surfaces.yaml` declares `role:` as
-    # hand-maintained data and win-tooling stays `pre-deploy` until a deploy actually lands.
+  terminal-setup:
+    # ADMITTED pre-deploy, 2026-08-29 ([#604] fold) — same shape and same reason as the
+    # win-tooling admission below carried before its deploy: the registry key is a
+    # PRECONDITION (`deploy/tool.py` refuses an unregistered repo before it reads a
+    # manifest), not a claim that anything was deployed. All three fields stay null.
+    # terminal-setup is a declared fleet member (ADR-104, registered 2026-08-01 [#462])
+    # that is methodology-unonboarded: 2 commits, no VISION.md, no CLAUDE.md, no deploy
+    # record. Its onboarding PROFILE is ruled separately in
+    # ecosystem/satellite-onboarding-rulings.yaml. This key does NOT flip the parity role
+    # — `ecosystem/parity-surfaces.yaml` keeps terminal-setup `pre-deploy` until a deploy
+    # actually lands, which is exactly the correction [#604] exists to preserve.
     deployed_methodology_version: null
     deployed_date: null
     source_tag: null
+  win-tooling:
+    # DEPLOYED 2026-08-29 — release v1.4.0, the wave-3 first slice ([#606]). Admitted
+    # pre-deploy 2026-08-26 with all fields null (evidence:
+    # docs/audits/2026-08-26-technical-w3prep-recon.md, blocker B2, step 2); this is the
+    # deploy that earns the values. Written by the lane rather than by
+    # `deploy/tool.py --execute` because the RULING-W shape binds the deploy to a consumer
+    # WORKTREE and the tool resolves the consumer as `hub_root.parent / repo` with no
+    # override — so the lane drove the tool's own carriers against the worktree and writes
+    # the record here. The value does not precede its release: v1.4.0 resolves both locally
+    # and on origin at c57ac188. Witness: docs/audits/2026-08-28-technical-nb2-a-packet.md.
+    deployed_methodology_version: "1.4.0"
+    deployed_date: "2026-08-29"
+    source_tag: "v1.4.0"
