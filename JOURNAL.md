@@ -19,6 +19,62 @@
 
 ---
 
+### 2026-08-28 (f) - CC (Opus 5, background job, primary checkout, branch `docs/handoff-2026-08-28`): the residency question is ANSWERED, and the re-fold's first attempt tripped the boot-byte budget by re-narrating the answer it was pointing at
+
+**Did:** operator appended a role-residency answer to `SUPPLEMENT.md`'s ANSWERS **after** the first
+fold. Committed the delta, re-assembled `PASTE_THIS.md`, re-ran the gates and the stale-prose
+sweep, flipped the residual caution the answer invalidated, and resolved the answer's three named
+HOMES on disk.
+
+**Result:** `PASTE_THIS.md` **47,818 B** — under the A10 boot budget. `validate_residual_completeness`
+OK, `check_seal_identity` exit 0, cold-state and stale-residency sweeps both zero. Branch pushed.
+
+**Supersedes entry (e)'s headline.** That entry recorded OPEN QUESTION 1 as outranking the whole
+G-list and the role-residency HOME as **unproven**, with revert-to-inlining as the ruled fallback.
+It is now **RESOLVED**: ONE fleet-wide claude.ai Project (*Dev - Architect Seat*) hosts every
+architect window, its knowledge holding **exactly one** file (`HANDOFF_BOOT.md`) because Projects
+fall back to RAG retrieval past the context threshold and a chunked role would break the PIN's
+verbatim guarantee; version check mandatory, `sha256` best-effort; per-repo projects rejected
+because N role copies **is** the measured version-drift disease. The v6.3.0 PIN therefore has
+something to verify and the fallback is **not** taken. JOURNAL is append-only, so this entry
+carries the correction.
+
+**The negative headline, and it is mine.** The caution flip was first written to *restate* the
+residency mechanism - and pushed the paste to **48,217 B**, tripping the assembler's own A10
+boot-byte warning for **re-narration creep (RF-6)**. The mechanism was already in the paste
+verbatim, three hundred lines below, in the folded supplement. **I re-narrated the very answer the
+caution exists to point at** - the §2/§3 disease this protocol was rewritten to kill, committed by
+the seat that had just written a frontier item about unwritten rules. Trimmed to a pointer:
+**47,818 B**, warning cleared. **The generalisable half: a fold makes the paste the largest it will
+ever be, so the re-fold pass is exactly when a pointer is most likely to be rewritten as a
+restatement — and the byte budget is the only organ that notices.**
+
+**Two self-contradictions repaired without touching operator text.** The operator's new item landed
+*below* the first CC verification block, whose header asserted that all operator answers were
+above it; that header is **my** text, so it was scoped to the first fold and made to point forward
+rather than relocating the operator's words. And the answer **supersedes the operator's own
+answer-4** (*"ROLE RESIDENCY HOME - settle in the first minutes ... UNPROVEN"*), which is left
+verbatim: without a supersession note the paste would carry an open question and its answer with
+nothing saying which won. A CC SECOND PASS block records it.
+
+**One locator did not resolve, and it is flagged rather than guessed.** Of the answer's three named
+HOMES, `protocols/OPERATOR-INTERFACE.md` resolves and the HANDOFF_PROCESS role clause resolves
+(residency clause + ROLE PIN). **"PLAYBOOK's session-setup section" does not exist** - there is no
+such heading. Two different destinations are plausible: PLAYBOOK **Ch8 "Session boundaries"** and
+the **separate file** `protocols/SESSION_SETUP.md`. Recorded as AMBIGUOUS per the M1 resolve-a-
+locator rule; the next seat picks the home before landing the pointer instead of letting whichever
+file it opens first decide.
+
+**Abandoned:** nothing. No merge taken - operator-authorised per-act.
+
+**Changes:** `docs/handoffs/2026-08-28-dev-knowledge-architect/` (supplement delta + CC second-pass
+verification; residual caution flipped then trimmed; paste re-assembled).
+
+**Anchors:** d44941ea (the re-fold, the caution flip and the locator resolution).
+
+**Next:** paste `PASTE_THIS.md` into a fresh architect chat in the *Dev - Architect Seat* Project.
+First boot verifies the PIN against the project knowledge file.
+
 ### 2026-08-28 (e) - CC (Opus 5, background job, primary checkout, branch `docs/handoff-2026-08-28`): the supplement is filled and folded - and the fold's own reflow gap is caught by the sweep the LESSON prescribes
 
 **Did:** operator returned all seven `SUPPLEMENT.md` answers; committed the filled file, folded the
