@@ -431,3 +431,47 @@ no-ruling fork / out-of-scope path (P1).
    merge command).
 4. **C-5 before the next win-tooling session** — three canonical stamps need a genuine
    re-read, or the newly-armed `canonical_freshness` gate blocks every commit there.
+
+---
+
+## AMENDMENT 1 — 2026-08-29, terra pass 3 (in-file marker per CLAUDE.md §5 rule 3)
+
+Pass 2's HIGH *"consumer patch references files it does not add"* was a false positive caused
+by a path-scoped diff. Pass 3 re-ran the reviewer against the **complete, unscoped** consumer
+diff (`53a1d02..HEAD`, 1,630 lines) plus the hub diff including this packet.
+
+**`TALLY: C=0 H=3 M=0 L=0`.** Zero CRITICALs. All three HIGHs are in the **carried replica
+content the carriers ship verbatim from the hub** — none is in this lane's authored changes,
+and none is fixable from a consumer without editing a hub-owned carrier source, which is a
+fleet-wide act affecting every consumer.
+
+- **C-7 — the carried mesh payload advertises an organ the consumer does not receive.**
+  `.claude/commands/override.md` and `scripts/session_end_backpressure.py` both describe
+  `scripts/block_unanchored_push.py` as the live hard leg. The `enforcement-mesh` carrier
+  ships neither that script nor a hook for it, so a consumer reads that its pushes are gated
+  when they are not. The prose is the hub's own organ inventory, shipped unmodified. Either
+  the mesh carrier grows the hard leg, or the carried text states the consumer's
+  advisory-only posture. *Hub-owned; fleet-wide; out of this lane's write-scope.*
+- **C-8 — the carried `INSTALL.md` instructs a step against a removed component.** It tells
+  the reader to copy `assets/ruff-pre-commit.yaml` and promises a ruff gate. The asset is
+  absent and `ruff-gate` has been `status: removed` since 1.2.0 in the same manifest that
+  carries the doc — so the install guide contradicts its own release. *Hub-owned
+  (`plugins/tier1-lifecycle/INSTALL.md`); fleet-wide; out of scope.*
+- **RE-LITIGATION, NOT A FINDING — the carried `docs/intake/README.md` ships the hub's
+  generated index.** Terra rated it HIGH; it is **ruled ACCEPTED AS SHIPPED by the operator,
+  2026-08-08**, on the `[#280]`/`[#315]` deploy-doc-carrier lane, because what ships is
+  literally what ADR-98 ruling 1, `deploy/release-v1.3.x-contract.md` §3.2 and the `[#280]`
+  row each specify. That ruling also forbids transforming `docs/intake/*` in-flight. Not
+  re-raised, and nothing under `docs/intake/` was touched.
+
+  **But its safety premise has now expired, and that is new.** The ruling stood on the fact
+  that *manifest v1.4.0 was untagged, so no consumer had yet received the dead-link index*,
+  with the real fix pegged to land **before the operator tags v1.4.0**. v1.4.0 **is** tagged
+  (`c57ac188`, local and origin), and **win-tooling is the first consumer to receive the
+  index** — a hub-generated block claiming 55 documents and linking to files the consumer
+  does not have, with a regeneration command naming a hub-only script. The deadline passed
+  without the fix. Filed as **C-9**, not as a defect to fix here: the ruling is the
+  operator's to revisit.
+
+None of the three changes any verdict in section 1. Section 3's tally line stands as written
+for passes 1 and 2; this amendment is pass 3.
