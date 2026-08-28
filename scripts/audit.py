@@ -40,7 +40,7 @@ import sys
 import tempfile
 import time
 from collections import Counter
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from datetime import date, datetime, timezone
@@ -600,20 +600,70 @@ def append_history(state: RepoState, run_date: date) -> None:
         fh.writelines(lines)
 
 
-def resolve_repo_path(repo_name: str, stored_path: Optional[str]) -> Path:
+# Consumer-root resolution ([#605]) — the same precedence, env vars and registry file as
+# `deploy/tool.py::resolve_repo_root`, which states it in full above its own resolver.
+# The two are deliberately NOT folded: deploy/ and scripts/ are separate import roots, and
+# audit.py is the `audit-health` pre-commit gate — it must not pull in tool.py's
+# click/rich/carrier graph to answer where a repo is. [#605] was ruled KEPT SEPARATE from
+# [#294] for the same reason. Duplicated CONSTANTS with a shared name are what makes the
+# two modules agree; a fold, if ever wanted, is a deliberate act with its own reason.
+FLEET_ROOT_ENV = "DEV_KNOWLEDGE_FLEET_ROOT"
+REPO_ROOT_ENV_PREFIX = "DEV_KNOWLEDGE_REPO_ROOT_"
+
+
+def repo_root_env_var(repo_name: str) -> str:
+    """The env-var name carrying an explicit working-tree path for `repo_name`.
+
+    `ai-council` -> `DEV_KNOWLEDGE_REPO_ROOT_AI_COUNCIL`. Derived from the registry key
+    rather than listed, so a newly registered consumer needs no code change.
+    """
+    slug = re.sub(r"[^A-Za-z0-9]+", "_", repo_name).strip("_").upper()
+    return f"{REPO_ROOT_ENV_PREFIX}{slug}"
+
+
+def resolve_repo_path(
+    repo_name: str,
+    stored_path: Optional[str],
+    *,
+    explicit: Optional[str] = None,
+    env: Optional[Mapping[str, str]] = None,
+) -> Path:
     """The tree to audit for `repo_name` — the seam where the hub finds itself.
 
     The hub always audits the tree audit.py lives in, never the absolute path committed to
     its state.yaml: that value is machine- and checkout-specific, so from any other tree the
     hub failed to recognise itself and every hub-only check skipped as `n/a` ([#465]).
-    Consumers keep resolving through their stored path — for them it is the only thing that
-    says where the repo is.
+
+    For a CONSUMER, resolution is an explicit precedence, sibling-LAST ([#605]):
+
+    1. `explicit` — `audit repo <name> --repo-path <path>`;
+    2. `DEV_KNOWLEDGE_REPO_ROOT_<SLUG>` — the substrate-portable override, and the step
+       that makes `audit repo <name>` runnable from a checkout with NO sibling tree;
+    3. `stored_path` — `path:` from `ecosystem/<repo>/state.yaml`, the fleet's per-repo
+       path registry. It is gitignored (machine-specific), so on a fresh checkout it says
+       nothing, which is exactly why steps 1-2 exist rather than this one being enough;
+    4. the sibling default `<dev>/<repo>`, where `<dev>` is `DEV_KNOWLEDGE_FLEET_ROOT`
+       when set and `_REPO_ROOT.parent` otherwise.
+
+    `explicit` is checked before the hub short-circuit because `--repo-path` already
+    outranked it at the CLI; `env` and the registry are NOT, so no environment can undo
+    the [#465] binding of the hub to its live tree.
+
+    With no override set, a consumer resolves exactly as it did before [#605].
     """
+    environ = os.environ if env is None else env
+    if explicit:
+        return Path(explicit).resolve()
     if repo_name == HUB_REPO_NAME:
         return Path(_REPO_ROOT)
+    from_env = environ.get(repo_root_env_var(repo_name), "").strip()
+    if from_env:
+        return Path(from_env).resolve()
     if stored_path:
         return Path(stored_path)
-    return Path(_REPO_ROOT).parent / repo_name
+    fleet_root = environ.get(FLEET_ROOT_ENV, "").strip()
+    parent = Path(fleet_root) if fleet_root else Path(_REPO_ROOT).parent
+    return parent / repo_name
 
 
 def discover_repos() -> list[str]:
@@ -4838,13 +4888,21 @@ def cmd_run(repo_path: Optional[str]) -> None:
 
     --repo-path bootstraps a not-yet-registered repo: it creates that repo's
     state.yaml and permanently registers it, then runs. It does NOT refresh the
-    derived ecosystem/index.yaml — follow with `registry update` for that.
+    derived ecosystem/index.yaml — follow with `registry update` for that. The
+    bootstrapped path is the operator's EXPLICIT answer for that repo and outranks
+    every other resolution step for this run ([#605]).
 
     Examples:
         python scripts/audit.py run
         python scripts/audit.py run --repo-path ../corp-monorepo
     """
     run_date = date.today()
+
+    # (name, path) of the repo bootstrapped by --repo-path, else None. Held rather than
+    # left to be re-read from state.yaml: since [#605] the env var outranks the stored
+    # path, so a set DEV_KNOWLEDGE_REPO_ROOT_<SLUG> would otherwise silently audit a
+    # different tree than the one the operator just registered on this command line.
+    bootstrapped: Optional[tuple[str, str]] = None
 
     if repo_path:
         rp = Path(repo_path).resolve()
@@ -4854,6 +4912,7 @@ def cmd_run(repo_path: Optional[str]) -> None:
         bootstrap_state = RepoState(name=repo_name, path=str(rp),
                                     last_audit=None, findings=[])
         save_state(bootstrap_state)
+        bootstrapped = (repo_name, str(rp))
 
     names = discover_repos()
     if not names:
@@ -4874,7 +4933,15 @@ def cmd_run(repo_path: Optional[str]) -> None:
     try:
         for name in names:
             existing = load_state(name)
-            rp = resolve_repo_path(name, existing.path if existing else None)
+            stored = existing.path if existing else None
+            # The non-bootstrap call stays two-positional deliberately: `resolve_repo_path`
+            # is a documented monkeypatch seam (tests/test_writer_integrity.py substitutes a
+            # two-argument lambda), so the `explicit=` keyword is passed only on the one
+            # branch that has an explicit answer to pass.
+            if bootstrapped is not None and name == bootstrapped[0]:
+                rp = resolve_repo_path(name, stored, explicit=bootstrapped[1])
+            else:
+                rp = resolve_repo_path(name, stored)
             state = audit_repo(name, rp, run_date)
             states.append(state)
             if state.name == HUB_REPO_NAME:
@@ -4914,7 +4981,9 @@ def cmd_run(repo_path: Optional[str]) -> None:
 @cli.command("repo")
 @click.argument("name")
 @click.option("--repo-path", "repo_path", default=None,
-              help="Override filesystem path (bootstrap or ad-hoc).")
+              help="Consumer working-tree path, overriding every other resolution step. "
+                   "Without it: DEV_KNOWLEDGE_REPO_ROOT_<SLUG>, then the stored path in "
+                   "ecosystem/<repo>/state.yaml, then the sibling default ([#605]).")
 def cmd_repo(name: str, repo_path: Optional[str]) -> None:
     """Audit a single repo by name.
 
@@ -4923,22 +4992,25 @@ def cmd_repo(name: str, repo_path: Optional[str]) -> None:
     ON the `automation/fleet-audit` branch (ADR-84 writer isolation) -- the working
     tree is restored afterwards, so the file is NOT left in your checkout. Read it
     with `git show automation/fleet-audit:docs/audits/...`; the command prints the
-    exact invocation. Exits 1 on any failure. Pass --repo-path to override the
-    stored path (bootstrap or ad-hoc location).
+    exact invocation. Exits 1 on any failure.
+
+    Where the tree comes from ([#605]): --repo-path, else
+    DEV_KNOWLEDGE_REPO_ROOT_<SLUG>, else the stored path in ecosystem/<name>/state.yaml,
+    else the sibling default. The env var is the step that makes this command runnable
+    from a checkout with no sibling tree — the state file is gitignored, so on a fresh
+    clone of the hub alone there is no stored path to fall back to.
 
     Examples:
         python scripts/audit.py repo ai-council
         python scripts/audit.py repo corp-monorepo --repo-path ../corp-monorepo
+        DEV_KNOWLEDGE_REPO_ROOT_AI_COUNCIL=/srv/ai-council python scripts/audit.py repo ai-council
     """
     run_date = date.today()
     existing = load_state(name)
 
-    if repo_path:
-        rp = Path(repo_path).resolve()  # explicit override wins over the resolver
-    else:
-        rp = resolve_repo_path(name, existing.path if existing else None)
-        if not existing:
-            click.echo(f"No state.yaml for {name}; assuming path {rp}")
+    rp = resolve_repo_path(name, existing.path if existing else None, explicit=repo_path)
+    if not repo_path and not existing:
+        click.echo(f"No state.yaml for {name}; assuming path {rp}")
 
     state = audit_repo(name, rp, run_date)
     save_state(state)
