@@ -1,5 +1,5 @@
 ---
-batch: batch-1-2026-08-28
+batch: 1
 status: open
 closed_by: docs/audits/2026-08-28-technical-batch1-end-of-batch-packet.md
 ---
@@ -15,6 +15,11 @@ the dispatch-time measurements — lives at**
 `docs/audits/2026-08-28-technical-batch1-launch-contracts/` (`MANIFEST.md` plus the
 operator's frozen `BATCH1-LANE-CONTRACTS-2026-08-28.md`). That directory is the record; this
 file is the key.
+
+**Schema note.** `batch:` is a BARE NUMBER. `tests/test_batch_manifest.py::test_the_live_repos_own_manifest_is_well_formed` asserts `b.batch.isdigit()` over the LIVE
+manifest, so a descriptive value like `batch-1-2026-08-28` REDs the suite. That test exists
+because a malformed manifest grants no exemption silently — which this batch then proved
+twice, once by path and once by schema.
 
 ## What this manifest grants, stated precisely
 
