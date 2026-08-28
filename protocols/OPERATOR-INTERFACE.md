@@ -102,6 +102,29 @@ in the paste body.
 
 ---
 
+## 6. The architect seat is ONE fleet-wide Project — "Dev — Architect Seat" (LIVE)
+
+**Landed state as of 2026-08-28**, recorded as what exists rather than as a proposal. One
+claude.ai Project hosts every architect window across every repo in the fleet; §5's install act is
+performed against this Project.
+
+- **Project knowledge holds exactly ONE file** — `protocols/HANDOFF_BOOT.md`. The reason is the
+  RAG threshold: past a certain knowledge size a Project stops carrying its knowledge inline and
+  falls back to retrieval, and a *retrieved* role is one the seat may or may not be shown on any
+  given turn. Holding the knowledge to a single file keeps the role resident, which is the property
+  §5's version-refusal pin depends on to have teeth.
+- **Project instructions hold the pointer plus the version-refusal rule** — the three-line ROLE PIN
+  of §5 and its refusal sentence, and nothing further. Instructions that restate the role would
+  reintroduce the second copy this arrangement removes.
+- **Per-repo projects were rejected, on measurement.** One Project per repo means N copies of the
+  same role drifting apart independently — the version-drift disease already measured in this
+  corpus, arriving by a new route. One seat, one role, one place it lives.
+
+The scope of this entry is residency. What the role file *says* is `HANDOFF_BOOT.md`'s own content;
+what obliges it to reach the browser at all is `HANDOFF_PROCESS.md`.
+
+---
+
 ## Scope, and what this file is not
 
 This file records the **transport**. It rules nothing about content, routing, or authority:

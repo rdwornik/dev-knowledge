@@ -19,6 +19,103 @@
 
 ---
 
+### 2026-08-28 (i) - CC (Opus 5, background job, primary checkout, branch `docs/phase0-codify-rule-file`): phase 0 - the window's ratified-in-chat register is codified, four open design questions are RULED, and the filing wave lands legally
+
+**Did:** executed `PHASE0-CONTRACT-2026-08-28.md` items 0-DISPATCH and 0a-0h serially. Three kinds
+of act, no fourth: **codify** what was ratified in chat but never written (0a), **rule** the four
+open design questions (0b-0e), **file** the funnel objects those rulings unblock (0f). Plus
+premise-verification for the next session's first slice (0g) and one regeneration (0h). Governance
+surfaces only - **no code shipped, no machinery built, and no ADR authored** (0e withholds the
+wave-2 router ADR explicitly, and that withholding was honoured).
+
+**0-DISPATCH.** Copied row 2 of PLAYBOOK Ch8's dispatch table (the SOLE literal-command site)
+rather than composing a line - the defect class that cost ~30 consecutive seats their lane
+(register section V). Layer-1 cut: Q1 no gate dependency, Q2 no operator-disk state, **Q3 yes,
+read-only reconnaissance -> CLOUD**. CLOUD is Anthropic's transport, not the GitHub-compute rung
+the contract's substrate note bars on ruling W4, so the note is respected rather than routed
+around. `Dispatch-Cloud` fired with all three receipt gates green (G1 created, G2 bound to
+`git_repository`, G3 receipt at 42 s).
+
+**Result - what LANDED.** 0a: B1 (handoff merge is ATOMIC WITH TEARDOWN) landed as a **mechanism**
+in both named homes - an ordered command block in `.claude/commands/handoff.md` ending in
+`git merge-base --is-ancestor` (the proof) then `branch -d` **and** `push origin --delete` (the
+origin half is the one that gets forgotten), plus the matching rule leg with a `verify:` line in
+`git-discipline.md`. B2 (role-residency third home = `SESSION_SETUP.md`, pointer only) and B3 (the
+single fleet-wide "Dev - Architect Seat" Project, recorded as landed state) at their homes. Source
+B's five terms at their named PLAYBOOK/LESSONS homes. 0b-0e: register **section Z** carries all
+four rulings - Z-G1 funnel-vs-births, Z-G2 ARC-G's scoped template licence, Z-G3 the substrate
+amendment (U(b) is CONDITIONAL on W4's three defects; until they close the default is LOCAL) with
+the A2 in-repo routing-table residency, Z-G4 green-by-skip. 0f: `[#612]`, `[#613]` and intake 61
+born against a banked ledger of 5, three CANDIDATEs recorded at Z-C.
+
+**The finding worth the session, and it changed an item rather than confirming it.** The contract
+required a grep before filing the graph-library CANDIDATE, flagging it as *an operator recollection,
+not a repo fact*. The grep refutes the framing in the most useful direction: prior intent is not
+absent, it is recorded **and already partly RULED**. The north-star intake's 2026-08-22 amendment
+dispositions the graph library as NOT ADOPTED (ruling R-A, on measurement - at 11,684 edges stdlib
+`sqlite3` answers reachability/orphan/degree in 1-4 ms; a graph library wins on cycles/SCC alone),
+states **"if a consumer is ever named, the library is `rustworkx`, not `networkx`"**, and closes
+with *"recorded so the question is closed with evidence and is not re-researched"*. ADR-105 §2 bars
+activation while no consumer exists. So filing *networkx vs rustworkx* as an open evaluation would
+have re-researched a question ruled closed six days earlier. **The candidate is narrowed instead**
+to what R-A genuinely leaves open: whether the hub's own hand-rolled graph surfaces ARE that named
+consumer - R-A measured the dependency graph, not them.
+
+**The constraint that shaped the prose, stated because it will shape the next seat's too.** The
+silent-rule ratchet measures `must|shall|never` occurrences over `protocols/*.md` + `templates/**`
++ `ecosystem/*.yaml`, and **live measurement equals the committed baseline exactly: 443 = 443, zero
+headroom.** The detector reads STAGED blobs, so a single added token REDs `silent_rule_ratchet` and
+`audit-health` blocks the commit; raising the baseline is an operator ruling by the file's own
+header. Every `protocols/` addition this phase is therefore phrased declaratively, and the two
+ratified terms whose wording carries a scored token (*"never enumerate it"*, *"HISTORICAL-IMMUTABLE
+- never touched"*) carry that wording verbatim in `LESSONS.md`, which is at root and outside the
+detector's scope roots. **Nothing was dropped, nothing was reworded to dodge meaning, and the
+baseline was not touched.** `STANDING_RULINGS.md` is excluded from scope post-R12, which is why
+section Z could be written normatively. Verified 443 before and after every act.
+
+**0g - premise verification only** (the architect authors the contract; CC re-derives premises).
+Three of the four premises do NOT hold as stated, and all three make the next session's first slice
+**smaller**, not larger. Step 0 is discharged (`v1.4.0` at `c57ac188`, local and origin) and a live
+`deploy win-tooling --target v1.4.0` assess ran end-to-end and printed a full seven-carrier plan -
+preflight is genuinely unblocked, verified by running it rather than by reading the tag. **Step 1
+is half-landed**: the private `origin` EXISTS and is reachable, so the mechanism is done, but 10 of
+11 local branches still have no upstream, so the *purpose* the recon gave it - backing up the
+local-only branches - is not achieved. **Step 3 is DONE**: the recon says win-tooling *"has no
+entry"* in `satellite-onboarding-rulings.yaml`; it has carried `profile: full` since 2026-08-26.
+And the recon's step-2 line says admission *"flips its parity role pre-deploy -> consumer"*, while
+the registry key that actually landed states in its own comment that it does **NOT** flip the
+parity role. Of steps 1-4, only **step 4** is substantially outstanding.
+
+**0h - the regeneration ran and is a NO-OP, so the item's premise does not hold.** Re-assembly
+emitted 47,997 B, byte-identical to what is committed (`git diff` empty). The contradiction 0h
+exists to close is still live, and re-assembly cannot close it: the paste's *"tag `v1.4.0` ... are
+outstanding"* line is SUPPLEMENT answer **6** (`SUPPLEMENT.md:133`) - the operator's own words,
+which the bundle's verification block declares UNCHANGED by design - while the AMENDED marker sits
+at `:172` under the CC block. Both fold into the paste faithfully, 35 lines apart. Closing it needs
+an amendment marker adjacent to `:133`, and `SUPPLEMENT.md` is **outside this contract's declared
+write-scope** - a P1 hard trigger. Deferred to the operator rather than taken, and reported rather
+than silently skipped. Entry (h)'s three-byte headroom is the other reason to route this to
+`[#611]` v7 rather than to another fold.
+
+**Changes:** `.claude/commands/handoff.md`, `.claude/rules/git-discipline.md`,
+`protocols/{SESSION_SETUP,OPERATOR-INTERFACE,PLAYBOOK,STANDING_RULINGS}.md`, `LESSONS.md`,
+`tasks/{612,613}-*.md` + `tasks/manifest.json` + regenerated `BACKLOG.md`,
+`docs/intake/2026-08-28-tech-handoff-engine-deployable-carrier.md` + regenerated index.
+
+**Anchors:** 6adac1dc (0a Source A), f9d5f22f (0a Source B), e4f0d4db (0b-0e, register section Z),
+20ec03fc (0f filing wave).
+
+**Abandoned:** nothing silently. 0h deferred with its reason above; the `[#267]` carry-forward
+needed no act - the tension is already recorded on the row itself, verified on disk, and a second
+copy would be the restatement anti-pattern the contract names.
+
+**Next:** operator acts, both P1 and both blocking real work - select `[#613]`'s routing-table path
+(two candidates recorded in its body; execution is blocked until then), and rule whether
+`SUPPLEMENT.md:133` may carry an amendment marker so 0h can close. Then the win-tooling first
+slice, which 0g measures as step 4 alone.
+
+---
+
 ### 2026-08-28 (h) - CC (Opus 5, background job, primary checkout, branch `docs/reassemble-paste-amendment`): the amendment reaches the paste - and the bundle closes the window with THREE bytes of headroom
 
 **Did:** re-assembled `PASTE_THIS.md` so the `v1.4.0` amendment marker folds into the artifact the

@@ -84,6 +84,27 @@ Pomóż mi:
 
 ---
 
+### The browser role file lives in the project, installed once (pointer)
+<!-- scope: llm -->
+
+The architect seat's operating role is `protocols/HANDOFF_BOOT.md`, installed **once** as the
+browser project's own instructions rather than pasted into every session. This file is the third
+home of that arrangement and carries the **pointer only** — the mechanics stay where they already
+live, so three sites cannot drift into three versions:
+
+- **Mechanics** (the one-time install, the ROLE PIN's three lines, what a version refusal means and
+  what the operator does about it) → `protocols/OPERATOR-INTERFACE.md` §5.
+- **Mechanism** (the requirement that the role reaches the browser, and what satisfies it) →
+  `protocols/HANDOFF_PROCESS.md`, §"Browser-role delivery".
+- **Which project** → the single fleet-wide claude.ai Project *"Dev — Architect Seat"*, recorded as
+  landed state in `OPERATOR-INTERFACE.md` §6.
+
+Recorded here because a browser chat is started from this file, so the role install is a
+precondition of Step 2 rather than a detail of the handoff that follows it. Operator ruling
+2026-08-28 (B2): the third home is this file, in place of a new `PLAYBOOK.md` heading.
+
+---
+
 ## Step 3: Work in the Chat
 <!-- scope: hybrid -->
 

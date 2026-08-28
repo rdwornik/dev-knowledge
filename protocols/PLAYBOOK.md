@@ -65,6 +65,7 @@ reconciled_with: handoff-process@6.3.0
   - [File presence (universal baseline)](#file-presence-universal-baseline)
   - [Canonical-file freshness cadence (audit check #10)](#canonical-file-freshness-cadence-audit-check-10)
   - [Multi-surface amendment coherence (audit check `amendment_coherence`)](#multi-surface-amendment-coherence-audit-check-amendment_coherence)
+  - [Measuring the surface, rather than enumerating it](#measuring-the-surface-rather-than-enumerating-it)
   - [Declared-edge reconciliation (audit check `reconciled_versions`)](#declared-edge-reconciliation-audit-check-reconciled_versions)
   - [Prose-vs-state claim coherence (audit check `doc_claims`)](#prose-vs-state-claim-coherence-audit-check-doc_claims)
   - [Doc-rot / history-accretion (audit check `doc_rot`)](#doc-rot--history-accretion-audit-check-doc_rot)
@@ -907,6 +908,21 @@ for the whole ladder: the night-2 research audit, landed on `main` at
 
 Live call site carrying items 1 and 5: `.claude/skills/verify/verify.py` ([#528] leg 1).
 
+#### The cadence — a per-unit budget (ratified 2026-08-28)
+<!-- scope: dev -->
+
+The split above names two tiers; this names how often each is paid, in three units:
+
+- **Per merge** — the targeted checks covering that lane's own diff (Tier A). Every merge pays it.
+- **Per batch** — the full suite is paid exactly **ONCE**, not once per lane.
+- **Where that one payment lands** — integration, on the merged result (Tier B).
+
+Stated as a budget because the failure it prevents is arithmetic. A six-lane batch running an
+undifferentiated full suite per step pays the 918.9 s figure above a dozen times over, on lanes
+whose diffs a targeted selection already covers. Per-lane greens stay evidence about each lane in
+isolation, which is exactly why the one batch-level payment lands on the merged tree rather than
+being spread across lanes that greened before that tree existed.
+
 #### Tests derive from acceptance criteria, not the implementation (circular-testing guard)
 <!-- scope: hybrid -->
 
@@ -1113,6 +1129,35 @@ Append-only (`JOURNAL`, `LESSONS`) and per-session (`BACKLOG`) files are exclude
 `scripts/audit.py` `amendment_coherence` (in `ALL_CHECKS` → runs in `audit health` and `audit run`) reads a declarative manifest — `_COUPLED_VERSION_SETS`, the cross-case **"checklist as data"**. Each `CoupledSet` names an *anchor* (the authority version) and the *surfaces* that must agree with it at a `granularity` (`major`, or `full` with `3.4 == 3.4.0` normalization). A surface left at a stale version is a **straggler → FAIL**. Add a set when a new family of surfaces must track one authority version; the membership criterion is **semantic intent-to-mirror, not mere co-occurrence** of a version string (an incidental mention that versions independently would false-FAIL — anchor the regex on the *intent-bearing construct*). Child-repo-safe: an absent anchor skips the set (the hub-only sets skip entirely on a child → PASS). FAIL-blocking via the `audit-health` pre-commit hook.
 
 **Scope + caveats (honest limits).** This guards only surfaces that **still hand-maintain a version**. The superior fix for a coupled surface is to **de-hardcode** it — make it interpolate the spec version (the handoff skill/templates read `{{VERSION}}`), so there is no static token to go stale; de-hardcoded surfaces carry nothing to compare and are **out of scope by design** (de-hardcoding, not this gate, closes their straggler class). So the gate does **not** by itself prevent a literal v3.4 recurrence — it guards the residual hand-maintained surfaces and is the extensible home for future coupled families. The narrow `handoff_version_stamp` check owns the full `stamp vX.Y` mirrors in `ARCHITECTURE`/`CONTRIBUTING`; `amendment_coherence` is the generalized manifest beside it. Per the prose↔state seam, it does not detect drift on de-hardcoded or unmanifested surfaces.
+
+### Measuring the surface, rather than enumerating it
+<!-- scope: meta -->
+
+**Before a cross-cutting change, grep the repo and classify every hit.** An enumerated list of
+affected sites — the kind a seat writes from memory, or inherits from a previous packet — is a
+fact *carried* rather than *derived*, and it fails in the direction hardest to see: it omits. The
+list reads as complete because every entry on it is real.
+
+**Measured basis (2026-08-28).** The `handoff-process` version sweep resolved to **874 hits**
+across the corpus. Classifying all of them surfaced **six live false statements in a file no list
+named** — a file that no enumeration produced, and that only the measurement reached. The
+operator-ratified wording of this term is recorded verbatim as a lesson in `LESSONS.md`
+(2026-08-28); the chapter states it here in its own declarative voice.
+
+**The three version classes — what "classify every hit" actually produces.** Each hit sorts into
+exactly one class, and the sorting *is* the work:
+
+| Class | What it is | What happens to it |
+|---|---|---|
+| **LIVE-NORMATIVE** | a version claim governing current behaviour | updated to the new version |
+| **STRUCTURAL-LEGAL** | a name that merely *contains* a version — a folder, an archived filename, an id | left alone: a folder name is not a version claim |
+| **HISTORICAL-IMMUTABLE** | a citation of what was true at a past moment | left untouched: rewriting a `v4.4` citation fabricates history |
+
+The third class is where a well-meant sweep does its damage. An unclassified find-and-replace over
+874 hits reaches into immutable records and edits the past silently — the edit looks like
+maintenance and reads, later, like evidence. `amendment_coherence` above gates the LIVE-NORMATIVE
+class on the surfaces it manifests; the other two classes have no gate at all and rest entirely on
+this classification being performed.
 
 ### Declared-edge reconciliation (audit check `reconciled_versions`)
 <!-- scope: meta -->
@@ -4512,6 +4557,15 @@ The task queue is the single canonical home for ALL pending items across session
 **Done-item disposition (ADR-47/65).** Done items **leave** the file on close — git history (the closing commit, located by the entry id per CONTRIBUTING) + the existing per-session JOURNAL entry are the record. **No archive file** (`BACKLOG_ARCHIVE.md` deleted 2026-05-16; CLAUDE.md §5). No collapsed stubs. Closing a backlog item adds **no new record-keeping surface** — the per-session JOURNAL ritual already carries it; the write a closure does make lands inside the queue's own source of truth (`tasks/` on the hub: manifest node out, terminal `status:` on the retained record; the line simply leaves on an unflipped consumer).
 
 **Filing backpressure (2026-07-08 ruling).** The add-side mirror of Done-item disposition: any commit whose `BACKLOG.md` diff **adds** a new task id must carry a `kill-candidates:` line in the commit message — either naming ≥1 existing `#id` proposed for removal, or `kill-candidates: none — <reason>`. Candidates are **proposals** routed to the operator's ruling; the gate never auto-removes or auto-closes anything. Enforced by the `backlog-filing-backpressure` commit-msg hook (`scripts/check_backlog_filing.py`, the add-side sibling of `backlog-id-on-close`), which also emits the advisory ADR-98 intake-id WARN on a new L-sized new-feature epic (#279).
+
+**Closures fund births — close BEFORE filing (the D3/D5 order, ratified 2026-08-28).** Filing
+backpressure above makes a birth *state its cost*; this states where the budget comes from. The
+**banked closure ledger IS the birth budget** — rows closed in a window fund the rows born in it —
+and the order is load-bearing: closing happens first, because a cap that is not yet known cannot
+be spent against. A filing pass that opens before it closes is spending an unmeasured budget, and
+the number it settles on is whatever appetite the session happened to have. Recorded with its own
+arithmetic: the 2026-08-28 window banked **5** and spent **3** (2 rows + 1 intake), routing three
+further items as CANDIDATEs — which are not births and draw nothing from the ledger (ADR-111).
 
 **Grooming by regex — the carrier-vs-subject false-positive class (recorded 2026-07-28).** A grep-driven sweep over `BACKLOG.md` / `tasks/` conflates two different kinds of row: those **carrying** a field and those whose **text discusses** it. Witnessed: an activation-gate sweep surfaced [#426] because ADR-105's activation gate is its *subject*, not because it declares one; a `depends-on` sweep surfaced [#424] / [#425] / [#23], all three of which *write about* the field ([#424] is the parser defect, [#425] the fixture-coverage gap, [#23] a prose mention of another row's dependency) while none of them carries a `depends-on` clause. Acting on the match set without that distinction manufactures phantom edges and phantom blockers, which then propagate into the very sequencing the grooming pass was meant to verify. **Rule:** a regex sweep produces **candidates, not findings** — confirm carrier-vs-subject by reading the row's own field position (on the hub, the derived frontmatter key in `tasks/<id>-*.md`, post-ADR-107) before recording any effect.
 

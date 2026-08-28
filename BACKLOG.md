@@ -73,6 +73,7 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#595] [P2][M] Consumer-at-landing gate for `docs/audits/` — the subtraction mechanism · tasks/595-consumer-at-landing-gate-for-docs-audits-the-sub.md
 - [#596] [P3][S] Family-3 at the PROOF layer — the class `[#583]` names but does not prove · tasks/596-family-3-at-the-proof-layer-the-class-583-names.md
 - [#601] [P2][S] `supplement_folded` audit check — a filled supplement that never reached the paste · tasks/601-supplement-folded-audit-check-a-filled-supplemen.md
+- [#613] [P2][M] In-repo routing table + L0 agreement check · tasks/613-in-repo-routing-table-agreement-check.md
 ### [S4] Extend structural validation to more governance artifacts
 So that drift in transcripts, ADRs, and folders is caught cheaply, not by reviewer luck.
 - [#139] [P2][L] merged-arc→record verifier · DEFER · tasks/139-merged-arc-record-verifier.md
@@ -203,6 +204,7 @@ So that the cheat-sheet and architecture stay scannable as conventions accrue.
 - [#589] [P1][M] One line per row — the BACKLOG view projection, with a size assertion that cannot be silently undone · tasks/589-one-line-per-row-the-backlog-view-projection-wit.md
 - [#590] [P2][S] The audits index is regenerated on read, never merge-resolved · tasks/590-the-audits-index-is-regenerated-on-read-never-me.md
 - [#607] [P2][S] PLAYBOOK census discharge — the mechanical half of the 19 findings · tasks/607-playbook-census-discharge-the-mechanical-half-of.md
+- [#612] [P2][M] Doc-rot row-body archival mechanism · tasks/612-doc-rot-row-body-archival.md
 ## [E6] Cross-repo universalization
 > As the disseminator, I want every child repo to converge on the universal baseline.
 
