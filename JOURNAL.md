@@ -19,6 +19,56 @@
 
 ---
 
+### 2026-08-28 (m) - CC (Opus 5, background job, primary checkout, branch `docs/batch-1-integration`): batch-1 integration - five lanes merged, every suite failure attributed, and a skip that impersonated a pass
+
+**Did:** ran the batch-1 merge queue in the frozen order L2 -> L1 -> L4 -> L5 -> L3, `--no-ff`,
+one at a time from the primary; regenerated all generated surfaces ONCE on the merged result
+per shared clause A5; ran the full suite twice (once as the protocol requires, once to confirm
+the carried fixes); and attributed every failure before writing a line of the packet.
+
+**Result: 15 failures on the first run, 6 on the second, and ZERO attributable to batch-1 once
+the carried fixes landed.**
+
+- **Seven were caused by the batch and are FIXED, not dispositioned.** `[#613]` registered
+  `check_routing_agreement`, moving `ALL_CHECKS` 52 -> 53 and REDing five hardcoded count pins
+  plus `CHECK_ORDER` -- where the entry has to mirror the ALL_CHECKS *position*, not sort
+  alphabetically, which the first attempt got wrong. L1's root `AGENTS.md` landed as a tracked
+  top-level entry in **no parity template**, REDing `test_check_fleet_parity_green_on_live_repo`,
+  a test that PASSED at pre-batch main; `root-agents-md` now declares it at
+  `{hub: MUST, consumer: LOCAL}` on the `root-uv-lock` precedent. **This is a genuine gap in
+  ADR-115's own acceptance act**, whose nine enumerated items omit `parity-surfaces.yaml`.
+  And the nine landed `docs/audits/` artifacts moved the `consumer_at_landing` ratchet, so its
+  baseline was regenerated through the sanctioned `--write-baseline`.
+- **Five are PRE-EXISTING and were proven so** on a detached worktree at pre-batch main
+  `ac1c69b9`, failing there identically.
+- **One is an xdist flake**, green 21/21 with `-n 0` on the same tree -- the recorded
+  measuring-while-measuring class.
+
+**The attribution method earned its cost, because one failure lied about its provenance.**
+`test_live_report_renders_the_real_fleet` FAILED on the merged tree and **SKIPPED** at baseline,
+which reads exactly like a regression this batch caused. The skip was `importorskip("pandas")`:
+the baseline worktree's venv simply lacked pandas. Re-run at baseline with `--group analytics`
+it fails **identically**. Had that skip been read as a pass, this batch would have owned a
+defect it did not cause -- which is the failure mode ruling **Z-G4** was taken against in this
+same window: a skip is indistinguishable from a pass in every summary line anyone reads, and it
+goes absent precisely where it is needed.
+
+**Changes:** `docs/audits/2026-08-28-technical-batch1-end-of-batch-packet.md` (the packet, which
+is the manifest's declared `closed_by:`); `ecosystem/parity-surfaces.yaml` (+`root-agents-md`);
+`ecosystem/audit-consumer-baseline.json`; five ALL_CHECKS count pins + `CHECK_ORDER`; the
+regenerated `docs/audits/README.md` and `ecosystem/doc-counts.md`; this entry.
+
+**Abandoned:** nothing. L3 stopped at its own contract's precondition gate rather than
+fabricating a missing basis artifact, which is a recorded outcome, not an abandonment.
+
+**Anchors:** c52c5daa (L2), 43c18e9f (L1), c24c949a (L4), 09fd7a00 (L5), ea6312c9 (L3),
+c0ca7c2c (generated-surface regen), e88a53d5 (integrator carried fixes).
+
+**Next:** land the packet, merge `docs/batch-1-integration`, tear down the five lane worktrees
+plus the baseline worktree, and prune. Operator action item carried in the packet: derive
+`~/.claude/ROUTING.md` from `ecosystem/routing-table.yaml`, after which `routing_agreement`
+goes green and can be promoted from ship tier to commit tier.
+
 ### 2026-08-28 (l) - CC (Opus 5, background job, primary checkout, branch `docs/batch-1-manifest-schema`): the same manifest, malformed a second way
 
 **Did:** fixed `batch:` in the batch-1 manifest from the descriptive `batch-1-2026-08-28` to
