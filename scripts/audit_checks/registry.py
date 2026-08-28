@@ -151,7 +151,6 @@ CHECK_ORDER: tuple[str, ...] = (
     "check_supplement_folded",            # facade — R4 (handoff census 2026-08-26 b6)
     "check_dispatch_verb_agreement",      # facade — R5 (STANDING_RULINGS §V's owed organ)
     "check_reconciled_versions",
-    "check_routing_agreement",
     "check_doc_rot",                      # facade — _is_hub/_REPO_ROOT seam
     "check_doc_structure",                # facade — _is_hub/_REPO_ROOT seam
     "check_doc_code_edge",                # facade — _is_hub/_REPO_ROOT seam
@@ -178,8 +177,8 @@ CHECK_ORDER: tuple[str, ...] = (
     "check_adr_status_grammar",           # [#242] ADR status grammar/enum + README coherence
     "check_funnel_coverage",              # facade — _is_hub seam; detector in funnel_coverage.py
     "check_substrate_declaration",        # [#591] substrate validator layer 2 — thin adapter
-    "check_dispatch_drift",               # [#592] Ch8 literal commands vs the machine
     "check_routing_agreement",            # [#613] L0 routing copy vs the in-repo table
+    "check_dispatch_drift",               # [#592] Ch8 literal commands vs the machine
     "check_consumer_at_landing",          # [#595] docs/audits consumer declaration + ratchet
     "check_proof_layer",                  # [#596] family-3 environment-conditional guards
 )
@@ -270,6 +269,7 @@ __all__ = [
     "check_canonical_structure",
     "check_claude_md",
     "check_consumer_at_landing",
+    "check_routing_agreement",
     "check_dispatch_drift",
     "check_dot_prefix_discipline",
     "check_floor_integrity",

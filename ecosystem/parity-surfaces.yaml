@@ -264,6 +264,14 @@ surfaces:
       value: methodology-generic
       reason: ".pre-commit-config.yaml -- root config mandated present fleet-wide (MUST both); methodology-owned (carries the deployed hook corpus)."
       provenance: *own-prov
+  - id: root-agents-md
+    kind: path
+    tier: {hub: MUST, consumer: LOCAL}
+    probe: {type: path_tracked, path: AGENTS.md}
+    ownership:
+      value: conditional
+      reason: "AGENTS.md -- the portable instruction layer admitted by ADR-115 (Accepted 2026-08-25), which supersedes ADR-53 Decision 2 and amends ADR-101 section 1 to add it to the Tier-1 file class: MUST at the hub, where [#577] landed it; consumer stays LOCAL because ADR-115 admits the file for this repo and rules no fleet rollout, and Codex's 32 KiB project_doc_max_bytes cap makes per-repo authoring a sizing decision rather than a copy. Deliberately NOT a canonical living doc -- no last_reviewed stamp, absent from FRESHNESS_FILES -- which is why validate_hermetization carries it as a literal rather than via CANONICAL_MANDATORY."
+      provenance: *own-prov
   - id: root-uv-lock
     kind: path
     tier: {hub: MUST, consumer: LOCAL}
