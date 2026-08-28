@@ -19,6 +19,49 @@
 
 ---
 
+### 2026-08-28 (c) - CC (Opus 5, background job, primary checkout, branch `docs/267-mechanism-ruling`): the `[#267]` HOLD ruled - and the dead-peg rule it generalises
+
+**Did:** executed the architect's ruling on `[#267]`, taken over the HOLD entry (b) returned the
+same day. Option **(b)**: ratify mechanism **(iii)** (instruct-the-child, n=1, attended) alone;
+**CUT** part (ii) (discover-from-config at fleet scale) from the row; record the fleet-scale half
+as an **ADR-111 §1(c) CANDIDATE** routed at the next intake pass; narrow the row body.
+
+**Result:** `[#267]`'s mechanism is decided and its LEAN stops being a lean. Row stays **OPEN** with
+one remaining Done-when leg. Register gains **section Y**. 206 rows, unchanged. `audit.py health`
+OK; targeted tests 110 passed.
+
+**The reusable half is the rationale, not the row.** Part (ii) was **cut rather than deferred**
+because deferring onto a peg that does not exist is the **dead-peg class**, and that class is
+*measured*: the 2026-08-27 ledger had to re-peg **nine** rows whose pegs were spent or dead (`[#325]`
+`[#294]` `[#308]` `[#139]` `[#169]` `[#188]` `[#218]` `[#301]` `[#492]`). A deferral onto a
+non-existent successor reads, at every later sweep, exactly like a row waiting for something real -
+it costs a re-peg pass to discover otherwise, and the discovery does not stick, which is why the
+same rows keep reappearing. **A peg must name a carrier that exists; if none does, cut the scope and
+record the remainder as a candidate.** Recorded at `protocols/STANDING_RULINGS.md` **Y-1** as a
+generalisable rule, with `[#267]` as its first named application.
+
+**Verified rather than assumed, twice.** The row's own claim that its second Done-when leg was DONE
+was checked **on disk** before narrowing: both `engages:` entries in `deploy/manifest-v1.4.0.yaml`
+carry their scope condition and each cites `[#267]` (`hub-toc-hooks`, `floor-hash-verify-hook`). And
+the "nine dead pegs" figure the ruling leans on was resolved to its source line before being written
+down (`docs/audits/2026-08-27-technical-night-harvest-consumption-ledger.md` §D item 3) rather than
+restated from the ruling's own prose.
+
+**Abandoned:** nothing. The superseded HOLD block was condensed to git per ADR-49/65 (-1,206 chars) -
+the question it posed is the one this ruling answers. It did **not** clear `[#267]`'s doc-rot
+accretion finding (corpus still **77 findings / 8 accretion loci**), which is the same
+unbounded-row-annotation debt the night arc carried: trimming cannot clear it, and the fix is a
+row-body archival mechanism. One tension the HOLD raised is left standing deliberately because the
+ruling does not settle it - the row calls itself a REFINEMENT and "not a closure gate" while the K4
+table treated it as a decision row.
+
+**Changes:** `protocols/STANDING_RULINGS.md` (section Y); `tasks/267-scope-exercising-arc-extension.md`.
+
+**Anchors:** 409c8667 (the ruling, register section Y + the narrowed row).
+
+**Next:** the CANDIDATE is routed at the next intake pass - it carries no peg and no owner **by
+design**, which is the point of Y-1. `[#267]`'s remaining leg is one attended consumer measurement.
+
 ### 2026-08-28 (b) - CC (Opus 5, background job, primary checkout, branch `docs/closure-harvest-k4`): the K4 verdicts executed - eight closures funded three births, and the role file left the paste
 
 **Did:** executed the MORNING PACKET §K4 verdicts in five acts, plus four operator amendments
