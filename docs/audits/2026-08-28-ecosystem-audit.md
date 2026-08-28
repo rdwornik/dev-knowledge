@@ -3,9 +3,9 @@
 <!-- scope: meta -->
 
 **Date:** 2026-08-28  
-**Generated:** 2026-08-28T10:52:30  
+**Generated:** 2026-08-28T16:09:58  
 **Repos audited:** 6  
-**Checks:** 509 total — 124 pass, 9 fail, 210 warn, 0 unavailable, 166 n/a
+**Checks:** 508 total — 127 pass, 9 fail, 206 warn, 0 unavailable, 166 n/a
 
 ---
 
@@ -18,7 +18,7 @@
 |---|---|---|
 | `vision_md` | PASS | VISION.md present; frontmatter keys: ['last_reviewed', 'owner', 'status', 'version'] |
 | `adr38_baseline` | PASS | All ADR-38 universal governance baseline files present |
-| `claude_md` | PASS | CLAUDE.md present (41511 chars) |
+| `claude_md` | PASS | CLAUDE.md present (42727 chars) |
 | `dot_prefix_discipline` | PASS | All root config files dot-prefixed or on ADR-59 exception list |
 | `canonical_md_visibility` | PASS | Mandatory canonical files present + correctly cased: ['VISION.md', 'ARCHITECTURE.md', 'CLAUDE.md', 'BACKLOG.md', 'CONTRIBUTING.md', 'JOURNAL.md', 'LESSONS.md'] |
 | `workspace_settings` | PASS | .dev-knowledge.code-workspace present, dot-prefixed, required sort settings correct |
@@ -30,7 +30,7 @@
 | `stale_worktrees` | PASS | no linked worktrees registered (primary only) - nothing to close out |
 | `stale_worktrees` | PASS | git stash list is empty - no stashed work outliving its lane |
 | `canonical_structure` | PASS | All present canonical files carry their required [U] spine headings |
-| `handoff_version_stamp` | PASS | All stamp occurrences in ['ARCHITECTURE.md', 'CONTRIBUTING.md'] match canonical HANDOFF_PROCESS v6.2.0 |
+| `handoff_version_stamp` | PASS | All stamp occurrences in ['ARCHITECTURE.md', 'CONTRIBUTING.md'] match canonical HANDOFF_PROCESS v6.3.0 |
 | `amendment_coherence` | PASS | 2 coupled-surface version mention(s) coherent across 1 set(s) |
 | `floor_integrity` | N/A | [n/a-reason:NOT-APPLICABLE] no .claude/CLAUDE-FLOOR.md — repo has not adopted the methodology floor (skip) |
 | `hooks_armed` | PASS | pre-commit / commit-msg / pre-push installed and pre-commit-managed; merge.ours.driver armed for the declared merge=ours pin |
@@ -39,22 +39,20 @@
 | `no_ff_merges` | WARN | non-merge commit on main (FF/direct — expected a --no-ff merge): 533109f20 (2026-06-26) docs(journal): record 2026-06-26 freshness re-stamp session (3bd2cd1) |
 | `no_ff_merges` | WARN | non-merge commit on main (FF/direct — expected a --no-ff merge): 3a894eeb5 (2026-06-19) docs(journal): 2026-06-19 session-wrap — anchor d0f9ead (transcript archive) |
 | `no_ff_merges` | WARN | non-merge commit on main (FF/direct — expected a --no-ff merge): d0f9ead67 (2026-06-19) chore(transcripts): archive 2 deep-research reports (dependency-detection + doc<->code traceability) |
-| `handoff_probes` | WARN | P0a skipped in 2026-08-25-dev-knowledge-architect: tool absent: grep |
-| `handoff_probes` | WARN | P0b skipped in 2026-08-25-dev-knowledge-architect: tool absent: grep |
-| `handoff_probes` | WARN | P0c skipped in 2026-08-25-dev-knowledge-architect: tool absent: sed |
-| `handoff_probes` | WARN | P1a skipped in 2026-08-25-dev-knowledge-architect: tool absent: grep |
-| `handoff_probes` | WARN | P1b skipped in 2026-08-25-dev-knowledge-architect: tool absent: sed |
-| `handoff_probes` | WARN | P8 skipped in 2026-08-25-dev-knowledge-architect: tool absent: ls |
+| `handoff_probes` | PASS | 13 probe(s) bind to live state (2026-08-28-dev-knowledge-architect) |
 | `supplement_folded` | PASS | every filled SUPPLEMENT reached its paste — pre-era, immutable-and-lost (recorded, not repaired): 2026-08-23-dev-knowledge-architect |
 | `dispatch_verb_agreement` | PASS | both point-of-use sites name the verb Ch8's dispatch table rules, and neither carries a rival literal launch form |
-| `reconciled_versions` | WARN | templates/CONTRIBUTING-md-template.md: malformed (reconciled_with not '<spec-id>@<version>') |
+| `reconciled_versions` | PASS | 8 reconciled_with edge(s) match live spec version(s) |
+| `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#611 (1407 chars (declared ceiling 1320)) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#301 (1519 chars (declared ceiling 1320)) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#547 (2099 chars (declared ceiling 1320)) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#599 (1825 chars (declared ceiling 1320)) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#600 (1637 chars (declared ceiling 1320)) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#602 (1796 chars (declared ceiling 1320)) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#603 (1802 chars (declared ceiling 1320)) |
-| `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#146 (1668 chars (declared ceiling 1320)) |
+| `doc_rot` | WARN | history-accretion bloat: backlog-accretion BACKLOG#146 (4 history dates spanning 91d, 2605 chars (>= 3 dates & >= 30d span & > 700 chars)) |
+| `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#146 (2605 chars (declared ceiling 1320)) |
+| `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#112 (3088 chars (declared ceiling 1320)) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#153 (1594 chars (declared ceiling 1320)) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#533 (2239 chars (declared ceiling 1320)) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#534 (1640 chars (declared ceiling 1320)) |
@@ -62,14 +60,14 @@
 | `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#601 (1605 chars (declared ceiling 1320)) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#139 (1460 chars (declared ceiling 1320)) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#234 (1445 chars (declared ceiling 1320)) |
-| `doc_rot` | WARN | history-accretion bloat: backlog-accretion BACKLOG#277 (3 history dates spanning 51d, 1717 chars (>= 3 dates & >= 30d span & > 700 chars)) |
-| `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#277 (1717 chars (declared ceiling 1320)) |
-| `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#296 (1379 chars (declared ceiling 1320)) |
+| `doc_rot` | WARN | history-accretion bloat: backlog-accretion BACKLOG#277 (4 history dates spanning 52d, 2818 chars (>= 3 dates & >= 30d span & > 700 chars)) |
+| `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#277 (2818 chars (declared ceiling 1320)) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-accretion BACKLOG#171 (3 history dates spanning 51d, 2345 chars (>= 3 dates & >= 30d span & > 700 chars)) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#171 (2345 chars (declared ceiling 1320)) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#241 (1625 chars (declared ceiling 1320)) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#218 (1505 chars (declared ceiling 1320)) |
-| `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#267 (1606 chars (declared ceiling 1320)) |
+| `doc_rot` | WARN | history-accretion bloat: backlog-accretion BACKLOG#267 (3 history dates spanning 53d, 3042 chars (>= 3 dates & >= 30d span & > 700 chars)) |
+| `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#267 (3042 chars (declared ceiling 1320)) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#289 (1538 chars (declared ceiling 1320)) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#294 (1571 chars (declared ceiling 1320)) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-accretion BACKLOG#297 (3 history dates spanning 51d, 1327 chars (>= 3 dates & >= 30d span & > 700 chars)) |
@@ -79,14 +77,13 @@
 | `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#324 (1407 chars (declared ceiling 1320)) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#325 (1748 chars (declared ceiling 1320)) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#605 (1936 chars (declared ceiling 1320)) |
-| `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#130 (1343 chars (declared ceiling 1320)) |
-| `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#145 (1673 chars (declared ceiling 1320)) |
-| `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#266 (1406 chars (declared ceiling 1320)) |
+| `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#130 (2123 chars (declared ceiling 1320)) |
+| `doc_rot` | WARN | history-accretion bloat: backlog-accretion BACKLOG#145 (3 history dates spanning 79d, 2318 chars (>= 3 dates & >= 30d span & > 700 chars)) |
+| `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#145 (2318 chars (declared ceiling 1320)) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#546 (2227 chars (declared ceiling 1320)) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#548 (1338 chars (declared ceiling 1320)) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#549 (1491 chars (declared ceiling 1320)) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#564 (1826 chars (declared ceiling 1320)) |
-| `doc_rot` | WARN | history-accretion bloat: backlog-accretion BACKLOG#71 (3 history dates spanning 83d, 1116 chars (>= 3 dates & >= 30d span & > 700 chars)) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#285 (1740 chars (declared ceiling 1320)) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#571 (1602 chars (declared ceiling 1320)) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#269 (2015 chars (declared ceiling 1320)) |
@@ -96,6 +93,7 @@
 | `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#82 (2110 chars (declared ceiling 1320)) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#327 (1566 chars (declared ceiling 1320)) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#332 (1545 chars (declared ceiling 1320)) |
+| `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#609 (2227 chars (declared ceiling 1320)) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#559 (3104 chars (declared ceiling 1320)) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#604 (1876 chars (declared ceiling 1320)) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#606 (2402 chars (declared ceiling 1320)) |
@@ -105,6 +103,7 @@
 | `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#276 (1599 chars (declared ceiling 1320)) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#577 (3193 chars (declared ceiling 1320)) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#43 (1703 chars (declared ceiling 1320)) |
+| `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#274 (1708 chars (declared ceiling 1320)) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#278 (1728 chars (declared ceiling 1320)) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#317 (1499 chars (declared ceiling 1320)) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#568 (1671 chars (declared ceiling 1320)) |
@@ -116,9 +115,8 @@
 | `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#541 (1758 chars (declared ceiling 1320)) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#561 (2386 chars (declared ceiling 1320)) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#567 (1746 chars (declared ceiling 1320)) |
-| `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#271 (1707 chars (declared ceiling 1320)) |
-| `doc_rot` | WARN | history-accretion bloat: backlog-accretion BACKLOG#348 (4 history dates spanning 32d, 1360 chars (>= 3 dates & >= 30d span & > 700 chars)) |
-| `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#348 (1360 chars (declared ceiling 1320)) |
+| `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#271 (2935 chars (declared ceiling 1320)) |
+| `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#610 (2425 chars (declared ceiling 1320)) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#426 (1370 chars (declared ceiling 1320)) |
 | `doc_rot` | WARN | history-accretion bloat: backlog-row-length BACKLOG#555 (1508 chars (declared ceiling 1320)) |
 | `doc_rot` | WARN | history-accretion bloat: grooming-cadence BACKLOG#grooming-cadence (last groom 2026-07-30, 29d ago (> 21d cadence, ADR-41)) |
@@ -153,19 +151,19 @@
 | `doc_code_coverage_drift` | PASS | all 52 ALL_CHECKS members covered (coverage_scope-annotated or exempt); none escape coverage_scope |
 | `import_edges` | PASS | 3 @import edge(s) resolve across 4 file(s) |
 | `fleet_parity` | PASS | fleet at parity -- AT-PARITY 187, PASS-declared 19, advisory-rewarn 3, gate-ahead-declared 1, skipped-pre-deploy 6, stale-declaration 1 (blocking verdicts: 0) |
-| `routine_consumers` | PASS | 3 declared routine row(s) name a consumer and a consumption_path (live hooks/schedules out of scope — [#426]) |
+| `routine_consumers` | PASS | 2 declared routine row(s) name a consumer and a consumption_path (live hooks/schedules out of scope — [#426]) |
 | `silent_rule_ratchet` | PASS | live 443 <= baseline 443 under detector silent-rule-v5 (60 file(s) in scope) |
 | `task_tree_coherence` | PASS | BACKLOG.md coherent with the tasks/ source of truth (structure + frontmatter honesty + full reassembly) |
 | `intake_tree_coherence` | PASS | intake residue carrier coherent (338 node(s), 22802 README.md byte(s)) |
 | `boot_byte_budget` | PASS | protocols/HANDOFF_BOOT.md is 17196 bytes, within its 18000-byte budget |
-| `fleet_audit_replication` | WARN | automation/fleet-audit is 2 commit(s) ahead of origin -- a recent push likely failed; ADR-80's durable record is behind |
+| `fleet_audit_replication` | PASS | automation/fleet-audit is replicated to origin (0 commits ahead) |
 | `membership_agreement` | PASS | 9 declared (ADR-104); 6 resolved members (deployed-versions); coverage registry-md 9/9, index-yaml 6/9, deployed-versions 6/9, parity-surfaces 9/9, onboarding-rulings 5/9, state-dirs 6/9; declared-but-not-deployed: demo-prep [registry-md, parity-surfaces, onboarding-rulings]; life-architect [registry-md, parity-surfaces, onboarding-rulings]; terminal-setup [registry-md, parity-surfaces] |
 | `membership_agreement` | PASS | declaration source: ADR-104 anchor 'adr104-fleet-members', 9 ids, agrees with audit.ADR104_FLEET_DECLARATION |
 | `journal_spine_anchor` | PASS | every first-parent spine entry above the ADR-85 disposition floor 24882f8cc is JOURNAL-anchored |
-| `journal_spine_anchor` | WARN | anchored by mention, not by record: 914dc4a appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: cd2bb46 appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: 9fedb07 appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: 3acb0cc appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: dc45ea1 appears outside an explicit 'Anchors:' record line (+655 more) |
+| `journal_spine_anchor` | WARN | anchored by mention, not by record: c57ac18 appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: a83d4e5 appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: a21ed49 appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: ee80a1f appears outside an explicit 'Anchors:' record line; anchored by mention, not by record: aba7652 appears outside an explicit 'Anchors:' record line (+662 more) |
 | `journal_day_letters` | PASS | JOURNAL day-letter suffixes are unique per day since 2026-07-30 |
 | `preflight_backlog_ids` | PASS | every kill-candidates assertion names an open row |
-| `review_artifact_coverage` | WARN | 39 code-impact merge(s) since 2026-08-05 carry no linked review artifact: 5d183a75 docs/night-harvest-consumption, dc45ea18 worktree-lane-nb-tiering, ee4885de worktree-lane-h-handoff-mech, c287f11c worktree-lane-g2-consume-recon, ac677b6e worktree-prompts-revocation (+34 more) -- advisory per the [#480] P3 ruling; the hard pre-push leg is deferred pending 0 false positives over two consecutive windows |
+| `review_artifact_coverage` | WARN | 40 code-impact merge(s) since 2026-08-05 carry no linked review artifact: aa2af0ff docs/closure-harvest-k4, 5d183a75 docs/night-harvest-consumption, dc45ea18 worktree-lane-nb-tiering, ee4885de worktree-lane-h-handoff-mech, c287f11c worktree-lane-g2-consume-recon (+35 more) -- advisory per the [#480] P3 ruling; the hard pre-push leg is deferred pending 0 false positives over two consecutive windows |
 | `review_artifact_coverage` | WARN | 2 linked artifact(s) carry no parseable **Tally:** line: 584fb1ed -> 2026-08-27-codex-lane-na-gates.md, 5af0b33c -> 2026-08-06-codex-lane-c-504-failclosed.md -- persistence is not machine-auditability; advisory per the [#480] P3 ruling; the hard pre-push leg is deferred pending 0 false positives over two consecutive windows |
 | `landing_predicate` | PASS | F2 (names, paths and identifiers derive from validators and enums) landed uniformly: scripts/validate_branch_naming.py=True; scripts/batch_manifest.py=True |
 | `landing_predicate` | PASS | N-1 (the `markdown_it` fence-region ADOPT (2026-08-03)) landed uniformly: scripts/toc/generator.py=True; scripts/normalize_headers.py=True; scripts/audit.py=True; scripts/validate_doc_structure.py=True |
@@ -238,9 +236,10 @@
 | `funnel_coverage` | WARN | 2026-08-27-technical-night-harvest-manifest.md carries no disposition and is not in the arm-time baseline -- record one of ACTIONED/FILED/REJECTED/SUPERSEDED with an evidence locator in a ledger row (architect ruling 2026-08-17), or PENDING with the exact question it needs |
 | `funnel_coverage` | WARN | 2026-08-27-technical-python-kodeks-census.md carries no disposition and is not in the arm-time baseline -- record one of ACTIONED/FILED/REJECTED/SUPERSEDED with an evidence locator in a ledger row (architect ruling 2026-08-17), or PENDING with the exact question it needs |
 | `funnel_coverage` | WARN | 2026-08-27-verification-batch-w2-close-packet.md carries no disposition and is not in the arm-time baseline -- record one of ACTIONED/FILED/REJECTED/SUPERSEDED with an evidence locator in a ledger row (architect ruling 2026-08-17), or PENDING with the exact question it needs |
+| `funnel_coverage` | WARN | 2026-08-28-technical-closure-harvest-k4.md carries no disposition and is not in the arm-time baseline -- record one of ACTIONED/FILED/REJECTED/SUPERSEDED with an evidence locator in a ledger row (architect ruling 2026-08-17), or PENDING with the exact question it needs |
 | `substrate_declaration` | PASS | 0 lane contract(s) landed on/after 2026-08-27 agree with their declared substrate (5 earlier contract(s) grandfathered as records of an already-executed dispatch) |
 | `dispatch_drift` | PASS | tier host: 12 literal command(s) in protocols/PLAYBOOK.md Ch8's dispatch table resolve, and .claude/commands/lane-boot.md names the ruled verb 'dispatch' |
-| `consumer_at_landing` | PASS | 763 artifact(s): every landing on/after 2026-08-27 declares a consumer, and the unconsumed set (530) has not grown past the committed baseline (750 earlier artifact(s) grandfathered; governance pool 514 files) |
+| `consumer_at_landing` | PASS | 764 artifact(s): every landing on/after 2026-08-27 declares a consumer, and the unconsumed set (530) has not grown past the committed baseline (750 earlier artifact(s) grandfathered; governance pool 517 files) |
 | `proof_layer` | PASS | 243 environment-conditional guard(s) across 31 test module(s), all at the committed baseline; 10 gated on an enforcement runner (the sharpest form). A guard here is a question, not a verdict — see scripts/proof_layer.py |
 
 History: [`ecosystem\.dev-knowledge\history/`](ecosystem\.dev-knowledge\history/)
@@ -542,7 +541,7 @@ History: [`ecosystem\corp-sca-time-automation\history/`](ecosystem\corp-sca-time
 | `generated_artifact_freshness` | N/A | [n/a-reason:SUBJECT-ABSENT] output(s) not present in this repo — ecosystem/conformance.md, ecosystem/conformance.html |
 | `generated_artifact_freshness` | N/A | [n/a-reason:SUBJECT-ABSENT] output(s) not present in this repo — docs/audits/README.md |
 | `no_sibling_orphans` | PASS | No orphaned 'win-tooling-*' siblings (each is a registered worktree or a real repo/folder, not a worktree remnant; or none exist) |
-| `stale_worktrees` | PASS | 5 linked worktree(s) registered, each committed within the 7d horizon and present on disk - live batch lanes, not leftovers |
+| `stale_worktrees` | PASS | 4 linked worktree(s) registered, each committed within the 7d horizon and present on disk - live batch lanes, not leftovers |
 | `stale_worktrees` | PASS | git stash list is empty - no stashed work outliving its lane |
 | `canonical_structure` | PASS | All present canonical files carry their required [U] spine headings |
 | `handoff_version_stamp` | N/A | [n/a-reason:NOT-APPLICABLE] no protocols/HANDOFF_PROCESS.md — nothing to validate |
@@ -593,9 +592,9 @@ History: [`ecosystem\win-tooling\history/`](ecosystem\win-tooling\history/)
 ## Summary
 
 - 6 repo(s) audited
-- 124/509 checks passed
+- 127/508 checks passed
 - **9 failure(s)** — route findings to repo owners
-- 210 warning(s)
+- 206 warning(s)
 - 166 n/a (check not applicable to that repo)
 
 *Report generated by `scripts/audit.py`. Do not edit manually.*
