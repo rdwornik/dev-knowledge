@@ -19,6 +19,53 @@
 
 ---
 
+### 2026-08-28 (g) - CC (Opus 5, background job, primary checkout, branch `docs/amend-supplement-v140`): the verify gate FAILed on a claim that went stale between sealing and booting - and the FAIL was favourable
+
+**Did:** ran the full `/handoff-verify` gate over `docs/handoffs/2026-08-28-dev-knowledge-architect/`
+(16 rows, one pass, one evidence block), then landed the amendment marker its one FAIL required and
+tore down the merged handoff branch.
+
+**Result:** **15 PASS / 1 FAIL / 0 degraded.** The FAIL is the `Inherited claims` row: the bundle
+asserts in two places - the operator's answer 6 and CC's own fold-time verification block - that
+`v1.4.0` is untagged and the `deploy` preflight therefore aborts. **Live state refutes it:**
+`v1.4.0` exists, points at `c57ac188` (this bundle's own merge commit) and is on origin. The
+operator tagged it *after* the bundle was sealed. Discharged by an additive in-file amendment
+marker per CLAUDE.md §5 rule 3; the original claim stands verbatim beside it.
+
+**The row worked exactly as designed, and the case is the favourable one.** A blocker CLEARING is
+the easy failure to wave through - nothing is broken, the news is good, and the temptation is to
+call it a non-issue. But the artifact still tells the next seat to go do a thing that is already
+done, which costs a wasted act at exactly the moment the operator's stated intent is *deployment
+within two sessions*. **A claim that went stale between sealing and booting is the entire class the
+`Inherited claims` row exists to catch**, and it does not matter which direction the staleness runs.
+
+**Verification-of-the-verifier, recorded because it nearly shipped a wrong number.** The first
+ship-gate run was backgrounded with `| tail -40`, so the captured file held only the tail and
+reported **33** dispositioned WARNs. The full capture reports **59**. Had the block gone out on the
+truncated run it would have carried a fabricated-looking count derived from a real command - the
+worst shape of wrong. **A count read from a truncated capture is not a measurement**; re-run
+whole-output before quoting one.
+
+**The ship-gate RED was attributed rather than assumed.** P7 reads RED (113 new/undispositioned).
+Carriers: `doc_rot` 77, `funnel_coverage` 66, `undeclared_edges` 22, `no_ff_merges` 3,
+`review_artifact_coverage` 2, `journal_spine_anchor` 1, `adr_status_grammar` 1. `doc_rot`'s **77**
+matches exactly the pre-existing figure entry (c) recorded this same day, and this bundle appears
+in the whole ship-gate output **once**, as an `[OK]` (`handoff_probes: 13 probe(s) bind`). Zero
+WARNs name it: the RED is the standing corpus, not this arc.
+
+**Stated limit, not discovered later.** `PASTE_THIS.md` was **not** re-assembled - the instruction
+was to touch nothing else in the sealed bundle. So a seat booting from the paste alone does not see
+the marker; it is in `SUPPLEMENT.md` and in this entry.
+
+**Abandoned:** nothing.
+
+**Changes:** `docs/handoffs/2026-08-28-dev-knowledge-architect/SUPPLEMENT.md` (one additive line).
+
+**Anchors:** 65b126c8 (the amendment marker).
+
+**Next:** boot from the bundle. `v1.4.0` is live, so the win-tooling instantiation the operator's
+answer 6 named as blocked is now unblocked.
+
 ### 2026-08-28 (f) - CC (Opus 5, background job, primary checkout, branch `docs/handoff-2026-08-28`): the residency question is ANSWERED, and the re-fold's first attempt tripped the boot-byte budget by re-narrating the answer it was pointing at
 
 **Did:** operator appended a role-residency answer to `SUPPLEMENT.md`'s ANSWERS **after** the first
