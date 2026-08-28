@@ -19,6 +19,62 @@
 
 ---
 
+### 2026-08-28 (d) - CC (Opus 5, background job, primary checkout, branch `docs/handoff-2026-08-28`): the architect bundle is cut against a window whose rulings were both landed AND consumed - so the residual carries unwritten RULES, not unbuilt mechanisms
+
+**Did:** generated and hand-completed the architect-mode v6 handoff bundle
+`docs/handoffs/2026-08-28-dev-knowledge-architect/` for the window since the 2026-08-25 bundle was
+added (149 commits). Generator run answer-free per HANDOFF_PROCESS v6.3.0; the seven FILL-IN
+regions authored by hand - the boot `Purpose` and `Destination` row, the drift-flag judgment, the
+shipped map, and the frontier.
+
+**Result:** bundle complete and gated - `validate_residual_completeness` OK, `check_seal_identity`
+exit 0, all pre-commit gates passed on the landing commit. `SUPPLEMENT.md` committed **empty**
+(cold handoff), which is the defined disposition: the assembler folds nothing and the incoming
+§13(d) operator-context beat fires **FULL** rather than narrowed.
+
+**The framing that made this bundle different, and it is the useful half.** The prior window's
+frontier (F1-F6) asked mostly *whether* things would be ruled. This window ruled them **and
+consumed the rulings** - sections U/W/X/Y adjudicated, wave 1 executed, the night harvest ledgered
+through the funnel, ADR-115 accepted, `[#424]` closed. So the residual could not be a list of
+pending decisions. What it carries instead is the class the window created by succeeding: **rules
+that are now settled in PRACTICE and written down NOWHERE.** G1 is the sharpest - `[#579]`-`[#586]`
+and `[#607]`-`[#611]` were born straight from ruled packet rows carrying `source:` clauses, while
+register section Y, landed the same day, restates ADR-111's orthodox CANDIDATE -> intake ->
+ratification path for the `[#267]` candidate and cites nothing about packet-born rows. Two live
+paths, no statement of which applies when; the distinction is inferable from eleven commits and
+from nothing else.
+
+**Two frontier items are contradictions rather than gaps, and were written as such.** G3: ruling
+**U(b)** makes GitHub compute the DEFAULT substrate; ruling **W4**, taken one day later, measured
+that rung as unable to run a **single** hub gate (no `uv` in the container, so nothing under
+ADR-106 executes) - a default substrate that cannot execute a gate is not a default, and the
+wave-2 router ADR is owed against the contradiction, not against either half. G2: `CLAUDE.md`
+§10's AGENTS.md anti-pattern became **provably** false doctrine when ADR-115 was accepted, but it
+sits inside a hub-single-sourced Form-A region, so correcting it is a **fleet-parity act** no row
+authorises - `[#577]` owns the correction and three consecutive CLAUDE.md revisions have each
+recorded that they knowingly left it standing.
+
+**Drift-flag judgment, stated as a judgment and not as a verdict** (the bundle asserts no
+ship-gate value - P7/P4 re-derive them live): `reconciled_versions` is a **DECISION** - this
+window advanced HANDOFF_PROCESS to v6.3.0 with its `reconciled_with:` edge re-stamped in the same
+act, and separately exempted `templates/` placeholders by ruling under `[#335]`; a signature
+outside `templates/` remains a genuine defect. `fleet_parity` is **explicitly not** dispositioned
+as a decision, recorded so its absence is not read as an oversight: X3 admitted a fifth
+MUST-uniform parity surface and deliberately did not build it, so its ground truth moved while its
+implementation did not.
+
+**Abandoned:** nothing. No row was born, no `BACKLOG.md` edit made, no merge taken - merging is an
+operator-authorised act granted per-act, and the bundle's own frontier warns that row births are
+the *first* act of the next session, not this one.
+
+**Changes:** `docs/handoffs/2026-08-28-dev-knowledge-architect/` (5 files, new bundle).
+
+**Anchors:** 50943b6b (the bundle and its seven hand-authored regions).
+
+**Next:** paste `PASTE_THIS.md` into a fresh architect chat. Optionally fill `SUPPLEMENT.md` first
+- the QUESTIONS go to the *outgoing* chat and the answers below the divider, which narrows the
+§13(d) beat instead of firing it full.
+
 ### 2026-08-28 (c) - CC (Opus 5, background job, primary checkout, branch `docs/267-mechanism-ruling`): the `[#267]` HOLD ruled - and the dead-peg rule it generalises
 
 **Did:** executed the architect's ruling on `[#267]`, taken over the HOLD entry (b) returned the
