@@ -1,8 +1,8 @@
 ---
-last_reviewed: 2026-08-23
+last_reviewed: 2026-08-28
 status: active
 owner: Rob
-reconciled_with: handoff-process@6.2.0
+reconciled_with: handoff-process@6.3.0
 ---
 
 # Session Setup
@@ -189,7 +189,7 @@ If nothing was learned — skip this step. Not every chat produces lessons.
 
 > **Which handoff is this?** This is the HANDOFF_PROCESS v6 **Claude-Code** protocol — *distinct* from the browser→browser auto-handoff in Step 4 above.
 
-When Rob says one of these phrases, follow HANDOFF_PROCESS **v6.2.0** per
+When Rob says one of these phrases, follow HANDOFF_PROCESS **v6.3.0** per
 `protocols/HANDOFF_PROCESS.md` (the single live source of truth for handoff
 mechanics); the phrase triggers are stable across versions:
 
@@ -201,7 +201,7 @@ mechanics); the phrase triggers are stable across versions:
 `{repo}` defaults to `.dev-knowledge` (self-handoff); naming another repo is a
 cross-repo handoff.
 
-**Mechanics live in `protocols/HANDOFF_PROCESS.md` (v6.2.0 — the single source of truth).** It owns the two-phase flow (interview → consolidate), the `in-progress/{slug}/` state detection, and the generated bundle shape. Not restated here so this file can't drift from it; the trigger phrases above are the only handoff detail that lives in SESSION_SETUP.
+**Mechanics live in `protocols/HANDOFF_PROCESS.md` (v6.3.0 — the single source of truth).** It owns the two-phase flow (interview → consolidate), the `in-progress/{slug}/` state detection, and the generated bundle shape. Not restated here so this file can't drift from it; the trigger phrases above are the only handoff detail that lives in SESSION_SETUP.
 
 ---
 

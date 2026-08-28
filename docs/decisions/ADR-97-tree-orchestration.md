@@ -55,3 +55,28 @@ Two new handoff types carry the model (specified normatively in HANDOFF_PROCESS 
 - **Uncapped lane concurrency.** Rejected: merges are serial at the root by invariant #1, so lanes beyond 2–3 queue at the gate without adding throughput while multiplying boundary-ruling and review load.
 - **Epic lanes as backlog co-writers.** Rejected: concurrent structural writers to BACKLOG.md guarantee merge conflicts and break the Stop-gate's BACKLOG leg; checkbox-only writes inside the lane's own epic block keep the seam narrow, with structure traveling via the EPIC RETURN.
 - **Leave the pattern as lived convention.** Rejected: the 2026-07-04 precedent worked because one operator held the whole model in his head; unrecorded, the next parallel run re-derives (or violates) the merge/authority/boundary rules.
+
+## Amendment — 2026-08-28 (§14a FILE-BOUNDARY: a narrow test-scoped grant carries its mechanical count/pinning fallout; [#266])
+
+**What changes:** §14a's **FILE-BOUNDARY** clause is amended to state that a NARROW test-scoped
+grant implicitly includes *the mechanical count/pinning assertions the granted change forces*. The
+boundary's shape, its disjointness requirement and its escalate-don't-touch rule are unchanged.
+
+**Why, on the record (the E4-1 precedent, Wave-2 ratified 2026-07-05).** Epic-4's retirement of
+audit check #7 broke two `len(ALL_CHECKS) == 29` literals in `tests/test_doc_code_edge.py`. The
+lane self-adjudicated 29→28 as in-grant; the root **RATIFIED** that beyond the literal E4-1 grant,
+reasoning that the edit was **mechanical, disclosed, and retirement-forced**. Left uncodified, that
+ratification is a one-off an executor cannot rely on, and the next lane faces a bad choice: escalate
+on arithmetic (burning the architect's serial gate on a count), or leave the suite RED to stay
+inside a literal reading of its boundary. Neither is what the boundary is for.
+
+**The bound is the three properties, not a file list.** Mechanical + disclosed + forced-by-the-grant
+is in-grant. A **semantic** test change — a new assertion, a changed expectation, a re-scoped
+fixture — is none of those and still escalates, so this amendment does not widen a test-scoped grant
+into a general licence over `tests/`.
+
+**Landed at both carriers in one act** (the [#266] Done-when): this amendment, and the FILE-BOUNDARY
+section of `templates/handoff/epic/EPIC_BOOT.md.tmpl`, which is the surface a lane actually reads.
+
+**Refs:** [#266] · E4-1 / Wave-2 ratification 2026-07-05 · `LESSONS.md` 2026-07-05 ·
+`tests/test_doc_code_edge.py`

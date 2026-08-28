@@ -1,13 +1,13 @@
 ---
-last_reviewed: 2026-08-23
-reconciled_with: handoff-process@6.2.0
+last_reviewed: 2026-08-28
+reconciled_with: handoff-process@6.3.0
 status: active
 owner: Rob
 ---
 
 # CLAUDE.md — Dev Knowledge
 <!-- scope: meta -->
-<!-- version: 2.66 — 2026-08-23 -->
+<!-- version: 2.67 — 2026-08-28 -->
 
 > **Session contract for Claude Code in this repo.** Read on every session start (auto). Single canonical agent-instruction file (≤200 lines). Per ADR-53.
 >
@@ -233,7 +233,9 @@ Machine-enumerated (last 5 by number, from `docs/decisions/ADR-*.md` headers; re
 
 <!-- methodology:end id=section-history -->
 
+- v2.67 (2026-08-28, closure-harvest lane act 5) — **coupled-move only: the `reconciled_with` edge follows HANDOFF_PROCESS to v6.3.0** (role residency — the assembler emits a 3-line ROLE PIN instead of inlining `protocols/HANDOFF_BOOT.md`; measured 50,852 → 34,624 B on a real cut). This file's BODY is unchanged — no rule added, removed or reworded — so the bullet records a stamp, not a doctrine change. **Stamp semantics:** `last_reviewed` moves because the file was re-read end-to-end from disk this session before the edge was bumped. **Re-confirmed still-owed, both inside hub-single-sourced Form-A regions this lane may not touch alone:** §6 step 5's bare `pytest --collect-only` (the ADR-106 defect — needs a lockstep `templates/claude-regions/session-start-protocol.md` act), and §10's *“Narrating or managing AGENTS.md”* anti-pattern, now **provably** false doctrine rather than arguably so: **ADR-115** (Accepted 2026-08-25) supersedes ADR-53 Decision 2 and amends ADR-101 §1 to admit `AGENTS.md`. `[#577]` owns that correction. Budget, measured with the file's own checker (`validate_doc_rot.scan_file_budget`): opened **195/200**, spent 2 (this bullet + its separator), closes **197/200, headroom 3**.
+
 ---
 
-**Last updated:** 2026-08-23
+**Last updated:** 2026-08-28
 **Maintained by:** Rob

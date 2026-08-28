@@ -19,6 +19,66 @@
 
 ---
 
+### 2026-08-28 (b) - CC (Opus 5, background job, primary checkout, branch `docs/closure-harvest-k4`): the K4 verdicts executed - eight closures funded three births, and the role file left the paste
+
+**Did:** executed the MORNING PACKET §K4 verdicts in five acts, plus four operator amendments
+delivered mid-lane. Act 1 the DO-IT eight; act 2 the RE-CUT six; act 3 the two DECIDE rows; act 4
+the ledger arithmetic and the D6 births; act 5 the D-R1 role-residency change shipped as
+HANDOFF_PROCESS **v6.3.0** with its whole version surface reconciled.
+
+**Result:** **8 rows closed** (`[#335]` `[#348]` `[#71]` `[#266]` `[#99]` `[#296]` `[#127]`
+`[#391]`), **6 re-cut**, **1 held**, **3 born** (`[#609]` `[#610]` `[#611]`). Ledger: opened at 0
+banked, closures banked 8, births spent 3, **5 remaining** - closures made before filing, per
+PLAYBOOK D3/D5. Row count 206 -> 203 -> 206. Full suite green; `audit.py health` OK.
+
+**The negative headline, and it is the useful one: three of the verdicts did not survive contact
+with their own evidence, and were reported rather than executed as written.** `[#335]` was a
+VERIFY-THEN-CLOSE whose premise ("the false positive may already be gone") **one live run
+refuted** - so it was built and then closed, not closed on a stale premise. `[#274]` could not
+close at all: leg 2 needs "one **subsequent** changelog-review digest" and the command is
+PUSH-trigger by its own frontmatter, so no act that writes the rubric can produce the run that
+consumes it. `[#267]` HELD - quoting its LEAN as instructed revealed the contradiction the
+instruction's escape clause was written for: half of it is "coupled to P6", and **P6 is UNOWNED**
+(`[#221]` closed at `8aab4356`, no successor). One more correction on the record: the K4 case for
+`[#112]` credited *v2.65 rule-7* with resolving its CLAUDE.md §5 leg; that edit re-scoped a
+different rule. The leg IS discharged - by rule 3's own ADR-94 exception. Same conclusion, correct
+evidence.
+
+**`[#146]`'s authorship question, which the verdict required settling first, resolved AGAINST the
+row.** `git log -S` over the landed clause-(a) text returns exactly one commit - `4b27125e`,
+subject *"docs(playbook): **#11** methodology home for the amendment-coherence gate"*. So the text
+belongs to #11: clause (a) leaves the scope **credited to #11**, and this row is not closed on it.
+
+**Act 5, measured not asserted.** The assembler stops inlining `protocols/HANDOFF_BOOT.md` and
+emits a 3-line ROLE PIN (version + sha256 + a standing refusal line); the role is now RESIDENT in
+the browser project's instructions. On a real cut: **50,852 -> 34,624 bytes, a 16,228-byte drop**.
+Deliberately not a round number - the role file is 17,196 B, so the body gave back 17,196 and took
+on ~968 for the pin. The §"Browser-role delivery" **requirement is unchanged**; only the mechanism
+that satisfies it changed, which is why this is a minor bump. **Amendment 3 vindicated itself:**
+grepping the version surface instead of trusting an enumerated list found **six prose claims in
+`docs/handoffs/README.md` that the role file is "inlined into PASTE_THIS.md"** - six live false
+statements about the change's own central fact, named by no list.
+
+**Abandoned:** nothing. Two scratch files created by a mangled shell command (`Last`, `**Living`)
+were removed and verified removed before the next commit.
+
+**Changes:** `scripts/{assemble_paste,fleet_health,audit,validate_reconciliation}.py`;
+`.claude/skills/verify/{verify.py,SKILL.md}`; `protocols/{HANDOFF_PROCESS,HANDOFF_BOOT,PLAYBOOK,
+SESSION_SETUP,README,OPERATOR-INTERFACE,ENVIRONMENT}.md`; `ARCHITECTURE.md` (re-read end-to-end,
+re-stamped); `CLAUDE.md` v2.67; `CONTRIBUTING.md`; `docs/handoffs/README.md`;
+`docs/decisions/ADR-97` (appended Amendment); `templates/handoff/epic/EPIC_BOOT.md.tmpl`;
+`.claude/commands/changelog-review.md`; `ecosystem/disposition-register.yaml`; `tasks/` + BACKLOG
+regen; 4 test modules (+1 new). Report: `docs/audits/2026-08-28-technical-closure-harvest-k4.md`.
+
+**Anchors:** e4eaee05 (v6.3.0 role residency), 4cf4de84 (the three funded births), f98fbff5
+(`[#391]` ruled, `[#267]` held), a83d4e5a (the RE-CUT six), a21ed495 (`[#127]`), ee80a1f2
+(`[#99]`/`[#296]`), aba76527 (`[#71]`/`[#266]`), 6173deb7 (`[#348]` + the `[#335]` retirement
+redone), cdd1a389 (`[#335]` build).
+
+**Next:** `[#267]` needs one operator word on its part-(ii)/P6 coupling. `[#274]` un-defers at the
+next `/changelog-review` (one is already due: claude-code 2.1.250 vs last-reviewed 2.1.204).
+`[#611]` carries the v7 minimal-bundle plan. Five banked closures remain unspent.
+
 ### 2026-08-28 (a) - CC (Opus 5, background job, primary checkout, branch `docs/night-harvest-consumption`): the night-harvest ledger executed end to end - and the kill algorithm, run faithfully, closed ZERO
 
 **Did:** executed `NIGHT-MISSION-2026-08-27` unattended in four phases - fleet hygiene, the

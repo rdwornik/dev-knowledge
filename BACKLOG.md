@@ -20,6 +20,7 @@
 ### [S1] Match the handoff payload to the work mode
 So that an architecture session inherits the big picture + vision while an execution session inherits lean task-state — one process, two payloads.
 - [#511] [P2][M] The 30-minute handoff cut is ~99.8% session authoring, not machinery · tasks/511-handoff-cut-cost-is-session-authoring.md
+- [#611] [P2][M] HANDOFF_PROCESS v7: the minimal-bundle package · tasks/611-handoff-process-v7-the-minimal-bundle-package.md
 
 ### [S2] Finish the v5 handoff machinery deferred at the #149 flip
 So that the canonical v5 handoff is fully implemented (generator) and mechanically verified (teeth), not just specified.
@@ -43,7 +44,7 @@ So that the canonical v5 handoff is fully implemented (generator) and mechanical
 
 ### [S3] Turn advisory guards into enforced gates
 So that a convention can't be skipped under load (the failure mode behind real aborts).
-- [#146] [P3][S] De-hardcode-first doctrine + sweep · DEFER · tasks/146-de-hardcode-first-doctrine-sweep.md
+- [#146] [P3][S] De-hardcode-first doctrine + sweep · tasks/146-de-hardcode-first-doctrine-sweep.md
 - [#112] [P2][M] adr_amend helper + ADR immutable-zone extension · tasks/112-adr-amend-helper-adr-immutable-zone-extension.md
 - [#242] [P2][M] ADR status-flip coherence check · tasks/242-adr-status-flip-coherence-check.md
 - [#153] [P2][M] Enforcement-completeness pass · DEFER · tasks/153-enforcement-completeness-pass.md
@@ -75,12 +76,10 @@ So that a convention can't be skipped under load (the failure mode behind real a
 ### [S4] Extend structural validation to more governance artifacts
 So that drift in transcripts, ADRs, and folders is caught cheaply, not by reviewer luck.
 - [#139] [P2][L] merged-arc→record verifier · DEFER · tasks/139-merged-arc-record-verifier.md
-- [#99] [P3][S] FLEET-HEALTH digest names the failing check per red repo · DEFER · tasks/99-fleet-health-digest-names-the-failing-check-per.md
 - [#190] [P3][M] General intra-file duplication detector · DEFER · tasks/190-general-intra-file-duplication-detector.md
 - [#210] [P3][S] Convert journal-wrap no-ff WARNs from per-instance disposition to a standing rule · tasks/210-convert-journal-wrap-no-ff-warns-from-per-instan.md
 - [#234] [P3][S] Cross-repo probe validator · DEFER · tasks/234-cross-repo-probe-validator.md
-- [#277] [P2][M] propose_closures signal repair · DEFER · tasks/277-propose-closures-signal-repair.md
-- [#296] [P3][S] `audit.py repo <name> --repo-path` prints a report path that isn't there · DEFER · tasks/296-audit-py-repo-name-repo-path-doesn-t-persist-its.md
+- [#277] [P2][M] propose_closures signal repair · tasks/277-propose-closures-signal-repair.md
 
 ### [S5] Catch spec/dependent drift mechanically, not by memory
 So that "spec bumped, dependent partially updated, caught only because a human remembered" stops being the failure mode — machine-checkable coherence between a dependent doc and its spec.
@@ -90,7 +89,6 @@ So that "spec bumped, dependent partially updated, caught only because a human r
 - [#181] [P2][S] Coherence v2 nudge-response · DEFER · tasks/181-coherence-v2-nudge-response.md
 - [#220] [P2][M] MODIFY / semantic-drift axis · DEFER · tasks/220-modify-semantic-drift-axis.md
 - [#241] [P2][S] Undeclared-edge groom · DEFER · tasks/241-undeclared-edge-groom.md
-- [#335] [P3][S] Exempt `templates/` from the `reconciled_versions` check · tasks/335-exempt-templates-from-the-reconciled-versions-ch.md
 - [#457] [P2][S] Two live-repo tests fail on main against green gates — test-vs-organ mismatch · tasks/457-inherited-live-repo-test-failures.md
 - [#477] [P2][S] `deployed_methodology_version` keys the registry by repo-root BASENAME — a clone named `dev-knowledge` cannot find `.dev-knowledge` · tasks/477-deployed-version-check-keys-registry-by-basename.md
 - [#478] [P2][S] `changelog_sentinel` drops PEP 440 suffixes — a prerelease as the reviewed value silences the sentinel permanently · tasks/478-changelog-sentinel-drops-pep-440-suffixes.md
@@ -127,7 +125,7 @@ Backbone (dependency-ordered; done stages recorded here as the epic ledger — A
 - FLAG RESOLVED (architect, 2026-07-07): the arc-tracking / record-integrity fold is adjudicated — #168/#170 **co-sequence with #239/#240** (they harden the same `session_end_backpressure` organ the enforcement-transfer epic ports consumer-local in #237); #243 co-sequences there too (its #168-hard vs Fable-WARN conflict resolves at that mesh-consult). #139 **stays separate** (hub record-integrity, tangential — not folded).
 
 - [#240] [P3][S] Follow-up · DEFER · tasks/240-follow-up.md
-- [#267] [P2][S] Scope-exercising arc extension · DEFER · tasks/267-scope-exercising-arc-extension.md
+- [#267] [P2][S] Scope-exercising arc extension · tasks/267-scope-exercising-arc-extension.md
 - [#289] [P2][M] Hub-own the OneDrive-Blue-Yonder guard · DEFER · tasks/289-hub-own-the-onedrive-blue-yonder-guard.md
 - [#294] [P3][M] `validate_backlog` deploy-carrier + `--path` de-hardcode · DEFER · tasks/294-validate-backlog-deploy-carrier-path-de-hardcode.md
 - [#297] [P3][S] Lightweight/dry `observe-arc` coverage mode · DEFER · tasks/297-lightweight-dry-observe-arc-coverage-mode.md
@@ -147,13 +145,12 @@ Backbone (dependency-ordered; done stages recorded here as the epic ledger — A
 ### [S9] Make lessons an active feedback loop, not a passive archive
 So that captured lessons reach runtime rules and stay enforceable.
 - [#4] [P2][M] Build lessons-index.json + SessionStart retrieval + CLI query · DEFER · tasks/4-build-lessons-index-json-sessionstart-retrieval.md
-- [#130] [P3][S] Memory-hygiene review · DEFER · tasks/130-memory-hygiene-review.md
+- [#130] [P3][S] Memory-hygiene review · tasks/130-memory-hygiene-review.md
 
 ### [S10] Codify recurring patterns into the methodology
 So that observed failure-modes become written guidance instead of recurring.
 - [#144] [P3][M] Feature DoD = end-to-end / user-flow test · DEFER · tasks/144-feature-dod-end-to-end-user-flow-test.md
-- [#145] [P3][M] Codification-completeness pass · DEFER · tasks/145-codification-completeness-pass.md
-- [#266] [P3][S] Codify the test-scoped-grant language lesson · DEFER · tasks/266-codify-the-test-scoped-grant-language-lesson.md
+- [#145] [P3][M] Codification-completeness pass · tasks/145-codification-completeness-pass.md
 - [#438] [P3][S] Codify gate-class posture: terra design review BEFORE build for refusal-gate arcs · tasks/438-codify-gate-class-posture-terra-design-review-be.md
 
 ---
@@ -183,7 +180,6 @@ So that the ADR web is internally consistent.
 
 ### [S13] Keep canonical files accurate
 So that stale ground truth stops silently misleading sessions (the repo's own VISION is "drift detected proactively").
-- [#71] [P3][S] Reconcile ENVIRONMENT.md's `~/.claude/` directory tree with live contents · DEFER · tasks/71-reconcile-environment-md-s-claude-directory-tree.md
 - [#285] [P3][S] Extend hub freshness gating to PLAYBOOK · DEFER · tasks/285-extend-hub-freshness-gating-to-playbook.md
 - [#300] [P1][M] Hermetization residual d.ii · DEFER · tasks/300-hermetization-residual-d-ii.md
 - [#388] [P3][S] The "10–20 repo" fleet-scale target is FABRICATED — correct it to the live 5–8+ wherever it is restated · tasks/388-the-10-20-repo-fleet-scale-target-is-fabricated.md
@@ -219,6 +215,7 @@ So that "open any repo, same layout/governance" actually holds.
 - [#331] [P2][S] Consumer BACKLOG schema adoption ruling · DEFER · tasks/331-consumer-backlog-schema-adoption-ruling.md
 - [#332] [P2][M] Fleet dependency-version parity · DEFER · tasks/332-fleet-dependency-version-parity.md
 - [#334] [P3][S] Fleet-wide ruff hook id migration `ruff` → `ruff-check` · tasks/334-fleet-wide-ruff-hook-id-migration-ruff-ruff-chec.md
+- [#609] [P2][S] Free ruff ratchet — the zero-cost half of the Python standard · tasks/609-free-ruff-ratchet-the-zero-cost-python-standard.md
 - [#343] [P3][S] fleet_parity ship-gate-only scoping · tasks/343-fleet-parity-ship-gate-only-scoping.md
 - [#342] [P3][S] fleet_parity gate-ahead max-fidelity hardening · tasks/342-fleet-parity-gate-ahead-max-fidelity-hardening.md
 - [#351] [P3][M] Fleet-Python-upgrade ticket · tasks/351-fleet-python-upgrade-ticket.md
@@ -246,9 +243,8 @@ So that a new repo inherits the full baseline in one step, not by re-derivation.
 ### [S18] Cut session friction with better tooling
 So that cognitive overhead per session drops.
 - [#102] [P2][M] Machine-readable repo index for agent consumption · DEFER · tasks/102-machine-readable-repo-index-for-agent-consumptio.md
-- [#127] [P3][S] verify skill failure-output contract · DEFER · tasks/127-verify-skill-failure-output-contract.md
 - [#273] [P3][S] Changelog-review staleness escalation · DEFER · tasks/273-changelog-review-staleness-escalation.md
-- [#274] [P3][S] Dogfood-signal prior in the /changelog-review ADOPT rubric · DEFER · tasks/274-dogfood-signal-prior-in-the-changelog-review-ado.md
+- [#274] [P3][S] Dogfood-signal prior in the /changelog-review ADOPT rubric · tasks/274-dogfood-signal-prior-in-the-changelog-review-ado.md
 - [#278] [P2][M] Test-suite hygiene epic · DEFER · tasks/278-test-suite-hygiene-epic.md
 - [#317] [P2][M] Default-parallel test invocation · DEFER · tasks/317-default-parallel-test-invocation-slow-tier-marke.md
 - [#322] [P2][M] Fleet dashboard · DEFER · tasks/322-fleet-dashboard.md
@@ -298,9 +294,9 @@ So that cadence-less artifacts and unevaluated tools don't rot or get adopted bl
 - [#580] [P1][M] State-as-data: atomic id allocation, and `tasks/` as the SOLE source (packet ARC-B) · tasks/580-state-as-data-atomic-id-allocation-and-tasks-as.md
 ### [S20] Revive the nightly layer, load-gauge first (rent-rule discipline)
 So that unattended routines run only with a named consumer, a survival metric, and a bounded operator load — never as rot generators (the fleet-audit lesson; sequencing per the standing operator ruling: the load-gauge lands before anything else in the Tier-2 nightly layer).
-- [#271] [P3][L] Nightly proposal loop · DEFER · tasks/271-nightly-proposal-loop.md
+- [#271] [P3][L] Nightly proposal loop · tasks/271-nightly-proposal-loop.md
+- [#610] [P2][M] The night-batch protocol, named — with its two missing verbs · tasks/610-the-night-batch-protocol-named-with-its-two-verb.md
 - [#288] [P3][S] Model-identity guard for unattended runs · DEFER · tasks/288-model-identity-guard-for-unattended-runs.md
-- [#348] [P3][S] Backlog grooming as a standing routine, not ad-hoc · tasks/348-backlog-grooming-as-a-standing-routine-not-ad-ho.md
 - [#419] [P2][M] We run routines whose output nobody consumes · tasks/419-we-run-routines-whose-output-nobody-consumes.md
 - [#426] [P2][M] Declare `consumer` + `consumption_path` for every LIVE routine · tasks/426-declare-consumer-consumption-path-for-every-live.md
 - [#428] [P2][S] `nightly-triage` reports a dead producer to every session start · tasks/428-nightly-triage-reports-a-dead-producer-to-every.md
@@ -470,7 +466,6 @@ So that a wave closes on a report rather than on a claim — the operator stops 
 
 ### [S26] Mine our own history before predicting anything
 So that "the repo learns us" starts as a cheap descriptive lane on real data, not as an ML platform bought ahead of the evidence.
-- [#391] [P3][S] Wire fleet_analytics into a nightly lane, or narrow #384 to a manual reporter · tasks/391-wire-fleet-analytics-into-a-nightly-lane-or-narr.md
 - [#392] [P3][S] fleet_analytics rename-alias loses history on path-reuse · tasks/392-fleet-analytics-rename-alias-loses-history-on-pa.md
 - [#393] [P3][S] corp-sca rot review — confirm-live-or-retire 3 candidates · tasks/393-corp-sca-rot-review-confirm-live-or-retire-3-can.md
 

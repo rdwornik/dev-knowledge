@@ -1,5 +1,5 @@
 ---
-reconciled_with: handoff-process@6.2.0
+reconciled_with: handoff-process@6.3.0
 ---
 
 # Dev Practice Playbook
@@ -197,6 +197,7 @@ reconciled_with: handoff-process@6.2.0
   - [Schema (ADR-66; machine-checked by `scripts/validate_backlog.py`)](#schema-adr-66-machine-checked-by-scriptsvalidate_backlogpy)
   - [Per-handoff grooming (~2 min, mandatory for M+)](#per-handoff-grooming-2-min-mandatory-for-m)
   - [Quarterly deep grooming (~30 min, scheduled)](#quarterly-deep-grooming-30-min-scheduled)
+  - [The grooming routine — the standing declaration ([#348] anchor)](#the-grooming-routine--the-standing-declaration-348-anchor)
   - [Split-brain prevention](#split-brain-prevention)
 - [11. Evaluating a New Tool/Framework/Model](#11-evaluating-a-new-toolframeworkmodel)
   - [Quick eval checklist](#quick-eval-checklist)
@@ -1189,7 +1190,7 @@ items are removed or tracked in BACKLOG.
 
 <!-- scope: meta -->
 
-**Authoritative spec: `protocols/HANDOFF_PROCESS.md` v6.2.0** — the single live source of truth for handoff mechanics. This is a pointer, not a duplicate; do not re-document the structure here (the duplication is what drifted).
+**Authoritative spec: `protocols/HANDOFF_PROCESS.md` v6.3.0** — the single live source of truth for handoff mechanics. This is a pointer, not a duplicate; do not re-document the structure here (the duplication is what drifted).
 
 Formats in `docs/handoffs/`, all but the current one historical:
 
@@ -4576,6 +4577,34 @@ Rob reviews full BACKLOG once per quarter (recurring quarterly cadence — sched
 Steps 1 and 3 state the **outcome**, not the edit: on the hub the removal mechanism is a `tasks/` retirement per `tasks/README.md` (manifest node out, terminal `status:`, `--emit-source`), not a direct `BACKLOG.md` edit; on an unflipped consumer it is the direct line removal.
 
 **Write-only graveyard prevention:** speculative or distant ideas route to VISION.md, not BACKLOG.md. Strict curation — actionable items only.
+
+### The grooming routine — the standing declaration ([#348] anchor)
+
+<!-- scope: meta -->
+
+**Grooming is CONFIGURATION, not "whoever notices."** `[#348]` turned the improvised-per-session
+pass into a declared routine and carried the ADR-105 declaration in its own row body. A backlog row
+is a **mortal** carrier — it leaves the file when it closes, taking the declaration with it — so on
+`[#348]`'s closure the declaration is re-anchored **here**, in the living doc that already owns the
+grooming workflow. This paragraph is now the routine's home; the row is its history.
+
+```
+routine: backlog-grooming
+  trigger:           on-demand (operator ask, or session boot via the §6 start protocol)
+  scope:             the task queue — `tasks/` on the hub, `BACKLOG.md` on an unflipped consumer
+  consumer:          any session reading the queue; the operator at quarterly deep grooming
+  consumption_path:  the queue in place — `tasks/` retirement then `--emit-source`, never a
+                     hand edit of the generated `BACKLOG.md`
+  verified_by:       `scripts/validate_backlog.py` (schema) + `task_tree_coherence` (source↔view)
+  cadence:           per-handoff (~2 min, mandatory for M+) and quarterly deep (~30 min)
+```
+
+**Honest limit, stated because the gate cannot state it:** `check_routine_consumers` reads
+`· routine:` markers out of **backlog rows only**. This declaration lives in a protocol file and is
+therefore **not** gated by that organ — the fenced block above is deliberately fenced, since the
+check treats a fenced example as an example and not a declaration. What holds it accurate is the
+freshness cadence on this file, not a machine. Extending the organ to doc-resident routines is
+`[#426]`'s scope, which is where the ~30 live hook/schedule routines are also owed.
 
 ### Split-brain prevention
 <!-- scope: meta -->
