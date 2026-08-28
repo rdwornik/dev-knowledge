@@ -156,6 +156,34 @@ To capture this session's strategic "why" (optional but recommended):
 Operator-gated, mine to run on your OK: push main; -d the merged stragglers
 ```
 
+### The merge step — ATOMIC WITH TEARDOWN (B1, operator ruling 2026-08-28)
+
+The `/handoff` merge act is **not finished at the push**. It ends with ancestor-proven branch
+deletion in **both** places the branch exists — exactly the same shape as batch integration, and
+for the same reason: a merged branch left alive is a defect, not a pending decision. This is a
+step of the command, not advice about one. Do not ask whether to delete the branch you just
+merged; deleting it is part of the merge you were already authorized to perform
+(`.claude/rules/git-discipline.md`, MERGE IS ATOMIC).
+
+Run this as ONE act, in order, substituting `<branch>`:
+
+```bash
+git merge --no-ff <branch> && git push origin main   # the merge half
+git merge-base --is-ancestor <branch> main           # the ANCESTOR PROOF -- exit 0 or STOP
+git branch -d <branch>                               # local  (-d, never -D)
+git push origin --delete <branch>                    # ORIGIN -- the half that gets forgotten
+```
+
+- **The ancestor proof gates the deletion.** A non-zero `git merge-base --is-ancestor` means the
+  branch is not contained in `main`: stop and report, delete nothing. `git branch -d` carries its
+  own containment check and is never escalated to `-D` here.
+- **Local AND origin.** The 2026-08-28 handoff merge is the witness this step exists for: it left
+  `docs/handoff-2026-08-28` alive locally *and* on origin, and the seat asked instead of acting.
+  A local-only delete leaves the origin half behind, which is the same defect wearing a smaller hat.
+- **Protection still outranks the step.** A branch matching an explicitly protected glob
+  (`automation/*` permanently; `claude/conformance-*` until absorbed) is not deleted here — see
+  git-discipline. Silence is not protection; an explicit glob is.
+
 ## Legacy v4 cross-repo handoffs (pointer, not mechanics)
 
 The v4 two-phase 8-file interview mechanics that used to live here are **removed** (#164

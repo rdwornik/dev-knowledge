@@ -51,6 +51,31 @@ purpose** — `automation/*` is protected permanently (it lives outside `main` b
 - verify: `git branch --merged main` lists nothing but `main`, `automation/*`, and any
   `claude/conformance-*` not yet absorbed.
 
+### THE HANDOFF MERGE IS ATOMIC WITH TEARDOWN (operator ruling 2026-08-28, B1)
+
+MERGE IS ATOMIC above governs *which* branches delete at their merge. This leg states *where*
+the deletion has to reach and *what proves it is safe*, because the 2026-08-28 handoff merge
+satisfied MERGE IS ATOMIC's intent and still left a branch alive in two places.
+
+**Both places, or the merge is unfinished.** A merged handoff branch is deleted **locally AND on
+origin** in the same act as the merge and push. A local-only delete is not a completed teardown —
+it is the same defect at half the radius, and it is the half that survives review because
+`git branch` looks clean. `docs/handoff-2026-08-28` is the witness: alive locally and on origin
+after its merge, with the seat asking whether to delete rather than deleting.
+
+**The ancestor proof is the safety check, and it is what makes the round-trip removable.**
+`git merge-base --is-ancestor <branch> main` exiting 0 is the evidence the branch is contained.
+Exit non-zero: stop, report, delete nothing. `-d` is the deletion verb and is never escalated to
+`-D` under this rule — the rule removes the *authorization* round-trip, not the safety check.
+
+The mechanism lives in `.claude/commands/handoff.md`, section *"The merge step — ATOMIC WITH
+TEARDOWN"*, as an ordered command block rather than a sentence: an instruction is a request, a
+mechanism is a guarantee. Explicit protection still outranks it (`automation/*` permanently,
+`claude/conformance-*` until absorbed).
+
+- verify: after a handoff merge, `git branch --merged main` lists no handoff branch AND
+  `git ls-remote --heads origin <branch>` returns empty.
+
 ### WORKTREE TEARDOWN IS TWO BRANCHES, NOT ONE
 
 Teardown = `git worktree remove` + `git worktree prune` + delete the **work** branch **AND** the
