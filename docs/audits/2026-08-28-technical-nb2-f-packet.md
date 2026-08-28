@@ -236,3 +236,29 @@ curated-baseline, rule-vs-ruling, no-ruling-fork or out-of-scope-path question a
 
 **STOP.** Branch `worktree-lane-f-577-byte-cap` at `4ac3bb69`, two commits, all gates green,
 unmerged, awaiting the integrator's frozen queue.
+
+---
+
+## AMENDMENT A1 — 2026-08-28, same lane, post-commit of the packet
+
+Immutability observed: appended under an amendment marker rather than edited in place
+(`CLAUDE.md` §5 rule 3).
+
+**The audits index IS stale on this branch, and leaving it stale is correct — by ruling, not
+by omission.** Committing this packet made `docs/audits/README.md` stale
+(`gen_audit_index.py --check` → *"stale vs docs/audits/ — regenerate"*), and the
+`audit-index-freshness` pre-commit hook did **not** fire. That is not a gate gap. `[#590]`
+narrowed the hook's `files:` on 2026-08-26 from *any* `docs/audits/*.md` to only the index and
+its generator, precisely because the old pattern forced every ADR-110 batch lane to touch the
+index and put that one file in **6 of the last 7 conflicted merges — 86 % of all manual merge
+resolution in the repo**. The commit-time guarantee did not lapse; it moved to the ship-gate
+`generated_artifact_freshness` leg, artifact `audits-index`.
+
+So §2's statement stands and is now stronger than "no gate demanded one": regenerating the
+index here is **affirmatively the wrong act for a batch lane**, and contract §4's carve-out was
+correctly left unused. **The integrator owes the regeneration once on the merged result** —
+`uv run --locked python scripts/gen_audit_index.py --write`, after `git add`, since the index
+reads tracked files only.
+
+Third commit on this branch: `48e82d7d` (this packet). Branch tip moves to the amendment commit;
+the two code commits in §2 are unchanged.
