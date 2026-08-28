@@ -503,6 +503,7 @@ Three repo-verifiable facts in **answer 6** were re-derived live at fold time:
 - **`v1.4.0` is NOT tagged — CONFIRMED.** Newest tag is `v1.3.1`. The `deploy` preflight abort
   stands, so win-tooling instantiation is still blocked on this one-liner. This is the operator
   one-liner that gates the stated headline intent (deployment within two sessions).
+  > **AMENDED 2026-08-28:** `v1.4.0` EXISTS (tagged post-seal at `c57ac188`, on origin) — the deploy-preflight blocker is discharged; see HANDOFF-VERIFY 2026-08-28 INHERIT row.
 - **`automation/fleet-audit` is NOT 2 commits behind — REFUTED, and the claim is DISCHARGED.**
   Local and `origin/automation/fleet-audit` are both at `1f8b6434`; the push has already happened.
   Recorded here so the next seat does not chase a closed item, and so the `Inherited claims` row
@@ -545,4 +546,4 @@ and no P-tier probe covers them.
 
 ---
 
-=== END OF PASTE — 5 sections · 47761 bytes ===
+=== END OF PASTE — 5 sections · 47940 bytes ===
