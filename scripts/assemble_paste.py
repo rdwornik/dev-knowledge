@@ -6,7 +6,9 @@ Usage: python scripts/assemble_paste.py <bundle_dir>
 Manifest (in order):
   0. <bundle>/HANDOFF_BOOT.md session-header (optional; extracted from the bundle's
      own HANDOFF_BOOT.md up to the first '##' heading — slug/mode/purpose/generated-at)
-  1. protocols/HANDOFF_BOOT.md  (required — browser role file + boot line)
+  1. ROLE PIN  (required — a 3-line pin naming the role file's version + sha256, NOT the
+     role file itself; the role is RESIDENT in the browser project instructions since
+     HANDOFF_PROCESS v6.3.0 / census R1. See _role_pin below.)
   2. <bundle>/RESIDUAL.md       (required — drift-flags + planning why + task-graph)
   3. <bundle>/PROBES.md         (required — orientation + teeth probes)
   4. <bundle>/SUPPLEMENT.md     (architect strategic supplement — an always-generated
@@ -17,6 +19,7 @@ Output: <bundle>/PASTE_THIS.md  (UTF-8, LF, never hand-edited)
 """
 from __future__ import annotations
 
+import hashlib
 import re
 import sys
 from pathlib import Path
@@ -26,10 +29,15 @@ import click
 _SECTION_SEP = "\n\n---\n\n"
 
 # RF-2 item 2: surface paste growth so it stops creeping unchecked (36.5 KB -> 59 KB across
-# 06-15..07-03 with no budget). The healthy filled paste is ~59 KB; warn just past that so
-# genuine bloat (re-narration creep, RF-6) trips a visible [warn] without nagging on a normal
-# bundle. A WARN, not a gate — assembly still succeeds. Tunable.
-_SIZE_WARN_BYTES = 65_000
+# 06-15..07-03 with no budget). A WARN, not a gate — assembly still succeeds. Tunable.
+#
+# RE-BASED AT v6.3.0 for the residency flip. The old 65,000 sat ~6 KB above a ~59 KB healthy
+# filled paste. The role file (~17.2 KB) no longer travels in the body, so a budget left at
+# 65,000 would carry ~23 KB of slack and stop discriminating: the creep it exists to catch
+# could double before tripping it. Re-based to preserve the ORIGINAL headroom RATIO against
+# the new healthy size, not to encode today's measurement — 65,000 − 17,196 ≈ 47,800, rounded
+# to 48,000. A budget that survives a 17 KB structural drop unchanged was measuring nothing.
+_SIZE_WARN_BYTES = 48_000
 
 # A10 item 2 / R4 ([#446]): the stated numeric byte budget for the browser role file
 # `protocols/HANDOFF_BOOT.md` — 18,000 bytes, ruled 2026-07-31 (architect technical lane;
@@ -121,6 +129,66 @@ def _extract_answers(text: str) -> str | None:
     return stripped or None
 
 
+# --- the ROLE PIN (HANDOFF_PROCESS v6.3.0; census R1 mechanism, operator ruling D-R1) ----
+#
+# WHAT CHANGED AND WHY. Through v6.2.0 the assembler INLINED the whole of
+# `protocols/HANDOFF_BOOT.md` into every paste — ~17 KB of role text re-transmitted on
+# every handoff, to a browser that could simply HOLD it. v6.3.0 makes the role
+# RESIDENT: the operator installs `protocols/HANDOFF_BOOT.md` once as the browser
+# project's instructions, and the paste ships a three-line PIN instead.
+#
+# The "role MUST reach the browser" requirement of HANDOFF_PROCESS is UNCHANGED. What
+# changes is the mechanism that satisfies it: residency, guarded by a refusal. The pin
+# names the version and the sha256 of the exact role file this bundle was cut against,
+# and instructs the seat to REFUSE rather than proceed if what it holds does not match.
+# That is why the third line is not decoration — without it, residency degrades silently
+# when the resident copy drifts, and a silent mismatch is strictly worse than a heavy
+# paste. A pin without teeth would be a size optimisation bought with a correctness hole.
+_ROLE_REFUSAL = ("If your project instructions do not carry this contract at this "
+                 "version+sha, say so before answering.")
+
+
+def _role_pin(role_path: Path, version: str) -> str:
+    """The 3-line role PIN: identity, integrity, refusal.
+
+    sha256 is computed over the file's RAW BYTES, so it is insensitive to how the
+    reader's platform would render newlines and matches what `sha256sum` reports.
+    """
+    digest = hashlib.sha256(role_path.read_bytes()).hexdigest()
+    return "\n".join((
+        f"ROLE PIN — {role_path.name} @ handoff-process v{version}",
+        f"sha256: {digest}",
+        _ROLE_REFUSAL,
+    ))
+
+
+_VERSION_RE = re.compile(r"^Version:\s+v?(\d+\.\d+(?:\.\d+)?)", re.MULTILINE)
+
+
+def _spec_version(repo_root: Path) -> str:
+    """The live HANDOFF_PROCESS version — read, never hard-coded.
+
+    A hard-coded constant here is exactly the coupled-version surface the
+    `reconciled_versions` / `handoff_version_stamp` organs exist to police, so the
+    assembler reads the spec instead of carrying a copy to go stale (the
+    de-hardcode-first doctrine, PLAYBOOK amendment_coherence honest limits).
+    """
+    spec = repo_root / "protocols" / "HANDOFF_PROCESS.md"
+    # Fail CLOSED, and cleanly. Both arms exit 1 with a named reason rather than a
+    # traceback: the pin's whole value is that it vouches for an identity, so an
+    # unknown version must refuse loudly instead of shipping an unverifiable pin.
+    if not spec.exists():
+        click.echo("[error] protocols/HANDOFF_PROCESS.md is missing — the ROLE PIN needs its "
+                   "Version line; refusing rather than pinning an unknown version", err=True)
+        sys.exit(1)
+    m = _VERSION_RE.search(spec.read_text(encoding="utf-8"))
+    if not m:
+        click.echo("[error] protocols/HANDOFF_PROCESS.md: no parseable 'Version:' line — "
+                   "the ROLE PIN cannot be built without it", err=True)
+        sys.exit(1)
+    return m.group(1)
+
+
 @click.command()
 @click.argument("bundle_dir", type=click.Path(exists=True, file_okay=False, path_type=Path))
 def main(bundle_dir: Path) -> None:
@@ -151,9 +219,32 @@ def main(bundle_dir: Path) -> None:
         if header:
             sections.append(("HANDOFF_BOOT.md (session header)", header))
 
-    # 1-3. Required sources (inlined verbatim — the file-less browser must RECEIVE them).
+    # 1. ROLE PIN — the role file is RESIDENT, not inlined (v6.3.0; census R1, ruling D-R1).
+    role_path = repo_root / "protocols" / "HANDOFF_BOOT.md"
+    if not role_path.exists():
+        click.echo(f"[error] Required source missing: {role_path}", err=True)
+        sys.exit(1)
+    role_text = role_path.read_text(encoding="utf-8")
+    # rule: handoff-boot-budget
+    # A10 item 2 / R4: the browser role file carries a stated numeric byte budget. The budget
+    # SURVIVES the residency flip and is deliberately unchanged: the role file still has to fit
+    # a browser project-instructions field, and it is now read by EVERY session of that project
+    # rather than once per paste, so its size matters more, not less. WARN here (assembly
+    # proceeds); audit.py::check_boot_byte_budget is the FAIL-class organ that blocks the merge.
+    boot_bytes = len(role_text.encode("utf-8"))
+    if boot_bytes > HANDOFF_BOOT_BYTE_BUDGET:
+        click.echo(f"[warn] protocols/HANDOFF_BOOT.md is {boot_bytes} bytes "
+                   f"(> budget {HANDOFF_BOOT_BYTE_BUDGET}) — trim the browser role file; "
+                   "audit.py check_boot_byte_budget FAILs the ship-gate on this "
+                   "(A10 item 2 / R4)", err=True)
+    sections.append(("ROLE PIN (protocols/HANDOFF_BOOT.md — RESIDENT, not inlined)",
+                     _role_pin(role_path, _spec_version(repo_root))))
+    click.echo(f"[pin] role file NOT inlined: {boot_bytes} bytes replaced by a 3-line pin "
+               "(v6.3.0 residency; install protocols/HANDOFF_BOOT.md as the browser project's "
+               "instructions once — protocols/OPERATOR-INTERFACE.md)", err=True)
+
+    # 2-3. Required sources (inlined verbatim — the file-less browser must RECEIVE these).
     required: list[tuple[str, Path]] = [
-        ("protocols/HANDOFF_BOOT.md", repo_root / "protocols" / "HANDOFF_BOOT.md"),
         ("RESIDUAL.md", bundle_dir / "RESIDUAL.md"),
         ("PROBES.md", bundle_dir / "PROBES.md"),
     ]
@@ -162,18 +253,6 @@ def main(bundle_dir: Path) -> None:
             click.echo(f"[error] Required source missing: {path}", err=True)
             sys.exit(1)
         text = path.read_text(encoding="utf-8")
-        # rule: handoff-boot-budget
-        # A10 item 2 / R4: the browser role file carries a stated numeric byte budget. WARN
-        # here (assembly proceeds); audit.py::check_boot_byte_budget is the FAIL-class organ
-        # that actually blocks the merge. Measured on the SOURCE file, not the assembled
-        # paste — PASTE_THIS has its own separate _SIZE_WARN_BYTES budget above.
-        if label == "protocols/HANDOFF_BOOT.md":
-            boot_bytes = len(text.encode("utf-8"))
-            if boot_bytes > HANDOFF_BOOT_BYTE_BUDGET:
-                click.echo(f"[warn] protocols/HANDOFF_BOOT.md is {boot_bytes} bytes "
-                           f"(> budget {HANDOFF_BOOT_BYTE_BUDGET}) — trim the browser role file; "
-                           "audit.py check_boot_byte_budget FAILs the ship-gate on this "
-                           "(A10 item 2 / R4)", err=True)
         sections.append((label, text.rstrip()))
 
     # 4. SUPPLEMENT.md — the architect strategic supplement (an always-generated fillable

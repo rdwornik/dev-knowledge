@@ -1,6 +1,6 @@
 ---
-last_reviewed: 2026-08-24
-reconciled_with: handoff-process@6.2.0
+last_reviewed: 2026-08-28
+reconciled_with: handoff-process@6.3.0
 status: active
 owner: Rob
 ---
@@ -16,10 +16,19 @@ Sole contributor: Rob Dwornik. Audience: future Rob + AI agents reading for orie
 <!-- scope: meta -->
 
 More than one vendor's agent works in this repo, and the file a cross-vendor agent would
-conventionally read at the repo root — `AGENTS.md` — **cannot exist here.** ADR-101 section 1
-closes the Tier-1 top-level file class, and `scripts/validate_hermetization.py` refuses the add
-(*"unsanctioned new top-level file … a genuinely new class is an ADR-101 amendment, not a
-drive-by add"*). This section performs that file's job from inside a sanctioned one.
+conventionally read at the repo root — `AGENTS.md` — **does not exist here yet.**
+`scripts/validate_hermetization.py` still refuses the add (*"unsanctioned new top-level file … a
+genuinely new class is an ADR-101 amendment, not a drive-by add"*), so this section performs that
+file's job from inside a sanctioned one.
+
+**Read that as a pending mechanism, not a standing prohibition (updated 2026-08-28).** This
+paragraph used to say `AGENTS.md` *cannot* exist here. **ADR-115 (Accepted 2026-08-25) amends
+ADR-101 §1 to admit it** and supersedes ADR-53 Decision 2, so the decision has been taken. What has
+not happened is the mechanism: ADR-115 §4 specifies the `SANCTIONED_TIER1_FILES` diff and is
+**deliberately explicit that the draft does not apply it**, which is why the gate above is still
+correct about live state and this file is still accurate about the tree. `[#577]` carries the enum
+edit. Both facts hold at once — cite the one that matches your question: *may it exist* (ruled yes)
+or *does the gate admit it today* (no).
 
 **The declared source of truth is `ecosystem/provider-registry.yaml`** — every provider, the CLI
 that reaches it, and every model string this repo's live surface names. Read it; do not restate it
@@ -152,7 +161,7 @@ Pre-commit hooks (`.pre-commit-config.yaml`):
 | `roster-freshness` | commit | Regen-and-diff gate for `.claude/methodology-roster.md` vs `deploy/manifest-v*.yaml` (`gen_methodology_roster.py --check`); blocks a hand-edited or manifest-stale roster. Hub-only ([#244] P3). |
 | `claude-rosters-freshness` | commit | Regen-and-diff gate for the two `@`-imported CLAUDE.md fragments `.claude/generated/{commands-repo,recent-adrs}.md` (`gen_claude_rosters.py --check`); fires on the command files / ADR headers / the fragments. Hub-only ([#258] phase-2). |
 | `audit-index-freshness` | commit | Regen-and-diff gate for the generated `docs/audits/README.md` index vs `docs/audits/*.md` (`gen_audit_index.py --check`); shape-agnostic. Hub-only. |
-| `validate-hermetization` | commit | ADR-101 tree-seal refusal gate, prospective-only on staged ADDs: blocks a new unsanctioned Tier-1 top-level dir/file-class or `docs/<genre>/` folder (Rule A) or an off-grammar `docs/audits/*.md` name (Rule B). `scripts/validate_hermetization.py`, bypass `--no-verify`. Hub-only. |
+| `validate-hermetization` | commit | ADR-101 tree-seal refusal gate, prospective-only on staged ADDs: blocks a new unsanctioned Tier-1 top-level dir/file-class or `docs/<genre>/` folder (Rule A), an off-grammar `docs/audits/*.md` name (Rule B), or an added file whose home directory is outside the live-taxonomy allowlist (Rule C, operator ruling 2026-08-11 / STANDING_RULINGS K-1). `scripts/validate_hermetization.py`, bypass `--no-verify`. Hub-only. |
 | `intake-index-freshness` | commit | Regen-and-diff gate for the status-grouped Contents block in `docs/intake/README.md` vs `docs/intake/*.md` frontmatter `status:` (`gen_intake_index.py --check`). Hub-only. |
 | `check-seal-identity` | commit | Bundle seal-identity gate over staged `docs/handoffs/**`: runs `gen_handoff.verify_seal_identity` (reused, not reimplemented) so a hand-renamed directory / edited Slug row / copied bundle whose internal slug names a *different* directory cannot become an immutable committed artifact. Exit 0 clean / 1 violation / **2 internal error, which BLOCKS** — an error is never a silent pass. `scripts/check_seal_identity.py`. Hub-only, [#475]. |
 | `validate-backlog` | commit | Validates the BACKLOG.md story-map structure (ADR-66). |
@@ -250,13 +259,19 @@ See ADR-27 through ADR-41 for style reference.
 
 <!-- scope: meta -->
 
-Protocol: `protocols/HANDOFF_PROCESS.md` — **v6** (stamp v6.2.0, *stable*; ADR-82, operator-ratified 2026-06-11 per #149, amended 2026-06-16 for the v5.1 architect strategic supplement, 2026-06-17 for the v5.2 always-generated supplement file, 2026-06-25 for the v5.3 §5 probe-manifest consolidation, 2026-07-05 for the v5.4 §5 structural anti-bluff + §13 generator note, 2026-07-05 for the v5.5 §14 epic-lane handoffs — EPIC + EPIC RETURN, ADR-97, 2026-07-06 for the v5.6 §14a execution-MODE item, 2026-07-07 for the v5.7 §16 functional/intake mode + §14 developer alias, ADR-98, and **2026-07-31 for the v6.0 one-round-trip boot** — one CC-side command (`/handoff-verify`) runs the whole live gate and emits ONE evidence block the operator pastes once, plus the P0 standing-topic legs, the `Destination` boot-header row + its P3 comparison, the `HANDOFF_BOOT` byte budget, and the A11 generation/verification guards; intake #19 §B(b), rulings R1..R7, built under [#446]; and **2026-07-31 for the v6.0.1 `Destination` branch-field clarification** — the field is the BOOT DESTINATION compared once by P3 at boot, so `main` is legal for a primary-tree architect seat and lane branches are declared at delegation, §13(c″), architect ruling, revertable); and **2026-08-07 for the v6.1.0 boundary invariants
+Protocol: `protocols/HANDOFF_PROCESS.md` — **v6** (stamp v6.3.0, *stable*; ADR-82, operator-ratified 2026-06-11 per #149, amended 2026-06-16 for the v5.1 architect strategic supplement, 2026-06-17 for the v5.2 always-generated supplement file, 2026-06-25 for the v5.3 §5 probe-manifest consolidation, 2026-07-05 for the v5.4 §5 structural anti-bluff + §13 generator note, 2026-07-05 for the v5.5 §14 epic-lane handoffs — EPIC + EPIC RETURN, ADR-97, 2026-07-06 for the v5.6 §14a execution-MODE item, 2026-07-07 for the v5.7 §16 functional/intake mode + §14 developer alias, ADR-98, and **2026-07-31 for the v6.0 one-round-trip boot** — one CC-side command (`/handoff-verify`) runs the whole live gate and emits ONE evidence block the operator pastes once, plus the P0 standing-topic legs, the `Destination` boot-header row + its P3 comparison, the `HANDOFF_BOOT` byte budget, and the A11 generation/verification guards; intake #19 §B(b), rulings R1..R7, built under [#446]; and **2026-07-31 for the v6.0.1 `Destination` branch-field clarification** — the field is the BOOT DESTINATION compared once by P3 at boot, so `main` is legal for a primary-tree architect seat and lane branches are declared at delegation, §13(c″), architect ruling, revertable); and **2026-08-07 for the v6.1.0 boundary invariants
 at the cut** — generation refuses while a committed batch manifest declares an open batch
 (WINDOW = BATCH) and refuses over a linked worktree or a live stash (NO LEFTOVERS), plus the §13
 supplement-authorship re-statement and the successor-boot dispatch-visibility note; and
 **2026-08-08 for the v6.2.0 §4 BOOT DRILL** — an incoming seat emits one sample dispatch
 line for the operator to read before its first real dispatch, recorded as prose discipline
-with no probe or gate behind it. v6 keeps the
+with no probe or gate behind it; and **2026-08-28 for the v6.3.0 role residency** — the
+assembler stops inlining `protocols/HANDOFF_BOOT.md` and emits a three-line ROLE PIN
+(version + `sha256` + a standing refusal line) instead; the role is installed **once** as the
+browser project's instructions (`protocols/OPERATOR-INTERFACE.md` §5). The §Browser-role
+delivery **requirement is unchanged** — only the mechanism that satisfies it — and the refusal
+line is the teeth: residency without it drifts silently. Measured on a real cut: 50,852 →
+34,624 bytes. v6 keeps the
 v5 model:  instead of a browser-delivered 8-file bundle, **CC owns the handoff** — it emits a lean **residual** + a **probe manifest** under `docs/handoffs/<slug>/`, and a fresh browser chat boots from the thin `protocols/HANDOFF_BOOT.md`. Verification has teeth: the probes force CC to re-derive every load-bearing fact from the live primary source at check-time. v4.4 is archived at `protocols/archive/HANDOFF_PROCESS_v4.4.md`. The ADR-36 read-only contract holds: a handoff never writes to a target repo.
 
 Claude Code command: **`/handoff`** — `create handoff for <repo>` has CC emit the **residual** + **probe manifest** under `docs/handoffs/<slug>/` and point the next browser at the thin boot (`protocols/HANDOFF_BOOT.md`); `complete handoff for <repo>` cross-checks repo state and finalizes. `<repo>` defaults to `.dev-knowledge` (self-handoff). Not `/session-summary` — that is a separate session-summary command, not the handoff generator.

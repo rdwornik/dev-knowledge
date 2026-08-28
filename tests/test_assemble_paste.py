@@ -57,6 +57,11 @@ def _make_bundle(
     protocols = tmp_path / "protocols"
     protocols.mkdir()
     (protocols / "HANDOFF_BOOT.md").write_text("# Boot\n\nRole content.", encoding="utf-8")
+    # v6.3.0: the ROLE PIN names the LIVE spec version, so the spec must exist. The
+    # assembler exits 1 without it, deliberately -- a pin whose version is unknown is
+    # worse than no pin, because it asserts an identity it cannot vouch for.
+    (protocols / "HANDOFF_PROCESS.md").write_text(
+        "# HANDOFF_PROCESS v6\n\nVersion: 6.3.0\nStatus: stable\n", encoding="utf-8")
 
     # fake bundle
     bundle = tmp_path / "bundle"
@@ -136,7 +141,7 @@ def test_all_sections_in_order(tmp_path: Path) -> None:
 
     assert _labels(paste) == [
         "HANDOFF_BOOT.md (session header)",
-        "protocols/HANDOFF_BOOT.md",
+        "ROLE PIN (protocols/HANDOFF_BOOT.md — RESIDENT, not inlined)",
         "RESIDUAL.md",
         "PROBES.md",
         "SUPPLEMENT.md",
@@ -183,6 +188,65 @@ def test_missing_required_source_exits_nonzero(tmp_path: Path) -> None:
 
 
 # ------------------------------------------------------------------ #
+# v6.3.0 role residency — the ROLE PIN (operator ruling D-R1, census R1)
+# ------------------------------------------------------------------ #
+
+def test_role_pin_is_three_lines_with_version_sha_and_refusal(tmp_path: Path) -> None:
+    """The pin is identity + integrity + REFUSAL. All three, or it is not a pin."""
+    import hashlib
+    bundle, script = _make_bundle(tmp_path)
+    result = _run(script, bundle)
+    assert result.returncode == 0, result.stderr
+    paste = (bundle / "PASTE_THIS.md").read_text(encoding="utf-8")
+
+    role = tmp_path / "protocols" / "HANDOFF_BOOT.md"
+    digest = hashlib.sha256(role.read_bytes()).hexdigest()
+
+    pin = [ln for ln in paste.splitlines() if ln.startswith("ROLE PIN")]
+    assert len(pin) == 1
+    assert pin[0] == "ROLE PIN — HANDOFF_BOOT.md @ handoff-process v6.3.0"
+    assert f"sha256: {digest}" in paste
+    assert "say so before answering" in paste, (
+        "the refusal line is the pin's teeth; without it residency drifts SILENTLY"
+    )
+
+
+def test_pin_sha_tracks_the_role_file(tmp_path: Path) -> None:
+    """Change the role file, and the pin must change with it — else it vouches for nothing."""
+    import hashlib
+    bundle, script = _make_bundle(tmp_path)
+    _run(script, bundle)
+    first = (bundle / "PASTE_THIS.md").read_text(encoding="utf-8")
+
+    role = tmp_path / "protocols" / "HANDOFF_BOOT.md"
+    role.write_text("# Boot" + chr(10) + chr(10) + "Role content, EDITED.", encoding="utf-8")
+    _run(script, bundle)
+    second = (bundle / "PASTE_THIS.md").read_text(encoding="utf-8")
+
+    assert hashlib.sha256(role.read_bytes()).hexdigest() in second
+    assert [ln for ln in first.splitlines() if ln.startswith("sha256:")] !=            [ln for ln in second.splitlines() if ln.startswith("sha256:")]
+
+
+def test_paste_shrinks_by_the_role_file_minus_the_pin(tmp_path: Path) -> None:
+    """The saving is real and bounded: role bytes out, a few hundred pin bytes in."""
+    bundle, script = _make_bundle(tmp_path)
+    _run(script, bundle)
+    paste = (bundle / "PASTE_THIS.md").read_bytes()
+    role = (tmp_path / "protocols" / "HANDOFF_BOOT.md").read_bytes()
+    assert role not in paste, "the role body must not be present in any form"
+    assert b"ROLE PIN" in paste
+
+
+def test_missing_spec_refuses_rather_than_pinning_an_unknown_version(tmp_path: Path) -> None:
+    """A pin whose version cannot be read asserts an identity it cannot vouch for."""
+    bundle, script = _make_bundle(tmp_path)
+    (tmp_path / "protocols" / "HANDOFF_PROCESS.md").unlink()
+    result = _run(script, bundle)
+    assert result.returncode == 1
+    assert "Version" in result.stderr
+
+
+# ------------------------------------------------------------------ #
 # Test 4: Self-containment — each source BODY is inlined verbatim
 # ------------------------------------------------------------------ #
 
@@ -201,11 +265,16 @@ def test_each_source_body_is_inlined_verbatim(tmp_path: Path) -> None:
     result = _run(script, bundle)
     assert result.returncode == 0, result.stderr
     paste = (bundle / "PASTE_THIS.md").read_text(encoding="utf-8")
-
-    # the load-bearing one: the resident role file body must be INLINED, not pointed at
-    assert "Role content." in paste, (
-        "protocols/HANDOFF_BOOT.md body not inlined — pointer regression (the original flaw)"
+    # v6.3.0 INVERTS this assertion, deliberately and on the record. Through v6.2.0 the
+    # role file body had to be INLINED (the original defect was a bundle that merely
+    # POINTED at it, giving the file-less browser a partial boot). Since the residency
+    # flip the role is held by the browser project itself, so its body must be ABSENT and
+    # the PIN present. The old concern is not abandoned -- it is now served by the pin's
+    # refusal line, which makes a missing-or-drifted resident role loud instead of silent.
+    assert "Role content." not in paste, (
+        "role file body inlined -- v6.3.0 ships a PIN, not the role text"
     )
+    assert "ROLE PIN — HANDOFF_BOOT.md @ handoff-process v6.3.0" in paste
     # the other source bodies must each appear verbatim
     assert "Drift flags." in paste       # RESIDUAL.md
     assert "P1 probe here." in paste     # PROBES.md

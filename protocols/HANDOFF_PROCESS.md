@@ -1,7 +1,7 @@
 # HANDOFF_PROCESS v6
 <!-- scope: meta -->
 
-Version: 6.2.0
+Version: 6.3.0
 Status: stable
 Effective: 2026-06-11 (canonical); v6 cut 2026-07-31
 Decision: ADR-82 (operator-ratified 2026-06-11; Council gate waived by operator authority per #149).
@@ -112,9 +112,30 @@ rather than re-declaring the number.
 **Browser-role delivery (load-bearing).** The browser's operating role (§7) is **resident in
 the boot file**, not left only in this spec (which CC holds and the browser never sees). If
 the role lived only here, the browser — booting from 3 lines + CC's per-session handoff —
-would never learn it, and the role would silently not happen. The boot carries it directly;
-alternatively CC serves it on the browser's first move. Either way the role **must reach the
+would never learn it, and the role would silently not happen. Either way the role **must reach the
 browser** — never assume a CC-held file transmits to a file-less actor.
+
+**How that requirement is satisfied — RESIDENCY + PIN (v6.3.0; unchanged requirement, changed
+mechanism).** Through v6.2.0 the satisfying mechanism was *transmission*: `assemble_paste.py`
+inlined the whole of `protocols/HANDOFF_BOOT.md` into every `PASTE_THIS.md`, re-sending ~17 KB of
+role text on every handoff to an actor that can simply hold it. Since v6.3.0 the mechanism is
+**residency, refusal-guarded**:
+
+1. **Residency.** The operator installs `protocols/HANDOFF_BOOT.md` **once** as the browser
+   project's own instructions. One-time, operator-owned, path named at
+   `protocols/OPERATOR-INTERFACE.md`.
+2. **The pin.** Every assembled paste opens with a **three-line ROLE PIN** — the role file's
+   name, the live `handoff-process` version, its `sha256`, and a standing refusal line.
+3. **The refusal is the teeth, and it is why this is not merely a size optimisation.** The pin
+   instructs the seat: *if your project instructions do not carry this contract at this
+   version+sha, say so before answering.* Residency without that line degrades **silently** when
+   the resident copy drifts, and a silent role mismatch is strictly worse than a heavy paste.
+
+The **requirement is untouched** — the role still has to reach the browser, and a seat that cannot
+confirm it holds the pinned role is required to say so rather than proceed. What changed is that
+the role reaches it by being *already there and verified*, instead of by being *re-transmitted*.
+The anti-bluff contract (§5) and the probe teeth are unaffected: neither ever depended on the role
+travelling in the body.
 
 The boot ends with an on-load acknowledgment line so a partial/missing paste is visible
 (the ADR-79 visible-paste idea).
@@ -1129,3 +1150,42 @@ intake↔epic edge stays **advisory until n=2** intake docs are consumed end-to-
   asserts an end-to-end re-read that did not happen in this window, and a faked stamp is worse than
   a visible one. Clearing it is a separate act, reserved to the operator. Major stays 6.
   Refs [#509], win-tooling `d743937`.
+- v6.2.0 → **v6.3.0** (2026-08-28, role residency — the resident role file leaves the per-seat
+  paste; operator ruling **D-R1 ADOPT**, census **R1** mechanism) — **Version → 6.3.0**
+  (**minor**, and the boundary is the point: the §"Browser-role delivery" **requirement** itself is
+  **unchanged**; what changes is the mechanism that satisfies it. The anti-bluff contract (§5), the four teeth conditions and the probe manifest are
+  untouched, and none of them ever depended on the role travelling in the paste body).
+  **The change.** `assemble_paste.py` stops inlining `protocols/HANDOFF_BOOT.md` and emits a
+  three-line **ROLE PIN** instead — role file name, live `handoff-process` version, `sha256`, and
+  a standing refusal line. The role is now **RESIDENT**: installed once by the operator as the
+  browser project's instructions (`protocols/OPERATOR-INTERFACE.md` §5, the path named).
+  **Why the refusal line is load-bearing and not decoration.** Residency without it degrades
+  **silently** the moment the resident copy drifts, and a silently-stale role is strictly worse
+  than a heavy paste. The pin is therefore teeth, not an announcement — a seat that cannot
+  confirm it holds the pinned version+sha is required to say so before answering.
+  **Measured, not asserted** — `docs/handoffs/2026-08-25-dev-knowledge-architect` re-assembled end
+  to end from its own sources: `PASTE_THIS.md` **50,852 → 34,624 bytes**, a **16,228-byte** drop.
+  The arithmetic is worth stating because it is *not* a round number: the role file is **17,196**
+  bytes, so the body gave back 17,196 and took on ~968 for the pin, its section label and the
+  separator — 16,228 net. Three assertions verified on that same artifact: the PIN renders
+  (`ROLE PIN — HANDOFF_BOOT.md @ handoff-process v6.3.0`), its `sha256` equals `sha256sum
+  protocols/HANDOFF_BOOT.md` byte for byte, and the role BODY is gone (a role-only phrase greps 0).
+  **Coupled atomic move (this commit), enumerated from a MEASUREMENT rather than a list.** The
+  version surface was grepped repo-wide and every hit classified LIVE-NORMATIVE /
+  STRUCTURAL-LEGAL / HISTORICAL-IMMUTABLE; the LIVE-NORMATIVE set is what moved. **Eight**
+  `reconciled_with` edges @6.2.0→@6.3.0 — derive the live set from
+  `validate_reconciliation.discover_dependents`, not from a count here: the v6.2.0 entry below
+  says "six" and that number went stale when `protocols/PLAYBOOK.md` and
+  `protocols/SESSION_SETUP.md` joined. Plus `CONTRIBUTING.md` stamp v6.2.0→v6.3.0 (the
+  `handoff_version_stamp` gate reads it), two `SESSION_SETUP.md` prose sites, PLAYBOOK's
+  authoritative-spec pointer, and **eight prose sites in `docs/handoffs/README.md`** — six of
+  which asserted the role file is *inlined into* `PASTE_THIS.md`, a claim this change falsifies
+  and which **no enumerated surface list had named**. That omission is the entry's own argument
+  for the grep-first method.
+  **`templates/handoff/v5/` is NOT renamed** — STRUCTURAL-LEGAL: a directory name is a location,
+  not a process-version claim. Renaming it is recorded as a CANDIDATE, deliberately not executed.
+  **v7 is RESERVED for the minimal-bundle package (D1–D6)**, and the reservation is a plan rather
+  than a placeholder: `[#611]` carries its Done-when — the remaining census deltas (b4
+  probes-pin), an assembled paste **<=20 KB at >=70% window-specific measured on a real cut**, and
+  the spec at **v7.0.0** with every version-bearing surface reconciled by this same grep-first
+  method. Major stays 6. Refs D-R1, census R1, intake #60 (I-NIGHT), `[#611]`.

@@ -71,6 +71,37 @@ subject and date.
 
 ---
 
+## 5. The browser role file is INSTALLED ONCE, not re-pasted (v6.3.0)
+
+**The one-time act.** Install the contents of **`protocols/HANDOFF_BOOT.md`** as the browser
+project's own **project instructions**. Once per browser project — not once per session, and not
+once per handoff. That file *is* the seat's operating role.
+
+**Why it is a one-time act and not a paste.** Through HANDOFF_PROCESS v6.2.0 the assembler inlined
+the whole role file into every `PASTE_THIS.md`: ~17 KB of identical role text re-transmitted on
+every single handoff, to an actor that can simply hold it. The browser project instruction field is
+exactly the residency this repeated transmission was substituting for.
+
+**What each paste carries instead — the ROLE PIN.** Every assembled `PASTE_THIS.md` now opens with
+three lines: the role file's name, the live `handoff-process` version, its `sha256`, and a standing
+refusal line —
+
+> *If your project instructions do not carry this contract at this version+sha, say so before
+> answering.*
+
+**What the operator does with a refusal.** A seat reporting a mismatch is the mechanism WORKING, not
+a failure to route around: re-install the current `protocols/HANDOFF_BOOT.md` into the project
+instructions and re-paste. Residency without that refusal degrades silently the moment the resident
+copy drifts, and a silently-stale role is strictly worse than a heavy paste — which is why the pin
+carries teeth rather than merely announcing a version.
+
+**The requirement did not change, only the mechanism.** `HANDOFF_PROCESS` still requires that the
+role **reach** the browser; §"Browser-role delivery" now names residency + pin as the satisfying
+mechanism. Nothing about the anti-bluff contract or the probe teeth depends on the role travelling
+in the paste body.
+
+---
+
 ## Scope, and what this file is not
 
 This file records the **transport**. It rules nothing about content, routing, or authority:

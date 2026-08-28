@@ -1,5 +1,5 @@
 ---
-reconciled_with: handoff-process@6.2.0
+reconciled_with: handoff-process@6.3.0
 ---
 
 # Dev Practice Playbook
@@ -1190,7 +1190,7 @@ items are removed or tracked in BACKLOG.
 
 <!-- scope: meta -->
 
-**Authoritative spec: `protocols/HANDOFF_PROCESS.md` v6.2.0** — the single live source of truth for handoff mechanics. This is a pointer, not a duplicate; do not re-document the structure here (the duplication is what drifted).
+**Authoritative spec: `protocols/HANDOFF_PROCESS.md` v6.3.0** — the single live source of truth for handoff mechanics. This is a pointer, not a duplicate; do not re-document the structure here (the duplication is what drifted).
 
 Formats in `docs/handoffs/`, all but the current one historical:
 
