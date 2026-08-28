@@ -118,3 +118,29 @@ Ruled 2026-08-22 (architect, B3c) as **maintenance, not a patch**: the ADR text,
 docstring and assertion, and `[#426]` move **together**, which is what §4's own "if this number
 moves" instruction requires. `tests/test_audit.py::test_routine_consumers_live_backlog_governs_exactly_one_row`
 pins the live number and is updated in the same commit.
+
+
+## Amendment — 2026-08-28 · the coverage boundary moves from three rows to two
+
+**In-file amendment marker, not an in-place edit** — same form as the 2026-08-22 amendment above,
+which is left untouched as the record of what was true then.
+
+The rule now governs **two** rows: `[#552]` and `[#426]`. `[#348]` (backlog grooming) **closed**
+on 2026-08-28, and its ADR-105 declaration was **re-anchored** into `protocols/PLAYBOOK.md` §10
+("The grooming routine — the standing declaration") rather than lost with the row.
+
+**This movement is different in kind from the 2026-08-22 one, and the difference is the finding.**
+That amendment recorded the count rising because rows were *declared*. This one records it falling
+because a declaration **moved to a living home** — and in doing so it exposed the organ's real
+boundary: `check_routine_consumers` reads **BACKLOG rows and nothing else**, so a routine that
+graduates from a mortal row to a durable protocol file leaves the check's scope entirely. The
+routine did not become less governed; the *checkable* surface simply does not follow it. Extending
+the organ to doc-resident routines is `[#426]`'s scope, and this is the first live instance of the
+gap it names.
+
+Ruled as **maintenance** on the 2026-08-22 (B3c) precedent: the ADR text, the pinning test's
+docstring and assertion, and `ARCHITECTURE.md`'s Ch2 coverage-boundary cell move **together** in
+the same commit, which is what §4's "if this number moves" instruction requires.
+
+**Evidence:** `docs/audits/2026-08-28-technical-closure-harvest-k4.md` §1 (the closure-harvest
+lane that closed `[#348]` and performed the re-anchoring).

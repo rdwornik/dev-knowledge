@@ -2839,11 +2839,21 @@ def test_routine_consumers_live_backlog_governs_exactly_one_row(tmp_path: Path) 
     [#348], [#552] and [#426] now declare routines. All three surfaces moved in the
     same commit -- the ADR carries an amendment marker, [#426]'s body is restated, and
     this assertion follows. The count moved because rows were DECLARED, not because
-    the rule widened."""
+    the rule widened.
+
+    Moved 3 -> 2 on 2026-08-28: [#348] CLOSED and its declaration was RE-ANCHORED into
+    protocols/PLAYBOOK.md section 10. This movement differs in kind from the 2026-08-22
+    one -- that count rose because rows were declared; this one falls because a
+    declaration moved to a LIVING HOME, which exposes the organ's real boundary: it
+    reads BACKLOG rows and nothing else, so a routine that graduates out of a mortal row
+    leaves its scope entirely. The routine is not less governed; the checkable surface
+    does not follow it. First live instance of the gap [#426] names. ADR-105 carries a
+    second in-file amendment marker, and ARCHITECTURE Ch2's cell moved in the same
+    commit."""
     root = Path(__file__).resolve().parents[1]
     f = aud.check_routine_consumers(root)[0]
     assert f.status == "pass"
-    assert "3 declared routine row" in f.evidence
+    assert "2 declared routine row" in f.evidence
 
 
 # --- second adversarial cohort (sol re-review, 2026-07-26) -----------------------
