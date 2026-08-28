@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "ed760656337f0a8602ea56a209b88e834620238632c466fc3eff2c41521c54aa",
+  "generated_sha256": "fe463d5de55fd09432cc6ba1bd9642a6c95febea3b6dbb82446dbf45fae2ebe3",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -864,10 +864,6 @@
     {
       "task": 102,
       "file": "102-machine-readable-repo-index-for-agent-consumptio.md"
-    },
-    {
-      "task": 127,
-      "file": "127-verify-skill-failure-output-contract.md"
     },
     {
       "task": 273,

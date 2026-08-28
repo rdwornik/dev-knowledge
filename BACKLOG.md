@@ -241,7 +241,6 @@ So that a new repo inherits the full baseline in one step, not by re-derivation.
 ### [S18] Cut session friction with better tooling
 So that cognitive overhead per session drops.
 - [#102] [P2][M] Machine-readable repo index for agent consumption · DEFER · tasks/102-machine-readable-repo-index-for-agent-consumptio.md
-- [#127] [P3][S] verify skill failure-output contract · DEFER · tasks/127-verify-skill-failure-output-contract.md
 - [#273] [P3][S] Changelog-review staleness escalation · DEFER · tasks/273-changelog-review-staleness-escalation.md
 - [#274] [P3][S] Dogfood-signal prior in the /changelog-review ADOPT rubric · tasks/274-dogfood-signal-prior-in-the-changelog-review-ado.md
 - [#278] [P2][M] Test-suite hygiene epic · DEFER · tasks/278-test-suite-hygiene-epic.md
