@@ -3093,6 +3093,122 @@ birthed, since the closure-harvest lane's banked-birth ledger is not the authori
 ruling just declined to schedule. It carries **no peg and no owner by design** — the whole point of
 Y-1 is that a candidate without a carrier is honest, while a deferral without one is not.
 
+## Z. Phase-0 rulings — the four open design questions (architect, 2026-08-28)
+
+**The act.** Four rulings taken in one pass, over questions the 2026-08-25 -> 2026-08-28 window
+ruled *around* rather than *on*. Each is recorded here once; a second copy elsewhere would be free
+to disagree with this one, which is the failure this file exists to prevent. Authority:
+`PHASE0-CONTRACT-2026-08-28.md` items 0b-0e, executed under ADR-108 §A (technical, revertable).
+
+### Z-G1. A ruled packet row is already past triage; a raw finding is not
+
+A **ruled packet row** may be born directly as a `tasks/` row. It carries a `source:` clause naming
+its packet row and register section, and it is funded by the banked closure ledger (closures banked
+before filing — PLAYBOOK D3/D5, and the backlog chapter's *"closures fund births"*).
+
+A **raw finding** is not past triage. It enters CANDIDATE -> intake (ADR-98) -> ratification, per
+ADR-111. There is no other route from a finding to a row.
+
+Section **Y**'s restatement of the orthodox path is correct **for its own subject** — a raw
+fleet-scale candidate, which is precisely the population the orthodox path governs — and is **not
+superseded** by this ruling. The two describe different inputs.
+
+**Why this sentence had to be written.** The corpus already runs both paths and says so nowhere.
+`[#579]`-`[#586]` and `[#607]`-`[#611]` were **packet-born**, straight to `tasks/`; section Y
+restates ADR-111 orthodoxy for its candidate. Both are correct. Which applies when was inferable
+only by reading eleven commits and noticing that the packet-born rows never passed through intake.
+A rule that exists only as an inference from commit history is a rule the next seat re-derives, or
+gets wrong — and the failure mode is silent, because either path produces a well-formed row.
+
+### Z-G2. ARC-G is licensed to move the region templates — scoped to the §10 correction only
+
+ARC-G **is licensed** to move `templates/claude-regions/*.md` in lockstep with `CLAUDE.md`,
+**scoped to the §10 correction alone**: the *"Narrating or managing AGENTS.md"* anti-pattern is
+provably false doctrine since **ADR-115** (Accepted 2026-08-25, superseding ADR-53 Decision 2 and
+amending ADR-101 §1 to admit `AGENTS.md`), and it sits inside a HUB-single-sourced Form-A region
+whose body is byte-matched to its template.
+
+The licence **does not extend** to any other region, to the doc-diet, or to editorial rewriting of
+template text. It is a licence to make one file stop contradicting an Accepted ADR, and it expires
+with that correction.
+
+**Why a licence was needed at all.** The hub has shipped an instruction file contradicting an
+Accepted ADR for **three consecutive `CLAUDE.md` revisions** — v2.65, v2.66 and v2.67 — each of
+which recorded, in its own section-history bullet, that it *knowingly left it*. The blocker was
+never disagreement about the content; it was that a lane editing `CLAUDE.md` alone would break
+fleet parity (the region body would stop matching its template), while editing the template was
+outside every such lane's contract. The licence dissolves that deadlock by putting both halves in
+one hand. Cross-referenced from `[#577]`, which owns the correction.
+
+**Constraint for the executing lane, stated so it is not discovered at commit time.**
+`CLAUDE.md`'s line budget sits near its ceiling — v2.67 closes at **197/200, headroom 3**. Measure
+with `validate_doc_rot.scan_file_budget` (which excludes comment-only lines, and is the file's own
+checker) **before** the edit lands, and buy headroom by condensing an old section-history bullet to
+git per ADR-49/65 rather than by shaving the correction.
+
+### Z-G3. Ruling U(b)'s "GitHub compute is the DEFAULT substrate" is CONDITIONAL — an amendment to U(b), naming W4
+
+Ruling **U(b)** reads *"GitHub compute is the DEFAULT substrate"*. That clause is **conditional,
+not unconditional**, and this entry amends it in place of leaving the contradiction standing.
+
+It takes effect only when **all three** defects ruling **W4** measured are closed:
+
+1. `gh codespace cp` receiving **literal single quotes** on the destination path;
+2. **`uv` absent from the container** — so under ADR-106 (`uv run --locked`) **no hub gate can
+   execute on that substrate as provisioned**;
+3. the **silently stale clone** — in-container `HEAD` at a 2026-08-22 commit while `git status -sb`
+   reported no divergence, having never fetched.
+
+**Until all three close, the default substrate is LOCAL.** W4 already states the rung "must not be
+priced as available"; U(b) states the opposite in four words. A reader meeting only U(b) routes a
+gate-dependent lane onto a substrate where no gate can run — which is not a slow lane, it is a
+green verdict nothing earned. This amendment is the sentence that makes the two agree.
+
+**Untouched:** the settled 2026-08-20 ruling — Codespaces free 4-core, never buy overage. This
+amendment changes which substrate is the DEFAULT, not what the fleet is willing to pay.
+
+**Entry condition for the wave-2 router ADR — the smoke-6 receipt.** Defined, so it cannot be
+argued into existence later:
+
+> `Ok=True` **AND** `RemoteExitCode=0` **AND** `receipt HEAD == pushed HEAD`.
+
+**That receipt has never been produced.** The hub half landed; the operator-owned `cp`-quote half
+did not. **The router ADR is not authored before its central evidence exists** — and W4 expires the
+moment a devcontainer dispatch is demonstrated end-to-end, so this condition is a NOT-YET with a
+defined end, not a permanent bar.
+
+**Routing-table residency (prior-seat amendment A2), ruled in the same act.** The **authoritative**
+routing table lives **IN-REPO**. A table the hub cannot read is a table the hub cannot gate — which
+is the four-rival-dispatch-commands disease (section V, ~30 consecutive seats) in a new costume.
+`L0` (`~/.claude/ROUTING.md`) may hold a **derived** copy, and an **agreement check** asserts the
+two match — the same shape as the dispatch-verb agreement gate `[#592]` already built.
+
+**PATH IS NOT DECIDED, and no file is created by this ruling.** Path selection is an operator act
+(P1). The implementing row records both candidate paths in its body and is **blocked on** that
+selection — which is a precondition of the row's **execution**, not of its **filing**.
+
+### Z-G4. A check that cannot compute its ground truth FAILS — it does not skip
+
+> **A check that cannot compute its ground truth must FAIL, never skip.** A `skipped` status is a
+> **reported gap**, never a pass, and no aggregate surface may count it as one.
+
+**Why a skip is worse than a failure here.** The skip condition and the failure condition are
+frequently *correlated*: a hygiene test wrapped in `skipif(tool missing)` skips on precisely the
+machine whose missing tool is breaking hygiene. The check is absent exactly where it is needed, and
+a skip is indistinguishable from a pass in every summary line anyone reads.
+
+**The two owners, recorded so instance #4 is not filed as row #4:**
+
+- **`[#583]` owns the SITE layer** — where the skips are.
+- **`[#596]` owns the PROOF layer** — mechanism shipped in batch W2.
+
+**The mechanism, recorded precisely, per section U.** The `skipped` status is **not** caused by the
+cp1252 crash. It is the **GAP-1 cycle-break**: the standalone CLI passes `None` for the injected
+check count, and only `audit health` / `audit run` supply it. The two defects **compound**; neither
+causes the other, and reading one as the other's symptom is how a real gap gets closed on paper.
+The cp1252 half already carries three rows — `[#470]`, `[#486]`, `[#484]`. **The rule above is what
+those three rows lacked**, which is why this is a ruling and not a fourth row.
+
 ## Editing note (read before adding an entry)
 
 This file sits inside the silent-rule ratchet corpus (`protocols/*.md`; detector
