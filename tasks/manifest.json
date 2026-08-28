@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "75d46ce3110821079dfd485f052cc87d92e52eb20a70690a9d634fba33a3152a",
+  "generated_sha256": "b182dc91d03ac13cf035bc5db1e55268cf43965035e9b1c7ad9b3f16247d08eb",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -268,6 +268,10 @@
     {
       "task": 601,
       "file": "601-supplement-folded-audit-check-a-filled-supplemen.md"
+    },
+    {
+      "task": 613,
+      "file": "613-in-repo-routing-table-agreement-check.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
@@ -731,6 +735,10 @@
     {
       "task": 607,
       "file": "607-playbook-census-discharge-the-mechanical-half-of.md"
+    },
+    {
+      "task": 612,
+      "file": "612-doc-rot-row-body-archival.md"
     },
     {
       "prose": "## [E6] Cross-repo universalization"

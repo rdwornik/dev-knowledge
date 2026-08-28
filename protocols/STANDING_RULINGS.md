@@ -3209,6 +3209,60 @@ causes the other, and reading one as the other's symptom is how a real gap gets 
 The cp1252 half already carries three rows — `[#470]`, `[#486]`, `[#484]`. **The rule above is what
 those three rows lacked**, which is why this is a ruling and not a fourth row.
 
+### Z-C. Three CANDIDATEs recorded — not births, drawing nothing from the ledger
+
+Recorded under ADR-111 §1(c) on section Y-2's precedent: a candidate is **recorded**, and the only
+route from here to a row is CANDIDATE → intake (ADR-98) → ratification. None of the three carries a
+peg or an owner, by design. **Measurement precedes any ruling on all three.**
+
+**Z-C1 · README / VISION merge** (operator theme 3, the *"README zamiast VISION"* class).
+Measurement first: **count and classify the consumers** of each file across the fleet before any
+ruling. Note the adjacent live object rather than re-deciding it: **ADR-114 is PARKED** on whether a
+root `README.md` may be recreated and what substituting a canonical living-doc filename costs — a
+merge ruling that ignored ADR-114 would decide the parked question by side effect.
+
+**Z-C2 · `codex/` folder removal** (operator theme 6). Measurement first: **155** `codex-*` audit
+artifacts, plus any `codex/` tree, with **consumers counted before any removal** — the 40 %-orphan
+lesson (290 of `docs/audits/` with no human or governance consumer) is exactly the measurement that
+makes a removal safe or reckless, and it cuts both ways here.
+
+**Z-C3 · Graph-library review of the hub's graph surfaces** (operator theme 13).
+
+*Provenance, stated plainly:* this began as the **operator's recollection** of *rustworkx*
+(formerly retworkx; a Rust-backed, near-NetworkX-API graph library for Python, built in Qiskit),
+flagged **by the operator himself as possibly stale**. It is an operator recollection, not a repo
+fact — and the contract required a grep before filing.
+
+**The grep was run, and it changes this candidate.** Prior graph-library intent is **recorded, and
+partly RULED**:
+
+- `docs/intake/2026-07-21-func-fleet-north-star.md` §3 named **networkx** as the dependency-graph
+  mechanism; its **Amendment of 2026-08-22** then dispositioned that: *"§3's graph library is NOT
+  ADOPTED as filed — superseded by ruling R-A"*, on measurement
+  (`docs/audits/2026-08-21-technical-library-first-research.md`): at **11,684 edges** stdlib
+  `sqlite3` answers reachability, orphan and degree in **1–4 ms**; a graph library wins on
+  **cycles/SCC only** (~1,600×, a correctness gap rather than a speed one).
+- **`If a consumer is ever named, the library is rustworkx, not networkx`** (R-A). The amendment
+  adds: *"Recorded so the question is closed with evidence and is not re-researched."*
+- **ADR-105 §2 bars activation while no consumer for a cycle/SCC query exists**, independent of any
+  benchmark. `[#383]` is the row that owns the graph work; `docs/intake/2026-08-01-func-distillation-and-library-first.md`
+  records *"P3 networkx STANDS for `[#383]` v1; rustworkx noted as swappable"*.
+
+**Consequence for the wording, and it is a narrowing.** *networkx vs rustworkx* is **already
+ruled** and is not re-opened here — filing it as an open evaluation would re-research a question
+closed six days earlier, which R-A names as the thing not to do. What R-A genuinely leaves open,
+and what the operator's direction actually reaches, is narrower:
+
+> Does a **consumer** exist for a cycle/SCC query among the hub's own hand-rolled graph surfaces —
+> the `tasks/` depends-on graph (`[#424]` parser, `gen_task_tree`, the reverse-dep oracle),
+> `ecosystem/doc-code-edge.yaml`, intake-tree coherence, and the ecosystem deploy dependencies?
+> R-A measured the **11,684-edge dependency graph**; it did **not** measure these surfaces, and
+> ADR-105 §2's bar turns on a named consumer. If one of them is that consumer, the library question
+> is already answered (rustworkx) and only the **measured cost of the current hand-rolled
+> implementations** remains open — with a **measured divergence recorded if we keep hand-rolling**.
+> Two facts stay unverified from `docs/intake/2026-08-22-tech-document-dependency-graph-organ.md`:
+> installability under the pinned `uv`, and Windows wheels. **Zero code this pass.**
+
 ## Editing note (read before adding an entry)
 
 This file sits inside the silent-rule ratchet corpus (`protocols/*.md`; detector

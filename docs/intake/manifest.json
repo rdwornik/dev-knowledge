@@ -3,12 +3,12 @@
   "direction": "derived-from",
   "source": "docs/intake/README.md",
   "generator": "scripts/gen_intake_tree.py",
-  "source_sha256": "87246d7eb71966e5728b59c2cad6bf0e6dab5efd6d072687512a9e25f2ef4887",
+  "source_sha256": "784dce7674c6774b41ccec7448c251c00fe3c946801ada6716754047ce496fca",
   "honest_limit": {
     "statement": "ADR-109 section 4 is discharged by a byte-exact round-trip plus a residue manifest, NOT by a derivation ratio. This surface's ratio is INVERTED relative to surface 1 (BACKLOG.md <-> tasks/), where task lines were the majority and residue the minority. Recorded so the generality claim is honest about what was shown.",
-    "item_derived_lines": 54,
+    "item_derived_lines": 55,
     "residue_lines": 284,
-    "total_lines": 338,
+    "total_lines": 339,
     "surface_1_comparison": "inverted -- surface 1 was majority item-derived"
   },
   "not_captured": {
@@ -342,7 +342,7 @@
     },
     {
       "t": "line",
-      "v": "**54 intake documents.**"
+      "v": "**55 intake documents.**"
     },
     {
       "t": "line",
@@ -643,7 +643,7 @@
     },
     {
       "t": "line",
-      "v": "### OTHER (5)"
+      "v": "### OTHER (6)"
     },
     {
       "t": "line",
@@ -672,6 +672,11 @@
     {
       "t": "item",
       "file": "2026-08-27-tech-python-standard-executable-surface.md",
+      "status": ""
+    },
+    {
+      "t": "item",
+      "file": "2026-08-28-tech-handoff-engine-deployable-carrier.md",
       "status": ""
     },
     {
