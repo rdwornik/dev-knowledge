@@ -456,19 +456,6 @@ dispositions:
   # narrative was dropped to git history. Note the register itself had flagged #344 as carrying the
   # single-filing shape under an accretion label (see the #421 entry's closing observation) — that
   # mislabel is now moot for this row. Removed to avoid stale-disposition decoration (ADR-75).
-  - id: warn-reconciled-versions-contributing-template
-    organ: reconciled_versions
-    match: "templates/CONTRIBUTING-md-template.md"
-    ref: "#335"
-    auto_clearable_by: "#335"
-    reason: >-
-      False-positive BY CONSTRUCTION: templates/CONTRIBUTING-md-template.md is a TEMPLATE whose
-      reconciled_with intentionally carries the `<version>` fill-in placeholder (a consumer resolves
-      it), so it is not a resolved '<spec-id>@<version>'. The reconciled_versions organ should exempt
-      templates/ — filed as #335; this disposition auto-clears when #335 lands (auto_clearable_by).
-      Dispositioned rather than left to rot: a placeholder can never satisfy the check, so absent the
-      #335 exemption it would block every ship-gate — but it is a check-precision bug, not real drift.
-
   # (2026-07-26) #421/#422 arrived on main via the operator-authorized merge of the stranded branch
   # docs/hub-defects-handoff-tooling. Dispositioned under a DISTINCT reason class — oversized single
   # filing, NOT accretion — on an operator ruling that the accretion label must not absorb them.

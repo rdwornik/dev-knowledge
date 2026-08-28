@@ -163,6 +163,39 @@ def test_enumerate_edges_excludes_malformed(tmp_path: Path) -> None:
     assert vr.enumerate_edges(tmp_path) == []
 
 
+# --- [#335] templates/ placeholder exemption --------------------------------
+
+def test_template_placeholder_is_exempt(tmp_path: Path) -> None:
+    """A `templates/` file whose reconciled_with carries the fill-in placeholder is not
+    an edge and not a defect -- the false-positive [#335] was born to remove."""
+    _spec(tmp_path, "Version: 5.2")
+    (tmp_path / "templates").mkdir()
+    _dependent(tmp_path, "templates/CONTRIBUTING-md-template.md",
+               "handoff-process@<version>")
+    assert vr.reconcile(tmp_path) == []
+    findings = aud.check_reconciled_versions(tmp_path)
+    assert [f.status for f in findings] == ["n/a"]  # zero edges, no WARN
+
+
+def test_template_with_resolved_edge_is_still_checked(tmp_path: Path) -> None:
+    """The exemption is narrow: a RESOLVED template edge stays a real edge, so genuine
+    template drift is still caught. Exempting the directory wholesale would hide it."""
+    _spec(tmp_path, "Version: 5.2")
+    (tmp_path / "templates").mkdir()
+    _dependent(tmp_path, "templates/CONTRIBUTING-md-template.md", "handoff-process@5.1")
+    findings = aud.check_reconciled_versions(tmp_path)
+    assert [f.status for f in findings] == ["fail"]
+
+
+def test_placeholder_outside_templates_still_warns(tmp_path: Path) -> None:
+    """The other axis of the narrowing: a placeholder in a NON-template file is still
+    malformed -- the exemption is keyed on the template genre, not on the syntax alone."""
+    _spec(tmp_path)
+    _dependent(tmp_path, "README.md", "handoff-process@<version>")
+    findings = aud.check_reconciled_versions(tmp_path)
+    assert [f.status for f in findings] == ["warn"]
+
+
 # --- audit adapter ----------------------------------------------------------
 
 def test_adapter_match_no_finding(tmp_path: Path) -> None:

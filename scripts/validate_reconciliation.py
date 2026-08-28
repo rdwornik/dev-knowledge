@@ -175,6 +175,23 @@ def split_edge(raw: str) -> Optional[tuple[str, str]]:
     return (m.group(1), m.group(2)) if m else None
 
 
+_PLACEHOLDER_RE = re.compile(r"<[^>]*>")
+
+
+def is_template_placeholder(rel_path: str, raw: str) -> bool:
+    """True when a `templates/` file's `reconciled_with` carries an unresolved placeholder.
+
+    A template's frontmatter ships the fill-in form (`handoff-process@<version>`) BY
+    CONSTRUCTION -- the consumer resolves it at instantiation. Classifying that as
+    'malformed' is a false positive against the template genre, not drift ([#335]).
+    Deliberately NARROW on both axes: the path must be under `templates/` AND the value
+    must still contain an angle-bracket placeholder. A resolved template edge
+    (`handoff-process@6.2`) is a REAL edge and stays checked -- exempting the whole
+    directory would hide genuine template drift, which is the opposite failure.
+    """
+    return rel_path.startswith("templates/") and bool(_PLACEHOLDER_RE.search(raw))
+
+
 def norm_version(raw: str) -> tuple[int, ...]:
     """Dotted version to an int tuple, trailing zeros stripped so 5.2 == 5.2.0."""
     parts = [int(p) for p in raw.split(".") if p.isdigit()]
@@ -262,6 +279,8 @@ def reconcile(repo_root: Path) -> list[ReconResult]:
     """Classify every declared reconciliation edge against live spec state. Read-only."""
     results: list[ReconResult] = []
     for rel, raw in discover_dependents(repo_root):
+        if is_template_placeholder(rel, raw):
+            continue  # [#335] template fill-in placeholder: not an edge, not a defect
         parsed = split_edge(raw)
         if parsed is None:
             results.append(ReconResult(rel, raw, "malformed", "",
