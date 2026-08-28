@@ -19,6 +19,28 @@
 
 ---
 
+### 2026-08-28 (k) - CC (Opus 5, background job, primary checkout, branch `docs/batch-1-manifest-fix`): the anchor commit entry (j) could not write for itself
+
+**Did:** appended this entry so the manifest-fix arc's merge is anchorable. Entry (j) and the
+manifest landed in ONE commit, because the pre-commit `journal_spine_anchor` FAIL blocked the
+manifest commit until an anchor existed -- which forced both into a single commit and straight
+into the one-commit trap ADR-110 names: a merge introduces its branch's commits, and a JOURNAL
+entry written *inside* the only commit cannot name the hash it is about to receive.
+
+**Result:** the split is the documented repair -- substantive work first, JOURNAL last -- taken
+as a normal two-commit arc rather than by rewriting unpushed history. Recorded because the
+ordering constraint here is circular in a way the doctrine does not spell out: an arc that must
+anchor a PRIOR unanchored spine entry cannot use the ordinary "JOURNAL last" shape for its own
+first commit, and needs three commits' worth of care in two.
+
+**Changes:** `JOURNAL.md` (this entry only).
+
+**Abandoned:** nothing.
+
+**Anchors:** 11af32d (manifest at the glob-matching path + entry (j)).
+
+**Next:** merge `docs/batch-1-manifest-fix` --no-ff, then resume lanes L2-L5.
+
 ### 2026-08-28 (j) - CC (Opus 5, background job, primary checkout, branch `docs/batch-1-manifest-fix`): the batch-1 dispatch arc, and the manifest that granted nothing because it was filed where no gate looks
 
 **Did:** dispatched batch-1 per the operator's frozen `BATCH1-LANE-CONTRACTS-2026-08-28.md`
