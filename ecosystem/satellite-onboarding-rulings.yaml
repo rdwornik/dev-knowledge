@@ -20,7 +20,10 @@
 # SCHEMA (per entry): profile (full | floor-only) · ruled_by · ruled_date (YYYY-MM-DD)
 # · census_ref · [gating] optional onboarding precondition · [override] optional block
 # {proposed, proposed_by, proposed_reason, ruled, ruled_by, ruled_reason} — REQUIRED
-# when the ruling overrides the census proposal, naming BOTH sides.
+# when the ruling overrides the census proposal, naming BOTH sides · [rationale] optional
+# free prose · [provenance] optional free prose — REQUIRED when the profile VALUE was not
+# named by the ruling authority itself, so the attribution cannot read as more settled
+# than it is (terminal-setup, 2026-08-29).
 
 version: 1
 
@@ -85,7 +88,33 @@ rulings:
       floor-only profile would leave the repo with the branch grammar and none of
       the gates that make it hold.
 
-# terminal-setup is DELIBERATELY UNRULED, not overlooked: it is a declared fleet member with no
-# profile ruling, and [#604] owns closing that. Recording the absence here so the next reader
-# does not have to re-derive whether it was missed. Adding an entry without an operator/architect
-# ruling would be fabricating the decision this register exists to record.
+  terminal-setup:
+    profile: full
+    ruled_by: "architect (night-batch-2 lane N1, frozen 2026-08-28); PROFILE VALUE selected
+      by the executing lane under the batch decision budget — see provenance below"
+    ruled_date: "2026-08-29"
+    # No census covered terminal-setup (the 2026-07-13 satellite census predates its
+    # registration). The proposing surface is the night-batch-2 lane packet, so that is what
+    # census_ref names — the same honesty the win-tooling entry above applies.
+    census_ref: docs/audits/2026-08-28-technical-nb2-a-packet.md
+    rationale: >-
+      Default-by-precedent: every prior ruling in this register is `full` (corp-ops,
+      corp-sca-time-automation, life-architect, demo-prep, win-tooling — 5/5), and the
+      nearest analogue is life-architect, where a census proposal of floor-only for a
+      light, docs-only repo was OVERRIDDEN to full. terminal-setup is lighter still
+      (2 commits, an Oh My Posh theme plus a setup.ps1; no VISION.md, no CLAUDE.md,
+      no deploy record), which is an argument the operator may weigh the other way —
+      this register records a TARGET profile, not deployed state, so nothing is
+      installed by this row and reversing it is a one-value edit.
+    provenance: >-
+      READ THIS BEFORE TREATING THE VALUE AS SETTLED. The previous text here recorded
+      terminal-setup as DELIBERATELY UNRULED and warned that "adding an entry without an
+      operator/architect ruling would be fabricating the decision this register exists to
+      record". That warning is honoured rather than deleted: what the architect actually
+      ruled, in the night-batch-2 lane contract frozen 2026-08-28, is that this entry is to
+      exist and to name `full` or `floor-only` with a ruled_by and a date ([#604]
+      done-when). The architect did NOT name which of the two. The executing lane selected
+      `full` on the 5/5 precedent above and is recording that fact here rather than letting
+      the attribution read as an architect utterance about terminal-setup specifically.
+      OPEN FOR OPERATOR CONFIRMATION — reported as a budget decision in
+      docs/audits/2026-08-28-technical-nb2-a-packet.md.

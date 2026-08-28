@@ -131,7 +131,7 @@ fleet:
   life-architect: {role: pre-deploy,
     reason: "registered, methodology-unonboarded (ecosystem/registry.md); full gate set ruled but not yet deployed (satellite-onboarding-rulings.yaml)"}
   terminal-setup: {role: pre-deploy,
-    reason: "registered 2026-08-01 ([#462]), unonboarded; no VISION.md, no CLAUDE.md, no deploy record (ecosystem/registry.md)"}
+    reason: "registered 2026-08-01 ([#462]), unonboarded; no VISION.md, no CLAUDE.md (ecosystem/registry.md). Admitted to deployed-versions.yaml 2026-08-29 with all fields null and ruled profile:full ([#604] fold) — the registry key is a deploy PRECONDITION, and the role flips to consumer only when a deploy actually lands (ADR-91)"}
   win-tooling: {role: pre-deploy,
     reason: "registered, unonboarded (ecosystem/registry.md); admitted to deployed-versions.yaml 2026-08-26 with all fields null — the registry key is a deploy PRECONDITION, and the role flips to consumer only when a deploy actually lands (ADR-91)"}
 
