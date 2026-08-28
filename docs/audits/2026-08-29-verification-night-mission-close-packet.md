@@ -461,3 +461,47 @@ trigger (**315**), and nothing has fired. That was already recorded on 2026-08-2
    `Apply-DispatchHelpers.ps1`, then re-fire the smoke-6 probe.
 6. **Delete the stopped codespace** `nb2-smoke6-g5rvj4w6qx4hv5q4`, or let its 24 h retention do it.
 7. **`[#577]` and `[#584]` are closure candidates** — lane F discharged `[#577]`'s done-when 5 of 5.
+
+---
+
+## AMENDMENT 1 — 2026-08-29, added in-file after this packet's first commit (`04f32784`)
+
+> `docs/audits/` is immutable and is amended by an **in-file amendment marker**, never edited in
+> place (CLAUDE.md §5 rule 3). Everything above stands as first written; this section corrects two
+> of its claims and is the sanctioned form of that correction.
+
+### The two corrections
+
+**C-1 — §9 finding #1 was over-optimistic, and the gate caught it, not me.** I wrote that the
+`consumer_at_landing` failure would *"resolve on landing"* because §10 names every artifact. That
+is only half right, and the half it gets wrong is the half that matters:
+`check_consumer_at_landing` measures **two** things — *declaration* (does the artifact itself
+declare a consumer) and *consumption* (does a governance surface cite it, **against a committed
+identity baseline**). §10 fixes consumption. It does **not** move
+`ecosystem/audit-consumer-baseline.json`, which is what
+`test_the_live_corpus_measures_and_the_baseline_matches_it` compares against — and that baseline
+is regenerated only by an explicit `--write-baseline`, never as a side effect of measuring.
+
+**So findings #1 and #2 in §9 do NOT self-clear.** They clear when the operator (or a ratified act)
+regenerates the two baselines, which is an **acceptance** act — it says *"these artifacts are
+admitted with the consumers now declared"* — and that is exactly why it was not done unattended.
+The measured position is recorded here rather than left for the next seat to discover.
+
+**C-2 — the close commit was REFUSED once, on a real defect of this packet's own making.**
+`consumer_at_landing` FAILed the smoke-6 probe contract: *"landed on/after 2026-08-27 and declares
+no consumer"*. It was a genuine miss — the probe is a one-shot artifact and I had committed it with
+no declaration. Fixed the way the gate asks: the file now names
+`docs/audits/2026-08-29-verification-night-mission-close-packet.md` §3 as its consumer, which is
+true — this packet is what reads its result. **No baseline was widened to get past it.** After the
+fix the check reports **0 FAILs**.
+
+**And the diagnosis cost a repeat of a known trap.** The first attempt at this commit was run as
+`git commit … | tail -6`, so the shell reported the **pipe's** exit code (0) while the commit had
+actually failed, and the six lines kept were the harmless tail rather than the `[!!]` line at the
+top. The second attempt wrote the full hook output to a file and the blocker was one `grep` away.
+`| tail` on a gated command hides both the verdict and the reason.
+
+**Both corrections are MEASURED, not predicted.** After `04f32784` landed the packet, the two
+tests were re-run: `test_the_live_corpus_measures_and_the_baseline_matches_it` and
+`test_committed_baseline_agrees_with_a_live_measurement` **both still FAIL** — which is what
+C-1 says they would, and the opposite of what §9 first claimed.
