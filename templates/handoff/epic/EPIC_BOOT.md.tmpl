@@ -51,6 +51,18 @@ or "committed"._
 <!-- FILL-IN:boundary START — may-touch / may-NOT-touch; disjoint from every concurrent epic -->
 _FILL-IN (root): May touch: … · May NOT touch: … A needed file outside the boundary →
 STOP, escalate — don't touch._
+
+**A narrow test-scoped grant carries its mechanical fallout** (E4-1 precedent, Wave-2 ratified
+2026-07-05; [#266]). When this boundary grants a lane a NARROW edit to a test surface, the grant
+includes **the mechanical count/pinning assertions that edit forces** — the grant does not have to
+enumerate them, and the lane does not escalate for them. Worked example: Epic-4's retirement of
+check #7 broke two `len(ALL_CHECKS) == 29` literals in `test_doc_code_edge.py`; the lane
+self-adjudicated 29→28 in-grant and the root RATIFIED that beyond the E4-1 letter, on the ground
+that the change was **mechanical, disclosed, and retirement-forced**. Pre-authorizing that class
+here stops a lane from either escalating on arithmetic or, worse, leaving the suite RED to stay
+inside a literal reading of its boundary. The bound is the three properties, not the file list: a
+**semantic** test change — a new assertion, a changed expectation, a re-scoped fixture — is NOT
+mechanical fallout and still escalates.
 <!-- FILL-IN:boundary END -->
 
 ## Escalation

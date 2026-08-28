@@ -152,7 +152,6 @@ So that captured lessons reach runtime rules and stay enforceable.
 So that observed failure-modes become written guidance instead of recurring.
 - [#144] [P3][M] Feature DoD = end-to-end / user-flow test · DEFER · tasks/144-feature-dod-end-to-end-user-flow-test.md
 - [#145] [P3][M] Codification-completeness pass · DEFER · tasks/145-codification-completeness-pass.md
-- [#266] [P3][S] Codify the test-scoped-grant language lesson · DEFER · tasks/266-codify-the-test-scoped-grant-language-lesson.md
 - [#438] [P3][S] Codify gate-class posture: terra design review BEFORE build for refusal-gate arcs · tasks/438-codify-gate-class-posture-terra-design-review-be.md
 
 ---
@@ -182,7 +181,6 @@ So that the ADR web is internally consistent.
 
 ### [S13] Keep canonical files accurate
 So that stale ground truth stops silently misleading sessions (the repo's own VISION is "drift detected proactively").
-- [#71] [P3][S] Reconcile ENVIRONMENT.md's `~/.claude/` directory tree with live contents · DEFER · tasks/71-reconcile-environment-md-s-claude-directory-tree.md
 - [#285] [P3][S] Extend hub freshness gating to PLAYBOOK · DEFER · tasks/285-extend-hub-freshness-gating-to-playbook.md
 - [#300] [P1][M] Hermetization residual d.ii · DEFER · tasks/300-hermetization-residual-d-ii.md
 - [#388] [P3][S] The "10–20 repo" fleet-scale target is FABRICATED — correct it to the live 5–8+ wherever it is restated · tasks/388-the-10-20-repo-fleet-scale-target-is-fabricated.md
@@ -247,7 +245,7 @@ So that cognitive overhead per session drops.
 - [#102] [P2][M] Machine-readable repo index for agent consumption · DEFER · tasks/102-machine-readable-repo-index-for-agent-consumptio.md
 - [#127] [P3][S] verify skill failure-output contract · DEFER · tasks/127-verify-skill-failure-output-contract.md
 - [#273] [P3][S] Changelog-review staleness escalation · DEFER · tasks/273-changelog-review-staleness-escalation.md
-- [#274] [P3][S] Dogfood-signal prior in the /changelog-review ADOPT rubric · DEFER · tasks/274-dogfood-signal-prior-in-the-changelog-review-ado.md
+- [#274] [P3][S] Dogfood-signal prior in the /changelog-review ADOPT rubric · tasks/274-dogfood-signal-prior-in-the-changelog-review-ado.md
 - [#278] [P2][M] Test-suite hygiene epic · DEFER · tasks/278-test-suite-hygiene-epic.md
 - [#317] [P2][M] Default-parallel test invocation · DEFER · tasks/317-default-parallel-test-invocation-slow-tier-marke.md
 - [#322] [P2][M] Fleet dashboard · DEFER · tasks/322-fleet-dashboard.md

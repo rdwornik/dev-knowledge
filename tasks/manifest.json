@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "121eefc3e31cb4128a80392fef873259b63655f7c0da3a36a6b7386a7224bf68",
+  "generated_sha256": "3bd4e59ce1cddfdfd1958aa1deedc3ad05505ac331666e95a76f3db5810253e8",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -554,10 +554,6 @@
       "file": "145-codification-completeness-pass.md"
     },
     {
-      "task": 266,
-      "file": "266-codify-the-test-scoped-grant-language-lesson.md"
-    },
-    {
       "task": 438,
       "file": "438-codify-gate-class-posture-terra-design-review-be.md"
     },
@@ -653,10 +649,6 @@
     },
     {
       "prose": "So that stale ground truth stops silently misleading sessions (the repo's own VISION is \"drift detected proactively\")."
-    },
-    {
-      "task": 71,
-      "file": "71-reconcile-environment-md-s-claude-directory-tree.md"
     },
     {
       "task": 285,

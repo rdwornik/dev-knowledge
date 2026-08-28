@@ -65,26 +65,29 @@
     report-generator.md       ← Haiku subagent
     ecosystem-snapshot.md     ← Haiku subagent
   skills/
-    gotchas/gotchas.md       ← Universal entries (cp1252, az shell, pytest-asyncio)
-  commands/                  ← (as of 2026-07-06) codex-review.md, session-summary.md
+    gotchas/gotchas.md       ← Universal entries (cp1252, az shell, pytest-asyncio)  [live 2026-08-28: `gotchas` is the only skill]
+  commands/                  ← (re-verified live 2026-08-28) codex-review.md, session-summary.md
                              ←   boot.md / evolve.md archived 2026-06-05 (Phase-C3);
                              ←   handoff/save/review-closures/ship now ship via skills + the
                              ←   tier1-lifecycle plugin, not user-level command files
-  hooks/
-    PreToolUse:Bash → block-onedrive.ps1   ← CRITICAL: blocks OneDrive paths
-    Stop → claude-notify.ps1               ← Session end notification
-    SessionStart                           ← Evolution boot reminder
-    Stop                                   ← Evolution scorecard reminder
+  hooks/                       ← (verified live 2026-08-28)
+    block-onedrive.ps1         ← PreToolUse:Bash — CRITICAL: blocks OneDrive paths
+    surface-closures.ps1       ← the L0 Tier-1 closure surfacing (ARCHITECTURE "Tier-1 lifecycle")
+    block-onedrive.SUPERSEDED*.ps1  ← 3 retained predecessors (allowlist-v1, emptygrant-v2)
+  claude-notify.ps1            ← Stop notification — lives at the ROOT, not under hooks/
   rules/
     core-invariants.md       ← Compression-proof rules (paths: **/* = every file touch)
-  memory/
-    README.md                ← Protocol doc (formats, promotion ladder)
-    learned-rules.md         ← Empty body, header only (graduated rules moved to project scope)
-    evolution-log.md         ← Audit trail of /evolve decisions
-    corrections.jsonl        ← Auto-created on first correction
-    observations.jsonl       ← Auto-created on first observation
-    sessions.jsonl           ← Auto-created on first session scorecard
-    violations.jsonl         ← Auto-created on first verification failure
+  memory/                      ← (verified live 2026-08-28) only the two auto-created streams exist
+    corrections.jsonl          ← Auto-created on first correction
+    sessions.jsonl             ← Auto-created on first session scorecard
+                               ←   ABSENT, though the global CLAUDE.md Self-Evolution Protocol
+                               ←   still names them: README.md, learned-rules.md, evolution-log.md,
+                               ←   observations.jsonl, violations.jsonl. The protocol's step 1
+                               ←   ("read ~/.claude/memory/learned-rules.md") therefore points at a
+                               ←   file that is not there. Recorded, not fixed: that file is L0 and
+                               ←   outside this repo's write scope, so the hub cannot discharge it
+                               ←   (Layer-2 invariant). Triaged CANDIDATE per ADR-111 in this lane's
+                               ←   report; it becomes a row only through the intake path.
 ```
 
 Project-specific skills, gotchas, and rules live in each repo's `.claude/` directory. See corp-monorepo/.claude/ for example.
@@ -281,7 +284,14 @@ CRITICAL: Audit Gemini API tier (AI Studio vs Vertex) before batch extraction on
 <!-- scope: meta -->
 
 - GMKtec local inference ($2,500 ADHD trap, 38-month ROI)
-- Codex CLI (no advantage over Haiku subagents)
+- ~~Codex CLI (no advantage over Haiku subagents)~~ — **REVERSED, and no longer binding**
+  (annotated 2026-08-28, [#71]). The 2026-08-23 LANE-L5 pass annotated the *Active decision*
+  half of this reversal but left this Rejected entry standing, so the file still carried the
+  contradiction in one of its two homes. Same evidence as the Active-decisions entry above:
+  Codex CLI is installed and load-bearing — `/codex-review` wraps `codex exec`, it is the
+  final leg of the two-stage code review, the hub carries `codex/AGENTS.md`, and
+  `STANDING_RULINGS.md` names the active toolset as Claude Code + Codex. The Council record
+  is annotated rather than erased.
 - Mandatory TDD (council rejected) — note: **ADR-108 §B (Accepted 2026-07-31) later made TDD a
   standing standard for every *build arc*** ("RED-first witnesses, failing tests before build code,
   frozen after freeze"), with the ex-ante frozen acceptance contract per the ADR-81 amendment

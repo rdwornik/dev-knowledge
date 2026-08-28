@@ -35,6 +35,14 @@ Classify every changelog entry *after* `last_reviewed_version` into exactly one 
 - **ADOPT** — a capability we lack and should queue (incl. UNDERUSED-NATIVE: the
   platform now has it and we hand-built or don't use it). State the value + a
   candidate BACKLOG home; do NOT create the item.
+  - **Dogfood-signal prior** ([#274]; intake doc #2 R4) — a feature Anthropic ships as a
+    Claude Code **default for its own use** (auto mode, agents view, `/usage`, `/recap`)
+    carries a prior of adoption-worthiness: the vendor has already paid the evaluation
+    cost on a workload that resembles ours. **Triage these FIRST**, and name the prior
+    explicitly in the digest for any item it applies to, so the reason an item was ranked
+    early is legible rather than assumed. It is a **prior, not a verdict** — it reorders
+    the queue, it never substitutes for the ADOPT bucket's own value statement, and a
+    dogfooded feature that does not fit our stack still classifies NOISE-count.
 - **OBSOLETES-WORKAROUND** — a new native feature makes one of OUR artifacts
   (a script, hook, shim, convention) redundant. Name our artifact + what retires it.
 - **STALE-NAMES** — a rename/removal means our live docs/config reference a
