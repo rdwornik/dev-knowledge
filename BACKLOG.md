@@ -43,7 +43,7 @@ So that the canonical v5 handoff is fully implemented (generator) and mechanical
 
 ### [S3] Turn advisory guards into enforced gates
 So that a convention can't be skipped under load (the failure mode behind real aborts).
-- [#146] [P3][S] De-hardcode-first doctrine + sweep · DEFER · tasks/146-de-hardcode-first-doctrine-sweep.md
+- [#146] [P3][S] De-hardcode-first doctrine + sweep · tasks/146-de-hardcode-first-doctrine-sweep.md
 - [#112] [P2][M] adr_amend helper + ADR immutable-zone extension · tasks/112-adr-amend-helper-adr-immutable-zone-extension.md
 - [#242] [P2][M] ADR status-flip coherence check · tasks/242-adr-status-flip-coherence-check.md
 - [#153] [P2][M] Enforcement-completeness pass · DEFER · tasks/153-enforcement-completeness-pass.md
@@ -78,7 +78,7 @@ So that drift in transcripts, ADRs, and folders is caught cheaply, not by review
 - [#190] [P3][M] General intra-file duplication detector · DEFER · tasks/190-general-intra-file-duplication-detector.md
 - [#210] [P3][S] Convert journal-wrap no-ff WARNs from per-instance disposition to a standing rule · tasks/210-convert-journal-wrap-no-ff-warns-from-per-instan.md
 - [#234] [P3][S] Cross-repo probe validator · DEFER · tasks/234-cross-repo-probe-validator.md
-- [#277] [P2][M] propose_closures signal repair · DEFER · tasks/277-propose-closures-signal-repair.md
+- [#277] [P2][M] propose_closures signal repair · tasks/277-propose-closures-signal-repair.md
 
 ### [S5] Catch spec/dependent drift mechanically, not by memory
 So that "spec bumped, dependent partially updated, caught only because a human remembered" stops being the failure mode — machine-checkable coherence between a dependent doc and its spec.
@@ -144,12 +144,12 @@ Backbone (dependency-ordered; done stages recorded here as the epic ledger — A
 ### [S9] Make lessons an active feedback loop, not a passive archive
 So that captured lessons reach runtime rules and stay enforceable.
 - [#4] [P2][M] Build lessons-index.json + SessionStart retrieval + CLI query · DEFER · tasks/4-build-lessons-index-json-sessionstart-retrieval.md
-- [#130] [P3][S] Memory-hygiene review · DEFER · tasks/130-memory-hygiene-review.md
+- [#130] [P3][S] Memory-hygiene review · tasks/130-memory-hygiene-review.md
 
 ### [S10] Codify recurring patterns into the methodology
 So that observed failure-modes become written guidance instead of recurring.
 - [#144] [P3][M] Feature DoD = end-to-end / user-flow test · DEFER · tasks/144-feature-dod-end-to-end-user-flow-test.md
-- [#145] [P3][M] Codification-completeness pass · DEFER · tasks/145-codification-completeness-pass.md
+- [#145] [P3][M] Codification-completeness pass · tasks/145-codification-completeness-pass.md
 - [#438] [P3][S] Codify gate-class posture: terra design review BEFORE build for refusal-gate arcs · tasks/438-codify-gate-class-posture-terra-design-review-be.md
 
 ---
@@ -292,7 +292,7 @@ So that cadence-less artifacts and unevaluated tools don't rot or get adopted bl
 - [#580] [P1][M] State-as-data: atomic id allocation, and `tasks/` as the SOLE source (packet ARC-B) · tasks/580-state-as-data-atomic-id-allocation-and-tasks-as.md
 ### [S20] Revive the nightly layer, load-gauge first (rent-rule discipline)
 So that unattended routines run only with a named consumer, a survival metric, and a bounded operator load — never as rot generators (the fleet-audit lesson; sequencing per the standing operator ruling: the load-gauge lands before anything else in the Tier-2 nightly layer).
-- [#271] [P3][L] Nightly proposal loop · DEFER · tasks/271-nightly-proposal-loop.md
+- [#271] [P3][L] Nightly proposal loop · tasks/271-nightly-proposal-loop.md
 - [#288] [P3][S] Model-identity guard for unattended runs · DEFER · tasks/288-model-identity-guard-for-unattended-runs.md
 - [#419] [P2][M] We run routines whose output nobody consumes · tasks/419-we-run-routines-whose-output-nobody-consumes.md
 - [#426] [P2][M] Declare `consumer` + `consumption_path` for every LIVE routine · tasks/426-declare-consumer-consumption-path-for-every-live.md
