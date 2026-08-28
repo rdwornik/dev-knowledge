@@ -309,3 +309,76 @@ def test_rule_ids_are_the_closed_checkable_surface():
         vs.RULE_SECOND_LOCAL_WRITER,
         vs.RULE_UNKNOWN_OVERRIDE,
     )
+
+
+# --- C-F: `**Shape:**` PROSE is not a substrate declaration -----------------
+#
+# The defect, recorded as batch-1 finding C-F and as architect premise error 3 of 3
+# (LESSONS.md 2026-08-28): `_SHAPE_RE` accepted a bare unquoted token, so the batch-1
+# contract's ordinary English heading `**Shape:** ONE plan -> 5 file-disjoint lanes`
+# bound the substrate to `'one'` -- an off-enum value RETURNED rather than reported,
+# which then suppressed the genuine `Substrate:` line, because `_SHAPE_RE` wins the
+# precedence race and `declared_substrate` returns on its first match.
+#
+# The fix is a TIGHTER declaration grammar, never a looser substrate check: a
+# declaration is a BACKTICKED token, prose is not a declaration. And it is not a NEW
+# grammar either -- it is layer 1's existing one. `gen_lane_contract._SHAPE_LINE_RE`
+# has always required the backticks (``^\*\*Shape:\*\*\s+`(?P<shape>[a-z]+)` ``), so
+# after this the two organs read the generator's field identically instead of
+# disagreeing about what counts as a declaration at all.
+
+_BATCH1_PROSE_SHAPE = (
+    "# BATCH-1 LANE CONTRACTS - 2026-08-28 - SEQ 2 - ADR-110 shape\n"
+    "\n"
+    "**Shape:** ONE plan -> 5 file-disjoint lanes -> ONE integration. Operator gates at\n"
+    "exactly two points: GO at batch start - end-of-batch packet.\n"
+)
+
+
+def test_prose_shape_line_is_not_a_substrate_declaration():
+    """RED before the fix: this returned `'one'`."""
+    assert vs.declared_substrate(_BATCH1_PROSE_SHAPE) is None
+
+
+def test_backticked_shape_line_is_still_read_first():
+    """The generator's own spelling keeps working -- the fix tightens, it does not remove."""
+    assert vs.declared_substrate("**Shape:** `local` - one worktree per lane.\n") == "local"
+
+
+def test_prose_shape_no_longer_masks_the_real_substrate_line():
+    """RED before the fix: `'one'` won the race and the real line was never read.
+
+    The masking is the expensive half. An off-enum value at least LOOKS wrong; a
+    correct declaration silently never being consulted does not.
+    """
+    text = _BATCH1_PROSE_SHAPE + "\n**Real substrate: LOCAL**, for all five lanes.\n"
+    assert vs.declared_substrate(text) == "local"
+
+
+def test_prose_shape_does_not_fabricate_an_off_enum_refusal(registry):
+    """The whole cost of C-F: a false `substrate-no-live-verb` on a correct contract."""
+    text = _BATCH1_PROSE_SHAPE + "\n**Substrate:** local\n"
+    assert vs.validate_contract(text, source="B1.md", registry=registry) == []
+
+
+def test_shape_declaration_is_anchored_to_line_start():
+    """Terra HIGH, this arc. Unanchored, an EXAMPLE of the field wins the precedence race.
+
+    A contract that explains the convention mid-sentence -- and this corpus does exactly
+    that -- would bind to the example and mask the real declaration further down, which is
+    the same masking failure the prose heading caused, arriving by a different door.
+    """
+    text = ("The generator emits **Shape:** `cloud` as its field.\n"
+            "\n"
+            "**Shape:** `local`\n")
+    assert vs.declared_substrate(text) == "local"
+
+
+def test_shape_declaration_requires_BOTH_backticks():
+    """A half-quoted token is not a declaration -- it is a typo, and it falls through.
+
+    Guards the direction the fix must not drift back toward: `` `?`` on either side is
+    what made prose parseable in the first place.
+    """
+    assert vs.declared_substrate("**Shape:** `local\n") is None
+    assert vs.declared_substrate("**Shape:** local`\n") is None
