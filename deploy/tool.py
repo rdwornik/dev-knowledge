@@ -22,16 +22,36 @@ CLI::
 
     deploy <repo> --target <version>        # assess: preflight + detect + print plan
     deploy <repo> --target <version> --execute   # apply + write the version record + stage
+    deploy <repo> --target <version> --repo-root <path>   # explicit consumer tree
 
 ``<repo>`` is the consumer's directory name (the ``ecosystem/deployed-versions.yaml``
 registry key, e.g. ``ai-council``); ``<version>`` is the methodology release (e.g.
 ``v1.0.0`` / ``1.0.0``), which selects ``deploy/manifest-v<version>.yaml``.
 
+**Where the consumer tree comes from** ([#605]). This module does NOT assume a sibling
+layout. Until 2026-08-28 ``resolve_repo_root`` returned ``hub_root.parent / repo``
+unconditionally, with no escape — true only on the operator's laptop, and on any other
+substrate the deploy was simply unreachable. Resolution is now an explicit precedence,
+sibling-LAST:
+
+1. ``--repo-root <path>`` (or ``preflight(..., repo_root=...)``);
+2. the environment variable ``DEV_KNOWLEDGE_REPO_ROOT_<SLUG>`` (``ai-council`` ->
+   ``DEV_KNOWLEDGE_REPO_ROOT_AI_COUNCIL``);
+3. ``path:`` in ``ecosystem/<repo>/state.yaml`` — the fleet's existing per-repo path
+   registry, gitignored because it is machine-specific;
+4. the sibling default ``<dev>/<repo>``, where ``<dev>`` is ``DEV_KNOWLEDGE_FLEET_ROOT``
+   when set and ``hub_root.parent`` otherwise.
+
+With nothing set, step 4 is what answers, so an existing caller sees no change.
+``scripts/audit.py::resolve_repo_path`` implements the same precedence over the same
+env vars and the same registry file (the two are deliberately not folded — see the
+comment above ``resolve_repo_root``).
+
 Preflight (each a hard abort with a clear message):
 
 1. the target ``<version>`` manifest + its ``source_tag`` git tag resolve;
 2. ``<repo>`` is a registered consumer in ``ecosystem/deployed-versions.yaml``;
-3. the consumer ``<repo>`` working tree is clean.
+3. the consumer ``<repo>`` working tree resolves, exists, and is clean.
 
 The ``--execute`` path (apply + record write + consumer staging) is **C2b** — it is
 implemented (``execute()``) and wired into the CLI; it is off by default, so nothing
@@ -46,7 +66,7 @@ import re
 import subprocess
 import sys
 import tempfile
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date as _date
 from pathlib import Path
@@ -213,14 +233,101 @@ def load_registry(registry_path: Path) -> dict[str, Any]:
     return repos
 
 
-def resolve_repo_root(repo: str, hub_root: Path = _HUB_ROOT) -> Path:
-    """Resolve a registry repo-name to its working-tree path (a sibling under Dev/).
+# ---------------------------------------------------------------------------
+# Consumer-root resolution ([#605])
+#
+# The hub does NOT assume every consumer is a filesystem sibling under Dev/. That premise
+# holds only on the operator's laptop; on any other substrate the sibling tree does not
+# exist at all, and neither instantiation nor measurement of a consumer is reachable.
+# Resolution is therefore an EXPLICIT four-step precedence, identical here and in
+# ``scripts/audit.py::resolve_repo_path``, with the sibling layout kept as the LAST step
+# so that a caller passing nothing behaves exactly as it did before:
+#
+#   1. explicit argument    ``resolve_repo_root(repo, explicit=...)`` / ``deploy --repo-root``
+#   2. environment variable ``DEV_KNOWLEDGE_REPO_ROOT_<SLUG>`` names one repo's tree;
+#                           ``DEV_KNOWLEDGE_FLEET_ROOT`` replaces ``<dev>`` in step 4
+#   3. registry entry       ``path:`` in ``ecosystem/<repo>/state.yaml`` — the fleet's
+#                           existing per-repo path registry (machine-specific, hence
+#                           gitignored; absent on a fresh checkout, which is why steps 1-2
+#                           exist rather than this one being enough)
+#   4. sibling default      ``<dev>/<repo>``, i.e. ``hub_root.parent / repo``
+#
+# The two modules do NOT share code: deploy/ and scripts/ are separate import roots, and
+# audit.py is a pre-commit gate that must not import this module's click/rich/carrier
+# graph. [#605] was ruled KEPT SEPARATE from [#294] for the same reason. What they share
+# is the precedence, the env-var names and the registry file — which is what makes the
+# two answers agree.
+# ---------------------------------------------------------------------------
 
-    The hub's own dir name resolves to the hub itself; every other consumer is a
-    sibling next to the hub (``<dev>/<repo>``). Keyed identically to the registry
-    (by directory name), so the path and the registry key never diverge.
+FLEET_ROOT_ENV = "DEV_KNOWLEDGE_FLEET_ROOT"
+REPO_ROOT_ENV_PREFIX = "DEV_KNOWLEDGE_REPO_ROOT_"
+
+
+def repo_root_env_var(repo: str) -> str:
+    """The env-var name carrying an explicit working-tree path for ``repo``.
+
+    ``ai-council`` -> ``DEV_KNOWLEDGE_REPO_ROOT_AI_COUNCIL``. Derived from the registry
+    key rather than listed, so a newly registered consumer needs no code change.
     """
-    return (hub_root.parent / repo).resolve()
+    slug = re.sub(r"[^A-Za-z0-9]+", "_", repo).strip("_").upper()
+    return f"{REPO_ROOT_ENV_PREFIX}{slug}"
+
+
+def registry_repo_root(repo: str, hub_root: Path = _HUB_ROOT) -> Path | None:
+    """``path:`` from ``ecosystem/<repo>/state.yaml``, or None when it says nothing.
+
+    Read-only and fail-soft by design: an absent, unreadable or malformed state file is
+    not an error here — it simply means this precedence step contributes nothing and
+    resolution falls through to the sibling default.
+    """
+    state = hub_root / "ecosystem" / repo / "state.yaml"
+    try:
+        data = yaml.safe_load(state.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError):
+        return None
+    if not isinstance(data, dict):
+        return None
+    stored = data.get("path")
+    if not isinstance(stored, str) or not stored.strip():
+        return None
+    return Path(stored.strip())
+
+
+def resolve_repo_root(
+    repo: str,
+    hub_root: Path = _HUB_ROOT,
+    *,
+    explicit: Path | str | None = None,
+    env: Mapping[str, str] | None = None,
+) -> Path:
+    """Resolve a registry repo-name to its working-tree path.
+
+    Precedence (the block above states it once, for both modules): explicit argument ->
+    ``DEV_KNOWLEDGE_REPO_ROOT_<SLUG>`` -> ``ecosystem/<repo>/state.yaml`` ``path:`` ->
+    the sibling default ``<dev>/<repo>``, where ``<dev>`` is ``DEV_KNOWLEDGE_FLEET_ROOT``
+    when set and ``hub_root.parent`` otherwise. Keyed identically to the registry (by
+    directory name), so the path and the registry key never diverge.
+
+    The hub's own dir name resolves to ``hub_root`` itself — which is what the sibling
+    rule already produced for the default root, stated rather than left implicit.
+
+    With no override set anywhere, this returns exactly what it returned before [#605]:
+    the sibling default is the last step, not a removed one.
+    """
+    environ = os.environ if env is None else env
+    if explicit is not None:
+        return Path(explicit).resolve()
+    if repo == hub_root.name:
+        return hub_root.resolve()
+    from_env = environ.get(repo_root_env_var(repo), "").strip()
+    if from_env:
+        return Path(from_env).resolve()
+    from_registry = registry_repo_root(repo, hub_root)
+    if from_registry is not None:
+        return from_registry.resolve()
+    fleet_root = environ.get(FLEET_ROOT_ENV, "").strip()
+    parent = Path(fleet_root) if fleet_root else hub_root.parent
+    return (parent / repo).resolve()
 
 
 def git_tag_exists(tag: str, hub_root: Path, git: GitRunner) -> bool:
@@ -247,12 +354,17 @@ def preflight(
     deploy_dir: Path = _DEPLOY_DIR,
     registry_path: Path = DEFAULT_REGISTRY,
     git: GitRunner = _default_git,
+    repo_root: Path | str | None = None,
 ) -> PreflightContext:
     """Run every preflight gate; return the resolved context or raise PreflightError.
 
     Order: resolve the manifest, confirm the repo is a registered consumer, confirm
     its tree exists + is clean, confirm the release tag resolves. The first failure
     aborts with a specific, actionable message.
+
+    ``repo_root`` is step 1 of the [#605] consumer-root precedence (the explicit
+    argument); leaving it None resolves through env -> registry -> sibling default.
+    It selects WHICH tree the gates read — it does not change what any gate refuses.
     """
     bare = normalize_version(version)
     mpath = manifest_path_for(bare, deploy_dir)
@@ -270,9 +382,9 @@ def preflight(
     )
     deployed_version = str(deployed_raw) if deployed_raw is not None else None
 
-    repo_root = resolve_repo_root(repo, hub_root)
-    if not repo_root.is_dir():
-        raise PreflightError(f"consumer working tree not found: {repo_root}")
+    resolved_root = resolve_repo_root(repo, hub_root, explicit=repo_root)
+    if not resolved_root.is_dir():
+        raise PreflightError(f"consumer working tree not found: {resolved_root}")
 
     source_tag = str(manifest.get("source_tag") or "").strip()
     if not source_tag:
@@ -283,7 +395,7 @@ def preflight(
             f"the release is not tagged yet"
         )
 
-    if not git_tree_clean(repo_root, git):
+    if not git_tree_clean(resolved_root, git):
         raise PreflightError(
             f"{repo} working tree is not clean -- commit or stash changes first"
         )
@@ -292,7 +404,7 @@ def preflight(
         repo=repo,
         version=version,
         bare_version=bare,
-        repo_root=repo_root,
+        repo_root=resolved_root,
         source_tag=source_tag,
         manifest=manifest,
         manifest_path=mpath,
@@ -1309,7 +1421,22 @@ def render_execute(result: ExecuteResult, console: Console | None = None) -> Non
     help="Skip the interactive prune confirmation (Terraform-style) for scripted runs. "
     "Without it, --execute prompts before pruning any present status:removed component.",
 )
-def deploy(repo: str, version: str, do_execute: bool, force: bool, auto_approve: bool) -> None:
+@click.option(
+    "--repo-root",
+    "repo_root",
+    default=None,
+    help="Consumer working-tree path, overriding every other resolution step. Without it: "
+    "DEV_KNOWLEDGE_REPO_ROOT_<SLUG>, then ecosystem/<repo>/state.yaml, then the sibling "
+    "default <dev>/<repo> ([#605]).",
+)
+def deploy(
+    repo: str,
+    version: str,
+    do_execute: bool,
+    force: bool,
+    auto_approve: bool,
+    repo_root: str | None,
+) -> None:
     """Deploy <REPO> against --target. Without --execute: read-only assess + plan.
 
     With --execute: apply each needing-apply carrier then verify; then prune every
@@ -1320,7 +1447,7 @@ def deploy(repo: str, version: str, do_execute: bool, force: bool, auto_approve:
     declined confirm: abort with no record + no staging.
     """
     try:
-        ctx = preflight(repo, version)
+        ctx = preflight(repo, version, repo_root=repo_root)
     except PreflightError as exc:
         raise click.ClickException(f"preflight failed -- {exc}") from exc
 
