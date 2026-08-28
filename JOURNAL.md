@@ -19,6 +19,53 @@
 
 ---
 
+### 2026-08-28 (n) - CC (Opus 5, background job, worktree `worktree-sda1-persist`): SDA-1 persisted verbatim, the L0 routing derivation shown to be a MERGE not a rewrite, and three architect premise errors filed
+
+**Did:** persisted the SDA-1 seeded-defect benchmark design (`1a091249`) byte-verbatim into
+`docs/audits/`, closing the missing-basis item batch-1 lane L3 recorded as owed; derived and
+*proved* the one-liner that makes `check_routing_agreement` green; and filed the three batch-1
+lane-contract premise errors to `LESSONS.md` (`fef1e0a6`) as CANDIDATE material under **Z-G1**,
+which forbids birthing a `tasks/` row from a raw finding.
+
+**Result: the artifact is byte-identical (md5 `8d45167e963c17f589e9ef5508d7cde9`) and all three
+premise errors are confirmed against live code, not asserted.** (1) `ecosystem/*.yaml` **IS** a
+ratchet scope root — `silent_rule_detector.SCOPE_GLOBS` carries it and `EXCLUDED_RELPATHS`
+exempts only three files — so L5's "ecosystem/ + code are outside its scope roots — verified"
+is false; the conclusion nevertheless held, because `routing-table.yaml` carries zero
+`must|shall|never` tokens and 443 stayed 443. (2) L2 cites `[#587]` for the tiling seam, which
+is `[#608]`; `[#608]` declares `dependencies: ['TASK-587']`, so the contract named the
+prerequisite as the deliverable, and theme, story, serialize-group and referenced file all
+agreed with the error. (3) `validate_substrate.declared_substrate()` returns the literal
+**`'one'`** on the batch-1 contract, parsed from `**Shape:** ONE plan -> 5 file-disjoint lanes`,
+and `_SUBSTRATE_RE` alone returns `None` because the contract writes "Substrate default is
+**LOCAL**" without the colon the regex needs — so neither the machine field nor the prose
+fallback reads the real declaration.
+
+**The L0 finding that changes the recommended act:** `~/.claude/ROUTING.md` is *entirely*
+model-tier doctrine (NO AI / HAIKU / SONNET / OPUS / GEMINI FLASH), cited by global `CLAUDE.md`
+and explicitly scoped OUT by `routing-table.yaml`'s own header. Regenerating it wholesale would
+turn the check green by deleting that doctrine. The derivation handed to the operator therefore
+**appends an idempotent marker-delimited block** and rewrites only between its own markers;
+verified in memory as `compare() == []` with the tier sections intact, byte-stable across three
+runs, and **without writing to the operator's disk** — keeping L0 current is the operator's act
+(ADR-28/36; the module's own contract).
+
+**Changes:** `docs/audits/2026-08-28-technical-sda1-benchmark-design-adversarial.md` (new,
+verbatim) · `docs/audits/README.md` (regenerated) · `LESSONS.md` (+4 entries).
+
+**Abandoned:** filing any of the three as a `tasks/` row — Z-G1 routes a raw finding through
+CANDIDATE -> intake, and none of these has been ratified. Defect (3) is named as the sole
+intake candidate, since it is the only one that is a live code defect rather than a contract
+error.
+
+**Carried, declared rather than hidden:** regenerating the audits index moved the count
+**766 -> 768**, not +1. `da16da72` landed the batch-1 end-of-batch packet without regenerating
+the index, so `main` already carried one entry of rot; the generator is whole-file, so this arc
+necessarily repaired it too.
+
+**Next:** operator runs the derivation one-liner (or declines and dispositions the check's WARN);
+if defect (3) is to be fixed, it enters as an intake, not a row.
+
 ### 2026-08-28 (m) - CC (Opus 5, background job, primary checkout, branch `docs/batch-1-integration`): batch-1 integration - five lanes merged, every suite failure attributed, and a skip that impersonated a pass
 
 **Did:** ran the batch-1 merge queue in the frozen order L2 -> L1 -> L4 -> L5 -> L3, `--no-ff`,
