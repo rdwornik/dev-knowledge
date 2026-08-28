@@ -87,6 +87,7 @@ reconciled_with: handoff-process@6.3.0
   - [The batch protocol — ONE plan → N lanes → ONE integrator (ADR-110)](#the-batch-protocol--one-plan--n-lanes--one-integrator-adr-110)
   - [The lane lifecycle — five legs, and where each one is ruled](#the-lane-lifecycle--five-legs-and-where-each-one-is-ruled)
   - [The wave close — every dispatched wave ends D0–D5, and the funnel table is mandatory](#the-wave-close--every-dispatched-wave-ends-d0d5-and-the-funnel-table-is-mandatory)
+  - [The night batch — the batch protocol run unattended, in five phases](#the-night-batch--the-batch-protocol-run-unattended-in-five-phases)
   - [Dispatch visibility — Agent View shows DISPATCHED sessions only (STANDING_RULINGS B7)](#dispatch-visibility--agent-view-shows-dispatched-sessions-only-standing_rulings-b7)
   - [Dispatching a session — the boundary, the dispatch table, and the standing rules](#dispatching-a-session--the-boundary-the-dispatch-table-and-the-standing-rules)
   - [Dispatch prompts and the contract of record — two locations, one of them in the tree](#dispatch-prompts-and-the-contract-of-record--two-locations-one-of-them-in-the-tree)
@@ -2175,6 +2176,243 @@ that produced this subsection: the discipline held because one operator was watc
 discipline that holds only while someone is watching is not a mechanism. Until that item lands,
 the serial-integrator rule in D2 is prose, and it should be read as prose.
 
+### The night batch — the batch protocol run unattended, in five phases
+<!-- scope: meta -->
+
+**What this is, and what it is not.** Ch11's "Night-batch work" subsection states the night's
+*doctrine* — propose-only, branch-only, honest-limits, the three organs a night needs. This
+subsection states the *sequence*, in the same index sense the lane lifecycle above uses: a night
+batch is the batch protocol, the lane lifecycle and the wave close above, run while the operator
+sleeps, plus the handful of things that are only true at night. Where a phase is already ruled
+elsewhere it points; where it is not, it carries the doctrine itself.
+
+**Provenance — measured, not designed.** Architect ruling **X8**
+(`protocols/STANDING_RULINGS.md` §X, 2026-08-27), intake **#60**, row `[#610]`. Every mechanic
+below was read off the **2026-08-26 night**, whose four dispatched cloud sessions all delivered
+read-only and lost nothing; the reference artifacts are
+`docs/audits/2026-08-27-technical-night-harvest-manifest.md` and its sibling
+`docs/audits/2026-08-27-technical-night-harvest-consumption-ledger.md`. The cost of leaving the
+protocol as habit was visible inside that same night: the harvest verb had no name and its API
+mechanics were rediscovered rather than looked up, and the manifest shape that made the night
+auditable was invented that evening and would have been reinvented the next.
+
+| Phase | Owner | The one thing that makes it a phase |
+|---|---|---|
+| **1 · Dispatch** | operator | N frozen contracts go out; the night's compute is committed before the operator stops watching |
+| **2 · Manifest** | orchestrating seat | the batch's own record, written in **two halves** — one before any lane boots, one at wake |
+| **3 · Night run** | the lanes | unattended production, read-only or branch-only, ending in a harvest |
+| **4 · Morning adjudication** | operator + architect | one packet is read, then D0–D5 runs over it |
+| **5 · Ledger** | architect | every finding, its verdict and its destination, written down so the night outlives the seat |
+
+**X8's own ordering, reconciled rather than left contradicting this one.** X8 names the phases
+*dispatch → sentinel → harvest → manifest → morning adjudication*. Its "manifest" is the
+**return** half only, and it stops before the ledger. The five-phase naming here spans **both**
+manifest halves — the batch protocol's refuse-to-finish item above already rules the manifest as
+"TWO halves, one at each end" — and promotes the ledger to a phase of its own, per intake #60's
+acceptance criterion 6. Sentinel and harvest sit inside phase 3 as its two beats.
+
+#### Phase 1 — Dispatch
+
+*Inputs.* One frozen contract per lane, each a committed repo artifact ("Dispatch prompts and the
+contract of record" below); the routing cut per lane (Q1–Q4 of the dispatch table below); the
+substrate answer ("Two standing boundary rules the night inherits", at the end of this
+subsection).
+
+*Outputs.* N dispatched sessions, each with its receipt captured, and the **dispatch half** of the
+manifest, committed **before any lane boots**.
+
+*Refusal conditions.* A launch line composed by hand rather than copied from the dispatch table —
+that table is the sole literal-command site, and four rival copies of that one command cost
+roughly thirty consecutive seats a lane (`protocols/STANDING_RULINGS.md` §V). A contract whose
+cited locators were not opened: `/preflight` is the built organ for exactly this, and a premise a
+contract asserts without a witness is a defect **at freeze**, not at failure. A gate-dependent
+lane routed onto a substrate where no gate runs — the boundary test is "The boundary — LOCAL or
+CLOUD" below, and its night-standing form is rule (b) at the end of this subsection.
+
+#### Phase 2 — Manifest
+
+*Inputs.* The lane list and the frozen contracts (dispatch half); at wake, one report per
+dispatched session (return half).
+
+*Outputs.* The **dispatch half** is the batch manifest — the plan, committed before any lane
+boots, so the batch stays reconstructable from something other than its own outcome (the
+refuse-to-finish item above). The **return half** is the harvest manifest, whose shape is
+specified here because it was invented once and has no other home.
+
+**The harvest-manifest shape — specified so two seats produce the same sections.** Reference
+instance: `docs/audits/2026-08-27-technical-night-harvest-manifest.md`, which validates against
+every clause below.
+
+1. **A header** naming the harvested night, the read-only transport actually used
+   (`GET /v1/code/sessions/{id}/events`, paginated by `next_cursor`), and one sentence on what
+   was written where. An explicit statement that nothing was written to any repo is **part of the
+   record**, not an omission.
+2. **`## Reports`** — one numbered block per dispatched session, each **opening with the
+   session's label** and carrying **four fields in this order**: `file:` the landed artifact,
+   `bytes:` its size, `first heading:` the artifact's opening heading (with its line number
+   whenever that is not line 1), and `top recommendation:` one sentence of the report's own
+   conclusion. A block missing a field is incomplete rather than short.
+3. **`## PENDING`** — the sessions that had not delivered at wake. **An empty PENDING section is
+   written out** (`None.`, with the reason). Its absence and its emptiness are different facts,
+   and only one of them is a statement.
+4. **`## Verification`** — what was checked, and every deviation recorded rather than repaired.
+   This is the section the byte-identity rule in phase 3 lands in.
+
+A manifest carrying those four, in that order, is the artifact the morning opens **first**, ahead
+of any report. That ordering is the point of the phase: one file answers what came back, what did
+not, and what deviated.
+
+*Refusal conditions.* A `## PENDING` section **absent** rather than empty — absence and
+emptiness are different facts, and only the written-out form is a statement. A `## Reports`
+block short a field, which reads as a session that reported less rather than as a manifest that
+recorded less. A `## Verification` section that **repairs** a deviation instead of recording it,
+which is the byte-identity rule in phase 3 read backwards. And a dispatch half that lands
+**after** the lanes boot: from that point it records the batch that ran rather than the batch
+that was planned, which is the one property it exists to hold.
+
+#### Phase 3 — Night run
+
+*Inputs.* The dispatched contracts. *Outputs.* One artifact per lane, landed; the return half of
+the manifest.
+
+**Sentinel — the beat, without a mandated organ.** At wake the seat establishes which sessions are
+complete, so a second sleep is taken only when one is actually owed. On the witnessed night all
+four were complete at first wake and no second sleep happened. The phase is named and the organ is
+not required: one clean night is n=1, and this chapter's own evidence gate asks for two
+(Ch11's operational standard for a routine, item 7 — the n=2 graduation gate).
+
+**Harvest — read-only, and byte-identical.** A cloud session's report is **evidence**. It lands
+verbatim — same bytes, UTF-8, no trimming, no reflow, no heading surgery.
+
+**Byte-identical, or state the deviation.** Where a landed artifact does not satisfy a convention
+the landing seat expected, **the artifact wins and the Verification section records the
+deviation**. Trimming an artifact so a check passes destroys the evidence and hides the finding in
+one act. Worked example, from the reference night: C2 and C4 open at byte 0 with their own
+heading; **C1 and C3 do not** — each wrapped its report in a code fence preceded by one line of
+prose, putting the heading on line 4. Both were landed verbatim and both deviations were written
+into Verification. That was a judgement on the night; here it is the rule.
+
+**Report selection — and the Stop-hook-noise trap.** The report is **not** reliably the last
+assistant text in a session. On the reference night the last text in each of the four sessions was
+trailing Stop-hook backpressure noise ("Unchanged. Done.", "Nothing further.") from a container
+where `uv run --locked` could not start — uv 0.8.17 against the repo pin `==0.11.19`, so the
+hook's own gate refused before its script began. Taking the last text would have harvested that
+noise as the night's product, four times over. The rule that held: **select the longest assistant
+text**, which in all four sessions was assistant text #2, immediately after the RECEIPT. Name the
+selector used in the manifest, so a wrong selection is visible rather than silent.
+
+*Refusal conditions.* A night lane that merges, pushes, edits canon, closes a row or issues a
+ruling has left the propose-only envelope (Ch11 "Night-batch work"). A gate-dependent claim
+produced on a substrate that ran no gate is marked MEASUREMENT-OWED-LOCAL rather than estimated.
+Every night output stays UNVERIFIED-UNTIL-LOCAL until a local gate run says otherwise.
+
+#### Phase 4 — Morning adjudication
+
+*Inputs.* The manifest, read first; then the landed artifacts and their terra tallies.
+*Outputs.* One operator-facing packet, and the wave close.
+
+The adjudication itself is **already ruled and is not restated here**: it is D0–D5 in "The wave
+close" directly above, whose D4 funnel table classifies every finding into exactly one lawful next
+step (ADR-111 §1). Two night-specific additions:
+
+- **The manifest is read before any report.** It is the only surface carrying what did *not* come
+  back, and a wave that reads only what arrived closes over the reports it has rather than the
+  reports it dispatched — D0's "enumerate, don't trust", applied to artifacts instead of branches.
+- **Adjudication stays a human act in the morning.** The night produces proposals and evidence;
+  **nothing merges unattended.** That is Ch11's hard rule, stated where it gets tested.
+
+*Refusal conditions.* A close carrying findings and no funnel table is unfinished. A verdict taken
+against a report whose gate-dependent claims are still MEASUREMENT-OWED-LOCAL is a verdict on an
+unmeasured claim.
+
+#### Phase 5 — Ledger
+
+*Inputs.* The adjudicated funnel table. *Outputs.* one consumption ledger under `docs/audits/`,
+carrying an ADR-101 enum class token like any other audit artifact.
+
+**The ledger is a REQUIRED output of the protocol, not an optional one.** Reference instance:
+`docs/audits/2026-08-27-technical-night-harvest-consumption-ledger.md`. It carries every finding
+from every night report with **the architect's verdict and its destination** — including the
+rejected items, listed with their reason, because a rejection is a recorded verdict rather than a
+deletion. Its own statement of purpose is the whole case for the phase: *if this chat or seat is
+lost, the next seat executes THIS file and nothing from the night is dropped.*
+
+Why `docs/audits/` rather than a handoff bundle: a ledger is adjudicated once and cited
+thereafter, which is the audit lifecycle rather than the bundle lifecycle. Intake #60 left this
+open; it is answered here on the reference instance's precedent.
+
+*Refusal conditions.* A night that closes with no ledger has produced findings whose only carrier
+is the seat that read them. A ledger listing the accepted items and dropping the rejected ones has
+lost the reasons — the half that stops an item being relitigated next window.
+
+#### The night's four standing constraints
+
+Carried here from intake brief #1 §6 by way of `[#271]`'s 2026-08-28 re-cut, which struck that
+row's rival charter and routed its constraint list to this protocol as its correct home
+(`tasks/271-nightly-proposal-loop.md`; row `[#610]`). They bind an unattended night whichever
+phase is running:
+
+1. **A cap of roughly five proposals per night.** Past it the morning stops being adjudication and
+   becomes new toil — the fleet-audit failure mode the cap exists to refuse.
+2. **Untriaged items auto-expire after seven days.** An item nobody ruled in a week is a queue,
+   and an unread queue is indistinguishable from a decision nobody took.
+3. **No autonomous semantic refactoring at night.** Mechanical and pre-authorized deterministic
+   work is in scope; a change turning on judgement about *meaning* waits for a seat that is awake.
+4. **Proposals land in `docs/intake/` as `status: SEED`** — the ADR-98 requirements spine, and
+   deliberately not a parallel `proposals/` folder.
+
+*Honest limit, and it is why the list reads as prose rather than as enforcement.* Each of the four
+is prose. `[#271]`'s surviving Done-when asks for the **survival review** — a dated `docs/audits/`
+artifact recording a measured accept-rate against the `<20 %` kill threshold, over whatever
+unattended cadence is actually running — and that review has not been run. Until it is, these four
+bind the seat and not the tree.
+
+#### Two standing boundary rules the night inherits
+
+Both were answered by a prior architect seat and would otherwise die in that seat's head. They
+land here, and `protocols/HANDOFF_PROCESS.md` §4 asks the bundle's operator-facing forms card to
+carry them, so a future bundle boots them instead of rediscovering them.
+
+**(a) The session boundary — a merge is not an ending.** The architect does **not** propose
+session closure and does **not** initiate the bundle; **the operator declares closure**. The
+window's rhythm is *boot → plan → freeze → GO → integrate → audit → next batch*, and it continues
+until the operator ends it. Recorded as seat lesson **L-S2**,
+`docs/audits/2026-08-28-technical-night-mission-authorization.md`. *Locator note:* the frozen
+contract that landed this rule also names a **"five-pillar close"** as part of it; that term
+resolves to no surface in this tree at the time of writing, so the two clauses above — the ones
+the contract itself enumerates — are what land, and the term is reported as **unlocatable** rather
+than reconstructed from guesswork.
+
+**(b) Substrate routing — LOCAL is the default, conditionally.** Ruling **Z-G3**
+(`protocols/STANDING_RULINGS.md` §Z) amends U(b): *"GitHub compute is the DEFAULT substrate"* is
+**conditional**, taking effect only once all three defects ruling W4 measured are closed —
+`gh codespace cp` receiving literal single quotes, `uv` unusable in the container, and the
+silently stale clone. **Until then the default substrate is LOCAL.** A gate-dependent lane routed
+onto a substrate where no gate can run does not produce a slow verdict; it produces a green one
+that nothing earned. The entry condition for the wave-2 router ADR is the smoke-6 receipt —
+`Ok=True` **and** `RemoteExitCode=0` **and** `receipt HEAD == pushed HEAD` — which has not been
+produced. Untouched by that ruling: the settled 2026-08-20 position, Codespaces free 4-core, no
+overage.
+
+*The `uv` nuance, at the resolution the night actually measured.* The container's `uv` is not
+simply missing: on 2026-08-26 it measured **0.8.17 against the repo pin `==0.11.19`**, so every
+`uv run --locked` gate refused before its script started — **unrunnable by default, and runnable
+after a one-step `pip install --target` provisioning of the pinned build**, after which the gates
+ran clean (`docs/audits/2026-08-26-technical-handoff-census.md`, Appendix B). **The routing is
+unchanged by that measurement.** Ch8's Q1 row below carries it as an *amendment candidate, routing
+unchanged pending a ruling*, and this subsection **cites that status rather than resolving it** —
+a night seat reading only this text routes exactly as Q1 routes today.
+
+#### Honest limits
+
+This whole subsection is prose. No gate reads it: no organ counts a night's proposals against the
+cap, expires an untriaged item at seven days, checks a manifest for its four sections, or refuses
+a night that closes with no ledger. The two verbs the protocol wants — **`Dispatch-After`** (the
+*deferred form of* the ruled `Dispatch` verb, `protocols/STANDING_RULINGS.md` §V, and not a rival
+to it) and **`Harvest-Cloud`** — are win-tooling and operator-owned, and are the other half of row
+`[#610]`. The shape has been witnessed **once** (2026-08-26), so by this chapter's own evidence
+gate it is a **recorded practice at n=1**, not a graduated standard.
+
 ### Dispatch visibility — Agent View shows DISPATCHED sessions only (STANDING_RULINGS B7)
 <!-- scope: meta -->
 
@@ -2959,6 +3197,12 @@ A recurring unattended review — local or cloud — graduates to "standard" onl
 > **Provenance:** source intake #19 **§A** (night shift), U6(a) rider — trigger fired 2026-07-30 (the 2026-07-30→31 night batch ran); landed by arc `0731-g0-groom`. Note the rider is cited as "§B" on four upstream surfaces; the content is **§A** — see that arc's JOURNAL entry.
 
 Distinct from everything above in this chapter: the subsections above govern a **scheduled cloud Routine** (cron-triggered, self-contained, Action-mediated). This governs an **operator-requested night batch** — an interactive orchestrating session that fans out, then stops. Both are unattended writing; only the batch has a human who asked for it that evening.
+
+> **The sequence lives in Ch8.** This subsection carries the night's *doctrine*. The five-phase
+> *protocol* — dispatch · manifest · night run · morning adjudication · ledger, each with its
+> inputs, outputs and refusal conditions — is Ch8 "The night batch — the batch protocol run
+> unattended, in five phases" (ruling X8, intake #60, `[#610]`). Doctrine here, sequence there;
+> the two point at each other rather than restating one another.
 
 A night batch is not a new project. It is the morning-loop wave seen from the night side, and existing doctrine already governs most of it: model routing by t-shirt size ("T-shirt model pins"; Appendix B), unattended-writer branch isolation (ADR-84), the Tier-3 propose-only rule, and ADR-105's rule that a routine may not activate without a named consumer. What night work adds is executable, not doctrinal.
 
