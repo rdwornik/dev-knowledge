@@ -4634,7 +4634,7 @@ def _push_routine_branch(repo_path: Optional[Path] = None) -> tuple[bool, str]:
     return (True, "pushed")
 
 
-def _commit_routine_outputs(run_date: date) -> None:
+def _commit_routine_outputs(run_date: date) -> bool:
     """Capture this run's durable audit outputs onto the `automation/fleet-audit`
     branch via git plumbing — never to `main` (ADR-84 / Q9 writer isolation).
 
@@ -4652,6 +4652,12 @@ def _commit_routine_outputs(run_date: date) -> None:
     working-tree restore always runs in a `finally`. Enumerates concrete history/
     paths (no glob — git on Windows does not expand `*` in a subprocess pathspec).
     Assumes the durable scope is clean going in (the automation invariant).
+
+    Returns True when this run's outputs are ON the branch (freshly committed, or
+    already there under an identical tree), else False. [#296]: the caller needs
+    this to print an locator that is TRUE — the restore below removes the report
+    from the working tree either way, so "where it landed" and "whether it landed"
+    are the same question, and a caller that cannot ask it prints a path to nothing.
     """
     repo = _REPO_ROOT
     history_specs = (
@@ -4677,10 +4683,10 @@ def _commit_routine_outputs(run_date: date) -> None:
         )
         if status.returncode != 0:
             logger.warning("ADR-84 commit: git status failed — %s", status.stderr.strip())
-            return
+            return False
         changed = _parse_porcelain(status.stdout)
         if not changed:
-            return  # nothing new this run
+            return False  # nothing new this run
         # Stage ONLY this run's changed files (not whole dirs): git 2.0+ `git add <dir>`
         # stages deletions, so re-adding dirs against a branch-seeded index would prune
         # prior outputs (which the restore removes from the working tree). Adding the
@@ -4710,7 +4716,7 @@ def _commit_routine_outputs(run_date: date) -> None:
             )
             if rt.returncode != 0:
                 logger.warning("ADR-84 commit: read-tree failed — %s", rt.stderr.strip())
-                return
+                return False
 
         add = subprocess.run(
             ["git", "-C", repo, "add", "--", *changed_paths],
@@ -4718,7 +4724,7 @@ def _commit_routine_outputs(run_date: date) -> None:
         )
         if add.returncode != 0:
             logger.warning("ADR-84 commit: git add failed — %s", add.stderr.strip())
-            return
+            return False
 
         wt = subprocess.run(
             ["git", "-C", repo, "write-tree"],
@@ -4726,7 +4732,7 @@ def _commit_routine_outputs(run_date: date) -> None:
         )
         if wt.returncode != 0:
             logger.warning("ADR-84 commit: write-tree failed — %s", wt.stderr.strip())
-            return
+            return False
         tree = wt.stdout.strip()
 
         parent_args = []
@@ -4736,7 +4742,7 @@ def _commit_routine_outputs(run_date: date) -> None:
                 capture_output=True, text=True,
             ).stdout.strip()
             if tree == cur_tree:
-                return  # identical tree — nothing new to record
+                return True  # identical tree — already recorded on the branch
             parent_args = ["-p", _AUTOMATION_BRANCH]
 
         msg = (
@@ -4750,7 +4756,7 @@ def _commit_routine_outputs(run_date: date) -> None:
         )
         if ct.returncode != 0:
             logger.warning("ADR-84 commit: commit-tree failed — %s", ct.stderr.strip())
-            return
+            return False
         commit = ct.stdout.strip()
 
         ur = subprocess.run(
@@ -4759,12 +4765,14 @@ def _commit_routine_outputs(run_date: date) -> None:
         )
         if ur.returncode != 0:
             logger.warning("ADR-84 commit: update-ref failed — %s", ur.stderr.strip())
-            return
+            return False
         # [#460]: the commit exists on ONE disk until this runs. Replication is part of the
         # act, not a follow-on chore — the follow-on chore is precisely what died in July.
         _push_routine_branch(repo)
+        return True
     except Exception as exc:
         logger.warning("ADR-84 commit: unexpected error — %s", exc)
+        return False
     finally:
         _restore_durable_scope(pathspecs)
         if tmp_index and os.path.exists(tmp_index):
@@ -4772,6 +4780,33 @@ def _commit_routine_outputs(run_date: date) -> None:
                 os.remove(tmp_index)
             except OSError:
                 pass
+
+
+def report_locator(out, recorded: bool) -> str:
+    """[#296] The one honest sentence about where a report actually is.
+
+    The write is real, but `_commit_routine_outputs` records the durable scope onto
+    `automation/fleet-audit` and then RESTORES the working tree, so by the time the
+    command returns the path it just wrote no longer exists there. Printing that bare
+    path (the pre-[#296] behaviour) sent every caller to look where the file is not --
+    a misleading locator, NOT a lost report: the live copy is the branch copy. A live
+    repro on 2026-08-06 refuted the row's original guess of a suppressed write.
+
+    When the branch commit did NOT happen, say so plainly rather than name a branch
+    path that has nothing at it -- the fail-soft path logs a WARN and the report is
+    genuinely gone.
+    """
+    rel = str(out)
+    root = str(_REPO_ROOT)
+    if rel.startswith(root):
+        rel = rel[len(root):].lstrip(chr(92) + "/")
+    rel = rel.replace(chr(92), "/")
+    if recorded:
+        return (f"Report: {rel} on branch {_AUTOMATION_BRANCH} "
+                f"(read it with: git show {_AUTOMATION_BRANCH}:{rel}) "
+                f"-- not in the working tree; the durable scope is restored after the run")
+    return (f"Report: NOT recorded -- {rel} was written, then removed by the durable-scope "
+            f"restore without reaching {_AUTOMATION_BRANCH} (see the ADR-84 WARN above)")
 
 
 # ---------------------------------------------------------------------------
@@ -4860,8 +4895,8 @@ def cmd_run(repo_path: Optional[str]) -> None:
 
     report = generate_report(states, run_date, Path(_REPO_ROOT))
     out = write_report(report, run_date)
-    click.echo(f"Report: {out}")
-    _commit_routine_outputs(run_date)
+    recorded = _commit_routine_outputs(run_date)
+    click.echo(report_locator(out, recorded))
 
     failures = sum(1 for s in states for f in s.findings if f.status == "fail")
     if failures:
@@ -4876,9 +4911,13 @@ def cmd_run(repo_path: Optional[str]) -> None:
 def cmd_repo(name: str, repo_path: Optional[str]) -> None:
     """Audit a single repo by name.
 
-    Same state.yaml / history / report writes as `run`, scoped to one repo; the
-    report lands at docs/audits/YYYY-MM-DD-<name>-audit.md. Exits 1 on any failure.
-    Pass --repo-path to override the stored path (bootstrap or ad-hoc location).
+    Same state.yaml / history / report writes as `run`, scoped to one repo. The
+    report is written as docs/audits/YYYY-MM-DD-<name>-audit.md and then RECORDED
+    ON the `automation/fleet-audit` branch (ADR-84 writer isolation) -- the working
+    tree is restored afterwards, so the file is NOT left in your checkout. Read it
+    with `git show automation/fleet-audit:docs/audits/...`; the command prints the
+    exact invocation. Exits 1 on any failure. Pass --repo-path to override the
+    stored path (bootstrap or ad-hoc location).
 
     Examples:
         python scripts/audit.py repo ai-council
@@ -4900,8 +4939,8 @@ def cmd_repo(name: str, repo_path: Optional[str]) -> None:
 
     report = generate_report([state], run_date, Path(_REPO_ROOT))
     out = write_report(report, run_date, single_repo=name)
-    click.echo(f"Report: {out}")
-    _commit_routine_outputs(run_date)
+    recorded = _commit_routine_outputs(run_date)
+    click.echo(report_locator(out, recorded))
 
     failures = sum(1 for f in state.findings if f.status == "fail")
     if failures:

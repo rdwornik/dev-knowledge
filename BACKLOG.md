@@ -75,12 +75,10 @@ So that a convention can't be skipped under load (the failure mode behind real a
 ### [S4] Extend structural validation to more governance artifacts
 So that drift in transcripts, ADRs, and folders is caught cheaply, not by reviewer luck.
 - [#139] [P2][L] merged-arc→record verifier · DEFER · tasks/139-merged-arc-record-verifier.md
-- [#99] [P3][S] FLEET-HEALTH digest names the failing check per red repo · DEFER · tasks/99-fleet-health-digest-names-the-failing-check-per.md
 - [#190] [P3][M] General intra-file duplication detector · DEFER · tasks/190-general-intra-file-duplication-detector.md
 - [#210] [P3][S] Convert journal-wrap no-ff WARNs from per-instance disposition to a standing rule · tasks/210-convert-journal-wrap-no-ff-warns-from-per-instan.md
 - [#234] [P3][S] Cross-repo probe validator · DEFER · tasks/234-cross-repo-probe-validator.md
 - [#277] [P2][M] propose_closures signal repair · DEFER · tasks/277-propose-closures-signal-repair.md
-- [#296] [P3][S] `audit.py repo <name> --repo-path` prints a report path that isn't there · DEFER · tasks/296-audit-py-repo-name-repo-path-doesn-t-persist-its.md
 
 ### [S5] Catch spec/dependent drift mechanically, not by memory
 So that "spec bumped, dependent partially updated, caught only because a human remembered" stops being the failure mode — machine-checkable coherence between a dependent doc and its spec.

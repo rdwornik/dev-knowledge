@@ -84,6 +84,83 @@ def test_build_digest_all_green():
     assert "All 1 repos green" in out
 
 
+# --- [#99] a red digest row names the failing check(s) ----------------------
+
+_STATE_YAML = """name: repo-x
+path: /somewhere/repo-x
+last_audit: '2026-08-28'
+findings:
+- check_name: vision_md
+  evidence: fine
+  status: pass
+- check_name: canonical_freshness
+  evidence: 'CLAUDE.md: last_reviewed 2026-07-27 is 32d old
+    (> 30d cadence)'
+  status: fail
+- check_name: substrate_declaration
+  evidence: nope
+  status: fail
+"""
+
+
+def test_check_status_pairs_survives_multiline_evidence(tmp_path):
+    """The pairing is order-based, so wrapped evidence must not break attribution."""
+    f = tmp_path / "state.yaml"
+    f.write_text(_STATE_YAML, encoding="utf-8")
+    st = fh._load_state_yaml(f)
+    assert st["checks"] == [
+        ("vision_md", "pass"),
+        ("canonical_freshness", "fail"),
+        ("substrate_declaration", "fail"),
+    ]
+
+
+def test_failing_check_names_lists_only_failures(tmp_path):
+    f = tmp_path / "state.yaml"
+    f.write_text(_STATE_YAML, encoding="utf-8")
+    st = fh._load_state_yaml(f)
+    assert fh.failing_check_names(st) == "canonical_freshness, substrate_declaration"
+
+
+def test_failing_check_names_empty_when_green():
+    assert fh.failing_check_names({"checks": [("a", "pass"), ("b", "warn")]}) == ""
+
+
+def test_failing_check_names_caps_and_counts_the_overflow():
+    """The cap must never DROP a failure silently -- the remainder is counted."""
+    st = {"checks": [(f"c{i}", "fail") for i in range(5)]}
+    assert fh.failing_check_names(st, cap=2) == "c0, c1 (+3 more)"
+
+
+def test_status_without_a_check_name_is_attributed_not_dropped(tmp_path):
+    """An unnameable failing check still has to be counted."""
+    f = tmp_path / "state.yaml"
+    f.write_text("findings:" + chr(10) + "  status: fail" + chr(10), encoding="utf-8")
+    st = fh._load_state_yaml(f)
+    assert st["checks"] == [("?", "fail")]
+    assert fh.failing_check_names(st) == "?"
+
+
+def test_build_digest_red_row_carries_the_failing_check_name():
+    """[#99]'s Done-when: a red repo's digest line carries the failing check name(s)."""
+    states = [
+        {"name": "repo-a", "statuses": ["pass"], "checks": [("vision_md", "pass")]},
+        {"name": "repo-b", "statuses": ["pass", "fail"],
+         "checks": [("vision_md", "pass"), ("canonical_freshness", "fail")]},
+    ]
+    out = fh.build_digest(states, date(2026, 6, 2))
+    red = [ln for ln in out.splitlines() if ln.startswith("| repo-b")][0]
+    assert "canonical_freshness" in red
+    green = [ln for ln in out.splitlines() if ln.startswith("| repo-a")][0]
+    assert "canonical_freshness" not in green
+
+
+def test_build_digest_tolerates_states_without_checks_key():
+    """Legacy callers pass states with no `checks` key; they must not crash."""
+    out = fh.build_digest(_STATES, date(2026, 6, 2))
+    assert "| repo-b | !! | 1 | 1 |" in out
+
+
 # --- surface_line -----------------------------------------------------------
 
 def test_surface_line_all_green(tmp_path):

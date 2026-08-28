@@ -1634,6 +1634,67 @@ def _write_run_outputs(repo: Path, stamp: str = "2026-06-14") -> tuple[Path, Pat
     return report, hist
 
 
+# --- [#296] the printed report locator must be TRUE -------------------------
+
+def test_commit_routine_outputs_reports_recorded(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """[#296]: the caller needs a truthful signal, so the function returns one."""
+    repo, git = _fleet_repo(tmp_path, monkeypatch)
+    _write_run_outputs(repo)
+    assert aud._commit_routine_outputs(date(2026, 6, 14)) is True
+
+
+def test_commit_routine_outputs_reports_nothing_new(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """No changed durable output -> nothing was recorded THIS run."""
+    repo, git = _fleet_repo(tmp_path, monkeypatch)
+    assert aud._commit_routine_outputs(date(2026, 6, 14)) is False
+
+
+def test_report_is_absent_from_the_worktree_but_present_on_the_branch(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The defect [#296] names, pinned: the written path does NOT survive the run.
+
+    A live repro on 2026-08-06 established this is a MISLEADING LOCATOR, not a lost
+    report -- so assert both halves, or a future 'fix' could satisfy one by breaking
+    the other.
+    """
+    repo, git = _fleet_repo(tmp_path, monkeypatch)
+    report, _hist = _write_run_outputs(repo)
+    recorded = aud._commit_routine_outputs(date(2026, 6, 14))
+    assert recorded is True
+    assert not report.exists(), "the durable-scope restore removes it from the tree"
+    tree = git("ls-tree", "-r", "--name-only", _AUTO_BRANCH).stdout
+    assert "docs/audits/2026-06-14-ecosystem-audit.md" in tree
+
+
+def test_report_locator_names_the_branch_when_recorded(monkeypatch) -> None:
+    monkeypatch.setattr(aud, "_REPO_ROOT", "/repo")
+    line = aud.report_locator("/repo/docs/audits/2026-06-14-x-audit.md", True)
+    assert "automation/fleet-audit" in line
+    assert "git show automation/fleet-audit:docs/audits/2026-06-14-x-audit.md" in line
+    assert "not in the working tree" in line
+
+
+def test_report_locator_says_not_recorded_when_the_commit_failed(monkeypatch) -> None:
+    """Never name a branch path that has nothing at it."""
+    monkeypatch.setattr(aud, "_REPO_ROOT", "/repo")
+    line = aud.report_locator("/repo/docs/audits/2026-06-14-x-audit.md", False)
+    assert "NOT recorded" in line
+    assert "git show" not in line
+
+
+def test_report_locator_is_repo_relative(monkeypatch) -> None:
+    """An absolute path was the confusing half of the original message."""
+    monkeypatch.setattr(aud, "_REPO_ROOT", "/repo")
+    line = aud.report_locator("/repo/docs/audits/x.md", True)
+    assert "/repo/docs" not in line
+    assert "docs/audits/x.md" in line
+
+
 def test_routine_outputs_land_on_automation_branch(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

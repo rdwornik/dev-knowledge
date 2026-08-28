@@ -256,6 +256,29 @@ def _atomic_write(path: Path, text: str) -> None:
             tmp.unlink()
 
 
+def _check_status_pairs(text: str) -> list:
+    """[#99] Pair every finding's status with the check_name it belongs to.
+
+    The digest could previously say `corp-monorepo !! 1` and nothing more, so learning
+    WHAT was red cost a second command (`audit.py repo <name>`). Order-based by
+    construction: the state writer emits `- check_name:` then (multi-line) evidence then
+    `status:` per finding, so a status belongs to the most recent check_name above it. A
+    status with no preceding check_name is attributed "?" rather than dropped -- an
+    unnameable failing check must still be counted, never silently swallowed.
+    """
+    pairs = []
+    current = "?"
+    for line in text.splitlines():
+        cm = re.match(r"^-\s*check_name:\s*(\S+)", line)
+        if cm:
+            current = cm.group(1)
+            continue
+        sm = re.match(r"^\s+status:\s*(\w+)", line)
+        if sm:
+            pairs.append((current, sm.group(1)))
+    return pairs
+
+
 def _load_state_yaml(path: Path) -> dict:
     """Minimal YAML-free state parser for ecosystem/<name>/state.yaml.
 
@@ -276,6 +299,7 @@ def _load_state_yaml(path: Path) -> dict:
         "path": path_m.group(1).strip() if path_m else "",
         "last_audit": date_m.group(1).strip() if date_m else "?",
         "statuses": statuses,
+        "checks": _check_status_pairs(text),
     }
 
 
@@ -332,6 +356,28 @@ def repo_summary(state: dict) -> tuple:
         statuses.count("fail"),
         statuses.count("warn"),
     )
+
+
+# [#99] A red digest row NAMES the failing check(s). The cap stops one pathological
+# repo turning the table into a wall of text; the overflow is COUNTED, never dropped,
+# so the line stays honest about what it is not showing.
+_MAX_NAMED_FAILS = 3
+
+
+def failing_check_names(state: dict, cap: int = _MAX_NAMED_FAILS) -> str:
+    """Comma-joined names of the failing checks, capped, with an honest overflow tail.
+
+    Returns "" when nothing failed. Order is the state file's OWN (audit order), not
+    sorted -- the operator reads the digest beside the audit output and re-ordering
+    would break that correspondence. Duplicates are preserved for the same reason: two
+    findings from one check are two failures, and collapsing them would under-report.
+    """
+    names = [c for c, st in state.get("checks", []) if st == "fail"]
+    if not names:
+        return ""
+    if len(names) <= cap:
+        return ", ".join(names)
+    return ", ".join(names[:cap]) + " (+%d more)" % (len(names) - cap)
 
 
 # ---------------------------------------------------------------------------
@@ -837,12 +883,15 @@ def build_digest(states: list, run_date: date, completed_at: str | None = None,
         (f"Baseline completed ({n_pass}/{len(rows)} green)." if completed_at
          else "Baseline INCOMPLETE (audit error/timeout) -- data may be partial."),
         "",
-        "| Repo | Green | Fails | Warns |",
-        "|------|-------|-------|-------|",
+        "| Repo | Green | Fails | Warns | Failing checks |",
+        "|------|-------|-------|-------|----------------|",
     ]
-    for name, np, nf, nw in rows:
+    # [#99] states and rows are index-aligned by construction (rows is a 1:1 map over
+    # states), so the failing names for row i come from states[i].
+    for (name, np, nf, nw), st in zip(rows, states):
         icon = "ok" if nf == 0 else "!!"
-        lines.append(f"| {name} | {icon} | {nf} | {nw} |")
+        failing = failing_check_names(st) if nf else ""
+        lines.append(f"| {name} | {icon} | {nf} | {nw} | {failing} |")
     lines += [""]
     if n_fail == 0:
         lines += [f"All {len(rows)} repos green."]
