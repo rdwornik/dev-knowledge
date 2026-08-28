@@ -19,6 +19,79 @@
 
 ---
 
+### 2026-08-28 (k) - CC (Opus 5, background job, primary checkout, branch `docs/batch-1-manifest-fix`): the anchor commit entry (j) could not write for itself
+
+**Did:** appended this entry so the manifest-fix arc's merge is anchorable. Entry (j) and the
+manifest landed in ONE commit, because the pre-commit `journal_spine_anchor` FAIL blocked the
+manifest commit until an anchor existed -- which forced both into a single commit and straight
+into the one-commit trap ADR-110 names: a merge introduces its branch's commits, and a JOURNAL
+entry written *inside* the only commit cannot name the hash it is about to receive.
+
+**Result:** the split is the documented repair -- substantive work first, JOURNAL last -- taken
+as a normal two-commit arc rather than by rewriting unpushed history. Recorded because the
+ordering constraint here is circular in a way the doctrine does not spell out: an arc that must
+anchor a PRIOR unanchored spine entry cannot use the ordinary "JOURNAL last" shape for its own
+first commit, and needs three commits' worth of care in two.
+
+**Changes:** `JOURNAL.md` (this entry only).
+
+**Abandoned:** nothing.
+
+**Anchors:** 11af32d (manifest at the glob-matching path + entry (j)).
+
+**Next:** merge `docs/batch-1-manifest-fix` --no-ff, then resume lanes L2-L5.
+
+### 2026-08-28 (j) - CC (Opus 5, background job, primary checkout, branch `docs/batch-1-manifest-fix`): the batch-1 dispatch arc, and the manifest that granted nothing because it was filed where no gate looks
+
+**Did:** dispatched batch-1 per the operator's frozen `BATCH1-LANE-CONTRACTS-2026-08-28.md`
+(SEQ 2, ADR-110 shape, 5 file-disjoint lanes + one integration). Ran the operator-ordered
+substrate self-check first: `uv --version` 0.11.19 against `pyproject.toml`
+`required-version = "==0.11.19"` -- MATCH, with both PATH binaries probed because two are
+installed; and `scripts/gen_task_tree.py --check` green bare AND under `uv run --locked`.
+Cut Q1-Q4 per lane: Q1 is YES for all five (each depends on the gate mesh), which routes
+NOT cloud, and Z-G3 plus the measured container `uv` 0.8.17 mismatch makes LOCAL the
+default -- so all five lanes route LOCAL and the cut stops at Q2. Copied the launch line
+from Ch8's dispatch table rather than composing one. Committed the frozen contract and the
+dispatch record in-tree, then provisioned and executed lane L1.
+
+**Result:** three contract defects were caught by preflight rather than by a lane at commit
+time, and one gate defect was caught by the gate itself.
+
+- **D1** -- L5's done-contract asserts "Ratchet untouched (ecosystem/ + code are outside its
+  scope roots -- verified, not assumed)". It is **false**:
+  `silent_rule_detector._SCOPE_RULES` carries `("ecosystem", False, (".yaml",))`, so L5's new
+  `ecosystem/routing-table.yaml` lands squarely inside a ratchet with **zero headroom**.
+- **D2** -- L2's contract cites `[#587]` for the tiling seam. `[#587]` is the anchor-check
+  single-pass inversion; the seam is `[#608]` (X5/C3, "moves zero bytes" -- the contract's own
+  words match [#608]'s body). `[#608]` further carries `depends-on: "#587"`, still open.
+- **D3** -- `check_substrate_declaration` REFUSES the frozen contract:
+  `validate_substrate.declared_substrate()` reads `**Shape:**` FIRST as the generator's
+  machine field, and the contract uses `**Shape:**` for batch topology ("ONE plan -> 5
+  lanes"), so the parser takes `one` and refuses it as outside the registry. The contract
+  does declare LOCAL. Recorded as a visible REFUSE->WARN deviation with its reason;
+  `_apply_override` never removes a refusal.
+- **The manifest defect, and it is the expensive one.** The manifest committed at dispatch
+  went to `docs/audits/2026-08-28-technical-batch1-launch-contracts/MANIFEST.md`.
+  `batch_manifest.MANIFEST_GLOB` is `docs/audits/*-batch-*-manifest.md`, which that path does
+  not match, so `open_batches()` returned empty and the manifest **granted nothing**. Worse,
+  the assumption it was covering the dispatch merge was wrong twice over: `exempt()` only ever
+  covers merges whose branch matches `LANE_BRANCH_RE`, so a `docs/`-class dispatch or
+  integration arc is **never** exempt and anchors in JOURNAL like any other arc. The
+  consequence is not local -- an unanchored spine entry FAILs `journal_spine_anchor`, and
+  `audit-health` is a PRE-COMMIT gate, so it blocks every commit in every lane.
+
+**Changes:** `docs/audits/2026-08-28-technical-batch1-launch-contracts/` (frozen contract +
+dispatch record, incl. the D3 filing annotation); `docs/audits/2026-08-28-technical-batch-1-manifest.md`
+(the gate-readable manifest, at the glob-matching path); this entry.
+
+**Abandoned:** the plan to defer all anchoring to integration. It is not available: the
+exemption does not reach non-lane arcs, and the backstop is a pre-commit FAIL rather than a
+push-time one. Each arc anchors itself.
+
+**Anchors:** 5916b362 (batch-1 manifest committed at dispatch), anchoring a312ae43.
+
+**Next:** lanes L2-L5, then the serial integration queue L2 -> L1 -> L4 -> L5 -> L3.
+
 ### 2026-08-28 (i) - CC (Opus 5, background job, primary checkout, branch `docs/phase0-codify-rule-file`): phase 0 - the window's ratified-in-chat register is codified, four open design questions are RULED, and the filing wave lands legally
 
 **Did:** executed `PHASE0-CONTRACT-2026-08-28.md` items 0-DISPATCH and 0a-0h serially. Three kinds
