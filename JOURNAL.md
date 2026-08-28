@@ -19,6 +19,56 @@
 
 ---
 
+### 2026-08-28 (e) - CC (Opus 5, background job, primary checkout, branch `docs/handoff-2026-08-28`): the supplement is filled and folded - and the fold's own reflow gap is caught by the sweep the LESSON prescribes
+
+**Did:** operator returned all seven `SUPPLEMENT.md` answers; committed the filled file, folded the
+ANSWERS region into `PASTE_THIS.md` via `assemble_paste.py`, verified three of the supplement's
+repo-verifiable claims live, and swept the bundle for prose the fold's reflow does not reach.
+
+**Result:** `PASTE_THIS.md` 35,585 -> 45,697 B across three assembles. The incoming §13(d)
+operator-context beat **NARROWS** rather than firing full. Bundle gates green throughout
+(`validate_residual_completeness` OK, `check_seal_identity` exit 0); branch pushed.
+
+**Supersedes one line of entry (d).** That entry recorded `SUPPLEMENT.md` as committed **empty**
+with the beat firing **FULL** - true when written, false from the fold onward. JOURNAL is
+append-only, so this entry carries the correction rather than an edit.
+
+**The reflow gap, caught because the LESSON says to sweep and not because anything failed.** The
+generator's `--filled` auto-detection correctly flipped its **four framing sites**; it reaches
+**generator sites only**. The residual's hand-authored frontier caution (3) still said the
+supplement was cold and the beat would fire full - written before the fold, false the instant it
+landed, and inside a FILL-IN region no gate inspects for *content*. Every gate was green with the
+bundle contradicting itself about its own fill-state. Corrected in place; whole-bundle sweep now
+returns zero cold-state claims. **The generalisable half: a completeness gate that checks whether a
+region is FILLED cannot check whether what fills it is still TRUE, and a state flip is exactly when
+hand-authored prose goes stale.**
+
+**Verified rather than relayed - and one claim did not survive.** Three repo-verifiable facts in
+answer 6 were re-derived on live state instead of being folded through untouched: `v1.4.0` is still
+untagged (**CONFIRMED**; the `deploy` preflight abort stands, and it gates the operator's stated
+headline intent), `~/.claude/memory/learned-rules.md` is still absent (**CONFIRMED**; L0, the hub
+cannot fix it), and `automation/fleet-audit` is **NOT** two commits behind - local and origin are
+both at `1f8b6434`, so the push already happened (**REFUTED and DISCHARGED**). Left standing, that
+third claim would have FAILed the next boot's `Inherited claims` row on a fact that merely went
+stale between filling and booting. Recorded as a CC-attributed verification block appended to the
+supplement; **the operator's own text was not altered.**
+
+**The strategic payload the repo could not have produced.** Deployment to other repos must START
+within two sessions and outranks further hub polish; the next session is EXECUTION-ONLY against the
+seven filed intakes. And **OPEN QUESTION 1 outranks the whole G-list**: the v6.3.0 role-residency
+HOME is unproven - if the browser has no persistent instructions surface, the PIN has nothing to
+verify and every seat refuses to boot, with the ruled fallback being revert-to-inlining and
+recording D-R1 as measured-and-reversed. The frontier caution now routes the next seat there first.
+
+**Abandoned:** nothing. No merge taken - operator-authorised per-act.
+
+**Changes:** `docs/handoffs/2026-08-28-dev-knowledge-architect/` (supplement filled + CC
+verification block; paste re-assembled; residual caution corrected).
+
+**Anchors:** 34572db9 (the fold and the claim verification), 74bd3e1e (the reflow-gap correction).
+
+**Next:** paste `PASTE_THIS.md` into a fresh architect chat. Settle OPEN QUESTION 1 first.
+
 ### 2026-08-28 (d) - CC (Opus 5, background job, primary checkout, branch `docs/handoff-2026-08-28`): the architect bundle is cut against a window whose rulings were both landed AND consumed - so the residual carries unwritten RULES, not unbuilt mechanisms
 
 **Did:** generated and hand-completed the architect-mode v6 handoff bundle
