@@ -124,7 +124,7 @@ Backbone (dependency-ordered; done stages recorded here as the epic ledger — A
 - FLAG RESOLVED (architect, 2026-07-07): the arc-tracking / record-integrity fold is adjudicated — #168/#170 **co-sequence with #239/#240** (they harden the same `session_end_backpressure` organ the enforcement-transfer epic ports consumer-local in #237); #243 co-sequences there too (its #168-hard vs Fable-WARN conflict resolves at that mesh-consult). #139 **stays separate** (hub record-integrity, tangential — not folded).
 
 - [#240] [P3][S] Follow-up · DEFER · tasks/240-follow-up.md
-- [#267] [P2][S] Scope-exercising arc extension · DEFER · tasks/267-scope-exercising-arc-extension.md
+- [#267] [P2][S] Scope-exercising arc extension · tasks/267-scope-exercising-arc-extension.md
 - [#289] [P2][M] Hub-own the OneDrive-Blue-Yonder guard · DEFER · tasks/289-hub-own-the-onedrive-blue-yonder-guard.md
 - [#294] [P3][M] `validate_backlog` deploy-carrier + `--path` de-hardcode · DEFER · tasks/294-validate-backlog-deploy-carrier-path-de-hardcode.md
 - [#297] [P3][S] Lightweight/dry `observe-arc` coverage mode · DEFER · tasks/297-lightweight-dry-observe-arc-coverage-mode.md
@@ -463,7 +463,6 @@ So that a wave closes on a report rather than on a claim — the operator stops 
 
 ### [S26] Mine our own history before predicting anything
 So that "the repo learns us" starts as a cheap descriptive lane on real data, not as an ML platform bought ahead of the evidence.
-- [#391] [P3][S] Wire fleet_analytics into a nightly lane, or narrow #384 to a manual reporter · tasks/391-wire-fleet-analytics-into-a-nightly-lane-or-narr.md
 - [#392] [P3][S] fleet_analytics rename-alias loses history on path-reuse · tasks/392-fleet-analytics-rename-alias-loses-history-on-pa.md
 - [#393] [P3][S] corp-sca rot review — confirm-live-or-retire 3 candidates · tasks/393-corp-sca-rot-review-confirm-live-or-retire-3-can.md
 
