@@ -208,6 +208,16 @@ exempt:
   # coverage_scope and the marker is added to the adapter and to scripts/dispatch_drift.py
   # (a 2-site multi_site declaration). Bound to [#592], not to memory.
   - dispatch_drift
+  # [#613] routing-agreement adapter. **TEMPORARY**, and the closest precedent is the
+  # dispatch_drift row directly above it -- same shape (the [#592] logic-module + thin-adapter
+  # pair), same posture, same reason. The property -- the L0 derived routing copy agreeing
+  # with the authoritative in-repo table -- is carried today by
+  # `protocols/STANDING_RULINGS.md` Z-G3 amendment A2, an immutable ruling record, which
+  # states it in prose and declares no rule ID for a marker to bind. When one lands, this
+  # entry converts to coverage_scope and the marker is added to the adapter and to
+  # scripts/routing_agreement.py (a 2-site multi_site declaration). Bound to [#613], not to
+  # memory.
+  - routing_agreement
   # [#595] consumer-at-landing leg. **TEMPORARY**, and the closest precedent is the
   # funnel_coverage row above it -- same corpus, same posture, same reason. The rule this leg
   # embodies (a landed docs/audits artifact declares the governance surface that consumes it)
