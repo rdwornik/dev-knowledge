@@ -1,0 +1,59 @@
+# routing-table.yaml -- the AUTHORITATIVE role -> CLI routing table.
+#
+# RESIDENCY IS RULED. Register ruling Z-G3 (amendment A2, architect, 2026-08-28) places the
+# authoritative routing table IN-REPO: a table the hub cannot read is a table the hub cannot
+# gate, which is the four-rival-dispatch-commands disease (register section V, ~30 consecutive
+# seats) in a new costume. `~/.claude/ROUTING.md` at L0 may hold a DERIVED copy, and
+# `check_routing_agreement` asserts the two agree -- the shape `[#592]` already built, reused
+# rather than reinvented.
+#
+# PATH SELECTION was an operator act (P1) and is recorded as taken: `ecosystem/`, lowercase per
+# the ecosystem convention, beside the machine-read fleet registries the audit layer loads.
+#
+# SCOPE, stated so a reader does not over-read this file: it records WHICH role runs on WHICH
+# CLI. It does not rule on model tiers -- routing doctrine's canonical table is L0, outside this
+# repository (ARCHITECTURE Ch3, ruled 2026-08-22). This file is the agreement surface, and the
+# agreement check is detection, not correctness: it reports that two copies say the same thing,
+# which is a different claim from either of them being right.
+
+version: 1
+
+roles:
+
+  producer:
+    cli: claude-code
+    bounded_alternate: codex
+    note: >-
+      CC produces. Codex is admitted as a BOUNDED producer only -- its standing role in this
+      fleet is reviewer, and a bounded producer act is the exception rather than the default.
+
+  reviewer:
+    cli: codex
+    model: gpt-5.6-terra
+    note: >-
+      The reviewer pin itself lives at L0 (`~/.codex/AGENTS.md`), which governs the reviewer
+      role by scope; this row records the routing, not the pin.
+
+  adversarial:
+    cli: sol
+    note: >-
+      Adversarial design critique. Distinct from review: the reviewer judges a diff, the
+      adversary attacks a design before one exists.
+
+  fan_out:
+    cli: [luna, haiku, gemini]
+    mode: retrieval-only
+    scar: >-
+      RETRIEVAL-ONLY is a scar, not a preference, and the reason is recorded here so it is not
+      quietly relaxed by a later seat who reads only the mode. A fan-out head asked to COUNT
+      returned a fabricated count -- a number with no computation behind it, indistinguishable
+      in shape from a measured one. Retrieval questions have a checkable answer in the corpus;
+      counting questions do not, and a fabricated count is worse than a refusal because it
+      reads as evidence. Widening this mode is an operator act with its own ruling.
+
+# L0 DERIVED COPY -- the file `check_routing_agreement` compares against.
+#
+# Absence is a REPORTED GAP, not a pass (register ruling Z-G4: a check that cannot compute its
+# ground truth FAILs, it does not skip). L0 sits on the operator's disk, outside this
+# repository, so the hub writes it at no time -- keeping it current is the operator's act.
+l0_derived_copy: "~/.claude/ROUTING.md"

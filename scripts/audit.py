@@ -262,6 +262,7 @@ check_amendment_coherence = _registry.check_amendment_coherence
 check_floor_integrity = _registry.check_floor_integrity
 check_substrate_declaration = _registry.check_substrate_declaration
 check_dispatch_drift = _registry.check_dispatch_drift
+check_routing_agreement = _registry.check_routing_agreement
 check_consumer_at_landing = _registry.check_consumer_at_landing
 check_proof_layer = _registry.check_proof_layer
 
@@ -4045,6 +4046,12 @@ ALL_CHECKS = [
                                # REFUSE legs FAIL-armed against a post-2026-08-27 corpus
                                # measuring 0; the second-local-writer leg is WARN by the row's
                                # own words. COMMIT by rule (a): FAIL-capable
+    _tier(TIER_SHIP, check_routing_agreement),    # [#613] — L0 routing copy vs the
+    #                                             #   in-repo table. SHIP tier: the L0 copy
+    #                                             #   is operator-disk and diverges at arm
+    #                                             #   time, so a COMMIT-tier FAIL would wedge
+    #                                             #   every commit on a file the repo may not
+    #                                             #   write. The verdict stays fail/warn.
     _tier(TIER_COMMIT, check_dispatch_drift),      # [#592] — every literal command in
                                # PLAYBOOK Ch8's dispatch table resolves via Get-Command, and
                                # /lane-boot names the ruled verb. COMMIT by rule (a):
