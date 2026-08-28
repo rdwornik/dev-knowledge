@@ -59,13 +59,31 @@ utf-8 decode. A claim of byte-identity made through `write_text` is not a claim.
   LEG D  strictly-shorter      -- the live row body is strictly shorter than the body the
                                   latest event acted on. Relocation that does not reduce is
                                   a no-op dressed as work.
+  LEG E  completeness          -- enumerated from the ROWS, not the records: a row carrying
+                                  a pointer whose record is absent is a FAILURE. Every
+                                  other leg starts at a record and asks whether its row
+                                  agrees, so deleting the record -- or the whole archive
+                                  directory -- would remove the only thing that could
+                                  complain, and the run would report a clean empty set.
+                                  A verifier that enumerates only what exists cannot
+                                  detect absence.
 
-HONEST LIMIT, stated rather than left to be discovered. LEG C can only be computed while
-the live row still matches the `body_after_sha256` the latest event recorded. Once a human
-edits the row again, the pre-relocation body is no longer derivable from the working tree
-and `verify` reports that event **UNPROVEN (row edited since relocation)** -- loudly, in
-the summary, never as a silent pass and never as a false FAIL. Legs A, B and D still bind,
-and the superseded proof stays checkable in git at the relocation commit. Earlier events on
+LEG C IS ATTEMPTED UNCONDITIONALLY, and the recorded post-relocation digest only CLASSIFIES
+a failure. Gating the attempt on that digest -- the first shape this took -- meant one
+flipped hex character in it turned the leg off while the run still exited 0: a digest whose
+only power is to disable the check that would catch its own corruption. Now the
+reconstruction runs first; if it reproduces the recorded pre-relocation body the record is
+PROVEN whatever the post digest says, and if it does not, the post digest decides between
+*the row was legitimately edited since* (a NOTE) and *this record is inconsistent* (a FAIL).
+
+HONEST LIMIT, stated rather than left to be discovered. LEG C can only PROVE a record while
+the live row is still the one the latest event left behind. Once a human edits that row
+again, the pre-relocation body is no longer derivable from the working tree, and from the
+tree alone *a legitimate later edit* and *a corrupt record* are indistinguishable -- so
+`verify` reports the record **UNPROVEN**, says both readings, and names git at the
+relocation commit as the witness that tells them apart. Loud, in the summary, never a
+silent pass and never a false FAIL; the headline counts what was PROVEN, so an all-UNPROVEN
+run cannot read as a clean one. Legs A, B, D and E still bind. Earlier events on
 a multi-event record are in the same position by construction: each event is exact about
 the body IT acted on, so unwinding a chain of events in reverse reproduces the original row
 ONLY when nothing was appended between relocations. When narration WAS appended in between
@@ -126,6 +144,16 @@ _STRUCTURAL_MARKERS: tuple[tuple[str, str], ...] = (
     ("depends-on:", "gen_task_tree.derive_depends_on / validate_backlog._DEPENDS_CLAUSE_RE"),
     ("serialize-group:", "gen_task_tree.derive_serialize_group"),
     ("routine:", "routine_consumers"),
+    # The routine DECLARATION's fields are their own ` · ` clauses that follow the marker,
+    # so blocking the marker clause alone is not enough (terra HIGH, 2026-08-29):
+    # `check_routine_consumers._ROUTINE_FIELD_RE` reads `· consumer=` / `· consumption_path=`
+    # off the row and `_ROUTINE_REQUIRED` FAILs the check when either is absent. Relocating
+    # a trailing `consumption_path=...` clause out of a declared-routine row would therefore
+    # break a live gate while every leg here still reported the move lossless.
+    ("consumer=", "check_routine_consumers._ROUTINE_FIELD_RE / _ROUTINE_REQUIRED"),
+    ("consumption_path=", "check_routine_consumers._ROUTINE_FIELD_RE / _ROUTINE_REQUIRED"),
+    ("trigger=", "the routine declaration's own fields (check_routine_consumers)"),
+    ("verified_by=", "the routine declaration's own fields (check_routine_consumers)"),
     ("review_date=", "validate_backlog._REVIEW_DATE_RE"),
     ("status: done", "validate_backlog._DONE_MARKER_RE"),
 )
@@ -356,7 +384,20 @@ def render_record(task_id: int, row_rel: str, record_rel: str, events: list[Even
 
 
 def parse_record(path: Path) -> Record:
-    """Read a record back. Raises ValueError on anything it cannot read exactly."""
+    """Read a record back. Raises ValueError on anything it cannot read exactly.
+
+    EVERY RENDERED FIELD IS PARSED AND CHECKED. That is not tidiness: a field rendered as
+    proof but never read is decoration, and decoration is exactly what lets a record be
+    quietly *shortened*. Content tampering is caught by the clause digests, but DELETION is
+    a different failure — remove a whole `## Event` section, or one `### Clause` block
+    inside it, and every surviving digest still matches. The declared counts (`events:` in
+    the frontmatter, `clauses relocated:` per event) and the per-clause byte length are
+    what make a deletion detectable, so they are compared here rather than displayed.
+
+    HONEST LIMIT, and it is the same one `tasks/README.md` states about its own id ledger:
+    this makes deletion *detectable*, not impossible. Someone who edits the counts to match
+    what they removed defeats it — the durable witness against that is git, not this file.
+    """
     text = read_text(path)
     if not text.startswith(_FM_FENCE):
         raise ValueError(f"{path.name}: no opening frontmatter fence")
@@ -374,6 +415,19 @@ def parse_record(path: Path) -> Record:
     pointer = _fm_get(fm, "pointer")
     if not row_rel or not pointer:
         raise ValueError(f"{path.name}: frontmatter is missing `row` or `pointer`")
+    if record_filename(task_id) != path.name:
+        raise ValueError(f"{path.name}: frontmatter says [#{task_id}], which belongs in "
+                         f"`{record_filename(task_id)}`")
+    if pointer != pointer_for(f"tasks/{ARCHIVE_DIRNAME}/{path.name}"):
+        raise ValueError(f"{path.name}: the recorded pointer does not name this record")
+    raw_schema = _fm_get(fm, "schema")
+    if raw_schema != str(SCHEMA):
+        raise ValueError(f"{path.name}: schema is {raw_schema!r}, this reader speaks "
+                         f"{SCHEMA}")
+    raw_events = _fm_get(fm, "events")
+    if raw_events is None or not raw_events.isdigit():
+        raise ValueError(f"{path.name}: frontmatter `events` is missing or not a number")
+    declared_events = int(raw_events)
 
     lines = body.split("\n")
     events: list[Event] = []
@@ -398,16 +452,31 @@ def parse_record(path: Path) -> Record:
             pm = re.fullmatch(r"- pointer already present before this event: (true|false)", line)
             if pm:
                 cur["had_pointer_before"] = pm.group(1) == "true"
-            cm = re.fullmatch(r"### Clause \d+\.\d+ — sha256 `([0-9a-f]{64})` \(\d+ bytes\)", line)
+            dm = re.fullmatch(r"- clauses relocated: (\d+)", line)
+            if dm:
+                cur["declared_clauses"] = int(dm.group(1))
+            cm = re.fullmatch(
+                r"### Clause (\d+)\.(\d+) — sha256 `([0-9a-f]{64})` \((\d+) bytes\)", line)
             if cm:
-                if i + 3 >= len(lines) or lines[i + 2] != FENCE:
+                if i + 4 >= len(lines) or lines[i + 2] != FENCE:
                     raise ValueError(f"{path.name}: clause heading at line {i + 1} is not "
                                      f"followed by a blank line and a {FENCE} fence")
                 if lines[i + 4] != FENCE_END:
                     raise ValueError(f"{path.name}: clause payload at line {i + 4} is not "
                                      f"exactly one line inside the fence")
-                cur["clauses"].append(lines[i + 3])
-                cur["clause_sha256"].append(cm.group(1))
+                if int(cm.group(1)) != cur["n"]:
+                    raise ValueError(f"{path.name}: clause heading at line {i + 1} claims "
+                                     f"event {cm.group(1)}, but sits inside event {cur['n']}")
+                if int(cm.group(2)) != len(cur["clauses"]) + 1:
+                    raise ValueError(f"{path.name}: clause numbering in event {cur['n']} is "
+                                     f"not contiguous at line {i + 1} (a block was removed)")
+                payload = lines[i + 3]
+                if len(payload.encode("utf-8")) != int(cm.group(4)):
+                    raise ValueError(f"{path.name}: clause {cm.group(1)}.{cm.group(2)} is "
+                                     f"{len(payload.encode('utf-8'))} bytes, its heading "
+                                     f"claims {cm.group(4)}")
+                cur["clauses"].append(payload)
+                cur["clause_sha256"].append(cm.group(3))
                 i += 5
                 continue
         i += 1
@@ -415,15 +484,26 @@ def parse_record(path: Path) -> Record:
         events.append(_finish_event(path, cur))
     if not events:
         raise ValueError(f"{path.name}: no `## Event N` section found")
+    if len(events) != declared_events:
+        raise ValueError(f"{path.name}: frontmatter declares {declared_events} event(s) but "
+                         f"{len(events)} are present -- an event section was added or removed")
+    if [e.n for e in events] != list(range(1, len(events) + 1)):
+        raise ValueError(f"{path.name}: event numbering {[e.n for e in events]} is not "
+                         f"1..{len(events)} -- an event section was removed or reordered")
     return Record(path=path, task_id=task_id, row_rel=row_rel, pointer=pointer, events=events)
 
 
 def _finish_event(path: Path, cur: dict) -> Event:
-    for k in ("pre_sha", "pre_bytes", "post_sha", "post_bytes", "had_pointer_before"):
+    for k in ("pre_sha", "pre_bytes", "post_sha", "post_bytes", "had_pointer_before",
+              "declared_clauses"):
         if k not in cur:
             raise ValueError(f"{path.name}: event {cur['n']} is missing its `{k}` line")
     if not cur["clauses"]:
         raise ValueError(f"{path.name}: event {cur['n']} relocated no clauses")
+    if len(cur["clauses"]) != cur["declared_clauses"]:
+        raise ValueError(f"{path.name}: event {cur['n']} declares {cur['declared_clauses']} "
+                         f"clause(s) but {len(cur['clauses'])} are present -- a clause block "
+                         f"was added or removed")
     return Event(n=cur["n"], relocated=cur["relocated"],
                  body_before_sha256=cur["pre_sha"], body_before_bytes=cur["pre_bytes"],
                  body_after_sha256=cur["post_sha"], body_after_bytes=cur["post_bytes"],
@@ -605,23 +685,73 @@ def relocate(repo_root: Path, task_id: int, today: date) -> tuple[int, int, int]
                clauses=list(run), clause_sha256=[sha256(c) for c in run])
     events = (prior.events + [ev]) if prior else [ev]
 
-    archive_dir(repo_root).mkdir(parents=True, exist_ok=True)
-    write_text(rec_path, render_record(task_id, row_rel, record_rel, events))
-    _set_row_body(row, after)
+    # The pointer must be UNIQUE in the resulting row, because `verify`'s leg B keys on
+    # that and `reconstruct_before` splices at the row's tail. A row whose prose already
+    # quotes the pointer literal (a row ABOUT this mechanism is the realistic case) would
+    # be written and only then fail verification, which is a defect found one step too
+    # late. Checked here, before anything is written.
+    if after.count(pointer) != 1:
+        raise ValueError(f"[#{task_id}]: the pointer text would occur {after.count(pointer)} "
+                         f"times in the resulting row, and leg B requires exactly 1 "
+                         f"(the row's own prose quotes it); refused")
 
-    # Prove the act before returning, on the bytes just written — not on the values in hand.
-    check = parse_record(rec_path)
-    if reconstruct_before(_row_body(row), check.events[-1], check.pointer) != before:
-        raise RuntimeError(f"[#{task_id}]: post-write reconstruction did not reproduce the "
-                           f"pre-relocation body — the relocation is NOT byte-identical")
+    archive_dir(repo_root).mkdir(parents=True, exist_ok=True)
+    rec_backup = rec_path.read_bytes() if rec_path.is_file() else None
+    row_backup = row.read_bytes()
+    try:
+        write_text(rec_path, render_record(task_id, row_rel, record_rel, events))
+        _set_row_body(row, after)
+        # Prove the act on the bytes just WRITTEN — not on the values in hand.
+        check = parse_record(rec_path)
+        if reconstruct_before(_row_body(row), check.events[-1], check.pointer) != before:
+            raise RuntimeError(f"[#{task_id}]: post-write reconstruction did not reproduce "
+                               f"the pre-relocation body — the relocation is NOT "
+                               f"byte-identical")
+    except Exception:
+        # ROLL BACK, do not leave the half-written pair behind. The post-write proof is the
+        # last line of defence, so the state it rejects is exactly the state that must not
+        # survive into a commit — and a partially-relocated row plus a record that does not
+        # describe it is worse than no relocation at all.
+        row.write_bytes(row_backup)
+        if rec_backup is None:
+            rec_path.unlink(missing_ok=True)
+        else:
+            rec_path.write_bytes(rec_backup)
+        raise
     return len(before), len(after), len(run)
 
 
-def verify(repo_root: Path, today: date) -> tuple[list[str], list[str]]:
-    """(failures, notes). A failure is a defect; a note is a stated, non-fatal limit."""
+def verify(repo_root: Path, today: date) -> tuple[list[str], list[str], int]:
+    """`(failures, notes, proven)`. A failure is a defect; a note is a stated, non-fatal limit.
+
+    `proven` is the count of records whose LEG C actually reconstructed — returned rather
+    than inferred, so a caller can never render "byte-identity proven" over a set where
+    nothing was proved.
+    """
     failures: list[str] = []
     notes: list[str] = []
+    proven = 0
     files = task_files(repo_root)
+
+    # LEG E — COMPLETENESS, and it runs from the ROWS, not from the records. Every other
+    # leg starts at a record and asks whether its row agrees, so deleting the record (or
+    # the whole `tasks/archive/` directory) removes the only thing that would have
+    # complained — the rows keep pointing at nothing and the run reports a clean, empty
+    # set. Graded HIGH by terra (2026-08-29) for exactly that reason: a verifier that
+    # enumerates only what exists cannot detect absence. This leg enumerates the live rows
+    # instead, so an ORPHAN POINTER is a failure rather than a silence.
+    have = {p.stem for p in record_files(repo_root)}
+    for tid, path in sorted(files.items()):
+        try:
+            body = _row_body(path)
+        except ValueError:
+            continue  # the tree's own coherence gate owns malformed task files
+        if pointer_for(f"tasks/{ARCHIVE_DIRNAME}/{record_filename(tid)}") in body \
+                and str(tid) not in have:
+            failures.append(f"tasks/{path.name}: LEG E the row points at "
+                            f"`tasks/{ARCHIVE_DIRNAME}/{record_filename(tid)}`, which does "
+                            f"not exist — the archived narration is GONE, not relocated")
+
     for p in record_files(repo_root):
         try:
             rec = parse_record(p)
@@ -666,27 +796,43 @@ def verify(repo_root: Path, today: date) -> tuple[list[str], list[str]]:
 
         latest = rec.events[-1]
         # LEG C — lossless reconstruction of the latest event, on live bytes.
-        if sha256(body) != latest.body_after_sha256:
-            notes.append(f"{tag}: LEG C UNPROVEN — the row has been edited since event "
-                         f"{latest.n} ({latest.relocated}), so the pre-relocation body is no "
-                         f"longer derivable from the tree. Legs A/B/D still hold; the proof "
-                         f"stays checkable in git at the relocation commit.")
+        #
+        # THE RECONSTRUCTION IS ATTEMPTED FIRST, ALWAYS, and the `body_after` digest is
+        # only consulted to CLASSIFY a failure. Gating the attempt on that digest was the
+        # shape terra graded HIGH (2026-08-29): one flipped hex character in the recorded
+        # `post-relocation row body` hash turned the leg off, and the run still exited 0.
+        # A digest whose only power is to disable the check that would catch its own
+        # corruption is worse than no digest. Attempting first means corruption cannot buy
+        # silence — the reconstruction either reproduces the recorded pre-relocation body
+        # or it does not, and only then does the `body_after` digest decide whether "does
+        # not" means *the row was legitimately edited* or *this record is inconsistent*.
+        try:
+            got = reconstruct_before(body, latest, rec.pointer)
+        except ValueError as exc:  # pragma: no cover - leg B already refuses this shape
+            failures.append(f"{tag}: LEG C reconstruction failed — {exc}")
+            continue
+        if sha256(got) == latest.body_before_sha256:
+            proven += 1
+        elif sha256(body) == latest.body_after_sha256:
+            # The row is EXACTLY what the record says it left behind, so a failed
+            # reconstruction cannot be blamed on a later edit: the record is wrong.
+            failures.append(f"{tag}: LEG C reconstruction does NOT reproduce the recorded "
+                            f"pre-relocation body, and the row still matches this event's "
+                            f"post-relocation digest — content was destroyed or altered")
         else:
-            try:
-                got = reconstruct_before(body, latest, rec.pointer)
-            except ValueError as exc:
-                failures.append(f"{tag}: LEG C reconstruction failed — {exc}")
-                continue
-            if sha256(got) != latest.body_before_sha256:
-                failures.append(f"{tag}: LEG C reconstruction does NOT reproduce the recorded "
-                                f"pre-relocation body — content was destroyed or altered")
+            notes.append(f"{tag}: LEG C UNPROVEN — the row no longer matches event "
+                         f"{latest.n}'s ({latest.relocated}) post-relocation digest, so the "
+                         f"pre-relocation body is not derivable from the tree. Either the row "
+                         f"was legitimately edited since, or this record is corrupt — the two "
+                         f"are indistinguishable from the tree alone; git at the relocation "
+                         f"commit tells them apart. Legs A/B/D still hold.")
 
         # LEG D — strictly shorter than the body the latest event acted on.
         if len(body.encode("utf-8")) >= latest.body_before_bytes:
             failures.append(f"{tag}: LEG D the row is {len(body.encode('utf-8'))} bytes, not "
                             f"strictly under the {latest.body_before_bytes} bytes event "
                             f"{latest.n} acted on")
-    return failures, notes
+    return failures, notes, proven
 
 
 # --- CLI --------------------------------------------------------------------------------
@@ -738,7 +884,7 @@ def main(argv: Optional[list[str]] = None) -> int:
               "`uv run --locked python scripts/gen_task_tree.py --emit-source`")
         return rc
 
-    failures, notes = verify(_REPO_ROOT, today)
+    failures, notes, proven = verify(_REPO_ROOT, today)
     n_rec = len(record_files(_REPO_ROOT))
     for note in notes:
         print(f"  NOTE  {note}")
@@ -748,8 +894,19 @@ def main(argv: Optional[list[str]] = None) -> int:
         print(f"archive_row_body: {len(failures)} failure(s) over {n_rec} record(s)",
               file=sys.stderr)
         return 1
-    print(f"archive_row_body: OK - {n_rec} record(s), byte-identity proven "
-          f"(legs A/B/C/D){f', {len(notes)} UNPROVEN note(s)' if notes else ''}")
+    if not n_rec:
+        # Never report a vacuous pass as proof (CLAUDE.md §10: "running validators with no
+        # args -- vacuous pass"). Zero records is a true statement about an empty set, and
+        # saying "byte-identity proven" about it would be a false one. LEG E is what makes
+        # this line safe: an empty set with rows still pointing at records is a FAILURE, so
+        # reaching here means the tree genuinely carries no relocation.
+        print("archive_row_body: no records under tasks/archive/ - nothing to verify "
+              "(and no row points at one -- leg E)")
+        return 0
+    # The headline counts what was actually PROVEN, never the number of files present.
+    print(f"archive_row_body: OK - {n_rec} record(s), {proven} byte-identity PROVEN "
+          f"(legs A/B/C/D/E)"
+          f"{f', {len(notes)} UNPROVEN (see NOTE above)' if notes else ''}")
     return 0
 
 

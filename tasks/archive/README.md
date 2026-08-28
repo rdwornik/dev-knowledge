@@ -77,19 +77,28 @@ so it is not part of the doc-rot surface and rewriting it would be ledger tamper
 
 ## What `verify` proves, and the one thing it cannot
 
-Four legs, re-derived from the tree rather than read off a recorded verdict — **A**
+Five legs, re-derived from the tree rather than read off a recorded verdict — **A**
 clause-integrity (every stored clause hashes to its recorded sha256), **B** pointer-present
 (the live row ends with the recorded pointer, exactly once), **C** lossless-reconstruction
 (re-splicing the stored clauses into the live row reproduces the recorded pre-relocation
-digest), **D** strictly-shorter.
+digest), **D** strictly-shorter, **E** completeness — enumerated from the **rows**, so a row
+pointing at a record that no longer exists is a failure rather than a silence.
 
-**Honest limit.** Leg C is computable only while the live row still matches the
-`body_after` digest its latest event recorded. Once a human edits that row again, the
-pre-relocation body is no longer derivable from the working tree, and `verify` reports the
-record **UNPROVEN (row edited since relocation)** — loudly, never as a silent pass and
-never as a false FAIL. Legs A, B and D still bind, and the superseded proof stays checkable
-in git at the relocation commit. This is a real gap in the standing proof and it is the
-price of letting rows keep being edited.
+Deletion, not just alteration, is detectable: the declared counts (`events:` in the
+frontmatter, `clauses relocated:` per event) and each clause's byte length are parsed and
+compared, so removing a whole event section or one clause block is refused. That makes
+deletion *detectable*, not impossible — someone who edits the counts to match defeats it,
+and the durable witness against that is git.
+
+**Honest limit.** Leg C can only *prove* a record while the live row is still the one its
+latest event left behind. Once a human edits that row again, the pre-relocation body is no
+longer derivable from the working tree — and from the tree alone, *a legitimate later edit*
+and *a corrupt record* are indistinguishable. `verify` therefore reports the record
+**UNPROVEN**, states both readings, and names git at the relocation commit as the witness
+that tells them apart. Loud, never a silent pass and never a false FAIL; the headline counts
+what was PROVEN, so an all-UNPROVEN run cannot read as a clean one. Legs A, B, D and E still
+bind. This is a real gap in the standing proof and it is the price of letting rows keep
+being edited.
 
 ## Recovering a row
 

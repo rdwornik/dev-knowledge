@@ -140,7 +140,7 @@ def test_relocation_is_byte_identical_and_strictly_shorter(tmp_path):
     # The claim, checked against the ORIGINAL bytes rather than a recorded digest.
     assert arb.reconstruct_before(live, rec.events[-1], rec.pointer) == original
 
-    failures, notes = arb.verify(root, TODAY)
+    failures, notes, _ = arb.verify(root, TODAY)
     assert failures == []
     assert notes == []
 
@@ -171,7 +171,7 @@ def test_a_second_wave_appends_an_event_and_keeps_the_pointer_last(tmp_path):
     # Event 1 reproduces the ORIGINAL from the row as it stood right after event 1.
     assert arb.reconstruct_before(after_first, rec.events[0], rec.pointer) == original
 
-    failures, _ = arb.verify(root, TODAY)
+    failures, _, _ = arb.verify(root, TODAY)
     assert failures == []
 
 
@@ -211,7 +211,7 @@ def test_the_record_survives_a_clause_containing_a_triple_backtick_fence(tmp_pat
     arb.relocate(root, 1, TODAY)
     rec = arb.parse_record(root / "tasks" / "archive" / "1.md")
     assert rec.events[0].clauses == [nasty.strip()]
-    assert arb.verify(root, TODAY) == ([], [])
+    assert arb.verify(root, TODAY) == ([], [], 1)
 
 
 def test_records_are_written_lf_only(tmp_path):
@@ -256,6 +256,41 @@ def test_relocate_refuses_a_status_flip(tmp_path):
         arb.relocate(root, 1, TODAY)
 
 
+def test_relocate_refuses_when_the_row_already_quotes_the_pointer(tmp_path):
+    # A row ABOUT this mechanism is the realistic case. Two copies of the pointer would
+    # break leg B and the tail splice, so it is refused BEFORE anything is written.
+    ptr = arb.pointer_for("tasks/archive/1.md")
+    root = _tree(tmp_path, {1: _body(1, f"Done when: the row reads {ptr} correctly", _LONG)})
+    with pytest.raises(ValueError, match="requires exactly 1"):
+        arb.relocate(root, 1, TODAY)
+    assert not (root / "tasks" / "archive" / "1.md").exists()
+
+
+def test_a_failed_post_write_proof_rolls_the_pair_back(tmp_path, monkeypatch):
+    # The post-write proof is the last line of defence, so the state it rejects must not
+    # survive: neither a half-relocated row nor a record that does not describe one.
+    root = _tree(tmp_path, {1: _body(1, "Done when: it is done", _LONG)})
+    before_row = (root / "tasks" / "1-synthetic-row.md").read_bytes()
+    monkeypatch.setattr(arb, "reconstruct_before",
+                        lambda *a, **k: "not the original body")
+    with pytest.raises(RuntimeError, match="NOT byte-identical"):
+        arb.relocate(root, 1, TODAY)
+    assert (root / "tasks" / "1-synthetic-row.md").read_bytes() == before_row
+    assert not (root / "tasks" / "archive" / "1.md").exists()
+
+
+def test_verify_never_calls_an_empty_set_proven(capsys, tmp_path):
+    # CLAUDE.md 10: a validator must not report a vacuous pass as proof.
+    _tree(tmp_path, {1: _body(1, "Done when: it is done")})
+    monkey = arb._REPO_ROOT
+    try:
+        arb._REPO_ROOT = tmp_path
+        assert arb.main(["verify"]) == 0
+    finally:
+        arb._REPO_ROOT = monkey
+    assert "nothing to verify" in capsys.readouterr().out
+
+
 def test_nothing_is_written_when_relocate_refuses(tmp_path):
     root = _tree(tmp_path, {1: _body(1, "Done when: it is done")})
     before = arb.read_text(root / "tasks" / "1-synthetic-row.md")
@@ -273,8 +308,129 @@ def test_verify_fails_when_an_archived_clause_is_altered(tmp_path):
     rec_path = root / "tasks" / "archive" / "1.md"
     arb.write_text(rec_path, arb.read_text(rec_path).replace("comfortably exceeds",
                                                              "comfortably EXCEEDS", 1))
-    failures, _ = arb.verify(root, TODAY)
+    failures, _, _ = arb.verify(root, TODAY)
     assert any("LEG A" in f for f in failures)
+
+
+def _two_event_record(tmp_path: Path) -> tuple[Path, Path]:
+    root = _tree(tmp_path, {1: _body(1, "Done when: x", _OLDER, _LONG)})
+    arb.relocate(root, 1, TODAY)
+    row = root / "tasks" / "1-synthetic-row.md"
+    ptr = arb.pointer_for("tasks/archive/1.md")
+    body = arb._row_body(row)
+    arb._set_row_body(row, body[: -len(arb.SEP + ptr)] + arb.SEP + _LONG + arb.SEP + ptr)
+    arb.relocate(root, 1, TODAY)
+    return root, root / "tasks" / "archive" / "1.md"
+
+
+def test_deleting_a_whole_event_section_is_detected(tmp_path):
+    # DELETION is the failure the clause digests CANNOT catch on their own: remove a
+    # section and every surviving digest still matches. The declared counts are what make
+    # it detectable, which is why they are parsed rather than merely rendered.
+    root, rec_path = _two_event_record(tmp_path)
+    text = arb.read_text(rec_path)
+    head, _, _ = text.partition("## Event 1 — relocated")
+    _, _, tail = text.partition("## Event 2 — relocated")
+    arb.write_text(rec_path, head + "## Event 2 — relocated" + tail)
+    with pytest.raises(ValueError, match="event section was added or removed|not 1.."):
+        arb.parse_record(rec_path)
+    failures, _, _ = arb.verify(root, TODAY)
+    assert any("unreadable record" in f for f in failures)
+
+
+def test_deleting_one_clause_block_inside_an_event_is_detected(tmp_path):
+    root = _tree(tmp_path, {1: _body(1, "Done when: x", _OLDER, _LONG)})
+    arb.relocate(root, 1, TODAY)
+    rec_path = root / "tasks" / "archive" / "1.md"
+    lines = arb.read_text(rec_path).split("\n")
+    start = next(i for i, ln in enumerate(lines) if ln.startswith("### Clause 1.1"))
+    arb.write_text(rec_path, "\n".join(lines[:start] + lines[start + 5:]))
+    with pytest.raises(ValueError, match="clause block|not contiguous"):
+        arb.parse_record(rec_path)
+
+
+def test_editing_a_clause_length_without_its_digest_is_detected(tmp_path):
+    root = _tree(tmp_path, {1: _body(1, "Done when: x", _LONG)})
+    arb.relocate(root, 1, TODAY)
+    rec_path = root / "tasks" / "archive" / "1.md"
+    text = arb.read_text(rec_path)
+    arb.write_text(rec_path, text.replace(_LONG, _LONG + " and one more sentence.", 1))
+    with pytest.raises(ValueError, match="its heading claims"):
+        arb.parse_record(rec_path)
+
+
+def test_a_record_may_not_claim_an_id_that_is_not_its_filename(tmp_path):
+    root = _tree(tmp_path, {1: _body(1, "Done when: x", _LONG)})
+    arb.relocate(root, 1, TODAY)
+    rec_path = root / "tasks" / "archive" / "1.md"
+    arb.write_text(rec_path, arb.read_text(rec_path).replace('id: "[#1]"', 'id: "[#2]"', 1))
+    with pytest.raises(ValueError, match="belongs in"):
+        arb.parse_record(rec_path)
+
+
+def test_verify_fails_on_an_orphan_pointer_with_no_record(tmp_path):
+    """LEG E — completeness, enumerated from the ROWS (terra HIGH, 2026-08-29).
+
+    Every other leg starts at a record, so deleting the record removes the only thing that
+    would have complained. This leg starts at the rows, so absence is a failure.
+    """
+    root = _tree(tmp_path, {1: _body(1, "Done when: x", _LONG)})
+    arb.relocate(root, 1, TODAY)
+    (root / "tasks" / "archive" / "1.md").unlink()
+    failures, _, proven = arb.verify(root, TODAY)
+    assert any("LEG E" in f and "GONE, not relocated" in f for f in failures)
+    assert proven == 0
+
+
+def test_a_corrupted_post_digest_fails_rather_than_disabling_leg_c(tmp_path):
+    """terra HIGH, 2026-08-29: gating leg C on the `body_after` digest let one flipped hex
+    character turn the check off and still exit 0. The reconstruction is attempted FIRST."""
+    root = _tree(tmp_path, {1: _body(1, "Done when: x", _LONG)})
+    arb.relocate(root, 1, TODAY)
+    rec_path = root / "tasks" / "archive" / "1.md"
+    rec = arb.parse_record(rec_path)
+    bad = ("0" if rec.events[-1].body_after_sha256[0] != "0" else "1") \
+        + rec.events[-1].body_after_sha256[1:]
+    arb.write_text(rec_path,
+                   arb.read_text(rec_path).replace(rec.events[-1].body_after_sha256, bad, 1))
+    # The corruption must NOT buy silence: leg C still reconstructs and still proves out.
+    failures, notes, proven = arb.verify(root, TODAY)
+    assert failures == []
+    assert notes == []
+    assert proven == 1
+
+
+def test_verify_fails_when_the_row_was_altered_but_still_matches_the_post_digest(tmp_path):
+    # The other half of the same fix: a record whose clauses no longer reconstruct the
+    # recorded original, on a row that IS what the record says it left behind, is a FAILURE
+    # rather than an UNPROVEN note -- a later edit cannot be the excuse.
+    root = _tree(tmp_path, {1: _body(1, "Done when: x", _LONG)})
+    arb.relocate(root, 1, TODAY)
+    rec_path = root / "tasks" / "archive" / "1.md"
+    rec = arb.parse_record(rec_path)
+    bad = ("0" if rec.events[-1].body_before_sha256[0] != "0" else "1") \
+        + rec.events[-1].body_before_sha256[1:]
+    arb.write_text(rec_path,
+                   arb.read_text(rec_path).replace(rec.events[-1].body_before_sha256, bad, 1))
+    failures, _, _ = arb.verify(root, TODAY)
+    assert any("content was destroyed or altered" in f for f in failures)
+
+
+@pytest.mark.parametrize("clause", [
+    "consumer=ops-bot, reading the digest since 2026-07-01",
+    "consumption_path=SessionStart digest, live since 2026-07-01",
+    "trigger=nightly since 2026-07-01",
+    "verified_by=the 2026-07-01 probe",
+])
+def test_routine_declaration_fields_are_structural(clause):
+    """terra HIGH, 2026-08-29: the `routine:` marker and its FIELDS are separate clauses.
+
+    `check_routine_consumers._ROUTINE_FIELD_RE` reads `· consumer=` / `· consumption_path=`
+    off the row, so blocking only the marker clause would let a trailing field be relocated
+    out of a declared-routine row and FAIL that gate.
+    """
+    assert arb.is_structural(clause) is not None
+    assert arb.eligible_run(_body(1, clause), None, TODAY) == []
 
 
 def test_verify_fails_when_the_row_drops_its_pointer(tmp_path):
@@ -283,7 +439,7 @@ def test_verify_fails_when_the_row_drops_its_pointer(tmp_path):
     row = root / "tasks" / "1-synthetic-row.md"
     ptr = arb.pointer_for("tasks/archive/1.md")
     arb._set_row_body(row, arb._row_body(row)[: -len(arb.SEP + ptr)])
-    failures, _ = arb.verify(root, TODAY)
+    failures, _, _ = arb.verify(root, TODAY)
     assert any("LEG B" in f for f in failures)
 
 
@@ -297,7 +453,7 @@ def test_verify_reports_unproven_not_failed_when_the_row_is_edited_later(tmp_pat
     body = arb._row_body(row)
     arb._set_row_body(row, body[: -len(arb.SEP + ptr)] + arb.SEP + "a later note" +
                       arb.SEP + ptr)
-    failures, notes = arb.verify(root, TODAY)
+    failures, notes, _ = arb.verify(root, TODAY)
     assert failures == []
     assert any("UNPROVEN" in n for n in notes)
 
@@ -308,6 +464,9 @@ def test_every_committed_record_still_proves_out():
     """THE REGRESSION TEST: every record in this repo's `tasks/archive/` verifies clean."""
     if not arb.record_files(_REPO):
         pytest.skip("no archived records in this checkout")
-    failures, _ = arb.verify(_REPO, date.today())
+    failures, _, proven = arb.verify(_REPO, date.today())
     assert failures == [], "archived records no longer prove byte-identical: " + "; ".join(
         failures[:5])
+    # An empty `proven` with an empty `failures` is the vacuous pass this assertion exists
+    # to refuse: legs A/B/D can all hold over records whose leg C never reconstructed.
+    assert proven == len(arb.record_files(_REPO))
