@@ -3061,6 +3061,38 @@ a structural diet before the mechanical correction (X7).
 ranking cut need a second disposition · `[#82]`'s hub-closability ruling · whether `[#548]`/`[#559]`'s
 multi-edge dependencies imply a manifest-producer row that nobody owns.
 
+## Y. `[#267]`'s mechanism — option (b), and the dead-peg rule it applies (architect, 2026-08-28)
+
+**The act.** One technical ruling (ADR-108 §A, revertable), taken over the HOLD the closure-harvest
+lane returned on `[#267]`. Authority:
+`docs/audits/2026-08-28-technical-closure-harvest-k4.md` §1 (the hold and its reasoning) ·
+`docs/audits/2026-08-27-technical-night-harvest-consumption-ledger.md` §D item 3 (the nine
+dead-pegged rows, the measurement this ruling generalises from).
+
+**Y-1. `[#267]`'s mechanism is part (iii) ALONE — instruct-the-child, n=1, attended.** The row
+carried a two-part LEAN and the lane refused to ratify it whole, because part (ii)
+(discover-from-config at fleet scale) was *"coupled to P6"*, and P6 is unowned — `[#221]` closed at
+`8aab4356` with no successor. Ruled **option (b): part (ii) is CUT from the row**, not deferred
+onto P6.
+
+**Why cut rather than defer, and this is the generalisable half.** Deferring work onto a peg that
+does not exist is the **dead-peg class**, and it is measured rather than asserted: the 2026-08-27
+ledger had to re-peg **nine** deferred rows whose pegs were spent or dead — `[#325]` `[#294]`
+`[#308]` `[#139]` `[#169]` `[#188]` `[#218]` `[#301]` `[#492]`. A deferral onto a non-existent
+successor reads, at every later sweep, exactly like a row that is waiting for something real. It
+costs a re-peg pass to discover otherwise, and the discovery does not stick — which is why the same
+rows keep reappearing. **A peg must name a carrier that exists; if none does, cut the scope and
+record the remainder as a candidate.** That is the rule this ruling applies, and `[#267]` is its
+first named application.
+
+**Y-2. The fleet-scale half is a CANDIDATE, not a row and not a deferral** (ADR-111 §1(c)).
+*Discover-from-config at fleet scale, for the enforcement-mesh scope conditions* is recorded as a
+candidate with the rationale above, to be **routed at the next intake pass**. Per ADR-111 the only
+path from here to a row is CANDIDATE → intake (ADR-98) → ratification; it is deliberately not
+birthed, since the closure-harvest lane's banked-birth ledger is not the authority for a scope this
+ruling just declined to schedule. It carries **no peg and no owner by design** — the whole point of
+Y-1 is that a candidate without a carrier is honest, while a deferral without one is not.
+
 ## Editing note (read before adding an entry)
 
 This file sits inside the silent-rule ratchet corpus (`protocols/*.md`; detector
