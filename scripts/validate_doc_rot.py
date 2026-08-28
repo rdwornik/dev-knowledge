@@ -36,6 +36,38 @@ constant, each precision-over-recall (one false positive kills adoption):
   4. Grooming-cadence lapse (ADR-41): the BACKLOG "Grooming log" most-recent date is older
      than _GROOMING_CADENCE_DAYS.
 
+THE REMEDY DOCTRINE — ARCHIVAL, NOT TRIMMING ([#612], 2026-08-28). This checker is the
+DETECTOR; what the operator does about a finding is a separate question, and until [#612]
+it had only one answer — condense — which is why the same rows kept coming back a few
+sessions after each pass. The ruled remedy is **relocation**:
+
+  **The row carries a pointer; the record carries the record.**
+
+`protocols/STANDING_RULINGS.md` **B1** ("trim-vs-disposition") measured the two options
+against each other and recorded the verdict: sentence-level pruning is weak (it moved
+`[#218]` only to 1820 against a 1200 budget), and *dropping the dated-amendment narration*
+is the drain that works, because that narration IS the accretion ARM 1 names. `[#612]`
+performs exactly B1's drain **without B1's loss**: `scripts/archive_row_body.py` moves the
+dated-amendment clauses BYTE-FOR-BYTE out of the row into a durable per-row record under
+`tasks/archive/<id>-<slug>.md` (operator decision D3, night-batch-2 GO 2026-08-28) and
+leaves a path-qualified pointer clause in the row. Nothing is trimmed, summarised,
+rewritten, deleted or closed, and `archive_row_body.py verify` re-derives the byte-identity
+proof from the tree rather than trusting a recorded verdict.
+
+Three consequences worth stating where the detector lives, so a reader who arrives at a
+finding does not have to guess what to do with it:
+
+  * **A finding is not an accusation.** ARM 2 says a row is LONG, which is answerable
+    ("accepted, ruled") — see the [#532] memo above. Relocation is the answer when the
+    length is narration; a disposition is still the answer when it is a ruled leg.
+  * **Relocation is not a closure.** A relocated row stays open, stays in the queue and
+    keeps every structural clause a gate reads (`Done when:` / `refs` / `kill-candidates:`
+    / `depends-on:` / `serialize-group:` / `· DEFER`); the archival tool refuses to move
+    any of them.
+  * **This module stays DETECT-ONLY.** It does not call the archival tool, and the tool is
+    wired into no gate. A human — or the integrator's filing wave — decides what gets
+    relocated; the checker only keeps the debt visible.
+
 Scope boundary (do NOT duplicate): #140's other two rot categories are deferred to named
 successors — cross-file summary-fidelity drift -> the coherence-spine family (#179/#180/#182
 + the shipped reconciled_versions check; #89 owns a doc's OWN self-claims, not cross-file);

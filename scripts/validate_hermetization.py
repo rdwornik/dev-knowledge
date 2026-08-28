@@ -195,7 +195,17 @@ _HOME_PATTERNS: tuple[str, ...] = (
     "plugins/*", "plugins/*/*",
     "protocols", "protocols/archive",
     "scripts", "scripts/audit_checks", "scripts/codemap", "scripts/hooks", "scripts/toc",
-    "tasks",
+    # `tasks/archive` -- the [#612] doc-rot row-body archival destination, admitted by
+    # OPERATOR DECISION **D3**, carried in the night-batch-2 GO of 2026-08-28 ("the
+    # archival destination is `tasks/archive/`, APPROVED"). Admitted as the BARE literal
+    # and NOT `tasks/archive/*`: the tree is flat by construction (one record per row,
+    # named for its row), so a sub-directory inside it stays a surfaced act -- the same
+    # narrowness `.devcontainer` above is admitted under, and the same
+    # `<parent>/archive` shape `protocols/archive`, `templates/archive`,
+    # `docs/decisions/archive` and `docs/intake/archive` already carry. Rule A needs no
+    # amendment: `tasks` is already a sanctioned Tier-1 directory, so this is a home
+    # BELOW an existing sanction, not a new top-level class.
+    "tasks", "tasks/archive",
     "templates", "templates/archive", "templates/claude-regions",
     "templates/handoff", "templates/handoff/*",
     "tests", "tests/fixtures", "tests/fixtures/**",
