@@ -458,6 +458,47 @@ def test_verify_reports_unproven_not_failed_when_the_row_is_edited_later(tmp_pat
     assert any("UNPROVEN" in n for n in notes)
 
 
+# --- rerender ---------------------------------------------------------------------------
+
+def test_rerender_changes_prose_and_never_the_payload(tmp_path, monkeypatch):
+    original = _body(1, "Done when: x", _OLDER, _LONG)
+    root = _tree(tmp_path, {1: original})
+    arb.relocate(root, 1, TODAY)
+    rec_path = root / "tasks" / "archive" / "1.md"
+    before = arb.parse_record(rec_path)
+
+    assert arb.rerender(root) == []          # idempotent when the prose is current
+
+    real = arb.render_record
+    monkeypatch.setattr(arb, "render_record",
+                        lambda *a: real(*a).replace("Relocated verbatim",
+                                                    "RELOCATED VERBATIM", 1)
+                        if "Relocated verbatim" in real(*a)
+                        else real(*a).replace("relocated **verbatim**",
+                                              "relocated VERBATIM", 1))
+    assert arb.rerender(root) == [1]
+    after = arb.parse_record(rec_path)
+    assert after.events == before.events     # the payload is untouched, event for event
+    assert arb.read_text(rec_path) != ""
+    failures, _, proven = arb.verify(root, TODAY)
+    assert failures == [] and proven == 1
+
+
+def test_rerender_rolls_back_if_it_would_change_content(tmp_path, monkeypatch):
+    root = _tree(tmp_path, {1: _body(1, "Done when: x", _LONG)})
+    arb.relocate(root, 1, TODAY)
+    rec_path = root / "tasks" / "archive" / "1.md"
+    before = rec_path.read_bytes()
+    real = arb.render_record
+    # A renderer that quietly drops a clause is exactly what the round-trip must catch.
+    monkeypatch.setattr(arb, "render_record",
+                        lambda tid, row, rel, evs: real(tid, row, rel, evs).replace(
+                            "- clauses relocated: 1", "- clauses relocated: 0", 1))
+    with pytest.raises((RuntimeError, ValueError)):
+        arb.rerender(root)
+    assert rec_path.read_bytes() == before
+
+
 # --- the live tree ----------------------------------------------------------------------
 
 def test_every_committed_record_still_proves_out():

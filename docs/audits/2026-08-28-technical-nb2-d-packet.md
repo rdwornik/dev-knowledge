@@ -445,3 +445,58 @@ sys.exit(1 if bad else 0)
 
 Branch `worktree-lane-d-612-docrot-archival` — committed, **not merged, not pushed, not
 journalled**. It enters the integrator's frozen merge queue in that queue's own order.
+
+---
+
+## AMENDMENT 1 — 2026-08-29, same lane, before hand-back
+
+> Appended, not edited in place: an audit artifact is immutable and is superseded by a new
+> file or an **in-file amendment marker** (CLAUDE.md §5 rule 3). Everything above stands
+> except where this section says otherwise.
+
+**What prompted it.** Spot-checking a landed record (`tasks/archive/171.md`) showed its
+static prose still saying *"the four legs"* — written before LEG E existed. Twenty committed
+records were each carrying a sentence that misdescribed their own proof. That is precisely
+the doc-rot class this lane exists to drain, sitting inside the drain's own output, so it
+was fixed rather than noted.
+
+**What changed.**
+
+* `render_record`'s prose now names all five legs (A–E) and both honest limits.
+* A new subcommand — **`archive_row_body.py rerender`** — re-emits every record's prose from
+  its own parsed content. Twenty hand-edits would have been twenty unverifiable acts; this
+  is one reproducible one. It is payload-preserving *by construction*: each record is
+  re-rendered from what `parse_record` read out of it, then re-parsed and compared event for
+  event, and **any** disagreement — or any raise — rolls the file back before the next is
+  touched.
+* All 20 records rerendered. Witnesses that only prose moved:
+  ```
+  archive_row_body: rerendered 20 record(s): [#112], [#130], ... [#561]
+  archive_row_body: OK - 20 record(s), 20 byte-identity PROVEN (legs A/B/C/D/E)
+  git-identity-proof vs main: 20 byte-identical, 0 MISMATCH, 0 absent
+  git diff --stat -> 21 files changed, 107 insertions(+), 42 deletions(-)
+  ```
+
+**A defect the new test found, recorded because it is the interesting part.** The first
+`rerender` put its rollback *after* the round-trip check. A renderer that drops a clause
+makes the declared counts stop matching, so `parse_record` **raises** rather than returning
+a disagreeing record — and the raise escaped past the rollback, leaving a mangled record on
+disk. `test_rerender_rolls_back_if_it_would_change_content` caught it on its first run. The
+rollback now wraps the whole round-trip. This is the same shape as terra's T1 (relocation
+was not atomic) reappearing in new code written the same day, which is worth naming: a
+"roll back on failure" that does not cover the *raising* failure is not a rollback.
+
+**Amended figures.**
+
+| | §7 said | now |
+|---|---|---|
+| `pytest tests/test_archive_row_body.py` | 45 passed | **47 passed** |
+| proof legs named in each record's prose | four | **five (A–E)** |
+| commits on this branch | 3 | **4** |
+
+Unchanged and re-measured after the rerender: `validate_doc_rot` **60**;
+`silent_rule_detector` **443 / 61 files, delta ZERO**; `archive_row_body verify` **20
+PROVEN**; the independent proof vs `main` **20 byte-identical**.
+
+**Commit 4** carries this amendment together with the `rerender` subcommand, its two tests,
+the reworded records and the fixed rollback.

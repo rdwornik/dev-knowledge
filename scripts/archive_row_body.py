@@ -354,8 +354,9 @@ def render_record(task_id: int, row_rel: str, record_rel: str, events: list[Even
         "**Proof, re-derived not asserted.** `uv run --locked python",
         "scripts/archive_row_body.py verify` recomputes every digest below and re-splices",
         "these clauses back into the live row, asserting the result hashes to the recorded",
-        "pre-relocation digest. See that module's docstring for the four legs and for the",
-        "one honest limit (a row edited after relocation reports UNPROVEN, never a false pass).",
+        "pre-relocation digest. See that module's docstring for all five legs (A-E) and for",
+        "the honest limits — a row edited after relocation reports UNPROVEN rather than a",
+        "false pass, and deletion is made detectable by the declared counts, not impossible.",
         "",
         f"Latest event: **{latest.body_before_bytes} bytes → {latest.body_after_bytes} bytes** "
         f"in the row body.",
@@ -721,6 +722,49 @@ def relocate(repo_root: Path, task_id: int, today: date) -> tuple[int, int, int]
     return len(before), len(after), len(run)
 
 
+def rerender(repo_root: Path) -> list[int]:
+    """Re-emit every record's PROSE from its own parsed content. Payload-preserving.
+
+    A record carries explanatory prose alongside its payload, and prose goes stale -- the
+    first version said "four legs" and went on saying it after LEG E landed, which is the
+    exact doc-rot this whole mechanism exists to fight. Fixing that by hand across twenty
+    committed records would be twenty unverifiable edits; this makes it one reproducible
+    act instead.
+
+    SAFETY IS THE POINT, not a caveat. Each record is re-rendered from what `parse_record`
+    read back out of it, and the result is re-parsed and compared against what went in --
+    clauses, digests, byte counts, pointer flags, dates, the row path and the pointer. Any
+    difference is rolled back and raised before the next file is touched, so a rerender can
+    change wording and can never change what is archived. Returns the ids that changed.
+    """
+    changed: list[int] = []
+    for path in record_files(repo_root):
+        rec = parse_record(path)
+        record_rel = f"tasks/{ARCHIVE_DIRNAME}/{path.name}"
+        new_text = render_record(rec.task_id, rec.row_rel, record_rel, rec.events)
+        original = path.read_bytes()
+        if new_text.encode("utf-8") == original:
+            continue
+        write_text(path, new_text)
+        # The re-parse can RAISE as well as disagree — a renderer that drops a clause makes
+        # the declared counts stop matching, which `parse_record` refuses outright. Both
+        # outcomes must roll back, so the rollback wraps the whole round-trip rather than
+        # sitting after it (caught by
+        # `test_rerender_rolls_back_if_it_would_change_content`, which left a mangled
+        # record on disk until this `try` existed).
+        try:
+            after = parse_record(path)
+            if (after.task_id, after.row_rel, after.pointer, after.events) != (
+                    rec.task_id, rec.row_rel, rec.pointer, rec.events):
+                raise RuntimeError(f"{path.name}: rerender changed the record's CONTENT, "
+                                   f"not only its prose")
+        except Exception:
+            path.write_bytes(original)
+            raise
+        changed.append(rec.task_id)
+    return changed
+
+
 def verify(repo_root: Path, today: date) -> tuple[list[str], list[str], int]:
     """`(failures, notes, proven)`. A failure is a defect; a note is a stated, non-fatal limit.
 
@@ -854,6 +898,9 @@ def main(argv: Optional[list[str]] = None) -> int:
     r.add_argument("--id", required=True, help="task ids (comma/space separated)")
 
     sub.add_parser("verify", help="re-derive the byte-identity proof for every record")
+    sub.add_parser("rerender", help="re-emit every record's prose from its own parsed "
+                                    "content (payload-preserving; for when the explanatory "
+                                    "text goes stale)")
 
     args = ap.parse_args(argv)
     today = date.today()
@@ -883,6 +930,13 @@ def main(argv: Optional[list[str]] = None) -> int:
         print("archive_row_body: now run "
               "`uv run --locked python scripts/gen_task_tree.py --emit-source`")
         return rc
+
+    if args.cmd == "rerender":
+        changed = rerender(_REPO_ROOT)
+        print(f"archive_row_body: rerendered {len(changed)} record(s)"
+              + (f": {', '.join(f'[#{i}]' for i in changed)}" if changed
+                 else " - every record's prose was already current"))
+        return 0
 
     failures, notes, proven = verify(_REPO_ROOT, today)
     n_rec = len(record_files(_REPO_ROOT))
