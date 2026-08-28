@@ -19,6 +19,44 @@
 
 ---
 
+### 2026-08-28 (h) - CC (Opus 5, background job, primary checkout, branch `docs/reassemble-paste-amendment`): the amendment reaches the paste - and the bundle closes the window with THREE bytes of headroom
+
+**Did:** re-assembled `PASTE_THIS.md` so the `v1.4.0` amendment marker folds into the artifact the
+next seat actually boots from, closing the limit entry (g) stated and deliberately left open.
+Merged under the **ATOMIC-WITH-TEARDOWN** ruling ratified in the closing conversation (operator
+boot material section B1 - **not yet codified in-repo, and deliberately not codified by this act**:
+section B is explicitly next session's work).
+
+**Result:** marker present in the paste; only `PASTE_THIS.md` changed; nothing else in the sealed
+bundle touched. `check_seal_identity` exit 0, `validate_residual_completeness` OK,
+`verify_handoff_probes` 13/13 bind. Branch merged `--no-ff`, pushed, and torn down local+origin in
+the same act rather than left alive for a later ask.
+
+**The number that matters, and it is a constraint rather than a statistic: 47,997 B against an A10
+boot budget of 48,000. Three bytes.** No warning fired, so nothing in the machinery will announce
+this - and that is the point. **The next fold, amendment, or supplement answer of ANY size breaches
+the budget**, which means the bundle shape that has absorbed three operator passes this window has
+no capacity for a fourth. This is measured corroboration for `[#611]`'s v7 *minimal bundle* scope,
+and the b4 probes-pin (~12 KB) it already carries is the obvious relief. Filed here as an
+observation with its measurement, not as a row - `[#611]` exists and owns the scope.
+
+**What this act deliberately did NOT do.** The operator's boot material ratifies three rulings in
+its section B - ATOMIC-WITH-TEARDOWN, the role-residency third home landing in
+`protocols/SESSION_SETUP.md` (which resolves the AMBIGUOUS locator the verify gate flagged), and
+the single fleet-wide Project - and marks all three **"codify next session — not yet in repo"**.
+This act **follows** B1 and **codifies nothing**. The temptation to land B2's one-line locator fix
+while touching the same bundle was real and was declined: a ruling recorded as next session's work
+does not become this session's because it happens to be cheap.
+
+**Abandoned:** nothing.
+
+**Changes:** `docs/handoffs/2026-08-28-dev-knowledge-architect/PASTE_THIS.md` (regenerated).
+
+**Anchors:** 59fb4e94 (the re-assembly).
+
+**Next:** the bundle is boot-ready and self-consistent. Section B's three rulings are the first
+codification act of the next session; `[#611]` owns the byte-budget relief.
+
 ### 2026-08-28 (g) - CC (Opus 5, background job, primary checkout, branch `docs/amend-supplement-v140`): the verify gate FAILed on a claim that went stale between sealing and booting - and the FAIL was favourable
 
 **Did:** ran the full `/handoff-verify` gate over `docs/handoffs/2026-08-28-dev-knowledge-architect/`
