@@ -41,6 +41,16 @@ TWO DECLARATION SPELLINGS ARE LIVE, and both are read rather than one being refu
 write `**Substrate:** local` / `**Substrate: LOCAL worktree**`. Refusing either would refuse
 half the live corpus for a spelling nobody ruled on.
 
+A DECLARATION IS A FENCED TOKEN; PROSE IS NOT A DECLARATION (finding C-F, fixed 2026-08-28).
+`**Shape:**` is read FIRST, and while it accepted a BARE token that precedence rule was only
+safe as long as the word "Shape" could not occur as an ordinary heading — which, in a design
+document, is close to the least safe assumption available. Run against the live batch-1
+contract, whose second line reads ``**Shape:** ONE plan -> 5 file-disjoint lanes``,
+`declared_substrate` returned ``'one'`` and, returning on first match, never reached that
+contract's real `Substrate: LOCAL` line. `_SHAPE_RE` now requires the backticks that layer 1's
+`gen_lane_contract._SHAPE_LINE_RE` has always required, so an unfenced `**Shape:**` heading
+falls through to the prose spelling instead of binding garbage ahead of it.
+
 HONEST LIMITS, stated because they bound what a clean verdict means:
 
   * **Leg 2 is TOKEN-based, not semantic.** It matches a measured set of gate tokens inside
@@ -199,8 +209,30 @@ def load_registry(repo_path: Path) -> dict[str, Substrate]:
 
 # --- reading the contract ------------------------------------------------------------------
 
-#: The generator's spelling: ``**Shape:** `local` ``.
-_SHAPE_RE = re.compile(r"\*\*Shape:\*\*\s*`?(?P<value>[A-Za-z][A-Za-z0-9_-]*)`?", re.I)
+#: The generator's spelling: ``**Shape:** `local` ``. The BACKTICKS ARE REQUIRED, and that is
+#: the whole of the C-F fix (batch-1 finding C-F; LESSONS.md 2026-08-28, architect premise
+#: error 3 of 3). This pattern used to spell them ``  `? ``, which made an ordinary English
+#: heading a declaration: the batch-1 contract's second line reads
+#: ``**Shape:** ONE plan -> 5 file-disjoint lanes -> ONE integration`` and bound the substrate
+#: to ``'one'`` — an off-enum value RETURNED rather than reported. Worse than the wrong value
+#: was the masking: `declared_substrate` returns on its first match, so the contract's genuine
+#: ``Real substrate: LOCAL`` line was never read at all.
+#:
+#: A DECLARATION IS A FENCED TOKEN; PROSE IS NOT A DECLARATION. The tightening direction is
+#: deliberate and is the one the contract for this fix names: the alternative — loosening the
+#: substrate check so ``'one'`` "passes" — would keep the parser bug and hide it.
+#:
+#: This is not a newly invented grammar. It is LAYER 1's existing one:
+#: `gen_lane_contract._SHAPE_LINE_RE` has always required the backticks
+#: (``^\*\*Shape:\*\*\s+`(?P<shape>[a-z]+)` ``). The two organs read the generator's own field
+#: identically now, instead of disagreeing about what counts as a declaration — which is what
+#: let a hand-authored contract trip a gate on a word it had no way to know was reserved.
+#: ANCHORED to line start (terra HIGH, this arc). Unanchored, an EXAMPLE of the field --
+#: a contract explaining ``**Shape:** `cloud` `` mid-sentence, which the corpus does -- wins
+#: the precedence race over the real declaration further down, masking it exactly the way
+#: the prose heading did. Layer 1 anchors for the same reason; matching its anchoring is the
+#: rest of matching its grammar.
+_SHAPE_RE = re.compile(r"^\*\*Shape:\*\*\s*`(?P<value>[A-Za-z][A-Za-z0-9_-]*)`", re.I | re.M)
 #: Ch8's spelling, bolded or not, with or without the colon inside the bold markers:
 #: `**Substrate:** cloud` · `**Substrate: LOCAL worktree**` · `Substrate: codespace`.
 _SUBSTRATE_RE = re.compile(
