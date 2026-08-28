@@ -132,8 +132,32 @@ fleet:
     reason: "registered, methodology-unonboarded (ecosystem/registry.md); full gate set ruled but not yet deployed (satellite-onboarding-rulings.yaml)"}
   terminal-setup: {role: pre-deploy,
     reason: "registered 2026-08-01 ([#462]), unonboarded; no VISION.md, no CLAUDE.md (ecosystem/registry.md). Admitted to deployed-versions.yaml 2026-08-29 with all fields null and ruled profile:full ([#604] fold) — the registry key is a deploy PRECONDITION, and the role flips to consumer only when a deploy actually lands (ADR-91)"}
+  # win-tooling is HELD at pre-deploy DESPITE a landed v1.4.0 deploy, and the hold is a
+  # measurement, not caution. [#606] and the night-batch-2 lane-A contract both call for the
+  # flip AFTER the deploy proof; the proof exists (`audit repo win-tooling` against the
+  # deployed tree: deployed_methodology_version PASS at corpus v1.4.0, floor_integrity PASS,
+  # baseline ecosystem/win-tooling/history/2026-08-29.md). The flip was made, MEASURED, and
+  # REVERTED, because the hub's own mechanized invariant refuses it:
+  # tests/test_audit.py::test_check_fleet_parity_green_on_live_repo asserts "[#337] zero-WARN
+  # steady state ... promotion REDs nothing", and a `consumer` role here REDs it.
+  #
+  # The reason is NOT that the deploy sits on an unmerged branch. Walking parity directly
+  # against the DEPLOYED tree (`fleet_parity.py --repo win-tooling --repo-root
+  # win-tooling=<consumer worktree>`) still reports ELEVEN MUST-absent surfaces that the
+  # v1.4.0 carrier set does not ship at all: audit-casing-r4, claude-md-form-a-markers,
+  # docs-genre-{archive,audits,decisions}, methodology-yaml, pytest-minversion,
+  # root-gitattributes, ruff-{required,target}-version, shape-dir-logs. The deploy DID close
+  # eleven others (floor file/import/sidecar, command-override, docs-genre-intake, install-md,
+  # precommit-hub-block, root-precommit-config, settings-{floor-guard,precommit-arm,
+  # stop-backpressure}).
+  #
+  # So the flip is not premature — it is UNREACHABLE by a v1.4.0 deploy, and both [#606]'s
+  # done-when and the lane contract's item (4) carry that premise defect. Closing the eleven
+  # is its own arc (a `.methodology.yaml` declaring the sanctioned divergences, the pyproject
+  # pins, the docs genre dirs). Reported as the lane's primary deviation in
+  # docs/audits/2026-08-28-technical-nb2-a-packet.md.
   win-tooling: {role: pre-deploy,
-    reason: "registered, unonboarded (ecosystem/registry.md); admitted to deployed-versions.yaml 2026-08-26 with all fields null — the registry key is a deploy PRECONDITION, and the role flips to consumer only when a deploy actually lands (ADR-91)"}
+    reason: "v1.4.0 methodology corpus DEPLOYED 2026-08-29 (deployed-versions.yaml carries the record) but the parity role is HELD at pre-deploy: 11 MUST surfaces the v1.4.0 carrier set does not ship remain absent on the deployed tree, so a `consumer` role would RED the live-parity invariant — see the note directly above (ADR-91, [#606])"}
 
 surfaces:
   # ---- Tier-1: the 7 canonical docs (every fleet repo) --------------------------------
