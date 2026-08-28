@@ -19,6 +19,58 @@
 
 ---
 
+### 2026-08-28 (o) - CC (Opus 5, background job, primary checkout, branch `docs/batch-2-dispatch`): night-batch-2 FROZEN and dispatched — manifest, 13 lane contracts, four premise defects caught at freeze
+
+**Did:** cut the operator-ratified `NIGHT-MISSION-2026-08-28.md` into a dispatchable batch —
+the gate-readable manifest `docs/audits/2026-08-28-technical-batch-2-manifest.md` (`batch: 2`,
+bare number; `closed_by:` names a packet absent from the tree, so the ADR-110 exemption expires by
+itself) plus the launch record at `docs/audits/2026-08-28-technical-batch2-launch-contracts/`:
+7 local lane contracts, 6 cloud briefs. Committed at `e23e001d`.
+
+**Result: the batch is dispatchable, and two things that would have wedged the whole night were
+caught before a single lane booted.** (1) The frozen bundle names its lanes `N1..N8`;
+`validate_branch_naming --lane` requires `lane-<letter>-<id>-<slug>` and returns **BAD** for every
+`N<n>` form, so all seven would have merged **outside** `LANE_BRANCH_RE` and silently lost the
+ADR-110 exemption — the wedge that makes a batch structurally unintegrable. Names were derived
+from the validator (STANDING_RULINGS F2): N1..N8 -> lanes A..G, all `OK`. (2) The first commit
+attempt **REFUSED**: `check_substrate_declaration._corpus` parses **every** `*.md` in a
+`*launch-contracts/` directory as a lane contract, and `ARM_DATE` is 2026-08-27, so copying the
+mission and the frozen bundles in beside the contracts FAILed `audit-health` — which blocks every
+commit in every lane. Fixed before dispatch: the directory now holds only the 13 dispatchable
+contracts, each declaring `**Substrate:**` and a `**Worktree pairing:** slug `X` -> branch
+`worktree-X`` line (the shape `validate_substrate._checkout_key` actually reads — without it
+seven local lanes all resolve to `<primary checkout>` and trip `substrate-second-local-writer`);
+the three source documents moved to top-level `docs/audits/` **byte-identical**.
+
+**Four contract-premise defects, recorded rather than repaired** — the class lane G is chartered
+to make refusable at freeze time. **D-F1:** lane F's Intent restates batch-1's *"9,161 B = 28.0
+%"* byte-cap payload; measured tonight it is **9,430 B = 28.78 %**, because root `AGENTS.md` is
+**5,539 B / 107 lines**, not `CLAUDE.md` §2.68's *"103 lines, 5,270 B"* — and
+`git cat-file -s 43c18e9f:AGENTS.md` == 5539 against its **only** content commit, so those figures
+were **wrong when written**, not stale by drift. **D-B1:** lane B's *"the paginated events loop
+already exists ~line 1079"* is false — that is a receipt-**polling** loop and `next_cursor` appears
+nowhere in `DispatchHelpers.psm1`, so Harvest-Cloud is half new code, not an extraction.
+**D-B2:** lane B's cp-defect line numbers point at comment blocks; the live `gh codespace cp` argv
+arrays are at 1591/1637/1669. **D-M1:** the launch-contracts home has an implicit schema nothing
+documents (above).
+
+**Measured at dispatch:** `uv` 0.11.19 == pin · ratchet **443 / 61 files**, live == baseline, zero
+headroom · `validate_doc_rot` **77** loci · byte-cap payload **9,430 B** · `origin/main` == `main`
+· win-tooling clean on `53a1d02` with **11 branches / 1 upstream**. One substrate finding remains
+on the tree — batch-1's contract declaring substrate `'one'`, which is finding C-F, lane G's.
+
+**Changes:** `docs/audits/2026-08-28-technical-batch-2-manifest.md` (new) ·
+`docs/audits/2026-08-28-technical-batch2-launch-contracts/` (new, 13 contracts) ·
+three byte-identical source documents at `docs/audits/2026-08-28-technical-{night-mission-authorization,night-batch2-frozen-bundle,fm-wave2-frozen-bundle}.md` ·
+`docs/audits/README.md` (regenerated).
+
+**Abandoned:** copying the frozen bundles into the launch-contracts directory (the gate refused it,
+correctly).
+
+**Next:** dispatch 7 local + 6 cloud lanes, run the night, integrate in two queues, then wave 2.
+
+---
+
 ### 2026-08-28 (n) - CC (Opus 5, background job, worktree `worktree-sda1-persist`): SDA-1 persisted verbatim, the L0 routing derivation shown to be a MERGE not a rewrite, and three architect premise errors filed
 
 **Did:** persisted the SDA-1 seeded-defect benchmark design (`1a091249`) byte-verbatim into
