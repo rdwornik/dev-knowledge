@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "912c3dd4f7a786ddea73da6e49623873b45459cc34f39672fd0a995102b5540f",
+  "generated_sha256": "75d46ce3110821079dfd485f052cc87d92e52eb20a70690a9d634fba33a3152a",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -68,6 +68,10 @@
     {
       "task": 511,
       "file": "511-handoff-cut-cost-is-session-authoring.md"
+    },
+    {
+      "task": 611,
+      "file": "611-handoff-process-v7-the-minimal-bundle-package.md"
     },
     {
       "prose": ""
@@ -772,6 +776,10 @@
       "file": "334-fleet-wide-ruff-hook-id-migration-ruff-ruff-chec.md"
     },
     {
+      "task": 609,
+      "file": "609-free-ruff-ratchet-the-zero-cost-python-standard.md"
+    },
+    {
       "task": 343,
       "file": "343-fleet-parity-ship-gate-only-scoping.md"
     },
@@ -1065,6 +1073,10 @@
     {
       "task": 271,
       "file": "271-nightly-proposal-loop.md"
+    },
+    {
+      "task": 610,
+      "file": "610-the-night-batch-protocol-named-with-its-two-verb.md"
     },
     {
       "task": 288,

@@ -1,0 +1,13 @@
+---
+id: "[#609]"
+title: "Free ruff ratchet — the zero-cost half of the Python standard"
+status: open
+priority: P2
+size: S
+theme: "[E6] Cross-repo universalization"
+story: "[S15] Converge every child repo on the universal baseline"
+serialize-group: pre-commit-config
+generates: BACKLOG.md
+---
+
+- [#609] [P2][S] **Free ruff ratchet — the zero-cost half of the Python standard** (intake #58 / I-KODEKS, rulings X3 + X4; D6 birth funded by this lane's closure sweep) — `pyproject.toml` carries `extend-select = []`, an EMPTY selection, so the Python standard declared in `protocols/PLAYBOOK.md` enforces nothing while 135 hub modules drift from it. C2 MEASURED the divergence rather than asserting it, and the numbers decide the shape: twelve rule families measure **zero** tree-wide (`T203, LOG, G, ICN, INT, SLOT, TID, NPY, W, YTT, ASYNC, FA`) and a near-zero tier (`ISC, A, PIE, RET, B, FLY, C4`) costs **58 fixes total**. That half is free, and free enforcement should not wait on the costed half. Scope is the ratchet ONLY — the costed tier (`T201` 344, `ANN001/ANN201` 211 non-test, `C901+PLR0912/0915` 131, `PLR2004` 61) is explicitly OUT and needs its own budget. **X3 forecloses a new hub checker** for the three ruff-unrepresentable clauses (Click 13/78 · Rich 1/135 · dataclasses 141): a hardcoded standalone checker lands as `absent` on a consumer by measurement, and presence is not enforcement. · Done when: `[tool.ruff.lint]` names the twelve zero-cost families explicitly and `uv run --locked ruff check .` exits 0 with no new `per-file-ignores` for that tier; the three unrepresentable clauses are amended per X4 with their measured denominators quoted, and PLAYBOOK's Python-standard text agrees so no clause survives that the tree refutes; `ecosystem/parity-surfaces.yaml` carries `[tool.ruff.lint]` as a fifth MUST-uniform surface reported by `fleet_parity` across all three fleet repos; and `templates/ruff-config-block.toml`'s REPO-PERSONAL `select` declaration is **superseded on the record** with a dated pointer to X3 — legible in the file, not only in the register · refs docs/intake/2026-08-27-tech-python-standard-executable-surface.md (intake #58, acceptance criteria 1-6 verbatim), docs/audits/2026-08-27-technical-python-kodeks-census.md, protocols/STANDING_RULINGS.md X3 + X4, #334 · **NOT a ruff *rev* bump** — the pinned hook rev is fleet-canonical and a uv/ruff version change is its own gated act (ADR-106); this changes the SELECTION, not the version · serialize-group: pre-commit-config
