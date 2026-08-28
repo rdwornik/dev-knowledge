@@ -19,6 +19,168 @@
 
 ---
 
+### 2026-08-28 (f) - CC (Opus 5, background job, primary checkout, branch `docs/handoff-2026-08-28`): the residency question is ANSWERED, and the re-fold's first attempt tripped the boot-byte budget by re-narrating the answer it was pointing at
+
+**Did:** operator appended a role-residency answer to `SUPPLEMENT.md`'s ANSWERS **after** the first
+fold. Committed the delta, re-assembled `PASTE_THIS.md`, re-ran the gates and the stale-prose
+sweep, flipped the residual caution the answer invalidated, and resolved the answer's three named
+HOMES on disk.
+
+**Result:** `PASTE_THIS.md` **47,818 B** — under the A10 boot budget. `validate_residual_completeness`
+OK, `check_seal_identity` exit 0, cold-state and stale-residency sweeps both zero. Branch pushed.
+
+**Supersedes entry (e)'s headline.** That entry recorded OPEN QUESTION 1 as outranking the whole
+G-list and the role-residency HOME as **unproven**, with revert-to-inlining as the ruled fallback.
+It is now **RESOLVED**: ONE fleet-wide claude.ai Project (*Dev - Architect Seat*) hosts every
+architect window, its knowledge holding **exactly one** file (`HANDOFF_BOOT.md`) because Projects
+fall back to RAG retrieval past the context threshold and a chunked role would break the PIN's
+verbatim guarantee; version check mandatory, `sha256` best-effort; per-repo projects rejected
+because N role copies **is** the measured version-drift disease. The v6.3.0 PIN therefore has
+something to verify and the fallback is **not** taken. JOURNAL is append-only, so this entry
+carries the correction.
+
+**The negative headline, and it is mine.** The caution flip was first written to *restate* the
+residency mechanism - and pushed the paste to **48,217 B**, tripping the assembler's own A10
+boot-byte warning for **re-narration creep (RF-6)**. The mechanism was already in the paste
+verbatim, three hundred lines below, in the folded supplement. **I re-narrated the very answer the
+caution exists to point at** - the §2/§3 disease this protocol was rewritten to kill, committed by
+the seat that had just written a frontier item about unwritten rules. Trimmed to a pointer:
+**47,818 B**, warning cleared. **The generalisable half: a fold makes the paste the largest it will
+ever be, so the re-fold pass is exactly when a pointer is most likely to be rewritten as a
+restatement — and the byte budget is the only organ that notices.**
+
+**Two self-contradictions repaired without touching operator text.** The operator's new item landed
+*below* the first CC verification block, whose header asserted that all operator answers were
+above it; that header is **my** text, so it was scoped to the first fold and made to point forward
+rather than relocating the operator's words. And the answer **supersedes the operator's own
+answer-4** (*"ROLE RESIDENCY HOME - settle in the first minutes ... UNPROVEN"*), which is left
+verbatim: without a supersession note the paste would carry an open question and its answer with
+nothing saying which won. A CC SECOND PASS block records it.
+
+**One locator did not resolve, and it is flagged rather than guessed.** Of the answer's three named
+HOMES, `protocols/OPERATOR-INTERFACE.md` resolves and the HANDOFF_PROCESS role clause resolves
+(residency clause + ROLE PIN). **"PLAYBOOK's session-setup section" does not exist** - there is no
+such heading. Two different destinations are plausible: PLAYBOOK **Ch8 "Session boundaries"** and
+the **separate file** `protocols/SESSION_SETUP.md`. Recorded as AMBIGUOUS per the M1 resolve-a-
+locator rule; the next seat picks the home before landing the pointer instead of letting whichever
+file it opens first decide.
+
+**Abandoned:** nothing. No merge taken - operator-authorised per-act.
+
+**Changes:** `docs/handoffs/2026-08-28-dev-knowledge-architect/` (supplement delta + CC second-pass
+verification; residual caution flipped then trimmed; paste re-assembled).
+
+**Anchors:** d44941ea (the re-fold, the caution flip and the locator resolution).
+
+**Next:** paste `PASTE_THIS.md` into a fresh architect chat in the *Dev - Architect Seat* Project.
+First boot verifies the PIN against the project knowledge file.
+
+### 2026-08-28 (e) - CC (Opus 5, background job, primary checkout, branch `docs/handoff-2026-08-28`): the supplement is filled and folded - and the fold's own reflow gap is caught by the sweep the LESSON prescribes
+
+**Did:** operator returned all seven `SUPPLEMENT.md` answers; committed the filled file, folded the
+ANSWERS region into `PASTE_THIS.md` via `assemble_paste.py`, verified three of the supplement's
+repo-verifiable claims live, and swept the bundle for prose the fold's reflow does not reach.
+
+**Result:** `PASTE_THIS.md` 35,585 -> 45,697 B across three assembles. The incoming §13(d)
+operator-context beat **NARROWS** rather than firing full. Bundle gates green throughout
+(`validate_residual_completeness` OK, `check_seal_identity` exit 0); branch pushed.
+
+**Supersedes one line of entry (d).** That entry recorded `SUPPLEMENT.md` as committed **empty**
+with the beat firing **FULL** - true when written, false from the fold onward. JOURNAL is
+append-only, so this entry carries the correction rather than an edit.
+
+**The reflow gap, caught because the LESSON says to sweep and not because anything failed.** The
+generator's `--filled` auto-detection correctly flipped its **four framing sites**; it reaches
+**generator sites only**. The residual's hand-authored frontier caution (3) still said the
+supplement was cold and the beat would fire full - written before the fold, false the instant it
+landed, and inside a FILL-IN region no gate inspects for *content*. Every gate was green with the
+bundle contradicting itself about its own fill-state. Corrected in place; whole-bundle sweep now
+returns zero cold-state claims. **The generalisable half: a completeness gate that checks whether a
+region is FILLED cannot check whether what fills it is still TRUE, and a state flip is exactly when
+hand-authored prose goes stale.**
+
+**Verified rather than relayed - and one claim did not survive.** Three repo-verifiable facts in
+answer 6 were re-derived on live state instead of being folded through untouched: `v1.4.0` is still
+untagged (**CONFIRMED**; the `deploy` preflight abort stands, and it gates the operator's stated
+headline intent), `~/.claude/memory/learned-rules.md` is still absent (**CONFIRMED**; L0, the hub
+cannot fix it), and `automation/fleet-audit` is **NOT** two commits behind - local and origin are
+both at `1f8b6434`, so the push already happened (**REFUTED and DISCHARGED**). Left standing, that
+third claim would have FAILed the next boot's `Inherited claims` row on a fact that merely went
+stale between filling and booting. Recorded as a CC-attributed verification block appended to the
+supplement; **the operator's own text was not altered.**
+
+**The strategic payload the repo could not have produced.** Deployment to other repos must START
+within two sessions and outranks further hub polish; the next session is EXECUTION-ONLY against the
+seven filed intakes. And **OPEN QUESTION 1 outranks the whole G-list**: the v6.3.0 role-residency
+HOME is unproven - if the browser has no persistent instructions surface, the PIN has nothing to
+verify and every seat refuses to boot, with the ruled fallback being revert-to-inlining and
+recording D-R1 as measured-and-reversed. The frontier caution now routes the next seat there first.
+
+**Abandoned:** nothing. No merge taken - operator-authorised per-act.
+
+**Changes:** `docs/handoffs/2026-08-28-dev-knowledge-architect/` (supplement filled + CC
+verification block; paste re-assembled; residual caution corrected).
+
+**Anchors:** 34572db9 (the fold and the claim verification), 74bd3e1e (the reflow-gap correction).
+
+**Next:** paste `PASTE_THIS.md` into a fresh architect chat. Settle OPEN QUESTION 1 first.
+
+### 2026-08-28 (d) - CC (Opus 5, background job, primary checkout, branch `docs/handoff-2026-08-28`): the architect bundle is cut against a window whose rulings were both landed AND consumed - so the residual carries unwritten RULES, not unbuilt mechanisms
+
+**Did:** generated and hand-completed the architect-mode v6 handoff bundle
+`docs/handoffs/2026-08-28-dev-knowledge-architect/` for the window since the 2026-08-25 bundle was
+added (149 commits). Generator run answer-free per HANDOFF_PROCESS v6.3.0; the seven FILL-IN
+regions authored by hand - the boot `Purpose` and `Destination` row, the drift-flag judgment, the
+shipped map, and the frontier.
+
+**Result:** bundle complete and gated - `validate_residual_completeness` OK, `check_seal_identity`
+exit 0, all pre-commit gates passed on the landing commit. `SUPPLEMENT.md` committed **empty**
+(cold handoff), which is the defined disposition: the assembler folds nothing and the incoming
+§13(d) operator-context beat fires **FULL** rather than narrowed.
+
+**The framing that made this bundle different, and it is the useful half.** The prior window's
+frontier (F1-F6) asked mostly *whether* things would be ruled. This window ruled them **and
+consumed the rulings** - sections U/W/X/Y adjudicated, wave 1 executed, the night harvest ledgered
+through the funnel, ADR-115 accepted, `[#424]` closed. So the residual could not be a list of
+pending decisions. What it carries instead is the class the window created by succeeding: **rules
+that are now settled in PRACTICE and written down NOWHERE.** G1 is the sharpest - `[#579]`-`[#586]`
+and `[#607]`-`[#611]` were born straight from ruled packet rows carrying `source:` clauses, while
+register section Y, landed the same day, restates ADR-111's orthodox CANDIDATE -> intake ->
+ratification path for the `[#267]` candidate and cites nothing about packet-born rows. Two live
+paths, no statement of which applies when; the distinction is inferable from eleven commits and
+from nothing else.
+
+**Two frontier items are contradictions rather than gaps, and were written as such.** G3: ruling
+**U(b)** makes GitHub compute the DEFAULT substrate; ruling **W4**, taken one day later, measured
+that rung as unable to run a **single** hub gate (no `uv` in the container, so nothing under
+ADR-106 executes) - a default substrate that cannot execute a gate is not a default, and the
+wave-2 router ADR is owed against the contradiction, not against either half. G2: `CLAUDE.md`
+§10's AGENTS.md anti-pattern became **provably** false doctrine when ADR-115 was accepted, but it
+sits inside a hub-single-sourced Form-A region, so correcting it is a **fleet-parity act** no row
+authorises - `[#577]` owns the correction and three consecutive CLAUDE.md revisions have each
+recorded that they knowingly left it standing.
+
+**Drift-flag judgment, stated as a judgment and not as a verdict** (the bundle asserts no
+ship-gate value - P7/P4 re-derive them live): `reconciled_versions` is a **DECISION** - this
+window advanced HANDOFF_PROCESS to v6.3.0 with its `reconciled_with:` edge re-stamped in the same
+act, and separately exempted `templates/` placeholders by ruling under `[#335]`; a signature
+outside `templates/` remains a genuine defect. `fleet_parity` is **explicitly not** dispositioned
+as a decision, recorded so its absence is not read as an oversight: X3 admitted a fifth
+MUST-uniform parity surface and deliberately did not build it, so its ground truth moved while its
+implementation did not.
+
+**Abandoned:** nothing. No row was born, no `BACKLOG.md` edit made, no merge taken - merging is an
+operator-authorised act granted per-act, and the bundle's own frontier warns that row births are
+the *first* act of the next session, not this one.
+
+**Changes:** `docs/handoffs/2026-08-28-dev-knowledge-architect/` (5 files, new bundle).
+
+**Anchors:** 50943b6b (the bundle and its seven hand-authored regions).
+
+**Next:** paste `PASTE_THIS.md` into a fresh architect chat. Optionally fill `SUPPLEMENT.md` first
+- the QUESTIONS go to the *outgoing* chat and the answers below the divider, which narrows the
+§13(d) beat instead of firing it full.
+
 ### 2026-08-28 (c) - CC (Opus 5, background job, primary checkout, branch `docs/267-mechanism-ruling`): the `[#267]` HOLD ruled - and the dead-peg rule it generalises
 
 **Did:** executed the architect's ruling on `[#267]`, taken over the HOLD entry (b) returned the
