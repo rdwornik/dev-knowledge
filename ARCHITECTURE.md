@@ -489,10 +489,10 @@ above references — the **named deterministic-trigger organs**, curated to what
 references, **not an exhaustive inventory** of every script in `scripts/`:
 
 - `scripts/audit.py` — cross-repo conformance + self-audit; a registered check suite
-  (count in `ecosystem/doc-counts.md`; `python scripts/audit.py checks` for the live registry — incl. `canonical_freshness`,
-  `no_sibling_orphans`, `canonical_structure`, `amendment_coherence`, `git_backlog_drift`,
-  `no_ff_merges`, `reconciled_versions`, `doc_rot`, `doc_structure`, `doc_code_edge`,
-  `safe_removal`, `doc_code_coverage_drift`, `fleet_parity`, `residual_completeness`).
+  (count in `ecosystem/doc-counts.md`; **the roster is not restated here** — run
+  `uv run --locked python scripts/audit.py checks` for the live registry. A partial `incl.`
+  list is the M2 failure class twice over: it rots against the registry AND reads as complete
+  while omitting most of it).
   `run` = manual ecosystem sweep; `health` = pre-commit gate (FAIL blocks, WARN informs);
   `ship-gate` = the #147 pre-ship verification-organ gate (Definition-of-shipped point 6).
   **Seam `ship-gate` vs `health`:** both reuse `ALL_CHECKS`, but `health` gates each
@@ -662,8 +662,9 @@ references, **not an exhaustive inventory** of every script in `scripts/`:
   to gating Findings (`exempt:` in doc-code-edge.yaml — manifest-driven, not a doc→code rule). The
   standalone CLI is unchanged: `python scripts/fleet_parity.py --run-date YYYY-MM-DD` (#328/#337).
 - `deploy/tool.py` + `deploy/contract.py` + the carrier modules registered in
-  `tool.py::make_carriers` — `carrier_globalconfig`, `carrier_plugin`, `carrier_precommit`,
-  `carrier_floor`, `carrier_mesh`, `carrier_docs` — the ADR-92 **deploy orchestrator** (Ch4).
+  `tool.py::make_carriers` — the carrier set is **computed, not restated**: read the
+  manifest's `carriers:` block (`deploy/manifest-v*.yaml`), which is the surface the
+  orchestrator itself reads — the ADR-92 **deploy orchestrator** (Ch4).
   **The roster of record is the manifest's `carriers:` block** (`deploy/manifest-v*.yaml`, gated
   by the `roster-freshness` hook), not a count restated in prose: at v1.4.0 it declares seven —
   six `implemented: true` plus `editor-config` `implemented: false`. (`carrier_docs` landed at
