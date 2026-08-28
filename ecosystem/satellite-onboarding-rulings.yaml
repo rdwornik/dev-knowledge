@@ -90,8 +90,13 @@ rulings:
 
   terminal-setup:
     profile: full
-    ruled_by: "architect (night-batch-2 lane N1, frozen 2026-08-28); PROFILE VALUE selected
-      by the executing lane under the batch decision budget — see provenance below"
+    # `ruled_by` states WHO chose `full`, not merely who authorised an entry to exist. The
+    # architect's frozen night-batch-2 contract requires this entry and constrains it to the
+    # two-value enum; it does not choose between them, so naming the architect here alone
+    # would record a ruling that did not happen (terra CRITICAL, 2026-08-29).
+    ruled_by: "night-batch-2 lane N1 (executing lane), under the architect's frozen
+      instruction to land this entry — the architect constrained the enum, the LANE chose
+      `full`; unconfirmed by operator or architect, see provenance below"
     ruled_date: "2026-08-29"
     # No census covered terminal-setup (the 2026-07-13 satellite census predates its
     # registration). The proposing surface is the night-batch-2 lane packet, so that is what
