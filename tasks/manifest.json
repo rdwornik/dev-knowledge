@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "d2b9dd93a140a6f39b7c7650d5fbd0dab55834fe5fc4fe109a4c165e8b586dcf",
+  "generated_sha256": "121eefc3e31cb4128a80392fef873259b63655f7c0da3a36a6b7386a7224bf68",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -331,10 +331,6 @@
     {
       "task": 241,
       "file": "241-undeclared-edge-groom.md"
-    },
-    {
-      "task": 335,
-      "file": "335-exempt-templates-from-the-reconciled-versions-ch.md"
     },
     {
       "task": 457,
@@ -1093,10 +1089,6 @@
     {
       "task": 288,
       "file": "288-model-identity-guard-for-unattended-runs.md"
-    },
-    {
-      "task": 348,
-      "file": "348-backlog-grooming-as-a-standing-routine-not-ad-ho.md"
     },
     {
       "task": 419,

@@ -1,7 +1,7 @@
 ---
 id: "[#335]"
 title: "Exempt `templates/` from the `reconciled_versions` check"
-status: open
+status: closed
 priority: P3
 size: S
 theme: "[E2] Enforced governance"

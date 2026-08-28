@@ -90,7 +90,6 @@ So that "spec bumped, dependent partially updated, caught only because a human r
 - [#181] [P2][S] Coherence v2 nudge-response · DEFER · tasks/181-coherence-v2-nudge-response.md
 - [#220] [P2][M] MODIFY / semantic-drift axis · DEFER · tasks/220-modify-semantic-drift-axis.md
 - [#241] [P2][S] Undeclared-edge groom · DEFER · tasks/241-undeclared-edge-groom.md
-- [#335] [P3][S] Exempt `templates/` from the `reconciled_versions` check · tasks/335-exempt-templates-from-the-reconciled-versions-ch.md
 - [#457] [P2][S] Two live-repo tests fail on main against green gates — test-vs-organ mismatch · tasks/457-inherited-live-repo-test-failures.md
 - [#477] [P2][S] `deployed_methodology_version` keys the registry by repo-root BASENAME — a clone named `dev-knowledge` cannot find `.dev-knowledge` · tasks/477-deployed-version-check-keys-registry-by-basename.md
 - [#478] [P2][S] `changelog_sentinel` drops PEP 440 suffixes — a prerelease as the reviewed value silences the sentinel permanently · tasks/478-changelog-sentinel-drops-pep-440-suffixes.md
@@ -300,7 +299,6 @@ So that cadence-less artifacts and unevaluated tools don't rot or get adopted bl
 So that unattended routines run only with a named consumer, a survival metric, and a bounded operator load — never as rot generators (the fleet-audit lesson; sequencing per the standing operator ruling: the load-gauge lands before anything else in the Tier-2 nightly layer).
 - [#271] [P3][L] Nightly proposal loop · DEFER · tasks/271-nightly-proposal-loop.md
 - [#288] [P3][S] Model-identity guard for unattended runs · DEFER · tasks/288-model-identity-guard-for-unattended-runs.md
-- [#348] [P3][S] Backlog grooming as a standing routine, not ad-hoc · tasks/348-backlog-grooming-as-a-standing-routine-not-ad-ho.md
 - [#419] [P2][M] We run routines whose output nobody consumes · tasks/419-we-run-routines-whose-output-nobody-consumes.md
 - [#426] [P2][M] Declare `consumer` + `consumption_path` for every LIVE routine · tasks/426-declare-consumer-consumption-path-for-every-live.md
 - [#428] [P2][S] `nightly-triage` reports a dead producer to every session start · tasks/428-nightly-triage-reports-a-dead-producer-to-every.md
