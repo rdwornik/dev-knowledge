@@ -19,6 +19,59 @@
 
 ---
 
+### 2026-08-29 (c) - CC (Opus 5, background job, primary checkout, branch `docs/batch-2-w2-preflight`): the WAVE-2 GO's carried acts — intake index repaired, two intakes terminal, [#577] [#584] closed, baselines accepted
+
+**Did:** executed the carried acts of the operator's WAVE-2 GO **before dispatching**, because every
+one of them collides with a wave-2 lane's write-scope. Committed at `11c2322e`.
+
+**Result: the intake index is now correct, two intakes are terminal, two rows are closed, and both
+audit baselines are truthfully accepted.** Six live intakes (ids **56–61**) opened their
+`consumers:` scalar with a **backtick**, which cannot start a YAML scalar, so
+`gen_intake_index._parse_frontmatter` returned `{}` **by design** and those docs lost their id and
+status — rendering `[MISSING-ID]` inside an off-enum `OTHER (6)` group while the index claimed
+`READY (13)` against **19** on disk. Six quoted strings later the index reads **SEED 10 · DRAFT 7 ·
+READY 19 · ACCEPTED 19**, zero `MISSING-ID`, no `OTHER` group. **The gate was structurally unable to
+see any of it:** `intake-index-freshness` is regen-and-diff, so it reproduced the wrong output
+byte-for-byte and stayed green — a freshness gate is a **currency** check, not a **correctness**
+check, and that gap is filed as a candidate.
+
+**Two traps, both recorded because each cost a cycle.** (1) **The intake corpus has TWO generators
+and only one is gated.** After `gen_intake_index.py --write`, `intake_tree_coherence` still FAILED:
+`docs/intake/manifest.json` carried the pre-flip statuses (`carrier 'SEED' vs disk 'CONSUMED'`) and
+**empty** statuses for the six repaired docs. `gen_intake_tree.py --write` is the second half; an
+intake status edit is not landed until both have run. (2) **Task frontmatter `status:` is DERIVED
+from `tasks/manifest.json`**, so setting `status: closed` and running `--emit-source` with the node
+still present **silently reverts it to `open`** while printing `refreshed derived frontmatter in 2
+task file(s)` — which reads exactly like the close landing. It happened here, and the only thing
+that caught it was the row count. Redone the post-flip way — manifest node out and terminal status
+in ONE edit — and **verified by count: `BACKLOG.md` 208 → 206 rows.**
+
+**Status ruling carried:** intake **#19** SEED → CONSUMED (ADR-82; `[#446]` closed) and **#26**
+ACCEPTED → CONSUMED (ADR-110; `[#505]` closed); **#28 HELD** per ADR-112, whose `:87` says fourteen
+of its §C candidates are still actionable. `decided-by`/`disposition` are ACCEPTED-only per the
+README schema, so they leave at the flip and the acceptance provenance moves into `note` rather than
+being dropped. **The relocation is FM-3's**, under its md5 discipline — this arc rules, it does not
+move.
+
+**Closures:** `[#577]` (done-when discharged 5/5 by night-batch-2 lane F) and `[#584]` (landed by
+batch-1 `43c18e9f`). **Baselines:** `audit-consumer-baseline.json` rewritten (581 unconsumed of
+816); `audit-funnel-baseline.json` needed the deliberate `--allow-raise` the tool itself names,
+used knowingly rather than to silence a gate. **Both baseline-agreement tests now PASS**, clearing
+two of the six suite failures the close packet reported. `validate_doc_rot` **60 → 59**; ratchet
+**443**, unchanged.
+
+**Changes:** `docs/intake/` (6 repaired + 2 status flips + both generated carriers) · `tasks/`
+(2 closures + `manifest.json`) · `BACKLOG.md` · `ecosystem/audit-{consumer,funnel}-baseline.json`.
+
+**Abandoned:** nothing.
+
+**Next:** dispatch the eight wave-2 lanes, then verify the cp-quote fix attended, then reconcile the
+operator's four further rulings against their existing funnel objects before birthing anything.
+
+
+
+---
+
 ### 2026-08-29 (b) - CC (Opus 5, background job, primary checkout, branch `docs/batch-2-regen`): night-batch-2 CLOSED — 4 of 5 ex-ante numbers MET, wave 2 stopped at the gate, the freeze organ dogfooded
 
 **Did:** closed night-batch-2. Ran the generated surfaces ONCE on the merged result, appended the
