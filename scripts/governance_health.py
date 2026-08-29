@@ -31,8 +31,10 @@ five fields, and the fifth — `value evidence attached` — is *this* lane's de
 only be computed by parsing close packets, which is FM-5's write-scope. So the ownership split
 is:
 
-    FM4_OWNED_FIELDS  intakes consumed-unarchived · ADRs unexecuted · orphans forward ·
-                      orphans backward        -> imported, NEVER computed here
+    FM4_OWNED_FIELDS  intakes consumed-unarchived · ADRs unexecuted ·
+                      orphans forward (object -> consumer) ·
+                      orphans backward (open row -> resolving source)
+                                              -> imported, NEVER computed here
     FM5_OWNED_FIELDS  rows closed this window · value evidence attached
                       -> computed here, EXPORTED for FM-4 to import
 
@@ -127,11 +129,20 @@ TELEMETRY_NAME = "governance_health"
 
 #: FM-4's five contract fields, with "orphans, both directions" rendered as the two numbers it
 #: names. Order IS the contract — a golden test pins it on FM-4's side and on this one.
+#:
+#: The two orphan labels carry FM-4's PARENTHETICALS VERBATIM. Ruled 2026-08-29 (architect,
+#: post-night A1) after the emitter ambiguity was resolved and immediately un-masked the
+#: disagreement it had been hiding: this module had shortened them to `orphans forward` /
+#: `orphans backward`, so `test_shared_fields_equal_fm4_block_byte_for_byte` reported both as
+#: MISSING from FM-4's block the moment resolution started succeeding. FM-4's labels are
+#: canonical — they are golden-pinned as literals on its side, it is the emitter of record, and
+#: this module's own contract is that it "computes NONE of FM-4's four fields". A consumer that
+#: renames its source's fields is the drift; the source is not.
 FM4_OWNED_FIELDS: tuple[str, ...] = (
     "intakes consumed-unarchived",
     "ADRs unexecuted",
-    "orphans forward",
-    "orphans backward",
+    "orphans forward (object -> consumer)",
+    "orphans backward (open row -> resolving source)",
 )
 FM5_OWNED_FIELDS: tuple[str, ...] = (
     "rows closed this window",

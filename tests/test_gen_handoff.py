@@ -7,6 +7,7 @@ tests pin the scaffold/framing/fill-state mechanics and the answer-free-bundle i
 """
 from __future__ import annotations
 
+import inspect
 import os
 import re
 import shutil
@@ -1132,9 +1133,55 @@ def test_funnel_source_prefers_the_package_qualified_module(monkeypatch):
     ours.measure = lambda repo_root: _Ours()                    # noqa: ARG005
     monkeypatch.setitem(sys.modules, gh._FUNNEL_MODULE, theirs)
     monkeypatch.setitem(sys.modules, f"scripts.{gh._FUNNEL_MODULE}", ours)
-    values, note = gh.funnel_health_numbers(_REPO)
+    values, note = gh._funnel_health_numbers(_REPO)
     assert note == ""
     assert set(values.values()) == {"1"}, values     # ours (all 1s), not theirs (7/3/0/2/5/4)
+
+
+def test_exactly_one_public_funnel_health_emitter():
+    """A1 (architect, 2026-08-29): FM-4 exposes EXACTLY ONE public funnel-health emitter.
+
+    This is the assertion that actually holds the A1 ruling. FM-5 resolves FM-4's emitter by
+    CAPABILITY over `dir(gen_handoff)`, and `dir()` does not consult `__all__` — so the thing
+    that keeps the resolution unambiguous is that the other two callables are `_`-private, and
+    nothing but a test stops a later hand from making one public again.
+
+    FM-5's regex is IMPORTED, never re-typed here: a copy would let the two drift and this test
+    would keep passing while the resolution it guards started refusing.
+    """
+    import governance_health as gh5
+
+    public = [n for n in dir(gh) if not n.startswith("_") and callable(getattr(gh, n, None))]
+    emitters = sorted(n for n in public if gh5.FM4_CALLABLE_RE.match(n))
+    assert emitters == ["funnel_health_block"], (
+        f"FM-5 resolves FM-4's emitter by capability and refuses on ambiguity; "
+        f"expected exactly one public match, got {emitters}"
+    )
+
+
+def test_fm5_resolves_the_ruled_emitter():
+    """The ruling discharged end-to-end: FM-5 resolves, and names the callable A1 ruled.
+
+    The companion to the test above — that one pins the module's shape, this one pins the
+    CONSUMER's verdict, which is what the ambiguity was actually costing.
+    """
+    import governance_health as gh5
+
+    src = gh5.resolve_fm4_emitter()
+    assert src.available, src.reason
+    assert src.dotted == "gen_handoff:funnel_health_block", src.dotted
+
+
+def test_the_privatised_delegates_are_still_reachable_and_wired():
+    """Privatising is a rename, NOT a deletion — the block still delegates to both.
+
+    Guards the failure this change could plausibly have caused: a rename that left
+    `funnel_health_block` computing its own numbers, which would re-create the second
+    implementation the whole FM-2 coupling exists to remove.
+    """
+    assert callable(gh._funnel_health_numbers)
+    assert callable(gh._write_funnel_health)
+    assert "_funnel_health_numbers(repo_root)" in inspect.getsource(gh.funnel_health_block)
 
 
 def test_funnel_health_names_fm2_as_its_source(fm2):
