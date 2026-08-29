@@ -2432,8 +2432,11 @@ This whole subsection is prose. No gate reads it: no organ counts a night's prop
 cap, expires an untriaged item at seven days, checks a manifest for its four sections, or refuses
 a night that closes with no ledger. The two verbs the protocol wants — **`Dispatch-After`** (the
 *deferred form of* the ruled `Dispatch` verb, `protocols/STANDING_RULINGS.md` §V, and not a rival
-to it) and **`Harvest-Cloud`** — are win-tooling and operator-owned, and are the other half of row
-`[#610]`. The shape has been witnessed **once** (2026-08-26), so by this chapter's own evidence
+to it) and **`Harvest-Cloud`** — are win-tooling and operator-owned. **Both now exist and resolve
+on the operator host** (`Harvest-Cloud` as an alias to `Save-CloudSessionReport`, `Dispatch-After`
+to `Start-DispatchAfter`, both in the `DispatchHelpers` module), which discharges that leg of row
+`[#610]`; the row stays open on its remaining legs. *(Corrected 2026-08-29 — this sentence read
+"are the other half of row `[#610]`" after the verbs had already landed.)* The shape has been witnessed **once** (2026-08-26), so by this chapter's own evidence
 gate it is a **recorded practice at n=1**, not a graduated standard.
 
 ### Dispatch visibility — Agent View shows DISPATCHED sessions only (STANDING_RULINGS B7)
