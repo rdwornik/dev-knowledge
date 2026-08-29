@@ -3,10 +3,10 @@
   "detector_id": "funnel-coverage/v1",
   "measured_at": "",
   "measured_at_sha": "",
-  "corpus": 787,
+  "corpus": 797,
   "dispositioned": 78,
   "pending": 2,
-  "uncovered": 707,
+  "uncovered": 717,
   "provenance": "",
   "artifacts": [
     "2026-03-30-dev-practice-os-state-audit.md",
@@ -711,10 +711,20 @@
     "2026-08-29-census-nb2-funnel.md",
     "2026-08-29-census-nb2-readme-vision.md",
     "2026-08-29-technical-nb2-candidate-triage.md",
+    "2026-08-29-technical-nb2-h-packet.md",
+    "2026-08-29-technical-nb2-i-packet.md",
     "2026-08-29-technical-nb2-intake61-ratification.md",
+    "2026-08-29-technical-nb2-j-packet.md",
+    "2026-08-29-technical-nb2-k-packet.md",
+    "2026-08-29-technical-nb2-l-packet.md",
+    "2026-08-29-technical-nb2-m-packet.md",
+    "2026-08-29-technical-nb2-n-packet.md",
+    "2026-08-29-technical-nb2-o-packet.md",
     "2026-08-29-technical-nb2-slow-marker-evidence.md",
     "2026-08-29-technical-night-harvest-consumption-ledger.md",
     "2026-08-29-technical-night-harvest-manifest.md",
+    "2026-08-29-technical-sda1-analysis-role-freeze.md",
+    "2026-08-29-technical-sda1-analysis-role-item-pack.md",
     "2026-08-29-verification-night-mission-close-packet.md"
   ]
 }

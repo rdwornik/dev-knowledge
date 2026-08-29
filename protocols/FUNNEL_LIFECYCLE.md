@@ -313,6 +313,13 @@ unchanged; content edits and deletions are a different question with a different
 
 **N = 30 days.**
 
+**READY threshold: 30 days.** — the same ruling in the shape `funnel_lifecycle.ready_threshold()`
+reads (`scripts/funnel_lifecycle.py`, `_READY_THRESHOLD_RE`). The line above is the ruling; this
+one is the same number written so the gate can find it. Both were authored in one wave, in
+parallel lanes that could not see each other's spelling, and the check reported
+`NOT ARMED -- a threshold nobody ruled is not one this gate may invent` rather than guessing.
+Change the number in BOTH lines or in neither.
+
 **Justification, one line:** ADR-98 §6 already fixes *~1 month* as the interval at which
 unconsumed intake becomes a signal, so 30 days is that ruled interval read as a fixed number of
 days rather than a second clock introduced against the same object.
