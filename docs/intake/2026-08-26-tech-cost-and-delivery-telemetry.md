@@ -95,3 +95,45 @@ arc.** Evidence: `docs/audits/2026-08-26-technical-research-cost-usage-telemetry
 `docs/audits/2026-08-25-technical-research-delivery-telemetry-attribution.md` (R-J), and the
 billing-leak measurement summarised in
 `docs/audits/2026-08-26-technical-provider-surface-repair-summary.md` §1.
+
+
+---
+
+## AMENDMENT — 2026-08-29: the telemetry scope extension, and what it made visible
+
+> Appended, not edited. Amends an existing READY intake rather than birthing a rival
+> (reconcile-before-birth, Z-G1 / ADR-111).
+
+**THE OPERATOR'S EXTENSION, verbatim (2026-08-29):** *"locate the operator's telemetry artifact
+(intake #50 + the L5 cost-research) and extend DB-1's inputs: backlog-consumption velocity +
+per-model change quality trends."*
+
+**Carried into the running lane, then measured.** The extension reached DB-1 (wave-2 lane N) as a
+dispatch-time addendum, so the lane built against it rather than being told afterwards. Its
+enumeration of the live history stores is the first honest answer this intake has had:
+
+```
+backlog velocity (net banked - births)   IMPROVING  +16 rows/week   4 samples, LIVE
+commit-gate wall-time                    ABSENT     logs/TELEMETRY.db is gitignored and does
+                                                    not exist -- there is no store at all
+suite wall-time                          ABSENT     no store
+per-model change quality                 ABSENT     nothing records the authoring model
+```
+
+**Two findings this intake should carry forward.**
+
+1. **`logs/TELEMETRY.db` does not exist and is gitignored.** The series most obviously wanted —
+   what the commit gate costs per invocation — has **no store**, not merely no report. That is a
+   collection gap, and it is this intake's own subject.
+2. **Per-model change quality is not derivable today**, and DB-1 renders it **absent, in the
+   legend, with the reason** rather than proxying it. The enabling act is filed separately as
+   **MODEL ATTRIBUTION** (birth 2 of 2): every model-authored commit carries a model+version
+   signature trailer, hook-enforced, and the telemetry store consumes it. Until that lands, the
+   series stays absent by construction.
+
+**The fence held.** DB-1's contract said *"telemetry intake #50 stays its own arc — do NOT absorb
+it"*, and the lane read this intake to **find the store**, not to implement it. Nothing in DB-1
+collects; it renders what already exists and names what does not.
+
+**Provider posture, re-recorded rather than re-litigated:** grok stays **point-use** through the
+same measured gate when a point case exists — **no default role**.

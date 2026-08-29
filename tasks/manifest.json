@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "895a7bfe9e6f2df811ea63ef2db0a624fef958034dc19e9a233bb9a8602426eb",
+  "generated_sha256": "d787d8fe3c96bb8349038cceabab373660aed2fa06b2ce1e8df0ce8c7a77b0dd",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -272,6 +272,10 @@
     {
       "task": 613,
       "file": "613-in-repo-routing-table-agreement-check.md"
+    },
+    {
+      "task": 615,
+      "file": "615-model-attribution-signature-trailer-on-every.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
@@ -713,6 +717,10 @@
     {
       "task": 553,
       "file": "553-adr-census-in-decisions-readme-is-ungated-and-wrong.md"
+    },
+    {
+      "task": 614,
+      "file": "614-vision-superseded-by-a-recreated-root-readme.md"
     },
     {
       "prose": "---"

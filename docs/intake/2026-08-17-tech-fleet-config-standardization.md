@@ -239,3 +239,47 @@ concerns and should be triaged alongside it rather than in isolation.
 
 **DRAFT** — landed 2026-08-17 by lane R, unratified. Not operator-approved; the
 `docs/intake/README.md` §6 confirm-gate has not been cleared. Zero rows born; six proposed.
+
+
+---
+
+## AMENDMENT — 2026-08-29: THE ROOT-CONTRACT, the operator's requirement verbatim
+
+> Appended, not edited. This intake is **ACCEPTED**; the amendment adds a requirement to an
+> accepted object rather than birthing a rival, per the reconcile-before-birth correction
+> (Z-G1 / ADR-111): *"map it to its existing funnel object(s) … land the ruling as an
+> amendment ON that object, citing it. Birth a NEW object ONLY where the ledger shows a true
+> gap."*
+
+**Why HERE.** This intake is *"Multi-repo config standardization and fleet conformance at N=8"*,
+and its own `consumers:` line already names carrier **`[#559]`** and records **R18 — the
+conformance scorecard — as NOT-BORN at §6.4 with its un-parking conditions**. The root-contract
+IS R18's subject matter. Filing a new intake would have duplicated an ACCEPTED one, which is
+exactly the outcome the correction exists to prevent.
+
+**THE OPERATOR'S REQUIREMENT, verbatim (2026-08-29):**
+
+> THE ROOT-CONTRACT — every fleet repo carries an identical canonical root (same file set,
+> non-standard files relocated, same workspace settings, same ordering), versioned spec + parity
+> check; feeds intake-61 q1 (part of what the engine IS). No further consumer deploys beyond the
+> landed floor until it is ruled.
+
+**Three things this changes about the intake, stated so they are not inferred.**
+
+1. **R18's un-parking conditions are now the thing to test**, not a deferred question. The
+   requirement above IS a conformance scorecard with a versioned spec; if R18's conditions are
+   met, R18 births under this intake rather than beside it.
+2. **It feeds intake #61 q1** — *"What, exactly, is 'the engine'?"* — and does **not** duplicate
+   it. #61 q1 asks where the *handoff engine's* boundary falls; the root-contract asks what a
+   *repo root* must contain. The operator's phrasing is "part of what the engine IS", so the
+   dependency runs root-contract → q1, and q1's ratification should read this amendment.
+3. **A STANDING CONSTRAINT is now live and belongs to no lane:** *no further consumer deploys
+   beyond the landed floor until it is ruled.* win-tooling's v1.4.0 floor **is** landed
+   (`floor_integrity` PASS, `deployed_methodology_version` PASS), so the constraint bites the
+   *next* deploy, not this one. Its parity role stays **pre-deploy** until the divergence arc
+   closes — filed as a candidate in the same act.
+
+**Related, measured this window:** the divergence set that holds win-tooling at pre-deploy —
+`docs-genre-decisions`, `methodology-yaml`, `pytest-minversion`, `root-gitattributes` and others —
+is recorded in night-batch-2 lane A's packet, which made the parity flip, measured that it REDs
+`test_check_fleet_parity_green_on_live_repo`, and **reverted it** rather than edit the instrument.

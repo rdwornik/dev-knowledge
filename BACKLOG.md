@@ -74,6 +74,7 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#596] [P3][S] Family-3 at the PROOF layer — the class `[#583]` names but does not prove · tasks/596-family-3-at-the-proof-layer-the-class-583-names.md
 - [#601] [P2][S] `supplement_folded` audit check — a filled supplement that never reached the paste · tasks/601-supplement-folded-audit-check-a-filled-supplemen.md
 - [#613] [P2][M] In-repo routing table + L0 agreement check · tasks/613-in-repo-routing-table-agreement-check.md
+- [#615] [P2][M] MODEL ATTRIBUTION — a model+version signature trailer on every model-authored commit · tasks/615-model-attribution-signature-trailer-on-every.md
 ### [S4] Extend structural validation to more governance artifacts
 So that drift in transcripts, ADRs, and folders is caught cheaply, not by reviewer luck.
 - [#139] [P2][L] merged-arc→record verifier · DEFER · tasks/139-merged-arc-record-verifier.md
@@ -198,6 +199,7 @@ So that the cheat-sheet and architecture stay scannable as conventions accrue.
 - [#506] [P2][M] Whole-set P10 grooming arc — the open set is unreconciled · tasks/506-whole-set-p10-grooming-arc-full-open-set.md
 - [#551] [P2][S] Audit artifacts carry no `status:`, so a consumed audit is indistinguishable from a live one · tasks/551-audit-artifacts-carry-no-status-field.md
 - [#553] [P3][S] `docs/decisions/README.md`'s ADR census is hand-maintained, ungated, and currently wrong in two places · tasks/553-adr-census-in-decisions-readme-is-ungated-and-wrong.md
+- [#614] [P1][L] VISION.md superseded by a recreated root README.md — the frozen execution arc · tasks/614-vision-superseded-by-a-recreated-root-readme.md
 ---
 
 - [#589] [P1][M] One line per row — the BACKLOG view projection, with a size assertion that cannot be silently undone · tasks/589-one-line-per-row-the-backlog-view-projection-wit.md
