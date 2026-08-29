@@ -2426,6 +2426,32 @@ contracts record what was dispatched and the ledger records what was adjudicated
 sits a half-walked queue that neither surface carries. At a phase boundary both surfaces are
 current, so the incoming seat boots from the record instead of from the outgoing seat's memory.
 
+#### The manifest opens a batch by `closed_by:`, and by nothing else
+
+**The predicate, quoted from `scripts/batch_manifest.py` rather than described.** A first-parent
+spine entry is exempt from `check_journal_spine_anchor` when BOTH hold: *"it is a `--no-ff` merge of
+a branch matching the RATIFIED lane grammar `worktree-lane-<letter>-<id>-<slug>`"* **AND** *"a
+committed batch manifest declares an OPEN batch"*. *"Neither alone."*
+
+**Openness is NOT a `status:` flag**, and the module says so in terms — *"HOW OPENNESS EXPIRES, and
+why it is NOT a mutable `status:` flag"*. Manifests live under `docs/audits/`, which is immutable,
+so an expiry that required editing one would either fail to fire at all or corrupt the record. Instead the
+manifest names **at dispatch** the artifact that will close it — `closed_by:` — and *"the batch is
+open only while that path is ABSENT from the COMMITTED tree"*. The end-of-batch packet landing ends
+the exemption automatically, with no edit anywhere.
+
+**The clause that catches the careless manifest:** *"A manifest carrying no `closed_by:` opens
+nothing at all, because an exemption with no declared expiry is the permanent hole the draft's own
+honest-limit warns about."*
+
+**Witnessed 2026-08-29, on this repo's own batch D.** A manifest was written mid-batch carrying
+`status: open` and no `closed_by:`. `open_batches()` returned `[]` — the manifest was **inert**, and
+the integrator briefly believed it had armed an exemption it had not. Two readings were corrected by
+running the predicate instead of reasoning about it: the exemption does not key on a per-lane status
+row, and a lane merge that passed the gate that day passed because the JOURNAL entry had already
+**named its commits**, not because any exemption applied. A `status:` line in a manifest is
+documentation for humans; `closed_by:` is the only field the gate reads.
+
 #### Honest limits
 
 This whole subsection is prose. No gate reads it: no organ counts a night's proposals against the
