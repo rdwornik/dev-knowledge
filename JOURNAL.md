@@ -19,6 +19,41 @@
 
 ---
 
+### 2026-08-29 (v) - CC (Opus 5, background job, primary checkout, integrator): batch D's last two lanes, and a lane that beat its own contract
+
+**Anchors:** `7e3def48` `aec7cdc1` `2f45c9db` `3db78701`
+
+**Did:** merged lanes c and h, tore down every batch-D worktree. **Batch D's seven lanes are all
+landed or accounted for**; no lane branch and no worktree remains.
+
+**Result: lane h did better than the contract asked, and the difference is worth recording.** The
+contract said universalise `codex/AGENTS.md` and re-point its 21 citing sites. The lane did that —
+and then removed the *reason the trap existed*. `AGENTS.md`'s precedence section had documented a
+**third layer**, where a cwd at or below `codex/` yielded `role → doctrine → role` and the role won
+by position rather than intent. That section now reads *"There is deliberately **no third
+layer**"*: the canonical source is tracked as `deploy/global-instructions-codex.md` and the
+`global-config` carrier copies it to `~/.codex/AGENTS.md`, so **no intermediate directory holds a
+file Codex auto-reads at all.** The hazard is gone rather than described. Constraint 3 was met as
+written — byte-identity proven by RUNNING the carrier's tests and the ADR-115 gate, not by reading
+a diff.
+
+**Lane c re-genred `CLAUDE.md` against the hard metric.** The file claimed *"≤200 lines"* while
+measuring **240 lines / 39,147 B** — lines are satisfiable by density, and the real boot cost, paid
+every session, was unbudgeted. Every removal is a relocation with a named destination.
+
+**Z-G5 was right and my contract was wrong, which is the batch's own best evidence for refusal as a
+deliverable.** Lane d refused rather than executing my instruction to delete a live carrier source;
+lane h then executed the lawful discharge. Had lane d complied, the batch would have broken the
+`global-config` carrier and the ADR-115 gate's hermeticity in one act.
+
+**Changes:** `CLAUDE.md`, `AGENTS.md`, `codex/` (universalised into
+`deploy/global-instructions-codex.md`), the deploy manifests and their tests, `ARCHITECTURE.md`,
+`.methodology.yaml`, `protocols/PLAYBOOK.md`.
+
+**Abandoned:** nothing. Next is the filing pass over lane g's synthesis, then the two capstones.
+
+---
+
 ### 2026-08-29 (u) - CC (Opus 5, background job, primary checkout, integrator): the second commit, taken deliberately this time
 
 **Anchors:** `1b77a13e`
