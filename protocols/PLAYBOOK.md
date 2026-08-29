@@ -5216,14 +5216,30 @@ are tried ahead of the expensive-but-equivalent one:
 | Rung | Lane | Why it sits here |
 |---|---|---|
 | 1 | **terra** (`gpt-5.6-terra`) | the default |
-| 2 | **grok CLI** | pay-per-call, measured cheap |
+| 2 | **grok CLI** | pay-per-call, cheap *relative to rung 4* — see the measured call below |
 | 3 | **Kimi / GLM / DeepSeek CLI** | the FIRST transport that passes a **liveness probe** |
 | 4 | **Codex via pay-as-you-go API** | **last resort only** |
 
-Rung 3 is **conditional by design**: the last preflight found these transports dead or corrupt, so
-probing one before use is part of the rule rather than an optimisation. Rung 4 sits at the bottom
-precisely because it pairs terra's own model class with the highest price of any fallback — same
-quality, worst cost, which is what makes it the last resort rather than the obvious substitute.
+Rung 4 sits at the bottom precisely because it pairs terra's own model class with the highest price
+of any fallback — same quality, worst cost, which is what makes it the last resort rather than the
+obvious substitute.
+
+**Measured status of the middle rungs, 2026-08-29 — recorded because the chain's ordering assumes
+reachability the tree does not guarantee.**
+
+- **Rung 2 is ALIVE:** `grok 1.0.5 (5115b46bc9) [stable]`, on PATH at `~/.grok/bin/grok`; a prompt
+  probe returned correctly.
+- **Rung 3 is reachable only in part, and was NOT liveness-probed.** `glm` is on PATH (`~/bin/glm`);
+  `kimi` and `dsk`/`deepseek` are **not** on PATH, though `Start-KimiSession` and
+  `Start-DeepSeekSession` exist as PowerShell functions in the DispatchHelpers module. So which
+  transport answers depends on the invocation path, and **rung 3's probe-before-use is not
+  pedantry** — it is the rule that keeps a dead or corrupt transport from silently becoming the
+  reviewer. No liveness verdict is claimed here for any rung-3 lane.
+- **Cost, as ONE measured call rather than a benchmark:** the trivial rung-2 probe above cost
+  **$0.060852** and consumed **30,328 input tokens for a two-word prompt**. grok CLI evidently
+  loads project context by default, so per-call price is dominated by that context load rather
+  than by the diff under review. "Cheap" is true *against the rung below it* and is not the same
+  as free; a reviewer budgets for the context load, not for the prompt.
 
 **Obligations carried by every fallback artifact:**
 
@@ -5235,11 +5251,30 @@ quality, worst cost, which is what makes it the last resort rather than the obvi
 - **A transport that cannot report the served id is tagged `REVIEW-UNVERIFIED-TRANSPORT` instead**,
   and terra re-review becomes **mandatory rather than best-effort**. An unverifiable reviewer
   identity is a weaker claim than a verified substitution, so the two carry different labels.
+- **WHICH CHANNEL QUALIFIES — settled 2026-08-29, and the distinction matters more than the
+  answer.** Asking the model what it is returns `grok-4.6`, and that **model self-report is worth
+  nothing here**: a silently substituted model answers exactly the same way, which is the `[#492]`
+  scar's own channel. What qualifies is the **transport's usage accounting**:
+  `grok -p "…" --output-format json` returns a **`modelUsage`** object **keyed by the
+  actually-served model id**, with per-model token and cost accounting —
+  `"modelUsage": { "grok-4.6": { "inputTokens": 30328, "outputTokens": 22, "modelCalls": 1,
+  "costUSD": 0.060852 } }` — produced by the accounting path rather than claimed by the model.
+  **So a grok review run via `--output-format json` SATISFIES this obligation and is tagged
+  `DEGRADED-REVIEW`, not `REVIEW-UNVERIFIED-TRANSPORT`.** A seat that instead asks the model and
+  records the reply has satisfied the letter of the rule and defeated its purpose — that sentence
+  is the whole value of the `[#492]` scar.
 
 **The standing obligation, stated so the chain is not read as a quality equivalence.** **Terra
 re-reviews EVERY degraded artifact once quota returns.** The chain buys **availability**; it is
 **not** a quality substitute. A rung that unblocked an arc leaves the terra re-read owed, and that
 obligation outlives the outage that caused it.
+
+**The chain covers REVIEWS, and it does not cover model-specific MEASUREMENTS.** A fallback rung
+unblocks a review; it destroys a measurement whose instrument is the model. Concretely: the owed
+*"terra round 6 on lanes N and I, report tally deltas"* cannot be run on a fallback lane, because a
+tally delta taken across two different models measures the model swap rather than the rounds.
+Substituting the instrument there is not degradation — it is the loss of the thing being measured,
+so such work waits for terra rather than descending.
 
 **The funding rule.** Where a pay-as-you-go balance is insufficient, **that review stops — the work
 and the arc keep going.** Report the **exact top-up needed**; the operator funds it and says go. A
