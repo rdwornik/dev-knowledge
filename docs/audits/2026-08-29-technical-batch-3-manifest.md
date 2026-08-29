@@ -30,10 +30,11 @@ check before merge #1"* - and the check was not run before merge #1.
 | a | `worktree-lane-a-619-fm-coupling-repair` | local | MERGED `28bb3002` |
 | b | `worktree-lane-b-614-vision-to-readme` | local | MERGED `023a7797` |
 | c | `worktree-lane-c-000-claude-md-regenre` | local | HELD - blocked by lane b on `CLAUDE.md` |
-| d | `worktree-lane-d-000-codex-fate` | local | PAUSED - premise refuted (Z-G5); re-cut approved, re-queues after a+b |
+| d | `worktree-lane-d-000-codex-fate` | local | MERGED `c2c59281` as a REFUSAL - premise refuted (Z-G5). SUPERSEDED by lane h |
+| h | `worktree-lane-h-000-codex-universalise` | local | the re-cut: universalise only, widened scope, operator-ruled |
 | e | `claude/lane-e-000-essentials-census` | cloud | HARVESTED |
 | f | `claude/lane-f-000-adr81-fuzzy-band` | cloud | HARVESTED; ADR-116 sits on its branch |
-| g | `worktree-lane-g-000-autonomy-synthesis` | local | COMPLETE, awaiting merge |
+| g | `worktree-lane-g-000-autonomy-synthesis` | local | MERGED `f7b8fbdd` |
 
 **The dispatch record** - the seven frozen contracts, the substrate cut, the merge order and the
 freeze-time measurements - lives at `docs/audits/2026-08-29-technical-batchd-launch-contracts/`.

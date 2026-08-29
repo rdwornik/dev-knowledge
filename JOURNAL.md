@@ -19,6 +19,38 @@
 
 ---
 
+### 2026-08-29 (s) - CC (Opus 5, background job, primary checkout, integrator): lane d's refusal merged, re-cut as lane h
+
+**Anchors:** `c2c59281` `2f127b9d`
+
+**Did:** merged lane d as a REFUSAL, re-cut it as lane h on the operator's confirmed terms, and
+updated the batch manifest.
+
+**Result: the refusal was the deliverable, and it was right about my own contract.** Lane d
+verified the factual premises, then refuted the decision premise on three counts — the frozen
+write-scope could not satisfy its own done-contract (19 of 21 citing sites live outside it), the
+PLAYBOOK grant was off by one, and **Z-G5 says the opposite of what I assumed**: *"That directory
+is **not** free to delete"*, *"the lawful discharge is universalisation … not deletion"*, both
+options *"costed for the operator's cut"*. I wrote *"codex/ is gone either way"* from the
+operator's `no single-file folders` ruling **without reading the register entry's full text**. The
+lane read it. That is the lesson the operator asked be filed: **a decision premise needs the
+ruling's FULL text read at freeze, not the operator's summary of it.**
+
+**One exemption asymmetry, recorded rather than smoothed.** With the batch-3 manifest committed,
+lane g's merge was correctly exempt from `journal_spine_anchor` — but lane d's was not, though
+both branches match `LANE_BRANCH_RE` (verified directly). The difference is that the manifest
+listed lane d as `PAUSED` rather than as an open lane. So the exemption appears to key on the
+per-lane status line and not on the branch name alone. Recorded as an observation, not a diagnosis
+— I did not read `batch_manifest.py`'s predicate to confirm it, and saying which it is would be a
+guess.
+
+**Changes:** the lane-h contract, the batch-3 manifest, the audits index.
+
+**Abandoned:** nothing. Lane d's worktree tears down next; lane h dispatches against a tree with no
+competing writer.
+
+---
+
 ### 2026-08-29 (r) - CC (Opus 5, background job, primary checkout, integrator): the missing batch manifest, which was the cause of everything I kept repairing
 
 **Anchors:** `28bb3002` `023a7797` `cf87cccb` `3c83e377` `7e739798` `8a94ee71`
