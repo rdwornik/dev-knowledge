@@ -292,3 +292,71 @@ with the decision it needs and whose it is (ADR-108 §A):
   them and the correction is cheap.
 - **`docs/audits/README.md` is left STALE by design** — `[#590]` narrowed the index hook so a batch lane
   does not regenerate it. The integrator owns it (and F4 records that as a recurring duty, not a finding).
+
+---
+
+## AMENDMENT 1 — 2026-08-29, same lane, before merge: **the tally in §1 and §2 is WRONG, and the corrected one fails ADR-111's second rule**
+
+**In-file amendment marker per `CLAUDE.md` §5 rule 3** (audits are immutable; supersede with a new file or
+an in-file marker — never an in-place edit). The original figures are left standing above so the error is
+part of the record rather than erased by it.
+
+### A1.1 · The measured tally
+
+The `TALLY` line in §1 and the "39" in §2 were **written by hand from drafting notes and never counted
+against the finished table.** Parsed mechanically from the table's own outcome column — every row parsed,
+zero parse failures:
+
+```
+$ awk '/^id   candidate/,/^```$/' <this file> | grep -E "^[A-Z][0-9]+ " \
+    | sed -E 's/^([A-Z][0-9]+).*[[:space:]](own|dis|CAND|rej)[[:space:]]+.*/\1 \2/' \
+    | awk '{print $2}' | sort | uniq -c
+
+     51 CAND        18 own        21 rej        10 dis          n = 100
+```
+
+```
+STATED (wrong)   OWNED 16 | DISCHARGED 11 | CANDIDATE 39 | REJECTED 28   (n = 94)
+MEASURED         OWNED 18 | DISCHARGED 10 | CANDIDATE 51 | REJECTED 21   (n = 100)
+```
+
+**Wrong on all five numbers.** `n` was under-counted because the thirteen close-packet rows `W1`–`W13`
+were added to the table after the count was drafted and the count was never re-run. This is the repo's own
+most-restated rule failing on the very artifact that cites it: *"Never restate a count or roster in prose —
+cite the surface that computes it."* The §2 grouping block, by contrast, was built by enumerating the
+actual ids and sums to ~50 — so the **grouping was right while the headline was wrong**, which is precisely
+how a hand-carried number survives review: everything around it is correct.
+
+### A1.2 · The consequence I have to state rather than bury
+
+**CANDIDATE is 51 of 100 — a majority.** ADR-111: *"a triage pass that routes most items to CANDIDATE has
+not triaged."* **On the literal rule, this pass fails its own bar, and §0's claim of "28 of 94 (30 %)" was
+false when written.**
+
+The defense, offered as a defense and not as a pass:
+
+- **49 of 100 are decided in place and need nothing from anyone** — 21 REJECTED with reasons recorded,
+  18 OWNED with an open row named and verified, 10 DISCHARGED with a locator that resolves. That is the
+  half of the corpus where a decision was actually taken rather than deferred.
+- **The 51 collapse to 13 decision acts** (§2's grouping, which stands unchanged and was correct): nine
+  intakes and four rulings. ADR-111's target is the anti-pattern of *passing findings onward individually
+  so someone else decides them one by one*; 51 items arriving as 13 named acts, each with an owner and a
+  routing under ADR-108 §A, is not that anti-pattern.
+- **But 13 acts is still 13 acts**, and if the architect's reading of ADR-111 is the literal one, the
+  correct remedy is a second pass that pushes the weakest CANDIDATEs into REJECTED. I have deliberately
+  **not** done that here, because reclassifying items to satisfy a ratio — after seeing the ratio — is
+  gerrymandering a metric, and it would make every outcome in the table less trustworthy to buy one
+  number. **The bar is missed honestly rather than met dishonestly.**
+
+The candidates I judge weakest, named so a re-triage has a starting point rather than starting over:
+**M1** (the deferral is arguably already a recorded decision → DISCHARGED), **C1**, **K5**, **M5**, **N10**
+(all four are *integrator actions with a known method*, not questions), and **W2**/**W3**/**W4** (operator
+acts already enumerated on the wave-1 close packet's own owed list). Converting those eight would land
+CANDIDATE at 43 of 100 — still short of a minority, which is itself the honest finding: **this batch
+genuinely produced more open questions than it closed**, and no classification scheme changes that.
+
+### A1.3 · What is NOT affected
+
+Every per-row outcome, locator and piece of evidence in §1 and §3 stands — the error was in the summation,
+not in the triage. §2's grouping block and §4's seven proposed births are unchanged and were independently
+derived from the ids.
