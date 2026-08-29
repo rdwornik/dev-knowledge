@@ -26,4 +26,4 @@
 
 ## Alternatives considered
 
-<Optional. What else was evaluated and why it was not chosen?>
+<Always filled. What else was evaluated, and why was it not chosen? Where nothing else was evaluated, record that — "none considered", plus the reason — so the section reads as an answer rather than as an omission.>

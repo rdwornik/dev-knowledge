@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-07-29
+last_reviewed: 2026-08-29
 status: active
 owner: Rob
 ---
@@ -14,9 +14,9 @@ owner: Rob
 
 Version: 2.2
 Effective: 2026-07-29
-Authority: ADR-67 (process operationalization — gated loop, this amendment); ADR-43 (cross-project transcript routing; routed-mirror clause RETIRED by amendment 2026-07-23 — transcripts are canonical-only in `ai-council/output/`); ADR-60 (folder taxonomy, ephemeral briefs); ADR-03 (blind voting); ADR-08 (research degradation exit code); council-question-guide.md (question format)
+Authority: ADR-67 (process operationalization — gated loop, this amendment); ADR-43 (cross-project transcript routing; routed-mirror clause RETIRED by amendment 2026-07-23 — transcripts are canonical-only in `ai-council/output/`); ADR-60 (folder taxonomy, ephemeral briefs); ADR-03 (blind voting); ADR-08 (research degradation exit code); `ai-council/protocols/COUNCIL_QUESTION_GUIDE.md` (question format)
 
-> **Authoritative sources.** Question format: `ai-council/docs/council-question-guide.md`.
+> **Authoritative sources.** Question format: `ai-council/protocols/COUNCIL_QUESTION_GUIDE.md`.
 > Routing semantics: `docs/decisions/ADR-43_cross_project_transcript_routing.md`.
 > Live flow: `ai-council/src/ai_council/{cli,inbox,orchestrator,routing,synthesis}.py`.
 > Visual: `ARCHITECTURE.md` § Processes → "AI Council debate pipeline".
@@ -96,7 +96,7 @@ Detailed stage mechanics follow. The stage numbers (0–6) map to loop steps
 **Gate:** if you can't state the question in one sentence, it is two questions;
 split them into two debates.
 
-Anti-patterns (from `council-question-guide.md` § Neutralizing bias):
+Anti-patterns (from `COUNCIL_QUESTION_GUIDE.md` § Neutralizing bias):
 
 - Leading headline — names a candidate answer instead of the problem
 - Asker-leakage — "I think…", "obviously…", "ideally…" anywhere in the brief
@@ -106,7 +106,7 @@ Anti-patterns (from `council-question-guide.md` § Neutralizing bias):
 - Loaded terminology — "bloated", "messy", "obvious" — replace with observable
   facts
 
-The bias self-check is question 6 of the council-question-guide pre-flight:
+The bias self-check is question 6 of the `COUNCIL_QUESTION_GUIDE.md` pre-flight:
 *if a fast unanimous agreement would not surprise you, the question is leading*.
 
 ---
@@ -157,7 +157,7 @@ Size guide: 40–80 lines total, 3–7 sub-questions, 2–4 options each (never 
 A brief over 100 lines has narrative that should be facts — trim.
 
 **Research-mode format** is different — it is a retrieval brief, not a ballot.
-See `council-question-guide.md` § Research-mode questions for the full schema.
+See `COUNCIL_QUESTION_GUIDE.md` § Research-mode questions for the full schema.
 Key differences: no `Questions`/`Constraints`; uses `Background`/`What to find
 out`/`Source rules`/`Output wanted`; recency window and source-type rules are
 mandatory.
@@ -396,7 +396,7 @@ committed path in the target repo (no behavior change from v1.0).
 | Health check fails for one provider                                 | Missing/expired API key, network issue, provider outage                                                              | Choose "continue with working providers" when prompted (non-research modes). Restore key after the run. |
 | Exit code `3` after `--inbox`                                       | At least one research run degraded (summarizer outage → truncation fallback per ADR-08)                              | Inspect the research report; rerun with `--no-cache` after summarizer recovers if a clean version is wanted. |
 | Brief archived as `FAILED_<timestamp>_<name>.md`                    | Exception during debate or routing parse                                                                             | Read CLI error; fix the brief (or routing config) and move it back from `council_inbox/archive/` to `council_inbox/`. |
-| Synthesis is biased toward the asker's pre-stated preference        | The brief leaked the asker's lean (Stage 0 / 1 bias)                                                                 | Discard the verdict; rewrite the brief per `council-question-guide.md` § Neutralizing bias; rerun. Blind voting cannot fix this. |
+| Synthesis is biased toward the asker's pre-stated preference        | The brief leaked the asker's lean (Stage 0 / 1 bias)                                                                 | Discard the verdict; rewrite the brief per `COUNCIL_QUESTION_GUIDE.md` § Neutralizing bias; rerun. Blind voting cannot fix this. |
 | Cost surprise (debate cost > $1.00)                                 | Full panel + 2 rounds + long question. Or research `--deep` opt-in.                                                  | Use `--lite` (3-model) and/or `--rounds 1` for simpler questions. Cost gate lives in operator judgment, not policy. |
 
 ---
@@ -405,7 +405,7 @@ committed path in the target repo (no behavior change from v1.0).
 
 - **This amendment:** `docs/decisions/ADR-67-ai-council-process-operationalization.md` (gated loop + /council-question trigger + deterministic return).
 - **Visual:** `ARCHITECTURE.md` § Processes → "AI Council debate pipeline" (Mermaid C3).
-- **Question format authority:** `ai-council/docs/council-question-guide.md`.
+- **Question format authority:** `ai-council/protocols/COUNCIL_QUESTION_GUIDE.md`.
 - **Routing decision:** `docs/decisions/ADR-43_cross_project_transcript_routing.md`.
 - **Blind voting:** `ai-council/docs/decisions/ADR-03-blind-voting.md` (tool-layer).
 - **Folder taxonomy / ephemeral briefs:** `docs/decisions/ADR-60-docs-folder-taxonomy.md`.
