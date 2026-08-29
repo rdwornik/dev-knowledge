@@ -283,3 +283,46 @@ exactly the outcome the correction exists to prevent.
 `docs-genre-decisions`, `methodology-yaml`, `pytest-minversion`, `root-gitattributes` and others —
 is recorded in night-batch-2 lane A's packet, which made the parity flip, measured that it REDs
 `test_check_fleet_parity_green_on_live_repo`, and **reverted it** rather than edit the instrument.
+
+## AMENDMENT — 2026-08-29 (b): R18's un-parking conditions TESTED, not deferred again
+
+> Appended, not edited. This is the integrator act the batch-D freeze owed (architect CUT-1:
+> the ROOT-CONTRACT is an amendment to this intake, landed serially, and explicitly NOT folded
+> into the CLAUDE.md re-genre lane).
+
+The 2026-08-29 amendment above said *"R18's un-parking conditions are now the thing to test, not a
+deferred question."* This amendment tests them, so the claim does not stand unexercised for a
+second window.
+
+**The conditions, quoted from where they actually live** — `docs/audits/2026-08-19-technical-n3-ratification-pack.md`
+§6.4. Note for the next reader: this intake's `consumers:` line cites "§6.4" with no document, and
+§6.4 is **not in this file** — it is in the N3 ratification pack. The locator resolves, but only
+after a search; it is written down here so the next reader does not repeat it.
+
+> **Un-parked by:** the kernel row's leg 1 landing (the tiering is the rule set the checker would
+> assert), **or** the next window with ≥1 birth of headroom — whichever is first.
+
+**Condition (a) — the kernel row's leg 1: NOT MET, and the reason is a taxonomy mismatch rather
+than absent work.** `[#559]` is `status: open`. Its leg 1 requires *"every `ALL_CHECKS` member
+carries a `kernel`/`hub` tier"*. A tiering DOES exist and is live — but it is `[#597]`'s, and its
+enum is `TIER_COMMIT` / `TIER_SHIP` (`scripts/audit.py:357-358`), declared inline in `ALL_CHECKS`
+per the comment at `scripts/audit.py:340`. Measured at freeze: **54 checks discovered, 0 carrying a
+`kernel`/`hub` tier.** So the axis that landed is *when a check runs* (commit ⊂ ship), and the axis
+R18 would assert against is *what layer a check belongs to* (kernel vs hub). These are different
+questions and one does not satisfy the other. Recording that distinction is the point: a future
+reader seeing "tiering landed" could otherwise mark leg 1 met by name-matching.
+
+**Condition (b) — a window with ≥1 birth of headroom: NOT MET this window.** The 2026-08-29
+post-night window birthed `[#616]`, `[#617]`, `[#618]`, `[#619]` plus intakes #62 and #63, each
+operator-directed and each carrying its own `kill-candidates:` line. Those births SPENT the
+window's filing capacity rather than evidencing spare headroom; a window that fills its ledger is
+not a window with headroom in it.
+
+**VERDICT: R18 stays PARKED, on tested conditions rather than on silence.** Both un-parking
+conditions were live, both were checked, and both are unmet. The intake's open question 1 —
+whether `fleet.yml` is a new file at all, or whether `ecosystem/organ-registry.yaml` /
+`ecosystem/deployed-versions.yaml` already carry the consumer roster — remains the cheap thing to
+settle before R18 births, and remains unsettled.
+
+**Consumed by:** the batch-D freeze, 2026-08-29
+(`docs/audits/2026-08-29-technical-batchd-launch-contracts/`).

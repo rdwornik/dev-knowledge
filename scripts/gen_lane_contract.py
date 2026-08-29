@@ -850,20 +850,35 @@ def cmd_emit(slug: str, purpose: str, repo: str, task_id: Optional[str], model: 
 
 
 @cli.command("check")
-@click.argument("path", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.argument("paths", nargs=-1, required=True,
+                type=click.Path(exists=True, dir_okay=False, path_type=Path))
 @click.option("--expect-shape", "expect_shape", type=click.Choice(SHAPE_ENUM), default=None,
               help="assert the lane's substrate; omitted, it is read from the contract")
-def cmd_check(path: Path, expect_shape: Optional[str]) -> None:
-    """Check an existing contract: every mandatory field present and internally consistent."""
-    parsed = parse_contract(path.read_text(encoding="utf-8"), expect_shape=expect_shape)
-    if parsed.ok:
-        logger.info("%s: OK — %d sections, shape %s, slug %s, branch %s, command %r",
-                    path, len(parsed.sections), parsed.shape, parsed.slug,
-                    parsed.branch or "(none — interactive)", parsed.command)
-        return
-    for problem in parsed.problems:
-        logger.error("%s: %s", path, problem)
-    raise SystemExit(1)
+def cmd_check(paths: tuple[Path, ...], expect_shape: Optional[str]) -> None:
+    """Check existing contract(s): every mandatory field present and internally consistent.
+
+    MANY paths, not one. The `lane-contract-check` pre-commit hook passes every staged
+    contract in one invocation, so a single-`PATH` signature made the gate die with
+    `Got unexpected extra arguments` the first time a batch staged more than one contract
+    at once — the gate did not refuse a bad contract, it failed to run at all. Found
+    2026-08-29 freezing six contracts in one commit; earlier batches staged them singly and
+    never tripped it.
+
+    EVERY path is checked before exiting, so one bad contract does not mask the rest.
+    """
+    failed = 0
+    for path in paths:
+        parsed = parse_contract(path.read_text(encoding="utf-8"), expect_shape=expect_shape)
+        if parsed.ok:
+            logger.info("%s: OK — %d sections, shape %s, slug %s, branch %s, command %r",
+                        path, len(parsed.sections), parsed.shape, parsed.slug,
+                        parsed.branch or "(none — interactive)", parsed.command)
+            continue
+        failed += 1
+        for problem in parsed.problems:
+            logger.error("%s: %s", path, problem)
+    if failed:
+        raise SystemExit(1)
 
 
 @cli.command("enums")

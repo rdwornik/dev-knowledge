@@ -110,6 +110,43 @@ def test_check_accepts_an_emitted_contract_and_rejects_a_truncated_one(tmp_path)
     assert runner.invoke(glc.cli, ["check", str(bad)]).exit_code == 1
 
 
+
+def test_check_takes_MANY_paths_because_the_pre_commit_hook_passes_many(tmp_path):
+    """The gate died with `Got unexpected extra arguments` the first time a batch staged
+    more than one contract in one commit -- it did not refuse a bad contract, it failed to
+    RUN. Found 2026-08-29 freezing six contracts at once; earlier batches staged them
+    singly, so a single-`PATH` signature survived unnoticed.
+    """
+    runner = CliRunner()
+    made = []
+    for i, slug in enumerate(("lane-a-201-one", "lane-b-202-two", "lane-c-203-three")):
+        f = tmp_path / f"LANE-{slug}.md"
+        f.write_text(glc.render_contract(_spec(slug=slug, task_id=str(201 + i))),
+                     encoding="utf-8", newline="\n")
+        made.append(str(f))
+    assert runner.invoke(glc.cli, ["check", *made]).exit_code == 0
+
+
+def test_check_reports_EVERY_bad_path_rather_than_stopping_at_the_first(tmp_path, caplog):
+    """One broken contract must not mask the rest: a gate that exits on the first failure
+    turns a batch freeze into a one-at-a-time bisect."""
+    runner = CliRunner()
+    good = tmp_path / "LANE-a-204-good.md"
+    good.write_text(glc.render_contract(_spec(slug="lane-a-204-good", task_id="204")),
+                    encoding="utf-8", newline="\n")
+    bad1 = tmp_path / "LANE-b-205-bad.md"
+    bad1.write_text("# LANE lane-b-205-bad", encoding="utf-8")
+    bad2 = tmp_path / "LANE-c-206-bad.md"
+    bad2.write_text("# LANE lane-c-206-bad", encoding="utf-8")
+
+    import logging
+    with caplog.at_level(logging.ERROR):
+        res = runner.invoke(glc.cli, ["check", str(good), str(bad1), str(bad2)])
+    assert res.exit_code == 1
+    reported = caplog.text
+    assert "205" in reported and "206" in reported, reported
+
+
 # --- 2. all mandatory fields present ------------------------------------------------------
 
 @pytest.mark.parametrize("section", glc.MANDATORY_SECTIONS)
