@@ -1026,3 +1026,127 @@ def test_template_holds_no_second_copy_of_the_dispatch_command():
     verb = ds.ruled_verb(_REPO)
     assert "{{DISPATCH_FORM}}" in tmpl
     assert not any(ln.split()[:1] == [verb] for ln in ds.fenced_lines(tmpl))
+
+
+# --- FM-4: the FUNNEL HEALTH block (golden shape) ---------------------------
+#
+# The block is DERIVED, never recomputed: `gen_handoff` imports FM-2's derivation module and
+# reads the six numbers off it. These tests pin the block's SHAPE — field names, their order,
+# the numbers-only format, the delimiters — and deliberately NOT tonight's numbers, which move
+# every day the funnel does. The FM-2 coupling is exercised through a fake module injected into
+# `sys.modules`, so the shape is proven without waiting for lane I to land.
+
+_FUNNEL_LABELS = (
+    "intakes consumed-unarchived",
+    "ADRs unexecuted",
+    "orphans forward (object -> consumer)",
+    "orphans backward (open row -> resolving source)",
+    "rows closed this window",
+    "value evidence attached",
+)
+
+
+class _FakeMeasurement:
+    """Stands in for FM-2's `measure()` result — the six attributes the adapter reads."""
+    intakes_consumed_unarchived = 7
+    adrs_unexecuted = 3
+    orphans_forward = 0
+    orphans_backward = 2
+    rows_closed_this_window = 5
+    value_evidence_attached = 4
+
+
+@pytest.fixture
+def fm2(monkeypatch):
+    """Install a fake FM-2 derivation module under the name gen_handoff imports."""
+    import sys
+    import types
+    mod = types.ModuleType(gh._FUNNEL_MODULE)
+    mod.measure = lambda repo_root: _FakeMeasurement()          # noqa: ARG005
+    monkeypatch.setitem(sys.modules, gh._FUNNEL_MODULE, mod)
+    monkeypatch.setitem(sys.modules, f"scripts.{gh._FUNNEL_MODULE}", mod)
+    return mod
+
+
+def _block_body(block):
+    """The non-blank lines between the delimiters."""
+    assert block.startswith(gh._FUNNEL_BEGIN), block[:120]
+    assert block.rstrip().endswith(gh._FUNNEL_END), block[-120:]
+    inner = block.split(gh._FUNNEL_BEGIN, 1)[1].rsplit(gh._FUNNEL_END, 1)[0]
+    return [ln for ln in inner.splitlines() if ln.strip()]
+
+
+def test_funnel_health_block_shape_is_pinned(fm2):
+    """GOLDEN. Field names, their ORDER, the numbers-only format, the delimiters. Not values."""
+    body = _block_body(gh.funnel_health_block(_REPO))
+    assert body[0].startswith("## FUNNEL HEALTH")
+    assert body[1].startswith("source: ")
+    fields = body[2:]
+    assert len(fields) == len(_FUNNEL_LABELS), fields
+    for line, label in zip(fields, _FUNNEL_LABELS, strict=True):
+        assert re.fullmatch(rf"{re.escape(label)}: (?:\d+|unavailable)", line), line
+
+
+def test_funnel_health_block_carries_no_verdict_and_no_sha(fm2):
+    """ANTI-BLUFF. Numbers only: no verdict word, no sha, no backlog id anywhere in the block."""
+    block = gh.funnel_health_block(_REPO)
+    for rx in (re.compile(r"\b(?:GREEN|RED|PASS|FAIL|WARN|healthy|degraded)\b"),
+               re.compile(r"\b[0-9a-f]{7,}\b"),
+               re.compile(r"#\d+")):
+        assert not rx.search(block), f"{rx.pattern} matched: {block}"
+
+
+def test_funnel_health_names_fm2_as_its_source(fm2):
+    """ONE TRUTH: the block says where its numbers came from, by module path."""
+    assert gh._FUNNEL_MODULE in gh.funnel_health_block(_REPO)
+
+
+def test_funnel_health_degrades_honestly_when_fm2_is_absent(monkeypatch):
+    """FM-2 has not landed. The block must render `unavailable`, never a fabricated number —
+    a second implementation of "is this intake consumed?" is the failure this batch removes."""
+    monkeypatch.setattr(gh, "_load_funnel_measure", lambda: (None, "not importable"))
+    fields = _block_body(gh.funnel_health_block(_REPO))[2:]
+    assert len(fields) == len(_FUNNEL_LABELS)
+    assert all(ln.endswith(": unavailable") for ln in fields), fields
+
+
+@pytest.mark.parametrize("mode", ["architect", "execution"])
+def test_assembled_bundle_carries_the_funnel_health_block(tmp_path, fm2, mode):
+    """EX-ANTE: the next assembled bundle carries the block."""
+    res = _gen(tmp_path, mode=mode, assemble=True)
+    text = (res.bundle_dir / "FUNNEL_HEALTH.md").read_text(encoding="utf-8")
+    assert gh._FUNNEL_BEGIN in text and gh._FUNNEL_END in text
+    for label in _FUNNEL_LABELS:
+        assert f"{label}: " in text
+
+
+def test_epic_bundle_carries_the_funnel_health_block(tmp_path, fm2):
+    assert (_gen_epic(tmp_path).bundle_dir / "FUNNEL_HEALTH.md").exists()
+
+
+def test_functional_bundle_stays_one_file(tmp_path, fm2):
+    """SCOPED, and the reason is recorded: HANDOFF_PROCESS §16 pins functional mode at ONE
+    file, and `protocols/` delta is 0 for this lane — so the block is not emitted there."""
+    assert not (_gen_functional(tmp_path).bundle_dir / "FUNNEL_HEALTH.md").exists()
+
+
+def test_funnel_health_is_regenerated_not_carried(tmp_path, fm2):
+    """A STALE BLOCK IS WORSE THAN NONE. A re-generation overwrites the file whole — it is
+    never spliced, never appended to, never left in place."""
+    res = _gen(tmp_path)
+    (res.bundle_dir / "FUNNEL_HEALTH.md").write_text("STALE — a previous window\n",
+                                                     encoding="utf-8")
+    res2 = _gen(tmp_path)
+    text = (res2.bundle_dir / "FUNNEL_HEALTH.md").read_text(encoding="utf-8")
+    assert "STALE" not in text
+    assert gh._FUNNEL_BEGIN in text
+
+
+def test_funnel_health_is_not_folded_into_the_browser_paste(tmp_path, fm2):
+    """The answer-free invariant is preserved where it is stated: the browser-visible files
+    (BOOT / RESIDUAL / PROBES) and the assembled PASTE_THIS carry no count."""
+    res = _gen(tmp_path, assemble=True)
+    for name in ("HANDOFF_BOOT.md", "RESIDUAL.md", "PROBES.md", "PASTE_THIS.md"):
+        p = res.bundle_dir / name
+        if p.exists():
+            assert gh._FUNNEL_BEGIN not in p.read_text(encoding="utf-8"), name
