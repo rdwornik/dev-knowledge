@@ -19,6 +19,24 @@
 
 ---
 
+### 2026-08-29 (j) - CC (Opus 5, background job, primary checkout, integrator): the integration merge's own anchor
+
+**Did:** anchors **`7f01e51a`** — the integration commit that carried JOURNAL (i), the two stranded
+rows `[#618]`/`[#619]`, and the PLAYBOOK `[#610]` correction — so the merge bringing it to `main`
+carries an anchor naming a commit it introduces.
+
+**Result:** a deliberate second commit, not ceremony. A single-commit branch cannot anchor its own
+merge: the entry would have to name a hash that does not exist when the entry is written. The repo
+learned this the hard way and the rule is *two commits, always*; this is the second one. Written
+after `7f01e51a` existed, which is the only order in which it can be true.
+
+**Changes:** `JOURNAL.md` only.
+
+**Next:** tear down the three lane worktrees and verify the round-trip leaves the tree identical,
+then freeze batch D.
+
+---
+
 ### 2026-08-29 (i) - CC (Opus 5, background job, primary checkout, integrator on `docs/postnight-integration`): three parallel lanes integrated — and every one of them corrected me
 
 **Did:** integrated the post-night arc's three file-disjoint worktree lanes and filed the two rows
