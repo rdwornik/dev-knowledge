@@ -19,6 +19,19 @@
 
 ---
 
+### 2026-08-29 (x) - CC (Opus 5, background job, primary checkout, integrator): anchor for the freeze-predicate commit
+
+**Anchors:** `3a423bf1`
+
+**Did:** names the commit that wired the `open-batch` predicate, so its merge carries an anchor for
+a commit it introduces.
+
+**Result:** the two-commit shape, applied without rediscovering it. `[#623]` will mechanise the
+record line; the ordering — artifact first, then the entry that can name it — is not a format and
+so cannot be mechanised, which is why it keeps needing a deliberate second commit.
+
+---
+
 ### 2026-08-29 (w) - CC (Opus 5, background job, primary checkout, integrator): the exemption wired at freeze, where silence was the failure
 
 **Anchors:** `118cb328` `12cdd807`
