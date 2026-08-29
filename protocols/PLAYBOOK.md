@@ -221,7 +221,7 @@ reconciled_with: handoff-process@6.3.0
   - [Review Tools](#review-tools)
   - [Codex-utilization doctrine (lanes + exact model strings)](#codex-utilization-doctrine-lanes--exact-model-strings)
   - [Codex dual-role — reviewer today, producer gated](#codex-dual-role--reviewer-today-producer-gated)
-  - [DEGRADED-REVIEW — when the doctrinal reviewer lane is unavailable](#degraded-review--when-the-doctrinal-reviewer-lane-is-unavailable)
+  - [DEGRADED-REVIEW — the fallback chain when the doctrinal reviewer lane is unavailable](#degraded-review--the-fallback-chain-when-the-doctrinal-reviewer-lane-is-unavailable)
 - [17. Code Quality Audit Process](#17-code-quality-audit-process)
   - [Severity tiers](#severity-tiers)
   - [Process](#process-1)
@@ -5199,54 +5199,72 @@ Codex has two potential roles in the fleet — **reviewer** (the live, doctrinal
 - **The producer lane is NOT activatable as written today (R4 — reconciliation).** The EPIC-H charter extension describes a Codex **producer** role (Codex authors, CC adversarially verifies — the inverse of the live Codex-verifies-CC review flow). But the hub-owned global config currently **fixes Codex as a read-only reviewer** (`~/.codex/AGENTS.md` pins the reviewer role; the exec sandbox is read-only). So the producer lane is **charter-only** — a documented intent, not a switch a session may flip — until the activation mechanism (`#341`) lands and is ruled. Do not treat "Codex producer" as available; a plan that names a producer leg is describing future work, not a runnable lane.
 - **Sanctioned interim producer-lane fallback (R5 — codified).** Until per-invocation producer activation is designed (`#341`), the sanctioned way to get producer-grade leverage from Codex **without editing global infra** is: **Codex fully specifies the design under a bounded prompt → CC implements → terra (`gpt-5.6-terra`) read-only review pre-merge.** The design-specification step is a **bounded, read-only `codex exec` design prompt** — Codex emits a spec/plan *as text* inside the read-only sandbox, **writes nothing to the tree, and never authors the merged artifact (CC does).** This is a **distinct invocation** from the `/codex-review` **reviewer** role (findings-only, governed by `~/.codex/AGENTS.md`) — so it is not bound by that config's "review findings, don't author fixes" contract — **and** it stops short of the gated **producer** role (authoring merged code). Nothing about the hub-owned config changes. This is exactly the flow executed on **ai-council #30**. *Whether an ad-hoc design-spec `codex exec` prompt should carry its own bounded reviewer-config reconciliation* is inside `#341`'s scope — which also carries the producer *mechanism itself* (repo-local `AGENTS.md` precedence, per-invocation activation, the producer guardrails).
 
-### DEGRADED-REVIEW — when the doctrinal reviewer lane is unavailable
+### DEGRADED-REVIEW — the fallback chain when the doctrinal reviewer lane is unavailable
 <!-- scope: dev -->
 
-*Architect ruling, 2026-08-29.* The doctrinal pre-merge reviewer is terra (`gpt-5.6-terra` via
-`/codex-review`, pinned on both lanes — "Codex-utilization doctrine" above). When that lane is
-**unavailable** — provider quota exhausted, or a provider outage — the arc does not stall waiting
-for it: **grok may run the pre-merge review instead**, under the conditions below. An arc blocked
-on an absent reviewer produces no review at all, which is worse than a review carrying an honest
-label.
+*Architect ruling 2026-08-29, amended the same day to the chain below.* **A missing reviewer does
+not block the work.** The doctrinal pre-merge reviewer is terra (`gpt-5.6-terra` via
+`/codex-review`, pinned on both lanes — "Codex-utilization doctrine" above); when it is unavailable
+on quota or outage, the arc **descends the chain** rather than stalling. An arc blocked on an
+absent reviewer produces no review at all, which is worse than a tagged review that terra re-reads
+afterwards.
 
-- **The artifact carries a `DEGRADED-REVIEW` tag plus the reason** — which lane was unavailable,
-  and why (quota / outage). A degraded review that reads like a doctrinal one launders its own
-  provenance; the tag is what keeps the substitution legible to whichever seat reads the artifact
-  afterwards.
-- **Terra re-reviews the arc once the lane returns.** The degraded review unblocks the arc; it
-  does not retire the review obligation.
-- **Each round records the SERVED model id — this is the `[#492]` scar, not a formality.** Grok
-  has served a **substituted model id silently**: the request named one model, the response came
-  back from another, and nothing in the artifact recorded it. The tag alone is therefore not
-  enough. A `DEGRADED-REVIEW` artifact records, per round, the model id the transport actually
-  served, so a substitution is visible rather than inferred.
-- **Where the transport cannot report the served id**, the artifact is tagged
-  **`REVIEW-UNVERIFIED-TRANSPORT`** instead, and terra re-review becomes **mandatory rather than
-  best-effort**. An unverifiable reviewer identity is a weaker claim than a verified substitution,
-  so the two carry different labels rather than one shared label.
+**The chain — ordered COST-ASCENDING, and the ordering has a stated reason.** Because terra
+re-review restores quality afterwards (the standing obligation below), the cheap-but-weaker rungs
+are tried ahead of the expensive-but-equivalent one:
 
-**This clause does not discharge `[#492]`.** That row — *"Grok review-lane acceptance — gated
-≥ 2026-08-07, measured against terra on the same diffs"* — still owes its measured SDA-1
-comparison gate. What lands here is a **fallback under outage**, not reviewer-role acceptance:
-grok is admitted in a narrow shape whose output is tagged and re-reviewed, and admitting it that
-way is independent of the measured comparison `[#492]` asks for. Reading this subsection as
-acceptance would close a gate no measurement has passed.
+| Rung | Lane | Why it sits here |
+|---|---|---|
+| 1 | **terra** (`gpt-5.6-terra`) | the default |
+| 2 | **grok CLI** | pay-per-call, measured cheap |
+| 3 | **Kimi / GLM / DeepSeek CLI** | the FIRST transport that passes a **liveness probe** |
+| 4 | **Codex via pay-as-you-go API** | **last resort only** |
 
-**And the adjacent measurement went the other way, which is why the shape here is narrow.**
-`[#562]` closed 2026-08-23 with an architect admission verdict of **`grok-4.6` REFUSED** (G1 FAIL,
-G2 FAIL; `docs/audits/2026-08-22-technical-annotation-and-rulings-ledger.md` §5.1). That verdict
-is about **admission as a reviewer lane**, and it stands. What this subsection licenses is the
-strictly smaller thing: a **tagged, served-id-recorded, terra-re-reviewed stopgap while the
-doctrinal lane is down**. A seat reading this as "grok is an approved reviewer" has read past both
-the refusal and the tag.
+Rung 3 is **conditional by design**: the last preflight found these transports dead or corrupt, so
+probing one before use is part of the rule rather than an optimisation. Rung 4 sits at the bottom
+precisely because it pairs terra's own model class with the highest price of any fallback — same
+quality, worst cost, which is what makes it the last resort rather than the obvious substitute.
+
+**Obligations carried by every fallback artifact:**
+
+- **The `DEGRADED-REVIEW` tag plus the reason** — which lane was unavailable, and why (quota /
+  outage). A degraded review that reads like a doctrinal one launders its own provenance.
+- **The served model id, recorded PER ROUND — the `[#492]` scar, not ceremony.** Grok has served a
+  **substituted model id silently**: the request named one model, the response came back from
+  another, and nothing in the artifact recorded it. The tag alone is therefore not enough.
+- **A transport that cannot report the served id is tagged `REVIEW-UNVERIFIED-TRANSPORT` instead**,
+  and terra re-review becomes **mandatory rather than best-effort**. An unverifiable reviewer
+  identity is a weaker claim than a verified substitution, so the two carry different labels.
+
+**The standing obligation, stated so the chain is not read as a quality equivalence.** **Terra
+re-reviews EVERY degraded artifact once quota returns.** The chain buys **availability**; it is
+**not** a quality substitute. A rung that unblocked an arc leaves the terra re-read owed, and that
+obligation outlives the outage that caused it.
+
+**The funding rule.** Where a pay-as-you-go balance is insufficient, **that review stops — the work
+and the arc keep going.** Report the **exact top-up needed**; the operator funds it and says go. A
+review that cannot be paid for is a stopped review rather than a stopped lane.
+
+**Admission — and this is what reconciles the chain with the refusal on record.** Every fallback
+model still owes the **SDA-1 reviewer-role gate as its measured admission row**. `[#562]` closed
+2026-08-23 with an architect verdict of **`grok-4.6` REFUSED** (G1 FAIL, G2 FAIL;
+`docs/audits/2026-08-22-technical-annotation-and-rulings-ledger.md` §5.1), and `[#492]` — *"Grok
+review-lane acceptance — gated ≥ 2026-08-07, measured against terra on the same diffs"* — stays
+open and undischarged by this subsection. **The two facts are consistent rather than
+contradictory:** the chain licenses grok and its siblings as an **availability stopgap under a tag,
+with mandatory terra re-review**, and it admits none of them as a **quality-equivalent review
+lane**. Refusal-as-admission and admission-as-stopgap are different questions; a seat reading this
+subsection as "grok is an approved reviewer" has read past the tag, the re-review and the refusal
+alike.
 
 *Why this lives here and not in the routing table.* `~/.claude/ROUTING.md` is an **L0 surface
-outside this repo** (`ARCHITECTURE.md` Ch3, ruled 2026-08-22) and it routes **task-classes to
-model tiers**, not reviewer lanes to arcs. A reviewer-lane fallback is review doctrine, so this
-chapter is its home.
+outside this repo** (`ARCHITECTURE.md` Ch3, ruled 2026-08-22) and it routes **task-classes to model
+tiers**, not reviewer lanes to arcs. A reviewer-lane fallback is review doctrine, so this chapter
+is its home.
 
 *Honest limit.* Prose, gated by nothing. No organ checks an artifact for the tag, for a served-id
-line, or for the terra re-review that a degraded artifact owes; this binds the seat, not the tree.
+line, for the rung-3 liveness probe, or for the terra re-review a degraded artifact owes; this
+binds the seat, not the tree.
 
 ---
 
