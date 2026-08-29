@@ -123,7 +123,7 @@ The wave close's five classifications map onto these four with no fifth vocabula
 |---|---|---|---|
 | *(birth)* | `SEED` | a feed (`/changelog-review`), or a seat dropping a candidate | the doc |
 | *(birth)* | `DRAFT` | a functional-architect conversation that cleared **the ADR-98 §4 confirm-gate** for landing | the approval that let the doc enter the folder |
-| *(birth)* | `READY` | the same, where one operator act covered **both** landing and content | that approval, recorded as covering both. See §8's Fork 3 for why this row exists |
+| *(birth)* | `READY` | the same, where one operator act covered **both** landing and content | **the landing commit**, whose message records that approval. The intake schema carries no approval field, so the commit is the surface — see §9. §8's Fork 3 says why this row exists |
 | `SEED` | `DRAFT` | the functional architect (`--mode functional`) | the doc filled to the template's eight sections |
 | `DRAFT` | `READY` | **the operator** | the approval of the **content**, which is the meaning `READY` carries; a doc may be born straight at `READY` when one operator act covers both landing and content |
 | `READY` | `ACCEPTED` | the technical architect, or the operator | `decided-by:` **and** `disposition:`; `disposition: deferred` additionally requires `trigger:` or `review-date:` |
@@ -247,9 +247,11 @@ of them had zero inbound references:
 - **ADR-45** stayed, and the commit body gives the reason: three prose references in
   `protocols/PLAYBOOK.md`.
 
-So a *living-doc* reading of "inbound" explains ADR-52 and ADR-45 and is refuted by ADR-40; a
-*tracked-file* reading explains ADR-45 and is refuted by both archivals. **Under H3 as written,
-ADR-40 was not archivable and was archived anyway.**
+**The two readings of "inbound", kept apart, because collapsing them is what hides the problem.**
+Read as *zero living-doc references*, the bar explains ADR-52 (zero) and ADR-45 (three in PLAYBOOK,
+so it stays) and is refuted by ADR-40 (two, archived anyway). Read as *zero references of any kind*
+— which is what H3's words say — it is refuted by **both** archivals, ADR-52's thirteen included.
+**Under H3 as written, neither archived ADR was archivable, and both were archived.**
 
 **What follows for a reader, stated so two of them behave identically.** H3 governs going forward
 and this file adds nothing to it: an eligible ADR with any inbound reference **stays**, which is
@@ -277,8 +279,10 @@ is a condition on *the rest of the tree*, and the rest of the tree keeps changin
 transition: an ADR superseded today may stay cited for months and then stop being cited. So an
 ADR's archival becomes **owed at the moment its inbound count reaches zero**, which is normally
 later than the status edit and is nobody's act at all. §6's job-1 item 2 is what carries it from
-that moment forward. ADR-52 is the worked case: status moved 2026-05-19, archived 2026-07-22, and
-that two-month gap is conformance rather than debt.
+that moment forward. **ADR-52 shows the size of that gap concretely** — status moved 2026-05-19,
+archived 2026-07-22 — and the gap is the point here, independently of the §4 measurement above
+about whether H3's predicate was met at either date. A gap of that shape is conformance rather than
+debt.
 
 **What "byte-identical" governs: the move, not the whole commit.** The relocation itself introduces
 no content change, so the file arrives at its archive path carrying exactly the bytes it had once
@@ -375,8 +379,10 @@ prevent. Every row below is one or the other, explicitly.
 
 **Fork 1 — the ADR archival predicate, and it is wider than it first looked.** The FM-2 contract's
 FAIL class (b) reads *"ADR superseded/rejected, not archived → FAIL"*. Three frictions with landed
-state: `Rejected` is outside the ADR status enum entirely; three live ADRs carry non-`Accepted`
-statuses and stay in place by an explicit recorded reason; and, measured in §4, **H3's own cited
+state: `Rejected` is outside the ADR status enum entirely; live ADRs carry non-`Accepted` statuses
+and stay in place by an explicit recorded reason, ADR-45/46/47 being the ones the precedent itself
+names — the live roster is whatever `scripts/validate_adr_status.py` reports, not a number typed
+here; and, measured in §4, **H3's own cited
 precedent does not satisfy H3** — ADR-40 was archived while cited by two living docs. Read
 literally, that FAIL class fires on conformant files.
 
@@ -410,15 +416,21 @@ intake README, since the ambiguity is that file's rather than this one's.
 - **Nothing here is gated today.** This file is doctrine a reviewer cites. The check that gives it
   teeth is a separate deliverable and is owed; until it lands, conformance rests on seats reading
   this page.
+- **The operator approval behind an intake's `DRAFT` or `READY` birth lives in a commit message,
+  not in the doc.** The frontmatter schema is closed and carries no approval field, so §3.3's
+  birth rows point at the landing commit. That is a weaker locator than a field — a squashed or
+  reworded commit loses it — and adding a field was declined as a schema change with its own
+  generator cost.
 - **Finding-level state has no per-object token in the tree.** A finding is a line, and its outcome
   lives in the wave-close table rather than beside it. So finding coherence is checkable
   **per wave**, not per object — the weakest row in §2, and it is weak by construction rather than
   by oversight.
-- **§4's ADR bar leaves the judgement in a ruling, and that is a limit as much as a design.** Its
-  mechanical half decides only *eligibility*; the question of which eligible ADR is safe to move is
-  answered by an operator, one ADR at a time, and nothing here bounds how long an eligible ADR
-  waits. What §4 buys is that two readers agree on the eligible set and agree that an unruled one
-  stays put.
+- **§4's ADR bar is H3's, and H3's second half is a count over a moving corpus.** Terminal status
+  is fixed once set; the inbound count changes whenever any other file changes, so an ADR can
+  become owed — and stop being owed — without anyone acting on it. Nothing here bounds how long an
+  eligible ADR waits for its citers to drop away, and §4's measurement shows the predicate has
+  already been applied inconsistently once. Two readers agree on the eligible set and on the count;
+  what they inherit is a bar whose own precedent it does not describe.
 - **§3.3's membership rule finds nothing for a pre-convention doc.** The `source:` clause is a live
   convention, not a schema field, and older rows predate it: `tasks/271-*.md` mentions an intake in
   its body and carries no `source:` clause at all. Such a doc's row set reads as empty, which is
