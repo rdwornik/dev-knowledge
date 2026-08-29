@@ -2676,6 +2676,28 @@ Dispatch-Codespace -Contract <FILE.md> [-Slug <name>] [-Repo <owner/repo>] [-Bra
   kept out of the image and its config: when both are present the API key takes precedence and
   would silently flip billing off-subscription. Exposure and rotation:
   `protocols/STANDING_RULINGS.md` section V.
+- **That token arrives via the LOGIN-SHELL profile, so a non-login probe reads it as ABSENT — and
+  the false negative is the point of this bullet.** Measured 2026-08-29, codespace
+  `nb2-smoke6c-j47pvjw957ghq76v` (`rdwornik/dev-knowledge`), one container at one moment:
+  `gh codespace ssh -c <name> -- 'printenv | grep CLAUDE_CODE_OAUTH_TOKEN'` returned **0 matches**
+  and `/proc/1/environ` carried it **not at all**, while `bash -lc 'echo ${#CLAUDE_CODE_OAUTH_TOKEN}'`
+  returned it **present, length 108**. The Codespaces user secret IS delivered; it lands through
+  the login-shell profile rather than in the container's base environment.
+  *The operational consequence, which is the half worth writing down:* any automated step running
+  a **non-login** shell — `gh codespace ssh -- <cmd>`, a CI step, a hook, a dispatched lane's
+  command string — reads the token as absent and presents as a missing-secret or mis-wired-secret
+  failure **while the secret is in fact configured correctly**. The caller-side fix is to wrap the
+  command as **`bash -lc '<cmd>'`**; re-issuing or re-adding the secret fixes nothing and costs a
+  rotation. This is recorded because the first probe against it read ABSENT and a wiring gap that
+  did not exist was nearly reported — a debugging round already spent once. Reconciling this with
+  the "Argument shape" bullet above: the **interactive** `gh codespace ssh` session gets a login
+  shell, and the `-- <cmd>` form does not, which is why the same transport reads two ways.
+  *Probing it:* run the check with `python3` (or `bash -lc`) invoked directly and **say so** —
+  `uv` measured **absent** in that image on 2026-08-29, so a bare `uv run --locked` there fails
+  before its script starts. That reading is stronger than the pinned-but-wrong `0.8.17` recorded
+  at Q1 above; both measurements are cited and neither is resolved here. The sibling hazard is
+  unchanged and still open: a codespace clone sits silently behind `origin/main` (measured 50
+  commits, with `git status` looking unremarkable until read closely).
 
 ##### Where the contract file lives — two homes, one of them in the tree
 
