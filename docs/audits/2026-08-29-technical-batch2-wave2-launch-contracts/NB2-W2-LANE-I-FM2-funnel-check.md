@@ -185,3 +185,33 @@ other three legs still ship.
 backlog source of truth, it is outside your write-scope, and lane D is the batch's `tasks/` writer.
 Report it as a candidate filing: *"either the funnel doctrine names `refs` as the provenance
 clause, or `tasks/` grows a `source:` field — one act, ruled once."*
+
+---
+
+## STATE OF THE TREE WHEN YOU BOOT — 2026-08-29, after the wave-2 GO's carried acts
+
+Four things moved on `main` between FM-C's census and your boot. **Re-measure; do not reuse the
+census's numbers.**
+
+1. **Two intakes are now terminal.** #19 (SEED → CONSUMED) and #26 (ACCEPTED → CONSUMED) by
+   operator status ruling. **#28 is HELD** per ADR-112. So your FAIL-leg (a) — *"intake ACCEPTED,
+   all rows terminal, not archived"* — has live subjects for the first time. Lane J relocates them
+   in this same wave; depending on merge order you may see them at depth 1 or already in
+   `docs/intake/archive/`. **Your check must be right either way**, which is a good thing to prove
+   with a test.
+2. **The intake index was repaired.** Six live intakes (ids 56–61) had a `consumers:` scalar
+   opening with a backtick — illegal as a YAML scalar opener — so `gen_intake_index._parse_frontmatter`
+   returned `{}` and those docs lost id and status. Live statuses now read **SEED 10 · DRAFT 7 ·
+   READY 19 · ACCEPTED 19**. **If your check parses intake frontmatter, do not reimplement that
+   parser** — reuse the generator's, and treat a `{}` parse as a **FAIL** under Z-G4 rather than as
+   a doc with no status. That is exactly the "cannot compute its ground truth" case.
+3. **`[#577]` and `[#584]` are closed.** `BACKLOG.md` is **206** rows; `validate_doc_rot` is at
+   **59**.
+4. **Both audit baselines were regenerated** under operator approval —
+   `ecosystem/audit-consumer-baseline.json` and `ecosystem/audit-funnel-baseline.json`. If your
+   check reads either, read the committed one, and do **not** rewrite them: a baseline write is an
+   acceptance act and it is not in your write-scope.
+
+**The freshness-vs-correctness gap is a candidate filing, not your work.** `intake-index-freshness`
+is regen-and-diff, so it reproduced the wrong index byte-for-byte and stayed green through all six
+broken docs. Do not try to fix that inside `check_funnel_lifecycle`; report it.

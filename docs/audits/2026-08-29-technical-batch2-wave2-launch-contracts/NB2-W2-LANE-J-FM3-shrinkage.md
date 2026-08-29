@@ -234,3 +234,43 @@ against it.** Do not open it, do not reopen it, do not close anything.
 Reported as a candidate filing against `[#591]`: predicate (iii) cannot distinguish an id cited as
 a **dispatch target** from an id cited as **terminal-state evidence**, and an archival contract is
 made almost entirely of the second kind.
+
+---
+
+## OPERATOR RULING CARRIED — 2026-08-29 WAVE-2 GO. This is what unblocks your Ex-ante.
+
+FM-C established that nothing was archivable **because no live intake sat at a terminal status**.
+The operator has now ruled the statuses, and the integrator flipped them on `main` **before you
+booted**. Your Ex-ante is therefore achievable, and it is achievable **only for these two**:
+
+- **intake #19** `2026-07-27-func-operator-design-input-night-shift-handoff-reform.md` —
+  **SEED → CONSUMED**, `consumed-by: "ADR-82 …; [#446] closed"`. **RELOCATE IT.**
+- **intake #26** `2026-08-06-func-parallel-execution-system.md` — **ACCEPTED → CONSUMED**,
+  `consumed-by: "ADR-110 …; [#505] closed"`. **RELOCATE IT.**
+- **intake #28** — **HELD by operator ruling, per ADR-112**, whose `:87` says fourteen of its §C
+  candidates are still actionable. **DO NOT TOUCH IT.** Not its status, not its location. If your
+  re-verification says it looks archivable, that is the census being right about the graph and
+  wrong about the ruling — SKIP it and say so.
+- **intake #42** stays DRAFT (FM-C already refuted it against ADR-115 §6/§7). Do not revisit.
+
+**The destination and the discipline are unchanged:** `docs/intake/archive/`, byte-identical, md5
+per object recorded, `git mv` so history follows, ZERO deletion, ZERO content edits. The status
+flip is already done and is **not yours to redo** — you are moving two files whose frontmatter is
+already terminal. If either file's `status:` is not `CONSUMED` when you read it, **stop and report**:
+that means the flip did not land and you would be relocating a live document.
+
+**The staleness guard still binds, and now it has real work.** Re-verify both against the live
+merged tree before moving them — consumers still terminal, no new consumer born tonight — exactly
+as §1 of the addendum above says.
+
+**Two things changed on `main` under you, so re-measure rather than reusing FM-C's numbers.**
+(1) The intake index was **repaired**: six live intakes (ids 56–61) had a `consumers:` scalar
+opening with a backtick, which cannot start a YAML scalar, so the generator lost their id and
+status. The index now reads **SEED 10 · DRAFT 7 · READY 19 · ACCEPTED 19**, zero `[MISSING-ID]`,
+no `OTHER` group — FM-C's D1 is discharged. (2) `[#577]` and `[#584]` are **closed**, so
+`BACKLOG.md` is 206 rows, not 208, and `validate_doc_rot` is at **59**, not 60.
+
+**Your Ex-ante, restated against what is now true:** `docs/intake/*.md` **56 → 54** and
+`docs/intake/archive/` **8 → 10**, both md5-proven. `docs/decisions/*.md` stays **89** — no ADR is
+superseded-and-unarchived, and ADR immutability plus ADR-100 mean there is nothing lawful to move
+there. Say that plainly rather than leaving the decisions count looking like a miss.
