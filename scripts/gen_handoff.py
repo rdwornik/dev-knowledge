@@ -926,14 +926,24 @@ def _load_funnel_measure():
 
     Both import spellings are tried because this module is reached BOTH as `scripts.gen_handoff`
     (package import) and as bare `gen_handoff` with `scripts/` on `sys.path` — the same
-    dual-entry the `canonical_docs` import at the top of this file handles."""
+    dual-entry the `canonical_docs` import at the top of this file handles. The PACKAGE-qualified
+    spelling is tried FIRST, deliberately: the bare name resolves against the whole of `sys.path`,
+    so an unrelated `funnel_lifecycle` installed anywhere on it would be loaded and its numbers
+    published under FM-2's name (terra HIGH, 2026-08-29). `scripts.` names this repo or nothing.
+
+    A module that EXISTS but cannot import (a broken transitive dependency) is reported as such
+    rather than as "has not landed" — the two are different facts and the block must not assert
+    the wrong one."""
     mod = None
-    for name in (_FUNNEL_MODULE, f"scripts.{_FUNNEL_MODULE}"):
+    for name in (f"scripts.{_FUNNEL_MODULE}", _FUNNEL_MODULE):
         try:
             mod = importlib.import_module(name)
             break
-        except ImportError:
-            continue
+        except ModuleNotFoundError as exc:
+            if exc.name not in (name, _FUNNEL_MODULE, "scripts"):
+                return None, f"present, but its own import raised ModuleNotFoundError: {exc.name}"
+        except ImportError as exc:
+            return None, f"present, but its import raised {type(exc).__name__}"
     if mod is None:
         return None, "not importable — FM-2 has not landed; this coupling is unproven"
     fn = getattr(mod, _FUNNEL_ENTRY, None)
@@ -1086,14 +1096,6 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
     # real directory rather than the one that was asked for.
     slug = bundle_dir.name
 
-    # FM-4: the FUNNEL HEALTH block, written WHOLE on every generation (never spliced, never
-    # carried) and BEFORE the mode branches, so every multi-file bundle carries it — v5 and
-    # epic alike. `functional` is excluded and the reason is a protocol line, not a preference:
-    # HANDOFF_PROCESS §16 pins that mode at ONE file, and amending §16 is outside this lane's
-    # write-scope. Handed to the architect as the one open scoping question.
-    if mode != "functional":
-        write_funnel_health(bundle_dir, repo_root)
-
     state = collect_state(repo_root)
     filled = force_filled if force_filled is not None else detect_fill_state(bundle_dir)
     tokens = _tokens(mode, slug, repo, date, state, filled)
@@ -1112,6 +1114,7 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
         _render("EPIC_BOOT.md.tmpl", tokens, bundle_dir, "EPIC_BOOT.md", tmpl_dir=_TMPL_DIR_EPIC)
         _render("PROBES.md.tmpl", tokens, bundle_dir, "PROBES.md", tmpl_dir=_TMPL_DIR_EPIC)
         verify_seal_identity(bundle_dir)                     # [#473] B seal gate
+        write_funnel_health(bundle_dir, repo_root)           # FM-4 — AFTER the seal (see below)
         hints = collect_hints(repo_root)
         return GenResult(bundle_dir=bundle_dir,
                          journal_draft=journal_draft(slug, date, state, hints), filled=filled)
@@ -1152,6 +1155,15 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
     # [#473] B seal gate — BEFORE assemble_paste, so a mislabelled bundle can never reach the
     # assembled paste (the one file the operator actually ships to the browser).
     verify_seal_identity(bundle_dir)
+
+    # FM-4: the FUNNEL HEALTH block, written WHOLE (never spliced, never carried) and AFTER the
+    # seal gate rather than before it — a refused or failed cut must not leave a bundle carrying
+    # a FRESH health block beside STALE renders, which is the mixed state a reader cannot detect
+    # (terra HIGH, 2026-08-29). `functional` mode never reaches here and that is the scoping:
+    # HANDOFF_PROCESS §16 (`protocols/HANDOFF_PROCESS.md`, "The boot (one file, generated)")
+    # pins that mode at ONE file and narrows the answer-free invariant to "no counts ... enter
+    # the boot". Amending §16 is outside this lane's write-scope; it is the architect's call.
+    write_funnel_health(bundle_dir, repo_root)
 
     hints = collect_hints(repo_root)
     draft = journal_draft(slug, date, state, hints)
