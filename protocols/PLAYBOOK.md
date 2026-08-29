@@ -221,6 +221,7 @@ reconciled_with: handoff-process@6.3.0
   - [Review Tools](#review-tools)
   - [Codex-utilization doctrine (lanes + exact model strings)](#codex-utilization-doctrine-lanes--exact-model-strings)
   - [Codex dual-role — reviewer today, producer gated](#codex-dual-role--reviewer-today-producer-gated)
+  - [DEGRADED-REVIEW — when the doctrinal reviewer lane is unavailable](#degraded-review--when-the-doctrinal-reviewer-lane-is-unavailable)
 - [17. Code Quality Audit Process](#17-code-quality-audit-process)
   - [Severity tiers](#severity-tiers)
   - [Process](#process-1)
@@ -2402,6 +2403,28 @@ ran clean (`docs/audits/2026-08-26-technical-handoff-census.md`, Appendix B). **
 unchanged by that measurement.** Ch8's Q1 row below carries it as an *amendment candidate, routing
 unchanged pending a ruling*, and this subsection **cites that status rather than resolving it** —
 a night seat reading only this text routes exactly as Q1 routes today.
+
+#### What the night corrected in itself
+
+Both rules below come from the 2026-08-28->29 night's own run. Each records a live failure of the
+window that produced this protocol, which is why they land as rules rather than as notes.
+
+**A time-conditioned stop reads a fresh clock at decision time.** Any stop conditioned on wall
+time — the night mission's **S5 hard stop** is the instance — takes the time from a **fresh source
+at the moment the decision is taken**, rather than from a value the session read earlier and
+carried forward. *Why it is a rule:* on the night that produced it, the S5 07:30 hard stop was
+reasoned against a **stale clock** — the session was working from 01:5x while the wall clock had
+already moved to 11:0x — so the remaining schedule was derived from a premise that was hours
+wrong, and every downstream go/stop judgement inherited that error. A cached timestamp is an
+observation about the past; a stop condition is a question about the present, and the two coincide
+only at the instant of the read.
+
+**Orchestrator handover happens at a phase boundary.** A change of orchestrating seat lands
+**post-integration and pre-wave** — on the seam between phases — rather than mid-queue. A handover
+taken with a merge queue part-walked hands the incoming seat a state no artifact describes: the
+contracts record what was dispatched and the ledger records what was adjudicated, and between them
+sits a half-walked queue that neither surface carries. At a phase boundary both surfaces are
+current, so the incoming seat boots from the record instead of from the outgoing seat's memory.
 
 #### Honest limits
 
@@ -5153,6 +5176,55 @@ Codex has two potential roles in the fleet — **reviewer** (the live, doctrinal
 - **The global Codex config is HUB-OWNED (R1 — fleet doctrine).** The global reviewer config — `~/.codex/AGENTS.md` (role / checklist / output format; canonical source `.dev-knowledge/codex/AGENTS.md`, ADR-54) **and** `~/.codex/config.toml` (model pin, effort) — is owned at the hub, exactly as **core-invariant #6** governs `~/.claude/` hooks/rules and hub protocols. **Consumers never edit it**, and a session never edits it unilaterally; a change is an explicit hub ruling, never a per-repo or per-session drive-by. This is the global-infra "exception-with-ruling" invariant, now stated for the Codex surface (same class as `#289` OneDrive-guard and `#338`(c)).
 - **The producer lane is NOT activatable as written today (R4 — reconciliation).** The EPIC-H charter extension describes a Codex **producer** role (Codex authors, CC adversarially verifies — the inverse of the live Codex-verifies-CC review flow). But the hub-owned global config currently **fixes Codex as a read-only reviewer** (`~/.codex/AGENTS.md` pins the reviewer role; the exec sandbox is read-only). So the producer lane is **charter-only** — a documented intent, not a switch a session may flip — until the activation mechanism (`#341`) lands and is ruled. Do not treat "Codex producer" as available; a plan that names a producer leg is describing future work, not a runnable lane.
 - **Sanctioned interim producer-lane fallback (R5 — codified).** Until per-invocation producer activation is designed (`#341`), the sanctioned way to get producer-grade leverage from Codex **without editing global infra** is: **Codex fully specifies the design under a bounded prompt → CC implements → terra (`gpt-5.6-terra`) read-only review pre-merge.** The design-specification step is a **bounded, read-only `codex exec` design prompt** — Codex emits a spec/plan *as text* inside the read-only sandbox, **writes nothing to the tree, and never authors the merged artifact (CC does).** This is a **distinct invocation** from the `/codex-review` **reviewer** role (findings-only, governed by `~/.codex/AGENTS.md`) — so it is not bound by that config's "review findings, don't author fixes" contract — **and** it stops short of the gated **producer** role (authoring merged code). Nothing about the hub-owned config changes. This is exactly the flow executed on **ai-council #30**. *Whether an ad-hoc design-spec `codex exec` prompt should carry its own bounded reviewer-config reconciliation* is inside `#341`'s scope — which also carries the producer *mechanism itself* (repo-local `AGENTS.md` precedence, per-invocation activation, the producer guardrails).
+
+### DEGRADED-REVIEW — when the doctrinal reviewer lane is unavailable
+<!-- scope: dev -->
+
+*Architect ruling, 2026-08-29.* The doctrinal pre-merge reviewer is terra (`gpt-5.6-terra` via
+`/codex-review`, pinned on both lanes — "Codex-utilization doctrine" above). When that lane is
+**unavailable** — provider quota exhausted, or a provider outage — the arc does not stall waiting
+for it: **grok may run the pre-merge review instead**, under the conditions below. An arc blocked
+on an absent reviewer produces no review at all, which is worse than a review carrying an honest
+label.
+
+- **The artifact carries a `DEGRADED-REVIEW` tag plus the reason** — which lane was unavailable,
+  and why (quota / outage). A degraded review that reads like a doctrinal one launders its own
+  provenance; the tag is what keeps the substitution legible to whichever seat reads the artifact
+  afterwards.
+- **Terra re-reviews the arc once the lane returns.** The degraded review unblocks the arc; it
+  does not retire the review obligation.
+- **Each round records the SERVED model id — this is the `[#492]` scar, not a formality.** Grok
+  has served a **substituted model id silently**: the request named one model, the response came
+  back from another, and nothing in the artifact recorded it. The tag alone is therefore not
+  enough. A `DEGRADED-REVIEW` artifact records, per round, the model id the transport actually
+  served, so a substitution is visible rather than inferred.
+- **Where the transport cannot report the served id**, the artifact is tagged
+  **`REVIEW-UNVERIFIED-TRANSPORT`** instead, and terra re-review becomes **mandatory rather than
+  best-effort**. An unverifiable reviewer identity is a weaker claim than a verified substitution,
+  so the two carry different labels rather than one shared label.
+
+**This clause does not discharge `[#492]`.** That row — *"Grok review-lane acceptance — gated
+≥ 2026-08-07, measured against terra on the same diffs"* — still owes its measured SDA-1
+comparison gate. What lands here is a **fallback under outage**, not reviewer-role acceptance:
+grok is admitted in a narrow shape whose output is tagged and re-reviewed, and admitting it that
+way is independent of the measured comparison `[#492]` asks for. Reading this subsection as
+acceptance would close a gate no measurement has passed.
+
+**And the adjacent measurement went the other way, which is why the shape here is narrow.**
+`[#562]` closed 2026-08-23 with an architect admission verdict of **`grok-4.6` REFUSED** (G1 FAIL,
+G2 FAIL; `docs/audits/2026-08-22-technical-annotation-and-rulings-ledger.md` §5.1). That verdict
+is about **admission as a reviewer lane**, and it stands. What this subsection licenses is the
+strictly smaller thing: a **tagged, served-id-recorded, terra-re-reviewed stopgap while the
+doctrinal lane is down**. A seat reading this as "grok is an approved reviewer" has read past both
+the refusal and the tag.
+
+*Why this lives here and not in the routing table.* `~/.claude/ROUTING.md` is an **L0 surface
+outside this repo** (`ARCHITECTURE.md` Ch3, ruled 2026-08-22) and it routes **task-classes to
+model tiers**, not reviewer lanes to arcs. A reviewer-lane fallback is review doctrine, so this
+chapter is its home.
+
+*Honest limit.* Prose, gated by nothing. No organ checks an artifact for the tag, for a served-id
+line, or for the terra re-review that a degraded artifact owes; this binds the seat, not the tree.
 
 ---
 
