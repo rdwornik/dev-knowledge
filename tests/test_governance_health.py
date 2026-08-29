@@ -5,10 +5,10 @@ WHAT IS ACTUALLY AT RISK here, and it is not "does a report print".
   * **The shared fields must not be recomputed.** The lane's Ex-ante is a BYTE-FOR-BYTE
     equality against FM-4's FUNNEL HEALTH block for the shared fields, and that is
     achievable exactly one way: both render from the same function. So the load-bearing
-    assertion is a NEGATIVE one — when FM-4's emitter is absent, the four FM-4-owned fields
-    render `unavailable` with a reason, and NOTHING computes them locally. A command that
-    quietly produced its own number for `intakes consumed-unarchived` would satisfy every
-    happy-path test and fail the only requirement that matters.
+    assertion is a NEGATIVE one — when FM-4's emitter is absent, every FM-4-owned field
+    renders `unavailable` with a reason, and NOTHING computes them locally. A command that
+    quietly produced its own number for `leg a1 intakes terminal-unarchived` would satisfy
+    every happy-path test and fail the only requirement that matters.
 
   * **Value evidence must be quoted, never synthesised.** "Sourced from close packets,
     never invented" is the contract's own wording, and the failure mode it names is a
@@ -26,10 +26,19 @@ WHAT IS ACTUALLY AT RISK here, and it is not "does a report print".
 
 RED-FIRST. Every case in this file was written and run BEFORE `scripts/governance_health.py`
 existed; the first run collected 0 tests and errored on the import, which is the honest RED
-for a module that is not there yet. The one case that stays RED after this lane is
-`test_shared_fields_equal_fm4_block_byte_for_byte` — the Ex-ante itself — because FM-4 (lane
-K) had not merged when this lane ran. That RED is the proof the Ex-ante asks for, not a
-defect in this file.
+for a module that is not there yet. One case then stayed RED after that lane:
+`test_shared_fields_equal_fm4_block_byte_for_byte` — the Ex-ante itself.
+
+  IT WENT GREEN ON 2026-08-29, and what it took is worth recording. The first reading of the
+  RED was "FM-4 (lane K) has not merged". Lane K merged, the resolver started succeeding, and
+  the test stayed RED on a different clause: FM-4's emitter resolved, this module imported its
+  values faithfully, and every imported value was `unavailable` — FM-4's field roster named six
+  attributes that did not exist on FM-2's `Measurement`, an intersection of EMPTY. `[#619]` is
+  that repair; the mapping it ruled is at
+  `docs/audits/2026-08-29-technical-batchd-a-619-fm-coupling-packet.md`. The RED was never a
+  defect in this file, and it was not what its own failure message said either — which is the
+  case for the third clause the test asserts, `!= UNAVAILABLE`. Two surfaces agreeing that they
+  know nothing satisfies "present" and "equal" and measures nothing at all.
 """
 from __future__ import annotations
 
@@ -255,7 +264,12 @@ def test_no_fm4_owned_field_is_derivable_from_this_module() -> None:
     and wiring it in — at which point the equality Ex-ante is dead and every other test
     still passes.
     """
-    banned = ("intake", "adr", "orphan", "unarchived", "unexecuted")
+    # The vocabulary tracks FM-4's LABELS, so it was re-pointed by `[#619]` when the roster was
+    # re-ruled: `orphan` and `unexecuted` name fields FM-4 no longer has, and the legs it now
+    # owns are spoken in `terminal` / `archived` / `provenance` / `leg`. Both halves are kept —
+    # the retired words still name derivations that must not reappear here under any label.
+    banned = ("intake", "adr", "orphan", "unarchived", "unexecuted",
+              "terminal", "archived", "provenance", "by_leg")
     offenders = [n for n in dir(gh)
                  if callable(getattr(gh, n)) and not n.startswith("__")
                  and any(b in n.lower() for b in banned)]

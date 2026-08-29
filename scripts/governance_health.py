@@ -9,12 +9,20 @@ the numbers become a time series rather than a moment.
 
 THE ONE RULE THIS MODULE IS BUILT AROUND. The lane's Ex-ante is *"the command runs on merged
 main and its numbers equal FM-4's block byte-for-byte for the shared fields."* So this module
-computes **none** of FM-4's four fields. It resolves FM-4's emitter and renders the values that
-emitter returns; when the emitter is absent, the four fields render `unavailable` with the
-resolution report attached. An `unavailable` is a true answer. A locally-computed number that
+computes **none** of the fields in `FM4_OWNED_FIELDS`. It resolves FM-4's emitter and renders the
+values that emitter returns; when the emitter is absent, those fields render `unavailable` with
+the resolution report attached. An `unavailable` is a true answer. A locally-computed number that
 happens to look right is the failure this whole batch exists to remove, and
 `tests/test_governance_health.py::test_no_fm4_owned_field_is_derivable_from_this_module`
 enforces the absence structurally rather than by reading output.
+
+  AN `unavailable` IS A TRUE ANSWER — AND IT IS NOT A PASSING ONE. `[#619]` is the proof: FM-4's
+  emitter resolved cleanly, this module imported its values faithfully, and every imported value
+  was `unavailable` because FM-4's field roster named six attributes that did not exist on FM-2's
+  measurement. The plumbing was perfect and the pipe was empty for as long as the block existed.
+  The equality test therefore asserts three things per field and not one — present in FM-4's
+  block, equal here, and **not `unavailable`** — because the first two alone are satisfied by two
+  surfaces agreeing that they know nothing.
 
   WHAT "BYTE-FOR-BYTE" IS AND IS NOT HERE, stated because terra P4 was right to press it. The
   Ex-ante binds *the numbers*, not the surrounding layout: FM-4's block lives in a browser-
@@ -26,23 +34,24 @@ enforces the absence structurally rather than by reading output.
   are parsed by ONE function (`parse_shared_fields`) so a mismatch is always a disagreement
   about a number and never two parsers disagreeing about a format.
 
-ONE TRUTH RUNS BOTH WAYS, and this is the part a reader will not guess. FM-4's block carries
-five fields, and the fifth — `value evidence attached` — is *this* lane's derivation: it can
-only be computed by parsing close packets, which is FM-5's write-scope. So the ownership split
-is:
+THE OWNERSHIP SPLIT, re-ruled by `[#619]` (2026-08-29) and recorded at
+`docs/audits/2026-08-29-technical-batchd-a-619-fm-coupling-packet.md` §2:
 
-    FM4_OWNED_FIELDS  intakes consumed-unarchived · ADRs unexecuted ·
-                      orphans forward (object -> consumer) ·
-                      orphans backward (open row -> resolving source)
+    FM4_OWNED_FIELDS  the six `int`-typed fields of `funnel_lifecycle.Measurement` (the
+                      corpus) + one count per `LEG_*` failure leg — eleven in all
                                               -> imported, NEVER computed here
     FM5_OWNED_FIELDS  rows closed this window · value evidence attached
-                      -> computed here, EXPORTED for FM-4 to import
+                      -> computed here, and NOT rendered by FM-4 at all
 
-`rows closed this window` sits on the FM-5 side by elimination and it is worth saying so
-plainly: FM-2's four FAIL classes do not produce it and FM-4's contract does not derive it, so
-somebody had to own it or the field would be computed twice. If a later ruling moves it, moving
-it is a one-line change to the two tuples below and the equality test measures the result
-unchanged.
+`rows closed this window` and `value evidence attached` sit on the FM-5 side because nothing
+else can compute them: the first needs a git window (`window_base_sha` plus a `log` walk), the
+second needs the `docs/audits/` close-packet corpus parsed. `Measurement` carries neither and
+should not — FM-2 is a lifecycle detector, not a window reporter. `[#619]` therefore struck both
+from FM-4's tuple rather than have FM-4 import them back: they had rendered `unavailable` in
+every bundle FM-4 ever cut, and a second source inside FM-4's field tuple would re-open, at the
+level of the tuple, the two-answers defect this batch exists to close. They are unchanged here,
+so this module's report still carries all thirteen. If a later ruling moves one, moving it is a
+one-line change to the two tuples below and the equality test measures the result unchanged.
 
 VALUE EVIDENCE IS QUOTED, NEVER SYNTHESISED. A row's "what it bought" is a close packet's own
 LINE, reproduced verbatim with a `docs/audits/<file>:<line>` locator. A row whose packets say
@@ -127,22 +136,40 @@ HEALTH_HEADER = "FUNNEL HEALTH"
 #: The event `name` this command appends under. One name, so a trend query is one `WHERE`.
 TELEMETRY_NAME = "governance_health"
 
-#: FM-4's five contract fields, with "orphans, both directions" rendered as the two numbers it
-#: names. Order IS the contract — a golden test pins it on FM-4's side and on this one.
+#: FM-4's contract fields — the corpus its measurement was taken over, then one count per FM-2
+#: failure leg. Order IS the contract; a golden test pins it on FM-4's side and on this one.
 #:
-#: The two orphan labels carry FM-4's PARENTHETICALS VERBATIM. Ruled 2026-08-29 (architect,
-#: post-night A1) after the emitter ambiguity was resolved and immediately un-masked the
-#: disagreement it had been hiding: this module had shortened them to `orphans forward` /
-#: `orphans backward`, so `test_shared_fields_equal_fm4_block_byte_for_byte` reported both as
-#: MISSING from FM-4's block the moment resolution started succeeding. FM-4's labels are
-#: canonical — they are golden-pinned as literals on its side, it is the emitter of record, and
-#: this module's own contract is that it "computes NONE of FM-4's four fields". A consumer that
-#: renames its source's fields is the drift; the source is not.
+#: THE LABELS ARE FM-4'S, COPIED VERBATIM, and that is a standing ruling rather than a style
+#: choice. Ruled 2026-08-29 (architect, post-night A1) after the emitter ambiguity was resolved
+#: and immediately un-masked the disagreement it had been hiding: this module had shortened two
+#: of them, so `test_shared_fields_equal_fm4_block_byte_for_byte` reported both as MISSING from
+#: FM-4's block the moment resolution started succeeding. FM-4's labels are canonical — they are
+#: golden-pinned as literals on its side, it is the emitter of record, and this module's own
+#: contract is that it computes NONE of them. A consumer that renames its source's fields is the
+#: drift; the source is not.
+#:
+#: RE-RULED 2026-08-29 by `[#619]`, and the previous roster is worth naming because it is what
+#: the repair was for: the four fields here were `intakes consumed-unarchived`, `ADRs
+#: unexecuted`, `orphans forward (object -> consumer)` and `orphans backward (open row ->
+#: resolving source)` — labels FM-4 rendered but could not derive, because NONE of them existed
+#: on `funnel_lifecycle.Measurement`. The intersection was EMPTY and every one of them imported
+#: as `unavailable`. The mapping is now ruled field by field at
+#: `docs/audits/2026-08-29-technical-batchd-a-619-fm-coupling-packet.md` §2; two were re-mapped
+#: onto the legs they were reaching for, two were REMOVED as underivable, and two (`rows closed
+#: this window`, `value evidence attached`) were removed from FM-4 because they are THIS
+#: module's derivations — they stay below, in `FM5_OWNED_FIELDS`, unchanged.
 FM4_OWNED_FIELDS: tuple[str, ...] = (
-    "intakes consumed-unarchived",
-    "ADRs unexecuted",
-    "orphans forward (object -> consumer)",
-    "orphans backward (open row -> resolving source)",
+    "intakes live",
+    "intakes archived",
+    "intakes READY",
+    "ADRs live",
+    "rows",
+    "rows post-cutoff",
+    "leg a1 intakes terminal-unarchived",
+    "leg a2 intakes ACCEPTED, every named row terminal",
+    "leg b ADRs terminal-unarchived",
+    "leg c rows post-cutoff, provenance unresolved",
+    "leg d READY intakes past threshold",
 )
 FM5_OWNED_FIELDS: tuple[str, ...] = (
     "rows closed this window",

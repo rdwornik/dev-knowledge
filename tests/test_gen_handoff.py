@@ -7,6 +7,7 @@ tests pin the scaffold/framing/fill-state mechanics and the answer-free-bundle i
 """
 from __future__ import annotations
 
+import dataclasses
 import inspect
 import os
 import re
@@ -1032,10 +1033,17 @@ def test_template_holds_no_second_copy_of_the_dispatch_command():
 # --- FM-4: the FUNNEL HEALTH block (golden shape) ---------------------------
 #
 # The block is DERIVED, never recomputed: `gen_handoff` imports FM-2's derivation module and
-# reads the six numbers off it. These tests pin the block's SHAPE — field names, their order,
+# reads the eleven numbers off it. These tests pin the block's SHAPE — field names, their order,
 # the numbers-only format, the delimiters — and deliberately NOT tonight's numbers, which move
 # every day the funnel does. The FM-2 coupling is exercised through a fake module injected into
-# `sys.modules`, so the shape is proven without waiting for lane I to land.
+# `sys.modules`, so the shape is provable without a live corpus.
+#
+# THE SHAPE TESTS ARE NOT THE COUPLING TESTS, and `[#619]` is why the distinction is spelled out
+# here. Every case below passed for the whole life of the dead coupling: the block rendered six
+# labels in the pinned order with the pinned delimiters, and each one carried `unavailable`
+# because not one of the six attributes existed on FM-2's measurement. A fake measurement cannot
+# catch that — it answers to whatever names the fake was given. The coupling is measured against
+# the LIVE module, by the three cases under "ANTI-DRIFT" at the end of this section.
 
 # GOLDEN LITERALS. Written out rather than imported from `gen_handoff` on purpose: a test that
 # spells its expectation as `gh._FUNNEL_BEGIN` re-derives the shape from the code it is meant to
@@ -1047,32 +1055,65 @@ _GOLDEN_HEADING = "## FUNNEL HEALTH (generated — numbers only)"
 _GOLDEN_SOURCE_PREFIX = "source: scripts/funnel_lifecycle.py::measure (FM-2)"
 
 _FUNNEL_LABELS = (
-    "intakes consumed-unarchived",
-    "ADRs unexecuted",
-    "orphans forward (object -> consumer)",
-    "orphans backward (open row -> resolving source)",
-    "rows closed this window",
-    "value evidence attached",
+    "intakes live",
+    "intakes archived",
+    "intakes READY",
+    "ADRs live",
+    "rows",
+    "rows post-cutoff",
+    "leg a1 intakes terminal-unarchived",
+    "leg a2 intakes ACCEPTED, every named row terminal",
+    "leg b ADRs terminal-unarchived",
+    "leg c rows post-cutoff, provenance unresolved",
+    "leg d READY intakes past threshold",
 )
+
+# FM-2's leg names, as LITERALS — same doctrine as the golden strings above. The fake must not
+# import the real constants: a fake that re-derives its names from the module under test would
+# follow a rename and keep passing, which is exactly how the dead coupling stayed green.
+# `test_funnel_fields_cover_fm2s_whole_int_and_leg_surface` is what binds these to the real ones.
+_LEG_LITERALS = ("terminal-not-archived", "accepted-rows-terminal", "adr-terminal-not-archived",
+                 "row-provenance-unresolved", "ready-past-threshold")
 
 
 class _FakeMeasurement:
-    """Stands in for FM-2's `measure()` result — the six attributes the adapter reads."""
-    intakes_consumed_unarchived = 7
-    adrs_unexecuted = 3
-    orphans_forward = 0
-    orphans_backward = 2
-    rows_closed_this_window = 5
-    value_evidence_attached = 4
+    """Stands in for FM-2's `measure()` result — the int fields plus `by_leg`."""
+    live_intakes = 55
+    archived_intakes = 10
+    ready_intakes = 19
+    live_adrs = 88
+    rows = 349
+    post_cutoff_rows = 13
+
+    #: leg name -> how many violations to answer with. `by_leg` returns a LIST because the
+    #: adapter takes its `len()`, exactly as FM-2's does.
+    _counts = dict(zip(_LEG_LITERALS, (7, 0, 3, 2, 1), strict=True))
+
+    def by_leg(self, leg):
+        return ["violation"] * self._counts.get(leg, 0)
+
+
+def _fake_fm2_module():
+    """A module-shaped fake carrying FM-2's `measure` AND its `LEG_*` constants.
+
+    The constants are not decoration: the adapter validates every leg key against them at render
+    time, so a fake without them renders every leg field `unavailable` and the shape tests would
+    measure half a block.
+    """
+    import types
+    mod = types.ModuleType(gh._FUNNEL_MODULE)
+    mod.measure = lambda repo_root: _FakeMeasurement()          # noqa: ARG005
+    for name, leg in zip(("LEG_A1", "LEG_A2", "LEG_B", "LEG_C", "LEG_D"),
+                         _LEG_LITERALS, strict=True):
+        setattr(mod, name, leg)
+    return mod
 
 
 @pytest.fixture
 def fm2(monkeypatch):
     """Install a fake FM-2 derivation module under the name gen_handoff imports."""
     import sys
-    import types
-    mod = types.ModuleType(gh._FUNNEL_MODULE)
-    mod.measure = lambda repo_root: _FakeMeasurement()          # noqa: ARG005
+    mod = _fake_fm2_module()
     monkeypatch.setitem(sys.modules, gh._FUNNEL_MODULE, mod)
     monkeypatch.setitem(sys.modules, f"scripts.{gh._FUNNEL_MODULE}", mod)
     return mod
@@ -1103,7 +1144,7 @@ def test_golden_literals_and_the_production_constants_agree():
     the literals could drift into describing a block nothing emits."""
     assert gh._FUNNEL_BEGIN == _GOLDEN_BEGIN
     assert gh._FUNNEL_END == _GOLDEN_END
-    assert [label for label, _attr in gh._FUNNEL_FIELDS] == list(_FUNNEL_LABELS)
+    assert [label for label, _kind, _key in gh._FUNNEL_FIELDS] == list(_FUNNEL_LABELS)
 
 
 def test_funnel_health_block_carries_no_verdict_and_no_sha(fm2):
@@ -1123,19 +1164,26 @@ def test_funnel_source_prefers_the_package_qualified_module(monkeypatch):
     import types
 
     class _Ours:
-        pass
+        """Answers 1 to everything, so `theirs`' numbers are recognisable if they leak in."""
 
-    for label, attr in gh._FUNNEL_FIELDS:                       # noqa: B007
-        setattr(_Ours, attr, 1)
-    theirs = types.ModuleType(gh._FUNNEL_MODULE)
-    theirs.measure = lambda repo_root: _FakeMeasurement()       # noqa: ARG005
+        def by_leg(self, leg):                                  # noqa: ARG002
+            return ["violation"]
+
+    for _label, kind, key in gh._FUNNEL_FIELDS:
+        if kind == gh._FUNNEL_ATTR:
+            setattr(_Ours, key, 1)
+    theirs = _fake_fm2_module()
     ours = types.ModuleType(f"scripts.{gh._FUNNEL_MODULE}")
     ours.measure = lambda repo_root: _Ours()                    # noqa: ARG005
+    for name, leg in zip(("LEG_A1", "LEG_A2", "LEG_B", "LEG_C", "LEG_D"),
+                         _LEG_LITERALS, strict=True):
+        setattr(ours, name, leg)
     monkeypatch.setitem(sys.modules, gh._FUNNEL_MODULE, theirs)
     monkeypatch.setitem(sys.modules, f"scripts.{gh._FUNNEL_MODULE}", ours)
     values, note = gh._funnel_health_numbers(_REPO)
     assert note == ""
-    assert set(values.values()) == {"1"}, values     # ours (all 1s), not theirs (7/3/0/2/5/4)
+    # ours (all 1s), never theirs (55/10/19/88/349/13 and 7/0/3/2/1)
+    assert set(values.values()) == {"1"}, values
 
 
 def test_exactly_one_public_funnel_health_emitter():
@@ -1190,12 +1238,109 @@ def test_funnel_health_names_fm2_as_its_source(fm2):
 
 
 def test_funnel_health_degrades_honestly_when_fm2_is_absent(monkeypatch):
-    """FM-2 has not landed. The block must render `unavailable`, never a fabricated number —
+    """FM-2 is unreachable. The block must render `unavailable`, never a fabricated number —
     a second implementation of "is this intake consumed?" is the failure this batch removes."""
-    monkeypatch.setattr(gh, "_load_funnel_measure", lambda: (None, "not importable"))
+    monkeypatch.setattr(gh, "_load_funnel_measure", lambda: (None, None, "not importable"))
     fields = _block_body(gh.funnel_health_block(_REPO))[2:]
     assert len(fields) == len(_FUNNEL_LABELS)
     assert all(ln.endswith(": unavailable") for ln in fields), fields
+
+
+def test_a_renamed_leg_renders_unavailable_and_never_a_false_zero(monkeypatch):
+    """`[#619]`, the render-time half. `by_leg` FILTERS a list, so it answers `[]` for a leg it
+    has never heard of — indistinguishable from `[]` for a leg with no violations. Rendering
+    that as `0` would publish a confident false clean, which is strictly worse than
+    `unavailable`. So the adapter validates every leg key against FM-2's own `LEG_*` constants
+    and degrades the ones that do not resolve.
+    """
+    import sys
+
+    mod = _fake_fm2_module()
+    mod.LEG_C = "row-provenance-unresolved-RENAMED"     # FM-2 renames one leg
+    monkeypatch.setitem(sys.modules, gh._FUNNEL_MODULE, mod)
+    monkeypatch.setitem(sys.modules, f"scripts.{gh._FUNNEL_MODULE}", mod)
+
+    values, note = gh._funnel_health_numbers(_REPO)
+    assert values["leg c rows post-cutoff, provenance unresolved"] == "unavailable"
+    assert "row-provenance-unresolved" in note
+    # and ONLY that one degrades — the other ten still carry their numbers
+    assert sum(v == "unavailable" for v in values.values()) == 1, values
+
+
+# --- FM-4: ANTI-DRIFT — measured against the LIVE FM-2 module, never a fake ---
+#
+# `[#619]`: FM-4 read six attribute names off a measurement that exposed none of them. The
+# intersection was EMPTY for the whole life of the block, every field rendered `unavailable` in
+# every bundle ever cut, and every shape test above stayed green throughout — because a fake
+# measurement answers to whatever names the fake was given. These three cases are the ones that
+# could have caught it, and the only ones in this section that import the real module.
+
+def _live_fm2():
+    import funnel_lifecycle
+    return funnel_lifecycle
+
+
+def test_funnel_fields_cover_fm2s_whole_int_and_leg_surface():
+    """THE COUPLING, asserted as set equality BOTH WAYS against the live module.
+
+    The ruled rule (`docs/audits/2026-08-29-technical-batchd-a-619-fm-coupling-packet.md` §2.7):
+    *FM-4 renders every `int`-typed field of `Measurement`, plus one count per `LEG_*` constant
+    — nothing else, nothing less.* Both directions matter and for different reasons: a field
+    FM-4 reads that FM-2 does not have renders `unavailable` (the `[#619]` defect), and a field
+    FM-2 grows that FM-4 does not read is a number that silently stops being published.
+
+    `int` is read from the ANNOTATIONS, not from a runtime `isinstance` of one sample: a field
+    annotated `int | None` (`threshold_days`) can hold an `int` on a lucky tree and `None` on the
+    next, and a field that renders `unavailable` on some trees is barred by the repair.
+    """
+    import typing
+
+    fm2mod = _live_fm2()
+    hints = typing.get_type_hints(fm2mod.Measurement)
+    want_attrs = {name for name, ann in hints.items() if ann is int}
+    want_legs = {v for k, v in vars(fm2mod).items()
+                 if k.startswith("LEG_") and isinstance(v, str)}
+    assert want_attrs and want_legs, "the live module exposes neither ints nor legs — read it"
+
+    got_attrs = {key for _l, kind, key in gh._FUNNEL_FIELDS if kind == gh._FUNNEL_ATTR}
+    got_legs = {key for _l, kind, key in gh._FUNNEL_FIELDS if kind == gh._FUNNEL_LEG}
+
+    assert got_attrs == want_attrs, (
+        f"FM-4 reads {sorted(got_attrs)} but FM-2's int surface is {sorted(want_attrs)}")
+    assert got_legs == want_legs, (
+        f"FM-4 counts {sorted(got_legs)} but FM-2's legs are {sorted(want_legs)}")
+
+
+def test_funnel_fields_intersect_fm2():
+    """The witnessed `[#619]` starting state, pinned as UNREACHABLE.
+
+    The row's own witness command read six attributes off `_FUNNEL_FIELDS`, listed what
+    `Measurement` exposed, and measured the intersection EMPTY. This asserts the negation
+    directly, so the zero-overlap state cannot be re-reached in silence even if the set-equality
+    rule above is later relaxed by a ruling.
+    """
+    fm2mod = _live_fm2()
+    exposed = {n for n in dir(fm2mod.Measurement) if not n.startswith("_")}
+    exposed |= {f.name for f in dataclasses.fields(fm2mod.Measurement)}
+    read = {key for _l, kind, key in gh._FUNNEL_FIELDS if kind == gh._FUNNEL_ATTR}
+    assert read, "FM-4 reads no attribute at all"
+    assert read & exposed == read, f"FM-4 reads names FM-2 does not expose: {sorted(read - exposed)}"
+
+
+@pytest.mark.live_repo
+def test_funnel_health_renders_no_unavailable_against_the_live_repo():
+    """The done-contract's own words: *no field is left rendering `unavailable` by default*.
+
+    Asserted against the real tree with no fake installed, because that is the only place the
+    `[#619]` defect was ever visible — under the `fm2` fixture the block has always rendered
+    numbers, including on the day every one of them was `unavailable` in production.
+    """
+    body = _block_body(gh.funnel_health_block(_REPO))[2:]
+    assert len(body) == len(_FUNNEL_LABELS)
+    bad = [ln for ln in body if ln.endswith(": unavailable")]
+    assert not bad, f"fields the live FM-2 could not derive: {bad}"
+    for line in body:
+        assert re.fullmatch(r".+: \d+", line), line
 
 
 @pytest.mark.parametrize("mode", ["architect", "execution"])
