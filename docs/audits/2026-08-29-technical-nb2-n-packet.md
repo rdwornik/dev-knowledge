@@ -392,3 +392,24 @@ Lane N is complete and **STOPPED**. Branch `worktree-lane-n-1-db-dashboard-succe
 anchor for the whole queue — the Stop hook's demand is **declined for that reason**, per ADR-85
 amendment 2026-08-03 §A5, which made that hook advisory in full; the hard leg is
 `block-unanchored-push`, and a lane does not push).
+
+---
+
+## AMENDMENT 1 — 2026-08-29, the branch tip
+
+*In-file amendment marker (§5 rule 3: an audit is immutable and is corrected by an amendment,
+never by an in-place edit). The text above stands as written.*
+
+**§2 and §8 name `3669f9c4` as the branch tip. That was true when they were written and is not
+true now** — committing this packet advanced the branch, and a packet cannot name its own SHA in
+advance. Corrected for the integrator walking the merge queue:
+
+| # | SHA | Subject |
+|---|---|---|
+| 1 | `3669f9c4ef543adff0734f73c965f5cac720b617` | `feat(telemetry)` — the render module + tests + `.gitignore` (3 files, +1714) |
+| 2 | `70ec1db4` | `docs(audits)` — this packet (1 file, +394) |
+
+**Branch `worktree-lane-n-1-db-dashboard-successor` enters the frozen queue at `70ec1db4`.**
+§2's "One commit" describes the *deliverable* commit enumerated in its table, which is unchanged;
+the branch carries two. Both passed the full pre-commit gate set with no `SKIP=` and no
+`--no-verify`.
