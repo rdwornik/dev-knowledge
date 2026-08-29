@@ -5,6 +5,23 @@ origin: operator, dictated 2026-07-31 in the outgoing browser-seat window and re
 consumed-by:
 ---
 
+**NOTE 2026-08-29 (FILE DISTILLATION — the OUTPUT half, and its evidence is MEASURED):** this
+doc's P1 named repomix as the *input*-side distiller, and that half is **rejected on
+measurement** (`[#467]`, closed 2026-08-01 — 0% on markdown, the live paste re-renders LARGER).
+The **output** half — how many bytes the corpus makes a seat read before it can work — was never
+carried by a row, and it now has a number rather than an argument. The trends dashboard
+(`scripts/gen_trend_dashboard.py`, run at `77096131`, console summary recorded in
+`docs/audits/2026-08-29-technical-nb2-n-packet.md` §0) reports
+**`paste / boot bytes  WORSENING  +11232 bytes`** over a 12-sample window — **the only worsening
+panel**, while open rows, banked ledger and backlog velocity all read IMPROVING. Its store is the
+`protocols/HANDOFF_BOOT.md` blob size per revision, so the regression sits in the artifact every
+session reads first. `[#467]`'s own closure names the re-entry route — *"Re-entry is a new filing
+citing the pain"* — and this measurement is that pain. Carrier: **`[#617]`**, born 2026-08-29.
+Two closed rows are **cited, not reopened**: `[#449]` ruled an accepted-with-reason HOLD on a hard
+paste ceiling, `[#467]` rejected the tool. **`[#607]` is NOT the doc-diet row** — it is the
+PLAYBOOK census's mechanical half, which ruling X7 orders BEFORE any structural diet; the diet's
+structural half has no row at all today, and intake #57 is still READY.
+
 # Operator design input — distillation and library-first
 
 <!-- class: func (operator design input) · status: SEED — NOT ratified; ingest per the intake

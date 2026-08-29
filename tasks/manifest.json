@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "d787d8fe3c96bb8349038cceabab373660aed2fa06b2ce1e8df0ce8c7a77b0dd",
+  "generated_sha256": "edac62e27e3f200d6a47cc1266fc70d3656d412b5bd79a61d8de9c99a48247ba",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -618,6 +618,10 @@
       "file": "572-intake-funnel-completion-carrier.md"
     },
     {
+      "task": 616,
+      "file": "616-flip-condition-every-adr-records-what-evidence-w.md"
+    },
+    {
       "prose": ""
     },
     {
@@ -739,6 +743,10 @@
     {
       "task": 607,
       "file": "607-playbook-census-discharge-the-mechanical-half-of.md"
+    },
+    {
+      "task": 617,
+      "file": "617-file-distillation-the-output-half-and-the-only-w.md"
     },
     {
       "task": 612,

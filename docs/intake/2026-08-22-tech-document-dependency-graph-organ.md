@@ -6,6 +6,37 @@ consumers: the technical-architect triage; no ADR and no backlog row has been bo
 note: Filed as an intake rather than as a backlog row BECAUSE the source lane asked for a row directly and ADR-111 section 2 forbids that — the only path from a finding to a row runs through intake and ratification. The lane's specified shape is carried below rather than re-derived, so ratification loses nothing by the detour.
 ---
 
+**NOTE 2026-08-29 (TYPED MULTI-LAYER GRAPH — the scope this intake gains; still NO carrier row):**
+operator direction of 2026-08-29 extends the organ from a **document** dependency graph to a
+**typed, multi-layer** one. **Layers:** code · docs · backlog · intake/ADR · **L0** (the global
+`~/.claude` and per-repo `.claude/` surfaces — see intake **#62**, filed the same day, which
+cross-references this doc rather than duplicating it). **Cross-layer edges are first class**, not
+a later join. **Architectural attributes become node metadata:** performance, availability,
+reliability, security, maintainability, extendability, modularity, reusability, readability,
+testability — the operator's thesis vocabulary, recorded here as the attribute set rather than as
+a schema. **Library-first binds Open question 1 rather than answering it:** three named candidates
+— **GitNexus**, **repo-graph**, **Code-Graph-RAG** — enter as **ADR-112 Tier L** adoptions, so each
+is **fit-assessed against the existing measurement BEFORE any adoption**. None of the three
+appears anywhere in this tree today (grep: zero hits), so this is a first naming, not a
+re-litigation; and the already-ruled `rustworkx`-not-`networkx` choice (R-A) is untouched, because
+that question is *which* and this one is *whether*.
+
+**The first slice already exists.** Wave-2 lane M shipped `scripts/file_purpose_graph.py` with a
+working `why` verb (`docs/audits/2026-08-29-technical-nb2-m-packet.md`), and both its own
+candidates C-1/C-2/C-3 and the wave-close packet's cross-layer finding route to *"lane M's next
+slice"*. The multi-layer extension therefore has a running base, not a blank page.
+
+**NO CARRIER ROW IS BORN HERE, deliberately.** This doc's own Status section records its carrier
+as unborn under ruling D5 — *"birth priority (2) when it ratifies"* — and P-2's anti-orphan rule
+binds at ACCEPTED. Birthing one now would invert the exact ratification order this file exists to
+respect.
+
+**A conflation, recorded rather than corrected in place.** The brief carrying this direction cited
+*"FPG-1 / `[#383]`"* as one object. They are two: `[#383]` is **Execution waves per surface**
+(parity-surface convergence over `kind: gitignore-effect` rows) and FPG-1 is lane M's file-purpose
+graph. Intake #23's P3 line *"networkx STANDS for `[#383]` v1"* carries the same conflation — its
+subject is the graph in `[#382]`, which is closed.
+
 # A document dependency-graph organ for this corpus
 
 ## Problem / motivation
