@@ -181,6 +181,8 @@ CHECK_ORDER: tuple[str, ...] = (
     "check_dispatch_drift",               # [#592] Ch8 literal commands vs the machine
     "check_consumer_at_landing",          # [#595] docs/audits consumer declaration + ratchet
     "check_proof_layer",                  # [#596] family-3 environment-conditional guards
+    "check_funnel_lifecycle",             # FM-2 — facade — _is_hub seam; detector in
+                                          # funnel_lifecycle.py
 )
 
 # The extracted subset, in CHECK_ORDER-relative order.
