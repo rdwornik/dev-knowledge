@@ -171,6 +171,15 @@ try:
 except ImportError:
     import funnel_coverage as _fc
 
+# FM-2 funnel-LIFECYCLE detector -- the sibling of _fc above and deliberately a separate
+# module: _fc asks whether an audit artifact was DISPOSITIONED, this asks whether a governed
+# object that reached a TERMINAL state actually left its live home. Same corpus for neither
+# leg; same module-import + thin-adapter shape (tests/test_funnel_lifecycle.py).
+try:
+    from scripts import funnel_lifecycle as _fl
+except ImportError:
+    import funnel_lifecycle as _fl
+
 # [#433]/C1 derived-tree coherence gate — the `tasks/` emitter, imported so the check can
 # invoke its `--check` semantics in-process rather than shelling out. Same shape.
 try:
@@ -3980,6 +3989,70 @@ def check_funnel_coverage(repo_path: Path) -> list[Finding]:
             for status, evidence in _fc.ratchet_findings(m, baseline)]
 
 
+def check_funnel_lifecycle(repo_path: Path) -> list[Finding]:
+    """FM-2 -- the funnel's EXIT step, gated: did a terminal object actually leave its home?
+
+    THE GAP IS THE REPO'S OWN, and `docs/intake/README.md` section 5 states it verbatim:
+    "Terminal docs (CONSUMED | SUPERSEDED | REJECTED) relocate byte-identical to
+    `docs/intake/archive/` ... The move is MANUAL for now -- **the status-coupled validator
+    that would gate/automate it is wave work, not built.**" This is that validator, widened
+    to the two sibling genres that carry the same shape (ADR status -> archive) and to the
+    backward direction (a row's provenance still resolving).
+
+    THIN ADAPTER; the logic and every honest limit live in `scripts/funnel_lifecycle.py`.
+    Same shape as `check_funnel_coverage` / `check_consumer_at_landing`.
+
+    SHIP-TIER BY DECLARATION, and this is an EXCEPTION to the assignment rule stated at the
+    head of `ALL_CHECKS` -- it is FAIL-capable and would ordinarily be `TIER_COMMIT`. The
+    precedent is `check_routing_agreement` directly below it, and the reasoning is the same
+    shape: a COMMIT-tier FAIL here wedges every commit in every lane on a defect the
+    committing session cannot legally repair. Leg a1 FAILs on live main TODAY -- intake #19
+    and #26 were ruled CONSUMED by the 2026-08-29 wave-2 GO and still sit at
+    `docs/intake/` depth 1 -- and clearing it means RELOCATING a governed document, which is
+    an operator/integrator act, not something a check's author may do from inside a lane.
+    The verdict stays fail-capable; only the stage moves.
+
+    PROMOTION IS ONE LINE AND ITS CONDITION IS MEASURABLE: when leg a1 measures 0 on `main`
+    (i.e. after the relocation lands), `_tier(TIER_SHIP, ...)` becomes `_tier(TIER_COMMIT,
+    ...)`. Recorded here rather than remembered, because a temporary tier nobody wrote down
+    is a permanent one.
+
+    Z-G4, NOT A SKIP. `LifecycleUnreadable` is rendered `fail`, never `unavailable`:
+    `_STATUS_LABEL` renders `unavailable` as "N/A" and `_check_outcome` projects it onto
+    `pass`, so an unavailable verdict SHIPS GREEN having measured nothing -- the green-by-skip
+    class the 2026-08-25 sweep closed. An unreadable intake, a `{}` frontmatter parse, an
+    unusable ADR corpus or a git that cannot date rows are all failed computations of an
+    AVAILABLE ground truth, and they block.
+
+    ONE FINDING PER VIOLATION, never a bundle: the `#147` register suppresses an ENTIRE
+    Finding on a substring match, so a bundled Finding would let one relocated intake wave
+    through every other violation beside it.
+
+    HUB-ONLY BY REPO IDENTITY, not by the presence of `docs/intake/` -- the `[#383]` lesson,
+    copied rather than relearned: corp-monorepo and ai-council both CARRY a `docs/intake/`
+    while carrying none of the lifecycle doctrine, so keying "adopted" off the folder would
+    manufacture a fleet gap that does not exist. Off-hub is `n/a`.
+
+    Read-only (Layer 2): it moves nothing. A gate that silently fixes what it measures cannot
+    fail.
+    """
+    name = _fl.CHECK_NAME
+    if not _is_hub(repo_path):
+        return [_na(name, _NA_NOT_APPLICABLE,
+                    "hub-only -- the intake/ADR lifecycle doctrine is hub-owned")]
+    try:
+        m = _fl.measure(Path(repo_path))
+    except _fl.LifecycleUnreadable as exc:
+        return [Finding(name, "fail",
+                        f"ground truth uncomputable (Z-G4): {exc}".replace("|", "/"))]
+    except Exception as exc:  # noqa: BLE001 -- an internal error BLOCKS; it never passes
+        return [Finding(name, "fail",
+                        f"lifecycle scan raised, so no verdict from this run is trustworthy: "
+                        f"{exc!r}".replace("|", "/"))]
+    return [Finding(name, status, evidence.replace("|", "/"))
+            for status, evidence in _fl.findings(m)]
+
+
 # THE REGISTRY DECLARES THE TIER ([#597]). Every entry is `_tier(<tier>, <check>)` — the tier is
 # a required positional argument, so an entry cannot be added without stating one, and
 # `tests/test_audit.py::test_every_all_checks_member_declares_a_gate_tier` refuses a bare
@@ -4117,6 +4190,16 @@ ALL_CHECKS = [
                                # exists. Integration-time default is the strict direction;
                                # ship-tier is a live candidate for [#597]'s author to rule on,
                                # not an integrator's call to make silently
+    _tier(TIER_SHIP, check_funnel_lifecycle),      # FM-2 — the funnel's EXIT step. The THIRD
+                               # declared exception to the assignment rule above (after
+                               # fleet_parity and routing_agreement): FAIL-capable and ship
+                               # anyway, because leg a1 FAILs on live main by design and
+                               # clearing it means RELOCATING a governed document — an act a
+                               # committing lane may not perform. A COMMIT tier would wedge
+                               # every commit on a defect the committer cannot legally
+                               # repair. Promotion condition, written down rather than
+                               # remembered: flip to TIER_COMMIT when leg a1 measures 0 on
+                               # main. Full argument at the check's docstring
 ]
 
 

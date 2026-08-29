@@ -66,12 +66,26 @@ arming a hard refusal against a threshold nobody ruled would be the invented-con
 this organ exists to stop. Every OTHER cannot-compute condition here DOES raise, and the
 adapter renders it `fail`.
 
-Z-G4 CONDITIONS, ENUMERATED. Each raises `LifecycleUnreadable`:
-  * an intake/ADR/row file that cannot be read;
+Z-G4 CONDITIONS, ENUMERATED. Each raises `LifecycleUnreadable`, and the adapter renders every
+one of them `fail`. The list is long BECAUSE a silent skip is the failure this organ exists to
+refuse -- an adversarial review pass found seven of these as vacuous-pass paths in the first
+draft, and every one of them looked like ordinary defensive coding:
+  * an intake/ADR/row file that cannot be read, or that is not valid UTF-8 (a lenient decode
+    would turn `status: CONSUM<bad byte>ED` into a non-terminal string and pass);
   * an intake `.md` whose frontmatter parses to `{}` -- the exact D1 case, where
     `gen_intake_index._parse_frontmatter` swallows a YAML error and the doc silently loses its
     id AND its status. A doc with no computable status is not a doc with no status;
-  * `validate_adr_status.CorpusUnusable`;
+  * an intake carrying NO `status:`, or one outside `gen_intake_index._STATUS_ORDER`: an
+    undefined lifecycle position matches no leg and would fall out of a1/a2/d in silence;
+  * a `tasks/*.md` row with no parseable `id: "[#N]"`, which would drop out of leg (c)'s
+    denominator as well as its numerator;
+  * an unrecoverable row body (`gen_task_tree.extract_body` raising);
+  * `validate_adr_status.CorpusUnusable`, OR a non-empty `missing`/`extra` from `scan_zone` --
+    that function returns them separately precisely "so a caller cannot mistake an absent
+    field for a clean one";
+  * an ABSENT `docs/intake/`, `docs/decisions/` or `tasks/` on a repo this check applies to.
+    The `check_intake_tree_coherence` ruling one level out: a coherence gate must not be
+    satisfiable by deleting what it checks;
   * a `git log` that cannot produce row birth dates, so leg (c)'s cutoff is uncomputable.
 
 HONEST LIMITS -- they bound what a green verdict means:
@@ -81,7 +95,13 @@ HONEST LIMITS -- they bound what a green verdict means:
   * Leg (d) measures DOCUMENT AGE from the filename date, not TIME-AT-READY. The intake schema
     records no dated transitions, so a doc that reached READY yesterday after two months at
     DRAFT is aged from its birth. Under A1 ("every governed object carries explicit state +
-    dated transitions") that is a real gap in the SCHEMA, not something a check can fix.
+    dated transitions") that is a real gap in the SCHEMA, not something a check can fix. A doc
+    whose filename carries no parseable date is NAMED at WARN rather than skipped.
+  * Leg (c) dates a row by REPLAYING git's add/rename/delete events for `tasks/`, so it knows
+    the birth of the row's CURRENT incarnation. It cannot see a row whose history predates the
+    graft in a shallow clone -- there, every path reads as born at the graft boundary. This
+    checkout is full; a shallow one would grandfather nothing and evaluate everything, which
+    is the strict direction.
   * Leg (c) asks whether a provenance token RESOLVES, never whether it is the RIGHT one. A row
     citing an unrelated but existing ADR passes.
   * A bare `#N` is deliberately NOT resolved against the intake id namespace. Both namespaces
@@ -160,21 +180,38 @@ _READY_THRESHOLD_RE = re.compile(
     re.IGNORECASE | re.MULTILINE)
 
 #: The provenance clause: a `refs` run introduced by the row-body separator and ending at the
-#: next separator or end of body. `extract_body` hands back the row's own text, so the search
-#: is scoped to one row.
-_REFS_RE = re.compile(r"[·]\s*refs\s+(?P<body>.+?)(?=\s+[·]\s|\s*$)", re.S)
+#: next separator or end of LINE.
+#:
+#: SINGLE-LINE, and that is the fix for a real defect rather than a stylistic choice (terra
+#: pass 1, HIGH-12). The first version used `re.S` with a lazy `.+?` and a `\s*$` tail: `$`
+#: without MULTILINE matches only at end of string, so on a MULTI-LINE row body the clause ran
+#: past the end of its own line and swallowed following prose. A row whose refs all dangle
+#: would then have PASSED on an `ADR-1` mentioned three lines later -- silent false coverage,
+#: which is the failure mode leg (c) exists to refuse.
+_REFS_RE = re.compile(r"[·][ \t]*refs[ \t]+(?P<body>[^\n]+?)(?=[ \t]+[·][ \t]|[ \t]*$)",
+                      re.MULTILINE)
 
 _INTAKE_TOKEN_RE = re.compile(r"intake[ -]#\s*(\d+)", re.IGNORECASE)
 _ADR_TOKEN_RE = re.compile(r"\bADR-0*(\d+)\b")
 _ROW_TOKEN_RE = re.compile(r"\[?#(\d+)\]?")
+#: Leg a2's row token, and it is STRICTER than `_ROW_TOKEN_RE` on purpose (terra pass 1,
+#: HIGH-1). The contract says `consumed-by:` "names at least one `[#id]` row"; the loose form
+#: also matches the `#28` inside `intake #28`, so an ACCEPTED doc consumed by *intake* 28 would
+#: be judged against *row* 28's status. A FAIL-armed leg reading one namespace as another is
+#: the ambiguity trap the census measured, arriving by a different door.
+_BRACKETED_ROW_RE = re.compile(r"\[#(\d+)\]")
 _PATH_TOKEN_RE = re.compile(
     r"[A-Za-z0-9_./-]+\.(?:md|py|yaml|yml|json|jsonl|ps1|toml|html|log|txt)\b")
 _STEM_TOKEN_RE = re.compile(r"\b(\d{4}-\d{2}-\d{2}-[A-Za-z0-9._-]+)\b")
 _DATED_NAME_RE = re.compile(r"^(?P<date>\d{4}-\d{2}-\d{2})-")
 
 #: Directories whose dated stems a `refs` clause may name. Scanned one level deep only; that is
-#: enough for every genre a row cites and keeps the walk to five `scandir` calls.
-_STEM_DIRS = ("docs/audits", "docs/handoffs", "docs/intake", "docs/decisions", "docs/archive")
+#: enough for every genre a row cites and keeps the walk to a handful of `scandir` calls. The
+#: two ARCHIVE dirs are here because an archived object is still valid provenance -- omitting
+#: them made a row citing an archived intake's stem resolve to nothing and FAIL leg (c) (terra
+#: pass 1, HIGH-3).
+_STEM_DIRS = ("docs/audits", "docs/handoffs", "docs/intake", "docs/intake/archive",
+              "docs/decisions", "docs/decisions/archive", "docs/archive")
 
 LEG_A1 = "terminal-not-archived"
 LEG_A2 = "accepted-rows-terminal"
@@ -223,21 +260,57 @@ class Measurement:
 # --- readers ------------------------------------------------------------------------------
 
 def _read(path: Path) -> str:
-    """Strict-enough read. An unreadable governed file is a failed computation, never a skip."""
+    """STRICT read. An unreadable governed file is a failed computation, never a skip.
+
+    `errors="replace"` is deliberately NOT used (terra pass 1, HIGH-5). A lenient decode turns
+    an undecodable byte into U+FFFD, so `status: CONSUM\\xffED` would come back as a string that
+    simply is not in the terminal set and the doc would pass -- a verdict manufactured out of
+    damage. `backlog_source.canonical_text` makes exactly this argument for exactly this
+    reason; the rule is stated once more here rather than diverged from.
+    """
     try:
-        return path.read_text(encoding="utf-8", errors="replace")
+        return path.read_bytes().decode("utf-8")
     except OSError as exc:
         raise LifecycleUnreadable(f"unreadable: {path} ({exc})") from exc
+    except UnicodeDecodeError as exc:
+        raise LifecycleUnreadable(
+            f"undecodable (not UTF-8): {path} ({exc}) -- its lifecycle fields cannot be read, "
+            f"and a lenient decode would manufacture a verdict from damage") from exc
+
+
+def _require_dir(directory: Path, repo_root: Path, why: str) -> Path:
+    """A governed corpus directory that is ABSENT is a failed computation, not an empty set.
+
+    The `check_intake_tree_coherence` ruling, applied one level out (terra pass 1, HIGH-9): "a
+    coherence gate must not be satisfiable by deleting what it checks". Without this, removing
+    `docs/intake/` makes legs a1/a2/d examine zero documents and the check reports clean.
+    """
+    if not directory.is_dir():
+        raise LifecycleUnreadable(
+            f"{directory.name}/ is absent at "
+            f"{directory.relative_to(repo_root).as_posix() if directory.is_relative_to(repo_root) else directory} "
+            f"-- {why}, so its legs measure nothing and a clean verdict would be vacuous")
+    return directory
 
 
 def read_intake_dir(directory: Path, repo_root: Path) -> list[IntakeDoc]:
     """Every `*.md` under `directory` except `README.md`, parsed with the GENERATOR's parser.
 
-    A `{}` parse RAISES rather than yielding a status-less doc. That is the D1 defect made
-    loud: `_parse_frontmatter` returns `{}` on malformed YAML by design so the generated index
-    can carry on, and the six docs it hit lost their id and their status while
-    `intake-index-freshness` stayed green because regen-and-diff reproduces a wrong index
-    exactly. A status this module cannot read is a ground truth it cannot compute (Z-G4).
+    THREE RAISE CONDITIONS, not one -- each is a status this module cannot compute, and each
+    would otherwise become a silently-ignored document:
+
+      * a `{}` parse. The census D1 defect made loud: `_parse_frontmatter` returns `{}` on
+        malformed YAML BY DESIGN so the generated index can carry on, and the six docs it hit
+        lost their id AND their status while `intake-index-freshness` stayed green, because a
+        regen-and-diff gate reproduces a wrong index byte-for-byte.
+      * frontmatter that parses but carries NO `status:` (terra pass 1, HIGH-6). It yielded
+        `status=""`, which matches no leg, so the doc fell out of a1, a2 and d in silence.
+      * a `status:` OUTSIDE the ruled enum. The enum is `gen_intake_index._STATUS_ORDER`,
+        borrowed rather than re-declared. An off-enum value is a lifecycle position the ruling
+        does not define, which is precisely "cannot compute its ground truth".
+
+    An ABSENT directory is handled by the caller via `_require_dir` for the live corpus; an
+    absent `archive/` is legitimate (nothing archived yet) and returns [].
     """
     if not directory.is_dir():
         return []
@@ -251,11 +324,20 @@ def read_intake_dir(directory: Path, repo_root: Path) -> list[IntakeDoc]:
             raise LifecycleUnreadable(
                 f"{rel}: frontmatter parsed to {{}} -- id and status are both unreadable, so "
                 f"its lifecycle position cannot be computed (Z-G4)")
+        status = (fm.get("status", "") or "").strip().upper()
+        if not status:
+            raise LifecycleUnreadable(
+                f"{rel}: frontmatter carries no status: -- its lifecycle position is "
+                f"undefined, and an empty status matches no leg (Z-G4)")
+        if status not in _gii._STATUS_ORDER:
+            raise LifecycleUnreadable(
+                f"{rel}: status {status!r} is outside the ruled enum "
+                f"{list(_gii._STATUS_ORDER)} -- the lifecycle does not define this position "
+                f"(Z-G4)")
         out.append(IntakeDoc(
             path=p, relpath=rel,
             intake_id=(fm.get("intake-id", "") or "").strip(),
-            status=(fm.get("status", "") or "").strip().upper(),
-            fields=fm))
+            status=status, fields=fm))
     return out
 
 
@@ -291,15 +373,33 @@ def _row_files(repo_root: Path) -> list[Path]:
 
 
 def _row_birth_dates(repo_root: Path) -> dict[str, str]:
-    """`{repo-relative path: ISO date of the commit that ADDED it}` for `tasks/`.
+    """`{repo-relative path: ISO date the CURRENT incarnation of that row entered `tasks/`}`.
 
     ONE git call for the whole directory. A row git cannot date is NOT returned, and the caller
     treats an undated row as IN SCOPE rather than grandfathered: absence of evidence does not
     buy an exemption from a rule, which is the same direction Z-G4 points.
+
+    IT REPLAYS ADDS, RENAMES AND DELETES OLDEST-FIRST, and both halves of that are repairs of
+    a measured defect (terra pass 1, HIGH-2 and HIGH-4). The first version asked git for adds
+    alone and kept the OLDEST one per path:
+
+      * `--diff-filter=A` DROPS renames. `diff.renames` is on by default, so a row renamed
+        when its title changed -- which `gen_task_tree` does routinely, since the filename
+        slug is derived from the title -- has no `A` record under its current name and reads
+        as UNDATED. Undated is in scope, so a legitimate pre-cutoff row could be FAILed by
+        leg (c) for a rename. Live witness: exactly one row (`tasks/440-*.md`) was undated
+        under the old walk.
+      * "oldest add wins" is the WRONG incarnation. A row added before the cutoff, deleted,
+        and re-added after it is NEW work wearing an old date, and it would have been
+        grandfathered out of the leg entirely.
+
+    The replay fixes both with one rule: walk oldest-first, an `A` sets the birth (so a re-add
+    replaces), an `R` makes the new path INHERIT the old path's birth (so a rename preserves
+    it), and a `D` forgets the path.
     """
     try:
         proc = subprocess.run(
-            ["git", "log", "--diff-filter=A", "--name-only", "--format=%x00%ad",
+            ["git", "log", "--diff-filter=ARD", "--name-status", "-M", "--format=%x00%ad",
              "--date=short", "--", f"{TASKS_RELPATH}/"],
             cwd=str(repo_root), capture_output=True, text=True,
             encoding="utf-8", errors="replace", check=False)
@@ -311,15 +411,35 @@ def _row_birth_dates(repo_root: Path) -> dict[str, str]:
         raise LifecycleUnreadable(
             f"git log over {TASKS_RELPATH}/ exited {proc.returncode}, so row birth dates -- "
             f"leg (c)'s cutoff -- are uncomputable: {proc.stderr.strip()[:200]}")
-    births: dict[str, str] = {}
+    return replay_path_events(parse_name_status(proc.stdout))
+
+
+def parse_name_status(stdout: str) -> list[tuple[str, list[str]]]:
+    """`git log --name-status --format=%x00%ad` output as `[(date, [status, *paths]), ...]`,
+    NEWEST-FIRST (git's own order). Pure, so the replay below is testable without git."""
+    events: list[tuple[str, list[str]]] = []
     current = ""
-    for line in proc.stdout.splitlines():
+    for line in stdout.splitlines():
         if line.startswith("\x00"):
             current = line[1:].strip()
             continue
-        name = line.strip()
-        if name and current:
-            births[name] = current   # newest-first walk, so the last write is the OLDEST add
+        parts = [p for p in line.split("\t") if p.strip()]
+        if len(parts) >= 2 and current:
+            events.append((current, parts))
+    return events
+
+
+def replay_path_events(events: list[tuple[str, list[str]]]) -> dict[str, str]:
+    """Replay `parse_name_status` output OLDEST-FIRST into `{path: birth date}`. Pure."""
+    births: dict[str, str] = {}
+    for date, parts in reversed(events):
+        code, paths = parts[0], parts[1:]
+        if code.startswith("R") and len(paths) >= 2:
+            births[paths[1]] = births.pop(paths[0], date)
+        elif code.startswith("A"):
+            births[paths[0]] = date
+        elif code.startswith("D"):
+            births.pop(paths[0], None)
     return births
 
 
@@ -346,7 +466,7 @@ class RefUniverse:
                 hits.append(f"ADR-{m.group(1)}")
         for m in _PATH_TOKEN_RE.finditer(clause):
             token = m.group(0)
-            if (self.repo_root / token).exists():
+            if self._resolves_inside(token):
                 hits.append(token)
         for m in _STEM_TOKEN_RE.finditer(clause):
             if m.group(1) in self.stems:
@@ -359,6 +479,21 @@ class RefUniverse:
             if int(m.group(1)) in self.row_ids:
                 hits.append(f"#{m.group(1)}")
         return hits
+
+    def _resolves_inside(self, token: str) -> bool:
+        """A path token resolves only if it exists AND stays inside the repository.
+
+        Containment is not paranoia (terra pass 1, HIGH-11): `· refs ../outside.md` reaches a
+        sibling checkout on the operator's disk, `Path.exists()` says True, and the row passes
+        leg (c) on provenance this repository does not carry. A verdict about THIS repo may
+        only be drawn from THIS repo.
+        """
+        try:
+            resolved = (self.repo_root / token).resolve()
+            resolved.relative_to(self.repo_root.resolve())
+        except (OSError, ValueError):
+            return False
+        return resolved.exists()
 
 
 def build_ref_universe(repo_root: Path, row_ids: set, intake_docs: list[IntakeDoc]) -> RefUniverse:
@@ -400,17 +535,25 @@ def measure(repo_root: Path, today: _dt.date | None = None) -> Measurement:
     today = today or _dt.date.today()
     m = Measurement()
 
-    live = read_intake_dir(root / INTAKE_RELPATH, root)
+    live = read_intake_dir(
+        _require_dir(root / INTAKE_RELPATH, root, "legs a1/a2/d read it"), root)
     archived = read_intake_dir(root / INTAKE_ARCHIVE_RELPATH, root)
     m.live_intakes, m.archived_intakes = len(live), len(archived)
 
     # --- rows (needed by a2 and c) ---------------------------------------------------------
+    _require_dir(root / TASKS_RELPATH, root, "legs a2/c read it")
     rows: dict[int, tuple[str, str, str]] = {}   # id -> (relpath, status, body)
     for p in _row_files(root):
         text = _read(p)
         rid = _gtt.frontmatter_id(text)
         if rid is None:
-            continue
+            # NOT a skip (terra pass 1, HIGH-7). A row whose `id:` is absent or malformed was
+            # dropped before its body was ever examined, so it left `post_cutoff_rows` too and
+            # leg (c) passed over it in silence -- a vacuous pass keyed on the one field that
+            # makes the row addressable.
+            raise LifecycleUnreadable(
+                f"{p.relative_to(root).as_posix()}: no parseable `id: \"[#N]\"` frontmatter, "
+                f"so the row cannot be identified and leg (c) would skip it silently (Z-G4)")
         try:
             body = _gtt.extract_body(text)
         except ValueError as exc:
@@ -437,7 +580,7 @@ def measure(repo_root: Path, today: _dt.date | None = None) -> Measurement:
     for doc in live:
         if doc.status != ACCEPTED_STATUS:
             continue
-        named = [int(x) for x in _ROW_TOKEN_RE.findall(doc.fields.get("consumed-by", ""))]
+        named = [int(x) for x in _BRACKETED_ROW_RE.findall(doc.fields.get("consumed-by", ""))]
         if not named:
             continue
         unknown = [n for n in named if n not in rows]
@@ -452,19 +595,27 @@ def measure(repo_root: Path, today: _dt.date | None = None) -> Measurement:
                 + ") -- consumed in substance, status never flipped"))
 
     # --- leg b -----------------------------------------------------------------------------
-    decisions = root / DECISIONS_RELPATH
-    if decisions.is_dir():
-        try:
-            fields, _missing, _extra = _vas.scan_zone(decisions)
-        except _vas.CorpusUnusable as exc:
-            raise LifecycleUnreadable(f"ADR corpus unusable, leg (b) uncomputable: {exc}") from exc
-        m.live_adrs = len({f.path for f in fields})
-        for f in fields:
-            if f.value in _vas.TERMINAL_STATUSES:
-                m.violations.append(Violation(
-                    LEG_B, f.path.relative_to(root).as_posix(),
-                    f"Status {f.value} is terminal but the ADR sits in {DECISIONS_RELPATH}/ "
-                    f"rather than {DECISIONS_ARCHIVE_RELPATH}/"))
+    decisions = _require_dir(root / DECISIONS_RELPATH, root, "leg b reads it")
+    try:
+        fields, missing, extra = _vas.scan_zone(decisions)
+    except _vas.CorpusUnusable as exc:
+        raise LifecycleUnreadable(f"ADR corpus unusable, leg (b) uncomputable: {exc}") from exc
+    # `missing` and `extra` are NOT decoration (terra pass 1, HIGH-8). `scan_zone` returns
+    # them separately for exactly this reason -- its own docstring: "so a caller cannot
+    # mistake an absent field for a clean one". An ADR with no status field has no computable
+    # lifecycle position; one with two has an ambiguous one. Both measure 0 live.
+    if missing or extra:
+        raise LifecycleUnreadable(
+            f"leg (b) cannot read a status for {len(missing)} ADR(s) and reads two or more "
+            f"for {len(extra)}: {sorted(missing + extra)[:6]} -- an absent or ambiguous "
+            f"status is not a non-terminal one (Z-G4)")
+    m.live_adrs = len({f.path for f in fields})
+    for f in fields:
+        if f.value in _vas.TERMINAL_STATUSES:
+            m.violations.append(Violation(
+                LEG_B, f.path.relative_to(root).as_posix(),
+                f"Status {f.value} is terminal but the ADR sits in {DECISIONS_RELPATH}/ "
+                f"rather than {DECISIONS_ARCHIVE_RELPATH}/"))
 
     # --- leg c -----------------------------------------------------------------------------
     births = _row_birth_dates(root)
@@ -495,11 +646,24 @@ def measure(repo_root: Path, today: _dt.date | None = None) -> Measurement:
     if m.threshold_days is not None:
         for doc in ready:
             dm = _DATED_NAME_RE.match(doc.path.name)
-            if not dm:
-                continue
-            try:
-                born = _dt.date.fromisoformat(dm.group("date"))
-            except ValueError:
+            born = None
+            if dm:
+                try:
+                    born = _dt.date.fromisoformat(dm.group("date"))
+                except ValueError:
+                    born = None
+            if born is None:
+                # NAMED, not skipped (terra pass 1, HIGH-10). A READY doc whose filename
+                # carries no parseable `YYYY-MM-DD-` prefix has an age this leg cannot
+                # compute, and silence about it is indistinguishable from "under the
+                # threshold". Reported at the leg's OWN tier -- leg (d) is WARN by the
+                # contract, and a naming defect belongs to the naming organ, not to a hard
+                # refusal here.
+                m.violations.append(Violation(
+                    LEG_D, doc.relpath,
+                    f"READY, but the filename carries no parseable YYYY-MM-DD- prefix "
+                    f"(docs/intake/README.md section 4), so its age cannot be measured "
+                    f"against the ruled {m.threshold_days}-day threshold"))
                 continue
             age = (today - born).days
             if age > m.threshold_days and not doc.fields.get("review-date", "").strip():

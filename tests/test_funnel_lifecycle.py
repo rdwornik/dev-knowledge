@@ -36,6 +36,19 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 # --- synthetic-tree helpers -------------------------------------------------------
 
+def _write_lf(path: Path, text: str) -> None:
+    """Write with LF endings, always.
+
+    `Path.write_text` applies universal newlines and launders every `\\n` into `\\r\\n` on
+    Windows. `gen_task_tree._FM_ID_RE` is `^id: "\\[#(\\d+)\\]"$` under `re.MULTILINE`, where `$`
+    matches before `\\n` -- so a CRLF line ends `..."\\r` and the id does NOT parse. The whole
+    fixture corpus was silently id-less until leg (c)'s Z-G4 raise made it visible: before
+    that, `frontmatter_id() is None` was a `continue`, so every row-shaped test was scoring an
+    EMPTY row set and passing. `tasks/` is pure LF by contract, so the fixtures must be too.
+    """
+    path.write_bytes(text.encode("utf-8"))
+
+
 def _intake(dirpath: Path, name: str, *, intake_id: str, status: str, **extra: str) -> Path:
     dirpath.mkdir(parents=True, exist_ok=True)
     lines = ["---", f"intake-id: {intake_id}", f"status: {status}"]
@@ -46,7 +59,7 @@ def _intake(dirpath: Path, name: str, *, intake_id: str, status: str, **extra: s
     lines += [f'{k.replace("_", "-")}: "{v}"' for k, v in extra.items()]
     lines += ["---", "", f"# {name}", ""]
     p = dirpath / name
-    p.write_text("\n".join(lines), encoding="utf-8")
+    _write_lf(p, "\n".join(lines))
     return p
 
 
@@ -57,7 +70,7 @@ def _row(root: Path, rid: int, *, status: str = "open", body: str | None = None)
     text = (f'---\nid: "[#{rid}]"\ntitle: "Row {rid}"\nstatus: {status}\n'
             f"generates: BACKLOG.md\n---\n\n{body}\n")
     p = tasks / f"{rid}-row-{rid}.md"
-    p.write_text(text, encoding="utf-8")
+    _write_lf(p, text)
     return p
 
 
@@ -65,7 +78,7 @@ def _adr(root: Path, number: int, *, status: str, archived: bool = False) -> Pat
     d = root / "docs" / "decisions" / ("archive" if archived else "")
     d.mkdir(parents=True, exist_ok=True)
     p = d / f"ADR-{number}-synthetic.md"
-    p.write_text(f"# ADR-{number}: synthetic\n\n- **Status:** {status}\n", encoding="utf-8")
+    _write_lf(p, f"# ADR-{number}: synthetic\n\n- **Status:** {status}\n")
     return p
 
 
@@ -266,8 +279,8 @@ def test_row_birth_dates_raises_outside_a_repo(tmp_path: Path, monkeypatch: pyte
 # --- leg d: READY past a RULED threshold ------------------------------------------
 
 def _rule_threshold(tree: Path, days: int) -> None:
-    (tree / "protocols" / "FUNNEL.md").write_text(
-        f"# Funnel\n\n- **READY threshold: {days} days**\n", encoding="utf-8")
+    _write_lf((tree / "protocols" / "FUNNEL.md"), 
+        f"# Funnel\n\n- **READY threshold: {days} days**\n")
 
 
 def test_d_is_inert_and_says_so_when_no_threshold_is_ruled(tree: Path):
@@ -278,8 +291,11 @@ def test_d_is_inert_and_says_so_when_no_threshold_is_ruled(tree: Path):
     m = fl.measure(tree)
     assert m.threshold_days is None and _legs(m, fl.LEG_D) == []
     statuses = fl.findings(m)
-    assert ("warn", "fail") != tuple(s for s, _ in statuses)
-    gap = [e for s, e in statuses if s == "warn" and "NOT ARMED" in e]
+    # The assertion is that NO finding is a fail -- not that the status tuple differs from one
+    # arbitrary pair, which was the first version and would have passed on
+    # [("fail", ...), ("warn", "NOT ARMED")] (terra pass 1, HIGH-13).
+    assert [s for s, _ in statuses] == ["warn"]
+    gap = [e for s, e in statuses if "NOT ARMED" in e]
     assert len(gap) == 1 and "1 READY intake(s) went unexamined" in gap[0]
 
 
@@ -306,7 +322,7 @@ def test_d_refuses_a_doc_under_the_threshold_and_one_carrying_a_review_date(tree
 def test_d_reads_the_threshold_only_from_protocols(tree: Path):
     """Scoped on purpose: if any file could arm it, an audit draft or a scratch note would."""
     (tree / "docs").mkdir(exist_ok=True)
-    (tree / "docs" / "note.md").write_text("READY threshold: 1 days\n", encoding="utf-8")
+    _write_lf((tree / "docs" / "note.md"), "READY threshold: 1 days\n")
     assert fl.ready_threshold(tree) == (None, None)
 
 
@@ -317,6 +333,145 @@ def test_d_threshold_regex_accepts_the_declared_shapes():
         assert fl._READY_THRESHOLD_RE.search(text).group("days") == str(expected)
 
 
+# --- terra pass 1: the thirteen HIGH findings, each with its own regression -------
+
+def test_a2_does_not_read_an_intake_id_as_a_row_id(tree: Path):
+    """HIGH-1. `consumed-by: "intake #28"` names INTAKE 28; the loose `\\[?#(\\d+)\\]?` form also
+    matched it, so an ACCEPTED doc would have been judged against ROW 28's status. Leg a2 takes
+    the bracketed form only -- the shape the contract names."""
+    _row(tree, 28, status="closed")
+    _intake(tree / "docs" / "intake", "2026-08-01-func-y.md", intake_id="8", status="ACCEPTED",
+            consumed_by="intake #28 section A")
+    assert _legs(fl.measure(tree), fl.LEG_A2) == []
+
+    _intake(tree / "docs" / "intake", "2026-08-01-func-y.md", intake_id="8", status="ACCEPTED",
+            consumed_by="[#28] closed")
+    assert _legs(fl.measure(tree), fl.LEG_A2) == ["docs/intake/2026-08-01-func-y.md"]
+
+
+def test_replay_preserves_a_birth_date_across_a_rename():
+    """HIGH-2. `gen_task_tree` derives the filename slug from the TITLE, so a title edit
+    renames the row. `--diff-filter=A` drops renames, leaving the row UNDATED -- which is in
+    scope -- so a legitimate pre-cutoff row could be FAILed for having been retitled."""
+    events = [("2026-08-28", ["R100", "tasks/1-old.md", "tasks/1-new.md"]),
+              ("2026-07-01", ["A", "tasks/1-old.md"])]          # newest-first, as git emits
+    assert fl.replay_path_events(events) == {"tasks/1-new.md": "2026-07-01"}
+
+
+def test_replay_takes_the_newest_add_after_a_delete():
+    """HIGH-4. Added pre-cutoff, deleted, re-added post-cutoff is NEW work wearing an old
+    date. "Oldest add wins" grandfathered it out of leg (c) entirely."""
+    events = [("2026-08-28", ["A", "tasks/1-x.md"]),
+              ("2026-08-01", ["D", "tasks/1-x.md"]),
+              ("2026-07-01", ["A", "tasks/1-x.md"])]
+    assert fl.replay_path_events(events) == {"tasks/1-x.md": "2026-08-28"}
+
+
+def test_replay_forgets_a_deleted_path():
+    events = [("2026-08-28", ["D", "tasks/1-x.md"]), ("2026-07-01", ["A", "tasks/1-x.md"])]
+    assert fl.replay_path_events(events) == {}
+
+
+def test_parse_name_status_reads_dates_and_rename_pairs():
+    out = "\x002026-08-28\nR100\ttasks/1-old.md\ttasks/1-new.md\n\x002026-07-01\nA\ttasks/1-old.md\n"
+    assert fl.parse_name_status(out) == [
+        ("2026-08-28", ["R100", "tasks/1-old.md", "tasks/1-new.md"]),
+        ("2026-07-01", ["A", "tasks/1-old.md"]),
+    ]
+
+
+def test_c_resolves_a_stem_that_lives_in_an_archive(tree: Path,
+                                                    monkeypatch: pytest.MonkeyPatch):
+    """HIGH-3. An archived object is still valid provenance. The stem walk went one level deep
+    into `docs/intake/` and `docs/decisions/` and never entered their `archive/` children, so a
+    row citing an archived intake's stem resolved to nothing and leg (c) falsely FAILed."""
+    _intake(tree / "docs" / "intake" / "archive", "2026-07-01-tech-gone.md",
+            intake_id="3", status="CONSUMED")
+    _row(tree, 700, body="- [#700] [P2][M] **Cites the archive** · refs 2026-07-01-tech-gone")
+    monkeypatch.setattr(fl, "_row_birth_dates", lambda root: {"tasks/700-row-700.md": "2026-08-28"})
+    assert _legs(fl.measure(tree), fl.LEG_C) == []
+
+
+def test_c_refuses_a_path_token_that_escapes_the_repo(tree: Path,
+                                                      monkeypatch: pytest.MonkeyPatch):
+    """HIGH-11. `../outside.md` reaches a sibling checkout on the operator's disk;
+    `Path.exists()` says True and the row passes on provenance THIS repo does not carry."""
+    _write_lf((tree.parent / "outside.md"), "x")
+    _row(tree, 700, body="- [#700] [P2][M] **Escapes** · refs ../outside.md")
+    monkeypatch.setattr(fl, "_row_birth_dates", lambda root: {"tasks/700-row-700.md": "2026-08-28"})
+    assert _legs(fl.measure(tree), fl.LEG_C) == ["[#700] tasks/700-row-700.md"]
+
+
+def test_refs_clause_stops_at_the_end_of_its_own_line():
+    """HIGH-12. With `re.S` and a `\\s*$` tail the clause ran past its line and swallowed
+    following prose, so a row whose refs all dangled PASSED on a token mentioned three lines
+    later -- silent false coverage, the exact failure leg (c) exists to refuse."""
+    body = "- [#700] **Row** · refs N4-F1\nSome later prose mentioning ADR-1 and scripts/audit.py\n"
+    assert fl.refs_clause(body) == "N4-F1"
+
+
+def test_zg4_off_enum_and_missing_intake_status_raise(tree: Path):
+    """HIGH-6. Both yielded a doc that matched no leg and vanished from a1/a2/d in silence."""
+    p = tree / "docs" / "intake" / "2026-08-01-tech-x.md"
+    _write_lf(p, "---\nintake-id: 7\norigin: x\n---\n\n# x\n")
+    with pytest.raises(fl.LifecycleUnreadable, match="carries no status"):
+        fl.measure(tree)
+    _write_lf(p, "---\nintake-id: 7\nstatus: WIBBLE\n---\n\n# x\n")
+    with pytest.raises(fl.LifecycleUnreadable, match="outside the ruled enum"):
+        fl.measure(tree)
+
+
+def test_zg4_row_without_a_parseable_id_raises(tree: Path):
+    """HIGH-7. The row was dropped before its body was read, so it left leg (c)'s DENOMINATOR
+    as well as its numerator and the leg passed over it in silence."""
+    _write_lf((tree / "tasks" / "700-noid.md"), 
+        "---\ntitle: x\nstatus: open\n---\n\n- **no id** · refs ADR-1\n")
+    with pytest.raises(fl.LifecycleUnreadable, match="no parseable"):
+        fl.measure(tree)
+
+
+def test_zg4_undecodable_bytes_raise(tree: Path):
+    """HIGH-5. `errors="replace"` turns `CONSUM\\xffED` into a string that is simply not in the
+    terminal set, and the doc passes -- a verdict manufactured out of damage."""
+    (tree / "docs" / "intake" / "2026-08-01-tech-x.md").write_bytes(
+        b"---\nintake-id: 7\nstatus: CONSUM\xffED\n---\n\n# x\n")
+    with pytest.raises(fl.LifecycleUnreadable, match="undecodable"):
+        fl.measure(tree)
+
+
+def test_zg4_an_adr_with_no_status_field_raises(tree: Path):
+    """HIGH-8. `scan_zone` returns `missing` separately, in its own words, "so a caller cannot
+    mistake an absent field for a clean one" -- and the first draft discarded it."""
+    _write_lf((tree / "docs" / "decisions" / "ADR-99-nostatus.md"), 
+        "# ADR-99: no status line here\n")
+    with pytest.raises(fl.LifecycleUnreadable, match="cannot read a status"):
+        fl.measure(tree)
+
+
+@pytest.mark.parametrize("gone", ["docs/intake", "docs/decisions", "tasks"])
+def test_zg4_a_deleted_corpus_directory_raises(tree: Path, gone: str):
+    """HIGH-9. `check_intake_tree_coherence`'s ruling, one level out: "a coherence gate must
+    not be satisfiable by deleting what it checks". An absent corpus is a failed computation,
+    never an empty set that reports clean."""
+    import shutil
+
+    shutil.rmtree(tree / gone)
+    with pytest.raises(fl.LifecycleUnreadable, match="is absent at"):
+        fl.measure(tree)
+
+
+def test_d_names_a_ready_doc_whose_age_it_cannot_compute(tree: Path):
+    """HIGH-10. Silence about an unmeasurable doc is indistinguishable from "under the
+    threshold". Reported at leg (d)'s own WARN tier -- a naming defect belongs to the naming
+    organ, not to a hard refusal here."""
+    _rule_threshold(tree, 30)
+    _write_lf((tree / "docs" / "intake" / "undated-ready.md"), 
+        "---\nintake-id: 9\nstatus: READY\n---\n\n# x\n")
+    m = fl.measure(tree, today=_dt.date(2026, 8, 29))
+    assert _legs(m, fl.LEG_D) == ["docs/intake/undated-ready.md"]
+    assert all(s == "warn" for s, _ in fl.findings(m))
+
+
 # --- Z-G4: cannot compute -> raise, never a verdict --------------------------------
 
 def test_zg4_empty_frontmatter_parse_raises(tree: Path):
@@ -325,23 +480,26 @@ def test_zg4_empty_frontmatter_parse_raises(tree: Path):
     `intake-index-freshness` stayed green -- a regen-and-diff gate reproduces a wrong index
     byte-for-byte. A doc whose status cannot be read is not a doc with no status."""
     bad = tree / "docs" / "intake" / "2026-08-27-tech-broken.md"
-    bad.write_text("---\nintake-id: 56\nstatus: READY\nconsumers: `docs/audits/x.md`\n---\n\n# x\n",
-                   encoding="utf-8")
+    _write_lf(bad, "---\nintake-id: 56\nstatus: READY\nconsumers: `docs/audits/x.md`\n---\n\n# x\n")
     with pytest.raises(fl.LifecycleUnreadable, match=r"parsed to \{\}"):
         fl.measure(tree)
 
 
 def test_zg4_unreadable_file_raises(tree: Path, monkeypatch: pytest.MonkeyPatch):
+    """The patched seam is `read_bytes`, and naming it matters. An earlier version patched
+    `read_text` -- which `_read` stopped using when it went strict -- so the raise it caught
+    was `validate_adr_status.scan_zone`'s, three legs away from the one under test. It passed,
+    green, testing something else: the shape terra pass 1 called out at HIGH-13, found once
+    more by re-reading the assertion instead of the result."""
     _intake(tree / "docs" / "intake", "2026-08-01-tech-x.md", intake_id="7", status="READY")
-    monkeypatch.setattr(fl.Path, "read_text",
+    monkeypatch.setattr(fl.Path, "read_bytes",
                         lambda *a, **k: (_ for _ in ()).throw(OSError("boom")))
-    with pytest.raises(fl.LifecycleUnreadable, match="unreadable"):
+    with pytest.raises(fl.LifecycleUnreadable, match=r"unreadable: .*2026-08-01-tech-x\.md"):
         fl.measure(tree)
 
 
 def test_zg4_unrecoverable_row_body_raises(tree: Path):
-    (tree / "tasks" / "700-broken.md").write_text('---\nid: "[#700]"\nstatus: open\n',
-                                                  encoding="utf-8")
+    _write_lf(tree / "tasks" / "700-broken.md", '---\nid: "[#700]"\nstatus: open\n')
     with pytest.raises(fl.LifecycleUnreadable, match="row body unreadable"):
         fl.measure(tree)
 
@@ -451,3 +609,87 @@ def test_live_tree_leg_b_measures_zero_and_the_reason_is_recorded():
     m = fl.measure(REPO_ROOT)
     assert _legs(m, fl.LEG_B) == []
     assert m.live_adrs >= 80
+
+
+# --- the audit adapter ------------------------------------------------------------
+
+def test_adapter_is_registered_and_declares_a_ship_tier():
+    """SHIP-tier is a DECLARED exception to the assignment rule at the head of ALL_CHECKS, not
+    an oversight: this check is FAIL-capable, and leg a1 FAILs on live main by design. A
+    COMMIT tier would wedge every commit in every lane on a defect the committing session
+    cannot legally repair (clearing it means RELOCATING a governed document)."""
+    import audit as aud
+    from audit_checks.registry import CHECK_ORDER
+
+    assert aud.check_funnel_lifecycle in aud.ALL_CHECKS
+    assert aud.tier_of(aud.check_funnel_lifecycle) == aud.TIER_SHIP
+    assert "check_funnel_lifecycle" in CHECK_ORDER
+    assert tuple(c.__name__ for c in aud.ALL_CHECKS) == CHECK_ORDER
+
+
+def test_adapter_does_not_run_at_the_commit_gate_but_does_at_ship():
+    """The whole point of the tier. `cmd_health` -- the `audit-health` pre-commit hook --
+    invokes `run_checks(tier=TIER_COMMIT)`, and the ladder is nested, so ship runs both."""
+    import audit as aud
+
+    assert not aud.runs_at_tier(aud.check_funnel_lifecycle, aud.TIER_COMMIT)
+    assert aud.runs_at_tier(aud.check_funnel_lifecycle, aud.TIER_SHIP)
+
+
+def test_adapter_is_na_off_hub(tmp_path: Path):
+    """Hub-only by REPO IDENTITY, never by the presence of docs/intake/. corp-monorepo and
+    ai-council both carry one while carrying none of the doctrine ([#383]'s measured lesson),
+    so keying off the folder would manufacture a fleet gap that does not exist."""
+    import audit as aud
+
+    (tmp_path / "docs" / "intake").mkdir(parents=True)
+    out = aud.check_funnel_lifecycle(tmp_path)
+    assert [f.status for f in out] == ["n/a"]
+    assert "NOT-APPLICABLE" in out[0].evidence
+
+
+def test_the_adapter_and_this_test_file_hold_two_module_objects():
+    """A dual-import fact, pinned rather than discovered. `audit.py` binds
+    `scripts.funnel_lifecycle`; a bare `import funnel_lifecycle` binds a SECOND module object
+    with a SECOND `LifecycleUnreadable` class -- `check_funnel_coverage` and its own test file
+    sit in exactly this position. Nothing at runtime compares them, so it is harmless; the
+    trap is a test that raises the test-module's exception at the adapter and concludes the
+    `except` clause is unreachable. Caught that way here, so the next reader is told instead."""
+    import audit as aud
+
+    assert aud._fl is not fl and aud._fl.__name__ == "scripts.funnel_lifecycle"
+    assert aud._fl.LifecycleUnreadable is not fl.LifecycleUnreadable
+    assert aud._fc.__name__ == "scripts.funnel_coverage", "the sibling has the same shape"
+
+
+def test_adapter_renders_a_zg4_error_as_fail_never_unavailable(monkeypatch: pytest.MonkeyPatch):
+    """`unavailable` renders "N/A" and `_check_outcome` projects it onto `pass`, so an
+    unavailable verdict SHIPS GREEN having measured nothing. A failed computation of an
+    AVAILABLE ground truth blocks (Z-G4)."""
+    import audit as aud
+
+    monkeypatch.setattr(aud._fl, "measure", lambda *a, **k: (_ for _ in ()).throw(
+        aud._fl.LifecycleUnreadable("frontmatter parsed to {}")))
+    out = aud.check_funnel_lifecycle(REPO_ROOT)
+    assert [f.status for f in out] == ["fail"]
+    assert "Z-G4" in out[0].evidence
+
+
+def test_adapter_blocks_on_an_unexpected_internal_error(monkeypatch: pytest.MonkeyPatch):
+    """An internal error BLOCKS, never a silent pass -- the sibling gates' exit-2 contract."""
+    import audit as aud
+
+    monkeypatch.setattr(aud._fl, "measure", lambda *a, **k: (_ for _ in ()).throw(
+        RuntimeError("boom")))
+    out = aud.check_funnel_lifecycle(REPO_ROOT)
+    assert [f.status for f in out] == ["fail"]
+    assert "no verdict from this run is trustworthy" in out[0].evidence
+
+
+def test_adapter_emits_one_finding_per_violation_on_the_live_tree():
+    """Bundling would let the `#147` register suppress every violation with one substring."""
+    import audit as aud
+
+    out = aud.check_funnel_lifecycle(REPO_ROOT)
+    assert out and all(f.check_name == fl.CHECK_NAME for f in out)
+    assert {f.status for f in out} <= {"pass", "warn", "fail"}
