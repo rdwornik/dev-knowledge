@@ -68,6 +68,21 @@ logs/OPERATOR-LOAD.csv
 # durable records are ecosystem/*/history/*.md + docs/audits/*.md, committed by audit.py)
 ecosystem/*/state.yaml
 
+# DB-1 — the trend surface (scripts/gen_trend_dashboard.py --write). Regenerate-on-demand,
+# never committed, and that is the successor's central design choice rather than a default.
+#
+# The predecessor it replaces (ecosystem/conformance.html) is a COMMITTED generated artifact,
+# so it can be — and measurably is — stale: the live audit store carried
+# "conformance-dashboard: 5d stale" while this generator was being written. Committing this
+# page would inherit exactly that disease, and would additionally need a freshness gate to
+# police a staleness that only exists because the file is committed. A page regenerated from
+# the store on demand cannot be stale, so no gate is owed and none was added.
+#
+# It also holds no durable signal of its own (ADR-80 mutable/durable split): every point is a
+# derived view over git and logs/TELEMETRY.db, so the durable record is the store, exactly as
+# the state.yaml entry above reasons.
+ecosystem/trends.html
+
 # Session-end gate override (ADR-85) — ephemeral local signal + audit log, never committed.
 # The token is a HEAD-bound one-shot the Stop-hook pure-reads; OVERRIDES.md is the local
 # override-rate audit trail (matches the logs/PROPOSALS-* / FLEET-HEALTH ephemeral pattern).
