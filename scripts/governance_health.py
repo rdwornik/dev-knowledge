@@ -8,14 +8,23 @@ repo's close packets, and appends one record of the run to the EXISTING telemetr
 the numbers become a time series rather than a moment.
 
 THE ONE RULE THIS MODULE IS BUILT AROUND. The lane's Ex-ante is *"the command runs on merged
-main and its numbers equal FM-4's block byte-for-byte for the shared fields."* Byte-for-byte
-equality between two renderers is achievable exactly one way: **both render from the same
-function.** So this module computes **none** of FM-4's four fields. It resolves FM-4's emitter
-and renders what that emitter returns; when the emitter is absent, the four fields render
-`unavailable` with the resolution report attached. An `unavailable` is a true answer. A
-locally-computed number that happens to look right is the failure this whole batch exists to
-remove, and `tests/test_governance_health.py::test_no_fm4_owned_field_is_derivable_from_this_module`
+main and its numbers equal FM-4's block byte-for-byte for the shared fields."* So this module
+computes **none** of FM-4's four fields. It resolves FM-4's emitter and renders the values that
+emitter returns; when the emitter is absent, the four fields render `unavailable` with the
+resolution report attached. An `unavailable` is a true answer. A locally-computed number that
+happens to look right is the failure this whole batch exists to remove, and
+`tests/test_governance_health.py::test_no_fm4_owned_field_is_derivable_from_this_module`
 enforces the absence structurally rather than by reading output.
+
+  WHAT "BYTE-FOR-BYTE" IS AND IS NOT HERE, stated because terra P4 was right to press it. The
+  Ex-ante binds *the numbers*, not the surrounding layout: FM-4's block lives in a browser-
+  visible bundle and this one lives in a CLI report, and demanding identical bytes of the whole
+  block would be demanding the two surfaces be one surface. What IS asserted, and asserted per
+  field rather than over an intersection that could be satisfied by one lucky match, is that
+  every field in `FM4_OWNED_FIELDS` is present in FM-4's block AND carries the identical value
+  string here — a missing field is a FAILURE, not a silently skipped comparison. The two blocks
+  are parsed by ONE function (`parse_shared_fields`) so a mismatch is always a disagreement
+  about a number and never two parsers disagreeing about a format.
 
 ONE TRUTH RUNS BOTH WAYS, and this is the part a reader will not guess. FM-4's block carries
 five fields, and the fifth — `value evidence attached` — is *this* lane's derivation: it can
@@ -90,9 +99,9 @@ from pathlib import Path
 # mis-reads as "governance_health is absent" and the whole module fails to import. Same shape as
 # the `_te`/`_vgb`/`_vdc` shims in `audit.py`.
 try:
-    from scripts.gen_task_tree import _TERMINAL_STATUSES, frontmatter_status
+    from scripts.gen_task_tree import _TERMINAL_STATUSES, frontmatter_id, frontmatter_status
 except ImportError:
-    from gen_task_tree import _TERMINAL_STATUSES, frontmatter_status
+    from gen_task_tree import _TERMINAL_STATUSES, frontmatter_id, frontmatter_status
 
 #: The close-packet shapes, WITNESSED on disk (2026-08-29) rather than trusted from a list:
 #: `docs/audits/2026-08-26-verification-batch-1-close-packet.md`,
@@ -146,6 +155,11 @@ SHA_RE = re.compile(r"\b[0-9a-f]{7,40}\b")
 
 _ROW_RE = re.compile(r"\[#(\d+)\]")
 
+#: The last `_handoff()` import failure, kept so a resolution report can distinguish "the module
+#: is not there" from "the module is there and broken" (terra P3). `None` when the last attempt
+#: succeeded or has not run.
+_HANDOFF_IMPORT_ERROR: str | None = None
+
 #: A verdict token. `\bclosed\b` and NOT `close`, so the extremely common word "closure"
 #: ("two closure candidates, reported not filed") does not silently become value evidence.
 _VERDICT_RE = re.compile(
@@ -159,14 +173,27 @@ _VERDICT_RE = re.compile(
 #: value evidence is worse than one that misses a delta written in words.
 _DELTA_RE = re.compile(r"\d+\s*(?:->|→|-->)\s*\d+|\b\d+\s*/\s*\d+\b|\b\d+\s+of\s+\d+\b")
 
+#: A negation immediately governing the token that follows it, anchored to the END of the text
+#: before a match. Three words of slack ("not fully discharged"), and no more — see `_negated`.
+_NEGATION_RE = re.compile(r"\b(?:not|never|no|without|un)\b[^.;!?]{0,24}$", re.IGNORECASE)
+
 
 @dataclass(frozen=True)
 class ValueEvidence:
-    """One quoted close-packet line, with the locator that makes it disputable."""
+    """One quoted close-packet line, with the locator that makes it disputable.
+
+    `shared` is the terra-P1 correction and it is load-bearing. A packet line citing more than
+    one row — *"`[#577]` and `[#584]` are closure candidates — lane F discharged `[#577]`'s
+    done-when 5 of 5"* — carries a verdict that belongs to ONE of them, and attributing it to
+    both is exactly the invented benefit this lane is forbidden to produce. Such a line is still
+    SHOWN, because hiding evidence is its own defect, but it is marked and it does NOT count
+    toward coverage. Only a line citing this row ALONE is scored.
+    """
 
     row_id: int
     text: str
     locator: str
+    shared: bool = False
 
 
 @dataclass
@@ -204,14 +231,31 @@ def close_packets(repo_root: Path) -> list[Path]:
     return sorted(found)
 
 
+def _negated(line: str, start: int) -> bool:
+    """Is the token at `start` inside a negation — "not closed", "never landed", "no delta"?
+
+    Terra P1's second half. `_VERDICT_RE` matching `closed` inside *"is not closed"* turns a
+    statement that a row bought nothing into evidence that it bought something, which is the
+    single worst error this module can make. The window is the three words before the token and
+    nothing wider, deliberately: a sentence-wide search would score *"nothing was lost; the row
+    closed 20 findings"* as negated, and a false NEGATIVE here is a quiet under-count while a
+    false positive is a fabricated benefit.
+    """
+    return bool(_NEGATION_RE.search(line[:start]))
+
+
 def is_value_line(line: str) -> bool:
-    """Does this line carry a value token — a verdict or a measured quantity?
+    """Does this line carry a value token — a verdict or a measured quantity — un-negated?
 
     Separate from `value_evidence` so the predicate is testable on its own; the case that
     matters is the NEGATIVE one, because a predicate that matches every mention reports 100%
     coverage forever and measures nothing.
     """
-    return bool(_VERDICT_RE.search(line) or _DELTA_RE.search(line))
+    for pattern in (_VERDICT_RE, _DELTA_RE):
+        for m in pattern.finditer(line):
+            if not _negated(line, m.start()):
+                return True
+    return False
 
 
 def value_evidence(repo_root: Path, row_ids: Iterable[int],
@@ -228,17 +272,27 @@ def value_evidence(repo_root: Path, row_ids: Iterable[int],
         rel = packet.relative_to(root).as_posix()
         text = packet.read_text(encoding="utf-8", errors="replace")
         for lineno, line in enumerate(text.splitlines(), start=1):
-            cited = {int(m) for m in _ROW_RE.findall(line)} & wanted
+            all_cited = {int(m) for m in _ROW_RE.findall(line)}
+            cited = all_cited & wanted
             if not cited or not is_value_line(line):
                 continue
+            # SHARED is measured against every id ON THE LINE, not just the ones asked about:
+            # a line naming two rows is ambiguous evidence whether or not both are in scope.
+            shared = len(all_cited) > 1
             for row_id in sorted(cited):
-                out[row_id].append(ValueEvidence(row_id, line.rstrip(), f"{rel}:{lineno}"))
+                out[row_id].append(
+                    ValueEvidence(row_id, line.rstrip(), f"{rel}:{lineno}", shared=shared))
     return out
 
 
 def coverage(found: Mapping[int, list[ValueEvidence]]) -> tuple[int, int]:
-    """`(rows carrying value evidence, rows considered)` — the fraction the contract asks for."""
-    return sum(1 for evs in found.values() if evs), len(found)
+    """`(rows carrying value evidence, rows considered)` — the fraction the contract asks for.
+
+    SOLE evidence only. A row whose every packet line also names another row is counted as
+    UNCOVERED, because the value on that line may belong to the other row — the conservative
+    direction, and the only one that cannot invent a benefit.
+    """
+    return (sum(1 for evs in found.values() if any(not e.shared for e in evs)), len(found))
 
 
 # ---------------------------------------------------------------------------------------
@@ -253,11 +307,17 @@ def _handoff():
     package mode only `scripts.gen_handoff` resolves, and a resolver that silently returned
     `None` there would report "FM-4 has not landed" about a tree where it had.
     """
+    global _HANDOFF_IMPORT_ERROR
+    errors = []
     for name in (f"scripts.{FM4_MODULE}", FM4_MODULE):
         try:
+            _HANDOFF_IMPORT_ERROR = None
             return importlib.import_module(name)
-        except Exception:  # noqa: BLE001 - any import failure is the same fact to a reporter
-            continue
+        except Exception as exc:  # noqa: BLE001 - reported, never raised out of a reporter
+            errors.append(f"{name}: {type(exc).__name__}: {exc}")
+    # Terra P3: the exception is KEPT. "did not import" collapses "the module is missing" and
+    # "the module is broken" into one message, and those call for opposite acts.
+    _HANDOFF_IMPORT_ERROR = "; ".join(errors)
     return None
 
 
@@ -284,36 +344,62 @@ def rows_closed_in_window(repo_root: Path, base: str | None = None) -> list[int]
 
     TERMINAL means `gen_task_tree._TERMINAL_STATUSES` — imported, so this cannot drift from the
     generator that owns the vocabulary. A row counts only when it was NOT terminal at the
-    window's base and IS terminal now, so a closed row merely re-edited inside the window does
-    not inflate the number.
+    window's base and IS terminal at HEAD, so a closed row merely re-edited inside the window
+    does not inflate the number.
+
+    BOTH SIDES ARE READ FROM GIT BLOBS (`base:` and `HEAD:`), never from the working tree —
+    terra P2. The event this feeds is stamped `git_derived=True`, and a number that changes
+    because the checkout is dirty is not history-derived however it is labelled. It also means
+    two runs over the same range agree, which is the whole point of a time series.
+
+    RENAME-AWARE for the same reason: `--name-status -M` gives the OLD path, so a task file
+    renamed inside the window is compared against its own earlier blob rather than against a
+    path that never existed at `base` (which would score every rename as a new closure). The id
+    comes from the row's own frontmatter, with the filename prefix as the fallback for a file
+    whose frontmatter cannot be read.
     """
     root = Path(repo_root)
     mod = _handoff()
     base = base if base is not None else window_base_sha(root)
     if mod is None or base is None:
         return None
-    ok, changed = mod._git_status(root, "diff", "--name-only", f"{base}..HEAD", "--", "tasks")
+    ok, changed = mod._git_status(root, "diff", "--name-status", "-M", f"{base}..HEAD",
+                                  "--", "tasks")
     if not ok:
         return None
 
     closed: list[int] = []
-    for rel in (ln.strip() for ln in changed.splitlines()):
-        if not rel.endswith(".md") or not rel.startswith("tasks/"):
+    for raw in changed.splitlines():
+        fields = raw.rstrip().split("\t")
+        if len(fields) < 2:
             continue
-        path = root / rel
-        if not path.is_file():
+        status, old_rel = fields[0], fields[1]
+        new_rel = fields[2] if len(fields) > 2 else old_rel
+        if status.startswith("D") or not new_rel.endswith(".md"):
             continue
-        if frontmatter_status(path.read_text(encoding="utf-8", errors="replace")) \
-                not in _TERMINAL_STATUSES:
+
+        now_ok, now_text = mod._git_status(root, "show", f"HEAD:{new_rel}")
+        if not now_ok or frontmatter_status(now_text) not in _TERMINAL_STATUSES:
             continue
-        was_ok, before = mod._git_status(root, "show", f"{base}:{rel}")
+        was_ok, before = mod._git_status(root, "show", f"{base}:{old_rel}")
         if was_ok and frontmatter_status(before) in _TERMINAL_STATUSES:
             continue  # already terminal when the window opened
-        try:
-            closed.append(int(Path(rel).name.split("-", 1)[0]))
-        except ValueError:
-            continue
+
+        row_id = _row_id(now_text, new_rel)
+        if row_id is not None:
+            closed.append(row_id)
     return sorted(set(closed))
+
+
+def _row_id(file_text: str, rel: str) -> int | None:
+    """The row's id — from its frontmatter, falling back to the `<id>-slug.md` filename."""
+    from_front = frontmatter_id(file_text)
+    if from_front is not None:
+        return from_front
+    try:
+        return int(Path(rel).name.split("-", 1)[0])
+    except ValueError:
+        return None
 
 
 # ---------------------------------------------------------------------------------------
@@ -324,9 +410,12 @@ def resolve_fm4_emitter() -> Fm4Source:
     """Find FM-4's FUNNEL HEALTH emitter, or report precisely why it was not found."""
     mod = _handoff()
     if mod is None:
-        return Fm4Source(False, None, f"{FM4_MODULE} did not import")
+        return Fm4Source(False, None,
+                         f"{FM4_MODULE} did not import — {_HANDOFF_IMPORT_ERROR or 'no detail'}")
+    # `_`-private names are EXCLUDED (terra P3): a module-private helper is not a cross-module
+    # contract, and resolving one would bind FM-5 to something FM-4 may rename without notice.
     names = sorted(n for n in dir(mod)
-                   if not n.startswith("__")
+                   if not n.startswith("_")
                    and callable(getattr(mod, n, None))
                    and FM4_CALLABLE_RE.match(n))
     if not names:
@@ -379,7 +468,16 @@ def build_report(repo_root: Path, *, source: Fm4Source | None = None) -> Report:
 
     shared: dict[str, str] = dict.fromkeys(SHARED_FIELDS, UNAVAILABLE)
     if src.available and src.render is not None:
-        theirs = parse_shared_fields(src.render(root))
+        # A resolved-by-name callable can still be the wrong callable, and a report that CRASHES
+        # is strictly worse than one that says `unavailable` (terra P3). The failure is demoted
+        # to a resolution report; the four fields stay `unavailable` and say why.
+        try:
+            theirs = parse_shared_fields(src.render(root))
+        except Exception as exc:  # noqa: BLE001 - reported, never raised out of a reporter
+            src = Fm4Source(False, src.dotted,
+                            f"{src.dotted} resolved but failed when called: "
+                            f"{type(exc).__name__}: {exc}")
+            theirs = {}
         for name in FM4_OWNED_FIELDS:
             if name in theirs:
                 shared[name] = theirs[name]
@@ -417,9 +515,13 @@ def render_value_section(found: Mapping[int, list[ValueEvidence]]) -> str:
         if not evidence:
             lines.append(f"  [#{row_id}] — {NO_VALUE_EVIDENCE}")
             continue
+        if all(e.shared for e in evidence):
+            lines.append(f"  [#{row_id}] — {NO_VALUE_EVIDENCE} of its own; shown below, "
+                         f"attribution unverified")
         for ev in evidence:
-            lines.append(f"  [#{row_id}] — {ev.locator} — {ev.text}")
-    lines.append(f"  coverage: {attached}/{considered} rows carry value evidence, "
+            mark = " (line cites 2 rows or more; attribution unverified)" if ev.shared else ""
+            lines.append(f"  [#{row_id}]{mark} — {ev.locator} — {ev.text}")
+    lines.append(f"  coverage: {attached}/{considered} rows carry sole value evidence, "
                  f"{considered - attached} do not")
     return "\n".join(lines)
 

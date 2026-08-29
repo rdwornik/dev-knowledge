@@ -136,6 +136,43 @@ def test_a_measured_delta_alone_is_value_evidence(tmp_path: Path) -> None:
     assert len(gh.value_evidence(tmp_path, [904])[904]) == 1
 
 
+def test_a_line_citing_two_rows_is_shared_and_does_not_count(tmp_path: Path) -> None:
+    """Terra P1, and the live corpus already contains the exact case.
+
+    `docs/audits/2026-08-29-verification-night-mission-close-packet.md:463` reads
+    *"`[#577]` and `[#584]` are closure candidates — lane F discharged `[#577]`'s done-when
+    5 of 5"*. The verdict belongs to 577. Attributing it to 584 as well is a benefit this
+    module invented, which is the one thing it may never do — so a multi-row line is SHOWN,
+    marked, and excluded from the coverage numerator.
+    """
+    _seed_packet(tmp_path, """
+        # close packet
+        `[#906]` and `[#907]` are candidates — lane F discharged `[#906]`'s done-when 5 of 5.
+    """)
+    found = gh.value_evidence(tmp_path, [906, 907])
+    assert [e.shared for e in found[906]] == [True]
+    assert [e.shared for e in found[907]] == [True]
+    assert gh.coverage(found) == (0, 2), "shared evidence proves nothing about either row"
+
+    section = gh.render_value_section(found)
+    assert "cites 2 rows" in section, "the line is shown and marked, never hidden"
+
+
+def test_a_negated_verdict_is_not_value_evidence(tmp_path: Path) -> None:
+    """Terra P1's other half: `_VERDICT_RE` matching `closed` inside "is not closed" would turn
+    a statement that a row bought nothing into evidence that it bought something."""
+    _seed_packet(tmp_path, """
+        # close packet
+        `[#908]` was not closed and is not fully discharged.
+        `[#909]` never landed.
+    """)
+    found = gh.value_evidence(tmp_path, [908, 909])
+    assert found[908] == []
+    assert found[909] == []
+    assert not gh.is_value_line("`[#908]` was not closed")
+    assert gh.is_value_line("`[#908]` was closed")
+
+
 def test_coverage_fraction_counts_both_halves(tmp_path: Path) -> None:
     _seed_packet(tmp_path, """
         # close packet
@@ -145,6 +182,56 @@ def test_coverage_fraction_counts_both_halves(tmp_path: Path) -> None:
     """)
     found = gh.value_evidence(tmp_path, [900, 901, 902, 903])
     assert gh.coverage(found) == (2, 4)
+
+
+# --------------------------------------------------------------------------------------
+# rows closed this window — read from GIT BLOBS, both sides (terra P2)
+# --------------------------------------------------------------------------------------
+
+def _task(row_id: int, status: str) -> str:
+    return f'---\nid: "[#{row_id}]"\ntitle: "t{row_id}"\nstatus: {status}\n---\n\nbody\n'
+
+
+@pytest.mark.slow
+def test_rows_closed_ignores_the_working_tree_and_survives_a_rename(tmp_path: Path) -> None:
+    """Terra P2. The event this feeds is stamped `git_derived=True`, so it must depend on
+    history and on nothing else — a metric that moves when the checkout is dirty is not
+    history-derived however it is labelled, and two runs over one range must agree.
+
+    Two properties in one fixture because they share the repo: (a) an uncommitted edit
+    reopening a row does not un-count it, and (b) a task file RENAMED inside the window is
+    compared against its own earlier blob, so a rename is not scored as a fresh closure.
+    """
+    import subprocess
+
+    def git(*args: str) -> None:
+        subprocess.run(["git", "-C", str(tmp_path), *args], check=True,
+                       capture_output=True, text=True)
+
+    tasks = tmp_path / "tasks"
+    tasks.mkdir()
+    git("init", "-q")
+    git("config", "user.email", "t@example.invalid")
+    git("config", "user.name", "t")
+    (tasks / "910-open-then-closed.md").write_text(_task(910, "open"), encoding="utf-8")
+    (tasks / "911-already-closed.md").write_text(_task(911, "closed"), encoding="utf-8")
+    git("add", "-A")
+    git("commit", "-qm", "base")
+    base = subprocess.run(["git", "-C", str(tmp_path), "rev-parse", "HEAD"],
+                          capture_output=True, text=True, check=True).stdout.strip()
+
+    (tasks / "910-open-then-closed.md").write_text(_task(910, "closed"), encoding="utf-8")
+    (tasks / "911-already-closed.md").rename(tasks / "911-renamed.md")
+    git("add", "-A")
+    git("commit", "-qm", "window")
+
+    assert gh.rows_closed_in_window(tmp_path, base) == [910], \
+        "911 was already terminal at base; a rename must not resurrect it as a new closure"
+
+    # (a) dirty the worktree so the filesystem disagrees with HEAD
+    (tasks / "910-open-then-closed.md").write_text(_task(910, "open"), encoding="utf-8")
+    assert gh.rows_closed_in_window(tmp_path, base) == [910], \
+        "a git_derived number must not move because the checkout is dirty"
 
 
 # --------------------------------------------------------------------------------------
@@ -341,7 +428,12 @@ def test_shared_fields_equal_fm4_block_byte_for_byte() -> None:
         )
     mine = gh.parse_shared_fields(gh.render_health_block(gh.build_report(_REPO_ROOT)))
     theirs = gh.parse_shared_fields(src.render(_REPO_ROOT))
-    shared = set(mine) & set(theirs)
-    assert shared, "the two blocks share no field names — the coupling is broken, not merely absent"
-    for field in sorted(shared):
+
+    # THE FULL SET, not the intersection (terra P4). An intersection comparison is satisfied by
+    # ONE field happening to match, which would let the Ex-ante pass on a block missing three of
+    # its four numbers — the assertion would look green and measure almost nothing.
+    missing = [f for f in gh.FM4_OWNED_FIELDS if f not in theirs]
+    assert not missing, f"FM-4's block is missing shared field(s): {missing}"
+    for field in gh.FM4_OWNED_FIELDS:
         assert mine[field] == theirs[field], f"{field}: FM-5 {mine[field]!r} != FM-4 {theirs[field]!r}"
+        assert mine[field] != gh.UNAVAILABLE, f"{field}: resolved but rendered unavailable"
