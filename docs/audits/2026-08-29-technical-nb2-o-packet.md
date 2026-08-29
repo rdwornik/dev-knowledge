@@ -316,8 +316,56 @@ bfedfde4  docs(audits): SDA1-N — the ANALYSIS role criterion, FROZEN BEFORE TH
 <this>    docs(audits): SDA1-N — the (agy, analysis) cell, item pack and lane-O packet
 ```
 
+> **AMENDMENT 1 (2026-08-29, same lane).** `<this>` resolved to **`6d70a3a9`** once the commit
+> existed; a packet cannot name its own hash before it is written. Recorded as an amendment
+> marker rather than an in-place edit, per CLAUDE.md §5 rule 3 (audits are immutable). A third
+> commit carries this amendment, so the full ordered list is:
+>
+> ```
+> bfedfde4  the frozen criterion   (precedes every provider invocation — the Q6 discharge)
+> 6d70a3a9  the cell + item pack + this packet
+> <amend>   this amendment, filling in 6d70a3a9 and recording the targeted-test evidence
+> ```
+
 `bfedfde4` precedes every provider invocation; that ordering **is** the Q6 discharge, and the
 10/10 digest reproduction is its proof.
+
+---
+
+## 8a. TARGETED TESTS — three REDs, ALL MINE, ALL CORRECTLY LEFT UNREPAIRED
+
+This lane's diff is markdown under `docs/audits/` only — no code. The covering surfaces are the
+naming, indexing and landing gates. `audit-health` passed as a **pre-commit** gate on both
+commits; the ship-tier tests below were run separately.
+
+```
+uv run --locked pytest -x --tb=short -q tests/test_validate_hermetization.py \
+    tests/test_consumer_at_landing.py tests/test_gen_audit_index.py \
+    tests/test_audit_index_merge_free.py
+-> 3 failed, 98 passed in 41.33s
+```
+
+| RED | mine or inherited | why it is NOT repaired here |
+|---|---|---|
+| `test_gen_audit_index::test_live_index_is_fresh` | **MINE** | contract fence 4: no generated-surface regeneration; the integrator does it ONCE on the merged result |
+| `test_gen_audit_index::test_live_index_excludes_nothing_because_every_audit_is_tracked` | **MINE** | same fence, same surface |
+| `test_consumer_at_landing::test_the_live_corpus_measures_and_the_baseline_matches_it` | **MINE** | the fix is a write to `ecosystem/audit-consumer-baseline.json`, and the contract forbids **all** `ecosystem/` writes |
+
+**Proved, not asserted, and it corrects my own first reading.** I initially suspected the index
+RED was inherited, because ten `2026-08-29` audit files appear in the checker's output. That was a
+grep reading *both sides* of a diff. Regenerating and diffing gives the true drift set:
+
+```
+docs/audits/README.md:  **787 audit documents.**  ->  **790 audit documents.**
++ 2026-08-29-technical-sda1-analysis-role-item-pack.md
++ 2026-08-29-technical-sda1-analysis-role-freeze.md
++ 2026-08-29-technical-nb2-o-packet.md
+```
+
+Exactly this lane's three files, and nothing else. The regeneration was then **reverted**
+(`git checkout -- docs/audits/README.md`) so the index lands stale, which fence 4 makes the
+correct state rather than a defect. **Integrator: these three REDs clear on the single
+regeneration pass over the merged result plus a consumer-baseline refresh.**
 
 ---
 
