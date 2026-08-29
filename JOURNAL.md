@@ -19,6 +19,33 @@
 
 ---
 
+### 2026-08-29 (e) - CC (Opus 5, background job, primary checkout, branch `docs/batch-2-w2-anchor`): anchor discharge — the eight wave-2 lane merges, named
+
+**Did:** discharged the JOURNAL anchor for the eight wave-2 lane merges, which entry (d) failed to
+carry. **Append-only, per standing ruling B6** — *"a JOURNAL anchor discharges through a NEW entry
+naming the SHA; in-place amendment of an already-committed entry sits outside the sanctioned
+shapes"*. Entry (d) is left exactly as it landed.
+
+**Lane tips this arc's merges introduced:** H `19a91cac` · I `25cabcea` · J `e0f81df2` · K `9529ee3d` · L `a869c44e` · M `b68a8a3f` · N `42deecf3` · O `a4a39245`.
+
+**Why it was needed, recorded rather than quietly fixed.** Entry (d) was generated from a body
+template that carried the `@HARVEST@` token but **not** the `@TIPS@` token its wave-1 predecessor
+had. The generator computed the eight tips and **printed them to the console** — `tips: H …` — so
+the step looked done; it substituted nothing, because the placeholder was absent from the text. A
+tool that reports work it did not land is the same failure shape as `| tail` reporting a pipe's
+exit code, met twice in one window. `journal_spine_anchor` caught it at the first commit after the
+queue, which is exactly where the ADR-85 amendment moved the teeth to catch it.
+
+**The batch-2 ADR-110 exemption was already closed** when the wave-1 packet landed, so nothing
+covered these eight merges and the gate was the only thing standing between an unanchored spine
+and a push. It held.
+
+**Changes:** `JOURNAL.md` (append only).
+
+**Abandoned:** nothing.
+
+---
+
 ### 2026-08-29 (d) - CC (Opus 5, background job, primary checkout, branch `docs/batch-2-w2-integration`): wave 2 lands — the funnel machine gets teeth, and the fix I was told to verify was wrong
 
 **Did:** ran wave 2 of the night mission on the operator's WAVE-2 GO — eight lanes dispatched from
