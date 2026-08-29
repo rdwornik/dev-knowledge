@@ -36,6 +36,33 @@ dev = [
     "pydantic>=2.0,<3",    # ADR-109 desired-state schema v1 (ecosystem/schema/, [#382] W2) — named by the operator-ratified intake #22 §E; <3 bound: StrictStr/extra semantics must not move under us (grok L5)
     "packaging>=24.0",     # PEP 440 version compare in scripts/fleet_parity.py (intake #23 library-first) — was already resolved transitively via pytest and present in uv.lock; declared explicitly so the gate does not depend on a transitive edge. NO ecosystem/dependency-baseline.yaml row: fleet_parity is hub-only, so this is not a dep consumers need to operate a methodology mechanism (the pandas/analytics precedent)
     "markdown-it-py>=4.0",  # CommonMark heading/fence identification in scripts/normalize_headers.py (library-first) — same shape as packaging above: already resolved transitively (via rich) and present in uv.lock, declared explicitly so a REWRITING hook does not ride a transitive edge. NO ecosystem/dependency-baseline.yaml row: normalize-dated-headers is HUB-ONLY — it is absent from .pre-commit-hooks.yaml and from the deploy manifest hook roster, so no consumer needs it to operate a methodology mechanism
+    # rustworkx — the file-purpose graph (FPG-1, scripts/file_purpose_graph.py). This is the
+    # NAMED CONSUMER standing ruling R-A reserved: "if a consumer is ever named, the library is
+    # rustworkx, not networkx". AUTHORIZATION is the operator's A3 mandate, verbatim: "a real
+    # graph library, not more hand-rolled traversal" — a dependency change is never incidental
+    # (ADR-106), so it is declared here, locked, and committed with the mandate quoted in the
+    # commit body rather than arriving as a side effect of a feature.
+    #
+    # MEASURED, not assumed (2026-08-29, this worktree, uv 0.11.19 / CPython 3.12.10 /
+    # win_amd64): rustworkx 0.18.1 resolves and installs from a PREBUILT wheel
+    # (`rustworkx-0.18.1-cp310-abi3-win_amd64.whl`, pinned by hash in uv.lock) — no Rust
+    # toolchain, no sdist build. That was R-A's MEASUREMENT-OWED-LOCAL half and it PASSED, so
+    # the recorded sqlite/stdlib fallback was NOT taken. The `>=0.16` floor is the release
+    # carrying the `PyDiGraph` payload/attribute surface this module relies on; no upper pin,
+    # since a graph kernel with no persisted artifact carries no cross-version compatibility
+    # surface here.
+    #
+    # TRANSITIVE COST, stated rather than left to be discovered: rustworkx requires numpy. numpy
+    # was ALREADY in uv.lock (via pandas), so the lock gains one package, not two — but numpy
+    # moves from the opt-in `analytics` group into the DEFAULT `dev` group, so a plain
+    # `uv sync --locked` now installs it where it previously did not. That is the real price of
+    # the library-first call and it is on the record rather than in a diff nobody reads.
+    #
+    # NO ecosystem/dependency-baseline.yaml row — the pandas/packaging/markdown-it-py
+    # precedent, applied for the same stated reason: the file-purpose graph is HUB-ONLY (it
+    # reads this repo's own governance surfaces and ships in no carrier and no deploy-manifest
+    # component roster), so it is not a dep a consumer needs to operate a methodology mechanism.
+    "rustworkx>=0.16",
 ]
 # L5a descriptive analytics lane ([#384], intake #16 section 3). Separate group: the lane is
 # HUB-ONLY (it mines siblings read-only but runs here), so a consumer never needs it and it
