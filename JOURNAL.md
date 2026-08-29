@@ -19,6 +19,63 @@
 
 ---
 
+### 2026-08-29 (u) - CC (Opus 5, background job, primary checkout, integrator): the second commit, taken deliberately this time
+
+**Anchors:** `1b77a13e`
+
+**Did:** names the predicate-witness commit so its merge carries an anchor for a commit it
+introduces.
+
+**Result:** the fourth time today, and the first time I planned for it rather than discovered it.
+A branch whose only artifact is a JOURNAL entry cannot self-anchor — the entry would have to name a
+hash that does not exist while it is being written — so the shape is always **artifact commit, then
+a journal commit naming it**. `[#623]` covers mechanising the record line; the two-commit shape is
+the part no mechanism can supply, because it is an ordering rather than a format.
+
+**Changes:** `JOURNAL.md` only.
+
+---
+
+### 2026-08-29 (t) - CC (Opus 5, background job, primary checkout, integrator): the manifest predicate, quoted — and my "appears to" was wrong twice
+
+**Anchors:** `98c84569` `c2c59281` `5a2fff80`
+
+**Did:** read `scripts/batch_manifest.py`'s exemption predicate instead of reasoning about it, and
+recorded the actual rule in PLAYBOOK's night-batch chapter.
+
+**Result: both halves of my guess were wrong, and the second one matters more.**
+
+**Wrong 1.** I reported the exemption *"appears to key on the per-lane status line"*. The module
+says the opposite in terms: *"HOW OPENNESS EXPIRES, and why it is NOT a mutable `status:` flag."*
+Manifests live under `docs/audits/`, which is immutable, so an expiry needing an edit would either
+never fire or corrupt the record. The real rule: the manifest names **at dispatch** the artifact
+that will close it — `closed_by:` — and *"the batch is open only while that path is ABSENT from the
+COMMITTED tree."*
+
+**Wrong 2, and it retracts a claim I made to the operator.** The module also says: *"A manifest
+carrying no `closed_by:` opens nothing at all."* The batch-3 manifest I wrote today carries
+`status: open` and **no `closed_by:`**. Measured: `open_batches()` returns `[]`. **The manifest is
+INERT.** So no batch-D lane merge was ever exempt — and lane g's merge passed the gate because
+JOURNAL (r) had already **named its commits** on an `Anchors:` line, not because an exemption
+applied. I credited the manifest with a fix it did not perform, and then built a second inference
+(the status-line theory) on top of that error to explain why lane d behaved differently. **Two
+lanes behaved identically; only my explanation differed.**
+
+**The shape of the mistake is worth more than the mistake.** I diagnosed a mechanism from its
+*effects* twice in one evening — first the anchor format, now this — when the mechanism was a
+readable file both times. `[#623]` already covers the first. This entry covers the second, and the
+common lesson is the one the operator stated as a rule: *"appears to" stays a guess until the
+predicate is quoted.*
+
+**No behavior change**, per instruction: the manifest is not edited (immutable), no `closed_by:` is
+added, and whether to arm the exemption properly is left as a ruling rather than taken as a
+consequence of this witness.
+
+**Changes:** `protocols/PLAYBOOK.md` (one doctrine block + TOC), ratchet **443 -> 443** measured
+before and after.
+
+---
+
 ### 2026-08-29 (s) - CC (Opus 5, background job, primary checkout, integrator): lane d's refusal merged, re-cut as lane h
 
 **Anchors:** `c2c59281` `2f127b9d`
