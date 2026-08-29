@@ -61,8 +61,11 @@ the architect ruling of 2026-08-17, carried in code at `scripts/funnel_coverage.
 row domain is `scripts/gen_task_tree.py` (`_TERMINAL_STATUSES`) plus the live `open` / `deferred`
 values.
 
-**One token per object.** A class carrying two competing tokens has no state. Partial ratification
-of an intake is the case that tempts a second token, and §3.3 records why it does not get one.
+**At most one token per object, at one declared location.** A class carrying two competing tokens
+has no state. Partial ratification of an intake is the case that tempts a second token, and §3.3
+records why it does not get one. **The finding is the one class whose token is not stored beside
+the object** — it is carried in the wave-close table, one row per finding, so finding state is
+resolved per wave rather than by opening a file. §9 states what that costs.
 
 ---
 
@@ -114,8 +117,9 @@ The wave close's five classifications map onto these four with no fifth vocabula
 | From | To | Actor | Evidence required |
 |---|---|---|---|
 | *(birth)* | `SEED` | a feed (`/changelog-review`), or a seat dropping a candidate | the doc |
+| *(birth)* | `DRAFT` · `READY` | a functional-architect conversation, **after the operator approves the draft** | the ADR-98 §4 confirm-gate. It governs **landing**: an approved doc lands at `DRAFT` or `READY`, and the approval alone does not fix which |
 | `SEED` | `DRAFT` | the functional architect (`--mode functional`) | the doc filled to the template's eight sections |
-| `DRAFT` | `READY` | **the operator** | the approval — the ADR-98 §4 confirm-gate |
+| `DRAFT` | `READY` | **the operator** | the record that the doc is complete and waiting on its consumer — a distinct act from the landing approval above |
 | `READY` | `ACCEPTED` | the technical architect, or the operator | `decided-by:` **and** `disposition:`; `disposition: deferred` additionally requires `trigger:` or `review-date:` |
 | `READY` · `ACCEPTED` | `CONSUMED` | the seat that lands the last consumer | `consumed-by:` naming the ADR(s), row(s) or consolidating doc |
 | any live | `SUPERSEDED` | the author of the successor | `superseded-by:` |
@@ -125,8 +129,14 @@ The wave close's five classifications map onto these four with no fifth vocabula
 `docs/intake/`; that is deliberate and it is unchanged here.
 
 **The `ACCEPTED` → `CONSUMED` trigger, ruled explicitly because it was the missing join.** The
-transition fires when **every row born of the doc has reached a terminal state and no unexecuted
-clause of the doc remains**. Until then the doc is a live authority; from then on it is a record
+transition fires when **every row citing this `intake-id` carries a terminal `status:`**.
+
+Membership is resolved **by the citation, mechanically and in one direction**: ADR-98 §3 has each
+epic entry cite its intake-id, so the rows born of a doc are exactly the rows naming it, and a
+reader resolves the set with one search rather than a judgement. A doc that produced rows citing
+nothing is an **orphan** under §6, not an unfired transition here. A doc with **zero** citing rows
+does not reach `CONSUMED` by this route at all — it leaves `ACCEPTED` by ruling, as `SUPERSEDED`
+or `REJECTED`. Until the condition holds the doc is a live authority; from then on it is a record
 of one, and `consumed-by:` names what it produced. An accepted intake whose rows are all terminal
 and whose status still reads `ACCEPTED` is an **unfired transition**, which is a defect in the
 tree — and it is *that* defect, rather than any rule about archiving `ACCEPTED`, that a check on
@@ -144,8 +154,9 @@ is relied on **at the ADR**, which is the artifact with its own status, date and
 |---|---|---|---|
 | *(birth)* | `Proposed` | any seat, where ADR-98 §3's fork test is met | the draft, Decision blank until ruled |
 | `Proposed` | `Accepted` | the ruling actor per ADR-108 §A | the ruling, named in the header |
-| `Accepted` | `PARKED` | the ruling actor | the ruling, plus what un-parks it |
-| `Accepted` | `Partially superseded` · `Explored, not adopted` | the ruling actor | the ruling, and what remains live |
+| `Proposed` · `Accepted` | `PARKED` | the ruling actor | the ruling, plus what un-parks it. The live instance parked **from `Proposed`** |
+| `Proposed` | `Explored, not adopted` | the ruling actor | the ruling, and what stays canonical instead. Reached from `Proposed`, because the status records an option priced and left untaken |
+| `Accepted` | `Partially superseded` | the author of the partial successor | the successor, and which part of this ADR stays live |
 | `Accepted` · `Proposed` | `Superseded` | the author of the successor | the successor ADR id |
 | `Accepted` | `Deprecated` | the ruling actor | the ruling, and the note that it defines no live machinery |
 
@@ -160,7 +171,7 @@ historical authority, and each is still cited.
 
 | From | To | Actor | Evidence required |
 |---|---|---|---|
-| *(birth)* | `open` | the seat filing it | a `source:` that resolves — a **ratified intake**, or a landed adjudication packet, in which case the row also cites the packet row id it executes |
+| *(birth)* | `open` | the seat filing it | a **row-body `source:` clause** that resolves — a **ratified intake**, or a landed adjudication packet, in which case the row also cites the packet row id it executes. The clause sits in the row body beside `refs`, not in frontmatter |
 | `open` | `deferred` | the ruling actor | the reason, in the row body |
 | `open` · `deferred` | `closed` | the seat that finishes it | the commit carrying `closes [#id]` |
 | `open` · `deferred` | `retired` | the ruling actor | the ruling that withdrew it |
@@ -197,18 +208,37 @@ landed precedent says so in its own commit body, which archived two ADRs and lef
 non-`Accepted` ones in place for exactly this reason. Archiving a cited ADR breaks locators that
 immutable files cannot re-point.
 
+**The inbound scan is defined, so two readers run the same one:** a full-text search for the ADR's
+id across **tracked** files, excluding `docs/decisions/archive/` and the ADR's own file. A hit in
+any live file counts, whatever its form — a prose mention counts exactly as a structured reference
+does, because a prose mention is a locator a reader follows. Its recorded floor is in §9.
+
 **The audit class is the exception, and it is a ruled one.** Audit files are the evidence spine:
 roughly four in five citation lines to them sit in immutable or append-only documents that cannot
 be re-pointed, so a physical move breaks references permanently. Any future physical move of an
 audit file requires **both** a referential-currency scan **and** an explicit architect ruling.
 
-**When: the archival act rides the same commit as the transition that made the object terminal.**
-This is the rule with the most leverage in this file and it is the one no source states. An object
-that became terminal in commit A and is relocated in commit B leaves a window in which the tree
-contradicts itself — and every window of that kind observed so far stayed open, because the second
-commit had no owner and no trigger. **The transition is incomplete until its archival act lands.**
-Where the two are performed by different actors, the actor who moves the token owns the relocation
-too, or hands it over by name.
+**When: the archival act rides the same commit as the transition that made the object terminal** —
+for every class whose archival condition **is** the transition, which is the intake doc and the
+row's annotation history. This is the rule with the most leverage in this file and it is the one no
+source states. An object that became terminal in commit A and is relocated in commit B leaves a
+window in which the tree contradicts itself — and every window of that kind observed so far stayed
+open, because the second commit had no owner and no trigger. **For those classes the transition is
+incomplete until its archival act lands.** Where the two fall to different actors, the actor who
+moves the token owns the relocation too, or hands it over by name.
+
+**The ADR class sits outside that rule, structurally rather than by exemption.** Its second
+archival half is a condition on *the rest of the tree*, and the rest of the tree keeps changing
+after the transition: an ADR superseded today may stay cited by live prose for months. So an ADR's
+archival becomes **owed at the moment both halves hold**, which is normally later than the status
+edit, and §6's job-1 item 2 is what carries it from that moment forward. ADR-52 is the worked case
+— status moved 2026-05-19, archived 2026-07-22 — and that gap is conformance, not debt.
+
+**What "byte-identical" governs: the move, not the whole commit.** The relocation itself introduces
+no content change, so the file arrives at its archive path carrying exactly the bytes it had once
+the transition was recorded. Writing the terminal token and moving the file in one commit therefore
+yields a rename plus that one edit, and a reader diffing the two paths sees the transition and
+nothing besides it.
 
 **Deletion is outside this machine.** Every archival act here is a relocation with the bytes
 unchanged; content edits and deletions are a different question with a different authority.
@@ -253,7 +283,7 @@ derivations, each a count with a list behind it:
 2. **Owed archival** — objects at a terminal state whose §4 archival act has not landed. For ADRs,
    the two-part bar applies, so an eligible-but-cited ADR is **not** counted here.
 3. **Orphans, both directions** — an artifact with no consumer and no rejection record; and an open
-   row whose `source:` does not resolve.
+   row whose row-body `source:` clause is absent or does not resolve.
 4. **Untriaged** — audit artifacts carrying no disposition row at all, which is distinct from
    `PENDING` and counted separately.
 
@@ -286,7 +316,7 @@ prevent. Every row below is one or the other, explicitly.
 | The intake doc is confirm-gated; the operator approves before it lands | ADR-98 §4 | **restated** — §3.3 |
 | Unconsumed intake is a signal at ~1 month | ADR-98 §6 | **extended** — §5 turns the interval into a number, for one object class, and states the clock |
 | Git is the ledger; the commit that finishes carries `closes [#id]` | ADR-70 Tier 1 + addendum item 2 | **restated** — §3.5 |
-| The archival act rides the transition commit | — | **new** — §4. No source states it; the window it closes is observed |
+| The archival act rides the transition commit, for the classes whose archival condition is the transition | — | **new** — §4. No source states it; the window it closes is observed |
 | The ADR archival bar is terminal status **and** zero live inbound | practice of commit `216ce3a8` | **extended** — §4 writes the landed practice as a rule for the first time |
 | `ACCEPTED` → `CONSUMED` fires when every born row is terminal | — | **new** — §3.3, the join no source drew |
 | State + dated transitions generalize beyond the funnel | operator appendix A1 | **restated as scope** — §1 |
@@ -322,9 +352,11 @@ needed, and none is made.
   lives in the wave-close table rather than beside it. So finding coherence is checkable
   **per wave**, not per object — the weakest row in §2, and it is weak by construction rather than
   by oversight.
-- **The zero-inbound half of §4's ADR bar is a reference scan**, and that scan has a recorded
-  floor: the citation census behind ADR-100 covered the doc corpus only, leaving audit-to-audit and
-  `ecosystem/*.yaml` references unscanned. A count derived from it is a lower bound.
+- **The zero-inbound half of §4's ADR bar is a reference scan**, and §4 defines the scan so it is
+  reproducible — but the historical census it inherits has a recorded floor: the citation count
+  behind ADR-100 covered the doc corpus only, leaving audit-to-audit and `ecosystem/*.yaml`
+  references unscanned. A figure quoted from that census is a lower bound. §4's scan reads tracked
+  files, so it is the wider of the two and it is the one to run.
 - **§5's clock reads git dates.** A status set in a rewritten or squashed commit reads the rewrite
   date, which understates the wait. The alternative — a transition-date field in frontmatter — was
   declined here as a schema change with its own generator cost.
