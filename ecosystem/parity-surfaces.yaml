@@ -312,6 +312,14 @@ surfaces:
       value: conditional
       reason: "AGENTS.md -- the portable instruction layer admitted by ADR-115 (Accepted 2026-08-25), which supersedes ADR-53 Decision 2 and amends ADR-101 section 1 to add it to the Tier-1 file class: MUST at the hub, where [#577] landed it; consumer stays LOCAL because ADR-115 admits the file for this repo and rules no fleet rollout, and Codex's 32 KiB project_doc_max_bytes cap makes per-repo authoring a sizing decision rather than a copy. Deliberately NOT a canonical living doc -- no last_reviewed stamp, absent from FRESHNESS_FILES -- which is why validate_hermetization carries it as a literal rather than via CANONICAL_MANDATORY."
       provenance: *own-prov
+  - id: root-readme-md
+    kind: path
+    tier: {hub: MUST, consumer: LOCAL}
+    probe: {type: path_tracked, path: README.md}
+    ownership:
+      value: conditional
+      reason: "README.md -- the root front door recreated by ADR-114 (Accepted 2026-08-29, AMENDMENT 1), which supersedes ADR-38 A5 in the single respect that A5 deprecated it and amends ADR-101 section 1 to add it to the Tier-1 file class: MUST at the hub, where [#614] landed it and where it supersedes VISION.md as the canonical purpose document. Consumer stays LOCAL on MEASURED evidence, not preference -- only 2 of the 8 ADR-104 children carry a root README.md (terminal-setup, win-tooling) and ADR-114 rules no fleet rollout, so a consumer MUST would turn six members RED in one commit. Deliberately NOT promoted into canonical_docs.CANONICAL_MANDATORY -- that would enrol it in ADR38_BASELINE_REQUIRED and every consumer's canonical-set check -- which is why validate_hermetization carries it as a literal, on the AGENTS.md precedent above. The sibling canonical-doc-vision row is UNCHANGED and stays {hub: MUST, consumer: MUST}: VISION.md is retained and still tracked in all nine members. Promotion and the filename migration are [#621] / [#622]."
+      provenance: *own-prov
   - id: root-uv-lock
     kind: path
     tier: {hub: MUST, consumer: LOCAL}
