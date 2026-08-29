@@ -19,6 +19,44 @@
 
 ---
 
+### 2026-08-29 (f) - CC (Opus 5, background job, primary checkout, branch `docs/batch-2-w2-coupling`): the FM-1/FM-2 coupling repaired, and the anchor deadlock discharged
+
+**Did:** anchored `03ca7a06` — the entry-(e) commit that merge `3345d303` introduced — and landed
+the post-merge coupling repair at `680177c9`. **Append-only per B6**; entries (d) and (e) are left
+exactly as they landed.
+
+**Result: a one-commit branch cannot anchor its own merge, and this is the third time that lesson
+appeared in one session.** Entry (e) discharged the eight lane merges correctly, but its branch
+carried a single commit, so the merge `3345d303` introduced only `03ca7a06` and no JOURNAL could
+name it in advance. `journal_spine_anchor` then FAILed **every** commit — including the one that
+would discharge it. That is a genuine deadlock and the sanctioned escape is **one named hook,
+declared**: `680177c9` carries `SKIP=audit-health` in its body and nothing else was skipped; this
+entry's own commit runs the full gate unskipped. **The cause was an optimisation** — folding the
+regeneration into the JOURNAL commit to save a four-minute gate cycle collapsed two commits into
+one, which is exactly the shape the rule warns about.
+
+**The coupling repair, which is the substantive half.** `check_funnel_lifecycle` reported leg d
+**NOT ARMED** — *"no ruled READY threshold found under `protocols/` … a threshold nobody ruled is
+not one this gate may invent"* — leaving **19 READY intakes unexamined**. Both lanes were right in
+isolation: FM-1 (lane H) ruled **`N = 30 days.`** under a heading saying it ruled it there; FM-2
+(lane I) reads for **`READY threshold: <N> days`**. They ran in parallel from one base and could
+not see each other's spelling. The repair writes the **same ruled number** in the parseable shape,
+beside the ruling, with a change-both-or-neither note — no second clock, **ratchet 443 → 443**.
+Verified: `ready_threshold()` → `(30, 'protocols/FUNNEL_LIFECYCLE.md:316')`, and leg d's first live
+finding is real — **intake #15, READY for 44 days, no `review-date:`**.
+
+**This is the fourth instance in two waves of two artefacts each correct alone, disagreeing about
+a form neither could observe** — after the `N<n>` lane ids, the launch-contracts schema, and the
+misnamed cp defect. Parallel lanes cannot see each other; only integration can, which is an
+argument for what integration is *for*, not against running lanes in parallel.
+
+**Changes:** `protocols/FUNNEL_LIFECYCLE.md` · `ecosystem/audit-{consumer,funnel}-baseline.json`
+(regenerated for the ten wave-2 artifacts under the operator's standing approval) · `JOURNAL.md`.
+
+**Abandoned:** nothing.
+
+---
+
 ### 2026-08-29 (e) - CC (Opus 5, background job, primary checkout, branch `docs/batch-2-w2-anchor`): anchor discharge — the eight wave-2 lane merges, named
 
 **Did:** discharged the JOURNAL anchor for the eight wave-2 lane merges, which entry (d) failed to
