@@ -3,12 +3,12 @@
   "direction": "derived-from",
   "source": "docs/intake/README.md",
   "generator": "scripts/gen_intake_tree.py",
-  "source_sha256": "d386758981d7ba296a5c7f1f0389cb75c0ed14fa2d6b83a8b0e7af22cfef5046",
+  "source_sha256": "5abd59a954d76d9622c51e954c7663e54c82762642c059520add05c6bbbda259",
   "honest_limit": {
     "statement": "ADR-109 section 4 is discharged by a byte-exact round-trip plus a residue manifest, NOT by a derivation ratio. This surface's ratio is INVERTED relative to surface 1 (BACKLOG.md <-> tasks/), where task lines were the majority and residue the minority. Recorded so the generality claim is honest about what was shown.",
-    "item_derived_lines": 54,
+    "item_derived_lines": 55,
     "residue_lines": 281,
-    "total_lines": 335,
+    "total_lines": 336,
     "surface_1_comparison": "inverted -- surface 1 was majority item-derived"
   },
   "not_captured": {
@@ -277,6 +277,10 @@
         "consumers",
         "origin"
       ],
+      "2026-08-29-func-universal-per-repo-learning-loop.md": [
+        "consumed-by",
+        "origin"
+      ],
       "2026-08-29-tech-l0-as-a-governed-layer.md": [
         "consumed-by",
         "origin"
@@ -359,7 +363,7 @@
     },
     {
       "t": "line",
-      "v": "**54 intake documents.**"
+      "v": "**55 intake documents.**"
     },
     {
       "t": "line",
@@ -424,7 +428,7 @@
     },
     {
       "t": "line",
-      "v": "### DRAFT (8)"
+      "v": "### DRAFT (9)"
     },
     {
       "t": "line",
@@ -468,6 +472,11 @@
     {
       "t": "item",
       "file": "2026-08-29-tech-l0-as-a-governed-layer.md",
+      "status": "DRAFT"
+    },
+    {
+      "t": "item",
+      "file": "2026-08-29-func-universal-per-repo-learning-loop.md",
       "status": "DRAFT"
     },
     {
