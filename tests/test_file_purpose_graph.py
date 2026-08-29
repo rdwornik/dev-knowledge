@@ -232,18 +232,64 @@ def test_generated_surface_consumes_its_source_rows(mini: Path):
 # --------------------------------------------------------------------------- direction invariant
 
 
-def test_every_edge_is_consumer_to_consumed(mini: Path):
-    """The single stated direction convention, asserted rather than described.
+def test_every_edge_kind_is_registered_for_rendering(mini: Path):
+    """Every kind the builder emits is registered in `EDGE_KINDS` with both phrasings.
 
-    Every edge kind the builder emits is registered in `EDGE_KINDS` with its rendering label.
-    An unregistered kind would render as a bare string in the CLI and silently break the
-    convention this module's whole readability rests on.
+    NAMED for what it actually checks. Terra pre-merge finding 7 was right about the previous
+    name (`test_every_edge_is_consumer_to_consumed`): this assertion says nothing whatever
+    about direction — reversing every src and dst in the module would still pass it. A test
+    whose name claims more than its body checks is worse than no test, because it is counted.
+    The direction claim is now made by the two tests below, which can actually fail on a
+    reversal.
     """
     graph = fpg.build(mini)
     edges = graph.all_edges()
     assert edges, "vacuous: the fixture graph carries no edge to check"
     for edge in edges:
         assert edge.kind in fpg.EDGE_KINDS, f"unregistered edge kind: {edge.kind}"
+
+
+def test_cites_and_consumed_by_run_in_opposite_directions(mini: Path):
+    """The direction claim, made where it can FAIL.
+
+    `[#595]` has two legs and they are different facts: the artifact REFERENCES the row
+    (declaration), and the row NAMES THE ARTIFACT BACK (consumption). Reverse either edge and
+    this test fails; the registration test above would not notice.
+    """
+    graph = fpg.build(mini)
+    audit = "file:docs/audits/2026-08-01-technical-demo.md"
+    cites = [e for e in graph.all_edges() if e.kind == fpg.EDGE_CITES]
+    consumed = [e for e in graph.all_edges() if e.kind == fpg.EDGE_CONSUMED_BY]
+    assert cites and consumed, "vacuous: the fixture produced no edge of one of the two kinds"
+    assert all(e.src == audit for e in cites), "cites must leave the ARTIFACT"
+    assert all(e.dst == audit for e in consumed), "consumed-by must ARRIVE at the artifact"
+
+
+def test_direction_is_consumer_to_consumed_on_every_structural_kind(mini: Path):
+    """One named endpoint per edge kind, so a global src/dst swap cannot pass.
+
+    Each row states the edge the builder must produce, verbatim. A reversal breaks the row for
+    that kind rather than quietly re-rendering with the inverse phrase.
+    """
+    graph = fpg.build(mini)
+    actual = {(e.kind, e.src, e.dst) for e in graph.all_edges()}
+    expected = {
+        # the ORGAN consumes the rule it enforces; the RULE consumes the doc declaring it
+        (fpg.EDGE_ENFORCES, "file:scripts/enforce_demo.py", "rule:demo-rule"),
+        (fpg.EDGE_DECLARED_IN, "rule:demo-rule", "file:protocols/PLAYBOOK.md"),
+        # the generated INDEX consumes each artifact it enumerates
+        (fpg.EDGE_INDEXES, "file:docs/audits/README.md",
+         "file:docs/audits/2026-08-01-technical-demo.md"),
+        # the DEPENDENT row consumes the row it depends on
+        (fpg.EDGE_DEPENDS_ON, "task:42", "task:43"),
+        # the generated VIEW consumes the row it derives from
+        (fpg.EDGE_GENERATED_FROM, "file:BACKLOG.md", "task:42"),
+        # the COMPONENT consumes the hub source it ships; the CARRIER its source path
+        (fpg.EDGE_SHIPS, "component:demo-component", "file:protocols/PLAYBOOK.md"),
+        (fpg.EDGE_CARRIER_SOURCE, "carrier:demo-carrier", "file:protocols/PLAYBOOK.md"),
+        (fpg.EDGE_CARRIED_BY, "component:demo-component", "carrier:demo-carrier"),
+    }
+    assert expected <= actual, f"missing or reversed: {sorted(expected - actual)}"
 
 
 def test_multi_target_depends_on_reads_every_id_in_the_clause(tmp_path: Path):
@@ -279,6 +325,126 @@ def test_frontmatter_depends_on_is_read_too(tmp_path: Path):
     graph = fpg.build(root)
     answer = fpg.why(graph, "tasks/1-a.md")
     assert (fpg.EDGE_DEPENDS_ON, "task:2") in {(e.kind, n.key) for e, n in answer.edges}
+
+
+# ------------------------------------------------------- terra pre-merge regressions
+# One test per confirmed finding. Each was RED against the reviewed commit `0874150e`.
+
+
+def test_a_dot_prefixed_governed_path_is_not_stripped_to_a_refusal(tmp_path: Path):
+    """Terra finding 1. `lstrip("./")` takes a character SET, so `.vscode/settings.json`
+    became `vscode/settings.json` and `why` refused three files the live manifest governs."""
+    root = tmp_path / "repo"
+    _write(root / ".vscode" / "settings.json", "{}\n")
+    _write(root / "deploy" / "manifest-v1.0.0.yaml", (
+        "carriers:\n"
+        "  - id: editor-config\n"
+        "    target:\n"
+        "      source_paths:\n"
+        "        - .vscode/settings.json\n"
+    ))
+    graph = fpg.build(root)
+    answer = fpg.why(graph, ".vscode/settings.json")           # the spelling a person types
+    assert answer.node.key == "file:.vscode/settings.json"
+    assert fpg.why(graph, "./.vscode/settings.json").node.key == answer.node.key
+
+
+def test_all_three_carrier_target_shapes_contribute_edges(tmp_path: Path):
+    """Terra finding 3. The live manifest uses `source_path`, `source_paths` AND `doc_paths`;
+    reading one of three does not thin the graph, it makes it wrong."""
+    root = tmp_path / "repo"
+    for rel in ("a.md", "b.md", "c.md"):
+        _write(root / rel, f"# {rel}\n")
+    _write(root / "deploy" / "manifest-v1.0.0.yaml", (
+        "carriers:\n"
+        "  - id: one\n    target:\n      source_path: a.md\n"
+        "  - id: two\n    target:\n      source_paths:\n        - b.md\n"
+        "  - id: three\n    target:\n      doc_paths:\n"
+        "        - source: c.md\n          path: c.md\n"
+    ))
+    graph = fpg.build(root)
+    for rel, carrier in (("a.md", "one"), ("b.md", "two"), ("c.md", "three")):
+        consumers = {(e.kind, n.key) for e, n in fpg.why(graph, rel).consumers}
+        assert (fpg.EDGE_CARRIER_SOURCE, f"carrier:{carrier}") in consumers
+
+
+def test_a_user_machine_target_path_never_becomes_a_local_node(tmp_path: Path):
+    """`~/.codex/AGENTS.md` is not a file in this repo's space; minting a node for it would
+    fabricate one. The `global-config` carrier declares exactly such a target."""
+    root = tmp_path / "repo"
+    _write(root / "deploy" / "manifest-v1.0.0.yaml", (
+        "carriers:\n"
+        "  - id: global-config\n    target:\n      source_paths:\n"
+        "        - '~/.codex/AGENTS.md'\n"
+    ))
+    graph = fpg.build(root)
+    assert graph.key_for_path("~/.codex/AGENTS.md") is None
+
+
+def test_an_archived_row_body_is_explained_by_its_row(tmp_path: Path):
+    """Terra finding 4, and the false-refusal class this lane measured at 14 live files.
+    `tasks/archive/NNN.md` is not a row — but the row explains it, and its own frontmatter
+    says which row. A refusal that fires here would be the worst kind: wrong."""
+    root = tmp_path / "repo"
+    _write(root / "tasks" / "42-demo-row.md",
+           '---\nid: "[#42]"\ntitle: "The demo row"\nstatus: open\n---\n\n- [#42] a\n')
+    _write(root / "tasks" / "archive" / "42.md",
+           '---\nid: "[#42]"\nrow: tasks/42-demo-row.md\nrecord: row-body-archival\n---\n\nx\n')
+    graph = fpg.build(root)
+    consumers = {(e.kind, n.key) for e, n in fpg.why(graph, "tasks/archive/42.md").consumers}
+    assert (fpg.EDGE_ARCHIVES, "task:42") in consumers
+
+
+def test_an_orphan_archive_record_is_still_refused(tmp_path: Path):
+    """The fix above must not become a blanket amnesty for anything under `tasks/archive/`.
+    An archive record whose row does not exist is explained by nothing, and still refuses."""
+    root = tmp_path / "repo"
+    _write(root / "tasks" / "1-a.md",
+           '---\nid: "[#1]"\ntitle: "a"\nstatus: open\n---\n\n- [#1] a\n')
+    _write(root / "tasks" / "archive" / "999.md",
+           '---\nid: "[#999]"\nrow: tasks/999-gone.md\nrecord: row-body-archival\n---\n\nx\n')
+    graph = fpg.build(root)
+    with pytest.raises(fpg.UnknownFile):
+        fpg.why(graph, "tasks/archive/999.md")
+
+
+def test_a_manifest_artifact_never_mints_a_rival_node_for_a_task_row(tmp_path: Path):
+    """Terra finding 5. A `tasks/NNN-*.md` path already owns `task:NNN`; a second, path-keyed
+    vertex would leave `why` answering from one while the manifest edge hangs off the other —
+    one file, two half-answers, no error."""
+    root = tmp_path / "repo"
+    _write(root / "tasks" / "42-demo-row.md",
+           '---\nid: "[#42]"\ntitle: "The demo row"\nstatus: open\n---\n\n- [#42] a\n')
+    _write(root / "deploy" / "manifest-v1.0.0.yaml", (
+        "components:\n"
+        "  - id: demo\n    artifacts:\n"
+        "      - path: tasks/42-demo-row.md\n        source: tasks/42-demo-row.md\n"
+    ))
+    graph = fpg.build(root)
+    answer = fpg.why(graph, "tasks/42-demo-row.md")
+    assert answer.node.key == "task:42"
+    assert (fpg.EDGE_SHIPS, "component:demo") in {(e.kind, n.key) for e, n in answer.consumers}
+    assert sum(1 for n in graph.graph.nodes()
+               if n.path == "tasks/42-demo-row.md") == 1
+
+
+def test_a_shared_identifier_edges_to_every_claimant_not_the_last_sorted(tmp_path: Path):
+    """Terra finding 6. The corpus is recursive and keyed on basename, so two artifacts can
+    share one identifier. Overwriting made sort order silently pick a winner and move a real
+    consumption edge onto the wrong file."""
+    root = tmp_path / "repo"
+    body = "# demo\n\nowned by [#7]\n"
+    _write(root / "docs" / "audits" / "2026-08-01-technical-demo.md", body)
+    _write(root / "docs" / "audits" / "nested" / "2026-08-01-technical-demo.md", body)
+    _write(root / "tasks" / "7-r.md",
+           '---\nid: "[#7]"\ntitle: "r"\nstatus: open\n---\n\n'
+           "- [#7] cites docs/audits/2026-08-01-technical-demo.md\n")
+    graph = fpg.build(root)
+    targets = {e.dst for e in graph.all_edges() if e.kind == fpg.EDGE_CONSUMED_BY}
+    assert targets == {
+        "file:docs/audits/2026-08-01-technical-demo.md",
+        "file:docs/audits/nested/2026-08-01-technical-demo.md",
+    }
 
 
 # --------------------------------------------------------------------------- purpose

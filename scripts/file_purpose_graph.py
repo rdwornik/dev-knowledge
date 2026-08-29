@@ -141,6 +141,7 @@ EDGE_CARRIER_SOURCE = "carrier-source"
 EDGE_CARRIED_BY = "carried-by"
 EDGE_GOVERNED_BY = "governed-by"
 EDGE_GENERATED_FROM = "generated-from"
+EDGE_ARCHIVES = "archives"
 
 #: kind -> (phrase when rendered on an OUT edge, phrase when rendered on an IN edge). Every
 #: kind the builder emits is registered here; `test_every_edge_is_consumer_to_consumed`
@@ -150,7 +151,15 @@ EDGE_KINDS: dict[str, tuple[str, str]] = {
     EDGE_ENFORCES: ("enforces", "is enforced by"),
     EDGE_DECLARED_IN: ("is declared in", "declares"),
     EDGE_INDEXES: ("indexes", "is indexed by"),
-    EDGE_CITES: ("cites", "is cited by"),
+    # "references", not "cites". Terra pre-merge finding 2 read `cites` through `[#595]`'s
+    # phrase "an artifact declares its CONSUMER" and concluded the edge points backwards. It
+    # does not -- but the word invited the reading. The fact this edge asserts is that the
+    # artifact's own text REFERENCES this governance object, which is a coupling the artifact
+    # owns and therefore an out-edge. The other fact -- that the object names the artifact
+    # BACK -- is the separate `consumed-by` edge, and the two together are exactly `[#595]`'s
+    # declaration leg and consumption leg. `test_cites_and_consumed_by_run_in_OPPOSITE
+    # _directions` pins the pair so a reversal cannot pass as a rename.
+    EDGE_CITES: ("references", "is referenced by"),
     EDGE_CONSUMED_BY: ("consumes", "is consumed by"),
     EDGE_DEPENDS_ON: ("depends on", "is depended on by"),
     EDGE_SHIPS: ("ships", "is shipped by"),
@@ -158,6 +167,7 @@ EDGE_KINDS: dict[str, tuple[str, str]] = {
     EDGE_CARRIED_BY: ("is carried by", "carries"),
     EDGE_GOVERNED_BY: ("is governed by", "governs"),
     EDGE_GENERATED_FROM: ("is generated from", "generates"),
+    EDGE_ARCHIVES: ("archives its body in", "is the archived body of"),
 }
 
 NODE_FILE = "file"
@@ -327,6 +337,18 @@ class PurposeGraph:
 
     def key_for_path(self, relpath: str) -> str | None:
         return self._by_path.get(relpath)
+
+    def node_for_path(self, relpath: str) -> str:
+        """The node key for a path, REUSING an existing one rather than minting a rival.
+
+        Terra pre-merge finding 5. A `tasks/NNN-*.md` path already owns the identity-keyed
+        node `task:NNN`; a later loader that reached for `_file_node()` unconditionally would
+        add a second vertex for the same file, and `_by_path.setdefault` would then leave
+        `why` answering from the first while the new edges hung off the second. One file, two
+        vertices, no error -- the same failure the pass ORDER in `build()` exists to prevent,
+        reachable by a different route. This is the single funnel both routes now go through.
+        """
+        return self.key_for_path(relpath) or self.add_node(_file_node(relpath))
 
     def all_edges(self) -> list[Edge]:
         return list(self._edges)
@@ -544,15 +566,27 @@ def _load_consumer_at_landing(graph: PurposeGraph, root: Path) -> None:
     would have called 14 live documents orphans. `identifiers()` and the three hardened
     token regexes are imported from that module, not re-derived.
     """
-    by_identifier: dict[str, str] = {}
+    # identifier -> the SET of artifacts carrying it, never a single winner. Terra pre-merge
+    # finding 6: the corpus is recursive and keyed on BASENAME, so two artifacts at different
+    # depths can share one identifier -- a limit `consumer_at_landing` records for itself
+    # ("none does today, but that is a property of the keying rather than a proof"). Assigning
+    # into a `dict[str, str]` made the last-sorted path win SILENTLY, which would move a real
+    # consumption edge onto the wrong file rather than reporting a collision. A set edges to
+    # both: an ambiguous citation becomes visible in the answer instead of being resolved by
+    # sort order.
+    by_identifier: dict[str, set[str]] = {}
+
+    def _claim(token: str, rel: str) -> None:
+        by_identifier.setdefault(token, set()).add(rel)
+
     for path in _audit_paths(root):
         rel = path.relative_to(root).as_posix()
         graph.add_node(_file_node(rel))
         for token in identifiers(path.name):
-            by_identifier[token] = rel
+            _claim(token, rel)
         match = _COMMISSION_ID_RE.search(path.name)
         if match:
-            by_identifier[match.group(1)] = rel
+            _claim(match.group(1), rel)
 
         text = _read(path)
         if text is None:
@@ -578,10 +612,12 @@ def _load_consumer_at_landing(graph: PurposeGraph, root: Path) -> None:
         named.update(m.group(1) for m in _AUDIT_NAME_RE.finditer(text))
         named.update(m.group(1) for m in _STEM_RE.finditer(text))
         named.update(m.group(1) for m in _WF_RE.finditer(text))
-        hits = {by_identifier[token] for token in named if token in by_identifier}
+        hits: set[str] = set()
+        for token in named:
+            hits |= by_identifier.get(token, set())
         if not hits:
             continue
-        src = graph.key_for_path(rel) or graph.add_node(_file_node(rel))
+        src = graph.node_for_path(rel)
         for target in sorted(hits):
             graph.add_edge(Edge(src, _file_key(target), EDGE_CONSUMED_BY,
                                 INPUT_CONSUMER_AT_LANDING, "governance citation"))
@@ -638,6 +674,29 @@ def _load_tasks(graph: PurposeGraph, root: Path) -> None:
         generates = frontmatter.get("generates")
         pending.append((task_id, deps, str(generates).strip() if generates else None))
 
+    # `tasks/archive/NNN.md` -- the row-body archival records. `glob("*.md")` above is the
+    # right scope for ROWS (an archive record is not a row: it carries `row:`/`record:`
+    # frontmatter, no `title` and no `status`), but the archive file IS explained, by the row
+    # whose annotations it holds, and its own frontmatter says which one. Reading it here
+    # removes a FALSE-REFUSAL class measured at 14 live files -- and a refusal that fires on a
+    # file a row names by path is the worst failure this module can have, because the refusal
+    # is the half of the deliverable that has to be trustworthy. Terra pre-merge finding 4
+    # reached the same place from the other direction (a non-recursive scan of a `**` input).
+    archive_dir = tasks_dir / "archive"
+    if archive_dir.is_dir():
+        for path in sorted(archive_dir.glob("*.md")):
+            text = _read(path)
+            if text is None:
+                continue
+            frontmatter = _frontmatter(text)
+            match = _TASK_ID_RE.search(str(frontmatter.get("id", "")))
+            if not match or graph.node(_task_key(match.group(1))) is None:
+                continue
+            rel = path.relative_to(root).as_posix()
+            graph.add_node(_file_node(rel))
+            graph.add_edge(Edge(_task_key(match.group(1)), _file_key(rel), EDGE_ARCHIVES,
+                                INPUT_TASKS_DEPENDS_ON, "row-body archival record"))
+
     for task_id, deps, generates in pending:
         for dep in deps:
             dep_key = _task_key(dep)
@@ -668,6 +727,37 @@ def _latest_manifest(root: Path) -> Path | None:
         if match:
             candidates.append((tuple(int(p) for p in match.group("v").split(".")), path))
     return max(candidates)[1] if candidates else None
+
+
+def _carrier_source_paths(target) -> list[str]:
+    """Every hub file a carrier's `target:` block names, across ALL THREE shapes it uses.
+
+    Terra pre-merge finding 3, and it was a real omission rather than a hypothetical: reading
+    only `source_path` silently dropped the live `editor-config` carrier (which uses
+    `source_paths:`, a bare list) and the whole `docs` carrier (which uses `doc_paths:`, a
+    list of `{source, path}` pairs whose `source` is the hub side). A loader that recognises
+    one of three declared shapes does not report a thin graph, it reports a wrong one.
+
+    A `~`-rooted target is skipped everywhere: that is a USER-machine path (`~/.codex/...`),
+    not a file in this repo's space, and minting a node for it would fabricate a local file.
+    """
+    if not isinstance(target, dict):
+        return []
+    out: list[str] = []
+
+    def _push(value) -> None:
+        rel = str(value).strip()
+        if rel and not rel.startswith("~") and rel not in out:
+            out.append(rel)
+
+    if target.get("source_path"):
+        _push(target["source_path"])
+    for item in target.get("source_paths") or []:
+        _push(item)
+    for pair in target.get("doc_paths") or []:
+        if isinstance(pair, dict) and pair.get("source"):
+            _push(pair["source"])
+    return out
 
 
 def _adr_ids(value) -> list[str]:
@@ -709,11 +799,9 @@ def _load_deploy_manifest(graph: PurposeGraph, root: Path) -> None:
             continue
         carrier_id = str(carrier["id"])
         key = graph.add_node(Node(NODE_CARRIER, f"{NODE_CARRIER}:{carrier_id}", carrier_id))
-        target = carrier.get("target")
-        if isinstance(target, dict) and target.get("source_path"):
-            rel = str(target["source_path"]).strip()
-            graph.add_node(_file_node(rel))
-            graph.add_edge(Edge(key, _file_key(rel), EDGE_CARRIER_SOURCE,
+        for rel in _carrier_source_paths(carrier.get("target")):
+            dst = graph.node_for_path(rel)
+            graph.add_edge(Edge(key, dst, EDGE_CARRIER_SOURCE,
                                 INPUT_DEPLOY_MANIFEST, f"carrier {carrier_id}"))
         _link_adrs(key, carrier.get("adr"))
 
@@ -738,8 +826,7 @@ def _load_deploy_manifest(graph: PurposeGraph, root: Path) -> None:
             rel = str(artifact.get("source") or "").strip()
             if not rel or rel.startswith("~"):
                 continue
-            graph.add_node(_file_node(rel))
-            graph.add_edge(Edge(key, _file_key(rel), EDGE_SHIPS,
+            graph.add_edge(Edge(key, graph.node_for_path(rel), EDGE_SHIPS,
                                 INPUT_DEPLOY_MANIFEST, f"component {component_id}"))
         _link_adrs(key, component.get("adr"))
 
@@ -766,13 +853,21 @@ def build(repo_root: Path | str) -> PurposeGraph:
 
 
 def _normalise(repo_root: Path, path: str) -> str:
+    """A caller's path spelling -> the repo-relative posix key the graph is indexed on.
+
+    `removeprefix("./")`, NOT `lstrip("./")`. `lstrip` takes a character SET, so it eats every
+    leading `.` and `/`: `.vscode/settings.json` became `vscode/settings.json` and `why`
+    refused three files the live manifest genuinely governs (`.vscode/settings.json`,
+    `.vscode/extensions.json`, `.claude/commands/override.md`). Terra pre-merge finding 1, and
+    the exact class this repo already records as "probe tokenizer strips leading dot".
+    """
     candidate = Path(path)
     if candidate.is_absolute():
         try:
             return candidate.resolve().relative_to(repo_root).as_posix()
         except ValueError:
             return candidate.as_posix()
-    return candidate.as_posix().lstrip("./")
+    return candidate.as_posix().removeprefix("./")
 
 
 def why(graph: PurposeGraph, path: str) -> Answer:
