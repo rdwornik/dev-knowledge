@@ -80,6 +80,26 @@ providers:
     changelog_tool_key: codex
     changelog_source_url: "https://github.com/openai/codex/releases"
 
+  copilot-enterprise:
+    display_name: GitHub Copilot Enterprise
+    # NOT a council panellist -- it is a reviewer / adversarial / analysis provider, so the
+    # alias is null rather than a name the council roster does not carry.
+    council_alias: null
+    cli: copilot
+    version_command:
+      - copilot
+      - --version
+  # copilot-enterprise operational doctrine is NOT stored here -- this registry is a thin
+  # provider/CLI identity surface and its schema forbids the extra fields. The measured
+  # capability profile (284.3k context floor, the 75% payload gate, sonnet-5 default vs
+  # opus-5 reserved, gpt-5-mini as the only cross-vendor model) and the BILLING VERDICT live
+  # in `~/.claude/ROUTING.md`, which is L0 and outside this repo.
+  #
+  # Billing, ratified by the operator 2026-08-29 after a witness test: consumption is metered
+  # to the ENTERPRISE ORG SEAT (org BY-Product-Development) and is visible ONLY on that org's
+  # Copilot billing page, which needs `admin:org`. A zero on the user premium-requests meter
+  # is CORRECT and is not a routing defect -- that meter tracks Copilot INDIVIDUAL
+  # subscriptions and neither account holds one. NO FURTHER PROBING from our side.
   xai:
     display_name: xAI
     council_alias: grok

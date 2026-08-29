@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "26c9cd5f8ddfe3e93ec7fd6a03194d223346d94c13c781f5e360e92d10a610e4",
+  "generated_sha256": "de8ca927468742ee59e4134fde54463a60d3e9f10a871cc41f0c1a3796efa3c8",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -1031,6 +1031,10 @@
     {
       "task": 618,
       "file": "618-the-silently-stale-codespace-clone-detection-and.md"
+    },
+    {
+      "task": 623,
+      "file": "623-mechanize-the-journal-anchor-record-line.md"
     },
     {
       "prose": "### [S19] Decide the undecided artifact/tool models"
