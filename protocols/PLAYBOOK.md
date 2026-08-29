@@ -2444,6 +2444,22 @@ the exemption automatically, with no edit anywhere.
 nothing at all, because an exemption with no declared expiry is the permanent hole the draft's own
 honest-limit warns about."*
 
+**RULED 2026-08-29, and the enforcement point moved.**
+
+1. **A batch manifest is authored AT DISPATCH TIME**, carrying `closed_by:` naming the
+   end-of-batch packet path. That pair — a committed manifest plus an ABSENT `closed_by` target —
+   **is** the open state, which is the module's own design rather than a convention layered on top
+   of it. **No mutable status flags, ever**: a `status:` line is documentation for humans and the
+   gate reads none of it.
+2. **Enforcement sits at FREEZE.** `/lane-boot` and the `[#591]` pre-freeze validator REFUSE to
+   dispatch the first lane while `open_batches()` returns `[]`. The predicate is
+   `preflight_contract.check_open_batch`, and it reports an unresolvable state as a FAILED claim
+   rather than a pass — a predicate that cannot answer has not answered. **An inert manifest is
+   now a loud stop, instead of a silent non-exemption discovered three misdiagnoses later.**
+3. **The batch-3 manifest stays untouched** — `docs/audits/` is immutable and correcting it would
+   corrupt the record it exists to be. Its inertness is the worked example above; the repair is
+   this rule, applied to the next batch.
+
 **Witnessed 2026-08-29, on this repo's own batch D.** A manifest was written mid-batch carrying
 `status: open` and no `closed_by:`. `open_batches()` returned `[]` — the manifest was **inert**, and
 the integrator briefly believed it had armed an exemption it had not. Two readings were corrected by

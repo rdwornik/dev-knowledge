@@ -453,7 +453,8 @@ def verify(contract: Path, repo_root: Path = _REPO_ROOT) -> Report:
 # WIRED INTO NO GATE, deliberately: arming a hook is a separate act with its own roster and
 # doc consequences (`ARCHITECTURE.md` Ch2, `CLAUDE.md` §9). Reported as a candidate filing.
 
-PREDICATE_KINDS = ("off-repo-input", "unwitnessed-claim", "cited-id", "do-not-touch-scope")
+PREDICATE_KINDS = ("off-repo-input", "unwitnessed-claim", "cited-id", "do-not-touch-scope",
+                   "open-batch")
 
 
 # --- text units: the thing a claim is judged in ------------------------------------------
@@ -1005,6 +1006,54 @@ def check_do_not_touch(text: str) -> list[Claim]:
     return out
 
 
+def check_open_batch(repo_root: Path) -> list[Claim]:
+    """Predicate (v): a batch is OPEN at freeze, or the first lane does not dispatch.
+
+    RULED 2026-08-29 by the operator, and the ruling names the failure it prevents. A batch
+    manifest is authored AT DISPATCH carrying `closed_by:`, which names the end-of-batch packet
+    path; the pair *committed manifest + absent `closed_by` target* IS the open state, per
+    `batch_manifest`'s own design. There are no mutable status flags: a `status:` line is
+    documentation for humans, and `batch_manifest` does not read it.
+
+    WHY THIS SITS AT FREEZE. Before this predicate, an inert manifest -- one carrying no
+    `closed_by:`, which "opens nothing at all" in the module's own words -- produced no signal at
+    all. Its only symptom was that lane merges silently got NO ADR-110 exemption, which surfaces
+    much later as a `journal_spine_anchor` FAIL on a merge that looks like it should have been
+    covered. Witnessed 2026-08-29 on batch D: the integrator wrote a manifest with `status: open`
+    and no `closed_by:`, believed the exemption armed, and misdiagnosed the consequence THREE
+    times -- twice as an anchoring mistake to repair, once as a per-lane status rule that does not
+    exist -- before reading the predicate. A loud stop at freeze costs one line; the silent
+    version cost three misdiagnoses.
+
+    Unresolvable state (the module is absent or raises) is reported as a FAILED claim, never as a
+    pass: a predicate that cannot answer has not answered.
+    """
+    try:
+        from batch_manifest import open_batches            # noqa: PLC0415
+    except ImportError:
+        try:
+            from scripts.batch_manifest import open_batches  # type: ignore  # noqa: PLC0415
+        except ImportError as exc:
+            return [Claim("open-batch", "batch_manifest",
+                          f"did not import ({exc}) -- the freeze cannot tell whether a batch "
+                          f"is open, and an unanswerable predicate is not a pass", False)]
+    try:
+        found = open_batches(Path(repo_root))
+    except Exception as exc:                                # noqa: BLE001
+        return [Claim("open-batch", "open_batches()",
+                      f"raised {type(exc).__name__}: {exc}", False)]
+    if found:
+        names = ", ".join(sorted(Path(b.path).name for b in found))
+        return [Claim("open-batch", names,
+                      "a committed manifest declares an OPEN batch", True)]
+    return [Claim("open-batch", "open_batches() -> []",
+                  "NO committed manifest declares an open batch, so the ADR-110 exemption is "
+                  "not armed and every lane merge in this batch would need its own JOURNAL "
+                  "anchor. Author the manifest AT DISPATCH with a `closed_by:` naming the "
+                  "end-of-batch packet path -- a manifest carrying no `closed_by:` opens "
+                  "nothing at all, and a `status:` line is read by nothing", False)]
+
+
 def freeze_predicates(contract: Path, repo_root: Path = _REPO_ROOT) -> Report:
     """All four freeze-time predicates over ONE contract file.
 
@@ -1021,6 +1070,7 @@ def freeze_predicates(contract: Path, repo_root: Path = _REPO_ROOT) -> Report:
     report.checked.extend(check_witnessed_claims(text))
     report.checked.extend(check_cited_ids(text, Path(repo_root)))
     report.checked.extend(check_do_not_touch(text))
+    report.checked.extend(check_open_batch(Path(repo_root)))
     return report
 
 
@@ -1030,7 +1080,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("contract", help="contract/prompt file to verify")
     ap.add_argument("--repo-root", default=str(_REPO_ROOT), help="repo to verify against")
     ap.add_argument("--freeze", action="store_true",
-                    help="also run the four freeze-time predicates ([#591] extension): "
+                    help="also run the five freeze-time predicates ([#591] extension): "
                          "off-repo input existence, witness-carrying claims, live id "
                          "resolution, do-not-touch vs detector scope roots")
     ap.add_argument("--predicates-only", action="store_true",

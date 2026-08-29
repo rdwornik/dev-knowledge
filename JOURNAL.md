@@ -19,6 +19,48 @@
 
 ---
 
+### 2026-08-29 (w) - CC (Opus 5, background job, primary checkout, integrator): the exemption wired at freeze, where silence was the failure
+
+**Anchors:** `118cb328` `12cdd807`
+
+**Did:** implemented the operator's four-part exemption ruling — a fifth freeze-time predicate, the
+doctrine that governs it, and the two lessons it earned.
+
+**Result: the enforcement point moved to where the failure was detectable.** An inert manifest
+produced **no signal at all**. Its only symptom was that lane merges silently got no ADR-110
+exemption, which surfaces much later as a `journal_spine_anchor` FAIL on a merge that looks like it
+should have been covered — and that is precisely the shape that cost three misdiagnoses on batch D.
+`preflight_contract.check_open_batch` now refuses at freeze while `open_batches()` returns `[]`, and
+an unresolvable state (module absent, or the call raising) reports as a FAILED claim rather than a
+pass: **a predicate that cannot answer has not answered.**
+
+**The discriminating test is the one worth keeping.** Same manifest, same `status: open` line,
+opposite verdict — decided purely by whether the closing artifact exists in the committed tree.
+That is the only assertion that proves the predicate reads the real rule rather than the one I
+originally guessed.
+
+**Two existing tests were re-aimed in lockstep, and neither was silenced.** `PREDICATE_KINDS` is a
+closed checkable surface, so adding a kind without updating it is the coupling working as designed.
+The subtler one: `test_vi_a_clean_contract_exits_0` asserted an exit code that now depends on REPO
+state rather than contract text — a clean contract in a repo with no open batch correctly exits 1 —
+so the assertion moved to what the test actually guards (no CONTRACT-level predicate refuses clean
+input) with the reason recorded inline. Changing an assertion because the world changed is
+legitimate; changing it because it went red is not, and the difference has to be visible in the
+diff.
+
+**Two lessons filed**, and they are the same failure at different scales: an explanation built on an
+unread predicate, and a contract built on the operator's summary of a ruling rather than the
+register entry. Both are dangerous *because they fail safe* — an unarmed exemption breaks nothing,
+so the wrong model survives to be built on.
+
+**Changes:** `scripts/preflight_contract.py` (+1 predicate), `tests/test_preflight_freeze_predicates.py`
+(+4, 2 re-aimed), `protocols/PLAYBOOK.md` (the ruling), `LESSONS.md` (+2). Ratchet **443 -> 443**.
+
+**Abandoned:** nothing. One pre-existing RED untouched — `test_vi_batch1_reproduces_the_wrong_id_citation`,
+already reported by the wave-2 packet as a stale fixture belonging to the architect.
+
+---
+
 ### 2026-08-29 (v) - CC (Opus 5, background job, primary checkout, integrator): batch D's last two lanes, and a lane that beat its own contract
 
 **Anchors:** `7e3def48` `aec7cdc1` `2f45c9db` `3db78701`
