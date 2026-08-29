@@ -27,8 +27,8 @@
 ## 1. A1 — this machine is the template for all governed objects
 
 The shape below — **an explicit state token carried in the tree, a closed set of allowed
-transitions, an actor and a resolving evidence locator per transition, and an archival act bound
-to the terminal transition** — is stated here for the funnel because the funnel is where it was
+transitions, an actor and a resolving evidence locator per transition, and a stated archival rule
+for the terminal state** — is stated here for the funnel because the funnel is where it was
 first needed. It is **not specific to the funnel.** Any governed object this corpus later
 introduces (a routine, a carrier, a lane contract, a deployed component) is expected to declare
 the same four things, and a class that declares fewer is under-specified in exactly the way the
@@ -37,6 +37,12 @@ funnel was before this file.
 The generalization is the claim, so it is stated rather than implied: **every governed object
 carries explicit state plus dated transitions.** §2's table is one instantiation of that rule with
 five rows in it.
+
+**The archival rule is *stated*, not necessarily bound to the transition.** Two shapes are lawful
+and §4 uses both: an archival act **bound to the transition**, which fires in the same commit, and
+one bound to a **later predicate** over the rest of the tree, which fires whenever that predicate
+becomes true. What generalizes is that a class says which shape it has; what does not generalize is
+one of the two shapes.
 
 ---
 
@@ -80,6 +86,14 @@ A transition is complete when **both** its token change **and** its evidence loc
 tree. A token moved without its locator is an assertion; a locator recorded without the token move
 leaves the tree stating the old state.
 
+**Terminal states carry no outgoing edge, and the one live case that looks like an exception is
+not one.** ADR-45 was recorded as superseded and the supersession claim was later **withdrawn**
+(`c5e6d9f4`, resolving audit finding M-2), which reads like a move out of a terminal state. It is
+not: the claim was wrong when it was written, so withdrawing it repaired a token rather than moving
+the object. §3.4 states that reading rule for the ADR class, and it is the reading for every class
+here — an object leaves a terminal state only by a **correction**, which says the token was wrong,
+and no correction is an edge in this graph.
+
 ### 3.1 Audit artifact
 
 | From | To | Actor | Evidence required |
@@ -122,10 +136,10 @@ The wave close's five classifications map onto these four with no fifth vocabula
 | From | To | Actor | Evidence required |
 |---|---|---|---|
 | *(birth)* | `SEED` | a feed (`/changelog-review`), or a seat dropping a candidate | the doc |
-| *(birth)* | `DRAFT` | a functional-architect conversation that cleared **the ADR-98 §4 confirm-gate** for landing | the approval that let the doc enter the folder |
+| *(birth)* | `DRAFT` | a functional-architect conversation that cleared **the ADR-98 §4 confirm-gate** for landing | **the landing commit**, whose message records the approval that let the doc enter the folder |
 | *(birth)* | `READY` | the same, where one operator act covered **both** landing and content | **the landing commit**, whose message records that approval. The intake schema carries no approval field, so the commit is the surface — see §9. §8's Fork 3 says why this row exists |
 | `SEED` | `DRAFT` | the functional architect (`--mode functional`) | the doc filled to the template's eight sections |
-| `DRAFT` | `READY` | **the operator** | the approval of the **content**, which is the meaning `READY` carries; a doc may be born straight at `READY` when one operator act covers both landing and content |
+| `DRAFT` | `READY` | **the operator** | **the commit that flips the token**, whose message records the approval of the **content** — the meaning `READY` carries |
 | `READY` | `ACCEPTED` | the technical architect, or the operator | `decided-by:` **and** `disposition:`; `disposition: deferred` additionally requires `trigger:` or `review-date:` |
 | `ACCEPTED` | `CONSUMED` | the seat that lands the last consumer | `consumed-by:` naming the ADR(s) or row(s), **plus** the row-set condition ruled below |
 | `READY` | `CONSUMED` | the seat that lands the consolidating artifact | `consumed-by:` naming that artifact. This is the **fold** case — a doc unioned into a consolidating intake or ADR without ever being accepted on its own — and it carries no row-set condition, because a folded doc births no rows of its own |
@@ -236,8 +250,8 @@ is named here only so the next reader does not wire it in.
 elsewhere in the corpus holds it in place. That is the bar. A reader applies H3.
 
 **What this file adds is a measurement, and the measurement is uncomfortable: H3's own cited
-precedent does not satisfy H3.** The commit H3 draws from archived two ADRs at once, and only one
-of them had zero inbound references:
+precedent does not satisfy H3.** The commit H3 draws from archived two ADRs at once, and the record
+splits differently depending on which reading of "inbound" is taken:
 
 - **ADR-52** (`Superseded`) was archived carrying **13 inbound files** at `216ce3a8^` —
   `JOURNAL.md`, five audit artifacts, the audits index, four handoff files across three bundles,
@@ -381,8 +395,9 @@ prevent. Every row below is one or the other, explicitly.
 FAIL class (b) reads *"ADR superseded/rejected, not archived → FAIL"*. Three frictions with landed
 state: `Rejected` is outside the ADR status enum entirely; live ADRs carry non-`Accepted` statuses
 and stay in place by an explicit recorded reason, ADR-45/46/47 being the ones the precedent itself
-names — the live roster is whatever `scripts/validate_adr_status.py` reports, not a number typed
-here; and, measured in §4, **H3's own cited
+names — the live roster is the one `docs/decisions/README.md` enumerates by status, which
+`adr_status_grammar` holds in agreement with the ADR headers, not a number typed here; and,
+measured in §4, **H3's own cited
 precedent does not satisfy H3** — ADR-40 was archived while cited by two living docs. Read
 literally, that FAIL class fires on conformant files.
 
