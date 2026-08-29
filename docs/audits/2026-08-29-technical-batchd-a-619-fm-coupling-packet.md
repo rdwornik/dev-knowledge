@@ -206,8 +206,111 @@ The zero-intersection state must not be silently re-reachable. Three tests, all 
 
 ## 4. What changed
 
-*(completed at Step 3 — see §5)*
+Three commits on `worktree-lane-a-619-fm-coupling-repair`, off `902b621b`.
+
+**`6883564d`** — this packet, §1–§3: the ruling recorded *before* any code change, per the
+done-contract's first item.
+
+**`78486293`** — the implementation.
+
+### `scripts/gen_handoff.py`
+
+- `_FUNNEL_FIELDS` becomes `(label, kind, key)` triples over the ruled rule, eleven entries.
+- `_load_funnel_measure` now returns the **module** alongside the callable, so
+  **`_funnel_leg_names`** can validate every leg key against FM-2's own `LEG_*` constants at
+  **render time**. This is a defect the ruling found while implementing it and is worth naming
+  separately: `Measurement.by_leg` *filters a list*, so it answers `[]` for a leg name it has
+  never heard of — indistinguishable from `[]` for a leg with no violations. Without the guard,
+  a leg renamed on FM-2's side would make this block publish a confident **`0`**: a false clean,
+  strictly worse than `unavailable`, and the same failure class as `[#619]` itself. Unresolvable
+  leg keys now degrade to `unavailable` and say so in the block's `source:` note.
+- The block's header comment claimed *"THE COUPLING IS UNPROVEN AS SHIPPED … FM-2 (lane I) had
+  not landed"*. Lane I landed; the comment stayed. It is replaced with what actually happened
+  and a pointer to §2 of this packet.
+
+### `scripts/governance_health.py`
+
+- `FM4_OWNED_FIELDS` re-pointed to FM-4's eleven labels, **copied verbatim** — the standing A1
+  ruling (the source names its fields; a consumer that renames them is the drift) is untouched
+  and re-stated in place, with the retired roster recorded beside it.
+- `FM5_OWNED_FIELDS` and `SHARED_FIELDS` are **unchanged**. FM-5's report still carries all
+  thirteen numbers; only FM-4's bundle block stops rendering the two it could never derive.
+- Module docstring corrected: it described a four-field FM-4 roster and *"a fifth"* that never
+  existed, and it asserted an `unavailable` is a true answer without noting that it is not a
+  *passing* one — the precise gap `[#619]` lived in.
+
+### `scripts/funnel_lifecycle.py` — **UNCHANGED, and that is part of the ruling**
+
+It is in the frozen write-scope and was deliberately not touched. FM-2 is the **source of
+record**; FM-4 is the consumer that drifted. Every alternative that would have edited FM-2 —
+adding `intakes_consumed_unarchived` as an alias, say — would have made the detector carry a
+second vocabulary for one caller's benefit.
+
+### `tests/`
+
+Four new cases. The three under **ANTI-DRIFT** import the **live** FM-2 module, and the section
+comment now records why that matters: every shape test in the file passed for the entire life of
+the dead coupling, because a fake measurement answers to whatever names the fake was given.
+
+| test | what it refuses |
+|---|---|
+| `test_funnel_fields_cover_fm2s_whole_int_and_leg_surface` | set equality **both ways** vs. the live module — a field added to, removed from, or renamed on FM-2 |
+| `test_funnel_fields_intersect_fm2` | the witnessed empty intersection, pinned unreachable |
+| `test_funnel_health_renders_no_unavailable_against_the_live_repo` | the done-contract's "no field left rendering `unavailable`" |
+| `test_a_renamed_leg_renders_unavailable_and_never_a_false_zero` | the render-time false-`0` above |
+
+Existing cases updated rather than replaced: the golden literals, the `fm2` fake (now module-
+shaped, carrying `LEG_*` constants as literals — never imported from the module under test), the
+`_load_funnel_measure` 3-tuple, and the banned-vocabulary list in
+`test_no_fm4_owned_field_is_derivable_from_this_module`, re-pointed to the new labels while
+keeping the retired words.
+
+**The anti-drift tests were trip-tested, not asserted.** `LEG_C` renamed and a `brand_new_number:
+int` field added to `Measurement`: `test_funnel_fields_cover_fm2s_whole_int_and_leg_surface` and
+`test_funnel_health_renders_no_unavailable_against_the_live_repo` both RED, and the leg rendered
+`unavailable` rather than `0`. Mutation reverted; `scripts/funnel_lifecycle.py` is byte-identical
+to `902b621b`.
 
 ## 5. Result
 
-*(completed at Step 3)*
+```
+BEFORE (902b621b): 103 passed, 1 failed  — test_shared_fields_equal_fm4_block_byte_for_byte
+AFTER  (78486293): 108 passed, 0 failed  — 104 existing + 4 new
+uv run --locked ruff check <the four files>: All checks passed
+```
+
+Done-contract, item by item:
+
+1. **Mapping ruled and recorded before any code change** — §2, committed as `6883564d` ahead of
+   the implementation commit. Two fields re-mapped, four removed, eleven rendered; every removal
+   carries its reason and the alternative it refused.
+2. **A test fails if the two surfaces drift apart again** — three cases, trip-tested above.
+3. **`test_shared_fields_equal_fm4_block_byte_for_byte` is GREEN** — the row-owned RED, fixed by
+   the row's own lane. **No other RED was touched**; the baseline carried exactly one and it was
+   this one.
+4. English, hyphen-only names, no `print` added, no CLI warranted, `pytest` green on the targeted
+   set.
+
+### Open items — handed to the integrator, not decided here
+
+- **`orphans forward (object -> consumer)` is a real loss, and the only one.** It named a
+  question worth asking that FM-2 cannot answer; the organ that can is `consumer_at_landing`
+  (`[#595]`), over a different corpus. Wiring it in would make FM-4 a two-source block — outside
+  this lane's done-contract and its write-scope. **Candidate for a row**, not filed here (filing
+  backpressure: a lane does not birth rows for the integrator).
+- **The bundle's `FUNNEL_HEALTH.md` no longer carries `rows closed this window` or `value
+  evidence attached`.** Both had rendered `unavailable` in every bundle ever cut, so nothing that
+  ever worked stopped working, and `audit.py governance-health` still reports both. Named because
+  it is a visible change to a browser-adjacent artifact, not because it is contested.
+- **The full suite was not run** — lane cadence is the targeted files covering the diff; the full
+  suite runs once, at integration (`[#528]`, PLAYBOOK Ch5). The two files run here are the ones
+  that cover it, and `governance_health` / `gen_handoff` have no other test-side callers
+  (`grep -rn "_FUNNEL_FIELDS\|funnel_health_block\|FM4_OWNED_FIELDS\|SHARED_FIELDS" tests/`
+  returns these two files only).
+- **No JOURNAL entry, no index regeneration, no merge** — all the integrator's, per the contract.
+  `docs/audits/README.md` is left stale on purpose (`[#590]` narrowed that hook; a batch lane
+  regenerating it is the defect).
+- **No V-2 escalation was triggered.** No curated baseline was touched, no rule-vs-ruling
+  conflict arose, and no fork lacked a standing ruling — the two judgement calls this lane made
+  (relabelling two fields, and completing the block to all five legs rather than leaving three
+  unreported) are decided per contract defaults and reported in §2 rather than asked.
