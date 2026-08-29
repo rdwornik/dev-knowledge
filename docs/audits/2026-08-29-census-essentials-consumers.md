@@ -1,3 +1,11 @@
+> **PROVENANCE — harvested cloud artifact, body VERBATIM below this header.**
+> Lane `batch-D lane-e essentials-census` | receipt id `cse_01WcHT9j8dktFRmz24RTB6hZ` | dispatched 2026-08-29, harvested 2026-08-29 by `Save-CloudSessionReport` (the `Harvest-Cloud` alias).
+> Selection rule: the LONGEST assistant text, not the last — text #2 of 11 across 6 pages.
+> Bytes written unchanged: **24,334**. Harvester DEVIATION: no markdown heading at all; bytes UNCHANGED.
+> Nothing below this line was edited, reflowed or trimmed.
+
+---
+
 The census is complete. Read-only throughout: no file written, no commit, no branch, no gate run.
 
 ```

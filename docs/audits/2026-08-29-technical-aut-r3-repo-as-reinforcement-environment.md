@@ -1,3 +1,11 @@
+> **PROVENANCE — harvested cloud artifact, body VERBATIM below this header.**
+> Lane `AUT-R3 repo-as-reinforcement-environment` | receipt id `cse_01FteQFHM1VuYdQLypkwogGq` | dispatched 2026-08-29, harvested 2026-08-29 by `Save-CloudSessionReport` (the `Harvest-Cloud` alias).
+> Selection rule: the LONGEST assistant text, not the last — text #4 of 13 across 5 pages.
+> Bytes written unchanged: **57,769**. Harvester DEVIATION: the report contains no markdown heading at all; bytes written UNCHANGED rather than trimmed.
+> Nothing below this line was edited, reflowed or trimmed.
+
+---
+
 All measurement done. Writing the artifact.
 
 ```

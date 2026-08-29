@@ -1,3 +1,11 @@
+> **PROVENANCE — harvested cloud artifact, body VERBATIM below this header.**
+> Lane `batch-D lane-f adr81-fuzzy-band` | receipt id `cse_01HHzS1D3WXL3zUWf1db43Uw` | dispatched 2026-08-29, harvested 2026-08-29 by `Save-CloudSessionReport` (the `Harvest-Cloud` alias).
+> Selection rule: the LONGEST assistant text, not the last — text #3 of 11 across 4 pages.
+> Bytes written unchanged: **14,979**. Harvester reported no deviation. NOTE: this lane also committed ADR-116 to branch claude/lane-f-000-adr81-fuzzy-band (d8f2993), unmerged.
+> Nothing below this line was edited, reflowed or trimmed.
+
+---
+
 ## RECEIPT
 
 **Brief total line count: 98 lines** (between the `--- BEGIN BRIEF ---` / `--- END BRIEF ---` fences).

@@ -1,3 +1,11 @@
+> **PROVENANCE — harvested cloud artifact, body VERBATIM below this header.**
+> Lane `AUT-R1 autonomous-sdlc-orchestration` | receipt id `cse_01SnDbjafAyf8S14zaA4zdCF` | dispatched 2026-08-29, harvested 2026-08-29 by `Save-CloudSessionReport` (the `Harvest-Cloud` alias).
+> Selection rule: the LONGEST assistant text, not the last — text #2 of 10 across 6 pages.
+> Bytes written unchanged: **52,705**. Harvester reported no deviation.
+> Nothing below this line was edited, reflowed or trimmed.
+
+---
+
 # AUT-R1 — Autonomous SDLC orchestration: industry pattern catalog with sources + fit-assessment
 
 **Lane:** AUT-R1 (arc AUTONOMY) · **Substrate:** cloud, read-only · **Date:** 2026-08-29

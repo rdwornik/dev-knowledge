@@ -1,3 +1,11 @@
+> **PROVENANCE — harvested cloud artifact, body VERBATIM below this header.**
+> Lane `AUT-R2 decision-quality-frameworks` | receipt id `cse_01Udzc1qBbtP3ZnPdy156BNx` | dispatched 2026-08-29, harvested 2026-08-29 by `Save-CloudSessionReport` (the `Harvest-Cloud` alias).
+> Selection rule: the LONGEST assistant text, not the last — text #4 of 13 across 6 pages.
+> Bytes written unchanged: **66,168**. Harvester DEVIATION: the report contains no markdown heading at all; bytes written UNCHANGED rather than trimmed.
+> Nothing below this line was edited, reflowed or trimmed.
+
+---
+
 Research and measurement complete. Here is the artifact.
 
 **Lane declaration:** read-only. No commit, no push, no backlog row, no `tasks/` edit, no intake, no ADR draft. `git status` untouched. **Environment:** the container carries `uv 0.8.17` against the repo's pinned `==0.11.19`, so I ran **no gates**; every number below comes from `python3` and `grep` over the working tree, and I say so at each one.
