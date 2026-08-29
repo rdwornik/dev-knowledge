@@ -332,7 +332,7 @@ out-of-band and read-only.
   violations remain open.
 
 → Full authority doctrine: ADR-31, ADR-36, ADR-63. Codex reviewer config is a global
-standard (`~/.codex/AGENTS.md`, canonical source `codex/AGENTS.md`; ADR-54).
+standard (`~/.codex/AGENTS.md`, canonical source `deploy/global-instructions-codex.md`; ADR-54).
 
 ---
 

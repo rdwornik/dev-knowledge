@@ -458,7 +458,7 @@ def default_carrier_factory(repo_root: Path) -> dict[str, Carrier]:
 
 
 _APPLY_HINT = {
-    "global-config": "copy hub codex/AGENTS.md -> ~/.codex/AGENTS.md",
+    "global-config": "copy hub deploy/global-instructions-codex.md -> ~/.codex/AGENTS.md",
     "tier1-plugin": "claude plugin install/update --scope project",
     "precommit": "merge required pins into .pre-commit-config.yaml",
     "floor": "generate .claude/CLAUDE-FLOOR.md + .sha256 sidecar",

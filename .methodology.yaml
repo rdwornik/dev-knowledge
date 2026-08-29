@@ -129,13 +129,6 @@ sanctioned_divergences:
       Hub-local session machinery; ADR-101-sanctioned file class; not a fleet-template
       surface.
     review_date: 2026-10-13
-  - component: codex
-    reason: >-
-      codex/ holds the canonical source of the global Codex reviewer config
-      (codex/AGENTS.md -> ~/.codex, ADR-54). Authoring home is hub-local; the
-      DEPLOYED standard is the user-level global config, so no consumer carries the
-      dir.
-    review_date: 2026-10-13
   - component: package.json
     reason: >-
       Node scaffold pin for the vendored Pyright reverse-dependency oracle

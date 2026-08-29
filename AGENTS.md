@@ -11,18 +11,20 @@
 > resolved BY SCOPE, stated in the file header"). It names provider-specific paths because
 > resolving a collision requires naming its parties — it is not portable-layer drift.
 
-Three instruction layers can be in play at once. They are separated by **scope**, so the
-question "which wins" has one answer per subject rather than one answer overall:
+Two instruction layers are in play. They are separated by **scope**, so the question
+"which wins" has one answer per subject rather than one answer overall:
 
 | Layer | Governs |
 |---|---|
 | `~/.codex/AGENTS.md` (L0, operator disk) | the **reviewer role** — the model/effort pin a review runs under |
 | **this file** (repo root) | **in-repo work** — building, testing and landing changes here |
-| `codex/AGENTS.md` (intermediate dir) | its own subtree only |
 
-The third layer is a **known trap**: a cwd at or below `codex/` yields
-`role → doctrine → role`, and the role wins **by position rather than by intent**. If you
-are working on repo doctrine, run from the repo root.
+There is deliberately **no third layer**. Layer 1's canonical source is tracked here, as
+`deploy/global-instructions-codex.md`, and the `global-config` carrier copies it to
+`~/.codex/AGENTS.md` — the same content, not a second authority. It is **not** itself named
+`AGENTS.md`, so no intermediate directory of this repo holds a file Codex auto-reads, and
+the `role → doctrine → role` chain a cwd below such a directory once produced is gone
+rather than documented.
 
 **Size guard is stated in BYTES, not lines.** Codex's `project_doc_max_bytes` cap is
 32 KiB and this corpus averages ~117 B/line, so a line ceiling does not bound what the cap
