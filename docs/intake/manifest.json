@@ -3,12 +3,12 @@
   "direction": "derived-from",
   "source": "docs/intake/README.md",
   "generator": "scripts/gen_intake_tree.py",
-  "source_sha256": "969a92e389398929cbed980740ea2a5bad244492f67a9a8ecb6ccf0a56b608e8",
+  "source_sha256": "719e5363e23bf7a292708d6c7152aae140327714d068950bebc286482c8a9755",
   "honest_limit": {
     "statement": "ADR-109 section 4 is discharged by a byte-exact round-trip plus a residue manifest, NOT by a derivation ratio. This surface's ratio is INVERTED relative to surface 1 (BACKLOG.md <-> tasks/), where task lines were the majority and residue the minority. Recorded so the generality claim is honest about what was shown.",
-    "item_derived_lines": 55,
-    "residue_lines": 284,
-    "total_lines": 339,
+    "item_derived_lines": 53,
+    "residue_lines": 281,
+    "total_lines": 334,
     "surface_1_comparison": "inverted -- surface 1 was majority item-derived"
   },
   "not_captured": {
@@ -83,12 +83,6 @@
         "note",
         "origin"
       ],
-      "2026-07-27-func-operator-design-input-night-shift-handoff-reform.md": [
-        "consumed-by",
-        "consumers",
-        "note",
-        "origin"
-      ],
       "2026-07-27-tech-handoff-process-v6-proposal.md": [
         "consumers",
         "decided-by",
@@ -127,11 +121,6 @@
         "origin",
         "review-date",
         "trigger"
-      ],
-      "2026-08-06-func-parallel-execution-system.md": [
-        "consumed-by",
-        "note",
-        "origin"
       ],
       "2026-08-06-tech-adoption-consolidation-intake.md": [
         "decided-by",
@@ -366,7 +355,7 @@
     },
     {
       "t": "line",
-      "v": "**55 intake documents.**"
+      "v": "**53 intake documents.**"
     },
     {
       "t": "line",
@@ -680,28 +669,6 @@
       "t": "item",
       "file": "2026-08-17-tech-off-machine-agent-substrate.md",
       "status": "ACCEPTED"
-    },
-    {
-      "t": "line",
-      "v": ""
-    },
-    {
-      "t": "line",
-      "v": "### CONSUMED (2)"
-    },
-    {
-      "t": "line",
-      "v": ""
-    },
-    {
-      "t": "item",
-      "file": "2026-07-27-func-operator-design-input-night-shift-handoff-reform.md",
-      "status": "CONSUMED"
-    },
-    {
-      "t": "item",
-      "file": "2026-08-06-func-parallel-execution-system.md",
-      "status": "CONSUMED"
     },
     {
       "t": "line",
