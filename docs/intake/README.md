@@ -18,7 +18,7 @@ fill-in skeleton is `templates/intake-template.md`.
 
 **55 intake documents.**
 
-### SEED (10)
+### SEED (9)
 
 - [#4](2026-07-07-arc5-pilot-followup-seeds.md) — SEED batch — Arc-5 pilot follow-ups (one batched doc per the feed pattern)
 - [#5](2026-07-07-changelog-review-seeds.md) — SEED — changelog-review findings (claude-code 2.1.202)
@@ -26,7 +26,6 @@ fill-in skeleton is `templates/intake-template.md`.
 - [#7](2026-07-08-func-ai-council-interface.md) — AI-Council browser interface — launch a debate from one browser prompt
 - [#8](2026-07-08-func-night-routines-suite.md) — Night-routines suite — the Tier-2 unattended layer as proposal classes (never new autonomy)
 - [#9](2026-07-08-func-dashboards-local-html.md) — Dashboards as local HTML — the Tier-4 human surface opens in VS Code, not the cloud
-- [#19](2026-07-27-func-operator-design-input-night-shift-handoff-reform.md) — operator design input 2026-07-27 (night shift + handoff reform), relayed via Layer-1 review chat
 - [#21](2026-07-30-tech-browser-architect-orientation.md) — Fleet tech status — browser-architect orientation (2026-07-30), ingested
 - [#22](2026-07-30-func-operator-decision-routing-and-standards.md) — Operator design input — decision routing, engineering standards, and lane timeline
 - [#23](2026-08-01-func-distillation-and-library-first.md) — Operator design input — distillation and library-first
@@ -41,7 +40,7 @@ fill-in skeleton is `templates/intake-template.md`.
 - [#41](2026-08-23-tech-nopack-guard-refusal-surface.md) — The no-pack guard's refusal surface is part of what the A/B measures
 - [#42](2026-08-23-tech-generated-artifact-currency.md) — Generated-artifact currency — one artifact is committed-generated and ungated, and the class has no uniform rule
 
-### READY (13)
+### READY (19)
 
 - [#15](2026-07-16-satellite-onboarding-prompts.md) — Satellite onboarding prompts — ready to fire (four consumers)
 - [#43](2026-08-24-tech-ruling-register-landing-gap.md) — Rulings are made and then land nowhere — the register stopped absorbing on 2026-08-15
@@ -56,8 +55,14 @@ fill-in skeleton is `templates/intake-template.md`.
 - [#53](2026-08-26-tech-handoff-operator-interface.md) — The handoff process has no operator-interface contract — and two duties nothing carries
 - [#54](2026-08-26-tech-loop-tax-and-gate-performance.md) — The loop tax — the working loop costs more than the work
 - [#55](2026-08-26-tech-handoff-mechanization.md) — The handoff bundle carries three parts constant to one part judgment — mechanize the constants
+- [#56](2026-08-26-tech-wave3-wintooling.md) — Wave 3 — win-tooling is declared in the fleet and outside its enforcement, and the verb that would fix that is a thin composition
+- [#57](2026-08-27-tech-documentation-diet-execution.md) — The doc diet has a fixed first step — the mechanical correction, before any structure moves
+- [#58](2026-08-27-tech-python-standard-executable-surface.md) — The Python standard is a doc that enforces nothing — split it on enforceability
+- [#59](2026-08-27-tech-append-only-rotation-execution.md) — Rotate the FILE, not the predicate — and LESSONS' trigger has already tripped
+- [#60](2026-08-27-tech-night-batch-protocol.md) — The night batch is a working protocol that exists only as habit — name it
+- [#61](2026-08-28-tech-handoff-engine-deployable-carrier.md) — The handoff engine becomes a deployable, versioned carrier
 
-### ACCEPTED (19)
+### ACCEPTED (18)
 
 - [#12](2026-07-11-tech-ownership-manifest.md) — Fleet Ownership Manifest (SETTLED) + Nightly Hygiene Decision Tree
 - [#13](2026-07-11-tech-plan-of-record-fleet-hygiene.md) — Plan-of-record — Fleet Hygiene System build (post 2026-07-11 session)
@@ -68,7 +73,6 @@ fill-in skeleton is `templates/intake-template.md`.
 - [#20](2026-07-28-north-star-delta-review.md) — North Star delta review — local 2026-07-21 doc vs in-repo intake #16
 - [#24](2026-08-05-tech-currency-wave-1.md) — PART B — INTAKE DRAFT: tech-currency wave 1 — buy the commoditized walls
 - [#25](2026-08-05-func-simplification-distribution-wave.md) — INTAKE — simplification & distribution wave: adopt the commoditized layers, keep the edge (ACCEPTED 2026-08-09)
-- [#26](2026-08-06-func-parallel-execution-system.md) — Parallel multi-agent execution system — batch protocol as versioned repo artifacts
 - [#27](2026-08-06-tech-adoption-consolidation-intake.md) — INTAKE DRAFT — tech-adoption consolidation ledger (38 items, successor-facing)
 - [#28](2026-08-08-func-skills-tier-adoption-and-hub-finish-line.md) — Skills-tier adoption, the operator's 14, and the hub finish line
 - [#29](2026-08-08-func-multi-model-execution-and-distillation.md) — Multi-model execution flow, session-cost instrumentation, and the distillation engine (measure-first)
@@ -79,14 +83,10 @@ fill-in skeleton is `templates/intake-template.md`.
 - [#38](2026-08-17-tech-fleet-config-standardization.md) — Multi-repo config standardization and fleet conformance at N=8
 - [#39](2026-08-17-tech-off-machine-agent-substrate.md) — Off-machine agent fleet substrate — the re-priced, verified-August-2026 plan
 
-### OTHER (6)
+### CONSUMED (2)
 
-- [MISSING-ID](2026-08-26-tech-wave3-wintooling.md) — Wave 3 — win-tooling is declared in the fleet and outside its enforcement, and the verb that would fix that is a thin composition
-- [MISSING-ID](2026-08-27-tech-append-only-rotation-execution.md) — Rotate the FILE, not the predicate — and LESSONS' trigger has already tripped
-- [MISSING-ID](2026-08-27-tech-documentation-diet-execution.md) — The doc diet has a fixed first step — the mechanical correction, before any structure moves
-- [MISSING-ID](2026-08-27-tech-night-batch-protocol.md) — The night batch is a working protocol that exists only as habit — name it
-- [MISSING-ID](2026-08-27-tech-python-standard-executable-surface.md) — The Python standard is a doc that enforces nothing — split it on enforceability
-- [MISSING-ID](2026-08-28-tech-handoff-engine-deployable-carrier.md) — The handoff engine becomes a deployable, versioned carrier
+- [#19](2026-07-27-func-operator-design-input-night-shift-handoff-reform.md) — operator design input 2026-07-27 (night shift + handoff reform), relayed via Layer-1 review chat
+- [#26](2026-08-06-func-parallel-execution-system.md) — Parallel multi-agent execution system — batch protocol as versioned repo artifacts
 <!-- INTAKE-INDEX:END -->
 
 ## 1. What this folder is

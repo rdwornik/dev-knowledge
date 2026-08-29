@@ -2,7 +2,7 @@
 intake-id: 58
 status: READY
 origin: cloud night batch C2 (Dispatch-Cloud, 2026-08-26, `.dev-knowledge` @ d8211b0, read-only), harvested and ruled 2026-08-27 in the night-harvest consumption ledger section B (I-KODEKS); architect rulings X3 and X4
-consumers: `docs/audits/2026-08-27-technical-python-kodeks-census.md` (the landed C2 report, this intake's evidence); `pyproject.toml` `[tool.ruff.lint]`; `ecosystem/parity-surfaces.yaml` (a fifth MUST-uniform surface); `templates/ruff-config-block.toml`; `protocols/PLAYBOOK.md`'s Python-standard section; STANDING_RULINGS sections X3 and X4
+consumers: "`docs/audits/2026-08-27-technical-python-kodeks-census.md` (the landed C2 report, this intake's evidence); `pyproject.toml` `[tool.ruff.lint]`; `ecosystem/parity-surfaces.yaml` (a fifth MUST-uniform surface); `templates/ruff-config-block.toml`; `protocols/PLAYBOOK.md`'s Python-standard section; STANDING_RULINGS sections X3 and X4"
 ---
 
 # The Python standard is a doc that enforces nothing — split it on enforceability

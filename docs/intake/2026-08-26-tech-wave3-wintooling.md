@@ -2,7 +2,7 @@
 intake-id: 56
 status: READY
 origin: read-only cloud recon (Dispatch-Cloud, 2026-08-26, Mode B — bound to `.dev-knowledge`; win-tooling NOT observed), relayed to file by the browser architect and landed by lane `g2-consume-recon` at `docs/audits/2026-08-26-technical-w3prep-recon.md`
-consumers: `ecosystem/deployed-versions.yaml`; `ecosystem/satellite-onboarding-rulings.yaml`; `deploy/tool.py` + `scripts/audit.py` consumer-root resolution; the `docs` carrier; the wave-3 lane contract
+consumers: "`ecosystem/deployed-versions.yaml`; `ecosystem/satellite-onboarding-rulings.yaml`; `deploy/tool.py` + `scripts/audit.py` consumer-root resolution; the `docs` carrier; the wave-3 lane contract"
 ---
 
 # Wave 3 — win-tooling is declared in the fleet and outside its enforcement, and the verb that would fix that is a thin composition

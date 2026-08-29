@@ -1,7 +1,7 @@
 ---
 id: "[#577]"
 title: "Adopt `AGENTS.md` as the portable instruction layer — the bounded execution lane"
-status: open
+status: closed
 priority: P2
 size: M
 theme: "[E6] Cross-repo universalization"

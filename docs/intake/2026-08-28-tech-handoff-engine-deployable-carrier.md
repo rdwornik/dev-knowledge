@@ -2,7 +2,7 @@
 intake-id: 61
 status: READY
 origin: operator universalization-v2 direction, stated verbatim at the 2026-08-28 window close (TO-NEXT-ARCHITECT-2026-08-28 theme 10); filed under PHASE0-CONTRACT-2026-08-28 item 0f as the phase's one intake birth
-consumers: `deploy/manifest-v*.yaml` (the carrier declaration this intake adds a component to); `protocols/HANDOFF_PROCESS.md` (the engine spec whose version a consumer would pin); W3-4 / W3-5 `instantiate-methodology`; `[#559]` (kernel); `[#611]` (v7 minimal-bundle package); `ecosystem/deployed-versions.yaml` (the existing per-repo deployed-version record this reuses)
+consumers: "`deploy/manifest-v*.yaml` (the carrier declaration this intake adds a component to); `protocols/HANDOFF_PROCESS.md` (the engine spec whose version a consumer would pin); W3-4 / W3-5 `instantiate-methodology`; `[#559]` (kernel); `[#611]` (v7 minimal-bundle package); `ecosystem/deployed-versions.yaml` (the existing per-repo deployed-version record this reuses)"
 ---
 
 # The handoff engine becomes a deployable, versioned carrier

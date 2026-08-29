@@ -2,7 +2,7 @@
 intake-id: 57
 status: READY
 origin: cloud night batch C1 (Dispatch-Cloud, 2026-08-26, `.dev-knowledge` @ d8211b0, read-only), harvested and ruled 2026-08-27 in the night-harvest consumption ledger section B (I-DOC); architect ruling X7
-consumers: `docs/audits/2026-08-27-technical-doc-diet-plan.md` (the landed C1 report, this intake's evidence); the `[#569]` 19-finding census at `docs/audits/2026-08-20-technical-playbook-status.md` item 3; PLAYBOOK, ESSENTIALS and ARCHITECTURE as the three edited surfaces; STANDING_RULINGS section X7
+consumers: "`docs/audits/2026-08-27-technical-doc-diet-plan.md` (the landed C1 report, this intake's evidence); the `[#569]` 19-finding census at `docs/audits/2026-08-20-technical-playbook-status.md` item 3; PLAYBOOK, ESSENTIALS and ARCHITECTURE as the three edited surfaces; STANDING_RULINGS section X7"
 ---
 
 # The doc diet has a fixed first step — the mechanical correction, before any structure moves

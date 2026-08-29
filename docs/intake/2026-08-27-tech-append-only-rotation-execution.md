@@ -2,7 +2,7 @@
 intake-id: 59
 status: READY
 origin: cloud night batch C3 (Dispatch-Cloud, 2026-08-26, `.dev-knowledge` @ d8211b0, read-only), harvested and ruled 2026-08-27 in the night-harvest consumption ledger section B (I-ROTATE); architect rulings X5 and X6. Carries intake #49's missing third half
-consumers: `docs/audits/2026-08-27-technical-journal-rotation-recon.md` (the landed C3 report, this intake's evidence); intake #49 (append-only surfaces — this is its rotation half); `scripts/journal_anchor.py`; ADR-29 and ADR-39; `[#587]` as the prerequisite; STANDING_RULINGS sections X5 and X6
+consumers: "`docs/audits/2026-08-27-technical-journal-rotation-recon.md` (the landed C3 report, this intake's evidence); intake #49 (append-only surfaces — this is its rotation half); `scripts/journal_anchor.py`; ADR-29 and ADR-39; `[#587]` as the prerequisite; STANDING_RULINGS sections X5 and X6"
 ---
 
 # Rotate the FILE, not the predicate — and LESSONS' trigger has already tripped
