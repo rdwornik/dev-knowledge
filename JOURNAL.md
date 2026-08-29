@@ -19,6 +19,50 @@
 
 ---
 
+### 2026-08-29 (m) - CC (Opus 5, background job, primary checkout, integrator): the harvest premise was wrong, and five finished artifacts were waiting behind it
+
+**Did:** harvested all seven finished cloud artifacts, discharged E2's owed terra round, and added
+provenance headers to every one. Anchors **`00373a36`** and **`db4c7f45`**.
+
+**Result: I deferred the harvest all session on a misread signal, and the correction is the entry.**
+B-FIX ruled *harvest only COMPLETED sessions; never truncate a live lane*, and I treated
+`state=active` as "still working". Probing the events settles it: **`state=active` means the
+SESSION is open, not that the work is unfinished.** AUT-R1 ends *"AUT-R1 is complete and read-only:
+zero commits, zero pushes, zero rows"*; AUT-R2 ends in its citation list; AUT-R4-A ends *"The work
+is done… the tree is untouched"*; lane-e says *"the census stands as delivered; it returns by
+harvest"*. **Five finished deliverables sat behind that misreading for hours.** The rule was right;
+my reading of the signal it keys on was not — and the probe the operator ruled (progress-vs-hang)
+is what exposed it.
+
+**Landed, 363,776 B across seven artifacts**, bodies verbatim under a provenance header carrying
+lane, receipt id, the selection rule actually used (**LONGEST assistant text, not last**, with
+index and page count), byte count, and the harvester's own DEVIATION line. Four of seven carry a
+deviation — no markdown heading, or the first heading at line 5 — and the harvester wrote them
+**UNCHANGED rather than repairing them**, which is the behaviour worth keeping.
+
+**E2 discharged on the doctrinal lane, not a fallback.** terra probed `QUOTA_OK` at 17:22 and the
+post-merge round over lanes N and I returned **`TALLY Critical=0 High=3 Medium=1 Low=0`**. All
+three Highs are honest-degrade defects — a failure rendering a plausible number instead of
+reporting itself. Recorded as the post-merge **BASELINE**, not a delta: no prior post-merge tally
+exists, and differencing against in-lane rounds would compare non-comparable things. Its negative
+result is worth as much as its findings — the cross-lane interaction boundary is SOUND.
+
+**A conflict resolved rather than left standing.** The pn-doctrine lane flagged my `uv ABSENT`
+reading against a recorded `uv 0.8.17`. Both are true of different things: the **cloud session
+image** carries 0.8.17 (R4-A hit it and refused to bump the pin mid-arc, citing ADR-106), the
+**fresh codespace** carries 0.11.19. Not a contradiction — a scope confusion, now named.
+
+**Changes:** seven artifacts under `docs/audits/`, `docs/audits/README.md`, `ecosystem/doc-counts.md`.
+
+**Abandoned:** nothing silently. Two ordering traps recorded rather than smoothed: `codex exec`
+reads stdin as a prompt appendix, so a backgrounded run with no stdin redirect produces nothing;
+and `gen_audit_index` reads TRACKED files, so regenerating before `git add` leaves new artifacts
+invisible and the freshness gate refuses the commit.
+
+**Next:** the consumption pass — one read-only synthesis over all five AUTONOMY artifacts together.
+
+---
+
 ### 2026-08-29 (l) - CC (Opus 5, background job, primary checkout, integrator): batch D frozen — and a gate that could not run
 
 **Did:** froze batch D's six lane contracts against the architect's five cuts, ran them through
