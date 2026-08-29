@@ -10,6 +10,19 @@ consumed-by:
 **NOTE 2026-07-31 (2):** §E ratified by promotion → ADR-109 (the [#382] arc's functional
 requirement, transcribed verbatim there). Doc stays SEED — §C/§D/§F–§H remain open.
 
+**NOTE 2026-08-29 (FLIP-CONDITION — §A item 2's undefined mark, named):** §A item 2 binds the
+architect to *"decide, record, and **mark revertable**"* and never said what the mark IS — so
+revertability-instead-of-escalation rests on an undefined term at its only enforcement point.
+Operator direction of 2026-08-29 names it: the mark is a **FLIP-CONDITION**, the evidence that
+would reverse the decision, written into the ADR at decision time. Provenance is the operator's
+MSc thesis principle 5 (sensitivity analysis — re-answering the questionnaire flips the
+recommendation): a decision that cannot name its own flip has not been sensitivity-tested.
+§A is already ratified by promotion into **ADR-108**, so this names an undefined term inside an
+Accepted decision rather than proposing a new one. Carrier: **`[#616]`**, born 2026-08-29.
+**Related and deliberately NOT merged:** a sibling lane is making the ADR template's
+*"Alternatives considered"* section non-optional — same file, different requirement (what was
+weighed BEFORE the decision vs what would reverse it AFTER). Cited, not duplicated.
+
 # Operator design input — decision routing, engineering standards, and lane timeline
 
 <!-- class: func (operator design input) · status: SEED — NOT ratified; ingest per the intake

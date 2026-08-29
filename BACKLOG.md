@@ -170,6 +170,7 @@ So that growth past 65 ADRs doesn't bury or quietly contradict prior decisions.
 - [#550] [P3][S] Intake #14's ruled SIEM requirements outlived the ruling that shelved them, with no record of which half survives · tasks/550-intake-14-ruled-siem-requirements-half-dispositioned.md
 - [#564] [P2][M] Lifecycle archival — a pass over implemented ADRs and decided intakes, plus a check so archival cannot silently lag · tasks/564-lifecycle-archival-implemented-adrs-and-decided-int.md
 - [#572] [P2][M] Intake-funnel completion — #34 flip, #35–#37 transitions post-R7, funnel hygiene · tasks/572-intake-funnel-completion-carrier.md
+- [#616] [P2][S] FLIP-CONDITION — every ADR records what evidence would reverse it · tasks/616-flip-condition-every-adr-records-what-evidence-w.md
 
 ### [S12] Close the small ADR cross-reference + registry amendments
 So that the ADR web is internally consistent.
@@ -205,6 +206,7 @@ So that the cheat-sheet and architecture stay scannable as conventions accrue.
 - [#589] [P1][M] One line per row — the BACKLOG view projection, with a size assertion that cannot be silently undone · tasks/589-one-line-per-row-the-backlog-view-projection-wit.md
 - [#590] [P2][S] The audits index is regenerated on read, never merge-resolved · tasks/590-the-audits-index-is-regenerated-on-read-never-me.md
 - [#607] [P2][S] PLAYBOOK census discharge — the mechanical half of the 19 findings · tasks/607-playbook-census-discharge-the-mechanical-half-of.md
+- [#617] [P2][M] FILE DISTILLATION — the output half, and the only worsening series · tasks/617-file-distillation-the-output-half-and-the-only-w.md
 - [#612] [P2][M] Doc-rot row-body archival mechanism · tasks/612-doc-rot-row-body-archival.md
 ## [E6] Cross-repo universalization
 > As the disseminator, I want every child repo to converge on the universal baseline.
