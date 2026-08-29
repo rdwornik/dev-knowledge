@@ -19,6 +19,24 @@
 
 ---
 
+### 2026-08-29 (q) - CC (Opus 5, background job, primary checkout, integrator): the second commit that lets (p)'s merge anchor itself
+
+**Anchors:** `035355af`
+
+**Did:** names the offload-doctrine commit so the merge carrying it discharges the anchor gate on
+its own, instead of deferring the debt to the next arc.
+
+**Result:** the pattern, now applied deliberately rather than rediscovered. A journal-only branch
+can never self-anchor — its entry would have to name a hash that does not exist while the entry is
+being written. So the shape is always **artifact commit, then a journal commit naming it**, and for
+a branch whose artifact IS the journal, that means a second, deliberately small entry. This is that
+entry. Three times today the gate caught me; the third time it was the record-line format rather
+than the missing SHA, which is the subtler of the two failures because the entry looks discharged.
+
+**Changes:** `JOURNAL.md` only.
+
+---
+
 ### 2026-08-29 (p) - CC (Opus 5, background job, primary checkout, integrator): the offload doctrine, and the anchor format I had been getting wrong all day
 
 **Anchors:** `afa2034b` `cec6aa08` `f832016d` `de204519` `bb320da3` `db4c7f45` `00373a36` `ecb63103` `e548d8f0` `9e9eab02` `59b04be6` `902b621b` `3466a8dc` `7f01e51a` `f8dbc5c2` `07526e4f` `6bff5c46` `00d21610` `cc946232` `cd937a8c` `d5d82b22`
