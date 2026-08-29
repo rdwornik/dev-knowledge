@@ -1,9 +1,13 @@
 """deploy/carrier_globalconfig.py — the global Codex-reviewer-config carrier (ADR-92 C3).
 
 Reconciles the GLOBAL Codex reviewer config (ADR-54): the hub's canonical
-``codex/AGENTS.md`` deployed to the user-level ``~/.codex/AGENTS.md``. Unlike every
-other carrier this one is **user-machine scoped, not consumer-repo scoped** — its
-target is a path under the operator's home, so the carrier's ``repo_root`` binding
+``deploy/global-instructions-codex.md`` deployed to the user-level
+``~/.codex/AGENTS.md``. The source is deliberately NOT itself named ``AGENTS.md``:
+a file with that name at an intermediate directory is auto-read by Codex as a third
+instruction layer, which is the precedence trap the relocation exists to remove.
+
+Unlike every other carrier this one is **user-machine scoped, not consumer-repo
+scoped** — its target is a path under the operator's home, so the carrier's ``repo_root`` binding
 (the consumer repo) is unused here; only the injectable user-config base matters.
 
 Per ADR-54 the deploy mechanism is a straight COPY (the global config has no rev —
@@ -15,7 +19,7 @@ allows this; the rev-bearing example is the pre-commit hub-hooks pin).
 
 Target shape (the v1.0.0 manifest's ``global-config`` entry)::
 
-    source_path: codex/AGENTS.md     # hub canonical source, relative to the hub root
+    source_path: deploy/global-instructions-codex.md   # hub canonical source, repo-relative
     target_filename: AGENTS.md       # written to <user-config-base>/AGENTS.md (~/.codex/)
 
 - ``detect`` compares ``~/.codex/AGENTS.md`` against the hub source -> CarrierState.
@@ -50,7 +54,7 @@ CARRIER_ID = "global-config"
 # used to resolve the manifest's repo-relative `source_path`.
 _HUB_ROOT = Path(__file__).resolve().parent.parent
 
-DEFAULT_SOURCE_REL = "codex/AGENTS.md"  # hub canonical source (ADR-54)
+DEFAULT_SOURCE_REL = "deploy/global-instructions-codex.md"  # hub canonical source (ADR-54)
 DEFAULT_TARGET_NAME = "AGENTS.md"       # written under the user-config base (~/.codex/)
 DEFAULT_USER_BASE = Path.home() / ".codex"
 

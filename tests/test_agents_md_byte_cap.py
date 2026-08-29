@@ -22,9 +22,9 @@ This module takes option (b) of the three the lane contract offered, split into 
 so neither half is silent:
 
 * `test_tracked_payload_is_within_cap` is the **hermetic** gate. It reads the repo-root
-  `AGENTS.md` and the **tracked in-repo** `codex/AGENTS.md` as the global stand-in. It runs
-  everywhere, on any checkout, with no off-repo dependency -- this is the assertion that
-  actually holds the line in CI.
+  `AGENTS.md` and the **tracked in-repo** `deploy/global-instructions-codex.md` as the
+  global stand-in. It runs everywhere, on any checkout, with no off-repo dependency --
+  this is the assertion that actually holds the line in CI.
 * `test_live_codex_payload_is_within_cap` reads the **real** `~/.codex/AGENTS.md` when it
   is present and `skip`s (never passes vacuously) when it is not. This is the half that is
   honest about what Codex on THIS machine actually loads.
@@ -51,7 +51,7 @@ boundary so an off-by-one cannot pass unnoticed.
 Measured live at authoring, 2026-08-28 (re-measured by the test at every run, never
 compared against a remembered constant):
 
-    ~/.codex/AGENTS.md   3,891 B
+    ~/.codex/AGENTS.md   3,891 B  (tracked stand-in: deploy/global-instructions-codex.md)
     AGENTS.md            5,539 B (107 lines)
     combined             9,430 B = 28.78 % of 32,768
 """
@@ -72,8 +72,11 @@ CAP_BYTES = 32 * 1024
 ROOT_DOC = _REPO_ROOT / "AGENTS.md"
 
 #: The tracked stand-in for the global half. NOT the file Codex reads (that is
-#: `~/.codex/AGENTS.md`); it is the in-repo copy that makes the gate hermetic.
-TRACKED_GLOBAL_DOC = _REPO_ROOT / "codex" / "AGENTS.md"
+#: `~/.codex/AGENTS.md`); it is the in-repo copy that makes the gate hermetic. It is the
+#: `global-config` carrier's deploy source, and it is deliberately NOT itself named
+#: `AGENTS.md` -- a file with that name at an intermediate directory would be auto-read
+#: by Codex as a third instruction layer, which is the trap the relocation removed.
+TRACKED_GLOBAL_DOC = _REPO_ROOT / "deploy" / "global-instructions-codex.md"
 
 #: The real global doc Codex loads. Off-repo and per-machine -- every use is guarded.
 LIVE_GLOBAL_DOC = Path.home() / ".codex" / "AGENTS.md"
@@ -97,8 +100,8 @@ def assert_within_cap(*docs: Path, cap: int = CAP_BYTES) -> int:
     for doc in docs:
         assert doc.is_file(), f"instruction doc missing: {doc}"
     total = payload_bytes(*docs)
-    # `parent.name/name` and not `.name`: both halves are literally called `AGENTS.md`, so a
-    # bare filename makes the diagnostic ambiguous about WHICH doc grew.
+    # `parent.name/name` and not `.name`: the planted fixtures below are both called
+    # `AGENTS.md`, so a bare filename makes the diagnostic ambiguous about WHICH doc grew.
     breakdown = " + ".join(f"{d.parent.name}/{d.name}={d.stat().st_size:,} B" for d in docs)
     assert total <= cap, (
         f"Codex instruction payload {total:,} B EXCEEDS the "

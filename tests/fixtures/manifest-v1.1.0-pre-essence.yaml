@@ -27,11 +27,12 @@ carriers:
     description: >
       ARCHITECTURE's user-layer L0 carrier (#1) — the fleet-wide ~/.claude / ~/.codex
       baseline. Implements ONE payload: the global Codex reviewer config (ADR-54), the hub's
-      canonical codex/AGENTS.md reconciled to ~/.codex/AGENTS.md. USER-machine scoped; a copied
-      file has no rev (ABSENT / PRESENT_CORRECT / PRESENT_DRIFTED only). Unchanged from v1.0.0.
+      canonical deploy/global-instructions-codex.md reconciled to ~/.codex/AGENTS.md.
+      USER-machine scoped; a copied file has no rev
+      (ABSENT / PRESENT_CORRECT / PRESENT_DRIFTED only). Unchanged from v1.0.0.
     adr: [ADR-54]
     target:
-      source_path: codex/AGENTS.md
+      source_path: deploy/global-instructions-codex.md
       target_filename: AGENTS.md
     l0_scope:
       implemented:

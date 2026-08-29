@@ -252,7 +252,7 @@ def test_manifest_globalconfig_target_carries_source_and_filename():
     gc = next(c for c in yaml.safe_load(_MANIFEST.read_text(encoding="utf-8"))["carriers"]
               if c["id"] == "global-config")
     assert gc["implemented"] is True
-    assert gc["target"]["source_path"] == "codex/AGENTS.md"  # hub canonical source (ADR-54)
+    assert gc["target"]["source_path"] == "deploy/global-instructions-codex.md"  # hub canonical source (ADR-54)
     assert gc["target"]["target_filename"] == "AGENTS.md"    # under <user-base>/ (~/.codex/)
 
 

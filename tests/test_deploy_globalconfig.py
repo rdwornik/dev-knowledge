@@ -12,7 +12,7 @@ Covers the (three-state) reconcile model on the global-config carrier
 - the injectable user-config base (param / CODEX_HOME) — so the REAL ~/.codex/ is
   NEVER touched: every carrier here is built with user_config_base = a temp dir.
 
-No network; the hub source (codex/AGENTS.md) is read live so tests track the real
+No network; the hub source (deploy/global-instructions-codex.md) is read live so tests track the real
 shipped reviewer-config bytes.
 """
 from __future__ import annotations
@@ -25,12 +25,12 @@ import contract  # noqa: E402
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 # The shipped hub source — read live so tests track the real reviewer-config bytes.
-_SOURCE = _REPO_ROOT / "codex" / "AGENTS.md"
+_SOURCE = _REPO_ROOT / "deploy" / "global-instructions-codex.md"
 # The carrier now deploys the COMMITTED (LF) blob, not the working-tree file (which
 # autocrlf renders CRLF on Windows). The expected deployed bytes are therefore the
 # LF-normalized source — computed here INDEPENDENTLY of the carrier (== the git blob).
 _EXPECTED = _SOURCE.read_bytes().replace(b"\r\n", b"\n")
-_GC_TARGET = {"source_path": "codex/AGENTS.md", "target_filename": "AGENTS.md"}
+_GC_TARGET = {"source_path": "deploy/global-instructions-codex.md", "target_filename": "AGENTS.md"}
 
 
 def _carrier(user_base: Path) -> cgc.GlobalConfigCarrier:
