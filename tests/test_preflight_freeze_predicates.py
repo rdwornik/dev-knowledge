@@ -406,8 +406,15 @@ def test_vi_a_clean_contract_exits_0(tmp_path):
                       "**Write-scope:** `scripts/preflight_contract.py` + its tests.\n\n"
                       "**Done:** ratchet untouched, delta 0 verified with "
                       "`uv run --locked python scripts/silent_rule_detector.py`.\n")
-    assert pf.main([str(contract), "--repo-root", str(_REPO_ROOT),
-                    "--predicates-only"]) == 0
+    # RE-AIMED 2026-08-29 when predicate (v) `open-batch` landed. That predicate reads REPO
+    # state, not contract text, so a clean contract in a repo with no open batch now exits
+    # 1 -- correctly, and by the operator's ruling. Asserting the exit code here would
+    # therefore test the repo's batch state rather than this contract, so the assertion
+    # moves to what the test actually guards: no CONTRACT-level predicate refuses clean
+    # input. The fail-everything direction stays covered, which is the whole point.
+    failed = pf.freeze_predicates(contract, _REPO_ROOT).failed
+    contract_level = [c for c in failed if c.kind != "open-batch"]
+    assert contract_level == [], [c.detail for c in contract_level]
 
 
 def test_vi_an_internal_error_exits_2_and_blocks(tmp_path):
@@ -517,6 +524,84 @@ def test_predicate_kinds_is_the_closed_checkable_surface():
     Same posture as `CLAIM_KINDS` for the locator legs.
     """
     assert pf.PREDICATE_KINDS == ("off-repo-input", "unwitnessed-claim", "cited-id",
-                                 "do-not-touch-scope")
+                                 "do-not-touch-scope", "open-batch")
     produced = {c.kind for c in pf.freeze_predicates(BATCH1, _REPO_ROOT).checked}
     assert produced == set(pf.PREDICATE_KINDS)
+
+
+# --- predicate (v): a batch is OPEN at freeze -------------------------------------------
+#
+# RULED 2026-08-29. Enforcement sits at FREEZE because the failure it prevents is silent by
+# construction: an inert manifest produces no signal, and its only symptom is that lane merges
+# quietly get no ADR-110 exemption -- surfacing much later on a merge that looks covered.
+
+def _mini_repo(tmp_path, *, closed_by=None, land_packet=False):
+    """A git repo with a committed batch manifest. `closed_by=None` models the INERT one."""
+    import subprocess
+    repo = tmp_path / "repo"
+    (repo / "docs" / "audits").mkdir(parents=True)
+    def run(*a):
+        return subprocess.run(["git", "-C", str(repo), *a], check=True,
+                              capture_output=True, text=True)
+    run("init", "-q", "-b", "main")
+    run("config", "user.email", "t@t")
+    run("config", "user.name", "t")
+    rows = ["---", "batch: 9", "status: open"]
+    if closed_by:
+        rows.append("closed_by: " + closed_by)
+    rows += ["---", "", "# Batch 9", ""]
+    (repo / "docs" / "audits" / "2026-08-29-technical-batch-9-manifest.md").write_text(
+        chr(10).join(rows), encoding="utf-8")
+    if land_packet and closed_by:
+        pk = repo / closed_by
+        pk.parent.mkdir(parents=True, exist_ok=True)
+        pk.write_text("# packet", encoding="utf-8")
+    run("add", "-A")
+    run("commit", "-q", "-m", "manifest")
+    return repo
+
+
+def test_v_a_manifest_with_no_closed_by_is_REFUSED_at_freeze(tmp_path):
+    """The witnessed failure: `status: open` with no `closed_by:` opens nothing at all.
+
+    This is batch D's state on 2026-08-29 exactly -- a manifest that reads open to a human and
+    is inert to the gate. Before this predicate it produced no signal at all, and the
+    consequence was misdiagnosed three times before anyone read the module.
+    """
+    claims = pf.check_open_batch(_mini_repo(tmp_path, closed_by=None))
+    assert len(claims) == 1
+    assert claims[0].ok is False
+    assert "closed_by" in claims[0].detail
+
+
+def test_v_a_manifest_with_closed_by_and_no_packet_yet_PASSES(tmp_path):
+    """The open state per the module's design: committed manifest + ABSENT closing target."""
+    repo = _mini_repo(tmp_path, closed_by="docs/audits/2026-08-30-verification-batch-9-packet.md")
+    claims = pf.check_open_batch(repo)
+    assert len(claims) == 1
+    assert claims[0].ok is True, claims[0].detail
+
+
+def test_v_landing_the_packet_closes_the_batch_with_no_edit_anywhere(tmp_path):
+    """Openness expires when the packet LANDS, not when a status flag is edited.
+
+    The discriminator proving the predicate reads the real rule: same manifest, same
+    `status: open` line, opposite verdict -- decided purely by whether the closing artifact
+    exists in the committed tree.
+    """
+    repo = _mini_repo(tmp_path, closed_by="docs/audits/2026-08-30-verification-batch-9-packet.md",
+                      land_packet=True)
+    assert pf.check_open_batch(repo)[0].ok is False
+
+
+def test_v_is_wired_into_the_freeze_run(tmp_path):
+    """A predicate nobody calls is not enforcement.
+
+    Run against the LIVE repo root rather than a bare tmp_path: the sibling cited-id
+    predicate needs a real `tasks/` tree, and a fixture that cannot satisfy it would test
+    the fixture instead of the wiring.
+    """
+    assert "open-batch" in pf.PREDICATE_KINDS
+    c = _write(tmp_path, "# LANE x")
+    kinds = {cl.kind for cl in pf.freeze_predicates(c, pf._REPO_ROOT).checked}
+    assert "open-batch" in kinds
