@@ -124,6 +124,15 @@ try:
 except ImportError:
     import telemetry_emit as _te
 
+# FM-5 governance-health — same module-import + thin-adapter shape. The `governance-health`
+# subcommand below is the whole of this module's use of it: the derivations, the close-packet
+# parsing and the telemetry record all live in the library, so `audit.py` gains a command and
+# not a second implementation of anything.
+try:
+    from scripts import governance_health as _gh
+except ImportError:
+    import governance_health as _gh
+
 # [#533] the assemble_paste dual-import moved to audit_checks/check_boot_byte_budget.py,
 # its only user; _assemble_paste is re-exported from there.
 
@@ -5361,6 +5370,45 @@ def cmd_checks() -> None:
         first = (check.__doc__ or "").strip().splitlines()
         summary = first[0].strip() if first else ""
         click.echo(f"  {i:>2}. {name} — {summary}")
+
+
+@cli.command("governance-health")
+@click.option("--telemetry/--no-telemetry", "telemetry", default=None,
+              help="Append one [#529] check_run record for this run into the SQLite store, so "
+                   f"the numbers become a time series. DEFAULT OFF (${TELEMETRY_ENV}=1 turns "
+                   "it on where there is no flag to pass; an explicit flag beats the env var).")
+def cmd_governance_health(telemetry: bool | None) -> None:
+    """Render FM-4's FUNNEL HEALTH numbers on demand, plus what each closed row bought.
+
+    Two halves, with different owners, and the split is the point:
+
+      * the four FUNNEL HEALTH fields FM-4 derives are IMPORTED from FM-4's emitter and
+        never recomputed here. When that emitter is absent they render `unavailable` with
+        the resolution report attached — a true answer, where a locally-computed number
+        that happened to look right would silently break the one-truth contract;
+      * `rows closed this window` and `value evidence attached` are this command's own,
+        exported for FM-4 to import for the same reason.
+
+    The value section quotes close packets VERBATIM with a `file:line` locator for every
+    line, and prints `no value evidence` for a row whose packets say nothing. Nothing is
+    summarised, so no benefit can be asserted that a reader cannot open and check.
+
+    Read-only. `--telemetry` appends ONE record to the existing `[#529]` store
+    (logs/TELEMETRY.db); it creates no second store and writes nothing else.
+
+    Example:
+        uv run --locked python scripts/audit.py governance-health
+    """
+    report = _gh.build_report(Path(_REPO_ROOT))
+    # console_safe, not a bare echo: this output quotes arbitrary close-packet prose, and
+    # click.echo raises UnicodeEncodeError on a Windows cp1252 console for anything outside
+    # cp1252 — the trap the "ASCII arrow" comment on check_doc_code_edge records.
+    click.echo(_gh.console_safe(_gh.render(report)))
+    if telemetry_enabled(telemetry):
+        row_id = _gh.emit(report, db_path=_telemetry_db_path(), repo_path=Path(_REPO_ROOT))
+        click.echo(f"telemetry: appended row {row_id} to {_telemetry_db_path()}"
+                   if row_id is not None else "telemetry: not appended (store refused)",
+                   err=True)
 
 
 if __name__ == "__main__":
