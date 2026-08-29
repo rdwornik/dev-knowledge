@@ -19,6 +19,51 @@
 
 ---
 
+### 2026-08-29 (k) - CC (Opus 5, background job, primary checkout, integrator): the suite triaged against a real baseline, and two lanes dispatched
+
+**Did:** ran the full suite once at integration (the ruled cadence), triaged its REDs against an
+actual baseline rather than against memory, repaired the two that were mine, dispatched the
+**AUT-R3** cloud lane, and filed intake **#63**. Anchors **`8cb96a17`** (the integration repairs)
+and **`cc0115d7`** (intake #63).
+
+**Result: 4,596 passed / 15 failed — and 10 of the 15 were already failing before this arc.**
+That number is measured, not asserted: I checked out `66662c70` detached and re-ran the identical
+15 node ids, which failed 10. So **five were new**, and four of those five had one cause —
+`docs/audits/README.md` was stale because lane pn-audits correctly did NOT regenerate it
+(`[#590]` narrowed that hook precisely so a batch lane leaves the index to the integrator). One
+regen cleared both `gen_audit_index` tests **and** both `reverse_dep_oracle` tests, which read the
+index and whose failure looked unrelated.
+
+**The fifth was a real break and worth recording as a pattern:** the `[#130]` amendment appended
+dated narration *after* the archived-annotations pointer, which broke two legs at once — the row no
+longer ENDED with the pointer, and the record's post-relocation body hash no longer reconstructed.
+Repaired through the designed path (`archive_row_body propose` → `relocate`) rather than by
+hand-editing the record, so the clause is archived like every other and the proof re-derives.
+47/47 green. **A row carrying an `Archived annotations:` pointer cannot be amended by appending** —
+the pointer stays last, and new dated narration is relocated, not stacked behind it.
+
+**Dispatched and filed.** **AUT-R3** (`cse_01FteQFHM1VuYdQLypkwogGq`) — repo-as-reinforcement-
+environment survey plus a library-first BUY-vs-BUILD sweep; all three dispatch gates OK, receipt
+confirms the brief arrived whole. Intake **#63** (universal per-repo learning loop) filed DRAFT and
+**evidence-gated on that lane**, after reconciling: no existing intake covers it. Its own headwind
+is recorded in it — a new boot-time read costs bytes every session, and paste/boot bytes is the only
+WORSENING trends panel.
+
+**Changes:** `docs/audits/README.md` (regenerated), `tasks/130-*` + `tasks/archive/130.md`
+(relocation), `docs/intake/2026-08-29-func-universal-per-repo-learning-loop.md` (new),
+`docs/intake/README.md` + `manifest.json` (both generators), `JOURNAL.md`.
+
+**Abandoned:** nothing silently. The **10 pre-existing REDs are named and left**, since repairing
+another lane's stopped assertions inside an integration pass is the thing this repo warns against.
+**AUT-R1 and AUT-R2 remain `state=active`** after ~2h, so their harvest is still deferred and a
+monitor is re-armed over all three lanes. **Terra round 6 (E2) stays owed** — quota returns 16:20,
+and it is deliberately NOT run on a fallback model, because a tally delta across two models measures
+the model swap rather than the rounds.
+
+**Next:** freeze batch D on the operator's cut.
+
+---
+
 ### 2026-08-29 (j) - CC (Opus 5, background job, primary checkout, integrator): the integration merge's own anchor
 
 **Did:** anchors **`7f01e51a`** — the integration commit that carried JOURNAL (i), the two stranded
