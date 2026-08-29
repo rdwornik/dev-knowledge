@@ -3209,6 +3209,30 @@ causes the other, and reading one as the other's symptom is how a real gap gets 
 The cp1252 half already carries three rows — `[#470]`, `[#486]`, `[#484]`. **The rule above is what
 those three rows lacked**, which is why this is a ruling and not a fourth row.
 
+
+### Z-G5. No single-file folders, ever
+
+**Operator ruling, 2026-08-29**, recorded verbatim: *"no single-file folders, ever."*
+
+**Scope.** General. A directory that holds exactly one file is not a home; it is a file wearing a
+directory's clothes, and it costs a path segment, a taxonomy entry and an allowlist row for
+nothing. The rule binds new folders at creation and existing ones at the next act that touches
+them.
+
+**Its first live subject is `codex/`**, which holds `codex/AGENTS.md` and nothing else. That
+directory is **not** free to delete: root `AGENTS.md`'s precedence section documents it **by name**
+as the third precedence layer, so removing it invalidates a section of a Tier-1 canonical doc.
+C4's census (`docs/audits/2026-08-29-census-nb2-codex-surface.md`) measured the surrounding
+corpus at **168 artifacts / 630,460 B with ZERO removal-ready**, and classified this file as the
+**PRECEDENCE-TRAP**. So the rule and the evidence point the same way: the lawful discharge is
+**universalisation into the per-CLI instruction architecture**, not deletion. Both options are
+costed for the operator's cut in the doctrine-consolidation arc's contract.
+
+**Why here and not `PLAYBOOK.md`.** This register is in `silent_rule_detector.EXCLUDED_RELPATHS`,
+so an operator ruling lands here at **zero ratchet cost** — which is what the register is for. A
+ruling is not doctrine prose; it is the record that a decision was made.
+
+
 ### Z-C. Three CANDIDATEs recorded — not births, drawing nothing from the ledger
 
 Recorded under ADR-111 §1(c) on section Y-2's precedent: a candidate is **recorded**, and the only

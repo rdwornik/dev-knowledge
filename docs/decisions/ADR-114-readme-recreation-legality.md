@@ -1,6 +1,6 @@
 # ADR-114: May a root `README.md` be recreated — and what does substituting a canonical living-doc filename actually cost?
 
-- **Status:** **PARKED** — ruled by the operator 2026-08-22. *The priced options below are retained unchanged as the input the ruling selected against; the Decision section, authored blank for exactly this moment, now carries the ruling.*
+- **Status:** **Accepted** — ruled by the operator **2026-08-29**, superseding the 2026-08-22 PARK. *The priced options below are retained unchanged as the input both rulings selected against; the Decision section carries the 2026-08-22 park, and AMENDMENT 1 at the foot of this file carries the 2026-08-29 ruling. Only this status line was edited in place — ADR-94 / CLAUDE.md §5 item 3 permit that and nothing else.*
 - **Date:** 2026-08-22
 - **Decision tier:** Architecture — **RULED (parked) by the operator 2026-08-22.** Authored by the CLOUD-4 v2 mutation lane, which was not competent to make it and correctly did not.
 - **Amends (if accepted):** ADR-101 §1 — the closed Tier-1 file enum in `SANCTIONED_TIER1_FILES` would gain `README.md`
@@ -154,3 +154,40 @@ purpose.* Priced: fleet parity ×9, 104/114 immutable bundles, 69 `PROBES`, and 
 - **Do the rename in a lane and file the fleet fallout as follow-up work.** Rejected on R2's evidence: 90.9% of `VISION.md` references sit in files the repo forbids editing (append-only + immutable), so a tree-wide substitution is a core-invariant violation on contact, and the nine-member parity break is not a follow-up — it is the immediate, simultaneous consequence.
 - **Add `README.md` as a git-ignored or untracked convenience file.** Rejected: `parity-surfaces`' `path_tracked` probe and ADR-101's tree seal both key on tracked paths, so an untracked front door is invisible to every mechanism that would keep it honest — a file with no gate is the drift this repo spends most of its enforcement budget preventing.
 - **Symlink `README.md` → `VISION.md`.** Rejected on measured evidence, not preference: the portability memo (`docs/archive/2026-08-09-research-multi-provider-portability-wf-d68b2f7f.md`) records that on Windows without `core.symlinks=true` + Developer Mode, *"git silently checks out a plain text file containing the link target string"*. The fleet is Windows + git-bash. A symlink degrades to a one-line stub that looks like a file and reads like garbage.
+
+
+---
+
+## AMENDMENT 1 — 2026-08-29, the operator's ruling. ADR-114 is DECIDED.
+
+> `docs/decisions/` is immutable and is amended by an **in-file amendment marker**, never edited
+> in place (CLAUDE.md §5 rule 3). Everything above stands exactly as authored, including the
+> 2026-08-22 park it records. Only the status line moved, which ADR-94 permits on ratification.
+
+**THE RULING, in the operator's own terms:** *"VISION.md is superseded by a recreated root
+README.md (this DECIDES parked ADR-114)."*
+
+**What this fires, from this ADR's own retained clauses.** Its `Amends (if accepted)` and
+`Supersedes (if accepted)` lines are no longer conditional:
+
+- **ADR-101 §1** — the closed Tier-1 file enum in `SANCTIONED_TIER1_FILES` **gains `README.md`**.
+- **ADR-38 amendment A5** is **superseded in the single respect** that A5 deprecated the root
+  `README.md` from the mandatory baseline.
+- **`CLAUDE.md` §5 rule 5** — *"Root `README.md` deleted 2026-05-23 … do not recreate it"* — **is
+  false on landing** and must move in the same act as the recreation, not after it.
+
+**WHAT IS NOT RULED, and must not be read into this.** The ruling decides the *question*; it does
+not authorise an ad-hoc execution. The operator's instruction is explicit: **do not execute ad
+hoc — author a frozen contract for the next batch.** That arc is filed as the reconcile-before-
+birth act named below.
+
+**The price tag, measured, not estimated.** C5's census (`docs/audits/2026-08-29-census-nb2-readme-vision.md`)
+measured ~**5,881** references into `VISION.md` and README across the tree, of which ~**5,700** sit
+in files the repo forbids editing — immutable, append-only, generated or gate-coupled. Its
+mergeable surface was **five lines in one file**. **That is the price tag, not the plan**: the
+migration's real cost is the gate-coupled consumers, starting with the **P1a boot probe, which
+greps `VISION.md`'s opening line**. Enumerating *every* such coupling from C5's census is the
+arc's first act, not an implementation detail.
+
+**Consumed by:** the README/VISION execution arc filed 2026-08-29 as birth 1 of 2 against a banked
+ledger of 2 (`[#577]`, `[#584]`, both closed before any filing — closures fund births, D3 before D5).
