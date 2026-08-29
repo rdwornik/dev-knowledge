@@ -19,6 +19,23 @@
 
 ---
 
+### 2026-08-29 (u) - CC (Opus 5, background job, primary checkout, integrator): the second commit, taken deliberately this time
+
+**Anchors:** `1b77a13e`
+
+**Did:** names the predicate-witness commit so its merge carries an anchor for a commit it
+introduces.
+
+**Result:** the fourth time today, and the first time I planned for it rather than discovered it.
+A branch whose only artifact is a JOURNAL entry cannot self-anchor — the entry would have to name a
+hash that does not exist while it is being written — so the shape is always **artifact commit, then
+a journal commit naming it**. `[#623]` covers mechanising the record line; the two-commit shape is
+the part no mechanism can supply, because it is an ordering rather than a format.
+
+**Changes:** `JOURNAL.md` only.
+
+---
+
 ### 2026-08-29 (t) - CC (Opus 5, background job, primary checkout, integrator): the manifest predicate, quoted — and my "appears to" was wrong twice
 
 **Anchors:** `98c84569` `c2c59281` `5a2fff80`
