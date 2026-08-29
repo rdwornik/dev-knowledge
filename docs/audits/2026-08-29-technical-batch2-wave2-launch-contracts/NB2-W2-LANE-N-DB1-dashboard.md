@@ -152,3 +152,36 @@ one recorded line with the error, not a lane failure.
 **Report your contract's own Ex-ante line verbatim, then the measured result against it.**
 
 Then **STOP**.
+
+---
+
+## OPERATOR ADDENDUM — 2026-08-29: the telemetry scope extension. Two more series, and a fence.
+
+Ruled after this contract was frozen and carried here rather than left to the packet.
+
+**FIRST ACT, before you design anything: LOCATE the operator's telemetry artifact.** It is
+**intake #50** plus the **L5 cost-research** artifact. Open both, record their real paths and what
+each actually holds, and say in your packet what the store's shape is. The contract above tells you
+to enumerate history sources; #50 and the L5 research are named inputs to that enumeration, not
+optional reading. **If either does not resolve, say `MEASUREMENT-OWED` and name what you searched**
+— do not substitute a store you found instead.
+
+**Two series are added to the seven this contract already names:**
+
+- **Backlog-consumption velocity** — rows closed per window, against rows born per window. The
+  banked-ledger series is already in your list; this is its rate, and the operator's standing
+  frame is *"closures fund births"*, so the pair is the whole point. Derive it from `tasks/`
+  terminal-status transitions, **not** from `BACKLOG.md` (a generated one-line VIEW).
+- **Per-model change quality trends** — quality of change, over time, **by authoring model**. Note
+  honestly that this series is **not derivable today**: nothing in the tree records which model
+  authored a commit. Render it as **absent, in the legend, with the reason** — exactly as this
+  contract already requires for any series with no store. Do not proxy it with something else.
+
+**The enabling row is a candidate filing, not your work: MODEL ATTRIBUTION** — every model-authored
+commit carries a **model + version signature trailer**, hook-enforced, and the telemetry store
+consumes it. That is what would make the second series real. **Report it as a candidate; do not
+build it, do not add a hook.**
+
+**The fence is unchanged and now doubly binding:** *telemetry intake #50 stays its own arc — do NOT
+absorb it.* You are reading #50 to find the store, not to implement it. If your diff starts adding
+collection, you have crossed the fence.
