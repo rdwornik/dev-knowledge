@@ -19,6 +19,33 @@
 
 ---
 
+### 2026-08-29 (n) - CC (Opus 5, background job, primary checkout, integrator): the consumption pass dispatched
+
+**Did:** froze and dispatched `lane-g-000-autonomy-synthesis`, the read-only consumption pass over
+all five AUTONOMY artifacts. Anchors the contract commit on this branch.
+
+**Result:** the five artifacts (363,776 B harvested earlier today) are now on `main` and pushed, so
+a lane branching from `origin/main` can actually read them — the ordering that bit this session
+once already, when three batch-D lanes came up on a five-merge-stale base because `Dispatch-Lane`
+branches from `origin/main` and I had not pushed.
+
+The contract's design choice worth recording: **it hands the lane the candidate object lists
+(#62, #63, #38, `[#616]`, `[#617]`, `[#619]`) together with the instruction to VERIFY them rather
+than trust them.** Every list I have handed a lane today has contained at least one wrong entry,
+and the lanes that checked rather than relayed are the ones that produced the day's best findings.
+The rule is stated in the done-contract as *"a verdict with no locator is not a verdict."*
+
+**Changes:** `docs/audits/2026-08-29-technical-batchd-launch-contracts/LANE-g-000-autonomy-synthesis.md`,
+`docs/audits/README.md`.
+
+**Abandoned:** nothing. The lane is dispatched; its synthesis returns as one artifact and the
+filing pass acts on its TRUE-GAP column only.
+
+**Next:** the filing pass — amend first, birth on proven gaps, and record everything else as
+consumed-by so the census sees these five as CONSUMED rather than orphans.
+
+---
+
 ### 2026-08-29 (m) - CC (Opus 5, background job, primary checkout, integrator): the harvest premise was wrong, and five finished artifacts were waiting behind it
 
 **Did:** harvested all seven finished cloud artifacts, discharged E2's owed terra round, and added
