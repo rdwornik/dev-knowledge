@@ -19,6 +19,62 @@
 
 ---
 
+### 2026-08-29 (h) - CC (Opus 5, background job, primary checkout, branch `docs/postnight-arc-2026-08-29`): the post-night arc — one ruling discharged, and the two defects it was hiding
+
+**Did:** ruled and landed **A1**, the `funnel_health` emitter resolution the wave-2 close packet
+handed the architect as open item 1, at `d5d82b22`. Ran the read-only half of the arc concurrently
+with three parallel worktree lanes (`worktree-pn-doctrine`, `-pn-audits`, `-pn-filings`), which own
+`protocols/`+`templates/`, `docs/audits/`+`LESSONS.md`, and `tasks/`+`docs/intake/` respectively.
+
+**Result: the ruling was the easy half; what it un-masked is the finding.** The tie-break —
+*live consumer wins* — resolved mechanically rather than by preference: FM-5 calls
+`parse_shared_fields(src.render(root))`, one positional argument, return parsed as a rendered text
+block, and only `funnel_health_block(repo_root) -> str` has that shape. `_funnel_health_numbers`
+returns a tuple; `_write_funnel_health` takes two arguments and writes a file, which a reporter
+cannot do. Witnessed both sides: `ambiguous: 3 candidates` before, `gen_handoff:funnel_health_block`
+after.
+
+**Then the resolution immediately exposed two disagreements the ambiguity had been hiding.** The
+first was label drift and is fixed here — FM-5 had shortened FM-4's two orphan labels, so
+`test_shared_fields_equal_fm4_block_byte_for_byte` reported both as MISSING the moment resolution
+started succeeding; FM-4's labels are canonical and a consumer that renames its source's fields is
+the drift. The second is filed, not fixed: **the FM-2 ↔ FM-4 field coupling is DEAD.**
+`funnel_lifecycle.measure` loads cleanly and the note string is EMPTY, but the six attributes FM-4
+reads have **ZERO overlap** with what `Measurement` actually exposes. Every bundle's FUNNEL HEALTH
+block has been rendering six `unavailable`s, and **the well-built honest-degrade path is precisely
+what hid it** — NB2-K recorded done-when 4 as "MET as written, coupling UNPROVEN"; it is now proven,
+and broken. The repair is a derivation-design decision, not a rename, so it was refused rather than
+guessed and is ruled into batch D as its own frozen lane.
+`test_shared_fields_equal_fm4_block_byte_for_byte` therefore stays RED — it was RED on main too,
+witnessed by stashing the diff, with the shallower message *"emitter is not resolvable"*. The RED
+moved two layers deeper and now names a real coupling failure instead of a resolution refusal.
+
+**Measured, not asserted, in the read-only half.** FM-2 **leg (d) IS ARMED** — `threshold_days=30`,
+`threshold_locator` resolving to the ruled line, one live finding (intake **#15**, READY **44 days**,
+no `review-date:`). The Z-G3 receipt was re-fired twice: a long-lived codespace reproduced the stale
+clone (**50 commits behind**, `uv` ABSENT), a **freshly created one returned a clean 3-of-3** with
+`uv 0.11.19` — exactly the ADR-106 pin — so W4 defects 2 and 3 plausibly share one root cause,
+codespace drift. Recorded as hypothesis; **the router-ADR stays shut**, because non-reproduction is
+not a fix. The `CLAUDE_CODE_OAUTH_TOKEN` leg corrected **my own false negative**: it reads ABSENT in
+a non-login shell and PRESENT (len 108) under `bash -lc`, so a delivered secret probes as missing —
+I nearly reported a wiring gap that did not exist. The real gap was narrower and is now closed:
+`win-tooling` was absent from the secret's repo scope. Ratchet **443 → 443, net ZERO**.
+
+**Changes:** `scripts/gen_handoff.py` (`__all__`, two delegates privatised), `scripts/governance_health.py`
+(canonical labels), `tests/test_gen_handoff.py` (+3 guard tests), `ecosystem/doc-counts.md`;
+`~/.claude/ROUTING.md` (L0, out of tree — the reviewer fallback chain).
+
+**Abandoned:** nothing silently. **E2 (terra round 6 on lanes N+I) is BLOCKED** on provider quota
+until 16:20 and is explicitly NOT run on a fallback model — a tally delta across two models measures
+the model swap, not the rounds. **Harvest of AUT-R1/AUT-R2 is DEFERRED**: both cloud sessions read
+`state=active`, and a live lane is not truncated; a monitor is armed on both.
+
+**Next:** merge the three lanes serially, then freeze batch D — the AUTONOMY and
+DOCTRINE-CONSOLIDATION arcs, with the FM coupling repair as a sixth lane and D-1 (VISION→README,
+`[#614]`, ruled GO by ADR-114 AMENDMENT 1) sequenced before the CLAUDE.md re-genre.
+
+---
+
 ### 2026-08-29 (g) - CC (Opus 5, background job, primary checkout, branch `docs/batch-2-w2-packet`): wave 2 closes — the funnel machine has teeth, and one defect class showed up five times
 
 **Did:** closed wave 2 of the night mission — the eight lanes merged and torn down, the operator's

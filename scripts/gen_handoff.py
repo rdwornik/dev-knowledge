@@ -46,6 +46,43 @@ from pathlib import Path
 
 import click
 
+#: The module's public API, declared rather than inferred.
+#:
+#: RULED 2026-08-29 (architect, post-night A1). FM-5 (`scripts/governance_health.py`) resolves
+#: FM-4's emitter by CAPABILITY — a *public* callable whose name carries both "funnel" and
+#: "health" — and this module exposed THREE, so `resolve_fm4_emitter` refused the ambiguity
+#: rather than guessing. The tie-break is `live consumer wins > registry entry wins > else
+#: FAIL`, and the live consumer settles it mechanically, not by preference: FM-5 calls
+#: `parse_shared_fields(src.render(root))` — ONE positional argument, return value parsed as a
+#: rendered text block. Only `funnel_health_block(repo_root) -> str` has that shape.
+#: `_funnel_health_numbers` returns a tuple, and `_write_funnel_health` takes two arguments and
+#: WRITES A FILE, which a reporter must never do.
+#:
+#: So `funnel_health_block` is the single public emitter and the other two are `_`-private
+#: delegates. The RENAME is the operative half — `resolve_fm4_emitter` scans `dir(mod)` and
+#: excludes `_`-private names, and `dir()` does not consult `__all__`. This list is the
+#: declaration that makes the intent legible; `test_exactly_one_public_funnel_health_emitter`
+#: is what actually holds the line, and it imports FM-5's own regex so the two cannot drift.
+__all__ = [
+    "BoundaryHygieneError",
+    "BundleCollisionError",
+    "BundleIdentityError",
+    "GenResult",
+    "OpenBatchError",
+    "assert_batch_boundary",
+    "assert_boundary_hygiene",
+    "collect_hints",
+    "collect_state",
+    "detect_fill_state",
+    "dispatch_form",
+    "funnel_health_block",
+    "generate",
+    "journal_draft",
+    "reflow_framing",
+    "standing_vs_new",
+    "verify_seal_identity",
+]
+
 # CLOUD-4 v2 (R2 §1.5 GO-b) — the canonical filename and the `_vision_extract` degrade string
 # come from the one registry. R2 §1.4 R2 is why they live TOGETHER there: this generator does
 # not crash on a missing section, it stamps a placeholder into a bundle that is immutable the
@@ -952,7 +989,7 @@ def _load_funnel_measure():
     return fn, ""
 
 
-def funnel_health_numbers(repo_root: Path) -> tuple[dict[str, str], str]:
+def _funnel_health_numbers(repo_root: Path) -> tuple[dict[str, str], str]:
     """The six numbers as rendered strings, plus a note when any of them could not be derived.
 
     Every field degrades INDEPENDENTLY to `unavailable`: a measurement that grows a field this
@@ -981,7 +1018,7 @@ def funnel_health_numbers(repo_root: Path) -> tuple[dict[str, str], str]:
 
 def funnel_health_block(repo_root: Path) -> str:
     """The delimited block, verbatim as it lands in the bundle. Shape-pinned by a golden test."""
-    values, note = funnel_health_numbers(repo_root)
+    values, note = _funnel_health_numbers(repo_root)
     source = _FUNNEL_SOURCE + (f" — {note}" if note else "")
     lines = [_FUNNEL_BEGIN, "## FUNNEL HEALTH (generated — numbers only)", "",
              f"source: {source}", ""]
@@ -990,7 +1027,7 @@ def funnel_health_block(repo_root: Path) -> str:
     return "\n".join(lines) + "\n"
 
 
-def write_funnel_health(bundle_dir: Path, repo_root: Path) -> Path:
+def _write_funnel_health(bundle_dir: Path, repo_root: Path) -> Path:
     """Write the block to `<bundle>/FUNNEL_HEALTH.md`, WHOLE, every generation.
 
     Never spliced and never appended to — a stale block is worse than none, so the file is
@@ -1114,7 +1151,7 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
         _render("EPIC_BOOT.md.tmpl", tokens, bundle_dir, "EPIC_BOOT.md", tmpl_dir=_TMPL_DIR_EPIC)
         _render("PROBES.md.tmpl", tokens, bundle_dir, "PROBES.md", tmpl_dir=_TMPL_DIR_EPIC)
         verify_seal_identity(bundle_dir)                     # [#473] B seal gate
-        write_funnel_health(bundle_dir, repo_root)           # FM-4 — AFTER the seal (see below)
+        _write_funnel_health(bundle_dir, repo_root)           # FM-4 — AFTER the seal (see below)
         hints = collect_hints(repo_root)
         return GenResult(bundle_dir=bundle_dir,
                          journal_draft=journal_draft(slug, date, state, hints), filled=filled)
@@ -1163,7 +1200,7 @@ def generate(repo_root: Path = _REPO_ROOT, *, mode: str = "architect", slug: str
     # HANDOFF_PROCESS §16 (`protocols/HANDOFF_PROCESS.md`, "The boot (one file, generated)")
     # pins that mode at ONE file and narrows the answer-free invariant to "no counts ... enter
     # the boot". Amending §16 is outside this lane's write-scope; it is the architect's call.
-    write_funnel_health(bundle_dir, repo_root)
+    _write_funnel_health(bundle_dir, repo_root)
 
     hints = collect_hints(repo_root)
     draft = journal_draft(slug, date, state, hints)
