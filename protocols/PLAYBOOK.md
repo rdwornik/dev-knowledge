@@ -221,6 +221,7 @@ reconciled_with: handoff-process@6.3.0
   - [Review Tools](#review-tools)
   - [Codex-utilization doctrine (lanes + exact model strings)](#codex-utilization-doctrine-lanes--exact-model-strings)
   - [Codex dual-role — reviewer today, producer gated](#codex-dual-role--reviewer-today-producer-gated)
+  - [DEGRADED-REVIEW — the fallback chain when the doctrinal reviewer lane is unavailable](#degraded-review--the-fallback-chain-when-the-doctrinal-reviewer-lane-is-unavailable)
 - [17. Code Quality Audit Process](#17-code-quality-audit-process)
   - [Severity tiers](#severity-tiers)
   - [Process](#process-1)
@@ -2403,6 +2404,28 @@ unchanged by that measurement.** Ch8's Q1 row below carries it as an *amendment 
 unchanged pending a ruling*, and this subsection **cites that status rather than resolving it** —
 a night seat reading only this text routes exactly as Q1 routes today.
 
+#### What the night corrected in itself
+
+Both rules below come from the 2026-08-28->29 night's own run. Each records a live failure of the
+window that produced this protocol, which is why they land as rules rather than as notes.
+
+**A time-conditioned stop reads a fresh clock at decision time.** Any stop conditioned on wall
+time — the night mission's **S5 hard stop** is the instance — takes the time from a **fresh source
+at the moment the decision is taken**, rather than from a value the session read earlier and
+carried forward. *Why it is a rule:* on the night that produced it, the S5 07:30 hard stop was
+reasoned against a **stale clock** — the session was working from 01:5x while the wall clock had
+already moved to 11:0x — so the remaining schedule was derived from a premise that was hours
+wrong, and every downstream go/stop judgement inherited that error. A cached timestamp is an
+observation about the past; a stop condition is a question about the present, and the two coincide
+only at the instant of the read.
+
+**Orchestrator handover happens at a phase boundary.** A change of orchestrating seat lands
+**post-integration and pre-wave** — on the seam between phases — rather than mid-queue. A handover
+taken with a merge queue part-walked hands the incoming seat a state no artifact describes: the
+contracts record what was dispatched and the ledger records what was adjudicated, and between them
+sits a half-walked queue that neither surface carries. At a phase boundary both surfaces are
+current, so the incoming seat boots from the record instead of from the outgoing seat's memory.
+
 #### Honest limits
 
 This whole subsection is prose. No gate reads it: no organ counts a night's proposals against the
@@ -2653,6 +2676,28 @@ Dispatch-Codespace -Contract <FILE.md> [-Slug <name>] [-Repo <owner/repo>] [-Bra
   kept out of the image and its config: when both are present the API key takes precedence and
   would silently flip billing off-subscription. Exposure and rotation:
   `protocols/STANDING_RULINGS.md` section V.
+- **That token arrives via the LOGIN-SHELL profile, so a non-login probe reads it as ABSENT — and
+  the false negative is the point of this bullet.** Measured 2026-08-29, codespace
+  `nb2-smoke6c-j47pvjw957ghq76v` (`rdwornik/dev-knowledge`), one container at one moment:
+  `gh codespace ssh -c <name> -- 'printenv | grep CLAUDE_CODE_OAUTH_TOKEN'` returned **0 matches**
+  and `/proc/1/environ` carried it **not at all**, while `bash -lc 'echo ${#CLAUDE_CODE_OAUTH_TOKEN}'`
+  returned it **present, length 108**. The Codespaces user secret IS delivered; it lands through
+  the login-shell profile rather than in the container's base environment.
+  *The operational consequence, which is the half worth writing down:* any automated step running
+  a **non-login** shell — `gh codespace ssh -- <cmd>`, a CI step, a hook, a dispatched lane's
+  command string — reads the token as absent and presents as a missing-secret or mis-wired-secret
+  failure **while the secret is in fact configured correctly**. The caller-side fix is to wrap the
+  command as **`bash -lc '<cmd>'`**; re-issuing or re-adding the secret fixes nothing and costs a
+  rotation. This is recorded because the first probe against it read ABSENT and a wiring gap that
+  did not exist was nearly reported — a debugging round already spent once. Reconciling this with
+  the "Argument shape" bullet above: the **interactive** `gh codespace ssh` session gets a login
+  shell, and the `-- <cmd>` form does not, which is why the same transport reads two ways.
+  *Probing it:* run the check with `python3` (or `bash -lc`) invoked directly and **say so** —
+  `uv` measured **absent** in that image on 2026-08-29, so a bare `uv run --locked` there fails
+  before its script starts. That reading is stronger than the pinned-but-wrong `0.8.17` recorded
+  at Q1 above; both measurements are cited and neither is resolved here. The sibling hazard is
+  unchanged and still open: a codespace clone sits silently behind `origin/main` (measured 50
+  commits, with `git status` looking unremarkable until read closely).
 
 ##### Where the contract file lives — two homes, one of them in the tree
 
@@ -5153,6 +5198,108 @@ Codex has two potential roles in the fleet — **reviewer** (the live, doctrinal
 - **The global Codex config is HUB-OWNED (R1 — fleet doctrine).** The global reviewer config — `~/.codex/AGENTS.md` (role / checklist / output format; canonical source `.dev-knowledge/codex/AGENTS.md`, ADR-54) **and** `~/.codex/config.toml` (model pin, effort) — is owned at the hub, exactly as **core-invariant #6** governs `~/.claude/` hooks/rules and hub protocols. **Consumers never edit it**, and a session never edits it unilaterally; a change is an explicit hub ruling, never a per-repo or per-session drive-by. This is the global-infra "exception-with-ruling" invariant, now stated for the Codex surface (same class as `#289` OneDrive-guard and `#338`(c)).
 - **The producer lane is NOT activatable as written today (R4 — reconciliation).** The EPIC-H charter extension describes a Codex **producer** role (Codex authors, CC adversarially verifies — the inverse of the live Codex-verifies-CC review flow). But the hub-owned global config currently **fixes Codex as a read-only reviewer** (`~/.codex/AGENTS.md` pins the reviewer role; the exec sandbox is read-only). So the producer lane is **charter-only** — a documented intent, not a switch a session may flip — until the activation mechanism (`#341`) lands and is ruled. Do not treat "Codex producer" as available; a plan that names a producer leg is describing future work, not a runnable lane.
 - **Sanctioned interim producer-lane fallback (R5 — codified).** Until per-invocation producer activation is designed (`#341`), the sanctioned way to get producer-grade leverage from Codex **without editing global infra** is: **Codex fully specifies the design under a bounded prompt → CC implements → terra (`gpt-5.6-terra`) read-only review pre-merge.** The design-specification step is a **bounded, read-only `codex exec` design prompt** — Codex emits a spec/plan *as text* inside the read-only sandbox, **writes nothing to the tree, and never authors the merged artifact (CC does).** This is a **distinct invocation** from the `/codex-review` **reviewer** role (findings-only, governed by `~/.codex/AGENTS.md`) — so it is not bound by that config's "review findings, don't author fixes" contract — **and** it stops short of the gated **producer** role (authoring merged code). Nothing about the hub-owned config changes. This is exactly the flow executed on **ai-council #30**. *Whether an ad-hoc design-spec `codex exec` prompt should carry its own bounded reviewer-config reconciliation* is inside `#341`'s scope — which also carries the producer *mechanism itself* (repo-local `AGENTS.md` precedence, per-invocation activation, the producer guardrails).
+
+### DEGRADED-REVIEW — the fallback chain when the doctrinal reviewer lane is unavailable
+<!-- scope: dev -->
+
+*Architect ruling 2026-08-29, amended the same day to the chain below.* **A missing reviewer does
+not block the work.** The doctrinal pre-merge reviewer is terra (`gpt-5.6-terra` via
+`/codex-review`, pinned on both lanes — "Codex-utilization doctrine" above); when it is unavailable
+on quota or outage, the arc **descends the chain** rather than stalling. An arc blocked on an
+absent reviewer produces no review at all, which is worse than a tagged review that terra re-reads
+afterwards.
+
+**The chain — ordered COST-ASCENDING, and the ordering has a stated reason.** Because terra
+re-review restores quality afterwards (the standing obligation below), the cheap-but-weaker rungs
+are tried ahead of the expensive-but-equivalent one:
+
+| Rung | Lane | Why it sits here |
+|---|---|---|
+| 1 | **terra** (`gpt-5.6-terra`) | the default |
+| 2 | **grok CLI** | pay-per-call, cheap *relative to rung 4* — see the measured call below |
+| 3 | **Kimi / GLM / DeepSeek CLI** | the FIRST transport that passes a **liveness probe** |
+| 4 | **Codex via pay-as-you-go API** | **last resort only** |
+
+Rung 4 sits at the bottom precisely because it pairs terra's own model class with the highest price
+of any fallback — same quality, worst cost, which is what makes it the last resort rather than the
+obvious substitute.
+
+**Measured status of the middle rungs, 2026-08-29 — recorded because the chain's ordering assumes
+reachability the tree does not guarantee.**
+
+- **Rung 2 is ALIVE:** `grok 1.0.5 (5115b46bc9) [stable]`, on PATH at `~/.grok/bin/grok`; a prompt
+  probe returned correctly.
+- **Rung 3 is reachable only in part, and was NOT liveness-probed.** `glm` is on PATH (`~/bin/glm`);
+  `kimi` and `dsk`/`deepseek` are **not** on PATH, though `Start-KimiSession` and
+  `Start-DeepSeekSession` exist as PowerShell functions in the DispatchHelpers module. So which
+  transport answers depends on the invocation path, and **rung 3's probe-before-use is not
+  pedantry** — it is the rule that keeps a dead or corrupt transport from silently becoming the
+  reviewer. No liveness verdict is claimed here for any rung-3 lane.
+- **Cost, as ONE measured call rather than a benchmark:** the trivial rung-2 probe above cost
+  **$0.060852** and consumed **30,328 input tokens for a two-word prompt**. grok CLI evidently
+  loads project context by default, so per-call price is dominated by that context load rather
+  than by the diff under review. "Cheap" is true *against the rung below it* and is not the same
+  as free; a reviewer budgets for the context load, not for the prompt.
+
+**Obligations carried by every fallback artifact:**
+
+- **The `DEGRADED-REVIEW` tag plus the reason** — which lane was unavailable, and why (quota /
+  outage). A degraded review that reads like a doctrinal one launders its own provenance.
+- **The served model id, recorded PER ROUND — the `[#492]` scar, not ceremony.** Grok has served a
+  **substituted model id silently**: the request named one model, the response came back from
+  another, and nothing in the artifact recorded it. The tag alone is therefore not enough.
+- **A transport that cannot report the served id is tagged `REVIEW-UNVERIFIED-TRANSPORT` instead**,
+  and terra re-review becomes **mandatory rather than best-effort**. An unverifiable reviewer
+  identity is a weaker claim than a verified substitution, so the two carry different labels.
+- **WHICH CHANNEL QUALIFIES — settled 2026-08-29, and the distinction matters more than the
+  answer.** Asking the model what it is returns `grok-4.6`, and that **model self-report is worth
+  nothing here**: a silently substituted model answers exactly the same way, which is the `[#492]`
+  scar's own channel. What qualifies is the **transport's usage accounting**:
+  `grok -p "…" --output-format json` returns a **`modelUsage`** object **keyed by the
+  actually-served model id**, with per-model token and cost accounting —
+  `"modelUsage": { "grok-4.6": { "inputTokens": 30328, "outputTokens": 22, "modelCalls": 1,
+  "costUSD": 0.060852 } }` — produced by the accounting path rather than claimed by the model.
+  **So a grok review run via `--output-format json` SATISFIES this obligation and is tagged
+  `DEGRADED-REVIEW`, not `REVIEW-UNVERIFIED-TRANSPORT`.** A seat that instead asks the model and
+  records the reply has satisfied the letter of the rule and defeated its purpose — that sentence
+  is the whole value of the `[#492]` scar.
+
+**The standing obligation, stated so the chain is not read as a quality equivalence.** **Terra
+re-reviews EVERY degraded artifact once quota returns.** The chain buys **availability**; it is
+**not** a quality substitute. A rung that unblocked an arc leaves the terra re-read owed, and that
+obligation outlives the outage that caused it.
+
+**The chain covers REVIEWS, and it does not cover model-specific MEASUREMENTS.** A fallback rung
+unblocks a review; it destroys a measurement whose instrument is the model. Concretely: the owed
+*"terra round 6 on lanes N and I, report tally deltas"* cannot be run on a fallback lane, because a
+tally delta taken across two different models measures the model swap rather than the rounds.
+Substituting the instrument there is not degradation — it is the loss of the thing being measured,
+so such work waits for terra rather than descending.
+
+**The funding rule.** Where a pay-as-you-go balance is insufficient, **that review stops — the work
+and the arc keep going.** Report the **exact top-up needed**; the operator funds it and says go. A
+review that cannot be paid for is a stopped review rather than a stopped lane.
+
+**Admission — and this is what reconciles the chain with the refusal on record.** Every fallback
+model still owes the **SDA-1 reviewer-role gate as its measured admission row**. `[#562]` closed
+2026-08-23 with an architect verdict of **`grok-4.6` REFUSED** (G1 FAIL, G2 FAIL;
+`docs/audits/2026-08-22-technical-annotation-and-rulings-ledger.md` §5.1), and `[#492]` — *"Grok
+review-lane acceptance — gated ≥ 2026-08-07, measured against terra on the same diffs"* — stays
+open and undischarged by this subsection. **The two facts are consistent rather than
+contradictory:** the chain licenses grok and its siblings as an **availability stopgap under a tag,
+with mandatory terra re-review**, and it admits none of them as a **quality-equivalent review
+lane**. Refusal-as-admission and admission-as-stopgap are different questions; a seat reading this
+subsection as "grok is an approved reviewer" has read past the tag, the re-review and the refusal
+alike.
+
+*Why this lives here and not in the routing table.* `~/.claude/ROUTING.md` is an **L0 surface
+outside this repo** (`ARCHITECTURE.md` Ch3, ruled 2026-08-22) and it routes **task-classes to model
+tiers**, not reviewer lanes to arcs. A reviewer-lane fallback is review doctrine, so this chapter
+is its home.
+
+*Honest limit.* Prose, gated by nothing. No organ checks an artifact for the tag, for a served-id
+line, for the rung-3 liveness probe, or for the terra re-review a degraded artifact owes; this
+binds the seat, not the tree.
 
 ---
 
