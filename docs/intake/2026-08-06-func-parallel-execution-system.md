@@ -1,10 +1,9 @@
 ---
 intake-id: 26
-status: ACCEPTED
+status: CONSUMED
+consumed-by: "ADR-110 (header: intake #26, ACCEPTED); [#505] closed"
 origin: "Layer-1 architect, session 2026-08-06-dev-knowledge-architect, 2026-08-06"
-decided-by: "operator GO on SESSION PLAN v2 §3 (2026-08-06) — acceptance granted in-session; this document formalizes that ruling as pipeline input, it does not re-open it"
-disposition: active
-note: "Class: functional. Provenance (ruled, do-not-relitigate): 2026-08-06 consolidation window — supplement ADDENDUM \"Parallel-management architecture RULED\" + predecessor ratification AM-1/AM-2; red-teamed by predecessor riders."
+note: "Class: functional. Provenance (ruled, do-not-relitigate): 2026-08-06 consolidation window — supplement ADDENDUM \"Parallel-management architecture RULED\" + predecessor ratification AM-1/AM-2; red-teamed by predecessor riders. Accepted by operator GO on SESSION PLAN v2 section 3 (2026-08-06); consumed by ADR-110 and flipped to CONSUMED by operator status ruling 2026-08-29 (decided-by/disposition are ACCEPTED-only per the README schema, so they were dropped at the flip rather than left off-schema)."
 ---
 
 # Parallel multi-agent execution system — batch protocol as versioned repo artifacts

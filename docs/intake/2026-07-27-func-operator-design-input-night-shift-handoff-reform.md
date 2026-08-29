@@ -1,6 +1,7 @@
 ---
 intake-id: 19
-status: SEED
+status: CONSUMED
+consumed-by: "ADR-82 (cites intake #19 §B(b), rulings R1-R7, built under [#446]); [#446] closed"
 origin: "operator design input, 2026-07-27 — relayed via Layer-1 review chat"
 note: "Two-section capture. Section A feeds the morning-loop wave; section B feeds the intake #18 ratification session. Verbatim relay — not a functional-architect conversation."
 consumers: "morning-loop wave (section A); intake #18 / [#435] ratification session (section B)"

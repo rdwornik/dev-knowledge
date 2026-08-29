@@ -1,7 +1,7 @@
 ---
 id: "[#584]"
 title: "`CLAUDE.md` §10 in lockstep with its Form-A template, plus the §6/§9 procedure extraction (packet ARC-G, C02)"
-status: open
+status: closed
 priority: P2
 size: M
 theme: "[E5] Canonical-file integrity"

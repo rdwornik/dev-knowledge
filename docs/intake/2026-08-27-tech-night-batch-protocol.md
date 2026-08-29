@@ -2,7 +2,7 @@
 intake-id: 60
 status: READY
 origin: architect ruling X8 taken 2026-08-27 over the 2026-08-26 night batch; the night-harvest consumption ledger section B (I-NIGHT). Mechanics measured in that night's own harvest rather than designed
-consumers: `docs/audits/2026-08-27-technical-night-harvest-manifest.md` (the landed manifest, this intake's evidence and the shape's first instance); `docs/audits/2026-08-27-technical-night-harvest-consumption-ledger.md`; `protocols/PLAYBOOK.md` as the protocol's home; the `Dispatch-After` and `Harvest-Cloud` verbs in win-tooling; STANDING_RULINGS section X8
+consumers: "`docs/audits/2026-08-27-technical-night-harvest-manifest.md` (the landed manifest, this intake's evidence and the shape's first instance); `docs/audits/2026-08-27-technical-night-harvest-consumption-ledger.md`; `protocols/PLAYBOOK.md` as the protocol's home; the `Dispatch-After` and `Harvest-Cloud` verbs in win-tooling; STANDING_RULINGS section X8"
 ---
 
 # The night batch is a working protocol that exists only as habit — name it

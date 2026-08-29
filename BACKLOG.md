@@ -198,7 +198,6 @@ So that the cheat-sheet and architecture stay scannable as conventions accrue.
 - [#506] [P2][M] Whole-set P10 grooming arc — the open set is unreconciled · tasks/506-whole-set-p10-grooming-arc-full-open-set.md
 - [#551] [P2][S] Audit artifacts carry no `status:`, so a consumed audit is indistinguishable from a live one · tasks/551-audit-artifacts-carry-no-status-field.md
 - [#553] [P3][S] `docs/decisions/README.md`'s ADR census is hand-maintained, ungated, and currently wrong in two places · tasks/553-adr-census-in-decisions-readme-is-ungated-and-wrong.md
-- [#584] [P2][M] `CLAUDE.md` §10 in lockstep with its Form-A template, plus the §6/§9 procedure extraction (packet ARC-G, C02) · tasks/584-claude-md-10-in-lockstep-with-its-form-a-templat.md
 ---
 
 - [#589] [P1][M] One line per row — the BACKLOG view projection, with a size assertion that cannot be silently undone · tasks/589-one-line-per-row-the-backlog-view-projection-wit.md
@@ -231,7 +230,6 @@ So that the consumer-facing live surface reflects CURRENT state — hub-deprecat
 - [#244] [P2][L] Essence-spec lifecycle epic · DEFER · tasks/244-essence-spec-lifecycle-epic.md
 - [#245] [P2][M] Add-path status-awareness · DEFER · tasks/245-add-path-status-awareness.md
 - [#276] [P2][M] D2 per-consumer waiver-honoring · DEFER · tasks/276-d2-per-consumer-waiver-honoring.md
-- [#577] [P2][M] Adopt `AGENTS.md` as the portable instruction layer — the bounded execution lane · tasks/577-adopt-agents-md-as-the-portable-instruction-layer.md
 
 ### [S17] Make new-repo scaffolding correct-by-default
 So that a new repo inherits the full baseline in one step, not by re-derivation.

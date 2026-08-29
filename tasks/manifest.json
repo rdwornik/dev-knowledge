@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "b182dc91d03ac13cf035bc5db1e55268cf43965035e9b1c7ad9b3f16247d08eb",
+  "generated_sha256": "895a7bfe9e6f2df811ea63ef2db0a624fef958034dc19e9a233bb9a8602426eb",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -715,10 +715,6 @@
       "file": "553-adr-census-in-decisions-readme-is-ungated-and-wrong.md"
     },
     {
-      "task": 584,
-      "file": "584-claude-md-10-in-lockstep-with-its-form-a-templat.md"
-    },
-    {
       "prose": "---"
     },
     {
@@ -835,10 +831,6 @@
     {
       "task": 276,
       "file": "276-d2-per-consumer-waiver-honoring.md"
-    },
-    {
-      "task": 577,
-      "file": "577-adopt-agents-md-as-the-portable-instruction-layer.md"
     },
     {
       "prose": ""
