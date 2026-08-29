@@ -36,6 +36,7 @@ So that the canonical v5 handoff is fully implemented (generator) and mechanical
 - [#600] [P2][S] Delete P10 from the shipped probe manifest and gate the boundedness condition · tasks/600-delete-p10-from-the-shipped-probe-manifest-and-g.md
 - [#602] [P2][M] Land the ruled dispatch verb in the bundle's forms card, and extend the agreement gate to the bundle sites · tasks/602-land-the-ruled-dispatch-verb-in-the-bundle-s-for.md
 - [#603] [P3][S] An operator-interface capability file — the facts every seat re-derives about how the operator works · tasks/603-an-operator-interface-capability-file-the-facts.md
+- [#619] [P2][M] The FM-2 to FM-4 funnel-health coupling is dead — six fields, zero overlap · tasks/619-the-fm-2-to-fm-4-funnel-health-coupling-is-dead.md
 
 ---
 
@@ -278,6 +279,7 @@ So that cognitive overhead per session drops.
 - [#594] [P3][M] Layer-3 router — the HUB prerequisites only, not the verb itself · tasks/594-layer-3-router-the-hub-prerequisites-only-not-th.md
 - [#597] [P2][M] P-4 — a declared tier per check, and P-3's telemetry window FIRST · tasks/597-p-4-a-declared-tier-per-check-and-p-3-s-telemetr.md
 - [#598] [P3][S] P-6 — a slow-marker selector so tiered gating has something to select on · tasks/598-p-6-a-slow-marker-selector-so-tiered-gating-has.md
+- [#618] [P2][M] The silently-stale codespace clone — detection and refresh-on-entry, not a rebuild · tasks/618-the-silently-stale-codespace-clone-detection-and.md
 ### [S19] Decide the undecided artifact/tool models
 So that cadence-less artifacts and unevaluated tools don't rot or get adopted blind.
 

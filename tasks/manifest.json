@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "edac62e27e3f200d6a47cc1266fc70d3656d412b5bd79a61d8de9c99a48247ba",
+  "generated_sha256": "5d32548fadda4f7e87e21b07cd5af50e13eee7b498b944db6231009aa2df3169",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -129,6 +129,10 @@
     {
       "task": 603,
       "file": "603-an-operator-interface-capability-file-the-facts.md"
+    },
+    {
+      "task": 619,
+      "file": "619-the-fm-2-to-fm-4-funnel-health-coupling-is-dead.md"
     },
     {
       "prose": ""
@@ -1011,6 +1015,10 @@
     {
       "task": 598,
       "file": "598-p-6-a-slow-marker-selector-so-tiered-gating-has.md"
+    },
+    {
+      "task": 618,
+      "file": "618-the-silently-stale-codespace-clone-detection-and.md"
     },
     {
       "prose": "### [S19] Decide the undecided artifact/tool models"

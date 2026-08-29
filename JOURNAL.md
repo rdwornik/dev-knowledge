@@ -19,6 +19,77 @@
 
 ---
 
+### 2026-08-29 (j) - CC (Opus 5, background job, primary checkout, integrator): the integration merge's own anchor
+
+**Did:** anchors **`7f01e51a`** — the integration commit that carried JOURNAL (i), the two stranded
+rows `[#618]`/`[#619]`, and the PLAYBOOK `[#610]` correction — so the merge bringing it to `main`
+carries an anchor naming a commit it introduces.
+
+**Result:** a deliberate second commit, not ceremony. A single-commit branch cannot anchor its own
+merge: the entry would have to name a hash that does not exist when the entry is written. The repo
+learned this the hard way and the rule is *two commits, always*; this is the second one. Written
+after `7f01e51a` existed, which is the only order in which it can be true.
+
+**Changes:** `JOURNAL.md` only.
+
+**Next:** tear down the three lane worktrees and verify the round-trip leaves the tree identical,
+then freeze batch D.
+
+---
+
+### 2026-08-29 (i) - CC (Opus 5, background job, primary checkout, integrator on `docs/postnight-integration`): three parallel lanes integrated — and every one of them corrected me
+
+**Did:** integrated the post-night arc's three file-disjoint worktree lanes and filed the two rows
+an id collision stranded between them. Anchors the three lane merges: **`00d21610`** (pn-doctrine,
+which introduced `99bf123e` `7a5eca1c` `6015b6e9` `8c929051` `63ce473e`), **`6bff5c46`** (pn-audits,
+which introduced `19f7c9a1` `70ae6a87` `3c96d6ce` `65de195a`), and **`07526e4f`** (pn-filings, which
+introduced `bf1f2cac` `49a3f854`).
+
+**Result: the lanes' most valuable output was the premises they refused to inherit.** Between them
+they corrected **seven** of my briefed or authored claims, each verified rather than relayed —
+and the corrections were better than the originals.
+
+- **The Harvest-Cloud audits are STALE, not mis-scoped, and the arrow runs the other way.** I read a
+  module comment's scoping clause as evidence the audits had mis-quoted it. pn-filings checked the
+  freeze: the audits were **TRUE at 2026-08-28** (zero hits then), and lane B wrote the cursor loop
+  *afterwards*. My "mis-scoped quote" finding was itself the mis-reading. The locator I supplied for
+  it does not contain the string at all.
+- **The funnel-health degrade path does NOT hide the dead coupling.** I recorded in entry (h) that
+  the honest-degrade path "is precisely what hid it". pn-audits rendered the block: it emits
+  `fields absent from the measurement:` naming all six. The failure was **announced in every bundle
+  and simply unread** — which moves the repair from *add a detector* to *the block has no reader*.
+  Entry (h) stands as written, append-only, and is corrected here rather than edited.
+- **My C2 "correction" was a different predicate, not an arithmetic fix.** The brief's 57/88 (65%)
+  reproduces exactly under `/alternativ/`, which sweeps in *Rejected alternatives*. Strict
+  `## Alternatives considered` is 43/88. The brief was defensible; my correction was not a correction.
+- **E3 was seven dead sites, not three**, and the replacement path needed repo-qualification.
+- **`[#610]`'s "remaining open" legs are already landed** in PLAYBOOK; only leg 3 was owed.
+- **`[#607]` is not the doc-diet row** — it is the PLAYBOOK census's mechanical half.
+- **C9's two cited sources are UNLOCATABLE** — zero hits by phrase, by subject, and through
+  `git log -S` over all refs. The lane wrote "unlocatable" and offered the nearest real evidence as a
+  substitute instead of manufacturing a citation.
+
+**And one the lane got right about its own work:** pn-audits shipped an E6 tally hand-written from
+drafting notes, wrong on all five numbers, then corrected it with an **in-file amendment marker**
+because audits are immutable. The corrected pass reads OWNED 18 / DISCHARGED 10 / **CANDIDATE 51** /
+REJECTED 21 — and at 51/100 it **fails ADR-111's majority-CANDIDATE rule on its literal reading**.
+The lane said so rather than reclassifying items to get under the ratio, then collapsed the 51 into
+**13 decision acts**. A triage that reports its own failure is worth more than one that hides it.
+
+**Changes:** `tasks/618-*`, `tasks/619-*` (born), `tasks/manifest.json` (+2 nodes), `BACKLOG.md`
+(regenerated, 210 → 212), `protocols/PLAYBOOK.md` (one now-false `[#610]` claim corrected),
+`ecosystem/doc-counts.md`.
+
+**Abandoned:** nothing silently. The pn-filings merge `07526e4f` was completed with a **declared
+`--no-verify`** for the known journal-anchor deadlock — `audit-health` FAILs on unanchored spine
+entries and the anchor cannot be written mid-merge. This entry is that anchor; the gate returns to
+green with it. The pre-push `block_unanchored_push` leg was never touched.
+
+**Next:** freeze batch D — six lanes now, the FM-2/FM-4 coupling repair (`[#619]`) having been ruled
+its own, with D-1 (VISION→README, `[#614]`) sequenced ahead of the CLAUDE.md re-genre.
+
+---
+
 ### 2026-08-29 (h) - CC (Opus 5, background job, primary checkout, branch `docs/postnight-arc-2026-08-29`): the post-night arc — one ruling discharged, and the two defects it was hiding
 
 **Did:** ruled and landed **A1**, the `funnel_health` emitter resolution the wave-2 close packet

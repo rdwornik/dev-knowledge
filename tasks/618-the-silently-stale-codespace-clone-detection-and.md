@@ -1,0 +1,13 @@
+---
+id: "[#618]"
+title: "The silently-stale codespace clone — detection and refresh-on-entry, not a rebuild"
+status: open
+priority: P2
+size: M
+theme: "[E7] Tooling & evaluation"
+story: "[S18] Cut session friction with better tooling"
+serialize-group: none
+generates: BACKLOG.md
+---
+
+- [#618] [P2][M] **The silently-stale codespace clone — detection and refresh-on-entry, not a rebuild** — W4 defect 3, reproduced live 2026-08-29. Codespace `nb2-smoke6c-j47pvjw957ghq76v` (`rdwornik/dev-knowledge`, branch `main`) presented a clone **50 commits behind** with nothing in the session surfacing it: in-container `HEAD` = `770961316fdb176cd0cafd2d9d9b1fe3c8cc4c01`, pushed `origin/main` = `66662c7043c18022e6558ad8a8b738fde4dce83d`, `git status -sb` = `## main...origin/main [behind 50]`, in-container HEAD commit date `2026-08-29T11:02:26+02:00` (measured 2026-08-29T12:37Z). **CONTRAST, same probe, 11 minutes later on a FRESH codespace** `orange-happiness-pgw54jq9rqwhq6g` (created 2026-08-29T12:48Z, `basicLinux32gb`): `PWD=/workspaces/dev-knowledge`, `HEAD` = `66662c70…` == pushed HEAD (**match**), `git status -sb` = `## main...origin/main` (**no "behind"**), `CDATE=2026-08-29T13:44:58+02:00`, `UV=uv 0.11.19` (**exactly the ADR-106 pinned `required-version = "==0.11.19"`**), `TOKEN_LOGIN` PRESENT len=108, `RemoteExitCode=0`. **HYPOTHESIS, not a finding:** the two paired readings are consistent with W4 defects 2 and 3 sharing ONE root cause — **codespace AGE / drift of a long-lived container**, rather than two independent image defects — since a fresh instance reproduces neither. **Two paired readings are suggestive; one pair is not a controlled experiment**, and this row does not assert the hypothesis as fact. **Neither W4 defect is closed by this row:** non-reproduction on a fresh instance is not a fix, and closure is the operator's call. **A rebuild is a workaround, not the fix** — the missing mechanism is (i) DETECTION that surfaces clone divergence at session entry, and (ii) a refresh-on-entry discipline. · Done when: a session entering a codespace surfaces clone-vs-`origin` divergence without the operator running `git status` by hand, AND a refresh-on-entry step is either armed or explicitly recorded as operator-side; the stale reading above is the regression case · refs docs/audits/2026-08-29-verification-night-mission-close-packet.md, docs/audits/2026-08-29-technical-pn-two-row-reconcile.md, #593, #554, #567 · kill-candidates: none — `[#593]` repairs the hub-half chain and its Done-when is a one-shot receipt; this row is the standing detection mechanism, and killing either leaves the other's gap open · serialize-group: none
