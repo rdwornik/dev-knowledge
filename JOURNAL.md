@@ -19,6 +19,55 @@
 
 ---
 
+### 2026-08-29 (l) - CC (Opus 5, background job, primary checkout, integrator): batch D frozen — and a gate that could not run
+
+**Did:** froze batch D's six lane contracts against the architect's five cuts, ran them through
+both freeze gates, and landed the CUT-1 integrator act. Anchors **`59b04be6`**.
+
+**Result: three gates refused something real, and one of them could not run at all.**
+
+**The gate that could not run is the finding.** `lane-contract-check` passes every staged contract
+to `gen_lane_contract check` in ONE invocation, but the command took a single `PATH` — so the first
+commit to stage more than one contract died with `Got unexpected extra arguments`. **The gate did
+not refuse a bad contract; it failed to execute.** Every earlier batch staged its contracts singly,
+so a single-`PATH` signature survived unnoticed through eleven batch-1 contracts. Fixed at the
+cause: `check` now takes many paths **and reports every bad one rather than stopping at the first**,
+so a batch freeze is not turned into a one-at-a-time bisect. Two tests pin both properties.
+
+**The other two refused my own drafts, correctly.** `preflight_contract --freeze` caught four
+defects I had written: a `[#619]` citation with no identity beside it, a **CLOSED** `[#577]` cited
+as dispatchable work, and two claims asserting *"measured"* / *"verified"* while naming no witness.
+Then `audit.py substrate_declaration` REFUSED both CLOUD contracts as gate-dependent — they had
+inherited `pytest green` from the generator's boilerplate, which assumes a code lane, and a
+read-only cloud lane cannot depend on a gate. All four fixed by adding the witness or the title,
+never by softening the sentence.
+
+**CUT-4 was the architect correcting me, and it is recorded in the contract rather than quietly
+applied:** I had routed lane-d to copilot-enterprise while citing, two sections later in the same
+plan, that producer on copilot is SDA-1-gated and not admitted. Writing the tree IS producer work.
+Substrate is local; copilot may think inside the lane, and every tree write is CC's.
+
+**CUT-1 executed rather than deferred.** Intake #38 amendment (b) TESTS R18's two un-parking
+conditions instead of restating that they should be tested. Both unmet: (a) the kernel row's leg 1
+wants a `kernel`/`hub` tier, and what landed is `[#597]`'s `commit`/`ship` axis — **54 checks
+discovered, 0 carrying kernel/hub** — a taxonomy mismatch that a name-match would have scored MET;
+(b) this window's four births spent its filing capacity rather than evidencing headroom.
+
+**Changes:** six frozen contracts under
+`docs/audits/2026-08-29-technical-batchd-launch-contracts/`, `scripts/gen_lane_contract.py`
+(many-paths), `tests/test_gen_lane_contract.py` (+2), `docs/intake/2026-08-17-tech-fleet-config-standardization.md`
+(amendment b), both intake generators, `docs/audits/README.md`.
+
+**Abandoned:** nothing silently. **Lane-c is deliberately NOT dispatched with the others** — it is
+blocked by lane-b on `CLAUDE.md`, and dispatching both would put two writers on one file. Known
+residue: every generated contract fails preflight on `register V-2` (cloud also `Q5`) because the
+generator cites by label and the validator wants a `### ` heading; both labels exist, so it is a
+generator/validator disagreement firing 6/6, not a contract defect.
+
+**Next:** dispatch five lanes, hold lane-c for lane-b's merge, then walk the merge queue.
+
+---
+
 ### 2026-08-29 (k) - CC (Opus 5, background job, primary checkout, integrator): the suite triaged against a real baseline, and two lanes dispatched
 
 **Did:** ran the full suite once at integration (the ruled cadence), triaged its REDs against an
