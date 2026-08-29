@@ -19,6 +19,29 @@
 
 ---
 
+### 2026-08-29 (o) - CC (Opus 5, background job, primary checkout, integrator): the anchor entry that named no SHA
+
+**Did:** repaired the anchor for merge **`f832016d`**, which introduced **`de204519`** (the
+`lane-g` consumption-pass contract) and **`bb320da3`** (JOURNAL (n)).
+
+**Result: entry (n) described its anchor instead of naming it.** It reads *"Anchors the contract
+commit on this branch"* — true as prose, useless as an anchor. `journal_spine_anchor` matches a
+**SHA**, so the entry discharged nothing: `audit.py health` went DEGRADED and the pre-push
+`block_unanchored_push` leg refused the push. Both failures, one cause.
+
+**This is the third distinct way I have hit the anchor rule today**, and the three are worth
+separating because they have different fixes: (i) a merge with no entry at all — write one;
+(ii) a single-commit branch whose entry cannot name a hash that does not yet exist — plan two
+commits; (iii) **this one** — an entry that exists, sits in the right place, reads correctly, and
+names no SHA. Only (iii) looks discharged while being empty, which makes it the one worth a
+lesson: **the anchor is the hexadecimal, not the sentence.**
+
+**Changes:** `JOURNAL.md` only.
+
+**Next:** push, then the consumption pass's filing, then the capstone.
+
+---
+
 ### 2026-08-29 (n) - CC (Opus 5, background job, primary checkout, integrator): the consumption pass dispatched
 
 **Did:** froze and dispatched `lane-g-000-autonomy-synthesis`, the read-only consumption pass over
