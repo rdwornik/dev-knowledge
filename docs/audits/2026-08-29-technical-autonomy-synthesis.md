@@ -273,9 +273,11 @@ R1-5  One machine-readable per-step routing source
 R1-6  Propose-only unattended runs with a human adjudication gate
       already-in-intake -- intake #60 (docs/intake/2026-08-27-tech-night-batch-protocol.md,
       READY), which names the five phases incl. the sentinel. R1's own honest limit -- the four
-      standing constraints "bind the seat and not the tree" (PLAYBOOK.md:2364) -- is the
-      enforcement half, owned by [#271] (open), whose sole surviving Done-when after the
-      2026-08-28 re-cut is a measured accept-rate against the <20% kill threshold. Not run.
+      standing constraints "bind the seat and not the tree" -- is the enforcement half, owned by
+      [#271] (open), whose sole surviving Done-when after the 2026-08-28 re-cut is a measured
+      accept-rate against the <20% kill threshold. Not run.
+      LOCATOR RE-ANCHORED: PLAYBOOK.md:2369. AUT-R1 cited :2364, which is a BLANK LINE on this
+      tree -- line drift, not a wrong claim. The anchor text is the citable surface.
 
 R1-7  Consultation-with-weights
       REJECTED -- R1 recommends against and AUT-R2 axes 4/6 independently supply the measured
@@ -289,8 +291,11 @@ R1-7  Consultation-with-weights
 R1-8  Learned / dynamic model routing (RouteLLM class)
       REJECTED -- wrong population (one operator, a few dispatches a night), and the repo has
       already measured the cheap-tier heuristic failing in-house (a shape-S arc on sonnet ran
-      ~3h; PLAYBOOK.md:2962-2973), which is why the tier keys on context load. Same record duty
-      as R1-7.
+      ~3h against the gate mesh, operator measurement 2026-08-07), which is why the tier keys on
+      CONTEXT LOAD rather than task shape. Same record duty as R1-7.
+      LOCATOR RE-ANCHORED: PLAYBOOK.md:3013. AUT-R1 cited :2962-2973, which on this tree resolves
+      to unrelated Q4 cloud-lane text -- line drift again, and the second instance is why this
+      artifact re-anchors by text rather than carrying inherited line numbers forward.
 
 R1-9  Re-measure ADR-87's STEP 1 by-class self-load finding
       TRUE GAP -- R1's own repo-side observation: the finding is "restated eleven times and
@@ -317,7 +322,7 @@ R2-2  Reference-class forecasting over the repo's own history
 R2-3  Minority report as a first-class output
       TRUE GAP -- grep -rli "minority report|dissent" over tasks/ and docs/intake/ returns
       ZERO. The diagnosis is already written, at docs/handoffs/2026-07-02-ai-council-architect/
-      RESIDUAL.md finding G7 -- and a handoff bundle is IMMUTABLE and is not a funnel object.
+      RESIDUAL.md:171 finding G7 -- and a handoff bundle is IMMUTABLE and is not a funnel object.
       This is the same no-carrier class the filing packet named for the fuzzy band.
 
 R2-4  Premortem as an ex-ante contract section
@@ -536,10 +541,14 @@ The harness-portability map
      the map is the answer.
 
 OpenTelemetry GenAI semantic conventions
-     DISCHARGED -- docs/audits/2026-08-26-technical-research-cost-usage-telemetry.md:13 already
-     ruled the posture ("adopt the convention, isolate the attribute strings; do not hard-code
-     pre-stable gen_ai.* names"). Still Development status. The BUILD is owned by intake #50
-     (READY). The one-session env-var PROBE is unowned and is the cheapest item in the arc.
+     DISCHARGED -- the posture is already ruled, at TWO lines this lane opened rather than the
+     one AUT-R4-A cites. :13 carries the finding ("OTel GenAI semantic conventions are NOT
+     stable. Per OpenTelemetry semantic-conventions v1.42.0, released June 12 2026, all gen_ai.*
+     attributes ..."); :115 carries the instruction, and it is an ANTI-PATTERN entry: "Hard-coding
+     OTel `gen_ai.*` attribute names -- they're pre-stable (Development status, June 2026 repo
+     split); isolate behind a mapping layer." Still Development status. The BUILD is owned by
+     intake #50 (READY). The one-session env-var PROBE is unowned and is the cheapest item in
+     the arc.
 
 Arize Phoenix          DISCHARGED -- cost-usage-telemetry.md:63 lists it; the recommendation set
                        excludes it. Re-assessed: unchanged. Its `phoenix serve` is a long-running
@@ -1019,9 +1028,9 @@ RANK 7 · Premortem as an ex-ante contract section
 =============================================================================
 RANK 8 · Minority report as a first-class output
   verdict        TRUE GAP -- diagnosed in 2026-07 at docs/handoffs/2026-07-02-ai-council-
-                 architect/RESIDUAL.md G7, which is an IMMUTABLE bundle and not a funnel object
+                 architect/RESIDUAL.md:171 G7, which is an IMMUTABLE bundle and not a funnel object
   why rank 8     the repo already does this WELL in the ad-hoc case -- docs/audits/2026-08-28-
-                 technical-nb2-a-packet.md's "Reviewer dissent, recorded rather than buried",
+                 technical-nb2-a-packet.md:179 "Reviewer dissent, recorded rather than buried",
                  where terra rated a hold CRITICAL against the packet's own position and it was
                  escalated as C-1 rather than overridden. Turning a demonstrated habit into a
                  shape is cheap, and it is axis 6's central question (where does a minority
@@ -1053,8 +1062,14 @@ RANK 9 · Lane resume-point convention
 RANK 10 · nasde-toolkit
   verdict        TRUE GAP (unlocatable -- zero hits repo-wide, re-verified here)
   why rank 10    it is SDA-1's Q7 cost meter AS A SHIPPED TOOL, and Q7 is the axis the
-                 adversarial review's C-1 (CRITICAL) says the operator's actual goal lives on:
-                 "A provider can clear P1-P4 and P6 and still be a net cost increase." nasde
+                 adversarial review's C-1 (CRITICAL) says the operator's actual goal lives on --
+                 docs/audits/2026-08-28-technical-sda1-benchmark-design-adversarial.md:258,
+                 verified verbatim on this tree: "The operator's goal is cutting coding cost.
+                 Sections 4.2 P1-P4 measure correctness, restraint and honesty; P5 is the only
+                 cost gate and it is one line among six. A provider can clear P1-P4 and P6 and
+                 still be a net cost *increase*, because the dominant cost of a cheap producer is
+                 not its token price -- it is the reviewer time its output consumes and the
+                 rework its near-misses cause." nasde
                  measures cost AND quality together, per model, per provider, on the operator's
                  own tasks, using subscription auth.
   tier           TIER S -- `uv tool install`, isolated from the project environment, touching
@@ -1433,6 +1448,37 @@ rules.** That is a coherent shape, not a scatter, and it produces the arc's sequ
   authorises it, and `STANDING_RULINGS` F2 records it as a trained bypass. The ff also brought
   three R4 dispatch records onto this tree, one of which supplied the placement evidence §(c)
   now carries; the artifact was updated before the commit rather than after it.
+- **A SECOND, DIFFERENT spine block on the step-3 commit — and this one is NOT lane lag. It is a
+  finding the integrator needs, so it is recorded here rather than only bypassed.** The step-3
+  commit was refused by `audit-health` on `[!!] journal_spine_anchor` naming **one** entry:
+  `28bb3002` *"Merge branch 'worktree-lane-a-619-fm-coupling-repair' — batch-D lane a"*. The same
+  two-sided diagnostic that proved lane lag the first time returns the **opposite** answer here:
+  the gap is present against **both** this tree's `JOURNAL.md` **and** `main:JOURNAL.md`, which is
+  the memory's *"real unanchored merge on main — not yours, do not discharge it silently"* case.
+  Ownership proved before acting: `git merge-base --is-ancestor 28bb3002 HEAD` returns **false**,
+  and this lane's only commit is `7e739798`. **Syncing main would not clear it**, because main's
+  own JOURNAL does not anchor it either.
+  **THE ROOT CAUSE, and it is worth more than the bypass.** `audit.py::check_journal_spine_anchor`
+  documents its ADR-110 R-1 exemption as needing **BOTH** conditions — *"a `worktree-lane-*`
+  `--no-ff` merge **AND** an open manifest"*, where the manifest must be **committed**
+  (`scripts/batch_manifest.py`, `MANIFEST_GLOB = "docs/audits/*-batch-*-manifest.md"`).
+  `28bb3002` satisfies the first. It cannot satisfy the second: **`git ls-files
+  'docs/audits/*-batch-*-manifest.md'` lists ten manifests and NONE of them is batch-D's** — the
+  newest are batch-1 and batch-2 of 2026-08-28. Batch-D is running on launch contracts
+  (`docs/audits/2026-08-29-technical-batchd-launch-contracts/`) **with no committed batch
+  manifest**, so the exemption cannot fire for any lane in it, and every batch-D lane merge will
+  flag this gate until the integrator journals it. **That is an integrator-owned defect in the
+  batch's own setup, not a defect in any lane** — and a lane cannot fix it, because a batch lane
+  never journals (`STANDING_RULINGS` P-1) and this lane's write-scope is one file.
+- **Consequence, declared rather than smuggled: the step-3 commit carries TWO skipped hooks, not
+  one.** The contract anticipates *"a lane declares its single-hook bypass in the commit body"*.
+  `SKIP=audit-index-freshness` is that sanctioned one. `SKIP=audit-health` is a **second**, forced
+  by a foreign unanchored merge this lane does not own and cannot discharge; it is declared in the
+  commit body with the ownership proof above, per the standing practice for the not-mine case, and
+  **`--no-verify` was NOT used** — that would drop the whole mesh including `validate-hermetization`
+  and the commit-msg gates, where `SKIP` drops exactly one named hook. Both bypasses are named
+  here in the artifact body as well as in the commit message, because an undeclared bypass is what
+  the doctrine actually refuses.
 - **This lane escalated nothing.** No fork reached V-2 class (a), (b) or (c): the five refuted
   premises in §2 are findings about the artifacts, not conflicts between a rule and a ruling, and
   the contract's own instruction was to resolve verdicts against the live tree rather than to
@@ -1440,6 +1486,48 @@ rules.** That is a coherent shape, not a scatter, and it produces the arc's sequ
 - **One contract typo, reported not corrected:** the frozen contract's Done-contract numbers its
   items 1, 2, 3, 4, 5, 6 and then repeats `4.` for the English/hyphens/logging/Click/pytest
   clause. All seven obligations were read and discharged; the numeral is cosmetic.
+
+---
+
+---
+
+## §4 — The locator-verification pass, and what it caught
+
+Step 3 of the frozen contract requires re-reading the decision table against the repo so that
+*"every cited object resolves, every verdict has a locator, every unknown is marked."* That was
+done mechanically rather than by eye — a script extracted every path, every `file:line`, every
+`[#id]` and every `intake #N` from this artifact and resolved each against the tree.
+
+```
+file paths        63 cited, 63 resolve
+                  -- 3 report "missing" and all 3 are correct as written: two are
+                     gitignored BY DESIGN and are described as such here
+                     (logs/TELEMETRY.db, logs/OPERATOR-LOAD.csv), and one is an L0 path
+                     outside this repo (~/.claude/rules/core-invariants.md)
+file:line cites   all resolve in-range and NON-BLANK, and each was read
+backlog ids       15 cited, 15 resolve. open: 271 575 576 581 590 613 615 616 617 618 619
+                  closed: 270 529 · deferred: 491 492 -- each stated with its status in text
+intake ids        11 cited by number, all resolve, and EVERY status matches what is written
+                  here: 7 SEED · 35/36/37/40/62/63 DRAFT · 44/46/50/60 READY
+                  (also cited by path and verified: 45 READY, 39 ACCEPTED, 27 ACCEPTED)
+SHAs              0928e051 0f497773 7464578b 99bf123e babc65fb cec6aa08 -- all resolve to
+                  commits (`git cat-file -t`)
+```
+
+**Two inherited line citations had DRIFTED and were re-anchored rather than carried forward.**
+Both came from AUT-R1, and both are line drift in a growing file rather than a wrong claim:
+`PLAYBOOK.md:2364` (*"bind the seat and not the tree"*) is now a **blank line** — the anchor text
+is at `:2369`; and `PLAYBOOK.md:2962-2973` (the shape-S-on-sonnet measurement) now resolves to
+**unrelated Q4 cloud-lane text** — the anchor text is at `:3013`. Both are corrected in place
+above with the drift named.
+
+That is worth recording as a finding in its own right, because it is the arc's own doctrine
+demonstrating itself twice in one pass: **a line number is a claim with a short half-life, and
+the anchor text is the citable surface.** Every other inherited citation in this artifact was
+re-opened for the same reason, including two that looked wrong and were not —
+`SUPPLEMENT.md:77` really does name Mem0/Zep/Letta (it is a long line, and the phrase sits past
+the first 170 characters), and SDA-1's C-1 really does say *"a net cost `*increase*`"* (the
+markdown emphasis inside the phrase is why a naive grep for the sentence returns nothing).
 
 ---
 
