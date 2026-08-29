@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-08-28
+last_reviewed: 2026-08-29
 reconciled_with: handoff-process@6.3.0
 status: active
 owner: Rob
@@ -96,7 +96,7 @@ See `ARCHITECTURE.md` for the structural model; read it before structural change
 3. **ADRs, transcripts, handoffs, and audits are immutable** — supersede with a new file or an in-file amendment marker; never edit in place. **ADR ratification exception (ADR-94):** an ADR's *status line* MAY be edited in place on ratification (e.g. Proposed → Accepted) — the status line is metadata, not decision content. This exception is ADR-specific and covers the status line only; ADR decision content, and transcripts / handoffs / audits in full, remain immutable.
 <!-- methodology:end id=critical-rules-records -->
 4. **Layer 2 never executes** — no orchestration scripts: no script drives state in a child repo (ADR-28, ADR-36). Hub-local validators, generators and gates are in scope.
-5. **No new markdown files without checking navigation/growth triggers** — when navigation overhead emerges, evaluate DevVault migration. Root `README.md` deleted 2026-05-23 (deprecated per ADR-38 amendment A5; redundant with VISION + CLAUDE.md + ARCHITECTURE for this internal-only repo) — do not recreate it.
+5. **No new markdown files without checking navigation/growth triggers** — when navigation overhead emerges, evaluate DevVault migration. **Root `README.md` was deleted 2026-05-23 (ADR-38 A5) and RECREATED 2026-08-29: the *"do not recreate it"* clause that stood here is RETIRED** — ADR-114 is Accepted (AMENDMENT 1) and supersedes A5 in that single respect, `README.md` is a sanctioned Tier-1 file, and it supersedes `VISION.md` as this repo's canonical front door. `VISION.md` is **retained, marked superseded and still tracked** — it is `{hub: MUST, consumer: MUST}` on the nine ADR-104 members and only 2 of the 8 children carry a root README, so the fleet-wide filename migration is a sequenced program, not a consequence of this line ([#614]).
 > **[HUB - methodology]** region `critical-rules-consistency` - single-sourced from the hub; do not edit these lines here.
 <!-- methodology:start id=critical-rules-consistency owner=hub -->
 6. **Keep files consistent** — ESSENTIALS summarizes PLAYBOOK, not copies it; divergence causes drift

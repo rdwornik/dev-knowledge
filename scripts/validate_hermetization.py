@@ -120,6 +120,20 @@ SANCTIONED_TIER1_FILES: frozenset[str] = frozenset({
     # history. Adding it to CANONICAL_MANDATORY would silently enrol it in the
     # freshness gate and in every consumer's canonical-set conformance check.
     "AGENTS.md",
+    # root front door (ADR-101 §1 amendment 2026-08-29, ADR-114 AMENDMENT 1; execution
+    # [#614]). ADR-114's `Amends` line fired on ratification: "the closed Tier-1 file enum
+    # in SANCTIONED_TIER1_FILES would gain README.md". Until 2026-08-29 this frozenset was
+    # the gate that made the ADR-38 A5 prohibition executable -- an added root README.md
+    # was a Rule A BLOCK -- so this line is what unblocks the recreation, and it is the
+    # reason the ruling could not be executed ad hoc.
+    #
+    # A LITERAL, on the AGENTS.md precedent directly above and for a DIFFERENT reason.
+    # README.md now supersedes VISION.md as this repo's canonical purpose document, so it
+    # is canonical in substance -- but promoting it into _cdocs.CANONICAL_MANDATORY would
+    # enrol it in ADR38_BASELINE_REQUIRED and in every consumer's canonical-set check while
+    # only 2 of the 8 ADR-104 children carry a root README.md. That promotion is the
+    # fleet-wide migration (ADR-114 option (C)), not a drive-by of this line.
+    "README.md",
 })
 
 # Tier-2 -- sanctioned docs/<genre>/ folders. `runbooks` LEFT the set 2026-07-22

@@ -98,15 +98,24 @@ def test_validate_doc_structure_reads_the_registry():
 
 
 def test_validate_hermetization_seals_exactly_the_registry_living_docs():
-    """ADR-101 §1's Tier-1 `.md` set = the ADR-38 canonical set PLUS `AGENTS.md`.
+    """ADR-101 §1's Tier-1 `.md` set = the ADR-38 canonical set PLUS `AGENTS.md`
+    and `README.md`.
 
     ADR-115 admits `AGENTS.md` as a Tier-1 file WITHOUT making it a canonical living
     doc: it is portable-instruction payload, not a freshness-stamped governance
-    surface. The `| {"AGENTS.md"}` is the ONE sanctioned divergence and is written as
-    an explicit exception so that a second one cannot slip in unnamed.
+    surface. **ADR-114 (Accepted 2026-08-29, AMENDMENT 1) admits `README.md`** on its
+    `Amends` line — *"the closed Tier-1 file enum in `SANCTIONED_TIER1_FILES` would
+    gain `README.md`"* — for the opposite reason: it IS canonical in substance at the
+    hub (it supersedes `VISION.md`), but promoting it into `CANONICAL_MANDATORY` would
+    enrol it in `ADR38_BASELINE_REQUIRED` and in every consumer's canonical-set check
+    while only 2 of the 8 ADR-104 children carry one. That promotion is the sequenced
+    fleet migration, `[#621]`.
+
+    Each divergence is written as an explicit **named** exception, with the ADR that
+    admitted it, so that a third one cannot slip in unnamed. Executed by `[#614]`.
     """
     md_members = {n for n in vh.SANCTIONED_TIER1_FILES if n.endswith(".md")}
-    assert md_members == set(cdocs.CANONICAL_MANDATORY) | {"AGENTS.md"}
+    assert md_members == set(cdocs.CANONICAL_MANDATORY) | {"AGENTS.md", "README.md"}
 
 
 def test_gen_handoff_name_and_degrade_string_move_together():

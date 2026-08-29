@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "5d32548fadda4f7e87e21b07cd5af50e13eee7b498b944db6231009aa2df3169",
+  "generated_sha256": "26c9cd5f8ddfe3e93ec7fd6a03194d223346d94c13c781f5e360e92d10a610e4",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -729,6 +729,18 @@
     {
       "task": 614,
       "file": "614-vision-superseded-by-a-recreated-root-readme.md"
+    },
+    {
+      "task": 620,
+      "file": "620-retire-the-root-readme-prohibition-across-the-fl.md"
+    },
+    {
+      "task": 621,
+      "file": "621-adr-114-option-c-the-nine-repo-vision-md-to-read.md"
+    },
+    {
+      "task": 622,
+      "file": "622-promote-readme-md-into-the-adr-38-canonical-mand.md"
     },
     {
       "prose": "---"
