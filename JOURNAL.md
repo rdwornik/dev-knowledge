@@ -19,6 +19,60 @@
 
 ---
 
+### 2026-08-29 (r) - CC (Opus 5, background job, primary checkout, integrator): the missing batch manifest, which was the cause of everything I kept repairing
+
+**Anchors:** `28bb3002` `023a7797` `cf87cccb` `3c83e377` `7e739798` `8a94ee71`
+
+**Did:** merged batch-D lanes a and b, landed the SDA-1 incumbent baseline, recorded
+copilot-enterprise in the provider registry, filed `[#623]`, and wrote the batch-D manifest that
+should have existed before merge #1.
+
+**Result: `lane-g` diagnosed from inside the batch what I had misread three times from outside it.**
+`scripts/batch_manifest.py` grants the ADR-110 declared-integration-arc exemption to `--no-ff`
+merges of `worktree-lane-*` branches **only while a committed manifest declares an open batch**.
+Batch D had none. So every lane merge flagged `journal_spine_anchor`, and each time I treated it as
+an anchoring mistake to repair — writing another entry, then fixing its format — rather than as
+**the absence of the exemption that should have covered it.** The trap is recorded verbatim in this
+repo's own memory as *"a batch without a committed manifest is unintegrable — check before merge
+#1"*. I did not run the check before merge #1. The manifest lands now, late, and says so in its own
+header rather than being backfilled silently.
+
+**Lane a discharged the defect A1 exposed this morning.** The FM-2 ↔ FM-4 coupling had ZERO field
+overlap and every bundle rendered six `unavailable`s;
+`test_shared_fields_equal_fm4_block_byte_for_byte` now **passes**. That RED predates this session,
+and CUT-3's licence was precise: `[#619]` owned it, so the row's own lane repairing it is the
+designed path rather than a drive-by.
+
+**Lane b executed ADR-114's ruled discharge** and kept a scoping judgment worth recording:
+`VISION.md` is **retained and still tracked**, because it is `{hub: MUST, consumer: MUST}` across
+the nine ADR-104 members while only 2 of 8 children carry a root README. The fleet-wide filename
+migration is a sequenced program, not a side effect of recreating one file. Births `[#620]`
+`[#621]` `[#622]` — the three decommission surfaces ADR-114 required of its accepting act.
+
+**SDA-1's incumbent baseline exists for the first time** — `TALLY Critical=3 High=5 Medium=5 Low=2`
+over 15 items, run on copilot-enterprise for 21.15 credits with the served model read from the
+transport. C-2's floors were UNCALIBRATED because nobody had ever measured this; they are now
+calibrated, and the artifact states its own beat-me condition.
+
+**Two gates caught me again, correctly.** The provider registry refused my first entry outright —
+its schema is a thin provider/CLI identity surface and forbids the operational fields I tried to
+add, so the capability profile stays in `~/.claude/ROUTING.md` where it belongs. Then the agreement
+gate refused `council_alias: copilot`, because copilot is a reviewer/adversarial provider and the
+council roster does not name it; `null` is the true value.
+
+**A false alarm, chased to ground rather than waved off:** the ratchet read 445 against a 443
+baseline. Stash-measure-restore proved **443 both ways** — the +2 came from the invalid registry
+block I had already reverted, not from any landed edit.
+
+**Changes:** the batch-3 manifest, `ecosystem/provider-registry.yaml`, `tasks/623-*`, the SDA-1
+baseline artifact, the audits index, `BACKLOG.md` (212 → 216 rows).
+
+**Abandoned:** nothing silently. Lane c stays HELD behind lane b on `CLAUDE.md`; lane d stays
+PAUSED pending its re-cut, which now re-queues behind a and b as the operator ruled; lane g is
+merged next.
+
+---
+
 ### 2026-08-29 (q) - CC (Opus 5, background job, primary checkout, integrator): the second commit that lets (p)'s merge anchor itself
 
 **Anchors:** `035355af`
