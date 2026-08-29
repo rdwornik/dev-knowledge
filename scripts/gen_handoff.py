@@ -919,37 +919,57 @@ def _render(tmpl_name: str, tokens: dict[str, str], bundle_dir: Path, out_name: 
 
 # --- FM-4: the FUNNEL HEALTH block ------------------------------------------
 #
-# WHAT IT IS. Six numbers about the governance funnel, emitted into every bundle that has
+# WHAT IT IS. Eleven numbers about the governance funnel, emitted into every bundle that has
 # more than one file, so the seat that boots a window can see the funnel's state without
 # asking. Numbers ONLY: no verdict, no sha, no backlog id. "funnel healthy" is a claim the
-# reader cannot check; "intakes consumed-unarchived: 7" is one they can.
+# reader cannot check; "leg a1 intakes terminal-unarchived: 7" is one they can.
 #
 # ONE TRUTH — DERIVED, NEVER RECOMPUTED. The numbers come from FM-2's derivation module, the
 # same one `check_funnel_lifecycle` uses. This file re-implements NOTHING: a second answer to
 # "is this intake consumed?" is precisely the defect the FM batch exists to remove. The whole
-# coupling is the module name + entry point below and the attribute names in `_FUNNEL_FIELDS`.
+# coupling is the module name + entry point below and the keys in `_FUNNEL_FIELDS`.
 #
-# THE COUPLING IS UNPROVEN AS SHIPPED, and that is stated rather than hidden. FM-2 (lane I)
-# had not landed when this was written — `worktree-lane-i-2-fm-funnel-lifecycle-check` was at
-# main's tip, carrying no commits — so the module path is written against its declared shape
-# (a new check module, mirroring `funnel_coverage.py`'s `measure(repo_root) -> Measurement`)
-# and never against a file that was read. If lane I named its module or its fields
-# differently, THESE FOUR CONSTANTS are the entire fix, and the block degrades to
-# `unavailable` in the meantime rather than inventing a number.
+# THE COUPLING WAS DEAD ON ARRIVAL, and the repair is `[#619]`. FM-2 (lane I) had not landed
+# when this block was written, so its six fields were authored against a DECLARED shape and
+# never against a file that was read. Lane I landed a different one: six attribute names read,
+# zero of them present, every field rendering `unavailable` in every bundle ever cut — an
+# intersection of EMPTY, held green by nothing but a golden test that pinned the labels rather
+# than the coupling. The mapping is now RULED, field by field, at
+# `docs/audits/2026-08-29-technical-batchd-a-619-fm-coupling-packet.md` §2.
+#
+# THE RULE, so the mapping is checkable rather than hand-kept: this block renders EVERY
+# `int`-typed field of `funnel_lifecycle.Measurement`, plus ONE count per `LEG_*` constant.
+# Nothing else, nothing less. `test_funnel_fields_cover_fm2s_whole_int_and_leg_surface`
+# asserts that set equality BOTH ways against the live module, so a field added to FM-2,
+# removed from it, or renamed REDs this file instead of silently re-opening the empty
+# intersection. Excluded, deliberately: `detector` (a string, already on the `source:` line),
+# `threshold_days` / `threshold_locator` (annotated `int | None` / `str | None` — leg (d)'s
+# PARAMETERS, and a `None` would render `unavailable` by default, which the repair bars), and
+# `violations` (rendered as the five per-leg counts; one total would hide which leg moved).
 _FUNNEL_MODULE = "funnel_lifecycle"
 _FUNNEL_ENTRY = "measure"
 _FUNNEL_SOURCE = f"scripts/{_FUNNEL_MODULE}.py::{_FUNNEL_ENTRY} (FM-2)"
 
-# (rendered label, attribute on FM-2's measurement). ORDER IS THE CONTRACT'S ORDER and the
-# golden test pins it. "orphans, both directions" is one contract field carrying two numbers:
-# forward (object -> consumer) and backward (open row -> resolving `source:`).
+#: How a field reads its number off FM-2's measurement.
+_FUNNEL_ATTR = "attr"   #: an `int`-typed dataclass field, read directly
+_FUNNEL_LEG = "leg"     #: the violation count for one of FM-2's failure legs, via `by_leg()`
+
+# (rendered label, kind, key on FM-2's measurement). ORDER IS THE CONTRACT'S ORDER and the
+# golden test pins it: the corpus this measurement was taken over first, then one count per
+# failure leg. The denominators are NOT decoration — `0` violations out of `0` post-cutoff rows
+# and `0` out of `13` are different facts, and a bare zero cannot tell them apart.
 _FUNNEL_FIELDS = (
-    ("intakes consumed-unarchived", "intakes_consumed_unarchived"),
-    ("ADRs unexecuted", "adrs_unexecuted"),
-    ("orphans forward (object -> consumer)", "orphans_forward"),
-    ("orphans backward (open row -> resolving source)", "orphans_backward"),
-    ("rows closed this window", "rows_closed_this_window"),
-    ("value evidence attached", "value_evidence_attached"),
+    ("intakes live", _FUNNEL_ATTR, "live_intakes"),
+    ("intakes archived", _FUNNEL_ATTR, "archived_intakes"),
+    ("intakes READY", _FUNNEL_ATTR, "ready_intakes"),
+    ("ADRs live", _FUNNEL_ATTR, "live_adrs"),
+    ("rows", _FUNNEL_ATTR, "rows"),
+    ("rows post-cutoff", _FUNNEL_ATTR, "post_cutoff_rows"),
+    ("leg a1 intakes terminal-unarchived", _FUNNEL_LEG, "terminal-not-archived"),
+    ("leg a2 intakes ACCEPTED, every named row terminal", _FUNNEL_LEG, "accepted-rows-terminal"),
+    ("leg b ADRs terminal-unarchived", _FUNNEL_LEG, "adr-terminal-not-archived"),
+    ("leg c rows post-cutoff, provenance unresolved", _FUNNEL_LEG, "row-provenance-unresolved"),
+    ("leg d READY intakes past threshold", _FUNNEL_LEG, "ready-past-threshold"),
 )
 
 _FUNNEL_BEGIN = "<!-- FUNNEL-HEALTH:BEGIN (generated by gen_handoff — do not edit) -->"
@@ -959,7 +979,13 @@ _FUNNEL_FILE = "FUNNEL_HEALTH.md"
 
 
 def _load_funnel_measure():
-    """Resolve FM-2's derivation entry point. Returns `(callable | None, note)`.
+    """Resolve FM-2's derivation entry point. Returns `(module | None, callable | None, note)`.
+
+    The MODULE is returned alongside the callable because the leg keys in `_FUNNEL_FIELDS` are
+    validated against FM-2's own `LEG_*` constants at render time (`_funnel_leg_names`). Without
+    that, a renamed leg would make `by_leg("<old name>")` return `[]` and this block would
+    publish a confident `0` — a false clean, which is strictly worse than `unavailable` and is
+    the exact failure class `[#619]` was filed for.
 
     Both import spellings are tried because this module is reached BOTH as `scripts.gen_handoff`
     (package import) and as bare `gen_handoff` with `scripts/` on `sys.path` — the same
@@ -978,26 +1004,39 @@ def _load_funnel_measure():
             break
         except ModuleNotFoundError as exc:
             if exc.name not in (name, _FUNNEL_MODULE, "scripts"):
-                return None, f"present, but its own import raised ModuleNotFoundError: {exc.name}"
+                return None, None, (f"present, but its own import raised "
+                                    f"ModuleNotFoundError: {exc.name}")
         except ImportError as exc:
-            return None, f"present, but its import raised {type(exc).__name__}"
+            return None, None, f"present, but its import raised {type(exc).__name__}"
     if mod is None:
-        return None, "not importable — FM-2 has not landed; this coupling is unproven"
+        return None, None, "not importable — FM-2 has not landed; this coupling is unproven"
     fn = getattr(mod, _FUNNEL_ENTRY, None)
     if not callable(fn):
-        return None, f"imported, but exposes no callable `{_FUNNEL_ENTRY}`"
-    return fn, ""
+        return mod, None, f"imported, but exposes no callable `{_FUNNEL_ENTRY}`"
+    return mod, fn, ""
+
+
+def _funnel_leg_names(mod) -> frozenset:
+    """FM-2's OWN leg names, read off its `LEG_*` constants.
+
+    The render-time half of the anti-drift guard. `Measurement.by_leg` filters a list and so
+    answers `[]` for a name it has never heard of, which is indistinguishable from `[]` for a
+    leg with no violations. Asking the module which legs it actually has turns that silent
+    false-`0` into an honest `unavailable`.
+    """
+    return frozenset(v for k, v in vars(mod).items()
+                     if k.startswith("LEG_") and isinstance(v, str))
 
 
 def _funnel_health_numbers(repo_root: Path) -> tuple[dict[str, str], str]:
-    """The six numbers as rendered strings, plus a note when any of them could not be derived.
+    """The numbers as rendered strings, plus a note when any of them could not be derived.
 
     Every field degrades INDEPENDENTLY to `unavailable`: a measurement that grows a field this
     module does not know about still renders, and one that loses a field says so instead of
     printing a stale or invented value. `bool` is excluded deliberately — `True` is an `int`
     in Python and a boolean rendered as `1` would be a verdict wearing a number's clothes."""
-    values = {label: _FUNNEL_UNAVAILABLE for label, _ in _FUNNEL_FIELDS}
-    fn, note = _load_funnel_measure()
+    values = {label: _FUNNEL_UNAVAILABLE for label, _kind, _key in _FUNNEL_FIELDS}
+    mod, fn, note = _load_funnel_measure()
     if fn is None:
         return values, note
     try:
@@ -1006,13 +1045,22 @@ def _funnel_health_numbers(repo_root: Path) -> tuple[dict[str, str], str]:
         # A derivation that raises must not take the bundle cut down with it: the generator's
         # job is to emit the bundle, and an honest `unavailable` is the right degrade.
         return values, f"the call raised {type(exc).__name__}"
+    legs = _funnel_leg_names(mod) if mod is not None else frozenset()
+    by_leg = getattr(m, "by_leg", None)
     absent: list[str] = []
-    for label, attr in _FUNNEL_FIELDS:
-        v = getattr(m, attr, None)
+    for label, kind, key in _FUNNEL_FIELDS:
+        v = None
+        if kind == _FUNNEL_ATTR:
+            v = getattr(m, key, None)
+        elif kind == _FUNNEL_LEG and key in legs and callable(by_leg):
+            try:
+                v = len(by_leg(key))
+            except Exception:                                   # noqa: BLE001
+                v = None
         if isinstance(v, int) and not isinstance(v, bool):
             values[label] = str(v)
         else:
-            absent.append(attr)
+            absent.append(key)
     return values, (f"fields absent from the measurement: {', '.join(absent)}" if absent else "")
 
 
@@ -1022,7 +1070,7 @@ def funnel_health_block(repo_root: Path) -> str:
     source = _FUNNEL_SOURCE + (f" — {note}" if note else "")
     lines = [_FUNNEL_BEGIN, "## FUNNEL HEALTH (generated — numbers only)", "",
              f"source: {source}", ""]
-    lines += [f"{label}: {values[label]}" for label, _ in _FUNNEL_FIELDS]
+    lines += [f"{label}: {values[label]}" for label, _kind, _key in _FUNNEL_FIELDS]
     lines += [_FUNNEL_END]
     return "\n".join(lines) + "\n"
 
