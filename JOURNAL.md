@@ -19,6 +19,60 @@
 
 ---
 
+### 2026-08-29 (g) - CC (Opus 5, background job, primary checkout, branch `docs/batch-2-w2-packet`): wave 2 closes — the funnel machine has teeth, and one defect class showed up five times
+
+**Did:** closed wave 2 of the night mission — the eight lanes merged and torn down, the operator's
+five ruled items reconciled against their existing funnel objects, the six integration
+adjudications executed, and the wave-2 close packet landed at `8cd30622`. Also anchors
+`8023dcd9`, the rulings commit that merge `9a5aa55e` introduced.
+
+**Result: 8/8 lanes landed, the funnel machine has teeth, and the batch's own defect class showed
+up five times.** `check_funnel_lifecycle` is armed at SHIP tier, RED-first twice, and **leg d was
+armed at integration** after shipping NOT ARMED: FM-1 ruled **`N = 30 days.`**, FM-2 read for
+**`READY threshold: <N> days`**, and the check **refused to invent the constant** rather than
+guess. Its first live finding is real — intake **#15**, READY **44 days**, no `review-date:`.
+`protocols/FUNNEL_LIFECYCLE.md` writes the state machine once in **458 lines at a ratchet delta of
+ZERO**. `docs/intake` **56 → 54**, md5-proven, with `docs/decisions` staying **89 by retention
+authority** rather than by omission. `rustworkx` is declared through the ruled dependency path and
+earns its place by measurement. Trends are live for the first time — **backlog velocity +16
+rows/week** — with three series rendering **ABSENT with their reasons**.
+
+**Five instances of one pattern, and that is the finding:** two artefacts each correct in isolation
+disagreeing about a form neither could observe — the `N<n>` lane ids, the launch-contracts implicit
+schema, the misnamed cp defect, FM-1's constant vs FM-2's reader, and FM-5 resolving FM-4's emitter
+by capability while FM-4 exposes **three** matching callables. **Parallel lanes cannot see each
+other; only integration can.** Two remain open and both are the architect's, not mine.
+
+**The fix I was told to verify myself was WRONG, and the defect had been misnamed for three days.**
+Lane B's `-O` fix produced a *new* failure. Re-diagnosed in three arms against a live codespace:
+`gh` resolves a `remote:` path **relative to the remote user's HOME** and reads it **literally**,
+so the quotes in the old error were gh being correct and *"the cp-quote defect"* named the error
+text rather than the cause. `--expand` closed it, and the transport ran **end-to-end for the first
+time** — receipt retrieved, 1,176 chars. **W4 defect 1 CLOSED**; the next blocker is named exactly
+(`CLAUDE_CODE_OAUTH_TOKEN` unset — an operator secret act).
+
+**Reconcile-before-birth moved two of the five rulings.** The root-contract mapped to **intake
+#38**, which already recorded R18 — the conformance scorecard — as NOT-BORN with un-parking
+conditions, so a **new intake would have duplicated an ACCEPTED one**. *"No single-file folders,
+ever"* landed in **STANDING_RULINGS at zero ratchet cost**, which is what that register's exclusion
+is for. **ADR-114 is RULED.** Two births, both gaps proven by search, funded exactly by
+banked_D = 2.
+
+**Recorded against myself, three times:** a one-commit branch cannot anchor its own merge — it bit
+this session **three times**, each after an optimisation that folded two commits into one; the
+JOURNAL generator **printed** eight lane tips it never substituted; and the S5 hard stop was
+reasoned against a **stale clock**.
+
+**Changes:** `docs/audits/2026-08-29-verification-wave-2-close-packet.md` (new) ·
+`docs/decisions/ADR-114-*.md` (RULED + AMENDMENT 1) · `protocols/STANDING_RULINGS.md` (Z-G5) ·
+`protocols/FUNNEL_LIFECYCLE.md` · `docs/intake/{2026-08-17-tech-fleet-config-standardization,2026-08-26-tech-cost-and-delivery-telemetry}.md` ·
+`tasks/614-*.md` + `tasks/615-*.md` + `tasks/manifest.json` · `BACKLOG.md` · generated surfaces.
+
+**Abandoned:** terra round-6 (provider usage limit, retry after 16:20 — MEASUREMENT-OWED, not
+skipped); rewriting lane G's stale fixture assertion to green.
+
+---
+
 ### 2026-08-29 (f) - CC (Opus 5, background job, primary checkout, branch `docs/batch-2-w2-coupling`): the FM-1/FM-2 coupling repaired, and the anchor deadlock discharged
 
 **Did:** anchored `03ca7a06` — the entry-(e) commit that merge `3345d303` introduced — and landed
