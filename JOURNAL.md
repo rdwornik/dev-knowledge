@@ -19,6 +19,68 @@
 
 ---
 
+### 2026-08-29 (b) - CC (Opus 5, background job, primary checkout, branch `docs/batch-2-regen`): night-batch-2 CLOSED — 4 of 5 ex-ante numbers MET, wave 2 stopped at the gate, the freeze organ dogfooded
+
+**Did:** closed night-batch-2. Ran the generated surfaces ONCE on the merged result, appended the
+five operator-authored SEAT LESSONS to `LESSONS.md` **verbatim**, froze wave 2 in-tree, and wrote
+the mission's single close packet — `docs/audits/2026-08-29-verification-night-mission-close-packet.md`,
+which is the manifest's `closed_by:` path, so landing it **expires the ADR-110 exemption by
+itself**. Anchors `8b5a3a94`.
+
+**Result: the mission's step-5 gate fired and wave 2 did NOT start — and that is the entry's
+headline, not a footnote.** Four ex-ante numbers are MET: 7/7 local lanes and 6/6 cloud reports
+(W1-1), `validate_doc_rot` **77 → 60** (W1-3), ratchet **443 → 443 with the grant unused** (W1-4),
+and the `[#577]` byte-cap gate green — at a **measured 9,430 B**, correcting the ex-ante's own
+restated 9,161 B (W1-5). **W1-2 is PARTIAL on 2 of 4 legs**: win-tooling's floor is PASS and 11/11
+branches carry upstreams, but the pre-commit set is *configured, not armed*, and the parity role is
+**held at pre-deploy** because lane A made the flip, measured that it REDs a test whose own
+docstring says *"promotion REDs nothing"*, and **reverted** it rather than edit the instrument.
+
+**Why the gate stopped rather than being read past.** The mission offers two cells — ALL green, or
+any RED — and W1-2 fits neither: nothing is broken, no gate fails, and the stated number is unmet.
+That is a **no-ruling fork**, which the decision budget routes to the operator while tonight's
+contact budget was zero. The repo's own tie-breaker for a check that cannot compute its ground
+truth is **Z-G4 — it FAILS, it does not skip** — so the stop-gate stopped. Reading PARTIAL as green
+would have been the executor ruling a cut that belongs to the architect (L-S4, appended tonight).
+The cost is named: roughly five hours unused. The reversal is one line, and all eight wave-2
+contracts are frozen, dry-run clean, locator-checked and **committed in-tree** rather than left in
+the prompts dir.
+
+**The organ built tonight was dogfooded on tonight's own output, and it earned its place twice.**
+Lane G's freeze predicates, run over batch-1's frozen contract, reproduce **all three** premise
+errors of 2026-08-28 **and find a fourth** that batch-1's own retrospective missed. Run over this
+mission's eight wave-2 contracts, they found a defect in the **architect's own frozen text** —
+`register R3` does not resolve, because in this repo `R3` means `[#483] R3`, a row-scoped ruling —
+plus three precision limits worth ruling on (predicate (i) does not expand globs; predicate (iii)
+cannot tell a dispatch target from terminal-state evidence; predicate (ii) fires on instructions,
+not only assertions, which makes its precision document-mode-dependent).
+
+**The one authorized Codespace attempt failed its receipt and paid off backwards.** Z-G3's entry
+condition was **NOT produced** — but the failure was `scp: dest open "'/workspaces/…'"`, the
+destination arriving wrapped in **literal single quotes**. That is W4 defect 1 **reproduced
+end-to-end for the first time**, on the pre-fix module, which is the correct control — and it
+**discharges lane B's one MEASUREMENT-OWED**.
+
+**Full suite on merged main: 6 failed, 4409 passed, 3 skipped, 1 xfailed (12:57).** Every failure
+attributed, and **no test file in the suite was modified by this batch** (0 commits each), so no
+assertion was edited to make anything pass. Three pre-existing, two this packet's own artifacts
+clearing on landing, one lane A's literal fleet pin with a named one-commit fix.
+
+**Changes:** `docs/audits/2026-08-29-verification-night-mission-close-packet.md` (new) ·
+`docs/audits/2026-08-29-technical-batch2-wave2-launch-contracts/` (new, 9 files) ·
+`LESSONS.md` (+5, 310 → 315) · `docs/audits/README.md` + `ecosystem/doc-counts.md` (regenerated).
+
+**Abandoned:** wave 2 (the gate, above) · a blanket regeneration of the consumer/funnel baselines,
+which would have silently accepted 18 unconsumed artifacts instead of naming them · redeploying the
+dispatch module mid-night to test lane B's fix on the operator's live surface.
+
+**Next:** seven one-line decisions are listed in §13 of the packet; the first is whether wave 2
+boots.
+
+
+
+---
+
 ### 2026-08-29 (a) - CC (Opus 5, background job, primary checkout, branch `docs/batch-2-integration`): night-batch-2 integrated — 7 local lanes + 6 cloud reports, two wedges caught before dispatch, 77 doc-rot loci to 60
 
 **Did:** ran the operator-ratified `NIGHT-MISSION-2026-08-28.md` end to end with **zero operator
