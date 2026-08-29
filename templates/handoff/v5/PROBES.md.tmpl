@@ -78,7 +78,7 @@ backlog navigates** (§13c), not this read.
 
 | # | Probe (question) | Binds to (primary source) | Why a summary can't answer it | CC verifies via |
 |---|---|---|---|---|
-| P1a | Quote, **substring-exact**, the **opening sentence** of `VISION.md` `## Vision` — *what {{REPO}} is*. | `VISION.md` `## Vision` | a paraphrase of "what this is" is not a substring; a summary rounds it off | `grep -A4 '^## Vision' VISION.md` → the quote must be a substring of the live section |
+| P1a | Quote, **substring-exact**, the **opening sentence** of `README.md` `## Vision` — *what {{REPO}} is*. (ADR-114, Accepted 2026-08-29: `README.md` supersedes `VISION.md` as the hub's canonical purpose document. In a CHILD repo, whose canonical purpose document is still `VISION.md`, re-bind the path — cross-repo probes are re-bound against target surfaces regardless.) | `README.md` `## Vision` | a paraphrase of "what this is" is not a substring; a summary rounds it off | `grep -A4 '^## Vision' README.md` → the quote must be a substring of the live section |
 | P1b | Quote, **substring-exact**, the **opening line** of `ARCHITECTURE.md` Ch1 (`## Purpose [CORE]`) — *where this work sits*. | `ARCHITECTURE.md` `## Purpose [CORE]` | the orienting line is in the live file only; a summary holds a gist, not the substring | `sed -n '/^## Purpose \[CORE\]/,+5p' ARCHITECTURE.md` → the quote must be a substring of the live section |
 
 **Gate:** the architect may not proceed to design until it **holds both orienting lines** — read live

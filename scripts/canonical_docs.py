@@ -5,12 +5,20 @@ ONE table for the canonical living-document FILENAMES that ten machine constants
 gate mesh were each hardcoding independently. Cut from
 `docs/audits/2026-08-21-fresh-eyes-cloud-r2-universalization.md` §1.5 GO-(b).
 
-**This is plumbing, not a rename.** Every value here is unchanged — `VISION.md` is still
-`VISION.md`. What changes is that a future decision about a canonical filename has ONE place
-to be made instead of ten, and that the ten sites are now provably reading the same string.
-Whether `VISION.md` is ever renamed is an open operator decision (R2 §1.5 records it as
-NO-GO as briefed); this module is worth its keep either way, which is exactly why R2
-recommended landing it "whether or not the rename ever happens".
+**This was plumbing, not a rename — and the decision it was built for has since been made.**
+Every value here is still unchanged: `VISION.md` is still `VISION.md`. What the module bought
+is that a decision about a canonical filename has ONE place to be made instead of ten, and
+that the ten sites are provably reading the same string.
+
+**ADR-114 is Accepted (2026-08-29, AMENDMENT 1): `VISION.md` is superseded by a recreated
+root `README.md`.** The hub's front door moved in `[#614]` lane-b — `README.md` carries the
+live-normative content and `VISION.md` is retained, marked superseded, keeping its `## H2`
+spine. **Not one constant below moved with it**, and that is a decision rather than an
+omission: `canonical-doc-vision` is `{hub: MUST, consumer: MUST}` across the nine ADR-104
+fleet members while only two of the eight children carry a root `README.md`, so re-pointing
+`VISION` here would break six members in one commit. Renaming the value is the fleet-wide
+sequenced program (ADR-114 option (C)), and this table is exactly where that one edit will
+be made when it runs. `README` below stays in `CANONICAL_OPTIONAL` until then.
 
 The ten machine constants this serves, by the names R2 §1.2 uses:
 
@@ -45,8 +53,10 @@ CONTRIBUTING = "CONTRIBUTING.md"
 JOURNAL = "JOURNAL.md"
 LESSONS = "LESSONS.md"
 
-# Canonical names that are NOT root living docs but travel with them in one or more of the
-# constants below (optional-at-root, or protocols-resident).
+# Canonical names that are NOT (yet) members of the mandatory root set but travel with them
+# in one or more of the constants below (optional-at-root, or protocols-resident). README is
+# the ADR-114 case: canonical in substance at the hub since 2026-08-29, still optional to the
+# fleet, so it is carried here and NOT in CANONICAL_MANDATORY -- see the module docstring.
 ENVIRONMENT = "ENVIRONMENT.md"
 ESSENTIALS = "ESSENTIALS.md"
 PLAYBOOK = "PLAYBOOK.md"

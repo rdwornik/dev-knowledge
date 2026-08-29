@@ -167,7 +167,23 @@ surfaces:
     probe: {type: path_tracked, path: VISION.md}
     ownership:
       value: methodology-generic
-      reason: "VISION.md -- one of the 7 canonical living docs, the methodology corpus every fleet repo carries (MUST both); hub-authoritative, not repo-local content."
+      # ADR-114 (Accepted 2026-08-29, AMENDMENT 1) SUPERSEDED VISION.md with a recreated
+      # root README.md, executed at the hub by [#614] lane-b. This row is the fleet-wide
+      # coupling that decides how far that supersession can travel in one act, so the
+      # resolution is recorded HERE rather than inferred from the hub's tree:
+      #
+      #   * `probe.path` deliberately stays VISION.md and the tier deliberately stays
+      #     {hub: MUST, consumer: MUST}. Measured 2026-08-29 on the operator's disk, only
+      #     terminal-setup and win-tooling carry a root README.md -- 2 of 8 children. A
+      #     probe flip at consumer:MUST would turn SIX members RED in one commit, and a
+      #     partial resolution breaks parity fleet-wide, so it is one act or none.
+      #   * VISION.md is retained and still tracked in all nine members, so this row is
+      #     TRUE after the supersession, not merely unchanged. The hub's copy is marked
+      #     superseded and keeps its ## H2 spine precisely to keep it true.
+      #   * Moving the path is ADR-114 option (C)'s sequenced nine-repo program, which
+      #     also owns canonical_docs.py's ten machine constants, five deploy manifests,
+      #     gen_handoff._vision_extract and the tests/ pins. Not a flag flip.
+      reason: "VISION.md -- one of the 7 canonical living docs, the methodology corpus every fleet repo carries (MUST both); hub-authoritative, not repo-local content. SUPERSEDED AT THE HUB by the root README.md (ADR-114, Accepted 2026-08-29; execution [#614]) -- the hub's front door is README.md, VISION.md stays tracked fleet-wide, and the filename migration across the nine members is a sequenced program, not this row."
       provenance: &own-prov
         - {kind: backlog, repo: .dev-knowledge, ref: "#316"}
         - {kind: adr, repo: .dev-knowledge, ref: ADR-103}

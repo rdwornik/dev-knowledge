@@ -24,9 +24,21 @@ def check_adr38_baseline(repo_path: Path) -> list[Finding]:
     The repo-tier system is deprecated, so there is no per-tier branching. Code
     layout (src/, tests/, pyproject.toml) is scoped to code projects per the
     amendment and is NOT part of this universal governance check (governance-only
-    repos such as .dev-knowledge have no src/ or pyproject.toml). README.md is
-    optional (deprecated from the baseline); CHANGELOG.md was removed by ADR-49.
-    CLAUDE.md is covered by check_claude_md, so it is not duplicated here.
+    repos such as .dev-knowledge have no src/ or pyproject.toml). CHANGELOG.md was
+    removed by ADR-49. CLAUDE.md is covered by check_claude_md, so it is not
+    duplicated here.
+
+    README.md — decommissioned docstring claim, ADR-114 `Decommission` item (c),
+    executed by [#614] lane-b. This docstring read "README.md is optional
+    (deprecated from the baseline)" until 2026-08-29. A5's deprecation is
+    SUPERSEDED by ADR-114 (Accepted 2026-08-29) in that single respect: the hub's
+    root README.md is recreated and supersedes VISION.md as the canonical purpose
+    document. The check's BEHAVIOUR is deliberately unchanged — README.md is not in
+    ADR38_BASELINE_REQUIRED, so its absence still does not fail here, because only 2
+    of the 8 ADR-104 children carry one and this check runs fleet-wide. Promoting it
+    into canonical_docs.CANONICAL_MANDATORY is the sequenced fleet migration
+    (ADR-114 option (C)), not a docstring fix. So: no longer "deprecated", not yet
+    "required" — optional to the FLEET, canonical at the HUB.
 
     A6 (2026-06-02) promoted CONTRIBUTING.md, JOURNAL.md and LESSONS.md from optional
     to the mandatory seven-file canonical set — superseding the A5 "JOURNAL/LESSONS
