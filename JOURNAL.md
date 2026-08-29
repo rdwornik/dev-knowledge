@@ -19,6 +19,67 @@
 
 ---
 
+### 2026-08-29 (d) - CC (Opus 5, background job, primary checkout, branch `docs/batch-2-w2-integration`): wave 2 lands — the funnel machine gets teeth, and the fix I was told to verify was wrong
+
+**Did:** ran wave 2 of the night mission on the operator's WAVE-2 GO — eight lanes dispatched from
+`77096131`, all eight reached commit-and-STOP, merged in dependency order, plus the addendum's
+five ruled items reconciled against their existing funnel objects before anything was born.
+Anchors `f25c70a8`.
+
+**Result: 8/8 lanes landed, and the funnel machine has teeth for the first time.** `check_funnel_lifecycle`
+is armed at SHIP tier — landed **UNREGISTERED first** so it could not wedge its own commit, then
+registered with the six `ALL_CHECKS` count pins moved together — and it is **RED-first twice**:
+against live main, reproducing FM-C's findings on **two live subjects**, and against a seeded
+violation that FAILs then passes. `protocols/FUNNEL_LIFECYCLE.md` (458 lines) writes the state
+machine once, at a **ratchet delta of ZERO** — scope files 61 → 62, count 443 → 443, the third
+token-free doctrine landing of this window. `docs/intake/*.md` **56 → 54**, byte-identical and
+md5-proven, with `docs/decisions/*.md` staying **89 by retention authority** rather than by
+omission. `rustworkx` is declared through the ruled dependency path and **earns its place with a
+measurement**: `ancestors` over the joined graph reaches three enforcing organs and a deploy
+surface from one canonical doc.
+
+**A lane refused to invent the one constant it could not find.** FM-2's leg (d) reads FM-1's ruled
+N-days threshold from the tree; FM-1 had not merged yet, so the lane reported **NOT-MET** rather
+than picking a number — the drift this batch exists to stop, refused in the act of building the
+thing that would have hidden it.
+
+**The fix I was told to verify was WRONG, and the defect had been misnamed for three days.**
+Lane B's `-O` fix, deployed and re-fired, produced a **new** failure (`-O: No such file or
+directory` — gh 2.93.0 does not forward `-- -O` to `cp`). Re-diagnosed against a live codespace in
+three arms: gh resolves a `remote:` path **relative to the remote user's HOME** and reads it
+**literally**, so an absolute workspace path can never resolve and the single quotes in the old
+error were gh quoting correctly. **The "cp-quote defect" named the error text, not the cause.**
+`--expand` closes it, and the transport then ran **end-to-end for the first time** — `Ok=True`,
+both `cp` legs, ssh, `receipt.json` retrieved. `RemoteExitCode=1` names the next blocker exactly:
+the container is *"Not logged in"* and `gh secret list --app codespaces` is empty. **W4 defect 1 is
+CLOSED**; defects 2 and 3 remain unmeasured because the probe's own commands never ran.
+
+**Reconcile-before-birth, applied, and it moved two items.** banked_D = **2** (`[#577]`, `[#584]`,
+closed before any filing). The root-contract mapped to **intake #38**, whose consumers line already
+records R18 — the conformance scorecard — as NOT-BORN with un-parking conditions, so it was
+**amended rather than born**, and a duplicate ACCEPTED intake was avoided. Telemetry amended
+**intake #50**. The rule *"no single-file folders, ever"* landed in **STANDING_RULINGS**, which is
+in `EXCLUDED_RELPATHS` and therefore costs the ratchet nothing. **ADR-114 is ruled** — PARKED →
+Accepted on its status line, with the decision carried by an in-file amendment. Two births, both
+gaps proven by search: the README/VISION execution arc, and MODEL ATTRIBUTION. Budget spent
+exactly, nothing queued.
+
+**Measured against agy, the operator's own item FAILED BOTH DRAWS** — every finding cited a
+different repository, `~/.gemini/antigravity-cli/scratch/repo`. Two of six failures share that one
+root cause. The blocker for the analysis role is **scope containment, not reasoning**, and the lane
+declined to score the cross-check MET on other items' evidence when the contract bound it to that
+one.
+
+**Changes:** `protocols/FUNNEL_LIFECYCLE.md` (new) · `scripts/{funnel_lifecycle,governance_health,file_purpose_graph,gen_trend_dashboard,gen_handoff,audit}.py` ·
+`pyproject.toml` + `uv.lock` (rustworkx) · `docs/intake/` (2 archived) · `tasks/archive/` (+4) ·
+8 lane packets + the SDA-1 freeze and item pack · 5 new test modules.
+
+**Abandoned:** nothing.
+
+
+
+---
+
 ### 2026-08-29 (c) - CC (Opus 5, background job, primary checkout, branch `docs/batch-2-w2-preflight`): the WAVE-2 GO's carried acts — intake index repaired, two intakes terminal, [#577] [#584] closed, baselines accepted
 
 **Did:** executed the carried acts of the operator's WAVE-2 GO **before dispatching**, because every
