@@ -82,18 +82,58 @@ a pre-commit hook (`lane-contract-check` is the sibling shape gate; `validate_su
 the substrate layer). 0a therefore **extends a built organ**, not a planned one, and `[#591]`
 may be partially discharged. Verify the row against the module before funding it as new work.
 
-### 0b · THE SIX BASELINE-DRIFT REDS
+### 0b · THE SIX BASELINE-DRIFT REDS — MEASURED
 
-Measurement in flight at derivation time (full suite, in the batch-E worktree). **Two REDs are
-known-false in a worktree and must be subtracted before any re-stamp**: the analytics-group
-skips (`--group analytics`) and `test_stale_worktrees`, which REDs precisely because a worktree
-is live. A re-stamp that counts either as drift would be re-stamping against an artefact of
-where the suite ran.
+Full suite, `uv run --locked pytest -q --tb=line -p no:randomly`, run in the batch-E worktree at
+`de909ca5`:
 
-Named remedies the brief already anticipates, each to be re-measured with its delta recorded:
-the ADR count moves with **ADR-116** landing; two ratchets move with the new audits added by
-batch D's close and by this batch's own artifacts. **Never re-stamp silently** — the delta is
-the record.
+```
+28 failed · 4,605 passed · 11 skipped · 1 xfailed · 842.30s (14:02)
+```
+
+**THE BRIEF'S "SIX" IS CONFIRMED — six drift FAMILIES across nine tests.** The other 19 REDs are
+environment or worktree artefacts and are **not** drift; a re-stamp that counted them would be
+re-stamping against where the suite ran.
+
+**Genuine drift — six families, each with its measured delta and its own remedy:**
+
+```
+D1 test_validate_adr_status (4 tests)  <- the brief's "ADR count after ADR-116", CONFIRMED
+     live ADR count moved; grammar distribution G1 42 vs baseline 41 (+1);
+     coherence divergences {grammar 47, wrapped-value 1, duplicate-id 2, ...} vs the
+     three measured; check reports "89 ADR status field(s)" against an expected
+     "coherence=3".  REMEDY: re-measure the Step-1 baseline, record the delta.
+D2 test_funnel_coverage::test_committed_baseline_agrees_with_a_live_measurement
+     RATCHET 1 of the brief's two.  REMEDY: re-commit the funnel baseline.
+D3 test_validate_doc_rot::test_live_corpus_has_no_accretion_arm_findings_only_length_findings
+     RATCHET 2 of the brief's two.  REMEDY: re-measure; doc_rot floors at 59.
+D4 test_consumer_at_landing::test_the_live_corpus_measures_and_the_baseline_matches_it
+     live corpus vs baseline; names the 2026-08-29 claude-md-regenre audit.
+D5 test_preflight_freeze_predicates::test_vi_batch1_reproduces_the_wrong_id_citation
+     ['[#577]','[#584]','[#587]'] vs expected ['[#587]'] (+2).
+D6 test_export_backlog_view::test_no_gate_hook_or_script_reads_the_export
+     "the export is read by governance: ecosystem/conformance.htm..." -- a KNOWN
+     false positive of dashboard regeneration, not this batch. Verify before re-stamping.
+```
+
+**Not drift — subtract all 19 before any re-stamp:**
+
+```
+17  tests/test_fleet_analytics.py   ModuleNotFoundError: No module named 'pandas'
+                                    -> needs `--group analytics`; a worktree lacks it
+ 1  test_stale_worktrees::test_linked_worktrees_reader_excludes_the_primary
+                                    -> REDs *because* a worktree is live. Structural.
+ 1  test_enforcement_coverage::test_anchor_gate_probe_distinguishes_installed_from_absent
+                                    -> known RED on main; not this batch.
+```
+
+**HONEST LIMIT ON THIS MEASUREMENT, stated rather than buried.** It was taken **after** this
+session's two commits, which added `docs/audits/2026-08-31-technical-batche-launch-contracts/`
+(eight files) and regenerated the audits index. New audit files are exactly what moves D2, D3 and
+D4. **So these deltas include this session's own contribution and are NOT the clean pre-batch
+baseline the brief asks for.** The integrator's opening act should re-measure at `main` before
+`de909ca5` merges, or subtract this commit's contribution explicitly. **Never re-stamp silently**
+— the delta is the record.
 
 ### 0c · MANIFEST CARRIES `closed_by:`
 
