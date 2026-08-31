@@ -83,3 +83,77 @@ REJECTED with the reason recorded, which is the standing precedent for declined 
   global layer*; this one asks *what each repo learns for itself*. They meet at the boot surface.
 - Layer invariant: ADR-28 (Layer 2 never executes), which property 3 above restates rather than
   amends.
+
+## AMENDMENT — 2026-08-30: AUT-R3 has landed, and it answers §3's gate
+
+> Appended, not edited. Filed by the integrator's AUTONOMY filing pass.
+
+§3 above gated this intake's ratification on the AUT-R3 lane. That lane landed
+(`docs/audits/2026-08-29-technical-aut-r3-repo-as-reinforcement-environment.md`) and was read
+jointly with four siblings in `docs/audits/2026-08-29-technical-autonomy-synthesis.md`. Three of
+its results bear directly here.
+
+**1 · The diagnosis this intake assumed is CONFIRMED, and independently, four times.** AUT-R3 §2
+states it: *"THIS REPO IS AN EXCELLENT ENVIRONMENT AND HAS NO LEARNING SIGNAL"* — PRESENT
+concentrated in enforcement and honesty, ABSENT concentrated in feedback. AUT-R1, AUT-R2 and
+AUT-R4-A reach the identical conclusion from domains that never touch. **Four lanes, four subjects,
+one diagnosis** — a structural finding rather than four coincidences.
+
+**2 · The ORDER is settled, and it constrains this intake rather than licensing it.** The joint
+read gives a sequence with no branch: **metric first → measure the surface → only then ask whether
+an optimizer beats hand-editing.** A per-repo learning layer sits *downstream* of a reward function
+that does not yet exist. So this intake does NOT ratify ahead of intake #35's R3; it is sequenced
+behind it, and building the loop first would be the same WRONG-ORDER error the synthesis names for
+DSPy — *"an optimizer with no metric optimizes nothing."*
+
+**3 · This intake's Tier-L call was RIGHT, and both cloud lanes got it wrong.** §3 says
+*"ADR-112 Tier-L applies: evaluate before adopting"* for `sqlite-vec`. AUT-R3 Shelf 2 scored it
+**"BUY, Tier-S"** and AUT-R4-B RANK 2 scored it **Tier S**. ADR-112's own guard sentence refuses
+both: *"Tier S never touches gates, hooks that block, or `scripts/` — anything that would, is Tier
+L by definition"*, and adopting it means editing `pyproject.toml` + `uv.lock` and writing a
+`scripts/` embedding producer. **Neither cloud lane checked its tier label against ADR-112's text.**
+Recorded because it is the same class as the two lessons filed 2026-08-29: a label carried forward
+from the artifact that proposed it, rather than re-derived from the rule.
+
+**One blocker DISCHARGED, and it needed this machine.** All three machinery lanes flagged
+`sqlite-vec`'s Windows `enable_load_extension` availability as unanswerable from a cloud seat. The
+synthesis lane ran it here: **it works** (Python 3.12.10, sqlite 3.49.1, under the pinned `uv`).
+Shelf 2 stays open on merit rather than on an unknown, and **nothing was installed**.
+
+**Consumed by:** `docs/audits/2026-08-29-technical-autonomy-synthesis.md` §1.2, §1.4, §1.5 and
+§(d), plus the five AUT research artifacts it reads.
+
+### Sources consumed by this intake, cited by name
+
+The AUTONOMY research corpus this intake's §3 gate named, and which the 2026-08-30 amendment
+above reads. Listed by filename because a citation the census can see is what makes an artifact
+CONSUMED rather than an orphan — the alternative is 300-odd audits appearing only in a machine
+baseline, which is the failure `[#595]` exists to end.
+
+- `docs/audits/2026-08-29-technical-aut-r1-autonomous-sdlc-orchestration.md` — axis 5 supplies the
+  *"nothing measures organ usage"* half of the shared diagnosis.
+- `docs/audits/2026-08-29-technical-aut-r2-decision-quality-frameworks.md` — Part 0E's measured
+  options-decay (86% → 56%) and *"nothing surfaces it"*.
+- `docs/audits/2026-08-29-technical-aut-r3-repo-as-reinforcement-environment.md` — the lane this
+  intake's §3 gate names; §2 states the diagnosis this intake assumed.
+- `docs/audits/2026-08-29-technical-aut-r4a-harness-evals-observability.md` — the SkillsBench
+  negative-tail result and the harness-portability map.
+- `docs/audits/2026-08-29-technical-aut-r4b-orchestration-memory-loop.md` — the RANK-1 derivation
+  and the trust paragraph that adjudicates the shelf overlap.
+- `docs/audits/2026-08-29-technical-aut-r4a-dispatch-brief.md`,
+  `docs/audits/2026-08-29-technical-aut-r4b-dispatch-brief.md`,
+  `docs/audits/2026-08-29-technical-aut-r4-dispatch-record.md` — the contracts those artifacts were
+  produced under; an artifact without its contract is unauditable provenance.
+- `docs/audits/2026-08-29-technical-autonomy-synthesis.md` — the joint read over all five.
+- `docs/audits/2026-08-30-technical-autonomy-decision-tree.md` — where every finding above is
+  routed to a row, an amendment, a rejection or a park.
+- `docs/audits/2026-08-29-census-essentials-consumers.md` — batch-D lane e's census, read for the
+  boot-surface half of this intake's open questions.
+- `docs/audits/2026-08-29-technical-lane-f-fuzzy-band-design.md` and ADR-116 — the fuzzy-band
+  acceptance shape, which is the non-binary scoring this loop would need.
+- `docs/audits/2026-08-29-technical-sda1-adversarial-incumbent-baseline.md` — the adversarial
+  incumbent baseline any learned component is scored against.
+- `docs/audits/2026-08-29-technical-autonomy-arc-filing-packet.md` and `docs/audits/2026-08-29-technical-autonomy-arc-rejected-and-parked.md` — the arc's own filing record and its declined set; the rejections bound what a learning layer is allowed to re-propose.
+- `docs/audits/2026-08-29-technical-nb2-wave-candidate-sweep.md` — the ADR-111 triage whose CANDIDATE column is the input pool any learned ranking would score.
+- `docs/audits/2026-08-29-codex-e2-terra-post-merge-round6-lanes-n-i.md` — the post-merge round
+  whose three honest-degrade Highs are the failure mode a learning loop would inherit.

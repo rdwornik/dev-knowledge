@@ -233,3 +233,50 @@ untouched:** this doc is one of the three carrying an unruled doctrine fork (her
 AGENTS.md against `CLAUDE.md` §10 and ADR-53) and is held for the architect's R7 ADR-fork
 ruling. The fork options and their consequences are laid out for that ruling in the lane
 artifact `docs/audits/2026-08-21-technical-lane-rat-intake-ratification.md`.
+
+## AMENDMENT — 2026-08-30: R3 is the arc's RANK-1 item, and its fold target moved under it
+
+> Appended, not edited. Filed by the integrator's AUTONOMY filing pass, from the TRUE-GAP column
+> of `docs/audits/2026-08-29-technical-autonomy-synthesis.md` (the consumption pass over all five
+> AUT research artifacts read together).
+
+**THREE independent lanes converge on PROPOSED ROW R3, from directions that never touch.**
+AUT-R3's Shelf-3 conclusion reaches it from *the missing reward function*; AUT-R4-B's RANK 1 from
+*the closure economics*; AUT-R4-A's Shelf-2 reconciliation from *the SkillsBench negative-tail
+result*. None of the three could see the other two. A convergence of three unrelated derivations
+on one already-drafted row is the strongest signal this intake has ever carried, and it is why the
+synthesis ranks R3 first by fit × value.
+
+**R3 is the missing REWARD FUNCTION, and four other items sit behind it.** The joint read states
+the sequence with no branch in it: **metric first (R3) → measure the surface (R2) → only then ask
+whether an optimizer beats hand-editing.** DSPy is *"WRONG ORDER, not wrong tool"* — an optimizer
+with no metric optimizes nothing. This is the same MEASURE-FIRST ordering the filing packet's
+blocker on intake #29 S3a already states from the governance side, reached independently.
+
+**THE BLOCKER MOVED, AND NOBODY WAS WATCHING IT.** R3's `kill-candidates` line says *fold, do not
+birth* — fold into the `[#491]`/`[#492]` corpus. `docs/audits/2026-08-19-technical-n3-ratification-pack.md:311`
+records that target as *"`[#491]` (open) and `[#492]` (deferred)"*. **Verified on the tree
+2026-08-30: BOTH are `status: deferred`.** `[#491]` moved from open to deferred and no organ
+noticed, because nothing in this repo watches whether a *blocker's status* changed — `[#424]` made
+`depends-on` edges parse, which is a different thing from watching what they point at.
+
+**Folding into a corpus nobody is working is not the act the kill-candidates line authorised.**
+That line was written when one of the two targets was live. It is now a fold into two deferred
+rows, which is a birth wearing a fold's clothes.
+
+**THE RULING OWED, and it is the operator's — three options, no default:**
+1. **Fold anyway**, accepting that the corpus is dormant and R3's cases will sit unworked.
+2. **Un-defer one of the two** (`[#491]` or `[#492]`), making the fold target live again.
+3. **Re-take the "second corpus" refusal on the new facts** — the refusal was reasoned against a
+   live target and the facts have changed.
+
+**Nothing else in this intake is blocked on that ruling** — R3 alone is. Tier, cost and the
+experiment are settled and recorded in the synthesis §(d) RANK 1: Tier S *conditionally* (`npx
+promptfoo eval` by hand, unwired, touching no gate and no `scripts/`; the moment it is wired into a
+hook or asserts a threshold, *"it was Tier L from the start"*), **zero** `uv.lock` packages because
+it is npm rather than Python, Node already present and tracked at root, half a day of work, and one
+carried trap: **PyPI `promptfoo` 0.1.4 is a DIFFERENT, near-empty package.**
+
+**Consumed by:** the AUTONOMY consumption pass
+(`docs/audits/2026-08-29-technical-autonomy-synthesis.md` §1.1, §1.4, §(d) RANK 1) and the five
+AUT research artifacts it reads.

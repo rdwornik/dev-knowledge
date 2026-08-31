@@ -204,6 +204,7 @@ edit for clarifications and the References section.
 - `protocols/PLAYBOOK.md` — full process reference
 - `JOURNAL.md` — session-by-session activity history (and notable-change record; replaces the retired CHANGELOG.md per ADR-49)
 - `BACKLOG.md` — cross-session pending items (per ADR-41)
+- `ecosystem/north-star.md` — **the arc set in dependency order: what this repo is working towards and what blocks what.** GENERATED from `tasks/` (`scripts/gen_north_star.py --write`); the arc names and their order are declared, every count and member row is derived, so it cannot drift from the backlog the way a hand-written roadmap does
 - `CONTRIBUTING.md` — branch/commit/validator conventions
 - `docs/decisions/` — architectural decisions (ADRs only; the `transcripts/` landing zone was deleted 2026-07-22)
 - ADR-88 — File-oriented dependency management (markdown as a design pattern): repo files are the dependency unit; coherence across the declared edge-graph is held by mechanism — a conformance harness — not by memory.

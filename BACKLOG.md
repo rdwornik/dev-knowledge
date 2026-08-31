@@ -76,6 +76,7 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#601] [P2][S] `supplement_folded` audit check — a filled supplement that never reached the paste · tasks/601-supplement-folded-audit-check-a-filled-supplemen.md
 - [#613] [P2][M] In-repo routing table + L0 agreement check · tasks/613-in-repo-routing-table-agreement-check.md
 - [#615] [P2][M] MODEL ATTRIBUTION — a model+version signature trailer on every model-authored commit · tasks/615-model-attribution-signature-trailer-on-every.md
+- [#624] [P2][M] Nothing watches a BLOCKER's status — a fold target went deferred and no organ noticed · tasks/624-nothing-watches-a-blockers-status.md
 ### [S4] Extend structural validation to more governance artifacts
 So that drift in transcripts, ADRs, and folders is caught cheaply, not by reviewer luck.
 - [#139] [P2][L] merged-arc→record verifier · DEFER · tasks/139-merged-arc-record-verifier.md
