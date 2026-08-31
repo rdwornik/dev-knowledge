@@ -3,10 +3,14 @@
 CLOUD-4 v2's answer to `docs/audits/2026-08-21-fresh-eyes-cloud-r2-universalization.md`
 §1.5 GO-(b): ONE table the ten machine constants read, instead of ten independent literals.
 
-**These tests do not assert that `VISION.md` should be renamed.** R2 §1.5 verdicts the rename
-NO-GO as briefed, and the value here is unchanged. What they assert is that the ten sites now
-name the SAME string — which is worth having whether or not the rename ever happens, and is
-precisely why R2 recommended landing the table on its own.
+**These tests still do not assert a RENAME — because none happened.** `cdocs.VISION` is
+still the string `"VISION.md"` and the file is still tracked at the root, byte-identical.
+What `[#614]` lane-a changed is the doc's **TIER**, not its name: `VISION.md` left
+`CANONICAL_MANDATORY` for `CANONICAL_RETIRED`, and `README.md` became MUST at the hub via
+`CANONICAL_HUB_MANDATORY`. R2 §1.5 verdicted the *rename* NO-GO as briefed and that verdict
+is untouched; the sequenced fleet-wide filename migration (ADR-114 option (C)) is still
+future work. What these tests assert, as before, is that the ten sites name the SAME
+strings — which is exactly what made a tier decision landable in one file.
 
 Three groups:
 
@@ -44,15 +48,56 @@ _CONFORMANCE_HUB = ".claude/workflows/conformance-hub.js"
 # --- the value is unchanged ----------------------------------------------------------------
 
 def test_the_registry_still_says_vision_md():
-    """Plumbing, not a rename. If this line ever changes it is a ruled decision, not a lane."""
+    """A tier moved; the NAME did not. If this line ever changes it is a ruled decision
+    (ADR-114 option (C)'s nine-repo filename migration), not a lane.
+
+    Pinned deliberately alongside the retirement: retiring `VISION.md` from the mandatory
+    set and RENAMING it are different acts, and this line is what keeps the second from
+    riding in on the first.
+    """
     assert cdocs.VISION == "VISION.md"
 
 
-def test_the_mandatory_seven_are_the_adr38_a6_set():
+def test_the_mandatory_set_is_the_adr38_a6_seven_minus_the_retired_vision():
+    """ADR-38 A6's seven, minus `VISION.md` — retired by ADR-114 (Accepted 2026-08-29,
+    AMENDMENT 1), executed here by `[#614]` lane-a.
+
+    The pin is written as an explicit six rather than a derivation so that a name
+    re-entering the mandatory set is a visible edit to THIS line. Retirement is a
+    subtraction, and the direction is the safety argument: dropping a presence
+    requirement cannot RED a member that still carries the file, whereas ADDING one
+    (promoting `README.md` here) would RED the six ADR-104 children that have none.
+    """
     assert cdocs.CANONICAL_MANDATORY == (
-        "VISION.md", "ARCHITECTURE.md", "CLAUDE.md", "BACKLOG.md",
+        "ARCHITECTURE.md", "CLAUDE.md", "BACKLOG.md",
         "CONTRIBUTING.md", "JOURNAL.md", "LESSONS.md",
     )
+    assert cdocs.VISION not in cdocs.CANONICAL_MANDATORY
+    assert cdocs.CANONICAL_RETIRED == ("VISION.md",)
+
+
+def test_readme_is_hub_mandatory_and_deliberately_not_fleet_mandatory():
+    """The seam that lets ADR-114 option (C) be SEQUENCED instead of taken in one commit.
+
+    `README.md` is MUST at the hub and unchanged for the fleet. If these two assertions
+    ever have to move together, the fleet-wide migration has happened and it is a ruled
+    act, not a lane's drive-by.
+    """
+    assert cdocs.README in cdocs.CANONICAL_HUB_MANDATORY
+    assert cdocs.README not in cdocs.CANONICAL_MANDATORY
+    assert cdocs.README not in cdocs.ADR38_BASELINE_REQUIRED
+    # Nothing fleet-wide may read the hub tuple — that is what makes it hub-scoped.
+    assert cdocs.CANONICAL_HUB_MANDATORY == cdocs.CANONICAL_MANDATORY + (cdocs.README,)
+
+
+def test_retired_and_hub_scoped_names_keep_their_casing_check():
+    """A retired name is not a deleted one, and a hub-scoped one is not a fleet one —
+    but BOTH stay name-checked. `CANONICAL_ALL` is the casing surface
+    (`check_canonical_md_visibility`), and dropping either from it would silently stop
+    catching a `Vision.md` / `Readme.md` mis-casing anywhere in the fleet."""
+    assert cdocs.VISION in cdocs.CANONICAL_ALL
+    assert cdocs.README in cdocs.CANONICAL_ALL
+    assert len(cdocs.CANONICAL_ALL) == len(set(cdocs.CANONICAL_ALL)), "no duplicate names"
 
 
 # --- the eight hard repoints ---------------------------------------------------------------
@@ -70,16 +115,26 @@ def test_check_adr38_baseline_reads_the_registry():
     src = Path(mod.__file__).read_text(encoding="utf-8")
     assert "canonical_docs.ADR38_BASELINE_REQUIRED" in src
     assert cdocs.ADR38_BASELINE_REQUIRED == (
-        "VISION.md", "ARCHITECTURE.md", "BACKLOG.md",
+        "ARCHITECTURE.md", "BACKLOG.md",
         "CONTRIBUTING.md", "JOURNAL.md", "LESSONS.md",
     )
     assert cdocs.CLAUDE not in cdocs.ADR38_BASELINE_REQUIRED, "check_claude_md owns CLAUDE.md"
+    # This check runs FLEET-WIDE (its own docstring says so), which is the whole reason the
+    # retirement is a subtraction here: `terminal-setup` is a declared ADR-104 member that
+    # has never carried a VISION.md, so this line turns a latent divergence GREEN.
+    assert cdocs.VISION not in cdocs.ADR38_BASELINE_REQUIRED
 
 
 def test_check_canonical_structure_keys_come_from_the_registry():
     assert set(_CANONICAL_SPINE) == set(cdocs.CANONICAL_SPINE)
     assert _CANONICAL_SPINE[cdocs.VISION] == [
         "## Vision", "## Scope", "## Values", "## Lifecycle", "## References"]
+    # README is deliberately NOT keyed here, and this pins the absence so it stays a
+    # decision instead of decaying into an oversight. `release_lint` C7 mirrors this dict
+    # into every RELEASED manifest's `doc_shapes` and lints the live constants against
+    # v1.1.0 and v1.2.0, so adding the key REDs shipped specs; the sanctioned answer is a
+    # manifest version bump, which rides ADR-114 option (C), not this lane.
+    assert cdocs.README not in _CANONICAL_SPINE
 
 
 def test_check_vision_md_uses_the_registry_name():

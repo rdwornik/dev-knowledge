@@ -383,6 +383,40 @@ carriers:
         # the SOURCE, and like the floor it does not deploy to itself.
         - source: plugins/tier1-lifecycle/INSTALL.md
           path: INSTALL.md
+        # [#614] THE README FRONT-DOOR MIGRATION -- the carrier vector is THIS block, and
+        # the pair is deliberately NOT declared yet. Recorded here, at the surface that
+        # will carry it, rather than in a lane report that no deploy reads.
+        #
+        # ADR-114 supersedes VISION.md with a root README.md; [#614] lane-a retired VISION
+        # from `canonical_docs.CANONICAL_MANDATORY` and from the fleet-wide parity MUST
+        # (`canonical-doc-vision` is now SHOULD/SHOULD). What remains is giving the four
+        # CUT-1 repos a front door in the ruled order: hub -> monorepo -> ai-council ->
+        # win-tooling. The hub already has one; the other three do not.
+        #
+        # WHY NO PAIR IS DECLARED HERE. This carrier ships VERBATIM, hash-guarded replicas
+        # -- correct for `docs/intake/README.md` and `INSTALL.md`, which are
+        # methodology-generic, and WRONG for a root README.md, which is repo-specific
+        # content (`ecosystem/parity-surfaces.yaml` types it ownership `conditional`, the
+        # AGENTS.md class, not `methodology-generic`). Declaring
+        # `source: README.md -> path: README.md` would copy this repo's own front door --
+        # its `# .dev-knowledge` title, its fleet roster, its strategic emphasis -- into
+        # corp-monorepo. That is not a migration, it is a mis-carry.
+        #
+        # WHAT THE PAIR NEEDS: a `templates/README-md-template.md` skeleton, exactly as
+        # `templates/intake-template.md` is the fill-in counterpart to the intake README,
+        # and as ARCHITECTURE / CLAUDE-md / CONTRIBUTING-md / JOURNAL-md / LESSONS-md
+        # already have one each. It is the only canonical-doc template the corpus lacks.
+        # Authoring it was OUTSIDE [#614] lane-a's frozen write-scope, so the lane recorded
+        # the blocker instead of declaring a component against a payload that does not
+        # exist -- the precise failure this carrier's own description names ("declaring an
+        # `intake` component against an unbuilt carrier lints green but is undeployable").
+        #
+        # ALSO BLOCKED, and measured: the `doc_shapes:` route at the foot of this file.
+        # `release_lint` C7 asserts EXACT dict equality between `doc_shapes` spines and the
+        # live `audit._CANONICAL_SPINE`, and lints v1.1.0 and v1.2.0 against the SAME live
+        # constants -- so adding README.md to either side alone REDs shipped specs. The
+        # spine re-point therefore requires a manifest VERSION BUMP, not a retro-edit, and
+        # rides ADR-114 option (C) with it.
 
 components:
   - id: intake-area

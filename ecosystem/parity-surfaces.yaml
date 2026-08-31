@@ -15,7 +15,7 @@
 #
 # Version line below is nudge-parseable (validate_reconciliation._VERSION_LINE_RE,
 # IGNORECASE): bump it when surface semantics change.
-version: 1.4.0
+version: 1.5.0
 #
 # GRAMMAR
 #   fleet:      the ADR-104 DECLARATION, not the deployment registry -- all nine
@@ -163,27 +163,37 @@ surfaces:
   # ---- Tier-1: the 7 canonical docs (every fleet repo) --------------------------------
   - id: canonical-doc-vision
     kind: path
-    tier: {hub: MUST, consumer: MUST}
+    tier: {hub: SHOULD, consumer: SHOULD}
     probe: {type: path_tracked, path: VISION.md}
     ownership:
       value: methodology-generic
-      # ADR-114 (Accepted 2026-08-29, AMENDMENT 1) SUPERSEDED VISION.md with a recreated
-      # root README.md, executed at the hub by [#614] lane-b. This row is the fleet-wide
-      # coupling that decides how far that supersession can travel in one act, so the
-      # resolution is recorded HERE rather than inferred from the hub's tree:
+      # RETIRED FROM MUST, 2026-08-31, by [#614] lane-a. ADR-114 (Accepted 2026-08-29,
+      # AMENDMENT 1) superseded VISION.md with a recreated root README.md; lane-b moved
+      # the CONTENT and this row is where the fleet-wide TIER follows it.
       #
-      #   * `probe.path` deliberately stays VISION.md and the tier deliberately stays
-      #     {hub: MUST, consumer: MUST}. Measured 2026-08-29 on the operator's disk, only
-      #     terminal-setup and win-tooling carry a root README.md -- 2 of 8 children. A
-      #     probe flip at consumer:MUST would turn SIX members RED in one commit, and a
-      #     partial resolution breaks parity fleet-wide, so it is one act or none.
-      #   * VISION.md is retained and still tracked in all nine members, so this row is
-      #     TRUE after the supersession, not merely unchanged. The hub's copy is marked
-      #     superseded and keeps its ## H2 spine precisely to keep it true.
-      #   * Moving the path is ADR-114 option (C)'s sequenced nine-repo program, which
-      #     also owns canonical_docs.py's ten machine constants, five deploy manifests,
-      #     gen_handoff._vision_extract and the tests/ pins. Not a flag flip.
-      reason: "VISION.md -- one of the 7 canonical living docs, the methodology corpus every fleet repo carries (MUST both); hub-authoritative, not repo-local content. SUPERSEDED AT THE HUB by the root README.md (ADR-114, Accepted 2026-08-29; execution [#614]) -- the hub's front door is README.md, VISION.md stays tracked fleet-wide, and the filename migration across the nine members is a sequenced program, not this row."
+      #   * MUST -> SHOULD, both roles. A retired document cannot go on being a necessary
+      #     condition: `canonical_docs.CANONICAL_MANDATORY` no longer carries VISION, so a
+      #     MUST here would be this manifest asserting a requirement the registry has
+      #     dropped -- two surfaces disagreeing about the same fact.
+      #   * The DEMOTION is what keeps parity GREEN, and the direction is the argument.
+      #     SHOULD+present is INFO/at-parity, so the eight members that carry VISION.md
+      #     are unaffected. Relaxing a necessary condition cannot RED a member; it is
+      #     PROMOTING one (README.md to consumer:MUST) that would RED six at once, and
+      #     that act is deliberately NOT taken here -- see root-readme-md below.
+      #   * PREMISE CORRECTED. The superseded text of this row claimed VISION.md was
+      #     "retained and still tracked in all nine members". Re-measured 2026-08-31 by
+      #     `git ls-files` in each member: it is tracked in EIGHT. `terminal-setup` has
+      #     never had one, which `ecosystem/deployed-versions.yaml` already records in
+      #     prose ("2 commits, no VISION.md, no CLAUDE.md, no deploy record"). So this
+      #     row was carrying a consumer:MUST that one declared member never satisfied --
+      #     latent only because terminal-setup's role is `pre-deploy` and therefore
+      #     skipped. The demotion resolves that divergence instead of preserving it.
+      #   * `probe.path` still says VISION.md and the file is still TRACKED, byte-identical.
+      #     Retired means "no longer required", not "removed": deleting it, or moving the
+      #     path, is ADR-114 option (C)'s sequenced nine-repo program, which also owns
+      #     the CANONICAL_SPINE re-point (coupled to every released manifest through
+      #     release_lint C7), five deploy manifests and gen_handoff._vision_extract.
+      reason: "VISION.md -- RETIRED from the fleet-wide MUST set 2026-08-31 ([#614] lane-a) and held at SHOULD: superseded at the hub by the root README.md (ADR-114, Accepted 2026-08-29), dropped from canonical_docs.CANONICAL_MANDATORY, but still tracked in eight of the nine members and still shape-checked where present. SHOULD is the honest tier for a retained-but-not-required doc; the filename migration across the nine members remains a sequenced program, not this row."
       provenance: &own-prov
         - {kind: backlog, repo: .dev-knowledge, ref: "#316"}
         - {kind: adr, repo: .dev-knowledge, ref: ADR-103}
@@ -318,7 +328,7 @@ surfaces:
     probe: {type: path_tracked, path: README.md}
     ownership:
       value: conditional
-      reason: "README.md -- the root front door recreated by ADR-114 (Accepted 2026-08-29, AMENDMENT 1), which supersedes ADR-38 A5 in the single respect that A5 deprecated it and amends ADR-101 section 1 to add it to the Tier-1 file class: MUST at the hub, where [#614] landed it and where it supersedes VISION.md as the canonical purpose document. Consumer stays LOCAL on MEASURED evidence, not preference -- only 2 of the 8 ADR-104 children carry a root README.md (terminal-setup, win-tooling) and ADR-114 rules no fleet rollout, so a consumer MUST would turn six members RED in one commit. Deliberately NOT promoted into canonical_docs.CANONICAL_MANDATORY -- that would enrol it in ADR38_BASELINE_REQUIRED and every consumer's canonical-set check -- which is why validate_hermetization carries it as a literal, on the AGENTS.md precedent above. The sibling canonical-doc-vision row is UNCHANGED and stays {hub: MUST, consumer: MUST}: VISION.md is retained and still tracked in all nine members. Promotion and the filename migration are [#621] / [#622]."
+      reason: "README.md -- the root front door recreated by ADR-114 (Accepted 2026-08-29, AMENDMENT 1), which supersedes ADR-38 A5 in the single respect that A5 deprecated it and amends ADR-101 section 1 to add it to the Tier-1 file class: MUST at the hub, where [#614] landed it and where it supersedes VISION.md as the canonical purpose document. Consumer stays LOCAL on MEASURED evidence, not preference -- RE-MEASURED 2026-08-31 by git ls-files in each member and UNCHANGED: only 2 of the 8 ADR-104 children carry a root README.md (terminal-setup, win-tooling), and ADR-114 rules no fleet rollout, so a consumer MUST would turn six members RED in one commit. Promotion travels by the readme-front-door deploy carrier declared in deploy/manifest-v1.4.0.yaml, repo by repo, in CUT-1's ruled order hub -> monorepo -> ai-council -> win-tooling; each repo's row flips to MUST when the carrier has landed there, never before. At the hub the promotion IS taken, into canonical_docs.CANONICAL_HUB_MANDATORY -- hub-scoped deliberately, because CANONICAL_MANDATORY is fleet-wide and would enrol README.md in ADR38_BASELINE_REQUIRED and every consumer's canonical-set check; validate_hermetization still carries it as a literal, on the AGENTS.md precedent above. The sibling canonical-doc-vision row is NO LONGER unchanged: [#614] lane-a retired VISION.md from MUST to SHOULD on both roles. Its old claim that VISION.md was tracked in all nine members was REFUTED by the same re-measurement -- it is tracked in eight; terminal-setup has never had one. The filename migration is [#621] / [#622]."
       provenance: *own-prov
   - id: root-uv-lock
     kind: path

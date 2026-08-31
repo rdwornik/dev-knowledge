@@ -5,20 +5,39 @@ ONE table for the canonical living-document FILENAMES that ten machine constants
 gate mesh were each hardcoding independently. Cut from
 `docs/audits/2026-08-21-fresh-eyes-cloud-r2-universalization.md` §1.5 GO-(b).
 
-**This was plumbing, not a rename — and the decision it was built for has since been made.**
-Every value here is still unchanged: `VISION.md` is still `VISION.md`. What the module bought
-is that a decision about a canonical filename has ONE place to be made instead of ten, and
-that the ten sites are provably reading the same string.
+**The decision this table was built to hold has now been made, and it is made HERE.** The
+module bought ONE place for a canonical-filename decision instead of ten. `[#614]`'s frozen
+arc spends that: `VISION.md` is **RETIRED** from the fleet-wide mandatory set, and
+`README.md` is the hub's MUST front door.
 
 **ADR-114 is Accepted (2026-08-29, AMENDMENT 1): `VISION.md` is superseded by a recreated
 root `README.md`.** The hub's front door moved in `[#614]` lane-b — `README.md` carries the
 live-normative content and `VISION.md` is retained, marked superseded, keeping its `## H2`
-spine. **Not one constant below moved with it**, and that is a decision rather than an
-omission: `canonical-doc-vision` is `{hub: MUST, consumer: MUST}` across the nine ADR-104
-fleet members while only two of the eight children carry a root `README.md`, so re-pointing
-`VISION` here would break six members in one commit. Renaming the value is the fleet-wide
-sequenced program (ADR-114 option (C)), and this table is exactly where that one edit will
-be made when it runs. `README` below stays in `CANONICAL_OPTIONAL` until then.
+spine. This module is that arc's registry half.
+
+**Retirement is a SUBTRACTION, and the direction is what makes it fleet-safe.** `VISION`
+leaves `CANONICAL_MANDATORY` — and so leaves `ADR38_BASELINE_REQUIRED` and every consumer's
+canonical-set check — into `CANONICAL_RETIRED`. Removing a requirement cannot RED a member
+that still carries the file, so the subtraction turns none of the nine RED; it turns one
+long-standing latent divergence GREEN, because `terminal-setup` is a declared ADR-104 member
+that has never had a `VISION.md` (`ecosystem/deployed-versions.yaml` records it:
+*"2 commits, no VISION.md, no CLAUDE.md, no deploy record"*).
+
+**The opposite act is the one that would break six members**, which is why it is NOT taken
+here: promoting `README` INTO `CANONICAL_MANDATORY` enrols it in `ADR38_BASELINE_REQUIRED`
+and in every consumer's canonical-set check, while only two of the eight ADR-104 children
+carry a root `README.md` — re-measured 2026-08-31 on the operator's disk: `terminal-setup`
+and `win-tooling`, unchanged from the 2026-08-29 measurement. So `README` is promoted into
+`CANONICAL_HUB_MANDATORY` instead: MUST at the hub, unchanged for the fleet. The
+consumer-side promotion travels by the deploy carrier declared in
+`deploy/manifest-v1.4.0.yaml`, repo by repo, in CUT-1's ruled migration order
+`hub -> monorepo -> ai-council -> win-tooling`.
+
+**`VISION.md` itself is untouched — byte-identical, still tracked at the root.** It is
+retired from a mandatory ROLE, not removed from the tree. That is deliberate and it is
+load-bearing: `gen_handoff._vision_extract` still reads its `## Vision` body, and its
+`CANONICAL_SPINE` entry still shapes the eight fleet copies that do exist, so both are left
+in place below rather than moved with the tier.
 
 The ten machine constants this serves, by the names R2 §1.2 uses:
 
@@ -53,10 +72,10 @@ CONTRIBUTING = "CONTRIBUTING.md"
 JOURNAL = "JOURNAL.md"
 LESSONS = "LESSONS.md"
 
-# Canonical names that are NOT (yet) members of the mandatory root set but travel with them
-# in one or more of the constants below (optional-at-root, or protocols-resident). README is
-# the ADR-114 case: canonical in substance at the hub since 2026-08-29, still optional to the
-# fleet, so it is carried here and NOT in CANONICAL_MANDATORY -- see the module docstring.
+# Canonical names that are NOT members of the mandatory root set but travel with them in one
+# or more of the constants below (optional-at-root, or protocols-resident). README LEFT this
+# tuple in [#614] lane-a: it is now MUST at the hub via CANONICAL_HUB_MANDATORY, and still
+# NOT in CANONICAL_MANDATORY -- see the module docstring for why the direction matters.
 ENVIRONMENT = "ENVIRONMENT.md"
 ESSENTIALS = "ESSENTIALS.md"
 PLAYBOOK = "PLAYBOOK.md"
@@ -73,15 +92,36 @@ HANDOFFS_README_PATH = "docs/handoffs/README.md"
 
 
 # --- the derived sets the ten constants consume -------------------------------------------
-# ADR-38 A6 (2026-06-02): the seven-file canonical set, mandatory for every repo.
+# ADR-38 A6 (2026-06-02) made this the SEVEN-file canonical set, mandatory for every repo.
+# ADR-114 (Accepted 2026-08-29, AMENDMENT 1), executed by [#614] lane-a, retires VISION from
+# it -- SIX now. Membership here is fleet-wide and is read by ADR38_BASELINE_REQUIRED,
+# check_canonical_md_visibility and validate_hermetization.SANCTIONED_TIER1_FILES, so a name
+# added here is a name every one of the nine ADR-104 members must carry.
 CANONICAL_MANDATORY: tuple[str, ...] = (
-    VISION, ARCHITECTURE, CLAUDE, BACKLOG, CONTRIBUTING, JOURNAL, LESSONS,
+    ARCHITECTURE, CLAUDE, BACKLOG, CONTRIBUTING, JOURNAL, LESSONS,
 )
 
-# Canonical names whose CASING is checked when present (mandatory + optional +
-# .dev-knowledge-only). Presence is required only for CANONICAL_MANDATORY.
-CANONICAL_OPTIONAL: tuple[str, ...] = (ENVIRONMENT, ESSENTIALS, PLAYBOOK, TOKEN_LOG, README)
-CANONICAL_ALL: tuple[str, ...] = CANONICAL_MANDATORY + CANONICAL_OPTIONAL
+# RETIRED from the mandatory set, still tracked in the tree and still name-checked. A retired
+# name is NOT a deleted one: it keeps its casing check, keeps its CANONICAL_SPINE entry, and
+# keeps whatever generator reads it -- it simply stops being a presence REQUIREMENT. This is
+# the tier VISION.md moved into; it is deliberately a tuple so a second retirement appends
+# rather than rewrites.
+CANONICAL_RETIRED: tuple[str, ...] = (VISION,)
+
+# MUST at the HUB only. The seam that lets a canonical promotion land at the hub without
+# enrolling the eight children in it -- README.md's case, and the reason ADR-114's fleet-wide
+# filename migration can be sequenced (option (C)) rather than taken in one commit. NOTHING
+# fleet-wide reads this tuple; that is the point.
+CANONICAL_HUB_MANDATORY: tuple[str, ...] = CANONICAL_MANDATORY + (README,)
+
+# Canonical names whose CASING is checked when present (mandatory + retired + hub-mandatory +
+# optional + .dev-knowledge-only). Presence is required only for CANONICAL_MANDATORY. VISION
+# and README both remain members: retirement and hub-scoping change the presence TIER, never
+# the name-check.
+CANONICAL_OPTIONAL: tuple[str, ...] = (ENVIRONMENT, ESSENTIALS, PLAYBOOK, TOKEN_LOG)
+CANONICAL_ALL: tuple[str, ...] = (
+    CANONICAL_MANDATORY + CANONICAL_RETIRED + (README,) + CANONICAL_OPTIONAL
+)
 
 # The ADR-38 governance baseline set: the mandatory seven minus CLAUDE.md, which
 # check_claude_md owns and check_adr38_baseline deliberately does not duplicate.
@@ -116,6 +156,19 @@ CONFORMANCE_V2_SCAN: tuple[str, ...] = (
 
 # The `## H2` spine each canonical file carries (ADR-38 A6). Keyed by the names above so a
 # filename decision moves the key with the value.
+#
+# **`README` is deliberately ABSENT from this table, and its absence is MEASURED, not an
+# oversight.** README.md already carries all five of VISION's H2s, so adding the key would
+# assert something already true at the hub -- but `release_lint` C7 mirrors this dict into
+# EVERY released manifest's `doc_shapes` block and lints the live constants against v1.1.0
+# and v1.2.0 as well as the current release. Adding a key here therefore REDs C7 against
+# manifests that are released artifacts, and the sanctioned answer to that is a manifest
+# VERSION BUMP, not a retro-edit of a shipped spec. So the spine re-point rides ADR-114
+# option (C)'s sequenced migration together with the version bump it requires; the TIER
+# decision above is independent of it and lands here alone.
+#
+# VISION keeps its entry: it is retired from the mandatory set, not from the tree, and the
+# eight fleet copies that do exist are still shape-checked by it.
 CANONICAL_SPINE: dict[str, list[str]] = {
     VISION: ["## Vision", "## Scope", "## Values", "## Lifecycle", "## References"],
     ARCHITECTURE: ["## Purpose", "## Codemap", "## Layer Boundaries & Invariants",
