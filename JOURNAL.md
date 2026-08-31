@@ -19,6 +19,94 @@
 
 ---
 
+### 2026-08-31 (l) - CC (Opus 5, background job, integrator seat): CORRECTION - the tier-(D) lane is NOT frozen. The substrate is admitted; the CONTRACT GRAMMAR is not.
+
+**Anchors:** `631fa228`
+
+**Corrects entry (k)**, which said the tier-(D) lane was frozen. It is not, and the gates were
+right to stop it. Entry (k) stands as written -- JOURNAL is append-only -- and this entry is the
+correction.
+
+**THE SUBSTRATE IS ADMITTED FOR RUNNING AND UNADMITTED IN THE CONTRACT GRAMMAR**, and those are
+two different admissions. The 3-of-3 receipt proved a codespace can run an agent, fetch, push and
+pass the gate. It did not, and could not, admit `codespace` into the vocabulary the contract
+organs enforce. Three closed enums refuse it, each measured:
+
+```
+1  lane-contract-check SHAPE enum   {local | cloud | interactive}   -- 'codespace' outside it
+2  dispatch-verb enum   {Dispatch-Lane | Dispatch-CloudV2 | Read <PROMPTS_DIR>\<file>...}
+                                                            -- 'Dispatch-Codespace' outside it
+3  cloud pairing rule   a `cloud` lane must pair to `claude/<slug>`, not `worktree-<slug>`
+```
+
+Declaring `**Shape:** cloud` clears (1) and immediately fails (2) and (3): a codespace lane
+dispatches with `Dispatch-Codespace` and lives on its own `worktree-` branch, so `cloud` is the
+wrong shape in exactly the ways the gate then names. **`codespace` needs admitting into all
+three, and a closed enum is widened only by a recorded ruling -- never by a lane, and not by an
+integrator either.** That is why nothing was dispatched.
+
+**A vocabulary SPLIT is the underlying defect**, same class as the one `[#514]` closed:
+`validate_substrate` reads `codespace` from `ecosystem/substrate-registry.yaml` and ACCEPTS the
+contract; `lane-contract-check` holds its own closed enum and REFUSES the same file. Two organs,
+one vocabulary, opposite verdicts -- and a contract that passes the freeze gate and fails the
+shape gate is exactly the state that made both unenforceable last time.
+
+**Also measured: predicate 6's documented override does not fire on the cross-contract leg.** A
+conforming `**Substrate deviation:** substrate-lane-write-scope-disjoint - <long reason>` line
+did NOT downgrade the refusal, though the module documents that it should. Works on the
+single-contract legs; filed rather than worked around.
+
+**Result:** the tier-(D) contract draft is written and validated against
+`validate_substrate` (OK, all six predicates, alone) but is NOT committed -- parking a file the
+shape gate refuses would leave the tree in a state no gate accepts. Batch E remains 7 of 15
+merged, DC-23 re-dispatched and live.
+
+**Changes:** `JOURNAL.md`.
+
+**Next:** the enum admission is a RULING, and it is the blocker for every future codespace lane.
+Until it lands, committing lanes stay `local` -- not because the substrate failed, but because
+the paperwork for it does not exist yet.
+
+### 2026-08-31 (k) - CC (Opus 5, background job, integrator seat): THE FIRST TIER-(D) LANE IS FROZEN, and predicate 6's override does not actually override
+
+**Anchors:** `811ff5e1`
+
+**Did:** froze DM-6 re-issued at `substrate=codespace` as the admitted substrate's first
+production receipt, and measured a gap in the freeze gate's own override mechanism.
+
+**THE TIER-(D) CONTRACT carries three things no local contract needs.** An **arrival gate** --
+fetch to the pushed HEAD, confirm the provisioning stamp including F4 workspace trust, and STOP
+rather than self-repair, because *a lane that fixes its own container destroys the receipt it
+exists to produce*. A **receipt gate** naming `is_error` as the verdict field and `subtype` as
+the trap, since a receipt can carry `subtype: "success"` with `is_error: true` and a consumer
+keying on `subtype` records a successful run of an agent that never ran. And
+**create-never-rebuild**, because a rebuilt container has not applied its own
+`devcontainer.json`. Filing-only, serialize-group `none`, no blockers: the lowest-risk shape for
+a first real run off the operator's machine.
+
+**PREDICATE 6's OVERRIDE MECHANISM DID NOT FIRE, and that is a finding.** The new contract and
+the DM-6-local contract it supersedes both declare `tasks/`, so
+`substrate-lane-write-scope-disjoint` REFUSES -- correctly, on the letter. The validator
+documents an escape: *"A `**Substrate deviation:** <rule-id> - <reason>` line downgrades exactly
+the rule it names from refuse to warn."* A conforming deviation line naming that exact rule, with
+a reason far past the length floor, was added -- and the refusal **did not downgrade**. So the
+documented override works for the single-contract legs and not for this CROSS-contract one, which
+is discoverable only by trying it. Filed rather than worked around.
+
+**The dispatch is nonetheless legitimate, on the manifest's own scoping rule** -- *"THE FREEZE
+GATE IS SCOPED TO THE LANES BEING FROZEN"*. Validated ALONE, the tier-(D) contract passes all six
+predicates; the refusal appears only when the retired contract is deliberately included in the
+set. Supersession is declared at the surviving contract because batch-E contracts are immutable
+and the superseded file cannot be edited. **DM-6-local must never be dispatched.**
+
+**Result:** batch E at 7 of 15 merged, DC-23 re-dispatched after its auto-updater hang, tier-(D)
+frozen.
+
+**Changes:** `JOURNAL.md`, and the new tier-(D) contract under the batch-E launch-contracts dir.
+
+**Next:** dispatch the tier-(D) lane; then the held set -- A5 into PLAYBOOK, A7 + the parity-class
+birth, the step-4 binding mechanisms, and the anchor-traps + PID-substring doctrine.
+
 ### 2026-08-31 (j) - CC (Opus 5, background job, integrator seat): HY-1 LANDS, DC-23 WAS HUNG BY ITS OWN AUTO-UPDATER, and the create-not-rebuild rule is ruled
 
 **Anchors:** `9b736ce2`
