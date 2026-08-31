@@ -189,9 +189,34 @@ rerun question, not a registry act. So the token policy's *"whole-repo analysis 
 admitted"* has **no live route today**. A7 verifies and makes the quota curve legible; it does
 not admit anything. **Plan the batch as though agy is unavailable, because it is.**
 
-**U-10 · sqlite-vec "proven under pinned uv by lane-g"** (DM-4) — carried from the brief,
-**unverified here**. Resolve before DM-4 is frozen; a dependency claim is a `uv.lock` question
-and ADR-106 makes it a gated change.
+**U-10 · DM-4 IS THE WEAKEST LANE IN THE BATCH — THREE INDEPENDENT PROBLEMS, ALL RULED AGAINST IT.**
+The brief says *"sqlite-vec proven under pinned uv by lane-g"* and files DM-4 under
+*"execute the Tier-S experiments"*. Resolved against the artifact, all three legs fail:
+
+**(1) The claim overstates what was proved.** `docs/audits/2026-08-29-technical-autonomy-synthesis.md`
+proves only that `enable_load_extension` works on this host — *"The Windows extension-loading
+blocker does not exist on this substrate... `sqlite-vec` remains a live candidate"*, and
+explicitly: **"Nothing was installed and nothing was written to run this."** A substrate
+capability was proved. **sqlite-vec was never installed, never run, and never exercised under the
+pinned `uv`.** "Live candidate" is not "proven".
+
+**(2) IT IS TIER L, NOT TIER S — and the same synthesis already ruled that, correcting two cloud
+lanes that got it wrong.** ADR-112's guard sentence: *"Tier S never touches gates, hooks that
+block, or `scripts/` — anything that would, is Tier L by definition."* Adopting sqlite-vec means
+editing `pyproject.toml` + `uv.lock` and writing a `scripts/` embedding producer. The synthesis
+records: *"Neither cloud lane checked its own tier label against ADR-112's text."* Intake #63
+already says so verbatim — *"ADR-112 Tier-L applies: evaluate before adopting."*
+**So the brief repeats, for a third time, the exact mislabel the synthesis was written to
+correct.** Tier L means EVALUATE BEFORE ADOPTING — a heavier bar than Tier S's try-and-keep-or-delete.
+
+**(3) Its embedder is on the REJECTED list.** DM-4 names `sentence-transformers`; the decision
+tree lists it under REJECTED (with ChromaDB, LanceDB, Mem0, Letta/MemGPT, Zep). The synthesis's
+own pairing is **model2vec**, not sentence-transformers.
+
+**Recommendation, offered because the evidence is one-sided and the cut should not have to
+re-derive it:** DM-4 does not belong in this batch as a Tier-S experiment. Either re-file it as a
+Tier-L evaluation under intake #63, or drop it from batch E. Not decided here — but freezing it
+as written would land a `uv.lock` change under the wrong adoption bar with a rejected dependency.
 
 **U-11 · Harbor is PARKED with a trigger that has not fired.** The decision tree parks Harbor on
 *"a second executor is admitted"* — none is. (B)'s SDA-1-to-Harbor translation is **text only**
@@ -310,9 +335,14 @@ DM-3  GRAPH — typed layers + thesis architectural attributes as node metadata
 
 DM-4  LOCAL MEMORY — sqlite-vec + sentence-transformers over docs/ + tasks/;
       hit-rate vs grep on 20 real questions, recorded
-      substrate: LOCAL   serialize-group: environment   blocked-by: U-10 (dependency claim)
-      NOTE: sentence-transformers is REJECTED in the decision tree's rejected list. Reconcile
-      before freezing — this is a live rule-vs-brief conflict, class (b).
+      substrate: LOCAL   serialize-group: environment
+      *** DO NOT FREEZE AS WRITTEN — see U-10. Three independent problems: the
+      "proven under pinned uv" claim is refuted (nothing was ever installed or run);
+      it is ADR-112 TIER L, not Tier S, and the brief repeats for a third time the
+      mislabel the autonomy synthesis was written to correct; and its embedder
+      (sentence-transformers) is on the decision tree's REJECTED list — the
+      synthesis pairs sqlite-vec with model2vec instead.
+      Re-file as a Tier-L evaluation under intake #63, or drop from batch E. ***
 
 DM-5  DISTILLER filing amendment — eval-loop is a PRECONDITION (SkillsBench)
       row: [#617]; now also carried by the .CLAUDE GOVERNANCE MODEL umbrella (intake #62)
