@@ -81,6 +81,19 @@ ARCS: tuple[dict, ...] = (
                     "rather than the doctrine."),
         done_when=("Every ADR-104 member carries the ruled corpus at a declared version, and "
                    "fleet_parity reports zero undeclared divergence across them."),
+        # THE HERMETIZATION ORDER (operator direction, 2026-08-31; filed as the `.CLAUDE
+        # GOVERNANCE MODEL` amendment to intake #62). The arc's members are selected by theme,
+        # as everywhere else in this file; what is DECLARED here is the ORDER the wave ships in.
+        # A rival sixth arc was deliberately NOT created: arc membership is a theme selector, so
+        # a second arc sharing [E6]/[E9] would double-count every row in both and make both
+        # counts wrong. Amending this arc is the reconcile-before-birth act.
+        sequence=("batch E -> engine ratification -> win-tooling full cycle -> monorepo -> "
+                  "ai-council (the HERMETIZATION order, for the `.CLAUDE` governance corpus). "
+                  "CONFLICT NAMED, NOT RESOLVED: batch E's DC-1 records a ruled order of "
+                  "hub -> monorepo -> ai-council -> win-tooling for the VISION -> README "
+                  "migration carrier - win-tooling LAST, not first. Different payloads, both "
+                  "recorded; two fleet orders inside one batch is a coordination hazard and the "
+                  "choice is the architect's cut."),
         contract=("intake #38 (the root-contract) - amended 2026-08-30; R18 stays parked on "
                   "tested conditions rather than on silence"),
     ),
@@ -171,6 +184,10 @@ def render(repo_root: Path) -> str:
         add("")
         add(f"- **Blocked by:** {arc['blocked_by']}")
         add(f"- **Done when:** {arc['done_when']}")
+        # `sequence` is OPTIONAL and declared per arc: the order the arc ships in, where that
+        # order is itself an architect judgment rather than a consequence of the row set.
+        if arc.get("sequence"):
+            add(f"- **Ships in this order:** {arc['sequence']}")
         add(f"- **First frozen-contract candidate:** {arc['contract']}")
         add(f"- **Themes (the selector):** {', '.join('`' + t + '`' for t in arc['themes'])}")
         pri = " / ".join(f"{k} {v}" for k, v in sorted(by_pri.items())) or "none"
