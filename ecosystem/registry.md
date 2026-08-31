@@ -31,6 +31,43 @@
 | `terminal-setup` | `C:\Users\1028120\Documents\Dev\terminal-setup` | PowerShell terminal-profile bootstrap - an Oh My Posh theme (`huvix-custom.omp.json`) plus a `setup.ps1` installer for PS5/PS7. Purpose distilled from the repo itself (2 commits, HEAD `d8a7b61`), NOT from a `VISION.md` - it has none. | registered 2026-08-01 ([#462]) · unonboarded · declared fleet by ADR-104 2026-07-24; no methodology adoption (no VISION.md, no CLAUDE.md, no deploy record) |
 | `win-tooling` | `C:\Users\1028120\Documents\Dev\win-tooling` | Personal Windows desktop-productivity toolbox - local Whisper transcription (large-recording cloud fallback) + TypeWhisper dictation-quality helpers; home for future desktop tooling (Flow Launcher, tablet). Not an agent; run manually. | registered · unonboarded |
 
+## Fleet shape, and the migration posture
+
+> Moved here from the root `README.md` by operator ruling **R-README** (2026-09-01). The README
+> is the HUMAN front door -- what this repo is, why it exists, how to start, where to go deeper.
+> Fleet-internal governance states are not that, and a reader arriving at the front door does not
+> need them to start. They belong on an `ecosystem/` surface, beside the roster they qualify.
+
+**The shape is a governed POLYREPO** (ADR-104, Accepted 2026-07-24). The ruled shape is a
+**partial** fold: `corp-monorepo` stays permanently outside it -- history-entangled employer
+material plus a load-bearing test dependency -- and the remaining repos consolidate
+**incrementally**, verifying value stage by stage rather than in one move. **No fold executes on
+that ADR**, so the independent-repo relationship the table above describes is current state, not
+a provisional arrangement.
+
+**The canonical purpose document is mid-migration, and the posture is per-member.** ADR-114
+(Accepted 2026-08-29, AMENDMENT 1) moved the hub's front door to `README.md` and superseded
+`VISION.md`. Two rows carry the consequence and **neither count is restated here** -- both are
+derived, and `ecosystem/parity-surfaces.yaml` is the surface that computes them:
+
+- `canonical-doc-vision` -- **retired from MUST to SHOULD on both roles**, 2026-08-31, by
+  `[#614]` lane-a. `VISION.md` is retired from a mandatory ROLE, not removed from any tree: it is
+  still tracked, byte-identical, at the hub root and in the members that carry one.
+- `root-readme-front-door` -- **MUST at the hub, LOCAL for consumers**, on measured evidence
+  rather than preference. A consumer-side MUST would turn members RED in one commit, so the
+  promotion travels **by the deploy carrier**, repo by repo, in CUT-1's ruled order
+  `hub -> monorepo -> ai-council -> win-tooling`. Each member's row flips when the carrier has
+  landed there, and not before.
+
+**Why the file rename is a program and not a flag flip.** `VISION.md` is read by name, or by its
+`## H2` spine, from hub organs and deploy manifests -- among them the `vision_md` audit check,
+which **hard-FAILs** on its absence at the repo root, and `gen_handoff.py`, which extracts its
+`## Vision` section into every handoff bundle. Measured 2026-09-01 by moving the file and running
+the gate: `audit.py health` exits 1 on `vision_md: VISION.md absent at repo root`, and
+`tests/test_canonical_docs.py::test_gen_handoff_still_extracts_the_live_vision_section` REDs. The
+registry retirement (tier) and the file's archival (path) are therefore **two separate acts**, and
+only the first has been taken.
+
 > **Maintenance:** add a row when a new repo joins `Dev/`. The `Status` column's onboarding state
 > tracks `ecosystem/deployed-versions.yaml` (durable deploy record) — a repo shows `onboarded (vX.Y.Z)`
 > once the deploy runbook populates its version, `unonboarded` while null. Do not hand-fabricate a

@@ -1,7 +1,7 @@
 ---
 version: 1.0
 owner: rob
-last_reviewed: 2026-08-29
+last_reviewed: 2026-09-01
 status: active
 ---
 
@@ -113,33 +113,25 @@ defers to ESSENTIALS for principles — no duplication. Key principle:
 
 ## Relationships
 
-`.dev-knowledge` is the meta-layer of the ecosystem. The fleet is **nine
-git repos** (ADR-104): the hub `.dev-knowledge` plus eight child
-repositories under `Dev/` — `ai-council`, `corp-monorepo`, `corp-ops`,
-`corp-sca-time-automation`, `demo-prep`, `life-architect`,
-`terminal-setup`, `win-tooling`. The children are independent projects
-that consume `.dev-knowledge` methodology and conventions. There is **no
-hierarchy** in the authority sense — only **functional roles**:
-`.dev-knowledge` produces methodology; child repos consume and feed back
-lessons.
+`.dev-knowledge` is the meta-layer of the ecosystem: the hub plus a set of
+child repositories under `Dev/`, declared by ADR-104. **Who the members are,
+what each is for, and where each stands is `ecosystem/registry.md`** — the
+human fleet registry, which is also where the fleet's shape and migration
+posture live. The roster is not restated here, because a roster typed into
+prose is stale at the next commit.
 
-**Fleet shape** (ADR-104, Accepted 2026-07-24): the fleet remains a
-governed **polyrepo**. The ruled shape is a **partial** fold —
-`corp-monorepo` stays permanently outside it (history-entangled employer
-material plus a load-bearing test dependency), and the remaining repos
-consolidate **incrementally**, verifying value stage by stage rather than
-in one move. No fold executes on that ADR, so the independent-repo
-relationship above is current state, not a provisional arrangement.
+The children are independent projects that consume `.dev-knowledge`
+methodology and conventions. There is **no hierarchy** in the authority
+sense — only **functional roles**: `.dev-knowledge` produces methodology;
+child repos consume and feed back lessons.
 
 **Pattern for child repos** (per ADR-33 universalization):
 every project under `Dev/` should have its own canonical purpose document
 following this template (vision + scope + values + relationships +
-lifecycle + references). **The filename is mid-migration:** ADR-114 ruled
-the hub's front door to `README.md`, and the child repos still carry
-`VISION.md` — the `canonical-doc-vision` parity row is `MUST` on all nine
-and only two of the eight children carry a root `README.md` today, so the
-fleet-wide rename is a sequenced program. Child purpose documents are
-project-specific; this hub's is universal.
+lifecycle + references). Child purpose documents are project-specific;
+this hub's is universal. The document's **filename** is mid-migration
+across the fleet — the posture, and what each member owes, is in
+`ecosystem/registry.md`.
 
 **Special case — `ai-council`:** functions as a tool used by `.dev-knowledge`
 to generate architectural decisions. A transcript's **sole** home is the
