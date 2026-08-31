@@ -209,6 +209,22 @@ carry different payloads and may both be correct, but running two fleet orders i
 a coordination hazard. **Both are recorded, labelled by payload; neither is overridden.** The
 choice is the architect's cut, not the filer's.
 
+> **RULED 2026-08-31 — batch E CUT-1. The paragraph above is SUPERSEDED, and the conflict it
+> names is DISSOLVED rather than adjudicated.** The two sequences were never rivals: they address
+> **instantiation order** and **migration order**, which are different things.
+>
+> - **MIGRATION order (ruled):** `hub -> monorepo -> ai-council -> win-tooling` — the order the
+>   consolidated-doctrine corpus ships in.
+> - **INSTANTIATION order (unchanged, and AFFIRMED):** win-tooling is the **FIRST instantiated
+>   consumer**. The floor stays. DC-5 instantiates ai-council **from win-tooling's template**,
+>   which is why that lane exists at all.
+>
+> So win-tooling is **first instantiated and last migrated** — most mature, therefore best able to
+> wait, and the member where a mid-re-genre ship would cost the most. The original paragraph is
+> left standing above rather than rewritten, because what it recorded (two sequences on the
+> record, unresolved at filing time) was true when written. Full ruling:
+> `docs/audits/2026-08-31-technical-batche-launch-contracts/CUT.md` CUT-1.
+
 ### Amendment to OPEN QUESTION 2 — the 4b census is now DECLARED, not merely unlocatable
 
 Open question 2 records that the 4b commands+skills census, and its claimed finding
