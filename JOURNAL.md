@@ -19,6 +19,63 @@
 
 ---
 
+### 2026-09-01 (b) - CC (Opus 5, background job, night orchestrator): the v1.5.0 candidate lints clean, both instantiation plans are DERIVED, and they share one hard blocker
+
+**Anchors:** `431b0bf8`
+
+**Did:** WAVE 3 universalization prep -- authoring and live premise-verification only, zero writes
+to any consumer repo.
+
+**THE INSTANTIATION CONTRACTS ARE DERIVED RATHER THAN AUTHORED, which is the part worth keeping.**
+`deploy/tool.py <repo> --target v1.4.0` runs a READ-ONLY assess, and it produced an **identical**
+plan for corp-monorepo and ai-council -- 4 carriers need apply, 2 already correct, 1 not
+implemented -- and an **identical hard blocker in both**: the `ruff-gate` prune finds the
+component `present_modified` and **WOULD REFUSE**. `--execute` then aborts with no record and no
+staging, because the version-record write is gated on every prune verifying absent. So neither
+instantiation can complete until that one component is adjudicated, and adjudicating it means
+reading what the local edit is -- a consumer read the morning seat does with the diff in front of
+it, not a guess made at night. An authored contract would have missed this entirely.
+
+**A FINDING FROM TRYING IT: the deploy preflight refuses an untagged target EVEN IN ASSESS MODE**
+(*"target tag 'v1.5.0' does not resolve in the hub"*). So a release candidate cannot be dry-run
+against a consumer before the operator tags it. Recorded with its consequence rather than as a
+complaint: v1.5.0 declares no new carrier, so the v1.4.0 plan **is** the v1.5.0 plan plus three
+version anchors, and the morning does not need to re-derive that.
+
+**THE v1.5.0 CANDIDATE LINTS 0 FAIL / 7 pass**, one WARN -- C2-tag, which is the ADR-91 boundary
+showing up as designed. It is a MINOR whose new material is a **state change, not a new carrier**,
+and it says so in its own header. Two items stay RECORDED AND NOT DECLARED on the manifest's own
+warning that *"declaring a component against a payload that does not exist lints green but is
+undeployable"*: the `readme-front-door` pair, whose `templates/README-md-template.md` does not
+exist anywhere in the corpus, and the `doc_shapes` spine re-point, where C7 lints v1.1.0 and
+v1.2.0 against the SAME live constants so adding README.md to either side alone REDs shipped
+specs.
+
+**THE PARITY BLAST RADIUS IS COUNTED.** Flipping `root-readme-md` consumer-wide today turns **SIX**
+members MUST-absent at severity ERROR, and `check_fleet_parity` BLOCKS; `root-agents-md` turns
+**EIGHT**. The rule that follows is the load-bearing output: **the tier is a two-role scalar, not
+a per-member map**, so the consumer role stays LOCAL until the LAST member has the file and
+per-member progress is tracked in `deployed-versions.yaml`. Expressing partial progress in `tier:`
+REDs every not-yet-migrated member in one commit.
+
+**ONE PREMISE REFINED BY MEASUREMENT: `AGENTS.md` is HUB-ONLY across the whole fleet.** ADR-115
+made it the portable instruction layer on 2026-08-25 and **no consumer carries one**. Not a defect
+-- the row is `consumer: LOCAL` by design -- but the portable layer is not yet portable in
+practice, and any claim that "the fleet reads AGENTS.md" is a claim about one repo.
+
+**A COUPLED SURFACE FOUND BY ITS OWN GATE.** `roster-freshness` failed the first commit attempt:
+`.claude/methodology-roster.md` is generated from `deploy/manifest-v*.yaml` and reads the NEWEST
+one, so minting a v1.5.0 manifest instantly staled a fragment `CLAUDE.md` `@`-imports at session
+start. The regenerated diff is **one line** -- which is also the check that a "state-change MINOR"
+really did change no component.
+
+**Result:** N8 and N9 met. `deploy/manifest-v1.5.0.yaml` + the prep artifact land; nothing was
+tagged, no tier was flipped, no consumer repo was written to.
+
+**Changes:** `deploy/manifest-v1.5.0.yaml`, `docs/audits/2026-09-01-technical-universalization-instantiation-prep.md`, `.claude/methodology-roster.md`, `JOURNAL.md`.
+
+**Next:** drain the four live lanes, filing pass, consumption sweep, packet.
+
 ### 2026-09-01 (a) - CC (Opus 5, background job, night orchestrator): R-README lands, R-VISION is BLOCKED and now measured, and the held doctrine parks on an integrity fuse
 
 **Anchors:** `96f95652` `b2e3fc38`

@@ -1,4 +1,4 @@
-# Methodology-deployed roster — generated (manifest v1.4.0)
+# Methodology-deployed roster — generated (manifest v1.5.0)
 
 > **This is the manifest-declared DEPLOYABLE methodology corpus** — the commands /
 > hooks / config a *fully-deployed consumer* receives, generated from
