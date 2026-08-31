@@ -83,6 +83,12 @@ _SCRIPTS = Path(__file__).resolve().parent
 if str(_SCRIPTS) not in sys.path:  # importable both as a module and as a script
     sys.path.insert(0, str(_SCRIPTS))
 
+# The lane-branch enum is IMPORTED, never restated. `batch_manifest` imports the same symbol
+# for the ADR-110 exemption, so the enum leg 5 checks and the enum the exemption grants on are
+# the SAME object — which is the whole point: a copy could drift, and a drifted copy would
+# report coverage the teardown does not actually have.
+from validate_branch_naming import LANE_BRANCH_RE  # noqa: E402
+
 logging.basicConfig(format="%(name)s: %(message)s", level=logging.INFO)
 logger = logging.getLogger("validate-substrate")
 
@@ -94,6 +100,14 @@ RULE_NO_LIVE_VERB = "substrate-no-live-verb"
 RULE_CLOUD_GATE = "substrate-cloud-gate-dependent"
 RULE_OFFMACHINE_PATH = "substrate-offmachine-operator-path"
 RULE_SECOND_LOCAL_WRITER = "substrate-second-local-writer"
+#: Leg 5 (batch E, prerequisite 0a). ADR-116 sat stranded on `claude/lane-f` until a window
+#: close because the batch teardown iterates an enum that cannot see a cloud lane. This makes
+#: that a FREEZE-time refusal rather than an integration surprise.
+RULE_TEARDOWN_ENUM = "substrate-teardown-enum-coverage"
+#: Leg 6 (batch E, CUT-3(c)). The cut collapsed two colliding doctrine lanes into one and
+#: stripped a file from a third's scope; it then required that disjointness be RE-VERIFIED
+#: here at freeze rather than asserted in prose. This is that verification.
+RULE_WRITE_SCOPE_DISJOINT = "substrate-lane-write-scope-disjoint"
 RULE_UNKNOWN_OVERRIDE = "substrate-unknown-override"
 
 #: Order is the intake's own. This tuple IS the checkable surface — a new leg enters it
@@ -103,6 +117,8 @@ RULE_IDS: tuple[str, ...] = (
     RULE_CLOUD_GATE,
     RULE_OFFMACHINE_PATH,
     RULE_SECOND_LOCAL_WRITER,
+    RULE_TEARDOWN_ENUM,
+    RULE_WRITE_SCOPE_DISJOINT,
     RULE_UNKNOWN_OVERRIDE,
 )
 
@@ -289,6 +305,20 @@ _PAIRING_BRANCH_RE = re.compile(
 
 PRIMARY_CHECKOUT = "<primary checkout>"
 
+#: The write-scope section heading. `(frozen)` is the live spelling but is not required — a
+#: contract that drops the parenthetical still declares a scope, and refusing to read it would
+#: make leg 6 silently vacuous, which is the green-by-skip class `[#583]` sweeps for.
+_SCOPE_HEADING_RE = re.compile(r"^ {0,3}#{1,6}\s*Write[- ]scope\b.*$", re.I | re.M)
+
+#: A backticked token inside the write-scope section that is shaped like a repo path. A bare
+#: word in backticks (a rule id, a verb, a flag) is not a path and must not create a phantom
+#: intersection: the token has to carry a `/` or a `.` and use path characters only.
+_SCOPE_PATH_RE = re.compile(r"`([A-Za-z0-9_][A-Za-z0-9_./-]*)`")
+
+#: The literal a read-only lane writes instead of paths. Matched case-insensitively on the
+#: word alone, because the live spelling carries an em-dash clause after it.
+_SCOPE_NONE_RE = re.compile(r"\bNONE\b")
+
 
 def declared_substrate(text: str) -> Optional[str]:
     """The substrate a contract declares, lower-cased, or None when it declares none.
@@ -344,6 +374,37 @@ def checkout_key(text: str, substrate: Substrate) -> str:
         return PRIMARY_CHECKOUT
     match = _PAIRING_BRANCH_RE.search(text)
     return match.group("branch").strip() if match else PRIMARY_CHECKOUT
+
+
+def lane_branch(text: str) -> Optional[str]:
+    """The lane branch a contract pairs itself to, or None when it declares no pairing.
+
+    Distinct from `checkout_key`, which answers *which checkout writes* and collapses the
+    shared-checkout shape onto one key. Leg 5 needs the branch NAME as written, because the
+    question it asks is whether the teardown enum can match that name.
+    """
+    match = _PAIRING_BRANCH_RE.search(text)
+    return match.group("branch").strip() if match else None
+
+
+def write_scope_paths(text: str) -> set[str]:
+    """The repo paths a contract declares it will write, as a set.
+
+    Scoped to the Write-scope section deliberately: a path named in the Steps, in a Done-when
+    or in a "what NOT to do" bullet is a *reference*, not a claim to write it, and treating
+    those as scope would make every contract collide with every other one.
+
+    A scope of NONE returns the empty set, so read-only census lanes intersect with nothing.
+    """
+    heading = _SCOPE_HEADING_RE.search(text)
+    if heading is None:
+        return set()
+    start = heading.end()
+    nxt = _ANY_HEADING_RE.search(text, start)
+    body = text[start:nxt.start()] if nxt else text[start:]
+    if _SCOPE_NONE_RE.search(body):
+        return set()
+    return {tok for tok in _SCOPE_PATH_RE.findall(body) if "/" in tok or "." in tok}
 
 
 # --- the four legs -------------------------------------------------------------------------
@@ -421,6 +482,27 @@ def validate_contract(text: str, *, source: str,
                         f"operator's machine, and names {', '.join(hits)} — the transport "
                         f"cannot reach it")), overrides))
 
+    # --- leg 5: the teardown enum must be able to SEE this lane ----------------------------
+    #
+    # `LANE_BRANCH_RE` matches `worktree-lane-*` and nothing else, so a `claude/<slug>` cloud
+    # lane or a codespace lane is invisible both to the ADR-110 exemption and to any teardown
+    # that iterates it. ADR-116 is the witness: it sat stranded on `claude/lane-f` until a
+    # window close. Refusing at FREEZE is cheaper than discovering it at integration.
+    #
+    # HONEST LIMIT: this checks the branch NAME against the enum. It cannot check that a
+    # teardown actually ran — only that the lane is of a shape an enum-iterating teardown
+    # could reach. A manifest that enumerates the lane by name discharges it, and that is
+    # what the recorded deviation is for.
+    branch = lane_branch(text)
+    if branch is not None and not LANE_BRANCH_RE.match(branch):
+        out.append(_apply_override(Refusal(
+            rule=RULE_TEARDOWN_ENUM, source=source, substrate=name,
+            detail=(f"pairs to branch {branch!r}, which `LANE_BRANCH_RE` does not match — "
+                    f"the batch teardown and the ADR-110 exemption both iterate that enum, "
+                    f"so this lane is invisible to both (ADR-116 / `claude/lane-f`). Declare "
+                    f"the lane in the manifest and record the deviation, or pair it to a "
+                    f"`worktree-lane-*` branch")), overrides))
+
     return out
 
 
@@ -455,6 +537,32 @@ def validate_batch(contracts: Mapping[str, str], *,
             detail=(f"{len(sources)} local lanes write in checkout {key!r} "
                     f"({', '.join(sources)}) — PLAYBOOK Ch8's concurrency ceiling is one "
                     f"WRITER per checkout; parallelism only across worktrees")), overrides))
+
+    # --- leg 6: declared write-scopes must not intersect ------------------------------------
+    #
+    # Batch E's cut collapsed two colliding doctrine lanes into one and stripped a file from a
+    # third's scope, then required the disjointness be re-verified HERE rather than asserted in
+    # prose. Pairwise because the report has to name WHICH two lanes and WHICH file: a single
+    # "some scopes overlap" finding is not actionable at freeze.
+    #
+    # HONEST LIMIT: this compares DECLARED scopes. A lane that writes outside its declaration
+    # is a different defect and this leg cannot see it — layer 1's docstring makes the same
+    # admission about footprint claims, and it is still true here.
+    scopes = {source: write_scope_paths(text) for source, text in contracts.items()}
+    ordered = list(contracts)
+    for i, left in enumerate(ordered):
+        for right in ordered[i + 1:]:
+            shared = scopes[left] & scopes[right]
+            if not shared:
+                continue
+            overrides = dict(declared_overrides(contracts[left]))
+            overrides.update(declared_overrides(contracts[right]))
+            out.append(_apply_override(Refusal(
+                rule=RULE_WRITE_SCOPE_DISJOINT, source=f"{left}, {right}",
+                detail=(f"declared write-scopes intersect on {', '.join(sorted(shared))} — "
+                        f"two lanes writing one file is a merge conflict the batch has "
+                        f"already decided to have; chain them into ONE lane or move the "
+                        f"file out of one scope")), overrides))
 
     return out
 

@@ -64,6 +64,25 @@ AUDITS_RELPATH = "docs/audits"
 #: of an already-executed dispatch. The date this check armed.
 ARM_DATE = _dt.date(2026, 8, 27)
 
+#: PER-LEG arm dates, for legs added AFTER this check armed. A leg written today cannot
+#: honestly gate a contract dispatched last week: the contract is a RECORD, and editing it to
+#: satisfy a validator written afterwards falsifies what was dispatched — the same ruled basis
+#: as `lane-contract-check`'s batch-1 grandfather (architect, 2026-08-21).
+#:
+#: Legs 5 and 6 arrived at batch E's freeze (prerequisite 0a and CUT-6) and arm on 2026-09-01,
+#: the day AFTER they were written, so that every contract already in the tree — including
+#: batch E's own tier-(A) contracts, dispatched hours before the legs existed — is grandfathered
+#: debt that is COUNTED IN THE EVIDENCE LINE rather than silently dropped.
+#:
+#: This grandfather scopes the COMMIT-TIME sweep only. At FREEZE the legs are fully armed:
+#: `validate_substrate.validate_batch` is called directly on the batch being frozen, which is
+#: the moment CUT-6 puts them at. Same logic module, two scopes — continuous conformance over
+#: the committed corpus, and a gate over the batch about to dispatch.
+LEG_ARM_DATES: dict[str, _dt.date] = {
+    _vsub.RULE_TEARDOWN_ENUM: _dt.date(2026, 9, 1),
+    _vsub.RULE_WRITE_SCOPE_DISJOINT: _dt.date(2026, 9, 1),
+}
+
 #: The in-tree launch-contract home's directory-name shape (PLAYBOOK Ch8, "Where the contract
 #: file lives"). The leading date is the contract's landing date.
 _LAUNCH_DIR_RE = re.compile(r"^(?P<date>\d{4}-\d{2}-\d{2})-.*-launch-contracts$")
@@ -97,13 +116,27 @@ def _contract_date(path: Path, audits_dir: Path) -> _dt.date | None:
 
 
 def _corpus(audits_dir: Path) -> list[Path]:
-    """Every committed lane contract, deduplicated and ordered."""
-    found: set[Path] = set()
-    for directory in audits_dir.iterdir():
-        if directory.is_dir() and _LAUNCH_DIR_RE.match(directory.name):
-            found.update(p for p in directory.glob("*.md") if p.is_file())
-    found.update(p for p in audits_dir.rglob("LANE-*.md") if p.is_file())
-    return sorted(found)
+    """Every committed lane CONTRACT, deduplicated and ordered.
+
+    NARROWED 2026-08-31 (batch E) from `*.md` to `LANE-*.md`, and the reason is a measured
+    false positive rather than a preference. A launch-contracts directory holds more than
+    contracts: batch E landed a `PLAN.md` (the derivation) and a `CUT.md` (the ruling) beside
+    its seven contracts, and the old glob read both as contracts. `CUT.md` was REFUSED for
+    "declares no substrate" — a true statement about a file that should never have been asked,
+    because a ruling is not a lane. Worse, `PLAN.md` PASSED for the wrong reason: its lane list
+    quotes `substrate: LOCAL` inside a fenced block, which the prose fallback parsed as a real
+    declaration. A gate that refuses one non-contract and green-lights another on a quoted
+    string is measuring the wrong corpus in both directions.
+
+    `LANE-*.md` is the name shape `gen_lane_contract` emits, and it is the SAME shape the
+    sibling `lane-contract-check` pre-commit hook globs on. Two gates over one corpus now agree
+    on what that corpus is.
+
+    HONEST LIMIT: a contract that is not named `LANE-*.md` is invisible here. That is the trade
+    — the batch-1 contracts (`*-lane-contract.md`, directly under `docs/audits/`) were already
+    outside both globs and are grandfathered by ruling anyway.
+    """
+    return sorted(p for p in audits_dir.rglob("LANE-*.md") if p.is_file())
 
 
 def check_substrate_declaration(repo_path: Path) -> list[Finding]:
@@ -137,6 +170,7 @@ def check_substrate_declaration(repo_path: Path) -> list[Finding]:
 
     out: list[Finding] = []
     gated: dict[str, str] = {}
+    landed_at: dict[str, _dt.date] = {}
     grandfathered = 0
     for path in paths:
         rel = path.relative_to(repo_path).as_posix()
@@ -150,6 +184,7 @@ def check_substrate_declaration(repo_path: Path) -> list[Finding]:
         if landed < ARM_DATE:
             grandfathered += 1
             continue
+        landed_at[rel] = landed
         try:
             gated[rel] = path.read_text(encoding="utf-8")
         except OSError as exc:
@@ -160,14 +195,27 @@ def check_substrate_declaration(repo_path: Path) -> list[Finding]:
                                f"{rel} is not valid UTF-8 ({exc}), so it was not "
                                f"validated".replace("|", "/")))
 
+    leg_grandfathered = 0
     for refusal in _vsub.validate_batch(gated, registry=registry):
+        leg_arm = LEG_ARM_DATES.get(refusal.rule)
+        if leg_arm is not None:
+            # A multi-source refusal (leg 6 names a PAIR) is grandfathered when EITHER side
+            # predates the leg: the pair contains a record that cannot be edited, so the
+            # finding is undischargeable by any act this repo permits.
+            sources = [s.strip() for s in refusal.source.split(",")]
+            if any(landed_at.get(s, _dt.date.min) < leg_arm for s in sources):
+                leg_grandfathered += 1
+                continue
         status = "fail" if refusal.severity == _vsub.SEVERITY_REFUSE else "warn"
         out.append(Finding(CHECK_NAME, status, refusal.render().replace("|", "/")))
 
     if not out:
+        legs = ", ".join(sorted(LEG_ARM_DATES))
         out.append(Finding(CHECK_NAME, "pass",
                            f"{len(gated)} lane contract(s) landed on/after "
                            f"{ARM_DATE.isoformat()} agree with their declared substrate "
                            f"({grandfathered} earlier contract(s) grandfathered as records "
-                           f"of an already-executed dispatch)"))
+                           f"of an already-executed dispatch; {leg_grandfathered} finding(s) "
+                           f"from later-armed legs [{legs}] grandfathered as debt — those "
+                           f"legs are fully armed at FREEZE)"))
     return out

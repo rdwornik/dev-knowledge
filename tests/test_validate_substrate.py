@@ -302,11 +302,15 @@ def test_every_refusal_names_the_rule_it_fired_on(registry):
 
 
 def test_rule_ids_are_the_closed_checkable_surface():
+    """Legs 5 and 6 entered this tuple at batch E's freeze (0a and CUT-6), deliberately —
+    which is exactly what this pin exists to force: a new leg cannot arrive silently."""
     assert vs.RULE_IDS == (
         vs.RULE_NO_LIVE_VERB,
         vs.RULE_CLOUD_GATE,
         vs.RULE_OFFMACHINE_PATH,
         vs.RULE_SECOND_LOCAL_WRITER,
+        vs.RULE_TEARDOWN_ENUM,
+        vs.RULE_WRITE_SCOPE_DISJOINT,
         vs.RULE_UNKNOWN_OVERRIDE,
     )
 
@@ -382,3 +386,162 @@ def test_shape_declaration_requires_BOTH_backticks():
     """
     assert vs.declared_substrate("**Shape:** `local\n") is None
     assert vs.declared_substrate("**Shape:** local`\n") is None
+
+
+# --- LEG 5: teardown-enum coverage (batch E, 0a / CUT-6) --------------------
+#
+# ADR-116 sat stranded on `claude/lane-f` until a window close, because the batch teardown
+# iterates an enum that cannot see a cloud lane: `LANE_BRANCH_RE` matches `worktree-lane-*`
+# only, so `claude/<slug>` and codespace lanes are invisible to it AND to the ADR-110
+# exemption. This leg makes that a FREEZE-TIME refusal instead of an integration surprise.
+
+
+def _cloud_shape() -> str:
+    return "**Shape:** `cloud`"
+
+
+def test_leg5_refuses_a_lane_whose_branch_shape_the_teardown_enum_cannot_see(registry):
+    """A cloud lane on `claude/<slug>` is outside `LANE_BRANCH_RE` — REFUSE at freeze."""
+    text = _contract(
+        shape_line=_cloud_shape(),
+        pairing="slug `lane-f-0-x` -> branch `claude/lane-f-0-x` -> contract `LANE-f-0-x.md`",
+    )
+    refusals = vs.validate_contract(text, source="F.md", registry=registry)
+    assert vs.RULE_TEARDOWN_ENUM in [r.rule for r in refusals]
+    fired = [r for r in refusals if r.rule == vs.RULE_TEARDOWN_ENUM][0]
+    assert fired.severity == vs.SEVERITY_REFUSE
+    assert "claude/lane-f-0-x" in fired.detail
+
+
+def test_leg5_passes_a_lane_the_enum_does_cover(registry):
+    """`worktree-lane-a-1-x` matches the enum, so teardown can iterate it. No refusal."""
+    text = _contract(shape_line="**Shape:** `local`")
+    assert vs.RULE_TEARDOWN_ENUM not in [
+        r.rule for r in vs.validate_contract(text, source="F.md", registry=registry)]
+
+
+def test_leg5_is_dischargeable_by_a_recorded_deviation_never_a_silent_pass(registry):
+    """`[#591]`'s done-when: an override is an explicit RECORDED deviation, never a silent
+    pass. The refusal is downgraded to WARN and KEPT, carrying its reason."""
+    text = _contract(
+        shape_line=_cloud_shape(),
+        pairing="slug `lane-f-0-x` -> branch `claude/lane-f-0-x` -> contract `LANE-f-0-x.md`",
+        body=("**Substrate deviation:** `substrate-teardown-enum-coverage` — the batch "
+              "manifest enumerates this cloud lane by name and the teardown iterates the "
+              "manifest rather than the branch regex.\n"),
+    )
+    fired = [r for r in vs.validate_contract(text, source="F.md", registry=registry)
+             if r.rule == vs.RULE_TEARDOWN_ENUM]
+    assert len(fired) == 1, "the refusal is downgraded, never removed"
+    assert fired[0].severity == vs.SEVERITY_WARN
+    assert fired[0].overridden is True
+
+
+# --- LEG 6: write-scope disjointness (batch E, CUT-3(c) / CUT-6) ------------
+#
+# CUT-3 collapsed DC-2+DC-3 into one lane and stripped CLAUDE.md from DC-1's scope so the
+# doctrine lanes are genuinely file-disjoint. CUT-3(c) requires that be RE-VERIFIED through
+# `[#591]` at freeze rather than asserted, which is what this leg does.
+
+
+def _scoped(paths: str, *, pairing: str, shape: str = "**Shape:** `local`") -> str:
+    return _contract(
+        shape_line=shape, pairing=pairing,
+        body=f"## Write-scope (frozen)\n\n{paths}\n")
+
+
+def test_leg6_refuses_two_lanes_in_one_batch_whose_write_scopes_intersect(registry):
+    batch = {
+        "DC-1.md": _scoped(
+            "- `README.md`\n- `scripts/canonical_docs.py`",
+            pairing="slug `lane-dc-1-x` -> branch `worktree-lane-dc-1-x` -> "
+                    "contract `LANE-dc-1-x.md`"),
+        "DC-23.md": _scoped(
+            "- `CLAUDE.md`\n- `scripts/canonical_docs.py`",
+            pairing="slug `lane-dc-23-x` -> branch `worktree-lane-dc-23-x` -> "
+                    "contract `LANE-dc-23-x.md`"),
+    }
+    fired = [r for r in vs.validate_batch(batch, registry=registry)
+             if r.rule == vs.RULE_WRITE_SCOPE_DISJOINT]
+    assert len(fired) == 1
+    assert fired[0].severity == vs.SEVERITY_REFUSE
+    assert "scripts/canonical_docs.py" in fired[0].detail
+    assert "DC-1.md" in fired[0].source and "DC-23.md" in fired[0].source
+
+
+def test_leg6_admits_the_post_cut_shape_where_DC1_dropped_claude_md(registry):
+    """The cut's own arrangement must PASS, or the leg is testing nothing about it."""
+    batch = {
+        "DC-1.md": _scoped(
+            "- `README.md`\n- `VISION.md`",
+            pairing="slug `lane-dc-1-x` -> branch `worktree-lane-dc-1-x` -> "
+                    "contract `LANE-dc-1-x.md`"),
+        "DC-23.md": _scoped(
+            "- `CLAUDE.md`\n- `protocols/PLAYBOOK.md`",
+            pairing="slug `lane-dc-23-x` -> branch `worktree-lane-dc-23-x` -> "
+                    "contract `LANE-dc-23-x.md`"),
+    }
+    assert [r for r in vs.validate_batch(batch, registry=registry)
+            if r.rule == vs.RULE_WRITE_SCOPE_DISJOINT] == []
+
+
+def test_leg6_ignores_a_write_scope_of_NONE(registry):
+    """Read-only census lanes declare NONE. Two of them intersect on nothing."""
+    batch = {
+        "A1.md": _scoped("**NONE — this lane writes no tree file.**",
+                         pairing="slug `lane-a1-x` -> branch `worktree-lane-a1-x` -> "
+                                 "contract `LANE-a1-x.md`"),
+        "A2.md": _scoped("**NONE — this lane writes no tree file.**",
+                         pairing="slug `lane-a2-x` -> branch `worktree-lane-a2-x` -> "
+                                 "contract `LANE-a2-x.md`"),
+    }
+    assert [r for r in vs.validate_batch(batch, registry=registry)
+            if r.rule == vs.RULE_WRITE_SCOPE_DISJOINT] == []
+
+
+def test_both_new_legs_are_in_the_closed_rule_surface():
+    """RULE_IDS is the checkable surface — a new leg enters it deliberately."""
+    assert vs.RULE_TEARDOWN_ENUM in vs.RULE_IDS
+    assert vs.RULE_WRITE_SCOPE_DISJOINT in vs.RULE_IDS
+    assert len(vs.RULE_IDS) == len(set(vs.RULE_IDS))
+
+
+# --- the ADAPTER's scoping of the two later-armed legs ----------------------
+#
+# The logic module is armed unconditionally (above). The commit-time ADAPTER scopes the two
+# legs that arrived after it did, because a leg written today cannot honestly gate a contract
+# dispatched before it existed. Both properties are asserted here so neither can drift.
+
+
+def test_adapter_grandfathers_the_two_later_armed_legs_by_their_own_date():
+    """Legs 5 and 6 carry their own arm date, LATER than the check's, and both are in the map.
+
+    Without this the commit gate REDs on the whole already-executed corpus — measured: 14
+    findings across batch D's and batch E's committed contracts, none of them dischargeable
+    without editing a record of a dispatch that already happened.
+    """
+    from audit_checks import check_substrate_declaration as adapter
+
+    assert set(adapter.LEG_ARM_DATES) == {vs.RULE_TEARDOWN_ENUM, vs.RULE_WRITE_SCOPE_DISJOINT}
+    for rule, armed in adapter.LEG_ARM_DATES.items():
+        assert armed > adapter.ARM_DATE, (
+            f"{rule} must arm AFTER the check itself, or it retro-gates the corpus")
+
+
+def test_adapter_corpus_is_lane_contracts_only_not_every_md_in_the_directory():
+    """A launch-contracts directory holds rulings and plans too; only `LANE-*.md` is a contract.
+
+    Batch E is the witness in BOTH directions: `CUT.md` (a ruling) was REFUSED for declaring no
+    substrate, and `PLAN.md` PASSED because its lane list quotes `substrate: LOCAL` inside a
+    fenced block. Neither file is a lane.
+    """
+    from audit_checks import check_substrate_declaration as adapter
+
+    audits = vs.repo_root() / adapter.AUDITS_RELPATH
+    if not audits.is_dir():                      # child-repo-safe, same as the check itself
+        pytest.skip("no docs/audits/ in this repo")
+    names = {p.name for p in adapter._corpus(audits)}
+    assert names, "the corpus must not be empty on the hub"
+    assert all(n.startswith("LANE-") for n in names), sorted(n for n in names
+                                                            if not n.startswith("LANE-"))
+    assert "CUT.md" not in names and "PLAN.md" not in names

@@ -81,19 +81,29 @@ ARCS: tuple[dict, ...] = (
                     "rather than the doctrine."),
         done_when=("Every ADR-104 member carries the ruled corpus at a declared version, and "
                    "fleet_parity reports zero undeclared divergence across them."),
-        # THE HERMETIZATION ORDER (operator direction, 2026-08-31; filed as the `.CLAUDE
-        # GOVERNANCE MODEL` amendment to intake #62). The arc's members are selected by theme,
-        # as everywhere else in this file; what is DECLARED here is the ORDER the wave ships in.
-        # A rival sixth arc was deliberately NOT created: arc membership is a theme selector, so
-        # a second arc sharing [E6]/[E9] would double-count every row in both and make both
-        # counts wrong. Amending this arc is the reconcile-before-birth act.
-        sequence=("batch E -> engine ratification -> win-tooling full cycle -> monorepo -> "
-                  "ai-council (the HERMETIZATION order, for the `.CLAUDE` governance corpus). "
-                  "CONFLICT NAMED, NOT RESOLVED: batch E's DC-1 records a ruled order of "
-                  "hub -> monorepo -> ai-council -> win-tooling for the VISION -> README "
-                  "migration carrier - win-tooling LAST, not first. Different payloads, both "
-                  "recorded; two fleet orders inside one batch is a coordination hazard and the "
-                  "choice is the architect's cut."),
+        # THE MIGRATION ORDER. Operator-ruled 2026-08-31 (batch E, CUT-1), SUPERSEDING the
+        # "CONFLICT NAMED, NOT RESOLVED" text this field carried between b3f489b5 and the cut.
+        # The arc's members are selected by theme, as everywhere else in this file; what is
+        # DECLARED here is the ORDER the wave ships in. A rival sixth arc was deliberately NOT
+        # created: arc membership is a theme selector, so a second arc sharing [E6]/[E9] would
+        # double-count every row in both and make both counts wrong.
+        #
+        # THE TWO SEQUENCES WERE NEVER RIVALS, and the ruling dissolves rather than adjudicates
+        # them: INSTANTIATION order and MIGRATION order are different things. win-tooling is
+        # FIRST instantiated (it carries the engine; DC-5 uses its template as the precedent for
+        # consumer #2) and LAST migrated (most mature, so best able to wait, and the member where
+        # a mid-re-genre ship would cost most). Recorded because the field previously read as a
+        # contradiction, and a sequence that reads as a contradiction gets resolved silently by
+        # whoever ships first.
+        sequence=("hub -> monorepo -> ai-council -> win-tooling (operator-ruled 2026-08-31, "
+                  "batch E CUT-1: this is the MIGRATION order, for the consolidated-doctrine "
+                  "corpus). win-tooling being LAST here does NOT roll back its status as the "
+                  "FIRST INSTANTIATED consumer - the floor stays, and DC-5 instantiates "
+                  "ai-council from win-tooling's template. SUPERSEDES the HERMETIZATION order "
+                  "recorded on this field 2026-08-31 (batch E -> engine ratification -> "
+                  "win-tooling full cycle -> monorepo -> ai-council), which stated the "
+                  "INSTANTIATION sequence, not the migration one. Full ruling: "
+                  "docs/audits/2026-08-31-technical-batche-launch-contracts/CUT.md CUT-1."),
         contract=("intake #38 (the root-contract) - amended 2026-08-30; R18 stays parked on "
                   "tested conditions rather than on silence"),
     ),
