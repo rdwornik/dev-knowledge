@@ -225,6 +225,15 @@ try:
 except ImportError:
     import canonical_freshness_gate as _cfg
 
+# The canonical-doc-name registry (CLOUD-4 v2). `[#614]` HY-1 reads its `is_living_doc`
+# predicate for the derived-freshness leg below. Same dual-mode shape as every sibling import
+# here, for the same reason: `python scripts/audit.py` and `python -m scripts.audit` must
+# resolve ONE spelling or the module ends up loaded twice under two sys.modules keys.
+try:
+    from scripts import canonical_docs as _cdocs
+except ImportError:
+    import canonical_docs as _cdocs
+
 # Generated-artifact staleness leg (ADR-86 as amended 2026-08-23; `[#171]` leg 1 / f7). Exactly
 # the relationship this module already has with `_cfg` above: the relation lives in ONE module,
 # and the leg below only wraps its verdict in the Finding envelope. Dual-mode import for the
@@ -721,6 +730,695 @@ _git_last_commit_date = _cfg.git_last_commit_date
 _gaf_git_last_commit_date = _gaf.git_last_commit_date
 
 
+# ---------------------------------------------------------------------------
+# Freshness DERIVED from git, for every living doc (`[#614]` batch-E HY-1)
+# ---------------------------------------------------------------------------
+#
+# WHAT IT REPLACES. `last_reviewed` is a hand-typed date, and a hand-maintained date lies by
+# construction — its failure mode is not that it is wrong but that NOTHING binds the assertion
+# to the artifact reviewed. The A1/A2 legs above compare that date to `git log -1`, which buys
+# two things and misses three:
+#
+#   it catches   a stamp older than the file's newest commit, on the NINE files someone
+#                remembered to enrol in `_FRESHNESS_FILES`;
+#   it misses    (a) same-day drift — `%as` is DAY-granular and `evaluate()` fails only when
+#                    `reviewed < git_date`, so content committed LATER THE SAME DAY as the
+#                    stamp passes. `docs/audits/2026-08-31-census-doc-freshness-derivation.md`
+#                    §3 measured 4 of the 9 GATED files carrying unreviewed content the gate
+#                    scores fresh — including the CLAUDE.md re-genre that deleted 15,657 bytes,
+#                    40% of the file, after the stamp asserting it had been read end-to-end;
+#                (b) the whole UNGATED class — 4 living docs stale, 2 to 53 days, watched by
+#                    nothing;
+#                (c) the 26 living docs carrying NO stamp at all, the largest class, which the
+#                    A1/A2 leg turns into one undifferentiated WARN per file and never itemises.
+#
+# THE DERIVATION IS ADDITIVE, and that is A4's single most important constraint on this leg.
+# `last_reviewed := last_commit_date` is NOT a review stamp — it is an mtime, and it would
+# report every file permanently fresh, because derivation measures EDITS and a review that
+# changes nothing leaves no commit. So the explicit reviewer record stays; what is derived is
+# the COMPARISON TARGET — the date of the last commit that actually changed the doc's content.
+#
+# HONEST LIMITS, stated here rather than discovered later:
+#   * It measures edits against a review, never CONTENT against a decision. A doc fully current
+#     against git can be badly drifted against a new ADR that never touched its bytes — the
+#     same limit `check_canonical_freshness` already states for A2, unchanged by derivation.
+#   * `--name-only` reports no paths for a merge commit (git shows no diff for merges by
+#     default), so a conflict RESOLUTION that only exists in a merge commit is invisible here.
+#     That biases toward under-reporting on merge-resolved edits; it is the one direction this
+#     leg is not conservative in, and it is named rather than hidden.
+#   * The commit walk follows the CURRENT path. A doc renamed in its history dates from the
+#     rename, not from before it — exactly what `git log -1` already did.
+
+SURFACE_FRONTMATTER = "frontmatter"
+SURFACE_PROSE = "prose"
+SURFACE_NONE = "none"
+
+# The TOUCH predicates, and the enum is STRUCTURAL ONLY — there is deliberately no fourth
+# "mechanical regeneration" predicate keyed on the commit SUBJECT. A4's design draft carried
+# one and then ruled it out of anything shipped, because under derivation a misclassification
+# silently marks a doc FRESH, and a commit subject is author-controlled free text: keying a
+# freshness verdict on it hands the author a one-line way to buy the verdict. Structural
+# predicates cost more false-STALE, which is the safe direction.
+TOUCH_WHITESPACE = "whitespace-only"        # T1 - empty under whitespace-blindness
+TOUCH_FRONTMATTER = "frontmatter-only"      # T2 - the re-stamp / version-bump commit
+TOUCH_STAMP_LINE = "stamp-line-only"        # T3 - a prose stamp bump outside frontmatter
+
+# The classes A4 §3 separates. The THIRD is what funds this leg: it is the part no gate
+# watches. The fifth is not a class A4 names — it is the residue that makes the partition
+# total, so every living doc lands in exactly one bucket and none is silently unreported.
+CLASS_GATED_STALE = "gated-and-stale"
+CLASS_GATED_FRESH = "gated-and-fresh"
+CLASS_UNGATED_STALE = "ungated-and-stale"
+CLASS_UNGATED_FRESH = "ungated-and-fresh"
+CLASS_UNSTAMPED = "ungated-and-unstamped"
+
+# How far back the TOUCH walk goes before it gives up and reports the newest commit instead.
+# A cap is needed because the walk is unbounded in principle; 25 is far past the longest TOUCH
+# run measured (A4: 16 TOUCH commits on ARCHITECTURE.md across 167, and never consecutive).
+# Exhausting it over-reports staleness, which is the safe direction, and says so in the row.
+_DERIVED_WALK_CAP = 25
+
+# `> Last updated: 2026-08-01` (PLAYBOOK, ENVIRONMENT) and `**Last updated:** 2026-08-26`
+# (CLAUDE.md's footer, OPERATOR-INTERFACE). A4 admitted the prose surface deliberately: THREE
+# of the four ungated-stale docs declare only in prose, so without it PLAYBOOK -- this leg's
+# own subject -- has no declared value to compare and would misreport as unstamped.
+_PROSE_STAMP_RE = re.compile(
+    r"^[>\s]*(?:\*\*)?Last updated:?(?:\*\*)?\s*:?\s*(\d{4}-\d{2}-\d{2})",
+    re.IGNORECASE | re.MULTILINE)
+
+# T3's line grammar. Deliberately NARROW -- the four keys A4 measured, nothing widened to
+# `status:`/`owner:`/`effective:`. A wider grammar excuses more commits as TOUCH, and every
+# commit wrongly excused is a doc reported fresh that nobody read.
+_STAMP_LINE_RE = re.compile(
+    r"^\s*(?:<!--\s*)?(?:>\s*)?(?:[-*]\s+)?(?:\*\*)?"
+    r"(?:last_reviewed|reconciled_with|version|last updated)"
+    r"(?:\*\*)?\s*:", re.IGNORECASE)
+
+# `@@ -old,oldcount +new,newcount @@` with `--unified=0`; the counts are omitted when 1.
+_HUNK_RE = re.compile(r"^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@")
+
+# Could this changed line possibly BE a frontmatter line? `---`, or a YAML `key:` mapping.
+# A cheap, SOUND pre-filter for T2 -- see `_classify_touch` for why it earns its place.
+_YAML_ISH_RE = re.compile(r"^\s*(?:---\s*$|[A-Za-z_][A-Za-z0-9_.-]*\s*:)")
+
+# The two PROSE version spellings: `Version: 6.3.0` (HANDOFF_PROCESS) and the
+# `<!-- version: 2.69 - ... -->` sentinel (CLAUDE.md). The frontmatter spellings are read
+# through the YAML parse instead of by regex, so a `version:` line inside a fenced code block
+# further down the file cannot be mistaken for the doc's own version claim.
+_PROSE_VERSION_RES = (
+    re.compile(r"^Version:\s*(\S+)\s*$", re.MULTILINE),
+    re.compile(r"^<!--\s*version:\s*(\S+)", re.MULTILINE | re.IGNORECASE),
+)
+
+
+class DerivationUnavailable(RuntimeError):
+    """The ground truth does not exist here — no git, or not a git repo.
+
+    A LEGITIMATE `n/a`: a non-git consumer has no commit history to derive from, and saying so
+    is a true answer. Distinct from `DerivationRefused` below, and the distinction is the whole
+    point of having two exceptions."""
+
+
+class DerivationRefused(RuntimeError):
+    """The ground truth EXISTS and is lying — the clone is shallow.
+
+    Rendered `fail`, never `unavailable`, on the Z-G4 rule `check_intake_lifecycle` states:
+    `_STATUS_LABEL` renders `unavailable` as "N/A" and `_check_outcome` projects it onto `pass`,
+    so an unavailable verdict SHIPS GREEN having measured nothing. A4 witnessed this failure
+    live — under a graft at 2026-08-25 its own first pass mis-dated `protocols/ESSENTIALS.md`
+    and 14 other files, silently. A date compare degrades quietly on a shallow clone; a
+    history-walking derivation must refuse instead."""
+
+
+@dataclass(frozen=True)
+class DocFreshness:
+    """One living doc's declared-vs-derived freshness row. The doctrine table's record type."""
+    path: str
+    declared: Optional[date]
+    surface: str
+    derived: Optional[date]
+    derived_sha: Optional[str]
+    touch_skipped: int
+    refined: bool
+    gated: bool
+    version: Optional[str]
+    doc_class: str
+    stamp_sha: Optional[str] = None      # the commit that SET the current declared stamp
+    unreviewed_after_stamp: int = 0      # CONTENT commits ordered after it - the same-day hole
+
+    @property
+    def delta_days(self) -> Optional[int]:
+        """Derived minus declared, in days. Positive = content is newer than its review."""
+        if self.declared is None or self.derived is None:
+            return None
+        return (self.derived - self.declared).days
+
+    def brief(self) -> str:
+        """The short form the GATE lists members with -- path plus the one number that names
+        the problem. The full `row()` is the on-demand `audit.py doc-freshness` surface: a
+        Finding whose evidence carries 26 full rows renders as one unreadable table cell in
+        every daily, and the point of listing the unstamped class is that a reader can SEE
+        which docs are in it."""
+        if self.declared is None:
+            return (f"{self.path} (no stamp; last content "
+                    f"{self.derived.isoformat() if self.derived else '-'})")
+        if self.unreviewed_after_stamp:
+            return (f"{self.path} (declared {self.declared.isoformat()} [{self.surface}] at "
+                    f"{(self.stamp_sha or '-')[:9]}; {self.unreviewed_after_stamp} CONTENT "
+                    f"commit(s) landed AFTER it on the same date - invisible to the date "
+                    f"compare)")
+        return (f"{self.path} (declared {self.declared.isoformat()} [{self.surface}] -> derived "
+                f"{self.derived.isoformat() if self.derived else '-'}, +{self.delta_days}d)")
+
+    def row(self) -> str:
+        """One flat, pipe-free line. Pipe-free is a CONTRACT, not a style choice:
+        `Finding.evidence` is markdown-table-safe and every emitter replaces `|` with `/`."""
+        delta = self.delta_days
+        after = (f"{self.unreviewed_after_stamp} unreviewed after stamp "
+                 f"{(self.stamp_sha or '-')[:9]}  ") if self.unreviewed_after_stamp else ""
+        return (
+            f"{self.path}  version {self.version or '-'}  "
+            f"declared {self.declared.isoformat() if self.declared else '-'} ({self.surface})  "
+            f"derived {self.derived.isoformat() if self.derived else '-'} "
+            f"({(self.derived_sha or '-')[:9]}{'' if self.refined else ', unrefined'}"
+            f"{f', {self.touch_skipped} touch skipped' if self.touch_skipped else ''})  "
+            f"{'+' if delta and delta > 0 else ''}{'-' if delta is None else delta}d  "
+            f"{after}{self.doc_class}"
+        ).replace("|", "/")
+
+
+def parse_declared_freshness(text: str) -> tuple[Optional[date], str]:
+    """The date a doc DECLARES it was last reviewed, and which surface declared it.
+
+    Two surfaces exist and they are NOT interchangeable: frontmatter `last_reviewed` is
+    machine-readable and gated, a prose `> Last updated:` line is neither. Frontmatter WINS
+    where both are present (CLAUDE.md carries both; they agree today and nothing enforces that
+    they ever will) — the gated surface is the one the repo has committed to.
+    """
+    reviewed = _parse_last_reviewed(text)
+    if reviewed is not None:
+        return reviewed, SURFACE_FRONTMATTER
+    m = _PROSE_STAMP_RE.search(text)
+    if m:
+        try:
+            return date.fromisoformat(m.group(1)), SURFACE_PROSE
+        except ValueError:
+            return None, SURFACE_NONE
+    return None, SURFACE_NONE
+
+
+def _frontmatter_map(text: str) -> dict:
+    """A doc's YAML frontmatter as a mapping, or `{}` for anything unparseable.
+
+    Same tolerant contract as `canonical_freshness_gate.parse_last_reviewed`: no frontmatter,
+    an unclosed fence, a non-mapping body or a YAML error all mean "nothing declared here",
+    never an exception — a malformed header must not wedge a whole audit run.
+    """
+    if not text.startswith("---"):
+        return {}
+    parts = text.split("---", 2)
+    if len(parts) < 3:
+        return {}
+    try:
+        fm = yaml.safe_load(parts[1])
+    except yaml.YAMLError:
+        return {}
+    return fm if isinstance(fm, dict) else {}
+
+
+def parse_declared_version(text: str) -> Optional[str]:
+    """The version a doctrine doc declares, or None.
+
+    A DOC'S OWN VERSION OUTRANKS THE SPEC IT RECONCILES AGAINST, and the order matters for the
+    doctrine table: `reconciled_with: handoff-process@6.3.0` says which SPEC generation this doc
+    has been re-reasoned against — a real claim the `reconciled_versions` check gates — but it
+    is not this doc's version. Reading it first made CLAUDE.md render as `handoff-process@6.3.0`
+    when its own version is 2.69. So: own version (frontmatter, then the two prose spellings)
+    first, `reconciled_with` only as the fallback for a doc that carries no version of its own.
+
+    A PROSE VERSION IS READ FROM THE HEADER ONLY -- everything above the first `## ` heading.
+    A doc's own version is a header fact, and the whole-file search this started as read
+    `protocols/PLAYBOOK.md` as version `1.0`: PLAYBOOK carries per-SECTION
+    `<!-- version: 1.0 - 2026-04-26 -->` sentinels from line 477 down, and the first of them
+    won. The `## H2` boundary is the same structural line `CANONICAL_SPINE` keys on, not a
+    magic line count.
+    """
+    fm = _frontmatter_map(text)
+    own = fm.get("version")
+    if own is not None:
+        return str(own)
+    header = re.split(r"^## ", text, maxsplit=1, flags=re.MULTILINE)[0]
+    for pattern in _PROSE_VERSION_RES:
+        m = pattern.search(header)
+        if m:
+            return m.group(1)
+    reconciled = fm.get("reconciled_with")
+    return str(reconciled) if reconciled is not None else None
+
+
+def _derive_git(repo_path, args: list[str]) -> Optional[str]:
+    """One read-only git call under the [#396] location scrub, or None on any failure.
+
+    The scrub is not optional here: an inherited `GIT_DIR` overrides BOTH `cwd=` and `git -C`,
+    so without it this leg would date the PARENT repo's files while labelling the answer with
+    the target's paths — the [#355] class `gitenv.py` exists to close.
+    """
+    scrub = _git_location_env()
+    env = {k: v for k, v in os.environ.items() if k not in scrub}
+    try:
+        p = subprocess.run(["git", "-C", str(repo_path), *args], capture_output=True,
+                           text=True, encoding="utf-8", errors="replace", env=env)
+    except OSError:
+        return None
+    return p.stdout if p.returncode == 0 else None
+
+
+def _git_is_shallow(repo_path) -> Optional[bool]:
+    """True/False for a resolvable git repo; None when git is absent or this is not a repo."""
+    out = _derive_git(repo_path, ["rev-parse", "--is-shallow-repository"])
+    return None if out is None else out.strip() == "true"
+
+
+def _living_doc_paths(repo_path) -> list[str]:
+    """Tracked `.md` files this repo's registry classes as living docs, sorted.
+
+    Enumerated from `git ls-files`, filtered by the registry predicate — so the SET is git's
+    answer and the MEMBERSHIP RULE is `canonical_docs`'s, and neither is a list typed into a
+    doc that goes stale at the next commit.
+
+    FLEET-WIDE, NOT HUB-ONLY, AND THAT IS MEASURED RATHER THAN ASSUMED. The worry with a
+    default-INCLUDE predicate is a consumer whose tree is mostly markdown: the leg would then
+    enumerate hundreds of files and drown its own finding. Measured 2026-08-31 on the operator's
+    disk, tracked `.md` -> living docs: corp-monorepo 202 -> 28, ai-council 149 -> 14,
+    win-tooling 28 -> 20, with the batched log at 0.26-0.47 s each. The `docs/` and `tests/`
+    exclusions do the work, so no hub-only carve-out is needed and the leg travels with the
+    check the way `_FRESHNESS_FILES` already does.
+    """
+    out = _derive_git(repo_path, ["ls-files", "--", "*.md"])
+    if out is None:
+        return []
+    return sorted(p for p in out.splitlines() if p and _cdocs.is_living_doc(p))
+
+
+@dataclass(frozen=True)
+class _CommitDiff:
+    """One commit's `--unified=0 -w` diff of ONE path — everything T1/T3 need, pre-parsed."""
+    sha: str
+    when: date
+    hunks: tuple[tuple[int, int, int, int], ...]     # old_start, old_count, new_start, new_count
+    changed: tuple[str, ...]                          # the +/- lines, sign included
+    created: bool                                     # a new-file or deleted-file commit
+
+
+def _parse_unified_zero(body: str) -> tuple[tuple, tuple, bool]:
+    """`(hunks, changed_lines, created_or_deleted)` from one path's `--unified=0` diff body."""
+    hunks, changed = [], []
+    created = "new file mode " in body or "deleted file mode " in body
+    for line in body.splitlines():
+        m = _HUNK_RE.match(line)
+        if m:
+            hunks.append((int(m.group(1)), int(m.group(2) or 1),
+                          int(m.group(3)), int(m.group(4) or 1)))
+        elif line[:1] in "+-" and not line.startswith(("+++", "---")):
+            changed.append(line)
+    return tuple(hunks), tuple(changed), created
+
+
+def _classify_touch(hunks, changed, created, blobs) -> Optional[str]:
+    """The ONE CONTENT-vs-TOUCH classifier. Done-contract item 2.
+
+    A whitespace, regeneration or index-refresh commit does not invalidate a review; a delta
+    computed off `git log -1` alone counts all three as edits and over-reports. All three
+    predicates are STRUCTURAL — the commit subject is never read (see the `TOUCH_*` comment
+    above for why that is load-bearing rather than incidental).
+
+    ONE classifier, TWO feeds: `_touch_reason` feeds it a single `git show`, `_diff_index` feeds
+    it a batched `git log -p`. Both reach the same code, so the cheap path and the exact path
+    cannot drift into two different notions of "content".
+
+    `blobs` is a lazy `() -> (new_text, old_text)` — T2 is the only predicate needing them, and
+    T2 is reached only when T1 and T3 have both declined, so the blob read stays rare.
+
+    A commit that CREATES or DELETES the file is CONTENT unconditionally: a file's first
+    appearance is the largest content change it will ever have, and its frontmatter being the
+    only thing inside the diff's line range is an artefact of the file being short, not
+    evidence that nobody wrote anything.
+    """
+    if created:
+        return None
+    if not hunks and not changed:
+        return TOUCH_WHITESPACE           # T1 - empty once whitespace is ignored
+    if changed and all(not ln[1:].strip() or _STAMP_LINE_RE.match(ln[1:]) for ln in changed):
+        return TOUCH_STAMP_LINE           # T3
+    if not hunks:
+        return None
+    # T2's PRE-FILTER, and it is what keeps the ordinary case free. T2 needs the blob at this
+    # commit AND at its parent — two git processes — and it is reached on every genuine prose
+    # edit, so the commonest path was paying the most: 7.18 s for one run of this check, ~4 s of
+    # it blob reads that were always going to conclude CONTENT. A line inside YAML frontmatter
+    # is `---` or a `key:` mapping; a changed line that is neither cannot be inside frontmatter,
+    # so T2 is impossible and the blobs are never fetched.
+    #
+    # SOUND IN THE SAFE DIRECTION, which is the only reason a filter belongs in front of a
+    # correctness predicate: it can only ever make T2 decline (-> CONTENT -> a doc reported
+    # STALE), never excuse a commit as a TOUCH. The honest cost is a frontmatter change written
+    # as a YAML list item or comment, which scores CONTENT — over-reporting staleness, the
+    # direction A4 chose for this classifier throughout.
+    if not all(_YAML_ISH_RE.match(ln[1:]) or not ln[1:].strip() for ln in changed):
+        return None
+    # Every changed line at or above the closing `---`, checked against the frontmatter span of
+    # the blob AT THIS COMMIT and at its parent, never against today's file (A4's rule: today's
+    # frontmatter may be a different length than the one the commit actually edited).
+    new_blob, old_blob = blobs()
+    if new_blob is None or old_blob is None:
+        return None
+    new_end, old_end = _frontmatter_end_line(new_blob), _frontmatter_end_line(old_blob)
+    if not new_end or not old_end:
+        return None
+    for old_start, old_count, new_start, new_count in hunks:
+        if old_count and old_start + old_count - 1 > old_end:
+            return None
+        if new_count and new_start + new_count - 1 > new_end:
+            return None
+    return TOUCH_FRONTMATTER              # T2
+
+
+def _diff_index(repo_path, paths: list[str]) -> dict[str, list[_CommitDiff]]:
+    """Newest-first per-path commit diffs, from ONE batched `git log -p`.
+
+    THE WHOLE WALK IN ONE PROCESS, AND THAT IS WHAT MAKES THIS LEG AFFORDABLE AT COMMIT TIER.
+    Measured on this workstation, over the hub's 39 living docs and their 842 commits:
+
+        39 x `git log -1`                              7.63 s   (the Windows subprocess tax)
+        1 x `git log --name-only`                      0.33 s
+        1 x `git log -p --unified=0 -w`                1.11 s   <- this, 3.4 MB
+        per-commit `git show` for classification       ~0.19 s each
+
+    The first build of this leg used the `--name-only` log plus a `git show` per commit examined
+    and a `git log -S` per stamped file, and measured **9.43 s** for one
+    `check_canonical_freshness` — on the PRE-COMMIT gate. Folding dates, diffs AND the
+    stamp-setting commit into this single `-p` pass removes every one of those per-commit
+    processes: they all become string work over output already in memory. Same answers, and the
+    same lesson `build_edge_index` records about re-tokenizing per rule (14.53 s -> 0.75 s).
+
+    Author date (`%as`), not committer date, matching `git_last_commit_date`: it survives
+    rebase / cherry-pick / amend, so a row keys off when content was edited rather than when
+    history was rewritten. Merge commits carry no diff under `git log` defaults and so appear
+    here for no path — the under-reporting limit named in this section's header comment.
+
+    **GIT APPLIES T1 ITSELF HERE, and that is worth knowing before reading a row.** Under `-w
+    --ignore-blank-lines --ignore-space-at-eol` a whitespace-only commit's diff is EMPTY, and
+    `git log -p` then emits no `diff --git` header for that path at all — so the commit never
+    enters this index. That is correct for every verdict computed from it (a whitespace commit
+    is never the CONTENT commit anyone is looking for) and it is free. Two consequences to hold
+    onto: `touch_skipped` counts only the TOUCH commits the CLASSIFIER walked past, never the
+    ones git filtered out upstream; and `_classify_touch`'s T1 arm is reachable only through
+    the single-commit `_touch_reason` feed, which is why the two feeds are pinned as agreeing
+    on every commit this index DOES carry rather than on the same commit COUNT.
+    """
+    if not paths:
+        return {}
+    out = _derive_git(repo_path, [
+        "log", "--format=%x01%H %as", "-p", "-w", "--ignore-blank-lines",
+        "--ignore-space-at-eol", "--unified=0", "--", *paths])
+    if out is None:
+        return {}
+    index: dict[str, list[_CommitDiff]] = {p: [] for p in paths}
+    for record in out.split("\x01")[1:]:
+        head, _, body = record.partition("\n")
+        parts = head.split(" ", 1)
+        if len(parts) != 2:
+            continue
+        sha = parts[0]
+        try:
+            when = date.fromisoformat(parts[1].strip())
+        except ValueError:
+            continue
+        # One record can carry several paths; `diff --git a/P b/P` starts each.
+        for chunk in body.split("\ndiff --git "):
+            chunk = chunk.removeprefix("diff --git ")
+            first, _, rest = chunk.partition("\n")
+            m = re.match(r'"?a/(.+?)"? "?b/(.+?)"?$', first.strip())
+            if not m:
+                continue
+            path = m.group(2)
+            if path not in index:
+                continue
+            hunks, changed, created = _parse_unified_zero(rest)
+            index[path].append(_CommitDiff(sha, when, hunks, changed, created))
+    return index
+
+
+def _frontmatter_end_line(text: str) -> int:
+    """1-based line of the CLOSING `---`, or 0 when the blob has no frontmatter."""
+    lines = text.splitlines()
+    if not lines or lines[0].strip() != "---":
+        return 0
+    for i, line in enumerate(lines[1:], start=2):
+        if line.strip() == "---":
+            return i
+    return 0
+
+
+def _blob_pair(repo_path, sha: str, path: str):
+    """Lazy `() -> (blob_at_sha, blob_at_parent)` for T2. Two git calls, only when reached."""
+    def read():
+        return (_derive_git(repo_path, ["show", f"{sha}:{path}"]),
+                _derive_git(repo_path, ["show", f"{sha}^:{path}"]))
+    return read
+
+
+def _touch_reason(repo_path, sha: str, path: str) -> Optional[str]:
+    """Why commit `sha` is a TOUCH of `path` — or None, meaning it is CONTENT.
+
+    The single-commit feed into `_classify_touch`. `derive_doc_freshness` uses the batched
+    `_diff_index` feed instead; this one exists for a caller that has one commit in hand and
+    is the seam the classifier's tests exercise directly.
+    """
+    diff = _derive_git(repo_path, [
+        "show", sha, "-w", "--ignore-blank-lines", "--ignore-space-at-eol",
+        "--unified=0", "--format=", "--", path])
+    if diff is None:
+        return None                       # cannot classify -> never excuse it as a TOUCH
+    hunks, changed, created = _parse_unified_zero(diff)
+    return _classify_touch(hunks, changed, created, _blob_pair(repo_path, sha, path))
+
+
+def _declared_stamp_needle(text: str) -> Optional[str]:
+    """The literal stamp LINE a doc declares — the string whose introduction dates its review.
+
+    The LINE, not the date: a bare `2026-08-29` would match any commit that changed how often
+    that date appears anywhere in the file, and these docs quote dates constantly.
+    """
+    reviewed = _parse_last_reviewed(text)
+    if reviewed is not None:
+        for line in text.splitlines():
+            if line.startswith("last_reviewed:"):
+                return line
+        return None
+    m = _PROSE_STAMP_RE.search(text)
+    return m.group(0) if m else None
+
+
+def _stamp_setting_commit(needle: str, diffs: list[_CommitDiff]) -> Optional[str]:
+    """The commit that SET the doc's current stamp — its review's identity.
+
+    The newest commit whose diff ADDS the stamp line. That is precisely what `git log -S`
+    computes, and it was one subprocess per stamped file (1.83 s for nine) before the batched
+    `-p` walk made the same answer free: the added lines are already parsed in `diffs`.
+    """
+    wanted = "+" + needle.strip()
+    for d in diffs:
+        if any(ln.strip() == wanted for ln in d.changed):
+            return d.sha
+    return None
+
+
+def _unreviewed_after_stamp(repo_path, path: str, setter: str,
+                            diffs: list[_CommitDiff]) -> int:
+    """How many CONTENT commits landed AFTER the review this doc's stamp claims.
+
+    THE ANCESTRY TEST, and it is the single most valuable thing this leg does. A2 compares
+    DATES, and `%as` is day-granular: content committed later the same day as the stamp passes.
+    A4 §3 measured 4 of the 9 gated files carrying exactly that — including the CLAUDE.md
+    re-genre that deleted 15,657 bytes, 40% of the file, AFTER the stamp asserting it had been
+    read end-to-end and confirmed accurate. Commit ORDER is total; calendar dates are not.
+
+    This is A4's recommendation 2 built against the stamps that EXIST. A4's draft proposed
+    changing the reviewer record's type from a date to a `reviewed_at: <sha>` — a frontmatter
+    schema change across every gated doc. The same question is answerable today by finding the
+    commit that set the current date and classifying what came after it: no doc edited, nothing
+    to migrate, and the calendar backstop A4's constraint 1 insists on survives untouched.
+    """
+    order = [i for i, d in enumerate(diffs) if d.sha == setter]
+    if not order:
+        return 0          # the setter is not in this path's history -> undeterminable, not drift
+    return sum(1 for d in diffs[:order[0]]
+               if _classify_touch(d.hunks, d.changed, d.created,
+                                  _blob_pair(repo_path, d.sha, path)) is None)
+
+
+def _last_content_commit(repo_path, path: str,
+                         diffs: Optional[list[_CommitDiff]] = None):
+    """`(sha, date, touch_skipped)` for the newest CONTENT commit touching `path`.
+
+    Walks newest-first and STOPS at the first CONTENT commit. `diffs` is the pre-batched index;
+    omitted, it is fetched for this one path.
+
+    Walk-capped at `_DERIVED_WALK_CAP`: the newest commit is then reported with the skip count,
+    which OVER-reports staleness rather than under-reporting it.
+    """
+    if diffs is None:
+        diffs = _diff_index(repo_path, [path]).get(path, [])
+    skipped = 0
+    for d in diffs[:_DERIVED_WALK_CAP]:
+        if _classify_touch(d.hunks, d.changed, d.created,
+                           _blob_pair(repo_path, d.sha, path)) is None:
+            return d.sha, d.when, skipped
+        skipped += 1
+    if diffs:
+        return diffs[0].sha, diffs[0].when, skipped
+    return None, None, 0
+
+
+def derive_doc_freshness(repo_path, *, refine_all: bool = False) -> list[DocFreshness]:
+    """Every living doc's freshness, DERIVED from git. Done-contract items 1, 3 and 5.
+
+    Raises `DerivationUnavailable` (no git / not a repo) or `DerivationRefused` (shallow clone).
+    Read-only: it computes, it never re-stamps a file. Layer 2 does not execute.
+
+    REFINEMENT IS SPENT WHERE IT CHANGES A VERDICT, and that is a measured decision rather than
+    a shortcut. Classifying CONTENT-vs-TOUCH costs one `git show` per commit examined (0.19 s
+    here), so refining all 39 living docs costs ~7 s — affordable on demand, not on every
+    commit. Refinement can only move a derived date EARLIER, so it can only ever turn a
+    stale verdict fresh; a row that is already fresh cannot change. The default therefore
+    refines exactly the CANDIDATE-STALE rows, and any row it did not refine says so
+    (`unrefined` in `row()`), so a reader is never shown a refined-looking number that is not.
+    `refine_all=True` refines everything — what `doctrine_table` and the CLI use.
+    """
+    shallow = _git_is_shallow(repo_path)
+    if shallow is None:
+        raise DerivationUnavailable(
+            "no git history to derive from (git absent, or this is not a git repo)")
+    if shallow:
+        raise DerivationRefused(
+            "the clone is shallow -- every git-derived date is a floor, not a fact, and a "
+            "grafted history silently mis-dates every file older than the graft. "
+            "Run `git fetch --unshallow origin` before trusting a freshness verdict here")
+
+    paths = _living_doc_paths(repo_path)
+    index = _diff_index(repo_path, paths)
+    gated = set(_FRESHNESS_FILES)
+    rows: list[DocFreshness] = []
+    for path in paths:
+        try:
+            text = (Path(repo_path) / path).read_text(encoding="utf-8")
+        except OSError:
+            continue
+        declared, surface = parse_declared_freshness(text)
+        diffs = index.get(path, [])
+        if not diffs:
+            continue                      # tracked but never committed under this path
+        sha, when = diffs[0].sha, diffs[0].when
+        skipped, refined = 0, False
+        if refine_all or (declared is not None and declared < when):
+            sha, when, skipped = _last_content_commit(repo_path, path, diffs)
+            refined = True
+
+        is_gated = path in gated
+        stamp_sha, unreviewed = None, 0
+        if declared is None:
+            doc_class = CLASS_UNSTAMPED
+        elif when is not None and declared < when:
+            doc_class = CLASS_GATED_STALE if is_gated else CLASS_UNGATED_STALE
+        else:
+            # FRESH BY DATE -- so this is exactly where the same-day hole lives, and the only
+            # class where the ancestry test can change an answer. A row already stale stays
+            # stale; a row with no stamp has no review to be "after". Both the stamp-setting
+            # commit and the classification of what followed it come out of the batched diff
+            # index, so this costs no additional git process in the ordinary case.
+            needle = _declared_stamp_needle(text)
+            stamp_sha = _stamp_setting_commit(needle, diffs) if needle else None
+            if stamp_sha:
+                unreviewed = _unreviewed_after_stamp(repo_path, path, stamp_sha, diffs)
+            if unreviewed:
+                doc_class = CLASS_GATED_STALE if is_gated else CLASS_UNGATED_STALE
+            else:
+                doc_class = CLASS_GATED_FRESH if is_gated else CLASS_UNGATED_FRESH
+        rows.append(DocFreshness(
+            path=path, declared=declared, surface=surface, derived=when, derived_sha=sha,
+            touch_skipped=skipped, refined=refined, gated=is_gated,
+            version=parse_declared_version(text), doc_class=doc_class,
+            stamp_sha=stamp_sha, unreviewed_after_stamp=unreviewed))
+
+    rows.sort(key=lambda r: (-(r.delta_days if r.delta_days is not None else -10**6), r.path))
+    return rows
+
+
+def doctrine_table(repo_path) -> str:
+    """The living-doc doctrine table: one flat row per doc, live version and live date.
+
+    Done-contract item 4. `protocols/PLAYBOOK.md` is the case that names the problem — its
+    version rides `reconciled_with:` and its date is a prose `> Last updated:` line NO GATE
+    PARSES, so the table it carries can assert a date git refutes and nothing notices. Rendered
+    here it is DERIVED: the declared pair stays visible beside the derived one rather than
+    being overwritten, because the two answer different questions and A4's constraint 1 is that
+    the reviewer record survives derivation.
+
+    Fully refined (`refine_all=True`): this is the on-demand surface, where the ~7 s the full
+    CONTENT walk costs is free. Flat and pipe-free so the operator can paste it into a fenced
+    block without the TUI painting borders into it (CLAUDE.md §4 output-formatting).
+    """
+    rows = derive_doc_freshness(repo_path, refine_all=True)
+    return "\n".join(r.row() for r in rows)
+
+
+def _derived_freshness_findings(repo_path) -> list[Finding]:
+    """The derived leg's Findings, appended after `check_canonical_freshness`'s A1/A2 verdict.
+
+    ONE FINDING PER CLASS, not per doc, and that is a deliberate departure from the
+    one-finding-per-violation rule the fail-capable checks follow. This leg is an AWARENESS
+    organ on the `git_backlog_drift` model: the classes ARE the deliverable (A4 §3's partition),
+    a reader wants them named together, and 26 unstamped docs emitted as 26 separate WARNs
+    would drown the ship gate's disposition register in rows that share one answer.
+    """
+    name = "canonical_freshness"
+    try:
+        rows = derive_doc_freshness(repo_path)
+    except DerivationUnavailable as exc:
+        return [_na(name, _NA_NOT_APPLICABLE, f"derived leg: {exc}")]
+    except DerivationRefused as exc:
+        return [Finding(name, "fail", f"derived leg REFUSES (shallow clone): {exc}"
+                        .replace("|", "/"))]
+    if not rows:
+        return [_na(name, _NA_SUBJECT_ABSENT, "derived leg: no living docs tracked here")]
+
+    findings: list[Finding] = []
+    for doc_class in (CLASS_GATED_STALE, CLASS_UNGATED_STALE, CLASS_UNSTAMPED):
+        members = [r for r in rows if r.doc_class == doc_class]
+        if not members:
+            continue
+        findings.append(Finding(name, "warn", (
+            f"derived {doc_class}: {len(members)} - " + "; ".join(r.brief() for r in members)
+            + " -- full rows: audit.py doc-freshness"
+        ).replace("|", "/")))
+
+    fresh = [r for r in rows if r.doc_class in (CLASS_GATED_FRESH, CLASS_UNGATED_FRESH)]
+    gated_fresh = [r for r in fresh if r.gated]
+    findings.append(Finding(name, "pass", (
+        f"derived {CLASS_GATED_FRESH}: {len(gated_fresh)} of {len(rows)} living docs "
+        f"({len(fresh)} fresh overall; derived = last CONTENT commit, TOUCH commits "
+        f"[{TOUCH_WHITESPACE}, {TOUCH_FRONTMATTER}, {TOUCH_STAMP_LINE}] walked past)"
+    ).replace("|", "/")))
+
+    doctrine = [r for r in rows if r.version]
+    if doctrine:
+        findings.append(Finding(name, "pass", (
+            "derived doctrine rows (live version + date): " + "; ".join(r.row() for r in doctrine)
+        ).replace("|", "/")))
+    return findings
+
+
 # rule: canonical-freshness
 def check_canonical_freshness(repo_path: Path) -> list[Finding]:
     """Canonical living-file freshness cadence (operationalizes ADR-39 grooming).
@@ -749,6 +1447,31 @@ def check_canonical_freshness(repo_path: Path) -> list[Finding]:
     deploys consumer-local); this leg only wraps its (fails, warns) in the Finding envelope. The
     audit-level `_parse_last_reviewed` / `_git_last_commit_date` are passed in so tests that
     monkeypatch them at the audit level still take effect.
+
+    SINCE `[#614]` HY-1 THIS CHECK HAS A SECOND LEG: `last_reviewed` DERIVED from git, for every
+    living doc, not just the nine `_FRESHNESS_FILES`. Its Findings are APPENDED — index 0 stays
+    the A1/A2 verdict it has always been, which is what ten call sites in `tests/test_audit.py`
+    and the `test_enforcement_coverage` fire-test read.
+
+    WHY A LEG HERE RATHER THAN A NEW `ALL_CHECKS` MEMBER. Two reasons, and the first is the one
+    that would still hold with an unlimited write scope: it is the SAME concern this check
+    already owns — is a doc's review stamp honest? — computed by a strictly better method over a
+    strictly larger set, and splitting one question across two checks makes the pair drift. The
+    second is a scope fact, stated rather than disguised: a new registry member breaks six count
+    pins (`tests/test_audit.py` x2, `tests/test_doc_code_edge.py` x2,
+    `tests/test_writer_integrity.py`, `ecosystem/doc-counts.md`) and needs an
+    `ecosystem/doc-code-edge.yaml` row, none of which is inside this lane's frozen three-file
+    footprint.
+
+    THE DERIVED LEG IS WARN-CLASS ON ARRIVAL, AND THE PROMOTION CONDITION IS ONE LINE AND
+    MEASURABLE. A4 §3 measured 4 of the 9 gated files ALREADY carrying content that landed after
+    the stamp claiming they had been read — invisible to A2 because `%as` is day-granular.
+    Emitting that as `fail` on arrival would wedge `audit-health`, the PRE-COMMIT gate, on four
+    pre-existing docs; that is an operator ratchet decision, not a lane's. So: WARN here, teeth
+    at ship time (`cmd_ship_gate` REDs on any undispositioned warn). PROMOTION: when
+    `derived {CLASS_GATED_STALE}` measures 0 on `main`, the `Finding(..., "warn", ...)` for
+    `CLASS_GATED_STALE` in `_derived_freshness_findings` becomes `"fail"`. Recorded here rather
+    than remembered, because a temporary posture nobody wrote down is a permanent one.
     """
     fails, warns = _cfg.evaluate(
         repo_path, _FRESHNESS_FILES,
@@ -758,12 +1481,15 @@ def check_canonical_freshness(repo_path: Path) -> list[Finding]:
         evidence = f"{len(fails)} stale (edited since review): " + "; ".join(fails)
         if warns:
             evidence += f" | also {len(warns)} warn: " + "; ".join(warns)
-        return [Finding("canonical_freshness", "fail", evidence)]
-    if warns:
-        return [Finding("canonical_freshness", "warn", "; ".join(warns))]
-    return [Finding("canonical_freshness", "pass",
-                    f"{len(_FRESHNESS_FILES)} canonical living files fresh "
-                    f"(last_reviewed not before last edit; within {_FRESHNESS_CADENCE_DAYS}d)")]
+        verdict = Finding("canonical_freshness", "fail", evidence)
+    elif warns:
+        verdict = Finding("canonical_freshness", "warn", "; ".join(warns))
+    else:
+        verdict = Finding("canonical_freshness", "pass",
+                          f"{len(_FRESHNESS_FILES)} canonical living files fresh "
+                          f"(last_reviewed not before last edit; "
+                          f"within {_FRESHNESS_CADENCE_DAYS}d)")
+    return [verdict, *_derived_freshness_findings(repo_path)]
 
 
 def check_generated_artifact_freshness(repo_path: Path) -> list[Finding]:
@@ -5388,6 +6114,39 @@ def cmd_checks() -> None:
         first = (check.__doc__ or "").strip().splitlines()
         summary = first[0].strip() if first else ""
         click.echo(f"  {i:>2}. {name} — {summary}")
+
+
+@cli.command("doc-freshness")
+def cmd_doc_freshness() -> None:
+    """Render the living-doc doctrine table -- declared vs DERIVED freshness, per doc.
+
+    `[#614]` HY-1. The on-demand half of the derived-freshness leg: `audit.py health` reports
+    the CLASSES (gated-and-stale / ungated-and-stale / unstamped), this prints every row with
+    its live version, its declared date and surface, and the date of its last CONTENT commit.
+
+    FULLY REFINED, unlike the gate leg. The gate spends CONTENT-vs-TOUCH classification only
+    where it can change a verdict, because a `git show` per commit costs ~0.19 s; here the ~7 s
+    a complete walk costs is free, so every row is refined and none is labelled `unrefined`.
+
+    REFUSES ON A SHALLOW CLONE rather than printing floors as facts -- exit 1 with the reason.
+
+    Read-only. It computes freshness; it never re-stamps a file (Layer 2 never executes). A row
+    reading stale is resolved by a GENUINE end-to-end re-read and an honest stamp, never by a
+    date typed to green the table.
+
+    Example:
+        uv run --locked python scripts/audit.py doc-freshness
+    """
+    try:
+        table = doctrine_table(Path(_REPO_ROOT))
+    except DerivationRefused as exc:
+        raise SystemExit(f"doc-freshness REFUSED: {exc}")
+    except DerivationUnavailable as exc:
+        raise SystemExit(f"doc-freshness unavailable: {exc}")
+    # `console_safe`-style guard for the same reason `governance-health` states: these rows
+    # quote arbitrary doc paths and versions, and `click.echo` raises UnicodeEncodeError on a
+    # Windows cp1252 console for anything outside cp1252.
+    click.echo(table.encode("ascii", "replace").decode("ascii"))
 
 
 @cli.command("governance-health")
