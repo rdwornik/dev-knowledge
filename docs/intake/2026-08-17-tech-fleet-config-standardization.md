@@ -326,3 +326,210 @@ settle before R18 births, and remains unsettled.
 
 **Consumed by:** the batch-D freeze, 2026-08-29
 (`docs/audits/2026-08-29-technical-batchd-launch-contracts/`).
+
+
+---
+
+## AMENDMENT — 2026-08-31: THE ROOT-CONTRACT v1, STATED — permitted set, relocation, workspace, ordering
+
+> Appended, not edited. Batch E lane `c-3-root-contract`, done-contract DC-4. The 2026-08-29
+> amendment recorded the operator's requirement verbatim and named the standing constraint it
+> carries; it did **not** state the contract. This amendment states it, and states it **before
+> the first consumer deploy**, because the surface that deploys is the surface whose shape has
+> to be settled first — shipping a consumer against an unstated root ships the ambiguity.
+
+**What "contract" means here, said first so the clauses are read at the right strength.** This
+is a STATEMENT of the required shape plus the NAME of the surface that checks each clause — not
+a new instrument. Every clause below is either already machine-asserted by a named surface, or
+is declared unasserted in the same breath. Nothing here births a file, a row or a check; where
+an assertion is missing the gap is **written down rather than closed**, because closing it is
+R18's job and R18 is parked (below).
+
+### C1 — The permitted root set is CLOSED, and it is closed by two surfaces at two scopes
+
+**The rule.** A repo root holds exactly what a sanctioning surface admits. Nothing at the root
+is permitted by mere presence.
+
+**The surfaces — never a list retyped here:**
+
+- **Hub, prospective:** `scripts/validate_hermetization.py` Rule A, reading
+  `SANCTIONED_TIER1_DIRS` and `SANCTIONED_TIER1_FILES` — ADR-101 §1's closed sets, which grow
+  or shrink only through that ADR's amendment channel. `SANCTIONED_TIER1_FILES` splices in
+  `scripts/canonical_docs.py::CANONICAL_MANDATORY` rather than retyping the living-doc names,
+  so the ADR-38 canonical set and the ADR-101 file enum provably name the same strings.
+- **Fleet, retrospective:** `scripts/fleet_parity.py::_eval_sweep` — every TRACKED top-level
+  entry not covered by an applicable `ecosystem/parity-surfaces.yaml` row is `WARN-undeclared`,
+  which `audit.py::check_fleet_parity` maps to RED. The `root-*` rows in that manifest are the
+  declared members; a repo's own `.methodology.yaml` may declare a local divergence, which is
+  the sanctioned way a root entry exists without a fleet row.
+
+**The honest limits, both of them:**
+
+1. Rule A is **HUB-ONLY and prospective-only** (its own docstring; ADR-101 §6). It never
+   inspects an existing file and it does not run in a consumer at all. It cannot be the fleet's
+   instrument for "identical canonical root", and no reading of this contract may treat it as
+   one.
+2. The sweep is **fleet-wide but top-level-grain only**, and sees only TRACKED entries — its
+   own docstring names both limits. An untracked or ignored root entry is invisible to it by
+   construction.
+
+Between them the two cover growth-at-the-hub and divergence-across-the-fleet. Neither covers
+**an already-present unsanctioned file inside a consumer**, and that is the one hole C1 leaves
+open by name.
+
+**A confirmation the memo earns.** The sweep's tracked-only construction is exactly this
+intake's own *cache dirs are noise, not signal* finding: `.venv`, `__pycache__` and their peers
+are ignored, therefore invisible, therefore never drift. The finding needed no rule — the
+design already had the property.
+
+### C2 — Non-standard files are RELOCATED, not tolerated in place
+
+**The rule.** A root entry that is not a sanctioned member moves to the home its class belongs
+to; it is not waived at the root. The genre tree, never a sibling folder, is where an
+accumulating artifact class lives — the ADR-101 amendment of 2026-08-26 (b) ruled precisely
+this and is the standing precedent: *"root is sacred, the docs disease is cured by the consumer
+gate, not by a sibling folder."*
+
+**The surface.** `validate_hermetization.py` Rule C (home allowlist `_HOME_PATTERNS`; standing
+ruling K-1) is the hub-side leg — it reads the rest of the path, where Rule A stops at the top
+level.
+
+**The limit, stated rather than implied.** There is **no fleet-side depth leg**; the sweep
+declines depth in its own docstring. C2 is therefore contracted fleet-wide and enforced
+hub-only, and a consumer's misplaced file is caught by nobody today.
+
+### C3 — The workspace declaration
+
+**The rule.** Every fleet repo carries exactly one **dot-prefixed** `<repo>.code-workspace` at
+its root, and that file's first `folders[]` entry is the repo itself.
+
+**The surfaces.** `scripts/audit_checks/check_workspace_settings.py` — FAIL if absent or
+unparseable as JSONC, WARN if present but not dot-prefixed — and the
+`ecosystem/parity-surfaces.yaml` row `root-code-workspace`, whose probe is
+`glob_tracked: *.code-workspace` at `{hub: MUST, consumer: MUST}`.
+
+**What is contract-bound and what is HOST-LOCAL — the distinction this clause exists to make.**
+Presence, the dot-prefix, the one-file rule and C4's sort settings are fleet-contracted.
+Everything else in the file is host-local and travels with **no** fleet claim: this hub's own
+workspace carries provider-config folder roots as host-absolute paths measured on one machine
+on one date, and copying those into a consumer would assert something false about that
+consumer's host. The contract is over the file's ROLE and its sort settings — never over its
+folder list.
+
+### C4 — Ordering
+
+**The rule.** The root's presentation order is **declared in the workspace file**, not left to
+the editor's default.
+
+**The surface, at the exact grain of what it asserts.**
+`check_workspace_settings._WORKSPACE_REQUIRED_SETTINGS` pins two keys — `explorer.sortOrder`
+and `explorer.sortOrderLexicographicOptions` — per ADR-59 Decision 3. `"upper"` is the value
+that clusters the ALL-CAPS canonical living docs ahead of the lowercase configs, which is what
+makes a conforming root READ as a canonical set rather than as an alphabet.
+
+**The gap, named because "same ordering" would otherwise be over-claimed.**
+`explorer.sortOrderReverse` is carried by this hub's workspace and is **NOT** a member of
+`_WORKSPACE_REQUIRED_SETTINGS`. The newest-first behaviour inside dated folders is therefore a
+hub practice, not a fleet-asserted clause. Either it joins the required set or the contract
+stops claiming it; this amendment does neither, and says so rather than letting the ambiguity
+ride.
+
+### Reconciliation against ADR-101's tree seal — three findings, no contradiction
+
+DC-4 required this contract not to contradict the hermetization allowlist. It does not. The
+three places where the two surfaces are merely DIFFERENT rather than in conflict are recorded
+so a later reader mistakes neither for drift.
+
+1. **The ADR states CLASSES; the gate enumerates MEMBERS.** ADR-101 §1 says the Tier-1 file
+   rule is *"not an enumerated whitelist — a class rule"*, while `SANCTIONED_TIER1_FILES` is a
+   frozenset of literals. They agree in effect and differ in kind: the class rule governs what
+   an AMENDMENT may admit; the enumeration is what a gate can actually check. This contract
+   binds itself to the enumeration for checking and to the class rule for admission, which is
+   how both stay true at once.
+2. **§1's prose list is not the live set and must not be read as one.** ADR-101's amendments
+   append rather than edit, so `.github/`, `.devcontainer/` and `tasks/` are sanctioned by
+   amendments *below* §1 and are absent from §1's own sentence, while `prompts/` appears in an
+   amendment and was then revoked. A reader who quotes §1's directory list as the permitted set
+   will be wrong. **The live set is the code** — this contract cites the module, never the
+   sentence.
+3. **The workspace member is a hub-specific literal; the fleet grain is a glob.**
+   `SANCTIONED_TIER1_FILES` carries the literal `.dev-knowledge.code-workspace`, which is
+   correct for a HUB-ONLY gate and wrong as a fleet rule; `root-code-workspace` uses
+   `glob_tracked: *.code-workspace`. C3 is stated at the glob grain for exactly that reason.
+   This is the general shape of the hub-only-gate-versus-fleet-rule seam, and it will recur.
+
+### The hub's own root, MEASURED against the seal — 2026-08-31
+
+Not restated as a roster. The measurement is a comparison anyone can re-run, and its result
+this window is: **every tracked top-level entry of this repo is a member of the sealed sets.**
+The delta runs the other way — two sanctioned members are simply absent (`codex/`, `.ruff.toml`),
+and sanction is permission, never a mandate to carry.
+
+Re-run it from the repo root:
+
+```
+uv run --locked python -c "import sys; sys.path.insert(0,'scripts'); import subprocess, os, validate_hermetization as vh; top=sorted({p.split('/',1)[0] for p in subprocess.run(['git','ls-files'],capture_output=True,text=True).stdout.splitlines()}); print('unsanctioned:', [t for t in top if t not in (vh.SANCTIONED_TIER1_DIRS if os.path.isdir(t) else vh.SANCTIONED_TIER1_FILES)])"
+```
+
+An empty `unsanctioned:` list is the conforming state. This is the **hub's instance** of the
+contract, not a fleet result: the same comparison against a consumer needs that consumer's own
+root and C3's fleet grain — which is why the fleet answer is R18's scorecard and not a command
+pasted into a document.
+
+### The requirement's own ordering clause: this lands BEFORE the first consumer deploy
+
+The 2026-08-29 amendment recorded a STANDING CONSTRAINT belonging to no lane: *no further
+consumer deploys beyond the landed floor until it is ruled.* That constraint is **still live
+and is NOT discharged by this amendment.** What lands here is the contract's STATEMENT; what
+the constraint waits on is a RULING on it. The distinction matters because a reader could
+otherwise read "the contract is written down" as "the deploy gate is open". It is not, and this
+act does not open it.
+
+win-tooling's v1.4.0 floor remains the landed floor, so the constraint continues to bite the
+NEXT deploy rather than a past one, and win-tooling's parity role stays **pre-deploy** until the
+divergence arc closes — unchanged from 2026-08-29, restated because carrying a constraint
+forward by silence is the exact failure this batch refuses.
+
+### R18 stays PARKED — conditions RE-TESTED this window, not carried by assertion
+
+The 2026-08-29 (b) amendment tested R18's two un-parking conditions and found both unmet. Two
+days is long enough for either to have moved, and DC-4 requires the parking to be carried on
+tested conditions rather than on silence. Both were re-measured 2026-08-31:
+
+- **Condition (a) — the `[#559]` kernel row's leg 1: STILL NOT MET, taxonomy mismatch
+  unchanged.** `[#559]` is `status: open` in `tasks/`. Leg 1 requires every `ALL_CHECKS` member
+  to carry a `kernel`/`hub` tier; the live tiering is still `[#597]`'s `TIER_COMMIT`/`TIER_SHIP`
+  enum in `scripts/audit.py`, and the token `kernel` does not occur in that module at all
+  (`grep -c kernel scripts/audit.py` → 0). The `ALL_CHECKS` roster has GROWN since the batch-D
+  measurement (`grep -c "_tier(TIER_" scripts/audit.py`), which moves the condition **further**
+  from met rather than closer: more checks, none tiered on the axis leg 1 names.
+- **Condition (b) — a window with ≥1 birth of headroom: STILL NOT MET.** The 2026-08-30/31
+  window birthed `[#624]` and `[#625]`. As in the previous window those births SPENT filing
+  capacity; a window that fills its ledger is not a window with headroom in it.
+
+**VERDICT: R18 remains PARKED, on conditions measured this window.** The intake's open question
+1 — whether the checker needs a new `fleet.yml` at all, or whether
+`ecosystem/organ-registry.yaml` / `ecosystem/deployed-versions.yaml` already carry the consumer
+roster — remains the cheap thing to settle first, and remains unsettled. This contract makes
+that question sharper rather than answering it: C1–C4 now name exactly four surfaces a
+scorecard would read, which is a smaller and far more concrete input than "the fleet's
+conformance rules" was two days ago.
+
+### What this amendment does NOT do
+
+- **No row is born.** Not R18, not R19–R23, no `[#id]` consumed. Reconcile-before-birth binds
+  this batch, and this act lands ON an ACCEPTED intake rather than beside it.
+- **No consumer repo is touched.** The hub states the contract; the DEPLOYMENT WAVE carries it,
+  in CUT-1's ruled order.
+- **No versioned spec FILE is created.** The operator's requirement names a *versioned spec +
+  parity check*; this is **ROOT-CONTRACT v1** and its version lives in this heading. A
+  standalone spec file with its own stamp, and a check that reads it, is R18's build — parked
+  above. Birthing that file now would create exactly the second registry R19's own reasoning
+  argues against.
+- **No gap is silently closed.** Four are named — Rule A's absence consumer-side, the missing
+  fleet depth leg, the unasserted `explorer.sortOrderReverse`, and the hub-only literal versus
+  the fleet glob — and all four are left open ON PURPOSE, each with the surface that would have
+  to change.
+
+**Consumed by:** batch E's close packet. **Lane:** `worktree-lane-c-3-root-contract`, contract
+`LANE-c-3-root-contract.md` (DC-4).
