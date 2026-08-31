@@ -19,6 +19,65 @@
 
 ---
 
+### 2026-08-31 (g) - CC (Opus 5, background job, integrator seat): A6 filed, and the anchor rule applied to itself
+
+**Anchors:** `4ac36348`
+
+**Did:** named the commit that carries A6's filing, so the merge of this branch is anchored by
+the rule entry (f) had just described rather than repeating its mistake.
+
+**`4ac36348` carries BOTH the (f) entry and the A6 filing** into
+`protocols/ENVIRONMENT.md` "Rejected (do NOT revisit before Q3)" -- the LangGraph /
+agent-framework class, pointing at
+`docs/audits/2026-08-31-technical-langgraph-class-rejection-record.md`. They rode together
+because the ENVIRONMENT edit was already staged when the journal commit ran; the commit subject
+names only the journal half, which is a message defect, not a content one. Recorded rather than
+amended: the commit is on a branch that has not merged, but the honest fix is the note, since
+re-writing it would cost the anchor this entry exists to provide.
+
+**The mechanism, stated once for reuse:** an integration branch needs a commit the JOURNAL can
+NAME, and the naming entry must land AFTER it. One commit cannot do both jobs. Pre-commit's
+stash is the second half of the trap -- it stashes UNSTAGED files before running hooks, so a
+written-but-unstaged JOURNAL is invisible to the very gate that needs it, and the commit fails
+with the hooks reporting success.
+
+**Result:** batch-E queue at 5 of 15 landed. `ruff` clean.
+
+**Changes:** `JOURNAL.md`.
+
+**Next:** unchanged from (f) -- A5 and A7 orphans, the two binding mechanisms.
+
+### 2026-08-31 (f) - CC (Opus 5, background job, integrator seat): THE ANCHOR TAIL IS A TWO-COMMIT PROBLEM, and A6 gets a home
+
+**Anchors:** `195e2438`
+
+**Did:** anchored the queue-drain merge, and gave batch-E tier (A)'s A6 census a consuming home.
+
+**WHY THE PREVIOUS ENTRY DID NOT ANCHOR ITS OWN MERGE.** A first-parent spine merge counts as
+anchored when the JOURNAL names a commit that merge INTRODUCED -- not the merge SHA itself,
+which cannot be known before it exists. Entry (e) rode a branch carrying exactly ONE commit,
+the journal commit, and a journal entry cannot name itself. So `195e2438` landed unanchored and
+the commit gate then refused the very commit that would have anchored it. That is the concrete
+mechanism behind the standing rule *two commits, always*: the second commit is what the first
+one anchors. This entry rides a two-commit branch and names the other commit.
+
+**A6 IS NO LONGER ORPHANED.** `protocols/ENVIRONMENT.md` "Rejected (do NOT revisit before Q3)"
+now carries the LangGraph / agent-framework class rejection, pointing at
+`docs/audits/2026-08-31-technical-langgraph-class-rejection-record.md`. A rejection that lives
+only in an unconsumed census is indistinguishable from one nobody made; the Rejected list is
+the standing home for a class decision, and ADR-112's Tier-L bar says the evaluation IS the
+deliverable. The sibling rejections from the same decision tree are named in CUT-4 and were not
+re-litigated.
+
+**Result:** `ruff` clean. A5 and A7 remain orphaned pending the operator's call on the DC-23
+scope collision; the two binding mechanisms (step 4) remain unstarted.
+
+**Changes:** `protocols/ENVIRONMENT.md`, `JOURNAL.md`.
+
+**Next:** A5 -> a PLAYBOOK provider-agnostic section (blocked: DC-23 is live and owns PLAYBOOK).
+A7 -> the agy admission row birth. Then the [#591] consumed-artifact locator predicate and the
+persist-template H1 ordering.
+
 ### 2026-08-31 (e) - CC (Opus 5, background job, integrator seat): THE QUEUE DRAINS TO FOUR, and the closed_by exemption passes its first live test in both directions
 
 **Anchors:** `8bf6e3f1` `1a3c378b` `7b0cbf14` `bea4c623`

@@ -300,6 +300,14 @@ CRITICAL: Audit Gemini API tier (AI Studio vs Vertex) before batch extraction on
   LANE-L5)
 - Git worktrees as a *daily-driver* workflow (council rejected) — note: ADR-61 (2026-05-28) later adopted `git worktree` for the narrow case of **parallel same-repo Claude Code sessions**; that is not the rejected daily-default workflow
 - Confidence scoring in council debates (LLMs poorly self-calibrate)
+- **LangGraph and the agent-framework class** (batch-E tier (A) A6, harvested 2026-08-31:
+  `docs/audits/2026-08-31-technical-langgraph-class-rejection-record.md`) - recorded here so the
+  rejection has a HOME rather than only a census. The class was evaluated and not adopted; the
+  audit carries the reasoning and the alternatives considered. Filed under ADR-112's Tier-L bar:
+  the evaluation is the deliverable, and a rejection that lives only in an unconsumed audit is
+  indistinguishable from one nobody made. Sibling rejected entries from the same decision tree -
+  `sentence-transformers`, ChromaDB, LanceDB, Mem0, Letta/MemGPT, Zep - are named in CUT-4 and
+  are NOT re-litigated by this line.
 
 ---
 
