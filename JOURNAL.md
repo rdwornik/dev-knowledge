@@ -19,6 +19,59 @@
 
 ---
 
+### 2026-08-30 (a) - CC (Opus 5, background job, primary checkout, integrator): the filing pass, both capstones, and the blocker nobody was watching
+
+**Anchors:** `08029542` `5177f44f`
+
+**Did:** ran the filing pass over lane g's synthesis and built the two capstones. Batch D is closed;
+this is what it produced.
+
+**Result: the arc's highest-value item was blocked by a status change nobody saw.** Intake #35's
+PROPOSED ROW R3 is where **three independent lanes converge from directions that never touch** —
+AUT-R3 from the missing reward function, AUT-R4-B from closure economics, AUT-R4-A from the
+SkillsBench negative tail. Its `kill-candidates` line says *fold, do not birth*, and the n3
+ratification pack records the fold target as *"`[#491]` (open) and `[#492]` (deferred)"*. **Both are
+deferred today.** `[#491]` moved and nothing surfaced it, so an instruction authored against a live
+target quietly became an instruction to fold into a dormant one. That is `[#624]`, the pass's one
+birth: `[#424]` made `depends-on` edges PARSE; **watching what an edge POINTS AT is a different
+property, and no organ has it.**
+
+**Two intakes amended, one row born, and the ratio is the point.** Of 18 TRUE GAPs, **two** became
+rows. The rest are 5 amendments and 10 parks, each carrying the trigger that releases it — because
+the synthesis found a sequence with no branch in it (**metric → measure → only then an optimizer**),
+and a gap birthed ahead of its blocker is a row nobody can work. Under-filing and correct filing
+look identical in a count; they differ in whether each leaf names its destination.
+
+**Capstone (a), the decision tree: 55 leaves, all routed**, nothing unrouted — which is checkable by
+the tally summing to the leaf count rather than by my saying so.
+
+**Capstone (b), the North Star view, is GENERATED and that is its whole design.** Arc names, order,
+done-when and starting contract are DECLARED (architect judgments, not derivable); every member row,
+status and count is DERIVED from `tasks/`. Members select by **theme predicate**, so a row filed
+tomorrow appears without editing the generator — the same reason `[#383]` was re-scoped onto a
+`kind:` selector rather than line ranges.
+
+**Both gates caught me, and both were right.** A bare glob counted **retired allocation records** and
+produced a denominator of **354 against `validate_backlog`'s 217** — a generated view whose total
+disagrees with the repo's own validator is worse than no view, so it now reads the manifest and a
+test pins it. Then ADR-101 refused `docs/NORTH-STAR.md`, because **`docs` is absent from the home
+allowlist BY DESIGN** — genre trees only. Relocated to `ecosystem/`, the admitted home for generated
+state where `organ-index.md` already lives, rather than requesting a new home the gate correctly
+calls an operator ruling.
+
+**Changes:** `scripts/gen_north_star.py` + `tests/test_gen_north_star.py` (new),
+`ecosystem/north-star.md` (generated), `docs/audits/2026-08-30-technical-autonomy-decision-tree.md`,
+intakes #35 and #63 amended, `tasks/624-*`, `README.md`, `tasks/614-*` and `tasks/619-*` (packet
+citations).
+
+**Abandoned:** nothing silently. **`consumer_at_landing` went 28 → 10 and the 10 survivors are
+named rather than absorbed** — all one class: the seven frozen lane contracts, the batch manifest
+and the codex-fate map. They cannot clear by citation, because the census pool excludes
+`docs/audits/` by design and batch machinery citing batch machinery is exactly what that exclusion
+refuses. Their consumption is real but its evidence is a **merge commit**, not a citation.
+
+---
+
 ### 2026-08-29 (x) - CC (Opus 5, background job, primary checkout, integrator): anchor for the freeze-predicate commit
 
 **Anchors:** `3a423bf1`

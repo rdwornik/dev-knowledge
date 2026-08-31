@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "de8ca927468742ee59e4134fde54463a60d3e9f10a871cc41f0c1a3796efa3c8",
+  "generated_sha256": "45c791440eed8216cb83f1aaa18c511c513c7b95401d1378aad71d982d41425f",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -280,6 +280,10 @@
     {
       "task": 615,
       "file": "615-model-attribution-signature-trailer-on-every.md"
+    },
+    {
+      "task": 624,
+      "file": "624-nothing-watches-a-blockers-status.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
