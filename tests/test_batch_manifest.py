@@ -401,7 +401,12 @@ def test_the_live_repos_own_manifest_is_well_formed():
         pytest.skip("no batch open in the live repo")
     for b in live:
         assert bm._valid_closer(b.closed_by), b
-        assert b.batch.isdigit(), b
+        # A batch id is a short alphanumeric TOKEN, not a number. This asserted `isdigit()`
+        # until 2026-08-31, when batch `E` -- the first lettered batch -- made a well-formed
+        # live manifest fail its own well-formedness test. The id's job is to be a stable
+        # handle the manifest, the lane contracts and the close packet all spell the same way;
+        # nothing reads it as an integer. Granted integrator fix, [#614].
+        assert b.batch.isalnum(), b
 
 
 # --- [#512] the inherited-GIT_DIR class -------------------------------------

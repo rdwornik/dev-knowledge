@@ -466,6 +466,31 @@ leg_f1_claude() {
   say "L-F1 ok — claude installed ($(claude --version 2>/dev/null | head -1))"
 }
 
+# --- F4: workspace trust, so the DECLARED permission set is the EFFECTIVE one --------------------
+# Measured on the 2026-08-31 admission probe, twice, and it survives provisioning: a headless
+# `claude -p` prints "Ignoring 1 permissions.allow entry from .claude/settings.json: this
+# workspace has not been trusted" and then runs anyway, under a NARROWER permission set than the
+# repo declares. Nothing in the lane's own output says so -- the receipt is a clean success.
+# The documented remedy is an interactive trust dialog, which by definition cannot happen on a
+# headless substrate, so the container-side write is the only form available here.
+# Idempotent, and it merges into whatever `.claude.json` already holds rather than replacing it.
+leg_f4_workspace_trust() {
+  local cj="${HOME}/.claude.json"
+  python3 - "${cj}" "${REPO_ROOT}" <<'PY' || die "L-F4 FAILED — could not record workspace trust; a lane would silently run under a narrowed permission set"
+import json, pathlib, sys
+cj, root = pathlib.Path(sys.argv[1]), sys.argv[2]
+d = json.loads(cj.read_text()) if cj.exists() else {}
+proj = d.setdefault("projects", {}).setdefault(root, {})
+if proj.get("hasTrustDialogAccepted") is True:
+    print("already-trusted")
+else:
+    proj["hasTrustDialogAccepted"] = True
+    cj.write_text(json.dumps(d, indent=2))
+    print("trusted")
+PY
+  say "L-F4 ok — workspace trust recorded for ${REPO_ROOT}; declared permissions are now the effective ones"
+}
+
 # --- F2: git credential wiring, from the token Codespaces already issues -------------------------
 # Measured 2026-08-31: `git fetch` in this container failed with "could not read Username for
 # https://github.com" — no credential helper on the raw ssh path, so a committing lane could
@@ -599,6 +624,7 @@ main() {
   leg3_hooks
   leg_f1_claude
   leg_f2_git_credential
+  leg_f4_workspace_trust
   smoke_gate_liveness
   write_stamp
 
