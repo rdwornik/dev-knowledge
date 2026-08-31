@@ -19,6 +19,57 @@
 
 ---
 
+### 2026-08-31 (h) - CC (Opus 5, background job, integrator seat): THE CODESPACE DOES NOT APPLY ITS OWN CONFIG, and the silent exemption miss is now loud
+
+**Anchors:** `0ef9259f` `c8ae55b9`
+
+**Did:** wrote the three admission fixes, made the `closed_by` subject trap report itself, and
+cleared the held worktree directories.
+
+**THE ADMISSION DIAGNOSIS MOVED, and the new one is upstream of all three fixes.** The probe
+container has no `uv`, no `gh`, no `GITHUB_TOKEN` on the ssh path, no provisioning stamp, and a
+clone two merges stale -- yet `devcontainer.json` AT THE CONTAINER'S OWN HEAD declares both
+`postCreateCommand: bash .devcontainer/provision.sh` and the `claude-code:1.0` feature. Neither
+ran. So this is not a feature bug and not a stale-config bug: **the devcontainer configuration
+is not being applied to this codespace at all**, and a `gh codespace rebuild --full` did not
+change that. F1/F2/F3 are still correct and are landed, but this container cannot validate them
+-- a fresh CREATE, not a rebuild, is the only faithful test. Per the operator's two-probe cap,
+admission is parked rather than looped.
+
+**F1** drops the `claude-code:1.0` feature and moves the install into `provision.sh` via the
+native installer Anthropic's docs call recommended (`curl -fsSL https://claude.ai/install.sh`,
+native binary, no Node runtime dependency), followed by an ASSERT -- so a container without an
+agent refuses instead of reporting success. **F2** wires a git credential helper from the
+repo-scoped token GitHub already issues to every codespace at create and restart; no PAT is
+invented, the config is repo-local, and the value is never echoed. **F3** asserts
+`uv run --locked python scripts/gen_task_tree.py --check` exits 0 -- proving the LOCKED resolver
+runs, which is the leg that actually failed.
+
+**THE SUBJECT-STYLE MISS IS NOW REPORTED AT THE MOMENT IT BITES.** `batch_manifest`'s docstring
+already carried this as an honest limit -- *"a hand-written merge message that omits the branch
+name ... fails CLOSED, which is the safe direction"* -- and it still cost the mechanism its
+first live test. A documented limit that nothing reports is not a guardrail.
+`batch_manifest.subject_style_miss` detects a merge whose subject NAMES a lane but omits git's
+default `Merge branch '<name>'` prefix, and `check_journal_spine_anchor` now names it in the
+FAIL evidence together with the fix. Verified across four real merge shapes: fires on
+`ea1e32a9` alone, silent on the conforming lane merge, the docs merge and the `fix/` merge. It
+is deliberately NOT an exemption path -- recognising a lane from loose subject text would hand
+the grammar to whoever writes the subject, the coupling `[#514]` removed.
+
+**Result:** `ruff` clean. One PRE-EXISTING suite RED, not from this arc:
+`test_batch_manifest.py::test_the_live_repos_own_manifest_is_well_formed` asserts
+`batch.isdigit()` while batch E's manifest declares the LETTER `E` -- the batch-id grammar moved
+to letters and that pin did not.
+
+**Changes:** `.devcontainer/devcontainer.json`, `.devcontainer/provision.sh`,
+`scripts/batch_manifest.py`, `scripts/audit.py`, `JOURNAL.md`.
+
+**Abandoned:** codespace admission, parked at the two-probe cap with the defect named.
+
+**Next:** housekeeping (b) -- the two anchor traps and the three-way shell matrix -- targets
+`protocols/PLAYBOOK.md`, which is in LIVE DC-23's write-scope, so it is held on the same
+reasoning as A5. A7 and the parity-class birth wait for the filing pass.
+
 ### 2026-08-31 (g) - CC (Opus 5, background job, integrator seat): A6 filed, and the anchor rule applied to itself
 
 **Anchors:** `4ac36348`
