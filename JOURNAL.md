@@ -19,6 +19,63 @@
 
 ---
 
+### 2026-09-01 (a) - CC (Opus 5, background job, night orchestrator): R-README lands, R-VISION is BLOCKED and now measured, and the held doctrine parks on an integrity fuse
+
+**Anchors:** `96f95652` `b2e3fc38`
+
+**Did:** landed R-README, tried R-VISION rather than reasoning about it, dispatched seven lanes,
+and parked the held PLAYBOOK doctrine on a fuse that fired correctly.
+
+**R-README: THREE THINGS LEFT THE FRONT DOOR, and one of them was already a lie.** The
+fleet-shape paragraph (governed polyrepo, partial fold, *"corp-monorepo stays permanently
+outside"*) moved to `ecosystem/registry.md` beside the roster it qualifies. The restated roster
+and count went with it -- the README named nine repos and listed eight children in prose, which
+CLAUDE.md section 4 rules is never done. And the parity posture, which claimed
+`canonical-doc-vision` is *"MUST on all nine"* when `[#614]` lane-a had retired that row to
+SHOULD hours earlier. **Restating a parity tier in a front door is how one tier change becomes a
+lie in a second place**, which is the concrete case for the rule rather than the abstract one.
+
+**R-VISION: TRIED, NOT ARGUED -- and the answer is BLOCKED on two hard legs.** The file was moved
+to `docs/archive/` and the gates were run against the moved tree. `audit.py health` **exits 1** on
+`vision_md: VISION.md absent at repo root` -- a FAIL, so it refuses every commit in the repo, not
+only that one -- and `test_gen_handoff_still_extracts_the_live_vision_section` REDs, because
+`gen_handoff.py` lifts VISION's `## Vision` section into every handoff bundle. Reverted; the
+measurement is recorded in the registry. **The registry retirement (a TIER change) and the file's
+archival (a PATH change) are two separate acts** and only the first has been taken.
+
+**THE HELD PLAYBOOK SET IS COMMITTED AND PARKED, on `docs/held-a5-and-anchor-doctrine`
+(`b2e3fc38`).** A5's portability boundary, both anchor traps, the kill-guard predicate and
+create-not-rebuild are written and gate-clean -- except one. `check_silent_rule_ratchet` reads
+live 453 against baseline 443, and **main sits EXACTLY at its own baseline, so headroom is zero
+and any doctrine landing in `protocols/*.md` trips it.** Three of the ten added tokens were
+genuine false positives and are drained with meaning unchanged; the other seven are real rules
+and are deliberately not reworded, because swapping the keyword out of a live rule lowers the
+metric without removing the rule. **The baseline file's own header rules that raising is an
+OPERATOR RULING, and the operator ratified this section's DESTINATION tonight without seeing its
+ARITHMETIC -- two different acts.** So it parks with the raise attributed line by line
+(443 -> 450), which is the R8 shape from 2026-08-23. Under R-NOSTOP a fuse freezes its own queue
+and nothing else, and nothing else stopped.
+
+**SEVEN LANES DISPATCHED** at `sonnet` per R-MODELS, using `Dispatch-Local`'s `-Model` parameter
+rather than a composed line: five in the hub, HY-5 in win-tooling from win-tooling's own root, and
+DM-4 to cloud with all three receipt gates green (`cse_01SHFSuLrRTLfraAwUtuqBqC`). **DM-1 and DM-2
+were NOT dispatched and that is deliberate** -- both are blocked by their own frozen contracts on
+tier (B) Enterprise Copilot drafts that do not exist, and the payload pack states in terms that
+Copilot *"is not driveable from this seat"*. Dispatching them would buy two immediate refusals.
+
+**A RESOURCE FINDING, recorded because it nearly cost a lane.** With six local lanes live the box
+reached **118 `claude` processes and 1.7 GB free of 27.7 GB**, and a `git commit` failed with
+`fork: Resource temporarily unavailable`. The batch ceiling of 4-6 lanes is documented as bounded
+by *integration* capacity; this is a second, independent bound -- **memory** -- and it bites at the
+same number for a different reason. Two completed lanes were stopped and four orphan sessions from
+already-merged lanes swept, by command-line match.
+
+**Result:** batch E at 5 of 15 merged with 4 lanes live; `audit.py health` exits 0 on this branch.
+
+**Changes:** `README.md`, `ecosystem/registry.md`, `JOURNAL.md`.
+
+**Next:** drain the four live lanes, then the filing pass, the consumption sweep and the packet.
+
 ### 2026-08-31 (m) - CC (Opus 5, background job, night orchestrator): R-ENUM LANDS - `codespace` is in the contract vocabulary, and the receipt gate was a rule written to one instance of its own class
 
 **Anchors:** `4fff67e7`
