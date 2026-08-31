@@ -19,6 +19,48 @@
 
 ---
 
+### 2026-08-31 (j) - CC (Opus 5, background job, integrator seat): HY-1 LANDS, DC-23 WAS HUNG BY ITS OWN AUTO-UPDATER, and the create-not-rebuild rule is ruled
+
+**Anchors:** `9b736ce2`
+
+**Did:** merged HY-1, diagnosed DC-23 as hung rather than slow, and tore both worktrees down.
+
+**DC-23 WAS HUNG, AND THE CAUSE IS WORTH THE WHOLE ENTRY.** Progress probe: transcript byte-count
+static over 40s, last real message 3h31m old, last record type `worktree-state` rather than a
+message, zero commits. Then the kill revealed why -- both of its processes had been renamed
+**`claude.exe.old.1788205669651`**. That is the CLI's background AUTO-UPDATER swapping the binary
+out from under a running session. A long-running lane can therefore be killed by an update it
+never asked for, and it does not fail loudly: it stops writing and looks like a slow lane.
+Native installs auto-update by default; `DISABLE_AUTOUPDATER=1` in the lane's settings `env` is
+the available lever, and the codespace substrate has the same exposure.
+
+**A kill guard that checks process NAME is not enough**, measured here: the first attempt refused
+to kill because the name was no longer `claude.exe`. The command-line match -- does it name the
+lane -- is the predicate that survives a rename, and it is also what keeps the sweep from taking
+the session running it (the PID-substring caution, same class).
+
+**HY-1 MERGED** (`derive doc freshness from git for every living doc, and gate it`), on the
+sequenced `scripts/canonical_docs.py` overlap the freeze declared, with DC-1 merged first as
+required. 328 targeted tests pass, `health: OK`, and the ADR-110 exemption fired for the merge --
+reported in the gate's own evidence, which is the mechanism doing exactly what it was built for
+once the merge subject keeps git's default prefix.
+
+**CREATE, NEVER REBUILD.** Ruled from the measurement in entry (i): a `gh codespace rebuild
+--full` leaves a container that has not applied its own `devcontainer.json` -- no features, no
+`postCreateCommand`, a stale clone -- while a fresh CREATE from the same HEAD applies all of it.
+Admission tests and lane containers are always fresh creates. The upstream report is re-scoped
+accordingly: the evidence supports *"a rebuilt container does not re-run features or
+postCreate"*, NOT *"the claude-code feature is broken"* -- the earlier framing measured a
+container that had never run the feature at all.
+
+**Result:** batch E at 7 of 15 merged. Worktrees: none. Branches: none outstanding.
+
+**Changes:** `JOURNAL.md`; merges of `scripts/audit.py`, `scripts/canonical_docs.py`,
+`tests/test_canonical_docs.py`.
+
+**Next:** re-dispatch DC-23 on its unchanged frozen contract, then the tier-(D) proof-of-work
+lane on the admitted codespace substrate.
+
 ### 2026-08-31 (i) - CC (Opus 5, background job, integrator seat): CODESPACE IS ADMITTED - 3 of 3 legs green on a FRESH create, and rebuild was never going to show it
 
 **Anchors:** `5c54487d`
