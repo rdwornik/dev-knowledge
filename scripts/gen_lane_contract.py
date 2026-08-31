@@ -97,11 +97,19 @@ DEFAULT_MODEL = "opus"
 MODE_ENUM: tuple[str, ...] = ("execute", "plan-then-auto", "plan")
 DEFAULT_MODE = "execute"
 
-#: The three dispatch shapes `protocols/PLAYBOOK.md` Ch8 "Dispatching a session" names.
+#: The four dispatch shapes `protocols/PLAYBOOK.md` Ch8 "Dispatching a session" names.
 #: A shape is the SUBSTRATE a session runs on — deliberately NOT `MODE_ENUM`, which is how a
 #: lane *thinks*. `MODE_ENUM` was the tempting hook here (it is already a declared enum on
 #: the spec) and it is the wrong one: overloading it would make `plan` imply a substrate.
-SHAPE_ENUM: tuple[str, ...] = ("local", "cloud", "interactive")
+#:
+#: `codespace` entered by RULING on 2026-08-31 (R-ENUM), and the gap it closed is worth the
+#: comment. The substrate was ADMITTED FOR RUNNING that morning -- three legs green on a fresh
+#: create -- and remained UNADMITTED IN THIS VOCABULARY, which is a different admission and was
+#: not automatic. `validate_substrate` read `codespace` off `ecosystem/substrate-registry.yaml`
+#: and ACCEPTED a contract this module REFUSED: two organs, one vocabulary, opposite verdicts,
+#: which is exactly the split `[#514]` closed once already. A contract that passes the freeze
+#: gate and fails the shape gate is the state that made both unenforceable.
+SHAPE_ENUM: tuple[str, ...] = ("local", "cloud", "interactive", "codespace")
 DEFAULT_SHAPE = "local"
 
 #: One-line gloss per shape, emitted beside the declared `**Shape:**` value so the contract
@@ -110,6 +118,8 @@ SHAPE_GLOSS: dict[str, str] = {
     "local": "a background lane on the operator's machine, own worktree, commit-and-STOP",
     "cloud": "an off-machine lane, repo-bound and receipt-gated, on the `claude/` prefix",
     "interactive": "an operator-attended session — integration and seat acts live here",
+    "codespace": ("an off-machine lane in the repo's own devcontainer, receipt-gated, "
+                  "committing on the `worktree-` prefix like a local lane"),
 }
 
 #: Dispatch constants that ride every dispatch without being re-decided (Ch8).
@@ -127,6 +137,9 @@ BRANCH_PREFIX = "worktree-"
 
 #: The branch prefix a CLOUD lane runs on (Ch8, "Cloud lanes"; CLAUDE.md §4's branch enum).
 #: Emitting `worktree-` for a cloud lane declared a branch its own transport never creates.
+#: A CODESPACE lane is the other way round and takes `BRANCH_PREFIX`: it commits and pushes
+#: like a local lane, merely elsewhere, so `claude/` would name a branch nothing creates
+#: (R-ENUM leg 3, 2026-08-31). Off-machine and cloud are not the same axis.
 CLOUD_BRANCH_PREFIX = "claude/"
 
 #: Mandatory headings every emitted contract carries. `--check` reads for exactly these.
@@ -139,11 +152,37 @@ MANDATORY_SECTIONS: tuple[str, ...] = (
     "What NOT to do",
 )
 
-#: The extra section a cloud lane carries (STANDING_RULINGS Q5).
+#: The extra section an OFF-MACHINE lane carries (STANDING_RULINGS Q5). The name is historical
+#: -- the section is titled `Receipt gate` and the rule was written when `cloud` was the only
+#: off-machine shape -- and it is kept rather than renamed because it is cited by that name from
+#: `docs/audits/` and read by tests outside this module.
 CLOUD_SECTION = "Receipt gate"
 
-#: The two receipt fields, checked as a conjunction (Q5).
+#: The two receipt fields a CLOUD lane carries, checked as a conjunction (Q5).
 RECEIPT_FIELDS: tuple[str, ...] = ("git-source-resolves-non-empty", "first-assistant-text-echoed")
+
+#: The shapes that carry a receipt gate: the OFF-MACHINE ones. Ch8's dispatch table states the
+#: receipt for row 2 (cloud) and row 4 (codespace) in each row's own words, so keying this on
+#: the literal string `cloud` was a rule written to one instance of its own class. A tuple, so
+#: a fifth shape cannot be admitted without answering the question.
+RECEIPT_SHAPES: tuple[str, ...] = ("cloud", "codespace")
+
+#: The receipt FIELDS differ per shape, because the traps do. A codespace receipt is
+#: `receipt.json` pulled back out of the container: `Ok` is the TRANSPORT's verdict and
+#: `RemoteExitCode` is the WORK's -- gh's own code is 1 regardless, so a caller branching on
+#: `Ok` alone reads a failed lane as a success -- and the receipt can carry a success `subtype`
+#: while `is_error` is true, so `is_error` is the verdict field and `subtype` is the trap.
+#: Both measured; both stated in Ch8 row 4 and in JOURNAL 2026-08-31 (k).
+RECEIPT_FIELDS_BY_SHAPE: dict[str, tuple[str, ...]] = {
+    "cloud": RECEIPT_FIELDS,
+    "codespace": ("transport-ok-and-remote-exit-code-read-separately",
+                  "is-error-false-not-subtype-success"),
+}
+
+#: Every receipt field any shape can carry, in a stable order -- what `parse_contract` reads a
+#: contract's prose for before it knows which shape's set to demand.
+ALL_RECEIPT_FIELDS: tuple[str, ...] = tuple(
+    f for fields in RECEIPT_FIELDS_BY_SHAPE.values() for f in fields)
 
 _KEBAB_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 _HEADING_RE = re.compile(r"^##\s+(?P<title>.+?)\s*$", re.MULTILINE)
@@ -165,6 +204,16 @@ _INTERACTIVE_LINE_RE = re.compile(
     r"and execute it exactly\.\s*$",
     re.MULTILINE,
 )
+#: The CODESPACE command (Ch8 dispatch table, row 4). The contract is shipped IN as a file and
+#: so is the runner, so the line carries no quoted payload: a PowerShell string reaching a bash
+#: login shell through gh's ssh transport is parsed twice, which is the failure class that
+#: design exists to avoid. Only the two parameters a FROZEN contract must pin are emitted; the
+#: machine, idle-timeout and retention flags are dispatch-time cost choices and freezing them
+#: into a contract would state a spend the operator has not yet made.
+_CODESPACE_DISPATCH_LINE_RE = re.compile(
+    r"^Dispatch-Codespace\s+-Contract\s+(?P<file>\S+)\s+-Slug\s+(?P<slug>\S+)\s*$",
+    re.MULTILINE,
+)
 #: The declared shape. Without it a checker cannot tell a correct command from a wrong one,
 #: which is the whole property this generator exists to hold.
 _SHAPE_LINE_RE = re.compile(r"^\*\*Shape:\*\*\s+`(?P<shape>[a-z]+)`", re.MULTILINE)
@@ -175,6 +224,7 @@ _COMMAND_RES: dict[str, re.Pattern[str]] = {
     "local": _DISPATCH_LINE_RE,
     "cloud": _CLOUD_DISPATCH_LINE_RE,
     "interactive": _INTERACTIVE_LINE_RE,
+    "codespace": _CODESPACE_DISPATCH_LINE_RE,
 }
 
 _PAIRING_RE = re.compile(
@@ -316,6 +366,10 @@ def branch_name(slug: str, shape: str = DEFAULT_SHAPE) -> Optional[str]:
     * `cloud` — `claude/<slug>`, the prefix Ch8's cloud-lane section and CLAUDE.md §4's branch
       enum both give a cloud session. Emitting `worktree-` here declared a branch the cloud
       transport never creates.
+    * `codespace` — `worktree-<slug>`, the SAME prefix as a local lane (R-ENUM leg 3). A
+      codespace lane commits and pushes like a local one, merely elsewhere, so `claude/` here
+      would name a branch nothing creates. Off-machine and cloud are different axes, and this
+      is the line where conflating them emits a wrong branch.
     * `interactive` — `None`. An operator-attended session runs in the primary checkout on an
       author-chosen branch, so there is nothing for the contract to declare, and inventing a
       name would be a claim the tree never makes true.
@@ -344,6 +398,8 @@ def dispatch_command(slug: str, contract_file: str, effort: str, shape: str) -> 
         return f"Dispatch-CloudV2 {contract_file} -Title '{slug}'"
     if shape == "interactive":
         return f"Read {PROMPTS_DIR_TOKEN}\\{contract_file} and execute it exactly."
+    if shape == "codespace":
+        return f"Dispatch-Codespace -Contract {contract_file} -Slug {slug}"
     return f"Dispatch-Lane {slug} {contract_file} -Effort {effort}"
 
 
@@ -455,6 +511,21 @@ def render_contract(spec: LaneSpec) -> str:
             f"mode is `{PERMISSION_MODE.split()[-1]}`, as it is for an on-machine lane.\n"
             f"A cloud session clones from `origin`, so every input this contract names is\n"
             f"pushed before dispatch: it cannot see an unpushed branch or a local file.\n")
+    elif spec.shape == "codespace":
+        parts.append(
+            f"The operator runs the line above verbatim. The contract is shipped IN **as a\n"
+            f"file**, and so is the runner: nothing on the ssh command line is a quoted\n"
+            f"payload, because a PowerShell string reaching a bash login shell through gh's\n"
+            f"transport is parsed twice. Tier is on the record in the routing table above\n"
+            f"(`{spec.model}` / `{spec.effort}`) — `Dispatch-Codespace` carries no `-Effort`.\n"
+            f"Permission mode is `{PERMISSION_MODE.split()[-1]}`, as on every substrate.\n"
+            f"**The container is CREATED, never rebuilt** (ruling 2026-08-31): a rebuilt\n"
+            f"container has not applied its own `devcontainer.json` — no features, no\n"
+            f"`postCreateCommand`, a stale clone — while a fresh create from the same HEAD\n"
+            f"applies all of it. The clone starts at `origin`, so every input this contract\n"
+            f"names is pushed before dispatch. Cost flags (`-Machine`, `-IdleTimeout`,\n"
+            f"`-Retention`) are the operator's at dispatch and are deliberately not frozen\n"
+            f"here; board label `{spec.board_label}`.\n")
     else:
         parts.append(
             f"`claude` starts the session; the second line is its **first message**, not a\n"
@@ -478,17 +549,44 @@ def render_contract(spec: LaneSpec) -> str:
     else:
         parts.append(
             f"slug `{spec.slug}` -> branch `{branch}` -> contract `{fname}`\n")
-        prefix_note = (
-            "The `worktree-` prefix is applied exactly ONCE — the flag takes the bare lane\n"
-            "name.\n" if spec.shape == "local" else
-            "A cloud lane runs on the `claude/` prefix, not `worktree-`: the branch is created\n"
-            "by the cloud transport, not by a local worktree provisioner.\n")
+        if spec.shape == "local":
+            prefix_note = (
+                "The `worktree-` prefix is applied exactly ONCE — the flag takes the bare lane\n"
+                "name.\n")
+        elif spec.shape == "codespace":
+            prefix_note = (
+                "A codespace lane runs on `worktree-`, the SAME prefix as a local lane and not\n"
+                "the cloud transport's `claude/`: it commits and pushes like a local lane,\n"
+                "merely elsewhere, so `claude/` would name a branch nothing creates (R-ENUM\n"
+                "leg 3, 2026-08-31). Off-machine and cloud are different axes.\n")
+        else:
+            prefix_note = (
+                "A cloud lane runs on the `claude/` prefix, not `worktree-`: the branch is created\n"
+                "by the cloud transport, not by a local worktree provisioner.\n")
         parts.append(
             "One lane = one contract file = one branch, so an open lane resolves to the\n"
             "contract that created it and an orphan is attributable at a glance (ADR-110,\n"
             f"fifth per-lane requirement). {prefix_note}")
 
-    if spec.cloud:
+    if spec.shape in RECEIPT_SHAPES and spec.shape == "codespace":
+        parts.append(f"## {CLOUD_SECTION}\n")
+        fields = RECEIPT_FIELDS_BY_SHAPE["codespace"]
+        parts.append(
+            "This lane runs off-machine in the repo's own devcontainer, so it carries a receipt\n"
+            "(`protocols/STANDING_RULINGS.md` Q5) — `receipt.json`, pulled back out. Both\n"
+            "fields, checked as a conjunction — either one alone reports a success the other\n"
+            "refutes:\n")
+        parts.append(f"- `{fields[0]}:` `<Ok=…, RemoteExitCode=…, read separately>`")
+        parts.append(f"- `{fields[1]}:` `<is_error, verbatim from receipt.json>`\n")
+        parts.append(
+            "`Ok` is the TRANSPORT's verdict and `RemoteExitCode` is the WORK's: gh's own exit\n"
+            "code is 1 regardless, so a caller branching on `Ok` alone reads a failed lane as a\n"
+            "success. And a receipt can carry a success `subtype` while `is_error` is true, so\n"
+            "`is_error` is the verdict field and `subtype` is the trap — a consumer keying on\n"
+            "`subtype` records a successful run of an agent that never ran. A dispatch missing\n"
+            "either half is treated as not having started, and is re-dispatched into a FRESH\n"
+            "container (created, never rebuilt).\n")
+    elif spec.cloud:
         parts.append(f"## {CLOUD_SECTION}\n")
         parts.append(
             "This lane runs off-machine, so it carries a receipt "
@@ -612,9 +710,10 @@ def parse_contract(text: str, *, expect_shape: Optional[str] = None) -> ParsedCo
     if not present:
         problems.append(
             "no dispatch command line found — every contract carries the literal line that "
-            "launches it, in the `## Dispatch` block, in exactly one of the three forms "
-            "(`Dispatch-Lane` | `Dispatch-CloudV2` | `Read <PROMPTS_DIR>\\<file> and execute "
-            "it exactly.`); a contract handed over without one does not get started")
+            "launches it, in the `## Dispatch` block, in exactly one of the four forms "
+            "(`Dispatch-Lane` | `Dispatch-CloudV2` | `Dispatch-Codespace` | "
+            "`Read <PROMPTS_DIR>\\<file> and execute it exactly.`); a contract handed "
+            "over without one does not get started")
     elif len(present) > 1:
         problems.append(
             f"contract carries {len(present)} dispatch command lines ({', '.join(present)}) "
@@ -661,11 +760,12 @@ def parse_contract(text: str, *, expect_shape: Optional[str] = None) -> ParsedCo
             problems.append(
                 f"dispatch line pairs slug {slug!r} with file {contract_file!r}; the 1:1 "
                 f"pairing wants {contract_filename(slug)!r}")
-    elif matched_shape == "cloud":
-        # `-Title` is the cloud transport's name for the lane, so it is read as the slug and
-        # held to the SAME grammar and the same 1:1 pairing as the local form's. Nothing
+    elif matched_shape in ("cloud", "codespace"):
+        # Both off-machine forms carry a file and a name and no `-Effort`: cloud names the
+        # lane with `-Title`, codespace with `-Slug`. Either way the name is read as the slug
+        # and held to the SAME grammar and the same 1:1 pairing as the local form's — nothing
         # about running off-machine relaxes what a lane may be called.
-        cloud_match = found["cloud"]
+        cloud_match = found[matched_shape]
         slug = cloud_match.group("slug")
         contract_file = cloud_match.group("file")
         try:
@@ -755,25 +855,32 @@ def parse_contract(text: str, *, expect_shape: Optional[str] = None) -> ParsedCo
                     f"pairing line names contract {pairing.group('file')!r} but the dispatch "
                     f"line names {contract_file!r}")
 
-    # The receipt gate keys on the CLOUD shape, which is now declared rather than inferred
-    # from the section's own presence — a contract that dropped the section used to read as
-    # "not a cloud lane" instead of "a cloud lane missing its gate".
-    is_cloud = CLOUD_SECTION in sections
-    found_receipt = tuple(f for f in RECEIPT_FIELDS if f in prose)
-    if shape == "cloud" and not is_cloud:
+    # The receipt gate keys on the OFF-MACHINE shapes, declared rather than inferred from the
+    # section's own presence — a contract that dropped the section used to read as "not an
+    # off-machine lane" instead of "an off-machine lane missing its gate". Keying it on the
+    # literal string `cloud` was a rule written to one instance of its own class, and it is
+    # what refused the first codespace contract (R-ENUM, 2026-08-31).
+    has_gate = CLOUD_SECTION in sections
+    found_receipt = tuple(f for f in ALL_RECEIPT_FIELDS if f in prose)
+    if shape in RECEIPT_SHAPES and not has_gate:
         problems.append(
-            f"contract declares shape 'cloud' but carries no '## {CLOUD_SECTION}' section — "
-            f"every cloud dispatch carries one (STANDING_RULINGS Q5)")
-    if is_cloud:
-        if shape is not None and shape != "cloud":
+            f"contract declares shape {shape!r} but carries no '## {CLOUD_SECTION}' section "
+            f"— every off-machine dispatch carries one (STANDING_RULINGS Q5)")
+    if has_gate:
+        if shape is not None and shape not in RECEIPT_SHAPES:
             problems.append(
                 f"contract declares shape {shape!r} but carries a '## {CLOUD_SECTION}' "
-                f"section — the receipt gate is a cloud-lane rule (Q5)")
-        for missing in (f for f in RECEIPT_FIELDS if f not in found_receipt):
-            problems.append(f"cloud lane is missing the receipt field: {missing}")
-    elif shape is not None and shape != "cloud" and found_receipt:
+                f"section — the receipt gate is an off-machine-lane rule (Q5)")
+        # An UNDECLARED shape keeps the historical reading (cloud's fields), so a contract
+        # that lost its `**Shape:**` line is still checked rather than silently exempted.
+        gate_shape = shape if shape is not None else "cloud"
+        for missing in (f for f in RECEIPT_FIELDS_BY_SHAPE.get(gate_shape, ())
+                        if f not in found_receipt):
+            problems.append(f"{gate_shape} lane is missing the receipt field: {missing}")
+    elif shape is not None and shape not in RECEIPT_SHAPES and found_receipt:
         problems.append(
-            f"{shape} lane carries receipt fields — the receipt gate is a cloud-lane rule (Q5)")
+            f"{shape} lane carries receipt fields — the receipt gate is an off-machine-lane "
+            f"rule (Q5)")
 
     for ask_class in ("(a)", "(b)", "(c)"):
         if ask_class not in prose:
@@ -899,7 +1006,9 @@ def cmd_enums() -> None:
         prefix = "claude, then: " if shape == "interactive" else ""
         click.echo(f"  {shape}: {prefix}{line}")
     click.echo(f"mandatory sections: {', '.join(MANDATORY_SECTIONS)}")
-    click.echo(f"cloud-only section: {CLOUD_SECTION} ({', '.join(RECEIPT_FIELDS)})")
+    for receipt_shape in RECEIPT_SHAPES:
+        fields = ', '.join(RECEIPT_FIELDS_BY_SHAPE[receipt_shape])
+        click.echo(f"off-machine section ({receipt_shape}): {CLOUD_SECTION} ({fields})")
     click.echo(f"generated: {_dt.date.today().isoformat()}")
 
 

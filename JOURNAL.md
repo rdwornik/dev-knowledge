@@ -19,6 +19,58 @@
 
 ---
 
+### 2026-08-31 (m) - CC (Opus 5, background job, night orchestrator): R-ENUM LANDS - `codespace` is in the contract vocabulary, and the receipt gate was a rule written to one instance of its own class
+
+**Anchors:** `4fff67e7`
+
+**Did:** landed the R-ENUM ruling entry (l) named as the blocker for every future codespace lane,
+and resolved DC-23's status as STOPPED-BY-REFUSAL rather than hung.
+
+**ALL THREE LEGS IN ONE COMMIT, and that is the design rather than the convenience.** Landing
+them apart leaves a window in which a contract passes one gate and fails the next -- which is
+precisely the state being closed, not a smaller version of it. `SHAPE_ENUM` gains `codespace`;
+`_COMMAND_RES` gains `Dispatch-Codespace -Contract <FILE.md> -Slug <slug>`; the pairing rule puts
+a codespace lane on `worktree-<slug>`. The enum-pinning test was **widened, not deleted**: the
+property under test is not the arity, it is that a shape enters only by a recorded ruling.
+
+**THE FOURTH THING, which the three legs exposed and which nobody had named.** The receipt gate
+keyed on the literal string `cloud`, so a codespace contract carrying a `## Receipt gate` was
+refused as *"the receipt gate is a cloud-lane rule"* while one WITHOUT a gate went unchecked.
+Both readings are wrong for the same reason: **the receipt is an OFF-MACHINE rule and `cloud` was
+one instance of that class.** Ch8 states it for row 2 and row 4 in each row's own words. It now
+keys on `RECEIPT_SHAPES = (cloud, codespace)` with **per-shape fields**, because the traps differ
+-- a codespace receipt can carry a success `subtype` while `is_error` is true, and `Ok` is the
+transport's verdict where `RemoteExitCode` is the work's. No new doctrine: existing doctrine,
+keyed correctly.
+
+**Leg 2 obeyed SOLE-site discipline rather than routing around it.** Ch8's dispatch table is the
+only place in the repo carrying a literal launch command, so the contract-grammar statement went
+INTO that table and the generator now reads it as its source. The witness for it was written
+vacuously the first time -- `assert "worktree-" in table` passes on a table that never mentions
+codespace, because row 1 says `worktree-` -- and it is now scoped to row 4. Worth recording: a
+doc-agreement test is the easiest kind to write green and useless.
+
+**DC-23 WAS NOT HUNG THIS TIME.** The re-dispatch (23:10) ran 9 minutes and **STOPPED by its own
+refuse-to-proceed clause with ZERO writes** -- tree clean, no commit, no branch movement. Act One
+is bound to the A3 stale-doctrine census, which HAS harvested, and its §3B names ten breaking
+consumers of `ESSENTIALS.md` -- **not one of them inside the frozen write-scope**: seven live
+instruction lines in `SESSION_SETUP.md`, the CLAUDE-md onboarding template, a HUB region
+deploy-carried to every ADR-104 member, two registered-spec citations, an ADR-88 register entry
+whose recorded justification IS the gate that dissolution makes vacuous, and five set memberships
+in `canonical_docs.py`. A second, independent blocker sits INSIDE the footprint: the floor
+carrier is hash-guarded three ways and `release_lint` C5 asserts the equality, while the sidecar
+and three manifests are all out of scope. **The lane refused correctly and the refusal is the
+deliverable.** Its escalation question -- does DC-2's refusal stop DC-3, which was merged into it
+for write-scope reasons and not dependency -- batches to the morning packet per R-NOSTOP.
+
+**Result:** the codespace contract grammar is live; 120/120 in the lane-contract suite, 10 new
+witnesses RED-first; all 22 frozen batch-E contracts still pass the shape gate unchanged.
+
+**Changes:** `scripts/gen_lane_contract.py`, `tests/test_gen_lane_contract.py`,
+`protocols/PLAYBOOK.md` (Ch8 dispatch table, row 4).
+
+**Next:** drain the remaining batch-E lanes on local worktrees, then the held set.
+
 ### 2026-08-31 (l) - CC (Opus 5, background job, integrator seat): CORRECTION - the tier-(D) lane is NOT frozen. The substrate is admitted; the CONTRACT GRAMMAR is not.
 
 **Anchors:** `631fa228`

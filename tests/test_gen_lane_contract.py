@@ -509,8 +509,16 @@ def test_every_shape_enum_member_is_accepted(good):
     assert glc.validate_shape(good) == good
 
 
-def test_the_shape_enum_is_exactly_the_three_ch8_names():
-    assert glc.SHAPE_ENUM == ("local", "cloud", "interactive")
+def test_the_shape_enum_is_exactly_the_four_ch8_names():
+    """The enum is CLOSED and this test is the closing.
+
+    It was three names until 2026-08-31, when `codespace` entered by ruling (R-ENUM). Widened
+    here rather than deleted, because the property under test is not the arity: it is that a
+    shape enters this enum only by a recorded ruling and never by a lane, a generator or an
+    integrator. This assertion is what makes a silent fourth member impossible, and the same
+    assertion is what makes the fourth one traceable to the act that admitted it.
+    """
+    assert glc.SHAPE_ENUM == ("local", "cloud", "interactive", "codespace")
     assert glc.DEFAULT_SHAPE == "local"
 
 
@@ -523,6 +531,10 @@ def test_the_branch_derivation_follows_the_shape():
     assert glc.branch_name("lane-a-539-x", "local") == "worktree-lane-a-539-x"
     assert glc.branch_name("lane-a-539-x", "cloud") == "claude/lane-a-539-x"
     assert glc.branch_name("lane-a-539-x", "interactive") is None
+    # R-ENUM leg 3: OFF-MACHINE is not the same axis as CLOUD. A codespace lane commits and
+    # pushes like a local one, so it keeps `worktree-`; reading "off-machine" as "claude/"
+    # here would have emitted a branch nothing creates, which is the cloud defect in mirror.
+    assert glc.branch_name("lane-a-539-x", "codespace") == "worktree-lane-a-539-x"
     # The one-argument form is unchanged — the local default, so every existing caller and
     # the batch-6 doubled-prefix regression keep their meaning.
     assert glc.branch_name("lane-a-539-x") == "worktree-lane-a-539-x"
@@ -622,3 +634,111 @@ def test_the_enums_command_prints_the_shape_surface():
     assert result.exit_code == 0
     for shape in glc.SHAPE_ENUM:
         assert shape in result.output
+
+
+# --- 6. R-ENUM — `codespace` in the contract grammar (ruling 2026-08-31, class [#514]) ------
+#
+# The substrate was ADMITTED for running on 2026-08-31 (3-of-3 legs green on a fresh create)
+# and remained UNADMITTED in the vocabulary this module enforces, which is a different
+# admission. Three closed enums refused it and the tier-(D) proof-of-work lane could not be
+# frozen: the SHAPE enum here, the dispatch-verb table `_COMMAND_RES`, and the pairing rule.
+# The failure class is [#514]'s — `validate_substrate` read `codespace` off
+# `ecosystem/substrate-registry.yaml` and ACCEPTED the same contract this gate REFUSED, so one
+# vocabulary carried two verdicts and a contract could pass the freeze gate and fail the shape
+# gate. These witnesses are written to the RULING, not to the implementation.
+
+@pytest.fixture()
+def codespace_contract() -> str:
+    return glc.render_contract(_spec(shape="codespace"))
+
+
+def test_codespace_is_in_the_shape_enum(codespace_contract):
+    """Leg 1 of R-ENUM. Without this the other two legs have nothing to attach to."""
+    assert "codespace" in glc.SHAPE_ENUM
+    assert glc.validate_shape("codespace") == "codespace"
+    assert "codespace" in glc.SHAPE_GLOSS
+
+
+def test_an_emitted_codespace_contract_parses_with_no_problems(codespace_contract):
+    parsed = glc.parse_contract(codespace_contract, expect_shape="codespace")
+    assert parsed.problems == (), parsed.problems
+    assert parsed.ok
+
+
+def test_a_codespace_contract_carries_the_dispatch_codespace_verb(codespace_contract):
+    """Leg 2 — the dispatch-verb enum. The emitted form is the Ch8 table's row 4 verb, and
+    it is NOT either on-machine form: a lane handed another shape's command is worse than
+    one handed none, because a wrong command looks authoritative."""
+    assert "Dispatch-Codespace -Contract " in codespace_contract
+    assert glc._DISPATCH_LINE_RE.search(codespace_contract) is None
+    assert glc._CLOUD_DISPATCH_LINE_RE.search(codespace_contract) is None
+    assert glc.find_command_line(codespace_contract).startswith("Dispatch-Codespace")
+
+
+def test_a_codespace_lane_pairs_a_worktree_branch_not_a_claude_one(codespace_contract):
+    """Leg 3 — the pairing rule. A codespace lane COMMITS like a local lane, merely
+    elsewhere, so it runs on `worktree-<slug>`; `claude/` is the cloud transport's prefix and
+    nothing in a codespace creates it."""
+    assert glc.branch_name("lane-a-539-ch8-codification", "codespace") == (
+        "worktree-lane-a-539-ch8-codification")
+    parsed = glc.parse_contract(codespace_contract, expect_shape="codespace")
+    assert parsed.branch == "worktree-lane-a-539-ch8-codification"
+
+
+def test_a_codespace_contract_with_a_claude_prefixed_pairing_is_reported(codespace_contract):
+    mangled = codespace_contract.replace(
+        "branch `worktree-lane-a-539-ch8-codification`",
+        "branch `claude/lane-a-539-ch8-codification`", 1)
+    problems = glc.parse_contract(mangled, expect_shape="codespace").problems
+    assert any("worktree-lane-a-539-ch8-codification" in p for p in problems), problems
+
+
+def test_a_codespace_lane_carries_a_receipt_gate_with_its_own_fields(codespace_contract):
+    """The receipt gate is an OFF-MACHINE rule, not a cloud-only one — Ch8's row 4 states it
+    for this substrate in its own words (`receipt.json` is pulled back out, and `Ok` and
+    `RemoteExitCode` are read separately). Its FIELDS differ from cloud's, because the traps
+    differ: a codespace receipt can carry `subtype: "success"` with `is_error: true`."""
+    assert f"## {glc.CLOUD_SECTION}" in codespace_contract
+    for field_name in glc.RECEIPT_FIELDS_BY_SHAPE["codespace"]:
+        assert field_name in codespace_contract
+    for cloud_field in glc.RECEIPT_FIELDS:
+        assert cloud_field not in codespace_contract
+
+
+def test_a_codespace_lane_missing_a_receipt_field_is_reported(codespace_contract):
+    field_name = glc.RECEIPT_FIELDS_BY_SHAPE["codespace"][0]
+    mangled = codespace_contract.replace(field_name, "something-else", 1)
+    problems = glc.parse_contract(mangled, expect_shape="codespace").problems
+    assert any(field_name in p for p in problems), problems
+
+
+def test_a_codespace_contract_that_dropped_its_receipt_gate_is_reported(codespace_contract):
+    mangled = codespace_contract.replace(f"## {glc.CLOUD_SECTION}", "## Notes", 1)
+    problems = glc.parse_contract(mangled, expect_shape="codespace").problems
+    assert any(glc.CLOUD_SECTION in p for p in problems), problems
+
+
+def test_the_receipt_shapes_are_exactly_the_off_machine_ones():
+    """Stated as a set so a fourth shape cannot be added without deciding this question."""
+    assert set(glc.RECEIPT_SHAPES) == {"cloud", "codespace"}
+    assert set(glc.RECEIPT_FIELDS_BY_SHAPE) == set(glc.RECEIPT_SHAPES)
+
+
+def test_the_playbook_dispatch_table_carries_the_codespace_pairing_rule():
+    """SOLE-site discipline: the Ch8 dispatch table is the only place in the repository that
+    carries a literal launch command, so the verb this module emits has to be the verb that
+    table publishes — and the table has to state the pairing rule the gate enforces. A
+    generator free to invent a rival form is the drift this ruling closes."""
+    playbook = (_REPO_ROOT / "protocols" / "PLAYBOOK.md").read_text(encoding="utf-8")
+    table = playbook.split("#### The dispatch table — the SOLE literal-command site", 1)[1]
+    table = table.split("#### Standing operator-interface rules", 1)[0]
+    assert glc.dispatch_command(
+        "lane-a-539-ch8-codification", "LANE-a-539-ch8-codification.md", "high",
+        "codespace").split()[0] in table
+    # Scoped to ROW 4, not to the whole table: `worktree-` appears in row 1 (the LOCAL row),
+    # so an unscoped `in table` assertion passes on a table that never states the codespace
+    # pairing at all. That vacuous form was written first and caught here.
+    row4 = table.split("**4 — CODESPACE**", 1)[1]
+    row4 = row4.split("##### Where the contract file lives", 1)[0]
+    assert "worktree-" in row4, "Ch8 row 4 does not state the codespace branch pairing"
+    assert "claude/" in row4, "Ch8 row 4 does not say which prefix a codespace lane is NOT on"

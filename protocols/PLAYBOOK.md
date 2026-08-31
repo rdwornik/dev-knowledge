@@ -2698,6 +2698,24 @@ Dispatch-Codespace -Contract <FILE.md> [-Slug <name>] [-Repo <owner/repo>] [-Bra
                    [-Machine basicLinux32gb] [-IdleTimeout 30m] [-Retention 24h] [-DryRun]
 ```
 
+- **Contract grammar — shape `codespace`, branch `worktree-<slug>`** (ruling R-ENUM,
+  2026-08-31; class precedent `[#514]`). A frozen contract for this row declares
+  ``**Shape:** `codespace` `` and carries the line
+  `Dispatch-Codespace -Contract <FILE.md> -Slug <slug>` — the two parameters a contract pins.
+  The cost flags stay the operator's at dispatch, so freezing them into a contract would state
+  a spend he has not yet made. **It pairs a `worktree-` branch, NOT `claude/`**: a codespace
+  lane commits and pushes like a local lane, merely elsewhere, so the cloud transport's prefix
+  would name a branch nothing creates. *Off-machine and cloud are different axes* — that
+  conflation is what this pairing rule closes, and it is the mirror of the defect that once
+  gave a cloud contract a `worktree-` branch. Like row 2 it is **receipt-gated**, with its own
+  fields (Receipt bullet below), because the traps differ.
+  **Why this row is load-bearing rather than descriptive:** the substrate was admitted for
+  RUNNING on 2026-08-31 and stayed unadmitted in the contract vocabulary, which is a different
+  admission — `validate_substrate` accepted `codespace` off `ecosystem/substrate-registry.yaml`
+  while `lane-contract-check` refused the same file, so one vocabulary carried two verdicts and
+  no codespace lane could be frozen. `scripts/gen_lane_contract.py` now reads THIS row as its
+  source (`SHAPE_ENUM`, `_COMMAND_RES`, `branch_name`) rather than carrying a rival form, and
+  `tests/test_gen_lane_contract.py` asserts the agreement against this text.
 - **Argument shape:** the contract is shipped in **as a file**, and so is the runner — the only
   thing on the ssh command line is `bash <path>`, one token, no quotes. A PowerShell string
   reaching a bash login shell through gh's ssh transport is parsed twice, which is the failure
