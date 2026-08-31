@@ -313,6 +313,47 @@ def is_lane_merge(repo_path: Path, sha: str) -> bool:
     return bool(name and LANE_BRANCH_RE.match(name))
 
 
+# The lane-ish shapes a NON-conforming merge subject still leaks, used only to tell a
+# message-style miss apart from a genuine non-lane merge. Deliberately loose: it is a
+# diagnostic, never an exemption path -- nothing widens `is_lane_merge` by matching here.
+_LANEISH_IN_SUBJECT_RE = re.compile(r"(?:worktree-)?lane-[a-z]-\d+-[a-z0-9]+(?:-[a-z0-9]+)*")
+
+
+def subject_style_miss(repo_path: Path, sha: str) -> Optional[str]:
+    """The lane name a merge subject NAMES but does not expose to the parser, or None.
+
+    THE TRAP THIS EXISTS TO END (measured 2026-08-31, [#614] integration). The exemption reads
+    the merged branch out of the subject via `_MERGE_SUBJECT_RE`, i.e. git's DEFAULT
+    `Merge branch '<name>'` form. An integrator who writes a descriptive subject instead --
+    `Merge DC-1 (lane-a-1-vision-to-readme) -- ...` -- drops the prefix, so `merged_branch_name`
+    returns None, `is_lane_merge` is False, and the exemption silently does not apply. It fails
+    CLOSED, which is the safe direction and exactly why nobody notices: the cost lands later, as
+    an anchor-gate deadlock in a different command, with nothing anywhere saying an exemption was
+    expected and missed. That is what happened on the mechanism's first live test.
+
+    So: when a merge is NOT recognised as a lane merge but its subject still mentions a
+    lane-shaped branch name, that is almost certainly message style rather than a real non-lane
+    merge, and the caller can say so out loud. Returns the leaked name for the message.
+
+    Deliberately NOT an exemption path. Recognising a lane here would make the grammar the
+    subject-writer's to choose, which is the coupling `[#514]` removed. The ruled procedure is
+    still "keep git's default `Merge branch '<name>'` prefix and append prose after it"; this
+    only makes a miss LOUD instead of silent.
+    """
+    if merged_branch_name(repo_path, sha) is not None:
+        return None                        # parsed fine -- nothing to warn about
+    try:
+        import journal_anchor as _ja
+        parents = _ja._git(repo_path, "rev-list", "--parents", "-n", "1", sha).split()
+        if len(parents) < 3:
+            return None                    # not a merge at all -- not this function's business
+        subject = _ja._git(repo_path, "log", "-1", "--format=%s", sha).strip()
+    except Exception:                      # noqa: BLE001 -- a read failure is not a style miss
+        return None
+    m = _LANEISH_IN_SUBJECT_RE.search(subject)
+    return m.group(0) if m else None
+
+
 def exempt(repo_path: Path, shas: list[str],
            batches: Optional[list[OpenBatch]] = None) -> set[str]:
     """The subset of `shas` the declared-integration-arc exemption covers.
