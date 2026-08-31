@@ -19,6 +19,63 @@
 
 ---
 
+### 2026-08-31 (b) - CC (Opus 5, background job, worktree-batch-e-derive, derivation seat): BATCH E DERIVED - tier A dispatched 7/7, six premises refuted, nothing else frozen
+
+**Anchors:** `b3f489b5` `de909ca5` `b4b07e69`
+
+**Did:** ran the DERIVE half of batch E's DERIVE -> cut -> FREEZE -> DISPATCH, dispatched tier
+(A), and landed the operator's mid-flight `.CLAUDE GOVERNANCE MODEL` filing. **Nothing else is
+frozen** - no lane contract in the plan is written to the prompts dir, no worktree provisioned,
+no manifest committed, no `closed_by:` chosen.
+
+**TIER (A) - DISPATCHED, 7 of 7.** Seven read-only cloud censuses via `Dispatch-CloudV2`
+(DispatchHelpers v1.5.0), all `Ok=True` / `Bound=True`: G1 CREATED, G2 BOUND to the
+`git_repository` at `main`, G3 RECEIPT echoed. Zero failures. Contracts as dispatched are landed
+at `docs/audits/2026-08-31-technical-batche-launch-contracts/` so a dispatched contract is not an
+orphan; they pass the `lane-contract-check` shape gate. Session ids and receipts are in `PLAN.md`
+section 1. Harvest with `Harvest-Cloud`.
+
+**SIX PREMISES REFUTED BY MEASUREMENT, not by reasoning.** (1) `conflict/` **does not exist** -
+zero tracked files in the hub, absent from all six sibling fleet repos, cited as a path by
+nothing; A1's subject was re-derived to Z-G5's real discipline (44 tracked single-file
+directories) with the refutation carried inside the contract. (2) "predicate six" is **predicate
+five** - `validate_substrate.py` has four legs. (3) `[#591]`'s validator **already exists and
+runs**; 0a extends a built organ. (4) DM-3's row citation is wrong - `[#615]` is MODEL
+ATTRIBUTION, not the graph; the real home is intake #40, DRAFT, no carrier row. (5) DC-2/DC-3 are
+**fleet-wide acts** - all eleven cited `CLAUDE.md` locators resolve exactly, but six sit inside
+`owner=hub` regions byte-identical to `templates/claude-regions/` and deploy-carried, and
+DEPLOYMENT WAVE is `blocked_by` DOCTRINE CONSOLIDATION, which is what DC-2/DC-3 *are* - circular
+unless ruled. (6) DM-4's "sqlite-vec proven under pinned uv" is refuted: nothing was installed or
+run, it is ADR-112 **Tier L not Tier S** (the third repetition of a mislabel the autonomy
+synthesis exists to correct), and its embedder `sentence-transformers` is on the REJECTED list.
+
+**Good news on the one DELETE the operator ruled:** both `ObsidianVault/` lines (`CLAUDE.md` :40,
+:77) are **REPO-owned**, so deleting them outright is clean and hub-local exactly as ruled.
+
+**0b MEASURED.** Full suite: **28 failed / 4,605 passed / 11 skipped / 1 xfailed in 842.30s**.
+The brief's "six baseline-drift REDs" is **confirmed** - six families across nine tests
+(adr-status x4 incl. the ADR-116 count move, funnel-coverage, doc-rot, consumer-at-landing,
+preflight-freeze-predicates, export-backlog-view). The other 19 are **not drift**: 17
+`test_fleet_analytics` need `--group analytics`, `test_stale_worktrees` REDs *because* a worktree
+is live, and the anchor-gate probe is a known RED on main. **Honest limit:** the run post-dates
+this session's own two commits, which added eight audit files - exactly what moves three of the
+six - so these deltas include this session's contribution and are not the clean pre-batch
+baseline. Re-measure at `main` before merging.
+
+**Result:** tier (A) executing; the plan is emitted for the architect's cut with thirteen
+premises named and none ruled.
+
+**Changes:** `docs/intake/2026-08-29-tech-l0-as-a-governed-layer.md` (amendment) ·
+`scripts/gen_north_star.py` (optional per-arc `sequence`) · `ecosystem/north-star.md` ·
+`docs/audits/2026-08-31-technical-batche-launch-contracts/` (7 contracts + PLAN.md) ·
+`docs/audits/README.md`.
+
+**Abandoned:** nothing. **Next:** the architect's cut on U-1 (two disagreeing fleet deployment
+orders), U-4 (the DC-2/DC-3 circularity), U-6 (the doctrine chain is not file-disjoint) and U-10
+(DM-4's three failed bars); then FREEZE through the `[#591]` validator and dispatch (B) and (C).
+
+---
+
 ### 2026-08-31 (a) - CC (Opus 5, background job, primary checkout, integrator): WINDOW CLOSE - two rulings, a stranded ADR, and the five pillars
 
 **Anchors:** `fbe70097` `bdb7cd43` `0a4c20d8` `d8f2993a`

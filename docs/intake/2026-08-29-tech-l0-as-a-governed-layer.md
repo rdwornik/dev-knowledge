@@ -140,3 +140,92 @@ DRAFT — filed 2026-08-29 from operator direction, by the `pn-filings` filing l
 row is deliberately unborn**, on intake #40's precedent in this same tree: the path from a
 CANDIDATE runs through intake and ratification, and question 1 is a ruling the operator owns.
 Awaiting operator ruling on question 1 and technical-architect triage on the rest.
+
+## AMENDMENT — 2026-08-31: THE `.CLAUDE` GOVERNANCE MODEL — the umbrella this intake was one leg of
+
+> **Source:** operator direction, stated mid-flight during the batch-E derivation pass of
+> 2026-08-31, filed under this batch's binding rule — *reconcile-before-birth: amend existing
+> leaf/row/intake, birth only proven gaps*. **Zero new folders**, zero new intakes, zero new rows.
+> This amendment records direction and a shape; **it still binds nothing**, because this intake is
+> `status: DRAFT` and DRAFT BINDS NOTHING. Question 1 remains the operator's ruling to make.
+
+### What changed: this intake is a LEG, not the whole subject
+
+Four objects have been filed and worked separately, and the operator's direction names them as one
+umbrella — **the `.CLAUDE` GOVERNANCE MODEL**:
+
+- **this intake (#62)** — L0 as a governed layer;
+- **the commands + skills census (4b)** — see the amendment to open question 2 below;
+- **the prompt distiller** — 4a / `[#617]` (FILE DISTILLATION, the output half) / batch-E item DM-5;
+- **the floor carrier** — `templates/child-methodology-floor.md.tmpl`, its `.sha256` sidecar,
+  `.claude/CLAUDE-FLOOR.md` and the `check_floor_hash.py` SessionStart guard.
+
+Filing them as one umbrella is the substantive act: each was individually unresolvable because
+each answered a different third of the same ownership question.
+
+### The three layers, as directed
+
+1. **L0 (`~/.claude`) — DERIVED FROM HUB, plus an agreement check.** Not hand-owned. The drift
+   organ is the shape `[#592]` built and `[#613]` reuses, not a rival invention. This is exactly
+   the target shape this intake's Problem section already records; the amendment adds that L0 is
+   **derived**, which sharpens Acceptance criterion 2's "hub-authored and derived" class from one
+   option among three into the directed answer for this layer — *subject to question 1*, which
+   core-invariant #6 still gates and which this amendment does not self-rule.
+2. **Hub `.claude` — CANONICAL**, carrying a **usage-ranked, deduplicated census** of commands and
+   skills, and that census must include **Anthropic-shipped organs**, which sit outside every
+   census the repo currently runs.
+3. **Consumer `.claude` — the DEPLOYED FLOOR plus local skills, each with PROVENANCE.** A consumer
+   skill is either floor-carried or locally-authored, and which one it is must be readable from
+   the artifact rather than inferred.
+
+### The admission gate — new, and the sharpest clause
+
+**Any skill or command is admitted only through an evaluation loop** (Harbor / SkillsBench-class).
+**LLM-authored skills without an eval are REFUSED BY RULE**, on the SkillsBench finding that they
+contribute approximately **zero percentage points**. This couples the umbrella to batch E's
+**DM-1 (EVAL)** and to the north-star arc **THE METRIC**, which is RANK 1 precisely because
+"every absent property is downstream of a measurement that does not yet exist". The admission gate
+is a *consumer* of that metric, so it inherits the metric's ordering: **an admission gate built
+before the harness that scores it would be a gate with nothing to read.** Stated here so the
+sequence is on the record rather than rediscovered.
+
+### The bidirectional distiller hangs off this umbrella
+
+Two directions, one object: **intent -> tool-plan** and **files -> cheap representations**. This
+is the `[#617]` / DM-5 leg, and its filing amendment (eval-loop as a PRECONDITION) is the same
+clause as the admission gate above, reached from the other side.
+
+### Deployment sequence — the HERMETIZATION arc order
+
+**batch E -> engine ratification -> win-tooling full cycle -> monorepo -> ai-council.**
+
+Recorded in `ecosystem/north-star.md` via the DEPLOYMENT WAVE arc declaration in
+`scripts/gen_north_star.py` — north-star is generated, and the arcs are declared there.
+
+**A CONFLICT IS NAMED RATHER THAN RESOLVED HERE.** The batch-E brief's DC-1 records a ruled
+deployment order of **hub -> monorepo -> ai-council -> win-tooling** for the VISION -> README
+migration carrier. This amendment's order puts **win-tooling FIRST**, not last. The two orders
+carry different payloads and may both be correct, but running two fleet orders inside one batch is
+a coordination hazard. **Both are recorded, labelled by payload; neither is overridden.** The
+choice is the architect's cut, not the filer's.
+
+### Amendment to OPEN QUESTION 2 — the 4b census is now DECLARED, not merely unlocatable
+
+Open question 2 records that the 4b commands+skills census, and its claimed finding
+*"Anthropic-shipped organs sit outside every census"*, were **UNLOCATABLE** — zero grep hits, zero
+`git log -S` commits. **That finding stands: nothing has been located.** What has changed is its
+standing. The operator has now **stated the census as a required component of the umbrella**, so
+the item is no longer a citation that cannot be resolved — it is a **requirement that has not yet
+been built**. The distinction is the whole point of the funnel: an unlocatable citation is a
+defect in the record; a declared requirement is work. Recorded as the latter, from 2026-08-31.
+
+**No backlog row is born here**, on this intake's own stated precedent — its carrier row is
+deliberately unborn, and the path from a CANDIDATE runs through intake and ratification (ADR-98,
+ADR-111). Birthing the census row ahead of ratification would be the exact move both ADRs forbid.
+
+### What this amendment does NOT do
+
+- **No edit to any `~/.claude` path**, and no authorisation of one. Core-invariant #6 stands.
+- **No supersession** of any ruling, and no answer to open questions 1, 3 or 4.
+- **No new folder, no new intake, no new row.**
+- **No status change** — this intake stays `DRAFT`, and DRAFT BINDS NOTHING.

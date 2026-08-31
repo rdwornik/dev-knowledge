@@ -49,6 +49,7 @@ preferences: an arc worked ahead of its blocker is work optimising against no si
 
 - **Blocked by:** DOCTRINE CONSOLIDATION - shipping a corpus mid-re-genre ships the churn rather than the doctrine.
 - **Done when:** Every ADR-104 member carries the ruled corpus at a declared version, and fleet_parity reports zero undeclared divergence across them.
+- **Ships in this order:** batch E -> engine ratification -> win-tooling full cycle -> monorepo -> ai-council (the HERMETIZATION order, for the `.CLAUDE` governance corpus). CONFLICT NAMED, NOT RESOLVED: batch E's DC-1 records a ruled order of hub -> monorepo -> ai-council -> win-tooling for the VISION -> README migration carrier - win-tooling LAST, not first. Different payloads, both recorded; two fleet orders inside one batch is a coordination hazard and the choice is the architect's cut.
 - **First frozen-contract candidate:** intake #38 (the root-contract) - amended 2026-08-30; R18 stays parked on tested conditions rather than on silence
 - **Themes (the selector):** `[E6] Cross-repo universalization`, `[E9] Fleet Desired-State System (North Star)`
 - **Open rows in scope:** 13 (P2 6 / P3 7)
