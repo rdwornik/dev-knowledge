@@ -28,6 +28,25 @@ repos:
     deployed_date: null
     source_tag: null
   ai-council:
+    # PRE-ENGINE REGISTRATION — annotated by DC-5 (batch E,
+    # `worktree-lane-d-4-ai-council-instantiation`), which instantiates ai-council
+    # hub-side per the win-tooling template (CUT-1). The values below were NOT
+    # written by the deploy-runbook's carrier-declaration path (`deploy/tool.py
+    # --execute`, ADR-91) — they predate it: this file's own header comment above
+    # records ai-council as "deploy run #1", the runbook's own n=1 proof case,
+    # registered 2026-07-11 at tag v1.3.1. That makes the "win-tooling FIRST,
+    # ai-council consumer #2" framing (CUT-1,
+    # docs/audits/2026-08-31-technical-batche-launch-contracts/CUT.md:26-27) a
+    # statement about ENGINE INSTANTIATION, not chronological order — win-tooling
+    # is first through the current carrier-declaration path; ai-council reached
+    # these same field values earlier, by an older route. AFFIRMED, not rolled
+    # back, by CUT-1 despite this tension; recorded here rather than re-litigated.
+    # KNOWN GAP, not resolved here: G11
+    # (docs/audits/2026-07-31-technical-382-registry-prep-dossier.md:635) —
+    # "nothing today records why a declared target has not been reached" (manifest
+    # v1.4.0 vs the 1.3.1 recorded below). No schema field exists to carry that
+    # reason; inventing one here would be the bespoke path DC-5's done-contract
+    # warns against, so the gap is named, not closed.
     deployed_methodology_version: "1.3.1"
     deployed_date: "2026-07-11"
     source_tag: "v1.3.1"
