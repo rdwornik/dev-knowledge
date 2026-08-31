@@ -19,6 +19,61 @@
 
 ---
 
+### 2026-08-31 (c) - CC (Opus 5, background job, worktree-batch-e-cut, cut + freeze seat): THE CUT LANDS, BATCH E IS FROZEN, and both gates caught defects in the freeze itself
+
+**Anchors:** `8e832523` `170db1ea` `b7c92424` `849341fe`
+
+**Did:** landed the architect's cut on all four blockers, built the two validator predicates it
+needed, ran the codespace admission probe, froze 15 committing lanes through six predicates, and
+harvested tier (A).
+
+**THE CUT (`CUT.md`).** CUT-1 dissolved U-1 rather than adjudicating it: **instantiation order
+and migration order are different things**, so win-tooling is FIRST instantiated (the floor
+stays) and LAST migrated. CUT-2 ruled U-4 not a blocker — `blocked_by` says do not SHIP a
+churning corpus, not do not CHANGE it, and editing the hub regions IS the re-genre. CUT-3
+collapsed DC-2+DC-3 into **DC-23** (*a dependency chain is a LANE, not a schedule*) and stripped
+`CLAUDE.md` from DC-1. CUT-4 downgraded DM-4 to a Tier-L evaluation. CUT-5 folded the quota panel
+into HY-4. Supersession recorded at both sites that carried the open conflict.
+
+**THE VALIDATOR GREW PREDICATES 5 AND 6** (RED-first). Leg 5 imports `LANE_BRANCH_RE` rather than
+restating it; leg 6 refuses intersecting write-scopes. Two adapter fixes followed from arming
+them and measuring: per-leg arm dates (they REDd the whole already-executed corpus — 14 findings
+none of which was dischargeable without editing a record), and the adapter's corpus narrowed to
+`LANE-*.md` after it refused `CUT.md` and green-lit `PLAN.md` on a quoted string.
+
+**TIER (C) IS RED, ON A FOURTH DEFECT.** `claude -p` in a fresh codespace returned *"Not logged
+in"* in 47 ms, zero tokens: the image carries no credential. **Every prior smoke-6 missed it
+because none invoked the agent** — they ran plain shell over ssh and measured the container.
+W4 defects 2 and 3 stay UNMEASURED. Committing lanes stay LOCAL; the router-ADR entry condition
+is NOT recorded as MET.
+
+**THE FREEZE CAUGHT ITSELF, twice.** Predicate 5 found that all 14 local lanes were named
+`dc-1`/`hy-4` — two letters — and therefore sat **outside the very enum the teardown iterates**,
+the exact ADR-116 defect, at freeze rather than at integration. Predicate 6 found four scope
+intersections: three real, and one a **phantom** where DC-1's prose disclaimer that `CLAUDE.md`
+is *deliberately absent* was read as a declaration, re-joining the one file the cut had just
+separated. The shape gate found three more (a `-Slug` form the cmdlet would have mis-bound
+silently, a filename prefix breaking the 1:1 pairing, and a cloud lane with no receipt gate).
+All fixed, none excused.
+
+**TIER (A) HARVESTED — 186,734 bytes, verbatim, landed.** They existed only in the job's tmp
+directory, which is deleted with the job.
+
+**Result:** both gates exit 0; the manifest carries `closed_by:` at dispatch and the teardown
+enum as a TABLE, because one lane runs on `claude/` and one runs in win-tooling.
+
+**Changes:** `docs/audits/2026-08-31-technical-batche-launch-contracts/` (CUT.md + 15 contracts
++ probe) · `docs/audits/2026-08-31-technical-batch-e-manifest.md` ·
+`docs/audits/2026-08-31-verification-codespace-admission-probe.md` · seven harvested censuses ·
+`scripts/validate_substrate.py` · `scripts/audit_checks/check_substrate_declaration.py` ·
+`scripts/gen_north_star.py` · `docs/intake/2026-08-29-tech-l0-as-a-governed-layer.md`.
+
+**Abandoned:** nothing. **Next:** dispatch wave 1 per the manifest's merge order; tier (B)
+payloads are the operator's to run on Enterprise Copilot; the batch closes at
+`docs/audits/2026-09-01-technical-batch-e-close-packet.md`.
+
+---
+
 ### 2026-08-31 (b) - CC (Opus 5, background job, worktree-batch-e-derive, derivation seat): BATCH E DERIVED - tier A dispatched 7/7, six premises refuted, nothing else frozen
 
 **Anchors:** `b3f489b5` `de909ca5` `b4b07e69`
