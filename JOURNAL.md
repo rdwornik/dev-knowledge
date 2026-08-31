@@ -19,6 +19,73 @@
 
 ---
 
+### 2026-09-01 (c) - CC (Opus 5, background job, night orchestrator): the integrator's own merge wedged three of four lanes, and the doctrine that names it lands in the same window
+
+**Anchors:** `5c7e9e37` `c372c43f` `ad9e539d` `f38ef0cb` `57595fbc`
+
+**Did:** drained the batch-E queue to 11 of 15, diagnosed why three lanes stopped without
+committing, ran the consumption sweep, and landed the held PLAYBOOK doctrine after all.
+
+**THE HEADLINE IS SELF-INFLICTED AND WORTH THE ENTRY. Three of four live hub lanes were wedged by
+MY OWN R-ENUM merge.** `check_journal_spine_anchor` walks main's first-parent spine from the
+SHARED refs but reads `JOURNAL.md` from the LOCAL working tree. Each lane was based at
+`e96638da`; the integrator merged R-ENUM and its anchoring JOURNAL entry onto main while they
+worked; from inside a lane's tree that merge reads as **unanchored**, `audit-health` is
+pre-commit, and every commit in the lane is refused. **The lanes were not slow and were not
+hung -- they were correct and blocked**, and each spent its last hour investigating the block
+instead of finishing. `git merge --ff-only main` into each lane cleared it: zero commits ahead,
+no dirty file in the diff set, so no merge commit and the staged work carried through untouched.
+
+**J-10 SHOWS THE FAILURE IN ITS PUREST FORM. It called `AskUserQuestion`.** A `--bg` lane has no
+answer channel -- PLAYBOOK Ch8 states it in terms -- so the call returned an
+`InputValidationError` and the session sat for 46 minutes producing nothing. Its reasoning was
+right in every particular: it traced the merge to a concurrent session, confirmed the block was
+outside its history and its write-scope, and REFUSED to `--no-verify`. That refusal was correct.
+The one thing it did not know is that a sync-merge is a plain git operation the batch protocol
+does not forbid -- *"no self-merge"* scopes lane-to-main -- and it fixes the block at its cause.
+
+**All three were then verified and committed BY THE INTEGRATOR, disclosed in each commit body.**
+DM-6 re-measured AUT-R3's B3 as **STALE** (`telemetry_emit` imports in 8 modules, not the 1 B3
+counted). HY-4 landed 718 lines with RED-first tests -- 94 green, ruff clean -- pinning two
+disciplines: the burn-down READS `gen_north_star.ARCS` rather than restating it, and the quota
+panel renders credits as a **named absence** because no store here can compute a balance. HY-3
+dispositioned 47 templates, retired two zero-consumer ones into `templates/archive/`, and flagged
+rather than executed the one relocation that is content authorship. **HY-5 did NOT need rescuing**
+-- it was in a long win-tooling suite run the whole time and committed on its own.
+
+**THE HELD DOCTRINE LANDS AFTER ALL, and the arithmetic is why.** Entry (a) parked it: live 453
+against a baseline of 443, and raising a baseline is an operator ruling. HY-3's two template
+retirements moved the pool to **440** (`templates/archive/` is excluded from the detector), and
+**seven genuine false positives** -- sentences that describe a fact rather than state a rule --
+are drained with meaning unchanged. Net `live 443 <= baseline 443`, health exits 0, **the raise
+request is withdrawn**. No live rule was reworded: the seven normative tokens the doctrine adds
+are real rules, and swapping the keyword out of one lowers the metric without removing the rule.
+Seven miscounted non-rules out, seven real rules in, and the proxy is more accurate than it was.
+
+**THE KILL-GUARD RULE FIRED TWICE TONIGHT, once in mirror.** As written, when the auto-updater's
+rename defeated a name-matching guard. And in mirror, when this seat's own cleanup probe --
+`Where-Object { $_.CommandLine -like "*lane-j-10-...*" }` -- **matched itself** and killed the
+PowerShell running it. The rule is in PLAYBOOK because a sweep that keys on a bare substring takes
+its own orchestrator, and it was written hours before it collected its own witness.
+
+**CONSUMPTION SWEEP: 46 -> 37, and the remainder is a MECHANISM DEFECT rather than a filing
+backlog.** `consumer_at_landing` resolves a citation only if the identifier STARTS WITH A DATE
+(`_STEM_RE`). Launch contracts do not -- `LANE-a-1-...md`, `PLAN.md`, `CUT.md`. Measured as a
+controlled experiment: one citation block, one commit, one file; the dated census name resolved,
+the undated lane name written the same way did not. **The module's own v2 bump made the corpus
+recursive so these files WOULD be measured, and left them unresolvable by the discharge leg** --
+so every launch-contract directory the fleet freezes grows the unconsumed set permanently. Not
+fixed here: widening identity changes what the ratchet measures and forces a DETECTOR_ID bump
+plus a reviewed re-baseline. Recorded as an ADR-111 CANDIDATE.
+
+**Result:** batch E at **11 of 15** merged. Worktrees: none in the hub.
+
+**Changes:** `protocols/PLAYBOOK.md`, `tasks/529-*.md`, `tasks/614-*.md`,
+`scripts/gen_trend_dashboard.py`, `tests/test_gen_trend_dashboard.py`, `templates/archive/`,
+`docs/audits/2026-08-31-technical-hy3-disposition.md`, `JOURNAL.md`.
+
+**Next:** merge HY-5 in win-tooling, harvest DM-4, then the filing pass and the packet.
+
 ### 2026-09-01 (b) - CC (Opus 5, background job, night orchestrator): the v1.5.0 candidate lints clean, both instantiation plans are DERIVED, and they share one hard blocker
 
 **Anchors:** `431b0bf8`
