@@ -19,6 +19,34 @@
 
 ---
 
+### 2026-08-31 (g) - CC (Opus 5, background job, integrator seat): A6 filed, and the anchor rule applied to itself
+
+**Anchors:** `4ac36348`
+
+**Did:** named the commit that carries A6's filing, so the merge of this branch is anchored by
+the rule entry (f) had just described rather than repeating its mistake.
+
+**`4ac36348` carries BOTH the (f) entry and the A6 filing** into
+`protocols/ENVIRONMENT.md` "Rejected (do NOT revisit before Q3)" -- the LangGraph /
+agent-framework class, pointing at
+`docs/audits/2026-08-31-technical-langgraph-class-rejection-record.md`. They rode together
+because the ENVIRONMENT edit was already staged when the journal commit ran; the commit subject
+names only the journal half, which is a message defect, not a content one. Recorded rather than
+amended: the commit is on a branch that has not merged, but the honest fix is the note, since
+re-writing it would cost the anchor this entry exists to provide.
+
+**The mechanism, stated once for reuse:** an integration branch needs a commit the JOURNAL can
+NAME, and the naming entry must land AFTER it. One commit cannot do both jobs. Pre-commit's
+stash is the second half of the trap -- it stashes UNSTAGED files before running hooks, so a
+written-but-unstaged JOURNAL is invisible to the very gate that needs it, and the commit fails
+with the hooks reporting success.
+
+**Result:** batch-E queue at 5 of 15 landed. `ruff` clean.
+
+**Changes:** `JOURNAL.md`.
+
+**Next:** unchanged from (f) -- A5 and A7 orphans, the two binding mechanisms.
+
 ### 2026-08-31 (f) - CC (Opus 5, background job, integrator seat): THE ANCHOR TAIL IS A TWO-COMMIT PROBLEM, and A6 gets a home
 
 **Anchors:** `195e2438`
