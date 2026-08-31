@@ -19,6 +19,61 @@
 
 ---
 
+### 2026-08-31 (a) - CC (Opus 5, background job, primary checkout, integrator): WINDOW CLOSE - two rulings, a stranded ADR, and the five pillars
+
+**Anchors:** `fbe70097` `bdb7cd43` `0a4c20d8` `d8f2993a`
+
+**Did:** landed the operator's two closing rulings, resolved the residue by name, and ran the
+five-pillar close.
+
+**RULING 1 - R3's fold question. The fallback fired on BOTH conditions, independently.** The
+operator ruled *never fold into a deferred row; fold into `[#491]` (open) only; otherwise birth
+under Z-G1 and annotate `[#492]`*. The path was closed twice over and only the first closure was
+known when the ruling was written: `[#491]` is **`deferred`, not open** — the ruling's own premise
+carried it as open, which is the same staleness that produced the blocker, arriving one level up —
+**and** its subject is *"Gemini scanning lane"*, which carries **no corpus scope at all**. Even
+open it could not have held the corpus, so *fold, do not birth* had been unexecutable from the day
+it was written; the deferral merely made that visible. Born **`[#625]`**; `[#492]` annotated
+*superseded for this purpose* and left deferred, its own subject untouched.
+
+**RULING 2 needed no new work.** `closed_by:` mandatory at dispatch had already landed earlier the
+same window as PLAYBOOK doctrine **and** as the `open-batch` freeze predicate, both of which say
+AT DISPATCH. Ratified, not re-implemented.
+
+**THE RESIDUE, RESOLVED BY NAME.** The "one remaining worktree" was the **primary checkout itself**
+— `git worktree list` always lists it, and no leftover existed. The real residue was a BRANCH:
+`claude/lane-f-000-adr81-fuzzy-band` on origin, **carrying ADR-116 unmerged, 259 lines, absent from
+main**. Ancestor-proved not contained, merged, torn down. **Why the batch teardown missed it:** the
+teardown iterated `worktree-` branches only, and lane f was a CLOUD lane on a `claude/` branch with
+no local worktree. Its session text had been harvested and landed, which made the batch LOOK
+complete while its actual deliverable sat on a remote branch nobody was iterating. **The teardown
+enum and the LANE enum disagreed** — the batch dispatched across two substrates and teardown knew
+one.
+
+**THE FIVE PILLARS.** *Empirical audit* — full suite plus `audit.py health` OK; the ten
+`consumer_at_landing` WARNs are named in the bundle's drift-flags rather than absorbed, because
+they **cannot** clear by citation: the census pool excludes `docs/audits/` by design, and batch
+machinery citing batch machinery is exactly what that exclusion refuses. *Summary* and *education
+artifact* — `docs/audits/2026-08-30-technical-window-close-operator-brief.md`, written in the
+operator's own SMALLER / VISIBLE / UNBLOCKED categories with every number measured at close, not
+recalled. *Doc/backlog/architecture* — `ecosystem/north-star.md` generated and linked from README;
+backlog **210 → 218**; ADR-116 landed. *Archiving* — the bundle at
+`docs/handoffs/2026-08-31-dev-knowledge-architect`.
+
+**The window's own number, and it is the one worth keeping:** `CLAUDE.md` fell **39,147 → 23,931 B
+(-38.9%)** while its line count barely moved, 240 → 230. The file had SATISFIED its *"≤200 lines"*
+claim at 165 B/line against a ~117 corpus average. That gap — between a proxy that was met and a
+cost that was not budgeted — is the whole argument for measuring the hard metric.
+
+**Changes:** `[#625]` born, `[#492]` annotated and re-relocated, intake #35 ruling recorded,
+ADR-116 merged, the operator brief, the handoff bundle, `.claude/generated/recent-adrs.md`.
+
+**Abandoned:** nothing silently. Carried to the next seat: the ten structural census WARNs, the
+inert batch-3 manifest (immutable, so the ruling applies to the NEXT batch), one intake past its
+READY threshold, and the pre-existing suite REDs proved not this window's.
+
+---
+
 ### 2026-08-30 (a) - CC (Opus 5, background job, primary checkout, integrator): the filing pass, both capstones, and the blocker nobody was watching
 
 **Anchors:** `08029542` `5177f44f`

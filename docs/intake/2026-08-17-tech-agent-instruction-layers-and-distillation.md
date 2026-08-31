@@ -280,3 +280,37 @@ carried trap: **PyPI `promptfoo` 0.1.4 is a DIFFERENT, near-empty package.**
 **Consumed by:** the AUTONOMY consumption pass
 (`docs/audits/2026-08-29-technical-autonomy-synthesis.md` §1.1, §1.4, §(d) RANK 1) and the five
 AUT research artifacts it reads.
+
+## RULING — 2026-08-30: R3's fold question, decided. The corpus is BORN, not folded.
+
+> The operator's ruling on the blocker the 2026-08-30 amendment above raised, recorded at the
+> window close. Verbatim: *"never fold into a deferred row; fold into `[#491]` (open) only; if
+> `[#491]` lacks the fresh-corpus (second-corpus) scope, birth that row under Z-G1 from the banked
+> ledger and annotate `[#492]` 'superseded for this purpose'."*
+
+**THE FALLBACK FIRED, AND ON BOTH CONDITIONS INDEPENDENTLY.** The ruling offered one path and one
+fallback; the path was closed twice over, and only the first closure was known when the ruling was
+written:
+
+1. **`[#491]` is `status: deferred`, not open.** The ruling's own premise carried it as open — the
+   same staleness that produced this blocker in the first place, arriving one level up.
+2. **`[#491]` has no corpus scope at all.** Its subject is *"Gemini scanning lane — ruling R-G plus
+   an acceptance contract"*. Even open, it could not have carried a rule-adherence corpus. The
+   *fold, do not birth* instruction had therefore been unexecutable from the moment it was written,
+   and the deferral merely made that visible.
+
+**ACTIONS TAKEN.** The corpus is born as **`[#625]`** (P1/M, Z-G1, against the banked ledger).
+`[#492]` is annotated **superseded for this purpose** — as R3's fold target ONLY. It stays
+`deferred`, and its own subject (grok reviewer-lane admission, measured against terra on the same
+diffs) is untouched and unreopened, because a reviewer-admission row cannot carry a rule-adherence
+corpus. **`[#624]` watches blocker status from here**, so the next target that moves underneath a
+citing instruction is surfaced rather than discovered.
+
+**What `[#625]` carries forward from R3 unchanged:** the acceptance criterion (≥10 cases from
+`~/.claude/rules/core-invariants.md`; KEEP only if a deliberately weakened set FAILS while the
+intact set passes; delete the config if it does not discriminate), the **Tier S CONDITIONAL** with
+ADR-112's graduation trigger stated (*the moment it is wired into a hook or asserts a threshold,
+it was Tier L from the start*), the zero-`uv.lock`-package installability, and the carried trap
+that **PyPI `promptfoo` 0.1.4 is a different, near-empty package**.
+
+**This intake's R3 is now CONSUMED** — by `[#625]`, which is the row it proposed.
