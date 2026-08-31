@@ -1,4 +1,24 @@
 {
+	// ROOT-CONTRACT v1, clauses C3 (workspace declaration) and C4 (ordering) -- stated at
+	// docs/intake/2026-08-17-tech-fleet-config-standardization.md, AMENDMENT 2026-08-31.
+	// This file IS this repo's instance of those two clauses. Read the amendment before
+	// changing anything named below; the rest of this file is host-local and free.
+	//
+	// CONTRACT-BOUND (fleet-wide, machine-asserted):
+	//   * exactly ONE dot-prefixed <repo>.code-workspace at the repo root, and folders[0]
+	//     is the repo itself -- asserted by scripts/audit_checks/check_workspace_settings.py
+	//     (FAIL if absent or unparseable as JSONC, WARN if not dot-prefixed) and by the
+	//     ecosystem/parity-surfaces.yaml row `root-code-workspace`
+	//     (glob_tracked: *.code-workspace, {hub: MUST, consumer: MUST}).
+	//   * the two sort keys in `settings` below -- explorer.sortOrder and
+	//     explorer.sortOrderLexicographicOptions -- pinned by that check's
+	//     _WORKSPACE_REQUIRED_SETTINGS per ADR-59 Decision 3. See the Explorer block.
+	//
+	// HOST-LOCAL (carries NO fleet claim, and must never be copied into a consumer):
+	//   EVERY OTHER folders[] ENTRY. The provider-config roots below were measured on THIS
+	//   host on the dates their comments give; asserting them of another machine would be
+	//   asserting something false. The contract is over this file's ROLE and its sort
+	//   settings -- never over its folder list.
 	"folders": [
 		{
 			"name": "📓 .dev-knowledge",
@@ -138,6 +158,12 @@
 		// session's claim that sortOrderReverse "is not a real VS Code setting" was
 		// empirically wrong: PR microsoft/vscode#149952 merged 2024-07-30 (insiders-
 		// released, verified). Re-verified 2026-05-27 against vscode source + release.
+		//
+		// ROOT-CONTRACT v1 C4: the first TWO keys below are the contract-bound pair -- they
+		// ARE _WORKSPACE_REQUIRED_SETTINGS, and a wrong or absent value is a WARN from
+		// check_workspace_settings. `explorer.sortOrderReverse` is NOT in that set, so it is
+		// a hub practice rather than a fleet-asserted clause; the 2026-08-31 amendment names
+		// that gap and deliberately leaves it open rather than over-claiming "same ordering".
 		"explorer.sortOrder": "default",
 		"explorer.sortOrderLexicographicOptions": "upper",
 		"explorer.sortOrderReverse": true,
