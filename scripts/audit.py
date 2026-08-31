@@ -3525,6 +3525,24 @@ def check_journal_spine_anchor(repo_path: Path) -> list[Finding]:
         # unanchored merge silently hid the lane merges the exemption had just skipped --
         # directly contradicting the ADR-110 amendment's own "reported, never applied
         # silently" clause, in the one case where a reader is most likely to be counting.
+        # THE SUBJECT-STYLE MISS, SAID OUT LOUD ([#614], 2026-08-31). The exemption reads the
+        # lane name out of git's DEFAULT `Merge branch '<name>'` subject. An integrator who
+        # writes a descriptive subject instead drops that prefix, the parse returns None, and
+        # the merge is treated as a non-lane merge -- failing CLOSED, which is safe and is
+        # exactly why it goes unnoticed: the cost arrives later as this deadlock, with nothing
+        # saying an exemption was expected and missed. It was a documented honest limit in
+        # `batch_manifest`'s docstring and still cost the mechanism its first live test, so the
+        # limit is now REPORTED at the moment it bites instead of only being written down.
+        style = ""
+        if live:
+            missed = [(s_, _bm.subject_style_miss(repo_path, s_)) for s_ in gaps]
+            named_misses = [f"{s_[:9]} names '{n}'" for s_, n in missed if n]
+            if named_misses:
+                style = ("; SUBJECT-STYLE MISS -- " + "; ".join(named_misses[:3])
+                         + " -- the merge subject mentions a lane but does not carry git's "
+                           "default \"Merge branch '<name>'\" prefix, so the ADR-110 exemption "
+                           "could not recognise it. Re-merge with the default prefix (prose may "
+                           "follow it) or anchor these in JOURNAL")
         also = ""
         if exempted:
             also = (f"; SEPARATELY {len(exempted)} lane merge(s) are exempt under the "
@@ -3533,7 +3551,7 @@ def check_journal_spine_anchor(repo_path: Path) -> list[Finding]:
                     f"and are NOT counted above")
         return [Finding("journal_spine_anchor", "fail",
                         f"{len(gaps)} first-parent spine entry(ies) above the disposition "
-                        f"floor {floor[:9]} carry no JOURNAL anchor: {named}{more}{also}"
+                        f"floor {floor[:9]} carry no JOURNAL anchor: {named}{more}{style}{also}"
                         .replace("|", "/"))] + warn_finding
     if exempted:
         named = ", ".join(sorted(b.batch for b in live))
