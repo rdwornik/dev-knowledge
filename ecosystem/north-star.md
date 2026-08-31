@@ -8,7 +8,7 @@
 > status and count below is DERIVED from `tasks/` at generation time, so this file cannot
 > drift from the backlog the way a hand-written roadmap does.
 
-Open rows: **162** of 217 manifest-referenced (**55 deferred**).
+Open rows: **163** of 218 manifest-referenced (**55 deferred**).
 
 **Deferred is shown deliberately.** On 2026-08-30 an intake's fold target was found to
 have gone deferred underneath the instruction that cited it, unnoticed, because nothing
@@ -24,7 +24,7 @@ preferences: an arc worked ahead of its blocker is work optimising against no si
 - **Done when:** A rule-adherence harness scores the instruction corpus, and a deliberately weakened instruction set FAILS while the intact set passes. Until that discriminates, every downstream arc is optimising against no signal.
 - **First frozen-contract candidate:** intake #35 PROPOSED ROW R3 (promptfoo) - decided in principle, NOT born; blocked on one ruling about its fold target, since both [#491] and [#492] are deferred today
 - **Themes (the selector):** `[E7] Tooling & evaluation`
-- **Open rows in scope:** 46 (P1 8 / P2 27 / P3 11)
+- **Open rows in scope:** 47 (P1 9 / P2 27 / P3 11)
 - **Deferred in scope:** 9
 
 ## 2. AUTONOMY ORGANS - what fired, how often, and did it help
