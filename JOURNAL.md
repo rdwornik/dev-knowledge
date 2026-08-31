@@ -19,6 +19,49 @@
 
 ---
 
+### 2026-08-31 (i) - CC (Opus 5, background job, integrator seat): CODESPACE IS ADMITTED - 3 of 3 legs green on a FRESH create, and rebuild was never going to show it
+
+**Anchors:** `5c54487d`
+
+**Did:** created a fresh codespace from `81a75477`, ran the three-leg admission probe, and closed
+the one gap the receipt exposed.
+
+**THE CREATE-vs-REBUILD FINDING IS THE HEADLINE, and it explains every earlier RED.** A
+`gh codespace rebuild --full` on the old container left it with no `uv`, no `gh`, no provisioning
+stamp and a clone two merges stale, while `devcontainer.json` AT THAT CONTAINER'S OWN HEAD
+declared both `postCreateCommand` and the feature. A fresh CREATE from the same repo produced
+`claude` at `~/.local/bin/claude`, `uv` at `/usr/bin/uv`, both tokens present on the login shell,
+and `HEAD=81a75477` -- current main. **Rebuild does not re-apply the devcontainer configuration;
+create does.** Every "the feature is broken" reading, including this seat's own, was measuring a
+container that had never applied its config.
+
+**THE THREE LEGS, all green:**
+
+```
+L2   is_error False · subtype success · result "ADMISSION-PROBE-OK"
+     model claude-opus-5 · provider firstParty · permission_denials []
+GIT  FETCH_EXIT=0 · PUSH_EXIT=0   (real branch pushed to origin and deleted after)
+GATE gen_task_tree --check exit 0 · audit.py health exit 0, `health: OK` IN-CONTAINER
+```
+
+**F4, added because the receipt earned it.** L2 was green while stderr still carried *"Ignoring 1
+permissions.allow entry ... this workspace has not been trusted"* -- the agent runs under a
+NARROWER permission set than the repo declares, and the receipt reads as a clean success either
+way. It survives provisioning, and the documented remedy is an interactive trust dialog that a
+headless substrate cannot have. `provision.sh` now records trust and asserts it. Verified live:
+flag set, warning gone.
+
+**Result:** codespace ADMITTED for committing lanes on the F1-F4 configuration. The old probe
+container `batche-c-admission-*` is NOT the evidence for this and should not be reused. Probe
+leftovers cleaned: `probe/admission-roundtrip` deleted from origin.
+
+**Changes:** `.devcontainer/provision.sh`, `tests/test_batch_manifest.py` (granted integrator
+fix: the live-manifest test asserted `batch.isdigit()`, which the first LETTERED batch failed).
+
+**Next:** freeze ONE tier-(D) lane at `substrate=codespace` and dispatch it as proof-of-work --
+one lane per codespace, commit-and-STOP, local integrator. Then drain DC-23 and HY-1 and run the
+held filing pass.
+
 ### 2026-08-31 (h) - CC (Opus 5, background job, integrator seat): THE CODESPACE DOES NOT APPLY ITS OWN CONFIG, and the silent exemption miss is now loud
 
 **Anchors:** `0ef9259f` `c8ae55b9`
