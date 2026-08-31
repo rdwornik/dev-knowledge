@@ -332,11 +332,22 @@ def test_canonical_md_optional_absent_still_pass(tmp_path: Path) -> None:
 
 
 def test_canonical_md_missing_mandatory(tmp_path: Path) -> None:
+    """A mandatory canonical file that is absent must FAIL, named in the evidence.
+
+    The exemplar is READ FROM THE REGISTRY, not hardcoded. It was a literal `VISION.md`
+    until ADR-114 (Accepted 2026-08-29) retired VISION from the mandatory set in `[#614]`
+    lane-a -- at which point `_make_canonical` stopped writing the file and the unlink
+    below raised FileNotFoundError, failing this test for a reason that had nothing to do
+    with what it asserts. Deriving the name keeps the subject "a mandatory file is
+    missing" rather than "one particular filename is missing", so the next tier decision
+    moves it for free.
+    """
+    exemplar = aud._CANONICAL_MANDATORY[0]
     _make_canonical(tmp_path)
-    (tmp_path / "VISION.md").unlink()
+    (tmp_path / exemplar).unlink()
     f = aud.check_canonical_md_visibility(tmp_path)[0]
     assert f.status == "fail"
-    assert "VISION.md" in f.evidence
+    assert exemplar in f.evidence
 
 
 def test_canonical_md_miscased(tmp_path: Path) -> None:

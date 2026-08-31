@@ -19,6 +19,54 @@
 
 ---
 
+### 2026-08-31 (d) - CC (Opus 5, background job, DC-1 lane then integrator seat): VISION IS RETIRED, DC-1 IS MERGED, and the premise the parity row asserted was false
+
+**Anchors:** `d3ac6b7e` `ea1e32a9`
+
+**Did:** executed batch E's DC-1 (`lane-a-1-vision-to-readme`) as a committing lane, then took
+the integrator seat, merged it `--no-ff`, and applied the granted fixture repair.
+
+**THE ACT IS A SUBTRACTION, AND THE DIRECTION IS THE WHOLE SAFETY ARGUMENT.** `VISION` leaves
+`canonical_docs.CANONICAL_MANDATORY` (six now) into a new `CANONICAL_RETIRED`, and so leaves
+`ADR38_BASELINE_REQUIRED`, `check_canonical_md_visibility` and
+`validate_hermetization.SANCTIONED_TIER1_FILES` -- every one of which reads that tuple
+FLEET-WIDE. Dropping a presence requirement cannot RED a member that still carries the file.
+The reverse act would: promoting `README` into the same tuple enrols it in every consumer's
+canonical-set check while only 2 of 8 children carry one, so `README` went into a new
+**hub-scoped** `CANONICAL_HUB_MANDATORY` that nothing fleet-wide reads. Parity followed the
+registry: `canonical-doc-vision` MUST -> SHOULD on both roles, manifest 1.4.0 -> 1.5.0.
+
+**A LOAD-BEARING PREMISE WAS REFUTED BY RE-MEASURING IT.** `parity-surfaces.yaml` claimed
+`VISION.md` was *"retained and still tracked in all nine members"*. `git ls-files` in each of
+the nine, 2026-08-31: it is tracked in **EIGHT**. `terminal-setup` has never had one --
+`deployed-versions.yaml` already recorded that in prose. So the row carried a `consumer: MUST`
+that a declared member never satisfied, latent only because `pre-deploy` members are skipped by
+the walk. The retirement discharges it. The other measurement HELD: README is still 2 of 8.
+Filed as a parity-check candidate class -- *a MUST that no walked-or-skipped member satisfies*.
+
+**WHAT THE FROZEN WRITE-SCOPE COULD NOT REACH, MEASURED RATHER THAN ASSUMED.** The deploy
+carrier needs a `templates/README-md-template.md`: the `docs` carrier ships verbatim replicas,
+and a root README is repo-specific (`ownership: conditional`, the AGENTS.md class), so carrying
+the hub's own front door into `corp-monorepo` would be a mis-carry. And the `CANONICAL_SPINE`
+README re-point REDs `release_lint` C7, which asserts exact dict equality against v1.1.0 and
+v1.2.0 as well as the current release -- a release act needing a version bump, not a retro-edit
+of shipped specs. Both ruled onward rather than squeezed in.
+
+**Result:** P1a probe PASSED against the new README before merge (substring-exact against the
+live `## Vision`). `VISION.md` byte-identical, blob `61bd603e`, still tracked. Parity walk: 193
+at-parity, **0 must-absent, 0 warn-undeclared, 0 refused**. `ruff` clean.
+
+**Changes:** `scripts/canonical_docs.py`, `ecosystem/parity-surfaces.yaml`,
+`deploy/manifest-v1.4.0.yaml`, `tests/test_canonical_docs.py`, `tests/test_audit.py`.
+
+**Abandoned:** nothing silently. Two done-contract items ruled onward (carrier payload, spine
+re-point); the `test_enforcement_coverage` anchor-gate RED is the known pre-existing false
+positive on main and was left untouched and named.
+
+**Next:** DC-23 and HY-1 are unblocked by this merge. Tier (A)'s A5/A6/A7 are orphaned -- no row,
+ADR, intake or lane consumes them -- and consumption of the other four is bound by prose
+nickname ("A4 harvest") rather than by filename, which no locator predicate can check.
+
 ### 2026-08-31 (c) - CC (Opus 5, background job, worktree-batch-e-cut, cut + freeze seat): THE CUT LANDS, BATCH E IS FROZEN, and both gates caught defects in the freeze itself
 
 **Anchors:** `8e832523` `170db1ea` `b7c92424` `849341fe`
