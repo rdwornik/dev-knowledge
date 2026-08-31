@@ -27,6 +27,7 @@ reconciled_with: handoff-process@6.3.0
   - [Why ≤200 lines](#why-200-lines)
   - [LLMs advise; hooks/tests enforce](#llms-advise-hookstests-enforce)
   - [Drift-proofing precedence: source → gate → agent](#drift-proofing-precedence-source--gate--agent)
+  - [Portability boundary — which rules survive a harness swap, and where each kind is written](#portability-boundary--which-rules-survive-a-harness-swap-and-where-each-kind-is-written)
   - [Child methodology floor (ADR-78)](#child-methodology-floor-adr-78)
   - [Template](#template)
   - [Update cadence](#update-cadence)
@@ -390,6 +391,124 @@ Generalizes "LLMs advise; hooks/tests enforce" into a precedence rule for *where
 
 Reach for a gate only when the fact can't be self-documented, and an agent only when it can't be gated. (Codified 2026-06-03; precedent for promoting a session-decided principle into PLAYBOOK: the v4.2 "handoff is back-and-forth" promotion.)
 
+### Portability boundary — which rules survive a harness swap, and where each kind is written
+
+<!-- scope: meta -->
+
+Claude Code is currently both the producer and the harness: it writes the diffs and it is also
+the runtime that boots the lane, reads the contract, holds the worktree and ends the session.
+That is a single point of dependency underneath a doctrine that calls itself provider-agnostic.
+Provider-agnosticism in this fleet is real at the MODEL layer and absent at the HARNESS layer —
+`ecosystem/provider-registry.yaml` admits six providers and holds their model strings in
+agreement by a checker, but every verb in `ecosystem/substrate-registry.yaml` launches `claude`.
+
+This section is not a recommendation to swap harnesses. It states where the coupling actually
+sits, and it gives the author of the next rule a test to apply before writing it.
+
+**Already ruled elsewhere — do not restate it here.** The per-repo instruction layer is two
+files with one contract: ADR-115 §3.2 (the portable half, the importer, the byte guard, the
+scope-resolved precedence) and §3.3 (`AGENTS.md` is Tier-1 payload, deliberately NOT an ADR-38
+canonical living doc). Ch2's Purpose paragraph carries the same split. That organ is settled.
+What follows covers the organs nothing has ruled.
+
+#### The boundary rule
+
+A rule is HARNESS-BOUND only if its enforcement reads or writes an artifact the harness itself
+produces. Everything a git operation, a file on disk, or `uv run --locked` can check is
+PORTABLE, and is written without a vendor name. Where a vendor name is genuinely unavoidable it
+is confined to ONE enumerated constant with a validator, and that constant is the SEAM.
+
+Applied as three questions, in order, before a rule is written:
+
+1. Would this still fire if the operator typed the commit by hand, with no agent in the room?
+   Yes: PORTABLE. Write it with no vendor name, and enforce it as a hook, a test, or an
+   `AGENTS.md` line.
+2. Is it portable in mechanism but carries a vendor token? Then the token goes in an enumerated
+   constant with a checkable surface — never inline in prose, never in a regex spelled out at
+   the call site. That is a SEAM, and a seam is admitted, not merely tolerated.
+3. Does the rule read something only one harness produces — a session transcript, a `.claude/`
+   directory contract, a launch verb? Then it is HARNESS-BOUND. Its home is `CLAUDE.md`,
+   `.claude/`, or L0, and it may never be written into `AGENTS.md` or into a gate.
+
+The rule is a placement rule, not a purity rule. Harness-bound rules are legitimate and this
+repo needs several of them. What is illegitimate is a harness-bound rule wearing portable
+clothes: a vendor assumption inside a gate, or a Claude-runtime fact inside `AGENTS.md`.
+
+#### Where this repo actually sits
+
+The teeth are portable. Every local pre-commit, commit-msg and pre-push entry is
+`language: system` running `uv run --locked python scripts/<x>.py`, staged on GIT lifecycle
+events rather than agent lifecycle events; the sole non-local entry is the pinned `ruff` rev,
+which is harness-neutral too. No hook invokes an agent, reads a transcript, or depends on a
+session existing. The gates bind whoever holds the checkout. So does `audit.py`. So do the lane
+packets, which are markdown with SHAs and name no harness at all. A harness swap costs these
+organs nothing, and that is a property that was built, not inherited — it follows directly from
+"LLMs advise; hooks/tests enforce" above.
+
+The coupling is concentrated in three places and nowhere else:
+
+- The `## Dispatch` block, baked into every generated lane contract. `gen_lane_contract.py`
+  selects the literal command line from the contract's declared shape and its check leg refuses
+  a contract that carries none of the recognised forms. A contract naming a non-Claude executor
+  is a refusal today. This is a SEAM: the generator is already shape-selecting, so admitting a
+  fourth shape is the same edit the cloud shape was — one enum widening in one module plus its
+  tests.
+- The Ch8 Layer-2 verb table. Layer-1 routing is substrate logic and portable — gate
+  dependency, operator disk, read-only reconnaissance, everything else — and names no vendor.
+  Layer 2 is three verbs that all launch `claude`, implemented in a PowerShell module this repo
+  does not carry. The swap cost here is real and it is NOT this repo's to pay, which is a
+  finding rather than a relief: the most harness-coupled organ in the fleet is the one the hub
+  cannot gate. Note also that the single-literal-site discipline is itself load-bearing —
+  the four-rival-commands failure is measured, and a swap that reintroduces rival commands
+  re-buys it.
+- The live-session check. It is authoritative on transcript-cwd — a mangled directory under the
+  harness's own projects tree plus a `cwd` grep — and the section states plainly that process
+  inspection cannot answer the question. A harness with a different transcript layout, or none,
+  leaves this check with no implementation. This is the sharpest hidden coupling in the repo and
+  it is a SAFETY check, not a convenience.
+
+Two organs sit on the boundary and are worth naming so they are not misfiled. The worktree rule
+is PORTABLE in mechanism — "one checkout, one committing session" is a git-concurrency
+invariant true of any agent, any human, any harness — and a SEAM in naming, because `claude/`
+is a vendor name inside a gated branch-prefix enum. It is correctly filed: the enum is closed,
+it lives in one constant, `validate_branch_naming.py` is its checkable surface, and a fifth
+prefix enters only by recorded ruling. That is the seam discipline working. The `.claude/`
+skills, commands and plugin surface is CC-COUPLED by file format and PORTABLE by content: the
+knowledge inside is markdown and moves, the invocation surface does not.
+
+**The conclusion the map forces: a harness swap is a dispatch-layer project, not a
+governance-layer project.** It was not guaranteed, and it is the reason the anxiety about
+single-harness dependency can be retired at zero cost rather than paid down with a migration.
+
+#### What this section does not settle
+
+It states portability; it does not witness it. The declared half and the witnessed half are
+different claims, and the ask for the witnessed half is live and unratified: intake §H
+("portability probe — provider-independence, witnessed not declared") asks for ONE full arc run
+by a non-Claude builder, and ADR-108 explicitly names §H as NOT ratified. Nothing here grants
+it. If a probe is ever run, the cheapest form that settles anything is narrow: point a second
+harness at a throwaway worktree, hand it one already-completed lane contract with the
+`## Dispatch` block removed, and measure exactly two things — does its commit pass the local
+hook set unaided, and does the unanchored-push gate refuse its push. Both hold, and the
+portability claim above is proven rather than inferred. Either fails, and there is a coupling
+this section missed. Delete the worktree either way.
+
+It also does not admit a second executor. `substrate-registry.yaml` carries no non-Claude verb,
+`provider-registry.yaml` carries no non-Claude `cli:` for an executor role, and this section
+changes neither. The two registries stay the machine-readable projection; this section is the
+placement doctrine they do not carry and were not designed to.
+
+*Integrator note, 2026-08-31 (added at landing, not by the harvesting lane).* The Dispatch-block
+bullet above predicted that admitting a fourth shape would be *"one enum widening in one module
+plus its tests"*. It was tested the same night: ruling **R-ENUM** admitted `codespace` at
+`4fff67e7`, and the edit was that shape plus one bullet in the Ch8 table plus ten witnesses. The
+prediction held, and the surviving cost was the one the map did not price -- the receipt gate was
+keyed on the literal string `cloud` rather than on off-machine-ness, so admitting the shape also
+meant re-keying a rule that had been written to one instance of its own class. **That is the
+seam-discipline lesson in its live form: a seam stays cheap only while every rule that reads it
+is keyed on the PROPERTY and not on one of its values.** The sentence is left as written, because
+a harvested artifact is not edited to look prescient.
+
 ### Child methodology floor (ADR-78)
 <!-- scope: meta -->
 <!-- rule: governance-child-floor -->
@@ -631,7 +750,7 @@ How an enforced rule is named so the `doc_code_edge` advisory check (ADR-89 OQ1)
 - **`<domain>` = a cited theme/source, NEVER a location.** The allowed tokens each cite an existing source (a BACKLOG serialize-group / theme / ADR domain): `seal`, `coherence`, `canonical`, `governance`, `handoff`, `dep`, `tooling`. **Extend by cited append** — add a token that cites a source; "do not invent domains" means "cite a source," not "never add one" (no ADR rewrite to extend).
 - **Only a rule with live code enforcement gets an ID** (the edge presupposes a code site). **IDs are unique and never reused** after retirement — a retired ID stays burned, like a departed BACKLOG id.
 - **Declare at the authoritative source, never in a summary.** The doc-side token lives where the rule is *authoritatively declared*, never on a doc that merely *summarizes* it (e.g. `seal-journal-anchor` is declared in `DEFINITION_OF_DONE.md` — ADR-85's single-source — not in the ESSENTIALS summary of it). The scanned declaration docs are an include-list registry, `ecosystem/doc-code-edge.yaml` (`declaration_docs:`); a doc joins it when it first authoritatively declares an enforced rule (the same cited-append extensibility as the domain namespace).
-- **Illustrative vs live (the self-trip guard):** every example token in teaching prose uses the angle-bracket placeholder form `<!-- rule: <domain>-<slug> -->`. `<` / `>` are outside the ID charset, so a placeholder is never matched as a live edge — this section cannot self-trip the scan. Live tokens sit only at a rule's authoritative doc site + its code site.
+- **Illustrative vs live (the self-trip guard):** every example token in teaching prose uses the angle-bracket placeholder form `<!-- rule: <domain>-<slug> -->`. `<` / `>` are outside the ID charset, so a placeholder cannot match as a live edge — this section cannot self-trip the scan. Live tokens sit only at a rule's authoritative doc site + its code site.
 
 Full doctrine + reversibility: **ADR-89 OQ1 "NAMING CONVENTION — ADOPTED"**. Advisory-first; a hard-gate promotion is a later data-gated arc.
 
@@ -1120,7 +1239,7 @@ The living docs `VISION / ARCHITECTURE / CLAUDE / CONTRIBUTING / ESSENTIALS` car
 
 Append-only (`JOURNAL`, `LESSONS`) and per-session (`BACKLOG`) files are excluded — their freshness is intrinsic. A file with no `last_reviewed` → WARN (lets a repo adopt the convention without a hard failure). **Portable:** the check is parameterised by a file list, so a child repo inherits it unchanged (its own project `CLAUDE.md` is `"CLAUDE.md"`). Operationalizes the ADR-39 "grooming" lifecycle element.
 
-**Scope + caveats (honest limits).** This enforces *edit-hygiene* + a calendar backstop. It does **not** detect content-vs-decision drift — a doc whose prose lagged a new ADR while its file was never edited trips neither signal (that is the doc-truth sweep, BACKLOG [#10]). A2 is **commit-based** (keyed off the file's last *author* date, stable across rebase): an uncommitted working-tree edit is flagged at the next audit *after* it lands in a commit, not while the tree is dirty — the signal is eventually-consistent, not real-time (failing a dirty tree would fire mid-edit, before the reviewer has bumped the stamp). It is **gated at pre-commit**: the `audit-health` hook runs `audit.py health` on every commit, so an A2 FAIL blocks the commit — while A1 (the 30-day backstop) and a missing stamp are WARN and never block (`git commit --no-verify` bypasses). There is no CI/remote in this flow, so pre-commit is the gate; a session-close hook remains a possible future addition.
+**Scope + caveats (honest limits).** This enforces *edit-hygiene* + a calendar backstop. It does **not** detect content-vs-decision drift — a doc whose prose lagged a new ADR while its file went unedited trips neither signal (that is the doc-truth sweep, BACKLOG [#10]). A2 is **commit-based** (keyed off the file's last *author* date, stable across rebase): an uncommitted working-tree edit is flagged at the next audit *after* it lands in a commit, not while the tree is dirty — the signal is eventually-consistent, not real-time (failing a dirty tree would fire mid-edit, before the reviewer has bumped the stamp). It is **gated at pre-commit**: the `audit-health` hook runs `audit.py health` on every commit, so an A2 FAIL blocks the commit — while A1 (the 30-day backstop) and a missing stamp are WARN and never block (`git commit --no-verify` bypasses). There is no CI/remote in this flow, so pre-commit is the gate; a session-close hook remains a possible future addition.
 
 ### Multi-surface amendment coherence (audit check `amendment_coherence`)
 <!-- scope: meta -->
@@ -1414,7 +1533,7 @@ case, e.g. a corp-monorepo handoff and an ai-council handoff at the same time). 
 - **(a) Zero-write** — read/analysis only: no commits, no `git add`/staging, no branch ops. Any number of zero-write sessions may share one checkout safely.
 - **(b) Each committing session in its OWN worktree.** **One checkout = one committing session.** A "single commit at the end" still counts as a committing session — there is no "I'll only commit once" exception. (Why: a no-worktree session's lone commit can land on a *concurrent* session's branch, sweep its staged file, and mis-root the branch — witnessed twice, LESSONS 2026-06-07 / 2026-06-05.)
 
-**A long gate/suite run and a commit are mutually exclusive IN THE SAME TREE (witnessed 2026-07-31, the [#382] W3 boundary — JOURNAL entry (p)).** Distinct from the session-concurrency rule above, and the reason it needs its own line: this fires inside a **single** session, where the two shapes above both look satisfied. A background full-suite run raced a JOURNAL commit in the same checkout and produced a **phantom failure** — `test_check_selects_correctly_under_inherited_git_dir`, a test that spawns git, observing the tree mid-swap while pre-commit's stash/restore held it; the clean rerun PASSED with no code change. Same family as the pre-commit-stash and `GIT_DIR` gotchas, but a separate rule: **sequence the suite and the commit, or run the suite in a worktree.** Why it earns a rule rather than a footnote: a phantom RED is more expensive than a slow lane, because it invites a disposition — or a "fix" — against a defect that never existed.
+**A long gate/suite run and a commit are mutually exclusive IN THE SAME TREE (witnessed 2026-07-31, the [#382] W3 boundary — JOURNAL entry (p)).** Distinct from the session-concurrency rule above, and the reason it needs its own line: this fires inside a **single** session, where the two shapes above both look satisfied. A background full-suite run raced a JOURNAL commit in the same checkout and produced a **phantom failure** — `test_check_selects_correctly_under_inherited_git_dir`, a test that spawns git, observing the tree mid-swap while pre-commit's stash/restore held it; the clean rerun PASSED with no code change. Same family as the pre-commit-stash and `GIT_DIR` gotchas, but a separate rule: **sequence the suite and the commit, or run the suite in a worktree.** Why it earns a rule rather than a footnote: a phantom RED is more expensive than a slow lane, because it invites a disposition — or a "fix" — against a defect that did not exist.
 
 **Integration authority — operator authorizes, CC-primary executes (2026-07-16 ruling).** Merge execution is delegated to the CC-primary session: on the operator's explicit **GO** (one authorization per integration), CC performs the `--no-ff` merge to `main` **from the primary checkout**, verifies (that repo's suite + — for the hub — `ship-gate` green; any failure STOPS the chain and surfaces), then completes teardown — a plain merged branch is deleted directly; a worktree branch requires the worktree to be **removed first** (a checked-out branch cannot be `-d` deleted), per the worked example below. The operator is the **authorization gate, not the executor**. Invariants unchanged: one merge to `main` at a time; integration only from the primary checkout; parallel/worktree sessions still **commit-and-STOP and never self-merge** — they hand their branch to the primary for the authorized merge.
 
@@ -2406,8 +2525,9 @@ a night seat reading only this text routes exactly as Q1 routes today.
 
 #### What the night corrected in itself
 
-Both rules below come from the 2026-08-28->29 night's own run. Each records a live failure of the
-window that produced this protocol, which is why they land as rules rather than as notes.
+The rules below come from the night runs' own failures -- the first two from 2026-08-28->29, the
+last three from 2026-08-31->09-01. Each records a live failure of a window that produced this
+protocol, which is why they land as rules rather than as notes.
 
 **A time-conditioned stop reads a fresh clock at decision time.** Any stop conditioned on wall
 time — the night mission's **S5 hard stop** is the instance — takes the time from a **fresh source
@@ -2425,6 +2545,45 @@ taken with a merge queue part-walked hands the incoming seat a state no artifact
 contracts record what was dispatched and the ledger records what was adjudicated, and between them
 sits a half-walked queue that neither surface carries. At a phase boundary both surfaces are
 current, so the incoming seat boots from the record instead of from the outgoing seat's memory.
+
+**THE ANCHOR TAIL IS A TWO-COMMIT PROBLEM.** An integration arc lands on a branch carrying **at
+least two commits**, and the JOURNAL entry names the OTHER one. *Why it is a rule:* a first-parent
+spine merge counts as anchored when the JOURNAL names a commit that merge **introduced** -- not the
+merge SHA itself. A branch whose only commit IS the journal commit therefore cannot anchor its own
+merge, because a journal entry cannot name itself. Measured on `195e2438`: it landed unanchored and
+the commit gate then refused the very commit that would have anchored it, which is a deadlock the
+seat meets with no hint of its cause (JOURNAL 2026-08-31 (f)). The remedy is free -- land the real
+artifact first, then the JOURNAL entry naming its SHA, then merge -- and it is only free if it is
+decided BEFORE the branch is cut. **A single-commit arc is the trap, not the fix for it.**
+
+**THE MERGE SUBJECT IS PART OF THE MECHANISM, not decoration.** A lane merge keeps git's default
+`Merge branch '<name>'` prefix. *Why it is a rule:* `batch_manifest.merged_branch_name` parses the
+lane name out of the merge SUBJECT via `^Merge branch '([^']+)'`, so the ADR-110 `closed_by:`
+exemption keys on text the integrator is free to rewrite. A hand-authored subject --
+*"Merge DC-1 (lane-a-1-...)"*, measured at `ea1e32a9` -- drops the prefix, the parse returns `None`,
+the exemption does not fire, and the anchor gate then wedges **every subsequent commit** until an
+unrelated JOURNAL entry lands. It fails **closed and silently**, which is the safe direction and the
+unhelpful one. `batch_manifest.subject_style_miss` now names the miss in the gate's own FAIL
+evidence (`c8ae55b9`) -- deliberately as a REPORT and never as an exemption path, because
+recognising a lane from loose subject text would hand the grammar to whoever writes the subject,
+which is the coupling `[#514]` exists to remove. **Editorialise the tail of the subject; never the
+prefix.**
+
+**A LANE-KILL GUARD MATCHES THE COMMAND LINE, NEVER THE PROCESS NAME.** *Why it is a rule:* on
+2026-08-31 a lane sat at zero commits for three and a half hours and read as slow rather than dead.
+It had been killed by the CLI's own background **auto-updater**, which had renamed both of its
+processes to `claude.exe.old.<epoch-ms>` -- so the first kill attempt REFUSED, because the guard
+checked the process NAME and the name no longer matched (JOURNAL 2026-08-31 (j)). The predicate
+that survives a rename is *does this command line name the lane*, and it is the same predicate that
+keeps a sweep from taking the session running it: **matching a bare PID substring, or a bare image
+name, is how a cleanup kills its own orchestrator.** Two consequences worth carrying separately
+from the rule. First, **a long-running lane can be killed by an update it did not ask for, and it
+does not fail loudly** -- it stops writing; `DISABLE_AUTOUPDATER=1` in the dispatching environment
+is the available lever, and a native install auto-updates by default. Second, **the progress probe
+is what tells slow from dead**: transcript byte-count static over a sampling window, age of the last
+real message, and whether the last record is a message at all rather than session bookkeeping. A
+lane that has STOPPED is a different act from a lane that is hung -- the first is read and merged or
+filed, the second is torn down and re-dispatched on its unchanged frozen contract.
 
 #### The manifest opens a batch by `closed_by:`, and by nothing else
 
@@ -2724,6 +2883,18 @@ Dispatch-Codespace -Contract <FILE.md> [-Slug <name>] [-Repo <owner/repo>] [-Bra
   **Read `Ok` and `RemoteExitCode` separately**: `Ok` means the transport succeeded,
   `RemoteExitCode` is the work's own code parsed from gh's `shell closed: exit status N` text
   (gh's own code is 1 regardless). A caller branching on `Ok` alone reads a failed lane as a success.
+- **CREATE, NEVER REBUILD** (ruling 2026-08-31, from measurement). A `gh codespace rebuild --full`
+  leaves a container that **has not applied its own `devcontainer.json`** -- no features, no
+  `postCreateCommand`, and a clone stale by however many merges have landed since. A fresh CREATE
+  from the same HEAD applies all of it. Measured back-to-back on this repo: the rebuilt container
+  had no `uv`, no `gh`, no provisioning stamp and a clone two merges behind, while a create from the
+  same commit produced `claude` at `~/.local/bin/claude`, `uv` at `/usr/bin/uv`, both tokens on the
+  login shell, and `HEAD` at current `main`. **Every "the feature is broken" reading of the earlier
+  REDs was measuring a container that had not run its config at all** -- so the upstream report
+  is correctly scoped to *"a rebuilt container does not re-run features or postCreate"*, and not to
+  a broken feature. Admission tests and lane containers are therefore always fresh creates, and a
+  lane that repairs its own container **destroys the receipt it exists to produce**: the arrival
+  gate STOPs instead of self-repairing.
 - **Cost guards:** `--machine basicLinux32gb` is 2 cores / 8 GB — the smallest machine meeting the
   floor `devcontainer.json` declares, so it is both correct and cheapest. `-IdleTimeout` and
   `-Retention` bound the spend, and cost inputs print on **every** dispatch including `-DryRun`.
@@ -3257,7 +3428,7 @@ The cloud run is read-only by **platform allow-list**, not by a committed `permi
 
 The native Workflow launcher is **not enabled** in the cloud runtime (re-probed 2026-06-05, still unavailable — `docs/audits/2026-06-05-conformance-nightly-digest.md`). When it is absent the cloud agent **falls back** to reading the `.js` as a *spec* and orchestrating it by hand (spec-orchestration), rather than executing it as code. Doctrine: **native-attempt-first, with a nightly re-probe** of launcher availability.
 
-The contract consequence is load-bearing: **any guarantee written as in-script code is INERT on the fallback path** — the `.js` is read, not run, so a throw-on-mismatch validator inside `conformance-hub.js` never fires in production (LESSONS 2026-06-05, "locate contract guarantees on the path that actually executes"). The real backstop must therefore sit on the **executing path**: the **parser-side fail-closed** in the Action — a missing or unparseable counts marker opens an Issue and blocks the merge rather than guessing. Rule: **put the code guarantee where the bytes actually flow** — for a cloud Routine that means the consumer-side (Action/parser) guard that runs unconditionally, not the generator-side validator that fires only on the native path. An LLM-produced machine contract is pinned in code at **both** ends (a code-built marker the model echoes verbatim + code that validates the echo) and prose is never a parse target (LESSONS 2026-06-05, counts-contract).
+The contract consequence is load-bearing: **any guarantee written as in-script code is INERT on the fallback path** — the `.js` is read, not run, so a throw-on-mismatch validator inside `conformance-hub.js` does not fire in production (LESSONS 2026-06-05, "locate contract guarantees on the path that actually executes"). The real backstop must therefore sit on the **executing path**: the **parser-side fail-closed** in the Action — a missing or unparseable counts marker opens an Issue and blocks the merge rather than guessing. Rule: **put the code guarantee where the bytes actually flow** — for a cloud Routine that means the consumer-side (Action/parser) guard that runs unconditionally, not the generator-side validator that fires only on the native path. An LLM-produced machine contract is pinned in code at **both** ends (a code-built marker the model echoes verbatim + code that validates the echo) and prose is never a parse target (LESSONS 2026-06-05, counts-contract).
 
 ### The outcome loop
 
@@ -4816,11 +4987,11 @@ Sourced from LESSONS #1 (2026-05-12). Architect-side enforcement is operator rev
 ### Architect epistemic discipline: completion claims require state verification
 <!-- scope: meta -->
 
-Before declaring a session, directive list, or task "done" / "closed" / "complete", the architect verifies against actual state — BACKLOG residuals, untouched scope items, files modified but not committed, things mentioned earlier in chat that were never resolved. Pattern-matched "all done" framing from prompt structure alone is not evidence; it's a failure mode. (Moved from ESSENTIALS 2026-07-05, [#258].)
+Before declaring a session, directive list, or task "done" / "closed" / "complete", the architect verifies against actual state — BACKLOG residuals, untouched scope items, files modified but not committed, things mentioned earlier in chat that went unresolved. Pattern-matched "all done" framing from prompt structure alone is not evidence; it's a failure mode. (Moved from ESSENTIALS 2026-07-05, [#258].)
 
 If the architect cannot verify completion (no filesystem access from browser chat), the claim becomes a question: "based on what I see here, X and Y look complete; please confirm Z is also done before I declare closure."
 
-Sourced from LESSONS #2 (2026-05-12). Architect-side enforcement is operator review; the ADR-45 shared validator was never implemented — enforcement is operator review only.
+Sourced from LESSONS #2 (2026-05-12). Architect-side enforcement is operator review; the ADR-45 shared validator was not implemented — enforcement is operator review only.
 
 **Discharge with evidence — closure names its artifact.** The Witnessed / Inference / Unknown ladder above governs *claims*; this governs *closure*. Every item declared done discharges against a **named evidence artifact** — a SHA, a command's actual output, or the operator's own eye — cited at the point of closure, not gestured at. "Tests pass", "it's merged", "that's handled" name no artifact and discharge nothing.
 
@@ -5186,7 +5357,7 @@ Mermaid is the heaviest form (token cost + AI-edit-reliability drop above ~100 l
 ## 15. Anti-Patterns — What NOT to Do
 <!-- scope: hybrid -->
 
-**"I'll organize later"** — If you create a file without knowing where it belongs, you'll never organize it. Know the category BEFORE creating.
+**"I'll organize later"** — If you create a file without knowing where it belongs, you will not organize it later. Know the category BEFORE creating.
 
 **"Let's put it in docs/ for now"** — `docs/` is not a staging area. It has defined categories: handoff, archive, decisions. If it doesn't fit one, it doesn't belong there.
 
