@@ -19,6 +19,46 @@
 
 ---
 
+### 2026-08-31 (k) - CC (Opus 5, background job, integrator seat): THE FIRST TIER-(D) LANE IS FROZEN, and predicate 6's override does not actually override
+
+**Anchors:** `811ff5e1`
+
+**Did:** froze DM-6 re-issued at `substrate=codespace` as the admitted substrate's first
+production receipt, and measured a gap in the freeze gate's own override mechanism.
+
+**THE TIER-(D) CONTRACT carries three things no local contract needs.** An **arrival gate** --
+fetch to the pushed HEAD, confirm the provisioning stamp including F4 workspace trust, and STOP
+rather than self-repair, because *a lane that fixes its own container destroys the receipt it
+exists to produce*. A **receipt gate** naming `is_error` as the verdict field and `subtype` as
+the trap, since a receipt can carry `subtype: "success"` with `is_error: true` and a consumer
+keying on `subtype` records a successful run of an agent that never ran. And
+**create-never-rebuild**, because a rebuilt container has not applied its own
+`devcontainer.json`. Filing-only, serialize-group `none`, no blockers: the lowest-risk shape for
+a first real run off the operator's machine.
+
+**PREDICATE 6's OVERRIDE MECHANISM DID NOT FIRE, and that is a finding.** The new contract and
+the DM-6-local contract it supersedes both declare `tasks/`, so
+`substrate-lane-write-scope-disjoint` REFUSES -- correctly, on the letter. The validator
+documents an escape: *"A `**Substrate deviation:** <rule-id> - <reason>` line downgrades exactly
+the rule it names from refuse to warn."* A conforming deviation line naming that exact rule, with
+a reason far past the length floor, was added -- and the refusal **did not downgrade**. So the
+documented override works for the single-contract legs and not for this CROSS-contract one, which
+is discoverable only by trying it. Filed rather than worked around.
+
+**The dispatch is nonetheless legitimate, on the manifest's own scoping rule** -- *"THE FREEZE
+GATE IS SCOPED TO THE LANES BEING FROZEN"*. Validated ALONE, the tier-(D) contract passes all six
+predicates; the refusal appears only when the retired contract is deliberately included in the
+set. Supersession is declared at the surviving contract because batch-E contracts are immutable
+and the superseded file cannot be edited. **DM-6-local must never be dispatched.**
+
+**Result:** batch E at 7 of 15 merged, DC-23 re-dispatched after its auto-updater hang, tier-(D)
+frozen.
+
+**Changes:** `JOURNAL.md`, and the new tier-(D) contract under the batch-E launch-contracts dir.
+
+**Next:** dispatch the tier-(D) lane; then the held set -- A5 into PLAYBOOK, A7 + the parity-class
+birth, the step-4 binding mechanisms, and the anchor-traps + PID-substring doctrine.
+
 ### 2026-08-31 (j) - CC (Opus 5, background job, integrator seat): HY-1 LANDS, DC-23 WAS HUNG BY ITS OWN AUTO-UPDATER, and the create-not-rebuild rule is ruled
 
 **Anchors:** `9b736ce2`
