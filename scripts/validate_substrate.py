@@ -319,6 +319,10 @@ _SCOPE_PATH_RE = re.compile(r"`([A-Za-z0-9_][A-Za-z0-9_./-]*)`")
 #: word alone, because the live spelling carries an em-dash clause after it.
 _SCOPE_NONE_RE = re.compile(r"\bNONE\b")
 
+#: A write-scope DECLARATION is a markdown list item. Prose in the same section is commentary
+#: — see `write_scope_paths` for the measured failure this prevents.
+_SCOPE_ITEM_RE = re.compile(r"^\s{0,3}[-*+]\s+")
+
 
 def declared_substrate(text: str) -> Optional[str]:
     """The substrate a contract declares, lower-cased, or None when it declares none.
@@ -404,7 +408,18 @@ def write_scope_paths(text: str) -> set[str]:
     body = text[start:nxt.start()] if nxt else text[start:]
     if _SCOPE_NONE_RE.search(body):
         return set()
-    return {tok for tok in _SCOPE_PATH_RE.findall(body) if "/" in tok or "." in tok}
+    # LIST ITEMS ONLY, and the restriction is load-bearing rather than tidy. A write-scope
+    # section legitimately contains PROSE about paths it does NOT claim — batch E's own DC-1
+    # says, in this very section, that `CLAUDE.md` is *deliberately absent from this scope*.
+    # Reading the whole body turned that disclaimer into a declaration and produced a phantom
+    # DC-1 <-> DC-23 collision on the one file the cut had just separated. A declaration is a
+    # bullet; everything else in the section is commentary.
+    out: set[str] = set()
+    for line in body.splitlines():
+        if not _SCOPE_ITEM_RE.match(line):
+            continue
+        out.update(tok for tok in _SCOPE_PATH_RE.findall(line) if "/" in tok or "." in tok)
+    return out
 
 
 # --- the four legs -------------------------------------------------------------------------

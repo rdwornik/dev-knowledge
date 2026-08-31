@@ -485,6 +485,25 @@ def test_leg6_admits_the_post_cut_shape_where_DC1_dropped_claude_md(registry):
             if r.rule == vs.RULE_WRITE_SCOPE_DISJOINT] == []
 
 
+def test_leg6_reads_list_items_only_so_prose_cannot_declare_a_scope(registry):
+    """Batch E's own DC-1 says, INSIDE its write-scope section, that `CLAUDE.md` is deliberately
+    ABSENT from that scope. Read as a declaration, the disclaimer produced a phantom collision
+    with DC-23 on the one file the cut had just separated. A declaration is a bullet."""
+    batch = {
+        "DC-1.md": _scoped(
+            "- `README.md`\n\n**`CLAUDE.md` IS DELIBERATELY ABSENT FROM THIS SCOPE** — the "
+            "VISION-line removals are DC-23's last act.",
+            pairing="slug `lane-a-1-x` -> branch `worktree-lane-a-1-x` -> "
+                    "contract `LANE-a-1-x.md`"),
+        "DC-23.md": _scoped(
+            "- `CLAUDE.md`",
+            pairing="slug `lane-b-2-x` -> branch `worktree-lane-b-2-x` -> "
+                    "contract `LANE-b-2-x.md`"),
+    }
+    assert [r for r in vs.validate_batch(batch, registry=registry)
+            if r.rule == vs.RULE_WRITE_SCOPE_DISJOINT] == []
+
+
 def test_leg6_ignores_a_write_scope_of_NONE(registry):
     """Read-only census lanes declare NONE. Two of them intersect on nothing."""
     batch = {
