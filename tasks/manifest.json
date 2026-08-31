@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "45c791440eed8216cb83f1aaa18c511c513c7b95401d1378aad71d982d41425f",
+  "generated_sha256": "5ac6c8aaafe2b12fee594c0e7a0a4bd6ff37002b38a786cc83701d7de42e59e4",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -1039,6 +1039,10 @@
     {
       "task": 623,
       "file": "623-mechanize-the-journal-anchor-record-line.md"
+    },
+    {
+      "task": 625,
+      "file": "625-the-rule-adherence-eval-corpus-fresh.md"
     },
     {
       "prose": "### [S19] Decide the undecided artifact/tool models"
