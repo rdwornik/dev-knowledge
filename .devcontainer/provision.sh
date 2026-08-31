@@ -436,7 +436,52 @@ smoke_gate_liveness() {
   out="$(uv run --no-sync python scripts/validate_backlog.py 2>&1)" \
     || { printf '%s\n' "${out}" >&2; die "C2 gate-liveness smoke FAILED — validate_backlog did not exit 0, so this environment cannot run the gate mesh"; }
   printf '[provision] C2 smoke: %s\n' "$(printf '%s\n' "${out}" | head -n 1)"
+  # F3 (2026-08-31): a SECOND real gate, named by the admission ruling. `validate_backlog` proves
+  # a gate runs; this proves the LOCKED resolver runs, which is the leg that actually failed on
+  # the measured container -- `uv` was absent, so every `uv run --locked` invocation in the mesh
+  # was unrunnable while the container still reported a successful build.
+  local tt
+  tt="$(uv run --locked python scripts/gen_task_tree.py --check 2>&1)"     || { printf '%s
+' "${tt}" >&2; die "F3 FAILED — \`uv run --locked python scripts/gen_task_tree.py --check\` did not exit 0; the locked resolver does not work in this container"; }
+  say "F3 OK — the LOCKED resolver ran a real generator check and returned 0"
   say "C2 OK — a real gate executed here and returned 0"
+}
+
+# --- F1: the Claude CLI, installed here rather than by a feature that lies -----------------------
+# The `claude-code:1.0` devcontainer feature was dropped 2026-08-31 after it left NO binary on
+# two builds, one of them a `--full` cache-busting rebuild, while `creation.log` recorded
+# `Outcome: success`. Anthropic's docs call the native installer the recommended path; it ships a
+# native binary with no Node runtime dependency, so nothing here provisions Node for it.
+# THE ASSERT IS THE POINT: a container without a working agent must never read as a good build.
+leg_f1_claude() {
+  if command -v claude >/dev/null 2>&1; then
+    say "L-F1 ok — claude already present ($(claude --version 2>/dev/null | head -1))"
+    return 0
+  fi
+  say "L-F1 — installing the Claude CLI (native installer)"
+  curl -fsSL https://claude.ai/install.sh | bash >/dev/null 2>&1 || true
+  export PATH="${UV_BIN_DIR}:${PATH}"
+  command -v claude >/dev/null 2>&1 || die "L-F1 FAILED — no \`claude\` on PATH after the native install. A container without an agent is not a provisioned container; refusing rather than reporting success."
+  CHANGED=$((CHANGED + 1))
+  say "L-F1 ok — claude installed ($(claude --version 2>/dev/null | head -1))"
+}
+
+# --- F2: git credential wiring, from the token Codespaces already issues -------------------------
+# Measured 2026-08-31: `git fetch` in this container failed with "could not read Username for
+# https://github.com" — no credential helper on the raw ssh path, so a committing lane could
+# neither fetch nor push. GitHub issues a repo-scoped token to every codespace at create AND at
+# every restart, read/write when the user has write access (GitHub Codespaces security docs), so
+# NO PAT is invented here: this wires the token that already exists.
+# The helper is written to the repo-local config, never global, and never echoes the value.
+leg_f2_git_credential() {
+  local tok="${GITHUB_TOKEN:-${GH_TOKEN:-}}"
+  if [ -z "${tok}" ]; then
+    say "L-F2 SKIP — no GITHUB_TOKEN/GH_TOKEN in this environment; git auth left untouched"
+    return 0
+  fi
+  git -C "${REPO_ROOT}" config --local credential."https://github.com".helper     '!f() { echo username=x-access-token; echo "password=${GITHUB_TOKEN:-$GH_TOKEN}"; }; f'
+  say "L-F2 ok — git credential helper wired to the codespace token (value never echoed)"
+  CHANGED=$((CHANGED + 1))
 }
 
 # --- the stamp: what `--gate` reads --------------------------------------------------------------
@@ -552,6 +597,8 @@ main() {
   leg2b_history
   leg5_ecosystem
   leg3_hooks
+  leg_f1_claude
+  leg_f2_git_credential
   smoke_gate_liveness
   write_stamp
 

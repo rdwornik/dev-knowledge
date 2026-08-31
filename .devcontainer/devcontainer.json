@@ -84,11 +84,19 @@
   // dependency the doc conditions on a failure that has not happened.
   //
   // PORTABILITY is preserved, as with sshd: `devcontainer up` on a VPS installs the same feature.
+  // F1 (2026-08-31): `ghcr.io/anthropics/devcontainer-features/claude-code:1.0` was REMOVED.
+  // Measured, twice, including on a `gh codespace rebuild --full` that busts the image cache:
+  // the feature leaves NO `claude` binary anywhere on the filesystem while `creation.log`
+  // records `Outcome: success`. A toolless container that reads as a successful build is the
+  // worst available failure shape -- a lane dispatched into it returns Ok=True in under a
+  // minute with an empty result. The install moved to `provision.sh`, which uses the install
+  // path Anthropic's own docs call recommended (`curl -fsSL https://claude.ai/install.sh`,
+  // native binary, no Node runtime dependency) and ASSERTS the binary afterwards, so the
+  // silent-success shape is structurally unavailable.
   "features": {
     "ghcr.io/devcontainers/features/sshd:1": {
       "version": "latest"
-    },
-    "ghcr.io/anthropics/devcontainer-features/claude-code:1.0": {}
+    }
   },
 
   // THE ENV GATE ([#554] leg 4) IS NOT DECLARED HERE, AND THE ABSENCE IS THE FIX.
