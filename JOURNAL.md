@@ -19,6 +19,56 @@
 
 ---
 
+### 2026-08-31 (e) - CC (Opus 5, background job, integrator seat): THE QUEUE DRAINS TO FOUR, and the closed_by exemption passes its first live test in both directions
+
+**Anchors:** `8bf6e3f1` `1a3c378b` `7b0cbf14` `bea4c623`
+
+**Did:** merged the batch-E queue positions 2-4 (DC-4, DM-3, DM-5) with B1 teardown, and ran
+the ADR-110 `closed_by:` exemption as a live experiment rather than assuming it.
+
+**THE EXEMPTION WORKS, AND THE FIRST LIVE TEST HAD ALREADY DEFEATED IT.** `batch_manifest.
+merged_branch_name` parses the lane name out of the merge SUBJECT via `^Merge branch '([^']+)'`.
+Position 1 (`ea1e32a9`) was written with a hand-authored subject -- *"Merge DC-1 (lane-a-1-...)"*
+-- which drops that prefix, so the parse returned None, the exemption did not fire, and the
+anchor gate wedged every subsequent commit until a JOURNAL entry landed. Positions 2-4 kept
+git's default prefix and the gate now reports, in its own PASS evidence, *"3 lane merge(s) are
+exempt under the ADR-110 declared-integration-arc rule while batch E is open"*. Measured both
+directions at HEAD: conforming subject -> `is_lane_merge: True`; `ea1e32a9` -> `None`.
+
+**So the mechanism is sound and the failure mode is INTEGRATOR MESSAGE STYLE**, which nothing
+warns about: a non-conforming lane merge fails CLOSED and silently, and the integrator then
+meets the deadlock with no hint that an exemption was expected and missed. Filed as a
+candidate: WARN when a `worktree-lane-*` merge is unanchored AND its subject is non-conforming.
+
+**CODESPACE: L2 GREEN, ADMISSION STILL REFUSED -- and the refusal is now on MEASURED legs
+rather than an unreached one.** After a `--full` rebuild: the rotated credential is present on
+the login path, the native installer (`curl -fsSL https://claude.ai/install.sh | bash`, CLI
+2.1.251) puts a working agent on it, and `claude -p` returns `is_error: false`,
+`result: "ADMISSION-PROBE-OK"`, served `claude-opus-5`, `permission_denials: []`, with the
+trust-dialog write clearing the silent permission narrowing. **But L3 is RED and the gate cannot
+run:** arrival HEAD was `666f2dcb`, two merges stale, and `git fetch` failed with *"could not
+read Username for https://github.com"* -- no git credential, so a lane cannot even self-correct
+-- while `uv` is absent, so `uv run --locked` and the whole gate mesh are unrunnable. Section
+1(C)'s rule binds: any leg red, committing lanes stay LOCAL.
+
+**A THIRD DEFECT, REPRODUCED ON A CACHE-BUSTING REBUILD.** The declared
+`ghcr.io/anthropics/devcontainer-features/claude-code:1.0` feature leaves NO binary anywhere on
+the filesystem while `creation.log` records `Outcome: success`. `--full` rules out image cache;
+it is a feature bug, and a toolless container currently reads as a successful build.
+
+**Result:** main at four batch-E merges. Queue: 5 of 15 landed, 2 lanes live (DC-23, HY-1),
+9 undispatched. `ruff` clean.
+
+**Changes:** `JOURNAL.md`; merges of `.dev-knowledge.code-workspace`, two `docs/intake/` files,
+`tasks/617-*`.
+
+**Abandoned:** codespace admission, on evidence. Tier-(D) lanes were NOT frozen and no committing
+lane was dispatched to codespace.
+
+**Next:** the three named codespace defects (feature silent-success, absent git credential,
+absent uv) are each a fix before admission is re-testable. A5/A6/A7 orphan consumers and the two
+binding mechanisms remain unstarted.
+
 ### 2026-08-31 (d) - CC (Opus 5, background job, DC-1 lane then integrator seat): VISION IS RETIRED, DC-1 IS MERGED, and the premise the parity row asserted was false
 
 **Anchors:** `d3ac6b7e` `ea1e32a9`
