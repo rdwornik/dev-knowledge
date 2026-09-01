@@ -207,3 +207,73 @@ def test_main_live_run_relocates(tmp_path):
     rc = lr.main(["--logs-dir", str(logs_dir)])
     assert rc == 0
     assert (logs_dir / "2026-08" / "WIDGET-2026-08-15.md").is_file()
+
+
+# --- the TARGET GUARD (terra CRIT, post-merge review round 2026-09-01) ----------------------
+#
+# THE DEFECT, in the reviewer's words: "`logs_dir` is accepted without constraining it to this
+# repository's `logs/` directory. A caller can pass an external or synced path and the script
+# will relocate its files."
+#
+# Exact. `main` took `--logs-dir` as a bare `Path`, `run_retention` passed it through, and
+# `apply_moves` does `dst.parent.mkdir(parents=True)` + `src.rename(dst)` inside it. A MOVER with
+# no constraint on where it moves. Against core-invariant #1 that is a T2 write into the
+# exclusion zone from a script this repo ships -- and the hazard that rule names (a cleanup
+# script that moved the operator's personal files) is precisely this shape.
+#
+# TWO INDEPENDENT LEGS, because they fail differently:
+#   (1) EXCLUSION  -- an excluded-zone path is refused ABSOLUTELY, no override, wherever it sits.
+#   (2) CONTAINMENT -- the directory must be inside the repo or inside the system temp dir,
+#       which is what keeps `tmp_path` fixtures legal. Everything else is refused.
+# A path can pass (2) and fail (1), so neither leg subsumes the other.
+
+_ZONE = "OneDrive - " + "Blue Yonder"
+
+
+def test_an_excluded_zone_path_is_refused_absolutely(tmp_path):
+    mod = _load()
+    bad = tmp_path / _ZONE / "logs"
+    bad.mkdir(parents=True)
+    with pytest.raises(mod.RetentionTargetError) as exc:
+        mod.run_retention(bad, dry_run=True)
+    assert "exclusion" in str(exc.value).lower()
+
+
+def test_a_path_outside_the_repo_and_outside_temp_is_refused():
+    mod = _load()
+    with pytest.raises(mod.RetentionTargetError):
+        mod.run_retention(Path.home() / "Documents" / "logs", dry_run=True)
+
+
+def test_a_tmp_path_logs_dir_is_still_allowed(tmp_path):
+    """Every fixture in this file depends on it, so the guard states that dependency."""
+    mod = _load()
+    d = tmp_path / "logs"
+    d.mkdir()
+    assert mod.run_retention(d, dry_run=True) == []
+
+
+def test_the_repos_own_logs_dir_is_allowed():
+    mod = _load()
+    assert mod.run_retention(mod._DEFAULT_LOGS_DIR, dry_run=True) is not None
+
+
+def test_the_guard_refuses_BEFORE_planning_not_after(tmp_path, monkeypatch):
+    """Order matters. A guard that runs after `plan_moves` has already WALKED the directory, and
+    reading an excluded path is itself outside what core-invariant #1 permits."""
+    mod = _load()
+    called = []
+    monkeypatch.setattr(mod, "plan_moves", lambda d: called.append(d) or [])
+    bad = tmp_path / _ZONE / "logs"
+    bad.mkdir(parents=True)
+    with pytest.raises(mod.RetentionTargetError):
+        mod.run_retention(bad, dry_run=True)
+    assert called == [], "plan_moves ran before the guard refused"
+
+
+def test_main_reports_the_refusal_and_exits_nonzero(tmp_path, capsys):
+    mod = _load()
+    bad = tmp_path / _ZONE / "logs"
+    bad.mkdir(parents=True)
+    assert mod.main(["--logs-dir", str(bad), "--dry-run"]) == 2
+    assert "refus" in capsys.readouterr().err.lower()
