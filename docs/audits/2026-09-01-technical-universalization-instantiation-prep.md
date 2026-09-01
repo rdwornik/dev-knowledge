@@ -188,3 +188,30 @@ it is ADR-114 option (C)'s work rather than a step in this migration.
 - **No template was authored.** `templates/` was a live lane's frozen write-scope for the whole
   window, so `templates/README-md-template.md` — the one payload the migration is actually waiting
   on — remains the first morning act.
+
+---
+
+## AMENDMENT 1 — 2026-09-01, ruling 3 answered: the shared blocker is a DEFERRED HUB ROW
+
+> **In-file amendment, not an edit** — `docs/audits/` is immutable. The body above stands as
+> written. Where the two disagree, this section wins.
+
+§2 records the shared hard blocker as *"the `ruff-gate` prune finds the component
+`present_modified` and WOULD REFUSE"*, and concludes that *"adjudicating it means reading what the
+local edit actually is — a consumer read the morning seat should do with the diff in front of
+it"*. **The read is done, and the conclusion moves.**
+
+**Both edits are LEGITIMATE CONSUMER CUSTOMIZATION, already DECLARED in each consumer's own
+`.methodology.yaml`, and ai-council's is already RULED** (fleet ruling 2026-07-12, explicitly
+overriding the `[#244]` prune). Neither is drift; nothing needs restoring. Full diffs and
+classification: `docs/audits/2026-09-01-technical-ruff-gate-divergence-classification.md`.
+
+**The blocker is therefore NOT a consumer question at all.** Both waivers state that
+`deploy/tool.py` does not read them — hub row **`[#276]`**, which **predicted this precise
+refusal** (*"a future remove-leg run re-enters the sweep and REFUSEs on corp's consumer-owned
+ruff"*) and whose status is **`deferred`**.
+
+**Consequence for the deploy order:** *"GO monorepo instantiation from the derived contract"*
+rests on `[#276]` being un-deferred first. §5's sequencing is otherwise unchanged; this adds a
+step-zero ahead of it. It is also the `[#624]` class the north-star warns about — a plan resting
+on a deferred row — arriving in the deployment plan itself.

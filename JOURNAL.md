@@ -19,6 +19,49 @@
 
 ---
 
+### 2026-09-01 (p) - CC (Opus 5, attended): ruling 3 - neither consumer is drifting, and the thing blocking both deploys is a row that predicted it and was deferred
+
+**Anchors:** `7ad141e5`
+
+**Did:** performed ruling 3's read-and-classify on the `ruff-gate` divergence in corp-monorepo and
+ai-council. Read-only; neither consumer was written to.
+
+**BOTH ARE LEGITIMATE CONSUMER CUSTOMIZATION, ALREADY DECLARED, AND ONE IS ALREADY RULED.** Each
+consumer's own `.methodology.yaml` carries a `component: ruff-gate` waiver explaining it, and
+ai-council's re-activation is a recorded **fleet ruling of 2026-07-12 that explicitly overrides
+the `[#244]` prune**. corp-monorepo's `ruff-format` omission is a measured platform finding -
+`core.autocrlf=true` colliding with pre-commit's stash/unstash cycle - not a preference. Both
+stanzas are deliberately prune-SAFE in shape (bare `id: ruff`, no `name:`), which each waiver
+states as intentional. **Nothing to restore, nothing to delete.**
+
+**AND THE REAL FINDING IS NOT ABOUT THE CONSUMERS AT ALL.** Both waivers say the same sentence in
+their own words: *"the deploy tool does not yet read this waiver (hub #276)"*. So `deploy/tool.py`
+sees `present_modified`, refuses the prune, and aborts the whole instantiation with no record -
+**while the divergence it refuses over is declared, sanctioned, and in one case ruled.**
+
+**`[#276]` PREDICTED THIS EXACT REFUSAL** - *"once corp-monorepo records 1.2.0, a future remove-leg
+run re-enters the sweep and REFUSEs on corp's consumer-owned ruff"* - **and its status is
+`deferred`.**
+
+**So both instantiations are blocked on a DEFERRED HUB ROW, not on a consumer question**, and the
+morning order's *"GO monorepo instantiation from the derived contract"* needs `[#276]` un-deferred
+ahead of it. That is precisely the `[#624]` class the north-star already warns about - *a plan
+resting on a deferred row is a plan resting on nothing* - arriving this time inside the deployment
+plan itself. **Last night's prep called this "a consumer read the morning seat should do with the
+diff in front of it". The read took ten minutes and moved the blocker to the other side of the
+fleet.**
+
+**The ruling's own remedy splits in two, and neither substitutes for the other.** Marking the
+parity type conditional for that carrier makes the REGISTRY honest and is expressible today;
+`--execute` would still abort, because what cannot express a waiver today is the DEPLOY TOOL, and
+that is `[#276]`'s whole subject.
+
+**Changes:** `docs/audits/2026-09-01-technical-ruff-gate-divergence-classification.md`,
+AMENDMENT 1 on the instantiation-prep artifact, `docs/audits/README.md`, `tasks/614-*.md`,
+`JOURNAL.md`.
+
+**Next:** ruling 6 - the win-tooling attended stamp lane.
+
 ### 2026-09-01 (o) - CC (Opus 5, attended): rulings 4 and 5 - the pool stays shut, the identity widens by CLASS, and a schema that said no was not an obstacle
 
 **Anchors:** `f385bc55`
