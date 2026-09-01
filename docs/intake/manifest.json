@@ -3,7 +3,7 @@
   "direction": "derived-from",
   "source": "docs/intake/README.md",
   "generator": "scripts/gen_intake_tree.py",
-  "source_sha256": "76907dd947bab171aac60f7c1246051e5155bc6ff43d51b08fbeb74a664418d2",
+  "source_sha256": "5d6feeff169c67b2f15858da79d4f0672a7249a15031d3b4f475372cb01d5dc1",
   "honest_limit": {
     "statement": "ADR-109 section 4 is discharged by a byte-exact round-trip plus a residue manifest, NOT by a derivation ratio. This surface's ratio is INVERTED relative to surface 1 (BACKLOG.md <-> tasks/), where task lines were the majority and residue the minority. Recorded so the generality claim is honest about what was shown.",
     "item_derived_lines": 58,
@@ -447,7 +447,7 @@
     },
     {
       "t": "line",
-      "v": "### DRAFT (10)"
+      "v": "### DRAFT (9)"
     },
     {
       "t": "line",
@@ -499,17 +499,12 @@
       "status": "DRAFT"
     },
     {
-      "t": "item",
-      "file": "2026-09-01-tech-observable-harness.md",
-      "status": "DRAFT"
-    },
-    {
       "t": "line",
       "v": ""
     },
     {
       "t": "line",
-      "v": "### READY (19)"
+      "v": "### READY (20)"
     },
     {
       "t": "line",
@@ -608,6 +603,11 @@
     {
       "t": "item",
       "file": "2026-08-28-tech-handoff-engine-deployable-carrier.md",
+      "status": "READY"
+    },
+    {
+      "t": "item",
+      "file": "2026-09-01-tech-observable-harness.md",
       "status": "READY"
     },
     {

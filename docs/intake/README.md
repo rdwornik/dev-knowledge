@@ -31,7 +31,7 @@ fill-in skeleton is `templates/intake-template.md`.
 - [#23](2026-08-01-func-distillation-and-library-first.md) — Operator design input — distillation and library-first
 - [#67](2026-09-01-tech-lane-packet-artifacts-block.md) — A lane that publishes into a directory the harness deletes has not published
 
-### DRAFT (10)
+### DRAFT (9)
 
 - [#34](2026-08-16-code-architecture-enforcement.md) — Fleet code-architecture enforcement doctrine
 - [#35](2026-08-17-tech-agent-instruction-layers-and-distillation.md) — Portable agent-instruction layers, prompt distillation, and unattended runs
@@ -42,9 +42,8 @@ fill-in skeleton is `templates/intake-template.md`.
 - [#42](2026-08-23-tech-generated-artifact-currency.md) — Generated-artifact currency — one artifact is committed-generated and ungated, and the class has no uniform rule
 - [#62](2026-08-29-tech-l0-as-a-governed-layer.md) — L0 is a governed layer, not a place the hub cannot see
 - [#63](2026-08-29-func-universal-per-repo-learning-loop.md) — Universal per-repo learning loop — the hub deploys the mechanism, never the managed state
-- [#66](2026-09-01-tech-observable-harness.md) — The OBSERVABLE HARNESS — four layers, one home each, and the layer that has no home at all
 
-### READY (19)
+### READY (20)
 
 - [#15](2026-07-16-satellite-onboarding-prompts.md) — Satellite onboarding prompts — ready to fire (four consumers)
 - [#43](2026-08-24-tech-ruling-register-landing-gap.md) — Rulings are made and then land nowhere — the register stopped absorbing on 2026-08-15
@@ -65,6 +64,7 @@ fill-in skeleton is `templates/intake-template.md`.
 - [#59](2026-08-27-tech-append-only-rotation-execution.md) — Rotate the FILE, not the predicate — and LESSONS' trigger has already tripped
 - [#60](2026-08-27-tech-night-batch-protocol.md) — The night batch is a working protocol that exists only as habit — name it
 - [#61](2026-08-28-tech-handoff-engine-deployable-carrier.md) — The handoff engine becomes a deployable, versioned carrier
+- [#66](2026-09-01-tech-observable-harness.md) — The OBSERVABLE HARNESS — four layers, one home each, and the layer that has no home at all
 
 ### ACCEPTED (19)
 

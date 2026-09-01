@@ -19,6 +19,91 @@
 
 ---
 
+### 2026-09-01 (ah) - CC (Opus 5): phase boundary - the handover goes into the manifest, and the seat stops
+
+**Anchors:** `8383df71`
+
+**Did:** wrote the batch-F orchestration-state note into the manifest as an in-file amendment and
+stopped. **Six lanes are live; integration has not started; no lane was touched.**
+
+**THE NOTE IS THE HANDOVER, NOT THIS ENTRY.** A replacement seat boots from
+`docs/audits/2026-09-01-technical-batch-f-manifest.md` — six lane states with tips and session ids,
+the three other worktrees and what is owed on each, the v7 dependents, the integration order, and
+what landed this phase. **Batch E's handover was left uncommitted by design and survived only
+because someone remembered it;** this one is committed, because a 124-line note living in a working
+tree is one `git checkout` from not existing.
+
+**TWO THINGS THE NOTE SAYS THAT A FRESH SEAT WOULD OTHERWISE GET WRONG.**
+
+**A tip of `c8396f5d` is not a stall** — it is `main` at dispatch, meaning the lane has not
+committed yet. Two of the six read that way and both are working; one is clean *and* uncommitted
+because it is still reading. **The stall test is CPU, not silence**, and the note says so with the
+evidence: codespace attempt 3 looked identical to a slow lane and was a hang — 1 h 15 m elapsed,
+**3 s of CPU**, `wchan=ep_poll`, no children, nothing written.
+
+**The v7 version bump is the integrator's, and it costs more than a stamp.** Seven files carry
+`reconciled_with: handoff-process@6.3.0`; one is inside L2's write-scope, and the **six** outside it
+are enumerated by file and line. **Two of those six — `ARCHITECTURE.md` and `CLAUDE.md` — are
+`FRESHNESS_FILES`**, so the A2 gate turns their re-stamp into a genuine end-to-end re-read. That is
+priced into integration here rather than discovered there, which is the same trap that deferred the
+VISION relocation this morning.
+
+**Also carried:** terra pre-merge as the ratified gate (amendment 2) with its measured price,
+~11 min/pass and 1–2 passes per lane; the ADR-110 exemption's fuse, which dies the moment
+`closed_by:` lands; `boot-r1-survey` harvest owed when DONE; the dashboard filing merge owed when
+its lane STOPs — **both as queue work, not load relief**, since the concurrency ruling replaced the
+old ceiling with optimum 6 / ceiling 12 and left nine worktrees running deliberately.
+
+**Changes:** `docs/audits/2026-09-01-technical-batch-f-manifest.md` (orchestration-state note),
+`JOURNAL.md`.
+
+**Next seat:** the manifest, then the monitor. Touch no lane until it stops.
+
+### 2026-09-01 (ag) - CC (Opus 5): six lanes local, and the codespace hang measured down to three seconds of CPU
+
+**Anchors:** `cd80ed66`
+
+**Did:** dispatched the six remaining batch-F lanes LOCAL under doctrine option 4, ran the bounded
+inference diagnostic, amended `[#554]`'s concurrency numbers on the operator's ruling, and filed
+`[#632]` with the honest codespace status.
+
+**THE SIX ARE UP** — `lane-b-2` … `lane-g-7`, all `sonnet` / `high`, each on its own
+`worktree-<slug>`, up in 5–11 s. **`-Model` had to be passed explicitly**, because the verb still
+defaults to `opus`: that is `[#631]` leg (i) firing in the very dispatch that ran under it.
+
+**THE HANG IS MEASURED, NOT GUESSED, AND THE DISCRIMINATOR IS CPU.** Attempt 3 sat for **1 h 15 m
+with three seconds of CPU** — `utime/stime` unchanged across a 5-second sample, `wchan = ep_poll`,
+no children, no file written anywhere in the workspace, receipt 0 bytes — **after** successfully
+fetching `remote-settings.json` nine seconds in. So auth worked, egress worked, and the process
+then blocked on a call that never returned and that nothing bounds. **"Quiet for a while" and "3 s
+of CPU in 75 minutes" look identical from outside and are completely different facts;** the second
+one is a hang and it is what let me raise it instead of waiting it out.
+
+**AND THE BOUNDED PROBE SAYS TRANSIENT.** A fresh codespace, `claude -p "reply OK"` under
+`bash -lc` with a 180 s timeout, twice: **`sonnet` api 2036 ms, `claude-opus-5` api 1871 ms, both
+`is_error:false`, both EXIT=0.** Not a model alias, not an entitlement, not egress. **Said with its
+limit:** one trivial turn proves the auth/egress/model path and proves nothing about a long agentic
+run — which is exactly where attempt 3 died. First real credit numbers came free: **$0.0991 sonnet
+vs $0.2162 opus for the identical prompt, 2.2×.**
+
+**THE WATCHER HAS NO SUBJECT, and that is a finding rather than an obstacle.** `claude -p
+--output-format json` emits one blob at the END, its only fds point at `receipt.json`, and
+`~/.claude/sessions/` is **empty**. There is nothing to `tail` and no honest one-line peek to hand
+the operator. The observable subject is the **workspace** — newest mtime, git state, child count,
+and the CPU delta. `stream-json` to a real log file is now in `[#632]`'s Done-when for that reason.
+
+**`[#554]` AMENDED, and the correction is about how a number became a rule.** Its *"measured
+admission ceiling of 6 concurrent lanes"* was **one window's observation**, never re-measured, and
+was being cited as a bound. Ruled shape: **optimum 6, ceiling 12**, sentinel warns **above 12
+only** — a warning at 7 would smuggle the optimum back in as a ceiling. Nine lane worktrees ran
+concurrently at the ruling and were **left running deliberately**.
+
+**Changes:** `tasks/554-*.md`, `tasks/632-*.md` (new), `tasks/manifest.json`, `BACKLOG.md`,
+`JOURNAL.md`.
+
+**Next:** watch the six to commit; harvest `boot-r1-survey` when it is DONE (L2 consumes its
+scoring seam); merge the dashboard filing when its lane STOPs.
+
 ### 2026-09-01 (af) - CC (Opus 5): L2 reissued for OPERATOR ASKS, and a cost-leak fix I could not land
 
 **Anchors:** `68597ebd`

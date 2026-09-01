@@ -390,3 +390,127 @@ available argument for `[#631]`'s Done-when: the freeze RECORDS the rule set it 
 and **dispatch RE-VALIDATES**, refusing a batch whose rules have moved and naming which rule
 arrived after and which lanes it touches. An additive delta discharges by amendment; only a
 subtractive one forces a re-freeze — the `[#629]` boundary.
+
+---
+
+# ORCHESTRATION-STATE NOTE — 2026-09-01, PHASE BOUNDARY: lanes running, integration NOT started
+
+> **In-file amendment marker** (CLAUDE.md §5 rule 3). Written on operator instruction at a phase
+> boundary so a replacement seat boots from this manifest rather than a chat. Everything above
+> stands as frozen and amended. **Derive from the tree and the monitor; the tips below move.**
+>
+> **TOUCH NO LANE.** All six are live at the time of writing.
+
+## 1 · The six lanes — DISPATCHED LOCAL, running
+
+Doctrine option 4, invoked by the architect and recorded as such: three codespace attempts
+produced zero committed work, and the window closes with v7 regardless. All six are
+`sonnet` / `high` / `bypassPermissions`, each on `worktree-<slug>`.
+
+```
+lane                                      session   tip        commits  dirty  read
+lane-b-2-handoff-v7                       6c4379ed  3ad44c1f      1       9    working
+lane-c-3-logs-retention-callers           e1f31914  837e8236      3       0    working
+lane-d-4-deploy-waiver-honoring           075bbc3c  e9a0af90      1       0    working
+lane-e-5-vision-relocation                50dffdde  c8396f5d      0      12    mid-edit, uncommitted
+lane-f-6-agy-admission                    4e6a8d3b  c8396f5d      0       0    no output yet
+lane-g-7-contract-validator-predicates    cf4643cf  a20f4f5e      3       1    working
+```
+
+**`-Model sonnet` had to be passed EXPLICITLY.** `Start-DispatchLane`'s `[string]$Model` still
+defaults to `'opus'` (line 96), so the contract's routing table did not decide the model — that is
+`[#631]` leg (i) firing inside the very dispatch that ran under it.
+
+**A tip of `c8396f5d` means the lane has not committed yet** — that is `main` at dispatch, not a
+stall. `lane-f-6` is clean AND uncommitted: it is reading. Judge a stall by CPU, not by silence
+(§4).
+
+## 2 · The other three worktrees — RUN AS THEY ARE
+
+```
+boot-r1-survey                 e77bc5db  1 commit   HARVEST OWED when DONE -- L2 consumes its
+                                                    scoring seam; L2's contract pins the rule
+                                                    only when that artifact returns
+dashboard-home-ruling-filing   c67d3807  1 commit   MERGE OWED when its lane STOPs (--no-ff, terra)
+land-article-substrate-brief   30fbd288  4 commits  live, another seat's; LEAVE
+```
+
+**These are queue work, NOT load relief.** The operator's ruling supersedes the earlier
+reduce-load instruction: nine lane worktrees run as they are, and the sentinel warns above 12.
+
+## 3 · The v7 version bump is the INTEGRATOR's — the six dependents, enumerated
+
+**L2 must NOT bump `HANDOFF_PROCESS.md`'s `Version:`.** A lane editing a registered spec never
+bumps it; the integrator does, at integration, and re-stamps every dependent in the same act.
+Seven files carry `reconciled_with: handoff-process@6.3.0`. **One is inside L2's write-scope
+(`protocols/HANDOFF_BOOT.md`); the other SIX are outside it and are the integrator's:**
+
+```
+ARCHITECTURE.md:3            protocols/PLAYBOOK.md:2
+CLAUDE.md:3                  protocols/README.md:2
+CONTRIBUTING.md:3            protocols/SESSION_SETUP.md:5
+```
+
+`templates/CONTRIBUTING-md-template.md:3` carries the placeholder `@<version>` and is NOT a stamp
+to bump. **`ARCHITECTURE.md` and `CLAUDE.md` are also `FRESHNESS_FILES`** — editing them trips the
+A2 gate, so the re-stamp costs a genuine end-to-end re-read of each. Price that into integration
+rather than discovering it there.
+
+## 4 · Integration, when the lanes stop
+
+1. **TERRA PRE-MERGE, EVERY LANE — amendment 2, ratified.** `codex exec -m gpt-5.6-terra
+   --sandbox read-only`, scope stated INSIDE the focus prompt (`--base` and a prompt are mutually
+   exclusive). Findings classified (a) real defect / (b) recorded tension. **A CLEAN pass IS a
+   review**, and a lane that changed no code still gets one. Tallies go IN the close packet, with
+   refutations as prominent as acceptances. Priced: ~11 min/pass, 1–2 passes per lane, so ~77–154
+   min — the largest single line in integration.
+2. **Merge order is free.** The seven write-scopes are disjoint by construction, which is what made
+   the freeze 0-deviation. Prefer L2 before L5 so L5 never sees a stale VISION pointer; nothing
+   breaks in the other order.
+3. **ANCHOR BEFORE THE CLOSE PACKET.** Every lane branch matches `LANE_BRANCH_RE`, so the ADR-110
+   exemption covers the lane merges while this manifest is open — **and it dies the moment
+   `closed_by:` lands.** Batch E's spine was clean at close only because its anchors were written
+   hours ahead of the packet.
+4. **STALL TEST — CPU, not silence.** Codespace attempt 3 looked exactly like a slow lane and was a
+   hang: 1 h 15 m elapsed, **3 s of CPU**, `wchan=ep_poll`, no children, nothing written. For a
+   local lane the observable subject is the worktree — newest mtime, `git status`/`git log`, child
+   count, and the `utime+stime` delta.
+
+## 5 · Landed this phase, so the next seat does not redo it
+
+```
+[#632]  codespace filed HONESTLY -- ADMITTED for transport+gates, INFERENCE PATH UNSTABLE.
+        Six layers, the runner hardening (stream-json log, hard inference timeout, --detach),
+        the pre-create probe, the 13-failure cp/scp cluster. SEQUENCE IS LOAD-BEARING:
+        the 13 FIRST, then the probe, then the hardening.
+[#554]  AMENDED -- concurrency is OPTIMUM 6, CEILING 12 (operator-ruled). The old "measured
+        ceiling of 6" was one window's observation cited as a rule. Warn ABOVE 12 only.
+[#631]  THREE live instances in one window (amendments 2, 3, 4): a freeze cannot bind a rule
+        that post-dates it, and nothing re-validates at dispatch.
+win-tooling  ab6f087 (login shell) + 2101ee0 (provision-stamp wait + three-state guard), BOTH
+        applied to the LIVE module -- "fix on main" was not "fix in the live surface", and
+        that gap cost a whole dispatch.
+diagnostic   fresh codespace, both models green (sonnet api 2036 ms, opus 1871 ms,
+        is_error:false) => the hang is TRANSIENT. Limit: one trivial turn proves the
+        auth/egress/model path and says nothing about a long agentic run.
+```
+
+## 6 · Efficiency panel — carry into the packet
+
+```
+codespace attempt 3    provision 41 s · runner start 56 s · PRODUCTIVE WORK 0 · ~75 min burned
+credits, 1-turn probe  sonnet $0.0991   opus $0.2162   -- opus 2.2x for identical output
+local lanes            per-lane wall-clock owed, dispatch -> STOP; this is the 6-vs-12 curve
+```
+
+## 7 · Still open, named rather than left to be discovered
+
+- The **pre-create probe / self-cleanup** cost leak in `Dispatch-Codespace` is **NOT fixed** — it
+  is `[#632]`, sequenced behind the 13. Interim guard is procedural: slugs unique by construction,
+  and a `gh codespace list` before every create.
+- **`closed_by:` is `docs/audits/2026-09-02-technical-batch-f-close-packet.md`** — the packet lands
+  at THAT path whatever day it closes; the filename is the identifier the exemption keys on.
+- **v1.5.0 checklist** still owes its witnesses: README template DISCHARGED, DC-3 RESOLVED,
+  `[#276]` now OPEN and in flight as L4.
+- **L1 is undispatched.** Its proof-of-work is moot after three attempts; the wave-2 router ADR it
+  was to author is still owed and now belongs with `[#632]`'s verdict.
