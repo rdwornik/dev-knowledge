@@ -22,11 +22,13 @@
 - /review-closures — review + execute ONLY operator-approved closures (ADR-70 Tier-1)
 - /ship — merge the current branch to main via --no-ff, push, delete the branch (refuses inside a worktree)
 - /override — bypass the ADR-85 session-end gate for this HEAD (logged, HEAD-bound)
+- /boot-session — assemble the v7 BOOT-INVERSION paste from live state: OPERATOR ASKS first, then FUNNEL HEALTH, north-star arcs, rot/orphan, open asks, PROPOSED NEXT BATCH, one hand-written RESIDUAL
 
 ## Session hooks
 - Stop: propose_closures (tier1-lifecycle plugin, non-blocking closure proposals)
 - SessionStart: check_floor_hash.py --require-present (floor guard) + python -m pre_commit install (arms the commit hooks)
 - Stop: session_end_backpressure.py — deterministic session-end gate (JOURNAL SHA-anchor hard block)
+- SessionStart: fleet_health.py prints [asks] OPERATOR ASKS then [funnel] rot/orphan/unblocked/batch before the existing fleet digest
 
 ## Pre-commit hooks
 - toc-freshness — TOC freshness (hub hooks, pinned rev)

@@ -915,7 +915,7 @@ components:
       observable: transcript-event
       expect: "boot-session"
     artifacts:
-      - wiring: "command /boot-session -> scripts/boot_frontier.py --propose, scripts/fleet_health.py, scripts/funnel_lifecycle.py --report, scripts/assemble_paste.py --pin-only (all read/compose, none written to by this command)"
+      - wiring: "command /boot-session -> scripts/boot_frontier.py, scripts/fleet_health.py, scripts/funnel_lifecycle.py --report, scripts/assemble_paste.py --pin-only (all read/compose, none written to by this command)"
     roster:
       section: command
       line: "/boot-session — assemble the v7 BOOT-INVERSION paste from live state: OPERATOR ASKS first, then FUNNEL HEALTH, north-star arcs, rot/orphan, open asks, PROPOSED NEXT BATCH, one hand-written RESIDUAL"
