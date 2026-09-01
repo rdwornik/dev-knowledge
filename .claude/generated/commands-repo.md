@@ -10,7 +10,7 @@
 - `/boot-session` — Assemble the v7 BOOT-INVERSION paste — OPERATOR ASKS first, then FUNNEL HEALTH, north-star arcs, the rot/orphan list, open browser asks, PROPOSED NEXT BATCH, and one hand-written RESIDUAL — from live state, in one pass.
 - `/changelog-review` — Operator-invoked review of tool changelogs since last review (claude-code + codex) — fetch, classify per the audit-trio rubric, write a digest, bump the state file. PUSH trigger only; never implements adoptions.
 - `/handoff-verify` — Run the whole live probe gate for a handoff bundle in ONE pass and emit exactly ONE evidence block — the v6 one-round-trip boot (HANDOFF_PROCESS §5)
-- `/handoff` — Generate or complete a handoff per HANDOFF_PROCESS.md v6 — CC-owned residual + thin browser boot
+- `/handoff` — Generate or complete a handoff per HANDOFF_PROCESS.md v7 — CC-owned residual + thin browser boot
 - `/lane-boot` — Boot ONE batch lane — provision its worktree per the naming enum, seed it, load the frozen contract, and state the V-2 decision budget before any work starts.
 - `/lane-integrate` — Walk a batch's merge queue serially from the primary checkout, then run the refuse-to-finish checklist mechanically — the batch does not close while an item is open.
 - `/override` — RETIRED (ADR-85 amendment 2026-08-03 §A2) — discharges no gate; arms a local telemetry token only
