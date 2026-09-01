@@ -422,3 +422,60 @@ Plus, owed and named rather than quietly dropped:
 deliberately ABSENT from this tree, which is what keeps the ADR-110 exemption armed for the lanes
 that remain. Writing it tonight would end the exemption while four items are open and would be
 closing the batch by assertion — the one thing its manifest names as forbidden.
+
+---
+
+## AMENDMENT 1 — 2026-09-01 02:45, appended after the report first landed
+
+> **In-file amendment marker, not an edit.** `docs/audits/` is immutable (CLAUDE.md §5 rule 3),
+> so the body above stands exactly as written at 02:20. Everything below happened afterwards and
+> changes three of the numbers it reports. **Where the two disagree, this section wins.**
+
+### N3 moves from 2-of-4 to 4-of-4
+
+The body records the two step-4 binding mechanisms as **NOT BUILT**, with the reason that they
+target `scripts/`, which was a live lane's frozen write-scope. **That condition ended when HY-3
+merged**, and both were built with RED-first witnesses in the two hours after this report landed.
+
+**`5069ce5f` — the audits index REFUSES a title-less artifact.** `_title_of` returned the
+placeholder `(no # title)` and nothing read it: **20 of 837 indexed audits render it**, nine of
+them harvested cloud artifacts whose persist shape leads with a PROVENANCE blockquote and never
+emits an H1. Armed as a RATCHET against `ecosystem/audit-title-baseline.json` — the 20 are
+grandfathered, the 21st refuses — with a DRAIN direction as well, because a ratchet that only
+grows is a debt register nobody pays down. **The rule is H1-PRESENT, not H1-FIRST**, and that has
+its own test: `_title_of` searches the whole file, so an artifact whose provenance precedes its
+heading already indexes correctly and pinning the order would refuse files that render perfectly.
+Wired into `--check`, which the `audit-index-freshness` hook already runs, so no new `ALL_CHECKS`
+member and none of the six count pins move.
+
+**`4e6e0e2e` — a DECLARED input that does not open is a finding.** Measured: a probe contract
+citing `docs/audits/2026-01-01-technical-DOES-NOT-EXIST.md` beside two real locators made
+`preflight_contract` report *"2/2 locator claim(s) resolved"*. Scoped to clauses that DECLARE a
+dependency, because a leg judging every in-repo path would refuse every contract this repo
+freezes for naming its own `## Write-scope` output. **Swept over all 22 frozen batch-E contracts:
+zero findings** — armed against real contracts and refusing none of them.
+
+### Two corrections to the body's own numbers
+
+- **§11 said `templates/ live 47 -> 45`.** Re-measured: **43 → 41** excluding `templates/archive/`;
+  47 is the tracked total under `templates/` either way, which is unchanged by a relocation.
+- **§1's N5 row and §5 were written before the audits index was regenerated.** Two of the eleven
+  suite REDs (`test_gen_audit_index`) were CAUSED by this window and are now green; the residue is
+  nine, all pre-existing or structural. The regeneration is itself the finding: **a lane must not
+  regenerate that index and the integrator at close must**, which is now recorded rather than
+  relearned next batch.
+
+### One true finding about a leg this window did not touch
+
+Pointing the new `/preflight` leg at this window's own
+`2026-09-01-technical-universalization-instantiation-prep.md` FAILs **two SHA claims** —
+`37b8aa1` and `7a3c057`. Both are correct: they are corp-monorepo's and ai-council's HEADs, cited
+as premise evidence, and neither is in THIS repo's object store by construction. **The SHA leg
+has no notion of a sibling repo**, so any cross-repo artifact reads as broken locators. Not fixed
+— the artifact is immutable and the leg's scope is its own decision — and not left unsaid.
+
+### Unchanged by this amendment
+
+DM-4 was still ACTIVE at 02:45 (2h32m). The four open batch items in §13 are unchanged, the batch
+is still deliberately OPEN, and `docs/audits/2026-09-01-technical-batch-e-close-packet.md` is
+still absent from the tree.
