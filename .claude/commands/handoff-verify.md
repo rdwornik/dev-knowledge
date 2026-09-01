@@ -96,7 +96,7 @@ live evidence the browser needs. Required rows, per HANDOFF_PROCESS §5:
 | Live HEAD / tree | live git — check-time SHA and tree state |
 | Ship-gate read-back | `audit.py ship-gate` ∩ `ecosystem/disposition-register.yaml` — GREEN/RED, dispositioned-WARN count, any `[stale]` line |
 | Pointer round-trip | the live `PLAYBOOK` section a pointer names |
-| Orientation: vision | `VISION.md` `## Vision` opening sentence, substring-checked |
+| Orientation: vision | `README.md` `## Vision` opening sentence, substring-checked (re-pointed from `VISION.md`, superseded as the hub's front door per ADR-114/[#614]; `templates/handoff/v5/PROBES.md.tmpl` P1a is the live precedent) |
 | Orientation: architecture | `ARCHITECTURE.md` Ch1 opening line, substring-checked |
 | Inherited claims | every inherited claim that asserts a **repo-verifiable fact** (count / sha / file state / "X landed"), verified CC-side. A supplement's *why* — intent, tensions, rejected options, off-repo context — has no live source by construction: it is advisory and is **never** failed for being unverifiable. |
 | P0a / P0b / P0c | the standing-topic legs (epic-theme preambles + `gen_task_tree --check` currency; ACCEPTED intakes; Purpose-vs-authority). **v6 bundles only** — `n/a` on a pre-v6 bundle. |

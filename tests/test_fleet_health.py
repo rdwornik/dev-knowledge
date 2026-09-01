@@ -1386,3 +1386,102 @@ def test_main_prints_the_load_line(tmp_path, capsys):
     with mock.patch.object(fh, "_HEALTH_FILE", health):
         assert fh.main() == 0
     assert "[load] " in capsys.readouterr().out
+
+
+# --- v7 BOOT-INVERSION digest ([#611], protocols/HANDOFF_PROCESS.md §17) ----------------
+
+_ASKS_FIXTURE = """\
+**Seed entries, 2026-09-01 (from intake #66):**
+
+```
+alpha    asked 2026-09-01  re-asked 3  visible-fix: abc123 (a real change the
+         operator can see across two lines)
+bravo    asked 2026-09-01  re-asked 2  blocker: a named, dated blocker text
+charlie  asked 2026-09-01  re-asked 2  no visible-fix and no blocker here
+delta    asked 2026-09-01  re-asked 1  no visible-fix and no blocker here either
+```
+"""
+
+
+def test_parse_operator_asks_reads_all_rows_and_joins_continuations():
+    entries = fh.parse_operator_asks(_ASKS_FIXTURE)
+    assert [e["name"] for e in entries] == ["alpha", "bravo", "charlie", "delta"]
+    assert "operator can see across two lines" in entries[0]["body"]
+
+
+def test_parse_operator_asks_absent_fence_returns_empty():
+    assert fh.parse_operator_asks("no registry here\n") == []
+
+
+def test_ask_is_red_visible_fix_discharges():
+    entries = fh.parse_operator_asks(_ASKS_FIXTURE)
+    assert fh.ask_is_red(entries[0]) is False  # alpha: re-asked 3, visible-fix present
+
+
+def test_ask_is_red_blocker_discharges():
+    entries = fh.parse_operator_asks(_ASKS_FIXTURE)
+    assert fh.ask_is_red(entries[1]) is False  # bravo: re-asked 2, blocker present
+
+
+def test_ask_is_red_fires_with_no_fix_and_no_blocker():
+    entries = fh.parse_operator_asks(_ASKS_FIXTURE)
+    assert fh.ask_is_red(entries[2]) is True  # charlie: re-asked 2, neither
+
+
+def test_ask_is_red_false_below_reasked_threshold():
+    entries = fh.parse_operator_asks(_ASKS_FIXTURE)
+    assert fh.ask_is_red(entries[3]) is False  # delta: re-asked 1
+
+
+def test_operator_asks_line_names_red_entries():
+    line = fh.operator_asks_line(_ASKS_FIXTURE)
+    assert line.startswith("[asks] 1 RED / 4 total")
+    assert "charlie" in line
+
+
+def test_operator_asks_line_all_green():
+    text = _ASKS_FIXTURE.replace(
+        "charlie  asked 2026-09-01  re-asked 2  no visible-fix and no blocker here",
+        "charlie  asked 2026-09-01  re-asked 2  visible-fix: def456 now present")
+    line = fh.operator_asks_line(text)
+    assert line == "[asks] 0 RED / 4 total"
+
+
+def test_operator_asks_line_missing_registry_is_reported_not_silent():
+    assert "unavailable" in fh.operator_asks_line("nothing here")
+
+
+def test_funnel_health_line_reports_all_four_numbers(tmp_path):
+    fake_fl = mock.Mock()
+    fake_fl.LEG_A1, fake_fl.LEG_A2, fake_fl.LEG_B, fake_fl.LEG_C = "a1", "a2", "b", "c"
+    measurement = mock.Mock()
+    measurement.by_leg.side_effect = lambda leg: {"a1": [1], "a2": [], "b": [2], "c": [3, 4]}[leg]
+    fake_fl.measure.return_value = measurement
+    fake_bf = mock.Mock()
+    fake_bf.load_open_rows.return_value = ["row"] * 5
+    fake_bf.unblocked_frontier.return_value = ["row"] * 3
+    fake_bf.score_frontier.return_value = ["row"] * 3
+    fake_bf.select_batch.return_value = mock.Mock(selected=["row"] * 2)
+    with mock.patch.object(fh, "_import_funnel_lifecycle", return_value=fake_fl), \
+         mock.patch.object(fh, "_import_boot_frontier", return_value=fake_bf):
+        line = fh.funnel_health_line(tmp_path)
+    assert line == "[funnel] rot 2 / orphan 2 / unblocked 3 / batch 2 proposed"
+
+
+def test_funnel_health_line_fail_soft_returns_none(tmp_path):
+    with mock.patch.object(fh, "_import_funnel_lifecycle", side_effect=RuntimeError("boom")):
+        assert fh.funnel_health_line(tmp_path) is None
+
+
+def test_main_prints_asks_before_funnel_before_fleet_line(tmp_path, capsys):
+    health = tmp_path / "FLEET-HEALTH.md"
+    health.write_text(fh.build_digest(_STATES, date.today(), "2026-08-11T09:00:00"),
+                      encoding="utf-8")
+    handoff_process = tmp_path / "HANDOFF_PROCESS.md"
+    handoff_process.write_text(_ASKS_FIXTURE, encoding="utf-8")
+    with mock.patch.object(fh, "_HEALTH_FILE", health), \
+         mock.patch.object(fh, "_HANDOFF_PROCESS_PATH", handoff_process), \
+         mock.patch.object(fh, "funnel_health_line", return_value="[funnel] rot 0 / orphan 0 / unblocked 0 / batch 0 proposed"):
+        assert fh.main() == 0
+    out = capsys.readouterr().out
+    assert out.index("[asks] ") < out.index("[funnel] ") < out.index("[fleet] ")

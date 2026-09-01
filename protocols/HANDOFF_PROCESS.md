@@ -18,6 +18,19 @@ Authority: this protocol is the single canonical source of truth for handoff mec
 > **answer-free**. Added with it: the A7 standing-topic legs (P0a/P0b/P0c), the A4 `Destination`
 > boot-header row and its P3 comparison, the A10 boot byte budget, and the A11 guards.
 
+> **§17 — the v7 BOOT-INVERSION, STAGED (lane-b-2-handoff-v7, 2026-09-01).** `/boot-session`,
+> the OPERATOR ASKS registry and the SessionStart FUNNEL HEALTH digest land as importable,
+> tested material at **this document's still-6.3.0 version** — read §17 for the mechanism.
+> **`Version:` above does NOT bump to 7.0.0 in this commit.** `[#611]`'s Done-when and this
+> lane's own contract both call for v7.0.0, and this repo's `reconciled_versions` commit-gate
+> requires the bump to land atomically with every `reconciled_with: handoff-process@6.3.0`
+> dependent re-read against what changed — `ARCHITECTURE.md`, `CLAUDE.md`, `CONTRIBUTING.md`,
+> `protocols/PLAYBOOK.md`, `protocols/README.md`, `protocols/SESSION_SETUP.md` — none of which
+> are in this lane's frozen write-scope. Operator ruling (this lane, 2026-09-01): the bump is
+> **reassigned to the integrator as one coupled release act**, not held indefinitely and not
+> bypassed — matching the v6.3.0 precedent's own atomicity (§ Section history, v6.2.0→v6.3.0)
+> without its fake-stamp risk. Done-contract item 1 is witnessed on the **merged** result.
+
 > **Why a rewrite.** v4 treats a handoff as onboarding a new chat with a heavy 8-file
 > teaching bundle pasted into a browser. The 2026-06-10 lesson named the load-bearing
 > failure: a handoff that *points* at the methodology but does not *force* the receiver to
@@ -532,8 +545,9 @@ operator-context beat:
     Re-narrating VISION into the handoff is equally barred (§2/§3). Orientation is therefore
     neither summarized nor copied.
   - Instead, bind an **exact-line probe** (§5 manifest "exact-line quote" row) to a **specific
-    orienting line**: the opening sentence of `VISION.md` `## Vision` (*what `.dev-knowledge`
-    is*) and the `ARCHITECTURE.md` Ch1 opening line (*where this work sits — Layer 2 of the
+    orienting line**: the opening sentence of `README.md` `## Vision` (*what `.dev-knowledge`
+    is* — re-pointed from `VISION.md`, superseded as the front door per ADR-114/[#614]) and
+    the `ARCHITECTURE.md` Ch1 opening line (*where this work sits — Layer 2 of the
     ADR-28 three-layer model*). The handoff ships the **source-locator + the substring-check
     command, never the line itself** (generator-excluded, §5 condition 2). The orienting line
     enters the session **only** by CC reading it from the **live** primary source at
@@ -957,8 +971,12 @@ paste (no `PROBES.md` / `RESIDUAL.md` / `SUPPLEMENT.md` / `PASTE_THIS.md`, no as
    template → **the operator approves the draft before it lands** — the ADR-98 §4
    confirm-gate), and the deflection rule: a technical-factual turn is answered *"that's a
    technical-architect question"* and recorded as an open question, never guessed.
-2. **Vision extract** — the committed `VISION.md` `## Vision` body, copied mechanically at
-   generation time.
+2. **Vision extract** — the committed `## Vision` body, copied mechanically at generation
+   time. Source is `VISION.md` while that file is present (`_vision_extract`'s primary
+   read); README.md's `## Vision` is the retired-tier fallback, taken only once VISION.md
+   is both RETIRED (`canonical_docs.CANONICAL_RETIRED`) and absent (ADR-114/[#614] — README
+   is the hub's new front door, but VISION.md still exists on disk today, so the fallback is
+   not yet live). Re-pointed here from a flat `VISION.md` claim that named neither condition.
 3. **CC-authored state summary** — one FILL-IN paragraph (the RF-6 splice; a re-render
    preserves it byte-for-byte).
 4. **Intake index** — a committed-state enumeration of `docs/intake/*.md` (id · status · title;
@@ -974,6 +992,150 @@ only to the JOURNAL draft, never the bundle.
 **Rent (ex-ante).** The scene's consumer is the technical-architect triage; intake docs
 unconsumed after ~1 month put the scene under review for removal (ADR-98 §6). The
 intake↔epic edge stays **advisory until n=2** intake docs are consumed end-to-end (ADR-98 §5).
+
+---
+
+## 17. The BOOT-INVERSION — `/boot-session`, OPERATOR ASKS, and the SessionStart digest (STAGED)
+
+**What inverts.** §§2–16 above describe a **CC-authored** bundle: CC decides what the residual
+says, generates it, and the browser reads it. `/boot-session` inverts the authorship of
+everything EXCEPT one line — its sections are **GENERATED FROM LIVE STATE**, not hand-copied,
+so a fresh seat rules *what next* from the command's output alone rather than from a bundle CC
+wrote for it. The inversion covers:
+
+1. **OPERATOR ASKS** — renders FIRST, above everything (below).
+2. **FUNNEL HEALTH** — the SessionStart digest's own numbers, re-surfaced (§17.2).
+3. **North-star arcs with priorities** — `BACKLOG.md`'s `[E#]` themes, read live, with each
+   theme's open-row count by `[P1..P3]` band.
+4. **The rot/orphan list** — `scripts/funnel_lifecycle.measure()` / `.findings()`, READ never
+   written (this lane's write-scope note): the four-leg lifecycle detector already IS the
+   rot/orphan source, so this section quotes its findings rather than re-detecting them.
+5. **Open asks for the browser** — every OPERATOR ASKS row with no visible-fix, pulled forward
+   from §1 so the browser sees them without re-reading the whole registry.
+6. **PROPOSED NEXT BATCH** — `scripts/boot_frontier.py`'s frontier + scoring + batch-selection
+   output (§17.3), rendered verbatim.
+
+Exactly **ONE** small hand-written section survives the inversion: **RESIDUAL** — the judgment
+a generator cannot have (rejections, tensions, why). `/boot-session`'s own instructions (below)
+state this explicitly: **the command narrates and names the questions; it does not compute.**
+A prompt that computes a frontier is a frontier nobody can test — the six generated sections
+above are each backed by an importable, tested reader (`funnel_lifecycle`, `boot_frontier`,
+`BACKLOG.md`/`tasks/` parsing already owned by `gen_task_tree`); only RESIDUAL is prose.
+
+### 17.1 OPERATOR ASKS — the registry, and why it renders first
+
+**Origin: intake #66, lesson L-S7 (operator direction, 2026-09-01).** *An operator ask answered
+by "filed in arc X" is NOT addressed from the operator's seat* — filing is the repo's answer to
+itself, and from the seat that asked, a row id is indistinguishable from silence. Each ask is a
+**record**, not a sentence:
+
+```
+asked            <date>            when it was first raised
+visible-fix      <sha | path>      the change the operator can SEE, or empty
+blocker          <text + date>     required when visible-fix is empty -- a NAMED, DATED
+                                   blocker, never "filed as [#N]"
+owner            <id>              the row, arc or seat that owns it
+re-asked         <n>               incremented every time it is raised again
+```
+
+**The teeth: `re-asked >= 2` with no visible-fix renders RED** — at `/boot-session` boot and in
+the SessionStart digest, as a **status**, never as prose. *"Tracked in `[#N]`"* is exactly the
+answer L-S7 rules insufficient; a row id alone does not discharge the RED. A seat sees what the
+operator is still waiting for **before** it sees what the repo would like to do next.
+
+**This table is the canonical, live registry** — `/boot-session` and `scripts/fleet_health.py`
+both read it here rather than each keeping a copy (EXTEND THE EXISTING SURFACE, never a second
+store). `fleet_health.parse_operator_asks` reads the fenced block below the bolded
+**Seed entries** line by that literal marker — an entry is appended or amended in place inside
+that fence (this table is doctrine + live data together, same pattern as `funnel_lifecycle.py`'s
+`README threshold:` doctrine-constant shape); `re-asked` increments and `visible-fix` fills in
+as the underlying work lands. **Keep the marker line's exact text** (`**Seed entries`) if this
+section is ever re-titled — the parser keys on it literally, not on a heading level.
+
+**Seed entries, 2026-09-01 (from intake #66):**
+
+```
+ESSENTIALS de-bless    asked 2026-09-01  re-asked 3  visible-fix: 12f4113a (CLAUDE.md sends
+                       nobody to protocols/ESSENTIALS.md; its status: superseded)
+VISION.md out of root  asked 2026-09-01  re-asked 2  blocker: ARCHITECTURE.md + README.md are
+                       FRESHNESS_FILES; the A2 gate makes the edit require a genuine end-to-end
+                       re-read. Owner: batch-F L5 / [#621]
+logs thinning          asked 2026-09-01  re-asked 1  blocker: three flat globbers must resolve
+                       bucketed paths BEFORE the exemption retires. Owner: batch-F L3 / [#626]
+config/ fate           asked 2026-09-01  re-asked 1  blocker: ROOT-R1 unlanded
+dashboard home         asked 2026-09-01  re-asked 1  blocker: docs/ placement is batch G
+```
+
+Row 1 carries a visible-fix and is GREEN. Rows 2–5 carry a named, dated blocker and are
+below the `re-asked >= 2` RED threshold except row 2 (`re-asked 2`, blocker present — the
+blocker discharges the RED per the rule above; RED fires only on `re-asked >= 2` **with no**
+visible-fix **and no** named blocker).
+
+### 17.2 The two organs — a library, and an extended tripwire, never a rival
+
+**(a) `.claude/commands/boot-session.md`** — repo-level, deploy-carried like any organ.
+Assembles §17's six generated sections + the hand-written RESIDUAL and emits one browser-paste
+block (the §5 fenced-block convention this file already uses for `/handoff-verify`'s evidence
+block). It **narrates**: every number in the paste comes from a command it names, never from
+memory.
+
+**(b) A SessionStart one-line FUNNEL HEALTH digest**, riding `scripts/fleet_health.py` — the
+measured natural host: it already prints a one-line digest and already carries the
+overdue-groom escalation (see its own module docstring). **Extended, not rivalled** — no fifth
+`SessionStart` hook is added; `.claude/settings.json`'s existing `fleet_health.py` entry gains
+the new line. The digest reads `funnel_lifecycle` (rot/orphan) and `boot_frontier`
+(unblocked/proposed-batch counts) and prints, in order: OPERATOR ASKS status (first, per
+§17.1), then the funnel numbers — the same FIRST-ordering the bundle observes, kept even in a
+terse one-liner.
+
+**The deterministic part is a library.** The unblocked frontier by `rustworkx` topological
+order, the scoring seam and batch selection under disjointness/width/ledger all live in
+`scripts/boot_frontier.py` — importable, unit-tested, documented in its own module docstring
+rather than restated here. Three things worth citing from that module, not re-deriving:
+
+- **No new dependency.** `rustworkx` is already declared for FPG-1 (`scripts/file_purpose_graph.py`,
+  the operator's A3 mandate), hash-pinned in `uv.lock` from a prebuilt wheel. `boot_frontier.py`
+  reuses it.
+- **The scoring rule is a declared seam, not invented here.** BOOT-R1's scoring-model survey is
+  still RUNNING; `boot_frontier.default_score` wraps the already-ruled `[#566]` `rank_key` axis
+  (P-enum primary, constraint-contention tiebreak, id-as-age floor) as the documented
+  placeholder, swappable via the named `ScoreFn` seam once BOOT-R1 pins the permanent rule.
+- **The bounding rules come from AUT-R1's self-planning axis**
+  (`docs/audits/2026-08-29-technical-aut-r1-autonomous-sdlc-orchestration.md`): never endless
+  (the ledger bound, citing the night-batch protocol's ~5-proposals cap), never only-easy (the
+  scorer's primary key is the operator-set priority band, never size/effort, by construction),
+  and human approval represented explicitly as a **GO** — `BatchProposal` is a proposal, never a
+  dispatch; nothing in `boot_frontier.py` or `/boot-session` executes anything.
+
+### 17.3 The naming convention — filed as a CANDIDATE, nothing renamed here
+
+`boot-session` / `boot-lane` / `boot-batch` is a coherent prefix-first naming convention this
+lane's own command (`boot-session`) participates in without yet being ruled. It is **filed as
+an ADR-111 CANDIDATE** to the commands+skills census — not a row birth, and `/lane-boot` is
+**not** renamed here or by this filing; that rename, if ruled, happens at the census with an
+alias. This lane's write-scope carries no census document, so the filing text itself lands in
+the lane's end-of-lane artifact for the integrator to carry forward.
+
+### 17.4 The budget, and the ex-ante acceptance test
+
+**Measured, not hoped (§4's boot-byte-budget precedent, applied here).** An assembled
+`/boot-session` paste from a real cut is measured for size (**<=20 KB**) and window-specific
+content ratio (**>=70%**), both recorded — see the lane's end-of-lane artifact for the actual
+cut. `protocols/HANDOFF_BOOT.md` stays inside its own 18,000-byte budget (§4); `/boot-session`
+does not inline it (the same ROLE PIN mechanism §4 already uses, extended to this command).
+
+**A v6 bundle is REFUSED, and the existing mechanism already does it.** The §4 ROLE PIN carries
+the live `handoff-process` version + `sha256` and a standing refusal line: *"if your project
+instructions do not carry this contract at this version+sha, say so before answering."* Once
+`Version:` above bumps to 7.0.0 (§ "STAGED" callout, top of file), a browser still pinned to a
+resident v6.x role fails that check by construction and refuses — no new detection code, the
+version bump IS the arming. Nothing in §17 invents a second refusal path.
+
+**Ex-ante acceptance test (this is it):** a fresh seat runs `/boot-session` and can rule *what
+next* from its output alone; the FUNNEL HEALTH digest fires on every session start **in the hub
+AND in a deployed consumer** (`deploy/manifest-v1.5.0.yaml` declares both organs — see that
+file). Proven by re-running `reconciled_versions`, `silent_rule_ratchet` and
+`verify_handoff_probes` once the integrator's coupled version bump lands.
 
 ---
 
@@ -1218,3 +1380,20 @@ intake↔epic edge stays **advisory until n=2** intake docs are consumed end-to-
   probes-pin), an assembled paste **<=20 KB at >=70% window-specific measured on a real cut**, and
   the spec at **v7.0.0** with every version-bearing surface reconciled by this same grep-first
   method. Major stays 6. Refs D-R1, census R1, intake #60 (I-NIGHT), `[#611]`.
+- v6.3.0 (2026-09-01, lane-b-2-handoff-v7 — the v7 reservation's material STAGED, `Version:`
+  **NOT** bumped) — §17 lands the BOOT-INVERSION organs (`/boot-session`,
+  `scripts/boot_frontier.py`, the OPERATOR ASKS registry, the `fleet_health.py` FUNNEL HEALTH
+  digest) as importable, tested, deploy-declared material at this document's still-6.3.0
+  version. **Why the version did not move, said plainly rather than left implicit:** this
+  lane's write-scope carries `protocols/HANDOFF_PROCESS.md` and `protocols/HANDOFF_BOOT.md`
+  only; the six other `reconciled_with: handoff-process@6.3.0` dependents this repo's
+  `reconciled_versions` gate requires to move atomically with any version bump
+  (`ARCHITECTURE.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `protocols/PLAYBOOK.md`,
+  `protocols/README.md`, `protocols/SESSION_SETUP.md`) are not. Operator ruling (this lane,
+  2026-09-01): the bump is reassigned to the integrator as one coupled release act, matching
+  the v6.2.0→v6.3.0 precedent's own atomicity above rather than shortcutting it. The four
+  stale `VISION.md` orientation-probe citations §5/§13/§16 carried (this lane, HANDOFF_BOOT.md,
+  `.claude/commands/handoff.md`, `.claude/commands/handoff-verify.md`) are re-pointed to
+  `README.md` `## Vision` in this same commit, matching the live `templates/handoff/v5/PROBES.md.tmpl`
+  P1a precedent (ADR-114/[#614]) — independent of the version-bump question and not held for
+  it. Refs `[#611]`, intake #66 (L-S7), `docs/audits/2026-08-29-technical-aut-r1-autonomous-sdlc-orchestration.md`.
