@@ -18,8 +18,8 @@ accumulates every dated file from that month, so it fills rather than sitting em
 siblings by construction. This is a contract default, not a ruling -- recorded here so it
 is not silently re-derived differently later.
 
-TWO EXCLUSION CLASSES, and the rule NAMES both (the contract: "names what it EXCLUDES,
-`logs/TOKEN-LOG.md` first among them"):
+ONE EXCLUSION CLASS remains absolute; a second, narrower one was RETIRED (lane-c-3,
+2026-09-01):
 
   1. `logs/TOKEN-LOG.md` BY NAME, absolute. ADR-29 / ADR-39: strict append-only, and the
      ADR-29 2026-07-17 amendment's byte-identical chronological-archival carve-out is
@@ -28,23 +28,26 @@ TWO EXCLUSION CLASSES, and the rule NAMES both (the contract: "names what it EXC
      dated subfolder, is the one thing this organ must never do, so the check is
      structural (`is_excluded`) rather than incidental to the date regex not matching it.
 
-  2. `PROPOSALS-*.md` / `DETECTOR-ERROR-*.md` BY PREFIX. These ARE dated (`PROPOSALS-
-     2026-08-15.md`), which makes them look like exactly this rule's subject -- but they
-     are LIVE INPUTS to a flat `logs_dir.glob("PROPOSALS-*.md")` two callers already run:
-     `propose_closures.resolve_window` / `find_last_proposals_head` (walks every prior
-     PROPOSALS file to find the earliest still-PENDING window, #98) and
-     `review_closures.latest_proposals()` (`sorted(...)[-1]`). Relocating them out of the
-     flat directory would silently corrupt the closure detector's pending-window baseline
-     and invert its "absence is the loud failure signal" contract (see
-     `propose_closures._write_error_marker`'s own docstring). Excluding them by prefix is
-     therefore not a hedge, it is what keeps this organ from breaking a load-bearing
-     sibling that this lane's write-scope (`logs/`, `scripts/`, `tests/`) does not include
-     `scripts/propose_closures.py` / `scripts/review_closures.py` to also update.
+  2. (RETIRED) `PROPOSALS-*.md` / `DETECTOR-ERROR-*.md` BY PREFIX. These ARE dated
+     (`PROPOSALS-2026-08-15.md`), which made them look like exactly this rule's subject --
+     but until lane-c-3 they were LIVE INPUTS to a flat, non-recursive
+     `logs_dir.glob("PROPOSALS-*.md")` in three callers: `propose_closures.resolve_window`
+     / `find_last_proposals_head` (walks every prior PROPOSALS file to find the earliest
+     still-PENDING window, #98) and `review_closures.latest_proposals()`. Relocating them
+     out of the flat directory would have silently corrupted the closure detector's
+     pending-window baseline and inverted its "absence is the loud failure signal" contract
+     (see `propose_closures._write_error_marker`'s own docstring). Excluding them by prefix
+     was therefore not a hedge -- it was what kept this organ from breaking a load-bearing
+     sibling this module could not itself update. lane-c-3 re-pointed all three globbers at
+     `**/PROPOSALS-*.md` (bucketed AND flat, sorted by filename) FIRST, proved them green,
+     and only then retired `EXCLUDED_NAME_PREFIXES` here -- the sequencing the row itself
+     called out as load-bearing, so this organ stops shielding a hazard that no longer
+     exists rather than leaving a no-op exemption in place indefinitely.
 
-CURRENT STATE: a no-op today. Nothing presently written into `logs/` is both dated AND
-outside the two exclusions, so `run_retention()` plans zero moves against the live tree.
-The mechanism exists for the NEXT dated producer, per the contract's own framing --
-"re-needed next month" is exactly the failure this organ is written ahead of.
+CURRENT STATE: no longer a structural no-op -- `EXCLUDED_NAME_PREFIXES` is empty, so any
+dated file directly under `logs/` (PROPOSALS-*/DETECTOR-ERROR-* included) is now eligible
+for relocation on the next `run_retention()` call. `logs/TOKEN-LOG.md` alone stays fixed in
+place, absolutely.
 
 Layer-2 posture (ADR-28/36): local-only, mutates nothing outside this repo's own `logs/`,
 touches no other repo, and is not wired into any hook or gate by this lane (commit-and-STOP
@@ -67,8 +70,13 @@ _DEFAULT_LOGS_DIR = _REPO_ROOT / "logs"
 #: The absolute exclusion (ADR-29/39; no archival exception -- see module docstring).
 TOKEN_LOG_NAME = "TOKEN-LOG.md"
 
-#: The live-flat-glob-consumer exclusions (propose_closures.py / review_closures.py).
-EXCLUDED_NAME_PREFIXES: tuple[str, ...] = ("PROPOSALS-", "DETECTOR-ERROR-")
+#: RETIRED (lane-c-3, 2026-09-01): PROPOSALS-*/DETECTOR-ERROR-* no longer need this
+#: exemption -- propose_closures.py and review_closures.py now resolve a bucketed path
+#: (`**/PROPOSALS-*.md`) as well as a flat one, so relocating them no longer breaks the
+#: closure detector's pending-window baseline. Kept as an empty, typed tuple (rather than
+#: deleted outright) so `is_excluded`'s `any(...)` stays a one-line predicate with no
+#: special-casing for "no prefixes configured".
+EXCLUDED_NAME_PREFIXES: tuple[str, ...] = ()
 
 #: `<STEM>-YYYY-MM-DD.<ext>`, stem and extension both required and non-empty. Greedy
 #: `.+` is safe here: the anchored `-\d{4}-\d{2}-\d{2}\.` suffix is what backtracking

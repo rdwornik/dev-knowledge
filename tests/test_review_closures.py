@@ -66,6 +66,29 @@ def test_round_trip_no_candidates_parses_empty():
     assert rc.candidate_count(p) == 0
 
 
+# --- latest_proposals --------------------------------------------------------
+
+def test_latest_proposals_finds_bucketed_file(tmp_path):
+    # logs_retention.py relocates a PROPOSALS file into a logs/YYYY-MM/ bucket;
+    # the reviewer-side gate must still find it there, not only flat under logs/.
+    logs = tmp_path / "logs"
+    (logs / "2026-06").mkdir(parents=True)
+    (logs / "2026-06" / "PROPOSALS-2026-06-01.md").write_text("x", encoding="utf-8")
+    found = rc.latest_proposals(logs)
+    assert found == logs / "2026-06" / "PROPOSALS-2026-06-01.md"
+
+
+def test_latest_proposals_picks_latest_across_flat_and_bucketed(tmp_path):
+    # a later-dated flat file must win over an earlier-dated bucketed one -- sorting
+    # by full path would get this backwards ("2026-06/..." < "PROPOSALS-..." as text).
+    logs = tmp_path / "logs"
+    (logs / "2026-06").mkdir(parents=True)
+    (logs / "2026-06" / "PROPOSALS-2026-06-01.md").write_text("x", encoding="utf-8")
+    (logs / "PROPOSALS-2026-07-15.md").write_text("y", encoding="utf-8")
+    found = rc.latest_proposals(logs)
+    assert found == logs / "PROPOSALS-2026-07-15.md"
+
+
 # --- surface ----------------------------------------------------------------
 
 def test_surface_line_present_with_candidates():
