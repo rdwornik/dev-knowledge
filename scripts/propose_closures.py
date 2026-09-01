@@ -298,8 +298,16 @@ def git_log_commits(repo: Path, rev_range: str, first_parent: bool = False) -> l
 
 
 def find_last_proposals_head(logs_dir: Path):
-    """HEAD sha recorded in the most recent prior PROPOSALS file, or None."""
-    files = sorted(logs_dir.glob("PROPOSALS-*.md"))
+    """HEAD sha recorded in the most recent prior PROPOSALS file, or None.
+
+    `**/PROPOSALS-*.md` matches a file sitting flat under `logs_dir` (today's, not yet
+    archived) AND one already relocated into a `logs/YYYY-MM/` bucket by
+    `logs_retention.py`, so the search stays correct across that move. Sorted by
+    FILENAME, not full path -- the date lives in the name (`PROPOSALS-YYYY-MM-DD.md`),
+    and a bucket prefix (`2026-08/...`) would otherwise sort ahead of a flat sibling
+    from a later month purely on directory-name text.
+    """
+    files = sorted(logs_dir.glob("**/PROPOSALS-*.md"), key=lambda p: p.name)
     if not files:
         return None
     text = files[-1].read_text(encoding="utf-8", errors="replace")
@@ -337,8 +345,12 @@ def resolve_window(repo: Path, logs_dir: Path, open_ids: set):
     window, and overwrote the morning's proposals with "no closures"). Only once
     every prior proposal is reviewed/closed does the baseline advance to the latest
     file's head_commit.
+
+    `**/PROPOSALS-*.md`, sorted by filename not full path -- see
+    `find_last_proposals_head` above for why (bucketed AND flat files both count).
     """
-    files = sorted(logs_dir.glob("PROPOSALS-*.md")) if logs_dir.exists() else []
+    files = (sorted(logs_dir.glob("**/PROPOSALS-*.md"), key=lambda p: p.name)
+             if logs_dir.exists() else [])
     metas = []
     for f in files:
         try:
@@ -427,10 +439,11 @@ def _write_error_marker(reason: str) -> Path:
     ways -- the first two found by terra review 2026-08-25, the third stated in the module
     docstring above:
 
-      1. It SHADOWS real pending proposals. `review_closures.latest_proposals()` is
-         `sorted(logs_dir.glob("PROPOSALS-*.md"))[-1]`, so a failed run TODAY hides
-         YESTERDAY's genuine unreviewed proposals behind an empty marker. Preserving only
-         the same-DAY file (this lane's first attempt) does not reach that.
+      1. It SHADOWS real pending proposals. `review_closures.latest_proposals()` globs the
+         same `PROPOSALS-*.md` namespace (flat and bucketed, sorted by filename) and takes
+         the last one, so a failed run TODAY hides YESTERDAY's genuine unreviewed proposals
+         behind an empty marker. Preserving only the same-DAY file (this lane's first
+         attempt) does not reach that.
       2. It CORRUPTS the window. `resolve_window` globs the same pattern, and a file
          carrying no `head_commit:` collapses the baseline to a cold start -- whole-history
          rescan with WEAK suppressed.

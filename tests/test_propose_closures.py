@@ -200,6 +200,33 @@ def test_proposals_meta_parses_unchecked_only():
     assert unchecked == {"5"}              # checked #6 is excluded
 
 
+def test_find_last_proposals_head_finds_bucketed_file(tmp_path):
+    # logs_retention.py relocates a PROPOSALS file into a logs/YYYY-MM/ bucket;
+    # the caller must still find its head_commit there, not only flat under logs/.
+    logs = tmp_path / "logs"
+    (logs / "2026-06").mkdir(parents=True)
+    (logs / "2026-06" / "PROPOSALS-2026-06-01.md").write_text(
+        "---\nhead_commit: " + "1" * 40 + "\n---\n- [ ] **#5** — do x\n",
+        encoding="utf-8",
+    )
+    assert pc.find_last_proposals_head(logs) == "1" * 40
+
+
+def test_find_last_proposals_head_picks_latest_across_flat_and_bucketed(tmp_path):
+    # a later-dated flat file (this month, not yet archived) must still win over an
+    # earlier-dated bucketed one — sorting by full path would get this backwards,
+    # since "2026-06/..." sorts before "PROPOSALS-..." as text.
+    logs = tmp_path / "logs"
+    (logs / "2026-06").mkdir(parents=True)
+    (logs / "2026-06" / "PROPOSALS-2026-06-01.md").write_text(
+        "---\nhead_commit: " + "1" * 40 + "\n---\n", encoding="utf-8",
+    )
+    (logs / "PROPOSALS-2026-07-15.md").write_text(
+        "---\nhead_commit: " + "2" * 40 + "\n---\n", encoding="utf-8",
+    )
+    assert pc.find_last_proposals_head(logs) == "2" * 40
+
+
 def test_resolve_window_holds_baseline_while_pending(tmp_path, monkeypatch):
     # a prior file (since S0, head S1) with a still-OPEN unchecked #5 must pin the
     # window at S0 — NOT advance to S1 (which would yield an empty re-run window).
@@ -230,6 +257,23 @@ def test_resolve_window_advances_when_nothing_pending(tmp_path, monkeypatch):
     since, rng = pc.resolve_window(tmp_path, logs, {"9"})  # #5 not open
     assert since == "1" * 40
     assert rng == "1" * 40 + "..HEAD"
+
+
+def test_resolve_window_holds_baseline_from_bucketed_file(tmp_path, monkeypatch):
+    # same pinned-baseline scenario as test_resolve_window_holds_baseline_while_pending,
+    # but the pending file already sits in a logs/YYYY-MM/ bucket -- resolve_window must
+    # still see it, not silently treat the window as cold-start.
+    logs = tmp_path / "logs"
+    (logs / "2026-06").mkdir(parents=True)
+    (logs / "2026-06" / "PROPOSALS-2026-06-01.md").write_text(
+        "---\nhead_commit: " + "1" * 40 + "\nsince_commit: " + "0" * 40 + "\n---\n"
+        "- [ ] **#5** — do x\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(pc, "git_valid_rev", lambda repo, rev: True)
+    since, rng = pc.resolve_window(tmp_path, logs, {"5"})
+    assert since == "0" * 40
+    assert rng == "0" * 40 + "..HEAD"
 
 
 _MINI_BACKLOG = (
