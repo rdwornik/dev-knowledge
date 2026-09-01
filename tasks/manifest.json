@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "fbc9a18c49a5345816c5368402a0a54cebccd6c46ae3c1c1ebd71413975040cc",
+  "generated_sha256": "b106dc70e062c1e814ceb22611d1dd99f2bba46948ebd7f90346be4b8e7673cc",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -292,6 +292,10 @@
     {
       "task": 630,
       "file": "630-manifest-lane-enum-must-equal-contract-slug-at-freeze.md"
+    },
+    {
+      "task": 631,
+      "file": "631-a-freeze-cannot-bind-a-rule-that-postdates-it.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
