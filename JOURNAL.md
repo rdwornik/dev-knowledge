@@ -19,6 +19,51 @@
 
 ---
 
+### 2026-09-01 (j) - CC (Opus 5, attended): TWO CORRECTIONS TO THIS SEAT - the clock was stale and the review round never ran; tier (B) is refuted by witness and DM-1/DM-2 unblock
+
+**Anchors:** `0b2e4871`
+
+**Did:** took three operator corrections, ran tier (B) on copilot-enterprise, and recorded two
+defects in this seat's own work.
+
+**CORRECTION 1 - THE CLOCK WAS STALE, and it is the exact rule this window landed.** S5's hard
+stop is 07:30. A fresh read at decision time returned **08:54** - the stop had passed by 84
+minutes while this seat was still reasoning from a 03:4x reading it had carried forward. PLAYBOOK's
+*"A time-conditioned stop reads a fresh clock at decision time"* was written into this repo hours
+earlier, **by this seat, from the previous night's instance of the same failure**, and then broken
+by it. The packet was written and pushed well before 07:30, so S5's substantive requirement was
+met; what failed is the discipline, not the outcome. **A rule you author does not exempt you from
+it, and the read costs one command.**
+
+**CORRECTION 2 - NO TERRA/CODEX REVIEW RAN ON THE SIX MERGES.** The operator asked which of two
+things happened: reviews ran and went unreported (packet defect), or reviews were skipped
+(process defect). **It is the second.** Each lane was verified by the integrator - diff read,
+targeted tests run, work confirmed - and that was reported accurately as integrator verification.
+**But integrator verification is not an independent review round**, and the report should have said
+so in terms rather than leaving the absence to be inferred. Post-merge round now owed on the six.
+
+**CORRECTION 3 - "ENTERPRISE COPILOT IS NOT DRIVEABLE FROM THIS SEAT" IS FALSE, and this seat
+believed it because the pack asserted it.** The operator refuted it with a witness already in the
+tree: the SDA-1 adversarial incumbent baseline, run on copilot-enterprise from this machine
+(21.15 credits, identity recorded). **Both payloads then ran on the first attempt** - B-1 in 153 s
+/ 36.73 credits, B-2 in 204 s, `exit=0` both, identity `Robert-Dwornik_ghub` asserted with
+`gh api user` BEFORE each call. The mechanism is a **per-invocation `GH_TOKEN`**
+(`gh auth token --user <id>` scoped to the call), never `gh auth switch`, which this repo has
+already recorded as unreliable.
+
+**The lesson is not "the pack was wrong" - it is that a FROZEN ARTIFACT'S ROUTING CLAIM IS STILL A
+CLAIM.** The night seat resolved a fork by deferring to a contract's own sentence and named the
+deferral honestly, which was the right posture; what it did not do was spend one command testing
+the sentence. **A refuted premise costs one probe; an unrun lane costs a window.**
+
+**Result:** B-1 and B-2 persisted as copilot-enterprise artifacts with provenance intact - no
+re-route to agy/grok, exactly as ruled. DM-1 and DM-2 are unblocked and dispatch next.
+
+**Changes:** two `docs/audits/` tier-(B) artifacts, `docs/audits/README.md`, `tasks/614-*.md`,
+`JOURNAL.md`.
+
+**Next:** dispatch DM-1/DM-2; the post-merge review round; the (b) logs row and (c) agy row.
+
 ### 2026-09-01 (i) - CC (Opus 5, background job, night orchestrator): WINDOW CLOSE - 7 REDs, none of them ours, and the roster caught its own 21-vs-22
 
 **Anchors:** `7f766c56`
