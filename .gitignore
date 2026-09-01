@@ -127,3 +127,19 @@ temp/
 # already self-ignoring with or without this entry (and so is a sibling export dir
 # outside the repo). Landed because the row's literal wording names it.
 .backlog-view/
+
+# [#632] Codespace dispatch harness artifacts (Start-DispatchCodespace) -- generated at repo
+# root on every dispatch, outside this repo's control: dispatch-run.sh is regenerated and
+# overwritten per run, dispatch-run.log/receipt.json/dispatch-diag/ are that run's own
+# stdout/receipt/diagnostics, and the LANE-*.md prompt file is the dispatched contract itself.
+# None carry durable signal of their own -- the durable record is the committed audit under
+# docs/audits/ that a dispatched session writes. Same ephemeral pattern as FLEET-HEALTH.md;
+# gitignoring rather than deleting matters here specifically because dispatch-run.log is
+# actively written by the in-flight session's stdout redirect and dispatch-run.sh is the
+# running parent script -- deleting either mid-run risks the harness's own idle-based fuse
+# misreading file-growth and killing a live session (measured 2026-09-01, lane-632 second run).
+/dispatch-run.sh
+/dispatch-run.log
+/dispatch-diag/
+/receipt.json
+/LANE-*.md
