@@ -21,7 +21,7 @@
 
 ### 2026-09-01 (m) - CC (Opus 5, attended): DM-1 and DM-2 land REVIEWED, and the pre-merge round earned its place on both
 
-**Anchors:** `SEE-MERGE`
+**Anchors:** `c6801f9d`
 
 **Did:** dispatched, reviewed and merged the two lanes tier (B) unblocked. **Batch E is 13 of 15
 merged, 14 of 15 resolved.**
