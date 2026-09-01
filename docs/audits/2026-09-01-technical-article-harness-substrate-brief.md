@@ -334,6 +334,49 @@ NO BODY EDIT       The brief is landed unmodified -- including its 3.5 verificat
                    checkable.
 ```
 
+### 0.8 AMENDMENT (same session, post-landing) — §0.2(d)'s unresolved locator RESOLVED
+
+> **Appended, not edited.** §0.2(d) stands exactly as written: it was accurate at `16f91f69`, the
+> commit this artifact was authored against, and an artifact is corrected beside itself rather
+> than inside itself — the rule §0.2(a) applies to the rejection record applies here too.
+
+**What changed, and when.** Between this artifact's commit (`95e36f61`) and its journal anchor,
+a concurrent session landed **`9addeba8` — "Merge branch 'worktree-observable-harness-filing' —
+intake #66 DRAFT (the OBSERVABLE HARNESS) plus five carrier amendments that reconcile rather than
+restate"**. The locator §0.2(d) declares unresolvable is now tracked:
+
+```
+was (at 16f91f69)   untracked working-tree file in a locked worktree; zero tracked hits;
+                    no entry in docs/intake/README.md
+now (at 9addeba8)   docs/intake/2026-09-01-tech-observable-harness.md  -- TRACKED
+                    intake-id 66 - status DRAFT - consumed-by: (still EMPTY)
+                    indexed in docs/intake/README.md and docs/intake/manifest.json
+```
+
+**WHAT DID NOT CHANGE — and it is the half the candidate rests on.** Re-measured against the
+landed file, not assumed from the draft:
+
+- **`consumed-by:` is still empty.** The forward pointer §0.2(d) records is still owed: intake #66
+  should name this artifact there.
+- **It still names no cache-hit ratio, no token ratio, and no re-read volume.** The slot §0.5
+  identified is **still empty**, so the CANDIDATE is not displaced and not redundant.
+- **It is still `DRAFT`**, and its own banner still reads *"DRAFT BINDS NOTHING… Non-citable as
+  doctrine until ratified; the repo wins on any conflict."* So it could not carry the candidate as
+  doctrine even now.
+
+**Net effect on §0.5's routing.** The recommended destination is unchanged but is no longer
+conditional on a file landing: intake #66 **exists**, and the act owed is an amendment to it
+carrying `ρ` and `h`, plus filling its `consumed-by:`. That remains **a recommendation to the
+operator, not a decision taken here** — this session wrote nothing into intake #66, which was
+another lane's live work throughout.
+
+**Why this is recorded rather than quietly folded in.** §0.2(d) is the worked example of naming an
+unresolvable locator *as* unresolvable instead of asserting it. Silently rewriting it once the
+locator resolved would destroy the only evidence that the discipline was applied — and would make
+this artifact's own integrity claims (§0.1, and the hashes at the top) less checkable, not more.
+
+---
+
 ---
 
 # Research brief — "The Harness Needs a Substrate"

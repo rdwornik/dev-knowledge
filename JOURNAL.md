@@ -19,6 +19,99 @@
 
 ---
 
+### 2026-09-01 (ab) - CC (Opus 5): an operator-commissioned brief lands, three of the landing instruction's premises do not survive resolution, and the fourth resolves itself mid-session
+
+**Anchors:** `95e36f61`
+
+**Did:** landed the "The Harness Needs a Substrate" article research brief as
+`docs/audits/2026-09-01-technical-article-harness-substrate-brief.md` — a hub-authored §0 landing
+record above an unmodified body — recording its consumed-by, its verification debt, its
+evidence-tier precedent and one CANDIDATE at landing time.
+
+**THE SOURCE WAS NOT WHERE THE TASK SAID, AND THAT MATTERED.** The instruction named
+`~/Downloads/2026-09-01_brief_article-harness-substrate.md`. No such file. It was already
+**committed in a different repo** — `demo-prep@9066345`, branch `docs/article-research`, no
+upstream. Landing from the tracked sibling rather than a Downloads copy is what let provenance
+cite a SHA instead of a filename.
+
+**"BYTE-IDENTICAL" IS UNACHIEVABLE IN THIS REPO, AND CLAIMING IT ANYWAY WOULD HAVE BEEN FALSE.**
+`.gitattributes` is `* text=auto eol=lf`; the source was **742 CRLF / 0 bare LF**. The
+`docs/archive/` precedent's wording cannot be honoured literally — git rewrites the bytes at
+add-time and the header's integrity claim is false at the first checkout. Instead: normalize
+deliberately, declare the transformation, record **both** digests (`780653fe…` CRLF / `e707b3ff…`
+LF), and have the builder **assert** them plus `landed.endswith(body)`. The body is the file's
+exact byte tail — re-verified against the committed blob, and re-verified again after the §0.8
+amendment. That is the checkable form of "unmodified", and it is what makes the carried
+verification debt trustworthy rather than merely promised.
+
+**THREE PREMISES DID NOT SURVIVE RESOLUTION, AND THE SECOND IS THE INTERESTING FAILURE — THE
+INSTRUCTION UNDERSOLD ITS OWN ARTIFACT.**
+
+1. **"A6" is a batch-E cloud lane id, not an AUTONOMY-arc item.** The rejection lives at
+   `docs/audits/2026-08-31-technical-langgraph-class-rejection-record.md`.
+2. **§3.6 does not *support* the recorded rejection — it adds an independent sixth reason.** The
+   record's five reasons are wrong-layer/substrate, the constitutional Layer-2 invariant,
+   dependency closure, release churn, two-sources-of-truth. **None is transience.** §3.6 reaches
+   the same verdict by the Bitter-Lesson route — convergent corroboration from an unrelated
+   argument — and that matters because the record carries a `5. REOPENING TRIGGERS` section: a
+   reason the record does not hold cannot be assumed to survive a trigger that weakens R1/R2.
+3. **The north-star does not map cleanly onto Sassoon's semantic/context pair, and is not one
+   object** — `2026-08-21-technical-north-star-position.md` rules there are two statements at two
+   scopes. `FUNNEL_LIFECYCLE.md` → semantic and **FUNNEL HEALTH** → context *do* map cleanly.
+
+**THE FOURTH ITEM RESOLVED ITSELF MID-SESSION, AND THE RESPONSE IS THE POINT.** §0.2(d) recorded
+the OBSERVABLE-HARNESS intake as an **unresolvable locator** — untracked, inside another lane's
+locked worktree — and wrote its consumed-by as a declared forward pointer rather than a citation.
+Between the artifact commit and this anchor, a concurrent session landed **`9addeba8`**, and
+`docs/intake/2026-09-01-tech-observable-harness.md` became tracked. **§0.2(d) was NOT rewritten.**
+An appended **§0.8 amendment** records the change, because silently editing it would have
+destroyed the only evidence that the discipline was applied — the same rule §0.2(a) applies to the
+rejection record. Re-measured against the landed file rather than assumed from the draft:
+`consumed-by:` is **still empty**, it **still names no cache-hit ratio, token ratio or re-read
+volume**, and it is **still DRAFT**. So the §0.5 candidate is neither displaced nor redundant.
+
+**THE CANDIDATE IS WARRANTED BECAUSE THREE HOMES WERE MEASURED, NOT ASSUMED.**
+"context-cost instrumentation" — emit `ρ` and `h` per lane, the two parameters §4.5 identifies as
+dominant (`ρ × (1 − 0.9h)`; input is 77% of cost in the pessimistic case). Intake #50 excludes it
+by an **explicit non-goal** ("finer than per-project-per-week"); `[#617]` measures **boot bytes
+read once**, not re-reads across a session; intake #66 names no such metric. Per Z-G1 it is a
+CANDIDATE only — **no row born** — and `[#589]`'s negative byte headroom (70,276 B against a
+70,000 B bar) is a second, independent reason not to file one.
+
+**LANE LAG WAS DIAGNOSED, NOT ASSUMED, AND NEVER SKIPPED.** `audit-health` went RED on
+`journal_spine_anchor` for `12720fcf` — a merge this session did not make. The split predicate
+(unanchored against **my** tree vs against **main's** JOURNAL) returned a gap in mine and **`[]`
+with main's**: pure lane lag. Remedy was `git merge main`, twice, because main moved again during
+the first — the foreign-gap count is a moving quantity while a sibling session is live. Re-diagnosed
+after each merge rather than carrying the pre-merge verdict forward; final state `[]` in **both**
+trees, so the commit went through with **no bypass at all**. `SKIP=audit-health` was never used and
+no ruling would have authorised it.
+
+**Result:** one artifact plus its amendment, zero deviations absorbed silently.
+`validate_hermetization --all` exit 0, `audit.py health` exit 0, full pre-commit set passed, the
+committed blob re-extracted and re-hashed twice to prove the body survived unedited, and
+`journal_day_letters` unique — this entry is `(ab)` because a concurrent session took `(aa)` while
+it was being written.
+
+**Changes:** `docs/audits/2026-09-01-technical-article-harness-substrate-brief.md` (new — §0
+landing record + §0.8 amendment + unmodified brief body); two `main` sync-merges into the lane.
+
+**Abandoned:** pushing and merging to main. **Three independent freeze signals** — the brief's own
+§9 ends `FREEZE · no push`, the source branch has no upstream, and this checkout was found on
+`docs/batch-f-freeze` — and a sibling session was landing to main throughout, so merging would have
+crossed live work. Also abandoned: regenerating `docs/audits/README.md`. Leaving it stale is
+**affirmatively correct** under `[#590]`, which narrowed `audit-index-freshness` to
+`(README.md | gen_audit_index.py)` because that file was in 6 of the last 7 conflicted merges. The
+sibling regenerated it on main mid-session and this artifact is still absent from it, so the regen
+is still owed.
+
+**Next:** the operator merges `worktree-land-article-substrate-brief` with `--no-ff` from the
+primary, then `git add` the new file and `gen_audit_index.py --write` (the index reads tracked
+files only). Intake #66's `consumed-by:` should name this artifact, and the §0.5 candidate is the
+amendment it should carry.
+
+---
+
 ### 2026-09-01 (aa) - CC (Opus 5): a harvest with no input, and an anchor written BEFORE the merge that needs it
 
 **Anchors:** `a9488d32` · `5d23f1b9` · `aa1232d0`
