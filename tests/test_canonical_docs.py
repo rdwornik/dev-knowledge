@@ -194,6 +194,33 @@ def test_gen_handoff_name_and_degrade_string_move_together():
     assert cdocs.VISION_EXTRACT_HEADING == "## Vision"
 
 
+def test_gen_handoff_readme_fallback_only_fires_when_vision_is_ABSENT(tmp_path: Path):
+    """A PRESENT VISION missing its `## Vision` section must DEGRADE, never fall through.
+
+    The retired-tier fallback exists for a ruled RELOCATION -- VISION gone, README carrying
+    the live section. Letting it also fire for a present-but-malformed VISION would
+    substitute README's prose for a broken file and hide the breakage, which is precisely
+    what the degrade contract exists to prevent. Three cases, one predicate:
+
+      * VISION present and well-formed -> VISION's own section wins, though README has one.
+      * VISION present and BROKEN      -> the placeholder, NOT README's section.
+      * VISION absent (and retired)    -> README's section.
+    """
+    assert cdocs.VISION in cdocs.CANONICAL_RETIRED
+    readme = tmp_path / cdocs.README
+    vision = tmp_path / cdocs.VISION
+    readme.write_text("# R\n\n## Vision\n\nreadme-body\n", encoding="utf-8")
+
+    vision.write_text("# V\n\n## Vision\n\nvision-body\n", encoding="utf-8")
+    assert gh._vision_extract(tmp_path) == "vision-body"
+
+    vision.write_text("# V\n\nno heading here\n", encoding="utf-8")
+    assert gh._vision_extract(tmp_path) == cdocs.VISION_EXTRACT_MISSING
+
+    vision.unlink()
+    assert gh._vision_extract(tmp_path) == "readme-body"
+
+
 @pytest.mark.live_repo
 def test_gen_handoff_still_extracts_the_live_vision_section():
     extract = gh._vision_extract(_REPO_ROOT)

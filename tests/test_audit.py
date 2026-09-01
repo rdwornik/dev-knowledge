@@ -174,13 +174,16 @@ def test_vision_absent_and_not_retired(tmp_path: Path,
     """A name the registry has NOT retired still hard-FAILs on absence -- the gate is
     narrowed by the registry, never removed.
 
-    Patches the module object THE CHECK BOUND, not the one this test imported. The check
-    carries the ADR-106 dual-import shim, so `scripts.canonical_docs` and `canonical_docs`
-    can be two distinct module objects in one interpreter and patching the wrong one is a
-    silent no-op that the assertion below would misread as a behaviour change.
+    Patches the module object THE CHECK ACTUALLY BOUND, derived from the function itself
+    rather than re-imported by a name this test chose. The check carries the ADR-106
+    dual-import shim, so `scripts.audit_checks.check_vision_md` and
+    `audit_checks.check_vision_md` can be two distinct module objects in one interpreter --
+    and patching the wrong one is a SILENT NO-OP that the assertion below would misread as
+    a behaviour change. `__module__` cannot pick the wrong one.
     """
-    from audit_checks import check_vision_md as cvm
-    monkeypatch.setattr(cvm.canonical_docs, "CANONICAL_RETIRED", ())
+    import sys
+    bound = sys.modules[aud.check_vision_md.__module__]
+    monkeypatch.setattr(bound.canonical_docs, "CANONICAL_RETIRED", ())
     f = aud.check_vision_md(tmp_path)[0]
     assert f.status == "fail"
     assert "absent" in f.evidence
