@@ -19,6 +19,47 @@
 
 ---
 
+### 2026-09-01 (o) - CC (Opus 5, attended): rulings 4 and 5 - the pool stays shut, the identity widens by CLASS, and a schema that said no was not an obstacle
+
+**Anchors:** `f385bc55`
+
+**Did:** amended both intake SEEDs to their ruled dispositions.
+
+**#65 ACCEPTED ON A NARROWER SHAPE THAN IT PROPOSED, and the narrowing is the insight.** The SEED
+offered two routes - widen the identity, or admit `docs/audits/` to the governance pool. **The
+pool stays shut**, because the exclusion exists precisely to refuse batch machinery citing batch
+machinery, and admitting it would let a corpus discharge itself. What widens is the identity **by
+CLASS**: a declared PROVENANCE-CONSUMED reference for audit-to-audit citation, counted separately
+from governance consumption.
+
+**That split is what makes the number readable again.** A launch contract read by its batch's
+close packet is genuinely consumed AS PROVENANCE and genuinely not consumed AS GOVERNANCE. One
+counter reporting both as one thing is what made 34 undischargeable names read as debt in one
+direction and as noise in the other. And PLAYBOOK Ch8's sentence - *a launch contract's consumer
+IS the close packet* - becomes **true under the new class rather than false under the old one**,
+so the ruling forces no Ch8 edit at all.
+
+**#64 REJECTED AS FRAMED, decided by the counter-precedent the SEED itself carried.** That is why
+it was carried in rather than left to be found: `86bed82` refused a rich copilot-enterprise entry
+on this exact ground two days earlier, and the registry's own comment already states the rule -
+a thin provider/CLI identity surface, with the capability profile and billing verdict in L0.
+**`extra="forbid"` was never an obstacle to route around; it was the rule already saying no**, and
+reading a schema refusal as a problem to solve is how a thin surface stops being thin.
+
+**What is NOT rejected is the gap.** A7's measurement stands: `quota` / `quota_source` /
+`quota-source` appear in four places repo-wide, **all of them prose about the field's own
+non-existence**. HY-4's panel still renders credits as a NAMED ABSENCE, which stays correct for a
+surface with no source. The ruling settles WHERE a locator would live, not WHETHER the gap is
+real.
+
+Relocated byte-identical to `docs/intake/archive/` - REJECTED is terminal and rejections are
+knowledge, not garbage. #65 stays live and visible, because ACCEPTED is deliberately not terminal.
+
+**Changes:** both intake docs, `docs/intake/README.md`, `docs/intake/manifest.json`, `JOURNAL.md`.
+
+**Next:** rulings 3 and 6 - the ruff-gate classification in both consumers, and the win-tooling
+attended stamp lane.
+
 ### 2026-09-01 (n) - CC (Opus 5, attended): two rows born for two inert promises, and a row file without a manifest node is not a row
 
 **Anchors:** `b5ae38e7`
