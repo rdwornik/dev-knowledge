@@ -307,3 +307,43 @@ deploy/release_lint.py --version 1.5.0    0 FAIL, 1 WARN (pre-release tag)
 scripts/validate_backlog.py               OK (9 themes, 26 stories, 223 tasks, 2 pre-existing WARNs)
 journal_anchor.unanchored_on_spine        [] -- empty BEFORE this packet expires the exemption
 ```
+
+---
+
+## AMENDMENT 1 — 2026-09-01, later the same day: the PARTIAL in §3 is now CLOSED
+
+> **In-file amendment marker** (CLAUDE.md §5 rule 3). Everything above stands as written at the
+> close; this records a state change measured afterwards, rather than editing the claim it
+> supersedes.
+
+§3 reported the worktree teardown as **PARTIAL**: git-clean, but an empty directory at
+`.claude/worktrees/lane-b-3-claude-md-genre` that `rmdir` refused with *"Device or resource
+busy"*, held by the DC-3 lane's still-live Claude session (PIDs 8032 / 41560). The packet said it
+*"disappears the moment that session exits"* and named the one remaining command.
+
+**It exited, and the command succeeded.** Re-measured at `0085941c`:
+
+```
+rmdir .claude/worktrees/lane-b-3-claude-md-genre   -> exit 0
+test -d .claude/worktrees/lane-b-3-claude-md-genre -> GONE
+ls -a .claude/worktrees/                           -> . ..   (empty)
+git worktree list                                  -> primary checkout only
+git branch --list "worktree-*"                     -> worktree-lane-b-3-claude-md-genre
+                                                      (the DECLARED exception, §1 -- preserved)
+```
+
+**REFUSE-TO-FINISH, §3's table, revised line:**
+
+```
+every worktree removed AND verified          CLOSED   provision -> cleanup round-trip leaves
+                                                      the tree identical (CLAUDE.md §5 rule 9)
+```
+
+**The batch's remaining open item is therefore ONE, not two** — the two Shutdown codespaces in §4,
+which await a deliberate operator decision and are deliberately not deleted here. §7's
+`OPEN ITEM` line is superseded by this amendment; its `OPEN ASSET` line stands.
+
+**Why this is an amendment and not an edit.** The PARTIAL was true when written and the evidence
+for it — a measured process holding a directory — is worth keeping. Overwriting it would erase the
+record that a live lane session can outlive its own worktree and block a batch's teardown, which
+is the transferable part.
