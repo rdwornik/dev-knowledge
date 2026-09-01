@@ -19,6 +19,55 @@
 
 ---
 
+### 2026-09-01 (y) - CC (Opus 5): a branch stops being storage, a deferred row stops blocking, and a stale RED is overturned by an eighteen-hour-old JOURNAL entry
+
+**Anchors:** `277d8c1b` · `27aa53f5`
+
+**Did:** moved Act One out of a branch and into an artifact, un-deferred `[#276]` on its own peg,
+and amended two audits whose F0 premise was stale. Architect's batch-F cut, the prerequisites to
+the freeze.
+
+**A BRANCH IS A TEARDOWN TARGET, NOT STORAGE.** `worktree-lane-b-3-claude-md-genre` was alive for
+exactly one reason — to hold `6f226b34`, `[#628]`'s input artifact — and that is the one thing a
+branch must not be for: invisible to every gate, on no schedule, one `gc` from gone. It is now
+`docs/audits/2026-09-01-technical-act-one-preserved.md` — immutable, indexed, cited by `[#628]`,
+and carrying the **commit message verbatim**, which is the guard-tracing research and the reason a
+post-deletion `git show` would not have sufficed. **The 185-line `ESSENTIALS.md` deletion is
+deliberately NOT reproduced**: the file is unchanged on main, so 185 `-` lines would preserve
+nothing and bury what matters. The act is `git rm protocols/ESSENTIALS.md`, said once.
+
+**`[#276]` UN-DEFERRED ON ITS OWN PEG, WHICH IS WHY IT NEEDED NO UNBLOCKING ACT.** The DEFER note
+named exactly two triggers — *"un-defers when an arc claims the row or the operator re-prioritises
+it"* — and both fired. **And it resolved a live contradiction rather than just flipping a field:**
+ruling 3 treated `[#276]` as a hard blocker on two consumer instantiations while its frontmatter
+said `deferred`. A row cannot be both the thing nothing waits on and the thing everything waits on.
+`[#624]` — *"nothing watches a BLOCKER's status"* — is the organ that would have caught it, and
+this is its live case.
+
+**AND THE ONE I GOT WRONG.** Both the batch-F derivation and the batch-E close packet reported
+codespace RED and concluded Z-G3's entry condition was unmet. **It was ADMITTED at 22:56 the
+previous evening** — `c8bf1390`, JOURNAL 2026-08-31 (i): a fresh CREATE returned 3-of-3 green, L2
+`ADMISSION-PROBE-OK` on `claude-opus-5`, `FETCH_EXIT=0`/`PUSH_EXIT=0`, and **`audit.py health` exit
+0 with `health: OK` IN-CONTAINER**. `rebuild` does not re-apply the devcontainer configuration;
+`create` does — which is why every earlier RED was measuring a container that had never applied its
+config.
+
+**The failure mode is the transferable part, and it is why these are amendments and not edits.** A
+manifest's tier section is **frozen at dispatch**. I searched the audits corpus and the manifest
+and did not search `JOURNAL.md` for later evidence on the same subject, so I inherited a RED that
+an eighteen-hour-old entry had already overturned. **Derive from the JOURNAL as well as the
+artifacts, or derive stale.** Deleting the wrong claim would have deleted that lesson with it.
+
+It also explains the close packet's "unexplained" second codespace: `animated-dollop-*` **is** the
+fresh-create probe container, created twenty-five minutes before the admission merge.
+
+**Changes:** `docs/audits/2026-09-01-technical-act-one-preserved.md` (new), amendments on the
+batch-F derivation and the batch-E close packet, `tasks/276-*.md`, `tasks/628-*.md`,
+`BACKLOG.md`, `docs/audits/README.md`, `JOURNAL.md`.
+
+**Next:** delete `worktree-lane-b-3-claude-md-genre` local + origin, then freeze batch F's seven
+lanes.
+
 ### 2026-09-01 (x) - CC (Opus 5): the overdue groom finds nothing closable, which is what makes the re-baseline lawful
 
 **Anchors:** `6b256fb9`

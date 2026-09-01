@@ -354,3 +354,62 @@ human keeping them equal.
 5. **No history was mined for the per-lane cost model.** `[#528]` — *"the full suite multiplied by
    per-lane + per-merge runs is the real batch cost"* — is open and uncomputed, and batch E's own
    integration run took **17m23s**. A width-N cut should price that.
+
+---
+
+## AMENDMENT 1 — 2026-09-01: §F0's premise was STALE, and the correction is the architect's
+
+> **In-file amendment marker** (CLAUDE.md §5 rule 3). §F0 above stands as the record of what this
+> seat measured; this records what it measured WRONG and why, rather than editing the claim away.
+
+**§F0 is wrong. Codespace is ADMITTED, and has been since 2026-08-31 22:56.**
+
+This derivation reported the tier-(C) probe RED and built the whole seed on it. It cited
+`docs/audits/2026-08-31-verification-codespace-admission-probe.md` — which is a **REBUILD** probe,
+and the batch-E manifest's tier-(C) section that quotes it was **frozen at dispatch**. Neither
+carries what happened five hours later.
+
+**The evidence, resolved at `c8bf1390`** (*"Merge branch 'fix/codespace-f4-workspace-trust' — F4
+workspace trust, and codespace ADMITTED [#614]"*, 2026-08-31 22:56), JOURNAL 2026-08-31 (i),
+anchor `5c54487d`:
+
+```
+L2    is_error False · subtype success · result "ADMISSION-PROBE-OK"
+      model claude-opus-5 · provider firstParty · permission_denials []
+GIT   FETCH_EXIT=0 · PUSH_EXIT=0   (a real branch pushed to origin, deleted after)
+GATE  gen_task_tree --check exit 0 · audit.py health exit 0, "health: OK" IN-CONTAINER
+```
+
+**THE CREATE-vs-REBUILD FINDING IS WHY EVERY EARLIER RED WAS MEASURING NOTHING.** A
+`gh codespace rebuild --full` on the old container left it with no `uv`, no `gh`, no provisioning
+stamp and a clone two merges stale, while `devcontainer.json` **at that container's own HEAD**
+declared both `postCreateCommand` and the feature. A fresh **CREATE** produced `claude`, `uv`, both
+tokens on the login shell, and `HEAD` at current main. **Rebuild does not re-apply the devcontainer
+configuration; create does.** So all three W4 defects — the `cp` quoting, absent `uv`, the silently
+stale clone — are closed **under fresh-create discipline**, and Z-G3's entry evidence EXISTS.
+
+**Consequences for the seed, per the architect's cut:**
+
+```
+F0 = (i) the proof-of-work COMMITTING lane on codespace, ATTENDED, driven by
+         Start-DispatchCodespace / Stop-DispatchCodespace  (never "Dispatch-Codespace")
+     (ii) AUTHOR the wave-2 router ADR NOW, from this evidence, feeding [#582]
+GREEN PoW => the committing lanes of THIS batch default to substrate=codespace
+```
+
+**The premise correction that STANDS from §F0 is the naming one:** the helper really is
+`Start-`/`Stop-DispatchCodespace`. The router-ADR correction is now *half* right — there is still
+no ADR number to cite, because it is not authored; but the reason has changed from *"its central
+evidence does not exist"* to **"its central evidence exists and authoring it is F0(ii)."**
+
+**And the 'unexplained' second codespace is explained.** `animated-dollop-rr65q4v6jgphxr4g` on
+`probe/admission-roundtrip`, created 22:41, **is** the fresh-create admission probe. It appeared in
+no batch-E artifact because the artifacts that would have named it were written before it existed.
+Its branch was already cleaned from origin. The 2026-08-31 (i) entry is explicit that the OLD
+container `batche-c-admission-*` *"is NOT the evidence for this and should not be reused."*
+
+**The transferable lesson, which is why this is an amendment and not a quiet edit.** A manifest's
+tier section is **frozen at dispatch** and a derivation that reads it is reading a point-in-time
+claim, not live state. This seat searched the audits corpus and the manifest, and did not search
+`JOURNAL.md` for later evidence about the same subject — so it inherited a RED that a five-hour-old
+entry had already overturned. **Derive from the JOURNAL as well as the artifacts, or derive stale.**

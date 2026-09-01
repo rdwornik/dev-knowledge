@@ -241,7 +241,7 @@ So that "open any repo, same layout/governance" actually holds.
 So that the consumer-facing live surface reflects CURRENT state — hub-deprecated elements get REMOVED from consumers, not accumulated (the append-only-live-surface bug; distinct from the append-only-BY-DESIGN audit trail).
 - [#244] [P2][L] Essence-spec lifecycle epic · DEFER · tasks/244-essence-spec-lifecycle-epic.md
 - [#245] [P2][M] Add-path status-awareness · DEFER · tasks/245-add-path-status-awareness.md
-- [#276] [P2][M] D2 per-consumer waiver-honoring · DEFER · tasks/276-d2-per-consumer-waiver-honoring.md
+- [#276] [P2][M] D2 per-consumer waiver-honoring · tasks/276-d2-per-consumer-waiver-honoring.md
 
 ### [S17] Make new-repo scaffolding correct-by-default
 So that a new repo inherits the full baseline in one step, not by re-derivation.
