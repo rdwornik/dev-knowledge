@@ -34,6 +34,7 @@ from __future__ import annotations
 import copy
 import logging
 import re
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -50,10 +51,48 @@ from contract import (
     VerifyResult,
 )
 
+# Reuse the hub Informant's allowlist reader ([#276] D2 -- waiver-honoring on both
+# legs). scripts/ lives beside deploy/ under the hub root; carrier_floor.py already
+# establishes the precedent of a carrier reaching into scripts/ for an importable
+# building block (arm_hooks / generate_floor), so this mirrors that rather than
+# hand-rolling a SECOND `.methodology.yaml` parser here.
+_HUB_ROOT = Path(__file__).resolve().parent.parent
+_SCRIPTS = _HUB_ROOT / "scripts"
+if str(_SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS))
+
+from enforcement_coverage import read_allowlist  # noqa: E402
+
 log = logging.getLogger(__name__)
 
 CARRIER_ID = "precommit"
 DEFAULT_CONFIG_NAME = ".pre-commit-config.yaml"
+
+
+# ---------------------------------------------------------------------------
+# Consumer-declared divergence allowlist ([#276] D2). `_classify_prune` --
+# the measured build site (deploy/carrier_precommit.py:777, per the frozen
+# lane contract) -- takes this as an input so a REFUSE born of a divergence the
+# consumer already sanctioned in their OWN `.methodology.yaml` stands down on
+# BOTH legs: the prune sweep SKIPs it (never REFUSE-aborts), and the
+# add/converge leg does not re-append the hook id(s) it excludes. Read ONCE,
+# here -- never a second reader (tool.py stays untouched by this).
+# ---------------------------------------------------------------------------
+
+
+def _waived_components(repo_root: Path) -> frozenset[str]:
+    """Component ids the consumer's `.methodology.yaml` sanctions as divergent.
+
+    Shape-only (a non-empty ``reason`` is the one mandatory field): staleness
+    (expiry/review_date) is the Informant's reporting concern
+    (scripts/enforcement_coverage.py::validate_allowlist_entry), not a second
+    policy engine here -- #276's contract is READ the allowlist and honor it,
+    not police it. Fail-soft through ``read_allowlist`` (absent/malformed file
+    -> empty set, exactly like every other carrier reading consumer-owned config).
+    """
+    return frozenset(
+        e.component for e in read_allowlist(repo_root) if e.component and e.reason.strip()
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -194,7 +233,9 @@ def _find_hub_entry(
     return None
 
 
-def _classify(config: dict[str, Any], target: PrecommitTarget) -> CarrierState:
+def _classify(
+    config: dict[str, Any], target: PrecommitTarget, *, waived: frozenset[str] = frozenset()
+) -> CarrierState:
     """detect's correctness judgment: consumer config -> CarrierState.
 
     Precedence (the Decision 6 reconcile model):
@@ -202,6 +243,14 @@ def _classify(config: dict[str, Any], target: PrecommitTarget) -> CarrierState:
       - a required repo or hook missing           -> PRESENT_DRIFTED
       - all present but some rev mismatched        -> PRESENT_WRONG_VERSION
       - all present, all hooks, all revs match     -> PRESENT_CORRECT
+
+    ``waived`` ([#276] D2 add leg) is a set of hook ids the consumer's own
+    `.methodology.yaml` sanctions as excluded -- each is treated as NOT required,
+    so its absence never drives DRIFTED/ABSENT. Keyed by hook id (not a
+    manifest `components:` id): this carrier's target model only ever sees hook
+    ids (`carriers:` is all `deploy/tool.py` reads; `components:` ids are the
+    hub Informant's separate namespace), so that is the only identity available
+    to match against here.
     """
     total = len(target.required_repos)
     present = 0
@@ -213,7 +262,8 @@ def _classify(config: dict[str, Any], target: PrecommitTarget) -> CarrierState:
             continue
         present += 1
         have_ids = {h.get("id") for h in entry.get("hooks", []) or [] if isinstance(h, dict)}
-        if any(hid not in have_ids for hid in req.hook_ids):
+        required_ids = tuple(hid for hid in req.hook_ids if hid not in waived)
+        if any(hid not in have_ids for hid in required_ids):
             missing_required = True
         elif str(entry.get("rev")) != req.rev:
             wrong_version = True
@@ -228,15 +278,19 @@ def _classify(config: dict[str, Any], target: PrecommitTarget) -> CarrierState:
             have_ids = {
                 h.get("id") for h in hub_entry.get("hooks", []) or [] if isinstance(h, dict)
             }
+            required_hub_ids = tuple(hid for hid in target.hub_hooks.hook_ids if hid not in waived)
             # A missing hub hook id is a missing requirement -> DRIFTED (takes
             # precedence over a rev mismatch, mirroring the required_repos leg; #319).
-            if any(hid not in have_ids for hid in target.hub_hooks.hook_ids):
+            if any(hid not in have_ids for hid in required_hub_ids):
                 missing_required = True
             elif str(hub_entry.get("rev")) != target.hub_hooks.rev:
                 wrong_version = True
     # Required local hooks (no rev axis): present iff the id is in the local block;
     # a missing one is a missing requirement -> DRIFTED (via present < total).
+    # A waived local hook id is excluded before it can ever count toward `total`.
     for lhook in target.required_local_hooks:
+        if lhook.get("id") in waived:
+            continue
         total += 1
         local_entry = _find_local_entry(config)
         have_local = local_entry is not None and lhook.get("id") in {
@@ -302,7 +356,10 @@ _Op = _OpSetRev | _OpAppendHooks | _OpAppendEntry | _OpRemoveEntry
 
 
 def _reconcile(
-    config: dict[str, Any] | None, target: PrecommitTarget
+    config: dict[str, Any] | None,
+    target: PrecommitTarget,
+    *,
+    waived: frozenset[str] = frozenset(),
 ) -> tuple[dict[str, Any], list[str], tuple[_Op, ...]]:
     """Return (desired config, change descriptions, typed ops). Empty list => no-op.
 
@@ -312,6 +369,11 @@ def _reconcile(
     The ops mirror the change list 1:1 for the surgical splice; anchors are the
     CONCRETE repo: strings found in the consumer config (path-independent hub
     identification is already resolved here, before any text work).
+
+    ``waived`` ([#276] D2 add leg) — hook ids the consumer's own
+    `.methodology.yaml` sanctions as excluded — are never appended, on creation
+    or in place, mirroring `_classify`'s "not required" treatment (a consumer
+    that stopped drifting only because apply never re-adds what it declared).
     """
     new = copy.deepcopy(config) if config else {}
     repos = new.get("repos")
@@ -321,11 +383,15 @@ def _reconcile(
     changes: list[str] = []
     ops: list[_Op] = []
     for req in target.required_repos:
+        req_hooks = tuple(h for h in req.hooks if h.get("id") not in waived)
         entry = _find_repo(new, req.repo)
         if entry is None:
-            created = {"repo": req.repo, "rev": req.rev, "hooks": [dict(h) for h in req.hooks]}
+            created = {"repo": req.repo, "rev": req.rev, "hooks": [dict(h) for h in req_hooks]}
             repos.append(created)
-            changes.append(f"added repo {req.repo}@{req.rev} with hooks {list(req.hook_ids)}")
+            changes.append(
+                f"added repo {req.repo}@{req.rev} with hooks "
+                f"{[h.get('id') for h in req_hooks]}"
+            )
             ops.append(_OpAppendEntry(copy.deepcopy(created)))
             continue
         if str(entry.get("rev")) != req.rev:
@@ -338,7 +404,7 @@ def _reconcile(
             entry["hooks"] = entry_hooks
         have_ids = {h.get("id") for h in entry_hooks if isinstance(h, dict)}
         added_hooks: list[dict[str, Any]] = []
-        for hook in req.hooks:
+        for hook in req_hooks:
             if hook.get("id") not in have_ids:
                 entry_hooks.append(dict(hook))
                 changes.append(f"added hook {hook.get('id')} to {req.repo}")
@@ -350,12 +416,14 @@ def _reconcile(
     # absent.
     hub = target.hub_hooks
     if hub is not None:
+        hub_hooks = tuple(h for h in hub.hooks if h.get("id") not in waived)
         hub_entry = _find_hub_entry(new, hub.marker_hook_ids)
         if hub_entry is None:
-            created = {"repo": hub.repo, "rev": hub.rev, "hooks": [dict(h) for h in hub.hooks]}
+            created = {"repo": hub.repo, "rev": hub.rev, "hooks": [dict(h) for h in hub_hooks]}
             repos.append(created)
             changes.append(
-                f"added hub-hooks repo {hub.repo}@{hub.rev} with hooks {list(hub.hook_ids)}"
+                f"added hub-hooks repo {hub.repo}@{hub.rev} with hooks "
+                f"{[h.get('id') for h in hub_hooks]}"
             )
             ops.append(_OpAppendEntry(copy.deepcopy(created)))
         else:
@@ -378,7 +446,7 @@ def _reconcile(
                 hub_entry["hooks"] = hub_hooks_list
             have_ids = {h.get("id") for h in hub_hooks_list if isinstance(h, dict)}
             added_hub_hooks: list[dict[str, Any]] = []
-            for hook in hub.hooks:
+            for hook in hub_hooks:
                 if hook.get("id") not in have_ids:
                     hub_hooks_list.append(dict(hook))
                     changes.append(f"added hub hook {hook.get('id')} to {anchor}")
@@ -391,6 +459,8 @@ def _reconcile(
     # `hooks: []` renders flow-style, which the hook-append splice can't extend).
     created_local_op_hooks: list[dict[str, Any]] | None = None
     for lhook in target.required_local_hooks:
+        if lhook.get("id") in waived:
+            continue
         local_entry = _find_local_entry(new)
         if local_entry is None:
             local_entry = {"repo": "local", "hooks": []}
@@ -629,12 +699,20 @@ def _dump_config(path: Path, config: dict[str, Any]) -> None:
 # ---------------------------------------------------------------------------
 
 
-def _verify_satisfied(raw_text: str, target: PrecommitTarget) -> list[str]:
+def _verify_satisfied(
+    raw_text: str, target: PrecommitTarget, *, waived: frozenset[str] = frozenset()
+) -> list[str]:
     """verify's independent judgment: re-parse fresh, return unmet requirements.
 
     Built so a bug in detect's _classify path cannot be mirrored here: this builds
     its OWN repo->entry index (not via _find_repo) and asserts each required pin
     directly. Empty list => target satisfied.
+
+    ``waived`` ([#276] D2) is threaded in independently (D9: verify re-reads the
+    consumer's `.methodology.yaml` itself via the carrier, never routing through
+    detect's judgment) so apply's "never re-add a waived hook" holds up under
+    verify too — else a consumer whose apply correctly skipped a waived hook
+    would fail verify demanding the very hook it declared excluded.
     """
     failures: list[str] = []
     try:
@@ -645,15 +723,17 @@ def _verify_satisfied(raw_text: str, target: PrecommitTarget) -> list[str]:
     index = {e.get("repo"): e for e in repos if isinstance(e, dict)}
     for req in target.required_repos:
         entry = index.get(req.repo)
+        required_ids = [hid for hid in req.hook_ids if hid not in waived]
         if entry is None:
-            failures.append(f"missing repo {req.repo}")
+            if required_ids:
+                failures.append(f"missing repo {req.repo}")
             continue
         if str(entry.get("rev")) != req.rev:
             failures.append(f"{req.repo} rev {entry.get('rev')!r} != target {req.rev!r}")
         present_ids = [
             h.get("id") for h in (entry.get("hooks") or []) if isinstance(h, dict)
         ]
-        for hid in req.hook_ids:
+        for hid in required_ids:
             if hid not in present_ids:
                 failures.append(f"{req.repo} missing hook {hid}")
     # Hub-hooks rev-pin — INDEPENDENT path-independent scan (own loop, NOT
@@ -681,12 +761,16 @@ def _verify_satisfied(raw_text: str, target: PrecommitTarget) -> list[str]:
                 h.get("id") for h in (hub_entry.get("hooks") or []) if isinstance(h, dict)
             ]
             for hid in hub.hook_ids:
+                if hid in waived:
+                    continue
                 if hid not in present_ids:
                     failures.append(f"hub-hooks missing hook {hid}")
     # Required local hooks — INDEPENDENT inline scan (own loop, NOT _find_local_entry),
     # so a bug in detect's local finder cannot be mirrored here (D9).
     for lhook in target.required_local_hooks:
         hid = lhook.get("id")
+        if hid in waived:
+            continue
         found = any(
             isinstance(e, dict)
             and e.get("repo") == "local"
@@ -774,12 +858,26 @@ def _entry_matches_expected(entry: dict[str, Any], prunable: PrunableRepo) -> bo
     return all(have[hid] == want[hid] for hid in want)
 
 
-def _classify_prune(config: dict[str, Any], prunable: PrunableRepo) -> PruneState:
+def _classify_prune(
+    config: dict[str, Any], prunable: PrunableRepo, *, waived: bool = False
+) -> PruneState:
     """detect_prune's judgment: consumer config + prune spec -> PruneState.
 
     absent entry -> ALREADY_ABSENT; present-and-byte-matches-deployed -> PRESENT_CLEAN;
     present-but-diverged (locally edited) -> PRESENT_MODIFIED (REFUSE).
+
+    ``waived=True`` ([#276] D2 prune leg) means the consumer's own
+    `.methodology.yaml` sanctions this exact component's divergence -- the sweep
+    has nothing to do here regardless of the entry's on-disk shape, so it is
+    reported ALREADY_ABSENT. This is a deliberate reuse of the enum: contract.py
+    (out of this lane's write-scope) defines a CLOSED three-state PruneState with
+    no fourth "waived" value, and ALREADY_ABSENT is the only one of the three
+    that both `tool.py::execute()`'s remove-leg loop and `DeploymentPlan.prune_pending`
+    already treat as "nothing pending, no destroy-confirm, no REFUSE-abort" --
+    exactly [#276]'s Done-when, achieved with zero changes to tool.py's dispatch.
     """
+    if waived:
+        return PruneState.ALREADY_ABSENT
     entry = _find_repo(config, prunable.match_repo)
     if entry is None:
         return PruneState.ALREADY_ABSENT
@@ -842,7 +940,8 @@ class PrecommitCarrier(Carrier):
     def detect(self, target: Any) -> CarrierState:
         t = parse_target(target)
         config = _load_config(self._config_path(t))
-        state = _classify(config, t)
+        waived = _waived_components(self.repo_root)
+        state = _classify(config, t, waived=waived)
         log.debug("precommit detect: %s -> %s", self._config_path(t), state)
         return state
 
@@ -851,7 +950,8 @@ class PrecommitCarrier(Carrier):
         path = self._config_path(t)
         raw = path.read_bytes().decode("utf-8") if path.exists() else None
         config = _load_config(path) if path.exists() else None
-        desired, changes, ops = _reconcile(config, t)
+        waived = _waived_components(self.repo_root)
+        desired, changes, ops = _reconcile(config, t, waived=waived)
         if not changes:
             return ApplyResult(changed=False, detail="already at target")
         # #225 surgical path: splice only the methodology-owned lines, keep every
@@ -885,12 +985,14 @@ class PrecommitCarrier(Carrier):
     def verify(self, target: Any) -> VerifyResult:
         t = parse_target(target)
         path = self._config_path(t)
-        # Independent read — does NOT call _load_config/_classify (D9).
+        # Independent read — does NOT call _load_config/_classify (D9). The
+        # allowlist read is independent too (own call, not threaded from detect).
         if not path.exists():
             return VerifyResult(
                 ok=False, failures=(f"config absent: {path}",), detail="no config to verify"
             )
-        failures = _verify_satisfied(path.read_text(encoding="utf-8"), t)
+        waived = _waived_components(self.repo_root)
+        failures = _verify_satisfied(path.read_text(encoding="utf-8"), t, waived=waived)
         ok = not failures
         return VerifyResult(
             ok=ok,
@@ -906,10 +1008,20 @@ class PrecommitCarrier(Carrier):
     def _prune_config_path(self) -> Path:
         return self.repo_root / DEFAULT_CONFIG_NAME
 
+    def _prune_waived(self, component: Any) -> bool:
+        """[#276] D2 prune leg — is THIS component's id sanctioned as a consumer
+        divergence in the consumer's own `.methodology.yaml`? Matched by the
+        `components:` id (the whole ``component`` dict IS that manifest entry,
+        received verbatim from tool.py's ``build_prune_plan``/``execute`` —
+        unlike the add leg, no hook-id indirection is needed here)."""
+        cid = component.get("id") if isinstance(component, dict) else None
+        return cid is not None and cid in _waived_components(self.repo_root)
+
     def detect_prune(self, component: Any) -> PruneState:
         prunable = parse_prune(component)
         config = _load_config(self._prune_config_path())
-        state = _classify_prune(config, prunable)
+        waived = self._prune_waived(component)
+        state = _classify_prune(config, prunable, waived=waived)
         log.debug("precommit detect_prune: %s -> %s", prunable.match_repo, state)
         return state
 
@@ -917,9 +1029,14 @@ class PrecommitCarrier(Carrier):
         prunable = parse_prune(component)
         path = self._prune_config_path()
         config = _load_config(path)
-        state = _classify_prune(config, prunable)
+        waived = self._prune_waived(component)
+        state = _classify_prune(config, prunable, waived=waived)
         if state is PruneState.ALREADY_ABSENT:
-            return PruneResult(pruned=False, detail=f"{prunable.match_repo} already absent")
+            detail = (
+                f"{prunable.match_repo} waived by consumer .methodology.yaml -- skipping prune"
+                if waived else f"{prunable.match_repo} already absent"
+            )
+            return PruneResult(pruned=False, detail=detail)
         if state is PruneState.PRESENT_MODIFIED:
             # Hash-guard REFUSE: the consumer edited the entry since deploy. Do NOT
             # delete — surface the conflict (copier deletion-propagation model).
