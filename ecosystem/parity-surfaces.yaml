@@ -188,12 +188,27 @@ surfaces:
       #     row was carrying a consumer:MUST that one declared member never satisfied --
       #     latent only because terminal-setup's role is `pre-deploy` and therefore
       #     skipped. The demotion resolves that divergence instead of preserving it.
-      #   * `probe.path` still says VISION.md and the file is still TRACKED, byte-identical.
-      #     Retired means "no longer required", not "removed": deleting it, or moving the
-      #     path, is ADR-114 option (C)'s sequenced nine-repo program, which also owns
-      #     the CANONICAL_SPINE re-point (coupled to every released manifest through
-      #     release_lint C7), five deploy manifests and gen_handoff._vision_extract.
-      reason: "VISION.md -- RETIRED from the fleet-wide MUST set 2026-08-31 ([#614] lane-a) and held at SHOULD: superseded at the hub by the root README.md (ADR-114, Accepted 2026-08-29), dropped from canonical_docs.CANONICAL_MANDATORY, but still tracked in eight of the nine members and still shape-checked where present. SHOULD is the honest tier for a retained-but-not-required doc; the filename migration across the nine members remains a sequenced program, not this row."
+      #   * `probe.path` still says VISION.md. Retired means "no longer required", not
+      #     "removed": deleting it, or moving the path, is ADR-114 option (C)'s sequenced
+      #     nine-repo program, which also owns the CANONICAL_SPINE re-point (coupled to
+      #     every released manifest through release_lint C7), five deploy manifests and
+      #     gen_handoff._vision_extract.
+      #   * **[#614] lane-e-5, 2026-09-01: the HUB itself is the program's step one.**
+      #     `git mv VISION.md docs/archive/VISION.md`, byte-identical. `probe.path` stays
+      #     the bare `VISION.md` deliberately -- it is shared across all nine repo-role
+      #     evaluations, and the other eight still carry the file at that root path. So at
+      #     the HUB role only, this row now measures `WARN-undeclared: SHOULD surface
+      #     absent`, which the lane's Done-contract item 5 asks to be DECLARED rather than
+      #     left loud. **Declared here, not yet discharged in code:** `_pass_or_declare`'s
+      #     SHOULD-absent path resolves through `.methodology.yaml`'s
+      #     `sanctioned_divergences` (component `canonical-doc-vision`), read per-repo by
+      #     `enforcement_coverage.read_allowlist` -- a file outside this lane's frozen
+      #     write-scope (`LANE-e-5-vision-relocation.md` "Write-scope (frozen)"). This
+      #     comment is the lane's disclosure, not a silent close: the hub-role WARN stays
+      #     live until a `.methodology.yaml` entry for `canonical-doc-vision` lands, which
+      #     this lane leaves for the integrator rather than editing a file it was not
+      #     scoped to touch.
+      reason: "VISION.md -- RETIRED from the fleet-wide MUST set 2026-08-31 ([#614] lane-a) and held at SHOULD: superseded at the hub by the root README.md (ADR-114, Accepted 2026-08-29), dropped from canonical_docs.CANONICAL_MANDATORY, but still tracked in eight of the nine members and still shape-checked where present. SHOULD is the honest tier for a retained-but-not-required doc; the filename migration across the nine members remains a sequenced program, not this row. At the hub itself the program's step one landed 2026-09-01 ([#614] lane-e-5): VISION.md relocated to docs/archive/VISION.md, so the hub role now measures SHOULD-absent -- declared in this row's ownership comment above; the matching .methodology.yaml sanctioned_divergences entry that would flip the machine verdict to PASS-declared is an open item outside this lane's write-scope, left for the integrator."
       provenance: &own-prov
         - {kind: backlog, repo: .dev-knowledge, ref: "#316"}
         - {kind: adr, repo: .dev-knowledge, ref: ADR-103}

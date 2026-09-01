@@ -104,6 +104,14 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 
+# CLOUD-4 v2 (R2 §1.5 GO-b) precedent: a retired-and-relocated canonical doc's current path
+# comes from the one registry, not a literal here ([#614] lane-e-5, 2026-09-01 -- VISION.md
+# moved to docs/archive/VISION.md and this module's literal silently lost spine protection).
+try:
+    from scripts import canonical_docs
+except ImportError:  # pragma: no cover - exercised by the scripts/-on-sys.path entrypoints
+    import canonical_docs
+
 # --------------------------------------------------------------------------------------
 # Canaries - the content that must never reach a candidate model
 # --------------------------------------------------------------------------------------
@@ -223,7 +231,7 @@ DENSITY_SHARE = 0.25
 NEVER_REMOVE: tuple[str, ...] = (
     "CLAUDE.md",
     "ARCHITECTURE.md",
-    "VISION.md",
+    canonical_docs.CANONICAL_RETIRED_LOCATIONS[canonical_docs.VISION],
     "BACKLOG.md",
     "LESSONS.md",
     "JOURNAL.md",

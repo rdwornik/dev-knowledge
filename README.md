@@ -7,11 +7,22 @@ status: active
 
 # .dev-knowledge
 <!-- scope: meta -->
+<!-- [#614] lane-e-5, 2026-09-01 review record: re-read end-to-end before the VISION.md
+     relocation lands (Done-contract item 3, LANE-e-5-vision-relocation.md). Confirmed
+     against live source -- ecosystem/registry.md, ecosystem/north-star.md, CONTRIBUTING.md,
+     AGENTS.md and protocols/ESSENTIALS.md all exist as cited; the rest of the file (Vision,
+     Strategic emphasis, Scope, Values, Relationships, Lifecycle) is unaffected by the move.
+     Only the VISION.md pointers (the blockquote below + the References row) are stale as of
+     the relocation; both are re-pointed in this lane's next commit. Collateral enumerated at
+     docs/audits/2026-09-01-technical-dc3-split.md §4; full record in the end-of-lane artifact. -->
 
 > **Root front door.** This file supersedes `VISION.md` as the canonical statement of what
-> this repo is, per **ADR-114** (Accepted 2026-08-29, AMENDMENT 1). `VISION.md` is retained,
-> marked superseded, and still tracked — it remains a `MUST` on all nine ADR-104 fleet
-> members, so its filename migration is a sequenced fleet program, not a flag flip.
+> this repo is, per **ADR-114** (Accepted 2026-08-29, AMENDMENT 1). At the hub, `VISION.md`
+> is **relocated** — `git mv` to `docs/archive/VISION.md`, byte-identical ([#614] lane-e-5,
+> 2026-09-01) — the hub's own step one of ADR-114 option (C)'s sequenced nine-repo filename
+> migration. It stays retired-tier, not deleted, and still tracked; it remains a `MUST` on
+> eight of the nine ADR-104 fleet members (`terminal-setup` has never carried one), so the
+> rest of the fleet's migration is still a sequenced program, not a flag flip.
 >
 > **Working here?** `CLAUDE.md` is the session contract, `AGENTS.md` the portable
 > build/test/land layer every provider reads, `ARCHITECTURE.md` the structural map.
@@ -191,7 +202,7 @@ edit for clarifications and the References section.
 - `CLAUDE.md` — the session contract for Claude Code in this repo
 - `AGENTS.md` — the portable instruction layer every provider reads (ADR-115)
 - `ARCHITECTURE.md` — the structural map; read before structural changes
-- `VISION.md` — superseded by this file (ADR-114); retained and still tracked
+- `docs/archive/VISION.md` — superseded by this file (ADR-114); relocated here at the hub ([#614] lane-e-5, 2026-09-01), retained and still tracked
 - `protocols/ESSENTIALS.md` — operating values, daily cheat sheet
 - `protocols/PLAYBOOK.md` — full process reference
 - `JOURNAL.md` — session-by-session activity history (and notable-change record; replaces the retired CHANGELOG.md per ADR-49)

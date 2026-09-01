@@ -145,8 +145,10 @@ architecture review RF-3, `docs/audits/2026-07-04-fable-architecture-review.md`)
   branch→edit→commit→wrap arc, [#252]), **not** this gate's.
 
 ## NOT gated — "update when materially affected"
-`ARCHITECTURE.md`, `VISION.md`, `LESSONS.md`, `CONTRIBUTING.md` are **not** a per-session
-obligation. Update them when the work materially affects them; otherwise leave them. Their
+`ARCHITECTURE.md`, `VISION.md` (relocated to `docs/archive/VISION.md` at the hub, [#614]
+lane-e-5, 2026-09-01 — retired-tier, no longer edited in the ordinary course), `LESSONS.md`,
+`CONTRIBUTING.md` are **not** a per-session obligation. Update them when the work
+materially affects them; otherwise leave them. Their
 staleness is a later detection signal in the conformance dashboard (ADR-85 R2), **not** a
 session gate and **not** human memory.
 
