@@ -19,6 +19,60 @@
 
 ---
 
+### 2026-09-01 (z) - CC (Opus 5): batch F is FROZEN with zero deviations, and the one re-scope was REISSUED rather than annotated
+
+**Anchors:** `5b82c5d9` · `edf215cb`
+
+**Did:** froze batch F — seven committing lanes through both gate layers — then reissued L2 when
+the operator's F1 contract landed, and re-baselined the `[#595]` consumer ratchet the batch's own
+landing moved.
+
+```
+gen_lane_contract.py check   7 of 7 OK          (Layer 1, shape)
+validate_substrate.py        7 OK, 0 REFUSE, 0 WARN, 0 deviations   (Layer 2, all seven rule ids)
+[#630] hand-check            manifest slug set == contract slug set, both directions
+```
+
+**ZERO DEVIATIONS IS A RESULT, NOT AN ABSENCE.** Batch E froze with two overridden WARNs. The one
+intersection this cut would have produced was **designed out rather than excused**: L5 and L2 would
+both have claimed the handoff protocol files, whose VISION pointers sit in `[#621]`'s collateral
+set *and* in the files L2 rewrites. Those four moved to L2, which is their honest home — they are
+stale today, independently of the relocation.
+
+**THE REISSUE IS THE POINT.** When F1 arrived as something much larger — handoff v7 as the
+**boot-inversion carrier**, `/boot-session` — L2 was **regenerated from the generator and
+re-filled**, not amended. That is `[#629]`'s own rule applied to the batch that files it: *an
+amendment cannot subtract or replace an act.* Annotating a frozen contract with "actually, do this
+instead" is precisely what made DC-3 execute a ruled-out act. L5 was rewritten too, because losing
+one file from its scope is a subtraction and subtractions reissue.
+
+**THREE PREMISES WERE VERIFIED BEFORE BECOMING CONTRACT TEXT, AND TWO CHANGED IT.** `rustworkx` is
+**already declared** (FPG-1, A3 mandate, hash-pinned) — so F1 adds no dependency, and the contract
+says REUSE where it would otherwise have said "add". `SessionStart` runs **five** hooks, not four,
+so *"extend the four tripwires, never a fifth rival"* resolves to `fleet_health.py`, which already
+prints a one-line digest. And **BOOT-R1's survey is still running**, so the scoring rule is a
+declared seam pinned later — a model invented to fill that gap is the thing the survey exists to
+prevent.
+
+**I ALSO CORRECTED MYSELF TWICE.** `Dispatch-Codespace` **exists** — a `Set-Alias` to
+`Start-DispatchCodespace`, exported, with `-Contract`/`-Slug` matching the generator exactly. My
+earlier report said no function by that name existed: true, and misleading, and it reached the
+architect's cut as a correction that did not need making. That is the carrier-vs-subject class the
+PLAYBOOK warns about, committed by me. And `codespace` is a **registered shape** whose branch
+prefix is `worktree-`, so L1 needed no deviation at all.
+
+**The ratchet moved by its own tool.** Seven contracts plus a manifest landed under `docs/audits/`,
+and every `LANE-*.md` is **structurally uncitable** — no `YYYY-MM-DD` in the filename, so no
+citation anywhere could resolve it. Each declares `No-consumer:` per the check's own escape, and
+`--write-baseline` moved leg 2. Net: `test_consumer_at_landing` goes **1 RED → 32 passed**, because
+the same amendment cleared `LANE-w-1`, a RED that pre-dated this arc.
+
+**Changes:** `docs/audits/2026-09-01-technical-batch-f-manifest.md` (new, +amendment 1),
+`docs/audits/2026-09-01-technical-batchf-launch-contracts/` (7 new),
+`ecosystem/audit-consumer-baseline.json`, `tasks/614-*.md`, `docs/audits/README.md`, `JOURNAL.md`.
+
+**Next:** merge `worktree-observable-harness-filing` with B1 teardown, then harvest ATLAS-R1.
+
 ### 2026-09-01 (y) - CC (Opus 5): a branch stops being storage, a deferred row stops blocking, and a stale RED is overturned by an eighteen-hour-old JOURNAL entry
 
 **Anchors:** `277d8c1b` · `27aa53f5`

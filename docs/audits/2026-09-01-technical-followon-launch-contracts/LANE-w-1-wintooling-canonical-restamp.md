@@ -102,3 +102,12 @@ duty, it does not authorise the deviation.
 - No index regeneration — the integrator is gate-of-record and regenerates once
   at the merge (Q1); a lane declares its single-hook bypass in the commit body.
 - No edits outside this lane's declared footprint.
+
+---
+
+## AMENDMENT 1 — 2026-09-01: the no-consumer declaration this file structurally requires
+
+> **In-file amendment marker** (CLAUDE.md §5 rule 3). Purely additive metadata; nothing above
+> is changed. Added by the batch-F freeze, which hit the same blind spot seven more times.
+
+**No-consumer:** a frozen lane contract is consumed by its DISPATCH, never by a governance-surface citation — and this filename carries no `YYYY-MM-DD` prefix (the date is on the parent directory), so **neither `consumer_at_landing` token regex can produce its token and no citation anywhere could clear it.** Its batch-E siblings escape only by sitting in the arm-time baseline. Declared per that check's own escape rather than worked around; the underlying gap is `[#595]`'s, recorded at `docs/audits/2026-09-01-technical-batch-e-close-packet.md` §9.
