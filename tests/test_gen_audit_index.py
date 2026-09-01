@@ -325,3 +325,42 @@ def test_the_live_baseline_matches_the_live_corpus():
     """The committed baseline is the measurement, so it has to agree with the tree."""
     assert gai.unbaselined_title_less() == ()
     assert gai.stale_baseline_entries() == ()
+
+
+def test_check_titles_is_reachable_without_the_index(tmp_path, monkeypatch, capsys):
+    """`--check-titles` reads FILES, never the generated index — which is what lets it be
+    armed on `docs/audits/**` without re-creating the `[#590]` merge-conflict problem.
+
+    `[#590]` narrowed `audit-index-freshness` to the index and its generator BECAUSE requiring
+    every lane to regenerate a shared file put it in 6 of the last 7 conflicted merges. The
+    title check has no such coupling: it writes nothing and touches no shared artifact, so it
+    can fire on the commit that ADDS an audit while the index stays where [#590] put it.
+    """
+    monkeypatch.setattr(gai, "_AUDITS_DIR", tmp_path)
+    monkeypatch.setattr(gai, "_REPO_ROOT", tmp_path)
+    monkeypatch.setattr(gai, "_TITLE_BASELINE_PATH", tmp_path / "baseline.json")
+    (tmp_path / "baseline.json").write_text('{"title_less": []}', encoding="utf-8")
+    (tmp_path / "2026-01-02-technical-headless.md").write_text("no heading\n", encoding="utf-8")
+    # NO README.md is written: the point is that this mode does not need one.
+    assert gai.main(["--check-titles"]) == 1
+    assert "2026-01-02-technical-headless.md" in capsys.readouterr().err
+
+
+def test_check_titles_is_green_on_the_live_corpus():
+    assert gai.main(["--check-titles"]) == 0
+
+
+def test_the_title_hook_is_armed_on_the_audits_tree_not_just_the_index():
+    """The mechanism's binding point, asserted against the config rather than assumed.
+
+    Written after the claim "the gate binds at the commit that ADDS an artifact" was found to
+    be FALSE: `audit-index-freshness` is scoped to the index and its generator, so it fires on
+    neither the artifact nor its author. A gate's coverage is a property of its `files:`
+    pattern, and a coverage claim nothing checks is the class this repo keeps re-learning.
+    """
+    cfg = (Path(gai.__file__).resolve().parent.parent / ".pre-commit-config.yaml").read_text(encoding="utf-8")
+    block = cfg.split("id: audit-title-gate", 1)
+    assert len(block) == 2, "no audit-title-gate hook is declared"
+    body = block[1].split("- id:", 1)[0]
+    assert "--check-titles" in body
+    assert "docs/audits/" in body

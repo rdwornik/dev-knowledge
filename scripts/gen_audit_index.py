@@ -296,6 +296,15 @@ def _cmd_check() -> int:
 def _check_titles() -> int:
     """The TITLE gate. A fresh index is not the same as a navigable one.
 
+    WHERE THIS BINDS, stated because the first version of this docstring got it wrong. It runs
+    from TWO entry points with different coverage. Via `--check` it rides `audit-index-freshness`,
+    which `[#590]` deliberately narrowed to the index and its generator — so that path fires when
+    the INDEX is touched, NOT when an audit is added. Via `--check-titles` it is armed separately
+    on `docs/audits/**`, which is the path that catches the adding commit. The separate arming is
+    safe precisely because this check WRITES NOTHING: `[#590]`'s narrowing existed because forcing
+    every lane to regenerate a shared file put that file in 6 of the last 7 conflicted merges, and
+    a read-only check shares nothing to conflict over.
+
     Armed as a RATCHET against a committed baseline rather than as a day-one FAIL: twenty live
     artifacts are title-less at arm time, so a hard refusal would have to be bypassed on its
     first commit — which trains the bypass instead of the fix. Same posture as
@@ -332,12 +341,18 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--write", action="store_true", help="regenerate the index from disk")
     parser.add_argument("--check", action="store_true",
                         help="check the index against disk state (default action)")
+    parser.add_argument("--check-titles", action="store_true", dest="check_titles",
+                        help="check ONLY the title gate — reads files, never the index, which "
+                             "is what lets it be armed on docs/audits/** without re-creating "
+                             "the [#590] merge-conflict coupling")
     parser.add_argument("--write-title-baseline", action="store_true",
                         dest="write_title_baseline",
                         help="re-measure the grandfathered title-less set (a REVIEWED act)")
     args = parser.parse_args(argv)
     if args.write_title_baseline:
         return _cmd_write_title_baseline()
+    if args.check_titles:
+        return _check_titles()
     if args.write:
         return _cmd_write()
     return _cmd_check()
