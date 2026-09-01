@@ -19,6 +19,52 @@
 
 ---
 
+### 2026-09-01 (am) - CC (Opus 5): the v7 bundle cut, and the size bar it was cut to prove is MISSED
+
+**Anchors:** `02f893d0`, `558e2878`
+
+**Did:** cut the v7 BOOT-INVERSION bundle at ROLE PIN 7.0.0, updated the resident role file for
+the Project swap, refreshed the OPERATOR ASKS registry, and landed the operator's batch-G seed
+as a worked example.
+
+**THE BUNDLE COULD NOT BE CUT UNTIL THE LAST WORKTREE WAS GONE.** `gen_handoff` refuses while any
+linked worktree exists — *"a bundle cut here seals a claim about a boundary the tree has not
+reached"*. `land-article-substrate-brief` was the blocker: another seat's tree, which the manifest
+said to LEAVE. By the time integration reached it the seat had stopped hours earlier, its tree was
+clean, its four commits complete, its JOURNAL entry already written. **Disposal by merging was the
+only path that produced a bundle at all**, so it was merged with a terra pass (2 defects, both
+about verifiability of claims rather than the research) and its day-letter re-lettered `(ab)` →
+`(al)` at merge time, because a concurrent session had taken `(ab)` while it sat unmerged.
+
+**`[#611]`'s MEASUREMENT NOW EXISTS AND IT FAILS BOTH LEGS.** The row asked for a paste from a
+**real cut** measuring ≤20 KB at ≥70% window-specific. This cut: **27,365 B (+34% over) at ~31%
+window-specific (~39 points under).** The honest part is *where* it fails — the hand-written
+residual is 7.5 KB, under a fifth of the payload; **95% is the bundle's own session header
+(11.4 KB) plus PROBES.md (14.5 KB)**, both generic across cuts. Making the residual terser moves
+size the wrong way AND worsens the ratio. The v6.3.0 residency flip already removed the single
+biggest item; what remains is a different problem and G inherits it.
+
+**The batch-G seed landed as a WORKED EXAMPLE, not a description.** HISTORY DELTA reads two
+committed `FUNNEL_HEALTH.md` files: **all four rot legs FLAT AT ZERO while rows grew +7 with zero
+closures** — a batch that closed nothing manufactured no rot, and the growth is all
+post-cutoff. The EQUILIBRIUM MAP puts eleven dimensions against REPO / BROWSER / OPERATOR. Its
+sharpest cell is **`routing = OPERATOR`**: a routing table exists in every contract, the
+dispatcher ignores it (`Start-DispatchLane` defaults to opus, line 96), and `[#631]` fired three
+times in one window. That is one bounded change from REPO.
+
+**Result:** `worktree list` == primary only. Zero codespaces. Spine clean with the ADR-110
+exemption dead.
+
+**Changes:** the bundle (6 files), `protocols/HANDOFF_BOOT.md` v6→v7 at five sites,
+`protocols/HANDOFF_PROCESS.md` §17.1 registry, and the history-delta/equilibrium artifact.
+
+**Abandoned:** nothing.
+
+**Next:** operator rules on the five open rows and the substrate question; `[#628]` after the
+v1.5.0 tag.
+
+---
+
 ### 2026-09-01 (ak) - CC (Opus 5): batch F closed - eight lanes merged, zero rows closed, and that is the batch working
 
 **Anchors:** `faf9db8d`, `dd471c31`, `7313400a`, `8fbca730`
