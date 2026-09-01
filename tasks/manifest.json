@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "5ac6c8aaafe2b12fee594c0e7a0a4bd6ff37002b38a786cc83701d7de42e59e4",
+  "generated_sha256": "2001687116b266108e7f75dda352b1bc2b92a1c9f677f9c61ebeea5e8f80b66d",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -1045,6 +1045,10 @@
       "file": "625-the-rule-adherence-eval-corpus-fresh.md"
     },
     {
+      "task": 626,
+      "file": "626-logs-retention-exempts-the-prefixes-that-accumulate.md"
+    },
+    {
       "prose": "### [S19] Decide the undecided artifact/tool models"
     },
     {
@@ -1111,6 +1115,10 @@
     {
       "task": 580,
       "file": "580-state-as-data-atomic-id-allocation-and-tasks-as.md"
+    },
+    {
+      "task": 627,
+      "file": "627-agy-route-is-inert-no-row-authorizes-analysis-admission.md"
     },
     {
       "prose": "### [S20] Revive the nightly layer, load-gauge first (rent-rule discipline)"
