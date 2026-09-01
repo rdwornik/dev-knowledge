@@ -154,6 +154,57 @@ before/after in `5c7e9e37` so the judgement is reviewable in thirty seconds. Net
 **No live rule was reworded.** Seven miscounted non-rules out, seven real rules in; the pool ends
 the window where it started and the proxy is more accurate than it was.
 
+### The full suite, run ONCE at integration
+
+```
+11 failed · 4,735 passed · 3 skipped · 1 xfailed · 1,057 s (17:37)   primary checkout, HEAD
+```
+
+**Against 0b's pre-batch measurement of `28 failed · 4,605 passed`** — which was taken in a
+WORKTREE, so 19 of its 28 were environment artefacts (17 `pandas` misses needing
+`--group analytics`, one `test_stale_worktrees` that REDs *because* a worktree is live, one known
+main RED). This run has none of those. **All eleven are classified, and only two were caused by
+this window:**
+
+```
+CAUSED HERE, FIXED HERE (2)
+  test_gen_audit_index::test_live_index_is_fresh
+  test_gen_audit_index::test_live_index_excludes_nothing_because_every_audit_is_tracked
+      -> three audits landed and the generated index was stale. A LANE must NOT regenerate it;
+         the INTEGRATOR at close must. Regenerated; 19/19 green.
+
+NAMED IN THE SIX DRIFT FAMILIES (3)
+  test_export_backlog_view::test_no_gate_hook_or_script_reads_the_export     D6, owned by tasks/586
+  test_preflight_freeze_predicates::test_vi_batch1_reproduces_the_wrong_id_citation   D5
+  test_validate_doc_rot::test_live_corpus_has_no_accretion_arm_findings...   D3b
+
+PRE-EXISTING ON main, VERIFIED AT 7612a751 (3)
+  test_cloud_provisioning::test_the_gate_never_syncs_the_environment_it_is_asserting
+  test_cloud_provisioning::test_provision_sh_runs_the_history_repair_before_arming_hooks
+      -> the F1-F4 provision.sh work landed without updating these two.
+  test_enforcement_coverage::test_anchor_gate_probe_distinguishes_installed_from_absent
+      -> the known main RED the plan's own non-drift list already names.
+
+FULL-SUITE-ONLY FALSE REDS -- GREEN IN ISOLATION (2)
+  test_reverse_dep_oracle::test_finding_headline_resolves_with_provenance   assert 3 >= 50
+  test_reverse_dep_oracle::test_main_finding_json_exit_zero                 assert 3 >= 50
+      -> re-run alone: 21 passed. A measurement taken while the corpus is being measured.
+
+PRE-EXISTING AND OUTSIDE THE SIX, newly named here (1)
+  test_desired_state_report::test_live_report_renders_the_real_fleet
+      -> its module-level MEMBERS pin lists FIVE members and was last touched 2026-08-19; the
+         live report renders SEVEN -- the five plus `terminal-setup` and `win-tooling`. It fails
+         in ISOLATION too, so it is a genuine RED and not an ordering artefact. NOT fixed: the
+         pin is a shared fixture constant used by seventeen other tests in the module, and
+         widening 5 -> 7 without establishing WHY the two entered the desired-state model would
+         hide the signal rather than read it. The test's own name says it should assert the real
+         fleet; the honest repair is to derive the column set from the loader instead of pinning
+         it, which is a change with a design in it, not a re-stamp.
+```
+
+**So: nothing this window introduced survives, and the residue is eight pre-existing or
+structural REDs, each with an owner or a named reason.**
+
 ## 6 · Substrate table — what ran where
 
 | Lane / act | Substrate | Model | Receipt |
@@ -272,8 +323,8 @@ operator's subscription. Orchestrator + integration adjudication on **opus**; se
 **SMALLER**
 
 ```
-templates/ live                47  ->  45   (2 zero-consumer retirements, HY-3)
-templates/archive/              4  ->   6
+templates/ live (non-archive)   43  ->  41   (2 zero-consumer retirements, HY-3)
+templates/archive/               4  ->   6   (47 tracked under templates/ either way)
 silent-rule pool              443  -> 443   HELD -- 7 non-rules out, 7 real rules in
 README.md                     fleet governance, roster and parity posture REMOVED
 docs/decisions/README.md      one superseded status line and one missing row, both closed
