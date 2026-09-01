@@ -350,3 +350,43 @@ read.
 **Still open here:** the generator's boilerplate line *"Model defaults to `opus` — the
 `.dev-knowledge` default per the Ch8 routing matrix"* is now stale doctrine against R-MODELS. It is
 generator-owned text, so it is `[#631]`'s to fix at the source, not a contract's to edit.
+
+---
+
+## AMENDMENT 4 — 2026-09-01: L2 REISSUED again, and this is `[#631]`'s THIRD instance in one window
+
+> **In-file amendment marker.** The batch is still `dispatched: PENDING` for six of seven lanes.
+
+**Operator ruling: add OPERATOR ASKS to the v7 bundle enumeration.** L2's done-contract now names
+it as the **first-rendered** section and specifies it as a RECORD — `asked <date>`, a visible-fix
+(sha or path) **or** a named, dated blocker, an owner, a re-asked count — with **`re-asked >= 2`
+and no visible fix rendering RED** at boot and in the packet. *"Tracked in `[#N]`"* does not
+discharge it, which is the whole of lesson L-S7.
+
+**Re-run over all seven: `gen_lane_contract check` 7/7 OK; `validate_substrate` 7 OK, 0 REFUSE,
+0 WARN.**
+
+### The count, stated because it is the argument
+
+```
+[#631] live instances, 2026-09-01, all inside one window:
+  1. the REVIEW-LANE rule       arrived at the GO, after the freeze.  All seven lanes
+                                violated it.  -> AMENDMENT 2 (additive)
+  2. R-MODELS                   predated the freeze, but nothing checked the contracts
+                                against it.  Six declared opus.  -> AMENDMENT 3 (reissue)
+  3. OPERATOR ASKS              arrived after the freeze, from lesson L-S7.  L2's section
+                                enumeration did not carry it.  -> AMENDMENT 4 (reissue)
+```
+
+**Three different rules, three different arrival modes, one missing mechanism.** Instance 1 was a
+rule invented after the freeze; instance 2 was a rule that already existed and was never checked
+against; instance 3 was a rule invented after the freeze *again*, in the same window as instance 1.
+**A freeze is a point-in-time assertion against a rule set that is not pinned, not versioned and
+not re-checked at dispatch** — so a batch can be validly frozen and non-compliant simultaneously,
+with both facts true and neither visible.
+
+**Every one of the three was caught by a human noticing, not by an organ.** That is the strongest
+available argument for `[#631]`'s Done-when: the freeze RECORDS the rule set it validated against,
+and **dispatch RE-VALIDATES**, refusing a batch whose rules have moved and naming which rule
+arrived after and which lanes it touches. An additive delta discharges by amendment; only a
+subtractive one forces a re-freeze — the `[#629]` boundary.
