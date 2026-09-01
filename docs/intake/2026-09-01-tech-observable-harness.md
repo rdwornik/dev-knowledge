@@ -249,6 +249,54 @@ what this intake cites.
   **Until `[#615]` lands, per-lane attribution is underivable, not merely unrecorded.** That is
   question 5's premise, measured rather than asserted.
 
+## OPERATOR ASKS — the fifth section, and the one the organ renders FIRST
+
+**Added 2026-09-01 from operator direction, on lesson L-S7:** *an operator ask that is answered by
+"filed in arc X" is NOT addressed from the operator's seat — a visible change, or a named
+blocker with its date, is.* Filing is the repo's answer to itself. From the seat that asked, a row
+id is indistinguishable from silence, and the ask comes back.
+
+**The mechanism, and it is deliberately not prose.** The v7 boot bundle and the FUNNEL HEALTH
+digest both carry an **OPERATOR ASKS** section. Each ask is a record, not a sentence:
+
+```
+asked            <date>            when it was first raised
+visible-fix      <sha | path>      the change the operator can SEE, or empty
+blocker          <text + date>     required when visible-fix is empty -- a NAMED blocker
+                                   carrying its own date, never "filed as [#N]"
+owner            <id>              the row, arc or seat that owns it
+re-asked         <n>               incremented every time it is raised again
+```
+
+**The teeth: `re-asked >= 2` with no visible-fix renders RED** — at boot and in the close
+packet, as a status, not a paragraph. An ask that has been raised twice and produced nothing
+visible is a failure of the loop, and the loop is what this intake is about. A blocker discharges
+the RED only if it is NAMED and DATED; "tracked in [#N]" is exactly the answer L-S7 rules
+insufficient.
+
+**The `/boot-session` organ renders this section FIRST**, above funnel health and the proposed
+batch. A seat that opens the bundle sees what the operator is still waiting for before it sees
+what the repo would like to do next.
+
+### Seed entries, 2026-09-01
+
+```
+ESSENTIALS de-bless    asked 2026-09-01  re-asked 3  visible-fix: this merge (CLAUDE.md sends
+                       nobody to it; ESSENTIALS status: superseded)          -> GREEN
+VISION.md out of root  asked 2026-09-01  re-asked 2  blocker: ARCHITECTURE.md + README.md are
+                       FRESHNESS_FILES; the A2 gate makes the edit require a genuine end-to-end
+                       re-read. Owner: batch-F L5 / [#621]                    -> blocker named
+logs thinning          asked 2026-09-01  re-asked 1  blocker: three flat globbers must resolve
+                       bucketed paths BEFORE the exemption retires. Owner: batch-F L3 / [#626]
+config/ fate           asked 2026-09-01  re-asked 1  blocker: ROOT-R1 unlanded             
+dashboard home         asked 2026-09-01  re-asked 1  blocker: docs/ placement is batch G     
+```
+
+**Two of these seeds are already RED-adjacent and that is the point of writing them down.** The
+de-bless was asked **three times** before a visible change existed; under this mechanism it would
+have rendered RED after the second, in the bundle, where the operator would have seen it without
+having to ask a third time.
+
 ## Status
 
 DRAFT — filed 2026-09-01 from operator direction, under the reconcile-before-birth rule. **Its

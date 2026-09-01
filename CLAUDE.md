@@ -7,7 +7,7 @@ owner: Rob
 
 # CLAUDE.md — Dev Knowledge
 <!-- scope: meta -->
-<!-- version: 2.71 — 2026-09-01 -->
+<!-- version: 2.72 — 2026-09-01 -->
 
 > **Session boot contract for Claude Code in this repo** — auto-read at session start (ADR-53, as re-pointed by ADR-115). **Genre:** a rule lives here only if a session needs it *before it can act*; rationale, history and per-organ detail live at the home each line cites.
 >
@@ -219,14 +219,14 @@ Machine-enumerated, last 5 by number (`gen_claude_rosters.py --write`). Editoria
 > **[REPO - local]** region `section-history` - this repo owns these lines.
 <!-- methodology:start id=section-history owner=repo -->
 
-> _Entries v1.0–v2.68 condensed to git history per ADR-49/65 (info-preserving — full prior history: `git log --follow -p -- CLAUDE.md`)._
-
-- v2.69 (2026-08-29, batch-D lane c `lane-c-000-claude-md-regenre`) — **the re-genre: reference manual → boot contract, budgeted in bytes.** The file met its `≤200 lines` claim by *density* — 240 lines but 39,588 B, **165 B/line** against this corpus's ~117 — so the cost every session pays went unbudgeted. A **24,576 B** ceiling now gates it (`tests/test_claude_md_byte_cap.py`); ADR-53's line bound is **kept, not replaced**. Every removal is a relocation to a named, verified destination. The ledger, the measurements and the owed follow-ups: `docs/audits/2026-08-29-technical-claude-md-regenre.md`.
+> _Entries v1.0–v2.69 condensed to git history per ADR-49/65 (info-preserving — full prior history: `git log --follow -p -- CLAUDE.md`); v2.69 joined them 2026-09-01 to make room under the byte cap; its ledger stays cited here so the condensation does not orphan it: `docs/audits/2026-08-29-technical-claude-md-regenre.md`._
 
 - v2.70 (2026-09-01, night window) — §9 gains `audit-title-gate`. The hook was live and unclaimed: 21 named here against 22 in `.pre-commit-config.yaml`, a divergence only the ship-tier `doc_claims` would have seen. Re-read end-to-end at the same commit — every §4/§5 rule was exercised by that window's own work, so the stamp is a review, not a touch.
 
 - v2.71 (2026-09-01, DC-3 split — Acts TWO + THREE only) — **genre purification by relocation; the ESSENTIALS act is deliberately NOT here.** Act One (dissolving `protocols/ESSENTIALS.md`) was refused by ruling 1 and re-filed as `[#628]`, fleet-coupled and sequenced with v1.5.0 — so ESSENTIALS and every citation of it stand. Landed: Act TWO (the branch-prefix enum and the TUI formatting rationale shrink to point-of-use bullets, provenance relocated to PLAYBOOK Ch3/Ch8; both `ObsidianVault/` clauses deleted per CUT-2) and Act THREE (`VISION.md` out of §2 and §4, DC-1 having retired it from `CANONICAL_MANDATORY`). 24,387 B → 24,282 B. One inherited defect fixed: the new bullet cited a "Mermaid/diagram carve-out" at a PLAYBOOK subsection that did not contain one — a relocation to an unverified destination, which is the failure this genre exists to prevent. Ledger: `docs/audits/2026-09-01-technical-dc3-split.md`.
 
+
+- v2.72 (2026-09-01, integrator micro-act) — **ESSENTIALS DE-BLESSED, correcting v2.71.** v2.71 said that act was *deliberately NOT here* and that *every citation stands* — true then, false now. This file sends no session to `protocols/ESSENTIALS.md`: five sites reworded, four of them hub regions moved in lockstep with `templates/claude-regions/`. **No deletion** — the body stays, `status: superseded`, and `[#628]`'s fleet-coupled dissolution is still owed. Caught by terra, not by the author.
 <!-- methodology:end id=section-history -->
 
 ---
