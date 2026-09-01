@@ -77,6 +77,7 @@ surface, matching `telemetry_emit.py`'s own Stage-3 deferral.
 from __future__ import annotations
 
 import json
+import math
 import os
 import sqlite3
 from collections.abc import Mapping, Sequence
@@ -266,8 +267,23 @@ def _check_int(label: str, value: Any) -> None:
 
 
 def _check_number(label: str, value: Any) -> None:
-    if value is not None and (not isinstance(value, (int, float)) or isinstance(value, bool)):
+    """A number, and a FINITE one.
+
+    LEG 1 of two (terra HIGH, pre-merge review 2026-09-01). `NaN` and the infinities are
+    `float` instances, so a type check alone admits them -- and `json.dumps` serialises them as
+    the bare tokens `NaN` / `Infinity`, which **RFC 8259 does not permit**. A strict OTLP or
+    JSON consumer rejects the whole payload, so the span is not merely wrong, it is silently
+    absent at the far end. That is the worst shape for a telemetry emitter: the failure lands
+    in someone else's parser, and the emitting side reports success.
+    """
+    if value is None:
+        return
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
         raise GenAiTelemetryError(f"{label} must be a number or None, got {type(value).__name__}")
+    if isinstance(value, float) and not math.isfinite(value):
+        raise GenAiTelemetryError(
+            f"{label} must be finite, got {value!r} -- NaN and the infinities serialise as "
+            f"non-standard JSON tokens that a strict consumer refuses")
 
 
 def emit_genai_span(
@@ -387,8 +403,19 @@ def emit_genai_span(
     attrs["devknowledge.run_id"] = resolved_run_id
 
     try:
-        attributes_json = json.dumps(attrs, sort_keys=True, default=str)
-        events_json = json.dumps(list(events) if events else [], sort_keys=True, default=str)
+        # LEG 2, independent of `_check_number`: `allow_nan=False` makes the SERIALISER refuse a
+        # non-finite instead of emitting `NaN`/`Infinity`. The validator covers the two cost
+        # fields it knows about; this covers every other route into the payload -- a caller's
+        # `events` mapping, or a future attribute nobody thought to validate. Two legs, because
+        # a validator and a serialiser fail at different times and for different reasons.
+        try:
+            attributes_json = json.dumps(attrs, sort_keys=True, default=str, allow_nan=False)
+            events_json = json.dumps(
+                list(events) if events else [], sort_keys=True, default=str, allow_nan=False)
+        except ValueError as exc:
+            raise GenAiTelemetryError(
+                f"span payload carries a non-finite number: {exc} -- it would serialise as a "
+                f"non-standard JSON token and be refused by a strict consumer") from exc
     except (TypeError, ValueError) as exc:
         raise GenAiTelemetryError(f"span is not JSON-serializable: {exc}") from exc
 
