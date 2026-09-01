@@ -2,11 +2,11 @@
   "_": "Committed baseline for the audit funnel-coverage ratchet (M3). Regenerate: python scripts/funnel_coverage.py --write-baseline. Contract, semantics and honest limits: scripts/funnel_coverage.py (module docstring + render_baseline).",
   "detector_id": "funnel-coverage/v1",
   "measured_at": "2026-09-01",
-  "measured_at_sha": "1059d04d",
-  "corpus": 838,
+  "measured_at_sha": "13fb1538",
+  "corpus": 843,
   "dispositioned": 78,
   "pending": 2,
-  "uncovered": 758,
+  "uncovered": 763,
   "provenance": "",
   "artifacts": [
     "2026-03-30-dev-practice-os-state-audit.md",
@@ -760,12 +760,17 @@
     "2026-08-31-census-templates-consumers.md",
     "2026-08-31-technical-agy-admission-and-quota-visibility.md",
     "2026-08-31-technical-batch-e-manifest.md",
+    "2026-08-31-technical-dm1-eval-comparison.md",
+    "2026-08-31-technical-dm2-otel-genai-events.md",
     "2026-08-31-technical-harness-portability-map.md",
     "2026-08-31-technical-hy3-disposition.md",
     "2026-08-31-technical-langgraph-class-rejection-record.md",
     "2026-08-31-verification-codespace-admission-probe.md",
     "2026-09-01-technical-dm4-local-memory-tier-l-evaluation.md",
     "2026-09-01-technical-night-window-report.md",
-    "2026-09-01-technical-universalization-instantiation-prep.md"
+    "2026-09-01-technical-tierb-b1-otel-genai-event-schema.md",
+    "2026-09-01-technical-tierb-b2-sda1-harbor-translation.md",
+    "2026-09-01-technical-universalization-instantiation-prep.md",
+    "2026-09-01-verification-batche-post-merge-terra-round.md"
   ]
 }
