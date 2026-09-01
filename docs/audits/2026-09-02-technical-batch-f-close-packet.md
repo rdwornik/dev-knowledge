@@ -262,3 +262,101 @@ NEW       the five merged-but-not-closed rows in section 3 are G's most concrete
 - **Credits per lane per model are ABSENT, not estimated.** `[#615]` is the row that fixes it.
 - **The L2 auth mechanism in `[#632]` is inference**, not proof — the nested-CLI failure it
   warns about IS proven; the channel behind it is not.
+
+---
+
+## AMENDMENT 3 — the codespace section, closed by `[#632]`'s win-tooling lane (2026-09-01)
+
+> Appended as an in-file amendment marker, not an in-place edit (CLAUDE.md §5 rule 3). §4's
+> efficiency panel already recorded ONE productive codespace proof from the prior seat
+> (1156 s, exit 0, 2 commits). This amendment supersedes that as the codespace section's
+> verdict, because the arc that followed it found the transport had been broken all along and
+> then proved the substrate at **n=2** under a hardened runner.
+
+### The n=2 verdict — VERBATIM
+
+Two lanes, two independently provisioned codespaces, both end-to-end, both committing and
+pushing from inside the container, both returning a receipt to the workstation.
+
+| | Lane A (M, sonnet, attached) | Lane B (S, `-Detach`) |
+|---|---|---|
+| Codespace | `lane-632-longrun-a-w95qprj5wq4cg67g` | `lane-632-admission-b-7r5j6v45qrr3wwqp` |
+| Provision | 6 s | 7 s |
+| Run | **863 s, remote exit 0** | dispatch **returned in 62 s**; work done by +3 m 53 s |
+| Receipt | in hand, `is_error:false`, `status:DONE` | harvested after the fact, same |
+| Turns / events | 76 / 338 | 28 / 99 |
+| Commits pushed from container | **2** (`4133cd19`, `7b3ba003`) | **1** (`7fbd54e7`) |
+
+**The hang is measured out, not hoped away.** The full hub suite ran in-container to completion
+in `294.07 s` real against `8 m 23 s` user and `42 s` sys — CPU proportional to wall-clock at
+every scale tried, the exact inverse of the recorded **75-min-elapsed / 3-second-CPU** hang
+signature. Nothing hung at any point in either lane.
+
+**L5 is RED on CONTENT, not on the substrate:** the suite exits non-zero because sixteen hub
+tests fail on their own merits. That is a hub repo-state row and it is named here rather than
+absorbed into the substrate verdict.
+
+**Teardown:** every codespace this arc created is deleted; `gh codespace list` empty. Free pool:
+0.1166 h of 2-core compute, **net $0.00**.
+
+### The four live-only defects — VERBATIM
+
+The brief named two defects in one cluster. **Running the thing found four more**, and the first
+had been silently breaking every real codespace dispatch since the transport was written. None
+was reachable by reading the code or by any offline test: the seam that records argv is not gh,
+and the container's own PATH is not visible from the workstation.
+
+**1 · The `--` block was appended AFTER the operands.** gh's usage is
+`cp [-e] [-r] [-- [<scp flags>...]] <sources>... <dest>` — every flag comes BEFORE the operands.
+After `--`, Cobra stops parsing flags, so a trailing `-- -O -i KEY` was never a passthrough at
+all: `-O`, `-i` and the key PATH became three extra FILE OPERANDS, and scp read the key path as
+its destination. Measured live, one 14-byte file per arm, each verified with `ls` **and** `cat`:
+
+```
+cp --expand SRC remote:DST -c NAME -- -O -i KEY   FAILED   "...codespaces.auto: Not a directory"
+cp -c NAME --expand -- -O -i KEY SRC remote:DST   LANDED   14 bytes, content correct
+cp -c NAME --expand SRC remote:DST                LANDED   14 bytes, content correct
+```
+
+Every prior live run died at the SSH key before cp moved a byte, which is why this survived.
+
+**2 · The dry run understated the live command.** It printed `bash <runner>` where the live path
+sends `bash -l <runner>` — the login shell being the exact token that had already cost a
+dispatch. A dry run that understates the live command is worse than none: it is consulted
+precisely when someone is confirming the live command is right.
+
+**3 · The admission gate refused on `gh`.** The first successful end-to-end run returned a
+receipt in 6 s saying `"gh is not authenticated in this container"`. The gate worked; the gate
+was wrong. That devcontainer has **no `gh` at all** (`bash: gh: command not found`) and does not
+need one — `GITHUB_TOKEN` is set and `git ls-remote origin HEAD` answers, which is every remote
+thing a committing lane does. Gating on gh refuses a container that is fit to run the work.
+`gh` became a reported field; `timeout 30 git ls-remote origin HEAD` became the gated one.
+
+**4 · The gate accepted `GITHUB_TOKEN` as an ANTHROPIC credential** — found by the proof lane
+auditing the runner it was running under. In its own words: the gate would have declared
+`adm_ok=yes` on a token that cannot authenticate `claude` at all, so **"the gate's green and the
+real green are correlated by luck in this run, not by what the gate verifies."**
+
+It then proved the obvious repairs are ALSO wrong: in that container `CLAUDE_CODE_OAUTH_TOKEN`
+is UNSET, `claude auth status` returns `{"loggedIn": false, "authMethod": "none"}`, and a fresh
+nested `claude -p` reproduces the documented trap verbatim — `"subtype":"success"` **with**
+`"is_error":true` and `"Not logged in"` — while the dispatched session ran 338 events fine,
+authenticated over `CLAUDE_CODE_MESSAGING_SOCKET`. **Both available probes false-negative.** So
+the two credential families are now probed and reported SEPARATELY, by name and never by value,
+and **neither gates**. A gate that cannot verify a thing must not claim to.
+
+**That is twice in one arc a gate was found asserting something it had not checked, and both
+were found by running rather than reading.**
+
+### Residual risk carried forward, not hidden
+
+- **The fuse is proven on a SYNTHETIC stall only.** The mechanism — event silence → kill →
+  diagnose → receipt — is exercised end-to-end by a test that fires it, but a genuine
+  provider-side hang cannot be induced on demand.
+- **`-Detach` versus the codespace idle timeout is UNMEASURED for a long lane.** A detached run
+  holds no ssh connection, and whether GitHub counts a background process as activity was never
+  tested. Lane B was too short to tell. **Attached long lanes are proven; detached long ones are
+  not.**
+
+Full evidence, timelines and receipts: `win-tooling` `docs/2026-09-01-lane-632-codespace-arc-packet.md`
+(merge `49cb75e`); substrate verdict recorded in `win-tooling` `config/dispatch/dispatch-cockpit.md` §7.

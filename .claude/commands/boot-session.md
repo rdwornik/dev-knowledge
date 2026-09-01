@@ -95,6 +95,33 @@ judgment a generator cannot have — rejections, tensions, and why. Write it fre
 not copy a prior session's RESIDUAL forward (the same discipline HANDOFF_PROCESS §2 already
 states for the CC-authored residual: re-narration drifts from its source).
 
+## 8. EXECUTION SUBSTRATE — render as a row, with its residual risk visible
+
+**Emit `EXECUTION=CODESPACE` as the default substrate.** Doctrine option 3, ruled 2026-09-01 on
+the `[#632]` proof: a codespace provisions in ~6 s, admits a lane, runs a real agentic contract,
+commits and pushes to `origin` from inside the container, and returns a receipt — proven at
+**n=2** on two independently provisioned machines, one attached and one `-Detach`ed. The hub
+suite ran there to completion with CPU proportional to wall-clock, the inverse of the recorded
+75-min-elapsed / 3-s-CPU hang signature that this doctrine change exists to retire.
+
+**The row carries its residual risk in the row, not in a footnote.** Render both, every time:
+
+```
+EXECUTION=CODESPACE (default, doctrine option 3, ruled 2026-09-01 on [#632] n=2)
+  residual risk 1  the inference fuse is proven on a SYNTHETIC stall only -- a real
+                   provider-side hang has never been induced on demand
+  residual risk 2  -Detach vs the codespace idle timeout is UNMEASURED for a LONG lane;
+                   attached long lanes are proven, detached long ones are not
+```
+
+**Do not drop the two risks to shorten the paste.** They are the honest half of a GREEN verdict,
+and a default substrate whose caveats are invisible is how a known limit becomes a surprise. If
+either is later measured out, delete that line here rather than silently ceasing to render it.
+
+Sources, both merged: `win-tooling` `config/dispatch/dispatch-cockpit.md` §7 (the verdict) and
+`docs/audits/2026-09-02-technical-batch-f-close-packet.md` AMENDMENT 3 (the n=2 table and the
+four live-only defects).
+
 ## Emit
 
 Prepend the ROLE PIN (the same mechanism §4 uses, extended — no separate refusal path):
@@ -103,7 +130,7 @@ Prepend the ROLE PIN (the same mechanism §4 uses, extended — no separate refu
 uv run --locked python scripts/assemble_paste.py --pin-only
 ```
 
-Then the seven sections above, each under its own `=== SECTION ===` header (the `assemble_paste`
+Then the eight sections above, each under its own `=== SECTION ===` header (the `assemble_paste`
 convention), and a terminal sentinel line `=== END OF PASTE — N sections · B bytes ===` — `N`
 counts sections actually rendered (RESIDUAL is one; a step reporting "unavailable" is still a
 rendered section, not a dropped one), `B` measures the body before the sentinel.
