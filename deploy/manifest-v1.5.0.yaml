@@ -25,10 +25,13 @@
 #      posture out of `README.md` and into `ecosystem/registry.md`. That matters to this manifest
 #      because it is what makes a hub README safe to model a TEMPLATE on: the version this
 #      release describes no longer contains this repo's own fleet roster.
-#   3. VISION.md's ARCHIVAL IS MEASURED AND BLOCKED, so no manifest here pretends otherwise --
-#      `audit.py health` exits 1 on `vision_md: VISION.md absent at repo root` and
-#      `gen_handoff.py` lifts VISION's `## Vision` section into every handoff bundle. The tier
-#      change is taken; the path change is not.
+#   3. VISION.md's ARCHIVAL IS NOT YET ATTEMPTED, not "measured and blocked" -- corrected
+#      2026-09-01, lane-b-2-handoff-v7: `VISION.md` is present at repo root today and
+#      `audit.py health` reports `check_vision_md: [OK]`, so no manifest here pretends
+#      otherwise. `gen_handoff.py._vision_extract` still reads VISION.md PRIMARILY (README.md
+#      is only its fallback for a registry-retired-AND-missing VISION.md, which is not this
+#      repo's state). The tier change is taken; the path change is not, and nothing is
+#      presently blocking it -- it simply has not been proposed.
 #
 # WHAT THIS RELEASE DELIBERATELY DOES NOT DECLARE, each with its measured blocker. Declaring a
 # component against a payload that does not exist "lints green but is undeployable" -- this
@@ -465,6 +468,29 @@ carriers:
         # spine re-point therefore requires a manifest VERSION BUMP, not a retro-edit, and
         # rides ADR-114 option (C) with it.
 
+  - id: boot-inversion
+    order: 8
+    implemented: false
+    description: >
+      The v7 BOOT-INVERSION carrier — `/boot-session`'s generated-from-live-state paste, the
+      FUNNEL HEALTH SessionStart digest extension, and the OPERATOR ASKS registry doctrine
+      (`protocols/HANDOFF_PROCESS.md` §17, STAGED at document version 6.3.0 -- see that
+      section's own callout and the 2026-09-01 section-history entry for why the version did
+      not move in the lane that built this). DECLARATION-ONLY at this cut (implemented:
+      false), same posture as the `editor-config` carrier above: the hub half is built
+      (`scripts/boot_frontier.py`, the extended `scripts/fleet_health.py`,
+      `.claude/commands/boot-session.md`, all tested) but no carrier module writes any of it
+      to a consumer yet, and authoring that module was outside this lane's frozen
+      write-scope. The consumer write-through, and the HANDOFF_PROCESS v7.0.0 bump this
+      carrier's real content depends on, are the integrator's next act — LANE-b-2-handoff-v7
+      end-of-lane artifact.
+    adr: []
+    target:
+      source_paths:
+        - .claude/commands/boot-session.md
+        - scripts/boot_frontier.py
+        - scripts/fleet_health.py
+
 components:
   - id: intake-area
     # kind: `config` follows the precedent of every OTHER file-copy component
@@ -877,6 +903,40 @@ components:
     roster:
       section: command
       line: "/override — bypass the ADR-85 session-end gate for this HEAD (logged, HEAD-bound)"
+
+  - id: boot-session-command
+    kind: command
+    carrier: boot-inversion
+    status: active
+    waivable: true   # a user-invoked command; narrates live state, is not itself a gate
+    verify: wired
+    engages:
+      trigger: operator-invoke
+      observable: transcript-event
+      expect: "boot-session"
+    artifacts:
+      - wiring: "command /boot-session -> scripts/boot_frontier.py --propose, scripts/fleet_health.py, scripts/funnel_lifecycle.py --report, scripts/assemble_paste.py --pin-only (all read/compose, none written to by this command)"
+    roster:
+      section: command
+      line: "/boot-session — assemble the v7 BOOT-INVERSION paste from live state: OPERATOR ASKS first, then FUNNEL HEALTH, north-star arcs, rot/orphan, open asks, PROPOSED NEXT BATCH, one hand-written RESIDUAL"
+
+  - id: funnel-health-digest
+    kind: hook
+    carrier: boot-inversion
+    status: active
+    waivable: true   # informational digest line — fail-soft by construction (funnel_health_line returns None on any read failure, never raises into SessionStart)
+    verify: wired
+    engages:                    # GATED — firing hook, SessionStart stage
+      trigger: session-start
+      observable: hook-stdout
+      expect: "[funnel]"   # fleet_health.main() prints "[asks] ..." then "[funnel] rot N / orphan N / unblocked N / batch N proposed"
+    artifacts:
+      - path: scripts/fleet_health.py
+        source: scripts/fleet_health.py
+      - wiring: "SessionStart hook (existing fleet_health.py entry, extended — no second hook registered)"
+    roster:
+      section: session-hook
+      line: "SessionStart: fleet_health.py prints [asks] OPERATOR ASKS then [funnel] rot/orphan/unblocked/batch before the existing fleet digest"
 
 # ---------------------------------------------------------------------------
 # doc_shapes — the canonical doc-shape declaration (kind doc-shape payload).
