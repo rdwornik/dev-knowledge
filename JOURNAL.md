@@ -21,7 +21,7 @@
 
 ### 2026-09-01 (ai) - CC (Opus 5): the spine unblocked before the lanes, and terra's refusal recorded at the seam it feeds
 
-**Anchors:** `c67d3807`, `e77bc5db`
+**Anchors:** `c67d3807`, `e77bc5db`, `193caf7f`
 
 **Did:** took the integrator seat for batch F, armed a STOP sentinel over the six live lanes, and
 **anchored the spine BEFORE touching the merge queue** — on the operator's ruling that anchors are
