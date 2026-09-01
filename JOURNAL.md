@@ -19,6 +19,60 @@
 
 ---
 
+### 2026-09-01 (m) - CC (Opus 5, attended): DM-1 and DM-2 land REVIEWED, and the pre-merge round earned its place on both
+
+**Anchors:** `c6801f9d`
+
+**Did:** dispatched, reviewed and merged the two lanes tier (B) unblocked. **Batch E is 13 of 15
+merged, 14 of 15 resolved.**
+
+**THE REVIEW RAN BEFORE THE MERGE THIS TIME, and it found something in each.** That is the whole
+difference from the six lanes earlier in this window, which got integrator verification only and
+whose post-merge round then turned up a CRIT.
+
+**DM-2 - a HIGH, and the failure shape is the reason it matters.** `_check_number` type-checked
+and stopped; `NaN` and the infinities ARE `float` instances, so they passed - and `json.dumps`
+serialises them as the bare tokens `NaN` / `Infinity`, which **RFC 8259 does not permit**. A
+strict OTLP consumer refuses the payload, so **the span is not wrong at the far end, it is
+ABSENT, while the emitting side reports success.** For a module built to hand spans to a
+PLUGGABLE EXTERNAL COLLECTOR that is the worst available shape: the failure lands in someone
+else's parser. Fixed at two legs - the validator by name, and `allow_nan=False` on both
+serialisation calls for every route the validator does not know about.
+
+**AND DM-2 SHIPPED 419 LINES WITH NO TEST MODULE.** Its own done-contract said *"Run the TARGETED
+tests for this diff"* and there were none to run. Not a criticism of the lane's reasoning, which
+is careful and well-documented - it is exactly the gap a review exists to catch. 13 tests now
+cover the numeric-payload contract, and the file's docstring **names what it does not cover**
+rather than letting a green module imply coverage it lacks.
+
+**DM-1 - two findings, one UPHELD and one REFUTED, and checking mattered both times.** Refuted:
+the reviewer read "9/9" and called it false against N-04's contaminated verdict; the artifact
+already says "9/9 **scalar** items" and flags N-04 as scalar-only in the same row. **Upheld:**
+section 10 claimed *"every script body ... is reproduced verbatim above, so nothing is lost by
+the deletion"*. Measured - five fenced blocks, and `build_and_run.py` and
+`naive_verifier_check.py` appear **by name only**. The qualifier *"relevant to this report"* made
+the claim unfalsifiable rather than true. Corrected to state what IS reproduced, what is not, and
+that **the 9/9 and 4/4 numbers rest on the report rather than on re-runnable artifacts.** The
+verdicts are unchanged; only the claim about reproducing them is.
+
+**A THIRD LESSON, cheap and repeated: an assertion took three attempts.** The leg-2 test counted
+raw occurrences (3 - the explanatory comment carries the token), then counted line-wise (3 sites,
+one apparently unguarded - the second call wraps across two lines), before stripping comments and
+counting source. **An assertion that was wrong twice is worth more as a recorded story than as a
+number**, so the test keeps all three readings in its comment.
+
+**Both lanes hit LANE TREE-LAG again** - the integrator's own merges had moved main forward while
+they worked - and the documented sync-merge cleared it, as it did three times last night.
+
+**Result:** only DC-23 remains open, and the operator has already SPLIT it: DC-3 runs alone, DC-2
+is re-cut as a fleet-coupled arc. Worktrees: primary only.
+
+**Changes:** the two lane merges, `tests/test_cost_usage_telemetry.py`,
+`scripts/cost_usage_telemetry.py`, both DM audits, `docs/audits/README.md`, `tasks/614-*.md`,
+both per-window baselines, `JOURNAL.md`.
+
+**Next:** DC-3 alone; the (b) logs row; the (c) agy row; rulings 3-6.
+
 ### 2026-09-01 (l) - CC (Opus 5, attended): the README template lands and costs the silent-rule pool nothing
 
 **Anchors:** `eaaeafa2`
