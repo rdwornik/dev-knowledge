@@ -178,7 +178,6 @@ Location: `Dev/.dev-knowledge/` — visible in VS Code workspace as `📓 .dev-k
 
 ```
 CLAUDE.md                       ← Single canonical agent-instruction contract (ADR-53)
-VISION.md                       ← Mission, scope, relationships
 ARCHITECTURE.md                 ← Structural model (ADR-51)
 JOURNAL.md                      ← Per-session tactical log (newest-first; carries notable-change record)
 LESSONS.md                      ← Append-only lessons log

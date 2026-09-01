@@ -4,12 +4,21 @@ CLOUD-4 v2's answer to `docs/audits/2026-08-21-fresh-eyes-cloud-r2-universalizat
 §1.5 GO-(b): ONE table the ten machine constants read, instead of ten independent literals.
 
 **These tests still do not assert a RENAME — because none happened.** `cdocs.VISION` is
-still the string `"VISION.md"` and the file is still tracked at the root, byte-identical.
-What `[#614]` lane-a changed is the doc's **TIER**, not its name: `VISION.md` left
+still the string `"VISION.md"`; that identity is deliberately UNCHANGED by the hub's own
+relocation ([#614] lane-e-5, 2026-09-01: `git mv VISION.md docs/archive/VISION.md`,
+byte-identical). What moved is the file's LOCATION at the hub, not the canonical NAME the
+registry holds for it — the two are different questions, and every one of the ten sites
+that reads `cdocs.VISION` already tolerates root-absence via the `CANONICAL_RETIRED`
+degrade path (built by DC-1 before this lane), so the relocation needed no synchronized
+edit to the name. `CANONICAL_RETIRED_LOCATIONS` is the one addition: it maps a retired
+name to where its hub copy actually lives, for the two sites (`nopack_sandbox.py`,
+`consumer_at_landing.py`) that matched a literal path rather than reading this registry.
+What `[#614]` lane-a changed earlier was the doc's **TIER**, not its name: `VISION.md` left
 `CANONICAL_MANDATORY` for `CANONICAL_RETIRED`, and `README.md` became MUST at the hub via
 `CANONICAL_HUB_MANDATORY`. R2 §1.5 verdicted the *rename* NO-GO as briefed and that verdict
-is untouched; the sequenced fleet-wide filename migration (ADR-114 option (C)) is still
-future work. What these tests assert, as before, is that the ten sites name the SAME
+is untouched; the sequenced FLEET-WIDE filename migration (ADR-114 option (C), the other
+eight members) is still future work — this lane executed only the hub's own step one.
+What these tests assert, as before, is that the ten sites name the SAME
 strings — which is exactly what made a tier decision landable in one file.
 
 Three groups:
@@ -51,14 +60,30 @@ _CONFORMANCE_HUB = ".claude/workflows/conformance-hub.js"
 # --- the value is unchanged ----------------------------------------------------------------
 
 def test_the_registry_still_says_vision_md():
-    """A tier moved; the NAME did not. If this line ever changes it is a ruled decision
-    (ADR-114 option (C)'s nine-repo filename migration), not a lane.
+    """A tier moved, and (2026-09-01) a hub LOCATION moved -- the canonical NAME did not.
+    If this line ever changes it is a ruled decision (ADR-114 option (C)'s nine-repo
+    filename migration), not a lane.
 
     Pinned deliberately alongside the retirement: retiring `VISION.md` from the mandatory
-    set and RENAMING it are different acts, and this line is what keeps the second from
-    riding in on the first.
+    set, relocating the hub's own copy, and RENAMING the canonical identity are three
+    different acts, and this line is what keeps the third from riding in on the first two.
     """
     assert cdocs.VISION == "VISION.md"
+
+
+def test_the_retired_location_map_names_where_the_hub_copy_actually_lives():
+    """[#614] lane-e-5 (2026-09-01): the NAME (`cdocs.VISION`) and the hub's current PATH
+    are deliberately two different questions -- see `test_the_registry_still_says_vision_md`.
+    This is the registry entry the two literal-path sites (`nopack_sandbox.NEVER_REMOVE`,
+    `consumer_at_landing.POOL_ROOT_FILES`) now read instead of a bare "VISION.md" string.
+    """
+    assert cdocs.CANONICAL_RETIRED_LOCATIONS[cdocs.VISION] == "docs/archive/VISION.md"
+    assert set(cdocs.CANONICAL_RETIRED_LOCATIONS) <= set(cdocs.CANONICAL_RETIRED)
+
+
+@pytest.mark.live_repo
+def test_the_relocated_vision_file_exists_where_the_map_says():
+    assert (_REPO_ROOT / cdocs.CANONICAL_RETIRED_LOCATIONS[cdocs.VISION]).is_file()
 
 
 def test_the_mandatory_set_is_the_adr38_a6_seven_minus_the_retired_vision():

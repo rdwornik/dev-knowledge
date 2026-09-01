@@ -64,6 +64,27 @@ All 7 are AI Council debate outputs (identical structure to the council-out-* fi
 - `2026-03-29-council-research-new-models.md` — Council research: new LLM models/APIs Mar 2026
 - `2026-03-29-council-browser-handoff.md` — Council debate: browser→CLI handoff strategy
 
+## Retired-canonical-doc class (added 2026-09-01, [#614] lane-e-5)
+
+**`VISION.md` does NOT enter the pending-classification queue above, and the distinction
+matters.** Every other entry in this folder sits here because its destination is
+*undecided* — the periodic-review default (§"How to review") is to delete or promote
+once a decision is reached. `VISION.md`'s disposition is **already decided**: ADR-114
+(Accepted 2026-08-29) retired it from the mandatory canonical set, `canonical_docs.py`'s
+`CANONICAL_RETIRED` registers the retirement, and this lane executed the hub's own
+relocation — `git mv VISION.md docs/archive/VISION.md`, byte-identical — as step one of
+ADR-114 option (C)'s sequenced nine-repo filename migration (`docs/audits/2026-09-01-technical-dc3-split.md`
+§4). It is exempt from the "sits here across two reviews → default to deletion" rule for
+the same referential reason the 2026-08-26 exemption class states: it is still read by
+`gen_handoff._vision_extract`'s retired-tier fallback and still shape-checked by
+`canonical_docs.CANONICAL_SPINE`, so deleting it is not this folder's call to make. It
+also does not follow this folder's `YYYY-MM-DD-{slug}.md` naming convention below — a
+relocated canonical doc keeps its own name (`git log --follow` needs the identity stable),
+the same way a promoted file keeps its name on the way *out* of this folder.
+
+Next act on this file, if any, is [#621]/[#622] (the fleet-wide migration) or a further
+ADR-114 ruling — not a periodic archive review.
+
 ## Naming convention
 
 `YYYY-MM-DD-{descriptive-slug}.md` — same as the live `docs/` folders, so a file's date is visible on archive too.

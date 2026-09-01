@@ -88,6 +88,7 @@ if str(_SCRIPTS) not in sys.path:  # importable both as a module and as a script
     sys.path.insert(0, str(_SCRIPTS))
 
 from funnel_coverage import _AUDIT_NAME_RE  # noqa: E402  — see LIBRARY-FIRST above
+import canonical_docs  # noqa: E402  — CANONICAL_RETIRED_LOCATIONS, see POOL_ROOT_FILES below
 
 logging.basicConfig(format="%(name)s: %(message)s", level=logging.INFO)
 logger = logging.getLogger("consumer-at-landing")
@@ -120,8 +121,12 @@ CORPUS_EXCLUDE: frozenset[str] = frozenset({"README.md"})
 #: which it included because *"they are decision-bearing surfaces and excluding them would
 #: overstate the orphan count."*
 POOL_DIRS: tuple[str, ...] = ("tasks", "docs/decisions", "docs/intake", "protocols")
+#: `VISION.md` reads via the registry, not a literal -- [#614] lane-e-5 (2026-09-01) found
+#: the literal silently dropped the file from this pool when it relocated to
+#: `docs/archive/VISION.md` (`repo_path / "VISION.md"` no longer resolved to a real file).
 POOL_ROOT_FILES: tuple[str, ...] = (
-    "BACKLOG.md", "ARCHITECTURE.md", "CLAUDE.md", "LESSONS.md", "VISION.md", "CONTRIBUTING.md")
+    "BACKLOG.md", "ARCHITECTURE.md", "CLAUDE.md", "LESSONS.md",
+    canonical_docs.CANONICAL_RETIRED_LOCATIONS[canonical_docs.VISION], "CONTRIBUTING.md")
 
 #: A governance citation, in the four forms the row names (row / ADR / register / intake).
 #: `ADR-\d` carries a digit-boundary guard for the same reason the diagnostic's did.

@@ -33,11 +33,22 @@ consumer-side promotion travels by the deploy carrier declared in
 `deploy/manifest-v1.4.0.yaml`, repo by repo, in CUT-1's ruled migration order
 `hub -> monorepo -> ai-council -> win-tooling`.
 
-**`VISION.md` itself is untouched — byte-identical, still tracked at the root.** It is
-retired from a mandatory ROLE, not removed from the tree. That is deliberate and it is
-load-bearing: `gen_handoff._vision_extract` still reads its `## Vision` body, and its
-`CANONICAL_SPINE` entry still shapes the eight fleet copies that do exist, so both are left
-in place below rather than moved with the tier.
+**`VISION.md`'s CONTENT is untouched — byte-identical — but at the hub it no longer sits at
+the root.** `[#614]` lane-e-5 (2026-09-01) relocated it via `git mv` to `docs/archive/VISION.md`,
+the hub's own step one of ADR-114 option (C)'s sequenced nine-repo filename migration; the
+other eight fleet members still carry it at their root, unmoved. It is retired from a
+mandatory ROLE, not removed from the tree, and this constant (`VISION` below) still names
+the bare filename `"VISION.md"` rather than the hub's new path — deliberately: every
+consumer of this constant (`check_vision_md`, `gen_handoff._vision_extract`,
+`SECTION_HISTORY_DOCS`, `STRUCTURE_DOCS`, `BACKPRESSURE_CANON`) already resolves it via
+`CANONICAL_RETIRED`-driven absence handling (root-absent-but-retired degrades gracefully,
+never FAILs), which is exactly the mechanism DC-1 built so this relocation would need no
+synchronized edit across every consumer. `gen_handoff._vision_extract` still reads the
+`## Vision` body when present, falling back to README's own section when it is not; its
+`CANONICAL_SPINE` entry still shapes the eight fleet copies that do exist. The two sites
+that DID need a location-aware fix because they match by literal path rather than through
+the registry — `nopack_sandbox.NEVER_REMOVE`, `consumer_at_landing.POOL_ROOT_FILES` — read
+`CANONICAL_RETIRED_LOCATIONS` below instead.
 
 The ten machine constants this serves, by the names R2 §1.2 uses:
 
@@ -110,6 +121,21 @@ CANONICAL_MANDATORY: tuple[str, ...] = (
 # the tier VISION.md moved into; it is deliberately a tuple so a second retirement appends
 # rather than rewrites.
 CANONICAL_RETIRED: tuple[str, ...] = (VISION,)
+
+# Where a RETIRED name's HUB COPY actually lives, when retirement is followed by a location
+# move (as opposed to every other consumer of CANONICAL_RETIRED, which reads only the NAME
+# and tolerates root-absence via the CANONICAL_RETIRED-driven degrade -- check_vision_md,
+# gen_handoff._vision_extract, SECTION_HISTORY_DOCS/STRUCTURE_DOCS/BACKPRESSURE_CANON). Two
+# sites match by LITERAL repo-relative path rather than through this registry --
+# `nopack_sandbox.NEVER_REMOVE` (fnmatch, full-string) and
+# `consumer_at_landing.POOL_ROOT_FILES` (`repo_path / rel` existence) -- so a bare-name
+# retirement is invisible to a relocation for exactly those two, and [#614] lane-e-5
+# (2026-09-01) found both silently drifted when `VISION.md` moved to `docs/archive/VISION.md`.
+# Keyed by the CANONICAL_RETIRED name so a second retired-and-relocated doc extends this map
+# rather than repeating the pattern; VALUE is a plain repo-relative path, not a re-derived name.
+CANONICAL_RETIRED_LOCATIONS: dict[str, str] = {
+    VISION: "docs/archive/VISION.md",
+}
 
 # MUST at the HUB only. The seam that lets a canonical promotion land at the hub without
 # enrolling the eight children in it -- README.md's case, and the reason ADR-114's fleet-wide
