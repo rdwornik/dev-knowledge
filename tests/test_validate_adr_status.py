@@ -798,7 +798,11 @@ def test_shipped_corpus_parses_one_status_field_per_live_adr():
     fields, missing, extra = vas.scan_zone(vas.LIVE_DIR)
     assert missing == [], f"live ADRs with no status field: {missing}"
     assert extra == [], f"live ADRs with >1 status field: {extra}"
-    assert len(fields) == 88, "live ADR count moved — re-measure the Step-1 baseline"
+    # RE-MEASURED 2026-09-01 at the batch-E close: 88 -> 89. The delta is ONE ADR and it is
+    # named: ADR-116 (the fuzzy-band acceptance shape) landed 2026-08-30 on `704f5a07`. No
+    # other member moved. Recorded here rather than in a commit message alone, because the
+    # number is the baseline and a baseline with no cause is a number nobody can re-derive.
+    assert len(fields) == 89, "live ADR count moved — re-measure the Step-1 baseline"
 
 
 def test_shipped_corpus_grammar_distribution_matches_the_measured_baseline():
@@ -806,7 +810,10 @@ def test_shipped_corpus_grammar_distribution_matches_the_measured_baseline():
     counts: dict[str, int] = {}
     for f in fields:
         counts[f.grammar] = counts.get(f.grammar, 0) + 1
-    assert counts == {"G1": 41, "G2": 34, "G3": 12, "G4": 1}
+    # RE-MEASURED 2026-09-01: G1 41 -> 42, the same single cause as the count above
+    # (ADR-116 carries a G1-shaped status field). G2/G3/G4 are unchanged, which is the
+    # check that the delta really is one ADR and not a grammar drift wearing its clothes.
+    assert counts == {"G1": 42, "G2": 34, "G3": 12, "G4": 1}
 
 
 def test_shipped_corpus_has_zero_enum_violations():

@@ -19,6 +19,73 @@
 
 ---
 
+### 2026-09-01 (d) - CC (Opus 5, background job, night orchestrator): the filing pass, the six drift families, and a window report that is deliberately NOT the batch close packet
+
+**Anchors:** `87c34b91` `2816658a` `85ff0b76` `71b96b7d`
+
+**Did:** filed two intake SEEDs, worked all six drift families, ran the full suite once at
+integration, and wrote the window report.
+
+**TWO SEEDS, AND NEITHER IS A ROW -- that is the point.** Z-G1 permits a direct `tasks/` birth
+only for a RULED PACKET ROW; a raw finding gets CANDIDATE -> intake -> ratification and no other
+route. **#64** carries A7's quota-locator proposal *with its counter-precedent attached* -- two
+days old, `86bed82`, where a rich provider entry was refused on the ground that *"the registry is
+a provider/CLI identity surface"*. **#65** carries tonight's own measurement. **No agy admission
+act was taken**, because A7's verdict is that nothing in `tasks/` authorises one and the rerun
+that would settle it is itself blocked on an untriaged intake. The honest filing is the absence.
+
+**THE DRIFT PASS FOUND TWO REAL DEFECTS HIDING INSIDE WHAT LOOKED LIKE COUNT NOISE.** D1's live
+measurement diverged from baseline on FOUR axes, and only two were the expected +1s.
+**`ADR-114`'s header has read `Accepted` since the operator ruled on 2026-08-29 while the ADR
+index still led its row with `PARKED`** -- a superseded status carried for three days. And
+**`ADR-116` had no index row at all**, which the checker reports as `unindexed`: a state where
+coherence is *indeterminate* rather than clean, because there is no index value to compare
+against. **Both were fixed rather than baselined over**, after which the distribution returns to
+exactly the measured `coherence=3` on {ADR-45, ADR-46, ADR-47}. Only then were the two genuine
+deltas re-stamped -- count `88 -> 89`, `G1 41 -> 42`, single cause ADR-116, G2/G3/G4 unchanged as
+the check that it is one ADR and not grammar drift wearing its clothes. **Re-stamping first would
+have recorded two live defects as normal.**
+
+**D3 SPLIT, AND ONE HALF WAS MINE.** The consumption sweep cited seven censuses by BARE filename;
+doc_rot's citation regex false-strips a bare dated name. Re-written with `docs/audits/` paths --
+which doc_rot accepts and `consumer_at_landing` still resolves, verified both ways. The other half
+did NOT clear and the reason is a finding: ARM 1 fires on `BACKLOG#267` (*3 history dates spanning
+53d*), and the ratified relief `scripts/archive_row_body.py` **cannot reach it** -- `propose`
+reports exactly one relocatable row and it is `[#610]`. **The arm fires on a row the relief
+mechanism does not reach.**
+
+**THE SUITE: 11 failed / 4,735 passed in 17m37s, against 0b's pre-batch `28 failed / 4,605
+passed`** -- and that baseline was taken in a WORKTREE, so 19 of its 28 were environment
+artefacts this run does not have. **All eleven are classified and only TWO were caused here**:
+the generated audits index went stale when three audits landed. A *lane* must not regenerate that
+index; **the integrator at close must**, and that is now recorded as an integrator obligation
+rather than learned again next batch. Two more are full-suite-only false REDs that pass in
+isolation -- a measurement taken while the corpus is being measured. One is newly named:
+`test_desired_state_report`'s MEMBERS pin lists five members against a live seven and has since
+2026-08-19; **not fixed**, because the pin is a shared fixture constant and widening it without
+establishing why `terminal-setup` and `win-tooling` entered the model would hide the signal.
+
+**N4's ELEVEN STRUCTURAL WARNs ARE UNLOCATABLE, which is stronger than unverified.** Searched at
+HEAD across `docs/`, `protocols/`, `scripts/` and `tasks/`: the phrase appears in **two places,
+both of them PLAN.md restating its own unverified claim**. No census enumerates eleven; no surface
+names which eleven. The claim cannot be verified OR refuted because its subject does not resolve
+-- the same disposition PLAYBOOK already gives the *"five-pillar close"* term.
+
+**THE WINDOW REPORT IS NOT THE BATCH CLOSE PACKET, deliberately.** The manifest names
+`docs/audits/2026-09-01-technical-batch-e-close-packet.md` as `closed_by:`, and the batch is open
+only while that path is ABSENT. Four items are open -- DC-23 refused, DM-1/DM-2 blocked on
+tier-(B), DM-4 still running -- so landing that path tonight would end the ADR-110 exemption and
+close the batch **by assertion**, which its own REFUSE-TO-FINISH section forbids by name.
+
+**Result:** batch E at 11 of 15 merged; the report is at
+`docs/audits/2026-09-01-technical-night-window-report.md`, reporting against N1-N9 verbatim.
+
+**Changes:** `docs/intake/` (+2 SEEDs, both generators run), `docs/decisions/README.md`,
+`tests/test_validate_adr_status.py`, `ecosystem/audit-funnel-baseline.json`,
+`ecosystem/audit-consumer-baseline.json`, `docs/audits/README.md`, `tasks/614-*.md`, the report.
+
+**Next:** harvest DM-4 when it stops; push both repos.
+
 ### 2026-09-01 (c) - CC (Opus 5, background job, night orchestrator): the integrator's own merge wedged three of four lanes, and the doctrine that names it lands in the same window
 
 **Anchors:** `5c7e9e37` `c372c43f` `ad9e539d` `f38ef0cb` `57595fbc`
