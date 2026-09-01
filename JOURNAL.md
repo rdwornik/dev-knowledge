@@ -21,7 +21,7 @@
 
 ### 2026-09-01 (an) - CC (Opus 5): a leftover sweep found an independent witness, not a leftover
 
-**Anchors:** `7fbd54e7`
+**Anchors:** `7fbd54e7`, `8b0b375c`
 
 **Did:** swept origin for branches the batch never accounted for, and found one:
 `worktree-lane-632-codespace-admission`, a single unmerged commit carrying a
