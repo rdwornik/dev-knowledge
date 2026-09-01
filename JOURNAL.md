@@ -19,6 +19,44 @@
 
 ---
 
+### 2026-09-01 (ai) - CC (Opus 5): the spine unblocked before the lanes, and terra's refusal recorded at the seam it feeds
+
+**Anchors:** `c67d3807`, `e77bc5db`
+
+**Did:** took the integrator seat for batch F, armed a STOP sentinel over the six live lanes, and
+**anchored the spine BEFORE touching the merge queue** — on the operator's ruling that anchors are
+integrator work that precedes lane commits rather than packet work that follows them.
+
+**THE GAP WAS BLOCKING EVERY LANE, NOT JUST THE PACKET.** Two `--no-ff` merges sat on main's
+first-parent spine with no JOURNAL anchor: `3a4066eb` (the dashboard-home ruling filing) and
+`3fe5db59` (the BOOT-R1 survey). `journal_spine_anchor` is a **FAIL**, not a WARN, so it wedged
+the commit gate repo-wide — which is precisely why **L5 sat with 13 files ready and 0 commits.**
+That lane was not stalled; it was correctly refusing to commit into a broken gate. The ADR-110
+declared-integration-arc exemption did **not** cover either merge: it requires a `worktree-lane-*`
+branch, and neither `worktree-dashboard-home-ruling-filing` nor `worktree-boot-r1-survey` matches.
+
+**Result:** spine clean. This entry names the SHAs the two merges INTRODUCED — never their own
+hashes, which is the predicate `journal_anchor` actually enforces.
+
+**TERRA REFUSED THE ARTIFACT THE NEXT LANE WAS ABOUT TO CONSUME.** The BOOT-R1 survey landed, but
+its pre-merge review returned **two HIGH defects**, not a clean pass: the "BUILD NOTHING" verdict
+is stronger than the single-project study it cites, and **§7.3 contradicts §9.1** — the measured
+result shows a naive top-K slice *collides*, which is not the same claim as contention *inverting*,
+so telling F1 to *import* `rank_key` sits against telling it to *exclude* contention. This matters
+beyond the artifact: **L2's scoring seam was pinned to exactly that §9 pin.** The seam is recorded
+CONSUMED-WITH-QUALIFICATION — import `rank_key` (both sides agree), do not build on "contention
+inverts" until it is replicated at n>1.
+
+**Changes:** `docs/audits/2026-09-01-verification-batchf-terra-tallies.md` (new, running record),
+`docs/audits/README.md` (regenerated), plus the two merges above.
+
+**Abandoned:** nothing.
+
+**Next:** merge queue serially — lane-c, lane-d and lane-g have STOPPED clean; lane-f STOPPED with
+**zero output** and needs a verdict; lane-b and lane-e still live. Then the v7 atomic bump.
+
+---
+
 ### 2026-09-01 (ah) - CC (Opus 5): phase boundary - the handover goes into the manifest, and the seat stops
 
 **Anchors:** `8383df71`
