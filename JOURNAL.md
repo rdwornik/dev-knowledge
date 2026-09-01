@@ -19,6 +19,41 @@
 
 ---
 
+### 2026-09-01 (an) - CC (Opus 5): a leftover sweep found an independent witness, not a leftover
+
+**Anchors:** `7fbd54e7`
+
+**Did:** swept origin for branches the batch never accounted for, and found one:
+`worktree-lane-632-codespace-admission`, a single unmerged commit carrying a
+**codespace admission independent-witness report** for `[#632]`. Merged it.
+
+**IT IS A SECOND WITNESS, WHICH IS THE POINT.** The long-run proof lane reported L4 TOOLCHAIN
+GREEN and claimed that REVERSES the standing *"uv absent from the container"* defect — a
+load-bearing claim resting on a single source. This report reaches the same measurement
+independently: `command -v uv` → `/usr/bin/uv`, `uv 0.11.19`, `pyproject.toml:25`
+`required-version = "==0.11.19"`, exact match. **The reversal now has two witnesses.** It also
+records `gh`'s absence in the container as measured and NON-GATING rather than filing it as a
+defect, and reports a visible login-shell PATH defect **as captured** rather than tidied — the
+right posture for a witness.
+
+**THE SWEEP IS THE LESSON.** It was in no manifest, no contract and no lane roster; `git worktree
+list` was already clean and `git branch` looked clean, because the branch existed only on
+**origin**. A teardown checked locally would have declared victory with this orphaned. The B1
+rule's "both places, or the merge is unfinished" cuts in the read direction too: **sweep origin,
+not just the local tree.**
+
+**Result:** origin carries `main` and `automation/fleet-audit` (permanently protected) and
+nothing else. Local carries the same two.
+
+**Changes:** `docs/audits/2026-09-01-verification-codespace-admission-report.md` merged,
+`docs/audits/README.md` regenerated.
+
+**Abandoned:** nothing.
+
+**Next:** unchanged — the operator rules on batch F's five open rows and the substrate question.
+
+---
+
 ### 2026-09-01 (am) - CC (Opus 5): the v7 bundle cut, and the size bar it was cut to prove is MISSED
 
 **Anchors:** `02f893d0`, `558e2878`
