@@ -347,3 +347,43 @@ which await a deliberate operator decision and are deliberately not deleted here
 for it — a measured process holding a directory — is worth keeping. Overwriting it would erase the
 record that a live lane session can outlive its own worktree and block a batch's teardown, which
 is the transferable part.
+
+---
+
+## AMENDMENT 2 — 2026-09-01: §2's tier-(C) reading and §4's "unexplained" codespace
+
+> **In-file amendment marker** (CLAUDE.md §5 rule 3). Both sections above stand as written; this
+> records what later evidence overturned.
+
+**§2 reported tier (C) as RED and concluded *"Z-G3's entry condition is NOT met."* That was true
+of the probe it read and false of the day.** The probe was a **REBUILD**, and the manifest's
+tier-(C) section quoting it was frozen at dispatch. At `c8bf1390` (2026-08-31 22:56, JOURNAL
+2026-08-31 (i)) a **fresh CREATE** returned 3-of-3 green: L2 `is_error False` with
+`"ADMISSION-PROBE-OK"` on `claude-opus-5`, `FETCH_EXIT=0`/`PUSH_EXIT=0`, and `audit.py health`
+exit 0 with `health: OK` **in-container**. Rebuild does not re-apply the devcontainer
+configuration; create does. **Codespace is ADMITTED for committing lanes on the F1–F4
+configuration.**
+
+**§4 called `animated-dollop-rr65q4v6jgphxr4g` on `probe/admission-roundtrip` an asset that
+"appears in NO batch-E artifact". It is the fresh-create admission probe container** — created
+22:41, twenty-five minutes before the admission merge. It appeared in no artifact because every
+artifact that would have named it was written earlier the same day. Its branch was already deleted
+from origin by that session.
+
+**§4's asset row is therefore revised**, and the disposition is unchanged but now for a stated
+reason rather than an unknown one:
+
+```
+codespaces  2 Shutdown, both explained:
+  batche-c-admission-*      the REBUILD probe. JOURNAL 2026-08-31 (i) is explicit that it
+                            "is NOT the evidence for this and should not be reused."
+  animated-dollop-*         the fresh-CREATE admission probe -- the container that produced
+                            the 3-of-3 receipt.
+  DISPOSITION (architect's batch-F cut): delete BOTH, after F0 creates its own.
+```
+
+**Why this is an amendment rather than a correction in place.** The batch's own record should show
+that its close packet inherited a stale RED from a manifest section frozen at dispatch, and that
+the overturning evidence had been sitting in `JOURNAL.md` for eighteen hours. **Derive from the
+JOURNAL as well as the artifacts, or derive stale** — that is the finding, and deleting the wrong
+claim would delete it too.
