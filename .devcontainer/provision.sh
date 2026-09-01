@@ -447,11 +447,15 @@ smoke_gate_liveness() {
   say "C2 OK — a real gate executed here and returned 0"
 }
 
-# --- F1: the Claude CLI, installed here rather than by a feature that lies -----------------------
-# The `claude-code:1.0` devcontainer feature was dropped 2026-08-31 after it left NO binary on
-# two builds, one of them a `--full` cache-busting rebuild, while `creation.log` recorded
-# `Outcome: success`. Anthropic's docs call the native installer the recommended path; it ships a
-# native binary with no Node runtime dependency, so nothing here provisions Node for it.
+# --- F1: the Claude CLI, installed here and ASSERTED ---------------------------------------------
+# The `claude-code:1.0` devcontainer feature was dropped 2026-08-31. The original reason recorded
+# here -- "it left NO binary on two builds, one of them a `--full` cache-busting rebuild" -- is
+# WITHDRAWN and re-scoped the same day: a `rebuild --full` does not re-apply `devcontainer.json`,
+# so neither build had run the feature at all. What the evidence supports is "a rebuilt container
+# does not re-run features or postCreate", not "the feature is broken" (JOURNAL 2026-08-31 (j),
+# ruling CREATE-NEVER-REBUILD). The removal stands on the remaining reason: Anthropic's docs call
+# the native installer the recommended path, it ships a native binary with no Node runtime
+# dependency, and installing here is what makes the ASSERT below possible.
 # THE ASSERT IS THE POINT: a container without a working agent must never read as a good build.
 leg_f1_claude() {
   if command -v claude >/dev/null 2>&1; then

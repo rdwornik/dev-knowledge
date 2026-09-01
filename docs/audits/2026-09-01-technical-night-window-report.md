@@ -422,3 +422,87 @@ Plus, owed and named rather than quietly dropped:
 deliberately ABSENT from this tree, which is what keeps the ADR-110 exemption armed for the lanes
 that remain. Writing it tonight would end the exemption while four items are open and would be
 closing the batch by assertion — the one thing its manifest names as forbidden.
+
+---
+
+## AMENDMENT 1 — 2026-09-01 02:45, appended after the report first landed
+
+> **In-file amendment marker, not an edit.** `docs/audits/` is immutable (CLAUDE.md §5 rule 3),
+> so the body above stands exactly as written at 02:20. Everything below happened afterwards and
+> changes three of the numbers it reports. **Where the two disagree, this section wins.**
+
+### N3 moves from 2-of-4 to 4-of-4
+
+The body records the two step-4 binding mechanisms as **NOT BUILT**, with the reason that they
+target `scripts/`, which was a live lane's frozen write-scope. **That condition ended when HY-3
+merged**, and both were built with RED-first witnesses in the two hours after this report landed.
+
+**`5069ce5f` — the audits index REFUSES a title-less artifact.** `_title_of` returned the
+placeholder `(no # title)` and nothing read it: **20 of 837 indexed audits render it**, nine of
+them harvested cloud artifacts whose persist shape leads with a PROVENANCE blockquote and never
+emits an H1. Armed as a RATCHET against `ecosystem/audit-title-baseline.json` — the 20 are
+grandfathered, the 21st refuses — with a DRAIN direction as well, because a ratchet that only
+grows is a debt register nobody pays down. **The rule is H1-PRESENT, not H1-FIRST**, and that has
+its own test: `_title_of` searches the whole file, so an artifact whose provenance precedes its
+heading already indexes correctly and pinning the order would refuse files that render perfectly.
+Wired into `--check`, which the `audit-index-freshness` hook already runs, so no new `ALL_CHECKS`
+member and none of the six count pins move.
+
+**`4e6e0e2e` — a DECLARED input that does not open is a finding.** Measured: a probe contract
+citing `docs/audits/2026-01-01-technical-DOES-NOT-EXIST.md` beside two real locators made
+`preflight_contract` report *"2/2 locator claim(s) resolved"*. Scoped to clauses that DECLARE a
+dependency, because a leg judging every in-repo path would refuse every contract this repo
+freezes for naming its own `## Write-scope` output. **Swept over all 22 frozen batch-E contracts:
+zero findings** — armed against real contracts and refusing none of them.
+
+### Two corrections to the body's own numbers
+
+- **§11 said `templates/ live 47 -> 45`.** Re-measured: **43 → 41** excluding `templates/archive/`;
+  47 is the tracked total under `templates/` either way, which is unchanged by a relocation.
+- **§1's N5 row and §5 were written before the audits index was regenerated.** Two of the eleven
+  suite REDs (`test_gen_audit_index`) were CAUSED by this window and are now green; the residue is
+  nine, all pre-existing or structural. The regeneration is itself the finding: **a lane must not
+  regenerate that index and the integrator at close must**, which is now recorded rather than
+  relearned next batch.
+
+### One true finding about a leg this window did not touch
+
+Pointing the new `/preflight` leg at this window's own
+`2026-09-01-technical-universalization-instantiation-prep.md` FAILs **two SHA claims** —
+`37b8aa1` and `7a3c057`. Both are correct: they are corp-monorepo's and ai-council's HEADs, cited
+as premise evidence, and neither is in THIS repo's object store by construction. **The SHA leg
+has no notion of a sibling repo**, so any cross-repo artifact reads as broken locators. Not fixed
+— the artifact is immutable and the leg's scope is its own decision — and not left unsaid.
+
+### Unchanged by this amendment
+
+DM-4 was still ACTIVE at 02:45 (2h32m). The four open batch items in §13 are unchanged, the batch
+is still deliberately OPEN, and `docs/audits/2026-09-01-technical-batch-e-close-packet.md` is
+still absent from the tree.
+
+---
+
+## AMENDMENT 2 — the decision ledger: everything decided under the V-2 budget, nothing asked
+
+> WAVE 2 item 6 asks the packet to carry *"anything decided under budget"*. Eleven decisions were
+> taken without operator contact. Each is listed with the rule that authorised it and the thing
+> that could have been done instead, because a decision reported without its alternative is an
+> assertion. **Any of these can be reversed in the morning; none is load-bearing on another.**
+
+| # | Decision | Authority | The alternative not taken |
+|---|---|---|---|
+| 1 | **Dispatched DM-6 on its frozen LOCAL contract**, despite JOURNAL (k) declaring it superseded by a codespace re-issue. | (k)'s supersession was itself CORRECTED by (l) — the tier-(D) contract was never committed, so the supersession has no artifact — and the mission counts DM-6 among "the 9" to dispatch. | Park it. That would have cost a lane on the strength of a supersession that does not exist in the tree. |
+| 2 | **Did NOT dispatch DM-1 / DM-2.** | Their own frozen contracts: *"Without it this lane has no input."* | Run tier-(B)'s payloads through `agy`/`grok` under the standing offload rule. Refused: the payload pack assigns the routing, and substituting the provider changes provenance for work that then produces committed code. |
+| 3 | **Sync-merged `main` into three live lanes** (`--ff-only`, zero commits ahead, no dirty file in the diff set). | The documented lane-tree-lag remedy; *"no self-merge"* scopes lane→main. | Wait for the lanes to unblock themselves. They could not: the gap was in their own working tree and no sibling's JOURNAL entry ever reaches it. |
+| 4 | **Committed three lanes' staged work as the integrator**, disclosed in each commit body. | The lanes had STOPPED (one wedged on `AskUserQuestion`, which a `--bg` session cannot answer) with verified work staged. | Discard and re-dispatch. That would have thrown away 718 verified lines and a correct refusal to `--no-verify`. |
+| 5 | **Drained seven silent-rule false positives to land the held doctrine**, instead of carrying the raise request to morning. | The detector's own sanctioned drain; each drained sentence describes a fact rather than stating a rule, and all seven are quoted before/after in `5c7e9e37`. | Leave it parked (it was, for two hours). Landing it cost no ruling and the pool ends where it started. |
+| 6 | **Re-stamped the funnel baseline with `--allow-raise`**, covering ~25 audits accrued since 2026-08-29. | 0b's named remedy; the flag exists for a deliberate raise. | Disposition all 25 first. Refused: ADR-111 routes that triage to the architect, and 25 dispositions by a night seat is the judgment work the night constraint excludes. |
+| 7 | **Fixed two live ADR-index defects rather than baselining over them** (ADR-114 carrying a superseded `PARKED`, ADR-116 unindexed). | They were real, and re-stamping would have recorded them as normal. | Re-stamp the four-way divergence as measured. That is what "re-stamp the drift" literally asks for, and it would have buried two defects inside two legitimate +1s. |
+| 8 | **Did NOT fix `test_desired_state_report`'s stale MEMBERS pin** (5 pinned vs 7 live). | Outside the six drift families; the pin is a shared fixture constant for 17 other tests. | Widen 5 → 7. Refused: without establishing WHY `terminal-setup` and `win-tooling` entered the desired-state model, widening hides the signal instead of reading it. |
+| 9 | **Declared `SKIP=canonical_freshness` twice in win-tooling** (the HY-5 merge, then its push), with pre-existence proven. | The staleness predates the lane by weeks and the lane touched none of the three docs. | Stamp the three docs. Refused outright: a stamp means *re-read end-to-end*, and stamping three unread canonical docs is the fake stamp the gate's own message forbids. |
+| 10 | **Wrote a WINDOW REPORT, not the batch close packet.** | The manifest's REFUSE-TO-FINISH: the batch is open while `closed_by:` is absent, and four items are open. | Land the `closed_by:` path. That ends the ADR-110 exemption for the lanes still to come and closes the batch by assertion. |
+| 11 | **Withdrew the F1 feature-bug claim in-tree** and re-scoped it to the measured create-vs-rebuild finding. | WAVE 2.5's ADMISSION-RATIFIED act 1. | Delete the comment. Refused: a withdrawn accusation that leaves no trace gets re-made by the next seat reading the same rebuild output. |
+
+**Escalated rather than decided: nothing.** Every fork above resolved against a standing rule, a
+measurement, or a ruling already recorded. The seven items in §12 are questions the operator owns
+by subject — they were never blockers this seat worked around.

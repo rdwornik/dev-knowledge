@@ -19,6 +19,51 @@
 
 ---
 
+### 2026-09-01 (g) - CC (Opus 5, background job, night orchestrator): the F1 accusation is WITHDRAWN in the tree, and the decision ledger says what was decided without asking
+
+**Anchors:** `ce84af4b` `47f94d87` `7eedfbaf`
+
+**Did:** closed WAVE 2.5's last item, amended the window report twice, and re-stamped the two
+per-window baselines a second time.
+
+**THE F1 FEATURE-BUG CLAIM WAS STILL STANDING IN TWO IN-TREE COMMENTS hours after the ruling that
+refutes its evidence.** `devcontainer.json` and `provision.sh` both said the `claude-code:1.0`
+feature *"leaves NO `claude` binary while `creation.log` records `Outcome: success`"*, measured
+*"twice, including on a `gh codespace rebuild --full` that busts the image cache"*. **The
+cache-busting rebuild was the strongest-looking half of that evidence and it is the half that
+proves the container never ran the thing being accused** -- a `rebuild --full` does not re-apply
+`devcontainer.json` at all. Withdrawn and re-scoped in both files: the claim the evidence
+supports is *"a rebuilt container does not re-run features or postCreate."* **The withdrawal is
+recorded rather than deleted, because an accusation that vanishes without a trace gets re-made**
+by the next seat reading the same rebuild output. The REMOVAL still stands on the reason the
+correction does not touch: installing in `provision.sh` is what makes the ASSERT possible, and
+**the assert is the point; the feature-vs-installer choice is not** -- which the old comment had
+exactly backwards.
+
+**THE REPORT IS AMENDED TWICE, IN-FILE, because `docs/audits/` is immutable.** Amendment 1 moves
+N3 from 2-of-4 to 4-of-4 (both step-4 mechanisms landed after the report did) and corrects two of
+the report's own numbers -- `templates/` is 43 -> 41 excluding archive, not 47 -> 45. **Amendment
+2 is the decision ledger**: eleven decisions taken under the V-2 budget with **the alternative
+each one rejected**, because a decision reported without its alternative is an assertion. Nothing
+was escalated; every fork resolved against a standing rule, a measurement or a recorded ruling.
+
+**A SECOND BASELINE RE-STAMP, and the reason is worth keeping.** The first stamp was taken before
+this window's own report existed, so the report then read as unconsumed and both
+`consumer_at_landing` and `funnel_coverage` REDded on it. **A per-window baseline stamped
+mid-window always chases its own tail** -- the stamp has to come after the last artifact, and
+"the last artifact" includes the report about the window. Recorded so the next window stamps once,
+at the end.
+
+**Result:** the last full suite measured **10 failed / 4,750 passed**; the two baseline-vs-corpus
+REDs above are green after the re-stamp (123 passed across the three coupled modules), leaving
+the named pre-existing and structural set. `audit.py health` exits 0. Worktrees: primary only.
+
+**Changes:** `.devcontainer/devcontainer.json`, `.devcontainer/provision.sh`, the window report
+(AMENDMENT 1 + 2), `ecosystem/audit-consumer-baseline.json`,
+`ecosystem/audit-funnel-baseline.json`, `tasks/614-*.md`, `JOURNAL.md`.
+
+**Next:** push, then a confirming full-suite run.
+
 ### 2026-09-01 (f) - CC (Opus 5, background job, night orchestrator): both step-4 mechanisms are live, and the second one's gap was a PASS that lied
 
 **Anchors:** `5c97aa49`
