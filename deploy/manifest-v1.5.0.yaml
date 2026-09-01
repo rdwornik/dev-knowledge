@@ -34,10 +34,14 @@
 # component against a payload that does not exist "lints green but is undeployable" -- this
 # manifest's own words at the docs carrier -- so the two open items stay RECORDED, not declared:
 #
-#   * `readme-front-door` (source: templates/README-md-template.md -> path: README.md). The
-#     template does NOT EXIST; it remains the only canonical-doc template the corpus lacks.
-#     Authoring it was outside lane-a's write-scope and outside the 2026-08-31 night's, because
-#     `templates/` was a live lane's frozen write-scope for the whole window.
+#   * `readme-front-door` (source: templates/README-md-template.md -> path: README.md).
+#     CORRECTED 2026-09-01, batch-E close packet: the template EXISTS. It was the missing
+#     payload when this manifest was drafted -- authoring it was outside lane-a's write-scope
+#     and outside the 2026-08-31 night's, because `templates/` was a live lane's frozen
+#     write-scope for the whole window -- and it landed hours later in `eaaeafa2`,
+#     96 lines, tracked. The FACT is corrected here; the DECISION is not. The component
+#     stays undeclared because its remaining blocker is the NEXT bullet, not this one: the
+#     C7 doc_shapes coupling makes declaring it a release act the operator sequences.
 #   * The `doc_shapes:` spine re-point for README.md. `release_lint` C7 asserts EXACT dict
 #     equality between a manifest's `doc_shapes` spines and the LIVE `audit._CANONICAL_SPINE`,
 #     and it lints v1.1.0 and v1.2.0 against those same live constants -- so adding README.md to
