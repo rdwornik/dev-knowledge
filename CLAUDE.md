@@ -13,7 +13,7 @@ owner: Rob
 >
 > **Budget — bytes bind. ≤24,576 B**, gated by `tests/test_claude_md_byte_cap.py`. ADR-53's ≤200 lines is kept, not replaced (`validate_doc_rot._FILE_SIZE_BUDGETS`, WARN-only) — but a line count is gameable by density, and bytes are what a session pays.
 >
-> **Universal rules:** `protocols/ESSENTIALS.md` (always-on); `protocols/PLAYBOOK.md` is the on-demand reference, never a boot-time read (§1).
+> **Universal rules:** this file carries the always-on subset; `protocols/PLAYBOOK.md` is the on-demand reference, never a boot-time read (§1). `protocols/ESSENTIALS.md` is **superseded, pending `[#628]`** — do not boot from it.
 
 ## 1. First read (session start)
 <!-- scope: meta -->
@@ -22,11 +22,11 @@ owner: Rob
 
 In order, read:
 1. This file (you're here)
-2. The hub methodology protocol `ESSENTIALS.md` — Rob's universal working style (read at the hub `.dev-knowledge/protocols/` set; hub-pointer, never copied into a consumer)
+2. `protocols/ESSENTIALS.md` — **SUPERSEDED, pending `[#628]`.** Not a boot read; skip it. The always-on subset is this file, and the live boot frame is `CLAUDE.md` + FUNNEL HEALTH + north-star
 3. The **active** `docs/handoffs/*/` bundle — **newest by git add-date**, which is what `audit.py::_select_active_bundle` resolves and what `verify_handoff_probes`, `check_handoff_probes` and `validate_residual_completeness` already reuse; a day with more than one handoff produces `<slug>`, `<slug>-2`, … siblings and lexical order is not the rule. Start with its `HANDOFF_BOOT.md` (v5/v6 bundles' operator session entry: slug · purpose · mode · destination; older bundles use `README.md`), then the canonical operator runbook `docs/handoffs/README.md` — if continuing prior session
 4. Last 5 entries of `JOURNAL.md`
 
-`PLAYBOOK.md` (hub `.dev-knowledge/protocols/`) is the universal-protocols **reference**, not a boot-time read — consult the relevant section on demand when a task needs it (ESSENTIALS carries the always-on subset; a consumer never copies PLAYBOOK). If ESSENTIALS — or a PLAYBOOK section a task needs — is unavailable, proceed with the other available first-read sources and flag the gap.
+`PLAYBOOK.md` (hub `.dev-knowledge/protocols/`) is the universal-protocols **reference**, not a boot-time read — consult the relevant section on demand when a task needs it (this file carries the always-on subset; a consumer never copies PLAYBOOK). If a PLAYBOOK section a task needs is unavailable, proceed with the other available first-read sources and flag the gap.
 <!-- methodology:end id=first-read -->
 
 ## 2. Repo identity
@@ -94,7 +94,7 @@ In order, read:
 5. **No new markdown files without checking navigation/growth triggers** — when navigation overhead emerges, evaluate DevVault migration. Root `README.md`, deleted 2026-05-23 (ADR-38 A5), was **RECREATED 2026-08-29**: ADR-114 supersedes A5 in that one respect, making `README.md` a sanctioned Tier-1 file and this repo's canonical front door. `VISION.md` is retained, marked superseded and still tracked — the fleet-wide filename migration is a sequenced program, not a consequence of this line ([#614]).
 > **[HUB - methodology]** region `critical-rules-consistency` - single-sourced from the hub; do not edit these lines here.
 <!-- methodology:start id=critical-rules-consistency owner=hub -->
-6. **Keep files consistent** — ESSENTIALS summarizes PLAYBOOK, not copies it; divergence causes drift
+6. **Keep files consistent** — a hub region's body in `CLAUDE.md` stays byte-identical to its `templates/claude-regions/*.md` source; divergence breaks deploy parity
 <!-- methodology:end id=critical-rules-consistency -->
 7. **Executable rules live in `~/.claude/` with `verify:` lines** — the fleet-wide home (ADR-54); this repo authors no new rule class outside it. **Carve-out:** `.claude/rules/` IS a live repo-local rule home — `git-discipline.md` carries three `verify:` lines plus two standing operator orders (MERGE IS ATOMIC; WORKTREE TEARDOWN IS TWO BRANCHES).
 8. **Do not recreate `CHANGELOG.md` or `BACKLOG_ARCHIVE.md`** — deleted 2026-05-16; git history + the JOURNAL `Changes:` line replace CHANGELOG
@@ -117,7 +117,7 @@ In order, read:
 
 If any check fails → stop and ask Rob before proceeding.
 
-Verify after updates: ESSENTIALS ↔ PLAYBOOK alignment; ENVIRONMENT ↔ `~/.claude/` state; SESSION_SETUP ↔ PLAYBOOK process changes; JOURNAL reflects last session.
+Verify after updates: ENVIRONMENT ↔ `~/.claude/` state; SESSION_SETUP ↔ PLAYBOOK process changes; JOURNAL reflects last session.
 <!-- methodology:end id=session-start-protocol -->
 
 ## 7. Slash commands available
@@ -199,7 +199,7 @@ What the deploy tool ships to a consumer, generated from `deploy/manifest-v*.yam
 - **Editing old LESSONS.md or logs/TOKEN-LOG.md entries** — append-only; editing corrupts the institutional record (a *byte-identical* chronological relocation of an older block into `LESSONS-legacy-<span>.md` is NOT an edit — the ADR-29 2026-07-17 archival exception; any content change still is)
 - **Adding orchestration scripts** — Layer 2 invariant: validators only, no scripts that drive state in child repos
 - **Copying `CLAUDE.md` wholesale into `AGENTS.md`** — ADR-115 admits `AGENTS.md` as the portable instruction layer, superseding ADR-53 Decision 2; a wholesale copy measures 43.50 KiB against Codex's 32 KiB `project_doc_max_bytes` cap and truncates silently — carry the portable half only, and leave the Claude-runtime remainder in `CLAUDE.md`
-- **Duplicating content between files** — ESSENTIALS summarizes PLAYBOOK, not copies; drift is the failure mode
+- **Duplicating content between files** — a hub region restated by hand instead of relocated, or PLAYBOOK detail copied verbatim elsewhere; drift is the failure mode
 - **Putting executable rules in this repo** — those belong in `~/.claude/` with `verify:` lines
 - **Running validators with no args** — vacuous pass; always pass `--all` or specific paths
 <!-- methodology:end id=antipatterns-universal -->
