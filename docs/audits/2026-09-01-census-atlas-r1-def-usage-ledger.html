@@ -1,0 +1,315 @@
+<title>Batch Usage Ledger D–F</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --paper:#EEF1F4; --surface:#FAFBFC; --ink:#141A21; --ink-2:#3A4753;
+  --graphite:#5B6B7A; --rule:#D3DBE2; --rule-2:#E3E9EE;
+  --signal:#0F6F7E; --signal-soft:#0F6F7E22; --signal-ink:#0B5460;
+  --absent:#A96A1F; --absent-soft:#A96A1F1A;
+  --shadow:0 1px 2px #141A2110, 0 8px 24px #141A210A;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#0D1317; --surface:#151E24; --ink:#E6ECF1; --ink-2:#B3C0CB;
+    --graphite:#8397A6; --rule:#27333C; --rule-2:#1E2930;
+    --signal:#46B3C2; --signal-soft:#46B3C226; --signal-ink:#7FD3DE;
+    --absent:#D9A055; --absent-soft:#D9A05522;
+    --shadow:0 1px 2px #00000040, 0 8px 24px #00000030;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0D1317; --surface:#151E24; --ink:#E6ECF1; --ink-2:#B3C0CB;
+  --graphite:#8397A6; --rule:#27333C; --rule-2:#1E2930;
+  --signal:#46B3C2; --signal-soft:#46B3C226; --signal-ink:#7FD3DE;
+  --absent:#D9A055; --absent-soft:#D9A05522;
+  --shadow:0 1px 2px #00000040, 0 8px 24px #00000030;
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);
+  font-family:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+  font-size:15px;line-height:1.6;margin:0;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1080px;margin:0 auto;padding:0 24px 96px}
+h1,h2,h3{font-family:"IBM Plex Sans Condensed","IBM Plex Sans",sans-serif;text-wrap:balance;margin:0}
+code,.mono{font-family:"IBM Plex Mono",ui-monospace,Consolas,monospace;font-variant-numeric:tabular-nums}
+.masthead{border-bottom:2px solid var(--ink);padding:44px 0 18px;margin-bottom:28px}
+.eyebrow{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--signal-ink);font-weight:500}
+h1{font-size:clamp(36px,5.2vw,56px);line-height:1.03;letter-spacing:-.02em;margin:10px 0 12px;font-weight:700}
+.standfirst{font-size:18px;line-height:1.5;color:var(--ink-2);max-width:66ch;margin:0}
+.prov{display:flex;flex-wrap:wrap;gap:0 22px;margin-top:20px;
+  font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--graphite)}
+.prov b{color:var(--ink-2);font-weight:500}
+.panel{background:var(--surface);border:1px solid var(--rule);border-radius:3px;
+  padding:26px 28px;margin:22px 0;box-shadow:var(--shadow)}
+.panel-head{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;
+  border-bottom:1px solid var(--rule-2);padding-bottom:12px;margin-bottom:18px}
+.panel-head h2{font-size:23px;letter-spacing:-.01em}
+.panel-head .tag{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--graphite);margin-left:auto}
+.lede{color:var(--ink-2);max-width:70ch;margin:0 0 18px}
+.section-rule{display:flex;align-items:center;gap:14px;margin:52px 0 4px}
+.section-rule span{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--graphite);white-space:nowrap}
+.section-rule:after{content:"";flex:1;height:1px;background:var(--rule)}
+.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(126px,1fr));gap:1px;
+  background:var(--rule);border:1px solid var(--rule);margin:18px 0}
+.kv div{background:var(--surface);padding:12px 14px}
+.kv dt{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--graphite);margin:0 0 5px}
+.kv dd{margin:0;font-family:"IBM Plex Mono",monospace;font-size:20px;font-weight:500;
+  letter-spacing:-.02em}
+.kv dd small{font-size:11px;color:var(--graphite);font-weight:400;letter-spacing:0}
+.kv dd.abs{color:var(--absent)}
+.tbl-hold{overflow-x:auto;margin:16px 0}
+table{border-collapse:collapse;width:100%;font-size:12.5px}
+th{font-family:"IBM Plex Mono",monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--graphite);text-align:left;font-weight:500;padding:0 12px 9px 0;
+  border-bottom:1px solid var(--rule);white-space:nowrap}
+td{padding:8px 12px 8px 0;border-bottom:1px solid var(--rule-2);vertical-align:top}
+td.mono{font-family:"IBM Plex Mono",monospace;font-size:11.5px;font-variant-numeric:tabular-nums;white-space:nowrap}
+tbody tr:hover{background:var(--signal-soft)}
+.pill{font-family:"IBM Plex Mono",monospace;font-size:9.5px;letter-spacing:.07em;font-weight:600;
+  padding:2px 6px;border-radius:2px;white-space:nowrap;display:inline-block}
+.p-local{color:var(--graphite);border:1px solid var(--rule)}
+.p-cloud{color:var(--signal-ink);background:var(--signal-soft);border:1px solid var(--signal)}
+.p-abs{color:var(--absent);background:var(--absent-soft);border:1px dashed var(--absent)}
+.absence{border:1px dashed var(--absent);background:var(--absent-soft);border-radius:2px;
+  padding:20px 22px;margin:18px 0}
+.absence h3{font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--absent);margin-bottom:10px;font-weight:600}
+.absence p{margin:0 0 10px;color:var(--ink-2);max-width:70ch}
+.absence p:last-child{margin-bottom:0}
+.note{font-size:12.5px;color:var(--graphite);border-left:2px solid var(--rule);
+  padding-left:14px;margin:16px 0 0;max-width:72ch}
+.note b{color:var(--ink-2);font-weight:500}
+mark{background:var(--signal-soft);color:inherit;padding:0 3px}
+.foot{margin-top:56px;padding-top:20px;border-top:2px solid var(--ink);
+  font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--graphite);line-height:1.9}
+:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+</style>
+
+<div class="wrap">
+
+<header class="masthead">
+  <div class="eyebrow">ATLAS-R1 companion &middot; compiled from tracked records only</div>
+  <h1>Batch Usage Ledger D&ndash;F</h1>
+  <p class="standfirst">Per lane: substrate, model, provider, credits, review. Three of the five
+  columns reconstruct cleanly from committed manifests and contracts. <b>The credits column does not
+  exist anywhere</b> &mdash; and this is where that is shown rather than estimated.</p>
+  <div class="prov">
+    <span><b>batches</b> D &middot; E &middot; F</span>
+    <span><b>window</b> 2026-08-29 &rarr; 09-01</span>
+    <span><b>lanes</b> 31</span>
+    <span><b>compiled</b> 2026-09-01</span>
+    <span><b>HEAD</b> 16f91f69</span>
+  </div>
+</header>
+
+<div class="panel">
+  <div class="panel-head"><h2>The headline</h2><span class="tag">what the numbers say</span></div>
+  <dl class="kv">
+    <div><dt>lanes total</dt><dd>31</dd></div>
+    <div><dt>local</dt><dd>21</dd></div>
+    <div><dt>cloud</dt><dd>9</dd></div>
+    <div><dt>codespace</dt><dd>1</dd></div>
+    <div><dt>distinct models</dt><dd>1</dd></div>
+    <div><dt>credits recorded</dt><dd class="abs">0</dd></div>
+  </dl>
+  <p class="lede"><b>Every one of the 31 lanes ran on <code>opus</code> at <code>effort: high</code> in
+  <code>execute</code> mode.</b> There is no model variance to analyse across three batches &mdash; the
+  routing question the ledger was meant to answer has a one-word answer, and the interesting statistic is
+  that nothing was ever routed anywhere else.</p>
+  <p class="note"><b>Counting note.</b> 31 = batch D's 8 + batch E's 22 (15 committing + 7 tier-A censuses)
+  + 1 codespace probe. Batch F contributes zero: it is <code>DERIVED, NOT FROZEN</code> &mdash; no contract
+  written, no worktree provisioned, no manifest committed. HY-5 executed in <code>win-tooling</code>, not the
+  hub, and is counted once here.</p>
+</div>
+
+<div class="absence">
+  <h3>The credits column &mdash; why it is empty everywhere</h3>
+  <p><b>No receipt carries a cost.</b> The batch-E tier-A dispatch receipts
+  (<code>~/Downloads/BATCH-E-A-DISPATCH-RECEIPTS-2026-08-31.txt</code>) record exactly six fields per lane:
+  <code>Ok</code>, <code>Bound</code>, <code>SessionId</code>, <code>ReadId</code>, <code>Failure</code> and
+  the echoed <code>Receipt</code> text. No tokens, no duration, no dollars.</p>
+  <p><b>The one cost surface in the repo cannot attribute a lane.</b> <code>logs/TOKEN-LOG.md</code> is a
+  weekly host-wide <code>ccusage</code> aggregate &mdash; whole machine, every repo, every session &mdash;
+  giving dollars, token totals and per-model percentages.</p>
+  <p><b>And it stops before the window opens.</b> Its newest entry is <b>2026-08-04</b>
+  ($1,676.83 over 2026-07-25&rarr;08-04, 10 active days, 8.36M tokens). Batch D began 2026-08-29.
+  <mark>All three batches sit in a 25-day gap after the last snapshot.</mark></p>
+  <p><b>The codespace probe burned real compute and recorded none.</b> Codespace
+  <code>batche-c-admission-pgw54jqwv7qf65rj</code> was created, ran, failed at L2, and is now STOPPED with
+  &ldquo;compute billing ended&rdquo; noted &mdash; a spend event with no figure attached.</p>
+  <p><b>The enabling row is open and unstarted:</b> <code>[#615]</code>, a model+version commit trailer
+  enforced at commit-msg. Until it lands, per-lane attribution is not merely unrecorded &mdash; it is
+  <b>underivable</b>, because nothing in a commit says which model authored it.</p>
+</div>
+
+<div class="section-rule"><span>batch D &middot; 2026-08-29 &middot; 8 lanes</span></div>
+
+<div class="panel">
+  <div class="panel-head"><h2>Batch D</h2><span class="tag">manifest landed late &mdash; recorded as its own finding</span></div>
+  <div class="tbl-hold"><table>
+    <thead><tr><th>Lane</th><th>Slug</th><th>Substrate</th><th>Model / effort</th><th>Credits</th><th>Review</th><th>Outcome</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">a</td><td class="mono">619-fm-coupling-repair</td><td><span class="pill p-local">LOCAL</span></td><td class="mono">opus / high</td><td><span class="pill p-abs">NONE</span></td><td class="mono">&mdash;</td><td class="mono">MERGED 28bb3002</td></tr>
+      <tr><td class="mono">b</td><td class="mono">614-vision-to-readme</td><td><span class="pill p-local">LOCAL</span></td><td class="mono">opus / high</td><td><span class="pill p-abs">NONE</span></td><td class="mono">&mdash;</td><td class="mono">MERGED 023a7797</td></tr>
+      <tr><td class="mono">c</td><td class="mono">claude-md-regenre</td><td><span class="pill p-local">LOCAL</span></td><td class="mono">opus / high</td><td><span class="pill p-abs">NONE</span></td><td class="mono">&mdash;</td><td class="mono">HELD &mdash; blocked by b on CLAUDE.md</td></tr>
+      <tr><td class="mono">d</td><td class="mono">codex-fate</td><td><span class="pill p-local">LOCAL</span></td><td class="mono">opus / high</td><td><span class="pill p-abs">NONE</span></td><td class="mono">&mdash;</td><td class="mono">MERGED c2c59281 as a REFUSAL &mdash; premise refuted; superseded by h</td></tr>
+      <tr><td class="mono">e</td><td class="mono">essentials-census</td><td><span class="pill p-cloud">CLOUD</span></td><td class="mono">opus / high</td><td><span class="pill p-abs">NONE</span></td><td class="mono">&mdash;</td><td class="mono">HARVESTED</td></tr>
+      <tr><td class="mono">f</td><td class="mono">adr81-fuzzy-band</td><td><span class="pill p-cloud">CLOUD</span></td><td class="mono">opus / high</td><td><span class="pill p-abs">NONE</span></td><td class="mono">&mdash;</td><td class="mono">HARVESTED &mdash; ADR-116 stranded on <code>claude/lane-f</code></td></tr>
+      <tr><td class="mono">g</td><td class="mono">autonomy-synthesis</td><td><span class="pill p-local">LOCAL</span></td><td class="mono">opus / high</td><td><span class="pill p-abs">NONE</span></td><td class="mono">&mdash;</td><td class="mono">MERGED f7b8fbdd</td></tr>
+      <tr><td class="mono">h</td><td class="mono">codex-universalise</td><td><span class="pill p-local">LOCAL</span></td><td class="mono">opus / high</td><td><span class="pill p-abs">NONE</span></td><td class="mono">&mdash;</td><td class="mono">the re-cut of d, widened scope, operator-ruled</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note"><b>Batch D has no independent review record at all.</b> No terra round covers it and no lane
+  carries a pre-merge review note. <b>Its manifest was also written late</b> &mdash; after freeze, dispatch and
+  two merges &mdash; which the manifest itself records as the finding it exists to prevent: without a committed
+  manifest the ADR-110 exemption is absent, and every lane merge flags <code>journal_spine_anchor</code>.</p>
+</div>
+
+<div class="section-rule"><span>batch E &middot; 2026-08-31 &middot; 22 lanes + 1 probe</span></div>
+
+<div class="panel">
+  <div class="panel-head"><h2>Batch E &mdash; tier A, the cloud censuses</h2><span class="tag">7 of 7 Ok=True, Bound=True</span></div>
+  <p class="lede">Dispatched 16:44&ndash;16:50 CEST via <code>Dispatch-CloudV2</code> (DispatchHelpers v1.5.0).
+  Model <code>claude-opus-5</code>, env <code>env_01MJCy4htNWTZL8Tn2PMRoEU</code>, permission-mode
+  <code>bypassPermissions</code>. Read-only by contract: write-scope NONE, zero commits, zero rows.
+  <b>186,734 bytes harvested total</b> &mdash; the only volumetric figure recorded anywhere in the window.</p>
+  <div class="tbl-hold"><table>
+    <thead><tr><th>Lane</th><th>Subject</th><th>Session id</th><th>Substrate</th><th>Credits</th><th>Result</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">A1</td><td class="mono">single-file-folder-census</td><td class="mono">session_01U9wkpZncq9GMf6S54CwUUm</td><td><span class="pill p-cloud">CLOUD</span></td><td><span class="pill p-abs">NONE</span></td><td class="mono">Ok / Bound &mdash; subject re-derived, <code>conflict/</code> does not exist</td></tr>
+      <tr><td class="mono">A2</td><td class="mono">templates-consumer-census</td><td class="mono">session_01NBnDtWhQGwVqFtvcqrwVhG</td><td><span class="pill p-cloud">CLOUD</span></td><td><span class="pill p-abs">NONE</span></td><td class="mono">Ok / Bound</td></tr>
+      <tr><td class="mono">A3</td><td class="mono">stale-doctrine-reference-census</td><td class="mono">session_01BxXjpYNAzow4Qj4KDY3mXN</td><td><span class="pill p-cloud">CLOUD</span></td><td><span class="pill p-abs">NONE</span></td><td class="mono">Ok / Bound</td></tr>
+      <tr><td class="mono">A4</td><td class="mono">doc-freshness-derivation-audit</td><td class="mono">session_01Pj8no7mTqTneUZVmRxGe2m</td><td><span class="pill p-cloud">CLOUD</span></td><td><span class="pill p-abs">NONE</span></td><td class="mono">Ok / Bound</td></tr>
+      <tr><td class="mono">A5</td><td class="mono">harness-portability-map</td><td class="mono">session_018bwHzUJuxV4pCEd59jf3TS</td><td><span class="pill p-cloud">CLOUD</span></td><td><span class="pill p-abs">NONE</span></td><td class="mono">Ok / Bound &mdash; cloud by parallelism, not sizing</td></tr>
+      <tr><td class="mono">A6</td><td class="mono">langgraph-class-rejection-record</td><td class="mono">session_01N8WRkWp8dyqipeKpxZFzWZ</td><td><span class="pill p-cloud">CLOUD</span></td><td><span class="pill p-abs">NONE</span></td><td class="mono">Ok / Bound</td></tr>
+      <tr><td class="mono">A7</td><td class="mono">agy-admission-and-quota-visibility</td><td class="mono">session_0161NBLfKDSitbRmTbZtQ3oq</td><td><span class="pill p-cloud">CLOUD</span></td><td><span class="pill p-abs">NONE</span></td><td class="mono">Ok / Bound</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note"><b>A7 is the lane that went looking for this very number.</b> Its subject was
+  <i>&ldquo;where would the operator see agy/Gemini quota burn?&rdquo;</i> &mdash; and its landed audit records
+  that <code>ecosystem/trends.html</code> is gitignored with per-model quality listed as an ABSENT series.
+  The quota question was asked inside this window and came back with the same answer this ledger reaches.</p>
+</div>
+
+<div class="panel">
+  <div class="panel-head"><h2>Batch E &mdash; the 15 committing lanes</h2><span class="tag">13 merged &middot; 1 split &middot; 1 harvested</span></div>
+  <div class="tbl-hold"><table>
+    <thead><tr><th>Lane</th><th>Slug</th><th>Substrate</th><th>Model</th><th>Credits</th><th>Review</th><th>Outcome</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">DC-1</td><td class="mono">a-1-vision-to-readme</td><td><span class="pill p-local">LOCAL</span></td><td class="mono">opus / high</td><td><span class="pill p-abs">NONE</span></td><td class="mono">&mdash;</td><td class="mono">MERGED ea1e32a9</td></tr>
+      <tr><td class="mono">DC-3</td><td class="mono">b-3-claude-md-genre</td><td><span class="pill p-local">LOCAL</span></td><td class="mono">opus / high</td><td><span class="pill p-abs">NONE</span></td><td class="mono">operator</td><td class="mono">SPLIT &mdash; Acts 2+3 accepted, Act One refused; commit 6f226b34</td></tr>
+      <tr><td class="mono">DC-4</td><td class="mono">c-3-root-contract</td><td><span class="pill p-local">LOCAL</span></td><td class="mono">opus / high</td><td><span class="pill p-abs">NONE</span></td><td class="mono">&mdash;</td><td class="mono">MERGED 1a3c378b</td></tr>
+      <tr><td class="mono">DC-5</td><td class="mono">d-4-ai-council-instantiation</td><td><span class="pill p-local">LOCAL</span></td><td class="mono">opus / high</td><td><span class="pill p-abs">NONE</span></td><td class="mono">terra (post)</td><td class="mono">MERGED 76f184fb &middot; CLEAN 0/0/0/0</td></tr>
+      <tr><td class="mono">DM-1</td><td class="mono">e-5-eval-sda1-harbor</td><td><span class="pill p-local">LOCAL</span></td><td class="mono">opus / high</td><td><span class="pill p-abs">NONE</span></td><td class="mono">pre-merge</td><td class="mono">MERGED &middot; 2 findings</td></tr>
+      <tr><td class="mono">DM-2</td><td class="mono">f-6-observability-otel</td><td><span class="pill p-local">LOCAL</span></td><td class="mono">opus / high</td><td><span class="pill p-abs">NONE</span></td><td class="mono">pre-merge</td><td class="mono">MERGED &middot; 1 HIGH fixed</td></tr>
+      <tr><td class="mono">DM-3</td><td class="mono">g-7-typed-multi-layer-graph</td><td><span class="pill p-local">LOCAL</span></td><td class="mono">opus / high</td><td><span class="pill p-abs">NONE</span></td><td class="mono">&mdash;</td><td class="mono">MERGED 7b0cbf14 &middot; DRAFTING &mdash; 279-line amendment on intake #40</td></tr>
+      <tr><td class="mono">DM-4</td><td class="mono">h-8-local-memory-tier-l-eval</td><td><span class="pill p-cloud">CLOUD</span></td><td class="mono">opus / high</td><td><span class="pill p-abs">NONE</span></td><td class="mono">&mdash;</td><td class="mono">HARVESTED &mdash; owes no merge; <code>claude/</code> prefix, outside the teardown enum</td></tr>
+      <tr><td class="mono">DM-5</td><td class="mono">i-9-distiller-filing-amendment</td><td><span class="pill p-local">LOCAL</span></td><td class="mono">opus / high</td><td><span class="pill p-abs">NONE</span></td><td class="mono">&mdash;</td><td class="mono">MERGED bea4c623</td></tr>
+      <tr><td class="mono">DM-6</td><td class="mono">j-10-equilibrium-checkpoint</td><td><span class="pill p-local">LOCAL</span></td><td class="mono">opus / high</td><td><span class="pill p-abs">NONE</span></td><td class="mono">terra (post)</td><td class="mono">MERGED b7fef9b9 &middot; 1 MED UPHELD, row corrected</td></tr>
+      <tr><td class="mono">HY-1</td><td class="mono">k-11-derived-doc-freshness</td><td><span class="pill p-local">LOCAL</span></td><td class="mono">opus / high</td><td><span class="pill p-abs">NONE</span></td><td class="mono">&mdash;</td><td class="mono">MERGED 9b736ce2</td></tr>
+      <tr><td class="mono">HY-2</td><td class="mono">l-12-logs-retention-rule</td><td><span class="pill p-local">LOCAL</span></td><td class="mono">opus / high</td><td><span class="pill p-abs">NONE</span></td><td class="mono">terra (post)</td><td class="mono">MERGED 1c92024f &middot; <b>1 CRIT UPHELD, fixed</b></td></tr>
+      <tr><td class="mono">HY-3</td><td class="mono">m-13-templates-disposition</td><td><span class="pill p-local">LOCAL</span></td><td class="mono">opus / high</td><td><span class="pill p-abs">NONE</span></td><td class="mono">terra (post)</td><td class="mono">MERGED 4bc754b4 &middot; 1 HIGH REFUTED</td></tr>
+      <tr><td class="mono">HY-4</td><td class="mono">n-14-trends-burndown-quota</td><td><span class="pill p-local">LOCAL</span></td><td class="mono">opus / high</td><td><span class="pill p-abs">NONE</span></td><td class="mono">terra (post)</td><td class="mono">MERGED 720d3e09 &middot; 1 MED accepted as a limit</td></tr>
+      <tr><td class="mono">HY-5</td><td class="mono">o-15-wintooling-local-default</td><td><span class="pill p-local">LOCAL</span></td><td class="mono">opus / high</td><td><span class="pill p-abs">NONE</span></td><td class="mono">terra (post)</td><td class="mono">MERGED 32d19df in <code>win-tooling</code> &middot; CLEAN</td></tr>
+      <tr><td class="mono">C</td><td class="mono">codespace-admission-probe</td><td><span class="pill p-cloud">CODESPACE</span></td><td class="mono">n/a, agent never ran</td><td><span class="pill p-abs">BILLED, UNRECORDED</span></td><td class="mono">&mdash;</td><td class="mono"><b>RED</b> &middot; L2 exit 1, &ldquo;Not logged in&rdquo; in 47 ms</td></tr>
+    </tbody>
+  </table></div>
+</div>
+
+<div class="panel">
+  <div class="panel-head"><h2>The review column, totalled</h2><span class="tag">the finding inside the ledger</span></div>
+  <p class="lede">Reviewer for the whole window: <code>codex exec -m gpt-5.6-terra</code>, one pass per lane
+  over each merge diff. <b>It ran post-merge</b> &mdash; the code was already on <code>main</code> &mdash; and
+  the round records that as the weaker position rather than presenting it as a gate.</p>
+  <dl class="kv">
+    <div><dt>merged lanes D+E</dt><dd>17</dd></div>
+    <div><dt>terra reviewed</dt><dd>6</dd></div>
+    <div><dt>pre-merge reviewed</dt><dd>2</dd></div>
+    <div><dt>no review</dt><dd class="abs">9</dd></div>
+    <div><dt>crit found</dt><dd>1</dd></div>
+    <div><dt>actionable</dt><dd>4</dd></div>
+  </dl>
+  <p class="lede">Round total across the six terra lanes: <code>crit=1 high=1 med=2 low=0</code> &mdash;
+  <b>2 fixed, 1 refuted, 1 recorded</b>. The single CRIT was real: HY-2 shipped a file mover
+  (<code>scripts/logs_retention.py</code>) that accepted an unconstrained <code>--logs-dir</code>, which under
+  core-invariant #1 is a write into the exclusion zone. Fixed with two independent legs and six RED-first
+  witnesses.</p>
+  <p class="note"><b>Nine of seventeen merged lanes carry no independent review.</b> Batch D contributes four
+  (<code>a</code>, <code>b</code>, <code>d</code>, <code>g</code> &mdash; the whole batch has no review record
+  of any kind); batch E contributes five (DC-1, DC-4, DM-3, DM-5, HY-1), of which DM-3 and DM-5 were drafting
+  or filing lanes that changed no code. <mark>The reviewed fraction is 8 of 17, and the terra round exists
+  precisely because that gap was found by asking.</mark> The round itself names the cause as a process defect,
+  not a reporting one: the lanes were integrator-verified, which is real, and is not independent review.</p>
+  <p class="note"><b>Merged is not the same as dispatched.</b> 17 merged out of 31 dispatched is not a failure
+  rate &mdash; 9 lanes were read-only cloud censuses that owe no merge by contract, batch D&apos;s <code>c</code>
+  was HELD on a file conflict, <code>h</code> was a re-cut carrying no merge SHA in the manifest, DC-3 was
+  split by operator adjudication, and the codespace probe went RED. Each is a different outcome and the
+  ledger keeps them apart.</p>
+</div>
+
+<div class="section-rule"><span>batch F &middot; 2026-09-01 &middot; zero lanes</span></div>
+
+<div class="panel">
+  <div class="panel-head"><h2>Batch F</h2><span class="tag">derived, not frozen</span></div>
+  <p class="lede">Batch F consumed no provider capacity in this window beyond the derivation itself. No
+  contract written, no worktree provisioned, no manifest committed, no lane dispatched. Its derivation is
+  authored by <b>CC (Opus 5, orchestrator seat)</b> against live state at <code>7cb9be42</code>.</p>
+  <div class="tbl-hold"><table>
+    <thead><tr><th>Seed</th><th>State at derivation</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">F0 &mdash; codespace proof-of-work</td><td class="mono"><b>RED</b> &middot; L2 exit 1, L3 not measured, gate not run. Entry condition is a three-clause conjunction and none of it holds.</td></tr>
+      <tr><td class="mono">F2</td><td class="mono">premise did not survive measurement</td></tr>
+      <tr><td class="mono">F7 &mdash; README template</td><td class="mono"><b>already done</b> &mdash; <code>templates/README-md-template.md</code> landed 2026-09-01 in <code>eaaeafa2</code>. Drops out of the batch.</td></tr>
+      <tr><td class="mono">filing capacity</td><td class="mono"><b>BLOCKED</b> &middot; <code>BACKLOG.md</code> 70,276 B against the <code>[#589]</code> bar &mdash; negative headroom before batch F files anything</td></tr>
+    </tbody>
+  </table></div>
+  <div class="absence" style="margin-top:18px">
+    <h3>In flight as this was compiled</h3>
+    <p><b>Batch F is being frozen right now, by a concurrent session in this same checkout.</b> While this
+    ledger was being assembled the primary checkout moved from <code>main</code> to
+    <code>docs/batch-f-freeze</code>, and seven lane contracts appeared as untracked files under
+    <code>docs/audits/2026-09-01-technical-batchf-launch-contracts/</code>: <code>a-1-codespace-pow-and-router-adr</code>,
+    <code>b-2-handoff-v7</code>, <code>c-3-logs-retention-callers</code>, <code>d-4-deploy-waiver-honoring</code>,
+    <code>e-5-vision-relocation</code>, <code>f-6-agy-admission</code>, <code>g-7-contract-validator-predicates</code>.</p>
+    <p>They are <b>uncommitted</b>, so at <code>HEAD 16f91f69</code> &mdash; the SHA every figure on this page
+    was measured against &mdash; batch F still contributes zero dispatched lanes, and the table above is
+    accurate as written. <mark>But the batch-F row of this ledger has a known expiry: the next freeze commit
+    supersedes it.</mark> Recorded rather than left for the reader to discover.</p>
+  </div>
+  <p class="note"><b>Why the ledger stops here rather than estimating.</b> The window's real provider spend
+  includes the orchestrator seats, the derivation passes, the terra review round and this lane &mdash; none of
+  which is a &ldquo;lane&rdquo; in any manifest, and none of which any surface records. A total that counted
+  only manifest lanes would be precise and wrong.</p>
+</div>
+
+<div class="section-rule"><span>what would make this ledger derivable</span></div>
+
+<div class="panel">
+  <div class="panel-head"><h2>Three changes, in dependency order</h2><span class="tag">stated, not filed</span></div>
+  <div class="tbl-hold"><table>
+    <thead><tr><th>#</th><th>Change</th><th>Buys</th><th>Status today</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">1</td><td><b>Add cost fields to the dispatch receipt.</b> The receipt already exists, is already written per lane, and already has a home. Adding tokens and duration is a field addition, not a new store.</td><td class="mono">per-lane cloud cost, at the moment of dispatch</td><td class="mono">no row; cheapest of the three</td></tr>
+      <tr><td class="mono">2</td><td><b><code>[#615]</code> &mdash; the model+version commit trailer</b>, hook-enforced at commit-msg like the <code>[#id]</code> and <code>kill-candidates:</code> gates already are.</td><td class="mono">attribution for LOCAL lanes, which receipts never see</td><td class="mono"><b>open row</b>, P2/M, unstarted</td></tr>
+      <tr><td class="mono">3</td><td><b>Resume the TOKEN-LOG cadence</b> and record the per-batch window alongside the weekly one.</td><td class="mono">a denominator to check 1 and 2 against</td><td class="mono">last entry 2026-08-04; 28 days stale</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note"><b>Order matters and it is not arbitrary.</b> (1) alone covers 9 of 31 lanes &mdash; the cloud
+  ones. (2) is what reaches the other 21. (3) is the check that keeps the first two honest. Doing (3) first
+  produces a number with nothing to reconcile against, which is how the current gap was reached.
+  <b>None of these is filed by this lane</b> &mdash; artifact only, zero rows, and the byte bar is breached.</p>
+</div>
+
+<div class="foot">
+  Batch Usage Ledger D&ndash;F &middot; compiled 2026-09-01 &middot; HEAD 16f91f69<br>
+  Sources: the batch D and E manifests, 30 frozen lane contracts, the tier-A dispatch receipts,
+  the post-merge terra round, the batch F derivation, <code>logs/TOKEN-LOG.md</code> and
+  <code>ecosystem/provider-registry.yaml</code>. Every cell is transcribed from one of those;
+  no figure on this page is estimated, interpolated or proxied.<br>
+  Zero files written &middot; zero commits &middot; zero backlog rows.
+</div>
+
+</div>
