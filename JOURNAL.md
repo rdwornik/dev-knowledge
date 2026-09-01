@@ -19,6 +19,51 @@
 
 ---
 
+### 2026-09-01 (f) - CC (Opus 5, background job, night orchestrator): both step-4 mechanisms are live, and the second one's gap was a PASS that lied
+
+**Anchors:** `5c97aa49`
+
+**Did:** built the second of N3's two step-4 binding mechanisms -- the consumed-artifact locator
+predicate. N3 now stands at 4 of 4 for the mechanisms it names.
+
+**THE GAP WAS A CLEAN REPORT, WHICH IS THE WORST KIND.** A probe contract citing
+`docs/audits/2026-01-01-technical-DOES-NOT-EXIST.md` beside two real locators made
+`preflight_contract` print **"2/2 locator claim(s) resolved"**. Three legs missed it, each for a
+defensible reason of its own: `_FILE_LINE_RE` needs a `:line`, `_HEADING_RE` needs a heading, and
+`_OFF_REPO_PATH_RE` only matches paths that LEAVE the repo. **The uncovered shape -- an in-repo
+artifact named as an input with no line number -- is the single most common form a
+consumed-artifact citation takes**, so the tool whose whole job is *"verify every repo locator a
+contract cites"* was blind to the commonest locator in the corpus and said so as a pass.
+
+**THE SCOPING IS THE DESIGN, and it is what keeps the leg alive past its first week.** A frozen
+contract's `## Write-scope` names files it is about to CREATE. A predicate that judged every
+in-repo path would refuse **every contract this repo freezes**, for naming its own output -- and
+a refusal everybody has to bypass is a refusal nobody reads. So the leg reads only clauses that
+DECLARE a dependency, and each exclusion (write-scope, bare prose, off-repo, `path:line`) carries
+its own test, because a scoping decision nobody can see is one nobody can review.
+
+**THE VALIDATION THAT MATTERS FOR A NEW REFUSAL: run over all 22 frozen batch-E contracts, ZERO
+findings.** Armed against real contracts and refusing none of them. Then the probe: `2/3 ... 1
+FAILED`, exit 1, the file named.
+
+**ONE IMPLEMENTATION, TWO CALLERS** -- the locator run that `/preflight` drives and the
+freeze-time predicate run. Two copies of a path check is how two answers begin to disagree, which
+is `[#514]`'s failure class and the one this window opened on.
+
+**A TRUE FINDING ABOUT A DIFFERENT LEG, found by pointing the tool at my own work.** `/preflight`
+over last night's `2026-09-01-technical-universalization-instantiation-prep.md` FAILs two SHA
+claims, `37b8aa1` and `7a3c057`. Both are correct -- they are corp-monorepo's and ai-council's
+HEADs, cited as premise evidence -- and neither is in THIS repo's object store by construction.
+**The SHA leg has no notion of a sibling repo, so any cross-repo artifact reads as broken
+locators.** Not fixed (the artifact is immutable and the leg's scope is its own decision), and
+not left unsaid.
+
+**Result:** 44/44 in the preflight suite, ruff clean. Both step-4 mechanisms live with tests.
+
+**Changes:** `scripts/preflight_contract.py`, `tests/test_preflight_contract.py`, `JOURNAL.md`.
+
+**Next:** harvest DM-4, then the final verification pass.
+
 ### 2026-09-01 (e) - CC (Opus 5, background job, night orchestrator): the index refuses a title-less artifact, and the trip test failed the FIRST time for the right reason
 
 **Anchors:** `e84d5c39`

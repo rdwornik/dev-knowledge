@@ -414,6 +414,12 @@ def verify(contract: Path, repo_root: Path = _REPO_ROOT) -> Report:
                 ok = tid in open_ids
                 add("backlog-id", f"[#{tid}]", ok, "" if ok else "not open in BACKLOG.md")
 
+    # Predicate (vi) rides the LOCATOR run as well as the freeze run, because that is where its
+    # subject lives: a declared input is a locator claim, and `/preflight` is the surface a seat
+    # points at a contract BEFORE acting on it. Appended rather than folded into `add()` so the
+    # one implementation serves both callers -- two copies of a path check is how the two
+    # answers start to disagree.
+    report.checked.extend(check_consumed_artifacts(text, Path(repo_root)))
     return report
 
 
@@ -958,6 +964,68 @@ def path_in_ratchet_scope(rel: str) -> bool:
             "write-scope against a scope predicate this run never ran") from exc
 
 
+
+# --- predicate (vi): a DECLARED INPUT that is an in-repo artifact must OPEN -----------------
+
+#: The declared-input fields, a superset of `_INPUT_CLAUSE_RE`'s: that leg asks whether a clause
+#: carries a locator AT ALL, this one asks whether the locator it carries RESOLVES. `Consumed
+#: by` and `refs` are added because they are how the audit corpus and the backlog rows declare a
+#: consumed artifact, and they were outside the earlier leg's vocabulary.
+_CONSUMED_CLAUSE_RE = re.compile(
+    r"^ {0,3}[-*]?[ ]?\*{0,2}(?P<field>Basis|Inputs?|Reads|Reads from|Fixture|"
+    r"Source artifact|Prior art|Depends on|Consumed by|Consumes|refs)\*{0,2}"
+    r"\s*:\*{0,2}[ \t]*(?P<body>\S.*)$", re.M | re.I)
+
+#: A backticked token inside such a clause. Judged only if it looks like an in-repo PATH:
+#: it carries a `/`, and it either has a file extension or ends in `/` (a directory, which is how
+#: this corpus names a launch-contracts folder).
+_CONSUMED_TOKEN_RE = re.compile(r"`([^`\n]+)`")
+_CONSUMED_SHAPE_RE = re.compile(r"^[^ ]*/[^ ]*(?:\.[A-Za-z0-9]{1,6}|/)$")
+#: `path.md:12` belongs to the file-line leg. Reporting it here too would be one defect with two
+#: findings, which is how a report stops being countable.
+_LINE_SUFFIX_RE = re.compile(r":\d+$")
+
+
+def check_consumed_artifacts(text: str, repo_root: Path) -> list[Claim]:
+    """Predicate (vi): every in-repo artifact a contract DECLARES as an input exists.
+
+    MEASURED GAP, 2026-09-01. A probe contract citing
+    `docs/audits/2026-01-01-technical-DOES-NOT-EXIST.md` beside two real locators reported
+    **2/2 locator claim(s) resolved**: `_FILE_LINE_RE` needs a `:line`, `_HEADING_RE` needs a
+    heading, and `_OFF_REPO_PATH_RE` only matches paths that LEAVE the repo. An in-repo artifact
+    named as an input, with no line number, was invisible to every predicate this module had --
+    which is the single most common shape a consumed-artifact citation actually takes.
+
+    SCOPED TO DECLARED INPUTS, AND THE SCOPING IS THE DESIGN. A frozen contract's
+    `## Write-scope` names files it is about to CREATE, so a leg that judged every in-repo path
+    would refuse every contract this repo freezes -- for naming its own output. Prose that
+    mentions a file in passing is not the contract asserting it can open one either. So this
+    reads only clauses that DECLARE a dependency. If you say it is an input, it opens.
+
+    Deliberately NOT reported here, each because another leg owns it: an off-repo path
+    (`check_off_repo_inputs`), a `path:line` locator (the file-line leg), and a clause carrying
+    no locator at all (`check_off_repo_inputs`' C-G shape). One defect, one finding.
+    """
+    out: list[Claim] = []
+    seen: set[str] = set()
+    root = Path(repo_root)
+    for clause in _CONSUMED_CLAUSE_RE.finditer(text):
+        for tok in _CONSUMED_TOKEN_RE.finditer(clause.group("body")):
+            raw = tok.group(1).strip()
+            if raw in seen or not _CONSUMED_SHAPE_RE.match(raw):
+                continue
+            if _LINE_SUFFIX_RE.search(raw) or _OFF_REPO_PATH_RE.search(raw):
+                continue
+            seen.add(raw)
+            target = root / raw.rstrip("/")
+            ok = target.exists()
+            detail = ("resolves in the repo" if ok else
+                      f"declared as an input by `{clause.group('field')}:` and NOT present -- "
+                      f"a consumed artifact that does not open is a claim, not an input")
+            out.append(Claim("consumed-artifact", raw, detail, ok))
+    return out
+
+
 def check_do_not_touch(text: str) -> list[Claim]:
     """Predicate (iv): a declared do-not-touch set, checked against the detector's roots."""
     roots = ratchet_scope_roots()
@@ -1067,6 +1135,7 @@ def freeze_predicates(contract: Path, repo_root: Path = _REPO_ROOT) -> Report:
 
     report = Report(label="freeze-time predicate")
     report.checked.extend(check_off_repo_inputs(text))
+    report.checked.extend(check_consumed_artifacts(text, Path(repo_root)))
     report.checked.extend(check_witnessed_claims(text))
     report.checked.extend(check_cited_ids(text, Path(repo_root)))
     report.checked.extend(check_do_not_touch(text))

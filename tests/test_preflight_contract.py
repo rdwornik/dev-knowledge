@@ -528,3 +528,94 @@ def test_closed_table_mode_does_not_leak_past_the_table(tmp_path):
                    f"| closed | what |\n|---|---|\n| `[#{_CLOSED}]` | shipped |\n\n"
                    f"Now close [#{_CLOSED}] for real.\n")
     assert _backlog_id_failures(pf.verify(contract, root)) == [f"[#{_CLOSED}]"]
+
+
+# --- the CONSUMED-ARTIFACT locator predicate ------------------------------------------------
+#
+# THE GAP, measured 2026-09-01 rather than reasoned about. A probe contract citing
+# `docs/audits/2026-01-01-technical-DOES-NOT-EXIST.md` alongside two real locators reported
+# **2/2 locator claim(s) resolved**. `_FILE_LINE_RE` needs a `:line`, `_HEADING_RE` needs a
+# heading, and `_OFF_REPO_PATH_RE` only matches paths that leave the repo — so an IN-REPO
+# artifact named as an INPUT, with no line number, was invisible to every predicate.
+#
+# SCOPED TO DECLARED INPUTS, and that scoping is the design. A contract's `## Write-scope`
+# names files it is about to CREATE; a predicate that checked every in-repo path would refuse
+# every frozen contract in this repo for naming its own output. So the leg reads only clauses
+# that DECLARE a dependency — the field set `check_off_repo_inputs` already uses, plus the
+# `Consumed by:` / `refs` shapes the audit corpus writes. If you say it is an input, it opens.
+
+def _artifact_failures(report) -> list[str]:
+    return [c.raw for c in report.failed if c.kind == "consumed-artifact"]
+
+
+def _artifact_passes(report) -> list[str]:
+    return [c.raw for c in report.checked if c.kind == "consumed-artifact" and c.ok]
+
+
+def test_a_declared_input_that_does_not_exist_is_reported(tmp_path):
+    root = _mini_repo(tmp_path)
+    _at(root, "docs/audits/real.md", "# real\n")
+    contract = _at(root, "docs/c.md",
+                   "**Consumed by:** `docs/audits/real.md` and `docs/audits/ghost.md`.\n")
+    assert _artifact_failures(pf.verify(contract, root)) == ["docs/audits/ghost.md"]
+    assert "docs/audits/real.md" in _artifact_passes(pf.verify(contract, root))
+
+
+def test_the_write_scope_section_is_NOT_judged(tmp_path):
+    """The load-bearing scoping. A frozen contract names its OUTPUT under `## Write-scope`,
+    and that file does not exist yet by definition. Judging it would refuse every contract
+    this repo freezes, which is how a predicate gets switched off in its first week."""
+    root = _mini_repo(tmp_path)
+    contract = _at(root, "docs/c.md",
+                   "## Write-scope (frozen)\n\n- `docs/audits/not-yet-written.md`\n")
+    assert _artifact_failures(pf.verify(contract, root)) == []
+
+
+def test_a_bare_prose_mention_is_NOT_judged(tmp_path):
+    """Only a DECLARED input clause is a claim. Prose naming a file in passing is not the
+    contract asserting it can open it, and treating it as one buys noise for no recall."""
+    root = _mini_repo(tmp_path)
+    contract = _at(root, "docs/c.md",
+                   "Someday `docs/audits/aspirational.md` might exist.\n")
+    assert _artifact_failures(pf.verify(contract, root)) == []
+
+
+def test_every_declared_input_field_is_read(tmp_path):
+    root = _mini_repo(tmp_path)
+    for field in ("Basis", "Inputs", "Reads", "Depends on", "Consumed by", "refs"):
+        contract = _at(root, f"docs/{field.replace(' ', '-')}.md",
+                       f"**{field}:** `docs/audits/ghost.md`\n")
+        assert _artifact_failures(pf.verify(contract, root)) == ["docs/audits/ghost.md"], field
+
+
+def test_an_off_repo_input_is_left_to_its_own_predicate(tmp_path):
+    """No double-reporting: `~/Downloads/x.md` is `check_off_repo_inputs`' subject and this
+    leg must not claim it too. One defect, one finding."""
+    root = _mini_repo(tmp_path)
+    contract = _at(root, "docs/c.md", "**Basis:** `~/Downloads/nope.md`\n")
+    assert _artifact_failures(pf.verify(contract, root)) == []
+
+
+def test_a_line_numbered_locator_is_left_to_the_file_line_leg(tmp_path):
+    root = _mini_repo(tmp_path)
+    contract = _at(root, "docs/c.md", "**Basis:** `docs/audits/ghost.md:12`\n")
+    assert _artifact_failures(pf.verify(contract, root)) == []
+    assert [c.raw for c in pf.verify(contract, root).failed
+            if c.kind == "file-line"] == ["docs/audits/ghost.md:12"]
+
+
+def test_a_directory_input_resolves_when_the_directory_exists(tmp_path):
+    """A launch-contracts DIRECTORY is a legitimate consumed artifact, and a trailing slash
+    is how the corpus writes one."""
+    root = _mini_repo(tmp_path)
+    (root / "docs" / "audits" / "batch-contracts").mkdir(parents=True)
+    contract = _at(root, "docs/c.md",
+                   "**Reads:** `docs/audits/batch-contracts/` and `docs/audits/absent-dir/`\n")
+    assert _artifact_failures(pf.verify(contract, root)) == ["docs/audits/absent-dir/"]
+
+
+def test_the_same_missing_input_is_reported_once(tmp_path):
+    root = _mini_repo(tmp_path)
+    contract = _at(root, "docs/c.md",
+                   "**Basis:** `docs/audits/ghost.md`\n\n**Reads:** `docs/audits/ghost.md`\n")
+    assert _artifact_failures(pf.verify(contract, root)) == ["docs/audits/ghost.md"]
