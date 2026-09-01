@@ -81,11 +81,12 @@ Layer-2 contract (ADR-28/36): READ-ONLY. Filesystem reads and git plumbing reads
 """
 from __future__ import annotations
 
+import datetime as _dt
 import importlib.util
 import re
 import subprocess
 from pathlib import Path, PurePosixPath
-from typing import NamedTuple, Optional
+from typing import Mapping, NamedTuple, Optional
 
 # The [#355] git-env scrub, single-sourced in the LEAF module `scripts/gitenv.py` ([#396]).
 # A leaf — stdlib-only, zero repo imports — so this adds no import edge that could reach the
@@ -139,6 +140,14 @@ if Path(getattr(_vbn, "__file__", "") or "").resolve().parent != Path(__file__).
         f"this module's sibling in {Path(__file__).resolve().parent}. Refusing to import a "
         f"shadowed lane grammar: the ADR-110 exemption would be decided by an unknown regex "
         f"([#514]).")
+
+#: `[#630]`'s Refusal shape and slug reader -- imported BY NAME, no by-path/provenance guard.
+#: `validate_substrate` does not import `batch_manifest` (checked: no cycle), and there is no
+#: shadow-hole argument to make here the way there was for `LANE_BRANCH_RE` -- that guard
+#: exists because a shadowed ENUM silently governs an EXEMPTION; a shadowed `Refusal`/
+#: `contract_slug` would break loudly (an `AttributeError` or a wrong-shaped object) rather
+#: than silently widen anything.
+from validate_substrate import Refusal, contract_slug   # noqa: E402
 
 #: `git merge --no-ff <branch>` writes this subject; `/lane-integrate` relies on it too.
 _MERGE_SUBJECT_RE = re.compile(r"^Merge branch '([^']+)'")
@@ -366,3 +375,100 @@ def exempt(repo_path: Path, shas: list[str],
     if not live:
         return set()
     return {s for s in shas if is_lane_merge(repo_path, s)}
+
+
+# --- `[#630]`: the manifest's lane table and the batch's contract slugs must AGREE ----------
+#
+# THE MEASURED BATCH-E DEFECT (integrator defect (b), 2026-09-01). The manifest's lane table
+# named `lane-b-2-essentials-and-claude-md`; what was actually dispatched, and what carries
+# the commit, pairs to `lane-b-3-claude-md-genre`. The slug was renumbered between draft and
+# dispatch and nothing anywhere compared the two -- so the manifest, the surface the ADR-110
+# exemption reads and the teardown iterates, named a lane that did not exist, while the lane
+# that did exist was unnamed. THE SAME CLASS as the teardown-enum defect
+# (`RULE_TEARDOWN_ENUM`) that predicate 5 already catches -- a name that appears in two
+# places with only a human keeping them equal -- except nothing crosses from the CONTRACT to
+# the MANIFEST at all. This is that comparison.
+
+#: Rule id for the freeze-time refusal below. Not a member of `validate_substrate.RULE_IDS`:
+#: that closed set is CONTRACT-vs-REGISTRY/CONTRACT-vs-CONTRACT consistency; this is a
+#: MANIFEST-vs-CONTRACT-DIRECTORY comparison, a different surface pair, homed in the module
+#: that already owns "batch" and "manifest" as concepts.
+RULE_MANIFEST_CONTRACT_SLUG_AGREEMENT = "batch-manifest-contract-slug-agreement"
+
+#: Same per-leg arm-date convention as `validate_substrate.LEG_ARM_DATES` ([#629]'s own entry,
+#: same reasoning): a leg written today cannot honestly gate a manifest frozen before it
+#: existed. FREEZE stays unscoped by date -- this dict is for a future commit-time adapter.
+LEG_ARM_DATES: dict[str, _dt.date] = {
+    RULE_MANIFEST_CONTRACT_SLUG_AGREEMENT: _dt.date(2026, 9, 1),
+}
+
+#: The manifest's own `## THE LANES` heading, however many hyphens/words follow it on the
+#: same line (`— 7 committing, frozen 2026-09-01`, `-- 15 committing, frozen 2026-08-31`).
+_LANES_HEADING_RE = re.compile(r"^ {0,3}#{1,6}\s*THE LANES\b.*$", re.I | re.M)
+#: Any heading, used to bound the LANES section the same way `validate_substrate` bounds its
+#: own sections -- the next heading ends the block.
+_ANY_HEADING_RE = re.compile(r"^ {0,3}#{1,6}\s+\S", re.M)
+#: A lane-slug-shaped token: `lane-<letter>-<digits>-<slug>`. Deliberately NOT
+#: `validate_branch_naming.LANE_BRANCH_RE` -- that matches a BRANCH (`worktree-lane-...`), and
+#: a manifest's lane table names the SLUG, not the branch. The two are related by a fixed
+#: prefix, never by identity.
+_SLUG_TOKEN_RE = re.compile(r"\blane-[a-z]-\d+(?:-[a-z0-9]+)+\b", re.I)
+
+
+def manifest_lane_slugs(text: str) -> set[str]:
+    """The set of lane slugs a manifest's `## THE LANES` table declares, lower-cased.
+
+    ONE slug per row: the FIRST lane-shaped token on each line. A row that also happens to
+    mention a branch name later on the same line (`worktree-lane-a-1-x`) does not double
+    count or disagree -- the substring it carries resolves to the identical slug token.
+
+    Returns the empty set when the manifest carries no `## THE LANES` heading at all, which
+    is not a parse failure: it just means this manifest declares no slugs to compare.
+    """
+    heading = _LANES_HEADING_RE.search(text)
+    if heading is None:
+        return set()
+    start = heading.end()
+    nxt = _ANY_HEADING_RE.search(text, start)
+    body = text[start:nxt.start()] if nxt else text[start:]
+    out: set[str] = set()
+    for line in body.splitlines():
+        match = _SLUG_TOKEN_RE.search(line)
+        if match:
+            out.add(match.group(0).lower())
+    return out
+
+
+def freeze_manifest_contract_agreement(manifest_text: str,
+                                       contracts: Mapping[str, str]) -> list[Refusal]:
+    """`[#630]` -- the manifest's declared lane slugs and the batch's contract slugs must be
+    the SAME SET, at freeze.
+
+    `contracts` is `{source: contract_text}`, the same shape `validate_substrate.validate_batch`
+    takes -- a contract's own slug is read from its pairing line via `contract_slug`, not
+    guessed from its filename, so a filename/pairing-line mismatch (a different defect) does
+    not mask or fake this one. A contract whose pairing line does not resolve to a slug at all
+    is skipped here: that contract already fails layer 1 shape or `[#591]`'s own checks
+    elsewhere, and stacking a second finding on the same defect helps nobody.
+
+    SET EQUALITY BOTH WAYS: a manifest naming a phantom lane fails as loudly as a contract no
+    manifest names. Both sides are named in the ONE refusal, never reduced to a count.
+    """
+    manifest_slugs = manifest_lane_slugs(manifest_text)
+    contract_slugs = {slug for slug in (contract_slug(text) for text in contracts.values())
+                      if slug is not None}
+    manifest_only = manifest_slugs - contract_slugs
+    contracts_only = contract_slugs - manifest_slugs
+    if not manifest_only and not contracts_only:
+        return []
+
+    parts: list[str] = []
+    if manifest_only:
+        parts.append(f"the manifest names {sorted(manifest_only)} with no matching contract")
+    if contracts_only:
+        parts.append(f"contract(s) {sorted(contracts_only)} are named by no manifest row")
+    detail = (" · ".join(parts) + " — set equality is required both ways at freeze "
+              "(the measured batch-E defect: a slug renumbered between draft and dispatch, "
+              "with nothing comparing the two)")
+    return [Refusal(rule=RULE_MANIFEST_CONTRACT_SLUG_AGREEMENT, source="<manifest>",
+                    detail=detail)]

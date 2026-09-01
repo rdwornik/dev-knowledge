@@ -302,8 +302,9 @@ def test_every_refusal_names_the_rule_it_fired_on(registry):
 
 
 def test_rule_ids_are_the_closed_checkable_surface():
-    """Legs 5 and 6 entered this tuple at batch E's freeze (0a and CUT-6), deliberately —
-    which is exactly what this pin exists to force: a new leg cannot arrive silently."""
+    """Legs 5, 6 and 7 entered this tuple at batch E's and batch F's freezes (0a, CUT-6 and
+    `[#629]`), deliberately — which is exactly what this pin exists to force: a new leg
+    cannot arrive silently."""
     assert vs.RULE_IDS == (
         vs.RULE_NO_LIVE_VERB,
         vs.RULE_CLOUD_GATE,
@@ -311,6 +312,7 @@ def test_rule_ids_are_the_closed_checkable_surface():
         vs.RULE_SECOND_LOCAL_WRITER,
         vs.RULE_TEARDOWN_ENUM,
         vs.RULE_WRITE_SCOPE_DISJOINT,
+        vs.RULE_AMENDMENT_SUBTRACTS,
         vs.RULE_UNKNOWN_OVERRIDE,
     )
 
@@ -523,6 +525,87 @@ def test_both_new_legs_are_in_the_closed_rule_surface():
     assert vs.RULE_TEARDOWN_ENUM in vs.RULE_IDS
     assert vs.RULE_WRITE_SCOPE_DISJOINT in vs.RULE_IDS
     assert len(vs.RULE_IDS) == len(set(vs.RULE_IDS))
+
+
+# --- LEG 7 (`[#629]`): an amendment cannot SUBTRACT an act already in the body -------------
+#
+# THE DC-3 SHAPE, RECONSTRUCTED (integrator defect (a), 2026-09-01). DC-3 was dispatched by
+# APPENDING an amendment reading "do not perform Act One" to a frozen contract whose body
+# still CONTAINED Act One in full, and the lane performed it -- correctly, by the only
+# artifact it was given. An appended sentence is not a write-scope. RED before the fix: this
+# shape produces NO refusal at all, from either layer.
+
+def test_leg7_refuses_an_amendment_that_negates_an_act_still_in_the_body(registry):
+    text = _contract(
+        shape_line="**Shape:** `local`",
+        done="1. **Act One** — archive `protocols/ESSENTIALS.md`.\n"
+             "2. **Act Two** — re-point the four handoff VISION pointers.",
+        body="## AMENDMENT 1 — operator ruling\n\n"
+             "Do not perform Act One; only Act Two ships.\n")
+    refusals = vs.validate_contract(text, source="F.md", registry=registry)
+    assert vs.RULE_AMENDMENT_SUBTRACTS in [r.rule for r in refusals]
+    fired = next(r for r in refusals if r.rule == vs.RULE_AMENDMENT_SUBTRACTS)
+    assert "Act One" in fired.detail
+    assert "reissue" in fired.detail.lower()
+    assert fired.severity == vs.SEVERITY_REFUSE
+
+
+def test_leg7_admits_an_additive_amendment_that_negates_nothing(registry):
+    """The control: AMENDMENT 2 in the real batch-F manifest is explicitly ADDITIVE — it adds
+    a requirement and subtracts nothing. The predicate must not fire on that shape."""
+    text = _contract(
+        shape_line="**Shape:** `local`",
+        done="1. **Act One** — archive `protocols/ESSENTIALS.md`.",
+        body="## AMENDMENT 2 — additive\n\n"
+             "Every lane also gets a review pass before its merge, on top of the work above.\n")
+    assert vs.RULE_AMENDMENT_SUBTRACTS not in [
+        r.rule for r in vs.validate_contract(text, source="F.md", registry=registry)]
+
+
+def test_leg7_ignores_a_negation_with_no_target_present_in_the_body(registry):
+    """A negation phrase that names nothing the body actually contains is not a subtraction --
+    it is ordinary prose, and refusing on it would refuse contracts that did nothing wrong."""
+    text = _contract(
+        shape_line="**Shape:** `local`",
+        done="1. **Act One** — archive `protocols/ESSENTIALS.md`.",
+        body="## AMENDMENT 1 — clarification\n\n"
+             "Do not perform Act Nine; it was never part of this contract.\n")
+    assert vs.RULE_AMENDMENT_SUBTRACTS not in [
+        r.rule for r in vs.validate_contract(text, source="F.md", registry=registry)]
+
+
+def test_leg7_is_dischargeable_by_a_recorded_deviation_never_a_silent_pass(registry):
+    """Same override mechanism as every other leg: downgraded to WARN and KEPT, never removed."""
+    text = _contract(
+        shape_line="**Shape:** `local`",
+        done="1. **Act One** — archive `protocols/ESSENTIALS.md`.",
+        body="## AMENDMENT 1 — operator ruling\n\n"
+             "Do not perform Act One.\n\n"
+             "**Substrate deviation:** amendment-subtracts-an-act — the operator adjudicated "
+             "this in the room and a reissue is already in flight for the next freeze.\n")
+    fired = [r for r in vs.validate_contract(text, source="F.md", registry=registry)
+             if r.rule == vs.RULE_AMENDMENT_SUBTRACTS]
+    assert len(fired) == 1
+    assert fired[0].severity == vs.SEVERITY_WARN
+    assert fired[0].overridden is True
+
+
+def test_leg7_is_in_the_closed_rule_surface_and_arms_at_freeze():
+    assert vs.RULE_AMENDMENT_SUBTRACTS in vs.RULE_IDS
+    assert vs.RULE_AMENDMENT_SUBTRACTS in vs.LEG_ARM_DATES
+
+
+# --- `contract_slug` -- the FIRST field of the pairing line, for `[#630]` -------------------
+
+def test_contract_slug_reads_the_pairing_lines_first_field():
+    text = ("slug `lane-g-7-contract-validator-predicates` -> branch "
+            "`worktree-lane-g-7-contract-validator-predicates` -> contract "
+            "`LANE-g-7-contract-validator-predicates.md`")
+    assert vs.contract_slug(text) == "lane-g-7-contract-validator-predicates"
+
+
+def test_contract_slug_is_none_with_no_pairing_line():
+    assert vs.contract_slug("no pairing line in this text at all") is None
 
 
 # --- the ADAPTER's scoping of the two later-armed legs ----------------------

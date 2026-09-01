@@ -70,6 +70,7 @@ Layer-2 / read-only (ADR-28/36): reads the registry and the text it is given, wr
 """
 from __future__ import annotations
 
+import datetime as _dt
 import logging
 import re
 import sys
@@ -108,6 +109,12 @@ RULE_TEARDOWN_ENUM = "substrate-teardown-enum-coverage"
 #: stripped a file from a third's scope; it then required that disjointness be RE-VERIFIED
 #: here at freeze rather than asserted in prose. This is that verification.
 RULE_WRITE_SCOPE_DISJOINT = "substrate-lane-write-scope-disjoint"
+#: Leg 7 (`[#629]`, batch F). DC-3 was dispatched by APPENDING an amendment reading "do not
+#: perform Act One" to a frozen contract whose body still CONTAINED Act One in full, and the
+#: lane performed it -- correctly, by the only artifact it was given. An amendment is
+#: ADDITIVE; a ruling that narrows a frozen contract must REISSUE it through
+#: `gen_lane_contract`, never annotate it. This leg makes the annotation shape a refusal.
+RULE_AMENDMENT_SUBTRACTS = "amendment-subtracts-an-act"
 RULE_UNKNOWN_OVERRIDE = "substrate-unknown-override"
 
 #: Order is the intake's own. This tuple IS the checkable surface — a new leg enters it
@@ -119,8 +126,26 @@ RULE_IDS: tuple[str, ...] = (
     RULE_SECOND_LOCAL_WRITER,
     RULE_TEARDOWN_ENUM,
     RULE_WRITE_SCOPE_DISJOINT,
+    RULE_AMENDMENT_SUBTRACTS,
     RULE_UNKNOWN_OVERRIDE,
 )
+
+#: PER-LEG arm dates, for predicates added to this module AFTER the commit-time adapter
+#: (`audit_checks/check_substrate_declaration.py`) first armed 2026-08-27. A leg written today
+#: cannot honestly gate a contract dispatched before it existed -- the reason legs 5 and 6
+#: carry their own arm dates too, in that adapter (they predate this leg and armed there
+#: first). This leg's arm date is declared HERE, in the logic module, because `[#629]` lands
+#: in the same freeze that writes it: there is no already-armed adapter map from an earlier
+#: freeze to extend, and this lane's frozen write-scope does not reach the adapter file. A
+#: future adapter change reads this dict rather than re-declaring the date a second time.
+#:
+#: FREEZE IS UNSCOPED BY DATE, exactly like legs 5/6 (`validate_substrate.validate_batch`'s own
+#: docstring, and the batch-F manifest's own words: "the FREEZE does not [grandfather];
+#: `validate_substrate` run directly ... applies every leg with no date grandfather at all").
+#: The grandfather is a COMMIT-TIME adapter concern only, and stays one here.
+LEG_ARM_DATES: dict[str, _dt.date] = {
+    RULE_AMENDMENT_SUBTRACTS: _dt.date(2026, 9, 1),
+}
 
 SEVERITY_REFUSE = "refuse"
 SEVERITY_WARN = "warn"
@@ -303,6 +328,11 @@ _OPERATOR_PATH_RES: tuple[tuple[str, re.Pattern[str]], ...] = (
 _PAIRING_BRANCH_RE = re.compile(
     r"slug\s+`[^`]+`\s*->\s*branch\s+`(?P<branch>[^`]+)`")
 
+#: The SLUG half of the same pairing line -- the FIRST field, `slug -> branch -> contract`
+#: (ADR-110's fifth per-lane requirement). `[#630]` reads this to compare a contract's own
+#: declared identity against the batch manifest's lane table, in `batch_manifest.py`.
+_PAIRING_SLUG_RE = re.compile(r"slug\s+`(?P<slug>[^`]+)`\s*->")
+
 PRIMARY_CHECKOUT = "<primary checkout>"
 
 #: The write-scope section heading. `(frozen)` is the live spelling but is not required — a
@@ -391,6 +421,19 @@ def lane_branch(text: str) -> Optional[str]:
     return match.group("branch").strip() if match else None
 
 
+def contract_slug(text: str) -> Optional[str]:
+    """The lane slug a contract's own pairing line declares, lower-cased, or None.
+
+    The FIRST field of `slug -> branch -> contract` -- a contract's own claim about its
+    identity. `[#630]` (`batch_manifest.freeze_manifest_contract_agreement`) compares the set
+    of these, across a batch's contract directory, against the manifest's own lane table: the
+    measured batch-E defect was a slug renumbered between draft and dispatch with nothing
+    anywhere comparing the two surfaces.
+    """
+    match = _PAIRING_SLUG_RE.search(text)
+    return match.group("slug").strip().lower() if match else None
+
+
 def write_scope_paths(text: str) -> set[str]:
     """The repo paths a contract declares it will write, as a set.
 
@@ -419,6 +462,76 @@ def write_scope_paths(text: str) -> set[str]:
         if not _SCOPE_ITEM_RE.match(line):
             continue
         out.update(tok for tok in _SCOPE_PATH_RE.findall(line) if "/" in tok or "." in tok)
+    return out
+
+
+# --- leg 7 (`[#629]`): an amendment cannot SUBTRACT an act already in the body -------------
+#
+# THE DC-3 SHAPE. A frozen contract's body still contained "Act One" in full; an amendment
+# appended to it read "do not perform Act One"; the lane executed the contract as handed. The
+# validator only ever reads the body as authored, and an amendment that CONTRADICTS the body
+# is still a well-formed body -- invisible to every predicate above.
+#
+# DETECTION IS TEXTUAL AND CONSERVATIVE, per the requirement's own words: refusing on a
+# matched negation is cheap, and the escape is exactly the reissue the predicate is asking
+# for. So this does not parse intent -- it looks for a NEGATION WORD, within a short span, of
+# a TARGET (an `Act <word>`, a `Step <n>`, or a backticked write-scope-shaped token) that ALSO
+# appears in the contract's own body BEFORE the amendment starts. The "before" requirement is
+# what keeps this from firing on an amendment that merely explains itself in the negative
+# ("Act Nine was never part of this contract") -- there is nothing earlier to subtract.
+
+#: An `Amendment` block, however it is spelled: a heading (`## Amendment 1 — ...`) or a bold
+#: lead-in (`**Amendment:**`). Same heading-detection shape as `_SCOPE_HEADING_RE` above.
+_AMENDMENT_HEADING_RE = re.compile(r"^ {0,3}(?:#{1,6}\s*|\*{0,2})Amendment\b.*$", re.I | re.M)
+
+#: The three subtraction targets the requirement names by name: "an act, step or write-scope
+#: entry". `Act <word>` covers the DC-3 shape itself; `Step <n>` and a backticked token cover
+#: the other two the same Done-contract line enumerates.
+_SUBTRACTION_TARGET = (
+    r"(?:Act\s+(?:One|Two|Three|Four|Five|Six|Seven|Eight|Nine|Ten|\d+)"
+    r"|Step\s+\d+"
+    r"|`[^`]+`)")
+
+#: A negation word, then the target within a short span -- short enough that the two are
+#: talking about the same thing, not two unrelated clauses sharing a sentence.
+_NEGATION_RE = re.compile(
+    r"\b(?:do(?:es)?\s+not|no\s+longer|never|skip(?:s|ped)?|remov(?:e|es|ed)|drop(?:s|ped)?|"
+    r"forbid(?:s)?|cancel(?:s|led|ed)?|without\s+(?:performing|running|doing))\b"
+    r"[^.\n]{0,80}?(?P<target>" + _SUBTRACTION_TARGET + r")",
+    re.I)
+
+
+def _amendment_blocks(text: str) -> list[tuple[int, str]]:
+    """Every `(start_offset, body)` pair for an Amendment block in `text`.
+
+    `start_offset` is where the AMENDMENT HEADING begins -- everything before it is "the
+    body" a subtraction has to already be present in. A contract can carry more than one
+    amendment (the batch-F manifest itself carries four), so this returns all of them.
+    """
+    out: list[tuple[int, str]] = []
+    for heading in _AMENDMENT_HEADING_RE.finditer(text):
+        start = heading.end()
+        nxt = _ANY_HEADING_RE.search(text, start)
+        end = nxt.start() if nxt else len(text)
+        out.append((heading.start(), text[start:end]))
+    return out
+
+
+def amendment_subtractions(text: str) -> list[str]:
+    """Every subtraction target an amendment block negates that the contract's own BODY --
+    the text strictly before that amendment -- already contains.
+
+    A negation naming something not present earlier is not a subtraction (nothing to
+    subtract); a negation inside prose that never reaches an Amendment heading is not this
+    leg's business at all (an amendment is the thing that arrives after a contract is frozen).
+    """
+    out: list[str] = []
+    for start, block in _amendment_blocks(text):
+        body = text[:start]
+        for match in _NEGATION_RE.finditer(block):
+            target = match.group("target").strip()
+            if target.lower() in body.lower():
+                out.append(target)
     return out
 
 
@@ -456,6 +569,19 @@ def validate_contract(text: str, *, source: str,
             detail=(f"a recorded deviation names rule {rule!r}, which is outside the closed "
                     f"set {{{' | '.join(RULE_IDS)}}} — a deviation from a rule that does not "
                     f"exist discharges nothing")))
+
+    # --- leg 7 (`[#629]`): checked FIRST and unconditionally -- it is about the contract's
+    # internal consistency, not its substrate, so it must fire even on a contract whose
+    # substrate declaration is itself broken (the two defects are independent).
+    subtracted = sorted(set(amendment_subtractions(text)))
+    if subtracted:
+        out.append(_apply_override(Refusal(
+            rule=RULE_AMENDMENT_SUBTRACTS, source=source,
+            detail=(f"an amendment block negates {', '.join(subtracted)}, which the "
+                    f"contract's own body still contains — an amendment is ADDITIVE; a "
+                    f"ruling that narrows a frozen contract must REISSUE it through "
+                    f"`gen_lane_contract`, not annotate it (the DC-3 shape, `[#629]`)")),
+            overrides))
 
     name = declared_substrate(text)
     substrate = registry.get(name) if name else None
