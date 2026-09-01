@@ -605,3 +605,96 @@ committed branch inherits the currency question intake **#42** records as still 
 - **No row is born**, on this file's own reconcile-before-birth precedent.
 - **No conflict is resolved.** Finding 1 is left open ON PURPOSE, in the same spirit as the four
   gaps the 2026-08-31 amendment named rather than closed.
+
+## AMENDMENT — 2026-09-01 (b): the root `dashboard/` request is RESOLVED — REFUSED at root, relocated to `docs/dashboard/`
+
+> **Source:** operator ruling, 2026-09-01, same day as and immediately following the amendment
+> above. **Appended, not edited** — that amendment recorded a *request*; this one records the
+> *ruling on it*, so the record shows what was asked before it shows what was decided. **ROOT-
+> CONTRACT v1 is UNCHANGED: C1–C4 stand as written and the contract's version does not move.**
+
+### The ruling, in the terms this file uses
+
+**A root `dashboard/` is WITHDRAWN.** The dashboard is ruled a **per-repo organ** whose home is
+**`docs/dashboard/`** — inside the genre tree, not at the root. `ecosystem/dashboard` is withdrawn
+in the same act, as **hub-only and therefore non-scalable**: `ecosystem/` is the hub's fleet-facts
+tree keyed by consumer repo name, no carrier ships it, and a consumer repo has none, so an organ
+placed there could not be per-repo at all.
+
+### Finding 1 is DISCHARGED — and the precedent is UPHELD, not overridden
+
+The amendment above named a conflict and declined to adjudicate it: C2's standing precedent, the
+2026-08-26 ADR-101 amendment that **revoked** root `prompts/` on the reasoning *"root is sacred,
+and the docs disease is cured by the consumer gate (`[#595]`), not by a sibling folder at the
+root"*, against a direction that asserted a root sanction **without arguing against that
+precedent**.
+
+**The ruling resolves it by taking the precedent's own remedy rather than its exception.** When
+`prompts/` was revoked, its convention was not deleted — it was **relocated under the genre tree**,
+to `docs/audits/<date>-technical-<batch>-launch-contracts/`. `docs/dashboard/` is that same move
+applied to this request. So the amendment's reading **(b)** — *"the precedent is about root
+siblings as such, in which case the existing home is the answer and the burden is to say why it
+will not do"* — is the one that holds, with one correction the ruling supplies: the existing home
+is **not** `ecosystem/`, and the reason it will not do is that it is hub-only. **The closed Tier-1
+set takes no second contraction and no expansion.** `SANCTIONED_TIER1_DIRS` is untouched.
+
+### Finding 2 is HALF DISCHARGED, and the surviving half is named rather than dropped
+
+Finding 2 observed that a root `dashboard/` holding generated output would be weakly observed —
+Rule A prospective and hub-only, the fleet sweep retrospective and **TRACKED-only**, and the two
+artifacts the folder gathers already in **different zone classes** (`ecosystem/conformance.html`
+committed, `ecosystem/trends.html` gitignored).
+
+- **DISCHARGED:** the root-sanction half. There is no root entry, so there is no `root-dashboard`
+  parity row that would have had nothing to observe, and the fleet-sweep objection to the *root*
+  placement no longer applies to anything.
+- **SURVIVING:** the **zone-class** half, which was never about the root. Whether `docs/dashboard/`
+  is tracked or ignored is still unruled, still must be ruled **the same way for both artifacts**,
+  and the committed branch still inherits the currency question intake **#42** records as
+  unanswered. Finding 2's closing sentence — *"whichever way this is ruled, it must be ruled for
+  both"* — stands verbatim and is **not** discharged by the relocation.
+
+### What the relocation COSTS against ROOT-CONTRACT v1 — the honest ledger
+
+The move is cheaper than a root admission. It is **not free**, and the difference is a tier, not an
+exemption:
+
+- **C1 (the permitted root set is CLOSED) is not engaged at all.** No top-level entry is added or
+  removed; Rule A's Tier-1 leg has nothing to say about this request any more.
+- **Rule A's TIER-2 leg IS engaged, and it refuses today.**
+  `validate_hermetization.py`'s `SANCTIONED_GENRES` is a closed set and **`dashboard` is not a
+  member**; an added path under an unsanctioned `docs/<genre>/` is refused with *"unsanctioned new
+  docs genre folder"*. **An ADR-101 amendment is therefore still owed** — a Tier-2 genre admission
+  against a closed genre set, rather than a Tier-1 fight against the set's only contraction
+  precedent. **None is drafted here and the folder is not created.**
+- **C2 is satisfied by construction**, and is the reason the ruling reads as it does: relocation
+  into the genre tree *is* C2's prescribed remedy.
+- **C4 (ordering) is untouched.** The standing constraint the 2026-08-29 amendment recorded — *no
+  further consumer deploy before the contract lands* — is neither discharged nor disturbed by this
+  ruling, which changes a placement and no sequencing.
+
+### One correction to the record, so a later reader does not inherit it
+
+The ruling states that `docs/dashboard/` *"deploys with the `docs/{intake,handoffs,decisions,
+audits,archive}` tree at instantiation"*. **That tree is not a carried payload.** The docs carrier
+declares exactly three `doc_paths` pairs in the live manifest — `docs/intake/README.md`,
+`templates/intake-template.md`, and the plugin `INSTALL.md` at the consumer root; the other genre
+directories are **consumer-created, not shipped**. The clause's useful half survives and is what
+makes the placement work: `deploy/carrier_docs.py` is **fully manifest-driven** and hardcodes no
+payload, so extending it is *"a manifest edit, not a code change"* (its own docstring). The
+correction matters because the same manifest block already rules that this carrier ships
+**verbatim, hash-guarded replicas** — right for methodology-generic content, wrong for
+repo-specific content, where declaring a pair *"is not a migration, it is a mis-carry"*. **A
+rendered dashboard is repo-specific output, so what deploys is the generator and the doctrine, not
+the page.** Full statement: intake **#66**'s amendment of this date, §3.
+
+### What this amendment does NOT do
+
+- **No directory is created**, at the root or under `docs/`. `docs/dashboard/` does not exist after
+  this commit.
+- **No ADR-101 amendment is drafted**, and neither `SANCTIONED_TIER1_DIRS` nor `SANCTIONED_GENRES`
+  is touched.
+- **No change to ROOT-CONTRACT v1.** C1–C4 stand as written; the contract's version does not move.
+- **No row is born**, on this file's own reconcile-before-birth precedent.
+- **No ruling on the zone class.** Finding 2's surviving half is left open ON PURPOSE, exactly as
+  its predecessor left Finding 1 — and it is now the *only* thing this request waits on here.

@@ -460,3 +460,164 @@ amendment records direction and design. **Status is unchanged: DRAFT. DRAFT BIND
 - **No supersession** of ruling A5, of R-A's `rustworkx`-not-`networkx` choice, or of funnel line
   R3's measured rejection of arming a gate leg on cycle count. This organ is still **not a gate**.
 - **No answer** to open questions 1 or 4 — both are re-framed above and explicitly left open.
+
+---
+
+## AMENDMENT — 2026-09-01: `tests/` and `ecosystem/` become FIRST-CLASS LAYERS; scalability CLOSED BY NUMBER; charts named as the next iteration
+
+> **Source:** operator direction, 2026-09-01 (the atlas), filed under *reconcile-before-birth*.
+> **Appended, not edited.** **Status is unchanged: DRAFT. DRAFT BINDS NOTHING.** No row is born, no
+> code is written, no layer function is edited — this records a direction, measures what it costs,
+> and corrects two of its premises before either is acted on.
+
+### 1 · The two new layers are SPLITS, not additions to empty space
+
+Both paths are already assigned by §1's layer function. The direction **re-assigns** them, so this
+is a change to a derivation that exists rather than a growth of the model:
+
+| Path | §1 assigns it to | The direction makes it | Why the change is substantive |
+|---|---|---|---|
+| `tests/` | **code** — *"`NODE_FILE` whose path is under `scripts/` or `tests/`"* | its **own layer**, *tests as consumers of code* | Folded into `code`, a test and the module it covers are the **same** layer, so the coverage relation is an intra-layer edge and invisible to any per-layer question. Split out, "what covers this module?" becomes a **cross-layer** query — the class of question §2 says the typing exists to buy. |
+| `ecosystem/` | **docs** — by §1's else-branch (*"every other `NODE_FILE`"*) | its own layer, **fleet facts**, with **cross-repo edges via the registry** | This is the sharper of the two. `ecosystem/` is a tree of **machine-read registries**, not prose; typing it `docs` puts the fleet's schema-validated facts in the same layer as its narrative. It is also the only layer whose edges leave this repo. |
+
+**§1's layer function must therefore be re-derived, and its own rule still binds:** layer is
+**DERIVED from kind and path, never hand-declared on a node**. Both splits are path-predicate
+changes to a single-sited, fixture-tested function — which is precisely the shape §1 required, and
+the reason the direction costs a derivation edit rather than a schema.
+
+### 2 · The measured consequence, stated first because it is the whole cost: BOTH LAYERS ARE BORN AT ZERO
+
+§2's measurement, taken 2026-08-31 in the lane that wrote it, already answers what these layers
+will contain on the day they are named:
+
+- **`tests/` — 0 of 204 governed.**
+- **`ecosystem/` — 0 of 104 governed**, *"including `ecosystem/doc-code-edge.yaml`, which is itself
+  one of the five inputs and is invisible as a node."*
+
+**Naming a layer does not populate it.** A path is governed iff one of the five inputs names it, so
+each new layer **owes an input**, and until that input exists `coverage --by-layer` will report the
+two new layers at 0% — correctly, and usefully. That is not an argument against the split: it is
+§2's own thesis arriving on schedule — *"the refusal stops being a per-file event and becomes a
+per-layer completeness number."* Two layers reporting a hard zero is a **better** finding than 308
+files silently absorbed into `code` and `docs`, which is what happens today.
+
+**The `ecosystem/doc-code-edge.yaml` case is the one to state loudly**: the graph **reads** that
+file as one of its five inputs and **cannot see it** as a node. A fleet-facts layer that cannot see
+its own input is the cleanest possible statement of why this split is worth making.
+
+### 3 · The direction's own premise that does NOT survive: "no new edge kind"
+
+§7 reports the typed design as requiring *"no new node kind, no new edge kind and no new
+dependency."* **The `tests/` layer breaks the middle clause, and it is recorded rather than
+absorbed.**
+
+`EDGE_KINDS` registers twelve kinds — `enforces`, `declared-in`, `indexes`, `cites`, `consumed-by`,
+`depends-on`, `ships`, `carrier-source`, `carried-by`, `governed-by`, `generated-from`, `archives`
+— and **none of them expresses "this test covers that module."** Two ways out, neither ruled here:
+
+- **(a) A new kind** (`covers`, or similar), registered in `EDGE_KINDS` with its outward and inward
+  rendering phrases, as the direction-invariant test requires of every kind.
+- **(b) Overload `depends-on`.** The direction convention holds — a test does depend on the module
+  it covers, so `test --depends-on--> module` points the right way. But `depends-on` is today the
+  **`tasks/` row graph's** kind, and one kind rendering two different relations gives a phrase that
+  reads wrong in one of them.
+
+**Recorded as new open question 10**, because choosing is a modelling act, and because §7's "no new
+edge kind" claim would otherwise stand in the file while a later lane quietly falsifies it.
+
+`ecosystem/`'s **cross-repo edges via the registry** raise the same question one level up: an edge
+whose target is *in another repository* has no node in this graph's namespace at all. Whether that
+is a new node kind, a namespaced `NODE_FILE`, or a deliberate refusal to cross the boundary is
+**new open question 11** — and it is the same repo-boundary fork §4 already navigates for `~/.claude`
+and intake #62 open question 3, so the three should be read together.
+
+### 4 · Scalability: CLOSED BY NUMBER, and closed twice
+
+The direction asks that the scalability concern be closed by measurement rather than left as a
+worry. **It already is, and the ruling that closed it is standing.** Ruling **R-A**, recorded as the
+2026-08-22 amendment to the fleet north-star intake, on the measurement in
+`docs/audits/2026-08-21-technical-library-first-research.md`:
+
+> at **11,684 edges**, stdlib `sqlite3` answers **reachability, orphan and degree in 1–4 ms**.
+
+**One correction to the direction's framing, and it matters because the point is closure by
+number.** The direction describes *"rustworkx headroom orders of magnitude."* True, but **scoped**:
+R-A's margin is **~1,600× on cycles/SCC ONLY**, and R-A explicitly calls that *"a correctness gap
+rather than a speed one."* On the three queries the atlas actually runs today — reachability,
+orphans, degree — the stdlib figure is the 1–4 ms above, and there is no order-of-magnitude
+headroom claim to make because none is needed. **Stating it unscoped would re-open by exaggeration
+a question R-A closed by evidence.**
+
+**And the concern is closed a second time, by a fact newer than R-A.** R-A deferred the library
+*"if a consumer is ever named"* — that condition is **DISCHARGED**: FPG-1 named it, and
+`file_purpose_graph.py`'s own header records the discharge — *"LIBRARY-FIRST — rustworkx, and it is
+the NAMED CONSUMER standing ruling R-A reserved"*, authorised by the operator's A3 mandate,
+declared through the ruled ADR-106 path, and measured in-lane as installing from a **prebuilt
+hash-pinned wheel** so R-A's sqlite fallback was **not taken**. The library is pinned in
+`pyproject.toml` and running. **So the scalability question is not open, not deferred, and not
+owed a benchmark — it is answered by a ruling and by a shipped organ**, and re-researching it would
+repeat the exact failure the 2026-08-31 filing lane caught itself about to make.
+
+**What is genuinely open is upstream of all of it: open question 9 — one organ or two.** R-A
+measured **the dependency graph**; FPG-1 is **in-memory rustworkx**; this intake proposes **sqlite**.
+Closing scalability by number does not merge the two organs, and the numbers above should not be
+read as having done so.
+
+### 5 · The next iteration is CHARTS — and its library input does not resolve
+
+The atlas's next iteration adds **charts**, named by the direction:
+
+- **degree distributions** — per layer, which needs §1's layer function and nothing else.
+- **orphans per layer** — the `coverage --by-layer` verb's natural companion; §2's build-order
+  step 1 already produces the numbers.
+- **edge growth per window** — and **this one is different in kind from the other two.**
+
+**No colored tables.** The direction is explicit, and it is consistent with the standing rule this
+corpus already applies to rendered surfaces: a table coloured to imply a judgment is a hand-entered
+claim wearing a chart's clothes.
+
+**Three findings, so the iteration is dispatchable rather than aspirational:**
+
+1. **`edge growth per window` is a TIME SERIES over the graph, and the graph has no history.** The
+   FPG is built **in memory, per invocation**; nothing persists a past graph state, so "growth per
+   window" has no input today. It needs a **TRACE stream** — which places it squarely inside the
+   OBSERVABLE HARNESS's layer 3 (intake **#66**) and **behind that intake's ruled build order**:
+   TRACE first, VIEW second. The other two charts need no store and are not blocked by it.
+2. **The charts are dashboard PANELS, and the dashboard's home is now ruled.** Per the operator
+   ruling of this date, the VIEW home is **`docs/dashboard/`** — a per-repo organ; a root
+   `dashboard/` is withdrawn. So these charts land as panels there, subject to the Tier-2 ADR-101
+   genre admission that is still owed before the folder may exist. Recorded so the atlas's chart
+   work is not planned against a location that was withdrawn.
+3. **The chart library is BLOCKED on an input that does not resolve, and it is not guessed here.**
+   The direction says the library is *"the one ATLAS-R1 picked."* **ATLAS-R1's artifacts are
+   unlocatable on this machine** — the harvest was attempted and recorded empty at
+   `docs/audits/2026-09-01-verification-atlas-r1-harvest-attempt.md`, which states the search that
+   establishes the absence and what unblocks it: *"a session id, a file path, or the artifact
+   itself."* This restates intake #66's open question 3 rather than re-deriving it. **No chart
+   library is named, inferred, or defaulted here.** Note also that a chart library would be a **new
+   dependency**, and ADR-106 makes that its own gated change through `pyproject.toml` + `uv.lock` —
+   so the missing input blocks a gated act, not merely a preference.
+
+### 6 · New open questions (continuing 6–9 above)
+
+10. **Does the `tests/` layer get a new edge kind, or an overload of `depends-on`?** §3. §7's "no
+    new edge kind" claim does not survive the split either way, and the claim should be corrected in
+    the same act that answers this.
+11. **How does a cross-repo `ecosystem/` edge name its target?** New node kind, namespaced
+    `NODE_FILE`, or a ruled refusal to cross the repo boundary. Same fork as §4's `~/.claude`
+    boundary and intake #62 open question 3 — **decide once, for all three.**
+12. **Do the two new layers make the operator's original five into seven — or eight?** Open
+    questions 6 and 7 already ask whether `rule` is a layer and whether `carrier` is a sixth. With
+    `tests` and `ecosystem` added the count is a **scope call the operator owns**, and it is now
+    large enough that answering 6, 7 and 12 separately would produce a model nobody chose.
+
+### What this amendment does NOT do
+
+- **No build.** No script, no test, no schema, no store, no chart. The layer function is unedited.
+- **No row born**, no status change, no folder created, no index regenerated.
+- **No new dependency**, and no chart library named — §5.3 records why naming one would be
+  inventing an input.
+- **No supersession of R-A**, whose measurement is cited and whose scoping is *restored*, not
+  narrowed — §4.
+- **No answer** to open questions 1, 4, 6, 7, 8 or 9, and none to the three born here. Question 9
+  (one organ or two) remains upstream of the build order, exactly as §7 says.

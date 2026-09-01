@@ -167,3 +167,71 @@ knowingly rather than arrived at. If instead the dashboard is **committed**, the
 the class and this intake's rule is still owed — now for a surface at the root.
 
 **Either way the class rule is still owed**, and no reading of the migration discharges it.
+
+## AMENDMENT — 2026-09-01 (b): the destination is NAMED and the `.md` twin's disposition is RULED
+
+> **Source:** operator ruling, 2026-09-01, following the amendment above on the same day.
+> **Appended, not edited.** The amendment above raised *"the asymmetry that is the actual trap"* —
+> that the `.md` twin's disposition *"must be ruled in the same act as the `.html`'s, not after
+> it."* **This amendment is that ruling.** Still no file is moved, no row is born, no artifact is
+> retired, and this intake stays `DRAFT`.
+
+### 1 · The destination, which the amendment above could only record as ungranted
+
+The dashboard's home is **`docs/dashboard/`** — a per-repo organ inside the genre tree. **A root
+`dashboard/` is WITHDRAWN** (root stays sacred; the 2026-08-26 revocation precedent is upheld, not
+overridden), and `ecosystem/dashboard` is withdrawn as hub-only. Intake **#38**'s amendment of this
+date carries the resolution against ROOT-CONTRACT v1; intake **#66**'s carries the ruling in full.
+
+So the amendment above's closing sentence — *"now for a surface at the root"* — is superseded on
+its **location** only. Read it now as *"a surface under `docs/`"*. Its substance is untouched.
+
+### 2 · THE TRAP IS ANSWERED: the `.md` twin STAYS, and stays the data surface
+
+**`ecosystem/conformance.md` is not part of the migration.** It remains where it is and keeps its
+role: the parseable, diffable, git-visible record. **Only the `.html` RENDERER migrates** — it
+becomes a panel in `docs/dashboard/`.
+
+This is the ruling the asymmetry section demanded, and it resolves the half-pointed-tuple failure
+directly rather than by omission:
+
+- `scripts/generated_artifact_freshness.py`'s `conformance-dashboard` entry keeps its `.md` leg
+  **unchanged** and re-points **only** the `.html` leg. The `outputs` pair never has a dead member,
+  because the member that would have died is the one that stays.
+- **`ARCHITECTURE.md` Ch2 and `[#171]` are barely touched**, and that is a consequence of the
+  ruling rather than luck: consumer 3 and consumer 4 *"all key on the `.md`"*, which the amendment
+  above identified as the trap. Because the `.md` does not move, they need at most the parenthetical
+  that names the HTML sibling updated — not a re-point of their subject.
+- `[#586]`'s regeneration RED is unaffected in kind; the generator still writes two outputs, and
+  one of them changes path.
+
+**What was a trap is therefore now the cheapest part of the migration**, and the reason to record
+that plainly is that the previous amendment's warning did its job: the question was raised before
+the act, so the act could answer it.
+
+### 3 · What is NOT discharged — this intake's own question survives intact
+
+The amendment above set out the fork: a **gitignored** dashboard dissolves this intake's question
+*for this artifact* while leaving it open *for the class*; a **committed** one keeps the artifact in
+the class. **The ruling does not choose.** `docs/dashboard/`'s zone class is unruled, and it is
+recorded as still open on intake #38 (Finding 2's surviving half) and intake #66 (open question 2's
+surviving half) — the same question in three places, to be ruled once.
+
+Two things follow, and neither is weakened by the destination being settled:
+
+1. **The class rule is still owed**, exactly as the sentence above this amendment says. Naming a
+   home changes where the artifact lives, not whether the class it belongs to has a currency gate.
+2. **This intake's subject is now MORE stable, not less.** Because the `.md` twin stays — and stays
+   **committed** — the one committed-generated artifact with no `--check` gate **remains in the
+   class under its current path** whatever the dashboard's zone class turns out to be. The
+   dissolution risk the amendment above flagged is retired: this intake can no longer be
+   accidentally emptied by the migration.
+
+### What this amendment does NOT do
+
+- **No file is moved and no artifact is retired.** `ecosystem/conformance.html` is where it was.
+- **No folder is created.** `docs/dashboard/` does not exist, and a Tier-2 ADR-101 genre admission
+  is still owed before it may.
+- **No row is born**, and no `[#171]` / `[#586]` scope is changed.
+- **No zone-class ruling**, and therefore no discharge of this intake's acceptance criteria.
+- **No status change.** This intake stays `DRAFT`.
