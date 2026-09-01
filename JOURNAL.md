@@ -19,6 +19,48 @@
 
 ---
 
+### 2026-09-01 (ap) - CC (Opus 5): codespace becomes the default substrate, and the proof lane audited the runner it ran under
+
+**Anchors:** `1fb0b9cd`
+
+**Did:** landed the doctrine half of `[#632]` after the operator confirmed the win-tooling proof
+(win-tooling merge `49cb75e`, pushed). Two hub surfaces: AMENDMENT 3 on the batch-F close packet
+(an in-file amendment marker — audits are immutable), and a new section 8 in `/boot-session` with
+its Emit count moved seven → eight.
+
+**Result:** `/boot-session` now renders `EXECUTION=CODESPACE` as the default substrate per
+doctrine option 3, **and renders both residual risks in the row** rather than in a footnote — the
+inference fuse is proven on a SYNTHETIC stall only, and `-Detach` versus the codespace idle
+timeout is UNMEASURED for a long lane. Attached long lanes are proven; detached long ones are not.
+
+The substrate itself was proven at **n=2**: two independently provisioned codespaces, one
+attached (863 s, remote exit 0, two commits pushed from inside the container) and one `-Detach`ed
+(dispatch returned in 62 s, receipt harvested afterwards, one commit pushed). The hub suite ran
+in-container to completion in 294 s wall against 8 m 23 s user CPU — the inverse of the recorded
+75-min-elapsed / 3-second-CPU hang signature. L5's non-zero exit is sixteen hub tests failing on
+their own content and is named as such, not borrowed as a substrate defect.
+
+**The brief named two defects; running the thing found four more**, none reachable by reading:
+the `--` block was appended AFTER the operands, so `-O` and `-i` were never a passthrough but
+three extra file operands; the dry run printed `bash` where the live path sends `bash -l`; the
+admission gate refused on a `gh` the container does not have and does not need; and the gate
+accepted `GITHUB_TOKEN` as satisfying an ANTHROPIC credential check — caught by the proof lane
+auditing the runner it was running under, whose words were that the gate's green and the real
+green "are correlated by luck in this run, not by what the gate verifies". Both obvious repairs
+also false-negative, so both credential families are now reported and neither gates.
+
+**Changes:** `docs/audits/2026-09-02-technical-batch-f-close-packet.md` (AMENDMENT 3),
+`.claude/commands/boot-session.md` (section 8 + Emit count). Landed from
+`.claude/worktrees/codespace-doctrine` because the primary was held by a live session on
+`docs/ratified-in-chat-discharge`; neither its HEAD nor its working tree was touched.
+
+**Abandoned:** nothing.
+
+**Next:** the two residual risks are measurements owed, not paperwork — a real provider-side hang
+for the fuse, and a long DETACHED lane against the idle timeout.
+
+---
+
 ### 2026-09-01 (ao) - CC (Opus 5): the suite ran, and it answered the objection terra raised against L5
 
 **Anchors:** `6a55b142`
