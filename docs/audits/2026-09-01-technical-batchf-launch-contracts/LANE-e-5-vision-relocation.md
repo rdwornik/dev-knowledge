@@ -47,7 +47,6 @@ name.
 - `scripts/consumer_at_landing.py`
 - `tests/test_canonical_docs.py`
 - `ecosystem/parity-surfaces.yaml`
-- `deploy/manifest-v1.5.0.yaml`
 - `protocols/DEFINITION_OF_DONE.md`
 - `protocols/ENVIRONMENT.md`
 - `protocols/FUNNEL_LIFECYCLE.md`
@@ -90,9 +89,11 @@ disjoint. Their pointers are stale TODAY, independently of this relocation.
    reports `.dev-knowledge canonical-doc-vision WARN-undeclared: SHOULD surface absent`. The
    `canonical-doc-vision` row gains the declaration; the eight consumers that still carry
    `VISION.md` are untouched, because relaxing a SHOULD cannot red a member.
-6. **`deploy/manifest-v1.5.0.yaml`'s archival note is corrected.** It records the archival as
-   *"MEASURED AND BLOCKED"* on a `vision_md` FAIL that no longer exists — the check learned the
-   registry-driven RETIRED tier on 2026-09-01.
+6. **`deploy/manifest-v1.5.0.yaml` is NOT this lane's.** Its stale archival note — recording
+   the archival as *"MEASURED AND BLOCKED"* on a `vision_md` FAIL that stopped existing on
+   2026-09-01 — is corrected by **lane-b-2**, which owns that file for its own deploy
+   declarations. One file, one owner: two lanes writing it is a merge conflict the batch
+   would have chosen to have.
 7. `audit.py health` exits OK and `deploy/release_lint.py --version 1.5.0` stays at 0 FAIL. Both
    were measured GREEN with the file already moved, so a regression here is this lane's, not
    inherited.

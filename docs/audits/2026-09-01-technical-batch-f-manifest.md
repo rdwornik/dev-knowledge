@@ -161,3 +161,61 @@ ASSET   two Shutdown codespaces (batche-c-admission-*, animated-dollop-*) -- DEL
 
 **Then, in the operator's order:** v1.5.0 tag (operator) -> monorepo instantiation (attended GO).
 Ex-ante numbers ride the GO; terra tallies ride the close packet.
+
+---
+
+## AMENDMENT 1 — 2026-09-01, BEFORE DISPATCH: L2 REISSUED on the operator's F1 contract
+
+> **In-file amendment marker** (CLAUDE.md §5 rule 3). The batch is FROZEN and **not dispatched**
+> (`dispatched: PENDING`), so this is a **re-freeze**, not a change under a running lane.
+
+The operator issued the F1 contract after the first freeze. **L2 was REISSUED — regenerated from
+`gen_lane_contract emit` and re-filled — not amended.** That is `[#629]`'s own rule applied to the
+batch that files it: *an amendment cannot subtract or replace an act; a split or re-scoped ruling
+REISSUES the contract through the validator.* Annotating a frozen contract with "actually, do this
+instead" is exactly the shape that made batch E's DC-3 execute a ruled-out act.
+
+**F1 is now the BOOT-INVERSION carrier, `/boot-session`**, not merely a version bump:
+
+```
+bundle    sections GENERATED from live state -- funnel health · north-star arcs + priorities ·
+          rot/orphans from funnel_lifecycle · open asks · PROPOSED NEXT BATCH (decision-tree
+          ranked, ledger-bounded) + ONE hand-written RESIDUAL for judgment. ROLE PIN 7.0.0;
+          a v6 bundle is REFUSED.
+organ 1   .claude/commands/boot-session.md -- repo-level, deploy-carried. It NARRATES.
+organ 2   a one-line FUNNEL HEALTH digest on SessionStart -- EXTENDING an existing tripwire,
+          never a fifth rival.
+library   scripts/boot_frontier.py -- the frontier (rustworkx topological order), the scoring
+          seam and batch selection under disjointness/width/ledger. The hard part is importable
+          and testable; a prompt that computes a frontier is a frontier nobody can test.
+```
+
+**Three things were VERIFIED before they became contract text, and two of them changed it:**
+
+- **`rustworkx` is ALREADY a declared dependency** — `pyproject.toml` carries it for FPG-1 on the
+  operator's A3 mandate, from a prebuilt wheel, hash-pinned in `uv.lock`, numpy cost stated. **F1
+  adds no dependency**; the contract says REUSE, and would have said "add" if nobody had looked.
+- **`SessionStart` runs five hooks, not four** — four surfacing organs plus `arm_hooks`. The
+  ruling's *"extend the existing four tripwires, never a fifth rival"* resolves to
+  `scripts/fleet_health.py`, which already prints a one-line digest and already carries the
+  overdue-groom escalation. Named as the measured natural host, with the lane told to confirm
+  against live docs rather than trust this line.
+- **BOOT-R1's survey is still RUNNING**, so the scoring rule is a **declared seam pinned later**,
+  not a model invented to fill the gap. AUT-R1 landed and is cited by path for the bounding rules.
+
+**ONE WRITE-SCOPE MOVED, AND L5 WAS REISSUED FOR IT TOO.** L2 needs
+`deploy/manifest-v1.5.0.yaml` to declare two new deploy-carried organs; L5 had claimed it for a
+one-line archival-note correction. **One file, one owner** — leg 6 would have REFUSED the pair.
+The correction moved into L2's done-contract. Removing a file from L5's frozen scope is a
+SUBTRACTION, so L5's contract was rewritten rather than annotated, on the same rule as L2.
+
+**Re-run at re-freeze, over all seven:**
+
+```
+gen_lane_contract.py check   7 of 7 OK
+validate_substrate.py        7 contract(s) OK — 0 REFUSE, 0 WARN, 0 deviations
+[#630] hand-check            manifest slug set == contract slug set, both directions
+```
+
+The lane table above is unchanged: L2's slug, branch and substrate are identical, so the manifest
+and the contracts still agree. Only the contract's content moved.
