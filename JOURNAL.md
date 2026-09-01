@@ -19,6 +19,53 @@
 
 ---
 
+### 2026-09-01 (x) - CC (Opus 5): the overdue groom finds nothing closable, which is what makes the re-baseline lawful
+
+**Anchors:** `6b256fb9`
+
+**Did:** ran the ADR-41 groom (33 days overdue), then re-baselined `[#589]`'s BACKLOG byte bar
+70,000 → 72,000 B with the delta recorded in `[#589]` itself. Architect's batch-F cut §0(a), both
+halves, in the ordered sequence it specified.
+
+**THE GROOM FOUND NOTHING TO CLOSE, AND THAT IS THE FINDING.** 223 manifest nodes, **zero**
+carrying a terminal status, tree coherent. All three STRONG closure candidates **failed content
+verification** — and the reason they were proposed at all is that the `/review-closures` STRONG
+test is *"id is open AND a `closes` commit exists in the window"*, which is **not a content
+check**:
+
+- **`[#430]`** is open on half **(b)**, ship-gate determinism across two checkouts. Only half (a)
+  landed (`3cf3a5b0`), and its register line is owed to the consolidation arc.
+- **`[#554]`**'s Done-when wants `audit.py health` **and** `pytest -m 'not slow'` green in a
+  Codespace **plus** a VPS `devcontainer up`. The admission receipt carries health exit 0
+  in-container and **not** the pytest leg; no VPS run exists. Its evidence commit is a terra fix
+  round, not the Done-when.
+- **`[#614]`** was a false positive off **this arc's own `[#614]` reference tags** — a tag that
+  references is not a tag that closes.
+
+**Closing a row to buy bytes is closing undone work**, so the corpus stayed at 70,276 B and the
+ruling's second branch applied.
+
+**THE TEST HAD ALREADY WRITTEN DOWN WHAT TO DO.** Its docstring: *"WHEN IT BINDS THAT IS THE
+POINT, not a broken test … the answer is to groom or to re-baseline deliberately."* Both, in that
+order. The arithmetic now lives in the docstring **and** in `[#589]`'s own body, because that row's
+whole subject is an assertion that may not be silently undone.
+
+**The composition is the part worth keeping:** of 70,276 B, only **32,383 B is rows** (223 lines,
+mean 145 B) — **37,893 B, 54% of the file, is scaffolding**. The view projection already did its
+job on the rows; the remaining growth is themes, stories and prose. New headroom 1,724 B ≈ 11 rows,
+about one batch's filing, so the next breach lands inside a batch instead of silently.
+
+**Only the point-in-time total moved.** `_VIEW_ROW_BYTE_CEILING` — the per-row, growth-proof half
+enforced on every commit — is untouched, as is the 100,000 per-commit gate that sits deliberately
+above this bar so queue growth can never wedge a commit. And `BACKLOG.md` is byte-identical: a row
+BODY edit costs the view nothing.
+
+**Changes:** `tests/test_gen_task_tree.py`, `tasks/589-*.md`, `JOURNAL.md`.
+
+**Next:** the F0 premise correction (the derivation cited the stale REBUILD probe; codespace was
+ADMITTED 3-of-3 on a fresh create at `c8bf1390`), then Act One persisted as an artifact and its
+branch deleted, `[#276]` un-deferred, and the batch-F freeze.
+
 ### 2026-09-01 (w) - CC (Opus 5): the batch-E teardown PARTIAL discharges, and the amendment keeps the evidence rather than the claim
 
 **Anchors:** `ff46aeac`

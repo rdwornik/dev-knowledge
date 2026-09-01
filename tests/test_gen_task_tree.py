@@ -1157,14 +1157,34 @@ def test_rank_reports_the_live_queue():
 def test_the_live_view_is_under_the_589_done_when_byte_bar():
     """[#589]'s measured claim, asserted rather than left in a closed row.
 
-    Measured at the flip (2026-08-26, 202 rows): 279,814 B -> 66,526 B, a 76% cut. The
-    done-when bar is 70,000, so this holds ~23 further rows at the live 141 B/row mean.
-    WHEN IT BINDS THAT IS THE POINT, not a broken test: the queue has outgrown the budget
-    the row declared, and the answer is to groom or to re-baseline deliberately. The
-    growth-proof half of the contract is `_VIEW_ROW_BYTE_CEILING`, which is what
-    `find_incoherences` enforces on every commit and which never needs re-baselining.
+    Measured at the flip (2026-08-26, 202 rows): 279,814 B -> 66,526 B, a 76% cut.
+
+    RE-BASELINED 2026-09-01 TO 72,000 AFTER A GROOMING PASS, ON THE ARCHITECT'S RULING, and
+    the arithmetic is here because the row this asserts says the assertion may not be
+    SILENTLY undone. It bound, which this docstring already called the point rather than a
+    broken test, and it named the two lawful answers: groom, or re-baseline deliberately.
+    Both were taken, in that order.
+
+        corpus at the 2026-09-01 groom   70,276 B   223 rows
+          row lines                      32,383 B   mean 145 B/row
+          scaffolding (themes/stories/prose)        37,893 B  -- 54% of the file
+        old bar                          70,000 B   -> breached by 276 B
+        new bar                          72,000 B   -> 1,724 B headroom, ~11 rows
+
+    THE GROOM CAME FIRST AND FOUND NOTHING TO CLOSE, which is why re-baselining is the
+    remaining move rather than the easy one. Zero manifest nodes carried a terminal status;
+    the tree was coherent; and all three STRONG closure candidates FAILED content
+    verification -- #430 is open on half (b) (ship-gate determinism) with only half (a)
+    landed, #554's Done-when needs `pytest -m 'not slow'` in-container and a VPS
+    `devcontainer up` that no receipt shows, and #614 was a false positive from this arc's
+    own reference tags. Closing a row to buy bytes is closing undone work.
+
+    ONLY THE POINT-IN-TIME TOTAL MOVES. `_VIEW_ROW_BYTE_CEILING` -- the per-row, growth-proof
+    half that `find_incoherences` enforces on every commit -- is untouched, as is the 100,000
+    per-commit gate in `gen_task_tree.py`, which sits deliberately above this bar so ordinary
+    queue growth can never wedge a commit.
     """
-    assert len(BACKLOG.read_bytes()) < 70_000
+    assert len(BACKLOG.read_bytes()) < 72_000
 
 
 def test_the_view_is_one_line_per_row_and_carries_no_bodies():
