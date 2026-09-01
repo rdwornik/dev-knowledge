@@ -73,10 +73,12 @@ whole registry. A row already GREEN (visible-fix present) is omitted here; it st
 
 ## 6. PROPOSED NEXT BATCH
 
-Run the frontier/scoring/batch library — this is the hard, tested part, never composed by hand:
+Run the frontier/scoring/batch library — this is the hard, tested part, never composed by hand.
+Scoring + batch selection is the DEFAULT action (no flag needed — `--frontier` switches to the
+raw unscored list instead, which this step does not want):
 
 ```
-uv run --locked python scripts/boot_frontier.py --propose
+uv run --locked python scripts/boot_frontier.py
 ```
 
 Render its output verbatim, including the `held back (serialize-group disjointness)` and

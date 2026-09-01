@@ -1007,8 +1007,8 @@ wrote for it. The inversion covers:
 2. **FUNNEL HEALTH** — the SessionStart digest's own numbers, re-surfaced (§17.2).
 3. **North-star arcs with priorities** — `BACKLOG.md`'s `[E#]` themes, read live, with each
    theme's open-row count by `[P1..P3]` band.
-4. **The rot/orphan list** — `scripts/funnel_lifecycle.measure()` / `.findings()`, READ never
-   written (this lane's write-scope note): the four-leg lifecycle detector already IS the
+4. **The rot/orphan list** — `scripts/funnel_lifecycle.measure()` / `.findings()`, READ ONLY,
+   not written (this lane's write-scope note): the four-leg lifecycle detector already IS the
    rot/orphan source, so this section quotes its findings rather than re-detecting them.
 5. **Open asks for the browser** — every OPERATOR ASKS row with no visible-fix, pulled forward
    from §1 so the browser sees them without re-reading the whole registry.
@@ -1033,18 +1033,18 @@ itself, and from the seat that asked, a row id is indistinguishable from silence
 asked            <date>            when it was first raised
 visible-fix      <sha | path>      the change the operator can SEE, or empty
 blocker          <text + date>     required when visible-fix is empty -- a NAMED, DATED
-                                   blocker, never "filed as [#N]"
+                                   blocker, not "filed as [#N]"
 owner            <id>              the row, arc or seat that owns it
 re-asked         <n>               incremented every time it is raised again
 ```
 
 **The teeth: `re-asked >= 2` with no visible-fix renders RED** — at `/boot-session` boot and in
-the SessionStart digest, as a **status**, never as prose. *"Tracked in `[#N]`"* is exactly the
+the SessionStart digest, as a **status**, not as prose. *"Tracked in `[#N]`"* is exactly the
 answer L-S7 rules insufficient; a row id alone does not discharge the RED. A seat sees what the
 operator is still waiting for **before** it sees what the repo would like to do next.
 
 **This table is the canonical, live registry** — `/boot-session` and `scripts/fleet_health.py`
-both read it here rather than each keeping a copy (EXTEND THE EXISTING SURFACE, never a second
+both read it here rather than each keeping a copy (EXTEND THE EXISTING SURFACE, not a second
 store). `fleet_health.parse_operator_asks` reads the fenced block below the bolded
 **Seed entries** line by that literal marker — an entry is appended or amended in place inside
 that fence (this table is doctrine + live data together, same pattern as `funnel_lifecycle.py`'s
@@ -1071,12 +1071,12 @@ below the `re-asked >= 2` RED threshold except row 2 (`re-asked 2`, blocker pres
 blocker discharges the RED per the rule above; RED fires only on `re-asked >= 2` **with no**
 visible-fix **and no** named blocker).
 
-### 17.2 The two organs — a library, and an extended tripwire, never a rival
+### 17.2 The two organs — a library, and an extended tripwire, not a rival
 
 **(a) `.claude/commands/boot-session.md`** — repo-level, deploy-carried like any organ.
 Assembles §17's six generated sections + the hand-written RESIDUAL and emits one browser-paste
 block (the §5 fenced-block convention this file already uses for `/handoff-verify`'s evidence
-block). It **narrates**: every number in the paste comes from a command it names, never from
+block). It **narrates**: every number in the paste comes from a command it names, not from
 memory.
 
 **(b) A SessionStart one-line FUNNEL HEALTH digest**, riding `scripts/fleet_health.py` — the
@@ -1101,10 +1101,10 @@ rather than restated here. Three things worth citing from that module, not re-de
   (P-enum primary, constraint-contention tiebreak, id-as-age floor) as the documented
   placeholder, swappable via the named `ScoreFn` seam once BOOT-R1 pins the permanent rule.
 - **The bounding rules come from AUT-R1's self-planning axis**
-  (`docs/audits/2026-08-29-technical-aut-r1-autonomous-sdlc-orchestration.md`): never endless
-  (the ledger bound, citing the night-batch protocol's ~5-proposals cap), never only-easy (the
-  scorer's primary key is the operator-set priority band, never size/effort, by construction),
-  and human approval represented explicitly as a **GO** — `BatchProposal` is a proposal, never a
+  (`docs/audits/2026-08-29-technical-aut-r1-autonomous-sdlc-orchestration.md`): not endless
+  (the ledger bound, citing the night-batch protocol's ~5-proposals cap), not only-easy (the
+  scorer's primary key is the operator-set priority band, not size/effort, by construction),
+  and human approval represented explicitly as a **GO** — `BatchProposal` is a proposal, not a
   dispatch; nothing in `boot_frontier.py` or `/boot-session` executes anything.
 
 ### 17.3 The naming convention — filed as a CANDIDATE, nothing renamed here
