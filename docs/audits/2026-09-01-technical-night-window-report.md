@@ -506,3 +506,51 @@ still absent from the tree.
 **Escalated rather than decided: nothing.** Every fork above resolved against a standing rule, a
 measurement, or a ruling already recorded. The seven items in §12 are questions the operator owns
 by subject — they were never blockers this seat worked around.
+
+---
+
+## AMENDMENT 3 — 2026-09-01 03:10, DM-4 harvested. One of the four open items closes.
+
+> The body and Amendment 1 both record DM-4 as **still ACTIVE**. It is not: its work finished and
+> the session simply had not been archived, which is a distinction `Get-CloudSession` does not
+> draw. Harvested and persisted at
+> `docs/audits/2026-09-01-technical-dm4-local-memory-tier-l-evaluation.md`.
+
+**THE RESULT: `grep@5: 11/20 (55%)` against `hashed-vector@5: 2/20 (10%)`.** grep wins clearly —
+and the caveat is load-bearing rather than decorative. **`model2vec`, the embedder CUT-4's
+question actually names, was NEVER REACHABLE**: the session's egress policy answered `403 to
+CONNECT` for `huggingface.co:443`, twice, non-transient, and the lane **reported the blocked host
+rather than routing around it**, as its proxy's own instructions require. It substituted a
+network-independent hashed TF-IDF vector so the question got a real number, and states in its own
+§6 that **the original CUT-4 question is still open**. It also chased down an apparent anomaly in
+its own results and found it to be a structural bias of the substitute embedder toward
+large/high-token-diversity files — not a `sqlite-vec` defect — and fixed a real IDF bug on the way
+that did not change the outcome.
+
+**`sqlite-vec` is NOT implicated and was proven working**: 34,033 real vectors in a `vec0` table,
+real KNN, cross-checked against independent NumPy brute-force L2 and **matching exactly**.
+
+**Zero tree writes, as contracted** — verified at harvest, `git status --short` clean in its own
+clone. ADR-112's Tier-L bar applies: the evaluation IS the deliverable, and a negative result
+against a substitute embedder is still a result, provided it says which question it answered.
+
+**AND IT MET THE MECHANISM LANDED HOURS EARLIER.** `Harvest-Cloud` reported its own deviation at
+persist time — *"the report does not open with its own heading — the first heading is line 5"* —
+which is exactly the shape the audits index renders as `(no # title)`. The persist header supplies
+the missing `# ` line, and `gen_audit_index --check` was green afterwards. **The tool that warns
+at persist time and the gate that refuses at commit time agree on the same defect**, which is
+what §11's "UNBLOCKED" column is for.
+
+### The open set is now THREE, not four
+
+```
+DC-23   REFUSED with zero writes. Needs the operator's answer to §12 question 1.
+DM-1    Blocked on tier-(B) payload B-2. One word unblocks it.
+DM-2    Blocked on tier-(B) payload B-1. Same.
+DM-4    CLOSED -- harvested, persisted, consumed by [#614] and CUT-4.
+```
+
+**N1 restated: 11 of 15 MERGED, 12 of 15 RESOLVED** (DM-4 owed a harvest, not a merge, and has
+given it). The batch still does not close — three items remain open, so
+`docs/audits/2026-09-01-technical-batch-e-close-packet.md` stays absent and the ADR-110 exemption
+stays armed.

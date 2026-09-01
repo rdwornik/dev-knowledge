@@ -19,6 +19,60 @@
 
 ---
 
+### 2026-09-01 (h) - CC (Opus 5, background job, night orchestrator): CORRECTION - the title gate did not bind where entry (e) said it did; DM-4 lands and grep wins on a question it could not ask
+
+**Anchors:** `ffdf210d` `f06b09ea`
+
+**Corrects entry (e).** JOURNAL is append-only, so (e) stands as written and this is the
+correction.
+
+**THE CLAIM THAT WAS FALSE:** *"the gate binds at the commit that ADDS an artifact."* It did not.
+The gate was wired into `--check`, which rides `audit-index-freshness` -- and **`[#590]`
+deliberately NARROWED that hook to `docs/audits/README.md` and its generator**, because forcing
+every lane to regenerate a shared file had put that file in **6 of the last 7 conflicted merges**.
+So the path fired when the INDEX was touched, and on neither the artifact nor its author.
+
+**FOUND BY WATCHING IT NOT FIRE.** DM-4's harvest landed as a new audit and the index went stale
+straight through the commit -- expected under `[#590]`, and it is what exposed the wrong claim.
+**The original trip test looked convincing because it staged the file AND regenerated the index in
+the same breath**, so it exercised the index path while reading as the artifact path. A trip test
+that moves two things at once proves neither.
+
+**THE FIX MAKES THE CLAIM TRUE RATHER THAN DOWNGRADING IT.** `--check-titles` reads FILES and
+never the index, armed as its own hook on `^docs/audits/.*\.md$`. That re-creates nothing of what
+`[#590]` fixed, and the reason is worth stating precisely: **the coupling [#590] removed was
+WRITE-coupling** -- a shared generated file every lane had to touch -- and **a read-only gate has
+none**. Trip-tested at the HOOK stage this time, not the CLI: staged a title-less audit, exit 1
+naming the file and the fix; removed it, Passed. A test now asserts the hook's `files:` pattern
+against the config, because **a gate's coverage is a property of its pattern, and a coverage claim
+nothing checks is the class this repo keeps re-learning**.
+
+**DM-4 IS HARVESTED, and the session was DONE while the API still said `active`** -- a distinction
+`Get-CloudSession` does not draw and one worth knowing before writing off a three-hour lane.
+**`grep@5: 11/20 (55%)` against `hashed-vector@5: 2/20 (10%)`.** But **`model2vec`, the embedder
+CUT-4's question actually names, was never reachable**: egress answered `403 to CONNECT` for
+`huggingface.co:443`, twice, non-transient, and the lane **reported the blocked host rather than
+routing around it**. It substituted a network-independent hashed TF-IDF vector so the question got
+a real number, and says in its own words that **the original CUT-4 question is still open**. It
+also chased an anomaly in its own results to a structural bias of the substitute embedder rather
+than blaming `sqlite-vec` -- which it proved working, 34,033 vectors, KNN cross-checked against
+NumPy brute force and matching exactly. **A negative result that names which question it answered
+is worth more than a positive one that does not.**
+
+**AND IT MET THE MECHANISM FROM THREE HOURS EARLIER.** `Harvest-Cloud` reported its own deviation
+at persist time -- *"the report does not open with its own heading"* -- which is exactly the shape
+the index renders as `(no # title)`. The persist header supplies the missing line. **The tool that
+warns at persist and the gate that refuses at commit now agree on one defect.**
+
+**Result:** the batch's open set is THREE, not four -- DC-23, DM-1, DM-2. **11 of 15 merged, 12 of
+15 resolved.** Window report amended three times in-file (immutable, so never edited).
+
+**Changes:** `.pre-commit-config.yaml`, `scripts/gen_audit_index.py`,
+`tests/test_gen_audit_index.py`, `ecosystem/organ-index.md`, `docs/audits/README.md`, the DM-4
+harvest, the window report (AMENDMENT 3), `tasks/614-*.md`, both per-window baselines.
+
+**Next:** a final full-suite run on the settled tree, then push.
+
 ### 2026-09-01 (g) - CC (Opus 5, background job, night orchestrator): the F1 accusation is WITHDRAWN in the tree, and the decision ledger says what was decided without asking
 
 **Anchors:** `ce84af4b` `47f94d87` `7eedfbaf`

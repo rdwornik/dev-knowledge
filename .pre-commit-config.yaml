@@ -121,6 +121,23 @@ repos:
         language: system
         files: '(^docs/audits/README\.md$|^scripts/gen_audit_index\.py$)'
         pass_filenames: false
+      - id: audit-title-gate
+        name: Audit TITLE gate (every indexed audit carries a heading; HUB-ONLY)
+        # ARMED SEPARATELY FROM audit-index-freshness ON PURPOSE, and the separation is the
+        # design. That hook is scoped by [#590] to the index and its generator, because
+        # requiring every lane to regenerate a shared file put docs/audits/README.md in 6 of
+        # the last 7 conflicted merges. This check WRITES NOTHING and touches no shared
+        # artifact, so arming it on the audits tree re-creates none of that coupling -- and it
+        # is the only path that catches a title-less artifact ON THE COMMIT THAT ADDS IT.
+        #
+        # Measured 2026-09-01: 20 of 837 indexed audits carry no `# ` heading and render as
+        # `(no # title)`, nine of them harvested cloud artifacts. Those 20 are grandfathered in
+        # ecosystem/audit-title-baseline.json; the 21st refuses. Re-measure deliberately with
+        # `--write-title-baseline`, never to silence a finding.
+        entry: uv run --locked python scripts/gen_audit_index.py --check-titles
+        language: system
+        files: '^docs/audits/.*\.md$'
+        pass_filenames: false
       - id: organ-index-freshness
         name: Organ index freshness check ([#132]; ecosystem/organ-index.md)
         # Fail-on-stale regen-and-diff, mirroring audit-index-freshness /
