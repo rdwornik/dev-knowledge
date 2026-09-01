@@ -19,6 +19,46 @@
 
 ---
 
+### 2026-09-01 (af) - CC (Opus 5): L2 reissued for OPERATOR ASKS, and a cost-leak fix I could not land
+
+**Anchors:** `68597ebd`
+
+**Did:** reissued L2 to carry OPERATOR ASKS as its first-rendered bundle section, recorded the
+count that makes `[#631]`'s case, and **failed to land** the win-tooling helper fix — reverted
+rather than left half-done.
+
+**`[#631]` NOW HAS THREE LIVE INSTANCES IN ONE WINDOW, FROM THREE DIFFERENT ARRIVAL MODES.** A rule
+invented after the freeze (review lanes, amendment 2). A rule that already existed and was never
+checked against (R-MODELS, amendment 3). A rule invented after the freeze **again** (OPERATOR ASKS,
+amendment 4). **Every one was caught by a human noticing, not by an organ** — which is the whole
+argument for the mechanism: the freeze records the rule set it validated against, and **dispatch
+re-validates**.
+
+**THE COST LEAK IS NOT FIXED, AND I AM SAYING SO RATHER THAN LEAVING A HALF-BROKEN TREE.**
+`Dispatch-Codespace` still creates BEFORE checking display-name ambiguity and still does not delete
+its own creation on a post-create refusal. The module change itself is small and I wrote it — a
+pre-create `gh codespace list` probe that refuses with nothing created. **What I could not converge
+was its TEST.** The fixture returns one canned `codespace list` for every call, and the pre-create
+probe and the post-create resolve are different moments that need different answers; branching the
+fixture on the argv took the file from 13 pre-existing failures to 22 and I did not get it back
+down inside this session.
+
+**And the diagnosis is worth more than the attempt.** Every stalled test dies at *"no receipt came
+back"* — the fixture writes its receipt on `$a[2] -like 'remote:*'`, and the **pre-existing 13
+failures are exactly the cp/scp passthrough-ordering cluster that moves `$a[2]`**. So the new
+work's tests depend on the same plumbing the old failures live in. **Fix the 13 first**; the
+ambiguity fix is cheap once the receipt stub is trustworthy. Reverted to `2101ee0` — 13 failed /
+56 passed, with both landed fixes (`bash -l`, the provision-stamp wait, the three-state guard)
+intact and verified present.
+
+**Changes:** `docs/audits/2026-09-01-technical-batchf-launch-contracts/LANE-b-2-handoff-v7.md`,
+the batch-F manifest (amendment 4), `JOURNAL.md`.
+
+**Not yet landed, and named so they are not lost:** the two rulings that arrived during this work
+— codespace dispatch ownership moving to the orchestrator (no cost caps, measurement first) and
+the four-option substrate doctrine with the sentinel observer/supervisor pattern and `-Detach`.
+Neither is in the dispatch chapter yet.
+
 ### 2026-09-01 (ae) - CC (Opus 5): ESSENTIALS de-blessed, and three of the four defects in doing it were mine
 
 **Anchors:** `12f4113a` · `11088e5b`

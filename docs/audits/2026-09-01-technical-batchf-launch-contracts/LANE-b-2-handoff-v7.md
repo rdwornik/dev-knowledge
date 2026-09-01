@@ -59,12 +59,20 @@ existing on 2026-09-01.
 
 ## Done-contract (immutable)
 
-1. **The bundle's sections are GENERATED FROM LIVE STATE, not hand-copied** — FUNNEL HEALTH;
-   north-star arcs with priorities; the rot/orphan list from `funnel_lifecycle`; open asks for
-   the browser; and a **PROPOSED NEXT BATCH** of decision-tree-ranked leaves, ledger-bounded.
-   Exactly ONE small hand-written **RESIDUAL** carries the judgment a generator cannot have:
-   rejections, tensions, and why. **`HANDOFF_PROCESS` is at v7.0.0, ROLE PIN 7.0.0, and a v6
-   bundle is REFUSED** — refused, not warned, or the inversion is optional and therefore absent.
+1. **The bundle's sections are GENERATED FROM LIVE STATE, not hand-copied** — **OPERATOR ASKS
+   (FIRST)**; FUNNEL HEALTH; north-star arcs with priorities; the rot/orphan list from
+   `funnel_lifecycle`; open asks for the browser; and a **PROPOSED NEXT BATCH** of
+   decision-tree-ranked leaves, ledger-bounded. Exactly ONE small hand-written **RESIDUAL**
+   carries the judgment a generator cannot have: rejections, tensions, and why.
+   **`HANDOFF_PROCESS` is at v7.0.0, ROLE PIN 7.0.0, and a v6 bundle is REFUSED** — refused, not
+   warned, or the inversion is optional and therefore absent.
+1a. **OPERATOR ASKS RENDERS FIRST, ABOVE EVERYTHING** (intake #66, lesson L-S7). Each ask is a
+   RECORD, not a sentence: `asked <date>`, a **visible-fix** (a sha or path the operator can SEE)
+   **or** a **NAMED, DATED blocker**, an owner id, and a **re-asked** count. **`re-asked >= 2`
+   with no visible-fix renders RED** — at boot and in the close packet, as a STATUS, never as
+   prose. *"Tracked in `[#N]`"* is exactly the answer L-S7 rules insufficient, so a row id alone
+   does not discharge the RED. A seat sees what the operator is still waiting for **before** it
+   sees what the repo would like to do next. Seed from #66's five entries.
 2. **TWO ORGANS, AND THE HARD PART IS A LIBRARY, NOT A SKILL.** (a)
    `.claude/commands/boot-session.md`, repo-level and deploy-carried like any organ, assembles
    the sections and emits a browser-paste block. (b) A SessionStart **one-line FUNNEL HEALTH
@@ -129,8 +137,8 @@ duty, it does not authorise the deviation.
    syntax in the current docs. Derive the syntax; do not recall it. **COMMIT**
 2. Build `scripts/boot_frontier.py` FIRST — frontier, scoring seam, batch selection — with its
    tests. The library before the narration, so the hard part is testable. **COMMIT**
-3. Land `.claude/commands/boot-session.md` over that library, and extend the existing tripwire
-   with the one-line digest. **COMMIT**
+3. Land `.claude/commands/boot-session.md` over that library — with OPERATOR ASKS rendered
+   FIRST — and extend the existing tripwire with the one-line digest. **COMMIT**
 4. Take `HANDOFF_PROCESS` to v7.0.0, re-point the four stale VISION citations, and declare both
    organs in the deploy manifest (correcting its stale VISION archival note in the same pass).
    **COMMIT**
