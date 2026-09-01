@@ -245,3 +245,60 @@ ADR-111). Birthing the census row ahead of ratification would be the exact move 
 - **No supersession** of any ruling, and no answer to open questions 1, 3 or 4.
 - **No new folder, no new intake, no new row.**
 - **No status change** — this intake stays `DRAFT`, and DRAFT BINDS NOTHING.
+
+## AMENDMENT — 2026-09-01: the OBSERVABLE HARNESS, and the distiller trace as the EVAL CORPUS
+
+> **Source:** operator direction, 2026-09-01, filed under the same binding rule the 2026-08-31
+> amendment ran under — *reconcile-before-birth: amend existing leaf/row/intake, birth only proven
+> gaps*. **Zero new folders, zero new rows.** One new intake (**#66**) was born, for the one leg
+> nothing carried. This amendment **still binds nothing**: this intake is `status: DRAFT`, and
+> DRAFT BINDS NOTHING. Question 1 remains the operator's ruling to make.
+
+### The coupling this amendment exists to record
+
+The 2026-08-31 amendment established the **admission gate**: any skill or command is admitted only
+through an evaluation loop, and **LLM-authored skills without an eval are REFUSED BY RULE**. It
+also established the ordering — the gate **consumes** the metric, so a gate built before its
+scoring harness has nothing to read.
+
+**What was never said is where the eval's corpus comes from.** The 2026-09-01 direction closes
+that: the **prompt-distiller trace doubles as the eval corpus for the skills gate.** One artifact,
+two consumers — the distiller records `intent -> final prompt` plus the chosen
+skills/commands/model/substrate **and the reason**, and that record is exactly the labelled input
+an eval loop needs in order to score whether a skill earned its invocation.
+
+This is **not** a new requirement on this intake. It is the missing edge between two clauses it
+already carries — the admission gate above, and the bidirectional distiller (the `[#617]` / DM-5
+leg, recorded here as *"the same clause as the admission gate, reached from the other side"*). The
+two sides now meet at a named artifact instead of at a description.
+
+**Consequence for the ordering, stated so it is not rediscovered.** The 2026-08-31 amendment ruled
+the admission gate downstream of THE METRIC. The corpus is downstream of the **trace**, and the
+trace does not exist yet — it has no home until intake #66's TRACE layer is ruled. The sequence is
+therefore **trace -> corpus -> eval loop -> admission gate**, which puts the gate **two** organs
+away from buildable rather than one. Recorded as an ordering fact, not as a new blocker.
+
+### The harness is this umbrella's OBSERVABILITY half — and it is a SIBLING, not a leg
+
+The 2026-09-01 direction names four layers with one home each (MECHANISM `scripts/` · DOCTRINE
+`protocols/` · TRACE `logs/` · VIEW `dashboard/`). The reconcile pass moved five of its seven legs
+onto existing carriers and birthed **intake #66** for the remainder — the layering rule itself, and
+the **DOCTRINE layer**, which nothing in the repo carries.
+
+**#66 is filed as a sibling of this intake rather than as another leg of it.** The reason is worth
+one line: this umbrella is about **ownership** — who authors what across L0 / hub / consumer. The
+harness is about **placement** — which of four layers an observing organ belongs to. They meet at
+exactly one point, the corpus coupling above, and folding either into the other would have made
+both harder to rule.
+
+**One fork is shared and both files say so.** #66's open question 4 and this intake's open
+question 4 are the same question — *where does a hub-side authority live, `protocols/` or
+`ecosystem/`* — and `[#613]` is parked on it too. Three sites, one decision; it should be made
+**once**.
+
+### What this amendment does NOT do
+
+- **No edit to any `~/.claude` path**, and no authorisation of one. Core-invariant #6 stands.
+- **No supersession** of any ruling, and no answer to open questions 1, 3 or 4.
+- **No new folder, no new row.** One new intake (#66), for a proven gap, per ADR-98/ADR-111.
+- **No status change** — this intake stays `DRAFT`, and DRAFT BINDS NOTHING.
