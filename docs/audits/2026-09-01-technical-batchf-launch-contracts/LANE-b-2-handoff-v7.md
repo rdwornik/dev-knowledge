@@ -2,7 +2,7 @@
 
 | Model | Mode | Effort |
 |---|---|---|
-| opus | execute | high |
+| sonnet | execute | high |
 
 **No-consumer:** a frozen lane contract is consumed by its DISPATCH and by the batch manifest that enumerates its slug, never by a governance-surface citation — and its filename carries no `YYYY-MM-DD` prefix, so neither `consumer_at_landing` token regex could resolve a citation even if one existed. Declared per that check's own escape.
 
@@ -19,7 +19,7 @@ helper is cwd-bound, and dispatching from the wrong repo lands the worktree in
 it. Dispatch constants ride the line without being re-decided:
 `--permission-mode bypassPermissions`, `--bg`, and the board label
 `[.dev-knowledge · lane-b-2-handoff-v7 · lane-b-2-handoff-v7]`. Model defaults to `opus` — the `.dev-knowledge`
-default per the Ch8 routing matrix — and this lane dispatches at `opus`.
+default per the Ch8 routing matrix — and this lane dispatches at `sonnet`.
 Effort is a closed enum: {low | medium | high | xhigh | max}; a value outside it is refused
 at the surface with the enum named, rather than guessed. The helper refuses
 outright when `worktree-lane-b-2-handoff-v7` already exists, so re-running the line is a no-op

@@ -2,7 +2,7 @@
 
 | Model | Mode | Effort |
 |---|---|---|
-| opus | execute | high |
+| sonnet | execute | high |
 
 **No-consumer:** a frozen lane contract is consumed by its DISPATCH and by the batch manifest that enumerates its slug, never by a governance-surface citation — and its filename carries no `YYYY-MM-DD` prefix, so neither `consumer_at_landing` token regex could resolve a citation even if one existed. Declared per that check's own escape.
 
@@ -18,7 +18,7 @@ The operator runs the line above verbatim. The contract is shipped IN **as a
 file**, and so is the runner: nothing on the ssh command line is a quoted
 payload, because a PowerShell string reaching a bash login shell through gh's
 transport is parsed twice. Tier is on the record in the routing table above
-(`opus` / `high`) — `Dispatch-Codespace` carries no `-Effort`.
+(`sonnet` / `high`) — `Dispatch-Codespace` carries no `-Effort`.
 Permission mode is `bypassPermissions`, as on every substrate.
 **The container is CREATED, never rebuilt** (ruling 2026-08-31): a rebuilt
 container has not applied its own `devcontainer.json` — no features, no

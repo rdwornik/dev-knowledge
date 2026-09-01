@@ -278,3 +278,75 @@ At 1–2 passes per lane:
 against the ~53 min of integration overhead this manifest already prices. **The review round is
 therefore the largest single line in the batch's integration cost, and it roughly triples it.**
 That is the honest number, and it is the trade the rule is making.
+
+---
+
+## AMENDMENT 3 — 2026-09-01: L1's first dispatch, its receipt, and all seven lanes REISSUED as sonnet
+
+> **In-file amendment marker.** Records a dispatch that happened and its outcome; the reissue is
+> recorded here, and the contracts themselves were regenerated rather than hand-edited.
+
+### L1's first dispatch — RED at the receipt, and the receipt's message was FALSE
+
+```
+codespace          lane-a-1-codespace-pow-and-router-vgrj967wg653j   (created, not rebuilt)
+RemoteExitCode     91   -- the module's OWN guard: "claude is not installed in this devcontainer"
+Ok / is_error      NOT CAPTURED BY THIS SEAT. The dispatch ran from the operator's trigger and
+                   its result object did not reach this session. Recorded as not-captured rather
+                   than inferred -- and note the guard's receipt carries `{"error": ...}` with NO
+                   `is_error` field at all, so the contract's own receipt-gate leg
+                   `is-error-false-not-subtype-success` reads a MISSING field on a 91, not a
+                   `true` one. That is a second, smaller defect in the same area.
+verdict            RED, and the message was the WRONG DIAGNOSIS
+```
+
+**Diagnosed IN the live container while it billed, then stopped.** Two commands, one connection:
+
+```
+gh codespace ssh -- 'command -v claude'             -> rc=1, NOT FOUND
+gh codespace ssh -- 'bash -lc "command -v claude"'  -> /home/vscode/.local/bin/claude
+non-login PATH: /usr/local/python/current/bin:...:/usr/local/bin:/usr/bin:/bin  -- no ~/.local/bin
+```
+
+**claude WAS installed** (symlink dated 01:09 → `versions/2.1.252`) and **provision DID run.** Step
+4 invoked `bash <path>` — a non-login shell — so the runner's own guard fired and reported an
+absence that does not exist. `uv` was never affected: it is at `/usr/bin/uv` and resolves in both
+shells, which is why the gate leg was not the one that broke.
+
+**FIX LANDED IN `win-tooling` at `ab6f087`**, RULING-W shape, RED-first: the runner now executes
+under `bash -l <path>`. The alternative — symlinking claude into `/usr/local/bin` from
+`provision.sh` — was **measured and refused**: that directory is root-owned and *not writable by
+`vscode`*, so it would put a `sudo` into provisioning. Suite attribution against a detached
+worktree at HEAD: that test file carries **13 pre-existing failures** (13F/53P before, 13F/54P
+after), all clustered on cp/scp passthrough ordering and none this change's.
+
+**Codespace STOPPED immediately after the check. Both Shutdown probe codespaces DELETED**
+(`batche-c-admission-*`, `animated-dollop-*`), so the batch's one open asset item is closed.
+
+### All seven lanes REISSUED as sonnet
+
+**Operator ruling (ADR-108 §A): R-MODELS binds as recorded — dispatched lanes = sonnet, opus only
+where a contract pins tier L, orchestrator and adjudication = opus.** No batch-F contract pins
+tier L, so all seven are sonnet.
+
+**The reissue was proved, not asserted.** Each affected skeleton was regenerated twice — once at
+`opus`, once at `sonnet` — and diffed: the generator-owned delta is **exactly the routing-table row
+and its two prose echoes**, nothing else. Only those lines were changed in the real contracts, so
+the result is byte-equivalent to a full regeneration with the authored sections intact.
+
+```
+gen_lane_contract.py check   7 of 7 OK
+validate_substrate.py        7 OK — 0 REFUSE, 0 WARN
+model roll-call              7 x `| sonnet | execute | high |`
+```
+
+**One contradiction the reissue exposed and fixed.** L5's item 3 read *"sonnet workers read …
+**opus adjudicates** whether each stamp is earned"* — an opus act described as happening **inside**
+a lane that now runs sonnet. Corrected to the split the ruling actually implies: **the lane reads
+and writes the review record; adjudication is an orchestrator act at the merge.** That makes the
+record a deliverable rather than a formality, because the adjudicator was not in the room for the
+read.
+
+**Still open here:** the generator's boilerplate line *"Model defaults to `opus` — the
+`.dev-knowledge` default per the Ch8 routing matrix"* is now stale doctrine against R-MODELS. It is
+generator-owned text, so it is `[#631]`'s to fix at the source, not a contract's to edit.

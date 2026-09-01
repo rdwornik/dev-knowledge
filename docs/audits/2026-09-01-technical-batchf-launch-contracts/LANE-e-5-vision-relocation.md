@@ -2,7 +2,7 @@
 
 | Model | Mode | Effort |
 |---|---|---|
-| opus | execute | high |
+| sonnet | execute | high |
 
 **No-consumer:** a frozen lane contract is consumed by its DISPATCH and by the batch manifest that enumerates its slug, never by a governance-surface citation — and its filename carries no `YYYY-MM-DD` prefix, so neither `consumer_at_landing` token regex could resolve a citation even if one existed. Declared per that check's own escape.
 
@@ -19,7 +19,7 @@ helper is cwd-bound, and dispatching from the wrong repo lands the worktree in
 it. Dispatch constants ride the line without being re-decided:
 `--permission-mode bypassPermissions`, `--bg`, and the board label
 `[.dev-knowledge · lane-e-5-vision-relocation · lane-e-5-vision-relocation]`. Model defaults to `opus` — the `.dev-knowledge`
-default per the Ch8 routing matrix — and this lane dispatches at `opus`.
+default per the Ch8 routing matrix — and this lane dispatches at `sonnet`.
 Effort is a closed enum: {low | medium | high | xhigh | max}; a value outside it is refused
 at the surface with the enum named, rather than guessed. The helper refuses
 outright when `worktree-lane-e-5-vision-relocation` already exists, so re-running the line is a no-op
@@ -76,10 +76,15 @@ disjoint. Their pointers are stale TODAY, independently of this relocation.
    review, so `last_reviewed` MUST move — and in this repo that means *re-read end to end and
    confirmed accurate, or the drift filed*, never "touched". **This is the entire reason the
    relocation was deferred out of the DC-3 split rather than rushed into it.**
-3. **The read is delegated, the STAMP is not.** Sonnet workers read `ARCHITECTURE.md` and
-   `README.md` end to end and report what they found; opus adjudicates whether each stamp is
-   earned and writes the per-document review record naming what the read found. A stamp with no
-   record of what was reviewed is the fake stamp operator ruling 6 refused on 2026-09-01.
+3. **The read happens HERE; the stamp is ADJUDICATED at integration.** This lane runs
+   `sonnet` (R-MODELS: dispatched lanes are sonnet), so it reads `ARCHITECTURE.md` and
+   `README.md` end to end and **writes the per-document review record naming what the read
+   found** — but it does NOT rule that a stamp is earned. **Adjudication is an orchestrator act
+   and runs `opus`**, at the merge, on the record this lane produces. That split is the whole
+   reason the record is a deliverable rather than a formality: the adjudicator was not in the
+   room for the read and has only what this lane wrote down. **A stamp with no record of what
+   was reviewed is the fake stamp operator ruling 6 refused on 2026-09-01**, and a stamp this
+   lane awarded itself would be the same failure with a second signature on it.
 4. **The two LATENT sites are fixed, not just the loud ones.** `scripts/nopack_sandbox.py:226`
    holds the literal `"VISION.md"` in `NEVER_REMOVE` and matches by `fnmatch` full-string, so
    `docs/archive/VISION.md` would silently lose its spine protection;
