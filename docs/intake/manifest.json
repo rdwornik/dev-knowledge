@@ -3,12 +3,12 @@
   "direction": "derived-from",
   "source": "docs/intake/README.md",
   "generator": "scripts/gen_intake_tree.py",
-  "source_sha256": "77cb2d9b0422cfb66c986de5474ad8479cac00c65179057fc392f645a4612d6b",
+  "source_sha256": "512d0c8c04e94f24883d03fd805faef277e3e42e91c62ebde35e26dfa8c86717",
   "honest_limit": {
     "statement": "ADR-109 section 4 is discharged by a byte-exact round-trip plus a residue manifest, NOT by a derivation ratio. This surface's ratio is INVERTED relative to surface 1 (BACKLOG.md <-> tasks/), where task lines were the majority and residue the minority. Recorded so the generality claim is honest about what was shown.",
-    "item_derived_lines": 57,
+    "item_derived_lines": 56,
     "residue_lines": 281,
-    "total_lines": 338,
+    "total_lines": 337,
     "surface_1_comparison": "inverted -- surface 1 was majority item-derived"
   },
   "not_captured": {
@@ -287,10 +287,8 @@
       ],
       "2026-09-01-tech-consumer-at-landing-identifier-gap.md": [
         "consumed-by",
-        "origin"
-      ],
-      "2026-09-01-tech-quota-source-field.md": [
-        "consumed-by",
+        "decided-by",
+        "disposition",
         "origin"
       ]
     },
@@ -371,7 +369,7 @@
     },
     {
       "t": "line",
-      "v": "**57 intake documents.**"
+      "v": "**56 intake documents.**"
     },
     {
       "t": "line",
@@ -379,7 +377,7 @@
     },
     {
       "t": "line",
-      "v": "### SEED (11)"
+      "v": "### SEED (9)"
     },
     {
       "t": "line",
@@ -428,16 +426,6 @@
     {
       "t": "item",
       "file": "2026-08-01-func-distillation-and-library-first.md",
-      "status": "SEED"
-    },
-    {
-      "t": "item",
-      "file": "2026-09-01-tech-quota-source-field.md",
-      "status": "SEED"
-    },
-    {
-      "t": "item",
-      "file": "2026-09-01-tech-consumer-at-landing-identifier-gap.md",
       "status": "SEED"
     },
     {
@@ -610,7 +598,7 @@
     },
     {
       "t": "line",
-      "v": "### ACCEPTED (18)"
+      "v": "### ACCEPTED (19)"
     },
     {
       "t": "line",
@@ -704,6 +692,11 @@
     {
       "t": "item",
       "file": "2026-08-17-tech-off-machine-agent-substrate.md",
+      "status": "ACCEPTED"
+    },
+    {
+      "t": "item",
+      "file": "2026-09-01-tech-consumer-at-landing-identifier-gap.md",
       "status": "ACCEPTED"
     },
     {

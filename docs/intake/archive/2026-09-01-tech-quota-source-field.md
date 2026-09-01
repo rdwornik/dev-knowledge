@@ -1,8 +1,9 @@
 ---
 intake-id: 64
-status: SEED
+status: REJECTED
 origin: batch-E tier-(A) lane a7 (agy admission + quota visibility), harvested 2026-08-31; filed as a SEED by the night orchestrator 2026-09-01 per the night protocol's "proposals land in docs/intake as status SEED" and ADR-111's only path from a CANDIDATE
 consumed-by:
+reason: the provider registry stays thin identity-only (gate-ruled); a quota locator belongs in the capability profile, not in the registry
 ---
 
 # A machine-readable quota locator, and whether the provider registry is allowed to hold one
@@ -75,3 +76,28 @@ and does not re-open the agy admission question — A7's separate finding there 
 in `tasks/` authorises an admission act today**, and the rerun that would settle it is itself
 blocked on an untriaged intake. Full evidence, including A7's draft YAML shape and its
 registry-choice reasoning: `docs/audits/2026-08-31-technical-agy-admission-and-quota-visibility.md`.
+
+---
+
+## RULED 2026-09-01 — NO, as framed. The need survives; the home does not.
+
+> **Operator ruling 5.** *"NO — the provider registry stays thin identity-only (gate-ruled); quota
+> locators live in the capability profile (`ROUTING.md` / its L0-derived copy). Amend #64."*
+
+**The counter-precedent this SEED carried is the one that decided it**, which is the reason it was
+carried rather than left for the reader to find. `86bed82` (2026-08-29) refused a rich
+copilot-enterprise entry on exactly this ground, and the registry's own comment block states the
+rule in its own words: *"this registry is a thin provider/CLI identity surface and its schema
+forbids the extra fields. The measured capability profile … and the BILLING VERDICT live in
+`~/.claude/ROUTING.md`, which is L0 and outside this repo."* **The schema's `extra="forbid"` was
+not an obstacle to route around — it was the rule already saying no.**
+
+**What is NOT rejected: the underlying gap.** A7's finding stands in full — `quota`,
+`quota_source` and `quota-source` appear in four places repo-wide, **all of them prose about the
+field's own non-existence**. HY-4's quota panel still renders credits as a NAMED ABSENCE, and that
+remains the correct behaviour for a surface with no source. What the ruling settles is **where a
+locator would live if one is ever written: the capability profile, not the registry.**
+
+**Terminal by the enum** (`REJECTED (reason, kept)`) — rejections are knowledge, so this doc stays
+rather than being deleted, and relocates byte-identical to `docs/intake/archive/` per the
+2026-07-22 archive-inside-each-folder ruling.

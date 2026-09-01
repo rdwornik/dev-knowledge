@@ -1,8 +1,10 @@
 ---
 intake-id: 65
-status: SEED
+status: ACCEPTED
 origin: measured by the night orchestrator during the batch-E consumption sweep, 2026-09-01, as a controlled experiment inside one commit; filed as a SEED because it is a raw finding and ADR-111 gives a raw finding exactly one route
 consumed-by:
+decided-by: operator ruling 2026-09-01 (ruling 4 of seven on the night-window packet)
+disposition: active
 ---
 
 # A gate that measures a class of artifact it cannot discharge
@@ -82,3 +84,34 @@ its readers to ignore it, which is the failure mode `[#595]` exists to end.
 No code change, no `--write-baseline`, no `DETECTOR_ID` bump. Re-baselining 37 names unreviewed
 is precisely the silent drain the discipline exists to prevent, and doing it to make a number
 look better would be the same act with a worse motive.
+
+---
+
+## RULED 2026-09-01 — ACCEPTED, and the shape is narrower than the SEED proposed
+
+> **Operator ruling 4.** *"`docs/audits/` stays OUT of the governance pool (batch machinery citing
+> batch machinery is what the exclusion refuses). `consumer_at_landing` gains a declared
+> PROVENANCE-CONSUMED class for audit-to-audit references, distinct from governance consumption —
+> identity widened by class, pool unchanged. Accept #65 on that shape."*
+
+**Both open questions this SEED raised are answered, and the second is answered NO.**
+
+Q1 asked *widen the identity, or narrow the corpus*. **Widen the identity — by CLASS.** An
+artifact's own filename becomes resolvable as a **PROVENANCE-CONSUMED** reference when the citing
+surface is another audit, and that class is reported **separately** from governance consumption.
+A launch contract read by its batch's close packet is genuinely consumed *as provenance*; it is
+not consumed *as governance*, and one counter reporting both as the same thing is what made the
+present number unreadable in either direction.
+
+Q2 asked *should `docs/audits/` enter the governance pool*. **No.** The exclusion exists precisely
+to refuse batch machinery citing batch machinery — admitting it would let a corpus discharge
+itself, which is the failure the diagnostic's crux names. **The pool is unchanged.**
+
+**What that leaves for PLAYBOOK Ch8.** Its sentence — a launch contract's consumer IS the batch
+close packet — becomes true under the new class rather than false under the old one. No Ch8 edit
+is required by this ruling; a note that the relationship is provenance-consumption, not governance
+consumption, is the honest addition when the class ships.
+
+**Still owed, and unchanged by the ruling:** the `DETECTOR_ID` bump and the deliberate
+re-measure-and-re-stamp the module's own discipline requires. A class addition changes what the
+ratchet measures, so it is the same reviewed act it always was.
