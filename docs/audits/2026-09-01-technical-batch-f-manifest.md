@@ -219,3 +219,62 @@ validate_substrate.py        7 contract(s) OK — 0 REFUSE, 0 WARN, 0 deviations
 
 The lane table above is unchanged: L2's slug, branch and substrate are identical, so the manifest
 and the contracts still agree. Only the contract's content moved.
+
+---
+
+## AMENDMENT 2 — 2026-09-01, AT THE GO: every lane gets a review lane, and the report that forced it
+
+> **In-file amendment marker.** **ADDITIVE** — it adds a requirement to all seven lanes and
+> subtracts nothing, so no contract is reissued (`[#629]`'s rule binds subtraction, not addition).
+> The batch is still `dispatched: PENDING` at the time of writing.
+
+**THE REPORT, ASKED AT THE GO: which lanes would run without a review lane? ALL SEVEN.**
+
+As frozen, no contract in this batch names a reviewer, and this manifest declares no review lane.
+Every contract's Steps end at *"pytest green, one end-of-lane artifact, COMMIT, then STOP"*. **The
+freeze predates the rule**, and reporting that is cheaper than discovering it at the seventh merge.
+
+**The rule exists because the measurement is now in the tree.** ATLAS-R1's usage ledger
+(`docs/audits/2026-09-01-census-atlas-r1-def-usage-ledger.md`) counts, across batches D and E:
+
+```
+merged lanes        17
+  terra reviewed     6
+  pre-merge reviewed 2
+  NO REVIEW          9      batch D: a · b · d · g   (the whole batch has no review record)
+                            batch E: DC-1 · DC-4 · DM-3 · DM-5 · HY-1
+```
+
+and names the cause as a **process defect, not a reporting one** — the lanes were
+integrator-verified, which is real, and is not independent review.
+
+**THE REQUIREMENT, binding all seven:**
+
+1. **No lane merges without a review lane.** Each lane's diff takes a terra pass **BEFORE** its
+   merge — `codex exec -m gpt-5.6-terra --sandbox read-only`, scoped inside the focus prompt
+   (`--base` and a prompt are mutually exclusive), classifying each finding as *(a) a real defect
+   with an exact fix* or *(b) a design tension to record*.
+2. **PRE-merge, deliberately.** Batch E's round ran post-merge and its own artifact calls that the
+   weaker position. The whole content of this rule is moving the review to where it can still
+   refuse something.
+3. **The tally goes IN the close packet**, per lane, including CLEAN and including **refutations
+   recorded as prominently as acceptances** — one of batch E's findings had a false premise and
+   saying so is the point.
+4. **A CLEAN pass is a review.** The requirement is that a review HAPPENED, not that it found
+   something; a reviewer that must find a defect will invent one.
+5. **A lane that changed no code still gets one.** DM-3 and DM-5 were excused by that reasoning in
+   batch E and appear in the unreviewed nine regardless — a drafting lane's artifact is exactly
+   where an unchallenged claim survives.
+
+**EX-ANTE COST OF THE ADDITION, stated rather than absorbed.** A terra pass measures **~11 min**,
+and terra is a **loop, not a check** — findings narrow across passes and one pass is not a review.
+At 1–2 passes per lane:
+
+```
+7 lanes x 1 pass  x ~11 min  =  ~77 min
+7 lanes x 2 passes x ~11 min =  ~154 min
+```
+
+against the ~53 min of integration overhead this manifest already prices. **The review round is
+therefore the largest single line in the batch's integration cost, and it roughly triples it.**
+That is the honest number, and it is the trade the rule is making.

@@ -1,0 +1,539 @@
+<title>Atlas of the Governed Graph</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --paper:#EEF1F4; --surface:#FAFBFC; --ink:#141A21; --ink-2:#3A4753;
+  --graphite:#5B6B7A; --rule:#D3DBE2; --rule-2:#E3E9EE;
+  --signal:#0F6F7E; --signal-soft:#0F6F7E22; --signal-ink:#0B5460;
+  --absent:#A96A1F; --absent-soft:#A96A1F1A;
+  --shadow:0 1px 2px #141A2110, 0 8px 24px #141A210A;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#0D1317; --surface:#151E24; --ink:#E6ECF1; --ink-2:#B3C0CB;
+    --graphite:#8397A6; --rule:#27333C; --rule-2:#1E2930;
+    --signal:#46B3C2; --signal-soft:#46B3C226; --signal-ink:#7FD3DE;
+    --absent:#D9A055; --absent-soft:#D9A05522;
+    --shadow:0 1px 2px #00000040, 0 8px 24px #00000030;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0D1317; --surface:#151E24; --ink:#E6ECF1; --ink-2:#B3C0CB;
+  --graphite:#8397A6; --rule:#27333C; --rule-2:#1E2930;
+  --signal:#46B3C2; --signal-soft:#46B3C226; --signal-ink:#7FD3DE;
+  --absent:#D9A055; --absent-soft:#D9A05522;
+  --shadow:0 1px 2px #00000040, 0 8px 24px #00000030;
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);
+  font-family:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+  font-size:15px;line-height:1.6;margin:0;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1120px;margin:0 auto;padding:0 24px 96px}
+h1,h2,h3{font-family:"IBM Plex Sans Condensed","IBM Plex Sans",sans-serif;text-wrap:balance;margin:0}
+code,.mono,.num{font-family:"IBM Plex Mono",ui-monospace,Consolas,monospace;font-variant-numeric:tabular-nums}
+.masthead{border-bottom:2px solid var(--ink);padding:44px 0 18px;margin-bottom:28px}
+.eyebrow{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--signal-ink);font-weight:500}
+h1{font-size:clamp(38px,5.4vw,60px);line-height:1.02;letter-spacing:-.02em;margin:10px 0 12px;font-weight:700}
+.standfirst{font-size:18px;line-height:1.5;color:var(--ink-2);max-width:64ch;margin:0}
+.prov{display:flex;flex-wrap:wrap;gap:0 22px;margin-top:20px;
+  font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--graphite)}
+.prov b{color:var(--ink-2);font-weight:500}
+.panel{background:var(--surface);border:1px solid var(--rule);border-radius:3px;
+  padding:26px 28px;margin:22px 0;box-shadow:var(--shadow)}
+.panel-head{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;
+  border-bottom:1px solid var(--rule-2);padding-bottom:12px;margin-bottom:18px}
+.panel-head h2{font-size:23px;letter-spacing:-.01em}
+.panel-head .tag{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--graphite);margin-left:auto}
+.lede{color:var(--ink-2);max-width:68ch;margin:0 0 18px}
+.section-rule{display:flex;align-items:center;gap:14px;margin:52px 0 4px}
+.section-rule span{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--graphite);white-space:nowrap}
+.section-rule:after{content:"";flex:1;height:1px;background:var(--rule)}
+.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:1px;
+  background:var(--rule);border:1px solid var(--rule);margin:18px 0}
+.kv div{background:var(--surface);padding:12px 14px}
+.kv dt{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--graphite);margin:0 0 5px}
+.kv dd{margin:0;font-family:"IBM Plex Mono",monospace;font-size:20px;font-weight:500;
+  letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.kv dd small{font-size:11px;color:var(--graphite);font-weight:400;letter-spacing:0}
+.matrix-shell{display:grid;grid-template-columns:minmax(0,1fr) 268px;gap:26px}
+@media(max-width:860px){.matrix-shell{grid-template-columns:1fr}}
+.svg-hold{overflow-x:auto;border:1px solid var(--rule-2);border-radius:2px;background:var(--paper)}
+svg{display:block}
+.node-rect{cursor:pointer;transition:opacity .16s}
+.dim{opacity:.16}
+.readout{border-left:2px solid var(--signal);padding-left:16px;font-size:13.5px}
+.readout h3{font-size:13px;font-family:"IBM Plex Mono",monospace;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--graphite);margin-bottom:10px;font-weight:500}
+.readout .big{font-family:"IBM Plex Mono",monospace;font-size:27px;font-weight:600;
+  letter-spacing:-.02em;display:block;line-height:1.15}
+.readout ul{list-style:none;padding:0;margin:12px 0 0;font-family:"IBM Plex Mono",monospace;font-size:12px}
+.readout li{display:flex;justify-content:space-between;gap:12px;padding:4px 0;border-bottom:1px dotted var(--rule)}
+.readout li b{font-weight:500;color:var(--ink-2)}
+.bars{margin:4px 0 0}
+.bar-row{display:grid;grid-template-columns:126px minmax(0,1fr) 122px;gap:14px;align-items:center;
+  padding:7px 0;border-bottom:1px solid var(--rule-2)}
+.bar-row:last-child{border-bottom:0}
+.bar-lab{font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:var(--ink-2)}
+.bar-track{height:9px;background:var(--rule-2);border-radius:1px;overflow:hidden}
+.bar-fill{height:100%;background:var(--signal)}
+.bar-num{font-family:"IBM Plex Mono",monospace;font-size:12px;text-align:right;color:var(--graphite)}
+.zero .bar-track{background:repeating-linear-gradient(-45deg,var(--absent-soft) 0 5px,transparent 5px 10px);
+  border:1px dashed var(--absent)}
+.zero .bar-num,.zero .bar-lab{color:var(--absent)}
+.absence{border:1px dashed var(--absent);background:var(--absent-soft);border-radius:2px;
+  padding:20px 22px;margin:18px 0}
+.absence h3{font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--absent);margin-bottom:10px;font-weight:600}
+.absence p{margin:0 0 10px;color:var(--ink-2);max-width:68ch}
+.absence p:last-child{margin-bottom:0}
+.tbl-hold{overflow-x:auto;margin:16px 0}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--graphite);text-align:left;font-weight:500;padding:0 14px 9px 0;
+  border-bottom:1px solid var(--rule);white-space:nowrap}
+td{padding:10px 14px 10px 0;border-bottom:1px solid var(--rule-2);vertical-align:top}
+td.mono{font-family:"IBM Plex Mono",monospace;font-size:12px;font-variant-numeric:tabular-nums}
+tbody tr:hover{background:var(--signal-soft)}
+.verdict{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.08em;font-weight:600;
+  padding:2px 7px;border-radius:2px;white-space:nowrap;display:inline-block}
+.v-take{color:var(--signal-ink);background:var(--signal-soft);border:1px solid var(--signal)}
+.v-no{color:var(--graphite);border:1px solid var(--rule)}
+.v-absent{color:var(--absent);background:var(--absent-soft);border:1px dashed var(--absent)}
+.funnel{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 0}
+.fstage{flex:1 1 108px;border:1px solid var(--rule);border-radius:2px;padding:13px;background:var(--paper)}
+.fstage .n{font-family:"IBM Plex Mono",monospace;font-size:29px;font-weight:600;line-height:1;letter-spacing:-.03em}
+.fstage .s{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.11em;
+  text-transform:uppercase;color:var(--graphite);margin-top:7px}
+.fstage.term{border-style:dashed;opacity:.82}
+.note{font-size:12.5px;color:var(--graphite);border-left:2px solid var(--rule);
+  padding-left:14px;margin:16px 0 0;max-width:70ch}
+.note b{color:var(--ink-2);font-weight:500}
+mark{background:var(--signal-soft);color:inherit;padding:0 3px}
+.foot{margin-top:56px;padding-top:20px;border-top:2px solid var(--ink);
+  font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--graphite);line-height:1.9}
+a{color:var(--signal-ink)}
+:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+
+<header class="masthead">
+  <div class="eyebrow">ATLAS-R1 &middot; read-only census &middot; zero rows filed</div>
+  <h1>Atlas of the Governed Graph</h1>
+  <p class="standfirst">The repo already owns a real graph and cannot see it. This is the reconcile,
+  the library survey, and the cheapest render that tells the truth about 11,515 edges &mdash; built
+  the way the survey concludes it should be built.</p>
+  <div class="prov">
+    <span><b>HEAD</b> 16f91f69</span>
+    <span><b>measured</b> 2026-09-01</span>
+    <span><b>uv</b> 0.11.19</span>
+    <span><b>python</b> 3.12.10</span>
+    <span><b>rustworkx</b> 0.18.1</span>
+    <span><b>writes</b> none</span>
+  </div>
+</header>
+
+<div class="panel">
+  <div class="panel-head"><h2>What already exists</h2><span class="tag">reconcile before birth</span></div>
+  <p class="lede">Four incumbents cover parts of this ground. ATLAS is scoped to what none of them do, and
+  the scoping is the deliverable &mdash; a fifth surface re-answering a live question would be the defect.</p>
+  <div class="tbl-hold"><table>
+    <thead><tr><th>Incumbent</th><th>Answers</th><th>Renders</th><th>Overlap with ATLAS</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">gen_dashboard.py<br>&rarr; conformance.md/.html</td><td>current value of every audit check</td><td>committed HTML, colour-coded tables</td><td><span class="verdict v-no">NONE</span> &mdash; status, not structure. Its colour-coded table is the shape DB-1 was filed against.</td></tr>
+      <tr><td class="mono">gen_trend_dashboard.py<br>&rarr; trends.html</td><td>which way each series is going</td><td>inline SVG, ASCII-only, gitignored</td><td><span class="verdict v-no">NONE</span> &mdash; time series. Carries no topology and no node.</td></tr>
+      <tr><td class="mono">file_purpose_graph.py<br>&rarr; <code>why &lt;path&gt;</code></td><td>purpose / consumers / edges of one path</td><td><b>text, one node at a time</b></td><td><span class="verdict v-take">THE GAP</span> &mdash; owns a real rustworkx graph with <b>no view of the whole</b>.</td></tr>
+      <tr><td class="mono">gen_north_star.py<br>&rarr; north-star.md</td><td>arc set in dependency order</td><td>generated markdown</td><td><span class="verdict v-no">NONE</span> &mdash; arcs, not files. HY-4 already folded its burn-down into trends.</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note"><b>And the layer design is already written.</b> Batch-E lane DM-3 landed a 279-line
+  amendment on intake #40 (<code>2026-08-22-tech-document-dependency-graph-organ.md</code>, merge
+  <code>7b0cbf14</code>) specifying the layer function, the attribute schema and the L0 edges &mdash; the exact
+  design this lane was asked to produce. It is <code>status: DRAFT</code> and binds nothing.
+  <mark>ATLAS renders DM-3's design; it does not re-derive it.</mark> Re-deriving would have produced a
+  second copy of a fact that already has a home.</p>
+</div>
+
+<div class="section-rule"><span>I &middot; the graph, measured</span></div>
+
+<div class="panel">
+  <div class="panel-head"><h2>The whole graph, at real scale</h2><span class="tag">live tree, 2026-09-01</span></div>
+  <dl class="kv">
+    <div><dt>nodes</dt><dd>1,783</dd></div>
+    <div><dt>edges</dt><dd>11,515</dd></div>
+    <div><dt>cross-layer</dt><dd>87.3<small>%</small></dd></div>
+    <div><dt>build</dt><dd>4.69<small>s</small></dd></div>
+    <div><dt>aggregate cells</dt><dd>12</dd></div>
+    <div><dt>governed files</dt><dd>37.7<small>%</small></dd></div>
+  </dl>
+  <p class="lede">DM-3 measured 1,758 nodes / 11,309 edges on 2026-08-31 and put cross-layer at 87.3%.
+  One day later the graph is <b>25 nodes and 206 edges larger</b> and cross-layer reproduces to the decimal.
+  The ratio is stable; the corpus is not.</p>
+</div>
+
+<div class="panel">
+  <div class="panel-head"><h2>The layer matrix</h2><span class="tag">click a layer to isolate it</span></div>
+  <p class="lede">This is the finding that makes a render possible at all. <b>11,515 edges collapse into 12
+  aggregate cells</b> across seven layers &mdash; 17 distinct <code>(source, target, kind)</code> triples.
+  A node-level force graph of 1,783 nodes is a hairball nobody reads; the aggregate fits in one glance and
+  still shows every pathology.</p>
+  <div class="matrix-shell">
+    <div class="svg-hold"><svg id="atlas" viewBox="0 0 700 430" width="700" height="430" role="img"
+      aria-label="Directed layer graph: seven layers, twelve aggregate edges"></svg></div>
+    <div class="readout" id="readout"></div>
+  </div>
+  <p class="note"><b>Edge width is log-scaled</b> because the range is 1 to 5,898 &mdash; linear width would
+  render eleven of the twelve cells as invisible hairlines, which is the same failure as omitting them.
+  Self-edges (a layer citing itself) are drawn as loops and counted in the totals.</p>
+</div>
+
+<div class="panel">
+  <div class="panel-head"><h2>Where the graph is blind</h2><span class="tag">governed / tracked</span></div>
+  <p class="lede">A path is governed only if one of the five inputs names it. Three whole directories sit at
+  zero &mdash; drawn hatched, because a 0% bar and a missing bar look identical and mean opposite things.</p>
+  <div class="bars" id="bars"></div>
+  <p class="note"><b>One honest divergence, stated rather than smoothed.</b> DM-3 reports <code>tasks/</code>
+  at 379/382; this measures 24/387. Neither is wrong &mdash; DM-3 counted <code>NODE_TASK</code> vertices,
+  this counts <code>NODE_FILE</code> vertices only, and a task row is both a file on disk and a task node.
+  The overall figure moves with it: 50.2% their way, 37.7% this way.
+  <mark>The measure has to be named or the number means nothing.</mark></p>
+  <div class="absence">
+    <h3>The sharpest fact in the graph</h3>
+    <p>The L0 layer contains <b>exactly one node</b>: <code>.claude/commands/override.md</code>. It is present
+    only because the deploy manifest declares a component that ships it &mdash; and <code>/override</code> was
+    <b>retired</b> by ADR-85's 2026-08-03 amendment. Seventeen of eighteen tracked <code>.claude/</code> files
+    are invisible to the graph.</p>
+    <p>The single L0 edge in the entire corpus therefore points at a retired command. The layer exists by
+    accident of a manifest entry, not by design.</p>
+  </div>
+</div>
+
+<div class="section-rule"><span>II &middot; the funnel</span></div>
+
+<div class="panel">
+  <div class="panel-head"><h2>Funnel state machine</h2><span class="tag">live counts</span></div>
+  <p class="lede">ADR-111 routes every finding into exactly one disposition. Intake carries a seven-state
+  status enum whose three terminal states (dashed) relocate to <code>archive/</code> byte-identically.</p>
+  <div class="funnel" id="funnel-intake"></div>
+  <p class="note" style="margin-bottom:18px"><b>READY 19 is the pressure point.</b> It is the largest
+  non-terminal stage and the one with a ruled 30-day threshold behind it; ACCEPTED 19 is standing authority
+  that deliberately stays visible rather than archiving.</p>
+  <div class="funnel" id="funnel-tasks"></div>
+  <p class="note"><b>Two funnels, two corpora, and they do not reconcile &mdash; by construction.</b>
+  <code>funnel_coverage</code> reports corpus 843 / dispositioned 78 / <b>uncovered 763</b> over the audit
+  corpus. The session banner reports 285 over a different population. Neither is the intake enum above.
+  Three surfaces say &ldquo;funnel&rdquo; and count three different things; ATLAS renders each against its own
+  denominator rather than summing them into a number that means nothing.</p>
+</div>
+
+<div class="section-rule"><span>III &middot; provider usage</span></div>
+
+<div class="panel">
+  <div class="panel-head"><h2>Provider usage per lane</h2><span class="tag">the panel that cannot be drawn</span></div>
+  <p class="lede">The brief asked for model, substrate and credits per lane, and anticipated this correctly:
+  it must render as a <b>named absence</b>. Here is exactly which of the four columns exist and which do not.</p>
+  <div class="tbl-hold"><table>
+    <thead><tr><th>Column</th><th>Status</th><th>Where it lives &mdash; or why it does not</th></tr></thead>
+    <tbody>
+      <tr><td><b>Substrate</b></td><td><span class="verdict v-take">DERIVABLE</span></td>
+        <td class="mono">Batch manifest lane tables. Batch E: LOCAL 14 + CLOUD 1. Batch D: local 6 + cloud 2.</td></tr>
+      <tr><td><b>Model</b></td><td><span class="verdict v-take">DERIVABLE</span></td>
+        <td class="mono">Contract header <code>| Model | Mode | Effort |</code>, line 3 of every lane file.<br>All 30 read <code>opus / execute / high</code>. Zero variance.</td></tr>
+      <tr><td><b>Credits / tokens</b></td><td><span class="verdict v-absent">ABSENT</span></td>
+        <td class="mono">No receipt carries them. Dispatch receipts carry only<br><code>Ok &middot; Bound &middot; SessionId &middot; ReadId &middot; Failure &middot; Receipt</code>.</td></tr>
+      <tr><td><b>Review lane</b></td><td><span class="verdict v-take">DERIVABLE</span></td>
+        <td class="mono">Terra round: <code>codex exec -m gpt-5.6-terra</code>, 6 batch-E lanes, post-merge.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="absence">
+    <h3>Named absence &mdash; per-lane cost is underivable today</h3>
+    <p><b>The only cost surface in the repo is <code>logs/TOKEN-LOG.md</code>, and it cannot attribute a lane.</b>
+    It is a weekly host-wide <code>ccusage</code> aggregate: dollars, token totals and per-model percentages for
+    the whole machine, across every repo and every session.</p>
+    <p><b>Its newest entry is 2026-08-04.</b> Batches D, E and F ran 2026-08-29 through 09-01.
+    <mark>All three fall entirely outside the log's coverage &mdash; a 25-day gap before batch D even began.</mark></p>
+    <p><b>And the registry says so itself.</b> <code>ecosystem/provider-registry.yaml</code> declares in its own
+    header: <i>&ldquo;ROUTING IS NOT HERE &hellip; This registry records model IDENTITY, not which model gets
+    routed to which job.&rdquo;</i> The routing table lives at <code>~/.claude/ROUTING.md</code>, at L0, outside
+    this repository.</p>
+    <p><b>The enabling row already exists and is open.</b> <code>[#615]</code> &mdash; a model+version commit
+    trailer, hook-enforced at commit-msg &mdash; is what makes this series derivable. DB-1 already rendered
+    per-model quality as ABSENT for the same reason and <b>did not proxy it</b>. This panel holds that line:
+    a partial cost series is worse than an absent one, because it looks whole.</p>
+  </div>
+</div>
+
+<div class="section-rule"><span>IV &middot; library-first survey</span></div>
+
+<div class="panel">
+  <div class="panel-head"><h2>Six candidates, one already installed</h2><span class="tag">ADR-106 gate applied</span></div>
+  <p class="lede">Gate: Windows wheel under pinned <code>uv</code>, self-contained single HTML, zero SaaS, and
+  an honest cost for the <b>dependency act itself</b> &mdash; which under ADR-106 is its own gated change,
+  never incidental to a feature.</p>
+  <div class="tbl-hold"><table>
+    <thead><tr><th>Candidate</th><th>Dep act</th><th>Single HTML</th><th>Layout</th><th>Verdict at 1,783 / 11,515</th></tr></thead>
+    <tbody>
+      <tr><td><b>rustworkx</b> export<br><span class="mono">+ inline SVG</span></td>
+        <td class="mono"><b>none &mdash; pinned</b></td><td class="mono">yes</td><td class="mono">built in</td>
+        <td><span class="verdict v-take">TAKE</span> Already declared, hash-pinned, installed. Ships
+        <code>node_link_json</code>, <code>to_dot</code>, <code>spring_layout</code>, <code>bipartite_layout</code>.</td></tr>
+      <tr><td><b>pyvis</b> (vis.js)</td><td class="mono">new + jinja2</td>
+        <td class="mono">only via <code>cdn_resources="in_line"</code></td><td class="mono">client-side</td>
+        <td><span class="verdict v-no">REJECT</span> Buys a wrapper around a layout rustworkx already computes. Default config fetches vis.js from a CDN.</td></tr>
+      <tr><td><b>plotly</b> network</td><td class="mono">new (large)</td><td class="mono">yes, ~3&nbsp;MB inlined</td>
+        <td class="mono"><b>none &mdash; you supply positions</b></td>
+        <td><span class="verdict v-no">REJECT</span> Already rejected by DB-1 on the dependency gate. Has no graph layout at all; you would still call rustworkx.</td></tr>
+      <tr><td><b>graphviz / dot</b></td><td class="mono">new <b>binary</b>, not a wheel</td>
+        <td class="mono">no &mdash; emits SVG/PNG</td><td class="mono">excellent</td>
+        <td><span class="verdict v-no">REJECT</span> A system binary is outside what <code>uv.lock</code> can pin. <code>rustworkx.graphviz_draw</code> needs it too. Breaks the hermetic environment.</td></tr>
+      <tr><td><b>d3</b> from generated JSON</td><td class="mono">none (JS)</td><td class="mono">yes</td>
+        <td class="mono">client-side</td>
+        <td><span class="verdict v-no">NOT NEEDED</span> Viable, but 12 aggregate edges do not need a force simulation. Reconsider only if node-level rendering is ever ruled in.</td></tr>
+      <tr><td><b>mermaid</b></td><td class="mono">none</td><td class="mono">yes</td><td class="mono">automatic</td>
+        <td><span class="verdict v-no">REJECT</span> Already rejected by DB-1: cannot express an absent series. Chokes well below 1,783 nodes.</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note"><b>The survey was decided by one measurement, not by preference.</b>
+  <code>rustworkx.node_link_json</code> serialises the whole graph in <b>0.03&nbsp;s / 840,319&nbsp;bytes</b>;
+  <code>spring_layout</code> positions all 1,783 nodes in <b>6.77&nbsp;s</b>. Every capability the five
+  alternatives were being considered for is already present in a library this repo declared, pinned by hash,
+  and measured as installing from a prebuilt <code>win_amd64</code> wheel on 2026-08-29.
+  <mark>The cheapest dependency act is the one you do not perform.</mark></p>
+</div>
+
+<div class="section-rule"><span>V &middot; fit and verdict</span></div>
+
+<div class="panel">
+  <div class="panel-head"><h2>Tier-S fit assessment</h2><span class="tag">ADR-112</span></div>
+  <p class="lede">ADR-112 Tier S is <i>try it, then keep it or delete it</i>. The trial is the page you are
+  reading: real data, measured in-session, no fixture. What it would cost to make it a generator:</p>
+  <dl class="kv">
+    <div><dt>new dependencies</dt><dd>0</dd></div>
+    <div><dt>generation cost</dt><dd>11.5<small>s</small></dd></div>
+    <div><dt>raw JSON</dt><dd>840<small>KB</small></dd></div>
+    <div><dt>aggregate payload</dt><dd>&lt;4<small>KB</small></dd></div>
+    <div><dt>new backlog rows</dt><dd>0</dd></div>
+    <div><dt>gates touched</dt><dd>0</dd></div>
+  </dl>
+  <p class="lede"><b>The aggregate is 200&times; smaller than the raw graph and it is the readable artifact.</b>
+  That ratio is the whole design. Embedding 840&nbsp;KB of node-level JSON would produce a page that is
+  heavier, slower and less legible than the 12-cell diagram above.</p>
+  <div class="tbl-hold"><table>
+    <thead><tr><th>Design decision</th><th>Ruling</th><th>Because</th></tr></thead>
+    <tbody>
+      <tr><td>Render level</td><td class="mono"><b>aggregate first</b></td><td>12 cells vs 11,515 edges. Node level only inside a chosen layer, on demand.</td></tr>
+      <tr><td>Layer function</td><td class="mono">DM-3's, unchanged</td><td>Derived from kind + path, never a <code>layer:</code> key on a node. A second copy drifts.</td></tr>
+      <tr><td>Colour</td><td class="mono">magnitude only</td><td>The A2 verdict rejected colour-coded status tables. Teal encodes size; ochre is reserved for absence and used nowhere else.</td></tr>
+      <tr><td>Absence</td><td class="mono">drawn, never omitted</td><td>Hatched zero-bars and the empty-cell treatment. A missing bar and a 0% bar must not look alike.</td></tr>
+      <tr><td>Attributes</td><td class="mono"><b>not built</b></td><td>DM-3 &sect;3: an attribute is a pointer to a measuring surface. Build the empty-cell census first; the ten-attribute column inherits THE METRIC's ordering.</td></tr>
+      <tr><td>Output home</td><td class="mono">gitignored, like trends</td><td>A committed generated artifact goes stale between regenerations &mdash; the defect DB-1 was filed against.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="absence">
+    <h3>What this lane deliberately did not do</h3>
+    <p><b>No rows filed.</b> The graph has no backlog row in any form, deliberately &mdash; DM-3 established
+    that and refuted its own brief's citation of <code>[#615]</code> at freeze. Intake #40 is
+    <code>status: DRAFT</code>; ADR-111 &sect;2 forbids a lane birthing a row from a draft intake, and
+    ratification is the operator's act.</p>
+    <p><b>Nothing written to the tree, nothing committed.</b> Read-only by contract. Also worth naming: the
+    working tree was already dirty on <code>main</code> at session start (<code>JOURNAL.md</code> and two
+    <code>[#589]</code> files, from the preceding groom) and this lane left them untouched.</p>
+    <p><b>The byte bar is still breached.</b> <code>BACKLOG.md</code> sits at 70,276&nbsp;B against
+    <code>[#589]</code>'s bar. Filing any row here would have widened a live breach &mdash; the one move
+    <code>[#589]</code> exists to forbid.</p>
+  </div>
+</div>
+
+<div class="foot">
+  ATLAS-R1 &middot; read-only census &middot; 2026-09-01 &middot; HEAD 16f91f69<br>
+  Every number on this page was measured in-session against the live tree under
+  <code>uv run --locked</code>; none is transcribed from a prior artifact except where explicitly
+  attributed to DM-3 for comparison.<br>
+  Zero files written &middot; zero commits &middot; zero backlog rows &middot; zero new dependencies.
+</div>
+
+</div>
+
+<script>
+(function(){
+  var LAYERS=[
+    {id:"docs",       lab:"docs",       n:1044, x:350, y:78},
+    {id:"backlog",    lab:"backlog",    n:507,  x:126, y:212},
+    {id:"intake-ADR", lab:"intake/ADR", n:168,  x:574, y:212},
+    {id:"carrier",    lab:"carrier",    n:26,   x:350, y:340},
+    {id:"code",       lab:"code",       n:21,   x:126, y:360},
+    {id:"rule",       lab:"rule",       n:16,   x:262, y:268},
+    {id:"L0",         lab:"L0",         n:1,    x:574, y:360}
+  ];
+  var EDGES=[
+    {s:"docs",    t:"backlog",    n:5898},
+    {s:"docs",    t:"intake-ADR", n:3832},
+    {s:"docs",    t:"docs",       n:1417},
+    {s:"backlog", t:"docs",       n:257},
+    {s:"code",    t:"rule",       n:29},
+    {s:"backlog", t:"backlog",    n:22},
+    {s:"carrier", t:"carrier",    n:19},
+    {s:"rule",    t:"docs",       n:16},
+    {s:"carrier", t:"docs",       n:13},
+    {s:"carrier", t:"intake-ADR", n:9},
+    {s:"carrier", t:"code",       n:2},
+    {s:"carrier", t:"L0",         n:1}
+  ];
+  var COV=[
+    {d:"docs/",      g:1003, t:1844},
+    {d:"protocols/", g:6,    t:16},
+    {d:"scripts/",   g:21,   t:132},
+    {d:"deploy/",    g:2,    t:27},
+    {d:".claude/",   g:1,    t:18},
+    {d:"templates/", g:2,    t:48},
+    {d:"tests/",     g:0,    t:207},
+    {d:"ecosystem/", g:0,    t:105}
+  ];
+  var INTAKE=[["SEED",9,0],["DRAFT",9,0],["READY",19,0],["ACCEPTED",19,0],["CONSUMED",8,1],["SUPERSEDED",1,1],["REJECTED",2,1]];
+  var TASKS=[["open",169,0],["closed",132,1],["deferred",54,0],["retired",4,1],["superseded",1,1]];
+
+  var NS="http://www.w3.org/2000/svg";
+  var svg=document.getElementById("atlas");
+  var byId={}; LAYERS.forEach(function(l){byId[l.id]=l;});
+  function el(n,a){var e=document.createElementNS(NS,n);for(var k in a)e.setAttribute(k,a[k]);return e;}
+  function wid(n){return 1.0+Math.log(n+1)*1.28;}
+
+  var defs=el("defs",{});
+  [["m-nrm","var(--graphite)"],["m-hot","var(--signal)"]].forEach(function(p){
+    var mk=el("marker",{id:p[0],viewBox:"0 0 10 10",refX:"9",refY:"5",markerWidth:"5.5",
+      markerHeight:"5.5",orient:"auto-start-reverse"});
+    mk.appendChild(el("path",{d:"M0,0 L10,5 L0,10 z",fill:p[1]}));
+    defs.appendChild(mk);
+  });
+  svg.appendChild(defs);
+  var gEdge=el("g",{}), gNode=el("g",{});
+  svg.appendChild(gEdge); svg.appendChild(gNode);
+
+  EDGES.forEach(function(e){
+    var a=byId[e.s], b=byId[e.t], p, lx, ly;
+    if(e.s===e.t){
+      p=el("path",{d:"M"+(a.x-15)+","+(a.y-24)+" C"+(a.x-56)+","+(a.y-80)+" "+(a.x+56)+","+(a.y-80)+" "+(a.x+15)+","+(a.y-24),fill:"none"});
+      lx=a.x; ly=a.y-64;
+    }else{
+      var dx=b.x-a.x, dy=b.y-a.y, L=Math.sqrt(dx*dx+dy*dy)||1;
+      var ox=dx/L*32, oy=dy/L*32;
+      var mx=(a.x+b.x)/2-dy/L*20, my=(a.y+b.y)/2+dx/L*20;
+      p=el("path",{d:"M"+(a.x+ox)+","+(a.y+oy)+" Q"+mx+","+my+" "+(b.x-ox)+","+(b.y-oy),fill:"none"});
+      lx=(a.x+b.x)/2-dy/L*26; ly=(a.y+b.y)/2+dx/L*26;
+    }
+    p.setAttribute("stroke","var(--graphite)");
+    p.setAttribute("stroke-width",wid(e.n));
+    p.setAttribute("stroke-opacity","0.48");
+    p.setAttribute("marker-end","url(#m-nrm)");
+    p.setAttribute("data-s",e.s); p.setAttribute("data-t",e.t);
+    p.setAttribute("class","edge");
+    gEdge.appendChild(p);
+    var bg=el("rect",{x:lx-19,y:ly-8,width:38,height:14,rx:2,fill:"var(--paper)",
+      "data-s":e.s,"data-t":e.t,"class":"edge-lab"});
+    gEdge.appendChild(bg);
+    var tx=el("text",{x:lx,y:ly+3,"text-anchor":"middle","font-family":"IBM Plex Mono, monospace",
+      "font-size":"10","fill":"var(--graphite)","data-s":e.s,"data-t":e.t,"class":"edge-lab"});
+    tx.textContent=e.n.toLocaleString();
+    gEdge.appendChild(tx);
+  });
+
+  LAYERS.forEach(function(l){
+    var rw=Math.max(62,22+l.lab.length*8.4), rh=36;
+    var g=el("g",{"class":"node-rect","data-id":l.id,tabindex:"0",role:"button"});
+    g.appendChild(el("rect",{x:l.x-rw/2,y:l.y-rh/2,width:rw,height:rh,rx:2,
+      fill:"var(--surface)",stroke:"var(--ink)","stroke-width":"1.4"}));
+    var t1=el("text",{x:l.x,y:l.y-1,"text-anchor":"middle",
+      "font-family":"IBM Plex Sans Condensed, sans-serif","font-size":"13","font-weight":"600",fill:"var(--ink)"});
+    t1.textContent=l.lab; g.appendChild(t1);
+    var t2=el("text",{x:l.x,y:l.y+13,"text-anchor":"middle",
+      "font-family":"IBM Plex Mono, monospace","font-size":"9.5",fill:"var(--graphite)"});
+    t2.textContent=l.n.toLocaleString(); g.appendChild(t2);
+    g.addEventListener("click",function(){pick(l.id);});
+    g.addEventListener("keydown",function(ev){
+      if(ev.key==="Enter"||ev.key===" "){ev.preventDefault();pick(l.id);}});
+    gNode.appendChild(g);
+  });
+
+  var cur=null, ro=document.getElementById("readout");
+  function pick(id){
+    cur=(cur===id)?null:id;
+    var es=svg.querySelectorAll(".edge, .edge-lab");
+    for(var i=0;i<es.length;i++){
+      var e=es[i], on=!cur||e.getAttribute("data-s")===cur||e.getAttribute("data-t")===cur;
+      e.classList.toggle("dim",!on);
+      if(e.classList.contains("edge")){
+        e.setAttribute("stroke",(cur&&on)?"var(--signal)":"var(--graphite)");
+        e.setAttribute("marker-end",(cur&&on)?"url(#m-hot)":"url(#m-nrm)");
+        e.setAttribute("stroke-opacity",(cur&&on)?"0.95":"0.48");
+      }
+    }
+    var ns=svg.querySelectorAll(".node-rect");
+    for(var j=0;j<ns.length;j++){
+      var nd=ns[j], nid=nd.getAttribute("data-id");
+      var rel=!cur||nid===cur||EDGES.some(function(e){
+        return (e.s===cur&&e.t===nid)||(e.t===cur&&e.s===nid);});
+      nd.classList.toggle("dim",!rel);
+      var r=nd.querySelector("rect");
+      r.setAttribute("stroke",(cur&&nid===cur)?"var(--signal)":"var(--ink)");
+      r.setAttribute("stroke-width",(cur&&nid===cur)?"2.4":"1.4");
+    }
+    draw();
+  }
+  function draw(){
+    if(!cur){
+      ro.innerHTML='<h3>whole graph</h3><span class="big">11,515</span>'+
+        '<div style="color:var(--graphite);font-size:12px;margin-top:2px">edges across 12 cells</div>'+
+        '<ul><li><b>cross-layer</b><span>10,057</span></li>'+
+        '<li><b>same-layer</b><span>1,458</span></li>'+
+        '<li><b>cites (1 kind)</b><span>9,627</span></li>'+
+        '<li><b>all other kinds</b><span>1,888</span></li></ul>'+
+        '<div style="font-size:12px;color:var(--graphite);margin-top:14px;line-height:1.5">'+
+        'One edge kind is 83.6% of the graph. Select a layer to isolate it.</div>';
+      return;
+    }
+    var out=EDGES.filter(function(e){return e.s===cur&&e.t!==cur;});
+    var inn=EDGES.filter(function(e){return e.t===cur&&e.s!==cur;});
+    var self=EDGES.filter(function(e){return e.s===cur&&e.t===cur;});
+    var tot=0; EDGES.forEach(function(e){if(e.s===cur||e.t===cur)tot+=e.n;});
+    var h='<h3>'+byId[cur].lab+'</h3><span class="big">'+tot.toLocaleString()+'</span>'+
+      '<div style="color:var(--graphite);font-size:12px;margin-top:2px">incident edges &middot; '+
+      byId[cur].n.toLocaleString()+' nodes</div><ul>';
+    out.forEach(function(e){h+='<li><b>to '+byId[e.t].lab+'</b><span>'+e.n.toLocaleString()+'</span></li>';});
+    inn.forEach(function(e){h+='<li><b>from '+byId[e.s].lab+'</b><span>'+e.n.toLocaleString()+'</span></li>';});
+    self.forEach(function(e){h+='<li><b>self</b><span>'+e.n.toLocaleString()+'</span></li>';});
+    h+='</ul>';
+    if(!out.length&&!self.length)h+='<div style="font-size:12px;color:var(--absent);margin-top:12px;line-height:1.5"><b>No out-edges.</b> This layer consumes nothing the graph can see.</div>';
+    if(!inn.length&&!self.length)h+='<div style="font-size:12px;color:var(--absent);margin-top:12px;line-height:1.5"><b>No in-edges.</b> Nothing in the corpus is recorded as depending on this layer.</div>';
+    ro.innerHTML=h;
+  }
+  draw();
+
+  var bars=document.getElementById("bars");
+  COV.forEach(function(c){
+    var pct=c.t?100*c.g/c.t:0;
+    var row=document.createElement("div");
+    row.className="bar-row"+(c.g===0?" zero":"");
+    row.innerHTML='<div class="bar-lab">'+c.d+'</div>'+
+      '<div class="bar-track"><div class="bar-fill" style="width:'+pct.toFixed(1)+'%"></div></div>'+
+      '<div class="bar-num">'+c.g+' / '+c.t+' &middot; '+(c.g===0?"ABSENT":pct.toFixed(1)+"%")+'</div>';
+    bars.appendChild(row);
+  });
+
+  function funnel(host,rows){
+    var h=document.getElementById(host);
+    rows.forEach(function(r){
+      var d=document.createElement("div");
+      d.className="fstage"+(r[2]?" term":"");
+      d.innerHTML='<div class="n">'+r[1]+'</div><div class="s">'+r[0]+'</div>';
+      h.appendChild(d);
+    });
+  }
+  funnel("funnel-intake",INTAKE);
+  funnel("funnel-tasks",TASKS);
+})();
+</script>

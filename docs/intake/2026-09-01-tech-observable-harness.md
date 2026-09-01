@@ -228,6 +228,27 @@ acceptance criterion 6 below can be stated at all.
    readable by a git-history reader, that is a **reversal** of a live decision and needs to be
    ruled as one rather than assumed. Technical-architect question; not answered here.
 
+## Landed inputs (ATLAS-R1, 2026-09-01)
+
+Two artifacts landed under `docs/audits/` on the day this intake was filed, each recorded here
+as the consumer at landing. **Both are HTML views landed VERBATIM with a markdown sidecar**
+(architect's format ruling): a generated view is not rewritten by hand, and the `.md` twin is
+what this intake cites.
+
+- **`docs/audits/2026-09-01-technical-atlas-r1-layer-graph.md`** — feeds the **`docs/dashboard/`
+  view**. It is the worked example of what that view renders: 1,783 nodes and 11,515 edges
+  collapsing into **12 aggregate cells**, which is the finding that makes a whole-graph render
+  possible at all. It also settles the reconcile-before-birth question for the dashboard leg —
+  four incumbents were measured and only `file_purpose_graph.py` overlaps, by owning a real
+  `rustworkx` graph with **no view of the whole**.
+- **`docs/audits/2026-09-01-census-atlas-r1-def-usage-ledger.md`** — feeds the **telemetry
+  stream**, and it is the measured statement of what that stream would have to carry. Across 31
+  lanes in three batches, **credits recorded: 0** — no receipt carries a cost,
+  `logs/TOKEN-LOG.md` is a host-wide weekly aggregate that cannot attribute a lane and stops 25
+  days before the window opens, and the codespace probe burned real compute and recorded none.
+  **Until `[#615]` lands, per-lane attribution is underivable, not merely unrecorded.** That is
+  question 5's premise, measured rather than asserted.
+
 ## Status
 
 DRAFT — filed 2026-09-01 from operator direction, under the reconcile-before-birth rule. **Its

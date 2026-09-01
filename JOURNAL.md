@@ -19,6 +19,64 @@
 
 ---
 
+### 2026-09-01 (ab) - CC (Opus 5): the artifacts existed the whole time, and all seven lanes would have run unreviewed
+
+**Anchors:** `b40d7393`
+
+**Did:** landed ATLAS-R1's two artifacts with sha-verified copies and markdown sidecars, wired
+their consumers, filed the mechanism candidate, and bound every batch-F lane to a review lane.
+
+**THE HARVEST THAT RETURNED EMPTY WAS RIGHT ABOUT THE SEARCH AND WRONG ABOUT THE WORLD.** Both
+artifacts existed the whole time, under a **job-scoped tmp directory that is deleted with the
+job**. Copied out FIRST, before anything else: hashed at source, re-hashed after the copy, both
+byte-identical to the declared values — 34,295 B `03a67eed…af727` and 28,748 B `444c7ac5…3103d`.
+
+**THE NEAR-MISS IS THE FINDING, and it is filed as intake #67 (SEED).** The paths were recovered
+only because the operator had them. Nothing in the lane's own output would have produced them, no
+gate would have noticed, and one job cleanup earlier the two views — measured against a real graph
+of 1,783 nodes and 11,515 edges — would have ceased to exist with nothing recording that they had.
+**A lane that publishes into a directory the harness deletes has not published.** Proposed
+mechanism: a required `ARTIFACTS:` block in the lane packet schema, declaring a durable locator or
+`NONE`.
+
+**FORMAT, per the architect: the HTML lands VERBATIM and gets a markdown SIDECAR.** A generated
+view is not rewritten into markdown by hand — that forks one fact into two surfaces with no gate
+holding them equal. The corpus stays markdown-indexed, the `.md` twin is what census cites, and the
+claude.ai URLs are recorded as **provenance, not as the store**.
+
+**THE LEDGER ANSWERS THE QUESTION I COULD ONLY HALF-ANSWER THIS MORNING, AND IT CONFIRMS MY
+NUMBER.** Across batches D and E: **17 merged lanes, 9 with NO independent review** — batch D's
+`a`, `b`, `d`, `g` (the whole batch has no review record of any kind) and batch E's DC-1, DC-4,
+DM-3, DM-5, HY-1. My earlier independent answer for batch E was those same five. The cause is a
+**process defect, not a reporting one**: integrator verification is real and is not review.
+
+**AND THE LEDGER'S OTHER NUMBER IS THE SHARPER ONE.** 31 lanes, three batches, **one model** —
+every lane `opus`/`high`/`execute`. *"The routing question has a one-word answer, and the
+interesting statistic is that nothing was ever routed anywhere else."* **Credits recorded: zero**,
+and not merely unrecorded — `logs/TOKEN-LOG.md` is a host-wide weekly aggregate that cannot
+attribute a lane and stops 25 days before the window opens, so attribution is **underivable until
+`[#615]` lands**.
+
+**TWO CORRECTIONS THE SIDECARS OWE, because the ledger predicted its own expiry.** Its batch-F row
+says *"the next freeze commit supersedes it"* — that commit is `12720fcf`, and batch F is now
+frozen. And its DC-3 review column under-reads: an operator adjudication is not a review, and the
+two-pass terra loop belongs to the branch that replaced the lane.
+
+**THE GO'S REPORT, AND IT IS NOT A CLEAN ANSWER: ALL SEVEN batch-F lanes would have run without a
+review lane.** No frozen contract names a reviewer; the manifest declared none. **The freeze
+predates the rule**, and saying so now is cheaper than discovering it at the seventh merge.
+Amendment 2 binds all seven to a **PRE-merge** terra pass — batch E's round ran post-merge and its
+own artifact calls that the weaker position. Priced honestly at ~11 min/pass, 1–2 passes per lane:
+**~77–154 min against ~53 min of existing integration overhead**, which makes the review round the
+largest single line in the batch's cost and roughly triples it.
+
+**Changes:** four new `docs/audits/` files (2 HTML verbatim + 2 sidecars),
+`docs/intake/2026-09-01-tech-lane-packet-artifacts-block.md` (new, #67),
+`docs/intake/2026-09-01-tech-observable-harness.md`, `tasks/615-*.md`, both intake generated
+surfaces, the batch-F manifest (amendment 2), `JOURNAL.md`.
+
+**Next:** the batch-F GO — dispatch L1 attended.
+
 ### 2026-09-01 (aa) - CC (Opus 5): a harvest with no input, and an anchor written BEFORE the merge that needs it
 
 **Anchors:** `a9488d32` · `5d23f1b9` · `aa1232d0`

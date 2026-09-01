@@ -3,12 +3,12 @@
   "direction": "derived-from",
   "source": "docs/intake/README.md",
   "generator": "scripts/gen_intake_tree.py",
-  "source_sha256": "3f9c951d75c230dcc9a10ab5f797bfe2aaa17885ea6e3762ccc49f2a907a8333",
+  "source_sha256": "76907dd947bab171aac60f7c1246051e5155bc6ff43d51b08fbeb74a664418d2",
   "honest_limit": {
     "statement": "ADR-109 section 4 is discharged by a byte-exact round-trip plus a residue manifest, NOT by a derivation ratio. This surface's ratio is INVERTED relative to surface 1 (BACKLOG.md <-> tasks/), where task lines were the majority and residue the minority. Recorded so the generality claim is honest about what was shown.",
-    "item_derived_lines": 57,
+    "item_derived_lines": 58,
     "residue_lines": 281,
-    "total_lines": 338,
+    "total_lines": 339,
     "surface_1_comparison": "inverted -- surface 1 was majority item-derived"
   },
   "not_captured": {
@@ -291,6 +291,10 @@
         "disposition",
         "origin"
       ],
+      "2026-09-01-tech-lane-packet-artifacts-block.md": [
+        "consumed-by",
+        "origin"
+      ],
       "2026-09-01-tech-observable-harness.md": [
         "consumed-by",
         "origin"
@@ -373,7 +377,7 @@
     },
     {
       "t": "line",
-      "v": "**57 intake documents.**"
+      "v": "**58 intake documents.**"
     },
     {
       "t": "line",
@@ -381,7 +385,7 @@
     },
     {
       "t": "line",
-      "v": "### SEED (9)"
+      "v": "### SEED (10)"
     },
     {
       "t": "line",
@@ -430,6 +434,11 @@
     {
       "t": "item",
       "file": "2026-08-01-func-distillation-and-library-first.md",
+      "status": "SEED"
+    },
+    {
+      "t": "item",
+      "file": "2026-09-01-tech-lane-packet-artifacts-block.md",
       "status": "SEED"
     },
     {
