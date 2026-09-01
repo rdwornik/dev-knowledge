@@ -19,6 +19,63 @@
 
 ---
 
+### 2026-09-01 (ac) - CC (Opus 5): the ledger reported a declaration as a measurement, and five lanes really did burn opus
+
+**Anchors:** `5f6770c7`
+
+**Did:** answered the operator's verify with a per-lane witness, corrected the ledger by amendment,
+and filed `[#631]` at `[#629]`-class weight.
+
+**NEITHER HYPOTHESIS WAS RIGHT.** The model parameter **is** applied at dispatch, and the ledger
+does **not** read the orchestrator's model. It reads each lane's **contract routing table** —
+exactly as its own method line admits, *"three of the five columns reconstruct cleanly from
+committed manifests and contracts."* Every batch-E contract declares `opus`, so every row reads
+`opus`: **a declaration rendered as a measurement.**
+
+**THE WITNESS, per lane, from the session transcripts** — not a contract, not a manifest, not a
+process list. `~/.claude/projects/<lane>/*.jsonl` records the model of every assistant turn:
+
+```
+batch E, 13 lanes witnessed:  8 SONNET · 5 OPUS   -- MIXED, not uniform
+batch D, 3 of 3 OPUS         -- and batch D PREDATES R-MODELS
+```
+
+Corroborated independently for DC-3 by an OS-process capture taken live earlier the same day:
+`--model sonnet` on the command line while the contract it was executing declared `opus`.
+
+**So the ledger's headline is false, and its conclusion is false twice over.** *"There is no model
+variance to analyse"* — there **is** variance, and **it is invisible to every committed surface**,
+which is the sharper finding and the one worth keeping.
+
+**THREE SURFACES DEFAULT TO OPUS INDEPENDENTLY:** the contract generator's `DEFAULT_MODEL`,
+`Dispatch-Local`'s own `[string]$Model = 'opus'`, and the ledger reading the first rather than the
+run. **The contract's model and the dispatch's model are two surfaces free to disagree with nothing
+checking them** — the very class `gen_lane_contract` already refuses for the dispatch command line
+(*"two forms free to disagree is the class this generator removes"*), closed for the verb and left
+open for the model.
+
+**And the operator's concern was real, just smaller than the ledger implied: five batch-E lanes did
+run opus on dispatched-lane work**, and no surface would ever have shown it.
+
+**IT REACHES BATCH F NOW, WHICH IS WHY L1 IS NOT DISPATCHED.** Six of the seven frozen contracts
+declare `opus`; only L3 declares `sonnet`. Changing a frozen routing table is not additive, so the
+correction is a **reissue** — and model routing is a technical-architect decision under ADR-108 §A.
+Reported, not taken.
+
+**`[#631]`, filed as instructed:** a freeze cannot bind a rule that post-dates it, and nothing
+re-validates a frozen batch when the rules move. Batch F is the live instance **twice** — the
+review-lane rule arrived after the freeze and all seven lanes violated it, and R-MODELS predates
+the freeze but nothing checked the contracts against it. **A batch can be simultaneously validly
+frozen and non-compliant, both true, neither visible.** `[#629]` is a contract contradicting
+itself; `[#630]` is two surfaces disagreeing at one moment; this is the same surface disagreeing
+with itself **across time**.
+
+**Changes:** `docs/audits/2026-09-01-verification-model-routing-witness.md` (new), the ledger
+sidecar (amendment 1), `tasks/631-*.md` (new), `tasks/manifest.json`, `BACKLOG.md`,
+`docs/audits/README.md`, `JOURNAL.md`.
+
+**Next:** the architect's ruling on batch-F model routing, then dispatch L1.
+
 ### 2026-09-01 (ab) - CC (Opus 5): the artifacts existed the whole time, and all seven lanes would have run unreviewed
 
 **Anchors:** `b40d7393`
