@@ -19,6 +19,47 @@
 
 ---
 
+### 2026-09-01 (q) - CC (Opus 5, attended): rulings 1 and 6 filed - a floor edit is a release act, and an attended lane has a shape the machinery already knows
+
+**Anchors:** `dbf4dc82`
+
+**Did:** filed the DC-2 re-cut as `[#628]` and froze the win-tooling stamp lane as an INTERACTIVE
+contract. **All seven rulings and all three addenda are now discharged.**
+
+**THE REFUSED LANE'S REPORT IS THE SPECIFICATION, which is why `[#628]` is precise.** DC-23 did not
+merely decline Act One - it enumerated ten breaking consumers of `ESSENTIALS.md`, **none inside
+the frozen write-scope**, and found a second blocker INSIDE the footprint. A refusal that lists
+what a correct scope would have to cover is worth more than an execution that discovers it
+halfway.
+
+**AND THE RULING'S REAL CONTENT IS THE RECLASSIFICATION.** Act One's relocation target is
+hash-guarded THREE ways - template bytes, `.sha256` sidecar, and `anchors.floor_sha256` across
+**three live manifests**, each pinned by a live consumer - with `release_lint` C5 asserting the
+equality. **A floor edit is a release act by construction**, so this was never a doc lane that
+happened to be large; it was a release act wearing a doc lane's write-scope. Sequenced with
+v1.5.0.
+
+**RULING 6 GOT A SHAPE RATHER THAN A NOTE.** "Attended" is not an annotation here - it is
+`gen_lane_contract`'s **INTERACTIVE** shape, which emits no lane branch because an attended
+session runs in the primary checkout, and which the shape gate checks. The R-ENUM work eight hours
+earlier is what made that vocabulary available to say precisely.
+
+Its done-contract makes the unwedging **checkable**: a real commit in win-tooling that succeeds
+**without** `SKIP=`. Every author in that repo is currently blocked, and this window declared the
+bypass twice to land HY-5. The contract also asks for a per-document note of what the read found,
+because **a stamp with no record of what was reviewed is the same fake stamp one level up** - the
+thing the night seat refused to write in the first place.
+
+**POSITION DERIVES THEME, learned again and the harder way.** The first insertion searched for the
+next `### [S` heading and stepped straight over the `## [E6]` THEME heading, landing `[#628]` under
+a theme and under no story. `validate_backlog` caught it as *"task not under a user story"* - the
+gate doing exactly its job on a mistake that reads as invisible in a 500-node manifest.
+
+**Changes:** `tasks/628-*.md`, `tasks/manifest.json`, `BACKLOG.md`, the frozen interactive
+contract in-tree, `docs/audits/README.md`, `JOURNAL.md`.
+
+**Next:** DC-3's merge when it stops; then the batch-E close packet, which now needs only DC-3.
+
 ### 2026-09-01 (p) - CC (Opus 5, attended): ruling 3 - neither consumer is drifting, and the thing blocking both deploys is a row that predicted it and was deferred
 
 **Anchors:** `7ad141e5`

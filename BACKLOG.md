@@ -213,6 +213,7 @@ So that the cheat-sheet and architecture stay scannable as conventions accrue.
 - [#607] [P2][S] PLAYBOOK census discharge — the mechanical half of the 19 findings · tasks/607-playbook-census-discharge-the-mechanical-half-of.md
 - [#617] [P2][M] FILE DISTILLATION — the output half, and the only worsening series · tasks/617-file-distillation-the-output-half-and-the-only-w.md
 - [#612] [P2][M] Doc-rot row-body archival mechanism · tasks/612-doc-rot-row-body-archival.md
+- [#628] [P1][L] DC-2 re-cut — dissolving `ESSENTIALS.md` is a FLEET-COUPLED release act, not a doc lane · tasks/628-dc2-recut-essentials-dissolution-is-a-release-act.md
 ## [E6] Cross-repo universalization
 > As the disseminator, I want every child repo to converge on the universal baseline.
 
