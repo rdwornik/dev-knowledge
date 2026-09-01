@@ -7,7 +7,7 @@ owner: Rob
 
 # CLAUDE.md — Dev Knowledge
 <!-- scope: meta -->
-<!-- version: 2.70 — 2026-09-01 -->
+<!-- version: 2.71 — 2026-09-01 -->
 
 > **Session boot contract for Claude Code in this repo** — auto-read at session start (ADR-53, as re-pointed by ADR-115). **Genre:** a rule lives here only if a session needs it *before it can act*; rationale, history and per-organ detail live at the home each line cites.
 >
@@ -36,8 +36,8 @@ In order, read:
 
 - **Name:** `.dev-knowledge` · **Owner:** Rob · **Status:** active, no declared tier (repo-tier system deprecated 2026-05-23)
 - **Purpose:** the universal LLM-driven development guide and methodology framework governing every project under `Dev/` — Layer 2 of the ADR-28 three-layer ecosystem model
-- **Critical paths:** `protocols/`, `docs/decisions/`, `templates/`, `README.md`, `VISION.md`, `ARCHITECTURE.md`
-- **Related:** `~/.claude/` (L0 runtime config) · `.claude/` (project config) · `ObsidianVault/` (pre-sales — do not mix) · `Dev/` child repos, each owning its own `CLAUDE.md`
+- **Critical paths:** `protocols/`, `docs/decisions/`, `templates/`, `README.md`, `ARCHITECTURE.md`
+- **Related:** `~/.claude/` (L0 runtime config) · `.claude/` (project config) · `Dev/` child repos, each owning its own `CLAUDE.md`
 - **Portable layer:** root `AGENTS.md` carries the build/test/landing facts every provider reads (ADR-115, superseding ADR-53 Decision 2); this file keeps the Claude-runtime remainder and imports it below. No fact is duplicated across the two — the importer preserves ADR-53's substance
 
 @AGENTS.md
@@ -60,12 +60,12 @@ In order, read:
 - **Naming:** UPPERCASE for top-level living docs; `ADR-NN-topic.md`; `YYYY-MM-DD-slug.md` for dated artifacts, `docs/audits/` names also carrying a closed-enum class (`validate_hermetization.AUDIT_CLASS_ENUM`); `logs/` artifacts UPPERCASE-KEBAB, extension honest to the format ([#395]); kebab-case otherwise
 > **[HUB - methodology]** region `conventions-commit-branch` - single-sourced from the hub; do not edit these lines here.
 <!-- methodology:start id=conventions-commit-branch owner=hub -->
-- **Commits & branches:** Branch prefixes are `feat/ fix/ docs/ chore/` (author-chosen branches — these four only), **plus four machine-produced lane prefixes: `worktree-<name>` (native parallel-session worktrees, `claude --worktree` / EnterWorktree), `epic/<slug>` (root-provisioned epic lanes, §14a), `claude/<slug>` (Anthropic cloud-session lanes), and `automation/<slug>` (organ-produced replication lanes — admitted 2026-08-06 by architect ruling, register `protocols/STANDING_RULINGS.md` B5). Lane branches are never self-merged and never author-invented — a brief that names a lane branch names it in one of these shapes; a new machine-produced lane prefix enters this enum only via a recorded ruling (never silently); the enum stays the checkable surface.** Commit **types** follow Conventional Commits and additionally include `refactor` and `test` — commit types are **not** branch prefixes. Never commit directly to `main`: branch → `--no-ff` merge.
+- **Commits & branches:** Branch prefixes are a closed enum — author-chosen `feat/ fix/ docs/ chore/`, plus four machine-produced lane prefixes `worktree-<name>`, `epic/<slug>`, `claude/<slug>`, `automation/<slug>` (each admitted only by a recorded ruling, never invented in passing — full provenance: PLAYBOOK Ch3 "Branch prefixes — the closed enum"). Commit **types** follow Conventional Commits plus `refactor` and `test` — commit types are **not** branch prefixes. Never commit directly to `main`: branch → `--no-ff` merge.
 <!-- methodology:end id=conventions-commit-branch -->
 - **Testing:** `uv run --locked pytest -x --tb=short` — a bare `pytest` resolves nothing on a clean checkout (ADR-106 §4). In a lane run the **targeted** tests for that lane's diff; the **full suite runs once, at integration** ([#528])
 - **Linting:** `uv run --locked ruff check --fix`; `ruff check` is also a pre-commit gate (§9) and blocks
 - **Scope tags:** `<!-- scope: X -->` (`dev|llm|hybrid|runtime|meta`) — informal, not enforced (ADR-27/ADR-48)
-- **File lifecycle:** append-only `LESSONS.md` + `logs/TOKEN-LOG.md`; newest-first-prepend `JOURNAL.md`; immutable ADRs / transcripts / handoffs / audits; living `README.md`, `VISION.md`, `ARCHITECTURE.md`, `CLAUDE.md`, `protocols/*.md` — rules and exceptions at §5. **`BACKLOG.md` is generated:** edit `tasks/`, then `gen_task_tree.py --emit-source`
+- **File lifecycle:** append-only `LESSONS.md` + `logs/TOKEN-LOG.md`; newest-first-prepend `JOURNAL.md`; immutable ADRs / transcripts / handoffs / audits; living `README.md`, `ARCHITECTURE.md`, `CLAUDE.md`, `protocols/*.md` — rules and exceptions at §5. **`BACKLOG.md` is generated:** edit `tasks/`, then `gen_task_tree.py --emit-source`
 - **Freshness cadence:** the stamped set is **computed, not restated here** — `canonical_docs.py::FRESHNESS_FILES` + `audit.py::_HUB_ONLY_FRESHNESS_FILES`. A `last_reviewed` stamp means *re-read end-to-end and confirmed accurate, or drift filed*, never merely "touched"
 - **Never restate a count or roster in prose** — cite the surface that computes it (`audit.py checks`, `ecosystem/doc-counts.md`, `ecosystem/organ-index.md`, the manifest `carriers:` block). A number typed into a doc is stale at the next commit
 - **Resolve a locator before you act on it** — a `file:line`, heading, SHA, branch or `[#id]` you have not opened is a claim, not evidence; run **`/preflight`** first. The most-recorded executor failure in the 2026-08-21 governance-drift audit, and it binds the auditor too
@@ -74,11 +74,11 @@ In order, read:
 - **Dependencies (ADR-106):** declared by `pyproject.toml` + `uv.lock` + `.python-version`, rebuilt by `uv sync --locked`, `uv` pinned **exactly** — a uv bump is its own gated change. Every gate runs `uv run --locked …`, so a bare `python`/`pytest` in a doc is a defect, not a shorthand
 - **Decision funnel (ADR-111):** every audit finding is triaged into **exactly one** of OWNED / DISCHARGED / CANDIDATE / REJECTED — no finding becomes a backlog row without triage, and the only path is CANDIDATE → intake (ADR-98) → ratification. Question routing is ADR-108 §A: the operator rules **functional** questions, the architect **technical** ones
 
-**Out of scope:** code-level implementation → child repos · client/product/domain knowledge → the Obsidian vault · runtime config → `~/.claude/`. The in-hub Council transcript archive was **deleted 2026-07-22** by operator ruling — do not recreate it; the ADR-77 guard stays armed.
+**Out of scope:** code-level implementation → child repos · runtime config → `~/.claude/`. The in-hub Council transcript archive was **deleted 2026-07-22** by operator ruling — do not recreate it; the ADR-77 guard stays armed.
 
 > **[HUB - methodology]** region `conventions-output-formatting` - single-sourced from the hub; do not edit these lines here.
 <!-- methodology:start id=conventions-output-formatting owner=hub -->
-- **Output formatting (render-layer):** Claude does **not** emit box-drawing glyphs — the Claude Code TUI *paints* plain markdown pipe-tables (`| col | col |`) as Unicode borders (`┌─┬─┐ │ └─┴─┘`) **client-side at render time**. So a bare table looks clean in the terminal but copies into browser chat as costly border glyphs (~3× the tokens), and a rule that merely bans Claude from *writing* box-drawing is a no-op (Claude already doesn't). The working fix is at the render layer: any report the operator copies out must be (1) **flat** — plain markdown or `key: value` / bullet lists, no column-padding spaces — **and** (2) **wrapped in a triple-backtick code fence**, which makes the TUI render it raw/un-painted so the copied text carries no borders. Same fenced-block discipline already used for Scale-S snippets (ESSENTIALS) and downloadable prompts (§2). Persistent diagrams live on the separate human-facing visualization surface (ADR-59; the ADR-51 amendment 2026-07-05 moved Mermaid out of canonical `ARCHITECTURE.md` — its codemap is now compact text), out of scope. Full rationale + `/session-summary` reconciliation: PLAYBOOK §8 "Output the operator copies into browser chat".
+- **Output formatting (render-layer):** Claude does **not** emit box-drawing glyphs — the Claude Code TUI *paints* plain markdown pipe-tables as Unicode borders **client-side at render time**, so a bare table looks clean in the terminal but copies into browser chat at ~3× the tokens. Any report the operator copies out must be (1) **flat** — plain markdown or `key: value` / bullet lists, no column-padding spaces — **and** (2) **wrapped in a triple-backtick code fence**, so the TUI renders it raw/un-painted. Full rationale, the Mermaid/diagram carve-out and `/session-summary` reconciliation: PLAYBOOK §8 "Output the operator copies into browser chat" (this bullet is the point-of-use rule; that subsection is the rationale authority).
 <!-- methodology:end id=conventions-output-formatting -->
 
 ## 5. Critical rules
@@ -224,6 +224,8 @@ Machine-enumerated, last 5 by number (`gen_claude_rosters.py --write`). Editoria
 - v2.69 (2026-08-29, batch-D lane c `lane-c-000-claude-md-regenre`) — **the re-genre: reference manual → boot contract, budgeted in bytes.** The file met its `≤200 lines` claim by *density* — 240 lines but 39,588 B, **165 B/line** against this corpus's ~117 — so the cost every session pays went unbudgeted. A **24,576 B** ceiling now gates it (`tests/test_claude_md_byte_cap.py`); ADR-53's line bound is **kept, not replaced**. Every removal is a relocation to a named, verified destination. The ledger, the measurements and the owed follow-ups: `docs/audits/2026-08-29-technical-claude-md-regenre.md`.
 
 - v2.70 (2026-09-01, night window) — §9 gains `audit-title-gate`. The hook was live and unclaimed: 21 named here against 22 in `.pre-commit-config.yaml`, a divergence only the ship-tier `doc_claims` would have seen. Re-read end-to-end at the same commit — every §4/§5 rule was exercised by that window's own work, so the stamp is a review, not a touch.
+
+- v2.71 (2026-09-01, DC-3 split — Acts TWO + THREE only) — **genre purification by relocation; the ESSENTIALS act is deliberately NOT here.** Act One (dissolving `protocols/ESSENTIALS.md`) was refused by ruling 1 and re-filed as `[#628]`, fleet-coupled and sequenced with v1.5.0 — so ESSENTIALS and every citation of it stand. Landed: Act TWO (the branch-prefix enum and the TUI formatting rationale shrink to point-of-use bullets, provenance relocated to PLAYBOOK Ch3/Ch8; both `ObsidianVault/` clauses deleted per CUT-2) and Act THREE (`VISION.md` out of §2 and §4, DC-1 having retired it from `CANONICAL_MANDATORY`). 24,387 B → 23,346 B. One inherited defect fixed: the new bullet cited a "Mermaid/diagram carve-out" at a PLAYBOOK subsection that did not contain one — a relocation to an unverified destination, which is the failure this genre exists to prevent. Ledger: `docs/audits/2026-09-01-technical-dc3-split.md`.
 
 <!-- methodology:end id=section-history -->
 
