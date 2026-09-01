@@ -19,6 +19,51 @@
 
 ---
 
+### 2026-09-01 (v) - CC (Opus 5): batch F is derived, and two of its seeds name things that do not exist
+
+**Anchors:** `9f4c96d8`
+
+**Did:** derived batch F from live state at `7cb9be42` for the architect's cut —
+`docs/audits/2026-09-01-technical-batchf-derivation.md`. Every seed measured, every ex-ante size
+anchored to a stated number, and the derivation's own limits written down.
+
+**THE CUT'S FIRST DECISION IS NOT A SEED.** `[#589]`'s BACKLOG byte bar is **already breached** —
+70,276 B against a 70,000 B ceiling — and stood at **18 bytes of headroom** before batch E's last
+two rows. Batch F files rows; every one widens a live breach. Three lawful moves exist and the cut
+must pick one *before* dispatch: `[#589]` raises its own bar with a recorded justification, a
+grooming pass shrinks the corpus (**overdue anyway**, 33d against a 21d cadence), or the batch
+files nothing. **Quietly widening the bar is the one act `[#589]` exists to forbid**, so this is
+surfaced up front rather than discovered mid-batch.
+
+**TWO SEEDS NAME THINGS THAT DO NOT EXIST, AND BOTH WOULD HAVE BECOME CONTRACT TEXT.**
+
+- **F0 cites a "router-ADR entry condition". There is no router ADR.** `STANDING_RULINGS` Z-G3
+  names it only as *"the wave-2 router ADR"* and says it is deliberately unauthored *until its
+  central evidence exists*. A contract citing a number here would cite nothing. Same seed: the
+  helper is `Start-DispatchCodespace` / `Stop-DispatchCodespace` — **`Dispatch-Codespace` does not
+  exist**.
+- **F2's "DM-1 eval precondition" is not in either DM-1 audit.** Both were read end to end. DM-1's
+  own §8 verdict is *(b)* — it relocated risk, it did not reduce effort. The precondition claim
+  traces to the SkillsBench finding in the autonomy synthesis, landed by lane **DM-5**. And
+  ADR-112's own guard sentence — *"Tier S never touches gates, hooks that block, or `scripts/` —
+  anything that would, is Tier L by definition"* — makes `[#617]`'s eval-loop work **Tier L**.
+  Running it as Tier S would put a gate-building act inside the tier barred from gates.
+
+**F7 was done before the batch existed.** `templates/README-md-template.md` landed today in
+`eaaeafa2`. What is left under that heading is a release act blocked by `release_lint` C7's
+`doc_shapes` coupling — not a template.
+
+**AND A ROW IS BOTH DEFERRED AND BLOCKING.** `[#276]`'s frontmatter says `deferred`; ruling 3
+treats it as a hard blocker on both consumer instantiations. A row cannot be both the thing nothing
+waits on and the thing everything waits on. `[#624]` — *"nothing watches a BLOCKER's status"* — is
+the organ that would have caught it, and here it is, live.
+
+**Changes:** `docs/audits/2026-09-01-technical-batchf-derivation.md` (new),
+`tasks/614-*.md` (consumed-artifacts block), `docs/audits/README.md`, `JOURNAL.md`.
+
+**Next:** the architect's cut. Then v1.5.0 (operator) → monorepo instantiation (attended GO), on
+which `[#276]` sits directly rather than beside.
+
 ### 2026-09-01 (u) - CC (Opus 5): batch E closes on evidence, and two items stay open in the packet rather than being rounded up
 
 **Anchors:** `f2e120e7`
