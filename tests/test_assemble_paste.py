@@ -544,3 +544,48 @@ def test_no_promotion_debt_block_without_markers(tmp_path: Path) -> None:
     result = _run(script, bundle)
     assert result.returncode == 0, result.stderr
     assert "[promotion-debt]" not in result.stderr
+
+
+# ------------------------------------------------------------------ #
+# Test 19: --pin-only (v7 /boot-session use, HANDOFF_PROCESS.md §17.4) —
+# the same pin mechanism §4 uses, reused rather than re-implemented.
+# ------------------------------------------------------------------ #
+
+def test_pin_only_prints_just_the_three_line_pin(tmp_path: Path) -> None:
+    _bundle, script = _make_bundle(tmp_path)
+    result = subprocess.run(
+        [sys.executable, str(script), "--pin-only"], capture_output=True, text=True,
+    )
+    assert result.returncode == 0, result.stderr
+    lines = result.stdout.strip("\n").splitlines()
+    assert len(lines) == 3
+    assert lines[0].startswith("ROLE PIN — HANDOFF_BOOT.md @ handoff-process v6.3.0")
+    assert lines[1].startswith("sha256: ")
+    assert "If your project instructions do not carry this contract" in lines[2]
+
+
+def test_pin_only_needs_no_bundle_dir(tmp_path: Path) -> None:
+    """--pin-only never touches RESIDUAL.md/PROBES.md/SUPPLEMENT.md — no BUNDLE_DIR needed."""
+    _bundle, script = _make_bundle(tmp_path)
+    result = subprocess.run(
+        [sys.executable, str(script), "--pin-only"],
+        capture_output=True, text=True, cwd=str(tmp_path),
+    )
+    assert result.returncode == 0, result.stderr
+
+
+def test_missing_bundle_dir_without_pin_only_is_a_usage_error(tmp_path: Path) -> None:
+    _bundle, script = _make_bundle(tmp_path)
+    result = subprocess.run([sys.executable, str(script)], capture_output=True, text=True)
+    assert result.returncode != 0
+    assert "BUNDLE_DIR is required unless --pin-only is given" in result.stderr
+
+
+def test_pin_only_missing_spec_still_refuses_cleanly(tmp_path: Path) -> None:
+    _bundle, script = _make_bundle(tmp_path)
+    (tmp_path / "protocols" / "HANDOFF_PROCESS.md").unlink()
+    result = subprocess.run(
+        [sys.executable, str(script), "--pin-only"], capture_output=True, text=True,
+    )
+    assert result.returncode == 1
+    assert "the ROLE PIN needs its Version line" in result.stderr

@@ -928,6 +928,128 @@ def surface_line(health_file: Path) -> str:
 
 
 # ---------------------------------------------------------------------------
+# v7 BOOT-INVERSION digest ([#611], lane-b-2-handoff-v7, protocols/HANDOFF_PROCESS.md §17).
+# EXTENDS this organ rather than adding a fifth SessionStart hook (contract item 3):
+# fleet_health.py is the measured natural host, already printing a one-line digest and
+# already carrying the unthrottled overdue-groom escalation above. These two lines join
+# it the same way -- unthrottled (every session, not gated on the once/day refresh), and
+# fail-soft in full: a broken registry parse or a broken funnel read must never cost the
+# fleet digest it rides on. OPERATOR ASKS prints FIRST, per §17.1's own rule ("a seat sees
+# what the operator is still waiting for BEFORE it sees what the repo would like to do
+# next") -- carried even into this terse one-liner form.
+# ---------------------------------------------------------------------------
+
+_ASKS_FENCE_RE = re.compile(r"\*\*Seed entries.*?\n```\n(.*?)```", re.DOTALL)
+_ASK_START_RE = re.compile(
+    r"^(?P<name>\S.*?)\s{2,}asked\s+(?P<date>\d{4}-\d{2}-\d{2})\s+"
+    r"re-asked\s+(?P<reasked>\d+)\s*(?P<tail>.*)$")
+_VISIBLE_FIX_RE = re.compile(r"visible-fix:\s*\S")
+_BLOCKER_RE = re.compile(r"blocker:\s*\S")
+
+_HANDOFF_PROCESS_PATH = _REPO_ROOT / "protocols" / "HANDOFF_PROCESS.md"
+
+
+def parse_operator_asks(text: str) -> list[dict]:
+    """The OPERATOR ASKS seed table (`protocols/HANDOFF_PROCESS.md` §17.1's fenced block)
+    as `[{name, date, reasked, body}, ...]`. `body` joins wrapped continuation lines (any
+    line that does not itself start a new entry) onto the entry it follows.
+
+    Fail-soft: an absent "**Seed entries**" fence or an unparseable table returns `[]` --
+    this digest never blocks SessionStart on a doc-formatting slip in the registry it reads.
+    """
+    m = _ASKS_FENCE_RE.search(text)
+    if not m:
+        return []
+    entries: list[dict] = []
+    current: dict | None = None
+    for line in m.group(1).splitlines():
+        if not line.strip():
+            continue
+        sm = _ASK_START_RE.match(line)
+        if sm:
+            if current is not None:
+                entries.append(current)
+            current = {"name": sm.group("name").strip(), "date": sm.group("date"),
+                      "reasked": int(sm.group("reasked")), "body": sm.group("tail").strip()}
+        elif current is not None:
+            current["body"] += " " + line.strip()
+    if current is not None:
+        entries.append(current)
+    return entries
+
+
+def ask_is_red(entry: dict) -> bool:
+    """`re-asked >= 2` with no visible-fix AND no named blocker (protocols/HANDOFF_PROCESS.md
+    §17.1, from intake #66 / lesson L-S7). A blocker discharges the RED only when it is
+    present in the entry's own body text -- "tracked in [#N]" alone is exactly the answer
+    L-S7 rules insufficient, but this function does not adjudicate blocker QUALITY, only
+    presence; that judgment stays with whoever writes the registry row.
+    """
+    if entry["reasked"] < 2:
+        return False
+    return not (_VISIBLE_FIX_RE.search(entry["body"]) or _BLOCKER_RE.search(entry["body"]))
+
+
+def operator_asks_line(text: str) -> str:
+    """The `[asks]` digest line. Always non-empty (ASCII-only)."""
+    entries = parse_operator_asks(text)
+    if not entries:
+        return "[asks] registry unavailable -- protocols/HANDOFF_PROCESS.md #17.1 unparsed"
+    red = [e for e in entries if ask_is_red(e)]
+    if not red:
+        return f"[asks] 0 RED / {len(entries)} total"
+    names = ", ".join(e["name"] for e in red[:3])
+    more = f" (+{len(red) - 3} more)" if len(red) > 3 else ""
+    return f"[asks] {len(red)} RED / {len(entries)} total -- {names}{more}"
+
+
+def _import_funnel_lifecycle():
+    """Lazy sibling import (the scripts/ sibling gotcha, same shape as
+    `_import_enforcement_coverage`): keeps fleet_health's cheap paths free of the extra
+    reads `funnel_lifecycle` pulls in at call time, not at module import."""
+    if str(_SCRIPTS_DIR) not in sys.path:
+        sys.path.insert(0, str(_SCRIPTS_DIR))
+    import funnel_lifecycle  # noqa: E402
+    return funnel_lifecycle
+
+
+def _import_boot_frontier():
+    """Lazy sibling import, same shape as `_import_funnel_lifecycle`."""
+    if str(_SCRIPTS_DIR) not in sys.path:
+        sys.path.insert(0, str(_SCRIPTS_DIR))
+    import boot_frontier  # noqa: E402
+    return boot_frontier
+
+
+def funnel_health_line(repo_root: Path) -> str | None:
+    """The `[funnel]` digest line: rot / orphan (funnel_lifecycle) / unblocked / proposed
+    batch (boot_frontier). `funnel_lifecycle` is READ ONLY here (this lane's write-scope
+    note) -- `measure()`/`findings()` are its own exposed API, never re-derived.
+
+    rot = legs a1 + a2 + b (terminal objects not archived); orphan = leg c (row provenance
+    unresolved) -- the same categories `funnel_lifecycle`'s own leg labels already name, not
+    a new classification invented here. Returns None (never a spurious line) when either
+    reader raises -- `LifecycleUnreadable` (Z-G4) or `boot_frontier.CycleError` are both
+    reported ground-truth-uncomputable conditions from their own modules, not this digest's
+    failure to compute.
+    """
+    try:
+        fl = _import_funnel_lifecycle()
+        bf = _import_boot_frontier()
+        m = fl.measure(repo_root)
+        rot = len(m.by_leg(fl.LEG_A1)) + len(m.by_leg(fl.LEG_A2)) + len(m.by_leg(fl.LEG_B))
+        orphan = len(m.by_leg(fl.LEG_C))
+        rows = bf.load_open_rows(repo_root)
+        frontier = bf.unblocked_frontier(rows)
+        batch = bf.select_batch(bf.score_frontier(frontier, rows))
+        return (f"[funnel] rot {rot} / orphan {orphan} / unblocked {len(frontier)} / "
+                f"batch {len(batch.selected)} proposed")
+    except Exception as exc:  # noqa: BLE001 -- surfacing organ: never break the digest
+        print(f"fleet_health: WARNING -- funnel digest unavailable: {exc!r}", file=sys.stderr)
+        return None
+
+
+# ---------------------------------------------------------------------------
 # Impure: run audit + write digest
 # ---------------------------------------------------------------------------
 
@@ -1020,6 +1142,14 @@ def refresh(repo_root: Path, ecosystem_dir: Path,
 def main() -> int:
     today = date.today()
     try:
+        # v7 BOOT-INVERSION digest ([#611] §17): OPERATOR ASKS renders FIRST, above
+        # everything -- including the fleet table below. Unthrottled, fail-soft.
+        if _HANDOFF_PROCESS_PATH.exists():
+            print(operator_asks_line(
+                _HANDOFF_PROCESS_PATH.read_text(encoding="utf-8", errors="replace")))
+        funnel = funnel_health_line(_REPO_ROOT)
+        if funnel:
+            print(funnel)
         stale = is_stale(_HEALTH_FILE)
         if stale and not siblings_available(_ECOSYSTEM_DIR, _REPO_ROOT):
             # Isolated / cloud clone: sibling repos are absent. Skip the

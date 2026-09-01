@@ -190,10 +190,27 @@ def _spec_version(repo_root: Path) -> str:
 
 
 @click.command()
-@click.argument("bundle_dir", type=click.Path(exists=True, file_okay=False, path_type=Path))
-def main(bundle_dir: Path) -> None:
-    """Assemble PASTE_THIS.md for BUNDLE_DIR from canonical sources."""
+@click.option("--pin-only", is_flag=True,
+             help="Print only the 3-line ROLE PIN and exit (v7 /boot-session use — "
+                  "HANDOFF_PROCESS.md §17.4: the same pin mechanism §4 uses, reused rather "
+                  "than duplicated, so a boot-session paste and a v5/v6 bundle paste never "
+                  "carry two independently-computed pins).")
+@click.argument("bundle_dir", required=False,
+                type=click.Path(exists=True, file_okay=False, path_type=Path))
+def main(pin_only: bool, bundle_dir: Path | None) -> None:
+    """Assemble PASTE_THIS.md for BUNDLE_DIR from canonical sources, or (--pin-only) print
+    just the ROLE PIN."""
     repo_root = Path(__file__).parent.parent
+
+    if pin_only:
+        role_path = repo_root / "protocols" / "HANDOFF_BOOT.md"
+        if not role_path.exists():
+            click.echo(f"[error] Required source missing: {role_path}", err=True)
+            sys.exit(1)
+        click.echo(_role_pin(role_path, _spec_version(repo_root)))
+        return
+    if bundle_dir is None:
+        raise click.UsageError("BUNDLE_DIR is required unless --pin-only is given.")
 
     # Fill-step flip (§13 "the cold->FILLED flip is mechanized via the assembler's shared
     # fill-state"): when the SUPPLEMENT was FILLED after a cold generation, flip the cold

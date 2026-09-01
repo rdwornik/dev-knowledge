@@ -113,7 +113,9 @@ The verification split, bidirectional adjudication, and plan-review contract bel
   standing topics → backlog**: your role is already set (above); next you grasp the vision; the
   standing authorities (active epic themes + accepted intakes) are reconciled; then the backlog drives
   the work. *Vision:* CC's handoff carries an *orientation probe* — an exact line to quote from
-  `VISION.md` (`## Vision` — *what `.dev-knowledge` is*) and from `ARCHITECTURE.md` Chapter 1 (*where
+  `README.md` (`## Vision` — *what `.dev-knowledge` is*; re-pointed from `VISION.md`, superseded as
+  the hub's front door per ADR-114/[#614] — `templates/handoff/v5/PROBES.md.tmpl` P1a is the live
+  precedent) and from `ARCHITECTURE.md` Chapter 1 (*where
   this work sits — Layer 2 of the three-layer model*). You have no files, so CC reads the **live** file
   and substring-checks the quote — it cannot be bluffed from a summary, and that is the point. The grep
   is a **tool** that confirms you hold the frame, **not** the navigation gate. *Then the backlog

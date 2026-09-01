@@ -108,8 +108,10 @@ deferred naming flip), and `functional` (§16 one-file intake-capture boot, no p
   "why" + the open architecture questions; task-state points at the **whole `BACKLOG.md` /
   relevant theme** (the task-graph, carried as residual prose — the ADR-66 schema encodes no
   dependencies/parallelization this pass, so do **not** claim a durable graph; durable encoding
-  = #156). Add the **orientation probe** — a §5 *exact-line-quote* probe bound to `VISION.md`
-  `## Vision` + `ARCHITECTURE.md` Ch1: ship the source-locator + the substring-check command,
+  = #156). Add the **orientation probe** — a §5 *exact-line-quote* probe bound to `README.md`
+  `## Vision` (re-pointed from `VISION.md`, superseded as the hub's front door per
+  ADR-114/[#614]; `templates/handoff/v5/PROBES.md.tmpl` P1a is the live precedent) +
+  `ARCHITECTURE.md` Ch1: ship the source-locator + the substring-check command,
   **never the line** (generator-excluded); CC reads the **live** file and substring-checks the
   architect's quote — never a paraphrase. CC serves the **generative/decompositional** posture
   from `HANDOFF_BOOT.md` so the role reaches the file-less browser. Return channel stays §2/§6 —
