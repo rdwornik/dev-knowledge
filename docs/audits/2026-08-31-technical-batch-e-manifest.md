@@ -138,3 +138,116 @@ The batch does not close while any item is open: every lane merged or explicitly
 a reason, every worktree removed AND its removal verified, every branch deleted **locally and on
 origin**, tier (A) and DM-4 harvested, and the close packet landed at the `closed_by:` path
 above. Removing this manifest's `status: open` before that is closing the batch by assertion.
+
+---
+
+# ORCHESTRATION-STATE NOTE — 2026-09-01, appended for a fresh orchestrator seat
+
+> **In-file amendment marker** (CLAUDE.md §5 rule 3), appended on operator instruction so a
+> replacement seat boots from the manifest rather than from a chat. Everything above this line
+> stands as frozen at dispatch.
+>
+> **THIS NOTE IS UNCOMMITTED AT THE MOMENT OF WRITING.** The operator's stop order was
+> "commit nothing new, merge nothing", so it is on disk in the working tree and not in git.
+> First act of the next seat: read it, then decide whether to commit it.
+
+## 1 · Batch-E lane states — 13 of 15 MERGED, 14 of 15 RESOLVED
+
+```
+DC-1   lane-a-1-vision-to-readme                 MERGED   ea1e32a9
+DC-23  lane-b-2-essentials-and-claude-md         SPLIT    -- see §2, the live item
+DC-4   lane-c-3-root-contract                    MERGED   1a3c378b
+DC-5   lane-d-4-ai-council-instantiation         MERGED   76f184fb   << needs anchor, §3
+DM-1   lane-e-5-eval-sda1-harbor                 MERGED   (reviewed pre-merge, 2 findings)
+DM-2   lane-f-6-observability-otel               MERGED   (reviewed pre-merge, 1 HIGH fixed)
+DM-3   lane-g-7-typed-multi-layer-graph          MERGED   7b0cbf14
+DM-4   lane-h-8-local-memory-tier-l-evaluation   HARVESTED (cloud; owes no merge)
+DM-5   lane-i-9-distiller-filing-amendment       MERGED   bea4c623
+DM-6   lane-j-10-equilibrium-checkpoint          MERGED   b7fef9b9
+HY-1   lane-k-11-derived-doc-freshness           MERGED   9b736ce2
+HY-2   lane-l-12-logs-retention-rule             MERGED   1c92024f   << needs anchor, §3
+HY-3   lane-m-13-templates-disposition           MERGED   4bc754b4
+HY-4   lane-n-14-trends-burndown-and-quota-panel MERGED   720d3e09
+HY-5   lane-o-15-wintooling-local-default        MERGED   32d19df (in win-tooling)
+```
+
+Hub worktrees: **only DC-3's** (`.claude/worktrees/lane-b-3-claude-md-genre`). All other lane
+worktrees and branches are torn down, locally and on origin.
+
+## 2 · DC-3 — ADJUDICATED PARTIAL ACCEPT, awaiting the split. THE LIVE ITEM.
+
+Branch `worktree-lane-b-3-claude-md-genre`, single commit **`6f226b34`**, 9 files, +77/-223.
+**Not merged. Do not merge as-is.** Operator adjudication 2026-09-01:
+
+- **ACTS TWO + THREE — ACCEPTED.** Reconstruct them ALONE on a fresh branch from `6f226b34`, or
+  revert Act One's hunks on the lane branch. Content: the CLAUDE.md genre changes, both
+  ObsidianVault deletions, the dropped VISION lines, and the PLAYBOOK relocations of the
+  branch-prefix / TUI rationale. **Merge that with a terra review and its tally.** VISION.md then
+  leaves the root per DC-1's archival.
+  - **CAUTION, measured 2026-09-01 and not yet re-tested after the split:** moving `VISION.md`
+    out of the root made `audit.py health` exit 1 on `vision_md: VISION.md absent at repo root`
+    (a FAIL, so it refuses every commit in the repo) and REDded
+    `test_gen_handoff_still_extracts_the_live_vision_section`. Re-measure before relying on the
+    archival step; if it still blocks, the archival is a separate act from Acts Two + Three.
+- **ACT ONE — NOT MERGED** (the ESSENTIALS deletion, the floor-template edit, ~20 PLAYBOOK
+  citation fixes, the "How Claude thinks" relocation). It contradicts ruling 1 — DC-2 is now
+  `[#628]`, fleet-coupled — and leaves the tree deploy-broken: the floor sha256 goes stale against
+  its hash-guarded carrier, `release_lint` C5 would FAIL, and `VISION:46` / README references
+  dangle. **Preserve the diff as `[#628]`'s INPUT ARTIFACT**: its guard-tracing research narrows
+  that arc's scope from A3's ten breaking consumers to the measured set. The arc lands it with
+  RELOCATION (not deletion), sha regeneration, C5 green, the consumer HUB-region handled, and
+  sequenced with v1.5.0.
+
+## 3 · PENDING ANCHORS — do this BEFORE any further merge
+
+`journal_spine_anchor` reports **four** unanchored first-parent spine entries on `main`:
+
+```
+13fb1538   1d814abc   1c92024f   76f184fb
+```
+
+DC-3's own commit rode a `SKIP=audit-health` citing this gap as pre-existing. **Operator ruling:
+verify that cause and ANCHOR these four FIRST — no further merge rides on a skipped health gate.**
+Anchor by landing a JOURNAL entry naming commits these merges INTRODUCED (never the merge SHAs
+themselves — a merge cannot name its own hash; see PLAYBOOK's night-batch chapter, "the anchor
+tail is a two-commit problem").
+
+## 4 · UNCOMMITTED WORK ON DISK — two places
+
+1. **This note**, in this file.
+2. **`win-tooling`, branch `docs/canonical-restamp-2026-09-01`** — the attended stamp lane
+   (ruling 6) is DONE but ITS COMMIT NEVER LANDED. `VISION.md`, `ARCHITECTURE.md`, `CLAUDE.md` and
+   `BACKLOG.md` are modified in the working tree. All three docs were re-read end to end
+   (83 + 126 + 444 lines), stamped `last_reviewed: "2026-09-01"`, and carry a review-record
+   blockquote naming what the read found; the drift is filed as win-tooling `[#8]`.
+   **`canonical_freshness` PASSES and `toc-freshness` PASSES** (the latter needed TOC markers that
+   had never existed — a second pre-existing wedge, fixed not bypassed). The commit was refused by
+   **`codemap-freshness`**, which is the third wedge in that repo and is NOT yet diagnosed.
+   A prepared commit message is at `~/.claude/jobs/0ccc13f1/tmp/` — but that job dir is deleted
+   with the job, so re-author rather than rely on it.
+
+## 5 · OPEN ASKS AND FILED DEFECTS
+
+**Two integrator defects, ruled 2026-09-01, NOT yet filed as rows:**
+- **(a)** The "contract-amendment form" left a ruled-out act EXECUTABLE. DC-3 was dispatched by
+  appending an amendment saying "do not perform Act One" to a contract that still CONTAINED Act
+  One — and the lane performed it. **A split ruling must REISSUE the contract through the
+  validator**, not annotate it.
+- **(b)** Slug renumbering between draft and dispatch (`lane-b-2-…` in the manifest vs
+  `lane-b-3-…` dispatched). **The manifest's lane enum and the contract slug must match at
+  freeze** — this belongs as a predicate.
+
+**Blocked / owed elsewhere:**
+- `[#276]` is **`status: deferred`** and gates BOTH consumer instantiations — neither ruff-gate
+  divergence is drift (both declared, ai-council's ruled 2026-07-12); the deploy tool simply does
+  not read the waivers. See `docs/audits/2026-09-01-technical-ruff-gate-divergence-classification.md`.
+- **v1.5.0: NOT to be tagged** until the round-2 §5 checklist is witnessed (operator).
+- Batch-E **close packet** is deliberately ABSENT (`closed_by:` above), which keeps the ADR-110
+  exemption armed. It owes the six pre-merge tallies; the post-merge round is at
+  `docs/audits/2026-09-01-verification-batche-post-merge-terra-round.md`.
+- **BATCH-F** seeds F0–F7 are specified in the operator's 2026-09-01 message and not yet derived.
+
+## 6 · Where the window's own record lives
+
+`docs/audits/2026-09-01-technical-night-window-report.md` — the window report against N1–N9, with
+four in-file amendments. `JOURNAL.md` carries entries 2026-08-31 (m) through 2026-09-01 (q).
