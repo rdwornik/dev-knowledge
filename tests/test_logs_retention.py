@@ -2,8 +2,12 @@
 RETENTION RULE; `logs/TOKEN-LOG.md` stays flat, strict append-only, no archival exception
 (ADR-29/39 -- the 2026-07-17 LESSONS.md carve-out does NOT extend to it)).
 
-RED-first per ADR-108 section B: written before the organ, including the TOKEN-LOG and
-PROPOSALS-*/DETECTOR-ERROR-* exclusion fire-tests the frozen contract requires.
+RED-first per ADR-108 section B: written before the organ, including the TOKEN-LOG
+exclusion fire-test the frozen contract requires. The PROPOSALS-*/DETECTOR-ERROR-*
+prefix exemption was RETIRED by lane-c-3 (2026-09-01) once its two live consumers
+(propose_closures.py, review_closures.py) were re-pointed at bucketed paths -- see
+`test_is_excluded_false_for_proposals_and_detector_error_prefix` below, which replaces
+the old fire-tests for those two prefixes.
 """
 
 import importlib.util
@@ -32,16 +36,12 @@ def test_is_excluded_fires_for_token_log():
     assert lr.is_excluded("TOKEN-LOG.md") is True
 
 
-def test_is_excluded_fires_for_proposals_prefix():
-    # logs/PROPOSALS-*.md is read flat by a live consumer (scripts/propose_closures.py
-    # resolve_window / find_last_proposals_head, scripts/review_closures.py
-    # latest_proposals) -- relocating it would corrupt the closure-detector's pending
-    # window and the loud-failure-on-absence signal.
-    assert lr.is_excluded("PROPOSALS-2026-08-15.md") is True
-
-
-def test_is_excluded_fires_for_detector_error_prefix():
-    assert lr.is_excluded("DETECTOR-ERROR-2026-08-15.md") is True
+def test_is_excluded_false_for_proposals_and_detector_error_prefix():
+    # RETIRED exemption (lane-c-3, 2026-09-01): propose_closures.py / review_closures.py
+    # now resolve `**/PROPOSALS-*.md` (bucketed AND flat), so relocating these no longer
+    # corrupts the closure-detector's pending window or the loud-failure-on-absence signal.
+    assert lr.is_excluded("PROPOSALS-2026-08-15.md") is False
+    assert lr.is_excluded("DETECTOR-ERROR-2026-08-15.md") is False
 
 
 def test_is_excluded_false_for_an_ordinary_dated_name():
@@ -79,12 +79,15 @@ def test_plan_moves_token_log_excluded(tmp_path):
     assert "WIDGET-2026-08-15.md" in srcs
 
 
-def test_plan_moves_proposals_and_detector_error_excluded(tmp_path):
+def test_plan_moves_proposals_and_detector_error_now_planned(tmp_path):
+    # RETIRED exemption (lane-c-3, 2026-09-01) -- these are dated like any other file now.
     logs_dir = tmp_path / "logs"
     logs_dir.mkdir()
     (logs_dir / "PROPOSALS-2026-08-15.md").write_text("p\n", encoding="utf-8")
     (logs_dir / "DETECTOR-ERROR-2026-08-16.md").write_text("d\n", encoding="utf-8")
-    assert lr.plan_moves(logs_dir) == []
+    moves = lr.plan_moves(logs_dir)
+    srcs = {m[0].name for m in moves}
+    assert srcs == {"PROPOSALS-2026-08-15.md", "DETECTOR-ERROR-2026-08-16.md"}
 
 
 def test_plan_moves_undated_flat_files_untouched(tmp_path):
@@ -160,11 +163,14 @@ def test_run_retention_end_to_end_excludes_token_log_and_moves_dated(tmp_path):
 
     moved = lr.run_retention(logs_dir)
 
+    # TOKEN-LOG.md alone stays fixed in place -- the one absolute exclusion.
     assert (logs_dir / "TOKEN-LOG.md").read_text(encoding="utf-8") == token_log_content
-    assert (logs_dir / "PROPOSALS-2026-08-15.md").exists()
+    # PROPOSALS-*.md now relocates too (RETIRED exemption, lane-c-3, 2026-09-01).
+    assert not (logs_dir / "PROPOSALS-2026-08-15.md").exists()
+    assert (logs_dir / "2026-08" / "PROPOSALS-2026-08-15.md").is_file()
     assert not (logs_dir / "WIDGET-2026-08-15.md").exists()
     assert (logs_dir / "2026-08" / "WIDGET-2026-08-15.md").is_file()
-    assert len(moved) == 1
+    assert len(moved) == 2
 
 
 def test_run_retention_dry_run_moves_nothing(tmp_path):
