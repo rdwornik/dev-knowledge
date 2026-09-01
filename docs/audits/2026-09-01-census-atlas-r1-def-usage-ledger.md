@@ -88,3 +88,33 @@ Also superseded: the ledger's `filing capacity BLOCKED` line. The `[#589]` bar w
   of what that stream would have to carry, and of what is underivable without it.
 - **The standing offload rule's visibility clause** — the rule presumes an operator can see what a
   lane burned. This ledger measures that they cannot, anywhere, for 31 consecutive lanes.
+
+---
+
+## AMENDMENT 1 — 2026-09-01: the model column is a DECLARATION, and its headline is false
+
+> **In-file amendment marker.** The landed HTML is untouched — a generated view is not edited in
+> place. This sidecar is where its correction lives, which is one of the reasons the sidecar
+> exists.
+
+**The ledger's headline — *"Every one of the 31 lanes ran on opus at effort: high"* — is FALSE.**
+Batch E ran **MIXED: 8 sonnet, 5 opus** across the thirteen lanes whose session transcripts survive.
+
+The ledger did not misread anything it claimed to read. It states its own method — *"three of the
+five columns reconstruct cleanly from committed manifests and contracts"* — and every batch-E
+contract declares `| opus | execute | high |`. **The model column is a DECLARATION rendered as a
+measurement**, and the declaration is wrong because three surfaces default to `opus`
+independently: the contract generator's `DEFAULT_MODEL`, `Dispatch-Local`'s own `-Model` default,
+and this ledger reading the first rather than the run.
+
+**The conclusion drawn from it is therefore false twice over.** *"There is no model variance to
+analyse"* — there is variance, and it is invisible to every committed surface, which is a sharper
+finding than the one the ledger reached.
+
+Witness, per lane, with turn counts, plus the OS-process capture that independently confirms it:
+`docs/audits/2026-09-01-verification-model-routing-witness.md`. **`[#615]` stays the enabling row:**
+session transcripts live outside the repo, per-machine, and are not a governance surface.
+
+**What survives unchanged:** every other column, the credits finding (still zero, still
+underivable), the review finding (17 merged, 9 unreviewed), and the counting note. Only the model
+column and its headline are affected.
