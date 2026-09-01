@@ -172,3 +172,34 @@ problem, and it is the one G inherits.
 **Honest limit:** this is an **architect-mode, cold-supplement** cut. An execution-mode bundle
 drops the supplement and part of the walkthrough, so its ratio differs — one cut is one cut, and
 the row should not be closed OR re-scoped on a single measurement.
+
+## 5 · RE-MEASURED after the supplement was filled — the ratio moves, the bar does not
+
+The operator supplied the architect supplement's ANSWERS the same day, so `assemble_paste.py`
+**folded** them and the §4 measurement moved. Both readings are kept; §4 is the cold-supplement
+cut, this is the filled one.
+
+```
+                        COLD (§4)      FILLED       change
+PASTE_THIS.md total     27,365 B       32,264 B     +4,899 B
+  RESIDUAL               7,562 B        7,467 B
+  ANSWERS folded             0 B        5,754 B     the supplement, 100% window-specific
+window-specific            ~31%           ~43%      +12 points -- BETTER
+size bar <= 20,480 B    MISS +34%      MISS +58%    WORSE
+```
+
+**THE TWO BARS MOVE IN OPPOSITE DIRECTIONS, AND THAT IS THE FINDING.** Folding genuinely
+window-specific content is the only thing that raises the ratio, and it necessarily raises the
+size. `[#611]`'s Done-when asks for **both at once** — ≤20 KB **and** ≥70% window-specific — and
+this cut shows the two legs are in tension for an architect-mode bundle: reaching 70% by adding
+window-specific content pushes size further over, while reaching 20 KB by cutting content lowers
+the ratio. **The only lever that serves both is shrinking the GENERIC half** — the 11.4 KB session
+header and the 14.5 KB `PROBES.md`, which together are still ~80% of the payload.
+
+That is a real design constraint for `[#611]`, not a measurement error, and it is why the row is
+left OPEN with the number rather than closed on the version bump.
+
+**Also raised by the assembler, and discharged in the same arc:** a `[promotion-debt]` signal on
+the folded ANSWERS — a ruling-bearing "considered + rejected" list was living in an expiring
+bundle. Promoted to `protocols/STANDING_RULINGS.md` **§AA, the REJECTIONS REGISTER**, where a
+refusal keeps its reason and can only be reopened by new evidence against that reason.

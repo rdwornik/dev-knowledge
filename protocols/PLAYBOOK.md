@@ -2791,10 +2791,38 @@ primary-checkout seats keep the shape in row 3 below.
 
 | | Question | Route |
 |---|---|---|
-| **Q1** | Does the result depend on a gate (suite / hooks / ship-gate)? | **NOT cloud** — measured: no hook armed there, unpinned `uv`, no `click`. Codespace or local. **Measured again 2026-08-26: container `uv` is pinned-but-WRONG (0.8.17 against the repo's `==0.11.19`) and provisionable in one step, after which `uv run --locked` gates ran clean — an amendment candidate, routing unchanged pending a ruling (`docs/audits/2026-08-26-technical-handoff-census.md`, Appendix B).** |
+| **Q1** | Does the result depend on a gate (suite / hooks / ship-gate)? | **NOT cloud** — measured: no hook armed there, unpinned `uv`, no `click`. Codespace or local. **SUPERSEDED 2026-09-01: the container's `uv` is now 0.11.19 — an EXACT match to the repo's `==0.11.19` pin — measured twice by independent witnesses (`docs/audits/2026-09-01-verification-codespace-longrun-proof.md` L4 and `docs/audits/2026-09-01-verification-codespace-admission-report.md`). The 2026-08-26 'pinned-but-WRONG (0.8.17)' reading no longer holds. Routing still unchanged: the blocker is the n=2 long-run acceptance below, not the toolchain.** |
 | **Q2** | Does it need operator-disk state (contracts in the prompts dir, authenticated vendor CLIs, unpushed branches), or is it an operator-gated act (merge, push, integration)? | **LOCAL**, stop. |
 | **Q3** | Is it read-only / reconnaissance (censuses, verification, fan-out)? | **CLOUD** — own clones, cheap, unlimited parallelism. |
 | **Q4** | Everything else — repo-mutating, disk-independent | **CODESPACE** (the default once the devcontainer carries Claude Code and its credential). |
+
+**THE FOUR AXES, VERBATIM (operator, ratified in chat 2026-09-01).** The table above routes by
+question; this is the same doctrine stated as four axes, and it is the form the operator uses:
+
+- **integration** = **LOCAL always**
+- **read-only** = **CLOUD**
+- **execution** = **CODESPACE-on-green**
+- **local-execution** = **explicit-request**
+
+**Deliberately NOT a fenced block.** A fence in this chapter means *a literal command a seat
+copies*, and `audit.py::dispatch_drift` resolves every fenced token via `Get-Command` — it FAILED
+on these four axes when they were fenced, correctly, because they are a routing doctrine and not
+runnable verbs. The verbs live in Layer 2 below.
+
+**`-on-green` WAS a live unmet condition and is now MET — 2026-09-01, same day.** The `[#632]`
+**n=2 acceptance** landed: two lanes, two independently provisioned codespaces, both end-to-end,
+both committing and pushing from inside the container, both returning a receipt (Lane A M/sonnet
+attached, 863 s, remote exit 0; Lane B S via `-Detach`, dispatch returned in 62 s). **The hang is
+measured out rather than hoped away** — the in-container suite ran `294.07 s` real against
+`8 m 23 s` user, CPU proportional to wall-clock at every scale, the exact inverse of the recorded
+75-min-elapsed / 3-second-CPU signature. **L5's RED is on CONTENT, not the substrate**: sixteen
+hub tests fail on their own merits, which is a hub repo-state matter. Evidence:
+`docs/audits/2026-09-02-technical-batch-f-close-packet.md` AMENDMENT 3.
+
+**So `execution = CODESPACE` is now the DEFAULT, not a pending promotion.** `local-execution =
+explicit-request` is the axis the Q1–Q4 table did not carry at all, and it is what keeps that
+default honest: running an *execution* lane locally is a thing the operator asks for
+**explicitly**, never a default a seat may quietly choose for itself.
 
 **Concurrency ceilings and cost, per route.** LOCAL: one WRITER per checkout; parallelism only
 across worktrees. CODESPACE: 2–4 concurrent (2-core, ~60 s to Available, 120 free core-hours per

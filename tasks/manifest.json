@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "4790bb2333f2fafaf6b05b94feaace0be9f5592f6837a246e00b1388ddffe38c",
+  "generated_sha256": "4dd3e62ee262dd7fc11bb27acf64e2a7e6c8ca8bb0a330057f520b905e1ab582",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -72,6 +72,10 @@
     {
       "task": 611,
       "file": "611-handoff-process-v7-the-minimal-bundle-package.md"
+    },
+    {
+      "task": 633,
+      "file": "633-boot-session-gains-history-delta-and-equilibrium-map.md"
     },
     {
       "prose": ""

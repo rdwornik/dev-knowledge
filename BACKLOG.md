@@ -21,6 +21,7 @@
 So that an architecture session inherits the big picture + vision while an execution session inherits lean task-state — one process, two payloads.
 - [#511] [P2][M] The 30-minute handoff cut is ~99.8% session authoring, not machinery · tasks/511-handoff-cut-cost-is-session-authoring.md
 - [#611] [P2][M] HANDOFF_PROCESS v7: the minimal-bundle package · tasks/611-handoff-process-v7-the-minimal-bundle-package.md
+- [#633] [P2][M] /boot-session gains HISTORY DELTA and EQUILIBRIUM MAP — two GENERATED sections · tasks/633-boot-session-gains-history-delta-and-equilibrium-map.md
 
 ### [S2] Finish the v5 handoff machinery deferred at the #149 flip
 So that the canonical v5 handoff is fully implemented (generator) and mechanically verified (teeth), not just specified.
