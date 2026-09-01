@@ -21,7 +21,7 @@
 
 ### 2026-09-01 (ap) - CC (Opus 5): the ratified-in-chat register discharged, and one VERIFY failed
 
-**Anchors:** `1fb0b9cd`, `296321f4`
+**Anchors:** `1fb0b9cd`, `296321f4`, `33a5c867`
 
 **Did:** discharged the operator's ratified-in-chat register against the tree rather than
 asserting it, filed the batch-G seed as a real row, and promoted a rejections list out of an
