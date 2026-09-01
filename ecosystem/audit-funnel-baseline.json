@@ -2,11 +2,11 @@
   "_": "Committed baseline for the audit funnel-coverage ratchet (M3). Regenerate: python scripts/funnel_coverage.py --write-baseline. Contract, semantics and honest limits: scripts/funnel_coverage.py (module docstring + render_baseline).",
   "detector_id": "funnel-coverage/v1",
   "measured_at": "2026-09-01",
-  "measured_at_sha": "ce84af4b",
-  "corpus": 837,
+  "measured_at_sha": "1059d04d",
+  "corpus": 838,
   "dispositioned": 78,
   "pending": 2,
-  "uncovered": 757,
+  "uncovered": 758,
   "provenance": "",
   "artifacts": [
     "2026-03-30-dev-practice-os-state-audit.md",
@@ -764,6 +764,7 @@
     "2026-08-31-technical-hy3-disposition.md",
     "2026-08-31-technical-langgraph-class-rejection-record.md",
     "2026-08-31-verification-codespace-admission-probe.md",
+    "2026-09-01-technical-dm4-local-memory-tier-l-evaluation.md",
     "2026-09-01-technical-night-window-report.md",
     "2026-09-01-technical-universalization-instantiation-prep.md"
   ]
