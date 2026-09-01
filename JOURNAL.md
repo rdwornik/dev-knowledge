@@ -19,6 +19,49 @@
 
 ---
 
+### 2026-09-01 (aa) - CC (Opus 5): a harvest with no input, and an anchor written BEFORE the merge that needs it
+
+**Anchors:** `a9488d32` · `5d23f1b9` · `aa1232d0`
+
+**Did:** attempted integrator act (2) — the ATLAS-R1 harvest — established its input absent, and
+answered the review-coverage report from measurement instead. Pre-anchored the
+`worktree-observable-harness-filing` merge (act 1) so it lands without wedging the next commit.
+
+**THE HARVEST FOUND NOTHING, AND NOTHING WAS INVENTED.** ATLAS-R1's two artifacts — the
+layer-graph atlas and the D/E/F usage ledger — are **not reachable from this machine by any
+locator this seat could resolve**: no in-tree hit by name, no Downloads file, no session id, no
+receipt, no dispatch brief. The two Downloads files that contain the word *atlas* are older `wf-`
+research memos; one is already landed in `docs/archive/`, and the other is a Blue Yonder
+pre-sales brief that belongs to the vault rather than here. **No session id means no
+`Harvest-Cloud` is even possible.** The search is written down at
+`docs/audits/2026-09-01-verification-atlas-r1-harvest-attempt.md` so the absence is checkable
+rather than asserted.
+
+**A file landed with a consumer recorded against content nobody produced is not a harvest — it is
+a citable fabrication with a governance pointer attached.** That is the whole reason the artifact
+records an empty result instead of a filled one. What would unblock it is small and specific: a
+session id, a path, or the artifact.
+
+**THE REPORT WAS ASKED OF THE MISSING LEDGER, SO IT IS ANSWERED FROM WHAT IS MEASURED.** For
+batch E: 9 of 15 committing lanes were independently reviewed, and **five have no review lane
+recorded at all — DC-1, DC-4, DM-3, DM-5, HY-1.** The shape matters more than the count: the
+post-merge round exists *because* six lanes merged unreviewed, and the operator's question at the
+time — reviews unreported, or reviews skipped? — resolved to **the process defect**. Integrator
+verification is real and is not an independent review. Batch D is not covered; extending this to D
+and F is exactly what the missing ledger would have done.
+
+**THE ANCHOR IS WRITTEN BEFORE THE MERGE IT ANCHORS, DELIBERATELY.**
+`worktree-observable-harness-filing` does NOT match `LANE_BRANCH_RE`, so batch F's freshly-armed
+ADR-110 exemption does not cover it — its merge would be an unanchored spine entry, and
+`journal_spine_anchor` would then block **every** commit in the repo, including the one that would
+fix it. Naming `5d23f1b9` and `aa1232d0` here, one commit ahead, costs nothing and removes the
+deadlock rather than escaping it afterwards.
+
+**Changes:** `docs/audits/2026-09-01-verification-atlas-r1-harvest-attempt.md` (new),
+`tasks/614-*.md`, `docs/audits/README.md`, `JOURNAL.md`.
+
+**Next:** merge `worktree-observable-harness-filing` with the B1 teardown.
+
 ### 2026-09-01 (z) - CC (Opus 5): batch F is FROZEN with zero deviations, and the one re-scope was REISSUED rather than annotated
 
 **Anchors:** `5b82c5d9` · `edf215cb`
