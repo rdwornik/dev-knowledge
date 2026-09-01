@@ -19,6 +19,35 @@
 
 ---
 
+### 2026-09-01 (w) - CC (Opus 5): the batch-E teardown PARTIAL discharges, and the amendment keeps the evidence rather than the claim
+
+**Anchors:** `ff46aeac`
+
+**Did:** re-measured the one teardown item the close packet left PARTIAL, found it discharged, and
+recorded it as **AMENDMENT 1** on the packet rather than editing §3.
+
+**The DC-3 lane's session outlived its own worktree.** The packet reported the teardown git-clean
+but with an empty directory `rmdir` refused as *"Device or resource busy"* — held by two live
+`claude` processes still carrying `--worktree lane-b-3-claude-md-genre`, whose checkout had
+already been emptied under them. Ending another session is the operator's call, so the packet
+named the one remaining command instead of forcing it. That session has since exited; `rmdir`
+exits 0, the directory is gone, and `git worktree list` shows the primary checkout alone. **The
+provision → cleanup round-trip now leaves the tree identical** (CLAUDE.md §5 rule 9).
+
+**AN AMENDMENT, NOT AN EDIT, AND THE REASON IS THE POINT.** The PARTIAL was true when written, and
+overwriting it would erase the transferable finding — **a live lane session can outlive its own
+worktree and block a batch's teardown**, invisibly, because `git worktree list` is already clean
+by then. The claim is superseded; the evidence for it stays readable.
+
+**Batch E's remaining open item is now ONE, not two:** the two Shutdown codespaces awaiting a
+deliberate operator decision. Neither is accruing compute billing, and one of them
+(`animated-dollop-…` on `probe/admission-roundtrip`) appears in no batch-E artifact at all.
+
+**Changes:** `docs/audits/2026-09-01-technical-batch-e-close-packet.md` (amendment marker),
+`JOURNAL.md`.
+
+**Next:** the architect's cut of batch F, from `docs/audits/2026-09-01-technical-batchf-derivation.md`.
+
 ### 2026-09-01 (v) - CC (Opus 5): batch F is derived, and two of its seeds name things that do not exist
 
 **Anchors:** `9f4c96d8`
