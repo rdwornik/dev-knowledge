@@ -554,3 +554,56 @@ DM-4    CLOSED -- harvested, persisted, consumed by [#614] and CUT-4.
 given it). The batch still does not close — three items remain open, so
 `docs/audits/2026-09-01-technical-batch-e-close-packet.md` stays absent and the ADR-110 exemption
 stays armed.
+
+---
+
+## AMENDMENT 4 — 2026-09-01 03:30, the authoritative suite measurement and the last roster line
+
+**THE FULL SUITE, RUN ONCE ON A SETTLED TREE** — nothing staged, nothing written during the run,
+`git status` clean at both ends. This supersedes every suite number in the body and in Amendment 1.
+
+```
+7 failed · 4,756 passed · 3 skipped · 1 xfailed · 934 s (15:34)
+```
+
+**Against 0b's pre-batch `28 failed / 4,605 passed`**, of which 19 were worktree-environment
+artefacts this run does not have. **ZERO of the seven were introduced by this window.** Each has
+an owner or a named reason:
+
+```
+test_enforcement_coverage::test_anchor_gate_probe_distinguishes_installed_from_absent
+      pre-existing on main; the plan's own non-drift list already names it.
+test_desired_state_report::test_live_report_renders_the_real_fleet
+      pre-existing since 2026-08-19; MEMBERS pins five, the live report renders seven.
+      Deliberately not fixed -- decision ledger row 8.
+test_export_backlog_view::test_no_gate_hook_or_script_reads_the_export
+      D6, and ALREADY OWNED by `tasks/586-*`.
+test_preflight_freeze_predicates::test_vi_batch1_reproduces_the_wrong_id_citation
+      D5, named with its measured delta; an adjudication, not a re-measure.
+test_cloud_provisioning::test_the_gate_never_syncs_the_environment_it_is_asserting
+test_cloud_provisioning::test_provision_sh_runs_the_history_repair_before_arming_hooks
+      pre-existing, verified at 7612a751 -- the F1-F4 work landed without updating them.
+test_validate_doc_rot::test_live_corpus_has_no_accretion_arm_findings_only_length_findings
+      D3b, calendar-driven on BACKLOG#267, and the ratified relief tool cannot reach it.
+```
+
+**Two earlier REDs are gone rather than explained away.** `test_gen_audit_index` (×2) was caused
+by this window and is fixed — the index is regenerated. The `test_reverse_dep_oracle` pair, which
+Amendment 1 called full-suite-only false REDs, passed here: **flaky, and now measured as flaky in
+both directions rather than asserted.**
+
+### The last roster line
+
+`audit-title-gate` was live in `.pre-commit-config.yaml` and **absent from `CLAUDE.md` §9** — a
+21-vs-22 divergence in a roster that `validate_doc_claims.extract_claimed_hooks` parses. Added;
+the two now agree exactly, in both directions. `CLAUDE.md` 23,931 → 24,026 B against its 24,576 B
+cap, 550 B of headroom.
+
+### One honest cost of the consumption sweep
+
+Citing this window's artifacts from `[#614]` made that row longer, and `doc_rot` counts row length
+as rot. `[#614]` was already over the 1,320-char ceiling, as are a dozen other rows, and the
+ratified relief (`archive_row_body.py`) reports **only `[#610]`** as relocatable — so this row
+cannot be relieved either. **The mechanism that discharges a consumption claim forces prose into a
+row, and the mechanism that relieves a long row cannot reach it.** Same shape as intake #65, one
+layer down, and recorded here rather than discovered next window.

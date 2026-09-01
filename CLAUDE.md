@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-08-29
+last_reviewed: 2026-09-01
 reconciled_with: handoff-process@6.3.0
 status: active
 owner: Rob
@@ -7,7 +7,7 @@ owner: Rob
 
 # CLAUDE.md — Dev Knowledge
 <!-- scope: meta -->
-<!-- version: 2.69 — 2026-08-29 -->
+<!-- version: 2.70 — 2026-09-01 -->
 
 > **Session boot contract for Claude Code in this repo** — auto-read at session start (ADR-53, as re-pointed by ADR-115). **Genre:** a rule lives here only if a session needs it *before it can act*; rationale, history and per-organ detail live at the home each line cites.
 >
@@ -163,6 +163,7 @@ Pre-commit (`.pre-commit-config.yaml`) — HUB-ONLY unless the row says otherwis
 - `audit-index-freshness` — generated `docs/audits/README.md`
 - `organ-index-freshness` — generated `ecosystem/organ-index.md`; a stale index is worse than none
 - `validate-hermetization` — ADR-101 tree-seal refusal on staged ADDs: top-level/genre seal, audit-name grammar, home allowlist
+- `audit-title-gate` — every indexed audit carries a `# ` heading; ratchet, 20 grandfathered
 - `intake-index-freshness` — generated Contents block in `docs/intake/README.md`
 - `check-seal-identity` — handoff-bundle seal identity at commit time
 - `block-commit-on-main` — core-invariant #5 PREVENT at commit time
@@ -222,9 +223,11 @@ Machine-enumerated, last 5 by number (`gen_claude_rosters.py --write`). Editoria
 
 - v2.69 (2026-08-29, batch-D lane c `lane-c-000-claude-md-regenre`) — **the re-genre: reference manual → boot contract, budgeted in bytes.** The file met its `≤200 lines` claim by *density* — 240 lines but 39,588 B, **165 B/line** against this corpus's ~117 — so the cost every session pays went unbudgeted. A **24,576 B** ceiling now gates it (`tests/test_claude_md_byte_cap.py`); ADR-53's line bound is **kept, not replaced**. Every removal is a relocation to a named, verified destination. The ledger, the measurements and the owed follow-ups: `docs/audits/2026-08-29-technical-claude-md-regenre.md`.
 
+- v2.70 (2026-09-01, night window) — §9 gains `audit-title-gate`. The hook was live and unclaimed: 21 named here against 22 in `.pre-commit-config.yaml`, a divergence only the ship-tier `doc_claims` would have seen. Re-read end-to-end at the same commit — every §4/§5 rule was exercised by that window's own work, so the stamp is a review, not a touch.
+
 <!-- methodology:end id=section-history -->
 
 ---
 
-**Last updated:** 2026-08-29
+**Last updated:** 2026-09-01
 **Maintained by:** Rob

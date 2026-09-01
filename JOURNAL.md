@@ -19,6 +19,63 @@
 
 ---
 
+### 2026-09-01 (i) - CC (Opus 5, background job, night orchestrator): WINDOW CLOSE - 7 REDs, none of them ours, and the roster caught its own 21-vs-22
+
+**Anchors:** `7f766c56`
+
+**Did:** ran the full suite once on a settled tree, closed the last roster divergence, and
+amended the window report a fourth time.
+
+**THE AUTHORITATIVE MEASUREMENT: `7 failed / 4,756 passed / 3 skipped / 1 xfailed` in 15m34s**,
+with nothing staged and nothing written during the run -- which is the condition the two earlier
+runs did not have, and the reason they are not the number that stands. Against 0b's pre-batch
+`28 failed / 4,605 passed` (19 of those worktree-environment artefacts this run does not have).
+**ZERO of the seven were introduced by this window**, and each has an owner or a named reason.
+
+**TWO EARLIER REDS ARE GONE RATHER THAN EXPLAINED AWAY.** `test_gen_audit_index` (x2) was caused
+here and is fixed -- the index is regenerated, which is the integrator's close-time obligation
+`[#590]` moved off the per-commit path. And the `test_reverse_dep_oracle` pair, which Amendment 1
+called full-suite-only false REDs, **passed in this full run** -- so they are flaky, and that is
+now measured in both directions rather than asserted from one.
+
+**THE ROSTER CAUGHT ITS OWN DIVERGENCE, which is the point of having it.** The new
+`audit-title-gate` hook was live in `.pre-commit-config.yaml` and **absent from CLAUDE.md section
+9** -- 21 claimed against 22 live, in a roster `validate_doc_claims.extract_claimed_hooks` parses.
+`doc_claims` is ship-tier so nothing blocked, and a divergence that only a ship-gate sees is a
+divergence that ships. Added; the two now agree exactly in BOTH directions. CLAUDE.md 23,931 ->
+24,026 B against its 24,576 B cap.
+
+**AND THE STAMP WAS EARNED, NOT TYPED.** Adding that line made `canonical_freshness` FAIL --
+CLAUDE.md edited since its `last_reviewed`. The gate's own message says *"re-read end-to-end and
+bump to the GENUINE review date (never a fake stamp)"*, and hours earlier this seat REFUSED to
+stamp three unread win-tooling docs for exactly that reason. So the file was actually re-read,
+all 231 lines, and its claims checked against the night's measured state: the branch-prefix enum,
+the TDD build-arc standard, the ADR-111 funnel, the never-restate-a-count rule and all nine
+critical rules were each **exercised by this window's own work**, section 9 now agrees with the
+live config in both directions, and every `@`-imported fragment re-checked clean. Stamped
+2026-09-01, version 2.70. **The file is now 24,387 B against its 24,576 B cap -- 189 B of
+headroom, which the operator should know before the next line goes in.**
+
+**ONE HONEST COST OF THE CONSUMPTION SWEEP, recorded rather than discovered next window.** Citing
+this window's artifacts from `[#614]` made that row longer, and `doc_rot` counts row length as
+rot. The row was already over the 1,320-char ceiling, and `archive_row_body.py` reports **only
+`[#610]`** as relocatable -- so it cannot be relieved. **The mechanism that discharges a
+consumption claim forces prose into a row, and the mechanism that relieves a long row cannot
+reach that row.** Same shape as intake #65, one layer down.
+
+**Result -- the window's own numbers.** Batch E **11 of 15 merged, 12 of 15 resolved**; open set
+is THREE (DC-23 refused, DM-1/DM-2 blocked on tier-(B) inputs that do not exist). 46 commits, 15
+merges, 9 JOURNAL entries, 4 new audits, 2 intake SEEDs. `audit.py health` exits 0; both repos
+pushed; `git worktree list` is primary-only in the hub. **Operator questions consumed: 0.**
+
+**The batch stays OPEN by design** -- `docs/audits/2026-09-01-technical-batch-e-close-packet.md`
+is deliberately absent, which is what keeps the ADR-110 exemption armed for the three lanes still
+to come.
+
+**Changes:** `CLAUDE.md` (section 9 roster), the window report (AMENDMENT 4), `JOURNAL.md`.
+
+**Next:** the operator's call on the three open lanes, the tier-(D) dispatch, and the v1.5.0 tag.
+
 ### 2026-09-01 (h) - CC (Opus 5, background job, night orchestrator): CORRECTION - the title gate did not bind where entry (e) said it did; DM-4 lands and grep wins on a question it could not ask
 
 **Anchors:** `ffdf210d` `f06b09ea`
