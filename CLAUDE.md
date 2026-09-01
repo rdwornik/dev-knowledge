@@ -163,6 +163,7 @@ Pre-commit (`.pre-commit-config.yaml`) — HUB-ONLY unless the row says otherwis
 - `audit-index-freshness` — generated `docs/audits/README.md`
 - `organ-index-freshness` — generated `ecosystem/organ-index.md`; a stale index is worse than none
 - `validate-hermetization` — ADR-101 tree-seal refusal on staged ADDs: top-level/genre seal, audit-name grammar, home allowlist
+- `audit-title-gate` — every indexed audit carries a `# ` heading; ratchet, 20 grandfathered
 - `intake-index-freshness` — generated Contents block in `docs/intake/README.md`
 - `check-seal-identity` — handoff-bundle seal identity at commit time
 - `block-commit-on-main` — core-invariant #5 PREVENT at commit time
