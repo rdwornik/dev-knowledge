@@ -19,6 +19,61 @@
 
 ---
 
+### 2026-09-01 (ad) - CC (Opus 5): exit 91 said claude was absent; it was installed and the shell was wrong
+
+**Anchors:** `b707d50b`
+
+**Did:** diagnosed L1's RED inside the live container while it billed, stopped it, landed the fix
+in `win-tooling`, deleted the two Shutdown probes, and reissued all seven batch-F lanes as sonnet
+on the operator's R-MODELS ruling.
+
+**THE RECEIPT'S OWN MESSAGE WAS THE WRONG DIAGNOSIS, AND THAT IS THE EXPENSIVE PART.** Remote exit
+**91** is the dispatch module's own guard, and it says *"claude is not installed in this
+devcontainer"*. Two commands on one connection refuted it:
+
+```
+ssh -- 'command -v claude'             -> rc=1, NOT FOUND
+ssh -- 'bash -lc "command -v claude"'  -> /home/vscode/.local/bin/claude
+non-login PATH: /usr/local/python/...:/usr/local/bin:/usr/bin:/bin   -- no ~/.local/bin
+```
+
+**claude was installed** — symlink dated 01:09 → `versions/2.1.252` — and **provision did run.**
+Step 4 invoked `bash <path>`, a non-login shell, so the guard fired on an absence that does not
+exist. `uv` was never affected (`/usr/bin/uv`, both shells), which is why the gate leg was not the
+one that broke.
+
+**The fix is one token, `bash -l <path>`, landed RED-first at `win-tooling ab6f087`.** The
+alternative — symlinking claude into `/usr/local/bin` from provision — was **measured and refused**:
+root-owned, *not writable by `vscode`*, so it would put a `sudo` into provisioning. Suite
+attribution against a detached worktree at HEAD rather than assumed: that file carries **13
+pre-existing failures**, 13F/53P before and 13F/54P after — the same 13, plus exactly my one new
+test.
+
+**THE REISSUE WAS PROVED, NOT ASSERTED.** Each affected skeleton was regenerated **twice** through
+the generator — once at `opus`, once at `sonnet` — and diffed. The generator-owned delta is
+**exactly the routing-table row and its two prose echoes**. Only those lines moved in the real
+contracts, so the result is byte-equivalent to a full regeneration with the authored sections
+intact. Both gate layers: 7/7 shape, 7 substrate OK, 0 REFUSE, 0 WARN, roll-call **7 × sonnet**.
+
+**AND THE REISSUE CAUGHT A CONTRADICTION THAT WAS MINE.** L5 read *"sonnet workers read … opus
+adjudicates whether each stamp is earned"* — an opus act described as happening **inside** a lane
+that now runs sonnet. Corrected to the split the ruling actually implies: **the lane reads and
+writes the review record; adjudication is an orchestrator act at the merge.** That is what makes
+the record a deliverable rather than a formality — the adjudicator was not in the room for the read.
+
+**Recorded as NOT CAPTURED rather than inferred:** `Ok` and `is_error` for that dispatch never
+reached this seat. Worth its own note — the guard's receipt carries `{"error": …}` with **no
+`is_error` field at all**, so the contract's receipt leg reads a *missing* field on a 91, not a
+`true` one. A second, smaller defect in the same area.
+
+**Both Shutdown probe codespaces DELETED**, which closes the batch's one open asset item.
+
+**Changes:** the seven batch-F contracts (six reissued, L5 also corrected), the manifest
+(amendment 3), `tasks/631-*.md` (the ruled mechanism), `BACKLOG.md`, `JOURNAL.md`; and in
+`win-tooling`, `DispatchHelpers.psm1` + its test.
+
+**Next:** re-dispatch L1 as sonnet, on the operator's trigger.
+
 ### 2026-09-01 (ac) - CC (Opus 5): the ledger reported a declaration as a measurement, and five lanes really did burn opus
 
 **Anchors:** `5f6770c7`
