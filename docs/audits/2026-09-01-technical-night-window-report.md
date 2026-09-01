@@ -479,3 +479,30 @@ has no notion of a sibling repo**, so any cross-repo artifact reads as broken lo
 DM-4 was still ACTIVE at 02:45 (2h32m). The four open batch items in §13 are unchanged, the batch
 is still deliberately OPEN, and `docs/audits/2026-09-01-technical-batch-e-close-packet.md` is
 still absent from the tree.
+
+---
+
+## AMENDMENT 2 — the decision ledger: everything decided under the V-2 budget, nothing asked
+
+> WAVE 2 item 6 asks the packet to carry *"anything decided under budget"*. Eleven decisions were
+> taken without operator contact. Each is listed with the rule that authorised it and the thing
+> that could have been done instead, because a decision reported without its alternative is an
+> assertion. **Any of these can be reversed in the morning; none is load-bearing on another.**
+
+| # | Decision | Authority | The alternative not taken |
+|---|---|---|---|
+| 1 | **Dispatched DM-6 on its frozen LOCAL contract**, despite JOURNAL (k) declaring it superseded by a codespace re-issue. | (k)'s supersession was itself CORRECTED by (l) — the tier-(D) contract was never committed, so the supersession has no artifact — and the mission counts DM-6 among "the 9" to dispatch. | Park it. That would have cost a lane on the strength of a supersession that does not exist in the tree. |
+| 2 | **Did NOT dispatch DM-1 / DM-2.** | Their own frozen contracts: *"Without it this lane has no input."* | Run tier-(B)'s payloads through `agy`/`grok` under the standing offload rule. Refused: the payload pack assigns the routing, and substituting the provider changes provenance for work that then produces committed code. |
+| 3 | **Sync-merged `main` into three live lanes** (`--ff-only`, zero commits ahead, no dirty file in the diff set). | The documented lane-tree-lag remedy; *"no self-merge"* scopes lane→main. | Wait for the lanes to unblock themselves. They could not: the gap was in their own working tree and no sibling's JOURNAL entry ever reaches it. |
+| 4 | **Committed three lanes' staged work as the integrator**, disclosed in each commit body. | The lanes had STOPPED (one wedged on `AskUserQuestion`, which a `--bg` session cannot answer) with verified work staged. | Discard and re-dispatch. That would have thrown away 718 verified lines and a correct refusal to `--no-verify`. |
+| 5 | **Drained seven silent-rule false positives to land the held doctrine**, instead of carrying the raise request to morning. | The detector's own sanctioned drain; each drained sentence describes a fact rather than stating a rule, and all seven are quoted before/after in `5c7e9e37`. | Leave it parked (it was, for two hours). Landing it cost no ruling and the pool ends where it started. |
+| 6 | **Re-stamped the funnel baseline with `--allow-raise`**, covering ~25 audits accrued since 2026-08-29. | 0b's named remedy; the flag exists for a deliberate raise. | Disposition all 25 first. Refused: ADR-111 routes that triage to the architect, and 25 dispositions by a night seat is the judgment work the night constraint excludes. |
+| 7 | **Fixed two live ADR-index defects rather than baselining over them** (ADR-114 carrying a superseded `PARKED`, ADR-116 unindexed). | They were real, and re-stamping would have recorded them as normal. | Re-stamp the four-way divergence as measured. That is what "re-stamp the drift" literally asks for, and it would have buried two defects inside two legitimate +1s. |
+| 8 | **Did NOT fix `test_desired_state_report`'s stale MEMBERS pin** (5 pinned vs 7 live). | Outside the six drift families; the pin is a shared fixture constant for 17 other tests. | Widen 5 → 7. Refused: without establishing WHY `terminal-setup` and `win-tooling` entered the desired-state model, widening hides the signal instead of reading it. |
+| 9 | **Declared `SKIP=canonical_freshness` twice in win-tooling** (the HY-5 merge, then its push), with pre-existence proven. | The staleness predates the lane by weeks and the lane touched none of the three docs. | Stamp the three docs. Refused outright: a stamp means *re-read end-to-end*, and stamping three unread canonical docs is the fake stamp the gate's own message forbids. |
+| 10 | **Wrote a WINDOW REPORT, not the batch close packet.** | The manifest's REFUSE-TO-FINISH: the batch is open while `closed_by:` is absent, and four items are open. | Land the `closed_by:` path. That ends the ADR-110 exemption for the lanes still to come and closes the batch by assertion. |
+| 11 | **Withdrew the F1 feature-bug claim in-tree** and re-scoped it to the measured create-vs-rebuild finding. | WAVE 2.5's ADMISSION-RATIFIED act 1. | Delete the comment. Refused: a withdrawn accusation that leaves no trace gets re-made by the next seat reading the same rebuild output. |
+
+**Escalated rather than decided: nothing.** Every fork above resolved against a standing rule, a
+measurement, or a ruling already recorded. The seven items in §12 are questions the operator owns
+by subject — they were never blockers this seat worked around.
