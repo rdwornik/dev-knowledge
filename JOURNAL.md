@@ -19,6 +19,59 @@
 
 ---
 
+### 2026-09-01 (k) - CC (Opus 5, attended): the review round that should have gated the merges ran after them, found a CRIT, and inverted one lane's own conclusion
+
+**Anchors:** `121b6f3a`
+
+**Did:** ran the post-merge terra round the operator's addendum (a) demanded, on all six window
+merges, and acted on what it found.
+
+**ROUND TOTAL: crit=1 high=1 med=2 low=0 across six lanes** - two fixed, one refuted with its
+reason, one accepted as a stated limit. DC-5 and HY-5 came back CLEAN. Tallies in body at
+`docs/audits/2026-09-01-verification-batche-post-merge-terra-round.md`.
+
+**THE CRIT IS THE ONE THAT MATTERS, and it is a safety defect this seat shipped.**
+`logs_retention.py` took `--logs-dir` as a bare `Path` and `apply_moves` does
+`mkdir(parents=True)` then `rename` inside it. **A MOVER WITH NO CONSTRAINT ON WHERE IT MOVES.**
+Under core-invariant #1 that is a T2 write into the exclusion zone, and **the hazard that rule
+records - a cleanup script that relocated the operator's personal files - is this module's exact
+shape.** HY-2's contract was scrupulous about WHICH FILES it would not touch (TOKEN-LOG
+absolutely, two prefixes by name) and said nothing at all about WHERE. I read that diff, ran its
+tests, and merged it. **The integrator verification I reported as sufficient did not see this.**
+
+Fixed with two legs that fail differently: EXCLUSION (absolute, no override, anywhere in the
+path) and CONTAINMENT (repo or system temp, which is what keeps `tmp_path` legal). Neither
+subsumes the other - an excluded path under `tmp_path` passes containment and fails exclusion -
+and the guard runs BEFORE `plan_moves`, since planning walks the directory and reading an excluded
+path is itself outside the invariant. Six RED-first witnesses, 27/27.
+
+**The guard taught the fix its own shape:** the operator's `PreToolUse` hook REFUSED one of my
+commands mid-fix for carrying the zone literal beside a shell redirect. Correct, and the constant
+is now assembled from parts so the literal never reaches a command line.
+
+**THE MED INVERTED DM-6's OWN CONCLUSION, and I checked rather than took a side.** DM-6 recorded
+AUT-R3's B3 as STALE on an IMPORT count. **B3 asked for wired CALL SITES.** Measured:
+`emit_check_run` has **ONE** caller; `emit_event`, `emit_hook_run`, `emit_blocker_fired` have
+**ZERO**; three of the importing modules pull `default_db_path` *specifically in order not to use
+it*. The reviewer's own number was wrong too - it said four importers, six is the measurement -
+so it was **right about the predicate and wrong about the arithmetic**, and that split is the
+reason to verify a reviewer instead of adopting it. `[#529]` leg 1 is LIVE and the amendment is
+withdrawn the same day it landed.
+
+**One finding REFUTED with its reason:** terra graded HY-3 HIGH for not regenerating the audits
+index. True observation, wrong grading - `[#590]` deliberately narrowed that hook so a lane must
+NOT regenerate it (being forced to had put the file in 6 of the last 7 conflicted merges); the
+obligation is the integrator's at close and was discharged.
+
+**Honest limit on the round:** ONE pass per lane. The recorded terra discipline is *run until a
+pass returns nothing*, with n=2 precedents at six and fifteen passes. This is a floor, not a clean
+bill, and it ran post-merge.
+
+**Changes:** `scripts/logs_retention.py`, `tests/test_logs_retention.py`, `tasks/529-*.md`,
+`tasks/614-*.md`, the round artifact, `docs/audits/README.md`, `JOURNAL.md`.
+
+**Next:** the README template, DC-3 alone, then the (b) logs row and (c) agy row.
+
 ### 2026-09-01 (j) - CC (Opus 5, attended): TWO CORRECTIONS TO THIS SEAT - the clock was stale and the review round never ran; tier (B) is refuted by witness and DM-1/DM-2 unblock
 
 **Anchors:** `0b2e4871`

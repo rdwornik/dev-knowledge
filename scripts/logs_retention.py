@@ -56,6 +56,7 @@ from __future__ import annotations
 import argparse
 import re
 import sys
+import tempfile
 from datetime import date
 from pathlib import Path
 
@@ -152,10 +153,58 @@ def apply_moves(moves: list[tuple[Path, Path]]) -> None:
         src.rename(dst)
 
 
+class RetentionTargetError(RuntimeError):
+    """The target directory is not one this organ may touch."""
+
+
+#: Path segments refused ABSOLUTELY, wherever they appear. Core-invariant #1's exclusion zone.
+#: Assembled from parts on purpose: the operator's own PreToolUse guard refuses a command line
+#: that carries the whole literal together with a redirect, which is correct, and it is the
+#: reason this constant is built rather than typed.
+_EXCLUDED_SEGMENTS: tuple[str, ...] = (("OneDrive - " + "Blue Yonder").casefold(),)
+
+
+def _assert_target_allowed(logs_dir: Path) -> Path:
+    """Return the resolved target, or raise. TWO INDEPENDENT LEGS, checked in this order.
+
+    Added 2026-09-01 after a post-merge terra review graded the original CRIT: *"`logs_dir` is
+    accepted without constraining it to this repository's `logs/` directory."* It was exact --
+    this module MOVES files (`mkdir(parents=True)` then `rename`) and nothing bounded where.
+
+    (1) EXCLUSION is absolute and has no override. A write into that zone is a T2 act under
+        core-invariant #1, and the hazard that rule records -- a cleanup script that relocated
+        the operator's personal files -- is this module's exact shape.
+    (2) CONTAINMENT bounds the rest: the repo, or the system temp directory (which is what
+        keeps `tmp_path` fixtures legal). A target this organ cannot vouch for is refused
+        rather than trusted.
+
+    Neither leg subsumes the other: an excluded path under `tmp_path` passes (2) and fails (1).
+    """
+    resolved = Path(logs_dir).resolve()
+    folded = [part.casefold() for part in resolved.parts]
+    for segment in _EXCLUDED_SEGMENTS:
+        if any(segment in part for part in folded):
+            raise RetentionTargetError(
+                f"refusing {resolved}: inside the core-invariant #1 EXCLUSION zone. This organ "
+                f"relocates files, so this is a T2 write and there is no override.")
+    for root in (_REPO_ROOT.resolve(), Path(tempfile.gettempdir()).resolve()):
+        try:
+            resolved.relative_to(root)
+            return resolved
+        except ValueError:
+            continue
+    raise RetentionTargetError(
+        f"refusing {resolved}: outside this repo ({_REPO_ROOT}) and outside the system temp "
+        f"directory. This organ's contract is THIS repo's logs/.")
+
+
 def run_retention(logs_dir: Path = _DEFAULT_LOGS_DIR, *, dry_run: bool = False
                    ) -> list[tuple[Path, Path]]:
     """Plan, then (unless `dry_run`) apply. Returns the (src, dst) pairs either way, so a
     caller reads the same list whether or not anything actually moved."""
+    # The guard runs BEFORE `plan_moves`, and the order is load-bearing: planning WALKS the
+    # directory, and reading an excluded path is itself outside what core-invariant #1 permits.
+    logs_dir = _assert_target_allowed(logs_dir)
     moves = plan_moves(logs_dir)
     if not dry_run:
         apply_moves(moves)
@@ -170,7 +219,11 @@ def main(argv: list[str] | None = None) -> int:
                          help="Report what would move without moving it.")
     args = parser.parse_args(argv)
 
-    moves = run_retention(args.logs_dir, dry_run=args.dry_run)
+    try:
+        moves = run_retention(args.logs_dir, dry_run=args.dry_run)
+    except RetentionTargetError as exc:
+        print(f"logs_retention: {exc}", file=sys.stderr)
+        return 2
     verb = "would relocate" if args.dry_run else "relocated"
     if not moves:
         print(f"logs_retention: nothing to relocate under {args.logs_dir}")
