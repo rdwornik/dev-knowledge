@@ -19,6 +19,68 @@
 
 ---
 
+### 2026-09-01 (s) - CC (Opus 5): the DC-3 split lands, and a check that FAILed on a ruled retirement is fixed instead of the retirement being abandoned
+
+**Anchors:** `403a219b` · `9a242361` · `864c0fdb` · `e44bbdb3`
+
+**Did:** reconstructed DC-3's ACCEPTED half (Acts TWO + THREE) act by act on a fresh branch from
+`6f226b34`, taught `check_vision_md` and `gen_handoff._vision_extract` the registry-driven RETIRED
+state, ran the terra loop to a clean pass, and landed the ledger at
+`docs/audits/2026-09-01-technical-dc3-split.md`. Act ONE is untouched and stays `[#628]`'s input.
+
+**A RECONSTRUCTION, NOT A REVERT — and the difference is the merged history.** Reverting Act One's
+hunks would leave the refused lane's commit as the merge's parent, which is the exact shape the
+adjudication refused. A fresh branch puts the accepted acts in history and nothing else. **Because
+ESSENTIALS stays, every citation of it stays**: four CLAUDE.md hunks and ~20 PLAYBOOK citation
+fixes were left on the floor, not because they are wrong-looking but because they are only correct
+in a tree where the file is gone.
+
+**THE LANE COMMITTED THE FAILURE ITS OWN SUBJECT WAS ABOUT.** DC-3's rewritten formatting bullet
+cites "the Mermaid/diagram carve-out" at PLAYBOOK Ch8 — and Ch8 did not contain one. It deleted
+the carve-out from `CLAUDE.md` and pointed at a destination that did not hold it: a relocation to
+an unverified destination, in the very lane whose job was *"every removal is a relocation to a
+named, verified destination"*. Fixed by putting the carve-out where the pointer says it is.
+
+**DC-1 HAD ALREADY BUILT THE MECHANISM; ONE CHECK JUST NEVER ASKED IT.** `CANONICAL_RETIRED` has
+existed since `ea1e32a9`, and every registry-reading check moved onto it in that same act.
+`check_vision_md` was written under ADR-33 and asserts root presence unconditionally — and it is
+`TIER_COMMIT`, so its FAIL refuses every commit in the repo. **A check that FAILs on a ruled
+retirement is the defect, not the retirement.** It now asks the registry the same question its
+siblings already ask. Nothing is hardcoded; the two new tests pin both branches, one against the
+LIVE registry so un-retiring VISION goes red and says so.
+
+**THE RELOCATION WAS MEASURED, THEN DEFERRED, AND THAT IS A DEVIATION.** With `VISION.md` actually
+moved: `health` OK, `release_lint --version 1.5.0` 0 FAIL, `fleet_parity` one undeclared WARN. The
+gates were fine. The **collateral** was not: `ARCHITECTURE.md` and `README.md` both state "retained
+and still tracked", both are `FRESHNESS_FILES`, and the A2 gate makes editing them require a
+`last_reviewed` bump — which here means a genuine end-to-end re-read, not a touch. Stamping a
+1,200-line surface without that read is the fake stamp ruling 6 refused this morning. So the path
+change is `[#621]`'s step one, with the full collateral set enumerated as its write-scope. Said
+plainly rather than dressed as compliance.
+
+**Terra: 2 passes, 3 findings, all fixed, pass 2 CLEAN.** The sharpest was one the suite
+structurally could not catch — the README fallback keyed on a single `None` meaning both "absent"
+and "present but broken", so a malformed retained VISION would have been served README's prose.
+Every test reached that helper through the same door and confirmed the conflation. One finding's
+premise was **refuted** by measurement and is recorded as loudly as the acceptances.
+
+**Also landed, in `win-tooling`:** the attended stamp lane finally committed — three canonical docs
+re-read, stamped and carrying review records, drift filed as `[#8]` — after the third pre-existing
+wedge was diagnosed and resolved. `codemap-freshness` was refusing every author's commit because a
+hand-authored Mermaid diagram sat inside a regen-and-diff GATED marker pair, unwinnable against a
+generator that emits compact text since ADR-51's 2026-07-05 amendment. Resolved in the ruled
+direction as a RELOCATION: the diagram moved byte-identical to `docs/diagrams/module-map.md`, the
+markers hold generated text, and a source-root override makes that text say something. **The
+commit succeeded with no `SKIP=`, which is ruling 6's own done-contract.** Merged and pushed;
+`9c66fc4`.
+
+**Changes:** `CLAUDE.md`, `protocols/PLAYBOOK.md`, two `templates/claude-regions/*`,
+`scripts/audit_checks/check_vision_md.py`, `scripts/gen_handoff.py`, `tests/test_audit.py`,
+`tests/test_canonical_docs.py`, `docs/audits/` (+index), `JOURNAL.md`.
+
+**Next:** file the two integrator defects as rows, then the batch-E close packet and the batch-F
+derivation.
+
 ### 2026-09-01 (r) - CC (Opus 5, fresh orchestrator seat): the handover note becomes a record, and four exempt merges are anchored BEFORE the exemption expires
 
 **Anchors:** `209d0aeb` · `7ab5eb47` `13fb1538` · `5914ca02` `1d814abc` · `351b94fd` `1c92024f` · `aeb0b2a2` `76f184fb`
