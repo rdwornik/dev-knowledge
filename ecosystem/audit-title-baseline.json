@@ -1,0 +1,26 @@
+{
+  "measurement": "docs/audits/*.md carrying no `# ` heading, at the commit stamped below",
+  "detector": "gen_audit_index.title_less",
+  "title_less": [
+    "2026-08-16-technical-271-conversions-lane-contract.md",
+    "2026-08-16-technical-277-issues-evidence-lane-contract.md",
+    "2026-08-16-technical-409-conversions-lane-a-contract.md",
+    "2026-08-16-technical-532-docrot-arms-lane-contract.md",
+    "2026-08-16-technical-533-audit-decompose-lane-contract.md",
+    "2026-08-16-technical-k-293-cross-repo-seeding-lane-contract.md",
+    "2026-08-16-technical-w2c-conversions-lane-contract.md",
+    "2026-08-16-technical-w2d-lane-contract.md",
+    "2026-08-16-technical-w2f-conversions-lane-contract.md",
+    "2026-08-27-technical-doc-diet-plan.md",
+    "2026-08-27-technical-journal-rotation-recon.md",
+    "2026-08-29-census-essentials-consumers.md",
+    "2026-08-29-technical-aut-r2-decision-quality-frameworks.md",
+    "2026-08-29-technical-aut-r3-repo-as-reinforcement-environment.md",
+    "2026-08-31-census-single-file-folders.md",
+    "2026-08-31-census-stale-doctrine-references.md",
+    "2026-08-31-census-templates-consumers.md",
+    "2026-08-31-technical-agy-admission-and-quota-visibility.md",
+    "2026-08-31-technical-harness-portability-map.md",
+    "2026-08-31-technical-langgraph-class-rejection-record.md"
+  ]
+}

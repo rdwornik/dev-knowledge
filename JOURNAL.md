@@ -19,6 +19,63 @@
 
 ---
 
+### 2026-09-01 (e) - CC (Opus 5, background job, night orchestrator): the index refuses a title-less artifact, and the trip test failed the FIRST time for the right reason
+
+**Anchors:** `e84d5c39`
+
+**Did:** built one of N3's two step-4 binding mechanisms. `scripts/` came free when the last lane
+merged, which is the condition it was waiting on.
+
+**THE DEFECT WAS SITTING IN PLAIN SIGHT AND NOTHING READ IT.** `gen_audit_index._title_of`
+returns the placeholder `(no # title)` for a file with no `# ` heading -- **20 of 837 indexed
+audits render it**, nine of them harvested cloud artifacts whose persist shape leads with a
+PROVENANCE blockquote and never emits an H1 at all. The corpus's largest doc area carried twenty
+rows a reader cannot navigate by. The index was doing exactly what it was told and telling nobody.
+
+**THE RULE IS H1-PRESENT, NOT H1-FIRST, and that distinction has its own test.** The work was
+commissioned as *"H1-before-provenance"* and enforcing the stronger rule would have been the easy
+mistake: `_title_of` searches the whole file, so an artifact whose provenance blockquote precedes
+its heading **already indexes correctly**. Pinning the ORDER would refuse files that render
+perfectly. The gate's business is existence; ordering belongs to whoever writes the persist
+template.
+
+**ARMED AS A RATCHET AGAINST A COMMITTED BASELINE**, not a day-one RED -- a hard FAIL would have
+to be bypassed on its own first commit, which trains the bypass rather than the fix. Both
+directions: `unbaselined_title_less` refuses a new one, `stale_baseline_entries` reports a
+baselined name that has since gained a heading, **because a ratchet that only grows is a debt
+register nobody pays down and a fixed artifact still in it hides the next real one.** The
+baseline is JSON, not YAML, deliberately: `ecosystem/*.yaml` is inside the silent-rule detector's
+scope and has zero headroom, so a YAML baseline would put its own comments into a normative-prose
+budget.
+
+**Wired into `--check`, which the `audit-index-freshness` hook already runs** -- no new
+`ALL_CHECKS` member, so none of the six count pins move.
+
+**THE TRIP TEST FAILED THE FIRST TIME, AND THAT IS THE ENTRY'S POINT.** A title-less audit was
+written and `--check` returned **0**. Not a bug: the file was UNTRACKED, and `collect_audits`
+filters to tracked files by design -- the determinism boundary the module header already states.
+Staged, the same file makes `--check` exit **1** and name both the required shape and the escape
+hatch. **So the gate binds at the commit that ADDS an artifact, not while it sits unstaged**,
+which is the correct moment and is now a known property instead of a future surprise. A gate
+nobody has watched fire is a claim, and the first watch is what turned a wrong assumption into a
+documented boundary.
+
+**AND IT CAUGHT AN INCOMPLETE SEAM IN THE EXISTING TESTS, within an hour of my reading the
+docstring that warns about exactly this.** `_wire` monkeypatched three module globals and not the
+new baseline path, so `stale_baseline_entries` read the LIVE baseline against a synthetic tree
+and reported all twenty real names as drainable -- a check firing on the fixture's absence rather
+than on anything under test. That is `audit_checks/registry.py`'s seam-detaches-SILENTLY class in
+miniature.
+
+**Result:** 25/25 in the module's suite, six of them RED-first witnesses; ruff clean; live
+`--check` exits 0; trip-tested in both directions.
+
+**Changes:** `scripts/gen_audit_index.py`, `tests/test_gen_audit_index.py`,
+`ecosystem/audit-title-baseline.json` (new), `JOURNAL.md`.
+
+**Next:** the second step-4 mechanism -- the consumed-artifact locator predicate; then harvest
+DM-4.
+
 ### 2026-09-01 (d) - CC (Opus 5, background job, night orchestrator): the filing pass, the six drift families, and a window report that is deliberately NOT the batch close packet
 
 **Anchors:** `87c34b91` `2816658a` `85ff0b76` `71b96b7d`

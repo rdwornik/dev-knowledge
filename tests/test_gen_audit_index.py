@@ -74,6 +74,14 @@ def _wire(tmp_path, monkeypatch):
     monkeypatch.setattr(gai, "_AUDITS_DIR", tmp_path)
     monkeypatch.setattr(gai, "_TARGET", target)
     monkeypatch.setattr(gai, "_REPO_ROOT", tmp_path)
+    # The TITLE BASELINE moves with the corpus, or the seam detaches. Left pointing at the LIVE
+    # baseline, `stale_baseline_entries` reports all twenty real names as drainable against a
+    # synthetic tree that contains none of them -- a check firing on the fixture's absence
+    # rather than on anything under test. An EMPTY baseline is the strict setting: in a
+    # synthetic tree every title-less file is unbaselined, which is what a fixture wants.
+    baseline = tmp_path / "audit-title-baseline.json"
+    baseline.write_text('{"title_less": []}', encoding="utf-8")
+    monkeypatch.setattr(gai, "_TITLE_BASELINE_PATH", baseline)
     return target
 
 
@@ -235,3 +243,85 @@ def test_tracked_files_fails_open_when_git_times_out(tmp_path, monkeypatch):
 
     monkeypatch.setattr(gai.subprocess, "run", _timeout)
     assert gai.tracked_files(tmp_path) is None
+
+
+# --- the TITLE gate: a title-less artifact is loud, against a grandfathered baseline --------
+#
+# THE DEFECT, measured 2026-09-01: `_title_of` returns the placeholder `(no # title)` when a
+# file carries no `# ` heading, and NOTHING reads that placeholder. 20 of 837 indexed audits
+# render it — nine of them harvested cloud artifacts whose persist shape puts the PROVENANCE
+# blockquote FIRST and never emits an H1 at all, so the corpus's largest doc area has twenty
+# rows a reader cannot navigate by. The index was doing exactly what it was told and telling
+# nobody.
+#
+# ARMED AS A RATCHET, NOT A DAY-ONE RED — `check_adr_status_grammar`'s pattern. The 20 live
+# instances are recorded in a committed baseline and grandfathered; the twenty-FIRST is a
+# refusal. A day-one FAIL would have to be bypassed on its first commit, which trains the
+# bypass rather than the fix.
+
+def test_a_title_less_audit_is_detected_at_all(tmp_path):
+    (tmp_path / "2026-01-01-technical-titled.md").write_text(
+        "# A real title\n\nbody\n", encoding="utf-8")
+    (tmp_path / "2026-01-02-technical-headless.md").write_text(
+        "> **PROVENANCE — harvested.**\n\nbody with no heading\n", encoding="utf-8")
+    missing = gai.title_less(audits_dir=tmp_path, tracked=None)
+    assert missing == ("2026-01-02-technical-headless.md",)
+
+
+def test_a_heading_below_the_provenance_block_still_counts_as_a_title(tmp_path):
+    """The rule is H1-PRESENT, not H1-FIRST — stated so the two are not conflated.
+
+    `_title_of` searches the whole file, so an artifact whose provenance blockquote precedes
+    its `# ` heading is already indexed correctly. The ORDERING preference belongs to whoever
+    writes the persist template; the GATE's business is the heading's existence, and pinning
+    ordering here would refuse files the index renders perfectly.
+    """
+    (tmp_path / "2026-01-03-technical-late-title.md").write_text(
+        "> **PROVENANCE — harvested.**\n\n# The title, after the provenance\n\nbody\n",
+        encoding="utf-8")
+    assert gai.title_less(audits_dir=tmp_path, tracked=None) == ()
+
+
+def test_the_baseline_grandfathers_exactly_the_recorded_names(tmp_path):
+    (tmp_path / "2026-01-02-technical-headless.md").write_text("no heading\n", encoding="utf-8")
+    baseline = frozenset({"2026-01-02-technical-headless.md"})
+    assert gai.unbaselined_title_less(
+        audits_dir=tmp_path, tracked=None, baseline=baseline) == ()
+    assert gai.unbaselined_title_less(
+        audits_dir=tmp_path, tracked=None, baseline=frozenset()) == (
+            "2026-01-02-technical-headless.md",)
+
+
+def test_a_baselined_name_that_GAINED_a_title_is_reported_as_drainable(tmp_path):
+    """The ratchet's other direction. A baseline that only ever grows is a debt register
+    nobody pays down; a fixed artifact still sitting in it hides the next real one."""
+    (tmp_path / "2026-01-02-technical-headless.md").write_text(
+        "# Now it has one\n", encoding="utf-8")
+    stale = gai.stale_baseline_entries(
+        audits_dir=tmp_path, tracked=None,
+        baseline=frozenset({"2026-01-02-technical-headless.md"}))
+    assert stale == ("2026-01-02-technical-headless.md",)
+
+
+def test_check_exits_1_and_names_the_required_shape_on_a_new_title_less_audit(
+        tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(gai, "_AUDITS_DIR", tmp_path)
+    monkeypatch.setattr(gai, "_TARGET", tmp_path / "README.md")
+    monkeypatch.setattr(gai, "_TITLE_BASELINE_PATH", tmp_path / "baseline.json")
+    # `_cmd_check` renders its message with `_TARGET.relative_to(_REPO_ROOT)`, so the root has
+    # to move with the target. Patching one and not the other is the seam-detaches-silently
+    # class the audit_checks registry docstring warns about, in miniature.
+    monkeypatch.setattr(gai, "_REPO_ROOT", tmp_path)
+    (tmp_path / "baseline.json").write_text('{"title_less": []}', encoding="utf-8")
+    (tmp_path / "2026-01-02-technical-headless.md").write_text("no heading\n", encoding="utf-8")
+    (tmp_path / "README.md").write_text(gai.render_index(tmp_path, None), encoding="utf-8")
+    assert gai.main(["--check"]) == 1
+    err = capsys.readouterr().err
+    assert "2026-01-02-technical-headless.md" in err
+    assert "# " in err                      # the required shape is named, not just the miss
+
+
+def test_the_live_baseline_matches_the_live_corpus():
+    """The committed baseline is the measurement, so it has to agree with the tree."""
+    assert gai.unbaselined_title_less() == ()
+    assert gai.stale_baseline_entries() == ()
