@@ -1,7 +1,7 @@
-# HANDOFF_PROCESS v6
+# HANDOFF_PROCESS v7
 <!-- scope: meta -->
 
-Version: 6.3.0
+Version: 7.0.0
 Status: stable
 Effective: 2026-06-11 (canonical); v6 cut 2026-07-31
 Decision: ADR-82 (operator-ratified 2026-06-11; Council gate waived by operator authority per #149).
@@ -1397,3 +1397,23 @@ file). Proven by re-running `reconciled_versions`, `silent_rule_ratchet` and
   `README.md` `## Vision` in this same commit, matching the live `templates/handoff/v5/PROBES.md.tmpl`
   P1a precedent (ADR-114/[#614]) — independent of the version-bump question and not held for
   it. Refs `[#611]`, intake #66 (L-S7), `docs/audits/2026-08-29-technical-aut-r1-autonomous-sdlc-orchestration.md`.
+
+- v6.3.0 → **v7.0.0** (2026-09-01, batch-F integrator — the reserved bump, executed as ONE
+  coupled release act) — **Version → 7.0.0**, and the title with it. lane-b-2 STAGED §17's
+  material at a deliberately still-6.3.0 version and reassigned the bump here by operator
+  ruling, precisely because `reconciled_versions` requires the version and every dependent to
+  move together and six of the seven dependents were outside that lane's frozen write-scope.
+  This commit is that act: `Version:` plus **all seven** `reconciled_with` stamps
+  (`ARCHITECTURE.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `protocols/PLAYBOOK.md`,
+  `protocols/README.md`, `protocols/SESSION_SETUP.md` and `protocols/HANDOFF_BOOT.md` — the
+  lane left its own in-scope stamp at 6.3.0, so it is picked up here rather than assumed done).
+  **No `SKIP=`, and no stale edge left behind.** Two dependents were RE-READ against the v7
+  delta before being stamped, not merely re-pointed: `protocols/SESSION_SETUP.md`, whose
+  "v6 bundle's `HANDOFF_BOOT.md` / `RESIDUAL.md`" line the bump would have falsified, and
+  `CLAUDE.md` §1, whose `first-read` hub region names the bundle generations a boot may
+  encounter — both widened to admit v7, and the CLAUDE.md region moved **byte-identically in
+  lockstep** with `templates/claude-regions/first-read.md` so deploy parity holds. `CLAUDE.md`
+  §7's two v6 literals for `/handoff` and `/handoff-verify` were re-pointed in the same act.
+  The remaining four dependents carry no version-bearing prose and took the stamp only, which
+  is what "the rest get the pointer only after the read" means. ROLE PIN emits at 7.0.0 from
+  this version via `scripts/assemble_paste.py`. Refs `[#611]`, batch-F manifest §3.

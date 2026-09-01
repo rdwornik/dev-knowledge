@@ -1,6 +1,6 @@
 ---
-last_reviewed: 2026-08-28
-reconciled_with: handoff-process@6.3.0
+last_reviewed: 2026-09-01
+reconciled_with: handoff-process@7.0.0
 status: active
 owner: Rob
 ---
@@ -16,19 +16,20 @@ Sole contributor: Rob Dwornik. Audience: future Rob + AI agents reading for orie
 <!-- scope: meta -->
 
 More than one vendor's agent works in this repo, and the file a cross-vendor agent would
-conventionally read at the repo root — `AGENTS.md` — **does not exist here yet.**
-`scripts/validate_hermetization.py` still refuses the add (*"unsanctioned new top-level file … a
-genuinely new class is an ADR-101 amendment, not a drive-by add"*), so this section performs that
-file's job from inside a sanctioned one.
+conventionally read at the repo root — **`AGENTS.md` — now exists** (added 2026-08-29, 5,714 B).
+It is the **portable instruction layer**: the non-inferable build/test/land facts every provider
+reads, with the Claude-runtime remainder left in `CLAUDE.md`, which imports it. The relation is an
+**importer, never a symlink** — git materialises symlinks as plain text under `core.symlinks=false`
+on Windows.
 
-**Read that as a pending mechanism, not a standing prohibition (updated 2026-08-28).** This
-paragraph used to say `AGENTS.md` *cannot* exist here. **ADR-115 (Accepted 2026-08-25) amends
-ADR-101 §1 to admit it** and supersedes ADR-53 Decision 2, so the decision has been taken. What has
-not happened is the mechanism: ADR-115 §4 specifies the `SANCTIONED_TIER1_FILES` diff and is
-**deliberately explicit that the draft does not apply it**, which is why the gate above is still
-correct about live state and this file is still accurate about the tree. `[#577]` carries the enum
-edit. Both facts hold at once — cite the one that matches your question: *may it exist* (ruled yes)
-or *does the gate admit it today* (no).
+**The mechanism has landed; this paragraph used to say it had not (corrected 2026-09-01).** ADR-115
+(Accepted 2026-08-25) amended ADR-101 §1 to admit the file and superseded ADR-53 Decision 2; `[#577]`
+then carried the enum edit, and `scripts/validate_hermetization.py` now lists `AGENTS.md` in its
+sanctioned Tier-1 set rather than refusing the add. Both the ruling and the gate now agree, so the
+older "may it exist (yes) / does the gate admit it (no)" split no longer applies — it is retained
+here only as the record of why the two were ever apart. **Size is bounded in BYTES, not lines:**
+Codex's `project_doc_max_bytes` cap is 32 KiB, and copying `CLAUDE.md` wholesale would land at
+43.50 KiB and truncate **silently**.
 
 **The declared source of truth is `ecosystem/provider-registry.yaml`** — every provider, the CLI
 that reaches it, and every model string this repo's live surface names. Read it; do not restate it
@@ -259,7 +260,7 @@ See ADR-27 through ADR-41 for style reference.
 
 <!-- scope: meta -->
 
-Protocol: `protocols/HANDOFF_PROCESS.md` — **v6** (stamp v6.3.0, *stable*; ADR-82, operator-ratified 2026-06-11 per #149, amended 2026-06-16 for the v5.1 architect strategic supplement, 2026-06-17 for the v5.2 always-generated supplement file, 2026-06-25 for the v5.3 §5 probe-manifest consolidation, 2026-07-05 for the v5.4 §5 structural anti-bluff + §13 generator note, 2026-07-05 for the v5.5 §14 epic-lane handoffs — EPIC + EPIC RETURN, ADR-97, 2026-07-06 for the v5.6 §14a execution-MODE item, 2026-07-07 for the v5.7 §16 functional/intake mode + §14 developer alias, ADR-98, and **2026-07-31 for the v6.0 one-round-trip boot** — one CC-side command (`/handoff-verify`) runs the whole live gate and emits ONE evidence block the operator pastes once, plus the P0 standing-topic legs, the `Destination` boot-header row + its P3 comparison, the `HANDOFF_BOOT` byte budget, and the A11 generation/verification guards; intake #19 §B(b), rulings R1..R7, built under [#446]; and **2026-07-31 for the v6.0.1 `Destination` branch-field clarification** — the field is the BOOT DESTINATION compared once by P3 at boot, so `main` is legal for a primary-tree architect seat and lane branches are declared at delegation, §13(c″), architect ruling, revertable); and **2026-08-07 for the v6.1.0 boundary invariants
+Protocol: `protocols/HANDOFF_PROCESS.md` — **v7** (stamp v7.0.0, *stable*; ADR-82, operator-ratified 2026-06-11 per #149, amended 2026-06-16 for the v5.1 architect strategic supplement, 2026-06-17 for the v5.2 always-generated supplement file, 2026-06-25 for the v5.3 §5 probe-manifest consolidation, 2026-07-05 for the v5.4 §5 structural anti-bluff + §13 generator note, 2026-07-05 for the v5.5 §14 epic-lane handoffs — EPIC + EPIC RETURN, ADR-97, 2026-07-06 for the v5.6 §14a execution-MODE item, 2026-07-07 for the v5.7 §16 functional/intake mode + §14 developer alias, ADR-98, and **2026-07-31 for the v6.0 one-round-trip boot** — one CC-side command (`/handoff-verify`) runs the whole live gate and emits ONE evidence block the operator pastes once, plus the P0 standing-topic legs, the `Destination` boot-header row + its P3 comparison, the `HANDOFF_BOOT` byte budget, and the A11 generation/verification guards; intake #19 §B(b), rulings R1..R7, built under [#446]; and **2026-07-31 for the v6.0.1 `Destination` branch-field clarification** — the field is the BOOT DESTINATION compared once by P3 at boot, so `main` is legal for a primary-tree architect seat and lane branches are declared at delegation, §13(c″), architect ruling, revertable); and **2026-08-07 for the v6.1.0 boundary invariants
 at the cut** — generation refuses while a committed batch manifest declares an open batch
 (WINDOW = BATCH) and refuses over a linked worktree or a live stash (NO LEFTOVERS), plus the §13
 supplement-authorship re-statement and the successor-boot dispatch-visibility note; and

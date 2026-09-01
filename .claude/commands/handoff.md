@@ -1,5 +1,5 @@
 ---
-description: Generate or complete a handoff per HANDOFF_PROCESS.md v6 — CC-owned residual + thin browser boot
+description: Generate or complete a handoff per HANDOFF_PROCESS.md v7 — CC-owned residual + thin browser boot
 ---
 
 Invoked by Rob saying one of:
@@ -9,7 +9,7 @@ Invoked by Rob saying one of:
 `<repo>` defaults to `.dev-knowledge` (self-handoff). A different repo name is a
 cross-repo handoff (read-only on the target — ADR-36/41).
 
-**Source of truth:** `protocols/HANDOFF_PROCESS.md` (v6, canonical). This skill is a dispatch
+**Source of truth:** `protocols/HANDOFF_PROCESS.md` (v7, canonical). This skill is a dispatch
 summary, not a substitute. Where they disagree, the spec wins — fix the divergence.
 
 ## Modes & exact invocation (operator copy-paste)
@@ -56,9 +56,9 @@ overrides the bundle folder (default `<date>-<repo>-<mode>`); `--repo` / `--date
 display name / date; `--no-assemble` skips `PASTE_THIS` (architect / execution). Consuming a
 generated bundle (booting the browser) is `docs/handoffs/README.md`.
 
-## v5/v6 (canonical — default flow; HANDOFF_PROCESS v6 / ADR-82)
+## v5/v6/v7 (canonical — default flow; HANDOFF_PROCESS v7 / ADR-82)
 
-HANDOFF_PROCESS **v6** is canonical at `protocols/HANDOFF_PROCESS.md` (CC-owned handoff,
+HANDOFF_PROCESS **v7** is canonical at `protocols/HANDOFF_PROCESS.md` (CC-owned handoff,
 thin browser boot, teeth-y forced read — model C) since the #149 flip (2026-06-11; v4.4
 archived to `protocols/archive/HANDOFF_PROCESS_v4.4.md`). The v5 lineage is the **default** flow;
 **v6** (2026-07-31, [#446]) reshapes only the *transport*: one CC-side `/handoff-verify` run emits
@@ -80,7 +80,7 @@ hand-copied process or methodology.** At handoff time it pulls live:
 - the **methodology** — as **pointers** to `PLAYBOOK` / `ESSENTIALS` / `CLAUDE.md`, never as
   copied prose (a hand-copy drifts — the `/review` vs `/codex review` class).
 
-**v5/v6 behavior** (governed by `protocols/HANDOFF_PROCESS.md` — read it, don't restate
+**v5/v6/v7 behavior** (governed by `protocols/HANDOFF_PROCESS.md` — read it, don't restate
 it here):
 - Emit the **residual** to `docs/handoffs/<slug>/` — un-committed reasoning + pointers +
   **drift-flags as the headline** (from `validate_doc_claims` #89 + `validate_git_backlog`
@@ -98,7 +98,7 @@ it here):
 §13 — read it, don't restate it here). The generator takes an optional mode parameter, default
 `execution`, selecting the residual **profile** + browser **posture**. Parse it alongside the
 `v5` flag: `… v5` / `… v5 execution` → execution; `… v5 architect` → architect. Mode applies
-**only** in the v5/v6 lineage — v4.4 has no modes. Three further generator flags exist
+**only** in the v5/v6/v7 lineage — v4.4 has no modes. Three further generator flags exist
 (`scripts/gen_handoff.py`, not §13 residual profiles): `epic` (§14a scope-contract bundle),
 `developer` (additive alias of epic per ADR-98 — bundle header renders `epic` until the
 deferred naming flip), and `functional` (§16 one-file intake-capture boot, no probes).
