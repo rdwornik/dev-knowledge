@@ -1056,20 +1056,34 @@ section is ever re-titled — the parser keys on it literally, not on a heading 
 
 ```
 ESSENTIALS de-bless    asked 2026-09-01  re-asked 3  visible-fix: 12f4113a (CLAUDE.md sends
-                       nobody to protocols/ESSENTIALS.md; its status: superseded)
-VISION.md out of root  asked 2026-09-01  re-asked 2  blocker: ARCHITECTURE.md + README.md are
-                       FRESHNESS_FILES; the A2 gate makes the edit require a genuine end-to-end
-                       re-read. Owner: batch-F L5 / [#621]
-logs thinning          asked 2026-09-01  re-asked 1  blocker: three flat globbers must resolve
-                       bucketed paths BEFORE the exemption retires. Owner: batch-F L3 / [#626]
+                       nobody to protocols/ESSENTIALS.md; its status: superseded).
+                       RESIDUAL, filed not fixed: SESSION_SETUP.md Step 2 (x3) + Step 4 and
+                       DEFINITION_OF_DONE.md's closing See-also STILL send a reader there.
+                       Owner: [#628], deferred to batch G after the v1.5.0 tag.
+VISION.md out of root  asked 2026-09-01  re-asked 2  visible-fix: 441b08d8 (batch-F L5 / [#621]
+                       -- VISION.md -> docs/archive/VISION.md, content byte-identical, both
+                       blobs 61bd603e). PARTIAL: canonical_docs.py:160 and
+                       conformance-hub.js:133 still name the vanished ROOT file, and the
+                       freshness gate SILENTLY SKIPS an absent file. Row deliberately OPEN.
+logs thinning          asked 2026-09-01  re-asked 1  visible-fix: 6241e5a8 (batch-F L3 /
+                       [#626] -- the three HUB callers re-pointed, caller-first order honored).
+                       PARTIAL and the residual is the live half: the DEPLOYED plugin copies
+                       (propose_closures.py:323, review_closures.py:232) and
+                       fleet_health.py:576 still glob FLAT, and the Stop hook runs the plugin
+                       copy. Row deliberately OPEN.
 config/ fate           asked 2026-09-01  re-asked 1  blocker: ROOT-R1 unlanded
-dashboard home         asked 2026-09-01  re-asked 1  blocker: docs/ placement is batch G
+dashboard home         asked 2026-09-01  re-asked 1  visible-fix: 3a4066eb (ruled to
+                       docs/dashboard/, four carriers reconciled, intake #66 DRAFT->READY).
+                       Blocker remaining: the folder awaits a Tier-2 ADR-101 genre admission
+                       before it may exist; a root dashboard/ is withdrawn.
 ```
 
-Row 1 carries a visible-fix and is GREEN. Rows 2–5 carry a named, dated blocker and are
-below the `re-asked >= 2` RED threshold except row 2 (`re-asked 2`, blocker present — the
-blocker discharges the RED per the rule above; RED fires only on `re-asked >= 2` **with no**
-visible-fix **and no** named blocker).
+**Updated 2026-09-01 by the batch-F integrator.** Rows 1, 2, 3 and 5 now carry a visible-fix
+with a real SHA; rows 2, 3 and 5 are recorded as **PARTIAL**, naming precisely what did NOT
+land, because a partial fix reported as whole is worse than an open ask. Row 4 keeps its
+blocker. **No row is RED** — RED fires only on `re-asked >= 2` with **no** visible-fix **and
+no** named blocker, and every row now carries at least one. Row 2 (`re-asked 2`) would have
+been the RED candidate and is discharged by a landed SHA rather than by a promise.
 
 ### 17.2 The two organs — a library, and an extended tripwire, not a rival
 
