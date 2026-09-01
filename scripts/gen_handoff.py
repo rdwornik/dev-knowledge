@@ -555,16 +555,33 @@ def _vision_extract(repo_root: Path) -> str:
     line up to the next `## `-level heading or EOF, stripped). Degrade contract: a
     generator that cannot compute this must never guess it — on a missing file or a
     missing `## Vision` section, return a literal, unmistakably-a-placeholder string
-    rather than inventing prose."""
-    vision = repo_root / _cdocs.VISION
-    if not vision.exists():
-        return _cdocs.VISION_EXTRACT_MISSING
-    text = vision.read_text(encoding="utf-8")
-    m = re.search(rf"^{re.escape(_cdocs.VISION_EXTRACT_HEADING)}\s*\n(.*?)(?=^## |\Z)",
-                  text, re.DOTALL | re.MULTILINE)
-    if not m:
-        return _cdocs.VISION_EXTRACT_MISSING
-    return m.group(1).strip()
+    rather than inventing prose.
+
+    RETIRED-TIER FALLBACK, REGISTRY-DRIVEN ([#614], 2026-09-01). When the registry has
+    retired VISION (`canonical_docs.CANONICAL_RETIRED`) and the root file is gone, the live
+    `## Vision` H2 is README.md's — ADR-114 made README the front door, DC-1 moved the
+    content there, and `templates/handoff/v5/PROBES.md.tmpl` P1a already points at it.
+    Falling back keeps the degrade contract honest in the direction that matters: the
+    placeholder means "cannot compute", and after a ruled relocation it CAN be computed, so
+    degrading every new handoff bundle would be inventing an absence rather than reporting
+    one. The fallback fires ONLY for a retired name — a non-retired VISION that goes
+    missing still degrades, because that is a real defect a boot should surface."""
+    def _section(path: Path) -> "str | None":
+        if not path.exists():
+            return None
+        text = path.read_text(encoding="utf-8")
+        m = re.search(rf"^{re.escape(_cdocs.VISION_EXTRACT_HEADING)}\s*\n(.*?)(?=^## |\Z)",
+                      text, re.DOTALL | re.MULTILINE)
+        return m.group(1).strip() if m else None
+
+    found = _section(repo_root / _cdocs.VISION)
+    if found is not None:
+        return found
+    if _cdocs.VISION in _cdocs.CANONICAL_RETIRED:
+        found = _section(repo_root / _cdocs.README)
+        if found is not None:
+            return found
+    return _cdocs.VISION_EXTRACT_MISSING
 
 
 def _intake_index(repo_root: Path) -> str:

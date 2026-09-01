@@ -141,9 +141,18 @@ def test_check_canonical_structure_keys_come_from_the_registry():
 
 
 def test_check_vision_md_uses_the_registry_name():
+    """The absence message names the registry's string, not a literal.
+
+    The message changed shape in [#614] (2026-09-01): `VISION` is now in
+    `CANONICAL_RETIRED`, so absence reports NOT-APPLICABLE rather than FAIL. The
+    assertion this test exists to make is unchanged -- the NAME comes from the registry --
+    and it is now evidenced twice over, since the message also names the registry
+    constant that decided the verdict.
+    """
     from audit_checks.check_vision_md import check_vision_md
     findings = check_vision_md(Path("/nonexistent-repo-root"))
-    assert findings[0].evidence == f"{cdocs.VISION} absent at repo root"
+    assert cdocs.VISION in findings[0].evidence
+    assert "CANONICAL_RETIRED" in findings[0].evidence
 
 
 def test_validate_doc_rot_reads_the_registry():
