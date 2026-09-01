@@ -3287,6 +3287,42 @@ and what the operator's direction actually reaches, is narrower:
 > Two facts stay unverified from `docs/intake/2026-08-22-tech-document-dependency-graph-organ.md`:
 > installability under the pinned `uv`, and Windows wheels. **Zero code this pass.**
 
+## AA. The REJECTIONS REGISTER — considered and refused, so they are not relitigated (operator, 2026-09-01)
+
+**Why this section exists.** `scripts/assemble_paste.py` raised **promotion-debt** on the batch-F
+supplement: a ruling-bearing "considered + rejected" list was folded into a handoff bundle, which
+is an expiring artifact, when its whole purpose is to be durable. A rejection that lives only in a
+bundle gets relitigated by the next seat that never read that bundle. This is its durable home.
+
+**Each line is a REFUSAL WITH ITS REASON.** The reason is the load-bearing half — a bare "no"
+invites the question back; a measured "no" closes it. **A rejection is reopened by NEW EVIDENCE
+against its stated reason, never by a fresh opinion.**
+
+```
+LangGraph-class orchestration for the hub
+    Layer-2 NEVER EXECUTES; the moat is gates and contracts, not an orchestrator (A6 record).
+Fibonacci / golden-ratio graph aesthetics
+    Refused outright.
+TFP-class probabilistic inference over a ~1k-row corpus
+    R-A measured sqlite answering the same questions in 1-4 ms.
+Harbor adoption NOW
+    DM-1 measured RISK RELOCATION, not effort reduction (its own section 8 verdict (b)).
+Deleting codex/ or conformance.html
+    Live consumers MEASURED. Deletion would break a reader that exists.
+Cost caps on codespace before any spend
+    Measure first; a cap set before a measurement is a guess with authority.
+A root dashboard/ folder
+    docs/dashboard/ ruled instead -- universal via the docs-tree carrier.
+ecosystem/dashboard
+    Hub-only and non-scalable; a per-repo organ cannot live in a hub-only tree.
+A SKIP=-based v7 bump
+    ATOMIC-AT-INTEGRATION ruled instead, and executed that way 2026-09-01 (d2fd7537).
+```
+
+**Provenance.** Operator ruling 2026-09-01, recorded in the batch-F architect supplement
+(`docs/handoffs/2026-09-01-dev-knowledge-architect-v7/SUPPLEMENT.md` §3) and promoted here in the
+same arc, on the assembler's own promotion-debt signal (intake #18 A8).
+
 ## Editing note (read before adding an entry)
 
 This file sits inside the silent-rule ratchet corpus (`protocols/*.md`; detector

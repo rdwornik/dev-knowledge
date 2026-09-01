@@ -12,7 +12,7 @@
 | **Destination** | worktree <!-- FILL-IN:dest-worktree START (hand-authored — the worktree name, or `none (primary tree)`) -->`none (primary tree)`<!-- FILL-IN:dest-worktree END --> · branch `main` · write-scope <!-- FILL-IN:dest-scope START (hand-authored — what this lane may write; PROSE, deliberately outside P3) -->planning and rulings only — no build. If a fix is ruled in, it becomes a batch-G lane contract, not an edit from this seat<!-- FILL-IN:dest-scope END --> · MODE **architect** — basis <!-- FILL-IN:dest-mode-basis START (hand-authored — WHY this mode, per ADR-87 item 5; PROSE, deliberately outside P3) -->the open items are DECISIONS, not tasks — which rows to fix, whether an L5 RED made of pre-existing suite failures may gate a substrate default, and whether `routing` moves from OPERATOR to REPO. ADR-87 item 5: judgment scope, so architect<!-- FILL-IN:dest-mode-basis END --> |
 | **Generated at** | Bundle cut by `scripts/gen_handoff.py` from **committed** repo state on branch `docs/v7-bundle`. This line names only which branch was checked out — it states **no** sha, count, or verdict. **Re-derive HEAD / tree-clean / branch / ahead-behind live** (`PROBES.md` P3). |
 
-> **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 > **The `Destination` row is declared ex-ante — a lane inherits none of it from a prior prompt.**
 > Only its **branch** field has a mechanical counterpart: `PROBES.md` **P3** compares it against
@@ -69,7 +69,7 @@ If your project instructions do not carry this contract at this version+sha, say
 > = reconstructed from the JOURNAL/git window, may have moved (the load-bearing ones are re-checkable
 > via `PROBES.md`); `unknown` = stated as such.
 
-> **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 ---
 
@@ -195,7 +195,7 @@ the whole task-state.
 > branch is checked out so CC knows which live value to compare — **re-derive HEAD / tree / branch /
 > ahead-behind live (P3); do not trust this line.**
 >
-> > **`SUPPLEMENT.md` is generated EMPTY.** Until the operator fills it (`supplement filled`) the ANSWERS region is empty -> the assembler folds nothing -> the incoming §13(d) operator-context beat fires **FULL** (a full off-repo ask), not the narrowed *"anything changed since?"*.
+> > **`SUPPLEMENT.md` is FILLED.** Its ANSWERS fold into `PASTE_THIS.md`; the incoming §13(d) operator-context beat **NARROWS** to *"anything changed since the supplement was written?"*.
 >
 > **Windows note:** `audit.py checks` (P2) can crash mid-listing on a bare cp1252 PowerShell console
 > (a non-ASCII glyph in a check docstring) — run with `PYTHONUTF8=1` (or `PYTHONIOENCODING=utf-8`); this
@@ -242,7 +242,7 @@ backlog navigates** (§13c), not this read.
 **Gate:** the architect may not proceed to design until it **holds both orienting lines** — read live
 by CC, substring-matched. **Then, before design, the operator-context beat fires (§13d):** the browser
 asks the operator for **off-repo** context.
-This bundle's supplement is **generated EMPTY**, so the beat fires **FULL** — *"what off-repo context: intent, priorities, findings not in the repo, changed decisions?"* — not a narrowed "anything changed since?". (If the operator runs `supplement filled`, its ANSWERS fold in and the beat narrows.)
+The operator has **filled** the supplement, so its ANSWERS are in the paste and the beat **NARROWS** to *"anything changed since the supplement was written?"*.
 
 ## Teeth probes (state fidelity — same contract; **answers deliberately withheld, §5**)
 
@@ -281,4 +281,86 @@ This bundle's supplement is **generated EMPTY**, so the beat fires **FULL** — 
 
 ---
 
-=== END OF PASTE — 4 sections · 27307 bytes ===
+=== SUPPLEMENT.md ===
+
+**1. Strategic intent — flip the operating mode from PUSH to PULL.** The seat stops carrying
+state and starts answering `/boot-session`'s proposals: **repo proposes** (frontier, priorities,
+next batch), **browser rules**, **operator decides**. The next session's way-of-working goal: run
+the FIRST window that opens with `/boot-session`, executes `[#632]`'s n=2 acceptance, tags
+v1.5.0, and performs the monorepo instantiation **attended** — proving the engine **deploys**,
+not just governs itself.
+
+**2. Tensions weighed.**
+- **(a) speed vs trust — resolved for TRUST.** Terra pre-merge on every lane (~11 min/pass),
+  after measuring **9 of 17 merges unreviewed**.
+- **(b) visible shrinkage vs honest blockers — resolved for HONESTY.** VISION and ESSENTIALS
+  waited for real re-reads and a fleet census rather than fake stamps.
+- **(c) codespace-now vs window-close — resolved by doctrine option 4 + a PARKED precondition.**
+  Local lanes ran; the codespace proved transport+gates but stays **NON-DEFAULT** until the n=2
+  long-run acceptance.
+- **(d) operator visibility vs token cost — resolved by ORGANS** (ledger, atlas, OPERATOR ASKS
+  with `re-asked` RED) instead of chat answers.
+
+**3. Considered + rejected — DO NOT RELITIGATE.**
+- LangGraph-class orchestration for the hub — Layer-2 never executes; the moat is gates and
+  contracts (A6 record).
+- Fibonacci / golden-ratio graph aesthetics.
+- TFP-class probabilistic inference over a ~1k corpus — R-A: sqlite answers in 1–4 ms.
+- Harbor adoption NOW — DM-1 measured **risk relocation**, not effort reduction.
+- Deleting `codex/` or `conformance.html` — live consumers measured.
+- Cost caps on codespace before any spend.
+- A root `dashboard/` folder — `docs/dashboard/` ruled, universal via the docs-tree carrier.
+- `ecosystem/dashboard` — hub-only, non-scalable.
+- A `SKIP=`-based v7 bump — atomic-at-integration ruled instead.
+
+**4. Open questions.**
+- `[#632]` acceptance **n=2** (M-sonnet + S + fuse test) — the hang's root cause is still only
+  **bounded, not named**.
+- `[#628]` ESSENTIALS dissolution scope — 10 consumers, rides with v1.5.0.
+- ROOT-R1 `config/` verdict — FILL vs DISSOLVE into `pyproject`; census dispatched, **unruled**.
+- intake #66 ratification — operator's.
+- the scoring model for `/boot-session` — the BOOT-R1 artifact landed, the model is **unpinned**.
+- `[#617]` distiller Tier-L design — eval-loop precondition met, build **unscheduled**.
+- the equilibrium-map + history-delta bundle sections — batch-G seed.
+
+**5. Decomposition rationale.** Batches are **file-disjoint frozen lanes with ONE serial
+integrator** (Monitor-Object) because every defect class measured —
+*five-lanes-consistent-alone*, *root-copy-vs-executing-copy*, *amendment-cannot-subtract* — is
+**only catchable at integration**. **Do NOT redo:** the seven-predicate validator, the manifest
+`closed_by:` exemption, terra pre-merge, R-MODELS routing (sonnet workers), the four-option
+substrate doctrine, optimum-6 / ceiling-12. **The next seat inherits a working machine; its job
+is throughput and deployment, not re-architecture.**
+
+**6. Off-repo intent — changed this window.**
+- Priority order **hardened**: **monorepo deployment FIRST**, ai-council second, win-tooling
+  receives migration **last** though it remains consumer #1.
+- **Token economics matter**: enterprise/free quotas before Anthropic quota — **measured, not
+  capped**.
+- The **master's thesis is the AUTONOMY arc's North Star** — adversarial debate as decision
+  mechanism, flip-conditions on every ADR.
+- The operator wants **pull-mode urgently** — handoffs shrink to `/boot-session` + residual.
+- **Codespace-as-default is a standing operator expectation**, gated only by the n=2 proof.
+
+**7. Ratified-in-chat register — NOT yet in the repo.**
+```
+term                                   definition                                durable home
+OPERATOR ASKS re-asked>=2 => RED       a twice-asked ask with no visible-fix      landed in #66 --
+                                       and no named blocker renders RED           VERIFY the digest
+                                                                                  renders it
+boot-* prefix-first command naming     commands sort by boot-* prefix             census candidate;
+                                                                                  commands+skills
+                                                                                  census row
+TRACE before VIEW                      the trailer/signal lands BEFORE any        recorded in #66
+                                       panel renders it
+equilibrium map + history delta        two GENERATED /boot-session sections       batch-G seed --
+                                                                                  NEEDS A ROW ID
+integration=LOCAL always /             the four-option substrate doctrine,        VERIFY the dispatch
+read-only=CLOUD /                      one line per axis                          chapter carries all
+execution=CODESPACE-on-green /                                                    four VERBATIM
+local-execution=explicit-request
+```
+Everything else ratified this window is, to the operator's knowledge, already in tree with ids.
+
+---
+
+=== END OF PASTE — 5 sections · 32206 bytes ===

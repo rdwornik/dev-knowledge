@@ -19,6 +19,63 @@
 
 ---
 
+### 2026-09-01 (aq) - CC (Opus 5): the ratified-in-chat register discharged, and one VERIFY failed
+
+> **Re-lettered (ap) -> (aq) at merge time.** A concurrent seat took `(ap)` on main while this
+> arc was unmerged; `journal_day_letters` FAILs on duplicates. This entry is the NEWER of the
+> two — it cites that seat's merge — so it sits above it.
+
+**Anchors:** `1fb0b9cd`, `296321f4`, `33a5c867`
+
+**Did:** discharged the operator's ratified-in-chat register against the tree rather than
+asserting it, filed the batch-G seed as a real row, and promoted a rejections list out of an
+expiring bundle.
+
+**VERIFY 1 PASSED, VERIFY 3 FAILED — and the failure is the useful one.** The `re-asked >= 2 =>
+RED` rule renders correctly (exercised with a synthetic row: no fix + no blocker → `1 RED / 1
+total`; add a visible-fix → `0 RED`). But *"the dispatch chapter carries all four axes verbatim"*
+was **false**: `local-execution` and `explicit-request` had **zero occurrences anywhere in
+PLAYBOOK.md**. The doctrine existed only as the Q1–Q4 routing table in different words, and the
+fourth axis was **absent outright**. It now lands verbatim in Ch8 Layer 1.
+
+**THE GATE TAUGHT ME THE FORMAT.** My first version fenced the four axes, and `dispatch_drift`
+FAILED on all four — that chapter's fences mean *a literal command a seat copies*, and the check
+resolves every fenced token via `Get-Command`. De-fenced, with the reason recorded inline so the
+next author does not repeat it.
+
+**A STALE MEASUREMENT FOUND ON THE WAY.** Q1 claimed the container's `uv` is *"pinned-but-WRONG
+(0.8.17)"*. Two independent 2026-09-01 witnesses measured **0.11.19, an exact match to the pin**.
+Superseded in place with both citations.
+
+**MY OWN PREMISE MOVED UNDER ME, AND THE OTHER SEAT WAS RIGHT.** I wrote that codespace *"stays
+NON-DEFAULT until the n=2 acceptance"*. While I was writing it, a concurrent seat **landed that
+acceptance**: two lanes, two codespaces, both end-to-end and both pushing from inside; the hang
+measured out (`294.07 s` real against `8 m 23 s` user — CPU proportional to wall-clock, the
+inverse of the 75-min/3-s signature); L5's RED isolated to **content**, sixteen hub tests failing
+on their own merits. **I corrected my own text rather than land a contradiction.** Their root
+cause also supersedes mine: I worked around the `cp` failures with `-LegacyScpProtocol $false`;
+they found *why* — gh's `--` block was appended **AFTER the operands**, so `-- -O -i KEY` was
+never a passthrough and the flags became file operands. A symptom fix against a root cause.
+
+**PROMOTION-DEBT DISCHARGED, NOT DEFERRED.** `assemble_paste` flagged that a ruling-bearing
+*"considered + rejected"* list was folded into an **expiring** bundle. A rejection that lives only
+in a bundle gets relitigated by the next seat who never read it. Promoted to
+`STANDING_RULINGS.md` **§AA — the REJECTIONS REGISTER**: nine refusals, each **with its reason**,
+reopenable only by new evidence against that reason.
+
+**`[#611]`'s two bars are in TENSION, measured both ways.** Folding the supplement raised
+window-specific 31% → 43% and pushed size 34% → 58% over. Reaching 70% requires adding
+window-specific content, which worsens size; reaching 20 KB requires cutting it, which worsens
+the ratio. The only lever serving both is the **generic** half (session header + PROBES ≈ 80% of
+the payload). A design constraint, not a measurement error.
+
+**Changes:** `protocols/PLAYBOOK.md` Ch8 (four axes + Q1 supersession), `STANDING_RULINGS.md`
+§AA, `tasks/633-*` + manifest + `BACKLOG.md`, the bundle's `SUPPLEMENT.md` ANSWERS + integrator
+footnote, `PASTE_THIS.md` re-assembled, the history-delta artifact §5.
+
+**Abandoned:** nothing.
+
+**Next:** the window is the operator's to declare closed.
 ### 2026-09-01 (ap) - CC (Opus 5): codespace becomes the default substrate, and the proof lane audited the runner it ran under
 
 **Anchors:** `1fb0b9cd`
