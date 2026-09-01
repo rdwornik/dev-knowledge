@@ -19,6 +19,51 @@
 
 ---
 
+### 2026-09-01 (ag) - CC (Opus 5): six lanes local, and the codespace hang measured down to three seconds of CPU
+
+**Anchors:** `cd80ed66`
+
+**Did:** dispatched the six remaining batch-F lanes LOCAL under doctrine option 4, ran the bounded
+inference diagnostic, amended `[#554]`'s concurrency numbers on the operator's ruling, and filed
+`[#632]` with the honest codespace status.
+
+**THE SIX ARE UP** — `lane-b-2` … `lane-g-7`, all `sonnet` / `high`, each on its own
+`worktree-<slug>`, up in 5–11 s. **`-Model` had to be passed explicitly**, because the verb still
+defaults to `opus`: that is `[#631]` leg (i) firing in the very dispatch that ran under it.
+
+**THE HANG IS MEASURED, NOT GUESSED, AND THE DISCRIMINATOR IS CPU.** Attempt 3 sat for **1 h 15 m
+with three seconds of CPU** — `utime/stime` unchanged across a 5-second sample, `wchan = ep_poll`,
+no children, no file written anywhere in the workspace, receipt 0 bytes — **after** successfully
+fetching `remote-settings.json` nine seconds in. So auth worked, egress worked, and the process
+then blocked on a call that never returned and that nothing bounds. **"Quiet for a while" and "3 s
+of CPU in 75 minutes" look identical from outside and are completely different facts;** the second
+one is a hang and it is what let me raise it instead of waiting it out.
+
+**AND THE BOUNDED PROBE SAYS TRANSIENT.** A fresh codespace, `claude -p "reply OK"` under
+`bash -lc` with a 180 s timeout, twice: **`sonnet` api 2036 ms, `claude-opus-5` api 1871 ms, both
+`is_error:false`, both EXIT=0.** Not a model alias, not an entitlement, not egress. **Said with its
+limit:** one trivial turn proves the auth/egress/model path and proves nothing about a long agentic
+run — which is exactly where attempt 3 died. First real credit numbers came free: **$0.0991 sonnet
+vs $0.2162 opus for the identical prompt, 2.2×.**
+
+**THE WATCHER HAS NO SUBJECT, and that is a finding rather than an obstacle.** `claude -p
+--output-format json` emits one blob at the END, its only fds point at `receipt.json`, and
+`~/.claude/sessions/` is **empty**. There is nothing to `tail` and no honest one-line peek to hand
+the operator. The observable subject is the **workspace** — newest mtime, git state, child count,
+and the CPU delta. `stream-json` to a real log file is now in `[#632]`'s Done-when for that reason.
+
+**`[#554]` AMENDED, and the correction is about how a number became a rule.** Its *"measured
+admission ceiling of 6 concurrent lanes"* was **one window's observation**, never re-measured, and
+was being cited as a bound. Ruled shape: **optimum 6, ceiling 12**, sentinel warns **above 12
+only** — a warning at 7 would smuggle the optimum back in as a ceiling. Nine lane worktrees ran
+concurrently at the ruling and were **left running deliberately**.
+
+**Changes:** `tasks/554-*.md`, `tasks/632-*.md` (new), `tasks/manifest.json`, `BACKLOG.md`,
+`JOURNAL.md`.
+
+**Next:** watch the six to commit; harvest `boot-r1-survey` when it is DONE (L2 consumes its
+scoring seam); merge the dashboard filing when its lane STOPs.
+
 ### 2026-09-01 (af) - CC (Opus 5): L2 reissued for OPERATOR ASKS, and a cost-leak fix I could not land
 
 **Anchors:** `68597ebd`
