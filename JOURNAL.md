@@ -19,6 +19,51 @@
 
 ---
 
+### 2026-09-01 (ak) - CC (Opus 5): batch F closed - eight lanes merged, zero rows closed, and that is the batch working
+
+**Anchors:** `faf9db8d`, `dd471c31`, `7313400a`, `8fbca730`
+
+**Did:** landed the batch-F close packet at the `closed_by:` identifier, which **kills the
+ADR-110 declared-integration-arc exemption**. This entry anchors the two merges that were
+either exempt or uncovered, so the spine is clean at the moment the exemption expires rather
+than a second after it.
+
+**`worktree-lane-632-codespace-proof` WAS NEVER EXEMPT, and the gate said so.** `LANE_BRANCH_RE`
+is `^worktree-lane-[a-z]-\d+-<slug>$`; `lane-632` matches `lane-[a-z]-\d+` nowhere. So the proof
+merge `5f42d86e` needed a real anchor even mid-batch — named here via `dd471c31`/`7313400a`.
+`faf9db8d` is L6's, exempt until this packet landed and anchored here because it no longer is.
+
+**EIGHT LANES MERGED, ZERO ROWS CLOSED.** Terra pre-merge ran on all nine merged branches
+(amendment 2, including the branch that changed no code): **16 real defects, 4 tensions, one
+clean pass, one finding discharged with counter-evidence.** Five rows stay OPEN because the
+defect defeats the row's own purpose — `[#630]`'s predicate is never invoked and passes
+vacuously; `[#276]`'s waiver fails open on expired dates; `[#626]` left the DEPLOYED plugin
+copies globbing flat while the Stop hook runs exactly those; `[#621]` left a freshness gate
+pointing at a vanished file, where absent means SILENTLY SKIPPED, so it reports green while
+checking nothing; `[#627]`'s REFUSE rests on unreproducible evidence and arithmetic that
+contradicts its own rubric.
+
+**`[#632]`'s PROOF LANE REPORTED — the operator's window-close precondition is satisfied.**
+1156 s in the container, remote exit 0, two commits, pushed from inside. L1–L4 and L6 GREEN,
+**L5 RED**. Two Z-G3 W4 blockers are now measured CLOSED: `uv` IS present (0.11.19, exact match
+to the ADR-106 pin) and the clone is FRESH (`HEAD == origin/main` by fetch+rev-parse, not by
+trusting `git status -sb`). The third, `gh codespace cp`, was closed at dispatch. **Substrate
+stays NON-DEFAULT:** the ruling conditions that on green, the verdict is RED, and terra removed
+the argument that L5's RED is purely app-level.
+
+**Result:** worktree list == primary + one other seat's tree. Zero codespaces leaked. Two inert
+directories survive on disk under `.claude/worktrees/` (a process holds them) — a real
+"no leftovers" miss, recorded in the packet rather than hidden.
+
+**Changes:** `docs/audits/2026-09-02-technical-batch-f-close-packet.md` (new, the closer),
+`docs/audits/README.md` regenerated.
+
+**Abandoned:** nothing.
+
+**Next:** the v7 bundle with the `/boot-session` organ, ROLE PIN 7.0.0.
+
+---
+
 ### 2026-09-01 (aj) - CC (Opus 5): batch F integrated, v7 cut, and terra refused eight things
 
 **Anchors:** `837e8236`, `e9a0af90`, `4a7618bf`, `ac2b4dac`, `76e4bc46`, `5d6e106d`, `b8599fbc`
