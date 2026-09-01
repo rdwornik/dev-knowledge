@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "2001687116b266108e7f75dda352b1bc2b92a1c9f677f9c61ebeea5e8f80b66d",
+  "generated_sha256": "920174bc3919825b9c2e497367eb71bcb885b11db7d2b14e5ed215cf755a46f3",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -771,6 +771,10 @@
     {
       "task": 612,
       "file": "612-doc-rot-row-body-archival.md"
+    },
+    {
+      "task": 628,
+      "file": "628-dc2-recut-essentials-dissolution-is-a-release-act.md"
     },
     {
       "prose": "## [E6] Cross-repo universalization"
