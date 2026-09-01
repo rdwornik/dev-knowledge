@@ -19,6 +19,42 @@
 
 ---
 
+### 2026-09-01 (t) - CC (Opus 5): the two integrator defects become gate predicates, not incident notes
+
+**Anchors:** `3a224c3c`
+
+**Did:** filed `[#629]` and `[#630]` — the two integrator defects ruled this morning and recorded
+in the batch-E handover note as *"NOT yet filed as rows"*. Each is written as the predicate it
+should become, not as a description of what went wrong.
+
+**`[#629]` IS THE ONE WITH TEETH, BECAUSE THE LANE WAS NOT AT FAULT.** DC-3 was dispatched by
+APPENDING *"do not perform Act One"* to a frozen contract whose body still contained Act One in
+full, and the lane performed it — correctly, by the only artifact it was given. **An appended
+sentence is not a write-scope.** The general shape is what makes this a predicate rather than an
+incident: an amendment is ADDITIVE, both validator layers read the body as authored, and a body
+an amendment contradicts is still a *well-formed* body. So **any** subtractive ruling expressed as
+an amendment is invisible to every gate and visible only to a reader who happens to notice the
+contradiction. The remedy is a REISSUE, not a warning — regenerate the contract with the act
+removed, so what the lane reads and what the ruling says are the same bytes.
+
+**`[#630]` IS THE SAME CLASS THE MANIFEST ALREADY DOCUMENTS AT ITS OWN HEAD, ONE GATE LATER.** The
+manifest enumerates `lane-b-2-…`; what was dispatched and what carries the commit is
+`lane-b-3-…`. A name in two places with only a human keeping them equal — exactly the teardown-enum
+defect written up at the top of the batch-E manifest. The difference is that predicate 5 CAUGHT
+that one at freeze and nothing caught this one, because no predicate crosses from the contract to
+the manifest. The freeze gate validates contracts against the registry and against each other; it
+never validates the SET of contracts against the manifest that declares them. Set equality both
+ways, so a manifest naming a phantom lane fails as loudly as a contract no manifest names.
+
+**Kept as two rows on purpose.** `[#629]` is a contract contradicting itself; `[#630]` is two
+surfaces disagreeing. Different gate, different moment, different fix — folding them would produce
+one row that neither predicate could be tested against.
+
+**Changes:** `tasks/629-*.md`, `tasks/630-*.md`, `tasks/manifest.json`, `BACKLOG.md`, `JOURNAL.md`.
+
+**Next:** the batch-E close packet — which expires the ADR-110 exemption, already discharged by
+entry (r)'s anchors — then the batch-F derivation.
+
 ### 2026-09-01 (s) - CC (Opus 5): the DC-3 split lands, and a check that FAILed on a ruled retirement is fixed instead of the retirement being abandoned
 
 **Anchors:** `403a219b` · `9a242361` · `864c0fdb` · `e44bbdb3`
