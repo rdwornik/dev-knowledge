@@ -118,3 +118,64 @@ inode `76197`.
 stronger and more honest statement than the row above, which is why this amendment exists. The
 corrected per-layer read for L6 is: VERDICT GREEN; the failing intermediate state and its fix are
 recorded here, not silently absorbed into the original row.
+
+## AMENDMENT 2 (append-only) — independent second run, hardened dispatch script, [#632]
+
+This lane was re-dispatched after `dispatch-run.sh` was hardened (provision-stamp race guard,
+a named-by-token admission self-test, an idle-based fuse instead of a wall-clock cap,
+`stream-json --verbose` output). This section is a second, independent data point against the
+same six-layer contract — it does not supersede AMENDMENT 1 above, per this repo's
+audit-immutability rule.
+
+**Substrate:** GitHub Codespace `CODESPACE_NAME=lane-632-longrun-a-w95qprj5wq4cg67g`, hostname
+`codespaces-40ec8b`. **Start:** 2026-09-01T19:06:56Z. **This section written:** 2026-09-01T19:17:19Z.
+**Repo HEAD at dispatch:** `a1da45511c39e5130c0f0085dd4ed26df3f4991d` (advanced considerably past
+the prior run's `e96ad50c` — many commits landed between the two proof attempts, so raw pass/fail
+counts below are not comparable to AMENDMENT 1's numbers).
+
+| Layer | Verdict | Evidence |
+|---|---|---|
+| L1 TRANSPORT | GREEN | `CODESPACES=true`, `CODESPACE_NAME=lane-632-longrun-a-w95qprj5wq4cg67g` set in this shell's env; `whoami`=`vscode`, `hostname`=`codespaces-40ec8b`; `dispatch-run.sh`/`dispatch-run.log`/`LANE-632-codespace-longrun-proof.md` present at repo root, all with today's mtime, matching `dispatch-run.sh`'s own `claude -p "Read ... execute it exactly." --permission-mode bypassPermissions --output-format stream-json --verbose` invocation (line 119) — this transcript IS that invocation. **Limit:** as in AMENDMENT 1, "receipt returned" is not directly observable from inside the process that produces the receipt; `receipt.json` does not exist yet at time of writing because the redirect target is only finalized at this process's exit. |
+| L2 AUTH | GREEN, same caveat as AMENDMENT 1 | `env \| grep CLAUDE_CODE_OAUTH_TOKEN` → empty. `claude auth status` (fresh nested invocation) → `{"loggedIn": false, "authMethod": "none", ...}`. No `~/.claude/.credentials.json`, no `oauthAccount` key in `~/.claude.json`, no `apiKeyHelper`. Yet this exact session (`CLAUDE_CODE_SESSION_ID=ca1baeb0-9703-4b81-ab0f-5a074f1e0290`) has been calling tools and running shell commands throughout — it carries `CLAUDE_CODE_MESSAGING_SOCKET=/tmp/cc-socks/1080.sock`, `CLAUDE_CODE_MESSAGING_TOKEN`, `CLAUDE_CODE_CHILD_SESSION=1`, `CLAUDE_CODE_ENTRYPOINT=sdk-cli` — the same messaging-socket-mediated auth channel AMENDMENT 1 found, reproduced on a second, independently-provisioned codespace. **A newly-noticed admission-gate gap:** `dispatch-run.sh`'s own `adm_token` check (line 69) accepts `GITHUB_TOKEN` as satisfying "an API or OAuth token is named in the environment" (line 102); in this container `GITHUB_TOKEN` (a GitHub, not Anthropic, credential) was the only one of the five named variables actually present, so the admission gate would have declared `adm_ok=yes` on a token that cannot authenticate `claude` at all. The gate passed here only because the messaging-socket channel authenticated independently of what the gate checked — the gate's green and the real green are correlated by luck in this run, not by what the gate verifies. |
+| L3 CLONE | GREEN | `git fetch origin` clean; `git rev-parse HEAD` = `git rev-parse origin/main` = `a1da45511c39e5130c0f0085dd4ed26df3f4991d`. Proven by fetch+rev-parse per the runbook's instruction, not inferred from `git status -sb` alone (which independently agreed: `## main...origin/main`, no divergence). |
+| L4 TOOLCHAIN | GREEN | `which uv` → `/usr/bin/uv`; `uv --version` → `uv 0.11.19 (x86_64-unknown-linux-musl)`; `pyproject.toml` pins `required-version = "==0.11.19"` — exact match. Second independent codespace to reverse the originally-recorded ABSENT state; two-for-two now. |
+| L5 LONG-RUN | GREEN on the substrate question (completes, no hang); RED on exit code | `uv run --locked pytest -x --tb=short`: `41.86s` real / `55.76s` user / `7.23s` sys (bash `time` builtin; `/usr/bin/time` is absent in this container) → exit 2, `554 passed, 2 skipped` before stopping at 2 failures (`test_cloud_provisioning.py::test_the_gate_never_syncs_the_environment_it_is_asserting`, `test_audit.py::test_check_fleet_parity_green_on_live_repo`). A follow-up full run without `-x` (`--tb=line -q`) ran the entire 4861-item suite: `294.07s` real / `8m23s` user / `42s` sys → exit 1, `16 failed, 4832 passed, 12 skipped, 1 xfailed`. CPU time is proportional to wall-clock at both scales (user+sys ≈ 1.5–1.7× real, consistent with 2 xdist workers) — the opposite of the recorded 75-min-elapsed/3-second-CPU hang signature. No hang was observed at any point in this run. |
+| L6 COMMIT+PUSH | GREEN | This amendment, committed on `worktree-lane-632-codespace-proof` with `[#632]` and pushed to `origin` from inside this codespace — see the push output this lane's dispatch receipt will carry. `audit.py health` was run pre-commit and returned `health: OK` (WARN-only, no FAIL) before staging, so — unlike AMENDMENT 1 — no `dot_prefix_discipline` collision was expected or hit: `receipt.json` does not yet exist at commit time in this run, and none of this session's other untracked artifacts (`dispatch-run.log`, `dispatch-run.sh`, the `.md` lane file) carry a `dot_prefix_discipline`-scoped suffix (`.toml/.yaml/.yml/.json/.ini/.cfg/.conf`). |
+
+**L5 bounded-fix check (attempted, per the runbook's rule).** Before naming L5's two `-x` failures
+as unrelated pre-existing content, both were checked for a footprint interaction the way
+AMENDMENT 1 found one via `receipt.json`: `grep` of both failing test files for `dispatch-run`,
+`receipt.json`, or `LANE-632` returned nothing. Reading the first test
+(`test_the_gate_never_syncs_the_environment_it_is_asserting`) directly shows it asserts against
+`.devcontainer/provision.sh`'s own committed content (`"uv run --locked" not in code`) — a real,
+pre-existing script defect independent of any codespace or of this session, not a fixture this
+session could have perturbed. The second (`test_check_fleet_parity_green_on_live_repo`) asserts
+against live repo governance state (`VISION.md` undeclared, `boot-session.md` missing a manifest
+row) — again pre-existing content, not this session's footprint. **Conclusion: no stash-based
+bounded fix was attempted this run, unlike AMENDMENT 1, because the diagnostic step that would
+motivate one (a footprint match) came back negative before any fix was tried** — attempting to
+edit `.devcontainer/provision.sh` or the manifest/roster to turn these green would be governance
+content work several files outside this lane's artifact, and is out of scope per the runbook's
+own write-scope rule.
+
+## SUBSTRATE VERDICT (AMENDMENT 2): GREEN at L1–L4 and L6; RED at L5 (exit code only, not a hang)
+
+Two independent codespace runs (AMENDMENT 1 and this one) now agree: L1–L4 and L6 are reliably
+GREEN, L2's real auth mechanism is the messaging-socket channel rather than the
+`CLAUDE_CODE_OAUTH_TOKEN` the runbook and the dispatch script's own admission gate name, and L5
+never hangs but never exits 0 either — for reasons that are, on both occasions, pre-existing
+repo-content defects rather than a codespace-substrate fault. The operator's window-close
+question — "is a long run GREEN, or which layer fails" — has a stable, repeatable answer as of
+this second run: **the substrate itself (transport/auth-in-practice/clone/toolchain/commit+push)
+is GREEN; the named failing layer is L5, and it fails on content, not on hanging.**
+
+## Honest limits — what this second run does NOT prove (in addition to AMENDMENT 1's list)
+
+- Does not prove the admission gate's `GITHUB_TOKEN`-as-token-evidence gap has ever mattered in a
+  run where the messaging-socket channel was unavailable — this run cannot construct that
+  condition from inside itself, since the channel was live throughout.
+- Does not attempt to fix `.devcontainer/provision.sh` or the fleet-parity manifest gaps named
+  above; both are named, not fixed, per this lane's write-scope.
+- Raw pass/fail counts between AMENDMENT 1 and AMENDMENT 2 are not a trend line — real commits
+  landed on `main` between the two runs, so the two failure sets are drawn from different repo
+  states, not from two measurements of one fixed state.
