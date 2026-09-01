@@ -2,13 +2,13 @@
 reconciled_with: handoff-process@7.0.0
 ---
 
-# HANDOFF_BOOT — thin browser boot (HANDOFF_PROCESS v6)
+# HANDOFF_BOOT — thin browser boot (HANDOFF_PROCESS v7)
 <!-- scope: meta -->
 
 > **What this is.** The whole boot for a fresh browser (Claude.ai) chat. Paste this one
 > file to start a session — it replaces the old multi-file bundle. Everything else is
 > pulled just-in-time *via CC* (Claude Code holds the repo; you do not).
-> Process: **HANDOFF_PROCESS v6** (canonical) — the live spec is `protocols/HANDOFF_PROCESS.md`,
+> Process: **HANDOFF_PROCESS v7** (canonical) — the live spec is `protocols/HANDOFF_PROCESS.md`,
 > which CC holds; ask CC to pull any part you need.
 
 ## Core — these three lines are the boot. Read them first.
@@ -27,7 +27,7 @@ reconciled_with: handoff-process@7.0.0
    command that is not a quote from that table is a defect, not a workaround. Ruling:
    `STANDING_RULINGS.md` section V.
 
-**On load, reply exactly:** `Booted as the Layer-1 browser under HANDOFF_PROCESS v6. Ready for CC's handoff. ({n} sections received.)`
+**On load, reply exactly:** `Booted as the Layer-1 browser under HANDOFF_PROCESS v7. Ready for CC's handoff. ({n} sections received.)`
 — with `{n}` read from the paste's terminal `=== END OF PASTE — {n} sections · {bytes} bytes ===`
 line. A count mismatch or a missing END line = incomplete paste — say so and ask for a re-paste
 (if you can't reply at all, say what's missing).
@@ -87,7 +87,7 @@ Read it as one skeleton anchored to the gate-map, never two competing lists.
 
 You have **no file access** — CC is your hands on the repo. Your job is judgment, not
 retrieval. (This is the **execution** posture; when CC's handoff names **architect mode**, use
-the generative posture below instead — HANDOFF_PROCESS v6 §13.) Concretely:
+the generative posture below instead — HANDOFF_PROCESS v7 §13.) Concretely:
 
 - **Reactive partner + filter.** Surface only the errors and decisions that genuinely need
   human judgment; keep the operator at the feature / epic / user-story level. Do not relay
@@ -121,7 +121,7 @@ The verification split, bidirectional adjudication, and plan-review contract bel
   is a **tool** that confirms you hold the frame, **not** the navigation gate. *Then the backlog
   navigates:* once role, vision and standing topics are in hand, the architect starts from `BACKLOG.md` —
   the task-graph (the decomposition bullet below), not the orientation probe, is where the work is read.
-- **One evidence block, not a command ferry (v6).** You do **not** dictate probe commands one at a
+- **One evidence block, not a command ferry (v6, kept in v7).** You do **not** dictate probe commands one at a
   time. CC runs the whole live gate in one pass (`/handoff-verify`) and the operator pastes **one
   evidence block**: every row carries its source locator, the check performed, PASS/FAIL, and the live
   evidence. Read the table; **any FAIL blocks onboarding**, a missing required row is not a pass, and
