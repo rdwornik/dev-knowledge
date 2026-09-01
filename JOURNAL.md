@@ -19,6 +19,48 @@
 
 ---
 
+### 2026-09-01 (u) - CC (Opus 5): batch E closes on evidence, and two items stay open in the packet rather than being rounded up
+
+**Anchors:** `f2e120e7`
+
+**Did:** landed `docs/audits/2026-09-01-technical-batch-e-close-packet.md` — the path the manifest's
+`closed_by:` names — which is what expires the ADR-110 declared-integration-arc exemption. Ran the
+full suite once, at integration. Corrected a claim in the in-flight v1.5.0 manifest that its own
+tree falsifies.
+
+**THE PACKET IS WRITTEN AS EVIDENCE PER ITEM, NOT AS A REPORT, BECAUSE THE MANIFEST ASKED FOR
+THAT.** Its refuse-to-finish clause is deliberately hostile to a narrative close — *"Removing this
+manifest's `status: open` before that is closing the batch by assertion."* **Two items are NOT
+closed and say so in the packet.** One empty, git-invisible worktree directory held by the DC-3
+lane's still-live session (PIDs measured, not guessed — ending another session is the operator's
+call), and two Shutdown codespaces, one of which appears in no batch-E artifact at all.
+
+**`status: open` IS NOT EDITED, AND THAT IS THE MECHANISM WORKING.** `batch_manifest` resolves an
+open batch as tracked AND `status: open` AND `closed_by:` ABSENT from the tree. Landing the packet
+flips the third condition, so the exemption expires mechanically rather than by editing an
+immutable audit. Confirmed before the commit: with the packet still untracked the batch reads
+open; `unanchored_on_spine` returns the EMPTY LIST either way, because entry (r) anchored the four
+exempt merges hours ago. Had it not, this commit would have wedged every commit in the repo.
+
+**THE v1.5.0 MANIFEST WAS TELLING THE OPERATOR SOMETHING FALSE.** It recorded, as its reason for
+not declaring `readme-front-door`: *"The template does NOT EXIST; it remains the only canonical-doc
+template the corpus lacks."* `templates/README-md-template.md` is 96 lines and tracked, landed the
+same day in `eaaeafa2`. Corrected. **The FACT moved, the DECISION did not** — the component stays
+undeclared because its real remaining blocker is the next bullet, the C7 `doc_shapes` coupling that
+makes declaring it a release act.
+
+**Review coverage is stated as a number, because a number nobody states reads as full coverage.**
+Nine of fifteen committing lanes were independently reviewed: two pre-merge, six by the post-merge
+round, DC-3 by a two-pass loop. Five have none.
+
+**THE SUITE'S 12 REDs ARE ATTRIBUTED, NOT COUNTED.** All twelve node-ids were re-run in a detached worktree at this session's starting commit — and two of them needed help to be measurable at all (`--group analytics` for a missing pandas, a copied `node_modules` for an unvendored pyright), because skipping a baseline probe and calling the result *pre-existing* is a guess wearing a measurement's clothes. **Ten were already failing. One is a measure-while-measuring artifact** — `reverse_dep_oracle` passed at baseline and passes when re-run alone here. **One is ours, and it is arithmetic:** `BACKLOG.md` stood at 69,982 B against `[#589]`'s 70,000 B bar, so **18 bytes of headroom** meant any new row breached it, and filing `[#629]`/`[#630]` was an instruction. Trimming both titles recovered 123 B of 417; no trim recovers 400. **The bar was not raised** — `[#589]` is an open P1 row whose whole subject is *"a size assertion that cannot be silently undone"*, so quietly widening it to fit the first two rows that ever hit it is the exact act it exists to forbid.
+
+**A CITATION DIED ON A FULL STOP.** `consumer_at_landing` flagged two audits. `[#614]` cited one as a bare path ending `.md.` — and both token regexes refuse a match followed by `[A-Za-z0-9._-]`, so **the sentence period made a real citation invisible**. Backticked; it resolves. The second cannot be fixed by citing it at all: `LANE-w-1-wintooling-canonical-restamp.md` carries no `YYYY-MM-DD` prefix — the date is on its parent directory — so no citation anywhere can produce its token. Its siblings escape only by being grandfathered into the arm-time baseline. A structural blind spot in `[#595]`'s organ, recorded rather than worked around by amending an immutable artifact.
+
+**Changes:** `docs/audits/2026-09-01-technical-batch-e-close-packet.md` (new), `deploy/manifest-v1.5.0.yaml`, `tasks/614-*.md`, `tasks/629-*.md`, `tasks/630-*.md`, `tasks/manifest.json`, `BACKLOG.md`, `docs/audits/README.md`, `JOURNAL.md`.
+
+**Next:** the batch-F derivation for the architect's cut.
+
 ### 2026-09-01 (t) - CC (Opus 5): the two integrator defects become gate predicates, not incident notes
 
 **Anchors:** `3a224c3c`
