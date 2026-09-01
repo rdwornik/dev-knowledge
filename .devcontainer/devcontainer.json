@@ -85,14 +85,26 @@
   //
   // PORTABILITY is preserved, as with sshd: `devcontainer up` on a VPS installs the same feature.
   // F1 (2026-08-31): `ghcr.io/anthropics/devcontainer-features/claude-code:1.0` was REMOVED.
-  // Measured, twice, including on a `gh codespace rebuild --full` that busts the image cache:
-  // the feature leaves NO `claude` binary anywhere on the filesystem while `creation.log`
-  // records `Outcome: success`. A toolless container that reads as a successful build is the
-  // worst available failure shape -- a lane dispatched into it returns Ok=True in under a
-  // minute with an empty result. The install moved to `provision.sh`, which uses the install
-  // path Anthropic's own docs call recommended (`curl -fsSL https://claude.ai/install.sh`,
-  // native binary, no Node runtime dependency) and ASSERTS the binary afterwards, so the
-  // silent-success shape is structurally unavailable.
+  //
+  // RE-SCOPED 2026-08-31, SAME DAY, and the withdrawal is the honest half. The original text
+  // here read "the feature leaves NO `claude` binary while `creation.log` records
+  // `Outcome: success`", measured "twice, including on a `gh codespace rebuild --full` that
+  // busts the image cache". THAT EVIDENCE DOES NOT SUPPORT THAT CLAIM. A `rebuild --full`
+  // does not re-apply `devcontainer.json` at all -- no features, no `postCreateCommand`, a
+  // stale clone -- which was measured back-to-back against a fresh CREATE from the same HEAD
+  // that applied all of it (JOURNAL 2026-08-31 (i)/(j), ruling CREATE-NEVER-REBUILD). So both
+  // builds were of a container that had never RUN the feature. **The claim withdrawn is "the
+  // feature is broken"; the claim the evidence actually supports is "a rebuilt container does
+  // not re-run features or postCreate."** Recorded rather than quietly deleted, because a
+  // withdrawn upstream accusation that leaves no trace gets re-made.
+  //
+  // THE REMOVAL STANDS ANYWAY, on a reason the correction does not touch: the install moved to
+  // `provision.sh`, which uses the path Anthropic's own docs call recommended
+  // (`curl -fsSL https://claude.ai/install.sh`, native binary, no Node runtime dependency) and
+  // ASSERTS the binary afterwards. A toolless container that reads as a successful build is the
+  // worst available failure shape -- a lane dispatched into it returns Ok=True in under a minute
+  // with an empty result -- and the ASSERT makes that shape structurally unavailable whoever
+  // installs the binary. The assert is the point; the feature-vs-installer choice is not.
   "features": {
     "ghcr.io/devcontainers/features/sshd:1": {
       "version": "latest"
