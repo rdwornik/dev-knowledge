@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-08-28
+last_reviewed: 2026-09-01
 reconciled_with: handoff-process@7.0.0
 status: active
 owner: Rob
@@ -16,19 +16,20 @@ Sole contributor: Rob Dwornik. Audience: future Rob + AI agents reading for orie
 <!-- scope: meta -->
 
 More than one vendor's agent works in this repo, and the file a cross-vendor agent would
-conventionally read at the repo root — `AGENTS.md` — **does not exist here yet.**
-`scripts/validate_hermetization.py` still refuses the add (*"unsanctioned new top-level file … a
-genuinely new class is an ADR-101 amendment, not a drive-by add"*), so this section performs that
-file's job from inside a sanctioned one.
+conventionally read at the repo root — **`AGENTS.md` — now exists** (added 2026-08-29, 5,714 B).
+It is the **portable instruction layer**: the non-inferable build/test/land facts every provider
+reads, with the Claude-runtime remainder left in `CLAUDE.md`, which imports it. The relation is an
+**importer, never a symlink** — git materialises symlinks as plain text under `core.symlinks=false`
+on Windows.
 
-**Read that as a pending mechanism, not a standing prohibition (updated 2026-08-28).** This
-paragraph used to say `AGENTS.md` *cannot* exist here. **ADR-115 (Accepted 2026-08-25) amends
-ADR-101 §1 to admit it** and supersedes ADR-53 Decision 2, so the decision has been taken. What has
-not happened is the mechanism: ADR-115 §4 specifies the `SANCTIONED_TIER1_FILES` diff and is
-**deliberately explicit that the draft does not apply it**, which is why the gate above is still
-correct about live state and this file is still accurate about the tree. `[#577]` carries the enum
-edit. Both facts hold at once — cite the one that matches your question: *may it exist* (ruled yes)
-or *does the gate admit it today* (no).
+**The mechanism has landed; this paragraph used to say it had not (corrected 2026-09-01).** ADR-115
+(Accepted 2026-08-25) amended ADR-101 §1 to admit the file and superseded ADR-53 Decision 2; `[#577]`
+then carried the enum edit, and `scripts/validate_hermetization.py` now lists `AGENTS.md` in its
+sanctioned Tier-1 set rather than refusing the add. Both the ruling and the gate now agree, so the
+older "may it exist (yes) / does the gate admit it (no)" split no longer applies — it is retained
+here only as the record of why the two were ever apart. **Size is bounded in BYTES, not lines:**
+Codex's `project_doc_max_bytes` cap is 32 KiB, and copying `CLAUDE.md` wholesale would land at
+43.50 KiB and truncate **silently**.
 
 **The declared source of truth is `ecosystem/provider-registry.yaml`** — every provider, the CLI
 that reaches it, and every model string this repo's live surface names. Read it; do not restate it

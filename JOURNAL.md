@@ -19,6 +19,53 @@
 
 ---
 
+### 2026-09-01 (aj) - CC (Opus 5): batch F integrated, v7 cut, and terra refused eight things
+
+**Anchors:** `837e8236`, `e9a0af90`, `4a7618bf`, `ac2b4dac`, `76e4bc46`, `5d6e106d`, `b8599fbc`
+
+**Did:** integrated all six batch-F lanes serially with a terra pre-merge on each (amendment 2),
+then executed the reserved `HANDOFF_PROCESS` v6.3.0 -> v7.0.0 bump as one coupled release act.
+
+**ANCHORED AHEAD OF THE PACKET, DELIBERATELY.** The ADR-110 declared-integration-arc exemption
+covers `worktree-lane-*` merges only while the manifest is open, and it **dies the moment
+`closed_by:` lands**. This entry names a SHA each lane merge INTRODUCED — never the merge's own
+hash — so the spine is already clean when the packet closes, rather than manufacturing a gap at
+exactly the moment the exemption expires. Batch E's spine was clean at close for the same reason.
+
+**TERRA REFUSED EIGHT THINGS, AND THE PATTERN IS ONE PATTERN.** Across five lanes: 8 real defects
+(HIGH), 3 recorded tensions, 1 clean pass. Almost every defect is the same shape — **the lane
+fixed the root copy and missed the copy that actually executes.** `[#626]` re-pointed the three
+hub call sites correctly, honoured the caller-first ordering its row demanded, and left the
+DEPLOYED plugin copies (`propose_closures.py:323`, `review_closures.py:232`) plus
+`fleet_health.py:576` globbing flat — and the Stop hook runs the plugin copy. `[#630]`'s new
+predicate is never invoked by its hook and passes vacuously on empty sets, so the batch-E slug
+defect it exists to catch would still reach integration. `[#276]`'s waiver fails open on missing
+or expired dates. `[#621]` moved VISION byte-identically (both blobs `61bd603e`) and left
+`canonical_docs.py:160` and `conformance-hub.js:133` pointing at the vanished root file — where
+the freshness gate SILENTLY SKIPS an absent file, so it reports green while checking nothing.
+
+**Result:** every lane merged with its findings in the commit body; **five rows merged but NOT
+closed.** A gate that is never called is not the guarantee its row promised, and closing on
+"tests pass, merged" would be exactly the substitution ADR-81 forbids.
+
+**THE ENUMERATED LIST OF SIX DEPENDENTS WAS WRONG.** The manifest named six; the commit gate
+found three more — `CONTRIBUTING.md`'s body stamp, `/handoff`'s description anchor, and
+`docs/handoffs/README.md`'s own `reconciled_with`. `[#611]`'s Done-when already mandates
+grep-and-classify and says *never a trusted enumerated list*; this is the measurement that
+proves the mandate right.
+
+**Changes:** all seven `reconciled_with` stamps to `handoff-process@7.0.0`, `HANDOFF_PROCESS.md`
+v7 + section history, `docs/handoffs/README.md` v7 era (re-read end to end, re-stamped),
+`CLAUDE.md` §1 hub region moved byte-identically in lockstep with its template,
+`deploy/manifest-v1.5.0.yaml` `--propose` flag drift fixed, four generated surfaces regenerated.
+
+**Abandoned:** nothing.
+
+**Next:** `[#632]` codespace proof lane — three transport layers named and fixed, runner reached,
+no receipt yet. Then the close packet and the v7 bundle.
+
+---
+
 ### 2026-09-01 (ai) - CC (Opus 5): the spine unblocked before the lanes, and terra's refusal recorded at the seam it feeds
 
 **Anchors:** `c67d3807`, `e77bc5db`, `193caf7f`
