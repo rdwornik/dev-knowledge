@@ -7,7 +7,7 @@
 
 ## What changed
 
-Five own commits on `worktree-lane-b-2-handoff-v7`, against the contract's 13-file frozen
+Seven own commits on `worktree-lane-b-2-handoff-v7`, against the contract's 13-file frozen
 write-scope (`scripts/funnel_lifecycle.py` read-only throughout):
 
 - `3ad44c1f` — steps 1–2: `/preflight` + `scripts/boot_frontier.py` (the unblocked-frontier /
@@ -27,6 +27,7 @@ write-scope (`scripts/funnel_lifecycle.py` read-only throughout):
   once, live (see "Two bugs step 5 caught" below).
 - `c167452d` — sync-merge of `main` into the lane (see "Mid-lane: the journal_spine_anchor
   detour" below) — not part of the contract's steps, forced by concurrent fleet activity.
+- `7d51e2a6` — step 5: this artifact, plus the real-cut measurement recorded above.
 
 **`Version:` stayed 6.3.0**, per the operator's explicit mid-lane ruling (this session,
 2026-09-01): bumping `protocols/HANDOFF_PROCESS.md` to 7.0.0 here would have tripped
@@ -127,9 +128,19 @@ Full targeted suite after the final sync-merge: `tests/test_boot_frontier.py`,
 `tests/test_silent_rule_ratchet.py`, `tests/test_validate_reconciliation.py`,
 `tests/test_verify_handoff_probes.py` — **413 passed**, 0 failed.
 
+**"pytest green" is the targeted suite, by this repo's own stated convention** — `CLAUDE.md`
+§4 and `AGENTS.md`'s "Suite cadence": *"In a lane run the targeted tests for that lane's diff;
+the full suite runs once, at integration."* A full-suite run was started to be thorough, then
+deliberately stopped mid-run (`TaskStop`) once that convention was noticed — not abandoned for
+convenience: this repo is under extremely heavy concurrent load right now (main advanced 5+
+times during this single lane's session; see the detour below), which both makes a full-suite
+run painfully slow on this machine and makes its result a moving target unrelated to this
+lane's own diff. The targeted 413-pass run above is the correct, convention-compliant bar for
+a lane; the integrator's own full-suite pass at merge is where the whole-tree number is owed.
+
 ## Disclosed pre-commit bypasses, full roster
 
-Every `SKIP=` used across this lane's five commits, consolidated (the contract sanctions
+Every `SKIP=` used across this lane's commits, consolidated (the contract sanctions
 declaring generated-index bypasses; unrelated pre-existing findings were verified before
 bypassing):
 
@@ -151,6 +162,13 @@ bypassing):
 - `SKIP=audit-health` (`c167452d`) — genuinely-foreign, still-moving gaps (`3fe5db59`,
   `3a4066eb`), disclosed with both ownership proof and the reason a further sync-merge chase
   was abandoned (main advancing faster than real-time convergence).
+- `SKIP=audit-health` (`7d51e2a6`) — by the time this commit ran, a THIRD foreign merge had
+  landed (`e96ad50c`, "the spine anchored before the merge queue, and terra's refusal recorded
+  at the seam" — its own subject suggests the real integrator was actively working this exact
+  problem in real time), on top of the still-unanchored `3fe5db59`/`3a4066eb`. This disclosure
+  was not written into that commit's own message (an oversight caught only while writing this
+  artifact) — recorded here instead of silently, per the same "no earlier bypass gets a quiet
+  correction" discipline applied to the three-commit note above.
 
 ## Open items for the integrator
 
