@@ -19,6 +19,46 @@
 
 ---
 
+### 2026-09-01 (ah) - CC (Opus 5): phase boundary - the handover goes into the manifest, and the seat stops
+
+**Anchors:** `8383df71`
+
+**Did:** wrote the batch-F orchestration-state note into the manifest as an in-file amendment and
+stopped. **Six lanes are live; integration has not started; no lane was touched.**
+
+**THE NOTE IS THE HANDOVER, NOT THIS ENTRY.** A replacement seat boots from
+`docs/audits/2026-09-01-technical-batch-f-manifest.md` — six lane states with tips and session ids,
+the three other worktrees and what is owed on each, the v7 dependents, the integration order, and
+what landed this phase. **Batch E's handover was left uncommitted by design and survived only
+because someone remembered it;** this one is committed, because a 124-line note living in a working
+tree is one `git checkout` from not existing.
+
+**TWO THINGS THE NOTE SAYS THAT A FRESH SEAT WOULD OTHERWISE GET WRONG.**
+
+**A tip of `c8396f5d` is not a stall** — it is `main` at dispatch, meaning the lane has not
+committed yet. Two of the six read that way and both are working; one is clean *and* uncommitted
+because it is still reading. **The stall test is CPU, not silence**, and the note says so with the
+evidence: codespace attempt 3 looked identical to a slow lane and was a hang — 1 h 15 m elapsed,
+**3 s of CPU**, `wchan=ep_poll`, no children, nothing written.
+
+**The v7 version bump is the integrator's, and it costs more than a stamp.** Seven files carry
+`reconciled_with: handoff-process@6.3.0`; one is inside L2's write-scope, and the **six** outside it
+are enumerated by file and line. **Two of those six — `ARCHITECTURE.md` and `CLAUDE.md` — are
+`FRESHNESS_FILES`**, so the A2 gate turns their re-stamp into a genuine end-to-end re-read. That is
+priced into integration here rather than discovered there, which is the same trap that deferred the
+VISION relocation this morning.
+
+**Also carried:** terra pre-merge as the ratified gate (amendment 2) with its measured price,
+~11 min/pass and 1–2 passes per lane; the ADR-110 exemption's fuse, which dies the moment
+`closed_by:` lands; `boot-r1-survey` harvest owed when DONE; the dashboard filing merge owed when
+its lane STOPs — **both as queue work, not load relief**, since the concurrency ruling replaced the
+old ceiling with optimum 6 / ceiling 12 and left nine worktrees running deliberately.
+
+**Changes:** `docs/audits/2026-09-01-technical-batch-f-manifest.md` (orchestration-state note),
+`JOURNAL.md`.
+
+**Next seat:** the manifest, then the monitor. Touch no lane until it stops.
+
 ### 2026-09-01 (ag) - CC (Opus 5): six lanes local, and the codespace hang measured down to three seconds of CPU
 
 **Anchors:** `cd80ed66`
