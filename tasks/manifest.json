@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "920174bc3919825b9c2e497367eb71bcb885b11db7d2b14e5ed215cf755a46f3",
+  "generated_sha256": "d33e6c1d1796baf6ff11e3561885363bcb7cd4f297c23ddff4ded0d2df22c5a0",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -284,6 +284,14 @@
     {
       "task": 624,
       "file": "624-nothing-watches-a-blockers-status.md"
+    },
+    {
+      "task": 629,
+      "file": "629-a-contract-amendment-cannot-subtract-an-act.md"
+    },
+    {
+      "task": 630,
+      "file": "630-manifest-lane-enum-must-equal-contract-slug-at-freeze.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
