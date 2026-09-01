@@ -734,6 +734,85 @@ def test_anchor_mention_without_sha_anchor_record_warns(tmp_path, monkeypatch):
     assert merge[:7] in warns[0].evidence
 
 
+# --- `[#630]` -- the manifest's lane table and the batch's contract slugs must AGREE --------
+#
+# THE MEASURED BATCH-E DEFECT (integrator defect (b), 2026-09-01). The manifest's lane table
+# named `lane-b-2-essentials-and-claude-md`; what was actually dispatched, and what carries
+# the commit, pairs to `lane-b-3-claude-md-genre`. The slug was renumbered between draft and
+# dispatch and nothing anywhere compared the two -- so the manifest, the surface the ADR-110
+# exemption reads and the teardown iterates, named a lane that did not exist while the lane
+# that did exist was unnamed. RED before the fix: no predicate crosses from the CONTRACT to
+# the MANIFEST at all.
+
+_BATCH_E_LANES_TABLE = (
+    "## THE LANES\n\n"
+    "```\n"
+    "DC-1   lane-a-1-vision-to-readme          worktree-lane-a-1-...   local   --\n"
+    "DC-23  lane-b-2-essentials-and-claude-md  worktree-lane-b-2-...   local   DC-1\n"
+    "```\n")
+
+
+def _paired(slug: str) -> str:
+    return (f"slug `{slug}` -> branch `worktree-{slug}` -> contract `LANE-{slug[5:]}.md`")
+
+
+def test_freeze_refuses_when_manifest_slug_and_contract_slug_disagree():
+    """The measured batch-E defect, reproduced exactly: `lane-b-2-...` in the manifest,
+    `lane-b-3-...` in the dispatched (and committed) contract."""
+    contracts = {
+        "LANE-a-1-vision-to-readme.md": _paired("lane-a-1-vision-to-readme"),
+        "LANE-b-3-claude-md-genre.md": _paired("lane-b-3-claude-md-genre"),
+    }
+    refusals = bm.freeze_manifest_contract_agreement(_BATCH_E_LANES_TABLE, contracts)
+    assert len(refusals) == 1
+    fired = refusals[0]
+    assert fired.rule == bm.RULE_MANIFEST_CONTRACT_SLUG_AGREEMENT
+    assert "lane-b-2-essentials-and-claude-md" in fired.detail
+    assert "lane-b-3-claude-md-genre" in fired.detail
+    assert fired.severity == "refuse"
+
+
+def test_freeze_admits_a_manifest_and_contract_set_that_agree():
+    contracts = {
+        "LANE-a-1-vision-to-readme.md": _paired("lane-a-1-vision-to-readme"),
+        "LANE-b-2-essentials-and-claude-md.md": _paired("lane-b-2-essentials-and-claude-md"),
+    }
+    assert bm.freeze_manifest_contract_agreement(_BATCH_E_LANES_TABLE, contracts) == []
+
+
+def test_freeze_names_both_sides_of_a_two_way_mismatch():
+    """A manifest naming a phantom lane fails as loudly as a contract no manifest names --
+    both directions, in one refusal, not just a count."""
+    table = (
+        "## THE LANES\n\n"
+        "```\n"
+        "L1  lane-a-1-x   local   opus\n"
+        "L2  lane-b-2-y   local   opus\n"
+        "```\n")
+    contracts = {
+        "LANE-a-1-x.md": _paired("lane-a-1-x"),
+        "LANE-c-3-z.md": _paired("lane-c-3-z"),
+    }
+    refusals = bm.freeze_manifest_contract_agreement(table, contracts)
+    assert len(refusals) == 1
+    detail = refusals[0].detail
+    assert "lane-b-2-y" in detail          # manifest names it, no contract does
+    assert "lane-c-3-z" in detail          # a contract exists, no manifest row names it
+
+
+def test_manifest_lane_slugs_reads_only_the_first_token_per_row():
+    slugs = bm.manifest_lane_slugs(_BATCH_E_LANES_TABLE)
+    assert slugs == {"lane-a-1-vision-to-readme", "lane-b-2-essentials-and-claude-md"}
+
+
+def test_manifest_with_no_lanes_heading_declares_no_slugs():
+    assert bm.manifest_lane_slugs("# just a title\n\nno lanes table here.\n") == set()
+
+
+def test_the_new_leg_arms_at_freeze_with_its_own_date():
+    assert bm.RULE_MANIFEST_CONTRACT_SLUG_AGREEMENT in bm.LEG_ARM_DATES
+
+
 @requires_git
 def test_explicit_sha_anchor_record_is_silent(tmp_path, monkeypatch):
     """The SAME merge, anchored via this repo's real 'Anchors:' record-line convention --
