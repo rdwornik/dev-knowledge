@@ -19,6 +19,47 @@
 
 ---
 
+### 2026-09-01 (ao) - CC (Opus 5): the suite ran, and it answered the objection terra raised against L5
+
+**Anchors:** `6a55b142`
+
+**Did:** ran the full suite once at integration (`[#528]`'s rule) and recorded a correction to a
+sha I cited wrongly in a commit message.
+
+**13 failed · 4843 passed · 4 skipped · 1 xfailed · 18:57.** The close packet's own honest-limits
+section admitted the suite had NOT been run at integration, so its attribution was open. It is
+open no longer.
+
+**IT ANSWERS TERRA, NOT THE LANE.** `[#632]`'s proof lane called L5 RED and blamed *"pre-existing
+app-level failures unrelated to the container"*; terra refused that as unproven, and terra was
+right to. **The workstation also fails.** A RED suite is not a property of the container — which
+is the half the lane asserted and could not show. **It is NOT a controlled comparison**: the two
+runs sit eight merges apart (`e96ad50c` vs `5c2495c6`), so the 17-vs-13 difference means nothing
+and I have said so in the artifact rather than letting a reader do arithmetic on it. L5 is not
+thereby GREEN and the substrate stays NON-DEFAULT.
+
+**ONE FAILURE WAS PREDICTED, IN WRITING, BEFORE IT HAPPENED.** `test_check_fleet_parity_green_on_live_repo`
+is terra's lane-e recorded tension coming true: `ecosystem/parity-surfaces.yaml:197` still probes
+the **root** for `VISION.md` after L5 relocated it. A review that predicts a specific future RED
+is worth more than one that lists style, and it is one more reason `[#621]` is correctly OPEN.
+
+**CORRECTION.** The v7-bundle commit `558e2878` cites the ROLE PIN sha as `1ea3842c…`. That was
+the sha of the FIRST assembly, before the resident `protocols/HANDOFF_BOOT.md` was updated v6→v7;
+re-assembly moved it. **The committed artifact is correct** — `PASTE_THIS.md`'s pin and the actual
+file both hash `3b6d5691294e149844e16a2965d27ff49d2e95e3a69d138f6f77a33ecdef5858`, verified — so
+only the commit-message prose is stale. Recorded rather than left, because a PIN exists precisely
+to vouch for an identity, and a wrong sha in the record is the one error this mechanism cannot
+tolerate.
+
+**Changes:** `docs/audits/2026-09-01-verification-batchf-integration-suite.md`,
+`docs/audits/README.md` regenerated.
+
+**Abandoned:** nothing.
+
+**Next:** the window is the operator's to declare closed.
+
+---
+
 ### 2026-09-01 (an) - CC (Opus 5): a leftover sweep found an independent witness, not a leftover
 
 **Anchors:** `7fbd54e7`, `8b0b375c`
