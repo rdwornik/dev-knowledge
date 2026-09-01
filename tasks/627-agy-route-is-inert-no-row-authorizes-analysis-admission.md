@@ -1,0 +1,12 @@
+---
+id: "[#627]"
+title: "The agy route is INERT — no row authorizes its analysis-role admission, so the token policy promises what nothing gates"
+status: open
+priority: P2
+size: M
+theme: "[E7] Tooling & evaluation"
+story: "[S19] Decide the undecided artifact/tool models"
+generates: BACKLOG.md
+---
+
+- [#627] [P2][M] **The agy route is INERT — no row authorizes its analysis-role admission, so the token policy promises what nothing gates** — A7's census (`docs/audits/2026-08-31-technical-agy-admission-and-quota-visibility.md`) measured the state and its verdict is the row's premise: **"Nothing in `tasks/` authorizes an admission act today."** `ecosystem/provider-registry.yaml`'s `antigravity` row carries a recorded refusal block verbatim — *"NO ROLE ... re-opens an admission verdict"* — the rerun it defers to is blocked on an untriaged intake, and `ecosystem/routing-table.yaml` shows **NOT ROUTED** with no `analysis` role row existing at all (A7 FINDING A). **So every surface that mentions routing work to agy is describing a capability the fleet has not admitted**, and the operator's standing instruction is that the token policy's agy line reads **INERT** in `~/.claude/ROUTING.md` until this row closes — no more promising it. · Done when: the `analysis` role row exists in the authoritative table; agy's admission is gated on the **SDA-1 analysis pack** as its measured admission row, scored NO/PARTIAL/YES against the C-1…C-15 set exactly as the incumbent baseline was (`docs/audits/2026-08-29-technical-sda1-adversarial-incumbent-baseline.md`); the verdict lands as a `role_admission:` record on a MODEL row that exists — A7 notes the served `gemini-3-pro-preview` id is NOT a row in `models:` today, which becomes a real gap the moment an admission is written; and `ROUTING.md`'s agy line states the outcome rather than an intention · **Two acts, and A7 names them:** create the role row in the authoritative table, then route a CLI to it. Neither is a repair; both are births, so this row is the authorization the register asks for · refs `docs/audits/2026-08-31-technical-agy-admission-and-quota-visibility.md`, `docs/audits/2026-08-29-technical-sda1-adversarial-incumbent-baseline.md`, `ecosystem/provider-registry.yaml`, `ecosystem/routing-table.yaml`, `[#578]`, `[#562]` · kill-candidates: none — `[#578]` exists because a CLOSED row cannot carry the rerun, and it disclaims the admission act itself; no open row owns agy's role admission · source: operator addendum (c), 2026-09-01, funded from the banked closure ledger

@@ -19,6 +19,49 @@
 
 ---
 
+### 2026-09-01 (n) - CC (Opus 5, attended): two rows born for two inert promises, and a row file without a manifest node is not a row
+
+**Anchors:** `b5ae38e7`
+
+**Did:** birthed `[#626]` and `[#627]` from the operator's addenda, and marked the agy route INERT
+in L0.
+
+**BOTH ROWS EXIST BECAUSE A MECHANISM PROMISED SOMETHING NOTHING DELIVERED.**
+
+`[#626]` - **`logs/` does not thin, and the mechanism is not the problem.** HY-2's retention rule
+is correct in every particular. Its dry run against this repo is a **NO-OP**, because
+`PROPOSALS-*` and `DETECTOR-ERROR-*` - the two prefixes that actually accumulate - are exempted,
+and they are exempted because two live callers glob them FLAT. **The organ is ahead of the next
+producer and behind none of them.** The row's sequencing clause is the load-bearing half:
+re-point the callers first, THEN retire the exemption, because the reverse order breaks the
+closure detector's pending-window baseline between two commits.
+
+`[#627]` - **the agy route is INERT and A7 had already measured why**: *"Nothing in `tasks/`
+authorizes an admission act today."* Recorded refusal in the registry, NOT ROUTED in the routing
+table, and **no `analysis` role row at all**. So every surface mentioning agy for analysis
+describes a capability the fleet has not admitted. The row is the authorization, gated on the
+SDA-1 analysis pack against the same C-1…C-15 set the incumbent baseline used - and it carries
+A7's trap, that the served `gemini-3-pro-preview` id is **not a row in `models:`**, which becomes
+a real gap the moment a `role_admission:` record needs a model row to hang on.
+
+**AN L0 EDIT, EXCEPTION-WITH-RULING AND NOT PRECEDENT.** `~/.claude/ROUTING.md` read *"or `agy`
+for read-only big-context analysis"* - a promise nothing gated. The operator ruled it reads INERT
+until `[#627]` closes. Core-invariant #6 admits exactly this shape: a specific global edit
+authorized by an explicit ruling for that edit, generalizing to no other.
+
+**A ROW FILE WITHOUT A MANIFEST NODE IS NOT A ROW, learned by doing it wrong.** Dropping both
+files into `tasks/` and running `--emit-source` reported them as *"not in the active queue
+(retired allocation record)"* and `validate_backlog` flagged both as non-terminal retirements.
+**`tasks/manifest.json` is the active queue and POSITION DERIVES THEME** - each row went at the
+END of its own story block (S18, S19), and only then did BACKLOG.md regenerate 218 -> 220 with
+`--check ok`. A birth is three files, not one.
+
+**Changes:** `tasks/626-*.md`, `tasks/627-*.md`, `tasks/manifest.json`, `BACKLOG.md`,
+`~/.claude/ROUTING.md` (L0, by ruling), `JOURNAL.md`.
+
+**Next:** rulings 3-6 - the ruff-gate classification, the two intake amendments, and the
+win-tooling attended stamp lane.
+
 ### 2026-09-01 (m) - CC (Opus 5, attended): DM-1 and DM-2 land REVIEWED, and the pre-merge round earned its place on both
 
 **Anchors:** `c6801f9d`
