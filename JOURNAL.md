@@ -19,6 +19,42 @@
 
 ---
 
+### 2026-09-01 (l) - CC (Opus 5, attended): the README template lands and costs the silent-rule pool nothing
+
+**Anchors:** `eaaeafa2`
+
+**Did:** authored `templates/README-md-template.md`, the operator's named first morning act and
+the only canonical-doc template the corpus lacked.
+
+**IT BLOCKED MORE THAN ITS SIZE SUGGESTS.** The `readme-front-door` carrier ships VERBATIM
+hash-guarded replicas, and a root README is repo-specific content -- so declaring
+`source: README.md -> path: README.md` would copy the hub's own title and strategic emphasis into
+corp-monorepo. The manifest already called that *"not a migration, a mis-carry"*. **A template is
+the thing a carrier can ship; a front door is not**, which is why one missing file held the whole
+migration.
+
+**GENRE IS THE LOAD-BEARING SECTION, and the hub had just proved why.** R-README rules the front
+door to what-this-is / why / how-to-start / where-deeper, with fleet governance states on an
+`ecosystem/` surface. The hub's own README carried a parity tier that had been retired hours
+earlier -- **a restatement that was already false in a second place** -- so the template CITES
+`ecosystem/registry.md` rather than listing members, and says so in its own Applicability block.
+
+**MEASURED BEFORE IT WAS WRITTEN: zero silent-rule tokens.** `templates/**` is inside the
+detector's scope and the pool sits at 443/443 with no headroom. A template that cost a ruling to
+land would have been the wrong template.
+
+**Declares no carrier component** -- that is a manifest act with its own C7 `doc_shapes` coupling,
+and it belongs to the release the operator tags.
+
+**AND THE BACKTICK LESSON COLLECTED ITS OWN WITNESS, hours after being written down.** Composing
+this entry through an inline `py -c` with backticks in the text made the shell execute fragments
+of the journal entry. That is the exact failure recorded this window as *never a backtick in
+`py -c`* -- written by this seat, then walked into by it. Script file, not inline, every time.
+
+**Changes:** `templates/README-md-template.md`, `JOURNAL.md`.
+
+**Next:** DC-3 alone; then the (b) logs row and (c) agy row.
+
 ### 2026-09-01 (k) - CC (Opus 5, attended): the review round that should have gated the merges ran after them, found a CRIT, and inverted one lane's own conclusion
 
 **Anchors:** `121b6f3a`
