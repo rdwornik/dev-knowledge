@@ -1,1 +1,1 @@
-6. **Keep files consistent** — ESSENTIALS summarizes PLAYBOOK, not copies it; divergence causes drift
+6. **Keep files consistent** — a hub region's body in `CLAUDE.md` stays byte-identical to its `templates/claude-regions/*.md` source; divergence breaks deploy parity

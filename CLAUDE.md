@@ -7,13 +7,13 @@ owner: Rob
 
 # CLAUDE.md — Dev Knowledge
 <!-- scope: meta -->
-<!-- version: 2.71 — 2026-09-01 -->
+<!-- version: 2.72 — 2026-09-01 -->
 
 > **Session boot contract for Claude Code in this repo** — auto-read at session start (ADR-53, as re-pointed by ADR-115). **Genre:** a rule lives here only if a session needs it *before it can act*; rationale, history and per-organ detail live at the home each line cites.
 >
 > **Budget — bytes bind. ≤24,576 B**, gated by `tests/test_claude_md_byte_cap.py`. ADR-53's ≤200 lines is kept, not replaced (`validate_doc_rot._FILE_SIZE_BUDGETS`, WARN-only) — but a line count is gameable by density, and bytes are what a session pays.
 >
-> **Universal rules:** `protocols/ESSENTIALS.md` (always-on); `protocols/PLAYBOOK.md` is the on-demand reference, never a boot-time read (§1).
+> **Universal rules:** this file carries the always-on subset; `protocols/PLAYBOOK.md` is the on-demand reference, never a boot-time read (§1). `protocols/ESSENTIALS.md` is **superseded, pending `[#628]`** — do not boot from it.
 
 ## 1. First read (session start)
 <!-- scope: meta -->
@@ -22,11 +22,11 @@ owner: Rob
 
 In order, read:
 1. This file (you're here)
-2. The hub methodology protocol `ESSENTIALS.md` — Rob's universal working style (read at the hub `.dev-knowledge/protocols/` set; hub-pointer, never copied into a consumer)
+2. `protocols/ESSENTIALS.md` — **SUPERSEDED, pending `[#628]`.** Not a boot read; skip it. The always-on subset is this file, and the live boot frame is `CLAUDE.md` + FUNNEL HEALTH + north-star
 3. The **active** `docs/handoffs/*/` bundle — **newest by git add-date**, which is what `audit.py::_select_active_bundle` resolves and what `verify_handoff_probes`, `check_handoff_probes` and `validate_residual_completeness` already reuse; a day with more than one handoff produces `<slug>`, `<slug>-2`, … siblings and lexical order is not the rule. Start with its `HANDOFF_BOOT.md` (v5/v6 bundles' operator session entry: slug · purpose · mode · destination; older bundles use `README.md`), then the canonical operator runbook `docs/handoffs/README.md` — if continuing prior session
 4. Last 5 entries of `JOURNAL.md`
 
-`PLAYBOOK.md` (hub `.dev-knowledge/protocols/`) is the universal-protocols **reference**, not a boot-time read — consult the relevant section on demand when a task needs it (ESSENTIALS carries the always-on subset; a consumer never copies PLAYBOOK). If ESSENTIALS — or a PLAYBOOK section a task needs — is unavailable, proceed with the other available first-read sources and flag the gap.
+`PLAYBOOK.md` (hub `.dev-knowledge/protocols/`) is the universal-protocols **reference**, not a boot-time read — consult the relevant section on demand when a task needs it (this file carries the always-on subset; a consumer never copies PLAYBOOK). If a PLAYBOOK section a task needs is unavailable, proceed with the other available first-read sources and flag the gap.
 <!-- methodology:end id=first-read -->
 
 ## 2. Repo identity
@@ -94,7 +94,7 @@ In order, read:
 5. **No new markdown files without checking navigation/growth triggers** — when navigation overhead emerges, evaluate DevVault migration. Root `README.md`, deleted 2026-05-23 (ADR-38 A5), was **RECREATED 2026-08-29**: ADR-114 supersedes A5 in that one respect, making `README.md` a sanctioned Tier-1 file and this repo's canonical front door. `VISION.md` is retained, marked superseded and still tracked — the fleet-wide filename migration is a sequenced program, not a consequence of this line ([#614]).
 > **[HUB - methodology]** region `critical-rules-consistency` - single-sourced from the hub; do not edit these lines here.
 <!-- methodology:start id=critical-rules-consistency owner=hub -->
-6. **Keep files consistent** — ESSENTIALS summarizes PLAYBOOK, not copies it; divergence causes drift
+6. **Keep files consistent** — a hub region's body in `CLAUDE.md` stays byte-identical to its `templates/claude-regions/*.md` source; divergence breaks deploy parity
 <!-- methodology:end id=critical-rules-consistency -->
 7. **Executable rules live in `~/.claude/` with `verify:` lines** — the fleet-wide home (ADR-54); this repo authors no new rule class outside it. **Carve-out:** `.claude/rules/` IS a live repo-local rule home — `git-discipline.md` carries three `verify:` lines plus two standing operator orders (MERGE IS ATOMIC; WORKTREE TEARDOWN IS TWO BRANCHES).
 8. **Do not recreate `CHANGELOG.md` or `BACKLOG_ARCHIVE.md`** — deleted 2026-05-16; git history + the JOURNAL `Changes:` line replace CHANGELOG
@@ -117,7 +117,7 @@ In order, read:
 
 If any check fails → stop and ask Rob before proceeding.
 
-Verify after updates: ESSENTIALS ↔ PLAYBOOK alignment; ENVIRONMENT ↔ `~/.claude/` state; SESSION_SETUP ↔ PLAYBOOK process changes; JOURNAL reflects last session.
+Verify after updates: ENVIRONMENT ↔ `~/.claude/` state; SESSION_SETUP ↔ PLAYBOOK process changes; JOURNAL reflects last session.
 <!-- methodology:end id=session-start-protocol -->
 
 ## 7. Slash commands available
@@ -199,7 +199,7 @@ What the deploy tool ships to a consumer, generated from `deploy/manifest-v*.yam
 - **Editing old LESSONS.md or logs/TOKEN-LOG.md entries** — append-only; editing corrupts the institutional record (a *byte-identical* chronological relocation of an older block into `LESSONS-legacy-<span>.md` is NOT an edit — the ADR-29 2026-07-17 archival exception; any content change still is)
 - **Adding orchestration scripts** — Layer 2 invariant: validators only, no scripts that drive state in child repos
 - **Copying `CLAUDE.md` wholesale into `AGENTS.md`** — ADR-115 admits `AGENTS.md` as the portable instruction layer, superseding ADR-53 Decision 2; a wholesale copy measures 43.50 KiB against Codex's 32 KiB `project_doc_max_bytes` cap and truncates silently — carry the portable half only, and leave the Claude-runtime remainder in `CLAUDE.md`
-- **Duplicating content between files** — ESSENTIALS summarizes PLAYBOOK, not copies; drift is the failure mode
+- **Duplicating content between files** — a hub region restated by hand instead of relocated, or PLAYBOOK detail copied verbatim elsewhere; drift is the failure mode
 - **Putting executable rules in this repo** — those belong in `~/.claude/` with `verify:` lines
 - **Running validators with no args** — vacuous pass; always pass `--all` or specific paths
 <!-- methodology:end id=antipatterns-universal -->
@@ -219,14 +219,14 @@ Machine-enumerated, last 5 by number (`gen_claude_rosters.py --write`). Editoria
 > **[REPO - local]** region `section-history` - this repo owns these lines.
 <!-- methodology:start id=section-history owner=repo -->
 
-> _Entries v1.0–v2.68 condensed to git history per ADR-49/65 (info-preserving — full prior history: `git log --follow -p -- CLAUDE.md`)._
-
-- v2.69 (2026-08-29, batch-D lane c `lane-c-000-claude-md-regenre`) — **the re-genre: reference manual → boot contract, budgeted in bytes.** The file met its `≤200 lines` claim by *density* — 240 lines but 39,588 B, **165 B/line** against this corpus's ~117 — so the cost every session pays went unbudgeted. A **24,576 B** ceiling now gates it (`tests/test_claude_md_byte_cap.py`); ADR-53's line bound is **kept, not replaced**. Every removal is a relocation to a named, verified destination. The ledger, the measurements and the owed follow-ups: `docs/audits/2026-08-29-technical-claude-md-regenre.md`.
+> _Entries v1.0–v2.69 condensed to git history per ADR-49/65 (info-preserving — full prior history: `git log --follow -p -- CLAUDE.md`); v2.69 joined them 2026-09-01 to make room under the byte cap; its ledger stays cited here so the condensation does not orphan it: `docs/audits/2026-08-29-technical-claude-md-regenre.md`._
 
 - v2.70 (2026-09-01, night window) — §9 gains `audit-title-gate`. The hook was live and unclaimed: 21 named here against 22 in `.pre-commit-config.yaml`, a divergence only the ship-tier `doc_claims` would have seen. Re-read end-to-end at the same commit — every §4/§5 rule was exercised by that window's own work, so the stamp is a review, not a touch.
 
 - v2.71 (2026-09-01, DC-3 split — Acts TWO + THREE only) — **genre purification by relocation; the ESSENTIALS act is deliberately NOT here.** Act One (dissolving `protocols/ESSENTIALS.md`) was refused by ruling 1 and re-filed as `[#628]`, fleet-coupled and sequenced with v1.5.0 — so ESSENTIALS and every citation of it stand. Landed: Act TWO (the branch-prefix enum and the TUI formatting rationale shrink to point-of-use bullets, provenance relocated to PLAYBOOK Ch3/Ch8; both `ObsidianVault/` clauses deleted per CUT-2) and Act THREE (`VISION.md` out of §2 and §4, DC-1 having retired it from `CANONICAL_MANDATORY`). 24,387 B → 24,282 B. One inherited defect fixed: the new bullet cited a "Mermaid/diagram carve-out" at a PLAYBOOK subsection that did not contain one — a relocation to an unverified destination, which is the failure this genre exists to prevent. Ledger: `docs/audits/2026-09-01-technical-dc3-split.md`.
 
+
+- v2.72 (2026-09-01, integrator micro-act) — **ESSENTIALS DE-BLESSED, correcting v2.71.** v2.71 said that act was *deliberately NOT here* and that *every citation stands* — true then, false now. This file sends no session to `protocols/ESSENTIALS.md`: five sites reworded, four of them hub regions moved in lockstep with `templates/claude-regions/`. **No deletion** — the body stays, `status: superseded`, and `[#628]`'s fleet-coupled dissolution is still owed. Caught by terra, not by the author.
 <!-- methodology:end id=section-history -->
 
 ---

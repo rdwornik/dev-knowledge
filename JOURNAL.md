@@ -19,6 +19,63 @@
 
 ---
 
+### 2026-09-01 (ae) - CC (Opus 5): ESSENTIALS de-blessed, and three of the four defects in doing it were mine
+
+**Anchors:** `12f4113a` · `11088e5b`
+
+**Did:** de-blessed `protocols/ESSENTIALS.md` — no deletion — filed OPERATOR ASKS under intake #66,
+and fixed four defects the act produced, only one of which a gate would have caught unaided.
+
+**THE ACT: `CLAUDE.md` NOW SENDS NO SESSION TO ESSENTIALS.** Five sites reworded, the file marked
+`status: superseded` with a not-a-boot-read banner, and one retired reference fixed in place
+(`Mission anchor: VISION.md` → `README.md`). **`[#628]`'s fleet-coupled dissolution is untouched**
+and the floor template was not opened. Four of the five sites are **hub regions**, so
+`templates/claude-regions/` moved in lockstep — editing `CLAUDE.md` alone would have made the
+commit contradict its own reworded rule 6.
+
+**FOUR DEFECTS, THREE OF THEM MINE, AND THE ORDER THEY SURFACED IN IS THE LESSON.**
+
+1. **Terra:** the ESSENTIALS edit **exceeded its permitted scope.** The ruling allowed one retired
+   reference; I had also rewritten "universal brain" and flipped "this file is" to "was". Restored.
+   **Scope creep reads as tidying**, which is why no gate sees it.
+2. **Terra:** `CLAUDE.md`'s history had become **false about itself** — v2.71 says the ESSENTIALS
+   act is *"deliberately NOT here"* and *"every citation of it stands"*. Now v2.72, correcting
+   v2.71 **by name** rather than editing it.
+3. **The commit gate:** making room for v2.72 meant condensing v2.69 per ADR-49/65 — and **v2.69
+   was the SOLE CITER** of `docs/audits/2026-08-29-technical-claude-md-regenre.md`.
+   `consumer_at_landing` went straight from PASS to *"the unconsumed set grew"*. **Condensing a
+   section-history entry can orphan the artifact it was the only surface citing**, and byte-cap
+   pressure is exactly when nobody is looking for that. The condensation line now carries the
+   citation.
+4. **`canonical_freshness`:** ESSENTIALS is a `FRESHNESS_FILE`, so editing it **forced the
+   end-to-end read** — 188 lines. And the read found my banner **was not at the top**: it sat under
+   a line still calling the file *"the session-start operating frame for the LLM"*, so the document
+   opened by asserting precisely what the banner denies, two lines apart. **The gate that looked
+   like an obstacle was the only thing that made me read what I had written.**
+
+**One pre-existing drift found and FILED, not fixed** (the ruling holds the body untouched): the
+*Writing a Prompt* section still says *"Model is CC's pick (default Opus 4.8, the floor)"* — stale
+against R-MODELS twice over, since the model is the **contract's** and dispatched lanes are sonnet.
+Recorded in `[#628]` so the dissolution cannot carry that sentence forward.
+
+**OPERATOR ASKS, filed under #66 on lesson L-S7** — *an ask answered by "filed in arc X" is not
+addressed from the operator's seat.* Each ask is a record: `asked`, a **visible fix** (sha or path)
+or a **named, dated blocker**, owner, and a re-asked count — with **`re-asked ≥ 2` and no visible
+fix rendering RED** at boot and in the packet. The organ renders it FIRST. Seeded with five; the
+de-bless itself was asked **three times** before a visible change existed, which is the argument.
+
+**Reported rather than patched in silently:** L2's frozen contract enumerates the bundle sections
+and does not include OPERATOR ASKS, so it needs a reissue before dispatch — the **third** live
+instance of `[#631]` in one window.
+
+**Also learned:** the audit-health hook labels itself *"FAIL blocks the commit; WARN only informs"*
+and **exits non-zero on DEGRADED**. Three commit attempts died to a WARN-only state whose "Failed"
+line my `tail` had cut off. The label and the behaviour disagree.
+
+**Changes:** `protocols/ESSENTIALS.md`, `CLAUDE.md` (v2.72), four `templates/claude-regions/*`,
+`docs/intake/2026-09-01-tech-observable-harness.md` + both intake generated surfaces,
+`tasks/628-*.md`, `JOURNAL.md`.
+
 ### 2026-09-01 (ad) - CC (Opus 5): exit 91 said claude was absent; it was installed and the shell was wrong
 
 **Anchors:** `b707d50b`

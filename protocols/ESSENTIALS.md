@@ -1,13 +1,17 @@
 ---
-last_reviewed: 2026-08-23
-status: active
+last_reviewed: 2026-09-01
+status: superseded
 owner: Rob
 ---
 
 # Daily Essentials
 
+> **SUPERSEDED — not a boot read.** Dissolution tracked in `[#628]` with v1.5.0.
+> Live boot frame = `CLAUDE.md` + FUNNEL HEALTH + north-star.
+>
 > The session-start operating frame for the LLM: the load-bearing essentials for working in this ecosystem. A 1–2-page frame by charter — every canonical detail lives ONCE in PLAYBOOK (or its ADR); this file points, never copies ([#258]).
-> Mission anchor: `VISION.md` (universal brain) + `ARCHITECTURE.md` (structural model). Read those once on first session of a project; this file is the day-to-day driver.
+>
+> Mission anchor: `README.md` (universal brain) + `ARCHITECTURE.md` (structural model). Read those once on first session of a project; this file is the day-to-day driver.
 
 ---
 
