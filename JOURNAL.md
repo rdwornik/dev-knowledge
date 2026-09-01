@@ -21,7 +21,7 @@
 
 ### 2026-09-01 (ak) - CC (Opus 5): batch F closed - eight lanes merged, zero rows closed, and that is the batch working
 
-**Anchors:** `faf9db8d`, `dd471c31`, `7313400a`
+**Anchors:** `faf9db8d`, `dd471c31`, `7313400a`, `8fbca730`
 
 **Did:** landed the batch-F close packet at the `closed_by:` identifier, which **kills the
 ADR-110 declared-integration-arc exemption**. This entry anchors the two merges that were
