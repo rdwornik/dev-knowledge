@@ -141,9 +141,18 @@ def test_check_canonical_structure_keys_come_from_the_registry():
 
 
 def test_check_vision_md_uses_the_registry_name():
+    """The absence message names the registry's string, not a literal.
+
+    The message changed shape in [#614] (2026-09-01): `VISION` is now in
+    `CANONICAL_RETIRED`, so absence reports NOT-APPLICABLE rather than FAIL. The
+    assertion this test exists to make is unchanged -- the NAME comes from the registry --
+    and it is now evidenced twice over, since the message also names the registry
+    constant that decided the verdict.
+    """
     from audit_checks.check_vision_md import check_vision_md
     findings = check_vision_md(Path("/nonexistent-repo-root"))
-    assert findings[0].evidence == f"{cdocs.VISION} absent at repo root"
+    assert cdocs.VISION in findings[0].evidence
+    assert "CANONICAL_RETIRED" in findings[0].evidence
 
 
 def test_validate_doc_rot_reads_the_registry():
@@ -183,6 +192,33 @@ def test_gen_handoff_name_and_degrade_string_move_together():
     assert gh._vision_extract(Path("/nonexistent-repo-root")) == cdocs.VISION_EXTRACT_MISSING
     assert cdocs.VISION in cdocs.VISION_EXTRACT_MISSING
     assert cdocs.VISION_EXTRACT_HEADING == "## Vision"
+
+
+def test_gen_handoff_readme_fallback_only_fires_when_vision_is_ABSENT(tmp_path: Path):
+    """A PRESENT VISION missing its `## Vision` section must DEGRADE, never fall through.
+
+    The retired-tier fallback exists for a ruled RELOCATION -- VISION gone, README carrying
+    the live section. Letting it also fire for a present-but-malformed VISION would
+    substitute README's prose for a broken file and hide the breakage, which is precisely
+    what the degrade contract exists to prevent. Three cases, one predicate:
+
+      * VISION present and well-formed -> VISION's own section wins, though README has one.
+      * VISION present and BROKEN      -> the placeholder, NOT README's section.
+      * VISION absent (and retired)    -> README's section.
+    """
+    assert cdocs.VISION in cdocs.CANONICAL_RETIRED
+    readme = tmp_path / cdocs.README
+    vision = tmp_path / cdocs.VISION
+    readme.write_text("# R\n\n## Vision\n\nreadme-body\n", encoding="utf-8")
+
+    vision.write_text("# V\n\n## Vision\n\nvision-body\n", encoding="utf-8")
+    assert gh._vision_extract(tmp_path) == "vision-body"
+
+    vision.write_text("# V\n\nno heading here\n", encoding="utf-8")
+    assert gh._vision_extract(tmp_path) == cdocs.VISION_EXTRACT_MISSING
+
+    vision.unlink()
+    assert gh._vision_extract(tmp_path) == "readme-body"
 
 
 @pytest.mark.live_repo

@@ -39,6 +39,7 @@ reconciled_with: handoff-process@6.3.0
   - [Default branch — `main`](#default-branch--main)
   - [File naming conventions](#file-naming-conventions)
   - [Commit message standard](#commit-message-standard)
+  - [Branch prefixes — the closed enum](#branch-prefixes--the-closed-enum)
   - [Folder structure](#folder-structure)
   - [Root hygiene convention](#root-hygiene-convention)
   - [Additional root hygiene rules (added 2026-05-24, root hygiene pass 2)](#additional-root-hygiene-rules-added-2026-05-24-root-hygiene-pass-2)
@@ -667,6 +668,26 @@ Git history IS the changelog (no CHANGELOG.md since 2026-05-16) — commit messa
 - **One logical change per commit.** If you'd write "and" in the summary, split the commit.
 
 `/save` follows this standard. See CONTRIBUTING.md for live examples and the pre-commit hook list.
+
+### Branch prefixes — the closed enum
+<!-- scope: dev -->
+
+Branch prefixes are a closed enum, not free text. Four are author-chosen: `feat/ fix/ docs/
+chore/`. Four more are machine-produced lane prefixes, each admitted by a recorded ruling
+rather than invented in passing: `worktree-<name>` (native parallel-session worktrees,
+`claude --worktree` / EnterWorktree), `epic/<slug>` (root-provisioned epic lanes, Ch8 "Tree
+orchestration"), `claude/<slug>` (Anthropic cloud-session lanes), and `automation/<slug>`
+(organ-produced replication lanes — admitted 2026-08-06 by architect ruling, registered
+`protocols/STANDING_RULINGS.md` B5).
+
+Lane branches are never self-merged and never author-invented — a brief that names a lane
+branch names it in one of these eight shapes. A new machine-produced lane prefix enters the
+enum only via a recorded ruling, never silently; the enum itself is the checkable surface
+(`scripts/validate_branch_naming.py`, batch-freeze predicate 5's `LANE_BRANCH_RE` import).
+
+Canonical rule, point-of-use: **CLAUDE.md §4 "Commits & branches"** — that bullet keeps the
+enum's literal values; this subsection is the provenance. (Moved from CLAUDE.md 2026-09-01,
+[#614] batch-e-b-2.)
 
 ### Folder structure
 <!-- scope: meta -->
@@ -5048,6 +5069,8 @@ The trap is the **render layer**, not what Claude writes. A plain markdown pipe-
 A bare (un-fenced) pipe-table is the failure case: clean-looking in the TUI, box-drawing on paste. This is the same fenced-block discipline already used for Scale-S PowerShell snippets (Ch4 "Architect → operator channel-discipline (execution actions)") and downloadable prompts (§2 "Delivery format") — extended to every copy-back report. Reconciles with Path A above (`/session-summary` → paste into Claude.ai).
 
 **Operator-side option (not a repo change):** Claude Code also exposes an output-style setting; a plainer style reduces TUI table-painting globally. That is runtime config under `~/.claude/` — outside this repo's scope, noted for the operator, not changed here.
+
+**Persistent diagrams are the carve-out — none of the above applies to them.** They live on the separate human-facing visualization surface (ADR-59), not in a copy-back report; the ADR-51 amendment 2026-07-05 moved Mermaid out of canonical `ARCHITECTURE.md`, whose codemap is now compact text. (Moved from CLAUDE.md 2026-09-01, [#614] batch-e-b-2 — the point-of-use bullet now cites this carve-out by name, so it has to be findable here.)
 
 Canonical rule: **CLAUDE.md §4 "Output formatting (render-layer)"**. This subsection is the rationale authority; the CLAUDE.md bullet is the point-of-use rule.
 

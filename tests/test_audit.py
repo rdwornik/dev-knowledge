@@ -15,6 +15,7 @@ from types import SimpleNamespace
 import pytest
 
 import audit as aud
+import canonical_docs as cdocs
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -154,7 +155,35 @@ def test_vision_pass(good_repo: Path) -> None:
     assert f.status == "pass"
 
 
-def test_vision_absent(tmp_path: Path) -> None:
+def test_vision_absent_and_registry_retired(tmp_path: Path) -> None:
+    """VISION is in CANONICAL_RETIRED today, so absence is NOT-APPLICABLE, not a FAIL.
+
+    Pinned against the LIVE registry deliberately. If a future edit un-retires VISION this
+    goes red and says so -- which is the whole point of making retirement registry-driven
+    rather than hardcoding an exemption into the check.
+    """
+    assert cdocs.VISION in cdocs.CANONICAL_RETIRED
+    f = aud.check_vision_md(tmp_path)[0]
+    assert f.status == "n/a"
+    assert "NOT-APPLICABLE" in f.evidence
+    assert "CANONICAL_RETIRED" in f.evidence
+
+
+def test_vision_absent_and_not_retired(tmp_path: Path,
+                                       monkeypatch: pytest.MonkeyPatch) -> None:
+    """A name the registry has NOT retired still hard-FAILs on absence -- the gate is
+    narrowed by the registry, never removed.
+
+    Patches the module object THE CHECK ACTUALLY BOUND, derived from the function itself
+    rather than re-imported by a name this test chose. The check carries the ADR-106
+    dual-import shim, so `scripts.audit_checks.check_vision_md` and
+    `audit_checks.check_vision_md` can be two distinct module objects in one interpreter --
+    and patching the wrong one is a SILENT NO-OP that the assertion below would misread as
+    a behaviour change. `__module__` cannot pick the wrong one.
+    """
+    import sys
+    bound = sys.modules[aud.check_vision_md.__module__]
+    monkeypatch.setattr(bound.canonical_docs, "CANONICAL_RETIRED", ())
     f = aud.check_vision_md(tmp_path)[0]
     assert f.status == "fail"
     assert "absent" in f.evidence
