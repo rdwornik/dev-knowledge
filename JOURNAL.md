@@ -19,6 +19,43 @@
 
 ---
 
+### 2026-09-01 (r) - CC (Opus 5, fresh orchestrator seat): the handover note becomes a record, and four exempt merges are anchored BEFORE the exemption expires
+
+**Anchors:** `209d0aeb` · `7ab5eb47` `13fb1538` · `5914ca02` `1d814abc` · `351b94fd` `1c92024f` · `aeb0b2a2` `76f184fb`
+
+**Did:** committed the batch-E ORCHESTRATION-STATE NOTE as the handover record (`209d0aeb`), then
+anchored the four first-parent spine entries the prior seat flagged: `13fb1538` (DM-2, introduced
+`7ab5eb47`), `1d814abc` (DM-1, introduced `5914ca02`), `1c92024f` (HY-2, introduced `351b94fd`)
+and `76f184fb` (DC-5, introduced `aeb0b2a2`). Each is named by a commit the merge INTRODUCED,
+never by its own hash - a merge cannot name itself.
+
+**THE CAUSE WAS VERIFIED BEFORE THE FIX, AND IT IS NOT WHAT THE HANDOVER NOTE ASSUMED.**
+`audit.py health` on `b17fbc2c` exits **OK**, and `journal_spine_anchor` PASSES with the evidence
+*"EXCEPT 4 lane merge(s) exempt under the ADR-110 declared-integration-arc rule while batch E is
+open"*. All four merges carry git's default `Merge branch '<name>'` subject, all four lane names
+match `LANE_BRANCH_RE`, the manifest is tracked with `status: open`, and its `closed_by:` packet is
+absent - so every condition of the exemption holds. **The four were never a live commit-gate
+FAIL; they were exempt.** The DC-3 lane's own commit message attributes its three REDs to a
+targeted *pytest* run, and declares no `SKIP=` line at all.
+
+**That makes the anchoring MORE urgent, not less.** The exemption is not a discharge, it is a
+deferral with a published expiry: it dies the moment
+`docs/audits/2026-09-01-technical-batch-e-close-packet.md` lands. Anchoring after the packet would
+mean four hard gaps wedging every commit in the repo at exactly the moment the batch is trying to
+close. Anchoring now costs one entry; anchoring later costs a deadlock. Recorded rather than
+inferred, because a green gate that is green *for a reason with a fuse in it* is the most
+misreadable state a seat can inherit.
+
+**The note is a record now, not a working-tree artifact.** It was left uncommitted by design so a
+replacement seat would boot from the manifest instead of a chat; it did that job, and an
+uncommitted 113-line handover is one `git checkout` away from not existing.
+
+**Changes:** `docs/audits/2026-08-31-technical-batch-e-manifest.md` (in-file amendment marker,
++113/-0), `JOURNAL.md`.
+
+**Next:** the DC-3 split (Acts TWO+THREE alone from `6f226b34`), the two integrator defects as
+validator predicates, the win-tooling `codemap-freshness` diagnosis, then the batch-E close packet.
+
 ### 2026-09-01 (q) - CC (Opus 5, attended): rulings 1 and 6 filed - a floor edit is a release act, and an attended lane has a shape the machinery already knows
 
 **Anchors:** `dbf4dc82`
