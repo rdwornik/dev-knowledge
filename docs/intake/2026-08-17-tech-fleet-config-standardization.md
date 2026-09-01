@@ -533,3 +533,75 @@ conformance rules" was two days ago.
 
 **Consumed by:** batch E's close packet. **Lane:** `worktree-lane-c-3-root-contract`, contract
 `LANE-c-3-root-contract.md` (DC-4).
+
+## AMENDMENT — 2026-09-01: a root `dashboard/` is REQUESTED against ROOT-CONTRACT v1 — recorded, not granted
+
+> **Source:** operator direction, 2026-09-01 (the OBSERVABLE HARNESS), filed under
+> *reconcile-before-birth*. Appended, not edited. This amendment lands here rather than on a new
+> intake on this file's own 2026-08-29 precedent — *"the root-contract maps to intake #38"* — and
+> it **grants nothing**: no directory is created, `SANCTIONED_TIER1_DIRS` is untouched, and no
+> ADR-101 amendment is drafted. **The request is recorded so the ruling can read the contract it
+> would amend.** ROOT-CONTRACT v1 stands unchanged.
+
+### The request
+
+The OBSERVABLE HARNESS (intake **#66**) places its VIEW layer in a **`dashboard/` directory at the
+repo root** — one self-contained HTML file, generated only from `scripts/` + `protocols/` +
+`logs/`, openable in VS Code — and asks the operator to sanction it *"via an ADR-101 amendment +
+root-contract update"*, with the folder then deploying to every consumer as an organ. `dashboard/`
+would be a **sibling of `ecosystem/`**, where both HTML artifacts live today.
+
+### Finding 1 — the request runs directly at C2's standing precedent, and the precedent is six days old
+
+**C2 above** states the rule as *"non-standard files are RELOCATED, not tolerated in place"* and
+cites as its **standing precedent** the ADR-101 amendment of **2026-08-26**:
+
+> *"root is sacred, and the docs disease is cured by the consumer gate ([#595]), not by a sibling
+> folder at the root."*
+
+That ruling **revoked** the root `prompts/` directory which had been admitted the day before, and
+in doing so the closed Tier-1 set took **the first and only contraction in its history**
+(`scripts/validate_hermetization.py`, the `prompts` comment block retained deliberately *"so a
+reader who finds `prompts/` in the git history must be able to see why it is gone"*). The
+replacement home was **inside the genre tree** — `docs/audits/<date>-technical-<batch>-launch-contracts/`.
+
+**This is a conflict, and it is NAMED rather than adjudicated here.** The filer does not rule it,
+for the same reason C1 does not: admission is the ADR's channel and the operator's call. Two
+readings are available and both are honest — (a) a *generated view surface* is a different class
+from a *dispatch-input folder*, so the precedent does not reach it; or (b) the precedent is about
+**root siblings as such**, in which case `ecosystem/` is the existing home and the burden is to say
+why it will not do. **The direction asserts the sanction but does not argue against the precedent**,
+and a ruling made without reading it would be made on half the record.
+
+### Finding 2 — what a root `dashboard/` would actually be checkable by, which is less than it looks
+
+Read against C1's two surfaces and their two honest limits, a `dashboard/` holding **generated**
+output is weakly observed:
+
+- **Rule A** (`validate_hermetization.py`) is **prospective and HUB-ONLY** — it would block the
+  directory's creation until ADR-101 admits it, and after that inspects nothing. It cannot be the
+  fleet instrument for "every consumer carries an identical dashboard organ".
+- **The fleet sweep** (`fleet_parity.py::_eval_sweep`) is **retrospective but sees TRACKED entries
+  only**. `ecosystem/trends.html` — the artifact the direction moves into this folder — is
+  **gitignored** (`.gitignore:84`). **A `dashboard/` containing only generated, ignored output is
+  invisible to the sweep by construction**, and a `root-dashboard` parity row would have nothing to
+  observe.
+
+**So the sanction and the deploy-as-an-organ clause pull in opposite directions**, and the
+contradiction is in the direction itself rather than introduced here: an organ that every consumer
+must carry needs a **tracked** artifact for the sweep to see, while the VIEW layer's own
+regenerate-on-demand shape argues for an **ignored** one. `ecosystem/conformance.html` is committed
+and `ecosystem/trends.html` is ignored, so the two artifacts the folder would hold are **already in
+different zone classes today**. Whichever way this is ruled, **it must be ruled for both**, and the
+committed branch inherits the currency question intake **#42** records as still unanswered.
+
+### What this amendment does NOT do
+
+- **No directory is created**, and none is authorised. Creating `dashboard/` before ADR-101 admits
+  it is exactly what Rule A exists to block, and doing it under a *filing* would be worse than
+  doing it under a lane.
+- **No amendment to ROOT-CONTRACT v1.** C1–C4 stand as written; this is a request recorded against
+  them, and the contract's version does not move.
+- **No row is born**, on this file's own reconcile-before-birth precedent.
+- **No conflict is resolved.** Finding 1 is left open ON PURPOSE, in the same spirit as the four
+  gaps the 2026-08-31 amendment named rather than closed.
