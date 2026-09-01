@@ -1,13 +1,14 @@
 ---
 intake-id: 66
-status: DRAFT
+status: READY
 origin: operator direction, stated 2026-09-01 under the binding rule "reconcile-before-birth — amend #62/#617/HY-2/HY-4/A2 where they carry it, birth only the gap"; filed after a reconcile pass that moved five of the seven legs onto existing carriers
 consumed-by:
 ---
 
 # The OBSERVABLE HARNESS — four layers, one home each, and the layer that has no home at all
 
-<!-- class: tech (structural/ownership question) · status: DRAFT — NOT ratified; DRAFT BINDS
+<!-- class: tech (structural/ownership question) · status: READY (operator-approved on the
+dashboard-home ruling, 2026-09-01; see the AMENDMENT at the foot) — NOT ratified; BINDS
 NOTHING. Non-citable as doctrine until ratified; the repo wins on any conflict. -->
 <!-- origin: operator direction, 2026-09-01 -->
 
@@ -235,3 +236,195 @@ carrier row is deliberately unborn**, on the precedent intake #62 states in its 
 and #40 before it: the path from a CANDIDATE runs through intake and ratification (ADR-98,
 ADR-111), and question 1 is a ruling the operator owns. **Seeds batch G.** Awaiting the operator's
 ruling on question 1 and technical-architect triage on 2–5.
+
+---
+
+## AMENDMENT — 2026-09-01: THE DASHBOARD HOME IS RULED — `docs/dashboard/`, and the build order is fixed by evidence
+
+> **Source:** operator ruling, stated 2026-09-01, under the same *reconcile-before-birth* rule that
+> filed this intake. **Appended, not edited** — the body above stands as filed, including its open
+> question 1, which this amendment ANSWERS rather than deletes. **No folder is created here and
+> none is authorised**; the ruling names a home, and the admission of that home is still a gated
+> act with a cost, stated in §3 below rather than assumed away.
+
+### 1 · The ruling
+
+**The dashboard is a PER-REPO ORGAN, universal by construction. Its home is `docs/dashboard/`.**
+
+- **Root stays sacred.** The 2026-08-26 ADR-101 amendment — *"root is sacred, and the docs disease
+  is cured by the consumer gate (`[#595]`), not by a sibling folder at the root"* — is **untouched
+  and upheld**. A root `dashboard/` is **WITHDRAWN**, not merely deferred.
+- **`ecosystem/dashboard` is WITHDRAWN too**, and for a different reason: it is **hub-only and
+  therefore non-scalable**. `ecosystem/` is the hub's fleet-facts tree, keyed by consumer repo
+  name; no carrier ships it and a consumer repo has none. A dashboard placed there could never be
+  the per-repo organ the direction asks for — it would be an instrument the hub can open and no
+  consumer can.
+- **`docs/dashboard/` is the home** because it rides the tree a consumer already receives, so
+  universality is a property of the placement rather than a promise about future work.
+- **Data sources, per repo:** `logs/`, `tasks/`, the FPG graph, funnel state. **The HUB instance
+  additionally renders fleet panels from `ecosystem/`** — the same renderer, one extra input that
+  is present in exactly one repo. The fleet half is an *addition at the hub*, never a requirement
+  on a consumer, which is what keeps the organ universal.
+- **`ecosystem/trends.html` relocates to `docs/dashboard/`.** It stays **generated and regenerable
+  by one command**; VS Code discoverability comes from **a task, not from the path** — `.vscode/`
+  is already an owner=hub carried surface, so the discoverability mechanism exists and needs no new
+  convention.
+
+### 2 · What the ruling CLOSES
+
+**Open question 1 is ANSWERED, and the answer is the one the precedent predicted.** The question
+asked whether a new folder may exist at the ROOT and whether this one clears the bar that revoked
+`prompts/`. It does not, and the ruling does not ask it to: **the folder relocates into the genre
+tree**, which is precisely the remedy the 2026-08-26 revocation itself applied when it moved the
+`prompts/` convention to `docs/audits/<date>-technical-<batch>-launch-contracts/`. The ruling
+therefore **follows** C2's standing precedent rather than overriding it, and the conflict intake
+#38's amendment named as *"left open ON PURPOSE"* is discharged without a contradiction being
+created. **Acceptance criterion 1's blocking clause is satisfied**: the ruling exists, so VIEW-layer
+work is no longer barred by it — though see §5, which bars it again for a different and better
+reason.
+
+**Open question 2 is answered in part, and the unanswered half is now smaller.** The question was
+what a root `dashboard/` buys given that `fleet_parity.py::_eval_sweep` sees TRACKED entries only.
+Relocating to `docs/dashboard/` **dissolves the root-sanction half of it** — there is no
+`root-dashboard` parity row to be empty, because there is no root entry. What **survives** is the
+zone-class question, unchanged and still the technical architect's: `ecosystem/trends.html` is
+gitignored (`.gitignore`, the `ecosystem/trends.html` entry and the reasoning block above it) and
+`ecosystem/conformance.html` is committed, so the two artifacts this folder gathers are still in
+**different zone classes**, and the ruling does not say which one `docs/dashboard/` takes. The
+direction's own words — *"generated, regenerable by one command"* — read toward **ignored**, which
+would make the folder's contents invisible to any git-derived view; the deploy-as-an-organ clause
+reads toward **tracked**. **Both cannot hold, the ruling must hold for both artifacts, and it is
+recorded here as still open rather than inferred from the phrasing.**
+
+### 3 · What the ruling COSTS — measured, not assumed
+
+The relocation is **cheaper than a root admission, and it is not free.** Three costs, each with the
+surface that carries it:
+
+1. **A Tier-2 genre admission is still owed.** `validate_hermetization.py`'s `SANCTIONED_GENRES`
+   is a closed set and **`dashboard` is not a member**; Rule A refuses an added path under an
+   unsanctioned `docs/<genre>/` with *"unsanctioned new docs genre folder"*. So `docs/dashboard/`
+   needs an **ADR-101 amendment** exactly as a root folder would — what changes is the **tier**:
+   a Tier-2 genre admission against a closed genre set, not a Tier-1 contraction-precedent fight.
+   This amendment does **not** draft that ADR amendment, and the folder must not be created before
+   it.
+2. **The carrier premise is PARTLY FALSE and is corrected here rather than repeated.** The ruling
+   says the dashboard *"deploys with the `docs/{intake,handoffs,decisions,audits,archive}` tree at
+   instantiation"*. **That tree is not a carried payload.** The docs carrier's `doc_paths` in the
+   live manifest declares exactly three pairs — `docs/intake/README.md`,
+   `templates/intake-template.md` and the plugin `INSTALL.md` at the consumer root; the remaining
+   genre directories are **consumer-created, not shipped**. What IS true, and is the useful half,
+   is that **`deploy/carrier_docs.py` is fully manifest-driven** — its own module docstring:
+   *"Unlike every other carrier this one is fully manifest-driven: it hardcodes no payload …
+   shipping one more hub doc to consumers is a manifest edit, not a code change."* So the vector
+   exists and is cheap; the "rides the existing tree" phrasing overstates what the tree does today.
+3. **What deploys is the GENERATOR and the DOCTRINE, never the rendered page.** The same manifest
+   block already records the constraint, for `README.md`: the carrier ships **verbatim,
+   hash-guarded replicas**, which is correct for methodology-generic content and **wrong for
+   repo-specific content** — declaring such a pair *"is not a migration, it is a mis-carry"*. A
+   rendered dashboard is repo-specific output by construction; hash-guarding it would fail on every
+   consumer at every regeneration. **The organ that deploys is layers 1–2 (`scripts/` + the event
+   contract); layer 4's artifact is produced locally in each repo.** This is a sharpening of the
+   direction's *"deploys as an organ"* clause, not a contradiction of it — and it is what makes the
+   clause implementable at all.
+
+### 4 · What this supersedes in the body above
+
+- **Functional requirements, the four-layer statement:** VIEW's home reads `dashboard/`. It is now
+  **`docs/dashboard/`**. MECHANISM `scripts/` · DOCTRINE `protocols/` · TRACE `logs/` · VIEW
+  **`docs/dashboard/`**.
+- **Non-goals, first bullet:** *"`dashboard/` is a request recorded on intake #38"* — the request
+  is **resolved** (refused at root, relocated), and intake #38 carries the resolution as its own
+  amendment of the same date. The bullet's operative clause is unchanged and still binds: **no
+  folder is created before ADR-101 admits it.**
+- **Impact sketch, Physical:** *"one new root directory if and only if ADR-101 admits it"* → **one
+  new `docs/<genre>/` directory if and only if ADR-101 admits it.**
+- **Open question 1** — answered, §2. **Open question 2** — half answered, half still open, §2.
+  Questions **3, 4 and 5 are untouched and remain open**; in particular question 5(b), the
+  gitignored-store reversal, is the same fork as question 2's surviving half and should be ruled
+  with it.
+
+### 5 · The build order, recorded by evidence: TRACE first, VIEW second
+
+The body's *"the VIEW layer already names the TRACE layer that does not exist"* section established
+the ordering from an artifact rather than from preference. The ruling **adopts it as the build
+order**, and it is stated here as a sequence a lane can be dispatched against:
+
+1. **TRACE first**, and specifically the two OPEN rows of the live telemetry arc — **`[#575]`**
+   (store performance; silent drops under concurrent writers) and **`[#576]`** (the read path).
+   `[#529]` and `[#565]` are already CLOSED. Nothing on the VIEW layer proceeds ahead of these two,
+   because a panel built over a store that drops rows silently is worse than an absence: it renders.
+2. **The acceptance test is the three ABSENT panels, and it is mechanical.** `commit-gate ms`,
+   `suite wall-time` and `per-model quality` flip from **ABSENT to a rendered series**, with
+   **nothing else on the page changing** and **no hand-entered value anywhere in the input path**.
+   Pass/fail is a diff of the page plus a read of the input table; it is not a judgment call. This
+   restates the body's acceptance criterion 6 as the *gate on step 1*, which is its operative use.
+3. **VIEW expansion after** — new panels, the relocation of `trends.html`, the conformance
+   migration of §6. Building panels before the stores exist adds absences, not answers.
+
+**This ordering is now the binding half of criterion 1's replacement.** Criterion 1 barred VIEW work
+pending a ruling on the root; the ruling has been made, and the bar is **re-established on the
+evidence instead**: VIEW work waits on TRACE, not on an admission question.
+
+### 6 · `conformance.html` — MIGRATE, and the migration is specified
+
+The direction is **MIGRATE, not delete**, and this amendment fixes the three things the word
+"migrate" left ambiguous:
+
+- **The `.md` twin STAYS, and stays the data surface.** `ecosystem/conformance.md` is not part of
+  the migration. It is the parseable, diffable, git-visible record; nothing about the VIEW layer
+  replaces it, and a migration that took it out would trade a durable surface for a rendered one.
+- **The `.html` RENDERER becomes a `docs/dashboard/` panel.** What moves is the rendering half of
+  `scripts/gen_dashboard.py` — the artifact the operator opens — not the generator's data path.
+  Its **one honest question** becomes a panel among the others, which is the whole point of a
+  single VIEW: the operator opens one file, not two HTML siblings in a fleet-facts directory.
+- **Consumers are re-pointed ONLY where they cite `.html`.** Enumerated, with the surface that
+  carries each, so the migration is checkable rather than asserted — and the count is deliberately
+  not restated as a number, per the standing rule that a count typed into a doc is stale at the
+  next commit:
+  - `scripts/generated_artifact_freshness.py` — the `conformance-dashboard` entry, whose `outputs`
+    tuple names **both** files. **Only the HTML leg moves**; the `.md` leg is unchanged. A
+    fire-test proving the tuple REDs on a stale new target is criterion 4's, and stands.
+  - `scripts/gen_dashboard.py` — the `HTML_RELPATH` constant, and the module docstring that
+    records the 2026-08-19 operator addendum admitting the HTML sibling.
+  - `tests/test_generated_artifact_freshness.py` and `tests/test_gen_dashboard.py` — each pins the
+    tuple or the `--commit-path` string literally, so each is a re-point rather than a rewrite.
+  - `ARCHITECTURE.md` — the operator-addendum sentence naming the HTML sibling and its generator.
+  - The two artifacts' **own commit-path prose**, in `ecosystem/conformance.md` and the rendered
+    `ecosystem/conformance.html`, which name the pathspec pair verbatim.
+  - Intake **#42**'s scenario, whose amendment of this date names `docs/dashboard/` as the
+    destination.
+
+  **This is the "four+ consumers" the direction names, and the enumeration is why the count is
+  understated there**: it is at minimum six live surfaces plus two self-describing artifacts, and
+  intake #42's amendment already recorded the direction's figure as UNDERSTATED before this ruling
+  landed.
+
+### 7 · Status: DRAFT → READY
+
+**`status:` moves to READY** — *operator-approved, waiting on its consumer* — on the ruled enum
+(intake README §5). The transition is warranted because **the one blocking question was the
+operator's and it has now been ruled**: question 1 gated every other clause, and §2 answers it.
+
+Two consequences, stated so neither is inferred:
+
+- **READY is not ACCEPTED, and this file still binds nothing.** The blockquote at the head of this
+  intake stands **verbatim and remains true**: nothing below it is doctrine until the intake is
+  ratified, and the repo wins on any conflict. **Ratification is the operator's act**, and this
+  amendment does not perform it.
+- **Only the status TOKEN was edited in place** — the frontmatter `status:` key's value and the
+  same token in the header comment, which is a second copy of the same machine fact and would
+  otherwise drift. That is the ADR-94 class of edit (status is metadata, not decision content); no
+  frontmatter KEY was added, removed or renamed, and no decision content above was altered.
+
+### What this amendment does NOT do
+
+- **No folder is created.** `docs/dashboard/` does not exist after this commit, and creating it
+  before ADR-101 admits the genre is exactly what Rule A exists to block.
+- **No ADR-101 amendment is drafted**, and `SANCTIONED_GENRES` is untouched.
+- **No row is born**, on this intake's own reconcile-before-birth precedent.
+- **No code, no test, no manifest edit.** The carrier finding of §3.2 is a **correction to the
+  record**, not a declaration; the live deploy manifest is unchanged.
+- **No ratification.** READY is a waiting state, and §7 says whose act ends the wait.
+- **No answer** to open questions 3, 4 or 5, or to the surviving half of 2. Four questions remain
+  the architect's and the operator's, and they are named rather than quietly closed.
