@@ -187,7 +187,9 @@ B-2 stated the run is decidable if it either (a) reduces manual transcription/ag
 
 ## 10. Scratch artifacts
 
-Built and run under `temp/harbor-sda1n/` (gitignored; `.gitignore:122`), consisting of `build_and_run.py` (§1-§2), `naive_verifier_check.py` (§3), and `aggregator.py` (§4), plus the 10 generated task directories. **Deleted before this lane's commit** — every script body and every result relevant to this report is reproduced verbatim above, so nothing is lost by the deletion, and this lane leaves no artifact outside its declared footprint.
+Built and run under `temp/harbor-sda1n/` (gitignored; `.gitignore:122`), consisting of `build_and_run.py` (§1-§2), `naive_verifier_check.py` (§3), and `aggregator.py` (§4), plus the 10 generated task directories. **Deleted before this lane's commit**, and this lane leaves no artifact outside its declared footprint.
+
+> **CORRECTED AT INTEGRATION, 2026-09-01 (integrator; pre-merge terra round, finding UPHELD).** This paragraph originally read *"every script body and every result relevant to this report is reproduced verbatim above, so nothing is lost by the deletion"*. That claim is **not supported by the artifact**, and the qualifier *"relevant to this report"* made it unfalsifiable rather than true. Measured: the report carries **five** fenced blocks; `build_and_run.py` and `naive_verifier_check.py` appear **by name only**, with no body. **What is reproduced** is the translation shape, N-03's verifier, the aggregator's central-claim test, and every per-item verdict. **What is not** is the full body of the three scratch scripts and the raw per-trial outputs, which were deleted and are not recoverable. **So the 9/9 and 4/4 numbers rest on this report, not on re-runnable artifacts** — which is a real limit on re-audit, and is now stated rather than dissolved by a qualifier. The verdicts themselves are unchanged; only the claim about their reproducibility is.
 
 ---
 
