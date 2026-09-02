@@ -19,6 +19,36 @@
 
 ---
 
+### 2026-09-02 (d) - CC (Opus 5): the reviewer caught the batch citing a ruling that did not exist
+
+**Anchors:** `7a5ca6ff`
+
+**Did:** opened batch G's integration with terra pre-merge on G5, and landed the batch's six
+rulings as register section AC before merging anything.
+
+**THE FINDING IS THE POINT, AND IT IS MINE.** Terra's first pass on G5 raised P1: the parity doc
+cites `STANDING_RULINGS.md` R-G0-2 as the authority for a FLIP that re-routes seven lanes, and
+**the register carried no such entry, in this revision or anywhere in history.** Six rulings were
+given in chat, acted on, and cited in committed artifacts without ever having a durable home.
+That is the *exact* defect G0 was filed to end — a hard decision discharged by memory rather than
+by mechanism — reappearing one step later, in the integration of the batch that fixed it. I did
+not catch it; the reviewer did.
+
+**Result:** section AC records R-G0-1 through R-G0-4, R-G-A2 and R-G-G3b, each with the
+measurement behind it. The register is outside the silent-rule corpus (R12), so it cost no
+ratchet tokens. Every batch-G artifact's citation now resolves.
+
+**A SECOND P1 ON THE SAME PASS, AND IT IS ALSO MINE.** Terra showed the AMENDMENT 3 marker
+corrects "sixteen" using a decomposition from a DIFFERENT run: the packet's figure is Lane A's
+294.07 s run, while the proof doc's `17 = 2 + 15` belongs to a 298.50 s run. I wrote that clause
+into G5's contract, so the lane executed a correction that its own evidence does not support.
+Being fixed on the branch before G5 merges, as an integrator act.
+
+**Changes:** `protocols/STANDING_RULINGS.md` (section AC), `JOURNAL.md`.
+
+**Next:** correct G5's amendment marker, write terra's tally into its artifact, then merge the
+queue G5 -> G1 -> G2 -> G3 -> G4 -> G6 -> G8 -> G7 -> G3b.
+
 ### 2026-09-02 (c) - CC (Opus 5): the base failed-set is real, and the source the contract named was a leftover
 
 **Anchors:** `10bd27d9`
