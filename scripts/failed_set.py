@@ -32,6 +32,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -59,6 +60,45 @@ def read_lastfailed(cache: Path) -> set[str]:
     if not isinstance(raw, dict):
         raise FailedSetError(f"{cache} is not the expected mapping of nodeid to true")
     return {str(k) for k in raw}
+
+
+#: `FAILED tests/x.py::t - AssertionError` / `ERROR tests/x.py::t`, with any ANSI colouring.
+_REPORT_RE = re.compile(r"^(?:FAILED|ERROR)\s+(\S+?)(?:\s+-\s.*)?$")
+_ANSI_RE = re.compile(chr(27) + r"\[[0-9;]*m")
+
+
+def read_report(path: Path) -> set[str]:
+    """The failing nodeids a pytest RUN reported, read from its own captured output.
+
+    WHY THIS SOURCE EXISTS AND IS THE DEFAULT FOR A FULL RUN. `lastfailed` is the obvious
+    source and it is NOT reliable in this repo: `addopts = "-n auto"`, and a full suite run on
+    2026-09-02 rewrote `.pytest_cache/v/cache/nodeids` (15:01) while leaving
+    `.pytest_cache/v/cache/lastfailed` untouched from the PREVIOUS DAY (21:37). The stale file
+    was a strict SUPERSET -- 45 nodeids against the 13 the run actually reported -- so reading it
+    would have produced a base set that silently forgives 32 tests that now pass. That is exactly
+    the false base this module exists to prevent, and it is worse than an absent one, because it
+    looks like a measurement.
+
+    The run's own report is therefore the authority: it is what the suite SAID, at a known sha,
+    in one pass. Absence RAISES for the same reason `read_lastfailed` does.
+    """
+    if not Path(path).is_file():
+        raise FailedSetError(f"{path} is absent, so no run report could be read (Z-G4)")
+    try:
+        text = Path(path).read_text(encoding="utf-8", errors="replace")
+    except OSError as exc:
+        raise FailedSetError(f"cannot read {path}: {exc!r}") from exc
+
+    found = set()
+    for line in _ANSI_RE.sub("", text).splitlines():
+        m = _REPORT_RE.match(line.strip())
+        if m:
+            found.add(m.group(1))
+    if not found and "passed" not in text:
+        raise FailedSetError(
+            f"{path} carries neither a FAILED/ERROR line nor a pytest summary — it does not look "
+            f"like a pytest run report, and guessing an empty set here would forgive everything")
+    return found
 
 
 def head_sha(repo: Path) -> str:
@@ -113,13 +153,17 @@ def main(argv: list[str] | None = None) -> int:
                         help="where this was measured (local | codespace | cloud)")
     parser.add_argument("--compare", metavar="BASE",
                         help="verdict this checkout's failed-set against a committed BASE")
+    parser.add_argument("--from-report", metavar="RUNLOG", default=None,
+                        help="read the failing nodeids from a pytest run's captured output "
+                             "instead of the cache (the reliable source under -n auto)")
     args = parser.parse_args(argv)
 
     repo = Path(args.repo)
     cache = Path(args.cache) if args.cache else repo / CACHE_RELPATH
 
     try:
-        head = read_lastfailed(cache)
+        head = (read_report(Path(args.from_report)) if args.from_report
+                else read_lastfailed(cache))
         if args.compare:
             regressions, fixed = compare(load_record(Path(args.compare)), head)
             for nodeid in sorted(fixed):
@@ -131,6 +175,7 @@ def main(argv: list[str] | None = None) -> int:
             return 1 if regressions else 0
 
         record = build_record(head, head_sha(repo), args.substrate)
+        record["source"] = "run-report" if args.from_report else "pytest-cache"
         if args.emit:
             out = Path(args.emit)
             out.parent.mkdir(parents=True, exist_ok=True)

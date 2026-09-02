@@ -91,3 +91,56 @@ def test_emit_round_trips_through_load_record(tmp_path):
 def test_a_missing_cache_exits_2_rather_than_0_through_the_CLI(tmp_path):
     """A reported gap that exited 0 would read as a pass to anything shelling out to this."""
     assert fs.main(["--cache", str(tmp_path / "nope"), "--emit", str(tmp_path / "o.json")]) == 2
+
+
+def _report(tmp_path, body):
+    p = tmp_path / "run.txt"
+    p.write_text(body, encoding="utf-8", newline="\n")
+    return p
+
+
+def test_the_run_report_is_read_when_the_cache_cannot_be_trusted(tmp_path):
+    """Measured 2026-09-02: a full `-n auto` run rewrote `nodeids` and left `lastfailed` a day
+    stale — 45 nodeids against the 13 the run reported. The report is the authority."""
+    body = ("FAILED tests/a.py::t_one - AssertionError: nope\n"
+            "ERROR tests/b.py::t_two\n"
+            "13 failed, 4856 passed, 4 skipped in 841.43s\n")
+    assert fs.read_report(_report(tmp_path, body)) == {"tests/a.py::t_one", "tests/b.py::t_two"}
+
+
+def test_ansi_colouring_does_not_hide_a_failure(tmp_path):
+    """A coloured FAILED line keeps a leading ESC after naive bracket-stripping and would then
+    match nothing — silently dropping a real failure out of the base set."""
+    esc = chr(27)
+    body = (f"{esc}[31mFAILED tests/a.py::t_one - boom{esc}[0m\n"
+            "1 failed, 2 passed in 1.0s\n")
+    assert fs.read_report(_report(tmp_path, body)) == {"tests/a.py::t_one"}
+
+
+def test_a_parametrised_nodeid_survives_the_ansi_strip(tmp_path):
+    body = "FAILED tests/a.py::t_one[case-1] - boom\n1 failed in 1.0s\n"
+    assert fs.read_report(_report(tmp_path, body)) == {"tests/a.py::t_one[case-1]"}
+
+
+def test_a_green_run_report_reads_as_an_empty_set(tmp_path):
+    assert fs.read_report(_report(tmp_path, "4856 passed, 4 skipped in 800s\n")) == set()
+
+
+def test_a_file_that_is_not_a_pytest_report_RAISES_rather_than_forgiving_everything(tmp_path):
+    """An empty set from an unrecognised file is the false base this module exists to prevent."""
+    with pytest.raises(fs.FailedSetError, match="pytest run report"):
+        fs.read_report(_report(tmp_path, "some unrelated log output\n"))
+
+
+def test_an_absent_report_RAISES(tmp_path):
+    with pytest.raises(fs.FailedSetError, match="absent"):
+        fs.read_report(tmp_path / "nope.txt")
+
+
+def test_the_emitted_record_names_WHICH_source_produced_it(tmp_path):
+    """Two sources exist and they disagreed by 32 nodeids once; a record that did not say which
+    one it came from would be unauditable."""
+    out = tmp_path / "base.json"
+    fs.main(["--from-report", str(_report(tmp_path, "FAILED tests/a.py::t - x\n1 failed in 1s\n")),
+             "--emit", str(out)])
+    assert json.loads(out.read_text(encoding="utf-8"))["source"] == "run-report"
