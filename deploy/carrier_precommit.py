@@ -36,6 +36,7 @@ import logging
 import re
 import sys
 from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -61,7 +62,7 @@ _SCRIPTS = _HUB_ROOT / "scripts"
 if str(_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS))
 
-from enforcement_coverage import read_allowlist  # noqa: E402
+from enforcement_coverage import AL_VALID, read_allowlist, validate_allowlist_entry  # noqa: E402
 
 log = logging.getLogger(__name__)
 
@@ -81,17 +82,33 @@ DEFAULT_CONFIG_NAME = ".pre-commit-config.yaml"
 
 
 def _waived_components(repo_root: Path) -> frozenset[str]:
-    """Component ids the consumer's `.methodology.yaml` sanctions as divergent.
+    """Component ids the consumer's `.methodology.yaml` sanctions as divergent,
+    valid as of TODAY.
 
-    Shape-only (a non-empty ``reason`` is the one mandatory field): staleness
-    (expiry/review_date) is the Informant's reporting concern
-    (scripts/enforcement_coverage.py::validate_allowlist_entry), not a second
-    policy engine here -- #276's contract is READ the allowlist and honor it,
-    not police it. Fail-soft through ``read_allowlist`` (absent/malformed file
-    -> empty set, exactly like every other carrier reading consumer-owned config).
+    Reuses ``scripts/enforcement_coverage.py::validate_allowlist_entry`` for the
+    shape+date verdict -- never a second date-policy engine here -- so the same
+    three failure shapes the Informant already reports (no reason, no/unparseable
+    date, expired date) also make the deploy tool's waiver fail CLOSED ([#276]
+    Done-contract item 2): the entry is simply not in the returned set, and both
+    legs behave exactly as if no waiver had been declared. LANE d-4 (the prior
+    pass at #276) deliberately left staleness unpoliced here ("the Informant's
+    reporting concern, not a second policy engine") -- Terra recorded that as
+    failing OPEN on bad dates, which this closes. ``waivable_policy={}`` is
+    deliberate: this carrier polices ONLY the time-box, never a component's
+    non-waivable status (that governance axis is the Informant's, not #276's).
+    ``run_date`` is wall-clock here, not threaded as a parameter (unlike the
+    Informant's rule) -- this call happens at actual deploy-action time, not a
+    frozen report, and ``Carrier.detect(target)``'s signature (contract.py, out
+    of this lane's write-scope) carries no such parameter to thread it through.
+    Fail-soft through ``read_allowlist`` (absent/malformed file -> empty set,
+    exactly like every other carrier reading consumer-owned config).
     """
+    today = date.today()
     return frozenset(
-        e.component for e in read_allowlist(repo_root) if e.component and e.reason.strip()
+        e.component
+        for e in read_allowlist(repo_root)
+        if e.component
+        and validate_allowlist_entry(e, run_date=today, waivable_policy={})[0] == AL_VALID
     )
 
 

@@ -265,8 +265,17 @@ repos:
         # already-executed batch, not templates: retro-fitting them would falsify what was
         # actually dispatched, so they are grandfathered as immutable historical evidence
         # and deliberately left OUTSIDE this glob. The gate governs batch 2 onward.
+        #
+        # `always_run: true` + `pass_filenames: false` (lane-g-630, [#630]) — the same pair
+        # already used at `provider-registry` and `audit-health` below. A `files:`-globbed
+        # gate is not a guarantee; it is a gate that disappears exactly on a commit touching
+        # zero `LANE-*.md` files, which is every commit except a freeze. The pattern is
+        # retained as documentation of what this gate is scoped to — it no longer decides
+        # whether the gate runs. `gen_lane_contract.py check` now runs on every commit and
+        # reports "0 checked" rather than erroring on `PATHS` or passing silently.
         entry: uv run --locked python scripts/gen_lane_contract.py check
         language: system
+        always_run: true
         files: '(^|/)LANE-[^/]*\.md$'
       - id: audit-health
         name: Audit self-conformance gate (FAIL blocks the commit; WARN only informs)
