@@ -4,12 +4,18 @@
   stop hand-assembling (and hand-drifting) their probe sets.
 
   ANSWER-FREE BY CONSTRUCTION (RF-1 option b). The interpolation vars below are STRUCTURAL
-  ONLY — {{MODE}} {{SLUG}} {{REPO}} {{DATE}} {{BRANCH}} + two framing tokens
-  ({{SUPPLEMENT_BANNER}} / {{P1_GATE_NOTE}}). NONE can carry a probe's ANSWER (a count, sha,
-  date-relation, verdict, or group-membership). {{BRANCH}} names only *which* branch is
-  checked out (a pointer CC compares against — §5-sanctioned context, never the value).
-  Generation-time drift hints live in the JOURNAL generation-entry, never here; and
-  scripts/verify_handoff_probes.py FAILs any probe ROW that prints an `expected:` value.
+  ONLY — {{MODE}} {{SLUG}} {{REPO}} {{DATE}} {{BRANCH}} + one framing token ({{P1_GATE_NOTE}}).
+  NONE can carry a probe's ANSWER (a count, sha, date-relation, verdict, or group-membership).
+  {{BRANCH}} names only *which* branch is checked out (a pointer CC compares against —
+  §5-sanctioned context, never the value). Generation-time drift hints live in the JOURNAL
+  generation-entry, never here; and scripts/verify_handoff_probes.py FAILs any probe ROW that
+  prints an `expected:` value.
+
+  PROSE, NOT ROWS ([#611] — the two-rival-copies defect this closed). The full probe CONTRACT
+  (question+locator+command, no answer; anti-bluff rationale; execution order) lives ONCE, in
+  `protocols/HANDOFF_PROCESS.md` §5 — this file states a one-line pointer, not a restatement.
+  {{SUPPLEMENT_BANNER}} does NOT render here either: it appears exactly once, in this bundle's
+  `HANDOFF_BOOT.md.tmpl` session header, not duplicated across every folded section.
 
   SCOPE: this is the HUB (.dev-knowledge) probe-core — its teeth bind to hub validators
   (audit.py / validate_*). Cross-repo binding parameterisation is deferred (ADR-83; #164
@@ -18,26 +24,17 @@
 # Probe manifest — {{MODE}} mode: orientation first, then teeth (HANDOFF_PROCESS §5 + §13c)
 <!-- scope: meta -->
 
-> **Contract.** Each probe ships a **question + source-locator + verification command** and **no
-> answer**. The browser has no file access, so the answers reach it one way only: **CC** runs every
-> command against **live state at check-time** via `/handoff-verify`, re-derives ground truth, and
-> emits **one evidence block** carrying each row's PASS/FAIL and live evidence. The operator pastes
-> that block once (HANDOFF_PROCESS §5 — the v6 one-round-trip boot). **Any FAIL blocks onboarding**,
-> and a missing required row is not a pass. Degrade loudly: a moved anchor → WARN `anchor-missing`, re-anchor (never a synthesized
-> pass); git/tooling absent → reported *skipped* (degraded coverage visible), never counted as pass.
->
-> **Anti-bluff (HANDOFF_PROCESS §5 — a probe that bakes its answer is bluffable, rejected).** This
-> manifest **withholds every answer value** by construction: no counts, SHAs, dates, verdicts,
-> group-memberships, or orienting lines are stated. That withholding IS the teeth. The pass criterion
-> is **"answered from the live source at check-time,"** never "matches a remembered number." Generation
-> hints (if any) live in the JOURNAL generation-entry, which the browser never sees — never here. The
-> validator `scripts/verify_handoff_probes.py` FAILs any probe row that prints an `expected:` value.
+> **Contract + gate procedure: `protocols/HANDOFF_PROCESS.md` §5 — lives there ONCE ([#611]).**
+> Each row below ships a **question + source-locator + verification command**, never an answer.
+> CC runs every command against live state via `/handoff-verify` and emits **one evidence
+> block**; **any FAIL blocks onboarding**. The full contract, the anti-bluff rationale, and the
+> execution order are stated there, not restated per-bundle here — this file carries **rows
+> only**. (The SUPPLEMENT fill-state banner is stated once too — this bundle's `HANDOFF_BOOT.md`
+> session header, not here.)
 >
 > **Branch note.** This bundle was generated on branch `{{BRANCH}}`. This line names only *which*
 > branch is checked out so CC knows which live value to compare — **re-derive HEAD / tree / branch /
 > ahead-behind live (P3); do not trust this line.**
->
-> {{SUPPLEMENT_BANNER}}
 >
 > **Windows note:** `audit.py checks` (P2) can crash mid-listing on a bare cp1252 PowerShell console
 > (a non-ASCII glyph in a check docstring) — run with `PYTHONUTF8=1` (or `PYTHONIOENCODING=utf-8`); this
@@ -101,22 +98,6 @@ asks the operator for **off-repo** context.
 
 ## Gate procedure (CC)
 
-1. **Run the whole gate in one pass** (`/handoff-verify`), in table order: **P0 first, then P1**,
-   then the remaining rows — every row against **live state now**. Table order IS the execution order. The
-   architect cannot begin design until both orienting lines are read live and substring-matched.
-   **The operator-context beat (§13d) fires after the block is in hand.**
-2. For each, record **PASS** (live ground truth obtained and consistent) or **FAIL** (anchor missing /
-   command errored / receiver tried to answer from memory or this bundle).
-3. **Any FAIL → ABORT onboarding** and route through the escalation ladder (re-read the named primary
-   source → CC re-derives the fact → abort if still unmet).
-4. Probes P0a–P9 are *designed to move* between generation and check-time — that is the point. **Answer
-   values are deliberately absent (§5)**: the pass criterion is **"answered from the live source,"**
-   never "matches a remembered number." P7 is the headline (GREEN/RED + dispositioned-WARN count +
-   any `[stale]` line). P8 pins the bundle shape **and the live supplement fill-state**. First check
-   which branch is live (P3), then re-derive every load-bearing fact from the live primary source.
-5. **Every row is BOUNDED (§5 cond. 4).** A probe whose honest answer requires unbounded judgment
-   over an open set is an **arc, not a probe**, and is rejected — `verify_handoff_probes.py` FAILs
-   any row that quantifies over one. The former **P10** ("groom every OPEN item in `BACKLOG.md` at
-   boot") was exactly that row: ratified-against at intake #18 as this condition's own origin, and
-   shipped anyway in 35 bundles until it was removed 2026-08-26. Backlog grooming is real work; it
-   is a task the successor takes on with a contract, not a gate it clears before it may begin.
+Full procedure: `protocols/HANDOFF_PROCESS.md` §5, "Who runs it — the one-round-trip boot" +
+"Execution order" ([#611] — lives there once, not restated per-bundle). Table order above IS the
+execution order: P0 first, then P1, then the remaining rows, all against live state now.

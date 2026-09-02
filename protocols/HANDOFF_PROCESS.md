@@ -278,6 +278,16 @@ P0a/P0b/P0c, and P3. **Any FAIL blocks onboarding** (the escalation ladder, §10
 required row is not a pass**, and **no required row may be deferred to a second block or another
 ferry turn.** Degraded coverage is reported, not silently counted as a pass.
 
+**Execution order (row table order IS the gate order; [#611] — this used to live only in the
+per-bundle `PROBES.md`, restated on every cut).** P0 first, then P1 — the architect cannot begin
+design until both orienting lines are read live and substring-matched — then the remaining rows,
+all against live state now. Every row is **bounded** (condition 4 above): a probe whose honest
+answer requires unbounded judgment over an open set is an arc, not a probe. The former P10
+("groom every OPEN item in `BACKLOG.md` at boot") was exactly that row — ratified-against at
+intake #18 as this condition's own origin (JOURNAL 2026-07-26 (h); LESSONS 2026-07-27 S3d) and
+shipped anyway in 35 bundles until removed 2026-08-26; `verify_handoff_probes.py` FAILs any row
+that quantifies over an open set.
+
 The reconciliation in one line is unchanged from v5: "force the receiver to open the primary
 source" becomes "**force CC to re-derive every load-bearing fact from the live primary source at
 check-time, and block onboarding on any mismatch.**"
