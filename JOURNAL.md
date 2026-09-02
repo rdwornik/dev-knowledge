@@ -19,6 +19,42 @@
 
 ---
 
+### 2026-09-02 (f) - CC (Opus 5): G5 merged, and delta A2's three REDs were none of them a lane's
+
+**Anchors:** `4bc3f34c`
+
+**Did:** merged G5 (the parity hinge) as queue 1/9, ran the first integrator delta A2, and
+triaged its three regressions. **None bounced to a lane.**
+
+**TWO WERE MY OWN INDEX DEBT.** The batch added five audit artifacts, so
+`docs/audits/README.md` went stale and both `test_gen_audit_index` tests REDded. A lane must not
+regenerate that index — leaving it stale IS correct lane behaviour — and the integrator is
+gate-of-record. Regenerated here rather than at the end of the queue, so the remaining eight
+delta-A2 runs give clean signal instead of each carrying the same two known REDs.
+
+**THE THIRD BELONGS TO NO LANE, AND IT IS A REAL LATENT DEFECT.**
+`test_preflight_contract.py::test_every_claim_class_the_brief_names_is_extractable` builds its
+SHA claim from live `HEAD`, and this merge's short sha is `85827046` — **all digits**. Reproduced
+against the extractor directly: `85827046` yields `kinds=[]` while `1e064921`, `b5753f52`,
+`cd4035e7` and `a7d1b3f4` all yield `['sha']`. So the test fails on roughly **2.3 %** of commits
+((10/16)^8) for reasons that have nothing to do with the diff under test. Recorded as a finding
+for the funnel, not fixed here: no lane owns `scripts/preflight_contract.py` in this batch, and
+a finding does not become a row without triage (ADR-111).
+
+**THE WALL-CLOCK IS CONTAMINATED AND MUST NOT BE USED AS THE [#528] DATAPOINT.** This run
+measured `2675 s` against a `897 s` uncontended baseline on nearly the same tree. I ran
+`audit.py`'s spine-anchor check and a journal diagnostic DURING the timed run — the whole audit
+machinery, twice — which is the very "measuring while measuring" error the batch is trying to
+quantify. Recorded as spoiled rather than reported as a 3x substrate finding. Subsequent runs
+are left alone.
+
+**Result:** G5 merged at `85827046`. Suite after merge: 16 failed, 4861 passed, 3 skipped,
+1 xfailed. Delta A2: 3 regressions, all triaged above, 0 bounced.
+
+**Changes:** `docs/audits/README.md` (regenerated), `JOURNAL.md`.
+
+**Next:** terra -> merge -> delta A2 for G1, then the rest of the queue.
+
 ### 2026-09-02 (e) - CC (Opus 5): batch G ran without a manifest, and the merge queue is where that showed
 
 **Anchors:** `a7d1b3f4`
