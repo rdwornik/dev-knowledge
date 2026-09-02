@@ -729,9 +729,15 @@ generator carries it unchanged):
    re-decide.
 6. **Off-repo context** — intent / priorities / changed decisions / findings not in the repo.
 7. **Ratified-in-chat register** — terms, rulings, or contracts ratified in this window's chats
-   that are NOT yet recorded in the repo: the verbatim term · a one-line definition · its
-   intended durable home (BACKLOG id / ADR / LESSONS / PLAYBOOK §). "None" is a valid answer
-   (capture-only, per the schema note above — intake #18 A6).
+   that are NOT yet recorded in the repo, **and interface BEHAVIORS the operator relied on that
+   are not yet named in `protocols/OPERATOR-INTERFACE.md`** (extended 2026-09-02, operator
+   instruction — [#611]) — e.g. a copy-ready block substituting for a described action, a paste
+   arriving as a `.md` upload rather than inline text, reliance on the `PASTE_THIS.md` END
+   sentinel to detect a truncated paste, or a Downloads-directory fallback for file exchange.
+   For either kind: the verbatim term/behavior · a one-line definition (or what relying on it
+   looked like) · its intended durable home (BACKLOG id / ADR / LESSONS / PLAYBOOK §, or
+   `OPERATOR-INTERFACE.md` for an interface behavior). "None" is a valid answer (capture-only,
+   per the schema note above — intake #18 A6).
 
 **Hard scope constraint (load-bearing — this is what keeps the supplement from becoming the v4
 disease).** The interview asks **only** the *why* above. It **never** elicits repo state, methodology,
