@@ -895,3 +895,36 @@ def test_check_refuses_a_manifest_naming_a_contract_no_manifest_row_declares(tmp
 
     result = CliRunner().invoke(glc.cli, ["check", str(a1), str(stray)])
     assert result.exit_code == 1, result.output
+
+
+def test_a_contract_OUTSIDE_the_repo_is_not_compared_against_an_open_batch(tmp_path,
+                                                                           monkeypatch, caplog):
+    """SCOPE: only contracts living in the tree are the batch's (integrator, 2026-09-02).
+
+    Measured after `pass_filenames` was restored: with batch G genuinely open, `check` on three
+    `tmp_path` fixtures exited 1, because their slugs are absent from G's manifest. That is a
+    refusal about the FIXTURE, not about the repo — and it broke two tests that had nothing to
+    do with the predicate. A contract outside the tree belongs to no open batch.
+
+    The seeded batch-E tests are unaffected and that is the point of this pair: they monkeypatch
+    `_SCRIPTS` so `tmp_path` IS their repo root, so their contracts are in-tree and still
+    compared. If this guard over-filtered, those refusal tests would go vacuously green.
+    """
+    import logging
+    open_batch = _write_open_manifest(tmp_path, (
+        "## THE LANES\n\n```\n"
+        "L1  lane-a-1-in-the-manifest  worktree-lane-a-1-...  local  --\n"
+        "```\n"))
+    # NOTE: _SCRIPTS deliberately NOT patched -- repo_root stays the real tree, so the
+    # contract below is genuinely outside it, which is the condition under test.
+    monkeypatch.setattr(glc, "open_batches", lambda repo_root: [open_batch])
+
+    stray = tmp_path / "LANE-z-999-not-in-any-batch.md"
+    stray.write_text(glc.render_contract(_spec(slug="lane-z-999-not-in-any-batch",
+                                               task_id="999")),
+                     encoding="utf-8", newline="\n")
+
+    with caplog.at_level(logging.INFO):
+        result = CliRunner().invoke(glc.cli, ["check", str(stray)])
+    assert result.exit_code == 0, result.output
+    assert "none in this repo" in caplog.text, caplog.text

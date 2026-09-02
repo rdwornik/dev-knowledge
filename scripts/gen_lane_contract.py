@@ -1061,6 +1061,29 @@ def _check_manifest_contract_agreement(contracts: dict[str, str]) -> int:
         logger.info("contract-manifest predicate ([#630]): 0 contract(s) given — 0 checked")
         return 0
 
+    # SCOPE: only contracts that LIVE IN THIS REPO are the batch's. A contract outside the tree
+    # -- a tmp fixture, a draft in the prompts dir, a file being validated ad hoc -- is not part
+    # of any open batch, and comparing it against the manifest refuses work that was never
+    # claimed. Measured 2026-09-02: with batch G open, `check` on three tmp_path contracts
+    # exited 1 because their slugs are absent from G's manifest, which is a refusal about the
+    # FIXTURE rather than about the repo. The seeded batch-E defect is unaffected: a freeze
+    # commit stages its contracts UNDER docs/audits/<batch>-launch-contracts/, so they are
+    # in-tree and still compared.
+    in_repo: dict[str, str] = {}
+    for name, text in contracts.items():
+        try:
+            resolved = Path(name).resolve()
+        except OSError:
+            continue
+        if resolved.is_relative_to(repo_root.resolve()):
+            in_repo[name] = text
+    skipped = len(contracts) - len(in_repo)
+    if not in_repo:
+        logger.info("contract-manifest predicate ([#630]): %d contract(s), none in this repo "
+                    "— 0 checked", skipped)
+        return 0
+    contracts = in_repo
+
     batches = open_batches(repo_root)
     if not batches:
         logger.info("contract-manifest predicate ([#630]): no open batch — 0 checked")
