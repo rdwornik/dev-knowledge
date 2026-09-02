@@ -3323,6 +3323,19 @@ A SKIP=-based v7 bump
 (`docs/handoffs/2026-09-01-dev-knowledge-architect-v7/SUPPLEMENT.md` §3) and promoted here in the
 same arc, on the assembler's own promotion-debt signal (intake #18 A8).
 
+## AB. CANDIDATE recorded 2026-09-02 — the `/handoff-verify` FORM probe (Z-C-shaped)
+
+Recorded under ADR-111 §1(c) on section Z-C's precedent: a candidate is **recorded**, and the only
+route from here to a row is CANDIDATE → intake (ADR-98) → ratification. This section is the home
+for Z-C-shaped candidates recorded after Z-C closed at three; a later one appends as `AB-2`.
+
+**AB-1 · `/handoff-verify` gains a FORM probe.** An operator-action step in a browser-emitted
+paste without a copy-ready block is a defect. Origin: 2026-09-02 batch-G boot, two pastes
+re-emitted for form. No peg, no owner, by design.
+
+*The constant it would probe against* is `protocols/OPERATOR-INTERFACE.md` §7, landed in this same
+commit. The probe itself is unbuilt — recording the candidate is the whole of this entry.
+
 ## Editing note (read before adding an entry)
 
 This file sits inside the silent-rule ratchet corpus (`protocols/*.md`; detector

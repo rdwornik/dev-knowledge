@@ -123,6 +123,16 @@ performed against this Project.
 The scope of this entry is residency. What the role file *says* is `HANDOFF_BOOT.md`'s own content;
 what obliges it to reach the browser at all is `HANDOFF_PROCESS.md`.
 
+## 7. Operator-action steps end with a copy-ready block
+
+OPERATOR ACTION STEPS: every step that requires the operator's action ends with a copy-ready
+block — the exact shell command(s) or the exact CC paste — never a description of what will
+happen. A description where a block belongs is an interface defect.
+
+This generalises §3 from the start command to every step the operator is expected to run. The
+failure is the same one: a described action is handed to the operator where a runnable one
+belongs, and the gap between them is closed by the operator retyping it, or not at all.
+
 ---
 
 ## Scope, and what this file is not
@@ -139,5 +149,5 @@ paragraph in the next window's supplement.
 
 ---
 
-**Last updated:** 2026-08-26
+**Last updated:** 2026-09-02
 **Maintained by:** Rob
