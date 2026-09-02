@@ -1056,15 +1056,24 @@ section is ever re-titled — the parser keys on it literally, not on a heading 
 
 ```
 ESSENTIALS de-bless    asked 2026-09-01  re-asked 3  visible-fix: 12f4113a (CLAUDE.md sends
-                       nobody to protocols/ESSENTIALS.md; its status: superseded).
-                       RESIDUAL, filed not fixed: SESSION_SETUP.md Step 2 (x3) + Step 4 and
-                       DEFINITION_OF_DONE.md's closing See-also STILL send a reader there.
-                       Owner: [#628], deferred to batch G after the v1.5.0 tag.
+                       nobody to protocols/ESSENTIALS.md; its status: superseded) + 55d67d42
+                       (batch G / [#628]: SESSION_SETUP.md Step 2 (x3) + Step 4 and
+                       DEFINITION_OF_DONE.md's closing See-also no longer route there).
+                       RESIDUAL, filed not fixed: TWO live routes remain, both OUTSIDE this
+                       row's owning lane's write-scope -- protocols/AI_COUNCIL_PROCESS.md:413
+                       and protocols/PLAYBOOK.md:330. Measured at integration 2026-09-02.
+                       Owner: [#628], batch G rides WITH the v1.5.0 tag as a release act,
+                       not behind it. Row stays OPEN on those two.
 VISION.md out of root  asked 2026-09-01  re-asked 2  visible-fix: 441b08d8 (batch-F L5 / [#621]
                        -- VISION.md -> docs/archive/VISION.md, content byte-identical, both
-                       blobs 61bd603e). PARTIAL: canonical_docs.py:160 and
-                       conformance-hub.js:133 still name the vanished ROOT file, and the
-                       freshness gate SILENTLY SKIPS an absent file. Row deliberately OPEN.
+                       blobs 61bd603e) + 07a8d856 (batch G / G3: conformance-hub.js:133 both
+                       tokens repointed, canonical_docs.py CONFORMANCE_V2_SCAN follows).
+                       PARTIAL: the freshness gate still SKIPS an absent file, and VISION is
+                       still in FRESHNESS_FILES. Both were attempted and REVERTED with
+                       reproduced evidence -- release_lint C7 binds TAGGED manifests v1.1.0
+                       and v1.2.0 to live state, so removing it REDs 6 tests. Re-cut as lane
+                       G3b, which re-shapes C7 rather than retro-editing released manifests.
+                       Row deliberately OPEN.
 logs thinning          asked 2026-09-01  re-asked 1  visible-fix: 6241e5a8 (batch-F L3 /
                        [#626] -- the three HUB callers re-pointed, caller-first order honored).
                        PARTIAL and the residual is the live half: the DEPLOYED plugin copies

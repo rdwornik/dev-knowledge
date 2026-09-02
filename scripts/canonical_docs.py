@@ -258,8 +258,12 @@ BACKPRESSURE_CANON: tuple[str, ...] = (VISION, ARCHITECTURE, CLAUDE, CONTRIBUTIN
 
 # The living-doc scan list the conformance-hub V2 verifier reads (R2 seam S11). Held here so
 # the JS literal has a Python-side counterpart to be checked against.
+# BOTH tokens repointed ([#621] lane-g-621, 2026-09-02, on G6's behalf -- the two collide on
+# one line in conformance-hub.js:133): VISION.md -> its retired-location path (the root file is
+# gone); protocols/ESSENTIALS.md dropped (superseded, pending [#628] -- see CLAUDE.md's
+# first-read note).
 CONFORMANCE_V2_SCAN: tuple[str, ...] = (
-    VISION, ARCHITECTURE, CLAUDE, CONTRIBUTING, ESSENTIALS_PATH,
+    CANONICAL_RETIRED_LOCATIONS[VISION], ARCHITECTURE, CLAUDE, CONTRIBUTING,
 )
 
 # The `## H2` spine each canonical file carries (ADR-38 A6). Keyed by the names above so a

@@ -319,8 +319,14 @@ def git_log_commits(repo: Path, rev_range: str) -> list:
 
 
 def find_last_proposals_head(logs_dir: Path):
-    """HEAD sha recorded in the most recent prior PROPOSALS file, or None."""
-    files = sorted(logs_dir.glob("PROPOSALS-*.md"))
+    """HEAD sha recorded in the most recent prior PROPOSALS file, or None.
+
+    `**/PROPOSALS-*.md`, sorted by filename not full path -- matches a file relocated
+    into a `logs/YYYY-MM/` bucket by `logs_retention.py` as well as a flat one; see
+    the hub `scripts/propose_closures.py` twin for why full-path sort would get a
+    bucketed-vs-flat comparison backwards ([#626]).
+    """
+    files = sorted(logs_dir.glob("**/PROPOSALS-*.md"), key=lambda p: p.name)
     if not files:
         return None
     text = files[-1].read_text(encoding="utf-8", errors="replace")
@@ -358,8 +364,12 @@ def resolve_window(repo: Path, logs_dir: Path, open_ids: set):
     window, and overwrote the morning's proposals with "no closures"). Only once
     every prior proposal is reviewed/closed does the baseline advance to the latest
     file's head_commit.
+
+    `**/PROPOSALS-*.md`, sorted by filename not full path -- see
+    `find_last_proposals_head` above for why (bucketed AND flat files both count).
     """
-    files = sorted(logs_dir.glob("PROPOSALS-*.md")) if logs_dir.exists() else []
+    files = (sorted(logs_dir.glob("**/PROPOSALS-*.md"), key=lambda p: p.name)
+             if logs_dir.exists() else [])
     metas = []
     for f in files:
         try:

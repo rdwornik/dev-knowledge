@@ -1,8 +1,8 @@
 # Prompt Template for Claude Code
 <!-- scope: meta -->
 
-Version: 1.14
-Updated: 2026-08-08
+Version: 1.15
+Updated: 2026-09-02
 
 > **Copy this template, fill placeholders, save as `.md` artifact, deliver to Claude Code via paste-into-prompt.** Browser chat produces this; Claude Code executes it.
 >
@@ -161,6 +161,8 @@ Read `CLAUDE.md`, `<other read-first files relevant to task>`, and check `~/.cla
 
 **Governance pointer:** `<the specific ADR / LESSONS entry / sibling-spec this task touches, or "none">` — the architect fills this thin pointer; CC self-loads code-impact context + generic gotchas but won't self-infer governance context (ADR-87).
 
+**Name the executing copy; a root-only fix is a defect.** When a step touches a file that ships in more than one deployed location (a plugin carrier, a generated roster, a hand-mirrored twin), state which copy is the one actually running before editing any of them — fixing a copy nothing runs is a recorded class of miss ([#626]).
+
 ## Git workflow
 <!-- scope: meta -->
 
@@ -251,6 +253,12 @@ Final: `/ship "<summary> [#id if closing]"` — refuses if: on `main`, dirty tre
 ---
 
 **Section history:**
+- v1.15 (2026-09-02) — **the doctrine gap behind the [#626] defect class closes at its source.**
+  Five of eight recorded misses in that class were fixing a copy of a file that nothing runs
+  (the deployed plugin twin, not the hub root). Gains one standing line, next to the Governance
+  pointer: name the executing copy of a multiply-deployed file before editing any of it. Landed
+  as a template line rather than doctrine, same rationale as AM-4 (v1.12) — this card is the
+  point-of-use authority for work-lane prompts.
 - v1.13 (2026-08-08) — **a dispatched contract now OPENS with a mandatory `## Dispatch` block, and
   the block carries the literal dispatch line.** The operator's dispatch surface became
   `dispatch <file>` when [#509] v2 merged in `win-tooling` (`d743937`): the helper reads this
