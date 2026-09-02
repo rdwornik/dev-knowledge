@@ -359,4 +359,16 @@ were found by running rather than reading.**
   not.**
 
 Full evidence, timelines and receipts: `win-tooling` `docs/2026-09-01-lane-632-codespace-arc-packet.md`
+
+---
+
+**AMENDMENT 3 MARKER (2026-09-02, `[#632]` lane-g-632-parity)** — corrects the figure above
+without editing it in place (CLAUDE.md §5 rule 3: an audit is immutable). "Sixteen hub tests
+fail on their own merits" matches neither half of the actual decomposition. The proof doc this
+amendment already cites decomposes the run as **17 total = 2 harness/gate (root-caused,
+`receipt.json` sitting un-dot-prefixed at repo root, flagged by `dot_prefix_discipline`) + 15
+pre-existing app-level failures**, not sixteen of either kind. Evidence:
+`docs/audits/2026-09-01-verification-codespace-longrun-proof.md` lines 38-52 (the stash/pop
+isolation: `before stash: 17 failed` / `after stash: 15 failed`, naming the two root-caused
+tests) and lines 69-70 (the SUBSTRATE VERDICT restating the same 2 + 15 split).
 (merge `49cb75e`); substrate verdict recorded in `win-tooling` `config/dispatch/dispatch-cockpit.md` §7.
