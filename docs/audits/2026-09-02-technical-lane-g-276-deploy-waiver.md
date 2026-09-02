@@ -140,3 +140,41 @@ Mid-session, an unrelated instruction block addressed to a different lane
 by the operator as a paste-target mistake. No action was taken on it; it is
 recorded here only because the frozen contract's own Q10 discipline says a lane
 reports what it observes rather than silently absorbing it.
+
+## Terra pre-merge review (integrator, 2026-09-02)
+
+Reviewer `codex exec review --base main`, concurrency 1. **Wall-clock 76 s.**
+
+**Severity tally: HIGH/P1 = 1 · MED = 0 · LOW = 0. CONFIRMED by reproduction, fixed before merge.**
+
+| # | Sev | Finding | Disposition |
+|---|---|---|---|
+| 1 | P1 | A malformed `expiry` beside a valid future `review_date` is honoured: `_parse_date` maps it to `None`, `expiry or review_date` falls back, verdict `valid` | **FIXED** — present-but-unparseable now REFUSES, in both fields |
+
+**This was a hole in this lane's own closure (b).** The requirement is that missing / invalid /
+expired each REFUSE, and the lane seeded exactly that — but only where the bad date is the SOLE
+date field. Reproduced before touching anything:
+
+```
+malformed-expiry-valid-review  raw='not-a-date'  parsed=None  -> valid            (HONOURED)
+malformed-expiry-only          raw='not-a-date'  parsed=None  -> invalid-no-date
+```
+
+The failure was masked **precisely when a second date existed to hide behind**, which is why the
+seeded cases passed. The distinction the code lost is that *present-but-unparseable is not
+absent* — recoverable only from `entry.raw`, since parsing destroys it.
+
+**The mirror case was fixed too, and terra did not name it:** a malformed `review_date` beside a
+valid `expiry` was honoured by the same fallback. Fixing only the reported direction would have
+left the identical defect standing behind the other field.
+
+Fixed in `scripts/enforcement_coverage.py` — the SHARED verdict engine both readers already
+delegate to — rather than in the deploy carrier, so the Informant and the deploy tool cannot
+drift apart on date policy. That is this lane's own stated design ("never a second date-policy
+engine here"). After: all four cases correct, and a well-formed waiver is still honoured, so
+this is a refusal and not a blanket denial.
+
+`tests/test_enforcement_coverage.py` + `tests/test_carrier_precommit.py`: 65 passed, 1 failed —
+`test_anchor_gate_probe_distinguishes_installed_from_absent`, which is in the committed base
+failed-set and listed in G5's parity doc as failing on BOTH substrates. Pre-existing, not this
+lane's.
