@@ -130,7 +130,7 @@ const V1 = READONLY + '\n\nDOMAIN V1 - JOURNAL vs git reality.\n'
   + 'Populate checked_clean with the claims you verified as TRUE (so their absence from findings is informative). Set verifier_id="V1".'
 
 const V2 = READONLY + '\n\nDOMAIN V2 - Living-doc claims vs repo state.\n'
-  + 'Scan these files for VERIFIABLE FACTUAL claims (counts, file paths, command names, "we do X via Y"): VISION.md, ARCHITECTURE.md, CLAUDE.md, CONTRIBUTING.md, protocols/ESSENTIALS.md. Do NOT scan protocols/PLAYBOOK.md (out of scope, too large).\n'
+  + 'Scan these files for VERIFIABLE FACTUAL claims (counts, file paths, command names, "we do X via Y"): docs/archive/VISION.md, ARCHITECTURE.md, CLAUDE.md, CONTRIBUTING.md. Do NOT scan protocols/PLAYBOOK.md (out of scope, too large).\n'
   + 'Check each claim against actual repo state: e.g. a count like "12 checks" -> "python scripts/audit.py checks" or grep the ALL_CHECKS registry; a file path -> test it exists; a command/hook name -> verify it exists in .pre-commit-config.yaml / scripts/ / .claude/commands/.\n'
   + 'FLAG mismatches with the exact file:line and the disproving command (verdict contradicted). Known reference class: hardcoded counts that drift. Only flag falsifiable claims; ignore prose/opinion.\n'
   + 'Populate checked_clean with the factual claims you verified as correct. Set verifier_id="V2".'

@@ -5,6 +5,17 @@
 # settled fleet template are DECLARED here exactly as consumers declare theirs
 # (ADR-101 amendment 2026-07-13 sanctions this file's top-level presence).
 # Each entry: component id + MANDATORY reason + time-box (expiry or review_date).
+# SCHEMA NOTE ([#276] D2, LANE g-276): TWO readers police this file's time-box, not
+# one. The Informant (scripts/enforcement_coverage.py::validate_allowlist_entry)
+# always has; deploy/carrier_precommit.py's per-consumer waiver check now does too
+# (previously shape-only -- reason-presence alone -- which LANE d-4 left as an open
+# design decision and Terra recorded as failing OPEN on bad dates). An entry missing
+# BOTH expiry and review_date, carrying an unparseable date, or dated in the past is
+# NOT honored by either reader: the Informant reports it stale, and the deploy
+# tool's waiver-honoring (prune-leg skip / add-leg no-re-append) does not apply --
+# both legs behave exactly as if the entry were absent. `expiry`/`review_date` must
+# be ISO-8601 (YYYY-MM-DD); either field satisfies the time-box, `expiry` wins if
+# both are present.
 sanctioned_divergences:
   # --- hub-local enforcement organs (fleet ruling d1: consumers carry the casing
   #     branch only; the two hub-local branches stay hub-side) -----------------------

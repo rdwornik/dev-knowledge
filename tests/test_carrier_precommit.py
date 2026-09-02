@@ -94,6 +94,84 @@ def test_waived_components_ignores_entry_with_no_reason(tmp_path):
 
 
 # ---------------------------------------------------------------------------
+# Date handling fails CLOSED ([#276] Done-contract item 2, LANE g-276). Terra
+# recorded the LANE d-4 shape (shape-only: reason present -> honored, dates never
+# inspected) as failing OPEN on bad dates -- a waiver whose date is missing,
+# unparseable, or in the past must NOT be honored on either leg. Each case here is
+# a bare `.methodology.yaml` write (not the review_date="2099-01-01" default from
+# `_write_methodology_yaml`) so the date defect is the ONLY variable.
+# ---------------------------------------------------------------------------
+
+
+def test_waived_components_refuses_entry_with_no_date(tmp_path):
+    """Waiver MISSING: a reason but no expiry/review_date at all -- not honored."""
+    (tmp_path / ".methodology.yaml").write_text(
+        "sanctioned_divergences:\n"
+        "  - component: ruff-gate\n"
+        "    reason: >-\n"
+        "      consumer-owned; see JOURNAL\n",
+        encoding="utf-8", newline="\n",
+    )
+    assert cp._waived_components(tmp_path) == frozenset()
+
+
+def test_waived_components_refuses_entry_with_unparseable_date(tmp_path):
+    """Waiver INVALID: the date field is present but not ISO-8601 -- not honored."""
+    (tmp_path / ".methodology.yaml").write_text(
+        "sanctioned_divergences:\n"
+        "  - component: ruff-gate\n"
+        "    reason: >-\n"
+        "      consumer-owned; see JOURNAL\n"
+        "    review_date: not-a-date\n",
+        encoding="utf-8", newline="\n",
+    )
+    assert cp._waived_components(tmp_path) == frozenset()
+
+
+def test_waived_components_refuses_expired_entry(tmp_path):
+    """Waiver EXPIRED: a well-formed date that has already passed -- not honored."""
+    (tmp_path / ".methodology.yaml").write_text(
+        "sanctioned_divergences:\n"
+        "  - component: ruff-gate\n"
+        "    reason: >-\n"
+        "      consumer-owned; see JOURNAL\n"
+        "    review_date: 2020-01-01\n",
+        encoding="utf-8", newline="\n",
+    )
+    assert cp._waived_components(tmp_path) == frozenset()
+
+
+def test_waived_components_honors_a_valid_unexpired_date(tmp_path):
+    """Contrast: a well-formed, not-yet-passed date IS honored -- the fix
+    discriminates, it does not blanket-disable the waiver."""
+    _write_methodology_yaml(tmp_path, component="ruff-gate", review_date="2099-01-01")
+    assert cp._waived_components(tmp_path) == frozenset({"ruff-gate"})
+
+
+def test_prune_refuses_on_an_expired_waiver(tmp_path):
+    """End-to-end, prune leg: an expired waiver does not lift the hash-guard REFUSE."""
+    _write_config(tmp_path, {"repos": [_ai_council_ruff_entry()]})
+    _write_methodology_yaml(tmp_path, component="ruff-gate", review_date="2020-01-01")
+    car = _carrier(tmp_path)
+    assert car.detect_prune(_RUFF_COMPONENT) is PruneState.PRESENT_MODIFIED
+    assert car.prune(_RUFF_COMPONENT).refused
+
+
+def test_add_leg_re_adds_the_hook_on_an_expired_waiver(tmp_path):
+    """End-to-end, add leg: an expired waiver does not excuse the hook -- DRIFTED,
+    and --execute re-appends it, same as the no-waiver baseline."""
+    _write_config(tmp_path, _consumer_missing_waived_hook())
+    _write_methodology_yaml(tmp_path, component=_WAIVED_HOOK, review_date="2020-01-01")
+    car = _carrier(tmp_path)
+    assert car.detect(_hub_hooks_target()) is CarrierState.PRESENT_DRIFTED
+    result = car.apply(_hub_hooks_target())
+    assert result.changed is True
+    data = yaml.safe_load((tmp_path / ".pre-commit-config.yaml").read_text(encoding="utf-8"))
+    ids = {h["id"] for e in data["repos"] for h in e.get("hooks", [])}
+    assert _WAIVED_HOOK in ids
+
+
+# ---------------------------------------------------------------------------
 # PRUNE leg -- [#276]'s two live divergences (ruling 3), each in both directions.
 # ---------------------------------------------------------------------------
 

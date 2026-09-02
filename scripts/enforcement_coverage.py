@@ -233,6 +233,21 @@ def validate_allowlist_entry(
     if not entry.reason.strip():  # whitespace-only reason is no reason (robust even if unstripped)
         return (AL_NO_REASON,
                 f"{entry.component or '<no component>'}: allowlist entry has no reason (mandatory)")
+    # PRESENT-BUT-UNPARSEABLE IS NOT ABSENT (terra P1, 2026-09-02 -- [#276] closure (b)).
+    # `_parse_date` maps a malformed value to None, and `expiry or review_date` then silently
+    # falls back, so an entry carrying `expiry: not-a-date` beside a valid future `review_date`
+    # was returned VALID -- a malformed waiver HONORED, in the one leg whose whole purpose is to
+    # fail closed. Reproduced before fixing: `malformed-expiry-valid-review -> valid` while the
+    # same bad value alone gave `invalid-no-date`, i.e. the failure was masked precisely when a
+    # second date existed to hide behind. Checked against `raw` because that is the only place
+    # the distinction between "field absent" and "field present and garbage" survives parsing.
+    for field in ("expiry", "review_date"):
+        supplied = entry.raw.get(field) if isinstance(entry.raw, dict) else None
+        if supplied is not None and getattr(entry, field) is None:
+            return (AL_NO_DATE,
+                    f"{entry.component}: {field} is present but unparseable ({supplied!r}); "
+                    f"ISO-8601 YYYY-MM-DD is required and a malformed date is not a time-box")
+
     effective = entry.expiry or entry.review_date
     if effective is None:
         return (AL_NO_DATE,
