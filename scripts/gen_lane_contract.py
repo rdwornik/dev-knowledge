@@ -56,6 +56,36 @@ between the two enums is a ruling, and a generator is not the place one gets mad
 
 Layer-2 / read-only with respect to tracked spine files (ADR-28/36): writes ONLY the
 contract path it is given, and never JOURNAL / BACKLOG / any index.
+
+[#630] LANDED here (lane-g-630, 2026-09-02): `cmd_check` gains the CONTRACT-MANIFEST
+predicate (`_check_manifest_contract_agreement`), and `lane-contract-check` in
+`.pre-commit-config.yaml` gains `always_run: true` + `pass_filenames: false` so the hook
+runs on every commit rather than being Skipped on one touching zero `LANE-*.md` files. Both
+witnessed live: the RED commit `522aadc7` shows the old "(no files to check) Skipped" line;
+the very next commit `acd019dc`, touching zero `LANE-*.md` files, shows the same hook
+line reading "Passed" instead — captured from real `pre-commit` output, not asserted.
+
+END-OF-LANE VERIFICATION (Delta A2, contract text verbatim: "the set of failing nodeids
+after your work must be a SUBSET of the committed base set"). Full suite measured twice at
+`ee563973` against the committed base
+(`docs/audits/2026-09-02-verification-base-failed-set-1e064921.json`, 13 nodeids,
+`1e064921`): the first pass (before `uv sync --locked --group analytics`) read 18
+"regressions", all of them the known worktree-only noise class
+(`lane-worktree-adds-two-suite-reds` — 17 `test_fleet_analytics.py` `ModuleNotFoundError`
+from a fresh worktree venv lacking the analytics group, plus
+`test_stale_worktrees.py::test_linked_worktrees_reader_excludes_the_primary`). After syncing
+the group, ONE nodeid remained outside the base set:
+`test_stale_worktrees.py::test_linked_worktrees_reader_excludes_the_primary`. Reproduced in
+isolation: it fails because `aud._REPO_ROOT` (this worktree's own path) *is* a linked
+worktree from `git worktree list`'s perspective — a structural property of running the
+suite from inside ANY lane worktree, not of this diff. This exact nodeid is a STANDING
+RULING, not a lane-local judgment call: `protocols/STANDING_RULINGS.md` "W2-reds ·
+expected-RED lists are context-local" (2026-08-11) — "`test_linked_worktrees_reader_
+excludes_the_primary` is worktree-context-only ... PASS on primary." Net regression count
+against this lane's diff: ZERO. Two base failures additionally passed
+(`tests/test_reverse_dep_oracle.py::test_finding_headline_resolves_with_provenance`,
+`::test_main_finding_json_exit_zero`) — not required by Delta A2, not claimed as this
+lane's fix, reported because `failed_set.py --compare` surfaced them.
 """
 from __future__ import annotations
 
