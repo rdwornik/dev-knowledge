@@ -127,3 +127,29 @@ temp/
 # already self-ignoring with or without this entry (and so is a sibling export dir
 # outside the repo). Landed because the row's literal wording names it.
 .backlog-view/
+
+# DISPATCH ARTIFACTS -- what `Dispatch-Codespace` leaves in the container's clone (G0, [#632]).
+#
+# The container's workdir IS this repo, so every file the transport ships in or the runner
+# writes lands at THIS repo's root: the runner and the contract are cp'd in, the log and the
+# diag dir are created at start, and `receipt.json` is written at the end. A lane commits and
+# pushes FROM inside that container, so without these lines a `git add -A` sweeps the dispatch
+# transport's own scaffolding into the lane's commit -- and a dirty tree is also how a finished
+# lane is told apart from a wedged one.
+#
+# LOCAL RUNS ARE UNAFFECTED and that was checked rather than assumed: the receipt is cp'd BACK
+# to the system temp dir (`GetTempPath()/receipt-<slug>.json`), never into the operator's
+# checkout. These entries exist for the container side alone.
+#
+# `receipt.json` is anchored to the ROOT (leading slash) deliberately -- it is a generic name,
+# and an unanchored rule would silently swallow a real `receipt.json` a child repo or a fixture
+# tree might legitimately carry.
+/receipt.json
+/dispatch-run.sh
+/dispatch-run.log
+/dispatch-detach.log
+/dispatch-diag/
+# The contract itself is cp'd in under its own filename. A lane contract at the repo ROOT is
+# never legitimate -- ADR-101 hermetization refuses one there -- so anchoring the pattern to
+# the root cannot hide a real artifact.
+/LANE-*.md

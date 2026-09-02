@@ -173,6 +173,13 @@ carriers:
         - payload: codex-config
           target: '~/.codex/AGENTS.md'
           adr: ADR-54
+        - payload: routing
+          target: '~/.claude/ROUTING.md, the routing-table:begin/end region only'
+          adr: Z-G3/A2
+          carrier: 'scripts/routing_agreement.py --render emits the region; the operator
+            places it, and check_routing_agreement (SHIP tier) FAILs when the two diverge.
+            Left deferred_deployables 2026-09-02: a deferred payload is one with no carrier,
+            and rendering plus a hard-fail gate is one. The hub still writes no L0 file.'
       deferred_deployables:
         - payload: surface-closures
           target: '~/.claude SessionStart hook (surface-closures.ps1)'
@@ -184,10 +191,6 @@ carriers:
           status: 'live, fleet-deployed; candidate for future L0-payload coverage'
         - payload: gotchas
           target: '~/.claude/skills/gotchas/ (user-level skill)'
-          adr: global
-          status: 'live; candidate for future L0-payload coverage'
-        - payload: routing
-          target: '~/.claude/ROUTING.md'
           adr: global
           status: 'live; candidate for future L0-payload coverage'
       enforced_elsewhere:
