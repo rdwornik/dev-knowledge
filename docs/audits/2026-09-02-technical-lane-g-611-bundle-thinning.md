@@ -153,7 +153,157 @@ handles the case (A1, A4, A5) or is an accepted/out-of-scope honest limit rather
 (A2, A3). The pass is recorded here in full rather than silently, per the contract's own
 instruction to record "what survived."
 
-## Step 3 onward
+## What changed (steps 3-5)
 
-See "What changed" below for the implementation, the retired/re-pointed budgets, the PROBES fold,
-the Q7 extension, and the final real-cut measurement.
+1. **`scripts/assemble_paste.py` measures + prints the window-specific ratio** (§1.3's
+   procedure, implemented verbatim): `window_specific_bytes()` sums FILL-IN region bodies
+   (imported `gen_handoff.FILL_IN_RE`, renamed from the private `_FILL_RE` — one regex, one
+   home) plus the folded SUPPLEMENT ANSWERS, excluding an unfilled `_(fill: ...)_` placeholder.
+   The `Written:` line now reads `... ({size} bytes; window-specific {ws}/{content} B =
+   {pct}%)` — one line, one denominator, never two numbers to reconcile by hand.
+2. **The two rival budgets retired in one commit** (`5bee082d`): `_SIZE_WARN_BYTES = 48_000`
+   and `window_metrics.collect`'s `paste_budget: int = 65_000` default are both gone, replaced
+   by one public constant, `assemble_paste.PASTE_BYTE_CEILING = 20_000` (CUT-3's immutable
+   ceiling), which `window_metrics.py` imports (dual-import shim matching
+   `audit_checks/check_boot_byte_budget.py`) rather than re-declaring. `HANDOFF_BOOT_BYTE_BUDGET`
+   (18,000 B, the resident role file's own live gate) is untouched — a different artifact,
+   per this lane's own anti-pattern note.
+3. **PROBES contract prose folded to §5, ONE home** (`88b54021`): `templates/handoff/v5/PROBES.md.tmpl`'s
+   Contract/Anti-bluff callout (~2,187 B) and 5-item Gate-procedure list (~1,850 B) — both
+   restatements of prose already normative in `protocols/HANDOFF_PROCESS.md` §5 — are replaced
+   by two short pointers. The one piece of content the Gate-procedure list carried that §5 did
+   NOT already state (the P0-then-P1 execution order + the every-row-BOUNDED/P10 citation) was
+   moved INTO §5 as a new "Execution order" paragraph first, so nothing was dropped, only
+   de-duplicated. `PROBES.md` shrank 14,272 B → 11,818 B on the real cut (§"Real cut" below).
+4. **The SUPPLEMENT_BANNER appears exactly once**: removed from `PROBES.md.tmpl` and
+   `RESIDUAL.md.tmpl`, kept only in `HANDOFF_BOOT.md.tmpl`'s session header (folded first into
+   `PASTE_THIS.md`). It appeared 3× per assembled paste before this lane, 1× now.
+5. **Q7 extended to interface behaviors, both copies** (`1503fd79`): `templates/handoff/v5/SUPPLEMENT.md.tmpl`
+   Q7 and `protocols/HANDOFF_PROCESS.md:731`'s canonical restatement both now capture interface
+   BEHAVIORS the operator relied on that are not yet named in `protocols/OPERATOR-INTERFACE.md`
+   (copy-ready blocks, `.md` uploads, the END sentinel, the Downloads fallback are the four named
+   examples — each already documented there; Q7 is now the register for the NEXT undocumented one),
+   alongside the existing terms/rulings capture.
+
+## Real cut — measured, not hoped
+
+**Methodology (so the number is checkable).** The committed bundle
+`docs/handoffs/2026-09-01-dev-knowledge-architect-v7/` is immutable (§5 rule 3) and cannot be
+re-rendered in place. Its four files were copied to a scratch directory OUTSIDE the repo tree
+(`.claude/jobs/<job>/tmp/scratch-bundle`, never committed, removed after measuring), then
+`HANDOFF_BOOT.md` / `RESIDUAL.md` / `PROBES.md` were re-rendered through this lane's UPDATED
+templates via `gen_handoff._render` (the same RF-6 FILL-IN splice a real `--filled` re-run
+uses), preserving every real, hand-authored FILL-IN body and the real SUPPLEMENT ANSWERS
+verbatim. `scripts/assemble_paste.py` then ran against the scratch directory exactly as it
+would against a live bundle. This is a **real cut** in the CUT-3 sense — genuine architect-mode
+content, not synthetic filler — reusing a real bundle without mutating it.
+
+```
+PASTE_THIS.md total (FILLED, after this lane)     29,776 B
+  vs. before this lane (equilibrium map §5)        32,264 B    -2,488 B
+
+  PROBES.md            14,272 B -> 11,818 B     (-2,454 B; contract-prose fold)
+  HANDOFF_BOOT.md      11,252 B -> 11,273 B     (+21 B; noise, untouched by this lane)
+  RESIDUAL.md            7,467 B -> 7,413 B      (-54 B; banner removal + pointer note)
+
+BAR 1  size            <= 20,000 B   ACTUAL 29,776 B   MISS by 9,776 B (+49%)
+BAR 2  window-specific >= 70%        ACTUAL 32%         MISS by 38 points
+       (window-specific = 9,551 / 29,719 content bytes; FILL-IN bodies + folded ANSWERS)
+```
+
+**This is the finding CUT-3's own text anticipates: "If the cut will not fit, that is a finding
+to report, not a number to move."** Both bars still miss, and this lane does not move the
+ceiling to make them pass. What is new against the 2026-09-01 equilibrium map:
+
+- **The size gap narrowed, on the same (FILLED, architect-mode) measurement basis.** Before this
+  lane the FILLED cut measured 32,264 B — +12,264 B over ceiling, +61%. After this lane's
+  PROBES.md contract-prose fold: 29,776 B — +9,776 B over, +49%. A real ~2,488 B cut, from the
+  one lever this lane's write-scope licensed without touching probe row semantics or moving
+  prose into the resident role file (both barred by this lane's anti-patterns).
+- **The window-specific ratio reads LOWER (32%) than the equilibrium map's coarse 43%** — not a
+  regression, a **more honest measurement**. The map counted the whole of `RESIDUAL.md` as
+  window-specific; this lane's FILL-IN-body-only definition (§1.2, refined FROM the census's own
+  precedent) excludes `RESIDUAL.md`'s own scaffolding (the "What this is" callout, the "Four-tag
+  discipline" callout, §1/§6 framing prose) — none of which is hand-authored. A definition that
+  produced an EASIER pass than its own precedent would be the failure mode Step 2's adversarial
+  pass exists to catch; this one produces a harder bar instead.
+- **The remaining wall is `PROBES.md`'s ROW TABLES themselves** (~10,300 B after the prose fold),
+  which this lane's write-scope explicitly protects (Done-contract item 2: "the bundle carries
+  ROWS only" — rows STAY) and which this lane did not reword, for the reason the equilibrium map
+  already gave: reaching either bar by cutting or diluting probe rows trades a measured-size
+  finding for a weakened-teeth one, a strictly worse trade. Closing the remaining gap needs a
+  structural decision this lane's V-2 budget does not cover (fork class (c) — no standing ruling)
+  — reported here, not decided here.
+
+## Design decisions under V-2 (reported, not escalated)
+
+- **Definition granularity: FILL-IN-body-level, not whole-file** (§1.2) — a refinement of the
+  census's own working method, producing a stricter bar than the equilibrium map's coarser one.
+  Chosen because it is the ALREADY-MECHANIZED boundary the generator draws for an unrelated
+  reason (RF-6), not a bar invented for this measurement.
+- **PROBES.md's row TABLES are untouched** — only the surrounding contract prose was cut. Rows
+  are the Done-contract's own explicit "carries ROWS only" floor, and rewording probe semantics
+  risks the anti-bluff/`expected:`-hint machinery (§5, "Structural enforcement") this lane's
+  write-scope does not license touching.
+- **No new `audit.py` FAIL-class gate for `PASTE_BYTE_CEILING`** — `check_boot_byte_budget`'s
+  split-by-site pattern (WARN at generation, FAIL at the gate) would be the natural mirror, but
+  a new gate is outside this lane's declared write-scope (`scripts/`, `templates/`,
+  `HANDOFF_PROCESS.md` §5 + Q7 only — not `scripts/audit.py`). Left as an open item.
+- **Measurement methodology for the real cut** (scratch re-render of a real, immutable bundle's
+  content through the updated templates) — chosen over generating a NEW bundle (would create an
+  uncommitted-scope `docs/handoffs/` artifact and, per the batch-boundary guard, refuses while
+  this lane's own worktree is live) and over hand-editing the committed 2026-09-01 bundle
+  (barred: handoffs are immutable, §5 rule 3).
+
+## Delta A2 (base failed-set comparison) — SUPERSEDED mid-lane by cross-batch amendment
+
+The frozen contract's Delta A2 clause specified a full-suite run compared by SET against
+`docs/audits/2026-09-02-verification-base-failed-set-1e064921.json` via `scripts/failed_set.py
+--compare`. Three consecutive full-suite attempts in this lane were killed mid-run by external
+process termination (`-n auto` twice, `-n 4` once; each attempt showed `[gwN] node down: Not
+properly terminated` in the pytest log, and `tasklist` showed ~43 concurrent `python.exe` / ~19
+`claude.exe` processes on the shared workstation at the time).
+
+Mid-flight during the fourth attempt (`-n 4`, reached 73% before its own exit-255 failure), a
+peer session running batch-G's contract review sent **AMENDMENT R-G-A2** (relayed as an operator
+ruling, 2026-09-02): full-suite runs are suspended across all seven concurrently-running batch-G
+lanes on this workstation for exactly this thrashing reason; each lane runs its own targeted
+tests only, and **the integrator computes Delta A2 once, serially, at merge time** rather than
+once per lane. The frozen closure, write-scope, anti-patterns, PLAN-mode requirement, and
+commit-and-STOP obligation are explicitly unchanged by the amendment — only the Delta A2
+verification mechanics move to the integrator.
+
+**What this lane actually ran and verified, in place of the full-suite compare:**
+
+```
+uv run --locked pytest -q --no-header tests/test_assemble_paste.py tests/test_window_metrics.py tests/test_gen_handoff.py
+123 passed in 28.15s
+```
+
+This is the full targeted-test coverage of this lane's write-scope (every file this lane
+modified: `scripts/assemble_paste.py`, `scripts/window_metrics.py`, `scripts/gen_handoff.py`,
+plus their test files). No regression is introduced by this lane's diff; the base-failed-set
+SET comparison against main is deferred to `/lane-integrate`, per the amendment.
+
+**This is reported honestly, not fabricated** — this lane did NOT complete a full-suite run and
+does not claim to. Per CLAUDE.md's execution-truthfulness rule, the record above states exactly
+what ran (targeted, 123 passed) and exactly what did not (the full-suite SET compare), and why
+(a mid-lane cross-batch amendment, superseding the frozen contract's Delta A2 clause for this
+lane specifically — acknowledged back to the sending session).
+
+## Open items (not this lane's write-scope / not required by the Done-contract)
+
+- **The ceiling is not met.** `PASTE_THIS.md` (architect mode, filled) measures 29,776 B against
+  the 20,000 B ceiling and 32% against the 70% window-specific target. Both misses are reported
+  per CUT-3's own text, not silently passed. Closing the remaining `PROBES.md` row-table weight
+  needs an architect-level decision (shorten rows / restructure the probe manifest / accept a
+  narrower CUT-3 scope for execution-mode bundles, which carry no SUPPLEMENT and a comparable
+  PROBES.md) — a fork class with no standing ruling (V-2 escalation class (c)), left for the
+  next lane or an operator ruling rather than decided here.
+- **No FAIL-class `audit.py` gate exists yet for `PASTE_BYTE_CEILING`** — WARN-only today,
+  mirroring the pre-`check_boot_byte_budget` state of the boot-byte budget before A10 item 2/R4
+  added its gate half. A future lane could add one the same way, in `scripts/audit.py`.
+- **An execution-mode real cut was not separately measured** — this lane's real-cut evidence is
+  architect-mode (the only 2026-09-01 bundle available to reuse without violating immutability).
+  Execution mode drops the SUPPLEMENT and part of the session-header walkthrough; its ratio and
+  size likely differ (the 2026-09-01 map's own honest limit, restated: "one cut is one cut").
