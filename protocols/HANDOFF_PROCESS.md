@@ -1059,7 +1059,8 @@ ESSENTIALS de-bless    asked 2026-09-01  re-asked 3  visible-fix: 12f4113a (CLAU
                        nobody to protocols/ESSENTIALS.md; its status: superseded).
                        RESIDUAL, filed not fixed: SESSION_SETUP.md Step 2 (x3) + Step 4 and
                        DEFINITION_OF_DONE.md's closing See-also STILL send a reader there.
-                       Owner: [#628], deferred to batch G after the v1.5.0 tag.
+                       Owner: [#628], batch G rides WITH the v1.5.0 tag as a release act,
+                       not behind it.
 VISION.md out of root  asked 2026-09-01  re-asked 2  visible-fix: 441b08d8 (batch-F L5 / [#621]
                        -- VISION.md -> docs/archive/VISION.md, content byte-identical, both
                        blobs 61bd603e). PARTIAL: canonical_docs.py:160 and

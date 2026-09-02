@@ -31,15 +31,14 @@ If you're not sure: if Claude Code or a code repo is involved, it's programming.
 <!-- scope: llm -->
 
 Upload with your first message:
-1. **ESSENTIALS.md** — your working standards and rules
-2. **Relevant files** — presentation, article, document to analyze (if any)
-3. **Handoff from previous chat** — paste the code block (if continuing a topic)
+1. **Relevant files** — presentation, article, document to analyze (if any)
+2. **Handoff from previous chat** — paste the code block (if continuing a topic)
 
 No CLAUDE.md needed — functional chats don't involve a specific repo.
 
 First message:
 ```
-[upload ESSENTIALS.md + any relevant files]
+[upload any relevant files]
 
 Potrzebuję pomocy z [topic].
 [paste handoff here if continuing from a previous chat]
@@ -49,31 +48,29 @@ Potrzebuję pomocy z [topic].
 <!-- scope: llm -->
 
 Upload with your first message:
-1. **ESSENTIALS.md** — your working standards and rules
-2. **CLAUDE.md from the repo** you're working on (e.g., `Dev/{project}/CLAUDE.md` or `Dev/.dev-knowledge/CLAUDE.md`) — gives Claude project context: architecture, commands, conventions, what NOT to do
-3. **Handoff from previous chat** — paste the code block (if continuing)
+1. **CLAUDE.md from the repo** you're working on (e.g., `Dev/{project}/CLAUDE.md` or `Dev/.dev-knowledge/CLAUDE.md`) — gives Claude project context: architecture, commands, conventions, what NOT to do
+2. **Handoff from previous chat** — paste the code block (if continuing)
 
 First message:
 ```
-[upload ESSENTIALS.md + CLAUDE.md from repo]
+[upload CLAUDE.md from repo]
 
 Kontynuuję pracę nad [project name].
 Cel na dzisiaj: [1-2 objectives, max].
 [paste handoff here if continuing from a previous chat]
 ```
 
-PLAYBOOK.md is NOT needed here — ESSENTIALS covers daily work. Upload PLAYBOOK only when starting a new project from scratch or establishing a new process.
+PLAYBOOK.md is NOT needed here — CLAUDE.md covers daily work for this repo. Upload PLAYBOOK only when starting a new project from scratch or establishing a new process.
 
 ### Starting a New Project (from scratch)
 <!-- scope: llm -->
 
 Upload:
-1. **ESSENTIALS.md**
-2. **PLAYBOOK.md** (full file — Claude needs scaffolding template and prompt format)
+1. **PLAYBOOK.md** (full file — Claude needs scaffolding template and prompt format)
 
 First message:
 ```
-[upload ESSENTIALS.md + PLAYBOOK.md]
+[upload PLAYBOOK.md]
 
 Chcę zbudować [project name] — [3 sentences max what it does].
 Pomóż mi:
@@ -165,7 +162,7 @@ Claude generates a summary in a code block (<100 lines). You don't choose format
 <!-- scope: llm -->
 
 1. Click "Copy" on the code block
-2. Open new chat → go back to Step 1 (upload ESSENTIALS.md, paste handoff)
+2. Open new chat → go back to Step 1 (paste handoff)
 
 ### What the handoff contains
 <!-- scope: llm -->
