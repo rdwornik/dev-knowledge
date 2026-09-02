@@ -957,7 +957,7 @@ def cmd_emit(slug: str, purpose: str, repo: str, task_id: Optional[str], model: 
 
 
 @cli.command("check")
-@click.argument("paths", nargs=-1, required=True,
+@click.argument("paths", nargs=-1, required=False,
                 type=click.Path(exists=True, dir_okay=False, path_type=Path))
 @click.option("--expect-shape", "expect_shape", type=click.Choice(SHAPE_ENUM), default=None,
               help="assert the lane's substrate; omitted, it is read from the contract")
