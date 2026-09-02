@@ -742,3 +742,156 @@ def test_the_playbook_dispatch_table_carries_the_codespace_pairing_rule():
     row4 = row4.split("##### Where the contract file lives", 1)[0]
     assert "worktree-" in row4, "Ch8 row 4 does not state the codespace branch pairing"
     assert "claude/" in row4, "Ch8 row 4 does not say which prefix a codespace lane is NOT on"
+
+
+# --- 5. [#630] — the hook runs on an empty set, and never passes vacuously -----------------
+#
+# `lane-contract-check` gains `always_run: true` and KEEPS filename passing. `paths` must
+# therefore stop being a REQUIRED argument, or the hook errors out (`Missing argument 'PATHS'`)
+# on the first commit that does not touch a `LANE-*.md` — the opposite of "runs on an empty set".
+#
+# WHY NOT `pass_filenames: false`, which this lane originally shipped (terra P1, 2026-09-02).
+# The `provider-registry` / `audit-health` hooks set it because they take NO input: they scan the
+# tree themselves. `lane-contract-check` is the opposite — its CONTRACT-MANIFEST predicate
+# compares the manifest against *the contracts it was handed*, and with `pass_filenames: false`
+# it is handed none, on EVERY invocation including the freeze commit that stages them. MEASURED
+# with a real contract staged: `contract-manifest predicate ([#630]): 0 contract(s) given —
+# 0 checked`, i.e. `open_batches` was never reached and a slug mismatch still passed. The lane
+# satisfied "runs on an empty set" by severing the input the predicate needs, which is the
+# vacuous pass this row exists to end, in a new costume.
+
+import yaml  # noqa: E402
+
+
+def test_the_precommit_hook_runs_on_every_commit_AND_still_receives_its_contracts():
+    """Both halves, because this lane shipped the first without the second.
+
+    `always_run: true` makes the gate fire on a commit that stages no `LANE-*.md` — a
+    `files:`-globbed gate disappears exactly when nothing looks suspicious. But filename
+    passing must SURVIVE, or the CONTRACT-MANIFEST predicate is handed nothing on every
+    invocation and reports `0 checked` forever while a slug mismatch sails through.
+    """
+    config = yaml.safe_load(
+        (_REPO_ROOT / ".pre-commit-config.yaml").read_text(encoding="utf-8"))
+    hooks = {h["id"]: h for repo in config["repos"] for h in repo.get("hooks", ())}
+    hook = hooks["lane-contract-check"]
+    assert hook.get("always_run") is True, hook
+    assert hook.get("pass_filenames") is not False, (
+        "pass_filenames must not be False: the predicate compares the manifest against the "
+        "contracts it is HANDED, so suppressing filenames makes it unreachable", hook)
+
+
+def test_check_runs_with_zero_paths_instead_of_erroring():
+    """Before this lane, `paths` was `required=True` — pre-commit's now-unconditional
+    invocation would have died with `Missing argument 'PATHS'` on every ordinary commit."""
+    result = CliRunner().invoke(glc.cli, ["check"])
+    assert result.exit_code == 0, result.output
+
+
+# --- 6. [#630] — the CONTRACT-MANIFEST predicate --------------------------------------------
+#
+# An OPEN batch's manifest and the contract set `check` is handed must declare the SAME set
+# of lane slugs. Seeded from task-630's own measured defect (batch E, integrator defect (b),
+# ruled 2026-09-01): the manifest named `lane-b-2-essentials-and-claude-md`; what was actually
+# dispatched, and what carries the commit, pairs to `lane-b-3-claude-md-genre`. The slug was
+# renumbered between draft and dispatch and nothing anywhere compared the two. The pure
+# comparison (`batch_manifest.freeze_manifest_contract_agreement`) is already unit-tested in
+# `tests/test_batch_manifest.py`; these tests are the WIRING — `open_batches` imported by
+# name into this module, so a `monkeypatch.setattr(glc, "open_batches", ...)` reaches it.
+
+import batch_manifest as bm  # noqa: E402
+
+
+def _write_open_manifest(tmp_path, table: str, *,
+                         name="2026-09-02-technical-batch-z-manifest.md") -> "bm.OpenBatch":
+    rel = f"docs/audits/{name}"
+    target = tmp_path / rel
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(
+        f"---\nbatch: z\nstatus: open\nclosed_by: docs/audits/2026-09-02-x-packet.md\n---\n\n"
+        f"{table}", encoding="utf-8", newline="\n")
+    return bm.OpenBatch(batch="z", path=rel, closed_by="docs/audits/2026-09-02-x-packet.md")
+
+
+def test_check_reports_zero_checked_when_given_no_contracts(caplog):
+    """The empty-set case pre-commit now hits on every commit: it must be VISIBLE in the
+    log that the predicate ran and found nothing to compare, not merely silent."""
+    import logging
+    with caplog.at_level(logging.INFO):
+        result = CliRunner().invoke(glc.cli, ["check"])
+    assert result.exit_code == 0, result.output
+    assert "0 checked" in caplog.text, caplog.text
+
+
+def test_check_reports_zero_checked_when_no_batch_is_open(tmp_path, monkeypatch, caplog):
+    import logging
+    monkeypatch.setattr(glc, "open_batches", lambda repo_root: [])
+    contract = tmp_path / "LANE-a-1-x.md"
+    contract.write_text(glc.render_contract(_spec(slug="lane-a-1-x", task_id="1")),
+                        encoding="utf-8", newline="\n")
+    with caplog.at_level(logging.INFO):
+        result = CliRunner().invoke(glc.cli, ["check", str(contract)])
+    assert result.exit_code == 0, result.output
+    assert "0 checked" in caplog.text, caplog.text
+
+
+def test_check_refuses_the_measured_batch_e_slug_renumbering(tmp_path, monkeypatch):
+    """Seeded from the real defect (task-630): fails if the predicate is removed."""
+    open_batch = _write_open_manifest(tmp_path, (
+        "## THE LANES\n\n```\n"
+        "DC-1   lane-a-1-vision-to-readme          worktree-lane-a-1-...   local   --\n"
+        "DC-23  lane-b-2-essentials-and-claude-md  worktree-lane-b-2-...   local   DC-1\n"
+        "```\n"))
+    monkeypatch.setattr(glc, "_SCRIPTS", tmp_path / "scripts")
+    monkeypatch.setattr(glc, "open_batches", lambda repo_root: [open_batch])
+
+    a1 = tmp_path / "LANE-a-1-vision-to-readme.md"
+    a1.write_text(glc.render_contract(_spec(slug="lane-a-1-vision-to-readme", task_id="1")),
+                 encoding="utf-8", newline="\n")
+    # Renumbered -- the manifest above still says `lane-b-2-...`, matching the measured defect.
+    b3 = tmp_path / "LANE-b-3-claude-md-genre.md"
+    b3.write_text(glc.render_contract(_spec(slug="lane-b-3-claude-md-genre", task_id="3")),
+                 encoding="utf-8", newline="\n")
+
+    result = CliRunner().invoke(glc.cli, ["check", str(a1), str(b3)])
+    assert result.exit_code == 1, result.output
+
+
+def test_check_admits_a_manifest_and_contract_set_that_agree(tmp_path, monkeypatch, caplog):
+    import logging
+    open_batch = _write_open_manifest(tmp_path, (
+        "## THE LANES\n\n```\n"
+        "L1  lane-a-1-vision-to-readme  worktree-lane-a-1-...  local  --\n"
+        "```\n"))
+    monkeypatch.setattr(glc, "_SCRIPTS", tmp_path / "scripts")
+    monkeypatch.setattr(glc, "open_batches", lambda repo_root: [open_batch])
+
+    a1 = tmp_path / "LANE-a-1-vision-to-readme.md"
+    a1.write_text(glc.render_contract(_spec(slug="lane-a-1-vision-to-readme", task_id="1")),
+                 encoding="utf-8", newline="\n")
+
+    with caplog.at_level(logging.INFO):
+        result = CliRunner().invoke(glc.cli, ["check", str(a1)])
+    assert result.exit_code == 0, result.output
+    assert "0 checked" not in caplog.text, caplog.text
+
+
+def test_check_refuses_a_manifest_naming_a_contract_no_manifest_row_declares(tmp_path,
+                                                                             monkeypatch):
+    """The OTHER direction: a committed contract absent from the open manifest's lane table
+    fails just as loudly as a phantom manifest row."""
+    open_batch = _write_open_manifest(tmp_path, (
+        "## THE LANES\n\n```\nL1  lane-a-1-vision-to-readme  worktree-lane-a-1-...  local  --\n"
+        "```\n"))
+    monkeypatch.setattr(glc, "_SCRIPTS", tmp_path / "scripts")
+    monkeypatch.setattr(glc, "open_batches", lambda repo_root: [open_batch])
+
+    a1 = tmp_path / "LANE-a-1-vision-to-readme.md"
+    a1.write_text(glc.render_contract(_spec(slug="lane-a-1-vision-to-readme", task_id="1")),
+                 encoding="utf-8", newline="\n")
+    stray = tmp_path / "LANE-c-3-stray.md"
+    stray.write_text(glc.render_contract(_spec(slug="lane-c-3-stray", task_id="3")),
+                     encoding="utf-8", newline="\n")
+
+    result = CliRunner().invoke(glc.cli, ["check", str(a1), str(stray)])
+    assert result.exit_code == 1, result.output
