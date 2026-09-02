@@ -84,3 +84,24 @@ The container-only set, after subtracting the two named exceptions (which were n
 subtract), is **not empty** — 5 nodeids remain. Per the contract, R2 fires.
 
 VERDICT: FLIP — G1-G8 re-dispatch LOCAL (verb change only). Container-only nodeids beyond the two named exceptions: tests/test_boundary_report.py::test_live_hub_baseline_and_consumers_legal, tests/test_merge_serialization.py::test_index_lock_blocks_concurrent_merge, tests/test_preflight_freeze_predicates.py::test_i_off_repo_path_that_does_not_exist_is_refused, tests/test_preflight_freeze_predicates.py::test_vi_batch1_reproduces_the_off_repo_input_defect, tests/test_reverse_dep_oracle.py::test_extract_dependents_excludes_declaration.
+
+## Terra pre-merge review (integrator, 2026-09-02)
+
+Reviewer `codex exec review --base main`, concurrency 1. **Wall-clock 142 s.** (A first
+invocation died in 5 s on a CLI usage error — `--base` and a positional PROMPT are mutually
+exclusive — and is NOT counted as a review datapoint.)
+
+**Severity tally: HIGH/P1 = 2 · MED = 0 · LOW = 0. Both CONFIRMED, both the integrator's own
+defects, both fixed before this branch merged.**
+
+| # | Sev | Finding | Disposition |
+|---|---|---|---|
+| 1 | P1 | This doc cites `STANDING_RULINGS.md` R-G0-2 for the FLIP verdict; the register carried no such entry, in this revision or in history | **FIXED** — the six batch-G rulings landed as register section AC (`cd4035e7`) before this branch merged, so the citation resolves |
+| 2 | P1 | The AMENDMENT 3 marker corrects the packet's "sixteen" using a decomposition from a DIFFERENT run (packet = Lane A, 294.07 s / 16; proof doc = 298.50 s / 17) | **FIXED** — marker v2 withdraws the correction, states what is actually established, and records the standing correction owed |
+
+**Neither finding is a defect in the parity MEASUREMENT.** The nodeid sets, the arrival gate and
+the verdict line stand unchanged: both legs ran the byte-identical tree at `b5753f52`, and the
+container-only set after the two named exceptions is non-empty, so R2 fired. What the reviewer
+caught was the doc's *citation* and an *amendment* riding alongside it — the evidence layer, not
+the measurement layer. Recording that distinction because it is the difference between a wrong
+verdict and a correctly-reached verdict that cited badly.

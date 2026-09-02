@@ -362,13 +362,30 @@ Full evidence, timelines and receipts: `win-tooling` `docs/2026-09-01-lane-632-c
 
 ---
 
-**AMENDMENT 3 MARKER (2026-09-02, `[#632]` lane-g-632-parity)** — corrects the figure above
-without editing it in place (CLAUDE.md §5 rule 3: an audit is immutable). "Sixteen hub tests
-fail on their own merits" matches neither half of the actual decomposition. The proof doc this
-amendment already cites decomposes the run as **17 total = 2 harness/gate (root-caused,
-`receipt.json` sitting un-dot-prefixed at repo root, flagged by `dot_prefix_discipline`) + 15
-pre-existing app-level failures**, not sixteen of either kind. Evidence:
-`docs/audits/2026-09-01-verification-codespace-longrun-proof.md` lines 38-52 (the stash/pop
-isolation: `before stash: 17 failed` / `after stash: 15 failed`, naming the two root-caused
-tests) and lines 69-70 (the SUBSTRATE VERDICT restating the same 2 + 15 split).
+**AMENDMENT 3 MARKER (2026-09-02, `[#632]` lane-g-632-parity; SUPERSEDED SAME DAY by the marker
+below)** — the first marker asserted that "sixteen hub tests fail on their own merits" should read
+`17 = 2 + 15`. **That correction was itself unsound and is withdrawn**, for the reason the reviewer
+gave: it corrects one run's figure using another run's decomposition.
+
+**AMENDMENT 3 MARKER v2 (2026-09-02, integrator, on terra P1).** The figure above is NOT corrected,
+because the cited evidence cannot correct it — and saying so is the honest act here.
+
+- The packet's "sixteen" describes **Lane A's** in-container run: `294.07 s` real, 16 failures.
+  **That run's failure set was never captured**, so it has no published decomposition.
+- The `2 + 15` split belongs to a **different run** — the longrun proof's follow-up full run at
+  `298.50 s` reporting **17** failures, isolated by stashing `receipt.json`
+  (`before stash: 17 failed` / `after stash: 15 failed`).
+  Evidence: `docs/audits/2026-09-01-verification-codespace-longrun-proof.md` lines 38-52 and 69-70.
+
+**What IS established, and it is narrower than the first marker claimed:** in a comparable
+in-container run, exactly two failures were root-caused to `receipt.json` sitting un-dot-prefixed
+at the repo root, flagged by `dot_prefix_discipline` via `audit.py health`
+(`tests/test_audit.py::test_health_ok_with_registered_repo` and `::test_health_stays_ok_with_na_status`).
+Whether Lane A's sixteen contains that same pair is **unmeasured**. A number carried across two
+runs is an assumption wearing a citation, which is the failure class this batch keeps finding.
+
+**Standing correction owed:** re-run Lane A's configuration and capture the failed-set, or drop the
+"sixteen" claim entirely. Filed as evidence for the win-tooling receipt rename (ruling R-G0-2),
+which removes the interaction at its source.
+
 (merge `49cb75e`); substrate verdict recorded in `win-tooling` `config/dispatch/dispatch-cockpit.md` §7.
