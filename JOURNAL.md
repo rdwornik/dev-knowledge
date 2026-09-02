@@ -19,6 +19,46 @@
 
 ---
 
+### 2026-09-02 (g) - CC (Opus 5): G1 merged, and making its gate reachable made it over-broad
+
+**Anchors:** `c7918bca`
+
+**Did:** merged G1 as queue 2/9 after terra caught its gate defeating itself, then fixed the
+second-order defect that the fix exposed.
+
+**TERRA'S P1 WAS REAL, AND THE DEFECT WAS THE CONTRACT'S.** G1 wired `always_run: true` with
+`pass_filenames: false`, copying the `provider-registry` shape — **because my contract told it
+to**. Those hooks set that flag precisely because they take no input; `lane-contract-check`
+compares the manifest against *the contracts it is handed*, so suppressing filenames made the
+predicate unreachable on every invocation, freeze commits included. Measured with a real
+contract staged: `0 contract(s) given — 0 checked`. **Closure (a) had been satisfied by
+severing the input closure (b) needs** — the vacuous pass the row exists to end, in a new
+costume. Its own regression test asserted `pass_filenames is False`, so the wrong wiring was
+protected by the test meant to guard it.
+
+**THEN THE FIX BROKE TWO TESTS, AND DELTA A2 CAUGHT IT — which is the whole point of the
+table.** With the predicate finally reachable and batch G genuinely open, `check` compared
+three `tmp_path` fixture contracts against G's manifest and refused: a verdict about the
+FIXTURE, not about the repo. Scoped to contracts that live in the tree, with an explicit
+"none in this repo" report rather than a silent skip.
+
+**THE SEEDED TESTS ARE WHY I KNOW THE GUARD IS NOT OVER-BROAD.** They monkeypatch `_SCRIPTS` so
+`tmp_path` IS their repo root — their contracts stay in-tree and still refuse. Had the guard
+over-filtered, those refusal tests would have gone **vacuously green**, which is the same
+disease one level up. A new test pins the other side.
+
+**A THIRD REGRESSION RECURRED AND CONFIRMED ITS OWN DIAGNOSIS.**
+`test_preflight_contract`'s claim-class test failed again — HEAD was `31653206`, all digits,
+exactly as at `85827046`. Twice in a row by chance, on a ~2.3 % event. It stays a funnel
+finding, not a batch fix.
+
+**Result:** delta A2 on G1: 3 regressions, 2 fixed. Two regressions were mine and are fixed
+here; the third belongs to no lane. 175 passed across the two affected modules.
+
+**Changes:** `scripts/gen_lane_contract.py` (scope guard), `tests/test_gen_lane_contract.py`.
+
+**Next:** G2, then the rest of the queue.
+
 ### 2026-09-02 (f) - CC (Opus 5): G5 merged, and delta A2's three REDs were none of them a lane's
 
 **Anchors:** `4bc3f34c`
