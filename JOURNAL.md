@@ -19,6 +19,41 @@
 
 ---
 
+### 2026-09-03 (b) - CC (Opus 5): I wrote a one-commit anchor branch and deadlocked the repo with it
+
+**Anchors:** `ffe470ba`, `e54f93f2`
+
+**Did:** regenerated the audits index (owed since G2), and discharged a hard `journal_spine_anchor`
+deadlock that I created one entry earlier.
+
+**THE TRAP IS RECORDED AND I WALKED INTO IT ANYWAY.** Entry (a) went onto a branch carrying a
+SINGLE commit. Its merge, `35772c17`, therefore introduced only that commit — and the entry
+inside names `826fe7fb`, which G6's merge introduced, not this one. **A merge cannot name its own
+hash**, so the merge was structurally unanchorable the moment I created it. `audit-health` then
+FAILs *every* commit in the repo, including the commit that would write the discharge. That is a
+deadlock, not a slow path.
+
+**The shape that works is two commits, always:** something real, then a JOURNAL entry naming it.
+This branch is that shape — index regeneration, then this entry naming `ffe470ba` and
+`e54f93f2` (the SHA `35772c17` introduced). The first commit carried a **declared**
+`SKIP=audit-health`, the escape the register sanctions for exactly this deadlock, with the reason
+in its body; this second commit runs the gate **unskipped**, which is the proof the failure is
+gone rather than suppressed. Never `--no-verify`.
+
+**A THIRD DISAGREEMENT BETWEEN THE TWO ANCHOR GATES, and this time in the OTHER direction.**
+`git push` ACCEPTED `35772c17`; `audit.py::check_journal_spine_anchor` then REFUSED it at the
+next commit. Earlier the pair disagreed the opposite way — push refusing a lane merge the audit
+exempted. So the two organs disagree in **both** directions, which upgrades this from "the push
+gate is stricter" to "two implementations of one rule do not agree", the derived-copies class.
+
+**The index regeneration was owed.** Six lane merges each added `docs/audits/` artifacts, so the
+generated index had been stale for four consecutive delta-A2 runs, reporting the same two REDs
+each time. A lane must not regenerate it; the integrator is gate-of-record.
+
+**Changes:** `docs/audits/README.md` (regenerated), `JOURNAL.md`.
+
+**Next:** finish G8's sync-merge, then G8 → G7 → G3b.
+
 ### 2026-09-03 (a) - CC (Opus 5): the ask register would have gone stale at the moment it was fixed
 
 **Anchors:** `826fe7fb`
