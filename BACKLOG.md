@@ -206,7 +206,6 @@ So that the cheat-sheet and architecture stay scannable as conventions accrue.
 - [#506] [P2][M] Whole-set P10 grooming arc — the open set is unreconciled · tasks/506-whole-set-p10-grooming-arc-full-open-set.md
 - [#551] [P2][S] Audit artifacts carry no `status:`, so a consumed audit is indistinguishable from a live one · tasks/551-audit-artifacts-carry-no-status-field.md
 - [#553] [P3][S] `docs/decisions/README.md`'s ADR census is hand-maintained, ungated, and currently wrong in two places · tasks/553-adr-census-in-decisions-readme-is-ungated-and-wrong.md
-- [#614] [P1][L] VISION.md superseded by a recreated root README.md — the frozen execution arc · tasks/614-vision-superseded-by-a-recreated-root-readme.md
 - [#620] [P2][M] Retire the root-README prohibition across the fleet, not only at the hub · tasks/620-retire-the-root-readme-prohibition-across-the-fl.md
 - [#621] [P2][L] ADR-114 option (C): the nine-repo VISION.md to README.md filename migration · tasks/621-adr-114-option-c-the-nine-repo-vision-md-to-read.md
 - [#622] [P3][M] Promote README.md into the ADR-38 canonical mandatory set · tasks/622-promote-readme-md-into-the-adr-38-canonical-mand.md
