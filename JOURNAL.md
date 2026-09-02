@@ -19,6 +19,31 @@
 
 ---
 
+### 2026-09-02 (e) - CC (Opus 5): batch G ran without a manifest, and the merge queue is where that showed
+
+**Anchors:** `a7d1b3f4`
+
+**Did:** filed batch G's manifest at the head of the merge queue, after the missing ADR-110
+exemption surfaced on the first lane merge.
+
+**THE BATCH WAS DISPATCHED WITHOUT ONE.** `batch_manifest.py` resolves an open batch as a
+conjunction of four facts — tracked, `status: open`, a `closed_by:` that can resolve, and that
+path absent. With no manifest, every `worktree-lane-*` merge loses the exemption and owes its own
+JOURNAL anchor. Nine lanes had already run before anyone needed the file, which is exactly why it
+was never missed: **a manifest is a merge-time organ, and the batch protocol arms it at freeze.**
+
+**FILED LATE, AND THE FILE SAYS SO.** `dispatched:` carries the real date and the roster is read
+off the branches that actually ran, not off the plan. A manifest written after dispatch cannot
+pretend to have governed it, and back-dating one would have made the record worse than the gap.
+
+**THE GRAMMAR OVERRULED THE PROMPT TWICE, and both are recorded in the roster.** `g5-632-parity`
+and `lane-g-621b-c7` are both refused by `validate_lane_worktree_name` — the `<letter>` is one
+letter and the `<id>` is numeric — so the lanes are `lane-g-632-parity` and `lane-g-621-c7`.
+
+**Changes:** `docs/audits/2026-09-02-technical-batch-g-manifest.md` (new), `JOURNAL.md`.
+
+**Next:** the queue, G5 first, delta A2 once per merge.
+
 ### 2026-09-02 (d) - CC (Opus 5): the reviewer caught the batch citing a ruling that did not exist
 
 **Anchors:** `7a5ca6ff`
