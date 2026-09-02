@@ -19,6 +19,97 @@
 
 ---
 
+### 2026-09-02 (f) - CC (Opus 5): G5 merged, and delta A2's three REDs were none of them a lane's
+
+**Anchors:** `4bc3f34c`
+
+**Did:** merged G5 (the parity hinge) as queue 1/9, ran the first integrator delta A2, and
+triaged its three regressions. **None bounced to a lane.**
+
+**TWO WERE MY OWN INDEX DEBT.** The batch added five audit artifacts, so
+`docs/audits/README.md` went stale and both `test_gen_audit_index` tests REDded. A lane must not
+regenerate that index — leaving it stale IS correct lane behaviour — and the integrator is
+gate-of-record. Regenerated here rather than at the end of the queue, so the remaining eight
+delta-A2 runs give clean signal instead of each carrying the same two known REDs.
+
+**THE THIRD BELONGS TO NO LANE, AND IT IS A REAL LATENT DEFECT.**
+`test_preflight_contract.py::test_every_claim_class_the_brief_names_is_extractable` builds its
+SHA claim from live `HEAD`, and this merge's short sha is `85827046` — **all digits**. Reproduced
+against the extractor directly: `85827046` yields `kinds=[]` while `1e064921`, `b5753f52`,
+`cd4035e7` and `a7d1b3f4` all yield `['sha']`. So the test fails on roughly **2.3 %** of commits
+((10/16)^8) for reasons that have nothing to do with the diff under test. Recorded as a finding
+for the funnel, not fixed here: no lane owns `scripts/preflight_contract.py` in this batch, and
+a finding does not become a row without triage (ADR-111).
+
+**THE WALL-CLOCK IS CONTAMINATED AND MUST NOT BE USED AS THE [#528] DATAPOINT.** This run
+measured `2675 s` against a `897 s` uncontended baseline on nearly the same tree. I ran
+`audit.py`'s spine-anchor check and a journal diagnostic DURING the timed run — the whole audit
+machinery, twice — which is the very "measuring while measuring" error the batch is trying to
+quantify. Recorded as spoiled rather than reported as a 3x substrate finding. Subsequent runs
+are left alone.
+
+**Result:** G5 merged at `85827046`. Suite after merge: 16 failed, 4861 passed, 3 skipped,
+1 xfailed. Delta A2: 3 regressions, all triaged above, 0 bounced.
+
+**Changes:** `docs/audits/README.md` (regenerated), `JOURNAL.md`.
+
+**Next:** terra -> merge -> delta A2 for G1, then the rest of the queue.
+
+### 2026-09-02 (e) - CC (Opus 5): batch G ran without a manifest, and the merge queue is where that showed
+
+**Anchors:** `a7d1b3f4`
+
+**Did:** filed batch G's manifest at the head of the merge queue, after the missing ADR-110
+exemption surfaced on the first lane merge.
+
+**THE BATCH WAS DISPATCHED WITHOUT ONE.** `batch_manifest.py` resolves an open batch as a
+conjunction of four facts — tracked, `status: open`, a `closed_by:` that can resolve, and that
+path absent. With no manifest, every `worktree-lane-*` merge loses the exemption and owes its own
+JOURNAL anchor. Nine lanes had already run before anyone needed the file, which is exactly why it
+was never missed: **a manifest is a merge-time organ, and the batch protocol arms it at freeze.**
+
+**FILED LATE, AND THE FILE SAYS SO.** `dispatched:` carries the real date and the roster is read
+off the branches that actually ran, not off the plan. A manifest written after dispatch cannot
+pretend to have governed it, and back-dating one would have made the record worse than the gap.
+
+**THE GRAMMAR OVERRULED THE PROMPT TWICE, and both are recorded in the roster.** `g5-632-parity`
+and `lane-g-621b-c7` are both refused by `validate_lane_worktree_name` — the `<letter>` is one
+letter and the `<id>` is numeric — so the lanes are `lane-g-632-parity` and `lane-g-621-c7`.
+
+**Changes:** `docs/audits/2026-09-02-technical-batch-g-manifest.md` (new), `JOURNAL.md`.
+
+**Next:** the queue, G5 first, delta A2 once per merge.
+
+### 2026-09-02 (d) - CC (Opus 5): the reviewer caught the batch citing a ruling that did not exist
+
+**Anchors:** `7a5ca6ff`
+
+**Did:** opened batch G's integration with terra pre-merge on G5, and landed the batch's six
+rulings as register section AC before merging anything.
+
+**THE FINDING IS THE POINT, AND IT IS MINE.** Terra's first pass on G5 raised P1: the parity doc
+cites `STANDING_RULINGS.md` R-G0-2 as the authority for a FLIP that re-routes seven lanes, and
+**the register carried no such entry, in this revision or anywhere in history.** Six rulings were
+given in chat, acted on, and cited in committed artifacts without ever having a durable home.
+That is the *exact* defect G0 was filed to end — a hard decision discharged by memory rather than
+by mechanism — reappearing one step later, in the integration of the batch that fixed it. I did
+not catch it; the reviewer did.
+
+**Result:** section AC records R-G0-1 through R-G0-4, R-G-A2 and R-G-G3b, each with the
+measurement behind it. The register is outside the silent-rule corpus (R12), so it cost no
+ratchet tokens. Every batch-G artifact's citation now resolves.
+
+**A SECOND P1 ON THE SAME PASS, AND IT IS ALSO MINE.** Terra showed the AMENDMENT 3 marker
+corrects "sixteen" using a decomposition from a DIFFERENT run: the packet's figure is Lane A's
+294.07 s run, while the proof doc's `17 = 2 + 15` belongs to a 298.50 s run. I wrote that clause
+into G5's contract, so the lane executed a correction that its own evidence does not support.
+Being fixed on the branch before G5 merges, as an integrator act.
+
+**Changes:** `protocols/STANDING_RULINGS.md` (section AC), `JOURNAL.md`.
+
+**Next:** correct G5's amendment marker, write terra's tally into its artifact, then merge the
+queue G5 -> G1 -> G2 -> G3 -> G4 -> G6 -> G8 -> G7 -> G3b.
+
 ### 2026-09-02 (c) - CC (Opus 5): the base failed-set is real, and the source the contract named was a leftover
 
 **Anchors:** `10bd27d9`
