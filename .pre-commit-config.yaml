@@ -277,7 +277,6 @@ repos:
         language: system
         always_run: true
         files: '(^|/)LANE-[^/]*\.md$'
-        pass_filenames: false
       - id: audit-health
         name: Audit self-conformance gate (FAIL blocks the commit; WARN only informs)
         # `audit.py health` exits 1 only on a FAIL finding (structural integrity,

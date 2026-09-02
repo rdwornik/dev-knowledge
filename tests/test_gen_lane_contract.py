@@ -746,27 +746,39 @@ def test_the_playbook_dispatch_table_carries_the_codespace_pairing_rule():
 
 # --- 5. [#630] — the hook runs on an empty set, and never passes vacuously -----------------
 #
-# `lane-contract-check` gains `always_run: true` + `pass_filenames: false` (the shape already
-# used at the `provider-registry` / `audit-health` hooks): pre-commit now invokes
-# `gen_lane_contract.py check` with NO paths on every commit, not just ones that stage a
-# `LANE-*.md`. `paths` must therefore stop being a REQUIRED argument, or the hook itself
-# errors out (`Missing argument 'PATHS'`) on the very first commit that does not touch one —
-# the opposite of "runs on an empty set".
+# `lane-contract-check` gains `always_run: true` and KEEPS filename passing. `paths` must
+# therefore stop being a REQUIRED argument, or the hook errors out (`Missing argument 'PATHS'`)
+# on the first commit that does not touch a `LANE-*.md` — the opposite of "runs on an empty set".
+#
+# WHY NOT `pass_filenames: false`, which this lane originally shipped (terra P1, 2026-09-02).
+# The `provider-registry` / `audit-health` hooks set it because they take NO input: they scan the
+# tree themselves. `lane-contract-check` is the opposite — its CONTRACT-MANIFEST predicate
+# compares the manifest against *the contracts it was handed*, and with `pass_filenames: false`
+# it is handed none, on EVERY invocation including the freeze commit that stages them. MEASURED
+# with a real contract staged: `contract-manifest predicate ([#630]): 0 contract(s) given —
+# 0 checked`, i.e. `open_batches` was never reached and a slug mismatch still passed. The lane
+# satisfied "runs on an empty set" by severing the input the predicate needs, which is the
+# vacuous pass this row exists to end, in a new costume.
 
 import yaml  # noqa: E402
 
 
-def test_the_precommit_hook_runs_on_every_commit_not_just_lane_md_ones():
-    """`.pre-commit-config.yaml`'s `lane-contract-check` block gains the SAME
-    `always_run` + `pass_filenames` pair already used at the `provider-registry` hook — a
-    `files:`-globbed gate is not a guarantee; it disappears exactly when nothing looks
-    suspicious."""
+def test_the_precommit_hook_runs_on_every_commit_AND_still_receives_its_contracts():
+    """Both halves, because this lane shipped the first without the second.
+
+    `always_run: true` makes the gate fire on a commit that stages no `LANE-*.md` — a
+    `files:`-globbed gate disappears exactly when nothing looks suspicious. But filename
+    passing must SURVIVE, or the CONTRACT-MANIFEST predicate is handed nothing on every
+    invocation and reports `0 checked` forever while a slug mismatch sails through.
+    """
     config = yaml.safe_load(
         (_REPO_ROOT / ".pre-commit-config.yaml").read_text(encoding="utf-8"))
     hooks = {h["id"]: h for repo in config["repos"] for h in repo.get("hooks", ())}
     hook = hooks["lane-contract-check"]
     assert hook.get("always_run") is True, hook
-    assert hook.get("pass_filenames") is False, hook
+    assert hook.get("pass_filenames") is not False, (
+        "pass_filenames must not be False: the predicate compares the manifest against the "
+        "contracts it is HANDED, so suppressing filenames makes it unreachable", hook)
 
 
 def test_check_runs_with_zero_paths_instead_of_erroring():
