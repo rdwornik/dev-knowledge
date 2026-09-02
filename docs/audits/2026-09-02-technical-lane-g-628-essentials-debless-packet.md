@@ -69,8 +69,46 @@ breaks down as:
   consumers; this lane's frozen write-scope covers exactly two of them). **Not touched — outside
   this lane's footprint.**
 
-**The integrator re-runs this grep after every batch-G lane (including G3) has merged; that is
-where closure (b) is actually discharged to zero**, per the corrected instruction.
+**The integrator re-runs this grep after every batch-G lane (including G3) has merged.**
+
+## Closure (b), RE-STATED so it can actually be discharged (integrator, 2026-09-02)
+
+The instruction as written — `grep -rn 'protocols/ESSENTIALS' protocols/ docs/ CLAUDE.md .claude/`
+reaching **zero** — cannot succeed, and the reviewer and the integrator found this independently:
+
+1. `docs/` holds hundreds of IMMUTABLE audit and handoff records that legitimately cite
+   ESSENTIALS as it was. An immutable record is not a route, and rewriting one to reach zero
+   would corrupt the institutional record to satisfy a grep.
+2. `.claude/` contains `.claude/worktrees/`, which during a batch holds a FULL COPY of the repo
+   per lane. The command therefore greps itself N+1 times and returns thousands of self-matches.
+   **It can only return zero on a tree with no worktrees — i.e. never while a batch is running,
+   which is exactly when it is run.**
+3. This lane's own packet, and the de-blessing banners in `CLAUDE.md`, ADD matching lines. A
+   document that says "nobody routes to ESSENTIALS" contains the string.
+
+**ACCEPTANCE, restated: zero actionable LIVE routes.** A live route is a line in a
+currently-governing surface that sends a reader to `protocols/ESSENTIALS.md` for guidance — not
+a citation, not a negation, not a history entry, not a worktree copy of one of those.
+
+```
+grep -rn 'protocols/ESSENTIALS' protocols/ CLAUDE.md   | grep -v '^\.claude/worktrees/' | grep -v '^protocols/archive/'
+```
+
+**MEASURED AT INTEGRATION, 2026-09-02, after G3 and this lane merged: TWO live routes remain.**
+
+```
+protocols/AI_COUNCIL_PROCESS.md:413  - "Repo-artifacts-in-Claude-Code rule: protocols/ESSENTIALS.md"
+protocols/PLAYBOOK.md:330            - "1. .dev-knowledge/protocols/ESSENTIALS.md + PLAYBOOK.md"
+```
+
+Everything else resolves as a NON-route: `CLAUDE.md:25` reads "SUPERSEDED … skip it",
+`HANDOFF_PROCESS.md:1059` reads "nobody to protocols/ESSENTIALS.md", and the STANDING_RULINGS and
+CLAUDE.md §12 hits are evidence locators and section history.
+
+**Closure (b) is therefore PARTIALLY DISCHARGED, and the reason is structural rather than an
+oversight: neither surviving file is in this lane's frozen write-scope.** The lane was asked to
+prove a repo-wide property while being handed three files. Recorded for the close packet, with
+the ask-registry row updated to name the two survivors instead of the two this lane fixed.
 
 ## Closure (d) — tests, delta A2, conventions
 
