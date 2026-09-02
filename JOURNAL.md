@@ -19,6 +19,47 @@
 
 ---
 
+### 2026-09-02 (a) - CC (Opus 5): the interface lesson filed, and Q7 routed to G7 rather than split
+
+**Anchors:** `49339851`
+
+**Did:** filed the operator's interface lesson as three acts on one branch, ahead of batch-G's G0
+so the two arcs do not contend for `protocols/STANDING_RULINGS.md`.
+
+**Result:** `protocols/OPERATOR-INTERFACE.md` gains section 7 -- every step needing the operator's
+action ends with a copy-ready block, and a description where a block belongs is an interface
+defect. `protocols/STANDING_RULINGS.md` gains section AB, a Z-C-shaped CANDIDATE recording the
+`/handoff-verify` FORM probe that would enforce it. No peg, no owner, by design.
+
+**THREE PLACEMENT CALLS, EACH MADE AGAINST A WITNESSED CONSTRAINT rather than by preference.**
+The constant was asked for in section 2 "or the section whose shape fits"; it landed as a NEW
+section 7, because `CONTRIBUTING.md:272` cites this file's section 5 BY NUMBER and any
+renumbering would break a live citation. The candidate was asked for Z-C-shaped; it landed as its
+own section AB, because Z-C's heading and preamble both say "three" and a fourth entry would
+falsify a record of a closed act -- AB is declared the home so G8's candidate appends there
+instead of opening a rival section.
+
+**Q7 LIVES TWICE, AND THAT DECIDED THE ROUTE.** The questionnaire item sits at
+`templates/handoff/v5/SUPPLEMENT.md.tmpl:63` -- inside G7's file set -- and again at
+`protocols/HANDOFF_PROCESS.md:721`, outside G7's declared Files line. Editing only the reachable
+copy would leave the two prompts DIVERGENT until G7 lands, which is worse than either being
+stale. Both copies go to G7 as closure clause (5), which adds `HANDOFF_PROCESS.md` to that lane's
+file set for that clause alone.
+
+**THE RATCHET WAS MEASURED, NOT ASSUMED, AND THE RULE LANDED VERBATIM.** Live 441 against
+baseline 443 -- two tokens of headroom, so the constant's `never` was kept as ruled rather than
+reworded down to `not`. Rewording a live rule to please a proxy is the move the ratchet's own
+v1-v2 correction forbids. `STANDING_RULINGS.md` is outside the corpus (RULING R12), so section AB
+cost nothing. Post-edit: 442.
+
+**Changes:** `protocols/OPERATOR-INTERFACE.md` (section 7, stamp 2026-08-26 -> 2026-09-02),
+`protocols/STANDING_RULINGS.md` (section AB), `JOURNAL.md`.
+
+**Abandoned:** editing the `HANDOFF_PROCESS.md` copy of Q7 here -- it would have split a
+two-copy prompt across two arcs.
+
+**Next:** batch-G G0 on the primary checkout, then the G5 hinge.
+
 ### 2026-09-01 (aq) - CC (Opus 5): the ratified-in-chat register discharged, and one VERIFY failed
 
 > **Re-lettered (ap) -> (aq) at merge time.** A concurrent seat took `(ap)` on main while this
