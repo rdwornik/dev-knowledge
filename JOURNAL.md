@@ -19,6 +19,47 @@
 
 ---
 
+### 2026-09-02 (c) - CC (Opus 5): the base failed-set is real, and the source the contract named was a leftover
+
+**Anchors:** `10bd27d9`
+
+**Did:** ran the hub suite once on post-G0 main and landed the base failed-set every G lane's
+delta-A2 acceptance compares against. **13 failed, 4856 passed, 4 skipped, 1 xfailed in
+841.43 s.**
+
+**THE NAMED SOURCE WAS A LEFTOVER, AND IT WOULD HAVE FORGIVEN 32 TESTS.** The frozen plan puts
+the base set at `.pytest_cache/v/cache/lastfailed` and cites it as *"present, 3,945 B"*. It is
+present and it is 3,945 B — and after a 841-second full run it still carried **yesterday's**
+mtime. `nodeids` was rewritten at 15:01 by that same run; `lastfailed` sat at 2026-09-01 21:37.
+The cache provider is live and writing, and this one file did not move under `addopts = -n auto`.
+Its 45 nodeids were a strict superset of the 13 the run reported, so emitting it would have
+produced a base set that silently forgives 32 tests that now pass. **That is the false base the
+reader exists to prevent, and it is worse than an absent one, because it has the shape of a
+measurement.** The 3,945 B in the plan is the size of the stale file, so the premise was
+witnessed against the leftover rather than against a run.
+
+**So the reader reads the RUN REPORT.** `--from-report` parses the failing nodeids out of the
+suite's own captured output — what it said, at a known sha, in one pass — and the emitted record
+now names its `source`, because two sources exist and they disagreed by 32 nodeids once.
+
+**MY OWN ORGAN HAD THE BUG IT WAS BUILT TO CATCH.** The first ANSI strip dropped only the
+bracket sequence and not the ESC byte, so every coloured `FAILED` line kept a leading ESC and
+matched nothing — a silent dropper of real failures, inside the module written to stop silent
+forgiveness. Caught by writing the test before trusting the output, and pinned.
+
+**Result:** `docs/audits/2026-09-02-verification-base-failed-set-1e064921.json` — 13 nodeids at
+`1e064921`, substrate local, source run-report, verified an EXACT set match to the suite's own
+FAILED lines. 17 reader tests green.
+
+**Changes:** `scripts/failed_set.py` (+read_report, +source field, ANSI fix),
+`tests/test_failed_set.py`, the base-set artifact.
+
+**Abandoned:** committing the 45-nodeid cache set. It matched the contract's letter and would
+have made every lane's delta-A2 verdict meaningless.
+
+**Next:** the batch is STOPPED at G0's witness — `ship-gate` is RED on 123 pre-existing WARNs
+and the contract says nothing boots without GREEN. Reported to the operator with the ask.
+
 ### 2026-09-02 (b) - CC (Opus 5): batch G opens - routing gets a carrier, and a gate stops being discharged by memory
 
 **Anchors:** `fb3b98ac`
