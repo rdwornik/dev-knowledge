@@ -1,0 +1,26 @@
+{
+  "schema": "failed-set/1",
+  "sha": "b5753f52",
+  "substrate": "codespace",
+  "generated_at": "2026-09-02T14:01:17Z",
+  "count": 16,
+  "nodeids": [
+    "tests/test_audit.py::test_check_fleet_parity_green_on_live_repo",
+    "tests/test_boundary_report.py::test_live_hub_baseline_and_consumers_legal",
+    "tests/test_cloud_provisioning.py::test_provision_sh_runs_the_history_repair_before_arming_hooks",
+    "tests/test_cloud_provisioning.py::test_the_gate_never_syncs_the_environment_it_is_asserting",
+    "tests/test_consumer_at_landing.py::test_the_live_corpus_measures_and_the_baseline_matches_it",
+    "tests/test_desired_state_report.py::test_live_report_renders_the_real_fleet",
+    "tests/test_enforcement_coverage.py::test_anchor_gate_probe_distinguishes_installed_from_absent",
+    "tests/test_export_backlog_view.py::test_no_gate_hook_or_script_reads_the_export",
+    "tests/test_funnel_coverage.py::test_committed_baseline_agrees_with_a_live_measurement",
+    "tests/test_gen_north_star.py::test_the_committed_view_is_current",
+    "tests/test_merge_serialization.py::test_index_lock_blocks_concurrent_merge",
+    "tests/test_preflight_freeze_predicates.py::test_i_off_repo_path_that_does_not_exist_is_refused",
+    "tests/test_preflight_freeze_predicates.py::test_vi_batch1_reproduces_the_off_repo_input_defect",
+    "tests/test_preflight_freeze_predicates.py::test_vi_batch1_reproduces_the_wrong_id_citation",
+    "tests/test_reverse_dep_oracle.py::test_extract_dependents_excludes_declaration",
+    "tests/test_validate_doc_rot.py::test_live_corpus_has_no_accretion_arm_findings_only_length_findings"
+  ],
+  "source": "run-report"
+}
