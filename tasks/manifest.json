@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "4dd3e62ee262dd7fc11bb27acf64e2a7e6c8ca8bb0a330057f520b905e1ab582",
+  "generated_sha256": "e98c18ff013a085fb718e005fe11ac5768e6a7bfee02591db6f0eb48dff9caaf",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -745,10 +745,6 @@
     {
       "task": 553,
       "file": "553-adr-census-in-decisions-readme-is-ungated-and-wrong.md"
-    },
-    {
-      "task": 614,
-      "file": "614-vision-superseded-by-a-recreated-root-readme.md"
     },
     {
       "task": 620,

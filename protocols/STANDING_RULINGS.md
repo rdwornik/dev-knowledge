@@ -3344,6 +3344,12 @@ re-emitted for form. No peg, no owner, by design.
 *The constant it would probe against* is `protocols/OPERATOR-INTERFACE.md` §7, landed in this same
 commit. The probe itself is unbuilt — recording the candidate is the whole of this entry.
 
+**AB-2 · `/boot-session` gains a MERGE-WITH-VERIFY mode — PARKED by the operator.** Origin:
+2026-09-02 batch-G boot. No peg, no owner, by design. Recorded here rather than as a `tasks/`
+row per this section's own precedent — the only route from here to a row is CANDIDATE → intake
+(ADR-98) → ratification, and none of that has happened yet. The shape and constant it would
+probe against are undetermined; recording the candidate is the whole of this entry.
+
 ## AC. Batch G rulings — the substrate flip, the acceptance rule, and the G3b cut (architect, 2026-09-02)
 
 Recorded here because batch G's artifacts CITE these by name. A ruling that lives only in a chat

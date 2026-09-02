@@ -3,12 +3,12 @@
   "direction": "derived-from",
   "source": "docs/intake/README.md",
   "generator": "scripts/gen_intake_tree.py",
-  "source_sha256": "5d6feeff169c67b2f15858da79d4f0672a7249a15031d3b4f475372cb01d5dc1",
+  "source_sha256": "edbb72feb507d006c43db64b69a8ef467ad7a96358d80ca3131ba3af65d0c595",
   "honest_limit": {
     "statement": "ADR-109 section 4 is discharged by a byte-exact round-trip plus a residue manifest, NOT by a derivation ratio. This surface's ratio is INVERTED relative to surface 1 (BACKLOG.md <-> tasks/), where task lines were the majority and residue the minority. Recorded so the generality claim is honest about what was shown.",
-    "item_derived_lines": 58,
+    "item_derived_lines": 57,
     "residue_lines": 281,
-    "total_lines": 339,
+    "total_lines": 338,
     "surface_1_comparison": "inverted -- surface 1 was majority item-derived"
   },
   "not_captured": {
@@ -65,10 +65,6 @@
         "note",
         "origin",
         "trigger"
-      ],
-      "2026-07-16-satellite-onboarding-prompts.md": [
-        "note",
-        "origin"
       ],
       "2026-07-21-func-fleet-north-star.md": [
         "consumed-by",
@@ -377,7 +373,7 @@
     },
     {
       "t": "line",
-      "v": "**58 intake documents.**"
+      "v": "**57 intake documents.**"
     },
     {
       "t": "line",
@@ -504,16 +500,11 @@
     },
     {
       "t": "line",
-      "v": "### READY (20)"
+      "v": "### READY (19)"
     },
     {
       "t": "line",
       "v": ""
-    },
-    {
-      "t": "item",
-      "file": "2026-07-16-satellite-onboarding-prompts.md",
-      "status": "READY"
     },
     {
       "t": "item",
