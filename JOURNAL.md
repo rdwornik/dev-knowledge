@@ -19,6 +19,45 @@
 
 ---
 
+### 2026-09-03 (a) - CC (Opus 5): the ask register would have gone stale at the moment it was fixed
+
+**Anchors:** `826fe7fb`
+
+**Did:** merged G6 (queue 6/9), and fixed the two P1s terra raised against it.
+
+**THE OPERATOR'S MOST RE-ASKED ITEM WOULD HAVE RENDERED AS UNFIXED THE MOMENT IT WAS FIXED.**
+`/boot-session` renders the ESSENTIALS ask row from `HANDOFF_PROCESS.md`, and that row still
+listed `SESSION_SETUP.md` and `DEFINITION_OF_DONE.md` as outstanding RESIDUAL, exposing only the
+old `12f4113a` partial fix — while G6, in the same diff, removed exactly those routes. Re-asked
+3, and the register that exists to show him resolution would have shown him none. Both rows now
+carry what batch G actually landed (`55d67d42` for ESSENTIALS, `07a8d856` for VISION) and name
+the real residual instead of the fixed one.
+
+**CLOSURE (b) COULD NEVER REACH ZERO, and the reviewer and I found it independently.** The
+instruction greps `docs/` — hundreds of IMMUTABLE records that legitimately cite ESSENTIALS as
+it was — and `.claude/`, which during a batch holds a FULL COPY of the repo per worktree, so the
+command greps itself N+1 times. **It can only return zero on a tree with no worktrees, i.e.
+never while a batch is running, which is exactly when it is run.** Restated as zero actionable
+LIVE routes with the exclusions encoded; measured answer is TWO — `AI_COUNCIL_PROCESS.md:413`
+and `PLAYBOOK.md:330`, neither in G6's frozen write-scope.
+
+**THAT IS THE SAME SHAPE AS G1's DEFECT: a closure demanding a repo-wide property from a
+three-file write-scope.** Sixth coupling of the batch, and the strongest evidence yet for the
+contract-freeze coupling scan.
+
+**THE TWO ANCHOR GATES DISAGREE, CONFIRMED TWICE.** `git push` refused again —
+*"UNANCHORED 830e6286"* — on a lane merge `audit.py::check_journal_spine_anchor` exempts under
+ADR-110. Reported verbatim both times, never bypassed; discharged by the route the gate itself
+prescribes, which is this entry.
+
+**Result:** G6 merged `830e6286`. Delta A2: 2 regressions (both the owned audits-index
+staleness), 1 fixed, 1982 s.
+
+**Changes:** `protocols/HANDOFF_PROCESS.md` (both ask rows), G6's packet (closure (b) restated),
+`JOURNAL.md`.
+
+**Next:** G8, then G7, then G3b.
+
 ### 2026-09-02 (h) - CC (Opus 5): five lanes merged, and every terra P1 was the contract's, not the lane's
 
 **Anchors:** `5d58a3e5`, `8cd523f4`, `29746560`, `342a2d3d`, `bbb0cbcd`, `1083f0dd`
