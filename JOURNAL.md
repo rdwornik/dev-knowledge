@@ -19,6 +19,54 @@
 
 ---
 
+### 2026-09-02 (b) - CC (Opus 5): batch G opens - routing gets a carrier, and a gate stops being discharged by memory
+
+**Anchors:** `fb3b98ac`
+
+**Did:** ran G0, batch G's serial opener, on the primary checkout: the routing carrier, the
+manifest move, the dispatch-scaffolding ignore block, the R-2 amendment, and -- by architect
+amendment applied at GO -- the stdlib failed-set reader that G5 was going to build.
+
+**THE ACTUAL DEFECT WAS THAT THE GATE HAD NO CLOSING ACT.** `check_routing_agreement` is
+SHIP-tier and hard-fail, and the only way to satisfy it was a hand edit to a file on the
+operator's disk. A gate like that is not discharged, it is remembered -- and it had diverged on
+all four roles. `--render` gives it a carrier: a 4-row table emitted from the in-repo table into
+a marker-delimited region. The module still writes no L0 file; rendering goes to stdout and
+placing the region stays the operator's act, which is what keeps ADR-28/36 true.
+
+**ONE LINE PER ROLE IS THE PROPERTY, and it is why a table works where prose did not.**
+`compare` binds a CLI to a role only inside that role's region, and a region ends at the next
+line naming a different role. A markdown row is therefore a region of exactly one line carrying
+every CLI that role has. Prose wraps; a row does not.
+
+**I WAS ASKED FOR A FIX THAT TURNED OUT NOT TO BE NEEDED, AND SAID SO.** The operator flagged an
+LF-to-CRLF warning on `ROUTING.md` and asked that `compare()` strip CR so an ending flip could
+not masquerade as divergence. Measured first: `git ls-files --eol` reads `i/lf w/lf` -- no
+conversion had happened -- and `str.splitlines()` already treats a CR-LF pair as one boundary
+while `scan` reads L0 in text mode. So the code needed no change and none was made. A no-op
+strip would have looked exactly like a fix; a regression test locks the property instead.
+
+**THE RECEIPT LEG WAS NOT WHERE IT LOOKED.** The plan reads as a local-tree problem. The receipt
+is cp'd back to the system TEMP dir and never touches the operator's checkout. The real site is
+the CONTAINER's clone -- which IS this repo, and which a lane commits and pushes from -- so the
+transport's own runner, logs, diag dir and contract ride into a lane's `git add -A` and destroy
+the one signal that tells a finished lane from a wedged one. Root-anchored ignore entries, so a
+real `receipt.json` elsewhere in the tree is not swallowed.
+
+**Result:** `agree: 4 role(s) corroborated`, from `diverge` on all four. `audit.py health` OK.
+`ruff` clean. 21 targeted tests green (11 routing, 10 failed-set).
+
+**Changes:** `scripts/routing_agreement.py` (+render, +CLI), `scripts/failed_set.py` (new),
+`tests/test_routing_agreement.py`, `tests/test_failed_set.py` (new), `.gitignore`,
+`deploy/manifest-v1.5.0.yaml`, `protocols/STANDING_RULINGS.md` (R-2).
+
+**Abandoned:** renaming the container-side dispatch artifacts to dot-prefixed paths. That fix
+lives in `win-tooling`'s `DispatchHelpers.psm1`, carries ~10 pinned test assertions, and would
+change the transport G5 is about to measure parity ON. It goes to the operator as an ask rather
+than being decided unilaterally one step before the hinge.
+
+**Next:** ship-gate witness, the base failed-set on post-G0 main, then G5 -- the parity hinge.
+
 ### 2026-09-02 (a) - CC (Opus 5): the interface lesson filed, and Q7 routed to G7 rather than split
 
 **Anchors:** `49339851`
