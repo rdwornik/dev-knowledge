@@ -40,6 +40,7 @@ from __future__ import annotations
 
 import os
 import re
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
@@ -132,6 +133,14 @@ def compare(roles: dict[str, list[str]], l0_text: str) -> list[Divergence]:
 
     A role L0 omits entirely is still a divergence, because silence is the failure mode rather
     than the absence of one.
+
+    CR TOLERANCE IS MEASURED, NOT ADDED. `str.splitlines` treats a CR-LF pair as ONE boundary and
+    leaves no carriage return on the line, and `scan` reads L0 in text mode, where universal
+    newlines have already translated. A line-ending flip on the derived copy therefore cannot
+    masquerade as a routing divergence, and no stripping step is needed to make that true --
+    which is why none was added. The property is witnessed by
+    `tests/test_routing_agreement.py::test_a_crlf_l0_copy_agrees_exactly_as_the_lf_one_does`
+    rather than asserted here.
     """
     out: list[Divergence] = []
     lines = l0_text.splitlines()
@@ -150,6 +159,38 @@ def compare(roles: dict[str, list[str]], l0_text: str) -> list[Divergence]:
                 role, ", ".join(clis),
                 f"the L0 copy mentions the role but not {', '.join(missing)} beside it"))
     return out
+
+
+#: The markers L0 carries the RENDERED table between. A region write replaces what sits between
+#: them and touches nothing else, because the derived copy is a human-facing doc whose prose is
+#: the operator's -- only the table is derived.
+REGION_BEGIN = "<!-- routing-table:begin -->"
+REGION_END = "<!-- routing-table:end -->"
+
+
+def render_table(roles: dict[str, list[str]]) -> str:
+    """The L0 region: a marker-delimited markdown table, one ROLE and all its CLIs per LINE.
+
+    ONE LINE PER ROLE IS THE LOAD-BEARING PROPERTY, not a formatting taste. `compare` binds a
+    CLI to a role only inside that role's region, and `_role_regions` ends a region at the next
+    line naming a DIFFERENT role. A table row therefore renders as a region of exactly one line
+    carrying every CLI the role is bound to -- the shape `_REGION_LINES = 3` was written to
+    admit, and the reason a rendered table closes the gate that hand-written prose did not.
+
+    RENDERING DOES NOT WRITE L0. This module reads two files and compares them (ADR-28/36, and
+    the Layer-2 contract in the module docstring); `--render` emits to stdout so that stays
+    true, and placing the region is the operator's act.
+    """
+    rows = "\n".join(f"| {role} | {', '.join(roles[role])} |" for role in sorted(roles))
+    return (f"{REGION_BEGIN}\n"
+            f"<!-- GENERATED from {TABLE_RELPATH} by `python scripts/routing_agreement.py\n"
+            f"     --render`. Hand edits here are overwritten by the next render. -->\n"
+            f"\n"
+            f"| Role | CLI |\n"
+            f"| --- | --- |\n"
+            f"{rows}\n"
+            f"\n"
+            f"{REGION_END}\n")
 
 
 def scan(repo_path: Path) -> tuple[str, Optional[list[Divergence]], str]:
@@ -175,3 +216,35 @@ def scan(repo_path: Path) -> tuple[str, Optional[list[Divergence]], str]:
         return ("diverge", diverged,
                 "; ".join(f"{d.role} (table: {d.expected}) — {d.detail}" for d in diverged))
     return ("agree", [], f"{len(roles)} role(s) in {TABLE_RELPATH} corroborated by {declared}")
+
+
+def main(argv: Optional[list[str]] = None) -> int:
+    """`--render` emits the L0 region; with no flag, report the agreement state.
+
+    Exit code follows the STATE, not the transport: 0 on `agree`, 1 otherwise -- so `l0-absent`
+    is non-zero too. Z-G4: a check that cannot compute its ground truth reports a gap, and a gap
+    that exited 0 here would read as a pass to anything shelling out to this module.
+    """
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        prog="routing_agreement",
+        description="Report L0/in-repo routing agreement, or render the region L0 carries.")
+    parser.add_argument("--render", action="store_true",
+                        help="emit the marker-delimited L0 region to stdout and exit")
+    parser.add_argument("--repo", default=".", help="repo root (default: the cwd)")
+    args = parser.parse_args(argv)
+
+    repo = Path(args.repo)
+    if args.render:
+        roles, _ = load_table(repo)
+        sys.stdout.write(render_table(roles))
+        return 0
+
+    state, _, detail = scan(repo)
+    print(f"{state}: {detail}")
+    return 0 if state == "agree" else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

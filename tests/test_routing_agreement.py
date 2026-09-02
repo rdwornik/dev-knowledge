@@ -127,3 +127,55 @@ def test_a_cli_named_elsewhere_does_not_corroborate_a_role(tmp_path):
     assert state == "diverge"
     roles = {d.role for d in diverged}
     assert "reviewer" in roles, f"reviewer must diverge; got {detail}"
+
+
+def test_a_crlf_l0_copy_agrees_exactly_as_the_lf_one_does(tmp_path):
+    """A line-ending flip on the derived copy is not a routing divergence.
+
+    WHY THIS IS A REAL PATH AND NOT A HYPOTHETICAL. `~/.claude` is a git repo with autocrlf on:
+    committing `ROUTING.md` warns that LF will be replaced by CRLF the next time git touches the
+    file, so the L0 copy this organ reads flips endings on an ordinary checkout. Were the
+    comparison CR-sensitive, that checkout would report divergence on every role and read as a
+    routing defect -- the check certifying a break that never happened.
+    """
+    body = "producer: claude-code@CRLF@reviewer: codex@CRLF@fan-out: luna, haiku@CRLF@"
+    crlf = tmp_path / "ROUTING.md"
+    crlf.write_text(body.replace("@CRLF@", "@CR@" + chr(10)).replace("@CR@", chr(13)),
+                    encoding="utf-8", newline="")
+
+    assert chr(13) in crlf.read_bytes().decode("utf-8")   # the fixture really is CRLF
+    state, diverged, _ = ra.scan(_repo(tmp_path, crlf))
+    assert (state, diverged) == ("agree", [])
+
+
+def test_render_puts_every_cli_on_the_SAME_LINE_as_its_role(tmp_path):
+    """The one-line-per-role property `compare`'s region bound depends on.
+
+    A renderer that wrapped a role's CLIs onto a following line would still LOOK right and would
+    still pass a naive round-trip, because `_role_regions` extends up to `_REGION_LINES`. It
+    would break the moment a role gained a fourth CLI. Asserting adjacency on the LINE is the
+    only form of this test that keeps failing when it should.
+    """
+    roles = {"producer": ["claude-code"], "fan_out": ["luna", "haiku", "gemini"]}
+    rendered = ra.render_table(roles)
+    lines = rendered.splitlines()
+
+    assert lines[0] == ra.REGION_BEGIN and lines[-1] == ra.REGION_END
+    for role, clis in roles.items():
+        row = [ln for ln in lines if ln.startswith(f"| {role} ")]
+        assert len(row) == 1, f"{role} renders on {len(row)} rows, expected exactly 1"
+        assert all(c in row[0] for c in clis)
+
+
+def test_a_rendered_region_makes_a_previously_diverging_l0_agree(tmp_path):
+    """The closure property: rendering into an L0 copy that named no role closes the gate."""
+    l0 = tmp_path / "ROUTING.md"
+    l0.write_text("# Task Routing Rules@NL@@NL@Prose that binds no role to a CLI.@NL@"
+                  .replace("@NL@", chr(10)), encoding="utf-8", newline="\n")
+    repo = _repo(tmp_path, l0)
+    assert ra.scan(repo)[0] == "diverge"
+
+    roles, _ = ra.load_table(repo)
+    l0.write_text(l0.read_text(encoding="utf-8") + chr(10) + ra.render_table(roles),
+                  encoding="utf-8", newline="\n")
+    assert ra.scan(repo)[0] == "agree"

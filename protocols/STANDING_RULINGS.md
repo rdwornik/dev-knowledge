@@ -1957,6 +1957,14 @@ audit is the drift this register exists to end.
 - **Option (b) of the two the finding offered** — declare the boundary — was selected over (a),
   bringing a copy in-repo behind a drift gate. Option (a) stays available; taking it later
   involves reversing #158 Decision B for a stated reason.
+- **AMENDED 2026-09-02 (batch G, G0) — option (a) is now TAKEN, and this is the stated reason.**
+  Since Z-G3/A2 the authoritative table is in-repo and `check_routing_agreement` is a SHIP-tier
+  hard-fail check (`scripts/audit.py:4925`); a hard-fail gate whose only closing act is a hand
+  edit to an L0 file has no mechanism — it is discharged by memory, which is the failure this
+  register exists to end. Option (a) gives the gate a carrier: `routing_agreement.py --render`
+  emits a 4-row table into a marker-delimited region of `~/.claude/ROUTING.md`. **R-2's holding
+  is UNCHANGED** — L0 placement is still a placement and not a gap, the hub still writes no L0
+  file, and only the rendered region is derived; the surrounding prose stays the operator's.
 - **The downstream consequence is recorded rather than left to surface at closure:** `[#82]` is
   partly unverifiable from this repo by construction while the reviewer pin lives at L0.
 - **L0 here is the distribution layer** of the Ch2 organ map's Layer column, a different
