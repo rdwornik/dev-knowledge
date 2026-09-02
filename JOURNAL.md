@@ -19,6 +19,50 @@
 
 ---
 
+### 2026-09-02 (h) - CC (Opus 5): five lanes merged, and every terra P1 was the contract's, not the lane's
+
+**Anchors:** `5d58a3e5`, `8cd523f4`, `29746560`, `342a2d3d`, `bbb0cbcd`, `1083f0dd`
+
+**Did:** merged G2, G3 and G4 (queue 3-5 of 9), ran the operator's `logs/` integration verify,
+and anchored the batch's lane merges here rather than at closure.
+
+**THE ANCHOR LINE IS DELIBERATE.** The ADR-110 exemption covers lane merges only while the batch
+is open and **evaporates the moment the close packet lands** — at which point every unanchored
+lane merge would wedge the next commit. Naming one introduced SHA per lane merge now converts a
+closure-time cliff into bookkeeping. It also discharges the ADR-85 pre-push refusal recorded
+below, by the route that gate itself prescribes.
+
+**THE PUSH GATE AND THE COMMIT GATE DISAGREE, and that is a finding.** After G3 merged,
+`git push` was REFUSED — *"1 first-parent spine entry(ies) would land on main with no JOURNAL
+anchor … UNANCHORED 55fecf34"* — while `audit.py::check_journal_spine_anchor` on the SAME commit
+returned **pass**, *"EXCEPT 2 lane merge(s) exempt under the ADR-110 declared-integration-arc
+rule"*. One organ honours the exemption, the other does not. Reported verbatim and left unpushed
+rather than bypassed, per ruling; the mechanism is not diagnosed here.
+
+**EVERY TERRA P1 THIS ROUND TRACED PAST THE LANE.** G2: a malformed `expiry` beside a valid
+`review_date` was HONOURED — the fallback masked the failure exactly when a second date existed
+to hide behind, which is why the lane's own seeded cases passed. Fixed in the shared engine, and
+the MIRROR case terra did not name was fixed with it. G3: the scan now targets an archive that is
+`status: superseded`; routed, not fixed, because terra's proposed fix would decide the parked
+README question by side effect. G4: the plugin scripts are fixed and `plugin.json` is not, so
+every installed consumer keeps the stale copies — **the lane written to fix executing copies left
+the installed ones stale.**
+
+**C4 IS C7.** G4's bump is blocked because `release_lint` C4 pins `plugin_version` in six
+manifests, five RELEASED — the identical defect G3 escalated via C7 and `VISION.md`. Both bind a
+released manifest to a live constant, so any release act must rewrite history or break the lint.
+G3b is chartered to re-shape C7; the same re-shape makes C4 correct.
+
+**THE `logs/` VERIFY WORKED AND EXPOSED A SIXTH COUPLING.** 101 top-level files → 12; 89 flat
+`PROPOSALS-*` → 0; `TOKEN-LOG.md` still flat; zero deletions. But `.gitignore` matched
+`logs/PROPOSALS-*.md` one level deep, so relocating them into month buckets moved 89 artifacts
+**out from under their own ignore rule**. The ignore now follows the file.
+
+**Changes:** `.gitignore` (month-bucket patterns), `logs/` (89 relocations, ignored),
+`JOURNAL.md`.
+
+**Next:** delta A2 on G4, then G6 → G8 → G7 → G3b.
+
 ### 2026-09-02 (g) - CC (Opus 5): G1 merged, and making its gate reachable made it over-broad
 
 **Anchors:** `c7918bca`
