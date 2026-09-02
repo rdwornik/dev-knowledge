@@ -1,6 +1,7 @@
 """Tests for scripts/assemble_paste.py."""
 from __future__ import annotations
 
+import re
 import shutil
 import subprocess
 import sys
@@ -449,13 +450,16 @@ def test_template_carries_questions_and_marker() -> None:
 # ------------------------------------------------------------------ #
 
 def test_normal_bundle_surfaces_size_without_warn(tmp_path: Path) -> None:
-    """The assembled byte-size is printed (so paste growth is visible) but a normal-sized
-    bundle stays under the threshold — no false [warn]."""
+    """The assembled byte-size AND the window-specific ratio are printed on the same Written
+    line (so paste growth and the ratio are never two separate numbers to go compute) — a
+    normal-sized bundle stays under the threshold — no false [warn]."""
     bundle, script = _make_bundle(tmp_path, mode="architect")
 
     result = _run(script, bundle)
     assert result.returncode == 0, result.stderr
-    assert "bytes)" in result.stdout          # size surfaced on the Written line
+    assert " bytes; window-specific " in result.stdout   # size + ratio, same Written line
+    assert re.fullmatch(r"\d+/\d+ B = \d+%",
+                        result.stdout.split("window-specific ")[1].split(")")[0])
     assert "[warn]" not in result.stderr        # a small bundle must not trip the bloat warn
 
 
@@ -464,7 +468,7 @@ def test_normal_bundle_surfaces_size_without_warn(tmp_path: Path) -> None:
 # ------------------------------------------------------------------ #
 
 def test_oversized_paste_emits_size_warn(tmp_path: Path) -> None:
-    """A paste past _SIZE_WARN_BYTES trips a [warn] — but assembly still succeeds (a WARN,
+    """A paste past PASTE_BYTE_CEILING trips a [warn] — but assembly still succeeds (a WARN,
     not a gate), so an over-budget bundle surfaces the bloat without blocking regeneration."""
     bundle, script = _make_bundle(tmp_path, mode="architect")
     (bundle / "RESIDUAL.md").write_text("# R\n\n" + ("padding " * 12000), encoding="utf-8")
@@ -589,3 +593,57 @@ def test_pin_only_missing_spec_still_refuses_cleanly(tmp_path: Path) -> None:
     )
     assert result.returncode == 1
     assert "the ROLE PIN needs its Version line" in result.stderr
+
+
+# ------------------------------------------------------------------ #
+# [#611] window-specific ratio -- derivation:
+# docs/audits/2026-09-02-technical-lane-g-611-bundle-thinning.md §1.2
+# ------------------------------------------------------------------ #
+
+def test_window_specific_ratio_counts_fill_in_bodies_and_folded_answers(tmp_path: Path) -> None:
+    """The printed ratio counts FILL-IN region BODIES (never the marker comments) plus the
+    folded SUPPLEMENT ANSWERS, over content_bytes -- and PROBES.md (no FILL-IN regions)
+    contributes 0, exactly the census's own finding that PROBES.md is 96% invariant."""
+    bundle, script = _make_bundle(tmp_path, mode="architect", supplement_answers="Real answer text.")
+    driftflags_body = "Shipped the thing because of the reason."
+    (bundle / "RESIDUAL.md").write_text(
+        "# Residual\n\n"
+        "<!-- FILL-IN:driftflags START (hand-authored) -->"
+        f"{driftflags_body}"
+        "<!-- FILL-IN:driftflags END -->\n",
+        encoding="utf-8",
+    )
+    # PROBES.md carries no FILL-IN region -- 0 window-specific bytes, by construction.
+    (bundle / "PROBES.md").write_text("# Probes\n\nP1 probe here, no FILL-IN.", encoding="utf-8")
+
+    result = _run(script, bundle)
+    assert result.returncode == 0, result.stderr
+
+    m = re.search(r"window-specific (\d+)/(\d+) B = (\d+)%", result.stdout)
+    assert m, result.stdout
+    ws_bytes, content_bytes, pct = int(m.group(1)), int(m.group(2)), int(m.group(3))
+
+    # driftflags body + the folded answers text -- nothing from PROBES.md or the scaffolding.
+    expected = len(driftflags_body.encode("utf-8")) + len("Real answer text.".encode("utf-8"))
+    assert ws_bytes == expected
+    assert pct == round(expected * 100 / content_bytes)
+
+
+def test_window_specific_ratio_excludes_unfilled_placeholder(tmp_path: Path) -> None:
+    """An unfilled FILL-IN region -- the generator's own `_(fill: ...)_` placeholder prompt --
+    is generic boilerplate, not window content, and counts 0 rather than inflating the ratio."""
+    bundle, script = _make_bundle(tmp_path, mode="architect", with_supplement=False)
+    (bundle / "RESIDUAL.md").write_text(
+        "# Residual\n\n"
+        "<!-- FILL-IN:frontier START (hand-authored) -->"
+        "_(fill: the open design questions the next session should resume)_"
+        "<!-- FILL-IN:frontier END -->\n",
+        encoding="utf-8",
+    )
+
+    result = _run(script, bundle)
+    assert result.returncode == 0, result.stderr
+    m = re.search(r"window-specific (\d+)/(\d+) B = (\d+)%", result.stdout)
+    assert m, result.stdout
+    assert int(m.group(1)) == 0
+    assert int(m.group(3)) == 0

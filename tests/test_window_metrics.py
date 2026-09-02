@@ -110,6 +110,17 @@ def test_byte_budget_reports_usage_against_the_live_budget():
     assert b["bytes"] == 16842 and b["budget"] == 18000 and b["pct"] == 94
 
 
+def test_paste_budget_is_single_sourced_from_assemble_paste():
+    """[#611]: the two-rival-budgets defect (this module's own `paste_budget: int = 65_000`
+    default disagreeing with assemble_paste's `_SIZE_WARN_BYTES = 48_000`) is closed by
+    importing ONE constant rather than declaring a second one -- so `collect`'s default must
+    equal `assemble_paste.PASTE_BYTE_CEILING` (20,000), never a locally re-derived number."""
+    m = wm.collect(_BASE, _HEAD, spec_text="Version: 6.0.1\n", merges=[], boot_bytes=1,
+                   paste_count=0, drift_runs=None)
+    assert wm.PASTE_BYTE_CEILING == 20_000
+    assert f"warn budget {wm.PASTE_BYTE_CEILING}" in m["boot_paste_bytes"]["basis"]
+
+
 # --- live wiring -------------------------------------------------------------
 
 

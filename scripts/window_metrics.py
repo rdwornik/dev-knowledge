@@ -31,6 +31,17 @@ import re
 import subprocess
 from pathlib import Path
 
+# [#611]: the PASTE_THIS byte budget is single-sourced in assemble_paste.py (CUT-3's 20,000 B
+# ceiling) and imported here rather than re-declared -- the two-rival-budgets defect this lane
+# closed (this module's own `paste_budget: int = 65_000` default disagreed with assemble_paste's
+# `_SIZE_WARN_BYTES = 48_000`, both independently re-deriving one budget). Dual-import shim
+# (matches audit_checks/check_boot_byte_budget.py) so this module resolves whether imported as
+# `scripts.window_metrics` or run as a bare script with `scripts/` on `sys.path`.
+try:
+    from scripts.assemble_paste import PASTE_BYTE_CEILING
+except ImportError:
+    from assemble_paste import PASTE_BYTE_CEILING
+
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 
 # A BACKLOG task row: flush-left "- [#N]". Indented look-alikes are sub-bullets, not rows.
@@ -93,7 +104,7 @@ def byte_budget(used: int, budget: int) -> dict:
 
 def collect(base_text: str, head_text: str, *, spec_text: str, merges: list,
             boot_bytes: int, paste_count: int, drift_runs: int | None,
-            boot_budget: int = 18_000, paste_budget: int = 65_000) -> dict:
+            boot_budget: int = 18_000, paste_budget: int = PASTE_BYTE_CEILING) -> dict:
     """The six, each as {value, basis}. `value is None` MEANS not computed -- never zero."""
     trips, trips_basis = boot_round_trips(spec_text)
     delta = backlog_delta(base_text, head_text)
