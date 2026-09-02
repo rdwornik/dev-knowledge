@@ -128,3 +128,33 @@ Items 1 and 2 need an architect/operator ruling, not another lane guess:
 
 G6 (the ESSENTIALS de-bless lane, ordered after this one per the frozen contract) can proceed
 against `conformance-hub.js:133` as landed here.
+
+## Terra pre-merge review (integrator, 2026-09-02)
+
+Reviewer `codex exec review --base main`, concurrency 1. **Wall-clock 191 s.**
+
+**Severity tally: HIGH/P1 = 1 · MED = 0 · LOW = 0. CONFIRMED on the substance, ROUTED rather
+than fixed — deliberately.**
+
+| # | Sev | Finding | Disposition |
+|---|---|---|---|
+| 1 | P1 | `conformance-hub.js:133` / `CONFORMANCE_V2_SCAN` now scan `docs/archive/VISION.md`, whose frontmatter is `status: superseded` and whose preserved text carries intentionally historical claims — recurring false findings against an immutable archive, while the live front door goes unscanned | **ROUTED to the post-batch filings lane, NOT fixed here** |
+
+**Why this is not fixed in this lane, stated so it is not read as an oversight.**
+
+1. **The repoint target is FROZEN.** This lane's closure (c) names it verbatim: *"BOTH tokens
+   repointed — `VISION.md` → `docs/archive/VISION.md`, `protocols/ESSENTIALS.md` → removed"*.
+   A contract is immutable to the executing seat (ADR-81); CC may strengthen it, never rewrite
+   its target.
+2. **Terra's proposed fix would decide a PARKED question by side effect.** Pointing the scan at
+   `README.md` asserts that README is the canonical replacement — which is exactly the open
+   candidate *"README is not a human front door"*, filed as a Z-C candidate and flagged an H0
+   precondition. Z-C1 already records this trap for ADR-114: a merge ruling that ignores the
+   parked question decides it silently.
+3. **The coherent alternative — REMOVING the token, as this lane did for `FRESHNESS_FILES` on
+   the reasoning that an archived doc has no freshness contract — is the same argument applied
+   to a conformance scan, and it is the likely right answer.** It is still a deviation from a
+   frozen target, so it belongs to the architect, not to the integrator mid-queue.
+
+**The finding is real and is not being absorbed:** until it is ruled, every conformance run
+carries false positives sourced from an archive. Filed with this lane's evidence.
