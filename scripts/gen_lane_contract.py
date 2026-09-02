@@ -74,6 +74,13 @@ if str(_SCRIPTS) not in sys.path:  # importable both as a module and as a script
     sys.path.insert(0, str(_SCRIPTS))
 
 from validate_branch_naming import validate_lane_worktree_name  # noqa: E402
+#: `[#630]` — the CONTRACT-MANIFEST predicate's pure comparison and open-batch resolver.
+#: Imported BY NAME: no shadow-hole argument applies here the way it does for
+#: `batch_manifest`'s own `LANE_BRANCH_RE` import — a shadowed `open_batches` would break
+#: loudly (wrong shape / AttributeError), not silently widen an exemption. Imported by name
+#: (rather than `import batch_manifest`) so `monkeypatch.setattr(glc, "open_batches", ...)`
+#: reaches every call site in this module — the same reason `cmd_check`'s own tests patch it.
+from batch_manifest import freeze_manifest_contract_agreement, open_batches  # noqa: E402
 
 logging.basicConfig(format="%(name)s: %(message)s", level=logging.INFO)
 logger = logging.getLogger("gen-lane-contract")
@@ -962,7 +969,9 @@ def cmd_emit(slug: str, purpose: str, repo: str, task_id: Optional[str], model: 
 @click.option("--expect-shape", "expect_shape", type=click.Choice(SHAPE_ENUM), default=None,
               help="assert the lane's substrate; omitted, it is read from the contract")
 def cmd_check(paths: tuple[Path, ...], expect_shape: Optional[str]) -> None:
-    """Check existing contract(s): every mandatory field present and internally consistent.
+    """Check existing contract(s): every mandatory field present and internally consistent,
+    AND ([#630]) that an open batch's manifest and these contracts declare the SAME set of
+    lane slugs.
 
     MANY paths, not one. The `lane-contract-check` pre-commit hook passes every staged
     contract in one invocation, so a single-`PATH` signature made the gate die with
@@ -971,11 +980,20 @@ def cmd_check(paths: tuple[Path, ...], expect_shape: Optional[str]) -> None:
     2026-08-29 freezing six contracts in one commit; earlier batches staged them singly and
     never tripped it.
 
+    PATHS may be EMPTY. The hook now runs `always_run: true` + `pass_filenames: false`
+    ([#630]) — every commit, not just ones staging a `LANE-*.md` — so `check` sees zero
+    paths on the overwhelming majority of invocations. It is not an error: the
+    CONTRACT-MANIFEST predicate below reports "0 checked" explicitly rather than the CLI
+    refusing to run at all.
+
     EVERY path is checked before exiting, so one bad contract does not mask the rest.
     """
     failed = 0
+    contracts: dict[str, str] = {}
     for path in paths:
-        parsed = parse_contract(path.read_text(encoding="utf-8"), expect_shape=expect_shape)
+        text = path.read_text(encoding="utf-8")
+        contracts[str(path)] = text
+        parsed = parse_contract(text, expect_shape=expect_shape)
         if parsed.ok:
             logger.info("%s: OK — %d sections, shape %s, slug %s, branch %s, command %r",
                         path, len(parsed.sections), parsed.shape, parsed.slug,
@@ -984,8 +1002,57 @@ def cmd_check(paths: tuple[Path, ...], expect_shape: Optional[str]) -> None:
         failed += 1
         for problem in parsed.problems:
             logger.error("%s: %s", path, problem)
+
+    failed += _check_manifest_contract_agreement(contracts)
+
     if failed:
         raise SystemExit(1)
+
+
+def _check_manifest_contract_agreement(contracts: dict[str, str]) -> int:
+    """`[#630]` — an OPEN batch's manifest and `contracts` (the paths `check` was given) must
+    declare the SAME set of lane slugs. Returns the refusal count.
+
+    The pure comparison (`batch_manifest.freeze_manifest_contract_agreement`) and the
+    open-batch resolver (`batch_manifest.open_batches`) already exist and are unit-tested in
+    `tests/test_batch_manifest.py`; this is the thin CLI adapter — the same
+    logic-module / thin-adapter split `audit_checks/check_substrate_declaration.py` uses for
+    a sibling validator.
+
+    NEVER PASSES VACUOUSLY. Two distinct "nothing to compare" states, and both are REPORTED
+    rather than silently returned: `contracts` empty (the hook's own every-commit invocation,
+    since `pass_filenames: false`) and no batch open (the ordinary state — most days carry no
+    open batch at all). Seeded from the measured batch-E defect (task-630): a slug renumbered
+    between draft and dispatch, with nothing anywhere comparing the manifest's declared lanes
+    against the contracts actually landed.
+    """
+    repo_root = _SCRIPTS.parent
+    if not contracts:
+        logger.info("contract-manifest predicate ([#630]): 0 contract(s) given — 0 checked")
+        return 0
+
+    batches = open_batches(repo_root)
+    if not batches:
+        logger.info("contract-manifest predicate ([#630]): no open batch — 0 checked")
+        return 0
+
+    failed = 0
+    for batch in batches:
+        try:
+            manifest_text = (repo_root / batch.path).read_text(encoding="utf-8")
+        except OSError as exc:
+            failed += 1
+            logger.error("%s: could not read to compare against %d contract(s): %r",
+                        batch.path, len(contracts), exc)
+            continue
+        for refusal in freeze_manifest_contract_agreement(manifest_text, contracts):
+            failed += 1
+            logger.error("%s: %s", batch.path, refusal.render())
+
+    if not failed:
+        logger.info("contract-manifest predicate ([#630]): %d open batch(es), %d contract(s) "
+                    "— OK", len(batches), len(contracts))
+    return failed
 
 
 @cli.command("enums")
