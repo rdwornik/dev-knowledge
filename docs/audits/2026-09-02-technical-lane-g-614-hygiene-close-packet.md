@@ -130,3 +130,29 @@ included, per the deviation note above). No hook bypass was declared in any comm
 3. AB-2 (`/boot-session` MERGE-WITH-VERIFY mode) is recorded as a CANDIDATE only — the shape
    and the constant it would probe against are undetermined; no build work is implied or owed
    by this entry.
+
+## Terra pre-merge review (integrator, 2026-09-02/03)
+
+Reviewer `codex exec review --base main`, concurrency 1. **Wall-clock 269 s.** (A first attempt
+was KILLED mid-review after 629 KB of output — this lane carries the batch's largest diff. That
+attempt contributes no datapoint to the `[#528]` series; only completed reviews count.)
+
+**Severity tally: HIGH/P1 = 1 · MED = 0 · LOW = 0. CONFIRMED — and BATCH-WIDE, not this lane's.**
+
+| # | Sev | Finding | Disposition |
+|---|---|---|---|
+| 1 | P1 | This close-packet artifact is outside the 2026-09-01 funnel baseline with no ACTIONED/FILED/REJECTED/SUPERSEDED row, so `funnel_coverage` reports it newly uncovered at ship-gate | **CONFIRMED · deferred to the batch close packet, where the disposition of batch artifacts belongs** |
+
+**Why this is not fixed in this lane.** The finding is true of **every** `docs/audits/` artifact
+batch G produced, not of this one: the G5 parity doc, the base failed-set JSON, the container-set
+JSON, the batch-G manifest, the per-lane terra tallies and each lane's own packet. Dispositioning
+only the artifact that happened to be under review would leave the same gap for nine siblings and
+give a false impression that the class was handled.
+
+**It does not block a merge.** `funnel_coverage` is SHIP-tier and is not run at the commit gate
+(`[#597]` per-check tiering). It surfaces at ship-gate — which ruling **R-G0-1** re-homed from G0
+to the TAG gate, where undispositioned WARNs are the R5 window's judgment work.
+
+**Owed at close:** one disposition per batch-G audit artifact, evidence-backed, in
+`ecosystem/disposition-register.yaml` — the same machinery this lane's own closure (e) exercised
+when it re-dispositioned or dropped 43 `[stale]` lines with a reason each.
