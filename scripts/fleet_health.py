@@ -572,10 +572,18 @@ def count_pending_closures(logs_dir: Path, backlog_text: str):
     reported a partial tally as though it were a measurement -- the same `n/a`-never-0
     contract already applied to an unreadable BACKLOG, which this path was violating in
     the same breath. An absent directory is still 0: nothing to read is a measurement.
+
+    A candidate already relocated into a `logs/YYYY-MM/` bucket by `logs_retention.py`
+    still counts -- `**/PROPOSALS-*.md`, the same recursive expression `propose_closures`
+    and `review_closures` use ([#626]), unioned onto `_scan_md`'s flat top-level scan
+    rather than replacing it: `_scan_md`'s `os.scandir` call is what makes an ACL-denied
+    `logs_dir` distinguishable from an absent one, and `Path.glob` alone would blur that.
     """
     candidates = _scan_md(logs_dir, prefix="PROPOSALS-")
     if candidates is None:
         return None
+    bucketed = set(logs_dir.glob("**/PROPOSALS-*.md")) if logs_dir.exists() else set()
+    candidates = sorted(set(candidates) | bucketed, key=lambda p: p.name)
     open_ids = set(_BACKLOG_ID_RE.findall(backlog_text))
     pending: set = set()
     for f in candidates:
