@@ -21,7 +21,7 @@
 
 ### 2026-09-03 (e) - CC (Opus 5): CORRECTION - G7's ceiling is NOT met, and my merge message says it is
 
-**Anchors:** `e9d39ed9`, `71cd5dc7`
+**Anchors:** `244d4e49`, `e9d39ed9`, `71cd5dc7`
 
 **Did:** re-read G7's end-of-lane artifact while assembling the close packet's witnesses, and
 found that my own merge message asserts a closure the lane explicitly reported as MISSED.
@@ -57,6 +57,14 @@ standing ruling (V-2 class (c)) instead of deciding it. **`[#611]` therefore sta
 
 **A merge message is immutable, so the correction lives here and in the close packet, citing
 `e9d39ed9`** — not as an edit to history.
+
+**AND I ALMOST REPEATED THE TRAP I AM DOCUMENTING.** This entry first went onto a branch carrying
+ONE commit — the same structurally-unanchorable shape entry (b) recorded — because every SHA it
+named was already on main rather than introduced by this branch's merge. Caught before merging
+this time, and fixed by the two-commit shape: `244d4e49` now leads the anchor line, and the
+commit carrying this paragraph is what introduces it. Twice in one session says the one-commit
+arc is the DEFAULT mistake, not an unlucky one — which is worth a mechanism rather than more
+care.
 
 **Changes:** `JOURNAL.md`.
 
