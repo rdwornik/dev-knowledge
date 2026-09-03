@@ -19,6 +19,43 @@
 
 ---
 
+### 2026-09-03 (d) - CC (Opus 5): G7 lands the ceiling, and a per-lane reviewer cannot see a batch
+
+**Anchors:** `7ad95ed3`, `71cd5dc7`
+
+**Did:** merged G7 (queue 8/9, PLAN mode) and regenerated the two count surfaces its merge
+invalidated.
+
+**THE CEILING NOW MEANS SOMETHING BECAUSE THE RIVALS ARE GONE.** G7's immutable closure landed
+whole: a REAL cut at or under 20,000 B with the number printed on the `=== END OF PASTE ===`
+line, PROBES prose living once, the banner appearing once, and — the leg that matters most —
+`_SIZE_WARN_BYTES = 48_000` and `paste_budget = 65_000` retired or re-pointed **in the same
+commit**. Three numbers each claiming to be the budget is how a ceiling stops binding; one is
+why it starts again.
+
+**AND THE THING PLAN MODE WAS FOR: "at least 70 % window-specific" had no definition at all.**
+It is now derived, implemented and PRINTED beside the byte count, with the adversarial pass aimed
+at the definition and its measurability rather than at the ceiling, which was immutable.
+
+**TERRA WAS RIGHT IN DIRECTION AND WRONG IN MAGNITUDE, and the gap is the finding.** It predicted
+collection moving 4881 → 4884 from G7's three tests. The real figure is **4905**: the batch also
+added the failed-set reader's tests, the routing render and CRLF tests, G1's scope test, G2's
+fail-closed allowlist test and G8's own. **A per-lane reviewer sees one diff and is structurally
+blind to a batch's aggregate.** That is not a defect in the reviewer — it is the reason a
+generated count surface is regenerated ONCE at integration from the merged result, never
+predicted per lane, and the reason a lane must not write it.
+
+**A GATE FIRED ON A LANE THAT CLOSED NOTHING.** G7's sync-merge inherited main's removal of the
+`[#614]` row, so `backlog-id-on-close` demanded the id from a lane that closed no row. Supplied
+as an explicit REFERENCE with the reason in the commit body, so the forward-only index does not
+end up with two commits claiming one closure.
+
+**Result:** G7 merged `e9d39ed9`. doc-counts 4881 → 4905; audits index regenerated.
+
+**Changes:** `ecosystem/doc-counts.md`, `docs/audits/README.md`, `JOURNAL.md`.
+
+**Next:** push, delta A2, then cut G3b — the last lane.
+
 ### 2026-09-03 (c) - CC (Opus 5): G8 closes the batch's first row, and three REDs point at the unpushed spine
 
 **Anchors:** `e25ae626`, `5ddff57f`
