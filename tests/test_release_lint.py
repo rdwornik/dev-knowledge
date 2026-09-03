@@ -77,6 +77,17 @@ def test_live_v120_state_is_green():
     assert _fails(findings) == [], [f.evidence for f in _fails(findings)]
 
 
+def test_current_manifest_still_engages_the_live_c7_mirror():
+    """The re-shape narrows WHO C7 compares, not whether it ever does: the CURRENT
+    manifest (highest version present in deploy/) is still mirrored against live
+    constants -- the check has teeth, it just no longer applies them retroactively."""
+    current = rl._current_manifest_version(_REPO_ROOT)
+    findings = rl.lint(_REPO_ROOT, current, tag_probe=_TAG_OK)
+    c7 = next(f for f in findings if f.check == "C7-doc-shapes")
+    assert c7.status == "pass", c7.evidence
+    assert "mirror the organs" in c7.evidence, c7.evidence
+
+
 # ---------------------------------------------------------------------------
 # P2 tombstone teeth (C6 removed_in coherence) — direct check_components calls
 # against the real v1.2.0 spec, one injected mutation each.
