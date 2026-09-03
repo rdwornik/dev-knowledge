@@ -19,6 +19,7 @@ _GATE = Path(__file__).resolve().parent.parent / "scripts" / "canonical_freshnes
 
 def _doc(repo: Path, name: str, reviewed: str | None) -> None:
     fm = "---\n" + (f"last_reviewed: {reviewed}\n" if reviewed else "") + "---\n\n# body\n"
+    (repo / name).parent.mkdir(parents=True, exist_ok=True)
     (repo / name).write_text(fm, encoding="utf-8")
 
 
@@ -103,11 +104,17 @@ def test_gate_exits_1_on_genuine_a2_stale(tmp_path):
 
 
 def test_gate_exits_0_when_fresh(tmp_path):
-    """A doc whose last_reviewed == its commit date is fresh -> exit 0 (no block)."""
+    """Every registered file present and fresh -> exit 0 (no block).
+
+    [#621] lane-g-621-c7 closure 3: absence now FAILs, so ALL of DEFAULT_FRESHNESS_FILES
+    must be declared present here, not just the one file this test is really about
+    -- otherwise every OTHER member's absence would itself FAIL the gate.
+    """
     repo = _init_repo(tmp_path)
-    _doc(repo, "CLAUDE.md", date.today().isoformat())
-    _git(repo, "add", "CLAUDE.md")
-    _git(repo, "commit", "-q", "-m", "add fresh CLAUDE.md")
+    for name in cfg.DEFAULT_FRESHNESS_FILES:
+        _doc(repo, name, date.today().isoformat())
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "add all freshness-gated files, all fresh")
     r = _run_gate(repo)
     assert r.returncode == 0, r.stdout + r.stderr
 

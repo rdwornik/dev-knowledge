@@ -1082,15 +1082,15 @@ def test_freshness_a2_edited_since_review_fails(
     """A2 (primary): last_reviewed predates the file's last git-commit date → FAIL.
 
     This is the done-when: the check catches a deliberately-staled file (edited after
-    its review stamp). Only VISION is staled; the others stay fresh.
+    its review stamp). Only ARCHITECTURE is staled; the others stay fresh.
     """
-    (freshness_repo / "VISION.md").write_text(_fm("2026-05-24"))
+    (freshness_repo / "ARCHITECTURE.md").write_text(_fm("2026-05-24"))
     monkeypatch.setattr(
         aud, "_git_last_commit_date",
-        lambda rp, fn: date(2026, 5, 28) if fn == "VISION.md" else date(2020, 1, 1))
+        lambda rp, fn: date(2026, 5, 28) if fn == "ARCHITECTURE.md" else date(2020, 1, 1))
     f = aud.check_canonical_freshness(freshness_repo)[0]
     assert f.status == "fail"
-    assert "VISION.md" in f.evidence
+    assert "ARCHITECTURE.md" in f.evidence
     assert "edited but not re-reviewed" in f.evidence
 
 
@@ -1117,24 +1117,24 @@ def test_freshness_missing_frontmatter_warns(
     assert "no parseable last_reviewed" in f.evidence
 
 
-def test_freshness_absent_file_skipped(
+def test_freshness_absent_file_fails(
         freshness_repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """An absent tracked file is skipped (presence enforced by #1/#3/#5), not warned."""
+    """Z-G4 [#621] lane-g-621-c7: an absent registry member FAILs, never silently skips."""
     (freshness_repo / "CONTRIBUTING.md").unlink()
     monkeypatch.setattr(aud, "_git_last_commit_date", lambda rp, fn: date(2020, 1, 1))
     f = aud.check_canonical_freshness(freshness_repo)[0]
-    assert f.status == "pass", f.evidence
-    assert "CONTRIBUTING" not in f.evidence
+    assert f.status == "fail", f.evidence
+    assert "CONTRIBUTING.md" in f.evidence and "absent" in f.evidence
 
 
 def test_freshness_a2_dominates_a1(
         freshness_repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """When one file fails A2 and another only warns A1, overall status is FAIL."""
-    (freshness_repo / "VISION.md").write_text(_fm("2026-05-24"))        # A2 fail
+    (freshness_repo / "CLAUDE.md").write_text(_fm("2026-05-24"))        # A2 fail
     (freshness_repo / "ARCHITECTURE.md").write_text(_fm("2020-01-01"))  # A1 warn
     monkeypatch.setattr(
         aud, "_git_last_commit_date",
-        lambda rp, fn: date(2026, 5, 28) if fn == "VISION.md" else date(2020, 1, 1))
+        lambda rp, fn: date(2026, 5, 28) if fn == "CLAUDE.md" else date(2020, 1, 1))
     f = aud.check_canonical_freshness(freshness_repo)[0]
     assert f.status == "fail"
     assert "also" in f.evidence and "warn" in f.evidence
@@ -1168,6 +1168,17 @@ def _git(repo: Path, *args: str) -> None:
                    capture_output=True, text=True, env=env, check=True)
 
 
+def _write_and_commit_all_fresh(repo: Path, reviewed: str = "2099-01-01") -> None:
+    """Every `_FRESHNESS_FILES` member present + committed with a fresh stamp ([#621]
+    lane-g-621-c7 closure 3: absence now FAILs, so a minimal real-git fixture must declare
+    every registry member present, not just the one file under test)."""
+    for name in aud._FRESHNESS_FILES:
+        (repo / name).parent.mkdir(parents=True, exist_ok=True)
+        (repo / name).write_text(_fm(reviewed))
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-qm", "seed all freshness-gated files")
+
+
 @pytest.mark.skipif(not _HAS_GIT, reason="git not available")
 def test_freshness_real_git_committed_stale_fails(tmp_path: Path) -> None:
     """REAL git, no mocks: a committed file whose stamp predates its commit → A2 FAIL.
@@ -1176,12 +1187,13 @@ def test_freshness_real_git_committed_stale_fails(tmp_path: Path) -> None:
     so a regression in the real path (not just the mocked one) is caught (Codex H3).
     """
     _git(tmp_path, "init", "-q")
-    (tmp_path / "VISION.md").write_text(_fm("2020-01-01"))  # stamp far before the commit
-    _git(tmp_path, "add", "VISION.md")
-    _git(tmp_path, "commit", "-qm", "add vision")
+    _write_and_commit_all_fresh(tmp_path)
+    (tmp_path / "CLAUDE.md").write_text(_fm("2020-01-01"))  # stamp far before the commit
+    _git(tmp_path, "add", "CLAUDE.md")
+    _git(tmp_path, "commit", "-qm", "stale CLAUDE.md")
     f = aud.check_canonical_freshness(tmp_path)[0]
     assert f.status == "fail"
-    assert "VISION.md" in f.evidence
+    assert "CLAUDE.md" in f.evidence
     assert "edited but not re-reviewed" in f.evidence
 
 
@@ -1192,9 +1204,10 @@ def test_freshness_real_git_equal_date_passes(tmp_path: Path) -> None:
     Covers the equal-date boundary on the real path: reviewed == last edit must NOT FAIL.
     """
     _git(tmp_path, "init", "-q")
-    (tmp_path / "VISION.md").write_text(_fm(date.today().isoformat()))
-    _git(tmp_path, "add", "VISION.md")
-    _git(tmp_path, "commit", "-qm", "add vision")
+    _write_and_commit_all_fresh(tmp_path)
+    (tmp_path / "CLAUDE.md").write_text(_fm(date.today().isoformat()))
+    _git(tmp_path, "add", "CLAUDE.md")
+    _git(tmp_path, "commit", "-qm", "re-stamp CLAUDE.md today")
     f = aud.check_canonical_freshness(tmp_path)[0]
     assert f.status == "pass", f.evidence
 

@@ -125,7 +125,8 @@ def evaluate(repo_path: Path, freshness_files: Optional[list[str]] = None, *,
     for fname in files:
         fpath = repo_path / fname
         if not fpath.exists():
-            continue  # presence enforced elsewhere — don't double-report
+            fails.append(f"{fname}: absent (a registered freshness-gated file must exist)")
+            continue
         reviewed = parse_fn(fpath.read_text(encoding="utf-8"))
         if reviewed is None:
             warns.append(f"{fname}: no parseable last_reviewed frontmatter")

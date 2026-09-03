@@ -18,7 +18,7 @@ fails correctly.
 
 | Fixture | Represents | Tests / checks |
 |---|---|---|
-| `repo-with-structural-checks` | A fully compliant repo — all three current structural checks pass (`vision_md`, `adr38_baseline`, `claude_md`). Contains `VISION.md` with valid frontmatter, `pyproject.toml`, `src/`, `README.md`, `CLAUDE.md`, `LESSONS.md`, and `BACKLOG.md`. | `test_audit_run_passes_structural_checks_on_synthetic_repo` (`test_audit.py:355`) |
+| `repo-with-structural-checks` | A fully compliant repo — all three current structural checks pass (`vision_md`, `adr38_baseline`, `claude_md`). Contains `VISION.md` with valid frontmatter, `pyproject.toml`, `src/`, `README.md`, `CLAUDE.md`, `LESSONS.md`, and `BACKLOG.md`. Every `_FRESHNESS_FILES` member is present with a fresh `last_reviewed` stamp ([#621] lane-g-621-c7 closure 3: `docs/handoffs/README.md`, `protocols/ESSENTIALS.md`, `protocols/SESSION_SETUP.md`, `protocols/AI_COUNCIL_PROCESS.md`, `protocols/DEFINITION_OF_DONE.md` added — absence now FAILs `canonical_freshness` instead of skipping). | `test_audit_run_passes_structural_checks_on_synthetic_repo` (`test_audit.py:355`) |
 
 ## Maintenance rule
 
