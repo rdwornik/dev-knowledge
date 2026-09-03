@@ -866,7 +866,13 @@ def reflow_framing(bundle_dir: Path) -> list[str]:
 # --- rendering (fence-aware; framing tokens only, never a hint value) --------
 
 # A FILL-IN region: <!-- FILL-IN:<name> START ... --> body <!-- FILL-IN:<name> END -->.
-_FILL_RE = re.compile(
+# PUBLIC (no leading underscore) and imported by scripts/assemble_paste.py's window-specific
+# ratio [#611] — one regex, one home, the same cross-module-import pattern already used for
+# HANDOFF_BOOT_BYTE_BUDGET (assemble_paste -> audit_checks) and reflow_framing (gen_handoff ->
+# assemble_paste). A FILL-IN region's body is, by construction, the only span of a rendered
+# bundle file that is hand-authored rather than generator output (RF-6) — the mechanized
+# definition of "window-specific" byte the ratio measures against.
+FILL_IN_RE = re.compile(
     r"(?P<open><!-- FILL-IN:(?P<name>[\w-]+) START.*?-->)"
     r"(?P<body>.*?)"
     r"(?P<close><!-- FILL-IN:(?P=name) END -->)",
@@ -880,13 +886,13 @@ def _splice_fill_regions(rendered: str, existing: str | None) -> str:
     in the template keep their placeholder; only same-named regions are carried over."""
     if not existing:
         return rendered
-    prior = {m.group("name"): m.group("body") for m in _FILL_RE.finditer(existing)}
+    prior = {m.group("name"): m.group("body") for m in FILL_IN_RE.finditer(existing)}
     def _repl(m: re.Match) -> str:
         name = m.group("name")
         if name in prior:
             return m.group("open") + prior[name] + m.group("close")
         return m.group(0)
-    return _FILL_RE.sub(_repl, rendered)
+    return FILL_IN_RE.sub(_repl, rendered)
 
 
 def _tokens(mode: str, slug: str, repo: str, date: str, state: _State, filled: bool) -> dict[str, str]:

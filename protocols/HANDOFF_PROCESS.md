@@ -278,6 +278,16 @@ P0a/P0b/P0c, and P3. **Any FAIL blocks onboarding** (the escalation ladder, §10
 required row is not a pass**, and **no required row may be deferred to a second block or another
 ferry turn.** Degraded coverage is reported, not silently counted as a pass.
 
+**Execution order (row table order IS the gate order; [#611] — this used to live only in the
+per-bundle `PROBES.md`, restated on every cut).** P0 first, then P1 — the architect cannot begin
+design until both orienting lines are read live and substring-matched — then the remaining rows,
+all against live state now. Every row is **bounded** (condition 4 above): a probe whose honest
+answer requires unbounded judgment over an open set is an arc, not a probe. The former P10
+("groom every OPEN item in `BACKLOG.md` at boot") was exactly that row — ratified-against at
+intake #18 as this condition's own origin (JOURNAL 2026-07-26 (h); LESSONS 2026-07-27 S3d) and
+shipped anyway in 35 bundles until removed 2026-08-26; `verify_handoff_probes.py` FAILs any row
+that quantifies over an open set.
+
 The reconciliation in one line is unchanged from v5: "force the receiver to open the primary
 source" becomes "**force CC to re-derive every load-bearing fact from the live primary source at
 check-time, and block onboarding on any mismatch.**"
@@ -719,9 +729,15 @@ generator carries it unchanged):
    re-decide.
 6. **Off-repo context** — intent / priorities / changed decisions / findings not in the repo.
 7. **Ratified-in-chat register** — terms, rulings, or contracts ratified in this window's chats
-   that are NOT yet recorded in the repo: the verbatim term · a one-line definition · its
-   intended durable home (BACKLOG id / ADR / LESSONS / PLAYBOOK §). "None" is a valid answer
-   (capture-only, per the schema note above — intake #18 A6).
+   that are NOT yet recorded in the repo, **and interface BEHAVIORS the operator relied on that
+   are not yet named in `protocols/OPERATOR-INTERFACE.md`** (extended 2026-09-02, operator
+   instruction — [#611]) — e.g. a copy-ready block substituting for a described action, a paste
+   arriving as a `.md` upload rather than inline text, reliance on the `PASTE_THIS.md` END
+   sentinel to detect a truncated paste, or a Downloads-directory fallback for file exchange.
+   For either kind: the verbatim term/behavior · a one-line definition (or what relying on it
+   looked like) · its intended durable home (BACKLOG id / ADR / LESSONS / PLAYBOOK §, or
+   `OPERATOR-INTERFACE.md` for an interface behavior). "None" is a valid answer (capture-only,
+   per the schema note above — intake #18 A6).
 
 **Hard scope constraint (load-bearing — this is what keeps the supplement from becoming the v4
 disease).** The interview asks **only** the *why* above. It **never** elicits repo state, methodology,

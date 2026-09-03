@@ -28,16 +28,22 @@ import click
 
 _SECTION_SEP = "\n\n---\n\n"
 
-# RF-2 item 2: surface paste growth so it stops creeping unchecked (36.5 KB -> 59 KB across
-# 06-15..07-03 with no budget). A WARN, not a gate — assembly still succeeds. Tunable.
+# CUT-3 ([#611], lane-g-611-bundle-thinning, 2026-09-02): the REAL, immutable ceiling on an
+# assembled PASTE_THIS.md — 20,000 bytes. This constant is now the SOLE declared PASTE_THIS
+# byte budget in the repo; PUBLIC (no leading underscore) because scripts/window_metrics.py
+# imports it rather than re-declaring its own number.
 #
-# RE-BASED AT v6.3.0 for the residency flip. The old 65,000 sat ~6 KB above a ~59 KB healthy
-# filled paste. The role file (~17.2 KB) no longer travels in the body, so a budget left at
-# 65,000 would carry ~23 KB of slack and stop discriminating: the creep it exists to catch
-# could double before tripping it. Re-based to preserve the ORIGINAL headroom RATIO against
-# the new healthy size, not to encode today's measurement — 65,000 − 17,196 ≈ 47,800, rounded
-# to 48,000. A budget that survives a 17 KB structural drop unchanged was measuring nothing.
-_SIZE_WARN_BYTES = 48_000
+# RETIRED HERE, IN THE SAME COMMIT: `_SIZE_WARN_BYTES = 48_000` (this constant, prior value)
+# and `window_metrics.collect`'s `paste_budget: int = 65_000` default — two numbers claiming
+# to be the same budget, computed independently and never reconciled (65,000 − the since-retired
+# ~17,196 B inline role file ≈ 47,800 ≈ the "independently re-derived" 48,000 here — the same
+# arithmetic, done twice, drifting apart only because nothing forced the two sites to agree).
+# One number now; window_metrics imports THIS one rather than declaring its own.
+#
+# A WARN, not a gate — assembly still succeeds, mirroring check_boot_byte_budget's split-by-site
+# pattern (WARN at generation, a FAIL-class gate — if the operator wants one — belongs in
+# audit.py, out of this lane's write-scope).
+PASTE_BYTE_CEILING = 20_000
 
 # A10 item 2 / R4 ([#446]): the stated numeric byte budget for the browser role file
 # `protocols/HANDOFF_BOOT.md` — 18,000 bytes, ruled 2026-07-31 (architect technical lane;
@@ -189,6 +195,47 @@ def _spec_version(repo_root: Path) -> str:
     return m.group(1)
 
 
+# --- the window-specific ratio ([#611]; derivation: docs/audits/2026-09-02-technical- ---
+# --- lane-g-611-bundle-thinning.md §1.2) ------------------------------------------------
+#
+# DEFINITION. A byte is window-specific iff it lands inside content this repo's own
+# generator already marks as hand-authored: a FILL-IN region body (gen_handoff.FILL_IN_RE
+# -- RF-6's own hand-authored/generator-output boundary, reused rather than re-declared),
+# or the folded SUPPLEMENT ANSWERS section (100% operator/architect-typed by construction,
+# already isolated by _extract_answers above). Everything else -- headings, table
+# scaffolding, static callouts, {{TOKEN}} substitutions, and all of PROBES.md (zero
+# FILL-IN regions in any mode) -- is generator output and reads 0.
+#
+# An UNFILLED FILL-IN region's body is the generator's own `_(fill: ...)_` placeholder
+# prompt (uniform across every template in templates/handoff/v5/*.tmpl) -- generic
+# boilerplate the operator has not yet replaced, excluded rather than counted.
+_PLACEHOLDER_RE = re.compile(r"\A\s*_\(fill:.*\)_\s*\Z", re.DOTALL)
+
+
+def _fill_in_bytes(text: str) -> int:
+    """Window-specific bytes in TEXT: the summed UTF-8 length of every FILL-IN region's
+    BODY (never the `<!-- FILL-IN:... -->` marker comments themselves -- those are
+    generator instructions, not window content), excluding an unfilled placeholder body."""
+    from gen_handoff import FILL_IN_RE  # noqa: PLC0415 (sibling CLI; deferred import)
+    total = 0
+    for m in FILL_IN_RE.finditer(text):
+        body = m.group("body")
+        if _PLACEHOLDER_RE.match(body):
+            continue
+        total += len(body.encode("utf-8"))
+    return total
+
+
+def window_specific_bytes(sections: list[tuple[str, str]], answers_label: str = "SUPPLEMENT.md") -> int:
+    """Window-specific bytes summed across every FOLDED section. The SUPPLEMENT ANSWERS
+    section is not FILL-IN-tagged but is counted whole, by the same construction (see
+    module note above); every other section is scanned for FILL-IN region bodies."""
+    total = 0
+    for label, text in sections:
+        total += len(text.encode("utf-8")) if label == answers_label else _fill_in_bytes(text)
+    return total
+
+
 @click.command()
 @click.option("--pin-only", is_flag=True,
              help="Print only the 3-line ROLE PIN and exit (v7 /boot-session use — "
@@ -306,9 +353,15 @@ def main(pin_only: bool, bundle_dir: Path | None) -> None:
     paste_path = bundle_dir / "PASTE_THIS.md"
     paste_path.write_text(body + "\n", encoding="utf-8", newline="\n")
     size = len(body.encode("utf-8"))
-    click.echo(f"Written: {paste_path} ({size} bytes)")
-    if size > _SIZE_WARN_BYTES:
-        click.echo(f"[warn] PASTE_THIS.md is {size} bytes (> {_SIZE_WARN_BYTES}) — heavy boot; "
+    # CUT-3 / [#611]: the ratio is measured over the SAME sections list, against the SAME
+    # content_bytes denominator already computed above for the END sentinel -- one span,
+    # never two disagreeing measurements.
+    ws_bytes = window_specific_bytes(sections)
+    ws_pct = round(ws_bytes * 100 / content_bytes) if content_bytes else 0
+    click.echo(f"Written: {paste_path} ({size} bytes; window-specific {ws_bytes}/{content_bytes} "
+               f"B = {ws_pct}%)")
+    if size > PASTE_BYTE_CEILING:
+        click.echo(f"[warn] PASTE_THIS.md is {size} bytes (> {PASTE_BYTE_CEILING}) — heavy boot; "
                    "check for re-narration creep (RF-2/RF-6) before shipping; artifacts other "
                    "than PASTE_THIS must not be pasted at all (intake #18 A2)", err=True)
 
