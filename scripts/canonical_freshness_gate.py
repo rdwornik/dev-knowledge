@@ -46,7 +46,9 @@ except ImportError:
 if _cdocs is not None:
     DEFAULT_FRESHNESS_FILES = list(_cdocs.FRESHNESS_FILES)
 else:
-    DEFAULT_FRESHNESS_FILES = ["VISION.md", "ARCHITECTURE.md", "CLAUDE.md", "CONTRIBUTING.md",
+    # VISION.md left [#621] lane-g-621-c7 (2026-09-02) -- kept in sync with the registry by
+    # tests/test_canonical_docs.py::test_freshness_gate_consumer_fallback_equals_the_registry.
+    DEFAULT_FRESHNESS_FILES = ["ARCHITECTURE.md", "CLAUDE.md", "CONTRIBUTING.md",
                                "docs/handoffs/README.md", "protocols/ESSENTIALS.md"]
 # Calendar-age backstop (A1): WARN — not FAIL — past this many days even if unchanged. The
 # load-bearing signal is A2 (edited-since-review), which is the FAIL.

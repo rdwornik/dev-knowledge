@@ -45,11 +45,17 @@
 #     96 lines, tracked. The FACT is corrected here; the DECISION is not. The component
 #     stays undeclared because its remaining blocker is the NEXT bullet, not this one: the
 #     C7 doc_shapes coupling makes declaring it a release act the operator sequences.
-#   * The `doc_shapes:` spine re-point for README.md. `release_lint` C7 asserts EXACT dict
+#   * The `doc_shapes:` spine re-point for README.md. `release_lint` C7 asserted EXACT dict
 #     equality between a manifest's `doc_shapes` spines and the LIVE `audit._CANONICAL_SPINE`,
 #     and it lints v1.1.0 and v1.2.0 against those same live constants -- so adding README.md to
 #     either side alone REDs shipped specs. Verified on this draft: v1.4.0 lints 8/8 green today,
 #     which is only true because `_CANONICAL_SPINE` does not yet carry README.md.
+#     RESOLVED 2026-09-02 ([#621] lane-g-621-c7, R-G-G3b): C7 now binds a manifest to the
+#     constants AS OF ITS OWN VERSION -- only the CURRENT manifest (this one) is mirrored
+#     against live constants; v1.1.0/v1.2.0 are frozen history and no longer compared. Adding
+#     README.md to `_CANONICAL_SPINE` no longer REDs shipped specs; the remaining blocker to
+#     declaring `readme-front-door` is purely the spine re-point itself, an operator-sequenced
+#     act, not this coupling.
 #
 # MEASURED CONSUMER STATE at draft time (live `git ls-files`, 2026-09-01, not inherited from an
 # earlier census). corp-monorepo @1.2.0, ai-council @1.3.1, win-tooling @1.4.0. All three already
@@ -954,7 +960,9 @@ components:
 doc_shapes:
   VISION.md:
     spine: ["## Vision", "## Scope", "## Values", "## Lifecycle", "## References"]
-    freshness_gated: true
+    freshness_gated: false  # left the A1/A2 cadence [#621] lane-g-621-c7 -- retained mandatory-set
+                             # retirement (ADR-114) now extends to freshness too; VISION keeps
+                             # its spine (still shape-checked, not removed from the tree)
   ARCHITECTURE.md:
     spine: ["## Purpose", "## Codemap", "## Layer Boundaries & Invariants",
             "## Key conventions", "## Authority and governance",

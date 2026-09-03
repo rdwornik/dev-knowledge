@@ -18,6 +18,7 @@ import yaml
 from click.testing import CliRunner
 
 
+import canonical_docs as cdocs  # noqa: E402
 import release_lint as rl  # noqa: E402
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -37,11 +38,24 @@ def _checks_failing(findings):
 # ---------------------------------------------------------------------------
 
 
+def _sync_freshness_gated_to_live(spec: dict) -> None:
+    """The tmp root's ONE manifest file is trivially "current" (release_lint.py's C7 binds
+    to the highest-versioned manifest present), so its doc_shapes freshness_gated flags must
+    mirror the LIVE registry for the pass-case to actually be a pass case -- generically, not
+    naming any one filename, so this stays correct as the registry evolves (a released
+    manifest's real freshness_gated set is frozen at ITS OWN version; this fixture represents
+    "the current manifest," which is a different thing, on purpose)."""
+    for fname, shape in spec.get("doc_shapes", {}).items():
+        if isinstance(shape, dict) and "freshness_gated" in shape:
+            shape["freshness_gated"] = fname in cdocs.FRESHNESS_FILES
+
+
 def make_root(tmp_path: Path, mutate=None) -> Path:
     root = tmp_path / "hub"
     (root / "deploy").mkdir(parents=True)
     spec = yaml.safe_load(
         (_REPO_ROOT / "deploy" / "manifest-v1.1.0.yaml").read_text(encoding="utf-8"))
+    _sync_freshness_gated_to_live(spec)
     if mutate is not None:
         mutate(spec)
     (root / "deploy" / "manifest-v1.1.0.yaml").write_text(
@@ -292,7 +306,7 @@ def _first_component(spec):
         pytest.param(lambda s: s["doc_shapes"]["CLAUDE.md"].update(
             spine=["## Not the real spine"]),
                      "C7-doc-shapes", id="doc-shape-spine-drift"),
-        pytest.param(lambda s: s["doc_shapes"]["VISION.md"].update(freshness_gated=False),
+        pytest.param(lambda s: s["doc_shapes"]["CLAUDE.md"].update(freshness_gated=False),
                      "C7-doc-shapes", id="freshness-gated-set-drift"),
         pytest.param(lambda s: s.pop("doc_shapes"),
                      "C7-doc-shapes", id="doc-shapes-section-missing"),
