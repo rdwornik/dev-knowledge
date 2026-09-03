@@ -61,9 +61,11 @@ def test_evaluate_missing_stamp_warns():
     assert fails == [] and len(warns) == 1 and "no parseable last_reviewed" in warns[0]
 
 
-def test_evaluate_absent_file_skipped(tmp_path):
+def test_evaluate_absent_file_fails(tmp_path):
+    """Z-G4 [#621] lane-g-621-c7 closure 3: an absent registry member FAILs, never skips."""
     fails, warns = cfg.evaluate(tmp_path, ["DOES_NOT_EXIST.md"])
-    assert fails == [] and warns == []
+    assert warns == []
+    assert len(fails) == 1 and "DOES_NOT_EXIST.md" in fails[0]
 
 
 def _mk_only(name: str, tmp=Path):  # tiny helper: a dir that "has" the named file

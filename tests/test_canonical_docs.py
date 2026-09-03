@@ -280,6 +280,18 @@ def test_freshness_gate_consumer_fallback_equals_the_registry():
     assert _literal_fallback(cfg, "DEFAULT_FRESHNESS_FILES") == list(cdocs.FRESHNESS_FILES)
 
 
+def test_vision_leaves_the_freshness_files_registry_in_both_places():
+    """[#621] lane-g-621-c7 closure 2: VISION retired from freshness, in BOTH places.
+
+    Retirement from the mandatory set (ADR-114) does not by itself retire VISION from the
+    A1/A2 freshness cadence -- it kept its FRESHNESS_FILES membership through [#614]. This
+    closure removes it there too; the equality test above (registry <-> fallback) stays and
+    still must pass, so both places move together.
+    """
+    assert cdocs.VISION not in cdocs.FRESHNESS_FILES
+    assert "VISION.md" not in cfg.DEFAULT_FRESHNESS_FILES
+
+
 def test_backpressure_live_values_are_the_registry():
     assert seb._CANON == tuple(cdocs.BACKPRESSURE_CANON)
     assert seb._JOURNAL == cdocs.JOURNAL

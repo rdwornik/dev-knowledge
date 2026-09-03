@@ -305,6 +305,28 @@ def test_stale_floor_sidecar_fails(tmp_path):
     assert "C5-floor-pin" in _checks_failing(findings)
 
 
+# ---------------------------------------------------------------------------
+# [#621] lane-g-621-c7 -- C7 binds a manifest to the constants AS OF ITS OWN
+# VERSION (R-G-G3b): a manifest that is not the CURRENT one in repo_root is
+# frozen history and is never re-mirrored against live constants.
+# ---------------------------------------------------------------------------
+
+
+def test_released_manifest_not_compared_to_live_constants(tmp_path):
+    """A manifest superseded by a newer one present in repo_root is released/historical --
+    its doc_shapes are frozen, even when they've since drifted from live constants."""
+    root = make_root(tmp_path, mutate=lambda s: s["doc_shapes"]["CLAUDE.md"].update(
+        spine=["## Not the real spine"]))
+    # A newer manifest FILE present is what makes 1.1.0 "released" here -- structural,
+    # not tag-probed; content is irrelevant, only presence/version is read.
+    shutil.copyfile(root / "deploy" / "manifest-v1.1.0.yaml",
+                     root / "deploy" / "manifest-v1.2.0.yaml")
+    findings = rl.lint(root, "1.1.0", tag_probe=_TAG_OK)
+    assert "C7-doc-shapes" not in _checks_failing(findings), (
+        f"expected a superseded manifest to skip the live-constant mirror; failing: "
+        f"{[(f.check, f.evidence) for f in _fails(findings)]}")
+
+
 def test_missing_manifest_fails(tmp_path):
     root = make_root(tmp_path)
     findings = rl.lint(root, "3.3.3", tag_probe=_TAG_OK)
