@@ -19,6 +19,49 @@
 
 ---
 
+### 2026-09-03 (e) - CC (Opus 5): CORRECTION - G7's ceiling is NOT met, and my merge message says it is
+
+**Anchors:** `e9d39ed9`, `71cd5dc7`
+
+**Did:** re-read G7's end-of-lane artifact while assembling the close packet's witnesses, and
+found that my own merge message asserts a closure the lane explicitly reported as MISSED.
+
+**THE CORRECTION.** Merge `e9d39ed9` states *"(1) PASTE_THIS.md from a REAL cut, at or under
+20,000 B"*. The lane measured, and said so plainly in its own honest-limits section — **"The
+ceiling is not met."**
+
+```
+BAR 1  size            <= 20,000 B   ACTUAL 29,776 B   MISS by 9,776 B (+49%)
+BAR 2  window-specific >= 70%        ACTUAL 32%        MISS by 38 points
+```
+
+**THE LANE DID THE RIGHT THING; I MIS-READ IT.** CUT-3's own text says *"if the cut will not fit,
+that is a finding to report, not a number to move"* — and the lane reported the miss rather than
+moving the ceiling. I read the MECHANISM landing (the `PASTE_BYTE_CEILING = 20_000` constant, the
+byte count printed on the `=== END OF PASTE ===` line, both rival budgets retired in the same
+commit, the ratio derived and implemented) as the BARS being met. They are different claims and I
+collapsed them.
+
+**WHAT ACTUALLY LANDED, stated precisely:** the ceiling now EXISTS as one number with no rivals,
+the measurement is PRINTED on every cut, and "window-specific" finally has a definition that is
+implemented and measurable — a definition deliberately HARDER than its own precedent (32% against
+the equilibrium map's coarser 43%, because FILL-IN-body-only excludes RESIDUAL's scaffolding).
+The cut itself narrowed 32,264 B → 29,776 B, a real 2,488 B from the one lever the write-scope
+licensed.
+
+**WHAT REMAINS, with the residual named:** `PROBES.md`'s ROW TABLES, ~10,300 B after the prose
+fold. The lane's write-scope explicitly protects them ("the bundle carries ROWS only"), so
+closing the gap needs an architect decision — shorten rows, restructure the probe manifest, or
+scope CUT-3 differently for execution-mode bundles. The lane escalated it as a fork class with no
+standing ruling (V-2 class (c)) instead of deciding it. **`[#611]` therefore stays OPEN.**
+
+**A merge message is immutable, so the correction lives here and in the close packet, citing
+`e9d39ed9`** — not as an edit to history.
+
+**Changes:** `JOURNAL.md`.
+
+**Next:** G3b terra → merge → delta A2 → push → filings lane → close packet.
+
 ### 2026-09-03 (d) - CC (Opus 5): G7 lands the ceiling, and a per-lane reviewer cannot see a batch
 
 **Anchors:** `7ad95ed3`, `71cd5dc7`
