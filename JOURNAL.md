@@ -19,6 +19,49 @@
 
 ---
 
+### 2026-09-03 (c) - CC (Opus 5): G8 closes the batch's first row, and three REDs point at the unpushed spine
+
+**Anchors:** `e25ae626`, `5ddff57f`
+
+**Did:** merged G8 (queue 7/9) — the batch's first lane to CLOSE a tracked row — and regenerated
+the audits index it re-staled.
+
+**`closes [#614]`.** The first hard "row closed" this batch, and the `backlog-id-on-close` gate
+passed on the merge message. Worth stating because the packet reports ROWS CLOSED rather than
+rows touched, and until now the honest count was zero.
+
+**G8 DID THE JUDGMENT WORK RATHER THAN THE STAMP.** `last_reviewed` moved only after a real diff
+review of the content commits since the previous stamp; the leg-d intake (48 days READY, no
+owner) was ARCHIVED per the contract default and reported; the 43 `[stale]` disposition lines
+were re-dispositioned or dropped with one reason each rather than bulk-cleared; and the parked
+`/boot-session` item landed as `AB-2`, a Z-C-shaped CANDIDATE, **not** a `tasks/` row — a finding
+does not become a row without triage.
+
+**THE MERGE CONFLICT WAS THE BATCH COLLIDING WITH ITSELF, and both sides were right.** G8
+appended `AB-2` to section AB while main had added section AC (the batch's own rulings) directly
+after it. Resolved by keeping BOTH in document order — `AB → AB-2 → AC` — because neither
+supersedes the other.
+
+**TERRA'S P1 IS BATCH-WIDE, NOT G8's, and dispositioning only the artifact under review would
+have hidden that.** The new close packet sits outside the funnel baseline with no ledger row —
+true of EVERY `docs/audits/` artifact this batch produced, mine included. Deferred to the close
+packet, where the disposition of batch artifacts belongs. It blocks nothing: `funnel_coverage` is
+SHIP-tier and ship-gate is re-homed to the TAG gate by R-G0-1.
+
+**THREE NEW REGRESSIONS, AND THE SUSPECT IS THE SPINE, NOT THE DIFF.**
+`test_git_provenance_matches_repo_state`, `test_an_unreachable_sha_is_caught` and
+`test_every_claim_class_the_brief_names_is_extractable` all resolve git state — and `main` is
+**13 commits ahead of `origin`**, because the ADR-85 push gate refuses each lane merge until an
+anchor lands. This entry is that anchor; the hypothesis is tested by pushing and re-running the
+three, rather than asserted.
+
+**Result:** G8 merged `a436545a`, 1832 s, 5 regressions (2 the owned index staleness, 3 under
+test above), 0 fixed.
+
+**Changes:** `docs/audits/README.md` (regenerated), `JOURNAL.md`.
+
+**Next:** push, re-run the three, then G7 and G3b.
+
 ### 2026-09-03 (b) - CC (Opus 5): I wrote a one-commit anchor branch and deadlocked the repo with it
 
 **Anchors:** `ffe470ba`, `e54f93f2`
