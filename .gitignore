@@ -24,6 +24,15 @@ venv/
 # Session-end closure proposals (ADR-70 Tier-1; ephemeral, reviewed at next /boot —
 # the durable record is the eventual `closes [#N]` commit + JOURNAL, ADR-65)
 logs/PROPOSALS-*.md
+# RETENTION MOVES THEM OUT FROM UNDER THE PATTERN ABOVE ([#626] step A, 2026-09-02).
+# `scripts/logs_retention.py` relocates a dated `logs/<STEM>-YYYY-MM-DD.md` into a
+# `logs/YYYY-MM/` month bucket. The flat pattern is anchored one level deep, so the moved
+# file stops being ignored the instant it is moved: measured after the first live run, 89
+# previously-ignored run artifacts appeared as untracked-and-not-ignored. They are the same
+# disposable per-run artifacts they were before the move -- the retention rule changes where
+# they sit, never what they are -- so the ignore follows them.
+logs/*/PROPOSALS-*.md
+logs/*/DETECTOR-ERROR-*.md
 
 # Fleet-health digest (ADR-80 mutable — auto-refreshed by fleet_health.py, never committed;
 # durable Tier-2 audit record is docs/audits/*.md, committed by audit.py per ADR-80 §3)

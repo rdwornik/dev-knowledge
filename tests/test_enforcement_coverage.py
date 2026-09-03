@@ -922,3 +922,50 @@ def test_organ_id_census_carries_no_retired_id():
     assert not offenders, (
         f"retired organ id still a string literal in this module at line(s) {offenders} — "
         f"only the {_RETIRED_ID_CONST} definition may carry it")
+
+
+def _allowlist(tmp_path, body: str):
+    (tmp_path / ".methodology.yaml").write_text(body, encoding="utf-8", newline="\n")
+    return ec.read_allowlist(tmp_path)
+
+
+def test_a_malformed_date_is_not_absent_it_is_a_REFUSAL(tmp_path):
+    """[#276] closure (b), completed after terra P1 (2026-09-02).
+
+    `_parse_date` maps a malformed value to None and `expiry or review_date` then falls back,
+    so an entry carrying `expiry: not-a-date` beside a VALID future `review_date` was returned
+    `valid` — a malformed waiver HONORED by the one leg whose whole purpose is to fail closed.
+    The failure was masked exactly when a second date existed to hide behind: the same bad value
+    alone already gave `invalid-no-date`, which is why the lane's own seeded cases missed it.
+
+    Both directions are pinned, because the fallback is symmetric and only one direction was
+    reported.
+    """
+    import datetime as _dt
+    entries = {e.component: e for e in _allowlist(tmp_path, """sanctioned_divergences:
+  - component: bad-expiry-good-review
+    reason: r
+    expiry: not-a-date
+    review_date: 2099-01-01
+  - component: good-expiry-bad-review
+    reason: r
+    expiry: 2099-01-01
+    review_date: garbage
+  - component: good-expiry-only
+    reason: r
+    expiry: 2099-01-01
+  - component: good-review-only
+    reason: r
+    review_date: 2099-01-01
+""")}
+    today = _dt.date.today()
+
+    def verdict(name):
+        return ec.validate_allowlist_entry(
+            entries[name], run_date=today, waivable_policy={})[0]
+
+    assert verdict("bad-expiry-good-review") == ec.AL_NO_DATE
+    assert verdict("good-expiry-bad-review") == ec.AL_NO_DATE
+    # …and a well-formed waiver is still honoured, so this is a refusal, not a blanket denial.
+    assert verdict("good-expiry-only") == ec.AL_VALID
+    assert verdict("good-review-only") == ec.AL_VALID

@@ -3344,6 +3344,55 @@ re-emitted for form. No peg, no owner, by design.
 *The constant it would probe against* is `protocols/OPERATOR-INTERFACE.md` §7, landed in this same
 commit. The probe itself is unbuilt — recording the candidate is the whole of this entry.
 
+**AB-2 · `/boot-session` gains a MERGE-WITH-VERIFY mode — PARKED by the operator.** Origin:
+2026-09-02 batch-G boot. No peg, no owner, by design. Recorded here rather than as a `tasks/`
+row per this section's own precedent — the only route from here to a row is CANDIDATE → intake
+(ADR-98) → ratification, and none of that has happened yet. The shape and constant it would
+probe against are undetermined; recording the candidate is the whole of this entry.
+
+## AC. Batch G rulings — the substrate flip, the acceptance rule, and the G3b cut (architect, 2026-09-02)
+
+Recorded here because batch G's artifacts CITE these by name. A ruling that lives only in a chat
+window is discharged by memory rather than by mechanism — which is the defect `[#613]`/G0 exists
+to end, and it was caught by the reviewer on G5's own parity doc citing `R-G0-2` at a register
+that did not carry it.
+
+**R-G0-1 · G0's operative witness.** Zero hard-fail organs + `routing_agreement` agreeing on 4/4
++ a WARN inventory byte-identical to the pre-batch run. SATISFIED at `1e064921`. Clause (4)'s
+"`ship-gate` GREEN" is **re-homed from G0 to the TAG gate**: 123 undispositioned WARNs are
+judgment work for the R5 window, scheduled after G and before `v1.5.0`. Recorded as an
+**architect premise error, not a waiver** — the witness as frozen was unreachable at G0, because
+several of its WARN classes are owned by lanes later in the same batch.
+
+**R-G0-2 · The win-tooling dispatch-artifact rename is AFTER G5 and OUTSIDE batch G.** It is
+cross-repo and it changes the transport G5 measures parity on. G5's verdict subtracts the two
+root-caused `receipt.json` nodeids
+(`tests/test_audit.py::test_health_ok_with_registered_repo`,
+`::test_health_stays_ok_with_na_status`) as a NAMED exception; R2's flip fires only on any OTHER
+container-only nodeid. The rename is filed as a CANDIDATE with the G5 parity doc as evidence.
+
+**R-G0-3 · The base failed-set source is the RUN REPORT, never `.pytest_cache/v/cache/lastfailed`.**
+Measured 2026-09-02: after a full 841 s run, `nodeids` was rewritten while `lastfailed` still
+carried the previous day's mtime and a 45-nodeid stale superset against the 13 actually reported.
+A stale superset has the SHAPE of a measurement, which is worse than an absent one.
+
+**R-G0-4 · `main` is pushed before any codespace lane boots**, because `Dispatch-Codespace`
+provisions from `origin`.
+
+**R-G-A2 · Lanes do NOT run the full suite; the integrator computes delta A2 once per merge.**
+Serial, on `main`, wall-clock recorded per run — that series is `[#528]`'s datapoint. A lane whose
+TARGETED tests are green is merge-eligible; a regression found at merge bounces to that lane, not
+to the batch. Origin: seven parallel lanes thrashed the host — one lane measured
+`4841 passed / 28 failed / 49 m 47 s` under contention against `13 failed / 14 m 57 s`
+uncontended on the identical tree, a ~3.3x wall-clock penalty, and another lost three `-n auto`
+runs to xdist worker kills.
+
+**R-G-G3b · `[#621]` is split.** G3's item 3 (the `conformance-hub.js:133` repoint) is accepted as
+a partial discharge; items 1 and 2 route into a new lane **G3b**, which merges LAST. **Retro-editing
+the tagged manifests `v1.1.0`/`v1.2.0` is REFUSED — a released manifest is history, and `C7` is the
+defect.** G3b rebinds C7 to the current unreleased manifest and fixes the minimal-fixture smoke
+tests to declare their files present, rather than weakening the Z-G4 FAIL.
+
 ## Editing note (read before adding an entry)
 
 This file sits inside the silent-rule ratchet corpus (`protocols/*.md`; detector

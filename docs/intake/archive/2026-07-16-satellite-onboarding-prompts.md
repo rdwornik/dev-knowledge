@@ -1,6 +1,7 @@
 ---
 intake-id: 15
-status: READY
+status: REJECTED
+reason: 48 days READY (approved 2026-07-16) with no owner and no execution -- ecosystem/registry.md still shows all four addressed repos (corp-ops, corp-sca-time-automation, life-architect, demo-prep) as unonboarded, so none of the four prompts ever fired. Archived per contract default (lane-g-614-hygiene), not on a content judgement -- a re-fire is still possible from this archived record if an owner picks the arc back up.
 origin: satellite tier-rulings arc, 2026-07-16 — operator rulings recorded in ecosystem/satellite-onboarding-rulings.yaml; prompts derived from the 2026-07-13 satellite onboarding census (immutable audit), with life-architect regenerated floor-only -> FULL per the operator override
 note: onboarding EXECUTION contracts (not a decomposition intake); parked in docs/intake for join-key traceability. Originally carried the descriptive status READY-TO-FIRE; migrated to READY at the [#398] enum deploy (2026-07-23) — the ready-to-fire meaning (approved, waiting to execute) is unchanged.
 ---

@@ -19,6 +19,298 @@
 
 ---
 
+### 2026-09-03 (c) - CC (Opus 5): G8 closes the batch's first row, and three REDs point at the unpushed spine
+
+**Anchors:** `e25ae626`, `5ddff57f`
+
+**Did:** merged G8 (queue 7/9) — the batch's first lane to CLOSE a tracked row — and regenerated
+the audits index it re-staled.
+
+**`closes [#614]`.** The first hard "row closed" this batch, and the `backlog-id-on-close` gate
+passed on the merge message. Worth stating because the packet reports ROWS CLOSED rather than
+rows touched, and until now the honest count was zero.
+
+**G8 DID THE JUDGMENT WORK RATHER THAN THE STAMP.** `last_reviewed` moved only after a real diff
+review of the content commits since the previous stamp; the leg-d intake (48 days READY, no
+owner) was ARCHIVED per the contract default and reported; the 43 `[stale]` disposition lines
+were re-dispositioned or dropped with one reason each rather than bulk-cleared; and the parked
+`/boot-session` item landed as `AB-2`, a Z-C-shaped CANDIDATE, **not** a `tasks/` row — a finding
+does not become a row without triage.
+
+**THE MERGE CONFLICT WAS THE BATCH COLLIDING WITH ITSELF, and both sides were right.** G8
+appended `AB-2` to section AB while main had added section AC (the batch's own rulings) directly
+after it. Resolved by keeping BOTH in document order — `AB → AB-2 → AC` — because neither
+supersedes the other.
+
+**TERRA'S P1 IS BATCH-WIDE, NOT G8's, and dispositioning only the artifact under review would
+have hidden that.** The new close packet sits outside the funnel baseline with no ledger row —
+true of EVERY `docs/audits/` artifact this batch produced, mine included. Deferred to the close
+packet, where the disposition of batch artifacts belongs. It blocks nothing: `funnel_coverage` is
+SHIP-tier and ship-gate is re-homed to the TAG gate by R-G0-1.
+
+**THREE NEW REGRESSIONS, AND THE SUSPECT IS THE SPINE, NOT THE DIFF.**
+`test_git_provenance_matches_repo_state`, `test_an_unreachable_sha_is_caught` and
+`test_every_claim_class_the_brief_names_is_extractable` all resolve git state — and `main` is
+**13 commits ahead of `origin`**, because the ADR-85 push gate refuses each lane merge until an
+anchor lands. This entry is that anchor; the hypothesis is tested by pushing and re-running the
+three, rather than asserted.
+
+**Result:** G8 merged `a436545a`, 1832 s, 5 regressions (2 the owned index staleness, 3 under
+test above), 0 fixed.
+
+**Changes:** `docs/audits/README.md` (regenerated), `JOURNAL.md`.
+
+**Next:** push, re-run the three, then G7 and G3b.
+
+### 2026-09-03 (b) - CC (Opus 5): I wrote a one-commit anchor branch and deadlocked the repo with it
+
+**Anchors:** `ffe470ba`, `e54f93f2`
+
+**Did:** regenerated the audits index (owed since G2), and discharged a hard `journal_spine_anchor`
+deadlock that I created one entry earlier.
+
+**THE TRAP IS RECORDED AND I WALKED INTO IT ANYWAY.** Entry (a) went onto a branch carrying a
+SINGLE commit. Its merge, `35772c17`, therefore introduced only that commit — and the entry
+inside names `826fe7fb`, which G6's merge introduced, not this one. **A merge cannot name its own
+hash**, so the merge was structurally unanchorable the moment I created it. `audit-health` then
+FAILs *every* commit in the repo, including the commit that would write the discharge. That is a
+deadlock, not a slow path.
+
+**The shape that works is two commits, always:** something real, then a JOURNAL entry naming it.
+This branch is that shape — index regeneration, then this entry naming `ffe470ba` and
+`e54f93f2` (the SHA `35772c17` introduced). The first commit carried a **declared**
+`SKIP=audit-health`, the escape the register sanctions for exactly this deadlock, with the reason
+in its body; this second commit runs the gate **unskipped**, which is the proof the failure is
+gone rather than suppressed. Never `--no-verify`.
+
+**A THIRD DISAGREEMENT BETWEEN THE TWO ANCHOR GATES, and this time in the OTHER direction.**
+`git push` ACCEPTED `35772c17`; `audit.py::check_journal_spine_anchor` then REFUSED it at the
+next commit. Earlier the pair disagreed the opposite way — push refusing a lane merge the audit
+exempted. So the two organs disagree in **both** directions, which upgrades this from "the push
+gate is stricter" to "two implementations of one rule do not agree", the derived-copies class.
+
+**The index regeneration was owed.** Six lane merges each added `docs/audits/` artifacts, so the
+generated index had been stale for four consecutive delta-A2 runs, reporting the same two REDs
+each time. A lane must not regenerate it; the integrator is gate-of-record.
+
+**Changes:** `docs/audits/README.md` (regenerated), `JOURNAL.md`.
+
+**Next:** finish G8's sync-merge, then G8 → G7 → G3b.
+
+### 2026-09-03 (a) - CC (Opus 5): the ask register would have gone stale at the moment it was fixed
+
+**Anchors:** `826fe7fb`
+
+**Did:** merged G6 (queue 6/9), and fixed the two P1s terra raised against it.
+
+**THE OPERATOR'S MOST RE-ASKED ITEM WOULD HAVE RENDERED AS UNFIXED THE MOMENT IT WAS FIXED.**
+`/boot-session` renders the ESSENTIALS ask row from `HANDOFF_PROCESS.md`, and that row still
+listed `SESSION_SETUP.md` and `DEFINITION_OF_DONE.md` as outstanding RESIDUAL, exposing only the
+old `12f4113a` partial fix — while G6, in the same diff, removed exactly those routes. Re-asked
+3, and the register that exists to show him resolution would have shown him none. Both rows now
+carry what batch G actually landed (`55d67d42` for ESSENTIALS, `07a8d856` for VISION) and name
+the real residual instead of the fixed one.
+
+**CLOSURE (b) COULD NEVER REACH ZERO, and the reviewer and I found it independently.** The
+instruction greps `docs/` — hundreds of IMMUTABLE records that legitimately cite ESSENTIALS as
+it was — and `.claude/`, which during a batch holds a FULL COPY of the repo per worktree, so the
+command greps itself N+1 times. **It can only return zero on a tree with no worktrees, i.e.
+never while a batch is running, which is exactly when it is run.** Restated as zero actionable
+LIVE routes with the exclusions encoded; measured answer is TWO — `AI_COUNCIL_PROCESS.md:413`
+and `PLAYBOOK.md:330`, neither in G6's frozen write-scope.
+
+**THAT IS THE SAME SHAPE AS G1's DEFECT: a closure demanding a repo-wide property from a
+three-file write-scope.** Sixth coupling of the batch, and the strongest evidence yet for the
+contract-freeze coupling scan.
+
+**THE TWO ANCHOR GATES DISAGREE, CONFIRMED TWICE.** `git push` refused again —
+*"UNANCHORED 830e6286"* — on a lane merge `audit.py::check_journal_spine_anchor` exempts under
+ADR-110. Reported verbatim both times, never bypassed; discharged by the route the gate itself
+prescribes, which is this entry.
+
+**Result:** G6 merged `830e6286`. Delta A2: 2 regressions (both the owned audits-index
+staleness), 1 fixed, 1982 s.
+
+**Changes:** `protocols/HANDOFF_PROCESS.md` (both ask rows), G6's packet (closure (b) restated),
+`JOURNAL.md`.
+
+**Next:** G8, then G7, then G3b.
+
+### 2026-09-02 (h) - CC (Opus 5): five lanes merged, and every terra P1 was the contract's, not the lane's
+
+**Anchors:** `5d58a3e5`, `8cd523f4`, `29746560`, `342a2d3d`, `bbb0cbcd`, `1083f0dd`
+
+**Did:** merged G2, G3 and G4 (queue 3-5 of 9), ran the operator's `logs/` integration verify,
+and anchored the batch's lane merges here rather than at closure.
+
+**THE ANCHOR LINE IS DELIBERATE.** The ADR-110 exemption covers lane merges only while the batch
+is open and **evaporates the moment the close packet lands** — at which point every unanchored
+lane merge would wedge the next commit. Naming one introduced SHA per lane merge now converts a
+closure-time cliff into bookkeeping. It also discharges the ADR-85 pre-push refusal recorded
+below, by the route that gate itself prescribes.
+
+**THE PUSH GATE AND THE COMMIT GATE DISAGREE, and that is a finding.** After G3 merged,
+`git push` was REFUSED — *"1 first-parent spine entry(ies) would land on main with no JOURNAL
+anchor … UNANCHORED 55fecf34"* — while `audit.py::check_journal_spine_anchor` on the SAME commit
+returned **pass**, *"EXCEPT 2 lane merge(s) exempt under the ADR-110 declared-integration-arc
+rule"*. One organ honours the exemption, the other does not. Reported verbatim and left unpushed
+rather than bypassed, per ruling; the mechanism is not diagnosed here.
+
+**EVERY TERRA P1 THIS ROUND TRACED PAST THE LANE.** G2: a malformed `expiry` beside a valid
+`review_date` was HONOURED — the fallback masked the failure exactly when a second date existed
+to hide behind, which is why the lane's own seeded cases passed. Fixed in the shared engine, and
+the MIRROR case terra did not name was fixed with it. G3: the scan now targets an archive that is
+`status: superseded`; routed, not fixed, because terra's proposed fix would decide the parked
+README question by side effect. G4: the plugin scripts are fixed and `plugin.json` is not, so
+every installed consumer keeps the stale copies — **the lane written to fix executing copies left
+the installed ones stale.**
+
+**C4 IS C7.** G4's bump is blocked because `release_lint` C4 pins `plugin_version` in six
+manifests, five RELEASED — the identical defect G3 escalated via C7 and `VISION.md`. Both bind a
+released manifest to a live constant, so any release act must rewrite history or break the lint.
+G3b is chartered to re-shape C7; the same re-shape makes C4 correct.
+
+**THE `logs/` VERIFY WORKED AND EXPOSED A SIXTH COUPLING.** 101 top-level files → 12; 89 flat
+`PROPOSALS-*` → 0; `TOKEN-LOG.md` still flat; zero deletions. But `.gitignore` matched
+`logs/PROPOSALS-*.md` one level deep, so relocating them into month buckets moved 89 artifacts
+**out from under their own ignore rule**. The ignore now follows the file.
+
+**Changes:** `.gitignore` (month-bucket patterns), `logs/` (89 relocations, ignored),
+`JOURNAL.md`.
+
+**Next:** delta A2 on G4, then G6 → G8 → G7 → G3b.
+
+### 2026-09-02 (g) - CC (Opus 5): G1 merged, and making its gate reachable made it over-broad
+
+**Anchors:** `c7918bca`
+
+**Did:** merged G1 as queue 2/9 after terra caught its gate defeating itself, then fixed the
+second-order defect that the fix exposed.
+
+**TERRA'S P1 WAS REAL, AND THE DEFECT WAS THE CONTRACT'S.** G1 wired `always_run: true` with
+`pass_filenames: false`, copying the `provider-registry` shape — **because my contract told it
+to**. Those hooks set that flag precisely because they take no input; `lane-contract-check`
+compares the manifest against *the contracts it is handed*, so suppressing filenames made the
+predicate unreachable on every invocation, freeze commits included. Measured with a real
+contract staged: `0 contract(s) given — 0 checked`. **Closure (a) had been satisfied by
+severing the input closure (b) needs** — the vacuous pass the row exists to end, in a new
+costume. Its own regression test asserted `pass_filenames is False`, so the wrong wiring was
+protected by the test meant to guard it.
+
+**THEN THE FIX BROKE TWO TESTS, AND DELTA A2 CAUGHT IT — which is the whole point of the
+table.** With the predicate finally reachable and batch G genuinely open, `check` compared
+three `tmp_path` fixture contracts against G's manifest and refused: a verdict about the
+FIXTURE, not about the repo. Scoped to contracts that live in the tree, with an explicit
+"none in this repo" report rather than a silent skip.
+
+**THE SEEDED TESTS ARE WHY I KNOW THE GUARD IS NOT OVER-BROAD.** They monkeypatch `_SCRIPTS` so
+`tmp_path` IS their repo root — their contracts stay in-tree and still refuse. Had the guard
+over-filtered, those refusal tests would have gone **vacuously green**, which is the same
+disease one level up. A new test pins the other side.
+
+**A THIRD REGRESSION RECURRED AND CONFIRMED ITS OWN DIAGNOSIS.**
+`test_preflight_contract`'s claim-class test failed again — HEAD was `31653206`, all digits,
+exactly as at `85827046`. Twice in a row by chance, on a ~2.3 % event. It stays a funnel
+finding, not a batch fix.
+
+**Result:** delta A2 on G1: 3 regressions, 2 fixed. Two regressions were mine and are fixed
+here; the third belongs to no lane. 175 passed across the two affected modules.
+
+**Changes:** `scripts/gen_lane_contract.py` (scope guard), `tests/test_gen_lane_contract.py`.
+
+**Next:** G2, then the rest of the queue.
+
+### 2026-09-02 (f) - CC (Opus 5): G5 merged, and delta A2's three REDs were none of them a lane's
+
+**Anchors:** `4bc3f34c`
+
+**Did:** merged G5 (the parity hinge) as queue 1/9, ran the first integrator delta A2, and
+triaged its three regressions. **None bounced to a lane.**
+
+**TWO WERE MY OWN INDEX DEBT.** The batch added five audit artifacts, so
+`docs/audits/README.md` went stale and both `test_gen_audit_index` tests REDded. A lane must not
+regenerate that index — leaving it stale IS correct lane behaviour — and the integrator is
+gate-of-record. Regenerated here rather than at the end of the queue, so the remaining eight
+delta-A2 runs give clean signal instead of each carrying the same two known REDs.
+
+**THE THIRD BELONGS TO NO LANE, AND IT IS A REAL LATENT DEFECT.**
+`test_preflight_contract.py::test_every_claim_class_the_brief_names_is_extractable` builds its
+SHA claim from live `HEAD`, and this merge's short sha is `85827046` — **all digits**. Reproduced
+against the extractor directly: `85827046` yields `kinds=[]` while `1e064921`, `b5753f52`,
+`cd4035e7` and `a7d1b3f4` all yield `['sha']`. So the test fails on roughly **2.3 %** of commits
+((10/16)^8) for reasons that have nothing to do with the diff under test. Recorded as a finding
+for the funnel, not fixed here: no lane owns `scripts/preflight_contract.py` in this batch, and
+a finding does not become a row without triage (ADR-111).
+
+**THE WALL-CLOCK IS CONTAMINATED AND MUST NOT BE USED AS THE [#528] DATAPOINT.** This run
+measured `2675 s` against a `897 s` uncontended baseline on nearly the same tree. I ran
+`audit.py`'s spine-anchor check and a journal diagnostic DURING the timed run — the whole audit
+machinery, twice — which is the very "measuring while measuring" error the batch is trying to
+quantify. Recorded as spoiled rather than reported as a 3x substrate finding. Subsequent runs
+are left alone.
+
+**Result:** G5 merged at `85827046`. Suite after merge: 16 failed, 4861 passed, 3 skipped,
+1 xfailed. Delta A2: 3 regressions, all triaged above, 0 bounced.
+
+**Changes:** `docs/audits/README.md` (regenerated), `JOURNAL.md`.
+
+**Next:** terra -> merge -> delta A2 for G1, then the rest of the queue.
+
+### 2026-09-02 (e) - CC (Opus 5): batch G ran without a manifest, and the merge queue is where that showed
+
+**Anchors:** `a7d1b3f4`
+
+**Did:** filed batch G's manifest at the head of the merge queue, after the missing ADR-110
+exemption surfaced on the first lane merge.
+
+**THE BATCH WAS DISPATCHED WITHOUT ONE.** `batch_manifest.py` resolves an open batch as a
+conjunction of four facts — tracked, `status: open`, a `closed_by:` that can resolve, and that
+path absent. With no manifest, every `worktree-lane-*` merge loses the exemption and owes its own
+JOURNAL anchor. Nine lanes had already run before anyone needed the file, which is exactly why it
+was never missed: **a manifest is a merge-time organ, and the batch protocol arms it at freeze.**
+
+**FILED LATE, AND THE FILE SAYS SO.** `dispatched:` carries the real date and the roster is read
+off the branches that actually ran, not off the plan. A manifest written after dispatch cannot
+pretend to have governed it, and back-dating one would have made the record worse than the gap.
+
+**THE GRAMMAR OVERRULED THE PROMPT TWICE, and both are recorded in the roster.** `g5-632-parity`
+and `lane-g-621b-c7` are both refused by `validate_lane_worktree_name` — the `<letter>` is one
+letter and the `<id>` is numeric — so the lanes are `lane-g-632-parity` and `lane-g-621-c7`.
+
+**Changes:** `docs/audits/2026-09-02-technical-batch-g-manifest.md` (new), `JOURNAL.md`.
+
+**Next:** the queue, G5 first, delta A2 once per merge.
+
+### 2026-09-02 (d) - CC (Opus 5): the reviewer caught the batch citing a ruling that did not exist
+
+**Anchors:** `7a5ca6ff`
+
+**Did:** opened batch G's integration with terra pre-merge on G5, and landed the batch's six
+rulings as register section AC before merging anything.
+
+**THE FINDING IS THE POINT, AND IT IS MINE.** Terra's first pass on G5 raised P1: the parity doc
+cites `STANDING_RULINGS.md` R-G0-2 as the authority for a FLIP that re-routes seven lanes, and
+**the register carried no such entry, in this revision or anywhere in history.** Six rulings were
+given in chat, acted on, and cited in committed artifacts without ever having a durable home.
+That is the *exact* defect G0 was filed to end — a hard decision discharged by memory rather than
+by mechanism — reappearing one step later, in the integration of the batch that fixed it. I did
+not catch it; the reviewer did.
+
+**Result:** section AC records R-G0-1 through R-G0-4, R-G-A2 and R-G-G3b, each with the
+measurement behind it. The register is outside the silent-rule corpus (R12), so it cost no
+ratchet tokens. Every batch-G artifact's citation now resolves.
+
+**A SECOND P1 ON THE SAME PASS, AND IT IS ALSO MINE.** Terra showed the AMENDMENT 3 marker
+corrects "sixteen" using a decomposition from a DIFFERENT run: the packet's figure is Lane A's
+294.07 s run, while the proof doc's `17 = 2 + 15` belongs to a 298.50 s run. I wrote that clause
+into G5's contract, so the lane executed a correction that its own evidence does not support.
+Being fixed on the branch before G5 merges, as an integrator act.
+
+**Changes:** `protocols/STANDING_RULINGS.md` (section AC), `JOURNAL.md`.
+
+**Next:** correct G5's amendment marker, write terra's tally into its artifact, then merge the
+queue G5 -> G1 -> G2 -> G3 -> G4 -> G6 -> G8 -> G7 -> G3b.
+
 ### 2026-09-02 (c) - CC (Opus 5): the base failed-set is real, and the source the contract named was a leftover
 
 **Anchors:** `10bd27d9`

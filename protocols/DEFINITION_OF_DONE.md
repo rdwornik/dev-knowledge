@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-09-01
+last_reviewed: 2026-09-02
 status: active
 owner: Rob
 ---
@@ -194,5 +194,4 @@ the three scopes — session-close / arc-shipped / organ-done — are kept disti
 Deterministic-scoped; the fuzzy band is deferred to its own arc.
 
 ---
-See also: ESSENTIALS "Ending a Session" (the human-facing wrap habit this gate backstops);
-`docs/decisions/ADR-85-session-lifecycle-enforcement.md` (the decision + rationale).
+See also: `docs/decisions/ADR-85-session-lifecycle-enforcement.md` (the decision + rationale).

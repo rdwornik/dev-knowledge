@@ -229,7 +229,10 @@ def git_commit_exists(repo: Path, sha: str) -> bool:
 
 
 def latest_proposals(logs_dir: Path):
-    files = sorted(logs_dir.glob("PROPOSALS-*.md"))
+    """Most recent PROPOSALS file, flat under `logs_dir` or bucketed into
+    `logs/YYYY-MM/` by `logs_retention.py` -- see `propose_closures.find_last_proposals_head`
+    for why `**/` and a filename sort key (not full-path sort) are both needed here."""
+    files = sorted(logs_dir.glob("**/PROPOSALS-*.md"), key=lambda p: p.name)
     return files[-1] if files else None
 
 
