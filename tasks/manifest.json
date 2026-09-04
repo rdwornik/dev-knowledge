@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "e98c18ff013a085fb718e005fe11ac5768e6a7bfee02591db6f0eb48dff9caaf",
+  "generated_sha256": "165fa77769132aabed6f209c34ebf69ae68f5cb19c82c6cd501058fe6b013356",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -292,10 +292,6 @@
     {
       "task": 629,
       "file": "629-a-contract-amendment-cannot-subtract-an-act.md"
-    },
-    {
-      "task": 630,
-      "file": "630-manifest-lane-enum-must-equal-contract-slug-at-freeze.md"
     },
     {
       "task": 631,
@@ -879,10 +875,6 @@
     {
       "task": 245,
       "file": "245-add-path-status-awareness.md"
-    },
-    {
-      "task": 276,
-      "file": "276-d2-per-consumer-waiver-honoring.md"
     },
     {
       "prose": ""
