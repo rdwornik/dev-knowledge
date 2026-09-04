@@ -158,3 +158,56 @@ tests/fixtures/README.md                                              (doc updat
 Four commits on `worktree-lane-g-621-c7`, all RED-first: `test(release-lint)` (RED),
 `fix(release-lint)` (closure 1), `fix(canonical-docs)` (closure 2), `fix(canonical-freshness-gate)`
 (closure 3). No merges, no pushes to `main`, no index regeneration, no JOURNAL entry — per contract.
+
+## Terra pre-merge review (integrator, 2026-09-03)
+
+Reviewer `codex exec review --base main`, concurrency 1. **Wall-clock 108 s.**
+
+**Severity tally: HIGH/P1 = 1 · MED = 0 · LOW = 0. CONFIRMED with the blast radius MEASURED, and
+fixed before merge.**
+
+| # | Sev | Finding | Disposition |
+|---|---|---|---|
+| 1 | P1 | Closure 3's unconditional absence-FAIL would block **every commit in every consumer repo**: this gate is byte-copied into consumers as a pre-commit hook, and the registry names two documents no consumer carries | **FIXED** — presence-required vs presence-optional split |
+
+**The blast radius was measured, not argued.** The enforcement-mesh carrier byte-copies
+`scripts/canonical_freshness_gate.py` into each consumer as a pre-commit hook
+(`entry: python scripts/canonical_freshness_gate.py`), and `DEFAULT_FRESHNESS_FILES` registers
+`protocols/ESSENTIALS.md` and `docs/handoffs/README.md`. Checked against the three live consumers
+on 2026-09-03:
+
+```
+corp-monorepo   protocols/ESSENTIALS.md ABSENT   docs/handoffs/README.md ABSENT
+ai-council      protocols/ESSENTIALS.md ABSENT   docs/handoffs/README.md ABSENT
+win-tooling     protocols/ESSENTIALS.md ABSENT   docs/handoffs/README.md ABSENT
+```
+
+Three repos, every commit, permanently — from a lane whose closure text reads "never weaken the
+FAIL". The lane obeyed that text exactly; the text did not say which files must exist.
+
+**THE FIX IS NOT A WEAKENING, AND THE REPO ALREADY HELD THE ANSWER.** `canonical_docs` puts
+`ESSENTIALS` in `CANONICAL_OPTIONAL` and states *"Presence is required only for
+CANONICAL_MANDATORY"*. Z-G4 targets a check that **cannot compute its ground truth**; for an
+optional document, *absent* IS the ground truth — a known, correct state. So:
+
+```
+presence-REQUIRED (absent -> FAIL)      ARCHITECTURE.md, CLAUDE.md, CONTRIBUTING.md
+presence-OPTIONAL (absent -> REPORTED)  docs/handoffs/README.md, protocols/ESSENTIALS.md
+```
+
+Derived from the registry at the hub, literal in the consumer copy, the two pinned equal by
+`tests/test_canonical_docs.py`. **The absence is still REPORTED** — Z-G4's real target is
+silence, not non-fatality.
+
+**Proven both ways on the measured consumer shape:** three required files present and both
+optional absent → `FAILS: none`, commits unblocked, two warns emitted; remove `CLAUDE.md` →
+`FAILS: ['CLAUDE.md: absent …']`, Z-G4 still bites.
+
+**One of the lane's own tests was narrowed, and it matters why.**
+`test_evaluate_absent_file_fails` asserted against a synthetic `DOES_NOT_EXIST.md` — a name in no
+corpus at all, so it exercised the branch that now belongs to presence-OPTIONAL entries and would
+have gone **green against the wrong half of the split**. It now asserts on `CLAUDE.md`, where
+Z-G4 actually bites, with the optional half pinned by its own test.
+
+`tests/test_canonical_freshness_gate.py` + `test_canonical_docs.py` + `test_release_lint.py`:
+**101 passed.**
