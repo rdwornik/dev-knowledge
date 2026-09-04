@@ -148,6 +148,23 @@ def evaluate(repo_path: Path, freshness_files: Optional[list[str]] = None, *,
     """
     files = DEFAULT_FRESHNESS_FILES if freshness_files is None else freshness_files
     today = today or date.today()
+
+    # NO CORPUS AT ALL -> this check does not govern here, and says so by finding nothing.
+    #
+    # The absence-FAIL above answers "a file this corpus requires is missing". It must not also
+    # answer "this directory is not the kind of repo the check is about" — an empty tmp_path, an
+    # off-hub tree, a fixture built for a different check. Those are the case Z-G4 actually
+    # names: ground truth cannot be computed, so the honest report is nothing rather than a
+    # verdict. `tests/test_skip_is_not_pass.py::test_skip_statuses_do_not_block_the_gate` pins
+    # this from the other side — "a later change cannot 'fix' honesty by promoting skips to warn
+    # and REDding every consumer" — and it caught this exact promotion at integration.
+    #
+    # The line is drawn at NONE vs SOME, not at "any missing": a repo carrying ARCHITECTURE.md
+    # and CLAUDE.md but no CONTRIBUTING.md has a genuine gap and still FAILs. A repo carrying
+    # none of them is not this check's subject.
+    required_here = [f for f in files if f in PRESENCE_REQUIRED]
+    if required_here and not any((repo_path / f).exists() for f in required_here):
+        return [], []
     fails: list[str] = []
     warns: list[str] = []
     for fname in files:

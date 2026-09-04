@@ -19,6 +19,49 @@
 
 ---
 
+### 2026-09-03 (f) - CC (Opus 5): the batch is merged, and the last lane's fix broke a guard written to catch exactly it
+
+**Anchors:** `3a62cd77`, `c5d27eb7`, `001bb261`
+
+**Did:** merged G3b, the ninth and final lane — **the batch's merge queue is complete** — and
+fixed the two-level consequence its closure produced.
+
+**G3b DID THE THING G3 COULD NOT.** `release_lint` C7 now binds a manifest to the constants AS OF
+ITS OWN VERSION, so a released manifest is a frozen input rather than a mirror of live state.
+VISION left the registry in both places with the equality test kept. **The witness is an empty
+diff:** `v1.1.0`, `v1.2.0`, `v1.3.0`, `v1.3.1` and `v1.4.0` show **zero lines** of change. The
+lint was re-shaped; history was not rewritten, which is what the ruling demanded.
+
+**TERRA CAUGHT A FLEET-BREAKING CHANGE, WITH THE BLAST RADIUS MEASURED.** Closure 3's
+unconditional absence-FAIL would have blocked **every commit in all three consumer repos** — this
+gate is byte-copied into each as a pre-commit hook, and the registry names two documents none of
+them carries (measured: corp-monorepo, ai-council, win-tooling each lack both). The lane obeyed
+its closure text exactly; the text never said WHICH files must exist.
+
+**THEN MY OWN FIX TRIPPED A GUARD WRITTEN FOR PRECISELY THAT MISTAKE.** Delta A2 REDded
+`test_skip_is_not_pass.py::test_skip_statuses_do_not_block_the_gate`, whose docstring reads:
+*"a later change cannot 'fix' honesty by promoting skips to warn and REDding every consumer."* I
+had promoted a documented skip into a blocking status on any tree that is not a governed corpus.
+**The check's own docstring had already drawn the line** — `audit.py:1432`, *"An absent file is
+skipped (presence is enforced by #1/#3/#5)"* — so presence is deliberately another check's job,
+and G3b's closure contradicted that division of labour without either of us knowing.
+
+**The resolution is NONE vs SOME, and it keeps Z-G4 whole.** A repo with some required files and
+one missing has a real gap and still FAILs. A repo with none of them is not this check's subject,
+and the honest report there is nothing rather than a verdict — which is the case Z-G4 actually
+names. Verified on all three shapes.
+
+**THREE ORGANS EACH CAUGHT WHAT THE ONE BEFORE IT MISSED:** the lane implemented its contract,
+terra caught the consumer breakage, delta A2 caught my fix for terra. None of them was redundant.
+
+**Result:** 9/9 lanes merged. Final delta A2: 3 regressions, 2 the owned index staleness, 1 this.
+104 passed across the four affected modules.
+
+**Changes:** `scripts/canonical_freshness_gate.py`, `tests/test_canonical_freshness_gate.py`,
+`JOURNAL.md`.
+
+**Next:** push, filings lane, close packet.
+
 ### 2026-09-03 (e) - CC (Opus 5): CORRECTION - G7's ceiling is NOT met, and my merge message says it is
 
 **Anchors:** `244d4e49`, `e9d39ed9`, `71cd5dc7`
