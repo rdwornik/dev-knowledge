@@ -283,3 +283,58 @@ def test_main_reports_the_refusal_and_exits_nonzero(tmp_path, capsys):
     bad.mkdir(parents=True)
     assert mod.main(["--logs-dir", str(bad), "--dry-run"]) == 2
     assert "refus" in capsys.readouterr().err.lower()
+
+
+# --- the per-run sequence grammar (operator declaration 2026-09-04, candidate k) ---
+#
+# THE MEASURED DEFECT these pin, so the scenario is not re-derived from the fix:
+# `PROPOSALS-<date>.md` was a DAY-granular name for a per-RUN artifact. Two real runs on
+# 2026-09-02 -- head_commit 55fecf34 / window 4754 and 040dec74 / window 4763, eleven minutes
+# apart during batch-G integration -- competed for one filename. Flat, the second overwrote the
+# first. Once one copy had been archived, `apply_moves` correctly REFUSED to overwrite it and
+# aborted the WHOLE plan, so 09-03 and 09-04 queued behind a collision that never cleared.
+
+
+def test_parse_dated_month_accepts_a_run_sequence():
+    """A sequenced per-run file is DATED, not undated.
+
+    Without this arm the sequence fix is worse than the bug: a sequenced file matches nothing,
+    is treated as undated, and accumulates FLAT forever -- reinstating the complaint the
+    retention organ exists to answer.
+    """
+    assert lr.parse_dated_month("PROPOSALS-2026-09-02-02.md") == "2026-09"
+    assert lr.parse_dated_month("PROPOSALS-2026-09-05-01.md") == "2026-09"
+    assert lr.parse_dated_month("DETECTOR-ERROR-2026-09-05-17.md") == "2026-09"
+
+
+def test_parse_dated_month_still_rejects_an_impossible_date_with_a_sequence():
+    """The sequence arm must not smuggle a bad calendar date past the validator."""
+    assert lr.parse_dated_month("WIDGET-2026-13-40-02.md") is None
+
+
+def test_a_sequenced_second_run_relocates_beside_the_first(tmp_path):
+    """Two runs on ONE day both reach the same month bucket, neither overwriting the other."""
+    logs = tmp_path / "logs"
+    logs.mkdir()
+    (logs / "PROPOSALS-2026-09-02-01.md").write_text("run one", encoding="utf-8")
+    (logs / "PROPOSALS-2026-09-02-02.md").write_text("run two", encoding="utf-8")
+
+    lr.run_retention(logs)
+
+    bucket = logs / "2026-09"
+    assert (bucket / "PROPOSALS-2026-09-02-01.md").read_text(encoding="utf-8") == "run one"
+    assert (bucket / "PROPOSALS-2026-09-02-02.md").read_text(encoding="utf-8") == "run two"
+    assert not list(logs.glob("PROPOSALS-*.md")), "nothing dated may remain flat"
+
+
+def test_sequenced_names_sort_in_run_order_within_a_day(tmp_path):
+    """Name order must EQUAL time order -- the reason every run is sequenced, not just the 2nd.
+
+    `-` is 0x2D and `.` is 0x2E, so a bare `<date>.md` sorts AFTER `<date>-02.md`. Had run 1
+    kept the bare name, the six `sorted(...)[-1]` "latest" sites across propose_closures,
+    review_closures and fleet_health would each return run 1 and silently hide run 2.
+    """
+    names = ["PROPOSALS-2026-09-02-01.md", "PROPOSALS-2026-09-02-02.md",
+             "PROPOSALS-2026-09-03-01.md"]
+    assert sorted(names) == names
+    assert sorted(names)[-1] == "PROPOSALS-2026-09-03-01.md"

@@ -389,9 +389,47 @@ def open_tasks_from_backlog(text: str, parse_fn) -> dict:
     return {t["id"]: t["rest"] for t in tasks}
 
 
+def _existing_anywhere(logs_dir: Path, name: str) -> bool:
+    """True if `name` is present flat under logs_dir OR inside a month bucket.
+
+    Both locations count, and that is the whole point: the wedge this function exists to
+    prevent was a FLAT file written with a name that was already ARCHIVED, which
+    `logs_retention.apply_moves` then correctly refused to overwrite -- aborting the entire
+    plan and queueing every later day behind a collision that never clears itself.
+    """
+    if (logs_dir / name).exists():
+        return True
+    return any(p.name == name for p in logs_dir.glob("*/" + name))
+
+
+def _next_free_dated_path(logs_dir: Path, prefix: str, ext: str = "md",
+                          today: "date | None" = None) -> Path:
+    """First free `<prefix>-<YYYY-MM-DD>-<NN>.<ext>`, checking flat AND bucketed.
+
+    PER-RUN GRAMMAR (operator declaration 2026-09-04): every run carries a sequence, starting
+    at `-01`. The old `PROPOSALS-<date>.md` was day-granular for a per-RUN artifact, so a
+    second run on one day silently overwrote the first -- and once one copy had been archived,
+    `logs_retention.apply_moves` correctly REFUSED to overwrite it, aborting the whole plan and
+    queueing every later day behind a collision that never cleared itself.
+
+    Sequencing EVERY run (rather than only the second) is what keeps name order equal to time
+    order: `-` is 0x2D and `.` is 0x2E, so a bare `<date>.md` sorts AFTER `<date>-02.md`. With
+    all runs sequenced there is no bare name to sort last, and the six `sorted(...)[-1]`
+    "latest" sites across propose_closures / review_closures / fleet_health stay correct with
+    no custom key. Legacy bare files predate the grammar and are never rewritten.
+    """
+    stamp = (today or date.today()).isoformat()
+    for n in range(1, 100):
+        cand = f"{prefix}-{stamp}-{n:02d}.{ext}"
+        if not _existing_anywhere(logs_dir, cand):
+            return logs_dir / cand
+    raise RuntimeError(
+        f"{prefix}: 99 runs already recorded for {stamp} -- refusing to guess a 100th name")
+
+
 def _write_artifact(content: str) -> Path:
     _LOGS_DIR.mkdir(exist_ok=True)
-    out = _LOGS_DIR / f"PROPOSALS-{date.today().isoformat()}.md"
+    out = _next_free_dated_path(_LOGS_DIR, "PROPOSALS")
     out.write_text(content, encoding="utf-8", newline="\n")
     return out
 

@@ -82,7 +82,11 @@ EXCLUDED_NAME_PREFIXES: tuple[str, ...] = ()
 #: `.+` is safe here: the anchored `-\d{4}-\d{2}-\d{2}\.` suffix is what backtracking
 #: settles on, so a stem that itself contains hyphens (`SOME-THING-2026-08-15.md`) still
 #: resolves to date = the trailing one.
-_DATED_RE = re.compile(r"^(?P<stem>.+)-(?P<y>\d{4})-(?P<m>\d{2})-(?P<d>\d{2})\.(?P<ext>[^./\\]+)$")
+#: A trailing `-YYYY-MM-DD` date, optionally followed by a `-NN` RUN SEQUENCE. The
+#: sequence arm landed 2026-09-04 with the propose_closures per-run grammar: without
+#: it a sequenced file matches nothing here, is treated as undated, and accumulates
+#: FLAT forever -- reinstating the complaint this organ exists to answer.
+_DATED_RE = re.compile(r"^(?P<stem>.+)-(?P<y>\d{4})-(?P<m>\d{2})-(?P<d>\d{2})(?:-(?P<seq>\d{2,}))?\.(?P<ext>[^./\\]+)$")
 
 
 class RetentionError(Exception):
