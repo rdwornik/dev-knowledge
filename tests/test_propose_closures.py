@@ -339,5 +339,49 @@ def test_new_commits_merge_with_pending_proposals(tmp_path, monkeypatch):
     _run(repo, "commit", "-q", "-m", "feat: beta done, closes [#6]")
 
     assert pc.main() == 0                                  # run 2
-    txt = list((repo / "logs").glob("PROPOSALS-*.md"))[0].read_text(encoding="utf-8")
+    # per-run grammar (2026-09-04): a day can hold several runs, so read the LATEST.
+    # All runs are sequenced, so filename order IS run order.
+    latest = sorted((repo / "logs").glob("PROPOSALS-*.md"), key=lambda q: q.name)[-1]
+    txt = latest.read_text(encoding="utf-8")
     assert "**#5**" in txt and "**#6**" in txt             # carried + merged
+
+
+# --- per-run filename grammar (operator declaration 2026-09-04, candidate k) -------
+#
+# Seeded from the MEASURED collision: two real runs on 2026-09-02, head_commit 55fecf34
+# (window 4754) and 040dec74 (window 4763), eleven minutes apart during batch-G integration,
+# both writing `PROPOSALS-2026-09-02.md`. Flat, the second overwrote the first; once one copy
+# was archived, logs_retention refused to overwrite it and the whole archive plan aborted.
+
+
+def test_two_runs_on_one_day_do_not_collide(tmp_path):
+    """The seeded two-runs-one-day case: run 2 takes `-02` instead of clobbering run 1."""
+    logs = tmp_path / "logs"
+    logs.mkdir()
+    day = date(2026, 9, 2)
+
+    first = pc._next_free_dated_path(logs, "PROPOSALS", today=day)
+    assert first.name == "PROPOSALS-2026-09-02-01.md"
+    first.write_text("run one: head_commit 55fecf34", encoding="utf-8")
+
+    second = pc._next_free_dated_path(logs, "PROPOSALS", today=day)
+    assert second.name == "PROPOSALS-2026-09-02-02.md"
+    second.write_text("run two: head_commit 040dec74", encoding="utf-8")
+
+    assert first.read_text(encoding="utf-8") == "run one: head_commit 55fecf34", (
+        "run 1 was overwritten -- the exact defect this grammar exists to prevent")
+
+
+def test_an_already_ARCHIVED_name_is_not_reused(tmp_path):
+    """The wedge itself: a bucketed copy must block that name, or retention aborts later.
+
+    This is the half a flat-only existence check misses, and missing it is what turned a
+    silent overwrite into a permanently wedged archiver.
+    """
+    logs = tmp_path / "logs"
+    (logs / "2026-09").mkdir(parents=True)
+    (logs / "2026-09" / "PROPOSALS-2026-09-02-01.md").write_text("archived", encoding="utf-8")
+
+    nxt = pc._next_free_dated_path(logs, "PROPOSALS", today=date(2026, 9, 2))
+    assert nxt.name == "PROPOSALS-2026-09-02-02.md"
+    assert nxt.parent == logs

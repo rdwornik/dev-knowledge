@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-08-29
+last_reviewed: 2026-09-04
 status: active
 owner: Rob
 ---
@@ -322,11 +322,11 @@ synthesizer summarises — the transcript carries the underlying argument.
 
 ## Stage 5 — Author the ADR
 
-**Owner:** Claude Code in the target repo (per ESSENTIALS § "Repo artifacts in
-Claude Code, not browser chat"). **Mandatory** — a Council debate is not
-complete until its ADR exists. Per ESSENTIALS: "Council ADR distillation is a
+**Owner:** Claude Code in the target repo (per `protocols/PLAYBOOK.md` § "Artifact
+generation direction"). **Mandatory** — a Council debate is not
+complete until its ADR exists. Council ADR distillation is a
 mandatory automated step of the post-debate protocol — never a browser-chat
-hand-off with a placeholder."
+hand-off with a placeholder.
 
 **Pipeline:**
 
@@ -410,7 +410,7 @@ committed path in the target repo (no behavior change from v1.0).
 - **Blind voting:** `ai-council/docs/decisions/ADR-03-blind-voting.md` (tool-layer).
 - **Folder taxonomy / ephemeral briefs:** `docs/decisions/ADR-60-docs-folder-taxonomy.md`.
 - **Decision threshold + post-debate steps:** `protocols/PLAYBOOK.md` § "Council debate threshold", § "Post-debate protocol". (The archival protocol is retired — PLAYBOOK § "Council Debate Archival Protocol (RETIRED 2026-07-22)". The former § "After a Decision" ref was stale — no such section exists.)
-- **Repo-artifacts-in-Claude-Code rule:** `protocols/ESSENTIALS.md` § "Repo artifacts".
+- **Repo-artifacts-in-Claude-Code rule:** `protocols/PLAYBOOK.md` § "Artifact generation direction".
 - **Gated-loop pattern (handoff analogue):** `HANDOFF_PROCESS.md` + ADR-42/55/56/57/58/62.
 - **Live code:** `ai-council/src/ai_council/{cli,inbox,routing,runner,orchestrator,debate,synthesis}.py`.
 
@@ -418,6 +418,15 @@ committed path in the target repo (no behavior change from v1.0).
 
 ## Section history
 
+- Re-stamp 2026-09-04 (no version bump — no decision content changed). Genuine end-to-end
+  re-read of all 424 lines, occasioned by the `[#628]` pointer leg: Stage 5's owner line and
+  the Cross-references row cited `ESSENTIALS.md` § "Repo artifacts", a heading that **no longer
+  exists in that file at all** — the rule moved to `protocols/PLAYBOOK.md` § "Artifact generation
+  direction" on 2026-07-05 ([#258]). Both now cite that section by anchor text, never a line
+  number. Verified in the same pass, not assumed: all five PLAYBOOK anchors this document cites
+  resolve against the live file, and Stage 6's retirement procedure (manifest node out, terminal
+  `status:`, `--emit-source`) matches the `[#630]`/`[#276]` closures executed the same day. The
+  version line stays 2.2 because a corrected locator is not a process change.
 - v2.2 (2026-07-29) — post-flip stale-procedure fix batch (audit `2026-07-29-technical-postflip-stale-procedure-audit.md`, row 11): Stage 6 item 3 no longer says "mark it closed" (not the ADR-65 shape — done items leave, no status marker) and no longer implies a direct `BACKLOG.md` edit; closure now routes through the Tier-1 loop with a `tasks/` retirement on the hub (ADR-107 step 3 / [#439]), and follow-up work is filed into the target repo's queue in that repo's shape (terra H1). Genuine end-to-end re-read; `last_reviewed` re-stamped 2026-07-29.
 - v2.1 (2026-07-23) — ADR-43 amendment (routed-mirror RETIRED; operator ruling 2026-07-22, hub zone deleted `b4435fad`): Purpose/Stage 3 gate/Stage 4 landing/Stage 5 step 3/frontmatter table/template example/troubleshooting/Cross-references all repointed — transcripts are canonical-only in `ai-council/output/`; `target-project:` not to be set; config disarm tracked [#401]. Re-read fixes: synthesizer default gemini→openai (2026-07-18 operator ruling), ADR-94 status-line exception added to Stage 5 item 5.
 - v2.0 (2026-06-01) — ADR-67: added Gated loop overview (6 steps, cross-domain split table, stage mapping); Stage 1 updated to `/council-question` trigger (template+gate downstream); Stage 1a Gate inserted; Stage 5 Deterministic return subsection added; Cross-references updated.

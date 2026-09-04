@@ -1,7 +1,7 @@
 ---
 id: "[#276]"
 title: "D2 per-consumer waiver-honoring"
-status: open
+status: closed
 priority: P2
 size: M
 theme: "[E6] Cross-repo universalization"

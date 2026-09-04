@@ -79,7 +79,6 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#615] [P2][M] MODEL ATTRIBUTION — a model+version signature trailer on every model-authored commit · tasks/615-model-attribution-signature-trailer-on-every.md
 - [#624] [P2][M] Nothing watches a BLOCKER's status — a fold target went deferred and no organ noticed · tasks/624-nothing-watches-a-blockers-status.md
 - [#629] [P1][M] An amendment cannot SUBTRACT an act — split rulings REISSUE (predicate 7) · tasks/629-a-contract-amendment-cannot-subtract-an-act.md
-- [#630] [P2][S] Manifest lane enum must equal contract slug at freeze · tasks/630-manifest-lane-enum-must-equal-contract-slug-at-freeze.md
 - [#631] [P1][M] A freeze cannot bind a rule that post-dates it — and nothing re-validates a frozen batch when the rules change · tasks/631-a-freeze-cannot-bind-a-rule-that-postdates-it.md
 ### [S4] Extend structural validation to more governance artifacts
 So that drift in transcripts, ADRs, and folders is caught cheaply, not by reviewer luck.
@@ -242,7 +241,6 @@ So that "open any repo, same layout/governance" actually holds.
 So that the consumer-facing live surface reflects CURRENT state — hub-deprecated elements get REMOVED from consumers, not accumulated (the append-only-live-surface bug; distinct from the append-only-BY-DESIGN audit trail).
 - [#244] [P2][L] Essence-spec lifecycle epic · DEFER · tasks/244-essence-spec-lifecycle-epic.md
 - [#245] [P2][M] Add-path status-awareness · DEFER · tasks/245-add-path-status-awareness.md
-- [#276] [P2][M] D2 per-consumer waiver-honoring · tasks/276-d2-per-consumer-waiver-honoring.md
 
 ### [S17] Make new-repo scaffolding correct-by-default
 So that a new repo inherits the full baseline in one step, not by re-derivation.

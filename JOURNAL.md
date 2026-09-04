@@ -19,6 +19,58 @@
 
 ---
 
+### 2026-09-04 (c) - CC (Opus 5): six operator rulings, and three of them turned into defects I had caused
+
+**Anchors:** `f5307be1`, `05759cc6`, `10698573`, `51bfe4f8`
+
+**Did:** executed the operator's post-packet declaration — closed two rows, fixed the wedged
+archiver, repointed the ruled ESSENTIALS routes, filed two LESSONS entries, and produced the
+witness block owed before the tag.
+
+**THE COUNTER MOVED TO THREE, AND THE MECHANISM MATTERED MORE THAN THE NUMBER.** `[#630]` and
+`[#276]` are closed on the packet's witnesses; open 172 → 169, closed 132 → 135. My first attempt
+was wrong in an instructive way: I flipped `status: open` → `closed` in the task files, and
+`gen_task_tree --emit-source` silently reverted both, because `status` is DERIVED and
+`derive_status` only ever returns `deferred` or `open`. The tool's own `--prune` refusal text
+carries the real procedure — *"retire a task by removing its node from `tasks/manifest.json` … and
+LEAVE the file in place as the allocation record"* — and `--emit-source` iterates the MANIFEST, not
+the directory, which is precisely why `[#614]` survived the same refresh untouched.
+
+**A SEPARATOR CHOICE WAS A CORRECTNESS QUESTION, NOT A STYLE ONE.** `-` is 0x2D and `.` is 0x2E, so
+`PROPOSALS-<date>-02.md` sorts BEFORE `PROPOSALS-<date>.md`. Sequencing only the SECOND run would
+have left six `sorted(...)[-1]` "latest" sites returning run 1 — trading a loud wedge for a quiet
+wrong answer. Sequencing EVERY run from `-01` removes the bare name that sorted last, and no caller
+needs a custom key. `ls logs/` flat dated files: 3 → 0, both 09-02 runs preserved side by side.
+
+**I CHANGED `DETECTOR-ERROR` TOO, NINE TESTS WENT RED, AND THE TESTS WERE RIGHT.** Its docstring
+says *"two broken runs in one day leave one marker, not an accumulating pile."* A per-run grammar
+is correct for a per-run artifact and wrong for a marker whose contract is one-per-day. Reverted.
+
+**THE SHIP-GATE'S ONE HARD-FAIL WAS MINE.** `canonical_freshness` FAILed on
+`AI_COUNCIL_PROCESS.md` because my `[#628]` repoint edited a freshness-gated file. Discharged the
+only honest way — all 424 lines re-read end to end, every cited PLAYBOOK anchor resolved live,
+then stamped. The citation it repointed was DEAD, not merely superseded: `grep "Repo artifacts"
+protocols/ESSENTIALS.md` returns nothing.
+
+**Result:** ship-gate RED (1 hard-fail → now 0; 136 undispositioned WARNs remain as R5 window
+work). `doc-counts` 4905 → 4917, matching live. CLAUDE.md's G8 re-read CONFIRMED genuine —
+`f8125a97` enumerates every commit it diffed. Grep-to-zero NOT reached and reported as such: the
+register said "two live routes", three are fixed, and eight more route-shaped mentions remain in
+PLAYBOOK, including `:1530` *"Upload `ESSENTIALS.md` (always)"*.
+
+**Changes:** `scripts/logs_retention.py`, `scripts/propose_closures.py` + the plugin twin,
+`tests/test_logs_retention.py`, `tests/test_propose_closures.py`, `tasks/` + `BACKLOG.md`,
+`protocols/AI_COUNCIL_PROCESS.md`, `protocols/PLAYBOOK.md`, `LESSONS.md`,
+`ecosystem/doc-counts.md`.
+
+**Abandoned:** nothing.
+
+**Next:** the operator's ruling on the eight remaining ESSENTIALS mentions, and on
+`origin/worktree-lane-632-codespace-proof` — which holds an unmerged AMENDMENT 2 recording a live
+admission-gate defect, so it is not a deletion candidate.
+
+---
+
 ### 2026-09-04 (b) - CC (Opus 5): the batch closes, and nine lanes moved one row
 
 **Anchors:** `0476bdad`, `f53a007c`

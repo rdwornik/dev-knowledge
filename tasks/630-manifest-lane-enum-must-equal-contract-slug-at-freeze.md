@@ -1,7 +1,7 @@
 ---
 id: "[#630]"
 title: "Manifest lane enum must equal contract slug at freeze"
-status: open
+status: closed
 priority: P2
 size: S
 theme: "[E2] Enforced governance"
