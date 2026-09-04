@@ -322,11 +322,11 @@ synthesizer summarises — the transcript carries the underlying argument.
 
 ## Stage 5 — Author the ADR
 
-**Owner:** Claude Code in the target repo (per ESSENTIALS § "Repo artifacts in
-Claude Code, not browser chat"). **Mandatory** — a Council debate is not
-complete until its ADR exists. Per ESSENTIALS: "Council ADR distillation is a
+**Owner:** Claude Code in the target repo (per `protocols/PLAYBOOK.md` § "Artifact
+generation direction"). **Mandatory** — a Council debate is not
+complete until its ADR exists. Council ADR distillation is a
 mandatory automated step of the post-debate protocol — never a browser-chat
-hand-off with a placeholder."
+hand-off with a placeholder.
 
 **Pipeline:**
 
@@ -410,7 +410,7 @@ committed path in the target repo (no behavior change from v1.0).
 - **Blind voting:** `ai-council/docs/decisions/ADR-03-blind-voting.md` (tool-layer).
 - **Folder taxonomy / ephemeral briefs:** `docs/decisions/ADR-60-docs-folder-taxonomy.md`.
 - **Decision threshold + post-debate steps:** `protocols/PLAYBOOK.md` § "Council debate threshold", § "Post-debate protocol". (The archival protocol is retired — PLAYBOOK § "Council Debate Archival Protocol (RETIRED 2026-07-22)". The former § "After a Decision" ref was stale — no such section exists.)
-- **Repo-artifacts-in-Claude-Code rule:** `protocols/ESSENTIALS.md` § "Repo artifacts".
+- **Repo-artifacts-in-Claude-Code rule:** `protocols/PLAYBOOK.md` § "Artifact generation direction".
 - **Gated-loop pattern (handoff analogue):** `HANDOFF_PROCESS.md` + ADR-42/55/56/57/58/62.
 - **Live code:** `ai-council/src/ai_council/{cli,inbox,routing,runner,orchestrator,debate,synthesis}.py`.
 

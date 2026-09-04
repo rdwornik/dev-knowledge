@@ -327,7 +327,7 @@ Section 13 "Where Knowledge Lives" describes knowledge **domains** (what lives w
 ### Authority hierarchy
 <!-- scope: meta -->
 
-1. `.dev-knowledge/protocols/ESSENTIALS.md` + `protocols/PLAYBOOK.md` (this file) — universal rules across all Rob's work
+1. `.dev-knowledge/CLAUDE.md` (the always-on subset) + `protocols/PLAYBOOK.md` (this file, the on-demand reference) — universal rules across all Rob's work. `protocols/ESSENTIALS.md` held this rank until it was de-blessed; it is `status: superseded` and routes nobody, pending `[#628]`'s fleet-coupled dissolution at v1.5.0
 2. `{repo}/CLAUDE.md` — per-repo agent-instruction contract (architecture, conventions, tools, ADRs, anti-patterns)
 3. `{repo}/.claude/skills/`, `commands/`, `hooks/` — runtime config
 
