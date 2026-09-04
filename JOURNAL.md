@@ -19,6 +19,54 @@
 
 ---
 
+### 2026-09-04 (a) - CC (Opus 5): the asks register triples, and running the archiver is what found it wedged
+
+**Anchors:** `f33e1d62`
+
+**Did:** landed step B of the architect's 2026-09-02 outgoing-seat note as the batch-G filings
+arc — the OPERATOR ASKS register from 5 rows to 15, and the batch's CANDIDATE register — then ran
+step A, whose whole value turned out to be that it failed.
+
+**STEP A FOUND A WEDGED ORGAN, AND THE GUARD THAT WEDGED IT IS CORRECT.** `logs_retention` refused
+to archive `PROPOSALS-2026-09-02.md`: a copy was already in `logs/2026-09/`, and the flat file is a
+DIFFERENT artifact — same name, same 208,062 bytes, different `head_commit` (`040dec74` vs
+`55fecf34`) and different window (4763 vs 4754 commits), written eleven minutes apart during
+integration. `PROPOSALS-<date>.md` is a **day-granular name for a per-RUN artifact**. Flat, the
+second run silently overwrites the first; once one copy is archived, `apply_moves` correctly
+refuses to overwrite it and **aborts the whole plan**, so 09-03 and 09-04 queue behind a collision
+that will never clear itself. The collision guard is doing exactly its job. The naming grammar
+guarantees the collision it guards against. Filed as candidate (k); nothing deleted, because which
+copy survives is not mine to decide.
+
+**THE ASK THE BATCH THOUGHT IT CLOSED IS THE ONE IT DIDN'T.** `logs thinning` reads as fixed —
+G4 repointed the DEPLOYED plugin copies to a recursive `**/PROPOSALS-*.md` glob, so a bucketed file
+is found. But READING was the half that got fixed. `propose_closures.py:413`/`:482` still write
+flat, retention is wired into no hook, and it buckets by MONTH (`logs/YYYY-MM/`) rather than into
+the `logs/proposals/` + `logs/detector-errors/` pair the ask assumed. The row gained a live blocker
+instead of a visible-fix.
+
+**0 RED IS A PROPERTY OF THE PREDICATE, NOT A VERDICT ON THE WORK.** RED needs `re-asked >= 2` with
+no visible-fix AND no named blocker. Every one of the 15 rows carries one, and
+`fleet_health.ask_is_red`'s own docstring concedes it "does not adjudicate blocker QUALITY, only
+presence". So a register in which every row names a blocker is permanently 0 RED. Recorded in the
+register itself rather than reported as a green tick, because the digest line the operator reads
+each session cannot distinguish "nothing is stuck" from "everything named a reason".
+
+**Result:** register verified against the live parser (15 rows, `[asks] 0 RED / 15 total`), 148
+targeted `test_fleet_health` tests green, silent-rule count 436 under baseline, every pre-commit
+gate passed. Two rows entered as UNKNOWN/`unwitnessed` on the note's own instruction.
+
+**Changes:** `protocols/HANDOFF_PROCESS.md` §17.1 (register 5→15 rows), `protocols/STANDING_RULINGS.md`
+(§AD candidates a–g, i, j, k — there is no (h); dated V-addendum for the per-substrate base
+failed-set).
+
+**Abandoned:** nothing. The `worktree-lane-g-*` teardown is still owed.
+
+**Next:** the close packet at the manifest-declared path — ROWS CLOSED witnessed one row at a time,
+the #528 contention series, and the architect's proposed H order.
+
+---
+
 ### 2026-09-03 (f) - CC (Opus 5): the batch is merged, and the last lane's fix broke a guard written to catch exactly it
 
 **Anchors:** `3a62cd77`, `c5d27eb7`, `001bb261`
