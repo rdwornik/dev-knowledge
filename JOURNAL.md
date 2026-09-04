@@ -19,6 +19,51 @@
 
 ---
 
+### 2026-09-04 (b) - CC (Opus 5): the batch closes, and nine lanes moved one row
+
+**Anchors:** `0476bdad`, `f53a007c`
+
+**Did:** landed the batch-G close packet at the path the manifest's `closed_by:` names, which
+retires the ADR-110 exemption, and regenerated the audit index as the integrator's gate-of-record
+act.
+
+**NINE LANES, 99 COMMITS, 32 MERGES — AND EXACTLY ONE BACKLOG ROW CHANGED STATUS.** `tasks/` open
+172 → 171. That gap is the packet's real content. It is not a failure: flipping a row is
+`/review-closures`, an operator act, so the packet WITNESSES each closure clause rather than
+closing it. `[#630]` and `[#276]` are MET and eligible for the operator's declaration. `[#629]` is
+NOT MET on categorical evidence — `git diff --name-only 1e064921 HEAD -- scripts/validate_substrate.py`
+is EMPTY, so the file its Done-when names was never touched in the whole batch. G1 built `[#630]`'s
+predicate (two surfaces disagreeing) and not `[#629]`'s (a contract contradicting itself); both rows
+had said in their own text that they were separate defects sharing one dispatch. **The counter moves
+to three, not to nine.**
+
+**THE TENTH DELTA A2 CAUGHT A REGRESSION THAT A COUNT WOULD HAVE MISSED.** 13 failing before, 13
+failing after — and the SETS differed: 2 fixed, 2 regressed. R-G-A2's insistence on nodeid sets over
+counts earned itself back in one run. Cause was mine as integrator, not a lane's: G3b's lane audit
+left the generated index declaring 873 documents against a live 874. A lane must NOT regenerate that
+index — it races every sibling — so leaving it stale in-lane was correct; regenerating it is the
+integrator's act. Same class as G7's `doc-counts.md` terra P1, same resolution.
+
+**`audit-health` PASSED WITH THE PACKET PRESENT**, which is the entire payoff of anchoring before
+closing. The moment the packet path exists the batch stops resolving as open, and any unanchored
+merge on the spine would have wedged every commit. Verified rather than hoped: `unanchored on main
+spine: NONE`, all ten merges resolving to an introduced SHA named in JOURNAL.
+
+**Result:** batch G is closed. Delta A2 series across ten merges: 2675/2543/2585/2004/1981/1982/
+1832/1924/2159/2023 s against an 897 s baseline — a 2.2–3.0x tax whose driver is live worktree
+COUNT, not the diff under test. Roughly 6 hours of wall-clock spent verifying, bought by the
+parallelism that made the batch fast.
+
+**Changes:** `docs/audits/2026-09-02-technical-batch-g-close-packet.md` (new, 24,851 B, flat),
+`docs/audits/README.md` (regenerated, 873 → 875).
+
+**Abandoned:** nothing. The `worktree-lane-g-*` teardown is still owed — six worktrees, eight
+branches, two branches per lane, each gated on `git merge-base --is-ancestor`.
+
+**Next:** teardown, then the operator's closure declaration on `[#630]` and `[#276]`.
+
+---
+
 ### 2026-09-04 (a) - CC (Opus 5): the asks register triples, and running the archiver is what found it wedged
 
 **Anchors:** `f33e1d62`
