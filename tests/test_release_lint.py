@@ -18,6 +18,7 @@ import yaml
 from click.testing import CliRunner
 
 
+import canonical_docs as cdocs  # noqa: E402
 import release_lint as rl  # noqa: E402
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -37,11 +38,24 @@ def _checks_failing(findings):
 # ---------------------------------------------------------------------------
 
 
+def _sync_freshness_gated_to_live(spec: dict) -> None:
+    """The tmp root's ONE manifest file is trivially "current" (release_lint.py's C7 binds
+    to the highest-versioned manifest present), so its doc_shapes freshness_gated flags must
+    mirror the LIVE registry for the pass-case to actually be a pass case -- generically, not
+    naming any one filename, so this stays correct as the registry evolves (a released
+    manifest's real freshness_gated set is frozen at ITS OWN version; this fixture represents
+    "the current manifest," which is a different thing, on purpose)."""
+    for fname, shape in spec.get("doc_shapes", {}).items():
+        if isinstance(shape, dict) and "freshness_gated" in shape:
+            shape["freshness_gated"] = fname in cdocs.FRESHNESS_FILES
+
+
 def make_root(tmp_path: Path, mutate=None) -> Path:
     root = tmp_path / "hub"
     (root / "deploy").mkdir(parents=True)
     spec = yaml.safe_load(
         (_REPO_ROOT / "deploy" / "manifest-v1.1.0.yaml").read_text(encoding="utf-8"))
+    _sync_freshness_gated_to_live(spec)
     if mutate is not None:
         mutate(spec)
     (root / "deploy" / "manifest-v1.1.0.yaml").write_text(
@@ -75,6 +89,17 @@ def test_live_v120_state_is_green():
     """The real v1.2.0 manifest (ruff-gate tombstone) passes -- keeps P2 honest."""
     findings = rl.lint(_REPO_ROOT, "1.2.0", tag_probe=_TAG_OK)
     assert _fails(findings) == [], [f.evidence for f in _fails(findings)]
+
+
+def test_current_manifest_still_engages_the_live_c7_mirror():
+    """The re-shape narrows WHO C7 compares, not whether it ever does: the CURRENT
+    manifest (highest version present in deploy/) is still mirrored against live
+    constants -- the check has teeth, it just no longer applies them retroactively."""
+    current = rl._current_manifest_version(_REPO_ROOT)
+    findings = rl.lint(_REPO_ROOT, current, tag_probe=_TAG_OK)
+    c7 = next(f for f in findings if f.check == "C7-doc-shapes")
+    assert c7.status == "pass", c7.evidence
+    assert "mirror the organs" in c7.evidence, c7.evidence
 
 
 # ---------------------------------------------------------------------------
@@ -281,7 +306,7 @@ def _first_component(spec):
         pytest.param(lambda s: s["doc_shapes"]["CLAUDE.md"].update(
             spine=["## Not the real spine"]),
                      "C7-doc-shapes", id="doc-shape-spine-drift"),
-        pytest.param(lambda s: s["doc_shapes"]["VISION.md"].update(freshness_gated=False),
+        pytest.param(lambda s: s["doc_shapes"]["CLAUDE.md"].update(freshness_gated=False),
                      "C7-doc-shapes", id="freshness-gated-set-drift"),
         pytest.param(lambda s: s.pop("doc_shapes"),
                      "C7-doc-shapes", id="doc-shapes-section-missing"),
@@ -303,6 +328,28 @@ def test_stale_floor_sidecar_fails(tmp_path):
     tmpl.write_bytes(tmpl.read_bytes() + b"\n# drifted floor content\n")
     findings = rl.lint(root, "1.1.0", tag_probe=_TAG_OK)
     assert "C5-floor-pin" in _checks_failing(findings)
+
+
+# ---------------------------------------------------------------------------
+# [#621] lane-g-621-c7 -- C7 binds a manifest to the constants AS OF ITS OWN
+# VERSION (R-G-G3b): a manifest that is not the CURRENT one in repo_root is
+# frozen history and is never re-mirrored against live constants.
+# ---------------------------------------------------------------------------
+
+
+def test_released_manifest_not_compared_to_live_constants(tmp_path):
+    """A manifest superseded by a newer one present in repo_root is released/historical --
+    its doc_shapes are frozen, even when they've since drifted from live constants."""
+    root = make_root(tmp_path, mutate=lambda s: s["doc_shapes"]["CLAUDE.md"].update(
+        spine=["## Not the real spine"]))
+    # A newer manifest FILE present is what makes 1.1.0 "released" here -- structural,
+    # not tag-probed; content is irrelevant, only presence/version is read.
+    shutil.copyfile(root / "deploy" / "manifest-v1.1.0.yaml",
+                     root / "deploy" / "manifest-v1.2.0.yaml")
+    findings = rl.lint(root, "1.1.0", tag_probe=_TAG_OK)
+    assert "C7-doc-shapes" not in _checks_failing(findings), (
+        f"expected a superseded manifest to skip the live-constant mirror; failing: "
+        f"{[(f.check, f.evidence) for f in _fails(findings)]}")
 
 
 def test_missing_manifest_fails(tmp_path):

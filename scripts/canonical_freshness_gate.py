@@ -46,8 +46,38 @@ except ImportError:
 if _cdocs is not None:
     DEFAULT_FRESHNESS_FILES = list(_cdocs.FRESHNESS_FILES)
 else:
-    DEFAULT_FRESHNESS_FILES = ["VISION.md", "ARCHITECTURE.md", "CLAUDE.md", "CONTRIBUTING.md",
+    # VISION.md left [#621] lane-g-621-c7 (2026-09-02) -- kept in sync with the registry by
+    # tests/test_canonical_docs.py::test_freshness_gate_consumer_fallback_equals_the_registry.
+    DEFAULT_FRESHNESS_FILES = ["ARCHITECTURE.md", "CLAUDE.md", "CONTRIBUTING.md",
                                "docs/handoffs/README.md", "protocols/ESSENTIALS.md"]
+
+# WHICH REGISTERED FILES MUST EXIST -- the distinction Z-G4 needs and this gate lacked
+# (terra P1, 2026-09-03, caught before merge).
+#
+# Z-G4 says a check that cannot compute its ground truth FAILs rather than skipping. Applied to
+# EVERY registered file that rule breaks the fleet, because THIS GATE SHIPS TO CONSUMERS: the
+# enforcement-mesh carrier byte-copies this file into each consumer repo as a pre-commit hook,
+# and `DEFAULT_FRESHNESS_FILES` registers two documents no consumer carries. MEASURED
+# 2026-09-03 against the three live consumers:
+#
+#     corp-monorepo  protocols/ESSENTIALS.md ABSENT   docs/handoffs/README.md ABSENT
+#     ai-council     protocols/ESSENTIALS.md ABSENT   docs/handoffs/README.md ABSENT
+#     win-tooling    protocols/ESSENTIALS.md ABSENT   docs/handoffs/README.md ABSENT
+#
+# An unconditional absence-FAIL therefore blocks EVERY COMMIT in all three, permanently.
+#
+# The repo already answers this and the answer is not a weakening: `canonical_docs` classifies
+# `ESSENTIALS` in `CANONICAL_OPTIONAL` and states "Presence is required only for
+# CANONICAL_MANDATORY". For an OPTIONAL document, absent IS the ground truth -- a known, correct
+# state -- not an unmeasurable one, which is the condition Z-G4 actually names. So absence FAILs
+# for a file whose presence the corpus requires, and is REPORTED (never silently skipped) for one
+# it does not. Derived from the registry at the hub, literal in the consumer copy, and the two
+# are pinned equal by `tests/test_canonical_docs.py`.
+if _cdocs is not None:
+    PRESENCE_REQUIRED = [f for f in DEFAULT_FRESHNESS_FILES
+                         if f in getattr(_cdocs, "CANONICAL_MANDATORY", ())]
+else:
+    PRESENCE_REQUIRED = ["ARCHITECTURE.md", "CLAUDE.md", "CONTRIBUTING.md"]
 # Calendar-age backstop (A1): WARN — not FAIL — past this many days even if unchanged. The
 # load-bearing signal is A2 (edited-since-review), which is the FAIL.
 FRESHNESS_CADENCE_DAYS = 30
@@ -123,7 +153,13 @@ def evaluate(repo_path: Path, freshness_files: Optional[list[str]] = None, *,
     for fname in files:
         fpath = repo_path / fname
         if not fpath.exists():
-            continue  # presence enforced elsewhere — don't double-report
+            if fname in PRESENCE_REQUIRED:
+                fails.append(f"{fname}: absent (a registered freshness-gated file whose "
+                             f"presence this corpus requires)")
+            else:
+                warns.append(f"{fname}: absent (registered but presence-optional here) - "
+                             f"reported, not skipped silently")
+            continue
         reviewed = parse_fn(fpath.read_text(encoding="utf-8"))
         if reviewed is None:
             warns.append(f"{fname}: no parseable last_reviewed frontmatter")

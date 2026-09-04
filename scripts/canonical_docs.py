@@ -157,17 +157,23 @@ CANONICAL_ALL: tuple[str, ...] = (
 ADR38_BASELINE_REQUIRED: tuple[str, ...] = tuple(n for n in CANONICAL_MANDATORY if n != CLAUDE)
 
 # The living docs carrying a `last_reviewed` stamp (the A1/A2 freshness cadence).
+# VISION LEFT 2026-09-02 ([#621] lane-g-621-c7, R-G-G3b/Z-G4 revised contract): retirement
+# from CANONICAL_MANDATORY (ADR-114) did not by itself retire it from this cadence, and it
+# kept carrying a freshness contract for a doc that is no longer anyone's front door. It
+# keeps every OTHER registry membership (CANONICAL_RETIRED, CANONICAL_SPINE, casing checks)
+# -- only the freshness-review requirement is removed.
 FRESHNESS_FILES: tuple[str, ...] = (
-    VISION, ARCHITECTURE, CLAUDE, CONTRIBUTING, HANDOFFS_README_PATH, ESSENTIALS_PATH,
+    ARCHITECTURE, CLAUDE, CONTRIBUTING, HANDOFFS_README_PATH, ESSENTIALS_PATH,
 )
 
 # --- the LIVING-DOC set: which files a freshness DERIVATION may speak about -----------------
 #
-# `[#614]` batch-E HY-1. `FRESHNESS_FILES` above names the NINE docs the A1/A2 cadence gates
-# by hand-typed stamp; this predicate names the whole LIVING corpus a git-derived freshness
-# signal can be computed for, which
+# `[#614]` batch-E HY-1. `FRESHNESS_FILES` above names the docs the A1/A2 cadence gates by
+# hand-typed stamp (EIGHT as of [#621] lane-g-621-c7's VISION removal -- five here plus the
+# three `_HUB_ONLY_FRESHNESS_FILES` audit.py adds); this predicate names the whole LIVING
+# corpus a git-derived freshness signal can be computed for, which
 # `docs/audits/2026-08-31-census-doc-freshness-derivation.md` (the tier-(A) A4 census)
-# measured at 39 files against those nine.
+# measured at 39 files against the nine that were gated at census time.
 #
 # **A PREDICATE, NOT A ROSTER, and that is the load-bearing choice.** A frozen 39-name tuple
 # is a count restated in code (CLAUDE.md §4: "never restate a count or roster in prose — cite

@@ -19,6 +19,7 @@ _GATE = Path(__file__).resolve().parent.parent / "scripts" / "canonical_freshnes
 
 def _doc(repo: Path, name: str, reviewed: str | None) -> None:
     fm = "---\n" + (f"last_reviewed: {reviewed}\n" if reviewed else "") + "---\n\n# body\n"
+    (repo / name).parent.mkdir(parents=True, exist_ok=True)
     (repo / name).write_text(fm, encoding="utf-8")
 
 
@@ -61,9 +62,20 @@ def test_evaluate_missing_stamp_warns():
     assert fails == [] and len(warns) == 1 and "no parseable last_reviewed" in warns[0]
 
 
-def test_evaluate_absent_file_skipped(tmp_path):
-    fails, warns = cfg.evaluate(tmp_path, ["DOES_NOT_EXIST.md"])
-    assert fails == [] and warns == []
+def test_evaluate_absent_file_fails(tmp_path):
+    """Z-G4 [#621] lane-g-621-c7 closure 3: an absent PRESENCE-REQUIRED member FAILs.
+
+    NARROWED at integration (terra P1, 2026-09-03) from "any registry member" to "a member whose
+    presence this corpus requires". The original name was a synthetic `DOES_NOT_EXIST.md`, which
+    is in no corpus at all — so it exercised the branch that now belongs to presence-OPTIONAL
+    entries and would have gone green against the wrong half of the split. `CLAUDE.md` is in
+    `CANONICAL_MANDATORY`, so this asserts the FAIL where Z-G4 actually bites; the optional half
+    is pinned separately by
+    `test_an_absent_OPTIONAL_file_is_reported_not_fatal_because_this_gate_ships_to_consumers`.
+    """
+    fails, warns = cfg.evaluate(tmp_path, ["CLAUDE.md"])
+    assert warns == []
+    assert len(fails) == 1 and "CLAUDE.md" in fails[0]
 
 
 def _mk_only(name: str, tmp=Path):  # tiny helper: a dir that "has" the named file
@@ -101,11 +113,17 @@ def test_gate_exits_1_on_genuine_a2_stale(tmp_path):
 
 
 def test_gate_exits_0_when_fresh(tmp_path):
-    """A doc whose last_reviewed == its commit date is fresh -> exit 0 (no block)."""
+    """Every registered file present and fresh -> exit 0 (no block).
+
+    [#621] lane-g-621-c7 closure 3: absence now FAILs, so ALL of DEFAULT_FRESHNESS_FILES
+    must be declared present here, not just the one file this test is really about
+    -- otherwise every OTHER member's absence would itself FAIL the gate.
+    """
     repo = _init_repo(tmp_path)
-    _doc(repo, "CLAUDE.md", date.today().isoformat())
-    _git(repo, "add", "CLAUDE.md")
-    _git(repo, "commit", "-q", "-m", "add fresh CLAUDE.md")
+    for name in cfg.DEFAULT_FRESHNESS_FILES:
+        _doc(repo, name, date.today().isoformat())
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "add all freshness-gated files, all fresh")
     r = _run_gate(repo)
     assert r.returncode == 0, r.stdout + r.stderr
 
@@ -118,3 +136,53 @@ def test_resolve_root_prefers_git_toplevel(tmp_path, monkeypatch):
     # even with a MISLEADING CLAUDE_PROJECT_DIR set, git-toplevel (from cwd) wins
     monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path / "elsewhere"))
     assert cfg._resolve_repo_root().resolve() == repo.resolve()
+
+
+def _stamped(p, when="2099-01-01"):
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(f"---\nlast_reviewed: {when}\n---\n\n# doc\n", encoding="utf-8", newline="\n")
+
+
+def test_an_absent_OPTIONAL_file_is_reported_not_fatal_because_this_gate_ships_to_consumers(
+        tmp_path):
+    """terra P1, 2026-09-03 — caught before merge, with the blast radius measured.
+
+    This gate is BYTE-COPIED into every consumer repo as a pre-commit hook, and
+    `DEFAULT_FRESHNESS_FILES` registers two documents no consumer carries. Measured against the
+    three live consumers on 2026-09-03: corp-monorepo, ai-council and win-tooling each lack BOTH
+    `protocols/ESSENTIALS.md` and `docs/handoffs/README.md`. An unconditional absence-FAIL blocks
+    every commit in all three, permanently.
+
+    This is not a weakening of Z-G4. `canonical_docs` puts `ESSENTIALS` in `CANONICAL_OPTIONAL`
+    and states presence is required only for `CANONICAL_MANDATORY`; for an optional document
+    absent IS the ground truth, not an unmeasurable one. The absence is still REPORTED — Z-G4's
+    real target is silence, not non-fatality.
+    """
+    from datetime import date
+    for name in ("ARCHITECTURE.md", "CLAUDE.md", "CONTRIBUTING.md"):
+        _stamped(tmp_path / name)
+    # neither optional file exists — the measured consumer shape
+
+    fails, warns = cfg.evaluate(tmp_path, git_date_fn=lambda r, f: None,
+                                today=date(2026, 9, 3))[:2]
+    assert fails == [], fails
+    assert any("ESSENTIALS" in w and "absent" in w for w in warns), warns
+    assert any("handoffs/README" in w and "absent" in w for w in warns), warns
+
+
+def test_an_absent_REQUIRED_file_still_FAILS(tmp_path):
+    """The other half: Z-G4 keeps its teeth where the corpus requires the file."""
+    from datetime import date
+    for name in ("ARCHITECTURE.md", "CONTRIBUTING.md"):
+        _stamped(tmp_path / name)
+    # CLAUDE.md is presence-REQUIRED and missing
+    fails, _ = cfg.evaluate(tmp_path, git_date_fn=lambda r, f: None,
+                            today=date(2026, 9, 3))[:2]
+    assert any(f.startswith("CLAUDE.md") and "absent" in f for f in fails), fails
+
+
+def test_presence_required_is_derived_from_the_registry_not_retyped():
+    """A second hand-typed list is how the two drift; the hub path derives it."""
+    assert set(cfg.PRESENCE_REQUIRED) <= set(cfg.DEFAULT_FRESHNESS_FILES)
+    assert "protocols/ESSENTIALS.md" not in cfg.PRESENCE_REQUIRED
+    assert "CLAUDE.md" in cfg.PRESENCE_REQUIRED

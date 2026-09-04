@@ -41,11 +41,19 @@ Checks (each FAIL exits 1; WARN informs):
   present and REQUIRED on every ``status: active`` component once the manifest
   declares it ([#244] P4 — the hub-side non-waivable floor set the Informant
   Tier-3 classifier reads; older pre-P4 manifests without the field stay green).
-- C7 doc_shapes mirror — the spec's ``doc_shapes`` exactly mirrors the current
-  authoritative constants: non-empty spines == ``audit.py::_CANONICAL_SPINE``;
-  the ``freshness_gated: true`` set ==
-  ``canonical_freshness_gate.DEFAULT_FRESHNESS_FILES``. The mirror fails loud
-  instead of drifting; audit.py stays the reader of record this release.
+- C7 doc_shapes mirror — a manifest binds to the constants AS OF ITS OWN VERSION
+  (R-G-G3b, [#621] lane-g-621-c7). Only the CURRENT manifest — the
+  highest-versioned ``deploy/manifest-v*.yaml`` present in ``repo_root`` — is
+  mirrored against the live authoritative constants: non-empty spines ==
+  ``audit.py::_CANONICAL_SPINE``; the ``freshness_gated: true`` set ==
+  ``canonical_freshness_gate.DEFAULT_FRESHNESS_FILES``. A RELEASED manifest
+  (superseded by a newer one on disk) is frozen history and PASSes without
+  comparison — no versioned per-release snapshot exists yet to bind it to
+  instead, so pinning to "current only" is the default that avoids retro-editing
+  shipped specs every time a live constant moves (the defect this re-shape
+  closes: linting v1.1.0/v1.2.0 against today's constants REDs them on any
+  unrelated drift). The mirror still fails loud for the current manifest instead
+  of drifting; audit.py stays the reader of record this release.
 - C8 engages ([#252] Slice B) — every ``status: active`` component carries a
   well-formed ``engages: {trigger, observable, expect}`` triple (the lived-workflow
   observer's enforcement-in-effect oracle, ADR-81 leg-e). ``trigger`` in the arc
@@ -69,6 +77,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -159,6 +168,31 @@ def _authoritative_doc_shapes() -> tuple[dict[str, list[str]], list[str]]:
     import canonical_freshness_gate as _cfg  # noqa: E402
 
     return dict(_audit._CANONICAL_SPINE), list(_cfg.DEFAULT_FRESHNESS_FILES)
+
+
+# ---------------------------------------------------------------------------
+# C7's version-currency gate (R-G-G3b, [#621] lane-g-621-c7): "current" is
+# structural — the highest-versioned manifest FILE present in repo_root — not
+# tag-probed. A released manifest keeps its git tag forever, so this stays
+# stable regardless of whether a caller injects a tag probe (tests do, and
+# always report "resolved" — that signal can't be reused to mean "released").
+# ---------------------------------------------------------------------------
+
+_MANIFEST_FILE_RE = re.compile(r"^manifest-v(\d+\.\d+\.\d+)\.yaml$")
+
+
+def _version_key(v: str) -> tuple[int, ...]:
+    return tuple(int(part) for part in v.split("."))
+
+
+def _current_manifest_version(repo_root: Path) -> str | None:
+    """The highest ``deploy/manifest-v*.yaml`` version present, or None if none exist."""
+    deploy_dir = Path(repo_root) / "deploy"
+    if not deploy_dir.is_dir():
+        return None
+    versions = [m.group(1) for p in deploy_dir.iterdir()
+                if (m := _MANIFEST_FILE_RE.match(p.name))]
+    return max(versions, key=_version_key) if versions else None
 
 
 # ---------------------------------------------------------------------------
@@ -389,8 +423,16 @@ def check_engages(spec: dict[str, Any]) -> list[Finding]:
     return [_pass("C8-engages", f"{carried} components carry a valid engages: triple")]
 
 
-def check_doc_shapes(spec: dict[str, Any]) -> list[Finding]:
-    """C7 — doc_shapes mirrors the authoritative audit/freshness constants exactly."""
+def check_doc_shapes(spec: dict[str, Any], bare_version: str, repo_root: Path) -> list[Finding]:
+    """C7 — for the CURRENT manifest only, doc_shapes mirrors the authoritative
+    audit/freshness constants exactly. A manifest superseded by a newer one present in
+    ``repo_root`` is released/historical and is a frozen input, not a live mirror — it
+    PASSes without comparison (R-G-G3b)."""
+    current = _current_manifest_version(repo_root)
+    if bare_version != current:
+        return [_pass("C7-doc-shapes",
+                      f"v{bare_version} is not the current manifest (v{current}) — "
+                      "released/historical, not compared to live constants")]
     shapes = spec.get("doc_shapes")
     if not isinstance(shapes, dict) or not shapes:
         return [_fail("C7-doc-shapes", "spec has no doc_shapes: section")]
@@ -433,7 +475,7 @@ def lint(repo_root: Path, version: str, *, tag_probe: TagProbe = default_tag_pro
     findings.extend(check_plugin_pin(spec, Path(repo_root)))
     findings.extend(check_floor_pin(spec, Path(repo_root)))
     findings.extend(check_components(spec))
-    findings.extend(check_doc_shapes(spec))
+    findings.extend(check_doc_shapes(spec, bare, Path(repo_root)))
     findings.extend(check_engages(spec))
     return findings
 
