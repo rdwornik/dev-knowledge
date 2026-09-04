@@ -73,9 +73,17 @@ def test_evaluate_absent_file_fails(tmp_path):
     is pinned separately by
     `test_an_absent_OPTIONAL_file_is_reported_not_fatal_because_this_gate_ships_to_consumers`.
     """
-    fails, warns = cfg.evaluate(tmp_path, ["CLAUDE.md"])
-    assert warns == []
-    assert len(fails) == 1 and "CLAUDE.md" in fails[0]
+    # A CORPUS must be present for the check to govern at all: a directory holding NONE of the
+    # presence-required files is not this check's subject (see the no-corpus guard in
+    # `evaluate`, pinned from the other side by tests/test_skip_is_not_pass.py). So the scenario
+    # is a real corpus with ONE required file missing, which is the gap Z-G4 is about.
+    for present in ("ARCHITECTURE.md", "CONTRIBUTING.md"):
+        (tmp_path / present).write_text(
+            "---\nlast_reviewed: 2099-01-01\n---\n\n# doc\n", encoding="utf-8", newline="\n")
+
+    fails, _ = cfg.evaluate(tmp_path, ["ARCHITECTURE.md", "CLAUDE.md", "CONTRIBUTING.md"],
+                            git_date_fn=lambda r, f: None)
+    assert len(fails) == 1 and "CLAUDE.md" in fails[0], fails
 
 
 def _mk_only(name: str, tmp=Path):  # tiny helper: a dir that "has" the named file
