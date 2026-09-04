@@ -1074,41 +1074,101 @@ section is ever re-titled — the parser keys on it literally, not on a heading 
 ESSENTIALS de-bless    asked 2026-09-01  re-asked 3  visible-fix: 12f4113a (CLAUDE.md sends
                        nobody to protocols/ESSENTIALS.md; its status: superseded) + 55d67d42
                        (batch G / [#628]: SESSION_SETUP.md Step 2 (x3) + Step 4 and
-                       DEFINITION_OF_DONE.md's closing See-also no longer route there).
+                       DEFINITION_OF_DONE.md's closing See-also no longer route there) +
+                       830e6286 (batch G / G6 merge).
                        RESIDUAL, filed not fixed: TWO live routes remain, both OUTSIDE this
                        row's owning lane's write-scope -- protocols/AI_COUNCIL_PROCESS.md:413
-                       and protocols/PLAYBOOK.md:330. Measured at integration 2026-09-02.
-                       Owner: [#628], batch G rides WITH the v1.5.0 tag as a release act,
-                       not behind it. Row stays OPEN on those two.
+                       and protocols/PLAYBOOK.md:330. RE-MEASURED 2026-09-04 by the batch-G
+                       integrator: both still live, unchanged. Owner: [#628], batch G rides
+                       WITH the v1.5.0 tag as a release act, not behind it. Row stays OPEN.
 VISION.md out of root  asked 2026-09-01  re-asked 2  visible-fix: 441b08d8 (batch-F L5 / [#621]
                        -- VISION.md -> docs/archive/VISION.md, content byte-identical, both
                        blobs 61bd603e) + 07a8d856 (batch G / G3: conformance-hub.js:133 both
-                       tokens repointed, canonical_docs.py CONFORMANCE_V2_SCAN follows).
-                       PARTIAL: the freshness gate still SKIPS an absent file, and VISION is
-                       still in FRESHNESS_FILES. Both were attempted and REVERTED with
-                       reproduced evidence -- release_lint C7 binds TAGGED manifests v1.1.0
-                       and v1.2.0 to live state, so removing it REDs 6 tests. Re-cut as lane
-                       G3b, which re-shapes C7 rather than retro-editing released manifests.
-                       Row deliberately OPEN.
+                       tokens repointed) + 001bb261 (batch G / G3b merge).
+                       SATISFIED 2026-09-04, the PARTIAL discharged: G3b re-shaped release_lint
+                       C7 to bind a manifest to its OWN version, so released manifests v1.1.0
+                       and v1.2.0 stay history and are NOT retro-edited. VISION is out of both
+                       FRESHNESS_FILES and the consumer fallback literal, and the freshness gate
+                       no longer skips an absent file -- absence now FAILs where presence is
+                       required and WARNs where it is optional.
 logs thinning          asked 2026-09-01  re-asked 1  visible-fix: 6241e5a8 (batch-F L3 /
-                       [#626] -- the three HUB callers re-pointed, caller-first order honored).
-                       PARTIAL and the residual is the live half: the DEPLOYED plugin copies
-                       (propose_closures.py:323, review_closures.py:232) and
-                       fleet_health.py:576 still glob FLAT, and the Stop hook runs the plugin
-                       copy. Row deliberately OPEN.
-config/ fate           asked 2026-09-01  re-asked 1  blocker: ROOT-R1 unlanded
+                       [#626] -- the three HUB callers re-pointed, caller-first order honored)
+                       + cfa9a8e3 (batch G / G4: the DEPLOYED plugin copies fixed --
+                       propose_closures.py:329,:371 and review_closures.py:235 now glob
+                       **/PROPOSALS-*.md recursively, so a bucketed file is found).
+                       PARTIAL and the residual is now precisely named, measured 2026-09-04:
+                       READING is fixed; WRITING is not. propose_closures.py:413 and :482 still
+                       write PROPOSALS-/DETECTOR-ERROR- FLAT, retention is wired into no hook,
+                       and logs_retention relocates to a MONTH bucket (logs/YYYY-MM/) -- not to
+                       the logs/proposals/ + logs/detector-errors/ pair the ask assumed.
+                       BLOCKER, new and live: retention is WEDGED. A same-day second run wrote a
+                       flat PROPOSALS-2026-09-02.md distinct from the already-archived copy, and
+                       apply_moves correctly refuses to overwrite -- aborting the whole plan, so
+                       09-03 and 09-04 queue behind it. See candidate (k). Row stays OPEN.
+config/ fate           asked 2026-09-01  re-asked 1  blocker: ROOT-R1 unlanded; re-confirmed
+                       unlanded 2026-09-04. Verdict owed: FILL vs DISSOLVE into pyproject.toml
+                       + uv groups. Batch G did not touch it.
 dashboard home         asked 2026-09-01  re-asked 1  visible-fix: 3a4066eb (ruled to
                        docs/dashboard/, four carriers reconciled, intake #66 DRAFT->READY).
-                       Blocker remaining: the folder awaits a Tier-2 ADR-101 genre admission
-                       before it may exist; a root dashboard/ is withdrawn.
+                       Blocker remaining, re-confirmed 2026-09-04: the folder awaits a Tier-2
+                       ADR-101 genre admission before it may exist; a root dashboard/ is
+                       withdrawn. TRACE before VIEW -- the three ABSENT panels are the
+                       acceptance test.
+Codespace used         asked 2026-09-02  re-asked 2  visible-fix: 4e279c1c (the G5 parity doc
+                       docs/audits/2026-09-02-verification-parity-b5753f52.md, merged 85827046)
+                       -- the substrate was decided on a measured diff, and the verdict FLIPped.
+                       blocker: container-only nodeids, root-cause candidate (H). Classification
+                       precedes closure -- see the section-V addendum in STANDING_RULINGS.
+prompt distiller       asked 2026-09-02  re-asked 2  blocker: the trace home logs/prompts/
+                       (intake #66) is unbuilt as of 2026-09-04, and it is the PRECONDITION --
+                       an input-to-output trace has nowhere to land until it exists. Owner
+                       [#617] Tier-L, sequenced into H3.
+conformance.html       asked 2026-09-02  re-asked 2  blocker: MIGRATE-not-delete is unresolved
+                       as of 2026-09-04. 4+ consumers key on the .md twin, so deleting the
+                       ecosystem/ copy breaks them and moving it needs those consumers
+                       re-pointed first. Owner intake #42.
+ARCHITECTURE size      asked 2026-09-02  re-asked 2  blocker: H slice 2 uncut as of 2026-09-04.
+                       The cut and a real end-to-end re-read must land as ONE act: the file is a
+                       FRESHNESS_FILES member, so a cut that bumps last_reviewed without the
+                       re-read produces exactly the false stamp the A2 gate exists to catch.
+BACKLOG few closures   asked 2026-09-02  re-asked 2  blocker: the groom found ZERO closable as
+                       of 2026-09-04 -- the closure RATE is the finding, not the row count.
+                       Owner [#589]. Batch G closed rows; the packet reports which, as a hard
+                       metric rather than rows touched.
+tasks/ vs archive/     asked 2026-09-02  re-asked 2  blocker: same root cause as the row above,
+                       stated plainly rather than re-diagnosed -- tasks/archive/ is thin because
+                       closures are rare, NOT because archiving is broken. Owner
+                       FUNNEL_LIFECYCLE.
+multi-provider telem   asked 2026-09-02  re-asked 2  blocker: the agy route is INERT until
+                       [#627] closes; panels [#575]/[#576] depend on it. Candidate (d) states
+                       the admission test [#627] must pass -- retrieval fidelity on a seeded
+                       corpus, finding planted contradictions and inventing none.
+README front door      asked 2026-09-02  re-asked 1  blocker: candidate (a), unlanded as of
+                       2026-09-04, flagged H0 PRECONDITION. Filed NEW by the architect's
+                       2026-09-02 note and recorded as a UNIVERSALIZATION defect rather than a
+                       hub style preference: README.md ships to every repo.
+Python code-style      asked 2026-09-02  re-asked 1  blocker: UNKNOWN -- unwitnessed. The
+                       architect could not witness this artifact on 2026-09-02 and the batch-G
+                       integrator could not resolve it from repo state on 2026-09-04. Entered
+                       as UNKNOWN deliberately, NOT as resolved.
+logs override token    asked 2026-09-02  re-asked 1  blocker: UNKNOWN -- unwitnessed, same as
+                       the row above. Entered as UNKNOWN deliberately, NOT as resolved.
 ```
 
-**Updated 2026-09-01 by the batch-F integrator.** Rows 1, 2, 3 and 5 now carry a visible-fix
-with a real SHA; rows 2, 3 and 5 are recorded as **PARTIAL**, naming precisely what did NOT
-land, because a partial fix reported as whole is worse than an open ask. Row 4 keeps its
-blocker. **No row is RED** — RED fires only on `re-asked >= 2` with **no** visible-fix **and
-no** named blocker, and every row now carries at least one. Row 2 (`re-asked 2`) would have
-been the RED candidate and is discharged by a landed SHA rather than by a promise.
+**Updated 2026-09-04 by the batch-G integrator** (was: batch-F, 2026-09-01). The register grew
+from 5 rows to 15: the architect's 2026-09-02 outgoing-seat note carried a 14-ask table, four of
+which were already rows here and were amended in place rather than duplicated. Row 2
+(`VISION.md out of root`) is the one this batch turned from PARTIAL to SATISFIED. Row 3
+(`logs thinning`) gained a NEW live blocker rather than a fix -- retention is wedged, and the
+batch found that by running it. Two rows enter as UNKNOWN with blocker `unwitnessed`, which is
+deliberate: an ask nobody can witness is not an ask that is resolved.
+
+**No row is RED, and that fact deserves its own sentence rather than a green tick.** RED fires
+on `re-asked >= 2` with no visible-fix AND no named blocker. Every row here carries one, so the
+predicate cannot fire -- and `fleet_health.ask_is_red`'s own docstring says it "does not
+adjudicate blocker QUALITY, only presence". A register in which every row names a blocker is
+therefore permanently 0 RED. That is a property of the predicate, not evidence about the work;
+the judgment the operator actually wants stays with whoever reads the blocker text.
 
 ### 17.2 The two organs — a library, and an extended tripwire, not a rival
 
