@@ -2843,6 +2843,23 @@ seat and not the tree.
 
 **Expiry:** open-ended.
 
+### V-addendum · Substrate doctrine — the base failed-set is per substrate (integrator, 2026-09-04)
+
+Recorded under V because V is where the substrate verbs live; added as a dated addendum rather than
+an edit to the 2026-08-25 ruling text above it.
+
+**Base failed-set is PER SUBSTRATE (Windows-local vs Linux-codespace); a lane compares against its
+own substrate's base. G5's container-only nodeids are re-filed as test-portability candidates, not a
+substrate verdict, pending the packet's classification.**
+
+Witness: `docs/audits/2026-09-02-verification-parity-b5753f52.md` (landed `4e279c1c`, merged
+`85827046`) — the parity measurement that produced batch G's substrate FLIP, together with its
+container set `docs/audits/2026-09-02-verification-parity-container-set-b5753f52.json`.
+
+G5's flip is **not closed by this note**. Classification comes first: a nodeid that fails only in a
+container is evidence about the test, not yet evidence about the substrate, and the two were
+conflated in the framing this addendum replaces. See candidate (e).
+
 ## W. The 2026-08-26 endgame governance rulings (window close)
 
 **The act.** Ratified by the operator across the 2026-08-25/26 window and landed here by the
@@ -3392,6 +3409,79 @@ a partial discharge; items 1 and 2 route into a new lane **G3b**, which merges L
 the tagged manifests `v1.1.0`/`v1.2.0` is REFUSED — a released manifest is history, and `C7` is the
 defect.** G3b rebinds C7 to the current unreleased manifest and fixes the minimal-fixture smoke
 tests to declare their files present, rather than weakening the Z-G4 FAIL.
+
+## AD. Batch G filings — the CANDIDATE register (Z-C shape) and the substrate note (integrator, 2026-09-04)
+
+Filed from the architect's outgoing-seat note of 2026-09-02 (step B), landed after G3b merged and
+before the close packet. **Z-C shape: these are CANDIDATEs, not rows.** ADR-111 admits exactly one
+path — CANDIDATE, then ADR-98 intake, then ratification — so nothing here draws from the ledger and
+nothing here is a commitment. The lettering runs (a)–(g), (i), (j), (k): **there is no (h)**, and its
+absence is deliberate rather than a lost entry — the note's amendment added (f) and (g), a later
+message added (i), and (h) was never filed by anyone.
+
+**(a) README as a human front door.** What-it-is, then quickstart, then a link map; governance prose
+relocated and consumers re-pointed. The note files it as NEW and marks the reason it is not merely a
+hub concern: `README.md` ships to every repo, so a README that reads as governance rather than as an
+entry point is a universalization defect, not a local style preference. **H0 PRECONDITION.**
+
+**(b) The v7 bundle ships two files named `HANDOFF_BOOT.md`.** Rename the session header, or emit a
+SWAP INSTRUCTION so the operator knows which of the two a given step means. `[#611]` family.
+
+**(c) DERIVED-COPIES REGISTRY** *(REPLACED the note's original "deployed-copy discovery" by the
+2026-09-02 amendment)*. One register of `source -> copy -> comparator`, covering the three drift
+classes this batch actually hit rather than a fourth bespoke checker:
+the L0 routing region, the plugin/executing copies, and `canonical_freshness_gate`'s fallback
+literal. `scripts/routing_agreement.py` generalizes to iterate the register. The batch is its own
+evidence: each of the three was found by a different organ, none of which knew about the other two.
+
+**(d) `[#627]` admission = retrieval fidelity on a seeded corpus.** Planted contradictions and
+orphans; the bar is that it finds them and invents none, with quota visibility recorded. The H5
+contract inherits this admission test rather than restating it.
+
+**(e) Codespace container-only nodeids — root cause.** G5's parity evidence is the witness. Held
+open deliberately: see the section-V note below, which classifies before it closes.
+
+**(f) Contract-freeze COUPLING SCAN** *(ADDED by the 2026-09-02 amendment)*. Before a lane boots,
+every symbol and constant its contract names is grepped across the repo; each referencing file is
+either inside the lane's file set or explicitly excluded, in writing, at freeze time. Evidence is
+this batch's own: G3's two escalations — the `canonical_freshness_gate` fallback literal and
+`release_lint` C7 — were each **one grep away** at freeze, and both cost a lane cut instead.
+
+**(g) Gemini/agy whole-corpus doctrine-coherence audit** *(ADDED by the 2026-09-02 amendment)*.
+Contradictions, dead rules, duplicated clauses and never-cited files, each WITH locators;
+retrieval-only, architect rules. **H0 PRECONDITION**, alongside (a).
+
+**(i) Lane liveness.** A `--bg` lane killed by its parent's resume is indistinguishable from a slow
+one: branch and worktree both persist, and the tree reads byte-quiet AND clean — the two signals a
+reader would otherwise trust. The discriminator is a heartbeat: last commit, or a progress marker
+the contract itself declares. Coupled constraint: `Dispatch-Lane` refuses an existing branch, so
+re-dispatch requires teardown first, which means a false "still running" verdict costs a manual
+teardown before recovery is even possible.
+
+**(j) PER-CONSUMER FRESHNESS REGISTRY in `.methodology.yaml`** *(operator, 2026-09-04)*. Each repo
+declares its OWN freshness-gated set in the consumer-owned carrier that already holds the `[#276]`
+waiver — `.methodology.yaml`, role `consumer-owned` (`scripts/desired_state_loader.py:82`), read as
+`ALLOWLIST_REL` at `scripts/enforcement_coverage.py:169`. Hub and consumers then each FAIL on their
+own absences; `PRESENCE_REQUIRED` stops being a hub-shaped constant shipped into repos with a
+different corpus; and the no-corpus guard at `scripts/canonical_freshness_gate.py:165-167` — the one
+documented skip this batch had to write — is **deleted rather than explained**. Carries with it the
+`scripts/audit.py:1432` docstring correction, which still describes the pre-G3b behaviour of the
+code directly beneath it. **H0 PRECONDITION:** G3b's classification is correct but hub-authored.
+Until a consumer can state its own set, every future registry change is a fleet-wide blast-radius
+decision made at the hub — which is precisely the shape that produced the defect G3b repaired.
+
+**(k) `PROPOSALS-<date>.md` is a day-granular name for a per-RUN artifact** *(integrator, 2026-09-04,
+discovered by executing step A — not from the note)*. Two proposal runs on the same day are two
+distinct artifacts with different `head_commit` and different window sizes, but they compete for one
+filename. Measured on this batch: `logs/PROPOSALS-2026-09-02.md` and
+`logs/2026-09/PROPOSALS-2026-09-02.md` are both 208,062 bytes, differ in content, and record
+`head_commit` `040dec74` / window 4763 versus `55fecf34` / window 4754 — eleven minutes apart during
+integration. Flat, the second write silently overwrites the first (`_write_artifact` overwrites
+unconditionally). Once one copy has been archived, `logs_retention.apply_moves` correctly REFUSES to
+overwrite it — and retention is then **wedged**, because the raise aborts the whole plan and every
+later day queues behind the collision. The guard is right; the naming grammar guarantees the
+collision it guards against. Resolution is a naming decision (run-scoped suffix, or an
+archive-side merge rule), and it is the operator's, so nothing was deleted.
 
 ## Editing note (read before adding an entry)
 
