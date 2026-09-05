@@ -1384,3 +1384,435 @@ def test_live_probe_template_carries_no_unbounded_row():
     offenders = [r["id"] for r in rows
                  if any(vhp._UNBOUNDED_SCOPE_RE.search(r[c]) for c in vhp._LOAD_BEARING)]
     assert offenders == [], f"unbounded probe row(s) in the shipped template: {offenders}"
+
+
+# ---------------------------------------------------------------------------
+# [batch R5P, lane-r-000] ONE `git log` for ALL bundles, not one per directory.
+#
+# _select_active_bundle spawned one `git log --diff-filter=A` PER candidate: 87 spawns
+# / 26.3 s on the live tree, ~32% of `audit.py health`'s 82.8 s. Batching that into a
+# single `--name-only` walk is only safe if selection is provably UNCHANGED, so the
+# oracle below is a FROZEN copy of the per-directory method and every test in this
+# section asserts the production selector agrees with it.
+#
+# NO `@_needs_git` IN THIS SECTION, deliberately. `scripts/proof_layer.py` ratchets the
+# population of environment-conditional guards against a committed baseline, and its
+# whole point applies here: a proof that can be SKIPPED on the machine where git is the
+# thing under test is not a mechanism. Without git these tests error loudly instead of
+# reporting a green they did not earn. Do not "restore" the decorator for symmetry with
+# the older tests above.
+# ---------------------------------------------------------------------------
+
+
+def _perdir_select(repo_path, candidates):
+    """FROZEN per-directory oracle: one `git log` per candidate, the pre-batching method.
+
+    Deliberately a COPY, not an import. An oracle that imports the implementation it is
+    meant to check agrees with it by construction and proves nothing; this copy keeps a
+    second, independent statement of the same rule so a batching regression has something
+    to disagree with. Detail STRINGS are intentionally not reproduced verbatim (the
+    batched form names a chunk, not a directory) - the contract is (bundle, kind).
+    """
+    lexical = max(candidates, key=lambda d: d.name)
+    if len(candidates) == 1:
+        return candidates[0], "sole", candidates[0].name
+
+    scrub = aud._git_location_env()
+    env = {k: v for k, v in os.environ.items() if k not in scrub}
+
+    def _run(args):
+        try:
+            p = subprocess.run(["git", "-C", str(repo_path), *args], capture_output=True,
+                               text=True, encoding="utf-8", errors="replace", env=env)
+        except OSError:
+            return None
+        return p.stdout if p.returncode == 0 else None
+
+    top = _run(["rev-parse", "--show-toplevel"])
+    if not top or not top.strip():
+        return lexical, "no-git", lexical.name
+    try:
+        same = (os.path.normcase(str(Path(top.strip()).resolve()))
+                == os.path.normcase(str(Path(repo_path).resolve())))
+    except OSError:
+        same = False
+    if not same:
+        return None, "degraded", f"git toplevel {top.strip()} is not {repo_path}"
+    if _run(["rev-parse", "--verify", "HEAD"]) is None:
+        return None, "ambiguous", ", ".join(sorted(d.name for d in candidates))
+
+    fresh, dated = [], []
+    for d in candidates:
+        out = _run(["log", "--diff-filter=A", "--reverse", "--format=%at",
+                    "--", f"docs/handoffs/{d.name}"])
+        if out is None:
+            return None, "degraded", f"git log failed for {d.name}"
+        lines = [ln.strip() for ln in out.splitlines() if ln.strip()]
+        if not lines:
+            fresh.append(d)
+            continue
+        try:
+            dated.append((int(lines[0]), d.name, d))
+        except ValueError:
+            return None, "degraded", f"unparseable add-date for {d.name}"
+
+    if len(fresh) > 1:
+        return None, "ambiguous", ", ".join(sorted(d.name for d in fresh))
+    if len(fresh) == 1:
+        return fresh[0], "fresh", fresh[0].name
+    if not dated:
+        return lexical, "no-git", lexical.name
+    dated.sort(key=lambda t: (t[0], t[1]))
+    return dated[-1][2], "add-date", dated[-1][1]
+
+
+def _spy_git(monkeypatch):
+    """Record every `git` argv audit.py spawns. Returns the (mutating) list."""
+    seen = []
+    real = aud.subprocess.run
+
+    def spy(cmd, *a, **kw):
+        if isinstance(cmd, (list, tuple)) and cmd and cmd[0] == "git":
+            seen.append(list(cmd))
+        return real(cmd, *a, **kw)
+
+    monkeypatch.setattr(aud.subprocess, "run", spy)
+    return seen
+
+
+def _log_calls(seen):
+    return [c for c in seen if "log" in c]
+
+
+def _make_bundle(repo, slug):
+    b = repo / "docs" / "handoffs" / slug
+    b.mkdir(parents=True, exist_ok=True)
+    (b / "PROBES.md").write_text(_probes_md([_PASS_SYMBOL]), encoding="utf-8")
+    return b
+
+
+def _seed_bundles(tmp_path, tracked, *, untracked=(), staged=(), name="repo"):
+    """Repo with one bundle per `tracked` (slug, iso-date), committed AT that date.
+
+    `untracked` bundles exist on disk only; `staged` bundles are `git add`ed but never
+    committed - both are "fresh" to the selector, and the distinction is exactly what
+    the fresh/ambiguous pins below exercise.
+    """
+    repo = tmp_path / name
+    (repo / "docs" / "handoffs").mkdir(parents=True)
+    (repo / "VISION.md").write_text("# V\n", encoding="utf-8")
+    run = _git_repo(repo)
+    _commit_at(run, "VISION.md", "2026-01-01T00:00:00+00:00", "seed HEAD")
+    for slug, when in tracked:
+        _make_bundle(repo, slug)
+        _commit_at(run, f"docs/handoffs/{slug}", when, slug)
+    for slug in untracked:
+        _make_bundle(repo, slug)
+    for slug in staged:
+        _make_bundle(repo, slug)
+        run(["add", "--", f"docs/handoffs/{slug}"])
+    return repo
+
+
+def _candidates(repo):
+    handoffs = repo / "docs" / "handoffs"
+    return sorted((d for d in handoffs.iterdir() if d.is_dir()), key=lambda d: d.name)
+
+
+def _dated(n, *, start_day=1):
+    """`n` tracked bundles whose add-date order is the REVERSE of their slug order, so a
+    lexical fallback and an add-date selection can never accidentally agree."""
+    return [(f"2026-07-{start_day + i:02d}-slug-{n - i:02d}",
+             f"2026-07-{start_day + i:02d}T09:00:00+00:00") for i in range(n)]
+
+
+# --- done-contract 1: ONE invocation, proven by spawn count ----------------
+
+
+def test_selector_issues_one_git_log_regardless_of_candidate_count(tmp_path, monkeypatch):
+    """The lane's whole point. 12 candidates must cost ONE `git log`, not 12 - asserted on
+    the observed spawn argv list, never on a claim in a docstring."""
+    repo = _seed_bundles(tmp_path, _dated(12))
+    cands = _candidates(repo)
+    assert len(cands) == 12, "fixture premise: 12 candidates"
+
+    seen = _spy_git(monkeypatch)
+    bundle, kind, _ = aud._select_active_bundle(repo, cands)
+
+    assert kind == "add-date"
+    assert bundle is not None and bundle.name == "2026-07-12-slug-01"
+    logs = _log_calls(seen)
+    assert len(logs) == 1, f"expected ONE git log for 12 candidates, saw {len(logs)}: {logs}"
+
+
+def test_git_log_count_does_not_grow_with_candidate_count(tmp_path, monkeypatch):
+    """O(1), not merely 'fewer': 4 candidates and 16 candidates cost the SAME number of
+    invocations. A per-directory implementation passes neither arm."""
+    counts = []
+    for n in (4, 16):
+        repo = _seed_bundles(tmp_path, _dated(n), name=f"repo{n}")
+        seen = _spy_git(monkeypatch)
+        aud._select_active_bundle(repo, _candidates(repo))
+        counts.append(len(_log_calls(seen)))
+    assert counts[0] == counts[1] == 1, f"invocation count scaled with candidates: {counts}"
+
+
+# --- done-contract 2: both methods agree, on seeded shapes AND the live tree ---
+
+
+def _shape_add_date(tmp_path):
+    return _seed_bundles(tmp_path, _dated(6))
+
+
+def _shape_fresh_untracked(tmp_path):
+    return _seed_bundles(tmp_path, _dated(5), untracked=["2026-06-01-aaa-live"])
+
+
+def _shape_fresh_staged(tmp_path):
+    return _seed_bundles(tmp_path, _dated(5), staged=["2026-06-01-aaa-staged"])
+
+
+def _shape_ambiguous(tmp_path):
+    return _seed_bundles(tmp_path, _dated(5),
+                         untracked=["2026-06-01-aaa-live", "2026-06-02-bbb-live"])
+
+
+def _shape_ambiguous_mixed(tmp_path):
+    return _seed_bundles(tmp_path, _dated(4), untracked=["2026-06-01-aaa-live"],
+                         staged=["2026-06-02-bbb-staged"])
+
+
+def _shape_sole(tmp_path):
+    return _seed_bundles(tmp_path, _dated(1))
+
+
+def _shape_unborn_head(tmp_path):
+    repo = tmp_path / "repo"
+    (repo / "docs" / "handoffs").mkdir(parents=True)
+    _git_repo(repo)
+    _make_bundle(repo, "2026-07-01-a")
+    _make_bundle(repo, "2026-07-02-b")
+    return repo
+
+
+def _shape_no_git(tmp_path):
+    repo = tmp_path / "repo"
+    (repo / "docs" / "handoffs").mkdir(parents=True)
+    _make_bundle(repo, "2026-07-01-a")
+    _make_bundle(repo, "2026-07-02-b")
+    return repo
+
+
+def _shape_nested_repo(tmp_path):
+    """repo_path sits INSIDE a different repo - add-dates would be read from the wrong
+    history, so both methods must degrade rather than answer."""
+    outer = tmp_path / "outer"
+    outer.mkdir(parents=True)
+    run = _git_repo(outer)
+    (outer / "seed.md").write_text("s\n", encoding="utf-8")
+    _commit_at(run, "seed.md", "2026-01-01T00:00:00+00:00", "outer seed")
+    inner = outer / "inner"
+    (inner / "docs" / "handoffs").mkdir(parents=True)
+    _make_bundle(inner, "2026-07-01-a")
+    _make_bundle(inner, "2026-07-02-b")
+    return inner
+
+
+def _shape_prefix_siblings(tmp_path):
+    """The #372 shape, sharpened for BATCHING: '<slug>-arc5' files live under a path that
+    STARTS WITH '<slug>'. A batched matcher that attributes by bare string prefix instead
+    of a path-segment boundary silently credits arc5's add-commit to '<slug>' - which
+    would turn the untracked '<slug>' from `fresh` into `add-date`."""
+    repo = _seed_bundles(tmp_path, [("2026-07-20-x-arc5", "2026-07-19T14:42:52+00:00"),
+                                    ("2026-07-18-other", "2026-07-18T09:00:00+00:00")],
+                         untracked=["2026-07-20-x"])
+    assert max("2026-07-20-x-arc5", "2026-07-20-x") == "2026-07-20-x-arc5"
+    return repo
+
+
+_SHAPES = {
+    "add-date": (_shape_add_date, "add-date"),
+    "fresh-untracked": (_shape_fresh_untracked, "fresh"),
+    "fresh-staged": (_shape_fresh_staged, "fresh"),
+    "ambiguous-two-untracked": (_shape_ambiguous, "ambiguous"),
+    "ambiguous-untracked-plus-staged": (_shape_ambiguous_mixed, "ambiguous"),
+    "sole": (_shape_sole, "sole"),
+    "unborn-head": (_shape_unborn_head, "ambiguous"),
+    "no-git": (_shape_no_git, "no-git"),
+    "nested-repo": (_shape_nested_repo, "degraded"),
+    "prefix-siblings": (_shape_prefix_siblings, "fresh"),
+}
+
+
+@pytest.mark.parametrize("shape", sorted(_SHAPES))
+def test_batched_and_per_directory_selection_agree(tmp_path, shape):
+    """Done-contract 2, seeded arm: for EVERY kind the selector can return, the batched
+    production selector and the frozen per-directory oracle return the same bundle and
+    the same kind. `expected_kind` is pinned separately so a shape that silently stops
+    exercising its kind (both methods agreeing on the WRONG thing) still fails."""
+    build, expected_kind = _SHAPES[shape]
+    repo = build(tmp_path)
+    cands = _candidates(repo)
+
+    got_bundle, got_kind, _ = aud._select_active_bundle(repo, cands)
+    ref_bundle, ref_kind, _ = _perdir_select(repo, cands)
+
+    assert got_kind == ref_kind, f"{shape}: kind {got_kind!r} != per-dir {ref_kind!r}"
+    assert got_kind == expected_kind, f"{shape}: no longer exercises {expected_kind!r}"
+    assert (got_bundle.name if got_bundle else None) == (
+        ref_bundle.name if ref_bundle else None), f"{shape}: bundle disagrees"
+
+
+@pytest.mark.live_repo
+@pytest.mark.slow
+def test_batched_and_per_directory_selection_agree_on_the_live_tree():
+    """Done-contract 2, LIVE arm. The seeded shapes are synthetic linear histories; the
+    live tree has merges, renames and ~87 bundles, which is where a batched pathspec walk
+    can diverge from 87 single-pathspec walks (history simplification is computed over
+    the UNION of the pathspecs, not over each one alone). Slow by construction: the
+    oracle arm IS the 87-spawn cost this lane removed."""
+    repo = Path(aud.__file__).resolve().parents[1]
+    handoffs = repo / "docs" / "handoffs"
+    if not (repo / ".git").exists() or not handoffs.is_dir():
+        pytest.skip("not a live checkout with docs/handoffs/")
+    cands = sorted((d for d in handoffs.iterdir()
+                    if d.is_dir() and d.name not in aud._BUNDLE_EXCLUDE_DIRS
+                    and (d / "PROBES.md").exists()), key=lambda d: d.name)
+    if len(cands) < 2:
+        pytest.skip("fewer than 2 live bundles - nothing to compare")
+
+    got_bundle, got_kind, _ = aud._select_active_bundle(repo, cands)
+    ref_bundle, ref_kind, _ = _perdir_select(repo, cands)
+
+    assert got_kind == ref_kind, f"live kind {got_kind!r} != per-dir {ref_kind!r}"
+    assert (got_bundle.name if got_bundle else None) == (
+        ref_bundle.name if ref_bundle else None), "live bundle selection disagrees"
+
+
+# --- done-contract 3: fresh / ambiguous semantics survive verbatim ----------
+
+
+def test_fresh_bundle_still_outranks_every_tracked_one_under_batching(tmp_path, monkeypatch):
+    """The uncommitted bundle is the one being generated right now, so it wins over every
+    tracked bundle no matter how new. Lexically SMALLEST here, so slug order cannot fake
+    the answer - and asserted together with the ONE-invocation count, because a batched
+    walk that silently fell back to per-directory would pass this alone."""
+    repo = _seed_bundles(tmp_path, _dated(8), untracked=["2026-01-02-aaa-live"])
+    seen = _spy_git(monkeypatch)
+    bundle, kind, detail = aud._select_active_bundle(repo, _candidates(repo))
+    assert (kind, bundle.name) == ("fresh", "2026-01-02-aaa-live")
+    assert detail == "2026-01-02-aaa-live"
+    assert len(_log_calls(seen)) == 1
+
+
+def test_staged_but_never_committed_bundle_is_still_fresh_under_batching(tmp_path):
+    """`git add`ed by the very pre-commit run validating it - staged is NOT committed, so
+    it has no add-date and is still the active bundle."""
+    repo = _seed_bundles(tmp_path, _dated(6), staged=["2026-01-02-aaa-staged"])
+    bundle, kind, _ = aud._select_active_bundle(repo, _candidates(repo))
+    assert (kind, bundle.name) == ("fresh", "2026-01-02-aaa-staged")
+
+
+def test_two_fresh_bundles_still_refuse_to_pick_under_batching(tmp_path):
+    """The refusal this selector exists for: two uncommitted candidates -> bundle is None
+    and kind is 'ambiguous'. A batched `git log` must not quietly reintroduce a silent
+    pick - so assert the None, the kind, AND that BOTH names reach the detail."""
+    repo = _seed_bundles(tmp_path, _dated(6),
+                         untracked=["2026-01-02-aaa-live", "2026-01-03-bbb-live"])
+    bundle, kind, detail = aud._select_active_bundle(repo, _candidates(repo))
+    assert bundle is None
+    assert kind == "ambiguous"
+    assert "2026-01-02-aaa-live" in detail and "2026-01-03-bbb-live" in detail
+    for tracked in ("slug-01", "slug-06"):
+        assert tracked not in detail, "only the FRESH candidates belong in the ambiguity"
+
+
+def test_prefix_sibling_slugs_are_not_cross_attributed(tmp_path):
+    """'<slug>' and '<slug>-arc5' share a string prefix but not a path segment. If the
+    batched attribution credits arc5's add-commit to the untracked '<slug>', the fresh
+    bundle silently becomes a dated one and the gate validates the stale sibling -
+    #372's exact failure, reintroduced through the batching door."""
+    repo = _shape_prefix_siblings(tmp_path)
+    bundle, kind, _ = aud._select_active_bundle(repo, _candidates(repo))
+    assert (kind, bundle.name) == ("fresh", "2026-07-20-x")
+
+
+def test_batched_log_failure_degrades_and_never_guesses(tmp_path, monkeypatch):
+    """Frozen default 'fall back, do not crash': a failing `git log` takes the SAME outcome
+    the per-directory method gives it today - degraded, bundle None, caller WARNs. Never a
+    lexical guess, which is the stale-bundle false green this selector replaced."""
+    repo = _seed_bundles(tmp_path, _dated(5))
+    real = aud.subprocess.run
+
+    def flaky(cmd, *a, **kw):
+        if isinstance(cmd, (list, tuple)) and "log" in cmd:
+            return subprocess.CompletedProcess(list(cmd), 128, "", "fatal: bad revision")
+        return real(cmd, *a, **kw)
+
+    monkeypatch.setattr(aud.subprocess, "run", flaky)
+    bundle, kind, detail = aud._select_active_bundle(repo, _candidates(repo))
+    assert bundle is None
+    assert kind == "degraded"
+    assert detail
+
+
+def test_every_batched_selector_git_call_still_receives_the_scrubbed_env(tmp_path, monkeypatch):
+    """The env scrub is a FROZEN default, not an incidental detail: an inherited GIT_DIR
+    resolves the guard to the WRONG toplevel and degrades selection to the lexical
+    fallback ([#355] recursion). Batching changes WHICH calls exist, so re-assert the
+    invariant over the calls that now exist - including the batched log."""
+    repo = _seed_bundles(tmp_path, _dated(6))
+    monkeypatch.setenv("GIT_DIR", str(tmp_path / "nowhere" / ".git"))
+    monkeypatch.setenv("GIT_INDEX_FILE", str(tmp_path / "nowhere" / "index"))
+    monkeypatch.setenv("GIT_AUTHOR_NAME", "Keep Me")
+
+    seen = []
+    real = aud.subprocess.run
+
+    def spy(cmd, *a, **kw):
+        if isinstance(cmd, (list, tuple)) and cmd and cmd[0] == "git":
+            seen.append((list(cmd), dict(kw.get("env") or {})))
+        return real(cmd, *a, **kw)
+
+    monkeypatch.setattr(aud.subprocess, "run", spy)
+    bundle, kind, _ = aud._select_active_bundle(repo, _candidates(repo))
+    assert kind == "add-date", "the scrub failed and selection degraded"
+    assert bundle is not None
+
+    log_calls = [(c, e) for c, e in seen if "log" in c]
+    assert len(log_calls) == 1
+    for cmd, env in seen:
+        assert env, f"no explicit env passed to {cmd} - it would inherit os.environ"
+        assert "GIT_DIR" not in env and "GIT_INDEX_FILE" not in env
+        assert env.get("GIT_AUTHOR_NAME") == "Keep Me"
+
+
+# --- frozen default: chunk above a stated bound, still O(chunks) ------------
+
+
+def test_pathspec_chunking_is_bounded_by_argv_budget_not_candidate_count(tmp_path, monkeypatch):
+    """Windows caps a command line at 32767 chars, so an unbounded pathspec list is a
+    crash waiting for a big enough corpus. Chunking keeps it O(chunks): with the budget
+    forced down to a few pathspecs' worth, 9 candidates cost far fewer than 9 calls - and
+    the SELECTION is identical to the unchunked one."""
+    repo = _seed_bundles(tmp_path, _dated(9))
+    cands = _candidates(repo)
+
+    unchunked = aud._select_active_bundle(repo, cands)
+
+    monkeypatch.setattr(aud, "_BUNDLE_LOG_PATHSPEC_BUDGET", 80)
+    seen = _spy_git(monkeypatch)
+    chunked = aud._select_active_bundle(repo, cands)
+    calls = len(_log_calls(seen))
+
+    assert 1 < calls < len(cands), f"expected chunked-but-bounded, saw {calls} for 9 dirs"
+    assert (chunked[0].name, chunked[1]) == (unchunked[0].name, unchunked[1])
+
+
+def test_default_argv_budget_leaves_the_live_corpus_in_one_chunk():
+    """The stated bound, pinned. The live tree's ~87 bundles are ~4 KB of pathspec; the
+    budget must be comfortably above that (so 'ONE invocation' is the real behaviour here)
+    and comfortably below Windows' 32767-char command-line cap (so it is a real guard)."""
+    assert 8_000 <= aud._BUNDLE_LOG_PATHSPEC_BUDGET <= 30_000
+    worst = len("docs/handoffs/2026-09-01-dev-knowledge-architect-v7") + 1
+    assert aud._BUNDLE_LOG_PATHSPEC_BUDGET // worst >= 150, "budget too tight for the corpus"
