@@ -21,7 +21,8 @@
 
 ### 2026-09-05 (d) - CC (Opus 5): the outside-harness gap analysis, and an adversarial pass falsified three of my eight absence claims
 
-**Anchors:** `ca0a2a2f`, `09f80530` (both diagnosed below - FOREIGN merges, not this arc's work)
+**Anchors:** `6d0db21f` (this arc: the deliverable + this entry) - plus `ca0a2a2f` and `09f80530`, both
+diagnosed below as FOREIGN merges, not this arc's work
 
 **Did:** ran the frozen "Architekt Jutra" research contract end to end - P0 inventory through P6
 review. 48 corpus files / 771.4 MB of licensed Polish training material plus two repos, read
