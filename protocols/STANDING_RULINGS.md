@@ -3415,11 +3415,11 @@ tests to declare their files present, rather than weakening the Z-G4 FAIL.
 Filed from the architect's outgoing-seat note of 2026-09-02 (step B), landed after G3b merged and
 before the close packet. **Z-C shape: these are CANDIDATEs, not rows.** ADR-111 admits exactly one
 path — CANDIDATE, then ADR-98 intake, then ratification — so nothing here draws from the ledger and
-nothing here is a commitment. The lettering runs (a)–(g), (i), (j), (k), (m)–(r): **there is no
+nothing here is a commitment. The lettering runs (a)–(g), (i), (j), (k), (m)–(u): **there is no
 (h)** and **no (l)**, and both absences are deliberate rather than lost entries — the note's
-amendment added (f) and (g), a later message added (i), (h) was never filed by anyone, and (m)–(r)
-arrived from the 2026-09-05 architect inbox (items 001-B, 001-C, 002-B, 002-C) with (l) likewise
-never filed by anyone.
+amendment added (f) and (g), a later message added (i), (h) was never filed by anyone, and (m)–(u)
+arrived from the 2026-09-05 architect inbox (items 001-B, 001-C, 002-B, 002-C, 004-A.3) with (l)
+likewise never filed by anyone.
 
 **Letters are allocated HERE, at filing time, not by the source that proposes an entry.** The
 2026-09-05 inbox proposed its own letters and they collided: item 005-B proposes (r), (s), (t)
@@ -3575,11 +3575,54 @@ The integrator never accepts a packet's declared green; it runs the lane's tests
 · size S. Evidence that the posture already exists and only the STEP is unnamed: Done-clause 0,
 the G5 attempt-1 record, and delta A2.
 
-**Not adopted, recorded so it is not relitigated** *(architect inbox 2026-09-05 item 002-E)*.
-Generated ADRs — `ADR-94` protects the opposite, and their cheapness is the property it guards
-against. Multiplayer / ADE — this is a single-operator system by design. Microkernel or
+**(s) PYTHON-STYLE SKILL + A MODULE/FUNCTION SIZE RATCHET, REPORT-ONLY FIRST** *(architect inbox
+2026-09-05 item 004-A.3(a))*. Reconciled before filing rather than birthed whole, per intake #66's
+binding rule. Already carried, so NOT re-filed: the ruff-selection half is `[#609]` (open, P2/S),
+whose scope is the twelve zero-cost families and which explicitly rules the costed complexity tier
+(`C901`, `PLR0912/0915`) OUT — that exclusion stands. The GAP this candidate names is what neither
+`[#609]` nor `[#502]` carries: a module/function SIZE ratchet, and a python-style skill stating the
+paradigm a reader should apply. Report-only first, taking `[#502]`'s shape (closed as a report-only
+ratchet), so it measures before it blocks. Theme E6 · size S.
+
+The standard it would carry is already DECIDED and uncarried: `ADR-108` §B-4 declares
+functional-first, dataclasses for structured data, classes only for stateful lifecycles, and PEP 8
+naming — and arms no gate. That is the defect shape this register keeps meeting, a rule that
+enforces nothing. The naming half gains its carrier separately (ruff `N`, batch P's P4); this
+candidate is the size and paradigm half.
+
+**(t) `audit.py` DECOMPOSITION MAP — BLOCKED, recorded so it is not scheduled** *(architect inbox
+2026-09-05 item 004-A.3(b))*. The map is wanted; the work is not schedulable yet. Blocker, recorded
+because an unrecorded blocker gets rediscovered: the test suite monkeypatches `audit.py`'s internals
+directly, so moving a function breaks tests that named its old home rather than its behaviour.
+Decomposition therefore costs a test-coupling repair first, and that repair is the real unit of
+work. **Do not schedule this** until the coupling is addressed. Recorded as a candidate rather than
+a row precisely so it does not enter the funnel as schedulable. Measured context from the arc:
+`audit.py` length is NOT the cost — mean cyclomatic complexity ~7, four F-rank functions in 1,620
+lines, while git spawns are 75-79 % of both gates.
+
+**(u) MUTATION TESTING AS A CODESPACE NIGHTLY** *(architect inbox 2026-09-05 item 004-A.3(c))*.
+The gate question is already ruled; what is missing is the substrate and the schedule. Runs nightly
+on codespace, not in the commit path. Sequencing is part of the candidate: **schedule it after
+batch P lands**, because P is what makes the suite cheap enough for a mutation run to be worth its
+wall-clock. Theme E7. `[#502]` is the closed evaluation this inherits from — its report-only
+posture, not a new evaluation.
+
+**Note against (f), from the same arc** *(architect inbox 2026-09-05 item 004-D)*. A research brief
+told a lane to quote the `Dispatch-Cloud` row from PLAYBOOK Ch8 — a row `boot_frontier` COMPUTES
+rather than stores, so there was no row to quote and the locator could not resolve. Recorded as the
+ARCHITECT's premise defect, not the lane's. It belongs against the coupling scan because it is the
+same class: a contract naming a symbol nobody resolved before freeze. A generated surface cannot be
+quoted verbatim; a contract must name the generator or the command, never a line that does not exist
+until something runs.
+
+**Not adopted, recorded so it is not relitigated** *(architect inbox 2026-09-05 items 002-E and
+004-A.3(d))*. Generated ADRs — `ADR-94` protects the opposite, and their cheapness is the property
+it guards against. Multiplayer / ADE — this is a single-operator system by design. Microkernel or
 plugin architecture — we are not a product. `GAP-MAP.md` is a pre-correction draft and is **not
-evidence**; the AJ audit is the authority and `GAP-MAP.md` stays in scratch, unmerged.
+evidence**; the AJ audit is the authority and `GAP-MAP.md` stays in scratch, unmerged. **Rust —
+REJECTED on MEASUREMENT, not on preference:** the compiled ceiling measured 1.33×, against git
+spawns at 75-79 % of both gates, so a rewrite buys a third while the actual cost sits untouched in
+process spawning. Recorded with its number so the question is not reopened without a better one.
 
 ## Editing note (read before adding an entry)
 
