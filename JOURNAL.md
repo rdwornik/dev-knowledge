@@ -21,7 +21,7 @@
 
 ### 2026-09-05 (d) - CC (Opus 5): the manifest already knew, and the scalar the ruling named moves on the clock
 
-**Anchors:** `73bf4272`, `6de676fb`, `1d96e0de`, `3200757d`, `ca0a2a2f`
+**Anchors:** `1d192245`, `73bf4272`, `6de676fb`, `1d96e0de`, `3200757d`, `ca0a2a2f`
 
 > **Integrator anchor-drain.** The last four are MERGE commits on main's first-parent
 > spine that carried no `Anchors:` record line and were hard-failing
