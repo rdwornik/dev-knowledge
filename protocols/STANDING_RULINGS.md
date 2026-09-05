@@ -3912,7 +3912,14 @@ Recorded under ADR-111 §1(c), continuing the Z-C shape of AB, AD and AE. **This
 not a row.** It carries no peg, no owner and no size band; nothing here draws from the ledger and
 nothing here is a commitment. Filed by the integrator on the architect's ruling of 2026-09-05
 (evening, rulings 5 and 4), and **credited to the seat-notes lane**, which surfaced the underlying
-observation. It joins the queued "two REDs + spine message" lane, sequenced after the tag.
+observation.
+
+*Routing, recorded and kept separate from status.* The architect's ruling also names where
+this would be worked if it is ever ratified — the queued "two REDs + spine message" lane,
+after the tag. That is a recorded routing note, not a position in a queue this candidate has
+earned: it does **not** advance the entry's ADR-111 status, and intake (ADR-98) is still owed
+before any work begins. The two are stated separately because collapsing them is how a
+candidate quietly becomes a commitment.
 
 **AF-1 · A check states its predicate in its own failure text, and hands over one diagnostic
 command.**
@@ -3939,8 +3946,10 @@ per reader, forever.
 asymmetric. The committing-tree-versus-shared-ref asymmetry is a separate question and is not
 disposed of here.
 
-**AF-2 · Two teardown facts the same day produced, recorded with the carrier because they share its
-failure mode.**
+**AF-2 · Two teardown facts the same day produced, recorded with the carrier.** The first shares
+AF-1's failure mode exactly. The second does not, and is filed here only because the architect's
+ruling of 2026-09-05 directed that it be recorded alongside; it is a branch-topology observation
+and is marked as such rather than folded into the predicate concern.
 
 - *Merged-and-torn-down is indistinguishable from never-existed when checked with `git branch`.*
   The check for "did X land" is `git log --first-parent main` for the **merge** — a ref query cannot
@@ -3950,12 +3959,14 @@ failure mode.**
   "never happened" is not a check.* That sentence is the reason AF-1 and AF-2 are filed together
   rather than separately — both are predicates that cannot distinguish the two states they exist to
   distinguish.
-- *Two-branch teardown collapses to one local plus one remote when the work branch IS the
-  provisioning branch.* WORKTREE TEARDOWN IS TWO BRANCHES assumes a work branch distinct from
-  `worktree-<name>`; where a lane commits directly on its provisioning branch there is one branch,
-  and teardown is complete at one local delete plus one origin delete. Recorded so the rule is not
-  read as requiring a second branch that never existed — and so a seat does not go looking for one
-  and conclude teardown is unfinished.
+- *A topology note, recorded and not ruled.* WORKTREE TEARDOWN IS TWO BRANCHES assumes a work
+  branch distinct from `worktree-<name>`. Where a lane commits directly on its provisioning
+  branch the two are one branch, so the rule's arithmetic yields one local delete plus one
+  origin delete rather than two of each. This states what the existing rule already implies in
+  that topology: it amends nothing, defines no completion criterion, and binds no reader. It is
+  recorded so a seat meeting that topology does not go looking for a second branch that never
+  existed and conclude its teardown is unfinished. Whether the rule should say so itself is a
+  question for whoever takes AF-1 through intake, and is not answered here.
 
 ## Editing note (read before adding an entry)
 
