@@ -186,6 +186,8 @@ class Measurement:
     pool_files: int = 0
     pool_unreadable: list[str] = field(default_factory=list)
     pool_resolved: bool = False
+    #: artifact -> link kind ('explicit' | 'lane-slug'), the 2026-09-05 manifest-link route.
+    manifest_linked: dict[str, str] = field(default_factory=dict)
     detector_id: str = DETECTOR_ID
 
 
@@ -346,7 +348,27 @@ def measure(repo_root_path: Path) -> Measurement:
     m.pool_files = pool_files
     m.pool_unreadable = pool_unreadable
     m.pool_resolved = pool_files > 0 and not pool_unreadable
-    m.unconsumed = sorted(n for n in m.corpus if not (identifiers(n) & tokens))
+
+    # THE MANIFEST-LINK ROUTE (operator ruling, 2026-09-05). A batch manifest IS a governance
+    # surface -- it is the gate-readable record of what a batch dispatched and what it closed
+    # with -- so an artifact it links is CONSUMED by it. This is a deliberate, NARROW opening
+    # of the pool exclusion this module's docstring states: `docs/audits/` is excluded as a
+    # citer because "a mention in a session log or a machine baseline is a record that the
+    # file existed, not evidence that anything consumes it". A manifest is neither. It is
+    # read by `scripts/batch_manifest.py` at the ADR-110 exemption gate, so a link from one is
+    # load-bearing rather than incidental -- which is exactly the distinction the exclusion
+    # was drawn on. Only files matching `batch_manifest.MANIFEST_GLOB` (and each one's
+    # `closed_by:` target) become citers; the rest of `docs/audits/` stays excluded.
+    try:
+        import batch_manifest as _bm
+    except ImportError:  # pragma: no cover - both import shims are installed in-tree
+        from scripts import batch_manifest as _bm
+    links = _bm.manifest_links(root)
+    m.manifest_linked = {n: k for n in m.corpus
+                         if (k := _bm.links_artifact(links, n)) is not None}
+
+    m.unconsumed = sorted(n for n in m.corpus
+                          if not (identifiers(n) & tokens) and n not in m.manifest_linked)
     return m
 
 
