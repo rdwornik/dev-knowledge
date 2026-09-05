@@ -99,6 +99,18 @@ PENDING_TERM = "PENDING"
 # from a drain.
 DETECTOR_ID = "funnel-coverage/v1"
 
+#: NOT BUMPED BY THE 2026-09-05 MANIFEST-LINK RULING, and the reason is the ratchet's own
+#: safety property rather than convenience. The id exists so a predicate revision cannot
+#: silently REBASE the debt: `ratchet_findings` refuses to compare a baseline stamped with a
+#: different id, which is right when a revision can move an artifact in EITHER direction.
+#: This revision is strictly MONOTONE -- it only ever adds a coverage route, so an artifact
+#: covered under the old predicate is covered under the new one and `uncovered` can only
+#: shrink. A shrinking predicate cannot hide debt: it adds no name to the baseline, and every
+#: name it removes shows up as ratchet-down headroom. Bumping here would replace 32 by-name
+#: regressions with one "not commensurable" WARN -- switching the leg OFF while appearing to
+#: satisfy it, which is the exact failure the id was introduced to prevent.
+#: `tests/test_funnel_coverage.py::test_manifest_link_route_is_monotone` pins the property.
+
 # JSON, not YAML, and the reason is a MEASURED false positive in a sibling organ rather than
 # a preference. `silent_rule_detector`'s governed corpus is `protocols/*.md`,
 # `templates/**/*.{md,tmpl}` and `ecosystem/*.yaml`; this baseline enumerates 613 audit
@@ -204,13 +216,19 @@ class Measurement:
     pending: dict[str, LedgerRow] = field(default_factory=dict)
     malformed: list[LedgerRow] = field(default_factory=list)
     dangling: list[LedgerRow] = field(default_factory=list)
+    #: artifact -> link kind ('explicit' | 'lane-slug'). The 2026-09-05 operator ruling: an
+    #: audit linked from a batch manifest is DISPOSITIONED by that link. Kept as its own
+    #: field rather than folded into `dispositioned` because a manifest link is not a ledger
+    #: row -- it carries no ruled term and no evidence locator, so reporting it as one would
+    #: overstate what was recorded.
+    manifest_linked: dict[str, str] = field(default_factory=dict)
     detector_id: str = DETECTOR_ID
 
     @property
     def uncovered(self) -> list[str]:
         """Artifacts with NO ledger record at all. PENDING is deliberately excluded --
         see the module docstring; a recorded open question is not an unlooked-at file."""
-        known = set(self.dispositioned) | set(self.pending)
+        known = set(self.dispositioned) | set(self.pending) | set(self.manifest_linked)
         return sorted(n for n in self.corpus if n not in known)
 
 
@@ -453,6 +471,21 @@ def measure(repo_root: Path) -> Measurement:
     m = Measurement()
     m.corpus = sorted(p.name for p in paths if p.name not in CORPUS_EXCLUDE)
     corpus_set = set(m.corpus)
+
+    # THE MANIFEST-LINK ROUTE (operator ruling, 2026-09-05). An artifact a batch manifest
+    # links -- via `closed_by:`, as a lane packet, or as a close packet -- is dispositioned by
+    # that link. Library-first: `batch_manifest` already owns manifest discovery, frontmatter
+    # parsing and the lane-slug grammar, so none of it is re-derived here. Import is LOCAL to
+    # keep module import order free of a cycle (`consumer_at_landing` imports this module).
+    try:
+        import batch_manifest as _bm
+    except ImportError:  # pragma: no cover - both import shims are installed in-tree
+        from scripts import batch_manifest as _bm
+    links = _bm.manifest_links(Path(repo_root))
+    for name in m.corpus:
+        kind = _bm.links_artifact(links, name)
+        if kind is not None:
+            m.manifest_linked[name] = kind
 
     for p in paths:
         try:
