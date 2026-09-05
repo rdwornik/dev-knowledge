@@ -19,6 +19,41 @@
 
 ---
 
+### 2026-09-05 (u) - CC (Opus 5, INTEGRATOR-2): FILINGS-3 torn down to origin, and a freshness gate that passed correctly while its file went stale
+
+**Did:** Tore down `worktree-filings-3` on the seat's own trigger, then found and repaired a stale
+generated index the day's merges had left behind.
+
+**Result:** Teardown complete at every level git controls: containment proved with
+`merge-base --is-ancestor` (exit 0) before anything was deleted, `-d` never `-D`, LOCAL branch
+deleted, **ORIGIN branch deleted and verified at zero refs**, registration pruned. The seat pushed
+that branch three times, so a local-only delete would have left the defect at half its radius -
+the half that survives review because `git branch` looks clean. Work and provisioning branch
+shared the name here, so the two-branch rule collapsed to one local plus one remote, exactly as
+AF-2b records. The DIRECTORY refused with `Permission denied`, which the seat predicted before
+exiting: that is the husk class, not a git problem, and only the holding process can free it.
+
+The index is the more interesting half. `docs/audits/README.md` was STALE at 894 against 896 live
+audit documents. The `audit-index-freshness` pre-commit gate is not broken and did not misfire -
+it inspects STAGED files, and both new audits arrived through `--no-ff` MERGES, which stage
+nothing. The gate was asked "do the staged files leave the index stale?", answered "no" correctly,
+and the index went stale anyway. That is the SECOND time today a check returned the right answer
+to the wrong question - the first being `git branch` reporting a merged-and-torn-down branch as
+never-existed, which is AF-2a. Same shape, different organ. Worth noticing that AF-1's candidate
+would not have helped here: the gate never fired, so there was no failure text to improve. What
+found it was running the generator's own `--check` by hand after the merges, which nothing
+schedules.
+
+**Changes:** `docs/audits/README.md` (regenerated, 894 -> 896); this entry.
+
+**Abandoned:** Nothing. The full-suite run started earlier is discarded as a measurement rather
+than reported: two docs commits landed while it was in flight, so it is not a clean snapshot of
+any tree. A single clean run replaces it rather than a caveated number.
+
+**Next:** One clean full-suite run as the batch's integration measurement, then the census.
+
+**Anchors:** `e9f957ae` (the regenerated index, introduced by this arc's merge).
+
 ### 2026-09-05 (t) - CC (Opus 5, INTEGRATOR-2): filings-3's arc lands, and AF's predicate paragraph is repaired by reading back what shipped
 
 **Did:** Merged `worktree-filings-3` @ `5dade2d6` (R5 item 018 + the B3/B4 residue ledger) with
