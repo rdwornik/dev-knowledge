@@ -123,7 +123,7 @@ def test_unlinked_artifact_still_raises_two(seeded: Path):
 
 # --- the property that licenses NOT bumping the detector id -----------------------
 
-def test_manifest_link_route_is_monotone(seeded: Path):
+def test_manifest_link_route_is_monotone(seeded: Path, monkeypatch):
     """The route may only ever move an artifact uncovered -> covered.
 
     This is what keeps the committed baseline commensurable without a `DETECTOR_ID` bump: a
@@ -133,8 +133,24 @@ def test_manifest_link_route_is_monotone(seeded: Path):
     """
     with_route = fc.measure(seeded)
     covered_with = set(with_route.corpus) - set(with_route.uncovered)
-    covered_without = covered_with - set(with_route.manifest_linked)
-    assert covered_without <= covered_with
+
+    # THE ROUTE IS GENUINELY DISABLED, not subtracted (terra, pass 3, record-only -- and the
+    # criticism was right). The first version derived `covered_without` as
+    # `covered_with - manifest_linked`, which makes the containment true by set algebra: it
+    # passed with the route deleted, and asserted nothing about it. That is this file's own
+    # named failure mode -- a check that passes because it looks in a place where dispositions
+    # never were -- committed inside the test written to prevent it.
+    monkeypatch.setattr(bm, "links_artifact", lambda *_a, **_k: None)
+    without_route = fc.measure(seeded)
+    covered_without = set(without_route.corpus) - set(without_route.uncovered)
+
+    assert not without_route.manifest_linked, "the route was not actually disabled"
+    assert covered_without <= covered_with, (
+        "the route removed coverage from an artifact that had it without the route -- it is "
+        "additive by contract, so this can only mean it is not")
+    # ... and it must actually DO something here, or the containment above is vacuous again.
+    assert covered_with - covered_without, (
+        "the seeded tree exercises the route not at all; the monotonicity claim is untested")
     assert set(with_route.manifest_linked) <= set(with_route.corpus)
 
 
@@ -225,3 +241,61 @@ def test_artifact_tail_refuses_a_stem_that_is_all_class_and_no_tail():
     assert bm.artifact_tail("2026-09-05-technical") is None
     assert bm.artifact_tail("2026-09-05-technical-") is None
     assert bm.artifact_tail("not-a-dated-stem-at-all") is None
+
+
+#: The WIDENING shadow, made concrete. A shadowed enum carrying `technical-review-of` makes
+#: `2026-09-05-technical-review-of-lane-g-276-deploy-waiver` split at that longer class, so its
+#: tail becomes `lane-g-276-deploy-waiver` -- and the document ABOUT lane g-276 is admitted as
+#: that lane's own artifact. That is the pass-1 HIGH, reopened from outside the file.
+_HERMETIZATION_SHADOW_PROBE = '''
+import sys, types
+sys.path.insert(0, {scripts!r})
+shadow = types.ModuleType("validate_hermetization")
+shadow.__file__ = "/nowhere/validate_hermetization.py"
+shadow.AUDIT_CLASS_ENUM = frozenset({{"technical-review-of"}})
+sys.modules["validate_hermetization"] = shadow
+try:
+    import batch_manifest as bm
+except ImportError:
+    print("REFUSED")
+    raise SystemExit(0)
+import validate_hermetization as vh
+print("IDENTITY_HOLDS" if bm.AUDIT_CLASS_ENUM is vh.AUDIT_CLASS_ENUM else "IDENTITY_BROKEN")
+links = bm.ManifestLinks(frozenset(), frozenset({{"lane-g-276"}}), ())
+name = "2026-09-05-technical-review-of-lane-g-276-deploy-waiver.md"
+print("FALSE_COVERAGE" if bm.links_artifact(links, name) else "STILL_REFUSED")
+'''
+
+
+def test_a_preloaded_shadow_of_the_hermetization_module_is_REFUSED_at_import():
+    """The hole `test_the_class_enum_is_the_hermetization_module_s_own_object` CANNOT see.
+
+    TERRA HIGH, PASS 3, AND THE CRITICISM IS EXACT. That identity assertion compares
+    `bm.AUDIT_CLASS_ENUM` with `vh.AUDIT_CLASS_ENUM`, and both names resolve through the SAME
+    `sys.modules` entry -- so a preloaded shadow makes the two agree perfectly while a
+    FABRICATED grammar governs the exemption. The assertion passes with the provenance guard
+    deleted, which means it tests the wrong thing on its own: it pins that there is one enum,
+    not that the enum is the RIGHT one.
+
+    This is the same shape as `test_a_preloaded_shadow_of_the_enum_module_is_REFUSED_at_import`
+    in `tests/test_batch_manifest.py`, and it is here for the same reason that one exists: the
+    2026-08-11 terra HIGH established that a name-import CAN suffer the `gitenv` failure mode,
+    against the argument that it could not.
+
+    The probe does not merely assert refusal -- it carries the attack, so a future reader can
+    see what the guard buys. With the guard removed the probe prints IDENTITY_HOLDS then
+    FALSE_COVERAGE: a document ABOUT lane g-276 admitted as that lane's own artifact, silencing
+    both ratchets. Run in a SUBPROCESS because a shadow installed in this interpreter would
+    poison every later test in the worker.
+    """
+    import subprocess
+    import sys as _sys
+
+    scripts = str(Path(__file__).resolve().parent.parent / "scripts")
+    probe = _HERMETIZATION_SHADOW_PROBE.format(scripts=scripts)
+    proc = subprocess.run([_sys.executable, "-c", probe], capture_output=True, text=True,
+                          encoding="utf-8", errors="replace", timeout=60)
+    out = proc.stdout.strip()
+    assert out == "REFUSED", (
+        "a preloaded shadow of validate_hermetization was NOT refused at import; "
+        f"probe said {out!r} (stderr: {proc.stderr.strip()[:400]!r})")
