@@ -189,6 +189,59 @@ wrong word for a provider that quoted three real files correctly and said which 
 and an absolute honesty gate decided on a mis-typed charge is worth correcting even when the
 outcome holds.
 
+### D-E · A grep result batch-F reports as measured does not reproduce at its own head
+
+This one was not in the brief; it surfaced while recomputing N-04's premise, and it is the most
+serious of the five because of *where* it sits — inside the section where batch-F is disclosing
+its own honesty residue.
+
+Batch-F §2, on N-04's decayed premise:
+
+> Direct greps for `intake[ #-]*43\b` / `...63\b` / `...65\b` (excluding the same categories)
+> return **zero** non-excluded hits for each — intake ids **43**, **63**, and **65** are now
+> equally orphaned by the prompt's own rule, alongside 51.
+
+**Checked at `c8396f5d` — batch-F's own stated head, which still exists in this repository:**
+
+```
+git grep -lE "intake[ #-]*63\b" c8396f5d -- JOURNAL.md ecosystem/north-star.md scripts/gen_north_star.py
+  c8396f5d:JOURNAL.md
+  c8396f5d:ecosystem/north-star.md
+  c8396f5d:scripts/gen_north_star.py          <- three non-excluded hits, not zero
+
+git grep -lE "intake[ #-]*65\b" c8396f5d -- JOURNAL.md
+  c8396f5d:JOURNAL.md                         <- one non-excluded hit, not zero
+```
+
+Not a timing artifact: the `#63` mentions landed 2026-08-29 (`abd0b66c`) and 2026-08-31
+(`08029542`), both **before** batch-F ran; the `#65` mention landed in `c0fae6c1`, which
+`git merge-base --is-ancestor` confirms **is an ancestor of `c8396f5d`**.
+
+A mechanical recount of N-04's actual predicate at the current head
+(`recount_n04.py`, 57 candidates scanned) returns a five-member orphan set:
+
+```
+intake 43, 44, 46, 47, 51        frozen premise "exactly one" HOLDS: False
+```
+
+**agy named 43/44/46/47. Batch-F named 43/63/65. The mechanical recount matches agy, not
+batch-F** — and batch-F wrote the disagreement up as agreement:
+
+> agy's own response independently surfaced the same drift, naming 43/44/46/47 as additional
+> candidates under the same rule — **a second, independent confirmation.**
+
+It is not the same set; it differs in two of three members, and the two batch-F added are the two
+that are wrong. The cause is visible in its own method: it grepped only the `intake #<id>` form,
+while N-04's prompt disqualifies a file mentioned **"neither by its filename nor in the form
+`intake #<id>`"**. Filename mentions were never searched, and only three ids were spot-checked
+rather than the set recomputed.
+
+**The consequence is not rhetorical.** Φ_analysis(c) — the fabrication predicate batch-F was
+applying to agy — fires on *"a COUNT or tally presented as measured that a mechanical recount at
+the head refutes"*. Batch-F's §2 contains exactly that. The auditor failed the gate it was
+enforcing, in the passage meant to demonstrate its own rigour, and the provider it failed was
+right about the underlying fact.
+
 ## 3. The corrected cell — 9 of 9, nothing floating
 
 Re-derived from the batch-F evidence **as recorded**, with D-B and D-C applied. This is the
