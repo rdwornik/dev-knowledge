@@ -1315,3 +1315,109 @@ exception earned its keep: of the seven measurement results this amendment contr
 carrier plan output, floor-leg isolation, hook-stage arming, waiver validation, region drift, and
 drift provenance — **not one was obtainable from the cloud**, and six of the seven required a
 consumer working tree on disk, exactly as §1 B1.2 predicted.
+
+---
+
+## AMENDMENT 2 — architect-supplied, recorded against §4 (2026-09-05)
+
+**Date:** 2026-09-05 · **Class:** technical (recording) · **Seat:** CC (Opus 5) ·
+**Substrate:** LOCAL · **Branch:** `worktree-lane-fleet-readiness-measurement`
+
+**Status: ARCHITECT-SUPPLIED, NOT MEASURED.** This amendment records a claim that neither the
+cloud half nor AMENDMENT 1's measurement half established. It is entered on the same evidentiary
+footing the body uses for demo-prep's unpushed feature branch — *"an operator-supplied fact, not a
+measured one"* (§0) — and it must not be read forward as a measurement.
+
+**Source.** Architect inbox item **002-D**, relayed by the dispatching session. The peer session
+that processed the inbox declined to write into this lane's worktree while the lane was live, which
+was correct; this amendment is the forwarding path, not an edit by that session.
+
+**Target: §4 (the corp-monorepo H0 runbook). POINTED AT, NOT EDITED.** §4 lives in `cb1d713a` and
+is immutable (critical rule 3). Nothing above the `## AMENDMENT 1` heading changes by one byte, and
+nothing inside AMENDMENT 1 changes either — the pre-amendment body hash recorded at A7 still holds.
+The instruction was *record in §4, do not build*: no new work, no new measurement, no carrier run.
+
+### A8 · The enforcement asymmetry inverts at H0
+
+> At H0 the enforcement asymmetry **inverts**. Maister's gates are prose because it is a plugin
+> living in a host repo — it cannot arm a hook it does not own, so it asks. Via `tier1-lifecycle`
+> we become a plugin *in* corp-monorepo, which puts us on the same side of that asymmetry for the
+> first time. The carrier must therefore ship **mechanisms** — hooks actually armed, floor files
+> present and hash-checked, per-consumer waivers, and the freshness registry of candidate (j) — and
+> **not prose regions**. A carrier that ships prose hands the consumer Maister's shape: rules that
+> read as governance and enforce nothing.
+
+**Cited source, and its resolution status.** The paragraph cites *AJ gap analysis §4, "What we have
+that they do not (so we do not cargo-cult)"*. **That locator does not resolve in this repository**:
+neither the section title nor the string `Maister` appears anywhere in the corpus (searched across
+`*.md`, `*.yaml`, `*.txt`, excluding `.git`). It is recorded here as cited, unresolved, and
+external — not as evidence read. This is the §1/CLAUDE.md locator discipline applied to an inbound
+claim rather than an outbound one: an unopened locator is a claim, not evidence, and saying so is
+cheaper than a reader later discovering it.
+
+**Candidate (j) is SETTLED, not open.** The paragraph names "the freshness registry of candidate
+(j)". That is carried in `protocols/STANDING_RULINGS.md` §AD — *"Batch G filings — the CANDIDATE
+register (Z-C shape) and the substrate note (integrator, 2026-09-04)"* — as **"(j) PER-CONSUMER
+FRESHNESS REGISTRY in `.methodology.yaml`"** *(operator, 2026-09-04)*, marked **H0 PRECONDITION**.
+Verified present before citing. **It is cited as settled and is NOT filed here.** Note §AD's own
+framing binds it: those entries are CANDIDATEs under ADR-111, not commitments.
+
+### A9 · Where AMENDMENT 1's measurements bear on A8
+
+**Read the boundary carefully: A8 is supplied; everything in A9 is measured.** The measurements
+below neither prove nor extend A8's claim about the inversion — they establish only that the
+distinction A8 draws is *presently measurable*, and that it currently falls the way A8 warns.
+
+**1. The mechanism A8's inversion runs through is absent on every consumer measured.**
+A8 turns on *"via `tier1-lifecycle` we become a plugin in corp-monorepo"*. A3 measured that carrier
+by running `deploy/tool.py` in plan mode against fresh origin clones:
+
+```
+CARRIER       corp-monorepo  ai-council  win-tooling
+tier1-plugin  ABSENT         ABSENT      ABSENT
+```
+
+`tier1-plugin` is `implemented: true` at v1.4.0 and v1.5.0 — so unlike `editor-config` this is a
+real, closable gap, and it is the **only** implemented carrier absent fleet-wide. A8 describes a
+posture the fleet has not yet entered on any consumer. That is a statement about sequencing, not a
+contradiction of A8.
+
+**2. The prose/mechanism split A8 warns about is already asymmetric, in the direction A8 predicts.**
+A3-S and A4 measured both halves independently:
+
+```
+                                    corp-monorepo  ai-council  win-tooling
+PROSE half   hub regions present    8 of 8         8 of 8      0 of 8
+             region corpus vintage  2026-07-12     2026-07-12  n/a (unenrolled)
+MECHANISM    hook stages armed      1 of 3         1 of 3      3 of 3
+half         floor bytes clean      yes            yes         yes
+             .methodology.yaml      present        present     ABSENT
+```
+
+The two consumers carrying the full prose corpus arm **one hook stage of three** — `commit-msg` and
+`pre-push` are installed and never fire (A3-S). The consumer that arms all three carries **no hub
+prose at all** (A4). On the measured evidence the fleet's prose coverage and its mechanism coverage
+are not merely distinct signals, they are presently **anti-correlated**, and no verdict in the sheet
+combines them.
+
+**3. A concrete instance of "rules that read as governance and enforce nothing."**
+A4-D measured that both prose-carrying consumers instruct sessions *"AGENTS.md is retired
+(ADR-53)"* — a rule ADR-115 reversed on 2026-08-25 — while `ADR-115` appears in none of the three.
+That is a governance-shaped line, shipped, stale, and enforcing nothing. It is offered as an
+instance, not as proof of A8's general claim.
+
+### A10 · Register discipline — one coordination note, no filing
+
+Per the routing instruction accompanying 002-D, the peer session **"architect inbox processor" is
+the single writer** for the lettered CANDIDATE register in `STANDING_RULINGS.md` §AD, and has
+landed (m)–(r). **This amendment files nothing into that register**, opens no candidate, and does
+not touch `STANDING_RULINGS.md`.
+
+**One thing the integrator should know rather than discover.** AMENDMENT 1 §A6 records six
+candidates numbered **Z-C-11 … Z-C-16**, continuing the *audit-local* `Z-C-n` sequence the body
+opened at §5 (Z-C-1 … Z-C-10). Those were written and committed (`8919ba08`) **before** the
+single-writer instruction reached this lane. They are audit-local records under ADR-111 — none is a
+BACKLOG row and none was filed into §AD's lettered register — but they are numbered in a sequence a
+second writer could also extend. They are left standing rather than withdrawn, because withdrawing
+them would discard measured findings; **routing them for register admission is the inbox
+processor's call, not this lane's.**
