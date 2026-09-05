@@ -29,6 +29,7 @@ import audit as aud  # noqa: E402
 import backlog_source as _bs  # noqa: E402  — [#589]: the scanner's own backlog reader
 from pathlib import Path  # noqa: E402
 import pytest
+import yaml
 
 
 # --- fixtures ---------------------------------------------------------------
@@ -151,16 +152,92 @@ def _row_of_length(idn: int, n: int) -> str:
     return stem + "x" * (n - len(stem))
 
 
+def _arm2(findings):
+    """The ONE corpus-level ARM-2 Finding in `findings` — asserting there is exactly one.
+
+    Every ARM-2 assertion below routes through this helper, so "exactly one Finding for the
+    whole corpus" is re-checked by every test in the block rather than by one of them.
+    """
+    hits = [f for f in findings if f.category == "backlog-row-length"]
+    assert len(hits) == 1, f"expected ONE corpus ARM-2 Finding, got {len(hits)}"
+    return hits[0]
+
+
+def test_arm2_emits_one_corpus_finding_naming_three_over_ceiling_rows():
+    # THE SEEDED FIXTURE for the ARM-2 reshape (batch R5P lane 1): three rows over the
+    # declared ceiling — plus one under it, so the denominator can never be the numerator —
+    # must yield EXACTLY ONE Finding for the whole corpus, and that Finding must NAME the 3.
+    # Before the reshape this fixture produced three Findings, one per row.
+    rows = [_row_of_length(801, 1400), _row_of_length(802, 1500),
+            _row_of_length(803, 2000), _row_of_length(804, 300)]
+    f = _arm2(vdr.scan_backlog_accretion(_backlog(rows), _TODAY))
+    assert f.locus == "BACKLOG#row-length"
+    assert f.detail.startswith("3 of 4 rows over the declared ceiling 1320 chars")
+    assert "longest 2000 chars" in f.detail
+
+
+def test_arm2_corpus_finding_says_LONG_not_rot():
+    # The module's own posture, preserved through the reshape ([#532]/A9): a row over the
+    # ceiling is LONG, which is answerable, not ROT, which is a false confession. Collapsing
+    # N WARNs into 1 Finding is a REPORTING change and must not smuggle in a promotion.
+    f = _arm2(vdr.scan_backlog_accretion(_backlog([_row_of_length(805, 1400)]), _TODAY))
+    assert "LONG, not rot" in f.detail
+
+
+def test_arm2_percentiles_are_nearest_rank_over_ALL_rows_not_the_flagged_ones():
+    # sorted lengths [300, 1400, 1500, 2000]; NEAREST RANK -> p50 = #2, p75 = #3, p90 = #4.
+    # The percentiles are over the WHOLE corpus by design: computed over the flagged rows
+    # alone all three would sit above the ceiling BY CONSTRUCTION and would say nothing
+    # about the corpus the ceiling is a contract for. 1320 was itself once set as a corpus
+    # p90, so the corpus distribution is the quantity the reference line is comparable to.
+    rows = [_row_of_length(801, 1400), _row_of_length(802, 1500),
+            _row_of_length(803, 2000), _row_of_length(804, 300)]
+    f = _arm2(vdr.scan_backlog_accretion(_backlog(rows), _TODAY))
+    assert "row-length p50/p75/p90 over all 4 rows = 1400/1500/2000 chars" in f.detail
+
+
+def test_percentile_nearest_rank_boundaries():
+    # The percentile helper in isolation: nearest rank, 1-indexed, never interpolating —
+    # every reported percentile is therefore a REAL row length that exists in the corpus.
+    vals = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+    assert vdr._percentile(vals, 50) == 50
+    assert vdr._percentile(vals, 75) == 80
+    assert vdr._percentile(vals, 90) == 90
+    assert vdr._percentile([7], 90) == 7        # a single-row corpus
+    assert vdr._percentile([], 50) is None      # no rows -> no percentile
+
+
+def test_arm2_trend_is_na_when_nothing_records_a_prior_run():
+    # The FROZEN DEFAULT: no new store is created for the trend, so when no existing surface
+    # carries a prior value the term says so in words rather than inventing a zero.
+    f = _arm2(vdr.scan_backlog_accretion(_backlog([_row_of_length(806, 1400)]), _TODAY))
+    assert "trend: n/a (no prior run recorded)" in f.detail
+
+
+def test_arm2_trend_is_measured_against_the_prior_count():
+    f = _arm2(vdr.scan_backlog_accretion(
+        _backlog([_row_of_length(807, 1400), _row_of_length(808, 1500)]),
+        _TODAY, prior_count=5))
+    assert "trend: -3 vs previous run (5 -> 2)" in f.detail
+
+
+def test_arm2_trend_carries_an_explicit_sign_when_the_pile_grows():
+    f = _arm2(vdr.scan_backlog_accretion(
+        _backlog([_row_of_length(809, 1400), _row_of_length(810, 1500)]),
+        _TODAY, prior_count=1))
+    assert "trend: +1 vs previous run (1 -> 2)" in f.detail
+
+
 def test_arm2_fires_one_char_over_the_declared_ceiling():
     # THE ARM-2 FIXTURE, pinned AT its declared ceiling: 1321 chars fires...
     row = _row_of_length(164, vdr._BACKLOG_ROW_CEILING + 1)
     assert len(row) == 1321
     findings = vdr.scan_backlog_accretion(_backlog([row]), _TODAY)
     assert len(findings) == 1
-    assert findings[0].category == "backlog-row-length"
-    assert findings[0].locus == "BACKLOG#164"
-    assert "1321 chars" in findings[0].detail
-    assert "declared ceiling 1320" in findings[0].detail
+    f = _arm2(findings)
+    assert f.locus == "BACKLOG#row-length"     # corpus-level, no longer BACKLOG#164
+    assert f.detail.startswith("1 of 1 rows over the declared ceiling 1320 chars")
+    assert "longest 1321 chars" in f.detail
 
 
 def test_arm2_no_fire_exactly_at_the_declared_ceiling():
@@ -171,9 +248,18 @@ def test_arm2_no_fire_exactly_at_the_declared_ceiling():
     assert vdr.scan_backlog_accretion(_backlog([row]), _TODAY) == []
 
 
+def test_arm2_emits_NO_finding_when_the_corpus_is_clean():
+    # A corpus-level Finding that fired unconditionally would make doc_rot permanently WARN:
+    # `scan() == []` is how the audit adapter synthesizes its `pass`. Clean stays clean, and
+    # the "exactly one Finding" contract means at most one, never a mandatory one.
+    rows = [_row_of_length(166, 1320), _row_of_length(167, 500)]
+    assert [f for f in vdr.scan_backlog_accretion(_backlog(rows), _TODAY)
+            if f.category == "backlog-row-length"] == []
+
+
 def test_arm2_fires_with_zero_dates():
     # ARM 2 is a SIZE contract: it is entirely independent of the date terms.
-    row = _row_of_length(166, 2000)
+    row = _row_of_length(168, 2000)
     findings = vdr.scan_backlog_accretion(_backlog([row]), _TODAY)
     assert [f.category for f in findings] == ["backlog-row-length"]
 
@@ -181,13 +267,16 @@ def test_arm2_fires_with_zero_dates():
 # --- [#532] the split itself: two arms, two names, one locus ----------------
 
 def test_both_arms_fire_independently_on_one_row():
-    # A row that is BOTH accreted and over-long yields TWO findings on the SAME locus, with
-    # DIFFERENT categories — which is the whole point of the split: the output says which
-    # contract was breached, and the #147 ship-gate dispositions each independently.
+    # A row that is BOTH accreted and over-long still fires BOTH arms under their OWN
+    # categories — the whole point of the [#532] split: the output says which contract was
+    # breached. What the ARM-2 reshape changes is the LOCUS, not the split: ARM 1 stays
+    # PER-ROW (`BACKLOG#780`) because accretion is a property of one row, while ARM 2 is now
+    # CORPUS-level (`BACKLOG#row-length`) because a row-length pile is a property of the
+    # corpus. Two arms, two names, two loci — no longer one shared locus.
     row = _dated_row(780, ["2026-01-05", "2026-03-10", "2026-06-20"], pad=1500)
     findings = vdr.scan_backlog_accretion(_backlog([row]), _TODAY)
     assert {f.category for f in findings} == {"backlog-accretion", "backlog-row-length"}
-    assert {f.locus for f in findings} == {"BACKLOG#780"}
+    assert {f.locus for f in findings} == {"BACKLOG#780", "BACKLOG#row-length"}
 
 
 def test_the_two_arm_names_are_distinct_and_registered():
@@ -354,6 +443,158 @@ def test_scan_threads_today_into_the_backlog_arms(tmp_path):
 def test_scan_skips_missing_docs(tmp_path):
     # empty repo (no BACKLOG/CLAUDE) -> no crash, no findings.
     assert vdr.scan(tmp_path, today=date(2026, 6, 19)) == []
+
+
+# --- ARM-2 reshape: the OTHER arms, and the prior-run surface the trend reads ----------
+# Batch R5P lane 1. ARM 2 collapsed from one WARN PER ROW to ONE corpus-level Finding. The
+# two things that had to survive that are pinned here: every other arm's output byte-for-
+# byte, and the rule that the trend term reads an EXISTING surface or says n/a.
+
+def _reshape_fixture(root: Path) -> None:
+    """A repo that fires ALL FIVE sub-detectors at once — the ARM-2 blast radius, maximised.
+
+    ARM 1 (the mandatory accretion fixture) + three over-ceiling rows + a lapsed grooming
+    log + a CLAUDE.md that is both a 205-entry Section-history block AND 210 lines against
+    its 200-line budget.
+    """
+    rows = [_ACCRETED_ROW, _row_of_length(901, 1400),
+            _row_of_length(902, 1500), _row_of_length(903, 2000)]
+    (root / "BACKLOG.md").write_text(
+        _backlog(rows, groom_line="**Grooming log:** Recent: 2026-06-18."), encoding="utf-8")
+    (root / "CLAUDE.md").write_text(_history_block(205), encoding="utf-8")
+
+
+# CAPTURED FROM THE PRE-RESHAPE MODULE, 2026-09-05, by running `_reshape_fixture` through
+# `scan()` at the branch point — a characterization pin, not a hand-written expectation.
+_OTHER_ARMS_PRE_RESHAPE = [
+    ("backlog-accretion", "BACKLOG#777",
+     "3 history dates spanning 166d, 985 chars (>= 3 dates & >= 30d span & > 700 chars)"),
+    ("grooming-cadence", "BACKLOG#grooming-cadence",
+     "last groom 2026-06-18, 59d ago (> 21d cadence, ADR-41)"),
+    ("section-history", "CLAUDE.md#section-history",
+     "205 entries (>= 12; condense to git per ADR-49/65)"),
+    ("file-budget", "CLAUDE.md#size",
+     "210 lines (self-declared budget 200)"),
+]
+
+
+def test_every_other_arm_is_byte_identical_across_the_arm2_reshape(tmp_path):
+    # DONE-CONTRACT 2, proved rather than asserted: category, locus AND detail string of
+    # every non-ARM-2 finding, in order, against literals captured from the module BEFORE
+    # the reshape. Deliberately NOT a RED-first witness — it passes on both sides of the
+    # change, and that is exactly what makes it the proof. A `startswith` or a category-set
+    # assertion here would let a reworded ARM-1 detail ride along unseen.
+    _reshape_fixture(tmp_path)
+    results = vdr.scan(tmp_path, today=_TODAY)
+    others = [(r.category, r.locus, r.detail)
+              for r in results if r.category != "backlog-row-length"]
+    assert others == _OTHER_ARMS_PRE_RESHAPE
+
+
+def test_the_reshape_leaves_exactly_one_arm2_finding_on_that_same_fixture(tmp_path):
+    # The other half of the same measurement: the fixture's THREE over-ceiling rows produced
+    # three Findings before and produce one after, while the four above are untouched.
+    _reshape_fixture(tmp_path)
+    f = _arm2(vdr.scan(tmp_path, today=_TODAY))
+    assert f.detail.startswith("3 of 4 rows over the declared ceiling 1320 chars")
+
+
+def _seed_prior_run(root: Path, doc_rot_evidence: list[str]) -> None:
+    """Write the hub's `ecosystem/.dev-knowledge/state.yaml` — the LAST RUN's findings.
+
+    The same hub-relative literal `gen_trend_dashboard.collect_doc_rot` already hardcodes,
+    used here for the same reason: the folder is named for the hub repo, never for the
+    checkout, so a worktree resolves it identically to the primary.
+    """
+    d = root / "ecosystem" / ".dev-knowledge"
+    d.mkdir(parents=True, exist_ok=True)
+    (d / "state.yaml").write_text(yaml.safe_dump({
+        "name": ".dev-knowledge", "path": str(root), "last_audit": "2026-08-15",
+        "findings": ([{"check_name": "doc_rot", "status": "warn", "evidence": e}
+                      for e in doc_rot_evidence]
+                     + [{"check_name": "claude_md", "status": "pass", "evidence": "fine"}]),
+    }), encoding="utf-8")
+
+
+def test_trend_reads_the_prior_run_in_its_LEGACY_per_row_form(tmp_path):
+    # The first post-reshape run reads a state file written by the PRE-reshape code, whose
+    # ARM-2 record is one entry per row. Counting those entries is a real prior value, so
+    # the trend is live from run one rather than n/a for a cycle.
+    (tmp_path / "BACKLOG.md").write_text(
+        _backlog([_row_of_length(910, 1400)]), encoding="utf-8")
+    _seed_prior_run(tmp_path, [
+        "history-accretion bloat: backlog-row-length BACKLOG#1 (1400 chars (declared ceiling 1320))",
+        "history-accretion bloat: backlog-row-length BACKLOG#2 (1500 chars (declared ceiling 1320))",
+        "history-accretion bloat: backlog-row-length BACKLOG#3 (1600 chars (declared ceiling 1320))",
+        "history-accretion bloat: section-history CLAUDE.md#section-history (20 entries)",
+    ])
+    f = _arm2(vdr.scan(tmp_path, today=_TODAY))
+    assert "trend: -2 vs previous run (3 -> 1)" in f.detail
+
+
+def test_trend_reads_the_prior_run_in_its_CORPUS_form(tmp_path):
+    # And on every subsequent run the prior record is itself a corpus Finding, so the count
+    # is read out of it directly rather than re-counted.
+    (tmp_path / "BACKLOG.md").write_text(
+        _backlog([_row_of_length(911, 1400)]), encoding="utf-8")
+    _seed_prior_run(tmp_path, [
+        "history-accretion bloat: backlog-row-length BACKLOG#row-length (9 of 200 rows over "
+        "the declared ceiling 1320 chars (LONG, not rot); longest 5315 chars; row-length "
+        "p50/p75/p90 over all 200 rows = 1/2/3 chars; trend: n/a (no prior run recorded))",
+    ])
+    f = _arm2(vdr.scan(tmp_path, today=_TODAY))
+    assert "trend: -8 vs previous run (9 -> 1)" in f.detail
+
+
+def test_trend_is_na_when_the_prior_run_surface_is_absent(tmp_path):
+    # NO NEW STORE (the frozen default): with nothing on disk recording a prior value the
+    # term says so. It must never fabricate a zero — "was 0, now 70" is an invented history.
+    (tmp_path / "BACKLOG.md").write_text(
+        _backlog([_row_of_length(912, 1400)]), encoding="utf-8")
+    f = _arm2(vdr.scan(tmp_path, today=_TODAY))
+    assert "trend: n/a (no prior run recorded)" in f.detail
+
+
+def test_trend_is_na_when_the_prior_run_did_not_run_doc_rot_at_all(tmp_path):
+    # The distinction `gen_trend_dashboard.parse_doc_rot_count` had to rule on and this
+    # reader inherits: a state file with NO doc_rot finding means the check did not run,
+    # which is not the same as a run that found nothing. Absence is n/a, never a zero.
+    (tmp_path / "BACKLOG.md").write_text(
+        _backlog([_row_of_length(913, 1400)]), encoding="utf-8")
+    _seed_prior_run(tmp_path, [])
+    f = _arm2(vdr.scan(tmp_path, today=_TODAY))
+    assert "trend: n/a (no prior run recorded)" in f.detail
+
+
+def test_trend_reads_a_genuine_prior_ZERO_as_a_zero(tmp_path):
+    # ...and the converse: doc_rot DID run and reported no ARM-2 pile. That IS a prior value.
+    (tmp_path / "BACKLOG.md").write_text(
+        _backlog([_row_of_length(914, 1400)]), encoding="utf-8")
+    _seed_prior_run(tmp_path, [
+        "history-accretion bloat: grooming-cadence BACKLOG#grooming-cadence (last groom ...)"])
+    f = _arm2(vdr.scan(tmp_path, today=_TODAY))
+    assert "trend: +1 vs previous run (0 -> 1)" in f.detail
+
+
+def test_prior_run_reader_is_failsoft_on_a_corrupt_state_file(tmp_path):
+    # Fail-soft by contract: the scanner never degrades the whole check over a surface it
+    # only reads for a decoration. Unparseable prior -> n/a, and the Finding still lands.
+    (tmp_path / "BACKLOG.md").write_text(
+        _backlog([_row_of_length(915, 1400)]), encoding="utf-8")
+    d = tmp_path / "ecosystem" / ".dev-knowledge"
+    d.mkdir(parents=True)
+    (d / "state.yaml").write_text("findings: [ this: is: not: yaml", encoding="utf-8")
+    f = _arm2(vdr.scan(tmp_path, today=_TODAY))
+    assert "trend: n/a (no prior run recorded)" in f.detail
+
+
+def test_the_corpus_finding_survives_format_findings_table_safe():
+    # `format_findings` is markdown-table-safe by contract; the corpus detail is the longest
+    # string this module now emits, so it is the one most likely to carry a stray `|`.
+    out = vdr.format_findings(
+        vdr.scan_backlog_accretion(_backlog([_row_of_length(916, 1400)]), _TODAY))
+    assert "BACKLOG#row-length" in out
+    assert "|" not in out
 
 
 # --- #208 / GAP-7: scan() reads _FILE_SIZE_BUDGETS (the live-constant path) -------------
