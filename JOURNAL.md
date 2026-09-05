@@ -31,10 +31,13 @@ being the first to need it in the same day is a decent test that the rule was wo
 FIRST, a claim of mine that was imprecise. Section 3 said the batch figures were taken "after the
 last merge". They were measured at `3a2391fb`, and the close-packet merge followed. A close packet
 STRUCTURALLY cannot measure a tree that contains its own landing, so the gap is unavoidable - but
-the sentence implied otherwise, so the basis SHA is now stated. I re-verified rather than reasoned:
+the sentence implied otherwise, so the basis SHA is now stated. I re-verified what I could and said what I did not:
 on the organs a new audit file could plausibly move, `gen_audit_index` and `funnel_coverage` PASS,
-and the three REDs section 7 names fail for the same three reasons. The figure stands for the
-landed tree, and now says so on evidence.
+and the three REDs section 7 names fail for the same three reasons. Those FIVE outcomes are
+re-verified; the 21/4967 AGGREGATE is not, and the erratum says so. Review caught me claiming the
+whole total on the strength of five checks - the remaining ~4990 results are simply unmeasured
+against the landed tree, and expecting a one-file docs merge not to move them is an expectation,
+not a measurement.
 
 SECOND, and it is a real defect in something I landed. The R5P dispatcher found that
 `docs/intake/README.md` carries **`#70` twice** - `tech-aj-second-pass` and

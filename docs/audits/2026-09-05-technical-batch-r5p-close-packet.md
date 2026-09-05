@@ -243,11 +243,17 @@ time of measurement*. The close-packet merge `b76806e4` followed. A close packet
 measure a tree that already contains its own landing, so the gap is unavoidable — but the sentence
 as written implies otherwise, and the honest statement is the basis SHA.
 
-**Re-verified after `b76806e4` rather than assumed away**, on the organs a newly added audit file
-could plausibly move: `test_gen_audit_index` PASSES, `test_funnel_coverage` PASSES, and
-`test_consumer_at_landing`, `test_validate_doc_rot` and `test_batch_manifest` fail exactly as §7
-records — same three, same reasons. **The 21 / 4967 figure therefore stands for the landed tree**,
-and this erratum records the check rather than the assumption.
+**Partially re-verified after `b76806e4`, and the limit of that check is stated rather than
+papered over.** Five targeted outcomes were re-measured on the landed tree — the organs a newly
+added audit file could plausibly move: `test_gen_audit_index` PASSES, `test_funnel_coverage`
+PASSES, and `test_consumer_at_landing`, `test_validate_doc_rot` and `test_batch_manifest` fail
+exactly as §7 records, same three, same reasons.
+
+**Those five outcomes are re-verified. The aggregate `21 / 4967` is NOT.** It was measured at
+`3a2391fb` and has not been re-measured since; the remaining ~4990 results are unchecked against
+the landed tree. A docs-only merge adding one audit file is unlikely to move them, but that is an
+EXPECTATION, not a measurement, and the difference is the whole subject of §6. Anyone needing the
+aggregate for the landed tree should re-run the suite rather than cite this figure.
 
 **§4 — the intake range `#65–#70` cites an id that resolves to TWO documents.**
 Reported by the R5P dispatcher and verified here against `main`:
