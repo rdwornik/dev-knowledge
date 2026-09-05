@@ -3906,6 +3906,57 @@ artifact (AA's rationale, applied).**
   architect ruling 2026-09-05): merged at `8ea8023a`; rows dropped at `e3d2ac34` on operator
   consent; the CANDIDATE shape stood (ADR-111). Nothing on that branch was touched by this lane.
 
+## AF. The spine-predicate carrier — one CANDIDATE, filed from eight false alarms in one day (integrator, 2026-09-05)
+
+Recorded under ADR-111 §1(c), continuing the Z-C shape of AB, AD and AE. **This is a CANDIDATE,
+not a row.** It carries no peg, no owner and no size band; nothing here draws from the ledger and
+nothing here is a commitment. Filed by the integrator on the architect's ruling of 2026-09-05
+(evening, rulings 5 and 4), and **credited to the seat-notes lane**, which surfaced the underlying
+observation. It joins the queued "two REDs + spine message" lane, sequenced after the tag.
+
+**AF-1 · A check states its predicate in its own failure text, and hands over one diagnostic
+command.**
+
+*Filed from witnessed cost, not from a design idea.* On 2026-09-05 the `journal_spine_anchor`
+predicate produced **eight false alarms across six seats in a single day** — every one of them the
+same wrong reading, and one of them reached the operator and stopped the merge queue outright. No
+seat was careless. Each inferred a predicate from a failure message that did not state one, and
+each inferred a different plausible predicate.
+
+*The actual predicate, stated once so it is locatable.* A spine entry is anchored when the JOURNAL
+names **at least one SHA that the entry INTRODUCED** — never the entry's own merge SHA, and never a
+branch tip. The check reads the JOURNAL from the **committing tree** and the spine from the shared
+`main` ref, so a worktree that is behind reports gaps that do not exist on `main`. Every false alarm
+of the day is a substitution of tip-or-own-SHA for introduced-SHA, or a lagging tree read as truth.
+
+*The candidate.* The check names its predicate in the failure text it already prints, and prints one
+diagnostic command the reader can run unmodified. The cost is a message string; the thing it buys is
+that a seat stops having to reconstruct the rule from the shape of its own failure. A message that
+reports a violation without naming the rule violated transfers the inference to every reader, once
+per reader, forever.
+
+*The honest limit.* This narrows misdiagnosis; it does not make the predicate correct where it is
+asymmetric. The committing-tree-versus-shared-ref asymmetry is a separate question and is not
+disposed of here.
+
+**AF-2 · Two teardown facts the same day produced, recorded with the carrier because they share its
+failure mode.**
+
+- *Merged-and-torn-down is indistinguishable from never-existed when checked with `git branch`.*
+  The check for "did X land" is `git log --first-parent main` for the **merge** — a ref query cannot
+  answer a spine question. This produced **three separate false negatives on 2026-09-05**, including
+  one by the integrator, and one gate was reported closed on it. The seat that hit it last stated the
+  general form better than the incident does: *a check that returns the same answer for "landed" and
+  "never happened" is not a check.* That sentence is the reason AF-1 and AF-2 are filed together
+  rather than separately — both are predicates that cannot distinguish the two states they exist to
+  distinguish.
+- *Two-branch teardown collapses to one local plus one remote when the work branch IS the
+  provisioning branch.* WORKTREE TEARDOWN IS TWO BRANCHES assumes a work branch distinct from
+  `worktree-<name>`; where a lane commits directly on its provisioning branch there is one branch,
+  and teardown is complete at one local delete plus one origin delete. Recorded so the rule is not
+  read as requiring a second branch that never existed — and so a seat does not go looking for one
+  and conclude teardown is unfinished.
+
 ## Editing note (read before adding an entry)
 
 This file sits inside the silent-rule ratchet corpus (`protocols/*.md`; detector
