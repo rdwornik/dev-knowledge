@@ -183,10 +183,14 @@ counted itself; and the JOURNAL tally read 8 against a span holding 9. Calling a
 provenance errors would overstate the fault and blur the very distinction this section
 exists to draw.
 
-**`window_metrics.py` reads `origin/main..HEAD` and therefore reports 0 arcs for this window.** That
-is correct for its declared range and wrong as a description of the batch, because everything is
-pushed — the range is empty by the time the question is asked. The 43 is hand-counted for that
-reason, and it is left in the hand-counted block rather than substituted into the organ's row.
+**`window_metrics.py` reads `origin/main..HEAD`, and reported 0 arcs when this scorecard was
+measured.** It was run at a moment when `HEAD` equalled `origin/main` — every merge of the day
+already pushed — so its range contained no merge commits. That zero is CORRECT for the range the
+organ declares; it simply is not a description of the batch, whose merges had all left the range
+by being pushed. Note the reason is the measurement conditions, not a standing property: read
+from an unpushed branch the same range is non-empty, and this packet was itself authored on such
+a branch. The 43 is hand-counted for that reason and stays in the hand-counted block rather than
+being substituted into the organ's row.
 
 ## 7. REDs at close — attributed, not totalled
 
