@@ -3425,11 +3425,15 @@ tests to declare their files present, rather than weakening the Z-G4 FAIL.
 Filed from the architect's outgoing-seat note of 2026-09-02 (step B), landed after G3b merged and
 before the close packet. **Z-C shape: these are CANDIDATEs, not rows.** ADR-111 admits exactly one
 path — CANDIDATE, then ADR-98 intake, then ratification — so nothing here draws from the ledger and
-nothing here is a commitment. The lettering runs (a)–(g), (i), (j), (k), (m)–(w): **there is no
+nothing here is a commitment. The lettering runs (a)–(g), (i), (j), (k), (m)–(z): **there is no
 (h)** and **no (l)**, and both absences are deliberate rather than lost entries — the note's
-amendment added (f) and (g), a later message added (i), (h) was never filed by anyone, and (m)–(w)
-arrived from the 2026-09-05 architect inbox (items 001-B, 001-C, 002-B, 002-C, 004-A.3, 005-B) with
-(l) likewise never filed by anyone.
+amendment added (f) and (g), a later message added (i), (h) was never filed by anyone, and (m)–(z)
+arrived from the 2026-09-05 architect inbox (items 001-B, 001-C, 002-B, 002-C, 004-A.3, 005-B,
+009-B, 009-C) with (l) likewise never filed by anyone.
+
+**(z) is the last single letter.** The next entry filed here takes **(aa)**, then (ab), and so on —
+recorded before it is needed, because the alternative is whoever files next inventing a scheme
+under time pressure. Nothing about an entry changes when the label gets two characters.
 
 **Letters are allocated HERE, at filing time, not by the source that proposes an entry.** The
 2026-09-05 inbox proposed its own letters and they collided: item 005-B proposes (r), (s), (t)
@@ -3466,6 +3470,16 @@ classes this batch actually hit rather than a fourth bespoke checker:
 the L0 routing region, the plugin/executing copies, and `canonical_freshness_gate`'s fallback
 literal. `scripts/routing_agreement.py` generalizes to iterate the register. The batch is its own
 evidence: each of the three was found by a different organ, none of which knew about the other two.
+
+*Merged in 2026-09-05 (architect inbox item 009-C) — the EXECUTING-COPY case, deliberately not a
+fourth letter.* `receipt.json` at the container root still blocks an in-container commit: the G0
+fix did not prove durable. The register question and the fix question are different, and only the
+first belongs here — **which copy actually ran?** A fix applied to one copy while a different copy
+executes is indistinguishable from no fix at all, and that is exactly the drift class (c) exists to
+make visible. So the entry widens to require an executing-copy WITNESS, not merely a source→copy
+mapping. Recorded here rather than as a new candidate because a second entry would split one
+question across two addresses. The rename that produced the original nodeids is separately a
+candidate under R-G0-2 above; this is not that.
 
 **(d) `[#627]` admission = retrieval fidelity on a seeded corpus.** Planted contradictions and
 orphans; the bar is that it finds them and invents none, with quota visibility recorded. The H5
@@ -3668,6 +3682,34 @@ is durable and citeable rather than living only in a chat turn. **Explicitly LOW
 explicitly do NOT build now** — recorded at the filer's own instruction so the idea is not lost and
 not started. The reason it is not urgent: the existing failure is questions that never get asked,
 not questions that get asked and lost.
+
+**(x) A `carried-by:` FIELD ON EVERY GOVERNANCE-TOUCHING ROW** *(architect inbox 2026-09-05 item
+009-B, operator ruling)*. Every intake or row that changes `protocols/`, PLAYBOOK, hooks, roles or
+CLAUDE.md regions carries one field: `carried-by: manifest | hub-only (reason)`. The ruling behind
+it is the load-bearing part: **every fix to a protocol, playbook or role must state how it reaches
+the consumer repos, or it is a hub-local fix by definition and the same defect recurs at H0.**
+Proposed mechanism, library-first: the freeze gate / `validate_backlog` refuses a governance-
+touching row that omits the field, and the deploy-manifest check cross-references rows marked
+`manifest` against actual payload entries — so the claim is checked, not just declared. Same
+pattern as the CLAUDE.md hub regions ("single-sourced from the hub"). Reconciles with (j)
+per-consumer freshness registry and the fleet-readiness §4 H0 runbook; it is the general form of
+what 009-A did by hand to intake `#70`.
+
+**(y) THE CODESPACE ACCOUNT CAP IS 2 CONCURRENT, AND THE BATCH PROTOCOL DOES NOT KNOW IT**
+*(architect inbox 2026-09-05 item 009-C, its proposed letter (u); H0-prep close)*. Measured, not
+assumed: the account runs at most 2 codespaces at once. PLAYBOOK Ch8's batch protocol schedules
+lanes without that ceiling, so a batch that dispatches three or more cloud lanes has one silently
+queued or refused — and a lane that never starts reads exactly like a slow one, which is the
+failure (i) already names. The candidate is one measured constant in the batch protocol (cloud
+lanes <= 2 concurrent), not a scheduler.
+
+**(z) A CONTAINER CANNOT PUSH FROM A NON-LOGIN SHELL, AND FAILS SILENTLY WHEN IT TRIES**
+*(architect inbox 2026-09-05 item 009-C, its proposed letter (v); H0-prep close)*. `GITHUB_TOKEN`
+is unset in a non-login shell, so a dispatched container commits work and then cannot push it —
+stranding the lane's commits inside a container that is later torn down. Proposed carrier:
+`dispatch-run.sh` sources the login environment, or **fails closed naming the missing variable**.
+The naming matters more than the sourcing: the current failure is legible only as an absent push,
+and a run that dies saying `GITHUB_TOKEN` is unset costs one line to diagnose instead of an arc.
 
 **Not adopted, recorded so it is not relitigated** *(architect inbox 2026-09-05 items 002-E and
 004-A.3(d))*. Generated ADRs — `ADR-94` protects the opposite, and their cheapness is the property
