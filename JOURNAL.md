@@ -19,6 +19,88 @@
 
 ---
 
+### 2026-09-05 (d) - CC (Opus 5): the manifest already knew, and the scalar the ruling named moves on the clock
+
+**Anchors:** `1d192245`, `73bf4272`, `6de676fb`, `1d96e0de`, `3200757d`, `ca0a2a2f`
+
+> **Integrator anchor-drain.** The last four are MERGE commits on main's first-parent
+> spine that carried no `Anchors:` record line and were hard-failing
+> `journal_spine_anchor` — a PRE-COMMIT organ, so they were blocking commits in every
+> worktree provisioned after the gap, not just on main. `ca0a2a2f` is my own merge and
+> made the count four. Anchoring another session's merges is the integrator's act, which
+> is why they land here rather than in the lanes that produced them.
+>
+> **The residual is structural, not an oversight.** The merge that carries THIS entry
+> cannot anchor its own SHA — the SHA does not exist until the merge is made. That is the
+> [#623] single-commit/merge-anchor deadlock. Expect the organ to name exactly one merge
+> after this lands rather than zero; it is discharged by the next entry, and the queue
+> only grows if entries stop being written.
+
+**Did:** built the manifest-link hotfix as INTEGRATOR-2 - an audit artifact linked from a batch
+manifest (via `closed_by:`, as a lane packet, or as a close packet) now counts as DISPOSITIONED
+for `funnel_coverage` and CITED for `consumer_at_landing`.
+
+**THE RECORD EXISTED AND NOTHING READ IT.** Every batch-G lane artifact was raising two WARNs
+apiece while being fully enumerated by the batch's own gate-readable manifest - the file
+`scripts/batch_manifest.py` already parses at the ADR-110 exemption gate. Library-first: manifest
+discovery, frontmatter parsing and the lane-slug grammar all already lived there, so
+`manifest_links()` / `links_artifact()` went there and neither detector re-derives any of it. The
+manifest AND the packet it names via `closed_by:` are both scanned, because a manifest is never
+named by itself and scanning manifests alone would orphan every manifest inside its own batch.
+
+**Result:** funnel_coverage 32 -> 12 WARNs, consumer_at_landing 16 -> 5, on the corpus at
+3200757d. The route admits 86 of 875 artifacts, which is the discrimination number and is reported
+rather than left implicit. 17 of the 19 named findings discharged, over 9 of the 10 named files.
+
+**THE TENTH FILE IS NOT DISCHARGED, AND WIDENING WAS AVAILABLE AND REFUSED.**
+`2026-09-02-technical-lane-g-626-terra-tally.md` still raises both organs, because batch G's
+manifest declares lane G4 as `lane-g-626-executing-copies` while the artifact is named
+`lane-g-626-terra-tally` - same lane, different tail. Relaxing the match to the bare lane id
+`lane-g-626` would have closed it and made the acceptance number come out at 19/19. That is
+fitting the mechanism to the target, and it would also have papered over exactly the divergence
+`RULE_MANIFEST_CONTRACT_SLUG_AGREEMENT` exists to catch. Left raising, remedy filed for the
+architect: a ledger disposition row naming it, with the term being a judgment the integrator
+should not invent.
+
+**DETECTOR_ID DELIBERATELY NOT BUMPED, and the reasoning is recorded beside the constant.** The id
+makes the ratchet refuse to compare across a predicate revision, which is correct when a revision
+can move an artifact either way. This one is strictly MONOTONE - it only adds a coverage route, so
+`uncovered` can only shrink, no name enters the baseline, and every name leaving surfaces as
+ratchet-down headroom. Bumping would have replaced 32 by-name regressions with a single "not
+commensurable" WARN: the leg switched OFF while appearing to satisfy the criterion, which is the
+precise failure the id was introduced to prevent. `test_manifest_link_route_is_monotone` pins the
+property rather than leaving it as a claim in a comment.
+
+**THE CRITERION THE RULING NAMED CANNOT BE MET BY A FIX, AND NOW HAS THREE WITNESSES.** The
+instruction's acceptance was "133 -> <= 123" on the `audit.py ship-gate` headline. That scalar
+carries 74-75 calendar-driven `doc_rot` lines. Readings taken this window: 133 at `6de676fb`; 134
+at `3200757d`; and **136 at `3200757d` again, ~40 minutes later, with the tree byte-identical and
+both acceptance organs flat at 32 and 16**. The third is the decisive one - same SHA, same tree,
++2 from the clock alone. The architect amended the criterion to the 19 named findings before this
+was measured; the measurement confirms the amendment was necessary rather than cautious.
+Headline is reported, never the criterion.
+
+**Abandoned:** a first commit attempt carrying `-c core.hooksPath=.git/hooks`. In a worktree
+`.git` is a FILE, so that path does not exist and the entire hook mesh silently did not run -
+`git commit` reported success having run no gate at all. Caught by noticing the absence of hook
+output, reset, and recommitted with the mesh armed. The relic-hooksPath failure mode is recorded;
+this is the same class reached by a different route, and the tell is silence rather than an error.
+
+**Also:** the real blocker on the honest commit was `[!!] repos registered (none)` - untracked,
+gitignored `ecosystem/*/state.yaml` absent from a fresh worktree. A concurrent session read the
+same DEGRADED as an unanchored-spine failure and was about to take a declared `SKIP=audit-health`
+for it; corrected with the evidence that `journal_spine_anchor` printed `[OK]` in that very run
+and the hard-fail sat in the `operational:` block. A bypass justified by a wrong diagnosis leaves
+a false record in the log, which is worse than the bypass.
+
+**Changes:** `scripts/batch_manifest.py`, `scripts/funnel_coverage.py`,
+`scripts/consumer_at_landing.py`, `tests/test_manifest_link_route.py` (new),
+`tests/test_funnel_coverage.py` (partition restated over the UNION of covered classes - they are
+now overlappable and a sum double-counts).
+
+**Next:** the `check_doc_claims` tiering hotfix; then the arrivals queue - R5 disposition sheet,
+funnel groom, AJ gap analysis, #627 re-adjudication, H0-prep L5 -> L4 -> L3.
+
 ### 2026-09-05 (c) - CC (Opus 5): the correction entry - my own C1 framing was the overclaim, and B6 says you fix that by appending
 
 **Anchors:** `780297df`, `32b51fed`
