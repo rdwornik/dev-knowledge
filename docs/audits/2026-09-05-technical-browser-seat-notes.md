@@ -139,3 +139,42 @@ Tag v1.5.0 gate = NC1 (ship-gate GREEN after R5) + NC3 (#628 residual: CLAUDE.md
 - A precondition is not progress; say which one you delivered.
 - Six sessions in one checkout is a race, not parallelism — worktrees are the unit, the primary is the integrator's.
 - Read-only goes to the cloud by verb; the operator's host is for integration and explicit exceptions.
+
+---
+
+## AMENDMENT 1 — two further class-A defects, recorded after landing (2026-09-05)
+
+> **This is an in-file amendment marker, not an edit.** Audits are immutable (critical rule
+> 3): the register above is the outgoing seat's own text and **nothing in it has been
+> altered** — no row added, renumbered or reworded. The two defects below arrived separately,
+> from the architect inbox (item **005-D**), after this file was committed at `0c57e765`.
+> They continue the register's own numbering because they belong to the same window and the
+> same class, but they were **not written by the seat** and a reader must not attribute them
+> to it.
+>
+> **Integrity claim, restated — the header above is now imprecise and is corrected here
+> rather than edited.** That header says the builder asserted the landed file *"ends with"*
+> the body. That was true at `0c57e765` and is false now, because this amendment sits below
+> the body. The checkable claim going forward: the verbatim body is the **contiguous region
+> from the line `# BROWSER SEAT NOTES` down to the blank line preceding this amendment's
+> `---` rule**, and that region still hashes to
+> `sha256 685633c33c49c7d37de5dba70f3162d4d1841a98b12896ee8d28ee465f06b196`, unchanged. The
+> original tail form remains verifiable in history at
+> `git show 0c57e765:docs/audits/2026-09-05-technical-browser-seat-notes.md`.
+
+| # | Defect | Class | Mechanism that would have caught it |
+|---|---|---|---|
+| 17 | "channel is alive / nothing to paste" asserted without reading `to-browser\` | A premise-from-summary | the read rule is executed, not recalled — a claim about a directory's contents names the listing that produced it |
+| 18 | a research brief carried a stale premise (mutation gate `<300 s`, superseded) and asked for a **computed** row to be quoted **as stored** | A premise-from-summary | a brief's premises are resolved at freeze; a value that is derived is cited by the surface that computes it, never restated as a stored fact |
+
+Both are **class A** on the register's own taxonomy — the same premise-from-summary root
+cause the seat identified as the window's dominant class. That is the point of recording
+them here rather than elsewhere: the register's own conclusion is that class A accounted for
+the largest share of the window's cost, and these two extend that count rather than opening a
+new class. Neither is triaged by this lane, and neither becomes a backlog row without ADR-111
+intake.
+
+**Provenance:** architect inbox `005-D`, 2026-09-05, relayed by the inbox-processing seat,
+which is the single writer of `STANDING_RULINGS` §AD and `protocols/OPERATOR-INTERFACE.md`.
+Findings arising from this amendment route back to that seat, not into a new register entry
+here.

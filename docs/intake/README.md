@@ -42,7 +42,7 @@ fill-in skeleton is `templates/intake-template.md`.
 - [#42](2026-08-23-tech-generated-artifact-currency.md) — Generated-artifact currency — one artifact is committed-generated and ungated, and the class has no uniform rule
 - [#62](2026-08-29-tech-l0-as-a-governed-layer.md) — L0 is a governed layer, not a place the hub cannot see
 - [#63](2026-08-29-func-universal-per-repo-learning-loop.md) — Universal per-repo learning loop — the hub deploys the mechanism, never the managed state
-- [#68](2026-09-05-tech-handoff-process-v71-amendment-pack.md) — HANDOFF_PROCESS v7.1 amendment pack — the ten things the v7 bundle did not carry
+- [#68](2026-09-05-tech-handoff-process-v71-amendment-pack.md) — HANDOFF_PROCESS v7.1 amendment pack — what the v7 bundle did not carry
 - [#69](2026-09-05-tech-boot-frontier-prioritisation-weights.md) — Boot prioritisation is a sort, not an engine — class weights inside `boot_frontier`'s existing score seam
 
 ### READY (19)
