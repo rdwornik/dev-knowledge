@@ -3371,6 +3371,15 @@ executed as written for ~1h48m while six branches waited — the paste was well-
 malformed for its actual addressee, and nothing checked which it was. Carried separately as intake
 `#70`, which fixes the ROLE half; this predicate is the FORM half and stays here.
 
+*Third predicate, amended in 2026-09-05 (architect inbox item 013-C, operator ruling).* A browser
+paste containing a **drive-letter path** (`X:\…`) is a browser-seat defect. **One exception, and it
+is narrow:** a block instructing the OPERATOR to set the variable himself — there the literal path
+is the payload, and refusing it would make the rule unsatisfiable. Measured basis: two pastes on
+2026-09-05 carried a drive letter as a workaround for the stale-variable failure that candidate (v)
+fixes, which is a defect propagating INTO the corpus as a coping strategy for a different defect.
+All three predicates on this probe test one property — whether a paste's FORM matches the seat and
+the constant it is addressed to — which is why they stay one candidate rather than three.
+
 **AB-2 · `/boot-session` gains a MERGE-WITH-VERIFY mode — PARKED by the operator.** Origin:
 2026-09-02 batch-G boot. No peg, no owner, by design. Recorded here rather than as a `tasks/`
 row per this section's own precedent — the only route from here to a row is CANDIDATE → intake
@@ -3543,10 +3552,19 @@ archive-side merge rule), and it is the operator's, so nothing was deleted.
 folder named `CLAUDE PROMPT DIR` at Drive root, holding two directories: `to-cc/` (browser → CC —
 contracts, pastes, `ARCHITECT-INBOX-<date>-<NNN>.md`) and `to-browser/` (CC → browser — delivered
 packets, sheets, `PASTE_THIS`, and inbox copies carrying a `DONE <sha>` line per item). It is
-synced to this machine by Google Drive for Desktop at `H:\My Drive\CLAUDE PROMPT DIR`, and
-`$env:CLAUDE_PROMPTS_DIR` points at it. Downloads remains the documented fallback, resolved per
-FILE rather than per variable. Everything written to `to-browser/` is a GENERATED copy: the repo
-stays the single source, and a copy there is a copy, never an authority.
+synced to this machine by Google Drive for Desktop, and `$env:CLAUDE_PROMPTS_DIR` (User scope)
+points at it. Downloads remains the documented fallback, resolved per FILE rather than per
+variable. Everything written to `to-browser/` is a GENERATED copy: the repo stays the single
+source, and a copy there is a copy, never an authority.
+
+*Amended 2026-09-05 (architect inbox item 013, operator ruling) — THE VARIABLE IS THE SOURCE,
+NEVER A PATH.* This entry originally spelled the synced location as a literal drive path. The
+drive letter is removed rather than the history rewritten: the folder's location belongs to the
+operator and can change without this register changing, so a doc that spells it has substituted a
+fact it cannot keep current for one any seat can resolve. The rule now reads in both directions —
+no literal path in this register, in `OPERATOR-INTERFACE.md` §1, or in the hook (m)'s mechanism
+leg proposes. Recorded as an amendment because the original wording is what the 001-B filing
+actually said, and a register that silently repairs its own past entries is not a record.
 
 Evidence, witnessed while executing 001-A rather than reasoned about: a session booted with a
 `CLAUDE_PROMPTS_DIR` inherited from a shell that predates the setting, resolved it to Downloads,
@@ -3657,15 +3675,36 @@ same class: a contract naming a symbol nobody resolved before freeze. A generate
 quoted verbatim; a contract must name the generator or the command, never a line that does not exist
 until something runs.
 
-**(v) SESSIONSTART PRINTS THE RESOLVED PROMPTS DIRECTORY** *(architect inbox 2026-09-05 item 005-B,
-its proposed letter (r))*. One line in the existing `SessionStart` hook: `CLAUDE_PROMPTS_DIR=<the
-resolved path>`. Size S, and it is a line rather than an organ. The failure it removes was
-witnessed twice in one day: a session inheriting the variable from a shell that predates the
-setting resolves it to Downloads, finds `to-cc\` present but EMPTY, and reports the inbox missing
-rather than the variable misresolved. Nothing in the transport is wrong in that failure — the seat
-simply cannot see which directory it is reading, and an empty valid directory is indistinguishable
-from an empty correct one. Printing the resolved path makes a stale inheritance visible in the
-first turn instead of after a wasted round-trip.
+**(v) SESSIONSTART RESOLVES THE PROMPTS DIRECTORY FROM USER SCOPE, AND PRINTS IT** *(architect
+inbox 2026-09-05 item 005-B, its proposed letter (r); RESHAPED and PROMOTED by item 013-A,
+operator ruling)*. **This is the FIRST mechanism of the transport set to land** — ahead of (n)'s
+copy step and (w) — because every other transport rule is unreliable while a seat can be reading
+the wrong directory without knowing it.
+
+Shape, as ruled — printing alone was not enough:
+1. Resolve from the **USER scope**, not the inherited process environment:
+   `[Environment]::GetEnvironmentVariable("CLAUDE_PROMPTS_DIR","User")`.
+2. If the process value **differs**, override it for the process. A stale inheritance is repaired,
+   not merely reported.
+3. **Print the resolved value in the first turn.**
+4. If unset in **both** scopes, print `CLAUDE_PROMPTS_DIR unset — Downloads fallback`, so the
+   fallback is never silent.
+5. **No literal path anywhere** in the hook or in its documentation. The variable is the source.
+
+The reshape is what makes it work: the original entry proposed printing the *inherited* value,
+which would have made the failure visible without fixing it — every affected seat would still have
+had to be told, by hand, to re-resolve. Reading User scope makes the correct value the one the
+session actually uses.
+
+Evidence, measured on 2026-09-05 rather than argued: **three** sessions inherited a stale value and
+searched an empty Downloads, and **two** browser pastes carried a drive letter as a workaround —
+which is the same defect propagating into the corpus, and is why 013-C adds a drive-letter path as
+a form-probe predicate. Of the two witnesses recorded below, the second is the instructive one: a
+misresolution that SUCCEEDS is the one that persists, and no failure will ever surface it.
+
+**Interim rule, live until the hook lands:** every CC seat runs that one-line User-scope resolution
+as its FIRST act. Carried as a standing line in `/lane-boot` and in the FILINGS/dispatcher session
+briefs — a rule with no carrier is a suggestion, so this one names where it is written down.
 
 *Second witness, same day, and it is the more instructive one.* A concurrent session reported that
 its own `CLAUDE_PROMPTS_DIR` had also resolved to Downloads — and **nothing failed**, because the
