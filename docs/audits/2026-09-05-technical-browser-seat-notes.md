@@ -139,3 +139,85 @@ Tag v1.5.0 gate = NC1 (ship-gate GREEN after R5) + NC3 (#628 residual: CLAUDE.md
 - A precondition is not progress; say which one you delivered.
 - Six sessions in one checkout is a race, not parallelism — worktrees are the unit, the primary is the integrator's.
 - Read-only goes to the cloud by verb; the operator's host is for integration and explicit exceptions.
+
+---
+
+## AMENDMENT 1 — two further class-A defects, recorded after landing (2026-09-05)
+
+> **This is an in-file amendment marker, not an edit.** Audits are immutable (critical rule
+> 3): the register above is the outgoing seat's own text and **nothing in it has been
+> altered** — no row added, renumbered or reworded. The two defects below arrived separately,
+> from the architect inbox (item **005-D**), after this file was committed at `0c57e765`.
+> They continue the register's own numbering because they belong to the same window and the
+> same class, but they were **not written by the seat** and a reader must not attribute them
+> to it.
+>
+> **Integrity claim, restated — the header above is now imprecise and is corrected here
+> rather than edited.** That header says the builder asserted the landed file *"ends with"*
+> the body. That was true at `0c57e765` and is false now, because this amendment sits below
+> the body. The checkable claim going forward: the verbatim body is the **contiguous region
+> from the line `# BROWSER SEAT NOTES` down to the blank line preceding this amendment's
+> `---` rule**, and that region still hashes to
+> `sha256 685633c33c49c7d37de5dba70f3162d4d1841a98b12896ee8d28ee465f06b196`, unchanged. The
+> original tail form remains verifiable in history at
+> `git show 0c57e765:docs/audits/2026-09-05-technical-browser-seat-notes.md`.
+
+| # | Defect | Class | Mechanism that would have caught it |
+|---|---|---|---|
+| 17 | "channel is alive / nothing to paste" asserted without reading `to-browser\` | A premise-from-summary | the read rule is executed, not recalled — a claim about a directory's contents names the listing that produced it |
+| 18 | a research brief carried a stale premise (mutation gate `<300 s`, superseded) and asked for a **computed** row to be quoted **as stored** | A premise-from-summary | a brief's premises are resolved at freeze; a value that is derived is cited by the surface that computes it, never restated as a stored fact |
+
+Both are **class A** on the register's own taxonomy — the same premise-from-summary root
+cause the seat identified as the window's dominant class. That is the point of recording
+them here rather than elsewhere: the register's own conclusion is that class A accounted for
+the largest share of the window's cost, and these two extend that count rather than opening a
+new class. Neither is triaged by this lane, and neither becomes a backlog row without ADR-111
+intake.
+
+**Provenance:** architect inbox `005-D`, 2026-09-05, relayed by the inbox-processing seat,
+which is the single writer of `STANDING_RULINGS` §AD and `protocols/OPERATOR-INTERFACE.md`.
+Findings arising from this amendment route back to that seat, not into a new register entry
+here.
+
+---
+
+## AMENDMENT 2 — one further defect, and a class-label collision (2026-09-05)
+
+> **Same shape as AMENDMENT 1, and for the same reason.** Audits are immutable (critical
+> rule 3). The seat's register is untouched, AMENDMENT 1 is untouched, and this marker is
+> appended below both. The body's integrity claim is unchanged and still checkable in the
+> form AMENDMENT 1 restated: the verbatim body is the contiguous region from
+> `# BROWSER SEAT NOTES` to the blank line preceding AMENDMENT 1's `---` rule, still
+> `sha256 685633c33c49c7d37de5dba70f3162d4d1841a98b12896ee8d28ee465f06b196`.
+
+| # | Defect | Class | Mechanism that would have caught it |
+|---|---|---|---|
+| 19 | **role without a carrier** — a role that exists only in a paste can be violated by the same paste | F (see the collision note below) | the role is a routing-table row with a commit-shape hook, carried by the deploy manifest — so an organ can refuse what a paste cannot |
+
+**What happened,** so the one-liner is not cryptic: the browser architect assigned two BUILD
+hotfixes to the integrator session, which then produced code for ~1h48m while six branches
+waited. The rule *"the integrator merges, never produces"* was real, agreed, and **had no
+carrier** — so nothing could refuse it. The integrator was **not disobeying**: it read a
+paste telling it to build, and nothing in the repo disagreed. That is the whole finding —
+the defect is the absent carrier, not the session's conduct.
+
+**CLASS-LABEL COLLISION — flagged, deliberately NOT resolved by this lane.** The inbox filed
+this as *"class F (new class)"*, but **F is already bound** in the landed register: defect 11
+is `F doctrine inertia` (*read-only arcs sent LOCAL against standing doctrine*). So either
+this is a second instance of F — arguable, since both are "a real rule that nothing enforced"
+— or it needs a fresh letter (G). The two readings differ: F-as-inertia is about a rule being
+*ignored*, while this is about a rule being *unenforceable*, which is a stronger claim. The
+label is left as filed and the ambiguity is recorded rather than silently decided; the register
+is the seat's and the classification is the inbox seat's to rule.
+
+**The body's count line is a LANDING-TIME figure.** Section 1 opens *"Sixteen defects, six
+classes."* That was true at landing and is not edited here, because it sits inside the
+immutable verbatim body. With amendments 1 and 2 the running total is **nineteen defects**,
+and the class count depends on the collision above. A reader takes the count from the body
+plus its amendments, never from the body's sentence alone — which is exactly why
+`CLAUDE.md` §4 says never to restate a count in prose.
+
+**Provenance:** architect inbox `008-D`, amended by `009-A` so the carrier is the **deploy
+manifest** rather than hub-only. The inbox seat filed the mechanism as **intake #70** (roles
+as routing-table rows with a commit-shape hook); that filing is theirs, not this lane's, and
+nothing here triages it. Findings arising from this amendment route back to that seat.

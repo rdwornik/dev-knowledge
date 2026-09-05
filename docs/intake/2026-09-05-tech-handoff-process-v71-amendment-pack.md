@@ -5,7 +5,7 @@ origin: outgoing Layer-1 browser-seat notes, window 2026-09-02 -> 2026-09-05, se
 consumed-by:
 ---
 
-# HANDOFF_PROCESS v7.1 amendment pack — the ten things the v7 bundle did not carry
+# HANDOFF_PROCESS v7.1 amendment pack — what the v7 bundle did not carry
 
 ## Problem / motivation
 
@@ -67,6 +67,26 @@ paid for. Interpretation belongs in ratification, not in transcription:
 9. **Probe prose once** (G7 landed the measure: cut 29,776 B / 32 % window-specific against 20 KB / 70 %). The next cut should show the trend line, not just the miss.
 10. **Providers used vs promised**, per window: this window — terra used (8 reviews, 10 P1); Gemini used ONCE with measured fidelity (6/6 locators, 0 fabrications, 1 overclaim of files read); Grok not admitted; sol unconfirmed on G7; codespace used once (G5) then held.
 
+**Item 11 — appended 2026-09-05, NOT from the source §2.** It arrives from the architect
+inbox (item 005-C) and is kept outside the verbatim block above so that block stays exactly
+the ten deltas the outgoing seat wrote. Same standing as items 1-10 for ratification; a
+different provenance, stated rather than blended:
+
+11. **The bundle's interface section names the TRANSPORT** — prompts dir, `to-cc\`,
+    `to-browser\`, the read rule, and the `DONE <sha>` copy witness. `HANDOFF_BOOT.md` gets
+    **one pointer line** to `protocols/OPERATOR-INTERFACE.md` §1. The hub-canonical route is
+    via this amendment pack, **not** a direct edit to `HANDOFF_BOOT.md`; the browser's memory
+    entry is a **CACHE** of §1, never its source.
+
+    Filing note, resolved rather than assumed: §1 exists on `main` today as *"File exchange
+    goes through the Downloads directory"*, but the **transport constant** this item points at
+    — the prompts-dir/`to-cc\`/`to-browser\`/read-rule/copy-header/session-start/inbox-naming
+    block — is landed on `worktree-filings` (`6998d2b0`) and is **not on `main` at the time of
+    this filing**. So the pointer target is real but not yet integrated; a ratification that
+    lands item 11 before that branch merges would be citing a section whose cited content the
+    reader cannot open. Deliberately a **pointer**, not a restatement — a second copy in the
+    bundle is the drift this item exists to prevent.
+
 Grouped into the shape a ratification would rule on (this grouping is the filing lane's,
 not the source's):
 
@@ -81,6 +101,7 @@ not the source's):
   vs promised. These improve the record rather than prevent a recorded defect class, and
   item 7 in particular names a mechanism (`window_metrics.py`) that does not exist and would
   itself need triage.
+- **Must (appended):** item 11 — a pointer line, not content. It is grouped Must because the failure it prevents is a seat reading a stale cache of a transport it cannot otherwise resolve, and because its cost is one line.
 
 ## Acceptance criteria (ex-ante)
 
