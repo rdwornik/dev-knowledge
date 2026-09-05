@@ -19,6 +19,90 @@
 
 ---
 
+### 2026-09-05 (h) - CC (Opus 5): the admission-gate lane was retired because its defect was already fixed, and two lanes were recovered from a receipt channel that died mid-flight
+
+**Anchors:** `b9db30f7`, `1486ff53` (branch `docs/rescope-634`) - and, on lane branches,
+`ed2d34d9` (`worktree-lane-h0-suite-speed`) and `0d318c1f` (`worktree-lane-h0-trace`)
+
+**Did:** ran the dispatcher seat for mini-batch H0-PREP: re-scoped `[#634]`, filed the batch
+manifest, dispatched three codespace lanes, and recovered two of them by hand after the local
+dispatch processes were killed.
+
+**L2 WAS RETIRED BEFORE A MACHINE WAS PROVISIONED, AND THE PREMISE WAS FOUR DAYS STALE.** The lane
+was to stop `dispatch-run.sh` accepting `GITHUB_TOKEN` as its Anthropic-token check. Two facts
+killed it: the runner is not a source file in this repo at all - ignored at root, absent from disk
+and from history across the whole `Dev/` tree, generated per run by
+`win-tooling/config/dispatch-helpers/DispatchHelpers.psm1` - and the defect was already fixed by
+`win-tooling@d6cbd92` on 2026-09-01, which split `adm_tok_anthropic` from `adm_tok_github`. The row
+had been ruled from AMENDMENT 2 of the 632 long-run witness, which pre-dates that fix. The
+contracted closure was deliberately NOT built: refusing on a missing Anthropic token is fail-CLOSED
+on a path measured working - `lane-632-longrun-a-w95qprj5wq4cg67g` ran 338 events over
+`CLAUDE_CODE_MESSAGING_SOCKET` with the token unset. Operator ruled OPTION 2 amended: re-scope, do
+not close; lift the standing hold.
+
+**THE RECEIPT CHANNEL DIED AND DONE-CLAUSE 0 IS THE ONLY REASON THE WORK SURVIVED.** Workstation
+memory pressure killed both blocking dispatch processes, which killed the in-container agents too.
+No receipt was pulled back for either lane. Judged on their BRANCHES instead: L4 had finished and
+committed three times (stranded in the container, pushed out by hand); L5 had done all its work and
+written a complete end-of-lane artifact but was killed before committing, so its commit was made
+from inside the container with a body stating plainly that the dispatcher committed it and that the
+lane's final full-suite rerun never completed. A receipt would have reported nothing but transport
+for either one.
+
+**TWO SUBSTRATE DEFECTS, AND ONE OF THEM IS A REPEAT.** (1) The container cannot push from a
+NON-LOGIN shell - `GITHUB_TOKEN` is unset there and the credential helper fails with `Invalid
+username or token`; `bash -lc` works. The admission gate's own comment asserts the container "can
+fetch, commit and push", and push is the leg that is fragile. (2) `receipt.json` at repo root
+hard-fails `dot_prefix_discipline` and blocked L5's commit - the IDENTICAL defect already recorded
+in the AMENDMENT to `docs/audits/2026-09-01-verification-codespace-longrun-proof.md`. That audit's
+own bounded fix was reapplied (same-device rename, inode 76155 preserved, restored after). A defect
+recorded once and met again is a fix that was never made durable.
+
+**L5's FINDING IS THAT THE NAMED LEVER WAS THE WRONG ONE.** pytest's collector never paid for live
+worktrees: its default `norecursedirs` pattern `.*` already prunes `.claude`. The cost was two tests
+doing their own `Path.rglob("*.md")` and filtering AFTER the walk, and `rglob` consults neither
+`.gitignore` nor `norecursedirs` - so every live worktree's full duplicate corpus was read. Corpus
+2,420 files at 0 worktrees vs 14,510 at 5; `normalize_text` 78.57s -> 12.96s; post-fix the two tests
+run 51.39s at 5 worktrees vs 51.49s at the operator's floor of 2, a 0.2% delta.
+
+**L3 PAUSED ON A REAL RULE-VS-RULING CONFLICT, AND PAUSING WAS CORRECT.** Its contract (from the
+ruling's own closure) says governance prose relocates to `docs/` only. `validate_hermetization.py`
+Rule C - the home allowlist, operator ruling A of 2026-08-11 - hard-refuses a new file whose
+immediate home is bare `docs/`; the module's own comment cites that exact class as how
+`docs/ORGAN-INDEX.md` was born. Rule C was verified independently against the source, not taken
+on the lane's word. The lane escalated under decision-budget class (b) and Q10 rather than
+inventing a home, finished cleanly (`is_error=false`, `status DONE`, 51 turns, $2.29) and left
+its draft in `stash@{0}` (`-u` was used, so `docs/governance.md` is preserved at `stash@{0}^3`).
+Both halves were harvested to `Dev/_scratch/h0-l3-paused/` because a stash dies with its
+container. No commits on its branch, which is the honest state: Done-clause 0 is not met and
+must not be faked.
+
+**NOT THIS SESSION'S WORK, NAMED ONLY TO DISCHARGE `journal_spine_anchor`:** two first-parent
+spine entries on main carry no JOURNAL anchor reachable from this branch - `ca0a2a2f`
+(`Merge branch 'worktree-corpus-coherence-gemini'`) and `09f80530`
+(`Merge branch 'docs/journal-anchor-drain'`). `09f80530` was the integrator's drain that
+anchored the earlier four, and it could not anchor ITSELF, so the drain opened a fresh gap;
+its `(d)` entry lives on main and not on this branch, which is why `ca0a2a2f` reads as
+unanchored from here. The gate is a PRE-COMMIT hard-fail, so this blocks every seat, not
+just theirs. Both are named to let work land - substance is owned by the integrator seat and
+is deliberately NOT summarised or claimed here. A sync-merge of main into this branch would
+be the wrong fix and was not done.
+
+**Result:** `[#634]` re-scoped and open, hold lifted; H0-PREP manifest filed; L5 and L4 recovered
+and pushed; L3 paused awaiting an operator ruling on where governance prose may live.
+
+**Changes:** `tasks/634-*.md`; `docs/audits/2026-09-05-technical-batch-h0-manifest.md`;
+`docs/audits/README.md`. On lane branches: `tests/test_toc.py`,
+`tests/test_normalize_headers.py`, the L4 trace writer and `fleet_health.py`.
+
+**Abandoned:** L2 entirely - retired on evidence, not deferred. Three-lanes-in-parallel: the account
+caps at 2 running codespaces, so L3 was refused at create and ran third.
+
+**Next:** integrator merges `docs/rescope-634`, then L5 -> L4; L3 is DEFERRED out of this window
+until the `docs/` home question is ruled. **The full suite has NOT been
+observed green on L5's branch** - its verifying run was the task that got killed - so re-run it at
+merge rather than trusting the commit. Two stopped codespaces await a deliberate operator delete.
+
 ### 2026-09-05 (g) - CC (Opus 5): the outside-harness gap analysis, and an adversarial pass falsified three of my eight absence claims
 
 **Anchors:** `6d0db21f` (this arc: the deliverable + this entry) - plus `ca0a2a2f` and `09f80530`, both
