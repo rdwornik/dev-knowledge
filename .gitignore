@@ -161,4 +161,10 @@ temp/
 # The contract itself is cp'd in under its own filename. A lane contract at the repo ROOT is
 # never legitimate -- ADR-101 hermetization refuses one there -- so anchoring the pattern to
 # the root cannot hide a real artifact.
+#
+# WHY GITIGNORED RATHER THAN DELETED (measured 2026-09-01, lane-632 second run; merged from
+# worktree-lane-632-codespace-proof): `dispatch-run.log` is actively written by the in-flight
+# session's stdout redirect and `dispatch-run.sh` is the running parent script. Deleting either
+# mid-run risks the harness's own idle-based fuse misreading file-growth and killing a live
+# session. Ignoring them is therefore the safe disposition, not merely the tidy one.
 /LANE-*.md
