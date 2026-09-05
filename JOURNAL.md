@@ -19,6 +19,48 @@
 
 ---
 
+### 2026-09-05 (l) - CC (Opus 5, FILINGS-1): the queue emptied, and both of the day's blocks were other seats' footprints
+
+**Did:** Closed the last two architect-inbox items I own. `8f72fc68` filed candidate **(aa)** in
+`protocols/STANDING_RULINGS.md` §AD — the dispatch surface cannot launch a conforming local
+contract, the register's first two-letter entry — and folded 015-B's model-routing defect into
+**(p)** rather than a new letter. `270d3d40` executed item 012-A: `CLAUDE.md` §12 relocated
+byte-identically to a ledger under `docs/audits/` with a two-line pointer left behind, and the
+Library-first bullet added as a NINTH hub region `conventions-library-first`.
+
+**Result:** 23,956 B → 23,551 B against a 24,576 B cap, so 012-A was the SWAP it was specified as
+rather than an add. `audit.py health` returns OK. Targeted suites green — 168 for the register
+commit, 116 for 012-A.
+
+**Both blocks were other seats' footprints on shared state, and one of my own diagnoses was
+wrong.** `journal_spine_anchor` refused the (aa) commit; I reasoned that a real gap survives a
+sync and read the FAIL as a real gap on main. The heuristic is sound and I applied it at the wrong
+distance: **the sync must reach CURRENT main, not the commit under suspicion**, because the
+anchoring JOURNAL entry can ride the very merge that looks unanchored, so stopping at that merge's
+parent reproduces the gap and appears to confirm it. Five seats hit the same shape today. The
+second block was `no_sibling_orphans` on an empty `filings-2` husk held as a live peer's working
+directory, which hard-failed every commit in the repo until that seat exited.
+
+**Two defects surfaced by the end-to-end re-read 012-A's closure requires**, both recorded in the
+new ledger rather than quietly repaired: the v2.74 entry had been authored OUTSIDE the
+`section-history` region's `methodology:end` marker — inside §12 to a reader, outside it to the
+marker parser — and `CLAUDE.md`'s own version marker read 2.72 while its entries ran to v2.74.
+
+**Changes:** `protocols/STANDING_RULINGS.md` · `CLAUDE.md` ·
+`templates/claude-regions/conventions-library-first.md` (new) ·
+`docs/audits/2026-09-05-technical-claude-md-section-history-ledger.md` (new) ·
+`docs/audits/2026-09-05-technical-v150-tag-checklist.md` (new) · `docs/audits/README.md` ·
+`tests/test_boundary_headers.py` (two vacuity count pins, 8→9 and 15→16, moved by the ninth region).
+
+**Abandoned:** nothing built. Four things wait on an operator word rather than on work — 015-C's
+row deletion, which the integrator declined because a peer relay is not authorization and it was
+right to; items 007 and 004-A.2, which no seat touched and which read as covered; 012-C's
+ownership; and candidate (l), cited twice and never filed.
+
+**Next:** `worktree-filings` released to the integrator at 17 commits. One candidate owed to §AD —
+the spine false-positive shape above, credited to the fifth seat that reported it.
+
+
 ### 2026-09-05 (k) - CC (Opus 5): the closure detector stopped running and said so in a file nobody was reading
 
 **Did:** Landed the session-end detector's own error record, which the Stop hook wrote into
