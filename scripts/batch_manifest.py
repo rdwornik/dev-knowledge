@@ -472,3 +472,86 @@ def freeze_manifest_contract_agreement(manifest_text: str,
               "with nothing comparing the two)")
     return [Refusal(rule=RULE_MANIFEST_CONTRACT_SLUG_AGREEMENT, source="<manifest>",
                     detail=detail)]
+
+
+# --- manifest-linked artifacts (the 2026-09-05 operator ruling) --------------------------------
+
+#: The manifest and the packet it names via `closed_by:` are BOTH linking surfaces. The ruling
+#: names three link kinds -- `closed_by`, lane packets, close packets -- and the close packet is
+#: where a batch records what its lanes actually produced, so scanning the manifest alone would
+#: miss every artifact the batch enumerated at close rather than at freeze. Measured on batch G:
+#: manifest-only reaches 3 artifacts, manifest + closer reaches 4.
+_AUDITS_PATH_RE = re.compile(r"docs/audits/([A-Za-z0-9._/-]+\.md)")
+_LINKED_STEM_RE = re.compile(
+    r"(?<![A-Za-z0-9._-])(\d{4}-\d{2}-\d{2}-[A-Za-z0-9._-]+)(?![A-Za-z0-9._-])")
+
+
+class ManifestLinks(NamedTuple):
+    """What the committed batch manifests link, split by HOW they link it.
+
+    Two sets rather than one, because they carry different false-positive surfaces and a
+    caller may reasonably want to report them apart. `explicit` is a path or dated stem the
+    manifest actually wrote down; `lane_slugs` is the batch's declared lane roster, which
+    resolves to an artifact by containment (`lane-g-276-deploy-waiver` is a substring of
+    `2026-09-02-technical-lane-g-276-deploy-waiver.md`).
+    """
+    explicit: frozenset[str]
+    lane_slugs: frozenset[str]
+    manifests: tuple[str, ...]
+
+
+def manifest_links(repo_path: Path) -> ManifestLinks:
+    """Every artifact identifier reachable from a committed batch manifest.
+
+    READS THE WORKING TREE, not git, because both callers measure the working tree and a
+    number taken from a different snapshot than the corpus it is compared against is not a
+    measurement. `open_batches` reads committed text for a different reason -- it decides
+    whether a batch is open, where an unstaged edit flipping `status:` would be a bypass.
+
+    HONEST LIMITS. Containment on a lane slug is a substring test, so an artifact whose name
+    merely contains a declared slug counts as linked; the slug grammar (`lane-<letter>-<id>-`)
+    plus the batch-scoped letter makes a collision unlikely but does not exclude it. And this
+    resolves LINKAGE only -- it says a governance surface named the artifact, never that the
+    naming was apt.
+    """
+    explicit: set[str] = set()
+    slugs: set[str] = set()
+    seen: list[str] = []
+    for manifest in sorted(Path(repo_path).glob(MANIFEST_GLOB)):
+        try:
+            text = manifest.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            # A manifest that cannot be read links nothing. Deliberately not raising: this is
+            # an ADDITIVE coverage route, so an unreadable manifest costs coverage it would
+            # have granted and can never invent any.
+            continue
+        seen.append(manifest.name)
+        surfaces = [text]
+        closer = _frontmatter(text).get("closed_by", "")
+        if closer and _valid_closer(closer):
+            closer_path = Path(repo_path) / closer
+            try:
+                surfaces.append(closer_path.read_text(encoding="utf-8"))
+            except (OSError, UnicodeDecodeError):
+                pass
+        for surface in surfaces:
+            for hit in _AUDITS_PATH_RE.findall(surface):
+                name = hit.rsplit("/", 1)[-1]
+                explicit.add(name)
+                explicit.add(name[:-3] if name.endswith(".md") else name)
+            for stem in _LINKED_STEM_RE.findall(surface):
+                explicit.add(stem)
+                explicit.add(stem[:-3] if stem.endswith(".md") else stem)
+            slugs |= manifest_lane_slugs(surface)
+    return ManifestLinks(frozenset(explicit), frozenset(slugs), tuple(seen))
+
+
+def links_artifact(links: ManifestLinks, name: str) -> Optional[str]:
+    """The link kind by which `name` is reachable, or None. `'explicit'` beats `'lane-slug'`."""
+    stem = name[:-3] if name.endswith(".md") else name
+    if name in links.explicit or stem in links.explicit:
+        return "explicit"
+    for slug in links.lane_slugs:
+        if slug in stem:
+            return "lane-slug"
+    return None
