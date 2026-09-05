@@ -143,3 +143,28 @@ def test_unreadable_manifest_grants_no_coverage(seeded: Path):
     (seeded / "docs" / "audits" / MANIFEST).write_bytes(b"\xff\xfe not utf-8")
     links = bm.manifest_links(seeded)
     assert bm.links_artifact(links, LINKED_SLUG) is None
+
+
+def test_a_document_ABOUT_a_lane_is_not_that_lane_s_artifact(seeded: Path):
+    """terra HIGH, pre-merge. The leg was `slug in stem`, which admitted a REVIEW of a lane
+    as if it were the lane's own packet -- granting both DISPOSITIONED and CITED and silencing
+    both ratchets at once. Silent false coverage is the failure mode `funnel_coverage` exists
+    to prefer loud false WARNs over, so this is the sharpest test in the module."""
+    links = bm.manifest_links(seeded)
+    assert bm.links_artifact(links, "2026-09-05-technical-review-of-lane-z-1-widget.md") is None
+    assert bm.links_artifact(links, "2026-09-05-technical-notes-on-lane-z-1-widget.md") is None
+    # ... while the lane's own artifacts, which BEGIN with the slug, still resolve.
+    assert bm.links_artifact(links, LINKED_SLUG) == "lane-slug"
+    assert bm.links_artifact(links, "2026-09-05-technical-lane-z-1-widget-close-packet.md")         == "lane-slug"
+
+
+def test_the_slug_boundary_is_respected(seeded: Path):
+    """`lane-z-1-widget` must not admit `lane-z-1-widgetry`: a prefix is not a lane."""
+    links = bm.manifest_links(seeded)
+    assert bm.links_artifact(links, "2026-09-05-technical-lane-z-1-widgetry.md") is None
+
+
+def test_an_undated_stem_has_no_tail_to_anchor_and_is_refused(seeded: Path):
+    """Refused rather than fuzzily matched -- the additive route fails toward LESS coverage."""
+    links = bm.manifest_links(seeded)
+    assert bm.links_artifact(links, "lane-z-1-widget.md") is None

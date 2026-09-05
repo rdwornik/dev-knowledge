@@ -481,6 +481,12 @@ def freeze_manifest_contract_agreement(manifest_text: str,
 #: where a batch records what its lanes actually produced, so scanning the manifest alone would
 #: miss every artifact the batch enumerated at close rather than at freeze. Measured on batch G:
 #: manifest-only reaches 3 artifacts, manifest + closer reaches 4.
+#:
+#: PRECISION ABOUT THE PRECEDENT (terra, record-only): reading the closer's CONTENT is THIS
+#: ruling's extension, not something ADR-110 already does. That gate reads the manifest's
+#: committed frontmatter and merely PROBES whether the `closed_by:` path exists; it never
+#: consumes the closer's body. The argument for treating a manifest as load-bearing stands on
+#: the manifest itself, and the closer rides on the ruling that named close packets.
 _AUDITS_PATH_RE = re.compile(r"docs/audits/([A-Za-z0-9._/-]+\.md)")
 _LINKED_STEM_RE = re.compile(
     r"(?<![A-Za-z0-9._-])(\d{4}-\d{2}-\d{2}-[A-Za-z0-9._-]+)(?![A-Za-z0-9._-])")
@@ -546,12 +552,36 @@ def manifest_links(repo_path: Path) -> ManifestLinks:
     return ManifestLinks(frozenset(explicit), frozenset(slugs), tuple(seen))
 
 
+#: An artifact stem's descriptive tail: everything after `<date>-<class>-`. A lane's own
+#: packet begins its tail WITH the lane slug; a document merely ABOUT that lane does not.
+_ARTIFACT_TAIL_RE = re.compile(r"^\d{4}-\d{2}-\d{2}-[a-z]+-(?P<tail>.+)$")
+
+
 def links_artifact(links: ManifestLinks, name: str) -> Optional[str]:
-    """The link kind by which `name` is reachable, or None. `'explicit'` beats `'lane-slug'`."""
+    """The link kind by which `name` is reachable, or None. `'explicit'` beats `'lane-slug'`.
+
+    THE LANE-SLUG LEG IS ANCHORED, NOT CONTAINMENT (terra HIGH, pre-merge). It was
+    `slug in stem`, which admitted `2026-09-05-technical-review-of-lane-g-276-deploy-waiver.md`
+    -- a document ABOUT a lane -- as if it were that lane's own packet, granting it both
+    DISPOSITIONED and CITED and silencing both ratchets. That is SILENT false coverage, which
+    `funnel_coverage`'s docstring already names as the failure mode to prefer loud false WARNs
+    over: a spurious WARN is noticed and fixed in one edit, invented coverage is never noticed
+    at all.
+
+    The anchor: strip the `<date>-<class>-` prefix and require the remaining tail to BEGIN with
+    the slug, at a `-` or end-of-string boundary. A lane's artifacts are named for their lane
+    (`…-technical-lane-g-614-hygiene-close-packet.md` tails as `lane-g-614-hygiene-…`); a
+    commentary names something else first. A stem that carries no dated `<date>-<class>-`
+    prefix has no tail to anchor against and is refused rather than fuzzily matched.
+    """
     stem = name[:-3] if name.endswith(".md") else name
     if name in links.explicit or stem in links.explicit:
         return "explicit"
+    match = _ARTIFACT_TAIL_RE.match(stem)
+    if match is None:
+        return None
+    tail = match.group("tail")
     for slug in links.lane_slugs:
-        if slug in stem:
+        if tail == slug or tail.startswith(f"{slug}-"):
             return "lane-slug"
     return None
