@@ -77,3 +77,63 @@ one place in this ledger where the disposition is not yet a decision.
 - **One row is PENDING and is not coverage in the ordinary sense.** It is counted as *known*
   rather than *absent* — the mechanism's deliberate middle state, recorded so the distinction
   between "looked at, question open" and "never looked at" survives.
+
+## 5 · R5 residue — the pre-batch unlinked artifacts (architect ruling 3, 2026-09-05 evening)
+
+**What was ruled.** The residue this window surfaced but no 007 bundle owned — reported by me as
+unowned at hand-off — is *"pre-batch unlinked artifacts, so they belong to R5 B3/B4's single
+ledger"*. B3/B4 is mine, so the residue is filed here rather than left for whoever merged next.
+
+**Measured, not relayed.** The hand-off shorthand was "25 + 17", which reads as 42. It is not:
+`consumer_at_landing` reports **25** beyond its arm-time baseline and
+`funnel_coverage`'s ratchet reports **17**, and **12** artifacts
+appear in BOTH — so the true residue is **30 distinct artifacts**, of which
+**6** already carried a row in §3 and **24** are added below.
+
+**THIS IS A CLASS ROUTING, NOT 24 INDIVIDUAL ADJUDICATIONS, and the difference matters.**
+Each row below files its artifact to `[#552]`, the window-close disposition routine whose
+Done-when is *"one window closes with every new audit dispositioned"* — that row genuinely owns
+the sweep. What no row below claims is that this seat opened each artifact and decided its
+substantive owner. If any one of them deserves a different id, it takes precedence over the class
+filing and this ledger is the place to record it.
+
+**HONEST LIMIT — this section clears the funnel_coverage half and CANNOT clear the
+consumer_at_landing half.** The two organs read different surfaces. `funnel_coverage` reads the
+disposition ledger, so a row here disposes the artifact. `consumer_at_landing` asks whether a
+GOVERNANCE POOL file cites the artifact, and its pool is `tasks/`, `docs/decisions/`,
+`docs/intake/`, `protocols/` plus six root files — `docs/audits/` is **not** a citer, so a ledger
+row is invisible to it by construction.
+
+That is not a prediction; it is already visible in §3 above. Of the artifacts dispositioned there,
+6 STILL appear in `consumer_at_landing`'s unconsumed set — dispositioned and
+unconsumed at the same time, because the two organs were never asking the same question. Clearing
+the consumer half needs a POOL-SIDE citer naming each artifact, which is the route `[#552]` used
+for this ledger itself. That is a separate act on a separate surface and is NOT performed here;
+recording the gap so no one reads a green funnel leg as both.
+
+| file | disposition | evidence locator |
+|---|---|---|
+| 2026-08-29-technical-claude-md-regenre.md | FILED | `[#552]` — pre-batch unlinked artifact, routed by architect ruling 3 (2026-09-05 evening) onto this ledger as B3/B4's single disposition surface. Surfaced by: consumer_at_landing. |
+| 2026-09-05-technical-627-readjudication.md | FILED | `[#552]` — pre-batch unlinked artifact, routed by architect ruling 3 (2026-09-05 evening) onto this ledger as B3/B4's single disposition surface. Surfaced by: consumer_at_landing + funnel_coverage. |
+| 2026-09-05-technical-aj-second-pass-lane-contract.md | FILED | `[#552]` — pre-batch unlinked artifact, routed by architect ruling 3 (2026-09-05 evening) onto this ledger as B3/B4's single disposition surface. Surfaced by: funnel_coverage. |
+| 2026-09-05-technical-batch-h0-manifest.md | FILED | `[#552]` — pre-batch unlinked artifact, routed by architect ruling 3 (2026-09-05 evening) onto this ledger as B3/B4's single disposition surface. Surfaced by: consumer_at_landing + funnel_coverage. |
+| 2026-09-05-technical-batch-r5p-manifest.md | FILED | `[#552]` — pre-batch unlinked artifact, routed by architect ruling 3 (2026-09-05 evening) onto this ledger as B3/B4's single disposition surface. Surfaced by: consumer_at_landing + funnel_coverage. |
+| 2026-09-05-technical-browser-prose-rule-census.md | FILED | `[#552]` — pre-batch unlinked artifact, routed by architect ruling 3 (2026-09-05 evening) onto this ledger as B3/B4's single disposition surface. Surfaced by: consumer_at_landing + funnel_coverage. |
+| 2026-09-05-technical-browser-seat-notes.md | FILED | `[#552]` — pre-batch unlinked artifact, routed by architect ruling 3 (2026-09-05 evening) onto this ledger as B3/B4's single disposition surface. Surfaced by: funnel_coverage. |
+| 2026-09-05-technical-claude-md-section-history-ledger.md | FILED | `[#552]` — pre-batch unlinked artifact, routed by architect ruling 3 (2026-09-05 evening) onto this ledger as B3/B4's single disposition surface. Surfaced by: funnel_coverage. |
+| 2026-09-05-technical-fleet-readiness.md | FILED | `[#552]` — pre-batch unlinked artifact, routed by architect ruling 3 (2026-09-05 evening) onto this ledger as B3/B4's single disposition surface. Surfaced by: consumer_at_landing + funnel_coverage. |
+| 2026-09-05-technical-funnel-groom-lane-contract.md | FILED | `[#552]` — pre-batch unlinked artifact, routed by architect ruling 3 (2026-09-05 evening) onto this ledger as B3/B4's single disposition surface. Surfaced by: consumer_at_landing + funnel_coverage. |
+| 2026-09-05-technical-funnel-groom-sheet.md | FILED | `[#552]` — pre-batch unlinked artifact, routed by architect ruling 3 (2026-09-05 evening) onto this ledger as B3/B4's single disposition surface. Surfaced by: consumer_at_landing + funnel_coverage. |
+| 2026-09-05-technical-lane-h0-trace-close.md | FILED | `[#552]` — pre-batch unlinked artifact, routed by architect ruling 3 (2026-09-05 evening) onto this ledger as B3/B4's single disposition surface. Surfaced by: consumer_at_landing + funnel_coverage. |
+| 2026-09-05-technical-r5-disposition-sheet.md | FILED | `[#552]` — pre-batch unlinked artifact, routed by architect ruling 3 (2026-09-05 evening) onto this ledger as B3/B4's single disposition surface. Surfaced by: consumer_at_landing + funnel_coverage. |
+| 2026-09-05-technical-r5p-lane1-docrot-arm2.md | FILED | `[#552]` — pre-batch unlinked artifact, routed by architect ruling 3 (2026-09-05 evening) onto this ledger as B3/B4's single disposition surface. Surfaced by: consumer_at_landing + funnel_coverage. |
+| 2026-09-05-technical-research-architekt-jutra-gap-analysis.md | FILED | `[#552]` — pre-batch unlinked artifact, routed by architect ruling 3 (2026-09-05 evening) onto this ledger as B3/B4's single disposition surface. Surfaced by: funnel_coverage. |
+| 2026-09-05-technical-research-python-quality-speed.md | FILED | `[#552]` — pre-batch unlinked artifact, routed by architect ruling 3 (2026-09-05 evening) onto this ledger as B3/B4's single disposition surface. Surfaced by: funnel_coverage. |
+| 2026-09-05-technical-v150-tag-checklist.md | FILED | `[#552]` — pre-batch unlinked artifact, routed by architect ruling 3 (2026-09-05 evening) onto this ledger as B3/B4's single disposition surface. Surfaced by: consumer_at_landing + funnel_coverage. |
+| 2026-09-05-verification-lane-h0-suite-speed.md | FILED | `[#552]` — pre-batch unlinked artifact, routed by architect ruling 3 (2026-09-05 evening) onto this ledger as B3/B4's single disposition surface. Surfaced by: consumer_at_landing + funnel_coverage. |
+| ARM3_NOTE.md | FILED | `[#552]` — pre-batch unlinked artifact, routed by architect ruling 3 (2026-09-05 evening). COMPANION FILE of `2026-09-05-technical-627-readjudication.md`, which carries its own row in this same section; it is not an independent audit and inherits that parent's ownership. Surfaced by: consumer_at_landing. |
+| LANE-r-000-bundle-gitlog.md | FILED | `[#552]` — pre-batch unlinked artifact, routed by architect ruling 3 (2026-09-05 evening). COMPANION FILE of `2026-09-05-technical-batch-r5p-manifest.md`, which carries its own row in this same section; it is not an independent audit and inherits that parent's ownership. Surfaced by: consumer_at_landing. |
+| LANE-r-000-docrot-arm2.md | FILED | `[#552]` — pre-batch unlinked artifact, routed by architect ruling 3 (2026-09-05 evening). COMPANION FILE of `2026-09-05-technical-batch-r5p-manifest.md`, which carries its own row in this same section; it is not an independent audit and inherits that parent's ownership. Surfaced by: consumer_at_landing. |
+| LANE-r-000-zc-candidates.md | FILED | `[#552]` — pre-batch unlinked artifact, routed by architect ruling 3 (2026-09-05 evening). COMPANION FILE of `2026-09-05-technical-batch-r5p-manifest.md`, which carries its own row in this same section; it is not an independent audit and inherits that parent's ownership. Surfaced by: consumer_at_landing. |
+| SEED_RUBRIC.md | FILED | `[#552]` — pre-batch unlinked artifact, routed by architect ruling 3 (2026-09-05 evening). COMPANION FILE of `2026-09-05-technical-627-readjudication.md`, which carries its own row in this same section; it is not an independent audit and inherits that parent's ownership. Surfaced by: consumer_at_landing. |
+| VERDICT_RULE.md | FILED | `[#552]` — pre-batch unlinked artifact, routed by architect ruling 3 (2026-09-05 evening). COMPANION FILE of `2026-09-05-technical-627-readjudication.md`, which carries its own row in this same section; it is not an independent audit and inherits that parent's ownership. Surfaced by: consumer_at_landing. |
