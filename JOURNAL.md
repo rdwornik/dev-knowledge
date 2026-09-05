@@ -19,6 +19,73 @@
 
 ---
 
+### 2026-09-05 (f) - CC (Opus 5): the queue is anchored before it is merged, not after
+
+**Did:** Landed merge-queue item 2 (manifest-linked audits count as CITED and
+DISPOSITIONED, `ac2c6a15`), verified lane-h0-suite-speed's central claim, and wrote
+this entry to PRE-ANCHOR the rest of the integration queue.
+
+**Result:** Item 2 closed against the amended criterion -- the named findings, never
+the headline. Across the single merge, over the batch-G-named artifacts: 22 findings
+before, 6 after; 16 discharged over 8 files, reached by `explicit` link for 3 and
+`lane-slug` for 5. Corpus-wide delta A2: funnel uncovered 796 -> 723, consumer
+unconsumed 647 -> 590. Two departures from the brief, both reported rather than
+smoothed: the count is 22 and not 19, and the 10-funnel/9-consumer asymmetry does not
+reproduce at this commit -- every file raises both legs, and the batch-G glob catches
+two artifacts the manifest does not declare. The attribution table was taken at
+`6de676fb`. The tenth file, `2026-09-02-technical-lane-g-626-terra-tally.md`, is left
+raising ON PURPOSE: the manifest declares lane G4 as `lane-g-626-executing-copies`,
+the artifact is `lane-g-626-terra-tally`, and widening the match to the bare lane id
+would have been fitting the mechanism to its target -- it would paper over exactly the
+divergence `RULE_MANIFEST_CONTRACT_SLUG_AGREEMENT` exists to catch. Its remedy is a
+ledger disposition row whose term is a judgment for the architect.
+
+Four terra passes, three HIGHs, all fixed, pass 4 CLEAN. The second and third are worth
+the record because both were defects in the FIX, not in the original: a letters-only
+class segment refused digit-bearing and hyphenated ruled classes (a false negative
+introduced while removing a false positive), and the provenance guard added to close
+the first was itself untested -- an identity assertion that passes with the guard
+deleted, because both names resolve through the same `sys.modules` entry.
+
+lane-h0-suite-speed's claim VERIFIED at 11 live worktrees, which is a stronger test
+than the 5 it was measured at: main's walkers see 27,167 `.md` files, the fix sees
+2,963, and the residual contains no worktree path at all. The 2-vs-5 wall-clock
+equality it reports follows by construction rather than by luck -- the corpus stops
+depending on worktree count. The absolute residual differs from the artifact's 2,420
+because the repo has grown since; the count-INDEPENDENCE is the claim and it holds.
+
+**Changes:** `ac2c6a15` merged item 2. This entry names the tips of the queued arcs so
+each merge is anchored at the moment it lands instead of trailing by one. That is the
+[#623] deadlock handled rather than suffered: a merge cannot name its own SHA, but it
+CAN be named in advance by the SHA it is about to introduce. The alternative -- anchor
+after each merge -- leaves every session in the tree commit-blocked between merges, and
+with this many arcs queued that block is most of the day.
+
+**Abandoned:** Nothing. Two branches produced earlier this session
+(`worktree-doc-claims-tiering`, `worktree-file-candidates`) were dropped from this
+seat's PRODUCTION scope by the re-scope and re-enter as ordinary ARRIVALS -- complete,
+committed, intact. Their content is now owned by the R5P batch, so if R5P L2/L4
+supersede either, it is dropped with a note rather than merged twice; a superseded arc
+merged anyway is the same duplicate-record defect from the other direction.
+
+**Next:** Merge the queue in the ruled order: lane-h0-suite-speed, then the docs-only
+arrivals, then lane-h0-trace, then lane-h0-readme, then the new batch's lanes; print the
+census to `to-browser/STATUS.md` once this anchor lands. `worktree-filings` is HELD at
+its owner's request until FILINGS-1 releases it -- items 002-006 land on that same
+branch and merging at 001 would strand them.
+
+h5-627 is classified DOCS-ONLY for delta A2, and the reasoning is recorded because the
+filenames argue the opposite. Its nine non-`.md` files are `.py`, which the operator's
+carve-out named as the code trigger -- but they are evidence artifacts under
+`docs/audits/<audit>-artifacts/`, and pytest's default `python_files` is
+`test_*.py`/`*_test.py`, which NONE of them match. The suite cannot move, which is what
+the delta A2 exists to detect. Ruff does see `.py` anywhere in the tree, so they remain
+inside the lint gate; that is re-confirmed after the merge rather than assumed.
+
+**Anchors:** `@SELF@`, `ed2d34d9`, `13bf1458`, `c67f959a`, `cb1d713a`, `8919ba08`,
+`bb79aa76`, `e95a4f15`, `2da0d9b9`, `0c57e765`, `0d318c1f`, `24eac392`, `e2995e86`,
+`26d7d743`
+
 ### 2026-09-05 (e) - CC (Opus 5): the anchor chain always leaves one, and that is the finding
 
 **Anchors:** `09f80530`, `73bf4272`
