@@ -3925,11 +3925,11 @@ candidate quietly becomes a commitment.
 command.**
 
 *Filed from witnessed cost, not from a design idea.* On 2026-09-05 the `journal_spine_anchor`
-predicate produced **eight false alarms across six seats in a single day** — the incidents are
-recorded individually in the JOURNAL entries of that date, (m) through (r), which are the surface
-for this count; it is a tally of recorded incidents, not a computed metric, and no organ computes
-it — every one of them the
-same wrong reading, and one of them reached the operator and stopped the merge queue outright. No
+predicate produced **eight false alarms across six seats in a single day**, every one of them the
+same wrong reading, and one of them reached the operator and stopped the merge queue outright.
+The incidents are recorded individually in the JOURNAL entries of that date, (m) through (r),
+which are the surface for this count: it is a tally of recorded incidents, not a computed metric,
+and no organ computes it. No
 seat was careless. Each inferred a predicate from a failure message that did not state one, and
 each inferred a different plausible predicate.
 
@@ -3943,10 +3943,12 @@ exclusions are not all of one kind and stating them as if they were is a trap:
   temporal rather than set-theoretic: a merge commit's hash does not exist until the merge is
   created, and the JOURNAL text is authored and committed before that. It is unavailable to name,
   not disqualified once named. Saying instead that "a merge does not introduce itself" is false
-  against the implementation, and the integrator wrote exactly that sentence in the draft above
-  before review removed it. **Branch-tip status is irrelevant and forms no part of the
-test:** the tip of the branch being merged normally DOES qualify, precisely because the merge
-introduces it, while the tip of a branch merged earlier does not.
+  against the implementation, and the integrator wrote exactly that sentence in a draft of this
+  section before review removed it.
+- **Branch-tip status is irrelevant and forms no part of the test.** The tip of the branch being
+  merged normally DOES qualify, precisely because the merge introduces it; the tip of a branch
+  merged earlier does not. Neither outcome has anything to do with being a tip — both follow
+  from the single introduced-test above.
 
 *Recorded because it is evidence, not because it is decorous.* Successive drafts of this very section
 misstated the predicate TWICE, in different ways, and review caught both — the author caught
