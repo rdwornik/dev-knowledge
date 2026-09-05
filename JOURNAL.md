@@ -19,6 +19,51 @@
 
 ---
 
+### 2026-09-06 (a) - CC (Opus 5, INTEGRATOR-2): BATCH R5P closes, and two organs agree that presence on disk is not the question
+
+**Did:** Wrote the R5P close packet at the path the manifest declared at dispatch, regenerated the
+audits index behind it, and closed the batch.
+
+**Result:** `R5P closed: True` when `batch_manifest.open_batches` is run from the authoring
+branch - verified by running it rather than asserting it, with only `H0-PREP` still open, and
+that is another batch. Stated precisely, because review caught me being loose about it: that
+reads the BRANCH's tree. From `main` the batch stays open until the merge, so the close takes
+effect at the MERGE, not at the commit that wrote the file. The close needed no edit to
+the manifest at all: `batch_manifest` resolves an OPEN batch as four conjuncts, one of which is
+that `closed_by:` names an ABSENT path, so the packet's existence IS the close act. That is the
+right design for an immutable genre, and worth naming because the obvious alternative - flipping
+`status: open` in the manifest - would have required editing an immutable file to record that it
+was finished.
+
+Two organs taught the same lesson in immediate succession, which is why it goes in the record
+rather than in a commit message. Writing the packet to disk did NOT close the batch: `batch_manifest`
+reads the TRACKED tree, so the close took effect at the commit, not at the write. Then
+`gen_audit_index --write` produced NO diff for the same reason - it reads tracked files only, so
+the index only went stale at the commit that tracked the packet, and needed regenerating a second
+time afterwards. Presence on disk is not the question either organ asks. I have hit the
+tracked-versus-present distinction twice today in different organs and would not have predicted
+the second from the first.
+
+The packet itself refuses three easy claims. Rows closed is ZERO and reported as a success,
+because all three lanes carry the `000` no-row id and the manifest said so at dispatch - a batch
+that closes zero rows and declared it beforehand is a different object from one that hoped for
+more. The suite is NOT green: 21 REDs, each placed rather than totalled, and none attributable to
+an R5P lane. And the manifest's open measurement item is discharged with its distinction intact -
+the absolute `audit.py health` wall-clock is measured (35.2s +/- 0.15, n=3) while the DELTA is
+declared NOT MEASURABLE at that surface, because the 29s collect never entered `audit.py` at all.
+Printing `0` there would have read as "measured, no change", which is a different claim than "not
+measurable here".
+
+**Changes:** `docs/audits/2026-09-05-technical-batch-r5p-close-packet.md` (new);
+`docs/audits/README.md` (regenerated twice, for the reason above); this entry.
+
+**Abandoned:** Nothing.
+
+**Next:** Push, message the queue drained, then the handoff session's branch - the last merge of
+this seat.
+
+**Anchors:** `7d59d62a` (the close packet, introduced by this arc's merge).
+
 ### 2026-09-05 (u) - CC (Opus 5, INTEGRATOR-2): FILINGS-3 torn down to origin, and a freshness gate that passed correctly while its file went stale
 
 **Did:** Tore down `worktree-filings-3` on the seat's own trigger, then found and repaired a stale
