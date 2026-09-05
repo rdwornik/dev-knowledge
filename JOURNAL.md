@@ -64,7 +64,7 @@ theirs.
 **Next:** Merge the second cohort. This entry names its tips so each lands anchored, on the
 same reasoning as (f) and with the limitation above stated rather than assumed.
 
-**Anchors:** `@SELF@`, `778fa12b`, `c5cf1af7`, `13362942`, `3d5a4235`, `30166377`,
+**Anchors:** `c8bc4257`, `778fa12b`, `c5cf1af7`, `13362942`, `3d5a4235`, `30166377`,
 `72bb1984`, `2262b15e`, `d27876d3`, `81bc39f9`
 
 ### 2026-09-05 (h) - CC (Opus 5): the admission-gate lane was retired because its defect was already fixed, and two lanes were recovered from a receipt channel that died mid-flight
