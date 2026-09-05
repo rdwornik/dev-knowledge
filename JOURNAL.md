@@ -19,6 +19,63 @@
 
 ---
 
+### 2026-09-05 (r) - CC (Opus 5, INTEGRATOR-2): the spine-predicate carrier is filed, and zc-candidates lands with an erratum
+
+**Did:** Closed the architect's final four rulings of the evening. (1) Merged
+`worktree-lane-r-000-zc-candidates` as-is with ONE appended erratum, the shape the immutable
+genre allows -- the same two corrections ruled for section AE, carried twice, in place in the
+LIVING register and by appended marker in the IMMUTABLE packet. (2) Item 018 needed no relay:
+FILINGS-3 verified my spine correction itself, ran 018, and pushed it. (3) Relayed the ruling
+that the 25 `consumer_at_landing` + 17 `funnel_coverage` foreign rows are pre-batch unlinked
+artifacts belonging to R5 B3/B4's single ledger, as a self-discharging row per 007 — and had the
+ruling's arithmetic corrected by the seat that executed it: the two sets OVERLAP by twelve, so it
+is **30 distinct artifacts, not 42**, and 24 rows were added because six already carried one.
+FILINGS-3 generated them from live measurement rather than transcribing my list, which is the
+right call — a hand-copied list of thirty filenames is a defect waiting to happen. (4) Filed
+the spine-predicate carrier as register section AF.
+
+**Result (stated by arc, because they are in different states — this entry is a PRE-ANCHOR and
+must not read as a completion record):** the zc-candidates merge is LANDED on `main` at
+`14ddd724`, pushed, with `health: OK` and `journal_spine_anchor [OK]` measured after it. The AF
+arc is **NOT yet on `main`** as this entry is written: the entry rides its own branch and names
+`f6575d02` in advance, which is the pre-anchor shape the operator's standing order requires —
+anchor BEFORE the merge, never after. Section AF records
+one CANDIDATE in the Z-C shape -- no peg, no owner, no size band -- credited to the seat-notes
+lane: a check states its predicate in its own failure text and hands over one diagnostic
+command. It is filed from measured cost, not from taste. `journal_spine_anchor` produced EIGHT
+false alarms across SIX seats in one day; one reached the operator and stopped the merge queue.
+Every one named a SHA the merge did not introduce -- most often the merge's own
+SHA, or one already on `main` -- or read a lagging worktree as truth. Tip-ness is NOT the test,
+and I proved it the expensive way: my own first draft of AF wrote the exclusion as "never a branch
+tip", which is false, while this arc was being anchored by `f6575d02` -- that branch's tip at the
+moment I named it. Review caught it, I did not. Then review caught a SECOND wrong
+restatement in the fix itself -- "a merge does not introduce itself", also false, since
+`journal_anchor.introduced` is `firstparent..sha` PLUS the entry; the merge's own SHA is excluded
+for a timing reason, not a set-membership one, because its hash does not exist when the entry is
+authored. Two wrong reconstructions of one rule, by the seat that spent the day refuting eight of
+them. Both are recorded in AF rather than quietly fixed -- they are the evidence, not an
+embarrassment to be tidied. No seat was careless; each inferred a predicate the message never
+stated, and each inferred a different one. AF-2 carries the day's teardown twin: merged-and-
+torn-down is indistinguishable from never-existed under `git branch`, which cost three false
+negatives and one gate wrongly reported closed. FILINGS-3 stated the general form best -- a
+check that returns the same answer for "landed" and "never happened" is not a check.
+
+**Changes:** `protocols/STANDING_RULINGS.md` (section AE corrected in place under the named
+exception, section AF added); `docs/audits/2026-09-05-technical-lane-r-000-zc-candidates.md`
+(ERRATUM 1 appended, nothing above touched); this entry.
+
+**Abandoned:** Nothing. The zc-candidates DIRECTORY husk survives its teardown -- registration
+and both branches are clean and origin is clean, but the directory refused with Permission
+denied because a live process still holds it. That is the ninth husk of its class and only the
+holding seat can free it; it is reported, not worked around.
+
+**Next:** Merge FILINGS-3's `b032a9e1` once its ledger row lands (code branch -- delta A2, not
+terra alone), tear down on that seat's word rather than on my merge, and print the census with
+014 named as unowned and no owner invented.
+
+**Anchors:** `f6575d02` (section AF, introduced by this arc's merge). Prior: `14ddd724` merged
+zc-candidates, introducing `72bb1984`, anchored in advance by entry (p).
+
 ### 2026-09-05 (q) - CC (Opus 5, INTEGRATOR-2): pre-anchor filings-3, and the architect's five evening rulings
 
 **Did:** Pre-anchored `worktree-filings-3` ahead of its merge, and executed the architect's
