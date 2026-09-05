@@ -35,8 +35,8 @@ right design for an immutable genre, and worth naming because the obvious altern
 `status: open` in the manifest - would have required editing an immutable file to record that it
 was finished.
 
-Two organs taught the same lesson within ten minutes, which is why it goes in the record rather
-than in a commit message. Writing the packet to disk did NOT close the batch: `batch_manifest`
+Two organs taught the same lesson in immediate succession, which is why it goes in the record
+rather than in a commit message. Writing the packet to disk did NOT close the batch: `batch_manifest`
 reads the TRACKED tree, so the close took effect at the commit, not at the write. Then
 `gen_audit_index --write` produced NO diff for the same reason - it reads tracked files only, so
 the index only went stale at the commit that tracked the packet, and needed regenerating a second
