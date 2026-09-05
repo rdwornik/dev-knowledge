@@ -19,6 +19,79 @@
 
 ---
 
+### 2026-09-05 (a) - CC (Opus 5): four consented rulings, and a commit that landed on main while the gate that forbids it correctly said no
+
+**Anchors:** `7e7402d5`, `7b3ba003`
+
+**Did:** executed the operator's curated-baseline rulings - the eight PLAYBOOK ESSENTIALS
+route-mentions, the 632 merge-and-teardown, the batch-G WARN attribution, and the doc-counts
+derivation question.
+
+**GREP-TO-ZERO IS REACHED ON ROUTES, AND THE NUMBER IS 0 OF 8.** Every mention that SENT a reader
+to a `status: superseded` file is gone: route-shaped 8 → 0, total occurrences 21 → 16. The
+sixteen survivors are nine provenance parentheticals, three inventory-table rows, the de-blessing
+note itself, a casing example, an anti-example and the `last_reviewed` carrier list - none routes.
+The site the ruling named first was worse than superseded, exactly as the operator suspected:
+`:1530` "Upload `ESSENTIALS.md` (always)" was step 1 of the browser session-resumption protocol,
+an ACTIVE instruction issued to every resumed session.
+
+**ONE CITATION WAS FALSE, NOT STALE, AND THAT CHANGED THE FIX.** `:794` cited "ESSENTIALS line 25"
+as the home of the English-only prompt rule. Line 25 of ESSENTIALS is the architect "Does:" list
+("Thinks deeply before responding") - nothing about language, and no other home exists: grepping
+English-only across `protocols/` returns that line, the pre-send checklist, and nothing else. A
+false citation cannot be re-pointed, only replaced by the rule itself, so both sites now STATE the
+rule and name the checklist as its home by anchor text.
+
+**A RECORDED DISPOSITION WAS SUPERSEDED, AND ITS OWN PREDICTION CAME TRUE FIRST.** STANDING_RULINGS
+T-29 (`[#263]`) closed these same references as "accepted-by-relocation rather than corrected",
+reasoning that "re-pointing by line number would only re-create the same rot". T-29 cites the site
+as `PLAYBOOK.md:649`; it is now `:794`. The reasoning was right and is why this correction is done
+by anchor text.
+
+**THE COMMIT LANDED ON `main` AND THE GATE THAT FORBIDS THAT WAS NOT WRONG.** `block-commit-on-main`
+reported Passed, and then git wrote `7e7402d5` onto `main` anyway. The gate is sound - probed live,
+`refuses()` returns False on a branch and True on `main`. It is a TOCTOU: pre-commit ran the hooks
+while HEAD pointed at `docs/playbook-essentials-routes`, a CONCURRENT session in this same primary
+checkout ran `git checkout main` during the ~20s hook run, and git resolved HEAD again at ref-write
+time. The reflog preserves the ordering. Two other sessions were live in this cwd. Recovered with
+no push: `git branch -f` the commit onto its branch, `reset --hard` main to `origin/main`. The
+lesson is not about the gate - a client-side pre-commit hook cannot hold an atomic claim on HEAD -
+it is that the integrator seat must re-read `git branch --show-current` AFTER every commit, which
+is how this was caught.
+
+**THE 632 BRANCH IS MERGED BECAUSE ITS CONTENT IS EVIDENCE.** `worktree-lane-632-codespace-proof`
+held AMENDMENT 2 of the codespace long-run proof: L1-L4/L6 GREEN, L5 RED on CONTENT not hang,
+recording that `dispatch-run.sh` accepts `GITHUB_TOKEN` as satisfying its Anthropic-token check.
+That is a fail-OPEN admission gate on a substrate that bills for the admission - it does not
+mis-report, it ADMITS work it exists to refuse. Filed as `[#634]` P1 with a standing hold: no
+codespace dispatch until it is fixed. The `.gitignore` half conflicted; both sides ignored the same
+patterns and `main` carried the superset, so the resolution keeps main's superset and folds in the
+one fact only the branch had - deleting these files mid-run can make the harness's idle fuse
+misread file-growth and kill a live session.
+
+**`pytest_collected` IS ALREADY DERIVABLE AND THAT IS NOT THE GAP.**
+`validate_doc_claims._derive_pytest_collected` computes it live, and `audit.py` calls `reconcile`
+with `run_expensive=True`. The reason 4905 could stand for two days is TIERING, not capability:
+`check_doc_claims` is TIER_SHIP, so it runs at the ship-gate and `audit run` and never at the
+commit gate, and no `gen_doc_counts` pre-commit hook exists. Nothing to build; at most a cadence
+question.
+
+**Result:** rulings 1, 2 and 4 discharged; ruling 3's attribution measured against a live ship-gate
+run rather than asserted.
+
+**Changes:** `protocols/PLAYBOOK.md` (8 route sites), `.gitignore` (dispatch artifacts, merged),
+`docs/audits/2026-09-01-verification-codespace-longrun-proof.md` (AMENDMENT 2, merged),
+`tasks/634-*` + `tasks/manifest.json` + `BACKLOG.md` (the P1 hold), `JOURNAL.md`.
+
+**Abandoned:** nothing. The 632 merge was aborted ONCE and re-run - not a change of plan, but the
+anchor gate correctly refusing to let an unanchored merge accumulate behind another.
+
+**Next:** operator ruling on the sixteen surviving non-routing ESSENTIALS mentions (three inventory
+rows still describe a superseded file as "Living" and read by "every browser/Claude Code session"),
+and the R5 dispositioning window that precedes the tag.
+
+---
+
 ### 2026-09-04 (c) - CC (Opus 5): six operator rulings, and three of them turned into defects I had caused
 
 **Anchors:** `f5307be1`, `05759cc6`, `10698573`, `51bfe4f8`
