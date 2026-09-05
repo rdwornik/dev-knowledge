@@ -19,6 +19,73 @@
 
 ---
 
+### 2026-09-05 (b) - CC (Opus 5): the admission-gate lane was retired because its defect was already fixed, and two lanes were recovered from a receipt channel that died mid-flight
+
+**Anchors:** `b9db30f7`, `1486ff53` (branch `docs/rescope-634`) - and, on lane branches,
+`ed2d34d9` (`worktree-lane-h0-suite-speed`) and `0d318c1f` (`worktree-lane-h0-trace`)
+
+**Did:** ran the dispatcher seat for mini-batch H0-PREP: re-scoped `[#634]`, filed the batch
+manifest, dispatched three codespace lanes, and recovered two of them by hand after the local
+dispatch processes were killed.
+
+**L2 WAS RETIRED BEFORE A MACHINE WAS PROVISIONED, AND THE PREMISE WAS FOUR DAYS STALE.** The lane
+was to stop `dispatch-run.sh` accepting `GITHUB_TOKEN` as its Anthropic-token check. Two facts
+killed it: the runner is not a source file in this repo at all - ignored at root, absent from disk
+and from history across the whole `Dev/` tree, generated per run by
+`win-tooling/config/dispatch-helpers/DispatchHelpers.psm1` - and the defect was already fixed by
+`win-tooling@d6cbd92` on 2026-09-01, which split `adm_tok_anthropic` from `adm_tok_github`. The row
+had been ruled from AMENDMENT 2 of the 632 long-run witness, which pre-dates that fix. The
+contracted closure was deliberately NOT built: refusing on a missing Anthropic token is fail-CLOSED
+on a path measured working - `lane-632-longrun-a-w95qprj5wq4cg67g` ran 338 events over
+`CLAUDE_CODE_MESSAGING_SOCKET` with the token unset. Operator ruled OPTION 2 amended: re-scope, do
+not close; lift the standing hold.
+
+**THE RECEIPT CHANNEL DIED AND DONE-CLAUSE 0 IS THE ONLY REASON THE WORK SURVIVED.** Workstation
+memory pressure killed both blocking dispatch processes, which killed the in-container agents too.
+No receipt was pulled back for either lane. Judged on their BRANCHES instead: L4 had finished and
+committed three times (stranded in the container, pushed out by hand); L5 had done all its work and
+written a complete end-of-lane artifact but was killed before committing, so its commit was made
+from inside the container with a body stating plainly that the dispatcher committed it and that the
+lane's final full-suite rerun never completed. A receipt would have reported nothing but transport
+for either one.
+
+**TWO SUBSTRATE DEFECTS, AND ONE OF THEM IS A REPEAT.** (1) The container cannot push from a
+NON-LOGIN shell - `GITHUB_TOKEN` is unset there and the credential helper fails with `Invalid
+username or token`; `bash -lc` works. The admission gate's own comment asserts the container "can
+fetch, commit and push", and push is the leg that is fragile. (2) `receipt.json` at repo root
+hard-fails `dot_prefix_discipline` and blocked L5's commit - the IDENTICAL defect already recorded
+in the AMENDMENT to `docs/audits/2026-09-01-verification-codespace-longrun-proof.md`. That audit's
+own bounded fix was reapplied (same-device rename, inode 76155 preserved, restored after). A defect
+recorded once and met again is a fix that was never made durable.
+
+**L5's FINDING IS THAT THE NAMED LEVER WAS THE WRONG ONE.** pytest's collector never paid for live
+worktrees: its default `norecursedirs` pattern `.*` already prunes `.claude`. The cost was two tests
+doing their own `Path.rglob("*.md")` and filtering AFTER the walk, and `rglob` consults neither
+`.gitignore` nor `norecursedirs` - so every live worktree's full duplicate corpus was read. Corpus
+2,420 files at 0 worktrees vs 14,510 at 5; `normalize_text` 78.57s -> 12.96s; post-fix the two tests
+run 51.39s at 5 worktrees vs 51.49s at the operator's floor of 2, a 0.2% delta.
+
+**Result:** `[#634]` re-scoped and open, hold lifted; H0-PREP manifest filed; L5 and L4 recovered and
+pushed; L3 dispatched detached and still running at wrap.
+
+**Changes:** `tasks/634-*.md`; `docs/audits/2026-09-05-technical-batch-h0-manifest.md`;
+`docs/audits/README.md`. On lane branches: `tests/test_toc.py`,
+`tests/test_normalize_headers.py`, the L4 trace writer and `fleet_health.py`.
+
+**Abandoned:** L2 entirely - retired on evidence, not deferred. Three-lanes-in-parallel: the account
+caps at 2 running codespaces, so L3 was refused at create and ran third.
+
+**NOT THIS SESSION'S WORK, NAMED ONLY TO DISCHARGE THE SPINE GATE:** `ca0a2a2f`
+(2026-09-05, `Merge branch 'worktree-corpus-coherence-gemini'`) landed on main from a
+CONCURRENT seat with no JOURNAL anchor, and `journal_spine_anchor` hard-fails on it -
+which blocks every commit in the repo, not only that seat's. It is named here so the
+gate can pass; its substance belongs to that session's own entry and is deliberately
+not summarised or claimed here. The integrator seat has been told.
+
+**Next:** integrator merges `docs/rescope-634`, then L5 -> L4 -> L3. **The full suite has NOT been
+observed green on L5's branch** - its verifying run was the task that got killed - so re-run it at
+merge rather than trusting the commit. Two stopped codespaces await a deliberate operator delete.
+
 ### 2026-09-05 (a) - CC (Opus 5): four consented rulings, and a commit that landed on main while the gate that forbids it correctly said no
 
 **Anchors:** `7e7402d5`, `7b3ba003`, `7f75033b`
