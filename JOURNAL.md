@@ -19,6 +19,269 @@
 
 ---
 
+### 2026-09-05 (g) - CC (Opus 5): the outside-harness gap analysis, and an adversarial pass falsified three of my eight absence claims
+
+**Anchors:** `6d0db21f` (this arc: the deliverable + this entry) - plus `ca0a2a2f` and `09f80530`, both
+diagnosed below as FOREIGN merges, not this arc's work
+
+**Did:** ran the frozen "Architekt Jutra" research contract end to end - P0 inventory through P6
+review. 48 corpus files / 771.4 MB of licensed Polish training material plus two repos, read
+outside the tree; 27 extraction files, 27 retrieval sheets (970 claims, 0 without a locator,
+0 carrying comparison language, verified by a parser rather than by asking the legs), a pinned
+our-side read at `6de676fb`, and one deliverable at
+`docs/audits/2026-09-05-technical-research-architekt-jutra-gap-analysis.md`.
+
+**THE RESULT IS A COMPLEMENT, BUT NOT THE ONE I FIRST WROTE.** Their harness sees itself and
+cannot enforce itself - proven inside their own shipped repo, where a task carrying
+"Deployment Decision: NO-GO" in `verification/reality-check.md:5` has
+`orchestrator-state.yml:32` recording `status: completed`. The prose verdict flips no
+machine-readable field. Their entire phase-gate layer is text asking the model to stop; exactly
+one hook in the plugin can veto anything, and it ships a SessionStart hook whose whole job is
+re-injecting "actually stop at gates", plus a second to re-inject it after compaction.
+
+**THE MORE USEFUL HALF IS THE CORRECTION.** My first draft claimed eight ONLY-AJ rows. The
+adversarial leg searched OUR vocabulary instead of theirs and falsified three outright, overstated
+five more, and showed five of nine proposed CANDIDATEs were already live funnel objects. One
+ONLY-AJ row survives. Root cause, and it is the transferable finding: every recorded search used
+AJ words. Ours are *supplement*, *asks register*, *lived-workflow*, *freeze*, *legibility*,
+*shape*, *trends* - none was searched. Row 21 was the worst: it credited them with a curated
+agent-run archive we also have, and ours is stronger - their strip list is documented, ours
+refuses (`_scrub_check` will not freeze a transcript carrying a key). Aggravating: my own search
+for `clarifications\.md` returned the four `tests/fixtures/lived-workflow/*.jsonl` files and I
+dismissed them as false positives. The evidence was in hand and I misread it.
+
+**terra found twelve further defects across two passes, every one mechanical** - a locator, a
+count, or a relation label; none touched the analysis. Including one I created myself (a
+nine-vs-eight contradiction) and one in the row carrying the document's central claim (a gate
+count inflated to 24, erasing the commit-msg category). I also destroyed evidence: piping pass 1
+through `tail -80` discarded its two most severe findings, so pass 2 was re-run unpiped.
+
+**THE CONTRACT'S OWN FILENAME WOULD HAVE FAILED A GATE.** It froze class `research`, which is not
+in `AUDIT_CLASS_ENUM`. Caught by running `rule_b_violation()` on both candidates rather than
+reading the enum and inferring. Landed as class `technical` with `research` in the slug, on
+existing repo precedent; the contract's slug is intact.
+
+**TWO FOREIGN UNANCHORED MERGES BLOCKED THIS COMMIT, AND THE SECOND WAS THE FIX FOR THE FIRST.**
+`ca0a2a2f`
+("Merge branch 'worktree-corpus-coherence-gemini'", 15:00:56) landed on main's first-parent spine
+carrying no JOURNAL anchor. It is not this arc's work and predates nothing here - my lane is based
+at `3200757d` and does not contain it - but `journal_spine_anchor` reads main's spine, so the gap
+wedged a lane that had no part in creating it. Discharging it surfaced a second: `09f80530`
+("Merge branch 'docs/journal-anchor-drain' -- unblock the repo: four spine merges were unanchored
+and audit-health is a PRE-COMMIT gate"), now main's tip. **The drain that cleared four gaps left a
+fifth - its own merge.** A branch cannot anchor the merge that lands it, so the only thing that can
+discharge a tip merge is the NEXT entry, which is this one. Both diagnosed here per B6 (an anchor
+discharges by APPEND ONLY) so the queue moves; neither arc's own record is owed to me, and both
+still owe their substance.
+
+**Result:** deliverable landed with a four-outcome ADR-111 triage in place of the first draft's
+nine births - four OWNED (two `READY` intakes, one `DRAFT` intake, one deferred task), three
+WITHDRAWN on falsified premises, three CANDIDATE. No BACKLOG rows born, no ADR, no protocol edit.
+
+**Changes:** `docs/audits/2026-09-05-technical-research-architekt-jutra-gap-analysis.md` (new),
+`JOURNAL.md`. The audits index is deliberately NOT regenerated - `[#590]` narrowed that hook to
+the index and its generator, so a lane no longer touches it; integration owns it.
+
+**Abandoned:** transcription of all 13 MP3s (operator ruling - 1:1 transcript coverage already,
+and no timestamps anywhere to gain); six of eight zips (SHA-256-verified re-bundles).
+
+**Next:** operator triage of the three surviving CANDIDATEs, and a ruling on whether `sol` gets
+installed - `ecosystem/routing-table.yaml:37-38` declares an `adversarial` role bound to a CLI
+that is not on PATH, so an arc routing to it silently degrades to a same-family substitute. That
+substitute is what caught the three false rows, which is the argument for making it real.
+
+---
+
+### 2026-09-05 (f) - CC (Opus 5): the queue is anchored before it is merged, not after
+
+**Did:** Landed merge-queue item 2 (manifest-linked audits count as CITED and
+DISPOSITIONED, `ac2c6a15`), verified lane-h0-suite-speed's central claim, and wrote
+this entry to PRE-ANCHOR the rest of the integration queue.
+
+**Result:** Item 2 closed against the amended criterion -- the named findings, never
+the headline. Across the single merge, over the batch-G-named artifacts: 22 findings
+before, 6 after; 16 discharged over 8 files, reached by `explicit` link for 3 and
+`lane-slug` for 5. Corpus-wide delta A2: funnel uncovered 796 -> 723, consumer
+unconsumed 647 -> 590. Two departures from the brief, both reported rather than
+smoothed: the count is 22 and not 19, and the 10-funnel/9-consumer asymmetry does not
+reproduce at this commit -- every file raises both legs, and the batch-G glob catches
+two artifacts the manifest does not declare. The attribution table was taken at
+`6de676fb`. The tenth file, `2026-09-02-technical-lane-g-626-terra-tally.md`, is left
+raising ON PURPOSE: the manifest declares lane G4 as `lane-g-626-executing-copies`,
+the artifact is `lane-g-626-terra-tally`, and widening the match to the bare lane id
+would have been fitting the mechanism to its target -- it would paper over exactly the
+divergence `RULE_MANIFEST_CONTRACT_SLUG_AGREEMENT` exists to catch. Its remedy is a
+ledger disposition row whose term is a judgment for the architect.
+
+Four terra passes, three HIGHs, all fixed, pass 4 CLEAN. The second and third are worth
+the record because both were defects in the FIX, not in the original: a letters-only
+class segment refused digit-bearing and hyphenated ruled classes (a false negative
+introduced while removing a false positive), and the provenance guard added to close
+the first was itself untested -- an identity assertion that passes with the guard
+deleted, because both names resolve through the same `sys.modules` entry.
+
+lane-h0-suite-speed's claim VERIFIED at 11 live worktrees, which is a stronger test
+than the 5 it was measured at: main's walkers see 27,167 `.md` files, the fix sees
+2,963, and the residual contains no worktree path at all. The 2-vs-5 wall-clock
+equality it reports follows by construction rather than by luck -- the corpus stops
+depending on worktree count. The absolute residual differs from the artifact's 2,420
+because the repo has grown since; the count-INDEPENDENCE is the claim and it holds.
+
+**Changes:** `ac2c6a15` merged item 2. This entry names the tips of the queued arcs so
+each merge is anchored at the moment it lands instead of trailing by one. That is the
+[#623] deadlock handled rather than suffered: a merge cannot name its own SHA, but it
+CAN be named in advance by the SHA it is about to introduce. The alternative -- anchor
+after each merge -- leaves every session in the tree commit-blocked between merges, and
+with this many arcs queued that block is most of the day.
+
+**Abandoned:** Nothing. Two branches produced earlier this session
+(`worktree-doc-claims-tiering`, `worktree-file-candidates`) were dropped from this
+seat's PRODUCTION scope by the re-scope and re-enter as ordinary ARRIVALS -- complete,
+committed, intact. Their content is now owned by the R5P batch, so if R5P L2/L4
+supersede either, it is dropped with a note rather than merged twice; a superseded arc
+merged anyway is the same duplicate-record defect from the other direction.
+
+**Next:** Merge the queue in the ruled order: lane-h0-suite-speed, then the docs-only
+arrivals, then lane-h0-trace, then lane-h0-readme, then the new batch's lanes; print the
+census to `to-browser/STATUS.md` once this anchor lands. `worktree-filings` is HELD at
+its owner's request until FILINGS-1 releases it -- items 002-006 land on that same
+branch and merging at 001 would strand them.
+
+h5-627 is classified DOCS-ONLY for delta A2, and the reasoning is recorded because the
+filenames argue the opposite. Its nine non-`.md` files are `.py`, which the operator's
+carve-out named as the code trigger -- but they are evidence artifacts under
+`docs/audits/<audit>-artifacts/`, and pytest's default `python_files` is
+`test_*.py`/`*_test.py`, which NONE of them match. The suite cannot move, which is what
+the delta A2 exists to detect. Ruff does see `.py` anywhere in the tree, so they remain
+inside the lint gate; that is re-confirmed after the merge rather than assumed.
+
+**Anchors:** `a5ef74e5`, `ed2d34d9`, `13bf1458`, `c67f959a`, `cb1d713a`, `8919ba08`,
+`bb79aa76`, `e95a4f15`, `2da0d9b9`, `0c57e765`, `0d318c1f`, `24eac392`, `e2995e86`,
+`26d7d743`
+
+### 2026-09-05 (e) - CC (Opus 5): the anchor chain always leaves one, and that is the finding
+
+**Anchors:** `09f80530`, `73bf4272`
+
+**Did:** landed the code half of the manifest-link hotfix, whose JOURNAL half (entry (d)) went
+ahead of it to clear a repo-wide commit block. Anchors `09f80530`, the drain merge that could not
+anchor itself.
+
+**THE DRAIN DID NOT CLOSE THE GAP, IT MOVED IT — AND THREE SEATS FOUND THAT INDEPENDENTLY.**
+Entry (d) anchored four unanchored spine merges. The merge that CARRIED (d) was then itself
+unanchored, because a merge commit cannot name a SHA that does not exist until the merge is made.
+So the count went 4 -> 1 rather than 4 -> 0, and `journal_spine_anchor` is a PRE-COMMIT organ, so
+that residual 1 still blocked every seat. Three concurrent sessions reported it within minutes of
+each other, one of them correcting my own claim that the drain had unblocked the repo.
+
+**The steady state is one, not zero, and that is structural.** Each merge's entry can only anchor
+the PREVIOUS merge. [#623] owns the deadlock. The practical consequence worth recording: the queue
+stays at exactly one only while entries keep being written — stop writing them for three merges and
+it is three again, which is precisely how the four accumulated.
+
+**A SECOND EFFECT NOBODY HAD WRITTEN DOWN.** The organ reads `JOURNAL.md` from the COMMITTING
+TREE, not from `main`. So an anchor landing on main does NOT unblock a lane whose branch was cut
+earlier — its tree still lacks the entry. Two lanes hit this after (d) landed and reported being
+blocked by a gap that was, from main's point of view, already discharged. Remedies, both legitimate
+and neither a bypass: sync-merge the real fix into the lagging tree (this is NOT the forbidden
+"sync-merge to clear the anchor gate", because that anti-pattern is about masking a gap that is
+still real), or name the foreign SHA in the lane's own entry, explicitly marked as not that
+session's work. One lane took each. Ruled and recorded so the next seat does not re-litigate it.
+
+**Result:** funnel_coverage 32 -> 12, consumer_at_landing 16 -> 5. 17 of the 19 named findings
+discharged over 9 of 10 files; the tenth left raising rather than closed by widening the predicate.
+
+**Abandoned:** the first terra pass on this diff — the process died silently after emitting 39
+bytes, with no error and no codex process left alive. Re-run rather than assumed clean.
+
+**Changes:** `scripts/batch_manifest.py`, `scripts/funnel_coverage.py`,
+`scripts/consumer_at_landing.py`, `tests/test_manifest_link_route.py`,
+`tests/test_funnel_coverage.py`.
+
+**Next:** the `check_doc_claims` commit-tiering hotfix, then the arrivals queue.
+
+### 2026-09-05 (d) - CC (Opus 5): the manifest already knew, and the scalar the ruling named moves on the clock
+
+**Anchors:** `1d192245`, `73bf4272`, `6de676fb`, `1d96e0de`, `3200757d`, `ca0a2a2f`
+
+> **Integrator anchor-drain.** The last four are MERGE commits on main's first-parent
+> spine that carried no `Anchors:` record line and were hard-failing
+> `journal_spine_anchor` — a PRE-COMMIT organ, so they were blocking commits in every
+> worktree provisioned after the gap, not just on main. `ca0a2a2f` is my own merge and
+> made the count four. Anchoring another session's merges is the integrator's act, which
+> is why they land here rather than in the lanes that produced them.
+>
+> **The residual is structural, not an oversight.** The merge that carries THIS entry
+> cannot anchor its own SHA — the SHA does not exist until the merge is made. That is the
+> [#623] single-commit/merge-anchor deadlock. Expect the organ to name exactly one merge
+> after this lands rather than zero; it is discharged by the next entry, and the queue
+> only grows if entries stop being written.
+
+**Did:** built the manifest-link hotfix as INTEGRATOR-2 - an audit artifact linked from a batch
+manifest (via `closed_by:`, as a lane packet, or as a close packet) now counts as DISPOSITIONED
+for `funnel_coverage` and CITED for `consumer_at_landing`.
+
+**THE RECORD EXISTED AND NOTHING READ IT.** Every batch-G lane artifact was raising two WARNs
+apiece while being fully enumerated by the batch's own gate-readable manifest - the file
+`scripts/batch_manifest.py` already parses at the ADR-110 exemption gate. Library-first: manifest
+discovery, frontmatter parsing and the lane-slug grammar all already lived there, so
+`manifest_links()` / `links_artifact()` went there and neither detector re-derives any of it. The
+manifest AND the packet it names via `closed_by:` are both scanned, because a manifest is never
+named by itself and scanning manifests alone would orphan every manifest inside its own batch.
+
+**Result:** funnel_coverage 32 -> 12 WARNs, consumer_at_landing 16 -> 5, on the corpus at
+3200757d. The route admits 86 of 875 artifacts, which is the discrimination number and is reported
+rather than left implicit. 17 of the 19 named findings discharged, over 9 of the 10 named files.
+
+**THE TENTH FILE IS NOT DISCHARGED, AND WIDENING WAS AVAILABLE AND REFUSED.**
+`2026-09-02-technical-lane-g-626-terra-tally.md` still raises both organs, because batch G's
+manifest declares lane G4 as `lane-g-626-executing-copies` while the artifact is named
+`lane-g-626-terra-tally` - same lane, different tail. Relaxing the match to the bare lane id
+`lane-g-626` would have closed it and made the acceptance number come out at 19/19. That is
+fitting the mechanism to the target, and it would also have papered over exactly the divergence
+`RULE_MANIFEST_CONTRACT_SLUG_AGREEMENT` exists to catch. Left raising, remedy filed for the
+architect: a ledger disposition row naming it, with the term being a judgment the integrator
+should not invent.
+
+**DETECTOR_ID DELIBERATELY NOT BUMPED, and the reasoning is recorded beside the constant.** The id
+makes the ratchet refuse to compare across a predicate revision, which is correct when a revision
+can move an artifact either way. This one is strictly MONOTONE - it only adds a coverage route, so
+`uncovered` can only shrink, no name enters the baseline, and every name leaving surfaces as
+ratchet-down headroom. Bumping would have replaced 32 by-name regressions with a single "not
+commensurable" WARN: the leg switched OFF while appearing to satisfy the criterion, which is the
+precise failure the id was introduced to prevent. `test_manifest_link_route_is_monotone` pins the
+property rather than leaving it as a claim in a comment.
+
+**THE CRITERION THE RULING NAMED CANNOT BE MET BY A FIX, AND NOW HAS THREE WITNESSES.** The
+instruction's acceptance was "133 -> <= 123" on the `audit.py ship-gate` headline. That scalar
+carries 74-75 calendar-driven `doc_rot` lines. Readings taken this window: 133 at `6de676fb`; 134
+at `3200757d`; and **136 at `3200757d` again, ~40 minutes later, with the tree byte-identical and
+both acceptance organs flat at 32 and 16**. The third is the decisive one - same SHA, same tree,
++2 from the clock alone. The architect amended the criterion to the 19 named findings before this
+was measured; the measurement confirms the amendment was necessary rather than cautious.
+Headline is reported, never the criterion.
+
+**Abandoned:** a first commit attempt carrying `-c core.hooksPath=.git/hooks`. In a worktree
+`.git` is a FILE, so that path does not exist and the entire hook mesh silently did not run -
+`git commit` reported success having run no gate at all. Caught by noticing the absence of hook
+output, reset, and recommitted with the mesh armed. The relic-hooksPath failure mode is recorded;
+this is the same class reached by a different route, and the tell is silence rather than an error.
+
+**Also:** the real blocker on the honest commit was `[!!] repos registered (none)` - untracked,
+gitignored `ecosystem/*/state.yaml` absent from a fresh worktree. A concurrent session read the
+same DEGRADED as an unanchored-spine failure and was about to take a declared `SKIP=audit-health`
+for it; corrected with the evidence that `journal_spine_anchor` printed `[OK]` in that very run
+and the hard-fail sat in the `operational:` block. A bypass justified by a wrong diagnosis leaves
+a false record in the log, which is worse than the bypass.
+
+**Changes:** `scripts/batch_manifest.py`, `scripts/funnel_coverage.py`,
+`scripts/consumer_at_landing.py`, `tests/test_manifest_link_route.py` (new),
+`tests/test_funnel_coverage.py` (partition restated over the UNION of covered classes - they are
+now overlappable and a sum double-counts).
+
+**Next:** the `check_doc_claims` tiering hotfix; then the arrivals queue - R5 disposition sheet,
+funnel groom, AJ gap analysis, #627 re-adjudication, H0-prep L5 -> L4 -> L3.
+
 ### 2026-09-05 (c) - CC (Opus 5): the correction entry - my own C1 framing was the overclaim, and B6 says you fix that by appending
 
 **Anchors:** `780297df`, `32b51fed`

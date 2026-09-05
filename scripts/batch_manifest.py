@@ -149,6 +149,28 @@ if Path(getattr(_vbn, "__file__", "") or "").resolve().parent != Path(__file__).
 #: than silently widen anything.
 from validate_substrate import Refusal, contract_slug   # noqa: E402
 
+#: The ADR-101 audit-name grammar's ruled CLASS ENUM, imported BY NAME from the module that
+#: owns it. `validate_hermetization` does not import this module (checked: no cycle) and pulls
+#: only stdlib, so this is cheap.
+#:
+#: PROVENANCE-GUARDED, on the `LANE_BRANCH_RE` precedent above and for that comment's exact
+#: reason: a shadowed ENUM silently governs an EXEMPTION. Widen this enum and
+#: `2026-09-05-technical-review-of-lane-g-276-deploy-waiver` splits at a longer class, its tail
+#: becomes `lane-g-276-...`, and a document ABOUT a lane is admitted as that lane's own
+#: artifact -- the precise false coverage `links_artifact`'s anchor exists to refuse. A shadow
+#: that NARROWS is harmless (the single-segment fallback below IS the pre-enum behaviour), so
+#: the hole is one-directional; the guard is not, because "only the widening direction is
+#: dangerous" is an argument about today's enum, not a property of the seam.
+import validate_hermetization as _vh   # noqa: E402
+from validate_hermetization import AUDIT_CLASS_ENUM   # noqa: E402
+
+if Path(getattr(_vh, "__file__", "") or "").resolve().parent != Path(__file__).resolve().parent:
+    raise ImportError(
+        f"validate_hermetization resolved to {getattr(_vh, '__file__', None)!r}, which is not "
+        f"this module's sibling in {Path(__file__).resolve().parent}. Refusing to import a "
+        f"shadowed audit-class enum: the manifest-link exemption would be decided by an "
+        f"unknown class grammar.")
+
 #: `git merge --no-ff <branch>` writes this subject; `/lane-integrate` relies on it too.
 _MERGE_SUBJECT_RE = re.compile(r"^Merge branch '([^']+)'")
 
@@ -472,3 +494,150 @@ def freeze_manifest_contract_agreement(manifest_text: str,
               "with nothing comparing the two)")
     return [Refusal(rule=RULE_MANIFEST_CONTRACT_SLUG_AGREEMENT, source="<manifest>",
                     detail=detail)]
+
+
+# --- manifest-linked artifacts (the 2026-09-05 operator ruling) --------------------------------
+
+#: The manifest and the packet it names via `closed_by:` are BOTH linking surfaces. The ruling
+#: names three link kinds -- `closed_by`, lane packets, close packets -- and the close packet is
+#: where a batch records what its lanes actually produced, so scanning the manifest alone would
+#: miss every artifact the batch enumerated at close rather than at freeze. Measured on batch G:
+#: manifest-only reaches 3 artifacts, manifest + closer reaches 4.
+#:
+#: PRECISION ABOUT THE PRECEDENT (terra, record-only): reading the closer's CONTENT is THIS
+#: ruling's extension, not something ADR-110 already does. That gate reads the manifest's
+#: committed frontmatter and merely PROBES whether the `closed_by:` path exists; it never
+#: consumes the closer's body. The argument for treating a manifest as load-bearing stands on
+#: the manifest itself, and the closer rides on the ruling that named close packets.
+_AUDITS_PATH_RE = re.compile(r"docs/audits/([A-Za-z0-9._/-]+\.md)")
+_LINKED_STEM_RE = re.compile(
+    r"(?<![A-Za-z0-9._-])(\d{4}-\d{2}-\d{2}-[A-Za-z0-9._-]+)(?![A-Za-z0-9._-])")
+
+
+class ManifestLinks(NamedTuple):
+    """What the committed batch manifests link, split by HOW they link it.
+
+    Two sets rather than one, because they carry different false-positive surfaces and a
+    caller may reasonably want to report them apart. `explicit` is a path or dated stem the
+    manifest actually wrote down; `lane_slugs` is the batch's declared lane roster, which
+    resolves to an artifact by containment (`lane-g-276-deploy-waiver` is a substring of
+    `2026-09-02-technical-lane-g-276-deploy-waiver.md`).
+    """
+    explicit: frozenset[str]
+    lane_slugs: frozenset[str]
+    manifests: tuple[str, ...]
+
+
+def manifest_links(repo_path: Path) -> ManifestLinks:
+    """Every artifact identifier reachable from a committed batch manifest.
+
+    READS THE WORKING TREE, not git, because both callers measure the working tree and a
+    number taken from a different snapshot than the corpus it is compared against is not a
+    measurement. `open_batches` reads committed text for a different reason -- it decides
+    whether a batch is open, where an unstaged edit flipping `status:` would be a bypass.
+
+    HONEST LIMITS. Containment on a lane slug is a substring test, so an artifact whose name
+    merely contains a declared slug counts as linked; the slug grammar (`lane-<letter>-<id>-`)
+    plus the batch-scoped letter makes a collision unlikely but does not exclude it. And this
+    resolves LINKAGE only -- it says a governance surface named the artifact, never that the
+    naming was apt.
+    """
+    explicit: set[str] = set()
+    slugs: set[str] = set()
+    seen: list[str] = []
+    for manifest in sorted(Path(repo_path).glob(MANIFEST_GLOB)):
+        try:
+            text = manifest.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            # A manifest that cannot be read links nothing. Deliberately not raising: this is
+            # an ADDITIVE coverage route, so an unreadable manifest costs coverage it would
+            # have granted and can never invent any.
+            continue
+        seen.append(manifest.name)
+        surfaces = [text]
+        closer = _frontmatter(text).get("closed_by", "")
+        if closer and _valid_closer(closer):
+            closer_path = Path(repo_path) / closer
+            try:
+                surfaces.append(closer_path.read_text(encoding="utf-8"))
+            except (OSError, UnicodeDecodeError):
+                pass
+        for surface in surfaces:
+            for hit in _AUDITS_PATH_RE.findall(surface):
+                name = hit.rsplit("/", 1)[-1]
+                explicit.add(name)
+                explicit.add(name[:-3] if name.endswith(".md") else name)
+            for stem in _LINKED_STEM_RE.findall(surface):
+                explicit.add(stem)
+                explicit.add(stem[:-3] if stem.endswith(".md") else stem)
+            slugs |= manifest_lane_slugs(surface)
+    return ManifestLinks(frozenset(explicit), frozenset(slugs), tuple(seen))
+
+
+#: An artifact stem's descriptive tail: everything after `<date>-<class>-`. A lane's own
+#: packet begins its tail WITH the lane slug; a document merely ABOUT that lane does not.
+_ARTIFACT_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}-")
+_DATE_PREFIX_LEN = len("YYYY-MM-DD-")
+#: Fallback class: ONE kebab segment, DIGITS ADMITTED. Off-enum classes are real on disk --
+#: `arc5` (x3), `phase0`, `stage3`, `pilot81`, `cohort1` -- so an enum-only split would refuse
+#: a lane artifact landing under any of them.
+_FALLBACK_CLASS_RE = re.compile(r"^[a-z0-9]+-(?P<tail>.+)$")
+#: Longest-match first, so `ecosystem-audit` wins over a bare `ecosystem` split. Same ordering
+#: `validate_hermetization` applies to the same enum, for the same reason.
+_CLASS_BY_LEN = tuple(sorted(AUDIT_CLASS_ENUM, key=len, reverse=True))
+
+
+def artifact_tail(stem: str) -> Optional[str]:
+    """The descriptive tail of `stem` -- what follows `<date>-<class>-` -- or None.
+
+    THE SPLIT IS ENUM-FIRST, THEN ONE SEGMENT (terra HIGH, pass 2). A single `[a-z]+` class
+    got both ends of the real grammar wrong. It cannot match a HYPHENATED ruled class:
+    `...-ecosystem-audit-lane-a-1-x` splits after `ecosystem`, leaving the tail as
+    `audit-lane-a-1-x`, which begins with no slug. And it cannot match a DIGIT-BEARING one:
+    `arc5`, `phase0`, `stage3`, `pilot81`, `cohort1` are all on disk today. Under either shape
+    a lane's OWN artifact is refused -- a false NEGATIVE introduced while fixing a false
+    positive, which is the failure mode a narrowing fix has to be checked for.
+
+    BOTH WERE LATENT, NOT LIVE. No artifact in the corpus today has a lane-slug tail under
+    either shape, so `manifest_linked` is unchanged by this: it is a robustness fix, and
+    claiming it recovered coverage would be false. It widens strictly -- an enum class that is
+    a single segment splits identically to the fallback, so no currently-admitted artifact can
+    become refused.
+    """
+    if not _ARTIFACT_DATE_RE.match(stem):
+        return None
+    rest = stem[_DATE_PREFIX_LEN:]
+    for cls in _CLASS_BY_LEN:
+        if rest.startswith(f"{cls}-"):
+            return rest[len(cls) + 1:] or None
+    match = _FALLBACK_CLASS_RE.match(rest)
+    return match.group("tail") if match else None
+
+
+def links_artifact(links: ManifestLinks, name: str) -> Optional[str]:
+    """The link kind by which `name` is reachable, or None. `'explicit'` beats `'lane-slug'`.
+
+    THE LANE-SLUG LEG IS ANCHORED, NOT CONTAINMENT (terra HIGH, pre-merge). It was
+    `slug in stem`, which admitted `2026-09-05-technical-review-of-lane-g-276-deploy-waiver.md`
+    -- a document ABOUT a lane -- as if it were that lane's own packet, granting it both
+    DISPOSITIONED and CITED and silencing both ratchets. That is SILENT false coverage, which
+    `funnel_coverage`'s docstring already names as the failure mode to prefer loud false WARNs
+    over: a spurious WARN is noticed and fixed in one edit, invented coverage is never noticed
+    at all.
+
+    The anchor: strip the `<date>-<class>-` prefix (`artifact_tail`, enum-first) and require the
+    remaining tail to BEGIN with the slug, at a `-` or end-of-string boundary. A lane's artifacts are named for their lane
+    (`…-technical-lane-g-614-hygiene-close-packet.md` tails as `lane-g-614-hygiene-…`); a
+    commentary names something else first. A stem that carries no dated `<date>-<class>-`
+    prefix has no tail to anchor against and is refused rather than fuzzily matched.
+    """
+    stem = name[:-3] if name.endswith(".md") else name
+    if name in links.explicit or stem in links.explicit:
+        return "explicit"
+    tail = artifact_tail(stem)
+    if tail is None:
+        return None
+    for slug in links.lane_slugs:
+        if tail == slug or tail.startswith(f"{slug}-"):
+            return "lane-slug"
+    return None
