@@ -19,6 +19,47 @@
 
 ---
 
+### 2026-09-05 (s) - CC (Opus 5, INTEGRATOR-2): pre-anchor filings-3's B3/B4 arc, and a ruling whose arithmetic the executing seat corrected
+
+**Did:** Pre-anchored `worktree-filings-3` @ `5dade2d6` ahead of its merge, per the operator's
+standing order to anchor BEFORE each merge and never after. Reviewed the arc: R5 item 018 (four
+legs on the disposition register) plus the B3/B4 residue ledger row the architect's ruling 3
+assigned to that bundle.
+
+**Result:** Terra CLEAN in one round on a code branch, which is rare enough to record. Two things
+are worth more than the merge itself.
+
+FIRST, the executing seat corrected the ruling's arithmetic instead of executing it literally.
+The ruling said "the 25 `consumer_at_landing` + 17 `funnel_coverage` foreign rows", which reads as
+42. The two sets OVERLAP BY TWELVE, so it is **30 distinct artifacts**, and six already carried a
+row, so **24 rows were added**. FILINGS-3 generated them from live measurement rather than
+transcribing my list - the right call, because a hand-copied list of thirty filenames is a defect
+waiting to happen. Terra then reconciled the arithmetic independently from the diff alone: 24 rows
+= 17 funnel artifacts (12 shared, 5 funnel-only) plus 6 existing consumer-only rows = 30 distinct.
+Three parties, one number, none of them taking another's word for it.
+
+SECOND, the ruling closed one organ and provably cannot close the other. `funnel_coverage` 17 -> 0,
+fully GREEN. `consumer_at_landing` 25 -> 25, unchanged and unchangeable from this surface:
+`funnel_coverage` reads the disposition ledger, so a row there disposes an artifact, while
+`consumer_at_landing` asks whether a GOVERNANCE POOL file cites it - and `docs/audits/` is not in
+`POOL_DIRS`. A ledger row is invisible to that organ BY CONSTRUCTION. That is a mechanism fact, not
+incomplete work, and the evidence predates the lane: six artifacts dispositioned this morning still
+sit in the unconsumed set, dispositioned and unconsumed at once, because the two organs were never
+asking the same question. Clearing the consumer half needs a POOL-SIDE citer and is a different act
+on a different surface; the seat did not smuggle it in, and it wants its own ruling because the
+obvious home would bloat a row already dispositioned for row-length.
+
+**Changes:** this entry only. The arc's own two files land with its merge.
+
+**Abandoned:** Nothing.
+
+**Next:** Merge `5dade2d6` (delta A2, code branch), then tear down on FILINGS-3's word rather than
+on my merge, then the census with 014 named as unowned.
+
+**Anchors:** `@ARC@` (this entry, introduced by its own merge - the placeholder is substituted
+inside the open merge, which is how a single-commit arc closes behind itself). Names `5dade2d6`
+in advance: the merge that follows introduces it.
+
 ### 2026-09-05 (r) - CC (Opus 5, INTEGRATOR-2): the spine-predicate carrier is filed, and zc-candidates lands with an erratum
 
 **Did:** Closed the architect's final four rulings of the evening. (1) Merged
