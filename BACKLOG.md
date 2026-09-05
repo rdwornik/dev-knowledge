@@ -61,7 +61,6 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#499] [P3][M] Promote the review-artifact coverage leg to a hard pre-push gate · DEFER · tasks/499-promote-the-review-artifact-coverage-leg-from-ad.md
 - [#560] [P2][S] `review_artifact_coverage` reads only the FIRST branch/HEAD triple per file, and one title literal, so a real review can be invisible to it · tasks/560-review-artifact-coverage-reads-only-the-first-br.md
 - [#573] [P3][S] lychee as a zero-baseline markdown-link gate on the actionable corpus · tasks/573-lychee-zero-baseline-md-link-gate.md
-- [#635] [P2][S] SessionStart refuses a non-integrator session on the primary checkout — the TOCTOU `block-commit-on-main` cannot close · tasks/635-sessionstart-refuses-a-non-integrator-session-on-the-primary.md
 
 - [#510] [P2][M] Scope the R-1 exemption to the lanes its manifest enumerates — self-grantable by branch naming today · tasks/510-scope-r1-exemption-to-enumerated-lanes.md
 - [#514] [P1][M] Two rival `LANE_BRANCH_RE` constants ship in one repo · tasks/514-two-rival-lane-branch-re-constants-reconcile-them.md
@@ -272,7 +271,6 @@ So that cognitive overhead per session drops.
 - [#576] [P2][M] Telemetry read path — the lane `[#565]` was sequenced before · tasks/576-telemetry-read-path-lane.md
 - [#575] [P2][M] Telemetry store: 98.5% of an emit, and silent drops under concurrent writers · tasks/575-telemetry-store-performance-and-silent-drops.md
 - [#574] [P2][M] gen_lane_contract emits the batch manifest — Q6's own failure class, recurring · tasks/574-batch-manifest-emitted-by-gen-lane-contract.md
-- [#636] [P2][M] `window_metrics.py` gains a ten-line SCORECARD printed in every close packet and handoff · tasks/636-window-metrics-gains-a-ten-line-scorecard.md
 
 - [#540] [P3][S] `harvest_batch.py` — read the board, then fetch packets by `git show`, never by log-scraping · tasks/540-harvest-batch-py-read-the-board-then-fetch-packets.md
 - [#554] [P2][M] Devcontainer + provisioning script (NB4-G stage 1) · tasks/554-devcontainer-provisioning-script-nb4-g-stage-1.md
