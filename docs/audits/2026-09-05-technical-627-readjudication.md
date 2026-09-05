@@ -218,4 +218,140 @@ PASS 2  ·  FAIL 6  ·  UNCALIBRATED 1  ·  TOTAL 9
 was running carries **6**. The sloppiness the intent suspected was real, and it ran in the
 provider's favour.
 
-<!-- MEASUREMENT SECTIONS 4-7 FILLED FROM RAW ARTIFACTS -->
+## 4. The confound was in batch-F's own cited source, three days before it ran
+
+Batch-F's §4 D-1 explains the failure this way:
+
+> `workspaceDirs=[...]` in every log correctly names this worktree. **The model reads elsewhere
+> anyway** … This is not a per-item fluke — it recurred on 3 of 10 items.
+
+"Reads elsewhere" is a behavioural claim with no destination. There is a destination, it is
+specific, and it is on disk:
+
+```
+~/.gemini/antigravity-cli/scratch/repo
+```
+
+Verified, read-only, this lane:
+
+| Fact | Evidence |
+|---|---|
+| It is a git checkout of a **foreign public repository** | `origin` = `https://gitlab.knx.org/public-projects/knx-iot-point-api/knx-iot-point-api-stack.git` |
+| It has been there since **2026-08-26 19:33** | file mtimes across the tree; HEAD `380c0ca1`, authored 2026-08-06 |
+| It therefore **predates both** prior measurement runs | 2026-08-26 clone < 2026-08-29 baseline < 2026-09-01 batch-F |
+| agy **writes into it** | `missing_refs.txt` (69,718 B, mtime **2026-09-01 19:14**) and `check_inc.py` (**19:15**) — the batch-F run window. Both are untracked in that clone; it is otherwise clean |
+| It is what N-01 reported on | batch-F's own N-01 excerpt cites `missing_refs.txt`, `api/oc_blockwise.c`, `include/oc_blockwise.h` — all resident there |
+
+**And the location was already in the record.** The 2026-08-29 packet
+(`docs/audits/2026-08-29-technical-nb2-o-packet.md:41`), which batch-F cites by name, states it
+outright:
+
+> Draw 1 `8fd93411`: every finding cites `~/.gemini/antigravity-cli/scratch/repo`
+> (`security/oc_tls.c:88`). Draw 2 `df80c100`: same tree …
+
+That same packet's D-3 also records that **agy writes into `~/.gemini/antigravity-cli/scratch/`
+during runs**, and corrects its own earlier claim to the contrary. Batch-F cited this document,
+listed "did not independently audit `~/.gemini/antigravity-cli/scratch/`" in its §8, and drew a
+model-quality inference from a defect its own source had already localised to a named directory.
+
+**One item is worse than mis-scoped — it is a closed loop.** N-01's headline finding was that
+`missing_refs.txt` "lists several files as missing which actually do exist". agy wrote
+`missing_refs.txt` itself, one minute before, in that same directory. It analysed its own output
+and reported it as a repository defect.
+
+### What this does and does not excuse
+
+It does **not** rescue the provider — §5 settles that. What it changes is the *epistemic status*
+of batch-F's headline: "failed for the third consecutive draw across two independent lane runs"
+reads as three independent trials converging on a conclusion. They are not independent. The same
+decoy was present, in the same place, for all three. That is **one trial reported three times**,
+and freeze limitation 1 explicitly forbids reading this pack's k=1 results as a rate:
+
+> **k = 1.** … Every per-item result is therefore a single draw and **no gate outcome in this
+> cell may be read as a rate.**
+
+Batch-F inherited that limitation, restated it, and then read a rate anyway.
+
+## 5. Retrieval fidelity on a seeded corpus — the bar the operator actually ruled
+
+`protocols/STANDING_RULINGS.md` candidate **(d)** is the admission test, and the batch-G handoff
+records that the H5 contract inherits it:
+
+> **(d) `[#627]` admission = retrieval fidelity on a seeded corpus.** Planted contradictions and
+> orphans; the bar is that it finds them and invents none, with quota visibility recorded.
+
+**Batch-F never ran this test.** It re-ran the SDA1-N pack, which measures review quality against
+`.dev-knowledge` itself. This lane runs the ruled test for the first time.
+
+### Design — and the two frozen limitations it discharges
+
+The corpus (`seed_corpus.py`, committed at `4cd3a572` **before any draw was scored**) is a
+15-file, 1,934-byte synthetic doc-governance tree living **outside** `.dev-knowledge`, carrying
+**five planted defects** (two retention/append-only/port contradictions plus a third, and two
+orphan files) and **two traps** — a linked file that is not an orphan, and a pair of lists that
+genuinely agree. Ground truth lives in code; the answer key is written **outside** the corpus.
+`verify_corpus()` recomputes the orphan set rather than trusting the comment — a first draft left
+two files unreferenced, which would have scored a correct 4-orphan answer as two inventions.
+
+This discharges two limitations the freeze recorded as undischargeable:
+
+- **Limitation 4** ("corpus leakage is total and unavoidable … impossible for a role whose subject
+  *is* this repository") — false for a corpus that is not this repository. First time discharged.
+- **Limitation 1** (`k = 1`, "cut here, by a night lane, for cost") — restored to **k = 3**.
+
+Scoring rubric frozen at `4cd3a572`, authored while the k=1 draw was still in flight and before
+any response text was opened.
+
+### Result — three draws, unanimous
+
+| draw | status | wall | in-tokens | cache-read | findings | corpus refs | recall | outcome |
+|---|---|---|---|---|---|---|---|---|
+| SEED-k1 | SUCCESS | 509.1 s | 303,525 | 2,922,936 | 27 | **0** | **0/5** | **UNSOUND** |
+| SEED-k2 | SUCCESS | 567.1 s | 229,842 | 2,427,919 | 33 | **0** | **0/5** | **UNSOUND** |
+| SEED-k3 | SUCCESS | 276.8 s | 205,947 | 2,270,158 | 29 | **0** | **0/5** | **UNSOUND** |
+
+All three answered about `~/.gemini/antigravity-cli/scratch/repo`. Not one of the five planted
+defects was found; not one of the 89 findings names a corpus file. Both legs of the ruled bar
+fail: it did not find them, and it invented throughout.
+
+k1 opened *"Based on my analysis of the `C:\Users\1028120\.gemini\antigravity-cli\scratch\repo`
+directory"*; k3 likewise named the path. **k2 did not.** It said *"Here is the analysis of the
+repository"* and produced a fluent, methodology-citing report — *"I wrote a custom Python script …
+I subsequently manually confirmed the critical code files with `git grep`"* — about a repository
+nobody asked about, with **no disclosure at all**.
+
+That k2 draw is the single most damaging fact in this re-adjudication, and it bounds §2 D-D's
+charity: agy named the other repository in N-02, N-10, k1 and k3, but not in k2. **Disclosure is
+inconsistent, so it is not a mitigation a caller can rely on.** One draw in three substitutes the
+corpus silently, and the report it produces is indistinguishable from a good one.
+
+### A mechanical scope check, free at the transport layer
+
+The token meter alone proves the violation, with no reading of the answer:
+
+```
+corpus under test      15 files, 1,934 bytes   ~=  484 tokens
+observed input         205,947 - 303,525 tokens        ~= 425x - 627x the corpus
+observed cache-read  2,270,158 - 2,922,936 tokens      ~= three orders of magnitude
+```
+
+A provider cannot read 200k+ tokens out of a 1.9 KB corpus. **A ratio check on
+`usage.input_tokens` against the workspace's own byte count would have caught all three draws
+instantly**, and would have caught N-01 on 2026-08-29. It needs no ground truth, no hand-scoring
+and no answer-reading — it is a precondition, not a gate, and it is the cheapest organ this whole
+admission arc has produced. It is offered below as the mechanical half of the re-open condition.
+
+### Quota visibility — the ruled leg, discharged as far as the transport allows
+
+Candidate (d) also requires quota visibility recorded. A7 already measured that agy exposes **no
+direct quota or usage query** (its Surface 1: upstream issues #234 and #46; `/usage`, `/quota` and
+`/stats` all unavailable) and that **the only quota signal a headless lane gets is a 429**
+(Surface 2). So the leg is not fully dischargeable on this transport, and saying so is the honest
+report. What this lane *can* record, and does:
+
+- per-draw `usage` captured from the JSON envelope for every invocation, retained as raw artifacts;
+- **zero 429 / `RESOURCE_EXHAUSTED` responses** across every draw in this lane;
+- seeded arm cost: **811,111 tokens**, 1,353 s wall, on the operator's Google subscription. Per
+  SDA-1 C-8 no `$` is computed — a subscription is not a per-call price.
+
+<!-- MEASUREMENT SECTIONS 6-9 FILLED FROM RAW ARTIFACTS -->
