@@ -11,6 +11,15 @@
 > Written by the integrator (INTEGRATOR-2, primary checkout) at batch close, 2026-09-06. The
 > filename carries 2026-09-05 because the manifest declared that exact path at dispatch; the
 > locator is the manifest's to choose, not the writer's.
+>
+> **WHEN THIS BECOMES IMMUTABLE, since the answer is not the obvious one.** The close takes
+> effect when this file lands on `main` - at the MERGE, not at the branch-local commit that
+> created it. Running `batch_manifest.open_batches` from the authoring branch reports R5P
+> closed, but that reads the branch's tree; from `main` the batch stays open until the merge.
+> So corrections made to this file BEFORE it lands are authoring, not amendment, and three
+> were made (§6). Once it is on `main` this file is immutable like any audit, and a correction
+> then rides as an appended marker - the shape used for the L4 lane packet's ERRATUM in §4,
+> which had already landed and therefore could not be touched.
 
 ## 1. Rows closed — the hard metric
 

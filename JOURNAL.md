@@ -24,8 +24,11 @@
 **Did:** Wrote the R5P close packet at the path the manifest declared at dispatch, regenerated the
 audits index behind it, and closed the batch.
 
-**Result:** `R5P closed: True`, verified by running `batch_manifest.open_batches` rather than by
-asserting it - only `H0-PREP` remains open, and that is another batch. The close needed no edit to
+**Result:** `R5P closed: True` when `batch_manifest.open_batches` is run from the authoring
+branch - verified by running it rather than asserting it, with only `H0-PREP` still open, and
+that is another batch. Stated precisely, because review caught me being loose about it: that
+reads the BRANCH's tree. From `main` the batch stays open until the merge, so the close takes
+effect at the MERGE, not at the commit that wrote the file. The close needed no edit to
 the manifest at all: `batch_manifest` resolves an OPEN batch as four conjuncts, one of which is
 that `closed_by:` names an ABSENT path, so the packet's existence IS the close act. That is the
 right design for an immutable genre, and worth naming because the obvious alternative - flipping
