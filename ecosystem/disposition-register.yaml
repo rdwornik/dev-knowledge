@@ -652,68 +652,77 @@ dispositions:
 # means removing it RESTORES full visibility of review_artifact_coverage rather than losing any.
 
   # ---------------------------------------------------------------------------
-  # A9 ROUTE (ii) — batch-1 integration, 2026-08-18. Ruled [#532]/A9.
+  # A9 ROUTE (ii) — RETIRED 2026-09-05 (R5 item 018 leg 1, bundle B5). Ruled [#532]/A9;
+  # retirement ruled by ARCHITECT-INBOX-2026-09-05-018, executed under ADR-75.
   #
-  # Route (i) (TRIM with a grep-verified carrier) was lane G's act and drained 20 rows under the
-  # 1320 ceiling. What remains is the residue route (i) CANNOT take, and each entry below says
-  # which of the two reasons applies: either the row has NO carrier (trimming would destroy the
-  # only record of the thing), or a carrier exists but the row is structurally above the ceiling
-  # before any prose is written. Keyed on the row id AND its measured length per the register's
-  # precision-over-recall rule, so a row that CHANGES re-surfaces and blocks rather than staying
-  # silently suppressed at a length nobody agreed to.
+  # The four entries that stood here (warn-row-length-546 / -547 / -552 / -533) were keyed on the
+  # PER-ROW ARM-2 signature "backlog-row-length BACKLOG#<id> (<N> chars". R5P lane L1 (merged
+  # 4a9ff8f0, "doc_rot ARM 2 reports the corpus, not 72 separate rows") replaced that shape with
+  # ONE corpus Finding, so all four became unmatchable in a single act — not because the rows
+  # changed, and not because the acceptances lapsed. Removed rather than left to decorate stale,
+  # per this register's standing ADR-75 practice.
+  #
+  # RE-KEYING WAS CONSIDERED AND IS UNAVAILABLE: there is no per-row Finding left to re-key TO.
+  # The four concerns now sit inside the single corpus Finding dispositioned immediately below,
+  # which is why legs (1) and (2) of item 018 are one act rather than two.
+  #
+  # THE SUBSTANTIVE [#532]/A9 ACCEPTANCES ARE NOT WITHDRAWN — only their carrier changed. Each is
+  # restated here so that removing the entries does not delete the reasoning with them:
+  #   [#546] NO CARRIER — the row IS the only record of the ADR-60 taxonomy divergence, so a trim
+  #          deletes the record rather than compressing it.
+  #   [#547] NO CARRIER — same class as [#546], from the same lane-G worksheet: the row is the
+  #          only record of the split-brain instruction's missing referent.
+  #   [#552] CARRIER PROVEN, TRIM STRUCTURALLY IMPOSSIBLE — 1654 chars of governance clauses
+  #          ALONE, i.e. above the 1320 ceiling before one character of prose exists. A
+  #          clause-condensation route stays open and was not taken.
+  #   [#533] LENGTH IS THE LEG ENUMERATION — the row carries its legs, their sequencing and their
+  #          discharge state inline, which is what makes it executable across several arcs. It had
+  #          already been re-keyed once (2026-09-02, lane-g-614-hygiene, 4210 -> 2088 chars).
+  # Full reasoning: docs/audits/2026-08-18-technical-a9-trim-lane-packet.md §2.2, §4.
   # ---------------------------------------------------------------------------
 
-  - id: warn-row-length-546-adr60-taxonomy
+  - id: warn-row-length-corpus-trend
     organ: doc_rot
-    match: "backlog-row-length BACKLOG#546 (2227 chars"
-    ref: "[#532]/A9; docs/audits/2026-08-18-technical-a9-trim-lane-packet.md §4"
+    match: "backlog-row-length BACKLOG#row-length"
+    ref: "[#532]/A9; ADR-41; ARCHITECT-INBOX-2026-09-05-018 leg (2); R5 B5"
     review_date: 2026-11-18
     reason: >-
-      NO CARRIER — accepted at length, ruled [#532]/A9. Lane G's per-row worksheet put this row on
-      the REPORT list precisely because route (i) is unavailable: the row IS the only record of the
-      ADR-60 taxonomy divergence, so a trim would not compress the record, it would delete it. The
-      A9 ruling's own distinction is that self-induced framing prose gets drained while a row whose
-      length IS its evidence gets accepted; this is the second case.
+      corpus-level trend Finding, owner ADR-41 groom cadence (R5 B5). After R5P lane L1
+      (4a9ff8f0) ARM 2 reports the corpus as ONE Finding in place of the 72 per-row Findings,
+      four of which were dispositioned by the entries retired directly above. Keyed WITHOUT the
+      count ON PURPOSE: the live evidence carries "N of M rows over the declared ceiling", a
+      longest-row figure, three percentiles and a per-run trend delta, and every one of those
+      numbers moves on an ordinary commit — so a count-bearing key would decorate [stale] within
+      a day and need re-keying on a cadence nobody can sustain. This is the one case in this
+      register where dropping the measured value from the key is correct rather than sloppy: the
+      concern unit is the corpus trend itself, not any single row, and a key that changes every
+      run cannot address a standing concern. What this does NOT suppress: ARM 1
+      (backlog-accretion) is a separate category and still fires PER ROW, so a row that accretes
+      dated narration surfaces individually and is unaffected by this entry.
 
-  - id: warn-row-length-547-split-brain-referent
-    organ: doc_rot
-    match: "backlog-row-length BACKLOG#547 (2099 chars"
-    ref: "[#532]/A9; docs/audits/2026-08-18-technical-a9-trim-lane-packet.md §4"
-    review_date: 2026-11-18
-    reason: >-
-      NO CARRIER — accepted at length, ruled [#532]/A9. Same class as [#546] and reported by the
-      same lane-G worksheet: the row is the only record of the split-brain instruction's missing
-      referent, so trimming deletes the finding rather than condensing it.
+  # LEG (3) of item 018 — a note for gen_trend_dashboard readers. The doc_rot series steps from
+  # ~75 to ~6 at the next snapshot. THE UNITS CHANGED; NOTHING DRAINED. Before L1 the series
+  # counted per-row Findings (~72 over-ceiling rows, plus the accretion rows and the cadence row);
+  # after it, one corpus Finding plus the ARM-1 rows plus cadence. A reader who takes that step as
+  # a ~90% improvement is reading a re-definition as progress: the same rows are still over the
+  # 1320 ceiling, and the trend delta INSIDE the corpus Finding is the number that now carries the
+  # signal that the count used to carry.
 
-  - id: warn-row-length-552-governance-clauses
-    organ: doc_rot
-    match: "backlog-row-length BACKLOG#552 (3576 chars"
-    ref: "[#532]/A9; docs/audits/2026-08-18-technical-a9-trim-lane-packet.md §2.2, §4"
-    review_date: 2026-11-18
-    reason: >-
-      CARRIER PROVEN, TRIM STRUCTURALLY IMPOSSIBLE — accepted at length, ruled [#532]/A9. Lane G
-      measured 1654 chars of governance clauses ALONE, i.e. the row is above the 1320 ceiling
-      before one character of prose exists. Route (i) cannot reach it by construction. A
-      clause-condensation route exists and was explicitly left to the seat rather than taken by
-      the lane; it is NOT taken here either, so this disposition accepts a known-open alternative
-      rather than pretending none exists.
-
-  - id: warn-row-length-533-audit-decomposition
-    organ: doc_rot
-    match: "backlog-row-length BACKLOG#533 (2088 chars"
-    ref: "[#532]/A9"
-    review_date: 2026-11-18
-    reason: >-
-      LENGTH IS THE LEG ENUMERATION — accepted, ruled [#532]/A9. The row decomposes the audit.py
-      check monolith into one module per check plus an ordered registry, and it carries its legs,
-      their sequencing and their discharge state inline; that enumeration is what makes the row
-      executable across several arcs (leg 2 landed in this very batch as lane A). Draining it
-      would move the sequencing somewhere the row no longer names. Excluded from lane G's scope by
-      that lane's own contract, so no trim attempt was made or refused.
-      RE-KEYED 2026-09-02 (lane-g-614-hygiene): match was "(4210 chars", live measurement is now
-      "(2088 chars" — the row shrank since [#532]/A9 but is still over the 1320-char ceiling and
-      the acceptance still applies; the old exact-count match no longer matched, so the entry
-      surfaced [stale] with the underlying condition unchanged. Re-keyed rather than dropped.
+  # LEG (4) of item 018 — the ARM-1 RED, recorded against [#612] (R5 B6) and deliberately NOT
+  # fixed here. Test name, so it is greppable from the row:
+  #   tests/test_validate_doc_rot.py::test_live_corpus_has_no_accretion_arm_findings_only_length_findings
+  # It asserts the backlog-accretion category measures EMPTY. Live loci at 2026-09-05, split by
+  # provenance because the two halves have different owners:
+  #   PRE-EXISTING, calendar-driven — 267, 297, 82. These cross the >= 30d span arm with no edit
+  #     at all, which is why the RED is date-driven rather than change-driven.
+  #   THIS WINDOW'S OWN COST — 241 and 285, pushed over the (>= 3 dates AND >= 30d span AND > 700
+  #     chars) threshold by B8's un-defer record and B10's scope-widen record respectively. Both
+  #     records are what 007 asked those bundles to write, so the finding is the price of the
+  #     bundle rather than a defect in it.
+  # RULED 2026-09-05: archive_row_body.py is NOT the remedy for 241/285. derive_status is a
+  # SUBSTRING test over the whole row, so relocating a DEFER-marked clause can flip a row's status
+  # silently — 241 now reads "UN-DEFERRED" and 285 is still a deferred row. Recorded here, not
+  # dispositioned here: [#612] owns the fix.
 
   # (removed 2026-09-02, lane-g-614-hygiene) warn-row-length-529-telemetry-emit and
   # warn-row-length-530-single-flight — both rows are now status: closed. doc_rot's row-length
