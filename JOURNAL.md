@@ -19,6 +19,48 @@
 
 ---
 
+### 2026-09-05 (q) - CC (Opus 5, INTEGRATOR-2): pre-anchor filings-3, and the architect's five evening rulings
+
+**Did:** Pre-anchored `worktree-filings-3` ahead of its merge, and executed the architect's
+five evening rulings.
+
+**Result:** (1) zc-candidates: the two ruled corrections were applied, but terra then found the
+SAME two false claims duplicated in the lane's end-of-lane packet, which the ruling did not
+cover and which "nothing else" forbade me to touch. Merge stood down, question routed. (2)+(4)
+AMENDMENT 9 + AMENDMENT 10 landed at `449e9d30`: A10 makes ITSELF the superseding instrument
+for A6 sections 2, 4 and 8 - terra caught my first draft attributing that to A9, which could
+not reach sections 4 or 8 because both concern E-25 and the extending ruling post-dates them.
+A marker cannot supersede a disposition it did not yet cover. Section 8's factual observation
+survives; only its G-directed conclusion is withdrawn. Notation is now E-NN for the defect
+register, #NN for intakes. (3) filings-3 merges under delta A2, and `archive_row_body.py` is
+NOT run on E-241/E-285 - the lane was right that DEFER substring matching can silently flip a
+row's status. (5) The spine-predicate carrier is filed as a CANDIDATE below.
+
+**Delta A2 BEFORE, taken on main at `449e9d30`:** `health: OK` with 40 WARNs;
+`tests/test_audit.py` + `tests/test_validate_doc_rot.py` = 306 passed, 2 failed. Both failures
+are the day's known pre-existing REDs - the calendar-driven doc_rot accretion arm, and
+fleet_parity's two undeclared surfaces. The lane's reported `consumer_at_landing` and
+`funnel_coverage` failures do NOT reproduce on main, which is consistent with its own honest
+report that they were foreign to its bundles.
+
+**CANDIDATE filed (architect ruling 5), credited to the browser seat-notes lane:** the
+spine-anchor predicate needs a CARRIER, not a note. Eight false alarms across six seats in one
+day, every one testing whether JOURNAL names the branch TIP or the merge's OWN SHA instead of
+any SHA the entry INTRODUCED. One seat had the rule written down, in a file it had loaded,
+recorded after making the same error earlier that same day - and still reached for the ad-hoc
+grep. Proposed carrier: the check names its own predicate in its failure text, plus ONE
+diagnostic command so nobody hand-rolls a grep. Joins the queued "two REDs + spine message"
+lane, after the tag. This is the same finding the seat-notes audit spent ten markers on: a rule
+that can only be read is not a rule that can refuse.
+
+**Changes:** `JOURNAL.md`.
+
+**Abandoned:** Nothing.
+
+**Next:** merge filings-3; zc-candidates awaits one architect answer on its packet.
+
+**Anchors:** `@ARC@` (this arc) - and, named BEFORE its merge: `1cefc303` (filings-3).
+
 ### 2026-09-05 (p) - CC (Opus 5, INTEGRATOR-2): 015-C discharged on the operator's own word, and the funnel bypass it corrects
 
 **Did:** Dropped `[#635]` and `[#636]` on recorded operator consent, and pre-anchored the two
