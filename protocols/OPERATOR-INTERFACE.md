@@ -32,24 +32,38 @@ Two consequences a seat can act on directly:
 - **A file arriving twice arrives as `<name> (1).md`.** The suffixed copy is the newer one, and
   the un-suffixed one is stale — a seat that reads only the plain name reads the previous window.
 
-**Proposed constant — candidate (m), filed not ratified.** The live transport is a synced Google
-Drive folder; Downloads is its fallback, not its home. The heading above still names Downloads and
-is corrected when this text is ratified:
+**FILE EXCHANGE — the transport constant.** The heading above predates the Drive transport and is
+kept as written; the constant below is what a seat acts on. Downloads remains the documented
+fallback, and nothing else in this section changes.
 
-    prompts dir : $env:CLAUDE_PROMPTS_DIR = "H:\My Drive\CLAUDE PROMPT DIR" — the Drive folder
-                  "CLAUDE PROMPT DIR" at Drive root, synced by Google Drive for Desktop
-    to-cc\      : browser to CC. Contracts, pastes, ARCHITECT-INBOX-<date>-<NNN>.md
-    to-browser\ : CC to browser. Delivered artifacts (plain copies, same filename), packets,
-                  sheets, PASTE_THIS, and inbox copies carrying a DONE <sha> line per item
-    read rule   : the prompts directory FIRST; if the file is not there, ~\Downloads and its
-                  to-cc\ / to-browser\ — the fallback is per FILE, never per variable
-    source      : generated copies only. The repo stays the single source; a file in
-                  to-browser\ is a copy of a repo path at a SHA, never an authority
+    prompts dir  : $env:CLAUDE_PROMPTS_DIR = "H:\My Drive\CLAUDE PROMPT DIR" (Google Drive,
+                   synced by Drive for Desktop; the browser reads/writes it via the Drive
+                   connector)
+    to-cc\       : browser to CC. Contracts, pastes, ARCHITECT-INBOX-<date>-<NNN>.md
+    to-browser\  : CC to browser. Delivered artifacts (plain copies, same filename) and inbox
+                   copies with a DONE <sha> line per item — the browser's ONLY witness that an
+                   item ran
+    read rule    : look in the prompts dir first; if the file is not there, ~\Downloads and its
+                   to-cc\ / to-browser\ (fallback per FILE, not per variable)
+    copy header  : every copy written to to-browser\ starts with one line
+                   <!-- COPY OF <repo path>@<sha> - generated, never edited; the repo is the
+                   source -->
+    session start: every CC session prints the resolved prompts dir on boot (SessionStart hook
+                   or /lane-boot line) so a stale inheritance is visible in the first turn
+    inbox naming : ARCHITECT-INBOX-<YYYY-MM-DD>-<NNN>.md, always numbered; items <NNN>-<letter>
 
-A seat that inherits `CLAUDE_PROMPTS_DIR` from a shell predating the setting resolves it to
-Downloads, finds `to-cc\` present but EMPTY, and reads that as "nothing filed" rather than as a
-misresolved variable. The directory existing is what makes the failure silent, so the resolved
-path is worth printing once at session start.
+Two clauses above exist because a specific failure happened, and they are cheap only until they
+are skipped. A seat that inherits `CLAUDE_PROMPTS_DIR` from a shell predating the setting resolves
+it to Downloads, finds `to-cc\` present but EMPTY, and reads that as "nothing filed" rather than as
+a misresolved variable — the fallback directory EXISTING is what makes the failure silent, which is
+what the session-start echo removes. And the `DONE <sha>` line is the browser's only witness: a
+seat that finishes an item without writing it has, from the browser's side, not done the item.
+
+**The copy header and byte-identity.** Prepending the header means a delivered copy is not
+byte-identical to its blob. That is deliberate and it is the later ruling: the copy is an envelope
+carrying a repo path and a SHA, so identity stays PROVABLE (compare the body below the header
+against `git show <sha>:<path>`) while the file itself says what it is a copy of. A copy that does
+not name its source is the stale-delivery failure waiting to happen.
 
 ## 2. Inline chat paste of large content arrives empty — so uploads are `.md` files
 

@@ -3415,11 +3415,11 @@ tests to declare their files present, rather than weakening the Z-G4 FAIL.
 Filed from the architect's outgoing-seat note of 2026-09-02 (step B), landed after G3b merged and
 before the close packet. **Z-C shape: these are CANDIDATEs, not rows.** ADR-111 admits exactly one
 path — CANDIDATE, then ADR-98 intake, then ratification — so nothing here draws from the ledger and
-nothing here is a commitment. The lettering runs (a)–(g), (i), (j), (k), (m)–(u): **there is no
+nothing here is a commitment. The lettering runs (a)–(g), (i), (j), (k), (m)–(w): **there is no
 (h)** and **no (l)**, and both absences are deliberate rather than lost entries — the note's
-amendment added (f) and (g), a later message added (i), (h) was never filed by anyone, and (m)–(u)
-arrived from the 2026-09-05 architect inbox (items 001-B, 001-C, 002-B, 002-C, 004-A.3) with (l)
-likewise never filed by anyone.
+amendment added (f) and (g), a later message added (i), (h) was never filed by anyone, and (m)–(w)
+arrived from the 2026-09-05 architect inbox (items 001-B, 001-C, 002-B, 002-C, 004-A.3, 005-B) with
+(l) likewise never filed by anyone.
 
 **Letters are allocated HERE, at filing time, not by the source that proposes an entry.** The
 2026-09-05 inbox proposed its own letters and they collided: item 005-B proposes (r), (s), (t)
@@ -3535,10 +3535,13 @@ exactly that class. The mechanism belongs where the work already ends — `/lane
 close-packet step perform the copy — so no session has to remember it. Recorded as a candidate and
 not built: ADR-111 admits one path, and this has not been through intake.
 
-**Merge note, not a second entry.** The 2026-09-05 inbox item 005-B files mechanism (s) — the
-same copy step in `/lane-integrate` and the close packet, carrying §1's copy-header line — and
-states it is (n) made concrete, to be MERGED rather than duplicated. When 005-B is executed, (s)
-folds into this entry as its mechanism leg; it does not take a letter of its own.
+**MECHANISM LEG — merged in, not a second entry** *(inbox item 005-B, its proposed letter (s);
+executed 2026-09-05)*. `/lane-integrate` and the close-packet step copy the deliverable to
+`to-browser\` as their LAST act, writing §1's copy-header line at the top of the copy. That is this
+candidate made concrete, and the inbox's instruction was explicit — merge, do not duplicate — so it
+folds in here and takes no letter of its own. The two halves are one candidate: (n) is the rule,
+this paragraph is where the rule is executed, and separating them is what would produce two funnel
+entries for one idea.
 
 **(o) REFERENCE-IMPLEMENTATION SEEDING — a lane contract points at two prior lanes of the same
 shape** *(AJ gap analysis §5 CANDIDATE 1; architect inbox 2026-09-05 item 002-B)*. Rather than
@@ -3614,6 +3617,24 @@ ARCHITECT's premise defect, not the lane's. It belongs against the coupling scan
 same class: a contract naming a symbol nobody resolved before freeze. A generated surface cannot be
 quoted verbatim; a contract must name the generator or the command, never a line that does not exist
 until something runs.
+
+**(v) SESSIONSTART PRINTS THE RESOLVED PROMPTS DIRECTORY** *(architect inbox 2026-09-05 item 005-B,
+its proposed letter (r))*. One line in the existing `SessionStart` hook: `CLAUDE_PROMPTS_DIR=<the
+resolved path>`. Size S, and it is a line rather than an organ. The failure it removes was
+witnessed twice in one day: a session inheriting the variable from a shell that predates the
+setting resolves it to Downloads, finds `to-cc\` present but EMPTY, and reports the inbox missing
+rather than the variable misresolved. Nothing in the transport is wrong in that failure — the seat
+simply cannot see which directory it is reading, and an empty valid directory is indistinguishable
+from an empty correct one. Printing the resolved path makes a stale inheritance visible in the
+first turn instead of after a wasted round-trip.
+
+**(w) QUESTIONS-AS-FILES — a needs-input question travels the same transport as everything else**
+*(architect inbox 2026-09-05 item 005-B, its proposed letter (t))*. A session's blocking question
+may be written to `to-browser\QUESTIONS\<session>-<n>.md` and answered from `to-cc\`, so a question
+is durable and citeable rather than living only in a chat turn. **Explicitly LOW PRIORITY and
+explicitly do NOT build now** — recorded at the filer's own instruction so the idea is not lost and
+not started. The reason it is not urgent: the existing failure is questions that never get asked,
+not questions that get asked and lost.
 
 **Not adopted, recorded so it is not relitigated** *(architect inbox 2026-09-05 items 002-E and
 004-A.3(d))*. Generated ADRs — `ADR-94` protects the opposite, and their cheapness is the property
