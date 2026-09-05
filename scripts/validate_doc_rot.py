@@ -20,11 +20,15 @@ constant, each precision-over-recall (one false positive kills adoption):
      TIME-EXTENT property, so the span term is what makes the arm measure the class its
      name claims, and citation-blindness stops a `YYYY-MM-DD-slug` artifact identifier
      from being counted as an inline history entry.
-  1b. BACKLOG row length — ARM 2, category `backlog-row-length`: a task line longer than
+  1b. BACKLOG row length — ARM 2, category `backlog-row-length`: rows longer than
      _BACKLOG_ROW_CEILING, a DECLARED contract like CLAUDE.md's <=200 lines — not a rolling
      corpus percentile. Renamed out of `backlog-accretion` because it was never accretion:
      a long row may be long for a perfectly good reason (a ruled leg), and reporting that
      as *rot* made the finding an unanswerable accusation. See [#532] / the §2 memo below.
+     ARM 2 reports the CORPUS, not each row: **ONE** Finding at the corpus locus
+     `BACKLOG#row-length` carrying the count over ceiling, the corpus p50/p75/p90 and a
+     trend term. Batch R5P, 2026-09-05 — measured at the reshape: 70 per-row WARNs became
+     1 Finding. Rationale and the two other arms' invariance: `scan_backlog_accretion`.
   2. Per-section "Section history" accretion (ADR-49 retired inline changelogs): a
      Section-history / changelog block with >= _SECTION_HISTORY_MAX_ENTRIES entries.
   3. File bloat vs a self-declared budget (_FILE_SIZE_BUDGETS): a file over its own stated
@@ -74,13 +78,16 @@ successors — cross-file summary-fidelity drift -> the coherence-spine family (
 intra-file duplication -> #190 (general detector). check #10 owns last_reviewed staleness;
 #89 (doc_claims) owns one doc's count/list self-accuracy.
 
-Layer-2 / read-only contract (ADR-28/36): reads BACKLOG.md + the living docs; writes NOTHING;
-never orchestrates; never gates (awareness layer — the audit adapter emits WARN/pass only,
-one Finding PER locus so the #147 ship-gate dispositions each independently; CLI exits 0).
+Layer-2 / read-only contract (ADR-28/36): reads BACKLOG.md + the living docs (and, for
+ARM 2's trend term only, the previous run's own `ecosystem/.dev-knowledge/state.yaml`);
+writes NOTHING; never orchestrates; never gates (awareness layer — the audit adapter emits
+WARN/pass only, one Finding PER locus so the #147 ship-gate dispositions each
+independently; CLI exits 0). ARM 2's locus IS the corpus, so it dispositions as one.
 """
 
 from __future__ import annotations
 
+import math
 import re
 import sys
 from dataclasses import dataclass
@@ -111,7 +118,8 @@ _REPO_ROOT = _SCRIPTS_DIR.parent
 _BACKLOG_DATED_BLOCKS = 3        # >= this many DISTINCT citation-blind history dates ...
 _MIN_ACCRETION_SPAN_DAYS = 30    # ... spanning >= this many days ...
 _BACKLOG_LONG_CHARS = 700        # ... AND longer than this -> inline-history accretion
-# ARM 2 -- backlog-row-length (a declared per-row size contract; NOT accretion).
+# ARM 2 -- backlog-row-length (a declared per-row size contract; NOT accretion). The
+# ceiling is the REFERENCE LINE the corpus Finding reports against; it is unchanged here.
 _BACKLOG_ROW_CEILING = 1320      # longer than this -> over the DECLARED row ceiling
 #
 # [#532], 2026-08-16 -- the split, and why each term exists. Ruled on the NB3-C design memo
@@ -217,34 +225,161 @@ def _history_dates(line: str, today: date) -> list[date]:
     return sorted(out)
 
 
-def scan_backlog_accretion(backlog_text: str, today: Optional[date] = None) -> list[RotFinding]:
+def _percentile(sorted_vals: list[int], pct: int) -> Optional[int]:
+    """The NEAREST-RANK percentile of an already-sorted list, or None when it is empty.
+
+    Nearest rank, never interpolated: every percentile this module reports is therefore a
+    REAL row length that exists in the corpus, which is what makes it checkable against the
+    row it names. An interpolated p90 of 1417.5 chars belongs to no row and cannot be
+    looked up. 1-indexed rank, clamped at 1 so a single-row corpus has percentiles.
+    """
+    if not sorted_vals:
+        return None
+    rank = max(1, math.ceil(pct / 100 * len(sorted_vals)))
+    return sorted_vals[rank - 1]
+
+
+# The previous run's ARM-2 value, read from THE SURFACE THAT ALREADY RECORDS IT: the hub's
+# own `ecosystem/<hub>/state.yaml`, which `audit.py` documents as "a repo's last audit
+# result". No new store is created for the trend — a second home for one number is the
+# class this repo refuses, and a detector that mints its own history can never be checked
+# against the organ that publishes it. The hub folder name is the same hub-relative literal
+# `gen_trend_dashboard.collect_doc_rot` already hardcodes, and it is named for the HUB REPO
+# rather than for the checkout, so a worktree resolves it exactly as the primary does.
+_HUB_STATE_REL = ("ecosystem", ".dev-knowledge", "state.yaml")
+# The count out of a prior run already written in the corpus form (every run after the
+# first). Kept deliberately loose on what follows the count so a later wording change to
+# the Finding does not silently break the trend back to n/a.
+_PRIOR_CORPUS_COUNT_RE = re.compile(r"(\d+) of \d+ rows over the declared ceiling")
+# ...and out of a prior run in the PRE-reshape per-row form, one evidence line per row.
+_PRIOR_PER_ROW_MARK = "backlog-row-length BACKLOG#"
+
+
+def _prior_row_length_count(repo_root: Path) -> Optional[int]:
+    """The previous run's count of rows over the ceiling, or None if nothing recorded one.
+
+    None and 0 are DIFFERENT and the difference is the whole function. A state file with no
+    `doc_rot` finding at all means the check did not run, which is not the same as a run
+    that found no over-ceiling rows; reporting the first as a zero manufactures a history
+    the surface never had. That is the distinction `gen_trend_dashboard.parse_doc_rot_count`
+    had to rule on for exactly this check, and it is inherited here rather than re-decided.
+
+    Reads both prior shapes, so the trend is live from the first post-reshape run instead of
+    spending one cycle at n/a: the corpus form (`N of M rows over the declared ceiling`) if
+    present, else a count of the pre-reshape per-row evidence lines.
+
+    FAIL-SOFT IN FULL. This surface is read for a decoration, so nothing it can do — absent,
+    gitignored-and-never-written, truncated, unparseable, wrong schema — is allowed to
+    degrade the check. Every failure returns None and the Finding still lands, saying n/a.
+    """
+    try:
+        import yaml  # local: the detector's only yaml need, and it must never be fatal
+
+        data = yaml.safe_load(repo_root.joinpath(*_HUB_STATE_REL).read_text(encoding="utf-8"))
+        evidence = [str(f.get("evidence", "")) for f in (data or {}).get("findings", [])
+                    if f.get("check_name") == "doc_rot"]
+    except Exception:  # noqa: BLE001 - fail-soft by contract; see the docstring
+        return None
+    if not evidence:
+        return None  # doc_rot did not run at that snapshot -> no prior value, NOT a zero
+    for e in evidence:
+        m = _PRIOR_CORPUS_COUNT_RE.search(e)
+        if m:
+            return int(m.group(1))
+    return sum(1 for e in evidence if _PRIOR_PER_ROW_MARK in e)
+
+
+def _row_length_finding(all_lengths: list[int], over: list[int],
+                        prior_count: Optional[int]) -> RotFinding:
+    """ARM 2's ONE corpus-level Finding — the count, the shape, and the direction.
+
+    Three terms, and each answers a question the per-row form could not:
+
+    * **the count over the ceiling, against the corpus size.** Seventy WARNs said "this row
+      is long" seventy times and never once said how much of the backlog that was.
+    * **p50/p75/p90 over ALL rows.** Over the FLAGGED rows all three would sit above the
+      ceiling by construction and would be uninformative by construction with them; over the
+      corpus they say where the mass actually is relative to the reference line — which is
+      the comparison 1320 invites, having once been set as a corpus p90 itself.
+    * **a trend versus the previous run**, or an explicit `n/a` when nothing recorded one.
+
+    The posture is unchanged from [#532]/A9 and is stated IN the text: a row over the
+    ceiling is LONG, which is answerable ("accepted, ruled"), not ROT, which was a false
+    confession. Collapsing N WARNs into 1 Finding is a REPORTING change, not a promotion —
+    the adapter still emits it as WARN, exactly as it emitted each of the N.
+    """
+    n = len(all_lengths)
+    ordered = sorted(all_lengths)
+    p50, p75, p90 = (_percentile(ordered, q) for q in (50, 75, 90))
+    if prior_count is None:
+        trend = "n/a (no prior run recorded)"
+    else:
+        trend = f"{len(over) - prior_count:+d} vs previous run ({prior_count} -> {len(over)})"
+    return RotFinding(
+        "backlog-row-length", "BACKLOG#row-length",
+        f"{len(over)} of {n} rows over the declared ceiling {_BACKLOG_ROW_CEILING} chars "
+        f"(LONG, not rot: a row may be long for a ruled reason); "
+        f"longest {max(over)} chars; "
+        f"row-length p50/p75/p90 over all {n} rows = {p50}/{p75}/{p90} chars; "
+        f"trend: {trend}")
+
+
+def scan_backlog_accretion(backlog_text: str, today: Optional[date] = None,
+                           prior_count: Optional[int] = None) -> list[RotFinding]:
     """The BACKLOG row scanner — TWO independently-named arms over the same single pass.
 
-    A row can fire either, both, or neither, and each emits its OWN category so the output
-    always says which contract was breached ([#532]; before the split one name covered three
-    unrelated conditions and a locus never said which one fired):
+    Each arm emits its OWN category so the output always says which contract was breached
+    ([#532]; before the split one name covered three unrelated conditions and a locus never
+    said which one fired). What they DISAGREE about is the unit of report:
 
-      ARM 1 `backlog-accretion`  — >= _BACKLOG_DATED_BLOCKS distinct citation-blind history
-                                   dates AND span >= _MIN_ACCRETION_SPAN_DAYS AND
-                                   > _BACKLOG_LONG_CHARS chars. The ADR-65/49 class.
-      ARM 2 `backlog-row-length` — > _BACKLOG_ROW_CEILING chars. A declared size contract.
+      ARM 1 `backlog-accretion`  — PER ROW, locus `BACKLOG#<id>`. >= _BACKLOG_DATED_BLOCKS
+                                   distinct citation-blind history dates AND span >=
+                                   _MIN_ACCRETION_SPAN_DAYS AND > _BACKLOG_LONG_CHARS chars.
+                                   The ADR-65/49 class. Untouched by the R5P reshape.
+      ARM 2 `backlog-row-length` — PER CORPUS, one Finding at locus `BACKLOG#row-length`
+                                   when any row exceeds _BACKLOG_ROW_CEILING.
 
-    Kept as one function and one pass because the two arms read the same two derived values
-    off the same line; the SEPARATION that matters is in the emitted category, which is what
-    a reader, a disposition and the ship-gate all key on.
+    WHY THE UNITS DIFFER, since a single pass emitting two shapes looks like an accident.
+    Accretion is a property OF A ROW: each finding names a distinct row that has accreted,
+    and the remedy (relocation, see the module header) is performed on that row. Row length
+    past a declared ceiling is a property OF THE CORPUS: on the live tree ARM 2 was emitting
+    70 WARNs (measured 2026-09-05) that said "this row is long" seventy times and never once
+    said how much of the backlog that was, whether it was growing, or where the ceiling sat
+    in the distribution. Seventy repetitions of one fact is not seventy facts. Batch R5P
+    made ARM 2 report the quantity it actually measures — a pile — while ARM 1 keeps
+    reporting the thing it actually measures, a row.
+
+    Consequences worth stating where the change lives:
+
+      * ARM 2's locus MOVED, from `BACKLOG#<id>` to `BACKLOG#row-length`. A #147 disposition
+        keyed on a per-row ARM-2 signature therefore matches nothing after this change and
+        decorates STALE (ADR-75 — awareness, non-blocking). ARM 1's per-row loci are
+        untouched, so every ARM-1 disposition still matches.
+      * The corpus Finding is emitted ONLY when at least one row is over. An unconditional
+        Finding would make `scan()` never return empty and doc_rot never `pass`; clean stays
+        clean, and "exactly one Finding" means at most one, never a mandatory one.
+      * `prior_count` is passed IN rather than looked up here, so this function stays pure
+        and unit-testable. `scan()` supplies it from `_prior_row_length_count`.
+
+    Kept as one function and one pass because both arms read derived values off the same
+    line; the SEPARATION that matters is in the emitted category and locus, which is what a
+    reader, a disposition and the ship-gate all key on.
     """
     today = today or date.today()
     out: list[RotFinding] = []
+    all_lengths: list[int] = []
+    over: list[int] = []
     for line in backlog_text.splitlines():
         m = _TASK_RE.match(line)
         if not m:
             continue
         locus = f"BACKLOG#{m.group(1)}"
         length = len(line)
+        all_lengths.append(length)
         history = _history_dates(line, today)
         span = 0 if len(history) < 2 else (history[-1] - history[0]).days
 
-        # ARM 1 — inline history that has actually accreted OVER TIME.
+        # ARM 1 — inline history that has actually accreted OVER TIME. PER ROW, unchanged.
         if (len(history) >= _BACKLOG_DATED_BLOCKS
                 and span >= _MIN_ACCRETION_SPAN_DAYS
                 and length > _BACKLOG_LONG_CHARS):
@@ -254,11 +389,12 @@ def scan_backlog_accretion(backlog_text: str, today: Optional[date] = None) -> l
                 f"(>= {_BACKLOG_DATED_BLOCKS} dates & >= {_MIN_ACCRETION_SPAN_DAYS}d span "
                 f"& > {_BACKLOG_LONG_CHARS} chars)"))
 
-        # ARM 2 — over the declared row ceiling. Says LONG, not ROT.
+        # ARM 2 — collected across the pass, reported once below. Says LONG, not ROT.
         if length > _BACKLOG_ROW_CEILING:
-            out.append(RotFinding(
-                "backlog-row-length", locus,
-                f"{length} chars (declared ceiling {_BACKLOG_ROW_CEILING})"))
+            over.append(length)
+
+    if over:
+        out.append(_row_length_finding(all_lengths, over, prior_count))
     return out
 
 
@@ -390,7 +526,10 @@ def scan(repo_root: Path, *, today: Optional[date] = None) -> list[RotFinding]:
     # it did. The `BACKLOG#<id>` locus is unchanged, so every #147 disposition still matches.
     backlog_text = _bs.canonical_text(repo_root)
     if backlog_text is not None:
-        results.extend(scan_backlog_accretion(backlog_text, today))
+        # ARM 2's trend term reads the PREVIOUS run off an existing surface; None (nothing
+        # recorded one) is carried through as an explicit n/a, never as a fabricated zero.
+        results.extend(scan_backlog_accretion(
+            backlog_text, today, _prior_row_length_count(Path(repo_root))))
         results.extend(scan_grooming_cadence(backlog_text, today))
 
     for rel in _SECTION_HISTORY_DOCS:

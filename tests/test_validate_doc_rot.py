@@ -736,9 +736,15 @@ def test_registered_check_never_fails_on_live_repo():
 def test_e2e_seeded_bloat_fires_through_registered_check(tmp_path, monkeypatch):
     # ADR-81 'deployed' proof: a seeded gross-length BACKLOG line fires WARN through the
     # check registered in ALL_CHECKS (no scan mock) — deployed, not merely written.
+    # The evidence now names the CORPUS locus rather than `BACKLOG#9`: since the R5P
+    # reshape ARM 2 reports the pile, so the deployed proof is that the seeded row is
+    # COUNTED (`1 of 1`), not that it is named. WARN, never FAIL — a reporting change.
     (tmp_path / "BACKLOG.md").write_text(
         "# BACKLOG\n\n## T\n- [#9] [P3][S] task " + "x" * 1300 + " done\n", encoding="utf-8")
     monkeypatch.setattr(aud, "_REPO_ROOT", str(tmp_path))   # make the temp repo look like the hub
     findings = aud.check_doc_rot(tmp_path)
-    assert any(f.status == "warn" and "BACKLOG#9" in f.evidence for f in findings)
+    assert any(f.status == "warn"
+               and "backlog-row-length BACKLOG#row-length" in f.evidence
+               and "1 of 1 rows over the declared ceiling 1320 chars" in f.evidence
+               for f in findings)
     assert aud.check_doc_rot in aud.ALL_CHECKS
