@@ -19,9 +19,50 @@
 
 ---
 
+### 2026-09-05 (e) - CC (Opus 5): the anchor chain always leaves one, and that is the finding
+
+**Anchors:** `09f80530`, `73bf4272`
+
+**Did:** landed the code half of the manifest-link hotfix, whose JOURNAL half (entry (d)) went
+ahead of it to clear a repo-wide commit block. Anchors `09f80530`, the drain merge that could not
+anchor itself.
+
+**THE DRAIN DID NOT CLOSE THE GAP, IT MOVED IT — AND THREE SEATS FOUND THAT INDEPENDENTLY.**
+Entry (d) anchored four unanchored spine merges. The merge that CARRIED (d) was then itself
+unanchored, because a merge commit cannot name a SHA that does not exist until the merge is made.
+So the count went 4 -> 1 rather than 4 -> 0, and `journal_spine_anchor` is a PRE-COMMIT organ, so
+that residual 1 still blocked every seat. Three concurrent sessions reported it within minutes of
+each other, one of them correcting my own claim that the drain had unblocked the repo.
+
+**The steady state is one, not zero, and that is structural.** Each merge's entry can only anchor
+the PREVIOUS merge. [#623] owns the deadlock. The practical consequence worth recording: the queue
+stays at exactly one only while entries keep being written — stop writing them for three merges and
+it is three again, which is precisely how the four accumulated.
+
+**A SECOND EFFECT NOBODY HAD WRITTEN DOWN.** The organ reads `JOURNAL.md` from the COMMITTING
+TREE, not from `main`. So an anchor landing on main does NOT unblock a lane whose branch was cut
+earlier — its tree still lacks the entry. Two lanes hit this after (d) landed and reported being
+blocked by a gap that was, from main's point of view, already discharged. Remedies, both legitimate
+and neither a bypass: sync-merge the real fix into the lagging tree (this is NOT the forbidden
+"sync-merge to clear the anchor gate", because that anti-pattern is about masking a gap that is
+still real), or name the foreign SHA in the lane's own entry, explicitly marked as not that
+session's work. One lane took each. Ruled and recorded so the next seat does not re-litigate it.
+
+**Result:** funnel_coverage 32 -> 12, consumer_at_landing 16 -> 5. 17 of the 19 named findings
+discharged over 9 of 10 files; the tenth left raising rather than closed by widening the predicate.
+
+**Abandoned:** the first terra pass on this diff — the process died silently after emitting 39
+bytes, with no error and no codex process left alive. Re-run rather than assumed clean.
+
+**Changes:** `scripts/batch_manifest.py`, `scripts/funnel_coverage.py`,
+`scripts/consumer_at_landing.py`, `tests/test_manifest_link_route.py`,
+`tests/test_funnel_coverage.py`.
+
+**Next:** the `check_doc_claims` commit-tiering hotfix, then the arrivals queue.
+
 ### 2026-09-05 (d) - CC (Opus 5): the manifest already knew, and the scalar the ruling named moves on the clock
 
-**Anchors:** `73bf4272`, `6de676fb`, `1d96e0de`, `3200757d`, `ca0a2a2f`
+**Anchors:** `1d192245`, `73bf4272`, `6de676fb`, `1d96e0de`, `3200757d`, `ca0a2a2f`
 
 > **Integrator anchor-drain.** The last four are MERGE commits on main's first-parent
 > spine that carried no `Anchors:` record line and were hard-failing
