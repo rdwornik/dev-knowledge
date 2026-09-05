@@ -19,6 +19,59 @@
 
 ---
 
+### 2026-09-05 (n) - CC (Opus 5, INTEGRATOR-2): the anchor drain - every spine merge of the day recorded, not merely mentioned
+
+**Did:** Landed one drain entry putting all 33 of the day's first-parent spine merges on an
+explicit `**Anchors:**` record line, on operator instruction. Stopped the merge queue to do
+it. Also diagnosed why lanes were reporting a blocked spine.
+
+**Result:** The gate at `main` was **already green** before this entry -
+`journal_spine_anchor` reported `[OK] every first-parent spine entry above the ADR-85
+disposition floor 24882f8cc is JOURNAL-anchored`, and `health: OK`. What was NOT clean is
+the weaker form: a `[~~]` WARN across 759 SHAs, "anchored by mention, not by record -
+appears outside an explicit 'Anchors:' record line". Not one first-parent merge of the day
+sat on an `**Anchors:**` line. This entry converts the day's spine from mention to record,
+which is the real defect underneath the report.
+
+**The lanes were blocked, but not by main.** Measured, and it is a controlled comparison
+rather than an inference:
+
+    filings-3                  107 commits behind main   -> reported blocked
+    lane-r-000-zc-candidates   102 commits behind main    -> reported blocked
+    aj-second-pass              99 commits behind main    -> reported blocked
+    docs-seat-notes-amend3        0 commits behind main   -> reported NOTHING
+
+A lane reads JOURNAL from its OWN tree and the spine from the SHARED `main` ref. A lane 107
+commits behind therefore sees main's recent merges while missing the JOURNAL entries that
+anchor them, and manufactures a gap that does not exist at main. The only synced lane is the
+only one that never reported a problem. **The fix for a lagging lane is to sync, not for the
+integrator to drain** - and a drain entry does not reach a lane until it syncs anyway, at
+which point it would have had the anchors regardless.
+
+This is the seventh spine false alarm of the day and the same shape as the other six: a seat
+tests a predicate against a tree that cannot answer it. Recorded because six were peer
+reports and this one reached the operator, which is how a measurement error becomes an
+instruction.
+
+**Changes:** `JOURNAL.md` only. No merge, no code, no generated surface.
+
+**Abandoned:** Nothing. The queue is stopped mid-flight by instruction, not abandoned:
+`worktree-docs-seat-notes-amend3` is held at the gate on a terra HIGH, `zc-candidates` is
+held on content-correctness, and `automation/fleet-audit` is protected.
+
+**Next:** Anchor BEFORE each merge from here, never after - the pre-anchor shape, adopted as
+standing practice. Entry (m) pre-anchored three tips and then fell behind the merges that
+followed it, which is the failure mode this replaces: a pre-anchor is valid only for the
+tips it named.
+
+**Anchors:** `@ARC@` (this arc: the drain entry itself) - plus the day's full first-parent
+spine, recorded here so each is anchored by record and not by mention: `c642cd08`,
+`2ed79f59`, `8967b7c6`, `114781d1`, `4a9ff8f0`, `74c111e6`, `876cec9f`, `feda8a4b`,
+`f96e4715`, `30c880ea`, `82acec9f`, `5bc63119`, `b904e1e0`, `0081421f`, `b3326083`,
+`62ec945c`, `cbe873bd`, `8ea8023a`, `f0a097ca`, `5ff9c264`, `99bd6c22`, `e0b3620a`,
+`725b9fb4`, `78daf400`, `2f95dbc5`, `c710ece0`, `54c2b8c2`, `ac2c6a15`, `09f80530`,
+`ca0a2a2f`, `3200757d`, `1d96e0de`, `6de676fb`.
+
 ### 2026-09-05 (m) - CC (Opus 5): the R5P batch closes, and a false spine alarm is refused for the sixth time
 
 Did: closed the R5P batch as INTEGRATOR-2 -- merged both remaining lanes under delta A2,
