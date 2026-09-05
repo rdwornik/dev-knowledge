@@ -14,6 +14,15 @@ Usage: `/lane-boot <letter> <id> <slug> <contract-path>` — e.g.
 
 ## 1. Pre-flight (from the primary checkout, before provisioning)
 
+- **FIRST ACT, before anything else: resolve the prompts directory from USER scope.** Read
+  `CLAUDE_PROMPTS_DIR` via `[Environment]::GetEnvironmentVariable("CLAUDE_PROMPTS_DIR","User")`,
+  override the process value if it differs, and print what you resolved. If it is unset in both
+  scopes, say `CLAUDE_PROMPTS_DIR unset — Downloads fallback` out loud rather than falling back
+  silently. **Never hardcode the path** — the variable is the source and the folder is the
+  operator's. Interim rule (STANDING_RULINGS §AD candidate (v)), standing until the `SessionStart`
+  hook does this: an inherited stale value sends a lane to an empty directory, which reads as
+  "nothing filed" rather than as a misresolution, and on 2026-09-05 that cost three sessions.
+
 ```bash
 git worktree list          # know what already exists
 git status --short         # primary tree clean

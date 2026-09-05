@@ -1,0 +1,1 @@
+- **Library-first:** before any build — stdlib > established dependency > stabilized project > industry pattern; hand-roll only on a MEASURED divergence on this repo, recorded so it is not relitigated. Every plan names its library-first check or gives a one-line reason for its absence.

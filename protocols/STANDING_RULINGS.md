@@ -3361,6 +3361,39 @@ re-emitted for form. No peg, no owner, by design.
 *The constant it would probe against* is `protocols/OPERATOR-INTERFACE.md` §7, landed in this same
 commit. The probe itself is unbuilt — recording the candidate is the whole of this entry.
 
+*Second predicate, amended in 2026-09-05 (architect inbox item 008-C) — an amendment line on this
+candidate, deliberately NOT a new entry.* A paste addressed to the INTEGRATOR that carries a
+production-contract shape — Intent + Closure + Files — is a defect of the BROWSER seat, and the
+probe should catch it on the same pass as the missing copy-ready block. Both predicates test the
+same thing: whether a paste's FORM matches the role of the seat receiving it. The witness is the
+2026-09-05 integrator-produces defect, where a contract-shaped paste sent to the integrator was
+executed as written for ~1h48m while six branches waited — the paste was well-formed for a lane and
+malformed for its actual addressee, and nothing checked which it was. Carried separately as intake
+`#70`, which fixes the ROLE half; this predicate is the FORM half and stays here.
+
+*Third predicate, amended in 2026-09-05 (architect inbox item 013-C, operator ruling).* A browser
+paste containing a **drive-letter path** (`X:\…`) is a browser-seat defect. **One exception, and it
+is narrow:** a block instructing the OPERATOR to set the variable himself — there the literal path
+is the payload, and refusing it would make the rule unsatisfiable. Measured basis: two pastes on
+2026-09-05 carried a drive letter as a workaround for the stale-variable failure that candidate (v)
+fixes, which is a defect propagating INTO the corpus as a coping strategy for a different defect.
+All three predicates on this probe test one property — whether a paste's FORM matches the seat and
+the constant it is addressed to — which is why they stay one candidate rather than three.
+
+*Fourth predicate — PARALLELISM, amended in 2026-09-05 (architect inbox item 011-B, operator
+ruling).* A browser plan carrying **more than one item and no lane split** must state its
+serialising dependency — a shared file, or a required order — in one line, or it is a browser-seat
+defect. The default is not serial: this repo's shape is ONE plan → N file-disjoint lanes → ONE
+integration, so a queue is what a batch becomes when nobody computed its footprints. Measured
+basis, recorded as error #20 (class C): three disjoint lanes were possible and the work ran serial
+instead — 36 minutes spent on two items while nine waited. The predicate does not demand
+parallelism; it demands that serialism be JUSTIFIED in a line, which is the cheapest possible
+version of the check.
+
+*(Numbering note: the inbox called this one its "second predicate" — its 008-C is second and its
+013-C third, and all three arrived the same day. Ordered here by filing, with each entry naming the
+item it came from, so a reader can reconcile against the inbox without guessing.)*
+
 **AB-2 · `/boot-session` gains a MERGE-WITH-VERIFY mode — PARKED by the operator.** Origin:
 2026-09-02 batch-G boot. No peg, no owner, by design. Recorded here rather than as a `tasks/`
 row per this section's own precedent — the only route from here to a row is CANDIDATE → intake
@@ -3415,9 +3448,47 @@ tests to declare their files present, rather than weakening the Z-G4 FAIL.
 Filed from the architect's outgoing-seat note of 2026-09-02 (step B), landed after G3b merged and
 before the close packet. **Z-C shape: these are CANDIDATEs, not rows.** ADR-111 admits exactly one
 path — CANDIDATE, then ADR-98 intake, then ratification — so nothing here draws from the ledger and
-nothing here is a commitment. The lettering runs (a)–(g), (i), (j), (k): **there is no (h)**, and its
-absence is deliberate rather than a lost entry — the note's amendment added (f) and (g), a later
-message added (i), and (h) was never filed by anyone.
+nothing here is a commitment. The lettering runs (a)–(g), (i), (j), (k), (m)–(z), (aa): **there is
+no (h)** and **no (l)**, and both absences are deliberate rather than lost entries — the note's
+amendment added (f) and (g), a later message added (i), (h) was never filed by anyone, and (m)–(aa)
+arrived from the 2026-09-05 architect inbox (items 001-B, 001-C, 002-B, 002-C, 004-A.3, 005-B,
+009-B, 009-C, 015-A) with (l) likewise never filed by anyone.
+
+**(z) is the last single letter.** The next entry filed here takes **(aa)**, then (ab), and so on —
+recorded before it is needed, because the alternative is whoever files next inventing a scheme
+under time pressure. Nothing about an entry changes when the label gets two characters.
+
+**(l) IS CITED BUT DOES NOT EXIST, and the citations are accumulating.** The 2026-09-05 inbox
+refers to "candidate (l) BROWSER SEAT FLOOR" at least twice — item 008-B (as the eventual home of
+`BROWSER-SEAT-FLOOR.md`) and item 011-C ("amend candidate (l)"). **No such entry was ever filed
+here**, so each of those is an instruction to amend something that does not exist. Recorded rather
+than silently invented: item 011 states "no new candidate entries — amendments to existing ones",
+so filing (l) to satisfy a citation would breach the instruction that produced the citation. The
+content 011-C carries (the five-item irreducible browser memory) is routed to intake `#68`, which
+does exist and which 011-C names as its co-target, so nothing is lost while the letter stays
+unfiled. **Filing (l) needs one word from the architect**; until then this paragraph is its
+placeholder, and a reader meeting a citation of (l) should read it as owed, not as missing.
+
+**Letters are allocated HERE, at filing time, not by the source that proposes an entry.** The
+2026-09-05 inbox proposed its own letters and they collided: item 005-B proposes (r), (s), (t)
+while items 002-B and 002-C had already consumed (o) through (r). This register is the authority
+and it has one writer, so an entry takes the next free letter and records the label its source
+used. A proposed letter is a name for a conversation, never an address in this file.
+
+**"Z-C" NAMES A SHAPE, NOT A NUMBERING NAMESPACE** *(ruled 2026-09-05, register writer, on a
+collision routed from the fleet-readiness measurement lane)*. Section Z-C established how to record
+a candidate that draws nothing from the ledger. That is a SHAPE — anyone may use it. It is not an
+address space, and it does not make `Z-C-<n>` a global identifier. Two schemes had grown under the
+one prefix: this section's lettered entries (a)–(w), which are funnel addresses, and an audit-local
+`Z-C-1..Z-C-16` sequence numbering one document's own findings. Both were correct in isolation and
+unreadable together, because a reader cannot tell whether `Z-C-12` is an entry here.
+
+The ruling, so it is settled once rather than per-audit: **an audit numbers its own findings in its
+own namespace, prefixed by the audit** — never bare `Z-C-<n>`. Audit-local findings are NOT
+withdrawn for having used the bare form; measured findings are not discarded over an addressing
+defect. Admission into THIS register is a separate act with one writer: a lane that wants an entry
+here sends it, and it is filed at the next free letter with its source label recorded. A lane never
+files into this section directly, and an audit-local number never silently becomes a letter.
 
 **(a) README as a human front door.** What-it-is, then quickstart, then a link map; governance prose
 relocated and consumers re-pointed. The note files it as NEW and marks the reason it is not merely a
@@ -3434,6 +3505,16 @@ the L0 routing region, the plugin/executing copies, and `canonical_freshness_gat
 literal. `scripts/routing_agreement.py` generalizes to iterate the register. The batch is its own
 evidence: each of the three was found by a different organ, none of which knew about the other two.
 
+*Merged in 2026-09-05 (architect inbox item 009-C) — the EXECUTING-COPY case, deliberately not a
+fourth letter.* `receipt.json` at the container root still blocks an in-container commit: the G0
+fix did not prove durable. The register question and the fix question are different, and only the
+first belongs here — **which copy actually ran?** A fix applied to one copy while a different copy
+executes is indistinguishable from no fix at all, and that is exactly the drift class (c) exists to
+make visible. So the entry widens to require an executing-copy WITNESS, not merely a source→copy
+mapping. Recorded here rather than as a new candidate because a second entry would split one
+question across two addresses. The rename that produced the original nodeids is separately a
+candidate under R-G0-2 above; this is not that.
+
 **(d) `[#627]` admission = retrieval fidelity on a seeded corpus.** Planted contradictions and
 orphans; the bar is that it finds them and invents none, with quota visibility recorded. The H5
 contract inherits this admission test rather than restating it.
@@ -3446,6 +3527,13 @@ every symbol and constant its contract names is grepped across the repo; each re
 either inside the lane's file set or explicitly excluded, in writing, at freeze time. Evidence is
 this batch's own: G3's two escalations — the `canonical_freshness_gate` fallback literal and
 `release_lint` C7 — were each **one grep away** at freeze, and both cost a lane cut instead.
+
+*Merged in 2026-09-05 (architect inbox item 002-C, finding 5) — DERIVED DISJOINTNESS, deliberately
+not a second entry.* Authoring two lanes' file sets as disjoint does not make their *derived*
+reads disjoint: the G3/G6 collision on `conformance-hub.js:133` happened under authored
+disjointness, because the scan that would have caught it is this one and it was not run. The
+coupling scan therefore covers derived reads, not only the symbols a contract names — which is a
+widening of (f), not a separate candidate competing with it.
 
 **(g) Gemini/agy whole-corpus doctrine-coherence audit** *(ADDED by the 2026-09-02 amendment)*.
 Contradictions, dead rules, duplicated clauses and never-cited files, each WITH locators;
@@ -3482,6 +3570,259 @@ overwrite it — and retention is then **wedged**, because the raise aborts the 
 later day queues behind the collision. The guard is right; the naming grammar guarantees the
 collision it guards against. Resolution is a naming decision (run-scoped suffix, or an
 archive-side merge rule), and it is the operator's, so nothing was deleted.
+
+
+**(m) DRIVE AS TRANSPORT — the prompts directory is a synced Drive folder, not Downloads**
+*(architect inbox 2026-09-05, item 001-B)*. The operator's file exchange runs through a Drive
+folder named `CLAUDE PROMPT DIR` at Drive root, holding two directories: `to-cc/` (browser → CC —
+contracts, pastes, `ARCHITECT-INBOX-<date>-<NNN>.md`) and `to-browser/` (CC → browser — delivered
+packets, sheets, `PASTE_THIS`, and inbox copies carrying a `DONE <sha>` line per item). It is
+synced to this machine by Google Drive for Desktop, and `$env:CLAUDE_PROMPTS_DIR` (User scope)
+points at it. Downloads remains the documented fallback, resolved per FILE rather than per
+variable. Everything written to `to-browser/` is a GENERATED copy: the repo stays the single
+source, and a copy there is a copy, never an authority.
+
+*Amended 2026-09-05 (architect inbox item 013, operator ruling) — THE VARIABLE IS THE SOURCE,
+NEVER A PATH.* This entry originally spelled the synced location as a literal drive path. The
+drive letter is removed rather than the history rewritten: the folder's location belongs to the
+operator and can change without this register changing, so a doc that spells it has substituted a
+fact it cannot keep current for one any seat can resolve. The rule now reads in both directions —
+no literal path in this register, in `OPERATOR-INTERFACE.md` §1, or in the hook (m)'s mechanism
+leg proposes. Recorded as an amendment because the original wording is what the 001-B filing
+actually said, and a register that silently repairs its own past entries is not a record.
+
+*Amended 2026-09-05 (architect inbox item 017) — TRANSPORT v2: the candidate gains a schema, a
+naming grammar and a retention rule, all landed in `OPERATOR-INTERFACE.md` §1.* The transport as
+first filed carried WHERE files go; v2 carries what a file must SAY about itself. Every inbox item
+declares `repo:`, `owner-role:`, `files:`, `gate:` and `depends:` in its own frontmatter, because
+**ownership assigned in a chat paste is not addressable** — two sessions handed overlapping work by
+two pastes cannot detect the overlap, and the first evidence is a merge conflict or a doubled
+filing. A `files:` footprint makes disjointness checkable BEFORE dispatch, which is candidate (f)'s
+property one layer up. Retention: consumed items and delivered artifacts move to
+`archive/<window-date>/` at wrap, with STATUS keeping a one-line pointer, so a window opens on live
+items only. And exactly two ledgers exist — STATUS is the read surface, the DONE copies are the
+audit trail; a third is forbidden rather than merely discouraged.
+
+The grammar applies from the NEXT window and files in flight are not renamed mid-use. The folder
+rename (`CLAUDE PROMPT DIR` → `claude-exchange`) is one operator act and is sequenced AFTER (v)'s
+User-scope hook lands — renaming first would break every seat still holding an inherited literal
+path, which is the failure (v) exists to end. Recorded as PENDING; nothing here renames anything.
+
+Evidence, witnessed while executing 001-A rather than reasoned about: a session booted with a
+`CLAUDE_PROMPTS_DIR` inherited from a shell that predates the setting, resolved it to Downloads,
+found `to-cc/` and `to-browser/` present but empty, and reported the whole inbox missing. The
+failure mode is silent because the fallback path EXISTS — an absent directory would have raised;
+an empty one read as "no work filed". That is the cost this candidate exists to remove, and it is
+why the constant belongs in a file a seat reads at boot rather than in a session's memory.
+
+The proposed constant text is added to `protocols/OPERATOR-INTERFACE.md` §1 by the same commit.
+Its FINAL wording is not this entry's: the 2026-09-05 inbox item 005-A supersedes it with a fuller
+constant (copy-header line, session-start echo, inbox naming grammar). This entry is the candidate;
+§1 carries the text; 005-A replaces the text without disturbing the candidate.
+
+**(n) STANDING DELIVERY RULE — a deliverable is copied to `to-browser/` as a session's last act**
+*(architect inbox 2026-09-05, item 001-C)*. A session that finishes a deliverable copies it to the
+prompts directory's `to-browser/` before it stops. The reasoning is that an artifact existing only
+in-tree has not reached the seat that asked for it: "it is committed" describes the repo, not the
+delivery, and the seat that commissioned the work is on the other side of the transport in (m).
+Proposed home for the one-line statement: `protocols/OPERATOR-INTERFACE.md` §4 (reports), added by
+the same commit.
+
+The candidate deliberately does NOT propose this as a habit. A rule every session must remember is
+a rule that fails on the session that does not, and this batch has already spent operator time on
+exactly that class. The mechanism belongs where the work already ends — `/lane-integrate` and the
+close-packet step perform the copy — so no session has to remember it. Recorded as a candidate and
+not built: ADR-111 admits one path, and this has not been through intake.
+
+**MECHANISM LEG — merged in, not a second entry** *(inbox item 005-B, its proposed letter (s);
+executed 2026-09-05)*. `/lane-integrate` and the close-packet step copy the deliverable to
+`to-browser\` as their LAST act, writing §1's copy-header line at the top of the copy. That is this
+candidate made concrete, and the inbox's instruction was explicit — merge, do not duplicate — so it
+folds in here and takes no letter of its own. The two halves are one candidate: (n) is the rule,
+this paragraph is where the rule is executed, and separating them is what would produce two funnel
+entries for one idea.
+
+**(o) REFERENCE-IMPLEMENTATION SEEDING — a lane contract points at two prior lanes of the same
+shape** *(AJ gap analysis §5 CANDIDATE 1; architect inbox 2026-09-05 item 002-B)*. Rather than
+describing the shape it wants, a contract names two lanes that already have it. Verified absent
+from `templates/prompt-template.md`, `.claude/commands/lane-boot.md` and `gen_lane_contract.py`.
+Theme E6 · size S. Binds to the freeze gate alongside "closure quotes the row's Done-when", so it
+lands as a clause of an existing gate rather than a new organ.
+
+**(p) A ROUTING-TABLE ROLE MAY NAME A CLI THAT IS NOT INSTALLED** *(AJ gap analysis §5 CANDIDATE 2;
+architect inbox 2026-09-05 item 002-B)*. `ecosystem/routing-table.yaml` bound `adversarial` to
+`cli: sol`, and `sol` is not on PATH — so an arc routing to that role degraded silently to a
+same-family substitute instead of failing. The substitute is what caught three false rows, which
+is why the defect surfaced at all. Theme E2 · size S. This is the DECLARED-vs-ENFORCED class, and
+it belongs next to (c) the derived-copies registry rather than in a checker of its own.
+
+The candidate is the CHECK half only. Act (a) — rebinding the role — is not deferred and is landed
+by this commit: `adversarial` now names `codex`, a different vendor from the author of the designs
+it attacks, with the note carrying the adversarial brief (codex also holds `review`, so an
+unbriefed run judges a diff instead of attacking a design) and the instruction to restore `sol`
+once installed. Act (b), the candidate: every `cli:` in the routing table must resolve on PATH,
+reusing the dispatch-table DISP probe (`Get-Command`) — **not** a second resolver. Measured while
+filing this, 2026-09-05: `sol` ABSENT; `codex`, `claude`, `agy`, `gemini` all PRESENT.
+
+*Merged in 2026-09-05 (architect inbox item 015-B) — MODEL ROUTING IS DECLARED AND NOT CARRIED,
+deliberately not a new letter.* A lane contract's `| Model | Mode | Effort |` table cannot reach the
+launch: `Dispatch-Lane` passes no `-Model`, so **every R5P lane ran opus regardless of what its
+table said.** The item rules it into this family rather than a new one, and it is this entry's shape
+one surface over — (p) is a role bound to a CLI that is not installed, this is a model bound to a
+launch that never reads it. Both are a declaration nothing consumes, and both fail SILENTLY: the run
+succeeds, on the wrong routing, and only a report reveals it. So the CHECK half widens — `cli:`
+resolving on PATH is necessary and NOT sufficient, because a resolvable binary invoked without the
+declared model is the same defect wearing the passing form. `carried-by: manifest`. The coupling to
+(c) is that all three ask *what actually ran*, not *what was declared*.
+
+**(q) VOCABULARY BRIDGE BEFORE SEARCH, for any comparative arc** *(AJ gap analysis §5 CANDIDATE 3;
+architect inbox 2026-09-05 item 002-B)*. Before any claim that this repo LACKS something, search
+this repo's lexicon and not only the other system's. One line in the research-arc contract
+template. Theme E3 · size S. The evidence is the arc that produced it: eight ONLY-AJ rows, three
+false, one contradicting another row in the same table, because §2's bridge table was built AFTER
+the searches instead of before them. Same error class as the browser seat's class A.
+
+**(r) RE-EXECUTE, DO NOT TRUST — `/lane-integrate` re-runs the lane's seeded tests before merge**
+*(architect inbox 2026-09-05 item 002-C, finding 4 — implied by the AJ analysis, not filed by it)*.
+The integrator never accepts a packet's declared green; it runs the lane's tests itself. Mechanism
+· size S. Evidence that the posture already exists and only the STEP is unnamed: Done-clause 0,
+the G5 attempt-1 record, and delta A2.
+
+**(s) PYTHON-STYLE SKILL + A MODULE/FUNCTION SIZE RATCHET, REPORT-ONLY FIRST** *(architect inbox
+2026-09-05 item 004-A.3(a))*. Reconciled before filing rather than birthed whole, per intake #66's
+binding rule. Already carried, so NOT re-filed: the ruff-selection half is `[#609]` (open, P2/S),
+whose scope is the twelve zero-cost families and which explicitly rules the costed complexity tier
+(`C901`, `PLR0912/0915`) OUT — that exclusion stands. The GAP this candidate names is what neither
+`[#609]` nor `[#502]` carries: a module/function SIZE ratchet, and a python-style skill stating the
+paradigm a reader should apply. Report-only first, taking `[#502]`'s shape (closed as a report-only
+ratchet), so it measures before it blocks. Theme E6 · size S.
+
+The standard it would carry is already DECIDED and uncarried: `ADR-108` §B-4 declares
+functional-first, dataclasses for structured data, classes only for stateful lifecycles, and PEP 8
+naming — and arms no gate. That is the defect shape this register keeps meeting, a rule that
+enforces nothing. The naming half gains its carrier separately (ruff `N`, batch P's P4); this
+candidate is the size and paradigm half.
+
+**(t) `audit.py` DECOMPOSITION MAP — BLOCKED, recorded so it is not scheduled** *(architect inbox
+2026-09-05 item 004-A.3(b))*. The map is wanted; the work is not schedulable yet. Blocker, recorded
+because an unrecorded blocker gets rediscovered: the test suite monkeypatches `audit.py`'s internals
+directly, so moving a function breaks tests that named its old home rather than its behaviour.
+Decomposition therefore costs a test-coupling repair first, and that repair is the real unit of
+work. **Do not schedule this** until the coupling is addressed. Recorded as a candidate rather than
+a row precisely so it does not enter the funnel as schedulable. Measured context from the arc:
+`audit.py` length is NOT the cost — mean cyclomatic complexity ~7, four F-rank functions in 1,620
+lines, while git spawns are 75-79 % of both gates.
+
+**(u) MUTATION TESTING AS A CODESPACE NIGHTLY** *(architect inbox 2026-09-05 item 004-A.3(c))*.
+The gate question is already ruled; what is missing is the substrate and the schedule. Runs nightly
+on codespace, not in the commit path. Sequencing is part of the candidate: **schedule it after
+batch P lands**, because P is what makes the suite cheap enough for a mutation run to be worth its
+wall-clock. Theme E7. `[#502]` is the closed evaluation this inherits from — its report-only
+posture, not a new evaluation.
+
+**Note against (f), from the same arc** *(architect inbox 2026-09-05 item 004-D)*. A research brief
+told a lane to quote the `Dispatch-Cloud` row from PLAYBOOK Ch8 — a row `boot_frontier` COMPUTES
+rather than stores, so there was no row to quote and the locator could not resolve. Recorded as the
+ARCHITECT's premise defect, not the lane's. It belongs against the coupling scan because it is the
+same class: a contract naming a symbol nobody resolved before freeze. A generated surface cannot be
+quoted verbatim; a contract must name the generator or the command, never a line that does not exist
+until something runs.
+
+**(v) SESSIONSTART RESOLVES THE PROMPTS DIRECTORY FROM USER SCOPE, AND PRINTS IT** *(architect
+inbox 2026-09-05 item 005-B, its proposed letter (r); RESHAPED and PROMOTED by item 013-A,
+operator ruling)*. **This is the FIRST mechanism of the transport set to land** — ahead of (n)'s
+copy step and (w) — because every other transport rule is unreliable while a seat can be reading
+the wrong directory without knowing it.
+
+Shape, as ruled — printing alone was not enough:
+1. Resolve from the **USER scope**, not the inherited process environment:
+   `[Environment]::GetEnvironmentVariable("CLAUDE_PROMPTS_DIR","User")`.
+2. If the process value **differs**, override it for the process. A stale inheritance is repaired,
+   not merely reported.
+3. **Print the resolved value in the first turn.**
+4. If unset in **both** scopes, print `CLAUDE_PROMPTS_DIR unset — Downloads fallback`, so the
+   fallback is never silent.
+5. **No literal path anywhere** in the hook or in its documentation. The variable is the source.
+
+The reshape is what makes it work: the original entry proposed printing the *inherited* value,
+which would have made the failure visible without fixing it — every affected seat would still have
+had to be told, by hand, to re-resolve. Reading User scope makes the correct value the one the
+session actually uses.
+
+Evidence, measured on 2026-09-05 rather than argued: **three** sessions inherited a stale value and
+searched an empty Downloads, and **two** browser pastes carried a drive letter as a workaround —
+which is the same defect propagating into the corpus, and is why 013-C adds a drive-letter path as
+a form-probe predicate. Of the two witnesses recorded below, the second is the instructive one: a
+misresolution that SUCCEEDS is the one that persists, and no failure will ever surface it.
+
+**Interim rule, live until the hook lands:** every CC seat runs that one-line User-scope resolution
+as its FIRST act. Carried as a standing line in `/lane-boot` and in the FILINGS/dispatcher session
+briefs — a rule with no carrier is a suggestion, so this one names where it is written down.
+
+*Second witness, same day, and it is the more instructive one.* A concurrent session reported that
+its own `CLAUDE_PROMPTS_DIR` had also resolved to Downloads — and **nothing failed**, because the
+file it needed happened to be in Downloads too. It read the fallback, succeeded, and would have had
+no reason to notice. That is the case this candidate is really for: the first witness cost a
+round-trip and was therefore self-announcing, while the second cost nothing and was invisible.
+A misresolution that succeeds is the one that persists, and it is only detectable by printing the
+path — no failure will ever surface it.
+
+**(w) QUESTIONS-AS-FILES — a needs-input question travels the same transport as everything else**
+*(architect inbox 2026-09-05 item 005-B, its proposed letter (t))*. A session's blocking question
+may be written to `to-browser\QUESTIONS\<session>-<n>.md` and answered from `to-cc\`, so a question
+is durable and citeable rather than living only in a chat turn. **Explicitly LOW PRIORITY and
+explicitly do NOT build now** — recorded at the filer's own instruction so the idea is not lost and
+not started. The reason it is not urgent: the existing failure is questions that never get asked,
+not questions that get asked and lost.
+
+**(x) A `carried-by:` FIELD ON EVERY GOVERNANCE-TOUCHING ROW** *(architect inbox 2026-09-05 item
+009-B, operator ruling)*. Every intake or row that changes `protocols/`, PLAYBOOK, hooks, roles or
+CLAUDE.md regions carries one field: `carried-by: manifest | hub-only (reason)`. The ruling behind
+it is the load-bearing part: **every fix to a protocol, playbook or role must state how it reaches
+the consumer repos, or it is a hub-local fix by definition and the same defect recurs at H0.**
+Proposed mechanism, library-first: the freeze gate / `validate_backlog` refuses a governance-
+touching row that omits the field, and the deploy-manifest check cross-references rows marked
+`manifest` against actual payload entries — so the claim is checked, not just declared. Same
+pattern as the CLAUDE.md hub regions ("single-sourced from the hub"). Reconciles with (j)
+per-consumer freshness registry and the fleet-readiness §4 H0 runbook; it is the general form of
+what 009-A did by hand to intake `#70`.
+
+**(y) THE CODESPACE ACCOUNT CAP IS 2 CONCURRENT, AND THE BATCH PROTOCOL DOES NOT KNOW IT**
+*(architect inbox 2026-09-05 item 009-C, its proposed letter (u); H0-prep close)*. Measured, not
+assumed: the account runs at most 2 codespaces at once. PLAYBOOK Ch8's batch protocol schedules
+lanes without that ceiling, so a batch that dispatches three or more cloud lanes has one silently
+queued or refused — and a lane that never starts reads exactly like a slow one, which is the
+failure (i) already names. The candidate is one measured constant in the batch protocol (cloud
+lanes <= 2 concurrent), not a scheduler.
+
+**(z) A CONTAINER CANNOT PUSH FROM A NON-LOGIN SHELL, AND FAILS SILENTLY WHEN IT TRIES**
+*(architect inbox 2026-09-05 item 009-C, its proposed letter (v); H0-prep close)*. `GITHUB_TOKEN`
+is unset in a non-login shell, so a dispatched container commits work and then cannot push it —
+stranding the lane's commits inside a container that is later torn down. Proposed carrier:
+`dispatch-run.sh` sources the login environment, or **fails closed naming the missing variable**.
+The naming matters more than the sourcing: the current failure is legible only as an absent push,
+and a run that dies saying `GITHUB_TOKEN` is unset costs one line to diagnose instead of an arc.
+
+**(aa) THE DISPATCH SURFACE CANNOT LAUNCH A CONFORMING LOCAL CONTRACT** *(architect inbox
+2026-09-05 item 015-A; source: batch R5P dispatcher report, manifest 13362942)*. **First two-letter
+entry, per the rule above.** `dispatch <file>` refuses every contract that PASSES the checker: the
+checker demands a `Dispatch-Lane` line while `Invoke-Dispatch.ps1` demands a `claude` head token,
+and only the interactive shape satisfies both. The two halves of one launch surface disagree about
+what a valid contract is, so conformance and launchability are mutually exclusive — a contract is
+either checkable or runnable, never both. The dispatcher worked around it with the documented
+`Dispatch-Lane` fallback, which is why this surfaced as a report rather than as a failed batch.
+Owner: PLAYBOOK Ch8 dispatch table (win-tooling `DispatchHelpers`) — **cross-repo**. `carried-by:
+manifest`, because the launch surface ships to consumers, so a consumer inherits the same
+contradiction.
+
+**Not adopted, recorded so it is not relitigated** *(architect inbox 2026-09-05 items 002-E and
+004-A.3(d))*. Generated ADRs — `ADR-94` protects the opposite, and their cheapness is the property
+it guards against. Multiplayer / ADE — this is a single-operator system by design. Microkernel or
+plugin architecture — we are not a product. `GAP-MAP.md` is a pre-correction draft and is **not
+evidence**; the AJ audit is the authority and `GAP-MAP.md` stays in scratch, unmerged. **Rust —
+REJECTED on MEASUREMENT, not on preference:** the compiled ceiling measured 1.33×, against git
+spawns at 75-79 % of both gates, so a rewrite buys a third while the actual cost sits untouched in
+process spawning. Recorded with its number so the question is not reopened without a better one.
 
 ## Editing note (read before adding an entry)
 

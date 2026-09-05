@@ -7,7 +7,7 @@ owner: Rob
 
 # CLAUDE.md — Dev Knowledge
 <!-- scope: meta -->
-<!-- version: 2.72 — 2026-09-01 -->
+<!-- version: 2.75 — 2026-09-05 -->
 
 > **Session boot contract for Claude Code in this repo** — auto-read at session start (ADR-53, as re-pointed by ADR-115). **Genre:** a rule lives here only if a session needs it *before it can act*; rationale, history and per-organ detail live at the home each line cites.
 >
@@ -71,6 +71,10 @@ In order, read:
 - **Resolve a locator before you act on it** — a `file:line`, heading, SHA, branch or `[#id]` you have not opened is a claim, not evidence; run **`/preflight`** first. The most-recorded executor failure in the 2026-08-21 governance-drift audit, and it binds the auditor too
 - **TDD — a build-arc standard, not a blanket mandate.** ADR-108 §B binds every build arc: RED-first witnesses, failing tests before build code, frozen after freeze; the architect freezes the pass/fail criterion *before* it, and CC may strengthen but **never weaken** it (ADR-81 amend. 2026-06-24). A blanket mandate is **not** live — Council rejected "Mandatory TDD". Say partial when it is partial
 - **Spec-driven development (ADR-108 §B)** — spec before build, acceptance contract ex-ante. Live: the `check-against-spec` skill, `coherence-nudge` over `_SPEC_REGISTRY`, the `reconciled_versions` check, this file's `reconciled_with:` stamp
+> **[HUB - methodology]** region `conventions-library-first` - single-sourced from the hub; do not edit these lines here.
+<!-- methodology:start id=conventions-library-first owner=hub -->
+- **Library-first:** before any build — stdlib > established dependency > stabilized project > industry pattern; hand-roll only on a MEASURED divergence on this repo, recorded so it is not relitigated. Every plan names its library-first check or gives a one-line reason for its absence.
+<!-- methodology:end id=conventions-library-first -->
 - **Dependencies (ADR-106):** declared by `pyproject.toml` + `uv.lock` + `.python-version`, rebuilt by `uv sync --locked`, `uv` pinned **exactly** — a uv bump is its own gated change. Every gate runs `uv run --locked …`, so a bare `python`/`pytest` in a doc is a defect, not a shorthand
 - **Decision funnel (ADR-111):** every audit finding is triaged into **exactly one** of OWNED / DISCHARGED / CANDIDATE / REJECTED — no finding becomes a backlog row without triage, and the only path is CANDIDATE → intake (ADR-98) → ratification. Question routing is ADR-108 §A: the operator rules **functional** questions, the architect **technical** ones
 
@@ -220,17 +224,9 @@ Machine-enumerated, last 5 by number (`gen_claude_rosters.py --write`). Editoria
 > **[REPO - local]** region `section-history` - this repo owns these lines.
 <!-- methodology:start id=section-history owner=repo -->
 
-> _Entries v1.0–v2.71 condensed to git history per ADR-49/65 (info-preserving — full prior history: `git log --follow -p -- CLAUDE.md`); v2.69 joined 2026-09-01 to make room under the byte cap, v2.70 joined the same day for the same reason ([#614] lane-e-5), v2.71 joined 2026-09-05 to make room for v2.74; ledger: `docs/audits/2026-08-29-technical-claude-md-regenre.md`._
-
-- v2.72 (2026-09-01, integrator micro-act) — **ESSENTIALS DE-BLESSED, correcting v2.71.** v2.71 said that act was *deliberately NOT here* and that *every citation stands* — true then, false now. This file sends no session to `protocols/ESSENTIALS.md`: five sites reworded, four of them hub regions moved in lockstep with `templates/claude-regions/`. **No deletion** — the body stays, `status: superseded`, and `[#628]`'s fleet-coupled dissolution is still owed. Caught by terra, not by the author.
-
-- v2.73 (2026-09-01, [#614] lane-e-5) — `VISION.md` relocated to `docs/archive/VISION.md` at the hub, ADR-114 option (C)'s step one; §5 rule 5's VISION mention re-pointed in the same commit. v2.70 condensed to git history to hold the byte cap.
+> _Section history RELOCATED 2026-09-05 (architect inbox item 012-A): v2.72–v2.74 moved byte-identically to `docs/audits/2026-09-05-technical-claude-md-section-history-ledger.md`, which is this section's home from now on and where the next entry goes; v1.0–v2.71 were condensed to history earlier per ADR-49/65._
+> _The pointer stays and the entries do not — a changelog of this file's own past revisions is not something a session needs before it can act, which is the genre rule this file states in its own header._
 <!-- methodology:end id=section-history -->
-
-- v2.74 (2026-09-05, integrator) — §9 gains `doc-counts-pytest-freshness`; the
-  `precommit_hook_roster` claim requires it. Re-stamped after an end-to-end re-read:
-  byte cap, ESSENTIALS `status: superseded`, the 23/23 §9 roster, all four @-imports,
-  `docs/archive/VISION.md` and `README.md` all verified live, not assumed.
 
 ---
 

@@ -287,7 +287,7 @@ def test_hub_region_bodies_still_byte_match_the_templates():
         assert extract.read_text(encoding="utf-8").strip() == r.body, \
             f"owner=hub region {r.id} drifted from its template extract"
         checked += 1
-    assert checked == 8, f"expected 8 hub region extracts, checked {checked}"
+    assert checked == 9, f"expected 9 hub region extracts, checked {checked}"
 
 
 def test_regeneration_does_not_change_any_region_body(tmp_path):
@@ -347,7 +347,7 @@ def test_vscode_bands_start_at_the_generated_header():
         for m in re.finditer(pattern, text, re.M):
             assert bh.is_generated_header(m.group(0).splitlines()[0])
             n += 1
-    assert n == 15, f"expected 15 painted regions, found {n}"
+    assert n == 16, f"expected 16 painted regions, found {n}"
 
 
 def test_vscode_regex_rejects_a_looser_marker_language():

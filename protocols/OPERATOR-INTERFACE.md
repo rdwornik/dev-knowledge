@@ -32,6 +32,71 @@ Two consequences a seat can act on directly:
 - **A file arriving twice arrives as `<name> (1).md`.** The suffixed copy is the newer one, and
   the un-suffixed one is stale — a seat that reads only the plain name reads the previous window.
 
+**FILE EXCHANGE — the transport constant.** The heading above predates the Drive transport and is
+kept as written; the constant below is what a seat acts on. Downloads remains the documented
+fallback, and nothing else in this section changes.
+
+    prompts dir  : $env:CLAUDE_PROMPTS_DIR (User scope; currently a Google Drive folder
+                   synced by Drive for Desktop, which the browser reads/writes via the Drive
+                   connector). THE VARIABLE IS THE SOURCE. The folder's location is the
+                   operator's and may change without this file changing; a seat that hardcodes
+                   a path has substituted a fact it cannot keep current for one it can resolve
+    to-cc\       : browser to CC. Contracts, pastes, ARCHITECT-INBOX-<date>-<NNN>.md
+    to-browser\  : CC to browser. Delivered artifacts (plain copies, same filename) and inbox
+                   copies with a DONE <sha> line per item — the browser's ONLY witness that an
+                   item ran
+    read rule    : look in the prompts dir first; if the file is not there, ~\Downloads and its
+                   to-cc\ / to-browser\ (fallback per FILE, not per variable)
+    copy header  : every copy written to to-browser\ starts with one line
+                   <!-- COPY OF <repo path>@<sha> - generated, never edited; the repo is the
+                   source -->
+    session start: every CC session RESOLVES the prompts dir from User scope and prints it on
+                   boot (SessionStart hook or /lane-boot line), overriding a differing process
+                   value; unset in both scopes prints "CLAUDE_PROMPTS_DIR unset - Downloads
+                   fallback" so the fallback is never silent
+    inbox naming : ARCHITECT-INBOX-<YYYY-MM-DD>-<NNN>.md, always numbered; items <NNN>-<letter>
+
+**Transport v2 — schema, grammar, retention.** Amends the constant above; the grammar applies from
+the NEXT window, and files already in flight stay as they are rather than being renamed mid-use.
+
+    item schema  : every inbox item carries minimal frontmatter -
+                   repo: <name> · owner-role: filings|dispatcher|integrator ·
+                   files: [footprint] · gate: <none | DECLARE-<item>> · depends: [items]
+                   OWNERSHIP AND GATES LIVE IN THE FILE, never in a chat paste. The dispatcher
+                   computes disjoint groups from `files:` and boots N FILINGS lanes from them
+    naming       : INBOX-<repo>-<YYYY-MM-DD>-<NNN>.md · DECLARE-<item>.md · STATUS-<repo>.md
+                   (sections per session; edit only your own) · a delivery keeps its REPO
+                   filename and carries the copy header
+    retention    : at wrap, FILINGS moves consumed inbox items and delivered artifacts to
+                   archive/<window-date>/ and STATUS keeps a one-line pointer, so a fresh
+                   window opens on live items only
+    ledgers      : STATUS-<repo>.md is the READ SURFACE; the DONE copies are the AUDIT TRAIL.
+                   There is no third ledger, and adding one is the failure this clause forbids
+
+*Why ownership belongs in the file.* A chat paste is not addressable: two sessions given
+overlapping work by two pastes cannot detect the overlap, and the first evidence is a merge
+conflict or a doubled filing. `files:` makes the footprint checkable BEFORE dispatch, which is the
+same property the contract-freeze coupling scan (candidate (f)) wants one layer down.
+
+*Folder rename, PENDING and sequenced.* `CLAUDE PROMPT DIR` becomes `claude-exchange` — no spaces,
+lowercase, and it says what it carries. It is ONE operator act (rename in Drive, then
+`SetEnvironmentVariable(..., "User")`), and it is deliberately ordered AFTER the User-scope
+resolution hook lands, because until then a rename would break every seat holding an inherited
+literal path. `to-cc/` and `to-browser/` keep their names; they are direction-named and correct.
+
+Two clauses above exist because a specific failure happened, and they are cheap only until they
+are skipped. A seat that inherits `CLAUDE_PROMPTS_DIR` from a shell predating the setting resolves
+it to Downloads, finds `to-cc\` present but EMPTY, and reads that as "nothing filed" rather than as
+a misresolved variable — the fallback directory EXISTING is what makes the failure silent, which is
+what the session-start echo removes. And the `DONE <sha>` line is the browser's only witness: a
+seat that finishes an item without writing it has, from the browser's side, not done the item.
+
+**The copy header and byte-identity.** Prepending the header means a delivered copy is not
+byte-identical to its blob. That is deliberate and it is the later ruling: the copy is an envelope
+carrying a repo path and a SHA, so identity stays PROVABLE (compare the body below the header
+against `git show <sha>:<path>`) while the file itself says what it is a copy of. A copy that does
+not name its source is the stale-delivery failure waiting to happen.
+
 ## 2. Inline chat paste of large content arrives empty — so uploads are `.md` files
 
 Pasting a large body of text into the browser chat inline is unreliable: it can arrive truncated,
@@ -68,6 +133,13 @@ truncation on the way in.
 The in-tree homes are the ones the taxonomy already defines (`docs/audits/`, `docs/decisions/`,
 `docs/intake/`); a file with no in-tree home travels through Downloads and is named for its
 subject and date.
+
+**Standing delivery rule — candidate (n), filed not ratified.** A session that finishes a
+deliverable copies it to `to-browser\` as its last act before it stops: an artifact that exists
+only in-tree has not reached the seat that asked for it, and "it is committed" is not delivery.
+The copy is a generated one under §1's `source` clause. Landing this as a habit is what the
+candidate declines to do — the mechanism belongs in `/lane-integrate` and the close-packet step,
+so the copy happens whether or not a session remembers it.
 
 ---
 

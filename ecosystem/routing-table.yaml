@@ -35,10 +35,17 @@ roles:
       role by scope; this row records the routing, not the pin.
 
   adversarial:
-    cli: sol
+    cli: codex
     note: >-
       Adversarial design critique. Distinct from review: the reviewer judges a diff, the
-      adversary attacks a design before one exists.
+      adversary attacks a design before one exists. REBOUND from `sol` 2026-09-05 (architect
+      inbox item 002-B): `sol` is not on PATH, so this row named an absent CLI and an arc
+      routing to it degraded silently to a same-family substitute rather than failing. Witness:
+      the 2026-09-05 AJ gap analysis, section 6 "sol - SUBSTITUTED, and the substitution is
+      itself a finding". codex is a different vendor from the author of the designs it attacks,
+      which is the property the role needs; brief the run ADVERSARIALLY - attack the design -
+      because codex also carries the `review` role above and will otherwise judge a diff.
+      Restore `sol` here once it is installed.
 
   fan_out:
     cli: [luna, haiku, gemini]
