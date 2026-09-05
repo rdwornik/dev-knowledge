@@ -3415,11 +3415,17 @@ tests to declare their files present, rather than weakening the Z-G4 FAIL.
 Filed from the architect's outgoing-seat note of 2026-09-02 (step B), landed after G3b merged and
 before the close packet. **Z-C shape: these are CANDIDATEs, not rows.** ADR-111 admits exactly one
 path — CANDIDATE, then ADR-98 intake, then ratification — so nothing here draws from the ledger and
-nothing here is a commitment. The lettering runs (a)–(g), (i), (j), (k), (m), (n): **there is no
+nothing here is a commitment. The lettering runs (a)–(g), (i), (j), (k), (m)–(r): **there is no
 (h)** and **no (l)**, and both absences are deliberate rather than lost entries — the note's
-amendment added (f) and (g), a later message added (i), (h) was never filed by anyone, and (m) and
-(n) arrived from the 2026-09-05 architect inbox (items 001-B and 001-C) with (l) likewise never
-filed by anyone.
+amendment added (f) and (g), a later message added (i), (h) was never filed by anyone, and (m)–(r)
+arrived from the 2026-09-05 architect inbox (items 001-B, 001-C, 002-B, 002-C) with (l) likewise
+never filed by anyone.
+
+**Letters are allocated HERE, at filing time, not by the source that proposes an entry.** The
+2026-09-05 inbox proposed its own letters and they collided: item 005-B proposes (r), (s), (t)
+while items 002-B and 002-C had already consumed (o) through (r). This register is the authority
+and it has one writer, so an entry takes the next free letter and records the label its source
+used. A proposed letter is a name for a conversation, never an address in this file.
 
 **(a) README as a human front door.** What-it-is, then quickstart, then a link map; governance prose
 relocated and consumers re-pointed. The note files it as NEW and marks the reason it is not merely a
@@ -3448,6 +3454,13 @@ every symbol and constant its contract names is grepped across the repo; each re
 either inside the lane's file set or explicitly excluded, in writing, at freeze time. Evidence is
 this batch's own: G3's two escalations — the `canonical_freshness_gate` fallback literal and
 `release_lint` C7 — were each **one grep away** at freeze, and both cost a lane cut instead.
+
+*Merged in 2026-09-05 (architect inbox item 002-C, finding 5) — DERIVED DISJOINTNESS, deliberately
+not a second entry.* Authoring two lanes' file sets as disjoint does not make their *derived*
+reads disjoint: the G3/G6 collision on `conformance-hub.js:133` happened under authored
+disjointness, because the scan that would have caught it is this one and it was not run. The
+coupling scan therefore covers derived reads, not only the symbols a contract names — which is a
+widening of (f), not a separate candidate competing with it.
 
 **(g) Gemini/agy whole-corpus doctrine-coherence audit** *(ADDED by the 2026-09-02 amendment)*.
 Contradictions, dead rules, duplicated clauses and never-cited files, each WITH locators;
@@ -3526,6 +3539,47 @@ not built: ADR-111 admits one path, and this has not been through intake.
 same copy step in `/lane-integrate` and the close packet, carrying §1's copy-header line — and
 states it is (n) made concrete, to be MERGED rather than duplicated. When 005-B is executed, (s)
 folds into this entry as its mechanism leg; it does not take a letter of its own.
+
+**(o) REFERENCE-IMPLEMENTATION SEEDING — a lane contract points at two prior lanes of the same
+shape** *(AJ gap analysis §5 CANDIDATE 1; architect inbox 2026-09-05 item 002-B)*. Rather than
+describing the shape it wants, a contract names two lanes that already have it. Verified absent
+from `templates/prompt-template.md`, `.claude/commands/lane-boot.md` and `gen_lane_contract.py`.
+Theme E6 · size S. Binds to the freeze gate alongside "closure quotes the row's Done-when", so it
+lands as a clause of an existing gate rather than a new organ.
+
+**(p) A ROUTING-TABLE ROLE MAY NAME A CLI THAT IS NOT INSTALLED** *(AJ gap analysis §5 CANDIDATE 2;
+architect inbox 2026-09-05 item 002-B)*. `ecosystem/routing-table.yaml` bound `adversarial` to
+`cli: sol`, and `sol` is not on PATH — so an arc routing to that role degraded silently to a
+same-family substitute instead of failing. The substitute is what caught three false rows, which
+is why the defect surfaced at all. Theme E2 · size S. This is the DECLARED-vs-ENFORCED class, and
+it belongs next to (c) the derived-copies registry rather than in a checker of its own.
+
+The candidate is the CHECK half only. Act (a) — rebinding the role — is not deferred and is landed
+by this commit: `adversarial` now names `codex`, a different vendor from the author of the designs
+it attacks, with the note carrying the adversarial brief (codex also holds `review`, so an
+unbriefed run judges a diff instead of attacking a design) and the instruction to restore `sol`
+once installed. Act (b), the candidate: every `cli:` in the routing table must resolve on PATH,
+reusing the dispatch-table DISP probe (`Get-Command`) — **not** a second resolver. Measured while
+filing this, 2026-09-05: `sol` ABSENT; `codex`, `claude`, `agy`, `gemini` all PRESENT.
+
+**(q) VOCABULARY BRIDGE BEFORE SEARCH, for any comparative arc** *(AJ gap analysis §5 CANDIDATE 3;
+architect inbox 2026-09-05 item 002-B)*. Before any claim that this repo LACKS something, search
+this repo's lexicon and not only the other system's. One line in the research-arc contract
+template. Theme E3 · size S. The evidence is the arc that produced it: eight ONLY-AJ rows, three
+false, one contradicting another row in the same table, because §2's bridge table was built AFTER
+the searches instead of before them. Same error class as the browser seat's class A.
+
+**(r) RE-EXECUTE, DO NOT TRUST — `/lane-integrate` re-runs the lane's seeded tests before merge**
+*(architect inbox 2026-09-05 item 002-C, finding 4 — implied by the AJ analysis, not filed by it)*.
+The integrator never accepts a packet's declared green; it runs the lane's tests itself. Mechanism
+· size S. Evidence that the posture already exists and only the STEP is unnamed: Done-clause 0,
+the G5 attempt-1 record, and delta A2.
+
+**Not adopted, recorded so it is not relitigated** *(architect inbox 2026-09-05 item 002-E)*.
+Generated ADRs — `ADR-94` protects the opposite, and their cheapness is the property it guards
+against. Multiplayer / ADE — this is a single-operator system by design. Microkernel or
+plugin architecture — we are not a product. `GAP-MAP.md` is a pre-correction draft and is **not
+evidence**; the AJ audit is the authority and `GAP-MAP.md` stays in scratch, unmerged.
 
 ## Editing note (read before adding an entry)
 
