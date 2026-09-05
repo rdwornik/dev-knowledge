@@ -19,6 +19,49 @@
 
 ---
 
+### 2026-09-05 (o) - CC (Opus 5, INTEGRATOR-2): pre-anchor the seat-notes arc - five markers, five terra rounds, one CLEAN
+
+**Did:** Pre-anchored the `worktree-docs-seat-notes-amend3` arc ahead of its merge, per the
+standing rule adopted this session: anchor BEFORE the merge, never after. Five amendment
+markers land as one spine entry.
+
+**Result:** terra returned **CLEAN** on the fifth round, over all five markers judged as one
+landed record: "A8 correctly retracts the only lane-made 'Ruled form', declares rather than
+fabricates the unresolvable provenance debt, and leaves the five-marker record structurally
+coherent and append-only."
+
+Four HIGHs preceded it and each was real, which is the part worth recording. (1) A4 argued
+defect #22 was class A because a "carrier" existed - `validate_branch_naming` is wired into
+NO gate, `--lane` is an optional flag, and the lane arguing it had itself been dispatched
+through `claude --worktree`, the documented path that skips the only invocation. (2) A5
+withdrew the premise and left the conclusion standing - a partial retraction, which in an
+immutable file is a permanent contradiction. (3) A6 re-derived the ruling it said it only
+recorded. (4) A7 fixed one section and left the same defect one section further down.
+
+**The root cause was never prose.** The register owner's ruling arrived as a cross-session
+message and has no durable record anywhere in the repo -- `protocols/STANDING_RULINGS.md`
+predates it and carries no such entry. A document cannot cite a decision that has no home,
+so every attempt to attribute regenerated the finding. A8 stops trying: it marks the
+disputed section NON-DISPOSITIVE and declares the citation as a debt OWED. A declared debt
+can be closed by a locator later; an implied one cannot.
+
+Escalated to the operator rather than requesting a ninth marker. Also surfaced, found by the
+lane while verifying and deliberately kept OUT of the marker: `STANDING_RULINGS.md` has eight
+hits for "#25" and every one is INTAKE #25, a different namespace from the defect register's
+new #25. A future reader resolving that locator gets a false confirmation - the exact
+resolve-the-locator failure this register documents, now latent in its own numbering.
+
+**Changes:** `JOURNAL.md` only.
+
+**Abandoned:** Nothing.
+
+**Next:** Merge the arc. `zc-candidates` stays held on content-correctness; `015-C` still
+awaits the operator; `automation/fleet-audit` is protected and never merges.
+
+**Anchors:** `@ARC@` (this arc: the pre-anchor entry itself) - and the seat-notes arc it
+exists to anchor, named BEFORE its merge: `d70705e7`, `758d7ab0`, `8e66fe3d`, `684584b5`,
+`d59c7bc3`, `d331e58a`.
+
 ### 2026-09-05 (n) - CC (Opus 5, INTEGRATOR-2): the anchor drain - every spine merge of the day recorded, not merely mentioned
 
 **Did:** Landed one drain entry putting all 33 of the day's first-parent spine merges on an
