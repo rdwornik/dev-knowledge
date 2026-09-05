@@ -172,6 +172,25 @@ sanctioned_divergences:
       D1/D2 evidence in hand rather than rotting behind a cleared WARN -- the same
       shelf-life device the .vscode entry above uses to force its e1 revisit.
     review_date: 2026-09-18
+  - component: canonical-doc-vision
+    reason: >-
+      R5 dispositioning window, bundle B9, ruled 2026-09-05. This entry is the DISCHARGE of a
+      disclosure [#614] lane-e-5 wrote down and could not land itself: relocating VISION.md to
+      docs/archive/VISION.md at the hub (ADR-114 option (C), step one) made the hub role measure
+      `SHOULD-absent` on the canonical-doc-vision surface, and the lane recorded in
+      ecosystem/parity-surfaces.yaml that "the hub-role WARN stays live until a
+      .methodology.yaml entry for canonical-doc-vision lands, which this lane leaves for the
+      integrator rather than editing a file it was not scoped to touch". That entry is this one.
+      The divergence is SANCTIONED, not tolerated: `probe.path` is deliberately still the bare
+      `VISION.md` because the path is shared across all nine repo-role evaluations and the other
+      eight members still carry the file at the root, so the hub cannot be made to pass by
+      editing the probe without breaking the eight. Re-pointing the probe is the nine-repo
+      filename migration ([#621] / [#622]), which is a sequenced program and not this window's
+      work. SHOULD (not MUST) is what makes the declaration admissible at all -- [#614] lane-a
+      demoted the row on both roles when canonical_docs.CANONICAL_MANDATORY dropped VISION.
+      review_date aligned to the 2026-10-13 methodology-surface cluster so this returns to the
+      calendar with the other deploy-coupled declarations rather than on its own schedule.
+    review_date: 2026-10-13
   # `- component: prompts` WAS here (landed 2026-08-25 by operator path-approval, lane-RL
   # scope extension) and is REMOVED by operator ruling 2026-08-26 -- root is sacred; the
   # root prompts/ folder is REVOKED and the batch launch-contract convention relocates to

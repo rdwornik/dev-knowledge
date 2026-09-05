@@ -177,6 +177,40 @@ dispositions:
       Derived surface: the generated intake index renders the v6-proposal entry's title, so it
       inherits the edge from a not-yet-coupled proposal. A GENERATED file cannot carry a
       hand-authored `reconciled_with`; it clears when the underlying intake edge does.
+  # ---- R5/B8, ruled 2026-09-05: the two shapes with decided precedent ----
+  # [#241] was UN-DEFERRED in the same act (its 2026-08-27 icebox defer said it un-defers when
+  # an arc claims the row; this window is that trigger). These two leave its adjudication queue
+  # because neither needs adjudicating -- each is settled by an existing precedent, not by a new
+  # judgement. The other 6 undispositioned edges stay OPEN under [#241] deliberately.
+  - id: warn-undeclared-conformance-dashboard-handoff-process
+    organ: undeclared_edges
+    match: "ecosystem/conformance.md -> handoff-process"
+    ref: "#241; R5 window bundle B8 (ARCHITECT-INBOX-2026-09-05-007), operator-declared in to-cc/R5-DECLARED.md"
+    review_date: 2026-10-13
+    reason: >-
+      GENERATED surface -- the SAME shape as warn-undeclared-intake-index-handoff-process above,
+      dispositioned by that precedent rather than by fresh adjudication. `ecosystem/conformance.md`
+      is emitted by `scripts/gen_dashboard.py` and is regenerated wholesale, so a hand-authored
+      `reconciled_with` would be destroyed on the next `--write` -- the file cannot carry the
+      declaration the organ asks for, and asking again every run teaches that amber is normal.
+      It clears when the underlying edge does. Precision-over-recall: keyed on the full
+      `<file> -> <target>` pair, so the sibling `ecosystem/conformance.md -> prompt-template`
+      edge (were it ever to appear) would re-surface and block rather than be waved through.
+  - id: warn-undeclared-standing-rulings-quotes-own-syntax
+    organ: undeclared_edges
+    match: "protocols/STANDING_RULINGS.md -> handoff-process"
+    ref: "#241; R5 window bundle B8 (ARCHITECT-INBOX-2026-09-05-007), operator-declared in to-cc/R5-DECLARED.md"
+    review_date: 2026-10-13
+    reason: >-
+      THE DETECTOR IS MATCHING A QUOTATION OF ITS OWN SYNTAX, which is a false edge rather than an
+      undeclared one. The register quotes an audit finding that literally contains the string
+      `reconciled_with: handoff-process@6.2.0` while describing a DIFFERENT file's stale
+      frontmatter; the scanner reads that quoted text as STANDING_RULINGS declaring its own
+      coupling to handoff-process. Declaring the edge would be asserting a coupling that does not
+      exist, and editing the quotation would corrupt the finding it records -- so neither of the
+      organ's two suggested fixes is available, and disposition is the only honest outcome.
+      SCOPED TO THE handoff-process TARGET ONLY: `protocols/STANDING_RULINGS.md -> prompt-template`
+      is a separate live edge and is deliberately NOT suppressed by this entry.
   - id: warn-undeclared-intake-orientation-handoff-process
     organ: undeclared_edges
     match: "docs/intake/2026-07-30-tech-browser-architect-orientation.md -> handoff-process"
@@ -752,3 +786,101 @@ dispositions:
       RE-VERIFIED 2026-09-02 (lane-g-614-hygiene, [stale] triage): still true -- the file is
       unchanged, still under docs/audits/, and still absent from a live ship-gate undeclared_edges
       WARN. KEPT as-is; not a new decision.
+
+  # ---- R5/B2, ruled 2026-09-05 ----
+  # THE FIRST consumer_at_landing ENTRY THIS REGISTER HAS EVER CARRIED. The R5 disposition sheet
+  # recorded that as corroborating evidence for B1's false-positive finding: an organ that has
+  # no record of a disposition in either direction has yet to have its verdicts tested. B1 was
+  # discharged by fixing the CHECK (ac2c6a15, the manifest-link route); this row is the one case
+  # in that bundle the fix deliberately does NOT reach, because it is not mis-measured.
+  - id: warn-consumer-article-harness-substrate-brief
+    organ: consumer_at_landing
+    match: "2026-09-01-technical-article-harness-substrate-brief.md"
+    ref: "R5 window bundle B2 (ARCHITECT-INBOX-2026-09-05-007), operator-declared in to-cc/R5-DECLARED.md; sheet docs/audits/2026-09-05-technical-r5-disposition-sheet.md section 2 B2"
+    review_date: 2026-10-13
+    reason: >-
+      NO GOVERNANCE CONSUMER BY DESIGN -- genuinely unconsumed, not mis-measured, and that is the
+      distinction this entry exists to record. The artifact is an operator-commissioned EXTERNAL
+      research brief, landed verbatim with a provenance record; it feeds an article written
+      outside the hub, so no `tasks/` row, ADR, intake or register entry will ever cite it and
+      none should be manufactured to clear a WARN. This is precisely the case the check's own
+      `no-consumer: <reason>` escape was built for -- but that escape lives INSIDE the artifact,
+      and a landed audit is immutable (CLAUDE.md rule 3 of section 5), so the escape was
+      unreachable by the time the WARN existed. The register is the only remaining honest route.
+      Note for whoever revisits: the same artifact is separately dispositioned REJECTED for
+      `funnel_coverage` in docs/audits/2026-09-05-technical-r5-funnel-disposition-ledger.md --
+      two organs, two questions, one artifact, and both answers are "by design, nothing consumes
+      it".
+
+  # ---- R5/B10, ruled 2026-09-05 ----
+  - id: warn-freshness-ungated-stale-deferred-285
+    organ: canonical_freshness
+    match: "derived ungated-and-stale: 3 - protocols/ENVIRONMENT.md"
+    ref: "R5 window bundle B10 (ARCHITECT-INBOX-2026-09-05-007), operator-declared in to-cc/R5-DECLARED.md; owner [#285]"
+    review_date: 2026-10-13
+    reason: >-
+      NOT A GATE BREACH -- a DERIVED report over UNGATED files. The gated set is 8
+      (canonical_docs.FRESHNESS_FILES + audit.py::_HUB_ONLY_FRESHNESS_FILES) and all 8 are
+      fresh; the gated-and-stale row cleared in this same window. All three files here are
+      deferred to `[#285]` "Extend hub freshness gating to PLAYBOOK", which owns the act each
+      of them needs -- a genuine end-to-end re-read, then `last_reviewed` frontmatter, then
+      membership in the gated set. `protocols/PLAYBOOK.md` (+35d) was already that row's;
+      `protocols/ENVIRONMENT.md` (+57d, previously no owner at all) was FOLDED INTO [#285]'s
+      scope in this same act, so the pile has an owner rather than a disposition standing in
+      for one. `README.md` is NOT staleness: its stamp landed at `96f956528` and one CONTENT
+      commit followed on the SAME DATE, which a date-only compare cannot see -- an ordering
+      artifact, recorded here so it is not "fixed" by a meaningless re-stamp.
+      PRECISION: keyed on the count AND the first filename, so a FOURTH file going stale
+      changes the evidence, misses this match, and re-surfaces rather than hiding behind it.
+  # ---- R5/B11, ruled 2026-09-05 ----
+  - id: warn-review-artifact-coverage-advisory-deferred-499
+    organ: review_artifact_coverage
+    match: "code-impact merge(s) since 2026-08-05 carry no linked review artifact"
+    ref: "R5 window bundle B11 (ARCHITECT-INBOX-2026-09-05-007), operator-declared in to-cc/R5-DECLARED.md; owner [#499]; class ruled advisory by [#480] P3 (closed 2026-08-05)"
+    review_date: 2026-10-13
+    reason: >-
+      ADVISORY BY RULING, AND THE NUMBER IS AN UPPER BOUND RATHER THAN A COUNT. `[#480]`'s P3
+      ruling made this leg advisory and explicitly deferred its hard pre-push leg behind
+      "0 false positives over two consecutive windows"; `[#499]` carries that bar and is the
+      owner. `[#560]` (open, P2) separately reports that the check reads only the FIRST
+      branch/HEAD triple per file, so a review that genuinely happened can be invisible to it --
+      meaning the figure overstates missing reviews by an unknown margin and must not be read
+      as a defect count. DELIBERATELY KEYED ON THE CLASS, NOT THE COUNT: the number moves every
+      merge (95 at the R5 sheet's SHA, 97 at `ac2c6a15`), so a count-keyed match would decorate
+      stale within hours and teach that the register rots. The whole advisory class is what the
+      ruling defers, and that is what this entry suppresses; the sibling Tally-line concern is a
+      SEPARATE Finding with its own entries and is not covered here.
+  - id: warn-review-artifact-lane-na-gates-no-tally
+    organ: review_artifact_coverage
+    match: "584fb1ed -> 2026-08-27-codex-lane-na-gates.md"
+    ref: "R5 window bundle B11 (ARCHITECT-INBOX-2026-09-05-007), operator-declared in to-cc/R5-DECLARED.md; same class as warn-review-artifact-lane-c-504-no-tally"
+    review_date: 2026-11-07
+    reason: >-
+      THE REVIEW HAPPENED; only its machine-readable tally is missing -- the SAME class as
+      `warn-review-artifact-lane-c-504-no-tally` above, and dispositioned by that precedent.
+      NOT FIXABLE BY EDITING: `docs/audits/` is immutable (CLAUDE.md rule 3 of section 5), so
+      adding a `**Tally:**` line to a landed artifact is not available. WHY A SEPARATE ENTRY
+      WHEN THE FINDING IS ALREADY SUPPRESSED: the two artifacts share one Finding, so the
+      `5af0b33c` entry already suppresses this evidence as a side effect -- which is exactly the
+      problem. The R5 disposition sheet found this file "half dispositioned": covered by
+      accident, explained nowhere, and it would surface unexplained the moment the sibling entry
+      retires. This entry gives it its own reason and its own review_date, so the record does not
+      depend on another file's disposition outliving it.
+  - id: warn-adr-status-grammar-ratchet-holding
+    organ: adr_status_grammar
+    match: "baseline WARNs: coherence=3, duplicate-id=2, grammar=47, wrapped-value=1"
+    ref: "R5 window bundle B11 (ARCHITECT-INBOX-2026-09-05-007), operator-declared in to-cc/R5-DECLARED.md"
+    review_date: 2026-10-13
+    reason: >-
+      A RATCHET HOLDING, REPORTED AS DRIFT -- and the distinction is the whole disposition. The
+      values are recomputed live on every run and today equal the AUTHORING BASELINE exactly:
+      89 status fields, 0 enum/single-field defects, and grammar 47 / coherence 3 / duplicate-id
+      2 / wrapped-value 1. Both FAIL-tier rules measure ZERO. Nothing has moved since the check
+      was written; it WARNs only because the corpus could not pass `grammar` at FAIL tier on day
+      one, so the leg was armed at WARN against a recorded baseline. A WARN that has not once
+      changed value is not telling anyone anything, and leaving it undispositioned spends the
+      window's attention on a number that is BY CONSTRUCTION constant.
+      THIS IS THE RATCHET, AND IT IS SHARP: the match is the four baseline values themselves, so
+      the FIRST ADR whose status line moves any of them changes the evidence, misses this match,
+      and re-surfaces as a blocking WARN. Movement in the good direction re-surfaces too, which
+      is correct -- that is the moment to lower the baseline or promote the rule to FAIL.

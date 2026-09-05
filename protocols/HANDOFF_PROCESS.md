@@ -1240,92 +1240,33 @@ file). Proven by re-running `reconciled_versions`, `silent_rule_ratchet` and
 
 ## Section history
 
-- v5.0-beta → v5.0 (2026-06-11 → 2026-06-15, seven entries condensed 2026-07-05 per ADR-49/65 —
-  info-preserving; full prior entries: `git log --follow -p -- protocols/HANDOFF_PROCESS.md`) —
-  the v5 genesis arc: initial parallel-ship beta recording model C (ADR-82 — CC-owned handoff,
-  thin browser boot, residual + drift-flags-as-headline, teeth-y forced primary-source reads);
-  §13 `architect | execution` modes added (#150); **promoted to canonical** in the #149 atomic
-  flip (v4.4 archived, Council gate operator-waived, ADR-82 ratified; #159/#161/#162 carried
-  open); §13 bundle-shape iterated README-tmpl → no-per-bundle-README + canonical per-repo
-  operator runbook (`docs/handoffs/README.md`) → **four-file bundle** (`HANDOFF_BOOT.md` +
-  `RESIDUAL.md` + `PROBES.md` + `PASTE_THIS.md`, assembled by `scripts/assemble_paste.py`,
-  single-paste onboarding; #164 rescoped to the generator); §14 token-log cadence relocated in
-  from PLAYBOOK §8 (#152). Version ended 5.0 (all additive post-flip).
-- v5.1 -> v5.4 (2026-06-16 -> 2026-07-05, **five entries condensed 2026-08-07 per ADR-49/65** —
+- v5.0-beta → v5.7 (2026-06-11 → 2026-07-07, **five entries condensed 2026-09-05 per ADR-49/65** —
   info-preserving; full prior entries: `git log --follow -p -- protocols/HANDOFF_PROCESS.md`, and
-  verbatim at `77b75dd7:protocols/HANDOFF_PROCESS.md`) — the architect-supplement + anti-bluff
-  arc, four minor bumps, major stayed 5 throughout. **v5.1** (2026-06-16) made the architect's
-  strategic *why* a first-class **advisory** supplement produced by a structured interview,
-  closing v5's one structural gap (the *why* originates browser-side, the residual is CC-emitted).
-  **v5.2** (2026-06-17) reworked it from an ephemeral terminal block into the **always-generated
-  fillable file** committed on the handoff branch, folded ANSWERS-only and only when non-empty,
-  and defined the **cold-handoff disposition** — empty ANSWERS is a committed N/A, not a missing
-  deliverable, and the incoming §13(d) beat fires full; a 2026-06-24 pass then condensed that
-  subsection's own evolution-narration with **no rule change**. **v5.3** (2026-06-25) folded the
-  drift-flag-set and freshness-witness probes into one **Ship-gate read-back** row — 6 -> 5 probes
-  with zero verification coverage lost, since both bind to checks `ship-gate` already runs.
-  **v5.4** (2026-07-05) made §5's "never the answer" contract **machine-held** rather than
-  hand-discipline: the row-scoped `expected[ :]` FAIL rung in `verify_handoff_probes.py`, and
-  `gen_handoff.py` rendering answer-free **by construction** with generation-time values diverted
-  to a stdout JOURNAL draft — so the promotion dogfood re-runs structurally on every bundle. Each
-  carried its own coupled atomic move (the `CONTRIBUTING.md` stamp plus the `reconciled_with`
-  edges, site-enumerated and verdicted per `check-against-spec`, with freshness-gated dependents
-  genuinely re-read). Refs #159, #161, #164, #204, RF-1.
-- v5.5 (2026-07-05, §14 epic-lane handoffs + token-log renumber §14→§15) — **Version → 5.5**
-  (fifth minor bump; additive — no §1–§13 rule changed). New **§14 "Epic-lane handoffs"**
-  records the two tree-orchestration handoff types (**ADR-97**; operating model PLAYBOOK §8):
-  **§14a EPIC handoff** (architect → epic chat scope-contract: epic scope · ex-ante immutable
-  done-contract · root-provisioned worktree/branch, relative paths only · FILE-BOUNDARY as the
-  parallelism ruling made mechanical · escalations · refusals) and **§14b EPIC RETURN** (epic
-  chat → architect closing report, required before any merge: branch commits/state ·
-  contract-vs-outcome on the hard metric · self-adjudications · proposed BACKLOG delta ·
-  merge-readiness checklist), plus the root's post-return sequence (review → serial `--no-ff`
-  merge → backlog delta → closure → teardown). Generator: `templates/handoff/epic/` +
-  `gen_handoff.py --mode epic` (v5 assembler reuse; §5 answer-free probe contract unchanged,
-  boundary-scoped). The former §14 (token-log cadence) renumbered → **§15** verbatim (the only
-  live external pointer, PLAYBOOK's relocation note, updated in the same commit; historical
-  "§14" mentions in this Section history refer to it, per the §15 renumber note). §13 is
-  untouched — epic lanes are a new handoff type, not a third §13 mode. **Coupled atomic move
-  (this commit-set, root-granted boundary extension 2026-07-05):** the 5 `reconciled_with`
-  edges (`ARCHITECTURE.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `docs/handoffs/README.md`,
-  `protocols/HANDOFF_BOOT.md`) @5.4→@5.5 (each site-enumerated + verdicted per
-  `check-against-spec`), version-string sites refreshed, freshness-gated dependents genuinely
-  re-read + restamped. Major stays 5. Refs ADR-97, Epic 2 (tree-orchestration §14
-  integration), 2026-07-04 lived precedent.
-- v5.6 (2026-07-06, §14a execution-MODE item — the plan-mode corrective) — **Version → 5.6**
-  (sixth minor bump; additive — §1–§13 and §14b untouched). **§14a gains item 7:** the EPIC
-  handoff carries a mandatory **execution-MODE declaration** (plan / plan-then-auto /
-  auto-accept, root-declared ex-ante with its basis); **L-sized epic stories default
-  plan-first**, and **every architect prompt into a lane re-declares MODE** (a lane inherits
-  no mode from a prior prompt). Template: `templates/handoff/epic/EPIC_BOOT.md.tmpl` gains the
-  Execution-mode header row + a root-authored `FILL-IN:exec-mode` region (the generic FILL-IN
-  splice carries it — no generator change). PLAYBOOK carries the operating rule (Ch4 Per-Scale
-  L + Ch8 tree-orchestration). Origin: the 2026-07-06 overnight-mission plan gate
-  (architect-approved corrective CH-1, full (a)+(b)+(c)). **Coupled atomic move (this
-  commit):** the 5 `reconciled_with` edges (`ARCHITECTURE.md`, `CLAUDE.md`, `CONTRIBUTING.md`,
-  `docs/handoffs/README.md`, `protocols/HANDOFF_BOOT.md`) @5.5→@5.6, each site-enumerated +
-  verdicted per `check-against-spec` (compressed sweep — the change is additive §14a-only:
-  only the frontmatter stamps + CONTRIBUTING's §Handoff-process version clause stale; every
-  other site fine/not-relevant); freshness-gated dependents genuinely re-read + restamped.
-  Major stays 5.
-- v5.7 (2026-07-07, §16 functional mode + §14 developer alias — the ADR-98 intake scene) —
-  **Version → 5.7** (seventh minor bump; additive — §1–§15 rules unchanged; §14 gains one
-  alias sentence). New **§16 "Functional mode — the intake-capture boot"**: the
-  requirements-intake handoff type (ADR-98) — a one-file, probe-free `FUNCTIONAL_BOOT.md`
-  (role contract · VISION extract · CC-authored state-summary FILL-IN · intake index),
-  emitted by `gen_handoff.py --mode functional` from `templates/handoff/functional/`;
-  deliberately state-carrying (committed-state copies, not probe answers), the §5
-  answer-free invariant kept in narrowed form (no counts/SHAs/verdicts; generation-time
-  values stay JOURNAL-draft-only). §14's generator note gains `--mode developer` as a pure
-  additive alias of epic (byte-identical bundles; header renders `epic` until the deferred
-  naming flip). Artifact format/lifecycle/confirm-gate: `docs/intake/README.md` +
-  `templates/intake-template.md`; chain documentation: PLAYBOOK Part II §2. **Coupled
-  atomic move (this commit):** `CONTRIBUTING.md` stamp v5.6→v5.7, the 5 `reconciled_with`
-  edges (`ARCHITECTURE.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `docs/handoffs/README.md`,
-  `protocols/HANDOFF_BOOT.md`) @5.6→@5.7, each site-enumerated + verdicted per
-  `check-against-spec` (compressed sweep — the change is additive §16 + one §14 sentence);
-  freshness-gated dependents genuinely re-read + restamped. Major stays 5. Refs ADR-98,
-  #268 (Arc 2 intake-scene build).
+  verbatim at `ac2c6a15:protocols/HANDOFF_PROCESS.md`) — **the whole v5 line, superseded by the
+  v7.0.0 entry below.** Two of the five were already condensations (the v5.0 genesis arc, folded
+  2026-07-05; v5.1 → v5.4, folded 2026-08-07), so this is the third fold of the same material and
+  the first to retire the line as a unit. What v5 established, and what survives in the live spec:
+  **model C** (ADR-82 — CC-owned handoff, thin browser boot, residual + drift-flags-as-headline,
+  teeth-y forced primary-source reads), promoted to canonical in the #149 atomic flip; **§13
+  `architect | execution` modes** (#150); the **four-file bundle** (`HANDOFF_BOOT.md` +
+  `RESIDUAL.md` + `PROBES.md` + `PASTE_THIS.md`, assembled by `scripts/assemble_paste.py`) and the
+  canonical per-repo operator runbook `docs/handoffs/README.md`; the **architect strategic
+  supplement** as an always-generated fillable file, with the **cold-handoff disposition** (empty
+  ANSWERS is a committed N/A, not a missing deliverable); the **ship-gate read-back** probe fold
+  (6 → 5 probes, zero verification coverage lost); §5's answer-free contract made **machine-held**
+  rather than hand-discipline (`verify_handoff_probes.py`'s row-scoped `expected[ :]` FAIL rung,
+  and `gen_handoff.py` rendering answer-free by construction with generation-time values diverted
+  to a stdout JOURNAL draft); **§14 epic-lane handoffs** (§14a EPIC scope-contract + §14b EPIC
+  RETURN, ADR-97), with the token-log cadence renumbered §14 → §15; **§14a item 7**, the mandatory
+  execution-MODE declaration (plan / plan-then-auto / auto-accept, L-sized epic stories default
+  plan-first, re-declared by every architect prompt into a lane); and **§16 functional mode**, the
+  ADR-98 probe-free intake-capture boot (`FUNCTIONAL_BOOT.md`, deliberately state-carrying with the
+  answer-free invariant kept in narrowed form), plus `--mode developer` as a byte-identical alias
+  of epic. Each bump carried its own coupled atomic move — the 5 `reconciled_with` edges
+  (`ARCHITECTURE.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `docs/handoffs/README.md`,
+  `protocols/HANDOFF_BOOT.md`) site-enumerated and verdicted per `check-against-spec`, with
+  freshness-gated dependents genuinely re-read and restamped. Refs #150, #152, #159, #161, #162,
+  #164, #204, #268, RF-1, ADR-82, ADR-97, ADR-98, [#435].
 - **v5.7 → v6.0** (2026-07-31) — **the one-round-trip boot.** Intake #19 §B(b), ADOPTED at the
   intake #18 ratification ([#435]); the seven open questions closed by
   `docs/audits/2026-07-31-technical-v6-open-rulings.md` R1..R7 (R4's number recorded as its

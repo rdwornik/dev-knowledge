@@ -36,6 +36,13 @@ markdown table whose header carries a file-ish column, a `disposition` column an
 artifact may carry one, including an artifact dispositioning itself, so a new audit has an
 authoring-time discharge path that never requires editing an immutable file (§5 rule 3).
 
+A DISPOSITION LEDGER SELF-DISCHARGES BY CONSTRUCTION -- it carries a row naming itself, so
+using the mechanism can never mint the debt it exists to clear (architect ruling, R5 window
+bundle B3, 2026-09-05). Stated here because this is the point of enforcement: without that row
+every new ledger lands as one more undispositioned artifact, making the mechanism net-neutral
+at best -- the recursion the R5 disposition sheet flagged and the ruling closed. Live example:
+`docs/audits/2026-09-05-technical-r5-funnel-disposition-ledger.md`, whose last row is itself.
+
 MEASURED DISCRIMINATION, because a predicate nobody measured is a guess. On the 693-artifact
 corpus the header predicate admits exactly ONE table. `docs/audits/2026-05-24-dev-knowledge-self-audit.md`
 carries a table literally headed "## Disposition ledger" with `File` and `Disposition` columns

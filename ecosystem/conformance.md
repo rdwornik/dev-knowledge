@@ -6,7 +6,7 @@
 
 > **Generated, human-committed, read-only** (ADR-86 location + ADR-80 zone class; ADR-86 **amended 2026-08-23** — a human or integrator commit satisfies "committed"). `python scripts/gen_dashboard.py --write` writes this file and **commits nothing**; the person or integrator who ran it commits both faces, pathspec-bounded, in the same branch → `--no-ff` merge as any other change. **Nothing refreshes this file automatically: it shows the tree as of the last time somebody ran `--write`, and it reaches the repo only when they commit it.** It answers four standing operator questions — what finished, where the telemetry is, whether the intakes passed their gate, and whether implemented ADRs are archived — and it **reports rather than repairs**: every VIOLATION and flag below is left exactly where it was found.
 
-- **As of:** 2026-08-24 · **HEAD:** `278c26c66ebf` · **window:** 2026-08-17 → 2026-08-24 (7 days)
+- **As of:** 2026-09-05 · **HEAD:** `c579e3e777fe` · **window:** 2026-08-29 → 2026-09-05 (7 days)
 - **Regenerate:** `python scripts/gen_dashboard.py --write` · **verify:** `python scripts/gen_dashboard.py --check`
 - **Commit path:** the person who regenerated it commits, pathspec-bounded to `ecosystem/conformance.md ecosystem/conformance.html` — `python scripts/gen_dashboard.py --commit-path` prints the exact commands, and `--write` prints them too. The generator itself commits nothing.
 - **Determinism:** derived from the tree, not the clock — the "as of" instant is HEAD's commit date, so two runs on one tree are byte-identical. After HEAD moves, `--check` reports drift; that is a regenerate-me signal and gates nothing.
@@ -15,58 +15,35 @@
 
 ## Section 0 — Release notes (last 7 days)
 
-_Rows that left `BACKLOG.md` between 2026-08-17 and 2026-08-24, newest first. The gain line is the row's own `Done when:` clause — what the operator can now do that they could not before._
+_Rows that left `BACKLOG.md` between 2026-08-29 and 2026-09-05, newest first. The gain line is the row's own `Done when:` clause — what the operator can now do that they could not before._
 
-- **Grok 4.6 guarded rerun — a no-pack sandbox before the A/B is re-run** [#562] → the candidate's working tree cannot read the pack — proven by a probe run in which a deliberate read of the pack path FAILS, rather than by assertion — and the 14-item A/B is re-run under that guard with **all 14 items uncontaminated**, recorded in a `docs/audits/` artifact that reports the three gates and asserts no verdict · closed 2026-08-23 · `21fd20fd1ff2`
-- **Constraint-contention tiebreak — implement the accepted `[#488]` LEAN** [#566] → the ranking is computed by the existing generator from `serialize-group` with no new authored field, `[P1..P3]` remains the primary key and the contention count breaks ties within a tier, `P-enum + age` breaks what remains, and a test pins the ordering of a seeded tie block · closed 2026-08-22 · `ad3e10d9b1e2`
-- **`run_id` in telemetry emit — sequenced before the read-path build lane** [#565] → every stage-1 event carries a `run_id` stable across one gate invocation and distinct across concurrent ones, the schema change lands in the emit library with a test asserting two interleaved runs separate cleanly, and the read-path row is filed AFTER this one rather than beside it · closed 2026-08-22 · `2a95b99c0fe9`
-- **`Backlog.md` as a read-only view layer — the one-way exporter** [#563] → `scripts/export_backlog_view.py` writes the `Backlog.md` on-disk format directly from `tasks/` into a gitignored scratch dir and re-exports on every invocation, the export path is in `.gitignore` with a test asserting nothing under it is tracked, `check_active_branches` and `remote_operations` are `false` and the export is generated with `--agent-instructions none`, and a test asserts no gate, hook or script reads the export · closed 2026-08-22 · `ad3e10d9b1e2`
-- **`gen_lane_contract.py` — assembly-not-generation, with a `--check` leg that arms two bypassed organs** [#539] → `scripts/gen_lane_contract.py` assembles the mechanical regions of a lane contract from the batch manifest, leaves the judgment regions as explicit FILL-IN, and its `--check` leg refuses a contract whose branch name is off-enum or whose cited locators do not resolve, with a test for each · closed 2026-08-22 · `2a95b99c0fe9`
-- **Single-flight dispatch guard — one contract execution at a time** [#530] → the guard claims and releases a lock ref, a second clone that never fetched the ref is refused, a same-commit racer is refused rather than passing, and those T2/T4 properties are demonstrated against the real `origin`, not a local bare remote · closed 2026-08-22 · `2a95b99c0fe9`
-- **Telemetry v1 EMIT — stage-1 events from the gate mesh** [#529] → the three stage-1 events emit from live gate runs into a WAL-mode SQLite store via structlog with a test per event type, each constraint carries a test, and a recorded gate run reads back without re-measurement · closed 2026-08-22 · `2a95b99c0fe9`
-- **Report-only wall — decide the fourth recorded leg (`pre-commit run --all-files`)** [#507] → a ruling records either the leg landed (with a run showing a bypassed violation recorded server-side) or an explicit accepted-with-reason hold naming what stays unrecorded · closed 2026-08-22 · `2a95b99c0fe9`
-- **Priority axis — the backlog has no ranking function beyond a hand-set [P1..P3]** [#488] → the research leg reports measured comparisons against the live corpus and the architect rules the axis; any build is a separate row filed after that ruling · closed 2026-08-22 · `ad3e10d9b1e2`
-- **scripts/ target structure — rule on the mapped grouping, then (maybe) move** [#397] → the operator rules adopt/reject on the mapped structure AND (if adopt) moves land with every caller site updated + tests green, or flat-is-fine is recorded with the map as the navigation aid · closed 2026-08-22 · `2a95b99c0fe9`
-- **Backpressure-loop pattern evaluation** [#126] → a go/no-go is recorded with the doctrine bounds + a corp pilot result (or an explicit operator drop) · closed 2026-08-22 · `2a95b99c0fe9`
-- **Ladder ratification — L0–L5 promote-vs-leave is unruled, and prose already cites it as authority** [#494] → the ladder is ratified (or explicitly retired) by ADR, and any surface citing a level as authority either resolves to that ADR or drops the citation · closed 2026-08-19 · `7e793eca8e20`
-- **`desired_state_report.py` dies on a cp1252 console — U+21C4 in its own HONEST LIMITS text** [#486] → the U+21C4 is ASCII-swapped and a regression asserts every console-emitted line of `desired_state_report.py` is cp1252-encodable · closed 2026-08-19 · `d433fb5d48ec`
-- **Per-section intake ratification — the `status:` field is doc-level, so partial ratification needs promotion** [#450] → a ruling records either a section-level status schema (with the index generator updated) or promotion-as-intended with the ADR-108 pattern written up as the standing convention · closed 2026-08-19 · `7e793eca8e20`
-- **Assembled-paste byte budget — should `PASTE_THIS.md` gain a hard ceiling?** [#449] → a ruling records either a hard budget (with its number and gate) or an explicit accepted-with-reason hold, and the decision cites the fold as the elasticity argument · closed 2026-08-19 · `7e793eca8e20`
-- **Universal fleet Python style — functional-vs-OOP stance + uniform naming (the paradigm/naming half of parity)** [#407] → an architect ruling (ADR-108 §A; re-routed) records the functional-vs-OOP stance AND a uniform naming convention (classes/files/objects/variables) is documented as fleet doctrine, or recorded deferred-with-reason · closed 2026-08-19 · `7e793eca8e20`
-- **Commit-time doc_rot surfacing — an over-threshold BACKLOG task commits clean, reds only the NEXT ship-gate** [#406] → an architect ruling (ADR-108 §A; re-routed 2026-07-31) picks the enforcement point (or records accept-as-is) and, if a hook is chosen, it flags an over-threshold BACKLOG task in the staged diff with a test · closed 2026-08-19 · `7e793eca8e20`
-- **Design question** [#323] → the carry-vs-freshness-only question for `codemap-generate`/`toc-generate` in `hub_hooks` is decided and recorded · closed 2026-08-19 · `7e793eca8e20`
-- **Re-peg the ai-council ADR-66 story-map convergence** [#281] → the convergence is re-pegged to the Wave-1 onboarding arc (or Track-X accepted as durable, recorded) · closed 2026-08-19 · `7e793eca8e20`
-- **Retire the PATH shim** [#122] → the operator approves and the shim is removed (or the item is closed as keep-for-defence-in-depth) · closed 2026-08-19 · `4541155b49e5`
-- **`VISION.md` still describes `scripts/` as read-only validators — the third site of a correction that landed twice** [#558] → `VISION.md`'s `## Vision` no longer claims `scripts/` holds only read-only validators, converging on the `CLAUDE.md` §5 rule 4 wording, and a fleet-wide re-measurement of the claim covers files beyond `CLAUDE.md`; `last_reviewed` is re-stamped only if the file was genuinely re-read · closed 2026-08-18 · `44d658bdb832`
-- **Three `[stale]` dispositions match no live WARN — the ADR-75 decoration-rule review** [#557] → `audit.py ship-gate` prints zero `[stale]` disposition lines, with each of the three either removed or re-pointed and the reason recorded in the register entry itself · closed 2026-08-18 · `44d658bdb832`
-- **`[#505]` is closed-but-present — the ADR-65 done-items-leave grooming close** [#556] → `validate_git_backlog` reports zero closed-but-present items, `tasks/505-*` carries a terminal `status:` rather than `open`, and `[#505]` is referenced by id wherever the shipped work is recorded · closed 2026-08-18 · `44d658bdb832`
-- **The ARM-2 row-length pile has no owner, and the conversion program keeps feeding it** [#536] → a ruling records either a drain target with its number, or the ceiling re-derived for converted rows with its basis, and `validate_doc_rot --all` reports the agreed count with every remaining locus dispositioned in the register · closed 2026-08-18 · `44d658bdb832`
-- **Batch-protocol encoding — the parallel-execution way-of-working as versioned repo artifacts** [#505] → a fresh seat runs a full batch from repo artifacts alone; **the next batch executes under it with its operator-touch count recorded in the batch manifest**; hygiene WARN and branch-prefix enum are validator-checked; the refuse-to-finish checklist is mechanical · closed 2026-08-18 · `44d658bdb832`
-- **mutmut 3.7.0 mutation-testing evaluation — CI-hosted** [#502] → a `[tool.mutmut] paths`-scoped pilot runs in `.github/workflows/report-only-wall.yml` or a sibling workflow, the `uv run --locked` question is answered from that run's own log, and a recorded ADOPT/REJECT names the measured surviving-mutant count over the pilot slice — `tests/test_fleet_analytics*`, since `[#392]`'s rename-alias defect is the known catch · closed 2026-08-18 · `44d658bdb832`
+- **Manifest lane enum must equal contract slug at freeze** [#630] → the freeze gate REFUSES unless the set of lane slugs in the manifest's lane table equals the set of contract slugs in the batch's contract directory — set equality both ways, so a manifest naming a lane with no contract fails as loudly as a contract no manifest names; the refusal names both sides of the mismatch rather than only the count; and a test freezes a batch with a renumbered slug and asserts the refusal · closed 2026-09-04 · `b3023108ccca`
+- **D2 per-consumer waiver-honoring** [#276] → a consumer-declared divergence for a component causes BOTH the prune sweep to SKIP it (no REFUSE-abort) AND the add/converge leg to NOT re-append it (no re-break) on a previously-deployed consumer, with tests · closed 2026-09-04 · `b3023108ccca`
+- **VISION.md superseded by a recreated root README.md** [#614] → a frozen contract names all four acts, enumerates every gate-coupled consumer from the census, names the three coupled edits, and prices the freshness and nine-member parity consequences ex-ante · closed 2026-09-03 · `a436545adfd4`
 
 ## Section 1 — Backlog at a glance
 
 | Theme | Open | Deferred | Closed | Size mix (live rows) |
 |---|---:|---:|---:|---|
-| [E1] Handoff continuity | 10 | 2 | 5 | M 4 · S 8 |
-| [E2] Enforced governance | 61 | 14 | 26 | L 1 · M 32 · S 42 |
-| [E3] Lessons feedback loop | 6 | 2 | 4 | M 4 · S 4 |
-| [E4] Decision management | 7 | 2 | 1 | M 4 · S 5 |
-| [E5] Canonical-file integrity | 14 | 1 | 7 | M 4 · S 11 |
-| [E6] Cross-repo universalization | 16 | 1 | 12 | L 3 · M 9 · S 5 |
-| [E7] Tooling & evaluation | 49 | 4 | 27 | L 3 · M 18 · S 32 |
-| [E8] ARC-5 execution | 17 | 0 | 7 | M 5 · S 12 |
-| [E9] Fleet Desired-State System (North Star) | 5 | 1 | 7 | L 1 · M 1 · S 4 |
+| [E1] Handoff continuity | 15 | 1 | 8 | M 7 · S 9 |
+| [E2] Enforced governance | 52 | 24 | 40 | L 2 · M 35 · S 39 |
+| [E3] Lessons feedback loop | 4 | 2 | 6 | M 4 · S 2 |
+| [E4] Decision management | 6 | 3 | 2 | M 3 · S 6 |
+| [E5] Canonical-file integrity | 18 | 4 | 12 | L 2 · M 8 · S 12 |
+| [E6] Cross-repo universalization | 9 | 9 | 14 | L 4 · M 7 · S 7 |
+| [E7] Tooling & evaluation | 52 | 9 | 39 | L 6 · M 27 · S 28 |
+| [E8] ARC-5 execution | 13 | 0 | 11 | M 4 · S 9 |
+| [E9] Fleet Desired-State System (North Star) | 4 | 1 | 8 | L 1 · M 1 · S 3 |
 
-**Total live rows: 212** (+16 over 7 days; 196 at the window start).
+**Total live rows: 226** (+10 over 7 days; 216 at the window start).
 
-Closed this window (26): [#562] · [#566] · [#565] · [#563] · [#539] · [#530] · [#529] · [#507] · [#488] · [#397] · [#126] · [#494] · [#486] · [#450] · [#449] · [#407] · [#406] · [#323] · [#281] · [#122] · [#558] · [#557] · [#556] · [#536] · [#505] · [#502]
+Closed this window (3): [#630] · [#276] · [#614]
 
 ## Section 2 — Intake lifecycle gate
 
 _Anti-orphan check, ACCEPTED docs only: an accepted intake must be carried by a live BACKLOG row, or be explicitly parked with a trigger / review date. Neither is a **VIOLATION** — reported here, repaired elsewhere._
 
-> **5 VIOLATION(s)**: #18 `2026-07-27-tech-handoff-process-v6-proposal.md` · #26 `2026-08-06-func-parallel-execution-system.md` · #28 `2026-08-08-func-skills-tier-adoption-and-hub-finish-line.md` · #30 `2026-08-09-func-verification-organ-and-repeatable-execution.md` · #31 `2026-08-09-func-code-style-doctrine.md`
+> **4 VIOLATION(s)**: #18 `2026-07-27-tech-handoff-process-v6-proposal.md` · #28 `2026-08-08-func-skills-tier-adoption-and-hub-finish-line.md` · #30 `2026-08-09-func-verification-organ-and-repeatable-execution.md` · #65 `2026-09-01-tech-consumer-at-landing-identifier-gap.md`
 
 | Intake | Status | Doc | Anti-orphan | Detail | Archived |
 |---|---|---|---|---|---|
@@ -76,10 +53,10 @@ _Anti-orphan check, ACCEPTED docs only: an accepted intake must be carried by a 
 | #7 | SEED | `2026-07-08-func-ai-council-interface.md` | — | — | — |
 | #8 | SEED | `2026-07-08-func-night-routines-suite.md` | — | — | — |
 | #9 | SEED | `2026-07-08-func-dashboards-local-html.md` | — | — | — |
-| #19 | SEED | `2026-07-27-func-operator-design-input-night-shift-handoff-reform.md` | — | — | — |
 | #21 | SEED | `2026-07-30-tech-browser-architect-orientation.md` | — | — | — |
 | #22 | SEED | `2026-07-30-func-operator-decision-routing-and-standards.md` | — | — | — |
 | #23 | SEED | `2026-08-01-func-distillation-and-library-first.md` | — | — | — |
+| #67 | SEED | `2026-09-01-tech-lane-packet-artifacts-block.md` | — | — | — |
 | #34 | DRAFT | `2026-08-16-code-architecture-enforcement.md` | — | — | — |
 | #35 | DRAFT | `2026-08-17-tech-agent-instruction-layers-and-distillation.md` | — | — | — |
 | #36 | DRAFT | `2026-08-17-tech-repository-autonomy-and-gate-liveness.md` | — | — | — |
@@ -87,33 +64,63 @@ _Anti-orphan check, ACCEPTED docs only: an accepted intake must be carried by a 
 | #40 | DRAFT | `2026-08-22-tech-document-dependency-graph-organ.md` | — | — | — |
 | #41 | DRAFT | `2026-08-23-tech-nopack-guard-refusal-surface.md` | — | — | — |
 | #42 | DRAFT | `2026-08-23-tech-generated-artifact-currency.md` | — | — | — |
-| #15 | READY | `2026-07-16-satellite-onboarding-prompts.md` | — | — | — |
+| #62 | DRAFT | `2026-08-29-tech-l0-as-a-governed-layer.md` | — | — | — |
+| #63 | DRAFT | `2026-08-29-func-universal-per-repo-learning-loop.md` | — | — | — |
+| #68 | DRAFT | `2026-09-05-tech-handoff-process-v71-amendment-pack.md` | — | — | — |
+| #69 | DRAFT | `2026-09-05-tech-boot-frontier-prioritisation-weights.md` | — | — | — |
+| #70 | DRAFT | `2026-09-05-tech-aj-second-pass.md` | — | — | — |
+| #70 | DRAFT | `2026-09-05-tech-session-roles-with-a-carrier.md` | — | — | — |
+| #71 | DRAFT | `2026-09-05-tech-batch-p-audit-gate-speed.md` | — | — | — |
+| #43 | READY | `2026-08-24-tech-ruling-register-landing-gap.md` | — | — | — |
+| #44 | READY | `2026-08-24-tech-disposition-register-schema.md` | — | — | — |
+| #45 | READY | `2026-08-24-tech-substrate-router.md` | — | — | — |
+| #46 | READY | `2026-08-24-tech-contract-integrity-gate.md` | — | — | — |
+| #47 | READY | `2026-08-24-tech-supplement-probe-fill-state-defect.md` | — | — | — |
+| #49 | READY | `2026-08-26-tech-append-only-surfaces-and-views.md` | — | — | — |
+| #50 | READY | `2026-08-26-tech-cost-and-delivery-telemetry.md` | — | — | — |
+| #51 | READY | `2026-08-26-tech-provider-capacity-anthropic-compatible.md` | — | — | — |
+| #52 | READY | `2026-08-26-tech-dispatch-consolidation-remainder.md` | — | — | — |
+| #53 | READY | `2026-08-26-tech-handoff-operator-interface.md` | — | — | — |
+| #54 | READY | `2026-08-26-tech-loop-tax-and-gate-performance.md` | — | — | — |
+| #55 | READY | `2026-08-26-tech-handoff-mechanization.md` | — | — | — |
+| #56 | READY | `2026-08-26-tech-wave3-wintooling.md` | — | — | — |
+| #57 | READY | `2026-08-27-tech-documentation-diet-execution.md` | — | — | — |
+| #58 | READY | `2026-08-27-tech-python-standard-executable-surface.md` | — | — | — |
+| #59 | READY | `2026-08-27-tech-append-only-rotation-execution.md` | — | — | — |
+| #60 | READY | `2026-08-27-tech-night-batch-protocol.md` | — | — | — |
+| #61 | READY | `2026-08-28-tech-handoff-engine-deployable-carrier.md` | — | — | — |
+| #66 | READY | `2026-09-01-tech-observable-harness.md` | — | — | — |
 | #12 | ACCEPTED | `2026-07-11-tech-ownership-manifest.md` | carried | [#548] | — |
 | #13 | ACCEPTED | `2026-07-11-tech-plan-of-record-fleet-hygiene.md` | carried | [#549] · [#332] | — |
 | #14 | ACCEPTED | `2026-07-12-siem-requirements-ruled-pack.md` | carried | [#550] | — |
-| #16 | ACCEPTED | `2026-07-21-func-fleet-north-star.md` | carried | [#443] · [#388] · [#385] | — |
+| #16 | ACCEPTED | `2026-07-21-func-fleet-north-star.md` | carried | [#388] · [#385] | — |
 | #17 | ACCEPTED | `2026-07-25-tech-consolidation-decision.md` | carried | [#431] · [#403] | — |
 | #18 | ACCEPTED | `2026-07-27-tech-handoff-process-v6-proposal.md` | VIOLATION (no carrier) | — | — |
-| #20 | ACCEPTED | `2026-07-28-north-star-delta-review.md` | carried | [#443] · [#388] | — |
+| #20 | ACCEPTED | `2026-07-28-north-star-delta-review.md` | carried | [#388] | — |
 | #24 | ACCEPTED | `2026-08-05-tech-currency-wave-1.md` | carried | [#570] | — |
 | #25 | ACCEPTED | `2026-08-05-func-simplification-distribution-wave.md` | carried | [#294] · [#308] · [#559] · [#570] · [#561] | — |
-| #26 | ACCEPTED | `2026-08-06-func-parallel-execution-system.md` | VIOLATION (no carrier) | — | — |
 | #27 | ACCEPTED | `2026-08-06-tech-adoption-consolidation-intake.md` | carried | [#570] | — |
 | #28 | ACCEPTED | `2026-08-08-func-skills-tier-adoption-and-hub-finish-line.md` | VIOLATION (no carrier) | — | — |
 | #29 | ACCEPTED | `2026-08-08-func-multi-model-execution-and-distillation.md` | carried | [#576] | — |
 | #30 | ACCEPTED | `2026-08-09-func-verification-organ-and-repeatable-execution.md` | VIOLATION (no carrier) | — | — |
-| #31 | ACCEPTED | `2026-08-09-func-code-style-doctrine.md` | VIOLATION (no carrier) | — | — |
+| #31 | ACCEPTED | `2026-08-09-func-code-style-doctrine.md` | carried | [#579] | — |
 | #32 | ACCEPTED | `2026-08-09-tech-compute-placement-and-remote-execution.md` | carried | [#561] | — |
 | #33 | ACCEPTED | `2026-08-12-func-repo-self-description-consolidation.md` | carried | [#571] | — |
 | #38 | ACCEPTED | `2026-08-17-tech-fleet-config-standardization.md` | carried | [#559] | — |
 | #39 | ACCEPTED | `2026-08-17-tech-off-machine-agent-substrate.md` | carried | [#554] · [#561] | — |
+| #65 | ACCEPTED | `2026-09-01-tech-consumer-at-landing-identifier-gap.md` | VIOLATION (no carrier) | — | — |
 | #1 | CONSUMED | `2026-07-06-functional-architect-nightly-loop.md` | — | — | yes |
 | #2 | CONSUMED | `2026-07-06-platform-feature-scan.md` | — | — | yes |
 | #3 | CONSUMED | `2026-07-07-test-suite-hygiene.md` | — | — | yes |
 | #14 | CONSUMED | `2026-07-13-siem-fleet-management-requirements-codex.md` | — | — | yes |
 | #14 | CONSUMED | `2026-07-13-siem-fleet-management-requirements.md` | — | — | yes |
+| #19 | CONSUMED | `2026-07-27-func-operator-design-input-night-shift-handoff-reform.md` | — | — | yes |
+| #26 | CONSUMED | `2026-08-06-func-parallel-execution-system.md` | — | — | yes |
+| #48 | CONSUMED | `2026-08-24-tech-agents-md-admission-vs-adr53.md` | — | — | yes |
 | #11 | SUPERSEDED | `2026-07-11-tech-fleet-divergence-register.md` | — | — | yes |
 | #10 | REJECTED | `2026-07-11-tech-c4-visualization-memo.md` | — | — | yes |
+| #15 | REJECTED | `2026-07-16-satellite-onboarding-prompts.md` | — | — | yes |
+| #64 | REJECTED | `2026-09-01-tech-quota-source-field.md` | — | — | yes |
 
 _Terminal docs (CONSUMED / SUPERSEDED / REJECTED) belong in `docs/intake/archive/` per docs/intake/README.md §5; a bold **no** is one that has not been relocated._
 
@@ -121,18 +128,17 @@ _Terminal docs (CONSUMED / SUPERSEDED / REJECTED) belong in `docs/intake/archive
 
 _Status per ADR, plus the archival candidates. In this repo **Accepted is not an archive trigger** — `docs/decisions/README.md` keys the bar on `Superseded` / `Deprecated` only, so an implemented-and-still-binding ADR correctly stays put. The flag below is a report; no file is moved._
 
-**Status mix:** (unparsed) 1 · **PARKED** 1 · Accepted 81 · Deprecated 1 · Explored, not adopted 1 · Partially superseded 2 · Superseded 1 · open | in-progress | blocked | done 1
+**Status mix:** (unparsed) 1 · Accepted 82 · Deprecated 1 · Explored, not adopted 1 · Partially superseded 3 · Proposed 1 · Superseded 1 · open | in-progress | blocked | done 1
 
-**Header coverage:** 54 rows read with the shared parser (`gen_claude_rosters.collect_recent_adrs`); 34 needed the pre-2026-05 dialect fallback for at least one header field (bare `Status:` / `Date:` + `# ADR-NN — Title`), which the shared parser does not cover — it reads only the last five ADRs, so the dialect has never been in its field of view; 1 sit outside its filename grammar entirely and are INVISIBLE to it (`ADR-43_cross_project_transcript_routing.md`) — not `(unparsed)`, absent. Reported, not repaired.
+**Header coverage:** 56 rows read with the shared parser (`gen_claude_rosters.collect_recent_adrs`); 34 needed the pre-2026-05 dialect fallback for at least one header field (bare `Status:` / `Date:` + `# ADR-NN — Title`), which the shared parser does not cover — it reads only the last five ADRs, so the dialect has never been in its field of view; 1 sit outside its filename grammar entirely and are INVISIBLE to it (`ADR-43_cross_project_transcript_routing.md`) — not `(unparsed)`, absent. Reported, not repaired.
 
 | ADR | Status | Date | Flag | Title |
 |---|---|---|---|---|
 | ADR-41 | open \| in-progress \| blocked \| done | 2026-04-30 | **OFF-ENUM** | Cross-Session Backlog Architecture (BACKLOG.md) |
 | ADR-43 | Accepted | (unparsed) | **OFF-GRAMMAR-FILENAME** | Cross-project transcript routing |
 | ADR-61 | (unparsed) | (unparsed) | **UNPARSED** | Git Worktree Pattern for Parallel Claude Code Sessions |
-| ADR-114 | **PARKED** | 2026-08-22 | **OFF-ENUM** | May a root `README.md` be recreated — and what does substituting a canonical living-doc filename actually cost? |
 
-<details><summary>Full ledger (89 ADRs)</summary>
+<details><summary>Full ledger (91 ADRs)</summary>
 
 | ADR | Status | Date | Home | Read as | Title |
 |---|---|---|---|---|---|
@@ -162,7 +168,7 @@ _Status per ADR, plus the archival candidates. In this repo **Accepted is not an
 | ADR-51 | Accepted | 2026-07-05 | decisions/ | legacy | Architecture Documentation Convention for the `.dev-knowledge` Ecosystem |
 | ADR-51 | Accepted | 2026-05-18 | decisions/ | shared | Architecture Documentation Convention for the `.dev-knowledge` Ecosystem |
 | ADR-52 | ~~Accepted~~ Superseded by ADR-53 | 2026-05-19 | archive/ | shared | AGENTS.md Convention — Cross-Tool Agent-Instruction Contract |
-| ADR-53 | Accepted | 2026-05-19 | decisions/ | shared | CLAUDE.md as Single Canonical Agent-Instruction File |
+| ADR-53 | Partially superseded | 2026-05-19 | decisions/ | shared | CLAUDE.md as Single Canonical Agent-Instruction File |
 | ADR-54 | Accepted | 2026-05-19 | decisions/ | shared | Codex Reviewer Config as Global Standard |
 | ADR-55 | Accepted | 2026-05-26 | decisions/ | shared | Applied-task internalization gate |
 | ADR-56 | Accepted | 2026-05-26 | decisions/ | shared | Inline Prompt Generation Card |
@@ -224,7 +230,9 @@ _Status per ADR, plus the archival candidates. In this repo **Accepted is not an
 | ADR-111 | Accepted | 2026-08-09 | decisions/ | shared | The finding pipeline — every audit finding is triaged into exactly one of four outcomes |
 | ADR-112 | Accepted | 2026-08-12 | decisions/ | shared | Two-tier adoption bar — Tier L evaluates, Tier S tries and keeps or deletes |
 | ADR-113 | Accepted | 2026-08-19 | decisions/ | shared | The L0–L5 maturity ladder is ratified vocabulary — and it is one of three "L" namespaces, not the only one |
-| ADR-114 | **PARKED** | 2026-08-22 | decisions/ | shared | May a root `README.md` be recreated — and what does substituting a canonical living-doc filename actually cost? |
+| ADR-114 | **Accepted** | 2026-08-22 | decisions/ | shared | May a root `README.md` be recreated — and what does substituting a canonical living-doc filename actually cost? |
+| ADR-115 | Accepted | 2026-08-25 | decisions/ | shared | `AGENTS.md` is the portable instruction layer — ADR-53 Decision 2 superseded and the ADR-101 Tier-1 file class amended in ONE act |
+| ADR-116 | Proposed | 2026-08-29 | decisions/ | shared | The fuzzy-band acceptance shape — non-binary closure for decks, prose and judgment artifacts |
 
 </details>
 
@@ -238,20 +246,22 @@ _This dashboard reads the store as a FILE and never imports or calls the emit co
 
 ## Section 5 — Gate health
 
-Last recorded ship-gate composition — source `docs/audits/2026-08-18-technical-batch1-integrator-packet.md`; the `after` column is the standing count.
+Last recorded ship-gate composition — source `docs/audits/2026-08-27-technical-lane-nb-tiering.md`; the `%` column is the standing count.
 
-| WARN class | before | after | delta |
-|---|---|---|---|
-| `doc_rot` | 34 | 6 | -28 |
-| `undeclared_edges` | 18 | 18 | 0 |
-| `no_ff_merges` | 3 | 3 | 0 |
-| `review_artifact_coverage` | 2 | 2 | 0 |
-| `reconciled_versions` | 1 | 1 | 0 |
-| `journal_spine_anchor` | 1 | 1 | 0 |
-| `git_backlog_drift` | 1 | 0 | -1 |
-| `fleet_parity` | 0 | 1 | 1 |
+| WARN class | ms | % |
+|---|---|---|
+| `review_artifact_coverage` | 128428 | 42 |
+| `doc_code_edge` | 36617 | 12 |
+| `undeclared_edges` | 22530 | 7 |
+| `fleet_parity` | 14520 | 4 |
+| `funnel_coverage` | 6219 | 2 |
+| `doc_structure` | 4531 | 1 |
+| `git_backlog_drift` | 3911 | 1 |
+| `stale_worktrees` | 2420 | 0 |
+| `doc_claims` | 82 | 0 |
+| `generated_artifact_freshness` | 0 | 0 |
 
-**Standing WARN total: 32** across 8 classes.
+**Standing WARN total: 69** across 10 classes.
 
 **Commit tax: 290.9 s** (median), measured 2026-08-18 — source `docs/audits/2026-08-18-technical-phase0-baselines.md`.
 
