@@ -216,7 +216,11 @@ def test_headings_outside_fences_are_still_normalized_around_a_tilde_fence() -> 
 # ---------------------------------------------------------------------------
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
-_SKIP_PARTS = {".venv", ".git", "node_modules", "__pycache__", ".pytest_cache"}
+#: `worktrees` (i.e. `.claude/worktrees/*`) holds FULL CHECKOUTS of this repo (ADR-61/[#107]) —
+#: descending into one re-walks a second copy of the whole corpus per live lane, multiplying
+#: this test's cost by (1 + live worktree count) for zero additional coverage: the primary
+#: checkout's corpus is already the whole proof. [#528]
+_SKIP_PARTS = {".venv", ".git", "node_modules", "__pycache__", ".pytest_cache", "worktrees"}
 
 
 def _corpus() -> list[Path]:
