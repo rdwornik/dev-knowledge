@@ -2341,6 +2341,38 @@ _GIT_LOCATION_ENV_EXTRA = _gitenv.GIT_LOCATION_ENV_EXTRA
 _GIT_LOCATION_ENV_FALLBACK = _gitenv.GIT_LOCATION_ENV_FALLBACK
 _git_location_env = _gitenv.git_location_env
 
+# ONE `git log` for ALL candidate bundles, not one per directory. Measured on the live
+# tree before the change: 87 candidates -> 87 process spawns / 26.3 s, inside an
+# `audit.py health` that wall-clocked 82.8 s -- roughly a third of the gate spent asking
+# 87 times a question one pathspec-limited walk answers.
+#
+# CHUNKED above a stated bound rather than unbounded, because argv is finite: Windows caps
+# a command line at 32767 characters, so an unbounded pathspec list turns from a speedup
+# into a crash at some corpus size instead of degrading. The budget below is pathspec
+# bytes only, leaving the `git -C <absolute repo path> -c core.quotePath=false log ...`
+# prefix its own room; at ~51 chars per bundle path it holds ~470 bundles in ONE call,
+# against a live corpus needing ~4.4 KB. So the invocation count is O(chunks) -- driven by
+# argv length, never by candidate count -- and is 1 for any plausible corpus here.
+_BUNDLE_LOG_PATHSPEC_BUDGET = 24_000
+
+
+def _chunk_pathspecs(paths: list[str]) -> list[list[str]]:
+    """Split `paths` into argv-length-bounded chunks. Never splits a single pathspec."""
+    budget = _BUNDLE_LOG_PATHSPEC_BUDGET
+    chunks: list[list[str]] = []
+    chunk: list[str] = []
+    used = 0
+    for p in paths:
+        cost = len(p) + 1                       # +1 for the argv separator
+        if chunk and used + cost > budget:
+            chunks.append(chunk)
+            chunk, used = [], 0
+        chunk.append(p)
+        used += cost
+    if chunk:
+        chunks.append(chunk)
+    return chunks
+
 
 def _select_active_bundle(
     repo_path: Path, candidates: list[Path]
@@ -2414,24 +2446,57 @@ def _select_active_bundle(
         # otherwise a fresh repo with two bundles silently gets the wrong one.
         return None, "ambiguous", ", ".join(sorted(d.name for d in candidates))
 
+    # ONE `git log` over ALL the candidate pathspecs (chunked only above the argv budget),
+    # parsed back into exactly the per-directory add-dates the per-directory form produced.
+    #
+    # No `-1`: git applies -1 BEFORE --reverse, which would yield the NEWEST commit.
+    # %at (author unix seconds) not %aI: an integer cannot misorder across timezone
+    # offsets, and author-date survives a rebase that rewrites committer dates.
+    # --reverse is oldest-first, so the FIRST commit naming a bundle carries its add-date
+    # -- the same value `lines[0]` carried when each directory was walked alone.
+    #
+    # `--name-only` is what makes attribution possible at all: %at gives the commit's date,
+    # the file names say WHICH bundle that commit added. The \x02 sentinel separates the
+    # two, so a filename can never be misread as a timestamp.
+    #
+    # Attribution splits on PATH SEGMENTS, never a string prefix: "2026-07-20-x" is a
+    # prefix of "2026-07-20-x-arc5", and crediting arc5's add-commit to the plain slug
+    # turns the active bundle into a stale one -- the #372 "green about the wrong file"
+    # defect this selector exists to kill, re-entering through the batching door.
+    # `core.quotePath=false` keeps a non-ASCII slug from arriving octal-escaped and
+    # silently unmatchable, which would misreport a tracked bundle as fresh.
+    wanted = {d.name for d in candidates}
+    add_dates: dict[str, int] = {}
+    for chunk in _chunk_pathspecs([f"docs/handoffs/{d.name}" for d in candidates]):
+        out = _run(["-c", "core.quotePath=false", "log", "--diff-filter=A", "--reverse",
+                    "--format=%x02%at", "--name-only", "--", *chunk])
+        if out is None:
+            # The SAME outcome the per-directory form gave a failing `git log`. A batching
+            # optimisation must not change a failure mode, and it must never fall back to
+            # the lexical heuristic -- that fallback IS the defect this function replaced.
+            return None, "degraded", f"batched git log failed for {len(chunk)} bundle path(s)"
+        stamp: Optional[int] = None
+        for line in out.splitlines():
+            if line.startswith("\x02"):
+                try:
+                    stamp = int(line[1:].strip())
+                except ValueError:
+                    return None, "degraded", f"unparseable add-date {line[1:].strip()!r}"
+                continue
+            parts = line.strip().split("/", 3)
+            if stamp is None or len(parts) < 4 or parts[:2] != ["docs", "handoffs"]:
+                continue
+            if parts[2] in wanted:
+                add_dates.setdefault(parts[2], stamp)   # oldest wins: --reverse ordering
+
     fresh: list[Path] = []
     dated: list[tuple[int, str, Path]] = []
     for d in candidates:
-        # No `-1`: git applies -1 BEFORE --reverse, which would yield the NEWEST commit.
-        # %at (author unix seconds) not %aI: an integer cannot misorder across timezone
-        # offsets, and author-date survives a rebase that rewrites committer dates.
-        out = _run(["log", "--diff-filter=A", "--reverse", "--format=%at",
-                    "--", f"docs/handoffs/{d.name}"])
-        if out is None:
-            return None, "degraded", f"git log failed for {d.name}"
-        lines = [ln.strip() for ln in out.splitlines() if ln.strip()]
-        if not lines:
+        when = add_dates.get(d.name)
+        if when is None:
             fresh.append(d)          # untracked, or staged-but-never-committed
-            continue
-        try:
-            dated.append((int(lines[0]), d.name, d))
-        except ValueError:
-            return None, "degraded", f"unparseable add-date for {d.name}"
+        else:
+            dated.append((when, d.name, d))
 
     if len(fresh) > 1:
         return None, "ambiguous", ", ".join(sorted(d.name for d in fresh))

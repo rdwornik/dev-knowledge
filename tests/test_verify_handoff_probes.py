@@ -1394,6 +1394,13 @@ def test_live_probe_template_carries_no_unbounded_row():
 # single `--name-only` walk is only safe if selection is provably UNCHANGED, so the
 # oracle below is a FROZEN copy of the per-directory method and every test in this
 # section asserts the production selector agrees with it.
+#
+# NO `@_needs_git` IN THIS SECTION, deliberately. `scripts/proof_layer.py` ratchets the
+# population of environment-conditional guards against a committed baseline, and its
+# whole point applies here: a proof that can be SKIPPED on the machine where git is the
+# thing under test is not a mechanism. Without git these tests error loudly instead of
+# reporting a green they did not earn. Do not "restore" the decorator for symmetry with
+# the older tests above.
 # ---------------------------------------------------------------------------
 
 
@@ -1522,7 +1529,6 @@ def _dated(n, *, start_day=1):
 # --- done-contract 1: ONE invocation, proven by spawn count ----------------
 
 
-@_needs_git
 def test_selector_issues_one_git_log_regardless_of_candidate_count(tmp_path, monkeypatch):
     """The lane's whole point. 12 candidates must cost ONE `git log`, not 12 - asserted on
     the observed spawn argv list, never on a claim in a docstring."""
@@ -1539,7 +1545,6 @@ def test_selector_issues_one_git_log_regardless_of_candidate_count(tmp_path, mon
     assert len(logs) == 1, f"expected ONE git log for 12 candidates, saw {len(logs)}: {logs}"
 
 
-@_needs_git
 def test_git_log_count_does_not_grow_with_candidate_count(tmp_path, monkeypatch):
     """O(1), not merely 'fewer': 4 candidates and 16 candidates cost the SAME number of
     invocations. A per-directory implementation passes neither arm."""
@@ -1639,7 +1644,6 @@ _SHAPES = {
 }
 
 
-@_needs_git
 @pytest.mark.parametrize("shape", sorted(_SHAPES))
 def test_batched_and_per_directory_selection_agree(tmp_path, shape):
     """Done-contract 2, seeded arm: for EVERY kind the selector can return, the batched
@@ -1659,7 +1663,6 @@ def test_batched_and_per_directory_selection_agree(tmp_path, shape):
         ref_bundle.name if ref_bundle else None), f"{shape}: bundle disagrees"
 
 
-@_needs_git
 @pytest.mark.live_repo
 @pytest.mark.slow
 def test_batched_and_per_directory_selection_agree_on_the_live_tree():
@@ -1689,7 +1692,6 @@ def test_batched_and_per_directory_selection_agree_on_the_live_tree():
 # --- done-contract 3: fresh / ambiguous semantics survive verbatim ----------
 
 
-@_needs_git
 def test_fresh_bundle_still_outranks_every_tracked_one_under_batching(tmp_path, monkeypatch):
     """The uncommitted bundle is the one being generated right now, so it wins over every
     tracked bundle no matter how new. Lexically SMALLEST here, so slug order cannot fake
@@ -1703,7 +1705,6 @@ def test_fresh_bundle_still_outranks_every_tracked_one_under_batching(tmp_path, 
     assert len(_log_calls(seen)) == 1
 
 
-@_needs_git
 def test_staged_but_never_committed_bundle_is_still_fresh_under_batching(tmp_path):
     """`git add`ed by the very pre-commit run validating it - staged is NOT committed, so
     it has no add-date and is still the active bundle."""
@@ -1712,7 +1713,6 @@ def test_staged_but_never_committed_bundle_is_still_fresh_under_batching(tmp_pat
     assert (kind, bundle.name) == ("fresh", "2026-01-02-aaa-staged")
 
 
-@_needs_git
 def test_two_fresh_bundles_still_refuse_to_pick_under_batching(tmp_path):
     """The refusal this selector exists for: two uncommitted candidates -> bundle is None
     and kind is 'ambiguous'. A batched `git log` must not quietly reintroduce a silent
@@ -1727,7 +1727,6 @@ def test_two_fresh_bundles_still_refuse_to_pick_under_batching(tmp_path):
         assert tracked not in detail, "only the FRESH candidates belong in the ambiguity"
 
 
-@_needs_git
 def test_prefix_sibling_slugs_are_not_cross_attributed(tmp_path):
     """'<slug>' and '<slug>-arc5' share a string prefix but not a path segment. If the
     batched attribution credits arc5's add-commit to the untracked '<slug>', the fresh
@@ -1738,7 +1737,6 @@ def test_prefix_sibling_slugs_are_not_cross_attributed(tmp_path):
     assert (kind, bundle.name) == ("fresh", "2026-07-20-x")
 
 
-@_needs_git
 def test_batched_log_failure_degrades_and_never_guesses(tmp_path, monkeypatch):
     """Frozen default 'fall back, do not crash': a failing `git log` takes the SAME outcome
     the per-directory method gives it today - degraded, bundle None, caller WARNs. Never a
@@ -1758,7 +1756,6 @@ def test_batched_log_failure_degrades_and_never_guesses(tmp_path, monkeypatch):
     assert detail
 
 
-@_needs_git
 def test_every_batched_selector_git_call_still_receives_the_scrubbed_env(tmp_path, monkeypatch):
     """The env scrub is a FROZEN default, not an incidental detail: an inherited GIT_DIR
     resolves the guard to the WRONG toplevel and degrades selection to the lexical
@@ -1793,7 +1790,6 @@ def test_every_batched_selector_git_call_still_receives_the_scrubbed_env(tmp_pat
 # --- frozen default: chunk above a stated bound, still O(chunks) ------------
 
 
-@_needs_git
 def test_pathspec_chunking_is_bounded_by_argv_budget_not_candidate_count(tmp_path, monkeypatch):
     """Windows caps a command line at 32767 chars, so an unbounded pathspec list is a
     crash waiting for a big enough corpus. Chunking keeps it O(chunks): with the budget
