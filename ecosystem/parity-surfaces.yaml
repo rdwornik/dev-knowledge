@@ -985,7 +985,13 @@ surfaces:
         # item 2). Hub-only for now -- they are listed here rather than in `expected_all`
         # because no consumer has been given the batch protocol yet; rolling them out is a
         # separate decision, and an expected_all row would manufacture a fleet-wide gap.
-        .dev-knowledge: [handoff.md, handoff-verify.md, save.md, changelog-review.md, preflight.md, lane-boot.md, lane-integrate.md]
+        # boot-session (R5 dispositioning window, bundle B9, ruled 2026-09-05): declared TWICE
+        # in deploy/manifest-v1.5.0.yaml
+        # and listed in .claude/methodology-roster.md, but this probe reads NEITHER -- it reads
+        # only this list, so the command measured as an undeclared extra. It joins expected_repo
+        # rather than expected_all for the same reason as the two above: v1.5.0 is not deployed
+        # anywhere yet, so an expected_all row would RED every consumer at once.
+        .dev-knowledge: [handoff.md, handoff-verify.md, save.md, changelog-review.md, preflight.md, lane-boot.md, lane-integrate.md, boot-session.md]
     ownership:
       value: methodology-generic
       reason: "The command-roster closure (MUST both) -- methodology-owned governance construct asserting every command file has a covering row; methodology machinery."
