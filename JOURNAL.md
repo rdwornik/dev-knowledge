@@ -19,6 +19,73 @@
 
 ---
 
+### 2026-09-05 (b) - CC (Opus 5): a non-Claude reader fabricated nothing, and verification still overturned a quarter of what it said
+
+**Anchors:** `780297df`
+
+**Did:** ran corpus-coherence candidate (g) - one structured, retrieval-only question to Gemini
+3.1 Pro (High) via the `agy` CLI over 2,438,199 B of corpus (CLAUDE.md, AGENTS.md, README.md,
+ARCHITECTURE.md, `protocols/**`, 89 ADRs, LESSONS.md), then re-opened every returned locator on
+disk. Read-only: no corpus file was modified, and `git diff main HEAD` is exactly the one audit.
+
+**ZERO FABRICATIONS, AND THAT IS THE LESS INTERESTING HALF.** Four findings, six locators, all six
+EXACT against the file at the stated 1-indexed line. The prompt made verbatim line-text mandatory
+and told the reader a mismatch would be *counted* as a fabrication; that constraint is doing real
+work and should survive into any re-run. But locator-exactness is not claim-correctness, and
+re-testing the substance moved two of the four: C1 and D1 came out STRONGER than the reader framed
+them, and N1 did not survive at all.
+
+**THE READER'S BEST FINDING WAS BETTER THAN IT KNEW.** ADR-29's 2026-07-17 amendment (`:122`)
+declared a cross-doc reconciliation set explicitly *atomic with ratification*, and `:126` records
+it ratified. Four surfaces landed - `CLAUDE.md:89`, `ARCHITECTURE.md:322-325` and `:957`,
+`PLAYBOOK.md:5347`, the ADR index. The fifth did not: `LESSONS.md:5` still reads "Never delete.",
+which is the file the rule actually governs. Not a timing miss either - `LESSONS.md:6` stamps
+"Last updated: 2026-08-03", so the file was edited after ratification and the stale header
+survived the edit. An operator reading the file's own header is told the sanctioned move is
+forbidden, which is the precise outcome `:122` was written to prevent.
+
+**A DUPLICATION FINDING WAS REALLY A CONTRADICTION.** `CLAUDE.md:63` and `AGENTS.md:69` both carry
+never-commit-to-`main` + `--no-ff`, and `CLAUDE.md:41` asserts of exactly these two files that "No
+fact is duplicated across the two". `CLAUDE.md` imports `AGENTS.md` at `:43`, so both clauses load
+into one context. The duplication falsifies an invariant stated 22 lines above it.
+
+**THE ONE FALSE POSITIVE WAS CAUSED BY A GLOB.** ADR-83 was reported as cited by nothing; it has
+214 inbound references, including `docs/decisions/README.md:117`, the canonical ADR index. The
+reader's own stated grep scoped to `docs/decisions/ADR-*.md`, which excludes that index. Locator
+held, so not a fabrication - a false positive, and a lesson that category (4) needs the citation
+surface named rather than a glob.
+
+**THE DEFECT THE READER DID NOT REPORT WAS ITS OWN PROVENANCE.** It cited greps as evidence
+("grep -i 'wip' scripts/* tests/*"). The CLI log records 10 auto-approved tool confirmations - 9
+`ListDir`, 1 `ViewFile`, zero `GrepSearch`. The log does not record paths, so this is not proof
+that no search ran by another route, but no evidence of those greps exists and they should be read
+as intent, not as executed commands. Its coverage note ("opened and checked all 108 files") is an
+overclaim on arithmetic alone: 383,742 input tokens against a ~610k-token corpus. Precision was
+excellent; recall and self-report were not. **Forward rule for this lane: re-test every NEGATIVE
+claim independently.** U1 survived that re-search; N1 died in it.
+
+**A SKIP WAS AVAILABLE AND WAS THE WRONG LEVER.** `audit-health` refused the commit on
+`journal_spine_anchor` (3 entries). The split diagnostic said gap-in-my-tree / empty-against-main
+= lane tree-lag, not a real foreign gap, so the remedy was `git merge --ff-only main` (lane had
+zero commits, no merge commit created), not a declared bypass. Green in both trees afterwards; the
+commit passed the full mesh with no `SKIP` and no `--no-verify`. The sync-merge moved
+`PLAYBOOK.md`, so every locator was re-verified a second time at the new tip - all six still exact.
+
+**Result:** candidate (g) is worth keeping, with the verification leg mandatory rather than
+optional. Value came from pulling the reader's threads, not from its returned text.
+
+**Changes:** `docs/audits/2026-09-05-technical-corpus-coherence-gemini.md` (new, 204 lines);
+this entry. No corpus file touched.
+
+**Abandoned:** running `agy` from inside the worktree - the bg isolation guard refuses an unknown
+binary carrying a large literal argument, in every quoting form tried. Ran the read-only CLI leg
+from the primary checkout and re-entered the worktree to write and commit.
+
+**Next:** the three owed follow-ups are filed in the audit, not executed - reconcile `LESSONS.md:5`
+with the ratified amendment (hub-canonical, operator ruling); resolve the `CLAUDE.md:63` /
+`AGENTS.md:69` overlap or amend the `:41` claim; rule on whether `PLAYBOOK.md:666` gets a
+`commit-msg` mechanism or is marked advisory.
+
 ### 2026-09-05 (a) - CC (Opus 5): four consented rulings, and a commit that landed on main while the gate that forbids it correctly said no
 
 **Anchors:** `7e7402d5`, `7b3ba003`, `7f75033b`
