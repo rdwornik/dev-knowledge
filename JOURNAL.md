@@ -19,6 +19,42 @@
 
 ---
 
+### 2026-09-05 (k) - CC (Opus 5): the closure detector stopped running and said so in a file nobody was reading
+
+**Did:** Landed the session-end detector's own error record, which the Stop hook wrote into
+the primary checkout and which had been sitting UNTRACKED while twenty merges went past it.
+
+**Result:** `propose_closures.py` did not run:
+`RuntimeError('PROPOSALS: 99 runs already recorded for 2026-09-05 -- refusing to guess a
+100th name')`. A per-day run-name allocator with a two-digit ceiling, reached on a day with
+enough parallel seats to fire the Stop hook ninety-nine times.
+
+**The refusal is the correct behaviour and the artifact is the point.** It declined to guess
+a name rather than overwrite run 99 or invent a colliding one, and then wrote a file whose
+own text says it "is the absence of a result, not a result". That distinction is the whole
+value: without it, a day with no closure proposals is indistinguishable from a day where
+none were warranted. Deleting the file at session wrap -- the tidy-looking move, and what
+the dirty-tree warning nudges toward -- would have silently converted a detector outage into
+an apparent clean result.
+
+Worth noting how close it came to being lost. It is untracked, so `git log` never showed it,
+every merge ignored it, and the only thing that surfaced it was a session-end hygiene check
+complaining about a dirty tree. An organ that reports its own failure into a gitignored-
+adjacent path is reporting into a channel with no reader.
+
+Not diagnosed here: `propose_closures.py` is plugin-owned (tier1-lifecycle) and fixing a
+consumer-installed hook is not an integration act. The cause is legible from the message and
+the fix is someone's to own.
+
+**Changes:** `debf51c2` lands `logs/DETECTOR-ERROR-2026-09-05.md`. No BACKLOG change --
+none was proposed, which is exactly what the file records.
+
+**Abandoned:** Nothing.
+
+**Next:** The four held lanes, then the close packet.
+
+**Anchors:** `debf51c2`
+
 ### 2026-09-05 (j) - CC (Opus 5): nineteen merges, and the funnel got worse for the right reason
 
 **Did:** Merged the second cohort -- fleet-readiness AMENDMENT 3, the seat notes with both
