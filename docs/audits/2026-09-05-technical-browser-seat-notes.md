@@ -383,3 +383,82 @@ second finding, downgraded on the evidence. Terra's clean verdict on the immutab
 that AMENDMENT 3 **supersedes** AMENDMENT 2's `F` label rather than erasing it — is recorded
 here because it is the property these markers exist to preserve. As before, **nothing here is
 triaged by this lane** and no backlog row is born from it.
+
+---
+
+## AMENDMENT 5 — WITHDRAWING AMENDMENT 4's "not G" defence (2026-09-05)
+
+> **Same shape as 1-4.** The seat's register and AMENDMENTs 1-4 are untouched; this marker is
+> appended below them. The verbatim body is still the contiguous region from
+> `# BROWSER SEAT NOTES` to the blank line preceding AMENDMENT 1's `---` rule, still
+> `sha256 685633c33c49c7d37de5dba70f3162d4d1841a98b12896ee8d28ee465f06b196`.
+
+### What is withdrawn
+
+**AMENDMENT 4 §2's "Not G" bullet is WITHDRAWN. It was wrong.** It argued that #22 could not
+be class G because *"a carrier exists — `--lane`, already called by `/lane-boot`"*. Also
+withdrawn: §1's *"Nothing needs building."*
+
+The defence treated **"a checker exists somewhere in the repo"** as equivalent to **"a carrier
+exists."** Those are not the same thing, and on the first reading **class G is empty** — every
+rule anyone troubled to write a checker for would escape it regardless of whether the checker
+is wired to anything. A class that cannot be populated is not a class, and G was admitted
+three amendments earlier precisely to name rules that nothing can refuse.
+
+Raised as a HIGH by terra's pre-merge review of AMENDMENT 4 and sharpened by the integrator,
+who found that the checker is wired into **no** gate at all — not merely that it fires late.
+Verified here rather than relayed.
+
+### The evidence, and it was already written down
+
+The decisive statement is in the repo's own code. `scripts/batch_manifest.py`, in its posture
+notes, says:
+
+> *"The grammar is enforced **NOWHERE AT PROVISIONING**. `validate_branch_naming` is read-only
+> and **wired into no gate** (its own posture note), and a batch lane dispatched straight
+> through `claude --worktree <name>` **never passes `/lane-boot` step 1**. So an off-enum lane
+> name is still creatable…"*
+
+Independently confirmed: `validate_branch_naming` is referenced from `batch_manifest.py`,
+`gen_lane_contract.py`, `validate_substrate.py`, `worktree_seed.py`, three test modules,
+`AGENTS.md` (as a *"Checkable surface"* — a description, not a gate), and
+`.claude/commands/lane-boot.md`. It appears in **no** pre-commit hook, **no** session hook and
+**no** `audit.py` check. Every consumer **imports its regex**; none of them **refuses** on it.
+
+**The witness that settles it is this lane itself.** These notes were landed by a lane
+dispatched as `claude --worktree docs-seat-notes` — exactly the path the posture note names as
+bypassing `/lane-boot` step 1. So the sole invocation of the "carrier" was skipped, in the very
+session that argued it was one. A carrier you can decline by choosing a different dispatch verb
+is not a carrier; it is a convention with a helper script.
+
+### What this does to §1's mechanism
+
+§1's mechanism survives in *direction* and is **weaker than it was written**. Moving the check
+to freeze puts an ungated checker inside `preflight_contract.py`, which §1 already recorded as
+**"wired into no gate"**. That composes **two** ungated organs and still yields nothing that can
+refuse. The honest form: the fix requires **ARMING** something — the relocation alone is
+necessary and not sufficient. §1's *"Nothing needs building"* was true of the *regex* and false
+of the *enforcement*, and the distinction is the whole point of the class.
+
+### What this lane does NOT do
+
+**It does not reclassify #22.** The enforcement facts point at G under its "unenforceable"
+limb, and the integrator's observation is the sharpest reading available — *a grammar with a
+checker nobody runs is precisely a rule without a carrier*, which would make **#22 the best
+worked example G has**. But classification belongs to the register's owner, not to an executor
+and not to a gate, and this lane declining to self-rule the F-collision in AMENDMENT 2 is the
+precedent it is following.
+
+**Routing, stated because the adjudicator has changed:** the FILINGS seat that ruled G has
+**exited**. This question therefore routes to a fresh FILINGS seat or to the operator via
+`to-browser\STATUS.md`, alongside the other owed acts recorded there — not back to a session
+that is gone. Two live options are on the table and both are defensible: **(1)** reclassify
+#22 as G; **(2)** keep A for the authoring error and file the enforcement gap as a **separate**
+G-shaped defect, on the ground that "the author did not resolve a knowable grammar" and
+"nothing could have refused the result" are two true statements about one event.
+
+**A note for whoever rules it.** The pending admission bar this exchange produced — *a class
+that does not change what the fix has to look like is a label, not a class* — is itself
+evidence for option (2): A and G here imply **different fixes** (resolve the locator at freeze
+vs. arm an organ), which by that bar makes them genuinely different classes rather than rival
+labels for one defect. That is an argument, not a ruling.
