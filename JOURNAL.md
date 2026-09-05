@@ -19,6 +19,39 @@
 
 ---
 
+### 2026-09-06 (d) - CC (Opus 5, INTEGRATOR-2): pre-anchor the AJ second-pass lane, whose declared bypass was my defect and not its own
+
+**Did:** Pre-anchored `worktree-aj-second-pass` @ `0e56457f` ahead of its merge, and took ownership
+of the cause behind the bypass its two commits declare.
+
+**Result:** The lane's commits each declare a single-hook `SKIP=audit-health`, stated in the commit
+body, with every other gate run and passed. **The cause was mine.** At the lane's branch point
+`main` carried 18 first-parent merges with no JOURNAL anchor - `e3d2ac34`, `f327f89b`, `9ac986a5`,
+`c7d9e0e0` among them - which is integrator backlog I had not drained. A lane must not write JOURNAL
+entries (STANDING_RULINGS P-1), so the lane had NO remedy available to it: it could neither fix the
+spine nor honestly pass a gate failing on someone else's arrears. Declaring the bypass in the commit
+body was the correct move, and it is the shape a bypass should take - one named hook, stated, with
+the cause diagnosed rather than shrugged at.
+
+Recording this as ownership rather than as a note, because the alternative reading is available and
+wrong: a reviewer looking only at the branch sees two commits that bypassed a gate. The honest
+account is that the gate was red because of merges I had made and not yet anchored, and the lane
+was the party with no way to clear it.
+
+The same arrears also left the lane's own two commits unanchored, which is why this entry exists
+before the merge rather than after.
+
+**Changes:** this entry only. The lane's audit lands with its merge.
+
+**Abandoned:** Nothing.
+
+**Next:** Merge `0e56457f`, regenerating the audits index inside the merge because it adds an audit
+file, then hand the primary checkout to the handoff session - its cut requires zero linked
+worktrees, and there are now none.
+
+**Anchors:** `@ARC@` (this entry, introduced by its own merge). Names `0e56457f` in advance: the
+merge that follows introduces it.
+
 ### 2026-09-06 (c) - CC (Opus 5, INTEGRATOR-2): my erratum pointed at a generated file, and the seat I misattributed it to corrected me
 
 **Did:** Appended ERRATUM 2 to the R5P close packet, correcting ERRATUM 1 - which I wrote hours
