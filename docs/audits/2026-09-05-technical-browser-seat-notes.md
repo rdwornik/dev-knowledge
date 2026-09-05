@@ -587,3 +587,26 @@ re-deriving a disposition the same marker says belongs to the register's owner.
 it. It is worse on an immutable file: the number cannot be corrected in place, and the next
 amendment falsifies it permanently. **The total is the register's own rows plus those added by
 its amendments.**
+
+---
+
+## AMENDMENT 8 — §5 is non-dispositive, and the citation is OWED (2026-09-05)
+
+> Same shape as 1-7; the body and every prior marker are untouched. The verbatim body is
+> still the contiguous region from `# BROWSER SEAT NOTES` to the blank line preceding
+> AMENDMENT 1's `---` rule, still
+> `sha256 685633c33c49c7d37de5dba70f3162d4d1841a98b12896ee8d28ee465f06b196`.
+
+**1. AMENDMENT 6 §5 is NON-DISPOSITIVE ANALYSIS.** Its *"Ruled form"* label is **withdrawn**:
+the ruling recorded in §2 dispositions the two defects' classes and says nothing about the
+order of their fixes, so the *"the A-fix is BLOCKED ON the G-fix"* dependency is this lane's
+analysis, not the owner's ruling, and binds nothing.
+
+**2. The provenance claim in AMENDMENT 7 §1 is a debt, DECLARED not discharged.** The ruling
+reached this lane as a **cross-session message** and has no durable record anywhere in the
+repo — not in `protocols/STANDING_RULINGS.md` §AD, not in any artifact a reader of `main` can
+resolve. A7 named the speaker but supplied no locator because none exists to supply.
+**The citation is owed once the §AD owner lands the ruling**; until then this file asserts a
+provenance the record cannot yet support, and says so rather than implying otherwise. A
+binding ruling living only in chat is a governance gap, not a defect of this file, and closing
+it is not this lane's to do.
