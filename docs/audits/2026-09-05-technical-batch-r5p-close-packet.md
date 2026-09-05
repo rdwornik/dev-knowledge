@@ -228,3 +228,53 @@ stated, and `batch_manifest` belongs to a different batch entirely.
 - It does not claim the `worktree-filings-3` directory husk was removed. Registration, local branch
   and origin branch are all clean and verified at zero refs; the directory refused with
   `Permission denied` while a process held it, and only that process can free it.
+
+---
+
+## ERRATUM 1 — two corrections, appended because this file is now on `main` (2026-09-06)
+
+*The packet's own header states the boundary: corrections before landing are authoring, corrections
+after landing ride as an appended marker. This file landed at `b76806e4`, so both corrections below
+are appended and nothing above is edited. The header predicted this shape; this is it being used.*
+
+**§3 — "taken at close, on a stable tree, after the last merge" is imprecise about WHICH merge.**
+The batch-level figures were measured on `main` at `3a2391fb`, which was the last merge *at the
+time of measurement*. The close-packet merge `b76806e4` followed. A close packet structurally cannot
+measure a tree that already contains its own landing, so the gap is unavoidable — but the sentence
+as written implies otherwise, and the honest statement is the basis SHA.
+
+**Partially re-verified after `b76806e4`, and the limit of that check is stated rather than
+papered over.** Five targeted outcomes were re-measured on the landed tree — the organs a newly
+added audit file could plausibly move: `test_gen_audit_index` PASSES, `test_funnel_coverage`
+PASSES, and `test_consumer_at_landing`, `test_validate_doc_rot` and `test_batch_manifest` fail
+exactly as §7 records, same three, same reasons.
+
+**Those five outcomes are re-verified. The aggregate `21 / 4967` is NOT.** It was measured at
+`3a2391fb` and has not been re-measured since; the remaining ~4990 results are unchecked against
+the landed tree. A docs-only merge adding one audit file is unlikely to move them, but that is an
+EXPECTATION, not a measurement, and the difference is the whole subject of §6. Anyone needing the
+aggregate for the landed tree should re-run the suite rather than cite this figure.
+
+**§4 — the intake range `#65–#70` cites an id that resolves to TWO documents.**
+Reported by the R5P dispatcher and verified here against `main`:
+`docs/intake/README.md` carries `#70` twice —
+`2026-09-05-tech-aj-second-pass.md` and `2026-09-05-tech-session-roles-with-a-carrier.md`.
+Maximum id is 71.
+
+This matters beyond tidiness: an intake number is the citation handle the whole ADR-111 funnel uses
+(CANDIDATE → intake `#n` → ratification), so a collided id means "intake #70" no longer names one
+thing, and a pattern matching `intake #<n>` will match either. **The §4 correction still stands** —
+the two documents L4 could not find do now exist and resolve; it is only the last id of the cited
+RANGE that is ambiguous.
+
+**It also revises a rule this packet relied on.** The dispatcher's derivation — intake number =
+ordinal position in `docs/intake/` sorted by name, plus 10 — held against two live citations when
+it was made, and a duplicate proves the number is **not** a pure positional function. Whoever files
+next should **read the maximum id from the index and check for collisions**, not compute an ordinal.
+The dispatcher volunteered this correction against its own earlier finding, unprompted and after
+its batch had closed.
+
+**Filed as a CANDIDATE, not a row** — R5P-C2, alongside R5P-C1 in §5, and subject to the same
+route: intake (ADR-98) → ratification (ADR-111). No row is created here, and the collision is left
+unrepaired on purpose: renumbering a live citation handle is not an integrator's unilateral act at
+batch close.
