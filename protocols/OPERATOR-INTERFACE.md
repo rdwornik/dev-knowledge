@@ -36,9 +36,11 @@ Two consequences a seat can act on directly:
 kept as written; the constant below is what a seat acts on. Downloads remains the documented
 fallback, and nothing else in this section changes.
 
-    prompts dir  : $env:CLAUDE_PROMPTS_DIR = "H:\My Drive\CLAUDE PROMPT DIR" (Google Drive,
-                   synced by Drive for Desktop; the browser reads/writes it via the Drive
-                   connector)
+    prompts dir  : $env:CLAUDE_PROMPTS_DIR (User scope; currently a Google Drive folder
+                   synced by Drive for Desktop, which the browser reads/writes via the Drive
+                   connector). THE VARIABLE IS THE SOURCE. The folder's location is the
+                   operator's and may change without this file changing; a seat that hardcodes
+                   a path has substituted a fact it cannot keep current for one it can resolve
     to-cc\       : browser to CC. Contracts, pastes, ARCHITECT-INBOX-<date>-<NNN>.md
     to-browser\  : CC to browser. Delivered artifacts (plain copies, same filename) and inbox
                    copies with a DONE <sha> line per item — the browser's ONLY witness that an
