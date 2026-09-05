@@ -96,7 +96,7 @@ So that "spec bumped, dependent partially updated, caught only because a human r
 - [#166] [P3][M] doctrine_enforcement_coherence check · DEFER · tasks/166-doctrine-enforcement-coherence-check.md
 - [#181] [P2][S] Coherence v2 nudge-response · DEFER · tasks/181-coherence-v2-nudge-response.md
 - [#220] [P2][M] MODIFY / semantic-drift axis · DEFER · tasks/220-modify-semantic-drift-axis.md
-- [#241] [P2][S] Undeclared-edge groom · DEFER · tasks/241-undeclared-edge-groom.md
+- [#241] [P2][S] Undeclared-edge groom · tasks/241-undeclared-edge-groom.md
 - [#457] [P2][S] Two live-repo tests fail on main against green gates — test-vs-organ mismatch · tasks/457-inherited-live-repo-test-failures.md
 - [#477] [P2][S] `deployed_methodology_version` keys the registry by repo-root BASENAME — a clone named `dev-knowledge` cannot find `.dev-knowledge` · tasks/477-deployed-version-check-keys-registry-by-basename.md
 - [#478] [P2][S] `changelog_sentinel` drops PEP 440 suffixes — a prerelease as the reviewed value silences the sentinel permanently · tasks/478-changelog-sentinel-drops-pep-440-suffixes.md
