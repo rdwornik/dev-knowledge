@@ -78,7 +78,7 @@ def write_trace(*, lane: str, contract_path: Path, skeleton_path: Path,
         effort=effort,
     )
     out_path = out_dir / f"{on.isoformat()}-{lane}.md"
-    out_path.write_text(body, encoding="utf-8")
+    out_path.write_text(body, encoding="utf-8", newline="\n")
     return out_path
 
 
