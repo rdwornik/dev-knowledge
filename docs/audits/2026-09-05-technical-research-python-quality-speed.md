@@ -325,7 +325,7 @@ generate_organ_index.py         846    679    35     1      19     186
 single_flight.py                837    603    24     1      25     106
 ```
 
-### §1.2 Every function over 60 lines — the top of 89
+### §1.2 Every function over 60 lines — all 89
 
 ```
 module                        function                          line   lines   CC
@@ -336,7 +336,7 @@ fleet_parity.py               collect_facts                     597     201    8
 gen_task_tree.py              _scan_source                     1105     172    38
 gen_lane_contract.py          render_contract                   504     170    12
 single_flight.py              release                           594     164    25
-generated_artifact_freshness  measure                           362     162    27
+generated_artifact_freshness.py measure                         362     162    27
 fleet_parity.py               load_manifest                     269     159    56
 audit.py                      check_review_artifact_coverage   4488     153    35
 audit.py                      _commit_routine_outputs          5530     146    19
@@ -352,9 +352,79 @@ audit.py                      run_checks                       5183     118    2
 nopack_sandbox.py             run_guarded                      2120     117    26
 archive_row_body.py           verify                            768     112    21
 audit.py                      check_journal_spine_anchor       4181     112    21
+archive_row_body.py           parse_record                      387     108    32
+preflight_contract.py         verify                            316     108    23
+telemetry_emit.py             emit_event                        552     106    22
+gen_task_tree.py              find_incoherences                1001     102     8
+audit.py                      _select_active_bundle            2345      99    22
+audit.py                      cmd_run                          5717      98    20
+nopack_sandbox.py             main                             2343      98    20
+verify_handoff_probes.py      _classify                         575      97    24
+archive_row_body.py           relocate                          629      94    20
+audit.py                      cmd_ship_gate                    6003      93    15
+validate_substrate.py         validate_contract                 555      93    18
+audit.py                      check_handoff_probes             2447      90    18
+audit.py                      check_stale_worktrees            1861      88    10
+audit.py                      check_preflight_backlog_ids      4349      87    15
+funnel_coverage.py            _main                             686      87    16
+nopack_sandbox.py             parse_pipeline                   1428      87    17
+audit.py                      _ratchet_findings                3489      86    14
+fleet_analytics.py            parse_numstat_stream              223      86    19
+validate_adr_status.py        parse_status_fields               300      86    21
+preflight_contract.py         check_cited_ids                   811      84    18
+funnel_coverage.py            ratchet_findings                  580      83    10
+single_flight.py              claim_token                       509      83    16
+gen_trend_dashboard.py        collect_commit_gate               621      81     9
+audit.py                      supplement_fold_violations       2584      80    14
+audit.py                      check_hooks_armed                1954      78    15
+archive_row_body.py           main                              888      77    17
+fleet_parity.py               resolve_fleet                     479      77    17
+validate_adr_status.py        index_effective_status            528      76    24
+verify_handoff_probes.py      main                              702      76    27
+audit.py                      _git_linked_worktrees            1705      75    16
+audit.py                      derive_doc_freshness             1284      72    19
+audit.py                      check_doc_code_edge              2889      72    11
+audit.py                      check_task_tree_coherence        3654      71     8
+audit.py                      check_canonical_freshness        1423      70     4
+desired_state_loader.py       _assemble_repos                   223      70    16
+gen_task_tree.py              write_tree                        491      70    15
+propose_closures.py           render                            177      70    11
+propose_closures.py           main                              510      70    14
+gen_intake_tree.py            evaluate                          369      69    13
+gen_trend_dashboard.py        main                             1296      69    14
+file_purpose_graph.py         _load_tasks                       643      68    18
+file_purpose_graph.py         _load_consumer_at_landing         557      67    17
+gen_lane_contract.py          _check_manifest_contract_agree.  1042      67    11
+nopack_sandbox.py             _screen_git                      1827      66    26
+audit.py                      check_fleet_audit_replication    3816      65    10
+audit.py                      cmd_health                       5900      65    15
+fleet_parity.py               main                             1985      65    12
+nopack_sandbox.py             provision                         983      65     9
+audit.py                      _diff_index                      1106      64    10
+audit.py                      check_doc_claims                 2074      64    16
+cloud_provisioning.py         seed_self_registration            692      64    10
+fleet_parity.py               render_digest                    1749      64    17
+validate_doc_claims.py        reconcile                         185      64    13
+audit.py                      check_membership_agreement       4115      63    12
+funnel_coverage.py            measure                           438      63    15
+gen_task_tree.py              main                             1662      63    15
+nopack_sandbox.py             _load                            2443      63    10
+safe_remove.py                evaluate_removal                  180      63    16
+audit.py                      check_supplement_folded          2666      62    17
+audit.py                      check_funnel_lifecycle           4745      62     5
+check_provider_registry.py    check_s31_council_panel           255      62    15
+fleet_parity.py               verdicts                         1007      62    12
+fleet_parity.py               emit_events                      1829      62    12
+proof_layer.py                scan_guards                       363      62    22
+enforcement_coverage.py       _freshness_fire                   609      61    12
+file_purpose_graph.py         _load_deploy_manifest             771      61    22
 ```
 
-The remaining 66 are in `census.json`; the full list regenerates from the same AST pass.
+That is the complete set of 89. By module: `audit.py` **25**, `fleet_parity.py` 8, `nopack_sandbox.py` 7,
+`gen_task_tree.py` 5, `archive_row_body.py` 4, `gen_lane_contract.py` 3, the rest one or two each.
+`audit.py` contributing the most long functions while holding a mean CC of ~7 is §1.3 restated: it is long
+and broad, not deep. (`gen_lane_contract._check_manifest_contract_agree.` is truncated for column width;
+the full name is `_check_manifest_contract_agreement`.)
 
 ### §1.3 The finding that matters: length and complexity are different populations
 
