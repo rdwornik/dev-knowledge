@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-09-02
+last_reviewed: 2026-09-05
 reconciled_with: handoff-process@7.0.0
 status: active
 owner: Rob
@@ -162,6 +162,7 @@ Pre-commit (`.pre-commit-config.yaml`) — HUB-ONLY unless the row says otherwis
 - `claude-rosters-freshness` — the two `@`-imported `.claude/generated/` fragments
 - `audit-index-freshness` — generated `docs/audits/README.md`
 - `organ-index-freshness` — generated `ecosystem/organ-index.md`; a stale index is worse than none
+- `doc-counts-pytest-freshness` — the collected-test-count claim, at commit time
 - `validate-hermetization` — ADR-101 tree-seal refusal on staged ADDs: top-level/genre seal, audit-name grammar, home allowlist
 - `audit-title-gate` — every indexed audit carries a `# ` heading; ratchet, 20 grandfathered
 - `intake-index-freshness` — generated Contents block in `docs/intake/README.md`
@@ -219,17 +220,19 @@ Machine-enumerated, last 5 by number (`gen_claude_rosters.py --write`). Editoria
 > **[REPO - local]** region `section-history` - this repo owns these lines.
 <!-- methodology:start id=section-history owner=repo -->
 
-> _Entries v1.0–v2.70 condensed to git history per ADR-49/65 (info-preserving — full prior history: `git log --follow -p -- CLAUDE.md`); v2.69 joined 2026-09-01 to make room under the byte cap, v2.70 joined the same day for the same reason ([#614] lane-e-5); ledger: `docs/audits/2026-08-29-technical-claude-md-regenre.md`._
-
-- v2.71 (2026-09-01, DC-3 split — Acts TWO + THREE only) — **genre purification by relocation; the ESSENTIALS act is deliberately NOT here.** Act One (dissolving `protocols/ESSENTIALS.md`) was refused by ruling 1 and re-filed as `[#628]`, fleet-coupled and sequenced with v1.5.0 — so ESSENTIALS and every citation of it stand. Landed: Act TWO (the branch-prefix enum and the TUI formatting rationale shrink to point-of-use bullets, provenance relocated to PLAYBOOK Ch3/Ch8; both `ObsidianVault/` clauses deleted per CUT-2) and Act THREE (`VISION.md` out of §2 and §4, DC-1 having retired it from `CANONICAL_MANDATORY`). 24,387 B → 24,282 B. One inherited defect fixed: the new bullet cited a "Mermaid/diagram carve-out" at a PLAYBOOK subsection that did not contain one — a relocation to an unverified destination, which is the failure this genre exists to prevent. Ledger: `docs/audits/2026-09-01-technical-dc3-split.md`.
-
+> _Entries v1.0–v2.71 condensed to git history per ADR-49/65 (info-preserving — full prior history: `git log --follow -p -- CLAUDE.md`); v2.69 joined 2026-09-01 to make room under the byte cap, v2.70 joined the same day for the same reason ([#614] lane-e-5), v2.71 joined 2026-09-05 to make room for v2.74; ledger: `docs/audits/2026-08-29-technical-claude-md-regenre.md`._
 
 - v2.72 (2026-09-01, integrator micro-act) — **ESSENTIALS DE-BLESSED, correcting v2.71.** v2.71 said that act was *deliberately NOT here* and that *every citation stands* — true then, false now. This file sends no session to `protocols/ESSENTIALS.md`: five sites reworded, four of them hub regions moved in lockstep with `templates/claude-regions/`. **No deletion** — the body stays, `status: superseded`, and `[#628]`'s fleet-coupled dissolution is still owed. Caught by terra, not by the author.
 
 - v2.73 (2026-09-01, [#614] lane-e-5) — `VISION.md` relocated to `docs/archive/VISION.md` at the hub, ADR-114 option (C)'s step one; §5 rule 5's VISION mention re-pointed in the same commit. v2.70 condensed to git history to hold the byte cap.
 <!-- methodology:end id=section-history -->
 
+- v2.74 (2026-09-05, integrator) — §9 gains `doc-counts-pytest-freshness`; the
+  `precommit_hook_roster` claim requires it. Re-stamped after an end-to-end re-read:
+  byte cap, ESSENTIALS `status: superseded`, the 23/23 §9 roster, all four @-imports,
+  `docs/archive/VISION.md` and `README.md` all verified live, not assumed.
+
 ---
 
-**Last updated:** 2026-09-01
+**Last updated:** 2026-09-05
 **Maintained by:** Rob
