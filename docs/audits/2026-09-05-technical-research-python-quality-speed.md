@@ -63,6 +63,21 @@ substance of two candidates, not their wording.
 
 ## §0 — The measured split (I/O vs CPU, seconds)
 
+**Model used, per section** (the brief asks this be stated here): **§0 and §1 on Opus 5**
+(`claude-opus-5[1m]`), the default worker — instrumentation, census and arithmetic. **§2, §3 and §4 drafted
+on Fable 5.1** (`claude-fable-5-1`), the strongest model this CLI exposes, **then re-based and corrected on
+Opus 5**. The full routing table, including the three corrections applied to the Fable drafts, is in *Model
+routing, per section* above.
+
+**Answering §0 of the brief directly.** The ACCEPTED intake is `docs/intake/2026-08-09-func-code-style-
+doctrine.md` (intake-id 31, `status: ACCEPTED`, decided at the batch-4 planning GO 2026-08-11). **Its status
+is: text only. No skill and no check enforces any part of it.** Its §A doctrine is written and ratified but
+gated nowhere; its §B mechanism stack is unadopted — ruff runs its default rule set, and every other tool §B
+names (`mypy`, `basedpyright`, `import-linter`, `deptry`, `semgrep`, `complexipy`) is absent from every real
+config file. The one exception is §B's own precondition: §D's hotspot measurement, which the ruling made
+binding and which this report supplies. Details, and the full sweep for Python style-guide artifacts, are in
+§1.5–§1.7.
+
 ### §0.1 Method
 
 Both commands were run **twice**: once under `cProfile` with `subprocess.Popen`, `builtins.open`,
