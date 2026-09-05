@@ -48,8 +48,13 @@ Every one named a SHA the merge did not introduce -- most often the merge's own
 SHA, or one already on `main` -- or read a lagging worktree as truth. Tip-ness is NOT the test,
 and I proved it the expensive way: my own first draft of AF wrote the exclusion as "never a branch
 tip", which is false, while this arc was being anchored by `f6575d02` -- that branch's tip at the
-moment I named it. Review caught it, I did not. Ninth instance of the day's error, by the person
-writing it up, and the section now records that rather than quietly fixing it. No seat was careless; each inferred a predicate the message never
+moment I named it. Review caught it, I did not. Then review caught a SECOND wrong
+restatement in the fix itself -- "a merge does not introduce itself", also false, since
+`journal_anchor.introduced` is `firstparent..sha` PLUS the entry; the merge's own SHA is excluded
+for a timing reason, not a set-membership one, because its hash does not exist when the entry is
+authored. Two wrong reconstructions of one rule, by the seat that spent the day refuting eight of
+them. Both are recorded in AF rather than quietly fixed -- they are the evidence, not an
+embarrassment to be tidied. No seat was careless; each inferred a predicate the message never
 stated, and each inferred a different one. AF-2 carries the day's teardown twin: merged-and-
 torn-down is indistinguishable from never-existed under `git branch`, which cost three false
 negatives and one gate wrongly reported closed. FILINGS-3 stated the general form best -- a

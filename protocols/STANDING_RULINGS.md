@@ -3934,20 +3934,29 @@ seat was careless. Each inferred a predicate from a failure message that did not
 each inferred a different plausible predicate.
 
 *The actual predicate, stated once so it is locatable.* A spine entry is anchored when the JOURNAL
-names **at least one SHA that the entry INTRODUCED**. That is the entire test, and every exclusion
-follows FROM it rather than standing beside it. The entry's own merge SHA never qualifies, because
-a merge does not introduce itself. A SHA already on `main` before the entry never qualifies,
-because naming it introduces nothing. **Branch-tip status is irrelevant and forms no part of the
+names **at least one SHA that the entry INTRODUCED**. That is the entire test. The introduced set is
+`firstparent..sha` **plus the entry itself** (`scripts/journal_anchor.py`, `introduced`), so the
+exclusions are not all of one kind and stating them as if they were is a trap:
+
+- A SHA already on `main` before the entry fails the test itself — naming it introduces nothing.
+- The entry's own merge SHA is IN the introduced set and still cannot be used, for a reason that is
+  temporal rather than set-theoretic: a merge commit's hash does not exist until the merge is
+  created, and the JOURNAL text is authored and committed before that. It is unavailable to name,
+  not disqualified once named. Saying instead that "a merge does not introduce itself" is false
+  against the implementation, and the integrator wrote exactly that sentence in the draft above
+  before review removed it. **Branch-tip status is irrelevant and forms no part of the
 test:** the tip of the branch being merged normally DOES qualify, precisely because the merge
 introduces it, while the tip of a branch merged earlier does not.
 
-*Recorded because it is evidence, not because it is decorous.* The first draft of this very section
-stated the exclusion as "never a branch tip" — one of the wrong readings this candidate exists to
-prevent, written by the integrator, inside the entry documenting the failure, while this arc was
-being anchored by `f6575d02`, which was that branch's tip at the moment it was named. Review caught
-it; the author did not. A ninth instance of the day's error, and the cheapest possible demonstration
-that the predicate cannot be reconstructed reliably from experience of it — which is the claim
-AF-1 makes. The check reads the JOURNAL from the **committing tree** and the spine from the shared
+*Recorded because it is evidence, not because it is decorous.* Successive drafts of this very section
+misstated the predicate TWICE, in different ways, and review caught both — the author caught
+neither. The first said the exclusion was "never a branch tip", which is false: this arc is anchored
+by `f6575d02`, that branch's own tip at the moment it was named. The second said "a merge does not
+introduce itself", also false, since `introduced` includes the entry. Two wrong reconstructions of a
+rule, inside the entry documenting how often that rule is wrongly reconstructed, written by the seat
+that had refuted eight such errors that same day. That is the strongest evidence AF-1 has, and it is
+recorded rather than tidied away: a predicate that its own scribe cannot restate correctly twice
+running is not one a reader should be asked to infer from a message that never states it. The check reads the JOURNAL from the **committing tree** and the spine from the shared
 `main` ref, so a worktree that is behind reports gaps that do not exist on `main`. Every false alarm
 of the day substitutes a SHA the merge did NOT introduce for one it did — most often the merge's own
 SHA, or a SHA already sitting on `main` — or reads a lagging tree as truth.
