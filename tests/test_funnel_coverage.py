@@ -359,8 +359,17 @@ def test_baseline_roundtrips(tmp_path):
 # not red the suite while a genuine parser regression still does.
 
 def test_live_corpus_partitions_exactly():
+    """Every artifact is covered or uncovered, with nothing lost between the two.
+
+    Stated over the UNION of the covered classes rather than as a sum of their lengths,
+    because the 2026-09-05 manifest-link route made them overlappable: an artifact can carry
+    both a ledger disposition and a manifest link, and a sum would then double-count it and
+    fail on a tree that is perfectly well partitioned. The union is what `uncovered` itself
+    subtracts, so this asserts the real invariant instead of an arithmetic coincidence."""
     m = fc.measure(REPO_ROOT)
-    assert len(m.corpus) == len(m.dispositioned) + len(m.pending) + len(m.uncovered)
+    covered = set(m.dispositioned) | set(m.pending) | set(m.manifest_linked)
+    assert len(m.corpus) == len(covered) + len(m.uncovered)
+    assert covered.isdisjoint(m.uncovered)
 
 
 def test_live_corpus_still_reads_the_2026_08_17_ledger():
