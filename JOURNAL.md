@@ -19,6 +19,55 @@
 
 ---
 
+### 2026-09-06 (b) - CC (Opus 5, INTEGRATOR-2): the erratum shape gets used the day it was written, and a full teardown finally reaches the directory
+
+**Did:** Appended ERRATUM 1 to the now-landed R5P close packet, and tore down the last mergeable
+worktree on its seat's word.
+
+**Result:** Two corrections, both appended rather than edited, because the packet is on `main` and
+therefore immutable - the shape its own header had described hours earlier. Writing a rule and then
+being the first to need it in the same day is a decent test that the rule was worth writing.
+
+FIRST, a claim of mine that was imprecise. Section 3 said the batch figures were taken "after the
+last merge". They were measured at `3a2391fb`, and the close-packet merge followed. A close packet
+STRUCTURALLY cannot measure a tree that contains its own landing, so the gap is unavoidable - but
+the sentence implied otherwise, so the basis SHA is now stated. I re-verified rather than reasoned:
+on the organs a new audit file could plausibly move, `gen_audit_index` and `funnel_coverage` PASS,
+and the three REDs section 7 names fail for the same three reasons. The figure stands for the
+landed tree, and now says so on evidence.
+
+SECOND, and it is a real defect in something I landed. The R5P dispatcher found that
+`docs/intake/README.md` carries **`#70` twice** - `tech-aj-second-pass` and
+`tech-session-roles-with-a-carrier`, with max id 71. My erratum re-pointed L4's finding at the
+range "#65-#70", so its last id names two documents. An intake number is the citation handle the
+whole ADR-111 funnel runs on, so a collided id is not cosmetic. The section-4 correction still
+stands; only the range's last id is ambiguous. Filed as CANDIDATE R5P-C2, deliberately unrepaired -
+renumbering a live citation handle is not an integrator's unilateral act at batch close.
+
+Worth recording WHO found it and how. The dispatcher volunteered it against its OWN earlier
+finding, unprompted, after its batch had closed and it had nothing left to gain. Its "ordinal plus
+10" rule held against two live citations when derived; a duplicate proves the id is not a
+positional function at all. The next filer reads the max id and checks for collisions rather than
+computing one.
+
+THIRD, a teardown that reached the directory. `worktree-docs-seat-notes-amend3` removed completely -
+`rc=0`, registration, branch, directory, all gone - where FILINGS-3's directory refused with
+`Permission denied`. The difference was not git and not luck: that seat had already exited its
+worktree with `keep` before giving me the trigger, so nothing held the path. It also verified my
+merge from `main` before saying done rather than taking my word, and reported the verbatim body
+byte-identical after ten markers, two integrators and four sync merges. That is the cleanest
+teardown of the day and the reason is repeatable.
+
+**Changes:** `docs/audits/2026-09-05-technical-batch-r5p-close-packet.md` (ERRATUM 1 appended,
+nothing above touched); this entry.
+
+**Abandoned:** Nothing.
+
+**Next:** The handoff session's branch, which does not exist yet - no `docs/handoff-*` branch on
+origin or locally. That is my last merge when it arrives.
+
+**Anchors:** `dc6274eb` (ERRATUM 1, introduced by this arc's merge).
+
 ### 2026-09-06 (a) - CC (Opus 5, INTEGRATOR-2): BATCH R5P closes, and two organs agree that presence on disk is not the question
 
 **Did:** Wrote the R5P close packet at the path the manifest declared at dispatch, regenerated the
