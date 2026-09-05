@@ -3934,10 +3934,23 @@ seat was careless. Each inferred a predicate from a failure message that did not
 each inferred a different plausible predicate.
 
 *The actual predicate, stated once so it is locatable.* A spine entry is anchored when the JOURNAL
-names **at least one SHA that the entry INTRODUCED** — never the entry's own merge SHA, and never a
-branch tip. The check reads the JOURNAL from the **committing tree** and the spine from the shared
+names **at least one SHA that the entry INTRODUCED**. That is the entire test, and every exclusion
+follows FROM it rather than standing beside it. The entry's own merge SHA never qualifies, because
+a merge does not introduce itself. A SHA already on `main` before the entry never qualifies,
+because naming it introduces nothing. **Branch-tip status is irrelevant and forms no part of the
+test:** the tip of the branch being merged normally DOES qualify, precisely because the merge
+introduces it, while the tip of a branch merged earlier does not.
+
+*Recorded because it is evidence, not because it is decorous.* The first draft of this very section
+stated the exclusion as "never a branch tip" — one of the wrong readings this candidate exists to
+prevent, written by the integrator, inside the entry documenting the failure, while this arc was
+being anchored by `f6575d02`, which was that branch's tip at the moment it was named. Review caught
+it; the author did not. A ninth instance of the day's error, and the cheapest possible demonstration
+that the predicate cannot be reconstructed reliably from experience of it — which is the claim
+AF-1 makes. The check reads the JOURNAL from the **committing tree** and the spine from the shared
 `main` ref, so a worktree that is behind reports gaps that do not exist on `main`. Every false alarm
-of the day is a substitution of tip-or-own-SHA for introduced-SHA, or a lagging tree read as truth.
+of the day substitutes a SHA the merge did NOT introduce for one it did — most often the merge's own
+SHA, or a SHA already sitting on `main` — or reads a lagging tree as truth.
 
 *The candidate.* The check names its predicate in the failure text it already prints, and prints one
 diagnostic command the reader can run unmodified. The cost is a message string; the thing it buys is
