@@ -19,6 +19,49 @@
 
 ---
 
+### 2026-09-05 (m) - CC (Opus 5): the R5P batch closes, and a false spine alarm is refused for the sixth time
+
+Did: closed the R5P batch as INTEGRATOR-2 -- merged both remaining lanes under delta A2,
+then the released filings branch, then regenerated the audits index those merges moved.
+Refused a peer's request to "fix" an unanchored spine that was not unanchored.
+
+Result: `bundle-gitlog` cut `audit.py health` from 59,963 ms to 34,330 ms (-43%) by
+replacing 87 subprocess spawns with 1; its contract's ANTI-requirement ("no other audit.py
+change") held exactly. `docrot-arm2` collapsed doc_rot from 77 loci to 6, reshaping ONE arm
+and leaving the other three untouched -- the single row-length Finding carries strictly more
+information than the 72 lines it replaced (count, longest, p50/p75/p90, and a trend delta).
+`filings` added CLAUDE.md's ninth hub region; both boundary-header pins moved UP (8->9,
+15->16) and still pass, which is self-verifying -- a bumped number without a real region
+would leave `checked` at 8 and fail.
+
+The spine alarm is the entry worth keeping. A peer measured
+`git show main:JOURNAL.md | grep -c "270d3d40|8f72fc68"` -> 0 and concluded main's spine was
+unanchored. The predicate is not that. A spine entry is anchored when JOURNAL names >=1 SHA
+the entry INTRODUCED -- any one of them, not the tip. The merge introduced 17 commits and
+JOURNAL names 81bc39f9 among them, so it was anchored, `journal_spine_anchor` reports
+`[OK]`, and the push had already passed `block-unanchored-push`, which fails CLOSED. That
+last fact is dispositive on its own: the gate cannot pass an unanchored push.
+
+Sixth false alarm today, all one shape: seats test for the TIP's SHA instead of any
+introduced SHA. Worse, the proposed remedy -- merge the leftover commit on its own -- would
+have CREATED the gap it was meant to close, because a single-commit branch cannot anchor its
+own merge: its entry names other commits, never itself. This branch exists to avoid exactly
+that, carrying two commits so its own merge is anchored by the first, and pre-anchoring the
+two single-commit branches queued behind it.
+
+Changes: docs/audits/README.md (892 -> 894), JOURNAL.md. Merges 74c111e6, 4a9ff8f0,
+114781d1.
+
+Abandoned: nothing. Two lanes stay HELD and neither is mine to release -- `zc-candidates`
+on content-correctness grounds (its contract's premise was falsified underneath it by
+8ea8023a) and 015-C pending the operator's own word, a peer relay being no authorization.
+
+Next: merge bcb47780 and f69a4a9a, both pre-anchored below. Eight worktree husks remain,
+branch-torn-down but directory-held by live seats; only each holding seat can finish one by
+exiting. The lesson banked for the checklist: tear down on the LANE's word, not on the merge.
+
+Anchors: d2b0ff30, bcb47780, f69a4a9a
+
 ### 2026-09-05 (k) - CC (Opus 5): the closure detector stopped running and said so in a file nobody was reading
 
 **Did:** Landed the session-end detector's own error record, which the Stop hook wrote into
