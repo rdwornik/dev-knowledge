@@ -19,6 +19,211 @@
 
 ---
 
+### 2026-09-05 (i) - CC (Opus 5): the second pre-anchor, and what the first one did not reach
+
+**Did:** Closed the first integration cohort -- thirteen merges, each pushed -- tore down
+nine fully-contained branches, and pre-anchored the cohort that arrived after entry (f).
+
+**Result:** Main carried every merge without a spine gap, which is what (f) was for. What
+(f) did NOT do, and the merge subject overclaimed: pre-anchoring keeps MAIN clean; it does
+not reach a worktree whose own JOURNAL predates the entry, because `journal_spine_anchor`
+reads JOURNAL from the COMMITTING TREE. Three seats read their own lag as a spine defect
+and one nearly parked a finished lane waiting for a drain that was never coming. The
+accurate form is: no merge blocks a CURRENT tree; a stale tree blocks until it syncs. All
+three cleared it with a sync and none needed `SKIP=` or `--no-verify`.
+
+The recurring diagnostic error is worth naming once, because three separate seats made it
+independently: they tested whether JOURNAL contained the MERGE's own SHA. That string is
+structurally guaranteed to be absent -- a merge cannot be named by an entry written before
+it -- so the test reports a gap for every merge ever made. The predicate asks whether
+JOURNAL names a SHA the merge INTRODUCED. Run against main's JOURNAL it returned clean
+every time.
+
+Two merges needed a day-letter re-lettered at integration -- (d) to (g) and (b) to (h) --
+both because the lane wrote its letter against a main that had since moved. On the second,
+taking the branch TIP rather than the older commit mattered: `bb79aa76` had rewritten that
+entry's Result section (27 insertions, 10 deletions), and a splice from the pre-rewrite
+text would have dropped it silently. Verified by content afterwards, not by SHA.
+
+**Changes:** Thirteen merges from `ac2c6a15` to `b3326083`. Nine branches torn down local
+AND origin, each with a `merge-base --is-ancestor` proof first; two deliberately KEPT
+because they are not contained -- `worktree-docs-seat-notes` and
+`worktree-lane-fleet-readiness-measurement` each have one commit still outstanding. One
+conflict on a GENERATED file resolved by regenerating from the merged tree rather than
+picking a side: both branches had legitimately different counts and either choice would
+have been wrong. `docs/audits/README.md` regenerated once at integration, absorbing
+staleness that predated this queue.
+
+**Abandoned:** Nothing. Two branches are HELD rather than dropped: `worktree-filings` at
+its owner's request until it releases, and `worktree-lane-r-000-zc-candidates` pending a
+ruling that is not mine -- it appends a new §AE to `protocols/STANDING_RULINGS.md`
+(83 insertions, 0 deletions, §AD untouched), and the inbox seat is the declared single
+writer of that file, so the section letter is the collision risk and the reconcile is
+theirs.
+
+**Next:** Merge the second cohort. This entry names its tips so each lands anchored, on the
+same reasoning as (f) and with the limitation above stated rather than assumed.
+
+**Anchors:** `c8bc4257`, `778fa12b`, `c5cf1af7`, `13362942`, `3d5a4235`, `30166377`,
+`72bb1984`, `2262b15e`, `d27876d3`, `81bc39f9`
+
+### 2026-09-05 (h) - CC (Opus 5): the admission-gate lane was retired because its defect was already fixed, and two lanes were recovered from a receipt channel that died mid-flight
+
+**Anchors:** `b9db30f7`, `1486ff53` (branch `docs/rescope-634`) - and, on lane branches,
+`ed2d34d9` (`worktree-lane-h0-suite-speed`) and `0d318c1f` (`worktree-lane-h0-trace`)
+
+**Did:** ran the dispatcher seat for mini-batch H0-PREP: re-scoped `[#634]`, filed the batch
+manifest, dispatched three codespace lanes, and recovered two of them by hand after the local
+dispatch processes were killed.
+
+**L2 WAS RETIRED BEFORE A MACHINE WAS PROVISIONED, AND THE PREMISE WAS FOUR DAYS STALE.** The lane
+was to stop `dispatch-run.sh` accepting `GITHUB_TOKEN` as its Anthropic-token check. Two facts
+killed it: the runner is not a source file in this repo at all - ignored at root, absent from disk
+and from history across the whole `Dev/` tree, generated per run by
+`win-tooling/config/dispatch-helpers/DispatchHelpers.psm1` - and the defect was already fixed by
+`win-tooling@d6cbd92` on 2026-09-01, which split `adm_tok_anthropic` from `adm_tok_github`. The row
+had been ruled from AMENDMENT 2 of the 632 long-run witness, which pre-dates that fix. The
+contracted closure was deliberately NOT built: refusing on a missing Anthropic token is fail-CLOSED
+on a path measured working - `lane-632-longrun-a-w95qprj5wq4cg67g` ran 338 events over
+`CLAUDE_CODE_MESSAGING_SOCKET` with the token unset. Operator ruled OPTION 2 amended: re-scope, do
+not close; lift the standing hold.
+
+**THE RECEIPT CHANNEL DIED AND DONE-CLAUSE 0 IS THE ONLY REASON THE WORK SURVIVED.** Workstation
+memory pressure killed both blocking dispatch processes, which killed the in-container agents too.
+No receipt was pulled back for either lane. Judged on their BRANCHES instead: L4 had finished and
+committed three times (stranded in the container, pushed out by hand); L5 had done all its work and
+written a complete end-of-lane artifact but was killed before committing, so its commit was made
+from inside the container with a body stating plainly that the dispatcher committed it and that the
+lane's final full-suite rerun never completed. A receipt would have reported nothing but transport
+for either one.
+
+**TWO SUBSTRATE DEFECTS, AND ONE OF THEM IS A REPEAT.** (1) The container cannot push from a
+NON-LOGIN shell - `GITHUB_TOKEN` is unset there and the credential helper fails with `Invalid
+username or token`; `bash -lc` works. The admission gate's own comment asserts the container "can
+fetch, commit and push", and push is the leg that is fragile. (2) `receipt.json` at repo root
+hard-fails `dot_prefix_discipline` and blocked L5's commit - the IDENTICAL defect already recorded
+in the AMENDMENT to `docs/audits/2026-09-01-verification-codespace-longrun-proof.md`. That audit's
+own bounded fix was reapplied (same-device rename, inode 76155 preserved, restored after). A defect
+recorded once and met again is a fix that was never made durable.
+
+**L5's FINDING IS THAT THE NAMED LEVER WAS THE WRONG ONE.** pytest's collector never paid for live
+worktrees: its default `norecursedirs` pattern `.*` already prunes `.claude`. The cost was two tests
+doing their own `Path.rglob("*.md")` and filtering AFTER the walk, and `rglob` consults neither
+`.gitignore` nor `norecursedirs` - so every live worktree's full duplicate corpus was read. Corpus
+2,420 files at 0 worktrees vs 14,510 at 5; `normalize_text` 78.57s -> 12.96s; post-fix the two tests
+run 51.39s at 5 worktrees vs 51.49s at the operator's floor of 2, a 0.2% delta.
+
+**L3 PAUSED ON A REAL RULE-VS-RULING CONFLICT, AND PAUSING WAS CORRECT.** Its contract (from the
+ruling's own closure) says governance prose relocates to `docs/` only. `validate_hermetization.py`
+Rule C - the home allowlist, operator ruling A of 2026-08-11 - hard-refuses a new file whose
+immediate home is bare `docs/`; the module's own comment cites that exact class as how
+`docs/ORGAN-INDEX.md` was born. Rule C was verified independently against the source, not taken
+on the lane's word. The lane escalated under decision-budget class (b) and Q10 rather than
+inventing a home, finished cleanly (`is_error=false`, `status DONE`, 51 turns, $2.29) and left
+its draft in `stash@{0}` (`-u` was used, so `docs/governance.md` is preserved at `stash@{0}^3`).
+Both halves were harvested to `Dev/_scratch/h0-l3-paused/` because a stash dies with its
+container. No commits on its branch, which is the honest state: Done-clause 0 is not met and
+must not be faked.
+
+**NOT THIS SESSION'S WORK, NAMED ONLY TO DISCHARGE `journal_spine_anchor`:** two first-parent
+spine entries on main carry no JOURNAL anchor reachable from this branch - `ca0a2a2f`
+(`Merge branch 'worktree-corpus-coherence-gemini'`) and `09f80530`
+(`Merge branch 'docs/journal-anchor-drain'`). `09f80530` was the integrator's drain that
+anchored the earlier four, and it could not anchor ITSELF, so the drain opened a fresh gap;
+its `(d)` entry lives on main and not on this branch, which is why `ca0a2a2f` reads as
+unanchored from here. The gate is a PRE-COMMIT hard-fail, so this blocks every seat, not
+just theirs. Both are named to let work land - substance is owned by the integrator seat and
+is deliberately NOT summarised or claimed here. A sync-merge of main into this branch would
+be the wrong fix and was not done.
+
+**Result:** `[#634]` re-scoped and open, hold lifted; H0-PREP manifest filed; L5 and L4 recovered
+and pushed; L3 paused awaiting an operator ruling on where governance prose may live.
+
+**Changes:** `tasks/634-*.md`; `docs/audits/2026-09-05-technical-batch-h0-manifest.md`;
+`docs/audits/README.md`. On lane branches: `tests/test_toc.py`,
+`tests/test_normalize_headers.py`, the L4 trace writer and `fleet_health.py`.
+
+**Abandoned:** L2 entirely - retired on evidence, not deferred. Three-lanes-in-parallel: the account
+caps at 2 running codespaces, so L3 was refused at create and ran third.
+
+**Next:** integrator merges `docs/rescope-634`, then L5 -> L4; L3 is DEFERRED out of this window
+until the `docs/` home question is ruled. **The full suite has NOT been
+observed green on L5's branch** - its verifying run was the task that got killed - so re-run it at
+merge rather than trusting the commit. Two stopped codespaces await a deliberate operator delete.
+
+### 2026-09-05 (g) - CC (Opus 5): the outside-harness gap analysis, and an adversarial pass falsified three of my eight absence claims
+
+**Anchors:** `6d0db21f` (this arc: the deliverable + this entry) - plus `ca0a2a2f` and `09f80530`, both
+diagnosed below as FOREIGN merges, not this arc's work
+
+**Did:** ran the frozen "Architekt Jutra" research contract end to end - P0 inventory through P6
+review. 48 corpus files / 771.4 MB of licensed Polish training material plus two repos, read
+outside the tree; 27 extraction files, 27 retrieval sheets (970 claims, 0 without a locator,
+0 carrying comparison language, verified by a parser rather than by asking the legs), a pinned
+our-side read at `6de676fb`, and one deliverable at
+`docs/audits/2026-09-05-technical-research-architekt-jutra-gap-analysis.md`.
+
+**THE RESULT IS A COMPLEMENT, BUT NOT THE ONE I FIRST WROTE.** Their harness sees itself and
+cannot enforce itself - proven inside their own shipped repo, where a task carrying
+"Deployment Decision: NO-GO" in `verification/reality-check.md:5` has
+`orchestrator-state.yml:32` recording `status: completed`. The prose verdict flips no
+machine-readable field. Their entire phase-gate layer is text asking the model to stop; exactly
+one hook in the plugin can veto anything, and it ships a SessionStart hook whose whole job is
+re-injecting "actually stop at gates", plus a second to re-inject it after compaction.
+
+**THE MORE USEFUL HALF IS THE CORRECTION.** My first draft claimed eight ONLY-AJ rows. The
+adversarial leg searched OUR vocabulary instead of theirs and falsified three outright, overstated
+five more, and showed five of nine proposed CANDIDATEs were already live funnel objects. One
+ONLY-AJ row survives. Root cause, and it is the transferable finding: every recorded search used
+AJ words. Ours are *supplement*, *asks register*, *lived-workflow*, *freeze*, *legibility*,
+*shape*, *trends* - none was searched. Row 21 was the worst: it credited them with a curated
+agent-run archive we also have, and ours is stronger - their strip list is documented, ours
+refuses (`_scrub_check` will not freeze a transcript carrying a key). Aggravating: my own search
+for `clarifications\.md` returned the four `tests/fixtures/lived-workflow/*.jsonl` files and I
+dismissed them as false positives. The evidence was in hand and I misread it.
+
+**terra found twelve further defects across two passes, every one mechanical** - a locator, a
+count, or a relation label; none touched the analysis. Including one I created myself (a
+nine-vs-eight contradiction) and one in the row carrying the document's central claim (a gate
+count inflated to 24, erasing the commit-msg category). I also destroyed evidence: piping pass 1
+through `tail -80` discarded its two most severe findings, so pass 2 was re-run unpiped.
+
+**THE CONTRACT'S OWN FILENAME WOULD HAVE FAILED A GATE.** It froze class `research`, which is not
+in `AUDIT_CLASS_ENUM`. Caught by running `rule_b_violation()` on both candidates rather than
+reading the enum and inferring. Landed as class `technical` with `research` in the slug, on
+existing repo precedent; the contract's slug is intact.
+
+**TWO FOREIGN UNANCHORED MERGES BLOCKED THIS COMMIT, AND THE SECOND WAS THE FIX FOR THE FIRST.**
+`ca0a2a2f`
+("Merge branch 'worktree-corpus-coherence-gemini'", 15:00:56) landed on main's first-parent spine
+carrying no JOURNAL anchor. It is not this arc's work and predates nothing here - my lane is based
+at `3200757d` and does not contain it - but `journal_spine_anchor` reads main's spine, so the gap
+wedged a lane that had no part in creating it. Discharging it surfaced a second: `09f80530`
+("Merge branch 'docs/journal-anchor-drain' -- unblock the repo: four spine merges were unanchored
+and audit-health is a PRE-COMMIT gate"), now main's tip. **The drain that cleared four gaps left a
+fifth - its own merge.** A branch cannot anchor the merge that lands it, so the only thing that can
+discharge a tip merge is the NEXT entry, which is this one. Both diagnosed here per B6 (an anchor
+discharges by APPEND ONLY) so the queue moves; neither arc's own record is owed to me, and both
+still owe their substance.
+
+**Result:** deliverable landed with a four-outcome ADR-111 triage in place of the first draft's
+nine births - four OWNED (two `READY` intakes, one `DRAFT` intake, one deferred task), three
+WITHDRAWN on falsified premises, three CANDIDATE. No BACKLOG rows born, no ADR, no protocol edit.
+
+**Changes:** `docs/audits/2026-09-05-technical-research-architekt-jutra-gap-analysis.md` (new),
+`JOURNAL.md`. The audits index is deliberately NOT regenerated - `[#590]` narrowed that hook to
+the index and its generator, so a lane no longer touches it; integration owns it.
+
+**Abandoned:** transcription of all 13 MP3s (operator ruling - 1:1 transcript coverage already,
+and no timestamps anywhere to gain); six of eight zips (SHA-256-verified re-bundles).
+
+**Next:** operator triage of the three surviving CANDIDATEs, and a ruling on whether `sol` gets
+installed - `ecosystem/routing-table.yaml:37-38` declares an `adversarial` role bound to a CLI
+that is not on PATH, so an arc routing to it silently degrades to a same-family substitute. That
+substitute is what caught the three false rows, which is the argument for making it real.
+
+---
+
 ### 2026-09-05 (f) - CC (Opus 5): the queue is anchored before it is merged, not after
 
 **Did:** Landed merge-queue item 2 (manifest-linked audits count as CITED and

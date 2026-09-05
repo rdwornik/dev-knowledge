@@ -3,12 +3,12 @@
   "direction": "derived-from",
   "source": "docs/intake/README.md",
   "generator": "scripts/gen_intake_tree.py",
-  "source_sha256": "6762940f88505445a2f497bb0f161c00b10d4a05da28e594a170d9a518131a78",
+  "source_sha256": "bd772f52ea00367e5e3112852fcbf2bfd6db131de1303a645c09f6ea31668d57",
   "honest_limit": {
     "statement": "ADR-109 section 4 is discharged by a byte-exact round-trip plus a residue manifest, NOT by a derivation ratio. This surface's ratio is INVERTED relative to surface 1 (BACKLOG.md <-> tasks/), where task lines were the majority and residue the minority. Recorded so the generality claim is honest about what was shown.",
-    "item_derived_lines": 58,
+    "item_derived_lines": 60,
     "residue_lines": 281,
-    "total_lines": 339,
+    "total_lines": 341,
     "surface_1_comparison": "inverted -- surface 1 was majority item-derived"
   },
   "not_captured": {
@@ -295,6 +295,14 @@
         "consumed-by",
         "origin"
       ],
+      "2026-09-05-tech-boot-frontier-prioritisation-weights.md": [
+        "consumed-by",
+        "origin"
+      ],
+      "2026-09-05-tech-handoff-process-v71-amendment-pack.md": [
+        "consumed-by",
+        "origin"
+      ],
       "2026-09-05-tech-session-roles-with-a-carrier.md": [
         "consumed-by",
         "origin"
@@ -377,7 +385,7 @@
     },
     {
       "t": "line",
-      "v": "**58 intake documents.**"
+      "v": "**60 intake documents.**"
     },
     {
       "t": "line",
@@ -447,7 +455,7 @@
     },
     {
       "t": "line",
-      "v": "### DRAFT (10)"
+      "v": "### DRAFT (12)"
     },
     {
       "t": "line",
@@ -496,6 +504,16 @@
     {
       "t": "item",
       "file": "2026-08-29-func-universal-per-repo-learning-loop.md",
+      "status": "DRAFT"
+    },
+    {
+      "t": "item",
+      "file": "2026-09-05-tech-handoff-process-v71-amendment-pack.md",
+      "status": "DRAFT"
+    },
+    {
+      "t": "item",
+      "file": "2026-09-05-tech-boot-frontier-prioritisation-weights.md",
       "status": "DRAFT"
     },
     {
