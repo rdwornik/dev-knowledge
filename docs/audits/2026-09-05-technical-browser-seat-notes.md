@@ -462,3 +462,108 @@ that does not change what the fix has to look like is a label, not a class* — 
 evidence for option (2): A and G here imply **different fixes** (resolve the locator at freeze
 vs. arm an organ), which by that bar makes them genuinely different classes rather than rival
 labels for one defect. That is an argument, not a ruling.
+
+---
+
+## AMENDMENT 6 — RULED by the register owner: #22 stays A, the gap files as #25 (2026-09-05)
+
+> **Same shape as 1-5.** The seat's register and AMENDMENTs 1-5 are untouched; this marker is
+> appended below them. The verbatim body is still the contiguous region from
+> `# BROWSER SEAT NOTES` to the blank line preceding AMENDMENT 1's `---` rule, still
+> `sha256 685633c33c49c7d37de5dba70f3162d4d1841a98b12896ee8d28ee465f06b196`.
+
+### 1. AMENDMENT 4 §2 IS SUPERSEDED IN FULL
+
+Not only its "Not G" bullet (already withdrawn in AMENDMENT 5), but **also its "A, and
+exclusively" conclusion and its "the classification and the mechanism are one insight"
+synthesis.** AMENDMENT 5 withdrew a premise and left the conclusion it supported standing —
+in a file where nothing can be edited, that would have been a permanent incoherence, one
+marker asserting exclusive-A while the next presented G as open. Recorded because it is a
+reusable failure: **a retraction has to reach every claim that rested on the retracted
+premise, not just the premise.**
+
+### 2. The ruling
+
+**FILINGS-1, owner of the §AD routing, is live and has ruled** — having verified the
+enforcement facts independently rather than taking them:
+
+> **Keep #22 as class A for the authoring failure. File the enforcement gap as a SEPARATE
+> defect, class G.**
+
+**Two failures were tangled in one row.** (1) A brief asserted lane names without resolving
+them against the grammar — an *authoring* failure, fixed by resolving at freeze. (2) The
+grammar has a checker no organ runs at the moment that mattered, so nothing *could* have
+refused the brief — fixed only by *arming* an organ. They are not one event described twice:
+arming the organ does not stop an author failing to resolve, and a careful author does not
+close the gap for the next one. **Different fixes, therefore different classes** — the pending
+admission bar doing work rather than decorating a decision already made.
+
+This marker **records** that ruling; it does not make it. This lane's own position throughout
+was that classification belongs to the register's owner, and the owner answered.
+
+### 3. G's definition, sharpened — adopted by the ruling seat
+
+> **A carrier is something that can REFUSE, not something that can be run.**
+
+Under the loose reading — *"a checker exists somewhere in the repo"* — **G is empty**: every
+rule anyone wrote a checker for escapes it regardless of wiring. This is the first thing to
+give G edges, and it came out of the case that looked like a counter-example.
+
+### 4. The new defect
+
+| # | Defect | Class | Mechanism that would have caught it |
+|---|---|---|---|
+| 25 | **the lane-name grammar was not enforceable at the moment it was violated** — nothing could refuse the invalid names a brief proposed | **G** rule without a carrier (unenforceable) | **arm** the grammar into an organ that refuses at provisioning, rather than relocating an unarmed check |
+
+**Running total: twenty-five defects.** No class count is stated, per `CLAUDE.md` §4.
+
+### 5. #22's mechanism, CORRECTED — ordered, not alternatives
+
+AMENDMENT 4 §1's *"move the existing check earlier, not build a second one"* is **superseded**:
+you cannot move a check no organ runs and get enforcement; you get an unarmed check at freeze.
+Ruled form:
+
+> **The A-fix — the freeze predicate set resolves every lane name through the grammar — is
+> BLOCKED ON the G-fix — arm the grammar checker into an organ that can refuse.**
+
+### 6. SCOPING AMENDMENT 5's enforcement claim — it was over-broad
+
+AMENDMENT 5 said *"Every consumer imports its regex; none of them refuses."* **That is too
+strong**, and the correction is finer than the review that prompted it. Measured here:
+
+- **A strict refusal DOES exist, at generator-EMIT time.** `gen_lane_contract.validate_slug`
+  defaults to `strict=True` and calls `validate_lane_worktree_name`, raising
+  `LaneContractError("lane slug refused by the batch-lane grammar: …")`. A contract *emitted
+  by the generator* cannot carry an off-grammar slug.
+- **The LIVE pre-commit hook does NOT apply that grammar.** `lane-contract-check`
+  (`.pre-commit-config.yaml`, `files: LANE-*.md`) runs `gen_lane_contract.py check`, and the
+  parse path calls `validate_slug(slug, strict=**False**)` — deliberately relaxed to
+  hyphen-only kebab, with its own comment saying so. It refuses a malformed *shape*, not an
+  off-grammar *batch-lane name*.
+- **Nothing refuses at PROVISIONING.** `claude --worktree <name>` passes no checker at all.
+
+So the accurate claim is **"nothing refuses at provisioning, and the live hook's check path
+relaxes the grammar by design"** — not "none refuses". **The central withdrawal in AMENDMENT 5
+survives untouched**: #22's names were in a hand-written brief, not a generator-emitted
+contract, so the one strict refusal that exists could never have fired on them.
+
+### 7. Correction to AMENDMENT 5's routing claim
+
+AMENDMENT 5 recorded that the adjudicating seat *"has EXITED"* and routed accordingly. **That
+was wrong** — the seat was live, still owned §AD, and ruled. The lane inferred an exit from a
+close-out message; **a seat saying it is closing out is not the same fact as a seat being
+gone**, and treating the two as one is the same unresolved-premise class this register is full
+of. Corrected here rather than edited.
+
+### 8. The symmetry, which is the actual evidence for G
+
+Both seats made **the class-G mistake while working on the class-G classification**: this lane
+argued a rule was enforceable by pointing at code that *exists*; the filing seat, in the same
+message that correctly required `preflight_contract.py --freeze` be marked *advisory*,
+asserted the CHECK half without applying that test to it. Neither is a fact about either seat.
+It is evidence that **"code exists" reads as "rule enforced" by default** — the reflex class G
+was admitted to name.
+
+**Provenance:** ruled by FILINGS-1 (§AD owner); enforcement facts verified independently by
+that seat, by the integrator's gate review (two terra rounds), and by this lane. **Nothing is
+triaged by this lane** and no backlog row is born from it.
