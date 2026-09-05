@@ -258,7 +258,11 @@ def test_parse_headers_respects_a_longer_fence_wrapping_a_shorter_one():
 # Corpus safety property: the fence fix RECOVERS headers, it never drops them.
 # ---------------------------------------------------------------------------
 
-_SKIP_PARTS = {".venv", ".git", "node_modules", "__pycache__", ".pytest_cache"}
+#: `worktrees` (i.e. `.claude/worktrees/*`) holds FULL CHECKOUTS of this repo (ADR-61/[#107]) —
+#: descending into one re-walks a second copy of the whole corpus per live lane, multiplying
+#: this test's cost by (1 + live worktree count) for zero additional coverage: the primary
+#: checkout's corpus is already the whole proof. [#528]
+_SKIP_PARTS = {".venv", ".git", "node_modules", "__pycache__", ".pytest_cache", "worktrees"}
 
 
 def _legacy_parse_headers(content: str) -> list[tuple[int, str]]:
