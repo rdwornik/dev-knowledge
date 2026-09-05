@@ -3380,6 +3380,20 @@ fixes, which is a defect propagating INTO the corpus as a coping strategy for a 
 All three predicates on this probe test one property — whether a paste's FORM matches the seat and
 the constant it is addressed to — which is why they stay one candidate rather than three.
 
+*Fourth predicate — PARALLELISM, amended in 2026-09-05 (architect inbox item 011-B, operator
+ruling).* A browser plan carrying **more than one item and no lane split** must state its
+serialising dependency — a shared file, or a required order — in one line, or it is a browser-seat
+defect. The default is not serial: this repo's shape is ONE plan → N file-disjoint lanes → ONE
+integration, so a queue is what a batch becomes when nobody computed its footprints. Measured
+basis, recorded as error #20 (class C): three disjoint lanes were possible and the work ran serial
+instead — 36 minutes spent on two items while nine waited. The predicate does not demand
+parallelism; it demands that serialism be JUSTIFIED in a line, which is the cheapest possible
+version of the check.
+
+*(Numbering note: the inbox called this one its "second predicate" — its 008-C is second and its
+013-C third, and all three arrived the same day. Ordered here by filing, with each entry naming the
+item it came from, so a reader can reconcile against the inbox without guessing.)*
+
 **AB-2 · `/boot-session` gains a MERGE-WITH-VERIFY mode — PARKED by the operator.** Origin:
 2026-09-02 batch-G boot. No peg, no owner, by design. Recorded here rather than as a `tasks/`
 row per this section's own precedent — the only route from here to a row is CANDIDATE → intake
@@ -3443,6 +3457,17 @@ arrived from the 2026-09-05 architect inbox (items 001-B, 001-C, 002-B, 002-C, 0
 **(z) is the last single letter.** The next entry filed here takes **(aa)**, then (ab), and so on —
 recorded before it is needed, because the alternative is whoever files next inventing a scheme
 under time pressure. Nothing about an entry changes when the label gets two characters.
+
+**(l) IS CITED BUT DOES NOT EXIST, and the citations are accumulating.** The 2026-09-05 inbox
+refers to "candidate (l) BROWSER SEAT FLOOR" at least twice — item 008-B (as the eventual home of
+`BROWSER-SEAT-FLOOR.md`) and item 011-C ("amend candidate (l)"). **No such entry was ever filed
+here**, so each of those is an instruction to amend something that does not exist. Recorded rather
+than silently invented: item 011 states "no new candidate entries — amendments to existing ones",
+so filing (l) to satisfy a citation would breach the instruction that produced the citation. The
+content 011-C carries (the five-item irreducible browser memory) is routed to intake `#68`, which
+does exist and which 011-C names as its co-target, so nothing is lost while the letter stays
+unfiled. **Filing (l) needs one word from the architect**; until then this paragraph is its
+placeholder, and a reader meeting a citation of (l) should read it as owed, not as missing.
 
 **Letters are allocated HERE, at filing time, not by the source that proposes an entry.** The
 2026-09-05 inbox proposed its own letters and they collided: item 005-B proposes (r), (s), (t)
