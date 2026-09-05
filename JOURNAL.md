@@ -19,6 +19,55 @@
 
 ---
 
+### 2026-09-05 (u) - CC (Opus 5, INTEGRATOR-2): FILINGS-3 torn down to origin, and a freshness gate that passed correctly while its file went stale
+
+**Did:** Tore down `worktree-filings-3` on the seat's own trigger, then found and repaired a stale
+generated index the day's merges had left behind.
+
+**Result:** Teardown complete at every level git controls: containment proved with
+`merge-base --is-ancestor` (exit 0) before anything was deleted, `-d` never `-D`, LOCAL branch
+deleted, **ORIGIN branch deleted and verified at zero refs**, registration pruned. The seat pushed
+that branch three times, so a local-only delete would have left the defect at half its radius -
+the half that survives review because `git branch` looks clean. Work and provisioning branch
+shared the name here, so the two-branch rule collapsed to one local plus one remote, exactly as
+AF-2b records. The DIRECTORY refused with `Permission denied`, which the seat predicted before
+exiting: that is the husk class, not a git problem, and only the holding process can free it.
+
+The index is the more interesting half, and my first write-up of it was wrong twice - corrected
+here before landing, after review pushed back and I read the modules rather than reasoning from
+the shape.
+
+`docs/audits/README.md` was STALE at 894 against 896 live audit documents. The commit-time gate
+`audit-index-freshness` did not misfire: pre-commit does not run at all on a conflict-free merge
+(git invokes `pre-merge-commit`, which this repo does not wire), and the hook's scope is the
+staged set in any case. Both new audits arrived through `--no-ff` merges. So nothing at commit
+time was ever asked the question. I first wrote that "merges stage nothing" - that is false, a
+merge does populate the index - and the real reason is the hook stage, not the staging.
+
+I also wrote that "nothing schedules" the check that would catch it. Also false, and the truth is
+better: `AUDIT_INDEX` IS registered in `generated_artifact_freshness`, and not on the weak date
+relation either - it carries an exact `content_check=_audit_index_matches`, which makes the same
+comparison `gen_audit_index --check` makes, in-process. That registration exists BECAUSE terra
+found on 2026-08-26 that the date relation has a one-day floor while audits land ~10/day, so the
+date leg "would have reported clean on essentially every real staleness it was registered to
+catch". Someone already found this exact hole and closed it properly.
+
+What remains true is narrower and worth keeping: that leg is ship-tier and **WARN, never FAIL, by
+construction** - `fails` is always empty, and promoting it needs its own ruling. So the honest
+statement is a COMMIT-TIME coverage gap with ship-time detection retained at WARN, not an
+undetected class. AF-1's candidate would not have helped either way, because no gate fired and
+there was no failure text to improve.
+
+**Changes:** `docs/audits/README.md` (regenerated, 894 -> 896); this entry.
+
+**Abandoned:** Nothing. The full-suite run started earlier is discarded as a measurement rather
+than reported: two docs commits landed while it was in flight, so it is not a clean snapshot of
+any tree. A single clean run replaces it rather than a caveated number.
+
+**Next:** One clean full-suite run as the batch's integration measurement, then the census.
+
+**Anchors:** `e9f957ae` (the regenerated index, introduced by this arc's merge).
+
 ### 2026-09-05 (t) - CC (Opus 5, INTEGRATOR-2): filings-3's arc lands, and AF's predicate paragraph is repaired by reading back what shipped
 
 **Did:** Merged `worktree-filings-3` @ `5dade2d6` (R5 item 018 + the B3/B4 residue ledger) with
