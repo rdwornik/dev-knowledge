@@ -65,8 +65,31 @@ doing their own `Path.rglob("*.md")` and filtering AFTER the walk, and `rglob` c
 2,420 files at 0 worktrees vs 14,510 at 5; `normalize_text` 78.57s -> 12.96s; post-fix the two tests
 run 51.39s at 5 worktrees vs 51.49s at the operator's floor of 2, a 0.2% delta.
 
-**Result:** `[#634]` re-scoped and open, hold lifted; H0-PREP manifest filed; L5 and L4 recovered and
-pushed; L3 dispatched detached and still running at wrap.
+**L3 PAUSED ON A REAL RULE-VS-RULING CONFLICT, AND PAUSING WAS CORRECT.** Its contract (from the
+ruling's own closure) says governance prose relocates to `docs/` only. `validate_hermetization.py`
+Rule C - the home allowlist, operator ruling A of 2026-08-11 - hard-refuses a new file whose
+immediate home is bare `docs/`; the module's own comment cites that exact class as how
+`docs/ORGAN-INDEX.md` was born. Rule C was verified independently against the source, not taken
+on the lane's word. The lane escalated under decision-budget class (b) and Q10 rather than
+inventing a home, finished cleanly (`is_error=false`, `status DONE`, 51 turns, $2.29) and left
+its draft in `stash@{0}` (`-u` was used, so `docs/governance.md` is preserved at `stash@{0}^3`).
+Both halves were harvested to `Dev/_scratch/h0-l3-paused/` because a stash dies with its
+container. No commits on its branch, which is the honest state: Done-clause 0 is not met and
+must not be faked.
+
+**NOT THIS SESSION'S WORK, NAMED ONLY TO DISCHARGE `journal_spine_anchor`:** two first-parent
+spine entries on main carry no JOURNAL anchor reachable from this branch - `ca0a2a2f`
+(`Merge branch 'worktree-corpus-coherence-gemini'`) and `09f80530`
+(`Merge branch 'docs/journal-anchor-drain'`). `09f80530` was the integrator's drain that
+anchored the earlier four, and it could not anchor ITSELF, so the drain opened a fresh gap;
+its `(d)` entry lives on main and not on this branch, which is why `ca0a2a2f` reads as
+unanchored from here. The gate is a PRE-COMMIT hard-fail, so this blocks every seat, not
+just theirs. Both are named to let work land - substance is owned by the integrator seat and
+is deliberately NOT summarised or claimed here. A sync-merge of main into this branch would
+be the wrong fix and was not done.
+
+**Result:** `[#634]` re-scoped and open, hold lifted; H0-PREP manifest filed; L5 and L4 recovered
+and pushed; L3 paused awaiting an operator ruling on where governance prose may live.
 
 **Changes:** `tasks/634-*.md`; `docs/audits/2026-09-05-technical-batch-h0-manifest.md`;
 `docs/audits/README.md`. On lane branches: `tests/test_toc.py`,
@@ -75,14 +98,8 @@ pushed; L3 dispatched detached and still running at wrap.
 **Abandoned:** L2 entirely - retired on evidence, not deferred. Three-lanes-in-parallel: the account
 caps at 2 running codespaces, so L3 was refused at create and ran third.
 
-**NOT THIS SESSION'S WORK, NAMED ONLY TO DISCHARGE THE SPINE GATE:** `ca0a2a2f`
-(2026-09-05, `Merge branch 'worktree-corpus-coherence-gemini'`) landed on main from a
-CONCURRENT seat with no JOURNAL anchor, and `journal_spine_anchor` hard-fails on it -
-which blocks every commit in the repo, not only that seat's. It is named here so the
-gate can pass; its substance belongs to that session's own entry and is deliberately
-not summarised or claimed here. The integrator seat has been told.
-
-**Next:** integrator merges `docs/rescope-634`, then L5 -> L4 -> L3. **The full suite has NOT been
+**Next:** integrator merges `docs/rescope-634`, then L5 -> L4; L3 is DEFERRED out of this window
+until the `docs/` home question is ruled. **The full suite has NOT been
 observed green on L5's branch** - its verifying run was the task that got killed - so re-run it at
 merge rather than trusting the commit. Two stopped codespaces await a deliberate operator delete.
 
