@@ -50,9 +50,39 @@ fallback, and nothing else in this section changes.
     copy header  : every copy written to to-browser\ starts with one line
                    <!-- COPY OF <repo path>@<sha> - generated, never edited; the repo is the
                    source -->
-    session start: every CC session prints the resolved prompts dir on boot (SessionStart hook
-                   or /lane-boot line) so a stale inheritance is visible in the first turn
+    session start: every CC session RESOLVES the prompts dir from User scope and prints it on
+                   boot (SessionStart hook or /lane-boot line), overriding a differing process
+                   value; unset in both scopes prints "CLAUDE_PROMPTS_DIR unset - Downloads
+                   fallback" so the fallback is never silent
     inbox naming : ARCHITECT-INBOX-<YYYY-MM-DD>-<NNN>.md, always numbered; items <NNN>-<letter>
+
+**Transport v2 — schema, grammar, retention.** Amends the constant above; the grammar applies from
+the NEXT window, and files already in flight stay as they are rather than being renamed mid-use.
+
+    item schema  : every inbox item carries minimal frontmatter -
+                   repo: <name> · owner-role: filings|dispatcher|integrator ·
+                   files: [footprint] · gate: <none | DECLARE-<item>> · depends: [items]
+                   OWNERSHIP AND GATES LIVE IN THE FILE, never in a chat paste. The dispatcher
+                   computes disjoint groups from `files:` and boots N FILINGS lanes from them
+    naming       : INBOX-<repo>-<YYYY-MM-DD>-<NNN>.md · DECLARE-<item>.md · STATUS-<repo>.md
+                   (sections per session; edit only your own) · a delivery keeps its REPO
+                   filename and carries the copy header
+    retention    : at wrap, FILINGS moves consumed inbox items and delivered artifacts to
+                   archive/<window-date>/ and STATUS keeps a one-line pointer, so a fresh
+                   window opens on live items only
+    ledgers      : STATUS-<repo>.md is the READ SURFACE; the DONE copies are the AUDIT TRAIL.
+                   There is no third ledger, and adding one is the failure this clause forbids
+
+*Why ownership belongs in the file.* A chat paste is not addressable: two sessions given
+overlapping work by two pastes cannot detect the overlap, and the first evidence is a merge
+conflict or a doubled filing. `files:` makes the footprint checkable BEFORE dispatch, which is the
+same property the contract-freeze coupling scan (candidate (f)) wants one layer down.
+
+*Folder rename, PENDING and sequenced.* `CLAUDE PROMPT DIR` becomes `claude-exchange` — no spaces,
+lowercase, and it says what it carries. It is ONE operator act (rename in Drive, then
+`SetEnvironmentVariable(..., "User")`), and it is deliberately ordered AFTER the User-scope
+resolution hook lands, because until then a rename would break every seat holding an inherited
+literal path. `to-cc/` and `to-browser/` keep their names; they are direction-named and correct.
 
 Two clauses above exist because a specific failure happened, and they are cheap only until they
 are skipped. A seat that inherits `CLAUDE_PROMPTS_DIR` from a shell predating the setting resolves

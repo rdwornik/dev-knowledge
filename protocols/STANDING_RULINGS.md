@@ -3566,6 +3566,23 @@ no literal path in this register, in `OPERATOR-INTERFACE.md` §1, or in the hook
 leg proposes. Recorded as an amendment because the original wording is what the 001-B filing
 actually said, and a register that silently repairs its own past entries is not a record.
 
+*Amended 2026-09-05 (architect inbox item 017) — TRANSPORT v2: the candidate gains a schema, a
+naming grammar and a retention rule, all landed in `OPERATOR-INTERFACE.md` §1.* The transport as
+first filed carried WHERE files go; v2 carries what a file must SAY about itself. Every inbox item
+declares `repo:`, `owner-role:`, `files:`, `gate:` and `depends:` in its own frontmatter, because
+**ownership assigned in a chat paste is not addressable** — two sessions handed overlapping work by
+two pastes cannot detect the overlap, and the first evidence is a merge conflict or a doubled
+filing. A `files:` footprint makes disjointness checkable BEFORE dispatch, which is candidate (f)'s
+property one layer up. Retention: consumed items and delivered artifacts move to
+`archive/<window-date>/` at wrap, with STATUS keeping a one-line pointer, so a window opens on live
+items only. And exactly two ledgers exist — STATUS is the read surface, the DONE copies are the
+audit trail; a third is forbidden rather than merely discouraged.
+
+The grammar applies from the NEXT window and files in flight are not renamed mid-use. The folder
+rename (`CLAUDE PROMPT DIR` → `claude-exchange`) is one operator act and is sequenced AFTER (v)'s
+User-scope hook lands — renaming first would break every seat still holding an inherited literal
+path, which is the failure (v) exists to end. Recorded as PENDING; nothing here renames anything.
+
 Evidence, witnessed while executing 001-A rather than reasoned about: a session booted with a
 `CLAUDE_PROMPTS_DIR` inherited from a shell that predates the setting, resolved it to Downloads,
 found `to-cc/` and `to-browser/` present but empty, and reported the whole inbox missing. The
