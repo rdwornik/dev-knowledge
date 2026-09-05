@@ -1394,13 +1394,34 @@ def _derived_freshness_findings(repo_path) -> list[Finding]:
         return [_na(name, _NA_SUBJECT_ABSENT, "derived leg: no living docs tracked here")]
 
     findings: list[Finding] = []
+    # THE UNSTAMPED CLASS IS SCOPE-NARROWED TO THE GATED SET'S OWN DIRECTORIES (R5 window
+    # bundle B10, ruled 2026-09-05). It was reporting 27 files that carry no `last_reviewed`
+    # and ARE NOT REQUIRED TO -- `.claude/commands/`, `plugins/`, `deploy/` and friends, none
+    # of them under any stamping contract. A permanently-amber row with nothing behind it is
+    # the "detector teaches that amber is normal" failure, and the ruled fix is to narrow the
+    # scope rather than disposition the row forever: a file sharing a directory with a gated
+    # file is one the A1/A2 cadence could plausibly extend to, so its absence of a stamp is a
+    # freshness question; a file in a directory the cadence has never reached is a SCOPE
+    # question, and belongs to whoever widens the contract, not to this report.
+    # NOT SILENTLY DROPPED -- the out-of-scope count is still printed, so narrowing the report
+    # cannot hide growth. The two STALE classes are untouched: a stale stamp means a contract
+    # exists and is being missed, which is a different fact from never having had one.
+    _gated_dirs = {p.rsplit("/", 1)[0] if "/" in p else "" for p in _FRESHNESS_FILES}
     for doc_class in (CLASS_GATED_STALE, CLASS_UNGATED_STALE, CLASS_UNSTAMPED):
         members = [r for r in rows if r.doc_class == doc_class]
+        out_of_scope = 0
+        if doc_class == CLASS_UNSTAMPED:
+            adjacent = [r for r in members
+                        if (r.path.rsplit("/", 1)[0] if "/" in r.path else "") in _gated_dirs]
+            out_of_scope = len(members) - len(adjacent)
+            members = adjacent
         if not members:
             continue
+        tail = (f" (+{out_of_scope} unstamped outside the gated set's directories, "
+                f"out of scope for this report)" if out_of_scope else "")
         findings.append(Finding(name, "warn", (
             f"derived {doc_class}: {len(members)} - " + "; ".join(r.brief() for r in members)
-            + " -- full rows: audit.py doc-freshness"
+            + tail + " -- full rows: audit.py doc-freshness"
         ).replace("|", "/")))
 
     fresh = [r for r in rows if r.doc_class in (CLASS_GATED_FRESH, CLASS_UNGATED_FRESH)]
