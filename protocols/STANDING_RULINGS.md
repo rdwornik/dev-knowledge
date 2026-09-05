@@ -3415,10 +3415,11 @@ tests to declare their files present, rather than weakening the Z-G4 FAIL.
 Filed from the architect's outgoing-seat note of 2026-09-02 (step B), landed after G3b merged and
 before the close packet. **Z-C shape: these are CANDIDATEs, not rows.** ADR-111 admits exactly one
 path — CANDIDATE, then ADR-98 intake, then ratification — so nothing here draws from the ledger and
-nothing here is a commitment. The lettering runs (a)–(g), (i), (j), (k), (m): **there is no (h)**
-and **no (l)**, and both absences are deliberate rather than lost entries — the note's amendment
-added (f) and (g), a later message added (i), (h) was never filed by anyone, and (m) arrived from
-the 2026-09-05 architect inbox (item 001-B) with (l) likewise never filed by anyone.
+nothing here is a commitment. The lettering runs (a)–(g), (i), (j), (k), (m), (n): **there is no
+(h)** and **no (l)**, and both absences are deliberate rather than lost entries — the note's
+amendment added (f) and (g), a later message added (i), (h) was never filed by anyone, and (m) and
+(n) arrived from the 2026-09-05 architect inbox (items 001-B and 001-C) with (l) likewise never
+filed by anyone.
 
 **(a) README as a human front door.** What-it-is, then quickstart, then a link map; governance prose
 relocated and consumers re-pointed. The note files it as NEW and marks the reason it is not merely a
@@ -3506,6 +3507,26 @@ The proposed constant text is added to `protocols/OPERATOR-INTERFACE.md` §1 by 
 Its FINAL wording is not this entry's: the 2026-09-05 inbox item 005-A supersedes it with a fuller
 constant (copy-header line, session-start echo, inbox naming grammar). This entry is the candidate;
 §1 carries the text; 005-A replaces the text without disturbing the candidate.
+
+**(n) STANDING DELIVERY RULE — a deliverable is copied to `to-browser/` as a session's last act**
+*(architect inbox 2026-09-05, item 001-C)*. A session that finishes a deliverable copies it to the
+prompts directory's `to-browser/` before it stops. The reasoning is that an artifact existing only
+in-tree has not reached the seat that asked for it: "it is committed" describes the repo, not the
+delivery, and the seat that commissioned the work is on the other side of the transport in (m).
+Proposed home for the one-line statement: `protocols/OPERATOR-INTERFACE.md` §4 (reports), added by
+the same commit.
+
+The candidate deliberately does NOT propose this as a habit. A rule every session must remember is
+a rule that fails on the session that does not, and this batch has already spent operator time on
+exactly that class. The mechanism belongs where the work already ends — `/lane-integrate` and the
+close-packet step perform the copy — so no session has to remember it. Recorded as a candidate and
+not built: ADR-111 admits one path, and this has not been through intake.
+
+**Merge note, not a second entry.** The 2026-09-05 inbox item 005-B files mechanism (s) — the
+same copy step in `/lane-integrate` and the close packet, carrying §1's copy-header line — and
+states it is (n) made concrete, to be MERGED rather than duplicated. When 005-B is executed, (s)
+folds into this entry as its mechanism leg; it does not take a letter of its own.
+
 ## Editing note (read before adding an entry)
 
 This file sits inside the silent-rule ratchet corpus (`protocols/*.md`; detector

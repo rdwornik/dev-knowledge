@@ -88,6 +88,13 @@ The in-tree homes are the ones the taxonomy already defines (`docs/audits/`, `do
 `docs/intake/`); a file with no in-tree home travels through Downloads and is named for its
 subject and date.
 
+**Standing delivery rule — candidate (n), filed not ratified.** A session that finishes a
+deliverable copies it to `to-browser\` as its last act before it stops: an artifact that exists
+only in-tree has not reached the seat that asked for it, and "it is committed" is not delivery.
+The copy is a generated one under §1's `source` clause. Landing this as a habit is what the
+candidate declines to do — the mechanism belongs in `/lane-integrate` and the close-packet step,
+so the copy happens whether or not a session remembers it.
+
 ---
 
 ## 5. The browser role file is INSTALLED ONCE, not re-pasted (v6.3.0)
