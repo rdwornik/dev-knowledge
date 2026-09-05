@@ -142,8 +142,7 @@ audit checks                      54       organ-computed   gen_doc_counts.py --
 pre-commit hooks                  23       organ-computed   gen_doc_counts.py --check
 pytest collected                4992       organ-computed   gen_doc_counts.py --check
 suite result            21F / 4967P        organ-computed   pytest -q, 1310.50 s, idle tree
-audit.py health wall-clock      35.2 s     organ-computed   n=3, +/- 0.15 s, idle machine
-audits corpus                    896       organ-computed   gen_audit_index.py
+audits corpus                    897       organ-computed   gen_audit_index.py (incl. this file)
 
 boot round-trips            NOT COMPUTED   organ-declared   handoff spec major v7 unmapped
 windows to cutoff           NOT COMPUTED   organ-declared   judgment INPUT, not an observation
@@ -152,11 +151,25 @@ drift-report runs           NOT COMPUTED   organ-declared   not instrumented; le
 spine merges landed               43       hand-counted     git log --first-parent 3200757d..HEAD
 of those, touching code           28       hand-counted     per-merge diff-tree filter
 R5P lanes merged                   3       hand-counted     of 4 dispatched; 1 refused at the gate
-JOURNAL entries by this seat       8       hand-counted     2026-09-05 (m) through (u)
+audit.py health wall-clock      35.2 s     hand-counted     3 timed runs; the command prints
+                                                            no timing, so the mean and the
+                                                            +/- 0.15 s are the integrator's
+JOURNAL entries by this seat      10       hand-counted     2026-09-05 (m)-(u) = 9, of which 8
+                                                            carry the INTEGRATOR-2 tag, plus
+                                                            2026-09-06 (a)
 worktrees torn down                2       hand-counted     zc-candidates, filings-3
 directory husks remaining         13       hand-counted     against 2 registered worktrees
 terra rounds spent on AF           5       hand-counted     4 with findings, the 5th CLEAN
 ```
+
+**Three provenance errors were caught in review and are recorded rather than silently fixed,**
+because this section's whole purpose is the provenance label. The audits corpus read 896 when
+the regenerated index says 897 - the packet forgot to count itself. The `audit.py health`
+wall-clock was labelled `organ-computed` when that command prints no timing at all: the mean
+and the spread are the integrator's, from three timed runs, and it is now marked
+`hand-counted`. And the JOURNAL tally said 8 against a span holding 9. A hand count wearing an
+organ's label is exactly the drift this section warns about, produced here by the person
+writing the warning.
 
 **`window_metrics.py` reads `origin/main..HEAD` and therefore reports 0 arcs for this window.** That
 is correct for its declared range and wrong as a description of the batch, because everything is
