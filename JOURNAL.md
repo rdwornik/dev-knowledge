@@ -19,6 +19,47 @@
 
 ---
 
+### 2026-09-05 (p) - CC (Opus 5, INTEGRATOR-2): 015-C discharged on the operator's own word, and the funnel bypass it corrects
+
+**Did:** Dropped `[#635]` and `[#636]` on recorded operator consent, and pre-anchored the two
+merges that follow so neither lands unanchored.
+
+**Result:** Both rows were filed earlier today by integrator ruling and never passed ADR-111
+triage - no finding was dispositioned into OWNED / DISCHARGED / CANDIDATE / REJECTED, and the
+only sanctioned path in is CANDIDATE -> intake (ADR-98) -> ratification. They bypassed it.
+The content is NOT lost: it lands as CANDIDATEs AE-1/AE-2 in the `zc-candidates` arc named
+below, which is why the operator's consent restores that lane's premise in the same act that
+drops the rows. `--prune` is refused since the [#439] flip (ADR-107 6.3), so the mechanism was
+to remove the two nodes from `tasks/manifest.json`, delete the files, and regenerate the view:
+nodes 503 -> 501, 224 tasks, `--check ok`.
+
+**I refused this same act twice today when it arrived by peer relay, and executed it on the
+first occasion it arrived as the operator's own word.** That distinction is the whole content
+of 015-C: a relay carries information, never authorization, and this deletes tracked content
+merged hours earlier. Both peers independently agreed the refusal was correct while the relay
+stood.
+
+**Known residue, not chased.** Three immutable audits and one intake item still name the
+dropped ids and now resolve to nothing. Audits cannot be edited to follow a dropped id, and
+the intake item is content rather than an integration act. Orphaned dispositions, recorded in
+the drop commit so the next reader meets the fact in history rather than as a dangling
+locator.
+
+**Changes:** `tasks/manifest.json`, `BACKLOG.md`, two `tasks/` files deleted, `JOURNAL.md`.
+
+**Abandoned:** Nothing.
+
+**Next:** merge `zc-candidates` (hold lifted by the operator, its premise restored) and
+AMENDMENT 9, in which the architect ruled #22 is NOT to be classified at all - A4 and A5
+superseded in full, neither A nor G endorsed, the finding recorded factually as
+carrier-absent. That closes the review thread five terra rounds could not, because the
+question was never answerable from inside the audit. Defect #25's status, filed under the
+now-superseded reading, is left open by the ruling's own scope and needs someone to close it.
+
+**Anchors:** `@ARC@` (this arc: the drop plus this entry) - and, named BEFORE their merges per
+the standing rule: `811399a6`, `72bb1984` (zc-candidates), `34c94789`, `7bfb1ef5`
+(AMENDMENT 9).
+
 ### 2026-09-05 (o) - CC (Opus 5, INTEGRATOR-2): pre-anchor the seat-notes arc - five markers, five terra rounds, one CLEAN
 
 **Did:** Pre-anchored the `worktree-docs-seat-notes-amend3` arc ahead of its merge, per the
