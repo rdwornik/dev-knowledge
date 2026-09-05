@@ -19,6 +19,79 @@
 
 ---
 
+### 2026-09-05 (g) - CC (Opus 5): the outside-harness gap analysis, and an adversarial pass falsified three of my eight absence claims
+
+**Anchors:** `6d0db21f` (this arc: the deliverable + this entry) - plus `ca0a2a2f` and `09f80530`, both
+diagnosed below as FOREIGN merges, not this arc's work
+
+**Did:** ran the frozen "Architekt Jutra" research contract end to end - P0 inventory through P6
+review. 48 corpus files / 771.4 MB of licensed Polish training material plus two repos, read
+outside the tree; 27 extraction files, 27 retrieval sheets (970 claims, 0 without a locator,
+0 carrying comparison language, verified by a parser rather than by asking the legs), a pinned
+our-side read at `6de676fb`, and one deliverable at
+`docs/audits/2026-09-05-technical-research-architekt-jutra-gap-analysis.md`.
+
+**THE RESULT IS A COMPLEMENT, BUT NOT THE ONE I FIRST WROTE.** Their harness sees itself and
+cannot enforce itself - proven inside their own shipped repo, where a task carrying
+"Deployment Decision: NO-GO" in `verification/reality-check.md:5` has
+`orchestrator-state.yml:32` recording `status: completed`. The prose verdict flips no
+machine-readable field. Their entire phase-gate layer is text asking the model to stop; exactly
+one hook in the plugin can veto anything, and it ships a SessionStart hook whose whole job is
+re-injecting "actually stop at gates", plus a second to re-inject it after compaction.
+
+**THE MORE USEFUL HALF IS THE CORRECTION.** My first draft claimed eight ONLY-AJ rows. The
+adversarial leg searched OUR vocabulary instead of theirs and falsified three outright, overstated
+five more, and showed five of nine proposed CANDIDATEs were already live funnel objects. One
+ONLY-AJ row survives. Root cause, and it is the transferable finding: every recorded search used
+AJ words. Ours are *supplement*, *asks register*, *lived-workflow*, *freeze*, *legibility*,
+*shape*, *trends* - none was searched. Row 21 was the worst: it credited them with a curated
+agent-run archive we also have, and ours is stronger - their strip list is documented, ours
+refuses (`_scrub_check` will not freeze a transcript carrying a key). Aggravating: my own search
+for `clarifications\.md` returned the four `tests/fixtures/lived-workflow/*.jsonl` files and I
+dismissed them as false positives. The evidence was in hand and I misread it.
+
+**terra found twelve further defects across two passes, every one mechanical** - a locator, a
+count, or a relation label; none touched the analysis. Including one I created myself (a
+nine-vs-eight contradiction) and one in the row carrying the document's central claim (a gate
+count inflated to 24, erasing the commit-msg category). I also destroyed evidence: piping pass 1
+through `tail -80` discarded its two most severe findings, so pass 2 was re-run unpiped.
+
+**THE CONTRACT'S OWN FILENAME WOULD HAVE FAILED A GATE.** It froze class `research`, which is not
+in `AUDIT_CLASS_ENUM`. Caught by running `rule_b_violation()` on both candidates rather than
+reading the enum and inferring. Landed as class `technical` with `research` in the slug, on
+existing repo precedent; the contract's slug is intact.
+
+**TWO FOREIGN UNANCHORED MERGES BLOCKED THIS COMMIT, AND THE SECOND WAS THE FIX FOR THE FIRST.**
+`ca0a2a2f`
+("Merge branch 'worktree-corpus-coherence-gemini'", 15:00:56) landed on main's first-parent spine
+carrying no JOURNAL anchor. It is not this arc's work and predates nothing here - my lane is based
+at `3200757d` and does not contain it - but `journal_spine_anchor` reads main's spine, so the gap
+wedged a lane that had no part in creating it. Discharging it surfaced a second: `09f80530`
+("Merge branch 'docs/journal-anchor-drain' -- unblock the repo: four spine merges were unanchored
+and audit-health is a PRE-COMMIT gate"), now main's tip. **The drain that cleared four gaps left a
+fifth - its own merge.** A branch cannot anchor the merge that lands it, so the only thing that can
+discharge a tip merge is the NEXT entry, which is this one. Both diagnosed here per B6 (an anchor
+discharges by APPEND ONLY) so the queue moves; neither arc's own record is owed to me, and both
+still owe their substance.
+
+**Result:** deliverable landed with a four-outcome ADR-111 triage in place of the first draft's
+nine births - four OWNED (two `READY` intakes, one `DRAFT` intake, one deferred task), three
+WITHDRAWN on falsified premises, three CANDIDATE. No BACKLOG rows born, no ADR, no protocol edit.
+
+**Changes:** `docs/audits/2026-09-05-technical-research-architekt-jutra-gap-analysis.md` (new),
+`JOURNAL.md`. The audits index is deliberately NOT regenerated - `[#590]` narrowed that hook to
+the index and its generator, so a lane no longer touches it; integration owns it.
+
+**Abandoned:** transcription of all 13 MP3s (operator ruling - 1:1 transcript coverage already,
+and no timestamps anywhere to gain); six of eight zips (SHA-256-verified re-bundles).
+
+**Next:** operator triage of the three surviving CANDIDATEs, and a ruling on whether `sol` gets
+installed - `ecosystem/routing-table.yaml:37-38` declares an `adversarial` role bound to a CLI
+that is not on PATH, so an arc routing to it silently degrades to a same-family substitute. That
+substitute is what caught the three false rows, which is the argument for making it real.
+
+---
+
 ### 2026-09-05 (f) - CC (Opus 5): the queue is anchored before it is merged, not after
 
 **Did:** Landed merge-queue item 2 (manifest-linked audits count as CITED and
