@@ -3483,6 +3483,89 @@ later day queues behind the collision. The guard is right; the naming grammar gu
 collision it guards against. Resolution is a naming decision (run-scoped suffix, or an
 archive-side merge rule), and it is the operator's, so nothing was deleted.
 
+## AE. Two integrator-carried CANDIDATEs — the primary-checkout HEAD race and the window SCORECARD (integrator lane, 2026-09-05)
+
+Recorded under ADR-111 §1(c) on the precedent Z-C set and AB and AD continued: a candidate is
+**recorded**, and the only route from here to a row is CANDIDATE → intake (ADR-98) →
+ratification. **Z-C shape: these are CANDIDATEs, not rows.** Neither carries a peg, an owner or
+a size band, by design; nothing here draws from the ledger and nothing here is a commitment.
+
+**AE-1 · `SessionStart` refuses a non-integrator session on the primary checkout.**
+
+Filed from a WITNESSED failure rather than a design idea: a commit landed on `main` while
+`block-commit-on-main` reported **Passed** in that same run.
+
+*Evidence — and it clears the gate.* The gate was probed live and refuses correctly.
+`scripts/block_commit_on_main.py` is not defective, and no hardening inside that hook closes
+this. The race is TOCTOU: pre-commit ran the organ mesh with HEAD on a feature branch, a
+concurrent session checked out `main` while that mesh was still running, and git re-resolved
+HEAD at ref-write time. The hook read one HEAD; the commit wrote against another.
+
+*The honest limit, so nobody reads more into this than it carries.* A client-side pre-commit
+hook cannot hold an atomic claim on HEAD for the duration of its own run, so the window is
+structural. A `SessionStart` refusal **NARROWS** that window — it makes the second seat rarer by
+refusing to start in the primary at all — **it does not prove the window shut.** Any claim of
+closure here claims more than the mechanism can deliver. Measurement of how often a second seat
+actually starts in the primary precedes any ruling.
+
+*Adjacent, not duplicated.* `docs/intake/2026-08-17-tech-repository-autonomy-and-gate-liveness.md`
+reaches `block-commit-on-main`, but on a different defect — `current_branch()` returning `None`
+on any non-zero git exit. That is a fail-open question INSIDE the hook; this is a HEAD-identity
+race OUTSIDE it. Neither subsumes the other.
+
+**AE-2 · `window_metrics` gains the ten-line SCORECARD.**
+
+*Library-first is the binding constraint here, not a preference.* Every row of the proposed
+scorecard is computable from surfaces the repo already maintains, so a new store would be a
+**second source of truth for numbers that already have one** — the drift class this register
+keeps having to repair. The scorecard reads; it does not accumulate.
+
+*Evidence.* Across one window the ship-gate headline read **133 / 134 / 136 / 137**, and two of
+those readings were taken at a **byte-identical tree**. The number moved with the calendar, not
+with the repo, because roughly half its WARN lines are calendar-driven `doc_rot`. A headline that
+changes while the tree does not is not a measurement of the tree.
+
+*The trend column is the feature.* One absolute count carrying calendar noise is unreadable; the
+same count with its direction is not. The scorecard's value is that it makes the calendar-driven
+component visible as MOVEMENT instead of laundering it into a level.
+
+*The precedent it must respect, and this is the honest limit on the shape.*
+`scripts/window_metrics.py` is `[#461]`'s organ — six operator metrics, **four computed and two
+printed as `NOT COMPUTED` with the reason**, because a computed-looking number there would
+launder an estimate into a measurement. The 2026-07-30 operator-routing intake
+(`docs/intake/2026-07-30-func-operator-decision-routing-and-standards.md`) records the companion
+ruling: that module's refusal to supply a window boundary is **correct and stands**, and the
+boundary is read from a committed fact — the handoff seal SHA — rather than estimated. A
+SCORECARD row that cannot be computed from an existing surface therefore prints its reason
+exactly as the two existing ones do; it does not acquire a store in order to become computable.
+Ten rows is the proposal's shape, not a floor to be met by inventing rows.
+
+*Not the R18 conformance scorecard.*
+`docs/intake/2026-08-17-tech-fleet-config-standardization.md` records R18 — a per-repo × per-rule
+FLEET conformance scorecard — as **NOT-BORN at §6.4 with un-parking conditions**. That object is
+fleet-grained and consumer-facing; this one is window-grained and hub-local. Different
+denominator, different reader. Recorded so the two are not merged by name collision.
+
+**Filing note — two facts the next seat needs, recorded here rather than only in an expiring lane
+artifact (AA's rationale, applied).**
+
+- *The "reconciled against intakes #68/#69" term is UNLOCATABLE, and that is the finding — not a
+  gap to fill.* Intake numbering is the ordinal position in `docs/intake/` sorted by name, **plus
+  10** (rule as verified at dispatch: position 50 = intake #60, position 53 = intake #63). The
+  corpus holds **57 numbered docs** — re-counted in this lane — so numbering **tops out at #67**.
+  Intakes #68 and #69 do not exist; they were not created, and no guess was made about which docs
+  were meant. The reconciliation term is discharged the honest way instead: neither candidate
+  above duplicates an existing intake doc, and the nearest neighbour is named inside each entry.
+- *A colliding branch files these same two items in the OPPOSITE disposition.*
+  `worktree-file-candidates` @ `26d7d743` ("chore(tasks): file [#635] and [#636] — the two
+  integrator-ruling candidates, filed not built") is **unmerged** and files them as BACKLOG
+  **rows**: `tasks/635-sessionstart-refuses-a-non-integrator-session-on-the-primary.md`,
+  `tasks/636-window-metrics-gains-a-ten-line-scorecard.md`, `tasks/manifest.json`, `BACKLOG.md`.
+  This section files them as **CANDIDATEs, no rows**. The two file sets are disjoint, so both can
+  exist without conflicting — but the two dispositions are not compatible, and one has to give
+  way. **That ruling is the integrator's and is not made here.** Nothing on that branch was
+  touched by this lane.
+
 ## Editing note (read before adding an entry)
 
 This file sits inside the silent-rule ratchet corpus (`protocols/*.md`; detector
