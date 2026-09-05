@@ -54,7 +54,7 @@ declared NOT MEASURABLE at that surface, because the 29s collect never entered `
 Printing `0` there would have read as "measured, no change", which is a different claim than "not
 measurable here".
 
-**Changes:** `docs/audits/2026-09-05-technical-batch-r5p-close-packet.md` (new, 201 lines);
+**Changes:** `docs/audits/2026-09-05-technical-batch-r5p-close-packet.md` (new);
 `docs/audits/README.md` (regenerated twice, for the reason above); this entry.
 
 **Abandoned:** Nothing.
