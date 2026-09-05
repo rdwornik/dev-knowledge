@@ -33,16 +33,30 @@ shared the name here, so the two-branch rule collapsed to one local plus one rem
 AF-2b records. The DIRECTORY refused with `Permission denied`, which the seat predicted before
 exiting: that is the husk class, not a git problem, and only the holding process can free it.
 
-The index is the more interesting half. `docs/audits/README.md` was STALE at 894 against 896 live
-audit documents. The `audit-index-freshness` pre-commit gate is not broken and did not misfire -
-it inspects STAGED files, and both new audits arrived through `--no-ff` MERGES, which stage
-nothing. The gate was asked "do the staged files leave the index stale?", answered "no" correctly,
-and the index went stale anyway. That is the SECOND time today a check returned the right answer
-to the wrong question - the first being `git branch` reporting a merged-and-torn-down branch as
-never-existed, which is AF-2a. Same shape, different organ. Worth noticing that AF-1's candidate
-would not have helped here: the gate never fired, so there was no failure text to improve. What
-found it was running the generator's own `--check` by hand after the merges, which nothing
-schedules.
+The index is the more interesting half, and my first write-up of it was wrong twice - corrected
+here before landing, after review pushed back and I read the modules rather than reasoning from
+the shape.
+
+`docs/audits/README.md` was STALE at 894 against 896 live audit documents. The commit-time gate
+`audit-index-freshness` did not misfire: pre-commit does not run at all on a conflict-free merge
+(git invokes `pre-merge-commit`, which this repo does not wire), and the hook's scope is the
+staged set in any case. Both new audits arrived through `--no-ff` merges. So nothing at commit
+time was ever asked the question. I first wrote that "merges stage nothing" - that is false, a
+merge does populate the index - and the real reason is the hook stage, not the staging.
+
+I also wrote that "nothing schedules" the check that would catch it. Also false, and the truth is
+better: `AUDIT_INDEX` IS registered in `generated_artifact_freshness`, and not on the weak date
+relation either - it carries an exact `content_check=_audit_index_matches`, which makes the same
+comparison `gen_audit_index --check` makes, in-process. That registration exists BECAUSE terra
+found on 2026-08-26 that the date relation has a one-day floor while audits land ~10/day, so the
+date leg "would have reported clean on essentially every real staleness it was registered to
+catch". Someone already found this exact hole and closed it properly.
+
+What remains true is narrower and worth keeping: that leg is ship-tier and **WARN, never FAIL, by
+construction** - `fails` is always empty, and promoting it needs its own ruling. So the honest
+statement is a COMMIT-TIME coverage gap with ship-time detection retained at WARN, not an
+undetected class. AF-1's candidate would not have helped either way, because no gate fired and
+there was no failure text to improve.
 
 **Changes:** `docs/audits/README.md` (regenerated, 894 -> 896); this entry.
 
