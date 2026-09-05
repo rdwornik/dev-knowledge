@@ -221,3 +221,67 @@ plus its amendments, never from the body's sentence alone — which is exactly w
 manifest** rather than hub-only. The inbox seat filed the mechanism as **intake #70** (roles
 as routing-table rows with a commit-shape hook); that filing is theirs, not this lane's, and
 nothing here triages it. Findings arising from this amendment route back to that seat.
+
+---
+
+## AMENDMENT 3 — the class-G ruling on #19, and five further defects (2026-09-05)
+
+> **Same shape, same reason.** Audits are immutable (critical rule 3): the seat's register,
+> AMENDMENT 1 and AMENDMENT 2 are all untouched, and this marker is appended below them. The
+> verbatim body is still the contiguous region from `# BROWSER SEAT NOTES` to the blank line
+> preceding AMENDMENT 1's `---` rule, still
+> `sha256 685633c33c49c7d37de5dba70f3162d4d1841a98b12896ee8d28ee465f06b196`.
+
+### 1. RULING — #19 is class **G**, not a second F
+
+AMENDMENT 2 recorded #19 under the label the filing gave it (`F`) and flagged that F was
+already bound to *doctrine inertia* by defect 11, explicitly leaving the collision for the
+filing seat to rule. **That ruling has now been made (FILINGS-1, owner of the 008-D
+routing):**
+
+> **#19 is class G — "rule without a carrier (UNENFORCEABLE)". F stays "doctrine inertia"
+> and is untouched.**
+
+The reasoning, recorded so the label survives someone re-opening it. **F-as-inertia is a
+rule that was IGNORED** — the doctrine existed, an organ could in principle have refused,
+and a seat went around it. **G is a rule that was UNENFORCEABLE** — no carrier existed, so
+*nothing in the repo could disagree with the paste*.
+
+It is load-bearing because **the two have different remedies.** Inertia is fixed by
+derivation and visibility — which is exactly defect 11's own corrective, the dispatch verb
+derived from the arc class and printed in the contract header. Unenforceability is fixed
+only by **building a carrier**, which is why #19's mechanism is intake #70 (roles as
+routing-table rows with a `role-commit-shape` hook) rather than a reminder. Collapsing them
+would make the register read *"we keep ignoring our rules"* when the finding is *"we ship
+rules nothing can enforce"* — and the second recurs at H0 **by construction**, because in a
+consumer repo the only rules that travel are the ones with carriers.
+
+**AMENDMENT 2's `F` label is SUPERSEDED, not erased.** It stays visible there on purpose: a
+later reader needs the evidence that the collision happened and was adjudicated, which an
+in-place edit would have destroyed.
+
+### 2. Five further defects, routed 2026-09-05
+
+| # | Defect | Class | Mechanism that would have caught it |
+|---|---|---|---|
+| 20 | filings work ran **SERIAL where three file-disjoint lanes were possible** — 36 minutes on two items while nine waited; root cause named as *serial-by-caution* | C concurrency model | inbox `017-A`: a `files:` footprint in item frontmatter, so disjointness is **computed, not judged** — landed in `protocols/OPERATOR-INTERFACE.md` §1 |
+| 21 | two pastes carried a **hardcoded drive path** instead of the variable | D interface | candidate (v) reshaped to resolve the prompts dir from **USER scope**, plus the third form-probe predicate |
+| 22 | lane names in the brief **violated the lane-name grammar** `lane-<letter>-<id>-<slug>` | A premise-from-summary | *no mechanism named in the filing* — the grammar itself is the constraint that was not resolved at freeze |
+| 23 | L2 **duplicated an already-committed branch**; `single_flight` refused it — **the mechanism worked and the brief did not** | A premise-from-summary | the brief resolves the **branch list** before dispatch; this is the coupling-scan class again, one layer out |
+| 24 | protocol names **improvised under time pressure**: an unnumbered first inbox, an ad-hoc gate filename, ownership assigned by chat | D interface | the `017-B` naming grammar, replacing improvisation from the next window |
+
+**#23 is the one worth not skimming.** The organ did its job — `single_flight` refused the
+duplicate — and the defect is upstream of it, in a brief that never checked the branch list.
+An enforcement success and a planning failure in the same event look like a caught error and
+are not: the cost was paid before the refusal, and nothing about the refusal makes the brief
+better next time.
+
+**Running total: twenty-four defects.** No class count is stated here — with G admitted it is
+derivable from the register plus its amendments, and `CLAUDE.md` §4 says not to type one into
+prose. Section 1's *"Sixteen defects, six classes"* remains a **landing-time** figure inside
+the immutable body, deliberately not edited (see AMENDMENT 2).
+
+**Provenance:** architect inbox, routed by FILINGS-1 as the follow-up to `008-D`. As with the
+previous amendments, **none of these are triaged by this lane** and none becomes a backlog
+row without ADR-98 intake; the mechanisms named above (`017-A`, `017-B`, candidate (v),
+intake #70) are that seat's filings, not this lane's. Findings arising here route back to it.
