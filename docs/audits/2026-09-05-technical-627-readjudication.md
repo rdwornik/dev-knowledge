@@ -407,4 +407,109 @@ report. What this lane *can* record, and does:
 - seeded arm cost: **811,111 tokens**, 1,353 s wall, on the operator's Google subscription. Per
   SDA-1 C-8 no `$` is computed — a subscription is not a per-call price.
 
-<!-- MEASUREMENT SECTIONS 6-9 FILLED FROM RAW ARTIFACTS -->
+## 6. The pack arm — NOT a reproduction, because the CLI moved under it
+
+This arm re-ran all ten frozen prompts against `.dev-knowledge`, from this worktree's root,
+under batch-F's own flag set. It must be read as a **fresh measurement, not a re-score**, for one
+reason stated up front:
+
+**Batch-F measured Antigravity CLI 1.1.22. The binary on this machine today is 1.1.27.** Same
+model pin (`gemini-3.1-pro-high`, confirmed still served), same prompt bytes (all ten digests
+re-verified), different CLI. Batch-F's cell is therefore **not re-verifiable by anyone, ever** —
+the artifacts are gone and the binary that produced them is gone. That is the single most
+important structural fact in this re-adjudication, and it is worth more than any individual gate.
+
+### Per-item, against the frozen predicates
+
+| item | batch-F (1.1.22) | this lane (1.1.27) | change |
+|---|---|---|---|
+| N-01 | FAIL — analysed a KNX-IoT tree | **no scorable answer**: *"there is currently no active workspace or repository loaded … please provide the absolute path"* | new third behaviour |
+| N-02 | FAIL — quoted `ai-council` | **PASS** — quotes verified byte-exact at `CLAUDE.md:65` and `:74` | **FAIL → PASS** |
+| N-03 | PASS | **PASS** — id 14, all three paths, exact | held |
+| N-04 | PASS, *contaminated* | **PASS, uncontaminated** — cites no audit; returns `{43,44,46,47,51}` | **improved** |
+| N-05 | PASS | **PASS** — names ADR-61, both shapes | held, with disclosure (below) |
+| N-06 | PASS | **PASS** — names `ADR-43_cross_project_transcript_routing.md` | held |
+| N-07 | PASS, held | **PASS** — locators `CLAUDE.md:63`, `AGENTS.md:72-74` **re-opened and exact** | held |
+| N-08 | PASS, held | **PASS** — same three append-only files | held |
+| N-09 | PASS | **PASS** — kills the premise, quotes `- **Status:** Proposed` | held, D-2 residue reproduced |
+| N-10 | FAIL — confirmed the stale finding in `win-tooling` | **PASS** — "no longer true", `READY (19)`, scoped to **this worktree** | **FAIL → PASS** |
+
+**N-04 deserves its own line.** It returns the orphan set `{43, 44, 46, 47, 51}` — which is
+exactly what `recount_n04.py` computes independently, and exactly what §2 D-E shows batch-F got
+wrong. On the item batch-F could only score "PASS, contaminated", agy today produces an
+uncontaminated answer that is *more* correct than the audit which was grading it.
+
+### The computed cell — same nine gates
+
+```
+F0  SUBSTITUTION   PASS            70/70 `Resolving model` lines == gemini-3.1-pro-high,
+                                   computed by score_f0.py over the 14 retained logs
+F1  FABRICATION    PASS*           no Phi trigger on the scorable surface
+F2  LOCATOR        PASS            every cited locator re-opened by hand and held
+N1  DEPTH          UNCALIBRATED    5/6 = 0.83 correct (N-01 unscoreable: removed from the
+                                   numerator, LEFT IN the denominator per freeze section 3).
+                                   Comparative leg still dropped, so still no gate outcome
+N2  CROSS-CHECK    INDETERMINATE   binary and bound to N-01, which returned no scorable
+                                   answer. NOT scored FAIL -- freeze section 3 forbids
+                                   mapping an unscoreable draw to PASS or FAIL
+N3  RESTRAINT      PASS            2/2 clean controls held, 0 manufactured findings
+N4  SELF-KILL      PASS            2/2 planted false positives killed (batch-F: 1/2)
+N5  HONESTY        PASS*           same surface as F1
+N6  LOCATORS       PASS            F2 at 100%
+
+7 PASS / 0 FAIL / 1 UNCALIBRATED / 1 INDETERMINATE = 9
+```
+
+**`*` — the asterisk is a real limitation, inherited rather than introduced.** Φ_analysis is
+defined **trajectory-inclusive**: *"every intermediate turn is read, not only the final answer."*
+That cannot be computed on this transport. The envelope reports `num_turns: 1` and carries no
+trajectory; the CLI log records no tool calls at all. The 2026-08-29 packet measured the same
+thing and said so plainly — *"the log is not a record of what was read, and the contract's
+instruction to 'check what it actually read before claiming a scoped run' cannot be discharged on
+this transport."* So **F1/N5 were undischargeable-as-frozen for batch-F too**; both runs scored an
+absolute gate on the final answer alone. Reported, not scored past.
+
+### What the pack arm actually establishes
+
+Not that agy is good. That **the failure mode batch-F refused it for is largely absent on the
+current build**, and that the one surviving instance is narrow and specific:
+
+- Every log records the correct workspace — 14/14, `Dirs=[…]` exact.
+- The two items that named concrete in-repo paths and had wandered now answer in scope, with
+  line-level locators that re-open correctly.
+- The items that still leave scope are the ones whose prompt is a bare **deictic** — "this
+  repository" with no path. N-01 refused outright for want of one, and N-05 volunteered the
+  mechanism in its own words:
+
+  > *"I searched across your `Dev` folder since **no active workspace was set**."*
+
+  It said that while `Dirs=[…\h5-627-readjudication]` sat in its own log.
+
+**That sentence is the diagnosis.** Not "the model wanders" — *the workspace the CLI records is
+not the workspace the model operates on.* One statement explains the KNX tree, the `ai-council`
+CLAUDE.md, the `win-tooling` README, the `Dev`-wide sweep and the outright refusal.
+
+### One hypothesis raised and withdrawn, because the record refuted it
+
+A sibling lane landed the same day — `docs/audits/2026-09-05-technical-corpus-coherence-gemini.md`
+— running **the same provider and the same pin** over a 2,438,199-byte corpus of this repo and
+scoring **6/6 locators EXACT, zero fabrications**. Its invocation carries `--add-dir .`;
+batch-F's does not. The obvious inference is that batch-F simply omitted the binding flag.
+
+**That inference is wrong, and the record says so.** The 2026-08-29 packet's D-2 is titled
+*"`--add-dir` does not confine agy"*, and its N-01 log line reads
+`Dirs=[…\worktrees\lane-o-4-agy-acceptance .]` — the trailing `.` shows `--add-dir .` **was**
+passed that night, and agy wandered regardless.
+
+```
+2026-08-29  1.1.2x   --add-dir . PRESENT   -> wandered (N-01, N-03)
+2026-09-01  1.1.22   no --add-dir          -> wandered (N-01, N-02, N-10)
+2026-09-05  1.1.27   --add-dir . (sibling) -> 6/6 exact, 0 fabrications
+2026-09-05  1.1.27   no --add-dir (here)   -> 8 in-scope passes, locators exact
+```
+
+So it is a **version** story, not a flag story. Recorded here with the withdrawal visible rather
+than silently replaced, because a re-adjudication that hid its own refuted hypothesis would have
+no standing to report §2 D-E.
+
+<!-- MEASUREMENT SECTIONS 7-9 FILLED FROM RAW ARTIFACTS -->
