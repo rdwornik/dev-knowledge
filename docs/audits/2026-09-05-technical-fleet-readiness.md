@@ -1421,3 +1421,146 @@ BACKLOG row and none was filed into §AD's lettered register — but they are nu
 second writer could also extend. They are left standing rather than withdrawn, because withdrawing
 them would discard measured findings; **routing them for register admission is the inbox
 processor's call, not this lane's.**
+
+---
+
+## AMENDMENT 3 — citation correction to A8 (2026-09-05)
+
+**Date:** 2026-09-05 · **Class:** technical (correction) · **Seat:** CC (Opus 5) ·
+**Substrate:** LOCAL · **Branch:** `worktree-lane-fleet-readiness-measurement`
+
+**Scope: exactly one paragraph.** This supersedes the paragraph in **A8** headed *"Cited source,
+and its resolution status"*, which recorded A8's citation as unresolvable. **The citation resolves.**
+Nothing else in A8, A9 or A10 changes, and nothing above the `## AMENDMENT 1` heading changes —
+A8's paragraph is superseded here rather than edited, because AMENDMENT 2 is landed
+(`a7a84f5b`) and audits are immutable (critical rule 3).
+
+**Source of the address:** the dispatching session, relaying architect inbox routing. **Verified in
+this lane before recording** — the four facts below were each resolved against the object store, not
+accepted on relay.
+
+### A11 · The resolved address
+
+```
+path      docs/audits/2026-09-05-technical-research-architekt-jutra-gap-analysis.md
+          NOW ON `origin/main` -- see the merge-race note below
+origin    worktree-aj-gap-analysis @ 13bf1458 (unmerged AND unpushed when first verified)
+heading   ## §4 — What we have that they do not (so we do not cargo-cult)
+supports  "The single most important asymmetry: **their gates are prose and ours are
+          mechanisms.**"
+```
+
+**Cite by the heading text, never by line number.** The heading sits at `:145` and its supporting
+line at `:147` on `main` today; a line anchor rots on the next commit to that file, the heading does
+not.
+
+**Verification performed here, twice.** First against the branch tip, before it merged: head
+resolved to `13bf1458`, `git cat-file -e` confirmed the path on that branch, and the heading and
+supporting line were read out of `git show worktree-aj-gap-analysis:<path>`. Then again against
+`origin/main` after this lane's sync, at the same two offsets. The supporting line is A8's inversion
+in the source's own words — **verbatim support, not paraphrase**.
+
+**The citation moved WHILE THIS AMENDMENT WAS BEING WRITTEN — recorded, not smoothed over.**
+When A11 was first drafted the source was reachable only as `worktree-aj-gap-analysis @ 13bf1458`,
+and the caveat written here was stronger than "unmerged": `git ls-remote --heads origin` returned 8
+heads with **none of them that branch**, making it **unpushed as well as unmerged** — unreadable
+not merely from `main` but from **any clone but this machine's**, including the cloud substrate that
+ran this arc's first half.
+
+**That is no longer true, and the caveat is DISCHARGED.** The branch was merged to `main` at
+**`2f95dbc5`** (*"Merge branch 'worktree-aj-gap-analysis' — the outside-harness gap analysis, with
+its own adversarial pass folded in"*), which this lane picked up when it synced `origin/main` into
+its branch at `21a3b21a`. Re-verified after the sync: `2f95dbc5` is an ancestor of `origin/main`,
+and the path exists there carrying the same heading at `:145` and the same supporting line at
+`:147`.
+
+**Cite it plainly by path and heading against `main`. No branch qualifier, and no reachability
+warning** — the source is one `git show` away from any fresh clone. The earlier reading was not a
+method error: that branch was merged rather than pushed as a head, which is exactly why it never
+appeared in a `ls-remote --heads` listing and is nonetheless reachable now.
+
+The transition is left visible rather than rewritten to look settled, because it is the hazard
+itself: a premise verified correctly against the tree in front of you can be invalidated by a
+concurrent seat mid-arc. Both readings were accurate when made. Only the second is current.
+
+### A12 · Why the corpus sweep correctly returned zero
+
+AMENDMENT 2 recorded that `Maister` appears nowhere in this corpus, swept across `*.md`, `*.yaml`
+and `*.txt`. **That measurement was correct and is not withdrawn — its interpretation was too
+narrow.** Maister is a **third-party product**, not a surface of this fleet. The gap analysis cloned
+it read-only for comparison:
+
+```
+SkillPanel/maister @ f75ef4fd1c61c15f1a891451afaf6b8e7a546a6a  (215 tracked files)
+architekt-jutra-code                                           (the worked example)
+```
+
+A sweep of our own corpus for an external vendor's name **must** return zero; a hit would have been
+the surprising result. The correction is therefore narrow and specific: the citation was
+**external-plus-branch-local**, not empty. Recording it as unresolved was the right call on the
+evidence available in this worktree, and naming the resolution is the right call now that the
+address is verified.
+
+### A13 · The supplied/measured boundary is UNCHANGED
+
+**This resolves a citation. It does not convert A8 into a measured finding.**
+
+A8 remains **ARCHITECT-SUPPLIED** exactly as AMENDMENT 2 recorded it, on the same footing the body
+gives demo-prep's unpushed branch. What changed is only that the claim now has a readable source
+behind it — a source that is itself a research artifact, not a measurement of this fleet. **A9's
+boundary line stands unamended**, and its two cross-references remain the only *measured* content
+bearing on A8:
+
+- `tier1-plugin` **ABSENT** on all three consumers — the carrier A8's inversion runs through (A3).
+- Prose and mechanism coverage **anti-correlated**: 8/8 hub regions with **1 of 3** hook stages
+  armed, against **3 of 3** stages armed with **0 of 8** regions (A3-S, A4).
+
+Those were measured in this lane. A8 was not, and reading the resolution of its citation as
+promotion would be the precise error A9 exists to prevent.
+
+### A14 · Renumbering the six candidates into an audit-scoped namespace
+
+**Ruling (architect inbox processor, relayed 2026-09-05).** `Z-C` names a **shape**, not a numbering
+namespace: §Z-C established how to record a candidate that draws nothing from the ledger, and anyone
+may use that shape — it never made `Z-C-<n>` a global identifier. What collided was two schemes
+under one prefix: `STANDING_RULINGS.md` §AD's **lettered** entries (a)–(w), which are funnel
+addresses with a single writer, and an **audit-local** sequence numbering one document's own
+findings. Both were correct alone and unreadable together, because a reader cannot tell whether
+`Z-C-12` is an entry in §AD.
+
+**The six findings STAY.** Measured findings are not discarded over an addressing defect. They are
+renumbered into a namespace that cannot be mistaken for a register address.
+
+**Renumbered by supersession, NOT by edit.** AMENDMENT 1 is landed (`8919ba08`) and this audit is
+immutable (critical rule 3), whose sanctioned mechanism is *"supersede with a new file or an in-file
+amendment marker; never edit in place."* So the labels below supersede the ones in A6; **not one
+byte of A6 is altered.** A reader who arrives at `Z-C-11` in A6 is directed here.
+
+```
+A6 LABEL   SUPERSEDED BY   FINDING (unchanged in substance)
+Z-C-11  -> FRM-C1          The nightly baseline measures local working copies; nothing
+                           measures the gap to origin (corp-monorepo 27d, ai-council 24d)
+Z-C-12  -> FRM-C2          Two consumers boot from "AGENTS.md is retired (ADR-53)", which
+                           ADR-115 reversed 2026-08-25 -- a pin defect, not an edit defect
+Z-C-13  -> FRM-C3          win-tooling is unenrolled in the region boundary system:
+                           0 of 8 regions, 0 markers, no .methodology.yaml
+Z-C-14  -> FRM-C4          Plan mode conflates "waived" with "already absent"
+Z-C-15  -> FRM-C5          tier1-plugin is absent on every measured consumer
+Z-C-16  -> FRM-C6          A consumer can arm one hook stage of three and pass every floor
+                           check but one
+```
+
+`FRM` = **F**leet **R**eadiness **M**easurement, this amendment's own scope. The prefix is
+audit-scoped by construction: it names a document, not a register, so `FRM-C2` cannot be read as a
+§AD address.
+
+**Register admission remains a SEPARATE act, and none is performed here.** A lane never files into
+§AD directly and an audit-local number never silently becomes a letter. If any of the six should
+become a lettered entry, it goes to the inbox processor, which files it at the next free letter with
+the source label recorded. **This section renumbers only. It files nothing**, and
+`STANDING_RULINGS.md` is untouched by this lane.
+
+**One thing this renumbering does NOT reach, stated so it is not mistaken for done.** The body's §5
+carries `Z-C-1 … Z-C-10`, which have the same addressing shape and the same ambiguity against §AD.
+They belong to the cloud half, are landed in `cb1d713a`, and are not this lane's to renumber —
+raised here as an observation for the processor, not as work claimed or performed.
