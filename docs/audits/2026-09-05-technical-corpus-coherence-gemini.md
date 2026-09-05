@@ -52,6 +52,12 @@ two of the four:
 
 ### C1 — `LESSONS.md` never received the amendment that governs it
 
+> **AMENDED 2026-09-05 (pre-merge review) — see §9.** The framing below ("covered four surfaces
+> and missed the fifth") is **WITHDRAWN**: `LESSONS.md` is not a member of ADR-29:122's
+> enumeration, so nothing enumerated was missed. The finding itself **survives, re-characterised**
+> in §9. Prose below is left as drafted per CLAUDE.md §5 rule 3 (audits are immutable; supersede
+> by amendment marker, never edit in place).
+
 - **A** `CLAUDE.md:89` — *"1. **`LESSONS.md` and `logs/TOKEN-LOG.md` are append-only** — never edit old entries; only append (ADR-29, ADR-39). **LESSONS.md-only exception (ADR-29 amend. 2026-07-17):** a contiguous *older* block MAY be relocated **byte-identical** into a dated `LESSONS-legacy-<span>.md` …"*
 - **B** `LESSONS.md:5` — *"> New entries go at the top of the Entries section. Never edit old entries. Never delete."*
 
@@ -202,3 +208,60 @@ Worth keeping, with the verification leg treated as mandatory rather than option
 4. **Lane note** — if this candidate is re-run, require the reader to return, for every negative
    claim, the exact glob it searched, and name the citation index (`docs/decisions/README.md`)
    as in-scope. N1 was caused entirely by an under-specified scope.
+
+## 9. Amendment — 2026-09-05 (pre-merge review; C1 re-characterised)
+
+> **In-file amendment marker** (CLAUDE.md §5 rule 3 — audits are immutable; supersede with a new
+> file or an in-file amendment marker, never an in-place edit). The §3 C1 prose, the §2 table row
+> and the §7 assessment bullet all stay **as drafted**; this section supersedes their framing.
+> Raised by a `gpt-5.6-terra` pre-merge review and independently by the integrator; verified
+> against ADR-29 by CC before adoption.
+
+**WITHDRAWN — "an atomic set covered four surfaces and missed the fifth."** That claim is not
+licensed by the ADR it cites. `docs/decisions/ADR-29-lessons-grandfathering.md:122` enumerates the
+reconciliation set as **CLAUDE.md** (§5 rule 1, §4 File-lifecycle line, §10 anti-pattern),
+**ARCHITECTURE.md** (L107 + the append-only table row), and **ESSENTIALS/PLAYBOOK** (lesson-extraction
+note "if it asserts the same"). **`LESSONS.md` is not a member of that list.** Every enumerated item
+did land. So there was no failure to execute an enumerated item, and the original framing —
+which asserts exactly that — is withdrawn. The three sites carrying it (§2 table row, §3 C1
+paragraph, §7 third bullet) are superseded by this section.
+
+**NOT relied upon: `:126`'s "LESSONS.md content stays unmoved."** The pre-merge review offered
+that clause as licensing the gap. It does not, and this amendment explicitly declines to use it.
+Read in context — *"(241 < 300; the archival move is [#339]'s build leg, blocked until the ADR-39
+registry entry + the A2 byte-identity helper exist)"* — the clause is about **relocating a block of
+entries**, which is deliberately deferred. It says nothing about the header's *wording*. Citing it
+as absolution would conflate the archival move with the instruction that describes it.
+
+**THE FINDING SURVIVES, SHARPER: the enumeration under-covers its own stated purpose.** `:122` does
+not merely list surfaces — it states what the list is *for*:
+
+> *"Ratification MUST also carry the narrow LESSONS chronological-archival exception into the
+> canonical instructions that currently imply entries never leave the file, so a post-ratification
+> operator is not told the sanctioned move is forbidden"*
+
+`LESSONS.md:5` — *"Never edit old entries. Never delete."* — **is** a canonical instruction implying
+entries never leave the file, and it is the one a reader of `LESSONS.md` meets first. The closed
+list therefore does not reach the surface its own purpose clause describes. The defect is in how the
+reconciliation set was **drafted**, not in how it was **executed** — a closed enumeration written to
+serve a stated purpose, which does not cover that purpose. That is a more precise finding than the
+one originally filed, and a more general one: it is a hazard in the *form* of reconciliation sets,
+not a lapse by whoever executed this one.
+
+**Evidence retained.** `LESSONS.md:6` stamps **"Last updated: 2026-08-03"**, after the 2026-07-17
+ratification — so the stale header survived a later edit to the same file. `grep -ci legacy` over
+the first 20 lines still returns **0**. This evidence was never dependent on the withdrawn framing:
+it shows the gap persisted, independent of whose duty it was to close it.
+
+**Status: C1 remains CONFIRMED**, as a drafting-coverage defect rather than an execution miss.
+**Owed follow-up #1 stands unchanged in substance** — reconcile `LESSONS.md:5` with the ratified
+amendment (hub-canonical edit; operator ruling) — and gains a second, more transferable leg:
+
+5. **Drafting rule for reconciliation sets** — when a set is enumerated *and* carries a purpose
+   clause, the enumeration should be checked against the purpose before ratification, or the
+   purpose clause should govern and the list be explicitly non-exhaustive. ADR-29:122 is the
+   worked example: a closed list that did not reach its own stated goal.
+
+**One correction cannot be made here.** Commit `780297df`'s message restates the withdrawn framing.
+Commit messages are history and are not rewritten, so that text stands uncorrected in the log; this
+section is the authority where the two disagree.

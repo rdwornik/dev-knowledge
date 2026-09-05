@@ -19,6 +19,50 @@
 
 ---
 
+### 2026-09-05 (c) - CC (Opus 5): the correction entry - my own C1 framing was the overclaim, and B6 says you fix that by appending
+
+**Anchors:** `780297df`, `32b51fed`
+
+**Did:** took a pre-merge HIGH from INTEGRATOR-2 (raised by `gpt-5.6-terra`, reached independently
+by the integrator) against C1's framing in the corpus-coherence audit, verified it against ADR-29
+myself, and adopted it. Amended the audit by marker; this entry corrects the (b) entry.
+
+**THE OVERCLAIM WAS MINE, NOT THE READER'S.** Gemini reported C1 plainly. The "atomic set covered
+four surfaces and missed the fifth" framing was **my** amplification during verification - the
+thing I described in (b) as the reader under-rating its own find. `ADR-29:122` enumerates
+CLAUDE.md, ARCHITECTURE.md and ESSENTIALS/PLAYBOOK. **`LESSONS.md` is not in that list**, so no
+enumerated item was missed and every one of them landed. Withdrawn at all three sites by the §9
+amendment marker. Worth naming exactly: verification caught the reader's error in N1 and then
+introduced one of its own in C1, and only a third pass caught that.
+
+**I DECLINED HALF THE REVIEW, AND THE INTEGRATOR HAD ALREADY FLAGGED THE SAME HALF.** Terra leaned
+on `:126`'s "LESSONS.md content stays unmoved" as licensing the gap. Read in context - "(241 < 300;
+the archival move is [#339]'s build leg...)" - that clause governs **relocating a block of
+entries**, not the header's wording. The amendment says so explicitly rather than quietly not using
+it, because an unstated non-adoption looks like an oversight later.
+
+**THE FINDING GOT SHARPER, NOT WEAKER.** `:122` carries a purpose clause - carry the exception into
+"the canonical instructions that currently imply entries never leave the file, so a
+post-ratification operator is not told the sanctioned move is forbidden". `LESSONS.md:5` is such an
+instruction and is the first one a reader of that file meets. So the real defect is a **closed
+enumeration that does not reach its own stated purpose** - a drafting hazard in the FORM of
+reconciliation sets, not a lapse by whoever executed this one. Filed as a fifth owed follow-up.
+
+**WHY THIS IS A NEW ENTRY AND NOT AN EDIT.** The integrator asked me to re-word (b). `STANDING_RULINGS.md:237`
+(B6, architect ruling 2026-08-07) says in-place amendment of an already-committed JOURNAL entry
+"sits outside the sanctioned shapes"; (b) landed at `32b51fed`. Same reasoning for the audit -
+CLAUDE.md §5 rule 3 makes audits immutable and offers the in-file amendment marker as the
+sanctioned alternative, so C1's original prose stands and §9 supersedes it. Both deviations from
+the requested shape were reported back rather than made silently.
+
+**Result:** C1 stays CONFIRMED, re-characterised from execution-miss to drafting-under-coverage.
+Owed follow-up #1 unchanged in substance; a fifth added. `780297df`'s commit message still
+carries the withdrawn framing - history is not rewritten, and §9 records that it is superseded.
+
+**Changes:** the audit gains §9 + a marker under C1; this entry. No corpus file touched.
+
+**Next:** integrator re-verifies and merges. Follow-ups still owed, still unexecuted.
+
 ### 2026-09-05 (b) - CC (Opus 5): a non-Claude reader fabricated nothing, and verification still overturned a quarter of what it said
 
 **Anchors:** `780297df`
