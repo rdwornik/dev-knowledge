@@ -82,7 +82,7 @@ carve-out named as the code trigger -- but they are evidence artifacts under
 the delta A2 exists to detect. Ruff does see `.py` anywhere in the tree, so they remain
 inside the lint gate; that is re-confirmed after the merge rather than assumed.
 
-**Anchors:** `@SELF@`, `ed2d34d9`, `13bf1458`, `c67f959a`, `cb1d713a`, `8919ba08`,
+**Anchors:** `a5ef74e5`, `ed2d34d9`, `13bf1458`, `c67f959a`, `cb1d713a`, `8919ba08`,
 `bb79aa76`, `e95a4f15`, `2da0d9b9`, `0c57e765`, `0d318c1f`, `24eac392`, `e2995e86`,
 `26d7d743`
 
