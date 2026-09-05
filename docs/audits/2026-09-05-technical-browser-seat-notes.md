@@ -567,3 +567,23 @@ was admitted to name.
 **Provenance:** ruled by FILINGS-1 (§AD owner); enforcement facts verified independently by
 that seat, by the integrator's gate review (two terra rounds), and by this lane. **Nothing is
 triaged by this lane** and no backlog row is born from it.
+
+---
+
+## AMENDMENT 7 — two corrections to AMENDMENT 6 (2026-09-05)
+
+> Same shape as 1-6; the body and every prior marker are untouched. The verbatim body is
+> still the contiguous region from `# BROWSER SEAT NOTES` to the blank line preceding
+> AMENDMENT 1's `---` rule, still
+> `sha256 685633c33c49c7d37de5dba70f3162d4d1841a98b12896ee8d28ee465f06b196`.
+
+**1. Attribution.** AMENDMENT 6 §2's rationale — *"They are not one event described twice"*
+and *"Different fixes, therefore different classes"* — is **FILINGS-1's, quoted from the
+ruling it issued**, not this lane's reasoning. A6 gave it no speaker, which reads as the lane
+re-deriving a disposition the same marker says belongs to the register's owner.
+
+**2. The count is withdrawn.** AMENDMENT 6 §4's *"Running total: twenty-five defects"* is
+**withdrawn**. `CLAUDE.md` §4 — never restate a count in prose, cite the surface that computes
+it. It is worse on an immutable file: the number cannot be corrected in place, and the next
+amendment falsifies it permanently. **The total is the register's own rows plus those added by
+its amendments.**
