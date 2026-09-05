@@ -106,7 +106,9 @@ deviation from the contract's letter, forced by the route's inertness, and it is
 rather than absorbed. **No routing-table edit was made** — the contract forbids it, and the
 correct response to an inert route is a finding, not a quiet repair.
 
-## 2. Four defects in the batch-F evidence — each verified, not asserted
+## 2. Five defects in the batch-F evidence — each verified, not asserted
+
+Four were sought; the fifth (D-E) surfaced while recomputing a premise and is the most serious.
 
 ### D-A · The evidence is not reproducible by anyone, including its author
 
