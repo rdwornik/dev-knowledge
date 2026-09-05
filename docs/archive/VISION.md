@@ -34,26 +34,31 @@ status: superseded
 
 ## Strategic emphasis (current)
 
-**Moved to `README.md` "## Strategic emphasis (current)".**
+**Moved to `docs/archive/governance.md` "## Strategic emphasis (current)"** (relocated from
+`README.md` by lane `lane-h0-readme`, `[#634]`, 2026-09-05).
 
 ## Scope
 
-**Moved to `README.md` "## Scope".**
+**Moved to `docs/archive/governance.md` "## Scope"** (relocated from `README.md` by lane
+`lane-h0-readme`, `[#634]`, 2026-09-05).
 
 ## Values
 
-**Moved to `README.md` "## Values"** — which itself defers to
-`protocols/ESSENTIALS.md` "How Claude thinks" for the principles.
+**Moved to `docs/archive/governance.md` "## Values"** — which itself defers to
+`protocols/ESSENTIALS.md` "How Claude thinks" for the principles. (Relocated from
+`README.md` by lane `lane-h0-readme`, `[#634]`, 2026-09-05.)
 
 ## Relationships
 
-**Moved to `README.md` "## Relationships"** — the nine-repo ADR-104 fleet shape, the
-`ai-council` special case, and the child-repo pattern.
+**Moved to `docs/archive/governance.md` "## Relationships"** — the nine-repo ADR-104 fleet shape,
+the `ai-council` special case, and the child-repo pattern. (Relocated from `README.md` by
+lane `lane-h0-readme`, `[#634]`, 2026-09-05.)
 
 ## Lifecycle
 
-**Moved to `README.md` "## Lifecycle"** — review triggers, the drift-verification
-mechanism, audit support, and the tier-classification retirement.
+**Moved to `docs/archive/governance.md` "## Lifecycle"** — review triggers, the drift-verification
+mechanism, audit support, and the tier-classification retirement. (Relocated from
+`README.md` by lane `lane-h0-readme`, `[#634]`, 2026-09-05.)
 
 **This file's own lifecycle** is now a single question, and it is not this file's to answer:
 whether the canonical purpose-document filename becomes `README.md` fleet-wide. Until that
