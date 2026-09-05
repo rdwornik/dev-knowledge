@@ -789,3 +789,529 @@ forward, in the order I'd rank them:
 
 Both (1) and (2) are real options; I do not need an answer to close this arc, only to close the gap
 it names.
+
+---
+
+## AMENDMENT 1 — the measurement half, LOCAL (2026-09-05)
+
+**Date:** 2026-09-05 · **Class:** technical (measurement) · **Seat:** CC (Opus 5) ·
+**Substrate:** **LOCAL — explicit operator exception**, ruled 2026-09-05 ·
+**Branch:** `worktree-lane-fleet-readiness-measurement`
+
+This amendment is the **measurement half** of the arc whose reasoning half is the body above. It
+was dispatched under the body's own **recommendation option 1** ("re-dispatch the measurement half
+to a LOCAL session"). It re-derives nothing above it and re-litigates nothing above it: it replaces
+unmeasured columns with measured ones and, where a measurement contradicts the body, says so in A6.
+
+Read-only against consumers. Three consumers were cloned fresh from origin outside `Dev/`, read,
+and deleted. `deploy/tool.py` was run in its **default read-only plan mode** on all three;
+`--execute` was never passed. No consumer repo was modified.
+
+### A1 · What this supersedes, and what it leaves standing
+
+**SUPERSEDED — three surfaces, and only these three:**
+
+1. **§0's `origin SHA` column.** All eight consumer rows read `UNREAD (B1)`. **All nine rows now
+   carry a read SHA** (A2). §0 is re-issued in full at A5.
+2. **§2's "Region drift — NOT MEASURABLE this run"**, and its closing sentence *"Region drift per
+   consumer is unmeasured, and is the single largest gap in this audit."* It is measured at A4.
+3. **§2's carrier caveat** — *"the ADD/PRUNE columns below are derived by comparing the manifest's
+   declared component set against the baseline's measured rows — not by a carrier plan run… sound
+   about what is absent and silent about splice-level detail."* A3 replaces manifest-derived with
+   **carrier-derived** output for the three cloned repos. It does **not** replace it for corp-ops or
+   corp-sca-time-automation, which were not cloned; their §2 rows stand as written.
+
+**LEFT STANDING — everything else, explicitly:**
+
+- **Every §1 finding.** B1, B2, B3 and FB-1 are untouched, and **B1 is corroborated, not weakened**:
+  a single local `git ls-remote` sweep resolved **all eight** consumer remotes on the first attempt
+  (A2). The cloud wall was the cloud session's *token scope*, exactly as B1.1 diagnosed — not a
+  property of the repos, the URLs, or the operator's credentials in general. B1.2's on-disk-only
+  resolution is likewise corroborated: every plan run in A3 required `--repo-root` pointing at a
+  real working tree.
+- **Every §3 waiver *shape* rule** (`AllowlistEntry`, mandatory `reason`, ISO date, non-waivable
+  rejection). Measurement exercised that machinery and it behaved exactly as §3 documents. What
+  changes is not the shape but **which waivers already exist** — see A6-C2.
+- **Every §5 candidate (Z-C-1 … Z-C-10).** None is contradicted. Z-C-4 and Z-C-5 are *strengthened*
+  by A3; Z-C-6 is strengthened by A4 and the stage-arming measurement in A3-S.
+- **§4's corp-monorepo H0 runbook**, with two step-level corrections recorded at A6-C2 and A6-C3.
+- **§6's cost accounting** for the cloud half. A7 is additive, not a replacement.
+
+No BACKLOG row is born here (ADR-111). New findings are stated as measurements; anything that would
+become work is a CANDIDATE for intake triage, marked as such at A6.
+
+### A2 · M0 — origin SHAs, READ
+
+**Substrate exception, named.** PLAYBOOK Ch8's `local-execution = explicit-request` axis makes LOCAL
+a named exception rather than a default. Q3 routes read-only reconnaissance to CLOUD; a cloud lane
+tried on 2026-09-05 and hit B1. **The operator ruled this half LOCAL on 2026-09-05.** This section
+exists because of that ruling, and would be empty without it.
+
+Three repos **cloned full** (not shallow — a shallow clone disarms `canonical_freshness`'s derived
+leg and the ADR-85 anchor backstop, §1 B3):
+
+```
+REPO           ORIGIN URL                                     origin/main SHA                           COMMIT DATE (UTC)     DEPTH  COMMITS
+corp-monorepo  https://github.com/rdwornik/corp-monorepo.git  fd3325e0f5d6d7790886d468e1daa0ce9d978e9c  2026-08-09T05:39:31Z  full   1194
+ai-council     https://github.com/rdwornik/ai-council.git     7a3c05794d1fea274d2ca0c76de984f90b568a90  2026-08-12T16:15:55Z  full   900
+win-tooling    https://github.com/rdwornik/win-tooling.git    49cb75e8b8ff53ccab3515fcb3e28213023785a4  2026-09-01T21:09:51Z  full   194
+```
+
+Each verified `rev-parse --is-shallow-repository` = **false**, `HEAD` = `main`, and
+`git status --porcelain` **empty** at clone and again immediately before deletion (closure 4).
+
+The remaining five consumers were **not cloned** (the contract names three). Their `refs/heads/main`
+was read by `git ls-remote` — a real origin read, which is what the `UNREAD (B1)` column asked for:
+
+```
+REPO                      refs/heads/main SHA                       METHOD
+corp-ops                  3bde9304ff04282f27aed7de3e953e811b31019a  ls-remote (not cloned)
+corp-sca-time-automation  1a80a9efc2a906b0a1fc3c2a8826d1d824f391c1  ls-remote (not cloned)
+demo-prep                 d849c8179f5d63b34ff56a0747b19cd6418ff6b2  ls-remote (not cloned)
+life-architect            7688b76f0c7316f5286a341e8d1e14ce1d619137  ls-remote (not cloned)
+terminal-setup            d8a7b61644430719eb68559f9a1e090bab43eb6e  ls-remote (not cloned)
+```
+
+**All eight resolved on the first attempt, anonymously refused nowhere.** Hub `origin/main` at the
+time of this amendment is `09f80530ad59d5e498bb5c2739cec196982f1e22` (2026-09-05), ahead of the
+`ca0a2a2` the body read.
+
+**A finding this table produces on its own, before any deeper measurement:** corp-monorepo's origin
+`main` is **27 days old** (2026-08-09) and ai-council's is **24 days old** (2026-08-12), yet the
+nightly baseline the body relies on reported both as of `2026-09-05T13:38:43`. The baseline reads
+the **operator's local working copies**, never origin — §6 default 1 says so plainly. The gap
+between those two facts is unmeasured by any organ in the fleet, and is recorded as candidate
+**Z-C-11** at A6.
+
+### A3 · Carrier plan mode — carrier-DERIVED, per repo
+
+**CLI surface, witnessed** (`deploy/tool.py --help`), matching the body's §2 reading exactly:
+positional `REPO`; `--target` (required); `--execute`, `--force`, `--auto-approve`, `--repo-root`.
+Plan is the default; **`--execute` was never passed**, and no other flag was invented. Command run,
+once per repo:
+
+```
+uv run --locked python deploy/tool.py <repo> --target v1.4.0 --repo-root <clone path>
+```
+
+Target **v1.4.0** — the current tagged release, per §4. All three runs exited **0**.
+
+**Add leg — detected state per carrier:**
+
+```
+CARRIER            ORDER  corp-monorepo     ai-council        win-tooling
+global-config      1      present_correct   present_correct   present_correct
+tier1-plugin       2      ABSENT            ABSENT            ABSENT
+precommit          3      present_drifted   present_drifted   present_correct
+floor              4      present_drifted   present_drifted   present_correct
+enforcement-mesh   5      present_drifted   present_drifted   present_drifted
+editor-config      6      n/a (not impl)    n/a (not impl)    n/a (not impl)
+docs               7      present_drifted   present_drifted   present_drifted
+
+SUMMARY                   5 need apply      5 need apply      3 need apply
+                          1 correct         1 correct         3 correct
+                          0 undetected      0 undetected      0 undetected
+                          1 not implemented 1 not implemented 1 not implemented
+```
+
+Planned actions, verbatim from the plan tables (identical text across repos for a given carrier):
+
+```
+tier1-plugin      would apply from scratch (claude plugin install/update --scope project)
+precommit         would reconcile drift (merge required pins into .pre-commit-config.yaml)
+floor             would reconcile drift (generate .claude/CLAUDE-FLOOR.md + .sha256 sidecar)
+enforcement-mesh  would reconcile drift (deploy seb + freshness-gate scripts + /override
+                  + Stop hook + logs/)
+docs              would reconcile drift (copy the manifest-declared hub docs (intake area,
+                  INSTALL.md) into the consumer)
+editor-config     skip -- not implemented (do-not-build doctrine)
+```
+
+**`tier1-plugin` is ABSENT on all three consumers.** The carrier is `implemented: true` at v1.4.0
+and v1.5.0, so unlike `editor-config` this is a real, closable gap — and the body's §2 carrier
+table, which lists `tier1-plugin` as implemented and says nothing further, never surfaced it. Four
+components ride that carrier (`tier1-lifecycle-plugin`, `propose-closures-stop-hook`,
+`review-closures-command`, `ship-command`). **This is new: it is the only carrier absent fleet-wide,
+and it is absent even on win-tooling, the one consumer recorded at the current release.**
+
+**Remove leg — the prune sweep:**
+
+```
+COMPONENT  CARRIER    removed_in  corp-monorepo    ai-council       win-tooling
+ruff-gate  precommit  1.2.0       already_absent   already_absent   already_absent
+```
+
+**Read that row carefully — it does not mean what it appears to.**
+`carrier_precommit.detect_prune` classifies via `_classify_prune(config, prunable, waived=...)`, and
+`prune()` proves the conflation directly: `ALREADY_ABSENT` renders as
+`"... waived by consumer .methodology.yaml -- skipping prune"` **when waived** and
+`"... already absent"` otherwise. **Plan mode prints the same token for both.** Measured ground
+truth behind the identical token:
+
+```
+REPO           ruff hooks in .pre-commit-config.yaml   .methodology.yaml ruff-gate waiver   ACTUAL PATH
+corp-monorepo  4 matching lines (PRESENT)              present + valid to 2026-10-07        WAIVED
+ai-council     4 matching lines (PRESENT)              present + valid to 2026-10-12        WAIVED
+win-tooling    0 matching lines (ABSENT)               no .methodology.yaml at all          GENUINELY ABSENT
+```
+
+This retires §4 Step 4's stated witness. That step expects the plan to *distinguish* a waived skip
+from a refusal by printing `waived by consumer .methodology.yaml -- skipping prune`. **Plan mode
+never prints that string** — only `--execute` does. Correction recorded at A6-C3.
+
+**Out of scope (ADR-92 `l0_scope`)** — identical on all three, not failures:
+`surface-closures`, `block-onedrive`, `gotchas`, `routing` (all deferred deployables);
+`no-ff-rule` (enforced elsewhere).
+
+#### A3-F · Why `floor` drifts on two repos — the leg isolated
+
+`floor` is a **non-waivable** component and its drift is not in the floor bytes.
+`carrier_floor._classify_floor` requires five legs; each was measured independently:
+
+```
+REPO           floor_ok  include_ok  hook_ok  gitignore_ok  settings_ok   ->  CARRIER STATE
+corp-monorepo  True      True        True     FALSE         FALSE             present_drifted
+ai-council     True      True        True     FALSE         FALSE             present_drifted
+win-tooling    True      True        True     True          True              present_correct
+```
+
+`floor_ok` is **True on all three**: every `.claude/CLAUDE-FLOOR.md` hashes (LF-normalised, via
+`generate_floor.floor_sha256` — the repo's own function) to
+`4d268f329a7edc8dc95a1c8fded9bdf8244ad8de60be69bf8e250a9b15a8111f`, which is **both** the live hub
+corpus digest **and** the `anchors.floor_sha256` pinned by v1.4.0 and v1.5.0 alike, and every
+`.sha256` sidecar records that same value. **CM-2, AC-2 and WT-3 are CONFIRMED by measurement.**
+
+> A raw-byte hash of the same three files disagrees (win-tooling's reads `fcbfd664...`). That is a
+> CRLF artefact of a Windows clone, **not** drift — the carrier hashes normalised text. It is
+> recorded here because it is the exact false positive the contract warned about for A4, and it
+> reached "win-tooling's floor is hash-broken" before the repo's own function refuted it.
+
+#### A3-S · The real drift: two of three consumers arm only ONE hook stage
+
+`settings_ok` requires the SessionStart guard to arm **all three** stages
+(`_ARM_STAGES` = `commit-msg`, `pre-commit`, `pre-push`). Measured `SessionStart` commands:
+
+```
+REPO           SessionStart pre-commit install command                       STAGES ARMED
+corp-monorepo  python -m pre_commit install                                  pre-commit
+ai-council     python -m pre_commit install                                  pre-commit
+win-tooling    python -m pre_commit install -t pre-commit -t commit-msg      pre-commit, commit-msg,
+                 -t pre-push                                                 pre-push
+```
+
+**On corp-monorepo and ai-council, `commit-msg` and `pre-push` are never armed.** Whatever those
+repos declare in `.pre-commit-config.yaml` at those stages — `block-ff-push` (non-waivable),
+`backlog-id-on-close`, any pre-push anchor gate — **is installed and does not fire.**
+
+This **resolves §3 note 2**, which could only say `canonical_freshness=present-unverified` —
+*"the hook line exists; static reading cannot prove it fires."* It is now proven, and the answer is
+negative for two stages on two consumers. It is also **Z-C-6 ("a hash-clean floor is not a working
+floor") demonstrated a second, independent way**: three floors are hash-clean, and two of them arm a
+third of the stages they are supposed to.
+
+`gitignore_ok` fails on the same two repos, for all four required lines
+(`.claude/*`, and the negations `!.claude/CLAUDE-FLOOR.md`, `!.claude/CLAUDE-FLOOR.md.sha256`,
+`!.claude/check_floor_hash.py`). win-tooling carries all four.
+
+#### A3-W · Waiver state, validated live
+
+`enforcement_coverage.validate_allowlist_entry` run against each clone at `run_date=2026-09-05`
+with the policy from the latest manifest:
+
+```
+REPO           VALID ENTRIES                                                  EXPIRED
+corp-monorepo  ruff-gate, hub-codemap-hooks, hub-toc-hooks,                   .vscode (2026-08-26)
+               audit-casing-r4, github-ci-local,
+               vscode-boundary-decoration
+ai-council     ruff-gate, hub-codemap-hooks, hub-hermetization-rule-a,        dep-pytest-xdist (2026-08-16)
+               hub-hermetization-rule-b-grammar,                              .vscode (2026-08-26)
+               claude-md-section-11-title, vscode-boundary-decoration,
+               claude-md-token-log-address
+win-tooling    (no .methodology.yaml — zero entries)                          —
+```
+
+**Both waivers §3 prescribes for corp-monorepo already exist and are valid. The one waiver §3
+prescribes for ai-council already exists and is valid.** Only win-tooling's is genuinely owed, and
+owing it means creating `.methodology.yaml` from scratch. Correction at A6-C2.
+
+**Three expired entries are live and were invisible to the body**, which had no consumer tree to
+read them from. An expired entry is not a valid divergence.
+
+### A4 · Region drift — the eight-region matrix, per consumer
+
+**This section replaces §2's "Region drift — NOT MEASURABLE this run" and closes what the body
+called "the single largest gap in this audit."**
+
+**Method.** Region bodies were extracted with the repo's own parser
+(`scripts/boundary_report.parse_regions`, which owns the sole definition of the
+`<!-- methodology:start id=... owner=... -->` vocabulary) — not by a hand-written regex. Each body
+and each `templates/claude-regions/*.md` source was **line-ending normalised (CRLF/CR to LF) and
+stripped before comparison**, so a CRLF difference cannot be reported as drift. Comparison is on
+**UTF-8 bytes** of the normalised text. Parser warnings were captured: **zero** on every file.
+
+**Control — the hub itself**, re-measured at this branch, reproducing HUB-2 (8/8 byte-identical):
+
+```
+antipatterns-universal IDENTICAL · conventions-commit-branch IDENTICAL
+conventions-output-formatting IDENTICAL · critical-rules-consistency IDENTICAL
+critical-rules-no-leftovers IDENTICAL · critical-rules-records IDENTICAL
+first-read IDENTICAL · session-start-protocol IDENTICAL
+```
+
+**The matrix.** `IDENT` = present, byte-identical. `DRIFT` = present, differs (byte delta shown).
+`ABSENT` = no marker for that region in the file.
+
+```
+REGION                          corp-monorepo        ai-council           win-tooling
+antipatterns-universal          DRIFT  654B (-473)   DRIFT  671B (-456)   ABSENT
+conventions-commit-branch       DRIFT  289B (-248)   DRIFT  289B (-248)   ABSENT
+conventions-output-formatting   DRIFT 1223B (+476)   DRIFT 1223B (+476)   ABSENT
+critical-rules-consistency      DRIFT  103B  (-64)   DRIFT  103B  (-64)   ABSENT
+critical-rules-no-leftovers     IDENT  345B          IDENT  345B          ABSENT
+critical-rules-records          DRIFT  689B (-312)   DRIFT  704B (-297)   ABSENT
+first-read                      DRIFT  765B (-476)   DRIFT  765B (-476)   ABSENT
+session-start-protocol          DRIFT  517B (-162)   DRIFT  517B (-162)   ABSENT
+
+MARKERS IN CLAUDE.md            21 regions           23 regions           0 regions
+CLAUDE.md SIZE                  23,025 B             33,831 B             10,533 B
+```
+
+`.claude/CLAUDE-FLOOR.md` was measured on all three as well: **3,136 B, zero markers, all eight
+regions ABSENT** on every consumer. The floor does not carry the hub regions — so a consumer whose
+`CLAUDE.md` lacks them has them nowhere.
+
+#### A4-P · The drift is a PIN, not tampering — provenance resolved
+
+A byte delta alone cannot distinguish "a consumer edited this" from "the hub moved on." So every
+drifted body was searched against **the full git history of its own template** in this repo
+(`git log` over `templates/claude-regions/<region>.md`, comparing each historical blob):
+
+```
+REGION                          corp-monorepo               ai-council
+antipatterns-universal          hub template c46e1837 (2026-07-12)   NO hub revision
+conventions-commit-branch       hub template af4a1ad2 (2026-07-12)   hub template af4a1ad2 (2026-07-12)
+conventions-output-formatting   hub template c46e1837 (2026-07-12)   hub template c46e1837 (2026-07-12)
+critical-rules-consistency      hub template c46e1837 (2026-07-12)   hub template c46e1837 (2026-07-12)
+critical-rules-no-leftovers     hub template af4a1ad2 (2026-07-12)   hub template af4a1ad2 (2026-07-12)
+critical-rules-records          hub template c46e1837 (2026-07-12)   NO hub revision
+first-read                      hub template af4a1ad2 (2026-07-12)   hub template af4a1ad2 (2026-07-12)
+session-start-protocol          hub template c46e1837 (2026-07-12)   hub template c46e1837 (2026-07-12)
+```
+
+**corp-monorepo: 8 of 8 regions match a hub template revision exactly, all dated 2026-07-12. Zero
+local edits.** It is not drifted in the sense of tampering — it is **pinned at the 2026-07-12 hub
+region corpus**, and the hub has moved since. The right verb is *stale*, and the right fix is a
+redeploy, not a reconciliation.
+
+**ai-council: 6 of 8 likewise pinned at 2026-07-12; 2 match no hub revision** and are genuinely
+locally edited. Those two, diffed against the live hub source:
+
+```
+antipatterns-universal
+-  - **Editing old LESSONS.md or logs/TOKEN-LOG.md entries** ...
++  - **Editing old LESSONS.md or `.dev-knowledge/logs/TOKEN-LOG.md` entries** ...
+
+critical-rules-records
+-  1. **`LESSONS.md` and `logs/TOKEN-LOG.md` are append-only** ...
++  1. **`LESSONS.md` and `.dev-knowledge/logs/TOKEN-LOG.md` are append-only** ...
+```
+
+**Both edits are DECLARED and SANCTIONED.** ai-council's `.methodology.yaml` carries
+`claude-md-token-log-address` (valid through 2026-10-26), whose reason names *exactly these two
+regions* and argues the hub's bare `logs/TOKEN-LOG.md` "is correct AT THE HUB and false here" —
+ai-council has never had a local token log. **So the fleet's only genuinely-edited hub regions are
+two, in one repo, and both are covered by a valid time-boxed waiver.** That is a materially
+different finding from "drift", and the body could not have reached it.
+
+#### A4-D · One doctrine defect the pin actually carries
+
+Being pinned to a July corpus is not cost-free. Both marker-carrying consumers instruct sessions:
+
+```
+- **Narrating or managing AGENTS.md** - AGENTS.md is retired (ADR-53); CLAUDE.md is the
+  single instruction file
+```
+
+**ADR-115 (Accepted, 2026-08-25) reversed exactly this**, admitting `AGENTS.md` as the portable
+instruction layer and superseding ADR-53 Decision 2. Measured: the string `AGENTS.md is retired` is
+present in corp-monorepo's and ai-council's `CLAUDE.md`; the string `ADR-115` appears in **none** of
+the three. Two consumers' boot files carry a governance instruction that live doctrine has
+reversed, and no organ in the fleet reports it — there is no region-drift check on the consumer
+side at all. Recorded as candidate **Z-C-12** at A6.
+
+**win-tooling carries zero hub regions**, so it carries neither the stale instruction nor the
+correct one. Its `CLAUDE.md` (10,533 B, 0 markers) is outside the Form-A boundary system entirely.
+That is the more serious structural condition of the two: corp-monorepo and ai-council are *behind*;
+win-tooling is *unenrolled*, and a redeploy of the region corpus has nothing to update. Recorded as
+candidate **Z-C-13**.
+
+### A5 · §0 RE-ISSUED in full
+
+Same nine-row shape. `ORIGIN SHA` is now READ for every row (A2). Verdicts changed by a measurement
+are marked **[AMENDED]**; each still cites the §2 row, or the A3/A4 row, that produces it.
+
+```
+REPO                      VERDICT                                                  ORIGIN SHA  CITES
+.dev-knowledge (hub)      READY - baseline source, PASS; 8/8 regions clean         09f8053     HUB-1, A4
+corp-monorepo             [AMENDED] NEEDS 5 carrier applies + 2 hook stages        fd3325e     A3, A3-S, A3-W,
+                          armed. Waivers ALREADY PRESENT and valid (not owed);                 A4, A4-P, CM-1,
+                          1 EXPIRED. Region corpus pinned 2026-07-12, 0 local                  CM-6
+                          edits. Floor bytes clean
+ai-council                [AMENDED] NEEDS 5 carrier applies + 2 hook stages        7a3c057     A3, A3-S, A3-W,
+                          armed. Waiver ALREADY PRESENT and valid (not owed);                  A4, A4-P, AC-1,
+                          2 EXPIRED. 6/8 regions pinned 2026-07-12, 2 edited                   AC-6
+                          under a valid waiver. Floor bytes clean
+win-tooling               [AMENDED] NEEDS 3 carrier applies + 1 waiver + a         49cb75e     A3, A3-W, A4,
+                          .methodology.yaml (absent). UNENROLLED in the region                 WT-1, WT-2
+                          boundary system: 0 of 8 hub regions present. Floor
+                          and hook stages fully correct - the only consumer
+                          at settings_ok=True
+corp-ops                  BLOCKED by no floor deployed (pre-deploy)                3bde930     CO-1, CO-2
+corp-sca-time-automation  BLOCKED by canonical_freshness FAIL + no deploy          1a80a9e     CS-1, CS-2
+demo-prep                 BLOCKED by never audited - no state.yaml                 d849c81     FB-1
+life-architect            BLOCKED by never audited - no state.yaml                 7688b76     FB-1
+terminal-setup            BLOCKED by never audited - no state.yaml                 d8a7b61     FB-1
+```
+
+**Rows 5-9 are UNCHANGED in verdict.** corp-ops and corp-sca-time-automation were not cloned (the
+contract names three repos), so no measurement in this amendment touches their §2 rows; their SHAs
+are read, their verdicts stand on CO-1/CO-2 and CS-1/CS-2 as written. demo-prep, life-architect and
+terminal-setup remain BLOCKED on FB-1: **a read origin SHA is not an audit.** Their SHAs prove only
+that the repos exist and are reachable — which, read against B1, is itself worth stating: they were
+never unreachable, only unregistered.
+
+**No row's verdict improved.** Three changed because measurement found *more* than the body could
+see, not less.
+
+### A6 · Corrections — what the measurement contradicts
+
+**C1 — "NEEDS N waivers" was wrong for two of three repos, in the consumers' favour.**
+§0 reads `corp-monorepo NEEDS 2 waivers` and `ai-council NEEDS 1 waiver`; §3 then writes out the
+YAML for each. **All three of those waivers already exist at origin/main and validate as `valid`**
+(A3-W). The body could not know: it had no consumer tree, and inferred the waiver requirement from
+the manifest's component set. The requirement was real; the *gap* was not. Only win-tooling's waiver
+is genuinely owed. §3's YAML for corp-monorepo and ai-council should be read as *confirmation of
+what is there*, not as work to do.
+
+**C2 — §3's corp-monorepo `ruff-gate` rationale is right, but not for the stated reason.**
+§3 says corp "keeps the hook" and the waiver is KEPT per the 2026-07-13 residual. Measured: corp
+keeps 4 ruff lines and the waiver is valid to 2026-10-07 — **confirmed**. But §4 Step 3's premise
+that "a `ruff-gate` prune with no waiver present will REFUSE" is not what plan mode shows: with or
+without the waiver, plan prints `already_absent` (A3). The refusal path is real but lives in
+`--execute`, and win-tooling — with no waiver at all — also shows `already_absent`, because for it
+the component is genuinely gone.
+
+**C3 — §4 Step 4's witness is unobtainable in plan mode.** It instructs the reader to look for
+`waived by consumer .methodology.yaml -- skipping prune` in the plan output. That string is emitted
+by `carrier_precommit.prune()`, which runs only under `--execute`. A reader following Step 4 as
+written will not find it and may conclude the waiver failed. Step 4's witness should be: the remove
+leg lists `ruff-gate` with prune state `already_absent`, **and** the waiver validates `valid` under
+the Step 3 command — the two together, because the plan token alone does not distinguish waived from
+absent.
+
+**C4 — §2's consumer `CLAUDE.md` size table is superseded as a drift proxy.** §2 offers
+`ai-council 33406 · corp-monorepo 22708 · win-tooling 10449 chars` and correctly says size "is not a
+drift measurement." Measured byte sizes at origin/main are `33,831 / 23,025 / 10,533` — close, and
+the divergence is explained: those figures came from the operator's local working copies, not
+origin (see Z-C-11). Size is now retired as a proxy; A4 measures the thing itself.
+
+**C5 — a false positive this amendment generated and killed, recorded so it is not re-derived.**
+A raw-byte SHA-256 of win-tooling's `.claude/CLAUDE-FLOOR.md` does not match its sidecar, which
+reads as a broken non-waivable floor gate. It is a CRLF artefact: the carrier hashes LF-normalised
+text (`generate_floor.floor_sha256`). Measured with the repo's own function, **all three floors match
+the corpus digest and their sidecars exactly.** WT-3, CM-2 and AC-2 stand.
+
+**New candidates (Z-C shape, none filed — ADR-111):**
+
+**Z-C-11 — the nightly baseline measures local working copies; nothing measures the gap to origin.**
+corp-monorepo's origin `main` is 27 days behind the baseline's run date and ai-council's 24 days
+(A2). Every §2 row is therefore a statement about the operator's disk, and a reader would reasonably
+take it as a statement about the repo. No organ compares the two. Evidence: A2, §6 default 1.
+
+**Z-C-12 — two consumers boot from a governance instruction ADR-115 reversed.** Both carry
+"AGENTS.md is retired (ADR-53)"; neither mentions ADR-115. Inherited from the 2026-07-12 region
+corpus, so it is a *pin* defect, not an edit defect — which means a region redeploy fixes it and
+nothing today triggers one. Evidence: A4-D, A4-P.
+
+**Z-C-13 — win-tooling is unenrolled in the region boundary system.** 0 of 8 hub regions, 0 markers,
+no `.methodology.yaml`. It is simultaneously the *most* conformant consumer by carrier state
+(3 correct, the only `settings_ok=True`) and the *least* governed by region content. The two signals
+point opposite ways and no verdict combines them. Evidence: A4, A3-F, A3-S.
+
+**Z-C-14 — plan mode conflates "waived" with "already absent."** `detect_prune` returns
+`ALREADY_ABSENT` for both, and only `prune()` distinguishes them in its detail string. A reader of a
+plan cannot tell a live sanctioned divergence from a component that was never there. Evidence: A3,
+`carrier_precommit.py:1037-1055`.
+
+**Z-C-15 — `tier1-plugin` is absent on every measured consumer.** The only `implemented: true`
+carrier absent fleet-wide, carrying four components. Evidence: A3.
+
+**Z-C-16 — a consumer can arm one hook stage of three and pass every floor check but one.**
+corp-monorepo and ai-council run bare `pre_commit install`; their `commit-msg` and `pre-push` hooks
+never fire. The single organ that notices is `carrier_floor`'s `settings_ok` leg, and it reports
+only as an aggregate `present_drifted` on the whole floor carrier. Evidence: A3-S.
+
+### A7 · Cost
+
+**Wall-clock**, session start 13:58 UTC, phase boundaries at tool-call granularity:
+
+```
+PHASE                                                    WALL-CLOCK  MODEL CLASS
+Setup (worktree verify, merge claude/fleet-readiness-h0,  ~5 min      Opus 5 (main session)
+  read the 791-line prior art end to end)
+M0 clone + SHA (3 full clones, 8 ls-remote reads)         ~2 min      Opus 5 (main session)
+M1 carrier plan x3 + floor-leg / waiver / prune forensics ~7 min      Opus 5 (main session)
+M2 region drift + history provenance + diff excerpts      ~3 min      Opus 5 (main session)
+M3 amendment authoring + commit + scratch teardown        ~9 min      Opus 5 (main session)
+```
+
+No subagents were spawned. Every phase was a bounded deterministic read over three small trees;
+fan-out would have added coordination cost without adding reach.
+
+**Defaults taken under the decision budget, reported not asked:**
+
+1. **Read `refs/heads/main` for the five uncloned consumers via `git ls-remote`.** The contract names
+   three repos to clone; A5 asks for READ SHAs in all nine rows. `ls-remote` is a read-only origin
+   query that discharges the `UNREAD (B1)` column without a clone. Their *verdicts* are untouched.
+2. **Measured `.claude/CLAUDE-FLOOR.md` for regions as well as `CLAUDE.md`.** The contract names
+   `CLAUDE.md`; measuring the floor too was needed to state honestly that win-tooling has the regions
+   *nowhere*, rather than merely not in `CLAUDE.md`.
+3. **Resolved drift provenance against the hub's own template git history.** Not asked for. Without
+   it, A4 would have reported 15 drifted regions and implied 15 reconciliations, when the true
+   finding is one stale pin plus two waived edits.
+4. **Used the repo's own parser and hash function** (`boundary_report.parse_regions`,
+   `generate_floor.floor_sha256`) rather than hand-rolled equivalents. This killed one false
+   positive outright (C5).
+5. **Did not run `audit.py run` or any fleet write path.** This lane measures; it does not audit.
+   `audit.py health` was run only as the pre-commit gate.
+6. **The worktree already carried all five `ecosystem/*/state.yaml`.** The contract's B3 seeding step
+   was verified rather than performed: all five present, 11-16 KB each, `repos registered` non-empty.
+   No `SKIP=` was used, and no gate was bypassed.
+7. **Targeted v1.4.0, not v1.5.0**, per the contract and §4.
+
+**Closure verification:**
+
+```
+(1) M0 table printed before M1                          YES - printed in session before any plan run
+(2) every A5 verdict cites an A3/A4 or §2 row           YES - CITES column, all nine rows
+(3) amendment is APPENDED, zero changes above           YES - git diff is pure addition; pre-amendment
+                                                          body sha256 237612269309f298... unchanged
+(4) no consumer repo modified                           YES - git status --porcelain empty in all three
+                                                          clones at clone time and before deletion;
+                                                          --execute never passed in any invocation
+(5) aj-scratch/fleet removed and verified               YES - see teardown below
+(6) deliverable is a COMMIT on the lane branch          YES
+```
+
+**Teardown (critical rule 9, no leftovers).** Immediately before deletion, each clone reported
+`git status --porcelain` empty on branch `main` (closure 4). The scratch tree
+`<prompts>/aj-scratch/fleet/` was then removed recursively and its absence verified
+(`Test-Path` -> `False`); the sibling scratch directories under `aj-scratch/` predate this lane and
+were not touched. Every measurement in this amendment is carried by the tables above, so the clones
+were disposable by construction.
+
+**Substrate note for the record.** This half ran LOCAL under a named operator exception, and the
+exception earned its keep: of the seven measurement results this amendment contributes — origin SHAs,
+carrier plan output, floor-leg isolation, hook-stage arming, waiver validation, region drift, and
+drift provenance — **not one was obtainable from the cloud**, and six of the seven required a
+consumer working tree on disk, exactly as §1 B1.2 predicted.
