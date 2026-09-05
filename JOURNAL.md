@@ -19,6 +19,37 @@
 
 ---
 
+### 2026-09-05 (t) - CC (Opus 5, INTEGRATOR-2): filings-3's arc lands, and AF's predicate paragraph is repaired by reading back what shipped
+
+**Did:** Merged `worktree-filings-3` @ `5dade2d6` (R5 item 018 + the B3/B4 residue ledger) with
+delta A2 measured on my own tree, then read section AF back off `main` and found two splice
+defects the pre-merge review had passed.
+
+**Result:** Delta A2 on the code branch, measured rather than reported: `2 failed / 96 passed`
+before, `1 failed / 97 passed` after, WARN 40 -> 40, health OK throughout. That confirms
+FILINGS-3's `funnel_coverage` 17 -> 0 and `consumer_at_landing` 25 -> 25 from my tree instead of
+from their message. Terra was CLEAN in one round on a code branch and reconciled the 30-distinct
+arithmetic from the diff alone.
+
+The AF repair is the part worth recording. Five terra rounds passed the section on CONTENT, and
+the fourth round's own fix had spliced a flush-left continuation line into the middle of a
+markdown list - which ends the list, so the back half of the predicate rendered outside it - and
+spliced the tally citation into the middle of a sentence. Neither is a claim defect, which is
+exactly why the review did not catch either: a content reviewer reads what the text says, not
+what it renders as. The paragraph the section exists to make quotable was the paragraph damaged.
+Reading back what LANDED, rather than trusting the pre-merge verdict, is what found it - the same
+lesson the section itself is about, arriving one layer up.
+
+**Changes:** `protocols/STANDING_RULINGS.md` (AF predicate list reflowed, three bullets, no claim
+changed); this entry.
+
+**Abandoned:** Nothing.
+
+**Next:** Tear down `worktree-filings-3` on the seat's trigger, regenerate the stale
+`docs/audits/README.md`, print the census with 014 named unowned.
+
+**Anchors:** `5f0cd21a` (the AF reflow, introduced by this arc's merge).
+
 ### 2026-09-05 (s) - CC (Opus 5, INTEGRATOR-2): pre-anchor filings-3's B3/B4 arc, and a ruling whose arithmetic the executing seat corrected
 
 **Did:** Pre-anchored `worktree-filings-3` @ `5dade2d6` ahead of its merge, per the operator's
