@@ -3448,11 +3448,11 @@ tests to declare their files present, rather than weakening the Z-G4 FAIL.
 Filed from the architect's outgoing-seat note of 2026-09-02 (step B), landed after G3b merged and
 before the close packet. **Z-C shape: these are CANDIDATEs, not rows.** ADR-111 admits exactly one
 path — CANDIDATE, then ADR-98 intake, then ratification — so nothing here draws from the ledger and
-nothing here is a commitment. The lettering runs (a)–(g), (i), (j), (k), (m)–(z): **there is no
-(h)** and **no (l)**, and both absences are deliberate rather than lost entries — the note's
-amendment added (f) and (g), a later message added (i), (h) was never filed by anyone, and (m)–(z)
+nothing here is a commitment. The lettering runs (a)–(g), (i), (j), (k), (m)–(z), (aa): **there is
+no (h)** and **no (l)**, and both absences are deliberate rather than lost entries — the note's
+amendment added (f) and (g), a later message added (i), (h) was never filed by anyone, and (m)–(aa)
 arrived from the 2026-09-05 architect inbox (items 001-B, 001-C, 002-B, 002-C, 004-A.3, 005-B,
-009-B, 009-C) with (l) likewise never filed by anyone.
+009-B, 009-C, 015-A) with (l) likewise never filed by anyone.
 
 **(z) is the last single letter.** The next entry filed here takes **(aa)**, then (ab), and so on —
 recorded before it is needed, because the alternative is whoever files next inventing a scheme
@@ -3664,6 +3664,17 @@ once installed. Act (b), the candidate: every `cli:` in the routing table must r
 reusing the dispatch-table DISP probe (`Get-Command`) — **not** a second resolver. Measured while
 filing this, 2026-09-05: `sol` ABSENT; `codex`, `claude`, `agy`, `gemini` all PRESENT.
 
+*Merged in 2026-09-05 (architect inbox item 015-B) — MODEL ROUTING IS DECLARED AND NOT CARRIED,
+deliberately not a new letter.* A lane contract's `| Model | Mode | Effort |` table cannot reach the
+launch: `Dispatch-Lane` passes no `-Model`, so **every R5P lane ran opus regardless of what its
+table said.** The item rules it into this family rather than a new one, and it is this entry's shape
+one surface over — (p) is a role bound to a CLI that is not installed, this is a model bound to a
+launch that never reads it. Both are a declaration nothing consumes, and both fail SILENTLY: the run
+succeeds, on the wrong routing, and only a report reveals it. So the CHECK half widens — `cli:`
+resolving on PATH is necessary and NOT sufficient, because a resolvable binary invoked without the
+declared model is the same defect wearing the passing form. `carried-by: manifest`. The coupling to
+(c) is that all three ask *what actually ran*, not *what was declared*.
+
 **(q) VOCABULARY BRIDGE BEFORE SEARCH, for any comparative arc** *(AJ gap analysis §5 CANDIDATE 3;
 architect inbox 2026-09-05 item 002-B)*. Before any claim that this repo LACKS something, search
 this repo's lexicon and not only the other system's. One line in the research-arc contract
@@ -3791,6 +3802,18 @@ stranding the lane's commits inside a container that is later torn down. Propose
 `dispatch-run.sh` sources the login environment, or **fails closed naming the missing variable**.
 The naming matters more than the sourcing: the current failure is legible only as an absent push,
 and a run that dies saying `GITHUB_TOKEN` is unset costs one line to diagnose instead of an arc.
+
+**(aa) THE DISPATCH SURFACE CANNOT LAUNCH A CONFORMING LOCAL CONTRACT** *(architect inbox
+2026-09-05 item 015-A; source: batch R5P dispatcher report, manifest 13362942)*. **First two-letter
+entry, per the rule above.** `dispatch <file>` refuses every contract that PASSES the checker: the
+checker demands a `Dispatch-Lane` line while `Invoke-Dispatch.ps1` demands a `claude` head token,
+and only the interactive shape satisfies both. The two halves of one launch surface disagree about
+what a valid contract is, so conformance and launchability are mutually exclusive — a contract is
+either checkable or runnable, never both. The dispatcher worked around it with the documented
+`Dispatch-Lane` fallback, which is why this surfaced as a report rather than as a failed batch.
+Owner: PLAYBOOK Ch8 dispatch table (win-tooling `DispatchHelpers`) — **cross-repo**. `carried-by:
+manifest`, because the launch surface ships to consumers, so a consumer inherits the same
+contradiction.
 
 **Not adopted, recorded so it is not relitigated** *(architect inbox 2026-09-05 items 002-E and
 004-A.3(d))*. Generated ADRs — `ADR-94` protects the opposite, and their cheapness is the property
