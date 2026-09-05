@@ -3361,6 +3361,16 @@ re-emitted for form. No peg, no owner, by design.
 *The constant it would probe against* is `protocols/OPERATOR-INTERFACE.md` §7, landed in this same
 commit. The probe itself is unbuilt — recording the candidate is the whole of this entry.
 
+*Second predicate, amended in 2026-09-05 (architect inbox item 008-C) — an amendment line on this
+candidate, deliberately NOT a new entry.* A paste addressed to the INTEGRATOR that carries a
+production-contract shape — Intent + Closure + Files — is a defect of the BROWSER seat, and the
+probe should catch it on the same pass as the missing copy-ready block. Both predicates test the
+same thing: whether a paste's FORM matches the role of the seat receiving it. The witness is the
+2026-09-05 integrator-produces defect, where a contract-shaped paste sent to the integrator was
+executed as written for ~1h48m while six branches waited — the paste was well-formed for a lane and
+malformed for its actual addressee, and nothing checked which it was. Carried separately as intake
+`#70`, which fixes the ROLE half; this predicate is the FORM half and stays here.
+
 **AB-2 · `/boot-session` gains a MERGE-WITH-VERIFY mode — PARKED by the operator.** Origin:
 2026-09-02 batch-G boot. No peg, no owner, by design. Recorded here rather than as a `tasks/`
 row per this section's own precedent — the only route from here to a row is CANDIDATE → intake
@@ -3642,6 +3652,14 @@ rather than the variable misresolved. Nothing in the transport is wrong in that 
 simply cannot see which directory it is reading, and an empty valid directory is indistinguishable
 from an empty correct one. Printing the resolved path makes a stale inheritance visible in the
 first turn instead of after a wasted round-trip.
+
+*Second witness, same day, and it is the more instructive one.* A concurrent session reported that
+its own `CLAUDE_PROMPTS_DIR` had also resolved to Downloads — and **nothing failed**, because the
+file it needed happened to be in Downloads too. It read the fallback, succeeded, and would have had
+no reason to notice. That is the case this candidate is really for: the first witness cost a
+round-trip and was therefore self-announcing, while the second cost nothing and was invisible.
+A misresolution that succeeds is the one that persists, and it is only detectable by printing the
+path — no failure will ever surface it.
 
 **(w) QUESTIONS-AS-FILES — a needs-input question travels the same transport as everything else**
 *(architect inbox 2026-09-05 item 005-B, its proposed letter (t))*. A session's blocking question
