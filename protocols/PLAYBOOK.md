@@ -660,7 +660,7 @@ axis.)
 ### Commit message standard
 <!-- scope: dev -->
 
-Git history IS the changelog (no CHANGELOG.md since 2026-05-16) — commit messages carry the load CHANGELOG used to. (Moved from ESSENTIALS 2026-07-05, [#258] — ESSENTIALS keeps the pointer.)
+Git history IS the changelog (no CHANGELOG.md since 2026-05-16) — commit messages carry the load CHANGELOG used to. (Moved from ESSENTIALS 2026-07-05, [#258].)
 
 - **Conventional Commits.** `type(scope): summary` — types are `feat`, `fix`, `docs`, `refactor`, `test`, `chore`. Scope is optional but use the file/folder slug when it clarifies.
 - **Summary line.** Imperative mood, specific, describes WHAT changed. Under ~72 chars. **Never** "wip", "fix", "updates", "stuff", "various changes".
@@ -791,7 +791,7 @@ Without standard structure, prompts diverge:
 - Different naming for same fields (Model vs LLM, Effort vs Difficulty)
 - Inconsistent COMMIT markers — Claude Code can't tell when to commit
 - Missing UNDERSTAND section → Claude Code makes wrong assumptions
-- Polish prompts → Claude Code outputs Polish (per ESSENTIALS line 25, prompts are English-only)
+- Polish prompts → Claude Code outputs Polish (prompts are English-only — “Pre-send checklist” below is the rule's home)
 - Inline code blocks → can't be saved as artifact, breaks asynchronous workflow
 
 Vibe Code 4 (2026-04-22) established the standard structure during Stream A. This section codifies it as PLAYBOOK protocol.
@@ -832,7 +832,7 @@ Why: pasted-as-text is fine, but file form preserves structure for re-use, audit
 ### Architect → operator channel-discipline (execution actions)
 <!-- scope: meta -->
 
-The browser-chat architect never writes git commands, shell sequences, or executable code inline in chat prose as informational text the operator manually copies. Two channels only, scale-determined (moved from ESSENTIALS 2026-07-05, [#258] — ESSENTIALS keeps the frame + pointer):
+The browser-chat architect never writes git commands, shell sequences, or executable code inline in chat prose as informational text the operator manually copies. Two channels only, scale-determined (moved from ESSENTIALS 2026-07-05, [#258]):
 
 - **Scale S** (one command, one mechanical edit, no judgment): PowerShell snippet in a fenced code block; operator copy-pastes and runs as-is.
 - **Scale M+** (multi-step, multi-file, judgment needed, merge ops): Claude Code prompt as a downloadable `.md` file with full structure per this chapter.
@@ -854,7 +854,7 @@ operator-authorized act, granted per-act, not agent judgment.
 
 Before delivering a prompt to Claude Code, verify:
 
-- [ ] **English only** — no Polish in prompt body (Rob speaks Polish; prompts are English per ESSENTIALS)
+- [ ] **English only** — no Polish in prompt body (Rob speaks Polish; prompts are English — this checklist line is the rule's home)
 - [ ] **Model/Mode/Effort table** present at top — embedded **verbatim** from the non-negotiable spec, never paraphrased (#25)
 - [ ] **Absolute paths** for all repo/file references (not relative — Claude Code's CWD varies)
 - [ ] **Read first** lists CLAUDE.md and gotchas (always) plus task-relevant docs
@@ -1527,7 +1527,7 @@ While useful for some context, this stacked 4 layers of meta-work before any gap
 When opening a new session that continues prior work:
 
 **Browser chat resumption:**
-1. Upload `ESSENTIALS.md` (always)
+1. Upload `CLAUDE.md` (always — the live boot frame's always-on subset)
 2. Upload most recent `docs/handoffs/*.md` (if any)
 3. Upload PLAYBOOK.md (if doing dev work — large file, but contains all protocols)
 4. Upload task-specific docs (specific ADRs, Stream B mapping if continuing Stream B, etc.)
@@ -3611,7 +3611,7 @@ This section defines the lifecycle: from "I saw something on Twitter" to "we ado
 ### Project-evolution posture (always be improving)
 <!-- scope: meta -->
 
-Distinct from the tool-adoption lifecycle below: the default posture for every project. (Moved from ESSENTIALS 2026-07-05, [#258] — ESSENTIALS keeps the one-liner + pointer.)
+Distinct from the tool-adoption lifecycle below: the default posture for every project. (Moved from ESSENTIALS 2026-07-05, [#258].)
 
 - Project goal at meta level is continuous development and refinement; specific session goals are immediate scope, the long-term posture is always advancing.
 - Static maintenance is the exception and requires explicit declaration in VISION Lifecycle (e.g., archived project, frozen for compliance).
@@ -4968,7 +4968,7 @@ contract, branch `epic/278-test-suite-hygiene`), `PROBES.md`, and `EPIC_RETURN.m
 ### Roles
 <!-- scope: meta -->
 
-Canonical: the architect↔CC **division** is the equilibrium table in **"The two lifelines" § Lifeline 1** (ADR-87); the v5 actor table / browser operating role are `protocols/HANDOFF_PROCESS.md` §1 / §7. The fuller **Does/Does-NOT** lists + three-layer flow (ADR-28) live below — moved from ESSENTIALS 2026-07-05 ([#258]); ESSENTIALS keeps the day-to-day frame + pointer.
+Canonical: the architect↔CC **division** is the equilibrium table in **"The two lifelines" § Lifeline 1** (ADR-87); the v5 actor table / browser operating role are `protocols/HANDOFF_PROCESS.md` §1 / §7. The fuller **Does/Does-NOT** lists + three-layer flow (ADR-28) live below — moved from ESSENTIALS 2026-07-05 ([#258]).
 
 Two distinct LLM contexts collaborate on every workstream. Mixing them = chaos.
 
@@ -5116,7 +5116,7 @@ Canonical rule: **CLAUDE.md §4 "Output formatting (render-layer)"**. This subse
 5. Quick project health check (test suite, lint, stale branches)
 6. Update ENVIRONMENT.md if any config changed
 
-(The retired self-evolution step was dropped 2026-06-19; corrections now auto-promote via the `corrections.jsonl` Stop hook — see ESSENTIALS "Feedback Loop".)
+(The retired self-evolution step was dropped 2026-06-19; corrections now auto-promote via the `corrections.jsonl` Stop hook — see `protocols/ENVIRONMENT.md` § the `~/.claude/` tree, which records the loop's verified-live state.)
 
 ---
 
