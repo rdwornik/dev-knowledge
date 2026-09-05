@@ -285,3 +285,101 @@ the immutable body, deliberately not edited (see AMENDMENT 2).
 previous amendments, **none of these are triaged by this lane** and none becomes a backlog
 row without ADR-98 intake; the mechanisms named above (`017-A`, `017-B`, candidate (v),
 intake #70) are that seat's filings, not this lane's. Findings arising here route back to it.
+
+---
+
+## AMENDMENT 4 — #22's mechanism and class, and the locators AMENDMENT 3 owed (2026-09-05)
+
+> **Same shape as 1-3.** Audits are immutable: the seat's register and AMENDMENTs 1, 2 and 3
+> are untouched; this marker is appended below them. The verbatim body is still the
+> contiguous region from `# BROWSER SEAT NOTES` to the blank line preceding AMENDMENT 1's
+> `---` rule, still
+> `sha256 685633c33c49c7d37de5dba70f3162d4d1841a98b12896ee8d28ee465f06b196`.
+>
+> Three items land together rather than as three markers, per the integrator's cadence
+> ruling: an amendment marker is a readability cost paid by the next reader of this file.
+
+### 1. #22's mechanism — supplied, and phrased for what exists TODAY
+
+AMENDMENT 3 recorded #22 as *"no mechanism named in the filing"* rather than inventing one.
+The filing seat has now supplied it. It is recorded in two halves, because exactly one of
+them is live:
+
+- **The CHECK exists and is reusable today.** `scripts/validate_branch_naming.py` takes
+  `--lane NAME` (`ap.add_argument("--lane", metavar="NAME", …)`), and
+  `.claude/commands/lane-boot.md` already invokes it as its pre-flight
+  (`uv run --locked python scripts/validate_branch_naming.py --lane lane-<letter>-<id>-<slug>`).
+  Nothing needs building.
+- **The PLACEMENT is what is owed, and it is advisory.** The mechanism is to resolve every
+  lane name a brief proposes through that checker **at freeze, before dispatch**, rather
+  than at boot — alongside the other freeze predicates in
+  `scripts/preflight_contract.py` (`def freeze_predicates(contract, repo_root=…)`). That
+  module's own docstring says it is **"wired into no gate"**, so this is *"the freeze
+  predicate set (`preflight_contract.py --freeze`, **today advisory**)"* and deliberately
+  **not** "the freeze gate".
+
+**Why the wording was ruled rather than assumed.** A mechanism line reading *"the freeze
+gate refuses…"* would describe enforcement a reader cannot find — a rule refusable by
+nothing, which is **class G by the definition AMENDMENT 3 had just introduced**. Filing a
+class-G fix for a defect is the failure mode the class exists to name, so the line says what
+is true today and will not need re-amending when that organ is armed. **Arming
+`preflight_contract.py` is a separate and larger question and is deliberately not decided
+here.**
+
+The placement argument, recorded because it is the reason freeze beats boot: checking at
+boot means N lanes each rediscover the same naming defect independently, *after*
+provisioning; checking at freeze refuses the brief **once, before anything is provisioned**.
+
+### 2. #22's class — A is exclusive, and here is the test that makes it so
+
+Terra's pre-merge review of AMENDMENT 3 (MEDIUM, upheld) asked the right question: a
+violated lane-name grammar looks like it could be **F** (ignored doctrine) or **G**
+(unenforceable rule) under the very taxonomy AMENDMENT 3 introduced, so **A** needs
+defending rather than assuming. Applying the F/G test in order:
+
+- **Not G.** G requires that *no carrier exists*. One does — `--lane`, already called by
+  `/lane-boot`. A rule with a carrier is not class G, and supplying the mechanism in §1
+  settles this rather than merely arguing it.
+- **Not F.** F is a rule **gone around** when an organ could have refused. At the moment the
+  error was made — the brief's freeze — **no organ ran at all**: `--lane` fires at lane
+  boot, which is downstream of the mistake. There was nothing to go around.
+- **A, and exclusively.** A is a fact asserted without resolving a locator that was one
+  command away. The grammar and its checker were both exactly that. The lane names were
+  written from pattern rather than derived from the authority that already existed.
+
+**The classification and the mechanism turn out to be one insight, not two.** #22 is class A
+*because* the carrier exists but runs after the moment of error; the fix is therefore to move
+the existing check earlier, not to build a new one. Had the answer been G, the fix would have
+had to be a new carrier — which is precisely the different-remedies argument that made G
+worth admitting in AMENDMENT 3.
+
+### 3. Locators for AMENDMENT 3's asserted rulings — a citation debt, not an accuracy one
+
+Terra's second MEDIUM read AMENDMENT 3's ruling and mechanism statements as *"asserted
+without support in this diff"*. **Every one of them is TRUE** — checked against the tree, not
+relayed — so this is recorded as a **citation-practice** defect and not as a correction:
+
+| Assertion in AMENDMENT 3 | Where it actually lives |
+|---|---|
+| the class-G ruling and intake #70 | `docs/intake/2026-09-05-tech-session-roles-with-a-carrier.md` (`intake-id: 70`) |
+| `017-A` landed in `OPERATOR-INTERFACE.md` §1 | `protocols/OPERATOR-INTERFACE.md`, **"Transport v2 — schema, grammar, retention."**, amending **"FILE EXCHANGE — the transport constant."** |
+| candidate (v) reshaped to USER scope | `protocols/STANDING_RULINGS.md`, **"(v) SESSIONSTART RESOLVES THE PROMPTS DIRECTORY FROM USER SCOPE, AND PRINTS IT"** |
+| #22's checker and its freeze home | `scripts/validate_branch_naming.py` (`--lane`), `.claude/commands/lane-boot.md` (the pre-flight call), `scripts/preflight_contract.py` (`freeze_predicates`) |
+
+**The generalisable rule, which is the actually useful part:** a reviewer handed only a diff
+has no repo, so it **cannot** resolve an unlocated claim and correctly reads every one of
+them as unsupported. The reviewer is not wrong to; resolving locators is the author's and
+integrator's job, not the reviewer's. So a true statement without a locator costs a review
+cycle every time, however true it is.
+
+**Cited by ANCHOR TEXT, not line number, on purpose.** While preparing this amendment the
+`/lane-boot` pre-flight call moved from line 25 to line 34 — within hours, on an unrelated
+merge. A line number handed over in good faith was already stale by the time it was written
+down, which is why the table above names headings and symbols that survive a reflow.
+
+**Provenance:** items 1 and 2 from the architect inbox (FILINGS-1) and terra's pre-merge
+review of AMENDMENT 3 (`gpt-5.6-terra`, doc lane, no HIGH); item 3 from that same review's
+second finding, downgraded on the evidence. Terra's clean verdict on the immutability shape —
+that AMENDMENT 3 **supersedes** AMENDMENT 2's `F` label rather than erasing it — is recorded
+here because it is the property these markers exist to preserve. As before, **nothing here is
+triaged by this lane** and no backlog row is born from it.
