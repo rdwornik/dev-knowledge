@@ -3427,6 +3427,21 @@ while items 002-B and 002-C had already consumed (o) through (r). This register 
 and it has one writer, so an entry takes the next free letter and records the label its source
 used. A proposed letter is a name for a conversation, never an address in this file.
 
+**"Z-C" NAMES A SHAPE, NOT A NUMBERING NAMESPACE** *(ruled 2026-09-05, register writer, on a
+collision routed from the fleet-readiness measurement lane)*. Section Z-C established how to record
+a candidate that draws nothing from the ledger. That is a SHAPE — anyone may use it. It is not an
+address space, and it does not make `Z-C-<n>` a global identifier. Two schemes had grown under the
+one prefix: this section's lettered entries (a)–(w), which are funnel addresses, and an audit-local
+`Z-C-1..Z-C-16` sequence numbering one document's own findings. Both were correct in isolation and
+unreadable together, because a reader cannot tell whether `Z-C-12` is an entry here.
+
+The ruling, so it is settled once rather than per-audit: **an audit numbers its own findings in its
+own namespace, prefixed by the audit** — never bare `Z-C-<n>`. Audit-local findings are NOT
+withdrawn for having used the bare form; measured findings are not discarded over an addressing
+defect. Admission into THIS register is a separate act with one writer: a lane that wants an entry
+here sends it, and it is filed at the next free letter with its source label recorded. A lane never
+files into this section directly, and an audit-local number never silently becomes a letter.
+
 **(a) README as a human front door.** What-it-is, then quickstart, then a link map; governance prose
 relocated and consumers re-pointed. The note files it as NEW and marks the reason it is not merely a
 hub concern: `README.md` ships to every repo, so a README that reads as governance rather than as an
