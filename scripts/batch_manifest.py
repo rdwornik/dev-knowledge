@@ -149,6 +149,28 @@ if Path(getattr(_vbn, "__file__", "") or "").resolve().parent != Path(__file__).
 #: than silently widen anything.
 from validate_substrate import Refusal, contract_slug   # noqa: E402
 
+#: The ADR-101 audit-name grammar's ruled CLASS ENUM, imported BY NAME from the module that
+#: owns it. `validate_hermetization` does not import this module (checked: no cycle) and pulls
+#: only stdlib, so this is cheap.
+#:
+#: PROVENANCE-GUARDED, on the `LANE_BRANCH_RE` precedent above and for that comment's exact
+#: reason: a shadowed ENUM silently governs an EXEMPTION. Widen this enum and
+#: `2026-09-05-technical-review-of-lane-g-276-deploy-waiver` splits at a longer class, its tail
+#: becomes `lane-g-276-...`, and a document ABOUT a lane is admitted as that lane's own
+#: artifact -- the precise false coverage `links_artifact`'s anchor exists to refuse. A shadow
+#: that NARROWS is harmless (the single-segment fallback below IS the pre-enum behaviour), so
+#: the hole is one-directional; the guard is not, because "only the widening direction is
+#: dangerous" is an argument about today's enum, not a property of the seam.
+import validate_hermetization as _vh   # noqa: E402
+from validate_hermetization import AUDIT_CLASS_ENUM   # noqa: E402
+
+if Path(getattr(_vh, "__file__", "") or "").resolve().parent != Path(__file__).resolve().parent:
+    raise ImportError(
+        f"validate_hermetization resolved to {getattr(_vh, '__file__', None)!r}, which is not "
+        f"this module's sibling in {Path(__file__).resolve().parent}. Refusing to import a "
+        f"shadowed audit-class enum: the manifest-link exemption would be decided by an "
+        f"unknown class grammar.")
+
 #: `git merge --no-ff <branch>` writes this subject; `/lane-integrate` relies on it too.
 _MERGE_SUBJECT_RE = re.compile(r"^Merge branch '([^']+)'")
 
@@ -554,7 +576,42 @@ def manifest_links(repo_path: Path) -> ManifestLinks:
 
 #: An artifact stem's descriptive tail: everything after `<date>-<class>-`. A lane's own
 #: packet begins its tail WITH the lane slug; a document merely ABOUT that lane does not.
-_ARTIFACT_TAIL_RE = re.compile(r"^\d{4}-\d{2}-\d{2}-[a-z]+-(?P<tail>.+)$")
+_ARTIFACT_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}-")
+_DATE_PREFIX_LEN = len("YYYY-MM-DD-")
+#: Fallback class: ONE kebab segment, DIGITS ADMITTED. Off-enum classes are real on disk --
+#: `arc5` (x3), `phase0`, `stage3`, `pilot81`, `cohort1` -- so an enum-only split would refuse
+#: a lane artifact landing under any of them.
+_FALLBACK_CLASS_RE = re.compile(r"^[a-z0-9]+-(?P<tail>.+)$")
+#: Longest-match first, so `ecosystem-audit` wins over a bare `ecosystem` split. Same ordering
+#: `validate_hermetization` applies to the same enum, for the same reason.
+_CLASS_BY_LEN = tuple(sorted(AUDIT_CLASS_ENUM, key=len, reverse=True))
+
+
+def artifact_tail(stem: str) -> Optional[str]:
+    """The descriptive tail of `stem` -- what follows `<date>-<class>-` -- or None.
+
+    THE SPLIT IS ENUM-FIRST, THEN ONE SEGMENT (terra HIGH, pass 2). A single `[a-z]+` class
+    got both ends of the real grammar wrong. It cannot match a HYPHENATED ruled class:
+    `...-ecosystem-audit-lane-a-1-x` splits after `ecosystem`, leaving the tail as
+    `audit-lane-a-1-x`, which begins with no slug. And it cannot match a DIGIT-BEARING one:
+    `arc5`, `phase0`, `stage3`, `pilot81`, `cohort1` are all on disk today. Under either shape
+    a lane's OWN artifact is refused -- a false NEGATIVE introduced while fixing a false
+    positive, which is the failure mode a narrowing fix has to be checked for.
+
+    BOTH WERE LATENT, NOT LIVE. No artifact in the corpus today has a lane-slug tail under
+    either shape, so `manifest_linked` is unchanged by this: it is a robustness fix, and
+    claiming it recovered coverage would be false. It widens strictly -- an enum class that is
+    a single segment splits identically to the fallback, so no currently-admitted artifact can
+    become refused.
+    """
+    if not _ARTIFACT_DATE_RE.match(stem):
+        return None
+    rest = stem[_DATE_PREFIX_LEN:]
+    for cls in _CLASS_BY_LEN:
+        if rest.startswith(f"{cls}-"):
+            return rest[len(cls) + 1:] or None
+    match = _FALLBACK_CLASS_RE.match(rest)
+    return match.group("tail") if match else None
 
 
 def links_artifact(links: ManifestLinks, name: str) -> Optional[str]:
@@ -568,8 +625,8 @@ def links_artifact(links: ManifestLinks, name: str) -> Optional[str]:
     over: a spurious WARN is noticed and fixed in one edit, invented coverage is never noticed
     at all.
 
-    The anchor: strip the `<date>-<class>-` prefix and require the remaining tail to BEGIN with
-    the slug, at a `-` or end-of-string boundary. A lane's artifacts are named for their lane
+    The anchor: strip the `<date>-<class>-` prefix (`artifact_tail`, enum-first) and require the
+    remaining tail to BEGIN with the slug, at a `-` or end-of-string boundary. A lane's artifacts are named for their lane
     (`…-technical-lane-g-614-hygiene-close-packet.md` tails as `lane-g-614-hygiene-…`); a
     commentary names something else first. A stem that carries no dated `<date>-<class>-`
     prefix has no tail to anchor against and is refused rather than fuzzily matched.
@@ -577,10 +634,9 @@ def links_artifact(links: ManifestLinks, name: str) -> Optional[str]:
     stem = name[:-3] if name.endswith(".md") else name
     if name in links.explicit or stem in links.explicit:
         return "explicit"
-    match = _ARTIFACT_TAIL_RE.match(stem)
-    if match is None:
+    tail = artifact_tail(stem)
+    if tail is None:
         return None
-    tail = match.group("tail")
     for slug in links.lane_slugs:
         if tail == slug or tail.startswith(f"{slug}-"):
             return "lane-slug"

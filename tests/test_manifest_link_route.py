@@ -168,3 +168,60 @@ def test_an_undated_stem_has_no_tail_to_anchor_and_is_refused(seeded: Path):
     """Refused rather than fuzzily matched -- the additive route fails toward LESS coverage."""
     links = bm.manifest_links(seeded)
     assert bm.links_artifact(links, "lane-z-1-widget.md") is None
+
+
+# --- the enum-first class split (terra HIGH, pass 2) ------------------------------------------
+# The anchor's first cut used a letters-only `[a-z]+` class segment, which got BOTH ends of the
+# real audit-name grammar wrong. These four pin the widening; the first two FAIL under the
+# reverted regex, which is what makes them regressions rather than decoration.
+
+def test_a_digit_bearing_class_still_yields_the_lane_tail(seeded: Path):
+    """`arc5`, `phase0`, `stage3`, `pilot81`, `cohort1` are all real classes on disk.
+
+    A letters-only class cannot match any of them, so a lane's OWN artifact landing under one
+    was refused -- a false NEGATIVE introduced while fixing a false positive.
+    """
+    assert bm.artifact_tail("2026-09-05-arc5-lane-z-1-widget") == "lane-z-1-widget"
+    links = bm.manifest_links(seeded)
+    assert bm.links_artifact(links, "2026-09-05-arc5-lane-z-1-widget.md") == "lane-slug"
+
+
+def test_a_hyphenated_ruled_class_yields_the_lane_tail(seeded: Path):
+    """`ecosystem-audit` is one ruled class, not `ecosystem` followed by a tail of `audit-...`.
+
+    Longest-match over the enum is what makes the multi-segment classes split whole.
+    """
+    assert bm.artifact_tail("2026-09-05-ecosystem-audit-lane-z-1-widget") == "lane-z-1-widget"
+    links = bm.manifest_links(seeded)
+    assert bm.links_artifact(links, "2026-09-05-ecosystem-audit-lane-z-1-widget.md") == "lane-slug"
+
+
+def test_the_widening_does_not_readmit_a_document_ABOUT_a_lane(seeded: Path):
+    """The pass-1 HIGH, re-asked under BOTH new class shapes.
+
+    Widening the class split is only safe if the anchor still holds after it -- a fix that
+    recovers false negatives by reopening the false positive has traded one silent wrong
+    answer for another.
+    """
+    links = bm.manifest_links(seeded)
+    assert bm.links_artifact(links, "2026-09-05-arc5-review-of-lane-z-1-widget.md") is None
+    assert bm.links_artifact(
+        links, "2026-09-05-ecosystem-audit-notes-on-lane-z-1-widget.md") is None
+
+
+def test_the_class_enum_is_the_hermetization_module_s_own_object(seeded: Path):
+    """IDENTITY, not equality -- the `LANE_BRANCH_RE` precedent in `batch_manifest`.
+
+    A second enum object means a second grammar, and this one governs an exemption: widen it
+    and a document ABOUT a lane splits at a longer class and is admitted as that lane's
+    artifact. `validate_hermetization` owns the ADR-101 name grammar; this module borrows it.
+    """
+    import validate_hermetization as vh
+    assert bm.AUDIT_CLASS_ENUM is vh.AUDIT_CLASS_ENUM
+
+
+def test_artifact_tail_refuses_a_stem_that_is_all_class_and_no_tail():
+    """`<date>-<class>` with nothing after it has no tail to anchor against."""
+    assert bm.artifact_tail("2026-09-05-technical") is None
+    assert bm.artifact_tail("2026-09-05-technical-") is None
+    assert bm.artifact_tail("not-a-dated-stem-at-all") is None
