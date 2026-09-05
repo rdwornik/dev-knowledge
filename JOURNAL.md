@@ -21,7 +21,20 @@
 
 ### 2026-09-05 (d) - CC (Opus 5): the manifest already knew, and the scalar the ruling named moves on the clock
 
-**Anchors:** `73bf4272`
+**Anchors:** `73bf4272`, `6de676fb`, `1d96e0de`, `3200757d`, `ca0a2a2f`
+
+> **Integrator anchor-drain.** The last four are MERGE commits on main's first-parent
+> spine that carried no `Anchors:` record line and were hard-failing
+> `journal_spine_anchor` — a PRE-COMMIT organ, so they were blocking commits in every
+> worktree provisioned after the gap, not just on main. `ca0a2a2f` is my own merge and
+> made the count four. Anchoring another session's merges is the integrator's act, which
+> is why they land here rather than in the lanes that produced them.
+>
+> **The residual is structural, not an oversight.** The merge that carries THIS entry
+> cannot anchor its own SHA — the SHA does not exist until the merge is made. That is the
+> [#623] single-commit/merge-anchor deadlock. Expect the organ to name exactly one merge
+> after this lands rather than zero; it is discharged by the next entry, and the queue
+> only grows if entries stop being written.
 
 **Did:** built the manifest-link hotfix as INTEGRATOR-2 - an audit artifact linked from a batch
 manifest (via `closed_by:`, as a lane packet, or as a close packet) now counts as DISPOSITIONED
