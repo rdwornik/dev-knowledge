@@ -19,6 +19,91 @@
 
 ---
 
+### 2026-09-05 (k) - CC (Opus 5): the closure detector stopped running and said so in a file nobody was reading
+
+**Did:** Landed the session-end detector's own error record, which the Stop hook wrote into
+the primary checkout and which had been sitting UNTRACKED while twenty merges went past it.
+
+**Result:** `propose_closures.py` did not run:
+`RuntimeError('PROPOSALS: 99 runs already recorded for 2026-09-05 -- refusing to guess a
+100th name')`. A per-day run-name allocator with a two-digit ceiling, reached on a day with
+enough parallel seats to fire the Stop hook ninety-nine times.
+
+**The refusal is the correct behaviour and the artifact is the point.** It declined to guess
+a name rather than overwrite run 99 or invent a colliding one, and then wrote a file whose
+own text says it "is the absence of a result, not a result". That distinction is the whole
+value: without it, a day with no closure proposals is indistinguishable from a day where
+none were warranted. Deleting the file at session wrap -- the tidy-looking move, and what
+the dirty-tree warning nudges toward -- would have silently converted a detector outage into
+an apparent clean result.
+
+Worth noting how close it came to being lost. It is untracked, so `git log` never showed it,
+every merge ignored it, and the only thing that surfaced it was a session-end hygiene check
+complaining about a dirty tree. An organ that reports its own failure into a gitignored-
+adjacent path is reporting into a channel with no reader.
+
+Not diagnosed here: `propose_closures.py` is plugin-owned (tier1-lifecycle) and fixing a
+consumer-installed hook is not an integration act. The cause is legible from the message and
+the fix is someone's to own.
+
+**Changes:** `debf51c2` lands `logs/DETECTOR-ERROR-2026-09-05.md`. No BACKLOG change --
+none was proposed, which is exactly what the file records.
+
+**Abandoned:** Nothing.
+
+**Next:** The four held lanes, then the close packet.
+
+**Anchors:** `debf51c2`
+
+### 2026-09-05 (j) - CC (Opus 5): nineteen merges, and the funnel got worse for the right reason
+
+**Did:** Merged the second cohort -- fleet-readiness AMENDMENT 3, the seat notes with both
+amendments in one act, filings-2, the R5P batch manifest and the funnel-groom cloud lane --
+regenerated the audits index, and pre-anchored what is left.
+
+**Result:** Nineteen merges landed and pushed with main's spine clean at every step. Two
+generated-file conflicts resolved by REGENERATING from the merged tree rather than choosing
+a side, which is the only correct move when both sides are legitimately different outputs of
+the same generator.
+
+The intake carriers taught the sharper version of that: they have an ORDER.
+`gen_intake_tree` pins `source_sha256` to `README.md`'s exact UTF-8 bytes, so it must run
+AFTER `gen_intake_index`. I ran them the other way, pinned the manifest to the
+pre-regeneration README, and got `intake_tree_coherence` FAIL plus "intake doc on disk with
+no item node" -- while a grep for the document's NAME in the manifest returned a hit,
+because the name was present as RESIDUE. A substring check is not a registration check.
+Re-run in order: 59 item nodes became 60 and health went OK.
+
+**THE FUNNEL NUMBERS GOT WORSE AND THAT IS CORRECT.** funnel uncovered 723 -> 736, consumer
+unconsumed 590 -> 605, while `manifest_linked` held at 86/88. Nothing regressed: eleven
+audits landed today, so the CORPUS grew (876 -> 889 and 947 -> 966) faster than the linked
+set. Reading the uncovered scalar as a quality signal would say this session made things
+worse; the ratio and the identity-keyed baselines say otherwise. This is the same scalar
+instability that made the ship-gate headline read 133/134/136/137 across one window, and the
+same reason the amended acceptance criterion for the citation hotfix was the NAMED findings
+rather than the count.
+
+One consequence worth flagging rather than fixing here: R5P's launch contracts land as
+`LANE-r-000-<slug>.md` inside a dated DIRECTORY, so they carry no `<date>-<class>-` prefix of
+their own and the manifest-link route cannot anchor them -- `artifact_tail` returns None.
+They will raise. That is the route behaving as specified, not a defect in this merge, and
+widening it to catch them is exactly the "fit the mechanism to the target" move I refused on
+lane-g-626.
+
+**Changes:** `b904e1e0` through `f96e4715`. Five more branches torn down local AND origin
+with ancestor proofs. `docs/audits/README.md` regenerated in this branch's first commit.
+Two open batches now exist (H0-PREP, R5P), so `exempt()` is live again after returning the
+empty set all session.
+
+**Abandoned:** Nothing. Three lanes HELD, none dropped: `worktree-filings` at its owner's
+request; `worktree-lane-r-000-zc-candidates` pending a ruling that is not mine; and the two
+remaining R5P lanes pending their own commit-and-STOP confirmation, because a lane that has
+not declared itself finished is not a lane I should merge.
+
+**Next:** Merge the held lanes as they release. Print the census to `to-browser/STATUS.md`.
+
+**Anchors:** `bd9892b0`, `72bb1984`, `2262b15e`, `d27876d3`, `4e707ae0`
+
 ### 2026-09-05 (i) - CC (Opus 5): the second pre-anchor, and what the first one did not reach
 
 **Did:** Closed the first integration cohort -- thirteen merges, each pushed -- tore down
