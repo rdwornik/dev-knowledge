@@ -19,6 +19,33 @@
 
 ---
 
+### 2026-09-06 (c) - CC (Opus 5, INTEGRATOR-2): my erratum pointed at a generated file, and the seat I misattributed it to corrected me
+
+**Did:** Appended ERRATUM 2 to the R5P close packet, correcting ERRATUM 1 - which I wrote hours
+earlier and which named the wrong file.
+
+**Result:** ERRATUM 1 put the `#70` intake collision in `docs/intake/README.md`. That Contents block
+is GENERATED; the collision is in the two sources that each declare `intake-id: 70`. It changes what
+the fix is, so it needed correcting rather than noting. I also misattributed one of the colliding
+docs to the browser-seat-notes lane in a peer message; it was not theirs, and the correction came
+from that seat after it had already declared a clean exit. The full reasoning, the corrected
+attribution, the race-versus-cross-namespace class split and the path-qualified-citation point are
+in **ERRATUM 2** and are deliberately not restated here.
+
+The part that belongs in a journal rather than in the audit: I committed the exact failure I was
+in the middle of documenting for someone else - acting on a locator without resolving it first.
+Verified both frontmatter values against `main` before appending this time.
+
+**Changes:** `docs/audits/2026-09-05-technical-batch-r5p-close-packet.md` (ERRATUM 2 appended,
+nothing above touched); this entry.
+
+**Abandoned:** Nothing.
+
+**Next:** The handoff session's branch - still absent from origin and locally. It is my last merge
+when it arrives.
+
+**Anchors:** `bdbf30f0` (ERRATUM 2, introduced by this arc's merge).
+
 ### 2026-09-06 (b) - CC (Opus 5, INTEGRATOR-2): the erratum shape gets used the day it was written, and a full teardown finally reaches the directory
 
 **Did:** Appended ERRATUM 1 to the now-landed R5P close packet, and tore down the last mergeable
