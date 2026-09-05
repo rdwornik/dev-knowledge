@@ -138,6 +138,36 @@ repos:
         language: system
         files: '^docs/audits/.*\.md$'
         pass_filenames: false
+      - id: doc-counts-pytest-freshness
+        name: Collected-test-count freshness (the pytest_collected claim, at the COMMIT gate)
+        # THE GAP THIS CLOSES. `ecosystem/doc-counts.md` claims a collected-test count, and
+        # `validate_doc_claims` marks that claim `expensive=True` so `reconcile` SKIPS it unless
+        # run_expensive is set. The only caller that sets it is the SHIP tier (`audit.py run` /
+        # ship-gate), so a commit could add or delete tests and land with the claim stale, and
+        # nothing said so until a ship-gate ran -- possibly days and many commits later, by which
+        # point the commit that broke it is no longer the one being looked at. `--gate` (used by
+        # audit-health) skips it by design and is NOT a substitute.
+        #
+        # Witnessed, not hypothetical: the commit adding tests/test_manifest_link_route.py passed
+        # the full commit mesh while making this exact claim stale (4917 -> 4923).
+        #
+        # WHY A HOOK RATHER THAN MOVING check_doc_claims TO TIER_COMMIT. The claim's ground truth
+        # is a `pytest --collect-only` subprocess, MEASURED at 29s on this repo. Paying that on
+        # every commit would fail the tiering rule the ALL_CHECKS comment states on cost. A hook
+        # with a `files:` filter pays it only on commits that can actually change the count, which
+        # is the same shape codemap-freshness uses for the same reason.
+        #
+        # SCOPE IS MEASURED, NOT ASSUMED. The collected count is a function of tests/, conftest.py
+        # and pyproject.toml (testpaths / addopts) only: every `@pytest.mark.parametrize` list in
+        # this suite is a LITERAL, so no source-registry edit changes collection. HONEST LIMIT --
+        # if a future test parametrizes over a source registry (ALL_CHECKS, say), its count would
+        # move without any file here matching, and this hook would stay silent. The ship-tier
+        # `doc_claims` check remains the backstop for that case; it is narrowed, not replaced.
+        entry: uv run --locked python scripts/gen_doc_counts.py --check
+        language: system
+        files: '(^tests/.*\.py$|^conftest\.py$|^pyproject\.toml$|^ecosystem/doc-counts\.md$)'
+        pass_filenames: false
+        # HUB-ONLY.
       - id: organ-index-freshness
         name: Organ index freshness check ([#132]; ecosystem/organ-index.md)
         # Fail-on-stale regen-and-diff, mirroring audit-index-freshness /
