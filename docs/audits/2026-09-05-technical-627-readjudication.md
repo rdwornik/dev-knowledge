@@ -512,4 +512,213 @@ So it is a **version** story, not a flag story. Recorded here with the withdrawa
 than silently replaced, because a re-adjudication that hid its own refuted hypothesis would have
 no standing to report §2 D-E.
 
-<!-- MEASUREMENT SECTIONS 7-9 FILLED FROM RAW ARTIFACTS -->
+## 7. The controlled arms — one variable, and the failure flips clean
+
+§5 established that the ruled bar fails 0/5 at k=3. §6 established that the pack largely passes on
+the same build. Those two facts are only reconcilable if something narrower than "agy is
+unreliable" is going on. These arms find it.
+
+### Arm 3c — the alternative explanation this lane raised against itself, and killed
+
+The seeded corpus of §5 is **deictic AND not a git repository**, while every tree the pack ran
+against is one. That is an uncontrolled difference on exactly the axis in question, so "the corpus
+isn't a repo" was a live explanation for the 0/5 — and a REFUSE resting on this lane's own harness
+defect would repeat the error this whole artifact is about.
+
+Arm 3c controls it: a **byte-identical** copy, `git init`-ed and committed, same ground truth, same
+frozen rubric. `seed_corpus.py` writes both; the only difference is `.git`.
+
+**It made no difference.** `Dirs=[…\corpus-git]` recorded correctly, 468.9 s, and 25 findings — ten
+"internal contradictions" and a long orphan list — **every one of them about the KNX-IoT stack in
+`~/.gemini/antigravity-cli/scratch/repo`**. Spot-verified present there: `util/pt/pt-sem.h`,
+`port/oc_log.c.nxp`, `security/knx-iot-psa-crypto.conf`, `.claude/agents/debug.agent.md`,
+`tools/clang-format.cmake`. Two of the "orphans" it reported are `missing_refs.txt` and
+`check_inc.py` — the files agy itself wrote there during the batch-F run.
+
+**Zero corpus findings. Recall 0/5. The alternative explanation is refuted, and the seeded result
+of §5 stands as a property of the provider, not of this harness.**
+
+### Arms 3a and 3b — the remedy, isolated
+
+| draw | corpus | prompt | `--add-dir` | recall | inventions | outcome |
+|---|---|---|---|---|---|---|
+| SEED-k1 | `corpus` (no `.git`) | deictic | no | **0/5** | all 27 off-corpus | UNSOUND |
+| SEED-k2 | `corpus` (no `.git`) | deictic | no | **0/5** | all 33 off-corpus | UNSOUND |
+| SEED-k3 | `corpus` (no `.git`) | deictic | no | **0/5** | all 29 off-corpus | UNSOUND |
+| SEED-git-k1 | `corpus-git` | deictic | no | **0/5** | all 25 off-corpus | UNSOUND |
+| **SEED-explicit** | `corpus-git` | **absolute path** | no | **5/5** | **0** | **CLEAN** |
+| **SEED-explicit-k2** | `corpus-git` | **absolute path** | no | **5/5** | **0** | **CLEAN** |
+| **SEED-adddir** | `corpus-git` | deictic | **yes** | **5/5** | **0** | **CLEAN** |
+
+**Four draws under the failing condition, three under a remedy, and the split is total** — 0/5
+every time on one side, 5/5 with zero inventions every time on the other. No draw landed in
+between.
+
+Both clean draws found **exactly the five planted defects and nothing else**: the 90-vs-30 day
+retention conflict, the three-vs-two append-only list naming `INCIDENTS.md` as the omission, the
+8080-vs-9090 port conflict, and both orphan notes. Both **avoided both traps** — neither called
+the linked `notes/linked-gamma.md` an orphan, neither claimed the `A.md`/`B.md` prefix sets
+differ. Zero KNX leakage in either.
+
+**One clause of prose, or one flag, moves this provider from 0/5-with-wholesale-invention to
+5/5-clean on a byte-identical corpus.** That is the whole defect, isolated.
+
+### What the arms establish about the mechanism
+
+The failure condition is narrow and now precisely stated: **a bare deictic subject ("this
+repository") with the workspace declared only by the invoking cwd.** Under that condition agy does
+not resolve the workspace the CLI recorded and falls through to a resident foreign checkout. Given
+*either* an explicit path in the prompt *or* `--add-dir`, it binds correctly and performs well.
+
+This also closes out §6's withdrawn hypothesis properly. `--add-dir` **did not** help on 1.1.2x
+(the 2026-08-29 packet's D-2, whose log shows the flag passed and the model wandering) and **does**
+help on 1.1.27. Both statements are true of their own build; neither generalises. The lesson is
+about **version pinning**, and it is the reason the re-open condition below leads with it.
+
+## 8. Raw artifacts — the thing batch-F could not leave behind
+
+Every claim in §5–§7 is re-derivable from files committed beside this artifact. The batch-F lane's
+logs went to a job tmp directory the harness deletes, so its non-reproducibility was structurally
+guaranteed rather than careless; the fix is a repo-local artifacts directory, which this lane
+demonstrates.
+
+`docs/audits/2026-09-05-technical-627-readjudication-artifacts/`:
+
+| file | what it is |
+|---|---|
+| `seed_corpus.py` | the corpus, ground truth in code, answer key written **outside** the corpus; `verify_corpus()` recomputes the orphan set |
+| `SEED_RUBRIC.md` | the scoring bar, frozen at `4cd3a572` before any response was read |
+| `ARM3_NOTE.md` | arm 3's licensing conditions, frozen at `6d474efd` before the arm ran |
+| `VERDICT_RULE.md` | the verdict rule, frozen at `01f1d80f` **before arm 3c existed** |
+| `extract_prompts.py` | re-digests all ten `## ITEM` blocks; **all ten MATCH** the freeze table |
+| `run_agy.py` / `run_adddir.py` / `drive.py` / `drive2.py` | the harness; every invocation saves envelope, log and resolved command |
+| `score_f0.py` | F0 recomputed over the retained logs: **70/70** |
+| `recount_n04.py` / `check_63_65.py` | the mechanical recounts behind §2 D-E |
+
+The raw envelopes and CLI logs themselves live under the job scratch directory named in
+`*.cmd.txt`. **They are deliberately NOT written into
+`~/.gemini/antigravity-cli/scratch/`** — the directory the batch-F report names and never
+audited — because that directory is precisely where the decoy lives, and adding files to it would
+manufacture the next run's contamination. Naming that as a refusal rather than an oversight.
+
+**Quota visibility**, per the ruling's second leg: per-draw `usage` retained for every invocation;
+**zero 429 / `RESOURCE_EXHAUSTED`** across every scored draw in this lane (16 completed with a
+saved envelope: 10 pack, 3 seeded, 1 seeded-git, 2 remedy arms; one further 3c draw was killed by
+system memory pressure before it returned and is discarded unscored, cause named). A7 established
+that
+agy exposes no direct quota query, so the leg is discharged only as far as the transport permits —
+stated, not asserted complete.
+
+## 9. Verdict, re-open condition, and the one question this lane refuses to answer
+
+### VERDICT LINE
+
+> **RATIFY REFUSE.** The batch-F outcome stands. Its reasoning does not, in five verified places,
+> and its evidence is permanently unverifiable. The refusal is **reclassified**: agy is refused
+> the analysis role not as a fabricator but as **not scopable under the invocation shape the
+> admission test uses**. This is a conditional refusal with a demonstrated, two-line remedy, and a
+> re-open condition that today's evidence says would pass.
+
+Reached by the rule frozen at `01f1d80f`, **before arm 3c existed**: *"If D also wanders or scores
+0/5 … the verdict is RATIFY REFUSE, with the claim reclassified."* Arm 3c wandered. The rule is
+applied as written rather than revised after the fact.
+
+**Why not FLIP TO ADMIT**, despite three clean 5/5 draws: an admission is a positive act requiring
+a positive demonstration **under the conditions the ruling names**, and the ruled bar — a seeded
+corpus, deictic subject, as the pack and candidate (d) frame it — fails 0/5 across four draws. That
+a differently-worded prompt passes is grounds to *re-run* the admission, not to grant it. Absence
+of a demonstrated failure under new conditions is not a demonstrated pass under the ruled ones.
+
+**Why not INCONCLUSIVE:** the measurement is not ambiguous. Four draws, one outcome, zero variance,
+alternative explanation tested and refuted by this lane's own arm 3c.
+
+### What the corrected record actually says
+
+```
+batch-F, as written        2 PASS / 5 FAIL "of 8", N2 floating, N1 dropped from the count
+batch-F, corrected         2 PASS / 6 FAIL / 1 UNCALIBRATED = 9        <- worse, not better
+this lane, pack, 1.1.27    7 PASS / 0 FAIL / 1 UNCALIBRATED / 1 INDETERMINATE = 9
+this lane, ruled bar       0/5 recall x4 draws, UNSOUND               <- the verdict rests here
+this lane, remedy arms     5/5 recall, 0 inventions, x3 draws
+```
+
+Correcting batch-F's arithmetic moved it **against** the provider. Correcting its *characterisation*
+moved **for** the provider. Both corrections were made; neither was made selectively.
+
+### RE-OPEN CONDITION — the thing batch-F never named
+
+This refusal re-opens, and a fresh admission run is warranted **without a new operator ruling**,
+when all four hold:
+
+1. **The CLI version is pinned and recorded in the artifact.** Batch-F's cell died because 1.1.22
+   is gone. Any future cell that does not record its build is unverifiable the moment the vendor
+   ships.
+2. **Every invocation declares its workspace** — an absolute path in the prompt, or `--add-dir`, or
+   both. Bare deictic + cwd is the measured failure condition and must not be the shape an
+   admission is judged on.
+3. **Raw artifacts are retained in-repo**, not in a job tmp directory the harness deletes. This
+   lane's artifacts directory is the working pattern.
+4. **The mechanical scope precondition passes**: `usage.input_tokens` within a sane multiple of the
+   workspace's byte count. Free, needs no ground truth, and would have caught every failing draw
+   here and on 2026-08-29 before a single answer was read.
+
+**On today's evidence, a run meeting (1)–(4) would pass** — that is what the three clean arms are.
+The re-open is cheap, and it is specified precisely so nobody has to re-derive it.
+
+**One repair is owed and is not this lane's to make** (READ-ONLY, and it is outside this
+repository): `~/.gemini/antigravity-cli/scratch/repo` should be removed or renamed. It is a clone
+of a public KNX-IoT project, otherwise pristine — verified read-only, its only untracked files are
+the two agy wrote there itself. Removing it eliminates the fall-through target. **Operator's act.**
+
+### The question this lane refuses to answer, and routes
+
+Under a correctly-scoped invocation agy scores 5/5 clean; under the ruled one it scores 0/5. So:
+
+> **May a provider be admitted on its best correctly-operated invocation, or must it be robust to
+> an under-specified prompt a human would plausibly write?**
+
+Both readings are defensible, and they give opposite verdicts. The freeze's own C-7(iii) governs
+exactly this — *"any item whose two plausible readings change a gate outcome is reported
+INDETERMINATE at the cell level and is **not resolved by the reader who noticed it**"* — and ADR-108
+§A makes it a **functional** question, which is the **operator's** to rule, not the architect's and
+not this seat's.
+
+The evidence that decides it is already in this artifact. If the answer is *"best correctly-operated
+invocation"*, then (1)–(4) above plus a k≥3 rerun converts this refusal to an admission, and on the
+three clean draws it very likely would. If the answer is *"must be robust"*, this refusal is
+permanent for the analysis role until the vendor binds `workspaceDirs`, and no fleet-side convention
+rescues it — **because the failure is silent**: draw SEED-k2 substituted the corpus and disclosed
+nothing, producing a fluent report citing a methodology it did not run on a repository nobody asked
+about. That silence is the strongest argument on the "must be robust" side, and it is why this lane
+does not quietly resolve the question in the provider's favour.
+
+### What this lane did NOT do
+
+- Did not edit `ecosystem/routing-table.yaml` or `ecosystem/provider-registry.yaml`, or change
+  `[#627]`'s status. The row stays **open**; this artifact discharges a re-adjudication, not the
+  two births A7 FINDING A names.
+- Did not run on the `sol` CLI the adversarial route names — **it resolves to no binary** (§1). The
+  route is inert; that is reported, not repaired.
+- Did not write into `~/.gemini/antigravity-cli/scratch/`, and did not remove the decoy, though
+  both were tempting. Mutating the operator's disk is outside a READ-ONLY contract, and writing
+  artifacts into the very directory that causes the contamination would have manufactured the next
+  run's defect.
+- Did not add a JOURNAL entry — lane convention is that the integrator anchors, confirmed by
+  explicit ruling from the integrator holding main this window. **The anchor is owed and surfaced,
+  not forgotten.**
+- Did not re-author or "fix" the item pack's drifted ground truth (N-04's premise is false at this
+  head: the orphan set is five, not one). Disclosed, per Q10.
+- Did not resolve the functional question above.
+
+### Honest residue
+
+- **The pack arm is not a reproduction.** It cannot be. Batch-F's binary is gone.
+- **F1/N5 remain undischargeable as frozen** on this transport — Φ_analysis demands
+  trajectory-inclusive scoring; the envelope reports `num_turns: 1` and the log records no tool
+  calls. True for batch-F too, and neither run could have done better.
+- **The remedy arms are k=2 (explicit path) and k=1 (`--add-dir`)**, below SDA-1 C-4's k=3 floor.
+  They are strong enough to specify a re-open condition and **not** strong enough to carry an
+  admission. Stated rather than rounded up.
+- **This lane's first seeded corpus was confounded** (non-git). Caught by this lane, controlled by
+  arm 3c, and the confound turned out not to matter — but it was a real defect in my own harness
+  and it is recorded as one.
