@@ -229,28 +229,58 @@ record is that the aggregate is unknown at `8f5bcda2` and this packet does not a
 
 ## 6. Health at close — attributed, not totalled
 
-`health: OK`, **0 hard-fail**. The 40 WARNs are not this batch's and are not summed into a verdict:
+`health: OK`, **0 hard-fail**. The 40 WARNs are not this batch's and are not summed into a verdict.
+Measured at `8f5bcda2`, counted as WARN **LINES** per check:
 
-- **22 are `consumer_at_landing`**, the largest group, and they are a MECHANISM fact rather than
-  incomplete work. `consumer_at_landing` asks whether a *governance POOL* file cites an artifact,
-  and `docs/audits/` is not in `POOL_DIRS`. **Three of those 22 are this batch's own artifacts** —
-  the manifest, L4's close and L5's verification. **This packet cites all three by path, and that
-  will NOT clear their WARN**, because a citation from `docs/audits/` is invisible to the check by
-  construction. Predicting otherwise would be the error; the ruling that check needs is already
-  before the operator.
-- **8 are `canonical_freshness`** (1 gated-and-stale — `CLAUDE.md`; 4 ungated-and-stale; 8
-  unstamped, the groups overlapping), untouched by this batch.
-- **7 are `doc_rot` history-accretion**, five of them named BACKLOG rows plus row-length and a
-  grooming cadence 38 d against a 21 d cadence. Calendar-driven and pre-existing.
-- **1 is `journal_spine_anchor`** — *"anchored by mention, not by record"* for `3a2391f`. This is
-  the WARN leg, **not** the hard-fail leg; it does not block.
-- **1 is `adr_status_grammar`**, at its declared baseline.
+    25  consumer_at_landing
+     7  doc_rot
+     3  no_ff_merges
+     3  canonical_freshness
+     1  journal_spine_anchor
+     1  adr_status_grammar
+    --
+    40
 
-**One prediction, flagged for the integrator to VERIFY at merge rather than trusted here.** The
-suite's `test_batch_manifest` was failing on H0-PREP's name at the R5P close. Landing this packet
-closes H0-PREP, so that test *may* clear — but this packet does not claim it. Verify on the merged
-result; if it clears, the R5P attribution was right, and if it does not, the cause was never the
-open batch.
+- **25 `consumer_at_landing`** — the largest group, and a MECHANISM fact rather than incomplete
+  work: the check asks whether a *governance POOL* surface cites an artifact, and `docs/audits/` is
+  excluded as a citer. **Three of the 25 are this batch's own artifacts** — the manifest, L4's close
+  and L5's verification. **This packet's citations of them SHOULD clear those three**, and the
+  mechanism is specific rather than hopeful: the operator ruling of 2026-09-05 opened a narrow
+  carve-out in that exclusion, and `scripts/consumer_at_landing.py` states its own scope —
+  *"Only files matching `batch_manifest.MANIFEST_GLOB` (and each one's `closed_by:` target) become
+  citers; the rest of `docs/audits/` stays excluded."* `batch_manifest.manifest_links` appends a
+  resolvable `closed_by:` target's own text as a second citing surface. **This packet is the H0
+  manifest's `closed_by:` target**, so its citations are load-bearing, not incidental.
+  **Flagged for verification at merge, not asserted:** confirm the three clear on the merged result.
+- **7 `doc_rot` history-accretion** — five named BACKLOG rows plus row-length and a grooming cadence
+  38 d against a 21 d cadence. Calendar-driven and pre-existing.
+- **3 `no_ff_merges`** — `533109f20`, `3a894eeb5`, `d0f9ead67`, all **June 2026**. They predate
+  every commit in this batch by months, so they were present at the batch's branch point too.
+- **3 `canonical_freshness`** — three WARN LINES, each carrying its own file count
+  (gated-and-stale 1, `CLAUDE.md`; ungated-and-stale 4; ungated-and-unstamped 8). Untouched by this
+  batch. **The line count is 3; the 8 is a file count living inside one line** — see the correction
+  note below, because this packet got that wrong once.
+- **1 `journal_spine_anchor`** — *"anchored by mention, not by record"* for `3a2391f`. The WARN leg,
+  **not** the hard-fail leg; it does not block.
+- **1 `adr_status_grammar`**, at its declared baseline.
+
+> **CORRECTION, made before this file landed and recorded rather than silently fixed.** An earlier
+> draft of this section reported the breakdown as `22 + 8 + 7 + 1 + 1 = 39`, omitted `no_ff_merges`
+> entirely, and inverted the `consumer_at_landing` prediction above. Both defects were caught by
+> INTEGRATOR-2 in pre-merge review and verified here against code and a fresh run before amending.
+> **The root cause is worth more than the corrected numbers:** the original tally was taken with
+> `grep` over `audit.py health` output containing non-UTF-8 bytes, so grep classified the stream as
+> **binary, printed `Binary file … matches`, and truncated** — the three `no_ff_merges` lines were
+> never in the listing being counted, and `consumer_at_landing` was inferred by subtraction rather
+> than counted. `LC_ALL=C grep -a` counts the same file correctly. `main` did not move between the
+> two runs, so **none of this difference is drift; it was a measurement defect in this packet.**
+> A count is only as good as the reader that produced it, and a truncation notice is easy to read
+> past when it appears below the numbers you were looking for.
+
+**A second prediction, also for the integrator to VERIFY rather than trusted here.** The suite's
+`test_batch_manifest` was failing on H0-PREP's name at the R5P close. Landing this packet closes
+H0-PREP, so that test *may* clear — this packet does not claim it. If it clears, the R5P attribution
+was right; if it does not, the cause was never the open batch.
 
 ---
 
@@ -285,7 +315,9 @@ reader resolving the title alone misreads a live P1. **Owes intake. Not a row.**
 - **It does not claim `[#528]`, `[#66]` or `[#634]` advanced to closure.** Rows closed is 0 (§1).
 - **It does not claim a suite aggregate** at this HEAD (§5).
 - **It does not claim `logs/prompts/` is witnessed end-to-end** (§2, L4).
-- **It does not claim the `consumer_at_landing` WARNs on its own artifacts will clear** (§6).
+- **It does not CLAIM that the three `consumer_at_landing` WARNs on its own artifacts clear — it
+  EXPECTS them to, names the mechanism that would do it, and asks the integrator to verify** (§6).
+  An earlier draft predicted the opposite; that inversion is recorded there rather than erased.
 - **It does not rule on the v1.5.0 tag.** Three live enumerations of that gate disagree, and the
   operator declares it on the checklist, not a seat.
 - **It does not rule whether closing this batch without an operator instruction was correct.** It
