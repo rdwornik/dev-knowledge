@@ -32,6 +32,25 @@ Two consequences a seat can act on directly:
 - **A file arriving twice arrives as `<name> (1).md`.** The suffixed copy is the newer one, and
   the un-suffixed one is stale — a seat that reads only the plain name reads the previous window.
 
+**Proposed constant — candidate (m), filed not ratified.** The live transport is a synced Google
+Drive folder; Downloads is its fallback, not its home. The heading above still names Downloads and
+is corrected when this text is ratified:
+
+    prompts dir : $env:CLAUDE_PROMPTS_DIR = "H:\My Drive\CLAUDE PROMPT DIR" — the Drive folder
+                  "CLAUDE PROMPT DIR" at Drive root, synced by Google Drive for Desktop
+    to-cc\      : browser to CC. Contracts, pastes, ARCHITECT-INBOX-<date>-<NNN>.md
+    to-browser\ : CC to browser. Delivered artifacts (plain copies, same filename), packets,
+                  sheets, PASTE_THIS, and inbox copies carrying a DONE <sha> line per item
+    read rule   : the prompts directory FIRST; if the file is not there, ~\Downloads and its
+                  to-cc\ / to-browser\ — the fallback is per FILE, never per variable
+    source      : generated copies only. The repo stays the single source; a file in
+                  to-browser\ is a copy of a repo path at a SHA, never an authority
+
+A seat that inherits `CLAUDE_PROMPTS_DIR` from a shell predating the setting resolves it to
+Downloads, finds `to-cc\` present but EMPTY, and reads that as "nothing filed" rather than as a
+misresolved variable. The directory existing is what makes the failure silent, so the resolved
+path is worth printing once at session start.
+
 ## 2. Inline chat paste of large content arrives empty — so uploads are `.md` files
 
 Pasting a large body of text into the browser chat inline is unreliable: it can arrive truncated,

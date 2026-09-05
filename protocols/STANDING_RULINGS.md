@@ -3415,9 +3415,10 @@ tests to declare their files present, rather than weakening the Z-G4 FAIL.
 Filed from the architect's outgoing-seat note of 2026-09-02 (step B), landed after G3b merged and
 before the close packet. **Z-C shape: these are CANDIDATEs, not rows.** ADR-111 admits exactly one
 path — CANDIDATE, then ADR-98 intake, then ratification — so nothing here draws from the ledger and
-nothing here is a commitment. The lettering runs (a)–(g), (i), (j), (k): **there is no (h)**, and its
-absence is deliberate rather than a lost entry — the note's amendment added (f) and (g), a later
-message added (i), and (h) was never filed by anyone.
+nothing here is a commitment. The lettering runs (a)–(g), (i), (j), (k), (m): **there is no (h)**
+and **no (l)**, and both absences are deliberate rather than lost entries — the note's amendment
+added (f) and (g), a later message added (i), (h) was never filed by anyone, and (m) arrived from
+the 2026-09-05 architect inbox (item 001-B) with (l) likewise never filed by anyone.
 
 **(a) README as a human front door.** What-it-is, then quickstart, then a link map; governance prose
 relocated and consumers re-pointed. The note files it as NEW and marks the reason it is not merely a
@@ -3483,6 +3484,28 @@ later day queues behind the collision. The guard is right; the naming grammar gu
 collision it guards against. Resolution is a naming decision (run-scoped suffix, or an
 archive-side merge rule), and it is the operator's, so nothing was deleted.
 
+
+**(m) DRIVE AS TRANSPORT — the prompts directory is a synced Drive folder, not Downloads**
+*(architect inbox 2026-09-05, item 001-B)*. The operator's file exchange runs through a Drive
+folder named `CLAUDE PROMPT DIR` at Drive root, holding two directories: `to-cc/` (browser → CC —
+contracts, pastes, `ARCHITECT-INBOX-<date>-<NNN>.md`) and `to-browser/` (CC → browser — delivered
+packets, sheets, `PASTE_THIS`, and inbox copies carrying a `DONE <sha>` line per item). It is
+synced to this machine by Google Drive for Desktop at `H:\My Drive\CLAUDE PROMPT DIR`, and
+`$env:CLAUDE_PROMPTS_DIR` points at it. Downloads remains the documented fallback, resolved per
+FILE rather than per variable. Everything written to `to-browser/` is a GENERATED copy: the repo
+stays the single source, and a copy there is a copy, never an authority.
+
+Evidence, witnessed while executing 001-A rather than reasoned about: a session booted with a
+`CLAUDE_PROMPTS_DIR` inherited from a shell that predates the setting, resolved it to Downloads,
+found `to-cc/` and `to-browser/` present but empty, and reported the whole inbox missing. The
+failure mode is silent because the fallback path EXISTS — an absent directory would have raised;
+an empty one read as "no work filed". That is the cost this candidate exists to remove, and it is
+why the constant belongs in a file a seat reads at boot rather than in a session's memory.
+
+The proposed constant text is added to `protocols/OPERATOR-INTERFACE.md` §1 by the same commit.
+Its FINAL wording is not this entry's: the 2026-09-05 inbox item 005-A supersedes it with a fuller
+constant (copy-header line, session-start echo, inbox naming grammar). This entry is the candidate;
+§1 carries the text; 005-A replaces the text without disturbing the candidate.
 ## Editing note (read before adding an entry)
 
 This file sits inside the silent-rule ratchet corpus (`protocols/*.md`; detector
