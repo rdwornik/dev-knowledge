@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "165fa77769132aabed6f209c34ebf69ae68f5cb19c82c6cd501058fe6b013356",
+  "generated_sha256": "95308fa1889c0d97e8e10718b14c7bb989c69d98490408243a7ce1dba57ee3a2",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -1059,6 +1059,10 @@
     {
       "task": 632,
       "file": "632-codespace-is-admitted-for-transport-and-unstable-for-inference.md"
+    },
+    {
+      "task": 634,
+      "file": "634-dispatch-run-accepts-github-token-as-the-anthropic-check.md"
     },
     {
       "prose": "### [S19] Decide the undecided artifact/tool models"

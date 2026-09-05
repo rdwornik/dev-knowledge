@@ -21,7 +21,7 @@
 
 ### 2026-09-05 (a) - CC (Opus 5): four consented rulings, and a commit that landed on main while the gate that forbids it correctly said no
 
-**Anchors:** `7e7402d5`, `7b3ba003`
+**Anchors:** `7e7402d5`, `7b3ba003`, `7f75033b`
 
 **Did:** executed the operator's curated-baseline rulings - the eight PLAYBOOK ESSENTIALS
 route-mentions, the 632 merge-and-teardown, the batch-G WARN attribution, and the doc-counts
