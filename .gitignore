@@ -168,3 +168,11 @@ temp/
 # mid-run risks the harness's own idle-based fuse misreading file-growth and killing a live
 # session. Ignoring them is therefore the safe disposition, not merely the tidy one.
 /LANE-*.md
+
+# DISPATCH TRACE STREAM (Lane h0, `LANE-h0-trace.md`; `scripts/trace_writer.py`) -- one
+# readable file per dispatch under logs/prompts/, reusing receipt.json's own fields rather
+# than inventing a new format. Never committed: same ephemeral-organ-output pattern as
+# logs/FLEET-HEALTH.md above -- a local artifact `fleet_health.py` counts, not a durable
+# record. Not anchored to root: the home is `logs/prompts/` by convention, not a bare
+# top-level name a hermetization rule needs to disambiguate.
+logs/prompts/

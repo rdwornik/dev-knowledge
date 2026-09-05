@@ -641,6 +641,19 @@ def count_review_pending(audits_dir: Path):
     return n
 
 
+def count_traces_today(logs_dir: Path, today: date) -> int | None:
+    """Dispatch trace files under logs/prompts/ stamped with today's date, or None if
+    the directory exists but is unreadable (the `_scan_md` absent-vs-unreadable split).
+
+    Lane h0's `scripts/trace_writer.py` names each trace `<date>-<lane>.md`, so a
+    prefix match on today's ISO date counts today's dispatches without opening any
+    file. An absent `logs/prompts/` (no dispatch has run yet today, or ever) is a
+    measured 0 -- there is nothing wrong with a fresh clone that has not dispatched.
+    """
+    candidates = _scan_md(logs_dir / "prompts", prefix=today.isoformat())
+    return None if candidates is None else len(candidates)
+
+
 def count_backlog_by_priority(backlog_text: str) -> dict:
     """{P1,P2,P3: n} open BACKLOG rows per priority band. Trend, not alarm."""
     found = _BACKLOG_PRIORITY_RE.findall(backlog_text)
@@ -1158,6 +1171,11 @@ def main() -> int:
         funnel = funnel_health_line(_REPO_ROOT)
         if funnel:
             print(funnel)
+        # Lane h0's dispatch-trace count -- unthrottled and fail-soft, same shape as the
+        # groom escalation below: one cheap scandir call, never a gate.
+        traces = count_traces_today(_LOGS_DIR, today)
+        if traces is not None:
+            print(f"[traces] {traces} today")
         stale = is_stale(_HEALTH_FILE)
         if stale and not siblings_available(_ECOSYSTEM_DIR, _REPO_ROOT):
             # Isolated / cloud clone: sibling repos are absent. Skip the
