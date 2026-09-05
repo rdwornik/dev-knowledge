@@ -610,3 +610,87 @@ resolve. A7 named the speaker but supplied no locator because none exists to sup
 provenance the record cannot yet support, and says so rather than implying otherwise. A
 binding ruling living only in chat is a governance gap, not a defect of this file, and closing
 it is not this lane's to do.
+
+---
+
+## AMENDMENT 9 — OPERATOR RULING: no classification; #22 is carrier-absent (2026-09-05)
+
+> Same shape as 1-8; the body and every prior marker are untouched. The verbatim body is
+> still the contiguous region from `# BROWSER SEAT NOTES` to the blank line preceding
+> AMENDMENT 1's `---` rule, still
+> `sha256 685633c33c49c7d37de5dba70f3162d4d1841a98b12896ee8d28ee465f06b196`.
+
+**Ruled by the architect (operator), 2026-09-05.** This marker records that ruling; it does not
+make it, and it endorses neither of the classifications the earlier markers argued.
+
+### 1. AMENDMENTS 4 and 5 are SUPERSEDED IN FULL
+
+Both, entirely — subsuming AMENDMENT 6 §1's partial supersession of A4 §2. Nothing in A4 or A5
+is relied on below.
+
+### 2. The finding, stated factually
+
+> **#22 — the lane names violated the lane-name grammar, and the grammar has no carrier.**
+
+- `validate_branch_naming` is **wired into no gate**: it appears in neither
+  `.pre-commit-config.yaml`, nor `.claude/settings.json`, nor `scripts/audit.py` (verified by
+  grep against those three surfaces).
+- **`claude --worktree` bypasses the checker.** `scripts/batch_manifest.py:61-63` records the
+  posture in the repo's own words: *"The grammar is enforced NOWHERE AT PROVISIONING.
+  `validate_branch_naming` is read-only and wired into no gate (its own posture note), and a
+  batch lane dispatched straight through `claude --worktree <name>` never passes `/lane-boot`
+  step 1."*
+
+**Scope note, so this marker does not contradict AMENDMENT 6 §6.** The two statements agree once
+the entry point is named: nothing refuses **at provisioning**, which is where #22 happened, while
+the one strict refusal that exists — `gen_lane_contract.validate_slug(strict=True)`, reached only
+on the generator's **emit** path — could never have fired on hand-written brief text. The live
+`lane-contract-check` hook's parse path passes `strict=False` by design.
+
+### 3. Disposition
+
+**The class question is WITHDRAWN.** Neither A nor G is endorsed here. The finding is recorded as
+**carrier-absent** and is **folded into the roles-without-carrier intake** — architect inbox item
+**008-A**, carried by **intake #70**, `docs/intake/2026-09-05-tech-session-roles-with-a-carrier.md`
+(note: *008* is an architect-inbox item number, not an intake id; the two sequences differ).
+
+**Nothing is triaged by this lane**, no backlog row is born from this marker, and the status of
+defect **#25** — filed under the superseded reading — is **not** decided here.
+
+---
+
+## AMENDMENT 10 — the ruling extended to E-25, A6 §2 and §4 superseded, and the E-NN notation
+
+*Architect ruling, 2026-09-05 evening. Written by the integrator because the authoring lane
+had exited; it RECORDS the ruling and argues nothing.*
+
+**Supersession, stated once and precisely — THIS marker is the superseding instrument.**
+AMENDMENT 6 **§2 ("The ruling")**, **§4 ("The new defect")** and **§8 ("The symmetry, which is
+the actual evidence for G")** are **superseded by AMENDMENT 10**, not by AMENDMENT 9.
+AMENDMENT 9 is limited to what it actually did: withdraw the class question for E-22. It could
+not reach §4 or §8, because both concern E-25 and the ruling extending the withdrawal to E-25
+post-dates it — a marker cannot supersede a disposition it did not yet cover. §2 ruled E-22 as
+class A, §4 filed E-25 as class G, and §8 argued the evidence FOR G. All three classificatory
+conclusions are withdrawn here.
+
+**§8's observation survives; only its conclusion is withdrawn.** That *"code exists" reads as
+"rule enforced" by default* is a factual finding and it stands. It is simply no longer evidence
+*for a class*, because there is no longer a class question for it to be evidence for.
+
+**The withdrawal covers BOTH defects.** The class question is withdrawn for **E-22 and E-25**.
+Neither A nor G is endorsed for either. AMENDMENT 9's scope was E-22 alone, which left E-25
+under A6 §4's classification — live, not yet superseded, until this marker withdraws it; the
+ruling is now extended to close that loop.
+
+**E-25's disposition:** it remains a **factual entry with NO class**, status **OPEN**, carried
+under the roles-without-carrier intake (`docs/intake/2026-09-05-tech-session-roles-with-a-carrier.md`,
+intake #70). No backlog row is born from it, and nothing here triages it — the only route to a
+row remains CANDIDATE → intake (ADR-98) → ratification (ADR-111).
+
+**Notation, from this line forward:** the **defect register** is written **`E-NN`** (E-22,
+E-25) and **intakes** keep **`#NN`** (#70). The two sequences had collided: "#25" resolved
+BOTH to intake #25 (2026-08-05, an unrelated artifact) and to this register's twenty-fifth
+defect, so a reader resolving the locator landed on the wrong document and got a false
+confirmation. Two separate lanes hit it independently on 2026-09-05. Existing immutable text
+is **not** rewritten; the notation binds new register lines only, and this marker is the
+statement of it.
