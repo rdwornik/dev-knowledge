@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "95308fa1889c0d97e8e10718b14c7bb989c69d98490408243a7ce1dba57ee3a2",
+  "generated_sha256": "73ea4e54f30052d006be0614750aea9dd7ad059425f5dd79bce0c7684e596958",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -221,6 +221,10 @@
     {
       "task": 573,
       "file": "573-lychee-zero-baseline-md-link-gate.md"
+    },
+    {
+      "task": 635,
+      "file": "635-sessionstart-refuses-a-non-integrator-session-on-the-primary.md"
     },
     {
       "prose": ""
@@ -984,6 +988,10 @@
     {
       "task": 574,
       "file": "574-batch-manifest-emitted-by-gen-lane-contract.md"
+    },
+    {
+      "task": 636,
+      "file": "636-window-metrics-gains-a-ten-line-scorecard.md"
     },
     {
       "prose": ""
