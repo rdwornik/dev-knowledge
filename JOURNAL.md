@@ -19,6 +19,199 @@
 
 ---
 
+### 2026-09-05 (d) - CC (Opus 5): the manifest already knew, and the scalar the ruling named moves on the clock
+
+**Anchors:** `1d192245`, `73bf4272`, `6de676fb`, `1d96e0de`, `3200757d`, `ca0a2a2f`
+
+> **Integrator anchor-drain.** The last four are MERGE commits on main's first-parent
+> spine that carried no `Anchors:` record line and were hard-failing
+> `journal_spine_anchor` — a PRE-COMMIT organ, so they were blocking commits in every
+> worktree provisioned after the gap, not just on main. `ca0a2a2f` is my own merge and
+> made the count four. Anchoring another session's merges is the integrator's act, which
+> is why they land here rather than in the lanes that produced them.
+>
+> **The residual is structural, not an oversight.** The merge that carries THIS entry
+> cannot anchor its own SHA — the SHA does not exist until the merge is made. That is the
+> [#623] single-commit/merge-anchor deadlock. Expect the organ to name exactly one merge
+> after this lands rather than zero; it is discharged by the next entry, and the queue
+> only grows if entries stop being written.
+
+**Did:** built the manifest-link hotfix as INTEGRATOR-2 - an audit artifact linked from a batch
+manifest (via `closed_by:`, as a lane packet, or as a close packet) now counts as DISPOSITIONED
+for `funnel_coverage` and CITED for `consumer_at_landing`.
+
+**THE RECORD EXISTED AND NOTHING READ IT.** Every batch-G lane artifact was raising two WARNs
+apiece while being fully enumerated by the batch's own gate-readable manifest - the file
+`scripts/batch_manifest.py` already parses at the ADR-110 exemption gate. Library-first: manifest
+discovery, frontmatter parsing and the lane-slug grammar all already lived there, so
+`manifest_links()` / `links_artifact()` went there and neither detector re-derives any of it. The
+manifest AND the packet it names via `closed_by:` are both scanned, because a manifest is never
+named by itself and scanning manifests alone would orphan every manifest inside its own batch.
+
+**Result:** funnel_coverage 32 -> 12 WARNs, consumer_at_landing 16 -> 5, on the corpus at
+3200757d. The route admits 86 of 875 artifacts, which is the discrimination number and is reported
+rather than left implicit. 17 of the 19 named findings discharged, over 9 of the 10 named files.
+
+**THE TENTH FILE IS NOT DISCHARGED, AND WIDENING WAS AVAILABLE AND REFUSED.**
+`2026-09-02-technical-lane-g-626-terra-tally.md` still raises both organs, because batch G's
+manifest declares lane G4 as `lane-g-626-executing-copies` while the artifact is named
+`lane-g-626-terra-tally` - same lane, different tail. Relaxing the match to the bare lane id
+`lane-g-626` would have closed it and made the acceptance number come out at 19/19. That is
+fitting the mechanism to the target, and it would also have papered over exactly the divergence
+`RULE_MANIFEST_CONTRACT_SLUG_AGREEMENT` exists to catch. Left raising, remedy filed for the
+architect: a ledger disposition row naming it, with the term being a judgment the integrator
+should not invent.
+
+**DETECTOR_ID DELIBERATELY NOT BUMPED, and the reasoning is recorded beside the constant.** The id
+makes the ratchet refuse to compare across a predicate revision, which is correct when a revision
+can move an artifact either way. This one is strictly MONOTONE - it only adds a coverage route, so
+`uncovered` can only shrink, no name enters the baseline, and every name leaving surfaces as
+ratchet-down headroom. Bumping would have replaced 32 by-name regressions with a single "not
+commensurable" WARN: the leg switched OFF while appearing to satisfy the criterion, which is the
+precise failure the id was introduced to prevent. `test_manifest_link_route_is_monotone` pins the
+property rather than leaving it as a claim in a comment.
+
+**THE CRITERION THE RULING NAMED CANNOT BE MET BY A FIX, AND NOW HAS THREE WITNESSES.** The
+instruction's acceptance was "133 -> <= 123" on the `audit.py ship-gate` headline. That scalar
+carries 74-75 calendar-driven `doc_rot` lines. Readings taken this window: 133 at `6de676fb`; 134
+at `3200757d`; and **136 at `3200757d` again, ~40 minutes later, with the tree byte-identical and
+both acceptance organs flat at 32 and 16**. The third is the decisive one - same SHA, same tree,
++2 from the clock alone. The architect amended the criterion to the 19 named findings before this
+was measured; the measurement confirms the amendment was necessary rather than cautious.
+Headline is reported, never the criterion.
+
+**Abandoned:** a first commit attempt carrying `-c core.hooksPath=.git/hooks`. In a worktree
+`.git` is a FILE, so that path does not exist and the entire hook mesh silently did not run -
+`git commit` reported success having run no gate at all. Caught by noticing the absence of hook
+output, reset, and recommitted with the mesh armed. The relic-hooksPath failure mode is recorded;
+this is the same class reached by a different route, and the tell is silence rather than an error.
+
+**Also:** the real blocker on the honest commit was `[!!] repos registered (none)` - untracked,
+gitignored `ecosystem/*/state.yaml` absent from a fresh worktree. A concurrent session read the
+same DEGRADED as an unanchored-spine failure and was about to take a declared `SKIP=audit-health`
+for it; corrected with the evidence that `journal_spine_anchor` printed `[OK]` in that very run
+and the hard-fail sat in the `operational:` block. A bypass justified by a wrong diagnosis leaves
+a false record in the log, which is worse than the bypass.
+
+**Changes:** `scripts/batch_manifest.py`, `scripts/funnel_coverage.py`,
+`scripts/consumer_at_landing.py`, `tests/test_manifest_link_route.py` (new),
+`tests/test_funnel_coverage.py` (partition restated over the UNION of covered classes - they are
+now overlappable and a sum double-counts).
+
+**Next:** the `check_doc_claims` tiering hotfix; then the arrivals queue - R5 disposition sheet,
+funnel groom, AJ gap analysis, #627 re-adjudication, H0-prep L5 -> L4 -> L3.
+
+### 2026-09-05 (c) - CC (Opus 5): the correction entry - my own C1 framing was the overclaim, and B6 says you fix that by appending
+
+**Anchors:** `780297df`, `32b51fed`
+
+**Did:** took a pre-merge HIGH from INTEGRATOR-2 (raised by `gpt-5.6-terra`, reached independently
+by the integrator) against C1's framing in the corpus-coherence audit, verified it against ADR-29
+myself, and adopted it. Amended the audit by marker; this entry corrects the (b) entry.
+
+**THE OVERCLAIM WAS MINE, NOT THE READER'S.** Gemini reported C1 plainly. The "atomic set covered
+four surfaces and missed the fifth" framing was **my** amplification during verification - the
+thing I described in (b) as the reader under-rating its own find. `ADR-29:122` enumerates
+CLAUDE.md, ARCHITECTURE.md and ESSENTIALS/PLAYBOOK. **`LESSONS.md` is not in that list**, so no
+enumerated item was missed and every one of them landed. Withdrawn at all three sites by the §9
+amendment marker. Worth naming exactly: verification caught the reader's error in N1 and then
+introduced one of its own in C1, and only a third pass caught that.
+
+**I DECLINED HALF THE REVIEW, AND THE INTEGRATOR HAD ALREADY FLAGGED THE SAME HALF.** Terra leaned
+on `:126`'s "LESSONS.md content stays unmoved" as licensing the gap. Read in context - "(241 < 300;
+the archival move is [#339]'s build leg...)" - that clause governs **relocating a block of
+entries**, not the header's wording. The amendment says so explicitly rather than quietly not using
+it, because an unstated non-adoption looks like an oversight later.
+
+**THE FINDING GOT SHARPER, NOT WEAKER.** `:122` carries a purpose clause - carry the exception into
+"the canonical instructions that currently imply entries never leave the file, so a
+post-ratification operator is not told the sanctioned move is forbidden". `LESSONS.md:5` is such an
+instruction and is the first one a reader of that file meets. So the real defect is a **closed
+enumeration that does not reach its own stated purpose** - a drafting hazard in the FORM of
+reconciliation sets, not a lapse by whoever executed this one. Filed as a fifth owed follow-up.
+
+**WHY THIS IS A NEW ENTRY AND NOT AN EDIT.** The integrator asked me to re-word (b). `STANDING_RULINGS.md:237`
+(B6, architect ruling 2026-08-07) says in-place amendment of an already-committed JOURNAL entry
+"sits outside the sanctioned shapes"; (b) landed at `32b51fed`. Same reasoning for the audit -
+CLAUDE.md §5 rule 3 makes audits immutable and offers the in-file amendment marker as the
+sanctioned alternative, so C1's original prose stands and §9 supersedes it. Both deviations from
+the requested shape were reported back rather than made silently.
+
+**Result:** C1 stays CONFIRMED, re-characterised from execution-miss to drafting-under-coverage.
+Owed follow-up #1 unchanged in substance; a fifth added. `780297df`'s commit message still
+carries the withdrawn framing - history is not rewritten, and §9 records that it is superseded.
+
+**Changes:** the audit gains §9 + a marker under C1; this entry. No corpus file touched.
+
+**Next:** integrator re-verifies and merges. Follow-ups still owed, still unexecuted.
+
+### 2026-09-05 (b) - CC (Opus 5): a non-Claude reader fabricated nothing, and verification still overturned a quarter of what it said
+
+**Anchors:** `780297df`
+
+**Did:** ran corpus-coherence candidate (g) - one structured, retrieval-only question to Gemini
+3.1 Pro (High) via the `agy` CLI over 2,438,199 B of corpus (CLAUDE.md, AGENTS.md, README.md,
+ARCHITECTURE.md, `protocols/**`, 89 ADRs, LESSONS.md), then re-opened every returned locator on
+disk. Read-only: no corpus file was modified, and `git diff main HEAD` is exactly the one audit.
+
+**ZERO FABRICATIONS, AND THAT IS THE LESS INTERESTING HALF.** Four findings, six locators, all six
+EXACT against the file at the stated 1-indexed line. The prompt made verbatim line-text mandatory
+and told the reader a mismatch would be *counted* as a fabrication; that constraint is doing real
+work and should survive into any re-run. But locator-exactness is not claim-correctness, and
+re-testing the substance moved two of the four: C1 and D1 came out STRONGER than the reader framed
+them, and N1 did not survive at all.
+
+**THE READER'S BEST FINDING WAS BETTER THAN IT KNEW.** ADR-29's 2026-07-17 amendment (`:122`)
+declared a cross-doc reconciliation set explicitly *atomic with ratification*, and `:126` records
+it ratified. Four surfaces landed - `CLAUDE.md:89`, `ARCHITECTURE.md:322-325` and `:957`,
+`PLAYBOOK.md:5347`, the ADR index. The fifth did not: `LESSONS.md:5` still reads "Never delete.",
+which is the file the rule actually governs. Not a timing miss either - `LESSONS.md:6` stamps
+"Last updated: 2026-08-03", so the file was edited after ratification and the stale header
+survived the edit. An operator reading the file's own header is told the sanctioned move is
+forbidden, which is the precise outcome `:122` was written to prevent.
+
+**A DUPLICATION FINDING WAS REALLY A CONTRADICTION.** `CLAUDE.md:63` and `AGENTS.md:69` both carry
+never-commit-to-`main` + `--no-ff`, and `CLAUDE.md:41` asserts of exactly these two files that "No
+fact is duplicated across the two". `CLAUDE.md` imports `AGENTS.md` at `:43`, so both clauses load
+into one context. The duplication falsifies an invariant stated 22 lines above it.
+
+**THE ONE FALSE POSITIVE WAS CAUSED BY A GLOB.** ADR-83 was reported as cited by nothing; it has
+214 inbound references, including `docs/decisions/README.md:117`, the canonical ADR index. The
+reader's own stated grep scoped to `docs/decisions/ADR-*.md`, which excludes that index. Locator
+held, so not a fabrication - a false positive, and a lesson that category (4) needs the citation
+surface named rather than a glob.
+
+**THE DEFECT THE READER DID NOT REPORT WAS ITS OWN PROVENANCE.** It cited greps as evidence
+("grep -i 'wip' scripts/* tests/*"). The CLI log records 10 auto-approved tool confirmations - 9
+`ListDir`, 1 `ViewFile`, zero `GrepSearch`. The log does not record paths, so this is not proof
+that no search ran by another route, but no evidence of those greps exists and they should be read
+as intent, not as executed commands. Its coverage note ("opened and checked all 108 files") is an
+overclaim on arithmetic alone: 383,742 input tokens against a ~610k-token corpus. Precision was
+excellent; recall and self-report were not. **Forward rule for this lane: re-test every NEGATIVE
+claim independently.** U1 survived that re-search; N1 died in it.
+
+**A SKIP WAS AVAILABLE AND WAS THE WRONG LEVER.** `audit-health` refused the commit on
+`journal_spine_anchor` (3 entries). The split diagnostic said gap-in-my-tree / empty-against-main
+= lane tree-lag, not a real foreign gap, so the remedy was `git merge --ff-only main` (lane had
+zero commits, no merge commit created), not a declared bypass. Green in both trees afterwards; the
+commit passed the full mesh with no `SKIP` and no `--no-verify`. The sync-merge moved
+`PLAYBOOK.md`, so every locator was re-verified a second time at the new tip - all six still exact.
+
+**Result:** candidate (g) is worth keeping, with the verification leg mandatory rather than
+optional. Value came from pulling the reader's threads, not from its returned text.
+
+**Changes:** `docs/audits/2026-09-05-technical-corpus-coherence-gemini.md` (new, 204 lines);
+this entry. No corpus file touched.
+
+**Abandoned:** running `agy` from inside the worktree - the bg isolation guard refuses an unknown
+binary carrying a large literal argument, in every quoting form tried. Ran the read-only CLI leg
+from the primary checkout and re-entered the worktree to write and commit.
+
+**Next:** the three owed follow-ups are filed in the audit, not executed - reconcile `LESSONS.md:5`
+with the ratified amendment (hub-canonical, operator ruling); resolve the `CLAUDE.md:63` /
+`AGENTS.md:69` overlap or amend the `:41` claim; rule on whether `PLAYBOOK.md:666` gets a
+`commit-msg` mechanism or is marked advisory.
+
 ### 2026-09-05 (a) - CC (Opus 5): four consented rulings, and a commit that landed on main while the gate that forbids it correctly said no
 
 **Anchors:** `7e7402d5`, `7b3ba003`, `7f75033b`
