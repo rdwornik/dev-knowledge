@@ -19,6 +19,45 @@
 
 ---
 
+### 2026-09-05 (r) - CC (Opus 5, INTEGRATOR-2): the spine-predicate carrier is filed, and zc-candidates lands with an erratum
+
+**Did:** Closed the architect's final four rulings of the evening. (1) Merged
+`worktree-lane-r-000-zc-candidates` as-is with ONE appended erratum, the shape the immutable
+genre allows -- the same two corrections ruled for section AE, carried twice, in place in the
+LIVING register and by appended marker in the IMMUTABLE packet. (2) Item 018 needed no relay:
+FILINGS-3 verified my spine correction itself, ran 018, and pushed it. (3) Relayed the ruling
+that the 25 `consumer_at_landing` + 17 `funnel_coverage` foreign rows are pre-batch unlinked
+artifacts belonging to R5 B3/B4's single ledger, as a self-discharging row per 007. (4) Filed
+the spine-predicate carrier as register section AF.
+
+**Result:** `main` clean, pushed, `health: OK`, `journal_spine_anchor [OK]`. Section AF records
+one CANDIDATE in the Z-C shape -- no peg, no owner, no size band -- credited to the seat-notes
+lane: a check states its predicate in its own failure text and hands over one diagnostic
+command. It is filed from measured cost, not from taste. `journal_spine_anchor` produced EIGHT
+false alarms across SIX seats in one day; one reached the operator and stopped the merge queue.
+Every one was the same substitution -- tip-or-own-SHA read for introduced-SHA, or a lagging
+worktree read as truth. No seat was careless; each inferred a predicate the message never
+stated, and each inferred a different one. AF-2 carries the day's teardown twin: merged-and-
+torn-down is indistinguishable from never-existed under `git branch`, which cost three false
+negatives and one gate wrongly reported closed. FILINGS-3 stated the general form best -- a
+check that returns the same answer for "landed" and "never happened" is not a check.
+
+**Changes:** `protocols/STANDING_RULINGS.md` (section AE corrected in place under the named
+exception, section AF added); `docs/audits/2026-09-05-technical-lane-r-000-zc-candidates.md`
+(ERRATUM 1 appended, nothing above touched); this entry.
+
+**Abandoned:** Nothing. The zc-candidates DIRECTORY husk survives its teardown -- registration
+and both branches are clean and origin is clean, but the directory refused with Permission
+denied because a live process still holds it. That is the ninth husk of its class and only the
+holding seat can free it; it is reported, not worked around.
+
+**Next:** Merge FILINGS-3's `b032a9e1` once its ledger row lands (code branch -- delta A2, not
+terra alone), tear down on that seat's word rather than on my merge, and print the census with
+014 named as unowned and no owner invented.
+
+**Anchors:** `f6575d02` (section AF, introduced by this arc's merge). Prior: `14ddd724` merged
+zc-candidates, introducing `72bb1984`, anchored in advance by entry (p).
+
 ### 2026-09-05 (q) - CC (Opus 5, INTEGRATOR-2): pre-anchor filings-3, and the architect's five evening rulings
 
 **Did:** Pre-anchored `worktree-filings-3` ahead of its merge, and executed the architect's
