@@ -19,6 +19,53 @@
 
 ---
 
+### 2026-09-06 (e) - CC (Opus 5, INTEGRATOR-2): pre-anchor the H0-PREP close packet, whose two defects were found in review and fixed by the seat that wrote it
+
+**Did:** Reviewed `worktree-h0-prep-close` against code and a live run, returned two confirmed
+defects to the seat that produced it, and pre-anchored the corrected branch @ `a0dbbaf2` ahead of
+its merge.
+
+**Result:** Two defects, both in the packet's §6, both confirmed before relay rather than asserted.
+**One** — the packet predicted its own citations of the batch manifest, L4 close and L5
+verification would NOT clear their `consumer_at_landing` WARNs, "because a citation from
+`docs/audits/` is invisible to the check by construction". That is inverted.
+`scripts/consumer_at_landing.py` states its own carve-out — *"Only files matching
+`batch_manifest.MANIFEST_GLOB` (and each one's `closed_by:` target) become citers"* — and
+`batch_manifest.manifest_links` appends a resolvable `closed_by:` target's text as a second citing
+surface. The packet IS that target. **The root cause was mine:** the seat sourced the claim in good
+faith from a POOL_DIRS finding I circulated, which a hotfix *I merged the same day* had already
+narrowed. A finding keeps circulating after you invalidate it; landing the narrowing is only half
+the work.
+**Two** — §6's WARN attribution summed to 39 against a stated 40, omitted `no_ff_merges`
+entirely, and reported `canonical_freshness` as 8 when 8 is a file count living inside one of its
+three lines. Live at `8f5bcda2`: 25 `consumer_at_landing`, 7 `doc_rot`, 3 `no_ff_merges`, 3
+`canonical_freshness`, 1 `journal_spine_anchor`, 1 `adr_status_grammar` = 40.
+
+**The seat found the cause underneath both, and it caught me too.** Its tally was `grep`-ed over
+`audit.py health` output carrying non-UTF-8 bytes; grep classified the stream as **binary, printed
+`Binary file ... matches`, and truncated**. My own first count hit the identical truncation — a
+stray `Binary file C` row in my breakdown — and I worked around it without diagnosing it. The
+seat diagnosed it. `LC_ALL=C grep -a` counts the file correctly. That note is in the packet, not
+just in a commit message, because the failure class outlives these numbers.
+
+**I did not touch the file.** Producing is the seat's, integrating is mine; a close packet is
+immutable at merge, which is the whole reason the defects were relayed rather than patched by the
+reviewer. The seat verified both against code before amending instead of taking my word, and
+over-attributed the 22 -> 25 gap to itself where I had allowed drift as an excuse — `main` never
+moved from `8f5bcda2`, so it was never drift.
+
+**Changes:** this entry only. The packet lands with its merge.
+
+**Abandoned:** Nothing.
+
+**Next:** Merge `a0dbbaf2`, regenerating the audits index inside the merge because it adds an audit
+file and pre-commit does not run on a conflict-free merge. Then verify the packet's two open
+predictions on the merged result: whether the three `consumer_at_landing` WARNs clear, and whether
+`test_batch_manifest` clears once H0-PREP is closed.
+
+**Anchors:** `f44213ee` (this entry, introduced by its own merge). Names `a0dbbaf2` in advance: the
+merge that follows introduces it.
+
 ### 2026-09-06 (d) - CC (Opus 5, INTEGRATOR-2): pre-anchor the AJ second-pass lane, whose declared bypass was my defect and not its own
 
 **Did:** Pre-anchored `worktree-aj-second-pass` @ `0e56457f` ahead of its merge, and took ownership
