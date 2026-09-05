@@ -1,0 +1,12 @@
+---
+id: "[#634]"
+title: "dispatch-run.sh accepts GITHUB_TOKEN as its Anthropic-token check — a fail-open admission gate on a paid substrate"
+status: open
+priority: P1
+size: S
+theme: "[E7] Tooling & evaluation"
+story: "[S18] Cut session friction with better tooling"
+generates: BACKLOG.md
+---
+
+- [#634] [P1][S] **dispatch-run.sh accepts GITHUB_TOKEN as its Anthropic-token check — a fail-open admission gate on a paid substrate** — **Operator ruling 2026-09-05 item 2d; P1, and it carries a STANDING HOLD: no codespace dispatch until it is fixed.** The evidence is AMENDMENT 2 of `docs/audits/2026-09-01-verification-codespace-longrun-proof.md`, merged to main by that ruling's item 2a precisely because it is evidence rather than a deletion candidate. The second independent long-run measured L1-L4/L6 GREEN and **L5 RED on CONTENT, not on hang** — the admission gate that is supposed to refuse a dispatch lacking an Anthropic token accepts `GITHUB_TOKEN` as satisfying it, so a codespace boots, bills, and runs with no inference credential. The audit's own words for the failure mode: **“the gate's green and the real green are correlated by luck”.** Fail-OPEN is the whole defect — the gate does not merely mis-report, it ADMITS work it exists to refuse, and it does so on a substrate that charges for the admission. Same defect CLASS as `block_commit_on_main`'s documented detached-HEAD hole, but the opposite disposition: that one is a stated, recorded fail-open with two backstops behind it, this one has no backstop and spends money. **Scope is the token check itself, not the harness** — the transport is ADMITTED (`[#632]`, RULING 2026-08-20) and is not reopened here. · Done when: `dispatch-run.sh`'s admission check distinguishes an Anthropic credential from any other token in the environment and REFUSES rather than proceeds when the former is absent; a seeded test dispatches with `GITHUB_TOKEN` set and `ANTHROPIC_API_KEY` unset and asserts the run is refused before a codespace is created; and the standing hold is lifted in the same commit that lands the fix · refs `docs/audits/2026-09-01-verification-codespace-longrun-proof.md` AMENDMENT 2, `[#632]`, `[#618]`, `scripts/block_commit_on_main.py` (the stated-hole precedent) · kill-candidates: none — an operator-ruled P1 defect row closing nothing; `[#632]` stays open as the six-layer substrate plan this defect blocks · source: operator ruling 2026-09-05 item 2d

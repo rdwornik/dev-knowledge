@@ -290,6 +290,7 @@ So that cognitive overhead per session drops.
 - [#625] [P1][M] The rule-adherence eval corpus — a FRESH corpus, because neither fold target can carry it · tasks/625-the-rule-adherence-eval-corpus-fresh.md
 - [#626] [P2][M] `logs/` does not thin — the retention rule exempts the two prefixes that actually accumulate · tasks/626-logs-retention-exempts-the-prefixes-that-accumulate.md
 - [#632] [P1][L] Codespace is ADMITTED for transport and UNSTABLE for inference — the six-layer plan, the runner hardening, and the two defects they depend on · tasks/632-codespace-is-admitted-for-transport-and-unstable-for-inference.md
+- [#634] [P1][S] dispatch-run.sh accepts GITHUB_TOKEN as its Anthropic-token check — a fail-open admission gate on a paid substrate · tasks/634-dispatch-run-accepts-github-token-as-the-anthropic-check.md
 ### [S19] Decide the undecided artifact/tool models
 So that cadence-less artifacts and unevaluated tools don't rot or get adopted blind.
 
