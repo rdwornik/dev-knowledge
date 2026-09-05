@@ -162,14 +162,17 @@ directory husks remaining         13       hand-counted     against 2 registered
 terra rounds spent on AF           5       hand-counted     4 with findings, the 5th CLEAN
 ```
 
-**Three provenance errors were caught in review and are recorded rather than silently fixed,**
-because this section's whole purpose is the provenance label. The audits corpus read 896 when
-the regenerated index says 897 - the packet forgot to count itself. The `audit.py health`
-wall-clock was labelled `organ-computed` when that command prints no timing at all: the mean
-and the spread are the integrator's, from three timed runs, and it is now marked
-`hand-counted`. And the JOURNAL tally said 8 against a span holding 9. A hand count wearing an
-organ's label is exactly the drift this section warns about, produced here by the person
-writing the warning.
+**Three SCORECARD corrections were caught in review and are recorded rather than silently
+fixed. They are not all the same kind of error, and saying so precisely matters more than the
+tidier confession.** ONE was a provenance mislabel: the `audit.py health` wall-clock was
+marked `organ-computed` when that command prints no timing at all - the mean and the spread
+are the integrator's, from three timed runs, and the row is now `hand-counted` with its method
+named. That one is exactly the drift this section warns about, produced by the person writing
+the warning. The other TWO were wrong VALUES under labels that were already correct: the
+audits corpus read 896 where the regenerated index says 897, because the packet had not
+counted itself; and the JOURNAL tally read 8 against a span holding 9. Calling all three
+provenance errors would overstate the fault and blur the very distinction this section
+exists to draw.
 
 **`window_metrics.py` reads `origin/main..HEAD` and therefore reports 0 arcs for this window.** That
 is correct for its declared range and wrong as a description of the batch, because everything is
