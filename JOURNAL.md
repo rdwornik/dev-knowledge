@@ -19,6 +19,54 @@
 
 ---
 
+### 2026-09-05 (i) - CC (Opus 5): the second pre-anchor, and what the first one did not reach
+
+**Did:** Closed the first integration cohort -- thirteen merges, each pushed -- tore down
+nine fully-contained branches, and pre-anchored the cohort that arrived after entry (f).
+
+**Result:** Main carried every merge without a spine gap, which is what (f) was for. What
+(f) did NOT do, and the merge subject overclaimed: pre-anchoring keeps MAIN clean; it does
+not reach a worktree whose own JOURNAL predates the entry, because `journal_spine_anchor`
+reads JOURNAL from the COMMITTING TREE. Three seats read their own lag as a spine defect
+and one nearly parked a finished lane waiting for a drain that was never coming. The
+accurate form is: no merge blocks a CURRENT tree; a stale tree blocks until it syncs. All
+three cleared it with a sync and none needed `SKIP=` or `--no-verify`.
+
+The recurring diagnostic error is worth naming once, because three separate seats made it
+independently: they tested whether JOURNAL contained the MERGE's own SHA. That string is
+structurally guaranteed to be absent -- a merge cannot be named by an entry written before
+it -- so the test reports a gap for every merge ever made. The predicate asks whether
+JOURNAL names a SHA the merge INTRODUCED. Run against main's JOURNAL it returned clean
+every time.
+
+Two merges needed a day-letter re-lettered at integration -- (d) to (g) and (b) to (h) --
+both because the lane wrote its letter against a main that had since moved. On the second,
+taking the branch TIP rather than the older commit mattered: `bb79aa76` had rewritten that
+entry's Result section (27 insertions, 10 deletions), and a splice from the pre-rewrite
+text would have dropped it silently. Verified by content afterwards, not by SHA.
+
+**Changes:** Thirteen merges from `ac2c6a15` to `b3326083`. Nine branches torn down local
+AND origin, each with a `merge-base --is-ancestor` proof first; two deliberately KEPT
+because they are not contained -- `worktree-docs-seat-notes` and
+`worktree-lane-fleet-readiness-measurement` each have one commit still outstanding. One
+conflict on a GENERATED file resolved by regenerating from the merged tree rather than
+picking a side: both branches had legitimately different counts and either choice would
+have been wrong. `docs/audits/README.md` regenerated once at integration, absorbing
+staleness that predated this queue.
+
+**Abandoned:** Nothing. Two branches are HELD rather than dropped: `worktree-filings` at
+its owner's request until it releases, and `worktree-lane-r-000-zc-candidates` pending a
+ruling that is not mine -- it appends a new §AE to `protocols/STANDING_RULINGS.md`
+(83 insertions, 0 deletions, §AD untouched), and the inbox seat is the declared single
+writer of that file, so the section letter is the collision risk and the reconcile is
+theirs.
+
+**Next:** Merge the second cohort. This entry names its tips so each lands anchored, on the
+same reasoning as (f) and with the limitation above stated rather than assumed.
+
+**Anchors:** `@SELF@`, `778fa12b`, `c5cf1af7`, `13362942`, `3d5a4235`, `30166377`,
+`72bb1984`, `2262b15e`, `d27876d3`, `81bc39f9`
+
 ### 2026-09-05 (h) - CC (Opus 5): the admission-gate lane was retired because its defect was already fixed, and two lanes were recovered from a receipt channel that died mid-flight
 
 **Anchors:** `b9db30f7`, `1486ff53` (branch `docs/rescope-634`) - and, on lane branches,
