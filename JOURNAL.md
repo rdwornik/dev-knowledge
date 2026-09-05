@@ -27,10 +27,19 @@ genre allows -- the same two corrections ruled for section AE, carried twice, in
 LIVING register and by appended marker in the IMMUTABLE packet. (2) Item 018 needed no relay:
 FILINGS-3 verified my spine correction itself, ran 018, and pushed it. (3) Relayed the ruling
 that the 25 `consumer_at_landing` + 17 `funnel_coverage` foreign rows are pre-batch unlinked
-artifacts belonging to R5 B3/B4's single ledger, as a self-discharging row per 007. (4) Filed
+artifacts belonging to R5 B3/B4's single ledger, as a self-discharging row per 007 — and had the
+ruling's arithmetic corrected by the seat that executed it: the two sets OVERLAP by twelve, so it
+is **30 distinct artifacts, not 42**, and 24 rows were added because six already carried one.
+FILINGS-3 generated them from live measurement rather than transcribing my list, which is the
+right call — a hand-copied list of thirty filenames is a defect waiting to happen. (4) Filed
 the spine-predicate carrier as register section AF.
 
-**Result:** `main` clean, pushed, `health: OK`, `journal_spine_anchor [OK]`. Section AF records
+**Result (stated by arc, because they are in different states — this entry is a PRE-ANCHOR and
+must not read as a completion record):** the zc-candidates merge is LANDED on `main` at
+`14ddd724`, pushed, with `health: OK` and `journal_spine_anchor [OK]` measured after it. The AF
+arc is **NOT yet on `main`** as this entry is written: the entry rides its own branch and names
+`f6575d02` in advance, which is the pre-anchor shape the operator's standing order requires —
+anchor BEFORE the merge, never after. Section AF records
 one CANDIDATE in the Z-C shape -- no peg, no owner, no size band -- credited to the seat-notes
 lane: a check states its predicate in its own failure text and hands over one diagnostic
 command. It is filed from measured cost, not from taste. `journal_spine_anchor` produced EIGHT

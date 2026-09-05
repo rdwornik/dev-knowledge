@@ -3925,7 +3925,10 @@ candidate quietly becomes a commitment.
 command.**
 
 *Filed from witnessed cost, not from a design idea.* On 2026-09-05 the `journal_spine_anchor`
-predicate produced **eight false alarms across six seats in a single day** — every one of them the
+predicate produced **eight false alarms across six seats in a single day** — the incidents are
+recorded individually in the JOURNAL entries of that date, (m) through (r), which are the surface
+for this count; it is a tally of recorded incidents, not a computed metric, and no organ computes
+it — every one of them the
 same wrong reading, and one of them reached the operator and stopped the merge queue outright. No
 seat was careless. Each inferred a predicate from a failure message that did not state one, and
 each inferred a different plausible predicate.
@@ -3954,19 +3957,25 @@ and is marked as such rather than folded into the predicate concern.
 - *Merged-and-torn-down is indistinguishable from never-existed when checked with `git branch`.*
   The check for "did X land" is `git log --first-parent main` for the **merge** — a ref query cannot
   answer a spine question. This produced **three separate false negatives on 2026-09-05**, including
-  one by the integrator, and one gate was reported closed on it. The seat that hit it last stated the
+  one by the integrator, and one gate was reported closed on it — same surface, same caveat as
+  AF-1: counted from the JOURNAL entries of that date, not computed. The seat that hit it last stated the
   general form better than the incident does: *a check that returns the same answer for "landed" and
-  "never happened" is not a check.* That sentence is the reason AF-1 and AF-2 are filed together
+  "never happened" is not a check.* That sentence is the reason AF-1 and AF-2a are filed together
   rather than separately — both are predicates that cannot distinguish the two states they exist to
-  distinguish.
-- *A topology note, recorded and not ruled.* WORKTREE TEARDOWN IS TWO BRANCHES assumes a work
-  branch distinct from `worktree-<name>`. Where a lane commits directly on its provisioning
-  branch the two are one branch, so the rule's arithmetic yields one local delete plus one
-  origin delete rather than two of each. This states what the existing rule already implies in
-  that topology: it amends nothing, defines no completion criterion, and binds no reader. It is
-  recorded so a seat meeting that topology does not go looking for a second branch that never
-  existed and conclude its teardown is unfinished. Whether the rule should say so itself is a
-  question for whoever takes AF-1 through intake, and is not answered here.
+  distinguish. AF-2b below is not of that kind and does not join the claim.
+- *A topology note, recorded and not ruled — and one attribution kept straight.* WORKTREE TEARDOWN
+  IS TWO BRANCHES names two LOCAL branches: the work branch and the `worktree-<name>` provisioning
+  branch. Where a lane commits directly on its provisioning branch, those two are one branch. That
+  is the whole observation, and it is the only part drawn from that rule.
+  The architect's ruling of 2026-09-05 phrased the collapsed form as "one local plus one remote".
+  The remote leg is recorded here AS THE ARCHITECT'S WORDING and is **not** derived from WORKTREE
+  TEARDOWN IS TWO BRANCHES, which supplies no origin leg — the origin requirement in this repo
+  comes from the separate THE HANDOFF MERGE IS ATOMIC WITH TEARDOWN rule, whose scope is its own
+  question. Stating that plainly matters more than tidiness: reading an origin leg into the
+  two-branch rule would extend live doctrine by paraphrase, which is the drift class this register
+  exists to catch. Nothing here amends either rule, defines a completion criterion, or binds a
+  reader; whether the two-branch rule should itself address the collapsed topology is a question
+  for whoever takes AF-1 through intake, and is not answered here.
 
 ## Editing note (read before adding an entry)
 
