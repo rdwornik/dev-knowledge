@@ -761,6 +761,26 @@ def test_count_review_pending_zero_when_dir_absent(tmp_path):
     assert fh.count_review_pending(tmp_path / "nope") == 0
 
 
+# --- Lane h0: dispatch traces per day ----------------------------------------
+
+def test_count_traces_today_counts_todays_files(tmp_path):
+    prompts = tmp_path / "prompts"
+    prompts.mkdir()
+    (prompts / "2026-09-05-lane-h0-trace.md").write_text("x", encoding="utf-8")
+    (prompts / "2026-09-05-lane-a-1.md").write_text("x", encoding="utf-8")
+    (prompts / "2026-09-04-lane-old.md").write_text("x", encoding="utf-8")
+    assert fh.count_traces_today(tmp_path, date(2026, 9, 5)) == 2
+
+
+def test_count_traces_today_zero_when_dir_absent(tmp_path):
+    assert fh.count_traces_today(tmp_path, date(2026, 9, 5)) == 0
+
+
+def test_count_traces_today_none_when_unreadable(tmp_path):
+    with mock.patch.object(fh, "_scan_md", return_value=None):
+        assert fh.count_traces_today(tmp_path, date(2026, 9, 5)) is None
+
+
 # --- producer 5: open BACKLOG by priority band ------------------------------
 
 def test_count_backlog_by_priority_bands():
@@ -1386,6 +1406,20 @@ def test_main_prints_the_load_line(tmp_path, capsys):
     with mock.patch.object(fh, "_HEALTH_FILE", health):
         assert fh.main() == 0
     assert "[load] " in capsys.readouterr().out
+
+
+def test_main_prints_the_traces_line(tmp_path, capsys):
+    health = tmp_path / "FLEET-HEALTH.md"
+    health.write_text(fh.build_digest(_STATES, date.today(), "2026-08-11T09:00:00"),
+                      encoding="utf-8")
+    logs_dir = tmp_path / "logs"
+    prompts = logs_dir / "prompts"
+    prompts.mkdir(parents=True)
+    (prompts / f"{date.today().isoformat()}-lane-h0-trace.md").write_text("x", encoding="utf-8")
+    with mock.patch.object(fh, "_HEALTH_FILE", health), \
+         mock.patch.object(fh, "_LOGS_DIR", logs_dir):
+        assert fh.main() == 0
+    assert "[traces] 1 today" in capsys.readouterr().out
 
 
 # --- v7 BOOT-INVERSION digest ([#611], protocols/HANDOFF_PROCESS.md §17) ----------------
