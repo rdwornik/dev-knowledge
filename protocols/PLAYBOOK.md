@@ -5,7 +5,27 @@ reconciled_with: handoff-process@7.0.0
 # Dev Practice Playbook
 
 > **Living document.** Repeatable processes for everything Rob does regularly with AI-assisted development.
-> Last updated: 2026-08-01
+> Last updated: 2026-09-06
+>
+> **Review pass 2026-09-06 (lane `lane-t-000-playbook`, batch T).** Re-read end-to-end — all
+> 5,968 lines, Part I Ch1–Ch14 and Part II §1–§21 plus the appendices — against the **62 commits**
+> that landed on this file since the 2026-08-01 stamp. Those 62 are dominated by four arcs, and
+> naming them is what the stamp is claiming to have re-read: Ch8's dispatch system and its
+> single-literal-command-site collapse (`4d974f0b`, `c5bf6426`, `959b80a1`, `10822b09`); the batch
+> and night-batch protocols with the wave close and the lane lifecycle (`9f9b6e11`, `297af6e1`,
+> `7156d432`, `4db2e107`); the DEGRADED-REVIEW fallback chain and its measured rungs (`7a5eca1c`,
+> `8c929051`, `63ce473e`); and the ESSENTIALS de-blessing, whose eight route-mentions were
+> repointed or struck (`10698573`, `7e7402d5`). The `codespace` shape entered the contract
+> vocabulary in the same span (`4fff67e7`, ruling R-ENUM).
+>
+> **Drift found and FILED rather than swept, per this file's own Ch6 rule that an unclassified
+> version sweep edits the past silently.** §8 "Handoff format spec" still names
+> `HANDOFF_PROCESS.md` **v6.3.0** as the authoritative spec, and §8's "What the v5 handoff
+> carries", Ch6's file-type-taxonomy row (v5.4 bundle) and Ch14's `/handoff` row still read v5,
+> while the live spec is **v7.0.0** (`b8599fbc`) — which this file's own `reconciled_with:`
+> frontmatter already declares. These are LIVE-NORMATIVE hits in Ch6's three-class sense and are
+> reported as owed rather than corrected here: a version sweep is its own arc with its own
+> classification pass, and it sits outside this lane's frozen footprint.
 >
 > *Section history lives in git (commit log + JOURNAL `Changes:` line), not in per-section changelog blocks — per ADR-49.*
 >
