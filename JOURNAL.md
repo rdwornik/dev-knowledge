@@ -19,6 +19,52 @@
 
 ---
 
+### 2026-09-07 (f) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): W1-2's hub half lands, verdicted by the organ this batch built four merges earlier
+
+**Did:** Merged W1-2's hub branch, the last handed-back wave-1 lane, and verdicted it with
+`audit.py handback` rather than by reading its tally.
+
+**Result - the batch's own mechanism now gates the batch.**
+
+W1-1 shipped `audit.py handback` at `8444ba36`. Four merges later it was used in earnest:
+`handback "HANDBACK worktree-lane-u-000-dispatch-receipt-is-work @ f06aba86 code review=codex
+HIGH:7 MED:0 LOW:0"` returns `MERGE`, exit 0. The lane composed its own line with the same verb
+rather than by hand. **A mechanism built, merged and then used to admit the next lane inside one
+batch is the shortest loop this repo has closed between a contract and its enforcement.**
+
+**The tally was real and the wrapper lied.** `codex-review.ps1` printed `0/0/0/0` while the
+artifact's Findings section carried 1 CRITICAL and 7 HIGH - the heuristic counts severity-word
+mentions and the findings sat under headings. This is the **third** distinct instrument to report a
+false clean tonight, after the `&&`-chain exit code and the P11 watcher matching a plan sentence.
+The critical folds into `HIGH:7` because the HANDBACK grammar has no Critical field, so the line
+reads 7 where the artifact says 8 - the lane flagged the discrepancy rather than let it be
+discovered.
+
+Seven findings fixed; **one refused and escalated.** The reviewer wanted the gh-auth admission gate
+relaxed; the frozen contract names it. The lane declined on the ground that **a lane does not
+overrule its own contract because a reviewer agrees with the tree**, and put both sides in a
+QUESTION. That refusal is worth more than the seven fixes: a reviewer is an input to a lane's
+judgment, not an authority over its contract.
+
+**An ordering hazard that outlives this merge.** `dispatch_drift` is COMMIT-tier and resolves every
+literal command in Ch8's table via `Get-Command` **on this host**. Row 5's `Harvest-Codespace`
+resolves only because the lane deployed the updated `DispatchHelpers` module. Re-running
+`Apply-DispatchHelpers.ps1` from win-tooling's `main` before that branch lands would stop the name
+resolving and FAIL `dispatch_drift` - **wedging every hub commit, not merely that one.** Verified
+here rather than assumed: `Get-Command Harvest-Codespace` RESOLVES, and the PLAYBOOK TOC is fresh
+(`toc.cli check` exit 0), which no later commit would have checked because that hook fires only when
+`PLAYBOOK.md` is staged.
+
+**Changes:** `protocols/PLAYBOOK.md` (+88, Ch8 harvest row and the DONE-means-a-commit-on-origin
+subsection) - via this merge. win-tooling's half is a separate repo and is NOT this seat's to land.
+
+**Abandoned:** nothing.
+
+**Next:** W1-6 pushed but silent, W1-7 uncommitted. **Merging stays HANDBACK-only**; a pushed branch
+is a checkpoint, not a declaration.
+
+**Anchors:** `f06aba86` (W1-2's last hub commit, introduced by this branch's parent merge).
+
 ### 2026-09-07 (e) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): W1-9 lands the v7.1 pack, and the version bump is ROUTED rather than taken
 
 **Did:** Merged W1-9 `handoff-v71-build` (`9fed197f`); targeted tests **124 passed** on the merged
