@@ -19,6 +19,45 @@
 
 ---
 
+### 2026-09-06 (q) - CC (Opus 5, INTEGRATOR, batch T): a lane whose contract cannot reach the tree by any ordering
+
+**Did:** Merged the dispatcher's manifest amendment (`3dbff773`), which records AMEND-BATCH-T-001
+on batch T's manifest. It landed as ONE file, not the two the dispatcher and I both expected, and
+the reason is the finding.
+
+**Result:** Lane 3.15 was created by an amendment AFTER freeze. Its contract never landed, and
+**no ordering exists by which it could have**: `gen_lane_contract.py::_check_manifest_contract_agreement`
+compares the manifest roster against the contracts *in the changeset*, and batch T's other 13
+contracts landed at freeze and are unchanged, so `git add` cannot re-stage them - there is no diff.
+The dispatcher attempted both refusing orderings before concluding it, which is why this is measured
+rather than deduced:
+
+- contract alone -> REFUSE (manifest names 13 slugs, no matching contract)
+- contract + amendment -> REFUSE (manifest names 14, changeset holds 1)
+- amendment alone -> PASS (0 contracts given, "0 checked")
+
+So the gate is scoped "at freeze" by its own docstring, an amendment adds a lane after freeze, and
+**the sanctioned post-freeze path and the gate's predicate are not composed at all.** Tonight's
+residue is 13 contracts for 14 executed lanes; the manifest now records 3.15's contract by sha256
+(`2d628f6d…`, 17211 B) rather than claiming a landing that did not happen. Recording the absence
+beats simulating the presence, and the manifest is the only in-tree surface that says so.
+
+Beside it, a second thing found while diagnosing: `.pre-commit-config.yaml`'s `lane-contract-check`
+comment asserts `pass_filenames: false`, and **the hook body does not set it** - the comment
+describes a repo-wide every-commit gate, the configuration implements a staged-files gate. Which of
+the two is intent decides whether the above is a bug or a scope. No seat touched it; it is a gate,
+and it goes to whoever rules at dawn.
+
+**Changes:** `docs/audits/2026-09-06-technical-batch-t-manifest.md` (+AMENDMENT 1); this entry.
+
+**Abandoned:** Nothing. No bypass was spent to land it.
+
+**Next:** nc1-clear's handback. The close packet merges LAST - committing it flips
+`_closer_committed`, the batch stops being open, and the ADR-110 exemption evaporates for every
+lane still unmerged.
+
+**Anchors:** `89a2fa04` (the amendment commit, introduced by `3dbff773`).
+
 ### 2026-09-06 (p) - CC (Opus 5, INTEGRATOR, batch T): anchor arc 4's own anchor
 
 **Did:** Anchored the arc carrying (o), and built it at all only because a lane merge is exempt at
