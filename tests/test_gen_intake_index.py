@@ -367,3 +367,42 @@ def test_next_free_counts_an_id_that_exists_ONLY_on_an_unmerged_ref(tmp_path):
     # The working tree now sees ONLY id 5; id 76 lives on the unmerged `side` branch.
     assert gi.next_free_id(intake, scan_refs=False, repo_root=repo) == 6
     assert gi.next_free_id(intake, scan_refs=True, repo_root=repo) == 77
+
+
+def test_a_ref_carrying_no_intake_docs_is_not_mistaken_for_an_unreadable_one(tmp_path):
+    """`git grep` exits 1 for NO MATCH, which is the ordinary answer for a branch with no
+    intake docs. Treating that as an error would refuse on every healthy repo; treating a real
+    error as no-match is the silent degrade below. Both directions are live here."""
+    import subprocess
+    repo = tmp_path / "repo"
+    (repo / "docs" / "intake").mkdir(parents=True)
+
+    def git(*args):
+        return subprocess.run(["git", *args], cwd=repo, capture_output=True, text=True)
+
+    git("init", "-q", "-b", "main")
+    git("config", "user.email", "t@example.com")
+    git("config", "user.name", "t")
+    (repo / "README.md").write_text("no intake docs here\n", encoding="utf-8")
+    git("add", "-A")
+    git("commit", "-qm", "a ref with zero intake docs")
+    intake = repo / "docs" / "intake"
+    (intake / "only-on-disk.md").write_text(_doc("SEED", "3", "Disk"), encoding="utf-8")
+
+    assert gi.next_free_id(intake, scan_refs=True, repo_root=repo) == 4
+
+
+def test_the_allocator_REFUSES_rather_than_silently_degrading_to_the_working_tree(tmp_path):
+    """codex-review HIGH, 2026-09-07, and the defect this whole module exists to end. The first
+    cut swallowed every git failure and returned the working-tree answer while still reporting
+    "working tree + all refs" -- so a missing git or one unreadable ref hands out an id a branch
+    already holds. `--no-refs` is the labelled opt-out; silence is not."""
+    import pytest
+    d = _make_intake_dir(tmp_path, {"a.md": _doc("SEED", "5", "A")})
+    not_a_repo = tmp_path / "nowhere"
+    not_a_repo.mkdir()
+
+    with pytest.raises(gi.RefScanError):
+        gi.next_free_id(d, scan_refs=True, repo_root=not_a_repo)
+    # ... and the CLI turns that into a refusal, never an answer.
+    assert gi.next_free_id(d, scan_refs=False, repo_root=not_a_repo) == 6

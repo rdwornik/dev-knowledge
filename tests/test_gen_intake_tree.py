@@ -362,14 +362,55 @@ def test_a_duplicate_intake_id_round_trips_perfectly_and_is_still_reported(tmp_p
         encoding="utf-8", newline="\n")
 
     verdict, reasons = gt.evaluate(d)
-    assert verdict == gt.DRIFT, "a colliding tree reported coherent"
-    collision = [r for r in reasons if "intake-id collision" in r]
-    assert len(collision) == 1, reasons
-    # The reason must carry its OWN remedy: --write re-derives the carrier and would write the
-    # collision straight back out.
-    assert "NOT fixed by" in collision[0] and "70" in collision[0]
-    # And every OTHER leg is green — the point of the test.
-    assert [r for r in reasons if "intake-id collision" not in r] == []
+    assert verdict == gt.COLLISION, "a colliding tree reported coherent"
+    assert len(reasons) == 1, reasons
+    # Its OWN remedy: --write re-derives the carrier and REFUSES this tree, so a reason that
+    # merely said "drift" would advertise a command that cannot resolve it (codex HIGH).
+    assert "NOT fixed by" in reasons[0] and "70" in reasons[0]
+    assert "--next-free" in reasons[0]
+
+
+def test_collision_is_its_own_verdict_and_exit_code_not_ordinary_drift(tmp_path, monkeypatch):
+    """codex-review HIGH, 2026-09-07. DRIFT means "stale, regenerate" and every caller answers
+    it with REMEDY -- which `--write` refuses on a colliding tree. Folding the two together
+    sends the caller in a circle, and automation cannot tell the cases apart."""
+    docs = {"a.md": _doc("DRAFT", "70", "A"), "b.md": _doc("DRAFT", "70", "B")}
+    d = _make_surface(tmp_path, docs, _readme(""))
+    (d / "README.md").write_text(_readme(gi.render_contents(d)), encoding="utf-8", newline="")
+    (d / "manifest.json").write_text(
+        gt._dump(gt.build_manifest((d / "README.md").read_text(encoding="utf-8"),
+                                   gt.parse_readme((d / "README.md").read_text(encoding="utf-8")),
+                                   d)),
+        encoding="utf-8", newline="\n")
+    monkeypatch.setattr(gt, "_INTAKE_DIR", d)
+    monkeypatch.setattr(gt, "_SOURCE", d / "README.md")
+    monkeypatch.setattr(gt, "_MANIFEST", d / "manifest.json")
+    # duplicate_id_reasons resolves gen_intake_index's `_INTAKE_DIR` at call time (the CLI
+    # passes None, so production reads the real tree). It must be patched in THAT function's
+    # own globals: `_load` execs gen_intake_index twice — once as gen_intake_tree's import and
+    # once as `gi` — so `gi` is a different module object from the one gt's import closed over,
+    # the same identity artifact `test_..._shared_with_gen_intake_index_not_copied` works around.
+    monkeypatch.setitem(gt.duplicate_id_reasons.__globals__, "_INTAKE_DIR", d)
+    assert gt.COLLISION not in (gt.OK, gt.DRIFT, gt.MALFORMED)
+    assert gt.main(["--check"]) == 3
+    assert gt.main(["--write"]) == 3
+
+
+def test_a_zero_item_carrier_does_not_suppress_the_collision(tmp_path):
+    """codex-review HIGH, 2026-09-07. The item-set leg early-returns on a carrier with zero item
+    nodes, so a collision checked inside it vanished exactly when the tree is most broken. Leg 0
+    runs before every other leg for this reason."""
+    docs = {"a.md": _doc("DRAFT", "70", "A"), "b.md": _doc("DRAFT", "70", "B")}
+    d = _make_surface(tmp_path, docs, _readme(""))
+    # An all-residue carrier: zero item nodes, internally self-consistent.
+    (d / "manifest.json").write_text(
+        gt._dump(gt.build_manifest((d / "README.md").read_text(encoding="utf-8"),
+                                   gt.parse_readme((d / "README.md").read_text(encoding="utf-8")),
+                                   d)),
+        encoding="utf-8", newline="\n")
+    verdict, reasons = gt.evaluate(d)
+    assert verdict == gt.COLLISION, reasons
+    assert "70" in reasons[0]
 
 
 def test_the_join_key_shape_does_not_red_the_tree_check(tmp_path):

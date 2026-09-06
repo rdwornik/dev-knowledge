@@ -375,6 +375,14 @@ def _describe_divergence(expected: str, actual: str) -> str:
 REMEDY = "python scripts/gen_intake_tree.py --write"
 
 OK, DRIFT, MALFORMED = "ok", "drift", "malformed"
+# A FOURTH verdict, deliberately not folded into DRIFT (codex-review HIGH, 2026-09-07): DRIFT
+# means "the carrier is stale, regenerate it" and every caller answers it with REMEDY, which
+# REFUSES a colliding tree. Reporting a collision as drift therefore advertises a command that
+# cannot resolve it. The remedy here is to MOVE an id in the tree; regeneration comes after.
+COLLISION = "collision"
+COLLISION_REMEDY = ("move the later doc's intake-id to the next free one "
+                    "(`python scripts/gen_intake_index.py --next-free`), update every citation "
+                    "of it in the SAME commit, then re-run both generators")
 
 
 def evaluate(intake_dir: Path | None = None) -> tuple[str, list[str]]:
@@ -398,6 +406,18 @@ def evaluate(intake_dir: Path | None = None) -> tuple[str, list[str]]:
     """
     intake_dir = intake_dir if intake_dir is not None else _INTAKE_DIR
     source, manifest_path = intake_dir / "README.md", intake_dir / "manifest.json"
+
+    # LEG 0, ahead of everything else. A colliding tree is not assessable for coherence: the
+    # carrier keys items by FILENAME, so two docs on one id are one-for-one with disk and all
+    # four legs below come back GREEN while the join key is ambiguous. That is how both
+    # mandatory generators wrote output against the live id-70 collision on 2026-09-06 without
+    # a word (filings Q-3 finding F1). It runs FIRST so no earlier return can hide it -- and
+    # the reason text names its own remedy, because a caller that appends REMEDY to any
+    # non-OK verdict would otherwise advertise a regeneration that refuses this tree.
+    collisions = duplicate_id_reasons(intake_dir)
+    if collisions:
+        return COLLISION, [f"intake-id COLLISION -- {r} -- NOT fixed by {REMEDY}; instead "
+                           f"{COLLISION_REMEDY}" for r in collisions]
 
     for name, path in (("README.md", source), ("manifest.json", manifest_path)):
         if not path.exists():
@@ -462,6 +482,11 @@ def _cmd_check() -> int:
         return 0
     for reason in reasons:
         print(f"gen_intake_tree: check FAILED -- {reason}", file=sys.stderr)
+    if verdict == COLLISION:
+        # Exit 3, matching gen_intake_index's collision class, and NOT the regen remedy --
+        # `--write` refuses this tree, so printing it here would send the caller in a circle.
+        print(f"gen_intake_tree: remedy: {COLLISION_REMEDY}", file=sys.stderr)
+        return 3
     print(f"gen_intake_tree: remedy: run {REMEDY}", file=sys.stderr)
     return 2 if verdict == MALFORMED else 1
 
@@ -479,13 +504,9 @@ def _item_set_divergences(manifest: dict, intake_dir: Path | None = None) -> lis
 
     Also the only leg that sees a STATUS-only change (see `_status_by_filename`).
 
-    AND the leg that sees a DUPLICATE intake-id. The manifest keys its item nodes by FILENAME, so
-    two docs on one id are one-for-one with disk and every leg above passes -- which is how both
-    mandatory generators wrote output against a colliding tree on 2026-09-06 without a word
-    (filings Q-3 finding F1). The predicate is imported from `gen_intake_index`, not restated
-    here, for the same reason `evaluate` is a single definition shared with the audit leg: two
-    copies of what "duplicate" means would eventually disagree, and the disagreement would be
-    invisible until it mattered.
+    It does NOT carry the duplicate-intake-id leg. That lives in `evaluate` as its own verdict:
+    this function early-returns on a zero-item carrier, which would have suppressed the collision
+    exactly when the tree is most broken (codex-review HIGH, 2026-09-07).
     """
     items = [n for n in manifest.get("nodes", []) if n.get("t") == "item"]
     on_disk = _status_by_filename(intake_dir)
@@ -515,10 +536,6 @@ def _item_set_divergences(manifest: dict, intake_dir: Path | None = None) -> lis
     )
     if drifted:
         reasons.append(f"projected status drift: {'; '.join(drifted)}")
-    # Its OWN remedy, never the module's: `--write` re-derives the carrier and would write the
-    # collision straight back out. The id has to move in the tree first.
-    for reason in duplicate_id_reasons(intake_dir):
-        reasons.append(f"intake-id collision (NOT fixed by {REMEDY}): {reason}")
     return reasons
 
 

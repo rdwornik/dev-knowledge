@@ -205,17 +205,35 @@ def duplicate_id_reasons(intake_dir: Path | None = None) -> list[str]:
     return reasons
 
 
-def _git_stdout(args: list[str], repo_root: Path) -> str:
-    """`git <args>` stdout, or "" on any failure. Read-only and total: the allocator degrades to
-    the working tree when git is absent, the checkout is not a repo, or a ref is unreadable --
-    it never raises, because refusing to answer would push the caller back to eyeballing a folder
-    listing, which is the failure D8's mechanism row names."""
+class RefScanError(RuntimeError):
+    """The all-refs scan could not complete, so no id may be allocated from its answer.
+
+    A SILENT DEGRADE IS THE DEFECT THIS MODULE EXISTS TO END (codex-review HIGH, 2026-09-07).
+    The first cut swallowed every git failure and returned the working-tree answer while still
+    reporting "working tree + all refs" -- so a missing git, a timeout, or one unreadable ref
+    would hand out an id that a branch already holds, which is precisely the cross-branch
+    collision D8's mechanism row names. An allocator that cannot see every ref must REFUSE, not
+    guess; `--no-refs` stays the explicit, labelled opt-out.
+    """
+
+
+def _git(args: list[str], repo_root: Path, ok_codes: tuple[int, ...] = (0,)) -> str:
+    """`git <args>` stdout. Raises `RefScanError` unless the exit code is in `ok_codes`.
+
+    `git grep` needs `ok_codes=(0, 1)`: 1 means NO MATCH, which is the ordinary answer for a ref
+    carrying no intake docs, while 2+ is a real error. Collapsing the two is how "this ref has
+    nothing" and "this ref could not be read" became the same empty string.
+    """
     try:
         proc = subprocess.run(["git", *args], cwd=str(repo_root), capture_output=True,
                               text=True, encoding="utf-8", errors="replace", timeout=120)
-    except (OSError, subprocess.SubprocessError):
-        return ""
-    return proc.stdout if proc.returncode == 0 else ""
+    except (OSError, subprocess.SubprocessError) as exc:
+        raise RefScanError(f"`git {' '.join(args)}` could not run: {exc!r}") from exc
+    if proc.returncode not in ok_codes:
+        raise RefScanError(
+            f"`git {' '.join(args)}` exited {proc.returncode}: "
+            f"{(proc.stderr or '').strip()[:200] or 'no stderr'}")
+    return proc.stdout
 
 
 def allocated_ids(intake_dir: Path | None = None, scan_refs: bool = True,
@@ -245,12 +263,15 @@ def allocated_ids(intake_dir: Path | None = None, scan_refs: bool = True,
 
     if not scan_refs:
         return found
-    refs = [r for r in _git_stdout(
+    refs = [r for r in _git(
         ["for-each-ref", "--format=%(refname)", "refs/heads", "refs/remotes"],
         repo_root).splitlines() if r]
+    if not refs:
+        # Every git checkout has at least one ref. Zero means git answered without answering.
+        raise RefScanError("`git for-each-ref` listed no refs -- the ref scan cannot be trusted")
     for ref in refs:
-        out = _git_stdout(["grep", "--full-name", "-n", "^intake-id:", ref, "--", "docs/intake"],
-                          repo_root)
+        out = _git(["grep", "--full-name", "-n", "^intake-id:", ref, "--", "docs/intake"],
+                   repo_root, ok_codes=(0, 1))
         for line in out.splitlines():
             parts = line.split(":", 3)
             if len(parts) < 4 or "intake-id:" not in parts[3]:
@@ -361,7 +382,14 @@ def _cmd_next_free(scan_refs: bool = True) -> int:
     across all history" -- and an author allocating an id read the folder listing, which
     under-reports by every archived doc and by every doc on a branch that has not merged.
     """
-    ids = allocated_ids(scan_refs=scan_refs)
+    try:
+        ids = allocated_ids(scan_refs=scan_refs)
+    except RefScanError as exc:
+        print(f"gen_intake_index: REFUSING to allocate -- {exc}", file=sys.stderr)
+        print("gen_intake_index: an id allocated from a partial ref scan can collide with a "
+              "branch that already holds it. Fix git, or pass --no-refs and accept that the "
+              "answer is the working tree ONLY.", file=sys.stderr)
+        return 4
     nxt = (max(ids) + 1) if ids else 1
     scope = "working tree + all refs" if scan_refs else "working tree ONLY (--no-refs)"
     print(nxt)
