@@ -1406,3 +1406,31 @@ dispositions:
       PRECISION: keyed on the GROOM DATE `2026-07-30`, not on the day count, which moves every
       midnight. The first genuinely completed groom changes that date, misses this match, and
       the entry decorates stale the same day -- which is exactly when it should.
+  # ---- the ONE canonical_freshness line this lane may touch (2026-09-06) ----
+  # SECTION 3.6 SAYS "canonical_freshness is NOT this lane's", AND THAT STILL STANDS. This single
+  # entry is the one carve-out, delegated in writing by AMEND-BATCH-T-001 A3 and relayed as
+  # ADDENDUM-lane-t-000-nc1-clear-A2.md: the per-file `HANDOFF_BOOT.md` line is this lane's to
+  # disposition, with the PIN as its reason. The condition the amendment set is met -- lane
+  # `lane-t-000-freshness-unstamped` stamped the other seven, so what was an aggregate line naming
+  # eight files is now a per-file line naming one.
+  - id: warn-freshness-handoff-boot-role-pin
+    organ: canonical_freshness
+    match: "ungated-and-unstamped: 1 - protocols/HANDOFF_BOOT.md"
+    ref: "AMEND-BATCH-T-001.md A3 (architect, within the seat that froze BATCH-2026-09-06-NIGHT-CONTRACTS.md), relayed as to-cc/ADDENDUM-lane-t-000-nc1-clear-A2.md; C-3(a) curated-baseline touch"
+    review_date: 2026-09-13
+    auto_clearable_by: "the dawn-list item 'stamp HANDOFF_BOOT.md in the next window together with a PIN re-issue' -- the stamp and the re-upload are ONE act, and neither is a seat's alone"
+    reason: >-
+      STAMPING THIS FILE WOULD BREAK EVERY BOOTED SEAT, WHICH IS WHY IT IS UNSTAMPED. The sha256
+      of `protocols/HANDOFF_BOOT.md` is the ROLE PIN every browser seat carries in its project
+      knowledge and its bundle. A freshness stamp changes the file's bytes, so it changes the
+      hash, so every seat holding the old pin is invalidated until the operator re-uploads --
+      a curated-baseline touch (C-3(a)) and an act no lane may take on its own initiative.
+      The amendment ruled it EXCLUDED from lane 3.15's seven for exactly this reason and put
+      "stamp HANDOFF_BOOT.md together with a PIN re-issue" on the dawn list as ONE coupled act.
+      SO THIS IS A DEFERRAL WITH AN OWNER AND A DATE, NOT AN EXEMPTION: the file genuinely is
+      unstamped, the check is right to say so, and the reason it stays that way tonight is a
+      real constraint rather than a judgement about whether freshness matters here.
+      PRECISION: keyed on the COUNT AND the filename. If a second file joins the unstamped set
+      the count moves to 2, this match misses, and the line re-surfaces as a blocking WARN
+      instead of hiding behind the pin -- which is the whole reason the aggregate shape was not
+      dispositionable and this one is.
