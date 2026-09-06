@@ -1,3 +1,9 @@
+---
+last_reviewed: 2026-09-06
+status: active
+owner: Rob
+---
+
 <!-- scope: meta -->
 
 # Agent Framework — v0.1 stub
@@ -34,7 +40,7 @@ This stub is a placeholder. Actual agent framework requires:
 3. **Integration** with `audit.py` health gate (a new check appended to `ALL_CHECKS` — run `uv run --locked python scripts/audit.py checks` for the live set, so this count can't re-drift)
 4. **Eval suite** validating the agent layer catches the named anti-patterns
 
-Not yet a discrete `BACKLOG.md` item — this stub is the anchor until the framework is scoped (related open items: `[#1]` triangulation-to-every-handoff, which names the agent-framework as one surface; `[#8]` lifecycle hooks). Promote to a discrete backlog task when an AI Council debate sets its scope.
+Not yet a discrete `BACKLOG.md` item — this stub is the anchor until the framework is scoped (related items, both **CLOSED** as of the 2026-09-06 re-read — neither resolves in `tasks/` or `tasks/archive/`, so they are provenance rather than live owners: `[#1]` triangulation-to-every-handoff, which named the agent-framework as one surface; `[#8]` lifecycle hooks). Promote to a discrete backlog task when an AI Council debate sets its scope.
 
 ## Why this is only a stub now (2026-05-29)
 

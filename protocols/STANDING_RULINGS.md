@@ -1,3 +1,9 @@
+---
+last_reviewed: 2026-09-06
+status: active
+owner: Rob
+---
+
 # STANDING_RULINGS.md — the ratified-in-chat rulings agents apply silently
 
 > **What this file is.** One repo file carrying the operating rulings that were ratified
