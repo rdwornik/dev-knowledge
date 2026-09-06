@@ -19,6 +19,44 @@
 
 ---
 
+### 2026-09-06 (m) - CC (Opus 5, INTEGRATOR, batch T): a tripwire fired, exactly as its author intended
+
+**Did:** Merged lane 3.10 (`d76c8e09`), which fixes the ARM-1 calendar RED in the TEST rather than
+in the check, and re-verified the suite's freshness family afterwards because that lane touches
+`scripts/audit.py`.
+
+**Result:** The re-verification found a RED that this window's own merges caused, and it is the
+good kind. `test_the_live_playbook_doctrine_row_shows_its_reconciled_spec_and_a_derived_date`
+asserts `PLAYBOOK` sits at `CLASS_UNGATED_STALE`, with this message:
+
+> "if this ever flips, PLAYBOOK was either re-stamped or gated - both are real events that should
+> be seen, not absorbed"
+
+Lane 3.11 re-stamped PLAYBOOK. So the assertion flipped, the test went red, and that is the test
+performing its function: it is a **tripwire on a transient state**, written to make a re-stamp
+visible rather than silent. It is not a regression and lane 3.11 did nothing wrong; the event the
+tripwire watches for has simply occurred, and the test now needs its owner to re-point it at the
+new true state. Recorded rather than "fixed" here: absorbing it silently is the one outcome its
+author wrote the message to prevent.
+
+`test_validate_doc_rot`'s live-corpus RED is now GREEN - lane 3.10 fixed it without weakening
+anything: `scan_backlog_accretion` and all three thresholds untouched, all five findings still
+firing, the assertion re-derived per-row so it is denominator-free and cannot rot on the calendar
+again.
+
+Still red and still foreign: `test_the_derived_leg_is_warn_class_on_arrival`, hermetic on a
+`tmp_path` fixture that reads no repo file, so no merge in this batch can move it in either
+direction. Its subject is the CLASS, not the corpus - lane 3.15 taking unstamped 8 -> 1 is not the
+lever, and whoever picks it up should not expect it to be.
+
+**Changes:** This entry.
+
+**Abandoned:** Nothing. Correcting the tripwire is production and this seat merges (E-19).
+
+**Next:** nc1-clear, then the wave-1 ship-gate.
+
+**Anchors:** `06b03c80` (the ARM-1 test repair, introduced by `d76c8e09`).
+
 ### 2026-09-06 (l) - CC (Opus 5, INTEGRATOR, batch T): lane 3.15, and what a real re-read finds that a stamp bump does not
 
 **Did:** Merged lane 3.15 (`0d2db2f7`), the lane AMEND-BATCH-T-001 §A3 created in response to this
