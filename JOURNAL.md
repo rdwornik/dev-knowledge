@@ -19,6 +19,45 @@
 
 ---
 
+### 2026-09-06 (h) - CC (Opus 5, INTEGRATOR, batch T): the manifest merge that wedged every lane's commit gate, and why the exemption did not cover it
+
+**Did:** Opened the integrator window for the 2026-09-06 NIGHT batch (batch T), merged the batch-T
+manifest as the first act, hit the ADR-85 pre-push refusal on the push, and then found the larger
+problem: the same unanchored spine entry FAILs `audit.py health`, which is an `always_run`
+pre-commit gate, so it blocked the first COMMIT on every branch in the repo. Twelve lanes were
+wedged at once. Repaired with the ratified two-commit integrator arc.
+
+**Result:** The interesting part is *why* the merge was not exempt. `check_journal_spine_anchor`
+exempts a first-parent spine entry when BOTH hold: it is a `--no-ff` merge of a branch matching the
+RATIFIED lane grammar `worktree-lane-<letter>-<id>-<slug>`, AND a committed manifest declares an
+open batch. The second held from the moment the manifest landed. The first did not: the dispatcher's
+branch is `worktree-batch-t-manifest` -- batch infrastructure, not a lane, and one character class
+away from the grammar. So the batch's own opening act is the single merge the batch exemption cannot
+cover, and it lands *before* any lane exists to notice. Every subsequent
+`worktree-lane-t-000-<slug>` merge IS exempt, which is why this bites exactly once, at the front.
+
+Two paraphrases had to be refused to get the repair right. The check anchors on the SHA a merge
+**INTRODUCED**, never the merge's own hash: a peer's proposed fix named `c004ac8c` itself, which
+would have discharged nothing and looked correct until the next gate run. The nameable commit is
+`71a889ef`, which that merge brought in. And a single-commit branch cannot anchor its own merge --
+which is why the integrator's arc is two commits, substantive work first, and why the index regen
+that was already owed became the first one.
+
+**Changes:** `docs/audits/README.md` regenerated (the one index regen the batch protocol assigns
+the integrator; `c004ac8c` landed 14 files under `docs/audits/`). This JOURNAL entry.
+
+**Abandoned:** Nothing. `--no-verify` was refused in favour of `SKIP=audit-health` -- that ONE hook,
+declared in each commit body, every other gate armed and passing. Resetting `main` to re-merge under
+a lane-grammar branch name was considered and rejected: it rewrites history under twelve live lanes
+to dodge a repair the protocol already specifies.
+
+**Next:** Drain the wave-1 merge queue serially, docs-only first; the range-level push comes last.
+Held off `main` pending the operator's dawn word: lanes 3.8 (intake #71), 3.13 (intake #68), 3.11's
+027 commit, and filings' 027 intake DRAFT -- all `[ratification-pending]`.
+
+**Anchors:** `71a889ef` (the batch-T manifest, introduced by `c004ac8c` -- the merge cannot name its
+own hash), `d8fa77cb` (the audits-index regen, introduced by this arc's merge).
+
 ### 2026-09-06 (g) - CC (Opus 5, INTEGRATOR-2): the window closes on a candidate filed against the right file, after it was recorded against the wrong one
 
 **Did:** Killed a zombie `codex.exe` that outlived its stopped task by roughly nine hours, recorded
