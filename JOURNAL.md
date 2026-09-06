@@ -19,6 +19,43 @@
 
 ---
 
+### 2026-09-06 (f) - CC (Opus 5, INTEGRATOR-2): pre-anchor the v7 architect bundle, the last merge of the session
+
+**Did:** Pre-anchored `docs/handoff-2026-09-06-architect` @ `0bfe074e` — the 2026-09-06 architect
+handoff bundle, 8 files and 1997 insertions — ahead of the merge that closes this integrator seat.
+
+**Result:** The bundle was cut IN the primary checkout rather than a worktree, so for several
+minutes the integrator's own HEAD sat on the producing seat's branch with the bundle untracked. The
+session-end hygiene hook read that as the integrator's dirty tree and asked for it to be committed
+or stashed. **It was neither.** Committing another session's in-flight bundle is how a half-written
+handoff gets sealed, and a bundle is the one artifact whose whole value is that the next seat can
+trust it. The hook was answered by holding and reporting the tree as the producing seat's, not by
+repairing it — the correct response to backpressure that has misattributed its subject.
+
+**The producing seat reported its own verify honestly, which is the part worth recording.** Its
+`/handoff-verify` returned 12 PASS and 1 reported-not-passed, and it declined to call the last one a
+pass: P3 compares live `git branch --show-current` against the boot header's `Destination: main`,
+and it ran the gate from the bundle's own branch, so the mismatch is BY CONSTRUCTION pre-merge and
+resolves at this merge. A seat that laundered that into 13/13 would have produced a cleaner number
+and a worthless gate.
+
+Two live findings the bundle deliberately does not state, carried here so they are not lost with the
+seat: **P7 ship-gate is RED** — 1 hard-fail organ, 36 new/undispositioned WARNs, and 4 `[stale]`
+dispositions matching no live WARN — so tag gate 1 is measurably NOT met tonight. **P6
+`pytest_collected` matches** at doc=4992 / actual=4992, and P4 is clean.
+
+**Changes:** this entry only. The bundle lands with its merge.
+
+**Abandoned:** Nothing.
+
+**Next:** Merge `0bfe074e`, then tear down on the operator's authorization: drop
+`worktree-h0-prep-close`, `docs/journal-preanchor-h0-close` and `docs/handoff-2026-09-06-architect`
+local and remote, each gated on an `--is-ancestor` proof against `origin/main` first, prune
+worktrees, and leave `main` plus `automation/fleet-audit` as the whole branch list.
+
+**Anchors:** `@ARC@` (this entry, introduced by its own merge). Names `0bfe074e` in advance: the
+merge that follows introduces it.
+
 ### 2026-09-06 (e) - CC (Opus 5, INTEGRATOR-2): pre-anchor the H0-PREP close packet, whose two defects were found in review and fixed by the seat that wrote it
 
 **Did:** Reviewed `worktree-h0-prep-close` against code and a live run, returned two confirmed
