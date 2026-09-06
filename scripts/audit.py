@@ -29,6 +29,7 @@ Usage:
 
 from __future__ import annotations
 
+import contextlib
 import importlib.util
 import inspect
 import logging
@@ -4667,6 +4668,17 @@ def check_review_artifact_coverage(repo_path: Path) -> list[Finding]:
             sha_part, _, date_part = ln.strip().partition(" ")
             if sha_part and date_part.strip().isdigit():
                 spine_dates[sha_part] = int(date_part.strip())
+        # BATCHED subject lookup (P2, intake #71) -- a SEPARATE one-shot walk, not folded into
+        # the date format above: `test_spine_date_lookup_stays_batched` pins that literal format
+        # string structurally as a regression guard, so widening it would fail a test that is
+        # correctly guarding against exactly this class of change reappearing as a per-entry
+        # spawn. A second O(1) process is free next to the O(spine) `git log -1 --format=%s`
+        # per entry it replaces below.
+        spine_subjects: dict[str, str] = {}
+        for ln in _ja._git(root, "log", "--first-parent", "--format=%H %s", "main").splitlines():
+            sha_part, _, subject_part = ln.partition(" ")
+            if sha_part:
+                spine_subjects[sha_part] = subject_part
         for sha in _ja.spine_entries(root, "main"):
             # Absent from the map is NOT treated as in-scope: a date we could not read is an
             # unknown, and an unknown must not silently become a WARN against a merge that may
@@ -4674,16 +4686,33 @@ def check_review_artifact_coverage(repo_path: Path) -> list[Finding]:
             # itself -- surfaced by the outer handler if it matters, never guessed at here.
             if spine_dates.get(sha, 0) < _REVIEW_CUTOFF_EPOCH:
                 continue
-            parents = _ja._git(root, "rev-list", "--parents", "-n", "1", sha).split()
-            if len(parents) < 2:
-                continue              # root commit: no first parent to diff against
+            # PARENT LOOKUP FROM THE BATCHED MAP (P2, intake #71), not a fresh `rev-list
+            # --parents -n 1 sha` per entry: `journal_anchor`'s [#588] parent map already holds
+            # every commit's parents from ONE `rev-list --parents --timestamp --all` read (built
+            # here, or already warm from `check_journal_spine_anchor` earlier in CHECK_ORDER), and
+            # a commit's parents are fixed by its own hash -- the map's answer and a fresh git
+            # read of the same sha cannot disagree. Falls back to the original per-sha git call
+            # only if the map genuinely cannot answer (unreachable from any ref even after a
+            # rebuild), which never happens for a sha `spine_entries` itself just produced from
+            # `main`.
+            smap = _ja._spine_map_for(root, sha)
+            if smap is not None and sha in smap.parents:
+                parent_tuple = smap.parents[sha]
+                if len(parent_tuple) < 1:
+                    continue          # root commit: no first parent to diff against
+                first_parent = parent_tuple[0]
+            else:
+                parents = _ja._git(root, "rev-list", "--parents", "-n", "1", sha).split()
+                if len(parents) < 2:
+                    continue          # root commit: no first parent to diff against
+                first_parent = parents[1]
             changed = [ln.strip() for ln
-                       in _ja._git(root, "diff", "--name-only", parents[1], sha).splitlines()
+                       in _ja._git(root, "diff", "--name-only", first_parent, sha).splitlines()
                        if ln.strip()]
             if not _review_is_code_impact(changed):
                 continue
             scanned += 1
-            subject = _ja._git(root, "log", "-1", "--format=%s", sha).strip()
+            subject = spine_subjects.get(sha, "").strip()
             subject_m = _REVIEW_MERGE_SUBJECT_RE.match(subject)
             branch = subject_m.group(1) if subject_m else None
             brought = set(_ja.introduced(root, sha))
@@ -5266,6 +5295,47 @@ def _parallel_workers(n_checks: int) -> int:
     return max(1, min(_PARALLEL_MAX_WORKERS, n_checks))
 
 
+@contextlib.contextmanager
+def _cached_reads():
+    """P3 (intake #71): a read-through file cache for ONE `run_checks` call, keyed on
+    path + mtime.
+
+    Patches `Path.read_text` for the DURATION of this context only -- restored in `finally`,
+    so nothing outlives the run and no cache persists across processes (criterion 6 of #71:
+    library-first, stdlib only, no cross-run state). No check anywhere has to change how it
+    reads a file: many checks independently re-read the same canonical docs (measured: 43% of
+    `Path.read_text` calls across a full run are re-reads of a path already read), so patching
+    the one shared method both checks and helper modules already call covers them all without
+    touching each call site.
+
+    Keyed on `(path, mtime_ns, size)`, not path alone: every check here is documented
+    read-only (Layer-2, no file writes), so no check should mutate a file mid-run, but the key
+    still catches it rather than serving stale content if one ever does. `args`/`kwargs` ride
+    along in the key so a caller passing a different encoding is never served another
+    caller's decoded text.
+    """
+    cache: dict[tuple, str] = {}
+    orig_read_text = Path.read_text
+
+    def cached_read_text(self, *args, **kwargs):
+        try:
+            st = self.stat()
+        except OSError:
+            return orig_read_text(self, *args, **kwargs)
+        key = (str(self), st.st_mtime_ns, st.st_size, args, tuple(sorted(kwargs.items())))
+        if key in cache:
+            return cache[key]
+        text = orig_read_text(self, *args, **kwargs)
+        cache[key] = text
+        return text
+
+    Path.read_text = cached_read_text
+    try:
+        yield
+    finally:
+        Path.read_text = orig_read_text
+
+
 def run_checks(repo_path: Path, checks: Sequence[Callable] | None = None,
                parallel: bool = False, workers: int | None = None,
                telemetry: bool = _TELEMETRY_DEFAULT,
@@ -5364,17 +5434,18 @@ def run_checks(repo_path: Path, checks: Sequence[Callable] | None = None,
         durations[index] = _elapsed_ms(start)
         return out
 
-    if not parallel:
-        slots = [_run_one(i, check) if runs[i] else _deferred(check)
-                 for i, check in enumerate(active)]
-    else:
-        width = workers if workers is not None else _parallel_workers(sum(runs) or 1)
-        slots = [_deferred(c) if not runs[i] else [] for i, c in enumerate(active)]
-        with ThreadPoolExecutor(max_workers=max(1, width)) as pool:
-            futures = {pool.submit(_run_one, i, check): i
-                       for i, check in enumerate(active) if runs[i]}
-            for future in as_completed(futures):
-                slots[futures[future]] = list(future.result())
+    with _cached_reads():
+        if not parallel:
+            slots = [_run_one(i, check) if runs[i] else _deferred(check)
+                     for i, check in enumerate(active)]
+        else:
+            width = workers if workers is not None else _parallel_workers(sum(runs) or 1)
+            slots = [_deferred(c) if not runs[i] else [] for i, c in enumerate(active)]
+            with ThreadPoolExecutor(max_workers=max(1, width)) as pool:
+                futures = {pool.submit(_run_one, i, check): i
+                           for i, check in enumerate(active) if runs[i]}
+                for future in as_completed(futures):
+                    slots[futures[future]] = list(future.result())
 
     if db is not None:
         for index, (check, slot) in enumerate(zip(active, slots)):
