@@ -219,3 +219,89 @@ def test_a_fresh_repos_default_branch_classifies(tmp_path):
     names = vbn.local_branches(str(tmp_path))
     assert names == ["main"]
     assert vbn.classify(names[0]).kind == vbn.KIND_DEFAULT
+
+
+# --- the LANE-BRANCH SET (batch U, lane-u-000-branch-enum-parity) ------------
+#
+# `[#514]` single-sourced `batch_manifest`'s rival lane regex onto `LANE_BRANCH_RE`. The half
+# that stayed open was every OTHER organ that restated a lane test in its own words, and the
+# measured cost was `validate_substrate` leg 5 refusing 13 of 72 declared contract pairings --
+# every one of the 13 a `claude/<slug>` cloud lane that `classify()`, in this same module,
+# called conforming. These tests pin the SET, and pin what it deliberately excludes.
+
+
+def test_lane_branch_kinds_holds_exactly_the_machine_produced_lane_kinds():
+    """One member per `LANE_PREFIXES` entry, minus the one that is not a dispatched lane.
+
+    Asserted as an exact equality rather than a membership sweep: this constant widens what
+    the batch teardown and the ADR-110 exemption can see, so a member arriving by accident
+    is the failure mode worth catching.
+    """
+    assert vbn.LANE_BRANCH_KINDS == frozenset({
+        vbn.KIND_BATCH_LANE, vbn.KIND_EPIC_LANE,
+        vbn.KIND_CLOUD_LANE, vbn.KIND_AUTOMATION_LANE,
+    })
+
+
+def test_the_lane_set_is_derived_from_classify_not_re_listed():
+    """Every member is a kind `classify()` can actually return, and every one comes from a
+    ruled prefix in `LANE_PREFIXES`. This is what keeps "a new machine-produced lane prefix
+    enters the enum only via a recorded ruling" true of the SET as well as of the prefixes:
+    a name cannot become a lane branch here without becoming one there first."""
+    assert vbn.LANE_BRANCH_KINDS <= vbn.CONFORMING_KINDS
+    # Constructive, not a count. `LANE_PREFIXES` and `LANE_BRANCH_KINDS` are both length 4
+    # and that coincidence proves nothing: `worktree-` yields TWO kinds (`batch-lane` and
+    # `worktree`) and only the first is in the set. So build a witness name per ruled prefix
+    # and require `classify()` to return a member of the set for each.
+    witnessed = {vbn.classify(n).kind for n in (
+        "worktree-lane-a-1-x", "epic/x", "claude/x", "automation/x")}
+    assert witnessed == vbn.LANE_BRANCH_KINDS
+    # ... and the kind deliberately left OUT is genuinely reachable, or that exclusion
+    # would be vacuous.
+    assert vbn.classify("worktree-scratch").kind == vbn.KIND_WORKTREE
+    assert vbn.KIND_WORKTREE not in vbn.LANE_BRANCH_KINDS
+
+
+@pytest.mark.parametrize("name", [
+    "worktree-lane-a-1-x",
+    "worktree-lane-u-000-branch-enum-parity",
+    "claude/lane-t-000-aj-research",
+    "epic/some-epic",
+    "automation/fleet-audit",
+])
+def test_is_lane_branch_admits_every_ruled_lane_form(name):
+    assert vbn.is_lane_branch(name) is True
+
+
+@pytest.mark.parametrize("name", [
+    "main",
+    "feat/thing",
+    "docs/night2-anchor-1",
+    "worktree-scratch",              # native CC worktree -- a branch, not a dispatched lane
+    "worktree-lane-nope",            # `worktree-lane-...` off the batch grammar
+    "sandbox/lane-f-0-x",            # an unruled prefix
+    "",
+])
+def test_is_lane_branch_refuses_everything_outside_the_set(name):
+    """Includes the two shapes most likely to be swept in by a careless widening: a bare
+    native worktree (conforming BRANCH, not a lane) and a serial-arc `docs/` branch, which
+    is what an integrator's own record-keeping rides. Exempting either would forgive a
+    merge no batch declared."""
+    assert vbn.is_lane_branch(name) is False
+
+
+def test_is_lane_branch_is_not_interchangeable_with_the_batch_grammar():
+    """THE DISTINCTION, pinned. `LANE_BRANCH_RE` is one member's grammar; `is_lane_branch`
+    is the set. Callers that mean "a batch lane with a seeded worktree" must keep the
+    regex — collapsing the two in either direction is the drift this lane closed."""
+    cloud = "claude/lane-t-000-aj-research"
+    assert vbn.is_lane_branch(cloud) is True
+    assert vbn.LANE_BRANCH_RE.match(cloud) is None
+
+
+def test_is_lane_branch_strips_a_remote_segment_like_classify_does():
+    """It is `classify()` underneath, so the remote handling is not a second implementation
+    that could diverge — `origin/` is stripped, an unruled first segment is not."""
+    assert vbn.is_lane_branch("origin/claude/lane-t-000-aj-research") is True
+    assert vbn.is_lane_branch("upstream/claude/x", remotes=("upstream",)) is True
+    assert vbn.is_lane_branch("upstream/claude/x") is False

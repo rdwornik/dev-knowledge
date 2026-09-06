@@ -84,11 +84,18 @@ _SCRIPTS = Path(__file__).resolve().parent
 if str(_SCRIPTS) not in sys.path:  # importable both as a module and as a script
     sys.path.insert(0, str(_SCRIPTS))
 
-# The lane-branch enum is IMPORTED, never restated. `batch_manifest` imports the same symbol
-# for the ADR-110 exemption, so the enum leg 5 checks and the enum the exemption grants on are
-# the SAME object — which is the whole point: a copy could drift, and a drifted copy would
-# report coverage the teardown does not actually have.
-from validate_branch_naming import LANE_BRANCH_RE  # noqa: E402
+# The lane-branch enum is IMPORTED, never restated. `batch_manifest` imports from the same
+# module for the ADR-110 exemption, so the enum leg 5 checks and the enum the exemption grants
+# on come from ONE definition — which is the whole point: a copy could drift, and a drifted
+# copy would report coverage the teardown does not actually have.
+#
+# WHICH symbol changed, and why (this lane). Leg 5 imported `LANE_BRANCH_RE` — the BATCH-lane
+# grammar — and so asked a narrower question than the one it is written to ask. Three ruled
+# lane kinds (`claude/<slug>`, `epic/<slug>`, `automation/<slug>`) are lane branches that
+# grammar cannot express, so every cloud lane was refused by a validator whose sibling
+# `classify()` called the same branch a conforming `cloud-lane`. `is_lane_branch` is the set;
+# the regex is one member's grammar. See `validate_branch_naming.LANE_BRANCH_KINDS`.
+from validate_branch_naming import is_lane_branch  # noqa: E402
 
 logging.basicConfig(format="%(name)s: %(message)s", level=logging.INFO)
 logger = logging.getLogger("validate-substrate")
@@ -104,6 +111,12 @@ RULE_SECOND_LOCAL_WRITER = "substrate-second-local-writer"
 #: Leg 5 (batch E, prerequisite 0a). ADR-116 sat stranded on `claude/lane-f` until a window
 #: close because the batch teardown iterates an enum that cannot see a cloud lane. This makes
 #: that a FREEZE-time refusal rather than an integration surprise.
+#:
+#: AMENDED (this lane): the leg now reads `validate_branch_naming.is_lane_branch` — the whole
+#: ratified lane SET — where it read `LANE_BRANCH_RE`, one member's grammar. A cloud lane on
+#: `claude/<slug>` no longer trips it, because a cloud lane IS in the enum a teardown
+#: iterates; what the old predicate proved was only that the enum's own reader disagreed with
+#: `classify()`. The refusal that remains is a branch outside the enum altogether.
 RULE_TEARDOWN_ENUM = "substrate-teardown-enum-coverage"
 #: Leg 6 (batch E, CUT-3(c)). The cut collapsed two colliding doctrine lanes into one and
 #: stripped a file from a third's scope; it then required that disjointness be RE-VERIFIED
@@ -625,24 +638,42 @@ def validate_contract(text: str, *, source: str,
 
     # --- leg 5: the teardown enum must be able to SEE this lane ----------------------------
     #
-    # `LANE_BRANCH_RE` matches `worktree-lane-*` and nothing else, so a `claude/<slug>` cloud
-    # lane or a codespace lane is invisible both to the ADR-110 exemption and to any teardown
-    # that iterates it. ADR-116 is the witness: it sat stranded on `claude/lane-f` until a
-    # window close. Refusing at FREEZE is cheaper than discovering it at integration.
+    # THE PREDICATE IS `validate_branch_naming.is_lane_branch`, and it is NAMED in the refusal
+    # rather than described, so a reader can run the same test the validator ran.
     #
-    # HONEST LIMIT: this checks the branch NAME against the enum. It cannot check that a
-    # teardown actually ran — only that the lane is of a shape an enum-iterating teardown
-    # could reach. A manifest that enumerates the lane by name discharges it, and that is
-    # what the recorded deviation is for.
+    # WHAT THIS LEG USED TO ASK, and why it was the wrong question. It matched `LANE_BRANCH_RE`
+    # — the BATCH-lane grammar, `worktree-lane-<letter>-<id>-<slug>` — so it refused every
+    # cloud lane on `claude/<slug>`, every epic lane and every automation lane, all three of
+    # which are RATIFIED members of the lane enum that `classify()` (same module, same file)
+    # calls conforming. The leg was written to ask "can a teardown that iterates the enum see
+    # this lane"; it was implemented asking "is this one particular member of the enum". The
+    # gap between the two was paid in hand-written `**Substrate deviation:**` prose on every
+    # cloud contract — three of them live on 2026-09-06 alone — which is a workaround for a
+    # question the validator was asking wrong, not a deviation from a rule.
+    #
+    # WHAT STILL REFUSES. A name outside the enum entirely (`unknown`), and a bare
+    # `worktree-<name>` native worktree, which is deliberately NOT in `LANE_BRANCH_KINDS`: it
+    # pairs to no contract file, so an enum-iterating teardown has nothing to attribute it to.
+    #
+    # HONEST LIMIT, unchanged: this checks the branch NAME against the enum. It cannot check
+    # that a teardown actually ran — only that the lane is of a shape an enum-iterating
+    # teardown could reach. Nor does it promise the ADR-110 exemption will fire for the branch:
+    # that rule needs a committed open manifest too, and its per-organ reach is narrower still
+    # (`block_unanchored_push` carries no exemption AT ALL, by ADR-85 containment). A manifest
+    # that enumerates the lane by name discharges this leg, and that is what the recorded
+    # deviation is for.
     branch = lane_branch(text)
-    if branch is not None and not LANE_BRANCH_RE.match(branch):
+    if branch is not None and not is_lane_branch(branch):
         out.append(_apply_override(Refusal(
             rule=RULE_TEARDOWN_ENUM, source=source, substrate=name,
-            detail=(f"pairs to branch {branch!r}, which `LANE_BRANCH_RE` does not match — "
-                    f"the batch teardown and the ADR-110 exemption both iterate that enum, "
-                    f"so this lane is invisible to both (ADR-116 / `claude/lane-f`). Declare "
-                    f"the lane in the manifest and record the deviation, or pair it to a "
-                    f"`worktree-lane-*` branch")), overrides))
+            detail=(f"pairs to branch {branch!r}, which `validate_branch_naming.is_lane_branch`"
+                    f" does not admit — the batch teardown and the ADR-110 exemption both "
+                    f"iterate that enum, so this lane is invisible to both (ADR-116 / "
+                    f"`claude/lane-f`). The enum is `LANE_BRANCH_KINDS` = batch-lane "
+                    f"(`worktree-lane-<letter>-<id>-<slug>`), cloud-lane (`claude/<slug>`), "
+                    f"epic-lane (`epic/<slug>`), automation-lane (`automation/<slug>`); a bare "
+                    f"`worktree-<name>` is NOT a lane. Declare the lane in the manifest and "
+                    f"record the deviation, or rename it to a member of that set")), overrides))
 
     return out
 

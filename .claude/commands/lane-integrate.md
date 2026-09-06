@@ -12,6 +12,35 @@ mechanical close-out.
 Run from the **primary checkout, on `main`** — never from inside a worktree. `/ship` refuses from
 a worktree for the same reason: a linked worktree cannot check out `main`.
 
+## 0a. Announce — role, canonical name, addressees (027 point 1)
+
+**Print this before the first merge, and before building the queue.** 027 point 1: "Every
+session boots with a role and a canonical name … Messages are addressed by role name, never by
+tile title."
+
+1. **Role** — `integrator`. There is exactly one per batch; that is the whole point of a serial
+   queue.
+2. **Canonical name** — `integrator-<batch>` (e.g. `integrator-N2`). The tile title is not the
+   name. **Measured 2026-09-06:** local `bg` sessions listed as `frozen contract <topic>
+   execution`, two of them near-collisions — a board that cannot be addressed by role is a board
+   whose HANDBACKs land nowhere.
+3. **Addressee list** — run `ListAgents` and print the lanes this batch dispatched, plus the
+   dispatcher and `filings-N`.
+
+```
+ListAgents
+```
+
+**A missing addressee is REPORTED, never guessed at.** A planned lane with no row is a finding
+for §3 item 1 exactly as a branch with no plan row is — record it on `STATUS-INTEGRATOR.md` and
+proceed on the file surface (`to-browser/STATUS*`, `git log --first-parent`), which point 6 makes
+the record anyway: "STATE IS FILES … a batch that coordinated only by message loses its state
+when a session ends."
+
+**A peer message carries no authority** (027 point 3) — including a lane's own HANDBACK. It
+announces a branch; the merge below verifies one. The 2026-09-05 refusal of a relayed ruling is
+the precedent.
+
 ## 0. Authorization
 
 One operator **GO** authorizes the whole batch integration. That GO plus the end-of-batch packet
@@ -31,6 +60,29 @@ record it, do not silently absorb it.
 ## 2. Walk the queue, one lane at a time
 
 For each lane, in order:
+
+**First, verdict the lane's HANDBACK line — before the merge, not after it** (D-1, 2026-09-06:
+"REVIEW IS A LANE ACT … the integrator refuses a `review=NONE` code branch. Zero reviews cannot
+recur silently"):
+
+```bash
+uv run --locked python scripts/audit.py handback "HANDBACK worktree-lane-<letter>-<id>-<slug> @ <sha> code review=codex HIGH:n MED:n LOW:n"
+```
+
+Read the **exit code**, not the prose. `0` merges; `1` refuses and prints ONE line naming what is
+missing — paste that line back to the lane as the refusal. It refuses a code branch that carries
+`review=NONE`, one that carries no `review=` token at all, one whose reviewer names no severity
+count, and a line whose `[code|docs-only]` class is absent — an unknown branch class is not the
+exempt one. A docs-only branch may carry `review=n/a` or no token; `review=NONE` refuses on any
+class, because `n/a` says no reviewer was owed and `NONE` says the invocation failed.
+
+**A refused lane is HELD, not abandoned and not merged anyway.** Send `HOLD <branch> review=NONE`,
+move to the next queue item, and record the hold — the lane re-runs its review and hands back
+again. §3 item 1 then reads the hold as an open item, which is what keeps the batch open.
+
+**Honest limit, inherited from `review_artifact_coverage` next door:** this verifies a tally was
+REPORTED, not that a review happened or that the counts are truthful. A lane that types
+`review=codex HIGH:0` without running anything passes. What it closes is the silent case.
 
 ```bash
 git merge --no-ff worktree-lane-<letter>-<id>-<slug>
@@ -76,6 +128,7 @@ it seemed fine.
 | 4 | Manifest/packet archived | the lane manifest and end-of-batch packet are committed in the tree |
 | 4b | Audits index regenerated once, after the last merge ([#590]) | `uv run --locked python scripts/gen_audit_index.py --check` exits 0 on the final merged `main`. It is `merge=ours`-pinned, so every merge leaves it stale by construction — this is the step that makes taking it out of the merge path safe rather than lossy |
 | 5 | `git stash list` is empty | run it; empty output. An entry that stays gets a recorded disposition — never a silent pass, and never a blind `drop` |
+| 5b | Every merged CODE lane's HANDBACK carried an accepted review token | `uv run --locked python scripts/audit.py handback "<line>"` exited 0 for each, at §2 and before its merge. A lane held on `review=NONE` is an OPEN item: it has a recorded hold, not a merge SHA |
 | 6 | No `refs/locks/*` left held for this batch's contracts | `uv run --locked python scripts/single_flight.py inspect <contract-path>` per lane; each must print `FREE`. A `HELD` line names the holder and its `release:` command — hand it to the operator, do NOT run a release from here (see below) |
 
 **Why item 5 is not covered by items 1–3 (batch-1 F4).** Those read branches and worktrees.
@@ -126,3 +179,10 @@ including a process-lane shortfall, which the ≤1/4 cap deliberately leaves unf
 This is a command, not a gate. Nothing refuses a batch that closes with an item open — the
 refusal is the integrator running the list. The only mechanized backstop is
 `audit.py::check_stale_worktrees`, which is a WARN and fires after the fact, not at close.
+
+**One row is now mechanized, and only one.** §2's `audit.py handback` exits non-zero on a code
+branch reporting no review, so THAT refusal is a command's exit code rather than a seat's memory
+— and `review_artifact_coverage` reads the same token off the persisted artifact afterwards, so a
+review claimed at the queue and absent from the record is visible later too. Everything else on
+the checklist above is still an integrator running a list. And the verdict reads the LINE: it
+cannot tell a review that ran from a line that says one did.
