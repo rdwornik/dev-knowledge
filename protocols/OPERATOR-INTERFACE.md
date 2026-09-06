@@ -160,7 +160,7 @@ later turn.** So the transport stays and the chat changes, along these lines:
 | Window | one sitting — a single milestone (ratification / GO / packet) or about 40 turns, then wrap. The bundle and transport make a wrap cheap by design; `turns per window` is a scorecard line |
 | CC output | read from the transport — `STATUS-*`, `LEDGER-<repo>`, `QUESTION-*`, close packets — on "check". A pasted session log counts as a browser-seat defect (form-probe predicate #5) |
 | File size | `STATUS-*` at or under 5 KB with a "now" section on top; history rotates to `archive/` at each batch close; a census reaches the browser as a summary of 40 lines or fewer |
-| Seats | two chats, two models, one project — `seat-judgment` for rulings, freezes and packet reads (rare); `seat-ops` for checks, relays and dispatch questions (frequent, cheap). Shared project memory and shared transport, so both know the same facts |
+| Seats | ONE chat per window, model switched per act (`DECLARE-BROWSER-TOPOLOGY-2026-09-06`). Routine acts — checks, relays, FREEZE, LEDGER refresh — run on the default model; when an act enters the ruling class the chat emits a fixed switch line naming the cost and the files it will read, one Fable turn happens, and the operator switches back. A second parallel chat buys nothing: the cost is context LENGTH, not chat count |
 | Relaying | questions as files plus the LEDGER (inboxes 020 and 028-B) remove the operator's relaying once ratified |
 
 ## 3. Every session ships its exact start command
