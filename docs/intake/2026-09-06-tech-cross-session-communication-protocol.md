@@ -1,5 +1,5 @@
 ---
-intake-id: 72
+intake-id: 74
 status: DRAFT
 origin: Layer-1 browser architect, ARCHITECT-INBOX-2026-09-06 item 027, on the operator's direction of 2026-09-05/06 ("this becomes part of the system"); filed by the filings-N session of batch T under AMEND-BATCH-T-001 §C (Q-F2, "Yes — authorized by this amendment")
 consumed-by:

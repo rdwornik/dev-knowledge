@@ -3,12 +3,12 @@
   "direction": "derived-from",
   "source": "docs/intake/README.md",
   "generator": "scripts/gen_intake_tree.py",
-  "source_sha256": "dd89163b9396b0026ccd22aa06ae0364c08aaff1e8132f91431904428962acbd",
+  "source_sha256": "41ab34eee2fad20d1d6a3d734d5fb1656c71b505137885d7fbe361a1b7cbeb0a",
   "honest_limit": {
     "statement": "ADR-109 section 4 is discharged by a byte-exact round-trip plus a residue manifest, NOT by a derivation ratio. This surface's ratio is INVERTED relative to surface 1 (BACKLOG.md <-> tasks/), where task lines were the majority and residue the minority. Recorded so the generality claim is honest about what was shown.",
-    "item_derived_lines": 65,
+    "item_derived_lines": 66,
     "residue_lines": 281,
-    "total_lines": 346,
+    "total_lines": 347,
     "surface_1_comparison": "inverted -- surface 1 was majority item-derived"
   },
   "not_captured": {
@@ -324,6 +324,10 @@
         "note",
         "origin"
       ],
+      "2026-09-06-tech-copilot-offload-role-and-account-map.md": [
+        "consumed-by",
+        "origin"
+      ],
       "2026-09-06-tech-cross-session-communication-protocol.md": [
         "consumed-by",
         "origin"
@@ -410,7 +414,7 @@
     },
     {
       "t": "line",
-      "v": "**65 intake documents.**"
+      "v": "**66 intake documents.**"
     },
     {
       "t": "line",
@@ -480,7 +484,7 @@
     },
     {
       "t": "line",
-      "v": "### DRAFT (17)"
+      "v": "### DRAFT (18)"
     },
     {
       "t": "line",
@@ -558,17 +562,22 @@
     },
     {
       "t": "item",
-      "file": "2026-09-06-tech-cross-session-communication-protocol.md",
-      "status": "DRAFT"
-    },
-    {
-      "t": "item",
       "file": "2026-09-06-tech-derived-copies-registry.md",
       "status": "DRAFT"
     },
     {
       "t": "item",
       "file": "2026-09-05-tech-shape-spec-tree-seal-to-consumers.md",
+      "status": "DRAFT"
+    },
+    {
+      "t": "item",
+      "file": "2026-09-06-tech-cross-session-communication-protocol.md",
+      "status": "DRAFT"
+    },
+    {
+      "t": "item",
+      "file": "2026-09-06-tech-copilot-offload-role-and-account-map.md",
       "status": "DRAFT"
     },
     {
