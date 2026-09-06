@@ -94,6 +94,23 @@ it here):
 - Lean **task-state** — a pointer to `BACKLOG.md` + live branches + any drift-flag; never
   re-narrated IDs.
 
+**v7.1 delta** (spec: `protocols/HANDOFF_PROCESS.md` §5 "v7.1 — the probe-core is ROWS" and
+"P8's two legs, and P11" — read it there, do not restate it here). Three things change what the
+generator emits, and all three are already carried by the templates:
+- **`PROBES.md` is rows plus one pointer.** Per-block rationale and per-row doctrine live at §5.
+  The driver is a measured cost: the assembled paste has a 20,000-byte ceiling
+  (`assemble_paste.PASTE_BYTE_CEILING`) and the browser re-bills the whole paste every turn.
+  Do not reintroduce explanatory prose into the rendered bundle to "help the seat" — it is the
+  largest template-controlled term in the paste, and §5 is one hop away for a seat that has CC.
+- **P8 is two legs** — P8a the bundle census plus *answers cite FILES, not chat turns*; P8b the
+  transport-grammar leg (`STATUS-<seat>.md` ≤ **5,000 bytes**, first `## ` heading is "now" —
+  the threshold is bytes because "5 KB" reads as either 5,000 or 5,120, and §5 pins the former).
+- **P11 is REQUIRED, and its absence is now structural.** A bundle cut on or after the v7.1 era
+  date whose `PROBES.md` carries no P11 row FAILs `scripts/verify_handoff_probes.py`. Its
+  predicate is an ANCHORED, VALUED `carried-by:` — flush-left in the file head, resolving on
+  `main` or the literal `OPEN`. A bare substring test is a different and broken check: it is
+  satisfied by any file that merely *discusses* carriage, including P11's own specification.
+
 **Mode: `architect | execution`** (governed by `protocols/HANDOFF_PROCESS.md`
 §13 — read it, don't restate it here). The generator takes an optional mode parameter, default
 `execution`, selecting the residual **profile** + browser **posture**. Parse it alongside the

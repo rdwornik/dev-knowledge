@@ -3084,6 +3084,94 @@ Dispatch-Codespace -Contract <FILE.md> [-Slug <name>] [-Repo <owner/repo>] [-Bra
   unchanged and still open: a codespace clone sits silently behind `origin/main` (measured 50
   commits, with `git status` looking unremarkable until read closely).
 
+**5 — HARVEST a dead codespace lane** (recover uncommitted work before retention deletes it):
+
+```
+Harvest-Codespace <codespace-name> -Lane <slug>
+Harvest-Codespace <codespace-name> -Lane <slug> -DryRun
+```
+
+- **Not a fifth substrate, and not a Dispatch verb.** It creates nothing and starts nothing —
+  it READS a finished lane back, exactly as `Harvest-Cloud` does for row 2. One name shape per
+  substrate, so an operator who knows either knows the other.
+- **When:** a lane whose receipt says `FAILED`, `STALL` or `ADMISSION`, or one the idle timeout
+  reaped. Those lanes have usually still done work — a staged index, edits in the tree, sometimes
+  an entire lane one `git push` short of surviving — and the retention period deletes all of it.
+  Run this **before** `Stop-DispatchCodespace`, and long before retention expires.
+- **Argument shape:** the codespace **name** (`gh codespace list` → `name`), not its display
+  name — they differ, and every `gh codespace` subcommand wants the former. `-Lane` names the
+  output file and defaults to the codespace name.
+- **Receipt:** `<PROMPTS_DIR>\to-cc\RECOVERED-<lane>.patch` — `git diff --cached` and `git diff`
+  concatenated, which `git apply` accepts. `Recovered=$false` with `Bytes=0` is an **answer, not
+  a failure**: the dead lane had a clean tree. An existing patch is a **refusal** without
+  `-Force`, because a second harvest that replaced the first would destroy the only copy of a
+  lane that no longer exists.
+- **Untracked CONTENT is in the patch, and that is the load-bearing half.** A lane's deliverable
+  is most often a *new file*, which is exactly what `git diff` and `git diff --cached` are blind
+  to — they describe changes to things git already knows about. Measured 2026-09-06: a sweep
+  built on `git diff HEAD` captured **0 bytes** for a lane whose entire 1024-line deliverable was
+  untracked, and reported success. Each untracked file is rendered as a normal add hunk
+  (`git diff --no-index` against `/dev/null`) into the same patch, so `git apply` restores it
+  with everything else. `RECOVERED-<lane>.untracked.txt` lists them beside it as an index.
+  Enumeration uses `--porcelain -uall`: the default collapses an untracked *directory* to one
+  row, and a lane that created a directory of new files would otherwise recover as a single line
+  naming the directory.
+- **Transport is `ssh … cat`, not `cp`** — measured, not preferred. The `cp` leg has failed three
+  distinct ways on this transport (a home-relative destination exiting 0 having written nothing;
+  literal single quotes landing *in* the filename under OpenSSH 9+; an absolute path resolved
+  against `$HOME`). Each has a fix and all three are carried in row 4, but a recovery path is
+  where a hollow success is least affordable: there is no second attempt on a deleted codespace.
+  `cat` puts the bytes on stdout, where an empty answer is visibly empty. This is the path that
+  worked by hand on 2026-09-06.
+- **It does not mutate the dead lane** — no `git add`, no stash, no commit, and **nothing
+  written inside the worktree**: the helper and both outputs live under `/tmp`. Writing them
+  into the workspace was self-defeating as well as unsafe — the patch and the script are
+  themselves untracked files in the repo, so the untracked sweep captured the harvest's own
+  output as part of the lane's work.
+- **A broken collection is not an empty lane.** Outside a git worktree it exits 95, on a failing
+  `git` command 96, and the verb returns `Ok=$false` naming the cause. An empty patch from a
+  broken harvest is byte-identical to one from a genuinely clean lane, and reporting both as
+  "nothing to recover" is how an operator stops looking for work that is still there.
+
+##### `DONE` means a commit on origin — the witness both off-machine rows carry
+
+**A lane that ran cleanly and committed nothing used to report DONE, on 2 of 2 substrates.** The
+codespace receipt read its status off claude's own result event — `is_error: false` became `DONE`
+— and a clean claude exit says the *session* ended well, not that the lane committed.
+`Get-CloudSession` read `State` off the API record, which is the session's **lifecycle** and not
+the work's: `completed` is equally true of a lane that pushed a branch and one that read three
+files and stopped.
+
+Both rows now carry a **witness**: `git ls-remote` for the lane's own branch, against a baseline
+sha captured **before** the work started. A ref that is absent, or present and unmoved, is a lane
+that pushed nothing — and the `DONE` over it becomes `FAILED` carrying that reason. `DONE` is the
+**only** status gated: a `STALL`, an `ERROR` or an `ADMISSION` refusal already carries a reason
+that was actually established, and overwriting it would trade a true diagnosis for a useless one.
+
+- **Read `Verdict`, not `Ok`.** Row 4 already asks you to read `Ok` and `RemoteExitCode`
+  separately; `Verdict` is the third answer and the only one about the *work*. A lane that ran
+  cleanly and landed nothing scores well on the first two.
+- **Three outcomes, not two.** "The lane did not commit" and "we could not tell" are different
+  findings and get different words: an *established* absence is `FAILED`, an unestablished one
+  is `UNWITNESSED`. Reporting a transient `ls-remote` failure as `FAILED` would claim a failure
+  nothing established — the mirror image of the unearned success this gates, and a defect the
+  first version of the mechanism shipped with until review caught it.
+- **`UNWITNESSED` is what you get when the question could not be asked:** origin unreachable, no
+  `-LaneBranch` on a cloud read, or a ref that exists with **no dispatch-time baseline** — a
+  branch a previous run left behind satisfies "the ref is there" without this session having
+  pushed anything. An empty baseline that was actually *captured* is a finding ("the ref did not
+  exist when the work started") and does license a `DONE`; an absent one does not.
+- **`git ls-remote`, not `git rev-parse origin/<branch>`.** A remote-tracking ref is a cache of
+  the last fetch, not the remote. A witness built on it reports DONE for a push that did not
+  happen — which is the whole failure class this subsection exists to remove, reintroduced one
+  layer down.
+- **The codespace lane boot check gates on `pre-commit` too,** alongside `claude`, `uv`,
+  `python3`, reaching origin, and the contract file having actually landed. An absent
+  `pre-commit` is the one miss that is *invisible* at the moment it matters: the lane commits
+  happily with every hook unarmed and pushes work no gate ever saw. `gh` stays gated on
+  **broken, not absent** — the 2026-09-01 measurement that a container without `gh` still ran a
+  lane correctly is preserved, and only `gh auth status` *failing* refuses.
+
 ##### Where the contract file lives — two homes, one of them in the tree
 
 **The prompts dir** is the operator-side home: `$env:CLAUDE_PROMPTS_DIR`, defaulting to

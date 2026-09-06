@@ -322,6 +322,103 @@ alone regresses):
 - The empirical dogfood above therefore re-runs **structurally on every bundle** via the
   gate, not once at promotion.
 
+### v7.1 — the probe-core is ROWS; this section is the prose (tightening [#611])
+
+[#611] moved the probe *contract* here and left the per-block rationale in the rendered
+`PROBES.md`. The v7.1 cut finishes the move: **`PROBES.md` carries rows plus one pointer, and
+every line of doctrine about a row lives here.** The reason is a measured cost, not tidiness —
+the assembled paste has a 20,000-byte ceiling (`assemble_paste.PASTE_BYTE_CEILING`), the browser
+re-processes the whole paste on **every turn of the window** (inbox 030), and `PROBES.md` is the
+largest template-controlled term in it. Prose that a seat reads once, billed every turn, is the
+definition of the wrong place to keep it.
+
+Three per-block rationales relocated here from the rendered bundle, unchanged in force:
+
+- **P0 exists because a rule with no probe has no teeth.** The standing authorities (live epic
+  themes + accepted intakes) were a §13 prose rule that failed three consecutive windows.
+  **Deterministic legs only** (the RM-4 / S3d boundedness law): whole-set grooming is an arc, not
+  a probe (JOURNAL 2026-07-26 (h)). **P0c is a NAME-MATCH by amendment A2** — "does the Purpose
+  *serve* this authority" is a judgment a probe cannot terminate on, and a leg that cannot fail
+  honestly discredits the block.
+- **P0b quotes TITLES, not wave detail (terra H3).** Wave content is unstructured prose, so
+  quoting it would overclaim determinism — the RM-4 law applied to the row's own design.
+  Wave-level teeth need the intake schema to first gain a required, machine-locatable
+  plan-of-record heading; that is an intake-schema change owned by `docs/intake/README.md`,
+  offered as an option and not assumed here.
+- **P1 is a forced exact-line read, not a description.** "What is this project" is
+  summary-bluffable and fails condition 1; copying VISION into the bundle is barred by §2/§3. So
+  the line enters the session only by CC reading the **live** primary source, and a quote that is
+  not a **substring** of it is a FAIL. The grep is a tool that confirms the frame — **the backlog navigates**
+  (§13c), not this read.
+
+**P3's command carries a REQUIRED fourth leg.** `git rev-list --left-right --count
+origin/main...main` is not redundant with `git status -sb`: `status -sb` reports the
+**checked-out** branch's upstream, not `main` vs `origin/main`, and prints no divergence at all
+when the branch has no upstream. A P3 run missing that leg has not answered P3.
+
+### P8's two legs, and P11 — decision carriage (v7.1)
+
+**P8 is two legs, and a FAIL on either is a FAIL.** Leg **P8a** is the bundle census — file count, supplement
+presence, ANSWERS fill-state — plus the citation form: **each filled answer cites a FILE**, a repo
+path or a transport path, not a chat turn. A chat-only citation is a FAIL. This is inbox 029
+rule 1 given teeth: *anything decided in a browser chat that changes what CC or the operator will
+do is written to the transport or the repo in the same turn, or it does not exist.* Leg **P8b** is
+the transport-grammar leg (inbox 030 rule 3): each `STATUS-<seat>.md` is **≤ 5,000 bytes** and
+its **first `## ` heading is the "now" section**. The threshold is stated in BYTES on purpose —
+030 writes it as "5 KB", and 5 KB is 5,000 or 5,120 depending on which convention the reader
+brings. A probe whose threshold has two readings is not bounded-deterministic (condition 4), and
+a file measured at 5,114 bytes sits between them. **5,000**, matching the decimal convention the
+repo's other two byte budgets already use (`PASTE_BYTE_CEILING` 20,000,
+`HANDOFF_BOOT_BYTE_BUDGET` 18,000). Both are properties of files written after the
+bundle was cut, which is exactly why the bundle can carry the rule and not the measurement. The
+grammar itself is one table, at `protocols/OPERATOR-INTERFACE.md` §1 — not restated per bundle.
+
+**P11 — decision carriage.** Every decision file the window puts on the transport — the
+`DECLARE-`, `AMEND-` and `BATCH-` prefixes — carries a `carried-by:` naming the repo home that
+will hold it, and that value either **resolves on `main`** or is the literal **`OPEN`** and is
+named as OPEN in this bundle's residual. A missing carrier FAILs, and the window cannot close on a
+FAIL. Origin: inbox 031 §2, ratified with `DECLARE-BROWSER-TOPOLOGY-2026-09-06.md`.
+
+**The predicate is ANCHORED and VALUED, and that is the whole design.** `carried-by:` appears
+**flush-left in the file head**, and its value looks like a carrier — a path, or `OPEN`. A
+bare substring test is not a weaker version of this check; it is a different and broken check.
+Measured over the thirteen decision files of the 2026-09-06 window: `grep -l 'carried-by:'
+returned 5 of 13`, and **three of those five matched on body prose about something else** — one
+being the batch contract that *commissions P11*, which would have satisfied P11 by quoting it. The
+anchored form returned 13 of 13 on the same population. The generalisation is the rule worth
+carrying, because it recurred against the seat that filed it, in a different file set and a
+different tool, inside an hour:
+
+> **A predicate that matches the DESCRIPTION of an event cannot distinguish the event from its
+> specification.** Any probe whose corpus includes the documents that specify the probe has this
+> hole. Anchor the key, and require the value to be the thing — not merely that the key appears.
+
+The flush-left requirement is the same shape as the `kill-candidates:` commit-msg gate, for the
+same reason. **The enum is three prefixes by decision, not by accident:** 031 §2 names
+`DECLARE-`/`AMEND-`/`BATCH-` because those are the shapes that RULE. `ADDENDUM-`, `FINDING-` and
+`RULING-RELAY-` files are measurements and relays that carry no authority (C-1), so they are
+outside the enum; widening it is a ruling, not a lane's call.
+
+**What the value leg does NOT prove, stated so it is not overclaimed.** It tests that the named
+home EXISTS on `main` — not that the decision has been written INTO it. A carrier naming a real
+file whose body says nothing about the ruling resolves. Measured on the 2026-09-06 window:
+`DECLARE-R6-HANDOFF-EXCEPTION.md` declares itself OPEN in its own words *and* names three homes,
+one of which exists, so the mechanical leg classifies it RESOLVES. That is correct by the letter
+of 031 §2.2, and it is the boundary of what a path-existence test can honestly assert. Closing it
+means comparing the ruling's content against the home's content, which is a judgment, not a
+probe — and a leg that cannot fail honestly discredits the block (R3).
+
+**Evidence-block discipline — report WHAT resolved and FROM WHERE.** A row that reports only
+PASS/FAIL cannot be audited later, and it hides the failure class where an organ reads two sources
+(a shared ref and a per-tree file) and assumes they agree. Every P8b/P11 row reports the file it
+read and the value it found, not a verdict alone.
+
+**A missing required row is not a pass — now structural.** §5's evidence-block contract has always
+said so; from the v7.1 era it is a rung in `scripts/verify_handoff_probes.py`, which FAILs a bundle
+cut on or after the era date whose `PROBES.md` carries no **P11** row. Era-gated for the same
+reason the boundedness rung is: the bundles cut before it are immutable, and condemning the past
+for the present's rule is the one thing "judged by their own era" forbids.
+
 ---
 
 ## 6. Lean task-state — pointer, not narration (#148 b)

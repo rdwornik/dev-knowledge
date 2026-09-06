@@ -177,6 +177,57 @@ def _in_boundedness_era(bundle: str) -> bool:
     """True if `bundle` (a bundle DIR NAME) is judged by the §5 cond. 4 boundedness rung."""
     return bundle_at_or_after(bundle, _BOUNDEDNESS_ERA)
 
+
+# The v7.1 era, and the rows a bundle cut in it must CARRY. §5's evidence-block contract has
+# always said "a missing required row is not a pass" — until v7.1 that sentence had no organ,
+# because every rung above classifies a row that is PRESENT and absence classifies as nothing at
+# all. A bundle could therefore ship without P11 and the gate would report a clean run over the
+# rows that happened to survive: the silent-omission hole, one door along from the toothless one.
+#
+# ERA-GATED for exactly the reason the boundedness rung is (see _BOUNDEDNESS_ERA): the bundles
+# cut before v7.1 are IMMUTABLE committed artifacts that can never grow the row, and the newest
+# of them is what `check_handoff_probes` reads on every commit. Condemning them for a rule
+# written after they were sealed is the one thing "judged by their own era" forbids. The era
+# predicate is `bundle_at_or_after` — the SAME function the boundedness rung and
+# `check_supplement_folded` use, never a second date compare free to disagree with the first.
+_V71_ERA = "2026-09-07"
+_V71_REQUIRED_PROBE_IDS = ("P11",)
+
+
+def _missing_required_rows(bundle: str, rows: list[dict]) -> list[str]:
+    """Required probe ids absent from `rows`, for a bundle judged by the v7.1 era ([] otherwise).
+
+    Matched on the row's `#`-column id, which is the only stable handle a row has: a question's
+    wording is edited freely and a locator is re-bound per repo, but the id is what §5 and the
+    evidence-block contract name. Comparison is case-insensitive and strips ONLY whitespace and
+    markdown emphasis (`*`, `_`, backtick), so `**P11**`, `` `P11` `` and `p11` count as present
+    — the rung exists to catch an OMITTED row, not to police how the id is typeset. It does NOT
+    strip punctuation generally (terra HIGH, 2026-09-07): a blanket `[^A-Za-z0-9]` strip folds a
+    genuinely different id such as `P-11` or `P.11` onto `P11` and PASSes the exact omission this
+    rung exists to catch. An id that is not P11 does not become P11 by being punctuated.
+
+    NARROWED to a bundle that actually HAS probe rows, and the narrowing is deliberate. A
+    `PROBES.md` that parses to zero rows is not a v7.1 bundle omitting P11 — it is a non-probe
+    or non-v5-lineage artifact, the same class `verify()` already returns [] for when there is
+    no `PROBES.md` at all, and `main()` already reports it as "no probes found". Firing the rung
+    there would manufacture a P11 FAIL for every such directory while telling the reader nothing
+    it did not already know.
+
+    THE HOLE IS WIDER THAN "someone ships an empty table", and the wider form is the one that
+    matters (terra P2, 2026-09-07). `parse_probes` yields zero rows for ANY manifest it cannot
+    read as a probe table — a renamed or reworded column header (`_map_columns` maps by NAME and
+    returns None unless all four load-bearing columns are found), a missing separator line, a
+    table mangled by a template edit. Such a bundle is in-era, real, and BROKEN, and it bypasses
+    not just this rung but every present-row rung in this file, while `main()` reports the
+    reassuring "no probes found". That is a bundle-completeness question — "is this a probe
+    manifest at all?" — not a row question, and a row-classifier is the wrong organ to answer
+    it; the generator-side seal is. Recorded here rather than papered over, because the next
+    author of that seal needs to know this door is open."""
+    if not rows or not bundle_at_or_after(bundle, _V71_ERA):
+        return []
+    present = {re.sub(r"[\s*_`]", "", r.get("id", "")).upper() for r in rows}
+    return [pid for pid in _V71_REQUIRED_PROBE_IDS if pid.upper() not in present]
+
 # Dirs excluded from the unique-basename fallback in _resolve_path: VCS internals,
 # nested CC worktree checkouts (`.claude/worktrees/<name>/…` are full duplicate trees),
 # vendored deps, and immutable/aborted/in-progress handoff bundles. A duplicate copy of
@@ -690,7 +741,17 @@ def verify(bundle_path, repo_root=None, cross_repo=False) -> list[ProbeResult]:
     if not probes_file.exists():
         return []
     md = probes_file.read_text(encoding="utf-8")
-    return [_classify(p, repo_root, bundle_path.name, cross_repo) for p in parse_probes(md)]
+    rows = parse_probes(md)
+    results = [_classify(p, repo_root, bundle_path.name, cross_repo) for p in rows]
+    # v7.1: absence is a verdict too. Appended AFTER the per-row results so table order is
+    # preserved for everything that is present, and the synthesized rows read as what they are.
+    results.extend(
+        ProbeResult(pid, "fail",
+                    f"missing required row: a v7.1-era bundle must carry {pid} "
+                    "(HANDOFF_PROCESS §5 — a missing required row is not a pass)",
+                    bundle_path.name)
+        for pid in _missing_required_rows(bundle_path.name, rows))
+    return results
 
 
 def format_findings(results: list[ProbeResult]) -> str:
