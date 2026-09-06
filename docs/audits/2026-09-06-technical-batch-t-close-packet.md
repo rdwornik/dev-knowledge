@@ -20,19 +20,19 @@ owner: Rob
 
 ## 1 · Per-lane before → after
 
-Fifteen lanes after A3 widened the batch by one. **Seven merged, one landed by ruling with no commit,
-one codespace lane handed back and is HELD, one codespace lane produced nothing at all, three cloud
-lanes and one local lane were unmerged at close, one was HELD at the dispatch gate and never
-launched.**
+Fifteen lanes after A3 widened the batch by one. **Ten merged, one landed by ruling with no commit,
+one codespace lane handed back and is HELD, one codespace lane produced nothing at all, one cloud
+lane is BLOCKED awaiting a human, one was HELD at the dispatch gate and never launched, and wave 2
+was a recorded non-launch.**
 
 ```
 LANE  SLUG                          SUBSTRATE   OUTCOME AT CLOSE          MERGE
 3.1   lane-t-000-v2-logs            local       MERGED                    b8f94008  7 files  +327 -27
 3.2   (42-v3-ecosystem)             local       HELD -- NEVER LAUNCHED    --
-3.3   lane-t-000-v4-archive-report  cloud       unmerged at close         --
+3.3   lane-t-000-v4-archive-report  cloud       MERGED on (c) basis       05e1cd0a  1 file  +932
 3.4   lane-t-000-v5-closures        cloud       BLOCKED -- awaiting human --
-3.5   lane-t-000-aj-research        cloud       unmerged at close         --
-3.6   lane-t-000-nc1-clear          local       HANDBACK, hard-fail 2->0  c4fdc4e6
+3.5   lane-t-000-aj-research        cloud       MERGED on (c) basis       e5ff6bbb  1 file  +529
+3.6   lane-t-000-nc1-clear          local       MERGED, hard-fail 2->0    f44b1f58
 3.7   lane-t-000-shape-seal         local       MERGED, FINAL, both halves 6e385c67  1 file   +288
                                                                           815e13c0  3 files  +335 -7
 3.8   lane-t-000-batch-p-audit-speed CODESPACE  attempt 2 HANDBACK, HELD  22f06b21 (not merged; #71)
@@ -44,6 +44,13 @@ LANE  SLUG                          SUBSTRATE   OUTCOME AT CLOSE          MERGE
 3.14  lane-t-628-v1-release         WAVE 2      see §6
 3.15  lane-t-000-freshness-unstamped local      MERGED                    0d2db2f7  7 files  +80 -29
 ```
+
+**"MERGED on (c) basis"** means what it says and is not a handback. A cloud session can receive a
+message and cannot send one, so no handback was physically possible; the integrator merged on the
+recorded basis *"merged on dispatcher's read of a lane that cannot hand back"*, with my explicit
+answer of (c) — **I cannot tell either.** The evidence was the diffstat matching each contract's ONE
+deliverable, and for `v4-archive-report` the operator-consent check that it was REPORT-stage with
+zero deletions. §4.4c records what that basis cost.
 
 Batch scaffolding, for completeness: `c004ac8c` landed the manifest AT DISPATCH before any lane
 (14 files, +3058); `30f0b0a3` drained the spine wedge; `fa18d06a` / `736b5fe7` / `df4f7b61` /
@@ -327,6 +334,35 @@ duplicated.
    and treat any capture whose parts do not reconcile with its own headline as unusable rather than
    as partial.
 
+4b. **THE COUNTERPART FINDING — D-17 fired THREE times tonight, with three unrelated causes and
+   nobody in error.** §4.4a is about instruments that MISREPORT A FIXED WORLD. This is its mirror:
+   **correct measurements of a world that moves underneath them.** Tonight produced clean instances
+   of both, and this one now has three witnesses with no overlap in cause:
+
+   ```
+   1  the DISPATCH's own manifest merge added 18 findings after step 0        (filings row 27)
+   2  lane 3.7's merges added 2 findings after A1 was written                 (filings row 18)
+   3  the INTEGRATOR's closing merges added 4 findings after every seat had
+      forecast the closing state                                             (this packet, §7)
+   ```
+
+   **A REPORT-stage artifact has no consumer by construction on the night it lands** — the cloud
+   lanes produced exactly what their contracts asked for, and doing so created four findings. No
+   act by any seat was wrong. This is why §4.9's fix must be a CLASS of acceptable residual: any
+   condition that enumerates files is a forecast, and a forecast made about a tree that is still
+   merging is wrong by construction rather than by carelessness.
+
+4c. **THE (c) MERGES HAVE A MEASURABLE PRICE, and it is the fourth symptom of §4.0.** A lane that
+   cannot hand back also **never dispositions its own output** — a handback is the moment a lane
+   declares what its artifact is FOR, and the two cloud lanes had no channel on which to do it. So
+   the substrate gap did not only produce a green receipt over empty work and a refusal that reached
+   nobody; **it also produced four undispositioned findings at the closing gate.** Same root, fourth
+   instalment.
+
+   **This is not an argument against the merges.** Holding that work would have left it unmerged AND
+   equally uncited, which is strictly worse. The right reading is that the substrate gap has a bill,
+   and this was the last instalment of it.
+
 5. **A codespace receipt proves TRANSPORT, not WORK.** The shape
    (`transport-ok-and-remote-exit-code-read-separately`,
    `is-error-false-not-subtype-success`) returned clean over an empty result on BOTH codespace lanes
@@ -425,31 +461,73 @@ acceptable residual rather than an enumerated file list.
 **3.14 was not launched on a partial condition to make the batch look complete.** A recorded
 non-launch is a result.
 
-## 7 · State at close
+## 7 · State at close — the authoritative reading
 
-Measured, not expected. Ship-gate run in git-bash at `89a2fa04` — **before lane 3.6 (nc1-clear)
-landed**, so this is the shape going into wave 1's gate, not the wave-1 result. The integrator's
-decomposed `PACKET-MERGED wave-1` line is the authority on the final reading.
+**`PACKET-MERGED wave-1 @ d5c0750d` — post-nc1-clear, post-cloud, queue drained.** Run by the
+integrator in git-bash, `PYTHONUTF8=1`, **unpiped and redirected to a file**, with the gate's own
+exit read directly rather than a pipe's: `EXIT=1`. 176 lines, 63 WARN findings, 56 dispositioned,
+63 − 56 = 7. No FAIL marker anywhere in the run.
 
 ```
-ship-gate: RED -- not shipped-ready (1 hard-fail organ(s); 52 new/undispositioned WARN(s))
-canonical_freshness  derived ungated-and-unstamped:  1  protocols/HANDOFF_BOOT.md
-canonical_freshness  derived gated-and-stale:        1  CLAUDE.md
-canonical_freshness  derived ungated-and-stale:      1  protocols/OPERATOR-INTERFACE.md
-STALE dispositions:  4  -- the four the operator consented to remove
+VERDICT           RED -- not shipped-ready (7 new/undispositioned WARN(s))
+hard-fail         0
+undispositioned   7
+dispositioned     56   (all resolved as expected; no [stale] entry)
 ```
 
-**Lane 3.15's deliverable is visible in that reading: `ungated-and-unstamped` is 1, down from the 8
-that made wave-1 GREEN unreachable, and the remaining 1 is the ROLE-PIN file excluded by ruling.**
+**EVERY RESIDUAL WARN, BY ORGAN AND FILE** — the form A1 requires, so that a count can never stand
+in for a decomposition:
 
-Against A1's re-issued launch condition, which tolerates only `CLAUDE.md` and/or
-`protocols/HANDOFF_BOOT.md`: two of the three surviving freshness rows are tolerated by name. The
-third, `protocols/OPERATOR-INTERFACE.md`, **is precisely the file A2 added to lane 3.6's contract**,
-so nc1-clear landing is expected to clear it — and NC1's own commit `dadda5fc` reports
-`undispositioned 52 -> 3`, which is the same 52 this run measured. **If it clears as expected, the
-surviving WARNs are exactly the two A1 tolerates and 3.14 launches; if it does not, the blocking
-organ is recorded BY NAME AND FILE and 3.14 is NOT launched.** A recorded non-launch is a result, not
-a failure, and no partial condition is rounded toward launchable.
+```
+consumer_at_landing  2026-09-06-technical-archive-report-stage.md
+consumer_at_landing  2026-09-06-technical-research-aj-thesis-catalogue-and-deployment-model.md
+funnel_coverage      2026-09-06-technical-archive-report-stage.md
+funnel_coverage      2026-09-06-technical-research-aj-thesis-catalogue-and-deployment-model.md
+funnel_coverage      2026-09-06-technical-seal-report-corp-monorepo.md
+undeclared_edges     docs/intake/2026-09-05-tech-shape-spec-tree-seal-to-consumers.md -> handoff-process
+canonical_freshness  gated-and-stale: CLAUDE.md
+```
+
+**hard-fail 0 is the headline.** The batch's hard failures are GONE — lane 3.6 took them 2 → 0 — and
+everything remaining is bookkeeping about what cites what. `funnel_lifecycle` and `proof_layer` both
+returned OK; the disposition block resolved with no `[stale]` entry, including all three
+`substrate_declaration` cloud entries and NC1's `warn-freshness-handoff-boot-role-pin` covering the
+`HANDOFF_BOOT.md` line A3 excluded by ruling.
+
+**Three seats independently forecast 3, and all three were RIGHT.** This dispatcher, lane 3.6 and
+filings-N each predicted `CLAUDE.md`, the shape-spec edge and the seal-report funnel row. All three
+are present. **The other four did not exist when any of us measured** — they are the two cloud-lane
+audits, each landing as a new `docs/audits/` artifact that no governance surface cites and that
+carries no disposition, so **each trips BOTH `consumer_at_landing` and `funnel_coverage`**. Two
+files, four findings:
+
+```
+2026-09-06-technical-archive-report-stage.md                              merged 05e1cd0a
+2026-09-06-technical-research-aj-thesis-catalogue-and-deployment-model.md merged e5ff6bbb
+```
+
+**THIS BATCH PRODUCED THREE DISTINCT SHIP-GATE READINGS AND THEY DISAGREE FOR REAL REASONS, NOT
+INSTRUMENT REASONS.** Anyone comparing them at dawn should see immediately that the TREE MOVED
+between them — that is the whole point of §4.9:
+
+```
+89a2fa04  dispatcher  RED  hard-fail 1  undispositioned 52   pre-nc1-clear
+c4fdc4e6  lane 3.6    --   hard-fail 0  undispositioned  3   post-nc1, pre-cloud
+d5c0750d  integrator  RED  hard-fail 0  undispositioned  7   post-cloud, queue drained  <-- AUTHORITATIVE
+```
+
+**3.14 STAYS NOT LAUNCHED, and the ruling is better supported than when it was made.** A1 admits
+only a `canonical_freshness` line naming `CLAUDE.md` and/or `protocols/HANDOFF_BOOT.md`. The measured
+residual is **7 findings across 4 organs, of which exactly one is admissible.** The verdict was made
+against a forecast of 3; the measured 7 changes the margin, not the outcome. The §6 record stands
+unamended.
+
+**Nothing was dispositioned to reach GREEN, and the integrator's refusal is the right one to
+record.** Four of the seven arose from the integrator's own closing merges; dispositioning them
+would have been the author of a signal absorbing it, which E-19 puts out of reach regardless of
+intent. Each of the four is one line of work for an owner who can say what the artifact is FOR; two
+belong to lane 3.7 and the H0 seal arc; the last is 3.14's own act. **The batch closes RED, honestly,
+with every residual named and owned** — not GREEN by absorption.
 
 See `to-browser\SESSION-dispatcher.md` for the session-level record and
 `to-browser\STATUS-DISPATCHER.md` for the step-0 evidence board.
