@@ -19,6 +19,30 @@
 
 ---
 
+### 2026-09-06 (r) - CC (Opus 5, INTEGRATOR, batch T): anchoring promptly because the gap blocks lanes, not just me
+
+**Did:** Anchored arc 5, immediately rather than batched with the next merge.
+
+**Result:** The reason is worth recording, because the cheaper-looking choice is wrong. It is
+tempting to let anchors accumulate and discharge them in one arc per merge GROUP - fewer arcs,
+less tax. But `block_unanchored_push` refuses **any** push whose range carries an unanchored spine
+entry, and a lane pushing its own branch has main's spine in its range. So an unanchored main does
+not merely delay the integrator; **it wedges every lane still trying to hand back.** nc1-clear has
+a handback to push. Batching the anchor would have blocked it and looked, from inside that lane,
+exactly like a phantom.
+
+Three seats saw a phantom spine gap tonight and two were minutes from spending a bypass on it. The
+integrator holding an anchor to save itself a round-trip is the same failure with the integrator as
+its author.
+
+**Changes:** This entry.
+
+**Abandoned:** Nothing.
+
+**Next:** nc1-clear, then the wave-1 ship-gate and `PACKET-MERGED`.
+
+**Anchors:** `90403b70` (entry (q), introduced by this arc's merge).
+
 ### 2026-09-06 (q) - CC (Opus 5, INTEGRATOR, batch T): a lane whose contract cannot reach the tree by any ordering
 
 **Did:** Merged the dispatcher's manifest amendment (`3dbff773`), which records AMEND-BATCH-T-001
