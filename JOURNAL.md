@@ -19,6 +19,85 @@
 
 ---
 
+### 2026-09-06 (v) - CC (Opus 5, INTEGRATOR, batch T): the last anchor, and what the night cost in round-trips
+
+**Did:** Anchored the closing arc. This is the seventh integrator anchor arc of the night and the
+first one taken with batch T already closed, so it earns no exemption at either gate.
+
+**Result:** Worth totalling once, because the number is the argument. **Seven two-commit arcs, one
+per merge group**, existing solely because `check_journal_spine_anchor` exempts a lane merge while
+a batch is open and `block_unanchored_push` exempts nothing. Both organs are correct in isolation.
+The cost of their disagreement was fourteen commits and seven merges that carried no work.
+
+Beside that, **the spine predicate was misread seven times tonight** - the dispatcher three times,
+me once, lane 3.6 once (spending the night's only bypass, which it then un-made and disclosed
+unprompted), lane 3.1 once and diagnosed unaided, plus two lanes talked down minutes before
+spending one. A predicate misread that often by that many careful seats is **a documentation
+defect, not seven lapses**, and it is the highest payoff-to-effort item on the dawn list: the fix is
+one paragraph stating that a merge cannot name its own hash and that the reader must name a commit
+the merge INTRODUCED.
+
+**Changes:** This entry.
+
+**Abandoned:** Nothing. Queue drained, HOLD queue intact at five, no branch merged that should not
+have been.
+
+**Next:** final census and stop.
+
+**Anchors:** `d473a8ba` (entry (u), introduced by this arc's merge).
+
+### 2026-09-06 (u) - CC (Opus 5, INTEGRATOR, batch T): the batch closes RED, honestly, rather than GREEN by absorption
+
+**Did:** Merged the batch-T close packet (`14b9ec30`) on the dispatching seat's explicit word, after
+`PACKET-MERGED wave-1 @ d5c0750d`. **Batch T is closed** - `open_batches` now returns nothing,
+because `_closer_committed` probes for the ABSENCE of the `closed_by:` path and that path now
+exists. The ADR-110 exemption ended at that commit; this arc is the first to pay for it.
+
+**Result — the closing gate.** Run in git-bash, `PYTHONUTF8=1`, unpiped, gate's own `EXIT=1` read
+directly rather than a pipe's: **RED, hard-fail 0, 7 undispositioned** (63 WARN findings - 56
+dispositions = 7, and a decomposition that shows its own subtraction is one a reader can check):
+
+```
+consumer_at_landing  2026-09-06-technical-archive-report-stage.md
+consumer_at_landing  2026-09-06-technical-research-aj-thesis-catalogue-and-deployment-model.md
+funnel_coverage      2026-09-06-technical-archive-report-stage.md
+funnel_coverage      2026-09-06-technical-research-aj-thesis-catalogue-and-deployment-model.md
+funnel_coverage      2026-09-06-technical-seal-report-corp-monorepo.md
+undeclared_edges     docs/intake/2026-09-05-tech-shape-spec-tree-seal-to-consumers.md
+canonical_freshness  gated-and-stale: CLAUDE.md
+```
+
+**Four of the seven are mine, and no seat saw them coming.** Three seats independently forecast
+three residual and all three were right; the other four came from my own closing merges. Each cloud
+audit lands as a new `docs/audits/` artifact that nothing cites and nothing dispositions, so each
+trips two organs at once. **A REPORT-stage artifact has no consumer by construction on the night it
+lands** - that is what report-stage means, and consent 3 ran V4 at report stage deliberately.
+
+That is the third firing of one mechanism tonight, with three actors and no overlap in cause: the
+dispatch adding 18 findings after step 0, lane 3.7's merges adding 2 after A1 was written, my
+closing merges adding 4 after everyone had forecast the close. The property that makes it
+structural rather than unlucky: **here the seat that measures is also the seat that moves the tree,
+and it still could not forecast the close.** If the actor holding both roles cannot, no division of
+labour fixes it.
+
+**I dispositioned none of the seven.** Four are mine, and clearing a gate I authored by
+dispositioning my own merges' artifacts is the precise shape of absorbing a signal - the same
+reason the PLAYBOOK doctrine tripwire is left RED. Each is one line of work for an owner who can
+say what the artifact is for. **The batch closes RED with every residual named and owned, rather
+than GREEN by absorption**, and that is the better close.
+
+**Lane 3.14 stays NOT LAUNCHED**, recorded by organ and file. The measured 7 across 4 organs, one
+of them A1-admissible, widens the margin on a ruling made against a forecast of 3 - it does not
+change it, and the ruling needs no amendment.
+
+**Changes:** `docs/audits/2026-09-06-technical-batch-t-close-packet.md` (630 lines); this entry.
+
+**Abandoned:** Nothing.
+
+**Next:** the final census, `SESSION-integrator.md`, stop. Never a handoff (025).
+
+**Anchors:** `348e3bec` (the closing reading, introduced by `14b9ec30`).
+
 ### 2026-09-06 (s) - CC (Opus 5, INTEGRATOR, batch T): the queue drains, and a seat that reported its own bypass
 
 **Did:** Merged the last three: lane 3.6 `nc1-clear` (`f44b1f58`, 10s), then the two cloud lanes
