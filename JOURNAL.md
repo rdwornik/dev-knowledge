@@ -65,6 +65,8 @@ needed nothing, so the integrator regeneration pass ([#590]) was a no-op this ti
 a fix.
 
 **Anchors:** `7af7cff4` (the lane tip, introduced by merge `0b2bc260`).
+It also names `492e74d4`, this entry's own commit, so this branch's `--no-ff` merge is
+anchored by a SHA that merge introduces -- a single-commit anchor branch cannot anchor itself.
 
 ### 2026-09-07 (f) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): W1-2's hub half lands, verdicted by the organ this batch built four merges earlier
 
