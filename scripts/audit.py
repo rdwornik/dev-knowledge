@@ -4617,6 +4617,160 @@ def _review_is_code_impact(paths: list[str]) -> bool:
     return any(p in _REVIEW_CODE_EXACT or p.endswith(_REVIEW_CODE_SUFFIXES) for p in paths)
 
 
+# --- the HANDBACK review token (D-1, 2026-09-06) -----------------------------------------
+# PLAYBOOK Ch8 "Batch communication" carries 027's message shapes and states their honest
+# limit in its own words: "The shapes are greppable but UNENFORCED -- no organ parses a
+# message or refuses a malformed one, so conformance rests on the seat." D-1 then made
+# review a LANE act ("an empty/failed invocation is `review=NONE` -- and the integrator
+# refuses a `review=NONE` code branch. Zero reviews cannot recur silently"), which is a
+# refusal with nothing to run it. This is the parser those two lines were owed.
+#
+# ONE parser, two readers: `/lane-integrate` reads it per queue item through the `handback`
+# CLI verb, and `check_review_artifact_coverage` reads it over persisted artifacts. A
+# second grammar for the same line is how a doc and a gate come to disagree about what a
+# handback said.
+# The line is parsed as TOKENS, never scanned as prose. terra HIGH x3 (2026-09-06), each
+# with a working input: a whole-line `\b(code|docs-only)\b` scan accepted
+# `HANDBACK <branch> @ <sha> note: docs-only` as a docs-only exemption with no class and no
+# review; a first-match `review=` read accepted `... code review=codex HIGH:0 review=NONE`;
+# and a `(?m)` + `.search` verdict accepted a whole DOCUMENT because one embedded line in it
+# was valid. All three are the same defect -- a fail-closed gate that scans instead of
+# parsing is a gate whose input decides its own grammar.
+#
+# Two regexes, two jobs, one grammar. SCAN finds candidate lines inside a document (markdown
+# decoration and quoting allowed); LINE is anchored and parses ONE line. Everything --
+# the CLI verb, the coverage leg -- goes through LINE, so a document cannot be verdicted as
+# though it were a line.
+_REVIEW_HANDBACK_SCAN_RE = re.compile(r"(?m)^[ \t>*\-]*(?P<line>HANDBACK[ \t]+\S[^\r\n]*?)[ \t]*$")
+_REVIEW_HANDBACK_LINE_RE = re.compile(
+    r"^HANDBACK[ \t]+(?P<branch>\S+)[ \t]+@[ \t]+(?P<sha>\S+)(?P<rest>(?:[ \t]+\S+)*)[ \t]*$")
+_REVIEW_HANDBACK_SHA_RE = re.compile(r"^[0-9a-f]{7,40}$")
+# The class is POSITIONAL -- the token immediately after the sha, per 027 point 2's own
+# shape. Not a search: `docs-only` appearing anywhere in trailing prose must not confer the
+# exemption, and `review=code` must not read as a class.
+_REVIEW_HANDBACK_CLASSES = ("code", "docs-only")
+# `n/a` and `NONE` are VALUES of this token, not separate tokens -- the `/` is why the
+# reviewer charset is not `\w`.
+_REVIEW_TOKEN_RE = re.compile(r"^review=(?P<reviewer>[A-Za-z0-9_./-]+)$")
+_REVIEW_TOKEN_COUNT_RE = re.compile(r"^(HIGH|MED|LOW):(\d+)$")
+_REVIEW_HANDBACK_SHAPE = ("`HANDBACK <branch> @ <sha> [code|docs-only] "
+                          "review=<reviewer> HIGH:n MED:n LOW:n`")
+
+
+def _review_handback_parse(line: str) -> dict | None:
+    """Strict, anchored, SINGLE-line parse of one 027 HANDBACK line, or None.
+
+    None on a multi-line input by design: the CLI verb and the coverage leg both verdict one
+    LINE, and a caller handing a whole document a document-shaped grammar is how a valid
+    docs-only line elsewhere in the file comes to authorise an unreviewed code merge. A
+    document is scanned by `_REVIEW_HANDBACK_SCAN_RE` into lines first, then each line comes
+    back through here.
+    """
+    if not line or "\n" in line or "\r" in line:
+        return None
+    m = _REVIEW_HANDBACK_LINE_RE.match(line.strip())
+    if m is None:
+        return None
+    return {"branch": m.group("branch"), "sha": m.group("sha"),
+            "tokens": (m.group("rest") or "").split()}
+
+
+def _review_handback_tally(tokens: list[str]) -> dict[str, int] | None:
+    """The severity counts a handback line reports, or None when it reports no review.
+
+    None covers every no-review shape at once -- no `review=` token, `review=NONE` (a failed
+    or empty invocation, which C-7 forbids reporting as clean), `review=n/a` (no reviewer was
+    OWED: a docs-only exemption, not evidence), and MORE THAN ONE `review=` token (a line
+    that contradicts itself asserts nothing). A reviewer naming no count at all is also None:
+    `review=codex` alone is a claim that a review happened, and an unfalsifiable claim is
+    precisely what [#480] exists to refuse.
+    """
+    reviewers = [m.group("reviewer") for m in
+                 (_REVIEW_TOKEN_RE.match(t) for t in tokens) if m]
+    if len(reviewers) != 1 or reviewers[0].lower() in ("none", "n/a", "na"):
+        return None
+    if any(t.startswith("review=") and not _REVIEW_TOKEN_RE.match(t) for t in tokens):
+        return None          # a malformed `review=` token is not a second opinion
+    counts = {m.group(1): int(m.group(2)) for m in
+              (_REVIEW_TOKEN_COUNT_RE.match(t) for t in tokens) if m}
+    return counts or None
+
+
+def review_handback_verdict(line: str) -> tuple[bool, str]:
+    """Does this 027 HANDBACK line authorise a merge? Returns (mergeable, ONE-line message).
+
+    THE GAP (D-1, 2026-09-06, and PLAYBOOK Ch8's own honest limit). Measured on this
+    branch's parent: `review=NONE`, `review=codex` and "review token" appeared NOWHERE
+    under scripts/ tests/ .claude/ protocols/. The refusal existed as prose in a batch
+    contract and in no organ, so an integrator refused a review-free code branch only by
+    remembering to -- and the failure D-1 was written to end (a wave where zero lanes ran a
+    review, silently) is exactly the failure a remembered rule permits.
+
+    FAILS CLOSED on every unknown. A line that is not a HANDBACK, a `<sha>` that is not a
+    sha, and a missing `[code|docs-only]` class each REFUSE rather than defer: an unknown
+    branch class must not read as the exempt one. Same posture as `block_ff_push` and
+    `block_unanchored_push`, and for the same reason -- a gate that guesses is a gate that
+    is silent on the input it was built for.
+
+    THE ONE EXEMPTION, quoted from D-1 rather than inferred: "docs-only branches:
+    `review=n/a` allowed". So a docs-only line merges with `review=n/a` or with no token at
+    all. `review=NONE` still refuses on ANY class, because `n/a` and `NONE` say different
+    things: `n/a` is "no reviewer was owed", `NONE` is "the invocation failed".
+
+    SEPARATE FROM `check_review_artifact_coverage` BY RULING, not by taste. That leg is
+    held at WARN-tier by the [#480] P3 ruling pending zero false positives over two
+    windows, and `test_leg_is_structurally_incapable_of_failing` pins the absence of a hard
+    verdict at the source. This is a hard verdict; it belongs beside that leg, never in it.
+
+    HONEST LIMIT, inherited whole from the leg next door: this verifies a tally was
+    REPORTED, not that a review happened, was competent, or that the counts are truthful. A
+    lane that types `review=codex HIGH:0` without running anything passes. It converts an
+    unfalsifiable claim into a checkable one; it does not make it a true one. What it does
+    close is the silent case -- a code branch that says nothing at all.
+    """
+    parsed = _review_handback_parse(line)
+    if parsed is None:
+        return False, (f"REFUSE: not a single HANDBACK line -- expected exactly "
+                       f"{_REVIEW_HANDBACK_SHAPE}, one line, nothing around it")
+    branch, sha, tokens = parsed["branch"], parsed["sha"], parsed["tokens"]
+    where = f"{branch} @ {sha}"
+    if not _REVIEW_HANDBACK_SHA_RE.match(sha):
+        return False, (f"REFUSE {where}: `{sha}` is not a sha (>=7 hex) -- a HANDBACK names "
+                       f"the commit it hands back, never a moving ref")
+    if not tokens or tokens[0] not in _REVIEW_HANDBACK_CLASSES:
+        return False, (f"REFUSE {where}: the token after the sha must be `code` or "
+                       f"`docs-only` -- an unknown branch class is not the exempt one")
+    cls = tokens[0]
+    reviewers = [m.group("reviewer") for m in
+                 (_REVIEW_TOKEN_RE.match(t) for t in tokens[1:]) if m]
+    malformed = [t for t in tokens[1:]
+                 if t.startswith("review=") and not _REVIEW_TOKEN_RE.match(t)]
+    if malformed:
+        return False, (f"REFUSE {where}: malformed review token `{malformed[0]}` -- "
+                       f"expected `review=<reviewer>`")
+    if any(r.lower() == "none" for r in reviewers):
+        return False, (f"REFUSE {where}: review=NONE -- an empty or failed reviewer "
+                       f"invocation is reported as no review, never as clean (C-7)")
+    if len(reviewers) > 1:
+        return False, (f"REFUSE {where}: {len(reviewers)} `review=` tokens "
+                       f"({', '.join(reviewers)}) -- a line that contradicts itself asserts "
+                       f"nothing, and the integrator does not choose between them")
+    reviewer = reviewers[0] if reviewers else None
+    if reviewer is None or reviewer.lower() in ("n/a", "na"):
+        if cls == "docs-only":
+            return True, f"MERGE {where}: docs-only, review=n/a (no reviewer owed -- D-1)"
+        missing = "no `review=` token" if reviewer is None else f"review={reviewer}"
+        return False, (f"REFUSE {where}: code branch carries {missing} -- D-1 owes "
+                       f"`review=<reviewer> HIGH:n MED:n LOW:n`, and `review=n/a` is a "
+                       f"docs-only allowance")
+    counts = _review_handback_tally(tokens[1:])
+    if counts is None:
+        return False, (f"REFUSE {where}: review={reviewer} carries no severity count -- "
+                       f"expected `review={reviewer} HIGH:n MED:n LOW:n`")
+    tally = " ".join(f"{k}:{counts[k]}" for k in ("HIGH", "MED", "LOW") if k in counts)
+    return True, f"MERGE {where}: {cls} review={reviewer} {tally}"
+
+
 def check_review_artifact_coverage(repo_path: Path) -> list[Finding]:
     """[#480] P3 -- ADVISORY leg: a code-impact merge carrying no linked review artifact.
 
@@ -4636,8 +4790,13 @@ def check_review_artifact_coverage(repo_path: Path) -> list[Finding]:
     that reached backwards would demand retro-editing precisely what the ruling forbids
     touching. The date filter is the mechanism that makes "never retro-edited" true.
 
-    LINKAGE IS TWO-LEGGED, either satisfying: by BRANCH (the artifact names the branch in the
-    merge subject) or by an in-range HEAD (the artifact names a commit the merge introduced).
+    LINKAGE IS THREE-LEGGED (D-1 added the third), any one satisfying: by BRANCH (the artifact
+    names the branch in the merge subject), by an in-range HEAD (the artifact names a commit the
+    merge introduced), or by a persisted 027 HANDBACK line, which carries branch, sha AND tally
+    in one line and so admits on its own. The third leg reads `review_handback_verdict` rather
+    than a grammar of its own, so a line the integrator REFUSES is never a line this leg COUNTS:
+    `review=NONE`, `review=n/a` and a countless `review=codex` are no-review shapes in both.
+    That is the same anti-drift discipline the spine walk below already applies.
     The HEAD leg covers a review whose branch was renamed; the BRANCH leg covers a review that
     ran BEFORE a rebase, whose recorded SHA the rebase then rewrote out of the range. An
     artifact naming neither is not evidence for this merge -- otherwise one stale file in
@@ -4689,6 +4848,28 @@ def check_review_artifact_coverage(repo_path: Path) -> list[Finding]:
         if audits.is_dir():
             for p in sorted(audits.glob("*.md")):
                 txt = p.read_text(encoding="utf-8", errors="replace")
+                # THIRD SOURCE (D-1): a persisted SESSION/handback artifact. 027 point 6 --
+                # "STATE IS FILES ... every claim a message makes is expected to be
+                # re-derivable from git and from to-browser/" -- so the line a lane hands
+                # the integrator is the same line that survives it. One HANDBACK carries
+                # branch, sha AND tally, which is why it admits on its own rather than
+                # linking here and landing in `untallied` below. Read through the shared
+                # parser, so a line the integrator refuses is a line this leg does not
+                # count: `review=NONE`, `review=n/a` and a countless `review=codex` are all
+                # no-review shapes here exactly as they are there.
+                for hb in _REVIEW_HANDBACK_SCAN_RE.finditer(txt):
+                    accepted, _ = review_handback_verdict(hb.group("line"))
+                    parsed = _review_handback_parse(hb.group("line"))
+                    if not accepted or parsed is None:
+                        continue
+                    if _review_handback_tally(parsed["tokens"][1:]) is None:
+                        continue
+                    artifacts.append({
+                        "branch": parsed["branch"],
+                        "head": parsed["sha"],
+                        "tally": True,
+                        "file": p.name,
+                    })
                 branch_m = _REVIEW_BRANCH_RE.search(txt)
                 head_m = _REVIEW_HEAD_RE.search(txt)
                 if not _REVIEW_TITLE_RE.search(txt) or not (branch_m or head_m):
@@ -6295,6 +6476,24 @@ def cmd_ship_gate() -> None:
         sys.exit(1)
     click.echo("ship-gate: GREEN — verification organs green against this arc "
                f"({len(dispositioned)} WARN dispositioned)")
+
+
+@cli.command("handback")
+@click.argument("line")
+def cmd_handback(line: str) -> None:
+    """Verdict on ONE 027 HANDBACK line — exit 0 merges, exit 1 refuses.
+
+    `/lane-integrate` runs this per queue item BEFORE the merge, which is what makes D-1's
+    "the integrator refuses a `review=NONE` code branch" a refusal rather than a reminder.
+    It reads a line, not the repo: no git, no network, no state — so it is the same verdict
+    from a lane, the primary checkout, or a paste.
+
+    Example:
+        python scripts/audit.py handback "HANDBACK worktree-lane-u-000-x @ 1a2b3c4d code review=codex HIGH:0 MED:1 LOW:2"
+    """
+    ok, msg = review_handback_verdict(line)
+    click.echo(msg)
+    sys.exit(0 if ok else 1)
 
 
 @cli.command("checks")
