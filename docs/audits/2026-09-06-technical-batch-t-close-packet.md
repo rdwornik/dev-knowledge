@@ -140,6 +140,10 @@ was the contract's locator handling, not the lane.**
    The integrator found it; the architect confirmed it as "the contract's own error"; A1 and A3 are
    the fix. **Had I read my own output in full at step 0, no amendment would have been needed.**
    A truncated capture is a claim, not evidence — the repo's own rule, applied to my own instrument.
+   **And I was not the only seat to make it:** the integrator's closing gate was truncated the same
+   way by a `tail -80` that also masked the exit code, hours after mine was written up. Two seats,
+   two tools, one error — see §4.4a, which is where this stops being my deviation and becomes the
+   batch's finding.
 
    **Related count correction, measured by lane 3.6 and accepted:** `consumer_at_landing` live was
    **21, not 22**. I pinned 22 and `AMEND-BATCH-T-001` §A5 restated it, so the architect and I were
@@ -288,6 +292,41 @@ duplicated.
    be executed as written. This bites the `docs/dashboard/` genre row directly, which cites **#42** —
    and there are two #42s; the one meant is the 2026-08-23 generated-artifact-currency lineage, not
    the `AGENTS.md`-vs-ADR-53 one.
+4a. **FOUR INSTRUMENT FAILURES IN ONE NIGHT, AND THEY ARE ONE SHAPE.** This is the finding I would
+   keep if I could keep only one, and it is stated here as a class because tonight produced four
+   independent instances across three different seats — which is what makes it structural rather
+   than anecdotal.
+
+   ```
+   1  codespace receipt   Ok:True / exit 0 / is_error:false / status:DONE  over ZERO WORK
+                          -- it measures whether the container started, and is read as
+                             whether the work happened
+   2  wall-clock timing   would have "proved" a 664s -> 28s win that was really a
+                          Windows-vs-Linux spawn-cost difference (lane 3.8 avoided it by
+                          measuring git spawns and file reads instead)
+   3  truncated capture   dispatcher step 0: 62 lines captured of a 148-line ship-gate,
+                          then grepped and reported as evidence -- the unseen lines are why
+                          wave-1 GREEN was unreachable and why this batch needed an amendment
+   4  a shell pipe        integrator's closing gate: `| tail -80` discarded the HEAD, where
+                          the hard-fail count and first WARNs live, AND returned tail's exit
+                          0 instead of the gate's exit 1 -- a FAILING GATE became a PASSING
+                          EXIT CODE and a half-record, silently
+   ```
+
+   **The common shape: the instrument decided what the seat was allowed to conclude, and in every
+   case it did so invisibly.** None of the four announced itself. Each produced a well-formed,
+   confident, entirely wrong signal, and each was caught only because a human-shaped doubt outlived
+   the green light — someone noticed the number did not reconcile, or that a lane had produced no
+   branch, or that a breakdown did not sum to its own headline.
+
+   **Instances 3 and 4 are the same error committed by two different seats with two different
+   tools**, hours apart, after the first had already been written up. That is the argument for a
+   mechanism rather than a lesson: two careful seats, one already forewarned, both truncated their
+   own evidence. Candidate mechanisms for dawn, cheapest first: never pipe a gate (redirect to a
+   file and read the file); read the exit code of the GATE, never of the last process in a pipe;
+   and treat any capture whose parts do not reconcile with its own headline as unusable rather than
+   as partial.
+
 5. **A codespace receipt proves TRANSPORT, not WORK.** The shape
    (`transport-ok-and-remote-exit-code-read-separately`,
    `is-error-false-not-subtype-success`) returned clean over an empty result on BOTH codespace lanes
@@ -320,7 +359,14 @@ duplicated.
 9. **A frozen launch condition can be invalidated by the batch's own progress** (see §6). Wave 2's
    condition enumerated two tolerated FILES; two later merges landed two new findings in other
    organs, and the condition failed with no lane at fault. A launch condition should name a CLASS of
-   acceptable residual, not a file list.
+   acceptable residual, not a file list. filings-N filed the same mechanism from the other direction
+   as D-17.
+
+   **It bit TWICE tonight, and the second bite ate the first fix.** A1 was itself the re-issue that
+   repaired the ORIGINAL circularity (§2.2) — and A1 was then overtaken by merges landing after the
+   re-issue. A condition frozen against a moment, evaluated after N further merges, measures a
+   different tree; re-issuing it against a later moment does not change that property, it only moves
+   the moment. That is why the fix has to be a class rather than a list.
 10. **`protocols/HANDOFF_BOOT.md` must be stamped together with a browser PIN re-issue**, or every
    booted seat breaks. It is the deliberate `8 → 1` residue of lane 3.15.
 
@@ -442,6 +488,26 @@ exist is inside that codespace's disk**. Deleting it destroys the only copy. I d
 them: deletion is destructive and it is the operator's call, and this one must be INSPECTED before it
 is deleted or allowed to expire. The 24h retention clock means this is not indefinite.
 
+**AN AUTHORITY GAP OPENED AND CLOSED DURING THE BATCH, and it is recorded rather than smoothed
+over.** This dispatcher session went offline mid-conversation for roughly twenty minutes: the
+integrator got `ENOINBOX` on a reply and `ListAgents` showed the seat offline. **For that window no
+seat was authorised to clear the close packet or to evaluate A1** — the integrator's board recorded
+wave 2 as failing on the literal condition AND on the absence of a seat to evaluate it. The seat
+returned and the second half collapsed. Corroborated from this side: this session's own `ListAgents`
+ref changed from `[fb41e3]` to `[d57d47]` across the gap. **The batch had no mechanism to notice
+that one of its three standing roles had vanished, and no mechanism to reassign it** — that is the
+finding, not the outage.
+
+**An unreachable replacement dispatcher may exist, and its epistemic status matters more than its
+existence.** The integrator observed a bg session starting at roughly the minute this seat's inbox
+died, carrying the literal unsubstituted placeholder `dispatcher-<BATCH-ID>` in its own prompt; it
+never registered an inbox, so no seat could reach it. **I could not corroborate it:** my own
+`ListAgents` across 155 peer sessions shows no such row, and a session with no inbox cannot be
+messaged, told to stand down, or confirmed either way. So it is recorded as *observed by one seat,
+unverifiable by the other, and unreachable by both*. The mitigation is structural rather than
+active: **once this packet lands the batch is closed**, and a dispatcher waking into a closed
+manifest finds no open batch to dispatch into.
+
 Also residual: **13 contracts for 14 executed lanes** (§4.1-4.2), and **`protocols/HANDOFF_BOOT.md`
 unstamped by ruling** (§4.8).
 
@@ -457,13 +523,30 @@ through the full gate, so **no bypassed commit is on the pushed branch** — but
 honest sentence is "one bypass was spent and withdrawn", not "none was spent".
 
 **The lane disclosed it unprompted when nothing would have surfaced it**, and gave me the accurate
-version of my own claim. That is the behaviour the batch should want; the defect it points at is the
-phantom, which cost four seats in one night (the integrator, this dispatcher three times, and 3.6) —
-a predicate misread that often is a documentation defect, not four lapses. Every
+version of my own claim. The integrator had already corrected the same line independently, on 3.6's
+direct disclosure, and put the distinction better than I did: **the earlier claim was right about
+what LANDED and wrong about what SEATS DID.** Those are two claims and only one of them had been
+checked.
+
+**The defect it points at is the phantom, and its true cost tonight is larger than four seats:** this
+dispatcher three times, the integrator once, lane 3.6 once (with the bypass), lane 3.1 once
+(diagnosed unaided), and two further lanes that were minutes from spending a bypass before being
+talked down. **A predicate misread that many times in one night is a documentation defect, not seven
+lapses** — and by both the integrator's assessment and mine it is the highest-payoff one-paragraph
+fix on the dawn list. The asymmetry to document is one sentence long: the check reads the SPINE from
+`main` and the JOURNAL TEXT from the WORKING TREE, so a lagging tree reports gaps that do not exist,
+and the remedy is `git merge origin/main`, never a bypass. Every
 lane that hit an ambiguity stopped and filed a QUESTION rather than deciding for the operator — 3.13
 declined to invent a repo location it had not been given, and 3.7 asked to be released from a
 serialization rather than unilaterally breaking it. The integrator refused a paraphrase from me and
 was right to, and later corrected my anchor misreading with the diagnostic rather than the verdict.
+**The batch's own best fix sat in its HOLD queue while the closing gate ran the slow path.** Lane
+3.8's `22f06b21` takes git spawns 1310 → 645 and file reads 13854 → 4170, and it is held
+`[ratification-pending]` on intake #71 — so tonight's final ship-gate ran for many minutes on the
+code the batch had already fixed, **because the fix was correctly held off `main`**. That is the
+authorization boundary costing something real and being right anyway, and it is worth keeping as the
+answer to anyone who reads a hold as mere friction.
+
 **The two findings most likely to outlive this batch — the branch-enum's invisible half and the
 receipt that proves transport rather than work — were both found by seats noticing that a green
 signal did not match what they could see.**
