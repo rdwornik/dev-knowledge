@@ -1,57 +1,71 @@
 ---
 intake-id: 76
 status: DRAFT
-origin: Layer-1 browser seat, INBOX-dev-knowledge-2026-09-06-031 ("browser proposes, operator ratifies"; depends 029, 030) AS AMENDED BY INBOX-dev-knowledge-2026-09-06-032, which replaced 031's two-chat shape with one chat and a per-act model switch; filed by filings-N under 031's own owner-role line
+origin: Layer-1 browser seat, INBOX-dev-knowledge-2026-09-06-031, as amended by 032 and RULED by DECLARE-BROWSER-TOPOLOGY-2026-09-06 (032 ACCEPTED; 031 section 1 withdrawn; sections 2-3 stand); filed and then amended by filings-N under that ruling's own "For filings" line. Ratification with 031.
 consumed-by:
 ---
 
 # The browser window's shape, and "no decision without a carrier"
 
-> **Filing note -- this intake records 031 AS AMENDED, not 031 as written.** Item 032 landed while
-> this file was being drafted and before it was committed. It keeps most of 031 and **replaces its
-> headline proposal**: not two parallel chats, but ONE chat per window with the model switched per
-> act. Filing 031 verbatim would have filed a superseded shape, so the amendment is folded in and
-> the divergence is shown in section 1 rather than smoothed away.
+> **Filing note -- section 1 below is a RULING, not a proposal.**
+> `DECLARE-BROWSER-TOPOLOGY-2026-09-06` accepted **032**: one chat per window with the model
+> switched per act. **031's two-chat table is WITHDRAWN**; its sections 2 and 3 stand. Section 1
+> here carries the ruling's text, per that file's own "For filings" instruction. The intake as a
+> whole is still **DRAFT** -- the ruling says *"Ratification with 031."*
+>
+> **`carried-by:` is recorded in the body, deliberately NOT as a frontmatter key.** The ruling
+> fills its own `carried-by:` line (`docs/intake/` 031 candidate, `OPERATOR-INTERFACE` section 2,
+> #68 floor item six) and directs filings to carry it. It is written into section 2 below instead
+> of the frontmatter because **the intake frontmatter schema is a join key** -- an added key REDs
+> the tree manifest. The carrier is recorded, not the schema changed.
 >
 > `intake-id` **76**, allocated per **D8** (next-free across ALL refs) -- checked against the 11
 > content-bearing refs in this clone, not `main` alone. Ids **14 and 70 remain live duplicates on
 > `main`**, untouched here: both files are landed, so which one moves is an operator call. See
 > intake #75 and `QUESTION-filings.md` Q-3.
 
-## 1 - The window's shape
+## 1 - The window's shape (RULED)
 
-**The split is by ACT, not by topic** (031, kept by 032):
+**ONE chat per window, with the model switched per act.** The split is by ACT, not by topic:
 
 | Class | Acts | Model |
 |---|---|---|
-| Ruling | `DECLARE-*`, contract freezes (`BATCH-*`), amendments (`AMEND-*`), GO, plan review (select / paste / approve), packet reads at a milestone, one deliberate read of a decisive document | Fable |
-| Routine | pastes and re-pastes, "check" / "what do I paste", `RULING-RELAY` routing, `QUESTION-*` triage, FREEZE, LEDGER refresh from STATUS files, transport hygiene | Opus / Sonnet |
+| Ruling | `DECLARE-*`, contract freezes (`BATCH-*`), amendments (`AMEND-*`), GO, plan review, packet reads at a milestone | Fable |
+| Routine | pastes and re-pastes, "check" / "what do I paste", `RULING-RELAY` routing, `QUESTION-*` triage, FREEZE, LEDGER refresh, transport hygiene | Opus / Sonnet |
 
-**031 proposed two parallel chats. 032 replaced that with ONE chat per window**, because
-claude.ai switches the model inside a single conversation:
+**Why the simpler shape won, in the ruling's own words:** *cost = context LENGTH, not chat count; a
+second chat buys nothing the turn budget does not, and adds synchronisation the operator pays for.*
+No failure case was shown for one chat, so the two-chat proposal drew no pushback -- it was simply
+the more expensive way to get the same property.
 
-- default model Opus for routine acts;
-- when an act enters the ruling class, the chat emits a fixed line -- *"this is a ruling — switch
-  to Fable and type `rule`"* -- the operator switches, one expensive turn happens, the operator
-  switches back;
-- same context, same project memory, **nothing to synchronize**.
+### The three sharpenings (conditions of the ruling, not objections to it)
 
-**Two chats survive only as the WRAP shape:** when a window grows long, wrap it (handoff-lite --
-LEDGER and STATUS are the state) and open a fresh one, rather than running a second chat in
-parallel.
+1. **The switch line is fixed text and carries the price.** Whenever an act enters the ruling class
+   the browser emits exactly:
 
-> **The reasoning 032 supplies, and it is the part worth keeping:** *context LENGTH is the cost,
-> not the number of chats.* A Fable turn is billed the whole context whichever chat it sits in, so
-> a second chat buys nothing and costs the operator a synchronization problem. That is why the turn
-> budget (about 40 turns, or one sitting) is unchanged by the amendment.
+   ```
+   RULING AHEAD - switch to Fable, type `rule` (est. ~N k tokens: <files it will read>)
+   ```
 
-**Routing rule, unchanged from 031:** when the routine seat meets a decision it writes
+   A ruling emitted on a non-Fable model **without** that line, or a switch line **without** a
+   cost, is a form-probe defect.
+2. **A ruling turn reads FILES only.** The switch line names them; the turn does not read chat
+   history for premises. That is what keeps a Fable turn near its estimate -- and it is the clause
+   that makes the estimate meaningful rather than decorative.
+3. **Wrap is mechanical, not felt.** LEDGER carries `turns this window: N/40`; at 40, or at the
+   sitting's close, the browser emits the wrap line, and the next window boots from bundle +
+   LEDGER.
+
+**Scorecard:** turns per browser window; **Fable turns per window, target 10 or fewer**; bytes read
+via connector per window.
+
+**Routing rule, unchanged:** when a routine act meets a decision it writes
 `to-browser/QUESTION-browser-ops.md` and stops; the ruling act answers with a DECLARE. Neither is
 fed CC transcripts (inbox 030).
 
-**Enforcement proposed for the switch itself:** a form-probe predicate -- a ruling emitted without
-the switch line, on a non-Fable model, is a defect -- and the bundle's supplement records which
-turns ran on which model. Scorecard: **Fable turns per window, target 10 or fewer**.
+**Two chats survive only as the WRAP shape** -- when a window grows long, wrap it (handoff-lite:
+LEDGER and STATUS are the state) and open a fresh one, rather than running a second chat in
+parallel.
 
 ## 2 - No decision without a carrier
 
@@ -69,6 +83,10 @@ in full by 032:
 3. The browser floor (#68) lists **six** irreducible items: role/loop, where truth is, equilibrium
    contract, operator rights, session topology, and **decisions are files with a carrier**.
 4. LESSONS line: *"A browser sentence is a proposal; a file with a carrier is a decision."*
+
+**Carriers named by `DECLARE-BROWSER-TOPOLOGY-2026-09-06`** (its own `carried-by:` line, recorded
+here per its "For filings" instruction): this intake (the 031 candidate), `OPERATOR-INTERFACE`
+section 2, and **#68 floor item six**.
 
 ## 3 - Token rules that become mechanism (from inbox 030)
 
