@@ -19,6 +19,57 @@
 
 ---
 
+### 2026-09-07 (e) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): W1-9 lands the v7.1 pack, and the version bump is ROUTED rather than taken
+
+**Did:** Merged W1-9 `handoff-v71-build` (`9fed197f`); targeted tests **124 passed** on the merged
+result. Declined the coupled version bump it handed forward, and routed it.
+
+**Result - merged, one act deliberately not taken, and a threshold that now binds this seat.**
+
+**The bump is owed and it is the integrator's - but not tonight, and not by this seat.** The lane
+correctly did NOT bump `HANDOFF_PROCESS.md` `Version:` to 7.1.0: doing so inside a narrow write-scope
+REDs `check_reconciled_versions` for three dependents (`ARCHITECTURE.md:3`, `CLAUDE.md:3`,
+`CONTRIBUTING.md:3`, all declaring `handoff-process@7.0.0`) and blocks the lane's own commit. The
+standing answer is to land the edit and report bump + re-stamp + one `## Section history` entry as a
+single candidate filing for the integrator.
+
+This seat is that integrator and is still routing it onward, for a reason that is about
+**measurement, not scope**: `CLAUDE.md` is one of the three undispositioned `canonical_freshness`
+rows from step 0, and those three are **W2-R's** to discharge. Re-stamping `CLAUDE.md` now would
+change one of W2-R's own rows underneath it while it is contracted to measure the ship-gate to 0 / 0
+on a quiet box. Moving a lane's target while it measures is worse than leaving a version claim
+understated for one more sitting. The tree is internally consistent meanwhile - 7.0.0 declared on all
+four files, nothing RED - so nothing is broken by waiting; the claim is merely narrower than the
+content.
+
+**The threshold this lane pinned now binds this seat, and this seat is in breach of it.** §5 resolves
+"≤ 5 KB" to **5,000 bytes**, matching `PASTE_BYTE_CEILING` (20,000) and `HANDOFF_BOOT_BYTE_BUDGET`,
+and it names the exact case that forced the ruling: a file measured at 5,114 bytes sits between the
+decimal and binary readings. **`STATUS-INTEGRATOR-N2.md` was 5,041 bytes** - which this seat had
+explicitly reasoned was compliant on the binary reading. It was, until a lane ruled otherwise; it is
+not now. Trimmed to conform in the same window as the merge, rather than left as someone else's
+finding.
+
+**Two honest limits carried forward, neither claimed as met.** The bundle-size closure is only half
+achieved: the generated path is `27,801 → 15,498 B` against a 20,000 ceiling, but with the
+2026-09-06 hand-authored residual the bundle lands at **21,788 B and is OVER**, because that residual
+is 9,604 B against the ~7,860 B the arithmetic leaves it. The lane says so rather than reporting the
+generated number alone. And its reviewer ran **ad hoc over the whole mixed diff** rather than through
+`/codex-review`, because that path filters a mixed code+prose diff down to the code subset - **it
+would have skipped the prose half, which is most of this lane, while still reporting success.**
+
+**Changes:** `protocols/HANDOFF_PROCESS.md`, `protocols/HANDOFF_BOOT.md`, `.claude/commands/handoff.md`,
+`scripts/verify_handoff_probes.py`, three `templates/handoff/v5/*.tmpl`,
+`tests/test_verify_handoff_probes.py`, `ecosystem/doc-counts.md` - via `9fed197f`.
+
+**Abandoned:** the binary reading of the 5 KB STATUS budget.
+
+**Next:** W1-2, W1-6, W1-7 remain. W1-3 is closed-by-death.
+
+**Anchors:** `5cb41d6b` (W1-9's single commit, introduced by `9fed197f`).
+It also names `480ba934`, this entry's own commit, which this branch's `--no-ff` merge
+introduces - the standing two-commit shape.
+
 ### 2026-09-07 (d) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): W1-5 lands, and a lane that refused to make its own before-number true
 
 **Did:** Merged W1-5 `intake-id-next-free` after resolving a second generated-file conflict by
