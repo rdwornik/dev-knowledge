@@ -1,3 +1,9 @@
+---
+last_reviewed: 2026-09-06
+status: stable
+owner: Rob
+---
+
 # HANDOFF_PROCESS v7
 <!-- scope: meta -->
 
@@ -18,18 +24,17 @@ Authority: this protocol is the single canonical source of truth for handoff mec
 > **answer-free**. Added with it: the A7 standing-topic legs (P0a/P0b/P0c), the A4 `Destination`
 > boot-header row and its P3 comparison, the A10 boot byte budget, and the A11 guards.
 
-> **§17 — the v7 BOOT-INVERSION, STAGED (lane-b-2-handoff-v7, 2026-09-01).** `/boot-session`,
-> the OPERATOR ASKS registry and the SessionStart FUNNEL HEALTH digest land as importable,
-> tested material at **this document's still-6.3.0 version** — read §17 for the mechanism.
-> **`Version:` above does NOT bump to 7.0.0 in this commit.** `[#611]`'s Done-when and this
-> lane's own contract both call for v7.0.0, and this repo's `reconciled_versions` commit-gate
-> requires the bump to land atomically with every `reconciled_with: handoff-process@6.3.0`
-> dependent re-read against what changed — `ARCHITECTURE.md`, `CLAUDE.md`, `CONTRIBUTING.md`,
-> `protocols/PLAYBOOK.md`, `protocols/README.md`, `protocols/SESSION_SETUP.md` — none of which
-> are in this lane's frozen write-scope. Operator ruling (this lane, 2026-09-01): the bump is
-> **reassigned to the integrator as one coupled release act**, not held indefinitely and not
-> bypassed — matching the v6.3.0 precedent's own atomicity (§ Section history, v6.2.0→v6.3.0)
-> without its fake-stamp risk. Done-contract item 1 is witnessed on the **merged** result.
+> **§17 — the v7 BOOT-INVERSION. The staging is DISCHARGED; read §17 for the mechanism.**
+> `/boot-session`, the OPERATOR ASKS registry and the SessionStart FUNNEL HEALTH digest landed
+> as importable, tested material under lane-b-2-handoff-v7 (2026-09-01) at this document's
+> then-6.3.0 version, with the bump reassigned to the integrator as one coupled release act —
+> because `reconciled_versions` requires `Version:` and every `reconciled_with:` dependent to
+> move together, and six of the seven sat outside that lane's frozen write-scope. **The
+> integrator executed it the same day:** `Version:` reads **7.0.0** above and all seven
+> dependents were stamped in that one act — see the Section history's `v6.3.0 → v7.0.0` entry,
+> which is the record of what moved and what was genuinely re-read first. Nothing here is
+> pending; the paragraph is kept because §17.4 and the Section history both refer back to the
+> staging it describes.
 
 > **Why a rewrite.** v4 treats a handoff as onboarding a new chat with a heavy 8-file
 > teaching bundle pasted into a browser. The 2026-06-10 lesson named the load-bearing
@@ -989,10 +994,12 @@ paste (no `PROBES.md` / `RESIDUAL.md` / `SUPPLEMENT.md` / `PASTE_THIS.md`, no as
    technical-architect question"* and recorded as an open question, never guessed.
 2. **Vision extract** — the committed `## Vision` body, copied mechanically at generation
    time. Source is `VISION.md` while that file is present (`_vision_extract`'s primary
-   read); README.md's `## Vision` is the retired-tier fallback, taken only once VISION.md
-   is both RETIRED (`canonical_docs.CANONICAL_RETIRED`) and absent (ADR-114/[#614] — README
-   is the hub's new front door, but VISION.md still exists on disk today, so the fallback is
-   not yet live). Re-pointed here from a flat `VISION.md` claim that named neither condition.
+   read); README.md's `## Vision` is the retired-tier fallback, taken once VISION.md is
+   both RETIRED (`canonical_docs.CANONICAL_RETIRED`) and absent. **At the hub both
+   conditions now hold and the fallback IS live** — `[#614]` lane-e-5 relocated the file to
+   `docs/archive/VISION.md` (2026-09-01), so the hub has no root `VISION.md` and every hub
+   cut reads README's `## Vision`. The primary read still governs the eight fleet members
+   that carry the file at their root, which is why both legs stay described here.
 3. **CC-authored state summary** — one FILL-IN paragraph (the RF-6 splice; a re-render
    preserves it byte-for-byte).
 4. **Intake index** — a committed-state enumeration of `docs/intake/*.md` (id · status · title;

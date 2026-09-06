@@ -9,11 +9,17 @@ never mutates; one Finding PER locus (so the #147 ship-gate dispositions each in
 The hard closure metric (per the prompt): each detector FIRES on a real bloat condition,
 witnessed by a test that trips it (the *_fires_* tests below) — not "tests pass".
 
-[#532] raises that bar for ARM 1 specifically. ARM 1 fires on ZERO live rows (the corpus is
-clean of the class), and an arm that fires on nothing is indistinguishable from an arm that
-is dead — so its firing behaviour is pinned by a MANDATORY SYNTHETIC FIXTURE
-(`_ACCRETED_ROW`) rather than by live data, and the arm's three terms each carry a negative
-control that isolates it. Without those, the amendment would be unfalsifiable.
+[#532] raises that bar for ARM 1 specifically. At the [#532] amendment ARM 1 fired on ZERO
+live rows, and an arm that fires on nothing is indistinguishable from an arm that is dead —
+so its firing behaviour is pinned by a MANDATORY SYNTHETIC FIXTURE (`_ACCRETED_ROW`) rather
+than by live data, and the arm's three terms each carry a negative control that isolates it.
+Without those, the amendment would be unfalsifiable.
+
+That zero was a MEASUREMENT, not a standing property, and it has since expired: ARM 1's span
+term grows with the calendar, so rows cross the threshold with no edit at all (batch T,
+2026-09-06). The synthetic fixture is therefore load-bearing for the same reason as before,
+and the live-corpus test below asserts that each live finding is CORRECTLY LABELLED rather
+than that there are none of them.
 
 Scope boundary (do NOT duplicate): #140 defers cross-file fidelity drift -> coherence-spine
 (#179/#180/#182) and intra-file duplication -> #190; check #10 owns last_reviewed staleness;
@@ -674,13 +680,61 @@ def test_citation_regex_strips_only_real_dated_artifact_identifiers():
 
 
 @pytest.mark.live_repo
-def test_live_corpus_has_no_accretion_arm_findings_only_length_findings():
-    # The amendment's measured live effect ([#532]): every live locus is a LENGTH finding.
-    # This is the assertion that would break first if ARM 1 ever started mislabelling
-    # again — and it is safe to pin because ARM 1's firing behaviour is proved separately
-    # by the synthetic fixture above, not by this zero.
-    results = vdr.scan(Path(aud._REPO_ROOT))
-    assert [r for r in results if r.category == "backlog-accretion"] == []
+def test_live_accretion_findings_are_correctly_labelled_and_length_reports_once():
+    # WHAT REPLACED A ZERO, AND WHY (batch T, 2026-09-06). This test used to read
+    # `[r for r in results if r.category == "backlog-accretion"] == []`, on [#532]'s
+    # then-true measurement that the ADR-88 FC4 class had no live instances. That zero was a
+    # SNAPSHOT, never an invariant. ARM 1's span term is `history[-1] - history[0]` measured
+    # against `today`, so a row that was green crosses the threshold WITH THE CALENDAR ALONE
+    # and with no edit — and it did: this assertion sat RED on `main` for days, on rows
+    # nobody had touched, so every lane that inherited it had to re-derive that the failure
+    # was not its own. A test that turns the passage of time into a failure teaches a lane to
+    # disbelieve the suite, which is the expensive half of the cost.
+    #
+    # NOTHING IS WEAKENED TO REACH GREEN, and that distinction is the whole point.
+    # `scan_backlog_accretion` is untouched, all three thresholds are untouched, and the live
+    # findings still fire and still reach the operator through the audit adapter. What
+    # changes is what THIS TEST claims. Its stated job — see the sibling above, and the
+    # comment this replaces — is to be "the assertion that would break first if ARM 1 ever
+    # started mislabelling again". Mislabelling is a PROPERTY of each finding, checkable
+    # against the row that produced it, so asserting it that way is denominator-free in
+    # exactly the sense `test_citation_regex_strips_only_real_dated_artifact_identifiers`
+    # describes next door: it cannot rot as the corpus grows, or as the calendar advances.
+    #
+    # The live loci stay undispositioned and unfixed here ON PURPOSE. The ruled remedy is
+    # ARCHIVAL, not trimming (module header of `validate_doc_rot.py`; [#612] performing
+    # STANDING_RULINGS B1's drain), it is performed on `tasks/` rows by whoever grooms them,
+    # and a `[stale]`/WARN disposition taken to make a suite green is the named anti-pattern
+    # rather than a repair.
+    root = Path(aud._REPO_ROOT)
+    results = vdr.scan(root)
+
+    rows: dict[str, str] = {}
+    for line in _bs.canonical_text(root).splitlines():
+        m = vdr._TASK_RE.match(line)
+        if m:
+            rows[f"BACKLOG#{m.group(1)}"] = line
+
+    today = date.today()
+    for f in [r for r in results if r.category == "backlog-accretion"]:
+        line = rows.get(f.locus)
+        assert line is not None, f"{f.locus} labels no live BACKLOG row"
+        history = vdr._history_dates(line, today)
+        span = 0 if len(history) < 2 else (history[-1] - history[0]).days
+        # All three load-bearing terms, RE-DERIVED from the row rather than read back out of
+        # the finding's own detail string — a reworded detail must not be able to satisfy
+        # this, which is the same trap the ARM-1 detail assertion below is guarding.
+        assert len(history) >= vdr._BACKLOG_DATED_BLOCKS, f"{f.locus}: dates {history}"
+        assert span >= vdr._MIN_ACCRETION_SPAN_DAYS, f"{f.locus}: span {span}d"
+        assert len(line) > vdr._BACKLOG_LONG_CHARS, f"{f.locus}: {len(line)} chars"
+
+    # The "only LENGTH findings" half of the retired name, kept as the invariant it actually
+    # is: after the R5P reshape ARM 2 reports the CORPUS, so it emits at most one Finding and
+    # always at the corpus locus. Per-row length findings reappearing here would be the
+    # reshape silently coming undone.
+    length = [r for r in results if r.category == "backlog-row-length"]
+    assert len(length) <= 1, [r.locus for r in length]
+    assert all(r.locus == "BACKLOG#row-length" for r in length), [r.locus for r in length]
 
 
 # --- deployed audit check: check_doc_rot ------------------------------------

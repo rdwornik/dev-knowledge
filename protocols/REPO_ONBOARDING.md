@@ -1,3 +1,9 @@
+---
+last_reviewed: 2026-09-06
+status: active
+owner: Rob
+---
+
 <!-- scope: llm -->
 # Repo-onboarding runbook — bring a repo onto the universal methodology baseline
 
@@ -18,8 +24,12 @@
 > (methodology corpus versioning).
 
 ## Prerequisites
-- A clean hub checkout at the target methodology version (currently **v1.2.0**;
-  `deploy/manifest-v1.2.0.yaml` is the authoritative carrier set).
+- A clean hub checkout at the target methodology version `<ver>`. **`<ver>` is resolved, never
+  typed:** it is the newest RELEASED — i.e. operator-tagged, ADR-91 — `deploy/manifest-v*.yaml`,
+  and that manifest is the authoritative carrier set. A drafted but untagged manifest is the
+  in-flight one and is **not** a deploy target; `deploy/tool.py`'s own preflight requires the
+  tag to resolve before `--execute`, so it refuses one for you. (This line named a literal
+  version through 2026-09-06 and went three releases stale; the number lives in the tree.)
 - On PATH: `claude` CLI, `pre-commit`, and a `python` that imports `pre_commit`.
 - The consumer working tree is **clean** (the deploy preflight aborts on a dirty tree).
 - The consumer will be registered in the ecosystem at Layer 5 (below).
@@ -59,10 +69,10 @@ Run an assess (read-only plan) first, then execute the converge:
 
 ```bash
 # read-only: preflight + detect + print the plan (no writes)
-python deploy/tool.py <name> --target 1.2.0
+python deploy/tool.py <name> --target <ver>
 # apply every needing-apply carrier, verify each, stage the consumer + write the version
 # record (destroy-confirm required before pruning any status:removed component)
-python deploy/tool.py <name> --target 1.2.0 --execute
+python deploy/tool.py <name> --target <ver> --execute
 ```
 
 ### 1. Floor (ADR-78 / ADR-93)
@@ -104,7 +114,9 @@ claude plugin install tier1-lifecycle@dev-knowledge-methodology --scope project
 > project` is the upgrade path; `marketplace update` alone does not refresh an unchanged version.
 
 ### 4. Review profile
-The **global-config carrier** copies `codex/AGENTS.md` → `~/.codex/AGENTS.md` (the L0
+The **global-config carrier** copies `deploy/global-instructions-codex.md` → `~/.codex/AGENTS.md`
+(source constant `carrier_globalconfig.DEFAULT_SOURCE_REL`; the hub source is deliberately NOT
+itself named `AGENTS.md`, and the `codex/` directory this line used to name no longer exists) — the L0
 reviewer surface). The per-repo agentic-review profile (which reviewer, what cadence — a
 heterogeneous second reader; natives `/code-review` / `/simplify` first) is a recorded
 per-repo decision, not a deployed artifact (ref #82).
@@ -121,7 +133,7 @@ is hand-added.
 
 ```bash
 uv run --locked python scripts/audit.py repo <name> --repo-path <consumer>   # seeds ecosystem/<name>/state.yaml (gitignored)
-# add a row to ecosystem/registry.md: | <name> | <path> | <purpose> | registered · onboarded v1.2.0 |
+# add a row to ecosystem/registry.md: | <name> | <path> | <purpose> | registered · onboarded v<ver> |
 # ecosystem/deployed-versions.yaml gets the deployed-corpus version (written by the converge)
 uv run --locked python scripts/fleet_health.py                               # -> the repo appears in the roll-up
 ```
@@ -176,7 +188,8 @@ uv run --locked python scripts/fleet_health.py                               # [
 **The two Done-whens** this doc satisfies separately:
 - **#131** — runbook exists, 6 layers in order, piloted n=1 with the n=2 gate recorded. Pilots
   on record (per the 2026-07-08 fleet-consistency census): **ai-council = n=1**, **corp-monorepo
-  = n=2**, both deployed v1.2.0 with all three hook stages armed and the floor hash intact.
+  = n=2**, both deployed at the then-current v1.2.0 with all three hook stages armed and the floor
+  hash intact (a historical record of the pilots, not a statement of today's `<ver>`).
 - **#215** — one onboard runbook (this doc) + a conformance verification (the section above,
   dry-run runnable — see below) exist.
 

@@ -1,8 +1,19 @@
 # Dev Environment — Current State
 
 > **Living document.** Update when any config changes.
-> Last updated: 2026-07-06
+> Last updated: 2026-09-06
 >
+> **Re-read pass 2026-09-06 (lane `lane-t-000-playbook`, batch T).** Read end-to-end at +57d and
+> re-verified live on the operator's host: the CLI version, the `~/.claude/` tree, the
+> `settings.json` env block, `.python-version`, and the `.dev-knowledge` layout block. Corrected
+> in place this pass: the CLI version and its changelog-review watermark (both were 2 months
+> stale), the model roster, two `settings.json` keys (one departed, one arrived undocumented),
+> and three claims in the `.dev-knowledge` tree that live state had overtaken — `README.md`,
+> `VISION.md` and `ESSENTIALS.md`. **Still last-known and NOT re-verified this pass:** ccusage's
+> exact version, the VS Code version and its extension set, the hardware block, and the API
+> key/provider table. The Council-decision blocks are a record and are annotated, not rewritten.
+>
+
 > **Refresh basis (2026-07-06, [#258] Block-3.2 own-it verdict):** retire was rejected — 55
 > inbound references + the bulk here (paths · providers · Council decisions · VS Code · hardware)
 > is stable reference with no other home. Targeted refresh of the facts verified live this pass
@@ -25,10 +36,10 @@
 ## Claude Code CLI
 <!-- scope: runtime -->
 
-- **Version:** 2.1.200 (native installer, auto-updates; changelog-review state last reviewed 2.1.177 → run `/changelog-review`). Checked 2026-07-06.
+- **Version:** 2.1.261 (native installer, auto-updates; changelog-review state last reviewed 2.1.204 → run `/changelog-review`). Checked live 2026-09-06 via `claude --version`. *(Was 2.1.200 / watermark 2.1.177 at the 2026-07-06 stamp.)*
 - **Plan:** Claude Max $100/month
 - **Model routing:** opusplan (Opus plans, Sonnet executes)
-- **Available models (Claude 5 family, 2026-07):** **Fable 5** (`claude-fable-5`, Mythos-class, above Opus), **Sonnet 5** (`claude-sonnet-5`), **Opus 4.8** (`claude-opus-4-8`, 1M-context + Fast mode), **Haiku 4.5** (`claude-haiku-4-5`). `max` effort level available. `/code-review ultra` for cloud-based multi-agent code review (`/ultrareview` is a deprecated alias for the same command).
+- **Available models (Claude 5 family, checked 2026-09-06):** **Fable 5.1** (`claude-fable-5-1`, Mythos-class, above Opus), **Opus 5** (`claude-opus-5`), **Sonnet 5** (`claude-sonnet-5`), **Haiku 4.5** (`claude-haiku-4-5-20251001`). `max` effort level available. `/code-review ultra` for cloud-based multi-agent code review (`/ultrareview` is a deprecated alias for the same command). Fast mode (`/fast`) runs Opus with faster output rather than downgrading the model. *(The 2026-07 roster read Fable 5 / Opus 4.8; the Opus tier advanced to Opus 5 and Fable to 5.1.)* This roster stays **ungated prose** — it is not one of the `provider-registry-agreement` seams, so nothing checks it.
 
 ### Usage tracking: ccusage (npm global)
 <!-- scope: runtime -->
@@ -45,13 +56,16 @@
 ### settings.json (key values)
 <!-- scope: runtime -->
 
+Re-read live 2026-09-06 against the `env` block of `~/.claude/settings.json`:
+
 - MAX_THINKING_TOKENS: 10000
 - CLAUDE_AUTOCOMPACT_PCT_OVERRIDE: 40
-- CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: 1
 - CLAUDE_CODE_USE_POWERSHELL_TOOL: 1
+- CLAUDE_CODE_IDE_SKIP_AUTO_INSTALL: 1 — present live and previously undocumented here; recorded 2026-09-06
 - defaultShell: powershell
 - showThinkingSummaries: true — shows Claude thinking before actions. Added 2026-04-15.
 - _(CLAUDE_CODE_SUBAGENT_MODEL: haiku removed from settings.json as of 2026-07-06 — subagent model now resolves per-agent, no global pin.)_
+- _(CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: 1 was listed here until 2026-09-06 and measured **absent** from the live `env` block on that date. Recorded as departed rather than deleted silently; when it left is not established by this pass.)_
 
 ### ~/.claude/ directory
 <!-- scope: runtime -->
@@ -177,17 +191,25 @@ Project-specific paths (database locations, output dirs, exclusion zones) live i
 Location: `Dev/.dev-knowledge/` — visible in VS Code workspace as `📓 .dev-knowledge`
 
 ```
-CLAUDE.md                       ← Single canonical agent-instruction contract (ADR-53)
+README.md                       ← RECREATED 2026-08-29 (ADR-114 supersedes ADR-38 A5 in this one
+                                   respect); the repo's canonical front door
+CLAUDE.md                       ← Claude-runtime half of the agent-instruction contract; the
+                                   portable half is root AGENTS.md, imported (ADR-115 superseding
+                                   ADR-53 Decision 2)
+AGENTS.md                       ← Portable instruction layer (ADR-115)
 ARCHITECTURE.md                 ← Structural model (ADR-51)
 JOURNAL.md                      ← Per-session tactical log (newest-first; carries notable-change record)
 LESSONS.md                      ← Append-only lessons log
 BACKLOG.md                      ← Cross-session pending items (ADR-41)
 CONTRIBUTING.md                 ← Branch/commit/validator conventions
-protocols/
-  ESSENTIALS.md                 ← Daily cheat sheet (1 page)
+protocols/                      ← selected entries only; the live roster is the directory
+  ESSENTIALS.md                 ← SUPERSEDED (`status: superseded`), pending [#628] — routes
+                                   nobody and is not a boot read
   SESSION_SETUP.md              ← How to start new browser chat / project
   PLAYBOOK.md                   ← Full process reference
   HANDOFF_PROCESS.md            ← Handoff trigger rules + format
+  STANDING_RULINGS.md           ← The ruled-but-not-ADR register
+  OPERATOR-INTERFACE.md         ← How content moves between a seat and this machine
   ENVIRONMENT.md                ← This file
 logs/
   TOKEN-LOG.md                  ← Append-only token usage snapshots
@@ -201,8 +223,12 @@ config/
                                    no longer the dependency declaration
 ```
 
-(README.md deleted 2026-05-23 per ADR-38 amendment A5; CHANGELOG.md retired
-2026-05-16 per ADR-49 — git history + JOURNAL replace it.)
+(CHANGELOG.md retired 2026-05-16 per ADR-49 — git history + JOURNAL replace it. **The
+"README.md deleted 2026-05-23" line that stood here until 2026-09-06 is corrected, not removed:**
+README.md was deleted then, and **RECREATED 2026-08-29** under ADR-114, which supersedes ADR-38
+A5 in that one respect. **VISION.md** is likewise no longer at the root — it is retained, marked
+superseded, and relocated to `docs/archive/VISION.md` at the hub by `[#621]`; the fleet-wide
+migration remains sequenced.)
 
 Separation rationale (Council Decision #23): vault = pre-sales work knowledge, .dev-knowledge = dev methodology, ~/.claude/ = runtime config. Trigger: when navigation overhead emerges, evaluate DevVault migration.
 
@@ -315,8 +341,8 @@ CRITICAL: Audit Gemini API tier (AI Studio vs Vertex) before batch extraction on
 
 | Component   | Version                       | Last checked |
 | ----------- | ----------------------------- | ------------ |
-| Claude Code | 2.1.200 (native, auto-updates) | 2026-07-06   |
-| Python      | 3.12.10                        | 2026-06-03 (not re-verified 07-06) |
-| VS Code     | 1.122.1 + extensions           | 2026-06-03 (not re-verified 07-06) |
+| Claude Code | 2.1.261 (native, auto-updates) | 2026-09-06 (live `claude --version`) |
+| Python      | 3.12.10                        | 2026-09-06 (live `.python-version`; the ADR-106 interpreter pin) |
+| VS Code     | 1.122.1 + extensions           | 2026-06-03 (not re-verified 07-06 or 09-06 — last-known) |
 
 Project versions tracked in each project's CLAUDE.md / git history.

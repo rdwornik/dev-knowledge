@@ -4263,6 +4263,50 @@ def check_membership_agreement(repo_path: Path, _surface_paths=None) -> list[Fin
             for status, evidence in classify_membership(ADR104_FLEET_DECLARATION, surfaces)] + decl
 
 
+# AF-1 (`protocols/STANDING_RULINGS.md` §AF, filed 2026-09-05): a check states its predicate in
+# its own failure text and hands over ONE diagnostic command. Filed from witnessed cost -- this
+# predicate produced EIGHT false alarms across SIX seats in a single day, one of which reached the
+# operator and stopped the merge queue. Every one of the eight substituted a SHA the entry did NOT
+# introduce (most often the entry's own merge SHA, or one already sitting on the scanned ref), or
+# read a lagging worktree as truth. No seat was careless: each inferred a predicate this message
+# never stated, and each inferred a DIFFERENT one.
+#
+# THE WORDING IS QUOTED FROM AF-1 RATHER THAN RESTATED, which is deliberate. AF-1 records two
+# successive drafts of ITSELF misstating this rule in two different ways -- "never a branch tip"
+# (false: a merged branch's tip normally does qualify) and "a merge does not introduce itself"
+# (false: `journal_anchor.introduced` is `firstparent..sha` PLUS the entry, and the exclusion is
+# temporal). A rule its own scribe could not restate correctly twice running is not one a reader
+# should be asked to infer from the shape of a failure.
+_SPINE_PREDICATE = (
+    "; PREDICATE (ADR-85 amendment 2026-08-03 section A7; STANDING_RULINGS AF-1) -- a spine "
+    "entry is anchored when the JOURNAL names AT LEAST ONE SHA THAT THE ENTRY INTRODUCED. "
+    "That is the entire test. The "
+    "introduced set is `<first-parent>..<sha>` PLUS the entry itself "
+    "(`scripts/journal_anchor.py`, `introduced`). Three readings that are NOT the test: "
+    "(1) BRANCH-TIP STATUS forms no part of it -- the tip of the branch being merged normally "
+    "does qualify, but because the merge introduces it, not because it is a tip; "
+    "(2) THE ENTRY'S OWN MERGE SHA is in the introduced set and still cannot be used, for a "
+    "temporal reason rather than a set-theoretic one: its hash does not exist when the JOURNAL "
+    "text is authored and committed, so it is unavailable to name; "
+    "(3) A SHA ALREADY ON THE SCANNED REF before the entry fails the test itself, because naming "
+    "it introduces nothing"
+)
+_SPINE_DIAGNOSTIC = (
+    "; DIAGNOSTIC -- run unmodified from the repo root, substituting one <sha> named above: "
+    "uv run --locked python -c \"import sys,pathlib;sys.path.insert(0,'scripts');"
+    "import journal_anchor as j;r=pathlib.Path('.');s='<sha>';"
+    "print('introduced:',j.introduced(r,s));"
+    "print('anchored in this tree:',j.is_anchored(r,s,j.journal_text(r)));"
+    "print('anchored at main:',j.is_anchored(r,s,j.journal_text(r,'main')))\"; "
+    "THE TREE ASYMMETRY, which turned one of the eight into an operator stop: this check reads the "
+    "JOURNAL from the COMMITTING TREE and the spine from the shared ref, so a tree that is behind "
+    "reports gaps that do not exist on main. False here with True at main means SYNC THIS TREE -- "
+    "there is no gap on main, and a drain entry would not reach a lagging tree anyway. One further "
+    "fact settles the common case on its own: `block-unanchored-push` fails CLOSED, so a range "
+    "that has already pushed clean cannot be unanchored"
+)
+
+
 # rule: seal-journal-spine-anchor
 def check_journal_spine_anchor(repo_path: Path) -> list[Finding]:
     """ADR-85 amendment 2026-08-03 §A8 / FR4 — the audit BACKSTOP for the pre-push hard leg.
@@ -4364,6 +4408,7 @@ def check_journal_spine_anchor(repo_path: Path) -> list[Finding]:
         return [Finding("journal_spine_anchor", "fail",
                         f"{len(gaps)} first-parent spine entry(ies) above the disposition "
                         f"floor {floor[:9]} carry no JOURNAL anchor: {named}{more}{style}{also}"
+                        f"{_SPINE_PREDICATE}{_SPINE_DIAGNOSTIC}"
                         .replace("|", "/"))] + warn_finding
     if exempted:
         named = ", ".join(sorted(b.batch for b in live))

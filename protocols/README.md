@@ -1,5 +1,8 @@
 ---
+last_reviewed: 2026-09-06
 reconciled_with: handoff-process@7.0.0
+status: active
+owner: Rob
 ---
 
 # protocols/ — canonical universal-methodology genre (hub)
@@ -13,10 +16,10 @@ methodology**: the docs below are the source consumers point at, never copies.
 Canonical methodology docs (universal — read via this `protocols/`, never copied into a
 consumer):
 
-- `ESSENTIALS.md` — Rob's universal working style (summarizes PLAYBOOK, does not copy it)
+- `ESSENTIALS.md` — **SUPERSEDED, pending `[#628]`**; not a boot read (the file's own `status:` says so, and `CLAUDE.md` §1 sends nobody to it). Retained as history until `[#628]` dissolves it
 - `PLAYBOOK.md` — universal protocols; the full methodology reference
 - `AGENT_FRAMEWORK.md` — agent / subagent operating framework
-- `HANDOFF_PROCESS.md` — the handoff protocol (v6; CC-owned residual + probe manifest, one-round-trip boot)
+- `HANDOFF_PROCESS.md` — the handoff protocol (v7; CC-owned residual + probe manifest, one-round-trip boot, plus the §17 BOOT-INVERSION). The live version is the file's own `Version:` header, not this line
 - `HANDOFF_BOOT.md` — the thin browser-chat boot entry
 - `SESSION_SETUP.md` — session bootstrap / environment wiring
 - `ENVIRONMENT.md` — the `~/.claude/` runtime + machine environment contract
