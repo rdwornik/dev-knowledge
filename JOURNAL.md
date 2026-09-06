@@ -19,6 +19,49 @@
 
 ---
 
+### 2026-09-06 (w) - CC (Opus 5, INTEGRATOR, batch T): the close packet cited the artifacts that closing created
+
+**Did:** Ran the ship-gate once more at `e0b35c14`, after the close packet had landed - a reading
+my instruction did not require, since the second gate was conditioned on 3.14 merging and 3.14 was
+never launched. Ran it because `main` had advanced past the authoritative reading by **the batch's
+own closing acts**, which is exactly the D-17 situation, and because I had told the dispatcher I
+would answer either way.
+
+**Result — 7 undispositioned became 3, and the close packet is why.**
+
+```
+d5c0750d   RED   hard-fail 0   undispositioned 7   AUTHORITATIVE (queue drained, pre-close-packet)
+e0b35c14   RED   hard-fail 0   undispositioned 3   post-close-packet
+```
+
+The four findings **my own closing merges created** are gone, and not because anyone dispositioned
+them: `funnel_coverage` has no live finding at all, and `consumer_at_landing` is 19 findings / 19
+dispositioned. **The close packet cites every lane's artifact, so landing it retroactively gave the
+two cloud audits the consumer they lacked.** The artifact that closes a batch is what cites what
+the batch produced - which is the answer to the question I left open, and the opposite of the D-17
+fourth firing I expected. The close packet did not become the batch's last finding; **it discharged
+four of them.**
+
+Corollary worth a row: the manifest's `closed_by:` field is **load-bearing for the audit organs**
+in a way nothing documents. Three register entries went `[stale]` in the same act - they were
+dispositioning findings that no longer exist.
+
+**And the extra run earned its cost.** It surfaced one finding no earlier reading could have:
+`generated_artifact_freshness / audits-index` - the close-packet merge added a `docs/audits/` file
+and nothing regenerated the index. **`audit-index-freshness` SKIPPED on the anchor arc** because no
+audits file was staged there, so the commit gate could not see it and only a post-close ship-gate
+could. That is a gate whose scope is staged files failing to notice a file that arrived by merge -
+the same shape as `lane-contract-check`'s comment-versus-body gap the dispatcher found, and the
+second instance tonight of a staged-files gate missing a merge-borne change.
+
+**Changes:** `docs/audits/README.md` regenerated; this entry.
+
+**Abandoned:** Nothing.
+
+**Next:** report the corrected residual to the ratification list, then stop.
+
+**Anchors:** `d9749aae` (the index regen, introduced by this arc's merge).
+
 ### 2026-09-06 (v) - CC (Opus 5, INTEGRATOR, batch T): the last anchor, and what the night cost in round-trips
 
 **Did:** Anchored the closing arc. This is the seventh integrator anchor arc of the night and the
