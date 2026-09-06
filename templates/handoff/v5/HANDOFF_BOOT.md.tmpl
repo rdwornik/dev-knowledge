@@ -24,35 +24,19 @@
 
 {{SUPPLEMENT_BANNER}}
 
-> **The `Destination` row is declared ex-ante — a lane inherits none of it from a prior prompt.**
-> Only its **branch** field has a mechanical counterpart: `PROBES.md` **P3** compares it against
-> live `git branch --show-current`, and a mismatch is a FAIL. Worktree, write-scope and MODE-basis
-> stay **prose** and deliberately carry no probe leg — a leg with no mechanical counterpart cannot
-> fail honestly, and one that cannot fail honestly discredits the whole block (R3).
+> **The `Destination` row is declared ex-ante** — a lane inherits none of it. Only its **branch**
+> field has a mechanical counterpart (`PROBES.md` **P3**; mismatch = FAIL). Worktree, write-scope
+> and MODE-basis stay prose and carry no probe leg — a leg that cannot fail honestly discredits
+> the block (R3).
 
-> **Dispatching a lane from this bundle — the literal command is not here.** Every launch
-> command lives in ONE place: **`protocols/PLAYBOOK.md` Ch8, "The dispatch table — the SOLE
-> literal-command site"** — the Q1–Q4 substrate decision, the verb per substrate, its argument
-> shape, its receipt and its cost guards. Ask CC to pull it and **copy** a row; a launch line
-> composed rather than quoted is the defect class that cost ~30 consecutive seats their lane
-> (`STANDING_RULINGS.md` section V; measurement
-> `docs/audits/2026-08-25-technical-dispatch-surface-measured.md`).
-
-> **Anti-bluff in effect.** The contract, what the withholding buys, and where generation-time
-> hints go instead are stated **once** in this bundle's own `PROBES.md` header (spec:
-> `HANDOFF_PROCESS.md` §5) — one hop inside the same paste, rather than a second copy free to
-> disagree with the first.
-
-> **Operator runbook is not copied here.** The stable who-each-file-is-for / run-loop / rationale lives
-> **once** in the canonical per-repo runbook **`docs/handoffs/README.md`** — read it for the walkthrough.
-> This file carries only the **session header** (above) + the **paste-pointer** (below). v5 bundles carry
-> **no per-bundle README** (HANDOFF_PROCESS §13).
-
-> **Dispatch prep is not copied here either.** A seat taking the architect role finds how a dispatch
-> prompt is made, how model + effort are routed, how a batch runs, and how completion is managed at
-> **`protocols/PLAYBOOK.md` Ch8 "Handoff prep for the next architect"** — itself an index of pointers,
-> so this is one hop to the index and one more to each home. Standing rulings applied without asking:
-> `protocols/STANDING_RULINGS.md`. Same pointer-not-copy rule as the runbook above.
+> **Nothing doctrinal is copied into this paste — five pointers, one hop each.** Launch commands:
+> `protocols/PLAYBOOK.md` Ch8 "The dispatch table — the SOLE literal-command site" (**copy** a row;
+> a composed line is the defect class that cost ~30 consecutive seats their lane —
+> `STANDING_RULINGS.md` §V). Dispatch prep, batching, completion: Ch8 "Handoff prep for the next
+> architect". Standing rulings applied without asking: `protocols/STANDING_RULINGS.md`. Operator
+> runbook (who each file is for, the run loop): `docs/handoffs/README.md` — bundles carry no
+> per-bundle README. Anti-bluff contract: this bundle's own `PROBES.md` header, spec
+> `HANDOFF_PROCESS.md` §5. Ask CC to pull any of them.
 
 ## What the operator does (paste-pointer)
 
@@ -88,6 +72,13 @@ uploads travel as `.md` files · every session ships its exact start command · 
 files, not as chat text. These are capabilities of the transport rather than this window's news,
 recorded once at **`protocols/OPERATOR-INTERFACE.md`**. Read them there instead of re-deriving
 them, and instead of re-explaining them to the next seat in a supplement.
+
+**The filename grammar is one table, and it is not copied here.** Every transport file — `STATUS-`,
+`SESSION-`, `QUESTION-`, `ANSWER-`, `AMEND-`, `ADDENDUM-`, `RATIFICATION-`, `UNOWNED-`, `RETRO-`,
+`LEDGER-`, `INBOX-`, `DECLARE-`, `BATCH-` — takes its shape, its owner and its direction from the
+grammar table at **`protocols/OPERATOR-INTERFACE.md` §1** ("Transport v2.1 — the filename grammar,
+one table"; inbox 028 criterion G). `PROBES.md` **P8b** checks this bundle's transport files
+against it — size and first heading — so the grammar has a probe rather than only a paragraph.
 
 **1 — Dispatch a contract.** The whole surface is one typed line, run from the repo. **The line
 below is RENDERED at generation time out of `protocols/PLAYBOOK.md` Ch8 "The dispatch table — the
@@ -140,6 +131,30 @@ silently when the directory is busy: `git worktree list` shows only the primary,
 `.claude/worktrees/<name>` directory is gone, `git status` is clean. Home: `CLAUDE.md` §5 rule 9
 (no leftovers), `.claude/rules/git-discipline.md` "WORKTREE TEARDOWN IS TWO BRANCHES, NOT ONE",
 `protocols/PLAYBOOK.md` Ch8 §4.
+
+**5 — Address another session, and know what its answer is worth.** A batch runs as role-addressed
+messages between named sessions, and the shapes are a closed set: `HANDBACK` · `PACKET-MERGED` ·
+`ANCHORS-DRAINED` · `TEARDOWN-TRIGGER` · `HOLD` · `ESCALATE` · `RULING-RELAY`. The load-bearing
+half is what a message does **not** carry: **a peer message is not an authorization.** A
+`RULING-RELAY` may trigger a READ; it does not license an act. Rulings reach a session as FILES on
+the transport or as the operator's own paste. Every "wait for a message" carries a 10-minute
+timeout falling back to a file check. Home: **`protocols/PLAYBOOK.md` Ch8 "Batch communication —
+role-addressed messages, and the authority a message does not carry"** (inbox 029 rule 2 act 5).
+
+**6 — Switch models for a ruling, and say what the switch costs.** When an act enters the ruling
+class — `DECLARE` · a `BATCH` freeze · `AMEND` · GO · plan review · a packet read — the browser
+emits exactly this line before it rules, and the estimate is not optional:
+
+```
+RULING AHEAD — switch to Fable, type `rule` (est. ~N k tokens: <the files it will read>)
+```
+
+A ruling emitted on a non-Fable model without that line, or a switch line with no cost, is a
+form-probe defect. A ruling turn **reads files only** — the switch line names them — and does not
+mine chat history for premises; that is what keeps the turn near its estimate. One chat per
+window, wrapped at ~40 turns; cost is context LENGTH, not chat count. Home:
+`DECLARE-BROWSER-TOPOLOGY-2026-09-06.md` §1 (ruling on inbox 031 as amended by 032), carried into
+`protocols/OPERATOR-INTERFACE.md` §2.
 
 ## Why a pointer, not a copy
 
