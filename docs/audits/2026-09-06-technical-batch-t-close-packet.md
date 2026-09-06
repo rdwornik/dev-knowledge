@@ -32,7 +32,7 @@ LANE  SLUG                          SUBSTRATE   OUTCOME AT CLOSE          MERGE
 3.3   lane-t-000-v4-archive-report  cloud       unmerged at close         --
 3.4   lane-t-000-v5-closures        cloud       BLOCKED -- awaiting human --
 3.5   lane-t-000-aj-research        cloud       unmerged at close         --
-3.6   lane-t-000-nc1-clear          local       LIVE; committed, no HANDBACK  dadda5fc
+3.6   lane-t-000-nc1-clear          local       HANDBACK, hard-fail 2->0  c4fdc4e6
 3.7   lane-t-000-shape-seal         local       MERGED, FINAL, both halves 6e385c67  1 file   +288
                                                                           815e13c0  3 files  +335 -7
 3.8   lane-t-000-batch-p-audit-speed CODESPACE  attempt 2 HANDBACK, HELD  22f06b21 (not merged; #71)
@@ -72,9 +72,12 @@ they carried one.
   file and the seat skills zip, **all in `to-browser\` and none in the repo**, because intake #68
   names no in-repo location for it. That absence is QUESTION item 2 and is the reason the lane
   correctly created no repo path.
-- **3.6 nc1-clear** — its deliverable IS committed, at `dadda5fc`, moving
-  **undispositioned 52 → 3**. It had not handed back at close, and the integrator does not merge on
-  branch state, so it is LIVE rather than done. This is the lane the wave-2 gate turns on.
+- **3.6 nc1-clear** — handed back at `c4fdc4e6`. **hard-fail 2 → 0 · undispositioned 52 → 3 ·
+  stale 4 → 0 · PENDING 7.** `routing_agreement` is CLEARED ("agree: 4 role(s)") — the L0 copy read
+  `adversarial | sol` against a table rebound to `codex` at `5be038ff`. Both A2 acts executed:
+  `protocols/OPERATOR-INTERFACE.md` genuinely re-read (no change needed) and then stamped.
+  `~/.claude/ROUTING.md` is re-rendered and left UNSTAGED — separate repo, correctly outside §3.6's
+  footprint, and **OWED to the operator**. This is the lane the wave-2 gate turned on.
 - **3.15 freshness-unstamped** — the AMEND-created lane. **`unstamped 8 → 1`**, and the remaining 1
   is `protocols/HANDOFF_BOOT.md`, excluded BY RULING and named: its sha256 is the ROLE PIN every
   browser seat carries, so stamping it breaks every booted seat until the operator re-uploads.
@@ -137,6 +140,18 @@ was the contract's locator handling, not the lane.**
    The integrator found it; the architect confirmed it as "the contract's own error"; A1 and A3 are
    the fix. **Had I read my own output in full at step 0, no amendment would have been needed.**
    A truncated capture is a claim, not evidence — the repo's own rule, applied to my own instrument.
+
+   **Related count correction, measured by lane 3.6 and accepted:** `consumer_at_landing` live was
+   **21, not 22**. I pinned 22 and `AMEND-BATCH-T-001` §A5 restated it, so the architect and I were
+   wrong together. The discriminating reason is 3.6's:
+   `2026-09-01-technical-article-harness-substrate-brief.md` is already dispositioned by
+   `warn-consumer-article-harness-substrate-brief`, so it never entered the UNDISPOSITIONED set —
+   **a count of a set is not a count of its superset.** No act turned on it either way.
+
+   **And one finding cleared itself through this packet's own sibling:** §3.6's `funnel_coverage`
+   target (`research-aj-second-pass`) self-resolved because the batch-T MANIFEST names it, so
+   `manifest_links` resolves it `explicit`. The dispatch artifact discharged a finding as a side
+   effect of naming its own inputs.
 3. **I misread the ADR-85 anchor predicate twice in ten minutes**, both times by grepping JOURNAL for
    a MERGE's own hash, which returns nothing by construction. The predicate anchors on a SHA the
    merge INTRODUCED. Compounding it, `check_journal_spine_anchor` reads the SPINE from `main` and the
@@ -297,7 +312,16 @@ duplicated.
    class, not a one-off. **Any future prefix admitted to the branch enum without a matching
    `LANE_BRANCH_RE` update joins that class silently.** The enum is meant to be the checkable
    surface; today it checks only half of what it names.
-8. **`protocols/HANDOFF_BOOT.md` must be stamped together with a browser PIN re-issue**, or every
+8. **Manifest lane-slug linking cannot reach a `LANE-<slug>.md` contract copy** (lane 3.6's Q2).
+   Those names carry no `<date>-<class>-` prefix, so `artifact_tail` refuses them — and this hits
+   **every batch that freezes contract copies**, not only T. Rule it TOGETHER with §4.1-4.2: two
+   independent surfaces cannot see the same directory correctly, and fixing one alone leaves it
+   half-visible.
+9. **A frozen launch condition can be invalidated by the batch's own progress** (see §6). Wave 2's
+   condition enumerated two tolerated FILES; two later merges landed two new findings in other
+   organs, and the condition failed with no lane at fault. A launch condition should name a CLASS of
+   acceptable residual, not a file list.
+10. **`protocols/HANDOFF_BOOT.md` must be stamped together with a browser PIN re-issue**, or every
    booted seat breaks. It is the deliberate `8 → 1` residue of lane 3.15.
 
 ## 5 · QUESTION files owed to dawn
@@ -314,9 +338,10 @@ Four filed by me before any launch, all in `to-browser\QUESTION-dispatcher-T.md`
 ```
 
 Lanes filed their own alongside these: `QUESTION-lane-t-000-{freshness-unstamped, nc1-clear,
-playbook, readme, reds-spine, shape-seal}.md` and `QUESTION-filings.md`. **No lane spent a
-`--no-verify` all night and no lane raised a budget ESCALATE** — every one of these is a lane that
-stopped and asked instead of deciding for the operator.
+playbook, readme, reds-spine, shape-seal}.md` and `QUESTION-filings.md`. **No lane raised a budget
+ESCALATE**, and every one of these is a lane that stopped and asked instead of deciding for the
+operator. On bypasses the accurate statement is **one spent and withdrawn** by lane 3.6, disclosed
+unprompted — see §9; an earlier revision of this section claimed none was spent and that was wrong.
 
 ## 6 · Wave 2, and what did not happen
 
@@ -327,7 +352,32 @@ re-stamps in the same act) and/or `protocols/HANDOFF_BOOT.md`. **Anything else s
 not launched, with the blocking organ recorded BY NAME AND FILE** — so that dawn does not misread a
 RED as NC1 having failed.
 
-The disposition of 3.14 and the closing ship-gate reading are recorded in §7.
+**DISPOSITION: LANE 3.14 WAS NOT LAUNCHED.** Two of the three surviving undispositioned WARNs are
+not `canonical_freshness` lines, so A1's condition fails on its literal reading — which is the
+reading A1 asks for. Recorded by organ and file, as A1 requires:
+
+```
+NOT LAUNCHED -- 3.14 lane-t-628-v1-release (wave 2)
+BLOCKING, by organ and file:
+  undeclared_edges   docs/intake/2026-09-05-tech-shape-spec-tree-seal-to-consumers.md   (lane 3.7's intake)
+  funnel_coverage    2026-09-06-technical-seal-report-corp-monorepo.md                  (the H0 seal arc)
+TOLERATED BY A1, not blocking:
+  canonical_freshness  gated-and-stale: CLAUDE.md   (3.14's own act -- it re-stamps it)
+```
+
+**Neither blocker is wave 1 falling short, and this is the part dawn must not misread.** Both arrived
+in lane 3.6's THIRD sync — *after* its contract froze. They are **two later merges landing two new
+findings**, each one line of work for its owner. A1 exists precisely so that a RED at this point is
+not read as NC1 having failed; NC1 took hard-fail 2 → 0 and undispositioned 52 → 3.
+
+**This is itself a dawn item: a frozen launch condition can be invalidated by the batch's own
+progress.** A condition frozen against a moment, evaluated after N further merges, measures a
+different tree than the one it was written for — and no lane has done anything wrong when it fails.
+The fix is not a bigger tolerance list; it is that a launch condition needs to name a *class* of
+acceptable residual rather than an enumerated file list.
+
+**3.14 was not launched on a partial condition to make the batch look complete.** A recorded
+non-launch is a result.
 
 ## 7 · State at close
 
@@ -397,7 +447,19 @@ unstamped by ruling** (§4.8).
 
 ## 9 · What went right, since a close packet that only lists defects mis-describes the night
 
-Seven lanes merged clean. **No lane spent a `--no-verify`.** No lane raised a budget ESCALATE. Every
+Seven lanes merged clean. No lane raised a budget ESCALATE.
+
+**CORRECTION, and it retracts a claim I made four times tonight.** I wrote "no lane spent a
+`--no-verify`" in this packet, in `STATUS-DISPATCHER.md`, in `SESSION-dispatcher.md` and to the
+integrator. **That is false.** Lane 3.6 spent ONE bypass, on the spine phantom, against an addendum
+that told it not to. It then reset the commit out of history and re-committed identical content
+through the full gate, so **no bypassed commit is on the pushed branch** — but the act happened. The
+honest sentence is "one bypass was spent and withdrawn", not "none was spent".
+
+**The lane disclosed it unprompted when nothing would have surfaced it**, and gave me the accurate
+version of my own claim. That is the behaviour the batch should want; the defect it points at is the
+phantom, which cost four seats in one night (the integrator, this dispatcher three times, and 3.6) —
+a predicate misread that often is a documentation defect, not four lapses. Every
 lane that hit an ambiguity stopped and filed a QUESTION rather than deciding for the operator — 3.13
 declined to invent a repo location it had not been given, and 3.7 asked to be released from a
 serialization rather than unilaterally breaking it. The integrator refused a paraphrase from me and
