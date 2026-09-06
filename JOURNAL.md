@@ -19,6 +19,29 @@
 
 ---
 
+### 2026-09-06 (n) - CC (Opus 5, INTEGRATOR, batch T): anchor arc 3's own anchor
+
+**Did:** Anchored the arc that carries (m).
+
+**Result:** Same shape as (j), and the reason is unchanged: the integrator's branch is `docs/`-class
+by ADR-110, matches no lane grammar, and so earns no declared-integration-arc exemption at the
+commit gate. Its merge needs a real anchor naming a real commit it introduced, and the only such
+commit is (m). The lane merges in this arc need no per-entry anchor at the commit gate - they are
+exempt while batch T is open - but they DO need one for `block_unanchored_push`, which carries no
+exemption. That is the whole asymmetry, and it is why this arc exists at all.
+
+Noted for whoever tunes this later: three anchor arcs in one night, each a two-commit round-trip,
+is the cost of the exemption living in one organ and not the other. It is a real tax on an
+otherwise clean batch, not a stylistic preference.
+
+**Changes:** This entry.
+
+**Abandoned:** Nothing.
+
+**Next:** nc1-clear.
+
+**Anchors:** `96251991` (entry (m), introduced by this arc's merge).
+
 ### 2026-09-06 (m) - CC (Opus 5, INTEGRATOR, batch T): a tripwire fired, exactly as its author intended
 
 **Did:** Merged lane 3.10 (`d76c8e09`), which fixes the ARM-1 calendar RED in the TEST rather than
