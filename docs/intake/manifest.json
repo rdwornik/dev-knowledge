@@ -3,12 +3,12 @@
   "direction": "derived-from",
   "source": "docs/intake/README.md",
   "generator": "scripts/gen_intake_tree.py",
-  "source_sha256": "41ab34eee2fad20d1d6a3d734d5fb1656c71b505137885d7fbe361a1b7cbeb0a",
+  "source_sha256": "ba3a7e4dd6191adc829d82394a0af208190e338b44182db5ab8850f066b07d65",
   "honest_limit": {
     "statement": "ADR-109 section 4 is discharged by a byte-exact round-trip plus a residue manifest, NOT by a derivation ratio. This surface's ratio is INVERTED relative to surface 1 (BACKLOG.md <-> tasks/), where task lines were the majority and residue the minority. Recorded so the generality claim is honest about what was shown.",
-    "item_derived_lines": 66,
+    "item_derived_lines": 67,
     "residue_lines": 281,
-    "total_lines": 347,
+    "total_lines": 348,
     "surface_1_comparison": "inverted -- surface 1 was majority item-derived"
   },
   "not_captured": {
@@ -324,6 +324,10 @@
         "note",
         "origin"
       ],
+      "2026-09-06-tech-browser-window-shape-and-decision-carriage.md": [
+        "consumed-by",
+        "origin"
+      ],
       "2026-09-06-tech-copilot-offload-role-and-account-map.md": [
         "consumed-by",
         "origin"
@@ -414,7 +418,7 @@
     },
     {
       "t": "line",
-      "v": "**66 intake documents.**"
+      "v": "**67 intake documents.**"
     },
     {
       "t": "line",
@@ -484,7 +488,7 @@
     },
     {
       "t": "line",
-      "v": "### DRAFT (18)"
+      "v": "### DRAFT (19)"
     },
     {
       "t": "line",
@@ -578,6 +582,11 @@
     {
       "t": "item",
       "file": "2026-09-06-tech-copilot-offload-role-and-account-map.md",
+      "status": "DRAFT"
+    },
+    {
+      "t": "item",
+      "file": "2026-09-06-tech-browser-window-shape-and-decision-carriage.md",
       "status": "DRAFT"
     },
     {
