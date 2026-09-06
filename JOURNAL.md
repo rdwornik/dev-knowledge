@@ -58,6 +58,9 @@ HOLD the commit ... do not spend a bypass").
 `30c6e587` (PLAYBOOK Ch8 "Batch communication", 027 carried verbatim),
 `7c5432ea` (027 filed as intake #72, DRAFT),
 `22f06b21` (audit P2/P3 spine-walk + read-cache, intake #71).
+It also names `aabb9caf`, the entry above's own commit, which this branch's `--no-ff` merge
+introduces - a single-commit anchor branch cannot anchor its own merge, so the naming is split
+across two commits deliberately.
 
 **Changes:** JOURNAL.md; the merges themselves carry protocols/PLAYBOOK.md,
 ecosystem/silent-rule-baseline.yaml, docs/intake/.
