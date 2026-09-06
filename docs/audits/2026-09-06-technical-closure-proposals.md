@@ -1021,4 +1021,6 @@ No commit in the window mentions the id at all; the sole evidence is that a comm
 
 ---
 
-**Consumers.** ADR-70 (Tier-1 detect-and-propose), ADR-111 (funnel triage — every finding here enters as a CANDIDATE, none as an OWNED row), `[#277]`, `[#437]`, `[#454]`, `[#487]`, `[#626]`, `[#98]`, and `protocols/STANDING_RULINGS.md` (the decision budget this lane ran under).
+**Status: PRE-TRIAGE.** This report is *input* to ADR-111's funnel, not a disposition under it. No finding here has been triaged into OWNED / DISCHARGED / CANDIDATE / REJECTED, and **no intake exists for any of them** — F-1 and F-2 name defects with no open owner, and creating the intake is a `tasks/`/`docs/intake/` write this lane does not own tonight (§6). Reading any finding below as an ADR-111 CANDIDATE would be reading a disposition that has not been made. The routing owed at dawn: F-1 and F-2 need triage and, if admitted, an intake each; F-3/F-4/F-5 are evidence against the existing rows named below; F-7 is handed to `LANE-u-000-plugin-version-record-and-drift`.
+
+**Surfaces this report bears on.** ADR-70 (Tier-1 detect-and-propose), ADR-111 (the funnel this is input to), `[#277]`, `[#437]`, `[#454]`, `[#487]`, `[#626]`, `[#98]`, `[#590]`, and `protocols/STANDING_RULINGS.md` (the decision budget this lane ran under).
