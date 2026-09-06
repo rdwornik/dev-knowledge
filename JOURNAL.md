@@ -19,6 +19,34 @@
 
 ---
 
+### 2026-09-06 (j) - CC (Opus 5, INTEGRATOR, batch T): the integrator arc's own anchor
+
+**Did:** Anchored the anchor arc. Entry (i) discharges the two lane merges; this entry discharges
+the `--no-ff` merge that lands (i).
+
+**Result:** Two entries rather than one because the two organs need different things and a merge
+cannot name its own hash. A lane merge is exempt at the commit gate while batch T is open, so a
+lane arc needs no per-entry anchor there - but the INTEGRATOR's branch is `docs/`-class by ADR-110
+(minting an `integrate/` prefix would invent an enum member the ruling reserves), which means it
+matches no lane grammar and earns no exemption. Its merge therefore needs a real anchor naming a
+real commit it introduced, and the only commit it introduces is (i) itself. Hence the ratified
+shape: **>=2 commits, JOURNAL last, naming the one before it.** A single-commit anchor branch is
+unanchorable by the same law it is trying to satisfy.
+
+Written as its own entry rather than folded into (i) because an anchor discharges by APPEND ONLY
+(STANDING_RULINGS B6): amending (i) in place to name a SHA that did not exist when (i) was written
+would discharge the anchor retroactively and leave no trace it once did not.
+
+**Changes:** This entry.
+
+**Abandoned:** Nothing.
+
+**Next:** Push, which releases the three lanes currently refused by `block_unanchored_push`
+(shape-seal `160c622e`, playbook `fa5a7b2e`, freshness-unstamped `c87d54b1`) - all three committed
+clean, none spent a bypass.
+
+**Anchors:** `6103dfcb` (entry (i), introduced by this arc's merge).
+
 ### 2026-09-06 (i) - CC (Opus 5, INTEGRATOR, batch T): the two ADR-85 organs disagree about the batch exemption
 
 **Did:** Merged the first two wave-1 lane arcs - 3.12 README (`f6d166d7`) and 3.1 logs-retention
