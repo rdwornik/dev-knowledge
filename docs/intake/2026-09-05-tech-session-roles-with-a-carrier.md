@@ -1,5 +1,5 @@
 ---
-intake-id: 70
+intake-id: 77
 status: DRAFT
 origin: architect inbox 2026-09-05, items 008-A and 009-A; the defect is the operator's finding, recorded 2026-09-05
 consumed-by:

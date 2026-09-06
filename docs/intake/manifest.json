@@ -3,12 +3,12 @@
   "direction": "derived-from",
   "source": "docs/intake/README.md",
   "generator": "scripts/gen_intake_tree.py",
-  "source_sha256": "ba3a7e4dd6191adc829d82394a0af208190e338b44182db5ab8850f066b07d65",
+  "source_sha256": "68d3c620dc9eed0fbfab309bb8c1cf7bcff64cbaeadd17d06aa4add59f1d9264",
   "honest_limit": {
     "statement": "ADR-109 section 4 is discharged by a byte-exact round-trip plus a residue manifest, NOT by a derivation ratio. This surface's ratio is INVERTED relative to surface 1 (BACKLOG.md <-> tasks/), where task lines were the majority and residue the minority. Recorded so the generality claim is honest about what was shown.",
     "item_derived_lines": 67,
-    "residue_lines": 281,
-    "total_lines": 348,
+    "residue_lines": 297,
+    "total_lines": 364,
     "surface_1_comparison": "inverted -- surface 1 was majority item-derived"
   },
   "not_captured": {
@@ -556,11 +556,6 @@
     },
     {
       "t": "item",
-      "file": "2026-09-05-tech-session-roles-with-a-carrier.md",
-      "status": "DRAFT"
-    },
-    {
-      "t": "item",
       "file": "2026-09-05-tech-batch-p-audit-gate-speed.md",
       "status": "DRAFT"
     },
@@ -587,6 +582,11 @@
     {
       "t": "item",
       "file": "2026-09-06-tech-browser-window-shape-and-decision-carriage.md",
+      "status": "DRAFT"
+    },
+    {
+      "t": "item",
+      "file": "2026-09-05-tech-session-roles-with-a-carrier.md",
       "status": "DRAFT"
     },
     {
@@ -1110,6 +1110,70 @@
     {
       "t": "line",
       "v": "resulting epic(s) cite back (\u00a71). Don't renumber on rejection or on folder growth."
+    },
+    {
+      "t": "line",
+      "v": ""
+    },
+    {
+      "t": "line",
+      "v": "**Allocate it with the organ, never by reading the folder listing:**"
+    },
+    {
+      "t": "line",
+      "v": "`python scripts/gen_intake_index.py --next-free`. The listing **under-reports** by every"
+    },
+    {
+      "t": "line",
+      "v": "archived doc (\u00a75 drops them from the index, but their ids stay spent) and by every doc on a"
+    },
+    {
+      "t": "line",
+      "v": "branch that has not merged \u2014 and a colliding doc is *by definition* not yet on `main`, so a"
+    },
+    {
+      "t": "line",
+      "v": "`main`-only max() reproduces the collision it is meant to prevent. The allocator therefore"
+    },
+    {
+      "t": "line",
+      "v": "scans **all refs, local and origin** (ruling D8, `DECLARE-SITTING-2026-09-06.md`); on"
+    },
+    {
+      "t": "line",
+      "v": "2026-09-06 the working tree said `76` and the correct answer was `77`, held on an unmerged"
+    },
+    {
+      "t": "line",
+      "v": "branch. Both generators now REFUSE to write on a colliding tree (exit 3) \u2014 before that they"
+    },
+    {
+      "t": "line",
+      "v": "wrote one out in silence, which is how ids `70` and `72` were each allocated twice."
+    },
+    {
+      "t": "line",
+      "v": ""
+    },
+    {
+      "t": "line",
+      "v": "**The one exception to \"permanent\"** is a collision, and D8 rules it narrowly: *earlier-merged"
+    },
+    {
+      "t": "line",
+      "v": "keeps the id; the later file takes next-free* (later = later first commit date, measured), and"
+    },
+    {
+      "t": "line",
+      "v": "**every citation of the moved id moves in the same commit**. Immutable artifacts \u2014 ADRs,"
+    },
+    {
+      "t": "line",
+      "v": "audits, handoffs \u2014 are the exception to the exception: they record what was true when they"
+    },
+    {
+      "t": "line",
+      "v": "were written and are **not** edited (`to-cc/ANSWER-filings-Q3.md`)."
     },
     {
       "t": "line",
