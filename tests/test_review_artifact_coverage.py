@@ -373,3 +373,270 @@ def test_leg_is_advisory_on_the_live_repo():
     """Same shape as test_preflight_backlog_ids_is_registered_and_advisory_on_the_live_repo."""
     for f in _leg()(Path(aud._REPO_ROOT)):
         assert f.status in ("pass", "warn"), f"advisory leg must never FAIL: {f}"
+
+
+# ===========================================================================
+# NIGHT-2 W1-1 — the HANDBACK review token, and the refusal built on it
+# ===========================================================================
+# THE GAP (D-1, 2026-09-06): "REVIEW IS A LANE ACT ... an empty/failed invocation is
+# `review=NONE` — and the integrator refuses a `review=NONE` code branch. Zero reviews
+# cannot recur silently." Measured on this branch's parent: the strings `review=NONE`,
+# `review=codex` and "review token" appeared NOWHERE under scripts/ tests/ .claude/
+# protocols/ — the refusal existed as prose in a batch contract and in no organ.
+#
+# PLAYBOOK Ch8 "Batch communication" lists this among 027's OWED legs and names the honest
+# limit the work below closes: "The shapes are greppable but UNENFORCED — no organ parses a
+# message or refuses a malformed one, so conformance rests on the seat."
+#
+# The refusal is a SEPARATE function from the advisory leg on purpose. The [#480] P3 ruling
+# holds `check_review_artifact_coverage` at WARN-tier and
+# `test_leg_is_structurally_incapable_of_failing` pins that at the source. A refusal is a
+# hard verdict; putting it inside the leg would either break that pin or smuggle a
+# hard-gating path into an organ the ruling deliberately left advisory.
+
+
+def _verdict(line):
+    fn = getattr(aud, "review_handback_verdict", None)
+    assert fn is not None, (
+        "audit.review_handback_verdict does not exist yet — the D-1 refusal is unbuilt "
+        "(this is the RED)"
+    )
+    return fn(line)
+
+
+# --- the refusal ------------------------------------------------------------
+
+def test_code_handback_with_no_review_token_at_all_is_refused():
+    ok, msg = _verdict("HANDBACK worktree-lane-u-000-x @ 1a2b3c4d code")
+    assert ok is False
+    assert "review=" in msg, "the message must NAME the missing token, not merely refuse"
+
+
+def test_code_handback_with_review_none_is_refused():
+    ok, msg = _verdict("HANDBACK worktree-lane-u-000-x @ 1a2b3c4d code review=NONE")
+    assert ok is False
+    assert "review=NONE" in msg
+
+
+def test_seeded_handback_with_a_review_tally_merges():
+    """The contract's own closure example, verbatim: `review=codex HIGH:0`. The counts are
+    INDIVIDUALLY optional — a lane that reports HIGH alone has still reported a review."""
+    ok, msg = _verdict("HANDBACK worktree-lane-u-000-x @ 1a2b3c4d code review=codex HIGH:0")
+    assert ok is True, msg
+    assert msg.startswith("MERGE ")
+
+
+def test_full_tally_merges():
+    ok, msg = _verdict(
+        "HANDBACK worktree-lane-u-000-x @ 1a2b3c4d code review=codex HIGH:0 MED:1 LOW:2")
+    assert ok is True, msg
+
+
+def test_the_refusal_message_is_exactly_one_line():
+    """C-9 shapes are file lines and peer messages both; a multi-line refusal is not a
+    message shape. Checked on every refusing input, not on one."""
+    for line in (
+        "HANDBACK worktree-lane-u-000-x @ 1a2b3c4d code",
+        "HANDBACK worktree-lane-u-000-x @ 1a2b3c4d code review=NONE",
+        "HANDBACK worktree-lane-u-000-x @ 1a2b3c4d",
+        "PACKET-MERGED U @ 1a2b3c4d",
+        "",
+    ):
+        ok, msg = _verdict(line)
+        assert ok is False, line
+        assert "\n" not in msg, (line, msg)
+        assert msg.startswith("REFUSE"), (line, msg)
+
+
+def test_handback_missing_its_class_token_is_refused_fail_closed():
+    """`[code|docs-only]` is point 2's own enum. Absent it the integrator cannot tell a code
+    branch from a docs-only one — and an unknown class must not read as the exempt one.
+    Fails CLOSED, the posture `block_ff_push` and `block_unanchored_push` already take."""
+    ok, msg = _verdict("HANDBACK worktree-lane-u-000-x @ 1a2b3c4d review=codex HIGH:0")
+    assert ok is False
+    assert "code" in msg and "docs-only" in msg
+
+
+def test_a_line_that_is_not_a_handback_is_refused_not_waved_through():
+    ok, msg = _verdict("HOLD worktree-lane-u-000-x suite red")
+    assert ok is False
+    assert "HANDBACK" in msg
+
+
+def test_docs_only_branch_needs_no_reviewer():
+    """D-1 verbatim: "docs-only branches: `review=n/a` allowed". The refusal it states is
+    scoped — "the integrator refuses a `review=NONE` CODE branch" — so a docs-only lane is
+    not held to a reviewer it was never asked to run."""
+    ok, msg = _verdict("HANDBACK worktree-lane-u-000-x @ 1a2b3c4d docs-only review=n/a")
+    assert ok is True, msg
+    ok2, _ = _verdict("HANDBACK worktree-lane-u-000-x @ 1a2b3c4d docs-only")
+    assert ok2 is True
+
+
+def test_docs_only_review_none_is_still_refused():
+    """`n/a` says "no reviewer was owed"; `NONE` says "the invocation failed". The second is
+    a failed review on any branch class, and C-7 forbids reporting it as clean."""
+    ok, msg = _verdict("HANDBACK worktree-lane-u-000-x @ 1a2b3c4d docs-only review=NONE")
+    assert ok is False
+    assert "review=NONE" in msg
+
+
+def test_a_short_sha_is_read_and_a_non_sha_is_not():
+    ok, _ = _verdict("HANDBACK worktree-lane-u-000-x @ 1a2b3c4 code review=codex HIGH:0")
+    assert ok is True
+    bad, msg = _verdict("HANDBACK worktree-lane-u-000-x @ HEAD code review=codex HIGH:0")
+    assert bad is False and "sha" in msg.lower()
+
+
+def test_the_leg_reads_handbacks_through_the_shared_verdict_not_a_second_grammar():
+    """ANTI-DRIFT, the same discipline the leg already applies to `journal_anchor`'s spine
+    walk: a line the integrator REFUSES must not be a line the coverage leg COUNTS. One
+    parser, two readers — a second grammar is how the doc and the gate come to disagree
+    about what a handback said.
+
+    The [#480] leg still cannot hard-verdict (`test_leg_is_structurally_incapable_of_failing`
+    pins that separately); it consumes the boolean, it does not raise on it."""
+    src = inspect.getsource(_leg())
+    assert "review_handback_verdict" in src
+    assert "re.compile(" not in src, (
+        "the leg must not compile a grammar of its own — every pattern it reads is a "
+        "module-level `_REVIEW_*` constant the refusal reads too"
+    )
+
+
+# --- terra HIGH regressions (2026-09-06), each with the input that produced it ---
+# All three are one defect: a fail-closed gate that SCANS its input instead of PARSING it
+# lets the input choose the grammar. Each test carries the exact line terra passed.
+
+def test_docs_only_in_trailing_prose_does_not_confer_the_exemption():
+    """terra HIGH 1. A whole-line `\\b(code|docs-only)\\b` scan accepted this as a docs-only
+    handback: no class token, no review token, and a merge authorised by a word in a note."""
+    ok, msg = _verdict("HANDBACK worktree-lane-a @ 1a2b3c4d note: docs-only")
+    assert ok is False, msg
+    assert "after the sha" in msg
+
+
+def test_a_review_token_is_not_a_branch_class():
+    """terra HIGH 1, second input: the unanchored scan read `code` out of `review=code`."""
+    ok, _ = _verdict("HANDBACK worktree-lane-a @ 1a2b3c4d review=code HIGH:0")
+    assert ok is False
+
+
+def test_a_trailing_review_none_is_not_hidden_by_a_leading_good_token():
+    """terra HIGH 2. Reading only the FIRST `review=` accepted a line that explicitly
+    carries `review=NONE` — the refusal bypassed by appending the failure after the pass."""
+    ok, msg = _verdict(
+        "HANDBACK worktree-lane-a @ 1a2b3c4d code review=codex HIGH:0 review=NONE")
+    assert ok is False, msg
+    assert "review=NONE" in msg
+
+
+def test_two_disagreeing_reviewers_refuse_rather_than_pick_one():
+    ok, msg = _verdict(
+        "HANDBACK worktree-lane-a @ 1a2b3c4d code review=codex HIGH:0 review=terra HIGH:9")
+    assert ok is False, msg
+    assert "contradicts itself" in msg
+
+
+def test_a_document_is_not_a_line():
+    """terra HIGH 3. `(?m)` + `.search` verdicted a whole DOCUMENT on the strength of one
+    embedded valid line, so a file holding a good docs-only handback next to an unreviewed
+    code one exited 0 — and nothing bound the accepted line to the merge in hand."""
+    doc = ("HANDBACK worktree-lane-a @ 1a2b3c4d code\n"
+           "HANDBACK worktree-lane-b @ 5e6f7a8b docs-only review=n/a\n")
+    ok, msg = _verdict(doc)
+    assert ok is False, msg
+    assert "single HANDBACK line" in msg
+
+
+def test_surrounding_prose_on_one_line_is_still_refused():
+    ok, _ = _verdict("the lane said HANDBACK worktree-lane-a @ 1a2b3c4d code review=codex HIGH:0")
+    assert ok is False
+    ok2, _ = _verdict("HANDBACK worktree-lane-a @ 1a2b3c4d code review=codex HIGH:0 -- all green")
+    assert ok2 is True, "trailing SHAPE tokens are legal; trailing PROSE is not the same thing"
+
+
+def test_a_malformed_review_token_is_refused_not_ignored():
+    ok, msg = _verdict("HANDBACK worktree-lane-a @ 1a2b3c4d code review= HIGH:0")
+    assert ok is False
+    assert "malformed" in msg
+
+
+# --- the organ reads the tally from the persisted handback artifact ---------
+
+def _handback_artifact(repo, slug, *, branch, head, token="review=codex HIGH:0 MED:0 LOW:0"):
+    """A persisted SESSION/handback artifact — the shape 027 point 6 says state takes."""
+    d = repo / "docs" / "audits"
+    d.mkdir(parents=True, exist_ok=True)
+    (d / f"{_RULING_DATE}-technical-{slug}.md").write_text(
+        "\n".join([
+            f"# SESSION — {slug}",
+            "",
+            "## now",
+            "",
+            f"HANDBACK {branch} @ {head} code {token}".rstrip(),
+            "",
+        ]),
+        encoding="utf-8", newline="\n")
+
+
+@requires_git
+def test_handback_artifact_supplies_both_linkage_and_tally(tmp_path, monkeypatch):
+    """027 point 6: STATE IS FILES. A lane's persisted handback carries the branch, the sha
+    and the tally in ONE line, so it is a first-class coverage source — not a second-class
+    one that links but leaves the merge `untallied`."""
+    repo = _repo(tmp_path, monkeypatch)
+    work, _ = _merge(repo, "fix/a", "scripts/a.py", _AFTER)
+    _handback_artifact(repo, "lane-a", branch="fix/a", head=work)
+    assert _warns(_leg()(repo)) == []
+
+
+@requires_git
+def test_handback_artifact_without_a_review_token_is_not_coverage(tmp_path, monkeypatch):
+    """The whole point of the token. A handback that reports no review is not evidence a
+    review happened, so it must not silence the leg."""
+    repo = _repo(tmp_path, monkeypatch)
+    work, _ = _merge(repo, "fix/a", "scripts/a.py", _AFTER)
+    _handback_artifact(repo, "lane-a", branch="fix/a", head=work, token="")
+    assert _warns(_leg()(repo)), "a token-free handback must not count as coverage"
+
+
+@requires_git
+def test_handback_artifact_with_review_none_is_not_coverage(tmp_path, monkeypatch):
+    repo = _repo(tmp_path, monkeypatch)
+    work, _ = _merge(repo, "fix/a", "scripts/a.py", _AFTER)
+    _handback_artifact(repo, "lane-a", branch="fix/a", head=work, token="review=NONE")
+    assert _warns(_leg()(repo))
+
+
+@requires_git
+def test_an_unrelated_handback_does_not_launder_a_merge(tmp_path, monkeypatch):
+    """The property `test_unrelated_artifact_does_not_launder_an_unreviewed_merge` pins for
+    the codex shape — one stale file must not silence the leg."""
+    repo = _repo(tmp_path, monkeypatch)
+    _merge(repo, "fix/a", "scripts/a.py", _AFTER)
+    _handback_artifact(repo, "lane-z", branch="fix/z", head="deadbeefdeadbeef")
+    assert _warns(_leg()(repo))
+
+
+# --- the two commands announce themselves (027 point 1) ---------------------
+
+@pytest.mark.parametrize("cmd", ["lane-boot", "lane-integrate"])
+def test_command_prints_role_name_and_addressees_at_boot(cmd):
+    """027 point 1's OWED leg, named in PLAYBOOK Ch8: "`/lane-boot` and `/lane-integrate`
+    printing the session's role + name and the addressee list at boot"."""
+    body = (Path(__file__).resolve().parents[1] / ".claude" / "commands" / f"{cmd}.md"
+            ).read_text(encoding="utf-8")
+    assert "ListAgents" in body, f"/{cmd} must run ListAgents at boot (027 point 1)"
+    for token in ("role", "canonical name", "addressee"):
+        assert token in body, f"/{cmd} must announce its {token}"
+
+
+def test_lane_integrate_names_the_refusal_and_its_command():
+    body = (Path(__file__).resolve().parents[1] / ".claude" / "commands"
+            / "lane-integrate.md").read_text(encoding="utf-8")
+    assert "review=NONE" in body
+    assert "audit.py handback" in body, (
+        "the refusal must be a runnable command in the doc, not a described one — a command "
+        "fence is a line a seat pastes"
+    )
