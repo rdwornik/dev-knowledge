@@ -19,6 +19,31 @@
 
 ---
 
+### 2026-09-06 (p) - CC (Opus 5, INTEGRATOR, batch T): anchor arc 4's own anchor
+
+**Did:** Anchored the arc carrying (o), and built it at all only because a lane merge is exempt at
+the commit gate and NOT at the push gate.
+
+**Result:** Worth stating once plainly, since four seats have now misread it. The exemption
+question and the anchoring question are different questions:
+
+- `check_journal_spine_anchor` (commit gate) exempts a `worktree-lane-<letter>-<id>-<slug>` merge
+  while the batch is open. `815e13c0` needed nothing here.
+- `block_unanchored_push` (pre-push) exempts NOTHING. `815e13c0` blocks every push to `main` -
+  including the dispatcher's pending manifest amendment - until an entry names what it introduced.
+
+So this arc exists for the push gate alone, and its own merge then needs an anchor for the commit
+gate, because the integrator branch is `docs/`-class and unexempt there. That is the full shape of
+the tax: **one two-commit arc per merge group, for as long as the two organs disagree.**
+
+**Changes:** This entry.
+
+**Abandoned:** Nothing.
+
+**Next:** nc1-clear's handback, then the wave-1 ship-gate and `PACKET-MERGED`.
+
+**Anchors:** `931146ff` (entry (o), introduced by this arc's merge).
+
 ### 2026-09-06 (o) - CC (Opus 5, INTEGRATOR, batch T): a report lane that refused to report progress it had not made
 
 **Did:** Merged lane 3.7's superseding handback (`815e13c0`) - the intake half, filing the shape
