@@ -19,6 +19,49 @@
 
 ---
 
+### 2026-09-06 (ab) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): the generated index the merge invalidated, and an alarm withdrawn on both sides
+
+**Did:** Regenerated `docs/audits/README.md`, stale as a direct consequence of the batch-U manifest
+merge, and anchored the arc that carries it.
+
+**Result - a coherence defect closed by the seat that caused it.**
+
+`25539b32` added 20 files under `docs/audits/`, which made the generated index disagree with the
+tree: 904 documents claimed, 905 present. `[#590]` narrowed `audit-index-freshness` to
+`(README.md|gen_audit_index.py)` exactly so lanes do NOT regenerate this file - it was in six of the
+last seven conflicted merges - which makes the regeneration the integrator's act and nobody else's.
+Because the hook fires only when the index or its generator is staged, the staleness was invisible
+to every commit made since, including this seat's two anchor arcs. A narrow hook is the right
+design and it is also why the rot was silent.
+
+Worth recording as a shape: **an anchor arc can name a non-journal commit on its own branch.** The
+standing two-commit dance exists because a single-commit anchor branch has nothing to name but
+itself. Here the branch already carried a real commit, so ONE journal entry naming `335e1486`
+anchors the merge, and the second commit was unnecessary.
+
+**Two alarms withdrawn tonight, one on each side, and both by measurement.** Dispatcher-N2 raised
+that all seven wave-1 lanes rooted at `498064c9`, five commits before the manifest, leaving the
+ADR-110 exemption dead in their trees. The three facts were true and this seat confirmed each as its
+own command. The consequence did not follow: `498064c9` holds **zero** launch contracts as well as
+no manifest, because `75c84aa4` created all 20 files in ONE commit. A tree holding neither is
+consistent; the dangerous state is contracts without the manifest that exempts them, and no lane was
+in it. The durable rule is therefore about **atomicity** - manifest and contracts land in one commit
+- not about dispatch order. Batch D failed on separate landing.
+
+This seat's own contract-resolution hypothesis was then falsified in turn: lane contracts resolve
+against the prompts dir, not the worktree, so no lane was ever blind to its contract. Dispatcher-N2
+also measured what the exemption actually guards (`audit.py:4331`) - lane MERGE SHAs on main's
+first-parent spine, an integrator-side concern - and withdrew the claim that it could refuse a
+lane's own commit. Three claims, three measurements, two withdrawals.
+
+**Changes:** `docs/audits/README.md` 904 to 905 via `335e1486`.
+
+**Abandoned:** the contract-resolution hypothesis, falsified.
+
+**Next:** wave-1 lanes on HANDBACK, docs-first, refusing `review=NONE` on code branches.
+
+**Anchors:** `335e1486` (the index regeneration, introduced by this branch's merge).
+
 ### 2026-09-06 (aa) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): the batch-opening merge is a precondition, not a queue item
 
 **Did:** Merged the batch-U manifest branch to `main` before any lane handed back, and anchored it.
