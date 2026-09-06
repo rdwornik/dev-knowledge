@@ -1,3 +1,9 @@
+---
+last_reviewed: 2026-09-06
+status: active
+owner: Rob
+---
+
 # FUNNEL_LIFECYCLE — the governed-object state machine, written once
 
 <!-- scope: meta -->
@@ -435,9 +441,13 @@ intake README, since the ambiguity is that file's rather than this one's.
 
 ## 9. Honest limits
 
-- **Nothing here is gated today.** This file is doctrine a reviewer cites. The check that gives it
-  teeth is a separate deliverable and is owed; until it lands, conformance rests on seats reading
-  this page.
+- **The gate exists, and it is narrower than this file.** FM-2 shipped as
+  `audit.py::check_funnel_lifecycle` (thin adapter over `scripts/funnel_lifecycle.py`), registered
+  SHIP-tier and FAIL-capable — so §3.3's unfired transition, §4's owed archival and §3.5's
+  unresolved `source:` clause are machine-checked, not merely cited. What is still doctrine a
+  reviewer cites, with no organ behind it, is everything the check does not compute: §3's
+  actor-and-evidence columns, §4's same-commit rule (§9's last limit says so of itself), and the
+  finding class, which §2 already records as checkable per wave rather than per object.
 - **The operator approval behind an intake's `DRAFT` or `READY` birth lives in a commit message,
   not in the doc.** The frontmatter schema is closed and carries no approval field, so §3.3's
   birth rows point at the landing commit. That is a weaker locator than a field — a squashed or
