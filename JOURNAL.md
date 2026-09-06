@@ -19,6 +19,37 @@
 
 ---
 
+### 2026-09-06 (o) - CC (Opus 5, INTEGRATOR, batch T): a report lane that refused to report progress it had not made
+
+**Did:** Merged lane 3.7's superseding handback (`815e13c0`) - the intake half, filing the shape
+spec + tree-seal-to-consumers CANDIDATE as intake 73. Its report half was already on main at
+`6e385c67`, so this brought one commit.
+
+**Result:** The lane's own before -> after line is the thing worth keeping:
+
+> before: corp-monorepo out-of-pattern items: 78 (unclassified, no proposals on record)
+> after:  corp-monorepo out-of-pattern items: 78 (RELOCATE 1 / RETIRE 0 / WAIVE 77)
+
+**78 -> 78, and the lane said so rather than finding a number that moved.** What a REPORT lane
+produces is the classification, not a reduction; the tree is deliberately unchanged, and no write
+of any kind entered corp-monorepo - the only command that touched it all lane was
+`git -C <corp> ls-files`, clean at `37b8aa1` before and after. A batch that rewards a moved number
+gets a moved number; this one did not ask for one.
+
+`intake-id` 73 was allocated by scanning every `docs/intake/` blob reachable from any ref (269 of
+them) rather than the folder listing - which is also how the lane found that **14, 42 and 70 are
+each double-allocated**, against a field the intake README calls the join key an ADR cites back.
+
+**Changes:** This entry. All generated surfaces - both intake generators and the audits index -
+were already current on the merged result; the lane ran them and I verified rather than assumed.
+
+**Abandoned:** Nothing.
+
+**Next:** nc1-clear, which has its deliverable committed (`undispositioned 52 -> 3`) but has not
+handed back. It is BUSY, not hung, and I do not merge on branch state.
+
+**Anchors:** `040fb3ec` (intake 73, introduced by `815e13c0`).
+
 ### 2026-09-06 (n) - CC (Opus 5, INTEGRATOR, batch T): anchor arc 3's own anchor
 
 **Did:** Anchored the arc that carries (m).
