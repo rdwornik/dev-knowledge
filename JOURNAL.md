@@ -19,6 +19,514 @@
 
 ---
 
+### 2026-09-06 (w) - CC (Opus 5, INTEGRATOR, batch T): the close packet cited the artifacts that closing created
+
+**Did:** Ran the ship-gate once more at `e0b35c14`, after the close packet had landed - a reading
+my instruction did not require, since the second gate was conditioned on 3.14 merging and 3.14 was
+never launched. Ran it because `main` had advanced past the authoritative reading by **the batch's
+own closing acts**, which is exactly the D-17 situation, and because I had told the dispatcher I
+would answer either way.
+
+**Result — 7 undispositioned became 3, and the close packet is why.**
+
+```
+d5c0750d   RED   hard-fail 0   undispositioned 7   AUTHORITATIVE (queue drained, pre-close-packet)
+e0b35c14   RED   hard-fail 0   undispositioned 3   post-close-packet
+```
+
+The four findings **my own closing merges created** are gone, and not because anyone dispositioned
+them: `funnel_coverage` has no live finding at all, and `consumer_at_landing` is 19 findings / 19
+dispositioned. **The close packet cites every lane's artifact, so landing it retroactively gave the
+two cloud audits the consumer they lacked.** The artifact that closes a batch is what cites what
+the batch produced - which is the answer to the question I left open, and the opposite of the D-17
+fourth firing I expected. The close packet did not become the batch's last finding; **it discharged
+four of them.**
+
+Corollary worth a row: the manifest's `closed_by:` field is **load-bearing for the audit organs**
+in a way nothing documents. Three register entries went `[stale]` in the same act - they were
+dispositioning findings that no longer exist.
+
+**And the extra run earned its cost.** It surfaced one finding no earlier reading could have:
+`generated_artifact_freshness / audits-index` - the close-packet merge added a `docs/audits/` file
+and nothing regenerated the index. **`audit-index-freshness` SKIPPED on the anchor arc** because no
+audits file was staged there, so the commit gate could not see it and only a post-close ship-gate
+could. That is a gate whose scope is staged files failing to notice a file that arrived by merge -
+the same shape as `lane-contract-check`'s comment-versus-body gap the dispatcher found, and the
+second instance tonight of a staged-files gate missing a merge-borne change.
+
+**Changes:** `docs/audits/README.md` regenerated; this entry.
+
+**Abandoned:** Nothing.
+
+**Next:** report the corrected residual to the ratification list, then stop.
+
+**Anchors:** `d9749aae` (the index regen, introduced by this arc's merge).
+
+### 2026-09-06 (v) - CC (Opus 5, INTEGRATOR, batch T): the last anchor, and what the night cost in round-trips
+
+**Did:** Anchored the closing arc. This is the seventh integrator anchor arc of the night and the
+first one taken with batch T already closed, so it earns no exemption at either gate.
+
+**Result:** Worth totalling once, because the number is the argument. **Seven two-commit arcs, one
+per merge group**, existing solely because `check_journal_spine_anchor` exempts a lane merge while
+a batch is open and `block_unanchored_push` exempts nothing. Both organs are correct in isolation.
+The cost of their disagreement was fourteen commits and seven merges that carried no work.
+
+Beside that, **the spine predicate was misread seven times tonight** - the dispatcher three times,
+me once, lane 3.6 once (spending the night's only bypass, which it then un-made and disclosed
+unprompted), lane 3.1 once and diagnosed unaided, plus two lanes talked down minutes before
+spending one. A predicate misread that often by that many careful seats is **a documentation
+defect, not seven lapses**, and it is the highest payoff-to-effort item on the dawn list: the fix is
+one paragraph stating that a merge cannot name its own hash and that the reader must name a commit
+the merge INTRODUCED.
+
+**Changes:** This entry.
+
+**Abandoned:** Nothing. Queue drained, HOLD queue intact at five, no branch merged that should not
+have been.
+
+**Next:** final census and stop.
+
+**Anchors:** `d473a8ba` (entry (u), introduced by this arc's merge).
+
+### 2026-09-06 (u) - CC (Opus 5, INTEGRATOR, batch T): the batch closes RED, honestly, rather than GREEN by absorption
+
+**Did:** Merged the batch-T close packet (`14b9ec30`) on the dispatching seat's explicit word, after
+`PACKET-MERGED wave-1 @ d5c0750d`. **Batch T is closed** - `open_batches` now returns nothing,
+because `_closer_committed` probes for the ABSENCE of the `closed_by:` path and that path now
+exists. The ADR-110 exemption ended at that commit; this arc is the first to pay for it.
+
+**Result — the closing gate.** Run in git-bash, `PYTHONUTF8=1`, unpiped, gate's own `EXIT=1` read
+directly rather than a pipe's: **RED, hard-fail 0, 7 undispositioned** (63 WARN findings - 56
+dispositions = 7, and a decomposition that shows its own subtraction is one a reader can check):
+
+```
+consumer_at_landing  2026-09-06-technical-archive-report-stage.md
+consumer_at_landing  2026-09-06-technical-research-aj-thesis-catalogue-and-deployment-model.md
+funnel_coverage      2026-09-06-technical-archive-report-stage.md
+funnel_coverage      2026-09-06-technical-research-aj-thesis-catalogue-and-deployment-model.md
+funnel_coverage      2026-09-06-technical-seal-report-corp-monorepo.md
+undeclared_edges     docs/intake/2026-09-05-tech-shape-spec-tree-seal-to-consumers.md
+canonical_freshness  gated-and-stale: CLAUDE.md
+```
+
+**Four of the seven are mine, and no seat saw them coming.** Three seats independently forecast
+three residual and all three were right; the other four came from my own closing merges. Each cloud
+audit lands as a new `docs/audits/` artifact that nothing cites and nothing dispositions, so each
+trips two organs at once. **A REPORT-stage artifact has no consumer by construction on the night it
+lands** - that is what report-stage means, and consent 3 ran V4 at report stage deliberately.
+
+That is the third firing of one mechanism tonight, with three actors and no overlap in cause: the
+dispatch adding 18 findings after step 0, lane 3.7's merges adding 2 after A1 was written, my
+closing merges adding 4 after everyone had forecast the close. The property that makes it
+structural rather than unlucky: **here the seat that measures is also the seat that moves the tree,
+and it still could not forecast the close.** If the actor holding both roles cannot, no division of
+labour fixes it.
+
+**I dispositioned none of the seven.** Four are mine, and clearing a gate I authored by
+dispositioning my own merges' artifacts is the precise shape of absorbing a signal - the same
+reason the PLAYBOOK doctrine tripwire is left RED. Each is one line of work for an owner who can
+say what the artifact is for. **The batch closes RED with every residual named and owned, rather
+than GREEN by absorption**, and that is the better close.
+
+**Lane 3.14 stays NOT LAUNCHED**, recorded by organ and file. The measured 7 across 4 organs, one
+of them A1-admissible, widens the margin on a ruling made against a forecast of 3 - it does not
+change it, and the ruling needs no amendment.
+
+**Changes:** `docs/audits/2026-09-06-technical-batch-t-close-packet.md` (630 lines); this entry.
+
+**Abandoned:** Nothing.
+
+**Next:** the final census, `SESSION-integrator.md`, stop. Never a handoff (025).
+
+**Anchors:** `348e3bec` (the closing reading, introduced by `14b9ec30`).
+
+### 2026-09-06 (s) - CC (Opus 5, INTEGRATOR, batch T): the queue drains, and a seat that reported its own bypass
+
+**Did:** Merged the last three: lane 3.6 `nc1-clear` (`f44b1f58`, 10s), then the two cloud lanes
+back-to-back - `aj-research` (`e5ff6bbb`, 10s) and `v4-archive-report` (`05e1cd0a`, 10s).
+
+**Result — 3.6.** `hard-fail 2 -> 0`, `undispositioned 52 -> 3`, `stale 4 -> 0`. Two things in its
+handback are worth more than those numbers.
+
+**It disclosed a bypass I would never have found.** It spent one `--no-verify` on exactly the
+spine-anchor phantom it had been warned about, caught itself, un-made the commit
+(`merge --abort` + `reset --soft HEAD~1`), synced properly and re-committed identical content
+through the full gate. So both of these are true: **a bypass was spent as an act, and no bypassed
+commit exists on the pushed branch.** I had been reporting "zero bypasses tonight" and that line
+was right about what LANDED and wrong about what SEATS DID. The lane asked me to record the
+stricter reading. **Corrected: one bypass spent, zero landed.** A seat that reports its own
+near-miss when the evidence is already gone is worth more to this record than a clean number.
+
+**And it dispositioned 18 findings that were not in its frozen 36** - because the dispatch itself
+landed the manifest and 13 contracts at `c004ac8c` *after* the step-0 measurement, so **the batch
+grew its own undispositioned set by 18 between freeze and execution.** Each was dispositioned under
+the consumer the manifest already declares, individually reversible, and flagged as a C-3(c) fork
+for the operator to check rather than take on the lane's word.
+
+**Result — the two cloud lanes.** Merged on a weaker basis, stated as such: *merged on the
+dispatcher's read of a lane that cannot hand back*. A cloud session receives messages but cannot
+send one, so **there is no transport on which a handback could ever arrive**, and ListAgents
+`idle` means unarchived, not finished. Waiting for a handback with no channel is waiting forever.
+That is the same structural gap from the other end as the codespace lane that could not write a
+QUESTION file: **027's protocol assumes a substrate two of tonight's four remote lanes did not
+have.** Both audits add-only, `technical` class, zero deletions; v4 is REPORT-stage, matching
+operator consent #3.
+
+**The 3 residual undispositioned are each another lane's, and two arrived after 3.6's contract
+froze:** `CLAUDE.md` (3.14's, the line A1 permits), 3.7's intake edge, and the H0 seal arc's funnel
+row. **On a literal reading of AMEND A1, wave 2 is therefore not launchable** - A1 admits only
+`CLAUDE.md` / `HANDOFF_BOOT.md` lines. That is not a wave-1 shortfall; two later merges landed two
+new findings.
+
+**Changes:** the three merges; `docs/audits/README.md` regenerated (neither cloud lane did it).
+
+**Abandoned:** Nothing.
+
+**Next:** the wave-1 ship-gate and the decomposed `PACKET-MERGED` line.
+
+**Anchors:** `c4fdc4e6` (3.6, introduced by `f44b1f58`) - `5c36f99b` (aj-research, introduced by
+`e5ff6bbb`) - `8c07cf48` (v4 report, introduced by `05e1cd0a`).
+
+### 2026-09-06 (t) - CC (Opus 5, INTEGRATOR, batch T): anchor arc 6, and a dispatching seat that ended mid-sentence
+
+**Did:** Anchored arc 6, which carries the index regen and entry (s).
+
+**Result:** `dispatcher-T` went offline while I was drafting a reply to it - inbox gone, two
+corrections to its close packet undelivered. They are recorded on my board instead, because the
+packet is now the batch's own record and is wrong on both: it says *"seven lanes merged without a
+review artifact"*, where the true shape is **8 merges / 7 branches / 6 numbered lanes** (3.7 merged
+twice; `manifest-amend` is a dispatcher arc, not a lane), and NO REVIEW applies to every merge
+tonight rather than to seven of them.
+
+**The close packet `b22f201a` is parked and no seat is authorised to clear it.** Its clearance was
+to arrive as one explicit line after an A1 evaluation that can no longer happen. It is not in my
+instruction - it is a dispatcher artifact - so it goes to the operator as a named residual rather
+than merged on my own authority. It is also **booby-trapped by accident**: it sits on
+`worktree-lane-t-000-manifest-amend`, a branch I already merged an earlier commit of, so it appears
+in `git branch --no-merged main` looking exactly like an ordinary pending handback while holding
+the file whose mere presence closes the batch.
+
+**Changes:** This entry.
+
+**Abandoned:** Nothing.
+
+**Next:** ship-gate, `PACKET-MERGED`, final census, stop.
+
+**Anchors:** `df53cab6` (the index regen, introduced by this arc's merge).
+
+### 2026-09-06 (r) - CC (Opus 5, INTEGRATOR, batch T): anchoring promptly because the gap blocks lanes, not just me
+
+**Did:** Anchored arc 5, immediately rather than batched with the next merge.
+
+**Result:** The reason is worth recording, because the cheaper-looking choice is wrong. It is
+tempting to let anchors accumulate and discharge them in one arc per merge GROUP - fewer arcs,
+less tax. But `block_unanchored_push` refuses **any** push whose range carries an unanchored spine
+entry, and a lane pushing its own branch has main's spine in its range. So an unanchored main does
+not merely delay the integrator; **it wedges every lane still trying to hand back.** nc1-clear has
+a handback to push. Batching the anchor would have blocked it and looked, from inside that lane,
+exactly like a phantom.
+
+Three seats saw a phantom spine gap tonight and two were minutes from spending a bypass on it. The
+integrator holding an anchor to save itself a round-trip is the same failure with the integrator as
+its author.
+
+**Changes:** This entry.
+
+**Abandoned:** Nothing.
+
+**Next:** nc1-clear, then the wave-1 ship-gate and `PACKET-MERGED`.
+
+**Anchors:** `90403b70` (entry (q), introduced by this arc's merge).
+
+### 2026-09-06 (q) - CC (Opus 5, INTEGRATOR, batch T): a lane whose contract cannot reach the tree by any ordering
+
+**Did:** Merged the dispatcher's manifest amendment (`3dbff773`), which records AMEND-BATCH-T-001
+on batch T's manifest. It landed as ONE file, not the two the dispatcher and I both expected, and
+the reason is the finding.
+
+**Result:** Lane 3.15 was created by an amendment AFTER freeze. Its contract never landed, and
+**no ordering exists by which it could have**: `gen_lane_contract.py::_check_manifest_contract_agreement`
+compares the manifest roster against the contracts *in the changeset*, and batch T's other 13
+contracts landed at freeze and are unchanged, so `git add` cannot re-stage them - there is no diff.
+The dispatcher attempted both refusing orderings before concluding it, which is why this is measured
+rather than deduced:
+
+- contract alone -> REFUSE (manifest names 13 slugs, no matching contract)
+- contract + amendment -> REFUSE (manifest names 14, changeset holds 1)
+- amendment alone -> PASS (0 contracts given, "0 checked")
+
+So the gate is scoped "at freeze" by its own docstring, an amendment adds a lane after freeze, and
+**the sanctioned post-freeze path and the gate's predicate are not composed at all.** Tonight's
+residue is 13 contracts for 14 executed lanes; the manifest now records 3.15's contract by sha256
+(`2d628f6d…`, 17211 B) rather than claiming a landing that did not happen. Recording the absence
+beats simulating the presence, and the manifest is the only in-tree surface that says so.
+
+Beside it, a second thing found while diagnosing: `.pre-commit-config.yaml`'s `lane-contract-check`
+comment asserts `pass_filenames: false`, and **the hook body does not set it** - the comment
+describes a repo-wide every-commit gate, the configuration implements a staged-files gate. Which of
+the two is intent decides whether the above is a bug or a scope. No seat touched it; it is a gate,
+and it goes to whoever rules at dawn.
+
+**Changes:** `docs/audits/2026-09-06-technical-batch-t-manifest.md` (+AMENDMENT 1); this entry.
+
+**Abandoned:** Nothing. No bypass was spent to land it.
+
+**Next:** nc1-clear's handback. The close packet merges LAST - committing it flips
+`_closer_committed`, the batch stops being open, and the ADR-110 exemption evaporates for every
+lane still unmerged.
+
+**Anchors:** `89a2fa04` (the amendment commit, introduced by `3dbff773`).
+
+### 2026-09-06 (p) - CC (Opus 5, INTEGRATOR, batch T): anchor arc 4's own anchor
+
+**Did:** Anchored the arc carrying (o), and built it at all only because a lane merge is exempt at
+the commit gate and NOT at the push gate.
+
+**Result:** Worth stating once plainly, since four seats have now misread it. The exemption
+question and the anchoring question are different questions:
+
+- `check_journal_spine_anchor` (commit gate) exempts a `worktree-lane-<letter>-<id>-<slug>` merge
+  while the batch is open. `815e13c0` needed nothing here.
+- `block_unanchored_push` (pre-push) exempts NOTHING. `815e13c0` blocks every push to `main` -
+  including the dispatcher's pending manifest amendment - until an entry names what it introduced.
+
+So this arc exists for the push gate alone, and its own merge then needs an anchor for the commit
+gate, because the integrator branch is `docs/`-class and unexempt there. That is the full shape of
+the tax: **one two-commit arc per merge group, for as long as the two organs disagree.**
+
+**Changes:** This entry.
+
+**Abandoned:** Nothing.
+
+**Next:** nc1-clear's handback, then the wave-1 ship-gate and `PACKET-MERGED`.
+
+**Anchors:** `931146ff` (entry (o), introduced by this arc's merge).
+
+### 2026-09-06 (o) - CC (Opus 5, INTEGRATOR, batch T): a report lane that refused to report progress it had not made
+
+**Did:** Merged lane 3.7's superseding handback (`815e13c0`) - the intake half, filing the shape
+spec + tree-seal-to-consumers CANDIDATE as intake 73. Its report half was already on main at
+`6e385c67`, so this brought one commit.
+
+**Result:** The lane's own before -> after line is the thing worth keeping:
+
+> before: corp-monorepo out-of-pattern items: 78 (unclassified, no proposals on record)
+> after:  corp-monorepo out-of-pattern items: 78 (RELOCATE 1 / RETIRE 0 / WAIVE 77)
+
+**78 -> 78, and the lane said so rather than finding a number that moved.** What a REPORT lane
+produces is the classification, not a reduction; the tree is deliberately unchanged, and no write
+of any kind entered corp-monorepo - the only command that touched it all lane was
+`git -C <corp> ls-files`, clean at `37b8aa1` before and after. A batch that rewards a moved number
+gets a moved number; this one did not ask for one.
+
+`intake-id` 73 was allocated by scanning every `docs/intake/` blob reachable from any ref (269 of
+them) rather than the folder listing - which is also how the lane found that **14, 42 and 70 are
+each double-allocated**, against a field the intake README calls the join key an ADR cites back.
+
+**Changes:** This entry. All generated surfaces - both intake generators and the audits index -
+were already current on the merged result; the lane ran them and I verified rather than assumed.
+
+**Abandoned:** Nothing.
+
+**Next:** nc1-clear, which has its deliverable committed (`undispositioned 52 -> 3`) but has not
+handed back. It is BUSY, not hung, and I do not merge on branch state.
+
+**Anchors:** `040fb3ec` (intake 73, introduced by `815e13c0`).
+
+### 2026-09-06 (n) - CC (Opus 5, INTEGRATOR, batch T): anchor arc 3's own anchor
+
+**Did:** Anchored the arc that carries (m).
+
+**Result:** Same shape as (j), and the reason is unchanged: the integrator's branch is `docs/`-class
+by ADR-110, matches no lane grammar, and so earns no declared-integration-arc exemption at the
+commit gate. Its merge needs a real anchor naming a real commit it introduced, and the only such
+commit is (m). The lane merges in this arc need no per-entry anchor at the commit gate - they are
+exempt while batch T is open - but they DO need one for `block_unanchored_push`, which carries no
+exemption. That is the whole asymmetry, and it is why this arc exists at all.
+
+Noted for whoever tunes this later: three anchor arcs in one night, each a two-commit round-trip,
+is the cost of the exemption living in one organ and not the other. It is a real tax on an
+otherwise clean batch, not a stylistic preference.
+
+**Changes:** This entry.
+
+**Abandoned:** Nothing.
+
+**Next:** nc1-clear.
+
+**Anchors:** `96251991` (entry (m), introduced by this arc's merge).
+
+### 2026-09-06 (m) - CC (Opus 5, INTEGRATOR, batch T): a tripwire fired, exactly as its author intended
+
+**Did:** Merged lane 3.10 (`d76c8e09`), which fixes the ARM-1 calendar RED in the TEST rather than
+in the check, and re-verified the suite's freshness family afterwards because that lane touches
+`scripts/audit.py`.
+
+**Result:** The re-verification found a RED that this window's own merges caused, and it is the
+good kind. `test_the_live_playbook_doctrine_row_shows_its_reconciled_spec_and_a_derived_date`
+asserts `PLAYBOOK` sits at `CLASS_UNGATED_STALE`, with this message:
+
+> "if this ever flips, PLAYBOOK was either re-stamped or gated - both are real events that should
+> be seen, not absorbed"
+
+Lane 3.11 re-stamped PLAYBOOK. So the assertion flipped, the test went red, and that is the test
+performing its function: it is a **tripwire on a transient state**, written to make a re-stamp
+visible rather than silent. It is not a regression and lane 3.11 did nothing wrong; the event the
+tripwire watches for has simply occurred, and the test now needs its owner to re-point it at the
+new true state. Recorded rather than "fixed" here: absorbing it silently is the one outcome its
+author wrote the message to prevent.
+
+`test_validate_doc_rot`'s live-corpus RED is now GREEN - lane 3.10 fixed it without weakening
+anything: `scan_backlog_accretion` and all three thresholds untouched, all five findings still
+firing, the assertion re-derived per-row so it is denominator-free and cannot rot on the calendar
+again.
+
+Still red and still foreign: `test_the_derived_leg_is_warn_class_on_arrival`, hermetic on a
+`tmp_path` fixture that reads no repo file, so no merge in this batch can move it in either
+direction. Its subject is the CLASS, not the corpus - lane 3.15 taking unstamped 8 -> 1 is not the
+lever, and whoever picks it up should not expect it to be.
+
+**Changes:** This entry.
+
+**Abandoned:** Nothing. Correcting the tripwire is production and this seat merges (E-19).
+
+**Next:** nc1-clear, then the wave-1 ship-gate.
+
+**Anchors:** `06b03c80` (the ARM-1 test repair, introduced by `d76c8e09`).
+
+### 2026-09-06 (l) - CC (Opus 5, INTEGRATOR, batch T): lane 3.15, and what a real re-read finds that a stamp bump does not
+
+**Did:** Merged lane 3.15 (`0d2db2f7`), the lane AMEND-BATCH-T-001 §A3 created in response to this
+seat's finding that two of the three `canonical_freshness` legs had no owner at any wave.
+
+**Result:** `unstamped 8 -> 1`, the remaining one being `protocols/HANDOFF_BOOT.md`, left untouched
+by ruling because its sha256 is the role PIN every browser seat carries. That number is only the
+headline. **Five of the seven were not clean re-reads**, and three of those are load-bearing well
+past this lane:
+
+- `FUNNEL_LIFECYCLE` §9 asserted *"nothing here is gated today"*. False since FM-2 -
+  `audit.py::check_funnel_lifecycle` is registered SHIP-tier and fail-capable. Anyone citing that
+  sentence as cover was citing a doc against a live gate.
+- `HANDOFF_PROCESS` §17's STAGED callout still read *"Version above does NOT bump to 7.0.0"* while
+  the header reads 7.0.0 and Section history records the bump as executed. A v7 boot document
+  contradicting its own version, on the surface a browser seat reads first.
+- `REPO_ONBOARDING` pinned v1.2.0 in three sites, three releases stale, and named a Layer-4 source
+  path that does not exist. The lane replaced the literal with `<ver>` plus how to resolve it rather
+  than re-pinning to 1.5.0, on the reasoning that 1.5.0 is an untagged RC and a fresh literal goes
+  stale the same way. The doc's own identifier table already used `<ver>`.
+
+This is the argument for the freshness discipline stated better than the rule states it: a
+`last_reviewed` stamp means re-read end-to-end and confirmed accurate, and the difference between
+that and a date bump is three false statements in boot-path documents.
+
+`STANDING_RULINGS` came back *reviewed - no change* across 4085 lines, and correctly so: W7 still
+reads "ADR-115 ratification is HELD" but is right AS A RECORD and already superseded one section
+earlier, and B6 makes a correction an append by an authorised seat rather than a lane's edit.
+
+**Changes:** This entry.
+
+**Abandoned:** Nothing.
+
+**Next:** nc1-clear, which the wave-2 gate turns on.
+
+**Anchors:** `c87d54b1` (the seven re-read files, introduced by `0d2db2f7`).
+
+### 2026-09-06 (k) - CC (Opus 5, INTEGRATOR, batch T): two more lane arcs, and a rule that ratifies what half the fleet already violates
+
+**Did:** Merged lane 3.11's freshness half (`aaa1e96a`) and lane 3.7's report half (`6e385c67`),
+regenerated the audits index the second one made stale, and anchored all of it.
+
+**Result:** Both lanes verified the ADR-85 organ disagreement in source before repeating it - the
+exemption is in `audit.py` / `batch_manifest.py` and `grep -cE 'batch_manifest|is_lane_merge|exempt'
+scripts/block_unanchored_push.py` returns **0**. It is a structural defect rather than tonight's
+accident: it reproduces in every batch until one organ changes, and it is outside every batch-T
+lane's footprint, so it wants a row rather than an in-flight fix.
+
+Two findings arrived that are worth more than the merges. Lane 3.11, doing its own addressee
+census for 027, found that **027 point 1 ratifies a rule the local half of the fleet already
+violates**: the canonical name `lane-<letter>-<id>-<slug>` is honoured by the cloud lanes and by
+none of the local bg lanes, which list as `frozen contract <topic> execution` - two of them
+near-colliding. Addressing by role name therefore depends on a mapping no surface publishes, which
+is the exact failure point 1 exists to prevent. The rule needs a dispatch-side act that SETS the
+session name, not a line in a protocol. And lane 3.7, computing the next free `intake-id` by
+scanning all 269 `docs/intake/` blobs reachable from any ref rather than the folder listing, found
+**three double-allocated ids - 14, 42 and 70** - against a field README section 3 calls the join
+key an ADR cites back. A bare `#N` is ambiguous for those three; cite by path.
+
+**Changes:** `docs/audits/README.md` regenerated (ccd3d9b1). This entry.
+
+**Abandoned:** Nothing. No lane has spent a bypass tonight; the two that were entitled to asked
+first and did not need it.
+
+**Next:** nc1-clear is the lane the wave-2 gate turns on, and lane 3.7's intake DRAFT half is
+serialized behind it.
+
+**Anchors:** `fa5a7b2e` (PLAYBOOK/ENVIRONMENT re-read, introduced by `aaa1e96a`), `160c622e`
+(corp-monorepo seal report, introduced by `6e385c67`), `ccd3d9b1` (the index regen, introduced by this
+arc's merge).
+
+### 2026-09-06 (j) - CC (Opus 5, INTEGRATOR, batch T): the integrator arc's own anchor
+
+**Did:** Anchored the anchor arc. Entry (i) discharges the two lane merges; this entry discharges
+the `--no-ff` merge that lands (i).
+
+**Result:** Two entries rather than one because the two organs need different things and a merge
+cannot name its own hash. A lane merge is exempt at the commit gate while batch T is open, so a
+lane arc needs no per-entry anchor there - but the INTEGRATOR's branch is `docs/`-class by ADR-110
+(minting an `integrate/` prefix would invent an enum member the ruling reserves), which means it
+matches no lane grammar and earns no exemption. Its merge therefore needs a real anchor naming a
+real commit it introduced, and the only commit it introduces is (i) itself. Hence the ratified
+shape: **>=2 commits, JOURNAL last, naming the one before it.** A single-commit anchor branch is
+unanchorable by the same law it is trying to satisfy.
+
+Written as its own entry rather than folded into (i) because an anchor discharges by APPEND ONLY
+(STANDING_RULINGS B6): amending (i) in place to name a SHA that did not exist when (i) was written
+would discharge the anchor retroactively and leave no trace it once did not.
+
+**Changes:** This entry.
+
+**Abandoned:** Nothing.
+
+**Next:** Push, which releases the three lanes currently refused by `block_unanchored_push`
+(shape-seal `160c622e`, playbook `fa5a7b2e`, freshness-unstamped `c87d54b1`) - all three committed
+clean, none spent a bypass.
+
+**Anchors:** `6103dfcb` (entry (i), introduced by this arc's merge).
+
+### 2026-09-06 (i) - CC (Opus 5, INTEGRATOR, batch T): the two ADR-85 organs disagree about the batch exemption
+
+**Did:** Merged the first two wave-1 lane arcs - 3.12 README (`f6d166d7`) and 3.1 logs-retention
+(`b8f94008`) - and anchored both here.
+
+**Result:** Merging them blocked every lane's PUSH, and the reason is a disagreement between the
+two ADR-85 organs rather than a missing anchor. `check_journal_spine_anchor` (the commit-time
+backstop) EXEMPTS them, and says so in its own evidence: *"EXCEPT 2 lane merge(s) exempt under the
+ADR-110 declared-integration-arc rule while batch T is open ... the exemption expires when
+[the close packet] lands."* `block_unanchored_push` (the pre-push hard leg) does **not**: the module
+contains no reference to `batch_manifest`, `is_lane_merge` or any exemption at all, so it refuses
+the very merges the backstop excuses. Its docstring claims the opposite by construction - *"this
+organ cannot disagree with the audit backstop about what 'anchored' means"* - and that holds for
+the *anchoring predicate*, which the two do share. The **exemption** is not in the shared predicate;
+it lives in the audit check alone. So the two organs agree on what "anchored" means and disagree on
+who has to be.
+
+Consequence while a batch is open: a lane may COMMIT (backstop exempts) and may not PUSH (pre-push
+refuses), and no sync fixes it, because worktrees share the common git dir - the `main` the hook
+reads is the primary's LOCAL main, which no lane can fetch or sync to. Three lanes hit it within
+minutes of each other and all three diagnosed it correctly and refused to bypass.
+
+**Changes:** This entry. No file edit - the anchor is the act.
+
+**Abandoned:** Nothing. No `--no-verify` anywhere; the lanes refused it too.
+
+**Next:** Anchor after each lane merge rather than at the end of the queue. The end-of-queue shape
+is correct for a range-level push gate and wrong for a per-entry commit gate plus an unexempted
+push gate, and this batch is the second.
+
+**Anchors:** `28e3b1c3` (README, introduced by `f6d166d7`), `353b5169` (logs-retention, introduced
+by `b8f94008`).
+
 ### 2026-09-06 (h) - CC (Opus 5, INTEGRATOR, batch T): the manifest merge that wedged every lane's commit gate, and why the exemption did not cover it
 
 **Did:** Opened the integrator window for the 2026-09-06 NIGHT batch (batch T), merged the batch-T

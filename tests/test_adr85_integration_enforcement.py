@@ -449,6 +449,103 @@ def test_t8b_backstop_fails_when_the_floor_is_unverifiable(tmp_path, monkeypatch
     assert "could not complete" in findings[0].evidence
 
 
+# --- AF-1: the failure text states its predicate and hands over a diagnostic ------
+
+# DELIBERATELY NOT `@requires_git`, unlike its neighbours above — do not "restore" the
+# decorator for symmetry. `check_proof_layer` ratchets environment-conditional guards on its
+# own doctrine: "a proof that can be skipped on the machine that breaks the property is not a
+# mechanism." Here the gated tool IS the property — this replays a git-topology predicate in a
+# git-governance repo — so an unguarded test ERRORS LOUDLY on a machine without git instead of
+# reporting a green it did not earn, which is the outcome that gate wants. The older tests in
+# this file predate the ratchet and sit in its curated baseline; a new key would breach it, and
+# rebasing that baseline is a governance act, not a lane's.
+def test_af1_replays_every_recorded_false_alarm_shape_and_none_of_them_alarms(tmp_path, monkeypatch):
+    """AF-1 — replay of the 2026-09-05 false alarms: the predicate raises NONE of them, and
+    the failure text now carries the correction each wrong reading needed.
+
+    On 2026-09-05 `journal_spine_anchor` produced EIGHT false alarms across SIX seats in one
+    day; one reached the operator and stopped the merge queue. The incidents are recorded
+    individually in the JOURNAL entries of that date, (m) through (r), and grouped into
+    wrong READINGS by `protocols/STANDING_RULINGS.md` §AF-1. AF-1 is explicit that eight is a
+    tally of recorded incidents rather than a computed metric, and it records no split of the
+    eight across the readings — so this replays every reading AF-1 names and does not invent
+    a per-reading count it would then be asserting from nothing.
+
+    Each reading is the same substitution: the seat tested whether the JOURNAL named some SHA
+    OTHER than one the entry introduced, got a miss, and reported a gap. So each case pins
+    both halves — the seat's test misses, AND the real predicate says anchored — because the
+    first assertion alone would also pass against a predicate that had simply stopped
+    detecting anything.
+    """
+    repo, _ = _repo_with_remote(tmp_path)
+    floor = _rev(repo, PROTECTED_BRANCH)
+    seed = floor                      # already on the protected ref BEFORE the entry below
+
+    # A GENUINELY ANCHORED merge, built the only way a real one can be: the JOURNAL entry
+    # rides INSIDE the branch and names a commit the merge brings in. Two commits, so the
+    # merge is anchored by the first — the shape entry (m) adopted after observing that a
+    # single-commit branch cannot anchor its own merge.
+    work, merge = _merge_branch(
+        repo, "feat/anchored", "Merge branch 'feat/anchored'",
+        journal_text=lambda w: f"# Journal\n\n### entry — Anchors: {w[:9]}\n")
+    tip = _rev(repo, "feat/anchored")   # the journal commit: introduced, but NOT named
+    journal = ja.journal_text(repo)
+
+    # THE GROUND TRUTH, established before any of the wrong readings are replayed.
+    assert ja.is_anchored(repo, merge, journal), "fixture is not actually anchored"
+    assert ja.unanchored_on_spine(repo, PROTECTED_BRANCH, floor, journal) == []
+
+    for label, wrong in [
+        # "most often the merge's own SHA" — in the introduced set, yet unavailable to name,
+        # because its hash does not exist when the JOURNAL text is authored.
+        ("the entry's own merge SHA", merge),
+        # "or a SHA already sitting on main" — naming it would introduce nothing.
+        ("a SHA already on the scanned ref", seed),
+        # entry (m), verbatim shape: `git show main:JOURNAL.md | grep -c <tip>` -> 0. Tip-ness
+        # is no part of the test; this tip happens not to qualify, and the anchored one in
+        # `test_t8...` happens to, for the same single reason either way.
+        ("the branch tip's SHA", tip),
+    ]:
+        assert wrong[:9] not in journal, label          # the seat's grep misses ...
+        assert ja.is_anchored(repo, merge, journal), label   # ... and the entry IS anchored
+
+    # THE FOURTH READING — the one that reached the operator (entry (n)): a lane reads the
+    # JOURNAL from its OWN tree and the spine from the shared ref, so a tree behind the anchor
+    # commit manufactures a gap that does not exist. Replayed by reading the JOURNAL at the
+    # pre-anchor rev, which is what a lagging tree holds.
+    stale = ja.journal_text(repo, seed)
+    assert not ja.is_anchored(repo, merge, stale), "the lagging-tree case did not reproduce"
+    assert ja.is_anchored(repo, merge, journal), "and it is anchored at the shared ref"
+
+    # NOW THE CARRIER ITSELF. A planted gap, so the FAIL text a seat would actually read is
+    # the thing under test rather than a string asserted about in the abstract.
+    _gap_work, gap = _merge_branch(repo, "feat/gap", "Merge branch 'feat/gap'")
+    monkeypatch.setattr(aud, "_is_hub", lambda p: True)
+    monkeypatch.setattr(ja, "floor_sha", lambda p: floor)
+    findings = aud.check_journal_spine_anchor(repo)
+    assert findings[0].status == "fail"
+    ev = findings[0].evidence
+    assert gap[:7] in ev
+
+    # The predicate is STATED, and each wrong reading is named as not-the-test. Keyed on the
+    # load-bearing phrases rather than the whole string, so rewording stays free and deleting
+    # the substance does not.
+    assert "AT LEAST ONE SHA THAT THE ENTRY INTRODUCED" in ev
+    assert "PLUS the entry itself" in ev
+    assert "BRANCH-TIP STATUS" in ev
+    assert "THE ENTRY'S OWN MERGE SHA" in ev
+    assert "ALREADY ON THE SCANNED REF" in ev
+    assert "TREE ASYMMETRY" in ev and "SYNC THIS TREE" in ev
+
+    # ONE diagnostic command, and it is RUNNABLE rather than merely present: every attribute
+    # it reaches for exists on the module it names. A handed-over command that has rotted is
+    # worse than none, since a reader who runs it and gets a traceback learns nothing.
+    assert "DIAGNOSTIC" in ev and "uv run --locked python -c" in ev
+    for attr in ("introduced", "is_anchored", "journal_text"):
+        assert f"j.{attr}(" in ev
+        assert hasattr(ja, attr)
+
+
 # --- FR7: no agent-asserted state is an input to a hard check ---------------
 
 def test_fr7_no_agent_asserted_state_in_the_hard_path():

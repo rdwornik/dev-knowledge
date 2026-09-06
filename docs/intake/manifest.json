@@ -3,12 +3,12 @@
   "direction": "derived-from",
   "source": "docs/intake/README.md",
   "generator": "scripts/gen_intake_tree.py",
-  "source_sha256": "6c47f18ffaa971e1a69e60468d8632f4ccbc8f518b9f27a709e65325497d1e34",
+  "source_sha256": "dd89163b9396b0026ccd22aa06ae0364c08aaff1e8132f91431904428962acbd",
   "honest_limit": {
     "statement": "ADR-109 section 4 is discharged by a byte-exact round-trip plus a residue manifest, NOT by a derivation ratio. This surface's ratio is INVERTED relative to surface 1 (BACKLOG.md <-> tasks/), where task lines were the majority and residue the minority. Recorded so the generality claim is honest about what was shown.",
-    "item_derived_lines": 63,
+    "item_derived_lines": 65,
     "residue_lines": 281,
-    "total_lines": 344,
+    "total_lines": 346,
     "surface_1_comparison": "inverted -- surface 1 was majority item-derived"
   },
   "not_captured": {
@@ -195,7 +195,8 @@
       "2026-08-22-tech-document-dependency-graph-organ.md": [
         "consumers",
         "note",
-        "origin"
+        "origin",
+        "reconciled_with"
       ],
       "2026-08-23-tech-generated-artifact-currency.md": [
         "consumed-by",
@@ -239,7 +240,8 @@
       ],
       "2026-08-26-tech-handoff-operator-interface.md": [
         "consumers",
-        "origin"
+        "origin",
+        "reconciled_with"
       ],
       "2026-08-26-tech-loop-tax-and-gate-performance.md": [
         "consumers",
@@ -271,7 +273,8 @@
       ],
       "2026-08-28-tech-handoff-engine-deployable-carrier.md": [
         "consumers",
-        "origin"
+        "origin",
+        "reconciled_with"
       ],
       "2026-08-29-func-universal-per-repo-learning-loop.md": [
         "consumed-by",
@@ -309,13 +312,23 @@
       ],
       "2026-09-05-tech-handoff-process-v71-amendment-pack.md": [
         "consumed-by",
-        "origin"
+        "origin",
+        "reconciled_with"
       ],
       "2026-09-05-tech-session-roles-with-a-carrier.md": [
         "consumed-by",
         "origin"
       ],
+      "2026-09-05-tech-shape-spec-tree-seal-to-consumers.md": [
+        "consumers",
+        "note",
+        "origin"
+      ],
       "2026-09-06-tech-cross-session-communication-protocol.md": [
+        "consumed-by",
+        "origin"
+      ],
+      "2026-09-06-tech-derived-copies-registry.md": [
         "consumed-by",
         "origin"
       ]
@@ -397,7 +410,7 @@
     },
     {
       "t": "line",
-      "v": "**63 intake documents.**"
+      "v": "**65 intake documents.**"
     },
     {
       "t": "line",
@@ -467,7 +480,7 @@
     },
     {
       "t": "line",
-      "v": "### DRAFT (15)"
+      "v": "### DRAFT (17)"
     },
     {
       "t": "line",
@@ -546,6 +559,16 @@
     {
       "t": "item",
       "file": "2026-09-06-tech-cross-session-communication-protocol.md",
+      "status": "DRAFT"
+    },
+    {
+      "t": "item",
+      "file": "2026-09-06-tech-derived-copies-registry.md",
+      "status": "DRAFT"
+    },
+    {
+      "t": "item",
+      "file": "2026-09-05-tech-shape-spec-tree-seal-to-consumers.md",
       "status": "DRAFT"
     },
     {

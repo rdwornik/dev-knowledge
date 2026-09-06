@@ -389,6 +389,42 @@ def open_tasks_from_backlog(text: str, parse_fn) -> dict:
     return {t["id"]: t["rest"] for t in tasks}
 
 
+def _month_bucket(logs_dir: Path, when: date) -> Path:
+    """The `logs/YYYY-MM/` month bucket a dated artifact is WRITTEN into.
+
+    THE CALLER FIX (batch-T 3.1). The retention rule landed as `scripts/logs_retention.py`
+    ([#626] step A, 2026-09-02): a dated file directly under `logs/` belongs in a
+    `logs/YYYY-MM/` bucket keyed off its own date. What never landed is a CALLER -- that
+    module is imported by nothing, wired into no hook and no gate, and says so in its own
+    docstring ("not wired into any hook or gate by this lane"). So this module, the sole
+    writer of `PROPOSALS-*` / `DETECTOR-ERROR-*`, kept emitting flat and the bucket rule
+    described a tidying that no organ ever performed: 141 flat dated files had accumulated
+    by 2026-09-06, one of which (`DETECTOR-ERROR-2026-09-05.md`) reached the INDEX, because
+    `.gitignore` anchors `DETECTOR-ERROR-*.md` one level deep only.
+
+    Writing into the bucket rather than relocating afterwards is the fix at the caller, and
+    it is strictly safer than a post-write `run_retention()` call would be. `apply_moves`
+    refuses a destination collision, and `_write_error_marker` deliberately REWRITES its
+    path on a second failure in one day -- so a write-then-relocate caller would archive the
+    first marker and then wedge the whole archive plan on the second, which is the exact
+    collision-wedge `_next_free_dated_path` already exists to prevent. Writing straight to
+    the destination has no such window.
+
+    NO READER CHANGES. Every consumer already globs `**/PROPOSALS-*.md` (flat AND bucketed,
+    sorted by filename) -- `resolve_window` / `find_last_proposals_head` here,
+    `review_closures.latest_proposals`, `fleet_health`'s pending scan. lane-c-3 re-pointed
+    all of them on 2026-09-01 precisely so files could live in a bucket; this is the write
+    half of that same act, arriving five days later.
+
+    The `YYYY-MM` grammar is `logs_retention`'s, not a second opinion, and it is not
+    imported: the plugin twin ships standalone under ADR-78 carrier doctrine (no shared
+    module, no symlink) and `logs_retention.py` is not in the bundle, so an import here
+    would divide the twins. `tests/test_propose_closures_bucket_write.py` pins this
+    function against `logs_retention.parse_dated_month` instead, so the two cannot drift.
+    """
+    return logs_dir / f"{when.year:04d}-{when.month:02d}"
+
+
 def _existing_anywhere(logs_dir: Path, name: str) -> bool:
     """True if `name` is present flat under logs_dir OR inside a month bucket.
 
@@ -418,18 +454,22 @@ def _next_free_dated_path(logs_dir: Path, prefix: str, ext: str = "md",
     "latest" sites across propose_closures / review_closures / fleet_health stay correct with
     no custom key. Legacy bare files predate the grammar and are never rewritten.
     """
-    stamp = (today or date.today()).isoformat()
+    day = today or date.today()
+    stamp = day.isoformat()
     for n in range(1, 100):
         cand = f"{prefix}-{stamp}-{n:02d}.{ext}"
+        # The existence check stays BOTH-LOCATIONS (`_existing_anywhere`) while the
+        # returned path is bucketed: a legacy flat file from before this fix still
+        # blocks its own name, so a new run never lands on top of one.
         if not _existing_anywhere(logs_dir, cand):
-            return logs_dir / cand
+            return _month_bucket(logs_dir, day) / cand
     raise RuntimeError(
         f"{prefix}: 99 runs already recorded for {stamp} -- refusing to guess a 100th name")
 
 
 def _write_artifact(content: str) -> Path:
-    _LOGS_DIR.mkdir(exist_ok=True)
     out = _next_free_dated_path(_LOGS_DIR, "PROPOSALS")
+    out.parent.mkdir(parents=True, exist_ok=True)  # the month bucket (see _month_bucket)
     out.write_text(content, encoding="utf-8", newline="\n")
     return out
 
@@ -496,13 +536,14 @@ def _write_error_marker(reason: str) -> Path:
     `PROPOSALS-*.md` glob. Rewriting the same path on a second failure is intended: two
     broken runs in one day leave one marker, not an accumulating pile.
     """
-    _LOGS_DIR.mkdir(exist_ok=True)
     body = (f"{_ERROR_HEADING} ({date.today().isoformat()})\n\n"
             f"The session-end detector did not run: {reason}\n\n"
             f"BACKLOG was not touched, and NO closure proposals were produced -- this\n"
             f"file is the absence of a result, not a result. Investigate\n"
             f"propose_closures.py.\n")
-    out = _LOGS_DIR / f"DETECTOR-ERROR-{date.today().isoformat()}.md"
+    out = (_month_bucket(_LOGS_DIR, date.today())
+           / f"DETECTOR-ERROR-{date.today().isoformat()}.md")
+    out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(body, encoding="utf-8", newline="\n")
     return out
 

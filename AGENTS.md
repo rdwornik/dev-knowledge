@@ -1,3 +1,9 @@
+---
+last_reviewed: 2026-09-06
+status: active
+owner: Rob
+---
+
 # AGENTS.md — `.dev-knowledge`
 
 > **Portable instruction layer** (ADR-115, superseding ADR-53 Decision 2). Non-inferable

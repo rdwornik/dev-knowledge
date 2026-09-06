@@ -43,7 +43,17 @@ L11  lane-t-000-playbook              local      opus  no row  PLAYBOOK+ENVIRONM
 L12  lane-t-000-readme                local      opus  no row  README to industry standard
 L13  lane-t-000-browser-floor         local      opus  no row  browser-seat floor rendered      [HELD]
 L14  lane-t-628-v1-release            local      opus  [#628]  V1 release act                   [WAVE 2]
+L15  lane-t-000-freshness-unstamped   local      opus  no row  seven unstamped canonical docs   [AMENDMENT 1]
 ```
+
+> **The `L15` row is ADDED BY AMENDMENT 1** (see the amendment section at the foot of this file);
+> the thirteen rows above it stand byte-identical to the dispatch-time freeze. The row lives inside
+> this fence rather than only in the amendment because this table is a **machine surface**, not
+> prose: `batch_manifest.manifest_lane_slugs` reads the FIRST `## THE LANES` block and stops at the
+> next heading, and `batch-manifest-contract-slug-agreement` ([#630]) requires **set equality both
+> ways** between these slugs and the launch-contracts directory. A lane recorded only in an
+> amendment section would be a lane the teardown and the ADR-110 exemption cannot see — which is the
+> measured batch-E defect that predicate exists to catch.
 
 **Every local/codespace branch is `worktree-<slug>` and every cloud branch is `claude/<slug>`; all
 match their grammar.** The frozen contract's shorthand lane names (`lane-<L>-v2-logs`,
@@ -190,3 +200,109 @@ blocking organ in the close packet.
   `027`) HANDBACK `[ratification-pending]` and the integrator HOLDs them off `main` until the
   operator's dawn word.
 - **It declares no tag.** The v1.5.0 tag is the operator's act on the checklist, never a seat's.
+
+---
+
+## AMENDMENT 1 - 2026-09-06 - lane 3.15 added; batch width 13 -> 14 contracts
+
+**This is an in-file amendment marker, not an edit of the record above.** `docs/audits/` is
+immutable (critical rule 3); the sanctioned forms are a superseding file or an in-file amendment
+marker, plus a manifest's `status:` / `closed_by:` frontmatter. Everything above stands as frozen at
+dispatch. This section ADDS.
+
+**Authority.** `AMEND-BATCH-T-001.md` A3 (architect, within the seat that froze
+`BATCH-2026-09-06-NIGHT-CONTRACTS.md`; operator consents unchanged). Applied by `dispatcher-T` on the
+operator's instruction to add the lane to this manifest, to STATUS and to the close packet.
+
+**The defect this lane closes - found by the integrator, confirmed by the architect as "the
+contract's own error".** Wave-1 ship-gate GREEN was **unreachable by construction**:
+`canonical_freshness` reports a `derived ungated-and-unstamped` line naming **eight** files, and no
+lane at any wave owned any of them. Section 3.6 forbids NC1 from touching `canonical_freshness`;
+section 3.14 re-stamps `CLAUDE.md` but launches only on GREEN - a circular condition. Wave 1 would
+have ended RED whatever every lane did, and lane 3.14 would never have launched.
+
+### L15 - the added lane
+
+```
+L15  lane-t-000-freshness-unstamped   local  opus  no row  seven unstamped canonical docs, really re-read
+```
+
+Branch `worktree-lane-t-000-freshness-unstamped`. **Its frozen contract is NOT in this
+directory, and could not be put there.** Contract of record, which is the file the lane actually read
+and executed: `<PROMPTS_DIR>/to-cc/LANE-t-000-freshness-unstamped.md`, 17211 bytes, sha256
+`2d628f6d14a02986b860c65625193db872c9c588b526633d304da35ec8e0023a`. Recorded by hash because it is
+verifiable by hash; the operator's copy is the authority, not a restatement of it here.
+
+**Why it could not land, measured rather than assumed.** `[#630]`
+`batch-manifest-contract-slug-agreement` compares this manifest's lane roster against the contracts
+**in the CHANGESET**, not against the contracts on disk
+(`gen_lane_contract.py::_check_manifest_contract_agreement` -- "`contracts` (the paths `check` was
+given)"). Batch T's other 13 contracts landed together in the freeze commit and are unchanged since,
+so `git add` cannot re-stage them: there is no diff to stage. Every ordering therefore refuses.
+Contract alone -> the manifest names 13 slugs it cannot see. Contract plus this amendment -> the
+manifest names 14 and the changeset holds 1. Both directions were attempted and both refused, with
+the refusal naming the other thirteen. This commit lands the manifest amendment ALONE, which the
+predicate skips (0 contracts given -> "0 checked"), and no gate was bypassed to do it.
+
+**This is a predicate GAP, not a lane defect, and it is a dawn item.** `[#630]` is scoped "at
+freeze" by its own docstring and does exactly what it was built for. Adding a lane AFTER freeze is
+outside that scope, and the amendment path is the sanctioned way to add one, so the two are simply
+not composed. The sharper form of the same gap: **lane 3.15's WORK merged at `0d2db2f7` while its
+contract never landed, and `[#630]` cannot see that either** -- a lane whose work merges without its
+contract is invisible to a predicate that only compares against the changeset. Tonight the
+launch-contracts directory holds **13 contracts for 14 executed lanes**, and the manifest above is
+the only in-tree surface that says so.
+
+Recorded alongside it, found while diagnosing: `.pre-commit-config.yaml` `lane-contract-check`
+carries a comment asserting "`always_run: true` + `pass_filenames: false` (lane-g-630, [#630])",
+but the hook body sets `always_run: true` and a `files:` glob and **does not set
+`pass_filenames: false`**. The comment describes an every-commit repo-wide gate; the configuration
+implements a staged-files gate. The behaviour above is the configuration's, not the comment's. Which
+of the two is intended is a question for dawn, and it decides whether this gap is a bug or a scope.
+
+**Footprint (seven files):** `AGENTS.md` - `protocols/AGENT_FRAMEWORK.md` -
+`protocols/FUNNEL_LIFECYCLE.md` - `protocols/HANDOFF_PROCESS.md` - `protocols/README.md` -
+`protocols/REPO_ONBOARDING.md` - `protocols/STANDING_RULINGS.md`.
+
+**Coupling scan, run before launch as A3 requires - DISJOINT.** None of the seven is touched by any
+other wave-1 lane. The five files deliberately NOT in scope, and who holds them:
+
+```
+protocols/PLAYBOOK.md            L11 lane-t-000-playbook
+protocols/ENVIRONMENT.md         L11 lane-t-000-playbook
+protocols/OPERATOR-INTERFACE.md  L6  lane-t-000-nc1-clear   (per A2 below)
+protocols/HANDOFF_BOOT.md        NOBODY - excluded by ruling
+README.md                        L12 lane-t-000-readme
+```
+
+**`protocols/HANDOFF_BOOT.md` is excluded and stays unstamped tonight.** Its sha256 is the ROLE PIN
+every browser seat carries in project knowledge and in the bundle, so stamping it is a
+curated-baseline touch (C-3 class (a)) that breaks every booted seat until the operator re-uploads
+the file. Measured at `a39edb2d` by L13:
+`3b6d5691294e149844e16a2965d27ff49d2e95e3a69d138f6f77a33ecdef5858`. **Before -> after is therefore
+`unstamped 8 -> 1`, and the remaining 1 is correct, named and expected** - not a shortfall.
+Dawn-list item: stamp it in the next window together with a PIN re-issue.
+
+### The other four legs of AMEND-BATCH-T-001
+
+- **A1 - lane 3.14's launch condition, RE-ISSUED.** It now launches on `PACKET-MERGED wave-1 @ <sha>`
+  **AND** hard-fail = 0 **AND** every remaining undispositioned WARN being a `canonical_freshness`
+  line naming only `CLAUDE.md` (which 3.14 re-stamps in the same act) and/or
+  `protocols/HANDOFF_BOOT.md`. Any other surviving WARN and 3.14 is not launched, with the blocking
+  organ recorded **by name and file** so dawn does not misread RED as NC1 having failed. This
+  supersedes the `ship-gate GREEN` condition recorded above.
+- **A2 - lane 3.6 gains one act:** after declaring the `reconciled_with:` edge on
+  `protocols/OPERATOR-INTERFACE.md`, NC1 also re-stamps it. Delivered to the lane as
+  `ADDENDUM-lane-t-000-nc1-clear-A2.md` - additive, withdrawing nothing, because an amendment that
+  NARROWED a frozen contract would have to be re-issued through `gen_lane_contract` rather than
+  annotated (`validate_substrate::RULE_AMENDMENT_SUBTRACTS`).
+- **A4 - lane 3.8 merge order.** Any text reading "3.8 merges LAST regardless" is void where it
+  conflicts with DECLARE-GO's authorization boundary: 3.8 HANDBACKs `[ratification-pending]` and the
+  integrator HOLDs it. The integrator's reading stands.
+- **A5 - count premise:** `consumer_at_landing` live 22, not 21, exactly as recorded above.
+
+### What this amendment does NOT change
+
+Operator consents (the `routing_agreement` render; the four `[stale]` lines; V4 report-stage), the
+HOLD boundary for DRAFT-backed lanes, the tag remaining the operator's own act, lane 3.2's HOLD, and
+every other section 0-4 clause of the frozen contract.
