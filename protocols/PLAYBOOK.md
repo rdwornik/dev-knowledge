@@ -3123,8 +3123,15 @@ Harvest-Codespace <codespace-name> -Lane <slug> -DryRun
   where a hollow success is least affordable: there is no second attempt on a deleted codespace.
   `cat` puts the bytes on stdout, where an empty answer is visibly empty. This is the path that
   worked by hand on 2026-09-06.
-- **It does not mutate the dead lane** — no `git add`, no stash, no commit. The container is
-  evidence, and the first act on evidence is not to write to it.
+- **It does not mutate the dead lane** — no `git add`, no stash, no commit, and **nothing
+  written inside the worktree**: the helper and both outputs live under `/tmp`. Writing them
+  into the workspace was self-defeating as well as unsafe — the patch and the script are
+  themselves untracked files in the repo, so the untracked sweep captured the harvest's own
+  output as part of the lane's work.
+- **A broken collection is not an empty lane.** Outside a git worktree it exits 95, on a failing
+  `git` command 96, and the verb returns `Ok=$false` naming the cause. An empty patch from a
+  broken harvest is byte-identical to one from a genuinely clean lane, and reporting both as
+  "nothing to recover" is how an operator stops looking for work that is still there.
 
 ##### `DONE` means a commit on origin — the witness both off-machine rows carry
 
@@ -3144,11 +3151,16 @@ that was actually established, and overwriting it would trade a true diagnosis f
 - **Read `Verdict`, not `Ok`.** Row 4 already asks you to read `Ok` and `RemoteExitCode`
   separately; `Verdict` is the third answer and the only one about the *work*. A lane that ran
   cleanly and landed nothing scores well on the first two.
-- **A cloud read with no `-LaneBranch` returns `UNWITNESSED`,** neither DONE nor FAILED. With no
-  ref to ask about there is no verdict, and claiming either would be the failure this whole
-  mechanism exists to remove.
-- **An unreachable origin is not a verdict either.** `ls-remote` failing is not evidence of no
-  commit; it is evidence of nothing, and it says so in those words.
+- **Three outcomes, not two.** "The lane did not commit" and "we could not tell" are different
+  findings and get different words: an *established* absence is `FAILED`, an unestablished one
+  is `UNWITNESSED`. Reporting a transient `ls-remote` failure as `FAILED` would claim a failure
+  nothing established — the mirror image of the unearned success this gates, and a defect the
+  first version of the mechanism shipped with until review caught it.
+- **`UNWITNESSED` is what you get when the question could not be asked:** origin unreachable, no
+  `-LaneBranch` on a cloud read, or a ref that exists with **no dispatch-time baseline** — a
+  branch a previous run left behind satisfies "the ref is there" without this session having
+  pushed anything. An empty baseline that was actually *captured* is a finding ("the ref did not
+  exist when the work started") and does license a `DONE`; an absent one does not.
 - **`git ls-remote`, not `git rev-parse origin/<branch>`.** A remote-tracking ref is a cache of
   the last fetch, not the remote. A witness built on it reports DONE for a push that did not
   happen — which is the whole failure class this subsection exists to remove, reintroduced one
