@@ -77,6 +77,9 @@ Writing one to satisfy the brief's wording would have put an empty arc on the sp
 owns the intake #73 edge and the v1.5.0 tag.
 
 **Anchors:** `22f0a50b` (lane 3.9 salvage, introduced by `11080674`).
+It also names `74e6b429`, this entry's own commit, which this branch's `--no-ff` merge
+introduces - a single-commit anchor branch cannot anchor its own merge, so the naming is
+split across two commits deliberately.
 
 ### 2026-09-06 (x) - CC (Opus 5, INTEGRATOR-2, DAY sitting): the ratified raise had no mechanism to land, and the anchor had to be cut from the ref it was raising
 
