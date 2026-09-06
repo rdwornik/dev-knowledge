@@ -890,7 +890,6 @@ def test_widening_did_not_sweep_in_a_serial_arc_or_a_bare_worktree(tmp_path):
 # than retired.
 
 
-@requires_git
 def test_batched_blob_read_matches_the_per_blob_read(tmp_path):
     """`_committed_texts` == `_committed_text`, byte for byte, including the newline half.
 
@@ -916,7 +915,6 @@ def test_batched_blob_read_matches_the_per_blob_read(tmp_path):
         assert "\r" not in batched[rel], f"{rel}: universal-newline translation was skipped"
 
 
-@requires_git
 def test_warmed_commit_meta_matches_the_per_sha_reads(tmp_path):
     """`warm_commit_meta` == the `rev-list --parents` + `log -1 --format=%s` pair it replaces.
 
@@ -944,7 +942,6 @@ def test_warmed_commit_meta_matches_the_per_sha_reads(tmp_path):
         bm._COMMIT_META.clear()
 
 
-@requires_git
 def test_commit_meta_refuses_to_memoize_an_abbreviated_sha(tmp_path):
     """An abbreviation is a query, not an identity — it must never enter the process memo.
 
@@ -965,7 +962,6 @@ def test_commit_meta_refuses_to_memoize_an_abbreviated_sha(tmp_path):
         bm._COMMIT_META.clear()
 
 
-@requires_git
 def test_malformed_batch_output_falls_back_instead_of_misaligning(tmp_path, monkeypatch):
     """terra HIGH 2. A truncated `cat-file --batch` body must abandon the batch, not salvage it.
 
@@ -995,7 +991,6 @@ def test_malformed_batch_output_falls_back_instead_of_misaligning(tmp_path, monk
         "a truncated batch was salvaged rather than re-read through the per-blob path"
 
 
-@requires_git
 def test_a_missing_object_is_none_without_disturbing_its_neighbours(tmp_path):
     """`<name> missing` carries NO body line, so mis-framing it shifts everything after it.
     Asserted with a real manifest on BOTH sides of the missing entry."""
@@ -1013,7 +1008,6 @@ def test_a_missing_object_is_none_without_disturbing_its_neighbours(tmp_path):
     assert got[rels[1]] == bm._committed_text(repo, rels[1])
 
 
-@requires_git
 def test_both_commit_meta_paths_use_the_same_scrubbed_reader(tmp_path):
     """terra HIGH 3. Warm and cold must not read git under different environments.
 
