@@ -19,6 +19,54 @@
 
 ---
 
+### 2026-09-07 (d) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): W1-5 lands, and a lane that refused to make its own before-number true
+
+**Did:** Merged W1-5 `intake-id-next-free` after resolving a second generated-file conflict by
+regeneration; targeted tests **59 passed** on the merged result.
+
+**Result - merged, and the lane's refusal is the finding.**
+
+The contract told this lane to renumber four colliding intake-ids, 14 / 42 / 70 / 72, and to close
+`duplicate intake-ids: 4 -> 0`. **The lane re-measured instead of executing, and the contract's
+premise was stale in three of four cases.** 42 and 72 had already been discharged by filings-N before
+the lane booted. 70 was real and was moved per D8 - `aj-second-pass` (first commit 16:44) KEEPS the
+id, `session-roles-with-a-carrier` (17:16) takes 77, so the earlier-merged file keeps it exactly as
+ruled, and W2-F5's erratum lane needs to change nothing.
+
+**14 was not a collision at all.** It is the join-key model that `docs/intake/README.md` section 5
+ratifies: one ACCEPTED ruled pack plus two archived CONSUMED provenance drafts whose own frontmatter
+says `consumed-by` that pack. Renumbering it mechanically would have **stripped `#14` from the LIVE
+authority** - the pack is the latest of the three by commit date - and handed the id to an archived
+draft, breaking carrier row `[#550]`. The lane filed a QUESTION for the operator instead of taking it
+on a contract default, and shipped an organ that encodes the distinction and is tested both ways, so
+ruling it the other way later is a one-predicate change.
+
+So the honest before to after is `1 -> 0`, not the contract's `4 -> 0`. **A lane that hits its
+number by executing a stale instruction produces a true statement about a false world.** This one
+declined, and said so.
+
+`protocols/STANDING_RULINGS.md` looked out of footprint and is not: contract 3.5 requires every
+citation of a moved id to be updated in the same commit, and the diff is exactly two `#70` to `#77`
+citation fixes. Worth recording that a grep for `STANDING_RULINGS` hits **all nineteen** lane
+contracts - it is the C-3 boilerplate clause, not nineteen lanes contending for one file. A hit
+count is not an ownership count.
+
+`ecosystem/doc-counts.md` conflicted again and was again resolved by **regenerating**, 5090. That is
+the second time tonight; the first, at W1-4, had both sides wrong.
+
+**Changes:** `scripts/gen_intake_index.py`, `scripts/gen_intake_tree.py` (uniqueness in both
+generators + the all-refs allocator), the id-70 move and its citations, `docs/intake/README.md`,
+`docs/intake/manifest.json`, `protocols/STANDING_RULINGS.md`, 2 test files, `ecosystem/doc-counts.md`
+- via `4b7ec261`.
+
+**Abandoned:** nothing.
+
+**Next:** W1-2, W1-6, W1-7, W1-9 remain; W1-3 is closed-by-death and will never hand back.
+
+**Anchors:** `b438698d` (W1-5's HIGH-closing commit, introduced by `4b7ec261`).
+It also names `bb4cdfb1`, this entry's own commit, which this branch's `--no-ff` merge
+introduces - the standing two-commit shape.
+
 ### 2026-09-07 (c) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): W1-4 lands, and a generated conflict where BOTH sides were wrong
 
 **Did:** Merged W1-4 `branch-enum-parity` after checking its two out-of-footprint files against every
