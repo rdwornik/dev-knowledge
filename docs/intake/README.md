@@ -45,12 +45,12 @@ fill-in skeleton is `templates/intake-template.md`.
 - [#68](2026-09-05-tech-handoff-process-v71-amendment-pack.md) — HANDOFF_PROCESS v7.1 amendment pack — what the v7 bundle did not carry
 - [#69](2026-09-05-tech-boot-frontier-prioritisation-weights.md) — Boot prioritisation is a sort, not an engine — class weights inside `boot_frontier`'s existing score seam
 - [#70](2026-09-05-tech-aj-second-pass.md) — Architekt Jutra second pass — shipped-vs-specified ranking and a live Maister comparison on a consumer clone
-- [#70](2026-09-05-tech-session-roles-with-a-carrier.md) — Session roles as routing-table rows with a commit-shape carrier
 - [#71](2026-09-05-tech-batch-p-audit-gate-speed.md) — Batch P — audit-gate speed from measured spawn and re-read cost
 - [#72](2026-09-06-tech-derived-copies-registry.md) — A derived copy has no registry, so its rebind is caught at ship time instead of at commit time
 - [#73](2026-09-05-tech-shape-spec-tree-seal-to-consumers.md) — Shape spec + tree-seal shipped to consumers (universalization by mechanism)
 - [#74](2026-09-06-tech-cross-session-communication-protocol.md) — Cross-session communication protocol — the discipline that ran ten sessions, written down
 - [#75](2026-09-06-tech-copilot-offload-role-and-account-map.md) — The `offload` role, and a witnessed account / token-scope map
+- [#77](2026-09-05-tech-session-roles-with-a-carrier.md) — Session roles as routing-table rows with a commit-shape carrier
 
 ### READY (19)
 
@@ -172,6 +172,22 @@ status — distinct from `consumed-by`, which is backward-looking and CONSUMED-o
 
 `intake-id` is permanent once assigned — it is the join key the accepting ADR and the
 resulting epic(s) cite back (§1). Don't renumber on rejection or on folder growth.
+
+**Allocate it with the organ, never by reading the folder listing:**
+`python scripts/gen_intake_index.py --next-free`. The listing **under-reports** by every
+archived doc (§5 drops them from the index, but their ids stay spent) and by every doc on a
+branch that has not merged — and a colliding doc is *by definition* not yet on `main`, so a
+`main`-only max() reproduces the collision it is meant to prevent. The allocator therefore
+scans **all refs, local and origin** (ruling D8, `DECLARE-SITTING-2026-09-06.md`); on
+2026-09-06 the working tree said `76` and the correct answer was `77`, held on an unmerged
+branch. Both generators now REFUSE to write on a colliding tree (exit 3) — before that they
+wrote one out in silence, which is how ids `70` and `72` were each allocated twice.
+
+**The one exception to "permanent"** is a collision, and D8 rules it narrowly: *earlier-merged
+keeps the id; the later file takes next-free* (later = later first commit date, measured), and
+**every citation of the moved id moves in the same commit**. Immutable artifacts — ADRs,
+audits, handoffs — are the exception to the exception: they record what was true when they
+were written and are **not** edited (`to-cc/ANSWER-filings-Q3.md`).
 
 ## 4. Naming
 

@@ -24,6 +24,16 @@ consumed-by:
 > fixed** (renumbering mid-batch moves a join key). AMEND-BATCH-T-001 §B Q3 records the
 > architect's recommendation — the AJ second pass keeps 70, roles-with-carrier takes the next
 > free id — as a **recommendation for the operator's word at dawn**, not a ruling.
+>
+> **AMENDED 2026-09-06 (lane `lane-u-000-intake-id-next-free`, NIGHT-2 W1-5).** Two integers above
+> are now stale; the paragraph is kept as written because it records what the ratifying reader was
+> told. (1) **This document holds `74`, not `72`** — filings-N moved it under D8 when the landed
+> `2026-09-06-tech-derived-copies-registry.md` kept `72`, ruled final in `to-cc/ANSWER-filings-Q3.md`.
+> (2) **The id-70 collision is FIXED, not merely filed** — D8 became a ruling
+> (`DECLARE-SITTING-2026-09-06.md`), the recommendation above was upheld exactly:
+> `2026-09-05-tech-aj-second-pass.md` KEEPS `70` (first commit 16:44) and
+> `2026-09-05-tech-session-roles-with-a-carrier.md` MOVED to `77` (17:16). Both stale integers are
+> the same defect this lane built an organ against — cite intake docs **by path**.
 
 ## Problem / motivation
 
