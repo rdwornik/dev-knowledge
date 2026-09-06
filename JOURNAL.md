@@ -64,6 +64,8 @@ subsection) - via this merge. win-tooling's half is a separate repo and is NOT t
 is a checkpoint, not a declaration.
 
 **Anchors:** `f06aba86` (W1-2's last hub commit, introduced by this branch's parent merge).
+It also names `5d999f93`, this entry's own commit, which this branch's `--no-ff` merge
+introduces - the standing two-commit shape.
 
 ### 2026-09-07 (e) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): W1-9 lands the v7.1 pack, and the version bump is ROUTED rather than taken
 
