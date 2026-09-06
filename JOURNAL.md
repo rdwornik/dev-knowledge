@@ -67,6 +67,8 @@ would have skipped the prose half, which is most of this lane, while still repor
 **Next:** W1-2, W1-6, W1-7 remain. W1-3 is closed-by-death.
 
 **Anchors:** `5cb41d6b` (W1-9's single commit, introduced by `9fed197f`).
+It also names `480ba934`, this entry's own commit, which this branch's `--no-ff` merge
+introduces - the standing two-commit shape.
 
 ### 2026-09-07 (d) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): W1-5 lands, and a lane that refused to make its own before-number true
 
