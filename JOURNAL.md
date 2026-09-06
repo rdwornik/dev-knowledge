@@ -19,6 +19,40 @@
 
 ---
 
+### 2026-09-06 (k) - CC (Opus 5, INTEGRATOR, batch T): two more lane arcs, and a rule that ratifies what half the fleet already violates
+
+**Did:** Merged lane 3.11's freshness half (`aaa1e96a`) and lane 3.7's report half (`6e385c67`),
+regenerated the audits index the second one made stale, and anchored all of it.
+
+**Result:** Both lanes verified the ADR-85 organ disagreement in source before repeating it - the
+exemption is in `audit.py` / `batch_manifest.py` and `grep -cE 'batch_manifest|is_lane_merge|exempt'
+scripts/block_unanchored_push.py` returns **0**. It is a structural defect rather than tonight's
+accident: it reproduces in every batch until one organ changes, and it is outside every batch-T
+lane's footprint, so it wants a row rather than an in-flight fix.
+
+Two findings arrived that are worth more than the merges. Lane 3.11, doing its own addressee
+census for 027, found that **027 point 1 ratifies a rule the local half of the fleet already
+violates**: the canonical name `lane-<letter>-<id>-<slug>` is honoured by the cloud lanes and by
+none of the local bg lanes, which list as `frozen contract <topic> execution` - two of them
+near-colliding. Addressing by role name therefore depends on a mapping no surface publishes, which
+is the exact failure point 1 exists to prevent. The rule needs a dispatch-side act that SETS the
+session name, not a line in a protocol. And lane 3.7, computing the next free `intake-id` by
+scanning all 269 `docs/intake/` blobs reachable from any ref rather than the folder listing, found
+**three double-allocated ids - 14, 42 and 70** - against a field README section 3 calls the join
+key an ADR cites back. A bare `#N` is ambiguous for those three; cite by path.
+
+**Changes:** `docs/audits/README.md` regenerated (ccd3d9b1). This entry.
+
+**Abandoned:** Nothing. No lane has spent a bypass tonight; the two that were entitled to asked
+first and did not need it.
+
+**Next:** nc1-clear is the lane the wave-2 gate turns on, and lane 3.7's intake DRAFT half is
+serialized behind it.
+
+**Anchors:** `fa5a7b2e` (PLAYBOOK/ENVIRONMENT re-read, introduced by `aaa1e96a`), `160c622e`
+(corp-monorepo seal report, introduced by `6e385c67`), `ccd3d9b1` (the index regen, introduced by this
+arc's merge).
+
 ### 2026-09-06 (j) - CC (Opus 5, INTEGRATOR, batch T): the integrator arc's own anchor
 
 **Did:** Anchored the anchor arc. Entry (i) discharges the two lane merges; this entry discharges
