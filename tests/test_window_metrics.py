@@ -129,3 +129,70 @@ def test_live_report_renders_for_a_real_range():
     out = wm.report_for_range("HEAD~1..HEAD")
     assert "Window metrics" in out and "net backlog delta" in out
     out.encode("ascii")
+
+
+# --- item 7 scorecard (docs/intake/2026-09-05-tech-handoff-process-v71-amendment-pack.md,
+# CANDIDATE per protocols/STANDING_RULINGS.md AE-2 -- ten rows is a ceiling, not a quota) ---
+
+_ASKS_NONE_RED = [{"name": "a", "date": "2026-09-01", "reasked": 0, "body": ""}]
+_ASKS_ONE_RED = [
+    {"name": "a", "date": "2026-09-01", "reasked": 2, "body": ""},
+    {"name": "b", "date": "2026-09-01", "reasked": 0, "body": ""},
+]
+
+
+def test_scorecard_rows_closed_touched_reuses_backlog_delta():
+    m = wm.collect_scorecard(_BASE, _HEAD, asks_entries=_ASKS_NONE_RED, boot_bytes=1,
+                              paste_count=0)
+    assert m["rows_closed_touched"]["value"] == 1  # #1 closed, per _BASE/_HEAD above
+
+
+def test_scorecard_asks_red_reasked_reuses_fleet_health():
+    m = wm.collect_scorecard(_BASE, _HEAD, asks_entries=_ASKS_ONE_RED, boot_bytes=1,
+                              paste_count=0)
+    assert m["asks_red_reasked"]["value"] == 1
+    assert "1 RED / 2 total" in m["asks_red_reasked"]["basis"]
+
+
+def test_scorecard_bundle_bytes_pct_matches_boot_paste_bytes_figures():
+    m = wm.collect_scorecard(_BASE, _HEAD, asks_entries=_ASKS_NONE_RED, boot_bytes=9000,
+                              paste_count=2)
+    assert m["bundle_bytes_pct"]["value"] == 9000
+    assert "50%" in m["bundle_bytes_pct"]["basis"]
+
+
+def test_scorecard_declares_six_rows_not_computed_never_a_bare_zero():
+    """AE-2: ten is a ceiling, not a quota. Six rows have no existing computed surface and
+    must say NOT COMPUTED, never a number that looks measured."""
+    m = wm.collect_scorecard(_BASE, _HEAD, asks_entries=_ASKS_NONE_RED, boot_bytes=1,
+                              paste_count=0)
+    not_computed_keys = {"hard_fail_warn_trend", "failing_nodeids_baseline",
+                          "p1_premerge_regressions", "time_to_merge_per_lane",
+                          "pct_lanes_codespace", "consumers_zero_fail",
+                          "tokens_by_model_class"}
+    for key in not_computed_keys:
+        assert m[key]["value"] is None, key
+        assert "NOT COMPUTED" in m[key]["basis"], key
+
+
+def test_render_scorecard_prints_ten_rows_and_marks_uncomputed():
+    m = wm.collect_scorecard(_BASE, _HEAD, asks_entries=_ASKS_ONE_RED, boot_bytes=1,
+                              paste_count=0)
+    out = wm.render_scorecard(m, "base..head")
+    assert len(wm._SCORECARD_LABELS) == 10
+    for _, label in wm._SCORECARD_LABELS:
+        assert f"**{label}:**" in out
+    assert out.count("NOT COMPUTED") >= 6
+
+
+def test_scorecard_report_is_ascii_only():
+    m = wm.collect_scorecard(_BASE, _HEAD, asks_entries=_ASKS_ONE_RED, boot_bytes=1,
+                              paste_count=0)
+    wm.render_scorecard(m, "base..head").encode("ascii")
+
+
+@pytest.mark.live_repo
+def test_live_scorecard_renders_for_a_real_range():
+    out = wm.scorecard_for_range("HEAD~1..HEAD")
+    assert "Scorecard" in out and "asks RED/re-asked" in out
+    out.encode("ascii")
