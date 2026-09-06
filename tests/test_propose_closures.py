@@ -308,7 +308,9 @@ def test_rerun_does_not_self_erase_proposals(tmp_path, monkeypatch):
     _run(repo, "commit", "-q", "-m", "feat: alpha done, closes [#5]")
 
     assert pc.main() == 0                                  # run 1
-    files = list((repo / "logs").glob("PROPOSALS-*.md"))
+    # `**/` because the writer files into `logs/YYYY-MM/` (batch-T 3.1) -- the same
+    # recursive expression resolve_window / latest_proposals / fleet_health already use.
+    files = list((repo / "logs").glob("**/PROPOSALS-*.md"))
     assert len(files) == 1
     assert "**#5**" in files[0].read_text(encoding="utf-8")
 
@@ -341,7 +343,7 @@ def test_new_commits_merge_with_pending_proposals(tmp_path, monkeypatch):
     assert pc.main() == 0                                  # run 2
     # per-run grammar (2026-09-04): a day can hold several runs, so read the LATEST.
     # All runs are sequenced, so filename order IS run order.
-    latest = sorted((repo / "logs").glob("PROPOSALS-*.md"), key=lambda q: q.name)[-1]
+    latest = sorted((repo / "logs").glob("**/PROPOSALS-*.md"), key=lambda q: q.name)[-1]
     txt = latest.read_text(encoding="utf-8")
     assert "**#5**" in txt and "**#6**" in txt             # carried + merged
 
@@ -362,10 +364,12 @@ def test_two_runs_on_one_day_do_not_collide(tmp_path):
 
     first = pc._next_free_dated_path(logs, "PROPOSALS", today=day)
     assert first.name == "PROPOSALS-2026-09-02-01.md"
+    first.parent.mkdir(parents=True, exist_ok=True)   # the month bucket, as _write_artifact does
     first.write_text("run one: head_commit 55fecf34", encoding="utf-8")
 
     second = pc._next_free_dated_path(logs, "PROPOSALS", today=day)
     assert second.name == "PROPOSALS-2026-09-02-02.md"
+    second.parent.mkdir(parents=True, exist_ok=True)
     second.write_text("run two: head_commit 040dec74", encoding="utf-8")
 
     assert first.read_text(encoding="utf-8") == "run one: head_commit 55fecf34", (
@@ -384,4 +388,5 @@ def test_an_already_ARCHIVED_name_is_not_reused(tmp_path):
 
     nxt = pc._next_free_dated_path(logs, "PROPOSALS", today=date(2026, 9, 2))
     assert nxt.name == "PROPOSALS-2026-09-02-02.md"
-    assert nxt.parent == logs
+    # ... and the replacement is written into the bucket, not flat beside it (batch-T 3.1).
+    assert nxt.parent == logs / "2026-09"

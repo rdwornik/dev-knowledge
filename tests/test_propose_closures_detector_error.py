@@ -58,12 +58,23 @@ def copy(request, tmp_path):
     return _load(path, f"pc_err_{name}", tmp_path)
 
 
+def _bucket(root: Path) -> Path:
+    """The `logs/YYYY-MM/` month bucket both artifacts are written into (batch-T 3.1).
+
+    Before that fix both sat flat under `logs/`; `logs_retention.py` described the bucket
+    rule but had no caller, so nothing ever moved them. The namespace properties asserted
+    below are about the PROPOSALS-vs-DETECTOR-ERROR split and are unchanged by where the
+    files sit -- only the paths these two helpers build moved.
+    """
+    return root / "logs" / f"{date.today():%Y-%m}"
+
+
 def _today_proposals(root: Path) -> Path:
-    return root / "logs" / f"PROPOSALS-{date.today().isoformat()}.md"
+    return _bucket(root) / f"PROPOSALS-{date.today().isoformat()}.md"
 
 
 def _today_marker(root: Path) -> Path:
-    return root / "logs" / f"DETECTOR-ERROR-{date.today().isoformat()}.md"
+    return _bucket(root) / f"DETECTOR-ERROR-{date.today().isoformat()}.md"
 
 
 # --- leg 1: the failure is named, not an anonymous errno --------------------
@@ -114,7 +125,7 @@ def test_failure_never_creates_a_proposals_file_at_all(copy, tmp_path):
 
     copy.main()
 
-    assert list(logs.glob("PROPOSALS-*.md")) == [], (
+    assert list(logs.glob("**/PROPOSALS-*.md")) == [], (
         "a failed run must not fabricate a PROPOSALS artifact -- absence is the signal")
     assert _today_marker(tmp_path).exists()
 
@@ -137,7 +148,7 @@ def test_failure_does_not_shadow_an_earlier_days_pending_proposals(copy, tmp_pat
     copy.main()
 
     assert yesterday.read_text(encoding="utf-8") == yesterday_body        # untouched
-    newest = sorted(logs.glob("PROPOSALS-*.md"))[-1]
+    newest = sorted(logs.glob("**/PROPOSALS-*.md"))[-1]
     assert newest == yesterday, (
         "the failure marker outsorted a real proposals file -- latest_proposals() would "
         "surface the husk instead of the pending work")
@@ -149,6 +160,7 @@ def test_error_marker_never_overwrites_a_real_proposals_file(copy, tmp_path):
     logs = tmp_path / "logs"
     logs.mkdir()
     real = _today_proposals(tmp_path)
+    real.parent.mkdir(parents=True, exist_ok=True)
     real_body = ("# Closure proposals (2026-08-25)\n\nhead_commit: abc1234\n\n"
                  "- [ ] **#5** - a real proposal\n")
     real.write_text(real_body, encoding="utf-8")
@@ -166,12 +178,13 @@ def test_marker_cannot_be_parsed_back_as_a_proposals_file(copy, tmp_path):
     suppressed). A marker must not silently do that to the commit window."""
     logs = tmp_path / "logs"
     logs.mkdir()
+    _today_proposals(tmp_path).parent.mkdir(parents=True, exist_ok=True)
     _today_proposals(tmp_path).write_text(
         "# Closure proposals\n\nhead_commit: abc1234\n", encoding="utf-8")
 
     copy.main()
 
-    globbed = sorted(p.name for p in logs.glob("PROPOSALS-*.md"))
+    globbed = sorted(p.name for p in logs.glob("**/PROPOSALS-*.md"))
     assert globbed == [f"PROPOSALS-{date.today().isoformat()}.md"]
 
 
@@ -182,7 +195,10 @@ def test_repeated_failures_leave_one_marker(copy, tmp_path):
     copy.main()
     copy.main()
 
-    assert sorted(p.name for p in logs.iterdir()) == [
+    # Flat `logs/` holds only the bucket -- nothing dated sits directly under it any
+    # more, which is the batch-T 3.1 closure clause stated as an assertion.
+    assert sorted(p.name for p in logs.iterdir()) == [f"{date.today():%Y-%m}"]
+    assert sorted(p.name for p in _bucket(tmp_path).iterdir()) == [
         f"DETECTOR-ERROR-{date.today().isoformat()}.md"]
 
 
