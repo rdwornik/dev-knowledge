@@ -60,6 +60,9 @@ would have been surprised by a refusal it was told could not happen.
 **Next:** W1-4 and W1-5, both handed back with HIGHs closed in-lane.
 
 **Anchors:** `435eef9d` (W1-1's single commit, introduced by `8444ba36`).
+It also names `96ad91b4`, this entry's own commit, which this branch's `--no-ff` merge
+introduces - the standing two-commit shape, needed here because this branch carries no
+non-journal commit for the entry to name.
 
 ### 2026-09-07 (a) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): the first lane merge, and a detector that dies at 99 and looks fixed by dawn
 
