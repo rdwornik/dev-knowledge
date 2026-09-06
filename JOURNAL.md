@@ -19,6 +19,68 @@
 
 ---
 
+### 2026-09-06 (y) - CC (Opus 5, INTEGRATOR-3, DAY sitting): two of the three assigned acts were already on main, and the one real merge could not anchor itself
+
+**Did:** Took the DAY integrator seat in the primary checkout with three assigned acts, and
+verified each against live state before acting on it rather than executing the brief as written.
+Two were already discharged; one was real.
+
+**Result - the brief's premise had moved under it, in the seat's favour.**
+
+TASK 1 (unwedge `35e212b2`) was **already clear**. Run with the check's own diagnostic against
+freshly-fetched `origin/main`, `journal_anchor.is_anchored` reads **True**, and
+`audit.py health` exits 0 with `journal_spine_anchor` OK. The anchor is `30c6e587`, one of the
+two commits `35e212b2` introduced, named by `aabb9caf` on `docs/day-anchor-1`. QUESTION-filings
+Q-2 measured honestly and was overtaken by INTEGRATOR-2's arc between its measurement and this
+seat's. **No anchor arc was owed and none was written for it.**
+
+Worth recording for the next seat that reads Q-2: the predicate is not "is this merge's own SHA
+in the JOURNAL". `is_anchored` is True iff the JOURNAL names **at least one SHA the merge
+introduced**. A grep for `35e212b` returns nothing on `main` and the merge is still anchored.
+A seat checking the merge SHA alone would have written an arc that was not needed.
+
+TASK 2(a) (`worktree-lane-t-000-filings-027-intake` @ `d5c2d117`) was **already merged** as
+`9fdf4a6f`, whose second parent is exactly `d5c2d117`. Nothing to do.
+
+TASK 2(b) was real: `worktree-lane-t-000-trace-scorecard-salvage` **exists on origin**, one
+commit, lane 3.9's `collect_scorecard` recovered from the patch. Merged `--no-ff` at
+`11080674`.
+
+**The one thing that needed care.** The lane lagged `main` by 13 commits and touches
+`ecosystem/doc-counts.md`, which is a generated count - the shape that makes a lagging lane's
+number a stale-tree artifact rather than a measurement. Checked before trusting it: `main` had
+**not** touched `doc-counts.md` in those 13 commits, so the lane's 5015 -> 5022 bump was
+measured against the same base this merge lands on. Confirmed independently on the merged tree
+- `pytest --collect-only` = **5022**, the exact number claimed - and `tests/test_window_metrics.py`
+18 passed.
+
+**A single-commit lane cannot anchor its own merge.** The merge introduces `{11080674,
+22f0a50b}`; naming either requires a JOURNAL commit that does not yet exist when the lane is
+built. This arc is the standing answer to that, in the two-commit shape `docs/day-anchor-1`
+used earlier today: this entry names the lane commit, and a second commit names this one.
+
+**Ship-gate reads RED at 3, and read RED at 3 before this seat touched anything.** The three
+are `canonical_freshness` x2 (same-day CONTENT commits landing after a same-date stamp - not
+expressible as a fix today) and `undeclared_edges` x1 (intake #73's `reconciled_with`), which
+DECLARE-SITTING **D13 assigns to lane 3.14**, not to this seat. The merge did not move the
+number. Reported as inherited, not absorbed.
+
+**Changes:** `scripts/window_metrics.py`, `tests/test_window_metrics.py`,
+`ecosystem/doc-counts.md` (via the lane merge); `JOURNAL.md`. Outside the repo, on the
+transport: `to-cc/ANSWER-filings-Q3.md` (Q-3 ruled per D8).
+
+**Abandoned:** the TASK 1 anchor arc - not written, because the check says it is not owed.
+Writing one to satisfy the brief's wording would have put an empty arc on the spine.
+
+**Next:** the filings worktree is **locked and on a different branch**
+(`docs/browser-token-budget-030`) - a live seat, not this seat's to tear down. Lane 3.14 still
+owns the intake #73 edge and the v1.5.0 tag.
+
+**Anchors:** `22f0a50b` (lane 3.9 salvage, introduced by `11080674`).
+It also names `74e6b429`, this entry's own commit, which this branch's `--no-ff` merge
+introduces - a single-commit anchor branch cannot anchor its own merge, so the naming is
+split across two commits deliberately.
+
 ### 2026-09-06 (x) - CC (Opus 5, INTEGRATOR-2, DAY sitting): the ratified raise had no mechanism to land, and the anchor had to be cut from the ref it was raising
 
 **Did:** Took the four leftover batch-T worktrees from live state per the sitting brief, applied
