@@ -19,6 +19,48 @@
 
 ---
 
+### 2026-09-06 (z) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): the first acts, and a HOLD that the ruling record decided rather than the branch
+
+**Did:** Took the NIGHT-2 integrator seat in the primary checkout on `main` and executed the
+five first acts of `BATCH-2026-09-06-NIGHT-2-CONTRACTS.md` section 2 in order, resolving each
+against live state before acting.
+
+**Result - one merge, one hold, three teardown acts.**
+
+`docs/intake-031-two-chats @ b6b7cb08` (intake #76, browser window shape and decision carriage)
+is **HELD**, not merged. The contract marks it `[ratification-pending]` and #76 DRAFT; the test
+the seat applied is the ruling record, not the branch: #76 appears as ACCEPT in neither
+`DECLARE-SITTING-2026-09-06.md` (D2 rules 008/017/019/020/027; D3 #68/#69; D4 #70/#71; D5 #73
+and 024) nor `DECLARE-F-2026-09-06.md` (which rules #70 only). A held branch is listed for the
+dawn list with its intake id, and it is not a defect.
+
+`docs/browser-token-budget-030 @ e48a1dbd` merged - the operator's own rule from inbox 030,
+15 lines into `protocols/OPERATOR-INTERFACE.md` section 2 plus the Seats-row correction
+withdrawing the two-chat shape.
+
+The merged remote lane branch `worktree-lane-t-000-trace-scorecard-salvage` was dropped from
+origin on the consent recorded in the contract file. It was proved merged before the drop, and
+the proof is worth naming because the first attempt at it lied: `git merge-base --is-ancestor`
+sat in an `&&` chain behind a `git rev-parse` that took two revisions and failed, so the chain
+broke and the `||` arm printed "NOT ancestor" for a branch that is fully merged. The honest
+witnesses are that the branch tip `22f0a50b` is the second parent of `11080674` and that
+`git log origin/worktree-... --not main` is empty. A shell exit code is a claim about the whole
+chain, not about the command you meant to run.
+
+Four empty worktree husks (`h0-fix`, `hotfix-manifest-citation`, `lane-r-000-bundle-gitlog`,
+`lane-t-000-shape-seal`) were removed after `find -mindepth 1` counted zero entries in each and
+`git worktree list --porcelain` confirmed none was registered. The locked filings worktree stays
+up: first act 3 is conditioned on filings-N stopping, and it has not.
+
+**Changes:** `protocols/OPERATOR-INTERFACE.md` (via merge `13d1179d`); `.claude/worktrees/`
+husks removed; `origin/worktree-lane-t-000-trace-scorecard-salvage` deleted.
+
+**Abandoned:** nothing.
+
+**Next:** the wave-1 queue on HANDBACK only, docs-first, refusing `review=NONE` on code branches.
+
+**Anchors:** `e48a1dbd` (inbox 030 Seats-row correction, introduced by `13d1179d`).
+
 ### 2026-09-06 (y) - CC (Opus 5, INTEGRATOR-3, DAY sitting): two of the three assigned acts were already on main, and the one real merge could not anchor itself
 
 **Did:** Took the DAY integrator seat in the primary checkout with three assigned acts, and
