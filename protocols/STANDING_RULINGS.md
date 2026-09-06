@@ -3375,7 +3375,7 @@ same thing: whether a paste's FORM matches the role of the seat receiving it. Th
 2026-09-05 integrator-produces defect, where a contract-shaped paste sent to the integrator was
 executed as written for ~1h48m while six branches waited — the paste was well-formed for a lane and
 malformed for its actual addressee, and nothing checked which it was. Carried separately as intake
-`#70`, which fixes the ROLE half; this predicate is the FORM half and stays here.
+`#77`, which fixes the ROLE half; this predicate is the FORM half and stays here.
 
 *Third predicate, amended in 2026-09-05 (architect inbox item 013-C, operator ruling).* A browser
 paste containing a **drive-letter path** (`X:\…`) is a browser-seat defect. **One exception, and it
@@ -3791,7 +3791,7 @@ touching row that omits the field, and the deploy-manifest check cross-reference
 `manifest` against actual payload entries — so the claim is checked, not just declared. Same
 pattern as the CLAUDE.md hub regions ("single-sourced from the hub"). Reconciles with (j)
 per-consumer freshness registry and the fleet-readiness §4 H0 runbook; it is the general form of
-what 009-A did by hand to intake `#70`.
+what 009-A did by hand to intake `#77`.
 
 **(y) THE CODESPACE ACCOUNT CAP IS 2 CONCURRENT, AND THE BATCH PROTOCOL DOES NOT KNOW IT**
 *(architect inbox 2026-09-05 item 009-C, its proposed letter (u); H0-prep close)*. Measured, not

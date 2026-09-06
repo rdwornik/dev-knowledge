@@ -19,6 +19,188 @@
 
 ---
 
+### 2026-09-07 (d) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): W1-5 lands, and a lane that refused to make its own before-number true
+
+**Did:** Merged W1-5 `intake-id-next-free` after resolving a second generated-file conflict by
+regeneration; targeted tests **59 passed** on the merged result.
+
+**Result - merged, and the lane's refusal is the finding.**
+
+The contract told this lane to renumber four colliding intake-ids, 14 / 42 / 70 / 72, and to close
+`duplicate intake-ids: 4 -> 0`. **The lane re-measured instead of executing, and the contract's
+premise was stale in three of four cases.** 42 and 72 had already been discharged by filings-N before
+the lane booted. 70 was real and was moved per D8 - `aj-second-pass` (first commit 16:44) KEEPS the
+id, `session-roles-with-a-carrier` (17:16) takes 77, so the earlier-merged file keeps it exactly as
+ruled, and W2-F5's erratum lane needs to change nothing.
+
+**14 was not a collision at all.** It is the join-key model that `docs/intake/README.md` section 5
+ratifies: one ACCEPTED ruled pack plus two archived CONSUMED provenance drafts whose own frontmatter
+says `consumed-by` that pack. Renumbering it mechanically would have **stripped `#14` from the LIVE
+authority** - the pack is the latest of the three by commit date - and handed the id to an archived
+draft, breaking carrier row `[#550]`. The lane filed a QUESTION for the operator instead of taking it
+on a contract default, and shipped an organ that encodes the distinction and is tested both ways, so
+ruling it the other way later is a one-predicate change.
+
+So the honest before to after is `1 -> 0`, not the contract's `4 -> 0`. **A lane that hits its
+number by executing a stale instruction produces a true statement about a false world.** This one
+declined, and said so.
+
+`protocols/STANDING_RULINGS.md` looked out of footprint and is not: contract 3.5 requires every
+citation of a moved id to be updated in the same commit, and the diff is exactly two `#70` to `#77`
+citation fixes. Worth recording that a grep for `STANDING_RULINGS` hits **all nineteen** lane
+contracts - it is the C-3 boilerplate clause, not nineteen lanes contending for one file. A hit
+count is not an ownership count.
+
+`ecosystem/doc-counts.md` conflicted again and was again resolved by **regenerating**, 5090. That is
+the second time tonight; the first, at W1-4, had both sides wrong.
+
+**Changes:** `scripts/gen_intake_index.py`, `scripts/gen_intake_tree.py` (uniqueness in both
+generators + the all-refs allocator), the id-70 move and its citations, `docs/intake/README.md`,
+`docs/intake/manifest.json`, `protocols/STANDING_RULINGS.md`, 2 test files, `ecosystem/doc-counts.md`
+- via `4b7ec261`.
+
+**Abandoned:** nothing.
+
+**Next:** W1-2, W1-6, W1-7, W1-9 remain; W1-3 is closed-by-death and will never hand back.
+
+**Anchors:** `b438698d` (W1-5's HIGH-closing commit, introduced by `4b7ec261`).
+It also names `bb4cdfb1`, this entry's own commit, which this branch's `--no-ff` merge
+introduces - the standing two-commit shape.
+
+### 2026-09-07 (c) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): W1-4 lands, and a generated conflict where BOTH sides were wrong
+
+**Did:** Merged W1-4 `branch-enum-parity` after checking its two out-of-footprint files against every
+lane contract, resolved a conflict in a generated file by regenerating it, and ran its targeted
+tests on the merged result: **188 passed, 1 xfailed.**
+
+**Result - merged, and the conflict resolution is the part worth keeping.**
+
+The merge conflicted in `ecosystem/doc-counts.md`. HEAD claimed **5047** collected tests; the branch
+claimed **5051**. Regenerating produced **5076** - a number neither side held, because both lanes had
+added tests and each had measured only its own addition against a common base. **Picking either
+side would have landed a false count that passed the conflict but failed the truth**, and the hook
+that guards it would then have fired on whoever committed next. A generated file has no correct side
+in a conflict; it has a correct COMMAND. This is the second generated artifact this seat has had to
+regenerate tonight rather than reconcile, after the audits index.
+
+The footprint question was decided on evidence rather than on the lane's assurance. W1-4 disclosed
++2 files outside its contract - `scripts/journal_anchor.py` and `scripts/batch_manifest.py` - and
+flagged them rather than burying them. A grep across all 19 batch-U launch contracts returns ZERO
+hits for either, **with the grep's controls verified to hit first** (`audit.py` in five contracts,
+`validate_substrate` in this lane's own), because a silent grep is worth nothing until you have
+proved the pattern can speak. No other lane owns either file, so there is no coupling collision, and
+each addition has a stated cause: the ADR-85 message needed one home, and the reviewer's HIGH showed
+that widening leg 5 alone MOVED the disagreement and produced a false green.
+
+**What the lane declined to do is better than what it did.** Its own closure clause asked the two
+ADR-85 organs to AGREE on exemption. Making them agree un-ratifies ADR-110 R-1, which is a governance
+act and not a lane's to take, so it left containment unchanged - `block_unanchored_push` still
+imports no `batch_manifest` and still refuses the exact merge `audit-health` forgives, both ratified
+tests green - and filed a QUESTION instead. A lane that stops at the edge of its authority and says
+so is worth more than one that satisfies its closure text.
+
+**Changes:** `scripts/validate_branch_naming.py` (new `LANE_BRANCH_KINDS` + `is_lane_branch`),
+`validate_substrate` leg 5, `batch_manifest.is_lane_merge`, `journal_anchor` (now owns the ADR-85
+message text), `audit.py` (its two constants become aliases), `block_unanchored_push`, 4 test files,
+`ecosystem/doc-counts.md` regenerated to 5076 - via `ad9a7d5d`.
+
+**Abandoned:** nothing.
+
+**Next:** W1-5 `intake-id-next-free`, then the wave-1 drain and its hard-fail count.
+
+**Anchors:** `4da05989` (W1-4's reviewer-HIGH commit, introduced by `ad9a7d5d`).
+It also names `fd380963`, this entry's own commit, which this branch's `--no-ff` merge
+introduces - the standing two-commit shape.
+
+### 2026-09-07 (b) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): W1-1 lands the refusal it was contracted to build, and corrects this seat's claim about who anchoring protects
+
+**Did:** Merged W1-1 `batch-protocol-mechanisms` after verifying its three HIGHs were closed in-lane,
+ran its targeted tests on the MERGED result, and exercised the refusal it ships.
+
+**Result - merged on evidence, and a claim of this seat's is retracted.**
+
+`review=codex HIGH:3 MED:0 LOW:0` on a code branch. C-7 says only HIGH blocks, so the tally alone
+would have blocked it; the SESSION file records all three FIXED in the same SHA, each with a
+regression test carrying the reviewer's own input. One defect three ways, and it is the right defect
+for this lane to have found: **a fail-closed gate that SCANS instead of PARSING lets its input choose
+the grammar** - `note: docs-only` in trailing prose conferred the exemption, a trailing `review=NONE`
+hid behind a leading good token, and a whole document was accepted on one embedded valid line.
+
+Verified rather than accepted: 57 tests pass on the merged tree (the lane reported 57, up from 36),
+and the shipped verb was exercised here - `audit.py handback "... code"` exits 1 with
+`REFUSE: code branch carries no review= token`, and the same line with a tally exits 0. The
+mechanism this batch will be held to was tested by using it, not by reading it.
+
+**THE RETRACTION.** This seat told dispatcher-N2 that per-merge anchoring meant a lane rooted at an
+old base "cannot fail on a sibling's merge, whatever its tree holds". **That is wrong, and two lanes
+disproved it tonight.** W1-1's first commit was refused by `journal_spine_anchor` on `bf69eb92`, and
+intake-id-next-free's push was refused on `ae13e1ae` - both merges this seat had already anchored.
+The reason is the split the branch-enum-parity lane names precisely: the check reads the **spine from
+shared `main`** but the **JOURNAL from the lane's own tree**. Anchoring makes `main` correct; it does
+not put the anchor text into a lane's `JOURNAL.md`. Only a sync does.
+
+So the accurate statement is narrower: **per-merge anchoring protects lanes that have SYNCED, and
+nothing protects a lane that has not.** The commitment stands - unanchored merges would block synced
+lanes too, which is strictly worse - but it was oversold, and a lane that trusted the wider claim
+would have been surprised by a refusal it was told could not happen.
+
+**Changes:** `scripts/audit.py` (+203, the `handback` verb and a third linkage leg),
+`tests/test_review_artifact_coverage.py` (+267), `.claude/commands/lane-boot.md`,
+`.claude/commands/lane-integrate.md`, `ecosystem/doc-counts.md`, via `8444ba36`.
+
+**Abandoned:** the claim that anchoring alone protects an unsynced lane.
+
+**Next:** W1-4 and W1-5, both handed back with HIGHs closed in-lane.
+
+**Anchors:** `435eef9d` (W1-1's single commit, introduced by `8444ba36`).
+It also names `96ad91b4`, this entry's own commit, which this branch's `--no-ff` merge
+introduces - the standing two-commit shape, needed here because this branch carries no
+non-journal commit for the entry to name.
+
+### 2026-09-07 (a) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): the first lane merge, and a detector that dies at 99 and looks fixed by dawn
+
+**Did:** Merged W1-8 `worktree-lane-u-000-closures-local`, the batch's first lane HANDBACK, and
+regenerated the audits index it correctly left alone.
+
+**Result - a clean merge, and a defect in the batch's own tooling that the lane found.**
+
+The branch was verified from the primary before it was touched rather than on the lane's report:
+present on origin at `7eb21699`, a clean descendant of `main` (`merge-base --is-ancestor` as its own
+command, exit 0), and **one file** changed - `docs/audits/2026-09-06-technical-closure-proposals.md`,
+1026 insertions - which matches its claimed footprint exactly. No `.claude/settings.json`, no
+`docs/audits/README.md`. `review=codex HIGH:1 MED:0 LOW:0` with the HIGH found and closed in-lane,
+so the tally requirement is met and nothing was handed forward open. Merged at `ae13e1ae` in 12
+seconds against a 5-minute docs budget.
+
+The index regeneration rides this anchor branch rather than a separate arc. `[#590]` narrowed
+`audit-index-freshness` to `(README.md|gen_audit_index.py)` precisely so lanes do NOT touch that
+shared file - it was in six of the last seven conflicted merges - which makes regenerating it the
+integrator's act, once on the merged result. W1-8 left it alone correctly.
+
+**The lane's headline is a live defect and it is worth recording where the next seat will find it.**
+`_next_free_dated_path` allocates a two-digit per-run sequence, `range(1, 100)`. ADR-110 fires the
+Stop hook once per lane, so a full-width night exhausted all 99 slots for 2026-09-06 and the closure
+detector began writing `DETECTOR-ERROR-2026-09-06.md` instead of proposals at 23:28:41. The marker
+rewrites its own path on repeat, so it cannot report how many runs have failed. **It self-clears at
+midnight and self-repeats on the next wide night - at dawn it will look fixed.** That last property
+is the trap: a defect that erases its own evidence on a calendar boundary will be closed as
+unreproducible by whoever looks first.
+
+Also carried forward, unowned: all three STRONG closure proposals are false positives, and none is
+the quoting shape `[#437]` fixed - all three are unquoted plain text, in three distinct unowned
+shapes (proposed-disposition verb, object-of-verb, partial closure). The report declares itself
+PRE-TRIAGE and files nothing, so F-1 and F-2 have no owner and no intake and need triage at dawn.
+
+**Changes:** `docs/audits/2026-09-06-technical-closure-proposals.md` via `ae13e1ae`;
+`docs/audits/README.md` via `7749bcec`.
+
+**Abandoned:** nothing.
+
+**Next:** the remaining wave-1 lanes on HANDBACK, docs-first, refusing `review=NONE` on code.
+
+**Anchors:** `7eb21699` (W1-8's reviewer-HIGH commit, introduced by `ae13e1ae`) and `7749bcec`
+(the index regeneration on this branch, introduced by this branch's own merge).
+
 ### 2026-09-06 (ab) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): the generated index the merge invalidated, and an alarm withdrawn on both sides
 
 **Did:** Regenerated `docs/audits/README.md`, stale as a direct consequence of the batch-U manifest

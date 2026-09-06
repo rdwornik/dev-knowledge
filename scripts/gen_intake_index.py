@@ -21,6 +21,7 @@ from __future__ import annotations
 import argparse
 import difflib
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -30,6 +31,9 @@ _SCRIPTS_DIR = Path(__file__).resolve().parent
 _REPO_ROOT = _SCRIPTS_DIR.parent
 _INTAKE_DIR = _REPO_ROOT / "docs" / "intake"
 _TARGET = _INTAKE_DIR / "README.md"
+# Terminal docs relocate here byte-identical (README section 5). Out of the Contents index by
+# the depth-1 glob; still IN the id namespace.
+_ARCHIVE_DIRNAME = "archive"
 
 _START_MARKER = "<!-- INTAKE-INDEX:START -->"
 _END_MARKER = "<!-- INTAKE-INDEX:END -->"
@@ -119,6 +123,178 @@ def collect_intakes(intake_dir: Path | None = None) -> list[tuple[str, str, str,
     return rows
 
 
+def collect_archived_intakes(intake_dir: Path | None = None) -> list[tuple[str, str]]:
+    """[(intake_id, path relative to intake_dir), ...] for every archive/**/*.md.
+
+    Archived docs are OUT of the Contents index by `collect_intakes`' depth-1 glob, but their
+    ids stay ALLOCATED -- README section 5: "Archived docs drop out of the generated Contents
+    index (depth-1 scan); their `intake-id` join keys stay valid at the archive path". So they
+    count toward `next_free_id`, and an archived doc legitimately SHARES the id of the active
+    doc that consumed it -- that share IS the join key (see `duplicate_id_reasons`).
+    """
+    intake_dir = intake_dir if intake_dir is not None else _INTAKE_DIR
+    archive = intake_dir / _ARCHIVE_DIRNAME
+    if not archive.is_dir():
+        return []
+    rows: list[tuple[str, str]] = []
+    for p in sorted(archive.rglob("*.md")):
+        if p.name == "README.md":
+            continue
+        try:
+            text = p.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        rows.append(((_parse_frontmatter(text).get("intake-id", "") or "").strip(),
+                     p.relative_to(intake_dir).as_posix()))
+    return rows
+
+
+def duplicate_id_reasons(intake_dir: Path | None = None) -> list[str]:
+    """Every `intake-id` ALLOCATION COLLISION in the tree as ASCII sentences; [] when clean.
+
+    The organ behind README section 3's "next free across all history", which until now was
+    prose with nothing behind it. On 2026-09-06 both mandatory generators were run against a
+    tree carrying a duplicate id and BOTH wrote their output without a word -- the filings Q-3
+    finding F1, ruled in `to-cc/ANSWER-filings-Q3.md`. A join key silently allocated twice makes
+    a bare `#N` citation resolve to two documents, which is the one thing an id exists to prevent.
+
+    WHAT IS A COLLISION AND WHAT IS THE MODEL WORKING -- the distinction this function exists to
+    draw, because getting it wrong renumbers a deliberate structure:
+
+      * TWO ACTIVE docs (`docs/intake/*.md`) on one id -> COLLISION. Neither is the other's
+        provenance and the id no longer identifies a document.
+      * An ARCHIVED doc sharing an ACTIVE doc's id -> LEGAL, and deliberate. It is the join key
+        README section 5 keeps valid at the archive path: a draft unioned into a ruled pack stays
+        in-folder as provenance under the same id, carrying `status: CONSUMED` and a
+        `consumed-by:` naming the doc that holds the id live. Intake #14 is exactly this shape --
+        two independent derivations (Fable + Codex) under one ruled pack, whose own text calls it
+        "section 1 join-key discipline -- same intake-id 14".
+      * TWO ARCHIVED docs on one id with NO active holder -> COLLISION. Nothing joins them, so the
+        id is ambiguous with no live document to disambiguate it.
+
+    Read-only, and deliberately git-free: a pre-commit gate pays one directory scan, not a ref
+    walk. `next_free_id` is the half that must see every ref (D8's mechanism row).
+    """
+    active: dict[str, list[str]] = {}
+    for _status, intake_id, filename, _title in collect_intakes(intake_dir):
+        if intake_id:
+            active.setdefault(intake_id, []).append(filename)
+    archived: dict[str, list[str]] = {}
+    for intake_id, relpath in collect_archived_intakes(intake_dir):
+        if intake_id:
+            archived.setdefault(intake_id, []).append(relpath)
+
+    reasons: list[str] = []
+    for intake_id in sorted(active, key=lambda v: (int(v) if v.isdigit() else 10**9, v)):
+        held = sorted(active[intake_id])
+        if len(held) > 1:
+            reasons.append(
+                f"intake-id {intake_id} is held by {len(held)} ACTIVE intake docs: "
+                f"{', '.join(held)} -- an id is allocated once (README section 3). Earlier-merged "
+                f"keeps the id; the later doc takes the next free one "
+                f"(`python scripts/gen_intake_index.py --next-free`), and every citation of the "
+                f"moved id moves in the SAME commit")
+    for intake_id in sorted(archived, key=lambda v: (int(v) if v.isdigit() else 10**9, v)):
+        held = sorted(archived[intake_id])
+        if len(held) > 1 and intake_id not in active:
+            reasons.append(
+                f"intake-id {intake_id} is held by {len(held)} ARCHIVED intake docs and no active "
+                f"doc joins them: {', '.join(held)} -- an archived id is a join key back to the "
+                f"live doc that holds it (README section 5); with no live holder it resolves to "
+                f"nothing and the two archived docs are simply ambiguous")
+    return reasons
+
+
+class RefScanError(RuntimeError):
+    """The all-refs scan could not complete, so no id may be allocated from its answer.
+
+    A SILENT DEGRADE IS THE DEFECT THIS MODULE EXISTS TO END (codex-review HIGH, 2026-09-07).
+    The first cut swallowed every git failure and returned the working-tree answer while still
+    reporting "working tree + all refs" -- so a missing git, a timeout, or one unreadable ref
+    would hand out an id that a branch already holds, which is precisely the cross-branch
+    collision D8's mechanism row names. An allocator that cannot see every ref must REFUSE, not
+    guess; `--no-refs` stays the explicit, labelled opt-out.
+    """
+
+
+def _git(args: list[str], repo_root: Path, ok_codes: tuple[int, ...] = (0,)) -> str:
+    """`git <args>` stdout. Raises `RefScanError` unless the exit code is in `ok_codes`.
+
+    `git grep` needs `ok_codes=(0, 1)`: 1 means NO MATCH, which is the ordinary answer for a ref
+    carrying no intake docs, while 2+ is a real error. Collapsing the two is how "this ref has
+    nothing" and "this ref could not be read" became the same empty string.
+    """
+    try:
+        proc = subprocess.run(["git", *args], cwd=str(repo_root), capture_output=True,
+                              text=True, encoding="utf-8", errors="replace", timeout=120)
+    except (OSError, subprocess.SubprocessError) as exc:
+        raise RefScanError(f"`git {' '.join(args)}` could not run: {exc!r}") from exc
+    if proc.returncode not in ok_codes:
+        raise RefScanError(
+            f"`git {' '.join(args)}` exited {proc.returncode}: "
+            f"{(proc.stderr or '').strip()[:200] or 'no stderr'}")
+    return proc.stdout
+
+
+def allocated_ids(intake_dir: Path | None = None, scan_refs: bool = True,
+                  repo_root: Path | None = None) -> dict[int, set[str]]:
+    """{id: {where it is allocated}} over the WORKING TREE and, when `scan_refs`, EVERY ref.
+
+    D8's mechanism row (`to-cc/DECLARE-SITTING-2026-09-06.md`), and the half that makes the
+    collision recur if it is dropped: "next-free computed across ALL refs (local + origin
+    branches), not `main` only". A colliding doc is BY DEFINITION not yet on `main` -- it is on
+    the branch that is about to allocate the same id -- so an allocator that reads only the
+    checked-out tree reproduces exactly the collision it exists to prevent. Witnessed the same
+    night: id 76 was live on `docs/intake-031-two-chats` and on no other ref, so a tree-only
+    max() would have handed out 76 a second time.
+    """
+    intake_dir = intake_dir if intake_dir is not None else _INTAKE_DIR
+    repo_root = repo_root if repo_root is not None else _REPO_ROOT
+    found: dict[int, set[str]] = {}
+
+    def _record(raw: str, where: str) -> None:
+        if raw.isdigit():
+            found.setdefault(int(raw), set()).add(where)
+
+    for _status, intake_id, filename, _title in collect_intakes(intake_dir):
+        _record(intake_id, f"(working tree) {filename}")
+    for intake_id, relpath in collect_archived_intakes(intake_dir):
+        _record(intake_id, f"(working tree) {relpath}")
+
+    if not scan_refs:
+        return found
+    refs = [r for r in _git(
+        ["for-each-ref", "--format=%(refname)", "refs/heads", "refs/remotes"],
+        repo_root).splitlines() if r]
+    if not refs:
+        # Every git checkout has at least one ref. Zero means git answered without answering.
+        raise RefScanError("`git for-each-ref` listed no refs -- the ref scan cannot be trusted")
+    for ref in refs:
+        out = _git(["grep", "--full-name", "-n", "^intake-id:", ref, "--", "docs/intake"],
+                   repo_root, ok_codes=(0, 1))
+        for line in out.splitlines():
+            parts = line.split(":", 3)
+            if len(parts) < 4 or "intake-id:" not in parts[3]:
+                continue
+            path = parts[1]
+            if path.endswith("/README.md"):
+                continue
+            _record(parts[3].split("intake-id:", 1)[1].strip(), f"{ref} {path}")
+    return found
+
+
+def next_free_id(intake_dir: Path | None = None, scan_refs: bool = True,
+                 repo_root: Path | None = None) -> int:
+    """The next `intake-id` to hand out: max(every id ever allocated, on any ref) + 1.
+
+    Closed ids are NOT reused (README section 3, same discipline as BACKLOG ids), so this is a
+    high-water mark and never a gap-filler -- reissuing a spent id would resurrect the exact
+    ambiguity a renumbering was performed to remove.
+    """
+    ids = allocated_ids(intake_dir, scan_refs=scan_refs, repo_root=repo_root)
+    return (max(ids) + 1) if ids else 1
+
+
 def _group(rows: list[tuple[str, str, str, str]]) -> dict[str, list[tuple[str, str, str, str]]]:
     groups: dict[str, list] = {}
     for row in rows:
@@ -171,23 +347,72 @@ def _splice(content: str, block: str) -> str:
     return content[: start_idx + len(_START_MARKER)] + "\n" + block + content[end_idx:]
 
 
+def _report_duplicates() -> int:
+    """Print any allocation collision and return 3, or return 0 when the tree is clean.
+
+    Exit 3 is its own class deliberately -- 1 means the Contents block is STALE (regenerate) and
+    2 means the target/markers are missing, and neither remedy applies here: regenerating a
+    colliding tree just writes the collision out again, which is precisely finding F1. Both verbs
+    consult this BEFORE touching the README, so `--write` refuses rather than laundering a
+    duplicate id into a generated index that then reads as authoritative.
+    """
+    reasons = duplicate_id_reasons()
+    for reason in reasons:
+        print(f"gen_intake_index: intake-id COLLISION -- {reason}", file=sys.stderr)
+    return 3 if reasons else 0
+
+
 def _cmd_write() -> int:
     if not _TARGET.exists():
         print(f"error: {_TARGET} not found", file=sys.stderr)
         return 2
+    collision = _report_duplicates()
+    if collision:
+        return collision
     new_content = _splice(_TARGET.read_text(encoding="utf-8"), render_contents())
     _TARGET.write_text(new_content, encoding="utf-8", newline="\n")
     print(f"gen_intake_index: wrote {_TARGET.relative_to(_REPO_ROOT)}")
     return 0
 
 
+def _cmd_next_free(scan_refs: bool = True) -> int:
+    """Print the next free intake-id and the high-water mark it came from. Exit 0.
+
+    THE ALLOCATOR. Before this verb the rule lived only in README section 3's prose -- "next free
+    across all history" -- and an author allocating an id read the folder listing, which
+    under-reports by every archived doc and by every doc on a branch that has not merged.
+    """
+    try:
+        ids = allocated_ids(scan_refs=scan_refs)
+    except RefScanError as exc:
+        print(f"gen_intake_index: REFUSING to allocate -- {exc}", file=sys.stderr)
+        print("gen_intake_index: an id allocated from a partial ref scan can collide with a "
+              "branch that already holds it. Fix git, or pass --no-refs and accept that the "
+              "answer is the working tree ONLY.", file=sys.stderr)
+        return 4
+    nxt = (max(ids) + 1) if ids else 1
+    scope = "working tree + all refs" if scan_refs else "working tree ONLY (--no-refs)"
+    print(nxt)
+    print(f"gen_intake_index: next free intake-id {nxt} -- {len(ids)} id(s) allocated, "
+          f"high-water mark {max(ids) if ids else 0}, scanned {scope}", file=sys.stderr)
+    if ids:
+        for where in sorted(ids[max(ids)]):
+            print(f"gen_intake_index:   high-water mark {max(ids)} at {where}", file=sys.stderr)
+    return 0
+
+
 def _cmd_check() -> int:
-    """Regen-and-diff drift check. Exit 0 clean / 1 drift (+diff) / 2 target/markers missing."""
+    """Regen-and-diff drift check.
+
+    Exit 0 clean / 1 drift (+diff) / 2 target/markers missing / 3 intake-id collision."""
     rel = _TARGET.relative_to(_REPO_ROOT)
     if not _TARGET.exists():
         print(f"error: {rel} not found -- generate it: "
               f"python scripts/gen_intake_index.py --write", file=sys.stderr)
         return 2
+    collision = _report_duplicates()
+    if collision:
+        return collision
     current = _TARGET.read_text(encoding="utf-8")
     try:
         fresh = _splice(current, render_contents())
@@ -213,7 +438,14 @@ def main(argv: list[str] | None = None) -> int:
                         help="regenerate the Contents block in the README from disk")
     parser.add_argument("--check", action="store_true",
                         help="check the Contents block against disk state (default action)")
+    parser.add_argument("--next-free", action="store_true",
+                        help="print the next free intake-id, computed across ALL refs (D8)")
+    parser.add_argument("--no-refs", action="store_true",
+                        help="with --next-free: read the working tree only (loses the D8 "
+                             "guarantee; for an offline checkout, never for allocating an id)")
     args = parser.parse_args(argv)
+    if args.next_free:
+        return _cmd_next_free(scan_refs=not args.no_refs)
     if args.write:
         return _cmd_write()
     return _cmd_check()

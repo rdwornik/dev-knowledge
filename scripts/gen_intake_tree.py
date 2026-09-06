@@ -80,6 +80,7 @@ from gen_intake_index import (  # noqa: E402  (path bootstrap must precede the i
     _END_MARKER,
     _START_MARKER,
     collect_intakes,
+    duplicate_id_reasons,
     render_row,
 )
 
@@ -311,6 +312,16 @@ def _cmd_write() -> int:
     if not _SOURCE.exists():
         print(f"error: {_SOURCE.name} not found", file=sys.stderr)
         return 2
+    # REFUSE to emit a carrier for a tree whose ids collide. The manifest keys items by
+    # filename, so a duplicate id round-trips perfectly -- the carrier would be internally
+    # flawless and the join key it carries still ambiguous. Exit 3, matching gen_intake_index's
+    # collision class, because neither --write nor --check is the remedy: the id moves first.
+    collisions = duplicate_id_reasons(None)
+    if collisions:
+        for reason in collisions:
+            print(f"gen_intake_tree: REFUSING to write -- intake-id COLLISION -- {reason}",
+                  file=sys.stderr)
+        return 3
     text = _read_source()
     model = parse_readme(text)
     manifest = build_manifest(text, model, None)
@@ -364,6 +375,14 @@ def _describe_divergence(expected: str, actual: str) -> str:
 REMEDY = "python scripts/gen_intake_tree.py --write"
 
 OK, DRIFT, MALFORMED = "ok", "drift", "malformed"
+# A FOURTH verdict, deliberately not folded into DRIFT (codex-review HIGH, 2026-09-07): DRIFT
+# means "the carrier is stale, regenerate it" and every caller answers it with REMEDY, which
+# REFUSES a colliding tree. Reporting a collision as drift therefore advertises a command that
+# cannot resolve it. The remedy here is to MOVE an id in the tree; regeneration comes after.
+COLLISION = "collision"
+COLLISION_REMEDY = ("move the later doc's intake-id to the next free one "
+                    "(`python scripts/gen_intake_index.py --next-free`), update every citation "
+                    "of it in the SAME commit, then re-run both generators")
 
 
 def evaluate(intake_dir: Path | None = None) -> tuple[str, list[str]]:
@@ -387,6 +406,18 @@ def evaluate(intake_dir: Path | None = None) -> tuple[str, list[str]]:
     """
     intake_dir = intake_dir if intake_dir is not None else _INTAKE_DIR
     source, manifest_path = intake_dir / "README.md", intake_dir / "manifest.json"
+
+    # LEG 0, ahead of everything else. A colliding tree is not assessable for coherence: the
+    # carrier keys items by FILENAME, so two docs on one id are one-for-one with disk and all
+    # four legs below come back GREEN while the join key is ambiguous. That is how both
+    # mandatory generators wrote output against the live id-70 collision on 2026-09-06 without
+    # a word (filings Q-3 finding F1). It runs FIRST so no earlier return can hide it -- and
+    # the reason text names its own remedy, because a caller that appends REMEDY to any
+    # non-OK verdict would otherwise advertise a regeneration that refuses this tree.
+    collisions = duplicate_id_reasons(intake_dir)
+    if collisions:
+        return COLLISION, [f"intake-id COLLISION -- {r} -- NOT fixed by {REMEDY}; instead "
+                           f"{COLLISION_REMEDY}" for r in collisions]
 
     for name, path in (("README.md", source), ("manifest.json", manifest_path)):
         if not path.exists():
@@ -451,6 +482,11 @@ def _cmd_check() -> int:
         return 0
     for reason in reasons:
         print(f"gen_intake_tree: check FAILED -- {reason}", file=sys.stderr)
+    if verdict == COLLISION:
+        # Exit 3, matching gen_intake_index's collision class, and NOT the regen remedy --
+        # `--write` refuses this tree, so printing it here would send the caller in a circle.
+        print(f"gen_intake_tree: remedy: {COLLISION_REMEDY}", file=sys.stderr)
+        return 3
     print(f"gen_intake_tree: remedy: run {REMEDY}", file=sys.stderr)
     return 2 if verdict == MALFORMED else 1
 
@@ -467,6 +503,10 @@ def _item_set_divergences(manifest: dict, intake_dir: Path | None = None) -> lis
     satisfiable by removing its own subject" rule the `tasks/` gate carries.
 
     Also the only leg that sees a STATUS-only change (see `_status_by_filename`).
+
+    It does NOT carry the duplicate-intake-id leg. That lives in `evaluate` as its own verdict:
+    this function early-returns on a zero-item carrier, which would have suppressed the collision
+    exactly when the tree is most broken (codex-review HIGH, 2026-09-07).
     """
     items = [n for n in manifest.get("nodes", []) if n.get("t") == "item"]
     on_disk = _status_by_filename(intake_dir)

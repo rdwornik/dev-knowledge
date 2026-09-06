@@ -100,6 +100,35 @@ CONFORMING_KINDS = frozenset({
     KIND_WORKTREE, KIND_EPIC_LANE, KIND_CLOUD_LANE, KIND_AUTOMATION_LANE,
 })
 
+#: THE LANE-BRANCH SET — the enum every organ that ITERATES lanes reads, defined once here
+#: because this module is where the enum it is derived from already lives.
+#:
+#: `LANE_BRANCH_RE` answers "is this a BATCH lane", which is a strictly NARROWER question than
+#: "is this a machine-produced LANE branch". Three ruled lane kinds are outside it — a cloud
+#: lane (`claude/<slug>`), an epic lane (`epic/<slug>`) and an automation lane
+#: (`automation/<slug>`) — and every one of them is a lane a batch teardown must be able to
+#: see. ADR-116 is the recorded witness: it sat stranded on `claude/lane-f` until a window
+#: close because the enum the teardown iterated could not name its branch, while `classify()`
+#: three functions below called that same branch a conforming `cloud-lane` the whole time.
+#:
+#: `[#514]` closed the first half of this — `batch_manifest.is_lane_merge` stopped defining a
+#: rival regex and imported `LANE_BRANCH_RE` from here. The half that stayed open is every
+#: OTHER organ that restated a lane test in its own words: `validate_substrate`'s leg 5 and
+#: `block_unanchored_push`, which read no enum at all. Both now read this.
+#:
+#: THIS MINTS NO PREFIX, which is the property that lets it exist without a ruling. Every
+#: member is already in `LANE_PREFIXES`, and the set is DERIVED through `classify()` rather
+#: than re-listed: a name cannot become a lane branch here without becoming one there.
+#:
+#: `KIND_WORKTREE` is deliberately OUT, and the omission is the load-bearing part. A bare
+#: `worktree-<name>` is a native CC worktree, not a dispatched lane — it pairs to no contract
+#: file, so an enum-iterating teardown has nothing to attribute it to and the ADR-110
+#: exemption would be forgiving a merge no batch declared. Including it would widen every
+#: reader at once, on a name that carries none of the lane guarantees.
+LANE_BRANCH_KINDS = frozenset({
+    KIND_BATCH_LANE, KIND_EPIC_LANE, KIND_CLOUD_LANE, KIND_AUTOMATION_LANE,
+})
+
 
 @dataclass(frozen=True)
 class Classification:
@@ -203,6 +232,31 @@ def classify(name: str, remotes: tuple[str, ...] = DEFAULT_REMOTES) -> Classific
                                   f"'{prefix}' lane with a non-kebab-case slug ({suffix!r})")
 
     return Classification(raw, KIND_UNKNOWN, "outside the enum as written")
+
+
+def is_lane_branch(name: str, remotes: tuple[str, ...] = DEFAULT_REMOTES) -> bool:
+    """True iff `name` is a machine-produced LANE branch under the ratified enum.
+
+    THE ONE PREDICATE for "an organ that iterates lanes must be able to see this branch".
+    Derived through `classify()`, never through a second regex — the drift `[#514]` measured
+    between `batch_manifest`'s rival pattern and `classify()` ran to 9 of 16 real merged lane
+    branches and made both organs unenforceable at once, and a copy is how it got there.
+
+    WHAT THIS IS NOT. It is not `LANE_BRANCH_RE`, and callers must not treat the two as
+    interchangeable: `LANE_BRANCH_RE` is the BATCH-lane grammar (`worktree-lane-<letter>-<id>-
+    <slug>`), while this is the whole lane SET including the three ruled prefixes that grammar
+    cannot express. A caller that genuinely means "a batch lane with a seeded worktree" —
+    `validate_lane_worktree_name`'s callers, the batch teardown's worktree walk — still wants
+    the regex and should keep using it. A caller asking "is this a lane at all" wants this.
+
+    It is also not an EXEMPTION. Being a lane branch is one of the two conditions the ADR-110
+    declared-integration-arc rule requires (`batch_manifest`, which additionally demands a
+    committed open manifest); nothing here grants anything on its own.
+
+    Unknown names are False, in the no-exemption / must-be-visible direction: `classify()`
+    never raises, so an unparseable name resolves to `unknown` and falls out of the set.
+    """
+    return classify(name, remotes).kind in LANE_BRANCH_KINDS
 
 
 def validate_lane_worktree_name(name: str) -> Optional[str]:

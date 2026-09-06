@@ -649,3 +649,101 @@ def test_ambiguous_disposition_floor_fails_closed(tmp_path):
     target.write_text("Dated disposition floor: `24882f8cc`\n"
                       "…restated: Dated disposition floor: `24882f8cc`\n", encoding="utf-8")
     assert ja.floor_sha(tmp_path) == "24882f8cc"
+
+
+# --- the MESSAGE is single-sourced too (batch U, lane-u-000-branch-enum-parity) ------------
+#
+# The two organs already share the anchoring predicate as CODE. They did not share it as TEXT:
+# the backstop printed the AF-1 wording while the hard leg printed a two-line paraphrase of
+# its own. AF-1 was filed from eight false alarms in one day, every one of them a seat that
+# had inferred this predicate rather than read it, and from two drafts of AF-1 itself
+# restating it wrongly in two different ways. Two organs paraphrasing independently is that
+# defect at one remove, and the hard leg is the surface a refused seat actually reads.
+
+
+def test_the_two_organs_share_one_message_object_not_two_wordings():
+    """IDENTITY, not equality. Equal strings can be two literals that drift apart on the
+    next edit to one of them — which is precisely how the paraphrase got there. The audit
+    backstop's names are aliases of `journal_anchor`'s, so there is one object to edit."""
+    assert aud._SPINE_PREDICATE is ja.SPINE_PREDICATE
+    assert aud._SPINE_DIAGNOSTIC is ja.SPINE_DIAGNOSTIC
+
+
+# The three tests below are deliberately NOT decorated `@requires_git`, unlike their
+# neighbours. `scripts/proof_layer.py` ratchets the population of environment-conditional
+# guards in `tests/` with zero headroom, and its doctrine is the reason to comply rather than
+# to widen the baseline: "a proof that can be skipped on the machine that breaks the property
+# is not a mechanism." What these three assert is the TEXT of a refusal in a git-governance
+# repo; on a machine with no git they should error loudly, not report a green they did not
+# earn. Do not "restore" the decorator for symmetry with the tests above.
+def test_the_refusal_quotes_the_a7_predicate_instead_of_paraphrasing_it(tmp_path):
+    """The refused seat is handed the ratified predicate AND both readings that are not it.
+
+    The old message said "add a JOURNAL entry naming >=1 SHA this push introduces" — true,
+    and silent about the two exclusions seats actually trip: the entry's own merge SHA, and
+    a SHA already sitting on the scanned ref. Both are named now because both were paid for.
+    """
+    repo, remote = _repo_with_remote(tmp_path)
+    _work, merge = _merge_branch(repo, "feat/unanchored", "Merge branch 'feat/unanchored'")
+    r = _invoke(_BUP, repo, _push_line(merge, remote))
+    assert r.returncode == 1, r.stderr
+    assert "AT LEAST ONE SHA THAT THE ENTRY INTRODUCED" in r.stderr
+    assert "THE ENTRY'S OWN MERGE SHA" in r.stderr
+    assert "A SHA ALREADY ON THE SCANNED REF" in r.stderr
+    assert "BRANCH-TIP STATUS forms no part of it" in r.stderr
+
+
+def test_the_refusal_hands_over_the_tree_sync_command(tmp_path):
+    """AF-1's second half: ONE diagnostic command, not a description of one.
+
+    The tree-lag class is the most common REAL cause of a spine block that is not a gap, and
+    the message already diagnosed it ("False here with True at main means SYNC THIS TREE")
+    while leaving the reader to derive the command. `git merge origin/main` is that command.
+    """
+    repo, remote = _repo_with_remote(tmp_path)
+    _work, merge = _merge_branch(repo, "feat/unanchored", "Merge branch 'feat/unanchored'")
+    r = _invoke(_BUP, repo, _push_line(merge, remote))
+    assert r.returncode == 1, r.stderr
+    assert "git merge origin/main" in r.stderr
+    # ... and the DISCRIMINATOR is handed over with it, or the command becomes a reflex
+    # applied to real gaps as well as to lag.
+    assert "anchored at main" in r.stderr
+
+
+def test_the_refusal_says_a_green_audit_health_does_not_predict_this_gate(tmp_path):
+    """R-1 CONTAINMENT, made KNOWABLE rather than merely true.
+
+    `test_t5d_...` above pins that the ADR-110 exemption does not reach this organ. That is
+    the correct behaviour and it is also a trap: a seat reads `[OK] journal_spine_anchor`
+    from `audit.py health`, concludes its push will pass, is refused here for the very
+    merges health just exempted, and — with nothing on either surface saying the two organs
+    answer different questions — reads it as a bug in one of them and reaches for
+    `--no-verify`. That is the one outcome ADR-85 Decision 4 forbids by name.
+
+    So the disagreement the two organs are DESIGNED to have is now stated where it bites.
+    This test pins the explanation, never the exemption: the refusal above is unchanged.
+    """
+    repo, remote = _repo_with_remote(tmp_path)
+    _work, merge = _merge_branch(repo, "feat/unanchored", "Merge branch 'feat/unanchored'")
+    r = _invoke(_BUP, repo, _push_line(merge, remote))
+    assert r.returncode == 1, r.stderr
+    assert "ADR-110" in r.stderr
+    assert "audit.py health" in r.stderr
+    assert "unconditional" in r.stderr
+
+
+def test_naming_the_containment_did_not_import_the_exemption():
+    """The belt to `test_the_pre_push_organ_does_not_consult_the_manifest_at_all`'s braces,
+    asserted from THIS file because this is where the explanatory text was added: describing
+    the ADR-110 exemption in a message must not become reading it. `batch_manifest` is the
+    only module that can grant it, and neither organ may import it."""
+    import ast
+    for mod in ("block_unanchored_push.py", "journal_anchor.py"):
+        tree = ast.parse((_BUP.parent / mod).read_text(encoding="utf-8"))
+        names = set()
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                names.update(a.name for a in node.names)
+            elif isinstance(node, ast.ImportFrom) and node.module:
+                names.add(node.module)
+        assert "batch_manifest" not in names, mod

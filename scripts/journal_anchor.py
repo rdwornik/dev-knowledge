@@ -55,6 +55,68 @@ _JOURNAL = "JOURNAL.md"
 _LEGACY_RE = re.compile(r"^JOURNAL-legacy-\d{4}(?:-\d{2}){0,2}[A-Za-z0-9._-]*\.md$")
 _SHORT = 7
 
+
+# --- the ADR-85 message, defined ONCE alongside the predicate it describes ------------------
+#
+# The predicate above is shared as CODE (`introduced`, `is_anchored`). What follows is the same
+# rule shared as TEXT, and it needs its own single source for exactly the reason the code does:
+# AF-1 records EIGHT false alarms in one day, each from a seat that inferred this predicate from
+# the shape of a failure, and two successive drafts of AF-1 itself restating it wrongly in two
+# different ways. A rule its own scribe could not restate correctly twice running is not one two
+# organs should be paraphrasing independently.
+#
+# BOTH ORGANS PRINT THESE. `audit.check_journal_spine_anchor` (the backstop) appends them to its
+# FAIL evidence; `block_unanchored_push` (the hard leg) prints them on its refusal, where the
+# reader is a seat whose push was just rejected and who has no other surface to consult. Before
+# this lane the hard leg printed a two-line PARAPHRASE of its own -- "add a JOURNAL entry naming
+# >=1 SHA this push introduces" -- which is true, omits both exclusions, and is the same class of
+# restatement AF-1 was filed about.
+
+# AF-1 (`protocols/STANDING_RULINGS.md` §AF, filed 2026-09-05): a check states its predicate in
+# its own failure text and hands over ONE diagnostic command. Filed from witnessed cost -- this
+# predicate produced EIGHT false alarms across SIX seats in a single day, one of which reached the
+# operator and stopped the merge queue. Every one of the eight substituted a SHA the entry did NOT
+# introduce (most often the entry's own merge SHA, or one already sitting on the scanned ref), or
+# read a lagging worktree as truth. No seat was careless: each inferred a predicate this message
+# never stated, and each inferred a DIFFERENT one.
+#
+# THE WORDING IS QUOTED FROM AF-1 RATHER THAN RESTATED, which is deliberate. AF-1 records two
+# successive drafts of ITSELF misstating this rule in two different ways -- "never a branch tip"
+# (false: a merged branch's tip normally does qualify) and "a merge does not introduce itself"
+# (false: `journal_anchor.introduced` is `firstparent..sha` PLUS the entry, and the exclusion is
+# temporal). A rule its own scribe could not restate correctly twice running is not one a reader
+# should be asked to infer from the shape of a failure.
+SPINE_PREDICATE = (
+    "; PREDICATE (ADR-85 amendment 2026-08-03 section A7; STANDING_RULINGS AF-1) -- a spine "
+    "entry is anchored when the JOURNAL names AT LEAST ONE SHA THAT THE ENTRY INTRODUCED. "
+    "That is the entire test. The "
+    "introduced set is `<first-parent>..<sha>` PLUS the entry itself "
+    "(`scripts/journal_anchor.py`, `introduced`). Three readings that are NOT the test: "
+    "(1) BRANCH-TIP STATUS forms no part of it -- the tip of the branch being merged normally "
+    "does qualify, but because the merge introduces it, not because it is a tip; "
+    "(2) THE ENTRY'S OWN MERGE SHA is in the introduced set and still cannot be used, for a "
+    "temporal reason rather than a set-theoretic one: its hash does not exist when the JOURNAL "
+    "text is authored and committed, so it is unavailable to name; "
+    "(3) A SHA ALREADY ON THE SCANNED REF before the entry fails the test itself, because naming "
+    "it introduces nothing"
+)
+SPINE_DIAGNOSTIC = (
+    "; DIAGNOSTIC -- run unmodified from the repo root, substituting one <sha> named above: "
+    "uv run --locked python -c \"import sys,pathlib;sys.path.insert(0,'scripts');"
+    "import journal_anchor as j;r=pathlib.Path('.');s='<sha>';"
+    "print('introduced:',j.introduced(r,s));"
+    "print('anchored in this tree:',j.is_anchored(r,s,j.journal_text(r)));"
+    "print('anchored at main:',j.is_anchored(r,s,j.journal_text(r,'main')))\"; "
+    "THE TREE ASYMMETRY, which turned one of the eight into an operator stop: this check reads the "
+    "JOURNAL from the COMMITTING TREE and the spine from the shared ref, so a tree that is behind "
+    "reports gaps that do not exist on main. False here with True at main means SYNC THIS TREE -- "
+    "there is no gap on main, and a drain entry would not reach a lagging tree anyway. One further "
+    "fact settles the common case on its own: `block-unanchored-push` fails CLOSED, so a range "
+    "that has already pushed clean cannot be unanchored"
+    "; THE SECOND ASYMMETRY, in the ADR-110 exemption rather than the anchor predicate (measured 2026-09-06): the backstop resolves the SPINE against `main` -- a ref shared through the common git dir -- while resolving the open-batch manifest from THIS branch's `HEAD` (`batch_manifest.open_batches` -> `git show HEAD:<manifest>`, the committed-blob rule). A worktree branched before the manifest landed therefore sees the integrator's lane merges on the shared spine and cannot exempt them, and reports gaps for merges it did not make. Same command fixes it -- `git merge origin/main` -- and the exemption clause below says which batch it read, so an unexpected EMPTY batch list is the tell"
+    "; SYNC COMMAND, for exactly that case -- `git merge origin/main`, run IN THE TREE that reported the gap, then re-read. This is the recorded fix for the tree-lag class rather than a suggestion: on the night of 2026-09-05 it resolved the spine blocks that were lag and not gaps, repeatedly, while every other remedy tried (re-anchoring an already-anchored SHA, --no-verify, re-running the check) addressed a gap that was not there. Run the diagnostic above FIRST: it is the discriminator, and `git merge` is the fix for only one of its two answers"
+)
+
 # Only a FULL 40-hex object name is an immutable cache key. A ref (`main`, `HEAD`, a short
 # prefix that could later become ambiguous) can resolve to a different commit tomorrow, so
 # `introduced` refuses to memoize one -- see its docstring.
