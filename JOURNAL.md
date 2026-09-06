@@ -64,6 +64,8 @@ generators + the all-refs allocator), the id-70 move and its citations, `docs/in
 **Next:** W1-2, W1-6, W1-7, W1-9 remain; W1-3 is closed-by-death and will never hand back.
 
 **Anchors:** `b438698d` (W1-5's HIGH-closing commit, introduced by `4b7ec261`).
+It also names `bb4cdfb1`, this entry's own commit, which this branch's `--no-ff` merge
+introduces - the standing two-commit shape.
 
 ### 2026-09-07 (c) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): W1-4 lands, and a generated conflict where BOTH sides were wrong
 
