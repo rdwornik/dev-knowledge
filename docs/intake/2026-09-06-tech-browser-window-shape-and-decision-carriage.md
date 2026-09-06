@@ -41,6 +41,16 @@ consumed-by:
 >   fact — this seat's first draft of this very correction asserted the discharge as already
 >   done, which is the same error one layer down.
 >
+>   **Update, minutes later, and it makes the same point a third time.** The W1-5 merge has
+>   now landed on the integrator's **local** `main` at `4b7ec261` -- `70` kept by
+>   `2026-09-05-tech-aj-second-pass.md`, `77` now on
+>   `2026-09-05-tech-session-roles-with-a-carrier.md`. It is **not on `origin/main`**, which is
+>   still at `26ffe8aa` with both files carrying `70`. A worktree shares the object store with
+>   the primary checkout, so a lane seat can *read* the integrator's unpushed merge and take it
+>   for a published fact. Local `main`, `origin/main` and a lane branch are three different
+>   answers to "is it discharged", and a note headed for ratification owes the reader which one
+>   it measured. This one measured all three.
+>
 > Credit where it is owed: lane `u-000-intake-id-next-free` caught the `14` case and built the
 > distinction into the check it shipped — *two ACTIVE docs on one id* is a COLLISION; *an ARCHIVED
 > doc sharing an ACTIVE doc's id* is LEGAL; *two ARCHIVED docs with no active holder* is a
