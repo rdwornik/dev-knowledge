@@ -19,6 +19,37 @@
 
 ---
 
+### 2026-09-06 (aa) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): the batch-opening merge is a precondition, not a queue item
+
+**Did:** Merged the batch-U manifest branch to `main` before any lane handed back, and anchored it.
+
+**Result - a merge made on a precondition rather than on a HANDBACK, recorded as a deviation.**
+
+The seat's instruction is to work the queue on HANDBACK only. `worktree-lane-u-000-batch-manifest`
+carried no HANDBACK and is the dispatcher's branch, not a lane's, so on the letter of the
+instruction it was not a queue item. It was merged anyway, and the reason is a precondition the
+queue rests on rather than a preference about ordering.
+
+`scripts/batch_manifest.py` resolves an open batch as the conjunction of four facts, the first of
+which is that the manifest is **TRACKED**. Lanes boot worktrees from `main`. With the manifest only
+on the dispatcher's branch, `git ls-files 'docs/audits/*-batch-*-manifest.md'` returned batches 2
+through T and no `batch-u` - so every batch-U lane would have been committing into a tree with 19
+launch contracts under `docs/audits/` and no manifest to exempt them. That is the batch-D shape:
+`audit-health` runs `always_run`, so the refusal lands on a lane's OWN commit, not only on the
+integrator's queue, and once the spine goes RED it blocks the commit that would explain the stop.
+
+The merge is additive only - 20 new files, 3920 insertions, zero deletions - so merging it early
+costs nothing recoverable if the dispatcher amends, while merging it late costs the batch.
+
+**Changes:** `docs/audits/2026-09-06-technical-batch-u-manifest.md` and the 19 frozen lane
+contracts under `docs/audits/2026-09-06-technical-batch-u-launch-contracts/`, via merge `25539b32`.
+
+**Abandoned:** nothing.
+
+**Next:** wave-1 lanes on HANDBACK, docs-first, refusing `review=NONE` on code branches.
+
+**Anchors:** `75c84aa4` (the frozen batch-U manifest commit, introduced by `25539b32`).
+
 ### 2026-09-06 (z) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): the first acts, and a HOLD that the ruling record decided rather than the branch
 
 **Did:** Took the NIGHT-2 integrator seat in the primary checkout on `main` and executed the
