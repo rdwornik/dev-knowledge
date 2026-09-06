@@ -1816,3 +1816,79 @@ def test_default_argv_budget_leaves_the_live_corpus_in_one_chunk():
     assert 8_000 <= aud._BUNDLE_LOG_PATHSPEC_BUDGET <= 30_000
     worst = len("docs/handoffs/2026-09-01-dev-knowledge-architect-v7") + 1
     assert aud._BUNDLE_LOG_PATHSPEC_BUDGET // worst >= 150, "budget too tight for the corpus"
+
+
+# --- v7.1: the required-row rung (P11 decision carriage) --------------------
+#
+# HANDOFF_PROCESS §5's evidence-block contract has always said "a missing required row is not
+# a pass". Until v7.1 that was prose with no organ: a bundle could silently ship without P11
+# and the structural gate saw nothing to classify. These pin the rung and its era gate.
+
+_P11_ROW = ("P11", "does a flush-left carried-by: appear in each decision file head",
+            "`protocols/HANDOFF_PROCESS.md` `## 5. The teeth-y forced primary-source read (#148 a)`",
+            "the window's decision files are written after this bundle is cut",
+            "`grep -l -E '^carried-by:' \"$env:CLAUDE_PROMPTS_DIR/to-cc/\"DECLARE-*`")
+
+
+def test_v71_bundle_without_p11_fails_the_required_row_rung(tmp_path):
+    """A bundle cut in the v7.1 era that ships no P11 row FAILs — the row is required."""
+    bundle = _init_bundle(tmp_path, [_PASS_SYMBOL], slug="2026-09-07-dev-knowledge-architect")
+    by = _by_id(vhp.verify(bundle))
+    assert "P11" in by, "no P11 result synthesized for an in-era bundle missing the row"
+    assert by["P11"].status == "fail"
+    assert "required" in by["P11"].detail
+
+
+def test_pre_v71_bundle_without_p11_is_judged_by_its_own_era(tmp_path):
+    """Bundles cut before the era are immutable artifacts — the rung must not condemn them."""
+    bundle = _init_bundle(tmp_path, [_PASS_SYMBOL], slug="2026-06-12-b")
+    by = _by_id(vhp.verify(bundle))
+    assert "P11" not in by
+
+
+def test_v71_bundle_carrying_p11_is_not_given_a_synthetic_fail(tmp_path):
+    """The rung fires on ABSENCE only; a present P11 row is classified like any other."""
+    bundle = _init_bundle(tmp_path, [_PASS_SYMBOL, _P11_ROW],
+                          slug="2026-09-07-dev-knowledge-architect")
+    results = vhp.verify(bundle)
+    p11 = [r for r in results if r.probe_id == "P11"]
+    assert len(p11) == 1, "the rung synthesized a duplicate row alongside the real one"
+    assert "required" not in p11[0].detail
+
+
+def test_required_row_rung_accepts_emphasised_and_backticked_ids(tmp_path):
+    """`**P11**` / `` `P11` `` / `p11` are the SAME row typeset differently — all count."""
+    for i, typeset in enumerate(("**P11**", "`P11`", "p11", " P11 ")):
+        row = (typeset,) + _P11_ROW[1:]
+        bundle = _init_bundle(tmp_path / f"case{i}", [_PASS_SYMBOL, row],
+                              slug="2026-09-07-dev-knowledge-architect")
+        assert "P11" not in {r.probe_id for r in vhp.verify(bundle)
+                             if "required" in r.detail}, f"{typeset} was read as absent"
+
+
+def test_required_row_rung_does_not_fold_a_different_id_onto_p11(tmp_path):
+    """`P-11` is not `P11`. A blanket punctuation strip folds them together and PASSes the
+    exact omission the rung exists to catch (terra HIGH, 2026-09-07)."""
+    row = ("P-11",) + _P11_ROW[1:]
+    bundle = _init_bundle(tmp_path, [_PASS_SYMBOL, row],
+                          slug="2026-09-07-dev-knowledge-architect")
+    by = _by_id(vhp.verify(bundle))
+    assert "P11" in by and by["P11"].status == "fail"
+
+
+def test_required_row_rung_is_era_gated_by_the_shared_predicate(tmp_path):
+    """The era gate reuses bundle_at_or_after — one predicate, not a second date compare."""
+    assert vhp.bundle_at_or_after("2026-09-07-x", vhp._V71_ERA)
+    assert not vhp.bundle_at_or_after("2026-09-06-dev-knowledge-architect", vhp._V71_ERA)
+
+
+def test_required_row_rung_does_not_fire_on_a_zero_row_probes_file(tmp_path):
+    """A PROBES.md that parses to NO rows is a non-probe artifact, not a v7.1 bundle omitting
+    P11 — the same class verify() returns [] for when there is no PROBES.md at all. Firing the
+    rung there would manufacture a FAIL for every such directory. Deliberate narrowing, pinned
+    so it cannot be 'fixed' back into a false positive; the residual hole (an EMPTY probe table
+    evades the rung, as it evades every present-row rung) belongs to the generator-side seal."""
+    bundle = tmp_path / "2026-09-07-dev-knowledge-architect"
+    bundle.mkdir()
+    (bundle / "PROBES.md").write_text("no rows here\n", encoding="utf-8")
+    assert vhp.verify(bundle) == []

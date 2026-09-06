@@ -8,6 +8,32 @@
   in PROBES") but NOT the values — the ship-gate verdict, the dispositioned-WARN count, the
   [stale] status, the drifted #ids, the counts are ALL live probe answers (P4/P6/P7/P9) and
   live only in the JOURNAL generation-entry, never here.
+
+  BYTE BUDGET — ~8,000 BYTES (v7.1). This is the ONE hand-authored term in the assembled paste,
+  and after the v7.1 cut it is the LARGEST term in it. The budget is a SUBTRACTION, not a
+  preference, and it is stated as a derivation rather than a frozen number so it cannot go stale
+  the way a typed count does (CLAUDE.md §4):
+
+      residual budget = PASTE_BYTE_CEILING - (boot session-header + PROBES.md) - overhead
+
+  where the ceiling is `assemble_paste.PASTE_BYTE_CEILING`, the two template-controlled sections
+  are what THIS bundle's own `PASTE_THIS.md` reports for them, and overhead is the role PIN + the
+  END sentinel + section separators (~400 B). Recompute it for any bundle instead of trusting a
+  number here -- `scripts/assemble_paste.py <bundle-dir>` prints the assembled total, and the
+  per-section split is readable from `PASTE_THIS.md`'s `=== <label> ===` markers. Measured once,
+  on the v7.1 cut (2026-09-07, architect mode): session-header 3,079 B + PROBES 8,707 B = 11,786 B,
+  plus ~351 B of PIN and sentinel, leaving ~7,860 B. Round DOWN, not up: 8,000 is the ceiling to
+  aim under, not a floor to fill.
+
+  A residual over budget does not fail a gate today -- `assemble_paste` WARNs on the assembled
+  total -- but it is the term that puts the paste over, and the seat pays for it on every turn of
+  the window (inbox 030).
+
+  WHERE THE BYTES GO WHEN IT IS OVER: re-narrated task-state (§6 — point at BACKLOG.md), and
+  re-transmitted methodology (§3 — point at the protocol). Those are the two §2 prohibitions,
+  and a residual over budget is usually one of them wearing a local name. Trim THOSE first,
+  before trimming the un-committed "why", which is the only content here the repo does not
+  already hold and the only reason this file exists.
 -->
 # Residual — {{SLUG}} — the part the repo does not already encode
 
