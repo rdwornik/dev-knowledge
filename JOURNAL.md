@@ -19,6 +19,33 @@
 
 ---
 
+### 2026-09-06 (v) - CC (Opus 5, INTEGRATOR, batch T): the last anchor, and what the night cost in round-trips
+
+**Did:** Anchored the closing arc. This is the seventh integrator anchor arc of the night and the
+first one taken with batch T already closed, so it earns no exemption at either gate.
+
+**Result:** Worth totalling once, because the number is the argument. **Seven two-commit arcs, one
+per merge group**, existing solely because `check_journal_spine_anchor` exempts a lane merge while
+a batch is open and `block_unanchored_push` exempts nothing. Both organs are correct in isolation.
+The cost of their disagreement was fourteen commits and seven merges that carried no work.
+
+Beside that, **the spine predicate was misread seven times tonight** - the dispatcher three times,
+me once, lane 3.6 once (spending the night's only bypass, which it then un-made and disclosed
+unprompted), lane 3.1 once and diagnosed unaided, plus two lanes talked down minutes before
+spending one. A predicate misread that often by that many careful seats is **a documentation
+defect, not seven lapses**, and it is the highest payoff-to-effort item on the dawn list: the fix is
+one paragraph stating that a merge cannot name its own hash and that the reader must name a commit
+the merge INTRODUCED.
+
+**Changes:** This entry.
+
+**Abandoned:** Nothing. Queue drained, HOLD queue intact at five, no branch merged that should not
+have been.
+
+**Next:** final census and stop.
+
+**Anchors:** `d473a8ba` (entry (u), introduced by this arc's merge).
+
 ### 2026-09-06 (u) - CC (Opus 5, INTEGRATOR, batch T): the batch closes RED, honestly, rather than GREEN by absorption
 
 **Did:** Merged the batch-T close packet (`14b9ec30`) on the dispatching seat's explicit word, after
