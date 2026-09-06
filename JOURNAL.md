@@ -60,6 +60,9 @@ husks removed; `origin/worktree-lane-t-000-trace-scorecard-salvage` deleted.
 **Next:** the wave-1 queue on HANDBACK only, docs-first, refusing `review=NONE` on code branches.
 
 **Anchors:** `e48a1dbd` (inbox 030 Seats-row correction, introduced by `13d1179d`).
+It also names `3b5279d3`, this entry's own commit, which this branch's `--no-ff` merge
+introduces - a single-commit anchor branch cannot anchor its own merge, so the naming is
+split across two commits deliberately.
 
 ### 2026-09-06 (y) - CC (Opus 5, INTEGRATOR-3, DAY sitting): two of the three assigned acts were already on main, and the one real merge could not anchor itself
 
