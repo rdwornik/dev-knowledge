@@ -20,9 +20,32 @@ consumed-by:
 > the tree manifest. The carrier is recorded, not the schema changed.
 >
 > `intake-id` **76**, allocated per **D8** (next-free across ALL refs) -- checked against the 11
-> content-bearing refs in this clone, not `main` alone. Ids **14 and 70 remain live duplicates on
-> `main`**, untouched here: both files are landed, so which one moves is an operator call. See
-> intake #75 and `QUESTION-filings.md` Q-3.
+> content-bearing refs in this clone, not `main` alone.
+>
+> **CORRECTION to an earlier claim by this seat.** A previous draft of this note said *"ids 14 and
+> 70 remain live duplicates on `main`"*. **One half was never right; the other is right, and needed a date and a scope on it:**
+>
+> - **`14` is NOT a collision** — it is the join-key model working as documented. One intake in
+>   three documents: `2026-07-12-siem-requirements-ruled-pack.md` (`status: ACCEPTED`, the
+>   authority) plus two drafts under `docs/intake/archive/` (`status: CONSUMED`, each carrying
+>   `consumed-by:` pointing at the pack). `docs/intake/README.md` §5 ratifies exactly this —
+>   archived docs leave the depth-1 Contents index while their `intake-id` join keys stay valid at
+>   the archive path. Verified on `origin/main`, not restated. Applying D8 here would strip `#14`
+>   from the live ACCEPTED pack and hand it to an archived provenance draft.
+> - **`70` IS a genuine collision, and it is still live on `main`** at `d2956ae9` — both
+>   `2026-09-05-tech-aj-second-pass.md` and `2026-09-05-tech-session-roles-with-a-carrier.md`
+>   carry `intake-id: 70` there. Lane W1-5 has renumbered `70 -> 77` on the second of those and
+>   moved its citations in the same commit, but that work sits on
+>   `origin/worktree-lane-u-000-intake-id-next-free` @ `b438698d` and is **unmerged** as this is
+>   written. It discharges on merge, not before. Stated here as a branch fact, not a `main`
+>   fact — this seat's first draft of this very correction asserted the discharge as already
+>   done, which is the same error one layer down.
+>
+> Credit where it is owed: lane `u-000-intake-id-next-free` caught the `14` case and built the
+> distinction into the check it shipped — *two ACTIVE docs on one id* is a COLLISION; *an ARCHIVED
+> doc sharing an ACTIVE doc's id* is LEGAL; *two ARCHIVED docs with no active holder* is a
+> COLLISION, being a key that joins nothing. That is a better organ than the count this seat's
+> finding asked for. See intake #75 and `QUESTION-filings.md` Q-3.
 
 ## 1 - The window's shape (RULED)
 
