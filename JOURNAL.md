@@ -19,6 +19,67 @@
 
 ---
 
+### 2026-09-06 (j) - CC (Opus 5, INTEGRATOR, batch T): the integrator arc's own anchor
+
+**Did:** Anchored the anchor arc. Entry (i) discharges the two lane merges; this entry discharges
+the `--no-ff` merge that lands (i).
+
+**Result:** Two entries rather than one because the two organs need different things and a merge
+cannot name its own hash. A lane merge is exempt at the commit gate while batch T is open, so a
+lane arc needs no per-entry anchor there - but the INTEGRATOR's branch is `docs/`-class by ADR-110
+(minting an `integrate/` prefix would invent an enum member the ruling reserves), which means it
+matches no lane grammar and earns no exemption. Its merge therefore needs a real anchor naming a
+real commit it introduced, and the only commit it introduces is (i) itself. Hence the ratified
+shape: **>=2 commits, JOURNAL last, naming the one before it.** A single-commit anchor branch is
+unanchorable by the same law it is trying to satisfy.
+
+Written as its own entry rather than folded into (i) because an anchor discharges by APPEND ONLY
+(STANDING_RULINGS B6): amending (i) in place to name a SHA that did not exist when (i) was written
+would discharge the anchor retroactively and leave no trace it once did not.
+
+**Changes:** This entry.
+
+**Abandoned:** Nothing.
+
+**Next:** Push, which releases the three lanes currently refused by `block_unanchored_push`
+(shape-seal `160c622e`, playbook `fa5a7b2e`, freshness-unstamped `c87d54b1`) - all three committed
+clean, none spent a bypass.
+
+**Anchors:** `6103dfcb` (entry (i), introduced by this arc's merge).
+
+### 2026-09-06 (i) - CC (Opus 5, INTEGRATOR, batch T): the two ADR-85 organs disagree about the batch exemption
+
+**Did:** Merged the first two wave-1 lane arcs - 3.12 README (`f6d166d7`) and 3.1 logs-retention
+(`b8f94008`) - and anchored both here.
+
+**Result:** Merging them blocked every lane's PUSH, and the reason is a disagreement between the
+two ADR-85 organs rather than a missing anchor. `check_journal_spine_anchor` (the commit-time
+backstop) EXEMPTS them, and says so in its own evidence: *"EXCEPT 2 lane merge(s) exempt under the
+ADR-110 declared-integration-arc rule while batch T is open ... the exemption expires when
+[the close packet] lands."* `block_unanchored_push` (the pre-push hard leg) does **not**: the module
+contains no reference to `batch_manifest`, `is_lane_merge` or any exemption at all, so it refuses
+the very merges the backstop excuses. Its docstring claims the opposite by construction - *"this
+organ cannot disagree with the audit backstop about what 'anchored' means"* - and that holds for
+the *anchoring predicate*, which the two do share. The **exemption** is not in the shared predicate;
+it lives in the audit check alone. So the two organs agree on what "anchored" means and disagree on
+who has to be.
+
+Consequence while a batch is open: a lane may COMMIT (backstop exempts) and may not PUSH (pre-push
+refuses), and no sync fixes it, because worktrees share the common git dir - the `main` the hook
+reads is the primary's LOCAL main, which no lane can fetch or sync to. Three lanes hit it within
+minutes of each other and all three diagnosed it correctly and refused to bypass.
+
+**Changes:** This entry. No file edit - the anchor is the act.
+
+**Abandoned:** Nothing. No `--no-verify` anywhere; the lanes refused it too.
+
+**Next:** Anchor after each lane merge rather than at the end of the queue. The end-of-queue shape
+is correct for a range-level push gate and wrong for a per-entry commit gate plus an unexempted
+push gate, and this batch is the second.
+
+**Anchors:** `28e3b1c3` (README, introduced by `f6d166d7`), `353b5169` (logs-retention, introduced
+by `b8f94008`).
+
 ### 2026-09-06 (h) - CC (Opus 5, INTEGRATOR, batch T): the manifest merge that wedged every lane's commit gate, and why the exemption did not cover it
 
 **Did:** Opened the integrator window for the 2026-09-06 NIGHT batch (batch T), merged the batch-T
