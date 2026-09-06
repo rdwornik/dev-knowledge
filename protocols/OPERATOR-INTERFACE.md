@@ -104,6 +104,31 @@ carrying a repo path and a SHA, so identity stays PROVABLE (compare the body bel
 against `git show <sha>:<path>`) while the file itself says what it is a copy of. A copy that does
 not name its source is the stale-delivery failure waiting to happen.
 
+**Transport v2.1 — the filename grammar, one table.** Extends the `naming` line above with the
+shapes the 2026-09-06 night window actually used (inbox 028 criterion G). One grammar covers every
+transport file, so a reader identifies a file's kind, its author and its direction from the name
+alone. `<seat>` is a session name (`filings`, `integrator`), `<date>` is `YYYY-MM-DD`.
+
+| Shape | What it carries | Written by | Home |
+|---|---|---|---|
+| `STATUS-<seat>.md` | a seat's running findings, kept current while it works | that seat | `to-browser/` |
+| `SESSION-<seat>.md` | that seat's close-out account, written on stop | that seat | `to-browser/` |
+| `QUESTION-<seat>.md` | a question raised without stopping, under night autonomy | that seat | `to-browser/` |
+| `ANSWER-<seat>.md` | the reply to one | browser | `to-cc/` |
+| `AMEND-<batch>-<NNN>.md` | an additive clarification to a live batch contract | browser | `to-cc/` |
+| `ADDENDUM-<lane>-<tag>.md` | a change scoped to a single lane's contract | browser | `to-cc/` |
+| `RATIFICATION-<date>.md` | the sitting's decision list, one row per item | filings | `to-browser/` |
+| `UNOWNED-<date>.md` | unowned items enumerated, owner left unproposed | filings | `to-browser/` |
+| `RETRO-<date>.md` | a window's retrospective | browser | `to-cc/` |
+| `LEDGER-<repo>.md` | the operator's read surface, overwritten each batch and wrap | browser | `to-browser/` |
+| `INBOX-<repo>-<date>-<NNN>.md` | one numbered architect item | browser | `to-cc/` |
+| `DECLARE-<item>.md` | an operator ruling that gates an item | browser | `to-cc/` |
+| `BATCH-<date>-<name>-CONTRACTS.md` | one batch's lane contracts | browser | `to-cc/` |
+
+Every browser artifact — retrospectives, plans, contracts — travels on this transport rather than
+through Downloads, and `retention` above moves the consumed ones to `archive/<window-date>/` at
+wrap. `/handoff-verify` P8 checks a bundle's transport section against this table.
+
 ## 2. Inline chat paste of large content arrives empty — so uploads are `.md` files
 
 Pasting a large body of text into the browser chat inline is unreliable: it can arrive truncated,
@@ -118,6 +143,10 @@ artifact's own tail, and its closing fence. A paste that ends mid-sentence ended
 The one deliberate exception is `PASTE_THIS.md`, which is assembled precisely so that a single
 paste carries a whole bundle — and it ships a terminal `=== END OF PASTE ===` sentinel so a
 truncated one is visible on sight.
+
+**Rule 1 (inbox 029) — a browser decision exists only as a file.** A ruling spoken in chat
+and not written to `to-cc/` has no addressable existence: no seat can cite it, and no gate can
+resolve it.
 
 ## 3. Every session ships its exact start command
 
