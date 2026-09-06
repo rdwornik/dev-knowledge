@@ -19,6 +19,234 @@
 
 ---
 
+### 2026-09-07 (a) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): the first lane merge, and a detector that dies at 99 and looks fixed by dawn
+
+**Did:** Merged W1-8 `worktree-lane-u-000-closures-local`, the batch's first lane HANDBACK, and
+regenerated the audits index it correctly left alone.
+
+**Result - a clean merge, and a defect in the batch's own tooling that the lane found.**
+
+The branch was verified from the primary before it was touched rather than on the lane's report:
+present on origin at `7eb21699`, a clean descendant of `main` (`merge-base --is-ancestor` as its own
+command, exit 0), and **one file** changed - `docs/audits/2026-09-06-technical-closure-proposals.md`,
+1026 insertions - which matches its claimed footprint exactly. No `.claude/settings.json`, no
+`docs/audits/README.md`. `review=codex HIGH:1 MED:0 LOW:0` with the HIGH found and closed in-lane,
+so the tally requirement is met and nothing was handed forward open. Merged at `ae13e1ae` in 12
+seconds against a 5-minute docs budget.
+
+The index regeneration rides this anchor branch rather than a separate arc. `[#590]` narrowed
+`audit-index-freshness` to `(README.md|gen_audit_index.py)` precisely so lanes do NOT touch that
+shared file - it was in six of the last seven conflicted merges - which makes regenerating it the
+integrator's act, once on the merged result. W1-8 left it alone correctly.
+
+**The lane's headline is a live defect and it is worth recording where the next seat will find it.**
+`_next_free_dated_path` allocates a two-digit per-run sequence, `range(1, 100)`. ADR-110 fires the
+Stop hook once per lane, so a full-width night exhausted all 99 slots for 2026-09-06 and the closure
+detector began writing `DETECTOR-ERROR-2026-09-06.md` instead of proposals at 23:28:41. The marker
+rewrites its own path on repeat, so it cannot report how many runs have failed. **It self-clears at
+midnight and self-repeats on the next wide night - at dawn it will look fixed.** That last property
+is the trap: a defect that erases its own evidence on a calendar boundary will be closed as
+unreproducible by whoever looks first.
+
+Also carried forward, unowned: all three STRONG closure proposals are false positives, and none is
+the quoting shape `[#437]` fixed - all three are unquoted plain text, in three distinct unowned
+shapes (proposed-disposition verb, object-of-verb, partial closure). The report declares itself
+PRE-TRIAGE and files nothing, so F-1 and F-2 have no owner and no intake and need triage at dawn.
+
+**Changes:** `docs/audits/2026-09-06-technical-closure-proposals.md` via `ae13e1ae`;
+`docs/audits/README.md` via `7749bcec`.
+
+**Abandoned:** nothing.
+
+**Next:** the remaining wave-1 lanes on HANDBACK, docs-first, refusing `review=NONE` on code.
+
+**Anchors:** `7eb21699` (W1-8's reviewer-HIGH commit, introduced by `ae13e1ae`) and `7749bcec`
+(the index regeneration on this branch, introduced by this branch's own merge).
+
+### 2026-09-06 (ab) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): the generated index the merge invalidated, and an alarm withdrawn on both sides
+
+**Did:** Regenerated `docs/audits/README.md`, stale as a direct consequence of the batch-U manifest
+merge, and anchored the arc that carries it.
+
+**Result - a coherence defect closed by the seat that caused it.**
+
+`25539b32` added 20 files under `docs/audits/`, which made the generated index disagree with the
+tree: 904 documents claimed, 905 present. `[#590]` narrowed `audit-index-freshness` to
+`(README.md|gen_audit_index.py)` exactly so lanes do NOT regenerate this file - it was in six of the
+last seven conflicted merges - which makes the regeneration the integrator's act and nobody else's.
+Because the hook fires only when the index or its generator is staged, the staleness was invisible
+to every commit made since, including this seat's two anchor arcs. A narrow hook is the right
+design and it is also why the rot was silent.
+
+Worth recording as a shape: **an anchor arc can name a non-journal commit on its own branch.** The
+standing two-commit dance exists because a single-commit anchor branch has nothing to name but
+itself. Here the branch already carried a real commit, so ONE journal entry naming `335e1486`
+anchors the merge, and the second commit was unnecessary.
+
+**Two alarms withdrawn tonight, one on each side, and both by measurement.** Dispatcher-N2 raised
+that all seven wave-1 lanes rooted at `498064c9`, five commits before the manifest, leaving the
+ADR-110 exemption dead in their trees. The three facts were true and this seat confirmed each as its
+own command. The consequence did not follow: `498064c9` holds **zero** launch contracts as well as
+no manifest, because `75c84aa4` created all 20 files in ONE commit. A tree holding neither is
+consistent; the dangerous state is contracts without the manifest that exempts them, and no lane was
+in it. The durable rule is therefore about **atomicity** - manifest and contracts land in one commit
+- not about dispatch order. Batch D failed on separate landing.
+
+This seat's own contract-resolution hypothesis was then falsified in turn: lane contracts resolve
+against the prompts dir, not the worktree, so no lane was ever blind to its contract. Dispatcher-N2
+also measured what the exemption actually guards (`audit.py:4331`) - lane MERGE SHAs on main's
+first-parent spine, an integrator-side concern - and withdrew the claim that it could refuse a
+lane's own commit. Three claims, three measurements, two withdrawals.
+
+**Changes:** `docs/audits/README.md` 904 to 905 via `335e1486`.
+
+**Abandoned:** the contract-resolution hypothesis, falsified.
+
+**Next:** wave-1 lanes on HANDBACK, docs-first, refusing `review=NONE` on code branches.
+
+**Anchors:** `335e1486` (the index regeneration, introduced by this branch's merge).
+
+### 2026-09-06 (aa) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): the batch-opening merge is a precondition, not a queue item
+
+**Did:** Merged the batch-U manifest branch to `main` before any lane handed back, and anchored it.
+
+**Result - a merge made on a precondition rather than on a HANDBACK, recorded as a deviation.**
+
+The seat's instruction is to work the queue on HANDBACK only. `worktree-lane-u-000-batch-manifest`
+carried no HANDBACK and is the dispatcher's branch, not a lane's, so on the letter of the
+instruction it was not a queue item. It was merged anyway, and the reason is a precondition the
+queue rests on rather than a preference about ordering.
+
+`scripts/batch_manifest.py` resolves an open batch as the conjunction of four facts, the first of
+which is that the manifest is **TRACKED**. Lanes boot worktrees from `main`. With the manifest only
+on the dispatcher's branch, `git ls-files 'docs/audits/*-batch-*-manifest.md'` returned batches 2
+through T and no `batch-u` - so every batch-U lane would have been committing into a tree with 19
+launch contracts under `docs/audits/` and no manifest to exempt them. That is the batch-D shape:
+`audit-health` runs `always_run`, so the refusal lands on a lane's OWN commit, not only on the
+integrator's queue, and once the spine goes RED it blocks the commit that would explain the stop.
+
+The merge is additive only - 20 new files, 3920 insertions, zero deletions - so merging it early
+costs nothing recoverable if the dispatcher amends, while merging it late costs the batch.
+
+**Changes:** `docs/audits/2026-09-06-technical-batch-u-manifest.md` and the 19 frozen lane
+contracts under `docs/audits/2026-09-06-technical-batch-u-launch-contracts/`, via merge `25539b32`.
+
+**Abandoned:** nothing.
+
+**Next:** wave-1 lanes on HANDBACK, docs-first, refusing `review=NONE` on code branches.
+
+**Anchors:** `75c84aa4` (the frozen batch-U manifest commit, introduced by `25539b32`).
+It also names `2686b2b1`, this entry's own commit, which this branch's `--no-ff` merge
+introduces - a single-commit anchor branch cannot anchor its own merge, so the naming is
+split across two commits deliberately.
+
+### 2026-09-06 (z) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): the first acts, and a HOLD that the ruling record decided rather than the branch
+
+**Did:** Took the NIGHT-2 integrator seat in the primary checkout on `main` and executed the
+five first acts of `BATCH-2026-09-06-NIGHT-2-CONTRACTS.md` section 2 in order, resolving each
+against live state before acting.
+
+**Result - one merge, one hold, three teardown acts.**
+
+`docs/intake-031-two-chats @ b6b7cb08` (intake #76, browser window shape and decision carriage)
+is **HELD**, not merged. The contract marks it `[ratification-pending]` and #76 DRAFT; the test
+the seat applied is the ruling record, not the branch: #76 appears as ACCEPT in neither
+`DECLARE-SITTING-2026-09-06.md` (D2 rules 008/017/019/020/027; D3 #68/#69; D4 #70/#71; D5 #73
+and 024) nor `DECLARE-F-2026-09-06.md` (which rules #70 only). A held branch is listed for the
+dawn list with its intake id, and it is not a defect.
+
+`docs/browser-token-budget-030 @ e48a1dbd` merged - the operator's own rule from inbox 030,
+15 lines into `protocols/OPERATOR-INTERFACE.md` section 2 plus the Seats-row correction
+withdrawing the two-chat shape.
+
+The merged remote lane branch `worktree-lane-t-000-trace-scorecard-salvage` was dropped from
+origin on the consent recorded in the contract file. It was proved merged before the drop, and
+the proof is worth naming because the first attempt at it lied: `git merge-base --is-ancestor`
+sat in an `&&` chain behind a `git rev-parse` that took two revisions and failed, so the chain
+broke and the `||` arm printed "NOT ancestor" for a branch that is fully merged. The honest
+witnesses are that the branch tip `22f0a50b` is the second parent of `11080674` and that
+`git log origin/worktree-... --not main` is empty. A shell exit code is a claim about the whole
+chain, not about the command you meant to run.
+
+Four empty worktree husks (`h0-fix`, `hotfix-manifest-citation`, `lane-r-000-bundle-gitlog`,
+`lane-t-000-shape-seal`) were removed after `find -mindepth 1` counted zero entries in each and
+`git worktree list --porcelain` confirmed none was registered. The locked filings worktree stays
+up: first act 3 is conditioned on filings-N stopping, and it has not.
+
+**Changes:** `protocols/OPERATOR-INTERFACE.md` (via merge `13d1179d`); `.claude/worktrees/`
+husks removed; `origin/worktree-lane-t-000-trace-scorecard-salvage` deleted.
+
+**Abandoned:** nothing.
+
+**Next:** the wave-1 queue on HANDBACK only, docs-first, refusing `review=NONE` on code branches.
+
+**Anchors:** `e48a1dbd` (inbox 030 Seats-row correction, introduced by `13d1179d`).
+It also names `3b5279d3`, this entry's own commit, which this branch's `--no-ff` merge
+introduces - a single-commit anchor branch cannot anchor its own merge, so the naming is
+split across two commits deliberately.
+
+### 2026-09-06 (y) - CC (Opus 5, INTEGRATOR-3, DAY sitting): two of the three assigned acts were already on main, and the one real merge could not anchor itself
+
+**Did:** Took the DAY integrator seat in the primary checkout with three assigned acts, and
+verified each against live state before acting on it rather than executing the brief as written.
+Two were already discharged; one was real.
+
+**Result - the brief's premise had moved under it, in the seat's favour.**
+
+TASK 1 (unwedge `35e212b2`) was **already clear**. Run with the check's own diagnostic against
+freshly-fetched `origin/main`, `journal_anchor.is_anchored` reads **True**, and
+`audit.py health` exits 0 with `journal_spine_anchor` OK. The anchor is `30c6e587`, one of the
+two commits `35e212b2` introduced, named by `aabb9caf` on `docs/day-anchor-1`. QUESTION-filings
+Q-2 measured honestly and was overtaken by INTEGRATOR-2's arc between its measurement and this
+seat's. **No anchor arc was owed and none was written for it.**
+
+Worth recording for the next seat that reads Q-2: the predicate is not "is this merge's own SHA
+in the JOURNAL". `is_anchored` is True iff the JOURNAL names **at least one SHA the merge
+introduced**. A grep for `35e212b` returns nothing on `main` and the merge is still anchored.
+A seat checking the merge SHA alone would have written an arc that was not needed.
+
+TASK 2(a) (`worktree-lane-t-000-filings-027-intake` @ `d5c2d117`) was **already merged** as
+`9fdf4a6f`, whose second parent is exactly `d5c2d117`. Nothing to do.
+
+TASK 2(b) was real: `worktree-lane-t-000-trace-scorecard-salvage` **exists on origin**, one
+commit, lane 3.9's `collect_scorecard` recovered from the patch. Merged `--no-ff` at
+`11080674`.
+
+**The one thing that needed care.** The lane lagged `main` by 13 commits and touches
+`ecosystem/doc-counts.md`, which is a generated count - the shape that makes a lagging lane's
+number a stale-tree artifact rather than a measurement. Checked before trusting it: `main` had
+**not** touched `doc-counts.md` in those 13 commits, so the lane's 5015 -> 5022 bump was
+measured against the same base this merge lands on. Confirmed independently on the merged tree
+- `pytest --collect-only` = **5022**, the exact number claimed - and `tests/test_window_metrics.py`
+18 passed.
+
+**A single-commit lane cannot anchor its own merge.** The merge introduces `{11080674,
+22f0a50b}`; naming either requires a JOURNAL commit that does not yet exist when the lane is
+built. This arc is the standing answer to that, in the two-commit shape `docs/day-anchor-1`
+used earlier today: this entry names the lane commit, and a second commit names this one.
+
+**Ship-gate reads RED at 3, and read RED at 3 before this seat touched anything.** The three
+are `canonical_freshness` x2 (same-day CONTENT commits landing after a same-date stamp - not
+expressible as a fix today) and `undeclared_edges` x1 (intake #73's `reconciled_with`), which
+DECLARE-SITTING **D13 assigns to lane 3.14**, not to this seat. The merge did not move the
+number. Reported as inherited, not absorbed.
+
+**Changes:** `scripts/window_metrics.py`, `tests/test_window_metrics.py`,
+`ecosystem/doc-counts.md` (via the lane merge); `JOURNAL.md`. Outside the repo, on the
+transport: `to-cc/ANSWER-filings-Q3.md` (Q-3 ruled per D8).
+
+**Abandoned:** the TASK 1 anchor arc - not written, because the check says it is not owed.
+Writing one to satisfy the brief's wording would have put an empty arc on the spine.
+
+**Next:** the filings worktree is **locked and on a different branch**
+(`docs/browser-token-budget-030`) - a live seat, not this seat's to tear down. Lane 3.14 still
+owns the intake #73 edge and the v1.5.0 tag.
+
+**Anchors:** `22f0a50b` (lane 3.9 salvage, introduced by `11080674`).
+It also names `74e6b429`, this entry's own commit, which this branch's `--no-ff` merge
+introduces - a single-commit anchor branch cannot anchor its own merge, so the naming is
+split across two commits deliberately.
+
 ### 2026-09-06 (x) - CC (Opus 5, INTEGRATOR-2, DAY sitting): the ratified raise had no mechanism to land, and the anchor had to be cut from the ref it was raising
 
 **Did:** Took the four leftover batch-T worktrees from live state per the sitting brief, applied

@@ -1,0 +1,1026 @@
+# Closure proposals — 2026-09-06 · witness audit (batch U, lane W1-8)
+
+**closure proposals: 224** — the counter, re-measured on `main` at `bf69eb92d`, not restated from the dispatch brief.
+
+**before → after: `closure proposals: 224 → 224`.** **NO ROW IS CLOSED BY THIS AUDIT. NOT ONE.** The verb is RETIRE-PROPOSED; the operator rules at dawn (ADR-70 Tier-1 is detect-and-propose only, and D11 rules that no proposal has been ruled).
+
+> **What this file is.** Every one of the 224 live closure proposals, each with its `Done when:` clause quoted from `tasks/` (the source, not `BACKLOG.md`'s view) and the best witnessing SHA the evidence actually supports. A proposal whose Done-when cannot be witnessed is reported as **unwitnessed** — that is a finding, and it is more useful than a confident list.
+
+---
+
+## 1 · Provenance — what ran, against what, and what did not run
+
+- **Detector:** `scripts/propose_closures.py` (ADR-70 Tier-1), the detection core driven directly: `open_tasks_from_backlog` → `resolve_window` → `find_strong` / `find_weak`.
+- **Backlog read from `main`** (`git show main:BACKLOG.md`), parsed through `validate_backlog.parse` — the module's own reuse path, not a second parser. `main:BACKLOG.md` and `main:tasks` are byte-identical to this lane's HEAD (`0da94419` / `9843d439`), so nothing here is measured against a stale tree.
+- **Window:** `3c5e476ba..bf69eb92d` — **5138 commits**, all-ancestors (the detector's default; `--first-parent` is `validate_git_backlog`'s mode, not this one's).
+- **Open rows on `main`:** 224.
+- **Base.** This lane booted from `498064c9`, which predates the batch-U manifest merge; measured with `git ls-tree 498064c9 -- docs/audits/2026-09-06-technical-batch-u-manifest.md` → 0 lines. The lane branch was sync-merged to `main` **before** committing — twice, because main moved again mid-lane (`a78c47e8` → `bf69eb92d`), the second time surfaced by `journal_spine_anchor` reporting a gap that the check's own diagnostic showed was tree lag (`anchored in this tree: False` / `anchored at main: True`). The detection above was re-run against `bf69eb92d` after the second sync and returned the identical population, so every witnessing SHA below resolves on the same tree the operator will rule at dawn, not on a stale base.
+- **DEVIATION, reported per C-3, decided on the contract default.** The live script *always writes* `logs/PROPOSALS-*.md` into the repo it resolves from. This lane is worktree-isolated and NIGHT-2 forbids writing outside its own footprint, so the script's **pure core** was driven with the window `resolve_window` itself resolved against the primary checkout's baseline (read-only), with the range re-pointed `HEAD → main`. No `PROPOSALS-*` artifact was written by this lane. The numbers below reproduce the live artifact exactly (224 / STRONG 3 / WEAK 221), which is the check that the substitution is faithful.
+
+**Before-half of the counter, measured rather than restated.** The authoritative live artifact at measurement time is `logs/2026-09/PROPOSALS-2026-09-06-99.md` (13:45:40 +0200) — **224 unchecked proposals, 0 checked**, `head_commit: eeac6bef`. The flat `logs/PROPOSALS-2026-09-06-54.md` (04:30) is an earlier run of the same day and is **not** the latest: consumers sort by *filename*, so `-99` wins. Both counts are 224.
+
+---
+
+## 2 · Findings
+
+Findings name the defect, never an aggregate count. Each carries a command or a locator a reader can run.
+
+### F-1 — the detector is DEAD on this machine: the per-run sequence namespace for 2026-09-06 is exhausted at 99
+
+`logs/2026-09/DETECTOR-ERROR-2026-09-06.md`, written **2026-09-06 23:28:41 +0200**, reads in full:
+
+```
+The session-end detector did not run: raised RuntimeError('PROPOSALS: 99 runs already recorded for 2026-09-06 -- refusing to guess a 100th name')
+```
+
+`_next_free_dated_path` (`scripts/propose_closures.py`, `for n in range(1, 100)`) allocates a **two-digit** per-run sequence and refuses a 100th. The per-run grammar is the operator declaration of 2026-09-04, and it was sized for a world of a few session-stops per day. **The ADR-110 batch protocol is that world's counter-example:** every lane's Stop hook fires the detector, so a full-width night batch multiplies session-ends by its lane count. 99 runs were consumed before 23:28 on the first day this was tried at width. From 23:28 onward every session end produces the error marker instead of proposals — and because `_write_error_marker` deliberately REWRITES its path on a repeat failure in the same day, the marker cannot even tell you how many runs have failed since.
+
+The failure is also **self-clearing at midnight and self-repeating tomorrow**, which is the worst shape for detection: it will look fixed at dawn.
+
+Owner candidates already open: `[#277]` (propose-closures signal repair), `[#626]` (logs retention exempts the prefixes that accumulate). Neither names this. **Nothing is filed by this lane** — filing is a `tasks/` write another lane owns tonight.
+
+### F-2 — all THREE `STRONG` proposals are false positives, each a distinct shape that `[#437]`'s quoting fix does not reach
+
+`[#437]` (closed) strips inline-code, fences, block-quotes and quoted spans before `CLOSES_RE`. Every one of the three live STRONG hits is **unquoted plain text**, so the strip never applies. The residual class is not quoting — it is **scope**:
+
+- **`[#613]` ← `3d5a4235`** — the token is `CLOSE [#613]`, an item in a **proposal sheet** whose own body says *"Zero rows closed, zero files archived, zero deletions -- every bundle is a proposal into ADR-111's triage"*. `CLOSES_RE`'s `closes?` matches the bare verb `CLOSE`, so a **proposed disposition verb** reads as a declaration. Every ADR-111 triage bundle that proposes a CLOSE will manufacture this.
+- **`[#554]` ← `6c936929`** — subject *"terra review round 1 — all five HIGH findings closed [#554]"*. The thing closed is **findings**; the `[#554]` is a scope reference. The body says so outright: *"kill-candidates: none — review fixes inside the open row [#554]"*. `CLOSES_RE` binds a keyword to the *next* `[#N]` with no regard for what the keyword's object is.
+- **`[#430]` ← `3cf3a5b0`** — a **genuine** `Closes [#430]` — but scoped: *"Closes [#430] half (a)"*, and the same message states *"[#430] REMAINS OPEN on half (b)"*. The row is correctly open. The detector has no notion of partial closure, so a half-closure is indistinguishable from a whole one.
+
+`[#454]` (closure-ids negation defect) is the nearest open owner and covers only the negation shape. **Three shapes are unowned: proposed-disposition verb, object-of-verb, and partial closure.**
+
+### F-3 — `WEAK` has saturated: it proposes 221 of the 224 open rows, i.e. 98.7% of the open backlog
+
+`find_weak` fires when any commit in the window touched a concrete path the row names. At a window of **5138 commits** that predicate is true of nearly every row that names any path at all. A detector that proposes almost the entire population carries no information: the module's own docstring states the design goal as *"precision over recall … a false positive every session kills adoption"*, and this is the opposite outcome.
+
+### F-4 — the window cannot narrow, by construction: the `#98` pending-baseline guard is in a fixed point
+
+`resolve_window` refuses to advance the baseline past any proposal that is **unchecked in a PROPOSALS file AND still open in BACKLOG**, and re-covers from the *earliest* pending file's window start. The live artifact records **0 checked of 224**. So the baseline is pinned at `3c5e476ba` and the window grows by every commit the fleet lands — 5138 today. Each widening makes WEAK saturate harder (F-3), which produces more unchecked proposals, which pins the baseline further. **The guard is correct in isolation and self-reinforcing in situ.** `[#487]` (closure-proposal consumption arc) is the open row nearest to this; it does not name the fixed point.
+
+### F-5 — ZERO of the 224 proposals has a witnessed Done-when
+
+Witness definition used here, stated so it can be disagreed with: a proposal is **WITNESSED** when a commit in the window makes its `Done when:` clause TRUE, and the commit says so. On that definition the tally is:
+
+- **DECLARED — 3**: a `closes`-form token names the id. All three adjudicated by hand in §3 → **all three UNWITNESSED** (F-2).
+- **REFERENCED — 214**: at least one commit in the window names `[#id]` in its message but none declares closure. The SHA is a real touchpoint on the row; it is **not** a witness to the Done-when, and no mechanical test can promote it to one. **UNWITNESSED, pending judgment.**
+- **TOUCH-ONLY — 7**: the only evidence is a path coincidence — a commit touched a file the row's text names, and never mentions the row. **UNWITNESSED.**
+
+Every row below therefore carries a SHA. **The SHA is the best available evidence, not a warrant**, and the tier says which.
+
+### F-6 — 53 of the 224 proposals are rows the operator has explicitly **DEFERRED**
+
+`open_tasks_from_backlog` reads every row `validate_backlog.parse` returns as open, and `status: deferred` is one of them. So the detector proposes closing rows whose recorded state is *deliberately not now*. Ids: `[#4]`, `[#19]`, `[#23]`, `[#43]`, `[#82]`, `[#102]`, `[#116]`, `[#117]`, `[#123]`, `[#139]`, `[#144]`, `[#153]`, `[#166]`, `[#169]`, `[#181]`, `[#188]`, `[#189]`, `[#190]`, `[#218]`, `[#220]`, `[#227]`, `[#231]`, `[#234]`, `[#240]`, `[#244]`, `[#245]`, `[#269]`, `[#273]`, `[#278]`, `[#285]`, `[#288]`, `[#289]`, `[#294]`, `[#297]`, `[#300]`, `[#301]`, `[#303]`, `[#305]`, `[#308]`, `[#310]`, `[#317]`, `[#322]`, `[#324]`, `[#325]`, `[#327]`, `[#329]`, `[#331]`, `[#332]`, `[#491]`, `[#492]`, `[#495]`, `[#499]`, `[#549]`.
+
+### F-7 — the CACHED plugin release and the in-repo twin disagree about the artifact namespace (observation — handed to the lane that owns plugin drift)
+
+The Stop hook runs `${CLAUDE_PLUGIN_ROOT}/scripts/propose_closures.py` (`plugins/tier1-lifecycle/hooks/hooks.json`). Two copies answer to that name and they do not agree:
+
+- **`~/.claude/plugins/cache/dev-knowledge-methodology/tier1-lifecycle/0.1.11/scripts/propose_closures.py`** — installed 0.1.11, `gitCommitSha` `670a86ab`. Its `_write_artifact` is `_LOGS_DIR / f"PROPOSALS-{date.today().isoformat()}.md"`: **day-granular and unconditionally overwriting**, with neither the per-run sequence nor the month bucket. Verify: `grep -c _month_bucket <that path>` → `0`.
+- **`plugins/tier1-lifecycle/scripts/propose_closures.py`** in this repo — carries both, `_month_bucket` at :411.
+
+The day's on-disk evidence dates the switchover exactly: `logs/PROPOSALS-2026-09-06-NN.md` runs **flat, 01–54** (54 files), then `logs/2026-09/PROPOSALS-2026-09-06-NN.md` runs **bucketed, 55–99** (45 files). The executing copy changed behaviour between run 54 and run 55 — consistent with `CLAUDE_PLUGIN_ROOT` resolving to the repo tree (the marketplace source is a `directory` pointing at `Dev/.dev-knowledge`) rather than to the pinned 0.1.11 cache. **This audit does not settle which path executes** — that is exactly the subject of batch-U lane `LANE-u-000-plugin-version-record-and-drift`, and this observation is handed to it rather than adjudicated here.
+
+What is settled either way: the two copies disagree, ADR-78 carrier doctrine ships them standalone, and **nothing gates their agreement on this function**. If the 0.1.11 grammar ever executes it overwrites the day's artifact in place.
+
+### F-8 — the population is invisible off this machine
+
+`logs/PROPOSALS-*` is gitignored, by design (ephemeral session scaffolding). The consequence, which `[#487]` already records for the WEAK half, applies to the whole population: **no cloud lane, no reviewer and no browser session can see these 224 proposals.** This audit is the first committed, off-machine-readable copy of the population — which is why it quotes every Done-when rather than pointing at a gitignored file.
+
+---
+
+## 3 · DECLARED tier — 3 proposals, adjudicated in full
+
+### `[#430]` — Consumer template rejects root `conftest.py`; `fleet_parity`'s verdict depends on state outside its subject
+
+- **Status in `tasks/`:** `open` · source: `tasks/430-consumer-template-rejects-root-conftest-py-fleet.md`
+- **Done when:** (a) the conftest ruling is cited in `ecosystem/parity-surfaces.yaml` at the affected row and the root entry passes or is a declared divergence; and (b) two `ship-gate` runs on the same subject-repo state, from different checkouts, produce the same verdict — pinned by a test that varies the surrounding state
+- **Witnessing SHA:** `3cf3a5b0b` — fix(parity): root conftest.py is permitted fleet-wide, mandated nowhere [#430]
+- **Verdict: UNWITNESSED — FALSE POSITIVE.** See F-2 for the adjudication of this exact commit.
+
+### `[#554]` — Devcontainer + provisioning script (NB4-G stage 1)
+
+- **Status in `tasks/`:** `open` · source: `tasks/554-devcontainer-provisioning-script-nb4-g-stage-1.md`
+- **Done when:** one lane runs green (`audit.py health` **and** `pytest -m 'not slow'`) on the Codespaces free tier, and the *identical* script is runnable via `devcontainer up` on a VPS
+- **Witnessing SHA:** `6c9369298` — fix(devcontainer): terra review round 1 — all five HIGH findings closed [#554]
+- **Verdict: UNWITNESSED — FALSE POSITIVE.** See F-2 for the adjudication of this exact commit.
+
+### `[#613]` — In-repo routing table + L0 agreement check
+
+- **Status in `tasks/`:** `open` · source: `tasks/613-in-repo-routing-table-agreement-check.md`
+- **Done when:** the operator selects a path; the authoritative table exists there; a check asserts L0 agreement and FAILs on divergence
+- **Witnessing SHA:** `3d5a42352` — docs(audit): funnel groom -- READ-ONLY proposal sheet, nine bundles at 78daf400
+- **Verdict: UNWITNESSED — FALSE POSITIVE.** See F-2 for the adjudication of this exact commit.
+
+---
+
+## 4 · REFERENCED tier — 214 proposals
+
+A commit in the window names the id but declares no closure. Format: **id** · title · `Done when:` · witnessing SHA · evidence note. Verdict is **UNWITNESSED (pending judgment)** for every row in this section — stated once here rather than repeated 214 times.
+
+- **`[#4]`** (deferred) — Build lessons-index.json + SessionStart retrieval + CLI query
+    - **Done when:** lessons are queryable + surfaced at session start
+    - **Witnessing SHA:** `9fedb07c1` — feat(backlog): X1 step 5 — the 45-day icebox sweep (41 rows), and close [#424] properly
+    - evidence: 1 commit(s) name `[#4]`; none declares closure · source `tasks/4-build-lessons-index-json-sessionstart-retrieval.md`
+- **`[#23]`** (deferred) — Validate ADR frontmatter relation-fields
+    - **Done when:** an audit check flags an ADR whose supersedes/related/amends frontmatter names a non-existent ADR-id, with tests
+    - **Witnessing SHA:** `93f92ab8c` — docs(backlog): record the 2026-07-28 rulings — owner=user, launch-shape, command-cache staleness
+    - evidence: 1 commit(s) name `[#23]`; none declares closure · source `tasks/23-validate-adr-frontmatter-relation-fields.md`
+- **`[#43]`** (deferred) — Decide +
+    - **Done when:** decision recorded + scaffold authored if approved
+    - **Witnessing SHA:** `9fedb07c1` — feat(backlog): X1 step 5 — the 45-day icebox sweep (41 rows), and close [#424] properly
+    - evidence: 2 commit(s) name `[#43]`; none declares closure · source `tasks/43-decide.md`
+- **`[#82]`** (deferred) — Define per-repository agentic-review profiles
+    - **Done when:** every member of the `adr104-fleet-members` declaration carries a recorded agentic-review profile (which review runs, and on what cadence) at its stated home, and any member deliberately without one is named there with its reason
+    - **Witnessing SHA:** `90adb4568` — fix(backlog): path-qualify three audit citations — the one NEW suite RED this arc caused
+    - evidence: 15 commit(s) name `[#82]`; none declares closure · source `tasks/82-define-per-repository-agentic-review-profiles.md`
+- **`[#102]`** (deferred) — Machine-readable repo index for agent consumption
+    - **Done when:** a pilot index on one repo demonstrably replaces exploratory reads in a CC session
+    - **Witnessing SHA:** `01410f949` — chore(backlog): execute K-1/K-2/K-3 as ruled — zero closes, zero births
+    - evidence: 4 commit(s) name `[#102]`; none declares closure · source `tasks/102-machine-readable-repo-index-for-agent-consumptio.md`
+- **`[#112]`** (open) — adr_amend helper + ADR immutable-zone extension
+    - **Done when:** an in-place ADR edit NOT routed through the helper is blocked and a helper-written Amendment passes (both with tests), and CLAUDE.md §5 rule 3 states the helper as the sanctioned in-place path with `last_reviewed` re-stamped in the same commit
+    - **Witnessing SHA:** `aa2af0ff4` — Merge branch 'docs/closure-harvest-k4' -- the K4 verdicts executed end to end
+    - evidence: 7 commit(s) name `[#112]`; none declares closure · source `tasks/112-adr-amend-helper-adr-immutable-zone-extension.md`
+- **`[#117]`** (deferred) — Evaluate prompt/agent-based hooks
+    - **Done when:** VF-1 passes and a go/no-go on a prompt-hook Tier-1 eval is recorded
+    - **Witnessing SHA:** `7f752a892` — Merge branch 'docs/117-undefer-and-w2-rulings' — [#117] un-deferred on its met peg, and the two W2 register rulings recorded
+    - evidence: 5 commit(s) name `[#117]`; none declares closure · source `tasks/117-evaluate-prompt-agent-based-hooks.md`
+- **`[#123]`** (deferred) — Routine observability convention + value review
+    - **Done when:** the marker convention is recorded in `protocols/PLAYBOOK.md`, every routine declared under `routine_consumers` carries the marker, and one `docs/audits/<date>-technical-*` value review records per-routine findings-acted-on vs noise counts
+    - **Witnessing SHA:** `a4fc652dc` — Merge branch 'worktree-lane-h-conversions-w4a' — W4a conversions lane, 6 converted / 11 SKIPPED (no census draft) [#112] [#123] [#162] [#220] [#277] [#278]
+    - evidence: 5 commit(s) name `[#123]`; none declares closure · source `tasks/123-routine-observability-convention-value-review.md`
+- **`[#130]`** (open) — Memory-hygiene review
+    - **Done when:** one hygiene pass emits a ratify-only candidates digest to a `docs/audits/<date>-technical-*` artifact with per-class counts (duplicates / stale-RETIRED / cap-proximity), and the gotcha/memory write path carries a dedupe-against-existing step proven by a test that seeds a duplicate and asserts it is caught at write time
+    - **Witnessing SHA:** `e77bc5dbb` — docs(audits): BOOT-R1 -- neither scheduling constraint is scarce, and the contention term inverts under batch selection [#611]
+    - evidence: 12 commit(s) name `[#130]`; none declares closure · source `tasks/130-memory-hygiene-review.md`
+- **`[#139]`** (deferred) — merged-arc→record verifier
+    - **Done when:** the verifier surfaces a seeded merged-arc lacking an item/closure/no-item-class, runs read-only (Layer-2), and is demonstrably NOT vacuous against real /ship merge subjects
+    - **Witnessing SHA:** `409c86673` — docs(backlog): [#267] mechanism RULED — option (b), part (ii) cut not deferred [#267]
+    - evidence: 3 commit(s) name `[#139]`; none declares closure · source `tasks/139-merged-arc-record-verifier.md`
+- **`[#145]`** (open) — Codification-completeness pass
+    - **Done when:** a `docs/audits/<date>-technical-*` artifact enumerates the fresh-session transmission gaps found across `protocols/PLAYBOOK.md` and the active handoff bundle, and every gap it enumerates carries either a BACKLOG id or a stated closure in that same artifact
+    - **Witnessing SHA:** `aa2af0ff4` — Merge branch 'docs/closure-harvest-k4' -- the K4 verdicts executed end to end
+    - evidence: 13 commit(s) name `[#145]`; none declares closure · source `tasks/145-codification-completeness-pass.md`
+- **`[#146]`** (open) — De-hardcode-first doctrine + sweep
+    - **Done when:** `protocols/PLAYBOOK.md`'s `amendment_coherence` honest-limits section carries de-hardcode-first as doctrine, and a `docs/audits/<date>-technical-*` sweep names every hand-maintained version surface with a per-surface verdict of de-hardcoded or kept-as-manifest — each kept-as-manifest surface carrying its reason
+    - **Witnessing SHA:** `ac1c69b97` — Merge branch 'docs/phase0-codify-rule-file' -- phase 0: the register codified, four questions ruled
+    - evidence: 12 commit(s) name `[#146]`; none declares closure · source `tasks/146-de-hardcode-first-doctrine-sweep.md`
+- **`[#153]`** (deferred) — Enforcement-completeness pass
+    - **Done when:** each remaining prose-only constraint is mechanized or recorded as accepted-prose-only with a reason, the #5 `--no-ff` scope boundary is defined, and the ~/.claude-reach question is decided
+    - **Witnessing SHA:** `dd2f78d9f` — docs(backlog): birth the twelve wave-2 rows [#587]-[#598], each funnel-clean against an act-2 intake
+    - evidence: 1 commit(s) name `[#153]`; none declares closure · source `tasks/153-enforcement-completeness-pass.md`
+- **`[#169]`** (deferred) — Ungated-doc staleness detection
+    - **Done when:** a deterministic staleness signal for the four ADR-85-ungated docs lands in the digest/dashboard
+    - **Witnessing SHA:** `89ab1bc33` — feat(audit): derive doc freshness from git for every living doc, and gate it -- batch-E HY-1
+    - evidence: 8 commit(s) name `[#169]`; none declares closure · source `tasks/169-ungated-doc-staleness-detection.md`
+- **`[#170]`** (open) — Design + land the traceability-spine ADR
+    - **Done when:** an ADR defines the issue-ID↔commit linkage, **and** the absorbed `#168` half — promoting the ADR-85 BACKLOG leg from advisory to a hard gate — is stated in this row's scope and ratified with the ADR
+    - **Witnessing SHA:** `ac1c69b97` — Merge branch 'docs/phase0-codify-rule-file' -- phase 0: the register codified, four questions ruled
+    - evidence: 9 commit(s) name `[#170]`; none declares closure · source `tasks/170-design-land-the-traceability-spine-adr.md`
+- **`[#171]`** (open) — Build the conformance dashboard at `ecosystem/conformance.md`
+    - **Done when:** `ecosystem/conformance.md` is generated + committed by a read-only validator (Layer-2-safe) and ARCHITECTURE Ch2 carries the pointer
+    - **Witnessing SHA:** `aa1232d08` — docs(intake): amend the five carriers the OBSERVABLE HARNESS already had -- reconcile, not restate
+    - evidence: 34 commit(s) name `[#171]`; none declares closure · source `tasks/171-build-the-conformance-dashboard-at-ecosystem-con.md`
+- **`[#185]`** (open) — GAP-2 deterministic gotcha-injection guard
+    - **Done when:** a seeded commit-message / Edit-deletion pattern triggers injection of the matching gotcha (read-only, fail-soft), with tests
+    - **Witnessing SHA:** `9fedb07c1` — feat(backlog): X1 step 5 — the 45-day icebox sweep (41 rows), and close [#424] properly
+    - evidence: 1 commit(s) name `[#185]`; none declares closure · source `tasks/185-gap-2-deterministic-gotcha-injection-guard.md`
+- **`[#188]`** (deferred) — Deny-rule + hook completeness audit
+    - **Done when:** a read-only pass emits a coverage matrix flagging any zone/path lacking a guard
+    - **Witnessing SHA:** `ee01a2c14` — docs(tasks): drain the last four relocatable row bodies — lane D's mechanism reaches zero
+    - evidence: 4 commit(s) name `[#188]`; none declares closure · source `tasks/188-deny-rule-hook-completeness-audit.md`
+- **`[#210]`** (open) — Convert journal-wrap no-ff WARNs from per-instance disposition to a standing rule
+    - **Done when:** the shape is recorded in `protocols/STANDING_RULINGS.md` in a section naming `[#210]`, AND either (a) the `no_ff_merges` exemption ships with a test proving a JOURNAL-only direct commit passes while a same-commit code-path edit still WARNs, or (b) the wrap moves behind a `--no-ff` arc; and `ecosystem/disposition-register.yaml` carries none of the 3 journal-wrap per-instance entries
+    - **Witnessing SHA:** `ac1c69b97` — Merge branch 'docs/phase0-codify-rule-file' -- phase 0: the register codified, four questions ruled
+    - evidence: 14 commit(s) name `[#210]`; none declares closure · source `tasks/210-convert-journal-wrap-no-ff-warns-from-per-instan.md`
+- **`[#218]`** (deferred) — Safe-removal gate M2+M3 boundary
+    - **Done when:** the gate refuses a removal with an M2 referrer AND an M3 referrer on a fixture — non-destruction paths proven first and the destructive merge carrying its named operator authorization
+    - **Witnessing SHA:** `409c86673` — docs(backlog): [#267] mechanism RULED — option (b), part (ii) cut not deferred [#267]
+    - evidence: 10 commit(s) name `[#218]`; none declares closure · source `tasks/218-safe-removal-gate-m2-m3-boundary.md`
+- **`[#220]`** (deferred) — MODIFY / semantic-drift axis
+    - **Done when:** a committed fixture exercises a semantic/MODIFY change, a `docs/audits/` record names which organs fired and which did not against it, and the design leg stays deferred pending that result
+    - **Witnessing SHA:** `a4fc652dc` — Merge branch 'worktree-lane-h-conversions-w4a' — W4a conversions lane, 6 converted / 11 SKIPPED (no census draft) [#112] [#123] [#162] [#220] [#277] [#278]
+    - evidence: 5 commit(s) name `[#220]`; none declares closure · source `tasks/220-modify-semantic-drift-axis.md`
+- **`[#227]`** (deferred) — Relocate AGENT_FRAMEWORK.md out of protocols/
+    - **Done when:** AGENT_FRAMEWORK.md lives under docs/ and every inbound ref resolves to the new path
+    - **Witnessing SHA:** `fbf4a2d02` — Merge docs/backlog-reconcile — file audit-surfaced BACKLOG items #220–#229 (deploy-arc reconciliation + carrier residuals, MODIFY/semantic-drift axis, ARCHITECTURE currency + MEMORY migration, repo hygiene) + #131/#215 SPLIT; doc-only, opens/advances [#220][#221][#222][#223][#224][#225][#226][#227][#228][#229]
+    - evidence: 2 commit(s) name `[#227]`; none declares closure · source `tasks/227-relocate-agent-framework-md-out-of-protocols.md`
+- **`[#231]`** (deferred) — Consumer → hub feedback report
+    - **Done when:** a consumer that hits a methodology gap/ambiguity/broken-piece emits a structured hub-destined report (schema + destination defined) rather than guessing
+    - **Witnessing SHA:** `7cc4b6a61` — Merge docs/handoff-capture — pre-handoff capture: #226(a) floor-provisioning DECIDED (model A) + file #230 end-to-end conformance self-test + #231 consumer->hub feedback report + #221 sequencing (depends-on #226, #230 acceptance gate); doc-only [#226][#230][#231][#215][#221]
+    - evidence: 2 commit(s) name `[#231]`; none declares closure · source `tasks/231-consumer-hub-feedback-report.md`
+- **`[#234]`** (deferred) — Cross-repo probe validator
+    - **Done when:** a cross-repo bundle whose floor-guard probe names a present `.claude/<file>` in the target PASSes and one naming an absent `.claude/<file>` FAILs, with tests
+    - **Witnessing SHA:** `5b2ccadbe` — Merge worktree-cleanup-backlog — 2026-07-21 backlog-hygiene arc [#302] [#309] [#131] [#314] [#292] @ 0c7f04e9, 3e1e3f00, 9fc1a8b4, a9d25311
+    - evidence: 5 commit(s) name `[#234]`; none declares closure · source `tasks/234-cross-repo-probe-validator.md`
+- **`[#240]`** (deferred) — Follow-up
+    - **Done when:** the leg WARNs when a consumer that showed `enforcing-local` for an organ regresses to `absent`, gated on a recorded baseline
+    - **Witnessing SHA:** `679d8ecae` — docs(backlog): close [#270] operator-load gauge, and strip its inbound depends-on clauses
+    - evidence: 1 commit(s) name `[#240]`; none declares closure · source `tasks/240-follow-up.md`
+- **`[#241]`** (open) — Undeclared-edge groom
+    - **Done when:** every id the `undeclared_edges` ship-gate leg surfaces is either declared (`reconciled_with`) or recorded permanent-defer-with-reason, and each such id's disposition entry retires or is re-annotated — the predicate reads the live surfaced set, never a fixed count
+    - **Witnessing SHA:** `2d8b7026e` — chore(register): R5/B2 + B8 + B10 + B11 — seven dispositions, each keyed so movement re-surfaces it
+    - evidence: 8 commit(s) name `[#241]`; none declares closure · source `tasks/241-undeclared-edge-groom.md`
+- **`[#242]`** (open) — ADR status-flip coherence check
+    - **Done when:** a seeded ADR with a header↔README status divergence is flagged by an audit check, with tests
+    - **Witnessing SHA:** `3d5a42352` — docs(audit): funnel groom -- READ-ONLY proposal sheet, nine bundles at 78daf400
+    - evidence: 16 commit(s) name `[#242]`; none declares closure · source `tasks/242-adr-status-flip-coherence-check.md`
+- **`[#244]`** (deferred) — Essence-spec lifecycle epic
+    - **Done when:** a tombstoned component's artifacts are demonstrably REMOVED from a consumer and verified ABSENT (leg-e mirrored), the roster regenerates without it, and per-repo drift surfaces in fleet_health
+    - **Witnessing SHA:** `f98fbff5a` — docs(governance): act 3 — [#391] RULED and closed; [#267] HELD on a real contradiction
+    - evidence: 40 commit(s) name `[#244]`; none declares closure · source `tasks/244-essence-spec-lifecycle-epic.md`
+- **`[#245]`** (deferred) — Add-path status-awareness
+    - **Done when:** the add-path skips re-adding a `status: removed` component (no manual add-target drop needed) AND a source-drifted prune target classifies against last-deployed bytes, with tests
+    - **Witnessing SHA:** `c163afe77` — feat(backlog): Phase 2 — rule the C4 top-40 by the ex-ante algorithm; K1 closes ZERO
+    - evidence: 2 commit(s) name `[#245]`; none declares closure · source `tasks/245-add-path-status-awareness.md`
+- **`[#267]`** (open) — Scope-exercising arc extension
+    - **Done when:** **one attended consumer measurement shows both components FIRED under a scope-matching edit**, via (iii). The second leg is **already met and was verified on disk 2026-08-28, not assumed**: both `engages:` entries carry their scope condition, each citing this row — `deploy/manifest-v1.4.0.yaml` `hub-toc-hooks` (*"file-scoped: FIRED iff an edit matches the consumer's toc-freshness `files:` pattern, else ARMED-BUT-SKIPPED"*) and `floor-hash-verify-hook` (*"FIRED (and FAILING) iff a floor edit is staged"*)
+    - **Witnessing SHA:** `85ff0b76d` — chore(baselines): the six drift families re-measured -- four cleared, two named, and two of the four were REAL defects rather than count noise [#614]
+    - evidence: 13 commit(s) name `[#267]`; none declares closure · source `tasks/267-scope-exercising-arc-extension.md`
+- **`[#269]`** (deferred) — Audit-index count-tiered shape + freshness hook
+    - **Done when:** `docs/audits/README.md` renders the count-tiered shape with the header repointed to ADR-100 (the freshness hook already landed)
+    - **Witnessing SHA:** `9fedb07c1` — feat(backlog): X1 step 5 — the 45-day icebox sweep (41 rows), and close [#424] properly
+    - evidence: 7 commit(s) name `[#269]`; none declares closure · source `tasks/269-audit-index-count-tiered-shape-freshness-hook.md`
+- **`[#271]`** (open) — Nightly proposal loop
+    - **Done when:** the loop runs nightly under a `· routine:` block that `routine_consumers` passes with `[#270]`'s load-gauge live; each §6 constraint — the ~5 proposals/night cap, the 7-day auto-expire, no autonomous semantic refactoring at night, and proposals landing in `docs/intake/` as `status: SEED` — is enforced by a check or a test rather than by convention; and a `docs/audits/<date>-technical-*` artifact records the first 2-week survival review with its measured accept-rate against the <20% kill threshold
+    - **Witnessing SHA:** `15daa11c4` — docs(audit): NB2 lane C packet — [#610] night-batch protocol, ratchet delta ZERO
+    - evidence: 12 commit(s) name `[#271]`; none declares closure · source `tasks/271-nightly-proposal-loop.md`
+- **`[#273]`** (deferred) — Changelog-review staleness escalation
+    - **Done when:** an over-threshold window renders an escalation line in the SessionStart digest (with a test) and the N/days thresholds are recorded
+    - **Witnessing SHA:** `02389890e` — Merge worktree-arc5-platform-triage -- Arc-5 platform buy-vs-build triage epic landed: intake doc #2 CONSUMED, A1/A2 pins, 6 pilots, 4 verdicts; closes [#272] + [#118], files [#273]/[#274]
+    - evidence: 1 commit(s) name `[#273]`; none declares closure · source `tasks/273-changelog-review-staleness-escalation.md`
+- **`[#274]`** (open) — Dogfood-signal prior in the /changelog-review ADOPT rubric
+    - **Done when:** `.claude/commands/changelog-review.md`'s ADOPT rubric names the dogfood-signal prior, and one subsequent `docs/audits/<date>-changelog-review-*` digest cites that prior by name against at least one classified item
+    - **Witnessing SHA:** `aa2af0ff4` — Merge branch 'docs/closure-harvest-k4' -- the K4 verdicts executed end to end
+    - evidence: 9 commit(s) name `[#274]`; none declares closure · source `tasks/274-dogfood-signal-prior-in-the-changelog-review-ado.md`
+- **`[#277]`** (open) — propose_closures signal repair
+    - **Done when:** the two STRONG false positives no longer surface (pinned by a test seeding each), and a single run over the last 30 days of `main` yields a STRONG:WEAK-actioned ratio better than 49:0 with the run's numbers recorded in the closing commit, with tests
+    - **Witnessing SHA:** `aa2af0ff4` — Merge branch 'docs/closure-harvest-k4' -- the K4 verdicts executed end to end
+    - evidence: 15 commit(s) name `[#277]`; none declares closure · source `tasks/277-propose-closures-signal-repair.md`
+- **`[#278]`** (deferred) — Test-suite hygiene epic
+    - **Done when:** both acceptance criteria from `docs/intake/archive/2026-07-07-test-suite-hygiene.md` hold with the criterion text quoted in the closing commit, and the theatricality review ships as a `docs/audits/` artifact and impacted-test selection is live in the verify cadence with a test
+    - **Witnessing SHA:** `d0610add1` — docs(playbook): the tiered-suite law lands in Ch5, ESSENTIALS points to it [#528] leg 2
+    - evidence: 5 commit(s) name `[#278]`; none declares closure · source `tasks/278-test-suite-hygiene-epic.md`
+- **`[#285]`** (deferred) — Extend hub freshness gating to PLAYBOOK
+    - **Done when:** `protocols/PLAYBOOK.md` carries `last_reviewed` frontmatter, `protocols/PLAYBOOK.md` is a member of `_HUB_ONLY_FRESHNESS_FILES` in `scripts/audit.py`, `test_freshness_includes_hub_only_protocol_docs` no longer asserts PLAYBOOK's absence, and the re-read is evidenced by per-section notes in the commit that stamps it — not by the stamp alone
+    - **Witnessing SHA:** `63e94ff27` — fix(audit): R5/B10 — scope the unstamped-freshness report to the gated set's directories, and say what it excluded
+    - evidence: 8 commit(s) name `[#285]`; none declares closure · source `tasks/285-extend-hub-freshness-gating-to-playbook.md`
+- **`[#288]`** (deferred) — Model-identity guard for unattended runs
+    - **Done when:** a mid-mission model change is detected and flagged AND the mission-ledger carries a line naming the model in effect, with a test
+    - **Witnessing SHA:** `a83d4e5a2` — docs(backlog): act 2 — the RE-CUT six, each shipped half closed on EVIDENCE
+    - evidence: 2 commit(s) name `[#288]`; none declares closure · source `tasks/288-model-identity-guard-for-unattended-runs.md`
+- **`[#289]`** (deferred) — Hub-own the OneDrive-Blue-Yonder guard
+    - **Done when:** the guard has a hub-canonical versioned source + policy doc, ships via a deploy manifest, and is Informant-covered
+    - **Witnessing SHA:** `291b76d74` — docs(audits): record demo-prep Pass-D global-infra incident + hub ratify-or-revert ruling
+    - evidence: 1 commit(s) name `[#289]`; none declares closure · source `tasks/289-hub-own-the-onedrive-blue-yonder-guard.md`
+- **`[#293]`** (open) — Consumer runbook fan-out
+    - **Done when:** each onboarded consumer carries the seeded runbook (per-repo tracked, n≥1 recorded)
+    - **Witnessing SHA:** `9fedb07c1` — feat(backlog): X1 step 5 — the 45-day icebox sweep (41 rows), and close [#424] properly
+    - evidence: 12 commit(s) name `[#293]`; none declares closure · source `tasks/293-consumer-runbook-fan-out.md`
+- **`[#294]`** (deferred) — `validate_backlog` deploy-carrier + `--path` de-hardcode
+    - **Done when:** `validate_backlog.py` takes a `--path`/`--repo` target AND either a carrier ships it to a consumer (validated green in-repo) or hub-only-by-design is recorded with a reason
+    - **Witnessing SHA:** `79d5707b9` — fix(deploy,audit): de-hardcode consumer-root resolution [#605]
+    - evidence: 9 commit(s) name `[#294]`; none declares closure · source `tasks/294-validate-backlog-deploy-carrier-path-de-hardcode.md`
+- **`[#297]`** (deferred) — Lightweight/dry `observe-arc` coverage mode
+    - **Done when:** an `observe-arc` dry/coverage mode reports per-organ armed/fired state with no billed child spawn, with a test
+    - **Witnessing SHA:** `cd38fb8a8` — docs(backlog): ARC-2 Phase A — the adjudication wave: closes [#213] [#215] [#441], 15 pegs ruled
+    - evidence: 2 commit(s) name `[#297]`; none declares closure · source `tasks/297-lightweight-dry-observe-arc-coverage-mode.md`
+- **`[#298]`** (open) — Handoff-generator polish
+    - **Done when:** (a) EPIC_BOOT renders an AUTO-PULLED BACKLOG-slice draft inside the FILL-IN, (b) a non-live `--epic-slug` leading id WARNs (not refuses), and (c) `--epic-slug` in an ignoring mode WARNs, each with a test
+    - **Witnessing SHA:** `ee01a2c14` — docs(tasks): drain the last four relocatable row bodies — lane D's mechanism reaches zero
+    - evidence: 7 commit(s) name `[#298]`; none declares closure · source `tasks/298-handoff-generator-polish.md`
+- **`[#300]`** (deferred) — Hermetization residual d.ii
+    - **Done when:** the mode-boot home is ruled AND the committed functional bundle's fate is landed (migrated or accepted, never drive-by-deleted)
+    - **Witnessing SHA:** `e490275c0` — Merge docs/runbooks-collapse — genre collapse (docs/runbooks -> protocols/) + ADR-101 d.i reversal amendment [#304][#305][#300] repoints @ 9848a23b
+    - evidence: 8 commit(s) name `[#300]`; none declares closure · source `tasks/300-hermetization-residual-d-ii.md`
+- **`[#301]`** (deferred) — Session-plan artifact class
+    - **Done when:** an architect bundle renders a PLAN.md skeleton, session-close fills the RETROSPECTIVE, and the v1→vN supersedes chain is exercised, each with a test
+    - **Witnessing SHA:** `409c86673` — docs(backlog): [#267] mechanism RULED — option (b), part (ii) cut not deferred [#267]
+    - evidence: 5 commit(s) name `[#301]`; none declares closure · source `tasks/301-session-plan-artifact-class.md`
+- **`[#303]`** (deferred) — Make seed_runbook.py child-class-aware
+    - **Done when:** a --check/seed run against an ADR-36 child skips-or-redirects (never writes docs/handoffs/) with a test, and the seeder encodes the ADR-36 child class
+    - **Witnessing SHA:** `9fedb07c1` — feat(backlog): X1 step 5 — the 45-day icebox sweep (41 rows), and close [#424] properly
+    - evidence: 6 commit(s) name `[#303]`; none declares closure · source `tasks/303-make-seed-runbook-py-child-class-aware.md`
+- **`[#305]`** (deferred) — Add a verify-only / already-onboarded re-run mode to the onboarding runbook
+    - **Done when:** the runbook documents a verify-only re-run path AND assess runs on a dirty tree
+    - **Witnessing SHA:** `e490275c0` — Merge docs/runbooks-collapse — genre collapse (docs/runbooks -> protocols/) + ADR-101 d.i reversal amendment [#304][#305][#300] repoints @ 9848a23b
+    - evidence: 2 commit(s) name `[#305]`; none declares closure · source `tasks/305-add-a-verify-only-already-onboarded-re-run-mode.md`
+- **`[#308]`** (deferred) — Decide the `verify` skill's canonical home
+    - **Done when:** the verify-skill home is decided (floor/plugin-distributed vs permanently hub-local) and recorded, at/along the P6 carrier step
+    - **Witnessing SHA:** `409c86673` — docs(backlog): [#267] mechanism RULED — option (b), part (ii) cut not deferred [#267]
+    - evidence: 9 commit(s) name `[#308]`; none declares closure · source `tasks/308-decide-the-verify-skill-s-canonical-home.md`
+- **`[#310]`** (deferred) — Define the cold-bundle annotation surface + annotate the 07-05 bundle as-cold
+    - **Done when:** a sanctioned cold-annotation surface is defined AND the 07-05 architect bundle is recorded as-cold on it (no rendered bundle file edited, no retrospective fabricated)
+    - **Witnessing SHA:** `b150bfe41` — Merge branch 'worktree-lane-h-310-ledger-docs' -- batch 6 merge 8/11: [#310] [#428] finish-line ledger acts -- K1 declares, 14 permanent-defer re-annotations
+    - evidence: 25 commit(s) name `[#310]`; none declares closure · source `tasks/310-define-the-cold-bundle-annotation-surface-annota.md`
+- **`[#317]`** (deferred) — Default-parallel test invocation
+    - **Done when:** verify cadence parallel by default (or D1 operator-ruled) AND the `not slow` run completes under 60s (measured time recorded at build) AND serial-nightly preserved
+    - **Witnessing SHA:** `315a03455` — Merge branch 'docs/2026-08-06-consolidation' — 2026-08-06 consolidation: night batch integrated, three repairs, nine grooming dispositions, four births
+    - evidence: 8 commit(s) name `[#317]`; none declares closure · source `tasks/317-default-parallel-test-invocation-slow-tier-marke.md`
+- **`[#322]`** (deferred) — Fleet dashboard
+    - **Done when:** the three legs are decided (data sources named, viz layer C4-ruled, surfacing habit chosen) AND a minimal dashboard renders from live fleet data with a surfacing hook
+    - **Witnessing SHA:** `f095a81fb` — docs(intake): ARC2 step 6 — intake #10 REJECTED and relocated to the archive path
+    - evidence: 3 commit(s) name `[#322]`; none declares closure · source `tasks/322-fleet-dashboard.md`
+- **`[#324]`** (deferred) — Phase-6 axis-2 carrier
+    - **Done when:** the night-batch standing routine carries a `· routine:` block that `routine_consumers` passes, the morning verdict-sheet consumer is named as that routine's `consumer=` with the sheet as its `consumption_path=`, and the audit-corpus verb-list is recorded in a `docs/audits/<date>-technical-*` artifact
+    - **Witnessing SHA:** `9997bc324` — Merge branch 'worktree-lane-g-271-conversions' -- batch 6 merge 6/11: [#271] [#324] [#391] [#412] [#491] Done-when conversions
+    - evidence: 4 commit(s) name `[#324]`; none declares closure · source `tasks/324-phase-6-axis-2-carrier.md`
+- **`[#325]`** (deferred) — Carry `/save` to consumers via a manifest command-artifact carrier
+    - **Done when:** `/save` ships to a consumer via a manifest command-artifact carrier (verified present in-repo, n≥1) AND `/handoff`'s intentional absence is recorded with the ADR-42/ADR-36 reason
+    - **Witnessing SHA:** `409c86673` — docs(backlog): [#267] mechanism RULED — option (b), part (ii) cut not deferred [#267]
+    - evidence: 7 commit(s) name `[#325]`; none declares closure · source `tasks/325-carry-save-to-consumers-via-a-manifest-command-a.md`
+- **`[#327]`** (deferred) — Protocols-as-interface genre ruling
+    - **Done when:** `protocols/` is documented as the interface genre AND each onboarded repo carries `protocols/README.md` + ≥1 interface doc (n≥1, corp included)
+    - **Witnessing SHA:** `9fa8bdefb` — docs(protocols+backlog): Part 3 executions — runbook arg-form table (closes [#304]), defer-peg #305, #327 corp leg, #215 gate reachability
+    - evidence: 1 commit(s) name `[#327]`; none declares closure · source `tasks/327-protocols-as-interface-genre-ruling.md`
+- **`[#329]`** (deferred) — VS Code ownership visualization
+    - **Done when:** a generator emits `.vscode` folder icon/color config from the #328 manifest for ≥1 repo AND regenerates deterministically (no hand-edit)
+    - **Witnessing SHA:** `4cdac10c5` — docs(backlog): file [#548] -- intake #12's SETTLED manifest has no carrier
+    - evidence: 3 commit(s) name `[#329]`; none declares closure · source `tasks/329-vs-code-ownership-visualization.md`
+- **`[#331]`** (deferred) — Consumer BACKLOG schema adoption ruling
+    - **Done when:** a recorded ruling states, per consumer, adopt-at-P6 vs accept-durable (declared in `.methodology.yaml` via the #328 mechanism)
+    - **Witnessing SHA:** `4cdac10c5` — docs(backlog): file [#548] -- intake #12's SETTLED manifest has no carrier
+    - evidence: 1 commit(s) name `[#331]`; none declares closure · source `tasks/331-consumer-backlog-schema-adoption-ruling.md`
+- **`[#332]`** (deferred) — Fleet dependency-version parity
+    - **Done when:** a versioned dependency manifest ships with the methodology package AND an automated check WARNs a version-drifted consumer while an at-parity (or `.methodology.yaml`-declared) one does not, with a test
+    - **Witnessing SHA:** `29ab7a1b3` — docs(backlog): birth [#559] -- the kernel/lab tiering + dev-knowledge-kernel package row
+    - evidence: 13 commit(s) name `[#332]`; none declares closure · source `tasks/332-fleet-dependency-version-parity.md`
+- **`[#334]`** (open) — Fleet-wide ruff hook id migration `ruff` → `ruff-check`
+    - **Done when:** all three repos use `ruff-check` and the legacy `ruff` alias is gone, witnessed per repo (a staged violating `.py` BLOCKED under the new id)
+    - **Witnessing SHA:** `29ab7a1b3` — docs(backlog): birth [#559] -- the kernel/lab tiering + dev-knowledge-kernel package row
+    - evidence: 4 commit(s) name `[#334]`; none declares closure · source `tasks/334-fleet-wide-ruff-hook-id-migration-ruff-ruff-chec.md`
+- **`[#340]`** (open) — /ship pre-flight validator honors the consumer repo's canonical test gate
+    - **Done when:** /ship's code-diff validator applies the consumer's declared canonical marker filter (bare-suite fallback only when none is declared), witnessed green on a consumer carrying deselected-known-red tests (n=1 ai-council)
+    - **Witnessing SHA:** `1d37e3dac` — docs(audits): #528 legs1+2 lane -- DERIVED OWNED-FILES manifest, step 0b
+    - evidence: 1 commit(s) name `[#340]`; none declares closure · source `tasks/340-ship-pre-flight-validator-honors-the-consumer-re.md`
+- **`[#341]`** (open) — Codex producer-lane activation mechanism
+    - **Done when:** (i)-(iv) as enumerated in this row are each resolved or named with their reason in a protocols/STANDING_RULINGS.md section citing [#341]; one activation run is recorded in a docs/audits/ artifact; and protocols/PLAYBOOK.md §16 describes the shipped mechanism
+    - **Witnessing SHA:** `c163afe77` — feat(backlog): Phase 2 — rule the C4 top-40 by the ex-ante algorithm; K1 closes ZERO
+    - evidence: 4 commit(s) name `[#341]`; none declares closure · source `tasks/341-codex-producer-lane-activation-mechanism.md`
+- **`[#342]`** (open) — fleet_parity gate-ahead max-fidelity hardening
+    - **Done when:** each of the three lands with a test (an exported-id mismatch WARNs; an ambiguous remote match REFUSES; a provenance SHA mismatch WARNs)
+    - **Witnessing SHA:** `ca8d39036` — Merge feat/336-gate-rev-axis — ARC 1: parity enforcement-gate-rev axis (ADR-102); clears the sole fleet_parity WARN, corp split now GATE_AHEAD_DECLARED. closes [#336]
+    - evidence: 2 commit(s) name `[#342]`; none declares closure · source `tasks/342-fleet-parity-gate-ahead-max-fidelity-hardening.md`
+- **`[#343]`** (open) — fleet_parity ship-gate-only scoping
+    - **Done when:** a hub pre-commit does not pay the fleet_parity walk (audit-health skips it) while `ship-gate` still runs + blocks on it, with a test proving both
+    - **Witnessing SHA:** `865ad4cc7` — docs(audit): library-first research — 8 items measured against this window's problems, plus this window's own critical review
+    - evidence: 5 commit(s) name `[#343]`; none declares closure · source `tasks/343-fleet-parity-ship-gate-only-scoping.md`
+- **`[#345]`** (open) — Externalize the ADR-101 frozensets → machine-readable path-pattern registry + generalize `validate_hermetization.py`
+    - **Done when:** registry ships + gate reads it (frozensets gone), a compliant path per class passes + a violation blocks, lockstep collapsed, with tests
+    - **Witnessing SHA:** `77e3147f1` — docs(backlog): file [#546] -- ADR-60's docs/ taxonomy diverged from the tree
+    - evidence: 2 commit(s) name `[#345]`; none declares closure · source `tasks/345-externalize-the-adr-101-frozensets-machine-reada.md`
+- **`[#347]`** (open) — Formalize the engineering loop/harness end-to-end + sanctioned safe-deletion pattern
+    - **Done when:** the loop-harness is decomposed into filed `tasks/*.md` rows whose ids are listed in this row's closing commit, and the safe-deletion pattern is documented in protocols/PLAYBOOK.md or protocols/STANDING_RULINGS.md carries a section naming [#347] and the reason it stays unruled
+    - **Witnessing SHA:** `c163afe77` — feat(backlog): Phase 2 — rule the C4 top-40 by the ex-ante algorithm; K1 closes ZERO
+    - evidence: 6 commit(s) name `[#347]`; none declares closure · source `tasks/347-formalize-the-engineering-loop-harness-end-to-en.md`
+- **`[#351]`** (open) — Fleet-Python-upgrade ticket
+    - **Done when:** a `docs/audits/<date>-technical-*` artifact defines the coordinated upgrade path across every member of the `adr104-fleet-members` declaration, and the newest-Python baseline is either raised for all of them in one arc — ruff `target-version` and the `pyproject.toml` required-version floor moving together — or `protocols/STANDING_RULINGS.md` carries a section naming `[#351]` with a stated next-review date
+    - **Witnessing SHA:** `c163afe77` — feat(backlog): Phase 2 — rule the C4 top-40 by the ex-ante algorithm; K1 closes ZERO
+    - evidence: 6 commit(s) name `[#351]`; none declares closure · source `tasks/351-fleet-python-upgrade-ticket.md`
+- **`[#354]`** (open) — W6 seed-1 recurrence half
+    - **Done when:** a staged amendment to ADR-36/41/101 lacking a companion PLAYBOOK/ESSENTIALS edit is flagged by the checker, with a test
+    - **Witnessing SHA:** `cc1a680e0` — docs(backlog): file the ARC-5 plan of record as [E8] + three carried tickets
+    - evidence: 1 commit(s) name `[#354]`; none declares closure · source `tasks/354-w6-seed-1-recurrence-half.md`
+- **`[#357]`** (open) — Silent-rule census run 2
+    - **Done when:** every `must|shall|never` occurrence in `docs/decisions/ADR-*.md` is enumerated in the sweep artifact and carries a state in ecosystem/silent-rule-baseline.yaml, and the file's combined denominator and N_silent replace the [E8] figures with `silent_rule_ratchet` green at the new numbers
+    - **Witnessing SHA:** `8a0912785` — Merge branch 'worktree-lane-i-conversions-w4b' — W4b conversions lane, 13/18 applied / 5 SKIPPED (no census draft) [#338] [#341] [#344] [#346] [#347] [#349] [#353] [#356] [#357] [#358] [#362] [#366] [#371]
+    - evidence: 4 commit(s) name `[#357]`; none declares closure · source `tasks/357-silent-rule-census-run-2.md`
+- **`[#359]`** (open) — PHANTOM ENFORCEMENT — `protocols/HANDOFF_PROCESS.md` §14a FILE-BOUNDARY claims a mechanism that does not exist.
+    - **Done when:** the false claim is corrected or the mechanism built, AND the ledger model carries an explicit disposition for the phantom-enforcement class
+    - **Witnessing SHA:** `2ae7bf398` — docs(backlog): ARC2 step 9 — birth [#523], the [#439] executive-index render leg
+    - evidence: 7 commit(s) name `[#359]`; none declares closure · source `tasks/359-phantom-enforcement-protocols-handoff-process-md.md`
+- **`[#361]`** (open) — ADR-immutability's real coverage is declared only in code, never in the protocol
+    - **Done when:** either `protocols/AI_COUNCIL_PROCESS.md` and `templates/claude-regions/critical-rules-records.md` state the guard's real zone — `docs/decisions/transcripts/**` only, and that the zone is a live no-op since that tree was deleted — or `scripts/hooks/block_immutable_edits.py` widens to cover ADRs, handoffs and audits, with a test per newly-covered class
+    - **Witnessing SHA:** `9f89ce3e8` — docs(backlog): STEP 2 batch 3 -- the trivial set, 6 rows under the ceiling
+    - evidence: 10 commit(s) name `[#361]`; none declares closure · source `tasks/361-adr-immutability-s-real-coverage-is-declared-onl.md`
+- **`[#362]`** (open) — #242 carries a SUBSTANTIVE guard loss, not status hygiene
+    - **Done when:** the dropped-rule set is enumerated in this row or its closing commit, and each member is carried into a live surface, superseded by a named ADR, or recorded in a protocols/STANDING_RULINGS.md section naming [#362]; and [#242] does not reach a terminal status before this row does
+    - **Witnessing SHA:** `9fedb07c1` — feat(backlog): X1 step 5 — the 45-day icebox sweep (41 rows), and close [#424] properly
+    - evidence: 13 commit(s) name `[#362]`; none declares closure · source `tasks/362-242-carries-a-substantive-guard-loss-not-status.md`
+- **`[#365]`** (open) — Promote `residual_completeness` from `exempt:` to `coverage_scope`
+    - **Done when:** doc marker + both code markers + `multi_site: 2` land in ONE commit, the edge resolves, the row moves to `coverage_scope:`, and ship-gate holds at the baseline
+    - **Witnessing SHA:** `a8c62956a` — chore(backlog): attach two evidence findings to [#419] and [#310] — zero births, zero status changes
+    - evidence: 5 commit(s) name `[#365]`; none declares closure · source `tasks/365-promote-residual-completeness-from-exempt-to-cov.md`
+- **`[#369]`** (open) — Wire `boundary_headers.py --check` into pre-commit
+    - **Done when:** the hook is registered and blocks a hand-edited header, `CLAUDE.md` §9 lists it, and `ecosystem/doc-counts.md` agrees with the live hook roster
+    - **Witnessing SHA:** `52d230cc9` — docs(backlog): ARC2b step 1 — condense the four over-cap rows, then write the frozen ARC2 step-3 obligations in
+    - evidence: 10 commit(s) name `[#369]`; none declares closure · source `tasks/369-wire-boundary-headers-py-check-into-pre-commit.md`
+- **`[#371]`** (open) — Consumer editor-config write-through — declared at v1.4.0, never built, never ticketed
+    - **Done when:** an ADR names the carrier vehicle, both consumers carry the editor config under it (verified per repo), and `deploy/manifest-v1.4.0.yaml`'s `implemented:` value for this component matches the live per-consumer state with `fleet_parity` green
+    - **Witnessing SHA:** `8a0912785` — Merge branch 'worktree-lane-i-conversions-w4b' — W4b conversions lane, 13/18 applied / 5 SKIPPED (no census draft) [#338] [#341] [#344] [#346] [#347] [#349] [#353] [#356] [#357] [#358] [#362] [#366] [#371]
+    - evidence: 6 commit(s) name `[#371]`; none declares closure · source `tasks/371-consumer-editor-config-write-through-declared-at.md`
+- **`[#383]`** (open) — Execution waves per surface
+    - **Done when:** for every `kind: gitignore-effect` row in `ecosystem/parity-surfaces.yaml`, (a) `desired_state_report.py` shows no `diverge` cell on those rows; AND (b) `fleet_parity.py --run-date <run-date>` reports 0 warn-undeclared / 0 must-absent / 0 tombstone-violated across them for every repo it walks, naming any repo it could not walk rather than counting it clean; AND (c) both runs are pasted verbatim into the wave record and the operator has read them.
+    - **Witnessing SHA:** `49a3f854e` — docs(governance): C1 C3 C4 C9 filed -- three intake amendments, one intake born, [#616] [#617]
+    - evidence: 39 commit(s) name `[#383]`; none declares closure · source `tasks/383-execution-waves-per-surface.md`
+- **`[#385]`** (open) — L4 tech-currency lane
+    - **Done when:** one version-bump proposal is written into the desired-state contract, ruled, and distributed through the apply channel, with the resulting version visible in `ecosystem/deployed-versions.yaml` and the proposal at no point mutating the contract directly
+    - **Witnessing SHA:** `7bf207662` — feat(backlog): X1 steps 2-3 — adopt the 17 inferred edges and re-peg the nine deferred rows
+    - evidence: 10 commit(s) name `[#385]`; none declares closure · source `tasks/385-l4-tech-currency-lane.md`
+- **`[#387]`** (open) — Rewrite the buy-vs-build intake BEFORE anything ingests it
+    - **Done when:** `docs/intake/archive/2026-07-06-platform-feature-scan.md` either carries the ruled position (with an amendment marker) or a superseding intake doc exists and the old one's `status:` names it, and no `docs/decisions/ADR-*.md` cites the un-rewritten doc
+    - **Witnessing SHA:** `5eb1269f5` — Merge branch 'worktree-lane-j-conversions-w4c' — W4c conversions lane, 9/18 applied / 9 SKIPPED with reason [#387] [#389] [#399] [#408] [#413] [#414] [#415] [#418] [#423]
+    - evidence: 8 commit(s) name `[#387]`; none declares closure · source `tasks/387-rewrite-the-buy-vs-build-intake-before-anything.md`
+- **`[#388]`** (open) — The \"10–20 repo\" fleet-scale target is FABRICATED — correct it to the live 5–8+ wherever it is restated
+    - **Done when:** every surface restating the figure carries 5–8+ going forward, and the immutable four remain unedited with the correction record standing
+    - **Witnessing SHA:** `7d6ca5a87` — docs(backlog): file [#549] -- the Fleet-Hygiene plan-of-record has no carrier
+    - evidence: 9 commit(s) name `[#388]`; none declares closure · source `tasks/388-the-10-20-repo-fleet-scale-target-is-fabricated.md`
+- **`[#389]`** (open) — Prompt-lint — gate the five architect fields before a lane runs
+    - **Done when:** a seeded prompt missing any one of the five ADR-87 §5 fields is refused or WARNed, with one test per field; and R6's disposition is recorded in ADR-87 or a `protocols/STANDING_RULINGS.md` section naming `[#389]`
+    - **Witnessing SHA:** `c163afe77` — feat(backlog): Phase 2 — rule the C4 top-40 by the ex-ante algorithm; K1 closes ZERO
+    - evidence: 11 commit(s) name `[#389]`; none declares closure · source `tasks/389-prompt-lint-gate-the-five-architect-fields-befor.md`
+- **`[#390]`** (open) — Resolve the ADR-87 effort-ownership contradiction, then true up the prompt template
+    - **Done when:** ADR-87 carries the resolution AND the template matches it
+    - **Witnessing SHA:** `3acb0cc96` — fix(backlog): [#424] — `_DEPID_RE` accepts a bare id, so a written edge is a real edge
+    - evidence: 15 commit(s) name `[#390]`; none declares closure · source `tasks/390-resolve-the-adr-87-effort-ownership-contradictio.md`
+- **`[#392]`** (open) — fleet_analytics rename-alias loses history on path-reuse
+    - **Done when:** a rename-back sequence carries full history with a covering test
+    - **Witnessing SHA:** `8bb06e00b` — fix(test): the [#502] chain's THIRD blocker — mutmut runs from a `mutants/` sandbox [#502]
+    - evidence: 3 commit(s) name `[#392]`; none declares closure · source `tasks/392-fleet-analytics-rename-alias-loses-history-on-pa.md`
+- **`[#393]`** (open) — corp-sca rot review — confirm-live-or-retire 3 candidates
+    - **Done when:** each of `config/category_mapping.yaml`, `requirements.txt` and `config/excluded.yaml` in `corp-sca-time-automation` carries a recorded confirmed-live or retired verdict, and a subsequent `fleet_analytics` run no longer flags the retired ones
+    - **Witnessing SHA:** `4ca67eed8` — Merge branch 'worktree-lane-d-351-conversions' -- batch 6 merge 7/11: [#351] [#385] [#393] [#484] [#502] Done-when conversions
+    - evidence: 7 commit(s) name `[#393]`; none declares closure · source `tasks/393-corp-sca-rot-review-confirm-live-or-retire-3-can.md`
+- **`[#400]`** (open) — Ownership-model: the hub-mandated-STRUCTURE / repo-owned-CONTENT cell (rosters) — same ruling family as [#370]
+    - **Done when:** the ownership-model ruling explicitly covers the roster cell and is recorded
+    - **Witnessing SHA:** `952c10ade` — Merge docs/recording-batch-r — 2026-07-28 recording batch: owner=user ruled, [#441]/[#442] filed
+    - evidence: 8 commit(s) name `[#400]`; none declares closure · source `tasks/400-ownership-model-the-hub-mandated-structure-repo.md`
+- **`[#401]`** (open) — ai-council routing still ARMED at the deleted hub landing zone
+    - **Done when:** (a) shipped in ai-council AND (b) built per this ruling
+    - **Witnessing SHA:** `aab0e1d72` — docs(backlog): file [#552] -- the window-close disposition + archival routine
+    - evidence: 13 commit(s) name `[#401]`; none declares closure · source `tasks/401-ai-council-routing-still-armed-at-the-deleted-hu.md`
+- **`[#402]`** (open) — Intake naming clause — DEPLOY the `YYYY-MM-DD-<class>-<slug>` half of the enum ruling
+    - **Done when:** README §4 carries the `<class>` grammar AND each of the 4 post-ratification off-pattern docs is dispositioned
+    - **Witnessing SHA:** `89ae1d1d0` — docs(rulings): Part 2 text rulings — retire [S23], ADR-92 carrier-count amendment marker, rule [#403]/[#405]/[#402], declare ADR-77 guard, decompose [#348]
+    - evidence: 5 commit(s) name `[#402]`; none declares closure · source `tasks/402-intake-naming-clause-deploy-the-yyyy-mm-dd-class.md`
+- **`[#403]`** (open) — Extend `doc_claims` to ARCHITECTURE's machine-derivable claims
+    - **Done when:** carrier-set AND child-roster gated (doc_claims or a regen-and-diff sibling) with tests
+    - **Witnessing SHA:** `b166655b1` — docs(census): conformance-digest CONTENT census + DRAFT ADR-111 triage — 57% of the stranded stream re-derives an open row
+    - evidence: 10 commit(s) name `[#403]`; none declares closure · source `tasks/403-extend-doc-claims-to-architecture-s-machine-deri.md`
+- **`[#404]`** (open) — gen_handoff execution-mode SUPPLEMENT leak (mode-blind framing + P8 row)
+    - **Done when:** an execution-mode render passes `verify_handoff_probes` with zero SUPPLEMENT references, pinned by a per-mode test
+    - **Witnessing SHA:** `a8c62956a` — chore(backlog): attach two evidence findings to [#419] and [#310] — zero births, zero status changes
+    - evidence: 4 commit(s) name `[#404]`; none declares closure · source `tasks/404-gen-handoff-execution-mode-supplement-leak-mode.md`
+- **`[#405]`** (open) — Session-end leftover check — nothing verifies \"no leftovers\"
+    - **Done when:** the Stop-hook hygiene leg flags each named leftover class with a test
+    - **Witnessing SHA:** `b4dd3e48c` — Merge docs/window-close-batch — ARCHITECTURE currency, MERGE IS ATOMIC codified, supplement folded
+    - evidence: 8 commit(s) name `[#405]`; none declares closure · source `tasks/405-session-end-leftover-check-nothing-verifies-no-l.md`
+- **`[#413]`** (open) — Colors semantics — visually distinguish global/hub-managed vs per-repo content in governed markdown (declared ai-council interim)
+    - **Done when:** on or after 2026-10-22, either the colors semantics cite the ruled ownership model in `deploy/manifest-v1.4.0.yaml` (with `[#400]`'s ruling referenced), or ai-council's declaration carries a new `review_date:` later than 2026-10-22
+    - **Witnessing SHA:** `5eb1269f5` — Merge branch 'worktree-lane-j-conversions-w4c' — W4c conversions lane, 9/18 applied / 9 SKIPPED with reason [#387] [#389] [#399] [#408] [#413] [#414] [#415] [#418] [#423]
+    - evidence: 5 commit(s) name `[#413]`; none declares closure · source `tasks/413-colors-semantics-visually-distinguish-global-hub.md`
+- **`[#414]`** (open) — Self-acting-on-main incident family — a session changed `main` with no operator GO and no anchored action (n=2 this week)
+    - **Done when:** a mechanism refuses or flags (a) a change to `main` with no recorded operator GO and (b) an unanchored change to `main`, with a test per case; and the organ choice is recorded in an ADR or a `protocols/STANDING_RULINGS.md` section naming `[#414]`
+    - **Witnessing SHA:** `c163afe77` — feat(backlog): Phase 2 — rule the C4 top-40 by the ex-ante algorithm; K1 closes ZERO
+    - evidence: 13 commit(s) name `[#414]`; none declares closure · source `tasks/414-self-acting-on-main-incident-family-a-session-ch.md`
+- **`[#418]`** (open) — `automation/fleet-audit` records 0–10 baselines a day, not one
+    - **Done when:** an audit artifact records a reproduction of the multiplicity with the observed per-day counts, and either a check FAILs on a second baseline for the same date (with a test) **or** `protocols/STANDING_RULINGS.md` carries a section naming `[#418]` and why the multiplicity is acceptable
+    - **Witnessing SHA:** `c163afe77` — feat(backlog): Phase 2 — rule the C4 top-40 by the ex-ante algorithm; K1 closes ZERO
+    - evidence: 4 commit(s) name `[#418]`; none declares closure · source `tasks/418-automation-fleet-audit-records-0-10-baselines-a.md`
+- **`[#419]`** (open) — We run routines whose output nobody consumes
+    - **Done when:** `routine_consumers` reports zero routines missing `consumer:` or `consumption_path:` within its stated coverage; unconsumed output is reported by a detector rather than silently accumulating; and for the nightly conformance routine specifically — (i) the absorb has a trigger that fires without an operator remembering, (ii) a detector reports queue depth (the count of unmerged `claude/conformance-*` branches) at a surface the operator already reads, and (iii) a scheduler-run check distinguishes a night with no run from a night whose output went unabsorbed — each of (i)–(iii) proven by a test
+    - **Witnessing SHA:** `aab0e1d72` — docs(backlog): file [#552] -- the window-close disposition + archival routine
+    - evidence: 26 commit(s) name `[#419]`; none declares closure · source `tasks/419-we-run-routines-whose-output-nobody-consumes.md`
+- **`[#420]`** (open) — Does a TOP-LEVEL `docs/archive/` still make sense?
+    - **Done when:** the top-level archive is ruled kept-with-a-restated-charter or dissolved into per-area homes, with each of the 22 files given a destination
+    - **Witnessing SHA:** `353149ab5` — fix(audit,backlog): B3c routine_consumers 1->3 across all three surfaces; the A-DEFER narrowing acts
+    - evidence: 8 commit(s) name `[#420]`; none declares closure · source `tasks/420-does-a-top-level-docs-archive-still-make-sense.md`
+- **`[#422]`** (open) — `reflow_framing`'s cold→FILLED flip is partial by design, and nothing detects the self-contradiction it leaves
+    - **Done when:** a post-fold check FAILs on a bundle carrying cold-state framing prose after a FILLED flip (a `--check`-shaped leg wired where the fold runs), pinned by a test seeding a hand-authored cold claim in `PROBES.md`
+    - **Witnessing SHA:** `3b711e87b` — Merge branch 'docs/batch4-go-recording' — the batch-4 GO: intakes #28-#32 ratified as one act, [#513] amended as intake #30 §A's organ, [#521]/[#522] born
+    - evidence: 19 commit(s) name `[#422]`; none declares closure · source `tasks/422-reflow-framing-s-cold-filled-flip-is-partial-by.md`
+- **`[#426]`** (open) — Declare `consumer` + `consumption_path` for every LIVE routine
+    - **Done when:** every live routine declares a consumer and consumption path or is retired; the dead-producer nags are resolved; and `routine_consumers`' stated boundary is closed or recorded permanent-defer-with-reason
+    - **Witnessing SHA:** `acd664ebc` — fix(backlog): the routine count moves 3 -> 2, all coupled surfaces together
+    - evidence: 38 commit(s) name `[#426]`; none declares closure · source `tasks/426-declare-consumer-consumption-path-for-every-live.md`
+- **`[#427]`** (open) — Region templates carry a repo-POSITION-DEPENDENT path
+    - **Done when:** the carry mechanism supports a per-consumer substitution (or an explicit per-position variant), and ai-council's `claude-md-token-log-address` divergence retires by reference
+    - **Witnessing SHA:** `ad3e10d9b` — Merge branch 'docs/d5-d6-ruling-execution-2026-08-22' -- D5+D6: the ruling executed; closes [#563] [#566] [#488]
+    - evidence: 10 commit(s) name `[#427]`; none declares closure · source `tasks/427-region-templates-carry-a-repo-position-dependent.md`
+- **`[#428]`** (open) — `nightly-triage` reports a dead producer to every session start
+    - **Done when:** no session-start surface asserts pending work from a producer with no run in the last 30 days (with a test seeding a dead producer), and the GitHub Issue backlog is either closed out or `scripts/surface_triage.ps1` no longer reads it — with the Issue count at closing time recorded in the commit
+    - **Witnessing SHA:** `59df6478d` — docs(backlog): STEP 2 batch 2 -- trim 6 rows under the 1320 ceiling
+    - evidence: 22 commit(s) name `[#428]`; none declares closure · source `tasks/428-nightly-triage-reports-a-dead-producer-to-every.md`
+- **`[#431]`** (open) — `codex-review` silently drops the doc lane on any mixed diff
+    - **Done when:** a mixed diff gets both profiles or emits a loud skipped-prose warning naming the unreviewed files, AND the counter agrees with the body, with tests
+    - **Witnessing SHA:** `b099f3ff7` — docs(backlog): [#534] gains N4's independent locator-rot corroboration [#534]
+    - evidence: 20 commit(s) name `[#431]`; none declares closure · source `tasks/431-codex-review-silently-drops-the-doc-lane-on-any.md`
+- **`[#438]`** (open) — Codify gate-class posture: terra design review BEFORE build for refusal-gate arcs
+    - **Done when:** `protocols/PLAYBOOK.md` carries the refusal-gate class rule, naming which arcs it binds and the questions the pre-build design pass must answer, and one arc's `docs/audits/` record shows its design pass preceding its first implementation commit
+    - **Witnessing SHA:** `b4862b9be` — Merge branch 'worktree-lane-c-146-conversions' -- batch 6 merge 3/11: [#146] [#266] [#438] [#443] Done-when conversions
+    - evidence: 14 commit(s) name `[#438]`; none declares closure · source `tasks/438-codify-gate-class-posture-terra-design-review-be.md`
+- **`[#440]`** (open) — Make the `tasks/` id ledger tamper-evident — a deleted retired record is undetectable
+    - **Done when:** a deleted retired record FAILs the gate, with a test seeding a retirement then deleting the file
+    - **Witnessing SHA:** `2ae7bf398` — docs(backlog): ARC2 step 9 — birth [#523], the [#439] executive-index render leg
+    - evidence: 7 commit(s) name `[#440]`; none declares closure · source `tasks/440-make-the-tasks-id-ledger-tamper-evident-a-delete.md`
+- **`[#442]`** (open) — Plugin command-cache staleness — cached command text can silently outlive a workflow change
+    - **Done when:** a stale cached command cannot be served unnoticed — invalidation on edit, or a load-time stamp comparison that surfaces a mismatch — with a test that seeds a stale copy
+    - **Witnessing SHA:** `9cd22d7d4` — docs(handoff): cut the 2026-07-29-dev-knowledge-architect bundle — W-D intake-#18 ratification
+    - evidence: 6 commit(s) name `[#442]`; none declares closure · source `tasks/442-plugin-command-cache-staleness-cached-command-te.md`
+- **`[#445]`** (open) — `codex-review` wrapper path-guard reports SUCCESS having reviewed nothing
+    - **Done when:** a mixed diff can no longer report as reviewed while its prose went unreviewed — fail-loud or dual-route — with a test seeding a docstring-only `.py` beside prose
+    - **Witnessing SHA:** `812ee1923` — chore(backlog): closes [#469] — both codex lanes pin terra, model recorded in the artifact
+    - evidence: 7 commit(s) name `[#445]`; none declares closure · source `tasks/445-codex-review-wrapper-path-guard-reports-success-h.md`
+- **`[#447]`** (open) — Self-referential gate family — the committing act cannot satisfy the gate's own precondition
+    - **Done when:** one commit can raise a ratchet and be judged by the raised value, and a wrap commit can satisfy its own anchor gate, with tests
+    - **Witnessing SHA:** `558bd9024` — docs(handoff): cut the 2026-08-04 architect bundle — window seal, both organs verified
+    - evidence: 16 commit(s) name `[#447]`; none declares closure · source `tasks/447-ratchet-raise-local-hook-bootstrap-deadlock.md`
+- **`[#448]`** (open) — A11 staged-diff guard — cover EVERY candidate bundle, not just the active one
+    - **Done when:** a staged diff containing two candidate bundles fails the guard when either is uncovered, with a test
+    - **Witnessing SHA:** `a54994a36` — Merge branch 'docs/handoff-2026-07-31-architect-2' — closing handoff + intake #22 SEED
+    - evidence: 4 commit(s) name `[#448]`; none declares closure · source `tasks/448-a11-staged-diff-guard-cover-every-candidate-bun.md`
+- **`[#451]`** (open) — CA layer-edge check — port the ai-council layer-edge review as the missing Layer-2 organ
+    - **Done when:** a layer-edge check exists and runs in the hub gate set, its honest scope is stated (what it does NOT catch), and ADR-108's "mechanized check" clause cites it
+    - **Witnessing SHA:** `6bfa544f5` — docs(backlog): file [#449]-[#452] — the ratification-batch candidate rows
+    - evidence: 1 commit(s) name `[#451]`; none declares closure · source `tasks/451-ca-layer-edge-check-ai-council-precedent.md`
+- **`[#454]`** (open) — `closure_ids` negation defect — the parser reads a negated closure mention as a closure
+    - **Done when:** RED-first tests cover the three recorded reproduction strings, a bounded parser change makes negated mentions non-closing in BOTH copies, and terra reviews the diff pre-merge
+    - **Witnessing SHA:** `5eebee914` — Merge branch 'docs/2026-07-31-grooming-and-reconciliation' — architect-ratified grooming + reconciliation
+    - evidence: 2 commit(s) name `[#454]`; none declares closure · source `tasks/454-closure-ids-negation-defect-negated-mention-reads.md`
+- **`[#457]`** (open) — Two live-repo tests fail on main against green gates — test-vs-organ mismatch
+    - **Done when:** both tests pass on main for verified reasons (filter-aware assertion; census-verified pin), verification recorded in the fixing commit
+    - **Witnessing SHA:** `86e16932a` — docs: wrap (i) + lane x's doc debt + the dispatch-template witness
+    - evidence: 75 commit(s) name `[#457]`; none declares closure · source `tasks/457-inherited-live-repo-test-failures.md`
+- **`[#470]`** (open) — `audit.py checks` crashes mid-listing on a cp1252 console — one U+2192 glyph
+    - **Done when:** the U+2192 is ASCII-swapped and a regression asserts every `ALL_CHECKS` docstring first line is cp1252-encodable
+    - **Witnessing SHA:** `1fae3075b` — docs(audits): the green-by-skip sweep artifact - 46 checks classified, 2 fixed, 2 deferred
+    - evidence: 17 commit(s) name `[#470]`; none declares closure · source `tasks/470-audit-py-checks-crashes-on-a-cp1252-console.md`
+- **`[#477]`** (open) — `deployed_methodology_version` keys the registry by repo-root BASENAME — a clone named `dev-knowledge` cannot find `.dev-knowledge`
+    - **Done when:** the check resolves the hub's row from a checkout whose directory name differs from the registry key, with a test seeding a differently-named root
+    - **Witnessing SHA:** `8c0ed183e` — Merge branch 'claude/night-batch-review-prep-k1f2yr' -- night batch 2026-08-04 [night-batch]
+    - evidence: 4 commit(s) name `[#477]`; none declares closure · source `tasks/477-deployed-version-check-keys-registry-by-basename.md`
+- **`[#478]`** (open) — `changelog_sentinel` drops PEP 440 suffixes — a prerelease as the reviewed value silences the sentinel permanently
+    - **Done when:** suffixed versions compare per PEP 440, with a test covering prerelease-then-GA and `.post`
+    - **Witnessing SHA:** `0c64a76a5` — Merge branch 'docs/file-night-batch-defect-rows' — night-batch defect rows [#477]-[#480] filed, [#457] annotated
+    - evidence: 2 commit(s) name `[#478]`; none declares closure · source `tasks/478-changelog-sentinel-drops-pep-440-suffixes.md`
+- **`[#485]`** (open) — A shared LF-enforcing write helper — the mechanism that replaces the CRLF gotcha
+    - **Done when:** repo writers route through one LF-enforcing helper, a test proves a CRLF write cannot land through it, and the gotcha entry is retired or re-scoped to what the mechanism does not cover
+    - **Witnessing SHA:** `4306a46a4` — Merge branch 'docs/file-484-485' — the two carried wrap items, filed not acted on
+    - evidence: 2 commit(s) name `[#485]`; none declares closure · source `tasks/485-lf-enforcing-write-helper-replaces-a-gotcha.md`
+- **`[#487]`** (open) — Closure-proposal consumption arc — repair the pipeline first
+    - **Done when:** (i)-(iv) as enumerated in this row land in both `scripts/propose_closures.py` and the `plugins/tier1-lifecycle` copy with a lockstep test, a ranked sheet in `docs/audits/` covers every parked proposal with a verdict per id, and a routine declaring `consumer:` + `consumption_path:` passes `routine_consumers`
+    - **Witnessing SHA:** `3d5a42352` — docs(audit): funnel groom -- READ-ONLY proposal sheet, nine bundles at 78daf400
+    - evidence: 16 commit(s) name `[#487]`; none declares closure · source `tasks/487-closure-proposal-consumption-arc-139-parked-prop.md`
+- **`[#491]`** (deferred) — Gemini scanning lane — ruling R-G plus an acceptance contract
+    - **Done when:** `protocols/STANDING_RULINGS.md` carries the R-G ruling in a section naming `[#491]`, and one acceptance run over real work — `[#487]`'s ranked sheet or the fleet dependency scan, read-only — is recorded in a `docs/audits/` artifact naming the load-bearing rows that were spot-verified and the outcome of that verification
+    - **Witnessing SHA:** `ec8731a9b` — Merge branch 'docs/window-close' -- WINDOW CLOSE: two rulings, ADR-116 recovered, the five pillars
+    - evidence: 25 commit(s) name `[#491]`; none declares closure · source `tasks/491-gemini-scanning-lane-ruling-r-g-plus-an-acceptan.md`
+- **`[#492]`** (deferred) — Grok review-lane acceptance — gated ≥ 2026-08-07, measured against terra on the same diffs
+    - **Done when:** the comparison has run on ≥1 real diff set post-4.6 and the lane is admitted or refused on the measured result
+    - **Witnessing SHA:** `ec8731a9b` — Merge branch 'docs/window-close' -- WINDOW CLOSE: two rulings, ADR-116 recovered, the five pillars
+    - evidence: 34 commit(s) name `[#492]`; none declares closure · source `tasks/492-grok-review-lane-acceptance-gated-2026-08-07-mea.md`
+- **`[#493]`** (open) — B-2 investigation — the scheduled fleet-baseline task has been silent 10+ days
+    - **Done when:** a `docs/audits/` artifact names the cause with the evidence command that demonstrates it, and names the signal that would have surfaced the silence within one cadence — with that signal either filed as a `[#id]` or landed
+    - **Witnessing SHA:** `781bd4ff9` — Merge branch 'worktree-lane-k-conversions-w4d' — W4d conversions lane, 11 applied / 5 SKIPPED (no census draft) [#425] [#428] [#430] [#453] [#456] [#463] [#464] [#487] [#493] [#506] [#511]
+    - evidence: 4 commit(s) name `[#493]`; none declares closure · source `tasks/493-b-2-investigation-the-scheduled-fleet-baseline-t.md`
+- **`[#495]`** (deferred) — Tech-currency cadence — give [#385] a recurring lane instead of a one-off
+    - **Done when:** the cadence is ruled (monthly vs event-driven vs rejected) and, if adopted, the lane has a declared consumer and consumption path per ADR-105
+    - **Witnessing SHA:** `4ca1ca237` — docs(backlog): FR-8 flip batch — 8 rows opened, 3 re-pegged, [#489] retired into re-scoped [#218], [#498] filed
+    - evidence: 2 commit(s) name `[#495]`; none declares closure · source `tasks/495-tech-currency-cadence-give-385-a-recurring-lane.md`
+- **`[#496]`** (open) — `_ORGAN_TO_COMPONENT` attributes the pre-push organ to a component that does not carry it — the Tier-3 DRIFT rows it produces are misfiled
+    - **Done when:** the organ maps to the component that actually carries it, or the mapping declares the split explicitly, and a test pins whichever is chosen
+    - **Witnessing SHA:** `4ca1ca237` — docs(backlog): FR-8 flip batch — 8 rows opened, 3 re-pegged, [#489] retired into re-scoped [#218], [#498] filed
+    - evidence: 2 commit(s) name `[#496]`; none declares closure · source `tasks/496-organ-to-component-attributes-the-pre-push-organ.md`
+- **`[#497]`** (open) — Two stale claims on carrier/hook declarations
+    - **Done when:** BOTH claims are corrected and the carrier's own test asserts the deployed shape against the live probe rather than against the prose
+    - **Witnessing SHA:** `08c3e0b63` — docs(intake): ledger truth — six spent pegs re-pegged, memo §9 applied, items 34/36 annotated
+    - evidence: 12 commit(s) name `[#497]`; none declares closure · source `tasks/497-carrier-mesh-py-75-still-claims-the-informant-lo.md`
+- **`[#499]`** (deferred) — Promote the review-artifact coverage leg to a hard pre-push gate
+    - **Done when:** two consecutive windows are sealed with the leg's false-positive count reported and equal to 0, the hard leg lands with its own tests, **AND the coverage debt is discharged — the PLAYBOOK rule written, a `coverage_scope` entry replacing the TEMPORARY `ecosystem/doc-code-edge.yaml` exemption, and the `# rule: review-artifact-coverage` marker reinstated in `scripts/audit.py`** (rider R2 — this row owns the exemption's expiry so it cannot outlive its reason)
+    - **Witnessing SHA:** `3dcf11981` — docs(audits): L4 lane artifact — terra tally, the §7 row spec, suite disposition — L4-FINAL
+    - evidence: 21 commit(s) name `[#499]`; none declares closure · source `tasks/499-promote-the-review-artifact-coverage-leg-from-ad.md`
+- **`[#500]`** (open) — The Stop hook's BACKLOG advisory reads a correctly-closed task as \"nothing closed\"
+    - **Done when:** the advisory recognises row-DELETION plus the paired `tasks/*.md` terminal-status flip as a closure signal, pinned by a test that closes a row the sanctioned way and asserts the advisory stays silent
+    - **Witnessing SHA:** `78ab77b45` — Merge branch 'docs/arc3-hygiene-closeout' — ARC-3 hygiene close-out: closes verified real, seven carried writes landed, decision sheet cut [#519] [#520]
+    - evidence: 8 commit(s) name `[#500]`; none declares closure · source `tasks/500-the-stop-hook-s-backlog-advisory-reads-a-correct.md`
+- **`[#506]`** (open) — Whole-set P10 grooming arc — the open set is unreconciled
+    - **Done when:** a `docs/audits/` sheet carries one row per `status: open` task with its last-touch date and closing-merge cross-check (count matching the live open count at generation time), each id carries a live / dead / awaiting-ruling verdict, and every id verdicted dead is closed per ADR-65 or named as deferred
+    - **Witnessing SHA:** `781bd4ff9` — Merge branch 'worktree-lane-k-conversions-w4d' — W4d conversions lane, 11 applied / 5 SKIPPED (no census draft) [#425] [#428] [#430] [#453] [#456] [#463] [#464] [#487] [#493] [#506] [#511]
+    - evidence: 12 commit(s) name `[#506]`; none declares closure · source `tasks/506-whole-set-p10-grooming-arc-full-open-set.md`
+- **`[#509]`** (open) — `Invoke-Dispatch.ps1` resolves `CLAUDE_PROMPTS_DIR`
+    - **Done when:** the wrapper resolves `<PROMPTS_DIR>` / `$env:CLAUDE_PROMPTS_DIR` (default `~/Downloads`) in either shape, with a test, and a dispatch line in variable form launches unedited
+    - **Witnessing SHA:** `2bd91563b` — docs(template): prompt-template v1.13 — a dispatched contract OPENS with a `## Dispatch` block
+    - evidence: 5 commit(s) name `[#509]`; none declares closure · source `tasks/509-invoke-dispatch-resolves-claude-prompts-dir.md`
+- **`[#510]`** (open) — Scope the R-1 exemption to the lanes its manifest enumerates — self-grantable by branch naming today
+    - **Done when:** the exemption resolves against a lane roster the open manifest declares, the no-roster posture is ruled and encoded, a test proves a lane branch OUTSIDE the roster is not exempt mid-batch, and Ch8 + the manifest template carry the field
+    - **Witnessing SHA:** `5337e131d` — docs(journal): batch W2 anchor entry, written at queue-open because the ADR-110 exemption does not fit these lane names
+    - evidence: 21 commit(s) name `[#510]`; none declares closure · source `tasks/510-scope-r1-exemption-to-enumerated-lanes.md`
+- **`[#511]`** (open) — The 30-minute handoff cut is ~99.8% session authoring, not machinery
+    - **Done when:** `protocols/HANDOFF_PROCESS.md` carries the ruled cut of the NON-MECHANIZED loads with a version bump and dependents re-stamped (`reconciled_versions` green), and one post-change handoff records measured wall-clock and token cost against the recorded baseline in its bundle
+    - **Witnessing SHA:** `eac92922d` — lessons: append 4 window entries -- duplicate-execution, unlocated register loads, doc_rot dual-instrument, serialize-group derivation
+    - evidence: 25 commit(s) name `[#511]`; none declares closure · source `tasks/511-handoff-cut-cost-is-session-authoring.md`
+- **`[#514]`** (open) — Two rival `LANE_BRANCH_RE` constants ship in one repo
+    - **Done when:** provisioning refuses an off-enum lane name, one clean batch runs under it, and exactly ONE definition remains
+    - **Witnessing SHA:** `5c97aa495` — feat(preflight): a DECLARED input that does not open is a finding -- N3's second step-4 mechanism [#614]
+    - evidence: 25 commit(s) name `[#514]`; none declares closure · source `tasks/514-two-rival-lane-branch-re-constants-reconcile-them.md`
+- **`[#518]`** (open) — `scripts/audit.py::_git` — one call site, two REPRODUCED defects, filed as one row because they are one fix.
+    - **Done when:** the call site scrubs the environment and decodes explicitly, with a test reproducing each defect first
+    - **Witnessing SHA:** `7e0243170` — Merge branch 'docs/arc2-consolidation' — ARC-2 Phases B–F: ADR-111 proposed, 229 items triaged, 3 rows born, net 0
+    - evidence: 2 commit(s) name `[#518]`; none declares closure · source `tasks/518-audit-py-git-runs-unscrubbed-and-undecoded-at-one.md`
+- **`[#519]`** (open) — The close path is two edits, and nothing makes a half-done close visible
+    - **Done when:** a test seeds a status-only close, runs the generator, and FAILS on the revert — the close path is atomic, or its non-atomicity is gate-visible
+    - **Witnessing SHA:** `78ab77b45` — Merge branch 'docs/arc3-hygiene-closeout' — ARC-3 hygiene close-out: closes verified real, seven carried writes landed, decision sheet cut [#519] [#520]
+    - evidence: 2 commit(s) name `[#519]`; none declares closure · source `tasks/519-the-close-path-is-two-edits-and-nothing-makes-a.md`
+- **`[#520]`** (open) — No sanctioned way to retire a committed bundle whose seal is wrong
+    - **Done when:** the marker surface is defined, that bundle carries one, and `check_seal_identity` skips a marked-retired bundle, with a test pinning both halves
+    - **Witnessing SHA:** `78ab77b45` — Merge branch 'docs/arc3-hygiene-closeout' — ARC-3 hygiene close-out: closes verified real, seven carried writes landed, decision sheet cut [#519] [#520]
+    - evidence: 3 commit(s) name `[#520]`; none declares closure · source `tasks/520-no-sanctioned-way-to-retire-a-committed-bundle-w.md`
+- **`[#522]`** (open) — A re-cut handoff sibling carries its predecessor's payloads — the thinner-refill hole
+    - **Done when:** (a) `--allow-suffix` **refuses unless a predecessor is named** (e.g. `--carry-from <predecessor-bundle>`); (b) a test proves the refusal; (c) a test proves the carry — a re-cut sibling's FILL-IN regions are non-empty and reference the predecessor's payloads; (d) the validator's stated limit is closed for the re-cut path or re-annotated
+    - **Witnessing SHA:** `3b711e87b` — Merge branch 'docs/batch4-go-recording' — the batch-4 GO: intakes #28-#32 ratified as one act, [#513] amended as intake #30 §A's organ, [#521]/[#522] born
+    - evidence: 2 commit(s) name `[#522]`; none declares closure · source `tasks/522-re-cut-bundle-carries-predecessor-payloads.md`
+- **`[#523]`** (open) — Executive-index render leg on the generated `BACKLOG.md`
+    - **Done when:** the `BACKLOG.md` opens with a P1→P3 index of one line per live row, AND `--check` still verifies it byte-identically against the tree, AND `--roundtrip` still proves losslessness, AND a `--status` (or equivalent) render mode prints velocity + horizon + top-priority ids from live data
+    - **Witnessing SHA:** `dd2f78d9f` — docs(backlog): birth the twelve wave-2 rows [#587]-[#598], each funnel-clean against an act-2 intake
+    - evidence: 8 commit(s) name `[#523]`; none declares closure · source `tasks/523-executive-index-render-leg-on-generated-backlog.md`
+- **`[#526]`** (open) — Root-hygiene audit — which root files MUST be root, which are movable
+    - **Done when:** an audit artifact enumerates every sanctioned Tier-1 root entry with a MUST-be-root/movable verdict and the tool-convention citation backing each
+    - **Witnessing SHA:** `2588d07dd` — docs(backlog): four ruled filings from the 2026-08-11 needs-review -- birth [#526]/[#527]/[#528], leg on [#523]
+    - evidence: 1 commit(s) name `[#526]`; none declares closure · source `tasks/526-root-hygiene-audit-which-root-files-must-be-root.md`
+- **`[#528]`** (open) — Lane-latency — the full suite multiplied by per-lane + per-merge runs is the real batch cost
+    - **Done when:** (1) gate-run call sites use `-n auto --dist worksteal` (or a recorded reason one does not), (2) the tiered-suite rule is written in PLAYBOOK/ESSENTIALS, and (3) `test_run` duration events land via the telemetry leg — each with evidence in the closing commit
+    - **Witnessing SHA:** `06b03c80e` — fix(gates): the spine check states its predicate, and the ARM-1 test stops rotting on the calendar
+    - evidence: 44 commit(s) name `[#528]`; none declares closure · source `tasks/528-lane-latency-full-suite-multiplied-across-a-batch.md`
+- **`[#531]`** (open) — Lane-grammar enforcement at PROVISIONING — the enum is checkable but nothing checks it
+    - **Done when:** creating a `refs/heads/worktree-lane-*` branch whose name is off-grammar is REFUSED at creation with the reason, a conforming name is unaffected, non-lane ref updates are untouched, the escape is explicit and non-silent, and `/lane-boot` step 1 is stated as the friendly pre-check rather than the enforcement point
+    - **Witnessing SHA:** `98f4bbd40` — docs(backlog): STEP 2 batch 1 -- trim 8 rows under the 1320 ceiling
+    - evidence: 10 commit(s) name `[#531]`; none declares closure · source `tasks/531-lane-grammar-enforcement-at-provisioning-the-enu.md`
+- **`[#533]`** (open) — Decompose the `audit.py` check monolith into `scripts/audit_checks/` — one module per check plus an ordered registry
+    - **Done when:** every mechanically-extractable check lives in `scripts/audit_checks/<check_name>.py` with the module named for the check, an ordered registry preserves today's `ALL_CHECKS` order AND count, `audit.py` retains every public entrypoint and CLI verb byte-compatibly, `audit.py health` output on an unchanged tree is BYTE-IDENTICAL before and after, targeted tests for every touched surface are green, and any check that resists mechanical extraction is LEFT IN THE FACADE and REPORTED rather than redesigned mid-lane
+    - **Witnessing SHA:** `f330daa6b` — docs(audits): research arc -- Python quality & speed, measured
+    - evidence: 43 commit(s) name `[#533]`; none declares closure · source `tasks/533-decompose-the-audit-py-check-monolith-into-scrip.md`
+- **`[#534]`** (open) — `scripts/audit.py:<line>` locators on four open rows died at the `[#533]` decomposition
+    - **Done when:** each of `[#357]` `[#358]` `[#417]` `[#477]` cites its construct by anchor text (or by a locator that resolves live), and a check FAILs on a `scripts/*.py:<line>` locator in `tasks/` that does not resolve to its named construct
+    - **Witnessing SHA:** `178d61064` — docs(audits): graph-organ SCC evidence + reusable-workflows re-test
+    - evidence: 9 commit(s) name `[#534]`; none declares closure · source `tasks/534-audit-py-line-locators-on-four-open-rows-died-at-t.md`
+- **`[#535]`** (open) — `audit.py` has two module identities in one process, and a test's monkeypatch is invisible to one of them
+    - **Done when:** one spelling reaches `audit` from every caller, proven by a test asserting `sys.modules` holds exactly one module object for `audit.py` after both import paths run, and that a patch through one spelling is visible through the other
+    - **Witnessing SHA:** `ee01a2c14` — docs(tasks): drain the last four relocatable row bodies — lane D's mechanism reaches zero
+    - evidence: 3 commit(s) name `[#535]`; none declares closure · source `tasks/535-audit-py-has-two-module-identities-in-one-process.md`
+- **`[#538]`** (open) — The NB4-C PLAYBOOK gap arc — twelve paste-ready acts, none landed
+    - **Done when:** each of the 12 acts is landed in `protocols/PLAYBOOK.md` or recorded declined with its reason, and the coverage matrix is re-run reporting the new covered/partial/absent split
+    - **Witnessing SHA:** `36b3201af` — docs(handoffs): amend the 08-17 supplement to priority order v2, and mark it INPUT not handoff
+    - evidence: 3 commit(s) name `[#538]`; none declares closure · source `tasks/538-the-nb4-c-playbook-gap-arc-twelve-paste-ready-acts.md`
+- **`[#540]`** (open) — `harvest_batch.py` — read the board, then fetch packets by `git show`, never by log-scraping
+    - **Done when:** `scripts/harvest_batch.py` reports each lane's board state and fetches every done lane's packet by `git show`, with a test proving it never invokes `claude logs` and that an unreachable lane is reported rather than skipped silently
+    - **Witnessing SHA:** `292e6f40d` — docs(audits): the S-1 seat-arc packet -- ledger, WARN delta, intake map, holds
+    - evidence: 5 commit(s) name `[#540]`; none declares closure · source `tasks/540-harvest-batch-py-read-the-board-then-fetch-packets.md`
+- **`[#541]`** (open) — Scale-out substrate decision — unowned after two reports and a priced option set
+    - **Done when:** a ruling records the chosen scale-out substrate with its crossover rule and time-to-deploy, or records the decision deferred with a dated peg, citing the v2 report's option set
+    - **Witnessing SHA:** `353149ab5` — fix(audit,backlog): B3c routine_consumers 1->3 across all three surfaces; the A-DEFER narrowing acts
+    - evidence: 5 commit(s) name `[#541]`; none declares closure · source `tasks/541-scale-out-substrate-decision-unowned-after-two-rep.md`
+- **`[#542]`** (open) — `ARCHITECTURE.md` still claims four `doc_rot` sub-detectors; there are five
+    - **Done when:** `ARCHITECTURE.md` names the five live `doc_rot` categories, and `ecosystem/doc-code-edge.yaml` carries the claim so `doc_claims` fails when the count and the detector disagree
+    - **Witnessing SHA:** `fe6200bf7` — Merge branch 'worktree-lane-a-534-audit-dispositions' -- batch 7a lane a: the audit disposition ledger + 9 births
+    - evidence: 3 commit(s) name `[#542]`; none declares closure · source `tasks/542-architecture-md-still-claims-four-doc-rot-sub-dete.md`
+- **`[#546]`** (open) — ADR-60's `docs/` taxonomy no longer describes the tree it governs
+    - **Done when:** a reader of ADR-60 cannot be misled about which `docs/` genres exist — either an appended amendment marker re-scopes the enumeration while preserving Rule 5, or ADR-101 is recorded as the successor for the genre set — with the choice and its reason recorded, and no living doc still asserting the six-folder taxonomy
+    - **Witnessing SHA:** `f1239f16d` — docs(audits): LANE G STEP 3 -- delta measurement and the final REPORT list
+    - evidence: 4 commit(s) name `[#546]`; none declares closure · source `tasks/546-adr-60-docs-taxonomy-no-longer-describes-the-tree.md`
+- **`[#547]`** (open) — Split-brain prevention is instructed against a handoff section shape v6 does not produce
+    - **Done when:** the split-brain drift check either names v6 artifacts and sections that actually exist, or is recorded as retired with its successor mechanism named (the v6 P-probes are the candidate) — and no live surface instructs reading a handoff section absent from `HANDOFF_PROCESS.md`
+    - **Witnessing SHA:** `f1239f16d` — docs(audits): LANE G STEP 3 -- delta measurement and the final REPORT list
+    - evidence: 3 commit(s) name `[#547]`; none declares closure · source `tasks/547-split-brain-prevention-has-no-referent-under-v6.md`
+- **`[#548]`** (open) — Intake #12's SETTLED ownership manifest is parked on a departed id, and three live rows depend on it by name
+    - **Done when:** intake #12's TIER-1/TIER-2 manifest content has a live carrier — a row that owns building it or retiring it — OR the document's `trigger:` is re-anchored onto a live id or a date on the [#322] precedent (*"a peg whose referent will not occur tests nothing, so the trigger is a date"*), with [#329]/[#331]/[#332]'s dangling `#328` references repointed in the same act
+    - **Witnessing SHA:** `7bf207662` — feat(backlog): X1 steps 2-3 — adopt the 17 inferred edges and re-peg the nine deferred rows
+    - evidence: 5 commit(s) name `[#548]`; none declares closure · source `tasks/548-intake-12-settled-ownership-manifest-has-no-carrier.md`
+- **`[#549]`** (deferred) — The operator-approved Fleet-Hygiene plan-of-record (intake #13 v4) has no carrier
+    - **Done when:** intake #13 is either recorded SUPERSEDED with [E9]/ADR-109 named as the successor for the overlapping phases and any residue re-filed, or its `trigger:` is re-anchored onto a live id or a date — and if superseded, no living surface still cites it as the incoming sessions' comparison baseline
+    - **Witnessing SHA:** `353149ab5` — fix(audit,backlog): B3c routine_consumers 1->3 across all three surfaces; the A-DEFER narrowing acts
+    - evidence: 5 commit(s) name `[#549]`; none declares closure · source `tasks/549-fleet-hygiene-plan-of-record-has-no-carrier.md`
+- **`[#550]`** (open) — Intake #14's ruled SIEM requirements outlived the ruling that shelved them, with no record of which half survives
+    - **Done when:** each ruled requirement clause in intake #14 is marked shelved-with-its-reason, live-and-carried-by-a-named-row, or dead, and the document's `trigger:` no longer names a departed id
+    - **Witnessing SHA:** `59df6478d` — docs(backlog): STEP 2 batch 2 -- trim 6 rows under the 1320 ceiling
+    - evidence: 5 commit(s) name `[#550]`; none declares closure · source `tasks/550-intake-14-ruled-siem-requirements-half-dispositioned.md`
+- **`[#551]`** (open) — Audit artifacts carry no `status:`, so a consumed audit is indistinguishable from a live one
+    - **Done when:** `docs/audits/*.md` carry a `status:` field with its closed enum stated at a canonical home, the index generator reads it, a CONSUMED artifact is visibly folded rather than flat-listed, the writer of the field is named, and the implementing commit restates the ADR-100 no-move invariant
+    - **Witnessing SHA:** `98f4bbd40` — docs(backlog): STEP 2 batch 1 -- trim 8 rows under the 1320 ceiling
+    - evidence: 3 commit(s) name `[#551]`; none declares closure · source `tasks/551-audit-artifacts-carry-no-status-field.md`
+- **`[#552]`** (open) — Window-close disposition + archival routine — every new audit gets a disposition, every terminal ADR/intake is archived
+    - **Done when:** both legs are built with those tests, the ADR-100 exclusion is stated in the check's docstring, and one window closes with every new audit dispositioned and zero terminal-status documents outside an archive/
+    - **Witnessing SHA:** `87108c2f0` — Merge branch 'worktree-filings-3' -- R5 item 018 and the B3/B4 residue ledger [#612]
+    - evidence: 12 commit(s) name `[#552]`; none declares closure · source `tasks/552-window-close-disposition-and-archival-routine.md`
+- **`[#553]`** (open) — `docs/decisions/README.md`'s ADR census is hand-maintained, ungated, and currently wrong in two places
+    - **Done when:** the ADR census figures are either machine-generated with a regen-and-diff gate on the `audit-index-freshness` model, or carry a dated re-measurement matching a live count; and the ADR-61 claim states the three-format parser hazard instead of asserting an absent status line
+    - **Witnessing SHA:** `99f80e884` — docs(audits): LANE-ARCH lifecycle-archival report — 0 ADRs eligible, audits leg STOPPED on ADR-100 [#564]
+    - evidence: 6 commit(s) name `[#553]`; none declares closure · source `tasks/553-adr-census-in-decisions-readme-is-ungated-and-wrong.md`
+- **`[#555]`** (open) — Closing campaign batch 1 + kill-candidates instrument
+    - **Done when:** the first batch closes **net-negative** — closures strictly greater than births — measured against the live denominator at that batch's close, with the before/after figures both re-derived rather than carried
+    - **Witnessing SHA:** `c64165a96` — docs(backlog): [#555] land R2 -- the ledger denominator ruling, verbatim
+    - evidence: 9 commit(s) name `[#555]`; none declares closure · source `tasks/555-closing-campaign-batch-1-kill-candidates-instrum.md`
+- **`[#559]`** (open) — Kernel/lab check tiering + `dev-knowledge-kernel` as an installable package
+    - **Done when:** every `ALL_CHECKS` member carries a `kernel`/`hub` tier; `dev-knowledge-kernel` is installable from the hub at a git tag and at least one consumer resolves it as a pinned dependency; and the package pins `requires-python` + uv `required-version` and exposes the shared ruff config a consumer `extend`s
+    - **Witnessing SHA:** `ae295f5f4` — docs(intake): ROOT-CONTRACT v1 stated on intake #38 -- permitted set, relocation, workspace, ordering
+    - evidence: 10 commit(s) name `[#559]`; none declares closure · source `tasks/559-kernel-lab-check-tiering-dev-knowledge-kernel-as.md`
+- **`[#560]`** (open) — `review_artifact_coverage` reads only the FIRST branch/HEAD triple per file, and one title literal, so a real review can be invisible to it
+    - **Done when:** the reader parses EVERY triple in a file, a multi-branch artifact links every branch it reviews, the title predicate admits the forms actually in `docs/audits/` while still admitting 0 of the 13 non-review docs carrying `**Branch:**`, the leg emits one Finding per unlinked merge, and any residual WARN on an immutable artifact is dispositioned
+    - **Witnessing SHA:** `c9ca6fe5e` — docs(audits): batch close report
+    - evidence: 8 commit(s) name `[#560]`; none declares closure · source `tasks/560-review-artifact-coverage-reads-only-the-first-br.md`
+- **`[#561]`** (open) — Re-base the compute plan onto the Hetzner CX shared line
+    - **Done when:** intake #32 carries an amendment or superseded-by pointer naming intake #39, and no live doc cites a CCX price as current — a grep for the stale figures returns only historical or quoted contexts
+    - **Witnessing SHA:** `13a61eef2` — docs(handoff): cut the 2026-08-20 architect-2 bundle -- the queue is drained, and eight unsequenced rows are the carry
+    - evidence: 8 commit(s) name `[#561]`; none declares closure · source `tasks/561-re-base-the-compute-plan-onto-the-hetzner-cx-sha.md`
+- **`[#564]`** (open) — Lifecycle archival — a pass over implemented ADRs and decided intakes, plus a check so archival cannot silently lag
+    - **Done when:** every ADR meeting H3's zero-inbound-reference predicate is in `docs/decisions/archive/`, every intake in a terminal decided state is archived per the ADR-98 spine's convention, and an `audit.py` check reports a terminal-state record that has sat un-archived past a stated threshold — with a test that seeds one and sees it surface
+    - **Witnessing SHA:** `3d5a42352` — docs(audit): funnel groom -- READ-ONLY proposal sheet, nine bundles at 78daf400
+    - evidence: 5 commit(s) name `[#564]`; none declares closure · source `tasks/564-lifecycle-archival-implemented-adrs-and-decided-int.md`
+- **`[#567]`** (open) — CX53 daily-driver substrate lane — the every-prompt requirement, carried under `[#561]`
+    - **Done when:** `devcontainer up` is executed on a host we control and the result recorded (discharging lane J's D2), the same devcontainer boots on a CX53 with `claude` reachable over VS Code Remote, and the every-prompt requirement is measured against it rather than asserted — with the Codespaces monthly burn recorded alongside, so the two substrates are compared on evidence
+    - **Witnessing SHA:** `b6e2044b3` — docs(backlog): release the window's births -- [#562] [#563] [#564] [#565] [#566] [#567] [#568] [#569]
+    - evidence: 1 commit(s) name `[#567]`; none declares closure · source `tasks/567-cx53-daily-driver-substrate-lane-the-every-prompt-r.md`
+- **`[#568]`** (open) — Provider config as code — `.dev-knowledge` as source of truth, machine-global dirs as junctions
+    - **Done when:** the four provider config dirs resolve to junctions into tracked paths in this repo, with the link topology asserted by a test that FAILs on an un-linked dir; one model registry file carries every model id with its effort enum and admission status; the routing table derives from it rather than restating it; and a test FAILs on a routed model absent from the registry
+    - **Witnessing SHA:** `b6e2044b3` — docs(backlog): release the window's births -- [#562] [#563] [#564] [#565] [#566] [#567] [#568] [#569]
+    - evidence: 1 commit(s) name `[#568]`; none declares closure · source `tasks/568-provider-config-as-code-dev-knowledge-as-source-of-.md`
+- **`[#570]`** (open) — Consume intake #27's W-wave rows — the deferred half of the tech-adoption ledger
+    - **Done when:** every §A row still reading `DEFERRED(W-wave batch …)` has been either run (result recorded as an appended amendment), re-pegged to a live dated trigger, or refused with a reason — and no row is left pointing at a spent peg
+    - **Witnessing SHA:** `92caed401` — docs(backlog): S6 -- file f1-f5 [#572] [#573] [#574] [#575] [#576]; f6-f8 queued
+    - evidence: 4 commit(s) name `[#570]`; none declares closure · source `tasks/570-consume-the-tech-adoption-ledger-w-wave.md`
+- **`[#571]`** (open) — Define \"architecture-described surface\" + the architecture-freshness check (intake #33 A1)
+    - **Done when:** the definition is written and grep-evaluable, the check exists and fires on a fixture where an architecture-described surface changed with no `ARCHITECTURE.md` delta, Q3's advisory-vs-blocking posture is recorded as a decision rather than a default, and the three routed obligations are each named as discharged
+    - **Witnessing SHA:** `92caed401` — docs(backlog): S6 -- file f1-f5 [#572] [#573] [#574] [#575] [#576]; f6-f8 queued
+    - evidence: 4 commit(s) name `[#571]`; none declares closure · source `tasks/571-define-architecture-described-surface.md`
+- **`[#572]`** (open) — Intake-funnel completion — #34 flip, #35–#37 transitions post-R7, funnel hygiene
+    - **Done when:** #34 is flipped or its blocking source artifact is named with a dated trigger, #35–#37 each carry the transition their sub-fork permits or a recorded reason it cannot, and a P-2 sweep confirms every ACCEPTED intake has a live carrier or dated deferral
+    - **Witnessing SHA:** `353149ab5` — fix(audit,backlog): B3c routine_consumers 1->3 across all three surfaces; the A-DEFER narrowing acts
+    - evidence: 3 commit(s) name `[#572]`; none declares closure · source `tasks/572-intake-funnel-completion-carrier.md`
+- **`[#573]`** (open) — lychee as a zero-baseline markdown-link gate on the actionable corpus
+    - **Done when:** the gate is armed with its `lychee.toml`, a fixture proves it FAILs on an introduced broken link and passes on the live corpus, and the hook comment states its link-syntax-only scope
+    - **Witnessing SHA:** `65ce67c04` — docs(audit): LANE V3 verdicts — register rows C16-C23 (gates and CI)
+    - evidence: 3 commit(s) name `[#573]`; none declares closure · source `tasks/573-lychee-zero-baseline-md-link-gate.md`
+- **`[#574]`** (open) — gen_lane_contract emits the batch manifest — Q6's own failure class, recurring
+    - **Done when:** a batch manifest is machine-emitted with lane rows resolving to committed contract files, `check` refuses one naming an uncommitted contract, and a dispatched batch is reconstructable from repo artifacts alone
+    - **Witnessing SHA:** `9fd6a4e65` — docs(intake,backlog): D5 filing -- intake #40 (doc-graph organ) and [#577] (AGENTS.md lane)
+    - evidence: 3 commit(s) name `[#574]`; none declares closure · source `tasks/574-batch-manifest-emitted-by-gen-lane-contract.md`
+- **`[#575]`** (open) — Telemetry store: 98.5% of an emit, and silent drops under concurrent writers
+    - **Done when:** per-event cost drops with a before/after measurement, ≥8 concurrent writers no longer drop events silently (retry or surface, with a test), and the store resolves via `--git-common-dir` with a two-worktree test
+    - **Witnessing SHA:** `c67d38072` — docs(intake): the DASHBOARD HOME ruled -- docs/dashboard/, and four carriers reconciled to it [#614]
+    - evidence: 5 commit(s) name `[#575]`; none declares closure · source `tasks/575-telemetry-store-performance-and-silent-drops.md`
+- **`[#576]`** (open) — Telemetry read path — the lane `[#565]` was sequenced before
+    - **Done when:** the read path answers at least one named operator question over the live store, grouped by `run_id`, with the question and its consumer named before the query is built (ADR-105 §2 named-consumer rule)
+    - **Witnessing SHA:** `c67d38072` — docs(intake): the DASHBOARD HOME ruled -- docs/dashboard/, and four carriers reconciled to it [#614]
+    - evidence: 4 commit(s) name `[#576]`; none declares closure · source `tasks/576-telemetry-read-path-lane.md`
+- **`[#578]`** (open) — The earned mitigated rerun — one slot, role-reminder preamble baked in
+    - **Done when:** all 14 pack items plus `C1-N3` are re-run on both candidates with the role-reminder preamble present in every item's dispatch text, the incumbent's `C1-N3` is either measured on the Anthropic path or its absence is recorded as transport evidence rather than as a judgement, per-lane refusal counts are reported so the guard's contribution is a number, the three gates are computed, and the artifact asserts **no verdict**
+    - **Witnessing SHA:** `aa782d7a2` — Merge branch 'docs/rows-logs-and-agy' -- [#626] and [#627] born; the agy route marked INERT in L0 [#614]
+    - evidence: 10 commit(s) name `[#578]`; none declares closure · source `tasks/578-the-earned-mitigated-rerun-one-slot-role-reminder.md`
+- **`[#579]`** (open) — Code doctrine & FDD — one ADR merging intakes #31 and #34 (packet ARC-A)
+    - **Done when:** one ADR reads `Accepted` and carries all five decisions (style, ruff selection, complexity ceiling, import-linter contract, mypy), intake #31 and intake #34 each carry a terminal `status:` with `decided-by`, the §D hotspot measurement is recorded before any refactor row is filed, and every rule the ADR states either names its enforcing gate or is explicitly recorded as judgment-only
+    - **Witnessing SHA:** `e4f0d4dbd` — docs(governance): 0b-0e — rule the four open design questions (register section Z)
+    - evidence: 3 commit(s) name `[#579]`; none declares closure · source `tasks/579-code-doctrine-fdd-one-adr-merging-intakes-31-and.md`
+- **`[#580]`** (open) — State-as-data: atomic id allocation, and `tasks/` as the SOLE source (packet ARC-B)
+    - **Done when:** allocating an id and filing a row require no hand edit of `tasks/manifest.json`, two concurrent allocations cannot yield the same id (shown by a test that fails against today's `max+1`), the C09 fork is recorded as decided with its reason, and ADR-107's schema statement either carries `SOLE` or is amended to say what it actually means
+    - **Witnessing SHA:** `d6c77aca4` — feat(backlog): birth 8 rows from intakes #55 and #56 -- the recon wave consumed through the funnel
+    - evidence: 2 commit(s) name `[#580]`; none declares closure · source `tasks/580-state-as-data-atomic-id-allocation-and-tasks-as.md`
+- **`[#581]`** (open) — Backlog vitals — three flow instruments, a committed digest, and what-is-unblocked-now (packet ARC-C)
+    - **Done when:** the three instruments are COMPUTED from `tasks/` by a generator and never typed, the digest is a committed artifact regenerated per window behind a freshness gate, what-is-unblocked-now is derived from live `depends-on` edges with no new schema field, and the R2 denominator is cited by locator in the code that uses it
+    - **Witnessing SHA:** `5252a1c04` — feat(backlog): wave-1 births - 8 rows spent against the 2026-08-25 register ruling packet
+    - evidence: 1 commit(s) name `[#581]`; none declares closure · source `tasks/581-backlog-vitals-three-flow-instruments-a-committe.md`
+- **`[#582]`** (open) — Substrate router — one gated enum, a capability-keyed table, and the generator that reads it (packet ARC-D)
+    - **Done when:** one ADR extends `SHAPE_ENUM` with generator, hook and routing table moving in a single commit, `gen_lane_contract` derives substrate and command from the capability-keyed table rather than from prose, the four capability keys are populated from the three declared sources, the per-provider status block is generated and freshness-gated across all six providers, and every routing number the ADR cites is measured with its command recorded
+    - **Witnessing SHA:** `b95edd312` — feat(gates): [#591] substrate validator, layer 2 — REFUSE a contract whose substrate contradicts its content
+    - evidence: 3 commit(s) name `[#582]`; none declares closure · source `tasks/582-substrate-router-one-gated-enum-a-capability-key.md`
+- **`[#583]`** (open) — Green-by-skip sweep — a check that cannot obtain ground truth must not report OK (packet ARC-E, C18)
+    - **Done when:** the frozen sweep artifact is consumed row by row, `validate_doc_claims` no longer prints OK while a leg reports `<ground truth unavailable>`, the `cmd_checks` cp1252 crash is fixed fail-loud rather than worked around in prose, and every remaining silent-skip site either fails loud or carries a declared reason
+    - **Witnessing SHA:** `de3446164` — Merge branch 'fix/freshness-no-corpus-guard' -- a directory with NO corpus is not this check's subject
+    - evidence: 15 commit(s) name `[#583]`; none declares closure · source `tasks/583-green-by-skip-sweep-a-check-that-cannot-obtain-g.md`
+- **`[#585]`** (open) — Suite RED — `test_anchor_gate_probe_distinguishes_installed_from_absent` does not discriminate: repair it, retire it, or fix the organ
+    - **Done when:** `test_anchor_gate_probe_distinguishes_installed_from_absent` is green, or it is retired with the reason recorded and `block_unanchored_push`'s demonstrated enforcement scope restated wherever it is claimed, and `[#569]` is re-scoped to the PLAYBOOK census with this row named as item (A)'s carrier
+    - **Witnessing SHA:** `3d5a42352` — docs(audit): funnel groom -- READ-ONLY proposal sheet, nine bundles at 78daf400
+    - evidence: 7 commit(s) name `[#585]`; none declares closure · source `tasks/585-suite-red-test-anchor-gate-probe-distinguishes-i.md`
+- **`[#586]`** (open) — Suite RED — `test_no_gate_hook_or_script_reads_the_export` has no `ecosystem/` naming-vs-reading carve-out (packet ARC-G, C04)
+    - **Done when:** `test_no_gate_hook_or_script_reads_the_export` is green with an `ecosystem/` carve-out distinguishing naming from reading (or with a recorded reason for refusing one), regenerating `ecosystem/conformance.html` and `ecosystem/conformance.md` no longer REDs the suite, and the naming-vs-reading rule is stated once in a durable home rather than duplicated per scan
+    - **Witnessing SHA:** `3d5a42352` — docs(audit): funnel groom -- READ-ONLY proposal sheet, nine bundles at 78daf400
+    - evidence: 5 commit(s) name `[#586]`; none declares closure · source `tasks/586-suite-red-test-no-gate-hook-or-script-reads-the.md`
+- **`[#587]`** (open) — P-1 — invert the journal-anchor check to a single pass
+    - **Done when:** `scripts/journal_anchor.py`'s predicate walks the range once, `block_unanchored_push` and the `journal_spine_anchor` audit backstop still share it (no second implementation), the before/after wall-times are recorded in the commit from the same invocation, and the shared-organ tests stay green with no assertion weakened
+    - **Witnessing SHA:** `85ff0b76d` — chore(baselines): the six drift families re-measured -- four cleared, two named, and two of the four were REAL defects rather than count noise [#614]
+    - evidence: 18 commit(s) name `[#587]`; none declares closure · source `tasks/587-p-1-invert-the-journal-anchor-check-to-a-single.md`
+- **`[#588]`** (open) — P-2 — build the spine parent-map in ONE git process
+    - **Done when:** the spine scan issues one git invocation regardless of range length, `validate_no_ff.find_violations` returns byte-identical verdicts on a fixture range before and after (a test pins that equivalence), `block-ff-push` and the `no_ff_merges` WARN still share the one signature, and the before/after timing is recorded from the same command
+    - **Witnessing SHA:** `22f06b21e` — perf(audit): P2 spine-walk spawn consolidation + P3 per-run read cache (intake #71 draft)
+    - evidence: 14 commit(s) name `[#588]`; none declares closure · source `tasks/588-p-2-build-the-spine-parent-map-in-one-git-proces.md`
+- **`[#589]`** (open) — One line per row — the BACKLOG view projection, with a size assertion that cannot be silently undone
+    - **Done when:** the generated view emits one line per row (`id
+    - **Witnessing SHA:** `a436545ad` — Merge branch 'worktree-lane-g-614-hygiene' -- G8: the numbers the tag exports are true, and the parked item is a CANDIDATE [#614]
+    - evidence: 23 commit(s) name `[#589]`; none declares closure · source `tasks/589-one-line-per-row-the-backlog-view-projection-wit.md`
+- **`[#590]`** (open) — The audits index is regenerated on read, never merge-resolved
+    - **Done when:** a lane no longer has to commit `docs/audits/README.md` for its artifact to be indexed, the index is derived at read/regen time, the freshness gate still refuses a stale committed index (or is retired with its reason recorded and the guarantee restated), and zero generated-file conflicts appear across the next 20 merges
+    - **Witnessing SHA:** `335e14867` — docs(audits): regenerate the audits index after the batch-U manifest merge
+    - evidence: 47 commit(s) name `[#590]`; none declares closure · source `tasks/590-the-audits-index-is-regenerated-on-read-never-me.md`
+- **`[#591]`** (open) — Substrate validator, layer 2 — REFUSE a contract whose substrate contradicts its own content
+    - **Done when:** the validator REFUSES a contract naming a substrate with no live verb, REFUSES cloud plus a gate in its Done-when, REFUSES codespace/cloud plus an operator-disk path, and WARNs on a second local writer in one checkout; an override is an explicit RECORDED deviation and never a silent pass; each refusal names the rule it fired on; and a fire-test proves each of the four legs actually fires
+    - **Witnessing SHA:** `8e832523f` — feat(freeze): the architect's cut lands, and the [#591] validator grows predicates five and six
+    - evidence: 18 commit(s) name `[#591]`; none declares closure · source `tasks/591-substrate-validator-layer-2-refuse-a-contract-wh.md`
+- **`[#592]`** (open) — Dispatch drift organ — every literal command in Ch8 must resolve on the machine
+    - **Done when:** every literal command in PLAYBOOK Ch8's table resolves via `Get-Command` at commit time, `.claude/commands/lane-boot.md` is asserted to contain the ruled verb, a fire-test proves the check REDs on a planted dead command, and the machine-dependence is handled explicitly — in CI or a container the check reports `info` and NEVER green-by-skip
+    - **Witnessing SHA:** `b3f489b59` — docs(intake): the .CLAUDE GOVERNANCE MODEL joins #62's four legs, and the HERMETIZATION order lands in north-star
+    - evidence: 9 commit(s) name `[#592]`; none declares closure · source `tasks/592-dispatch-drift-organ-every-literal-command-in-ch.md`
+- **`[#593]`** (open) — Codespaces chain repair, hub half — uv in the image and a prebuild that actually refreshes
+    - **Done when:** smoke run 6 returns `Ok=True` AND `RemoteExitCode=0` AND the receipt's HEAD equals the pushed HEAD — all three, since any one alone has previously passed while the transport was broken; `uv` resolves on PATH inside the container at the pinned version; and the copy-leg defect is either fixed or explicitly recorded as the operator-side half this row does not own
+    - **Witnessing SHA:** `f8dbc5c27` — Merge branch 'docs/postnight-integration' -- the three lane merges anchored, two stranded rows filed
+    - evidence: 11 commit(s) name `[#593]`; none declares closure · source `tasks/593-codespaces-chain-repair-hub-half-uv-in-the-image.md`
+- **`[#594]`** (open) — Layer-3 router — the HUB prerequisites only, not the verb itself
+    - **Done when:** the substrate registry has ONE home that both the layer-2 validator and any future router read (no second copy), the contract `Substrate:` field is schema-declared rather than conventional, the hub-side half is demonstrably consumable by a router that does not yet exist, and PLAYBOOK Ch8 states the LOCAL-ONLY limitation in the same sentence that names the verb until the router lands
+    - **Witnessing SHA:** `852e145c6` — Merge branch 'docs/endgame-2026-08-26' — the endgame governance session lands
+    - evidence: 2 commit(s) name `[#594]`; none declares closure · source `tasks/594-layer-3-router-the-hub-prerequisites-only-not-th.md`
+- **`[#595]`** (open) — Consumer-at-landing gate for `docs/audits/` — the subtraction mechanism
+    - **Done when:** an added `docs/audits/` artifact declares a consumer (or an explicit `no-consumer: <reason>`), the unconsumed count does not grow window-over-window measured the SAME way the diagnostic measured it — IDENTIFIER-keyed, never filename-keyed, since a filename-keyed reaper would have proposed deleting 14 live documents and 420 live handoff files — and the check reports `info` rather than passing when it cannot resolve citations
+    - **Witnessing SHA:** `5b82c5d90` — chore(gates): re-baseline the docs/audits consumer ratchet after the batch-F landing [#595]
+    - evidence: 21 commit(s) name `[#595]`; none declares closure · source `tasks/595-consumer-at-landing-gate-for-docs-audits-the-sub.md`
+- **`[#596]`** (open) — Family-3 at the PROOF layer — the class `[#583]` names but does not prove
+    - **Done when:** the family-3 class is stated once in a durable home with its predicate, `[#583]`'s sweep rows are shown to be instances of it rather than a separate list, a fire-test demonstrates the proof layer catching a check that reports OK without evaluating, and the relationship between the two rows is recorded so neither is read as absorbing the other
+    - **Witnessing SHA:** `e4f0d4dbd` — docs(governance): 0b-0e — rule the four open design questions (register section Z)
+    - evidence: 8 commit(s) name `[#596]`; none declares closure · source `tasks/596-family-3-at-the-proof-layer-the-class-583-names.md`
+- **`[#597]`** (open) — P-4 — a declared tier per check, and P-3's telemetry window FIRST
+    - **Done when:** P-3's telemetry window lands FIRST and records a per-check cost, every check declares the tier it runs at (commit / push / integration), every tier decision cites its measured cost in the commit that makes it — a check demoted without a number is a defect, not a shortcut — and NO check is made faster by being made weaker
+    - **Witnessing SHA:** `825dfb605` — docs(backlog): R5/B8 + B10 rows, the [#552] ledger citation, and the Batch P intake
+    - evidence: 13 commit(s) name `[#597]`; none declares closure · source `tasks/597-p-4-a-declared-tier-per-check-and-p-3-s-telemetr.md`
+- **`[#598]`** (open) — P-6 — a slow-marker selector so tiered gating has something to select on
+    - **Done when:** slow tests carry a marker applied from measured durations rather than by guess, a selector runs the fast set and the full set as distinct invocations, the marker set is regenerable from a `--durations` run so it cannot silently rot, and the fast set's coverage gap versus the full set is STATED rather than implied
+    - **Witnessing SHA:** `d30391fbc` — docs(journal): close the na/nb mini-merge -- name 30c45391 and record the two headline numbers
+    - evidence: 7 commit(s) name `[#598]`; none declares closure · source `tasks/598-p-6-a-slow-marker-selector-so-tiered-gating-has.md`
+- **`[#599]`** (open) — Generated standing-vs-NEW drift block in the handoff residual
+    - **Done when:** `gen_handoff.py` renders the three-list block above the driftflags FILL-IN with no verdict, count or sha in it, the FILL-IN prompt is narrowed to decision-vs-defect, and `validate_residual_completeness` plus `verify_handoff_probes` are green on a fresh cut
+    - **Witnessing SHA:** `d6c77aca4` — feat(backlog): birth 8 rows from intakes #55 and #56 -- the recon wave consumed through the funnel
+    - evidence: 1 commit(s) name `[#599]`; none declares closure · source `tasks/599-generated-standing-vs-new-drift-block-in-the-han.md`
+- **`[#600]`** (open) — Delete P10 from the shipped probe manifest and gate the boundedness condition
+    - **Done when:** the P10 row is out of `templates/handoff/v5/PROBES.md.tmpl`, `verify_handoff_probes` FAILs an unbounded probe row (row-scoped and era-judged, so sealed older bundles are not retro-REDed), and the RED-first test lands **before** the removal
+    - **Witnessing SHA:** `d6c77aca4` — feat(backlog): birth 8 rows from intakes #55 and #56 -- the recon wave consumed through the funnel
+    - evidence: 1 commit(s) name `[#600]`; none declares closure · source `tasks/600-delete-p10-from-the-shipped-probe-manifest-and-g.md`
+- **`[#601]`** (open) — `supplement_folded` audit check — a filled supplement that never reached the paste
+    - **Done when:** a `supplement_folded` check is FAIL-class in `ALL_CHECKS`, FAILs when a bundle's SUPPLEMENT ANSWERS region is non-empty and its `PASTE_THIS.md` carries no supplement section, is RED against the one live instance, and goes green only on regeneration **or** on a recorded immutable-and-lost disposition — a committed bundle is immutable, so the check must accept the disposition as a real discharge rather than force an edit to a sealed artifact
+    - **Witnessing SHA:** `d6c77aca4` — feat(backlog): birth 8 rows from intakes #55 and #56 -- the recon wave consumed through the funnel
+    - evidence: 1 commit(s) name `[#601]`; none declares closure · source `tasks/601-supplement-folded-audit-check-a-filled-supplemen.md`
+- **`[#602]`** (open) — Land the ruled dispatch verb in the bundle's forms card, and extend the agreement gate to the bundle sites
+    - **Done when:** the next bundle cut's forms card carries the ruled verb, the agreement gate covers all four sites as a single organ that REDs on any rival verb, and a fire-test proves it REDs on a planted rival
+    - **Witnessing SHA:** `f8dbc5c27` — Merge branch 'docs/postnight-integration' -- the three lane merges anchored, two stranded rows filed
+    - evidence: 3 commit(s) name `[#602]`; none declares closure · source `tasks/602-land-the-ruled-dispatch-verb-in-the-bundle-s-for.md`
+- **`[#603]`** (open) — An operator-interface capability file — the facts every seat re-derives about how the operator works
+    - **Done when:** intake `#53` question 1 is answered with a recorded reason, ONE file carries the recurring interface facts at that home, the bundle's forms card points at it rather than restating it, and the SUPPLEMENT Q6 prompt is narrowed to changed intent
+    - **Witnessing SHA:** `d6c77aca4` — feat(backlog): birth 8 rows from intakes #55 and #56 -- the recon wave consumed through the funnel
+    - evidence: 1 commit(s) name `[#603]`; none declares closure · source `tasks/603-an-operator-interface-capability-file-the-facts.md`
+- **`[#604]`** (open) — Admit win-tooling and terminal-setup to the deploy registry and rule their onboarding profiles
+    - **Done when:** `terminal-setup` carries a null-valued key in `ecosystem/deployed-versions.yaml` **and** an entry in `ecosystem/satellite-onboarding-rulings.yaml` naming `full` or `floor-only` with `ruled_by` and a date, `validate_onboarding_rulings.py` reports no schema defect, and each admitted repo's `parity-surfaces.yaml` reason states its true registry state
+    - **Witnessing SHA:** `49a3f854e` — docs(governance): C1 C3 C4 C9 filed -- three intake amendments, one intake born, [#616] [#617]
+    - evidence: 7 commit(s) name `[#604]`; none declares closure · source `tasks/604-admit-win-tooling-and-terminal-setup-to-the-depl.md`
+- **`[#605]`** (open) — De-hardcode consumer-root resolution in `deploy/tool.py` and `scripts/audit.py`
+    - **Done when:** both modules accept an **explicit** consumer root with the sibling layout kept as the default fallback, a test proves a non-sibling layout resolves, and `audit repo <name>` runs from a checkout with no sibling tree
+    - **Witnessing SHA:** `2a08e37d9` — docs(audit): NB2 lane E hand-back packet [#605]
+    - evidence: 3 commit(s) name `[#605]`; none declares closure · source `tasks/605-de-hardcode-consumer-root-resolution-in-deploy-t.md`
+- **`[#606]`** (open) — The win-tooling first-slice instantiation arc, run in the RULING-W shape
+    - **Done when:** `audit repo win-tooling` reports the floor present, the pre-commit set armed, the parity role flipped from pre-deploy to consumer, and a fresh baseline landed in `ecosystem/win-tooling/history/`; the whole arc ran as a consumer worktree or branch then report; and the `workspace_settings` finding is recorded as hand-fixed or as accepted debt, since the `editor-config` carrier is declaration-only and cannot close it
+    - **Witnessing SHA:** `e10f6556c` — docs(audits): NB2 lane A packet — [#604] remainder + [#606] win-tooling first slice
+    - evidence: 4 commit(s) name `[#606]`; none declares closure · source `tasks/606-the-win-tooling-first-slice-instantiation-arc-ru.md`
+- **`[#607]`** (open) — PLAYBOOK census discharge — the mechanical half of the 19 findings
+    - **Done when:** H1 H2 H3 H4 H5 H14 H17 H18 and H19b are corrected, H6–H12 are re-anchored as **heading/symbol** citations carrying no bare line numbers (so the same rot cannot recur in the same place), each of the 19 carries a named per-finding verdict in the correcting commit message, `protocols/PLAYBOOK.md:3700` is byte-identical (it is a `provider-registry-agreement` gate seam), the `toc-freshness-playbook` hook is green in the same commit as every heading act, and `uv run --locked pytest -x --tb=short` is green
+    - **Witnessing SHA:** `07526e4fc` — Merge branch 'worktree-pn-filings' -- A3/C1/C3/C4/C5/C8/C9 reconciled, two births, four brief premises corrected
+    - evidence: 5 commit(s) name `[#607]`; none declares closure · source `tasks/607-playbook-census-discharge-the-mechanical-half-of.md`
+- **`[#608]`** (open) — Tiling-aware journal read — the rotation seam, before any split
+    - **Done when:** `journal_anchor.journal_text()` returns `JOURNAL.md` tiled with sorted `JOURNAL-legacy-*.md` in date order; a test proves the tiled read is **byte-identical** to today's single-file read on a tree with no legacy files; a second test proves anchor verdicts are unchanged across a synthetic two-file tiling; and `block_unanchored_push` and `check_journal_spine_anchor` still share **ONE** predicate with no second implementation
+    - **Witnessing SHA:** `8e452b3de` — feat(preflight): four freeze-time contract predicates + the C-F Shape mis-parse fix [#591]
+    - evidence: 6 commit(s) name `[#608]`; none declares closure · source `tasks/608-tiling-aware-journal-read-the-rotation-seam-befo.md`
+- **`[#609]`** (open) — Free ruff ratchet — the zero-cost half of the Python standard
+    - **Done when:** `[tool.ruff.lint]` names the twelve zero-cost families explicitly and `uv run --locked ruff check .` exits 0 with no new `per-file-ignores` for that tier; the three unrepresentable clauses are amended per X4 with their measured denominators quoted, and PLAYBOOK's Python-standard text agrees so no clause survives that the tree refutes; `ecosystem/parity-surfaces.yaml` carries `[tool.ruff.lint]` as a fifth MUST-uniform surface reported by `fleet_parity` across all three fleet repos; and `templates/ruff-config-block.toml`'s REPO-PERSONAL `select` declaration is **superseded on the record** with a dated pointer to X3 — legible in the file, not only in the register
+    - **Witnessing SHA:** `f330daa6b` — docs(audits): research arc -- Python quality & speed, measured
+    - evidence: 3 commit(s) name `[#609]`; none declares closure · source `tasks/609-free-ruff-ratchet-the-zero-cost-python-standard.md`
+- **`[#610]`** (open) — The night-batch protocol, named — with its two missing verbs
+    - **Done when:** PLAYBOOK carries a named night-batch protocol section enumerating all five phases with each phase's inputs, outputs and refusal conditions; the manifest shape is specified precisely enough that two different seats produce the same sections, with the 2026-08-27 landed manifest validating against it as the reference instance; `Dispatch-After` and `Harvest-Cloud` exist as named win-tooling verbs each with a usage line and its API surface recorded, `Dispatch-After` documented as a **form of** the ruled `Dispatch` verb rather than a rival to it; the protocol states the byte-identical landing rule and the record-the-deviation rule, citing the two C-reports that opened with prose as the worked example; the report-selection rule names the Stop-hook-noise trap explicitly; and a ledger is a **required** output of the protocol, not an optional one
+    - **Witnessing SHA:** `85ff0b76d` — chore(baselines): the six drift families re-measured -- four cleared, two named, and two of the four were REAL defects rather than count noise [#614]
+    - evidence: 10 commit(s) name `[#610]`; none declares closure · source `tasks/610-the-night-batch-protocol-named-with-its-two-verb.md`
+- **`[#611]`** (open) — HANDOFF_PROCESS v7: the minimal-bundle package
+    - **Done when:** the remaining census deltas land — **b4 probes-pin** (the paste ships version-pinned VARIABLE rows only) plus any D-item still open after the v6.3.0 act; an assembled paste from a **real cut** measures **<=20KB at >=70% window-specific** content; and `HANDOFF_PROCESS` is at **v7.0.0** with every version-bearing surface reconciled and proven by a re-run of `reconciled_versions`, `silent_rule_ratchet` and `verify_handoff_probes`
+    - **Witnessing SHA:** `6ee7c8979` — Merge branch 'docs/batch-g-close-packet' -- BATCH G IS CLOSED: nine lanes, and exactly one row moved
+    - evidence: 34 commit(s) name `[#611]`; none declares closure · source `tasks/611-handoff-process-v7-the-minimal-bundle-package.md`
+- **`[#612]`** (open) — Doc-rot row-body archival mechanism
+    - **Done when:** an archival destination and its write path are ruled and built; a re-run of `validate_doc_rot.py` shows `backlog-row-length` strictly reduced with **no content destroyed** (byte-identical relocation, ADR-29 precedent); the mechanism is documented at the doc-rot doctrine home
+    - **Witnessing SHA:** `d76c8e093` — Merge branch 'worktree-lane-t-000-reds-spine' -- lane 3.10, a RED fixed in the test without weakening the check
+    - evidence: 16 commit(s) name `[#612]`; none declares closure · source `tasks/612-doc-rot-row-body-archival.md`
+- **`[#615]`** (open) — MODEL ATTRIBUTION — a model+version signature trailer on every model-authored commit
+    - **Done when:** a commit-msg hook asserts the trailer and its posture is ruled; the shape is single-sourced; the store consumes it; DB-1's per-model panel renders data instead of `ABSENT`
+    - **Witnessing SHA:** `b40d7393e` — docs(audits): land ATLAS-R1 verbatim with sidecars, wire its consumers, and bind every batch-F lane to a review lane [#614]
+    - evidence: 11 commit(s) name `[#615]`; none declares closure · source `tasks/615-model-attribution-signature-trailer-on-every.md`
+- **`[#616]`** (open) — FLIP-CONDITION — every ADR records what evidence would reverse it
+    - **Done when:** `templates/ADR-template.md` carries a **Flip-condition** section, ADR-108 §A's *mark revertable* clause resolves to it by name, the posture on a missing flip-condition is ruled (WARN or block), and one worked instance exists on a real ADR
+    - **Witnessing SHA:** `170db1eab` — docs(audits): the codespace admission probe is RED on a FOURTH defect -- the agent is not authenticated
+    - evidence: 4 commit(s) name `[#616]`; none declares closure · source `tasks/616-flip-condition-every-adr-records-what-evidence-w.md`
+- **`[#617]`** (open) — FILE DISTILLATION — the output half, and the only worsening series
+    - **Done when:** the worsening is attributed to NAMED growth sites, a distillation act lands on one, and `gen_trend_dashboard.py --write` reports the paste/boot panel no longer WORSENING over a 12-sample window
+    - **Witnessing SHA:** `30fbd2881` — docs(journal): 2026-09-01 (ab) - the article brief lands, and its one unresolvable locator resolves mid-session
+    - evidence: 10 commit(s) name `[#617]`; none declares closure · source `tasks/617-file-distillation-the-output-half-and-the-only-w.md`
+- **`[#618]`** (open) — The silently-stale codespace clone — detection and refresh-on-entry, not a rebuild
+    - **Done when:** a session entering a codespace surfaces clone-vs-`origin` divergence without the operator running `git status` by hand, AND a refresh-on-entry step is either armed or explicitly recorded as operator-side; the stale reading above is the regression case
+    - **Witnessing SHA:** `f8dbc5c27` — Merge branch 'docs/postnight-integration' -- the three lane merges anchored, two stranded rows filed
+    - evidence: 2 commit(s) name `[#618]`; none declares closure · source `tasks/618-the-silently-stale-codespace-clone-detection-and.md`
+- **`[#619]`** (open) — The FM-2 to FM-4 funnel-health coupling is dead — six fields, zero overlap
+    - **Done when:** each of the six fields either renders a derived number or is removed from `_FUNNEL_FIELDS` by a recorded ruling, with a test that fails if the two surfaces drift apart again — the zero-intersection state cannot be re-reachable silently
+    - **Witnessing SHA:** `28bb3002e` — Merge branch 'worktree-lane-a-619-fm-coupling-repair' -- batch-D lane a: the FM-2/FM-4 derivation mapping ruled [#619]
+    - evidence: 8 commit(s) name `[#619]`; none declares closure · source `tasks/619-the-fm-2-to-fm-4-funnel-health-coupling-is-dead.md`
+- **`[#620]`** (open) — Retire the root-README prohibition across the fleet, not only at the hub
+    - **Done when:** each of the eight consumers' inherited statement of the root-README prohibition is either corrected or shown not to exist, measured per repo rather than assumed
+    - **Witnessing SHA:** `9d1d0c940` — Merge branch 'docs/batchd-integrate-ab' -- batch-D integration: lanes a, b, g merged, the manifest that unblocks them
+    - evidence: 2 commit(s) name `[#620]`; none declares closure · source `tasks/620-retire-the-root-readme-prohibition-across-the-fl.md`
+- **`[#621]`** (open) — ADR-114 option (C): the nine-repo VISION.md to README.md filename migration
+    - **Done when:** a sequencing plan across the ADR-104 members exists before the first commit, and ADR-114's second (spine) decision is made in the same ruling
+    - **Witnessing SHA:** `6ee7c8979` — Merge branch 'docs/batch-g-close-packet' -- BATCH G IS CLOSED: nine lanes, and exactly one row moved
+    - evidence: 31 commit(s) name `[#621]`; none declares closure · source `tasks/621-adr-114-option-c-the-nine-repo-vision-md-to-read.md`
+- **`[#622]`** (open) — Promote README.md into the ADR-38 canonical mandatory set
+    - **Done when:** promotion lands with the fleet migration, or the hub-canonical/fleet-optional split is ruled permanent and recorded where the split is readable
+    - **Witnessing SHA:** `9d1d0c940` — Merge branch 'docs/batchd-integrate-ab' -- batch-D integration: lanes a, b, g merged, the manifest that unblocks them
+    - evidence: 2 commit(s) name `[#622]`; none declares closure · source `tasks/622-promote-readme-md-into-the-adr-38-canonical-mand.md`
+- **`[#623]`** (open) — Mechanize the JOURNAL anchor record-line — 719 anchored-by-mention WARNs is a signal-to-noise defect
+    - **Done when:** the generator or a repair pass emits the `Anchors:` record line so a new entry cannot be authored without one, AND the 719 historical WARNs are either mechanically converted or the check's baseline is re-set with the residue named — a WARN count that never falls is a WARN nobody reads
+    - **Witnessing SHA:** `a5ef74e5e` — docs(journal): 2026-09-05 (f) - item 2 closed, L5 verified, and the queue pre-anchored
+    - evidence: 6 commit(s) name `[#623]`; none declares closure · source `tasks/623-mechanize-the-journal-anchor-record-line.md`
+- **`[#624]`** (open) — Nothing watches a BLOCKER's status — a fold target went deferred and no organ noticed
+    - **Done when:** an organ reports, for every row or intake naming another object as a precondition, any case where that object's status changed after the citing text was written — the `[#491]`/`[#492]` instance is the regression case, and the report distinguishes *the target moved* from *the target never existed* (which reference-existence already covers)
+    - **Witnessing SHA:** `277d8c1be` — docs(audits): Act One preserved as an artifact, and [#276] un-deferred on its own peg [#614]
+    - evidence: 5 commit(s) name `[#624]`; none declares closure · source `tasks/624-nothing-watches-a-blockers-status.md`
+- **`[#625]`** (open) — The rule-adherence eval corpus — a FRESH corpus, because neither fold target can carry it
+    - **Done when:** a rule-adherence harness runs ≥10 cases derived from `~/.claude/rules/core-invariants.md`, and it DISCRIMINATES — a deliberately weakened instruction set FAILS while the intact set passes; the config is deleted if it does not discriminate, because a harness that passes everything measures nothing
+    - **Witnessing SHA:** `ae295f5f4` — docs(intake): ROOT-CONTRACT v1 stated on intake #38 -- permitted set, relocation, workspace, ordering
+    - evidence: 6 commit(s) name `[#625]`; none declares closure · source `tasks/625-the-rule-adherence-eval-corpus-fresh.md`
+- **`[#626]`** (open) — `logs/` does not thin — the retention rule exempts the two prefixes that actually accumulate
+    - **Done when:** both callers resolve a bucketed path (`logs/YYYY-MM/PROPOSALS-*.md`) as well as a flat one, with a test per caller proving a bucketed file is found; the two prefix exemptions are REMOVED from `logs_retention` with its fire-test updated; a live run relocates the accumulated files; and `git status` is clean afterwards, since the closure detector's pending-window baseline is what a wrong move corrupts
+    - **Witnessing SHA:** `353b51690` — fix(logs): propose_closures writes into logs/YYYY-MM/, the caller the retention rule never had
+    - evidence: 16 commit(s) name `[#626]`; none declares closure · source `tasks/626-logs-retention-exempts-the-prefixes-that-accumulate.md`
+- **`[#627]`** (open) — The agy route is INERT — no row authorizes its analysis-role admission, so the token policy promises what nothing gates
+    - **Done when:** the `analysis` role row exists in the authoritative table; agy's admission is gated on the **SDA-1 analysis pack** as its measured admission row, scored NO/PARTIAL/YES against the C-1…C-15 set exactly as the incumbent baseline was (`docs/audits/2026-08-29-technical-sda1-adversarial-incumbent-baseline.md`); the verdict lands as a `role_admission:` record on a MODEL row that exists — A7 notes the served `gemini-3-pro-preview` id is NOT a row in `models:` today, which becomes a real gap the moment an admission is written; and `ROUTING.md`'s agy line states the outcome rather than an intention
+    - **Witnessing SHA:** `78daf4006` — Merge branch 'worktree-h5-627-readjudication' -- RATIFY REFUSE, with the claim reclassified [#627]
+    - evidence: 14 commit(s) name `[#627]`; none declares closure · source `tasks/627-agy-route-is-inert-no-row-authorizes-analysis-admission.md`
+- **`[#628]`** (open) — DC-2 re-cut — dissolving `ESSENTIALS.md` is a FLEET-COUPLED release act, not a doc lane
+    - **Done when:** a frozen contract exists whose write-scope covers all ten consumers plus the floor sidecar and every pinned manifest; the ADR-88 register entry's justification is re-based or the entry re-pointed; `canonical_docs.py`'s five memberships move together with `canonical_freshness_gate.py:49`'s consumer-standalone fallback list; and the three tolerant readers (`canonical_freshness_gate:124`, `validate_doc_structure:319`, `validate_doc_rot:397`, all verified to skip on absence) are confirmed still tolerant after the move
+    - **Witnessing SHA:** `75c84aa43` — docs(batch): freeze the batch-U manifest and its 19 lane contracts at dispatch
+    - evidence: 31 commit(s) name `[#628]`; none declares closure · source `tasks/628-dc2-recut-essentials-dissolution-is-a-release-act.md`
+- **`[#629]`** (open) — An amendment cannot SUBTRACT an act — split rulings REISSUE (predicate 7)
+    - **Done when:** `validate_substrate.py` carries a seventh predicate that REFUSES a contract whose amendment block negates, removes or forbids any act, step or write-scope entry present in its own body (detection is textual and conservative — refusing on a matched negation is cheap, and the escape is the reissue the predicate is asking for); the refusal text names the reissue path rather than only the defect; `gen_lane_contract` grows the reissue verb or its docstring names the command that performs one; the predicate is armed at FREEZE with the same per-leg arm-date grandfather the batch-E predicates 5 and 6 use, so it cannot retro-gate an already-executed dispatch; and one RED-first test dispatches the real DC-3 amendment shape and asserts the refusal
+    - **Witnessing SHA:** `106985737` — docs(essentials): repoint the ruled ESSENTIALS routes -- and report that grep-to-zero is NOT reached
+    - evidence: 18 commit(s) name `[#629]`; none declares closure · source `tasks/629-a-contract-amendment-cannot-subtract-an-act.md`
+- **`[#631]`** (open) — A freeze cannot bind a rule that post-dates it — and nothing re-validates a frozen batch when the rules change
+    - **Done when:** the freeze RECORDS the rule set it validated against (a version, a ruling-register cursor, or the set of rule ids live at freeze — the mechanism is the arc's to choose); **dispatch RE-VALIDATES against the live rule set and REFUSES a batch whose rules have moved since its freeze**, naming which rule arrived after and which lanes it touches; an additive amendment is the sanctioned discharge and is recognised as one, so a re-freeze is required only when the delta SUBTRACTS (the `[#629]` boundary); and one RED-first witness replays batch F's own case — seven lanes frozen, a review-lane rule added afterwards, refusal naming all seven
+    - **Witnessing SHA:** `558e28782` — docs(handoff): the v7 bundle, ROLE PIN 7.0.0 -- and the [#611] paste measurement that misses both bars [#611]
+    - evidence: 7 commit(s) name `[#631]`; none declares closure · source `tasks/631-a-freeze-cannot-bind-a-rule-that-postdates-it.md`
+- **`[#632]`** (open) — Codespace is ADMITTED for transport and UNSTABLE for inference — the six-layer plan, the runner hardening, and the two defects they depend on
+    - **Done when:** the runner writes a **real streaming log** (`--output-format stream-json` to a file, so a watcher has a subject — today `-p` emits one blob at the end and `~/.claude/sessions/` is empty, so there is literally nothing to tail); a **HARD INFERENCE TIMEOUT** bounds the call so a hang costs minutes and never 75; `--detach` lands so dispatch never blocks a shell; the **pre-create ambiguity probe** refuses with nothing created and deletes its own creation on a post-create refusal; and the **13 pre-existing cp/scp passthrough-ordering failures** in `tests/test_dispatch_helpers_codespace.py` are fixed FIRST, because the probe's own tests die in that same plumbing (every attempt stalls at *"no receipt came back"* — the fixture writes its receipt on `$a[2] -like 'remote:*'`, which the passthrough ordering moves)
+    - **Witnessing SHA:** `2da0d9b9d` — docs(audits): R5 disposition sheet -- 133 undispositioned WARNs in 12 bundles, and the growth is the checks taxing their own evidence
+    - evidence: 36 commit(s) name `[#632]`; none declares closure · source `tasks/632-codespace-is-admitted-for-transport-and-unstable-for-inference.md`
+- **`[#633]`** (open) — /boot-session gains HISTORY DELTA and EQUILIBRIUM MAP — two GENERATED sections
+    - **Done when:** `/boot-session` emits both sections from live state with no hand-authored numbers; HISTORY DELTA selects the previous bundle by the same git-add-date predicate `audit.py::_select_active_bundle` uses, never lexical order; the EQUILIBRIUM MAP's driver per dimension derives from a checkable surface rather than an assertion; and a metric with no live source renders **ABSENT with its reason** instead of a proxy
+    - **Witnessing SHA:** `1052bc67a` — Merge branch 'docs/ratified-in-chat-discharge' -- the register discharged, one VERIFY failed, the rejections promoted [#614] [#633]
+    - evidence: 2 commit(s) name `[#633]`; none declares closure · source `tasks/633-boot-session-gains-history-delta-and-equilibrium-map.md`
+- **`[#634]`** (open) — dispatch-run.sh accepts GITHUB_TOKEN as its Anthropic-token check — a fail-open admission gate on a paid substrate
+    - **Done when:** (a) the admission probe can SEE the socket path — a third probe beside the env scan and `claude auth status` separating “authenticated over CLAUDE_CODE_MESSAGING_SOCKET” from “not authenticated at all”, so a receipt stops false-negating a container that works; and (b) Done-clause 0 is the correctness gate for every dispatched lane — **a commit on the lane's `worktree-<slug>` branch, never the receipt** — a receipt reports TRANSPORT, and `Ok` / `RemoteExitCode` say nothing about whether the lane committed
+    - **Witnessing SHA:** `df031c6ce` — docs(audits): BATCH H0-PREP CLOSE PACKET -- the close act, and rows closed is measured at zero
+    - evidence: 8 commit(s) name `[#634]`; none declares closure · source `tasks/634-dispatch-run-accepts-github-token-as-the-anthropic-check.md`
+
+---
+
+## 5 · TOUCH-ONLY tier — 7 proposals
+
+No commit in the window mentions the id at all; the sole evidence is that a commit touched a file the row's own text names. Verdict is **UNWITNESSED** for every row in this section.
+
+- **`[#19]`** (deferred) — Complete the ADR-39 register
+    - **Done when:** ADR-39 registry includes BACKLOG.md AND the templates/ class decision is recorded
+    - **Witnessing SHA:** `5c8a9d6db` — feat(backlog): ADR-107 strangler STEP 3 — flip tasks/ to the source of truth [#439]
+    - evidence: 2 touch(es) of 1 named path(s), first `tasks/19-complete-the-adr-39-register.md` · source `tasks/19-complete-the-adr-39-register.md`
+- **`[#116]`** (deferred) — Hooks hygiene
+    - **Done when:** our PS hooks use exec-form `args:[]` and at least one PreToolUse guard carries an `if:` scope filter
+    - **Witnessing SHA:** `5c8a9d6db` — feat(backlog): ADR-107 strangler STEP 3 — flip tasks/ to the source of truth [#439]
+    - evidence: 2 touch(es) of 1 named path(s), first `tasks/116-hooks-hygiene.md` · source `tasks/116-hooks-hygiene.md`
+- **`[#144]`** (deferred) — Feature DoD = end-to-end / user-flow test
+    - **Done when:** ADR-81 (d) carries an explicit E2E/user-flow clause (or deferral) AND the "in the cloud" target is resolved
+    - **Witnessing SHA:** `5c8a9d6db` — feat(backlog): ADR-107 strangler STEP 3 — flip tasks/ to the source of truth [#439]
+    - evidence: 2 touch(es) of 1 named path(s), first `tasks/144-feature-dod-end-to-end-user-flow-test.md` · source `tasks/144-feature-dod-end-to-end-user-flow-test.md`
+- **`[#166]`** (deferred) — doctrine_enforcement_coherence check
+    - **Done when:** the check ships read-only with fixtures + tests, folds into `audit.py health`, and flags a seeded enforcement-ahead-of-doctrine case
+    - **Witnessing SHA:** `5c8a9d6db` — feat(backlog): ADR-107 strangler STEP 3 — flip tasks/ to the source of truth [#439]
+    - evidence: 2 touch(es) of 1 named path(s), first `tasks/166-doctrine-enforcement-coherence-check.md` · source `tasks/166-doctrine-enforcement-coherence-check.md`
+- **`[#181]`** (deferred) — Coherence v2 nudge-response
+    - **Done when:** the nudge log shows real firing signal AND the response is decided + implemented, with tests
+    - **Witnessing SHA:** `5c8a9d6db` — feat(backlog): ADR-107 strangler STEP 3 — flip tasks/ to the source of truth [#439]
+    - evidence: 2 touch(es) of 1 named path(s), first `tasks/181-coherence-v2-nudge-response.md` · source `tasks/181-coherence-v2-nudge-response.md`
+- **`[#189]`** (deferred) — Execute in ~/.claude
+    - **Done when:** a session-end check surfaces uncommitted `~/.claude` config/safety drift
+    - **Witnessing SHA:** `5c8a9d6db` — feat(backlog): ADR-107 strangler STEP 3 — flip tasks/ to the source of truth [#439]
+    - evidence: 2 touch(es) of 1 named path(s), first `tasks/189-execute-in-claude.md` · source `tasks/189-execute-in-claude.md`
+- **`[#190]`** (deferred) — General intra-file duplication detector
+    - **Done when:** a read-only check flags a seeded intra-file duplicated block (WARN, with tests), or it is explicitly closed as not-mechanizable
+    - **Witnessing SHA:** `5c8a9d6db` — feat(backlog): ADR-107 strangler STEP 3 — flip tasks/ to the source of truth [#439]
+    - evidence: 2 touch(es) of 1 named path(s), first `tasks/190-general-intra-file-duplication-detector.md` · source `tasks/190-general-intra-file-duplication-detector.md`
+
+---
+
+## 6 · What this audit did NOT do
+
+- **No row closed, no row retired, no row edited.** `tasks/` and `BACKLOG.md` are untouched by this lane; the verb is RETIRE-PROPOSED and the operator rules at dawn.
+- **No `PROPOSALS-*` artifact written** — see the DEVIATION in §1.
+- **`docs/audits/README.md` NOT regenerated** — four lanes land a `docs/audits/` artifact this batch; the integrator regenerates once on the merged result.
+- **Nothing filed into `tasks/`** — F-1 and F-2 name defects with no open owner, and filing them is a write another lane owns tonight. They are carried in this lane's end packet instead.
+- **No consumer repo touched** — read-only tonight, all nine.
+
+---
+
+**Status: PRE-TRIAGE.** This report is *input* to ADR-111's funnel, not a disposition under it. No finding here has been triaged into OWNED / DISCHARGED / CANDIDATE / REJECTED, and **no intake exists for any of them** — F-1 and F-2 name defects with no open owner, and creating the intake is a `tasks/`/`docs/intake/` write this lane does not own tonight (§6). Reading any finding below as an ADR-111 CANDIDATE would be reading a disposition that has not been made. The routing owed at dawn: F-1 and F-2 need triage and, if admitted, an intake each; F-3/F-4/F-5 are evidence against the existing rows named below; F-7 is handed to `LANE-u-000-plugin-version-record-and-drift`.
+
+**Surfaces this report bears on.** ADR-70 (Tier-1 detect-and-propose), ADR-111 (the funnel this is input to), `[#277]`, `[#437]`, `[#454]`, `[#487]`, `[#626]`, `[#98]`, `[#590]`, and `protocols/STANDING_RULINGS.md` (the decision budget this lane ran under).

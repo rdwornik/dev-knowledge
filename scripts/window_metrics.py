@@ -42,6 +42,11 @@ try:
 except ImportError:
     from assemble_paste import PASTE_BYTE_CEILING
 
+try:
+    from scripts.fleet_health import ask_is_red, parse_operator_asks
+except ImportError:
+    from fleet_health import ask_is_red, parse_operator_asks
+
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 
 # A BACKLOG task row: flush-left "- [#N]". Indented look-alikes are sub-bullets, not rows.
@@ -136,6 +141,103 @@ def collect(base_text: str, head_text: str, *, spec_text: str, merges: list,
     }
 
 
+# --- item 7 scorecard (CANDIDATE, AE-2: ten is a ceiling, not a quota) ------
+
+# docs/intake/2026-09-05-tech-handoff-process-v71-amendment-pack.md item 7, verbatim order.
+_SCORECARD_LABELS = [
+    ("rows_closed_touched", "rows closed/touched"),
+    ("hard_fail_warn_trend", "hard-fail + WARN with trend"),
+    ("failing_nodeids_baseline", "failing nodeids + baseline seconds"),
+    ("p1_premerge_regressions", "P1 pre-merge / regressions at merge"),
+    ("time_to_merge_per_lane", "time-to-merge per lane"),
+    ("pct_lanes_codespace", "% lanes on codespace"),
+    ("asks_red_reasked", "asks RED/re-asked"),
+    ("bundle_bytes_pct", "bundle bytes + window-specific %"),
+    ("consumers_zero_fail", "consumers at 0 FAIL"),
+    ("tokens_by_model_class", "tokens by model class"),
+]
+
+
+def collect_scorecard(base_text: str, head_text: str, *, asks_entries: list[dict],
+                       boot_bytes: int, paste_count: int, boot_budget: int = 18_000,
+                       paste_budget: int = PASTE_BYTE_CEILING) -> dict:
+    """The ten scorecard numbers item 7 names, each `{value, basis}`. `value is None` means
+    not computed -- never zero, the same convention `collect()` uses above.
+
+    Four rows reuse a surface that is already computed (this module's own `backlog_delta`
+    and `boot_paste_bytes`, `fleet_health.py`'s `parse_operator_asks`/`ask_is_red`); the
+    other six have no committed artifact to derive from, so they say so rather than invent
+    one -- "telemetry beyond the two consumers" is the anti-pattern this lane was warned off.
+    """
+    delta = backlog_delta(base_text, head_text)
+    red = [e for e in asks_entries if ask_is_red(e)]
+    reasked_total = sum(e["reasked"] for e in asks_entries)
+    bb = byte_budget(boot_bytes, boot_budget)
+    return {
+        "rows_closed_touched": {
+            "value": len(delta["closed"]),
+            "basis": (f"{len(delta['closed'])} closed, {len(delta['filed'])} filed "
+                      "(BACKLOG.md delta, reusing backlog_delta())")},
+        "hard_fail_warn_trend": {
+            "value": None,
+            "basis": ("NOT COMPUTED -- no committed FAIL/WARN run history to trend against; "
+                      "a live number would need executing `audit.py health`, outside this "
+                      "reader's read-only design")},
+        "failing_nodeids_baseline": {
+            "value": None,
+            "basis": ("NOT COMPUTED -- requires executing the test suite; no committed "
+                      "baseline-seconds artifact exists to compare against")},
+        "p1_premerge_regressions": {
+            "value": None,
+            "basis": "NOT COMPUTED -- no committed pre-merge/regression registry by priority"},
+        "time_to_merge_per_lane": {
+            "value": None,
+            "basis": "NOT COMPUTED -- no committed lane-branch start-time registry"},
+        "pct_lanes_codespace": {
+            "value": None,
+            "basis": ("NOT COMPUTED -- dispatch substrate is recorded in `logs/prompts/` "
+                      "dispatch traces, which are gitignored and carry no committed state")},
+        "asks_red_reasked": {
+            "value": len(red),
+            "basis": (f"{len(red)} RED / {len(asks_entries)} total, {reasked_total} re-asks "
+                      "summed (HANDOFF_PROCESS.md #17.1, reusing fleet_health.py's "
+                      "parse_operator_asks/ask_is_red)")},
+        "bundle_bytes_pct": {
+            "value": boot_bytes,
+            "basis": (f"boot {boot_bytes}/{boot_budget} bytes ({bb['pct']}%); PASTE_THIS "
+                      f"generated in range: {paste_count} (warn budget {paste_budget}) -- "
+                      "same figures as this module's own boot_paste_bytes metric")},
+        "consumers_zero_fail": {
+            "value": None,
+            "basis": ("NOT COMPUTED -- 'consumers' is undefined by a ratified spec; the "
+                      "nearest existing surface (fleet_health's repos-green count) is already "
+                      "printed at boot and is not re-derived here")},
+        "tokens_by_model_class": {
+            "value": None,
+            "basis": ("NOT COMPUTED -- logs/TOKEN-LOG.md is a hand-curated weekly narrative, "
+                      "not a structured artifact; parsing it would be new instrumentation, "
+                      "the named anti-pattern")},
+    }
+
+
+def render_scorecard(metrics: dict, rng: str) -> str:
+    """ASCII-only, same convention as `render()`: a metric with no value prints NOT COMPUTED,
+    never a bare 0."""
+    lines = [f"# Scorecard -- {rng}", "",
+             "CANDIDATE per `protocols/STANDING_RULINGS.md` AE-2 (docs/intake/"
+             "2026-09-05-tech-handoff-process-v71-amendment-pack.md item 7): ten rows is",
+             "the proposal's shape, not a floor to be met by inventing rows. Four of ten",
+             "are computed from an existing surface; six are NOT COMPUTED with the reason.",
+             ""]
+    for key, label in _SCORECARD_LABELS:
+        m = metrics[key]
+        value = "NOT COMPUTED" if m["value"] is None else str(m["value"])
+        lines.append(f"- **{label}:** {value}")
+        lines.append(f"  - basis: {m['basis']}")
+    lines.append("")
+    return "\n".join(lines)
+
+
 _LABELS = [
     ("boot_round_trips", "boot round-trips"),
     ("net_backlog_delta", "net backlog delta"),
@@ -183,13 +285,34 @@ def report_for_range(rng: str) -> str:
     return render(metrics, rng)
 
 
+def scorecard_for_range(rng: str) -> str:
+    base, _, head = rng.partition("..")
+    head = head or "HEAD"
+    boot = _REPO_ROOT / "protocols" / "HANDOFF_BOOT.md"
+    handoff_spec = _REPO_ROOT / "protocols" / "HANDOFF_PROCESS.md"
+    pastes = [ln for ln in _git("log", "--format=", "--name-only", rng).splitlines()
+              if ln.endswith("PASTE_THIS.md")]
+    metrics = collect_scorecard(
+        _git("show", f"{base}:BACKLOG.md"),
+        _git("show", f"{head}:BACKLOG.md"),
+        asks_entries=parse_operator_asks(
+            handoff_spec.read_text(encoding="utf-8") if handoff_spec.exists() else ""),
+        boot_bytes=len(boot.read_bytes()) if boot.exists() else 0,
+        paste_count=len(set(pastes)),
+    )
+    return render_scorecard(metrics, rng)
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Emit the six window metrics for a commit range.")
     ap.add_argument("range", nargs="?", default="origin/main..HEAD",
                     help="commit range, e.g. 9faef8dd..HEAD (default: origin/main..HEAD)")
     ap.add_argument("--out", help="write the report here instead of stdout (the only disk write)")
+    ap.add_argument("--scorecard", action="store_true",
+                    help="print the ten-row scorecard (CANDIDATE, AE-2) instead of the six "
+                         "window metrics")
     args = ap.parse_args(argv)
-    out = report_for_range(args.range)
+    out = scorecard_for_range(args.range) if args.scorecard else report_for_range(args.range)
     if args.out:
         Path(args.out).write_text(out + "\n", encoding="utf-8", newline="\n")
         print(f"window_metrics: wrote {args.out}")
