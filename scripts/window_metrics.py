@@ -27,6 +27,7 @@ the run that produces it.
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import subprocess
 from pathlib import Path
@@ -158,16 +159,175 @@ _SCORECARD_LABELS = [
 ]
 
 
+# The three lines this lane adds BESIDE the ten. They are addenda, not members: item 7's
+# roster is ten and `_SCORECARD_LABELS` stays ten, so "ten numbers" remains literally
+# countable in the output. `tokens_saved_by_offload` is a PLACEHOLDER by instruction (0
+# until the offload instrumentation lands); the other two come from inbox 031 section 3.
+_SCORECARD_ADDENDA_LABELS = [
+    ("tokens_saved_by_offload", "tokens saved by offload (placeholder)"),
+    ("turns_per_window", "turns per browser window"),
+    ("connector_bytes_per_window", "bytes read via connector per window"),
+]
+
+# `ecosystem/<repo>/history/<date>.md` -- the COMMITTED per-repo audit history. Each file
+# holds one or more run blocks: a `### <date> -- <timestamp>` heading followed by a
+# `| check | status | evidence |` table. This is committed state, so reading it keeps the
+# scorecard read-only (ADR-28/36) and adds no second store.
+_HISTORY_RUN_RE = re.compile(r"(?m)^### (\d{4}-\d{2}-\d{2})")
+_HISTORY_ROW_RE = re.compile(r"(?m)^\|\s*([A-Za-z0-9_]+)\s*\|\s*(pass|fail|warn|n/a)\s*\|")
+
+
+# `docs/audits/<date>-verification-base-failed-set-<sha>.json` -- the committed failed-set
+# a lane's delta-A2 acceptance compares against (`scripts/failed_set.py`, schema
+# `failed-set/1`). It carries the nodeids AND the SHA they were measured at, which is the
+# half of item 7's "failing nodeids + baseline seconds" row that HAS a committed source.
+_FAILED_SET_GLOB = "docs/audits/*failed-set*.json"
+_FAILED_SET_SCHEMA = "failed-set/1"
+
+# A frozen lane contract states its substrate as `**Shape:** \`local\`` in the Dispatch
+# section. The contracts are committed under `docs/audits/*-launch-contracts/LANE-*.md`, so
+# the substrate split IS derivable from committed state -- the dispatch traces under
+# `logs/prompts/` are gitignored, but they are not the only place the substrate is written.
+_LANE_CONTRACT_GLOB = "docs/audits/*-launch-contracts/LANE-*.md"
+_LANE_SHAPE_RE = re.compile(r"\*\*Shape:\*\*\s*`([a-z]+)`")
+
+# A history path, as git spells it: `ecosystem/<repo>/history/<date>.md`.
+_HISTORY_PATH_RE = re.compile(r"^ecosystem/([^/]+)/history/([^/]+\.md)$")
+
+# A sync merge is not a lane landing. `Merge remote-tracking branch 'origin/main'` and
+# `Merge branch 'main'` bring main INTO a branch; timing them measures how long main sat,
+# not how long a lane took.
+_SYNC_MERGE_RE = re.compile(r"^Merge (remote-tracking )?branch '(origin/)?(main|master)'")
+
+
+def _signed(n: int, label: str) -> str:
+    """`+2 fail` / `-1 warn` / `0 fail` -- a direction that reads as a direction."""
+    return f"{n:+d} {label}" if n else f"0 {label}"
+
+
+def parse_history_runs(text: str) -> list[dict]:
+    """Run blocks of one `ecosystem/<repo>/history/<date>.md`, OLDEST FIRST (file order).
+
+    Each run is `{"date": iso, "pass": n, "fail": n, "warn": n}`. A check that reports
+    `n/a` is counted in NEITHER band: `n/a` means the check did not apply to this repo,
+    and folding it into `pass` would inflate a green reading with checks that never ran.
+    """
+    heads = list(_HISTORY_RUN_RE.finditer(text))
+    runs = []
+    for i, m in enumerate(heads):
+        body = text[m.end():heads[i + 1].start() if i + 1 < len(heads) else len(text)]
+        statuses = [st for _, st in _HISTORY_ROW_RE.findall(body)]
+        runs.append({"date": m.group(1),
+                     "pass": statuses.count("pass"),
+                     "fail": statuses.count("fail"),
+                     "warn": statuses.count("warn")})
+    return runs
+
+
+def fleet_check_counts(runs_by_repo: dict, roster: list | None = None) -> dict | None:
+    """Fleet hard-fail/WARN totals WITH DIRECTION, and the zero-FAIL repo count.
+
+    `runs_by_repo` maps a repo name to that repo's run blocks in file order; the LAST is
+    its newest committed run and the one before it is the comparison point. Returns None
+    when no repo has a run at all -- the not-computed signal, never a zero that would read
+    as "measured none" (the convention the module docstring sets out).
+
+    `roster` IS THE DENOMINATOR, and it must be supplied from a committed roster rather
+    than inferred from who happens to have a history file (terra HIGH, this lane): a repo
+    absent from `ecosystem/<repo>/history/` would otherwise vanish from the denominator
+    entirely, turning "4 of 6 at 0 FAIL" into "4 of 4" the moment two repos stop being
+    audited. Repos on the roster with no readable run are counted as `unaudited` and NAMED,
+    which is the difference between a measurement and a flattering subset. `roster=None`
+    falls back to the repos that do have runs, and says so.
+
+    THE TREND IS THE FEATURE, not decoration (STANDING_RULINGS AE-2): an absolute WARN
+    count carries calendar-driven `doc_rot` noise and moves while the tree does not, so it
+    is unreadable alone. `delta_*` is None when no repo carries a previous run -- a
+    direction nobody can compute is declared, not printed as 0.
+    """
+    current = {name: runs[-1] for name, runs in runs_by_repo.items() if runs}
+    if not current:
+        return None
+    names = list(roster) if roster else sorted(current)
+    previous = {name: runs[-2] for name, runs in runs_by_repo.items() if len(runs) >= 2}
+    fail = sum(r["fail"] for n, r in current.items() if n in names)
+    warn = sum(r["warn"] for n, r in current.items() if n in names)
+    out = {
+        "repos": len(names),
+        "roster_declared": roster is not None,
+        "unaudited": sorted(n for n in names if n not in current),
+        "fail": fail,
+        "warn": warn,
+        "total": fail + warn,
+        "zero_fail_repos": sum(1 for n in names if n in current and current[n]["fail"] == 0),
+        "delta_fail": None,
+        "delta_warn": None,
+        "compared": len(previous),
+    }
+    if previous:
+        # Compare like with like: only repos that carry BOTH points contribute, so a repo
+        # appearing for the first time cannot masquerade as a rise.
+        both = [n for n in previous if n in current and n in names]
+        out["compared"] = len(both)
+        out["delta_fail"] = sum(current[n]["fail"] - previous[n]["fail"] for n in both)
+        out["delta_warn"] = sum(current[n]["warn"] - previous[n]["warn"] for n in both)
+    return out
+
+
+def merge_duration_stats(durations_h: list, *, skipped: int = 0,
+                         sync_excluded: int = 0) -> dict | None:
+    """{lanes, median_h, max_h, skipped, sync_excluded} over per-lane merge durations,
+    or None when no lane merge was timed.
+
+    An EMPTY range returns None rather than 0: no lane merged is not a measurement of
+    zero hours, and printing `0` would read as "lanes merged instantly". A merge that
+    could not be timed is COUNTED in `skipped` and disclosed, never silently dropped --
+    a median over an undisclosed subset is the same defect in smaller type. A genuine
+    zero-hour merge (branch and merge in the same second) IS counted; only a merge whose
+    side commits cannot be resolved is skipped.
+    """
+    ordered = sorted(float(d) for d in durations_h)
+    n = len(ordered)
+    if not n:
+        return None
+    median = (ordered[n // 2] if n % 2
+              else (ordered[n // 2 - 1] + ordered[n // 2]) / 2)
+    return {"lanes": n, "median_h": round(median, 1), "max_h": round(ordered[-1], 1),
+            "skipped": skipped, "sync_excluded": sync_excluded}
+
+
+def select_history_paths(paths: list, keep: int = 2) -> dict:
+    """{repo: [newest `keep` history paths, oldest first]} from a flat list of git paths.
+
+    Pure so it can be tested without a repo, and so the reader above it can hand it
+    `git ls-tree` output -- COMMITTED paths, not whatever the working tree happens to
+    hold. Sorting is by filename, which is an ISO date, so lexical order IS date order.
+    """
+    by_repo = {}
+    for path in paths:
+        m = _HISTORY_PATH_RE.match(path.strip())
+        if m:
+            by_repo.setdefault(m.group(1), []).append(path.strip())
+    return {repo: sorted(found)[-keep:] for repo, found in by_repo.items()}
+
+
 def collect_scorecard(base_text: str, head_text: str, *, asks_entries: list[dict],
                        boot_bytes: int, paste_count: int, boot_budget: int = 18_000,
-                       paste_budget: int = PASTE_BYTE_CEILING) -> dict:
-    """The ten scorecard numbers item 7 names, each `{value, basis}`. `value is None` means
-    not computed -- never zero, the same convention `collect()` uses above.
+                       paste_budget: int = PASTE_BYTE_CEILING,
+                       fleet_checks: dict | None = None,
+                       merge_stats: dict | None = None,
+                       failed_set: dict | None = None,
+                       substrates: dict | None = None) -> dict:
+    """The ten scorecard numbers item 7 names PLUS the three addenda, each `{value, basis}`.
+    `value is None` means not computed -- never zero, the same convention `collect()` uses.
 
-    Four rows reuse a surface that is already computed (this module's own `backlog_delta`
-    and `boot_paste_bytes`, `fleet_health.py`'s `parse_operator_asks`/`ask_is_red`); the
-    other six have no committed artifact to derive from, so they say so rather than invent
-    one -- "telemetry beyond the two consumers" is the anti-pattern this lane was warned off.
+    Seven rows reuse a surface that is already committed (this module's own `backlog_delta`
+    and `boot_paste_bytes`; `fleet_health.py`'s `parse_operator_asks`/`ask_is_red`; the
+    `ecosystem/<repo>/history/` audit history; git's own first-parent merge history). The
+    remaining three have no committed artifact to derive from, so they say so rather than
+    invent one -- STANDING_RULINGS AE-2 is explicit that a row which cannot be computed
+    from an existing surface prints its reason and "does not acquire a store in order to
+    become computable". Ten rows is the proposal's shape, not a floor met by inventing rows.
     """
     delta = backlog_delta(base_text, head_text)
     red = [e for e in asks_entries if ask_is_red(e)]
@@ -179,24 +339,66 @@ def collect_scorecard(base_text: str, head_text: str, *, asks_entries: list[dict
             "basis": (f"{len(delta['closed'])} closed, {len(delta['filed'])} filed "
                       "(BACKLOG.md delta, reusing backlog_delta())")},
         "hard_fail_warn_trend": {
-            "value": None,
-            "basis": ("NOT COMPUTED -- no committed FAIL/WARN run history to trend against; "
-                      "a live number would need executing `audit.py health`, outside this "
-                      "reader's read-only design")},
+            "value": None if fleet_checks is None else fleet_checks["total"],
+            "basis": (
+                "NOT COMPUTED -- ecosystem/<repo>/history/ carries no readable run block; "
+                "a live number would need executing `audit.py health`, outside this "
+                "reader's read-only design"
+                if fleet_checks is None else
+                f"{fleet_checks['fail']} hard-fail + {fleet_checks['warn']} WARN across "
+                f"{fleet_checks['repos']} repo(s), newest committed run each "
+                f"(ecosystem/<repo>/history/); trend vs the previous committed run over "
+                f"{fleet_checks['compared']} repo(s): "
+                + (_signed(fleet_checks['delta_fail'], "fail") + ", "
+                   + _signed(fleet_checks['delta_warn'], "warn")
+                   if fleet_checks["delta_fail"] is not None
+                   else "no previous run to compare against"))},
         "failing_nodeids_baseline": {
-            "value": None,
-            "basis": ("NOT COMPUTED -- requires executing the test suite; no committed "
-                      "baseline-seconds artifact exists to compare against")},
+            "value": None if failed_set is None else failed_set.get("count"),
+            "basis": (
+                "NOT COMPUTED -- no committed failed-set/1 artifact; the nodeid half needs "
+                "`scripts/failed_set.py --emit` to have landed a record"
+                if failed_set is None else
+                f"{failed_set.get('count')} failing nodeid(s) at SHA "
+                f"{failed_set.get('sha')} on substrate {failed_set.get('substrate')} "
+                f"(committed {failed_set.get('path')}, schema {_FAILED_SET_SCHEMA}, "
+                f"generated {failed_set.get('generated_at')}). THE BASELINE-SECONDS HALF "
+                "OF THIS ROW IS NOT COMPUTED: no committed artifact records suite wall-"
+                "clock, and the failed-set record carries no duration field")},
         "p1_premerge_regressions": {
             "value": None,
-            "basis": "NOT COMPUTED -- no committed pre-merge/regression registry by priority"},
+            "basis": ("NOT COMPUTED -- no committed pre-merge/regression registry by "
+                      "priority. BACKLOG.md's P1 band is a different denominator (open "
+                      "rows by priority, not defects found before a merge) and standing "
+                      "in for it would launder one measure into another")},
         "time_to_merge_per_lane": {
-            "value": None,
-            "basis": "NOT COMPUTED -- no committed lane-branch start-time registry"},
+            "value": None if merge_stats is None else merge_stats["median_h"],
+            "basis": (
+                "NOT COMPUTED -- no lane merged on the first-parent spine in this range, "
+                "so there is nothing to time; a 0 would read as 'merged instantly'"
+                if merge_stats is None else
+                f"median {merge_stats['median_h']}h to merge over {merge_stats['lanes']} "
+                f"lane(s) (max {merge_stats['max_h']}h) -- git's own history: merge commit "
+                "time minus the earliest commit over the side parents it brought in. No "
+                "registry is kept; the start time IS a committed fact. Excluded: "
+                f"{merge_stats['sync_excluded']} sync merge(s) of main into a branch "
+                f"(a lane's housekeeping, not its duration); skipped as untimeable: "
+                f"{merge_stats['skipped']}")},
         "pct_lanes_codespace": {
-            "value": None,
-            "basis": ("NOT COMPUTED -- dispatch substrate is recorded in `logs/prompts/` "
-                      "dispatch traces, which are gitignored and carry no committed state")},
+            "value": (None if not (substrates and substrates["lanes"])
+                      else round(substrates["counts"].get("codespace", 0) * 100
+                                 / substrates["lanes"])),
+            "basis": (
+                "NOT COMPUTED -- no committed lane-contract set states a substrate. The "
+                "`logs/prompts/` dispatch traces do record one, but they are gitignored"
+                if not (substrates and substrates["lanes"]) else
+                f"{substrates['counts'].get('codespace', 0)} of {substrates['lanes']} "
+                f"lane(s) on codespace, from the DECLARED `**Shape:**` of each frozen "
+                f"contract in {substrates['set']} "
+                f"({', '.join(f'{k} {v}' for k, v in sorted(substrates['counts'].items()))}"
+                "). This is the substrate each lane was DISPATCHED to per its committed "
+                "contract, not a post-hoc observation of where it ran -- the run record "
+                "lives in gitignored `logs/prompts/` traces")},
         "asks_red_reasked": {
             "value": len(red),
             "basis": (f"{len(red)} RED / {len(asks_entries)} total, {reasked_total} re-asks "
@@ -208,28 +410,83 @@ def collect_scorecard(base_text: str, head_text: str, *, asks_entries: list[dict
                       f"generated in range: {paste_count} (warn budget {paste_budget}) -- "
                       "same figures as this module's own boot_paste_bytes metric")},
         "consumers_zero_fail": {
-            "value": None,
-            "basis": ("NOT COMPUTED -- 'consumers' is undefined by a ratified spec; the "
-                      "nearest existing surface (fleet_health's repos-green count) is already "
-                      "printed at boot and is not re-derived here")},
+            "value": None if fleet_checks is None else fleet_checks["zero_fail_repos"],
+            "basis": (
+                "NOT COMPUTED -- ecosystem/<repo>/history/ carries no readable run block"
+                if fleet_checks is None else
+                f"{fleet_checks['zero_fail_repos']} of {fleet_checks['repos']} repo(s) at "
+                "0 hard-FAIL in their newest COMMITTED audit run (ecosystem/<repo>/"
+                "history/ at the named ref). Denominator: "
+                + ("the committed ecosystem/index.yaml roster"
+                   if fleet_checks["roster_declared"] else
+                   "FALLBACK -- ecosystem/index.yaml was unreadable, so only repos that "
+                   "have a history file are counted, which flatters the ratio")
+                + " -- the only committed definition of 'consumers' this repo has; a "
+                  "ratified one would supersede it. Unaudited (on the roster, no readable "
+                  "run, counted in the denominator and NOT as green): "
+                + (", ".join(fleet_checks["unaudited"]) or "none"))},
         "tokens_by_model_class": {
             "value": None,
             "basis": ("NOT COMPUTED -- logs/TOKEN-LOG.md is a hand-curated weekly narrative, "
                       "not a structured artifact; parsing it would be new instrumentation, "
                       "the named anti-pattern")},
+        # --- addenda: one placeholder by instruction, two from inbox 031 section 3 ---
+        "tokens_saved_by_offload": {
+            "value": 0,
+            "basis": ("PLACEHOLDER = 0 -- printed as a line by instruction and NOT computed. "
+                      "The offload instrumentation (lane D15) has not landed, so no surface "
+                      "exists to read; its absence is not a gap in this scorecard. When D15 "
+                      "lands, this row acquires a basis and stops being a placeholder")},
+        "turns_per_window": {
+            "value": None,
+            "basis": ("NOT COMPUTED -- inbox 031 section 3 asks for turns per BROWSER window; "
+                      "browser turns happen off-repo and leave no committed artifact. 031 "
+                      "section 1 states a turn BUDGET (<= 40 for seat-judgment), which is a "
+                      "ceiling, not a measurement, and printing it here would launder one "
+                      "into the other")},
+        "connector_bytes_per_window": {
+            "value": None,
+            "basis": ("NOT COMPUTED -- inbox 031 section 3 asks for bytes read via the "
+                      "connector per window; the connector reads the transport dir "
+                      "($CLAUDE_PROMPTS_DIR), which is outside the repo and uncommitted, so "
+                      "no read is observable from committed state. The nearest committed "
+                      "figure is bundle bytes, already carried by `bundle_bytes_pct` above "
+                      "and deliberately not re-labelled as a connector measurement")},
     }
 
 
-def render_scorecard(metrics: dict, rng: str) -> str:
+def render_scorecard(metrics: dict, rng: str, resolved: str | None = None) -> str:
     """ASCII-only, same convention as `render()`: a metric with no value prints NOT COMPUTED,
-    never a bare 0."""
+    never a bare 0.
+
+    `resolved` names the IMMUTABLE SHAs the range resolved to. Item 7 requires that numbers
+    name the SHA they were measured at, and `origin/main..HEAD` names none -- both ends move,
+    so the same header can head two different measurements (terra HIGH, this lane).
+    """
+    computed = sum(1 for k, _ in _SCORECARD_LABELS if metrics[k]["value"] is not None)
     lines = [f"# Scorecard -- {rng}", "",
+             f"Measured at: {resolved}" if resolved else
+             "Measured at: NOT RESOLVED -- this range was not pinned to SHAs, so every "
+             "number below is unreproducible", "",
              "CANDIDATE per `protocols/STANDING_RULINGS.md` AE-2 (docs/intake/"
              "2026-09-05-tech-handoff-process-v71-amendment-pack.md item 7): ten rows is",
-             "the proposal's shape, not a floor to be met by inventing rows. Four of ten",
-             "are computed from an existing surface; six are NOT COMPUTED with the reason.",
-             ""]
+             "the proposal's shape, not a floor to be met by inventing rows. A row with no",
+             "existing committed surface prints its REASON, exactly as window_metrics'",
+             "own two uncomputed metrics do; it does not acquire a store to become",
+             f"computable. {computed} of {len(_SCORECARD_LABELS)} are computed from an "
+             "existing surface;",
+             f"{len(_SCORECARD_LABELS) - computed} are NOT COMPUTED with the reason.", ""]
     for key, label in _SCORECARD_LABELS:
+        m = metrics[key]
+        value = "NOT COMPUTED" if m["value"] is None else str(m["value"])
+        lines.append(f"- **{label}:** {value}")
+        lines.append(f"  - basis: {m['basis']}")
+    lines += ["",
+              "## Addenda -- beside the ten, not members of it", "",
+              "One placeholder carried by instruction until its instrumentation lands, and",
+              "the two lines inbox 031 section 3 adds. Kept OUT of the roster above so the",
+              "ten stays literally countable.", ""]
+    for key, label in _SCORECARD_ADDENDA_LABELS:
         m = metrics[key]
         value = "NOT COMPUTED" if m["value"] is None else str(m["value"])
         lines.append(f"- **{label}:** {value}")
@@ -285,6 +542,126 @@ def report_for_range(rng: str) -> str:
     return render(metrics, rng)
 
 
+def read_fleet_history(ref: str = "HEAD", keep: int = 2) -> dict:
+    """{repo: [run, ...]} from the newest `keep` history files per repo AT `ref`.
+
+    READ FROM THE COMMITTED TREE, not the filesystem (terra HIGH, this lane): the row's
+    basis claims a "newest COMMITTED audit run", and reading `ecosystem/<repo>/history/`
+    off disk would let an uncommitted edit -- or a half-finished `audit.py run` -- change
+    a number the scorecard presents as committed fact. `git ls-tree` + `git show` make
+    the claim and the source the same thing.
+
+    Reading git paths also disposes of the dot-directory hazard for free: `ecosystem/`
+    holds the hub's OWN row at `.dev-knowledge/`, which a shell-style glob drops silently
+    -- under-counting the fleet by exactly the repo doing the counting.
+    """
+    listing = _git("ls-tree", "-r", "--name-only", ref, "ecosystem/").splitlines()
+    out = {}
+    for repo, paths in select_history_paths(listing, keep).items():
+        runs = []
+        for path in paths:
+            runs.extend(parse_history_runs(_git("show", f"{ref}:{path}")))
+        if runs:
+            out[repo] = runs
+    return out
+
+
+def read_repo_roster(ref: str = "HEAD") -> list:
+    """Repo names from the committed `ecosystem/index.yaml`, or [] when unreadable.
+
+    This is the DENOMINATOR for `consumers at 0 FAIL`. It is read rather than inferred so
+    that a repo which stops being audited becomes a visible `unaudited` entry instead of
+    quietly leaving the denominator.
+    """
+    text = _git("show", f"{ref}:ecosystem/index.yaml")
+    # A one-key scan, not a YAML parse: this module has no yaml dependency and needs one
+    # field. `- name: <repo>` under `repos:` is the only place a repo name is declared.
+    return re.findall(r"(?m)^\s*-?\s*name:\s*(\S+)\s*$", text)
+
+
+def read_failed_set(ref: str = "HEAD") -> dict | None:
+    """The newest committed `failed-set/1` artifact, or None when none is committed.
+
+    `scripts/failed_set.py` writes it and records the SHA it was measured at, which is
+    what item 7 asks of every scorecard number.
+    """
+    paths = sorted(p for p in _git("ls-tree", "-r", "--name-only", ref,
+                                   "docs/audits/").splitlines()
+                   if "failed-set" in p and p.endswith(".json"))
+    for path in reversed(paths):
+        try:
+            record = json.loads(_git("show", f"{ref}:{path}"))
+        except (ValueError, TypeError):
+            continue
+        if isinstance(record, dict) and record.get("schema") == _FAILED_SET_SCHEMA:
+            record["path"] = path
+            return record
+    return None
+
+
+def read_lane_substrates(ref: str = "HEAD") -> dict | None:
+    """{shape: n} over the lanes of the NEWEST committed batch-launch-contract set.
+
+    A frozen lane contract states `**Shape:** \\`local\\`` in its Dispatch section, and the
+    contracts are committed -- so the substrate split is derivable from committed state
+    even though the `logs/prompts/` dispatch traces are gitignored. Returns None when no
+    contract set is committed.
+    """
+    paths = [p for p in _git("ls-tree", "-r", "--name-only", ref,
+                             "docs/audits/").splitlines()
+             if "-launch-contracts/" in p
+             and p.rsplit("/", 1)[-1].startswith("LANE-") and p.endswith(".md")]
+    if not paths:
+        return None
+    newest = max({p.rsplit("/", 1)[0] for p in paths})
+    counts = {}
+    for path in sorted(p for p in paths if p.startswith(newest + "/")):
+        m = _LANE_SHAPE_RE.search(_git("show", f"{ref}:{path}"))
+        counts[m.group(1) if m else "unstated"] = (
+            counts.get(m.group(1) if m else "unstated", 0) + 1)
+    return {"set": newest, "counts": counts, "lanes": sum(counts.values())} or None
+
+
+def lane_merge_durations(rng: str) -> dict:
+    """{durations, skipped, sync_excluded} for the LANE merges on the first-parent spine
+    in `rng`. Read-only; git IS the start-time registry, so no store is added.
+
+    THREE THINGS THIS DELIBERATELY DOES NOT DO (all three were terra findings):
+      * it does not time a SYNC merge -- `Merge remote-tracking branch 'origin/main'`
+        brings main INTO a branch, and its "duration" is how long main sat, not how long
+        a lane took. Every lane that syncs mid-flight makes one, so leaving them in
+        contaminates the median with the lane's own housekeeping;
+      * it does not read only `^2` -- an octopus merge has parents beyond it, and the
+        earliest commit over ALL non-first parents is the start of the work merged;
+      * it does not silently drop what it cannot time. A merge whose side commits do not
+        resolve is COUNTED in `skipped` and disclosed in the basis line.
+    A genuine zero-hour merge is counted, not skipped: `>= started_at`, not `>`.
+    """
+    durations, skipped, sync = [], 0, 0
+    for line in _git("log", "--first-parent", "--merges", "--format=%ct%x1f%P%x1f%s",
+                     rng).splitlines():
+        fields = line.split("\x1f")
+        if len(fields) != 3:
+            continue
+        merged_at, parents, subject = int(fields[0]), fields[1].split(), fields[2]
+        if _SYNC_MERGE_RE.match(subject):
+            sync += 1
+            continue
+        if len(parents) < 2:
+            skipped += 1
+            continue
+        side = _git("log", "--format=%ct", *parents[1:], "--not", parents[0]).split()
+        if not side:
+            skipped += 1
+            continue
+        started_at = min(int(t) for t in side)
+        if merged_at >= started_at:
+            durations.append((merged_at - started_at) / 3600)
+        else:
+            skipped += 1          # clock skew: a merge older than what it merged
+    return {"durations": durations, "skipped": skipped, "sync_excluded": sync}
+
+
 def scorecard_for_range(rng: str) -> str:
     base, _, head = rng.partition("..")
     head = head or "HEAD"
@@ -292,6 +669,7 @@ def scorecard_for_range(rng: str) -> str:
     handoff_spec = _REPO_ROOT / "protocols" / "HANDOFF_PROCESS.md"
     pastes = [ln for ln in _git("log", "--format=", "--name-only", rng).splitlines()
               if ln.endswith("PASTE_THIS.md")]
+    merges = lane_merge_durations(rng)
     metrics = collect_scorecard(
         _git("show", f"{base}:BACKLOG.md"),
         _git("show", f"{head}:BACKLOG.md"),
@@ -299,8 +677,27 @@ def scorecard_for_range(rng: str) -> str:
             handoff_spec.read_text(encoding="utf-8") if handoff_spec.exists() else ""),
         boot_bytes=len(boot.read_bytes()) if boot.exists() else 0,
         paste_count=len(set(pastes)),
+        fleet_checks=fleet_check_counts(read_fleet_history(head),
+                                        read_repo_roster(head) or None),
+        merge_stats=merge_duration_stats(merges["durations"],
+                                         skipped=merges["skipped"],
+                                         sync_excluded=merges["sync_excluded"]),
+        failed_set=read_failed_set(head),
+        substrates=read_lane_substrates(head),
     )
-    return render_scorecard(metrics, rng)
+    return render_scorecard(metrics, rng, resolved_range(rng))
+
+
+def resolved_range(rng: str) -> str | None:
+    """`<base-sha>..<head-sha>`, or None when either end does not resolve.
+
+    A range like `origin/main..HEAD` names two MOVING refs; the numbers under it are only
+    reproducible against the SHAs those refs held at measurement time.
+    """
+    base, _, head = rng.partition("..")
+    base_sha = _git("rev-parse", "--short", base or "HEAD").strip()
+    head_sha = _git("rev-parse", "--short", head or "HEAD").strip()
+    return f"{base_sha}..{head_sha}" if base_sha and head_sha else None
 
 
 def main(argv: list[str] | None = None) -> int:
