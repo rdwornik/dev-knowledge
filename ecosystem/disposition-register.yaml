@@ -743,58 +743,16 @@ dispositions:
   # ADR-75 as a paper suppression rather than left to decorate stale; a future baseline drop would
   # need fresh entries, not these.
 
-  # ---- prose edges from the FROZEN, byte-identical contract copies (lane RL, 2026-08-25) ----
-  # `docs/audits/<date>-technical-<batch>-launch-contracts/` carries operator contracts copied in
-  # byte-identical (root `prompts/` REVOKED, operator ruling 2026-08-26); that byte-identity is
-  # the whole value of the home, so the organ's own suggested fix -- adding a `reconciled_with:`
-  # frontmatter key -- is unavailable here by construction: it would edit the artifact whose
-  # unedited state is the evidence. These two are therefore dispositioned rather than declared,
-  # which is precisely the case the register exists for: a real, correctly-detected edge that
-  # cannot be closed by editing the file it fires against. The edges are real (both contracts
-  # reference `protocols/HANDOFF_BOOT.md` in their own prose) and nothing here claims otherwise.
-  # Keyed on the full source-to-target signature, so a DIFFERENT undeclared edge from the same
-  # file re-surfaces and blocks.
-  #
-  # INERT SINCE 2026-08-26, recorded rather than left to be discovered. The relocation put these
-  # two files under `docs/audits/`, which is one of `scan_undeclared_edges._IMMUTABLE_PREFIXES` --
-  # the scanner SKIPS that tree entirely, so the edges no longer fire and these entries now
-  # suppress nothing. Verified live: `audit.py ship-gate` lists neither contract among its
-  # `undeclared_edges` WARNs. They are kept, repointed to the new paths rather than deleted, for
-  # two reasons: the record of WHY a byte-identical frozen copy cannot be fixed by editing is
-  # worth keeping, and the entries become load-bearing again the moment the scanner's scope
-  # changes. Treat them as belt-and-braces, not as active suppressions, and do not cite them as
-  # evidence that a WARN was closed.
-
-
-  - id: warn-edge-lane-rl-registry-filings-v2
-    organ: undeclared_edges
-    match: "docs/audits/2026-08-25-technical-batch1-launch-contracts/LANE-RL-registry-filings-v2.md -> handoff-process"
-    ref: "operator path-approval 2026-08-25 (lane RL); relocated 2026-08-26 to docs/audits/<date>-technical-<batch>-launch-contracts/, the frozen-copy home"
-    reason: >-
-      FROZEN COPY -- unfixable by editing, and that is the point. The file is a byte-identical
-      copy of an operator contract; adding the `reconciled_with` frontmatter the organ suggests
-      would destroy the byte-identity the home exists to preserve. The edge itself is correctly
-      detected: the contract's prose does reference `protocols/HANDOFF_BOOT.md`. Review with the
-      `prompts` sanctioned-divergence entry in `.methodology.yaml` (review_date 2026-09-24) --
-      if the frozen-copy convention is retired or changed, this disposition is re-examined with it.
-      RE-VERIFIED 2026-09-02 (lane-g-614-hygiene, [stale] triage): still true -- the file is
-      unchanged, still under docs/audits/, and still absent from a live ship-gate undeclared_edges
-      WARN. KEPT as-is; not a new decision.
-
-  - id: warn-edge-lane-rl-registry-filings
-    organ: undeclared_edges
-    match: "docs/audits/2026-08-25-technical-batch1-launch-contracts/LANE-RL-registry-filings.md -> handoff-process"
-    ref: "operator path-approval 2026-08-25 (lane RL); relocated 2026-08-26 to docs/audits/<date>-technical-<batch>-launch-contracts/, the frozen-copy home"
-    reason: >-
-      FROZEN COPY -- unfixable by editing, and that is the point. The file is a byte-identical
-      copy of an operator contract; adding the `reconciled_with` frontmatter the organ suggests
-      would destroy the byte-identity the home exists to preserve. The edge itself is correctly
-      detected: the contract's prose does reference `protocols/HANDOFF_BOOT.md`. Review with the
-      `prompts` sanctioned-divergence entry in `.methodology.yaml` (review_date 2026-09-24) --
-      if the frozen-copy convention is retired or changed, this disposition is re-examined with it.
-      RE-VERIFIED 2026-09-02 (lane-g-614-hygiene, [stale] triage): still true -- the file is
-      unchanged, still under docs/audits/, and still absent from a live ship-gate undeclared_edges
-      WARN. KEPT as-is; not a new decision.
+  # (removed 2026-09-06, operator consent -- DECLARE-GO-2026-09-06 ruling 4, carried in
+  # to-cc/DECLARE-R-STALE.md) warn-edge-lane-rl-registry-filings{,-v2} -- the two FROZEN,
+  # byte-identical lane-RL contract copies. They were kept as belt-and-braces after the
+  # 2026-08-26 relocation put both files under `docs/audits/`, which
+  # `scan_undeclared_edges._IMMUTABLE_PREFIXES` skips entirely, so they have suppressed nothing
+  # since. The record they carried is preserved here rather than in a live entry: a
+  # byte-identical frozen copy CANNOT take the `reconciled_with:` frontmatter the organ
+  # suggests, because the unedited bytes are the evidence the home exists to keep -- so a real,
+  # correctly-detected edge there is dispositioned rather than declared, and would be again.
+  # Removed per the ADR-75 decoration rule; re-file fresh entries if the scanner's scope changes.
 
   # ---- R5/B2, ruled 2026-09-05 ----
   # THE FIRST consumer_at_landing ENTRY THIS REGISTER HAS EVER CARRIED. The R5 disposition sheet
@@ -821,26 +779,15 @@ dispositions:
       two organs, two questions, one artifact, and both answers are "by design, nothing consumes
       it".
 
-  # ---- R5/B10, ruled 2026-09-05 ----
-  - id: warn-freshness-ungated-stale-deferred-285
-    organ: canonical_freshness
-    match: "derived ungated-and-stale: 3 - protocols/ENVIRONMENT.md"
-    ref: "R5 window bundle B10 (ARCHITECT-INBOX-2026-09-05-007), operator-declared in to-cc/R5-DECLARED.md; owner [#285]"
-    review_date: 2026-10-13
-    reason: >-
-      NOT A GATE BREACH -- a DERIVED report over UNGATED files. The gated set is 8
-      (canonical_docs.FRESHNESS_FILES + audit.py::_HUB_ONLY_FRESHNESS_FILES) and all 8 are
-      fresh; the gated-and-stale row cleared in this same window. All three files here are
-      deferred to `[#285]` "Extend hub freshness gating to PLAYBOOK", which owns the act each
-      of them needs -- a genuine end-to-end re-read, then `last_reviewed` frontmatter, then
-      membership in the gated set. `protocols/PLAYBOOK.md` (+35d) was already that row's;
-      `protocols/ENVIRONMENT.md` (+57d, previously no owner at all) was FOLDED INTO [#285]'s
-      scope in this same act, so the pile has an owner rather than a disposition standing in
-      for one. `README.md` is NOT staleness: its stamp landed at `96f956528` and one CONTENT
-      commit followed on the SAME DATE, which a date-only compare cannot see -- an ordering
-      artifact, recorded here so it is not "fixed" by a meaningless re-stamp.
-      PRECISION: keyed on the count AND the first filename, so a FOURTH file going stale
-      changes the evidence, misses this match, and re-surfaces rather than hiding behind it.
+  # (removed 2026-09-06, operator consent -- DECLARE-GO-2026-09-06 ruling 4)
+  # warn-freshness-ungated-stale-deferred-285 -- it did exactly what its own reason promised.
+  # The entry was keyed on the COUNT AND the first filename ("ungated-and-stale: 3 -
+  # protocols/ENVIRONMENT.md") precisely so a fourth file going stale would miss the match and
+  # re-surface. A fourth did (`protocols/OPERATOR-INTERFACE.md`), the match missed, and the
+  # entry decorated stale on schedule. The live line is now owned by lanes 3.11 / 3.12 and, for
+  # OPERATOR-INTERFACE.md, by this lane's own A2 re-stamp -- an owner each, not a disposition
+  # standing in for one. Removed per ADR-75.
+
   # ---- R5/B11, ruled 2026-09-05 ----
   - id: warn-review-artifact-coverage-advisory-deferred-499
     organ: review_artifact_coverage
@@ -859,22 +806,6 @@ dispositions:
       stale within hours and teach that the register rots. The whole advisory class is what the
       ruling defers, and that is what this entry suppresses; the sibling Tally-line concern is a
       SEPARATE Finding with its own entries and is not covered here.
-  - id: warn-review-artifact-lane-na-gates-no-tally
-    organ: review_artifact_coverage
-    match: "584fb1ed -> 2026-08-27-codex-lane-na-gates.md"
-    ref: "R5 window bundle B11 (ARCHITECT-INBOX-2026-09-05-007), operator-declared in to-cc/R5-DECLARED.md; same class as warn-review-artifact-lane-c-504-no-tally"
-    review_date: 2026-11-07
-    reason: >-
-      THE REVIEW HAPPENED; only its machine-readable tally is missing -- the SAME class as
-      `warn-review-artifact-lane-c-504-no-tally` above, and dispositioned by that precedent.
-      NOT FIXABLE BY EDITING: `docs/audits/` is immutable (CLAUDE.md rule 3 of section 5), so
-      adding a `**Tally:**` line to a landed artifact is not available. WHY A SEPARATE ENTRY
-      WHEN THE FINDING IS ALREADY SUPPRESSED: the two artifacts share one Finding, so the
-      `5af0b33c` entry already suppresses this evidence as a side effect -- which is exactly the
-      problem. The R5 disposition sheet found this file "half dispositioned": covered by
-      accident, explained nowhere, and it would surface unexplained the moment the sibling entry
-      retires. This entry gives it its own reason and its own review_date, so the record does not
-      depend on another file's disposition outliving it.
   - id: warn-adr-status-grammar-ratchet-holding
     organ: adr_status_grammar
     match: "baseline WARNs: coherence=3, duplicate-id=2, grammar=47, wrapped-value=1"
@@ -893,3 +824,585 @@ dispositions:
       the FIRST ADR whose status line moves any of them changes the evidence, misses this match,
       and re-surfaces as a blocking WARN. Movement in the good direction re-surfaces too, which
       is correct -- that is the moment to lower the baseline or promote the rule to FAIL.
+
+  # (removed 2026-09-06, operator consent -- DECLARE-GO-2026-09-06 ruling 4)
+  # warn-review-artifact-lane-na-gates-no-tally -- the `584fb1ed -> 2026-08-27-codex-lane-na-
+  # gates.md` half of the missing-**Tally:** Finding. It shares ONE Finding with its
+  # `5af0b33c` sibling, so the sibling entry already suppresses this evidence; the entry existed
+  # to give the second artifact its own stated reason rather than coverage by accident. With the
+  # consent it goes, and the sibling entry (warn-review-artifact-lane-c-504-no-tally) carries the
+  # Finding alone again. The fact it recorded is unchanged and worth keeping here: the review
+  # HAPPENED, only its machine-readable tally is missing, and `docs/audits/` immutability means
+  # a **Tally:** line cannot be added to a landed artifact. Removed per ADR-75.
+
+  # ---- R-citer, six lane-scratch-shaped files -> PENDING (2026-09-06 NIGHT batch, §3.6) ----
+  # ARCHITECT RULING R-citer, recorded in to-cc/DECLARE-GO-2026-09-06.md § "Architect rulings in
+  # force tonight" and carried verbatim in to-cc/DECLARE-R-CITER.md §2: the six lane-scratch-shaped
+  # files "-> disposition PENDING with the exact question 'RETIRE or relocate?' for the dawn list;
+  # not deleted."
+  #
+  # WHY PENDING AND NOT A CITATION. These six carry no `<date>-<class>-` prefix, so
+  # `batch_manifest.artifact_tail` returns None for each and the lane-slug link leg REFUSES them
+  # by construction -- they cannot be reached from a manifest even when the manifest names their
+  # lane. And they are scratch, not packets: naming a governance consumer for a file whose whole
+  # question is whether it should exist would be inventing coverage, which is the failure
+  # `funnel_coverage`'s docstring tells this register to prefer loud WARNs over.
+  #
+  # PENDING IS A QUESTION CARRIED TO THE OPERATOR, NOT A DISPOSAL. C-8 is unchanged and binds:
+  # "No deletion of code or content without the operator's word (the verb is RETIRE-PROPOSED)."
+  # Nothing here proposes removal; each entry carries the operator's question and expires on his
+  # answer. Six entries rather than one because each is its own Finding -- the whole-Finding
+  # contract at the head of this file -- so one matched token cannot wave through the other five.
+
+  - id: warn-consumer-pending-arm3-note
+    organ: consumer_at_landing
+    match: "ARM3_NOTE.md"
+    ref: "architect ruling R-citer, to-cc/DECLARE-GO-2026-09-06.md; operative form BATCH-2026-09-06-NIGHT-CONTRACTS.md §3.6 intent bullet 1; carried in to-cc/DECLARE-R-CITER.md §2"
+    review_date: 2026-09-07
+    reason: >-
+      PENDING -- the operator's question, not an answer. **RETIRE or relocate?** `ARM3_NOTE.md` is
+      lane-scratch left under `docs/audits/` by the R5/R5P window; it is not a lane packet and no
+      governance surface cites it. It is NOT deleted (C-8: the verb is RETIRE-PROPOSED and the
+      operator's word comes at dawn), and it is NOT given a manufactured consumer. The name
+      carries no `<date>-<class>-` prefix, so `batch_manifest.artifact_tail` returns None and the
+      manifest lane-slug route cannot reach it however the manifest is written -- a citation route
+      does not exist for this shape, which is itself part of the question. review_date is
+      TOMORROW deliberately: this entry is meant to expire at the dawn ratification pass, and a
+      PENDING that quietly becomes permanent is the failure ADR-75's decoration rule exists for.
+
+  - id: warn-consumer-pending-lane-r-bundle-gitlog
+    organ: consumer_at_landing
+    match: "LANE-r-000-bundle-gitlog.md"
+    ref: "architect ruling R-citer, to-cc/DECLARE-GO-2026-09-06.md; operative form BATCH-2026-09-06-NIGHT-CONTRACTS.md §3.6 intent bullet 1; carried in to-cc/DECLARE-R-CITER.md §2"
+    review_date: 2026-09-07
+    reason: >-
+      PENDING -- the operator's question, not an answer. **RETIRE or relocate?** `LANE-r-000-bundle-gitlog.md` is
+      lane-scratch left under `docs/audits/` by the R5/R5P window; it is not a lane packet and no
+      governance surface cites it. It is NOT deleted (C-8: the verb is RETIRE-PROPOSED and the
+      operator's word comes at dawn), and it is NOT given a manufactured consumer. The name
+      carries no `<date>-<class>-` prefix, so `batch_manifest.artifact_tail` returns None and the
+      manifest lane-slug route cannot reach it however the manifest is written -- a citation route
+      does not exist for this shape, which is itself part of the question. review_date is
+      TOMORROW deliberately: this entry is meant to expire at the dawn ratification pass, and a
+      PENDING that quietly becomes permanent is the failure ADR-75's decoration rule exists for.
+
+  - id: warn-consumer-pending-lane-r-docrot-arm2
+    organ: consumer_at_landing
+    match: "LANE-r-000-docrot-arm2.md"
+    ref: "architect ruling R-citer, to-cc/DECLARE-GO-2026-09-06.md; operative form BATCH-2026-09-06-NIGHT-CONTRACTS.md §3.6 intent bullet 1; carried in to-cc/DECLARE-R-CITER.md §2"
+    review_date: 2026-09-07
+    reason: >-
+      PENDING -- the operator's question, not an answer. **RETIRE or relocate?** `LANE-r-000-docrot-arm2.md` is
+      lane-scratch left under `docs/audits/` by the R5/R5P window; it is not a lane packet and no
+      governance surface cites it. It is NOT deleted (C-8: the verb is RETIRE-PROPOSED and the
+      operator's word comes at dawn), and it is NOT given a manufactured consumer. The name
+      carries no `<date>-<class>-` prefix, so `batch_manifest.artifact_tail` returns None and the
+      manifest lane-slug route cannot reach it however the manifest is written -- a citation route
+      does not exist for this shape, which is itself part of the question. review_date is
+      TOMORROW deliberately: this entry is meant to expire at the dawn ratification pass, and a
+      PENDING that quietly becomes permanent is the failure ADR-75's decoration rule exists for.
+
+  - id: warn-consumer-pending-lane-r-zc-candidates
+    organ: consumer_at_landing
+    match: "LANE-r-000-zc-candidates.md"
+    ref: "architect ruling R-citer, to-cc/DECLARE-GO-2026-09-06.md; operative form BATCH-2026-09-06-NIGHT-CONTRACTS.md §3.6 intent bullet 1; carried in to-cc/DECLARE-R-CITER.md §2"
+    review_date: 2026-09-07
+    reason: >-
+      PENDING -- the operator's question, not an answer. **RETIRE or relocate?** `LANE-r-000-zc-candidates.md` is
+      lane-scratch left under `docs/audits/` by the R5/R5P window; it is not a lane packet and no
+      governance surface cites it. It is NOT deleted (C-8: the verb is RETIRE-PROPOSED and the
+      operator's word comes at dawn), and it is NOT given a manufactured consumer. The name
+      carries no `<date>-<class>-` prefix, so `batch_manifest.artifact_tail` returns None and the
+      manifest lane-slug route cannot reach it however the manifest is written -- a citation route
+      does not exist for this shape, which is itself part of the question. review_date is
+      TOMORROW deliberately: this entry is meant to expire at the dawn ratification pass, and a
+      PENDING that quietly becomes permanent is the failure ADR-75's decoration rule exists for.
+
+  - id: warn-consumer-pending-seed-rubric
+    organ: consumer_at_landing
+    match: "SEED_RUBRIC.md"
+    ref: "architect ruling R-citer, to-cc/DECLARE-GO-2026-09-06.md; operative form BATCH-2026-09-06-NIGHT-CONTRACTS.md §3.6 intent bullet 1; carried in to-cc/DECLARE-R-CITER.md §2"
+    review_date: 2026-09-07
+    reason: >-
+      PENDING -- the operator's question, not an answer. **RETIRE or relocate?** `SEED_RUBRIC.md` is
+      lane-scratch left under `docs/audits/` by the R5/R5P window; it is not a lane packet and no
+      governance surface cites it. It is NOT deleted (C-8: the verb is RETIRE-PROPOSED and the
+      operator's word comes at dawn), and it is NOT given a manufactured consumer. The name
+      carries no `<date>-<class>-` prefix, so `batch_manifest.artifact_tail` returns None and the
+      manifest lane-slug route cannot reach it however the manifest is written -- a citation route
+      does not exist for this shape, which is itself part of the question. review_date is
+      TOMORROW deliberately: this entry is meant to expire at the dawn ratification pass, and a
+      PENDING that quietly becomes permanent is the failure ADR-75's decoration rule exists for.
+
+  - id: warn-consumer-pending-verdict-rule
+    organ: consumer_at_landing
+    match: "VERDICT_RULE.md"
+    ref: "architect ruling R-citer, to-cc/DECLARE-GO-2026-09-06.md; operative form BATCH-2026-09-06-NIGHT-CONTRACTS.md §3.6 intent bullet 1; carried in to-cc/DECLARE-R-CITER.md §2"
+    review_date: 2026-09-07
+    reason: >-
+      PENDING -- the operator's question, not an answer. **RETIRE or relocate?** `VERDICT_RULE.md` is
+      lane-scratch left under `docs/audits/` by the R5/R5P window; it is not a lane packet and no
+      governance surface cites it. It is NOT deleted (C-8: the verb is RETIRE-PROPOSED and the
+      operator's word comes at dawn), and it is NOT given a manufactured consumer. The name
+      carries no `<date>-<class>-` prefix, so `batch_manifest.artifact_tail` returns None and the
+      manifest lane-slug route cannot reach it however the manifest is written -- a citation route
+      does not exist for this shape, which is itself part of the question. review_date is
+      TOMORROW deliberately: this entry is meant to expire at the dawn ratification pass, and a
+      PENDING that quietly becomes permanent is the failure ADR-75's decoration rule exists for.
+
+  # ---- batch-T's own dispatch artifacts (2026-09-06) ----
+  # NOT PART OF THIS LANE'S FROZEN 36, AND RECORDED AS SUCH. The 2026-09-06 NIGHT batch dispatched
+  # by landing its manifest and thirteen frozen lane contracts on main at `c004ac8c` -- AFTER the
+  # step-0 ship-gate measurement the lane contract's "undispositioned 36" was taken from. The
+  # dispatch itself therefore grew the unconsumed set by fourteen. Deviation reported in
+  # to-browser/SESSION-lane-t-000-nc1-clear.md and QUESTION-lane-t-000-nc1-clear.md.
+  #
+  # THE CONSUMER IS DECLARED AND THE LINK CANNOT FIRE YET -- that is the whole disposition, and it
+  # is a fact about construction rather than a judgement. `docs/audits/2026-09-06-technical-batch-t-
+  # manifest.md` carries `closed_by: docs/audits/2026-09-06-technical-batch-t-close-packet.md`, and
+  # `batch_manifest.manifest_links` reads the closer's text as a citing surface. The closer is the
+  # batch close packet, which by definition cannot exist until the batch closes. Every batch before
+  # this one passed through the identical window; those artifacts are cited today because their
+  # close packets landed.
+  #
+  # AND THE SLUG ROUTE IS REFUSED BY NAME, not merely unlucky: `links_artifact` anchors the
+  # lane-slug leg on `artifact_tail`, which requires a `<date>-<class>-` prefix. `LANE-t-000-nc1-
+  # clear.md` has none, so the manifest's declared lane roster cannot reach its own contracts. That
+  # is a real gap in the link mechanism and it is worth a row; it is NOT something this lane can fix
+  # by editing an immutable frozen contract copy.
+  #
+  # PRECISION: one entry per artifact (whole-Finding contract), each keyed on its own basename. A
+  # DIFFERENT artifact appearing under the same tree re-surfaces and blocks.
+
+  - id: warn-consumer-batch-t-lane-t-000-aj-research
+    organ: consumer_at_landing
+    match: "LANE-t-000-aj-research.md"
+    ref: "docs/audits/2026-09-06-technical-batch-t-manifest.md (`closed_by:` declared); batch dispatched at c004ac8c; BATCH-2026-09-06-NIGHT-CONTRACTS.md"
+    review_date: 2026-09-13
+    auto_clearable_by: "docs/audits/2026-09-06-technical-batch-t-close-packet.md -- the declared closer; once it lands naming this contract, manifest_links resolves it `explicit` and this entry decorates stale"
+    reason: >-
+      IN-FLIGHT DISPATCH ARTIFACT, CONSUMER ALREADY DECLARED. `LANE-t-000-aj-research.md` is a frozen,
+      byte-identical copy of a batch-T lane contract, landed at dispatch under
+      `docs/audits/2026-09-06-technical-batch-t-launch-contracts/`. Its consumer is the batch-T
+      close packet the manifest already names in `closed_by:`; that packet is written when the
+      batch closes, so the link is pending on time rather than on anyone's decision. The
+      lane-slug route cannot substitute: `links_artifact` anchors on `artifact_tail`, which
+      needs a `<date>-<class>-` prefix this name does not carry. Editing the copy to add one
+      would destroy the byte-identity the frozen-copy home exists to preserve, and
+      `docs/audits/` is immutable besides (CLAUDE.md §5 rule 3).
+
+  - id: warn-consumer-batch-t-lane-t-000-batch-p-audit-speed
+    organ: consumer_at_landing
+    match: "LANE-t-000-batch-p-audit-speed.md"
+    ref: "docs/audits/2026-09-06-technical-batch-t-manifest.md (`closed_by:` declared); batch dispatched at c004ac8c; BATCH-2026-09-06-NIGHT-CONTRACTS.md"
+    review_date: 2026-09-13
+    auto_clearable_by: "docs/audits/2026-09-06-technical-batch-t-close-packet.md -- the declared closer; once it lands naming this contract, manifest_links resolves it `explicit` and this entry decorates stale"
+    reason: >-
+      IN-FLIGHT DISPATCH ARTIFACT, CONSUMER ALREADY DECLARED. `LANE-t-000-batch-p-audit-speed.md` is a frozen,
+      byte-identical copy of a batch-T lane contract, landed at dispatch under
+      `docs/audits/2026-09-06-technical-batch-t-launch-contracts/`. Its consumer is the batch-T
+      close packet the manifest already names in `closed_by:`; that packet is written when the
+      batch closes, so the link is pending on time rather than on anyone's decision. The
+      lane-slug route cannot substitute: `links_artifact` anchors on `artifact_tail`, which
+      needs a `<date>-<class>-` prefix this name does not carry. Editing the copy to add one
+      would destroy the byte-identity the frozen-copy home exists to preserve, and
+      `docs/audits/` is immutable besides (CLAUDE.md §5 rule 3).
+
+  - id: warn-consumer-batch-t-lane-t-000-browser-floor
+    organ: consumer_at_landing
+    match: "LANE-t-000-browser-floor.md"
+    ref: "docs/audits/2026-09-06-technical-batch-t-manifest.md (`closed_by:` declared); batch dispatched at c004ac8c; BATCH-2026-09-06-NIGHT-CONTRACTS.md"
+    review_date: 2026-09-13
+    auto_clearable_by: "docs/audits/2026-09-06-technical-batch-t-close-packet.md -- the declared closer; once it lands naming this contract, manifest_links resolves it `explicit` and this entry decorates stale"
+    reason: >-
+      IN-FLIGHT DISPATCH ARTIFACT, CONSUMER ALREADY DECLARED. `LANE-t-000-browser-floor.md` is a frozen,
+      byte-identical copy of a batch-T lane contract, landed at dispatch under
+      `docs/audits/2026-09-06-technical-batch-t-launch-contracts/`. Its consumer is the batch-T
+      close packet the manifest already names in `closed_by:`; that packet is written when the
+      batch closes, so the link is pending on time rather than on anyone's decision. The
+      lane-slug route cannot substitute: `links_artifact` anchors on `artifact_tail`, which
+      needs a `<date>-<class>-` prefix this name does not carry. Editing the copy to add one
+      would destroy the byte-identity the frozen-copy home exists to preserve, and
+      `docs/audits/` is immutable besides (CLAUDE.md §5 rule 3).
+
+  - id: warn-consumer-batch-t-lane-t-000-nc1-clear
+    organ: consumer_at_landing
+    match: "LANE-t-000-nc1-clear.md"
+    ref: "docs/audits/2026-09-06-technical-batch-t-manifest.md (`closed_by:` declared); batch dispatched at c004ac8c; BATCH-2026-09-06-NIGHT-CONTRACTS.md"
+    review_date: 2026-09-13
+    auto_clearable_by: "docs/audits/2026-09-06-technical-batch-t-close-packet.md -- the declared closer; once it lands naming this contract, manifest_links resolves it `explicit` and this entry decorates stale"
+    reason: >-
+      IN-FLIGHT DISPATCH ARTIFACT, CONSUMER ALREADY DECLARED. `LANE-t-000-nc1-clear.md` is a frozen,
+      byte-identical copy of a batch-T lane contract, landed at dispatch under
+      `docs/audits/2026-09-06-technical-batch-t-launch-contracts/`. Its consumer is the batch-T
+      close packet the manifest already names in `closed_by:`; that packet is written when the
+      batch closes, so the link is pending on time rather than on anyone's decision. The
+      lane-slug route cannot substitute: `links_artifact` anchors on `artifact_tail`, which
+      needs a `<date>-<class>-` prefix this name does not carry. Editing the copy to add one
+      would destroy the byte-identity the frozen-copy home exists to preserve, and
+      `docs/audits/` is immutable besides (CLAUDE.md §5 rule 3).
+
+  - id: warn-consumer-batch-t-lane-t-000-playbook
+    organ: consumer_at_landing
+    match: "LANE-t-000-playbook.md"
+    ref: "docs/audits/2026-09-06-technical-batch-t-manifest.md (`closed_by:` declared); batch dispatched at c004ac8c; BATCH-2026-09-06-NIGHT-CONTRACTS.md"
+    review_date: 2026-09-13
+    auto_clearable_by: "docs/audits/2026-09-06-technical-batch-t-close-packet.md -- the declared closer; once it lands naming this contract, manifest_links resolves it `explicit` and this entry decorates stale"
+    reason: >-
+      IN-FLIGHT DISPATCH ARTIFACT, CONSUMER ALREADY DECLARED. `LANE-t-000-playbook.md` is a frozen,
+      byte-identical copy of a batch-T lane contract, landed at dispatch under
+      `docs/audits/2026-09-06-technical-batch-t-launch-contracts/`. Its consumer is the batch-T
+      close packet the manifest already names in `closed_by:`; that packet is written when the
+      batch closes, so the link is pending on time rather than on anyone's decision. The
+      lane-slug route cannot substitute: `links_artifact` anchors on `artifact_tail`, which
+      needs a `<date>-<class>-` prefix this name does not carry. Editing the copy to add one
+      would destroy the byte-identity the frozen-copy home exists to preserve, and
+      `docs/audits/` is immutable besides (CLAUDE.md §5 rule 3).
+
+  - id: warn-consumer-batch-t-lane-t-000-readme
+    organ: consumer_at_landing
+    match: "LANE-t-000-readme.md"
+    ref: "docs/audits/2026-09-06-technical-batch-t-manifest.md (`closed_by:` declared); batch dispatched at c004ac8c; BATCH-2026-09-06-NIGHT-CONTRACTS.md"
+    review_date: 2026-09-13
+    auto_clearable_by: "docs/audits/2026-09-06-technical-batch-t-close-packet.md -- the declared closer; once it lands naming this contract, manifest_links resolves it `explicit` and this entry decorates stale"
+    reason: >-
+      IN-FLIGHT DISPATCH ARTIFACT, CONSUMER ALREADY DECLARED. `LANE-t-000-readme.md` is a frozen,
+      byte-identical copy of a batch-T lane contract, landed at dispatch under
+      `docs/audits/2026-09-06-technical-batch-t-launch-contracts/`. Its consumer is the batch-T
+      close packet the manifest already names in `closed_by:`; that packet is written when the
+      batch closes, so the link is pending on time rather than on anyone's decision. The
+      lane-slug route cannot substitute: `links_artifact` anchors on `artifact_tail`, which
+      needs a `<date>-<class>-` prefix this name does not carry. Editing the copy to add one
+      would destroy the byte-identity the frozen-copy home exists to preserve, and
+      `docs/audits/` is immutable besides (CLAUDE.md §5 rule 3).
+
+  - id: warn-consumer-batch-t-lane-t-000-reds-spine
+    organ: consumer_at_landing
+    match: "LANE-t-000-reds-spine.md"
+    ref: "docs/audits/2026-09-06-technical-batch-t-manifest.md (`closed_by:` declared); batch dispatched at c004ac8c; BATCH-2026-09-06-NIGHT-CONTRACTS.md"
+    review_date: 2026-09-13
+    auto_clearable_by: "docs/audits/2026-09-06-technical-batch-t-close-packet.md -- the declared closer; once it lands naming this contract, manifest_links resolves it `explicit` and this entry decorates stale"
+    reason: >-
+      IN-FLIGHT DISPATCH ARTIFACT, CONSUMER ALREADY DECLARED. `LANE-t-000-reds-spine.md` is a frozen,
+      byte-identical copy of a batch-T lane contract, landed at dispatch under
+      `docs/audits/2026-09-06-technical-batch-t-launch-contracts/`. Its consumer is the batch-T
+      close packet the manifest already names in `closed_by:`; that packet is written when the
+      batch closes, so the link is pending on time rather than on anyone's decision. The
+      lane-slug route cannot substitute: `links_artifact` anchors on `artifact_tail`, which
+      needs a `<date>-<class>-` prefix this name does not carry. Editing the copy to add one
+      would destroy the byte-identity the frozen-copy home exists to preserve, and
+      `docs/audits/` is immutable besides (CLAUDE.md §5 rule 3).
+
+  - id: warn-consumer-batch-t-lane-t-000-shape-seal
+    organ: consumer_at_landing
+    match: "LANE-t-000-shape-seal.md"
+    ref: "docs/audits/2026-09-06-technical-batch-t-manifest.md (`closed_by:` declared); batch dispatched at c004ac8c; BATCH-2026-09-06-NIGHT-CONTRACTS.md"
+    review_date: 2026-09-13
+    auto_clearable_by: "docs/audits/2026-09-06-technical-batch-t-close-packet.md -- the declared closer; once it lands naming this contract, manifest_links resolves it `explicit` and this entry decorates stale"
+    reason: >-
+      IN-FLIGHT DISPATCH ARTIFACT, CONSUMER ALREADY DECLARED. `LANE-t-000-shape-seal.md` is a frozen,
+      byte-identical copy of a batch-T lane contract, landed at dispatch under
+      `docs/audits/2026-09-06-technical-batch-t-launch-contracts/`. Its consumer is the batch-T
+      close packet the manifest already names in `closed_by:`; that packet is written when the
+      batch closes, so the link is pending on time rather than on anyone's decision. The
+      lane-slug route cannot substitute: `links_artifact` anchors on `artifact_tail`, which
+      needs a `<date>-<class>-` prefix this name does not carry. Editing the copy to add one
+      would destroy the byte-identity the frozen-copy home exists to preserve, and
+      `docs/audits/` is immutable besides (CLAUDE.md §5 rule 3).
+
+  - id: warn-consumer-batch-t-lane-t-000-trace-scorecard
+    organ: consumer_at_landing
+    match: "LANE-t-000-trace-scorecard.md"
+    ref: "docs/audits/2026-09-06-technical-batch-t-manifest.md (`closed_by:` declared); batch dispatched at c004ac8c; BATCH-2026-09-06-NIGHT-CONTRACTS.md"
+    review_date: 2026-09-13
+    auto_clearable_by: "docs/audits/2026-09-06-technical-batch-t-close-packet.md -- the declared closer; once it lands naming this contract, manifest_links resolves it `explicit` and this entry decorates stale"
+    reason: >-
+      IN-FLIGHT DISPATCH ARTIFACT, CONSUMER ALREADY DECLARED. `LANE-t-000-trace-scorecard.md` is a frozen,
+      byte-identical copy of a batch-T lane contract, landed at dispatch under
+      `docs/audits/2026-09-06-technical-batch-t-launch-contracts/`. Its consumer is the batch-T
+      close packet the manifest already names in `closed_by:`; that packet is written when the
+      batch closes, so the link is pending on time rather than on anyone's decision. The
+      lane-slug route cannot substitute: `links_artifact` anchors on `artifact_tail`, which
+      needs a `<date>-<class>-` prefix this name does not carry. Editing the copy to add one
+      would destroy the byte-identity the frozen-copy home exists to preserve, and
+      `docs/audits/` is immutable besides (CLAUDE.md §5 rule 3).
+
+  - id: warn-consumer-batch-t-lane-t-000-v2-logs
+    organ: consumer_at_landing
+    match: "LANE-t-000-v2-logs.md"
+    ref: "docs/audits/2026-09-06-technical-batch-t-manifest.md (`closed_by:` declared); batch dispatched at c004ac8c; BATCH-2026-09-06-NIGHT-CONTRACTS.md"
+    review_date: 2026-09-13
+    auto_clearable_by: "docs/audits/2026-09-06-technical-batch-t-close-packet.md -- the declared closer; once it lands naming this contract, manifest_links resolves it `explicit` and this entry decorates stale"
+    reason: >-
+      IN-FLIGHT DISPATCH ARTIFACT, CONSUMER ALREADY DECLARED. `LANE-t-000-v2-logs.md` is a frozen,
+      byte-identical copy of a batch-T lane contract, landed at dispatch under
+      `docs/audits/2026-09-06-technical-batch-t-launch-contracts/`. Its consumer is the batch-T
+      close packet the manifest already names in `closed_by:`; that packet is written when the
+      batch closes, so the link is pending on time rather than on anyone's decision. The
+      lane-slug route cannot substitute: `links_artifact` anchors on `artifact_tail`, which
+      needs a `<date>-<class>-` prefix this name does not carry. Editing the copy to add one
+      would destroy the byte-identity the frozen-copy home exists to preserve, and
+      `docs/audits/` is immutable besides (CLAUDE.md §5 rule 3).
+
+  - id: warn-consumer-batch-t-lane-t-000-v4-archive-report
+    organ: consumer_at_landing
+    match: "LANE-t-000-v4-archive-report.md"
+    ref: "docs/audits/2026-09-06-technical-batch-t-manifest.md (`closed_by:` declared); batch dispatched at c004ac8c; BATCH-2026-09-06-NIGHT-CONTRACTS.md"
+    review_date: 2026-09-13
+    auto_clearable_by: "docs/audits/2026-09-06-technical-batch-t-close-packet.md -- the declared closer; once it lands naming this contract, manifest_links resolves it `explicit` and this entry decorates stale"
+    reason: >-
+      IN-FLIGHT DISPATCH ARTIFACT, CONSUMER ALREADY DECLARED. `LANE-t-000-v4-archive-report.md` is a frozen,
+      byte-identical copy of a batch-T lane contract, landed at dispatch under
+      `docs/audits/2026-09-06-technical-batch-t-launch-contracts/`. Its consumer is the batch-T
+      close packet the manifest already names in `closed_by:`; that packet is written when the
+      batch closes, so the link is pending on time rather than on anyone's decision. The
+      lane-slug route cannot substitute: `links_artifact` anchors on `artifact_tail`, which
+      needs a `<date>-<class>-` prefix this name does not carry. Editing the copy to add one
+      would destroy the byte-identity the frozen-copy home exists to preserve, and
+      `docs/audits/` is immutable besides (CLAUDE.md §5 rule 3).
+
+  - id: warn-consumer-batch-t-lane-t-000-v5-closures
+    organ: consumer_at_landing
+    match: "LANE-t-000-v5-closures.md"
+    ref: "docs/audits/2026-09-06-technical-batch-t-manifest.md (`closed_by:` declared); batch dispatched at c004ac8c; BATCH-2026-09-06-NIGHT-CONTRACTS.md"
+    review_date: 2026-09-13
+    auto_clearable_by: "docs/audits/2026-09-06-technical-batch-t-close-packet.md -- the declared closer; once it lands naming this contract, manifest_links resolves it `explicit` and this entry decorates stale"
+    reason: >-
+      IN-FLIGHT DISPATCH ARTIFACT, CONSUMER ALREADY DECLARED. `LANE-t-000-v5-closures.md` is a frozen,
+      byte-identical copy of a batch-T lane contract, landed at dispatch under
+      `docs/audits/2026-09-06-technical-batch-t-launch-contracts/`. Its consumer is the batch-T
+      close packet the manifest already names in `closed_by:`; that packet is written when the
+      batch closes, so the link is pending on time rather than on anyone's decision. The
+      lane-slug route cannot substitute: `links_artifact` anchors on `artifact_tail`, which
+      needs a `<date>-<class>-` prefix this name does not carry. Editing the copy to add one
+      would destroy the byte-identity the frozen-copy home exists to preserve, and
+      `docs/audits/` is immutable besides (CLAUDE.md §5 rule 3).
+
+  - id: warn-consumer-batch-t-lane-t-628-v1-release
+    organ: consumer_at_landing
+    match: "LANE-t-628-v1-release.md"
+    ref: "docs/audits/2026-09-06-technical-batch-t-manifest.md (`closed_by:` declared); batch dispatched at c004ac8c; BATCH-2026-09-06-NIGHT-CONTRACTS.md"
+    review_date: 2026-09-13
+    auto_clearable_by: "docs/audits/2026-09-06-technical-batch-t-close-packet.md -- the declared closer; once it lands naming this contract, manifest_links resolves it `explicit` and this entry decorates stale"
+    reason: >-
+      IN-FLIGHT DISPATCH ARTIFACT, CONSUMER ALREADY DECLARED. `LANE-t-628-v1-release.md` is a frozen,
+      byte-identical copy of a batch-T lane contract, landed at dispatch under
+      `docs/audits/2026-09-06-technical-batch-t-launch-contracts/`. Its consumer is the batch-T
+      close packet the manifest already names in `closed_by:`; that packet is written when the
+      batch closes, so the link is pending on time rather than on anyone's decision. The
+      lane-slug route cannot substitute: `links_artifact` anchors on `artifact_tail`, which
+      needs a `<date>-<class>-` prefix this name does not carry. Editing the copy to add one
+      would destroy the byte-identity the frozen-copy home exists to preserve, and
+      `docs/audits/` is immutable besides (CLAUDE.md §5 rule 3).
+
+  - id: warn-consumer-batch-t-manifest
+    organ: consumer_at_landing
+    match: "2026-09-06-technical-batch-t-manifest.md"
+    ref: "docs/audits/2026-09-06-technical-batch-t-manifest.md; batch dispatched at c004ac8c"
+    review_date: 2026-09-13
+    auto_clearable_by: "docs/audits/2026-09-06-technical-batch-t-close-packet.md -- the manifest's own declared closer"
+    reason: >-
+      THE MANIFEST IS A CITER THAT IS NOT ITSELF CITED -- the same self-reference the funnel
+      ledger has (a ledger's last row names itself), arriving from the other side. A batch
+      manifest is admitted to the governance pool as a CITING surface by the 2026-09-05 operator
+      ruling, but nothing in the pool cites the manifest back until its close packet lands and
+      names it. Net-neutral by construction, exactly as this module's docstring records for
+      ledgers: every new manifest lands as one more undispositioned artifact.
+
+  - id: warn-funnel-batch-t-manifest
+    organ: funnel_coverage
+    match: "2026-09-06-technical-batch-t-manifest.md"
+    ref: "architect ruling 2026-08-17 (the disposition-ledger shape); DECLARE-GO-2026-09-06 ruling 5 (the batch's own GO)"
+    review_date: 2026-09-13
+    auto_clearable_by: "the batch-T close packet's disposition ledger row for this manifest"
+    reason: >-
+      PENDING -- the exact question is **what disposition does a batch manifest take while its
+      batch is still running?** and it is not answerable tonight without lying. The ruled closed
+      set is ACTIONED / FILED / REJECTED / SUPERSEDED, and every one of them asserts a finished
+      state: ACTIONED needs a landed conclusion, FILED needs a row, REJECTED needs a ruling,
+      SUPERSEDED needs a successor. Batch T is OPEN -- this lane is one of its wave-1 lanes and
+      is writing this entry from inside it. The ruling's own tie-break governs: *"a wrong
+      ACTIONED is worse than an honest PENDING"*. The disposition lands in the close packet's
+      ledger at dawn, with the batch's outcome as its evidence locator.
+
+  # ---- substrate_declaration: the three batch-T CLOUD lanes (2026-09-06) ----
+  # ALSO OUTSIDE THIS LANE'S FROZEN 36 and reported as a deviation -- these arrived with the same
+  # `c004ac8c` dispatch merge. Recorded here rather than left blocking, because the underlying
+  # fact is already ruled and the gap is in the CHECK's regex, not in the contracts.
+  #
+  # THE BRANCH PREFIX IS IN THE RATIFIED ENUM. CLAUDE.md §4 and AGENTS.md both state the closed
+  # enum of branch prefixes as four machine-produced lane forms: `worktree-<name>`, `epic/<slug>`,
+  # `claude/<slug>`, `automation/<slug>`. A cloud lane's branch is minted `claude/<slug>` by the
+  # cloud harness -- the lane does not choose it. `validate_substrate`'s `LANE_BRANCH_RE` matches
+  # only the `worktree-lane-*` form, so it reports every cloud lane as invisible to the teardown
+  # enum and the ADR-110 exemption. The check's own evidence line ends "[OVERRIDDEN -- recorded
+  # deviation]": the contracts DID record it, and the WARN fires anyway.
+  #
+  # WHAT IS NOT CLAIMED: that the teardown/exemption coverage question is answered. It is not.
+  # `claude/<slug>` lanes really are outside both iterations, and that is worth a row -- it is
+  # simply not a defect in these three contracts, which did the one thing available to them.
+
+  - id: warn-substrate-cloud-branch-lane-t-000-aj-research
+    organ: substrate_declaration
+    match: "LANE-t-000-aj-research.md: WARN substrate-teardown-enum-coverage"
+    ref: "CLAUDE.md §4 / AGENTS.md branch-prefix enum (`claude/<slug>` is a ratified machine-produced lane prefix); ADR-116; scripts/validate_substrate.py LANE_BRANCH_RE"
+    review_date: 2026-10-06
+    reason: >-
+      THE CHECK'S REGEX IS NARROWER THAN THE RATIFIED ENUM -- a detection gap, not a contract
+      defect. `LANE-t-000-aj-research.md` pairs to `claude/<slug>`, which is one of the four machine-produced lane
+      prefixes the closed enum admits; `LANE_BRANCH_RE` matches only `worktree-lane-*`, so every
+      CLOUD lane trips this leg by construction and no cloud contract can ever pass it. The
+      contract already recorded the deviation -- the check prints "[OVERRIDDEN -- recorded
+      deviation]" in the same evidence string it WARNs with. The substantive half of the finding
+      IS real and stays open: a `claude/<slug>` branch genuinely is invisible to the batch
+      teardown enum and to the ADR-110 exemption, and that wants a row against
+      `validate_substrate` rather than a disposition. Keyed on the contract path AND the rule
+      name, so a DIFFERENT substrate finding on the same contract re-surfaces and blocks.
+
+  - id: warn-substrate-cloud-branch-lane-t-000-v4-archive-report
+    organ: substrate_declaration
+    match: "LANE-t-000-v4-archive-report.md: WARN substrate-teardown-enum-coverage"
+    ref: "CLAUDE.md §4 / AGENTS.md branch-prefix enum (`claude/<slug>` is a ratified machine-produced lane prefix); ADR-116; scripts/validate_substrate.py LANE_BRANCH_RE"
+    review_date: 2026-10-06
+    reason: >-
+      THE CHECK'S REGEX IS NARROWER THAN THE RATIFIED ENUM -- a detection gap, not a contract
+      defect. `LANE-t-000-v4-archive-report.md` pairs to `claude/<slug>`, which is one of the four machine-produced lane
+      prefixes the closed enum admits; `LANE_BRANCH_RE` matches only `worktree-lane-*`, so every
+      CLOUD lane trips this leg by construction and no cloud contract can ever pass it. The
+      contract already recorded the deviation -- the check prints "[OVERRIDDEN -- recorded
+      deviation]" in the same evidence string it WARNs with. The substantive half of the finding
+      IS real and stays open: a `claude/<slug>` branch genuinely is invisible to the batch
+      teardown enum and to the ADR-110 exemption, and that wants a row against
+      `validate_substrate` rather than a disposition. Keyed on the contract path AND the rule
+      name, so a DIFFERENT substrate finding on the same contract re-surfaces and blocks.
+
+  - id: warn-substrate-cloud-branch-lane-t-000-v5-closures
+    organ: substrate_declaration
+    match: "LANE-t-000-v5-closures.md: WARN substrate-teardown-enum-coverage"
+    ref: "CLAUDE.md §4 / AGENTS.md branch-prefix enum (`claude/<slug>` is a ratified machine-produced lane prefix); ADR-116; scripts/validate_substrate.py LANE_BRANCH_RE"
+    review_date: 2026-10-06
+    reason: >-
+      THE CHECK'S REGEX IS NARROWER THAN THE RATIFIED ENUM -- a detection gap, not a contract
+      defect. `LANE-t-000-v5-closures.md` pairs to `claude/<slug>`, which is one of the four machine-produced lane
+      prefixes the closed enum admits; `LANE_BRANCH_RE` matches only `worktree-lane-*`, so every
+      CLOUD lane trips this leg by construction and no cloud contract can ever pass it. The
+      contract already recorded the deviation -- the check prints "[OVERRIDDEN -- recorded
+      deviation]" in the same evidence string it WARNs with. The substantive half of the finding
+      IS real and stays open: a `claude/<slug>` branch genuinely is invisible to the batch
+      teardown enum and to the ADR-110 exemption, and that wants a row against
+      `validate_substrate` rather than a disposition. Keyed on the contract path AND the rule
+      name, so a DIFFERENT substrate finding on the same contract re-surfaces and blocks.
+
+  # ---- doc_rot backlog-accretion: the groom's work, on a groom cadence (2026-09-06) ----
+  # R5 B5, operator-declared in to-cc/R5-DECLARED.md, ruled `doc_rot` ARM 2 into ONE corpus
+  # Finding (landed; `warn-row-length-corpus-trend` above dispositions it). ARM 1 --
+  # history-accretion -- still emits one Finding PER ROW, and these five are what it emits.
+  #
+  # ACCRETION IS WHAT A GROOM REMOVES, AND THE GROOM IS THE UNIT OF WORK. ADR-41 sets the cadence
+  # and ADR-49/65 set the condense-preserving form. Condensing a row's dated history is a judgement
+  # about which of its dates still carry meaning -- the operator's call on the groom sheet, not a
+  # lane's edit in passing. §3.6 directs these five to that Finding rather than to five separate
+  # fixes, and this is that direction executed.
+  #
+  # PRECISION, stated honestly: keyed on `backlog-accretion BACKLOG#<id>`, which is the ROW, not
+  # the row's current measurements. The char counts and date spans move every time the row is
+  # edited, so keying on them would decorate stale within a day and teach that this register rots
+  # -- the failure `warn-review-artifact-coverage-advisory-deferred-499` records for the same
+  # reason. The cost is real and bounded: a NEW accretion defect on one of these five rows is
+  # absorbed by its entry rather than re-surfacing. A sixth row crossing the threshold is not.
+
+  - id: warn-doc-rot-accretion-backlog-241
+    organ: doc_rot
+    match: "backlog-accretion BACKLOG#241"
+    ref: "ADR-41 (groom cadence), ADR-49/65 (condense-preserving form); R5 B5 (ARCHITECT-INBOX-2026-09-05-007), operator-declared in to-cc/R5-DECLARED.md; §3.6 of BATCH-2026-09-06-NIGHT-CONTRACTS.md"
+    review_date: 2026-10-06
+    auto_clearable_by: "the next ADR-41 groom -- condensing [#241]'s dated history below the ARM 1 threshold drops the Finding and decorates this entry stale"
+    reason: >-
+      ACCRETION ROUTED TO THE GROOM THAT OWNS IT. `[#241]` (coherence -- the doc<->code coverage arc) carries three or more
+      distinct dated history blocks spanning 30+ days at over 700 characters -- the ARM 1
+      signature. That is not drift to fix in passing: ADR-49/65's condense-preserving form
+      requires deciding which dates still carry meaning, which is a groom decision and the
+      operator's at the sheet. The live groom is on cadence hold (see
+      warn-doc-rot-grooming-cadence-hold below), so the row's accretion is dispositioned to the
+      groom rather than left to block the ship gate on work no seat is authorised to do tonight.
+
+  - id: warn-doc-rot-accretion-backlog-267
+    organ: doc_rot
+    match: "backlog-accretion BACKLOG#267"
+    ref: "ADR-41 (groom cadence), ADR-49/65 (condense-preserving form); R5 B5 (ARCHITECT-INBOX-2026-09-05-007), operator-declared in to-cc/R5-DECLARED.md; §3.6 of BATCH-2026-09-06-NIGHT-CONTRACTS.md"
+    review_date: 2026-10-06
+    auto_clearable_by: "the next ADR-41 groom -- condensing [#267]'s dated history below the ARM 1 threshold drops the Finding and decorates this entry stale"
+    reason: >-
+      ACCRETION ROUTED TO THE GROOM THAT OWNS IT. `[#267]` (the ADR-index / status-prefix arc) carries three or more
+      distinct dated history blocks spanning 30+ days at over 700 characters -- the ARM 1
+      signature. That is not drift to fix in passing: ADR-49/65's condense-preserving form
+      requires deciding which dates still carry meaning, which is a groom decision and the
+      operator's at the sheet. The live groom is on cadence hold (see
+      warn-doc-rot-grooming-cadence-hold below), so the row's accretion is dispositioned to the
+      groom rather than left to block the ship gate on work no seat is authorised to do tonight.
+
+  - id: warn-doc-rot-accretion-backlog-297
+    organ: doc_rot
+    match: "backlog-accretion BACKLOG#297"
+    ref: "ADR-41 (groom cadence), ADR-49/65 (condense-preserving form); R5 B5 (ARCHITECT-INBOX-2026-09-05-007), operator-declared in to-cc/R5-DECLARED.md; §3.6 of BATCH-2026-09-06-NIGHT-CONTRACTS.md"
+    review_date: 2026-10-06
+    auto_clearable_by: "the next ADR-41 groom -- condensing [#297]'s dated history below the ARM 1 threshold drops the Finding and decorates this entry stale"
+    reason: >-
+      ACCRETION ROUTED TO THE GROOM THAT OWNS IT. `[#297]` (an audit-py arc row) carries three or more
+      distinct dated history blocks spanning 30+ days at over 700 characters -- the ARM 1
+      signature. That is not drift to fix in passing: ADR-49/65's condense-preserving form
+      requires deciding which dates still carry meaning, which is a groom decision and the
+      operator's at the sheet. The live groom is on cadence hold (see
+      warn-doc-rot-grooming-cadence-hold below), so the row's accretion is dispositioned to the
+      groom rather than left to block the ship gate on work no seat is authorised to do tonight.
+
+  - id: warn-doc-rot-accretion-backlog-285
+    organ: doc_rot
+    match: "backlog-accretion BACKLOG#285"
+    ref: "ADR-41 (groom cadence), ADR-49/65 (condense-preserving form); R5 B5 (ARCHITECT-INBOX-2026-09-05-007), operator-declared in to-cc/R5-DECLARED.md; §3.6 of BATCH-2026-09-06-NIGHT-CONTRACTS.md"
+    review_date: 2026-10-06
+    auto_clearable_by: "the next ADR-41 groom -- condensing [#285]'s dated history below the ARM 1 threshold drops the Finding and decorates this entry stale"
+    reason: >-
+      ACCRETION ROUTED TO THE GROOM THAT OWNS IT. `[#285]` (hub freshness gating (PLAYBOOK), the row three ungated-stale files defer to) carries three or more
+      distinct dated history blocks spanning 30+ days at over 700 characters -- the ARM 1
+      signature. That is not drift to fix in passing: ADR-49/65's condense-preserving form
+      requires deciding which dates still carry meaning, which is a groom decision and the
+      operator's at the sheet. The live groom is on cadence hold (see
+      warn-doc-rot-grooming-cadence-hold below), so the row's accretion is dispositioned to the
+      groom rather than left to block the ship gate on work no seat is authorised to do tonight.
+
+  - id: warn-doc-rot-accretion-backlog-82
+    organ: doc_rot
+    match: "backlog-accretion BACKLOG#82"
+    ref: "ADR-41 (groom cadence), ADR-49/65 (condense-preserving form); R5 B5 (ARCHITECT-INBOX-2026-09-05-007), operator-declared in to-cc/R5-DECLARED.md; §3.6 of BATCH-2026-09-06-NIGHT-CONTRACTS.md"
+    review_date: 2026-10-06
+    auto_clearable_by: "the next ADR-41 groom -- condensing [#82]'s dated history below the ARM 1 threshold drops the Finding and decorates this entry stale"
+    reason: >-
+      ACCRETION ROUTED TO THE GROOM THAT OWNS IT. `[#82]` (a long-running architecture row) carries three or more
+      distinct dated history blocks spanning 30+ days at over 700 characters -- the ARM 1
+      signature. That is not drift to fix in passing: ADR-49/65's condense-preserving form
+      requires deciding which dates still carry meaning, which is a groom decision and the
+      operator's at the sheet. The live groom is on cadence hold (see
+      warn-doc-rot-grooming-cadence-hold below), so the row's accretion is dispositioned to the
+      groom rather than left to block the ship gate on work no seat is authorised to do tonight.
+
+  - id: warn-doc-rot-grooming-cadence-hold
+    organ: doc_rot
+    match: "grooming-cadence BACKLOG#grooming-cadence (last groom 2026-07-30"
+    ref: "ADR-41; DECLARE-GO-2026-09-06 ruling 3 (V4 runs REPORT-stage only tonight; the operator rules the bundles at dawn); docs/audits/2026-09-05-technical-funnel-groom-sheet.md"
+    review_date: 2026-09-13
+    auto_clearable_by: "the BACKLOG 'Grooming log' line gaining a completed groom date -- `_latest_groom_date` reads the most-recent PAST date, so an executed groom clears this and decorates the entry stale"
+    reason: >-
+      THE GROOM DID NOT RUN ON 2026-09-05, AND SAYING SO IS THE POINT. §3.6 anticipated this
+      line being "cleared by V4's witness that the groom ran 09-05" and directed a disposition
+      WITH THE LOCATOR if the stamp was not updated by that witness. It was not, and the locator
+      says why: `docs/audits/2026-09-05-technical-funnel-groom-sheet.md` is a **READ-ONLY
+      proposal sheet** -- its own header records "Zero rows closed, zero files archived". What
+      landed on 09-05 was the groom's INPUT, not the groom. Tonight does not close the gap
+      either: operator consent 3 (DECLARE-GO-2026-09-06 ruling 3) runs V4 at REPORT stage only
+      and reserves the bundles for the operator's word at dawn. So the cadence clock is honestly
+      past (last completed groom 2026-07-30) and the act that resets it is scheduled and
+      consented, not overdue-and-ignored.
+      PRECISION: keyed on the GROOM DATE `2026-07-30`, not on the day count, which moves every
+      midnight. The first genuinely completed groom changes that date, misses this match, and
+      the entry decorates stale the same day -- which is exactly when it should.
