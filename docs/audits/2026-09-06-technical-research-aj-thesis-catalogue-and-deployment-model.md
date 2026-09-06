@@ -433,6 +433,15 @@ unverified**. It was, and this lane did not take that on trust:
   `validate_hermetization.rule_b_violation()` and `rule_c_violation()` against this file's path
   (both `OK`), and the `audit-title-gate` condition (a `# ` heading on line 1, present).
 
+  **Batch-wide consequence, measured at this lane's Stop and reported for the close packet:** the
+  same mismatch breaks the `Stop` hook, which invokes
+  `uv run --locked python scripts/session_end_backpressure.py` and dies on the version check before
+  reaching the script. **Every cloud lane in this batch will hit it**, so a lane reporting no
+  session-end backpressure signal is reporting a container defect, not a clean gate. Run directly
+  as `python3 scripts/session_end_backpressure.py` with a Stop payload on stdin, the check exits
+  **0 with no findings** at this HEAD — so the signal itself is clean and only its carrier is
+  broken. The hook is advisory in full (ADR-85 amendment §A5) and discharges no gate either way.
+
   **What did NOT run:** `pytest`, in any form. **This lane makes no green-suite claim.** The
   container was deliberately **not repaired** to manufacture one — a `uv self update` or a `pip
   install pytest` is a network fetch outside the decision budget, and a lane that repairs its own
