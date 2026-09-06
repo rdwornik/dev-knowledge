@@ -19,6 +19,52 @@
 
 ---
 
+### 2026-09-06 (x) - CC (Opus 5, INTEGRATOR-2, DAY sitting): the ratified raise had no mechanism to land, and the anchor had to be cut from the ref it was raising
+
+**Did:** Took the four leftover batch-T worktrees from live state per the sitting brief, applied
+exactly one rule to each, and re-measured the silent-rule count before merging `30c6e587` rather
+than pinning the integer the lane had quoted.
+
+**Result - the re-measure confirmed the lane, and then the gate refused the ruling.**
+
+```
+main   eeac6bef   443 / 62 files   detector silent-rule-v5
+lane   30c6e587   447 / 62 files   same detector, same file set
+delta  +4         attributed to protocols/PLAYBOOK.md alone (blob occurrences 218 -> 222)
+```
+
+The lane's committed 447 is correct AS MEASURED. DECLARE-SITTING D2 ruled the raise YES. Both
+legs of the authorization are therefore present - and `silent_rule_ratchet` still FAILs the
+commit, because `_target_baseline_state` compares against `min(origin/main, main)` and
+`origin/main` still reads 443. The check is working exactly as designed; what is missing is a
+path for an authorized raise to LAND when the detector id does not change.
+
+**The R8 precedent does not cover this case.** R8's 441 -> 443 raise landed as a WARN, not a
+pass, and only because the detector id moved v4 -> v5 and made the two numbers
+non-commensurable. That WARN is the file's own documented "designed migration path". Here the
+detector id is unchanged, so the transition is commensurable, and a commensurable raise has no
+WARN branch - it is a hard FAIL with no mechanism behind it. The disposition register cannot
+absorb it either: `_match_disposition` suppresses WARN findings only, and ship-gate reads
+`Finding.status == "fail"` directly.
+
+**Why this entry is on a branch cut from `origin/main`.** The deadlock is circular: the ratchet
+clears only once `origin/main` carries 447; pushing `main` needs a JOURNAL anchor; and the anchor
+commit is itself blocked by the ratchet on any tree that already carries the raise. Cutting the
+anchor branch from `origin/main` puts the commit on a 443 tree, where the transition is 443 -> 443
+and passes on its own merits. No bypass was spent, per AMEND-DAY-001 A2 ("if the ratchet fires,
+HOLD the commit ... do not spend a bypass").
+
+**Anchors.** This entry names the SHAs its merges introduce:
+`30c6e587` (PLAYBOOK Ch8 "Batch communication", 027 carried verbatim),
+`7c5432ea` (027 filed as intake #72, DRAFT),
+`22f06b21` (audit P2/P3 spine-walk + read-cache, intake #71).
+
+**Changes:** JOURNAL.md; the merges themselves carry protocols/PLAYBOOK.md,
+ecosystem/silent-rule-baseline.yaml, docs/intake/.
+
+**Next:** anchor merge, push `main` so `origin/main` reaches 447 and the ratchet self-heals, then
+the remaining two merges and the ship-gate.
+
 ### 2026-09-06 (w) - CC (Opus 5, INTEGRATOR, batch T): the close packet cited the artifacts that closing created
 
 **Did:** Ran the ship-gate once more at `e0b35c14`, after the close packet had landed - a reading
