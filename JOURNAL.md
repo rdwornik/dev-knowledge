@@ -19,6 +19,50 @@
 
 ---
 
+### 2026-09-07 (a) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): the first lane merge, and a detector that dies at 99 and looks fixed by dawn
+
+**Did:** Merged W1-8 `worktree-lane-u-000-closures-local`, the batch's first lane HANDBACK, and
+regenerated the audits index it correctly left alone.
+
+**Result - a clean merge, and a defect in the batch's own tooling that the lane found.**
+
+The branch was verified from the primary before it was touched rather than on the lane's report:
+present on origin at `7eb21699`, a clean descendant of `main` (`merge-base --is-ancestor` as its own
+command, exit 0), and **one file** changed - `docs/audits/2026-09-06-technical-closure-proposals.md`,
+1026 insertions - which matches its claimed footprint exactly. No `.claude/settings.json`, no
+`docs/audits/README.md`. `review=codex HIGH:1 MED:0 LOW:0` with the HIGH found and closed in-lane,
+so the tally requirement is met and nothing was handed forward open. Merged at `ae13e1ae` in 12
+seconds against a 5-minute docs budget.
+
+The index regeneration rides this anchor branch rather than a separate arc. `[#590]` narrowed
+`audit-index-freshness` to `(README.md|gen_audit_index.py)` precisely so lanes do NOT touch that
+shared file - it was in six of the last seven conflicted merges - which makes regenerating it the
+integrator's act, once on the merged result. W1-8 left it alone correctly.
+
+**The lane's headline is a live defect and it is worth recording where the next seat will find it.**
+`_next_free_dated_path` allocates a two-digit per-run sequence, `range(1, 100)`. ADR-110 fires the
+Stop hook once per lane, so a full-width night exhausted all 99 slots for 2026-09-06 and the closure
+detector began writing `DETECTOR-ERROR-2026-09-06.md` instead of proposals at 23:28:41. The marker
+rewrites its own path on repeat, so it cannot report how many runs have failed. **It self-clears at
+midnight and self-repeats on the next wide night - at dawn it will look fixed.** That last property
+is the trap: a defect that erases its own evidence on a calendar boundary will be closed as
+unreproducible by whoever looks first.
+
+Also carried forward, unowned: all three STRONG closure proposals are false positives, and none is
+the quoting shape `[#437]` fixed - all three are unquoted plain text, in three distinct unowned
+shapes (proposed-disposition verb, object-of-verb, partial closure). The report declares itself
+PRE-TRIAGE and files nothing, so F-1 and F-2 have no owner and no intake and need triage at dawn.
+
+**Changes:** `docs/audits/2026-09-06-technical-closure-proposals.md` via `ae13e1ae`;
+`docs/audits/README.md` via `7749bcec`.
+
+**Abandoned:** nothing.
+
+**Next:** the remaining wave-1 lanes on HANDBACK, docs-first, refusing `review=NONE` on code.
+
+**Anchors:** `7eb21699` (W1-8's reviewer-HIGH commit, introduced by `ae13e1ae`) and `7749bcec`
+(the index regeneration on this branch, introduced by this branch's own merge).
+
 ### 2026-09-06 (ab) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): the generated index the merge invalidated, and an alarm withdrawn on both sides
 
 **Did:** Regenerated `docs/audits/README.md`, stale as a direct consequence of the batch-U manifest
