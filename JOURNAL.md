@@ -19,6 +19,80 @@
 
 ---
 
+### 2026-09-06 (s) - CC (Opus 5, INTEGRATOR, batch T): the queue drains, and a seat that reported its own bypass
+
+**Did:** Merged the last three: lane 3.6 `nc1-clear` (`f44b1f58`, 10s), then the two cloud lanes
+back-to-back - `aj-research` (`e5ff6bbb`, 10s) and `v4-archive-report` (`05e1cd0a`, 10s).
+
+**Result — 3.6.** `hard-fail 2 -> 0`, `undispositioned 52 -> 3`, `stale 4 -> 0`. Two things in its
+handback are worth more than those numbers.
+
+**It disclosed a bypass I would never have found.** It spent one `--no-verify` on exactly the
+spine-anchor phantom it had been warned about, caught itself, un-made the commit
+(`merge --abort` + `reset --soft HEAD~1`), synced properly and re-committed identical content
+through the full gate. So both of these are true: **a bypass was spent as an act, and no bypassed
+commit exists on the pushed branch.** I had been reporting "zero bypasses tonight" and that line
+was right about what LANDED and wrong about what SEATS DID. The lane asked me to record the
+stricter reading. **Corrected: one bypass spent, zero landed.** A seat that reports its own
+near-miss when the evidence is already gone is worth more to this record than a clean number.
+
+**And it dispositioned 18 findings that were not in its frozen 36** - because the dispatch itself
+landed the manifest and 13 contracts at `c004ac8c` *after* the step-0 measurement, so **the batch
+grew its own undispositioned set by 18 between freeze and execution.** Each was dispositioned under
+the consumer the manifest already declares, individually reversible, and flagged as a C-3(c) fork
+for the operator to check rather than take on the lane's word.
+
+**Result — the two cloud lanes.** Merged on a weaker basis, stated as such: *merged on the
+dispatcher's read of a lane that cannot hand back*. A cloud session receives messages but cannot
+send one, so **there is no transport on which a handback could ever arrive**, and ListAgents
+`idle` means unarchived, not finished. Waiting for a handback with no channel is waiting forever.
+That is the same structural gap from the other end as the codespace lane that could not write a
+QUESTION file: **027's protocol assumes a substrate two of tonight's four remote lanes did not
+have.** Both audits add-only, `technical` class, zero deletions; v4 is REPORT-stage, matching
+operator consent #3.
+
+**The 3 residual undispositioned are each another lane's, and two arrived after 3.6's contract
+froze:** `CLAUDE.md` (3.14's, the line A1 permits), 3.7's intake edge, and the H0 seal arc's funnel
+row. **On a literal reading of AMEND A1, wave 2 is therefore not launchable** - A1 admits only
+`CLAUDE.md` / `HANDOFF_BOOT.md` lines. That is not a wave-1 shortfall; two later merges landed two
+new findings.
+
+**Changes:** the three merges; `docs/audits/README.md` regenerated (neither cloud lane did it).
+
+**Abandoned:** Nothing.
+
+**Next:** the wave-1 ship-gate and the decomposed `PACKET-MERGED` line.
+
+**Anchors:** `c4fdc4e6` (3.6, introduced by `f44b1f58`) - `5c36f99b` (aj-research, introduced by
+`e5ff6bbb`) - `8c07cf48` (v4 report, introduced by `05e1cd0a`).
+
+### 2026-09-06 (t) - CC (Opus 5, INTEGRATOR, batch T): anchor arc 6, and a dispatching seat that ended mid-sentence
+
+**Did:** Anchored arc 6, which carries the index regen and entry (s).
+
+**Result:** `dispatcher-T` went offline while I was drafting a reply to it - inbox gone, two
+corrections to its close packet undelivered. They are recorded on my board instead, because the
+packet is now the batch's own record and is wrong on both: it says *"seven lanes merged without a
+review artifact"*, where the true shape is **8 merges / 7 branches / 6 numbered lanes** (3.7 merged
+twice; `manifest-amend` is a dispatcher arc, not a lane), and NO REVIEW applies to every merge
+tonight rather than to seven of them.
+
+**The close packet `b22f201a` is parked and no seat is authorised to clear it.** Its clearance was
+to arrive as one explicit line after an A1 evaluation that can no longer happen. It is not in my
+instruction - it is a dispatcher artifact - so it goes to the operator as a named residual rather
+than merged on my own authority. It is also **booby-trapped by accident**: it sits on
+`worktree-lane-t-000-manifest-amend`, a branch I already merged an earlier commit of, so it appears
+in `git branch --no-merged main` looking exactly like an ordinary pending handback while holding
+the file whose mere presence closes the batch.
+
+**Changes:** This entry.
+
+**Abandoned:** Nothing.
+
+**Next:** ship-gate, `PACKET-MERGED`, final census, stop.
+
+**Anchors:** `df53cab6` (the index regen, introduced by this arc's merge).
+
 ### 2026-09-06 (r) - CC (Opus 5, INTEGRATOR, batch T): anchoring promptly because the gap blocks lanes, not just me
 
 **Did:** Anchored arc 5, immediately rather than batched with the next merge.
