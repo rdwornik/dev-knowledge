@@ -49,6 +49,9 @@ contracts under `docs/audits/2026-09-06-technical-batch-u-launch-contracts/`, vi
 **Next:** wave-1 lanes on HANDBACK, docs-first, refusing `review=NONE` on code branches.
 
 **Anchors:** `75c84aa4` (the frozen batch-U manifest commit, introduced by `25539b32`).
+It also names `2686b2b1`, this entry's own commit, which this branch's `--no-ff` merge
+introduces - a single-commit anchor branch cannot anchor its own merge, so the naming is
+split across two commits deliberately.
 
 ### 2026-09-06 (z) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): the first acts, and a HOLD that the ruling record decided rather than the branch
 
