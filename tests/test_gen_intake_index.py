@@ -244,3 +244,126 @@ def test_splice_rejects_reversed_markers():
     rev = f"# t\n{gi._END_MARKER}\nmid\n{gi._START_MARKER}\n"
     with pytest.raises(RuntimeError):
         gi._splice(rev, "x\n")
+
+
+# --- the intake-id allocation ledger (NIGHT-2 lane W1-5; filings Q-3 finding F1) -----------
+#
+# F1, verbatim from `to-cc/ANSWER-filings-Q3.md`: "nothing enforces `intake-id` uniqueness.
+# Both mandatory generators were run against a tree carrying a duplicate and BOTH wrote output
+# without a word. `docs/intake/README.md` section 3 calls the id a 'stable integer, next free
+# across all history'. That property is STATED, not enforced -- prose with no organ behind it."
+
+def _archived(intake_dir: Path, docs: dict[str, str]) -> Path:
+    a = intake_dir / "archive"
+    a.mkdir(exist_ok=True)
+    for name, content in docs.items():
+        (a / name).write_text(content, encoding="utf-8")
+    return a
+
+
+def test_two_active_docs_on_one_id_is_a_collision(tmp_path):
+    """The shape that actually happened: id 70 on BOTH the AJ second pass and
+    roles-with-a-carrier, landed on main, with nothing detecting it."""
+    d = _make_intake_dir(tmp_path, {
+        "aj.md": _doc("DRAFT", "70", "AJ second pass"),
+        "roles.md": _doc("DRAFT", "70", "Session roles with a carrier"),
+    })
+    reasons = gi.duplicate_id_reasons(d)
+    assert len(reasons) == 1
+    assert "70" in reasons[0] and "aj.md" in reasons[0] and "roles.md" in reasons[0]
+    assert "ACTIVE" in reasons[0]
+
+
+def test_archived_doc_sharing_an_active_id_is_the_join_key_not_a_collision(tmp_path):
+    """Intake #14's real shape, and the one this predicate must NOT report: two independent
+    derivations archived as CONSUMED provenance under the id of the ruled pack that unioned
+    them. README section 5 -- "their `intake-id` join keys stay valid at the archive path".
+    A naive "no id appears twice" rule renumbers a deliberate structure, so it is tested."""
+    d = _make_intake_dir(tmp_path, {"ruled-pack.md": _doc("ACCEPTED", "14", "Ruled pack")})
+    _archived(d, {
+        "draft-fable.md": _doc("CONSUMED", "14", "Fable derivation"),
+        "draft-codex.md": _doc("CONSUMED", "14", "Codex derivation"),
+    })
+    assert gi.duplicate_id_reasons(d) == []
+
+
+def test_two_archived_docs_on_one_id_with_no_live_holder_is_a_collision(tmp_path):
+    """The join key only joins if something live holds the id. With no active holder the two
+    archived docs are simply ambiguous -- a join key pointing at nothing."""
+    d = _make_intake_dir(tmp_path, {"live.md": _doc("SEED", "9", "Live")})
+    _archived(d, {
+        "old-a.md": _doc("REJECTED", "3", "Old A"),
+        "old-b.md": _doc("SUPERSEDED", "3", "Old B"),
+    })
+    reasons = gi.duplicate_id_reasons(d)
+    assert len(reasons) == 1
+    assert "ARCHIVED" in reasons[0] and "3" in reasons[0]
+
+
+def test_next_free_id_is_a_high_water_mark_and_never_refills_a_gap(tmp_path):
+    """README section 3: "closed ids are not reused -- same discipline as BACKLOG ids". Handing
+    back a gap would resurrect exactly the ambiguity a renumbering was performed to remove."""
+    d = _make_intake_dir(tmp_path, {
+        "a.md": _doc("SEED", "1", "A"), "c.md": _doc("SEED", "9", "C")})
+    assert gi.next_free_id(d, scan_refs=False) == 10
+
+
+def test_next_free_id_counts_an_archived_id_no_live_doc_holds(tmp_path):
+    """An archived-only id is SPENT, not free -- the folder listing under-reports by exactly
+    these docs, which is why an author reading it allocates a colliding id."""
+    d = _make_intake_dir(tmp_path, {"a.md": _doc("SEED", "2", "A")})
+    _archived(d, {"gone.md": _doc("REJECTED", "40", "Gone")})
+    assert gi.next_free_id(d, scan_refs=False) == 41
+
+
+def test_write_REFUSES_on_a_colliding_tree_instead_of_writing_silently(tmp_path, monkeypatch):
+    """FINDING F1 ITSELF, as a regression. Before this, `--write` rendered an index over a
+    colliding tree and reported success -- laundering a duplicate join key into a generated
+    artifact that then reads as authoritative. Exit 3 is its own class: 1 (stale) and 2
+    (missing markers) both name remedies that do not apply, and regenerating is not the fix."""
+    d = _make_intake_dir(tmp_path, {
+        "one.md": _doc("DRAFT", "70", "One"), "two.md": _doc("DRAFT", "70", "Two")})
+    target = d / "README.md"
+    before = f"# t\n\n{gi._START_MARKER}\n{gi._END_MARKER}\n\n## doctrine\n"
+    target.write_text(before, encoding="utf-8", newline="")
+    monkeypatch.setattr(gi, "_INTAKE_DIR", d)
+    monkeypatch.setattr(gi, "_TARGET", target)
+    monkeypatch.setattr(gi, "_REPO_ROOT", tmp_path)  # _cmd_check renders paths relative to it
+    assert gi.main(["--write"]) == 3
+    assert target.read_text(encoding="utf-8") == before, "a refusal must not write"
+    assert gi.main(["--check"]) == 3
+
+
+def test_next_free_counts_an_id_that_exists_ONLY_on_an_unmerged_ref(tmp_path):
+    """D8's MECHANISM ROW, and the half that makes the collision recur if it is dropped:
+    "next-free computed across ALL refs (local + origin branches), not `main` only". A
+    colliding doc is BY DEFINITION not yet on main -- it is on the branch about to allocate
+    the same id -- so a tree-only max() reproduces the collision it exists to prevent.
+
+    Witnessed on 2026-09-06: id 76 was live on `docs/intake-031-two-chats` and on no other
+    ref, so the tree-only answer was 76 and the correct answer was 77.
+    """
+    import subprocess
+    repo = tmp_path / "repo"
+    (repo / "docs" / "intake").mkdir(parents=True)
+
+    def git(*args):
+        return subprocess.run(["git", *args], cwd=repo, capture_output=True, text=True)
+
+    git("init", "-q", "-b", "main")
+    git("config", "user.email", "t@example.com")
+    git("config", "user.name", "t")
+    intake = repo / "docs" / "intake"
+    (intake / "on-main.md").write_text(_doc("SEED", "5", "On main"), encoding="utf-8")
+    git("add", "-A")
+    git("commit", "-qm", "main doc")
+    git("checkout", "-qb", "side")
+    (intake / "only-on-side.md").write_text(_doc("SEED", "76", "Side"), encoding="utf-8")
+    git("add", "-A")
+    git("commit", "-qm", "side doc")
+    git("checkout", "-q", "main")
+    (intake / "only-on-side.md").unlink(missing_ok=True)
+
+    # The working tree now sees ONLY id 5; id 76 lives on the unmerged `side` branch.
+    assert gi.next_free_id(intake, scan_refs=False, repo_root=repo) == 6
+    assert gi.next_free_id(intake, scan_refs=True, repo_root=repo) == 77

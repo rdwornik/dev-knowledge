@@ -80,6 +80,7 @@ from gen_intake_index import (  # noqa: E402  (path bootstrap must precede the i
     _END_MARKER,
     _START_MARKER,
     collect_intakes,
+    duplicate_id_reasons,
     render_row,
 )
 
@@ -311,6 +312,16 @@ def _cmd_write() -> int:
     if not _SOURCE.exists():
         print(f"error: {_SOURCE.name} not found", file=sys.stderr)
         return 2
+    # REFUSE to emit a carrier for a tree whose ids collide. The manifest keys items by
+    # filename, so a duplicate id round-trips perfectly -- the carrier would be internally
+    # flawless and the join key it carries still ambiguous. Exit 3, matching gen_intake_index's
+    # collision class, because neither --write nor --check is the remedy: the id moves first.
+    collisions = duplicate_id_reasons(None)
+    if collisions:
+        for reason in collisions:
+            print(f"gen_intake_tree: REFUSING to write -- intake-id COLLISION -- {reason}",
+                  file=sys.stderr)
+        return 3
     text = _read_source()
     model = parse_readme(text)
     manifest = build_manifest(text, model, None)
@@ -467,6 +478,14 @@ def _item_set_divergences(manifest: dict, intake_dir: Path | None = None) -> lis
     satisfiable by removing its own subject" rule the `tasks/` gate carries.
 
     Also the only leg that sees a STATUS-only change (see `_status_by_filename`).
+
+    AND the leg that sees a DUPLICATE intake-id. The manifest keys its item nodes by FILENAME, so
+    two docs on one id are one-for-one with disk and every leg above passes -- which is how both
+    mandatory generators wrote output against a colliding tree on 2026-09-06 without a word
+    (filings Q-3 finding F1). The predicate is imported from `gen_intake_index`, not restated
+    here, for the same reason `evaluate` is a single definition shared with the audit leg: two
+    copies of what "duplicate" means would eventually disagree, and the disagreement would be
+    invisible until it mattered.
     """
     items = [n for n in manifest.get("nodes", []) if n.get("t") == "item"]
     on_disk = _status_by_filename(intake_dir)
@@ -496,6 +515,10 @@ def _item_set_divergences(manifest: dict, intake_dir: Path | None = None) -> lis
     )
     if drifted:
         reasons.append(f"projected status drift: {'; '.join(drifted)}")
+    # Its OWN remedy, never the module's: `--write` re-derives the carrier and would write the
+    # collision straight back out. The id has to move in the tree first.
+    for reason in duplicate_id_reasons(intake_dir):
+        reasons.append(f"intake-id collision (NOT fixed by {REMEDY}): {reason}")
     return reasons
 
 

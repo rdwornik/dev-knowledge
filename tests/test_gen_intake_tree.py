@@ -341,3 +341,59 @@ def test_off_projection_residue_enumeration_sees_underscore_keys(tmp_path):
     extra = gt._off_projection_keys(d)
     assert "x.md" in extra, "a doc carrying an off-projection key reported no residue at all"
     assert "last_reviewed" in extra["x.md"], extra["x.md"]
+
+
+# --- the intake-id collision leg (NIGHT-2 lane W1-5; filings Q-3 finding F1) ---------------
+
+def test_a_duplicate_intake_id_round_trips_perfectly_and_is_still_reported(tmp_path):
+    """WHY THIS LEG EXISTS AT ALL. The carrier keys its item nodes by FILENAME, so two docs on
+    one id are one-for-one with disk: the item set matches, the manifest is fresh, the README
+    reassembles byte-for-byte, and `source_sha256` agrees. Every pre-existing leg is GREEN on a
+    tree whose join key is ambiguous — which is exactly how both mandatory generators wrote
+    output against the live id-70 collision on 2026-09-06 without a word."""
+    docs = {"aj.md": _doc("DRAFT", "70", "AJ second pass"),
+            "roles.md": _doc("DRAFT", "70", "Roles with a carrier")}
+    d = _make_surface(tmp_path, docs, _readme(""))
+    (d / "README.md").write_text(_readme(gi.render_contents(d)), encoding="utf-8", newline="")
+    (d / "manifest.json").write_text(
+        gt._dump(gt.build_manifest((d / "README.md").read_text(encoding="utf-8"),
+                                   gt.parse_readme((d / "README.md").read_text(encoding="utf-8")),
+                                   d)),
+        encoding="utf-8", newline="\n")
+
+    verdict, reasons = gt.evaluate(d)
+    assert verdict == gt.DRIFT, "a colliding tree reported coherent"
+    collision = [r for r in reasons if "intake-id collision" in r]
+    assert len(collision) == 1, reasons
+    # The reason must carry its OWN remedy: --write re-derives the carrier and would write the
+    # collision straight back out.
+    assert "NOT fixed by" in collision[0] and "70" in collision[0]
+    # And every OTHER leg is green — the point of the test.
+    assert [r for r in reasons if "intake-id collision" not in r] == []
+
+
+def test_the_join_key_shape_does_not_red_the_tree_check(tmp_path):
+    """Intake #14: archived CONSUMED provenance under the ruled pack's id. Legal, and the
+    carrier must stay green on it — a leg that RED here would force renumbering a deliberate
+    structure to satisfy the gate."""
+    d = _make_surface(tmp_path, {"pack.md": _doc("ACCEPTED", "14", "Ruled pack")}, _readme(""))
+    archive = d / "archive"
+    archive.mkdir()
+    (archive / "draft.md").write_text(_doc("CONSUMED", "14", "Draft"), encoding="utf-8")
+    (d / "README.md").write_text(_readme(gi.render_contents(d)), encoding="utf-8", newline="")
+    (d / "manifest.json").write_text(
+        gt._dump(gt.build_manifest((d / "README.md").read_text(encoding="utf-8"),
+                                   gt.parse_readme((d / "README.md").read_text(encoding="utf-8")),
+                                   d)),
+        encoding="utf-8", newline="\n")
+
+    verdict, reasons = gt.evaluate(d)
+    assert verdict == gt.OK, reasons
+
+
+def test_the_collision_predicate_is_shared_with_gen_intake_index_not_copied():
+    """Same contract the projection already carries: two definitions of "duplicate" would
+    eventually disagree, and the disagreement would be invisible until it mattered."""
+    assert gt.duplicate_id_reasons.__module__ == "gen_intake_index"
+    assert (gt.duplicate_id_reasons.__code__.co_filename
+            == gi.duplicate_id_reasons.__code__.co_filename)
