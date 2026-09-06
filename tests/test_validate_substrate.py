@@ -393,9 +393,22 @@ def test_shape_declaration_requires_BOTH_backticks():
 # --- LEG 5: teardown-enum coverage (batch E, 0a / CUT-6) --------------------
 #
 # ADR-116 sat stranded on `claude/lane-f` until a window close, because the batch teardown
-# iterates an enum that cannot see a cloud lane: `LANE_BRANCH_RE` matches `worktree-lane-*`
-# only, so `claude/<slug>` and codespace lanes are invisible to it AND to the ADR-110
-# exemption. This leg makes that a FREEZE-TIME refusal instead of an integration surprise.
+# iterates an enum that cannot see a cloud lane. This leg makes that a FREEZE-TIME refusal
+# instead of an integration surprise.
+#
+# AMENDED, batch U (lane-u-000-branch-enum-parity). The leg was implemented against
+# `LANE_BRANCH_RE` -- the BATCH-lane grammar -- and so refused every `claude/<slug>` cloud
+# lane, every `epic/<slug>` and every `automation/<slug>`, all three RATIFIED members of the
+# lane enum that `validate_branch_naming.classify()` calls conforming. The leg asks "can an
+# enum-iterating teardown see this lane"; it was asking "is this ONE member of the enum".
+# Measured over the live contract corpus at the time of the change: 13 of 72 declared
+# pairings refused, every one of the 13 a `cloud-lane`, and the whole gap paid down in
+# hand-written `**Substrate deviation:**` prose. The predicate is now
+# `validate_branch_naming.is_lane_branch` -- the whole set.
+#
+# WHAT THESE TESTS PIN, therefore, is the DISTINCTION rather than either predicate alone:
+# a ruled lane prefix passes, a name outside the enum refuses, and a bare `worktree-<name>`
+# native worktree refuses because it pairs to no contract for a teardown to attribute.
 
 
 def _cloud_shape() -> str:
@@ -403,16 +416,41 @@ def _cloud_shape() -> str:
 
 
 def test_leg5_refuses_a_lane_whose_branch_shape_the_teardown_enum_cannot_see(registry):
-    """A cloud lane on `claude/<slug>` is outside `LANE_BRANCH_RE` — REFUSE at freeze."""
+    """A branch outside the enum ALTOGETHER — REFUSE at freeze.
+
+    The subject used to be `claude/lane-f-0-x`, which this leg refused while `classify()`
+    called the same name a conforming `cloud-lane`. That disagreement was the defect, not
+    the property under test (block comment above). A genuinely unruled prefix is what the
+    leg is for, and it is what the leg is now given.
+    """
     text = _contract(
         shape_line=_cloud_shape(),
-        pairing="slug `lane-f-0-x` -> branch `claude/lane-f-0-x` -> contract `LANE-f-0-x.md`",
+        pairing="slug `lane-f-0-x` -> branch `sandbox/lane-f-0-x` -> contract `LANE-f-0-x.md`",
     )
     refusals = vs.validate_contract(text, source="F.md", registry=registry)
     assert vs.RULE_TEARDOWN_ENUM in [r.rule for r in refusals]
     fired = [r for r in refusals if r.rule == vs.RULE_TEARDOWN_ENUM][0]
     assert fired.severity == vs.SEVERITY_REFUSE
-    assert "claude/lane-f-0-x" in fired.detail
+    assert "sandbox/lane-f-0-x" in fired.detail
+
+
+def test_leg5_names_its_predicate_rather_than_describing_it(registry):
+    """The refusal hands over the symbol a reader can run, and the enum that symbol holds.
+
+    AF-1's rule applied to this leg: a check states its predicate in its own failure text.
+    A reader told only "does not match `LANE_BRANCH_RE`" cannot tell whether their
+    `claude/<slug>` name is wrong or the check is — which is the confusion the three live
+    2026-09-06 `**Substrate deviation:**` lines were hand-written to paper over.
+    """
+    text = _contract(
+        shape_line=_cloud_shape(),
+        pairing="slug `lane-f-0-x` -> branch `sandbox/lane-f-0-x` -> contract `LANE-f-0-x.md`",
+    )
+    fired = [r for r in vs.validate_contract(text, source="F.md", registry=registry)
+             if r.rule == vs.RULE_TEARDOWN_ENUM][0]
+    assert "is_lane_branch" in fired.detail
+    for member in ("worktree-lane-", "claude/", "epic/", "automation/"):
+        assert member in fired.detail, f"the refusal does not name enum member {member!r}"
 
 
 def test_leg5_passes_a_lane_the_enum_does_cover(registry):
@@ -422,12 +460,49 @@ def test_leg5_passes_a_lane_the_enum_does_cover(registry):
         r.rule for r in vs.validate_contract(text, source="F.md", registry=registry)]
 
 
+@pytest.mark.parametrize("branch", [
+    "claude/lane-f-0-x",            # cloud lane -- the ADR-116 shape, refused until batch U
+    "epic/some-epic",               # root-provisioned epic lane (ADR-97)
+    "automation/fleet-audit",       # organ-produced lane (ruling 2026-08-06)
+])
+def test_leg5_admits_every_ruled_lane_prefix_not_only_the_batch_grammar(registry, branch):
+    """THE CLOSURE. Each of these is a ruled member of the lane enum, so an enum-iterating
+    teardown CAN see it and leg 5 has nothing to refuse. Parametrised across all three
+    rather than testing the cloud case alone: the defect was a whole class, and a test
+    covering only `claude/` would go green against a predicate special-cased for it."""
+    text = _contract(
+        shape_line=_cloud_shape(),
+        pairing=f"slug `lane-f-0-x` -> branch `{branch}` -> contract `LANE-f-0-x.md`",
+    )
+    assert vs.RULE_TEARDOWN_ENUM not in [
+        r.rule for r in vs.validate_contract(text, source="F.md", registry=registry)]
+
+
+def test_leg5_still_refuses_a_bare_native_worktree_branch(registry):
+    """`worktree-<name>` is a conforming BRANCH and still not a lane.
+
+    The omission of `KIND_WORKTREE` from `LANE_BRANCH_KINDS` is the load-bearing half of
+    this change: a native CC worktree pairs to no contract file, so an enum-iterating
+    teardown has nothing to attribute it to and the ADR-110 exemption would be forgiving a
+    merge no batch declared. Widening leg 5 to "anything `classify()` calls conforming"
+    would have swept `main` and every `feat/` branch in too — this test is what stops the
+    next widening from being that one.
+    """
+    text = _contract(
+        shape_line="**Shape:** `local`",
+        pairing="slug `scratch` -> branch `worktree-scratch` -> contract `LANE-f-0-x.md`",
+    )
+    fired = [r for r in vs.validate_contract(text, source="F.md", registry=registry)
+             if r.rule == vs.RULE_TEARDOWN_ENUM]
+    assert len(fired) == 1, "a bare native worktree is not a lane the teardown can attribute"
+
+
 def test_leg5_is_dischargeable_by_a_recorded_deviation_never_a_silent_pass(registry):
     """`[#591]`'s done-when: an override is an explicit RECORDED deviation, never a silent
     pass. The refusal is downgraded to WARN and KEPT, carrying its reason."""
     text = _contract(
         shape_line=_cloud_shape(),
-        pairing="slug `lane-f-0-x` -> branch `claude/lane-f-0-x` -> contract `LANE-f-0-x.md`",
+        pairing="slug `lane-f-0-x` -> branch `sandbox/lane-f-0-x` -> contract `LANE-f-0-x.md`",
         body=("**Substrate deviation:** `substrate-teardown-enum-coverage` — the batch "
               "manifest enumerates this cloud lane by name and the teardown iterates the "
               "manifest rather than the branch regex.\n"),

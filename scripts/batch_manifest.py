@@ -132,7 +132,12 @@ MANIFEST_GLOB = "docs/audits/*-batch-*-manifest.md"
 #: `journal_spine_anchor` FAIL, never a silent pass. Regression: the subprocess shadow test in
 #: `tests/test_batch_manifest.py`.
 import validate_branch_naming as _vbn   # noqa: E402  (after the by-path gitenv load)
-from validate_branch_naming import LANE_BRANCH_RE   # noqa: E402
+# RE-EXPORTED, not used here any more: `is_lane_merge` reads the whole lane SET, but the
+# batch-lane GRAMMAR is still what `tests/test_batch_manifest.py` compares against when it
+# pins that no rival regex has been reintroduced, and it is still the shape a seeded
+# worktree carries. Dropping the name would delete that test's subject, not tidy an import.
+from validate_branch_naming import LANE_BRANCH_RE   # noqa: E402,F401
+from validate_branch_naming import is_lane_branch  # noqa: E402
 
 if Path(getattr(_vbn, "__file__", "") or "").resolve().parent != Path(__file__).resolve().parent:
     raise ImportError(
@@ -330,18 +335,40 @@ def merged_branch_name(repo_path: Path, sha: str) -> Optional[str]:
 
 
 def is_lane_merge(repo_path: Path, sha: str) -> bool:
-    """True iff `sha` is a merge commit whose merged branch matches the RATIFIED lane grammar.
+    """True iff `sha` is a merge commit whose merged branch is in the RATIFIED lane SET.
 
-    "The lane shape" is `validate_branch_naming.LANE_BRANCH_RE` and nothing else ([#514]) — the
-    same constant `classify()` uses to call a branch `batch-lane`, so the exemption and the
-    naming enum can no longer disagree about what a lane is. They did, on 9 of 16 real merged
-    lane branches, which is what made both organs unenforceable at once.
+    "The lane shape" is `validate_branch_naming` and nothing else ([#514]) — the same module
+    `classify()` reads, so the exemption and the naming enum cannot disagree about what a lane
+    is. They did, on 9 of 16 real merged lane branches, which is what made both organs
+    unenforceable at once.
+
+    WIDENED to `is_lane_branch` from `LANE_BRANCH_RE` (batch U, lane-u-000-branch-enum-parity),
+    and the reason is that the narrow version had rebuilt the same disagreement one seam over.
+    `validate_substrate` leg 5 refuses a contract whose branch an enum-iterating teardown
+    cannot see, and its refusal names THIS exemption as one of the two iterators. Fixing leg 5
+    to admit the whole ruled lane set — `claude/<slug>`, `epic/<slug>`, `automation/<slug>` —
+    while leaving the exemption on the batch grammar alone would have produced a FALSE GREEN:
+    a cloud lane passing the freeze-time check that promises the exemption reaches it, and
+    then not receiving it (terra HIGH, 2026-09-07, caught pre-merge). The two must widen
+    together or not at all, so they now read one predicate.
+
+    WHAT THIS DOES AND DOES NOT WIDEN. `exempt()` feeds exactly one consumer, the audit
+    BACKSTOP `audit.check_journal_spine_anchor`, and the exemption still requires BOTH
+    conditions: a lane merge AND a committed manifest declaring an open batch. It still
+    self-expires when that manifest's `closed_by:` packet lands. It still does not reach
+    `block_unanchored_push` — the range-level pre-push refusal stays unconditional, which is
+    the property the R-1 containment argument rests on and which two ratified tests pin. The
+    ADR-110 rationale is what carries the widening: a batch's JOURNAL entry names its lane
+    merge SHAs and so cannot exist until after them, and that is exactly as true of a cloud
+    lane merged in the same queue as of a `worktree-lane-*` one. ADR-116 is the recorded cost
+    of it not being — it sat stranded on `claude/lane-f` until a window close.
 
     Fails CLOSED in every unknown case: a non-merge, an unparseable merge subject, a git read
-    failure and an off-grammar name all return False, i.e. no exemption.
+    failure, and any name outside the set (`classify()` -> `unknown`, a bare `worktree-<name>`,
+    a `feat/` or `docs/` arc) all return False, i.e. no exemption.
     """
     name = merged_branch_name(repo_path, sha)
-    return bool(name and LANE_BRANCH_RE.match(name))
+    return bool(name and is_lane_branch(name))
 
 
 # The lane-ish shapes a NON-conforming merge subject still leaks, used only to tell a

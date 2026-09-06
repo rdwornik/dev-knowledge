@@ -43,6 +43,32 @@ Reuse-integrity: the push-range resolver is imported from `block_ff_push` (the s
 pre-push organ) and the anchoring predicate from `journal_anchor`, so the two pre-push
 gates cannot disagree about what "a push to main" is, and this organ cannot disagree with
 the audit backstop about what "anchored" means.
+
+  The MESSAGE is now imported from there too (batch U, lane-u-000-branch-enum-parity).
+  Sharing the predicate as code while restating it as prose left this organ printing "add
+  a JOURNAL entry naming >=1 SHA this push introduces" -- true, and silent about both
+  exclusions a seat actually trips over. `journal_anchor.SPINE_PREDICATE` and
+  `SPINE_DIAGNOSTIC` are the one wording, quoted; see AF-1 for the eight false alarms in
+  one day that made restating this rule a recorded defect class rather than a style note.
+
+THE LANE ENUM IS NOT READ HERE, AND THAT IS THE POINT (ADR-110 amendment 2026-08-07 R-1
+containment). Three organs iterate the lane-branch enum: `validate_substrate` leg 5, the
+ADR-110 declared-integration-arc exemption in `audit.check_journal_spine_anchor`, and the
+batch teardown. This organ is deliberately not a fourth. The exemption forgives a
+`worktree-lane-*` merge at COMMIT time while a batch manifest is open, because a batch's
+JOURNAL entry names the lane merge SHAs and so cannot exist until after them; nothing
+makes the same argument at PUSH time, where the range is what actually ships. Both halves
+are pinned by test:
+  * `tests/test_batch_manifest.py::test_the_pre_push_organ_does_not_consult_the_manifest_at_all`
+    -- structural: neither this module nor `journal_anchor` may import `batch_manifest`.
+  * `tests/test_adr85_integration_enforcement.py::test_t5d_the_r1_exemption_does_not_reach_the_pre_push_refusal`
+    -- behavioural: the exact pair `audit-health` forgives is still refused here.
+
+  THE COST OF THAT ASYMMETRY IS A SURPRISE, and the refusal now spends two lines removing
+  it. A seat reads `audit.py health` -> `[OK] journal_spine_anchor`, concludes its push
+  will pass, and is refused by this organ for the very merges health had just declared
+  exempt -- with nothing on either surface saying the two organs answer different
+  questions. Green health is not a prediction about this gate. It says so out loud below.
 """
 from __future__ import annotations
 
@@ -145,7 +171,21 @@ def _verdict(argv, verdict: dict) -> int:
     for sha in entries:
         print(f"  UNANCHORED  {_ja.describe(repo, sha)}", file=sys.stderr)
     print("  fix: add a JOURNAL entry naming >=1 SHA this push introduces, commit it, "
-          "and push again (a merge cannot name its own hash — name a commit it brings in).",
+          "and push again.", file=sys.stderr)
+    # The predicate and the diagnostic are QUOTED from the single source, never restated --
+    # the leading "; " each carries is for the backstop's one-line evidence string, so they
+    # are stripped here where the message is already line-oriented.
+    for _part in (_ja.SPINE_PREDICATE, _ja.SPINE_DIAGNOSTIC):
+        print("  " + _part.lstrip("; "), file=sys.stderr)
+    # CONTAINMENT, said at the moment it bites (batch U). Without this a seat holding a green
+    # `audit.py health` reads this refusal as a bug in one of the two organs and reaches for
+    # --no-verify, which is the one outcome ADR-85 Decision 4 forbids by name.
+    print("  NOTE — a green `audit.py health` does NOT predict this gate. The ADR-110 "
+          "declared-integration-arc exemption (amendment 2026-08-07 R-1) lets the audit "
+          "backstop SKIP a `worktree-lane-*` merge while a committed manifest declares an "
+          "open batch; it deliberately does not reach this organ, so the range-level refusal "
+          "stays unconditional and nothing ships unanchored. The two organs are not in "
+          "conflict — they answer different questions, and this one is the shipping one.",
           file=sys.stderr)
     print("  bypass: `git push --no-verify` — explicit and logged by its absence; the "
           "audit backstop FAILs until an anchor lands.", file=sys.stderr)

@@ -829,3 +829,51 @@ def test_explicit_sha_anchor_record_is_silent(tmp_path, monkeypatch):
 
     assert findings[0].status == "pass", findings[0].evidence
     assert not any(f.status == "warn" for f in findings)
+
+
+# --- the exemption and the freeze-time check widen TOGETHER (batch U) ----------------------
+
+
+def test_the_exemption_and_leg5_read_one_predicate_not_two_that_agree_today():
+    """TERRA HIGH, 2026-09-07, pinned so the fix cannot be half-applied again.
+
+    `validate_substrate` leg 5 refuses a contract whose branch "the batch teardown and the
+    ADR-110 exemption both iterate". That sentence is a PROMISE about this function. Widening
+    leg 5 alone would have made a cloud lane pass a check whose whole claim is that the
+    exemption reaches it — a false green, and worse than the refusal it replaced, because the
+    refusal was at least true.
+
+    Asserted as shared IDENTITY rather than as equal verdicts on sample names: two predicates
+    that agree on today's inputs are still two predicates, and that is precisely how `[#514]`'s
+    rival regex survived unnoticed until it disagreed on 9 of 16 real branches.
+    """
+    import validate_branch_naming as vbn
+    import validate_substrate as vsub
+
+    assert bm.is_lane_branch is vbn.is_lane_branch
+    assert vsub.is_lane_branch is vbn.is_lane_branch
+
+
+# The two tests below deliberately carry no `@requires_git`. `scripts/proof_layer.py`
+# ratchets environment-conditional guards with zero headroom, and its doctrine is the
+# reason to comply: "a proof that can be skipped on the machine that breaks the property
+# is not a mechanism." In a git-governance repo these should error loudly without git,
+# not report a green they did not earn. Do not add the decorator back for symmetry.
+def test_a_cloud_lane_merge_is_exempt_mid_batch_like_any_other_lane(tmp_path, monkeypatch):
+    """The ADR-116 case, end to end: `claude/<slug>` merged mid-batch now receives the
+    exemption `worktree-lane-*` always had. The rationale does not distinguish them — a
+    batch's JOURNAL entry names its lane merge SHAs and cannot exist until after them, on
+    whichever substrate the lane ran."""
+    repo, _ = _seed(tmp_path)
+    cloud = _merge(repo, "claude/lane-t-000-aj-research")
+    assert bm.is_lane_merge(repo, cloud) is True
+
+
+def test_widening_did_not_sweep_in_a_serial_arc_or_a_bare_worktree(tmp_path):
+    """The exclusions that keep the widening honest. An integrator's own `docs/` record-keeping
+    branch and a native `worktree-<name>` are NOT lanes: neither pairs to a lane contract, so
+    exempting either would forgive a merge no batch declared. This is the assertion that
+    fails if someone later "simplifies" the predicate to `classify().conforms`."""
+    repo, _ = _seed(tmp_path)
+    for branch in ("docs/night2-anchor-1", "worktree-scratch", "feat/thing"):
+        assert bm.is_lane_merge(repo, _merge(repo, branch)) is False, branch
