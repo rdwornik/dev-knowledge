@@ -19,6 +19,43 @@
 
 ---
 
+### 2026-09-06 (l) - CC (Opus 5, INTEGRATOR, batch T): lane 3.15, and what a real re-read finds that a stamp bump does not
+
+**Did:** Merged lane 3.15 (`0d2db2f7`), the lane AMEND-BATCH-T-001 §A3 created in response to this
+seat's finding that two of the three `canonical_freshness` legs had no owner at any wave.
+
+**Result:** `unstamped 8 -> 1`, the remaining one being `protocols/HANDOFF_BOOT.md`, left untouched
+by ruling because its sha256 is the role PIN every browser seat carries. That number is only the
+headline. **Five of the seven were not clean re-reads**, and three of those are load-bearing well
+past this lane:
+
+- `FUNNEL_LIFECYCLE` §9 asserted *"nothing here is gated today"*. False since FM-2 -
+  `audit.py::check_funnel_lifecycle` is registered SHIP-tier and fail-capable. Anyone citing that
+  sentence as cover was citing a doc against a live gate.
+- `HANDOFF_PROCESS` §17's STAGED callout still read *"Version above does NOT bump to 7.0.0"* while
+  the header reads 7.0.0 and Section history records the bump as executed. A v7 boot document
+  contradicting its own version, on the surface a browser seat reads first.
+- `REPO_ONBOARDING` pinned v1.2.0 in three sites, three releases stale, and named a Layer-4 source
+  path that does not exist. The lane replaced the literal with `<ver>` plus how to resolve it rather
+  than re-pinning to 1.5.0, on the reasoning that 1.5.0 is an untagged RC and a fresh literal goes
+  stale the same way. The doc's own identifier table already used `<ver>`.
+
+This is the argument for the freshness discipline stated better than the rule states it: a
+`last_reviewed` stamp means re-read end-to-end and confirmed accurate, and the difference between
+that and a date bump is three false statements in boot-path documents.
+
+`STANDING_RULINGS` came back *reviewed - no change* across 4085 lines, and correctly so: W7 still
+reads "ADR-115 ratification is HELD" but is right AS A RECORD and already superseded one section
+earlier, and B6 makes a correction an append by an authorised seat rather than a lane's edit.
+
+**Changes:** This entry.
+
+**Abandoned:** Nothing.
+
+**Next:** nc1-clear, which the wave-2 gate turns on.
+
+**Anchors:** `c87d54b1` (the seven re-read files, introduced by `0d2db2f7`).
+
 ### 2026-09-06 (k) - CC (Opus 5, INTEGRATOR, batch T): two more lane arcs, and a rule that ratifies what half the fleet already violates
 
 **Did:** Merged lane 3.11's freshness half (`aaa1e96a`) and lane 3.7's report half (`6e385c67`),
