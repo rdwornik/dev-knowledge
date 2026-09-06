@@ -18,12 +18,56 @@
 # commensurable; the check refuses to compare them rather than silently reporting drift.
 
 detector_id: silent-rule-v5
-baseline: 443
-measured_at: 2026-08-24
-measured_at_sha: 236da477
-measured_files: 58
+baseline: 447
+measured_at: 2026-09-06
+measured_at_sha: eeac6bef
+measured_files: 62
 
 provenance: |
+  RAISE 443 -> 447, operator-RULED 2026-09-06 (batch T lane 3.11, section 3.11) for PLAYBOOK
+  Ch8's new "Batch communication" section, which carries intake #72 / architect-inbox item 027's
+  seven points and message shapes VERBATIM.
+
+  THE RULED NUMBER WAS 446 AND THIS FILE READS 447. That is not a deviation from the ruling; it
+  is the ruling's own precedent applied. The operator ruled "raise 443 -> 446 (R8 precedent, same
+  chapter)" against a live count of 442 that lane 3.11 had measured and reported hours earlier.
+  Between that report and this commit, concurrent batch-T lanes moved the live count 442 -> 443,
+  so the same +4 section lands at 447. R8 ruled its own raise APPROVED ON THE MERITS and
+  explicitly directed the integrator to RE-MEASURE after the last merge rather than pin the
+  number it had been quoted -- which is why the previous entry reads 443 and not 445. The merits
+  ruled here are the +4; the number is measured, and pinning 446 would have FAILed the gate and
+  defeated the ruling it was meant to execute.
+
+    443  live @ eeac6bef, detector v5, 62 files -- MEASURED, not inherited
+    +4   the 027 section's four "never" occurrences, ALL inside the verbatim carry:
+           point 1  "addressed by role name, never by tile title"
+           point 1  "reported to the operator's STATUS board, never guessed at"
+           point 3  "may trigger a READ of the file, never an act"
+           point 6  "the browser reads files, never a narrated SDK screen"
+         Attribution VERIFIED by measurement rather than asserted: with ONLY
+         protocols/PLAYBOOK.md staged, the corpus moved 443 -> 447. The section's own framing
+         prose contributes ZERO -- that was a drafting constraint, not an accident.
+    =447 live with the section staged.
+
+  WHY THE RAISE RATHER THAN A REWRITE. The operator ruled the shapes stay verbatim because they
+  are machine-greppable strings: a paraphrase defeats the section's purpose. The detector's own
+  honest limit covers the case -- "occurrences in examples, quotations and already-enforced rules
+  still count. This is a proxy." All four occurrences are a QUOTATION of a draft candidate under
+  an explicit ratification-pending banner, so the silent-rule pool does not gain four rules.
+
+  DISCHARGE. The +4 are discharged by 027's own remaining Done-when legs, which are follow-up
+  rows and NOT this lane's: `/lane-boot` and `/lane-integrate` printing the session's role + name
+  and the addressee list at boot, and the seeded two-session test exchanging
+  HANDBACK -> PACKET-MERGED with a RULING-RELAY that is refused. When those land, the four
+  quoted occurrences become enforced mechanism rather than carried draft text.
+
+  RE-MEASURE OWED AT INTEGRATION, per R8's standing directive: batch T was still open with lanes
+  holding uncommitted protocols/ edits when this was measured. The integrator re-measures after
+  the LAST merge and corrects this number if it moved again. A branch-side check may read
+  raise-rejected against origin/main's 443 until this merges -- expected, self-healing at merge,
+  and the same behaviour the [#435] entry below records.
+  Prior baseline: 443 @ 2026-08-24 (sha 236da477), detector v5, 58 files.
+
   RAISE 441 -> 443 and DETECTOR v4 -> v5, set by the integrator 2026-08-24 at the close of
   the nine-branch batch. TWO independent changes land together; both are named because the
   net (+2) hides them:
