@@ -148,6 +148,21 @@ truncated one is visible on sight.
 and not written to `to-cc/` has no addressable existence: no seat can cite it, and no gate can
 resolve it.
 
+**The chat is the cost, not the transport (inbox 030).** Measured 2026-09-06: an outgoing browser
+chat spent roughly **30% of a usage window in 20 minutes of short answers**. The cause is not the
+Drive transport — it is a five-day chat whose every turn re-processes its whole history, by then
+30+ pasted session outputs of 10-20 KB and about 30 uploaded files, on the most expensive model.
+**A Drive read is cheap and one-shot; a pasted transcript is permanent and is re-billed on every
+later turn.** So the transport stays and the chat changes, along these lines:
+
+| Line | Shape |
+|---|---|
+| Window | one sitting — a single milestone (ratification / GO / packet) or about 40 turns, then wrap. The bundle and transport make a wrap cheap by design; `turns per window` is a scorecard line |
+| CC output | read from the transport — `STATUS-*`, `LEDGER-<repo>`, `QUESTION-*`, close packets — on "check". A pasted session log counts as a browser-seat defect (form-probe predicate #5) |
+| File size | `STATUS-*` at or under 5 KB with a "now" section on top; history rotates to `archive/` at each batch close; a census reaches the browser as a summary of 40 lines or fewer |
+| Seats | two chats, two models, one project — `seat-judgment` for rulings, freezes and packet reads (rare); `seat-ops` for checks, relays and dispatch questions (frequent, cheap). Shared project memory and shared transport, so both know the same facts |
+| Relaying | questions as files plus the LEDGER (inboxes 020 and 028-B) remove the operator's relaying once ratified |
+
 ## 3. Every session ships its exact start command
 
 A session handed to the operator without the literal line that starts it does not get started.
