@@ -3106,8 +3106,16 @@ Harvest-Codespace <codespace-name> -Lane <slug> -DryRun
   a failure**: the dead lane had a clean tree. An existing patch is a **refusal** without
   `-Force`, because a second harvest that replaced the first would destroy the only copy of a
   lane that no longer exists.
-- **Untracked files ride a sidecar,** `RECOVERED-<lane>.untracked.txt`. They appear in neither
-  diff, and folding a file listing into the patch would stop it being a patch.
+- **Untracked CONTENT is in the patch, and that is the load-bearing half.** A lane's deliverable
+  is most often a *new file*, which is exactly what `git diff` and `git diff --cached` are blind
+  to — they describe changes to things git already knows about. Measured 2026-09-06: a sweep
+  built on `git diff HEAD` captured **0 bytes** for a lane whose entire 1024-line deliverable was
+  untracked, and reported success. Each untracked file is rendered as a normal add hunk
+  (`git diff --no-index` against `/dev/null`) into the same patch, so `git apply` restores it
+  with everything else. `RECOVERED-<lane>.untracked.txt` lists them beside it as an index.
+  Enumeration uses `--porcelain -uall`: the default collapses an untracked *directory* to one
+  row, and a lane that created a directory of new files would otherwise recover as a single line
+  naming the directory.
 - **Transport is `ssh … cat`, not `cp`** — measured, not preferred. The `cp` leg has failed three
   distinct ways on this transport (a home-relative destination exiting 0 having written nothing;
   literal single quotes landing *in* the filename under OpenSSH 9+; an absolute path resolved
@@ -3141,6 +3149,10 @@ that was actually established, and overwriting it would trade a true diagnosis f
   mechanism exists to remove.
 - **An unreachable origin is not a verdict either.** `ls-remote` failing is not evidence of no
   commit; it is evidence of nothing, and it says so in those words.
+- **`git ls-remote`, not `git rev-parse origin/<branch>`.** A remote-tracking ref is a cache of
+  the last fetch, not the remote. A witness built on it reports DONE for a push that did not
+  happen — which is the whole failure class this subsection exists to remove, reintroduced one
+  layer down.
 - **The codespace lane boot check gates on `pre-commit` too,** alongside `claude`, `uv`,
   `python3`, reaching origin, and the contract file having actually landed. An absent
   `pre-commit` is the one miss that is *invisible* at the moment it matters: the lane commits
