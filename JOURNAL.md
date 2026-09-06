@@ -19,6 +19,39 @@
 
 ---
 
+### 2026-09-06 (i) - CC (Opus 5, INTEGRATOR, batch T): the two ADR-85 organs disagree about the batch exemption
+
+**Did:** Merged the first two wave-1 lane arcs - 3.12 README (`f6d166d7`) and 3.1 logs-retention
+(`b8f94008`) - and anchored both here.
+
+**Result:** Merging them blocked every lane's PUSH, and the reason is a disagreement between the
+two ADR-85 organs rather than a missing anchor. `check_journal_spine_anchor` (the commit-time
+backstop) EXEMPTS them, and says so in its own evidence: *"EXCEPT 2 lane merge(s) exempt under the
+ADR-110 declared-integration-arc rule while batch T is open ... the exemption expires when
+[the close packet] lands."* `block_unanchored_push` (the pre-push hard leg) does **not**: the module
+contains no reference to `batch_manifest`, `is_lane_merge` or any exemption at all, so it refuses
+the very merges the backstop excuses. Its docstring claims the opposite by construction - *"this
+organ cannot disagree with the audit backstop about what 'anchored' means"* - and that holds for
+the *anchoring predicate*, which the two do share. The **exemption** is not in the shared predicate;
+it lives in the audit check alone. So the two organs agree on what "anchored" means and disagree on
+who has to be.
+
+Consequence while a batch is open: a lane may COMMIT (backstop exempts) and may not PUSH (pre-push
+refuses), and no sync fixes it, because worktrees share the common git dir - the `main` the hook
+reads is the primary's LOCAL main, which no lane can fetch or sync to. Three lanes hit it within
+minutes of each other and all three diagnosed it correctly and refused to bypass.
+
+**Changes:** This entry. No file edit - the anchor is the act.
+
+**Abandoned:** Nothing. No `--no-verify` anywhere; the lanes refused it too.
+
+**Next:** Anchor after each lane merge rather than at the end of the queue. The end-of-queue shape
+is correct for a range-level push gate and wrong for a per-entry commit gate plus an unexempted
+push gate, and this batch is the second.
+
+**Anchors:** `28e3b1c3` (README, introduced by `f6d166d7`), `353b5169` (logs-retention, introduced
+by `b8f94008`).
+
 ### 2026-09-06 (h) - CC (Opus 5, INTEGRATOR, batch T): the manifest merge that wedged every lane's commit gate, and why the exemption did not cover it
 
 **Did:** Opened the integrator window for the 2026-09-06 NIGHT batch (batch T), merged the batch-T
