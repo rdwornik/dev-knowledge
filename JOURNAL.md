@@ -19,6 +19,55 @@
 
 ---
 
+### 2026-09-07 (g) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): W1-6 lands, and a lane that re-measured a before-number the contract had frozen against a dead tree
+
+**Merged** `worktree-lane-u-000-trace-scorecard-consumer` at `7af7cff4` into main as `0b2bc260`,
+`--no-ff`. Eighth of nine wave-1 lanes. `code, review=codex HIGH:6 MED:0 LOW:0` -- all six
+raised on the lane's own first commit and closed in its second; `audit.py handback`, the
+adjudicator W1-1 shipped four merges earlier in this same batch, returned MERGE / exit 0.
+Nothing carried into main.
+
+**The lane refused a frozen number, and was right to.** Its contract froze `0 -> 10` for the
+scorecard. The lane re-measured on its own branch and reported `10 -> 13` rows, `3 -> 9` rows
+carrying a number. The contract was not wrong when written -- it was written before the lane
+3.9 salvage merged, and the salvage IS on main (`11080674`). So the `0` described a tree that
+no longer existed by the time the lane booted. This is the second lane this batch to correct
+its own before-number rather than restate the contract's (W1-5 was the first, JOURNAL (d)).
+Two independent lanes hitting the same failure makes it a property of the dispatch shape, not
+a lane quirk: **a frozen contract number is a claim about a tree, and a batch that merges
+while lanes run invalidates it.** The fix is not better freezing -- it is that the lane
+measures and says so.
+
+**A HIGH that was half-right, closed on the half that holds.** The reviewer asserted a
+committed "897-second baseline"; no such artifact exists anywhere in the repo. The committed
+`failed-set/1` record is real (`docs/audits/2026-09-02-verification-base-failed-set-1e064921.json`,
+13 nodeids and the SHA they were measured at) and the row now reads it. Rather than let one
+number imply both halves were measured, the row states plainly that its baseline-seconds half
+is NOT computed. An uncomputed half named is worth more than an averaged one hidden -- and a
+reviewer being wrong on half a finding does not discharge the half it got right.
+
+**The W1-3 collision never materialised.** W1-3 is dead; the lane did not touch
+`scripts/fleet_health.py` because its trace consumer had already landed via lane h0 at
+`f2802939` and is green. The contract anticipated a collision that another lane had already
+resolved.
+
+**The lane's tip is a merge carrying content, deliberately.** `doc-counts-pytest-freshness`
+compares the staged count against a count taken AFTER pre-commit stashes unstaged work, so a
+test-adding round can never agree with it while unstaged. Staging the round with the sync
+merge is what makes the claim true at the commit it is claimed in. Untidy to read, mechanical
+in cause -- recorded so it is not "cleaned up" later by someone who sees only the shape.
+
+**Verified on the merged result, not on the branch:** `tests/test_window_metrics.py` +
+`tests/test_fleet_health.py` = **198 passed** (the lane measured 190 on its own branch; main
+moved underneath it). `gen_doc_counts.py --write` and `gen_audit_index.py --write` both
+produced **no change** -- the lane's own regeneration was already correct and the audits index
+needed nothing, so the integrator regeneration pass ([#590]) was a no-op this time rather than
+a fix.
+
+**Anchors:** `7af7cff4` (the lane tip, introduced by merge `0b2bc260`).
+It also names `492e74d4`, this entry's own commit, so this branch's `--no-ff` merge is
+anchored by a SHA that merge introduces -- a single-commit anchor branch cannot anchor itself.
+
 ### 2026-09-07 (f) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): W1-2's hub half lands, verdicted by the organ this batch built four merges earlier
 
 **Did:** Merged W1-2's hub branch, the last handed-back wave-1 lane, and verdicted it with
