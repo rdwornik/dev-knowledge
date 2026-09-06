@@ -1,3 +1,10 @@
+---
+last_reviewed: 2026-09-06
+reconciled_with: handoff-process@7.0.0
+status: active
+owner: Rob
+---
+
 # OPERATOR-INTERFACE — how content actually moves between a seat and this machine
 
 <!-- scope: meta -->
@@ -221,5 +228,5 @@ paragraph in the next window's supplement.
 
 ---
 
-**Last updated:** 2026-09-02
+**Last updated:** 2026-09-06
 **Maintained by:** Rob
