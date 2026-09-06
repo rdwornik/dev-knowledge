@@ -61,6 +61,8 @@ message text), `audit.py` (its two constants become aliases), `block_unanchored_
 **Next:** W1-5 `intake-id-next-free`, then the wave-1 drain and its hard-fail count.
 
 **Anchors:** `4da05989` (W1-4's reviewer-HIGH commit, introduced by `ad9a7d5d`).
+It also names `fd380963`, this entry's own commit, which this branch's `--no-ff` merge
+introduces - the standing two-commit shape.
 
 ### 2026-09-07 (b) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): W1-1 lands the refusal it was contracted to build, and corrects this seat's claim about who anchoring protects
 
