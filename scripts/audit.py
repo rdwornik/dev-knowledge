@@ -39,6 +39,7 @@ import stat as _stat
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 from collections import Counter
 from collections.abc import Callable, Mapping, Sequence
@@ -5493,6 +5494,13 @@ def _parallel_workers(n_checks: int) -> int:
     return max(1, min(_PARALLEL_MAX_WORKERS, n_checks))
 
 
+#: Install depth for `_cached_reads`, and the lock that makes incrementing it atomic. NOT a
+#: re-entrancy convenience: it is what makes install/restore independent of the order two
+#: contexts happen to exit in. See the comment at the top of `_cached_reads`.
+_CACHED_READS_LOCK = threading.Lock()
+_CACHED_READS_DEPTH = 0
+
+
 @contextlib.contextmanager
 def _cached_reads():
     """P3 (intake #71): a read-through file cache for ONE `run_checks` call, keyed on
@@ -5540,6 +5548,26 @@ def _cached_reads():
     RAISES on undecodable bytes exactly as `read_text` does, so the safety the first cut was
     protecting is preserved by construction rather than by never hitting.
     """
+    global _CACHED_READS_DEPTH
+    with _CACHED_READS_LOCK:
+        _CACHED_READS_DEPTH += 1
+        outermost = _CACHED_READS_DEPTH == 1
+    if not outermost:
+        # ALREADY INSTALLED -- do nothing and restore nothing (terra HIGH, 2026-09-07).
+        # Two contexts that OVERLAP without nesting each save whatever `Path.read_text` was
+        # at their own entry and each restore it at their own exit, so the later exit puts
+        # the earlier context's WRAPPER back and leaves it installed for good, serving a
+        # dead run's cache to every later reader. Patching only at the OUTERMOST entry makes
+        # the install/restore pairing independent of exit order. An inner context simply
+        # shares the outer cache, which is what a nested caller wanted anyway; a thread that
+        # joins late and outlives the outermost merely reads uncached, which is correct.
+        try:
+            yield
+        finally:
+            with _CACHED_READS_LOCK:
+                _CACHED_READS_DEPTH -= 1
+        return
+
     raw: dict[tuple, bytes] = {}          # (path, mtime_ns, size) -> file bytes
     decoded: dict[tuple, str] = {}        # (path, mtime_ns, size, encoding, errors) -> text
     orig_read_text = Path.read_text
@@ -5597,6 +5625,8 @@ def _cached_reads():
     finally:
         Path.read_text = orig_read_text
         Path.read_bytes = orig_read_bytes
+        with _CACHED_READS_LOCK:
+            _CACHED_READS_DEPTH -= 1
 
 
 def run_checks(repo_path: Path, checks: Sequence[Callable] | None = None,

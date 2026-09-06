@@ -477,14 +477,18 @@ def test_exempt_still_fires_under_an_inherited_GIT_DIR(tmp_path, monkeypatch):
     That is what happened, so the marker is gone.
 
     WHAT ACTUALLY CHANGED, STATED NARROWLY — because the reason is not the one the marker
-    predicted and the difference matters to anyone reading this next. `journal_anchor._git`
-    is STILL UNSCRUBBED; nobody scrubbed it. `exempt` no longer reaches it: it now warms
-    every candidate's parents and subject through `warm_commit_meta`, which spawns git via
-    the SCRUBBED `batch_manifest._git`, so the memo is populated from the intended repo
-    before the per-sha loop can ask. The unscrubbed fallback inside `_commit_meta` survives
-    for a cold memo, so `merged_branch_name` called DIRECTLY, outside `exempt`, still has the
-    old exposure. This test pins the `exempt` path only, which is the path the ADR-110
-    exemption actually runs on.
+    predicted. `journal_anchor._git` is STILL UNSCRUBBED and nobody scrubbed it; what changed
+    is that this module stopped calling it. `warm_commit_meta` and `_commit_meta` both read
+    through the SCRUBBED `batch_manifest._git`, so every commit-metadata read on this path now
+    resolves in the intended repo.
+
+    BOTH readers were unified deliberately, and the first draft of this fix did NOT do that
+    (terra HIGH, 2026-09-07). It routed only the warm path through the scrub and left the
+    cold fallback on `journal_anchor._git` — which would have made the answer depend on
+    whether the warm pass had run, i.e. a cache changing a verdict rather than a speed. So the
+    exposure this test records is closed for `merged_branch_name` and `subject_style_miss`
+    generally, not merely for `exempt`; what remains open is `journal_anchor._git` itself,
+    which other callers still use and which is not this lane's to scrub.
     """
     repo, _floor = _seed(tmp_path)
     _write_manifest(repo)
@@ -959,3 +963,81 @@ def test_commit_meta_refuses_to_memoize_an_abbreviated_sha(tmp_path):
         assert bm._COMMIT_META == {}, "an abbreviated sha reached the memo via the warm path"
     finally:
         bm._COMMIT_META.clear()
+
+
+@requires_git
+def test_malformed_batch_output_falls_back_instead_of_misaligning(tmp_path, monkeypatch):
+    """terra HIGH 2. A truncated `cat-file --batch` body must abandon the batch, not salvage it.
+
+    The parser reads POSITIONALLY, so a body shorter than its advertised size does not spoil
+    one answer -- it shifts the offset and misaligns every object after it. A manifest decoded
+    from the wrong offset parses as frontmatter-less, is skipped, and reads as "no batch open":
+    a false gate FAIL manufactured by a transport. The whole batch therefore falls back to the
+    per-blob reader, and the assertion is that the ANSWER is still right, not merely that
+    nothing raised.
+    """
+    repo, _floor = _seed(tmp_path)
+    _write_manifest(repo)
+    rels = bm._committed_manifests(repo)
+    truth = {rel: bm._committed_text(repo, rel) for rel in rels}
+
+    real_run = subprocess.run
+
+    def truncating_run(*a, **kw):
+        out = real_run(*a, **kw)
+        args = a[0] if a else kw.get("args")
+        if any("--batch" == str(x) for x in args):
+            out.stdout = out.stdout[:len(out.stdout) // 2]      # lose the tail mid-object
+        return out
+
+    monkeypatch.setattr(bm.subprocess, "run", truncating_run)
+    assert bm._committed_texts(repo, rels) == truth, \
+        "a truncated batch was salvaged rather than re-read through the per-blob path"
+
+
+@requires_git
+def test_a_missing_object_is_none_without_disturbing_its_neighbours(tmp_path):
+    """`<name> missing` carries NO body line, so mis-framing it shifts everything after it.
+    Asserted with a real manifest on BOTH sides of the missing entry."""
+    repo, _floor = _seed(tmp_path)
+    _write_manifest(repo)
+    _write_manifest(repo, batch=3, name="2026-08-08-technical-batch-3-manifest.md",
+                    closed_by="docs/audits/2026-08-10-technical-batch-3-packet.md")
+    rels = bm._committed_manifests(repo)
+    assert len(rels) == 2, rels
+
+    probe = [rels[0], "docs/audits/nope-technical-batch-9-manifest.md", rels[1]]
+    got = bm._committed_texts(repo, probe)
+    assert got[probe[1]] is None
+    assert got[rels[0]] == bm._committed_text(repo, rels[0])
+    assert got[rels[1]] == bm._committed_text(repo, rels[1])
+
+
+@requires_git
+def test_both_commit_meta_paths_use_the_same_scrubbed_reader(tmp_path):
+    """terra HIGH 3. Warm and cold must not read git under different environments.
+
+    The first draft scrubbed only the warm path, which would have made a merge's
+    classification depend on whether the warm pass had happened to run -- a cache changing a
+    VERDICT rather than a speed. Asserted on the ANSWER under an inherited `GIT_DIR`, cold
+    memo, so it fails if the cold path ever goes back to an unscrubbed reader.
+    """
+    repo, _floor = _seed(tmp_path)
+    merge = _merge(repo, "worktree-lane-b-3-one-reader")
+    other = _foreign_repo(tmp_path)
+
+    bm._COMMIT_META.clear()
+    try:
+        import os
+        os.environ["GIT_DIR"] = str(other / ".git")
+        try:
+            cold = bm.merged_branch_name(repo, merge)     # cold memo: the fallback path
+            bm._COMMIT_META.clear()
+            bm.warm_commit_meta(repo, [merge])
+            warm = bm.merged_branch_name(repo, merge)     # served from the warm pass
+        finally:
+            os.environ.pop("GIT_DIR", None)
+    finally:
+        bm._COMMIT_META.clear()
+
+    assert cold == warm == "worktree-lane-b-3-one-reader", (cold, warm)

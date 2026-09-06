@@ -447,3 +447,49 @@ def test_the_read_cache_re_reads_a_file_that_changed_mid_run(tmp_path):
         assert p.read_text(encoding="utf-8") == "first"
         p.write_text("second-and-longer", encoding="utf-8")
         assert p.read_text(encoding="utf-8") == "second-and-longer"
+
+
+# --- the three terra HIGHs of 2026-09-07, each pinned ---------------------------------------
+
+
+def test_two_overlapping_cache_contexts_never_leak_a_wrapper():
+    """terra HIGH 1. Contexts that OVERLAP without nesting must still restore cleanly.
+
+    Each context used to save whatever `Path.read_text` was at ITS entry and restore that at
+    ITS exit, so exiting in the wrong order put the earlier context's WRAPPER back and left it
+    installed for good -- every later reader in the process then served a dead run's cache,
+    which is a gate reading stale content outside any run. Exercised in the exact order that
+    breaks it: A enters, B enters, A exits, B exits.
+    """
+    before_t, before_b = Path.read_text, Path.read_bytes
+
+    a = aud._cached_reads()
+    b = aud._cached_reads()
+    a.__enter__()
+    b.__enter__()
+    a.__exit__(None, None, None)
+    b.__exit__(None, None, None)
+
+    assert Path.read_text is before_t, "an overlapping context left a read_text wrapper behind"
+    assert Path.read_bytes is before_b
+
+
+def test_nested_cache_contexts_restore_exactly_once():
+    """The ordinary nesting case, which DOES occur: `run_checks` opens one and a caller that
+    already opened one is not rare. The inner context shares the outer cache and is a no-op."""
+    before_t = Path.read_text
+    with aud._cached_reads():
+        outer = Path.read_text
+        with aud._cached_reads():
+            assert Path.read_text is outer, "the inner context re-patched instead of sharing"
+        assert Path.read_text is outer, "the inner context restored the outer's patch"
+    assert Path.read_text is before_t
+
+
+def test_the_cache_depth_returns_to_zero_even_when_the_body_raises():
+    """A leaked depth would make every LATER context think it was nested and quietly never
+    install -- the cache would go inert again, which is the exact failure this lane fixed."""
+    with pytest.raises(ValueError):
+        with aud._cached_reads():
+            raise ValueError("boom")
+    assert aud._CACHED_READS_DEPTH == 0

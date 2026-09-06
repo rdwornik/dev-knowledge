@@ -341,18 +341,26 @@ def _committed_texts(repo_path: Path, rels: list[str]) -> dict[str, Optional[str
     for rel in rels:
         nl = buf.find(b"\n", pos)
         if nl < 0:
-            out[rel] = None
-            continue
+            return {r: _committed_text(repo_path, r) for r in rels}
         header = buf[pos:nl].split(b" ")
         pos = nl + 1
-        if len(header) < 3 or header[1] == b"missing":
-            out[rel] = None            # `<name> missing` — no trailing content line
+        if len(header) == 2 and header[1] == b"missing":
+            out[rel] = None            # `<name> missing` -- no trailing content line
             continue
         try:
-            size = int(header[2])
+            size = int(header[2]) if len(header) >= 3 else -1
         except ValueError:
-            out[rel] = None
-            continue
+            size = -1
+        # ANY FRAMING DOUBT ABANDONS THE WHOLE BATCH (terra HIGH, 2026-09-07). This loop reads
+        # POSITIONALLY, so a body shorter than its advertised size does not spoil one answer --
+        # it shifts `pos` and misaligns EVERY object after it. A manifest decoded from the
+        # wrong offset parses as frontmatter-less, is skipped, and reads as "no batch open":
+        # a false gate FAIL manufactured by a transport, which is precisely what a P2 speedup
+        # may not do. So a short body, a missing terminator or an unparseable header falls the
+        # whole batch back to the per-blob reader rather than salvaging the records that
+        # happened to look intact.
+        if size < 0 or pos + size >= len(buf) or buf[pos + size] != 0x0A:
+            return {r: _committed_text(repo_path, r) for r in rels}
         raw = buf[pos:pos + size]
         pos += size + 1                # git writes one LF after every object body
         out[rel] = (raw.decode("utf-8", errors="replace")
@@ -474,12 +482,24 @@ def _commit_meta(repo_path: Path, sha: str) -> Optional[tuple[list[str], str]]:
     hit = _COMMIT_META.get(key)
     if hit is not None:
         return hit
-    import journal_anchor as _ja          # local: shared git-read shape, one definition
-    try:
-        parents = _ja._git(repo_path, "rev-list", "--parents", "-n", "1", sha).split()
-        subject = _ja._git(repo_path, "log", "-1", "--format=%s", sha).strip()
-    except Exception:                     # noqa: BLE001 -- unknown => caller fails closed
-        return None
+    # ONE READER FOR BOTH PATHS (terra HIGH, 2026-09-07). This used to delegate to
+    # `journal_anchor._git`, which carries no [#355] env scrub, while `warm_commit_meta` above
+    # reads through the SCRUBBED `_git`. Two readers under different environments can answer
+    # differently for the same sha -- an inherited `GIT_DIR` is the live case, `git replace` /
+    # graft configuration the general one -- so whether a merge was classified as a lane merge
+    # would have depended on whether the warm pass happened to have run. That is a cache
+    # changing a VERDICT, not a speed. Both paths now read through the same scrubbed helper,
+    # so the memo's premise -- one sha, one answer, for the life of this process -- is true by
+    # construction rather than by assumption.
+    #
+    # HONEST LIMIT, since the premise is not unconditional: `git replace` refs mutated BETWEEN
+    # two reads inside a single run would still be invisible to the memo. No gate here runs
+    # long enough for that to be a real scenario, and it is recorded rather than defended.
+    parents_out = _git(repo_path, "rev-list", "--parents", "-n", "1", sha)
+    subject_out = _git(repo_path, "log", "-1", "--format=%s", sha)
+    if parents_out is None or subject_out is None:
+        return None                       # unknown => caller fails closed
+    parents, subject = parents_out.split(), subject_out.strip()
     if _FULL_SHA_RE.match(sha) and len(_COMMIT_META) < _COMMIT_META_MAXSIZE:
         _COMMIT_META[key] = (parents, subject)
     return parents, subject
