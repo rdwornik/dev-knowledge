@@ -4001,6 +4001,52 @@ and is marked as such rather than folded into the predicate concern.
   reader; whether the two-branch rule should itself address the collapsed topology is a question
   for whoever takes AF-1 through intake, and is not answered here.
 
+## AG. The handoff generator's hard-coded era — one CANDIDATE, filed from a review finding recorded against the wrong file (integrator, 2026-09-06)
+
+Recorded under ADR-111 §1(c), continuing the Z-C shape of AB, AD, AE and AF. **This is a
+CANDIDATE, not a row.** It carries no peg, no owner and no size band; nothing here draws from the
+ledger and nothing here is a commitment. Filed by the integrator on the operator's instruction of
+2026-09-06, and **credited to the handoff-outgoing seat**, which reported it against its own
+artifact after that artifact had already merged and after the seat had exited.
+
+**AG-1 · The handoff probe template carries a literal era string, and the era it names is three
+versions stale.**
+
+`templates/handoff/v5/PROBES.md.tmpl:96` renders probe P8 as
+`| P8 | How many files does a **v5 {{MODE}} bundle** carry, ...`. Only `{{MODE}}` is substituted;
+the `v5` is a literal in the template, so every cut renders it regardless of the era it produces.
+The 2026-09-06 architect bundle is a **v7 eight-file** bundle and shipped a probe asking about a
+**v5** bundle, whose spec defines a **four-file** base bundle. A seat answering the question as
+written compares the live directory against the wrong spec section and reaches a false
+bundle-shape result. The probe's own command resolves the live directory correctly; the drift is
+in the stated question alone.
+
+The template directory is itself `templates/handoff/v5/`, and `templates/handoff/` holds `v5/`,
+`epic/` and `functional/` with **no `v6/` or `v7/`**. The templates were not re-versioned as the
+process moved to v6 and then v7, so the path names an era three versions behind what it generates.
+A diagnosis taken from the directory name alone lands on the conclusion that the generator is
+v5-era, and it is the live generator for v7 bundles.
+
+*Two shapes are available and neither is chosen here.* Dropping the version from the question
+leaves P8 asking about *this* bundle and reading the shape from `HANDOFF_PROCESS.md` §13.
+Parameterizing the era substitutes it the way `{{MODE}}` is substituted. The first removes the
+drift surface; the second retains a version claim and supplies a fresh place for it to drift. The
+choice between them is a question for whoever takes AG-1 through intake (ADR-98), and the deployed
+methodology corpus sits in the blast radius — which is why this is recorded rather than patched
+by the seat that found it.
+
+*Filed from a witnessed misattribution, which is the part that generalizes.* Terra raised this as a
+defect **in the bundle**. The integrator verified it, agreed, and wrote it into the merge commit
+body of `ee3ec354` as an authoring defect — where it is immutable. The producing seat then read
+the template and reported the true location, at cost to nothing but its own record. A candidate
+written against the ARTIFACT routes a reader to a file that admits no repair, while the mutable
+file that fixes every future cut goes untouched. The correction is carried on the session
+transport, `STATUS-INTEGRATOR.md`, because the commit body admits none. **The generalizable
+reading: a wrong version string, a stale count or drifted boilerplate inside a GENERATED artifact
+is a template question first and an authoring question second.**
+
+*Family.* `[#611]` — the handoff-process family owning `HANDOFF_PROCESS.md` §5/§13 and the probe core.
+
 ## Editing note (read before adding an entry)
 
 This file sits inside the silent-rule ratchet corpus (`protocols/*.md`; detector

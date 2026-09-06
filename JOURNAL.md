@@ -19,6 +19,46 @@
 
 ---
 
+### 2026-09-06 (g) - CC (Opus 5, INTEGRATOR-2): the window closes on a candidate filed against the right file, after it was recorded against the wrong one
+
+**Did:** Killed a zombie `codex.exe` that outlived its stopped task by roughly nine hours, recorded
+the failure class that produced it, and filed section **AG** — the handoff generator's hard-coded
+era — as a CANDIDATE in `protocols/STANDING_RULINGS.md`.
+
+**Result:** `templates/handoff/v5/PROBES.md.tmpl:96` renders probe P8 as `**v5 {{MODE}} bundle**`
+with only `{{MODE}}` substituted. The `v5` is a literal, so **every** cut renders it whatever era
+it produces; the 2026-09-06 architect bundle is v7 and eight files and shipped a probe asking about
+a v5 four-file bundle. The template directory is itself `v5/`, with no `v6/` or `v7/` beside it.
+
+**This was recorded against the wrong file first, and that is the part worth keeping.** Terra raised
+it as a defect in the bundle; I verified it, agreed, and wrote it into the merge body of `ee3ec354`
+— which is immutable. The producing seat, already exited, read the template and reported the true
+location at cost to nothing but its own record. A candidate written against the ARTIFACT routes a
+reader to a file that admits no repair, while the mutable file that fixes every future cut goes
+untouched. The correction rides `STATUS-INTEGRATOR.md` on the transport, because the commit body
+takes none. Generalized: **a wrong version string or drifted boilerplate inside a GENERATED artifact
+is a template question first and an authoring question second.**
+
+**The zombie, and the failure class behind it.** `codex exec` reads stdin whenever stdin is not a
+TTY, so a backgrounded invocation blocks forever awaiting EOF even with the whole prompt passed as
+an argument — and `TaskStop` ends the task while leaving the `codex.exe` grandchild alive. Its
+sibling: a review of a file on an UNMERGED branch reaches for `Get-Content`/`rg` on a working-tree
+path that does not exist and returns a refusal naming no findings. Three invocations were spent on
+one ruled review round for zero verdicts. Both shapes read as "the round came back clean" to anyone
+checking only the exit code. Recorded as **the empty terra round** in the gotchas corpus.
+
+**Changes:** `protocols/STANDING_RULINGS.md` section AG (declarative throughout — this file is
+inside the silent-rule ratchet corpus and the baseline has no headroom); this entry.
+
+**Abandoned:** No fix to the template. Two shapes are named and neither is chosen: drop the version
+from the question, or parameterize the era. The deployed methodology corpus is in the blast radius,
+so it goes through intake rather than into a word swap by the seat that found it.
+
+**Next:** Nothing. The window closes here: `main` and `automation/fleet-audit` are the whole branch
+list, both batches are closed, and the v7 bundle is on `main` for the next seat.
+
+**Anchors:** `4e999409` (section AG, introduced by this arc's merge).
+
 ### 2026-09-06 (f) - CC (Opus 5, INTEGRATOR-2): pre-anchor the v7 architect bundle, the last merge of the session
 
 **Did:** Pre-anchored `docs/handoff-2026-09-06-architect` @ `0bfe074e` — the 2026-09-06 architect
