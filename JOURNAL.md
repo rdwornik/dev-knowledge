@@ -19,6 +19,49 @@
 
 ---
 
+### 2026-09-07 (c) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): W1-4 lands, and a generated conflict where BOTH sides were wrong
+
+**Did:** Merged W1-4 `branch-enum-parity` after checking its two out-of-footprint files against every
+lane contract, resolved a conflict in a generated file by regenerating it, and ran its targeted
+tests on the merged result: **188 passed, 1 xfailed.**
+
+**Result - merged, and the conflict resolution is the part worth keeping.**
+
+The merge conflicted in `ecosystem/doc-counts.md`. HEAD claimed **5047** collected tests; the branch
+claimed **5051**. Regenerating produced **5076** - a number neither side held, because both lanes had
+added tests and each had measured only its own addition against a common base. **Picking either
+side would have landed a false count that passed the conflict but failed the truth**, and the hook
+that guards it would then have fired on whoever committed next. A generated file has no correct side
+in a conflict; it has a correct COMMAND. This is the second generated artifact this seat has had to
+regenerate tonight rather than reconcile, after the audits index.
+
+The footprint question was decided on evidence rather than on the lane's assurance. W1-4 disclosed
++2 files outside its contract - `scripts/journal_anchor.py` and `scripts/batch_manifest.py` - and
+flagged them rather than burying them. A grep across all 19 batch-U launch contracts returns ZERO
+hits for either, **with the grep's controls verified to hit first** (`audit.py` in five contracts,
+`validate_substrate` in this lane's own), because a silent grep is worth nothing until you have
+proved the pattern can speak. No other lane owns either file, so there is no coupling collision, and
+each addition has a stated cause: the ADR-85 message needed one home, and the reviewer's HIGH showed
+that widening leg 5 alone MOVED the disagreement and produced a false green.
+
+**What the lane declined to do is better than what it did.** Its own closure clause asked the two
+ADR-85 organs to AGREE on exemption. Making them agree un-ratifies ADR-110 R-1, which is a governance
+act and not a lane's to take, so it left containment unchanged - `block_unanchored_push` still
+imports no `batch_manifest` and still refuses the exact merge `audit-health` forgives, both ratified
+tests green - and filed a QUESTION instead. A lane that stops at the edge of its authority and says
+so is worth more than one that satisfies its closure text.
+
+**Changes:** `scripts/validate_branch_naming.py` (new `LANE_BRANCH_KINDS` + `is_lane_branch`),
+`validate_substrate` leg 5, `batch_manifest.is_lane_merge`, `journal_anchor` (now owns the ADR-85
+message text), `audit.py` (its two constants become aliases), `block_unanchored_push`, 4 test files,
+`ecosystem/doc-counts.md` regenerated to 5076 - via `ad9a7d5d`.
+
+**Abandoned:** nothing.
+
+**Next:** W1-5 `intake-id-next-free`, then the wave-1 drain and its hard-fail count.
+
+**Anchors:** `4da05989` (W1-4's reviewer-HIGH commit, introduced by `ad9a7d5d`).
+
 ### 2026-09-07 (b) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): W1-1 lands the refusal it was contracted to build, and corrects this seat's claim about who anchoring protects
 
 **Did:** Merged W1-1 `batch-protocol-mechanisms` after verifying its three HIGHs were closed in-lane,
