@@ -21,7 +21,7 @@
 
 ### 2026-09-08 (b) - CC (Opus 5, DISPATCHER-CLOSE): the preflight lands, and its most useful output is that two of its own rows could not fail
 
-**Anchors `289b4c8f` and `c1e481d6`.** Batch CLOSE lane C-4 turned pre-handoff hygiene from
+**Anchors `289b4c8f`, `c1e481d6` and -- via `99711baa` -- this entry's own merge.** Batch CLOSE lane C-4 turned pre-handoff hygiene from
 a checklist the operator re-invents each time into a refusal: nine rows in
 `gen_handoff.py`, wired as a THIRD pre-cut invariant after `assert_batch_boundary` and
 `assert_boundary_hygiene`, firing before anything is written. Built RED-first and the RED was
