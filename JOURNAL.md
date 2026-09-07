@@ -67,6 +67,8 @@ stays in `to-browser/` and is deliberately uncommitted for the same reason.
 `tests/test_fleet_shape_spec.py` (new), `ecosystem/doc-counts.md`; JOURNAL.md.
 **Abandoned:** nothing this merge.
 **Next:** W2-U2 `seal-report-fleet`, then U3/U4/F1-F5 in parallel, W2-R last and alone.
+**Anchor-of-the-anchor:** this entry was authored at `0409273d`, named here so the
+`--no-ff` merge of `docs/anchor-w2u1-2026-09-07` anchors itself (the `a45a3ae3` shape).
 
 ### 2026-09-07 (i) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): W1-3 was not dead, it was slow -- and the merge that proves it had blocked every lane's push for two hours
 
