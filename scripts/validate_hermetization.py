@@ -149,6 +149,64 @@ def _clause_str(clauses: dict[str, Any], clause: str, key: str) -> str:
     return value
 
 
+# One (accepts, rejects) sentinel pair per spec-supplied regex. THESE LIVE IN CODE, NOT IN
+# THE SPEC, and that is the whole mechanism: a sentinel the spec supplied could be doctored
+# to agree with a broken pattern, which would prove nothing.
+#
+# WHY THIS EXISTS (terra HIGH, 2026-09-07 adversarial round on this change): moving the
+# naming grammar into YAML made a class of failure possible that a literal could not have.
+# A pattern that is a valid regex but the WRONG regex -- `'^'` is the cheap example -- still
+# compiles, so `_clause_str` is satisfied, and every casing/slug refusal silently becomes a
+# pass. A tree seal that stops refusing is indistinguishable from a clean tree, so this
+# failure would be invisible exactly where it matters. The proof below re-derives, at every
+# load, that each pattern still refuses something it is supposed to refuse.
+#
+# HONEST LIMIT, stated rather than implied: this catches the SILENT-PASS class. It is not
+# ReDoS protection -- a deliberately catastrophic pattern would stall here rather than at
+# the call site, which moves the symptom without removing it. That threat needs commit
+# access to the spec, and an actor with that could edit this module just as easily; the
+# defence for it is review, not a regex analyser this gate cannot honestly claim to be.
+_REGEX_SENTINELS: dict[str, tuple[tuple[str, ...], tuple[str, ...]]] = {
+    # key: (must MATCH, must NOT match)
+    "filename_charset": (
+        ("2026-09-07-technical-a-slug.md", "v3.4-notes.md"),
+        ("2026-09-07-Technical.md", "2026_09_07-technical.md", "a b.md", "X.MD"),
+    ),
+    "slug": (
+        ("a", "a-b-c", "v3.4-notes"),
+        ("", "-lead", "trail-", "double--hyphen"),
+    ),
+    "date_prefix": (
+        ("2026-09-07-technical.md",),
+        ("technical-2026-09-07.md", "20260907-technical.md", "-2026-09-07-x.md"),
+    ),
+}
+
+
+def _compile_checked(clauses: dict[str, Any], key: str) -> re.Pattern[str]:
+    """Compile a spec-supplied regex and PROVE it still discriminates before returning it."""
+    pattern = _clause_str(clauses, "naming_grammar", key)
+    try:
+        compiled = re.compile(pattern)
+    except re.error as exc:
+        raise ShapeSpecError(
+            f"fleet shape spec `naming_grammar.{key}` is not a valid regex: {exc}") from exc
+    accepts, rejects = _REGEX_SENTINELS[key]
+    for sample in accepts:
+        if not compiled.match(sample):
+            raise ShapeSpecError(
+                f"fleet shape spec `naming_grammar.{key}` refuses {sample!r}, which the "
+                f"grammar admits -- the pattern is valid but wrong, and would refuse "
+                f"conformant names")
+    for sample in rejects:
+        if compiled.match(sample):
+            raise ShapeSpecError(
+                f"fleet shape spec `naming_grammar.{key}` accepts {sample!r}, which the "
+                f"grammar refuses -- the pattern is valid but wrong, and would let every "
+                f"off-grammar name through as a silent pass")
+    return compiled
+
+
 SHAPE_SPEC = load_shape_spec()
 
 # --- ADR-101 section 1 sanctioned sets -- DERIVED FROM THE SPEC, not from this tree ---
@@ -206,16 +264,16 @@ _ENUM_BY_LEN = tuple(sorted(AUDIT_CLASS_ENUM, key=len, reverse=True))
 # --- ADR-101 section 2 naming grammar -- compiled from the spec ------------------------
 # SHAPE only, never date-accuracy (S3-4): `2026-13-99` passes. A misdated-content detector
 # diffs the content header and is a different tool.
-_DATE_SHAPE = re.compile(_clause_str(SHAPE_SPEC, "naming_grammar", "date_prefix"))
+_DATE_SHAPE = _compile_checked(SHAPE_SPEC, "date_prefix")
 _DATE_PREFIX_LEN = len("YYYY-MM-DD-")                       # 11 chars incl. trailing hyphen
 # R4 casing: all-lowercase kebab-case + digits; `.` carve-out (repo/version tokens). Applied
 # to the FULL filename (incl. the `.md` extension) so an uppercase `.MD` is caught too
 # (codex-review 2026-07-11).
-_LOWER_KEBAB_DOT = re.compile(_clause_str(SHAPE_SPEC, "naming_grammar", "filename_charset"))
+_LOWER_KEBAB_DOT = _compile_checked(SHAPE_SPEC, "filename_charset")
 # A well-formed slug after the class: 1+ kebab segments of [a-z0-9.] joined by SINGLE
 # hyphens -- rejects empty / leading- / trailing- / double-hyphen slugs (codex-review
 # 2026-07-11). The `.` repo/version carve-out rides inside a segment.
-_SLUG_RE = re.compile(_clause_str(SHAPE_SPEC, "naming_grammar", "slug"))
+_SLUG_RE = _compile_checked(SHAPE_SPEC, "slug")
 
 
 # --- Rule C: the HOME allowlist (spec clause `home_grammar.patterns`) -----------------
@@ -243,12 +301,26 @@ _HOME_PATTERNS: tuple[str, ...] = tuple(
 
 
 def _home_matches(home: str, pattern: str) -> bool:
-    """One home vs one pattern under the three-token grammar above."""
+    """One home vs one pattern under the three-token grammar above.
+
+    `**` DOES NOT ADMIT A DOT-PREFIXED SEGMENT beneath it (terra HIGH, 2026-09-07). The
+    finding: admitting `src/**`, `eval/**` and `models/**` per amendment D5 also admits
+    `src/.github/workflows/`, so a dot-directory Rule A refuses at the root could be
+    reintroduced one level down and the top-level seal would be silent about it. Dot-prefixed
+    homes are exactly the ones ADR-59 governs by name, so an open depth-wildcard is the wrong
+    instrument to admit them: the two the repo actually has --
+    `ecosystem/.dev-knowledge/history` and `plugins/tier1-lifecycle/.claude-plugin` -- are
+    admitted by EXPLICIT `*` patterns and are unaffected, which was measured over all 2991
+    tracked paths before this leg was added. A dot home under a `**` tree therefore stays a
+    surfaced act: name it with a literal or a `*` pattern.
+    """
     hp = home.split("/")
     pp = pattern.split("/")
     if pp[-1] == "**":
         head = pp[:-1]
-        return len(hp) > len(head) and hp[: len(head)] == head
+        if not (len(hp) > len(head) and hp[: len(head)] == head):
+            return False
+        return not any(seg.startswith(".") for seg in hp[len(head):])
     if len(hp) != len(pp):
         return False
     return all(p == "*" or p == h for h, p in zip(hp, pp))

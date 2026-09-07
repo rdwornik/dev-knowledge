@@ -226,6 +226,57 @@ def test_a_missing_or_malformed_spec_refuses_rather_than_admitting_everything(tm
         vh._clause_list(clauses, "root_allowlist", "directories")
 
 
+# --- the 2026-09-07 adversarial round (terra), both HIGHs ------------------------------
+
+def test_a_valid_but_wrong_regex_is_refused_at_load_not_silently_obeyed():
+    """terra HIGH 1: moving the grammar into YAML made silent-pass possible.
+
+    `'^'` is a perfectly valid regex and the wrong one: it matches everything, so every
+    casing and slug refusal would quietly become a pass. A seal that stops refusing looks
+    exactly like a clean tree, which is why this class had to be caught at load rather than
+    left to a reviewer. The sentinels live in code on purpose -- a spec-supplied sentinel
+    could be doctored to agree with the broken pattern and would prove nothing.
+    """
+    clauses = vh.load_shape_spec(_SPEC)
+
+    for key, permissive in (("filename_charset", "^"), ("slug", "^"), ("date_prefix", "")):
+        broken = {**clauses, "naming_grammar": {**clauses["naming_grammar"], key: permissive}}
+        with pytest.raises(vh.ShapeSpecError, match="accepts"):
+            vh._compile_checked(broken, key)
+
+    # The other direction: a pattern so strict it refuses conformant names is equally wrong,
+    # and is caught by the same proof rather than by a commit that mysteriously blocks.
+    too_strict = {**clauses,
+                  "naming_grammar": {**clauses["naming_grammar"], "slug": "^zzz$"}}
+    with pytest.raises(vh.ShapeSpecError, match="refuses"):
+        vh._compile_checked(too_strict, "slug")
+
+    # A string that is not a regex at all fails as a spec error, not a raw `re.error`.
+    malformed = {**clauses,
+                 "naming_grammar": {**clauses["naming_grammar"], "slug": "([unclosed"}}
+    with pytest.raises(vh.ShapeSpecError, match="not a valid regex"):
+        vh._compile_checked(malformed, "slug")
+
+
+def test_a_depth_wildcard_does_not_readmit_a_dot_directory():
+    """terra HIGH 2, the concrete escape it named.
+
+    D5 admits `src/ eval/ models/` with `**` homes because a source tree nests by its own
+    package structure. Left open, that also admits `src/.github/workflows/` -- a
+    dot-directory Rule A refuses at the root, reintroduced one level down with the top-level
+    seal silent about it. Dot homes are what ADR-59 governs by name, so they stay a surfaced
+    act: nameable by a literal or `*` pattern, never by an open depth wildcard.
+    """
+    assert vh.rule_c_violation("src/pkg/deep/mod.py") is None
+    assert vh.rule_c_violation("src/.github/workflows/ci.yml") is not None
+    assert vh.rule_c_violation("models/.hidden/weights.bin") is not None
+    assert vh.rule_c_violation("tests/fixtures/.git/config") is not None
+    # ...and the two dot homes the repo REALLY has ride explicit `*` patterns, so the new
+    # leg leaves them untouched. Measured over all tracked paths before it was written.
+    assert vh.rule_c_violation("ecosystem/.dev-knowledge/history/2026-01-01.md") is None
+    assert vh.rule_c_violation("plugins/tier1-lifecycle/.claude-plugin/plugin.json") is None
+
+
 # --- the closure clause: the hub passes its own seal FROM THE DATA ---------------------
 
 def test_the_hub_passes_its_own_seal_from_the_spec():
