@@ -622,3 +622,55 @@ claim wearing a chart's clothes.
   narrowed — §4.
 - **No answer** to open questions 1, 4, 6, 7, 8 or 9, and none to the three born here. Question 9
   (one organ or two) remains upstream of the build order, exactly as §7 says.
+
+## AMENDMENT — 2026-09-07: RE-OPENED as the carrier of the ONE-GRAPH ruling; the Done-when is now a number
+
+> **Source:** operator ruling relayed as `to-cc/DECLARE-GRAPH-2026-09-07.md` §1, itself cited from
+> `to-browser/DIGEST-2026-09-07-repo-graph.md` (§A1–A3 witnesses). Filed by seat **filings-N3**.
+> **This amendment builds nothing and births no row.** It changes what "done" means for this
+> intake and records why the intake stopped being a design and became a landing.
+
+### 1 · What the digest measured, and why it re-opens this file rather than a new one
+
+The graph this intake specifies **already exists in the tree**: `scripts/file_purpose_graph.py`
+(**FPG-1**), on a declared `rustworkx` dependency (`pyproject.toml:65`, `uv.lock:564`), imported by
+`file_purpose_graph.py:92` and `boot_frontier.py:57`, measured at **1922 nodes, 12 664 edges,
+12 edge kinds** — and the digest records it as *"wired into NO gate, no check and no hook"*.
+
+That is not a design error and not a missing build. It is an **unfinished landing**, and this
+intake is where the landing was specified — hence a re-open here rather than a new intake. The
+orphan `ecosystem/north-star.md` (INBOX 034) is the visible price of a graph nobody queries.
+
+### 2 · The Done-when — replacing "awaiting triage" with an observable
+
+DECLARE-GRAPH §1 rules that **`file_purpose_graph.py` (FPG-1) is THE repo graph**; no organ
+computes an edge set of its own from now on, and a new edge kind is added to FPG-1 rather than to
+a script. This intake is the carrier of that ruling, and its Done-when is:
+
+> **12 separate edge computations → 0; all organs read FPG-1.**
+
+**N = 12** is the count on `main` at this filing plus the W2-U4 work then unmerged — it is a
+measured baseline, not a target chosen for roundness, and the migration retires it one organ at a
+time. Each migration is **one lane**, and each lane **proves its edge set is a subset of FPG-1
+(diff = 0) before the old computation is retired** (§5 of the ruling). A migration that cannot
+show diff = 0 is a finding about FPG-1's edge coverage, not a licence to keep the private
+computation.
+
+### 3 · Migration order, as ruled (recorded here; the sequencing is the operator's)
+
+- **W-G1** — wire FPG-1 + `orphan_census` + tests (S). First consumer, per §2 of the ruling.
+- **W-G2** — catalog + resolver (M). Carried by the intake filed from INBOX 035.
+- **W-G3** — migrate the 12 organs one by one, each proving the subset property above.
+- **W-G4** — the graph ships as a floor component (pull, fleet-uniform — #73 layout is identical
+  everywhere, so one implementation), and the first consumer report runs on `corp-monorepo`.
+
+### 4 · What this amendment does NOT do
+
+- **No status change.** `status:` stays `DRAFT`; the frontmatter is untouched. Ratification is the
+  operator's act (ADR-111 §2), and DRAFT still binds nothing.
+- **No carrier row.** The deliberate unborn-row position of §Status and of ruling D5 is unchanged.
+- **No build, no script, no test, no schema.** FPG-1 is unedited by this act.
+- **No answer** to open questions 1–12 above. The Done-when constrains what an answer must
+  achieve; it answers none of them.
+- **No supersession** of the 2026-08-31 or 2026-09-01 amendments — both are cited by the ruling's
+  premise (a typed multi-layer graph is exactly what "all organs read FPG-1" needs) and both stand.
