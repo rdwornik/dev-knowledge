@@ -19,6 +19,57 @@
 
 ---
 
+### 2026-09-07 (j) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): wave 2 opens -- the seal's grammar becomes data, and the one RED is proven inherited rather than attributed
+
+**Anchors `61728224`, which introduced `01104de3` and `f06cd221`.** W2-U1
+`shape-spec-finalize` is the first wave-2 lane and the tenth merge of batch U.
+`audit.py handback` returned **MERGE / exit 0** on this seat BEFORE the merge, which is
+the order D-1 requires; the lane had also run it on itself, so the queue's verdict was a
+second look rather than the first. Tip verified identical on origin and locally by
+`git ls-remote` before anything was merged -- a HANDBACK announces a branch, it does not
+prove one.
+
+**What landed:** the fleet shape grammar moves out of `scripts/validate_hermetization.py`
+and into `ecosystem/fleet-shape-spec.yaml`, so the tree seal reads its rules as **data**
+instead of carrying them as code. 968 insertions across four files, 314 of them a new
+test module.
+
+**Both codex HIGHs were real, and the fix placement is the interesting part.** A
+valid-but-wrong regex in the new YAML could have turned **every seal refusal into a
+silent pass** -- the characteristic failure of moving a grammar into data, where the
+data is then trusted to describe itself. The lane fixed it with sentinel proofs held
+**in code, not in the spec**, so a doctored spec cannot agree with a broken pattern.
+The second: `src/**` was admitting `src/.github/workflows/`, reintroducing at depth the
+dot-directory case Rule A refuses at the root.
+
+**One RED on the merged result, and it is INHERITED, not caused.**
+`tests/test_canonical_docs.py::test_the_derived_leg_is_warn_class_on_arrival` fails
+(`CLASS_UNSTAMPED` absent from the warned set). Targeted run, serial, on the merged tree:
+**1 failed / 108 passed**. The lane flagged it and attributed it to W1-7's `audit.py`
+work, stating honestly that it was attributing by evidence rather than a pristine re-run.
+
+**This seat did not adopt that attribution, and did not need to.** The merge
+`df88f767..61728224` touches exactly four files, and `scripts/audit.py` and
+`tests/test_canonical_docs.py` are **not** among them -- the test and the code under test
+are byte-identical across the merge, so the result cannot have changed. That proves U1
+**innocent**; it does **not** prove W1-7 guilty, and the guilty party is still unnamed.
+Recorded at that boundary deliberately: "not caused by this merge" and "caused by that
+one" are different claims, and only the first is witnessed.
+
+**Not regenerated, by design:** `docs/audits/README.md`. Four lanes land artifacts there
+and the index is `merge=ours`-pinned, so it is stale by construction after every merge and
+is regenerated **ONCE after the last merge of the walk** ([#590]). U1's own review artifact
+stays in `to-browser/` and is deliberately uncommitted for the same reason.
+
+**Did:** verdicted and merged W2-U1; proved the single RED inherited; anchored the merge.
+**Result:** wave 2 open, 10 of 19 lanes merged, `main` pushable and current for U2's boot.
+**Changes:** `ecosystem/fleet-shape-spec.yaml` (new), `scripts/validate_hermetization.py`,
+`tests/test_fleet_shape_spec.py` (new), `ecosystem/doc-counts.md`; JOURNAL.md.
+**Abandoned:** nothing this merge.
+**Next:** W2-U2 `seal-report-fleet`, then U3/U4/F1-F5 in parallel, W2-R last and alone.
+**Anchor-of-the-anchor:** this entry was authored at `0409273d`, named here so the
+`--no-ff` merge of `docs/anchor-w2u1-2026-09-07` anchors itself (the `a45a3ae3` shape).
+
 ### 2026-09-07 (i) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): W1-3 was not dead, it was slow -- and the merge that proves it had blocked every lane's push for two hours
 
 **Anchors `f57d029d`, which introduced `5ea10ec6`.** A prior integrator seat merged
