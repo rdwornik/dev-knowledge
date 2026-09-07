@@ -80,6 +80,10 @@ count. The dispatch message said thirteen and was already stale when sent.
 **Changes:** thirteen new `docs/audits/2026-09-07-technical-census-*.md` (+ four
 appendices). No existing file edited by any census lane.
 
+**Anchor note:** this entry's own merge is anchored by `14d75ee8`, the commit carrying the
+text above -- a merge cannot name its own hash (ADR-85 amendment §A7 reading 2, the temporal
+reason), so the arc is two commits by construction.
+
 **Next:** S-13 on its handback, then the audits index regeneration #2 -- which also picks up
 batch U's close packet -- then the dispatcher lands the packet and both batches close.
 
