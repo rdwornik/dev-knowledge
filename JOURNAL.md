@@ -19,6 +19,59 @@
 
 ---
 
+### 2026-09-07 (u) - CC (Opus 5, INTEGRATOR-N3): the queue drains -- intake #76 lands, the tree goes down to one branch, and a gate passes on a citation that predates what it certifies
+
+**Anchors `a3c213ce`, which introduced `949b8961`.** Intake #76 (browser window shape and
+decision carriage) merged `--no-ff` and landed as DRAFT. Authorised explicitly: the HOLD was
+on RATIFICATION, never on landing, so a DRAFT intake may live on main.
+
+**BOTH conflicted files were GENERATED, and neither side's numbers were right.**
+`docs/intake/README.md` carries a generated Contents block; `manifest.json` is DERIVED from
+that README. The branch read 67 documents / DRAFT 19; main read 77 / DRAFT 28. **The merged
+tree is 78 / 29 and neither side contained it.** So no side was picked: both were reset to
+main's side and re-derived by their own generators, which compute from the intake files on
+disk. **The generators were run only AFTER the markers were gone** -- running one over a
+conflicted file absorbs the markers into the generated output.
+
+**The anchor gate passed on a stale citation, and that is worth recording rather than
+enjoying.** `a3c213ce` reported ANCHORED before this entry existed, because an older entry
+names `b6b7cb08` -- the same branch at an earlier SHA, cited while it was still moving. The
+predicate is "the JOURNAL names at least one SHA the entry introduced", and `b6b7cb08` is in
+the introduced set, so the pass is real. **But it certifies a merge written about before it
+happened.** A gate can be satisfied by a sentence that predates the thing it certifies; this
+entry names `949b8961` so the record is true independently of that accident.
+
+**A conflict-free merge skips the commit hooks; a conflicted one does not.** That asymmetry
+is why the close-packet merge sat unanchored without complaint until the FIRST conflicted
+commit after it, which it then blocked. Thirteen census merges earlier the same night passed
+straight through for exactly the same reason. **The gate is not weaker for clean merges -- the
+pre-push leg still fails closed -- but the failure surfaces at a different moment.**
+
+**Teardown, both legs.** `lane-t-000-filings-027-intake` removed and pruned; work branch
+`docs/intake-031-two-chats` AND provisioning branch `worktree-lane-t-000-filings-027-intake`
+deleted locally and on origin. Five further merged branches deleted on both legs, each
+ancestor-proved first, `-d` only, never `-D`. **An earlier seat's empty
+`lane-u-628-release-commit` husk cleared on retry** -- the handle that returned "Device or
+resource busy" had dropped.
+
+**The tree is now ONE branch plus `main`.** `automation/fleet-audit` is held: explicitly
+protected, lives outside main by design, and deleting it breaks the organ rather than tidying
+after it.
+
+**Ship-gate RED is unchanged in kind and better by three.** 120 WARN / 50 undispositioned at
+`b6f2ca41` before any merge; 117 / 49 after, **0 FAIL throughout**. The three that cleared are
+attributable: the close packet gave `batch-u-manifest` a real consumer, which cleared one
+`consumer_at_landing` and one `funnel_coverage` -- and in doing so turned their two
+dispositions STALE, which is why stale rose 5 -> 7. **A disposition that stops being needed
+does not disappear; it starts reporting itself as unnecessary.**
+
+**This entry also anchors its own merge**, by naming `2d6f48e5` -- the commit carrying this
+text. The arc's merge introduces it, so naming it satisfies the predicate for the merge itself.
+
+**Changes:** `docs/intake/` (#76 + both generated surfaces), `JOURNAL.md`.
+**Next:** lanes C-1 shipgate-to-green, C-2 living-docs, C-3 transport-archive, C-4 preflight
+rows, C-5 handoff cut.
+
 ### 2026-09-07 (t) - CC (Opus 5, INTEGRATOR-N3): the close packet lands as carriage, and the dispatcher's last artifact is committed by a seat that did not write it
 
 **Anchors `e1b7dc39`, which introduced `d1355fd7`.** The batch U close packet
