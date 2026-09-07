@@ -468,3 +468,76 @@ What this census could **not** establish, stated because the section is the poin
    the `FRESHNESS_FILES` observation land **outside** this lane's folder and are reported for
    the operator and the integrator rather than acted on — no census lane touches another lane's
    folder, and none of them was touched.
+
+---
+
+## AMENDMENT 1 — 2026-09-07, post-landing: the gates were run after all
+
+> **In-file amendment marker** (critical rule 3: audits are immutable — supersede with a new
+> file **or an in-file amendment marker**; never edit in place). Nothing above is altered. This
+> block exists because **honest limit #5 became false after the census landed**, and a landed
+> audit carrying a statement its own author knows to be false is worse than one carrying an
+> amendment.
+
+**What changed.** The session-end hook kept refusing on the `uv` version mismatch. The remedy
+was to bring the *container* into conformance with the pin `pyproject.toml` already declares —
+**not** to bump the pin, which ADR-106 makes its own gated change. `uv self update 0.11.19` and
+`astral.sh` were both unavailable (the latter refused by egress policy), so the pinned wheel was
+taken from PyPI, extracted, and installed over `/root/.local/bin/uv` with the 0.8.17 binary
+retained. `uv --version` now reports **0.11.19**, matching `required-version`. No tracked file
+was touched; `.venv/` is gitignored; the tree stayed clean throughout.
+
+**Honest limit #5 is therefore SUPERSEDED in part.** Its first clause — that allowlist
+membership was established by importing the module rather than running the gate — still
+describes how the Inventory was produced, and every number above still comes from independent
+recomputation. What is no longer true is *"a green gate has not been demonstrated for anything
+in this census."* Gate results, measured on `HEAD` of this branch:
+
+```
+gate                                                     result   bearing on this census
+-------------------------------------------------------  -------  ----------------------------------
+tests/test_claude_md_byte_cap.py + agents sibling         PASS     12 passed, 2 skipped. STRENGTHENS
+                                                                   R-1/R-2: the cap is GREEN while the
+                                                                   launch payload is 143.7% of it. The
+                                                                   defect is not a red gate — it is a
+                                                                   green one measuring the wrong object.
+scripts/validate_hermetization.py <this file>             PASS     exit 0. Tree seal accepts the path,
+                                                                   the audit-class token `technical`
+                                                                   and the home.
+scripts/consumer_at_landing.py                            exit 0   ZERO fail-leg findings. The blocking
+                                                                   leg the brief warned all 13 lanes
+                                                                   about — "landed on/after ARM_DATE and
+                                                                   declares no consumer" — did not fire
+                                                                   for this file: the id-shaped tokens
+                                                                   on the consumer line satisfied it.
+                                                                   This file DOES appear in the WARN
+                                                                   ratchet leg, alongside 41 peers.
+scripts/audit.py health                                   DEGRADED 6 FAIL / 57 WARN / 35 OK / 16 n-a.
+                                                                   NONE of the 6 FAILs is this lane's.
+```
+
+**The 6 FAILs, attributed** — recorded so the integrator does not inherit them as this lane's:
+
+1. `repos registered (none)` — container has no sibling fleet repos.
+2. `canonical_freshness: 7 stale` — pre-existing on `main`; this lane edited no canonical doc.
+3. `canonical_freshness: derived leg REFUSES (shallow clone)` — **the repo's own gate
+   independently confirms honest limit #3**, in its own words: *"the clone is shallow — every
+   git-derived date is a floor, not a fact, and a grafted history silently mis-dates every
+   file."* This is corroboration, not a new finding: it is precisely why no verdict above rests
+   on a last-content-commit witness.
+4. `hooks_armed: git hooks not armed` — the container, and the reason the commit above landed
+   unhooked. Reported, not worked around.
+5. `silent_rule_ratchet: baseline raise rejected 443 -> 447 (+4)` — **checked specifically
+   because it was the one FAIL that could plausibly have been this lane's, and it is not.** The
+   detector's scope is `protocols/*.md`, `templates/**/*.{md,tmpl}`, `ecosystem/*.yaml`
+   (`silent_rule_detector.SCOPE_GLOBS`). This lane's commit changes exactly one file, under
+   `docs/audits/`, which is outside that scope; and the `origin/main` advance merged in
+   (`5f27b20..21576e3`) touched no scoped file either. Pre-existing on `main`.
+6. `journal_spine_anchor: backstop could not complete` — `git merge-base --is-ancestor` exited
+   128 on a missing object: the shallow clone again. The brief anticipated this class and
+   instructed retry; it is an environment floor here, not a missing anchor.
+
+**What did NOT change.** No full suite was run (the brief forbids it; the known main RED is
+neither chased nor claimed). No JOURNAL entry, no merge, no self-merge. Every verdict, proposal
+and count above stands exactly as landed — the gate evidence corroborates the census, and
+corrects only its own statement about itself.
