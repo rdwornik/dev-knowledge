@@ -155,14 +155,40 @@ R_WRAP = "wrapped-value"       # value continues onto the next physical line
 R_COHERENCE = "coherence"      # header status != README-index effective status
 R_UNINDEXED = "unindexed"      # ADR carries no README-index row at all
 R_DUPLICATE = "duplicate-id"   # two files claim one ADR number
+R_FLIP = "flip-condition"      # a NEW ADR carries no filled `Flip-condition` section
+R_FLIP_LEGACY = "flip-condition-legacy"   # ...and a GRANDFATHERED one does not either
 
 #: Legs armed at FAIL vs WARN. See `docs/audits/2026-08-23-technical-lane-status-grammar.md`
 #: Step 4: the corpus carries 47 `R_GRAMMAR`, 1 `R_WRAP` and 3 `R_COHERENCE` defects today, so
 #: those legs are armed WARN against a measured baseline; `R_ENUM` and `R_SINGLE` are at zero
 #: and are armed FAIL. Arming the grammar leg FAIL would RED-block every commit on day one,
 #: which the lane contract forbids.
-FAIL_RULES = frozenset({R_ENUM, R_SINGLE})
-WARN_RULES = frozenset({R_GRAMMAR, R_WRAP, R_COHERENCE, R_UNINDEXED, R_DUPLICATE})
+#:
+#: The FLIP leg is armed at BOTH levels, split by RULE ID rather than by a severity lookup:
+#: `R_FLIP` FAILs, `R_FLIP_LEGACY` WARNs, and which one a defect carries is decided ONCE, in
+#: `flip_condition_defects`, by the grandfather mark below. Two ids rather than one
+#: severity-by-subject switch, because `FAIL_RULES` is the single place every consumer
+#: (adapter, CLI, tests) reads severity from — a subject-dependent severity would have to be
+#: re-derived at each of them, and the three would drift.
+FAIL_RULES = frozenset({R_ENUM, R_SINGLE, R_FLIP})
+WARN_RULES = frozenset({R_GRAMMAR, R_WRAP, R_COHERENCE, R_UNINDEXED, R_DUPLICATE,
+                        R_FLIP_LEGACY})
+
+#: THE GRANDFATHER MARK for the `Flip-condition` requirement. MEASURED, not chosen: 116 is the
+#: highest ADR number in `docs/decisions/` at this leg's arming (re-measured 2026-09-07 on
+#: `ef53b069` — 89 live ADRs, numbering gapped, and ZERO of them carrying the section). Every
+#: ADR at or below it predates the requirement and WARNs with a disposition path; ADR-117 and
+#: above must carry the section or FAIL.
+#:
+#: THE MARK IS FROZEN, AND WHAT SHRINKS IS ITS POPULATION. Raising it re-grandfathers an ADR
+#: written AFTER the requirement existed, which weakens the leg — a reviewed act with a
+#: recorded ruling, never a fix for a red gate. An ADR leaves the WARN population the other
+#: way: by GAINING the section, one file at a time.
+#:
+#: Arming the legacy population at FAIL instead would RED-block every commit in the repo
+#: against 89 pre-existing files on day one — a self-inflicted outage, not enforcement. That
+#: is the same reasoning that armed `R_GRAMMAR` at WARN against its measured 47.
+FLIP_GRANDFATHER_MAX_ADR = 116
 
 
 class CorpusUnusable(Exception):
@@ -473,6 +499,144 @@ def corpus_defects(fields: list[StatusField], missing: list[str],
     return defects
 
 
+# --- the Flip-condition section rule ------------------------------------------
+
+#: The required section's heading. Levels 2-4 (an ADR may nest it under a part heading), an
+#: optional BALANCED bold/emphasis wrapper, and `Flip-condition` / `Flip condition` /
+#: `Flip Condition` — case-INSENSITIVE, because a heading's capitalisation is typography, not a
+#: declared token the way a `Status:` value is. A trailing qualifier is allowed
+#: (`## Flip-condition — what would reverse this`): the section is identified by its NAME, and
+#: forbidding a subtitle would fail a conforming ADR over punctuation.
+_FLIP_HEADING_RE = re.compile(
+    r"^ {0,3}(?P<h>#{2,4})\s+(?P<w>\*+|_+)?Flip[-\u2011 ]?condition(?(w)(?P=w))?"
+    r"(?:[\s:\u2014\u2013-]|$)", re.IGNORECASE)
+#: A heading of the SAME level or shallower ends the section.
+_ATX_HEADING_RE = re.compile(r"^ {0,3}(?P<h>#{1,6})\s")
+#: An UNFILLED template placeholder span. `templates/ADR-template.md` writes every section
+#: body as a `<...>` prompt, so an ADR that copied the template and never answered the question
+#: carries the heading while naming no flip at all. Counting that as compliance is the vacuous
+#: pass this module exists to refuse, so a placeholder-only body is `empty`, not `present`.
+#:
+#: MATCHED AS A SPAN, and SUBTRACTED from the body rather than tested line-by-line. A
+#: line-anchored `^<...>$` missed the template's OWN placeholder, which runs to five physical
+#: lines — the detector passed every synthetic one-line fixture and then read the real
+#: template as answered. Subtraction also gets the mixed case right in both directions: real
+#: prose that happens to contain `<name>` still reads as filled, and two placeholder blocks
+#: with nothing else still read as empty.
+#:
+#: Applied to FIXPOINT, because a prompt may nest one: the template's own says *write
+#: "none — <why>"*, and a single flat pass removes the inner `<why>` while leaving the outer
+#: brackets behind as residue that then reads as an answer. Innermost-out iteration collapses
+#: it. Prose is unaffected — a body with no bracket pair is unchanged by the first pass and
+#: the loop stops there.
+_PLACEHOLDER_SPAN_RE = re.compile(r"<[^<>]*>", re.DOTALL)
+
+
+def _strip_placeholders(text: str) -> str:
+    """`text` with every `<...>` prompt removed, nested prompts included."""
+    while True:
+        stripped = _PLACEHOLDER_SPAN_RE.sub("", text)
+        if stripped == text:
+            return stripped
+        text = stripped
+
+
+def flip_section_state(text: str) -> str:
+    """`"present"` / `"empty"` / `"missing"` for `text`'s `Flip-condition` section.
+
+    Fence-, comment- and blockquote-aware for the same reason `parse_status_fields` is: an ADR
+    that QUOTES a `## Flip-condition` heading — inside a fenced example, an HTML comment, or a
+    quoted contract excerpt — has not written one. Counting a quotation as compliance would let
+    any ADR satisfy a FAIL-armed leg by merely mentioning it.
+
+    `empty` is reported separately from `missing`, and is a defect too: a heading whose body is
+    blank, or is nothing but the template's unfilled `<...>` placeholder, names no flip.
+    """
+    lines = text.lstrip("\ufeff").splitlines()
+    fence: tuple[str, int] | None = None
+    in_comment = False
+    depth: int | None = None          # the section's heading level, once opened
+    body: list[str] = []
+    found = False
+
+    for raw_line in lines:
+        # ORDER IS LOAD-BEARING, exactly as in `parse_status_fields`: fence FIRST, then
+        # comments — inside a fence `<!--` is literal code content, not comment syntax.
+        if fence is not None:
+            fc = _FENCE_CLOSE_RE.match(raw_line)
+            if fc and fc.group("f")[0] == fence[0] and len(fc.group("f")) >= fence[1]:
+                fence = None
+            continue
+
+        line, in_comment = _strip_comments(raw_line, in_comment)
+        fo = _FENCE_OPEN_RE.match(line)
+        if fo:
+            marker = fo.group("b") or fo.group("t")
+            fence = (marker[0], len(marker))
+            continue
+        # A blockquote line is QUOTED material — never this document's own heading or body.
+        if _BQ_PREFIX_RE.match(line):
+            continue
+
+        if depth is None:
+            m = _FLIP_HEADING_RE.match(line)
+            if m:
+                depth, found = len(m.group("h")), True
+            continue
+
+        h = _ATX_HEADING_RE.match(line)
+        if h and len(h.group("h")) <= depth:
+            break
+        body.append(line)
+
+    if not found:
+        return "missing"
+    filled = _strip_placeholders("\n".join(body)).strip()
+    return "present" if filled else "empty"
+
+
+def flip_condition_defects(directory: Path) -> list[Defect]:
+    """One defect per live ADR that does not name its flip condition.
+
+    Severity is decided HERE, once, by `FLIP_GRANDFATHER_MAX_ADR`: an ADR numbered ABOVE the
+    mark is new and gets the FAIL-armed `R_FLIP`; one at or below it predates the requirement
+    and gets `R_FLIP_LEGACY`, whose detail carries the disposition path. An ADR whose filename
+    yields no number is treated as GRANDFATHERED — the worst failure available to this module
+    is a false positive on a FAIL-armed leg, so an unparseable name warns rather than blocks.
+
+    HONEST LIMIT: this is a PRESENCE-and-non-emptiness rule. It reads whether the section
+    exists and whether anything was written under it. Nothing here says the flip condition
+    named is a good one, or is a condition at all rather than prose.
+    """
+    if not directory.is_dir():
+        raise CorpusUnusable(f"not a directory: {directory}")
+    defects: list[Defect] = []
+    for path in sorted(directory.glob("ADR-*.md")):
+        try:
+            text = path.read_text(encoding="utf-8", errors="replace")
+        except OSError as exc:
+            raise CorpusUnusable(f"unreadable: {path} ({exc})") from exc
+        state = flip_section_state(text)
+        if state == "present":
+            continue
+        num = adr_number(path)
+        is_new = bool(num) and int(num.split("-")[1]) > FLIP_GRANDFATHER_MAX_ADR
+        detail = ("carries no `## Flip-condition` section" if state == "missing"
+                  else "`Flip-condition` section is empty / still the template placeholder")
+        if is_new:
+            defects.append(Defect(
+                R_FLIP, num or path.name,
+                f"{detail} -- REQUIRED of every ADR above the grandfather mark "
+                f"ADR-{FLIP_GRANDFATHER_MAX_ADR} (see templates/ADR-template.md)"))
+        else:
+            defects.append(Defect(
+                R_FLIP_LEGACY, num or path.name,
+                f"{detail} -- grandfathered at ADR-{FLIP_GRANDFATHER_MAX_ADR}. "
+                f"DISPOSITION: add the section from templates/ADR-template.md, or leave it "
+                f"warned; the mark itself does not move"))
+    return defects
+
+
 # --- the README-index side ----------------------------------------------------
 
 #: The Date cell must BE a date, not merely start with one. A prefix match let
@@ -735,6 +899,12 @@ def main(root: str, include_archive: bool) -> None:
         sys.exit(2)
 
     defects = corpus_defects(fields, missing, extra)
+    # LIVE ZONE ONLY, deliberately. `--include-archive` widens the status legs to archived
+    # decisions; the flip leg is not widened with it, because an archived ADR is a decision
+    # already off the table and requiring it to name the condition that would reverse it
+    # invents a requirement nobody ratified. Every archived file is below the grandfather mark
+    # anyway, so the only thing widening would produce is WARN noise.
+    defects += flip_condition_defects(live_dir)
 
     if include_archive:
         try:
