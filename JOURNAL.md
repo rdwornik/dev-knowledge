@@ -21,7 +21,7 @@
 
 ### 2026-09-08 (a) - CC (Opus 5, DISPATCHER-CLOSE): the ship-gate drops 49 to 6, and the number that matters is the 19 that were fixed instead of silenced
 
-**Anchors `301f2266` and `77322d48`.** Batch CLOSE lane C-1 drained the #147 disposition
+**Anchors `301f2266`, `77322d48` and -- via `51c2d12a` -- `ce7a69f4`.** Batch CLOSE lane C-1 drained the #147 disposition
 register: 49 undispositioned WARN to 6, 7 stale entries to 0, 0 hard-fail throughout.
 
 **A gate can be walked to green two ways, and only one of them is worth anything.** 19 of
@@ -52,6 +52,19 @@ fires>0/blocks=0, but two of them -- `no_ff_merges` and `journal_spine_anchor` -
 core-invariant BACKSTOPS whose entire value is the FAIL they would raise on a first
 violation. A naive read of "retire what never blocks" retires exactly the two organs least
 safe to retire.
+
+**Amended 2026-09-08: this entry did not originally anchor its own merge.** It named
+`301f2266` and `77322d48` and was merged as `ce7a69f4` -- whose introduced set is
+`{51c2d12a, ce7a69f4}`, neither of which the entry named. A one-commit anchor branch
+**cannot** anchor its own merge: the entry cannot name its own commit's SHA (it does not
+exist while the text is being authored) and cannot name the merge SHA (same reason, one
+level up). The gap is not a lagging tree -- `is_anchored` was False at `main` too -- and it
+hard-FAILED `journal_spine_anchor`, which fails `audit-health`, which **blocks every
+subsequent commit**. So the anchor arc broke the tree it was written to repair. The fix is
+the two-commit shape this repo already used at the N3 close (`18bf7252` naming `2d6f48e5`):
+the entry lands, then a second commit names the first by SHA. Recorded because the failure
+is invisible until the NEXT commit is refused, and the refusal names the merge rather than
+the arc that caused it.
 
 **Did:** armed the E-29 PreToolUse guard (entry (v)); step-0 census -- queue already empty,
 one HOLD branch, zero stray worktrees; ran C-1/C-2/C-3 in parallel; reviewed and merged C-1.
