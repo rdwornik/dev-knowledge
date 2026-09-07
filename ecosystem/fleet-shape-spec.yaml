@@ -1,0 +1,404 @@
+# fleet-shape-spec.yaml -- the fleet SHAPE grammar, stated as DATA independently of any one
+# repo's tree.
+#
+# WHY THIS FILE EXISTS. Until it landed, `scripts/validate_hermetization.py` carried the
+# shape as four module literals derived, by their own docstrings, "FROM THE LIVE TAXONOMY"
+# of `.dev-knowledge`. The hub's tree was therefore standing in for a spec it was not
+# designed to be. The first measured consumer report
+# (`docs/audits/2026-09-06-technical-seal-report-corp-monorepo.md`) found 78 out-of-pattern
+# items at `corp-monorepo` and ZERO of them junk: 71 of the 78 came from four classes where
+# the substitute leaked -- a source tree with no sanctioned home, a workspace filename
+# pinned as a hub literal rather than a fleet glob, a carrier-written root file, and
+# ordinary nesting the hub happens not to have. Intake
+# `docs/intake/2026-09-05-tech-shape-spec-tree-seal-to-consumers.md` (#73) is the filing;
+# operator amendment D5 of 2026-09-06 is the ruling this file executes: "sanctioned dir set
+# = fleet grammar, not the hub's tree snapshot; homes for `src/ eval/ models/`".
+#
+# SHAPE -- mirrors `ecosystem/provider-registry.yaml` deliberately (library-first: the repo
+# already carries a declared-state YAML read by an organ, and this does not invent a second
+# convention). One collection, `clauses:`, keyed by clause id. Each clause carries:
+#   leg                the intake leg it discharges (M1..M6 / S1..S3), for traceability
+#   asserted_by        the LIVE surface that enforces it, or `null`
+#   unasserted_reason  required when `asserted_by` is null -- an honest gap, stated
+#   <payload>          the clause's own data keys
+# `tests/test_fleet_shape_spec.py` refuses a clause that carries neither an asserting
+# surface nor a reason, so a decorative clause cannot accumulate here unnoticed.
+#
+# HOW IT IS READ. `scripts/validate_hermetization.py` loads this file at import and derives
+# SANCTIONED_TIER1_DIRS, SANCTIONED_TIER1_FILES, SANCTIONED_TIER1_FILE_GLOBS,
+# SANCTIONED_GENRES, AUDIT_CLASS_ENUM and _HOME_PATTERNS from it. Those names are unchanged
+# and still module-level, so every existing importer (`scripts/batch_manifest.py`,
+# `tests/test_canonical_docs.py`) keeps working; what changed is where the values come from.
+#
+# SCOPE, stated so this file is not read as more than it is. It carries the TREE shape --
+# what may sit at a root, which folders exist, where a file of a given class lives, and how
+# a dated artifact is named. It carries no content rule: content stays each repo's own.
+# It is also, today, still HUB-READ ONLY -- the consumer carrier is a later act, and no
+# clause here arms anything in any consumer.
+#
+# A CLAUSE HERE ADMITS A SHAPE; IT DOES NOT CREATE A FOLDER. `src/`, `eval/`, `models/` and
+# `docs/dashboard/` are admitted below and none of them exists in this repo. That is the
+# point of separating the spec from the tree.
+#
+# ONE WRITING CONSTRAINT, recorded so a later editor does not trip it: this file sits in
+# `ecosystem/*.yaml`, which is inside the `silent_rule_detector` corpus, and that detector
+# counts occurrences of three normative keywords across the whole file including comments.
+# The prose here is therefore written without them, deliberately. Rules are expressed as
+# data below; the comments describe rather than command.
+
+spec_version: 1
+spec_id: fleet-shape-v1
+
+# The intake this file executes, cited by PATH rather than by `#73` -- three intake ids are
+# double-allocated in history, so a bare id citation is ambiguous (intake #73, "On the id").
+source_intake: docs/intake/2026-09-05-tech-shape-spec-tree-seal-to-consumers.md
+source_ruling: "operator amendment D5 + genre admission D6, DECLARE-SITTING-2026-09-06.md"
+
+clauses:
+
+  # --- M1: the root allowlist -------------------------------------------------------
+  root_allowlist:
+    leg: M1
+    asserted_by: scripts/validate_hermetization.py::rule_a_violation
+    # Tier-1 top-level directories. The first seventeen are the governance-hub set ADR-101
+    # section 1 sealed; `src`, `eval` and `models` are the D5 fleet addition, which is what
+    # turns this from a snapshot of one tree into a grammar two repo kinds can both satisfy.
+    # `prompts` was a member and was REVOKED by operator ruling 2026-08-26 (root is sacred);
+    # its convention relocated to `docs/audits/*` in `home_grammar` below.
+    #
+    # PER-MEMBER PROVENANCE, relocated here from the module literal this clause replaces.
+    # It is recorded rather than dropped because each of the last four members entered a
+    # CLOSED set by a dated amendment, and a reader who finds one of them in git history is
+    # owed the reason:
+    #   .github        [#501] server-side recorder, ADR-101 amendment 2026-08-06 -- the
+    #                  GitHub Actions REPORT-ONLY wall, re-creating the directory `82227f08`
+    #                  deleted under [#255]. Report-only (private repo, Free tier), so no
+    #                  gate lives there.
+    #   .devcontainer  [#554] off-machine lane substrate, ADR-101 amendment 2026-08-18 with
+    #                  operator path-approval D6 at the batch GO. Read by a container
+    #                  runtime, by no organ in this repo -- which is what separates it from
+    #                  the `.github` sanction above.
+    #   tasks          [#433] restructure strangler, ADR-101 amendment 2026-07-27 -- the
+    #                  DERIVED per-task tree emitted from BACKLOG.md by
+    #                  `scripts/gen_task_tree.py`.
+    #   src/eval/models  D5, 2026-09-06, annotated below.
+    directories:
+      - .claude
+      - .claude-plugin
+      - .devcontainer
+      - .github
+      - .vscode
+      - codex
+      - config
+      - deploy
+      - docs
+      - ecosystem
+      - logs
+      - plugins
+      - protocols
+      - scripts
+      - tasks
+      - templates
+      - tests
+      # D5 fleet addition (2026-09-06). A code repo's source, evaluation and model homes.
+      # Measured cause: `corp-monorepo`'s `src/` (214 files), `eval/` (54) and `models/` (6)
+      # were each refused by the seal for the single reason that a governance hub keeps its
+      # code in `scripts/` and the sanctioned set had been read off that tree. Three WAIVEs
+      # per code repo, in perpetuity, was the alternative.
+      - src
+      - eval
+      - models
+    # Tier-1 top-level FILES, as literals. The canonical living-doc names are deliberately
+    # ABSENT: they are joined in from the one registry at load time (see `files_from`), so
+    # this list holds only the non-canonical members and no roster is restated.
+    #
+    # PER-MEMBER PROVENANCE, relocated here from the module literal:
+    #   .methodology.yaml  intake #12 section-9a ruling (SETTLED 2026-07-12), ADR-101
+    #                      amendment 2026-07-13, [#328] -- the hub carries its OWN
+    #                      `.methodology.yaml` as a fleet member.
+    #   uv.lock            ADR-101 amendment 2026-07-27, [#432] / ADR-106 -- the committed
+    #   .python-version    lockfile and interpreter pin, same class as package-lock.json.
+    #   AGENTS.md          ADR-101 amendment 2026-08-25, ADR-115, execution [#577]. A
+    #                      LITERAL and deliberately absent from CANONICAL_MANDATORY: it is
+    #                      an UPPERCASE.md Tier-1 file but not an ADR-38 canonical living
+    #                      doc (no `last_reviewed`, absent from FRESHNESS_FILES, no section
+    #                      history), so promoting it would silently enrol it in the
+    #                      freshness gate and in every consumer's canonical-set check.
+    #   README.md          ADR-101 section 1 amendment 2026-08-29, ADR-114 AMENDMENT 1,
+    #                      execution [#614]. This entry is what unblocked the recreation:
+    #                      until it existed an added root README.md was a Rule A refusal,
+    #                      which is why ADR-38 A5 could not be reversed ad hoc. A literal on
+    #                      the AGENTS.md precedent, for a different reason -- promoting it
+    #                      into CANONICAL_MANDATORY would enrol it in the fleet canonical
+    #                      set while only 2 of the 8 ADR-104 children carry a root
+    #                      README.md. That promotion is ADR-114 option (C), a fleet-wide
+    #                      migration, not a drive-by of this line.
+    files:
+      - .gitattributes
+      - .gitignore
+      - .methodology.yaml
+      - .pre-commit-config.yaml
+      - .pre-commit-hooks.yaml
+      - .python-version
+      - .ruff.toml
+      - .worktreeinclude
+      - AGENTS.md
+      - README.md
+      - package-lock.json
+      - package.json
+      - pyproject.toml
+      - uv.lock
+    files_from: scripts/canonical_docs.py::CANONICAL_MANDATORY
+    # Tier-1 top-level file GLOBS (fnmatch). The seal previously held the hub literal
+    # `.dev-knowledge.code-workspace`, which is the second of the four measured leaks: the
+    # fleet rule is a per-repo filename, so a consumer's own `.corp-monorepo.code-workspace`
+    # was refused by the hub's copy of its own name. The leading dot is retained because
+    # ADR-59 Decision 3 puts root tool config behind a dot prefix.
+    file_globs:
+      - ".*.code-workspace"
+
+  # --- M1: the docs/<genre>/ level ---------------------------------------------------
+  genre_folders:
+    leg: M1
+    asserted_by: scripts/validate_hermetization.py::rule_a_violation
+    # `runbooks` LEFT the set 2026-07-22 (the one-member genre collapsed into `protocols/`).
+    # `dashboard` ENTERS it by operator ruling D6 of 2026-09-06, admitted "via #73, as a
+    # folder-grammar entry, not ad hoc" -- which is this line. No such directory is created
+    # by admitting it.
+    genres:
+      - archive
+      - audits
+      - dashboard
+      - decisions
+      - handoffs
+      - intake
+
+  # --- M2: the folder grammar (where a class of file lives) --------------------------
+  home_grammar:
+    leg: M2
+    asserted_by: scripts/validate_hermetization.py::rule_c_violation
+    # Pattern grammar, three tokens wide:
+    #   `a/b`   that literal home, exactly
+    #   `a/*`   any single immediate child of `a` is a home
+    #   `a/**`  any home at one-or-more levels below `a` (bundle / fixture / source trees)
+    #
+    # HONEST LIMIT, carried over from the tuple this replaces: a `**` home admits arbitrary
+    # depth below it, so a new sub-directory inside an already-open home is admitted by
+    # design. What the clause catches is a file whose home is a place the grammar has no
+    # convention for.
+    #
+    # REMAINDER, measured and left open rather than papered over: the corp-monorepo report
+    # counted 32 refused homes, of which 10 are `config/` subtrees and the rest ordinary
+    # nesting. `config/`'s own fate is unruled (intake #73 open question 8, ROOT-R1
+    # undelivered), so widening `config` to `config/**` here would encode a guess as data.
+    # It stays at the bare literal until that question is ruled.
+    patterns:
+      # agent / runtime config
+      - .claude
+      - .claude/*
+      - .claude/skills/*
+      - .claude-plugin
+      # the BARE literal, deliberately: the substrate is two files at ONE level, so a
+      # sub-directory inside it stays a surfaced act.
+      - .devcontainer
+      - .github/workflows
+      - .vscode
+      # source + tooling
+      - codex
+      - config
+      - deploy
+      - deploy/lived_sandbox
+      - logs
+      - plugins/*
+      - plugins/*/*
+      - protocols
+      - protocols/archive
+      - scripts
+      - scripts/audit_checks
+      - scripts/codemap
+      - scripts/hooks
+      - scripts/toc
+      - tasks
+      - tasks/archive
+      - templates
+      - templates/archive
+      - templates/claude-regions
+      - templates/handoff
+      - templates/handoff/*
+      - tests
+      - tests/fixtures
+      - tests/fixtures/**
+      # generated / declared ecosystem state
+      - ecosystem
+      - ecosystem/schema
+      - ecosystem/*/history
+      # D5 fleet addition (2026-09-06): the code-repo homes. `**` because a source tree
+      # nests by its own package structure and a grammar that gated each level would be a
+      # nuisance rather than a seal -- the same reasoning `tests/fixtures/**` already
+      # carries. The bare literal is listed alongside so a file directly at `src/` passes.
+      - src
+      - src/**
+      - eval
+      - eval/**
+      - models
+      - models/**
+      # docs: GENRE trees only. `docs` itself is absent BY DESIGN -- that absence is the
+      # rule this clause exists to state, and it is why `docs/ORGAN-INDEX.md` was relocated.
+      - docs/archive
+      # one home per BATCH LAUNCH-CONTRACT directory (operator ruling 2026-08-26, replacing
+      # the revoked root `prompts/*`). HONEST LIMIT: `*` admits ANY immediate child of
+      # `docs/audits/`, not only the ruled name shape.
+      - docs/audits
+      - docs/audits/*
+      - docs/decisions
+      - docs/decisions/archive
+      # D6 (2026-09-06): admitted with the same shape as `docs/audits`, for the same reason.
+      - docs/dashboard
+      - docs/dashboard/*
+      - docs/handoffs
+      - docs/handoffs/**
+      - docs/intake
+      - docs/intake/archive
+
+  # --- M3: required docs (the presence half) -----------------------------------------
+  required_docs:
+    leg: M3
+    asserted_by: scripts/audit_checks/check_adr38_baseline.py + scripts/audit_checks/check_canonical_md_visibility.py
+    # The roster is NOT restated here. It is cited, because a list typed into a second file
+    # is stale at the next commit and this repo's convention is to name the surface that
+    # computes it. `corp-monorepo` already passes this leg, so it needs extension rather
+    # than invention.
+    source: scripts/canonical_docs.py::CANONICAL_MANDATORY
+
+  # --- M4: the naming grammar --------------------------------------------------------
+  naming_grammar:
+    leg: M4
+    asserted_by: scripts/validate_hermetization.py::rule_b_violation
+    # Two separable legs, and the split is the measurement's, not a preference. The date
+    # shape and the casing rule travelled to a consumer intact (corp runs the casing leg
+    # locally as `validate_audit_casing.py`). The class enum did not: it was adopted from
+    # "what three repos already write", which is hub-adjacent practice rather than a fleet
+    # ruling, and it over-blocked 28 correctly-named corp artifacts.
+    #
+    # Word separator is the hyphen, everywhere: no underscore, no CamelCase, no space. The
+    # sole carve-out is a literal `.` inside a segment for a repo or version token
+    # (`.dev-knowledge`, `v3.4`), which is why the charset below admits it.
+    word_separator: hyphen
+    # Applied to the FULL filename including the extension, so an uppercase `.MD` is caught.
+    filename_charset: '^[a-z0-9.-]+$'
+    # A well-formed slug: 1+ kebab segments joined by SINGLE hyphens. Rejects an empty,
+    # leading-, trailing- or double-hyphen slug.
+    slug: '^[a-z0-9.]+(-[a-z0-9.]+)*$'
+    # SHAPE only, and deliberately not date-accuracy: `2026-13-99` satisfies it. A
+    # misdated-content detector reads the content header, which is a different tool.
+    date_prefix: '^\d{4}-\d{2}-\d{2}-'
+    # The dated-artifact class vocabulary, matched whole-token longest-first so
+    # `ecosystem-audit` wins over a hypothetical `ecosystem` split.
+    #
+    # SCOPE MARKER, recorded rather than ruled: this enum is REPO-LOCAL. Whether it becomes
+    # fleet vocabulary is intake #73 open question 3, and `corp-monorepo`'s own
+    # `.methodology.yaml` has already ruled it hub-local for itself. Declaring the scope
+    # here keeps the split visible instead of letting a hub list travel by accident.
+    audit_class_enum_scope: repo-local
+    audit_class_enum:
+      - technical
+      - functional
+      - qa
+      - census
+      - verification
+      - ecosystem-audit
+      - conformance-nightly-digest
+      - changelog-review
+      - codex
+      - fresh-eyes
+      - incident-evidence
+
+  # --- M4 / S1: VS Code workspace + editor config ------------------------------------
+  vscode:
+    leg: S1
+    asserted_by: scripts/audit_checks/check_workspace_settings.py
+    # The workspace file is per-repo and dot-prefixed; the glob lives in `root_allowlist`
+    # above, which is the surface that admits it, and is repeated here as a reference rather
+    # than as a second source.
+    workspace_file_glob: ".*.code-workspace"
+    workspace_required_settings_from: scripts/audit_checks/check_workspace_settings.py::_WORKSPACE_REQUIRED_SETTINGS
+    # `.vscode/` contents. The allowed list is shared editor configuration that belongs to
+    # the repo; the forbidden list is per-developer or machine-generated state that does not.
+    dir_allowed:
+      - extensions.json
+      - settings.json
+      - tasks.json
+      - launch.json
+    dir_forbidden:
+      - .ropeproject
+      - ipch
+      - "*.log"
+      - settings.local.json
+
+  # --- M2: Python project layout ------------------------------------------------------
+  python_layout:
+    leg: M2
+    asserted_by: null
+    unasserted_reason: >-
+      No organ reads this clause today. It is carried as declared data so a consumer report
+      can cite one statement of the layout rather than re-deriving it per repo, and so the
+      gap is visible. Arming it is a later, per-repo act after the operator rules that
+      repo's seal list.
+    # Both layouts are in-pattern: a packaged project keeps its code under `src/`, and a
+    # flat governance repo keeps its organs in `scripts/`. Admitting exactly these two is
+    # what stops a code repo from taking three permanent WAIVEs.
+    source_layouts:
+      - src
+      - flat
+    source_home_by_layout:
+      src: src
+      flat: scripts
+    tests_home: tests
+    # ADR-106: the environment is DECLARED, not discovered. These four keys are what makes
+    # `uv sync --locked` reproducible; `tool.uv.required-version` is the exact uv pin, whose
+    # bump is its own gated change.
+    pyproject_required_keys:
+      - project.name
+      - project.version
+      - project.requires-python
+      - tool.uv.required-version
+    declared_env_files:
+      - pyproject.toml
+      - uv.lock
+      - .python-version
+
+  # --- S1: the operator's sorting convention ------------------------------------------
+  sorting:
+    leg: S1
+    asserted_by: scripts/audit_checks/check_workspace_settings.py
+    # The convention, in the operator's own terms: smallest first, with LESSONS and
+    # ARCHITECTURE at the top. It splits into an asserted half and an unassertable one, and
+    # over-claiming the second is what this clause exists to avoid.
+    convention: "smallest first, with LESSONS / ARCHITECTURE at the top"
+    # ASSERTED: `explorer.sortOrderLexicographicOptions: upper` clusters the ALL-CAPS
+    # canonical docs above the lowercase config files (ADR-59 Decision 3).
+    asserted_half: LESSONS / ARCHITECTURE at the top
+    # UNASSERTED, and possibly unassertable: VS Code's `explorer.sortOrder` enum carries no
+    # size member. The nearest key the hub holds, `explorer.sortOrderReverse: true`, is
+    # absent from the required set and produces newest-first inside dated folders, which is
+    # a different property. Recorded as a declared-unasserted clause rather than over-claimed.
+    unasserted_half: smallest first
+    unasserted_half_reason: >-
+      VS Code's explorer.sortOrder enum has no size member; sortOrderReverse gives
+      newest-first inside dated folders, which is a different property. Intake #73 open
+      question 6 asks whether the convention stays declared-unasserted or leaves the spec.
+
+  # --- M6: report-first posture --------------------------------------------------------
+  report_first:
+    leg: M6
+    asserted_by: null
+    unasserted_reason: >-
+      Carried as a declared posture, not a mechanism. A repo's first contact with the seal
+      is a list of items with proposed RELOCATE / RETIRE / WAIVE verdicts; arming is a
+      separate, later, per-repo act following the operator's ruling on that list. The
+      report generator is a sibling lane's deliverable, and nothing here arms anything.
+    verdict_enum:
+      - RELOCATE
+      - RETIRE-PROPOSED
+      - WAIVE
+    arming_default: report-only
