@@ -583,6 +583,19 @@ continuity (S-3, S-4). **Those are the operator's calls and this census does not
    (all four classes match: `[#528]`, `ADR-110`, `STANDING_RULINGS`, `intake #50`). **The
    integrator should treat this artefact as ungated and run the real gate on merge.**
 
+   **This generalises past this lane, and it is a finding rather than an inconvenience.** The
+   `Stop` hook `scripts/session_end_backpressure.py` — the ADR-85 session-end gate — fired at this
+   session's end and **failed on the same `uv` pin**, printing
+   `Required uv version ==0.11.19 does not match the running version 0.8.17`. So **the session-end
+   gate cannot fire for any lane dispatched to a container provisioned like this one.** It is
+   advisory-in-full since the ADR-85 amendment §A5, so nothing was blocked and nothing was
+   bypassed — but a cloud lane's session end is currently **ungated in fact while appearing gated
+   by configuration**, which is the same shape as S-5's codespace receipt: a signal that reports on
+   the substrate rather than on the work. I did not bump `uv` to clear it: ADR-106 makes a `uv`
+   bump its own gated change, never incidental, and it is outside this read-only lane's footprint.
+   The remedy is a provisioning fix (`[#554]`'s pinned-`uv` assert is the leg that would have
+   caught it), not a lane-side workaround.
+
 6. **Batch U has no close packet, so its lanes have no outcomes here.** Everything section 1
    reports for U is dispatch-time (contract bytes, declared substrate, required review tally).
    Any U figure that looks like an outcome would be a forecast.
