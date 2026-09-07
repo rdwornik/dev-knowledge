@@ -23,6 +23,8 @@ CLI::
     deploy <repo> --target <version>        # assess: preflight + detect + print plan
     deploy <repo> --target <version> --execute   # apply + write the version record + stage
     deploy <repo> --target <version> --repo-root <path>   # explicit consumer tree
+    deploy <repo> --target <version> --consumer <path>    # the same option, spelled the
+                                                          # way the deployment model does
 
 ``<repo>`` is the consumer's directory name (the ``ecosystem/deployed-versions.yaml``
 registry key, e.g. ``ai-council``); ``<version>`` is the methodology release (e.g.
@@ -34,7 +36,8 @@ unconditionally, with no escape — true only on the operator's laptop, and on a
 substrate the deploy was simply unreachable. Resolution is now an explicit precedence,
 sibling-LAST:
 
-1. ``--repo-root <path>`` (or ``preflight(..., repo_root=...)``);
+1. ``--repo-root <path>`` / ``--consumer <path>`` — one option, two spellings — (or
+   ``preflight(..., repo_root=...)``);
 2. the environment variable ``DEV_KNOWLEDGE_REPO_ROOT_<SLUG>`` (``ai-council`` ->
    ``DEV_KNOWLEDGE_REPO_ROOT_AI_COUNCIL``);
 3. ``path:`` in ``ecosystem/<repo>/state.yaml`` — the fleet's existing per-repo path
@@ -1423,11 +1426,16 @@ def render_execute(result: ExecuteResult, console: Console | None = None) -> Non
 )
 @click.option(
     "--repo-root",
+    "--consumer",
     "repo_root",
     default=None,
     help="Consumer working-tree path, overriding every other resolution step. Without it: "
     "DEV_KNOWLEDGE_REPO_ROOT_<SLUG>, then ecosystem/<repo>/state.yaml, then the sibling "
-    "default <dev>/<repo> ([#605]).",
+    "default <dev>/<repo> ([#605]). --consumer is an added SPELLING of this one option, "
+    "not a second resolution step: the deployment model calls the thing a consumer, the "
+    "flag called it a repo-root, and a caller reaching for the word the model uses got "
+    "'No such option' rather than the override. Both spellings bind `repo_root`; passing "
+    "neither is unchanged.",
 )
 def deploy(
     repo: str,

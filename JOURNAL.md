@@ -19,6 +19,112 @@
 
 ---
 
+### 2026-09-07 (k) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): W2-F2 lands, and the fourth lane of nine finds its contract measuring a tree that had already moved
+
+**Anchors `1ed350af`, which introduced `a49537c3`.** W2-F2
+`deploy-tool-consumer-override`, the eleventh merge of batch U. `audit.py handback`
+returned **MERGE / exit 0** before the merge; tip verified identical on origin and locally
+first; branch confirmed synced through `ef53b069`, so the merge carried no tree lag.
+Targeted, serial, on the merged result: **35 passed**. Both file pins held --
+`ecosystem/deployed-versions.yaml` (W2-F3's) and `docs/audits/README.md` untouched,
+verified by diff rather than taken from the lane's account.
+
+**FOURTH OF NINE MEASURED LANES TO FIND ITS FROZEN BEFORE-NUMBER STALE**, which promotes
+this from a run of coincidences to the batch's headline finding. The row said `consumer
+resolution overridable: no -> yes`. Measured at HEAD it was **already `yes`** -- [#605]
+landed the entire override mechanism on 2026-08-28, CLI-to-carrier, with 16 tests. The
+contract had been frozen against a tree that moved before the lane booted, exactly as
+W1-5, W1-6 and W1-7 each found from a different direction.
+
+**The lane measured by INVOCATION, not by reading the docstring, and that distinction did
+real work here.** That module's docstring admits *at its own line 16* that it carried a
+false claim for months. A lane that had trusted the prose would have reported the opposite
+of the truth in either direction. The residual was genuine once measured: `--consumer` did
+not exist (witnessed RED, `Error: No such option '--consumer'`) and **no test anywhere
+covered a WORKTREE consumer** -- precisely the case `hub_root.parent / repo` resolves
+wrongly, and the reason the override exists at all. Both delivered; default unchanged.
+
+**A second-order finding larger than the diff that carries it, and correctly NOT fixed
+here.** `DECLARE-F` sourced its "one measured obstacle" from a **prose comment** in
+`ecosystem/deployed-versions.yaml`'s `win-tooling:` block which [#605] had already
+superseded. The lane read that file and **did not edit it** -- W2-F3 owns it under the
+manifest's single-owner pin, and a lane does not widen into another's footprint because
+the fix is cheap. So the stale sentence survives, and **the next planner will reopen this
+already-closed row from it.** Filed to the close packet. If F3's diff reaches that block,
+it is the cheapest correction available tonight.
+
+**Two caveats this seat is recording rather than smoothing over**, because `audit.py
+handback` reads the LINE and by its own stated limit cannot tell a review that ran from one
+that says it did:
+- The tally is well-formed but **THIN** -- codex returned `HIGH:0 MED:0 LOW:0` with no
+  per-finding reasoning. The lane established a real ingestion (10,114 tokens) rather than
+  an empty invocation, and says it would have reported `review=NONE` otherwise. Merged on
+  that basis under the one-round contract, with the thinness on the record.
+- **Of 5 tests added, exactly ONE was RED beforehand.** The other four guard pre-existing
+  [#605] behaviour that was documented but ungated. The lane said so unprompted; a lane
+  that volunteers a weaker number than it could have claimed is the behaviour this batch
+  should be selecting for.
+
+**Did:** verdicted, merged and anchored W2-F2; verified its two file pins by diff.
+**Result:** 11 of 19 lanes merged; `main` current for the seven lanes still in flight.
+**Changes:** `deploy/tool.py`, `tests/test_consumer_root_resolution.py` (new),
+`ecosystem/doc-counts.md`; JOURNAL.md.
+**Abandoned:** nothing this merge.
+**Next:** the seven live lanes as they hand back, W2-R last and alone.
+**Anchor-of-the-anchor:** authored at `fae48364`, named here so the `--no-ff` merge of
+`docs/anchor-w2f2-2026-09-07` anchors itself (the `a45a3ae3` shape).
+
+### 2026-09-07 (j) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): wave 2 opens -- the seal's grammar becomes data, and the one RED is proven inherited rather than attributed
+
+**Anchors `61728224`, which introduced `01104de3` and `f06cd221`.** W2-U1
+`shape-spec-finalize` is the first wave-2 lane and the tenth merge of batch U.
+`audit.py handback` returned **MERGE / exit 0** on this seat BEFORE the merge, which is
+the order D-1 requires; the lane had also run it on itself, so the queue's verdict was a
+second look rather than the first. Tip verified identical on origin and locally by
+`git ls-remote` before anything was merged -- a HANDBACK announces a branch, it does not
+prove one.
+
+**What landed:** the fleet shape grammar moves out of `scripts/validate_hermetization.py`
+and into `ecosystem/fleet-shape-spec.yaml`, so the tree seal reads its rules as **data**
+instead of carrying them as code. 968 insertions across four files, 314 of them a new
+test module.
+
+**Both codex HIGHs were real, and the fix placement is the interesting part.** A
+valid-but-wrong regex in the new YAML could have turned **every seal refusal into a
+silent pass** -- the characteristic failure of moving a grammar into data, where the
+data is then trusted to describe itself. The lane fixed it with sentinel proofs held
+**in code, not in the spec**, so a doctored spec cannot agree with a broken pattern.
+The second: `src/**` was admitting `src/.github/workflows/`, reintroducing at depth the
+dot-directory case Rule A refuses at the root.
+
+**One RED on the merged result, and it is INHERITED, not caused.**
+`tests/test_canonical_docs.py::test_the_derived_leg_is_warn_class_on_arrival` fails
+(`CLASS_UNSTAMPED` absent from the warned set). Targeted run, serial, on the merged tree:
+**1 failed / 108 passed**. The lane flagged it and attributed it to W1-7's `audit.py`
+work, stating honestly that it was attributing by evidence rather than a pristine re-run.
+
+**This seat did not adopt that attribution, and did not need to.** The merge
+`df88f767..61728224` touches exactly four files, and `scripts/audit.py` and
+`tests/test_canonical_docs.py` are **not** among them -- the test and the code under test
+are byte-identical across the merge, so the result cannot have changed. That proves U1
+**innocent**; it does **not** prove W1-7 guilty, and the guilty party is still unnamed.
+Recorded at that boundary deliberately: "not caused by this merge" and "caused by that
+one" are different claims, and only the first is witnessed.
+
+**Not regenerated, by design:** `docs/audits/README.md`. Four lanes land artifacts there
+and the index is `merge=ours`-pinned, so it is stale by construction after every merge and
+is regenerated **ONCE after the last merge of the walk** ([#590]). U1's own review artifact
+stays in `to-browser/` and is deliberately uncommitted for the same reason.
+
+**Did:** verdicted and merged W2-U1; proved the single RED inherited; anchored the merge.
+**Result:** wave 2 open, 10 of 19 lanes merged, `main` pushable and current for U2's boot.
+**Changes:** `ecosystem/fleet-shape-spec.yaml` (new), `scripts/validate_hermetization.py`,
+`tests/test_fleet_shape_spec.py` (new), `ecosystem/doc-counts.md`; JOURNAL.md.
+**Abandoned:** nothing this merge.
+**Next:** W2-U2 `seal-report-fleet`, then U3/U4/F1-F5 in parallel, W2-R last and alone.
+**Anchor-of-the-anchor:** this entry was authored at `0409273d`, named here so the
+`--no-ff` merge of `docs/anchor-w2u1-2026-09-07` anchors itself (the `a45a3ae3` shape).
+
 ### 2026-09-07 (i) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): W1-3 was not dead, it was slow -- and the merge that proves it had blocked every lane's push for two hours
 
 **Anchors `f57d029d`, which introduced `5ea10ec6`.** A prior integrator seat merged
