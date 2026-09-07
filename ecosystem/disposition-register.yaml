@@ -778,25 +778,6 @@ dispositions:
       stale within hours and teach that the register rots. The whole advisory class is what the
       ruling defers, and that is what this entry suppresses; the sibling Tally-line concern is a
       SEPARATE Finding with its own entries and is not covered here.
-  - id: warn-adr-status-grammar-ratchet-holding
-    organ: adr_status_grammar
-    match: "baseline WARNs: coherence=3, duplicate-id=2, grammar=47, wrapped-value=1"
-    ref: "R5 window bundle B11 (ARCHITECT-INBOX-2026-09-05-007), operator-declared in to-cc/R5-DECLARED.md"
-    review_date: 2026-10-13
-    reason: >-
-      A RATCHET HOLDING, REPORTED AS DRIFT -- and the distinction is the whole disposition. The
-      values are recomputed live on every run and today equal the AUTHORING BASELINE exactly:
-      89 status fields, 0 enum/single-field defects, and grammar 47 / coherence 3 / duplicate-id
-      2 / wrapped-value 1. Both FAIL-tier rules measure ZERO. Nothing has moved since the check
-      was written; it WARNs only because the corpus could not pass `grammar` at FAIL tier on day
-      one, so the leg was armed at WARN against a recorded baseline. A WARN that has not once
-      changed value is not telling anyone anything, and leaving it undispositioned spends the
-      window's attention on a number that is BY CONSTRUCTION constant.
-      THIS IS THE RATCHET, AND IT IS SHARP: the match is the four baseline values themselves, so
-      the FIRST ADR whose status line moves any of them changes the evidence, misses this match,
-      and re-surfaces as a blocking WARN. Movement in the good direction re-surfaces too, which
-      is correct -- that is the moment to lower the baseline or promote the rule to FAIL.
-
   # (removed 2026-09-06, operator consent -- DECLARE-GO-2026-09-06 ruling 4)
   # warn-review-artifact-lane-na-gates-no-tally -- the `584fb1ed -> 2026-08-27-codex-lane-na-
   # gates.md` half of the missing-**Tally:** Finding. It shares ONE Finding with its
@@ -1521,37 +1502,6 @@ dispositions:
       would destroy the byte-identity the frozen-copy home exists to preserve, and
       `docs/audits/` is immutable besides (CLAUDE.md §5 rule 3).
 
-  - id: warn-consumer-batch-u-manifest
-    organ: consumer_at_landing
-    match: "2026-09-06-technical-batch-u-manifest.md"
-    ref: "docs/audits/2026-09-06-technical-batch-u-manifest.md; batch frozen at 75c84aa4, merged at 25539b32"
-    review_date: 2026-09-13
-    auto_clearable_by: "docs/audits/2026-09-07-technical-batch-u-close-packet.md -- the manifest's own declared closer"
-    reason: >-
-      THE MANIFEST IS A CITER THAT IS NOT ITSELF CITED -- the same self-reference the funnel
-      ledger has (a ledger's last row names itself), arriving from the other side. A batch
-      manifest is admitted to the governance pool as a CITING surface by the 2026-09-05 operator
-      ruling, but nothing in the pool cites the manifest back until its close packet lands and
-      names it. Net-neutral by construction: every new manifest lands as one more undispositioned
-      artifact. Batch T's identical entry is REMOVED in this same commit, its close packet having
-      landed -- so this pair is the lifecycle turning over, not a new class.
-
-  - id: warn-funnel-batch-u-manifest
-    organ: funnel_coverage
-    match: "2026-09-06-technical-batch-u-manifest.md"
-    ref: "architect ruling 2026-08-17 (the disposition-ledger shape); DECLARE-GO-2026-09-06 ruling 5 (the batch's own GO)"
-    review_date: 2026-09-13
-    auto_clearable_by: "the batch-U close packet's disposition ledger row for this manifest"
-    reason: >-
-      PENDING -- the exact question is **what disposition does a batch manifest take while its
-      batch is still running?** and it is not answerable tonight without lying. The ruled closed
-      set is ACTIONED / FILED / REJECTED / SUPERSEDED, and every one of them asserts a finished
-      state: ACTIONED needs a landed conclusion, FILED needs a row, REJECTED needs a ruling,
-      SUPERSEDED needs a successor. Batch U is OPEN -- this lane is its LAST lane and is writing
-      this entry from inside it, before the integrator's final merge. The ruling's own tie-break
-      governs: *"a wrong ACTIONED is worse than an honest PENDING"*. The disposition lands in the
-      close packet's ledger at dawn, with the batch's outcome as its evidence locator.
-
   - id: warn-funnel-seal-report-fleet
     organ: funnel_coverage
     match: "2026-09-07-technical-seal-report-fleet.md"
@@ -1572,6 +1522,11 @@ dispositions:
       Recorded by DECLARE-SITTING-2026-09-06 D13, which authorises exactly this act.
 
   # ---- substrate_declaration: the three batch-T CLOUD lanes (2026-09-06) ----
+  # (ALL THREE CLEARED 2026-09-08, batch CLOSE lane C-1 -- `substrate_declaration` emitted no
+  # WARN at all on the a415d720 run: the batch-T contracts are no longer in the scanned set.
+  # Entries removed per the ADR-75 decoration rule; the reasoning below is KEPT as the record of
+  # why they were written, because the underlying `LANE_BRANCH_RE` gap is NOT fixed by their
+  # clearing and will re-surface the next time a `claude/<slug>` lane contract is in scope.
   # ALSO OUTSIDE THIS LANE'S FROZEN 36 and reported as a deviation -- these arrived with the same
   # `c004ac8c` dispatch merge. Recorded here rather than left blocking, because the underlying
   # fact is already ruled and the gap is in the CHECK's regex, not in the contracts.
@@ -1587,57 +1542,6 @@ dispositions:
   # WHAT IS NOT CLAIMED: that the teardown/exemption coverage question is answered. It is not.
   # `claude/<slug>` lanes really are outside both iterations, and that is worth a row -- it is
   # simply not a defect in these three contracts, which did the one thing available to them.
-
-  - id: warn-substrate-cloud-branch-lane-t-000-aj-research
-    organ: substrate_declaration
-    match: "LANE-t-000-aj-research.md: WARN substrate-teardown-enum-coverage"
-    ref: "CLAUDE.md §4 / AGENTS.md branch-prefix enum (`claude/<slug>` is a ratified machine-produced lane prefix); ADR-116; scripts/validate_substrate.py LANE_BRANCH_RE"
-    review_date: 2026-10-06
-    reason: >-
-      THE CHECK'S REGEX IS NARROWER THAN THE RATIFIED ENUM -- a detection gap, not a contract
-      defect. `LANE-t-000-aj-research.md` pairs to `claude/<slug>`, which is one of the four machine-produced lane
-      prefixes the closed enum admits; `LANE_BRANCH_RE` matches only `worktree-lane-*`, so every
-      CLOUD lane trips this leg by construction and no cloud contract can ever pass it. The
-      contract already recorded the deviation -- the check prints "[OVERRIDDEN -- recorded
-      deviation]" in the same evidence string it WARNs with. The substantive half of the finding
-      IS real and stays open: a `claude/<slug>` branch genuinely is invisible to the batch
-      teardown enum and to the ADR-110 exemption, and that wants a row against
-      `validate_substrate` rather than a disposition. Keyed on the contract path AND the rule
-      name, so a DIFFERENT substrate finding on the same contract re-surfaces and blocks.
-
-  - id: warn-substrate-cloud-branch-lane-t-000-v4-archive-report
-    organ: substrate_declaration
-    match: "LANE-t-000-v4-archive-report.md: WARN substrate-teardown-enum-coverage"
-    ref: "CLAUDE.md §4 / AGENTS.md branch-prefix enum (`claude/<slug>` is a ratified machine-produced lane prefix); ADR-116; scripts/validate_substrate.py LANE_BRANCH_RE"
-    review_date: 2026-10-06
-    reason: >-
-      THE CHECK'S REGEX IS NARROWER THAN THE RATIFIED ENUM -- a detection gap, not a contract
-      defect. `LANE-t-000-v4-archive-report.md` pairs to `claude/<slug>`, which is one of the four machine-produced lane
-      prefixes the closed enum admits; `LANE_BRANCH_RE` matches only `worktree-lane-*`, so every
-      CLOUD lane trips this leg by construction and no cloud contract can ever pass it. The
-      contract already recorded the deviation -- the check prints "[OVERRIDDEN -- recorded
-      deviation]" in the same evidence string it WARNs with. The substantive half of the finding
-      IS real and stays open: a `claude/<slug>` branch genuinely is invisible to the batch
-      teardown enum and to the ADR-110 exemption, and that wants a row against
-      `validate_substrate` rather than a disposition. Keyed on the contract path AND the rule
-      name, so a DIFFERENT substrate finding on the same contract re-surfaces and blocks.
-
-  - id: warn-substrate-cloud-branch-lane-t-000-v5-closures
-    organ: substrate_declaration
-    match: "LANE-t-000-v5-closures.md: WARN substrate-teardown-enum-coverage"
-    ref: "CLAUDE.md §4 / AGENTS.md branch-prefix enum (`claude/<slug>` is a ratified machine-produced lane prefix); ADR-116; scripts/validate_substrate.py LANE_BRANCH_RE"
-    review_date: 2026-10-06
-    reason: >-
-      THE CHECK'S REGEX IS NARROWER THAN THE RATIFIED ENUM -- a detection gap, not a contract
-      defect. `LANE-t-000-v5-closures.md` pairs to `claude/<slug>`, which is one of the four machine-produced lane
-      prefixes the closed enum admits; `LANE_BRANCH_RE` matches only `worktree-lane-*`, so every
-      CLOUD lane trips this leg by construction and no cloud contract can ever pass it. The
-      contract already recorded the deviation -- the check prints "[OVERRIDDEN -- recorded
-      deviation]" in the same evidence string it WARNs with. The substantive half of the finding
-      IS real and stays open: a `claude/<slug>` branch genuinely is invisible to the batch
-      teardown enum and to the ADR-110 exemption, and that wants a row against
-      `validate_substrate` rather than a disposition. Keyed on the contract path AND the rule
-      name, so a DIFFERENT substrate finding on the same contract re-surfaces and blocks.
 
   # ---- doc_rot backlog-accretion: the groom's work, on a groom cadence (2026-09-06) ----
   # R5 B5, operator-declared in to-cc/R5-DECLARED.md, ruled `doc_rot` ARM 2 into ONE corpus
@@ -1753,30 +1657,584 @@ dispositions:
       midnight. The first genuinely completed groom changes that date, misses this match, and
       the entry decorates stale the same day -- which is exactly when it should.
   # ---- the ONE canonical_freshness line this lane may touch (2026-09-06) ----
+  # (CLEARED 2026-09-08, batch CLOSE lane C-1 -- `warn-freshness-handoff-boot-role-pin` matched no
+  # live WARN: the `ungated-and-unstamped: 1 - protocols/HANDOFF_BOOT.md` line is gone from the
+  # organ's evidence, which now reports a DERIVED staleness line over four protocols/ files
+  # instead. Entry removed per ADR-75; the PIN reasoning below is kept as the record, because
+  # the coupling it describes -- stamping HANDOFF_BOOT.md invalidates every booted seat -- is
+  # unchanged and binds the next seat that reaches for that stamp.
   # SECTION 3.6 SAYS "canonical_freshness is NOT this lane's", AND THAT STILL STANDS. This single
   # entry is the one carve-out, delegated in writing by AMEND-BATCH-T-001 A3 and relayed as
   # ADDENDUM-lane-t-000-nc1-clear-A2.md: the per-file `HANDOFF_BOOT.md` line is this lane's to
   # disposition, with the PIN as its reason. The condition the amendment set is met -- lane
   # `lane-t-000-freshness-unstamped` stamped the other seven, so what was an aggregate line naming
   # eight files is now a per-file line naming one.
-  - id: warn-freshness-handoff-boot-role-pin
-    organ: canonical_freshness
-    match: "ungated-and-unstamped: 1 - protocols/HANDOFF_BOOT.md"
-    ref: "AMEND-BATCH-T-001.md A3 (architect, within the seat that froze BATCH-2026-09-06-NIGHT-CONTRACTS.md), relayed as to-cc/ADDENDUM-lane-t-000-nc1-clear-A2.md; C-3(a) curated-baseline touch"
-    review_date: 2026-09-13
-    auto_clearable_by: "the dawn-list item 'stamp HANDOFF_BOOT.md in the next window together with a PIN re-issue' -- the stamp and the re-upload are ONE act, and neither is a seat's alone"
+
+  # =========================================================================================
+  # batch CLOSE, lane C-1 `shipgate-to-green` (2026-09-08, measured on main `a415d720`)
+  # -----------------------------------------------------------------------------------------
+  # THE MEASUREMENT FIRST, because the dispatching contract's breakdown was wrong and acting on
+  # it would have produced the wrong entries. Live `audit.py ship-gate` at `a415d720`:
+  # 117 `[~~]`, 68 already `[disp]`, 0 hard-fail, and 7 `[stale]`. The undispositioned set is
+  # 49, composed funnel_coverage 21 - consumer_at_landing 21 - proof_layer 4 -
+  # canonical_freshness 1 - doc_claims 1 - adr_status_grammar 1. (The contract predicted 50 / 18
+  # consumer / 5 stale.)
+  #
+  # THE SEVEN STALE ENTRIES ARE REMOVED ABOVE, each with a note where it stood or in the comment
+  # block that introduced it. A register that decorates `[stale]` and goes undrained teaches
+  # that the register rots, which is the failure ADR-75's decoration rule exists to surface.
+  #
+  # WHAT IS *NOT* IN THIS SECTION, AND WHY -- 6 of the 49 are left as a NAMED REMAINDER rather
+  # than suppressed, because a disposition reading "so the gate goes green" is the thing this
+  # batch exists to stop:
+  #   * proof_layer x4  -- 4 genuinely NEW environment-conditional guards
+  #     (`test_review_artifact_coverage.py::test_handback_artifact_supplies_both_linkage_and_tally`,
+  #     `::test_handback_artifact_without_a_review_token_is_not_coverage`,
+  #     `::test_handback_artifact_with_review_none_is_not_coverage`,
+  #     `::test_an_unrelated_handback_does_not_launder_a_merge`) against a baseline stamped
+  #     2026-08-27 at `2d531321` (243 guards; 247 live, 0 dropped). The ratchet is doing exactly
+  #     its job. NOT DISPOSITIONED ON A PRECISION GROUND: `ratchet_findings` renders all four with
+  #     a BYTE-IDENTICAL evidence string (it names the module, not the guard key), so any `match`
+  #     narrow enough to be honest does not exist -- one entry would suppress all four AND the
+  #     next guard added to that module, which is the whole-Finding masking the register's own
+  #     contract forbids. Owner: `[#638]`.
+  #   * canonical_freshness x1 -- `derived ungated-and-stale` over four `protocols/` files. REAL
+  #     drift, and the fix is a re-stamp of files this lane may not touch. Owner: batch CLOSE
+  #     lane C-2, which owns `protocols/`.
+  #   * doc_claims x1 -- `CLAUDE.md`'s pre-commit roster is missing `derived-copies-rebind`. REAL
+  #     drift, one line, and `CLAUDE.md` is lane C-2's file. Owner: batch CLOSE lane C-2.
+  # =========================================================================================
+
+  # ---- adr_status_grammar: the ratchet still holds; two NEW baseline classes moved the key ----
+  # RE-KEY, NOT A NEW DISPOSITION. `warn-adr-status-grammar-ratchet-holding` (removed above) keyed
+  # on "baseline WARNs: coherence=3, duplicate-id=2, grammar=47, wrapped-value=1". The evidence now
+  # reads "91 ADR status field(s); 0 enum/single-field defects; baseline WARNs:
+  # alternatives-considered-legacy=32, coherence=3, duplicate-id=2, flip-condition-legacy=89,
+  # grammar=47, wrapped-value=1" -- the ORIGINAL four values are UNMOVED and both FAIL-tier rules
+  # still measure ZERO. What changed is that the batch-U lane `u-000-adr-template-flip-condition`
+  # ARMED TWO NEW required-section legs at WARN against their own recorded legacy baselines
+  # (`alternatives-considered-legacy`, `flip-condition-legacy`), and ADR-118 took the field count
+  # 89 -> 91. So the old key missed for the correct reason: a new rule entered the check.
+  - id: warn-adr-status-grammar-ratchet-holding-v2
+    organ: adr_status_grammar
+    match: "0 enum/single-field defects; baseline WARNs: alternatives-considered-legacy=32, coherence=3, duplicate-id=2, flip-condition-legacy=89, grammar=47, wrapped-value=1"
+    ref: "supersedes warn-adr-status-grammar-ratchet-holding (R5 window bundle B11, ARCHITECT-INBOX-2026-09-05-007); the two new legs land with lane u-000-adr-template-flip-condition, reviewed at docs/audits/2026-09-07-codex-adr-required-sections.md"
+    review_date: 2026-10-13
+    auto_clearable_by: "promoting `grammar` (or either legacy leg) to FAIL tier once its baseline reaches zero -- at which point the WARN stops being emitted at all and this entry decorates stale"
     reason: >-
-      STAMPING THIS FILE WOULD BREAK EVERY BOOTED SEAT, WHICH IS WHY IT IS UNSTAMPED. The sha256
-      of `protocols/HANDOFF_BOOT.md` is the ROLE PIN every browser seat carries in its project
-      knowledge and its bundle. A freshness stamp changes the file's bytes, so it changes the
-      hash, so every seat holding the old pin is invalidated until the operator re-uploads --
-      a curated-baseline touch (C-3(a)) and an act no lane may take on its own initiative.
-      The amendment ruled it EXCLUDED from lane 3.15's seven for exactly this reason and put
-      "stamp HANDOFF_BOOT.md together with a PIN re-issue" on the dawn list as ONE coupled act.
-      SO THIS IS A DEFERRAL WITH AN OWNER AND A DATE, NOT AN EXEMPTION: the file genuinely is
-      unstamped, the check is right to say so, and the reason it stays that way tonight is a
-      real constraint rather than a judgement about whether freshness matters here.
-      PRECISION: keyed on the COUNT AND the filename. If a second file joins the unstamped set
-      the count moves to 2, this match misses, and the line re-surfaces as a blocking WARN
-      instead of hiding behind the pin -- which is the whole reason the aggregate shape was not
-      dispositionable and this one is.
+      A RATCHET HOLDING, REPORTED AS DRIFT -- unchanged from the entry this supersedes, and the
+      distinction is still the whole disposition. Both FAIL-tier rules measure ZERO: 0
+      enum/single-field defects across 91 status fields. Every WARN-tier figure is a RECORDED
+      LEGACY BASELINE that the corpus could not pass at FAIL tier on the day its leg was armed,
+      so the leg was armed at WARN against the number it found. A WARN whose value is constant by
+      construction is not telling anyone anything.
+      WHY THE KEY MOVED, STATED SO IT IS NOT MISREAD AS RE-BASELINING DEBT: the four original
+      values are byte-identical to the superseded key. Two ADDITIONAL classes appear because two
+      NEW legs were armed, not because anything regressed. The field count moved 89 -> 91 with
+      ADR-117 and ADR-118 and is deliberately NOT part of the match -- it moves on every ADR that
+      lands and would decorate this entry stale within a day, teaching that the register rots.
+      THE RATCHET IS STILL SHARP: the match carries `0 enum/single-field defects` AND all six
+      baseline values. The FIRST ADR whose status line moves ANY of them -- in either direction --
+      changes the evidence, misses this match, and re-surfaces as a blocking WARN. Movement in the
+      good direction re-surfacing is correct: that is the moment to lower a baseline or promote a
+      leg to FAIL.
+
+  # ---- funnel_coverage: the 2026-09-07 SWEEP censuses (18) ----
+  # ONE ENTRY PER ARTIFACT, each keyed on its own basename -- the whole-Finding contract, and the
+  # same shape the 39 batch-T/U consumer entries above already use. A class-wide key would let one
+  # census's disposition wave through an undispositioned drift on any of the other seventeen.
+  #
+  # THE DISPOSITION IS `FILED -> [#637]`, AND THE ROW IS REAL RATHER THAN WRITTEN TO MOVE A NUMBER.
+  # These censuses landed as ordinary docs arcs on 2026-09-07 (JOURNAL entry (q)) and their content
+  # is NOT ruled by that merge: SWEEP contract section 0 makes every KEEP / RELOCATE / ARCHIVE /
+  # RETIRE verdict a PROPOSAL, and the operator rules each list. The merge itself says so in terms
+  # -- "these merges land the proposals and adopt none of them". Until this lane, NO governance
+  # surface carried that owed ruling; `[#637]` is the row that does, and it names all nineteen
+  # artifacts by basename, which is also what clears their `consumer_at_landing` half honestly
+  # instead of suppressing it.
+  #
+  # WHY NOT A LEDGER ROW, WHICH IS WHAT `funnel_coverage` ACTUALLY READS. The organ resolves a
+  # disposition from a table in a `docs/audits/` ledger, not from a backlog row. Landing a new
+  # `docs/audits/` file requires regenerating the audits index in the same commit, and a batch lane
+  # regenerating that index is a named defect -- so this lane cannot write one. The register is the
+  # route available before the ledger exists; the ledger row lands with the next disposition-ledger
+  # artifact and decorates these entries `[stale]`, which is the lifecycle working.
+  #
+  # THE BATCH HAD NO MANIFEST, so the `manifest_links` route is closed too: the SWEEP manifest
+  # reached no commit (JOURNAL (q) names this as the dispatcher's own defect) and every census's
+  # `closed_by:` points at a file that does not exist. Writing one now would fabricate a governance
+  # artifact to retro-license work already done, which that same entry refuses by name.
+  - id: warn-funnel-sweep-census-deploy
+    organ: funnel_coverage
+    match: "2026-09-07-technical-census-deploy.md"
+    ref: "JOURNAL 2026-09-07 (q) (thirteen censuses land as ordinary docs arcs) and (r); SWEEP contract section 0 (every verdict is a PROPOSAL, the operator rules each list); tasks/637 (the receiving row)"
+    review_date: 2026-10-06
+    auto_clearable_by: "a disposition-ledger row in the next `docs/audits/` ledger recording the operator's ruling on this census -- at which point `funnel_coverage` resolves it directly and this entry decorates stale"
+    reason: >-
+      FILED -> `[#637]`. This is the SWEEP census of the `deploy/` carrier tree. Its verdicts are
+      PROPOSALS by the contract that commissioned them, so none of ACTIONED / REJECTED /
+      SUPERSEDED is true of it yet: nothing has been actioned (the merge adopted no verdict),
+      nothing rejected (no ruling exists), nothing superseded (no successor). FILED is the honest
+      term -- `[#637]` is a ratified-shape backlog row that names this artifact by basename and
+      carries the owed operator ruling as its Done-when.
+      THE EXACT QUESTION IT NEEDS, stated rather than implied: which of this census's KEEP /
+      RELOCATE / ARCHIVE / RETIRE verdicts does the operator adopt? That question is answerable
+      only by the operator (SWEEP section 0), which is why a lane recording ACTIONED here would be
+      the "wrong ACTIONED is worse than an honest PENDING" failure the 2026-08-17 ruling names.
+      PRECISION: keyed on this census's own basename, so a DIFFERENT funnel finding on any other
+      SWEEP artifact re-surfaces and blocks.
+
+  - id: warn-funnel-sweep-census-docs-audits
+    organ: funnel_coverage
+    match: "2026-09-07-technical-census-docs-audits.md"
+    ref: "JOURNAL 2026-09-07 (q) (thirteen censuses land as ordinary docs arcs) and (r); SWEEP contract section 0 (every verdict is a PROPOSAL, the operator rules each list); tasks/637 (the receiving row)"
+    review_date: 2026-10-06
+    auto_clearable_by: "a disposition-ledger row in the next `docs/audits/` ledger recording the operator's ruling on this census -- at which point `funnel_coverage` resolves it directly and this entry decorates stale"
+    reason: >-
+      FILED -> `[#637]`. This is the SWEEP census of the `docs/audits/` corpus itself. Its verdicts are
+      PROPOSALS by the contract that commissioned them, so none of ACTIONED / REJECTED /
+      SUPERSEDED is true of it yet: nothing has been actioned (the merge adopted no verdict),
+      nothing rejected (no ruling exists), nothing superseded (no successor). FILED is the honest
+      term -- `[#637]` is a ratified-shape backlog row that names this artifact by basename and
+      carries the owed operator ruling as its Done-when.
+      THE EXACT QUESTION IT NEEDS, stated rather than implied: which of this census's KEEP /
+      RELOCATE / ARCHIVE / RETIRE verdicts does the operator adopt? That question is answerable
+      only by the operator (SWEEP section 0), which is why a lane recording ACTIONED here would be
+      the "wrong ACTIONED is worse than an honest PENDING" failure the 2026-08-17 ruling names.
+      PRECISION: keyed on this census's own basename, so a DIFFERENT funnel finding on any other
+      SWEEP artifact re-surfaces and blocks.
+
+  - id: warn-funnel-sweep-census-docs-audits-appendix
+    organ: funnel_coverage
+    match: "2026-09-07-technical-census-docs-audits-appendix.md"
+    ref: "JOURNAL 2026-09-07 (q) (thirteen censuses land as ordinary docs arcs) and (r); SWEEP contract section 0 (every verdict is a PROPOSAL, the operator rules each list); tasks/637 (the receiving row)"
+    review_date: 2026-10-06
+    auto_clearable_by: "a disposition-ledger row in the next `docs/audits/` ledger recording the operator's ruling on this census -- at which point `funnel_coverage` resolves it directly and this entry decorates stale"
+    reason: >-
+      FILED -> `[#637]`. This is the SWEEP census of the `docs/audits/` per-file appendix. Its verdicts are
+      PROPOSALS by the contract that commissioned them, so none of ACTIONED / REJECTED /
+      SUPERSEDED is true of it yet: nothing has been actioned (the merge adopted no verdict),
+      nothing rejected (no ruling exists), nothing superseded (no successor). FILED is the honest
+      term -- `[#637]` is a ratified-shape backlog row that names this artifact by basename and
+      carries the owed operator ruling as its Done-when.
+      THE EXACT QUESTION IT NEEDS, stated rather than implied: which of this census's KEEP /
+      RELOCATE / ARCHIVE / RETIRE verdicts does the operator adopt? That question is answerable
+      only by the operator (SWEEP section 0), which is why a lane recording ACTIONED here would be
+      the "wrong ACTIONED is worse than an honest PENDING" failure the 2026-08-17 ruling names.
+      PRECISION: keyed on this census's own basename, so a DIFFERENT funnel finding on any other
+      SWEEP artifact re-surfaces and blocks.
+
+  - id: warn-funnel-sweep-census-docs-decisions
+    organ: funnel_coverage
+    match: "2026-09-07-technical-census-docs-decisions.md"
+    ref: "JOURNAL 2026-09-07 (q) (thirteen censuses land as ordinary docs arcs) and (r); SWEEP contract section 0 (every verdict is a PROPOSAL, the operator rules each list); tasks/637 (the receiving row)"
+    review_date: 2026-10-06
+    auto_clearable_by: "a disposition-ledger row in the next `docs/audits/` ledger recording the operator's ruling on this census -- at which point `funnel_coverage` resolves it directly and this entry decorates stale"
+    reason: >-
+      FILED -> `[#637]`. This is the SWEEP census of the `docs/decisions/` ADR corpus. Its verdicts are
+      PROPOSALS by the contract that commissioned them, so none of ACTIONED / REJECTED /
+      SUPERSEDED is true of it yet: nothing has been actioned (the merge adopted no verdict),
+      nothing rejected (no ruling exists), nothing superseded (no successor). FILED is the honest
+      term -- `[#637]` is a ratified-shape backlog row that names this artifact by basename and
+      carries the owed operator ruling as its Done-when.
+      THE EXACT QUESTION IT NEEDS, stated rather than implied: which of this census's KEEP /
+      RELOCATE / ARCHIVE / RETIRE verdicts does the operator adopt? That question is answerable
+      only by the operator (SWEEP section 0), which is why a lane recording ACTIONED here would be
+      the "wrong ACTIONED is worse than an honest PENDING" failure the 2026-08-17 ruling names.
+      PRECISION: keyed on this census's own basename, so a DIFFERENT funnel finding on any other
+      SWEEP artifact re-surfaces and blocks.
+
+  - id: warn-funnel-sweep-census-docs-handoffs
+    organ: funnel_coverage
+    match: "2026-09-07-technical-census-docs-handoffs.md"
+    ref: "JOURNAL 2026-09-07 (q) (thirteen censuses land as ordinary docs arcs) and (r); SWEEP contract section 0 (every verdict is a PROPOSAL, the operator rules each list); tasks/637 (the receiving row)"
+    review_date: 2026-10-06
+    auto_clearable_by: "a disposition-ledger row in the next `docs/audits/` ledger recording the operator's ruling on this census -- at which point `funnel_coverage` resolves it directly and this entry decorates stale"
+    reason: >-
+      FILED -> `[#637]`. This is the SWEEP census of the `docs/handoffs/` bundle tree. Its verdicts are
+      PROPOSALS by the contract that commissioned them, so none of ACTIONED / REJECTED /
+      SUPERSEDED is true of it yet: nothing has been actioned (the merge adopted no verdict),
+      nothing rejected (no ruling exists), nothing superseded (no successor). FILED is the honest
+      term -- `[#637]` is a ratified-shape backlog row that names this artifact by basename and
+      carries the owed operator ruling as its Done-when.
+      THE EXACT QUESTION IT NEEDS, stated rather than implied: which of this census's KEEP /
+      RELOCATE / ARCHIVE / RETIRE verdicts does the operator adopt? That question is answerable
+      only by the operator (SWEEP section 0), which is why a lane recording ACTIONED here would be
+      the "wrong ACTIONED is worse than an honest PENDING" failure the 2026-08-17 ruling names.
+      PRECISION: keyed on this census's own basename, so a DIFFERENT funnel finding on any other
+      SWEEP artifact re-surfaces and blocks.
+
+  - id: warn-funnel-sweep-census-docs-intake
+    organ: funnel_coverage
+    match: "2026-09-07-technical-census-docs-intake.md"
+    ref: "JOURNAL 2026-09-07 (q) (thirteen censuses land as ordinary docs arcs) and (r); SWEEP contract section 0 (every verdict is a PROPOSAL, the operator rules each list); tasks/637 (the receiving row)"
+    review_date: 2026-10-06
+    auto_clearable_by: "a disposition-ledger row in the next `docs/audits/` ledger recording the operator's ruling on this census -- at which point `funnel_coverage` resolves it directly and this entry decorates stale"
+    reason: >-
+      FILED -> `[#637]`. This is the SWEEP census of the `docs/intake/` requirements spine. Its verdicts are
+      PROPOSALS by the contract that commissioned them, so none of ACTIONED / REJECTED /
+      SUPERSEDED is true of it yet: nothing has been actioned (the merge adopted no verdict),
+      nothing rejected (no ruling exists), nothing superseded (no successor). FILED is the honest
+      term -- `[#637]` is a ratified-shape backlog row that names this artifact by basename and
+      carries the owed operator ruling as its Done-when.
+      THE EXACT QUESTION IT NEEDS, stated rather than implied: which of this census's KEEP /
+      RELOCATE / ARCHIVE / RETIRE verdicts does the operator adopt? That question is answerable
+      only by the operator (SWEEP section 0), which is why a lane recording ACTIONED here would be
+      the "wrong ACTIONED is worse than an honest PENDING" failure the 2026-08-17 ruling names.
+      PRECISION: keyed on this census's own basename, so a DIFFERENT funnel finding on any other
+      SWEEP artifact re-surfaces and blocks.
+
+  - id: warn-funnel-sweep-census-docs-intake-appendix
+    organ: funnel_coverage
+    match: "2026-09-07-technical-census-docs-intake-appendix.md"
+    ref: "JOURNAL 2026-09-07 (q) (thirteen censuses land as ordinary docs arcs) and (r); SWEEP contract section 0 (every verdict is a PROPOSAL, the operator rules each list); tasks/637 (the receiving row)"
+    review_date: 2026-10-06
+    auto_clearable_by: "a disposition-ledger row in the next `docs/audits/` ledger recording the operator's ruling on this census -- at which point `funnel_coverage` resolves it directly and this entry decorates stale"
+    reason: >-
+      FILED -> `[#637]`. This is the SWEEP census of the `docs/intake/` per-file appendix. Its verdicts are
+      PROPOSALS by the contract that commissioned them, so none of ACTIONED / REJECTED /
+      SUPERSEDED is true of it yet: nothing has been actioned (the merge adopted no verdict),
+      nothing rejected (no ruling exists), nothing superseded (no successor). FILED is the honest
+      term -- `[#637]` is a ratified-shape backlog row that names this artifact by basename and
+      carries the owed operator ruling as its Done-when.
+      THE EXACT QUESTION IT NEEDS, stated rather than implied: which of this census's KEEP /
+      RELOCATE / ARCHIVE / RETIRE verdicts does the operator adopt? That question is answerable
+      only by the operator (SWEEP section 0), which is why a lane recording ACTIONED here would be
+      the "wrong ACTIONED is worse than an honest PENDING" failure the 2026-08-17 ruling names.
+      PRECISION: keyed on this census's own basename, so a DIFFERENT funnel finding on any other
+      SWEEP artifact re-surfaces and blocks.
+
+  - id: warn-funnel-sweep-census-ecosystem
+    organ: funnel_coverage
+    match: "2026-09-07-technical-census-ecosystem.md"
+    ref: "JOURNAL 2026-09-07 (q) (thirteen censuses land as ordinary docs arcs) and (r); SWEEP contract section 0 (every verdict is a PROPOSAL, the operator rules each list); tasks/637 (the receiving row)"
+    review_date: 2026-10-06
+    auto_clearable_by: "a disposition-ledger row in the next `docs/audits/` ledger recording the operator's ruling on this census -- at which point `funnel_coverage` resolves it directly and this entry decorates stale"
+    reason: >-
+      FILED -> `[#637]`. This is the SWEEP census of the `ecosystem/` state and registry tree. Its verdicts are
+      PROPOSALS by the contract that commissioned them, so none of ACTIONED / REJECTED /
+      SUPERSEDED is true of it yet: nothing has been actioned (the merge adopted no verdict),
+      nothing rejected (no ruling exists), nothing superseded (no successor). FILED is the honest
+      term -- `[#637]` is a ratified-shape backlog row that names this artifact by basename and
+      carries the owed operator ruling as its Done-when.
+      THE EXACT QUESTION IT NEEDS, stated rather than implied: which of this census's KEEP /
+      RELOCATE / ARCHIVE / RETIRE verdicts does the operator adopt? That question is answerable
+      only by the operator (SWEEP section 0), which is why a lane recording ACTIONED here would be
+      the "wrong ACTIONED is worse than an honest PENDING" failure the 2026-08-17 ruling names.
+      PRECISION: keyed on this census's own basename, so a DIFFERENT funnel finding on any other
+      SWEEP artifact re-surfaces and blocks.
+
+  - id: warn-funnel-sweep-census-fleet-crosscheck
+    organ: funnel_coverage
+    match: "2026-09-07-technical-census-fleet-crosscheck.md"
+    ref: "JOURNAL 2026-09-07 (q) (thirteen censuses land as ordinary docs arcs) and (r); SWEEP contract section 0 (every verdict is a PROPOSAL, the operator rules each list); tasks/637 (the receiving row)"
+    review_date: 2026-10-06
+    auto_clearable_by: "a disposition-ledger row in the next `docs/audits/` ledger recording the operator's ruling on this census -- at which point `funnel_coverage` resolves it directly and this entry decorates stale"
+    reason: >-
+      FILED -> `[#637]`. This is the SWEEP census of the fleet cross-check -- an INDEPENDENT second derivation that disagrees with W2-U2 on the record rather than reconciling. Its verdicts are
+      PROPOSALS by the contract that commissioned them, so none of ACTIONED / REJECTED /
+      SUPERSEDED is true of it yet: nothing has been actioned (the merge adopted no verdict),
+      nothing rejected (no ruling exists), nothing superseded (no successor). FILED is the honest
+      term -- `[#637]` is a ratified-shape backlog row that names this artifact by basename and
+      carries the owed operator ruling as its Done-when.
+      THE EXACT QUESTION IT NEEDS, stated rather than implied: which of this census's KEEP /
+      RELOCATE / ARCHIVE / RETIRE verdicts does the operator adopt? That question is answerable
+      only by the operator (SWEEP section 0), which is why a lane recording ACTIONED here would be
+      the "wrong ACTIONED is worse than an honest PENDING" failure the 2026-08-17 ruling names.
+      PRECISION: keyed on this census's own basename, so a DIFFERENT funnel finding on any other
+      SWEEP artifact re-surfaces and blocks.
+
+  - id: warn-funnel-sweep-census-logs
+    organ: funnel_coverage
+    match: "2026-09-07-technical-census-logs.md"
+    ref: "JOURNAL 2026-09-07 (q) (thirteen censuses land as ordinary docs arcs) and (r); SWEEP contract section 0 (every verdict is a PROPOSAL, the operator rules each list); tasks/637 (the receiving row)"
+    review_date: 2026-10-06
+    auto_clearable_by: "a disposition-ledger row in the next `docs/audits/` ledger recording the operator's ruling on this census -- at which point `funnel_coverage` resolves it directly and this entry decorates stale"
+    reason: >-
+      FILED -> `[#637]`. This is the SWEEP census of the `logs/` artifact tree. Its verdicts are
+      PROPOSALS by the contract that commissioned them, so none of ACTIONED / REJECTED /
+      SUPERSEDED is true of it yet: nothing has been actioned (the merge adopted no verdict),
+      nothing rejected (no ruling exists), nothing superseded (no successor). FILED is the honest
+      term -- `[#637]` is a ratified-shape backlog row that names this artifact by basename and
+      carries the owed operator ruling as its Done-when.
+      THE EXACT QUESTION IT NEEDS, stated rather than implied: which of this census's KEEP /
+      RELOCATE / ARCHIVE / RETIRE verdicts does the operator adopt? That question is answerable
+      only by the operator (SWEEP section 0), which is why a lane recording ACTIONED here would be
+      the "wrong ACTIONED is worse than an honest PENDING" failure the 2026-08-17 ruling names.
+      PRECISION: keyed on this census's own basename, so a DIFFERENT funnel finding on any other
+      SWEEP artifact re-surfaces and blocks.
+
+  - id: warn-funnel-sweep-census-protocols
+    organ: funnel_coverage
+    match: "2026-09-07-technical-census-protocols.md"
+    ref: "JOURNAL 2026-09-07 (q) (thirteen censuses land as ordinary docs arcs) and (r); SWEEP contract section 0 (every verdict is a PROPOSAL, the operator rules each list); tasks/637 (the receiving row)"
+    review_date: 2026-10-06
+    auto_clearable_by: "a disposition-ledger row in the next `docs/audits/` ledger recording the operator's ruling on this census -- at which point `funnel_coverage` resolves it directly and this entry decorates stale"
+    reason: >-
+      FILED -> `[#637]`. This is the SWEEP census of the `protocols/` doctrine tree. Its verdicts are
+      PROPOSALS by the contract that commissioned them, so none of ACTIONED / REJECTED /
+      SUPERSEDED is true of it yet: nothing has been actioned (the merge adopted no verdict),
+      nothing rejected (no ruling exists), nothing superseded (no successor). FILED is the honest
+      term -- `[#637]` is a ratified-shape backlog row that names this artifact by basename and
+      carries the owed operator ruling as its Done-when.
+      THE EXACT QUESTION IT NEEDS, stated rather than implied: which of this census's KEEP /
+      RELOCATE / ARCHIVE / RETIRE verdicts does the operator adopt? That question is answerable
+      only by the operator (SWEEP section 0), which is why a lane recording ACTIONED here would be
+      the "wrong ACTIONED is worse than an honest PENDING" failure the 2026-08-17 ruling names.
+      PRECISION: keyed on this census's own basename, so a DIFFERENT funnel finding on any other
+      SWEEP artifact re-surfaces and blocks.
+
+  - id: warn-funnel-sweep-census-root
+    organ: funnel_coverage
+    match: "2026-09-07-technical-census-root.md"
+    ref: "JOURNAL 2026-09-07 (q) (thirteen censuses land as ordinary docs arcs) and (r); SWEEP contract section 0 (every verdict is a PROPOSAL, the operator rules each list); tasks/637 (the receiving row)"
+    review_date: 2026-10-06
+    auto_clearable_by: "a disposition-ledger row in the next `docs/audits/` ledger recording the operator's ruling on this census -- at which point `funnel_coverage` resolves it directly and this entry decorates stale"
+    reason: >-
+      FILED -> `[#637]`. This is the SWEEP census of the repository root. Its verdicts are
+      PROPOSALS by the contract that commissioned them, so none of ACTIONED / REJECTED /
+      SUPERSEDED is true of it yet: nothing has been actioned (the merge adopted no verdict),
+      nothing rejected (no ruling exists), nothing superseded (no successor). FILED is the honest
+      term -- `[#637]` is a ratified-shape backlog row that names this artifact by basename and
+      carries the owed operator ruling as its Done-when.
+      THE EXACT QUESTION IT NEEDS, stated rather than implied: which of this census's KEEP /
+      RELOCATE / ARCHIVE / RETIRE verdicts does the operator adopt? That question is answerable
+      only by the operator (SWEEP section 0), which is why a lane recording ACTIONED here would be
+      the "wrong ACTIONED is worse than an honest PENDING" failure the 2026-08-17 ruling names.
+      PRECISION: keyed on this census's own basename, so a DIFFERENT funnel finding on any other
+      SWEEP artifact re-surfaces and blocks.
+
+  - id: warn-funnel-sweep-census-scripts-tests
+    organ: funnel_coverage
+    match: "2026-09-07-technical-census-scripts-tests.md"
+    ref: "JOURNAL 2026-09-07 (q) (thirteen censuses land as ordinary docs arcs) and (r); SWEEP contract section 0 (every verdict is a PROPOSAL, the operator rules each list); tasks/637 (the receiving row)"
+    review_date: 2026-10-06
+    auto_clearable_by: "a disposition-ledger row in the next `docs/audits/` ledger recording the operator's ruling on this census -- at which point `funnel_coverage` resolves it directly and this entry decorates stale"
+    reason: >-
+      FILED -> `[#637]`. This is the SWEEP census of the `scripts/` + `tests/` trees. Its verdicts are
+      PROPOSALS by the contract that commissioned them, so none of ACTIONED / REJECTED /
+      SUPERSEDED is true of it yet: nothing has been actioned (the merge adopted no verdict),
+      nothing rejected (no ruling exists), nothing superseded (no successor). FILED is the honest
+      term -- `[#637]` is a ratified-shape backlog row that names this artifact by basename and
+      carries the owed operator ruling as its Done-when.
+      THE EXACT QUESTION IT NEEDS, stated rather than implied: which of this census's KEEP /
+      RELOCATE / ARCHIVE / RETIRE verdicts does the operator adopt? That question is answerable
+      only by the operator (SWEEP section 0), which is why a lane recording ACTIONED here would be
+      the "wrong ACTIONED is worse than an honest PENDING" failure the 2026-08-17 ruling names.
+      PRECISION: keyed on this census's own basename, so a DIFFERENT funnel finding on any other
+      SWEEP artifact re-surfaces and blocks.
+
+  - id: warn-funnel-sweep-census-scripts-tests-appendix
+    organ: funnel_coverage
+    match: "2026-09-07-technical-census-scripts-tests-appendix.md"
+    ref: "JOURNAL 2026-09-07 (q) (thirteen censuses land as ordinary docs arcs) and (r); SWEEP contract section 0 (every verdict is a PROPOSAL, the operator rules each list); tasks/637 (the receiving row)"
+    review_date: 2026-10-06
+    auto_clearable_by: "a disposition-ledger row in the next `docs/audits/` ledger recording the operator's ruling on this census -- at which point `funnel_coverage` resolves it directly and this entry decorates stale"
+    reason: >-
+      FILED -> `[#637]`. This is the SWEEP census of the `scripts/` + `tests/` per-file appendix. Its verdicts are
+      PROPOSALS by the contract that commissioned them, so none of ACTIONED / REJECTED /
+      SUPERSEDED is true of it yet: nothing has been actioned (the merge adopted no verdict),
+      nothing rejected (no ruling exists), nothing superseded (no successor). FILED is the honest
+      term -- `[#637]` is a ratified-shape backlog row that names this artifact by basename and
+      carries the owed operator ruling as its Done-when.
+      THE EXACT QUESTION IT NEEDS, stated rather than implied: which of this census's KEEP /
+      RELOCATE / ARCHIVE / RETIRE verdicts does the operator adopt? That question is answerable
+      only by the operator (SWEEP section 0), which is why a lane recording ACTIONED here would be
+      the "wrong ACTIONED is worse than an honest PENDING" failure the 2026-08-17 ruling names.
+      PRECISION: keyed on this census's own basename, so a DIFFERENT funnel finding on any other
+      SWEEP artifact re-surfaces and blocks.
+
+  - id: warn-funnel-sweep-census-tasks
+    organ: funnel_coverage
+    match: "2026-09-07-technical-census-tasks.md"
+    ref: "JOURNAL 2026-09-07 (q) (thirteen censuses land as ordinary docs arcs) and (r); SWEEP contract section 0 (every verdict is a PROPOSAL, the operator rules each list); tasks/637 (the receiving row)"
+    review_date: 2026-10-06
+    auto_clearable_by: "a disposition-ledger row in the next `docs/audits/` ledger recording the operator's ruling on this census -- at which point `funnel_coverage` resolves it directly and this entry decorates stale"
+    reason: >-
+      FILED -> `[#637]`. This is the SWEEP census of the `tasks/` backlog source tree. Its verdicts are
+      PROPOSALS by the contract that commissioned them, so none of ACTIONED / REJECTED /
+      SUPERSEDED is true of it yet: nothing has been actioned (the merge adopted no verdict),
+      nothing rejected (no ruling exists), nothing superseded (no successor). FILED is the honest
+      term -- `[#637]` is a ratified-shape backlog row that names this artifact by basename and
+      carries the owed operator ruling as its Done-when.
+      THE EXACT QUESTION IT NEEDS, stated rather than implied: which of this census's KEEP /
+      RELOCATE / ARCHIVE / RETIRE verdicts does the operator adopt? That question is answerable
+      only by the operator (SWEEP section 0), which is why a lane recording ACTIONED here would be
+      the "wrong ACTIONED is worse than an honest PENDING" failure the 2026-08-17 ruling names.
+      PRECISION: keyed on this census's own basename, so a DIFFERENT funnel finding on any other
+      SWEEP artifact re-surfaces and blocks.
+
+  - id: warn-funnel-sweep-census-tasks-appendix
+    organ: funnel_coverage
+    match: "2026-09-07-technical-census-tasks-appendix.md"
+    ref: "JOURNAL 2026-09-07 (q) (thirteen censuses land as ordinary docs arcs) and (r); SWEEP contract section 0 (every verdict is a PROPOSAL, the operator rules each list); tasks/637 (the receiving row)"
+    review_date: 2026-10-06
+    auto_clearable_by: "a disposition-ledger row in the next `docs/audits/` ledger recording the operator's ruling on this census -- at which point `funnel_coverage` resolves it directly and this entry decorates stale"
+    reason: >-
+      FILED -> `[#637]`. This is the SWEEP census of the `tasks/` per-file appendix. Its verdicts are
+      PROPOSALS by the contract that commissioned them, so none of ACTIONED / REJECTED /
+      SUPERSEDED is true of it yet: nothing has been actioned (the merge adopted no verdict),
+      nothing rejected (no ruling exists), nothing superseded (no successor). FILED is the honest
+      term -- `[#637]` is a ratified-shape backlog row that names this artifact by basename and
+      carries the owed operator ruling as its Done-when.
+      THE EXACT QUESTION IT NEEDS, stated rather than implied: which of this census's KEEP /
+      RELOCATE / ARCHIVE / RETIRE verdicts does the operator adopt? That question is answerable
+      only by the operator (SWEEP section 0), which is why a lane recording ACTIONED here would be
+      the "wrong ACTIONED is worse than an honest PENDING" failure the 2026-08-17 ruling names.
+      PRECISION: keyed on this census's own basename, so a DIFFERENT funnel finding on any other
+      SWEEP artifact re-surfaces and blocks.
+
+  - id: warn-funnel-sweep-census-templates-claude
+    organ: funnel_coverage
+    match: "2026-09-07-technical-census-templates-claude.md"
+    ref: "JOURNAL 2026-09-07 (q) (thirteen censuses land as ordinary docs arcs) and (r); SWEEP contract section 0 (every verdict is a PROPOSAL, the operator rules each list); tasks/637 (the receiving row)"
+    review_date: 2026-10-06
+    auto_clearable_by: "a disposition-ledger row in the next `docs/audits/` ledger recording the operator's ruling on this census -- at which point `funnel_coverage` resolves it directly and this entry decorates stale"
+    reason: >-
+      FILED -> `[#637]`. This is the SWEEP census of the `templates/claude-regions/` tree. Its verdicts are
+      PROPOSALS by the contract that commissioned them, so none of ACTIONED / REJECTED /
+      SUPERSEDED is true of it yet: nothing has been actioned (the merge adopted no verdict),
+      nothing rejected (no ruling exists), nothing superseded (no successor). FILED is the honest
+      term -- `[#637]` is a ratified-shape backlog row that names this artifact by basename and
+      carries the owed operator ruling as its Done-when.
+      THE EXACT QUESTION IT NEEDS, stated rather than implied: which of this census's KEEP /
+      RELOCATE / ARCHIVE / RETIRE verdicts does the operator adopt? That question is answerable
+      only by the operator (SWEEP section 0), which is why a lane recording ACTIONED here would be
+      the "wrong ACTIONED is worse than an honest PENDING" failure the 2026-08-17 ruling names.
+      PRECISION: keyed on this census's own basename, so a DIFFERENT funnel finding on any other
+      SWEEP artifact re-surfaces and blocks.
+
+  - id: warn-funnel-sweep-census-token-bottlenecks
+    organ: funnel_coverage
+    match: "2026-09-07-technical-census-token-bottlenecks.md"
+    ref: "JOURNAL 2026-09-07 (q) (thirteen censuses land as ordinary docs arcs) and (r); SWEEP contract section 0 (every verdict is a PROPOSAL, the operator rules each list); tasks/637 (the receiving row)"
+    review_date: 2026-10-06
+    auto_clearable_by: "a disposition-ledger row in the next `docs/audits/` ledger recording the operator's ruling on this census -- at which point `funnel_coverage` resolves it directly and this entry decorates stale"
+    reason: >-
+      FILED -> `[#637]`. This is the SWEEP census of the token-bottleneck measurement across the corpus. Its verdicts are
+      PROPOSALS by the contract that commissioned them, so none of ACTIONED / REJECTED /
+      SUPERSEDED is true of it yet: nothing has been actioned (the merge adopted no verdict),
+      nothing rejected (no ruling exists), nothing superseded (no successor). FILED is the honest
+      term -- `[#637]` is a ratified-shape backlog row that names this artifact by basename and
+      carries the owed operator ruling as its Done-when.
+      THE EXACT QUESTION IT NEEDS, stated rather than implied: which of this census's KEEP /
+      RELOCATE / ARCHIVE / RETIRE verdicts does the operator adopt? That question is answerable
+      only by the operator (SWEEP section 0), which is why a lane recording ACTIONED here would be
+      the "wrong ACTIONED is worse than an honest PENDING" failure the 2026-08-17 ruling names.
+      PRECISION: keyed on this census's own basename, so a DIFFERENT funnel finding on any other
+      SWEEP artifact re-surfaces and blocks.
+
+  # ---- funnel_coverage: the three non-census artifacts (2026-09-06 / 2026-09-07) ----
+  - id: warn-funnel-closure-proposals
+    organ: funnel_coverage
+    match: "2026-09-06-technical-closure-proposals.md"
+    ref: "ADR-70 Tier-1 (detect-and-propose only); the artifact's own header (`closure proposals: 224 -> 224`, NO ROW IS CLOSED BY THIS AUDIT); DECLARE-SITTING-2026-09-06 D11 (no proposal has been ruled); tasks/637 (the receiving row)"
+    review_date: 2026-10-06
+    auto_clearable_by: "a disposition-ledger row recording the operator's ruling on the 224 proposals -- or their execution through /review-closures, whichever comes first"
+    reason: >-
+      FILED -> `[#637]`. This is the batch-U witness enumeration of all 224 live closure
+      proposals, each with its `Done when:` clause quoted from `tasks/` and the best witnessing
+      SHA the evidence actually supports. ACTIONED IS FALSE OF IT BY THE ARTIFACT'S OWN HEADER:
+      "before -> after: closure proposals: 224 -> 224. NO ROW IS CLOSED BY THIS AUDIT. NOT ONE."
+      ADR-70 Tier-1 is detect-and-propose only and D11 records that no proposal has been ruled,
+      so the verb is RETIRE-PROPOSED and the ruling is the operator's.
+      THE EXACT QUESTION: which of the 224 proposals does the operator approve for closure, and
+      what happens to the ones the audit reports as UNWITNESSED? `[#637]` carries that as its
+      Done-when and names this artifact by basename.
+      PRECISION: keyed on the artifact basename, so an unrelated funnel finding elsewhere in the
+      batch-U set re-surfaces and blocks.
+
+  - id: warn-funnel-erratum-aj-second-pass
+    organ: funnel_coverage
+    match: "2026-09-06-technical-erratum-aj-second-pass.md"
+    ref: "DECLARE-F-2026-09-06 F-5 (the commission); subject claim at docs/audits/2026-09-05-technical-research-aj-second-pass.md:107; landed and independently re-verified at c371b856 by lane-u-000-erratum-aj-second-pass (batch U, W2-F5)"
+    review_date: 2026-10-06
+    reason: >-
+      ACTIONED, and this is the one artifact in this batch's set for which that term is true
+      rather than convenient. DECLARE-F-2026-09-06 F-5 commissioned an erratum against ONE named
+      claim -- the "6.4x the wall-clock and 16.2x the cost" headline at
+      `docs/audits/2026-09-05-technical-research-aj-second-pass.md:107` -- and specified its FORM:
+      a new dated artifact superseding the claim, because audits are immutable (CLAUDE.md section
+      5 rule 3) and the subject may not be edited. This file IS that artifact. The commission is
+      discharged by its landing; there is no further act owed and no question outstanding.
+      NOT A SELF-CERTIFICATION: the landing seat re-read every figure from its source file at
+      `c371b856` rather than accepting the draft, and recorded that it did so in section 0.
+      PRECISION: keyed on the erratum's own basename. Its SUBJECT
+      (`2026-09-05-technical-research-aj-second-pass.md`) is a different artifact with its own
+      funnel position, untouched by this entry.
+
+  - id: warn-funnel-codex-adr-required-sections
+    organ: funnel_coverage
+    match: "2026-09-07-codex-adr-required-sections.md"
+    ref: "the artifact's own Tally block (0/5/0/0, counted BY HAND); branch worktree-lane-u-000-adr-template-flip-condition at 96994389; the two legs it reviewed are live in scripts/validate_adr_status.py and are the source of the two new adr_status_grammar baseline classes dispositioned above"
+    review_date: 2026-10-06
+    reason: >-
+      ACTIONED -- a code-review artifact whose findings were answered IN THE DIFF IT REVIEWED,
+      which is the only shape in which a review artifact can be actioned. Five HIGH findings
+      against the two REQUIRED-SECTION legs of `scripts/validate_adr_status.py`; the artifact
+      records that four were fixed in code (blockquoted body read as empty; empty ATX heading not
+      a boundary; unbalanced emphasis, resolved deliberately in the lenient direction; adapter
+      read-error masking a real FAIL) and that the fifth -- an unnumbered ADR filename being
+      ungateable -- was kept as a NAMED LENIENCY and triaged CANDIDATE rather than fixed.
+      THE ACTIONING IS VERIFIABLE WITHOUT TRUSTING THE ARTIFACT: the legs it reviewed are live,
+      and their two legacy baselines (`alternatives-considered-legacy=32`,
+      `flip-condition-legacy=89`) are the exact classes that moved the `adr_status_grammar` key
+      re-written at the head of this section. The review and the armed check are the same act
+      seen from two sides.
+      WHAT IS NOT CLAIMED: that the fifth finding is closed. It is a recorded leniency with a
+      CANDIDATE triage under ADR-111, and a CANDIDATE's only path onward is intake plus
+      ratification -- not this register.
+      PRECISION: keyed on this review's own basename, so a different codex-review artifact in the
+      same window re-surfaces and blocks.
+
+  # ---- consumer_at_landing: the two artifacts NOT covered by [#637] ----
+  # THE OTHER NINETEEN ARE FIXED, NOT SUPPRESSED, and the distinction is the point of this lane.
+  # `[#637]` names all nineteen (18 SWEEP censuses + the closure-proposals witness) by basename in
+  # its row body, and `tasks/` is a POOL_DIR that `consumer_at_landing` scans recursively -- so
+  # those nineteen acquire a REAL governance consumer and drop out of the finding set. No register
+  # entry exists for them, deliberately: an entry would have recorded a suppression where a
+  # consumer was available. These two are different, and each says why.
+  - id: warn-consumer-seal-report-fleet
+    organ: consumer_at_landing
+    match: "2026-09-07-technical-seal-report-fleet.md"
+    ref: "docs/intake/2026-09-05-tech-shape-spec-tree-seal-to-consumers.md (intake #73, ACCEPTED by DECLARE-SITTING-2026-09-06 D5); DECLARE-SITTING-2026-09-06 D13; the sibling entry warn-funnel-seal-report-fleet, which files the SAME artifact to the SAME row on the funnel side"
+    review_date: 2026-10-06
+    auto_clearable_by: "intake #73 naming this report in its frontmatter beside its per-repo predecessor, or #73's promotion to the ADR/epic that consumes the shape spec -- either resolves the citation directly and decorates this entry stale"
+    reason: >-
+      CONSUMER NAMED AND RATIFIED, CITATION NOT YET WRITTEN INTO THE POOL -- the two are different
+      facts and only the second is missing. Intake #73 is the row that consumes this measurement
+      (the shape spec IS the pattern the seal measures a repo against), it was ACCEPTED at the
+      2026-09-06 sitting, and its own frontmatter ALREADY names this report's per-repo predecessor
+      `docs/audits/2026-09-06-technical-seal-report-corp-monorepo.md` as companion evidence. What
+      is absent is the fleet run's own basename in that frontmatter.
+      WHY THIS LANE DOES NOT SIMPLY ADD IT: `docs/intake/` is not this lane's, and an intake
+      frontmatter edit re-derives TWO generated surfaces (the intake index and the tree manifest)
+      in the same commit -- a coupled change that belongs with whoever next opens #73, not with a
+      register-hygiene lane. Adding this artifact to `[#637]` was refused for a stronger reason:
+      `[#637]` is the row for proposals NOBODY HAS RULED, and this report is already filed to a
+      ratified row. Naming it there to move a number would misfile a settled artifact.
+      PRECISION: keyed on this report's own basename. Its predecessor is a separate artifact with
+      its own funnel and consumer position and is untouched here.
+
+  - id: warn-consumer-codex-adr-required-sections
+    organ: consumer_at_landing
+    match: "2026-09-07-codex-adr-required-sections.md"
+    ref: "branch worktree-lane-u-000-adr-template-flip-condition at 96994389; the sibling entry warn-funnel-codex-adr-required-sections; the two legs reviewed are live in scripts/validate_adr_status.py"
+    review_date: 2026-10-06
+    auto_clearable_by: "the review-artifact class acquiring a pool-visible citer at all -- e.g. `[#499]`/`[#560]` (the two open rows that own the review-artifact-coverage leg) naming their evidence artifacts by basename when either is next worked"
+    reason: >-
+      A CODE-REVIEW ARTIFACT IS CONSUMED BY THE DIFF IT REVIEWED, AND A DIFF IS NOT IN THE POOL.
+      This file's consumer is the merge of `worktree-lane-u-000-adr-template-flip-condition`: four
+      of its five HIGH findings were answered in that lane's own code, and the fifth is a recorded
+      leniency triaged CANDIDATE. That consumption is real and checkable -- the two legs it
+      reviewed are live in `scripts/validate_adr_status.py`, and their legacy baselines are the
+      classes that moved the `adr_status_grammar` key at the head of this section -- but the
+      governance pool is `tasks/` + `docs/decisions/` + `docs/intake/` + `protocols/` + the root
+      canonical docs, and a git merge is in none of them.
+      SO THIS IS A CLASS GAP, NOT AN ORPHAN. `consumer_at_landing` has no shape for "consumed by
+      code", which is the honest reading of a review artifact, and inventing a citer for it would
+      teach the check a false lesson. Recorded here rather than papered over with a manufactured
+      backlog row: filing a row whose only content is this filename would be the "citation written
+      to move a number" failure this batch exists to stop.
+      PRECISION: keyed on this review's own basename, so a different review artifact landing in the
+      same window re-surfaces and blocks rather than inheriting this reasoning by class.

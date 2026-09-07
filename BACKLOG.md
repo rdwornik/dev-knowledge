@@ -80,6 +80,8 @@ So that a convention can't be skipped under load (the failure mode behind real a
 - [#624] [P2][M] Nothing watches a BLOCKER's status — a fold target went deferred and no organ noticed · tasks/624-nothing-watches-a-blockers-status.md
 - [#629] [P1][M] An amendment cannot SUBTRACT an act — split rulings REISSUE (predicate 7) · tasks/629-a-contract-amendment-cannot-subtract-an-act.md
 - [#631] [P1][M] A freeze cannot bind a rule that post-dates it — and nothing re-validates a frozen batch when the rules change · tasks/631-a-freeze-cannot-bind-a-rule-that-postdates-it.md
+- [#638] [P2][S] Four new proof-layer guards are undispositionable because the ratchet renders them identically · tasks/638-four-new-proof-layer-guards-are-undispositionable-b.md
+- [#639] [P3][S] Retire the verification organs that fire but never block - by measurement, not by feel · tasks/639-retire-the-verification-organs-that-fire-but-never-.md
 ### [S4] Extend structural validation to more governance artifacts
 So that drift in transcripts, ADRs, and folders is caught cheaply, not by reviewer luck.
 - [#139] [P2][L] merged-arc→record verifier · DEFER · tasks/139-merged-arc-record-verifier.md
@@ -176,6 +178,8 @@ So that growth past 65 ADRs doesn't bury or quietly contradict prior decisions.
 - [#564] [P2][M] Lifecycle archival — a pass over implemented ADRs and decided intakes, plus a check so archival cannot silently lag · tasks/564-lifecycle-archival-implemented-adrs-and-decided-int.md
 - [#572] [P2][M] Intake-funnel completion — #34 flip, #35–#37 transitions post-R7, funnel hygiene · tasks/572-intake-funnel-completion-carrier.md
 - [#616] [P2][S] FLIP-CONDITION — every ADR records what evidence would reverse it · tasks/616-flip-condition-every-adr-records-what-evidence-w.md
+- [#637] [P2][M] Nineteen landed audit artifacts carry PROPOSALS that no governance surface has ruled · tasks/637-nineteen-landed-audit-artifacts-carry-proposals-tha.md
+- [#640] [P1][S] The FPG-1 scope narrowing is recorded nowhere, and two landed surfaces still carry the superseded version · tasks/640-the-fpg-1-scope-narrowing-is-recorded-nowhere-and-t.md
 
 ### [S12] Close the small ADR cross-reference + registry amendments
 So that the ADR web is internally consistent.
