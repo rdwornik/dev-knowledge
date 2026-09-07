@@ -546,6 +546,9 @@ cross-check. That is a smaller sample than a fan-out would have produced, not a 
 
 ---
 
-**Lane:** S-05 · **Branch:** `claude/census-docs-handoffs` · **Base:** `origin/main` `5f27b20`
+**Lane:** S-05 · **Branch:** `claude/census-docs-handoffs`
+**Measured at:** `origin/main` `5f27b20`. **Re-verified after syncing to `21576e3`:**
+`git diff --stat 5f27b20 21576e3 -- docs/handoffs` is empty, and the three corpus figures re-measure
+identically (119 / 762 / 10,976,132 B). Every count on this page holds at the pushed head.
 **Written:** 2026-09-07 · **Read-only:** no file under `docs/handoffs/` was moved, deleted, edited or
 renamed; the only file this lane wrote is this one.
