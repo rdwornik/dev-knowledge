@@ -157,6 +157,8 @@ R_UNINDEXED = "unindexed"      # ADR carries no README-index row at all
 R_DUPLICATE = "duplicate-id"   # two files claim one ADR number
 R_FLIP = "flip-condition"      # a NEW ADR carries no filled `Flip-condition` section
 R_FLIP_LEGACY = "flip-condition-legacy"   # ...and a GRANDFATHERED one does not either
+R_ALTS = "alternatives-considered"        # a NEW ADR justifies nothing it did not choose
+R_ALTS_LEGACY = "alternatives-considered-legacy"
 
 #: Legs armed at FAIL vs WARN. See `docs/audits/2026-08-23-technical-lane-status-grammar.md`
 #: Step 4: the corpus carries 47 `R_GRAMMAR`, 1 `R_WRAP` and 3 `R_COHERENCE` defects today, so
@@ -164,21 +166,26 @@ R_FLIP_LEGACY = "flip-condition-legacy"   # ...and a GRANDFATHERED one does not 
 #: and are armed FAIL. Arming the grammar leg FAIL would RED-block every commit on day one,
 #: which the lane contract forbids.
 #:
-#: The FLIP leg is armed at BOTH levels, split by RULE ID rather than by a severity lookup:
-#: `R_FLIP` FAILs, `R_FLIP_LEGACY` WARNs, and which one a defect carries is decided ONCE, in
-#: `flip_condition_defects`, by the grandfather mark below. Two ids rather than one
-#: severity-by-subject switch, because `FAIL_RULES` is the single place every consumer
-#: (adapter, CLI, tests) reads severity from — a subject-dependent severity would have to be
-#: re-derived at each of them, and the three would drift.
-FAIL_RULES = frozenset({R_ENUM, R_SINGLE, R_FLIP})
+#: The two REQUIRED-SECTION legs are armed at BOTH levels, split by RULE ID rather than by a
+#: severity lookup: the plain id FAILs, the `-legacy` id WARNs, and which one a defect carries
+#: is decided ONCE, in `required_section_defects`, by the grandfather mark below. Two ids per
+#: leg rather than one severity-by-subject switch, because `FAIL_RULES` is the single place
+#: every consumer (adapter, CLI, tests) reads severity from — a subject-dependent severity
+#: would have to be re-derived at each of them, and the three would drift.
+FAIL_RULES = frozenset({R_ENUM, R_SINGLE, R_FLIP, R_ALTS})
 WARN_RULES = frozenset({R_GRAMMAR, R_WRAP, R_COHERENCE, R_UNINDEXED, R_DUPLICATE,
-                        R_FLIP_LEGACY})
+                        R_FLIP_LEGACY, R_ALTS_LEGACY})
 
-#: THE GRANDFATHER MARK for the `Flip-condition` requirement. MEASURED, not chosen: 116 is the
-#: highest ADR number in `docs/decisions/` at this leg's arming (re-measured 2026-09-07 on
-#: `ef53b069` — 89 live ADRs, numbering gapped, and ZERO of them carrying the section). Every
-#: ADR at or below it predates the requirement and WARNs with a disposition path; ADR-117 and
-#: above must carry the section or FAIL.
+#: THE GRANDFATHER MARK, shared by BOTH required-section legs because both arm in one commit.
+#: MEASURED, not chosen: 116 is the highest ADR number that existed BEFORE this requirement was
+#: written (measured 2026-09-07 on `ef53b069` — 89 live ADRs, numbering gapped). Every ADR at or
+#: below it predates the requirement and WARNs with a disposition path; ADR-117 and above must
+#: carry both sections or FAIL.
+#:
+#: The mark was NOT raised to 117 when ADR-117 landed mid-lane. It carries both sections on its
+#: own merits (measured, not assumed), so raising the mark would have bought nothing except a
+#: weaker leg — and re-grandfathering an ADR to make a gate green is the act this comment
+#: exists to forbid.
 #:
 #: THE MARK IS FROZEN, AND WHAT SHRINKS IS ITS POPULATION. Raising it re-grandfathers an ADR
 #: written AFTER the requirement existed, which weakens the leg — a reviewed act with a
@@ -499,17 +506,53 @@ def corpus_defects(fields: list[StatusField], missing: list[str],
     return defects
 
 
-# --- the Flip-condition section rule ------------------------------------------
+# --- the REQUIRED-SECTION rules -----------------------------------------------
 
-#: The required section's heading. Levels 2-4 (an ADR may nest it under a part heading), an
-#: optional BALANCED bold/emphasis wrapper, and `Flip-condition` / `Flip condition` /
-#: `Flip Condition` — case-INSENSITIVE, because a heading's capitalisation is typography, not a
-#: declared token the way a `Status:` value is. A trailing qualifier is allowed
+#: An optional leading section ENUMERATOR. MEASURED, not anticipated: the live corpus writes
+#: `## 10. Alternatives considered`, `## §9 Alternatives considered` and
+#: `## §4 — Alternatives considered and rejected, ...` alongside the bare form. Numbering a
+#: section does not un-write it, so a required-section rule that ignored the prefix would fail
+#: three conforming ADRs on typography.
+_ENUMERATOR = r"(?:§?\d+[.)]?\s*[\u2014\u2013-]?\s*)?"
+
+#: `Flip-condition`. Levels 2-4 (an ADR may nest it under a part heading), an optional BALANCED
+#: bold/emphasis wrapper, and `Flip-condition` / `Flip condition` / `Flip Condition` —
+#: case-INSENSITIVE, because a heading's capitalisation is typography, not a declared token the
+#: way a `Status:` value is. A trailing qualifier is allowed
 #: (`## Flip-condition — what would reverse this`): the section is identified by its NAME, and
 #: forbidding a subtitle would fail a conforming ADR over punctuation.
 _FLIP_HEADING_RE = re.compile(
-    r"^ {0,3}(?P<h>#{2,4})\s+(?P<w>\*+|_+)?Flip[-\u2011 ]?condition(?(w)(?P=w))?"
-    r"(?:[\s:\u2014\u2013-]|$)", re.IGNORECASE)
+    rf"^ {{0,3}}(?P<h>#{{2,4}})\s+{_ENUMERATOR}(?P<w>\*+|_+)?Flip[-\u2011 ]?condition"
+    r"(?(w)(?P=w))?(?:[\s:\u2014\u2013-]|$)", re.IGNORECASE)
+
+#: `Alternatives considered`. The alternation is MEASURED from the live corpus, which writes the
+#: section under three stems — `Alternatives considered` (45 files, the template's spelling),
+#: `Rejected alternatives` (6) and `Alternatives rejected` (3). All three are the same section
+#: doing the same job, and enforcing only the template's spelling would report 9 ADRs as having
+#: justified nothing when they plainly did. That divergence is why the requirement's population
+#: is measured with THIS pattern and not with a grep for the template's exact words.
+_ALTS_HEADING_RE = re.compile(
+    rf"^ {{0,3}}(?P<h>#{{2,4}})\s+{_ENUMERATOR}(?P<w>\*+|_+)?"
+    r"(?:Alternatives|Rejected\s+alternatives)\b", re.IGNORECASE)
+
+
+@dataclass(frozen=True)
+class RequiredSection:
+    """One section every ADR above the grandfather mark must carry and fill."""
+    label: str                  # how the section is named in evidence and in the template
+    heading: re.Pattern[str]
+    fail_rule: str              # the id used ABOVE the mark
+    warn_rule: str              # ...and the id used at or below it
+
+
+#: The requirements, in the order an ADR meets them. Adding a third is a two-line change here
+#: plus its rule ids — the machinery below is section-agnostic on purpose, because the second
+#: requirement arrived mid-lane and a Flip-condition-shaped hard-code would have been rewritten
+#: rather than extended.
+REQUIRED_SECTIONS: tuple[RequiredSection, ...] = (
+    RequiredSection("Flip-condition", _FLIP_HEADING_RE, R_FLIP, R_FLIP_LEGACY),
+    RequiredSection("Alternatives considered", _ALTS_HEADING_RE, R_ALTS, R_ALTS_LEGACY),
+)
 #: A heading of the SAME level or shallower ends the section.
 _ATX_HEADING_RE = re.compile(r"^ {0,3}(?P<h>#{1,6})\s")
 #: An UNFILLED template placeholder span. `templates/ADR-template.md` writes every section
@@ -541,8 +584,8 @@ def _strip_placeholders(text: str) -> str:
         text = stripped
 
 
-def flip_section_state(text: str) -> str:
-    """`"present"` / `"empty"` / `"missing"` for `text`'s `Flip-condition` section.
+def section_state(text: str, heading: re.Pattern[str]) -> str:
+    """`"present"` / `"empty"` / `"missing"` for the section `heading` names in `text`.
 
     Fence-, comment- and blockquote-aware for the same reason `parse_status_fields` is: an ADR
     that QUOTES a `## Flip-condition` heading — inside a fenced example, an HTML comment, or a
@@ -550,7 +593,7 @@ def flip_section_state(text: str) -> str:
     any ADR satisfy a FAIL-armed leg by merely mentioning it.
 
     `empty` is reported separately from `missing`, and is a defect too: a heading whose body is
-    blank, or is nothing but the template's unfilled `<...>` placeholder, names no flip.
+    blank, or is nothing but the template's unfilled `<...>` placeholder, answers nothing.
     """
     lines = text.lstrip("\ufeff").splitlines()
     fence: tuple[str, int] | None = None
@@ -579,7 +622,7 @@ def flip_section_state(text: str) -> str:
             continue
 
         if depth is None:
-            m = _FLIP_HEADING_RE.match(line)
+            m = heading.match(line)
             if m:
                 depth, found = len(m.group("h")), True
             continue
@@ -595,18 +638,30 @@ def flip_section_state(text: str) -> str:
     return "present" if filled else "empty"
 
 
-def flip_condition_defects(directory: Path) -> list[Defect]:
-    """One defect per live ADR that does not name its flip condition.
+def flip_section_state(text: str) -> str:
+    """`section_state` for the `Flip-condition` section (the named-section convenience)."""
+    return section_state(text, _FLIP_HEADING_RE)
+
+
+def alternatives_section_state(text: str) -> str:
+    """`section_state` for the `Alternatives considered` section."""
+    return section_state(text, _ALTS_HEADING_RE)
+
+
+def required_section_defects(directory: Path) -> list[Defect]:
+    """One defect per live ADR × REQUIRED section that is absent or unanswered.
 
     Severity is decided HERE, once, by `FLIP_GRANDFATHER_MAX_ADR`: an ADR numbered ABOVE the
-    mark is new and gets the FAIL-armed `R_FLIP`; one at or below it predates the requirement
-    and gets `R_FLIP_LEGACY`, whose detail carries the disposition path. An ADR whose filename
-    yields no number is treated as GRANDFATHERED — the worst failure available to this module
-    is a false positive on a FAIL-armed leg, so an unparseable name warns rather than blocks.
+    mark is new and gets that section's FAIL-armed id; one at or below it predates the
+    requirement and gets the `-legacy` id, whose detail carries the disposition path. An ADR
+    whose filename yields no number is treated as GRANDFATHERED — the worst failure available
+    to this module is a false positive on a FAIL-armed leg, so an unparseable name warns
+    rather than blocks.
 
-    HONEST LIMIT: this is a PRESENCE-and-non-emptiness rule. It reads whether the section
+    HONEST LIMIT: these are PRESENCE-and-non-emptiness rules. They read whether each section
     exists and whether anything was written under it. Nothing here says the flip condition
-    named is a good one, or is a condition at all rather than prose.
+    named is a good one, or that the alternatives recorded were really considered — only that
+    the ADR answered rather than omitted.
     """
     if not directory.is_dir():
         raise CorpusUnusable(f"not a directory: {directory}")
@@ -616,24 +671,25 @@ def flip_condition_defects(directory: Path) -> list[Defect]:
             text = path.read_text(encoding="utf-8", errors="replace")
         except OSError as exc:
             raise CorpusUnusable(f"unreadable: {path} ({exc})") from exc
-        state = flip_section_state(text)
-        if state == "present":
-            continue
         num = adr_number(path)
         is_new = bool(num) and int(num.split("-")[1]) > FLIP_GRANDFATHER_MAX_ADR
-        detail = ("carries no `## Flip-condition` section" if state == "missing"
-                  else "`Flip-condition` section is empty / still the template placeholder")
-        if is_new:
-            defects.append(Defect(
-                R_FLIP, num or path.name,
-                f"{detail} -- REQUIRED of every ADR above the grandfather mark "
-                f"ADR-{FLIP_GRANDFATHER_MAX_ADR} (see templates/ADR-template.md)"))
-        else:
-            defects.append(Defect(
-                R_FLIP_LEGACY, num or path.name,
-                f"{detail} -- grandfathered at ADR-{FLIP_GRANDFATHER_MAX_ADR}. "
-                f"DISPOSITION: add the section from templates/ADR-template.md, or leave it "
-                f"warned; the mark itself does not move"))
+        for spec in REQUIRED_SECTIONS:
+            state = section_state(text, spec.heading)
+            if state == "present":
+                continue
+            detail = (f"carries no `## {spec.label}` section" if state == "missing"
+                      else f"`{spec.label}` section is empty / still the template placeholder")
+            if is_new:
+                defects.append(Defect(
+                    spec.fail_rule, num or path.name,
+                    f"{detail} -- REQUIRED of every ADR above the grandfather mark "
+                    f"ADR-{FLIP_GRANDFATHER_MAX_ADR} (see templates/ADR-template.md)"))
+            else:
+                defects.append(Defect(
+                    spec.warn_rule, num or path.name,
+                    f"{detail} -- grandfathered at ADR-{FLIP_GRANDFATHER_MAX_ADR}. "
+                    f"DISPOSITION: add the section from templates/ADR-template.md, or leave "
+                    f"it warned; the mark itself does not move"))
     return defects
 
 
@@ -904,7 +960,7 @@ def main(root: str, include_archive: bool) -> None:
     # already off the table and requiring it to name the condition that would reverse it
     # invents a requirement nobody ratified. Every archived file is below the grandfather mark
     # anyway, so the only thing widening would produce is WARN noise.
-    defects += flip_condition_defects(live_dir)
+    defects += required_section_defects(live_dir)
 
     if include_archive:
         try:

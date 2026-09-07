@@ -41,4 +41,11 @@ claim about the world, and that claim is what belongs here.>
 
 ## Alternatives considered
 
+<!-- REQUIRED SECTION (operator, DECLARE-F-2-2026-09-07 §A, thesis T-04 — "the architect must
+     ALWAYS justify"). Same enforcement shape as Flip-condition above: FAIL above
+     FLIP_GRANDFATHER_MAX_ADR, WARN with a disposition path at or below it. The word "Always"
+     was already in this prompt and bought nothing, because nothing checked it; what changed
+     is that something now does. `Rejected alternatives` / `Alternatives rejected` are accepted
+     spellings — the corpus writes all three and they are the same section. -->
+
 <Always filled. What else was evaluated, and why was it not chosen? Where nothing else was evaluated, record that — "none considered", plus the reason — so the section reads as an answer rather than as an omission.>

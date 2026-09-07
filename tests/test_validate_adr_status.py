@@ -961,9 +961,9 @@ def test_a_NEW_adr_without_a_flip_section_is_a_FAIL_armed_defect(tmp_path):
     d.mkdir(parents=True)
     (d / f"ADR-{vas.FLIP_GRANDFATHER_MAX_ADR + 1}-new.md").write_text(
         "# ADR-x\n\n- **Status:** Accepted\n", encoding="utf-8")
-    defects = vas.flip_condition_defects(d)
-    assert [d_.rule for d_ in defects] == [vas.R_FLIP]
-    assert vas.R_FLIP in vas.FAIL_RULES
+    defects = vas.required_section_defects(d)
+    assert [d_.rule for d_ in defects] == [vas.R_FLIP, vas.R_ALTS]
+    assert vas.FAIL_RULES.issuperset({vas.R_FLIP, vas.R_ALTS})
 
 
 def test_a_GRANDFATHERED_adr_without_a_flip_section_WARNS_and_never_FAILS(tmp_path):
@@ -973,10 +973,11 @@ def test_a_GRANDFATHERED_adr_without_a_flip_section_WARNS_and_never_FAILS(tmp_pa
     d.mkdir(parents=True)
     (d / f"ADR-{vas.FLIP_GRANDFATHER_MAX_ADR}-old.md").write_text(
         "# ADR-x\n\n- **Status:** Accepted\n", encoding="utf-8")
-    defects = vas.flip_condition_defects(d)
-    assert [d_.rule for d_ in defects] == [vas.R_FLIP_LEGACY]
-    assert vas.R_FLIP_LEGACY not in vas.FAIL_RULES
-    assert "DISPOSITION:" in defects[0].detail, defects[0].detail
+    defects = vas.required_section_defects(d)
+    assert [d_.rule for d_ in defects] == [vas.R_FLIP_LEGACY, vas.R_ALTS_LEGACY]
+    assert not vas.FAIL_RULES & {vas.R_FLIP_LEGACY, vas.R_ALTS_LEGACY}
+    for d_ in defects:
+        assert "DISPOSITION:" in d_.detail, d_.detail
 
 
 def test_an_unnumbered_adr_filename_warns_rather_than_blocking(tmp_path):
@@ -985,7 +986,89 @@ def test_an_unnumbered_adr_filename_warns_rather_than_blocking(tmp_path):
     d = tmp_path / "docs" / "decisions"
     d.mkdir(parents=True)
     (d / "ADR-draft-no-number.md").write_text("# x\n", encoding="utf-8")
-    assert [d_.rule for d_ in vas.flip_condition_defects(d)] == [vas.R_FLIP_LEGACY]
+    assert [d_.rule for d_ in vas.required_section_defects(d)] == [
+        vas.R_FLIP_LEGACY, vas.R_ALTS_LEGACY]
+
+
+# --- the Alternatives-considered leg (operator, DECLARE-F-2-2026-09-07 §A) ------
+
+@pytest.mark.parametrize("heading", [
+    # Every spelling below was MEASURED in the live corpus, with its file count. Enforcing only
+    # the template's wording would report 9 ADRs as having justified nothing when they plainly
+    # did — and 3 more for numbering their sections.
+    "## Alternatives considered",                       # 45 files — the template's spelling
+    "## Rejected alternatives",                         # 6
+    "## Alternatives rejected",                         # 3
+    "## Alternatives considered (the #86.2 operator fork)",
+    "## 10. Alternatives considered",
+    "## §9 Alternatives considered",
+    "## §4 — Alternatives considered and rejected, with their recorded reasons",
+])
+def test_every_measured_alternatives_spelling_satisfies_the_requirement(heading):
+    body = f"# ADR-900\n\n{heading}\n\nThe sibling design, rejected on cost.\n"
+    assert vas.alternatives_section_state(body) == "present", heading
+
+
+def test_an_unanswered_alternatives_section_is_EMPTY_not_present():
+    """`<Always filled…>` was in the template long before anything checked it. A copied,
+    unanswered prompt is exactly what the word `Always` failed to prevent."""
+    body = ("# ADR-900\n\n## Alternatives considered\n\n"
+            "<Always filled. What else was evaluated, and why was it not chosen?>\n")
+    assert vas.alternatives_section_state(body) == "empty"
+
+
+def test_a_recorded_none_considered_SATISFIES_the_requirement():
+    """The template's own escape hatch has to work, or the rule forces invention. Recording
+    "none considered" plus a reason is an answer; omitting the section is not."""
+    body = ("# ADR-900\n\n## Alternatives considered\n\n"
+            "None considered — the operator ruled the shape directly.\n")
+    assert vas.alternatives_section_state(body) == "present"
+
+
+def test_the_word_alternatives_in_prose_does_not_satisfy_the_requirement():
+    """Only a HEADING opens the section. A rule satisfied by mentioning the word is not a
+    required section, it is a keyword search."""
+    body = "# ADR-900\n\n## Decision\n\nWe weighed the alternatives and chose this one.\n"
+    assert vas.alternatives_section_state(body) == "missing"
+
+
+def test_the_template_carries_an_alternatives_considered_section():
+    tmpl = (vas._REPO_ROOT / "templates" / "ADR-template.md").read_text(encoding="utf-8")
+    assert vas.alternatives_section_state(tmpl) == "empty", (
+        "the template must carry the HEADING and leave the BODY an unanswered placeholder")
+
+
+def test_both_required_sections_share_one_grandfather_mark():
+    """They arm in the same commit, so they grandfather the same population. Two marks would
+    drift, and the second one to drift would be the one nobody re-measured."""
+    assert {s.fail_rule for s in vas.REQUIRED_SECTIONS} == {vas.R_FLIP, vas.R_ALTS}
+    assert {s.warn_rule for s in vas.REQUIRED_SECTIONS} == {
+        vas.R_FLIP_LEGACY, vas.R_ALTS_LEGACY}
+    assert vas.FAIL_RULES.issuperset({s.fail_rule for s in vas.REQUIRED_SECTIONS})
+    assert not vas.FAIL_RULES & {s.warn_rule for s in vas.REQUIRED_SECTIONS}
+
+
+def test_ADR_117_landed_above_the_mark_and_satisfies_BOTH_requirements():
+    """The mid-lane collision, pinned. ADR-117 was written under the OLD template, in the same
+    wave, and is the only live ADR ABOVE the grandfather mark — so both legs are FAIL-armed
+    against it. It carries both sections on its own merits, which is why the mark was not
+    raised to re-grandfather it and why this leg arms with zero FAILs.
+    """
+    adr = next(vas.LIVE_DIR.glob("ADR-117-*.md"), None)
+    if adr is None:                       # not yet merged into this tree
+        pytest.skip("ADR-117 is not in this checkout")
+    text = adr.read_text(encoding="utf-8")
+    assert int(vas.adr_number(adr).split("-")[1]) > vas.FLIP_GRANDFATHER_MAX_ADR
+    assert vas.flip_section_state(text) == "present"
+    assert vas.alternatives_section_state(text) == "present"
+
+
+def test_a_section_numbered_with_an_enumerator_is_still_written():
+    """`## 10. Alternatives considered` / `## §9 …` are live corpus forms. Numbering a section
+    does not un-write it."""
+    for heading in ("## 10. Flip-condition", "## §9 Flip-condition", "## §4 — Flip-condition"):
+        body = f"# ADR-900\n\n{heading}\n\nIf the benchmark regresses.\n"
+        assert vas.flip_section_state(body) == "present", heading
 
 
 def test_the_grandfather_mark_is_the_measured_high_water_and_is_frozen():
@@ -1009,15 +1092,26 @@ def test_the_template_carries_a_flip_condition_section():
         "a filled template body would let a copied-but-unanswered section read as compliant")
 
 
-def test_shipped_corpus_flip_baseline_is_the_measured_89_all_grandfathered():
-    """Layer 3. MEASURED 2026-09-07 on `ef53b069`: 89 live ADRs, ZERO carrying the section,
-    ALL at or below the mark — so the leg adds 89 WARNs and exactly 0 FAILs on the day it
-    arms. A FAIL appearing here means a NEW ADR landed without naming its flip."""
-    defects = vas.flip_condition_defects(vas.LIVE_DIR)
+def test_shipped_corpus_required_section_baseline_is_the_measured_population():
+    """Layer 3, both required sections. MEASURED 2026-09-07 on `ec0d7912`, after ADR-117
+    landed mid-lane: 90 live ADRs; 89 name no flip (ADR-117 is the only one that does) and 32
+    record no alternatives. Every one of them is at or below the mark, so the two legs add 121
+    WARNs and exactly **0 FAILs** on the day they arm.
+
+    A FAIL appearing here means a NEW ADR landed carrying neither section — which is the
+    requirement working, not this baseline being wrong.
+
+    The alternatives figure is re-measured against the operator's 57/88 (65%) in
+    DECLARE-F-2-2026-09-07 §A and does NOT reproduce it: this predicate counts 58 of 90 (64%).
+    The denominator moved (two ADRs landed since), and the numerator agrees only because the
+    predicate accepts the corpus's three measured spellings; a grep for the template's exact
+    words counts 46, not 57.
+    """
+    defects = vas.required_section_defects(vas.LIVE_DIR)
     counts: dict[str, int] = {}
     for d in defects:
         counts[d.rule] = counts.get(d.rule, 0) + 1
-    assert counts == {vas.R_FLIP_LEGACY: 89}, counts
+    assert counts == {vas.R_FLIP_LEGACY: 89, vas.R_ALTS_LEGACY: 32}, counts
 
 
 # --- the audit-check adapter ---------------------------------------------------
@@ -1069,7 +1163,9 @@ def test_check_PASSES_on_a_fully_conforming_corpus(tmp_path):
     d.mkdir(parents=True)
     (d / "ADR-11-x.md").write_text(
         "# ADR-11 — x\n\n- **Status:** Accepted\n"
-        "\n## Flip-condition\n\nIf the measured cost crosses 2x.\n", encoding="utf-8")
+        "\n## Flip-condition\n\nIf the measured cost crosses 2x.\n"
+        "\n## Alternatives considered\n\nNone considered — the sibling measured slower.\n",
+        encoding="utf-8")
     (d / "README.md").write_text(
         "| ADR | Date | Title |\n|--|--|--|\n| ADR-11 | 2026-01-01 | x |\n",
         encoding="utf-8")
@@ -1130,7 +1226,8 @@ def test_FAIL_evidence_still_reports_the_warn_defects_it_computed(tmp_path):
     # The `pass` seed carries a Flip-condition section: since that leg landed, a status line
     # alone is conforming on the status rules but WARNs on the flip one, and this test is
     # about evidence sanitation on all three branches — it needs a genuine `pass` branch.
-    ("- **Status:** Accepted\n\n## Flip-condition\n\nIf the cost crosses 2x.\n", "pass"),
+    ("- **Status:** Accepted\n\n## Flip-condition\n\nIf the cost crosses 2x.\n"
+     "\n## Alternatives considered\n\nNone considered — measured.\n", "pass"),
 ])
 def test_evidence_never_contains_a_literal_pipe(tmp_path, seed, expect):
     """`Finding.evidence` is markdown-table-safe by contract (`_common.Finding` docstring):
@@ -1185,6 +1282,7 @@ def test_hub_evidence_separates_this_legs_warns_from_the_inherited_baseline():
     for inherited in ("grammar=47", "coherence=3", "duplicate-id=2", "wrapped-value=1"):
         assert inherited in ev, ev
     assert "flip-condition-legacy=89" in ev, ev
+    assert "alternatives-considered-legacy=32" in ev, ev
 
 
 def test_check_carries_the_rule_annotation_for_the_doc_code_edge():
@@ -1205,7 +1303,8 @@ def test_cli_exit_0_on_a_clean_synthetic_corpus(tmp_path):
     # "clean" now includes naming the flip, and the CLI must agree with the adapter about it.
     _write(tmp_path, "ADR-11-x.md",
            "# ADR-11 — x\n\n- **Status:** Accepted\n"
-           "\n## Flip-condition\n\nIf the cost crosses 2x.\n")
+           "\n## Flip-condition\n\nIf the cost crosses 2x.\n"
+           "\n## Alternatives considered\n\nNone considered — measured.\n")
     (tmp_path / "docs" / "decisions" / "README.md").write_text(
         "| ADR | Date | Title |\n|--|--|--|\n| ADR-11 | 2026-01-01 | x |\n",
         encoding="utf-8")
