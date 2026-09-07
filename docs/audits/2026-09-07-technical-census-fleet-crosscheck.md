@@ -190,7 +190,13 @@ Four measurements from that table, each of which changes how the 36 above should
 2. **`.methodology.yaml` — the ONLY register a declared, time-boxed waiver can live in
    (`scripts/enforcement_coverage.py`: `ALLOWLIST_REL = ".methodology.yaml"`, read at the repo
    ROOT, fail-soft to `[]` when absent) — exists at 2 of 8 consumers.** Six consumers have no
-   file in which a waiver can be recorded at all.
+   file in which a waiver can be recorded at all. **The two that have it are exactly the two
+   `ecosystem/registry.md` marks `onboarded`** — `ai-council` (v1.3.1) and `corp-monorepo`
+   (v1.2.0); the six that lack it are exactly the six marked `unonboarded` or
+   `methodology-unonboarded`. The correlation is total, and the deploy manifest expects the file
+   at every consumer root (`expect: ".methodology.yaml present at the consumer root with a
+   sanctioned_divergences: block"`). Consequence for a waiver-heavy fleet verdict: a waiver can
+   be *declared* today in 2 of 8 consumers.
 3. **The ADR-106 declared-environment pair is hub-only.** `uv.lock` and `.python-version` are
    present at **0 of 8** consumers. `pyproject.toml` reaches 6 of 8;
    `corp-sca-time-automation` (pre-uv, `requirements.txt` + `pytest.ini`) and `terminal-setup`
@@ -242,12 +248,13 @@ smallest change first.
   `install-guide` declares `source: plugins/tier1-lifecycle/INSTALL.md` → `path: INSTALL.md`,
   and the hub deliberately grows no root `INSTALL.md` of its own — so the allowlist, which
   unions the spec literals with `CANONICAL_MANDATORY`, cannot admit it.
-  **Independently sharpened here:** across **all six** manifests in `deploy/`
-  (`v1.0.0` … `v1.5.0`), the complete set of `path:` values at consumer depth 0 is
-  **`{INSTALL.md}` — one component, one line.** Intake #73's acceptance criterion 2 (*"the set
-  of `path:` values at consumer depth 0 … is a subset of the admitted root set"*) therefore
-  fails on exactly one path, not on a class. **Proposed spec change: add `INSTALL.md` to
-  `root_allowlist.files`.** One line, four repos.
+  **Independently sharpened here.** Intake #73's acceptance criterion 2 is *"the set of `path:`
+  values at consumer depth 0 across `deploy/manifest-v*.yaml` is a subset of the admitted root
+  set"*. That set was enumerated across **all six** manifests (`v1.0.0` … `v1.5.0`) and is
+  **three paths — `.methodology.yaml`, `.pre-commit-config.yaml`, `INSTALL.md`.** Two of the
+  three **are** admitted by `root_allowlist.files`. **Exactly one is not, and it is
+  `INSTALL.md`** — so criterion 2 fails on one path, not on a class. **Proposed spec change: add
+  `INSTALL.md` to `root_allowlist.files`.** One line, four repos.
 - **K2 · Standard Python root files — 4 items, 3 repos.** `conftest.py` (`ai-council`,
   `win-tooling`), `pytest.ini` and `requirements.txt` (`corp-sca-time-automation`).
   *Witness: last content commit, per §1.2.* `root_allowlist.files` carries `pyproject.toml`,
@@ -407,10 +414,12 @@ difference on one row, listed and left open.
 
 **D6 — the carrier/allowlist conflict is exactly ONE path, which U2 did not quantify.** U2
 correctly identifies `INSTALL.md` as carrier-written (its Class I, 4 repos). Derived from the
-other end here: **the complete set of `path:` values at consumer depth 0 across all six
-manifests in `deploy/` is `{INSTALL.md}`.** Intake #73's acceptance criterion 2 therefore fails
-on one component, not on a class. This SHARPENS U2 rather than contradicting it, and it makes
-K1 the cheapest ruling on either list.
+other end here: the set of `path:` values at consumer depth 0 across all six manifests in
+`deploy/` is **three** — `.methodology.yaml`, `.pre-commit-config.yaml`, `INSTALL.md` — of which
+the first two are admitted by `root_allowlist.files` and **`INSTALL.md` is the only one that is
+not.** Intake #73's acceptance criterion 2 therefore fails on one component, not on a class.
+This SHARPENS U2 rather than contradicting it, and it makes K1 the cheapest ruling on either
+list.
 
 **D7 — a second carrier/spec disagreement, which a presence-only instrument cannot see.**
 `deploy/manifest-v1.5.0.yaml` still carries a `doc_shapes:` stanza for `VISION.md` (spine
@@ -428,8 +437,9 @@ pre-relocation world, and whoever rules R1 should know that.
 **D8 — the absence half is missing from U2, and it is a precondition on U2's own result.**
 A seal refuses presence and is blind to absence, which U2 states about itself. Two measurements
 from §1.3 bear directly on U2's 336 waivers: **`.methodology.yaml`, the only register a declared
-time-boxed waiver can live in, exists at 2 of 8 consumers**, so six consumers have nowhere to
-record one; and **`terminal-setup` carries none of the six canonical mandatory documents**,
+time-boxed waiver can live in, exists at 2 of 8 consumers — exactly the two the registry marks
+`onboarded`** — so six consumers have nowhere to record one; and **`terminal-setup` carries none
+of the six canonical mandatory documents**,
 which is a larger fact about that repo than the two items either lane found in it. Not a
 contradiction of U2 — a half its instrument could not reach.
 
