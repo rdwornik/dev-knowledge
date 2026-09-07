@@ -19,6 +19,59 @@
 
 ---
 
+### 2026-09-07 (k) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): W2-F2 lands, and the fourth lane of nine finds its contract measuring a tree that had already moved
+
+**Anchors `1ed350af`, which introduced `a49537c3`.** W2-F2
+`deploy-tool-consumer-override`, the eleventh merge of batch U. `audit.py handback`
+returned **MERGE / exit 0** before the merge; tip verified identical on origin and locally
+first; branch confirmed synced through `ef53b069`, so the merge carried no tree lag.
+Targeted, serial, on the merged result: **35 passed**. Both file pins held --
+`ecosystem/deployed-versions.yaml` (W2-F3's) and `docs/audits/README.md` untouched,
+verified by diff rather than taken from the lane's account.
+
+**FOURTH OF NINE MEASURED LANES TO FIND ITS FROZEN BEFORE-NUMBER STALE**, which promotes
+this from a run of coincidences to the batch's headline finding. The row said `consumer
+resolution overridable: no -> yes`. Measured at HEAD it was **already `yes`** -- [#605]
+landed the entire override mechanism on 2026-08-28, CLI-to-carrier, with 16 tests. The
+contract had been frozen against a tree that moved before the lane booted, exactly as
+W1-5, W1-6 and W1-7 each found from a different direction.
+
+**The lane measured by INVOCATION, not by reading the docstring, and that distinction did
+real work here.** That module's docstring admits *at its own line 16* that it carried a
+false claim for months. A lane that had trusted the prose would have reported the opposite
+of the truth in either direction. The residual was genuine once measured: `--consumer` did
+not exist (witnessed RED, `Error: No such option '--consumer'`) and **no test anywhere
+covered a WORKTREE consumer** -- precisely the case `hub_root.parent / repo` resolves
+wrongly, and the reason the override exists at all. Both delivered; default unchanged.
+
+**A second-order finding larger than the diff that carries it, and correctly NOT fixed
+here.** `DECLARE-F` sourced its "one measured obstacle" from a **prose comment** in
+`ecosystem/deployed-versions.yaml`'s `win-tooling:` block which [#605] had already
+superseded. The lane read that file and **did not edit it** -- W2-F3 owns it under the
+manifest's single-owner pin, and a lane does not widen into another's footprint because
+the fix is cheap. So the stale sentence survives, and **the next planner will reopen this
+already-closed row from it.** Filed to the close packet. If F3's diff reaches that block,
+it is the cheapest correction available tonight.
+
+**Two caveats this seat is recording rather than smoothing over**, because `audit.py
+handback` reads the LINE and by its own stated limit cannot tell a review that ran from one
+that says it did:
+- The tally is well-formed but **THIN** -- codex returned `HIGH:0 MED:0 LOW:0` with no
+  per-finding reasoning. The lane established a real ingestion (10,114 tokens) rather than
+  an empty invocation, and says it would have reported `review=NONE` otherwise. Merged on
+  that basis under the one-round contract, with the thinness on the record.
+- **Of 5 tests added, exactly ONE was RED beforehand.** The other four guard pre-existing
+  [#605] behaviour that was documented but ungated. The lane said so unprompted; a lane
+  that volunteers a weaker number than it could have claimed is the behaviour this batch
+  should be selecting for.
+
+**Did:** verdicted, merged and anchored W2-F2; verified its two file pins by diff.
+**Result:** 11 of 19 lanes merged; `main` current for the seven lanes still in flight.
+**Changes:** `deploy/tool.py`, `tests/test_consumer_root_resolution.py` (new),
+`ecosystem/doc-counts.md`; JOURNAL.md.
+**Abandoned:** nothing this merge.
+**Next:** the seven live lanes as they hand back, W2-R last and alone.
+
 ### 2026-09-07 (j) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): wave 2 opens -- the seal's grammar becomes data, and the one RED is proven inherited rather than attributed
 
 **Anchors `61728224`, which introduced `01104de3` and `f06cd221`.** W2-U1
