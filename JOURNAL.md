@@ -19,6 +19,41 @@
 
 ---
 
+### 2026-09-07 (v) - CC (Opus 5, DISPATCHER-CLOSE): the refusing leg is armed, and the thing that made it safe is an ordering, not a fix
+
+**Anchors `9be0e986`.** The E-29 / inbox 013-A prompts-dir guard has shipped since 2026-09-06
+in two legs -- a SessionStart banner and a PreToolUse predicate -- with only the banner wired.
+The unwired leg was never a backlog remainder; it was a **precondition waiting on a restart**,
+and this session's first act was to arm it.
+
+**The ordering is the whole safety property.** Armed while the two `CLAUDE_PROMPTS_DIR` scopes
+disagree, the guard does not warn -- it refuses every tool call, including the ones that would
+undo the wiring, with no in-session escape. That was measured on 2026-09-06 by wiring it live
+and losing the session to it. So arming is not "apply the config"; it is "read both scopes,
+confirm they agree, THEN apply". Both were read equal at boot (User and process alike), and
+`--prompts-guard` was dry-run to exit 0 on the live tree **before** the object went into
+`.claude/settings.json` -- not after.
+
+**Two surfaces claimed the leg was unwired, and both were corrected in the same commit.** The
+`fleet_health.py` wiring comment said "BUILT AND TESTED BUT DELIBERATELY NOT WIRED"; the
+`settings.json` `//` prose named the ADR-77 guard as the only `PreToolUse` entry. Leaving
+either standing over an armed leg is the precise shape of drift E-29 accumulated four
+instances of -- a decision note outliving its decision. The precondition text is **kept in
+full** rather than deleted: it is discharged, not obsolete, and a future re-arming after a
+scope drift faces the same brick.
+
+**The generated organ index is coupled to this and blocked the first commit** -- 59 organs
+became 60, session-hook 12 became 13. Regenerated, not hand-edited.
+
+**Did:** verified transport (User == process == the operator's drive path); dry-ran the guard;
+armed the `PreToolUse` object on the system interpreter (stdlib-only -- a stale lockfile must
+never be able to block every tool call); corrected both stale comments; regenerated the organ
+index.
+**Result:** guard exits 0 silently on the live tree; 223 targeted tests pass.
+**Changes:** `.claude/settings.json`, `scripts/fleet_health.py`, `ecosystem/organ-index.md`.
+**Abandoned:** nothing.
+**Next:** batch CLOSE step 0 -- branch/worktree census, ship-gate, coupling scan, ceiling check.
+
 ### 2026-09-07 (u) - CC (Opus 5, INTEGRATOR-N3): the queue drains -- intake #76 lands, the tree goes down to one branch, and a gate passes on a citation that predates what it certifies
 
 **Anchors `a3c213ce`, which introduced `949b8961`.** Intake #76 (browser window shape and
