@@ -19,6 +19,49 @@
 
 ---
 
+### 2026-09-07 (s) - CC (Opus 5, INTEGRATOR-N2): the filings arc lands, and ADR-118 immediately re-opens the leak ADR-117 just closed
+
+**Anchors `e02a442d`, which introduced `cc5dadff`.** filings-N3 -- intake #40 re-opened on
+the one-graph ruling, intakes #86-#88 filed, ADR-118 drafted, inbox 033 carried. Merged on
+the operator's instruction, BY SHA. 11 files, +625/-10. **The last merge of the night.**
+
+**LABELLED `[docs-only]`; BY DIFF IT IS A DOCS ARC PLUS ITS THREE COUPLED SURFACES**, and
+the distinction is recorded rather than smoothed, because `docs-only` is a class the
+handback verdict treats differently from `code`. The arc touches
+`tests/test_validate_adr_status.py`, `.claude/generated/recent-adrs.md` and
+`protocols/OPERATOR-INTERFACE.md`. The test change is **two baseline re-measurements, not
+logic** -- live ADR count 90 -> 91 and grammar G1 43 -> 44, each naming ADR-118 as the single
+cause and each noting G2/G3/G4 unchanged, *"which is what confirms the delta is one ADR
+rather than grammar drift wearing its clothes."* That is the documented **adding-an-ADR
+trips four coupled surfaces** pattern in full. **No independent code change** -- so the
+label describes the intent correctly while the diff carries more than the words do.
+
+**ADR-118 RE-OPENS, ON ARRIVAL, THE EXACT LEAK `declare-f2-intakes` CLOSED FOR ADR-117 SIX
+MERGES EARLIER.** Its status field is `Proposed <!-- ... -->`, and `gen_claude_rosters.py`
+scrapes the status line **verbatim**, so the whole HTML comment is now rendered into
+`.claude/generated/recent-adrs.md` -- which is `@`-imported into `CLAUDE.md`, the file every
+session reads at boot. **The fix was applied to one ADR; nothing gates the pattern, so the
+very next ADR reintroduced it.** Byte cap and roster freshness both still pass, which is
+exactly why it survives: **every gate that could see it measures something else.** A
+one-instance fix to a class defect buys one instance.
+
+**Inbox 033 lands as one `OPERATOR-INTERFACE` row and it is the night's own remedy.** THINK,
+THEN GATHER, THEN ACT -- a fixed three-step order stated **before** acting rather than
+reconstructed after it, gathering priced as low-effort work and conclusions as ruling-class,
+with a form probe making an unannounced >10 KB read, file write or paste block a defect. On
+a night that produced **five separate instruments each returning a plausible wrong number**,
+a rule forcing the plan and the instrument to be named **before the answer exists** is the
+directly relevant countermeasure. It would have caught at least three of the five.
+
+**Changes:** ADR-118 + index row + generated roster; intakes #86-#88 and #40 re-opened;
+`OPERATOR-INTERFACE.md` inbox 033; two ADR-status baselines re-measured.
+
+**Anchor note:** this entry's own merge is anchored by `80497321`, the commit carrying the text
+above -- a merge cannot name its own hash (ADR-85 amendment section A7 reading 2).
+
+**Next:** final worktree census, teardown of every contained branch, ship-gate at HEAD.
+**Queue drained.**
+
 ### 2026-09-07 (r) - CC (Opus 5, INTEGRATOR-N2, SWEEP batch): the last census merges without a handback, because the handback was destroyed rather than withheld
 
 **Anchors `59e883f3`, which introduced `2d791e0a`.** S-13 `census-fleet-crosscheck`, the
