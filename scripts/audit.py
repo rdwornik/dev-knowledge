@@ -3266,7 +3266,11 @@ def _parse_version(raw: str) -> tuple[int, ...] | None:
     if not raw:
         return None
     parts = raw.split(".")
-    if not all(p.isdigit() for p in parts):
+    # ASCII-only on purpose. `str.isdigit()` is True for characters `int()` REFUSES --
+    # superscripts are the reachable case (`"²".isdigit()` is True, `int("²")`
+    # raises ValueError) -- so an isdigit()-only guard turns a junk record into an uncaught
+    # crash in a check whose whole contract is to fail OPEN. Verified, both directions.
+    if not all(p.isascii() and p.isdigit() for p in parts):
         return None
     return tuple(int(p) for p in parts)
 
@@ -3335,7 +3339,9 @@ def check_plugin_version_drift(repo_path: Path) -> list[Finding]:
     name = "plugin_version_drift"
     try:
         data = yaml.safe_load(DEPLOYED_VERSIONS_REGISTRY.read_text(encoding="utf-8"))
-    except (OSError, yaml.YAMLError) as exc:
+    # UnicodeDecodeError is a ValueError, NOT an OSError -- a registry with one malformed
+    # byte would otherwise crash this reporter instead of WARNing about its own blindness.
+    except (OSError, ValueError, yaml.YAMLError) as exc:
         return [Finding(name, "warn",
                         f"deployed-versions.yaml unreadable (read-only, non-blocking): {exc!r}"
                         .replace("|", "/"))]
@@ -3343,18 +3349,31 @@ def check_plugin_version_drift(repo_path: Path) -> list[Finding]:
     if not isinstance(repos, dict):
         return [Finding(name, "warn",
                         "deployed-versions.yaml missing/malformed 'repos:' map (F-3)")]
-    repo_key = _git_repo_root_name(repo_path) or Path(repo_path).name
+    # A repo directory name is not guaranteed pipe-free on POSIX, and it reaches EVERY
+    # branch below -- sanitise once, at the source, rather than per-message.
+    repo_key = (_git_repo_root_name(repo_path) or Path(repo_path).name).replace("|", "/")
     if repo_key not in repos:
         return [Finding(name, "warn",
                         f"{repo_key} not listed in deployed-versions.yaml (F-3)")]
     entry = repos[repo_key]
-    recorded = entry.get("deployed_plugin_version") if isinstance(entry, dict) else None
+    if not isinstance(entry, dict):
+        return [Finding(name, "warn",
+                        f"{repo_key}: registry entry is not a mapping, so no plugin record "
+                        "could be read (F-3)")]
+    # ABSENT KEY != EXPLICIT NULL. Null is the shipped pre-record baseline and is `n/a`;
+    # a MISSING key means this repo's block predates the schema or was hand-edited, and the
+    # check is blind for it -- a WARN, because reporting that as `n/a` hides the blindness.
+    if "deployed_plugin_version" not in entry:
+        return [Finding(name, "warn",
+                        f"{repo_key}: no 'deployed_plugin_version' key in its registry entry "
+                        "-- the schema key is missing, not merely unset (F-3)")]
+    recorded = entry["deployed_plugin_version"]
     if recorded is None:
         return [_na(name, "NOT-APPLICABLE",
                         f"{repo_key}: unset -- no carrier #2 plugin version recorded yet "
                         "(deploy-runbook writes it; DECLARE-F F-3)")]
     # The SPEC half. Read second, so a null record short-circuits before we need it at all.
-    try:
+    try:   # ValueError covers both JSONDecodeError and UnicodeDecodeError
         spec = str(json.loads(PLUGIN_MANIFEST.read_text(encoding="utf-8"))["version"])
     except (OSError, ValueError, KeyError, TypeError) as exc:
         return [Finding(name, "warn",

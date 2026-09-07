@@ -924,27 +924,40 @@ def _set_repo_record(
     return "\n".join(out) + "\n"
 
 
-def _plugin_version_deployed(
-    outcomes: "Sequence[CarrierExecOutcome]",
-) -> str | None:
-    """The plugin version this run EARNED the right to record, or None (F-3).
+def _capture_plugin_spec_version() -> str | None:
+    """Snapshot carrier #2's SPEC version ONCE, BEFORE the carriers run (F-3).
 
-    Carrier #2's record is written only when that carrier both ran in this deploy and
-    its independent ``verify`` confirmed the result — the same "judged from the resulting
-    installed state, never from stdout" discipline the carrier itself applies (ADR-92
-    Decision 9). Anything weaker would write a value the deploy did not prove.
+    Read up-front rather than at record time on purpose. The record must name the version
+    this deploy actually reconciled toward, and the carrier reads the same manifest through
+    the same seam while it runs; a second read AFTER the loop would silently pick up a
+    manifest edited mid-run and commit a version the deploy never proved — the exact
+    "a value cannot precede its release" failure the registry's write-contract forbids.
 
-    Returns None (leave the record untouched) when the carrier was not in the plan, did
-    not verify, or the hub manifest cannot be read — a reporter never fabricates.
+    None on an unreadable/shapeless manifest: the record field is then left untouched
+    rather than fabricated.
     """
-    ok = any(o.carrier_id == PluginCarrier.carrier_id and o.verify_ok for o in outcomes)
-    if not ok:
-        return None
     try:
         return target_plugin_version()
     except (OSError, ValueError, KeyError) as exc:   # unreadable / shapeless manifest
         log.warning("tier1-plugin version unreadable; record field left unset: %r", exc)
         return None
+
+
+def _plugin_version_deployed(
+    outcomes: "Sequence[CarrierExecOutcome]", spec_version: str | None,
+) -> str | None:
+    """The plugin version this run EARNED the right to record, or None (F-3).
+
+    Carrier #2's record is written only when that carrier both ran in this deploy and its
+    independent ``verify`` confirmed the result — the same "judged from the resulting
+    installed state, never from stdout" discipline the carrier itself applies (ADR-92
+    Decision 9). Anything weaker would write a value the deploy did not prove.
+
+    ``spec_version`` is the pre-loop snapshot, so this function makes the RECORDING
+    decision and never re-reads the source of the value.
+    """
+    ok = any(o.carrier_id == PluginCarrier.carrier_id and o.verify_ok for o in outcomes)
+    return spec_version if ok else None
 
 
 def _git_checked(git: GitRunner, args: Sequence[str], cwd: Path, what: str, **kw: Any) -> GitResult:
@@ -1172,6 +1185,10 @@ def execute(
     carriers = carrier_factory(ctx.repo_root)
     plan = assess(ctx, carrier_factory=lambda _root: carriers)
 
+    # Carrier #2's SPEC, snapshotted BEFORE any carrier runs (F-3) -- see
+    # _capture_plugin_spec_version for why the read cannot happen at record time.
+    plugin_spec_version = _capture_plugin_spec_version()
+
     outcomes: list[CarrierExecOutcome] = []
     failed: str | None = None
     for item in plan.items:
@@ -1301,7 +1318,7 @@ def execute(
             deployed_version=str(ctx.manifest.get("methodology_version", ctx.bare_version)),
             source_tag=ctx.source_tag,
             deployed_date=today or _date.today().isoformat(),
-            plugin_version=_plugin_version_deployed(outcomes),
+            plugin_version=_plugin_version_deployed(outcomes, plugin_spec_version),
             git=git,
         )
 

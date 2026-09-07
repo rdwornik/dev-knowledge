@@ -213,6 +213,107 @@ def test_evidence_carries_no_pipe(tmp_path: Path, monkeypatch) -> None:
         assert "|" not in f.evidence
 
 
+# --- codex review 2026-09-07, the five HIGHs, each with its witness ----------------------
+
+@pytest.mark.parametrize("recorded", [None, "0.1.11", "0.1.9", "0.2.0", "junk"])
+def test_no_evidence_path_leaks_a_pipe_from_the_repo_key(
+    tmp_path: Path, monkeypatch, recorded: str | None) -> None:
+    """A repo DIRECTORY NAME is not pipe-free on POSIX, and it reaches every branch --
+    the n/a and pass paths included, which the drift branches' own sanitisation missed."""
+    _wire(tmp_path, monkeypatch, _reg("we|rd", recorded))
+    for f in aud.check_plugin_version_drift(tmp_path / "we|rd"):
+        assert "|" not in f.evidence
+    for f in aud.check_plugin_version_drift(tmp_path / "ab|sent"):   # missing-repo path
+        assert "|" not in f.evidence
+
+
+def test_superscript_record_does_not_crash(tmp_path: Path, monkeypatch) -> None:
+    """`"2".isdigit()` is True while `int("2")` RAISES (superscript two). An
+    isdigit()-only guard turns a junk record into an uncaught ValueError in a check whose
+    entire contract is to fail OPEN."""
+    assert "²".isdigit() is True                      # the trap, asserted directly
+    with pytest.raises(ValueError):
+        int("²")
+    assert aud._parse_version("0.1.²") is None
+    _wire(tmp_path, monkeypatch, _reg("ai-council", "0.1.²"))
+    f = aud.check_plugin_version_drift(tmp_path / "ai-council")[0]
+    assert f.status == "warn"
+
+
+def test_non_utf8_registry_is_warn_not_a_crash(tmp_path: Path, monkeypatch) -> None:
+    """UnicodeDecodeError is a ValueError, NOT an OSError -- one malformed byte in the
+    registry must WARN about this check's blindness, never raise through the gate."""
+    reg = tmp_path / "deployed-versions.yaml"
+    reg.write_bytes(b"repos:\n  ai-council:\n    deployed_plugin_version: \"\xff\xfe\"\n")
+    monkeypatch.setattr(aud, "DEPLOYED_VERSIONS_REGISTRY", reg)
+    monkeypatch.setattr(aud, "PLUGIN_MANIFEST", tmp_path / "plugin.json")
+    f = aud.check_plugin_version_drift(tmp_path / "ai-council")[0]
+    assert f.status == "warn"
+    assert "unreadable" in f.evidence
+
+
+def test_absent_key_is_warn_not_na(tmp_path: Path, monkeypatch) -> None:
+    """An ABSENT schema key and an EXPLICIT null are different facts. Null is the shipped
+    pre-record baseline (n/a); a missing key means the block predates the schema or was
+    hand-edited, and reporting THAT as n/a hides the check's blindness for that repo."""
+    _wire(tmp_path, monkeypatch,
+          "repos:\n  ai-council:\n    deployed_methodology_version: null\n")
+    f = aud.check_plugin_version_drift(tmp_path / "ai-council")[0]
+    assert f.status == "warn"
+    assert "missing" in f.evidence
+
+
+def test_non_mapping_entry_is_warn(tmp_path: Path, monkeypatch) -> None:
+    """A scalar where a repo entry should be a mapping is corruption, not `n/a`."""
+    _wire(tmp_path, monkeypatch, "repos:\n  ai-council: 1.2.3\n")
+    f = aud.check_plugin_version_drift(tmp_path / "ai-council")[0]
+    assert f.status == "warn"
+    assert "not a mapping" in f.evidence
+
+
+def test_no_input_shape_can_make_this_check_fail(tmp_path: Path, monkeypatch) -> None:
+    """The posture stated as a property: over every malformed shape reachable from either
+    input, the organ emits pass/warn/n-a and NEVER `fail` -- and never raises."""
+    bodies = [
+        "repos:\n  ai-council:\n    deployed_plugin_version: null\n",
+        "repos:\n  ai-council:\n    deployed_plugin_version: 7\n",
+        "repos:\n  ai-council:\n    deployed_plugin_version: []\n",
+        "repos:\n  ai-council: null\n",
+        "repos: []\n",
+        "not-a-mapping\n",
+        "",
+    ]
+    for body in bodies:
+        for spec in (HUB_PLUGIN_VERSION, "", "not-a-version", None):
+            _wire(tmp_path, monkeypatch, body, plugin_version=spec)
+            for f in aud.check_plugin_version_drift(tmp_path / "ai-council"):
+                assert f.status != "fail", (body, spec, f.evidence)
+                assert "|" not in f.evidence
+
+
+def test_record_uses_the_pre_loop_snapshot_not_a_second_read() -> None:
+    """The record must name the version this deploy reconciled TOWARD. `execute` snapshots
+    the spec BEFORE the carriers run and `_plugin_version_deployed` only DECIDES; a second
+    read after the loop could commit a manifest edited mid-run -- a value the deploy never
+    proved, which the registry's write-contract forbids."""
+    import tool as deploy_tool
+    ok = deploy_tool.CarrierExecOutcome(
+        "tier1-plugin", 2, None, applied=True, apply_changed=True, verify_ok=True)
+    bad = deploy_tool.CarrierExecOutcome(
+        "tier1-plugin", 2, None, applied=True, apply_changed=True, verify_ok=False)
+    other = deploy_tool.CarrierExecOutcome(
+        "precommit", 3, None, applied=True, apply_changed=True, verify_ok=True)
+    # the snapshot is returned verbatim -- no re-read, so a mid-run manifest edit cannot leak in
+    assert deploy_tool._plugin_version_deployed([ok], "0.1.11") == "0.1.11"
+    # carrier ran but did NOT verify -> nothing earned, record left untouched
+    assert deploy_tool._plugin_version_deployed([bad], "0.1.11") is None
+    # carrier absent from the plan -> nothing earned
+    assert deploy_tool._plugin_version_deployed([other], "0.1.11") is None
+    assert deploy_tool._plugin_version_deployed([], "0.1.11") is None
+    # an unreadable manifest snapshot cannot be fabricated back into a value
+    assert deploy_tool._plugin_version_deployed([ok], None) is None
+
+
 # ---------------------------------------------------------------------------
 # The registry schema + the runbook's write path.
 # ---------------------------------------------------------------------------
