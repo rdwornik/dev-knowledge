@@ -1,8 +1,11 @@
 ---
 intake-id: 70
-status: DRAFT
+status: ACCEPTED
 origin: Layer-1 browser architect, ARCHITECT-INBOX-2026-09-05 item 003-A, under the operator ruling of 2026-09-05 (the test is approved; the goal is to improve OUR hub, not to adopt a plugin that duplicates it); filed by the FILINGS-2 session as the ADR-111 CANDIDATE that precedes any row
-consumed-by:
+decided-by: DECLARE-F-2026-09-06.md ruling F-5, executed by batch-U lane W2-F5 (lane-u-000-erratum-aj-second-pass) on 2026-09-07 — accepted because the deliverable (docs/audits/2026-09-05-technical-research-aj-second-pass.md) exists and is consumed by docs/audits/2026-09-06-technical-research-aj-thesis-catalogue-and-deployment-model.md, AND because the erratum F-5 owed on its 6.4x/16.2x headline is now landed
+disposition: active
+note: The acceptance is not a clean bill. The deliverable's headline is reproducible only off-tree — see docs/audits/2026-09-06-technical-erratum-aj-second-pass.md, whose section 4 carries the qualifier every citation of the 24.3x figure must carry, and whose section 4 relocation proposal is RELOCATE-PROPOSED and awaits the operator.
+consumers: docs/audits/2026-09-06-technical-research-aj-thesis-catalogue-and-deployment-model.md (section 4.3 / ES-03); docs/audits/2026-09-06-technical-erratum-aj-second-pass.md
 ---
 
 # Architekt Jutra second pass — shipped-vs-specified ranking and a live Maister comparison on a consumer clone
