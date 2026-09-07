@@ -4,7 +4,7 @@ status: ACCEPTED
 origin: Layer-1 browser architect, ARCHITECT-INBOX-2026-09-05 item 003-A, under the operator ruling of 2026-09-05 (the test is approved; the goal is to improve OUR hub, not to adopt a plugin that duplicates it); filed by the FILINGS-2 session as the ADR-111 CANDIDATE that precedes any row
 decided-by: DECLARE-F-2026-09-06.md ruling F-5, executed by batch-U lane W2-F5 (lane-u-000-erratum-aj-second-pass) on 2026-09-07 — accepted because the deliverable (docs/audits/2026-09-05-technical-research-aj-second-pass.md) exists and is consumed by docs/audits/2026-09-06-technical-research-aj-thesis-catalogue-and-deployment-model.md, AND because the erratum F-5 owed on its 6.4x/16.2x headline is now landed
 disposition: active
-note: The acceptance is not a clean bill. The deliverable's headline is reproducible only off-tree — see docs/audits/2026-09-06-technical-erratum-aj-second-pass.md, whose section 4 carries the qualifier every citation of the 24.3x figure must carry, and whose section 4 relocation proposal is RELOCATE-PROPOSED and awaits the operator.
+note: The acceptance is not a clean bill. The deliverable's headline is reproducible only off-tree — see docs/audits/2026-09-06-technical-erratum-aj-second-pass.md, whose section 4 carries the qualifier every citation of the setup-inclusive 23.5x / 24.3x figures must carry, and whose section 4 relocation proposal is RELOCATE-PROPOSED and awaits the operator.
 consumers: docs/audits/2026-09-06-technical-research-aj-thesis-catalogue-and-deployment-model.md (section 4.3 / ES-03); docs/audits/2026-09-06-technical-erratum-aj-second-pass.md
 ---
 
@@ -102,10 +102,29 @@ Frozen before the build, and identical to the contract's own success criterion:
 
 ## Status
 
-DRAFT — filed 2026-09-05 as the ADR-111 CANDIDATE for the arc dispatched the same day. Proposed
-row shape when it is ratified: **theme E7 (tooling & evaluation), size M**. The arc's deliverable
-is the evidence this doc's acceptance criteria are judged against; ratification is the operator's,
-and nothing here births a row.
+**ACCEPTED 2026-09-07** under ruling F-5 of `DECLARE-F-2026-09-06.md`, executed by batch-U lane
+W2-F5. Filed 2026-09-05 as the ADR-111 CANDIDATE for the arc dispatched the same day. Proposed row
+shape when it is ratified: **theme E7 (tooling & evaluation), size M**. The arc's deliverable is the
+evidence this doc's acceptance criteria are judged against; ratification is the operator's, and
+nothing here births a row.
+
+**Both halves of F-5, because either alone misreports the record.** Accepted *because* the
+deliverable exists and is consumed by the deployment-model memo — **and** an erratum was owed on its
+6.4×/16.2× headline *because* the evidence is not in the tree. That erratum is
+`docs/audits/2026-09-06-technical-erratum-aj-second-pass.md`. It finds the published pair
+arithmetically correct as scoped, corrects the init footnote (732 s → 2751 s), refutes the audit's
+claim that the init run's cost was never captured, and states the setup-inclusive scope the
+comparison omitted. **The acceptance is not a clean bill:** the headline reproduces only off-tree,
+from one unbacked directory on the operator's disk, and every citation of it carries the §4
+qualifier until the operator rules the relocation the erratum proposes.
+
+Acceptance criterion 1 (**≥ 80 % execution witnesses**) turns on how the criterion is read, and the
+deliverable declares the miss rather than rounding it up (`2026-09-05-technical-research-aj-second-pass.md:44-47`,
+`:287-292`): read strictly as "≥ 80 % of cells are RUNNING", the arc **misses at 70 %** (21 of 30)
+and marks FR1 **INCONCLUSIVE**; read as "≥ 80 % of cells carry an execution witness", all 30 do and
+the criterion passes. The acceptance is of the deliverable *as it honestly reports itself* —
+requirement 5 ("report INCONCLUSIVE naming the failing requirement, rather than downgrading to a
+partial result presented as a finding") is satisfied by the very act of declaring the shortfall.
 
 ---
 

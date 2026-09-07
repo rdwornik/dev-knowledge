@@ -27,7 +27,10 @@ below was re-read from its source file rather than accepted from the draft:
   **All five match**, to one added digit of precision (the draft printed the init cost as
   `21.858562`; the file carries `21.8585621`. The rounding is immaterial and the published `$21.86`
   is right).
-- The four ratios, recomputed from those primitives: 16.169× · 6.375× · 24.326× · 9.142×. **Reproduce.**
+- The published pair, recomputed from those primitives: **16.169× · 6.375×. Both reproduce.** The
+  two all-in ratios did *not* survive re-checking unchanged — see the reviewer corrections in §2;
+  the cost side stands (24.326×) and the elapsed side was wrong (9.142× was a sum of overlapping
+  timers; the union gives 7.533×).
 - The subject headline **is** at line 107 of the named audit, quoted correctly.
 - `git ls-files | grep -icE 'FR2|legM|legD'` → **0**, re-measured at `c371b856` (the draft measured 0
   at `498064c9`; the finding survives four days of merges).
@@ -54,8 +57,9 @@ The landing seat records **no disagreement** with any finding in §1–§6 below
    and 6.4×. Nothing in the ratio is wrong.
 2. **The scope it names is not the whole run, and the audit's own footnote for the missing part is
    wrong by 3.76×.** Corrected below. Counting the setup the comparison required, the ratio is
-   **24.3× the cost and 9.1× the wall-clock** — the published headline **understates** leg M by
-   **$24.48**.
+   **23.5× the cost and 7.0× the elapsed time** — the published headline **omits $21.86** of
+   successful setup spend. Counting the two failed setup attempts as well, **24.3× and 7.5×**, and
+   the omission is **$24.48**. The elapsed figures are interval unions, not sums of the timers (§2).
 3. **The evidence is NOT in the commit tree — and it is not gone.** 89 files survive off-tree. The
    integrator's HIGH and the memo's ES-03 are both correct that nothing is in git; both correctly
    stopped there, because neither seat had disk access. This seat did.
@@ -97,17 +101,34 @@ of **3.76**. The cost row (m10) carries no setup figure at all: **$21.86 of the 
 in no cell of the comparison table** — and, per §0, the audit states that figure was never captured,
 when in fact it was.
 
-**Both framings, so the reader picks the scope rather than inheriting one:**
+**Three framings, so the reader picks the scope rather than inheriting one.** The middle row is the
+one this erratum recommends: it counts the setup the comparison actually required, and excludes two
+attempts that produced nothing.
 
 ```
-                      leg M        leg D     ratio
-development only     $48.53        $3.00     16.2x     <- the published headline
-                      7809 s       1225 s     6.4x
-all invocations      $73.01        $3.00     24.3x
-                     11199 s       1225 s     9.1x
+scope                              leg M        leg D    cost ratio   elapsed ratio
+development only (published)      $48.53        $3.00      16.2x          6.4x
+  + successful setup              $70.39        $3.00      23.5x          7.0x     <- recommended
+  + two failed setup attempts     $73.01        $3.00      24.3x          7.5x
 ```
 
-**Which is right depends on a question the audit did not ask:** is `/maister:init` a one-time
+**Two corrections to an earlier revision of this erratum, both found by the reviewer** (codex, one
+round, 2026-09-07) and both material enough to state rather than silently amend:
+
+1. **The failed attempts were folded into the headline figure without being marked.** `ATTEMPT1`
+   ended in a 429 and `ATTEMPT2` was refused; together they cost **$2.62** and produced nothing.
+   Counting them is defensible — they were really spent — but a single "24.3×" that silently
+   includes them is not comparable to the audit's scoring, which excludes non-productive runs.
+   Hence three rows, with the failed attempts on their own line.
+2. **The elapsed figures are interval UNIONS, not sums of the timers.** An earlier revision summed
+   `2751 + 7809 = 10560 s` and published **9.1×** for the all-in row. That is wrong, and §3 of this
+   same file is why: the init and development timers **overlap by 1971 s**, so summing them
+   double-counts that span. The union of the four recorded intervals is **9228 s** (all
+   invocations) and **8589 s** (successful only) — hence **7.5×** and **7.0×**, not 9.1×.
+   **An erratum that mis-sums its own correction is worth less than the claim it corrects**, so the
+   arithmetic is stated here rather than repaired quietly.
+
+**Which scope is right depends on a question the audit did not ask:** is `/maister:init` a one-time
 per-repo setup, amortised across every later task, or part of the cost of this task? The first is a
 defensible reading — and it is *not* the reading the audit took, because m1 adds init to wall-clock
 while m10 omits it from cost. **The asymmetry is the defect, not the choice.** A comparison must
@@ -152,16 +173,21 @@ improvement at all in reproducibility.**
 1. **Land the 89 files under a tracked sibling directory.** The shape already exists in-tree:
    `docs/audits/2026-09-05-technical-627-readjudication-artifacts/` is a tracked artifacts directory
    beside its audit. The parallel path is
-   `docs/audits/2026-09-05-technical-research-aj-second-pass-artifacts/`. The two result JSONs and
-   the five `*.timing.txt` files alone (7 files, small) would make every number in §2 checkable by
-   anyone with the repo — **the full 89 are not required for reproducibility.**
+   `docs/audits/2026-09-05-technical-research-aj-second-pass-artifacts/`. **Ten files, all small,
+   carry every number in §2**: the **five** result JSONs (`total_cost_usd`, `num_turns` — one per
+   invocation, and the all-in rows need all five, not two) plus the **five** `*.timing.txt` files
+   (`START_EPOCH` / `END_EPOCH` / `WALL_CLOCK_SECONDS` — the epochs are what make the union in §2
+   checkable, and a `WALL_CLOCK_SECONDS` alone would not). **The full 89 are not required for
+   reproducibility.** An earlier revision of this file said "7 files, the two result JSONs and the
+   five timing files"; that set cannot reproduce a five-row table, and the reviewer caught it.
 2. **Then re-derive from the tracked copies**, and this erratum becomes checkable rather than
    trusted.
 3. **Restate the comparison under ONE scope**, applied to both the clock row and the cost row.
 
 **This is RELOCATE-PROPOSED, not an act.** C-8 bars this seat from moving operator files, the
 directory is large and unreviewed, and the nine consumer repos are read-only tonight. The operator
-rules it. **Until he does, every citation of the 24.3× figure should carry the qualifier above** —
+rules it. **Until he does, every citation of the setup-inclusive figures (23.5× / 24.3×) should
+carry the qualifier above** —
 including the ones in `RATIFICATION-2026-09-07.md` §5.3 and in this seat's STATUS board, which do.
 
 ## 5 · What would verify the headline — the check that was run
@@ -171,10 +197,19 @@ The check itself: both result JSONs read for `total_cost_usd` and `num_turns`, b
 primitives rather than from any figure the audit published. The published ratios reproduce; the
 init footnote does not. §4 states what that reproduction is and is not worth.
 
-**Re-run by the landing seat**, independently, on 2026-09-07 — same primitives, same four ratios,
-same result (§0). Two seats have now reproduced §2 from the files; neither reproduction is checkable
-from the repository, and a second agreeing seat does not change that. **Reproducibility is a property
-of the evidence's location, not of the number of seats that have read it.**
+**Re-run by the landing seat**, independently, on 2026-09-07 — same primitives, same published pair,
+same result (§0). Two seats have now reproduced the §2 primitives from the files; neither
+reproduction is checkable from the repository, and a second agreeing seat does not change that.
+**Reproducibility is a property of the evidence's location, not of the number of seats that have
+read it.**
+
+**Reviewer round (C-7 — the tally belongs in the artifact, not only in the packet).**
+`reviewer: codex`, ONE round, on this lane's own diff, 2026-09-07: **HIGH 3 · MED 1 · LOW 0.** All
+four were accepted and fixed in-lane before the artifact landed; none was disputed. Two were
+arithmetic defects in the erratum itself — the overlapping-timer sum and the "7 files" reproduction
+set — and both are recorded in §2 and §4 rather than quietly corrected, because *an erratum is the
+last document that should hide its own corrections*. The remaining two were an unmarked inclusion of
+two failed setup attempts (§2) and an unqualified "now verifies" (§6).
 
 ## 6 · What this erratum does NOT do
 
@@ -185,7 +220,9 @@ of the evidence's location, not of the number of seats that have read it.**
 - It does not disturb `DECLARE-F`'s §0 rulings. §4.3 already recorded that the headline is **not
   load-bearing** anywhere in the deployment-model memo, which rests entirely on in-tree locators.
   **Nothing in DECLARE-F changes because of this erratum**, and F-5's ACCEPT of the AJ second-pass
-  intake stands: the deliverable exists, is consumed, and now verifies.
+  intake stands: the deliverable exists, is consumed, and its headline now carries a **qualified**
+  reproduction — qualified in the exact sense §4 sets out, off-tree and not checkable from the
+  repository. It does **not** "now verify" without that qualifier.
 - It reads only §0.1–0.5 and §4.3 of the thesis memo. DECLARE-F reserves §1–§4 for a later
   deliberate browser read; §4.3 was opened because it is the commissioned subject, and **no new row
   is born from it here**.
@@ -226,4 +263,4 @@ exists and is consumed by the memo* — **and** an erratum was owed on its headl
 evidence is not in the tree*. This file is that erratum. The acceptance is not a clean bill: the
 deliverable stands, and its headline needs the qualifier in §4 every time it is quoted.
 
-**Before → after:** `6.4x/16.2x headline: unverifiable in-tree (0 arc evidence files tracked, re-measured at c371b856) -> reproduced off-tree by two seats (NOT reproducible from the repo), init footnote corrected 732 s -> 2751 s, the "no JSON was written" claim at :231 refuted ($21.86 / 60 turns captured), all-in ratio stated (24.3x cost / 9.1x clock), 7 files named as the minimum relocation that would make it checkable; intake docs/intake/2026-09-05-tech-aj-second-pass.md DRAFT -> ACCEPTED`.
+**Before → after:** `6.4x/16.2x headline: unverifiable in-tree (0 arc evidence files tracked, re-measured by this seat at c371b856) -> published pair reproduces off-tree (16.169x / 6.375x) but is NOT reproducible from the repo; init footnote corrected 732 s -> 2751 s; the "no JSON was written" claim at :231 refuted ($21.86 / 60 turns captured); setup-inclusive scope stated as 23.5x cost / 7.0x elapsed (recommended) and 24.3x / 7.5x counting two failed attempts, elapsed as interval UNIONS after the reviewer caught a 1971 s double-count that had produced a wrong 9.1x; 10 files named as the minimum relocation that would make it checkable; intake docs/intake/2026-09-05-tech-aj-second-pass.md DRAFT -> ACCEPTED`.
