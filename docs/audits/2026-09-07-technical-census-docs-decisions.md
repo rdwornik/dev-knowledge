@@ -410,3 +410,12 @@ standing-rulings register) against the one it requires, and `validate_hermetizat
 contains `technical`, this file's class token. `audit-title-gate` is satisfied by construction —
 the file opens with a `# ` heading. **`audit-health` was not run in any form.** The integrator's
 merge is where these actually fire.
+
+**11. The session-end gate did not run either — a different organ, same cause.** The `Stop` hook
+`scripts/session_end_backpressure.py` (`.claude/settings.json`, ADR-85) failed at session end with
+the identical `uv` version refusal, so this lane closed without its JOURNAL-anchor check. Recorded
+as distinct from limit 10 because it is a session-lifecycle organ rather than a commit gate, and a
+reader should not infer from limit 10 that it was covered. Two things bound the consequence: the
+hook is **advisory in full** since the ADR-85 amendment 2026-08-03 §A5 (no hard leg), and the lane
+contract forbids a JOURNAL entry — the integrator anchors all 13 census merges — so the check had
+nothing to pass on even in a working environment.
