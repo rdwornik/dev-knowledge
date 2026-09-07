@@ -19,6 +19,67 @@
 
 ---
 
+### 2026-09-07 (r) - CC (Opus 5, INTEGRATOR-N2, SWEEP batch): the last census merges without a handback, because the handback was destroyed rather than withheld
+
+**Anchors `59e883f3`, which introduced `2d791e0a`.** S-13 `census-fleet-crosscheck`, the
+fourteenth and last lane of the SWEEP batch. **Fourteen of fourteen censuses are merged.**
+
+**THERE IS NO HANDBACK BECAUSE THE DISPATCHER STOPPED THE SESSION BEFORE IT SENT ONE.**
+Reaping four sessions in `state == done` to clear memory for the thrice-killed W2-R
+merge-watch, it selected on **a session's claim about itself** rather than on whether the
+lane had reported, and terminated this lane's only channel before it used it. It disclosed
+this unprompted and owns it. **This seat had already refused to merge on appearances** -- a
+clean tree is not a stop signal -- and asked instead. The missing signal turned out to be
+**destroyed, not withheld**, which is a different fact and only surfaced because the
+question was asked rather than assumed away.
+
+**THE ARTIFACT WAS SUBSTITUTED FOR THE REPORT, and every element was re-verified here rather
+than accepted from the message that offered it** -- which is the night's own standard applied
+to a peer who had just been right about everything else. local == origin == `2d791e0a`;
+merge-base `21576e3a`; exactly ONE file; 38,917 bytes; section shape correct and in order;
+consumer line carrying the ID-shaped `[#621]`; three commits, **two of them the lane's own
+self-corrections**. Every claim held.
+
+**WHAT ACTUALLY SETTLED IT WAS THE LANE'S OWN CLOSING SECTION, not the tree state.**
+`## Honest limits` runs to **nine numbered items**, each naming something the lane could not
+establish: root depth only (**36 items against U2's 348, declared "a subset, not a competing
+total"**); tracked files only; two repos measured on a working branch and said so; the hub
+row taken from the lane's own worktree because the isolation guard refuses a `git -C`
+redirect at the shared checkout; the fleet moving under the file mid-session; and **"a
+witness is a last content commit, not a merits review"** -- declining to claim content
+correctness for 27 of its 36 items. **A lane that writes that section has reached its end.**
+That is its verdict on its own completeness, expressed in the artifact instead of in a
+message, and it is better evidence than a handback line would have been.
+
+**IT IS THE ENTIRE EVIDENCE BASE FOR THE OPERATOR'S "FIRST DESIGNATED GEMINI WORKLOAD."**
+Every cloud census had no reader at all. This one reports `fan-out: PARTIAL` and **refuses to
+simplify the CLI's state to either "clean" or "absent"**: `gemini` IS on PATH (`0.56.0`) and
+fails EVERY invocation with `IneligibleTierError` -- it answers `--version` and then refuses
+all work. The working path is `agy` (`1.1.27`); `agy --print` auto-denies any tool needing a
+permission prompt; and **`--dangerously-skip-permissions` was deliberately NOT used**, because
+it would auto-approve all tools **including writes** in a read-only census running beside
+twelve live peers. It then reports **`Gemini-read FILES: 0`** -- stated plainly rather than
+inflated, having been handed 9 root inventories over 5,316 tracked paths as text. **Losing
+this file would have left the Gemini question with no data at all**, which is what the reap
+came within one merge of doing.
+
+**It disagrees with W2-U2 on the record rather than reconciling** -- `demo-prep/output/` is
+UNDETERMINED here where U2's seal says WAIVE -- under a heading that says so: *"Disagreements
+with W2-U2 — listed, not reconciled."* That is what an independent second derivation is for,
+and reconciling it would have destroyed the only thing it was commissioned to produce.
+
+Verdicts are PROPOSALS (SWEEP §0): RELOCATE 8 · KEEP 27 · ARCHIVE 0 · RETIRE 0 ·
+UNDETERMINED 1. This merge lands them and **adopts none**.
+
+**Changes:** one new `docs/audits/2026-09-07-technical-census-fleet-crosscheck.md` (+557).
+
+**Anchor note:** this entry's own merge is anchored by `6fb0eee6`, the commit carrying the
+text above -- a merge cannot name its own hash (ADR-85 amendment §A7 reading 2).
+
+**Next:** the dispatcher writes and lands batch U's close packet, then index regeneration #2
+picks the packet up in the same pass -- keeping the count at exactly two regenerations, which
+is [#590] obeyed rather than bent.
+
 ### 2026-09-07 (q) - CC (Opus 5, INTEGRATOR-N2, SWEEP batch): thirteen censuses land as ordinary docs arcs, against a batch whose manifest was never written
 
 **Anchors `61afa01c`, `cc1e8c9c`, `d6ed3357`, `7265a500`, `6b89c1fa`, `c33f381e`,
