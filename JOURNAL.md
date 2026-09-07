@@ -19,6 +19,59 @@
 
 ---
 
+### 2026-09-07 (h) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): wave 1 closes on a cache that was inert at 0.0%, and a third lane finds its contract already half-done
+
+**Merged** `worktree-lane-u-000-batch-p-local` at `ea9f5427` into main as `5a0e739a`,
+`--no-ff`. **Wave 1 is complete** -- nine contracted lanes, eight merged and W1-3 dead with
+its footprint already covered by lane h0 at `f2802939`. `code, review=codex HIGH:3 MED:0
+LOW:0`, all three fixed in-lane in `a8380170`, each pinned by a test, none deferred;
+`audit.py handback` returned MERGE / exit 0.
+
+**The finding outranks the speedup.** Intake #71's P3 read cache was **INERT at the commit
+tier -- 0.0% hit rate**. `args`/`kwargs` sat in the cache key while the corpus is walked once
+with `errors="replace"` and once without, so one file under one mtime held two entries and
+every single read missed: 4,085 calls, 4,085 real reads. It had shipped with **zero tests**,
+which is exactly how a cache stays inert and still looks landed. A performance organ with no
+test is not a fast path, it is an unmeasured claim -- and this one had been believed for days.
+P2 stood at 2.03x against the intake's stated >=5x bar.
+
+**Third instance of this batch's stale-contract class, and now it is a pattern with a
+mechanism.** P2/P3 were already partly landed before the lane booted (batch-T `22f06b21`, on
+main), so the contract's real task was FINISH, not DO. W1-5 and W1-6 hit the same shape from
+the other side, each re-measuring a before-number the contract had frozen. Three independent
+lanes, three different symptoms, one cause: **a batch that merges while its lanes run
+invalidates the tree its contracts were frozen against.** The remedy is not tighter freezing,
+which cannot outrun a moving main; it is that the lane measures its own before-state and says
+so. All three did. That is the batch working, not failing.
+
+**A strict-xfail flipped to XPASS and the marker came off**, per that test's own docstring
+instruction. Recorded as narrowly as the lane recorded it, because the wide reading is
+tempting and false: `exempt` stopped calling the unscrubbed `journal_anchor._git`, so THAT
+test's gap closed. **Nobody scrubbed `journal_anchor._git`** -- other callers still use it and
+that stays an OPEN finding.
+
+**A deletion claim, verified rather than accepted.** The lane added six `@requires_git`
+decorators and then removed them, choosing that over raising the guard baseline (a raise is a
+curated-baseline touch and an escalation class under its contract). This seat checked instead
+of trusting: the net `requires_git` diff against main is **zero lines**, and the diff touches
+no `proof_layer` script, test or baseline file. The lane removed only what it had itself
+added. A peer's account of its own deletion is the one claim an integrator should never take
+on faith, and this one held.
+
+**Verified on the merged result:** `test_audit_parallel` + `test_batch_manifest` +
+`test_journal_anchor` = **163 passed**, including the formerly-xfailed test. `audit.py health`
+= **OK, FAIL 0**, 29.4s, with an organ tally (58 WARN / 44 OK / 16 n/a) **identical** to the
+pre-merge profile -- which is intake #71's criterion 3, a speedup that changed a verdict being
+no speedup at all. `gen_doc_counts` and `gen_audit_index` both regenerated to no change.
+
+**Carried, not inherited:** the lane measured 5,089 passed / 41 failed / 10 skipped in ITS
+substrate and established by A/B -- every failing file run twice, reverted and restored,
+identical failing sets both ways -- that none of the 41 are its own. That is the lane's
+measurement, and the integrator re-runs the full suite on the primary tree rather than adopt
+it as a verdict.
+
+**Anchors:** `ea9f5427` (the lane tip, introduced by merge `5a0e739a`).
+
 ### 2026-09-07 (g) - CC (Opus 5, INTEGRATOR-N2, NIGHT-2 batch): W1-6 lands, and a lane that re-measured a before-number the contract had frozen against a dead tree
 
 **Merged** `worktree-lane-u-000-trace-scorecard-consumer` at `7af7cff4` into main as `0b2bc260`,
