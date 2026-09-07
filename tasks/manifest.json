@@ -2,7 +2,7 @@
   "schema": 2,
   "role": "source-of-truth",
   "generates": "BACKLOG.md",
-  "generated_sha256": "3f635169a373977ccdf200110096c7f4cd897afd427ca81bb29c9e7fa4aa3c3f",
+  "generated_sha256": "3d2040598da690232bbb1be1b357a1d0b3fd6f41ddbdcc63839b40aad4417835",
   "generator": "scripts/gen_task_tree.py",
   "nodes": [
     {
@@ -296,6 +296,14 @@
     {
       "task": 631,
       "file": "631-a-freeze-cannot-bind-a-rule-that-postdates-it.md"
+    },
+    {
+      "task": 638,
+      "file": "638-four-new-proof-layer-guards-are-undispositionable-b.md"
+    },
+    {
+      "task": 639,
+      "file": "639-retire-the-verification-organs-that-fire-but-never-.md"
     },
     {
       "prose": "### [S4] Extend structural validation to more governance artifacts"
@@ -640,6 +648,14 @@
     {
       "task": 616,
       "file": "616-flip-condition-every-adr-records-what-evidence-w.md"
+    },
+    {
+      "task": 637,
+      "file": "637-nineteen-landed-audit-artifacts-carry-proposals-tha.md"
+    },
+    {
+      "task": 640,
+      "file": "640-the-fpg-1-scope-narrowing-is-recorded-nowhere-and-t.md"
     },
     {
       "prose": ""
