@@ -73,6 +73,9 @@ UNDETERMINED 1. This merge lands them and **adopts none**.
 
 **Changes:** one new `docs/audits/2026-09-07-technical-census-fleet-crosscheck.md` (+557).
 
+**Anchor note:** this entry's own merge is anchored by `6fb0eee6`, the commit carrying the
+text above -- a merge cannot name its own hash (ADR-85 amendment §A7 reading 2).
+
 **Next:** the dispatcher writes and lands batch U's close packet, then index regeneration #2
 picks the packet up in the same pass -- keeping the count at exactly two regenerations, which
 is [#590] obeyed rather than bent.
