@@ -31,6 +31,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from click.testing import CliRunner
 
 import audit as aud
 import tool
@@ -354,3 +355,108 @@ def test_audit_run_bootstrap_path_outranks_the_environment(monkeypatch, tmp_path
         "the environment outranked the path the operator just bootstrapped -- the run "
         "registers one tree and audits another"
     )
+
+
+# ---------------------------------------------------------------------------
+# W2-F2 -- the `--consumer` spelling, and the WORKTREE consumer it exists for.
+#
+# [#605] landed the override MECHANISM (`explicit=` / `--repo-root`) on 2026-08-28,
+# with the sixteen tests above. Two things it did not land:
+#
+# - the `--consumer <path>` spelling the deployment model's own record asks for;
+# - any test at all over the case the override exists to serve -- a consumer whose
+#   working tree is a WORKTREE, which never sits at `<dev>/<repo>`.
+#
+# The second gap is recorded in prose rather than under a gate. `ecosystem/
+# deployed-versions.yaml`, in the `win-tooling:` block, explains why that deploy's
+# record was hand-written instead of earned by `deploy/tool.py --execute`: "the
+# RULING-W shape binds the deploy to a consumer WORKTREE and the tool resolves the
+# consumer as `hub_root.parent / repo` with no override -- so the lane drove the
+# tool's own carriers against the worktree". These tests put that sentence under a
+# gate, so the next lane meets a failing assertion rather than a paragraph.
+# ---------------------------------------------------------------------------
+
+
+def _consumer_with_a_worktree(tmp_path: Path) -> tuple[Path, Path, Path]:
+    """A hub, a sibling consumer checkout, and that consumer's WORKTREE.
+
+    The worktree sits where `claude --worktree` puts it -- `<consumer>/.claude/
+    worktrees/<lane>` -- which is precisely NOT `<dev>/<repo>`. The sibling layout
+    built here is entirely correct; that is the point. Step 4 still cannot name the
+    tree the deploy has to bind to.
+    """
+    hub = tmp_path / "substrate" / ".dev-knowledge"
+    (hub / "ecosystem").mkdir(parents=True)
+    consumer = hub.parent / "win-tooling"
+    worktree = consumer / ".claude" / "worktrees" / "lane-w-000-example"
+    worktree.mkdir(parents=True)
+    return hub, consumer, worktree
+
+
+def test_deploy_sibling_default_cannot_name_a_worktree_consumer(tmp_path):
+    """The obstacle itself, under a gate: step 4 answers the CHECKOUT, never a worktree."""
+    hub, consumer, worktree = _consumer_with_a_worktree(tmp_path)
+
+    resolved = tool.resolve_repo_root("win-tooling", hub, env={})
+
+    assert resolved == consumer.resolve()
+    assert resolved != worktree.resolve()
+
+
+def test_deploy_explicit_override_reaches_a_worktree_consumer(tmp_path):
+    """...and step 1 is what reaches it -- the reason the override exists at all."""
+    hub, consumer, worktree = _consumer_with_a_worktree(tmp_path)
+
+    resolved = tool.resolve_repo_root("win-tooling", hub, explicit=worktree, env={})
+
+    assert resolved == worktree.resolve()
+    assert resolved != consumer.resolve()
+
+
+@pytest.mark.parametrize("spelling", ["--repo-root", "--consumer"])
+def test_deploy_cli_both_spellings_thread_a_worktree_into_preflight(
+    monkeypatch, tmp_path, spelling
+):
+    """Both spellings are ONE option: each reaches `preflight(repo_root=...)` verbatim.
+
+    Driven against a worktree path, so this covers the CLI half of the case above.
+    `preflight` is replaced rather than run: what is measured here is the threading,
+    and the real gates would shell out to git against a tmp_path that is no checkout.
+    """
+    _, _, worktree = _consumer_with_a_worktree(tmp_path)
+    seen: dict[str, object] = {}
+
+    def _capture(repo, version, **kwargs):
+        seen["repo"] = repo
+        seen["repo_root"] = kwargs.get("repo_root", "ABSENT")
+        raise tool.PreflightError("threading is what this test measures")
+
+    monkeypatch.setattr(tool, "preflight", _capture)
+
+    res = CliRunner().invoke(
+        tool.deploy, ["win-tooling", "--target", "v1.4.0", spelling, str(worktree)]
+    )
+
+    assert "No such option" not in res.output
+    assert seen["repo"] == "win-tooling"
+    assert seen["repo_root"] == str(worktree)
+
+
+def test_deploy_cli_default_is_unchanged_when_no_spelling_is_passed(monkeypatch):
+    """The regression guard: a caller passing neither spelling still sends None.
+
+    `--consumer` is an added SPELLING of an existing option, not a new resolution
+    step. Every carrier invocation that passes nothing must keep resolving through
+    env -> registry -> sibling exactly as it did before this lane.
+    """
+    seen: dict[str, object] = {}
+
+    def _capture(repo, version, **kwargs):
+        seen["repo_root"] = kwargs.get("repo_root", "ABSENT")
+        raise tool.PreflightError("threading is what this test measures")
+
+    monkeypatch.setattr(tool, "preflight", _capture)
+
+    CliRunner().invoke(tool.deploy, ["win-tooling", "--target", "v1.4.0"])
+
+    assert seen["repo_root"] is None
