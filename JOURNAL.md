@@ -56,6 +56,9 @@ directly relevant countermeasure. It would have caught at least three of the fiv
 **Changes:** ADR-118 + index row + generated roster; intakes #86-#88 and #40 re-opened;
 `OPERATOR-INTERFACE.md` inbox 033; two ADR-status baselines re-measured.
 
+**Anchor note:** this entry's own merge is anchored by `80497321`, the commit carrying the text
+above -- a merge cannot name its own hash (ADR-85 amendment section A7 reading 2).
+
 **Next:** final worktree census, teardown of every contained branch, ship-gate at HEAD.
 **Queue drained.**
 
