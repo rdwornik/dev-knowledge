@@ -1,16 +1,39 @@
 # ADR-117: Carrier split by divergence — push for pinnable/waivable, pull for fleet-uniform
 
-- **Status:** Proposed <!-- DECLARE-F F-1 calls this state "DRAFT"; `Proposed` is the enum's spelling of it. NOT ratified. See "Status wording" below. -->
+- **Status:** Proposed
 - **Date:** 2026-09-06
 - **Decision tier:** Architecture (Path A — filings-drafted under `DECLARE-F-2026-09-06` F-1, awaiting the browser's `rule`)
 - **Amends:** none. This ADR **states** a split the hub already implements; it changes no carrier and retires no mechanism.
 - **Related:** ADR-91 (release tagging is the operator's act); ADR-92 Decision 3 (write-yes / commit-no / autonomy-no); ADR-93 §4 (all writes stage only); ADR-102 / `[#336]` (the ratified corp-monorepo pin this ADR exists to be able to express); ADR-28 / ADR-36 (core invariant #4 — Layer 2 never executes); intake #73 (shape spec); `[#616]` (flip-condition instrument — this ADR is its first live instance).
 - **Decommission:** none
-- **Source:** `docs/audits/2026-09-06-technical-research-aj-thesis-catalogue-and-deployment-model.md` §0.1–0.5, ruled at `to-cc/DECLARE-F-2026-09-06.md` ("Read, and accepted as measured"). Drafted by filings-N2, NIGHT-2 lane W2-F1.
+- **Source:** `docs/audits/2026-09-06-technical-research-aj-thesis-catalogue-and-deployment-model.md` §0.1–0.5, ruled at `to-cc/DECLARE-F-2026-09-06.md` ("Read, and accepted as measured"). Drafted by filings-N2, NIGHT-2 lane W2-F1. **The Flip-condition below is instrumented from the operator's MSc thesis `Praca_Dyplomowa_Magisterska` (Robert Dwornik, Warsaw University of Technology; operator disk, uncommitted), principle 5 — sensitivity analysis: a decision that cannot name its own flip has not been sensitivity-tested.** The instrument is catalogued at that audit's row **T-07** (`tex/6-tworzenie-architektury.tex:1206,:1243` — nine closed questions, then the same nine re-answered and the recommendation flips) and tracked by open row `[#616]`, which carries the same provenance sentence (`tasks/616-flip-condition-every-adr-records-what-evidence-w.md:12`).
 
 <!-- Decommission: none -->
 
-> **Status wording — a deviation, recorded not hidden.** `DECLARE-F` F-1 and the lane contract both
+> **AMENDMENT 2026-09-07 (lane `worktree-lane-u-000-declare-f2-intakes`, operator-issued
+> `to-cc/DECLARE-F-2-2026-09-07.md` §A).** W2-F1's session died after this ADR landed at
+> `ec0d7912`, leaving two of its items unseated. Both are discharged here, and nothing in the
+> Context, Decision, Flip-condition or Alternatives is touched by either:
+> 1. **The provenance line now cites the thesis.** §A: *"the ADR's provenance line cites the thesis
+>    (T-01: no ADR cites it yet) — `Praca_Dyplomowa_Magisterska` principle 5 as the source of the
+>    Flip-condition."* **T-01's premise was re-verified before filing, not inherited:**
+>    `grep -ril "Praca_Dyplomowa\|Magistersk\|dyplomowa" docs/decisions/` returned **no file** on
+>    2026-09-07, so this is the first ADR to cite it and the citation is not redundant.
+> 2. **The status-line inline comment was moved into the "Status wording" note below.**
+>    `gen_claude_rosters.py` scrapes the status line **verbatim** into
+>    `.claude/generated/recent-adrs.md`, which is `@`-imported by `CLAUDE.md` — so the comment was
+>    reaching a boot-time file whole. The integrator measured it as a quality defect, not a gate
+>    break (`test_claude_md_byte_cap.py` 6 passed; `gen_claude_rosters.py --check` exit 0). The
+>    rationale is unchanged and is kept below; only its location moved. **General form, worth
+>    carrying: the generator scrapes the status line verbatim, so any inline comment there reaches
+>    a boot-time file.** The status VALUE is unchanged — still `Proposed`, still not `Accepted`.
+
+> **Status wording — a deviation, recorded not hidden.** *(This paragraph is the home of the note
+> that sat as an inline comment on the status line until 2026-09-07 — verbatim, it read:*
+> **DECLARE-F F-1 calls this state "DRAFT"; `Proposed` is the enum's spelling of it. NOT ratified.
+> See "Status wording" below.** *See amendment item 2 above for why it moved.)*
+>
+> `DECLARE-F` F-1 and the lane contract both
 > say this ADR "stays **DRAFT**". **`DRAFT` is not a member of this repo's ADR status enum**
 > (`Explored, not adopted` · `Partially superseded` · `Superseded` · `Deprecated` · `Proposed` ·
 > `Accepted` · `PARKED` — `docs/decisions/README.md` §"Status enum", enforced by
