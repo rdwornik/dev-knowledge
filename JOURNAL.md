@@ -100,6 +100,10 @@ resolution because the first run met conflict markers and was therefore not a ve
 #78-#85 and ADR-117's provenance; carrier #2 per-consumer version record and drift surface;
 `ecosystem/doc-counts.md` re-derived.
 
+**Anchor note:** this entry's own merge is anchored by `9ea6558b`, the commit carrying the
+text above -- a merge cannot name its own hash (ADR-85 amendment section A7 reading 2, the
+temporal reason), so the arc is two commits by construction. Precedent `a45a3ae3`.
+
 **Next:** W2-R release-commit, last and alone, from a **pushed** main -- its launcher polls
 origin deliberately. Then regenerate the audits index, write the batch-U close packet, and
 take the 13 census lanes as a second batch on its own manifest.
