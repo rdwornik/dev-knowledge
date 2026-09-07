@@ -3,7 +3,7 @@
   "direction": "derived-from",
   "source": "docs/intake/README.md",
   "generator": "scripts/gen_intake_tree.py",
-  "source_sha256": "040692c9b2b6a5da60129a9d6ac7013747944b37334314bd6197a6bb6aaad1e6",
+  "source_sha256": "8c1cfa906e27404593f7db0084e1cc234749a1648c468a0342bc5a5f97943dcd",
   "honest_limit": {
     "statement": "ADR-109 section 4 is discharged by a byte-exact round-trip plus a residue manifest, NOT by a derivation ratio. This surface's ratio is INVERTED relative to surface 1 (BACKLOG.md <-> tasks/), where task lines were the majority and residue the minority. Recorded so the generality claim is honest about what was shown.",
     "item_derived_lines": 66,
@@ -299,7 +299,10 @@
         "origin"
       ],
       "2026-09-05-tech-aj-second-pass.md": [
-        "consumed-by",
+        "consumers",
+        "decided-by",
+        "disposition",
+        "note",
         "origin"
       ],
       "2026-09-05-tech-batch-p-audit-gate-speed.md": [
@@ -484,7 +487,7 @@
     },
     {
       "t": "line",
-      "v": "### DRAFT (18)"
+      "v": "### DRAFT (17)"
     },
     {
       "t": "line",
@@ -543,11 +546,6 @@
     {
       "t": "item",
       "file": "2026-09-05-tech-boot-frontier-prioritisation-weights.md",
-      "status": "DRAFT"
-    },
-    {
-      "t": "item",
-      "file": "2026-09-05-tech-aj-second-pass.md",
       "status": "DRAFT"
     },
     {
@@ -693,7 +691,7 @@
     },
     {
       "t": "line",
-      "v": "### ACCEPTED (19)"
+      "v": "### ACCEPTED (20)"
     },
     {
       "t": "line",
@@ -792,6 +790,11 @@
     {
       "t": "item",
       "file": "2026-09-01-tech-consumer-at-landing-identifier-gap.md",
+      "status": "ACCEPTED"
+    },
+    {
+      "t": "item",
+      "file": "2026-09-05-tech-aj-second-pass.md",
       "status": "ACCEPTED"
     },
     {

@@ -853,6 +853,103 @@ components:
       section: session-hook
       line: "SessionStart: check_floor_hash.py --require-present (floor guard) + python -m pre_commit install (arms the commit hooks)"
 
+  # -------------------------------------------------------------------------
+  # FLOOR MECHANISMS (024 packaging rule; DECLARE-F F-1 split; W2-U3).
+  #
+  # 024's rule, verbatim: "Every element above is a COMPONENT with a version in
+  # the deploy manifest, shipped by the carrier, with a drift check on both sides
+  # and a per-consumer waiver." The two components below are floor v1.5.0's
+  # mechanisms whose HUB PAYLOAD EXISTS TODAY (measured 2026-09-07); the other
+  # three ruled mechanisms are declared, with the identical `mechanism:` shape and
+  # a measured blocker, under `floor_mechanisms_pending:` at the foot of this file.
+  #
+  # The `mechanism:` block is ADDITIVE — it does not change how any existing
+  # component is read. `verify:`/`engages:` keep answering "present and firing AT
+  # THE CONSUMER"; `mechanism.drift` adds the leg neither of them has, the HUB
+  # side: does this repo still hold the payload it declares? Reader:
+  # `deploy/floor_mechanisms.py` (`--consumer <path>` prints the dry-run plan).
+  # -------------------------------------------------------------------------
+
+  - id: floor-hooks-armed
+    kind: hook
+    carrier: floor
+    status: active
+    waivable: true   # PUSH leg: a consumer legitimately pins a different hub-hooks rev and legitimately withdraws individual hook ids by recorded `.methodology.yaml` waiver — corp-monorepo has done exactly that for the codemap/toc four at tag v1.3.1. Arming itself is universal; WHICH hooks are armed is not.
+    verify: wired
+    engages:                    # GATED — the arming leg is observable at session-start
+      trigger: session-start
+      observable: hook-stdout
+      expect: "pre-commit installed at"   # same ARM-leg stdout the floor guard group emits;
+                                          # this component declares the ARMING MECHANISM
+                                          # (hooks actually installed into the resolved
+                                          # hooks dir), which presence-of-config cannot see:
+                                          # a relic core.hooksPath leaves a full config file
+                                          # and ZERO armed hooks.
+    artifacts:
+      - path: scripts/arm_hooks.py
+        source: scripts/arm_hooks.py
+      - wiring: "SessionStart -> arm_hooks.main() (pre-commit / commit-msg / pre-push, core.hooksPath-tolerant)"
+    mechanism:
+      version: "1.5.0"
+      split: push
+      divergence: >-
+        YES — measured, not assumed. corp-monorepo consumes only `backlog-id-on-close`
+        and `block-ff-push` pinned at v1.3.1 and has withdrawn the codemap/toc four by
+        recorded waiver (ARCHITECTURE.md "pre-commit .pre-commit-hooks.yaml" row). A
+        per-consumer hook roster is a legitimate divergence, so the arming mechanism
+        rides the PUSH leg and is waivable per hook id.
+      payload:
+        state: present
+        source: scripts/arm_hooks.py
+      drift:
+        hub:
+          path: scripts/arm_hooks.py
+          contains: 'HOOK_TYPES = ("pre-commit", "commit-msg", "pre-push")'
+        consumer:
+          path: .pre-commit-config.yaml
+          contains: "repos:"
+    roster:
+      section: session-hook
+      line: "SessionStart: arm_hooks.py arms pre-commit / commit-msg / pre-push in the RESOLVED hooks dir (honors core.hooksPath)"
+
+  - id: floor-waiver-register
+    kind: config
+    carrier: floor
+    status: active
+    waivable: false   # PULL leg, and non-waivable BY CONSTRUCTION: this is the register that HOLDS every other component's waivers. A consumer that waives the waiver mechanism silently loses the honoring of every divergence it has already declared — the one component whose absence is self-concealing.
+    verify: hash
+    engages:                    # OBSERVED (git-state) — a carried schema + its readers
+      trigger: deploy-time
+      observable: git-state
+      expect: ".methodology.yaml present at the consumer root with a sanctioned_divergences: block"
+    artifacts:
+      - path: .methodology.yaml
+        source: .methodology.yaml
+      - wiring: "read by scripts/enforcement_coverage.py::read_allowlist (Informant) AND deploy/carrier_precommit.py::_waived_components (both deploy legs) — [#276] D2"
+    mechanism:
+      version: "1.5.0"
+      split: pull
+      divergence: >-
+        NO — and the distinction is the point. The register's CONTENTS are per-consumer
+        by construction (that is what it is for), but the MECHANISM — the entry schema
+        (component id + mandatory reason + ISO-8601 time-box) and the two readers that
+        police it — must be fleet-uniform, or a consumer's declared divergence stops
+        being honored on the legs that matter. Uniform mechanism, divergent payload;
+        F-1 classifies the mechanism, so PULL.
+      payload:
+        state: present
+        source: .methodology.yaml
+      drift:
+        hub:
+          path: scripts/enforcement_coverage.py
+          contains: "def read_allowlist"
+        consumer:
+          path: .methodology.yaml
+          contains: "sanctioned_divergences:"
+    roster:
+      section: header
+      line: "`.methodology.yaml` — the per-consumer sanctioned-divergence register ([#276] shape: component + reason + time-box), honored on BOTH deploy legs"
+
   - id: session-end-backpressure
     kind: organ
     carrier: enforcement-mesh
@@ -946,6 +1043,137 @@ components:
     roster:
       section: session-hook
       line: "SessionStart: fleet_health.py prints [asks] OPERATOR ASKS then [funnel] rot/orphan/unblocked/batch before the existing fleet digest"
+
+# ---------------------------------------------------------------------------
+# floor_mechanisms_pending — floor v1.5.0 mechanisms DECLARED but NOT SHIPPABLE,
+# each with its measured hub-side blocker (W2-U3, 2026-09-07).
+#
+# WHY A SEPARATE BLOCK RATHER THAN `status:` ON A COMPONENT. This manifest's
+# lifecycle is two-state by ruling (D3: active | removed), and `release_lint` C6
+# enforces it. A mechanism whose HUB payload does not exist is neither: it is not
+# active (nothing to ship) and it is not removed (nothing was ever there). Putting
+# it in `components:` as `status: active` is precisely the failure this file's own
+# header names — "declaring a component against a payload that does not exist lints
+# green but is undeployable" — and it would additionally require inventing an
+# `engages.expect` for a hook that never fires, which is fabrication, not
+# declaration. So the header's existing PROSE convention ("what this release
+# deliberately does not declare, each with its measured blocker") is kept and made
+# MACHINE-READABLE: identical `mechanism:` shape, version + F-1 split + divergence
+# answer + a drift check on BOTH sides, plus the blocker and its owner.
+#
+# `deploy/floor_mechanisms.py` reads this block alongside `components:`, so all five
+# ruled mechanisms carry a version and a two-sided drift check, and the three below
+# print in the dry-run plan as NO-OP with their blocker named rather than being
+# invisible. Promotion is mechanical: when a blocker clears, the entry moves into
+# `components:` with `status: active`, `payload.state: present`, and a real
+# `engages:` triple.
+# ---------------------------------------------------------------------------
+
+floor_mechanisms_pending:
+
+  - id: floor-seal-report
+    kind: organ
+    carrier: floor
+    waivable: true
+    mechanism:
+      version: "1.5.0"
+      split: push
+      divergence: >-
+        YES — the ADR-101 tree seal is keyed to a repo's sanctioned Tier-1 set, and the
+        hub already records the hub-local branches as sanctioned divergences
+        (`.methodology.yaml`: hub-hermetization-rule-a, hub-hermetization-rule-b-grammar;
+        fleet ruling d1). A consumer's Tier-1 set is legitimately its own, so the seal
+        rides the PUSH leg. Report mode is the v1.5.0 leg specifically because it is
+        waivable in the only way that matters: it blocks nothing. 024 staged it
+        "report -> arm"; ARMING is a later release, not this one.
+      payload:
+        state: pending
+        blocker: >-
+          MEASURED 2026-09-07: `scripts/validate_hermetization.py` has NO report mode —
+          its `main()` (line 469) exposes no reporting flag and the module is a
+          fail-closed pre-commit gate over STAGED ADDs only. There is no code path that
+          walks a consumer tree and emits the RELOCATE / RETIRE / WAIVE list NIGHT-2 §0
+          requires, so there is nothing for a carrier to ship.
+        owner: >-
+          NIGHT-2 lane W2-U2 (seal-report-fleet) owns the report organ; this lane owns
+          the manifest and does not reach into its footprint.
+      drift:
+        hub:
+          path: scripts/validate_hermetization.py
+          contains: "--report"
+        consumer:
+          path: .methodology.yaml
+          contains: "hermetization"
+
+  - id: floor-roles-table
+    kind: config
+    carrier: floor
+    waivable: true
+    mechanism:
+      version: "1.5.0"
+      split: push
+      divergence: >-
+        YES — a consumer repo need not run every seat. The hub runs integrator,
+        dispatcher, filings and lane seats concurrently; a single-maintainer consumer
+        runs none of them, and refusing its commits under a role it never assumes would
+        be the hub-shaped gate G3b measured as blocking every commit in three consumers.
+        The roles TABLE is carried; which rows a consumer binds is its own, so PUSH.
+      payload:
+        state: pending
+        blocker: >-
+          MEASURED 2026-09-07: `ecosystem/routing-table.yaml` declares four roles
+          (producer, reviewer, adversarial, fan_out) and NONE of the nine 008/009-A
+          names — no `integrator` row, no `may:`/`may_not:` fields. `CLAUDE_SESSION_ROLE`
+          and the `role-commit-shape` hook have ZERO occurrences anywhere in the tree
+          (grep over *.py, *.yaml, *.json). Inbox 008-A is a CANDIDATE for filings, not
+          a built organ; 009-A's amendment (the roles table is carried BY THE MANIFEST,
+          not hub-only) is the reason this entry exists here at all rather than being
+          left hub-local.
+        owner: >-
+          Inbox 008-A (filings intake CANDIDATE), amended by 009-A to require this
+          manifest entry in its Done-when. No lane owns it tonight.
+      drift:
+        hub:
+          path: ecosystem/routing-table.yaml
+          contains: "integrator:"
+        consumer:
+          path: ecosystem/routing-table.yaml
+          contains: "roles:"
+
+  - id: floor-freshness-registry
+    kind: config
+    carrier: floor
+    waivable: true
+    mechanism:
+      version: "1.5.0"
+      split: push
+      divergence: >-
+        YES — which living docs a repo freshness-gates is repo-shaped. The hub already
+        splits its own set two ways in code (`audit.py::_FRESHNESS_FILES` =
+        `DEFAULT_FRESHNESS_FILES` + `_HUB_ONLY_FRESHNESS_FILES`), which is a per-repo
+        divergence expressed as a Python constant rather than as a declared, waivable
+        registry. Candidate (j) is exactly the move of that divergence out of code and
+        into a per-consumer register, so PUSH.
+      payload:
+        state: pending
+        blocker: >-
+          MEASURED 2026-09-07: the GATE exists and is already a manifest component
+          (`canonical-freshness`, carrier enforcement-mesh), but the per-consumer
+          REGISTRY does not — the gated set is a hub Python constant
+          (`scripts/canonical_docs.py::DEFAULT_FRESHNESS_FILES`), there is no
+          `freshness` entry in `.methodology.yaml`, and no module reads a per-consumer
+          freshness register. `canonical_freshness_gate.evaluate()` already accepts a
+          `freshness_files` parameter, so the seam exists and nothing fills it.
+        owner: >-
+          Candidate (j) (per-consumer waivers/freshness registry; inbox 002-D, 009-B).
+          Unclaimed by any lane tonight.
+      drift:
+        hub:
+          path: .methodology.yaml
+          contains: "freshness_gated:"
+        consumer:
+          path: .methodology.yaml
+          contains: "freshness_gated:"
 
 # ---------------------------------------------------------------------------
 # doc_shapes — the canonical doc-shape declaration (kind doc-shape payload).
