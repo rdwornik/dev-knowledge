@@ -55,3 +55,31 @@ Consumers: `CLAUDE.md` §12, which carries a two-line pointer here in place of t
   `2.72 — 2026-09-01` while the entries ran to v2.74 — stale by two revisions, because an entry was
   added twice without bumping it. Bumped to v2.75 in the same commit; the drift is named here so the
   correction is a record and not a quiet fix.
+
+- v2.76 (2026-09-07, batch U lane `lane-u-628-release-commit`, W2-R) - **the first-read ESSENTIALS
+  line is REMOVED**, which is the act the v2.75 entry above deferred by name. This is the WORK
+  gate 2 of `docs/audits/2026-09-05-technical-v150-tag-checklist.md` names, and NOT the gate:
+  that checklist's own header reserves the declaration to the operator (*"no seat flips it, and a
+  gate is not satisfied because the work behind it looks done"*), so gate 2 is left reading OPEN
+  and the tag stays his act at dawn. `[#628]` itself
+  **stays OPEN by ruling** (`DECLARE-SITTING-2026-09-06.md` D12), because the row owns the whole
+  fleet-coupled dissolution and only its boot-line half lands here. §1 renumbers 3->2 and 4->3, and
+  the `session-start-protocol` region's cross-reference *"same predicate as §1 item 3"* moves to
+  *"item 2"* in the SAME commit - the coupling the batch-E lane's frozen write-scope omitted and
+  `[#628]`'s row names as an inherited footprint defect. Both hub regions moved
+  source-of-truth-first at `templates/claude-regions/{first-read,session-start-protocol}.md` and
+  were spliced into this file, so the bodies stay byte-identical (critical rule 6).
+  **`protocols/ESSENTIALS.md` is NOT retired and its body is untouched:** D9 conditions retirement
+  on the consumer census printing 0, and the census run for this lane returns **28 live files**
+  under a permissive predicate and **9** under a strict one (live instruction lines and code
+  set-memberships only) - both greater than zero, so D9's *"re-point first, retire in the next
+  batch"* branch is the one that fires. Three of the ten consumers `[#628]`'s row enumerates
+  (`protocols/SESSION_SETUP.md`, `protocols/DEFINITION_OF_DONE.md`, `.claude/workflows/conformance-hub.js`)
+  now carry zero references - the row's enumeration is partly stale and is reported rather than edited.
+  **One drift is FILED here rather than fixed, which the freshness rule expressly allows** (§4:
+  a stamp means *re-read end-to-end and confirmed accurate, OR drift filed*): `doc_claims` reports
+  §9's pre-commit roster missing `derived-copies-rebind`, a hook that IS live at
+  `.pre-commit-config.yaml` (verified at this commit). It is left alone deliberately - §9 is a
+  `[REPO - local]` region and this lane's footprint is CLAUDE.md's HUB region via its generator,
+  so repairing it would widen the lane. The reviewer (terra) raised the widening as HIGH and the
+  edit was withdrawn on that finding. Net 23,551 B -> 23,355 B against a 24,576 B cap.

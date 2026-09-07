@@ -325,7 +325,8 @@
       "2026-09-05-tech-shape-spec-tree-seal-to-consumers.md": [
         "consumers",
         "note",
-        "origin"
+        "origin",
+        "reconciled_with"
       ],
       "2026-09-06-tech-copilot-offload-role-and-account-map.md": [
         "consumed-by",

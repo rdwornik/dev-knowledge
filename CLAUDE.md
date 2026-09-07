@@ -1,5 +1,5 @@
 ---
-last_reviewed: 2026-09-05
+last_reviewed: 2026-09-07
 reconciled_with: handoff-process@7.0.0
 status: active
 owner: Rob
@@ -7,7 +7,7 @@ owner: Rob
 
 # CLAUDE.md — Dev Knowledge
 <!-- scope: meta -->
-<!-- version: 2.75 — 2026-09-05 -->
+<!-- version: 2.76 — 2026-09-07 -->
 
 > **Session boot contract for Claude Code in this repo** — auto-read at session start (ADR-53, as re-pointed by ADR-115). **Genre:** a rule lives here only if a session needs it *before it can act*; rationale, history and per-organ detail live at the home each line cites.
 >
@@ -22,9 +22,8 @@ owner: Rob
 
 In order, read:
 1. This file (you're here)
-2. `protocols/ESSENTIALS.md` — **SUPERSEDED, pending `[#628]`.** Not a boot read; skip it. The always-on subset is this file, and the live boot frame is `CLAUDE.md` + FUNNEL HEALTH + north-star
-3. The **active** `docs/handoffs/*/` bundle — **newest by git add-date**, which is what `audit.py::_select_active_bundle` resolves and what `verify_handoff_probes`, `check_handoff_probes` and `validate_residual_completeness` already reuse; a day with more than one handoff produces `<slug>`, `<slug>-2`, … siblings and lexical order is not the rule. Start with its `HANDOFF_BOOT.md` (v5/v6/v7 bundles' operator session entry: slug · purpose · mode · destination; older bundles use `README.md`), then the canonical operator runbook `docs/handoffs/README.md` — if continuing prior session
-4. Last 5 entries of `JOURNAL.md`
+2. The **active** `docs/handoffs/*/` bundle — **newest by git add-date**, which is what `audit.py::_select_active_bundle` resolves and what `verify_handoff_probes`, `check_handoff_probes` and `validate_residual_completeness` already reuse; a day with more than one handoff produces `<slug>`, `<slug>-2`, … siblings and lexical order is not the rule. Start with its `HANDOFF_BOOT.md` (v5/v6/v7 bundles' operator session entry: slug · purpose · mode · destination; older bundles use `README.md`), then the canonical operator runbook `docs/handoffs/README.md` — if continuing prior session
+3. Last 5 entries of `JOURNAL.md`
 
 `PLAYBOOK.md` (hub `.dev-knowledge/protocols/`) is the universal-protocols **reference**, not a boot-time read — consult the relevant section on demand when a task needs it (this file carries the always-on subset; a consumer never copies PLAYBOOK). If a PLAYBOOK section a task needs is unavailable, proceed with the other available first-read sources and flag the gap.
 <!-- methodology:end id=first-read -->
@@ -114,7 +113,7 @@ In order, read:
 
 1. `git status` — clean working tree?
 2. `git log --oneline -5` — recent context
-3. Read the **active** `docs/handoffs/*/` bundle — **newest by git add-date**, which is what `audit.py::_select_active_bundle` resolves; same predicate as §1 item 3, so the two boot instructions select the same bundle — if continuing prior session
+3. Read the **active** `docs/handoffs/*/` bundle — **newest by git add-date**, which is what `audit.py::_select_active_bundle` resolves; same predicate as §1 item 2, so the two boot instructions select the same bundle — if continuing prior session
 4. Check `BACKLOG.md` for in-progress items
 5. `pytest --collect-only` — test discovery sanity check
 6. Wait for Rob's prompt — never improvise
@@ -230,5 +229,5 @@ Machine-enumerated, last 5 by number (`gen_claude_rosters.py --write`). Editoria
 
 ---
 
-**Last updated:** 2026-09-05
+**Last updated:** 2026-09-07
 **Maintained by:** Rob

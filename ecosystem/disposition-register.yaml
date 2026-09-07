@@ -760,34 +760,6 @@ dispositions:
   # no record of a disposition in either direction has yet to have its verdicts tested. B1 was
   # discharged by fixing the CHECK (ac2c6a15, the manifest-link route); this row is the one case
   # in that bundle the fix deliberately does NOT reach, because it is not mis-measured.
-  - id: warn-consumer-article-harness-substrate-brief
-    organ: consumer_at_landing
-    match: "2026-09-01-technical-article-harness-substrate-brief.md"
-    ref: "R5 window bundle B2 (ARCHITECT-INBOX-2026-09-05-007), operator-declared in to-cc/R5-DECLARED.md; sheet docs/audits/2026-09-05-technical-r5-disposition-sheet.md section 2 B2"
-    review_date: 2026-10-13
-    reason: >-
-      NO GOVERNANCE CONSUMER BY DESIGN -- genuinely unconsumed, not mis-measured, and that is the
-      distinction this entry exists to record. The artifact is an operator-commissioned EXTERNAL
-      research brief, landed verbatim with a provenance record; it feeds an article written
-      outside the hub, so no `tasks/` row, ADR, intake or register entry will ever cite it and
-      none should be manufactured to clear a WARN. This is precisely the case the check's own
-      `no-consumer: <reason>` escape was built for -- but that escape lives INSIDE the artifact,
-      and a landed audit is immutable (CLAUDE.md rule 3 of section 5), so the escape was
-      unreachable by the time the WARN existed. The register is the only remaining honest route.
-      Note for whoever revisits: the same artifact is separately dispositioned REJECTED for
-      `funnel_coverage` in docs/audits/2026-09-05-technical-r5-funnel-disposition-ledger.md --
-      two organs, two questions, one artifact, and both answers are "by design, nothing consumes
-      it".
-
-  # (removed 2026-09-06, operator consent -- DECLARE-GO-2026-09-06 ruling 4)
-  # warn-freshness-ungated-stale-deferred-285 -- it did exactly what its own reason promised.
-  # The entry was keyed on the COUNT AND the first filename ("ungated-and-stale: 3 -
-  # protocols/ENVIRONMENT.md") precisely so a fourth file going stale would miss the match and
-  # re-surface. A fourth did (`protocols/OPERATOR-INTERFACE.md`), the match missed, and the
-  # entry decorated stale on schedule. The live line is now owned by lanes 3.11 / 3.12 and, for
-  # OPERATOR-INTERFACE.md, by this lane's own A2 re-stamp -- an owner each, not a disposition
-  # standing in for one. Removed per ADR-75.
-
   # ---- R5/B11, ruled 2026-09-05 ----
   - id: warn-review-artifact-coverage-advisory-deferred-499
     organ: review_artifact_coverage
@@ -1195,35 +1167,409 @@ dispositions:
       would destroy the byte-identity the frozen-copy home exists to preserve, and
       `docs/audits/` is immutable besides (CLAUDE.md §5 rule 3).
 
-  - id: warn-consumer-batch-t-manifest
+  # ---- batch-U's own dispatch artifacts (2026-09-06) ----
+  # THE SAME CONSTRUCTION AS BATCH T ABOVE, ONE BATCH LATER, and recorded as a mirror rather than
+  # re-argued. The 2026-09-06 NIGHT-2 batch dispatched by landing its manifest and NINETEEN frozen
+  # lane contracts on main -- frozen at `75c84aa4`, merged at `25539b32` -- AFTER the step-0
+  # ship-gate measurement the W2-R lane contract's "undispositioned 3" was taken from. The dispatch
+  # itself therefore grew the unconsumed set by twenty. Deviation reported in
+  # to-browser/SESSION-lane-u-628-release-commit.md.
+  #
+  # THE CONSUMER IS DECLARED AND THE LINK CANNOT FIRE YET -- the whole disposition, and a fact about
+  # construction rather than a judgement. `docs/audits/2026-09-06-technical-batch-u-manifest.md`
+  # carries `closed_by: docs/audits/2026-09-07-technical-batch-u-close-packet.md`, and
+  # `batch_manifest.manifest_links` reads the closer's text as a citing surface. The closer cannot
+  # exist until the batch closes, and THIS LANE IS THE BATCH'S LAST -- so the packet lands after the
+  # merge that carries this entry, not before it.
+  #
+  # THE CHEAPER ROUTE WAS MEASURED AND REFUSED, not overlooked. Naming all 19 contracts by path in
+  # the close packet would resolve them `explicit` and skip these entries -- but the close packet is
+  # the `closed_by:` target, and `batch_manifest` resolves an OPEN batch partly on that path being
+  # ABSENT from the tree. Landing it early would close batch U mid-batch and kill the ADR-110
+  # exemption the remaining merges depend on. The register route is the one available before the
+  # close packet exists; the packet's later arrival is what decorates these entries `[stale]` --
+  # the same lifecycle that made batch T's two manifest entries stale and removable in this commit.
+  #
+  # AND THE SLUG ROUTE IS REFUSED BY NAME: `links_artifact` anchors the lane-slug leg on
+  # `artifact_tail`, which requires a `<date>-<class>-` prefix. `LANE-u-000-adr-carrier-split.md`
+  # has none, so the manifest's declared lane roster cannot reach its own contracts. Editing a
+  # frozen copy to add one would destroy the byte-identity the frozen-copy home exists to preserve,
+  # and `docs/audits/` is immutable besides (CLAUDE.md §5 rule 3).
+  #
+  # PRECISION: one entry per artifact (whole-Finding contract), each keyed on its own basename.
+
+  - id: warn-consumer-batch-u-lane-u-000-adr-carrier-split
     organ: consumer_at_landing
-    match: "2026-09-06-technical-batch-t-manifest.md"
-    ref: "docs/audits/2026-09-06-technical-batch-t-manifest.md; batch dispatched at c004ac8c"
+    match: "LANE-u-000-adr-carrier-split.md"
+    ref: "docs/audits/2026-09-06-technical-batch-u-manifest.md (`closed_by:` declared); batch frozen at 75c84aa4, merged at 25539b32; BATCH-2026-09-06-NIGHT-2-CONTRACTS.md"
     review_date: 2026-09-13
-    auto_clearable_by: "docs/audits/2026-09-06-technical-batch-t-close-packet.md -- the manifest's own declared closer"
+    auto_clearable_by: "docs/audits/2026-09-07-technical-batch-u-close-packet.md -- the declared closer; once it lands naming this contract, manifest_links resolves it `explicit` and this entry decorates stale"
+    reason: >-
+      IN-FLIGHT DISPATCH ARTIFACT, CONSUMER ALREADY DECLARED. `LANE-u-000-adr-carrier-split.md` is a frozen,
+      byte-identical copy of a batch-U lane contract, landed at dispatch under
+      `docs/audits/2026-09-06-technical-batch-u-launch-contracts/`. Its consumer is the batch-U
+      close packet the manifest already names in `closed_by:`; that packet is written when the
+      batch closes, so the link is pending on time rather than on anyone's decision. The
+      lane-slug route cannot substitute: `links_artifact` anchors on `artifact_tail`, which
+      needs a `<date>-<class>-` prefix this name does not carry. Editing the copy to add one
+      would destroy the byte-identity the frozen-copy home exists to preserve, and
+      `docs/audits/` is immutable besides (CLAUDE.md §5 rule 3).
+
+  - id: warn-consumer-batch-u-lane-u-000-adr-template-flip-condition
+    organ: consumer_at_landing
+    match: "LANE-u-000-adr-template-flip-condition.md"
+    ref: "docs/audits/2026-09-06-technical-batch-u-manifest.md (`closed_by:` declared); batch frozen at 75c84aa4, merged at 25539b32; BATCH-2026-09-06-NIGHT-2-CONTRACTS.md"
+    review_date: 2026-09-13
+    auto_clearable_by: "docs/audits/2026-09-07-technical-batch-u-close-packet.md -- the declared closer; once it lands naming this contract, manifest_links resolves it `explicit` and this entry decorates stale"
+    reason: >-
+      IN-FLIGHT DISPATCH ARTIFACT, CONSUMER ALREADY DECLARED. `LANE-u-000-adr-template-flip-condition.md` is a frozen,
+      byte-identical copy of a batch-U lane contract, landed at dispatch under
+      `docs/audits/2026-09-06-technical-batch-u-launch-contracts/`. Its consumer is the batch-U
+      close packet the manifest already names in `closed_by:`; that packet is written when the
+      batch closes, so the link is pending on time rather than on anyone's decision. The
+      lane-slug route cannot substitute: `links_artifact` anchors on `artifact_tail`, which
+      needs a `<date>-<class>-` prefix this name does not carry. Editing the copy to add one
+      would destroy the byte-identity the frozen-copy home exists to preserve, and
+      `docs/audits/` is immutable besides (CLAUDE.md §5 rule 3).
+
+  - id: warn-consumer-batch-u-lane-u-000-batch-p-local
+    organ: consumer_at_landing
+    match: "LANE-u-000-batch-p-local.md"
+    ref: "docs/audits/2026-09-06-technical-batch-u-manifest.md (`closed_by:` declared); batch frozen at 75c84aa4, merged at 25539b32; BATCH-2026-09-06-NIGHT-2-CONTRACTS.md"
+    review_date: 2026-09-13
+    auto_clearable_by: "docs/audits/2026-09-07-technical-batch-u-close-packet.md -- the declared closer; once it lands naming this contract, manifest_links resolves it `explicit` and this entry decorates stale"
+    reason: >-
+      IN-FLIGHT DISPATCH ARTIFACT, CONSUMER ALREADY DECLARED. `LANE-u-000-batch-p-local.md` is a frozen,
+      byte-identical copy of a batch-U lane contract, landed at dispatch under
+      `docs/audits/2026-09-06-technical-batch-u-launch-contracts/`. Its consumer is the batch-U
+      close packet the manifest already names in `closed_by:`; that packet is written when the
+      batch closes, so the link is pending on time rather than on anyone's decision. The
+      lane-slug route cannot substitute: `links_artifact` anchors on `artifact_tail`, which
+      needs a `<date>-<class>-` prefix this name does not carry. Editing the copy to add one
+      would destroy the byte-identity the frozen-copy home exists to preserve, and
+      `docs/audits/` is immutable besides (CLAUDE.md §5 rule 3).
+
+  - id: warn-consumer-batch-u-lane-u-000-batch-protocol-mechanisms
+    organ: consumer_at_landing
+    match: "LANE-u-000-batch-protocol-mechanisms.md"
+    ref: "docs/audits/2026-09-06-technical-batch-u-manifest.md (`closed_by:` declared); batch frozen at 75c84aa4, merged at 25539b32; BATCH-2026-09-06-NIGHT-2-CONTRACTS.md"
+    review_date: 2026-09-13
+    auto_clearable_by: "docs/audits/2026-09-07-technical-batch-u-close-packet.md -- the declared closer; once it lands naming this contract, manifest_links resolves it `explicit` and this entry decorates stale"
+    reason: >-
+      IN-FLIGHT DISPATCH ARTIFACT, CONSUMER ALREADY DECLARED. `LANE-u-000-batch-protocol-mechanisms.md` is a frozen,
+      byte-identical copy of a batch-U lane contract, landed at dispatch under
+      `docs/audits/2026-09-06-technical-batch-u-launch-contracts/`. Its consumer is the batch-U
+      close packet the manifest already names in `closed_by:`; that packet is written when the
+      batch closes, so the link is pending on time rather than on anyone's decision. The
+      lane-slug route cannot substitute: `links_artifact` anchors on `artifact_tail`, which
+      needs a `<date>-<class>-` prefix this name does not carry. Editing the copy to add one
+      would destroy the byte-identity the frozen-copy home exists to preserve, and
+      `docs/audits/` is immutable besides (CLAUDE.md §5 rule 3).
+
+  - id: warn-consumer-batch-u-lane-u-000-branch-enum-parity
+    organ: consumer_at_landing
+    match: "LANE-u-000-branch-enum-parity.md"
+    ref: "docs/audits/2026-09-06-technical-batch-u-manifest.md (`closed_by:` declared); batch frozen at 75c84aa4, merged at 25539b32; BATCH-2026-09-06-NIGHT-2-CONTRACTS.md"
+    review_date: 2026-09-13
+    auto_clearable_by: "docs/audits/2026-09-07-technical-batch-u-close-packet.md -- the declared closer; once it lands naming this contract, manifest_links resolves it `explicit` and this entry decorates stale"
+    reason: >-
+      IN-FLIGHT DISPATCH ARTIFACT, CONSUMER ALREADY DECLARED. `LANE-u-000-branch-enum-parity.md` is a frozen,
+      byte-identical copy of a batch-U lane contract, landed at dispatch under
+      `docs/audits/2026-09-06-technical-batch-u-launch-contracts/`. Its consumer is the batch-U
+      close packet the manifest already names in `closed_by:`; that packet is written when the
+      batch closes, so the link is pending on time rather than on anyone's decision. The
+      lane-slug route cannot substitute: `links_artifact` anchors on `artifact_tail`, which
+      needs a `<date>-<class>-` prefix this name does not carry. Editing the copy to add one
+      would destroy the byte-identity the frozen-copy home exists to preserve, and
+      `docs/audits/` is immutable besides (CLAUDE.md §5 rule 3).
+
+  - id: warn-consumer-batch-u-lane-u-000-carrier-floor-v150-mechanisms
+    organ: consumer_at_landing
+    match: "LANE-u-000-carrier-floor-v150-mechanisms.md"
+    ref: "docs/audits/2026-09-06-technical-batch-u-manifest.md (`closed_by:` declared); batch frozen at 75c84aa4, merged at 25539b32; BATCH-2026-09-06-NIGHT-2-CONTRACTS.md"
+    review_date: 2026-09-13
+    auto_clearable_by: "docs/audits/2026-09-07-technical-batch-u-close-packet.md -- the declared closer; once it lands naming this contract, manifest_links resolves it `explicit` and this entry decorates stale"
+    reason: >-
+      IN-FLIGHT DISPATCH ARTIFACT, CONSUMER ALREADY DECLARED. `LANE-u-000-carrier-floor-v150-mechanisms.md` is a frozen,
+      byte-identical copy of a batch-U lane contract, landed at dispatch under
+      `docs/audits/2026-09-06-technical-batch-u-launch-contracts/`. Its consumer is the batch-U
+      close packet the manifest already names in `closed_by:`; that packet is written when the
+      batch closes, so the link is pending on time rather than on anyone's decision. The
+      lane-slug route cannot substitute: `links_artifact` anchors on `artifact_tail`, which
+      needs a `<date>-<class>-` prefix this name does not carry. Editing the copy to add one
+      would destroy the byte-identity the frozen-copy home exists to preserve, and
+      `docs/audits/` is immutable besides (CLAUDE.md §5 rule 3).
+
+  - id: warn-consumer-batch-u-lane-u-000-closures-local
+    organ: consumer_at_landing
+    match: "LANE-u-000-closures-local.md"
+    ref: "docs/audits/2026-09-06-technical-batch-u-manifest.md (`closed_by:` declared); batch frozen at 75c84aa4, merged at 25539b32; BATCH-2026-09-06-NIGHT-2-CONTRACTS.md"
+    review_date: 2026-09-13
+    auto_clearable_by: "docs/audits/2026-09-07-technical-batch-u-close-packet.md -- the declared closer; once it lands naming this contract, manifest_links resolves it `explicit` and this entry decorates stale"
+    reason: >-
+      IN-FLIGHT DISPATCH ARTIFACT, CONSUMER ALREADY DECLARED. `LANE-u-000-closures-local.md` is a frozen,
+      byte-identical copy of a batch-U lane contract, landed at dispatch under
+      `docs/audits/2026-09-06-technical-batch-u-launch-contracts/`. Its consumer is the batch-U
+      close packet the manifest already names in `closed_by:`; that packet is written when the
+      batch closes, so the link is pending on time rather than on anyone's decision. The
+      lane-slug route cannot substitute: `links_artifact` anchors on `artifact_tail`, which
+      needs a `<date>-<class>-` prefix this name does not carry. Editing the copy to add one
+      would destroy the byte-identity the frozen-copy home exists to preserve, and
+      `docs/audits/` is immutable besides (CLAUDE.md §5 rule 3).
+
+  - id: warn-consumer-batch-u-lane-u-000-deploy-tool-consumer-override
+    organ: consumer_at_landing
+    match: "LANE-u-000-deploy-tool-consumer-override.md"
+    ref: "docs/audits/2026-09-06-technical-batch-u-manifest.md (`closed_by:` declared); batch frozen at 75c84aa4, merged at 25539b32; BATCH-2026-09-06-NIGHT-2-CONTRACTS.md"
+    review_date: 2026-09-13
+    auto_clearable_by: "docs/audits/2026-09-07-technical-batch-u-close-packet.md -- the declared closer; once it lands naming this contract, manifest_links resolves it `explicit` and this entry decorates stale"
+    reason: >-
+      IN-FLIGHT DISPATCH ARTIFACT, CONSUMER ALREADY DECLARED. `LANE-u-000-deploy-tool-consumer-override.md` is a frozen,
+      byte-identical copy of a batch-U lane contract, landed at dispatch under
+      `docs/audits/2026-09-06-technical-batch-u-launch-contracts/`. Its consumer is the batch-U
+      close packet the manifest already names in `closed_by:`; that packet is written when the
+      batch closes, so the link is pending on time rather than on anyone's decision. The
+      lane-slug route cannot substitute: `links_artifact` anchors on `artifact_tail`, which
+      needs a `<date>-<class>-` prefix this name does not carry. Editing the copy to add one
+      would destroy the byte-identity the frozen-copy home exists to preserve, and
+      `docs/audits/` is immutable besides (CLAUDE.md §5 rule 3).
+
+  - id: warn-consumer-batch-u-lane-u-000-derived-copies-registry
+    organ: consumer_at_landing
+    match: "LANE-u-000-derived-copies-registry.md"
+    ref: "docs/audits/2026-09-06-technical-batch-u-manifest.md (`closed_by:` declared); batch frozen at 75c84aa4, merged at 25539b32; BATCH-2026-09-06-NIGHT-2-CONTRACTS.md"
+    review_date: 2026-09-13
+    auto_clearable_by: "docs/audits/2026-09-07-technical-batch-u-close-packet.md -- the declared closer; once it lands naming this contract, manifest_links resolves it `explicit` and this entry decorates stale"
+    reason: >-
+      IN-FLIGHT DISPATCH ARTIFACT, CONSUMER ALREADY DECLARED. `LANE-u-000-derived-copies-registry.md` is a frozen,
+      byte-identical copy of a batch-U lane contract, landed at dispatch under
+      `docs/audits/2026-09-06-technical-batch-u-launch-contracts/`. Its consumer is the batch-U
+      close packet the manifest already names in `closed_by:`; that packet is written when the
+      batch closes, so the link is pending on time rather than on anyone's decision. The
+      lane-slug route cannot substitute: `links_artifact` anchors on `artifact_tail`, which
+      needs a `<date>-<class>-` prefix this name does not carry. Editing the copy to add one
+      would destroy the byte-identity the frozen-copy home exists to preserve, and
+      `docs/audits/` is immutable besides (CLAUDE.md §5 rule 3).
+
+  - id: warn-consumer-batch-u-lane-u-000-dispatch-receipt-is-work
+    organ: consumer_at_landing
+    match: "LANE-u-000-dispatch-receipt-is-work.md"
+    ref: "docs/audits/2026-09-06-technical-batch-u-manifest.md (`closed_by:` declared); batch frozen at 75c84aa4, merged at 25539b32; BATCH-2026-09-06-NIGHT-2-CONTRACTS.md"
+    review_date: 2026-09-13
+    auto_clearable_by: "docs/audits/2026-09-07-technical-batch-u-close-packet.md -- the declared closer; once it lands naming this contract, manifest_links resolves it `explicit` and this entry decorates stale"
+    reason: >-
+      IN-FLIGHT DISPATCH ARTIFACT, CONSUMER ALREADY DECLARED. `LANE-u-000-dispatch-receipt-is-work.md` is a frozen,
+      byte-identical copy of a batch-U lane contract, landed at dispatch under
+      `docs/audits/2026-09-06-technical-batch-u-launch-contracts/`. Its consumer is the batch-U
+      close packet the manifest already names in `closed_by:`; that packet is written when the
+      batch closes, so the link is pending on time rather than on anyone's decision. The
+      lane-slug route cannot substitute: `links_artifact` anchors on `artifact_tail`, which
+      needs a `<date>-<class>-` prefix this name does not carry. Editing the copy to add one
+      would destroy the byte-identity the frozen-copy home exists to preserve, and
+      `docs/audits/` is immutable besides (CLAUDE.md §5 rule 3).
+
+  - id: warn-consumer-batch-u-lane-u-000-erratum-aj-second-pass
+    organ: consumer_at_landing
+    match: "LANE-u-000-erratum-aj-second-pass.md"
+    ref: "docs/audits/2026-09-06-technical-batch-u-manifest.md (`closed_by:` declared); batch frozen at 75c84aa4, merged at 25539b32; BATCH-2026-09-06-NIGHT-2-CONTRACTS.md"
+    review_date: 2026-09-13
+    auto_clearable_by: "docs/audits/2026-09-07-technical-batch-u-close-packet.md -- the declared closer; once it lands naming this contract, manifest_links resolves it `explicit` and this entry decorates stale"
+    reason: >-
+      IN-FLIGHT DISPATCH ARTIFACT, CONSUMER ALREADY DECLARED. `LANE-u-000-erratum-aj-second-pass.md` is a frozen,
+      byte-identical copy of a batch-U lane contract, landed at dispatch under
+      `docs/audits/2026-09-06-technical-batch-u-launch-contracts/`. Its consumer is the batch-U
+      close packet the manifest already names in `closed_by:`; that packet is written when the
+      batch closes, so the link is pending on time rather than on anyone's decision. The
+      lane-slug route cannot substitute: `links_artifact` anchors on `artifact_tail`, which
+      needs a `<date>-<class>-` prefix this name does not carry. Editing the copy to add one
+      would destroy the byte-identity the frozen-copy home exists to preserve, and
+      `docs/audits/` is immutable besides (CLAUDE.md §5 rule 3).
+
+  - id: warn-consumer-batch-u-lane-u-000-handoff-v71-build
+    organ: consumer_at_landing
+    match: "LANE-u-000-handoff-v71-build.md"
+    ref: "docs/audits/2026-09-06-technical-batch-u-manifest.md (`closed_by:` declared); batch frozen at 75c84aa4, merged at 25539b32; BATCH-2026-09-06-NIGHT-2-CONTRACTS.md"
+    review_date: 2026-09-13
+    auto_clearable_by: "docs/audits/2026-09-07-technical-batch-u-close-packet.md -- the declared closer; once it lands naming this contract, manifest_links resolves it `explicit` and this entry decorates stale"
+    reason: >-
+      IN-FLIGHT DISPATCH ARTIFACT, CONSUMER ALREADY DECLARED. `LANE-u-000-handoff-v71-build.md` is a frozen,
+      byte-identical copy of a batch-U lane contract, landed at dispatch under
+      `docs/audits/2026-09-06-technical-batch-u-launch-contracts/`. Its consumer is the batch-U
+      close packet the manifest already names in `closed_by:`; that packet is written when the
+      batch closes, so the link is pending on time rather than on anyone's decision. The
+      lane-slug route cannot substitute: `links_artifact` anchors on `artifact_tail`, which
+      needs a `<date>-<class>-` prefix this name does not carry. Editing the copy to add one
+      would destroy the byte-identity the frozen-copy home exists to preserve, and
+      `docs/audits/` is immutable besides (CLAUDE.md §5 rule 3).
+
+  - id: warn-consumer-batch-u-lane-u-000-intake-id-next-free
+    organ: consumer_at_landing
+    match: "LANE-u-000-intake-id-next-free.md"
+    ref: "docs/audits/2026-09-06-technical-batch-u-manifest.md (`closed_by:` declared); batch frozen at 75c84aa4, merged at 25539b32; BATCH-2026-09-06-NIGHT-2-CONTRACTS.md"
+    review_date: 2026-09-13
+    auto_clearable_by: "docs/audits/2026-09-07-technical-batch-u-close-packet.md -- the declared closer; once it lands naming this contract, manifest_links resolves it `explicit` and this entry decorates stale"
+    reason: >-
+      IN-FLIGHT DISPATCH ARTIFACT, CONSUMER ALREADY DECLARED. `LANE-u-000-intake-id-next-free.md` is a frozen,
+      byte-identical copy of a batch-U lane contract, landed at dispatch under
+      `docs/audits/2026-09-06-technical-batch-u-launch-contracts/`. Its consumer is the batch-U
+      close packet the manifest already names in `closed_by:`; that packet is written when the
+      batch closes, so the link is pending on time rather than on anyone's decision. The
+      lane-slug route cannot substitute: `links_artifact` anchors on `artifact_tail`, which
+      needs a `<date>-<class>-` prefix this name does not carry. Editing the copy to add one
+      would destroy the byte-identity the frozen-copy home exists to preserve, and
+      `docs/audits/` is immutable besides (CLAUDE.md §5 rule 3).
+
+  - id: warn-consumer-batch-u-lane-u-000-plugin-version-record-and-drift
+    organ: consumer_at_landing
+    match: "LANE-u-000-plugin-version-record-and-drift.md"
+    ref: "docs/audits/2026-09-06-technical-batch-u-manifest.md (`closed_by:` declared); batch frozen at 75c84aa4, merged at 25539b32; BATCH-2026-09-06-NIGHT-2-CONTRACTS.md"
+    review_date: 2026-09-13
+    auto_clearable_by: "docs/audits/2026-09-07-technical-batch-u-close-packet.md -- the declared closer; once it lands naming this contract, manifest_links resolves it `explicit` and this entry decorates stale"
+    reason: >-
+      IN-FLIGHT DISPATCH ARTIFACT, CONSUMER ALREADY DECLARED. `LANE-u-000-plugin-version-record-and-drift.md` is a frozen,
+      byte-identical copy of a batch-U lane contract, landed at dispatch under
+      `docs/audits/2026-09-06-technical-batch-u-launch-contracts/`. Its consumer is the batch-U
+      close packet the manifest already names in `closed_by:`; that packet is written when the
+      batch closes, so the link is pending on time rather than on anyone's decision. The
+      lane-slug route cannot substitute: `links_artifact` anchors on `artifact_tail`, which
+      needs a `<date>-<class>-` prefix this name does not carry. Editing the copy to add one
+      would destroy the byte-identity the frozen-copy home exists to preserve, and
+      `docs/audits/` is immutable besides (CLAUDE.md §5 rule 3).
+
+  - id: warn-consumer-batch-u-lane-u-000-prompts-dir-guard
+    organ: consumer_at_landing
+    match: "LANE-u-000-prompts-dir-guard.md"
+    ref: "docs/audits/2026-09-06-technical-batch-u-manifest.md (`closed_by:` declared); batch frozen at 75c84aa4, merged at 25539b32; BATCH-2026-09-06-NIGHT-2-CONTRACTS.md"
+    review_date: 2026-09-13
+    auto_clearable_by: "docs/audits/2026-09-07-technical-batch-u-close-packet.md -- the declared closer; once it lands naming this contract, manifest_links resolves it `explicit` and this entry decorates stale"
+    reason: >-
+      IN-FLIGHT DISPATCH ARTIFACT, CONSUMER ALREADY DECLARED. `LANE-u-000-prompts-dir-guard.md` is a frozen,
+      byte-identical copy of a batch-U lane contract, landed at dispatch under
+      `docs/audits/2026-09-06-technical-batch-u-launch-contracts/`. Its consumer is the batch-U
+      close packet the manifest already names in `closed_by:`; that packet is written when the
+      batch closes, so the link is pending on time rather than on anyone's decision. The
+      lane-slug route cannot substitute: `links_artifact` anchors on `artifact_tail`, which
+      needs a `<date>-<class>-` prefix this name does not carry. Editing the copy to add one
+      would destroy the byte-identity the frozen-copy home exists to preserve, and
+      `docs/audits/` is immutable besides (CLAUDE.md §5 rule 3).
+
+  - id: warn-consumer-batch-u-lane-u-000-seal-report-fleet
+    organ: consumer_at_landing
+    match: "LANE-u-000-seal-report-fleet.md"
+    ref: "docs/audits/2026-09-06-technical-batch-u-manifest.md (`closed_by:` declared); batch frozen at 75c84aa4, merged at 25539b32; BATCH-2026-09-06-NIGHT-2-CONTRACTS.md"
+    review_date: 2026-09-13
+    auto_clearable_by: "docs/audits/2026-09-07-technical-batch-u-close-packet.md -- the declared closer; once it lands naming this contract, manifest_links resolves it `explicit` and this entry decorates stale"
+    reason: >-
+      IN-FLIGHT DISPATCH ARTIFACT, CONSUMER ALREADY DECLARED. `LANE-u-000-seal-report-fleet.md` is a frozen,
+      byte-identical copy of a batch-U lane contract, landed at dispatch under
+      `docs/audits/2026-09-06-technical-batch-u-launch-contracts/`. Its consumer is the batch-U
+      close packet the manifest already names in `closed_by:`; that packet is written when the
+      batch closes, so the link is pending on time rather than on anyone's decision. The
+      lane-slug route cannot substitute: `links_artifact` anchors on `artifact_tail`, which
+      needs a `<date>-<class>-` prefix this name does not carry. Editing the copy to add one
+      would destroy the byte-identity the frozen-copy home exists to preserve, and
+      `docs/audits/` is immutable besides (CLAUDE.md §5 rule 3).
+
+  - id: warn-consumer-batch-u-lane-u-000-shape-spec-finalize
+    organ: consumer_at_landing
+    match: "LANE-u-000-shape-spec-finalize.md"
+    ref: "docs/audits/2026-09-06-technical-batch-u-manifest.md (`closed_by:` declared); batch frozen at 75c84aa4, merged at 25539b32; BATCH-2026-09-06-NIGHT-2-CONTRACTS.md"
+    review_date: 2026-09-13
+    auto_clearable_by: "docs/audits/2026-09-07-technical-batch-u-close-packet.md -- the declared closer; once it lands naming this contract, manifest_links resolves it `explicit` and this entry decorates stale"
+    reason: >-
+      IN-FLIGHT DISPATCH ARTIFACT, CONSUMER ALREADY DECLARED. `LANE-u-000-shape-spec-finalize.md` is a frozen,
+      byte-identical copy of a batch-U lane contract, landed at dispatch under
+      `docs/audits/2026-09-06-technical-batch-u-launch-contracts/`. Its consumer is the batch-U
+      close packet the manifest already names in `closed_by:`; that packet is written when the
+      batch closes, so the link is pending on time rather than on anyone's decision. The
+      lane-slug route cannot substitute: `links_artifact` anchors on `artifact_tail`, which
+      needs a `<date>-<class>-` prefix this name does not carry. Editing the copy to add one
+      would destroy the byte-identity the frozen-copy home exists to preserve, and
+      `docs/audits/` is immutable besides (CLAUDE.md §5 rule 3).
+
+  - id: warn-consumer-batch-u-lane-u-000-trace-scorecard-consumer
+    organ: consumer_at_landing
+    match: "LANE-u-000-trace-scorecard-consumer.md"
+    ref: "docs/audits/2026-09-06-technical-batch-u-manifest.md (`closed_by:` declared); batch frozen at 75c84aa4, merged at 25539b32; BATCH-2026-09-06-NIGHT-2-CONTRACTS.md"
+    review_date: 2026-09-13
+    auto_clearable_by: "docs/audits/2026-09-07-technical-batch-u-close-packet.md -- the declared closer; once it lands naming this contract, manifest_links resolves it `explicit` and this entry decorates stale"
+    reason: >-
+      IN-FLIGHT DISPATCH ARTIFACT, CONSUMER ALREADY DECLARED. `LANE-u-000-trace-scorecard-consumer.md` is a frozen,
+      byte-identical copy of a batch-U lane contract, landed at dispatch under
+      `docs/audits/2026-09-06-technical-batch-u-launch-contracts/`. Its consumer is the batch-U
+      close packet the manifest already names in `closed_by:`; that packet is written when the
+      batch closes, so the link is pending on time rather than on anyone's decision. The
+      lane-slug route cannot substitute: `links_artifact` anchors on `artifact_tail`, which
+      needs a `<date>-<class>-` prefix this name does not carry. Editing the copy to add one
+      would destroy the byte-identity the frozen-copy home exists to preserve, and
+      `docs/audits/` is immutable besides (CLAUDE.md §5 rule 3).
+
+  - id: warn-consumer-batch-u-lane-u-628-release-commit
+    organ: consumer_at_landing
+    match: "LANE-u-628-release-commit.md"
+    ref: "docs/audits/2026-09-06-technical-batch-u-manifest.md (`closed_by:` declared); batch frozen at 75c84aa4, merged at 25539b32; BATCH-2026-09-06-NIGHT-2-CONTRACTS.md"
+    review_date: 2026-09-13
+    auto_clearable_by: "docs/audits/2026-09-07-technical-batch-u-close-packet.md -- the declared closer; once it lands naming this contract, manifest_links resolves it `explicit` and this entry decorates stale"
+    reason: >-
+      IN-FLIGHT DISPATCH ARTIFACT, CONSUMER ALREADY DECLARED. `LANE-u-628-release-commit.md` is a frozen,
+      byte-identical copy of a batch-U lane contract, landed at dispatch under
+      `docs/audits/2026-09-06-technical-batch-u-launch-contracts/`. Its consumer is the batch-U
+      close packet the manifest already names in `closed_by:`; that packet is written when the
+      batch closes, so the link is pending on time rather than on anyone's decision. The
+      lane-slug route cannot substitute: `links_artifact` anchors on `artifact_tail`, which
+      needs a `<date>-<class>-` prefix this name does not carry. Editing the copy to add one
+      would destroy the byte-identity the frozen-copy home exists to preserve, and
+      `docs/audits/` is immutable besides (CLAUDE.md §5 rule 3).
+
+  - id: warn-consumer-batch-u-manifest
+    organ: consumer_at_landing
+    match: "2026-09-06-technical-batch-u-manifest.md"
+    ref: "docs/audits/2026-09-06-technical-batch-u-manifest.md; batch frozen at 75c84aa4, merged at 25539b32"
+    review_date: 2026-09-13
+    auto_clearable_by: "docs/audits/2026-09-07-technical-batch-u-close-packet.md -- the manifest's own declared closer"
     reason: >-
       THE MANIFEST IS A CITER THAT IS NOT ITSELF CITED -- the same self-reference the funnel
       ledger has (a ledger's last row names itself), arriving from the other side. A batch
       manifest is admitted to the governance pool as a CITING surface by the 2026-09-05 operator
       ruling, but nothing in the pool cites the manifest back until its close packet lands and
-      names it. Net-neutral by construction, exactly as this module's docstring records for
-      ledgers: every new manifest lands as one more undispositioned artifact.
+      names it. Net-neutral by construction: every new manifest lands as one more undispositioned
+      artifact. Batch T's identical entry is REMOVED in this same commit, its close packet having
+      landed -- so this pair is the lifecycle turning over, not a new class.
 
-  - id: warn-funnel-batch-t-manifest
+  - id: warn-funnel-batch-u-manifest
     organ: funnel_coverage
-    match: "2026-09-06-technical-batch-t-manifest.md"
+    match: "2026-09-06-technical-batch-u-manifest.md"
     ref: "architect ruling 2026-08-17 (the disposition-ledger shape); DECLARE-GO-2026-09-06 ruling 5 (the batch's own GO)"
     review_date: 2026-09-13
-    auto_clearable_by: "the batch-T close packet's disposition ledger row for this manifest"
+    auto_clearable_by: "the batch-U close packet's disposition ledger row for this manifest"
     reason: >-
       PENDING -- the exact question is **what disposition does a batch manifest take while its
       batch is still running?** and it is not answerable tonight without lying. The ruled closed
       set is ACTIONED / FILED / REJECTED / SUPERSEDED, and every one of them asserts a finished
       state: ACTIONED needs a landed conclusion, FILED needs a row, REJECTED needs a ruling,
-      SUPERSEDED needs a successor. Batch T is OPEN -- this lane is one of its wave-1 lanes and
-      is writing this entry from inside it. The ruling's own tie-break governs: *"a wrong
-      ACTIONED is worse than an honest PENDING"*. The disposition lands in the close packet's
-      ledger at dawn, with the batch's outcome as its evidence locator.
+      SUPERSEDED needs a successor. Batch U is OPEN -- this lane is its LAST lane and is writing
+      this entry from inside it, before the integrator's final merge. The ruling's own tie-break
+      governs: *"a wrong ACTIONED is worse than an honest PENDING"*. The disposition lands in the
+      close packet's ledger at dawn, with the batch's outcome as its evidence locator.
+
+  - id: warn-funnel-seal-report-fleet
+    organ: funnel_coverage
+    match: "2026-09-07-technical-seal-report-fleet.md"
+    ref: "docs/intake/2026-09-05-tech-shape-spec-tree-seal-to-consumers.md (intake #73, ACCEPTED by DECLARE-SITTING-2026-09-06 D5); DECLARE-SITTING-2026-09-06 D13 (the citation act this entry IS)"
+    review_date: 2026-09-13
+    auto_clearable_by: "intake #73's promotion to an ADR or epic, whichever consumes the shape spec -- at which point the measurement is cited from the successor and this entry decorates stale"
+    reason: >-
+      FILED -> intake #73. This is the fleet-wide seal measurement, and intake #73 is the row that
+      consumes it: the shape spec IS the pattern the seal measures a repo against, and the report
+      is its evidence rather than an independent finding needing its own disposition. #73 was
+      ACCEPTED at the 2026-09-06 sitting (D5, with the amendment that the sanctioned dir set is the
+      fleet grammar rather than the hub's tree snapshot) -- so the receiving row exists and is
+      ratified, which is what FILED requires and what distinguishes this from the PENDING entries
+      above. Its per-repo predecessor
+      `docs/audits/2026-09-06-technical-seal-report-corp-monorepo.md` is already named in #73's own
+      frontmatter as companion evidence; this entry files the fleet run to the same row. NOT a
+      disposition written to move a number: the consumer is named, ratified and openable.
+      Recorded by DECLARE-SITTING-2026-09-06 D13, which authorises exactly this act.
 
   # ---- substrate_declaration: the three batch-T CLOUD lanes (2026-09-06) ----
   # ALSO OUTSIDE THIS LANE'S FROZEN 36 and reported as a deviation -- these arrived with the same

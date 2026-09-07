@@ -25,7 +25,7 @@ ledger and inbox item 012-A, which file the gate (2) note below.
 | 1 | ship-gate reports 0 hard-fail and 0 undispositioned at `main` | — | OPEN |
 | 2 | `CLAUDE.md` first-read ESSENTIALS line removed in the release commit (`[#628]` closure) | see note below | OPEN — deferral recorded |
 | 3 | doc-counts in sync via the commit-gate derivation (R5P L2) | — | OPEN |
-| 4 | fleet-readiness §4 runbook merged with the local amendment | — | OPEN |
+| 4 | fleet-readiness §4 runbook merged with `docs/audits/2026-09-05-technical-fleet-readiness.md` §4 (*H0 runbook — corp-monorepo*) on `main` | — | OPEN |
 | 5 | the release commit is the ONLY commit touching hub regions and the manifest version together | see note below | OPEN — one nearby act cleared |
 
 ## Gate 2 — the ESSENTIALS deferral (filed by inbox item 012-A, 2026-09-05)
@@ -38,6 +38,18 @@ The distinction worth keeping when this gate is finally closed: `CLAUDE.md` alre
 to `protocols/ESSENTIALS.md` (v2.72 de-blessed every citation), so what remains for the release
 commit is the **first-read line itself**, not the citations. The file's body also stays —
 `status: superseded`, dissolution still owed under `[#628]`.
+
+## Gate 4 — the referent, replaced (ruling D12, sitting of 2026-09-06)
+
+**Gate 4 previously read *"merged with the local amendment"*, and "the local amendment" resolved to
+nothing on `main`.** A gate whose witness cannot be opened is not a gate. `DECLARE-SITTING-2026-09-06.md`
+D12 rules the fix as a **replacement, not an append**: the phrase gives way to the H0 runbook's actual
+path on `main`, `docs/audits/2026-09-05-technical-fleet-readiness.md` §4 (*H0 runbook — corp-monorepo*).
+
+**The gate stays OPEN.** D12 replaced its *referent*, not its *state* — the same ruling keeps `[#628]`
+open, and nothing in this lane merges that runbook. What changed is that a reader can now resolve what
+gate 4 is waiting for. Filled by lane `lane-u-628-release-commit` (batch U, W2-R), which owns this edit
+per D12's "the checklist edit rides lane 3.14's branch".
 
 ## Gate 5 — what a non-release commit may touch, and one act that cleared it
 
