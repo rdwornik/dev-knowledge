@@ -10,4 +10,4 @@
 - ADR-114 (**Accepted**, 2026-08-22): May a root `README.md` be recreated — and what does substituting a canonical living-doc filename actually cost?
 - ADR-115 (Accepted, 2026-08-25): `AGENTS.md` is the portable instruction layer — ADR-53 Decision 2 superseded and the ADR-101 Tier-1 file class amended in ONE act
 - ADR-116 (Proposed, 2026-08-29): The fuzzy-band acceptance shape — non-binary closure for decks, prose and judgment artifacts
-- ADR-117 (Proposed <!-- DECLARE-F F-1 calls this state "DRAFT"; `Proposed` is the enum's spelling of it. NOT ratified. See "Status wording" below. -->, 2026-09-06): Carrier split by divergence — push for pinnable/waivable, pull for fleet-uniform
+- ADR-117 (Proposed, 2026-09-06): Carrier split by divergence — push for pinnable/waivable, pull for fleet-uniform
