@@ -19,6 +19,50 @@
 
 ---
 
+### 2026-09-08 (a) - CC (Opus 5, DISPATCHER-CLOSE): the ship-gate drops 49 to 6, and the number that matters is the 19 that were fixed instead of silenced
+
+**Anchors `301f2266` and `77322d48`.** Batch CLOSE lane C-1 drained the #147 disposition
+register: 49 undispositioned WARN to 6, 7 stale entries to 0, 0 hard-fail throughout.
+
+**A gate can be walked to green two ways, and only one of them is worth anything.** 19 of
+the 49 were **fixed**: `[#637]` gives the 18 SWEEP censuses and the closure-proposals audit
+a real governance consumer, and `unconsumed beyond baseline` then fell 59 to 40 **on
+measurement**. No register entry was written for those 19, deliberately. The 21
+`funnel_coverage` findings that were dispositioned each carry a narrow per-artifact `match`,
+a resolving `ref`, a `review_date` and an `auto_clearable_by` condition -- so they expire
+rather than accumulate, which is the whole difference between a disposition and a silence.
+
+**The most valuable thing the lane did was REFUSE to disposition four findings.**
+`proof_layer` renders all four new guards with a byte-identical evidence string -- it names
+the module, never the guard key -- so no `match` narrow enough to be honest exists. One
+entry would have suppressed all four *plus the next guard added to that module*. The lane
+filed `[#638]` and left them visible. A register entry that would silence a guard nobody has
+written yet is not a disposition; it is a trap set for a future session.
+
+**The dispatching contract was wrong in five separate places**, and every one was found by
+reading live state instead of trusting the paste: 50 undispositioned was 49; 5 stale was 7;
+"18 audits without consumers" was 21, and the contract omitted a **mirror block of 21
+`funnel_coverage` findings entirely** -- the larger of the two gaps. It also cited
+"DECLARE-REVIEWS finding R-5" as the authority for organ retirement, and **that document
+resolves nowhere in this tree**; `[#639]` was filed against the telemetry design's own
+criterion instead, with the unresolved locator recorded rather than papered over.
+
+**`[#639]` proposes and does not execute, for a reason worth keeping.** Five organs measure
+fires>0/blocks=0, but two of them -- `no_ff_merges` and `journal_spine_anchor` -- are
+core-invariant BACKSTOPS whose entire value is the FAIL they would raise on a first
+violation. A naive read of "retire what never blocks" retires exactly the two organs least
+safe to retire.
+
+**Did:** armed the E-29 PreToolUse guard (entry (v)); step-0 census -- queue already empty,
+one HOLD branch, zero stray worktrees; ran C-1/C-2/C-3 in parallel; reviewed and merged C-1.
+**Result:** ship-gate RED 6/0-FAIL with every remainder named and owned; 4 rows filed
+(`[#637]`-`[#640]`).
+**Changes:** `ecosystem/disposition-register.yaml`, `tasks/637`-`640`, `BACKLOG.md`.
+**Abandoned:** nothing.
+**Next:** merge C-2 (expect a BACKLOG.md conflict -- its base predates `[#637]`-`[#640]`, so
+its regen DROPS those rows; reset to main's side and re-derive, never take a side), then C-4,
+then the C-5 handoff cut.
+
 ### 2026-09-07 (v) - CC (Opus 5, DISPATCHER-CLOSE): the refusing leg is armed, and the thing that made it safe is an ordering, not a fix
 
 **Anchors `9be0e986`.** The E-29 / inbox 013-A prompts-dir guard has shipped since 2026-09-06
